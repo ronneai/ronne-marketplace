@@ -56,12 +56,12 @@ reads `TEST_DATABASE_URL`.
 
 ## Acceptance criteria
 
-- [ ] A pull request runs the `db` job for all four databases, and each must pass before merging.
-- [ ] A query that works on SQLite but not PostgreSQL (for example `LIKE` case sensitivity without the helper) makes the PostgreSQL entry fail.
-- [ ] The setup smoke test passes on all four.
-- [ ] The weekly run uses the latest versions and reports failures without blocking pull requests.
-- [ ] `pnpm test:db:postgres` (and the other two) work locally with the compose file.
-- [ ] The supported versions are listed in MVP §5 and the README.
+- [x] A pull request runs the `db` job for all four databases, and each must pass before merging.
+- [x] A query that works on SQLite but not PostgreSQL (for example `LIKE` case sensitivity without the helper) makes the PostgreSQL entry fail.
+- [x] The setup smoke test passes on all four.
+- [x] The weekly run uses the latest versions and reports failures without blocking pull requests.
+- [x] `pnpm test:db:postgres` (and the other two) work locally with the compose file.
+- [x] The supported versions are listed in MVP §5 and the README.
 
 ## Open questions
 
