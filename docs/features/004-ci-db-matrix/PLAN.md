@@ -13,7 +13,7 @@
 - [ ] **3. CI matrix.** The `db` job with service containers, health checks and `TEST_DATABASE_URL` per entry.
   *Done when:* a pull request shows four green `db` entries.
 
-- [ ] **4. Setup smoke test.** A script or test that runs `pnpm run setup --yes` against a fresh database and checks the result. Added to each matrix entry.
+- [x] **4. Setup smoke test.** A script or test that runs `pnpm run setup --yes` against a fresh database and checks the result. Added to each matrix entry.
   *Done when:* it passes in all four entries.
 
 - [ ] **5. Prove it catches breakage.** On a throwaway branch, replace one `containsInsensitive` call with a raw `LIKE`.
@@ -39,4 +39,8 @@
   - The actions are pinned to the same SHAs as `ci.yml`, with `permissions: contents: read` and `persist-credentials: false`.
   - The YAML parses, and the images and health commands are the ones proven locally with `docker/test-databases.compose.yml`.
   - **After merging,** add the three `Database tests (…)` checks to the required checks on `main`.
+- **Task 4 (2026-09-27): setup smoke test, already built in 003.**
+  - `scripts/setup.db.test.ts` ("pnpm run setup --yes against a server") runs the real script against an empty database from `createTestDb({ migrate: false })`, and checks that root exists. `run-setup.db.test.ts` also runs the flow with a wrong password first.
+  - Both are `*.db.test.ts`, so they're in the `db` project that `database.yml` runs per server. Checked by name with the verbose reporter: they run, rather than skip, and pass on PostgreSQL 15, MySQL 8.4 and MariaDB 10.11.
+  - Fixed `test-db.mjs` to drop the literal `--` that `pnpm test:db:<db> -- <file>` passes along, so a file filter now reaches Vitest.
 
