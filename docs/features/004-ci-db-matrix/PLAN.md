@@ -43,4 +43,12 @@
   - `scripts/setup.db.test.ts` ("pnpm run setup --yes against a server") runs the real script against an empty database from `createTestDb({ migrate: false })`, and checks that root exists. `run-setup.db.test.ts` also runs the flow with a wrong password first.
   - Both are `*.db.test.ts`, so they're in the `db` project that `database.yml` runs per server. Checked by name with the verbose reporter: they run, rather than skip, and pass on PostgreSQL 15, MySQL 8.4 and MariaDB 10.11.
   - Fixed `test-db.mjs` to drop the literal `--` that `pnpm test:db:<db> -- <file>` passes along, so a file filter now reaches Vitest.
+- **Task 5 (2026-09-27): breakage proof, done locally but not yet ticked.** The GitHub version (a throwaway branch where the PostgreSQL job goes red) needs a push, which waits for the owner.
+  - **Local proof,** with the same `db` project and the same images as `database.yml`: `containsInsensitive` was temporarily changed to a raw `column LIKE pattern` (no `lower()`). Results:
+    - SQLite: passes (51 passed, 7 skipped);
+    - MySQL 8.4: passes (58/58);
+    - MariaDB 10.11: passes (58/58);
+    - **PostgreSQL 15 fails** "containsInsensitive on a real database › ignores case" (57/58).
+
+    SQLite's `LIKE` and MySQL/MariaDB's default collations ignore case; PostgreSQL's `LIKE` doesn't. So only the PostgreSQL entry catches it. The change was reverted and never committed.
 
