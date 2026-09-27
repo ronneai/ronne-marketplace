@@ -62,7 +62,7 @@ Open http://localhost:3000 (or set `RONNE_PORT` before `up`). Until setup has ru
 "This instance isn't set up yet", and `/api/health` answers `503`.
 
 - **Your data** (the SQLite file, stored items and the settings file) lives in the `ronne-data`
-  volume, mounted at `/app/data`. Recreating or upgrading the container keeps it. Back up that volume.
+  volume (Docker names it `ronne-marketplace_ronne-data`), mounted at `/app/data`. Recreating or upgrading the container keeps it. Back up that volume.
 - **Upgrading:** pull the new code, then `docker compose up -d --build`. Pending database migrations run
   when the container starts. If they fail, the container stops instead of serving a half-migrated database.
 - **PostgreSQL or MySQL instead of SQLite:** `docker compose --profile postgres up -d` (or

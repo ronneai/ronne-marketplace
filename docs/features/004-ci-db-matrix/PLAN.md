@@ -10,7 +10,7 @@
 - [x] **2. Local test databases.** `docker/test-databases.compose.yml` and the `pnpm test:db:*` scripts.
   *Done when:* all three scripts pass locally, and the result is recorded in Notes.
 
-- [ ] **3. CI matrix.** The `db` job with service containers, health checks and `TEST_DATABASE_URL` per entry.
+- [x] **3. CI matrix.** The `db` job with service containers, health checks and `TEST_DATABASE_URL` per entry.
   *Done when:* a pull request shows four green `db` entries.
 
 - [x] **4. Setup smoke test.** A script or test that runs `pnpm run setup --yes` against a fresh database and checks the result. Added to each matrix entry.
@@ -57,4 +57,6 @@
 - **Task 7 (2026-09-27): docs.**
   - MVP §5 lists the supported databases and how they're tested. The README already had them (from 003), and gained the `test:db` commands.
   - CLAUDE.md gained the `test:db` commands, the database workflow in its CI summary, and a rule: run database code against the servers before committing.
+- **Task 3 confirmed on GitHub (PR #10):** `Database tests (postgres|mysql|mariadb)` each ran 58/58 against their service containers, with nothing skipped, so the server-only tests ran. PR #11 later showed one MySQL test timing out at 5 seconds on CI; the `db` project now allows 30 seconds (005).
+- **Still open:** task 6's manual `workflow_dispatch` run (none on GitHub as of 2026-09-27), and task 5's optional GitHub proof (proved locally).
 

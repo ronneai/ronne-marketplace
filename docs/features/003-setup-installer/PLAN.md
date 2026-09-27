@@ -18,7 +18,7 @@
   and an existing `AUTH_SECRET`. Add `.env.example`.
   *Done when:* unit tests cover a new file, a merge, a kept secret and the file mode.
 
-- [ ] **4. Interactive flow.** The prompts and the validate-and-retry loop, calling 002's checks and runner and the task 2 actions.
+- [x] **4. Interactive flow.** The prompts and the validate-and-retry loop, calling 002's checks and runner and the task 2 actions.
   *Done when:* a manual run on a fresh clone with SQLite matches acceptance criterion 1, recorded in Notes.
 
 - [x] **5. Non-interactive mode.** Flags, env vars, TTY detection, plain output and exit codes.
@@ -94,4 +94,5 @@
   - The README has a "Getting started" section (clone, install, `pnpm run setup`, build and start), plus the supported databases, the PostgreSQL 15+ grant, non-interactive use with exit codes, and `reset-root-password`. The README and CLAUDE.md command tables list `setup`, `reset-root-password` and `db:migrate`.
   - `git grep` finds no remaining `pnpm setup` without `run`, apart from the warnings about it.
   - The non-interactive steps were run as written from the repo root, into a temp `RONNE_ENV_FILE`, with exit 0. The interactive steps wait on task 4's manual run.
+- **Task 4 manual check (2026-09-27):** the owner ran `pnpm run setup` interactively in a real terminal with SQLite defaults and confirmed it worked. The run happened outside this clone (there's no `apps/web/.env` here), so it's recorded on the owner's word.
 

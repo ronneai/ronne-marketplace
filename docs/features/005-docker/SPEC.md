@@ -70,14 +70,14 @@ The image is scanned with Trivy, which fails on high or critical vulnerabilities
 
 ## Acceptance criteria
 
-- [ ] `docker compose up`, then `docker compose exec web pnpm run setup` with SQLite defaults, then `docker compose restart web` gives a working instance at `http://localhost:3000`.
-- [ ] Before setup, pages show the setup-required screen and `/api/health` returns `503`.
-- [ ] Removing and recreating the container keeps the database, config and root account (state is on the volume).
-- [ ] The same flow works with `--profile postgres` and `--profile mysql`.
-- [ ] CI builds the image for amd64 and arm64 on each pull request.
-- [ ] The container runs as a non-root user, and the image contains no dev dependencies.
-- [ ] The Trivy scan passes, and the base image is pinned by digest and covered by Dependabot.
-- [ ] Starting a newer image on an older database applies the new migrations before serving.
+- [x] `docker compose up`, then `docker compose exec web pnpm run setup` with SQLite defaults, then `docker compose restart web` gives a working instance at `http://localhost:3000`.
+- [x] Before setup, pages show the setup-required screen and `/api/health` returns `503`.
+- [x] Removing and recreating the container keeps the database, config and root account (state is on the volume).
+- [x] The same flow works with `--profile postgres` and `--profile mysql`.
+- [x] CI builds the image for amd64 and arm64 on each pull request.
+- [x] The container runs as a non-root user, and the image contains no dev dependencies.
+- [x] The Trivy scan passes, and the base image is pinned by digest and covered by Dependabot.
+- [x] Starting a newer image on an older database applies the new migrations before serving.
 
 ## Open questions
 

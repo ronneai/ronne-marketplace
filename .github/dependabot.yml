@@ -47,6 +47,19 @@ updates:
       default-days: 3
     commit-message:
       prefix: "[chore]"
+    # These versions are chosen on purpose: the Dockerfile targets the Node.js Active LTS, and the
+    # compose files pin the minimum supported database versions (the latest ones are tested weekly).
+    # Majors move by hand, when docs/policies/dependencies.md changes. Minor, patch and digest
+    # updates still come through.
+    ignore:
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
+      - dependency-name: postgres
+        update-types: ["version-update:semver-major"]
+      - dependency-name: mysql
+        update-types: ["version-update:semver-major"]
+      - dependency-name: mariadb
+        update-types: ["version-update:semver-major"]
 
   # Images in compose.yaml and docker/test-databases.compose.yml.
   - package-ecosystem: docker-compose
@@ -58,3 +71,16 @@ updates:
       default-days: 3
     commit-message:
       prefix: "[chore]"
+    # These versions are chosen on purpose: the Dockerfile targets the Node.js Active LTS, and the
+    # compose files pin the minimum supported database versions (the latest ones are tested weekly).
+    # Majors move by hand, when docs/policies/dependencies.md changes. Minor, patch and digest
+    # updates still come through.
+    ignore:
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
+      - dependency-name: postgres
+        update-types: ["version-update:semver-major"]
+      - dependency-name: mysql
+        update-types: ["version-update:semver-major"]
+      - dependency-name: mariadb
+        update-types: ["version-update:semver-major"]
