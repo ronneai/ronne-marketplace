@@ -21,7 +21,7 @@ services:
       retries: 30
 
   mysql:
-    image: mysql:8.4
+    image: mysql:26.7
     environment:
       MYSQL_ROOT_PASSWORD: ronne-test
       MYSQL_DATABASE: ronne
