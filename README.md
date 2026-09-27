@@ -28,7 +28,7 @@ the `rmk` CLI or from inside those tools through an MCP server.
 | `pnpm format` | Fixes formatting and safe lint issues |
 | `pnpm typecheck` | Type-checks every package |
 | `pnpm test` | Runs every test with Vitest |
-| `pnpm hooks:install` | Turns on the local commit-message check (once per clone) |
+| `pnpm hooks:install` | Turns on the local git hooks (once per clone): checks before each commit, and the commit-message format |
 | `pnpm exec rmk --version` | Runs the local `rmk` CLI (after `pnpm build`) |
 
 **Layout**
@@ -48,7 +48,8 @@ the `rmk` CLI or from inside those tools through an MCP server.
 
 Commits and pull request titles use `[type] NNN: Description`, where `type` is `docs`, `feat`,
 `chore` or `bugfix` and `NNN` is the feature ID (left out, as `[type]: Description`, when the change
-isn't part of a feature). Run `pnpm hooks:install` once to check commit messages locally; CI checks
+isn't part of a feature). Run `pnpm hooks:install` once: before each commit it runs lint, typecheck, test and build (skipped when
+the commit only changes Markdown or text files), and it checks the commit message. CI checks
 pull request titles.
 
 
