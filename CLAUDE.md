@@ -43,6 +43,14 @@ After adding a workspace package, run `pnpm install --frozen-lockfile` to confir
 
 ## Commits and pull requests
 
+**Rules for every change (mandatory):**
+
+1. **Before any commit**, run `pnpm lint`, `pnpm typecheck`, `pnpm test` and `pnpm build`. Also run
+   `pnpm install --frozen-lockfile` when dependencies or workspace packages changed. Commit only when all pass.
+2. **If a check fails**, don't fix it on your own and don't commit. Explain what failed and why, propose
+   actions, and let the owner decide the next step.
+3. **Never push or open a pull request** unless the owner asks for that specific change.
+
 Commit messages and pull request titles use the same format:
 
 ```

@@ -32,17 +32,17 @@
   `examples/items/*/ronne.yaml` against `docs/spec/ronne.schema.json` with Ajv. Run it from `pnpm test`.
   *Done when:* it passes now, and breaking one example makes it fail.
 
-- [ ] **7. CI.** `.github/workflows/ci.yml`: Node 22 and 24, `pnpm/action-setup` (not Corepack), pnpm store cache, Turbo cache,
+- [x] **7. CI.** `.github/workflows/ci.yml`: Node 22 and 24, `pnpm/action-setup` (not Corepack), pnpm store cache, Turbo cache,
   then lint → typecheck → test → build.
   *Done when:* a pull request shows a green run, and a deliberate lint error turns it red.
 
-- [ ] **8. License check.** A script that reads `pnpm licenses list --json` for the whole tree, and compares it with `license-policy.json` (the allowed list plus the exceptions in policy §5). Wire it into CI.
+- [x] **8. License check.** A script that reads `pnpm licenses list --json` for the whole tree, and compares it with `license-policy.json` (the allowed list plus the exceptions in policy §5). Wire it into CI.
   *Done when:* it passes on the tree, and fails with a clear message when a GPL fixture package is added.
 
 - [ ] **9. Security CI and repo settings.** Add `pnpm audit --audit-level high`, CodeQL, `.github/dependabot.yml` (npm + Actions, weekly, grouped, 3-day cooldown), pin every Action to a SHA, set minimal `permissions:`, and add `SECURITY.md`. Ask the repo owner to turn on secret scanning, push protection and private vulnerability reporting.
   *Done when:* the jobs run on a pull request, and the repository settings are confirmed in Notes.
 
-- [ ] **10. Update CLAUDE.md.** Replace the "no code yet" note with the real commands from the table in SPEC.md.
+- [x] **10. Update CLAUDE.md.** Replace the "no code yet" note with the real commands from the table in SPEC.md.
   *Done when:* CLAUDE.md lists the build, lint and test commands.
 
 ## Notes
@@ -77,3 +77,15 @@
   (`packages/repo-tools`) left it out of `pnpm-lock.yaml`, so `pnpm install --frozen-lockfile` failed
   with `ERR_PNPM_PACKAGE_MANAGER_NO_IMPORTER`. Plain `pnpm install` and `--lockfile-only` didn't fix
   it; `pnpm install --fix-lockfile` did. After adding a package, always check with `pnpm install --frozen-lockfile`.
+- **CI proven on PR #3 (2026-09-27).** All checks passed: lint/typecheck/test/build on Node 22 and 24,
+  licenses and audit, CodeQL (`javascript-typescript`, `actions`) and the PR title check. A deliberate
+  Biome error (`packages/core/src/red-path.ts`) turned both Node jobs red; the file was then removed.
+- **License check on Linux.** CI installs `lightningcss-linux-*` instead of the macOS binary; the
+  `lightningcss-*` exception (E-4) covers both.
+- **`pnpm audit` and the two-document lockfile.** Checked in a scratch project: `lodash@4.17.20` fails
+  `--audit-level high` with both lockfile shapes, so the audit isn't blind to pnpm 12's format.
+- **CodeQL action pinned to v4.38.1**, because v4.38.2 was under 3 days old when this was written.
+- **Task 9 is waiting on repository settings** (checked through the API on 2026-09-27): secret scanning,
+  push protection, private vulnerability reporting and Dependabot security updates were all off.
+  Dependabot alerts were on. `main` had branch protection with no required checks.
+
