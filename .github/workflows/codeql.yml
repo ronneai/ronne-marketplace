@@ -11,8 +11,15 @@ permissions:
   contents: read
 
 jobs:
+  # Detects documentation-only pull requests (changes.yml).
+  changes:
+    uses: ./.github/workflows/changes.yml
+
   analyze:
     name: Analyze (${{ matrix.language }})
+    needs: changes
+    # Runs even if detection failed: its steps skip only on an explicit "false".
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -24,13 +31,19 @@ jobs:
         # "actions" scans the workflows themselves, for problems such as script injection.
         language: [javascript-typescript, actions]
     steps:
+      - name: Documentation only, nothing to check
+        if: needs.changes.outputs.code == 'false'
+        run: echo "This pull request only changes documentation, so the checks are skipped."
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: needs.changes.outputs.code != 'false'
         with:
           persist-credentials: false
       - uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        if: needs.changes.outputs.code != 'false'
         with:
           languages: ${{ matrix.language }}
           build-mode: none
       - uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        if: needs.changes.outputs.code != 'false'
         with:
           category: /language:${{ matrix.language }}
