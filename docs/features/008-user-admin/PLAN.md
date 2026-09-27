@@ -21,7 +21,7 @@
 - [x] **3. Password generator.** 20 characters from an unambiguous alphabet, using `crypto.randomInt`.
   *Done when:* tests cover length, alphabet and uniqueness over many draws.
 
-- [ ] **4. Admin area and `/admin/users`.** A root-only layout (404 otherwise), and the admin
+- [x] **4. Admin area and `/admin/users`.** A root-only layout (404 otherwise), and the admin
   navigation shared with `/admin/audit`. The table, search, filters and paging, using 032's parts.
   *Done when:* render and permission tests pass.
 
@@ -75,4 +75,22 @@
     - root is refused by every operation;
     - search ignores case and matches `%` literally, the role and status filters work, and it pages
       at 50.
+- **Task 4 (2026-09-27): the admin area and `/admin/users`.**
+  - **`app/(app)/admin/layout.tsx`** checks `users.view` (404 otherwise) and renders `AdminNav`
+    (Users, Audit log). Each page still checks its own permission. `/admin` redirects to
+    `/admin/users`.
+  - **The header's "Admin" link** opens `/admin/users`, and stays current on every `/admin/*` page
+    (the new `section` field on nav items).
+  - **`/admin/users`** (`features/admin-users/`): email, name, role badge (accent for root), status
+    and created date, newest first, 50 a page.
+    - The search (email or name, 100 characters at most) and the role and status filters are a GET
+      form.
+    - Malformed query values are ignored.
+    - The page takes `toolbar` and `actions` slots, which task 5 fills with the dialogs.
+  - **Tests:** query parsing, the table, the admin navigation, and the layout and page returning 404
+    for anyone but root without reading the list. The audit end-to-end test now goes Admin → Users
+    → Audit log.
+  - **New convention (owner, 2026-09-27):** functions and components are arrow functions. This
+    task's new files use them already. The rest of the codebase is refactored in a `[chore]` after
+    008.
 

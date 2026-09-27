@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { setThemeFromForm } from "@/features/theme/actions";
 import { Badge } from "../ui/Badge";
 import { BrandLogo } from "../ui/BrandLogo";
-import { navFor, type ShellUser } from "./nav";
+import { isCurrent, navFor, type ShellUser } from "./nav";
 
 const menuItem = "block w-full rounded-control px-3 py-1.5 text-left text-sm text-fg hover:bg-tint";
 
@@ -39,7 +39,7 @@ export function AppShell({
               <Link
                 key={item.href}
                 href={item.href}
-                aria-current={item.href === current ? "page" : undefined}
+                aria-current={isCurrent(item, current) ? "page" : undefined}
                 className="rounded-control px-2 py-1.5 text-sm text-muted sm:px-3 hover:text-fg aria-[current=page]:bg-tint aria-[current=page]:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
               >
                 {item.label}

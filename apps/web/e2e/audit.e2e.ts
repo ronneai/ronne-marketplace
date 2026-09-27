@@ -12,6 +12,11 @@ async function signIn(page: Page, email: string) {
 test("root reads the audit log: setup, and its own sign-in", async ({ page }) => {
   await signIn(page, E2E_USERS.root);
   await page.getByRole("link", { name: "Admin" }).click();
+  await expect(page).toHaveURL(/\/admin\/users$/);
+  await page
+    .getByRole("navigation", { name: "Admin" })
+    .getByRole("link", { name: "Audit log" })
+    .click();
   await expect(page).toHaveURL(/\/admin\/audit$/);
   await expect(page.getByRole("heading", { name: "Audit log" })).toBeVisible();
 
