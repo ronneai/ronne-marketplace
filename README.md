@@ -93,7 +93,8 @@ npm install --global @ronneai/rmk   # not published yet
 ```
 
 The package is `@ronneai/rmk` because the unscoped `rmk` name is taken on npm; the command is still
-`rmk`. Until then, the code in `packages/cli` is a placeholder that only prints its version. From a clone, after `pnpm build`, run it with `pnpm exec rmk --version`.
+`rmk`. Until then, the code in `packages/cli` is a placeholder that only prints its version. From a
+clone, after `pnpm build`, run it with `pnpm exec rmk --version`.
 
 ## Development
 
