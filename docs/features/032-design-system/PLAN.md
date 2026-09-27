@@ -105,4 +105,16 @@
   full width, and the content column is 72% of the width from 1024px up (it was 1024px). Sign-in uses
   the new `BrandLogo` (monogram and wordmark) in place of the monogram alone, and so does the header
   (34px tall, 24px on phones, where the navigation padding also tightens so it fits at 360px). SPEC.md has the rule.
+- **Fixed later (2026-09-27, on the 009 branch, owner's report):**
+  - **The current navigation item didn't follow navigation,** in the header (Home, Admin) or in the
+    admin tabs (Users, Audit log). Next.js keeps layouts mounted across client-side navigation, and
+    the current item came from the first request's path. `MainNav` and `AdminNav` are now client
+    components that read `usePathname()`. The audit end-to-end test clicks through and checks the
+    highlight each time; with a broken `AdminNav` it failed as expected.
+  - **In the dark theme, the current header item didn't show,** because the tint is the header's own
+    navy. It now also uses the link colour and a semibold weight. `link` on `tint` joined the
+    contrast tests.
+  - **The theme switch moved** from the user menu to a header button: system → light → dark, with a
+    Monitor, Sun or Moon icon. It's still a form, so it works without JavaScript. On phones, the
+    user menu opens from an icon in place of the word "account", so the header fits at 360px.
 

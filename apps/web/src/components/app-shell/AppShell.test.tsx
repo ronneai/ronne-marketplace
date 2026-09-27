@@ -1,6 +1,13 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
-import { AppShell } from "./AppShell";
+import { describe, expect, it, vi } from "vitest";
+
+const navigation = vi.hoisted(() => ({ path: "/" }));
+vi.mock("next/navigation", () => ({ usePathname: () => navigation.path }));
+// The theme switch posts to a server action; the render only needs a reference to it.
+vi.mock("@/features/theme/actions", () => ({ setThemeFromForm: vi.fn() }));
+
+const { AppShell } = await import("./AppShell");
+
 import { navFor } from "./nav";
 
 describe("navFor", () => {
@@ -49,7 +56,29 @@ describe("AppShell", () => {
     expect(html).not.toMatch(/>user</);
   });
 
-  it("marks the current page", () => {
-    expect(render({ email: "u@example.com", role: "user" })).toContain('aria-current="page"');
+  it("marks the current item from the live path, including every admin page", () => {
+    const root = { email: "r@example.com", role: "root" } as const;
+    navigation.path = "/";
+    expect(render(root)).toMatch(/aria-current="page"[^>]*>Home</);
+    for (const path of ["/admin/users", "/admin/audit", "/admin"]) {
+      navigation.path = path;
+      const html = render(root);
+      expect(html, path).toMatch(/aria-current="page"[^>]*>Admin</);
+      expect(html, path).not.toMatch(/aria-current="page"[^>]*>Home</);
+    }
+    navigation.path = "/account/tokens";
+    expect(render(root)).not.toContain('aria-current="page"');
+  });
+
+  it("puts the theme switch in the header, not in the user menu", () => {
+    const html = renderToStaticMarkup(
+      <AppShell user={{ email: "u@example.com", role: "user" }} theme="dark">
+        <p>content</p>
+      </AppShell>,
+    );
+    const header = html.slice(0, html.indexOf("<details"));
+    expect(header).toContain("Using the dark theme. Switch to the system theme.");
+    expect(header).toContain('value="system"');
+    expect(html.slice(html.indexOf("<details"))).not.toContain('name="theme"');
   });
 });

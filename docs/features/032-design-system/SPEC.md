@@ -14,7 +14,7 @@ compose parts; they don't restyle them.
 **In:**
 - Design tokens for both themes, as CSS variables, mapped into Tailwind's theme.
 - Self-hosted fonts: Manrope (the variable font in the materials) and IBM Plex Mono, with their licenses.
-- Light and dark themes: follow the operating system by default, plus a manual toggle that's remembered.
+- Light and dark themes: follow the operating system by default, plus a manual toggle that's remembered. The toggle is a button in the header (system → light → dark), next to the user menu (owner decision, 2026-09-27).
 - `components/ui` primitives: Button, Input (text, password with show/hide), Checkbox, Label and
   field error, Card and Panel, Badge, Notice, Table, Tabs, Dialog, CopyableCommand, and Page header.
 - The app shell: a header with the full brand (`BrandLogo`) and navigation, a user menu, a footer, and a centered content column.
