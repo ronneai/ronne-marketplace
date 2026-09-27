@@ -21,7 +21,7 @@
 - [ ] **4. Interactive flow.** The prompts and the validate-and-retry loop, calling 002's checks and runner and the task 2 actions.
   *Done when:* a manual run on a fresh clone with SQLite matches acceptance criterion 1, recorded in Notes.
 
-- [ ] **5. Non-interactive mode.** Flags, env vars, TTY detection, plain output and exit codes.
+- [x] **5. Non-interactive mode.** Flags, env vars, TTY detection, plain output and exit codes.
   *Done when:* a test runs the command as a child process with env vars only and gets a migrated database with a root; another test gets exit code 2 for a missing value.
 
 - [ ] **6. `reset-root-password` command.** Interactive and `--yes` modes.
@@ -69,4 +69,20 @@
   - **Added to `db/checks.ts`:** `checkCharset` (MySQL/MariaDB must be `utf8mb4`) and `checkServerVersion` (warns below PostgreSQL 15, MySQL 8.4 or MariaDB 10.11, but continues). The PostgreSQL permission failure shows the `GRANT CREATE ON SCHEMA public` fix.
   - DATABASE_URL credentials and the database name are URL-encoded (`database-url.ts`); IPv6 hosts get brackets.
   - `createTestDb()` now also returns the database's `url`.
+- **Task 5 (2026-09-27): non-interactive mode.**
+  - `cli.ts` parses the flags, with `parseArgs` in strict mode: unknown flags, including a would-be `--root-password`, exit 2. It picks the mode: `--yes`, or `CI=true` without a terminal, means non-interactive; no terminal without either exits 2 with a `--yes` hint.
+  - `non-interactive-prompts.ts` answers from flags and environment variables. It never asks. A missing value is `MissingInputError` (exit 2, naming the variable) and an invalid one is `InvalidInputError` (exit 2). Output is plain lines: progress to stdout, and `!` or `✗` lines to stderr.
+  - `runSetup` gained `databaseUrl` and `storagePath` options.
+  - **`RONNE_ENV_FILE`** (relative to `apps/web`, or absolute) moves `.env`. It was added now, ahead of 005, so the command tests write to a temp folder rather than the real `apps/web/.env`.
+  - `scripts/setup.db.test.ts` runs the real script as a child process, covering:
+    - first run and rerun;
+    - a missing email (exit 2);
+    - a short password (exit 2);
+    - an unreachable database (exit 1, no `.env` written);
+    - no terminal without `--yes` (exit 2);
+    - `CI=true` (runs).
+
+    `CI` is set explicitly in each child, because GitHub Actions sets `CI=true`. Next.js makes `NODE_ENV` a required key of `ProcessEnv`, so the child's environment sets it.
+  - The server smoke test (setup `--yes` against an empty MySQL or PostgreSQL database) is what 004's task 4 asks for. It passed on PostgreSQL 18 and 15, MySQL 8.4 and MariaDB 10.11 (157/157 each).
+  - `pnpm run setup --yes` from the repo root passes the flag through to `apps/web` and exits 0.
 

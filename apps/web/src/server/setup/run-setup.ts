@@ -29,6 +29,10 @@ export type SetupOptions = {
   /** The .env file to read and write. */
   envPath: string;
   prompts: SetupPrompts;
+  /** Use this DATABASE_URL instead of asking (non-interactive mode's --database-url). */
+  databaseUrl?: string;
+  /** Use this STORAGE_PATH instead of the one in .env or the default. */
+  storagePath?: string;
 };
 
 export type SetupResult = { publicUrl: string; rootEmail: string; rootCreated: boolean };
@@ -61,12 +65,13 @@ const wrap = (validate: (value: string) => unknown) => (value: string) => {
 };
 
 /** The interactive (or scripted) setup from MVP §5 and feature 003. Each step is safe to repeat. */
-export async function runSetup({ appDir, envPath, prompts }: SetupOptions): Promise<SetupResult> {
+export async function runSetup(options: SetupOptions): Promise<SetupResult> {
+  const { appDir, envPath, prompts } = options;
   const env = readEnvFile(envPath);
 
   // 1–4. Database: reuse the one in .env, or ask, then validate until it passes.
-  let databaseUrl: string | undefined;
-  if (env.DATABASE_URL) {
+  let databaseUrl: string | undefined = options.databaseUrl;
+  if (!databaseUrl && env.DATABASE_URL) {
     const reuse = await prompts.confirm({
       id: "database.reuse",
       message: `Use the database already in .env (${redactDatabaseUrl(env.DATABASE_URL)})?`,
@@ -112,7 +117,7 @@ export async function runSetup({ appDir, envPath, prompts }: SetupOptions): Prom
     .replace(/\/+$/, "");
 
   // 6. .env. An existing AUTH_SECRET is always kept: a new one would sign everyone out.
-  const storagePath = env.STORAGE_PATH || "./data/storage";
+  const storagePath = options.storagePath || env.STORAGE_PATH || "./data/storage";
   const written = updateEnvFile(envPath, {
     DATABASE_URL: databaseUrl,
     AUTH_SECRET: env.AUTH_SECRET || generateAuthSecret(),
