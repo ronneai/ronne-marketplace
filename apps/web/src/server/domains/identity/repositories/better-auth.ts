@@ -8,6 +8,7 @@ import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "../models/password";
 import type { PasswordHasher } from "../models/password-hasher";
 import { COOKIE_PREFIX } from "../models/session-cookie";
 import { argon2PasswordHasher } from "./argon2-password-hasher";
+import { kyselyIdentityRepository } from "./kysely-identity-repository";
 
 const DAY = 60 * 60 * 24;
 
@@ -75,6 +76,17 @@ export function createAuth({
       password: {
         hash: (password) => hasher.hash(password),
         verify: ({ hash, password }) => hasher.verify(hash, password),
+      },
+    },
+    databaseHooks: {
+      session: {
+        create: {
+          // Disabled users get no session. Sign-in then fails like a wrong password does.
+          before: async (session) => {
+            const user = await kyselyIdentityRepository(db, dialect).findActiveUser(session.userId);
+            if (!user) return false;
+          },
+        },
       },
     },
     ...authSchema,

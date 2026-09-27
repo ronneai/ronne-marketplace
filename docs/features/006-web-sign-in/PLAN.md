@@ -13,7 +13,7 @@
   settings, the limiter refusing the 6th attempt, and the proxy header being ignored unless
   `TRUST_PROXY=true`. The sign-in action that uses the limiter comes in task 3.
 
-- [ ] **2. Disabled users.** The `session.create.before` hook, and `getCurrentUser()` checking `disabled_at`.
+- [x] **2. Disabled users.** The `session.create.before` hook, and `getCurrentUser()` checking `disabled_at`.
   *Done when:* database tests show a disabled user can't sign in, and an existing session stops working.
 
 - [ ] **3. Identity actions.** `signIn` (with the login limiter), `getCurrentUser`, `requireUser`,
@@ -59,4 +59,13 @@
   - **Lint:** `noRestrictedImports` bans `better-auth` and `@better-auth/*` in `apps/web` outside
     `src/server/domains/identity`. The migration test is the one exception, with a comment: it
     compares the migration with Better Auth's own schema.
+- **Task 2 (2026-09-27): disabled users.**
+  - **`databaseHooks.session.create.before`** asks the repository's new `findActiveUser()` and
+    refuses the session when the user is disabled (or missing), so sign-in fails like a wrong
+    password.
+  - **`getCurrentUser(headers)`** (`actions/session.ts`, `services/session.ts`) reads the user again
+    on every call through `findActiveUser()`. Disabling someone, or changing their role, applies on
+    their next request. A role outside root, moderator and user gets no access.
+  - **Layers:** the service depends on a `SessionStore` interface (`repositories/session-store.ts`),
+    which Better Auth implements. Tests build an `AppAuth` with `testing/test-auth.ts`.
 

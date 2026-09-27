@@ -1,10 +1,18 @@
 import { isConfigured, loadConfig } from "../../../config";
+import type { Db } from "../../../db/create-db";
 import { getAppDb } from "../../../db/instance";
+import type { DatabaseDialect } from "../../../db/url";
 import { NotConfiguredError } from "../exceptions/errors";
 import { LoginRateLimiter } from "../models/login-rate-limiter";
 import { type Auth, createAuth } from "./better-auth";
 
-export type AppAuth = { auth: Auth; trustProxy: boolean; limiter: LoginRateLimiter };
+export type AppAuth = {
+  auth: Auth;
+  db: Db;
+  dialect: DatabaseDialect;
+  trustProxy: boolean;
+  limiter: LoginRateLimiter;
+};
 
 // Kept on globalThis, like the database pools, so development hot reloads reuse them. The limiter
 // is shared across settings: its counts must survive a reload too.
@@ -21,9 +29,9 @@ export function getAppAuth(): AppAuth {
 
   shared.__ronneAuth ??= new Map();
   const key = JSON.stringify([config.databaseUrl, config.authSecret, baseURL, config.trustProxy]);
+  const { db, dialect } = getAppDb(config.databaseUrl);
   let auth = shared.__ronneAuth.get(key);
   if (!auth) {
-    const { db, dialect } = getAppDb(config.databaseUrl);
     auth = createAuth({
       db,
       dialect,
@@ -34,5 +42,5 @@ export function getAppAuth(): AppAuth {
     shared.__ronneAuth.set(key, auth);
   }
   shared.__ronneLoginLimiter ??= new LoginRateLimiter();
-  return { auth, trustProxy: config.trustProxy, limiter: shared.__ronneLoginLimiter };
+  return { auth, db, dialect, trustProxy: config.trustProxy, limiter: shared.__ronneLoginLimiter };
 }
