@@ -132,7 +132,7 @@ password shows `ERR:` and changes nothing.
 - [x] Disabling a user (008, or directly in the database for this feature's tests) ends access on their next request.
 - [x] `TRUST_PROXY=true` makes the rate limit use `X-Forwarded-For`; without it, the header is ignored.
 - [x] `/api/auth/*` serves only the allowlisted endpoints; sign-in and sign-up over HTTP return 404.
-- [ ] Playwright covers sign in, wrong password, sign out and change password, and runs in CI (Chromium).
+- [x] Playwright covers sign in, wrong password, sign out and change password, and runs in CI (Chromium).
 - [x] No Better Auth import outside `domains/identity` (lint rule).
 
 ## Open questions
