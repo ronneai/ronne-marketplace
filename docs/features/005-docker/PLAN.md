@@ -7,7 +7,7 @@
 - [x] **1. Config file location.** Load config from `RONNE_ENV_FILE` (default `./.env`), with environment variables taking precedence. Make 003's setup write to the same path.
   *Done when:* a test shows the app and setup both honour `RONNE_ENV_FILE`, and that env vars override the file.
 
-- [ ] **2. Health endpoint and setup-required mode.** `GET /api/health`, the setup-required screen, and the `503 setup_required` API response.
+- [x] **2. Health endpoint and setup-required mode.** `GET /api/health`, the setup-required screen, and the `503 setup_required` API response.
   *Done when:* tests cover health with and without a database, and a page render in setup-required mode.
 
 - [ ] **3. Compiled scripts.** Bundle setup, reset-root-password and migrate into plain JS (for example with `tsdown`), with `pnpm run` entries that point at them in production.
@@ -36,4 +36,16 @@
   - `isConfigured()` needs a database URL and a secret.
   - `pnpm db:migrate`, setup and reset all use it, so they agree on the file. `migrate` previously read only `./.env` relative to the working directory. Setup has written to `RONNE_ENV_FILE` since 003.
   - **Tests:** relative and absolute `RONNE_ENV_FILE`, precedence, an empty variable, the unconfigured case, and `pnpm db:migrate` reading the database from the file.
+- **Task 2 (2026-09-27): health and setup-required mode.**
+  - `GET /api/health` (`app/api/health/route.ts` → `server/http/health.ts`) returns:
+    - `200 {"status":"ok"}` when `select 1` answers within 3 seconds;
+    - `503 setup_required` before setup;
+    - `503 database_unavailable` otherwise. The driver's message is withheld, since the endpoint is public.
+
+    Responses are `no-store`, and errors use the MVP §11 shape (`server/http/errors.ts`).
+  - The root layout shows `features/setup-required/SetupRequired.tsx` instead of the page until `isConfigured(loadConfig())`. It calls `await connection()`, the Next 16 way to render per request (per the bundled docs), so settings are read at request time, not frozen at build time.
+  - `server/db/instance.ts` keeps one pool per `DATABASE_URL` on `globalThis`, so dev hot reloads don't leak pools.
+  - **Turbopack warning fixed:** reading the runtime settings file made Turbopack trace the whole project into the server output. That would have bloated the standalone build the image uses. The reads in `config.ts` now carry `/*turbopackIgnore: true*/`.
+  - `better-sqlite3`, `pg` and `@node-rs/argon2` are on Next's default list of packages kept outside the server bundle. `mysql2` isn't, but the build doesn't need it yet.
+  - **Live check** (`next start` on a temp `RONNE_ENV_FILE`): 503 and the setup screen before setup; 200 and the normal page after `setup --yes` and a restart.
 

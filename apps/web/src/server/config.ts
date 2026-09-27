@@ -29,7 +29,11 @@ export type AppConfig = {
 export function loadConfig(options: { appDir?: string; env?: Env } = {}): AppConfig {
   const env = options.env ?? process.env;
   const envFile = envFilePath(options.appDir, env);
-  const file: Env = existsSync(envFile) ? parseEnv(readFileSync(envFile, "utf8")) : {};
+  // The settings file is chosen at runtime, so it's not part of the build: without the ignore
+  // comments, Turbopack would trace the whole project into the server output.
+  const file: Env = existsSync(/*turbopackIgnore: true*/ envFile)
+    ? parseEnv(readFileSync(/*turbopackIgnore: true*/ envFile, "utf8"))
+    : {};
   const value = (key: string) => env[key] || file[key] || undefined;
 
   return {
