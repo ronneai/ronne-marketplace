@@ -48,8 +48,8 @@ agree. Until 011 lands, 010 adds it to `packages/core` itself.
 `internal` are refused, so an item can't pass itself off as part of Ronne.
 
 **`/admin/scopes`** (root, in 008's admin area, next to Users and Audit log):
-- **Table:** name (`@name`, mono), description, created by, created (UTC), and the number of items
-  (0 until M3 publishes the first ones).
+- **Table:** name (`@name`, mono), description, created by and created (UTC). The number of items
+  in each scope joins when items exist (015); until then it would always be 0.
 - **Create scope** (a dialog): name and description. The name is shown as `@name` while typing, with
   the rules under the field.
 - **Edit description:** a dialog. The name can't be changed.

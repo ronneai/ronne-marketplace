@@ -16,11 +16,12 @@
     "reset-root-password": "tsx scripts/reset-root-password.ts",
     "test:db": "vitest run --project db",
     "build:scripts": "tsdown",
-    "test:e2e": "next build && playwright test"
+    "test:e2e": "pnpm --filter @ronneai/core build && next build && playwright test"
   },
   "dependencies": {
     "@clack/prompts": "1.8.1",
     "@node-rs/argon2": "2.2.1",
+    "@ronneai/core": "workspace:*",
     "better-auth": "1.7.5",
     "better-sqlite3": "13.0.3",
     "kysely": "0.29.6",

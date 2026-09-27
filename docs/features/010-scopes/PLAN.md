@@ -15,7 +15,7 @@ the same change that completes it.
   (`ON DELETE SET NULL`), and the Kysely `ScopeTable` type.
   *Done when:* it migrates on SQLite and the 004 servers, with a foreign-key test.
 
-- [ ] **3. `items` domain: scopes.** Model, repository (interface + Kysely), services and actions;
+- [x] **3. `items` domain: scopes.** Model, repository (interface + Kysely), services and actions;
   `scopes.manage` in the permission map; `scope.created` and `scope.updated` in 007's catalogue.
   *Done when:* database tests cover create, duplicates, invalid and reserved names, edit, search,
   paging, permissions, and the audit events in the same transaction.
@@ -38,4 +38,21 @@ the same change that completes it.
   unique `name` (without the `@`), `description varchar(300)`, and `created_by`, whose table-level
   foreign key sets null on delete. Tested on all four databases: the foreign key read back from each
   catalogue, a deleted creator, and a duplicate name refused.
+- **Task 3 (2026-09-27): the `items` domain for scopes** (`src/server/domains/items/`).
+  - **Services:** `createScope` (checks `scopes.manage` and the name and description, then the
+    scope and `scope.created` in one transaction), `updateScopeDescription` (`scope.updated
+    { name, from, to }`; the same description records nothing), `listScopes` (everyone signed in;
+    name order, 50 a page, search on name and description) and `findScope`.
+  - **Permissions and audit:** `scopes.manage` (root) joined the permission map, and `scope.created`
+    and `scope.updated` joined the audit catalogue, with a new `scope` group for the audit page's
+    filter.
+  - **`@ronneai/core` in the web app:**
+    - it's a workspace dependency now;
+    - Vitest resolves it from its source (an alias), so tests don't need it built;
+    - the Dockerfile builds `@ronneai/web...` (the web app and its workspace dependencies);
+    - `pnpm test:e2e` builds `@ronneai/core` before `next build`.
+  - **Spec change:** the item count per scope waits for 015, when items exist.
+  - **Tests** (all four databases): creation from what was typed (`@Platform` becomes `platform`),
+    duplicates in any case, each invalid and reserved name, description limits, root-only changes,
+    the audit events, search (with `%` taken literally) and paging.
 
