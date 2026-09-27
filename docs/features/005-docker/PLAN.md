@@ -19,7 +19,7 @@
 - [x] **5. Start script.** Config detection, migrations before start, the writable-volume check, and exit on migration failure.
   *Done when:* manual checks for a fresh volume, a configured volume, and a read-only volume behave as in SPEC.md (recorded in Notes).
 
-- [ ] **6. `compose.yaml`.** The web service, the volume, and the `mysql` and `postgres` profiles.
+- [x] **6. `compose.yaml`.** The web service, the volume, and the `mysql` and `postgres` profiles.
   *Done when:* acceptance criteria 1, 3 and 4 pass by hand (recorded in Notes).
 
 - [ ] **7. CI image build and scan.** Buildx for both architectures, a run-and-probe step on amd64,
@@ -88,4 +88,15 @@
   2. Same volume in a new container: "The database is up to date", then 200.
   3. Root-owned volume: exit 1 with the `chown` command.
 - **Testing gotcha:** Docker copies the image's folder ownership onto an *empty* named volume on first mount. An empty root-owned volume therefore becomes writable, and the unwritable case only happens when the volume already has content. The first attempt at scenario 3 simply started the server.
+- **Task 6 (2026-09-27): `compose.yaml`** (project `ronne`).
+  - **`web`:** built from the Dockerfile, `restart: unless-stopped`, port `${RONNE_PORT:-3000}`, `PUBLIC_URL` from the environment, and the `ronne-data` volume.
+  - **Profiles `postgres` (`postgres:18`) and `mysql` (`mysql:8.4`):**
+    - each has a `ronne` user owning the `ronne` database, which avoids PostgreSQL 15+'s `public` schema grant;
+    - the password is `RONNE_DB_PASSWORD`, with a placeholder default and a comment to change it;
+    - no published ports, so they're reachable only inside the project;
+    - their own volumes and health checks.
+
+    PostgreSQL 18's volume goes on `/var/lib/postgresql`, the path its image expects from 18.
+  - There's no `depends_on`, because `web` can't depend on an optional profile. If the database isn't ready yet, the start script's migration exits and `restart: unless-stopped` retries.
+  - **Checked with a throwaway project** (`-p ronne-t6`, port 3203), for SQLite, `--profile postgres` and `--profile mysql`: 503 before setup; `docker compose exec -T web pnpm run setup --yes` applied `0001_identity` and created root; after `docker compose restart web`, the logs show "The database is up to date" (with the password redacted) and the health check returns 200. Then `down -v`.
 
