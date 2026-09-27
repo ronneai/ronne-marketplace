@@ -5,11 +5,11 @@ describe("parseTheme", () => {
   it.each([
     ["light", "light"],
     ["dark", "dark"],
-    ["system", "system"],
-    [undefined, "system"],
-    ["", "system"],
-    ["purple", "system"],
-    ["DARK", "system"],
+    ["system", "light"],
+    [undefined, "light"],
+    ["", "light"],
+    ["purple", "light"],
+    ["DARK", "light"],
   ])("%j → %s", (value, expected) => {
     expect(parseTheme(value)).toBe(expected);
   });

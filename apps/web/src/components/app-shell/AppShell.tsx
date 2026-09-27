@@ -18,7 +18,7 @@ const menuItem = "block w-full rounded-control px-3 py-1.5 text-left text-sm tex
  */
 export const AppShell = ({
   user,
-  theme = "system",
+  theme = "light",
   signOutAction,
   children,
 }: {

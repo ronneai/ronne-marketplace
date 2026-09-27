@@ -14,7 +14,7 @@ compose parts; they don't restyle them.
 **In:**
 - Design tokens for both themes, as CSS variables, mapped into Tailwind's theme.
 - Self-hosted fonts: Manrope (the variable font in the materials) and IBM Plex Mono, with their licenses.
-- Light and dark themes: follow the operating system by default, plus a manual toggle that's remembered. The toggle is a button in the header (system → light → dark), next to the user menu (owner decision, 2026-09-27).
+- Light and dark themes, switched by a button in the header next to the user menu, and remembered in a cookie. Light is the default. There's no "follow the OS" mode (owner decision, 2026-09-27; it was the default before).
 - `components/ui` primitives: Button, Input (text, password with show/hide), Checkbox, Label and
   field error, Card and Panel, Badge, Notice, Table, Tabs, Dialog, CopyableCommand, and Page header.
 - The app shell: a header with the full brand (`BrandLogo`) and navigation, a user menu, a footer, and a centered content column.
@@ -122,8 +122,8 @@ instead, with no runtime CDN: `lucide-react` (ISC), if it passes the dependency 
       lint check rejects raw hex colours in `components/` and `features/`).
 - [x] Manrope and IBM Plex Mono load from the app itself (no request to fonts.googleapis.com or
       gstatic.com), in weights 500 and 600, with their OFL texts in the repo.
-- [x] The theme follows the OS by default. The toggle persists across reloads with no flash, and
-      the server renders `data-theme`.
+- [x] Light is the default; the header toggle switches to dark. The choice persists across reloads with no
+      flash, and the server renders `data-theme`. (Following the OS was dropped on 2026-09-27, owner decision.)
 - [x] Every primitive in the table exists in `components/ui`, with tests, and appears on `/styleguide` in both themes.
 - [x] The app shell renders the brand, the navigation for the user's role, and the user menu, and
       the favicon switches with the theme.

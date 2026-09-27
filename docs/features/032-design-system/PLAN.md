@@ -117,4 +117,8 @@
   - **The theme switch moved** from the user menu to a header button: system → light → dark, with a
     Monitor, Sun or Moon icon. It's still a form, so it works without JavaScript. On phones, the
     user menu opens from an icon in place of the word "account", so the header fits at 360px.
+- **Changed later (2026-09-27, owner decision):** only light and dark, no "system" (follow the OS).
+  Light is the default; an old `system` cookie reads as light. The `prefers-color-scheme` block in
+  `tokens.css` is gone (a test checks it stays gone), and the header button switches light ↔ dark,
+  showing a moon in light and a sun in dark. The favicon still follows the browser's own setting.
 

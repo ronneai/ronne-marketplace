@@ -53,6 +53,7 @@ describe.each([
   });
 });
 
-it("keeps the system-dark block identical to [data-theme=dark]", () => {
-  expect(block('[data-theme="system"]')).toEqual(block('[data-theme="dark"]'));
+it("has only the light and dark themes: no OS-following block", () => {
+  expect(css).not.toContain('[data-theme="system"]');
+  expect(css).not.toContain("prefers-color-scheme");
 });

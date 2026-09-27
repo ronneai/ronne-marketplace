@@ -77,8 +77,8 @@ describe("AppShell", () => {
       </AppShell>,
     );
     const header = html.slice(0, html.indexOf("<details"));
-    expect(header).toContain("Using the dark theme. Switch to the system theme.");
-    expect(header).toContain('value="system"');
+    expect(header).toContain("Switch to the light theme");
+    expect(header).toContain('value="light"');
     expect(html.slice(html.indexOf("<details"))).not.toContain('name="theme"');
   });
 });

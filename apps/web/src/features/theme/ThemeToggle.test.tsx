@@ -5,18 +5,16 @@ vi.mock("./actions", () => ({ setThemeFromForm: vi.fn() }));
 const { ThemeToggle } = await import("./ThemeToggle");
 
 describe("ThemeToggle", () => {
-  it("cycles system → light → dark → system, and says so", () => {
-    const cases = [
-      ["system", "light", "lucide-monitor"],
-      ["light", "dark", "lucide-sun"],
-      ["dark", "system", "lucide-moon"],
-    ] as const;
-    for (const [theme, next, icon] of cases) {
-      const html = renderToStaticMarkup(<ThemeToggle theme={theme} />);
-      expect(html, theme).toContain(`value="${next}"`);
-      expect(html, theme).toContain(`Using the ${theme} theme. Switch to the ${next} theme.`);
-      expect(html, theme).toContain(icon);
-      expect(html, theme).toContain('type="submit"');
-    }
+  it("switches between light and dark, showing the theme it switches to", () => {
+    const light = renderToStaticMarkup(<ThemeToggle theme="light" />);
+    expect(light).toContain('value="dark"');
+    expect(light).toContain("Switch to the dark theme");
+    expect(light).toContain("lucide-moon");
+
+    const dark = renderToStaticMarkup(<ThemeToggle theme="dark" />);
+    expect(dark).toContain('value="light"');
+    expect(dark).toContain("Switch to the light theme");
+    expect(dark).toContain("lucide-sun");
+    expect(dark).not.toContain("system");
   });
 });
