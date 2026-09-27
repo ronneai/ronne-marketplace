@@ -36,3 +36,25 @@ updates:
       github-actions:
         patterns: ["*"]
         update-types: [minor, patch]
+
+  # The base image digest in the Dockerfile (feature 005).
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 3
+    commit-message:
+      prefix: "[chore]"
+
+  # Images in compose.yaml and docker/test-databases.compose.yml.
+  - package-ecosystem: docker-compose
+    directories: ["/", "/docker"]
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 3
+    commit-message:
+      prefix: "[chore]"

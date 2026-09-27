@@ -5,10 +5,8 @@
 # State (database file, storage, settings) lives in /app/data: mount a volume there.
 
 # Node.js 24 LTS on Debian 13 (trixie), pinned by digest (docs/policies/dependencies.md §2).
-# Dependabot updates the digest.
-ARG NODE_IMAGE=node:24-trixie-slim@sha256:8ec5d7557396cfe32d21c3f9c13072355ceab22b584578ca4bb28af31120cffe
-
-FROM ${NODE_IMAGE} AS base
+# Written in FROM directly, not through an ARG, so Dependabot can update the digest.
+FROM node:24-trixie-slim@sha256:8ec5d7557396cfe32d21c3f9c13072355ceab22b584578ca4bb28af31120cffe AS base
 ENV NEXT_TELEMETRY_DISABLED=1 \
     TURBO_TELEMETRY_DISABLED=1
 
@@ -44,6 +42,11 @@ ENV NODE_ENV=production \
     RONNE_ENV_FILE=/app/data/.env \
     RONNE_DATA_DIR=/app/data \
     RONNE_RUNTIME=docker
+# Only what runs: the server and scripts use `node` alone, and the pnpm stand-in below calls node
+# directly. The base image's npm, npx, corepack and Yarn 1 are removed, which also removes the
+# vulnerabilities in npm's bundled dependencies that Trivy reports for the base image.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /opt/yarn-v* \
+      /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /usr/local/bin/yarn /usr/local/bin/yarnpkg
 WORKDIR /app
 COPY --from=build --chown=node:node /repo/apps/web/.next/standalone ./
 COPY --from=build --chown=node:node /repo/apps/web/.next/static ./apps/web/.next/static

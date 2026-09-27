@@ -99,4 +99,14 @@
     PostgreSQL 18's volume goes on `/var/lib/postgresql`, the path its image expects from 18.
   - There's no `depends_on`, because `web` can't depend on an optional profile. If the database isn't ready yet, the start script's migration exits and `restart: unless-stopped` retries.
   - **Checked with a throwaway project** (`-p ronne-t6`, port 3203), for SQLite, `--profile postgres` and `--profile mysql`: 503 before setup; `docker compose exec -T web pnpm run setup --yes` applied `0001_identity` and created root; after `docker compose restart web`, the logs show "The database is up to date" (with the password redacted) and the health check returns 200. Then `down -v`.
+- **Task 7 (2026-09-27): image build and scan in CI, written but not yet ticked.** Waiting on the first GitHub run.
+  - `.github/workflows/image.yml`, job `Docker image (build, run, scan)`, on pull requests and pushes to `main`:
+    - a Buildx build for `linux/amd64,linux/arm64` (QEMU for arm64, GitHub Actions cache), with no push;
+    - an amd64 build loaded as `ronne-web:ci`, run, and probed until `/api/health` answers `setup_required`;
+    - **Trivy 0.74.0** from its own image (`aquasec/trivy@sha256:62b1…1969`, Apache-2.0) rather than a third-party action: `--severity HIGH,CRITICAL --ignore-unfixed --exit-code 1`.
+
+    The Docker actions (`setup-qemu` v4.4.0, `setup-buildx` v4.4.1, `build-push` v7.4.0; Apache-2.0; all over 3 days old) are pinned by SHA.
+  - **The first local Trivy scan failed: 4 HIGH (`brace-expansion`, `ip-address`, `tar`), all inside the base image's own npm.** The bare `node:24-trixie-slim` has the same 4; Debian packages and Ronne's dependencies had 0. **Option A (owner's choice):** the runtime stage removes npm, npx, corepack and Yarn 1, which nothing at runtime uses. After that, Trivy exits 0. Setup, restart (200), `reset-root-password` and `db:migrate` were re-run in the container, and they all still work. The image size is unchanged (422 MB), because the base layers still hold those files; only the final filesystem, which is what gets scanned and run, is smaller.
+  - **Dependabot:** added the `docker` (the Dockerfile's base digest) and `docker-compose` (`/` and `/docker`) ecosystems, weekly, with a 3-day cooldown and the `[chore]` prefix. The base image moved from an `ARG` into `FROM`, so Dependabot can see it. The Trivy digest in `image.yml` is in a `docker run` line, which Dependabot doesn't update, so bump it by hand.
+  - **After merging,** add `Docker image (build, run, scan)` to the required checks on `main`.
 
