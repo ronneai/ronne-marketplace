@@ -13,7 +13,7 @@
 - [x] **3. Compiled scripts.** Bundle setup, reset-root-password and migrate into plain JS (for example with `tsdown`), with `pnpm run` entries that point at them in production.
   *Done when:* `node dist/setup.js --yes` works from a production build with no dev dependencies installed.
 
-- [ ] **4. Dockerfile.** Multi-stage build: install → build → a slim runtime with the standalone output, the compiled scripts, a non-root user, `/app/data`, `RONNE_ENV_FILE`, `HEALTHCHECK` and the start script.
+- [x] **4. Dockerfile.** Multi-stage build: install → build → a slim runtime with the standalone output, the compiled scripts, a non-root user, `/app/data`, `RONNE_ENV_FILE`, `HEALTHCHECK` and the start script.
   *Done when:* `docker build` succeeds locally, and the container shows the setup-required screen.
 
 - [ ] **5. Start script.** Config detection, migrations before start, the writable-volume check, and exit on migration failure.
@@ -59,4 +59,21 @@
   - **The web app's `build` is now `next build && tsdown`,** so the pre-commit hook and CI check the bundle on every change. `dist-scripts/` is git-ignored and a Turbo build output.
   - **Proof:** in a scratch folder whose only `node_modules` were `better-sqlite3` (plus `node-addon-api`) and `@node-rs/argon2` (plus its platform binary), `node dist-scripts/setup.mjs --yes`, `migrate.mjs` and `reset-root-password.mjs --yes` all worked.
   - Setup's closing message says `pnpm build && pnpm start`, which is wrong in Docker. To be adjusted with the start script in task 5.
+- **Task 4 (2026-09-27): Dockerfile.**
+  - **Stages:**
+    - `deps`: `pnpm install --frozen-lockfile` with the workspace's supply-chain settings. pnpm 12.6.0 comes from `npm install --global`, because Corepack can't start pnpm 12. It also installs `python3 make g++`, only for `better-sqlite3`.
+    - `build`: `NEXT_OUTPUT=standalone` for the Next build, then `tsdown`, then `docker/collect-native.mjs`.
+    - `runtime`: the standalone server, `.next/static`, `dist-scripts` and the collected native modules. It runs as `node` (uid 1000) with a `/app/data` volume and `RONNE_ENV_FILE=/app/data/.env`.
+  - **Base image:** `node:24-trixie-slim`, pinned by digest (`sha256:8ec5…cffe`, Node 24.21.0). **Changed from the spec's `node:24-slim`, which is Debian 12;** the policy asks for the current Debian stable (13). The spec is updated.
+  - **`next.config.ts`:** `output: "standalone"` only when `NEXT_OUTPUT=standalone`, because local `next start` doesn't support standalone.
+  - **`docker/collect-native.mjs`:** standalone links native modules only under hashed names in `.next/node_modules`, which the scripts can't import. So `better-sqlite3`, `node-addon-api`, `@node-rs/argon2` and its platform binary are copied into `apps/web/node_modules`, leaving out `deps/`, `src/` and similar (SQLite's C source).
+  - **`docker/pnpm`** is a stand-in at `/usr/local/bin/pnpm`. It maps `pnpm run setup`, `pnpm run reset-root-password` and `pnpm db:migrate` to the compiled scripts, so the documented `docker compose exec web pnpm run setup` works. Anything else exits 2.
+  - `apps/web/data` is a symlink to `/app/data`, so setup's defaults (`./data/ronne.db`, `./data/storage`) land on the volume.
+  - `HEALTHCHECK` calls `/api/health` using Node's `fetch`, since `curl` isn't in the image.
+  - **Size:** 422 MB, of which the base is 355 MB. Ronne adds about 52 MB: 31 MB server, 18 MB native modules, 2 MB scripts, 0.6 MB static assets. None of vitest, vite, typescript, tsx, tsdown, Biome or turbo is in the image.
+  - **Checked by hand:**
+    1. A new container shows the setup screen, and `/api/health` returns 503 `setup_required`.
+    2. `docker exec … pnpm run setup --yes`, with `DATABASE_URL=file:./data/ronne.db` and the root variables, writes `/app/data/.env` (0600), `ronne.db` and `storage/`.
+    3. After `docker restart`, it returns 200 `{"status":"ok"}`, shows the normal page, and Docker reports `healthy`.
+  - **Non-interactive setup needs `DATABASE_URL`**, as in 003. The interactive run asks, and defaults to SQLite. Setup's closing message still says `pnpm build && pnpm start`, to be fixed in task 5.
 
