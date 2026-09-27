@@ -30,7 +30,7 @@ const authOptions = () => ({
 beforeAll(async () => {
   fresh = await createTestDb({ migrate: false });
   ({ db, dialect } = fresh);
-  expect(await migrateToLatest(db, dialect)).toEqual(["0001_identity"]);
+  expect(await migrateToLatest(db, dialect)).toContain("0001_identity");
 });
 afterAll(() => fresh.cleanup());
 

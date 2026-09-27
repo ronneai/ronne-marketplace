@@ -49,7 +49,7 @@ New folders start from [`_template/`](./_template/).
 |---|---|---|---|
 | [032](./032-design-system/SPEC.md) | Design system and app shell (brand, fonts, light and dark themes, `components/ui`) | 001 | done |
 | [006](./006-web-sign-in/SPEC.md) | Web sign-in, sign-out, change password; Playwright end-to-end tests | 003, 032 | done |
-| [007](./007-audit-log/SPEC.md) | Audit log | 002 | specified |
+| [007](./007-audit-log/SPEC.md) | Audit log | 002 | in progress |
 | [008](./008-user-admin/SPEC.md) | User admin: create, disable, change role, reset password | 006, 007, 032 | specified |
 | [009](./009-access-tokens/SPEC.md) | Personal access tokens: UI, `POST/DELETE /api/v1/auth/token`, `GET /api/v1/me`, bearer guard | 006, 007, 032 | specified |
 

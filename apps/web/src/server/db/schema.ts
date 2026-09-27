@@ -70,6 +70,21 @@ export interface AccessTokenTable {
   created_at: Timestamp;
 }
 
+/**
+ * The audit log (migration 0002_audit_log). Insert-only: metadata is JSON text, never secrets.
+ * `actor_id` is null for the system or the command line.
+ */
+export interface AuditLogTable {
+  id: string;
+  actor_id: string | null;
+  action: string;
+  target_type: string;
+  target_id: string | null;
+  metadata: string;
+  ip_address: string | null;
+  created_at: Timestamp;
+}
+
 /** Kysely table types for the whole app. Each migration that adds a table adds its interface here. */
 export interface Database {
   user: UserTable;
@@ -77,4 +92,5 @@ export interface Database {
   account: AccountTable;
   verification: VerificationTable;
   access_tokens: AccessTokenTable;
+  audit_log: AuditLogTable;
 }

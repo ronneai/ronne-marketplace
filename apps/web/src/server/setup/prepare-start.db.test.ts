@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createDb } from "../db/create-db";
 import { migrateToLatest } from "../db/migrate";
+import { migrations } from "../db/migrations";
 import { prepareStart, StartError } from "./prepare-start";
 
 let dir: string;
@@ -38,7 +39,7 @@ describe("prepareStart", () => {
       await prepareStart({ appDir: dir, dataDir: dir, env: configured(), log: silent }),
     ).toEqual({
       mode: "ready",
-      applied: ["0001_identity"],
+      applied: Object.keys(migrations),
     });
     expect(
       await prepareStart({ appDir: dir, dataDir: dir, env: configured(), log: silent }),
