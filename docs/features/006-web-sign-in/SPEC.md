@@ -122,18 +122,18 @@ password shows `ERR:` and changes nothing.
 
 ## Acceptance criteria
 
-- [ ] With the right email and password, a user lands on `next` (or `/`) and sees their email and role in the header.
-- [ ] Wrong password, unknown email and disabled user all show the same error, and none creates a session.
-- [ ] The 6th sign-in attempt within a minute for one email (or, with `TRUST_PROXY=true`, from one IP) gets the rate-limit message.
-- [ ] Every page except the public ones redirects signed-out visitors to `/sign-in?next=…`, and `next` never leads off-site.
-- [ ] "Remember me" gives a 30-day session; unchecked gives a browser-session cookie.
-- [ ] Changing the password needs the current one, applies the length rules, keeps this session and ends the others.
-- [ ] Sign-out ends the session; the back button doesn't show protected pages.
-- [ ] Disabling a user (008, or directly in the database for this feature's tests) ends access on their next request.
-- [ ] `TRUST_PROXY=true` makes the rate limit use `X-Forwarded-For`; without it, the header is ignored.
-- [ ] `/api/auth/*` serves only the allowlisted endpoints; sign-in and sign-up over HTTP return 404.
+- [x] With the right email and password, a user lands on `next` (or `/`) and sees their email and role in the header.
+- [x] Wrong password, unknown email and disabled user all show the same error, and none creates a session.
+- [x] The 6th sign-in attempt within a minute for one email (or, with `TRUST_PROXY=true`, from one IP) gets the rate-limit message.
+- [x] Every page except the public ones redirects signed-out visitors to `/sign-in?next=…`, and `next` never leads off-site.
+- [x] "Remember me" gives a 30-day session; unchecked gives a browser-session cookie.
+- [x] Changing the password needs the current one, applies the length rules, keeps this session and ends the others.
+- [x] Sign-out ends the session; the back button doesn't show protected pages.
+- [x] Disabling a user (008, or directly in the database for this feature's tests) ends access on their next request.
+- [x] `TRUST_PROXY=true` makes the rate limit use `X-Forwarded-For`; without it, the header is ignored.
+- [x] `/api/auth/*` serves only the allowlisted endpoints; sign-in and sign-up over HTTP return 404.
 - [ ] Playwright covers sign in, wrong password, sign out and change password, and runs in CI (Chromium).
-- [ ] No Better Auth import outside `domains/identity` (lint rule).
+- [x] No Better Auth import outside `domains/identity` (lint rule).
 
 ## Open questions
 
