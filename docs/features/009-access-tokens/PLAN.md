@@ -12,7 +12,7 @@
   user, and a throttled `last_used_at` update. Each change records its 007 event in its transaction.
   *Done when:* database tests cover create, list, revoke, lookup, the limits, and the once-a-minute update.
 
-- [ ] **3. Bearer guard and API errors.** `server/http/require-token.ts`, and error mapping to MVP
+- [x] **3. Bearer guard and API errors.** `server/http/require-token.ts`, and error mapping to MVP
   §11 with `WWW-Authenticate` and `no-store`.
   *Done when:* tests cover each failure code, a valid token, a disabled user, and cookies being ignored.
 
@@ -69,4 +69,19 @@
     the lifetimes; a duplicate active name, which is allowed again after revoking; the 51st token;
     ownership; each failure code; and the once-a-minute update, on a clock that starts now (a fixed
     date could fall after the 90-day expiry).
+- **Task 3 (2026-09-27): bearer guard** (`server/http/require-token.ts`).
+  - **`bearerToken(headers)`** reads only `Authorization: Bearer <token>`. It ignores cookies, so the
+    API is bearer only and cross-site request forgery doesn't apply.
+  - **`requireToken(request)`** returns `{ ok, auth }` or `{ ok: false, response }`. Before setup it
+    returns 503 `setup_required`.
+  - **Failures** are 401 in the MVP §11 shape, with `Cache-Control: no-store` and
+    `WWW-Authenticate: Bearer realm="ronne"`, plus `error="invalid_token"` when a token was sent.
+    `errorResponse` gained an optional headers argument.
+  - **The messages** point to Access tokens or `rmk login`. `token_invalid` has one message for
+    malformed and unknown tokens.
+  - **The guard's dependencies** (whether the instance is set up, and how to authenticate) are
+    injectable: the real "is it set up?" check reads the developer's `apps/web/.env`, which CI
+    doesn't have.
+  - **Tests** (all four databases): the header parsing, a valid token, each failure code with its
+    headers, cookies being ignored, 503 before setup, and the token never echoed in an error.
 
