@@ -76,13 +76,13 @@ and that root creates new scopes. This is the page the editor's picker links to.
 
 ## Acceptance criteria
 
-- [ ] `0004_scopes` creates the table, unique index and table-level foreign key on all four
+- [x] `0004_scopes` creates the table, unique index and table-level foreign key on all four
       databases, with a foreign-key test like 0002's.
-- [ ] The name rules and reserved names are enforced by one function in `packages/core`, with tests.
-- [ ] Root creates scopes and edits descriptions; each change records its 007 event in the same transaction.
-- [ ] Duplicate names are refused regardless of case and a leading `@`.
-- [ ] Non-root users can't create or edit scopes (404 page, `ForbiddenError` action), but can list and search them.
-- [ ] `scopes.manage` is in the permission map, and its table test is updated.
+- [x] The name rules and reserved names are enforced by one function in `packages/core`, with tests.
+- [x] Root creates scopes and edits descriptions; each change records its 007 event in the same transaction.
+- [x] Duplicate names are refused regardless of case and a leading `@`.
+- [x] Non-root users can't create or edit scopes (404 page, `ForbiddenError` action), but can list and search them.
+- [x] `scopes.manage` is in the permission map, and its table test is updated.
 
 ## Open questions
 

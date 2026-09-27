@@ -20,7 +20,7 @@ the same change that completes it.
   *Done when:* database tests cover create, duplicates, invalid and reserved names, edit, search,
   paging, permissions, and the audit events in the same transaction.
 
-- [ ] **4. Pages.** `/admin/scopes` (table, create and edit dialogs, "Scopes" in the admin
+- [x] **4. Pages.** `/admin/scopes` (table, create and edit dialogs, "Scopes" in the admin
   navigation) and `/scopes` (read-only list with search), using 032's parts.
   *Done when:* render, action and permission tests pass, and Playwright: root creates a scope, and
   a user sees it on `/scopes` but gets a 404 on `/admin/scopes`.
@@ -55,4 +55,22 @@ the same change that completes it.
   - **Tests** (all four databases): creation from what was typed (`@Platform` becomes `platform`),
     duplicates in any case, each invalid and reserved name, description limits, root-only changes,
     the audit events, search (with `%` taken literally) and paging.
+- **Task 4 (2026-09-27): pages.**
+  - **`/admin/scopes`** (root; a 404 for anyone else, without listing) has the table, a "Create
+    scope" dialog and an Edit dialog per row. The create dialog shows `@name/item` as you type, and
+    each name rule in words. "Scopes" joined the admin tabs.
+  - **`/scopes`** (everyone signed in) is the same table, read-only, with the search as a GET form.
+  - **Navigation:** "Scopes" joined the header for everyone. With three links, root's header was
+    426px wide on a 360px phone. So "Home" hides on phones (the logo links home), and the phone
+    header's padding and gaps are tighter.
+  - **Tables on phones:** the description column has a minimum width, so the table scrolls inside
+    its frame instead of squeezing the column into a narrow strip. Every page measures exactly the
+    viewport at 360, 390 and 1440px.
+  - **Tests:** the actions (error mapping, revalidating both pages), the table (links, empty states),
+    the query parsing, and the pages' permissions. Playwright: root creates `@E2E-Team` (saved as
+    `e2e-team`); a user finds it through the header's Scopes link, has no Edit buttons, and gets a
+    404 on `/admin/scopes`. All 12 end-to-end tests pass.
+  - **Docker:** built locally with the new `--filter "@ronneai/web..."`, then run: before setup it
+    answers as expected, with no errors in its logs.
+- **Done (2026-09-27).**
 

@@ -31,7 +31,7 @@ export const AppShell = ({
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-hairline bg-surface">
-        <div className="flex h-14 items-center gap-2 px-4 sm:gap-6 sm:px-6">
+        <div className="flex h-14 items-center gap-1.5 px-3 sm:gap-6 sm:px-6">
           <Link
             href="/"
             className="flex items-center gap-2 text-fg outline-offset-4 focus-visible:outline-2 focus-visible:outline-focus"

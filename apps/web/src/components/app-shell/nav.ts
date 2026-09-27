@@ -9,6 +9,8 @@ export type NavItem = {
   permission?: Permission;
   /** The item is current on every path under this one, for example "/admin". */
   section?: string;
+  /** Hidden on phones, to fit the header; the logo already links home. */
+  hideOnPhone?: boolean;
 };
 
 /**
@@ -16,7 +18,8 @@ export type NavItem = {
  * Releases join as their features land.
  */
 export const NAV: NavItem[] = [
-  { href: "/", label: "Home" },
+  { href: "/", label: "Home", hideOnPhone: true },
+  { href: "/scopes", label: "Scopes" },
   { href: "/admin/users", label: "Admin", permission: "users.view", section: "/admin" },
 ];
 
