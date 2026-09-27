@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { setThemeFromForm } from "@/features/theme/actions";
 import { Badge } from "../ui/Badge";
-import { BrandMark } from "../ui/BrandMark";
+import { BrandLogo } from "../ui/BrandLogo";
 import { navFor, type ShellUser } from "./nav";
 
 const menuItem = "block w-full rounded-control px-3 py-1.5 text-left text-sm text-fg hover:bg-tint";
@@ -26,13 +26,12 @@ export function AppShell({
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-hairline bg-surface">
-        <div className="flex h-14 items-center gap-3 px-4 sm:gap-6 sm:px-6">
+        <div className="flex h-14 items-center gap-2 px-4 sm:gap-6 sm:px-6">
           <Link
             href="/"
             className="flex items-center gap-2 text-fg outline-offset-4 focus-visible:outline-2 focus-visible:outline-focus"
           >
-            <BrandMark size={22} />
-            <span className="text-base font-semibold tracking-[-0.01em]">ronne</span>
+            <BrandLogo height={34} className="h-6 w-auto sm:h-[34px]" />
             <span className="hidden font-mono text-xs text-muted sm:inline">/ registry</span>
           </Link>
           <nav aria-label="Main" className="flex items-center gap-1">
@@ -41,7 +40,7 @@ export function AppShell({
                 key={item.href}
                 href={item.href}
                 aria-current={item.href === current ? "page" : undefined}
-                className="rounded-control px-3 py-1.5 text-sm text-muted hover:text-fg aria-[current=page]:bg-tint aria-[current=page]:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
+                className="rounded-control px-2 py-1.5 text-sm text-muted sm:px-3 hover:text-fg aria-[current=page]:bg-tint aria-[current=page]:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
               >
                 {item.label}
               </Link>
