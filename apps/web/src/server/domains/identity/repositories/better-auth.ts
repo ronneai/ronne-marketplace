@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth";
+import { APIError } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
 import type { Db } from "../../../db/create-db";
 import { newId } from "../../../db/ids";
@@ -81,10 +82,15 @@ export function createAuth({
     databaseHooks: {
       session: {
         create: {
-          // Disabled users get no session. Sign-in then fails like a wrong password does.
+          // Disabled users get no session. Sign-in then fails with the same 401 as a wrong password
+          // (returning false would make it a 500).
           before: async (session) => {
             const user = await kyselyIdentityRepository(db, dialect).findActiveUser(session.userId);
-            if (!user) return false;
+            if (!user)
+              throw new APIError("UNAUTHORIZED", {
+                message: "Invalid email or password",
+                code: "INVALID_EMAIL_OR_PASSWORD",
+              });
           },
         },
       },

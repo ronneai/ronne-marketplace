@@ -16,7 +16,7 @@
 - [x] **2. Disabled users.** The `session.create.before` hook, and `getCurrentUser()` checking `disabled_at`.
   *Done when:* database tests show a disabled user can't sign in, and an existing session stops working.
 
-- [ ] **3. Identity actions.** `signIn` (with the login limiter), `getCurrentUser`, `requireUser`,
+- [x] **3. Identity actions.** `signIn` (with the login limiter), `getCurrentUser`, `requireUser`,
   `changePassword` (rules from 003, other sessions ended) and `signOut`.
   *Done when:* database tests cover each, including a wrong current password.
 
@@ -68,4 +68,18 @@
     their next request. A role outside root, moderator and user gets no access.
   - **Layers:** the service depends on a `SessionStore` interface (`repositories/session-store.ts`),
     which Better Auth implements. Tests build an `AppAuth` with `testing/test-auth.ts`.
+- **Task 3 (2026-09-27): identity actions** in `actions/session.ts`, over `services/session.ts`.
+  - **`signIn`** normalises the email and refuses junk (a bad email, an empty password or one over
+    128 characters) before hashing. Then it applies the limiter and calls Better Auth. Wrong
+    password, unknown email and disabled user all return `invalid_credentials`.
+  - **Disabled users, fixed from task 2:** the session hook returned `false`, which Better Auth turns
+    into a 500 ("Failed to create session"). It now throws the same 401 as a wrong password.
+  - **`requireUser`** redirects to `/sign-in?next=…`, taking the path from the `x-ronne-path`
+    header that `src/proxy.ts` will set (task 4).
+  - **`changePassword`** needs a session and applies the 003 length rules. Wrong current passwords
+    count against the same per-email limit as sign-in, so a stolen session can't be used to guess the
+    password. Better Auth's `changePassword` isn't bound to a "fresh" session, so it works on a
+    30-day session. With `revokeOtherSessions`, it ends every session and starts a new one for this
+    browser.
+  - **`signOut`** ends the session, and does nothing without one.
 
