@@ -19,7 +19,8 @@
     "licenses:check": "pnpm licenses list --json | node packages/repo-tools/src/check-licenses.js",
     "db:migrate": "pnpm --filter @ronne/web db:migrate",
     "setup": "pnpm --filter @ronne/web run setup",
-    "reset-root-password": "pnpm --filter @ronne/web run reset-root-password"
+    "reset-root-password": "pnpm --filter @ronne/web run reset-root-password",
+    "test:db": "pnpm --filter @ronne/web test:db"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.14",
