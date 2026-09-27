@@ -118,17 +118,17 @@ instead, with no runtime CDN: `lucide-react` (ISC), if it passes the dependency 
 
 ## Acceptance criteria
 
-- [ ] Tokens for both themes exist once (`tokens.css`), and components use only token utilities (a
+- [x] Tokens for both themes exist once (`tokens.css`), and components use only token utilities (a
       lint check rejects raw hex colours in `components/` and `features/`).
-- [ ] Manrope and IBM Plex Mono load from the app itself (no request to fonts.googleapis.com or
+- [x] Manrope and IBM Plex Mono load from the app itself (no request to fonts.googleapis.com or
       gstatic.com), in weights 500 and 600, with their OFL texts in the repo.
-- [ ] The theme follows the OS by default. The toggle persists across reloads with no flash, and
+- [x] The theme follows the OS by default. The toggle persists across reloads with no flash, and
       the server renders `data-theme`.
-- [ ] Every primitive in the table exists in `components/ui`, with tests, and appears on `/styleguide` in both themes.
-- [ ] The app shell renders the brand, the navigation for the user's role, and the user menu, and
+- [x] Every primitive in the table exists in `components/ui`, with tests, and appears on `/styleguide` in both themes.
+- [x] The app shell renders the brand, the navigation for the user's role, and the user menu, and
       the favicon switches with the theme.
-- [ ] Automated contrast checks pass for every documented text and background pair in both themes.
-- [ ] The UI has no shadows, gradients, red, yellow or green (a lint check on classes and CSS).
+- [x] Automated contrast checks pass for every documented text and background pair in both themes.
+- [x] The UI has no shadows, gradients, red, yellow or green (a lint check on classes and CSS).
 
 ## Open questions
 

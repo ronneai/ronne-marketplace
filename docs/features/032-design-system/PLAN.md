@@ -24,7 +24,7 @@
   and the brand SVGs and favicons in `public/`. The setup-required screen uses the new parts.
   *Done when:* a render test covers the navigation for `user` and `root`, and the favicon matches the theme.
 
-- [ ] **5. Styleguide page.** `/styleguide`, root-only in production, showing every primitive in both themes.
+- [x] **5. Styleguide page.** `/styleguide`, root-only in production, showing every primitive in both themes.
   *Done when:* it renders; checked by hand in both themes and at 390px wide, with screenshots in Notes.
 
 ## Notes
@@ -88,4 +88,16 @@
     files failed to import, so a "passed" count alone wasn't enough.
   - **Checked live:** a configured instance renders the shell (dark theme via the cookie); both icons are
     linked; `/icon.svg` returns 200 as `image/svg+xml`; setup mode shows the restyled screen.
-
+- **Task 5 (2026-09-27): styleguide.** `/styleguide` (`src/app/(app)/styleguide/page.tsx`) renders
+  `features/styleguide/Styleguide.tsx`: the same sample twice, in a `data-theme="light"` and a
+  `data-theme="dark"` container, with the colour swatches, type, buttons, fields, badges, notices,
+  table, tabs, copyable command, dialog and panel.
+  - **Access:** `canViewStyleguide(nodeEnv, user)` allows everyone outside production, and only root in
+    production. Until 006 passes the signed-in user, the page returns 404 in production for everyone.
+  - **Design rule change:** the shadow check matched the page's copy "no shadow". It now matches only
+    a `shadow` or `drop-shadow` class token, or a CSS `box-shadow:`. Throwaway files with `shadow-lg`, a bare `shadow` class and
+    `box-shadow` still fail it.
+  - **Checked by hand** in Chrome against `pnpm dev`: both themes side by side at 1200px, and at 390px
+    wide (the swatches wrap and there's no horizontal scroll), with no console errors. A production
+    build (`next start`) returns 404 at `/styleguide` and 200 at `/`. Screenshots weren't kept in the
+    repo; the UI materials they'd sit next to stay private.

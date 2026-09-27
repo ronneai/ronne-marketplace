@@ -47,7 +47,7 @@ New folders start from [`_template/`](./_template/).
 
 | ID | Feature | Depends on | Status |
 |---|---|---|---|
-| [032](./032-design-system/SPEC.md) | Design system and app shell (brand, fonts, light and dark themes, `components/ui`) | 001 | in progress |
+| [032](./032-design-system/SPEC.md) | Design system and app shell (brand, fonts, light and dark themes, `components/ui`) | 001 | done |
 | [006](./006-web-sign-in/SPEC.md) | Web sign-in, sign-out, change password; Playwright end-to-end tests | 003, 032 | specified |
 | [007](./007-audit-log/SPEC.md) | Audit log | 002 | specified |
 | [008](./008-user-admin/SPEC.md) | User admin: create, disable, change role, reset password | 006, 007, 032 | specified |

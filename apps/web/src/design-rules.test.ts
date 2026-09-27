@@ -16,7 +16,11 @@ function files(dir: string): string[] {
 
 const RULES: [string, RegExp][] = [
   ["raw hex colour (use a token utility)", /#[0-9a-fA-F]{3,8}\b/],
-  ["shadow (the design is flat)", /\b(?:drop-)?shadow(?:-[a-z0-9]+)?\b/],
+  // A Tailwind shadow class token (not the word in prose), or a CSS box-shadow declaration.
+  [
+    "shadow (the design is flat)",
+    /(?<=["'`\s])(?:drop-)?shadow(?:-[\w/[\].-]+)?(?=["'`\s])|box-shadow\s*:/,
+  ],
   ["gradient (the design is flat)", /\b(?:bg-gradient|bg-linear|bg-radial|bg-conic|gradient)\b/],
   [
     "red, yellow or green colour",
