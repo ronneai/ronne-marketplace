@@ -44,7 +44,7 @@ confirmation. A token is valid only when it isn't revoked or expired, and its us
 
 **`/account/tokens`** (every signed-in user, 032's parts):
 - **Table columns:** name, prefix (`rmk_AbC1…`, the first 8 characters after the prefix, so tokens
-  can be told apart), created, last used (or "never"), expires (or "no expiry"), status (`active`,
+  can be told apart; stored in `token_prefix`, migration `0003_access_token_prefix`), created, last used (or "never"), expires (or "no expiry"), status (`active`,
   `expired` or `revoked`), and a revoke button.
 - **Create** (a dialog): name and lifetime. Then a one-time panel shows the token in a
   CopyableCommand, with "Copy it now: it won't be shown again", and a ready-to-use
@@ -78,7 +78,8 @@ confirmation. A token is valid only when it isn't revoked or expired, and its us
 **`POST /api/v1/auth/token`** (for `rmk login`):
 - **Request:** `{ "email", "password", "name"? }`. `name` defaults to `rmk on <host>` from `User-Agent` or `rmk`, capped at 100 characters.
 - **The password is checked through Better Auth's verification,** without creating a web session.
-  It shares the sign-in **rate limit** from 006 (5 a minute per IP address).
+  It shares the sign-in **rate limit** from 006: 5 attempts a minute per email, and per client IP
+  when `TRUST_PROXY=true` (006's decision).
 - **Responses:**
   - **201** `{ "token": "rmk_…", "id", "name", "expiresAt" }`, with a **90-day** lifetime;
   - **401** `invalid_credentials`, the same for unknown email, wrong password and disabled user;

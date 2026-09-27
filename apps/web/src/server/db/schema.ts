@@ -64,6 +64,8 @@ export interface AccessTokenTable {
   user_id: string;
   name: string;
   token_hash: string;
+  /** `rmk_` + 8 characters, to tell tokens apart (migration 0003). Null for older tokens. */
+  token_prefix: string | null;
   last_used_at: Timestamp | null;
   expires_at: Timestamp | null;
   revoked_at: Timestamp | null;
