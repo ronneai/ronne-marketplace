@@ -1,10 +1,14 @@
 import type { HTMLAttributes, TdHTMLAttributes, ThHTMLAttributes } from "react";
 import { cn } from "./cn";
 
-/** Dense tables: header on canvas, 36–40px rows with hairlines; `mono` cells for machine values. */
+/**
+ * Dense tables: header on canvas, 36–40px rows with hairlines; `mono` cells for machine values.
+ * A wide table scrolls inside its frame: `min-w-0` stops it widening a grid or flex parent, and
+ * `relative` keeps absolutely positioned children (such as `sr-only` header labels) inside it.
+ */
 export const Table = ({ className, ...props }: HTMLAttributes<HTMLTableElement>) => {
   return (
-    <div className="overflow-x-auto rounded-panel border border-hairline bg-surface">
+    <div className="relative min-w-0 overflow-x-auto rounded-panel border border-hairline bg-surface">
       <table className={cn("w-full border-collapse text-left text-sm", className)} {...props} />
     </div>
   );

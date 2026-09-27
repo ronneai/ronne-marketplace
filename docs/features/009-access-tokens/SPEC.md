@@ -109,16 +109,16 @@ are never logged. Request logging, when added, redacts `Authorization`.
 
 ## Acceptance criteria
 
-- [ ] Tokens are `rmk_` + 43 base64url characters; only SHA-256 hashes are stored; the plain token appears once.
-- [ ] `/account/tokens` lists, creates (with the lifetimes above) and revokes your own tokens, and records 007 events.
-- [ ] The guard accepts a valid token and refuses missing, invalid, expired, revoked and disabled-user tokens with the codes above, and `WWW-Authenticate`.
-- [ ] `last_used_at` is updated at most once a minute per token.
-- [ ] `POST /api/v1/auth/token` returns a 90-day token for correct credentials, the same 401 for wrong password, unknown email and disabled user, and 429 when rate-limited.
-- [ ] `DELETE /api/v1/auth/token` revokes the calling token (204), and the next call with it gets `token_revoked`.
-- [ ] `GET /api/v1/me` returns the user and the token's metadata.
-- [ ] The API ignores cookies; `/api/v1` with a session cookie and no bearer gets `token_missing`.
-- [ ] Limits: the 51st active token and a duplicate active name are refused.
-- [ ] Nothing logs or stores a plain token or password (a test inspects the audit metadata and the error responses).
+- [x] Tokens are `rmk_` + 43 base64url characters; only SHA-256 hashes are stored; the plain token appears once.
+- [x] `/account/tokens` lists, creates (with the lifetimes above) and revokes your own tokens, and records 007 events.
+- [x] The guard accepts a valid token and refuses missing, invalid, expired, revoked and disabled-user tokens with the codes above, and `WWW-Authenticate`.
+- [x] `last_used_at` is updated at most once a minute per token.
+- [x] `POST /api/v1/auth/token` returns a 90-day token for correct credentials, the same 401 for wrong password, unknown email and disabled user, and 429 when rate-limited.
+- [x] `DELETE /api/v1/auth/token` revokes the calling token (204), and the next call with it gets `token_revoked`.
+- [x] `GET /api/v1/me` returns the user and the token's metadata.
+- [x] The API ignores cookies; `/api/v1` with a session cookie and no bearer gets `token_missing`.
+- [x] Limits: the 51st active token and a duplicate active name are refused.
+- [x] Nothing logs or stores a plain token or password (a test inspects the audit metadata and the error responses).
 
 ## Open questions
 

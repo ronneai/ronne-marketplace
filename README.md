@@ -5,9 +5,9 @@ hooks, MCP servers and more. A team installs it on its own infrastructure, propo
 and releases them, and installs them into AI coding tools such as Claude Code, Codex and Cursor with
 the `rmk` CLI or from inside those tools through an MCP server.
 
-> **Status:** early development (milestone M1, accounts and sign-in). Ronne installs, and you can
-> sign in, change your password and, as root, read the audit log. Items, reviews, releases and the
-> `rmk` CLI come in later milestones. The design is in [`docs/MVP/MVP.md`](docs/MVP/MVP.md), and
+> **Status:** early development. Milestones M0 and M1 are done: Ronne installs, and you can sign
+> in, manage your personal access tokens and, as root, manage users and read the audit log. Items,
+> reviews, releases and the `rmk` CLI come in later milestones. The design is in [`docs/MVP/MVP.md`](docs/MVP/MVP.md), and
 > progress is tracked in [`docs/features/`](docs/features/README.md).
 
 ## Getting started

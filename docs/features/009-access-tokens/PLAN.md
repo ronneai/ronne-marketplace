@@ -20,7 +20,7 @@
   exchange goes through Better Auth's verification with the 006 rate limit, and no web session.
   *Done when:* route tests cover the success and failure cases, including 429, and a secret-leak test.
 
-- [ ] **5. `/account/tokens` page.** The table, the create dialog with a one-time panel, revoke, and
+- [x] **5. `/account/tokens` page.** The table, the create dialog with a one-time panel, revoke, and
   the CLI panel, using 032's parts.
   *Done when:* render and action tests pass. Playwright: create a token, call `/api/v1/me` with it,
   revoke it, then get `token_revoked`.
@@ -109,4 +109,33 @@
     - the 429, the 400s and the name suffixes;
     - `/me` then `DELETE`, then `token_revoked`, and a missing token;
     - a secret-leak test: no password or plain token in any response, audit row or token row.
+- **Task 5 (2026-09-27): `/account/tokens`** (`app/(app)/account/tokens/page.tsx`,
+  `features/account-tokens/`).
+  - **The table:** name, the 12-character preview, created, last used ("never"), expires ("no
+    expiry") and a status badge. A Revoke button appears on active tokens only.
+  - **Create:** a dialog with a name and a lifetime (30, 90 or 365 days, or no expiry). No expiry
+    needs a ticked confirmation, checked again in the server action. The one-time panel shows the
+    token and a ready `rmk login --token rmk_…` line, with "Copy it now".
+  - **Revoke:** a confirm dialog. On success the page refreshes, and the row showing "revoked" is
+    the confirmation: the button and its dialog are gone, because they're only on active rows. The
+    end-to-end test first waited for a "Revoked." message that couldn't appear.
+  - **The CLI panel** moved to `components/cli-auth/CliAuthPanel.tsx` (shared by sign-in and this
+    page), with a `linkToTokens` option.
+  - **Layout bugs found in screenshots, fixed in the shared components:**
+    - the one-time panel overflowed the dialog, because a long token widened `CopyableCommand`;
+    - at 390px the page scrolled sideways, on Access tokens and on 008's Users page too. The table's
+      visually-hidden "Actions" header (`sr-only`, which is `position: absolute`) was placed against
+      the page and widened the document to the table's full width.
+
+    `Table`'s frame is now `relative min-w-0`, and `CopyableCommand` is `min-w-0`. Measured with
+    Playwright: every page is exactly the viewport's width at 360, 390 and 1440px.
+  - **Tests:** the server actions (the no-expiry confirmation and error mapping), rendering, and two
+    Playwright tests:
+    - create a token in the page, call `/api/v1/me` with it from a context without cookies, revoke
+      it in the page, then get 401 `token_revoked` with `WWW-Authenticate`;
+    - a signed-in browser calling `/api/v1/me` gets `token_missing`.
+
+    All 10 end-to-end tests pass.
+- **Done (2026-09-27).** This completes M1. The open question is the owner's: a GitHub secret
+  scanning custom pattern for `rmk_[A-Za-z0-9_-]{43}`, a repository setting.
 
