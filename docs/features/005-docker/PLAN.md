@@ -22,7 +22,7 @@
 - [x] **6. `compose.yaml`.** The web service, the volume, and the `mysql` and `postgres` profiles.
   *Done when:* acceptance criteria 1, 3 and 4 pass by hand (recorded in Notes).
 
-- [ ] **7. CI image build and scan.** Buildx for both architectures, a run-and-probe step on amd64,
+- [x] **7. CI image build and scan.** Buildx for both architectures, a run-and-probe step on amd64,
   Trivy with `--severity HIGH,CRITICAL --ignore-unfixed`, and the `docker` ecosystem added to Dependabot.
   *Done when:* a pull request shows the job passing, and an older base image with a known CVE makes the scan fail (recorded in Notes).
 
@@ -114,4 +114,6 @@
   - **Reverse proxies:** `PUBLIC_URL`, plus a note that `TRUST_PROXY` is read by `loadConfig()` but unused until sign-in (006). It's documented as having no effect yet, rather than implying it does something.
   - MVP §5's Docker line now includes the restart step and links to this feature.
   - The README steps were run as written through compose (task 6) and with plain `docker run` (tasks 4 and 5).
+- **Task 7 confirmed on GitHub (PR #11, 2026-09-27):** `Docker image (build, run, scan)` passed in 8 minutes, covering the amd64 and arm64 builds, the run check answering `setup_required`, and a clean Trivy scan.
+- **A CI flake it exposed:** `Database tests (mysql)` failed one test (`migrate.db.test.ts`, "Test timed out in 5000ms"). The other 65 passed, and the same test passed on MySQL in PR #10 and locally. **Option A (owner's choice):** the `db` Vitest project's test and hook timeouts are now 30 seconds; unit tests keep 5 seconds.
 
