@@ -1,0 +1,44 @@
+Here are the ideas for the Ronne AI Marketplace framework
+
+- This would be a public repository, open source
+- This project is to implemente a frame work where any user could install or contribute forking the repository
+- THe goal is to provide to the user a internal, self hosted of an AI Skills curated marketplace 
+- This marketplace should be formated to be able to be used by the major players: Claude Code, Codex, Cursor....
+- This will act as registry
+- Once it is installed, the command line script should request the user to create a root user account
+- We should have a role based user account, with: root user, regular user, moderator
+- We should have a web interface where the root can create user accounts
+- Any user could propose a new skill to be added, but not only a skill, but also: agents, rules, hooks, .....
+- in the marketplace the users can compose how the agents uses the skils, connects to MCPs, external tools ....
+- The user would maintain their own AI capabilities, gine to the humans the control how the AI should work
+- We should have the approval process where the user created the item, compose how this should work, and submit for approval
+- the user could also propose changes on existing items and it will follow the same approval process
+- once the item is approved we should have a release process
+    - the release will need to manage the versions
+    - use the same concept of tool like: npm, apt, where we have have tags
+    - the relesed version would have a dist label: latest
+
+
+How to use:
+- I think we should have a cli command where we can list available items, update versions, remove items
+- do not use the cli command: ronne or ronneai, this would be used for something else 
+- The user should be able to do the same inside the AI platforms: claude code, codex, cursor ....
+- the cli should be autenticated as well, when ron the login command ronne will request the email account and password
+- cli do not register user, only in the web application 
+
+Marketplace Stack:
+- We couls use React, Next JS, Tailwind CSS, Biome, vitest
+- The front end implementation should use a feature first:
+    - having a folder per component, this folder should have its own hooks and types files, tests, if any subcomonent... this way we would have all files related to the feature in a single place
+    - we need to have sharable components as much as possible
+    - UI elements should be in a shared folder, like buttons, tables, modals, tabs, inputs, ....
+- The backend should follow a clean architecture
+    - link the front end, this should be a domain first implementations, a folder per domain, inside we should have all actions, services, models, exceptions, data layer
+- For the data storage we should use by default a SQLite
+    - During the installation the user caould select one of the options: 
+        - SQLite (default)
+        - MySQL/MariaDB
+        - PostgreSQL
+    - For MySQL/MariaDB/PostgreSQL we do not install the database server, the user must provide the database credentials, db name and host
+    - during the installation we should bvalidate if we can connect to the selected server
+
