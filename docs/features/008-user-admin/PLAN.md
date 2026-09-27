@@ -18,7 +18,7 @@
   Each runs in one transaction with its 007 event. Root is always refused.
   *Done when:* database tests cover each operation, the root refusals and duplicate emails, and a rollback leaving no event.
 
-- [ ] **3. Password generator.** 20 characters from an unambiguous alphabet, using `crypto.randomInt`.
+- [x] **3. Password generator.** 20 characters from an unambiguous alphabet, using `crypto.randomInt`.
   *Done when:* tests cover length, alphabet and uniqueness over many draws.
 
 - [ ] **4. Admin area and `/admin/users`.** A root-only layout (404 otherwise), and the admin
@@ -43,4 +43,11 @@
     root-only in production: it's a development page, not an action.
   - **Test:** every role against every permission, following MVP §2's matrix.
   - **The spec's open question is closed:** root stays single, as the spec says (owner, 2026-09-27).
+- **Task 3 (2026-09-27): password generator** (`models/generated-password.ts`), done before task 2
+  because the services use it.
+  - 20 characters from 56 letters and digits, with the look-alikes left out (`0`, `O`, `o`, `1`,
+    `l`, `I`). That's about 116 bits, above the spec's "about 110".
+  - Each character comes from `crypto.randomInt`, so there's no modulo bias.
+  - **Tests:** the alphabet has no look-alikes; a password has 20 characters and passes 003's rules;
+    2,000 draws never repeat and use every character.
 
