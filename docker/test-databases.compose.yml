@@ -10,7 +10,7 @@ name: ronne-test-databases
 
 services:
   postgres:
-    image: postgres:15
+    image: postgres:18
     environment:
       POSTGRES_PASSWORD: ronne-test
     ports: ["127.0.0.1:54315:5432"]
