@@ -14,6 +14,7 @@ Docker base images, GitHub Actions, and any tool that CI or the install process 
 | Status | Licenses | Rule |
 |---|---|---|
 | ✅ **Allowed** | MIT, ISC, BSD-2-Clause, BSD-3-Clause, Apache-2.0, 0BSD, Unlicense, CC0-1.0, BlueOak-1.0.0, Zlib, Python-2.0 | Use freely. |
+| ✅ **Allowed for font files only** | OFL-1.1 (SIL Open Font License) | Only for font files shipped with the web app (Manrope, IBM Plex Mono), self-hosted, with each font's license text next to it. Not for code packages. |
 | ✅ **Allowed for data only** | CC-BY-4.0 | Only for data packages that ship no code (for example `caniuse-lite`). Credited in `THIRD_PARTY_NOTICES`. |
 | ⚠️ **Exception needed** | MPL-2.0, LGPL (any version), EPL-2.0, anything else not listed | Only with a recorded exception (§5): why it's needed, why no permissive option works, and how its terms are met. |
 | ❌ **Not allowed** | GPL, AGPL, SSPL, BUSL, Elastic License, Commons Clause, any non-commercial (`-NC`) or no-derivatives (`-ND`) license, `UNLICENSED`, no license, custom or proprietary terms | Never, including as a dev dependency. |
