@@ -15,7 +15,12 @@ export type CreatedDb = { db: Db; dialect: DatabaseDialect };
  * Creates the Kysely instance for DATABASE_URL. The only place that knows which driver is in use.
  * Every connection works in UTC, and SQLite gets WAL, foreign keys and a busy timeout.
  */
-export function createDb(url: string, options: { baseDir?: string } = {}): CreatedDb {
+export function createDb(
+  url: string,
+  options: { baseDir?: string; connectTimeoutMs?: number } = {},
+): CreatedDb {
+  // pg has no connect timeout by default, so an unreachable host would hang.
+  const connectTimeoutMs = options.connectTimeoutMs ?? 10_000;
   const config = parseDatabaseUrl(url, options.baseDir);
 
   switch (config.dialect) {
@@ -32,7 +37,12 @@ export function createDb(url: string, options: { baseDir?: string } = {}): Creat
     }
     case "mysql": {
       // Keep mysql2's default FOUND_ROWS flag: Better Auth relies on "rows matched" counts.
-      const pool = createPool({ uri: config.uri, timezone: "Z", charset: "utf8mb4" });
+      const pool = createPool({
+        uri: config.uri,
+        timezone: "Z",
+        charset: "utf8mb4",
+        connectTimeout: connectTimeoutMs,
+      });
       const dialect = new MysqlDialect({
         pool,
         onCreateConnection: async (connection) => {
@@ -42,7 +52,10 @@ export function createDb(url: string, options: { baseDir?: string } = {}): Creat
       return { db: new Kysely<Database>({ dialect }), dialect: "mysql" };
     }
     case "postgres": {
-      const pool = new pg.Pool({ connectionString: config.connectionString });
+      const pool = new pg.Pool({
+        connectionString: config.connectionString,
+        connectionTimeoutMillis: connectTimeoutMs,
+      });
       const dialect = new PostgresDialect({
         pool,
         onCreateConnection: async (connection) => {

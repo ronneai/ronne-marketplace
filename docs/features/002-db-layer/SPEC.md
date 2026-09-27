@@ -83,8 +83,8 @@ the pending ones and prints what ran.
 - Indexes on every foreign key, and a unique index on `user.email`. The index on `session.token` is unique too.
 
 **Checks for the installer:**
-- `checkConnection(url)`: connects and runs `SELECT 1`. Returns `ok`, or an error of a known kind: `unreachable`, `auth_failed`, `database_missing` or `unknown`, plus the driver's message.
-- `checkPermissions(db)`: creates, writes to and drops a table called `_ronne_probe`. Returns `ok`, or which step failed.
+- `checkConnection(url)`: connects, asks for the server version, and disconnects. It never throws. It returns `ok` with the dialect and `serverVersion`, so 003 can warn about unsupported versions. Otherwise it returns a kind, `invalid_url`, `unreachable`, `auth_failed`, `database_missing` or `unknown`, plus the driver's message. The kinds are mapped from driver error codes, which are the same on PostgreSQL 15 and 18, MySQL 8.4 and MariaDB 10.11. The connect timeout is 5 seconds. `createDb` also sets one (10 seconds by default), because `pg` has none.
+- `checkPermissions(db)`: creates, writes to, reads and drops a table called `_ronne_probe`. Returns `ok`, or which step failed (`create`, `write`, `read` or `drop`). It leaves nothing behind, even after a failure.
 
 **Tests** use `createTestDb()`. It reads `TEST_DATABASE_URL` and defaults to an in-memory SQLite
 database. It migrates, and cleans up after each test file. On MySQL and PostgreSQL, each test file
@@ -95,7 +95,9 @@ gets its own database (or schema), so files can run in parallel.
 - **MySQL index lengths.** Indexed text columns use `varchar(n)` with an explicit length (emails 255, token hashes 64, ULIDs 26).
 - **MySQL `utf8mb4`.** The installer (003) checks the database's character set. The migration sets it on each table.
 - **Case-insensitive email.** Emails are stored lowercase, so the unique index works on every database whatever its collation.
-- **SQLite file locked or read-only.** `checkPermissions` catches it and reports the path.
+- **SQLite file locked or read-only.** `checkPermissions` fails at `create` with SQLite's "readonly database" message.
+- **PostgreSQL 15 and later** no longer let ordinary users create tables in the `public` schema by default. A dedicated user without `GRANT CREATE ON SCHEMA public` connects fine but fails `checkPermissions` at `create` ("permission denied for schema public"). 003 should show the fix: grant it, or make the user the database owner.
+- **A MySQL user without CREATE or DROP** fails at `create`. The message names `DROP`, because that step first removes any probe table left by an earlier failed run.
 - **Clock and timezones.** The app always writes UTC. PostgreSQL uses `timestamptz`; MySQL connections set `time_zone = '+00:00'`, and the `mysql2` pool uses `timezone: "Z"`.
 - **`mysql2` `FOUND_ROWS`.** Better Auth relies on the `FOUND_ROWS` client flag, which `mysql2` turns on by default. It makes an `UPDATE` report rows *matched*, not rows *changed*. Never disable it in the pool config, or Better Auth's updates return nothing when the new value equals the old one.
 - **`better-sqlite3` builds from source** when no prebuilt binary matches the Node.js version and platform (it did on Node 24.0.0 on macOS). CI and the Docker image (005) must either get a prebuilt binary or have a C++ toolchain.

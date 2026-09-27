@@ -25,7 +25,7 @@
   column list from task 1. Hand-written Kysely `Database` types in `db/schema.ts`.
   *Done when:* a test migrates a fresh database and checks each table and column exists (through Kysely's introspection).
 
-- [ ] **6. Connection and permission checks.** `checkConnection` with error kinds, `checkPermissions` with the probe table.
+- [x] **6. Connection and permission checks.** `checkConnection` with error kinds, `checkPermissions` with the probe table.
   *Done when:* tests cover `ok` and at least one failure kind on SQLite; MySQL and PostgreSQL cases are written and run in 004.
 
 - [ ] **7. Test helper and lint rule.** `createTestDb()` honouring `TEST_DATABASE_URL`, and a Biome rule stopping driver imports outside `db/`.
@@ -82,4 +82,14 @@
   - `better-auth` is a **dev dependency** here, used only by this test. 003 moves it to `dependencies`.
   - `db/schema.ts` has Kysely types for the five tables. Timestamps are `Date | string`, read with `fromDbDate()`, and `email_verified` is `boolean | number`.
   - `pnpm db:migrate` on a new file now applies `0001_identity`, and the second run reports nothing to do. Task 4's done-when now holds with a real migration.
+- **Task 6 (2026-09-27): `checkConnection` and `checkPermissions`** in `db/checks.ts`.
+  - **Checked against real servers in Docker:** PostgreSQL 18 and 15, MySQL 8.4 and MariaDB 10.11. The `checks.db.test.ts` server cases run when `TEST_DATABASE_URL` points at MySQL or PostgreSQL (004's matrix), and are skipped on SQLite. All 10 passed on each server, and `serverVersion` read correctly (for example `8.4.11`, `10.11.19-MariaDB…`).
+  - **Error codes:**
+    - `28P01`/`28000` and `ER_ACCESS_DENIED_ERROR`/`ER_DBACCESS_DENIED_ERROR` → `auth_failed`;
+    - `3D000` and `ER_BAD_DB_ERROR` → `database_missing`;
+    - `ECONNREFUSED`, `ENOTFOUND` and the like → `unreachable`.
+
+    pg can wrap these in an `AggregateError`, which is handled. The closed-port cases need no server, so they always run.
+  - **Added beyond the spec:** the `invalid_url` kind (a malformed `DATABASE_URL`, password still redacted), `serverVersion`, and a connect timeout in `createDb`, because `pg` has none by default. The spec is updated.
+  - **Limited users, checked by hand:** a PostgreSQL 18 login role without `CREATE` on `public`, and a MySQL user with only `SELECT`, both connect but fail `checkPermissions` at `create`. That's the PostgreSQL 15+ default, recorded in the spec's edge cases for 003.
 
