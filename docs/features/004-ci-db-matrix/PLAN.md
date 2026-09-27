@@ -51,4 +51,7 @@
     - **PostgreSQL 15 fails** "containsInsensitive on a real database › ignores case" (57/58).
 
     SQLite's `LIKE` and MySQL/MariaDB's default collations ignore case; PostgreSQL's `LIKE` doesn't. So only the PostgreSQL entry catches it. The change was reverted and never committed.
+- **Task 6 (2026-09-27): weekly latest-version run, written but not yet ticked.** Waiting on a manual `workflow_dispatch` run, which needs the workflow on GitHub.
+  - `database.yml` gains `schedule` (Mondays 04:37 UTC) and `workflow_dispatch`. On those events each entry uses its `latest` image: `postgres:latest`, `mysql:lts` or `mariadb:lts`. Job names get ", latest". Pull request and push runs keep the minimum versions and their exact names, so the required checks are unaffected, and a scheduled failure never blocks a pull request.
+  - **Checked locally:** all three latest images pass the `db` project (58/58 each). On 2026-09-27 they were **PostgreSQL 18.6, MySQL 9.7.2 and MariaDB 12.3.3**. MySQL's current LTS is 9.7, so the spec's "latest 8.x or 9.x LTS" means 9.7 for now.
 

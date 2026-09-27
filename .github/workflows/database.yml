@@ -1,11 +1,16 @@
 name: Database
 
-# The database tests (the `db` Vitest project) against each supported server (feature 004), at the
-# minimum versions Ronne supports. SQLite runs in ci.yml with the other tests.
+# The database tests (the `db` Vitest project) against each supported server (feature 004).
+# Pull requests and pushes test the minimum versions Ronne supports. A weekly run (and a manual one)
+# tests the latest versions instead, to hear about breaking releases early; it never blocks a pull
+# request. SQLite runs in ci.yml with the other tests.
 on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: "37 4 * * 1"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -20,7 +25,8 @@ env:
 
 jobs:
   test:
-    name: Database tests (${{ matrix.database }})
+    # Pull request job names stay "Database tests (<database>)" so the required checks match.
+    name: Database tests (${{ matrix.database }}${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && ', latest' || '' }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -29,23 +35,26 @@ jobs:
         include:
           - database: postgres
             image: postgres:15
+            latest: postgres:latest
             port: 5432
             url: postgres://postgres:ronne-test@127.0.0.1:5432/postgres
             health: pg_isready -U postgres
           - database: mysql
             image: mysql:8.4
+            latest: mysql:lts
             port: 3306
             url: mysql://root:ronne-test@127.0.0.1:3306/ronne
             # Over TCP, so it only passes once the real server is up (not the temporary init server).
             health: mysqladmin ping -h 127.0.0.1 -uroot -pronne-test
           - database: mariadb
             image: mariadb:10.11
+            latest: mariadb:lts
             port: 3306
             url: mysql://root:ronne-test@127.0.0.1:3306/ronne
             health: healthcheck.sh --connect --innodb_initialized
     services:
       database:
-        image: ${{ matrix.image }}
+        image: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && matrix.latest || matrix.image }}
         # Each image reads only its own variables; the others are ignored.
         env:
           POSTGRES_PASSWORD: ronne-test
