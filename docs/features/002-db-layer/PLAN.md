@@ -4,31 +4,103 @@
 
 ## Tasks
 
-- [ ] **1. Spike: Better Auth schema and timestamps.** In a scratch branch, run Better Auth's schema
+- [x] **1. Spike: Better Auth schema and timestamps.** In a scratch branch, run Better Auth's schema
   generator for the Kysely adapter, and do a sign-up and sign-in against SQLite and PostgreSQL with
   snake_case field mapping, ULID ids and the planned timestamp types. Record the exact column list
   and any adapter quirks in this plan's Notes, then throw the spike away.
   *Done when:* Notes list the columns for `user`, `session`, `account` and `verification`, and confirm the timestamp approach works (or say what changes in SPEC.md).
 
-- [ ] **2. Dialect factory.** `createDb(url)` for the three URL formats, SQLite pragmas, MySQL UTC
+- [x] **2. Dialect factory.** `createDb(url)` for the three URL formats, SQLite pragmas, MySQL UTC
   session time zone, and a clear error for unknown formats. Add the drivers (after the dependency policy
   checklist) and add `better-sqlite3: true` to `allowBuilds`, with the reason in the pull request.
   *Done when:* unit tests cover URL parsing, and an integration test connects to in-memory SQLite.
 
-- [ ] **3. Helpers.** `newId`, column builders, timestamp handling, `json`, `containsInsensitive`, `upsert`.
+- [x] **3. Helpers.** `newId`, column builders, timestamp handling, `json`, `containsInsensitive`, `upsert`.
   *Done when:* tests for each helper pass on SQLite, and the dialect-specific branches have unit tests on the generated SQL (Kysely `compile()`).
 
-- [ ] **4. Migration runner.** Static migration list, Kysely `Migrator`, `pnpm db:migrate` script with readable output.
+- [x] **4. Migration runner.** Static migration list, Kysely `Migrator`, `pnpm db:migrate` script with readable output.
   *Done when:* running it twice on an empty SQLite file migrates once, then reports nothing to do.
 
-- [ ] **5. `0001_identity`.** The tables, indexes and foreign keys from SPEC.md, matching the
+- [x] **5. `0001_identity`.** The tables, indexes and foreign keys from SPEC.md, matching the
   column list from task 1. Hand-written Kysely `Database` types in `db/schema.ts`.
   *Done when:* a test migrates a fresh database and checks each table and column exists (through Kysely's introspection).
 
-- [ ] **6. Connection and permission checks.** `checkConnection` with error kinds, `checkPermissions` with the probe table.
+- [x] **6. Connection and permission checks.** `checkConnection` with error kinds, `checkPermissions` with the probe table.
   *Done when:* tests cover `ok` and at least one failure kind on SQLite; MySQL and PostgreSQL cases are written and run in 004.
 
-- [ ] **7. Test helper and lint rule.** `createTestDb()` honouring `TEST_DATABASE_URL`, and a Biome rule stopping driver imports outside `db/`.
+- [x] **7. Test helper and lint rule.** `createTestDb()` honouring `TEST_DATABASE_URL`, and a Biome rule stopping driver imports outside `db/`.
   *Done when:* the repository tests use it, and a deliberate import of `pg` from a domain fails lint.
 
 ## Notes
+
+- **Task 1 spike (2026-09-27): Better Auth 1.7.5 with Kysely 0.29.6, on SQLite, PostgreSQL 18 and MySQL 8.4.**
+  The spike lived outside the repo and was thrown away.
+  - **Configuration that worked on all three:**
+    - `database: { db: <Kysely>, type }`;
+    - `advanced.database.generateId: () => ulid()`;
+    - argon2id via `emailAndPassword.password.hash`/`verify` (`@node-rs/argon2`), stored in `account.password`;
+    - snake_case through each model's `fields` map (there's no global casing option);
+    - `role` and `disabledAt` as `user.additionalFields` with `fieldName`.
+
+    Sign-up and sign-in work, and a wrong password is rejected.
+  - **Timestamps:**
+    - SQLite stores ISO-8601 UTC text, and Better Auth returns `Date`s;
+    - PostgreSQL uses `timestamptz`;
+    - MySQL uses `timestamp(3)` in Better Auth's generator, but that type ends in 2038.
+
+    Our own `datetime(3)` tables were accepted by Better Auth (`getMigrations` wanted nothing), and a session expiring in 2045 was stored correctly.
+  - **IDs:** Better Auth's generator uses `text` (SQLite, PostgreSQL) and `varchar(36)` (MySQL). Our `varchar(26)` ULIDs were accepted.
+  - **Booleans:** `email_verified` is `boolean` in PostgreSQL and MySQL, and `integer` in SQLite. Kept as an exception to MVP §9.4.
+  - **Schema check at startup:** Better Auth compares the database with what it expects when it starts, and logs "Database schema mismatch" if they differ. We reuse this through `getMigrations(options)` as the test that `0001_identity` matches.
+  - **Telemetry** (`@better-auth/telemetry`) is off unless `telemetry.enabled` or `BETTER_AUTH_TELEMETRY` is set. 003 sets `telemetry: { enabled: false }` explicitly anyway.
+  - **Better Auth's own migration CLI** (`npx auth migrate`) isn't used: our migration set owns the schema.
+  - **Dependencies for this feature** (all MIT, and all passed the 3-day release age): `kysely` 0.29.6, `better-sqlite3` 13.0.3 (added to `allowBuilds`), `pg` 8.23.0, `mysql2` 3.24.4 and `ulid` 3.0.2. `better-auth` and `@node-rs/argon2` arrive with 003.
+- **Task 2 (2026-09-27): `createDb` and `parseDatabaseUrl`** in `apps/web/src/server/db/`.
+  - `file::memory:` is accepted for in-memory SQLite (used by tests).
+  - `redactDatabaseUrl` replaces the password with `***` in every error, so a bad `DATABASE_URL` never leaks it into logs.
+  - The UTC session settings use Kysely's `onCreateConnection`: `SET time_zone = '+00:00'` on MySQL, and `SET TIME ZONE 'UTC'` on PostgreSQL. The `mysql2` pool also uses `timezone: "Z"` and `charset: "utf8mb4"`.
+  - `schema.ts` has an empty `Database` interface until task 5, with a Biome ignore comment.
+  - Database tests are named `*.db.test.ts` from the start, ready for 004's split.
+- **Task 3 (2026-09-27): helpers** in `apps/web/src/server/db/`: `ids.ts`, `column-types.ts`, `dates.ts`, `json.ts`, `search.ts`, `upsert.ts`.
+  - **Search** uses `!` as the `LIKE … ESCAPE` character, not a backslash, because MySQL reads backslashes in string literals differently from PostgreSQL and SQLite. SQLite's `lower()` only folds ASCII letters; MySQL and PostgreSQL also fold accented ones.
+  - **Upsert on MySQL** uses `ON DUPLICATE KEY UPDATE col = VALUES(col)`. MySQL 8 prefers the `AS alias` form, but MariaDB doesn't support it, and both still accept `VALUES()`.
+  - **Upsert typing.** With a generic table name, Kysely rejects the dynamic update object, so the helper passes the table name as a plain `string` inside (option A of three, chosen by the owner). Callers are still checked through the helper's signature. `vitest` didn't catch this; `tsc` and `next build` did.
+  - **Tests.** `testing/compile-only.ts` builds a Kysely instance that only compiles SQL, so the MySQL and PostgreSQL branches have unit tests without a server (`helpers.test.ts`). `helpers.db.test.ts` runs the helpers on real SQLite: case-insensitive search with literal `%` and `_`, date and JSON round trips, and an insert then update through `upsert`. 004 runs it on the other databases.
+- **Task 4 (2026-09-27): migration runner.**
+  - A migration is `(dialect) => Migration`, so it can use `columnTypes()`. The static list is `db/migrations/index.ts`, empty until task 5.
+  - `migrateToLatest()` wraps Kysely's `Migrator`. In Kysely 0.29 that moved to `kysely/migration`; the main entry point no longer exports it.
+  - It refuses a database with unknown migrations (`DatabaseAheadOfAppError`), and reports the failing migration and the ones already applied (`MigrationFailedError`).
+  - Migration tables are `ronne_migration` and `ronne_migration_lock`. Kysely's introspection only hides its *default* names, so ours show up in `getTables()`.
+  - `migrateToLatest<DB>(db: Kysely<DB>)` is generic, because `Kysely<Database>` isn't assignable to `Kysely<unknown>` (option A, chosen by the owner). `vitest` passed; `tsc` caught 13 errors from that one cause.
+  - `pnpm db:migrate` (from `apps/web` or the root) runs `scripts/migrate.ts` with **`tsx`**. Node's own type stripping can't resolve the app's extensionless imports. `esbuild`, tsx's compiler, is set to `false` in `allowBuilds`: its postinstall only checks for a binary that pnpm already installs as an optional dependency.
+  - The done-when ("twice on an empty SQLite file: migrates once, then nothing to do") is covered by the runner tests with test migrations, and by a script test that runs the real command twice. With the real list still empty, the first run also reports nothing to do; task 5 makes it apply `0001_identity`.
+- **Task 5 (2026-09-27): migration `0001_identity`.**
+  - It creates Better Auth's four tables with the task 1 columns, `role varchar(16) not null default 'user'`, `disabled_at`, and `access_tokens`. There's an index on every foreign key, and `ON DELETE CASCADE` to `user`.
+  - MySQL tables get `default charset = utf8mb4` through `tableDefaults(dialect)`, so the migration never checks the dialect.
+  - **Checked against Better Auth 1.7.5:** after the migration, `getMigrations()` returns nothing to create or add, and no "schema mismatch" is logged. A real `signUpEmail` stores a ULID, the default role and a hashed password.
+  - `domains/identity/models/auth-schema.ts` holds the field mapping (Better Auth name → column) as plain data. 003's Better Auth setup must import it rather than repeat it.
+  - `better-auth` is a **dev dependency** here, used only by this test. 003 moves it to `dependencies`.
+  - `db/schema.ts` has Kysely types for the five tables. Timestamps are `Date | string`, read with `fromDbDate()`, and `email_verified` is `boolean | number`.
+  - `pnpm db:migrate` on a new file now applies `0001_identity`, and the second run reports nothing to do. Task 4's done-when now holds with a real migration.
+- **Task 6 (2026-09-27): `checkConnection` and `checkPermissions`** in `db/checks.ts`.
+  - **Checked against real servers in Docker:** PostgreSQL 18 and 15, MySQL 8.4 and MariaDB 10.11. The `checks.db.test.ts` server cases run when `TEST_DATABASE_URL` points at MySQL or PostgreSQL (004's matrix), and are skipped on SQLite. All 10 passed on each server, and `serverVersion` read correctly (for example `8.4.11`, `10.11.19-MariaDB…`).
+  - **Error codes:**
+    - `28P01`/`28000` and `ER_ACCESS_DENIED_ERROR`/`ER_DBACCESS_DENIED_ERROR` → `auth_failed`;
+    - `3D000` and `ER_BAD_DB_ERROR` → `database_missing`;
+    - `ECONNREFUSED`, `ENOTFOUND` and the like → `unreachable`.
+
+    pg can wrap these in an `AggregateError`, which is handled. The closed-port cases need no server, so they always run.
+  - **Added beyond the spec:** the `invalid_url` kind (a malformed `DATABASE_URL`, password still redacted), `serverVersion`, and a connect timeout in `createDb`, because `pg` has none by default. The spec is updated.
+  - **Limited users, checked by hand:** a PostgreSQL 18 login role without `CREATE` on `public`, and a MySQL user with only `SELECT`, both connect but fail `checkPermissions` at `create`. That's the PostgreSQL 15+ default, recorded in the spec's edge cases for 003.
+- **Task 7 (2026-09-27): `createTestDb()` and the driver lint rule.**
+  - `db/testing/test-db.ts`: in-memory SQLite by default, a temp file for a `file:` URL, and a new `ronne_test_<ulid>` database on MySQL or PostgreSQL, dropped by `cleanup()`. Every database test now uses it, except the SQLite-specific ones (WAL, read-only file, which stay on SQLite).
+  - **Biome:** the `apps/web/**` override blocks `better-sqlite3`, `pg` and `mysql2` (and their subpaths). A later override for `apps/web/src/server/db/**` allows them, and still blocks the CLI and MCP packages. Checked with deliberate imports: from a domain and from a script, lint fails; from `db/`, it passes.
+  - **Full suite on four servers in Docker, a preview of 004:**
+    - PostgreSQL 18 and 15 and MariaDB 10.11 passed first time.
+    - **MySQL 8.4 failed:** deleting a user left their access tokens. `information_schema` showed **0 foreign keys** on MySQL 8.4 and 3 on MariaDB, because MySQL before 9.0 ignores inline column `REFERENCES`.
+    - **Fixed (option A, chosen by the owner):** `0001_identity` now uses table-level `addForeignKeyConstraint` (`<table>_user_id_fk`, `ON DELETE CASCADE`). It was edited in place, since it was never released.
+    - **Added:** `testing/foreign-keys.ts`, which lists the real foreign keys per dialect (`pragma_foreign_key_list`, `pg_constraint`, `information_schema`); a test that the three foreign keys exist and cascade on every database; and `migrations.guard.test.ts`, which fails on inline `.references(` in any migration (checked with a temporary bad migration).
+
+    After the fix, **79/79 tests pass on PostgreSQL 18, PostgreSQL 15, MySQL 8.4 and MariaDB 10.11**, and 75 pass (4 skipped) on SQLite.
+  - The password-masking test's child process prints the redacted `UnsupportedDatabaseUrlError` to stderr. That's expected noise in the test output, not a failure.
+

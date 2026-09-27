@@ -10,18 +10,28 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:migrate": "tsx scripts/migrate.ts"
   },
   "dependencies": {
+    "better-sqlite3": "13.0.3",
+    "kysely": "0.29.6",
+    "mysql2": "3.24.4",
     "next": "16.3.6",
+    "pg": "8.23.0",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "ulid": "3.0.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.3.3",
+    "@types/better-sqlite3": "9.6.0",
+    "@types/pg": "8.23.1",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "better-auth": "1.7.5",
     "postcss": "8.5.28",
-    "tailwindcss": "4.3.3"
+    "tailwindcss": "4.3.3",
+    "tsx": "4.23.15"
   }
 }

@@ -9,7 +9,12 @@ minimumReleaseAge: 4320
 # Fail the install when a dependency wants to run a build script nobody has ruled on.
 strictDepBuilds: true
 # The only dependencies allowed to run install scripts. Justify each entry in its pull request.
-allowBuilds: {}
+allowBuilds:
+  # Native SQLite driver: downloads a prebuilt binary or compiles one (feature 002).
+  better-sqlite3: true
+  # tsx's compiler. Its postinstall only checks for the platform binary, which pnpm installs as an
+  # optional dependency, so the script isn't needed (feature 002).
+  esbuild: false
 # Fail if a package's publishing trust drops compared with its earlier releases.
 trustPolicy: no-downgrade
 # Exact versions that fail the trust check but were reviewed. One policy exception (§5) per entry.

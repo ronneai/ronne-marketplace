@@ -35,7 +35,7 @@ Use Node.js 24 (`.nvmrc`) and pnpm installed directly (`npm install --global pnp
 | `pnpm test` | Runs every Vitest suite; `pnpm --filter @ronne/core test` for one package |
 | `pnpm licenses:check` | Checks every installed package's license against `license-policy.json` |
 | `pnpm audit --audit-level high` | Fails on known high or critical vulnerabilities |
-| `pnpm hooks:install` | Turns on the local commit-message check (once per clone) |
+| `pnpm hooks:install` | Turns on the local `pre-commit` checks and the commit-message check (once per clone) |
 
 CI (`.github/workflows/`) runs lint, typecheck, test and build on Node 22 and 24, the license and audit checks, CodeQL, and the PR title check.
 
@@ -46,7 +46,9 @@ After adding a workspace package, run `pnpm install --frozen-lockfile` to confir
 **Rules for every change (mandatory):**
 
 1. **Before any commit**, run `pnpm lint`, `pnpm typecheck`, `pnpm test` and `pnpm build`. Also run
-   `pnpm install --frozen-lockfile` when dependencies or workspace packages changed. Commit only when all pass.
+   `pnpm install --frozen-lockfile` and `pnpm licenses:check` when dependencies or workspace packages
+   changed. Commit only when all pass. The `pre-commit` hook runs exactly these, and skips them when
+   every staged file is documentation (`.md`, `.mdx` or `.txt`). Never bypass it with `--no-verify`.
 2. **If a check fails**, don't fix it on your own and don't commit. Explain what failed and why, propose
    actions, and let the owner decide the next step.
 3. **Never push or open a pull request** unless the owner asks for that specific change.
@@ -63,7 +65,7 @@ Commit messages and pull request titles use the same format:
 - The description is imperative, starts with a capital letter, has no full stop at the end, and the whole line is at most 72 characters.
 - Examples: `[feat] 001: Add CI workflow on Node 22 and 24`, `[bugfix] 003: Keep AUTH_SECRET when setup reruns`, `[docs]: Add dependency policy`.
 
-Pull requests are squash-merged, so the PR title becomes the commit on `main`. CI checks every PR title (`.github/workflows/pr-title.yml`), and a local `commit-msg` hook checks commits (`pnpm hooks:install`). The rules live in `packages/repo-tools/src/commit-message.js`.
+Pull requests are squash-merged, so the PR title becomes the commit on `main`. CI checks every PR title (`.github/workflows/pr-title.yml`), and a local `commit-msg` hook checks commits (`pnpm hooks:install`). The rules live in `packages/repo-tools/src/commit-message.js`; the `pre-commit` hook's rules are in `packages/repo-tools/src/pre-commit.js`.
 
 ## Fixed decisions (see MVP.md §15)
 

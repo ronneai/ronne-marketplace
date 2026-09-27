@@ -1,0 +1,4 @@
+#!/bin/sh
+# Runs lint, typecheck, test and build before a commit, unless it only touches documentation.
+# Install with: pnpm hooks:install
+exec node "$(git rev-parse --show-toplevel)/packages/repo-tools/src/run-pre-commit.js"

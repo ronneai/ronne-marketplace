@@ -102,6 +102,34 @@
                   {
                     "group": ["@ronne/mcp", "@ronne/mcp/**"],
                     "message": "The web app may import @ronne/core, never the CLI or the MCP server (MVP \u00a79.1)."
+                  },
+                  {
+                    "group": ["better-sqlite3", "pg", "pg/**", "mysql2", "mysql2/**"],
+                    "message": "Only apps/web/src/server/db may use a database driver. Use createDb() and the helpers in db/ instead (MVP \u00a79.4, feature 002)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/web/src/server/db/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@ronne/rmk", "@ronne/rmk/**"],
+                    "message": "The web app may import @ronne/core, never the CLI or the MCP server (MVP \u00a79.1)."
+                  },
+                  {
+                    "group": ["@ronne/mcp", "@ronne/mcp/**"],
+                    "message": "The web app may import @ronne/core, never the CLI or the MCP server (MVP \u00a79.1)."
                   }
                 ]
               }
