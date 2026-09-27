@@ -4,18 +4,20 @@
 
 ## Tasks
 
-- [ ] **1. Better Auth routes and settings.** `/api/auth/[...all]` via `toNextJsHandler`, the
-  `nextCookies` plugin, `baseURL`, `secret` and `trustedOrigins` from `loadConfig`, session
-  lifetimes, the rate limit with a sign-in rule, `ipAddressHeaders` behind `TRUST_PROXY`, and a
-  shared instance (`getAuth()`). A lint rule stops Better Auth imports outside `domains/identity`.
-  *Done when:* tests cover sign-in through the handler, session expiry settings, the 6th-attempt
-  limit, and the proxy header being ignored unless `TRUST_PROXY=true`.
+- [x] **1. Better Auth routes and settings.** `/api/auth/[...all]` with an allowlist of HTTP
+  endpoints, the `nextCookies` plugin, `baseURL`, `secret` and `trustedOrigins` from `loadConfig`,
+  session lifetimes, `ronne.*` cookies, Ronne's own login limiter (per email, plus per IP with
+  `TRUST_PROXY`), the client IP rules, and a shared instance (`getAppAuth()`). A lint rule stops
+  Better Auth imports outside `domains/identity`.
+  *Done when:* tests cover the HTTP allowlist (sign-in over HTTP is a 404), the session and cookie
+  settings, the limiter refusing the 6th attempt, and the proxy header being ignored unless
+  `TRUST_PROXY=true`. The sign-in action that uses the limiter comes in task 3.
 
 - [ ] **2. Disabled users.** The `session.create.before` hook, and `getCurrentUser()` checking `disabled_at`.
   *Done when:* database tests show a disabled user can't sign in, and an existing session stops working.
 
-- [ ] **3. Identity actions.** `getCurrentUser`, `requireUser`, `changePassword` (rules from 003, other
-  sessions ended) and `signOut`.
+- [ ] **3. Identity actions.** `signIn` (with the login limiter), `getCurrentUser`, `requireUser`,
+  `changePassword` (rules from 003, other sessions ended) and `signOut`.
   *Done when:* database tests cover each, including a wrong current password.
 
 - [ ] **4. Route protection.** `src/proxy.ts` (cookie present or redirect with `next`), the protected
@@ -37,3 +39,24 @@
   *Done when:* the tests pass locally and in CI, and the job is proposed as a required check.
 
 ## Notes
+- **Task 1 (2026-09-27): Better Auth settings and the HTTP routes.**
+  - **Rate limit, changed from the draft spec (owner decision):** Better Auth's limiter runs only in
+    its HTTP router, and the sign-in form calls `auth.api` from a server action, so it would have no
+    limit. Next.js also keeps a client-sent `X-Forwarded-For` (it only fills the header when it's
+    missing), so the IP can't be trusted without a proxy. Ronne has its own `LoginRateLimiter`
+    (`models/login-rate-limiter.ts`): 5 attempts a minute per email, plus per IP with `TRUST_PROXY`.
+  - **`/api/auth/*`** serves only `/get-session` and `/ok` (`HTTP_ENDPOINTS`). Better Auth's
+    `disabledPaths` matches exact paths only (it can't cover `/callback/:id`), so it's an allowlist
+    in `actions/auth-http.ts`. A test walks every endpoint Better Auth has and expects a 404 for
+    the rest, so a new endpoint in an upgrade stays closed.
+  - **Sessions:** 30 days with "Remember me", refreshed at most daily. Without it, a browser-session
+    cookie, and Better Auth ends the session after a day. The draft's "7 days by default" had no
+    case where it applied, so it's gone. Cookies are `ronne.*`, and `__Secure-ronne.*` over https.
+  - **Found on the way:** spreading `authSchema` after the settings replaced the `session` key, so
+    the lifetimes were ignored (the test caught a 7-day cookie). They're merged now.
+  - **`getAppAuth()`** (`repositories/auth-instance.ts`) caches one instance per settings on
+    `globalThis`, with one shared limiter.
+  - **Lint:** `noRestrictedImports` bans `better-auth` and `@better-auth/*` in `apps/web` outside
+    `src/server/domains/identity`. The migration test is the one exception, with a comment: it
+    compares the migration with Better Auth's own schema.
+

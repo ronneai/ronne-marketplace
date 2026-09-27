@@ -1,4 +1,6 @@
+// biome-ignore lint/style/noRestrictedImports: this test checks the migration against Better Auth's own schema.
 import { betterAuth } from "better-auth";
+// biome-ignore lint/style/noRestrictedImports: this test checks the migration against Better Auth's own schema.
 import { getMigrations } from "better-auth/db/migration";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { authSchema } from "../../domains/identity/models/auth-schema";

@@ -12,8 +12,9 @@ the work behind the `identity` domain, as configured in 003.
 ## Scope
 
 **In:**
-- Better Auth's HTTP routes, mounted at `/api/auth/[...all]` with `toNextJsHandler`, plus the
-  `nextCookies` plugin so server actions can set cookies.
+- Better Auth's HTTP routes at `/api/auth/[...all]`, limited to an allowlist (`/get-session`, `/ok`),
+  plus the `nextCookies` plugin so server actions can set cookies. Signing in, signing out and
+  changing the password are server actions only.
 - The sign-in page `/sign-in`: email, password (with show/hide), "Remember me (30 days)",
   "Forgot?", and the "CLI authentication" panel from the mock.
 - Sign-out from the user menu (032).
@@ -34,15 +35,28 @@ the work behind the `identity` domain, as configured in 003.
 **Better Auth setup** (extends `createAuth` from 003, in the `identity` domain):
 - **`baseURL`** comes from `PUBLIC_URL` and **`secret`** from `AUTH_SECRET` (`loadConfig`).
   `trustedOrigins` is `PUBLIC_URL`. One instance per config, shared like `getAppDb`.
-- **Sessions:** 7 days by default, refreshed at most once a day while in use (`expiresIn`, `updateAge`).
-  - **"Remember me" checked:** 30 days, as in the mock.
-  - **Unchecked:** a browser-session cookie (Better Auth's `rememberMe: false`).
-- **Cookies:** `httpOnly` and `SameSite=Lax`. `Secure` when `PUBLIC_URL` is `https://`.
-- **Rate limit:** Better Auth's limiter is on, with a custom rule for sign-in: 5 attempts a minute
-  per IP address. It uses memory storage, which suits one instance (the MVP's model). A shared store
-  is future work if Ronne runs as several instances.
-- **Client IP behind a proxy:** read from `X-Forwarded-For` only when `TRUST_PROXY=true`
-  (`advanced.ipAddress.ipAddressHeaders`). This is where the setting documented in 005 takes effect.
+- **Sessions:** refreshed at most once a day while in use (`updateAge`).
+  - **"Remember me" checked:** 30 days (`expiresIn`), as in the mock.
+  - **Unchecked:** a browser-session cookie (Better Auth's `rememberMe: false`), and the session
+    ends after one day at most on the server.
+- **Cookies:** named `ronne.*` (`cookiePrefix`), `httpOnly` and `SameSite=Lax`. `Secure`, with the
+  `__Secure-` prefix, when `PUBLIC_URL` is `https://`.
+- **HTTP endpoints:** `/api/auth/*` serves only `/get-session` and `/ok`; every other Better Auth
+  endpoint (sign-in, sign-up, password changes and resets, account changes) returns 404.
+- **Rate limit (owner decision, 2026-09-27):** Ronne's own limiter in the identity domain, used by
+  the sign-in action: 5 attempts a minute **per email**, always, and **per client IP** too when
+  `TRUST_PROXY=true`. An attempt is refused when any of its keys is used up.
+  - **Why not Better Auth's limiter:** it only runs on its HTTP routes, and the sign-in form is a
+    server action that calls `auth.api` directly.
+  - **Why not per IP by default:** `next start` fills `X-Forwarded-For` only when the request has
+    none, so without a proxy a client can send any address and dodge an IP limit.
+  - **The trade-off:** someone hammering one email locks that account out for up to a minute.
+  - It keeps counts in memory, which suits one instance (the MVP's model). A shared store is future
+    work if Ronne runs as several instances.
+- **Client IP behind a proxy:** with `TRUST_PROXY=true`, the rightmost `X-Forwarded-For` entry
+  (the one the proxy added) is the client IP, for the limiter and the session's `ip_address`.
+  Without it, the header is ignored and no IP is recorded (`disableIpTracking`). This is where the
+  setting documented in 005 takes effect.
 - **Disabled users:**
   - a `databaseHooks.session.create.before` hook refuses to create a session when `user.disabled_at` is set;
   - `getCurrentUser()` also returns nothing for a disabled user, so an existing session stops working at once;
@@ -110,13 +124,14 @@ password shows `ERR:` and changes nothing.
 
 - [ ] With the right email and password, a user lands on `next` (or `/`) and sees their email and role in the header.
 - [ ] Wrong password, unknown email and disabled user all show the same error, and none creates a session.
-- [ ] The 6th sign-in attempt within a minute from one IP gets the rate-limit message.
+- [ ] The 6th sign-in attempt within a minute for one email (or, with `TRUST_PROXY=true`, from one IP) gets the rate-limit message.
 - [ ] Every page except the public ones redirects signed-out visitors to `/sign-in?next=…`, and `next` never leads off-site.
 - [ ] "Remember me" gives a 30-day session; unchecked gives a browser-session cookie.
 - [ ] Changing the password needs the current one, applies the length rules, keeps this session and ends the others.
 - [ ] Sign-out ends the session; the back button doesn't show protected pages.
 - [ ] Disabling a user (008, or directly in the database for this feature's tests) ends access on their next request.
 - [ ] `TRUST_PROXY=true` makes the rate limit use `X-Forwarded-For`; without it, the header is ignored.
+- [ ] `/api/auth/*` serves only the allowlisted endpoints; sign-in and sign-up over HTTP return 404.
 - [ ] Playwright covers sign in, wrong password, sign out and change password, and runs in CI (Chromium).
 - [ ] No Better Auth import outside `domains/identity` (lint rule).
 
