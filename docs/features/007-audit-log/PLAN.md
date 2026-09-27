@@ -16,7 +16,7 @@
   reset-root-password, in their existing transactions.
   *Done when:* the 003 database tests assert the events.
 
-- [ ] **4. Guard test.** It fails if anything outside `db/migrations` issues `updateTable` or
+- [x] **4. Guard test.** It fails if anything outside `db/migrations` issues `updateTable` or
   `deleteFrom` on `audit_log`.
   *Done when:* it passes, and fails when such a call is added on purpose.
 
@@ -68,4 +68,11 @@ events are task 6 here.)
     `deleteSessions` and `revokeAccessTokens` now return the counts the event records.
   - **Tests:** a refused second root leaves only the first event, a reset with no root leaves none,
     and the password never appears in an event.
+- **Task 4 (2026-09-27): guard test** (`domains/audit/audit-log.guard.test.ts`).
+  - **What it reads:** every non-test source file in `apps/web/src`, `scripts` and `e2e`, except
+    `db/migrations`.
+  - **What fails it:** Kysely's `updateTable`, `deleteFrom`, `replaceInto` or `mergeInto` on
+    `audit_log`, and SQL `update`, `delete from`, `truncate` or `drop table` on it.
+  - It has a self-test of the patterns. A throwaway file with `deleteFrom("audit_log")` made it fail,
+    naming the file and line, and it passed again once that file was removed.
 
