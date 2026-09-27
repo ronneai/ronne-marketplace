@@ -89,13 +89,11 @@ milestone M4 ([feature 022](docs/features/README.md#m4--rmk--claude-code)), and 
 from npm:
 
 ```sh
-npm install --global @ronne/rmk   # not published yet
+npm install --global @ronneai/rmk   # not published yet
 ```
 
-The package is `@ronne/rmk` because the unscoped `rmk` name is taken on npm; the command is still
-`rmk`. The `@ronne` scope is still to be confirmed as ours, so the package name may change
-(`@ronne-ai/rmk` is the fallback). Until then, the code in `packages/cli` is a placeholder that
-only prints its version. From a clone, after `pnpm build`, run it with `pnpm exec rmk --version`.
+The package is `@ronneai/rmk` because the unscoped `rmk` name is taken on npm; the command is still
+`rmk`. Until then, the code in `packages/cli` is a placeholder that only prints its version. From a clone, after `pnpm build`, run it with `pnpm exec rmk --version`.
 
 ## Development
 

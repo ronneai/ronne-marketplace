@@ -331,7 +331,7 @@ how to set them.
 
 Two supported paths:
 
-- **Node:** `pnpm dlx @ronne/marketplace init` (or run `pnpm run setup` from a clone or fork)
+- **Node:** `pnpm dlx @ronneai/marketplace init` (or run `pnpm run setup` from a clone or fork)
 - **Docker:** `docker compose up -d`, then `docker compose exec web pnpm run setup`, then `docker compose restart web`
   (details in [feature 005](../features/005-docker/SPEC.md))
 
@@ -344,9 +344,10 @@ development, CI and the Docker image. The minimum for self-hosting and `rmk` is 
 still receiving security fixes (22, until April 2027). The Docker image is built for `linux/amd64`
 and `linux/arm64`. See the [dependency policy](../policies/dependencies.md#2-versions).
 
-npm packages: `@ronne/marketplace` (installer), `@ronne/rmk` (the CLI; its binary is `rmk`, because
-the unscoped `rmk` package name is taken), `@ronne/mcp` and `@ronne/core`. The `@ronne` npm scope
-already exists, so it must be confirmed as ours before M4. The fallback scope is `@ronne-ai`.
+npm packages: `@ronneai/marketplace` (installer), `@ronneai/rmk` (the CLI; its binary is `rmk`,
+because the unscoped `rmk` package name is taken), `@ronneai/mcp` and `@ronneai/core`. The
+`@ronneai` scope is ours on npmjs.com and matches the GitHub organisation; `@ronne` isn't ours.
+They're published to npmjs.com, not GitHub Packages: see the decision log (§15).
 
 The interactive `setup` script:
 
@@ -704,4 +705,5 @@ Design points:
 | Single root | The admin UI assigns only `user` and `moderator`, and can't modify root; root recovers through `pnpm run reset-root-password` | Keeps "one instance owner"; a transfer flow can come later |
 | Access tokens | `rmk_` + 43 base64url characters, SHA-256 hashed, 30/90/365 days or no expiry, at most 50 active per user, bearer only on `/api/v1` | Recognizable by secret scanning; revocable; no cookies on the API |
 | Dependencies | Permissive licenses only (MIT, ISC, BSD, Apache-2.0 …; CC-BY-4.0 for data); no copyleft or paid tools; latest stable/LTS; CI license + audit + image scans; pnpm release-age delay, build allowlist, trust policy | Ronne must be freely redistributable and must not ship known vulnerabilities |
-| Packages | `@ronne/{marketplace,rmk,mcp,core}`; binary `rmk`; Node 24 LTS target, 22 LTS minimum; Docker amd64 + arm64 | Unscoped `rmk` is taken on npm; `@ronne` scope ownership to confirm |
+| Packages | `@ronneai/{marketplace,rmk,mcp,core}`; binary `rmk`; Node 24 LTS target, 22 LTS minimum; Docker amd64 + arm64 | Unscoped `rmk` is taken on npm; the owner holds `@ronneai` on npmjs.com (as on GitHub), not `@ronne` (confirmed 2026-09-27) |
+| Package registry | Publish to npmjs.com under `@ronneai`; not GitHub Packages as the install source (a mirror there is possible later). The command stays `rmk` | GitHub Packages only takes the repository owner's scope (`@ronneai`), and installing from it needs a GitHub token with `read:packages` and an `.npmrc` registry line, even for public packages: too much friction for a CLI anyone should install with one command |
