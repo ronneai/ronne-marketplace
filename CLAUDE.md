@@ -44,6 +44,8 @@ Use Node.js 24 (`.nvmrc`) and pnpm installed directly (`npm install --global pnp
 
 CI (`.github/workflows/`) runs lint, typecheck, test and build on Node 22 and 24, the database tests on PostgreSQL 15, MySQL 8.4 and MariaDB 10.11 (`database.yml`, plus a weekly run on the latest versions), the license and audit checks, CodeQL, and the PR title check.
 
+Pull requests that only change documentation (`.md`, `.mdx`, `.txt`, the pre-commit hook's rule) skip the heavy CI steps: the reusable `changes.yml` workflow detects them, and the required checks still report success. Pushes to `main`, and the scheduled and manual runs, always run everything.
+
 A test that needs a database is named `*.db.test.ts` and gets one from `createTestDb()`. Before committing database code, run it against the servers too (`pnpm test:db:up`): SQLite is lenient where PostgreSQL and MySQL aren't.
 
 After adding a workspace package, run `pnpm install --frozen-lockfile` to confirm the lockfile has it; if not, `pnpm install --fix-lockfile`.
