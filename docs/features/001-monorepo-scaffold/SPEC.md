@@ -54,7 +54,9 @@ packages/config/     @ronne/config       private
 **Versions** follow the [dependency policy](../../policies/dependencies.md#2-versions):
 - Node.js 24 LTS is the target: `.nvmrc`, and the version used in development.
 - `engines` allows `>=22.12` (Vitest's minimum on the 22 line).
-- `packageManager` pins the latest stable pnpm, and CI uses Corepack.
+- `packageManager` pins the latest stable pnpm. CI installs it with `pnpm/action-setup`, which reads
+  that field. Corepack isn't used: current releases (0.36) can't start pnpm 12, and Node.js stopped
+  bundling Corepack from version 25.
 - Every tool starts on its current stable release. `apps/web` and dev dependencies use exact versions.
 
 **Supply-chain settings** in `pnpm-workspace.yaml`, exactly as listed in the policy (§3):
@@ -90,7 +92,7 @@ Every action is pinned to a commit SHA, and every workflow declares minimal `per
 
 - [ ] A fresh clone runs `pnpm install && pnpm lint && pnpm typecheck && pnpm test && pnpm build` with no errors.
 - [ ] `pnpm dev` serves a placeholder page at `http://localhost:3000` styled with Tailwind.
-- [ ] `pnpm --filter @ronne/rmk exec rmk --version` prints the package version.
+- [ ] `pnpm exec rmk --version` (from the repo root, which has `@ronne/rmk` as a workspace dev dependency) prints the package version.
 - [ ] Each package has at least one Vitest test, and it runs through `pnpm test`.
 - [ ] A Biome error, a type error or a failing test makes CI fail.
 - [ ] The examples check passes on the current `examples/items/` and fails when a manifest is broken.

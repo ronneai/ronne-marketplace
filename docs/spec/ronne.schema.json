@@ -3,11 +3,7 @@
   "title": "Ronne item manifest (ronne.yaml)",
   "description": "Draft. See docs/spec/manifest.md. Moves to packages/core in M2.",
   "type": "object",
-  "required": [
-    "name",
-    "type",
-    "description"
-  ],
+  "required": ["name", "type", "description"],
   "additionalProperties": false,
   "properties": {
     "name": {
@@ -98,9 +94,7 @@
     },
     "agent": {
       "type": "object",
-      "required": [
-        "prompt"
-      ],
+      "required": ["prompt"],
       "additionalProperties": false,
       "properties": {
         "prompt": {
@@ -114,32 +108,20 @@
           }
         },
         "model": {
-          "enum": [
-            "default",
-            "fast",
-            "strong"
-          ]
+          "enum": ["default", "fast", "strong"]
         }
       }
     },
     "rule": {
       "type": "object",
-      "required": [
-        "body",
-        "activation"
-      ],
+      "required": ["body", "activation"],
       "additionalProperties": false,
       "properties": {
         "body": {
           "$ref": "#/$defs/relPath"
         },
         "activation": {
-          "enum": [
-            "always",
-            "glob",
-            "model",
-            "manual"
-          ]
+          "enum": ["always", "glob", "model", "manual"]
         },
         "globs": {
           "type": "array",
@@ -157,16 +139,12 @@
         }
       },
       "then": {
-        "required": [
-          "globs"
-        ]
+        "required": ["globs"]
       }
     },
     "command": {
       "type": "object",
-      "required": [
-        "body"
-      ],
+      "required": ["body"],
       "additionalProperties": false,
       "properties": {
         "body": {
@@ -176,9 +154,7 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": [
-              "name"
-            ],
+            "required": ["name"],
             "additionalProperties": false,
             "properties": {
               "name": {
@@ -198,10 +174,7 @@
     },
     "hook": {
       "type": "object",
-      "required": [
-        "event",
-        "run"
-      ],
+      "required": ["event", "run"],
       "additionalProperties": false,
       "properties": {
         "event": {
@@ -241,14 +214,10 @@
           },
           "oneOf": [
             {
-              "required": [
-                "command"
-              ]
+              "required": ["command"]
             },
             {
-              "required": [
-                "script"
-              ]
+              "required": ["script"]
             }
           ]
         },
@@ -261,16 +230,11 @@
     },
     "mcp-server": {
       "type": "object",
-      "required": [
-        "transport"
-      ],
+      "required": ["transport"],
       "additionalProperties": false,
       "properties": {
         "transport": {
-          "enum": [
-            "stdio",
-            "http"
-          ]
+          "enum": ["stdio", "http"]
         },
         "command": {
           "type": "string",
@@ -290,9 +254,7 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": [
-              "name"
-            ],
+            "required": ["name"],
             "additionalProperties": false,
             "properties": {
               "name": {
@@ -328,20 +290,14 @@
             }
           },
           "then": {
-            "required": [
-              "command"
-            ],
+            "required": ["command"],
             "not": {
               "anyOf": [
                 {
-                  "required": [
-                    "url"
-                  ]
+                  "required": ["url"]
                 },
                 {
-                  "required": [
-                    "headers"
-                  ]
+                  "required": ["headers"]
                 }
               ]
             }
@@ -356,20 +312,14 @@
             }
           },
           "then": {
-            "required": [
-              "url"
-            ],
+            "required": ["url"],
             "not": {
               "anyOf": [
                 {
-                  "required": [
-                    "command"
-                  ]
+                  "required": ["command"]
                 },
                 {
-                  "required": [
-                    "args"
-                  ]
+                  "required": ["args"]
                 }
               ]
             }
@@ -379,9 +329,7 @@
     },
     "permission-policy": {
       "type": "object",
-      "required": [
-        "rules"
-      ],
+      "required": ["rules"],
       "additionalProperties": false,
       "properties": {
         "rules": {
@@ -389,10 +337,7 @@
           "minItems": 1,
           "items": {
             "type": "object",
-            "required": [
-              "tool",
-              "decision"
-            ],
+            "required": ["tool", "decision"],
             "additionalProperties": false,
             "properties": {
               "tool": {
@@ -403,11 +348,7 @@
                 "minLength": 1
               },
               "decision": {
-                "enum": [
-                  "allow",
-                  "ask",
-                  "deny"
-                ]
+                "enum": ["allow", "ask", "deny"]
               }
             }
           }
@@ -416,9 +357,7 @@
     },
     "output-style": {
       "type": "object",
-      "required": [
-        "body"
-      ],
+      "required": ["body"],
       "additionalProperties": false,
       "properties": {
         "body": {
@@ -428,9 +367,7 @@
     },
     "statusline": {
       "type": "object",
-      "required": [
-        "script"
-      ],
+      "required": ["script"],
       "additionalProperties": false,
       "properties": {
         "script": {
@@ -440,10 +377,7 @@
     },
     "lsp-server": {
       "type": "object",
-      "required": [
-        "command",
-        "languages"
-      ],
+      "required": ["command", "languages"],
       "additionalProperties": false,
       "properties": {
         "command": {
@@ -461,10 +395,7 @@
           "minItems": 1,
           "items": {
             "type": "object",
-            "required": [
-              "id",
-              "extensions"
-            ],
+            "required": ["id", "extensions"],
             "additionalProperties": false,
             "properties": {
               "id": {
@@ -498,9 +429,7 @@
         }
       },
       "then": {
-        "required": [
-          "agent"
-        ]
+        "required": ["agent"]
       }
     },
     {
@@ -512,9 +441,7 @@
         }
       },
       "then": {
-        "required": [
-          "rule"
-        ]
+        "required": ["rule"]
       }
     },
     {
@@ -526,9 +453,7 @@
         }
       },
       "then": {
-        "required": [
-          "command"
-        ]
+        "required": ["command"]
       }
     },
     {
@@ -540,9 +465,7 @@
         }
       },
       "then": {
-        "required": [
-          "hook"
-        ]
+        "required": ["hook"]
       }
     },
     {
@@ -554,9 +477,7 @@
         }
       },
       "then": {
-        "required": [
-          "mcp-server"
-        ]
+        "required": ["mcp-server"]
       }
     },
     {
@@ -568,9 +489,7 @@
         }
       },
       "then": {
-        "required": [
-          "permission-policy"
-        ]
+        "required": ["permission-policy"]
       }
     },
     {
@@ -582,9 +501,7 @@
         }
       },
       "then": {
-        "required": [
-          "output-style"
-        ]
+        "required": ["output-style"]
       }
     },
     {
@@ -596,9 +513,7 @@
         }
       },
       "then": {
-        "required": [
-          "statusline"
-        ]
+        "required": ["statusline"]
       }
     },
     {
@@ -610,9 +525,7 @@
         }
       },
       "then": {
-        "required": [
-          "lsp-server"
-        ]
+        "required": ["lsp-server"]
       }
     },
     {
@@ -624,9 +537,7 @@
         }
       },
       "then": {
-        "required": [
-          "dependencies"
-        ]
+        "required": ["dependencies"]
       }
     },
     {
@@ -647,9 +558,7 @@
       },
       "then": {
         "not": {
-          "required": [
-            "dependencies"
-          ]
+          "required": ["dependencies"]
         }
       }
     }
@@ -677,9 +586,7 @@
       "allOf": [
         {
           "if": {
-            "required": [
-              "skill"
-            ]
+            "required": ["skill"]
           },
           "then": {
             "properties": {
@@ -691,9 +598,7 @@
         },
         {
           "if": {
-            "required": [
-              "agent"
-            ]
+            "required": ["agent"]
           },
           "then": {
             "properties": {
@@ -705,9 +610,7 @@
         },
         {
           "if": {
-            "required": [
-              "rule"
-            ]
+            "required": ["rule"]
           },
           "then": {
             "properties": {
@@ -719,9 +622,7 @@
         },
         {
           "if": {
-            "required": [
-              "command"
-            ]
+            "required": ["command"]
           },
           "then": {
             "properties": {
@@ -733,9 +634,7 @@
         },
         {
           "if": {
-            "required": [
-              "hook"
-            ]
+            "required": ["hook"]
           },
           "then": {
             "properties": {
@@ -747,9 +646,7 @@
         },
         {
           "if": {
-            "required": [
-              "mcp-server"
-            ]
+            "required": ["mcp-server"]
           },
           "then": {
             "properties": {
@@ -761,9 +658,7 @@
         },
         {
           "if": {
-            "required": [
-              "permission-policy"
-            ]
+            "required": ["permission-policy"]
           },
           "then": {
             "properties": {
@@ -775,9 +670,7 @@
         },
         {
           "if": {
-            "required": [
-              "output-style"
-            ]
+            "required": ["output-style"]
           },
           "then": {
             "properties": {
@@ -789,9 +682,7 @@
         },
         {
           "if": {
-            "required": [
-              "statusline"
-            ]
+            "required": ["statusline"]
           },
           "then": {
             "properties": {
@@ -803,9 +694,7 @@
         },
         {
           "if": {
-            "required": [
-              "lsp-server"
-            ]
+            "required": ["lsp-server"]
           },
           "then": {
             "properties": {

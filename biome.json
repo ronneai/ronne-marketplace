@@ -1,0 +1,114 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.14/schema.json",
+  "extends": ["@ronne/config/biome"],
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "includes": ["**", "!**/*.code-workspace"]
+  },
+  "overrides": [
+    {
+      "includes": ["packages/core/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@ronne/web", "@ronne/web/**"],
+                    "message": "packages/core is shared by everything, so it can't import other Ronne packages (MVP \u00a79.1)."
+                  },
+                  {
+                    "group": ["@ronne/rmk", "@ronne/rmk/**"],
+                    "message": "packages/core is shared by everything, so it can't import other Ronne packages (MVP \u00a79.1)."
+                  },
+                  {
+                    "group": ["@ronne/mcp", "@ronne/mcp/**"],
+                    "message": "packages/core is shared by everything, so it can't import other Ronne packages (MVP \u00a79.1)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/cli/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@ronne/web", "@ronne/web/**"],
+                    "message": "The CLI may only import @ronne/core (MVP \u00a79.1)."
+                  },
+                  {
+                    "group": ["@ronne/mcp", "@ronne/mcp/**"],
+                    "message": "The CLI may only import @ronne/core (MVP \u00a79.1)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/mcp/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@ronne/web", "@ronne/web/**"],
+                    "message": "The MCP server may only import @ronne/core (MVP \u00a79.1)."
+                  },
+                  {
+                    "group": ["@ronne/rmk", "@ronne/rmk/**"],
+                    "message": "The MCP server may only import @ronne/core (MVP \u00a79.1)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/web/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@ronne/rmk", "@ronne/rmk/**"],
+                    "message": "The web app may import @ronne/core, never the CLI or the MCP server (MVP \u00a79.1)."
+                  },
+                  {
+                    "group": ["@ronne/mcp", "@ronne/mcp/**"],
+                    "message": "The web app may import @ronne/core, never the CLI or the MCP server (MVP \u00a79.1)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
