@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
+import { CreateUserDialog } from "@/features/admin-users/CreateUserDialog";
 import { parseUsersQuery, type SearchParams } from "@/features/admin-users/query";
+import { UserRowActions } from "@/features/admin-users/UserRowActions";
 import { UsersPage } from "@/features/admin-users/UsersPage";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { adminListUsers } from "@/server/domains/identity/actions/user-admin";
@@ -26,6 +28,17 @@ const Users = async ({ searchParams }: { searchParams: Promise<SearchParams> }) 
       nextCursor={nextCursor}
       filters={query.filters}
       paged={Boolean(query.cursor)}
+      toolbar={<CreateUserDialog />}
+      actions={(user) => (
+        <UserRowActions
+          user={{
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            disabled: Boolean(user.disabledAt),
+          }}
+        />
+      )}
     />
   );
 };

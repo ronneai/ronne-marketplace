@@ -88,16 +88,16 @@ maps to `ERR:` notices.
 
 ## Acceptance criteria
 
-- [ ] The permission map exists once, and every M1 action checks it. A test enumerates roles × permissions against MVP §2.
-- [ ] `/admin/users` and its actions return 404 or `ForbiddenError` for `user` and `moderator`.
-- [ ] Root can create a user with a generated or typed password. The password is shown once, the user can sign in with it (Playwright), and `user.created` is recorded.
-- [ ] Duplicate emails are refused regardless of case.
-- [ ] Role changes between `user` and `moderator` work and are audited; no path sets or changes `root`.
-- [ ] Disabling ends sessions and revokes tokens in one transaction, and access stops on the next request (web and API).
-- [ ] Enabling restores sign-in, while revoked tokens stay revoked.
-- [ ] Resetting a password shows a new one once, ends sessions and revokes tokens, and the old password stops working.
-- [ ] Root's own row can't be modified through any admin action.
-- [ ] Every change writes its 007 event in the same transaction (a rollback test for disable).
+- [x] The permission map exists once, and every M1 action checks it. A test enumerates roles × permissions against MVP §2.
+- [x] `/admin/users` and its actions return 404 or `ForbiddenError` for `user` and `moderator`.
+- [x] Root can create a user with a generated or typed password. The password is shown once, the user can sign in with it (Playwright), and `user.created` is recorded.
+- [x] Duplicate emails are refused regardless of case.
+- [x] Role changes between `user` and `moderator` work and are audited; no path sets or changes `root`.
+- [x] Disabling ends sessions and revokes tokens in one transaction, and access stops on the next request (web and API). (The API side is 009's bearer guard, which rejects revoked tokens.)
+- [x] Enabling restores sign-in, while revoked tokens stay revoked.
+- [x] Resetting a password shows a new one once, ends sessions and revokes tokens, and the old password stops working.
+- [x] Root's own row can't be modified through any admin action.
+- [x] Every change writes its 007 event in the same transaction (a rollback test for disable).
 
 ## Open questions
 

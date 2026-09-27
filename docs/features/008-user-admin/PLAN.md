@@ -25,7 +25,7 @@
   navigation shared with `/admin/audit`. The table, search, filters and paging, using 032's parts.
   *Done when:* render and permission tests pass.
 
-- [ ] **5. Dialogs and actions.** Create (with the one-time password panel), change role, disable,
+- [x] **5. Dialogs and actions.** Create (with the one-time password panel), change role, disable,
   enable and reset, as server actions over the identity actions.
   *Done when:* action tests pass. Playwright: root creates a user, the user signs in with the shown
   password, root disables them, and they lose access.
@@ -93,4 +93,35 @@
   - **New convention (owner, 2026-09-27):** functions and components are arrow functions. This
     task's new files use them already. The rest of the codebase is refactored in a `[chore]` after
     008.
+- **Task 5 (2026-09-27): dialogs and actions** (`features/admin-users/`).
+  - **Server actions** (`actions.ts`): create, change role, disable, enable and reset, plus
+    `disableImpactFor` for the dialog's counts. They're thin adapters over the identity actions.
+    Identity errors, including `ForbiddenError` and `CannotModifyRootError`, become the dialog's
+    `ERR:` line; anything else is thrown. A change revalidates `/admin/users`.
+  - **Create user:** a dialog with email, name, role and a password choice (generate, the default,
+    or type one). On success, the one-time panel shows the email and password with copy buttons and
+    "Give this to the user through a trusted channel. It won't be shown again." The form remounts
+    each time the dialog opens, so a shown password never lingers.
+  - **Row actions:** "Make user" or "Make moderator", "Reset password", and "Disable" or "Enable".
+    Each opens a confirm dialog; the disable one says how many sessions end and tokens are revoked.
+    Root's row has none.
+  - **Changed from the spec: buttons, not a menu.** The row actions were first a dropdown, but the
+    table's sideways scrolling clipped it (seen in the screenshots). They're now small inline
+    buttons, in a `<fieldset>` named "Actions for <email>".
+  - **Found on the way:** dialogs opened from the right-aligned actions cell inherited its alignment,
+    so the shared `Dialog` now sets `text-left`.
+  - **The own-password change** now checks `account.manage_own` too, so every M1 action goes through
+    the permission map.
+  - **Tests:**
+    - the actions: generated and typed passwords, error mapping, rethrowing unexpected errors, and
+      revalidation;
+    - rendering: the one-time panel, and root's row having no actions;
+    - Playwright: root creates a user with a generated password, the user signs in with it, root
+      disables them (the dialog shows "1 session"), and the user's next request goes to sign-in.
+    All 8 end-to-end tests pass.
+  - **Checked by hand** in light and dark, at 1440px and 390px (Playwright screenshots): the users
+    table, the one-time password panel and the disable dialog. On a phone, the table scrolls sideways
+    inside its frame.
+- **Done (2026-09-27).** The API half of "access stops on the next request" is enforced by 009's
+  bearer guard: disabling already revokes every token, and 009 rejects revoked tokens.
 
