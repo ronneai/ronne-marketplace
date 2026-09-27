@@ -20,6 +20,22 @@ To work on a feature, read its `SPEC.md`, follow `PLAN.md` in order, and tick ta
 
 When a task touches a decision, check `MVP.md` first. If the work changes a decision, update the doc and its decision log in the same change. When the M0 scaffolding lands, replace this section with the real build, lint and test commands.
 
+## Commits and pull requests
+
+Commit messages and pull request titles use the same format:
+
+```
+[type] NNN: Description      when the change belongs to a feature in docs/features
+[type]: Description          otherwise
+```
+
+- `type` is one of `docs`, `feat`, `chore` or `bugfix`.
+- `NNN` is the 3-digit feature ID, such as `001`.
+- The description is imperative, starts with a capital letter, has no full stop at the end, and the whole line is at most 72 characters.
+- Examples: `[feat] 001: Add CI workflow on Node 22 and 24`, `[bugfix] 003: Keep AUTH_SECRET when setup reruns`, `[docs]: Add dependency policy`.
+
+Pull requests are squash-merged, so the PR title becomes the commit on `main`. CI checks every PR title (`.github/workflows/pr-title.yml`), and a local `commit-msg` hook checks commits (`pnpm hooks:install`). The rules live in `packages/repo-tools/src/commit-message.js`.
+
 ## Fixed decisions (see MVP.md §15)
 
 - **CLI name: `rmk`.** Never use `ronne` or `ronneai` as a command or binary name; they are reserved for something else.

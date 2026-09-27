@@ -78,7 +78,10 @@ cache is kept between runs with the Actions cache.
 - **CodeQL** for JavaScript and TypeScript.
 
 Every action is pinned to a commit SHA, and every workflow declares minimal `permissions:`.
-`.github/dependabot.yml` covers npm and `github-actions`: weekly, grouped, with a 3-day cooldown.
+`.github/dependabot.yml` covers npm and `github-actions`: weekly, grouped, with a 3-day cooldown,
+and `commit-message.prefix: "[chore]"` so its pull request titles pass the PR title check
+(Dependabot adds the colon, giving `[chore]: Bump …`). Its long grouped titles skip only the
+length rule.
 
 ## Edge cases
 
