@@ -25,7 +25,7 @@
   *Done when:* tests cover redirects for protected, public and setup-required paths, and reject
   `//evil.test` and `https://evil.test` as `next`.
 
-- [ ] **5. Sign-in page.** The form (server action), remember me, the "Forgot?" note, generic errors,
+- [x] **5. Sign-in page.** The form (server action), remember me, the "Forgot?" note, generic errors,
   the rate-limit message, and the CLI authentication panel, using 032's parts.
   *Done when:* render tests pass, and it works with JavaScript off (checked by hand, noted).
 
@@ -99,4 +99,23 @@
     started with `RONNE_ENV_FILE` pointing elsewhere still sees a developer's local `DATABASE_URL`.
     The end-to-end harness must run where that file doesn't apply. Before setup, the root layout
     still shows the setup screen on every page, as its test covers.
+- **Task 5 (2026-09-27): sign-in page** (`app/sign-in/page.tsx`, `features/sign-in/`).
+  - **The form** is a client component using `useActionState` over the `signInFromForm` server
+    action. It keeps the email after an error, never the password. "Forgot?" is a native
+    `<details>` with the reset note, so it needs no JavaScript. The CLI panel uses `CopyableCommand`
+    and links to Access tokens.
+  - **Checked live without JavaScript** (`next start`, posting the form's own hidden
+    `$ACTION_*` fields with curl, as a browser without scripts would). The Chrome extension wasn't
+    connected, so there are no screenshots.
+    - A wrong password returns the page with `ERR: Email or password is wrong`, and keeps the email.
+    - The right one gives a 303 to `next` and a `ronne.session_token` cookie with
+      `Max-Age=2592000`, `HttpOnly` and `SameSite=lax`.
+    - The 6th attempt for one email shows "Too many attempts, wait a minute".
+    - Signed in, `/sign-in?next=/styleguide` redirects to `/styleguide`, and `next=//evil.test`
+      redirects to `/`. The header shows root's email and the Admin link.
+  - **Before setup:** `/` goes to `/sign-in`, which shows the setup screen. The page ran
+    `getCurrentUser` anyway and logged "isn't set up yet" errors, so `getCurrentUser` now returns
+    null on an unconfigured instance (`getAppAuthIfConfigured`). Rechecked: no errors.
+  - **Local testing note:** `next start` loads `apps/web/.env`, and environment variables take
+    precedence in `loadConfig`. The throwaway instance was started with its values exported.
 

@@ -44,3 +44,8 @@ export function getAppAuth(): AppAuth {
   shared.__ronneLoginLimiter ??= new LoginRateLimiter();
   return { auth, db, dialect, trustProxy: config.trustProxy, limiter: shared.__ronneLoginLimiter };
 }
+
+/** The same, or null before setup: then there's no one to sign in, and no database to ask. */
+export function getAppAuthIfConfigured(): AppAuth | null {
+  return isConfigured(loadConfig()) ? getAppAuth() : null;
+}

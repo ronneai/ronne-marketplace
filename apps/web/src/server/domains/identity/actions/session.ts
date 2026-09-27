@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { clientIp } from "../models/client-ip";
 import { PATH_HEADER, signInUrl } from "../models/route-guard";
 import type { CurrentUser } from "../models/user";
-import { type AppAuth, getAppAuth } from "../repositories/auth-instance";
+import { type AppAuth, getAppAuth, getAppAuthIfConfigured } from "../repositories/auth-instance";
 import { betterAuthSessionStore } from "../repositories/better-auth-session-store";
 import { kyselyIdentityRepository } from "../repositories/kysely-identity-repository";
 import * as service from "../services/session";
@@ -22,10 +22,13 @@ function deps({ auth, db, dialect, limiter }: AppAuth): service.SessionDeps {
   };
 }
 
-export const getCurrentUser = (
+/** The signed-in user, or null. Before setup it's always null (the root layout shows the setup screen). */
+export async function getCurrentUser(
   headers: Headers,
-  app: AppAuth = getAppAuth(),
-): Promise<CurrentUser | null> => service.currentUser(deps(app), headers);
+  app: AppAuth | null = getAppAuthIfConfigured(),
+): Promise<CurrentUser | null> {
+  return app ? service.currentUser(deps(app), headers) : null;
+}
 
 /** The signed-in user, or a redirect to sign-in that comes back to the requested page. */
 export async function requireUser(headers: Headers, app?: AppAuth): Promise<CurrentUser> {
