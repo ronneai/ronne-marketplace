@@ -101,4 +101,5 @@ maps to `ERR:` notices.
 
 ## Open questions
 
-- Should root be able to promote another user to root, for example to hand over the instance? The spec keeps a single root, as in MVP §2. A second root could be added later with an explicit "transfer ownership" flow.
+- None. **Closed (2026-09-27, owner):** root stays single, as this spec and MVP §2 say. A
+  "transfer ownership" flow can come later if it's needed.

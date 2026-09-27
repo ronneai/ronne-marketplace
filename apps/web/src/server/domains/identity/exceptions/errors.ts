@@ -48,3 +48,29 @@ export class NotConfiguredError extends IdentityError {
     super("Ronne isn't set up yet: there's no DATABASE_URL or AUTH_SECRET. Run `pnpm run setup`.");
   }
 }
+
+export class ForbiddenError extends IdentityError {
+  constructor(readonly permission: string) {
+    super(`You don't have permission to do this (${permission}).`);
+  }
+}
+
+export class UserNotFoundError extends IdentityError {
+  constructor() {
+    super("That user doesn't exist.");
+  }
+}
+
+export class EmailTakenError extends IdentityError {
+  constructor(readonly email: string) {
+    super(`A user with the email ${email} already exists.`);
+  }
+}
+
+export class CannotModifyRootError extends IdentityError {
+  constructor() {
+    super(
+      "Root can't be changed from the admin area. Root changes its own password in Account, and recovers with `pnpm run reset-root-password`.",
+    );
+  }
+}
