@@ -167,4 +167,7 @@
     `--with-deps`, and its steps skip on documentation-only pull requests like the other checks.
     **Proposed:** add it to `main`'s required checks once it has passed on the pull request.
   - Playwright's output (`playwright-report/`, `test-results/`) is git-ignored.
+- **Done (2026-09-27):** merged in #22. The `End-to-end (Chromium)` job passed on that pull request
+  (about a minute), so every acceptance criterion is met. Proposed to the owner: make it a required
+  check on `main`.
 
