@@ -14,7 +14,7 @@
   The create step runs in one transaction.
   *Done when:* service tests cover creating root, refusing a second root, the password rules, and a reset that removes sessions and revokes tokens.
 
-- [ ] **3. `.env` handling.** Read, merge and write `.env` with mode `0600`, keeping unknown lines
+- [x] **3. `.env` handling.** Read, merge and write `.env` with mode `0600`, keeping unknown lines
   and an existing `AUTH_SECRET`. Add `.env.example`.
   *Done when:* unit tests cover a new file, a merge, a kept secret and the file mode.
 
@@ -51,4 +51,8 @@
   - **Found while testing:** `better-sqlite3` can't bind JavaScript booleans. `toDbBoolean()` was added to `db/dates.ts`, next to `toDbDate()`, for `email_verified`.
   - **Known limit:** two setups running at the same moment could both pass the "no root yet" check. It's acceptable for a one-operator installer. A portable database guard (a partial unique index) isn't possible on MySQL.
   - Checked on SQLite and in Docker on PostgreSQL 18 and 15, MySQL 8.4 and MariaDB 10.11 (103/103 each).
+- **Task 3 (2026-09-27): `.env` handling** in `src/server/setup/env-file.ts`. `.env` lives in `apps/web/`, where Next.js and `pnpm db:migrate` read it. `apps/web/.env.example` documents every key.
+  - **Merge:** known keys are replaced in place, new ones appended, and other lines (comments, blanks, unknown keys) kept. `AUTH_SECRET` is never replaced once set.
+  - **Write:** mode `0600`, through a temp file and a rename. An existing looser file is tightened to `0600`.
+  - **Quoting follows Node's own parser** (`util.parseEnv`, the one behind `process.loadEnvFile`). It has no escape for quotes inside quotes, and treats `#` as a comment even with no space before it. So values are left unquoted when safe, otherwise single-quoted, and double-quoted or backticked only when needed. Values with line breaks, or with every kind of quote, are refused. Tests round-trip tricky values (URL-encoded passwords, `#`, apostrophes, both quote kinds, secrets) through that parser.
 
