@@ -4,7 +4,7 @@
 
 ## Tasks
 
-- [ ] **1. Config file location.** Load config from `RONNE_ENV_FILE` (default `./.env`), with environment variables taking precedence. Make 003's setup write to the same path.
+- [x] **1. Config file location.** Load config from `RONNE_ENV_FILE` (default `./.env`), with environment variables taking precedence. Make 003's setup write to the same path.
   *Done when:* a test shows the app and setup both honour `RONNE_ENV_FILE`, and that env vars override the file.
 
 - [ ] **2. Health endpoint and setup-required mode.** `GET /api/health`, the setup-required screen, and the `503 setup_required` API response.
@@ -30,3 +30,10 @@
   *Done when:* the README steps work as written.
 
 ## Notes
+- **Task 1 (2026-09-27): settings file location.** `src/server/config.ts`:
+  - `envFilePath()` is `RONNE_ENV_FILE` (absolute, or relative to the app) or `.env`.
+  - `loadConfig()` reads the file, with environment variables taking precedence (an empty variable counts as unset). It returns `DATABASE_URL`, `AUTH_SECRET`, `PUBLIC_URL`, `STORAGE_PATH` (default `./data/storage`) and `TRUST_PROXY`.
+  - `isConfigured()` needs a database URL and a secret.
+  - `pnpm db:migrate`, setup and reset all use it, so they agree on the file. `migrate` previously read only `./.env` relative to the working directory. Setup has written to `RONNE_ENV_FILE` since 003.
+  - **Tests:** relative and absolute `RONNE_ENV_FILE`, precedence, an empty variable, the unconfigured case, and `pnpm db:migrate` reading the database from the file.
+

@@ -7,6 +7,7 @@
 // Exit codes: 0 done, 1 a check or step failed, 2 invalid or missing input.
 import { resolve } from "node:path";
 import * as p from "@clack/prompts";
+import { envFilePath } from "../src/server/config";
 import { clackPrompts } from "../src/server/setup/clack-prompts";
 import { parseSetupCommand } from "../src/server/setup/cli";
 import {
@@ -19,7 +20,7 @@ import { runSetup, SetupFailedError } from "../src/server/setup/run-setup";
 
 const appDir = resolve(import.meta.dirname, "..");
 // RONNE_ENV_FILE moves .env, for Docker's data volume (feature 005) and for tests.
-const envPath = resolve(appDir, process.env.RONNE_ENV_FILE || ".env");
+const envPath = envFilePath(appDir);
 
 const command = parseSetupCommand(
   process.argv.slice(2),

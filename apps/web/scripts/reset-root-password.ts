@@ -3,6 +3,7 @@
 // Exit codes: 0 done, 1 failed (for example, no root yet), 2 missing or invalid input.
 import { resolve } from "node:path";
 import * as p from "@clack/prompts";
+import { envFilePath } from "../src/server/config";
 import { InvalidPasswordError } from "../src/server/domains/identity/exceptions/errors";
 import { clackPrompts } from "../src/server/setup/clack-prompts";
 import { parseResetCommand } from "../src/server/setup/cli";
@@ -16,7 +17,7 @@ import { runResetRootPassword } from "../src/server/setup/reset-root";
 import { SetupFailedError } from "../src/server/setup/run-setup";
 
 const appDir = resolve(import.meta.dirname, "..");
-const envPath = resolve(appDir, process.env.RONNE_ENV_FILE || ".env");
+const envPath = envFilePath(appDir);
 const command = parseResetCommand(
   process.argv.slice(2),
   process.env,
