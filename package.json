@@ -25,7 +25,8 @@
     "test:db:down": "docker compose -f docker/test-databases.compose.yml down -v",
     "test:db:postgres": "pnpm --filter @ronne/web exec node scripts/test-db.mjs postgres",
     "test:db:mysql": "pnpm --filter @ronne/web exec node scripts/test-db.mjs mysql",
-    "test:db:mariadb": "pnpm --filter @ronne/web exec node scripts/test-db.mjs mariadb"
+    "test:db:mariadb": "pnpm --filter @ronne/web exec node scripts/test-db.mjs mariadb",
+    "test:e2e": "pnpm --filter @ronne/web test:e2e"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.14",

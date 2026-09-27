@@ -32,7 +32,7 @@
 - [x] **6. Account pages.** `/account/password`, and sign-out in the user menu.
   *Done when:* render and action tests pass.
 
-- [ ] **7. Playwright.** Add `@playwright/test` after the dependency checklist. The e2e harness does
+- [x] **7. Playwright.** Add `@playwright/test` after the dependency checklist. The e2e harness does
   build, `setup --yes` into a temp settings file, then `next start`. Tests: sign in, wrong password,
   remember me, sign out, change password. Add a CI job, `End-to-end (Chromium)`, following the
   documentation-only skip.
@@ -138,4 +138,33 @@
     - Protected pages are sent with `Cache-Control: private, no-cache, no-store`, so the back button
       reloads them (and redirects) rather than showing a cached copy.
   - The home page no longer says sign-in is coming.
+- **Task 7 (2026-09-27): Playwright.**
+  - **`@playwright/test` 1.63.0**, a dev dependency of `apps/web`. The dependency checklist:
+    - Need: end-to-end tests in a real browser (MVP §9.1). Nothing in the repo does this.
+    - License: Apache-2.0 for all three packages (`@playwright/test`, `playwright`,
+      `playwright-core`), plus `fsevents` (MIT, optional, macOS). `pnpm licenses:check` passes.
+    - Health: Microsoft, released monthly; 1.63.0 came out on 2026-09-04.
+    - Advisories: `pnpm audit --audit-level high` finds none.
+    - Install scripts: none. Browsers are downloaded only by an explicit `playwright install`,
+      never on `pnpm install`.
+    - Weight: 5 packages.
+  - **The harness** (`e2e/harness.ts`, run from `playwright.config.ts`) makes one instance per run:
+    - SQLite in a temporary folder, configured by `pnpm run setup --yes` with a test root, and one
+      seeded user per test (`e2e/seed.ts`), so the per-email limit never trips across tests;
+    - `next start` on a free port, with every setting passed as an environment variable, so a
+      developer's `apps/web/.env` (which Next.js loads by itself) is never used;
+    - `pnpm test:e2e` runs `next build` first.
+  - **Tests** (`e2e/auth.e2e.ts`): sign in and come back to `next`; wrong password and unknown email
+    give the same error; remember me (a 30-day cookie, or a session cookie); sign out and the back
+    button; change password (wrong current, then success: this browser stays, the other is signed
+    out, and the new password works). 5 pass locally in about 3 seconds after the build.
+  - **Two fixes on the way:**
+    - Through `pnpm exec`, Playwright's stop signal never reached `next-server`, so the run didn't
+      end. The server is now started with `node_modules/.bin/next`.
+    - Next.js's route announcer is also `role="alert"`, so the tests match the error notice by its
+      `ERR:` prefix.
+  - **CI:** a new `End-to-end (Chromium)` job in `ci.yml`. It installs Chromium with
+    `--with-deps`, and its steps skip on documentation-only pull requests like the other checks.
+    **Proposed:** add it to `main`'s required checks once it has passed on the pull request.
+  - Playwright's output (`playwright-report/`, `test-results/`) is git-ignored.
 
