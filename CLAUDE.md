@@ -13,7 +13,10 @@ Claude Code, Codex and Cursor.
 - `docs/MVP/ideas.txt`: the original requirements, written by the owner.
 - `docs/MVP/MVP.md`: the MVP design. It is the source of truth for scope, architecture, the data model, the API, milestones (M0–M6) and the decision log (§15).
 - `docs/spec/`: detailed contracts. `manifest.md` and `ronne.schema.json` define `ronne.yaml`; `cli-files.md` defines `rmk.config.json`, `rmk.lock` and `.rmk/state.json`.
+- `docs/features/`: the work, one folder per feature (`NNN-slug/SPEC.md` + `PLAN.md`). `docs/features/README.md` is the index and the milestone plan.
 - `examples/items/`: one sample item per type. Each must pass `ronne.schema.json`; they are the golden-file inputs for renderers.
+
+To work on a feature, read its `SPEC.md`, follow `PLAN.md` in order, and tick tasks as they land. If the behaviour changes, update `SPEC.md` in the same change; when the feature is finished, set its status in the index.
 
 When a task touches a decision, check `MVP.md` first. If the work changes a decision, update the doc and its decision log in the same change. When the M0 scaffolding lands, replace this section with the real build, lint and test commands.
 
@@ -55,6 +58,10 @@ When a task touches a decision, check `MVP.md` first. If the work changes a deci
   - An item or change goes from draft → submitted → approved, with one approval from a moderator or root who isn't the author (root can override, and the override is audited).
   - Releasing is a separate step: semver bump plus a dist-tag, `latest` by default.
   - Published versions are immutable `.tgz` files with a sha256 checksum, stored through a `StorageAdapter` (local disk only for now).
+- **Dependencies** follow `docs/policies/dependencies.md`. Check it before adding any package, tool, action or image.
+  - Only licenses that allow free use and redistribution (MIT, ISC, BSD, Apache-2.0, …). Never GPL, AGPL, SSPL, BUSL, non-commercial or unlicensed, even as a dev dependency. No tools that need a paid plan.
+  - Use the latest stable version, and LTS where there is one (Node.js 24 LTS target, 22 minimum).
+  - Don't add anything with known high or critical vulnerabilities. Keep the pnpm protections (`minimumReleaseAge`, `allowBuilds`, `trustPolicy`, `blockExoticSubdeps`) intact.
 - **Out of scope for the MVP:**
   - importing from external marketplaces;
   - S3 storage;

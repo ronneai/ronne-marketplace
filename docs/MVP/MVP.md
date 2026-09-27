@@ -5,6 +5,7 @@
 > Detailed specs live in [`docs/spec/`](../spec/): the [manifest](../spec/manifest.md) and its
 > [JSON Schema](../spec/ronne.schema.json), and the [CLI files](../spec/cli-files.md).
 > Sample items of every type are in [`examples/items/`](../../examples/items/).
+> Every dependency follows the [dependency policy](../policies/dependencies.md): licenses, versions and security.
 
 ## 1. Vision & goals
 
@@ -330,11 +331,13 @@ how to set them.
 
 Two supported paths:
 
-- **Node:** `pnpm dlx @ronne/marketplace init` (or run `pnpm setup` from a clone or fork)
-- **Docker:** `docker compose up`, followed by `docker compose exec web pnpm setup`
+- **Node:** `pnpm dlx @ronne/marketplace init` (or run `pnpm run setup` from a clone or fork)
+- **Docker:** `docker compose up`, followed by `docker compose exec web pnpm run setup`
 
-Supported runtimes: Node.js 22 or later, for both the server and `rmk`. The Docker image is built
-for `linux/amd64` and `linux/arm64`.
+Supported runtimes: the target is the newest Node.js Active LTS (24 in September 2026), used for
+development, CI and the Docker image. The minimum for self-hosting and `rmk` is the oldest LTS
+still receiving security fixes (22, until April 2027). The Docker image is built for `linux/amd64`
+and `linux/arm64`. See the [dependency policy](../policies/dependencies.md#2-versions).
 
 npm packages: `@ronne/marketplace` (installer), `@ronne/rmk` (the CLI; its binary is `rmk`, because
 the unscoped `rmk` package name is taken), `@ronne/mcp` and `@ronne/core`. The `@ronne` npm scope
@@ -350,7 +353,11 @@ The interactive `setup` script:
 6. **Create the root account**: email, password (entered twice), and display name.
 7. Print the URL and the next steps.
 
-`setup` refuses to create a second root account if one already exists. A separate `pnpm reset-root-password` command handles recovery.
+`setup` refuses to create a second root account if one already exists. A separate `pnpm run reset-root-password` command handles recovery.
+
+`pnpm setup` (without `run`) is a pnpm built-in that configures pnpm itself, so the command is always
+written `pnpm run setup`. Full behaviour, including a non-interactive mode for Docker and CI, is in
+[feature 003](../features/003-setup-installer/SPEC.md).
 
 ## 6. CLI — `rmk`
 
@@ -562,14 +569,21 @@ review is the security boundary.
 - **Integrity.** Published versions are immutable, and `rmk` checks sha256 checksums on every download and against `rmk.lock`.
 - **Managed-file boundaries.** Renderers write only inside known target paths and never overwrite unmanaged content.
 - **Audit log** for approvals, overrides, releases, tag moves, yanks, and user and role changes.
+- **Our own supply chain.** Every dependency must have a license that lets anyone use and
+  redistribute it, be on a current stable or LTS version, and have no known high or critical
+  vulnerabilities. CI enforces this with license, audit and image checks, and pnpm holds back
+  releases younger than 3 days. See the [dependency policy](../policies/dependencies.md).
 - **Upload limits**, with path-traversal and symlink checks when unpacking. Defaults, which root can
   change in instance settings: 5 MB packed, 20 MB unpacked, 500 files, and 1 MB for any single file.
 
 ## 13. MVP scope & milestones
 
+Each milestone is split into numbered features in [`docs/features/`](../features/README.md). Each has
+its own `SPEC.md` and `PLAN.md`, and the index there tracks their status.
+
 | # | Milestone | Acceptance criteria |
 |---|---|---|
-| M0 | Scaffolding & install | Monorepo, Biome and Vitest in CI; `pnpm setup` works end to end on all 3 DBs, including connection validation and root creation. |
+| M0 | Scaffolding & install | Monorepo, Biome and Vitest in CI; `pnpm run setup` works end to end on all 3 DBs, including connection validation and root creation. |
 | M1 | Auth & users | Login/logout; root creates, disables and re-roles users; PAT management UI. |
 | M2 | Items & submissions | Create a draft of any type via form + file editor; submit; manifest validated by the shared schema. |
 | M3 | Review & release | Review queue with diff and risk flags; approval rule (1 non-author moderator/root, root override); publish with semver bump and dist-tags; deprecate/yank; audit log. |
@@ -672,4 +686,8 @@ Design points:
 | MCP writes | Two steps: `plan_*` tools return a plan, `apply_plan` writes it | AI tools ask permission before a call, so the plan must be visible first |
 | DB portability | ULID keys, UTC timestamps, JSON as text, `LIKE` search, upserts via a helper | Keeps one migration set working on all three databases |
 | API conventions | One error shape with stable codes; cursor pagination; `/api/vN` versioning | Stable contract for `rmk` and the MCP server |
-| Packages | `@ronne/{marketplace,rmk,mcp,core}`; binary `rmk`; Node 22+; Docker amd64 + arm64 | Unscoped `rmk` is taken on npm; `@ronne` scope ownership to confirm |
+| Planning | One folder per feature, `docs/features/NNN-slug/` with `SPEC.md` and `PLAN.md`; the index there replaces a separate milestone plan; specs only for the current and next milestone | Specs stay next to the work and outlive the schedule; no duplicated acceptance criteria |
+| Setup command | `pnpm run setup` (not `pnpm setup`, a pnpm built-in); non-interactive mode for Docker/CI | Avoids silently running pnpm's own command |
+| Docker | `node:24-slim` (current LTS, pinned by digest), standalone Next.js, state and config on one `/app/data` volume, migrations on start, setup-required mode until configured | One volume to back up; upgrades apply migrations automatically |
+| Dependencies | Permissive licenses only (MIT, ISC, BSD, Apache-2.0 …; CC-BY-4.0 for data); no copyleft or paid tools; latest stable/LTS; CI license + audit + image scans; pnpm release-age delay, build allowlist, trust policy | Ronne must be freely redistributable and must not ship known vulnerabilities |
+| Packages | `@ronne/{marketplace,rmk,mcp,core}`; binary `rmk`; Node 24 LTS target, 22 LTS minimum; Docker amd64 + arm64 | Unscoped `rmk` is taken on npm; `@ronne` scope ownership to confirm |
