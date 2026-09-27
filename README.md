@@ -28,6 +28,7 @@ the `rmk` CLI or from inside those tools through an MCP server.
 | `pnpm format` | Fixes formatting and safe lint issues |
 | `pnpm typecheck` | Type-checks every package |
 | `pnpm test` | Runs every test with Vitest |
+| `pnpm hooks:install` | Turns on the local commit-message check (once per clone) |
 | `pnpm exec rmk --version` | Runs the local `rmk` CLI (after `pnpm build`) |
 
 **Layout**
@@ -39,10 +40,17 @@ the `rmk` CLI or from inside those tools through an MCP server.
 | `packages/cli` | The `rmk` CLI |
 | `packages/mcp` | The registry MCP server |
 | `packages/config` | Shared TypeScript, Biome and Vitest presets |
+| `packages/repo-tools` | Checks for this repository, such as the commit message format |
 | `docs/` | The MVP design, specs, feature plans and policies |
 | `examples/items/` | One sample item of each type |
 
 ## Contributing
+
+Commits and pull request titles use `[type] NNN: Description`, where `type` is `docs`, `feat`,
+`chore` or `bugfix` and `NNN` is the feature ID (left out, as `[type]: Description`, when the change
+isn't part of a feature). Run `pnpm hooks:install` once to check commit messages locally; CI checks
+pull request titles.
+
 
 Work is organised as features in [`docs/features/`](docs/features/README.md): read a feature's
 `SPEC.md`, then follow its `PLAN.md`. Every new dependency must follow the

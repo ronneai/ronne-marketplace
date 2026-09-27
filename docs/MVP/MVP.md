@@ -686,6 +686,7 @@ Design points:
 | MCP writes | Two steps: `plan_*` tools return a plan, `apply_plan` writes it | AI tools ask permission before a call, so the plan must be visible first |
 | DB portability | ULID keys, UTC timestamps, JSON as text, `LIKE` search, upserts via a helper | Keeps one migration set working on all three databases |
 | API conventions | One error shape with stable codes; cursor pagination; `/api/vN` versioning | Stable contract for `rmk` and the MCP server |
+| Commit format | `[type] NNN: Description` (or `[type]: Description` without a feature); types `docs`, `feat`, `chore`, `bugfix`; same format for PR titles, checked in CI and by a local hook | Squash merges make the PR title the commit on `main`; the feature ID links history to `docs/features` |
 | Planning | One folder per feature, `docs/features/NNN-slug/` with `SPEC.md` and `PLAN.md`; the index there replaces a separate milestone plan; specs only for the current and next milestone | Specs stay next to the work and outlive the schedule; no duplicated acceptance criteria |
 | Setup command | `pnpm run setup` (not `pnpm setup`, a pnpm built-in); non-interactive mode for Docker/CI | Avoids silently running pnpm's own command |
 | Docker | `node:24-slim` (current LTS, pinned by digest), standalone Next.js, state and config on one `/app/data` volume, migrations on start, setup-required mode until configured | One volume to back up; upgrades apply migrations automatically |

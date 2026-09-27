@@ -234,6 +234,8 @@ importers:
 
   packages/mcp: {}
 
+  packages/repo-tools: {}
+
 packages:
 
   '@alloc/quick-lru@5.3.0':

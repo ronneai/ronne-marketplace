@@ -73,3 +73,7 @@
 - **`rmk` bin.** pnpm links a package's bin into its dependents, not into itself, so the root has
   `@ronne/rmk` as a workspace dev dependency and `pnpm exec rmk` works from the root.
 
+- **New workspace packages and the lockfile.** Adding a package with no dependencies
+  (`packages/repo-tools`) left it out of `pnpm-lock.yaml`, so `pnpm install --frozen-lockfile` failed
+  with `ERR_PNPM_PACKAGE_MANAGER_NO_IMPORTER`. Plain `pnpm install` and `--lockfile-only` didn't fix
+  it; `pnpm install --fix-lockfile` did. After adding a package, always check with `pnpm install --frozen-lockfile`.

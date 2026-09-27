@@ -1,0 +1,3 @@
+#!/bin/sh
+# Checks the commit message format. Install with: pnpm hooks:install
+exec node "$(git rev-parse --show-toplevel)/packages/repo-tools/src/check-commit-message.js" --file "$1"

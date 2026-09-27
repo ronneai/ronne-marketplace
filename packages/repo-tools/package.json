@@ -1,0 +1,14 @@
+{
+  "name": "@ronne/repo-tools",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Dependency-free checks for this repository: commit message and pull request title format.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "check-commit-message": "./src/check-commit-message.js"
+  },
+  "scripts": {
+    "test": "vitest run"
+  }
+}
