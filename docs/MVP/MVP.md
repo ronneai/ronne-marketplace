@@ -346,7 +346,9 @@ and `linux/arm64`. See the [dependency policy](../policies/dependencies.md#2-ver
 
 npm packages: `@ronne/marketplace` (installer), `@ronne/rmk` (the CLI; its binary is `rmk`, because
 the unscoped `rmk` package name is taken), `@ronne/mcp` and `@ronne/core`. The `@ronne` npm scope
-already exists, so it must be confirmed as ours before M4. The fallback scope is `@ronne-ai`.
+already exists, so it must be confirmed as ours before M4. The fallback scope is `@ronneai`, which
+matches the GitHub organisation (`@ronne-ai` if that's taken too). They're published to npmjs.com,
+not GitHub Packages: see the decision log (§15).
 
 The interactive `setup` script:
 
@@ -705,3 +707,4 @@ Design points:
 | Access tokens | `rmk_` + 43 base64url characters, SHA-256 hashed, 30/90/365 days or no expiry, at most 50 active per user, bearer only on `/api/v1` | Recognizable by secret scanning; revocable; no cookies on the API |
 | Dependencies | Permissive licenses only (MIT, ISC, BSD, Apache-2.0 …; CC-BY-4.0 for data); no copyleft or paid tools; latest stable/LTS; CI license + audit + image scans; pnpm release-age delay, build allowlist, trust policy | Ronne must be freely redistributable and must not ship known vulnerabilities |
 | Packages | `@ronne/{marketplace,rmk,mcp,core}`; binary `rmk`; Node 24 LTS target, 22 LTS minimum; Docker amd64 + arm64 | Unscoped `rmk` is taken on npm; `@ronne` scope ownership to confirm |
+| Package registry | Publish to npmjs.com; not GitHub Packages as the install source (a mirror there is possible later). If `@ronne` isn't ours, `@ronneai` on npmjs.com is the preferred fallback (it matches the GitHub org); the command stays `rmk` either way | GitHub Packages only takes the repository owner's scope (`@ronneai`), and installing from it needs a GitHub token with `read:packages` and an `.npmrc` registry line, even for public packages: too much friction for a CLI anyone should install with one command |

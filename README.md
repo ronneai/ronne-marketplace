@@ -94,7 +94,7 @@ npm install --global @ronne/rmk   # not published yet
 
 The package is `@ronne/rmk` because the unscoped `rmk` name is taken on npm; the command is still
 `rmk`. The `@ronne` scope is still to be confirmed as ours, so the package name may change
-(`@ronne-ai/rmk` is the fallback). Until then, the code in `packages/cli` is a placeholder that
+(`@ronneai/rmk` is the fallback). Until then, the code in `packages/cli` is a placeholder that
 only prints its version. From a clone, after `pnpm build`, run it with `pnpm exec rmk --version`.
 
 ## Development
