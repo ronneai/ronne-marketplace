@@ -8,7 +8,7 @@
   (`ON DELETE SET NULL`), and the Kysely `AuditLogTable` type.
   *Done when:* it migrates on SQLite, and on the 004 servers (`pnpm test:db:*`), with a foreign-key test like 0001's.
 
-- [ ] **2. `audit` domain.** The `AuditEvent` model and catalogue, `recordAudit(db, event)`, metadata
+- [x] **2. `audit` domain.** The `AuditEvent` model and catalogue, `recordAudit(db, event)`, metadata
   validation (secret-looking keys, 4 KB cap), and a read repository with a cursor.
   *Done when:* tests cover validation, writing in a transaction, rollback leaving nothing, and paging.
 
@@ -40,4 +40,23 @@ events are task 6 here.)
   - Two tests listed exactly `["0001_identity"]` as the applied migrations; they now use the
     migration list.
   - **Added task 6:** 006 merged before the audit log existed, so its four events are recorded here.
+- **Task 2 (2026-09-27): the `audit` domain** (`src/server/domains/audit/`).
+  - **`recordAudit(db, dialect, event)`** takes the caller's database or transaction, validates the
+    event, and inserts it. **`listAuditEvents`** returns 50 events a page, newest first, with a
+    `nextCursor` (the last id; it reads one extra row rather than counting).
+  - **The catalogue** (`models/audit-event.ts`) holds the spec's 12 actions. A failed sign-in has
+    no target, stored as `target_type = "none"`.
+  - **Secret-looking keys** are checked at every depth, word by word, so camel, snake and kebab case
+    are all caught:
+    - `password`, `secret`, `hash`, `salt` or `cookie` anywhere in a key;
+    - `token`, `key` or `credential(s)` as its last word.
+
+    So `tokenHash` and `accessToken` are refused, but the catalogue's own `tokensRevoked` is allowed.
+  - **Metadata** over 4,096 bytes of JSON is refused (bytes, not characters).
+  - **Group filter:** filtering by `access_token` with LIKE would treat `_` as a wildcard, so groups
+    filter with an `IN` list of the catalogue's actions.
+  - **Ids:** `newId()` now uses ulid's monotonic factory. Ids made in the same millisecond still sort
+    in order, which paging by id relies on.
+  - Tests pass on SQLite, PostgreSQL, MySQL and MariaDB: a rolled-back transaction leaves no event,
+    an invalid event stores nothing, and the cursor paging and filters work.
 
