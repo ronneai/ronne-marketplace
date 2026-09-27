@@ -10,7 +10,7 @@
 - [x] **2. Health endpoint and setup-required mode.** `GET /api/health`, the setup-required screen, and the `503 setup_required` API response.
   *Done when:* tests cover health with and without a database, and a page render in setup-required mode.
 
-- [ ] **3. Compiled scripts.** Bundle setup, reset-root-password and migrate into plain JS (for example with `tsdown`), with `pnpm run` entries that point at them in production.
+- [x] **3. Compiled scripts.** Bundle setup, reset-root-password and migrate into plain JS (for example with `tsdown`), with `pnpm run` entries that point at them in production.
   *Done when:* `node dist/setup.js --yes` works from a production build with no dev dependencies installed.
 
 - [ ] **4. Dockerfile.** Multi-stage build: install → build → a slim runtime with the standalone output, the compiled scripts, a non-root user, `/app/data`, `RONNE_ENV_FILE`, `HEALTHCHECK` and the start script.
@@ -48,4 +48,15 @@
   - **Turbopack warning fixed:** reading the runtime settings file made Turbopack trace the whole project into the server output. That would have bloated the standalone build the image uses. The reads in `config.ts` now carry `/*turbopackIgnore: true*/`.
   - `better-sqlite3`, `pg` and `@node-rs/argon2` are on Next's default list of packages kept outside the server bundle. `mysql2` isn't, but the build doesn't need it yet.
   - **Live check** (`next start` on a temp `RONNE_ENV_FILE`): 503 and the setup screen before setup; 200 and the normal page after `setup --yes` and a restart.
+- **Task 3 (2026-09-27): compiled scripts, using option A** (chosen by the owner).
+  - **The options measured:**
+    - Next standalone output: 24 MB. It lacks `@clack/prompts`, `@node-rs/argon2` and `better-auth`, which the scripts need.
+    - `pnpm deploy --prod`: about 800 MB, including the Next compiler (SWC), rolldown, and Vitest, a `better-auth` peer dependency.
+
+    So the scripts are bundled.
+  - **The bundle:** `apps/web/tsdown.config.ts`, with `tsdown` 0.23.0 (MIT, no install scripts, rolldown already in the tree). It compiles `setup`, `migrate` and `reset-root-password` to `apps/web/dist-scripts/*.mjs` (1.8 MB). Everything is bundled except `better-sqlite3` and `@node-rs/argon2`. `deps.onlyImport` makes the build **fail** if the output would import any other package.
+  - The output sits one level under the app, like `scripts/`, so the scripts' `resolve(import.meta.dirname, "..")` still finds the app folder.
+  - **The web app's `build` is now `next build && tsdown`,** so the pre-commit hook and CI check the bundle on every change. `dist-scripts/` is git-ignored and a Turbo build output.
+  - **Proof:** in a scratch folder whose only `node_modules` were `better-sqlite3` (plus `node-addon-api`) and `@node-rs/argon2` (plus its platform binary), `node dist-scripts/setup.mjs --yes`, `migrate.mjs` and `reset-root-password.mjs --yes` all worked.
+  - Setup's closing message says `pnpm build && pnpm start`, which is wrong in Docker. To be adjusted with the start script in task 5.
 
