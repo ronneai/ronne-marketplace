@@ -65,6 +65,8 @@ Docker base images, GitHub Actions, and any tool that CI or the install process 
 | `strictDepBuilds` | `true` (pnpm's default; set explicitly so it can't drift) | Installs fail if a package tries to run a build script nobody has ruled on. |
 | `allowBuilds` | Explicit map (`better-sqlite3: true`, …) | The only packages allowed to run install scripts. Each entry is justified in the pull request that adds it. |
 | `trustPolicy` | `no-downgrade` | Fails the install if a package's publishing trust drops (for example, it used to be published with provenance and now isn't), which is a common sign of a hijacked account. |
+| `trustPolicyExclude` | Exact versions only (`pkg@1.2.3`), each with an exception in §5 | For old releases that fail the trust check for a known, harmless reason. Never a name pattern, and never to get a new release through. |
+| `trustPolicyExcludePrune` | `true` | Removes an exclusion automatically once the lockfile no longer uses that version. |
 | `blockExoticSubdeps` | `true` | Transitive dependencies can only come from the registry, not from git URLs or tarball links. |
 | `ignoredOptionalDependencies` | `[sharp]` | See exception E-1. |
 
@@ -112,3 +114,4 @@ script reads the same list from `license-policy.json` at the repo root.
 |---|---|---|---|---|
 | E-1 | `sharp` (optional dependency of `next`) | Its bundled `@img/sharp-libvips-*` binaries are LGPL-3.0-or-later. | **Not installed.** Excluded with `ignoredOptionalDependencies`. `next.config` sets `images.unoptimized: true`, since the UI doesn't need server-side image optimization. | — |
 | E-2 | `caniuse-lite` (dependency of `next`) | CC-BY-4.0 | **Allowed** as a data-only package (§1). Credited in `THIRD_PARTY_NOTICES`. | — |
+| E-3 | `undici-types@6.21.0` (pinned `~6.21.0` by `@types/node@22`) | Fails `trustPolicy: no-downgrade`: 6.13.0–6.19.2 were published with provenance, and 6.19.3–7.0.0 (July–November 2024) were published by hand, without it, by the same long-time maintainer. Later releases use trusted publishing again. | **Allowed**, for this exact version only, through `trustPolicyExclude`. Same publisher as the releases before and after it, public for nearly two years, and type definitions only (no runtime code). | When `@types/node` for our minimum Node.js moves off `~6.21.0` (pruned automatically) |

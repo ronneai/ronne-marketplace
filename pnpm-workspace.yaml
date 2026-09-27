@@ -1,0 +1,28 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Supply-chain protections. See docs/policies/dependencies.md §3 before changing any of these.
+
+# Don't install a version until it has been public for 3 days (in minutes).
+minimumReleaseAge: 4320
+# Fail the install when a dependency wants to run a build script nobody has ruled on.
+strictDepBuilds: true
+# The only dependencies allowed to run install scripts. Justify each entry in its pull request.
+allowBuilds: {}
+# Fail if a package's publishing trust drops compared with its earlier releases.
+trustPolicy: no-downgrade
+# Exact versions that fail the trust check but were reviewed. One policy exception (§5) per entry.
+trustPolicyExclude:
+  - 'undici-types@6.21.0' # E-3
+# Drop exclusions automatically once the lockfile no longer uses them.
+trustPolicyExcludePrune: true
+# Transitive dependencies may only come from the registry, not git URLs or tarballs.
+blockExoticSubdeps: true
+# Policy exception E-1: sharp bundles LGPL-3.0 libvips binaries.
+ignoredOptionalDependencies:
+  - sharp
+
+# Save exact versions (policy §2). Runtime dependencies of packages published to npm use ^ ranges,
+# added with --save-prefix=^.
+savePrefix: ''
