@@ -39,7 +39,7 @@
 - [x] **8. License check.** A script that reads `pnpm licenses list --json` for the whole tree, and compares it with `license-policy.json` (the allowed list plus the exceptions in policy §5). Wire it into CI.
   *Done when:* it passes on the tree, and fails with a clear message when a GPL fixture package is added.
 
-- [ ] **9. Security CI and repo settings.** Add `pnpm audit --audit-level high`, CodeQL, `.github/dependabot.yml` (npm + Actions, weekly, grouped, 3-day cooldown), pin every Action to a SHA, set minimal `permissions:`, and add `SECURITY.md`. Ask the repo owner to turn on secret scanning, push protection and private vulnerability reporting.
+- [x] **9. Security CI and repo settings.** Add `pnpm audit --audit-level high`, CodeQL, `.github/dependabot.yml` (npm + Actions, weekly, grouped, 3-day cooldown), pin every Action to a SHA, set minimal `permissions:`, and add `SECURITY.md`. Ask the repo owner to turn on secret scanning, push protection and private vulnerability reporting.
   *Done when:* the jobs run on a pull request, and the repository settings are confirmed in Notes.
 
 - [x] **10. Update CLAUDE.md.** Replace the "no code yet" note with the real commands from the table in SPEC.md.
@@ -88,4 +88,10 @@
 - **Task 9 is waiting on repository settings** (checked through the API on 2026-09-27): secret scanning,
   push protection, private vulnerability reporting and Dependabot security updates were all off.
   Dependabot alerts were on. `main` had branch protection with no required checks.
+- **Repository settings confirmed through the API (2026-09-27).** Secret scanning and push protection,
+  private vulnerability reporting, Dependabot alerts and security updates are on. CodeQL default setup
+  is off, so `codeql.yml` is the one used. The `main` branch requires all 6 checks. The "Protect main
+  branch" ruleset blocks deletion and force pushes and requires a pull request. Squash merging is
+  the only merge method, in both General and the ruleset. The squash commit title is the PR title,
+  so every commit on `main` has passed the PR title check. Merged branches are deleted automatically.
 
