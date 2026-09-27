@@ -18,7 +18,7 @@
 - [x] **3. Helpers.** `newId`, column builders, timestamp handling, `json`, `containsInsensitive`, `upsert`.
   *Done when:* tests for each helper pass on SQLite, and the dialect-specific branches have unit tests on the generated SQL (Kysely `compile()`).
 
-- [ ] **4. Migration runner.** Static migration list, Kysely `Migrator`, `pnpm db:migrate` script with readable output.
+- [x] **4. Migration runner.** Static migration list, Kysely `Migrator`, `pnpm db:migrate` script with readable output.
   *Done when:* running it twice on an empty SQLite file migrates once, then reports nothing to do.
 
 - [ ] **5. `0001_identity`.** The tables, indexes and foreign keys from SPEC.md, matching the
@@ -66,4 +66,12 @@
   - **Upsert on MySQL** uses `ON DUPLICATE KEY UPDATE col = VALUES(col)`. MySQL 8 prefers the `AS alias` form, but MariaDB doesn't support it, and both still accept `VALUES()`.
   - **Upsert typing.** With a generic table name, Kysely rejects the dynamic update object, so the helper passes the table name as a plain `string` inside (option A of three, chosen by the owner). Callers are still checked through the helper's signature. `vitest` didn't catch this; `tsc` and `next build` did.
   - **Tests.** `testing/compile-only.ts` builds a Kysely instance that only compiles SQL, so the MySQL and PostgreSQL branches have unit tests without a server (`helpers.test.ts`). `helpers.db.test.ts` runs the helpers on real SQLite: case-insensitive search with literal `%` and `_`, date and JSON round trips, and an insert then update through `upsert`. 004 runs it on the other databases.
+- **Task 4 (2026-09-27): migration runner.**
+  - A migration is `(dialect) => Migration`, so it can use `columnTypes()`. The static list is `db/migrations/index.ts`, empty until task 5.
+  - `migrateToLatest()` wraps Kysely's `Migrator`. In Kysely 0.29 that moved to `kysely/migration`; the main entry point no longer exports it.
+  - It refuses a database with unknown migrations (`DatabaseAheadOfAppError`), and reports the failing migration and the ones already applied (`MigrationFailedError`).
+  - Migration tables are `ronne_migration` and `ronne_migration_lock`. Kysely's introspection only hides its *default* names, so ours show up in `getTables()`.
+  - `migrateToLatest<DB>(db: Kysely<DB>)` is generic, because `Kysely<Database>` isn't assignable to `Kysely<unknown>` (option A, chosen by the owner). `vitest` passed; `tsc` caught 13 errors from that one cause.
+  - `pnpm db:migrate` (from `apps/web` or the root) runs `scripts/migrate.ts` with **`tsx`**. Node's own type stripping can't resolve the app's extensionless imports. `esbuild`, tsx's compiler, is set to `false` in `allowBuilds`: its postinstall only checks for a binary that pnpm already installs as an optional dependency.
+  - The done-when ("twice on an empty SQLite file: migrates once, then nothing to do") is covered by the runner tests with test migrations, and by a script test that runs the real command twice. With the real list still empty, the first run also reports nothing to do; task 5 makes it apply `0001_identity`.
 

@@ -12,6 +12,9 @@ strictDepBuilds: true
 allowBuilds:
   # Native SQLite driver: downloads a prebuilt binary or compiles one (feature 002).
   better-sqlite3: true
+  # tsx's compiler. Its postinstall only checks for the platform binary, which pnpm installs as an
+  # optional dependency, so the script isn't needed (feature 002).
+  esbuild: false
 # Fail if a package's publishing trust drops compared with its earlier releases.
 trustPolicy: no-downgrade
 # Exact versions that fail the trust check but were reviewed. One policy exception (§5) per entry.
