@@ -1,0 +1,12 @@
+name: "@examples/format-on-edit"
+type: hook
+description: Formats files with Biome after the agent edits them.
+license: MIT
+keywords: [format, biome]
+hook:
+  event: tool.after
+  matcher:
+    tool: edit
+  run:
+    command: "npx --no-install biome format --write $RMK_FILE_PATHS"
+  timeout: 30

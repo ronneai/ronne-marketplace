@@ -12,6 +12,8 @@ Claude Code, Codex and Cursor.
 
 - `docs/MVP/ideas.txt`: the original requirements, written by the owner.
 - `docs/MVP/MVP.md`: the MVP design. It is the source of truth for scope, architecture, the data model, the API, milestones (M0–M6) and the decision log (§15).
+- `docs/spec/`: detailed contracts. `manifest.md` and `ronne.schema.json` define `ronne.yaml`; `cli-files.md` defines `rmk.config.json`, `rmk.lock` and `.rmk/state.json`.
+- `examples/items/`: one sample item per type. Each must pass `ronne.schema.json`; they are the golden-file inputs for renderers.
 
 When a task touches a decision, check `MVP.md` first. If the work changes a decision, update the doc and its decision log in the same change. When the M0 scaffolding lands, replace this section with the real build, lint and test commands.
 
@@ -40,11 +42,14 @@ When a task touches a decision, check `MVP.md` first. If the work changes a deci
 - **Auth:** Better Auth, wrapped by the `identity` domain.
   - Sessions for the web app; personal access tokens for `rmk` and the MCP server.
   - Users are created only in the web app. The CLI never registers users.
+  - Better Auth owns `user`, `session`, `account` and `verification`. Access tokens are our own `access_tokens` table, stored as sha256 hashes.
   - SSO (OIDC first) comes after the MVP.
 - **Items:** one canonical `ronne.yaml` manifest per item, rendered to each AI tool's native files by a `PlatformRenderer` module.
+  - Every item is scoped (`@scope/name`). Root creates scopes; anyone may propose in any scope.
   - Prefer cross-tool formats: Agent Skills `SKILL.md`, `.agents/skills/`, `AGENTS.md`, MCP.
   - If a tool doesn't support an item type, warn and skip it; don't fail the install.
-  - Generated files carry an rmk "managed" marker. Never overwrite unmanaged content.
+  - Generated files carry an rmk "managed" marker where comments are allowed. JSON and TOML keys are tracked with hashes in `.rmk/state.json`. Never overwrite unmanaged or user-edited content.
+  - rmk never stores secret values. MCP configs reference env vars.
   - Platform file paths change often. Check them against current vendor docs before building a renderer (the table in MVP.md §3.3 is from September 2026).
 - **Workflow:**
   - An item or change goes from draft → submitted → approved, with one approval from a moderator or root who isn't the author (root can override, and the override is audited).

@@ -1,0 +1,7 @@
+name: "@examples/git-branch"
+type: statusline
+description: Shows the current folder and git branch in the status line.
+license: MIT
+keywords: [git, statusline]
+statusline:
+  script: statusline.sh

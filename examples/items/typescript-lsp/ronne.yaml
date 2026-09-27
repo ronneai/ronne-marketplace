@@ -1,0 +1,13 @@
+name: "@examples/typescript-lsp"
+type: lsp-server
+description: TypeScript and JavaScript code intelligence through typescript-language-server.
+license: MIT
+keywords: [typescript, lsp]
+lsp-server:
+  command: typescript-language-server
+  args: ["--stdio"]
+  languages:
+    - id: typescript
+      extensions: [".ts", ".tsx"]
+    - id: javascript
+      extensions: [".js", ".jsx", ".mjs", ".cjs"]

@@ -1,0 +1,11 @@
+name: "@examples/review-diff"
+type: command
+description: Reviews the current git diff, or a given file or folder.
+license: MIT
+keywords: [review, git]
+command:
+  body: command.md
+  args:
+    - name: target
+      description: File or folder to review. Defaults to the whole diff.
+      required: false

@@ -1,6 +1,10 @@
 # Ronne AI Marketplace — MVP
 
 > Status: draft · Source requirements: [`ideas.txt`](./ideas.txt) · Decisions: see [Decision log](#15-decision-log)
+>
+> Detailed specs live in [`docs/spec/`](../spec/): the [manifest](../spec/manifest.md) and its
+> [JSON Schema](../spec/ronne.schema.json), and the [CLI files](../spec/cli-files.md).
+> Sample items of every type are in [`examples/items/`](../../examples/items/).
 
 ## 1. Vision & goals
 
@@ -50,10 +54,16 @@ Items are written once in a canonical format and delivered to the major AI codin
 | Move dist-tags, deprecate a version | — | ✅ | ✅ |
 | Yank a version | — | ✅ | ✅ |
 | Approve own submission (override, audited) | — | — | ✅ |
+| Create scopes | — | — | ✅ |
 | Create / disable users, change roles | — | — | ✅ |
 | Instance settings | — | — | ✅ |
 
 Users are **only created from the web app** (by root). The CLI never registers accounts.
+
+**Scopes and ownership.** Scopes are open: anyone can propose a new item or a change in any scope,
+because review is the gate. Only root creates scopes. An item's `owner_id` records its original
+author and grants no extra rights. The "own" in *Publish* means the author of that approved
+submission, so a user whose change proposal to someone else's item is approved may release it.
 
 ## 3. Core concepts
 
@@ -77,7 +87,18 @@ it to each tool, and platforms without an equivalent are skipped with a warning.
 | `lsp-server` | A language-server config that gives the agent code intelligence | `lsp.yaml` | Claude Code (via plugin), Copilot CLI |
 | `bundle` | A named set of items installed together; the unit the visual composer edits (§8) | `ronne.yaml` with `dependencies` only | Plugins / extensions / powers (see *native plugin export* in §3.3) |
 
-Every item has a globally unique name within the instance, optionally scoped, such as `@team/code-review`.
+Every item name is **scoped**, such as `@team/code-review`, and unique within the instance. Scopes
+and names are lowercase `a-z`, `0-9` and `-`. An item's type is fixed when it is first created; a
+different type means a new item.
+
+**Which types can depend on which.** Only composite types have dependencies:
+
+| Type | May depend on |
+|---|---|
+| `bundle` | any type |
+| `agent` | `skill`, `mcp-server`, `hook`, `rule`, `command` |
+| `skill`, `command` | `mcp-server` |
+| all other types | nothing |
 
 **Canonical hook events.** Hooks are the least standardised type. Ronne uses a neutral event vocabulary:
 
@@ -130,7 +151,8 @@ targets:                  # optional per-platform overrides / opt-outs
     enabled: false        # this agent is not offered for Cursor
 ```
 
-The manifest is validated by a shared JSON Schema in `packages/core` (used by the web app, CLI and MCP server).
+The manifest is validated by a shared JSON Schema in `packages/core` (used by the web app, CLI and
+MCP server). The full field reference for every type is in [`docs/spec/manifest.md`](../spec/manifest.md).
 
 ### 3.3 Platform renderers
 
@@ -210,9 +232,16 @@ truth and the approval gate.
 
 Rules for renderers:
 
-- Generated files carry a marker comment (`<!-- managed by rmk: @scope/name@1.4.0 -->`) so `rmk`
-  can update or remove them safely, and never touch unmanaged content.
-- Shared files (`AGENTS.md`, `settings.json`, `mcp.json`) are edited as fenced / keyed sections, not overwritten.
+- **Where comments are allowed** (Markdown, TOML, YAML, scripts), generated files carry a marker such
+  as `<!-- managed by rmk: @scope/name@1.4.0 -->`. Shared Markdown files like `AGENTS.md` get a fenced
+  section between `<!-- rmk:begin @scope/name -->` and `<!-- rmk:end @scope/name -->`.
+- **JSON has no comments**, so `settings.json`, `.mcp.json`, `hooks.json` and similar files are
+  edited key by key. The source of truth for what rmk owns is the local state file
+  `.rmk/state.json` (see [CLI files](../spec/cli-files.md)). It lists every file and every JSON or
+  TOML key path rmk wrote, with a hash of what it wrote.
+- **Never overwrite unmanaged content.** Before an update or removal, rmk compares the file or key
+  with the hash in the state file. If a user has edited it, rmk stops, reports the conflict, and
+  leaves it alone unless `--force` is given.
 - If an item type isn't supported on a target, `rmk` warns and skips it. It doesn't fail the whole install.
 
 ### 3.4 Versions and dist-tags
@@ -220,6 +249,9 @@ Rules for renderers:
 - Versions follow **semver** and are **immutable** once published.
 - **Dist-tags** are movable pointers, as in npm: `latest` (default, set on every stable release),
   plus optional tags like `next` or `beta`. Installing without a version resolves `latest`.
+- **Pre-releases** are real semver pre-releases, such as `1.1.0-beta.1`. They are published under a
+  tag other than `latest` (`next` by default) and never become `latest`. Ranges like `^1.0.0` don't
+  match pre-releases, following npm's rules.
 - **Deprecate**: the version stays installable but shows a warning.
   **Yank**: new installs can't resolve it, but existing lockfiles still can.
 
@@ -258,11 +290,12 @@ flowchart LR
     D --> E[store artifact]
     E --> F[insert item_version]
     F --> G[move dist-tag<br/>latest by default]
-    G --> H[audit log + notify]
+    G --> H[audit log]
 ```
 
 - The publisher chooses the bump (the default is suggested from the diff) and the dist-tag.
-- A first release starts at `1.0.0`, or `0.1.0` if it's marked pre-release.
+- A first stable release is `1.0.0`. A first pre-release is `1.0.0-<id>.1`, such as `1.0.0-beta.1`.
+  Later pre-releases increase the number, and releasing the stable version drops the suffix.
 - Artifacts are stored as `storage/<scope>/<name>/<version>.tgz` behind a `StorageAdapter` interface. Local disk is used for the MVP.
 
 ### 4.3 Install / update
@@ -272,12 +305,40 @@ flowchart LR
 3. It renders the files for the target and writes `rmk.lock`, which records the resolved versions and checksums.
 4. `rmk update` re-resolves within the ranges and re-renders. `rmk remove` deletes only the files marked as managed by rmk.
 
+**Resolver rules** (implemented once in `packages/core`, used by the CLI, the MCP server and `POST /resolve`):
+
+- **One version of each item per install scope.** Rendered files are named after the item (for
+  example `.claude/skills/<name>/`), so two versions can't sit side by side. The resolver picks the
+  highest version that satisfies every range that asks for the item.
+- **Conflicts fail the install.** If no version satisfies all the ranges, the resolver stops and
+  names the items that asked for each range. Nothing is written.
+- **Cycles are rejected** at submission time, and again by the resolver.
+- **Yanked versions** are skipped when resolving a range, but a version pinned in `rmk.lock` is
+  still downloaded.
+- **Deprecated versions** resolve normally and print their message.
+
+**Lockfile location.** A project install writes `rmk.lock` at the project root, next to
+`rmk.config.json`. A user-scope install (`--scope user`) writes `~/.config/rmk/user.lock`. Formats
+are in [CLI files](../spec/cli-files.md).
+
+**Secrets.** rmk never stores secret values. An `mcp-server` item lists the env var names it needs,
+and the renderer writes references such as `${GITHUB_TOKEN}` in each platform's own syntax. After
+an install, rmk lists the variables that aren't set in the current environment and tells the user
+how to set them.
+
 ## 5. Installation / bootstrap
 
 Two supported paths:
 
 - **Node:** `pnpm dlx @ronne/marketplace init` (or run `pnpm setup` from a clone or fork)
 - **Docker:** `docker compose up`, followed by `docker compose exec web pnpm setup`
+
+Supported runtimes: Node.js 22 or later, for both the server and `rmk`. The Docker image is built
+for `linux/amd64` and `linux/arm64`.
+
+npm packages: `@ronne/marketplace` (installer), `@ronne/rmk` (the CLI; its binary is `rmk`, because
+the unscoped `rmk` package name is taken), `@ronne/mcp` and `@ronne/core`. The `@ronne` npm scope
+already exists, so it must be confirmed as ours before M4. The fallback scope is `@ronne-ai`.
 
 The interactive `setup` script:
 
@@ -314,9 +375,16 @@ The interactive `setup` script:
 
 `packages/mcp` exposes the registry to AI tools, so users can manage items without leaving Claude Code, Codex or Cursor.
 
-- **Tools:** `search_items`, `get_item`, `list_installed`, `install_item`, `update_items`, `remove_item`, `check_outdated`.
+- **Read tools:** `search_items`, `get_item`, `list_installed`, `check_outdated`.
+- **Plan tools:** `plan_install`, `plan_update`, `plan_remove`. They write nothing. Each returns a
+  `planId` and a readable list of the files and keys it would change, plus any warnings (skipped
+  types, missing env vars, risk flags).
+- **Apply tool:** `apply_plan(planId)`. It writes the planned changes.
 - It runs locally over stdio and reuses the `rmk` token and config, plus the same resolver and renderers from `packages/core`.
-- Install, update and remove return a plan of the files they will change. The AI tool's own permission prompt then confirms the write.
+- **Why two steps:** an AI tool asks the user for permission *before* a tool call runs, not after.
+  Splitting plan and apply means the user sees the plan in the conversation, and then approves the
+  `apply_plan` call. Plans expire after 10 minutes, and applying fails if the lockfile or any
+  target file changed since the plan was made.
 - `rmk mcp-setup --target <platform>` registers the MCP server with each platform.
 
 ## 8. Web application
@@ -356,7 +424,8 @@ ronne-marketplace/
 ```
 
 Tooling: TypeScript everywhere, **Biome** for lint and format, **Vitest** for tests,
-**Tailwind CSS** for styling.
+**Tailwind CSS** for styling, and **Playwright** for end-to-end tests of the main flows (setup,
+login, submit, review, release).
 
 ### 9.2 Backend: domain-first clean architecture
 
@@ -410,22 +479,45 @@ moves to `components/` (UI primitives go in `components/ui`).
   Dialect-specific behaviour (JSON columns, upsert syntax) sits behind small helpers in `db/`.
 - CI runs the repository tests against all three databases, using service containers for MySQL and PostgreSQL.
 
+**Portability rules** for every migration and query:
+
+| Concern | Rule |
+|---|---|
+| Primary keys | ULIDs stored as `varchar(26)`, generated in the app. No auto-increment, so IDs are the same on all three databases and sort by creation time. |
+| Timestamps | Stored in UTC. Columns are named `*_at`. |
+| JSON | Stored as `text` and parsed in the repository layer. No JSON operators in queries. |
+| Booleans | Avoided in favour of nullable timestamps (`disabled_at`, `revoked_at`, `yanked_at`). |
+| Search | Case-insensitive `LIKE` on name, description and keywords, through a helper in `db/`. Full-text search is a later improvement. |
+| Upserts | Only through the `db/` helper, which picks `ON CONFLICT` or `ON DUPLICATE KEY` for the dialect. |
+| Strings | `varchar(n)` with an explicit length when indexed, because MySQL needs index lengths. `text` otherwise. |
+
 ### 9.5 Auth
 
 - **Library:** Better Auth with its Kysely adapter. It runs on all three databases and leaves room for OIDC/SAML SSO later (§14.3). It is wrapped by the `identity` domain, so the rest of the code never imports it directly.
-- **Passwords** are hashed with argon2id, with a rate limit on login.
-- **Web sessions** use httpOnly, secure, SameSite=Lax cookies, backed by a `sessions` table.
-- **CLI and MCP** use personal access tokens. Only a hash of each token is stored, with an optional expiry. Tokens are sent as `Authorization: Bearer`.
+- **Better Auth owns its tables:** `user`, `session`, `account` and `verification`, created through
+  our migration set so all three databases share one schema. `role` and `disabled_at` are added to
+  `user` as Better Auth additional fields. Password hashes live in `account`, as Better Auth expects.
+- **Passwords** are hashed with argon2id, set through Better Auth's custom hash functions (its default is scrypt). Login is rate-limited.
+- **Web sessions** use httpOnly, secure, SameSite=Lax cookies, backed by Better Auth's `session` table.
+- **CLI and MCP** use personal access tokens from our own `access_tokens` table in the `identity`
+  domain, not a Better Auth plugin. A token looks like `rmk_<random>`; only its sha256 hash is
+  stored, with an optional expiry. Tokens are sent as `Authorization: Bearer`. A disabled user's
+  tokens stop working at once.
 - **Authorization** is enforced in the `actions` layer from a single role-permission map.
 
 ## 10. Data model (MVP)
 
+IDs are ULIDs and timestamps are UTC (§9.4).
+
 | Table | Key columns |
 |---|---|
-| `users` | id, email (unique), name, password_hash, role (`root`/`moderator`/`user`), disabled_at, created_at |
-| `sessions` | id, user_id, expires_at |
-| `access_tokens` | id, user_id, name, token_hash, last_used_at, expires_at, revoked_at |
-| `items` | id, scope, name, type, description, owner_id, created_at |
+| `user` *(Better Auth)* | id, email (unique), name, email_verified, image, created_at, updated_at, **role** (`root`/`moderator`/`user`), **disabled_at** |
+| `session` *(Better Auth)* | id, user_id, token, expires_at, ip_address, user_agent, created_at, updated_at |
+| `account` *(Better Auth)* | id, user_id, account_id, provider_id (`credential` for passwords; OIDC providers later), password (hash), created_at, updated_at |
+| `verification` *(Better Auth)* | id, identifier, value, expires_at |
+| `access_tokens` | id, user_id, name, token_hash (unique), last_used_at, expires_at, revoked_at, created_at |
+| `scopes` | id, name (unique), description, created_by, created_at |
+| `items` | id, scope_id, name, type, description, owner_id, created_at — unique (scope_id, name) |
 | `item_versions` | id, item_id, version, manifest (JSON), artifact_path, sha256, size, published_by, published_at, deprecated_message, yanked_at |
 | `dist_tags` | item_id, tag, version_id — PK (item_id, tag) |
 | `version_dependencies` | version_id, depends_on_item_id, range |
@@ -449,6 +541,17 @@ moves to `components/` (UI primitives go in `components/ui`).
 Authoring, review, release and admin actions are only available in the web UI (as server actions)
 for the MVP. That keeps the public API read-mostly.
 
+**Conventions**
+
+- **Errors** always use one shape, produced by the domain-exception mapper in `http/`:
+  `{ "error": { "code": "item_not_found", "message": "…", "details": { … } } }`. `code` is a stable
+  snake_case string that clients can rely on. The HTTP status carries the category (400, 401, 403,
+  404, 409, 422, 429).
+- **Pagination** is cursor-based: `?limit=` (default 20, max 100) and `?cursor=`. Responses include
+  `nextCursor`, or `null` on the last page.
+- **Versioning:** breaking changes go to `/api/v2`. `rmk` sends its version in `User-Agent`, and the
+  server can reply `426` with a message when the CLI is too old.
+
 ## 12. Security considerations
 
 Items are instructions and code that run on developers' machines with their permissions, so the
@@ -459,7 +562,8 @@ review is the security boundary.
 - **Integrity.** Published versions are immutable, and `rmk` checks sha256 checksums on every download and against `rmk.lock`.
 - **Managed-file boundaries.** Renderers write only inside known target paths and never overwrite unmanaged content.
 - **Audit log** for approvals, overrides, releases, tag moves, yanks, and user and role changes.
-- **Upload limits** on archive size and file count, with path-traversal checks when unpacking.
+- **Upload limits**, with path-traversal and symlink checks when unpacking. Defaults, which root can
+  change in instance settings: 5 MB packed, 20 MB unpacked, 500 files, and 1 MB for any single file.
 
 ## 13. MVP scope & milestones
 
@@ -559,3 +663,13 @@ Design points:
 | Composition | React Flow visual composer over manifest `dependencies` | Visual UX, but reviews stay text diffs |
 | Monorepo | pnpm + Turborepo (`apps/web`, `packages/{core,cli,mcp,config}`) | Shared core between web, CLI and MCP |
 | Front-end | React, Next.js, Tailwind, Biome, Vitest; feature-first folders; shared `components/ui` | From the requirements |
+| Auth schema | Better Auth owns `user`/`session`/`account`/`verification` (plus `role`, `disabled_at`); argon2id via custom hash; PATs in our own `access_tokens` table | Don't fight the library's schema; keep token format and revocation under our control |
+| Scopes | Every item is scoped; root creates scopes; anyone may propose in any scope; `owner_id` is informational | Review is the gate, so scope membership adds admin work without adding safety |
+| Pre-releases | Real semver pre-releases (`1.1.0-beta.1`) under a non-`latest` tag (`next` by default); first stable is `1.0.0` | Matches npm behaviour users already know |
+| Secrets | rmk never stores secret values; rendered configs reference env vars and rmk reports missing ones | No secrets on disk from us; every platform reads env vars |
+| Managed content | Markers in files that allow comments; `.rmk/state.json` with hashes for JSON/TOML keys; stop on user edits unless `--force` | JSON can't hold markers; hashes detect local edits safely |
+| Resolver | One version per item per install scope; conflicts and cycles fail; dependency types restricted (§3.1) | Rendered paths are named per item, so versions can't coexist |
+| MCP writes | Two steps: `plan_*` tools return a plan, `apply_plan` writes it | AI tools ask permission before a call, so the plan must be visible first |
+| DB portability | ULID keys, UTC timestamps, JSON as text, `LIKE` search, upserts via a helper | Keeps one migration set working on all three databases |
+| API conventions | One error shape with stable codes; cursor pagination; `/api/vN` versioning | Stable contract for `rmk` and the MCP server |
+| Packages | `@ronne/{marketplace,rmk,mcp,core}`; binary `rmk`; Node 22+; Docker amd64 + arm64 | Unscoped `rmk` is taken on npm; `@ronne` scope ownership to confirm |

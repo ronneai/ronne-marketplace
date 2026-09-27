@@ -1,0 +1,16 @@
+name: "@examples/safe-git"
+type: permission-policy
+description: Asks before pushing or rewriting git history, and blocks force pushes.
+license: MIT
+keywords: [git, safety]
+permission-policy:
+  rules:
+    - tool: shell
+      pattern: "git push --force*"
+      decision: deny
+    - tool: shell
+      pattern: "git push*"
+      decision: ask
+    - tool: shell
+      pattern: "git reset --hard*"
+      decision: ask

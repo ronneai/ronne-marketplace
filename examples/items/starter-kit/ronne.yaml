@@ -1,0 +1,10 @@
+name: "@examples/starter-kit"
+type: bundle
+description: A starting set for a TypeScript team, with the reviewer agent, house rules, formatting and safe git defaults.
+license: MIT
+keywords: [starter, typescript]
+dependencies:
+  "@examples/code-reviewer": "^1.0.0"
+  "@examples/review-diff": "^1.0.0"
+  "@examples/format-on-edit": "^1.0.0"
+  "@examples/safe-git": "^1.0.0"

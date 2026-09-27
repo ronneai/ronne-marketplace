@@ -1,0 +1,16 @@
+name: "@examples/code-reviewer"
+type: agent
+description: Reviews diffs for correctness and security issues. Use after finishing a change and before opening a pull request.
+license: MIT
+keywords: [review, security]
+agent:
+  prompt: prompt.md
+  tools: [read, grep, glob, shell, "mcp:github-mcp"]
+  model: strong
+dependencies:
+  "@examples/secure-coding": "^1.0.0"
+  "@examples/github-mcp": "^1.0.0"
+  "@examples/house-style": "^1.0.0"
+targets:
+  cursor:
+    enabled: false

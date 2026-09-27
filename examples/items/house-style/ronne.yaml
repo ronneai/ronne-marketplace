@@ -1,0 +1,9 @@
+name: "@examples/house-style"
+type: rule
+description: TypeScript conventions for this codebase.
+license: MIT
+keywords: [typescript, style]
+rule:
+  body: rule.md
+  activation: glob
+  globs: ["**/*.ts", "**/*.tsx"]

@@ -1,0 +1,7 @@
+name: "@examples/concise"
+type: output-style
+description: Short answers. Code first, explanation only when asked.
+license: MIT
+keywords: [style]
+output-style:
+  body: style.md

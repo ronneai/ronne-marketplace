@@ -1,0 +1,15 @@
+name: "@examples/github-mcp"
+type: mcp-server
+description: Connects to GitHub's MCP server for issues, pull requests and code search.
+license: MIT
+keywords: [github, mcp]
+mcp-server:
+  transport: http
+  url: https://api.githubcopilot.com/mcp/
+  env:
+    - name: GITHUB_TOKEN
+      description: A GitHub personal access token with repo read access.
+      required: true
+      secret: true
+  headers:
+    Authorization: "Bearer ${GITHUB_TOKEN}"

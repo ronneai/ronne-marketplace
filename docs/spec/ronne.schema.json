@@ -1,0 +1,821 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Ronne item manifest (ronne.yaml)",
+  "description": "Draft. See docs/spec/manifest.md. Moves to packages/core in M2.",
+  "type": "object",
+  "required": [
+    "name",
+    "type",
+    "description"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^@[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?/[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$"
+    },
+    "type": {
+      "enum": [
+        "skill",
+        "agent",
+        "rule",
+        "command",
+        "hook",
+        "mcp-server",
+        "permission-policy",
+        "output-style",
+        "statusline",
+        "lsp-server",
+        "bundle"
+      ]
+    },
+    "version": {
+      "$ref": "#/$defs/semver"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300
+    },
+    "license": {
+      "type": "string",
+      "minLength": 1
+    },
+    "keywords": {
+      "type": "array",
+      "maxItems": 10,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9-]*$"
+      }
+    },
+    "readme": {
+      "$ref": "#/$defs/relPath"
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/relPath"
+      }
+    },
+    "dependencies": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/itemName"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "targets": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z0-9][a-z0-9-]*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "overrides": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "skill": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "entry": {
+          "$ref": "#/$defs/relPath"
+        }
+      }
+    },
+    "agent": {
+      "type": "object",
+      "required": [
+        "prompt"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "prompt": {
+          "$ref": "#/$defs/relPath"
+        },
+        "tools": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/toolName"
+          }
+        },
+        "model": {
+          "enum": [
+            "default",
+            "fast",
+            "strong"
+          ]
+        }
+      }
+    },
+    "rule": {
+      "type": "object",
+      "required": [
+        "body",
+        "activation"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "body": {
+          "$ref": "#/$defs/relPath"
+        },
+        "activation": {
+          "enum": [
+            "always",
+            "glob",
+            "model",
+            "manual"
+          ]
+        },
+        "globs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "if": {
+        "properties": {
+          "activation": {
+            "const": "glob"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "globs"
+        ]
+      }
+    },
+    "command": {
+      "type": "object",
+      "required": [
+        "body"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "body": {
+          "$ref": "#/$defs/relPath"
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_-]*$"
+              },
+              "description": {
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    },
+    "hook": {
+      "type": "object",
+      "required": [
+        "event",
+        "run"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "event": {
+          "enum": [
+            "session.start",
+            "session.end",
+            "prompt.submit",
+            "tool.before",
+            "tool.after",
+            "permission.request",
+            "subagent.start",
+            "subagent.stop",
+            "compact.before",
+            "agent.stop"
+          ]
+        },
+        "matcher": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "tool": {
+              "$ref": "#/$defs/toolName"
+            }
+          }
+        },
+        "run": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "command": {
+              "type": "string",
+              "minLength": 1
+            },
+            "script": {
+              "$ref": "#/$defs/relPath"
+            }
+          },
+          "oneOf": [
+            {
+              "required": [
+                "command"
+              ]
+            },
+            {
+              "required": [
+                "script"
+              ]
+            }
+          ]
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 600
+        }
+      }
+    },
+    "mcp-server": {
+      "type": "object",
+      "required": [
+        "transport"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "transport": {
+          "enum": [
+            "stdio",
+            "http"
+          ]
+        },
+        "command": {
+          "type": "string",
+          "minLength": 1
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "env": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[A-Z_][A-Z0-9_]*$"
+              },
+              "description": {
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "secret": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "headers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "transport": {
+                "const": "stdio"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "command"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "url"
+                  ]
+                },
+                {
+                  "required": [
+                    "headers"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "transport": {
+                "const": "http"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "url"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "command"
+                  ]
+                },
+                {
+                  "required": [
+                    "args"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "permission-policy": {
+      "type": "object",
+      "required": [
+        "rules"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "rules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "tool",
+              "decision"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "tool": {
+                "$ref": "#/$defs/toolName"
+              },
+              "pattern": {
+                "type": "string",
+                "minLength": 1
+              },
+              "decision": {
+                "enum": [
+                  "allow",
+                  "ask",
+                  "deny"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "output-style": {
+      "type": "object",
+      "required": [
+        "body"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "body": {
+          "$ref": "#/$defs/relPath"
+        }
+      }
+    },
+    "statusline": {
+      "type": "object",
+      "required": [
+        "script"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "script": {
+          "$ref": "#/$defs/relPath"
+        }
+      }
+    },
+    "lsp-server": {
+      "type": "object",
+      "required": [
+        "command",
+        "languages"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "type": "string",
+          "minLength": 1
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "languages": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "extensions"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "extensions": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "pattern": "^\\.[A-Za-z0-9]+$"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "$ref": "#/$defs/onlyOwnTypeBlock"
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "agent"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "agent"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "rule"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "rule"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "command"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "command"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "hook"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "hook"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "mcp-server"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "mcp-server"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "permission-policy"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "permission-policy"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "output-style"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "output-style"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "statusline"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "statusline"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "lsp-server"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "lsp-server"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "bundle"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "dependencies"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "enum": [
+              "rule",
+              "hook",
+              "mcp-server",
+              "permission-policy",
+              "output-style",
+              "statusline",
+              "lsp-server"
+            ]
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "required": [
+            "dependencies"
+          ]
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "itemName": {
+      "type": "string",
+      "pattern": "^@[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?/[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$"
+    },
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+    },
+    "relPath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\\\]+$"
+    },
+    "toolName": {
+      "type": "string",
+      "pattern": "^(?:read|edit|write|glob|grep|shell|web-fetch|web-search|mcp:[a-z0-9-]+(?:/[A-Za-z0-9_-]+)?)$"
+    },
+    "onlyOwnTypeBlock": {
+      "description": "A manifest may only contain the type block matching its own type.",
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "skill"
+            ]
+          },
+          "then": {
+            "properties": {
+              "type": {
+                "const": "skill"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "agent"
+            ]
+          },
+          "then": {
+            "properties": {
+              "type": {
+                "const": "agent"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "rule"
+            ]
+          },
+          "then": {
+            "properties": {
+              "type": {
+                "const": "rule"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "command"
+            ]
+          },
+          "then": {
+            "properties": {
+              "type": {
+                "const": "command"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "hook"
+            ]
+          },
+          "then": {
+            "properties": {
+              "type": {
+                "const": "hook"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "mcp-server"
+            ]
+          },
+          "then": {
+            "properties": {
+              "type": {
+                "const": "mcp-server"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "permission-policy"
+            ]
+          },
+          "then": {
+            "properties": {
+              "type": {
+                "const": "permission-policy"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "output-style"
+            ]
+          },
+          "then": {
+            "properties": {
+              "type": {
+                "const": "output-style"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "statusline"
+            ]
+          },
+          "then": {
+            "properties": {
+              "type": {
+                "const": "statusline"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "lsp-server"
+            ]
+          },
+          "then": {
+            "properties": {
+              "type": {
+                "const": "lsp-server"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
