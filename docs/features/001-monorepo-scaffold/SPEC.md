@@ -93,18 +93,18 @@ length rule.
 
 ## Acceptance criteria
 
-- [ ] A fresh clone runs `pnpm install && pnpm lint && pnpm typecheck && pnpm test && pnpm build` with no errors.
-- [ ] `pnpm dev` serves a placeholder page at `http://localhost:3000` styled with Tailwind.
-- [ ] `pnpm exec rmk --version` (from the repo root, which has `@ronne/rmk` as a workspace dev dependency) prints the package version.
-- [ ] Each package has at least one Vitest test, and it runs through `pnpm test`.
-- [ ] A Biome error, a type error or a failing test makes CI fail.
-- [ ] The examples check passes on the current `examples/items/` and fails when a manifest is broken.
-- [ ] Importing `apps/web` code from `packages/core` fails lint or type-check.
-- [ ] `LICENSE`, `README.md`, `.nvmrc` (24) and `SECURITY.md` exist.
-- [ ] `pnpm-workspace.yaml` has every supply-chain setting from the policy, and `sharp` isn't installed.
-- [ ] The license check passes on the current tree, and fails when a package with a disallowed license (a GPL test fixture) is added.
-- [ ] `pnpm audit --audit-level high` runs in CI and fails the build on a high advisory.
-- [ ] All Actions are pinned to SHAs, Dependabot is configured for npm and Actions, and CodeQL runs on pull requests.
+- [x] A fresh clone runs `pnpm install && pnpm lint && pnpm typecheck && pnpm test && pnpm build` with no errors.
+- [x] `pnpm dev` serves a placeholder page at `http://localhost:3000` styled with Tailwind.
+- [x] `pnpm exec rmk --version` (from the repo root, which has `@ronne/rmk` as a workspace dev dependency) prints the package version.
+- [x] Each package has at least one Vitest test, and it runs through `pnpm test`.
+- [x] A Biome error, a type error or a failing test makes CI fail.
+- [x] The examples check passes on the current `examples/items/` and fails when a manifest is broken.
+- [x] Importing `apps/web` code from `packages/core` fails lint or type-check.
+- [x] `LICENSE`, `README.md`, `.nvmrc` (24) and `SECURITY.md` exist.
+- [x] `pnpm-workspace.yaml` has every supply-chain setting from the policy, and `sharp` isn't installed.
+- [x] The license check passes on the current tree, and fails when a package with a disallowed license (a GPL test fixture) is added.
+- [x] `pnpm audit --audit-level high` runs in CI and fails the build on a high advisory.
+- [x] All Actions are pinned to SHAs, Dependabot is configured for npm and Actions, and CodeQL runs on pull requests.
 
 ## Open questions
 
