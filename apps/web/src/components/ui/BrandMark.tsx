@@ -2,7 +2,7 @@
  * The Ronne monogram (feature 032), from the brand's SVG. The stem takes the text colour and the
  * corner the accent, so it follows the theme, including the manual toggle.
  */
-export function BrandMark({ size = 24, className }: { size?: number; className?: string }) {
+export const BrandMark = ({ size = 24, className }: { size?: number; className?: string }) => {
   return (
     <svg
       viewBox="0 0 115 139.62"
@@ -22,4 +22,4 @@ export function BrandMark({ size = 24, className }: { size?: number; className?:
       />
     </svg>
   );
-}
+};

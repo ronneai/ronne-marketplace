@@ -17,11 +17,11 @@ export const PERMISSIONS = {
 
 export type Permission = keyof typeof PERMISSIONS;
 
-export function can(user: { role: Role } | null, permission: Permission): boolean {
+export const can = (user: { role: Role } | null, permission: Permission): boolean => {
   return user !== null && (PERMISSIONS[permission] as readonly Role[]).includes(user.role);
-}
+};
 
 /** Throws ForbiddenError unless the user holds the permission. */
-export function requirePermission(user: { role: Role } | null, permission: Permission): void {
+export const requirePermission = (user: { role: Role } | null, permission: Permission): void => {
   if (!can(user, permission)) throw new ForbiddenError(permission);
-}
+};

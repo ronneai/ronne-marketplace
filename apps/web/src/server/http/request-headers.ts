@@ -8,10 +8,10 @@ import { cookies, headers } from "next/headers";
  * replaces the session cookie, so a layout reading `headers()` would see the old, deleted session
  * and send the user to sign-in.
  */
-export async function requestHeaders(): Promise<Headers> {
+export const requestHeaders = async (): Promise<Headers> => {
   const merged = new Headers(await headers());
   const cookieHeader = (await cookies()).toString();
   if (cookieHeader) merged.set("cookie", cookieHeader);
   else merged.delete("cookie");
   return merged;
-}
+};

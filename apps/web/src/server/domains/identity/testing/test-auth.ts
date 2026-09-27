@@ -6,10 +6,10 @@ import { createAuth } from "../repositories/better-auth";
 export const TEST_BASE_URL = "http://localhost:3000";
 
 /** An AppAuth on a test database, like the one getAppAuth() builds for the server. */
-export function testAppAuth(
+export const testAppAuth = (
   t: TestDb,
   options: { trustProxy?: boolean; limiter?: LoginRateLimiter; baseURL?: string } = {},
-): AppAuth {
+): AppAuth => {
   const trustProxy = options.trustProxy ?? false;
   return {
     auth: createAuth({
@@ -24,13 +24,13 @@ export function testAppAuth(
     trustProxy,
     limiter: options.limiter ?? new LoginRateLimiter(),
   };
-}
+};
 
 /** Creates a user with a password, the way root will in 008. Returns the user id. */
-export async function createTestUser(
+export const createTestUser = async (
   app: AppAuth,
   user: { email: string; password: string; name?: string; role?: "root" | "moderator" | "user" },
-): Promise<string> {
+): Promise<string> => {
   const ctx = await app.auth.$context;
   const created = await ctx.internalAdapter.createUser(
     { email: user.email, name: user.name ?? "Someone", emailVerified: false },
@@ -50,13 +50,13 @@ export async function createTestUser(
       .execute();
   }
   return created.id;
-}
+};
 
 /** The request headers a browser would send back after this sign-in response. */
-export function cookieHeaders(setCookie: string | null): Headers {
+export const cookieHeaders = (setCookie: string | null): Headers => {
   const cookies = (setCookie ?? "")
     .split(/,(?=\s*[\w.-]+=)/)
     .map((c) => c.split(";")[0]?.trim())
     .filter(Boolean);
   return new Headers({ cookie: cookies.join("; ") });
-}
+};

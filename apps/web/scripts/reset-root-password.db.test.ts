@@ -13,7 +13,7 @@ beforeEach(() => {
 });
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
-function run(script: string, args: string[], env: Record<string, string>) {
+const run = (script: string, args: string[], env: Record<string, string>) => {
   const result = spawnSync("pnpm", ["exec", "tsx", `scripts/${script}.ts`, ...args], {
     cwd: new URL("..", import.meta.url),
     env: {
@@ -27,7 +27,7 @@ function run(script: string, args: string[], env: Record<string, string>) {
     encoding: "utf8",
   });
   return { code: result.status, stdout: result.stdout, stderr: result.stderr };
-}
+};
 
 const databaseUrl = () => `file:${join(dir, "ronne.db")}`;
 const setUp = () =>
@@ -40,7 +40,7 @@ const setUp = () =>
     RONNE_ROOT_PASSWORD: "correct horse battery",
   });
 
-async function signIn(password: string) {
+const signIn = async (password: string) => {
   const { db, dialect } = createDb(databaseUrl());
   const auth = createAuth({
     db,
@@ -56,7 +56,7 @@ async function signIn(password: string) {
   } finally {
     await db.destroy();
   }
-}
+};
 
 describe("pnpm run reset-root-password --yes", () => {
   it("sets the new password (from .env's DATABASE_URL) and the old one stops working", async () => {

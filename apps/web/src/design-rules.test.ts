@@ -6,13 +6,13 @@ import { describe, expect, it } from "vitest";
 // tokens.css, and the UI is flat, with no red, yellow or green.
 const ROOTS = ["components", "features"].map((d) => new URL(`./${d}/`, import.meta.url).pathname);
 
-function files(dir: string): string[] {
+const files = (dir: string): string[] => {
   return readdirSync(dir).flatMap((name) => {
     const path = join(dir, name);
     if (statSync(path).isDirectory()) return files(path);
     return /\.(tsx?|css)$/.test(name) && !/\.test\.tsx?$/.test(name) ? [path] : [];
   });
-}
+};
 
 const RULES: [string, RegExp][] = [
   ["raw hex colour (use a token utility)", /#[0-9a-fA-F]{3,8}\b/],

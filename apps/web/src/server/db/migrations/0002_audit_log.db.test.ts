@@ -13,7 +13,7 @@ afterAll(() => t.cleanup());
 
 const now = () => toDbDate(new Date(), t.dialect);
 
-async function insertUser(email: string) {
+const insertUser = async (email: string) => {
   const id = newId();
   await t.db
     .insertInto("user")
@@ -29,7 +29,7 @@ async function insertUser(email: string) {
     })
     .execute();
   return id;
-}
+};
 
 describe("0002_audit_log", () => {
   it("creates a real foreign key to user that sets null on delete, on every database", async () => {

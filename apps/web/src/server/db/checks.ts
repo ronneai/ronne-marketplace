@@ -34,7 +34,7 @@ const AUTH_FAILED = new Set([
 const DATABASE_MISSING = new Set(["3D000", "ER_BAD_DB_ERROR"]);
 
 /** Sorts a driver error into the categories the installer explains to the user. */
-export function classifyConnectionError(error: unknown): ConnectionFailure {
+export const classifyConnectionError = (error: unknown): ConnectionFailure => {
   const err = error as {
     name?: string;
     code?: string;
@@ -51,9 +51,9 @@ export function classifyConnectionError(error: unknown): ConnectionFailure {
     return "unreachable";
   if (/timeout/i.test(err?.message ?? "")) return "unreachable";
   return "unknown";
-}
+};
 
-async function serverVersion(db: Db, dialect: DatabaseDialect): Promise<string> {
+const serverVersion = async (db: Db, dialect: DatabaseDialect): Promise<string> => {
   if (dialect === "sqlite") {
     const { rows } = await sql<{ v: string }>`select sqlite_version() as v`.execute(db);
     return rows[0]?.v ?? "";
@@ -64,16 +64,16 @@ async function serverVersion(db: Db, dialect: DatabaseDialect): Promise<string> 
   }
   const { rows } = await sql<{ v: string }>`select version() as v`.execute(db);
   return rows[0]?.v ?? "";
-}
+};
 
 /**
  * Connects to DATABASE_URL, runs a query, and disconnects. Never throws: failures come back as a
  * category plus the driver's message, for the installer to show (feature 003).
  */
-export async function checkConnection(
+export const checkConnection = async (
   url: string,
   options: { baseDir?: string; connectTimeoutMs?: number } = {},
-): Promise<ConnectionCheck> {
+): Promise<ConnectionCheck> => {
   let created: ReturnType<typeof createDb> | undefined;
   try {
     created = createDb(url, { connectTimeoutMs: 5_000, ...options });
@@ -84,7 +84,7 @@ export async function checkConnection(
   } finally {
     await created?.db.destroy().catch(() => {});
   }
-}
+};
 
 export type PermissionStep = "create" | "write" | "read" | "drop";
 
@@ -96,7 +96,10 @@ export const PROBE_TABLE = "_ronne_probe";
  * Proves the database user can do what migrations and the app need: create a table, write to it,
  * read it back and drop it. Leaves nothing behind, even when a step fails.
  */
-export async function checkPermissions(db: Db, dialect: DatabaseDialect): Promise<PermissionCheck> {
+export const checkPermissions = async (
+  db: Db,
+  dialect: DatabaseDialect,
+): Promise<PermissionCheck> => {
   // biome-ignore lint/suspicious/noExplicitAny: the probe table isn't part of the app's schema.
   const anyDb = db as unknown as Kysely<any>;
   let step: PermissionStep = "create";
@@ -125,7 +128,7 @@ export async function checkPermissions(db: Db, dialect: DatabaseDialect): Promis
     }
     return { ok: false, step, message: (error as Error).message };
   }
-}
+};
 
 /** Minimum supported server versions (docs/policies/dependencies.md §2, feature 004). */
 export const MINIMUM_VERSIONS = { postgres: [15, 0], mysql: [8, 4], mariadb: [10, 11] } as const;
@@ -135,7 +138,10 @@ export type VersionCheck =
   | { supported: false; product: string; minimum: string };
 
 /** Whether a server version string (from checkConnection) is one Ronne supports. SQLite always is. */
-export function checkServerVersion(dialect: DatabaseDialect, serverVersion: string): VersionCheck {
+export const checkServerVersion = (
+  dialect: DatabaseDialect,
+  serverVersion: string,
+): VersionCheck => {
   if (dialect === "sqlite") return { supported: true };
   const [major = 0, minor = 0] = (serverVersion.match(/\d+/g) ?? []).map(Number);
   const product =
@@ -150,20 +156,20 @@ export function checkServerVersion(dialect: DatabaseDialect, serverVersion: stri
         product: names[product],
         minimum: product === "postgres" ? `${minMajor}` : `${minMajor}.${minMinor}`,
       };
-}
+};
 
 /**
  * MySQL and MariaDB databases must use utf8mb4, or some text can't be stored. Other dialects pass.
  * Returns the database's character set when it's wrong.
  */
-export async function checkCharset(
+export const checkCharset = async (
   db: Db,
   dialect: DatabaseDialect,
-): Promise<{ ok: true } | { ok: false; charset: string }> {
+): Promise<{ ok: true } | { ok: false; charset: string }> => {
   if (dialect !== "mysql") return { ok: true };
   const { rows } = await sql<{
     charset: string;
   }>`select @@character_set_database as charset`.execute(db);
   const charset = rows[0]?.charset ?? "unknown";
   return charset === "utf8mb4" ? { ok: true } : { ok: false, charset };
-}
+};

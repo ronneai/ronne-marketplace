@@ -14,7 +14,7 @@ import {
 import type { DatabaseDialect } from "../url";
 
 /** A Kysely instance that only compiles SQL, for testing each dialect without a server. */
-export function compileOnly<DB>(dialect: DatabaseDialect): Kysely<DB> {
+export const compileOnly = <DB>(dialect: DatabaseDialect): Kysely<DB> => {
   const parts = {
     sqlite: [SqliteAdapter, SqliteIntrospector, SqliteQueryCompiler],
     mysql: [MysqlAdapter, MysqlIntrospector, MysqlQueryCompiler],
@@ -29,4 +29,4 @@ export function compileOnly<DB>(dialect: DatabaseDialect): Kysely<DB> {
       createQueryCompiler: () => new Compiler(),
     },
   });
-}
+};

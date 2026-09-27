@@ -20,7 +20,7 @@ const FIELDS = [
 ] as const;
 
 /** Current, new and confirm. Nothing is kept after a submit: these are all passwords. */
-export function ChangePasswordForm({ initial = {} }: { initial?: ChangePasswordFormState }) {
+export const ChangePasswordForm = ({ initial = {} }: { initial?: ChangePasswordFormState }) => {
   const [state, action, pending] = useActionState(changePasswordFromForm, initial);
   const errorField = state.error ? ERROR_FIELD[state.error] : null;
   return (
@@ -71,4 +71,4 @@ export function ChangePasswordForm({ initial = {} }: { initial?: ChangePasswordF
       </div>
     </form>
   );
-}
+};

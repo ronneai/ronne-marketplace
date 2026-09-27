@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   description: "A self-hosted, curated registry of AI capabilities.",
 };
 
-export default async function RootLayout({ children }: { children: ReactNode }) {
+const RootLayout = async ({ children }: { children: ReactNode }) => {
   // Settings are read per request, not at build time, so a finished setup shows after a restart.
   await connection();
   const configured = isConfigured(loadConfig());
@@ -26,4 +26,6 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       </body>
     </html>
   );
-}
+};
+
+export default RootLayout;

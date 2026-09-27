@@ -26,9 +26,9 @@ export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 export const AUDIT_ACTION_GROUPS = ["auth", "user", "access_token", "instance"] as const;
 export type AuditActionGroup = (typeof AUDIT_ACTION_GROUPS)[number];
 
-export function actionsInGroup(group: AuditActionGroup): AuditAction[] {
+export const actionsInGroup = (group: AuditActionGroup): AuditAction[] => {
   return AUDIT_ACTIONS.filter((action) => action.startsWith(`${group}.`));
-}
+};
 
 export type AuditTargetType = "user" | "access_token" | "session" | "instance" | "none";
 
@@ -72,20 +72,20 @@ const SECRET_WORDS = new Set(["password", "passwd", "secret", "hash", "salt", "c
 const SECRET_LAST_WORDS = new Set(["token", "key", "credential", "credentials"]);
 
 /** Splits camelCase, snake_case and kebab-case keys into lowercase words. */
-function words(key: string): string[] {
+const words = (key: string): string[] => {
   return key
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .split(/[\s_\-.]+/)
     .filter(Boolean)
     .map((w) => w.toLowerCase());
-}
+};
 
-export function isSecretKey(key: string): boolean {
+export const isSecretKey = (key: string): boolean => {
   const parts = words(key);
   return parts.some((w) => SECRET_WORDS.has(w)) || SECRET_LAST_WORDS.has(parts.at(-1) ?? "");
-}
+};
 
-function checkKeys(value: AuditMetadataValue): void {
+const checkKeys = (value: AuditMetadataValue): void => {
   if (Array.isArray(value)) {
     for (const item of value) checkKeys(item);
   } else if (value !== null && typeof value === "object") {
@@ -94,13 +94,13 @@ function checkKeys(value: AuditMetadataValue): void {
       checkKeys(nested);
     }
   }
-}
+};
 
 /**
  * Checks an event before it's stored: a known action, no secret-looking keys at any depth, and at
  * most 4 KB of metadata. Returns the metadata as JSON text.
  */
-export function validateAuditEvent(event: NewAuditEvent): string {
+export const validateAuditEvent = (event: NewAuditEvent): string => {
   if (!(AUDIT_ACTIONS as readonly string[]).includes(event.action))
     throw new UnknownAuditActionError(event.action);
   const metadata = event.metadata ?? {};
@@ -109,4 +109,4 @@ export function validateAuditEvent(event: NewAuditEvent): string {
   const bytes = Buffer.byteLength(json, "utf8");
   if (bytes > AUDIT_METADATA_MAX_BYTES) throw new AuditMetadataTooLargeError(bytes);
   return json;
-}
+};

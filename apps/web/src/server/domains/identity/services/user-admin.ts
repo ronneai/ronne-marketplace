@@ -38,11 +38,11 @@ const now = (deps: UserAdminDeps) => (deps.now ?? (() => new Date()))();
 
 export type UsersPage = { users: UserSummary[]; nextCursor: string | null };
 
-export async function listUsers(
+export const listUsers = async (
   deps: UserAdminDeps,
   actor: Actor,
   query: Omit<UserListQuery, "limit">,
-): Promise<UsersPage> {
+): Promise<UsersPage> => {
   requirePermission(actor.user, "users.view");
   const search = query.search?.trim().slice(0, USER_SEARCH_MAX_LENGTH) || undefined;
   const rows = await deps.repo.listUsers({ ...query, search, limit: USERS_PAGE_SIZE + 1 });
@@ -51,27 +51,27 @@ export async function listUsers(
     users,
     nextCursor: rows.length > USERS_PAGE_SIZE ? (users.at(-1)?.id ?? null) : null,
   };
-}
+};
 
 /** The password root chose, or a generated one. Either way it's shown once, then only its hash exists. */
-function choosePassword(typed: string | undefined): string {
+const choosePassword = (typed: string | undefined): string => {
   if (typed === undefined) return generatePassword();
   validatePassword(typed);
   return typed;
-}
+};
 
-function checkRole(role: string): AssignableRole {
+const checkRole = (role: string): AssignableRole => {
   if (!isAssignableRole(role)) throw new InvalidRoleError(role);
   return role;
-}
+};
 
 /** Loads the target and refuses root: root is never changed from the admin area. */
-async function loadTarget(repo: IdentityRepository, userId: string): Promise<UserSummary> {
+const loadTarget = async (repo: IdentityRepository, userId: string): Promise<UserSummary> => {
   const target = await repo.findUser(userId);
   if (!target) throw new UserNotFoundError();
   if (target.role === "root") throw new CannotModifyRootError();
   return target;
-}
+};
 
 export type NewUserInput = {
   email: string;
@@ -81,11 +81,11 @@ export type NewUserInput = {
   password?: string;
 };
 
-export async function createUser(
+export const createUser = async (
   deps: UserAdminDeps,
   actor: Actor,
   input: NewUserInput,
-): Promise<{ id: string; email: string; password: string }> {
+): Promise<{ id: string; email: string; password: string }> => {
   requirePermission(actor.user, "users.manage");
   const email = normalizeEmail(input.email);
   const name = normalizeName(input.name);
@@ -110,14 +110,14 @@ export async function createUser(
     return created;
   });
   return { id, email, password };
-}
+};
 
-export async function changeRole(
+export const changeRole = async (
   deps: UserAdminDeps,
   actor: Actor,
   userId: string,
   newRole: string,
-): Promise<void> {
+): Promise<void> => {
   requirePermission(actor.user, "users.manage");
   const role = checkRole(newRole);
   const at = now(deps);
@@ -136,14 +136,14 @@ export async function changeRole(
       at,
     );
   });
-}
+};
 
 /** Signs the user out everywhere and revokes their access tokens. Already disabled: nothing to do. */
-export async function disableUser(
+export const disableUser = async (
   deps: UserAdminDeps,
   actor: Actor,
   userId: string,
-): Promise<void> {
+): Promise<void> => {
   requirePermission(actor.user, "users.manage");
   const at = now(deps);
   await deps.repo.transaction(async (repo) => {
@@ -163,10 +163,14 @@ export async function disableUser(
       at,
     );
   });
-}
+};
 
 /** Lets the user sign in again. Their revoked tokens stay revoked. */
-export async function enableUser(deps: UserAdminDeps, actor: Actor, userId: string): Promise<void> {
+export const enableUser = async (
+  deps: UserAdminDeps,
+  actor: Actor,
+  userId: string,
+): Promise<void> => {
   requirePermission(actor.user, "users.manage");
   const at = now(deps);
   await deps.repo.transaction(async (repo) => {
@@ -183,18 +187,18 @@ export async function enableUser(deps: UserAdminDeps, actor: Actor, userId: stri
       at,
     );
   });
-}
+};
 
 /**
  * Sets a new password, typed or generated, and treats the old credentials as lost: it ends the
  * user's sessions and revokes their tokens. Returns the new password to show once.
  */
-export async function resetPassword(
+export const resetPassword = async (
   deps: UserAdminDeps,
   actor: Actor,
   userId: string,
   typed?: string,
-): Promise<{ email: string; password: string }> {
+): Promise<{ email: string; password: string }> => {
   requirePermission(actor.user, "users.manage");
   const password = choosePassword(typed);
   const passwordHash = await deps.hasher.hash(password);
@@ -217,18 +221,18 @@ export async function resetPassword(
     return target.email;
   });
   return { email, password };
-}
+};
 
 /** What the disable dialog tells root before it happens. */
-export async function disableImpact(
+export const disableImpact = async (
   deps: UserAdminDeps,
   actor: Actor,
   userId: string,
-): Promise<{ sessions: number; tokens: number }> {
+): Promise<{ sessions: number; tokens: number }> => {
   requirePermission(actor.user, "users.manage");
   await loadTarget(deps.repo, userId);
   return {
     sessions: await deps.repo.countSessions(userId),
     tokens: await deps.repo.countActiveAccessTokens(userId),
   };
-}
+};

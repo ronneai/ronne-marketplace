@@ -2,11 +2,11 @@ import type { HTMLAttributes } from "react";
 import { cn } from "./cn";
 
 /** A pill in IBM Plex Mono 600 11px. `accent` = teal fill, `muted` = soft fill (design system 032). */
-export function Badge({
+export const Badge = ({
   tone = "muted",
   className,
   ...props
-}: HTMLAttributes<HTMLSpanElement> & { tone?: "accent" | "muted" }) {
+}: HTMLAttributes<HTMLSpanElement> & { tone?: "accent" | "muted" }) => {
   return (
     <span
       className={cn(
@@ -17,4 +17,4 @@ export function Badge({
       {...props}
     />
   );
-}
+};

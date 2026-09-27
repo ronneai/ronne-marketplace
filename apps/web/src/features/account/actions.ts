@@ -7,10 +7,10 @@ import { requestHeaders } from "@/server/http/request-headers";
 import type { ChangePasswordFormState } from "./types";
 
 /** The change-password form's server action. It works without JavaScript. */
-export async function changePasswordFromForm(
+export const changePasswordFromForm = async (
   _previous: ChangePasswordFormState,
   form: FormData,
-): Promise<ChangePasswordFormState> {
+): Promise<ChangePasswordFormState> => {
   const next = String(form.get("next") ?? "");
   if (next !== String(form.get("confirm") ?? "")) return { error: "mismatch" };
   const result = await changePassword(await requestHeaders(), {
@@ -20,10 +20,10 @@ export async function changePasswordFromForm(
   if (result.ok) return { changed: true };
   if (result.error === "not_signed_in") redirect(SIGN_IN_PATH);
   return { error: result.error };
-}
+};
 
 /** The user menu's "Sign out". */
-export async function signOutFromMenu() {
+export const signOutFromMenu = async () => {
   await signOut(await requestHeaders());
   redirect(SIGN_IN_PATH);
-}
+};

@@ -15,10 +15,10 @@ export type CreatedDb = { db: Db; dialect: DatabaseDialect };
  * Creates the Kysely instance for DATABASE_URL. The only place that knows which driver is in use.
  * Every connection works in UTC, and SQLite gets WAL, foreign keys and a busy timeout.
  */
-export function createDb(
+export const createDb = (
   url: string,
   options: { baseDir?: string; connectTimeoutMs?: number } = {},
-): CreatedDb {
+): CreatedDb => {
   // pg has no connect timeout by default, so an unreachable host would hang.
   const connectTimeoutMs = options.connectTimeoutMs ?? 10_000;
   const config = parseDatabaseUrl(url, options.baseDir);
@@ -65,4 +65,4 @@ export function createDb(
       return { db: new Kysely<Database>({ dialect }), dialect: "postgres" };
     }
   }
-}
+};

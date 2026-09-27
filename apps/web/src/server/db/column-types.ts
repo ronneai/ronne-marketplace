@@ -7,7 +7,7 @@ type ColumnType = ColumnDataType | Expression<unknown>;
  * Column types for migrations, so a migration never checks the dialect itself (MVP §9.4).
  * Indexed strings need an explicit length, because MySQL can't index `text`.
  */
-export function columnTypes(dialect: DatabaseDialect) {
+export const columnTypes = (dialect: DatabaseDialect) => {
   return {
     /** A ULID primary or foreign key. */
     id: (): ColumnType => "varchar(26)",
@@ -29,13 +29,13 @@ export function columnTypes(dialect: DatabaseDialect) {
     /** Only for Better Auth's `email_verified`. Everywhere else, use a nullable timestamp. */
     boolean: (): ColumnType => (dialect === "sqlite" ? "integer" : "boolean"),
   };
-}
+};
 
 /**
  * Table options added to every CREATE TABLE: MySQL tables use utf8mb4, so any text can be stored.
  * Use it as `.$call(tableDefaults(dialect))`.
  */
-export function tableDefaults(dialect: DatabaseDialect) {
+export const tableDefaults = (dialect: DatabaseDialect) => {
   return <T extends { modifyEnd(modifier: Expression<unknown>): T }>(builder: T): T =>
     dialect === "mysql" ? builder.modifyEnd(sql`default charset = utf8mb4`) : builder;
-}
+};

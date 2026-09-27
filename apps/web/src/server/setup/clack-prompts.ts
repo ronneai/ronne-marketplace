@@ -2,10 +2,10 @@ import * as p from "@clack/prompts";
 import { SetupCancelledError, type SetupPrompts } from "./prompts";
 
 /** clack returns a symbol when the user presses Ctrl+C; setup turns that into SetupCancelledError. */
-function answered<T>(value: T): Exclude<T, symbol> {
+const answered = <T>(value: T): Exclude<T, symbol> => {
   if (p.isCancel(value)) throw new SetupCancelledError();
   return value as Exclude<T, symbol>;
-}
+};
 
 /** SetupPrompts for a terminal, using @clack/prompts. */
 export const clackPrompts: SetupPrompts = {

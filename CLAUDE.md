@@ -88,6 +88,11 @@ Pull requests are squash-merged, so the PR title becomes the commit on `main`. C
   - `packages/mcp`: the registry MCP server.
   - `packages/config`: shared config presets.
 - **Tooling:** TypeScript, React, Tailwind CSS, Biome (lint and format), Vitest.
+- **Functions are arrow functions** (owner's convention, 2026-09-27). Write every function and React
+  component as `const name = (…) => …`, including Next.js pages and layouts
+  (`const Page = async () => …; export default Page;`). No `function` declarations or expressions.
+  The Biome plugin `packages/config/biome-plugins/no-function-declaration.grit` fails lint on them.
+  Overloads use a call-signature type and a cast (see `fromDbDate` in `db/dates.ts`).
 - **Frontend is feature-first.**
   - Each feature has one folder with its component, `hooks.ts`, `types.ts`, tests and sub-components.
   - Shared UI primitives (buttons, tables, modals, tabs, inputs) live in `components/ui`.

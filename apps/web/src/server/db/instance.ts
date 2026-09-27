@@ -5,7 +5,7 @@ import { type CreatedDb, createDb } from "./create-db";
 const pools = globalThis as typeof globalThis & { __ronneDbPools?: Map<string, CreatedDb> };
 
 /** The server's shared database for DATABASE_URL, created on first use. */
-export function getAppDb(databaseUrl: string, baseDir: string = process.cwd()): CreatedDb {
+export const getAppDb = (databaseUrl: string, baseDir: string = process.cwd()): CreatedDb => {
   pools.__ronneDbPools ??= new Map();
   let created = pools.__ronneDbPools.get(databaseUrl);
   if (!created) {
@@ -13,4 +13,4 @@ export function getAppDb(databaseUrl: string, baseDir: string = process.cwd()): 
     pools.__ronneDbPools.set(databaseUrl, created);
   }
   return created;
-}
+};

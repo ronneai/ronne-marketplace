@@ -8,9 +8,9 @@ export const PASSWORD_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwx
 export const GENERATED_PASSWORD_LENGTH = 20;
 
 /** A new random password for root to hand over (008). Each character from `crypto.randomInt`. */
-export function generatePassword(length: number = GENERATED_PASSWORD_LENGTH): string {
+export const generatePassword = (length: number = GENERATED_PASSWORD_LENGTH): string => {
   let password = "";
   for (let i = 0; i < length; i++)
     password += PASSWORD_ALPHABET[randomInt(PASSWORD_ALPHABET.length)];
   return password;
-}
+};

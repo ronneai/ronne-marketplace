@@ -4,7 +4,7 @@ import { ChangePasswordForm } from "@/features/account/ChangePasswordForm";
 export const metadata = { title: "Change password · Ronne" };
 
 /** The (app) layout already requires a signed-in user. */
-export default function ChangePasswordPage() {
+const ChangePasswordPage = () => {
   return (
     <>
       <PageHeader
@@ -16,4 +16,6 @@ export default function ChangePasswordPage() {
       </Panel>
     </>
   );
-}
+};
+
+export default ChangePasswordPage;

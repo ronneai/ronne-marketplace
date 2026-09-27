@@ -9,7 +9,7 @@ import { requestHeaders } from "@/server/http/request-headers";
 export const metadata = { title: "Audit log · Ronne" };
 
 /** Root only (`audit.view`): anyone else gets a 404, so the page's existence isn't revealed (spec 007). */
-export default async function AuditLog({ searchParams }: { searchParams: Promise<SearchParams> }) {
+const AuditLog = async ({ searchParams }: { searchParams: Promise<SearchParams> }) => {
   const user = await getCurrentUser(await requestHeaders());
   if (!can(user, "audit.view")) notFound();
 
@@ -30,4 +30,6 @@ export default async function AuditLog({ searchParams }: { searchParams: Promise
       actors={actors}
     />
   );
-}
+};
+
+export default AuditLog;

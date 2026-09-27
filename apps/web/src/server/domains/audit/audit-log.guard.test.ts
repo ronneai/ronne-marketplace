@@ -11,22 +11,22 @@ const appDir = new URL("../../../../", import.meta.url).pathname;
 const roots = ["src", "scripts", "e2e"].map((d) => join(appDir, d));
 const migrationsDir = join(appDir, "src/server/db/migrations");
 
-function sourceFiles(dir: string): string[] {
+const sourceFiles = (dir: string): string[] => {
   return readdirSync(dir).flatMap((name) => {
     const path = join(dir, name);
     if (statSync(path).isDirectory()) return path === migrationsDir ? [] : sourceFiles(path);
     return /\.(ts|tsx|js|mjs)$/.test(name) && !/\.test\.tsx?$/.test(name) ? [path] : [];
   });
-}
+};
 
 const FORBIDDEN = [
   /\.(updateTable|deleteFrom|replaceInto|mergeInto)\(\s*["'`]audit_log["'`]/,
   /\b(update|delete\s+from|truncate(\s+table)?|drop\s+table)\s+["'`]?audit_log\b/i,
 ];
 
-function offendingLines(source: string): string[] {
+const offendingLines = (source: string): string[] => {
   return source.split("\n").filter((line) => FORBIDDEN.some((pattern) => pattern.test(line)));
-}
+};
 
 describe("audit_log is insert-only", () => {
   const files = roots.flatMap((root) => {

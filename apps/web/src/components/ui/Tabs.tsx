@@ -4,13 +4,13 @@ import { type ReactNode, useId, useState } from "react";
 import { cn } from "./cn";
 
 /** Accessible tabs (roles and aria-selected), in a segmented control like the sign-in mock. */
-export function Tabs({
+export const Tabs = ({
   tabs,
   initial = 0,
 }: {
   tabs: { label: string; content: ReactNode }[];
   initial?: number;
-}) {
+}) => {
   const [active, setActive] = useState(initial);
   const id = useId();
   return (
@@ -53,4 +53,4 @@ export function Tabs({
       ))}
     </div>
   );
-}
+};

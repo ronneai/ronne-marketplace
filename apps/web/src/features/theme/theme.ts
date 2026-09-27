@@ -4,9 +4,9 @@ export const THEMES = ["system", "light", "dark"] as const;
 export type Theme = (typeof THEMES)[number];
 
 /** A missing or unknown cookie value means "system" (follow the OS). */
-export function parseTheme(value: string | undefined): Theme {
+export const parseTheme = (value: string | undefined): Theme => {
   return (THEMES as readonly string[]).includes(value ?? "") ? (value as Theme) : "system";
-}
+};
 
 export const themeCookieOptions = {
   path: "/",

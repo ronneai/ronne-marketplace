@@ -6,7 +6,7 @@ import { cn } from "./cn";
 import { inputClasses } from "./Field";
 
 /** A password input with a show/hide button. Without JavaScript it's a plain password field. */
-export function PasswordInput({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
+export const PasswordInput = ({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) => {
   const [visible, setVisible] = useState(false);
   return (
     <div className="relative">
@@ -26,4 +26,4 @@ export function PasswordInput({ className, ...props }: InputHTMLAttributes<HTMLI
       </button>
     </div>
   );
-}
+};

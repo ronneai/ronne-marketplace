@@ -16,16 +16,16 @@ if (!appDir || !target) {
 const SKIP = new Set(["deps", "src", "docs", "test", "tests", "benchmark", ".github"]);
 const copied = new Set();
 
-function packageDir(name, fromDir) {
+const packageDir = (name, fromDir) => {
   const require = createRequire(join(fromDir, "noop.js"));
   try {
     return realpathSync(dirname(require.resolve(`${name}/package.json`)));
   } catch {
     return undefined; // an optional dependency for another platform
   }
-}
+};
 
-function collect(name, fromDir) {
+const collect = (name, fromDir) => {
   if (copied.has(name)) return;
   const dir = packageDir(name, fromDir);
   if (!dir) return;
@@ -44,7 +44,7 @@ function collect(name, fromDir) {
   for (const dependency of Object.keys({ ...pkg.dependencies, ...pkg.optionalDependencies })) {
     collect(dependency, dir);
   }
-}
+};
 
 for (const name of ["better-sqlite3", "@node-rs/argon2"]) collect(name, resolve(appDir));
 if (!existsSync(join(target, "better-sqlite3")) || !existsSync(join(target, "@node-rs/argon2"))) {

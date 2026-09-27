@@ -9,10 +9,10 @@ const TIMEOUT_MS = 3_000;
  * GET /api/health: 200 when the database answers, 503 otherwise, including before setup.
  * Docker's HEALTHCHECK and load balancers use it.
  */
-export async function health(
+export const health = async (
   config: AppConfig,
   getDb: (url: string) => CreatedDb,
-): Promise<Response> {
+): Promise<Response> => {
   if (!isConfigured(config)) return setupRequiredResponse();
   try {
     const { db } = getDb(config.databaseUrl);
@@ -25,4 +25,4 @@ export async function health(
     // The driver's message isn't shown: this endpoint is public.
     return errorResponse(503, "database_unavailable", "The database isn't answering.");
   }
-}
+};

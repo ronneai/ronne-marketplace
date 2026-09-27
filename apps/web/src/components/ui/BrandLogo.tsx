@@ -3,7 +3,7 @@
  * wordmark is live text in the app's own Manrope, as in the brand file. The stem and "ronne" take
  * the text colour, and the corner and "AI" the accent, so it follows the theme.
  */
-export function BrandLogo({ height = 32, className }: { height?: number; className?: string }) {
+export const BrandLogo = ({ height = 32, className }: { height?: number; className?: string }) => {
   return (
     <svg
       viewBox="0 0 430.91 122.5"
@@ -40,4 +40,4 @@ export function BrandLogo({ height = 32, className }: { height?: number; classNa
       </text>
     </svg>
   );
-}
+};

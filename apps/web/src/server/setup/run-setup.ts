@@ -65,7 +65,7 @@ const wrap = (validate: (value: string) => unknown) => (value: string) => {
 };
 
 /** The interactive (or scripted) setup from MVP §5 and feature 003. Each step is safe to repeat. */
-export async function runSetup(options: SetupOptions): Promise<SetupResult> {
+export const runSetup = async (options: SetupOptions): Promise<SetupResult> => {
   const { appDir, envPath, prompts } = options;
   const env = readEnvFile(envPath);
 
@@ -203,12 +203,12 @@ export async function runSetup(options: SetupOptions): Promise<SetupResult> {
   } finally {
     await db.destroy();
   }
-}
+};
 
-async function askDatabase(
+const askDatabase = async (
   prompts: SetupPrompts,
   previous?: DatabaseAnswers,
-): Promise<DatabaseAnswers> {
+): Promise<DatabaseAnswers> => {
   const dialect = await prompts.select({
     id: "database.kind",
     message: "Which database should Ronne use?",
@@ -274,14 +274,14 @@ async function askDatabase(
     user: user.trim(),
     password,
   };
-}
+};
 
 /** Returns a message describing what's wrong, or undefined when the database is ready to use. */
-async function validateDatabase(
+const validateDatabase = async (
   url: string,
   appDir: string,
   prompts: SetupPrompts,
-): Promise<string | undefined> {
+): Promise<string | undefined> => {
   const connection = await checkConnection(url, { baseDir: appDir });
   if (!connection.ok) return `${FAILURE_EXPLANATIONS[connection.kind]}\n${connection.message}`;
 
@@ -313,4 +313,4 @@ async function validateDatabase(
     `Connected to ${dialect === "sqlite" ? "SQLite" : connection.serverVersion} and checked permissions.`,
   );
   return undefined;
-}
+};

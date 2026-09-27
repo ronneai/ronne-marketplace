@@ -14,28 +14,28 @@ export type { ChangePasswordResult, SignInInput, SignInResult } from "../service
  * Entry points for pages, layouts and server actions. `app` defaults to the running server's
  * instance; tests pass their own.
  */
-function deps({ auth, db, dialect, limiter }: AppAuth): service.SessionDeps {
+const deps = ({ auth, db, dialect, limiter }: AppAuth): service.SessionDeps => {
   return {
     sessions: betterAuthSessionStore(auth),
     repo: kyselyIdentityRepository(db, dialect),
     limiter,
   };
-}
+};
 
 /** The signed-in user, or null. Before setup it's always null (the root layout shows the setup screen). */
-export async function getCurrentUser(
+export const getCurrentUser = async (
   headers: Headers,
   app: AppAuth | null = getAppAuthIfConfigured(),
-): Promise<CurrentUser | null> {
+): Promise<CurrentUser | null> => {
   return app ? service.currentUser(deps(app), headers) : null;
-}
+};
 
 /** The signed-in user, or a redirect to sign-in that comes back to the requested page. */
-export async function requireUser(headers: Headers, app?: AppAuth): Promise<CurrentUser> {
+export const requireUser = async (headers: Headers, app?: AppAuth): Promise<CurrentUser> => {
   const user = await getCurrentUser(headers, app);
   if (user) return user;
   redirect(signInUrl(headers.get(PATH_HEADER) ?? "/"));
-}
+};
 
 /** The request's context for the audit log: headers, and the client IP when it can be trusted. */
 const context = (headers: Headers, app: AppAuth): service.RequestContext => ({
@@ -43,13 +43,13 @@ const context = (headers: Headers, app: AppAuth): service.RequestContext => ({
   ip: clientIp(headers, app.trustProxy),
 });
 
-export function signIn(
+export const signIn = (
   headers: Headers,
   input: service.SignInInput,
   app: AppAuth = getAppAuth(),
-): Promise<service.SignInResult> {
+): Promise<service.SignInResult> => {
   return service.signIn(deps(app), context(headers, app), input);
-}
+};
 
 export const changePassword = (
   headers: Headers,

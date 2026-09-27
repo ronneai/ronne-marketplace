@@ -12,10 +12,10 @@ export type NewRoot = { email: string; name: string; password: string };
  * Creates the one root account (MVP §5). Validates everything before writing, hashes the password,
  * and writes the user and its credential account in one transaction. Refuses when a root exists.
  */
-export async function createRootUser(
+export const createRootUser = async (
   deps: IdentityDeps,
   input: NewRoot,
-): Promise<{ id: string; email: string }> {
+): Promise<{ id: string; email: string }> => {
   const email = normalizeEmail(input.email);
   const name = normalizeName(input.name);
   validatePassword(input.password);
@@ -38,16 +38,16 @@ export async function createRootUser(
     );
     return { id, email };
   });
-}
+};
 
 /**
  * Sets a new root password and treats the old credentials as untrusted: ends every root session,
  * revokes root's access tokens, and re-enables root if it was disabled.
  */
-export async function resetRootPassword(
+export const resetRootPassword = async (
   deps: IdentityDeps,
   password: string,
-): Promise<{ email: string }> {
+): Promise<{ email: string }> => {
   validatePassword(password);
   const passwordHash = await deps.hasher.hash(password);
   const now = (deps.now ?? (() => new Date()))();
@@ -70,8 +70,8 @@ export async function resetRootPassword(
     );
     return { email: root.email };
   });
-}
+};
 
-export async function findRoot(deps: Pick<IdentityDeps, "repo">) {
+export const findRoot = async (deps: Pick<IdentityDeps, "repo">) => {
   return deps.repo.findRoot();
-}
+};

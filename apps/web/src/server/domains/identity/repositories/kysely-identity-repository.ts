@@ -17,7 +17,7 @@ type UserRow = {
   created_at: Date | string;
 };
 
-function summary(row: UserRow): UserSummary {
+const summary = (row: UserRow): UserSummary => {
   return {
     id: row.id,
     email: row.email,
@@ -27,15 +27,15 @@ function summary(row: UserRow): UserSummary {
     disabledAt: fromDbDate(row.disabled_at),
     createdAt: fromDbDate(row.created_at),
   };
-}
+};
 
 /** Better Auth's provider id for email and password accounts. */
 const CREDENTIAL_PROVIDER = "credential";
 
-export function kyselyIdentityRepository(
+export const kyselyIdentityRepository = (
   db: Kysely<Database>,
   dialect: DatabaseDialect,
-): IdentityRepository {
+): IdentityRepository => {
   const at = (date: Date) => toDbDate(date, dialect);
 
   return {
@@ -227,4 +227,4 @@ export function kyselyIdentityRepository(
       await recordAudit(db, dialect, event, now);
     },
   };
-}
+};

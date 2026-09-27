@@ -6,8 +6,10 @@ import { requestHeaders } from "@/server/http/request-headers";
 
 export const metadata = { title: "Styleguide · Ronne" };
 
-export default async function StyleguidePage() {
+const StyleguidePage = async () => {
   const user = await getCurrentUser(await requestHeaders());
   if (!canViewStyleguide(process.env.NODE_ENV, user)) notFound();
   return <Styleguide />;
-}
+};
+
+export default StyleguidePage;

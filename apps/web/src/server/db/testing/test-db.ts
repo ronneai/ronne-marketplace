@@ -23,7 +23,7 @@ export type TestDb = {
  *   dropped by `cleanup()`, so test files can run in parallel against one server.
  * Migrated to the latest version unless `{ migrate: false }`.
  */
-export async function createTestDb(options: { migrate?: boolean } = {}): Promise<TestDb> {
+export const createTestDb = async (options: { migrate?: boolean } = {}): Promise<TestDb> => {
   const baseUrl = process.env.TEST_DATABASE_URL || "file::memory:";
   const { dialect } = parseDatabaseUrl(baseUrl);
 
@@ -68,4 +68,4 @@ export async function createTestDb(options: { migrate?: boolean } = {}): Promise
 
   if (options.migrate ?? true) await migrateToLatest(created.db, dialect);
   return created;
-}
+};

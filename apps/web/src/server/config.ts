@@ -8,9 +8,9 @@ type Env = Record<string, string | undefined>;
  * The instance's settings file: RONNE_ENV_FILE (absolute, or relative to the app), or `.env` next to
  * the app. Docker sets RONNE_ENV_FILE=/app/data/.env so the settings live on the data volume.
  */
-export function envFilePath(appDir: string = process.cwd(), env: Env = process.env): string {
+export const envFilePath = (appDir: string = process.cwd(), env: Env = process.env): string => {
   return resolve(appDir, env.RONNE_ENV_FILE || ".env");
-}
+};
 
 export type AppConfig = {
   envFile: string;
@@ -26,7 +26,7 @@ export type AppConfig = {
  * Reads the settings file, with environment variables taking precedence over it (an empty variable
  * counts as unset). Read on each call, so a finished setup is picked up after a restart.
  */
-export function loadConfig(options: { appDir?: string; env?: Env } = {}): AppConfig {
+export const loadConfig = (options: { appDir?: string; env?: Env } = {}): AppConfig => {
   const env = options.env ?? process.env;
   const envFile = envFilePath(options.appDir, env);
   // The settings file is chosen at runtime, so it's not part of the build: without the ignore
@@ -44,11 +44,11 @@ export function loadConfig(options: { appDir?: string; env?: Env } = {}): AppCon
     storagePath: value("STORAGE_PATH") ?? "./data/storage",
     trustProxy: value("TRUST_PROXY") === "true",
   };
-}
+};
 
 /** The instance can serve requests: setup has written a database URL and a secret. */
-export function isConfigured(
+export const isConfigured = (
   config: AppConfig,
-): config is AppConfig & { databaseUrl: string; authSecret: string } {
+): config is AppConfig & { databaseUrl: string; authSecret: string } => {
   return Boolean(config.databaseUrl && config.authSecret);
-}
+};

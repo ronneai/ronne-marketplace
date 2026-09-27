@@ -26,17 +26,17 @@ const SWATCHES = [
   ["focus", "bg-focus"],
 ] as const;
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+const Section = ({ title, children }: { title: string; children: ReactNode }) => {
   return (
     <section className="grid gap-3">
       <h2 className="font-mono text-xs font-semibold text-muted">{title}</h2>
       {children}
     </section>
   );
-}
+};
 
 /** Every primitive in one theme. The page renders it twice, in data-theme="light" and "dark". */
-export function ThemeSample({ theme }: { theme: "light" | "dark" }) {
+export const ThemeSample = ({ theme }: { theme: "light" | "dark" }) => {
   return (
     <div
       data-theme={theme}
@@ -136,9 +136,9 @@ export function ThemeSample({ theme }: { theme: "light" | "dark" }) {
       </Panel>
     </div>
   );
-}
+};
 
-export function Styleguide() {
+export const Styleguide = () => {
   return (
     <div className="grid gap-6">
       <div className="grid gap-1">
@@ -151,4 +151,4 @@ export function Styleguide() {
       </div>
     </div>
   );
-}
+};

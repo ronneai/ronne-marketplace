@@ -6,14 +6,14 @@ import type { DatabaseDialect } from "./url";
  * SQLite and PostgreSQL use ON CONFLICT … DO UPDATE; MySQL and MariaDB use ON DUPLICATE KEY UPDATE
  * with VALUES(), which both support (MySQL's newer `AS alias` syntax doesn't work on MariaDB).
  */
-export function upsert<DB, Table extends keyof DB & string>(
+export const upsert = <DB, Table extends keyof DB & string>(
   db: Kysely<DB>,
   dialect: DatabaseDialect,
   table: Table,
   values: Record<string, unknown>,
   conflictColumns: readonly string[],
   updateColumns: readonly string[],
-) {
+) => {
   if (updateColumns.length === 0) throw new Error("upsert needs at least one column to update");
 
   // Kysely can't check dynamic column names against DB, so the builder is typed loosely here and
@@ -33,4 +33,4 @@ export function upsert<DB, Table extends keyof DB & string>(
       .columns([...conflictColumns])
       .doUpdateSet(Object.fromEntries(updateColumns.map((c) => [c, sql.ref(`excluded.${c}`)]))),
   );
-}
+};

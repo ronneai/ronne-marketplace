@@ -11,7 +11,7 @@ beforeEach(async () => {
 });
 afterEach(() => t.cleanup());
 
-async function insertUser(email: string) {
+const insertUser = async (email: string) => {
   const id = newId();
   const now = toDbDate(new Date(), t.dialect);
   await t.db
@@ -28,7 +28,7 @@ async function insertUser(email: string) {
     })
     .execute();
   return id;
-}
+};
 
 const count = async () => (await t.db.selectFrom("audit_log").select("id").execute()).length;
 

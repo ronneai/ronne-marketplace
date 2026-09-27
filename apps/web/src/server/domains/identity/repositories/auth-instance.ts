@@ -22,7 +22,7 @@ const shared = globalThis as typeof globalThis & {
 };
 
 /** The running server's Better Auth instance and login limiter, for the current settings. */
-export function getAppAuth(): AppAuth {
+export const getAppAuth = (): AppAuth => {
   const config = loadConfig();
   if (!isConfigured(config)) throw new NotConfiguredError();
   const baseURL = config.publicUrl ?? "http://localhost:3000";
@@ -43,9 +43,9 @@ export function getAppAuth(): AppAuth {
   }
   shared.__ronneLoginLimiter ??= new LoginRateLimiter();
   return { auth, db, dialect, trustProxy: config.trustProxy, limiter: shared.__ronneLoginLimiter };
-}
+};
 
 /** The same, or null before setup: then there's no one to sign in, and no database to ask. */
-export function getAppAuthIfConfigured(): AppAuth | null {
+export const getAppAuthIfConfigured = (): AppAuth | null => {
   return isConfigured(loadConfig()) ? getAppAuth() : null;
-}
+};

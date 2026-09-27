@@ -5,15 +5,15 @@ import { type Expression, type SqlBool, sql } from "kysely";
 const ESCAPE = "!";
 
 /** Escapes `%`, `_` and the escape character itself, so they match literally in LIKE. */
-export function escapeLike(term: string): string {
+export const escapeLike = (term: string): string => {
   return term.replace(/[!%_]/g, (char) => `${ESCAPE}${char}`);
-}
+};
 
 /**
  * `column` contains `term`, ignoring case, with the same result on every dialect (MVP §9.4).
  * Case folding is ASCII-only in SQLite; MySQL and PostgreSQL also fold other letters.
  */
-export function containsInsensitive(column: string, term: string): Expression<SqlBool> {
+export const containsInsensitive = (column: string, term: string): Expression<SqlBool> => {
   const pattern = `%${escapeLike(term.toLowerCase())}%`;
   return sql<SqlBool>`lower(${sql.ref(column)}) like ${pattern} escape ${sql.lit(ESCAPE)}`;
-}
+};

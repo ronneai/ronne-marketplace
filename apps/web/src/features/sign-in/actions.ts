@@ -7,10 +7,10 @@ import { requestHeaders } from "@/server/http/request-headers";
 import type { SignInFormState } from "./types";
 
 /** The sign-in form's server action. It works without JavaScript: the form posts here directly. */
-export async function signInFromForm(
+export const signInFromForm = async (
   _previous: SignInFormState,
   form: FormData,
-): Promise<SignInFormState> {
+): Promise<SignInFormState> => {
   const email = String(form.get("email") ?? "");
   const result = await signIn(await requestHeaders(), {
     email,
@@ -19,4 +19,4 @@ export async function signInFromForm(
   });
   if (!result.ok) return { error: result.error, email };
   redirect(safeNextPath(String(form.get("next") ?? "")));
-}
+};

@@ -11,12 +11,12 @@ import { SetupFailedError } from "./run-setup";
  * pnpm run reset-root-password: sets a new root password, ends root's sessions, revokes its access
  * tokens and re-enables it (feature 003). Reads DATABASE_URL from the environment or .env.
  */
-export async function runResetRootPassword(options: {
+export const runResetRootPassword = async (options: {
   appDir: string;
   envPath: string;
   prompts: SetupPrompts;
   databaseUrl?: string;
-}): Promise<{ email: string }> {
+}): Promise<{ email: string }> => {
   const { appDir, envPath, prompts } = options;
   const databaseUrl = options.databaseUrl || readEnvFile(envPath).DATABASE_URL;
   if (!databaseUrl)
@@ -57,4 +57,4 @@ export async function runResetRootPassword(options: {
   } finally {
     await db.destroy();
   }
-}
+};

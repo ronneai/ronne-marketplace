@@ -18,7 +18,7 @@ export const buttonClasses = (variant: ButtonVariant = "primary") =>
     VARIANTS[variant],
   );
 
-export function Button({
+export const Button = ({
   variant = "primary",
   loading = false,
   className,
@@ -26,7 +26,7 @@ export function Button({
   disabled,
   type = "button",
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; loading?: boolean }) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; loading?: boolean }) => {
   return (
     <button
       type={type}
@@ -38,4 +38,4 @@ export function Button({
       {children}
     </button>
   );
-}
+};

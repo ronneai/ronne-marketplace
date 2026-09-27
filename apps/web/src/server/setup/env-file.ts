@@ -24,7 +24,7 @@ const SAFE_UNQUOTED = /^[A-Za-z0-9_\-.:/@%+=,~]*$/;
  * That parser has no escape for a quote inside quotes, and treats `#` as a comment even without a
  * space before it, so the quoting style is chosen from what the value contains.
  */
-export function formatEnvValue(value: string): string {
+export const formatEnvValue = (value: string): string => {
   if (/[\r\n]/.test(value)) throw new Error("A .env value can't contain a line break.");
   if (SAFE_UNQUOTED.test(value)) return value;
   if (!value.includes("'")) return `'${value}'`;
@@ -34,21 +34,21 @@ export function formatEnvValue(value: string): string {
   throw new Error(
     "This value contains every kind of quote, so it can't be written to .env safely.",
   );
-}
+};
 
 /** Reads .env into key/value pairs, the way the app will read it. A missing file is empty. */
 export type EnvValues = Record<string, string | undefined>;
 
-export function readEnvFile(path: string): EnvValues {
+export const readEnvFile = (path: string): EnvValues => {
   return existsSync(path) ? parseEnv(readFileSync(path, "utf8")) : {};
-}
+};
 
 /**
  * Returns `existing` with `updates` applied: known keys are replaced in place, new ones are
  * appended, and every other line (comments, blank lines, other keys) is kept. A key in KEEP_IF_SET
  * that already has a value isn't replaced.
  */
-export function mergeEnv(existing: string, updates: Partial<SetupEnv>): string {
+export const mergeEnv = (existing: string, updates: Partial<SetupEnv>): string => {
   const current = parseEnv(existing);
   const pending = new Map(
     Object.entries(updates).filter(
@@ -66,33 +66,33 @@ export function mergeEnv(existing: string, updates: Partial<SetupEnv>): string {
   });
   for (const [key, value] of pending) merged.push(`${key}=${formatEnvValue(value)}`);
   return `${merged.join("\n")}\n`;
-}
+};
 
 /**
  * Writes .env readable only by its owner (0600), through a temporary file and a rename, so a crash
  * never leaves half a file.
  */
-export function writeEnvFile(path: string, content: string): void {
+export const writeEnvFile = (path: string, content: string): void => {
   const temporary = `${path}.tmp-${process.pid}`;
   writeFileSync(temporary, content, { mode: 0o600 });
   chmodSync(temporary, 0o600);
   renameSync(temporary, path);
-}
+};
 
 /** Merges `updates` into the .env at `path` (created if missing) and returns the values now in it. */
-export function updateEnvFile(path: string, updates: Partial<SetupEnv>): EnvValues {
+export const updateEnvFile = (path: string, updates: Partial<SetupEnv>): EnvValues => {
   const existing = existsSync(path) ? readFileSync(path, "utf8") : "";
   const content = mergeEnv(existing, updates);
   writeEnvFile(path, content);
   return parseEnv(content);
-}
+};
 
 /** A new AUTH_SECRET: 32 random bytes, base64. */
-export function generateAuthSecret(): string {
+export const generateAuthSecret = (): string => {
   return randomBytes(32).toString("base64");
-}
+};
 
 /** Secrets shorter than 32 characters get a warning in setup, but are kept. */
-export function isWeakSecret(secret: string): boolean {
+export const isWeakSecret = (secret: string): boolean => {
   return secret.length < 32;
-}
+};

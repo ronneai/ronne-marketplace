@@ -50,7 +50,7 @@ describe("signIn", () => {
     expect(await attempt("nobody@example.com", password)).toEqual(invalid);
     expect(await attempt("not an email", password)).toEqual(invalid);
     expect(await attempt(email, "x".repeat(129))).toEqual(invalid);
-    expect(await attempt("x".repeat(250) + "@example.com", password)).toEqual(invalid);
+    expect(await attempt(`${"x".repeat(250)}@example.com`, password)).toEqual(invalid);
 
     await t.db
       .updateTable("user")

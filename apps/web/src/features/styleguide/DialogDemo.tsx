@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 
-export function DialogDemo() {
+export const DialogDemo = () => {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -19,4 +19,4 @@ export function DialogDemo() {
       </Dialog>
     </>
   );
-}
+};

@@ -5,9 +5,9 @@ import { kyselyIdentityRepository } from "../repositories/kysely-identity-reposi
 import * as service from "../services/root-account";
 
 /** Entry points for the setup and reset-root-password commands. Thin: they wire the dependencies. */
-function deps(db: Db, dialect: DatabaseDialect): service.IdentityDeps {
+const deps = (db: Db, dialect: DatabaseDialect): service.IdentityDeps => {
   return { repo: kyselyIdentityRepository(db, dialect), hasher: argon2PasswordHasher };
-}
+};
 
 export const createRoot = (db: Db, dialect: DatabaseDialect, input: service.NewRoot) =>
   service.createRootUser(deps(db, dialect), input);
