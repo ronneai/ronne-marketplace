@@ -15,7 +15,8 @@
     "format": "biome check --write .",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
-    "hooks:install": "git config core.hooksPath .githooks"
+    "hooks:install": "git config core.hooksPath .githooks",
+    "licenses:check": "pnpm licenses list --json | node packages/repo-tools/src/check-licenses.js"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.14",

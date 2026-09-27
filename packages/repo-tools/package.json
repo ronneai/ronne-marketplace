@@ -2,7 +2,7 @@
   "name": "@ronne/repo-tools",
   "version": "0.0.0",
   "private": true,
-  "description": "Dependency-free checks for this repository: commit message and pull request title format.",
+  "description": "Dependency-free checks for this repository: commit message and PR title format, and dependency licenses.",
   "license": "MIT",
   "type": "module",
   "bin": {
