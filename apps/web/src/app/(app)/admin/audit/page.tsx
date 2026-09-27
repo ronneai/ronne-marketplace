@@ -3,14 +3,15 @@ import { AuditLogPage } from "@/features/admin-audit/AuditLogPage";
 import { parseAuditQuery, type SearchParams } from "@/features/admin-audit/query";
 import { appAuditPage } from "@/server/domains/audit/actions/audit-page";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
+import { can } from "@/server/domains/identity/models/permissions";
 import { requestHeaders } from "@/server/http/request-headers";
 
 export const metadata = { title: "Audit log · Ronne" };
 
-/** Root only: anyone else gets a 404, so the page's existence isn't revealed (spec 007). */
+/** Root only (`audit.view`): anyone else gets a 404, so the page's existence isn't revealed (spec 007). */
 export default async function AuditLog({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const user = await getCurrentUser(await requestHeaders());
-  if (user?.role !== "root") notFound();
+  if (!can(user, "audit.view")) notFound();
 
   const query = parseAuditQuery(await searchParams);
   const { events, nextCursor, actors } = await appAuditPage({

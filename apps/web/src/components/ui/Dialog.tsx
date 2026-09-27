@@ -31,7 +31,7 @@ export function Dialog({
       ref={ref}
       onClose={onClose}
       aria-labelledby="dialog-title"
-      className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-panel border border-strong bg-surface p-0 text-fg backdrop:bg-canvas/80"
+      className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-panel border border-strong bg-surface p-0 text-left text-fg backdrop:bg-canvas/80"
     >
       <div className="flex items-center justify-between border-b border-hairline px-4 py-3">
         <h2 id="dialog-title" className="text-lg font-semibold">

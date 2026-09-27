@@ -2,10 +2,32 @@ import type { Kysely } from "kysely";
 import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
 import type { Database } from "../../../db/schema";
+import { containsInsensitive } from "../../../db/search";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
-import { isRole } from "../models/user";
+import { isRole, type UserSummary } from "../models/user";
 import type { IdentityRepository, NewUserWithPassword } from "./identity-repository";
+
+type UserRow = {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  disabled_at: Date | string | null;
+  created_at: Date | string;
+};
+
+function summary(row: UserRow): UserSummary {
+  return {
+    id: row.id,
+    email: row.email,
+    name: row.name,
+    // A role outside the known three is shown as a plain user: it gets no permissions either way.
+    role: isRole(row.role) ? row.role : "user",
+    disabledAt: fromDbDate(row.disabled_at),
+    createdAt: fromDbDate(row.created_at),
+  };
+}
 
 /** Better Auth's provider id for email and password accounts. */
 const CREDENTIAL_PROVIDER = "credential";
@@ -46,6 +68,67 @@ export function kyselyIdentityRepository(
       // A role outside the three known ones gets no access rather than a guess.
       if (!row || !isRole(row.role)) return null;
       return { id: row.id, email: row.email, name: row.name, role: row.role };
+    },
+
+    async findUser(userId) {
+      const row = await db
+        .selectFrom("user")
+        .select(["id", "email", "name", "role", "disabled_at", "created_at"])
+        .where("id", "=", userId)
+        .executeTakeFirst();
+      return row ? summary(row) : null;
+    },
+
+    async listUsers({ search, role, status, cursor, limit }) {
+      let query = db
+        .selectFrom("user")
+        .select(["id", "email", "name", "role", "disabled_at", "created_at"])
+        .orderBy("id", "desc")
+        .limit(limit);
+      if (search)
+        query = query.where((eb) =>
+          eb.or([containsInsensitive("email", search), containsInsensitive("name", search)]),
+        );
+      if (role) query = query.where("role", "=", role);
+      if (status === "active") query = query.where("disabled_at", "is", null);
+      if (status === "disabled") query = query.where("disabled_at", "is not", null);
+      if (cursor) query = query.where("id", "<", cursor);
+      return (await query.execute()).map(summary);
+    },
+
+    async emailTaken(email) {
+      const row = await db
+        .selectFrom("user")
+        .select("id")
+        .where("email", "=", email)
+        .executeTakeFirst();
+      return Boolean(row);
+    },
+
+    async setRole(userId, role, now) {
+      await db
+        .updateTable("user")
+        .set({ role, updated_at: at(now) })
+        .where("id", "=", userId)
+        .execute();
+    },
+
+    async disableUser(userId, now) {
+      await db
+        .updateTable("user")
+        .set({ disabled_at: at(now), updated_at: at(now) })
+        .where("id", "=", userId)
+        .execute();
+    },
+
+    async countActiveAccessTokens(userId) {
+      const row = await db
+        .selectFrom("access_tokens")
+        .select((eb) => eb.fn.countAll<number | string | bigint>().as("n"))
+        .where("user_id", "=", userId)
+        .where("revoked_at", "is", null)
+        .executeTakeFirstOrThrow();
+      return Number(row.n);
     },
 
     async userStatusByEmail(email) {

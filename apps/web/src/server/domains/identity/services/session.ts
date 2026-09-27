@@ -2,6 +2,7 @@ import type { AuditMetadata } from "../../audit/models/audit-event";
 import { InvalidEmailError, InvalidPasswordError } from "../exceptions/errors";
 import { type LoginRateLimiter, loginRateLimitKeys } from "../models/login-rate-limiter";
 import { PASSWORD_MAX_LENGTH, validatePassword } from "../models/password";
+import { requirePermission } from "../models/permissions";
 import { type CurrentUser, normalizeEmail } from "../models/user";
 import type { IdentityRepository } from "../repositories/identity-repository";
 import type { SessionStore } from "../repositories/session-store";
@@ -128,6 +129,7 @@ export async function changePassword(
 ): Promise<ChangePasswordResult> {
   const user = await currentUser(deps, context.headers);
   if (!user) return { ok: false, error: "not_signed_in" };
+  requirePermission(user, "account.manage_own");
   try {
     validatePassword(input.next);
   } catch (error) {
