@@ -17,8 +17,15 @@ env:
   TURBO_TELEMETRY_DISABLED: "1"
 
 jobs:
+  # Detects documentation-only pull requests (changes.yml).
+  changes:
+    uses: ./.github/workflows/changes.yml
+
   checks:
     name: Lint, typecheck, test, build (Node ${{ matrix.node }})
+    needs: changes
+    # Runs even if detection failed: its steps skip only on an explicit "false".
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -27,28 +34,43 @@ jobs:
         # The minimum supported LTS and the target LTS (docs/policies/dependencies.md §2).
         node: [22, 24]
     steps:
+      - name: Documentation only, nothing to check
+        if: needs.changes.outputs.code == 'false'
+        run: echo "This pull request only changes documentation, so the checks are skipped."
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: needs.changes.outputs.code != 'false'
         with:
           persist-credentials: false
       # Reads the pnpm version from packageManager. Not Corepack: it can't start pnpm 12.
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        if: needs.changes.outputs.code != 'false'
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        if: needs.changes.outputs.code != 'false'
         with:
           node-version: ${{ matrix.node }}
           cache: pnpm
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: needs.changes.outputs.code != 'false'
         with:
           path: .turbo/cache
           key: turbo-${{ runner.os }}-node${{ matrix.node }}-${{ github.sha }}
           restore-keys: turbo-${{ runner.os }}-node${{ matrix.node }}-
       - run: pnpm install --frozen-lockfile
+        if: needs.changes.outputs.code != 'false'
       - run: pnpm lint
+        if: needs.changes.outputs.code != 'false'
       - run: pnpm typecheck
+        if: needs.changes.outputs.code != 'false'
       - run: pnpm test
+        if: needs.changes.outputs.code != 'false'
       - run: pnpm build
+        if: needs.changes.outputs.code != 'false'
 
   dependencies:
     name: Licenses and known vulnerabilities
+    needs: changes
+    # Skipped (which counts as passing) only when the PR changes documentation alone.
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

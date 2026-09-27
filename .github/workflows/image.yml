@@ -15,8 +15,15 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # Detects documentation-only pull requests (changes.yml).
+  changes:
+    uses: ./.github/workflows/changes.yml
+
   image:
     name: Docker image (build, run, scan)
+    needs: changes
+    # Skipped (which counts as passing) only when the PR changes documentation alone.
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:

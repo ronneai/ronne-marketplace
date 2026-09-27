@@ -24,9 +24,16 @@ env:
   TURBO_TELEMETRY_DISABLED: "1"
 
 jobs:
+  # Detects documentation-only pull requests (changes.yml).
+  changes:
+    uses: ./.github/workflows/changes.yml
+
   test:
     # Pull request job names stay "Database tests (<database>)" so the required checks match.
     name: Database tests (${{ matrix.database }}${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && ', latest' || '' }})
+    needs: changes
+    # Runs even if detection failed: its steps skip only on an explicit "false".
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -70,17 +77,25 @@ jobs:
           --health-timeout 5s
           --health-retries 60
     steps:
+      - name: Documentation only, nothing to check
+        if: needs.changes.outputs.code == 'false'
+        run: echo "This pull request only changes documentation, so the checks are skipped."
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: needs.changes.outputs.code != 'false'
         with:
           persist-credentials: false
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        if: needs.changes.outputs.code != 'false'
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        if: needs.changes.outputs.code != 'false'
         with:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+        if: needs.changes.outputs.code != 'false'
       # Includes the setup smoke test: `pnpm run setup --yes` against an empty database (task 4).
       - name: Database tests
+        if: needs.changes.outputs.code != 'false'
         run: pnpm test:db
         env:
           TEST_DATABASE_URL: ${{ matrix.url }}
