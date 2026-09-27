@@ -1,3 +1,4 @@
+import type { NewAuditEvent } from "../../audit/models/audit-event";
 import type { CurrentUser, RootAccount } from "../models/user";
 
 export type NewUserWithPassword = {
@@ -18,6 +19,10 @@ export interface IdentityRepository {
   createUserWithPassword(user: NewUserWithPassword, now: Date): Promise<string>;
   setPassword(userId: string, passwordHash: string, now: Date): Promise<void>;
   enableUser(userId: string, now: Date): Promise<void>;
-  deleteSessions(userId: string): Promise<void>;
-  revokeAccessTokens(userId: string, now: Date): Promise<void>;
+  /** Returns how many sessions ended. */
+  deleteSessions(userId: string): Promise<number>;
+  /** Returns how many active tokens were revoked. */
+  revokeAccessTokens(userId: string, now: Date): Promise<number>;
+  /** Records an audit event in this repository's transaction (feature 007). */
+  recordAudit(event: NewAuditEvent, now: Date): Promise<void>;
 }

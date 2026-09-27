@@ -12,7 +12,7 @@
   validation (secret-looking keys, 4 KB cap), and a read repository with a cursor.
   *Done when:* tests cover validation, writing in a transaction, rollback leaving nothing, and paging.
 
-- [ ] **3. Record 003's events.** `instance.root_created` in setup, and `user.password_reset` in
+- [x] **3. Record 003's events.** `instance.root_created` in setup, and `user.password_reset` in
   reset-root-password, in their existing transactions.
   *Done when:* the 003 database tests assert the events.
 
@@ -59,4 +59,13 @@ events are task 6 here.)
     in order, which paging by id relies on.
   - Tests pass on SQLite, PostgreSQL, MySQL and MariaDB: a rolled-back transaction leaves no event,
     an invalid event stores nothing, and the cursor paging and filters work.
+- **Task 3 (2026-09-27): 003's events.**
+  - **`instance.root_created`** (actor `null`, target the new root, `{ via: "cli", email }`) and
+    **`user.password_reset`** (`{ via: "cli", sessionsEnded, tokensRevoked }`) are recorded in the
+    services' existing transactions.
+  - **How:** through a new `recordAudit` method on `IdentityRepository`, so the service still
+    depends only on the interface, and the event shares the repository's transaction.
+    `deleteSessions` and `revokeAccessTokens` now return the counts the event records.
+  - **Tests:** a refused second root leaves only the first event, a reset with no root leaves none,
+    and the password never appears in an event.
 

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
+import { listAuditEvents } from "../../audit/actions/audit";
 import { createRoot, findRoot, resetRootPassword } from "../actions/root-account";
 import {
   InvalidEmailError,
@@ -25,6 +26,8 @@ const auth = () =>
     secret: "test-secret-test-secret-test-secret-00",
     baseURL: "http://localhost:3000",
   });
+const auditEvents = async () => (await listAuditEvents(t.db, t.dialect, {})).events;
+
 const signIn = (password: string) =>
   auth().api.signInEmail({ body: { email: "root@example.com", password } });
 
@@ -50,6 +53,21 @@ describe("createRoot", () => {
     expect((await signIn(root.password)).user.id).toBe(created.id);
   });
 
+  it("records instance.root_created, from the command line, without the password", async () => {
+    const created = await createRoot(t.db, t.dialect, root);
+    const events = await auditEvents();
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      actorId: null,
+      action: "instance.root_created",
+      targetType: "user",
+      targetId: created.id,
+      metadata: { via: "cli", email: "root@example.com" },
+      ipAddress: null,
+    });
+    expect(JSON.stringify(events[0])).not.toContain(root.password);
+  });
+
   it("refuses a second root and writes nothing", async () => {
     await createRoot(t.db, t.dialect, root);
     await expect(
@@ -57,6 +75,8 @@ describe("createRoot", () => {
     ).rejects.toThrowError(RootAlreadyExistsError);
     const roots = await t.db.selectFrom("user").select("id").where("role", "=", "root").execute();
     expect(roots).toHaveLength(1);
+    // The refused attempt's transaction rolled back, so only the first event exists.
+    expect((await auditEvents()).map((e) => e.action)).toEqual(["instance.root_created"]);
   });
 
   it("validates before writing anything", async () => {
@@ -113,12 +133,21 @@ describe("resetRootPassword", () => {
 
     await expect(signIn(root.password)).rejects.toThrow();
     expect((await signIn("a brand new passphrase")).user.id).toBe(id);
+
+    const [reset] = (await auditEvents()).filter((e) => e.action === "user.password_reset");
+    expect(reset).toMatchObject({
+      actorId: null,
+      targetType: "user",
+      targetId: id,
+      metadata: { via: "cli", sessionsEnded: 1, tokensRevoked: 1 },
+    });
   });
 
   it("fails when there's no root yet", async () => {
     await expect(resetRootPassword(t.db, t.dialect, "a brand new passphrase")).rejects.toThrowError(
       RootNotFoundError,
     );
+    expect(await auditEvents()).toEqual([]);
   });
 
   it("rejects a too-short password before touching anything", async () => {

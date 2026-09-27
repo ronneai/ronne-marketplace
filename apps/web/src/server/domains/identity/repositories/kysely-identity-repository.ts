@@ -3,6 +3,7 @@ import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
 import type { Database } from "../../../db/schema";
 import type { DatabaseDialect } from "../../../db/url";
+import { recordAudit } from "../../audit/actions/audit";
 import { isRole } from "../models/user";
 import type { IdentityRepository, NewUserWithPassword } from "./identity-repository";
 
@@ -103,16 +104,25 @@ export function kyselyIdentityRepository(
     },
 
     async deleteSessions(userId) {
-      await db.deleteFrom("session").where("user_id", "=", userId).execute();
+      const result = await db
+        .deleteFrom("session")
+        .where("user_id", "=", userId)
+        .executeTakeFirst();
+      return Number(result.numDeletedRows);
     },
 
     async revokeAccessTokens(userId, now) {
-      await db
+      const result = await db
         .updateTable("access_tokens")
         .set({ revoked_at: at(now) })
         .where("user_id", "=", userId)
         .where("revoked_at", "is", null)
-        .execute();
+        .executeTakeFirst();
+      return Number(result.numUpdatedRows);
+    },
+
+    async recordAudit(event, now) {
+      await recordAudit(db, dialect, event, now);
     },
   };
 }
