@@ -10,7 +10,7 @@
   and any adapter quirks in this plan's Notes, then throw the spike away.
   *Done when:* Notes list the columns for `user`, `session`, `account` and `verification`, and confirm the timestamp approach works (or say what changes in SPEC.md).
 
-- [ ] **2. Dialect factory.** `createDb(url)` for the three URL formats, SQLite pragmas, MySQL UTC
+- [x] **2. Dialect factory.** `createDb(url)` for the three URL formats, SQLite pragmas, MySQL UTC
   session time zone, and a clear error for unknown formats. Add the drivers (after the dependency policy
   checklist) and add `better-sqlite3: true` to `allowBuilds`, with the reason in the pull request.
   *Done when:* unit tests cover URL parsing, and an integration test connects to in-memory SQLite.
@@ -55,4 +55,10 @@
   - **Telemetry** (`@better-auth/telemetry`) is off unless `telemetry.enabled` or `BETTER_AUTH_TELEMETRY` is set. 003 sets `telemetry: { enabled: false }` explicitly anyway.
   - **Better Auth's own migration CLI** (`npx auth migrate`) isn't used: our migration set owns the schema.
   - **Dependencies for this feature** (all MIT, and all passed the 3-day release age): `kysely` 0.29.6, `better-sqlite3` 13.0.3 (added to `allowBuilds`), `pg` 8.23.0, `mysql2` 3.24.4 and `ulid` 3.0.2. `better-auth` and `@node-rs/argon2` arrive with 003.
+- **Task 2 (2026-09-27): `createDb` and `parseDatabaseUrl`** in `apps/web/src/server/db/`.
+  - `file::memory:` is accepted for in-memory SQLite (used by tests).
+  - `redactDatabaseUrl` replaces the password with `***` in every error, so a bad `DATABASE_URL` never leaks it into logs.
+  - The UTC session settings use Kysely's `onCreateConnection`: `SET time_zone = '+00:00'` on MySQL, and `SET TIME ZONE 'UTC'` on PostgreSQL. The `mysql2` pool also uses `timezone: "Z"` and `charset: "utf8mb4"`.
+  - `schema.ts` has an empty `Database` interface until task 5, with a Biome ignore comment.
+  - Database tests are named `*.db.test.ts` from the start, ready for 004's split.
 
