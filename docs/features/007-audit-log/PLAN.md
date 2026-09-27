@@ -23,7 +23,7 @@
 - [ ] **5. `/admin/audit` page.** Root-only (404 otherwise), the table with filters and cursor paging, using 032's parts.
   *Done when:* render and permission tests pass, and a Playwright test (006's harness) opens it as root.
 
-- [ ] **6. Record 006's events.** `auth.signed_in`, `auth.sign_in_failed`, `auth.signed_out` and
+- [x] **6. Record 006's events.** `auth.signed_in`, `auth.sign_in_failed`, `auth.signed_out` and
   `user.password_changed`, from the identity services, with the client IP when it can be trusted.
   *Done when:* a database test per event, and the 006 end-to-end tests still pass.
 
@@ -75,4 +75,25 @@ events are task 6 here.)
     `audit_log`, and SQL `update`, `delete from`, `truncate` or `drop table` on it.
   - It has a self-test of the patterns. A throwaway file with `deleteFrom("audit_log")` made it fail,
     naming the file and line, and it passed again once that file was removed.
+- **Task 6 (2026-09-27): 006's events** (done before task 5, so the page has real events to show).
+  - **`auth.signed_in`:** the user, their new session (`target_type = "session"`), `{ remember }` and
+    the client IP.
+  - **`auth.sign_in_failed`:** no actor, `{ email, reason }`, where the email is as typed, trimmed,
+    lowercased and cut to 255 characters.
+    - `reason` is `invalid`, `disabled` or `rate_limited`, for the log only. The person signing in
+      always sees the same message.
+    - To tell `disabled` apart, `IdentityRepository` has a new `userStatusByEmail`.
+  - **`auth.signed_out`:** the session that ended. Signing out without a session records nothing.
+  - **`user.password_changed`:** `{ otherSessionsEnded }`, counted before the change. A wrong current
+    password records nothing.
+  - **No token leaves the store:** Better Auth's sign-in returns the session *token*. The session
+    store looks the session up and gives the service only its id, so no token reaches the log.
+    `SessionStore.sessionUserId` became `currentSession`, returning `{ userId, sessionId }`.
+  - **Not in one transaction:** Better Auth writes sessions and passwords in its own transactions,
+    so these events are recorded right after the change succeeds. A crash between the two would
+    lose the event, never invent one. 003's events and later ones (008, 009) share the change's
+    transaction.
+  - **The IP** comes from `clientIp()`, so it's only recorded with `TRUST_PROXY=true`.
+  - **Tests:** one per event, plus a check that no password or session token appears anywhere in
+    `audit_log`. They pass on all four databases, and the 006 end-to-end tests still pass.
 

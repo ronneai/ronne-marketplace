@@ -48,6 +48,25 @@ export function kyselyIdentityRepository(
       return { id: row.id, email: row.email, name: row.name, role: row.role };
     },
 
+    async userStatusByEmail(email) {
+      const row = await db
+        .selectFrom("user")
+        .select("disabled_at")
+        .where("email", "=", email)
+        .executeTakeFirst();
+      if (!row) return null;
+      return row.disabled_at ? "disabled" : "active";
+    },
+
+    async countSessions(userId) {
+      const row = await db
+        .selectFrom("session")
+        .select((eb) => eb.fn.countAll<number | string | bigint>().as("n"))
+        .where("user_id", "=", userId)
+        .executeTakeFirstOrThrow();
+      return Number(row.n);
+    },
+
     async createUserWithPassword(user: NewUserWithPassword, now: Date) {
       const id = newId();
       await db

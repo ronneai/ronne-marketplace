@@ -19,6 +19,9 @@ export interface IdentityRepository {
   createUserWithPassword(user: NewUserWithPassword, now: Date): Promise<string>;
   setPassword(userId: string, passwordHash: string, now: Date): Promise<void>;
   enableUser(userId: string, now: Date): Promise<void>;
+  /** Whether an email belongs to an active or a disabled user, or to nobody. For audit reasons only. */
+  userStatusByEmail(email: string): Promise<"active" | "disabled" | null>;
+  countSessions(userId: string): Promise<number>;
   /** Returns how many sessions ended. */
   deleteSessions(userId: string): Promise<number>;
   /** Returns how many active tokens were revoked. */

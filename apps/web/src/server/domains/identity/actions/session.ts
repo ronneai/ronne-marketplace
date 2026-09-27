@@ -37,19 +37,25 @@ export async function requireUser(headers: Headers, app?: AppAuth): Promise<Curr
   redirect(signInUrl(headers.get(PATH_HEADER) ?? "/"));
 }
 
+/** The request's context for the audit log: headers, and the client IP when it can be trusted. */
+const context = (headers: Headers, app: AppAuth): service.RequestContext => ({
+  headers,
+  ip: clientIp(headers, app.trustProxy),
+});
+
 export function signIn(
   headers: Headers,
   input: service.SignInInput,
   app: AppAuth = getAppAuth(),
 ): Promise<service.SignInResult> {
-  return service.signIn(deps(app), headers, input, clientIp(headers, app.trustProxy));
+  return service.signIn(deps(app), context(headers, app), input);
 }
 
 export const changePassword = (
   headers: Headers,
   input: { current: string; next: string },
   app: AppAuth = getAppAuth(),
-) => service.changePassword(deps(app), headers, input);
+) => service.changePassword(deps(app), context(headers, app), input);
 
 export const signOut = (headers: Headers, app: AppAuth = getAppAuth()) =>
-  service.signOut(deps(app), headers);
+  service.signOut(deps(app), context(headers, app));
