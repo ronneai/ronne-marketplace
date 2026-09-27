@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-labelledby="t">
+  <title id="t">Ronne</title>
+  <style>
+    .stem { fill: #0b1220; }
+    .corner { fill: #18b6a4; }
+    @media (prefers-color-scheme: dark) { .stem { fill: #ffffff; } }
+  </style>
+  <path class="stem" d="M75.51,113.38l-.65,76.62-36.68-.03-.32-64.03c-.14-29.16,7.55-57.05,26.28-79.17,18.3-21.62,43.32-33.96,71.52-36.28l38.47-.49-.02,37.19-30.89.08c-35.74.71-66.03,28.86-67.71,66.11Z"/>
+  <path class="corner" d="M39.64,67.4c-4.73,1.65-9,1.2-13.77.45l.15-57.22,52.81-.11c1.01,3.81.7,7.36.2,11.58-19.11,8.16-33.97,24.19-39.4,45.3Z"/>
+</svg>

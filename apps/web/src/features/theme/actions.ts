@@ -7,3 +7,8 @@ import { parseTheme, THEME_COOKIE, themeCookieOptions } from "./theme";
 export async function setTheme(theme: string) {
   (await cookies()).set(THEME_COOKIE, parseTheme(theme), themeCookieOptions);
 }
+
+/** The same, from a form: the user menu's theme buttons submit `theme`. Works without JavaScript. */
+export async function setThemeFromForm(form: FormData) {
+  await setTheme(String(form.get("theme") ?? ""));
+}

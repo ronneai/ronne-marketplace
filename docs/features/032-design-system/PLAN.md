@@ -20,7 +20,7 @@
   *Done when:* the tests pass, and the lint checks (no raw hex; no shadow, gradient or red, yellow
   or green classes) run in `pnpm lint`.
 
-- [ ] **4. App shell.** Header (brand, role-aware navigation, user menu), footer and content column,
+- [x] **4. App shell.** Header (brand, role-aware navigation, user menu), footer and content column,
   and the brand SVGs and favicons in `public/`. The setup-required screen uses the new parts.
   *Done when:* a render test covers the navigation for `user` and `root`, and the favicon matches the theme.
 
@@ -65,4 +65,27 @@
     since Biome can't express them). Over `components/` and `features/`, with comments ignored, it
     rejects raw hex colours, shadows, gradients and red, yellow or green classes. It was checked with a
     deliberately bad file.
+- **Task 4 (2026-09-27): app shell and brand assets.**
+  - **`components/app-shell/AppShell.tsx`:**
+    - header with `BrandMark`, "ronne" and a mono "/ registry", role-aware navigation (`nav.ts`:
+      Home, and Admin for root only), and `aria-current`;
+    - a user menu on a native `<details>`, which works without JavaScript: Account, Access tokens,
+      theme buttons (`setThemeFromForm`), and Sign out via a `signOutAction` prop that 006 wires;
+    - a 1024px content column and a footer.
+  - **The home page moved to `app/(app)/`,** whose layout renders the shell with `user={null}` until 006 protects it.
+  - **`components/ui/BrandMark.tsx`:** the monogram's paths inline. The stem is `fill-current` and the
+    corner `fill-accent`, so it follows the theme, including the manual toggle.
+  - **The brand wordmark SVG wasn't used,** because it draws "ronne AI" as live `<text>`, which falls
+    back to another font inside an `<img>`. The shell writes "ronne" in Manrope instead.
+  - **Favicons:**
+    - `app/icon.svg` uses the favicon paths, with a `prefers-color-scheme: dark` rule inside the SVG
+      (browsers follow the OS for tab icons);
+    - `app/icon.png` is the 401px light PNG, as a fallback.
+
+    Adobe XMP and C2PA metadata was stripped from the public copies.
+  - **The setup-required screen** now uses `Panel`, `BrandMark`, `CopyableCommand` and `Notice`.
+  - **Vitest** now resolves the `@/` alias (it isn't read from tsconfig). Before that, three test
+    files failed to import, so a "passed" count alone wasn't enough.
+  - **Checked live:** a configured instance renders the shell (dark theme via the cookie); both icons are
+    linked; `/icon.svg` returns 200 as `image/svg+xml`; setup mode shows the restyled screen.
 
