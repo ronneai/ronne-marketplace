@@ -5,8 +5,10 @@ hooks, MCP servers and more. A team installs it on its own infrastructure, propo
 and releases them, and installs them into AI coding tools such as Claude Code, Codex and Cursor with
 the `rmk` CLI or from inside those tools through an MCP server.
 
-> **Status:** early development (milestone M0). Nothing is usable yet. The design is in
-> [`docs/MVP/MVP.md`](docs/MVP/MVP.md), and progress is tracked in [`docs/features/`](docs/features/README.md).
+> **Status:** early development (milestone M1, accounts and sign-in). Ronne installs, and you can
+> sign in, change your password and, as root, read the audit log. Items, reviews, releases and the
+> `rmk` CLI come in later milestones. The design is in [`docs/MVP/MVP.md`](docs/MVP/MVP.md), and
+> progress is tracked in [`docs/features/`](docs/features/README.md).
 
 ## Getting started
 
@@ -79,6 +81,21 @@ to the public address, for example `PUBLIC_URL=https://ronne.example.com docker 
 Set `TRUST_PROXY=true` too, so Ronne takes the client's address from the proxy's `X-Forwarded-For`:
 sign-in is then rate-limited per address as well as per email, and sessions record it. Only set it
 when a proxy you control sits in front of Ronne and adds that header; otherwise anyone could forge it.
+
+## The `rmk` CLI
+
+`rmk` installs approved items into your AI coding tools. **It isn't released yet.** It arrives in
+milestone M4 ([feature 022](docs/features/README.md#m4--rmk--claude-code)), and will be installed
+from npm:
+
+```sh
+npm install --global @ronne/rmk   # not published yet
+```
+
+The package is `@ronne/rmk` because the unscoped `rmk` name is taken on npm; the command is still
+`rmk`. The `@ronne` scope is still to be confirmed as ours, so the package name may change
+(`@ronne-ai/rmk` is the fallback). Until then, the code in `packages/cli` is a placeholder that
+only prints its version. From a clone, after `pnpm build`, run it with `pnpm exec rmk --version`.
 
 ## Development
 
