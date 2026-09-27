@@ -27,7 +27,7 @@
 - [x] **6. `reset-root-password` command.** Interactive and `--yes` modes.
   *Done when:* a child-process test resets the password, and the old password no longer verifies.
 
-- [ ] **7. Docs.** Update the README's getting-started section, and change `pnpm setup` to `pnpm run setup` anywhere it still appears.
+- [x] **7. Docs.** Update the README's getting-started section, and change `pnpm setup` to `pnpm run setup` anywhere it still appears.
   *Done when:* the README steps work as written on a fresh clone.
 
 ## Notes
@@ -90,4 +90,8 @@
   - **Exit codes:** 0 done; 1 when there's no root yet (a clear message); 2 for a missing or short password, no `DATABASE_URL`, or no terminal without `--yes`.
   - **Tests** run the real scripts: setup, then reset. Afterwards the old password no longer signs in through Better Auth and the new one does. There are separate tests for no root, missing input and no terminal.
   - A database that was never migrated (no tables) still ends with the driver's error and a stack trace, rather than a friendly message. `pnpm run setup` is the documented first step, so this was left as it is.
+- **Task 7 (2026-09-27): docs.**
+  - The README has a "Getting started" section (clone, install, `pnpm run setup`, build and start), plus the supported databases, the PostgreSQL 15+ grant, non-interactive use with exit codes, and `reset-root-password`. The README and CLAUDE.md command tables list `setup`, `reset-root-password` and `db:migrate`.
+  - `git grep` finds no remaining `pnpm setup` without `run`, apart from the warnings about it.
+  - The non-interactive steps were run as written from the repo root, into a temp `RONNE_ENV_FILE`, with exit 0. The interactive steps wait on task 4's manual run.
 

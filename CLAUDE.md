@@ -35,6 +35,9 @@ Use Node.js 24 (`.nvmrc`) and pnpm installed directly (`npm install --global pnp
 | `pnpm test` | Runs every Vitest suite; `pnpm --filter @ronne/core test` for one package |
 | `pnpm licenses:check` | Checks every installed package's license against `license-policy.json` |
 | `pnpm audit --audit-level high` | Fails on known high or critical vulnerabilities |
+| `pnpm run setup` | Configures an instance (interactive, or `--yes` with env vars). Never `pnpm setup`: that's a pnpm built-in |
+| `pnpm run reset-root-password` | New root password; ends root's sessions and revokes its tokens |
+| `pnpm db:migrate` | Applies pending migrations to `DATABASE_URL` |
 | `pnpm hooks:install` | Turns on the local `pre-commit` checks and the commit-message check (once per clone) |
 
 CI (`.github/workflows/`) runs lint, typecheck, test and build on Node 22 and 24, the license and audit checks, CodeQL, and the PR title check.
