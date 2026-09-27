@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { columnTypes, tableDefaults } from "./column-types";
-import { fromDbDate, toDbDate } from "./dates";
+import { fromDbDate, toDbBoolean, toDbDate } from "./dates";
 import { isId, newId } from "./ids";
 import { decodeJson, encodeJson } from "./json";
 import { containsInsensitive, escapeLike } from "./search";
@@ -84,6 +84,15 @@ describe("dates", () => {
     expect(fromDbDate(date)).toBe(date);
     expect(fromDbDate(null)).toBeNull();
     expect(() => fromDbDate("yesterday")).toThrowError(/Not a valid timestamp/);
+  });
+});
+
+describe("toDbBoolean", () => {
+  it("writes 0/1 for SQLite and booleans elsewhere", () => {
+    expect(toDbBoolean(true, "sqlite")).toBe(1);
+    expect(toDbBoolean(false, "sqlite")).toBe(0);
+    expect(toDbBoolean(false, "postgres")).toBe(false);
+    expect(toDbBoolean(true, "mysql")).toBe(true);
   });
 });
 

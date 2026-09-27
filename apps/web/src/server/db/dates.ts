@@ -17,3 +17,11 @@ export function fromDbDate(value: Date | string | null): Date | null {
   if (Number.isNaN(date.getTime())) throw new Error(`Not a valid timestamp: ${String(value)}`);
   return date;
 }
+
+/**
+ * Converts a boolean for writing. SQLite drivers can't bind booleans, so it gets 0 or 1. Only for
+ * Better Auth's email_verified: everywhere else, use a nullable timestamp (MVP §9.4).
+ */
+export function toDbBoolean(value: boolean, dialect: DatabaseDialect): boolean | number {
+  return dialect === "sqlite" ? Number(value) : value;
+}

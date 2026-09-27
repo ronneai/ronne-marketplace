@@ -9,7 +9,7 @@
   functions, and the `role` and `disabled_at` additional fields. No routes or cookies yet.
   *Done when:* a test creates a user through it on SQLite and reads back an argon2id hash in `account`.
 
-- [ ] **2. `createRootUser` and `resetRootPassword`.** Actions and services in `identity`, with
+- [x] **2. `createRootUser` and `resetRootPassword`.** Actions and services in `identity`, with
   repository interfaces, and domain exceptions (`RootAlreadyExistsError`, `InvalidPasswordError`).
   The create step runs in one transaction.
   *Done when:* service tests cover creating root, refusing a second root, the password rules, and a reset that removes sessions and revokes tokens.
@@ -39,4 +39,16 @@
   - **Better Auth 1.7.5 API:** `internalAdapter.createUser` needs a provisioning source (`{ method: "admin" }`).
   - **Dependencies:** `better-auth` moved from dev to runtime dependencies. Added `@node-rs/argon2` 2.2.1 (native binaries as optional platform packages, no install script) and `@clack/prompts` 1.8.1 for task 4. All MIT.
   - Login rate limiting (MVP §9.5) belongs to the web login in 006.
+- **Task 2 (2026-09-27): root account.** The identity domain now follows the MVP §9.2 layout:
+  - `models/`: email and name normalization, password rules, the `PasswordHasher` interface;
+  - `exceptions/errors.ts`: `InvalidEmailError`, `InvalidNameError`, `InvalidPasswordError`, `RootAlreadyExistsError`, `RootNotFoundError`;
+  - `repositories/`: the `IdentityRepository` interface and its Kysely implementation;
+  - `services/root-account.ts`: depends only on the interface and the hasher;
+  - `actions/root-account.ts`: thin wiring.
+  - **Root is written directly** (a `user` row plus a `credential` `account` row, with `account_id` equal to the user id, as Better Auth does) in one transaction. That's because Better Auth's sign-up is disabled and its `role` field is `input: false`. The tests prove Better Auth signs in as that root, and after a reset only the new password works.
+  - **The reset** sets the password, deletes root's sessions, revokes its access tokens (`revoked_at`) and clears `disabled_at`, in one transaction.
+  - **Validation happens before any write:** email trimmed and lowercased, name 1–255 characters, password 12–128 *characters* (so emoji count as one).
+  - **Found while testing:** `better-sqlite3` can't bind JavaScript booleans. `toDbBoolean()` was added to `db/dates.ts`, next to `toDbDate()`, for `email_verified`.
+  - **Known limit:** two setups running at the same moment could both pass the "no root yet" check. It's acceptable for a one-operator installer. A portable database guard (a partial unique index) isn't possible on MySQL.
+  - Checked on SQLite and in Docker on PostgreSQL 18 and 15, MySQL 8.4 and MariaDB 10.11 (103/103 each).
 
