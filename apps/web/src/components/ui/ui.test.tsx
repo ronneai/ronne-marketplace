@@ -1,0 +1,141 @@
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it } from "vitest";
+import {
+  Badge,
+  Button,
+  CopyableCommand,
+  Dialog,
+  Notice,
+  PageHeader,
+  Panel,
+  PasswordInput,
+  Table,
+  Tabs,
+  Td,
+  TextField,
+  Th,
+} from ".";
+import { Checkbox } from "./Field";
+
+const html = (node: React.ReactElement) => renderToStaticMarkup(node);
+
+describe("Button", () => {
+  it("is a type=button teal primary by default, with a focus ring", () => {
+    const out = html(<Button>Sign in</Button>);
+    expect(out).toContain('type="button"');
+    expect(out).toContain("bg-accent text-on-accent");
+    expect(out).toContain("focus-visible:outline-focus");
+  });
+
+  it("disables itself and sets aria-busy while loading", () => {
+    const out = html(<Button loading>Saving</Button>);
+    expect(out).toContain("disabled");
+    expect(out).toContain('aria-busy="true"');
+  });
+
+  it("has secondary and ghost variants", () => {
+    expect(html(<Button variant="secondary">x</Button>)).toContain("bg-surface");
+    expect(html(<Button variant="ghost">x</Button>)).toContain("text-muted");
+  });
+});
+
+describe("TextField", () => {
+  it("labels the input and links hint and error with aria-describedby", () => {
+    const out = html(
+      <TextField id="email" label="Email" hint="Your work email" error="Wrong format" />,
+    );
+    expect(out).toContain('for="email"');
+    expect(out).toContain('aria-invalid="true"');
+    expect(out).toContain('aria-describedby="email-hint email-error"');
+    expect(out).toContain("ERR:");
+    expect(out).toContain('role="alert"');
+  });
+
+  it("has no error markup without an error", () => {
+    expect(html(<TextField id="name" label="Name" />)).not.toContain("ERR:");
+  });
+});
+
+describe("Checkbox and PasswordInput", () => {
+  it("labels the checkbox", () => {
+    expect(html(<Checkbox id="remember" label="Remember me" />)).toContain('for="remember"');
+  });
+
+  it("renders the password hidden, with a labelled show button", () => {
+    const out = html(<PasswordInput id="password" name="password" />);
+    expect(out).toContain('type="password"');
+    expect(out).toContain('aria-label="Show password"');
+  });
+});
+
+describe("Badge, Notice, Panel, PageHeader", () => {
+  it("renders badges in mono, accent or muted", () => {
+    expect(html(<Badge tone="accent">root</Badge>)).toMatch(/font-mono.*bg-accent/);
+    expect(html(<Badge>user</Badge>)).toContain("bg-tint");
+  });
+
+  it("prefixes notices instead of colouring them, and uses alert only for errors", () => {
+    expect(html(<Notice kind="error" title="Nope" />)).toMatch(/role="alert".*ERR:/);
+    expect(html(<Notice kind="warn" title="Careful" />)).toMatch(/role="status".*WARN:/);
+  });
+
+  it("renders a flat panel and a page header", () => {
+    expect(html(<Panel>x</Panel>)).toContain("rounded-panel border border-hairline bg-surface");
+    expect(html(<PageHeader title="Users" description="Everyone" />)).toContain("<h1");
+  });
+});
+
+describe("Table", () => {
+  it("uses column headers and mono cells for machine values", () => {
+    const out = html(
+      <Table>
+        <thead>
+          <tr>
+            <Th>Token</Th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <Td mono>rmk_abc</Td>
+          </tr>
+        </tbody>
+      </Table>,
+    );
+    expect(out).toContain('scope="col"');
+    expect(out).toContain("font-mono");
+  });
+});
+
+describe("Tabs, CopyableCommand, Dialog", () => {
+  it("renders tabs with roles and the first panel visible", () => {
+    const out = html(
+      <Tabs
+        tabs={[
+          { label: "A", content: "first" },
+          { label: "B", content: "second" },
+        ]}
+      />,
+    );
+    expect(out).toContain('role="tablist"');
+    expect(out).toContain('aria-selected="true"');
+    expect(out.match(/role="tabpanel"/g)).toHaveLength(2);
+    expect(out).toMatch(/hidden=""[^>]*>second/);
+  });
+
+  it("shows the command as selectable text with a copy button", () => {
+    const out = html(<CopyableCommand command="rmk login" />);
+    expect(out).toContain("rmk login");
+    expect(out).toContain(">copy<");
+  });
+
+  it("renders a labelled native dialog with a close button", () => {
+    const out = html(
+      <Dialog open={false} onClose={() => {}} title="Create user">
+        body
+      </Dialog>,
+    );
+    expect(out).toContain("<dialog");
+    expect(out).toContain('aria-labelledby="dialog-title"');
+    expect(out).toContain('aria-label="Close"');
+  });
+});

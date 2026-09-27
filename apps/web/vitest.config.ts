@@ -13,6 +13,8 @@ const dbInclude = include.map((pattern) =>
 );
 
 export default defineConfig({
+  // The same "@/…" alias as tsconfig.json, which Next.js reads but Vitest doesn't.
+  resolve: { alias: { "@": new URL("./src", import.meta.url).pathname } },
   // Next.js keeps JSX as-is ("jsx": "preserve"), so tests compile it with React's automatic runtime.
   oxc: { jsx: { runtime: "automatic" } },
   test: {
