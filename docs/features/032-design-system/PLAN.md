@@ -14,7 +14,7 @@
   *Done when:* tests cover the cookie → `data-theme` logic, and a contrast test passes for every
   documented pair in both themes.
 
-- [ ] **3. Primitives.** Button, Input (with password show/hide), Checkbox, Label and field error,
+- [x] **3. Primitives.** Button, Input (with password show/hide), Checkbox, Label and field error,
   Card and Panel, Badge, Notice, Table, Tabs, Dialog, CopyableCommand, Page header, in
   `components/ui`, each with tests. `lucide-react` goes through the dependency checklist first.
   *Done when:* the tests pass, and the lint checks (no raw hex; no shadow, gradient or red, yellow
@@ -49,4 +49,20 @@
   - **The theme cookie:** `features/theme/theme.ts` (`ronne-theme`: `system`, `light` or `dark`, with
     anything else meaning `system`), and a `setTheme` server action. The root layout reads the cookie
     and renders `data-theme` on the server. Checked live: no cookie, `dark`, `light`, and `bogus` (→ `system`).
+- **Task 3 (2026-09-27): primitives** in `apps/web/src/components/ui/` (exported from `index.ts`):
+  Button (`buttonClasses` for links styled as buttons), Field (`Input`, `Label`, `FieldError`,
+  `TextField`, `Checkbox`), `PasswordInput` (show/hide), `Panel` and `PageHeader`, `Badge`, `Notice`,
+  `Table` (`Th`, `Td mono`), `Tabs`, `Dialog` (a native `<dialog>`, so the browser handles the focus
+  trap, inert background and Esc) and `CopyableCommand`. Only token utilities are used.
+  - **`lucide-react` 1.48.0** for icons: ISC, no dependencies (React peer only), no install scripts, and
+    an active organisation repository. GitHub shows the license as "NOASSERTION" because the repo also
+    credits Feather's MIT icons; the npm package declares ISC. Checklist done here.
+  - **Tests:** `ui.test.tsx` covers render and accessibility (labels, `aria-describedby`, `aria-invalid`,
+    `role=alert` only for errors, tabs roles, dialog labelling). Interactions (copy, show/hide, tab
+    switching, dialog open and close) get Playwright tests once 006 sets up the harness; no DOM
+    simulation dependency was added.
+  - **The design rules** are enforced by `src/design-rules.test.ts` (part of `pnpm test`, not `pnpm lint`,
+    since Biome can't express them). Over `components/` and `features/`, with comments ignored, it
+    rejects raw hex colours, shadows, gradients and red, yellow or green classes. It was checked with a
+    deliberately bad file.
 
