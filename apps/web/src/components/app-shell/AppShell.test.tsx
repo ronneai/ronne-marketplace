@@ -40,12 +40,12 @@ describe("AppShell", () => {
     expect(html).toMatch(/font-mono[^>]*>root</);
     expect(html).toContain("Access tokens");
     expect(html).toContain("Sign out");
-    expect(html).toContain('href="/admin/users"');
+    expect(html).toContain('href="/admin/audit"');
   });
 
   it("gives plain users no role badge and no Admin link", () => {
     const html = render({ email: "u@example.com", role: "user" });
-    expect(html).not.toContain('href="/admin/users"');
+    expect(html).not.toContain('href="/admin/audit"');
     expect(html).not.toMatch(/>user</);
   });
 

@@ -8,7 +8,8 @@ export type NavItem = { href: string; label: string; roles?: ShellUser["role"][]
  */
 export const NAV: NavItem[] = [
   { href: "/", label: "Home" },
-  { href: "/admin/users", label: "Admin", roles: ["root"] },
+  // The audit log (007) is the first admin page; user admin (008) takes this link over.
+  { href: "/admin/audit", label: "Admin", roles: ["root"] },
 ];
 
 export function navFor(user: ShellUser | null): NavItem[] {

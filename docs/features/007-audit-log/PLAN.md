@@ -20,7 +20,7 @@
   `deleteFrom` on `audit_log`.
   *Done when:* it passes, and fails when such a call is added on purpose.
 
-- [ ] **5. `/admin/audit` page.** Root-only (404 otherwise), the table with filters and cursor paging, using 032's parts.
+- [x] **5. `/admin/audit` page.** Root-only (404 otherwise), the table with filters and cursor paging, using 032's parts.
   *Done when:* render and permission tests pass, and a Playwright test (006's harness) opens it as root.
 
 - [x] **6. Record 006's events.** `auth.signed_in`, `auth.sign_in_failed`, `auth.signed_out` and
@@ -96,4 +96,22 @@ events are task 6 here.)
   - **The IP** comes from `clientIp()`, so it's only recorded with `TRUST_PROXY=true`.
   - **Tests:** one per event, plus a check that no password or session token appears anywhere in
     `audit_log`. They pass on all four databases, and the 006 end-to-end tests still pass.
+- **Task 5 (2026-09-27): `/admin/audit`** (`app/(app)/admin/audit/page.tsx`, `features/admin-audit/`).
+  - **Root only:** anyone else gets a 404, and the log isn't read for them.
+  - **The table** shows the time (UTC, with the zone), the actor (email, or `cli` / `system`, or the
+    id of a removed user), the action as a badge, the target, the details as key and value pairs,
+    and the IP address.
+  - **Filters and paging:** action group, actor (including "system and cli") and a UTC date range,
+    in a GET form, so it works without JavaScript and every view has a URL. The `to` day is
+    included in full. Malformed query values are ignored. It pages with "Older →" (cursor) and
+    "← Newest".
+  - **Navigation:** the root-only "Admin" link now opens `/admin/audit`, the only admin page so far.
+    008 can point it at user admin.
+  - **Tests:** render, permission and query parsing tests, and two Playwright tests. Root sees
+    `instance.root_created` and its own `auth.signed_in`, and filters by action; a regular user has
+    no Admin link and gets a 404.
+  - **Checked by hand** in light and dark at 1440px (Playwright screenshots). The throwaway instance
+    needed `pnpm db:migrate` for 0002, because `next start` doesn't migrate; the Docker entry point does.
+- **Done (2026-09-27):** 008 and 009 record their own catalogue events, with tests, as part of those
+  features. The criterion below covers 006's events here.
 

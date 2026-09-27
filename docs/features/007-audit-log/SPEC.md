@@ -86,15 +86,15 @@ attacks, and it doesn't say whether the account exists.
 
 ## Acceptance criteria
 
-- [ ] `0002_audit_log` creates the table, indexes and table-level foreign key on SQLite, MySQL 8.4,
+- [x] `0002_audit_log` creates the table, indexes and table-level foreign key on SQLite, MySQL 8.4,
       MariaDB 10.11 and PostgreSQL 15 (the 004 matrix). The foreign key is checked like 0001's.
-- [ ] `recordAudit` writes inside the caller's transaction: a rolled-back change leaves no event (a test for each database).
-- [ ] Unknown actions, secret-looking metadata keys and metadata over 4 KB are rejected.
-- [ ] Setup and reset-root-password (003) record their events.
-- [ ] 006, 008 and 009 record the catalogue's events, with a test per event.
-- [ ] `/admin/audit` is root-only (others get 404), lists newest first, filters by action, actor and
+- [x] `recordAudit` writes inside the caller's transaction: a rolled-back change leaves no event (a test for each database).
+- [x] Unknown actions, secret-looking metadata keys and metadata over 4 KB are rejected.
+- [x] Setup and reset-root-password (003) record their events.
+- [x] 006, 008 and 009 record the catalogue's events, with a test per event. (006's are done here; 008 and 009 add theirs in their own features.)
+- [x] `/admin/audit` is root-only (others get 404), lists newest first, filters by action, actor and
       date, and pages with a cursor.
-- [ ] A guard test fails if code outside migrations updates or deletes `audit_log`.
+- [x] A guard test fails if code outside migrations updates or deletes `audit_log`.
 
 ## Open questions
 

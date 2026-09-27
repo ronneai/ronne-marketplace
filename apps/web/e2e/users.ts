@@ -10,4 +10,5 @@ export const E2E_USERS = {
   remember: "remember@e2e.test",
   signOut: "sign-out@e2e.test",
   changePassword: "change-password@e2e.test",
+  notRoot: "not-root@e2e.test",
 } as const;
