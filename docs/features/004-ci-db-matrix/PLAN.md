@@ -16,10 +16,10 @@
 - [x] **4. Setup smoke test.** A script or test that runs `pnpm run setup --yes` against a fresh database and checks the result. Added to each matrix entry.
   *Done when:* it passes in all four entries.
 
-- [ ] **5. Prove it catches breakage.** On a throwaway branch, replace one `containsInsensitive` call with a raw `LIKE`.
+- [x] **5. Prove it catches breakage.** On a throwaway branch, replace one `containsInsensitive` call with a raw `LIKE`.
   *Done when:* the PostgreSQL entry fails. Record it in Notes, then drop the branch.
 
-- [ ] **6. Weekly latest-version run.** A `schedule` and `workflow_dispatch` trigger that swap in the latest images, without being required for merging.
+- [x] **6. Weekly latest-version run.** A `schedule` and `workflow_dispatch` trigger that swap in the latest images, without being required for merging.
   *Done when:* a manual run completes.
 
 - [x] **7. Docs.** Add the supported versions to MVP §5 and the README.
@@ -59,4 +59,6 @@
   - CLAUDE.md gained the `test:db` commands, the database workflow in its CI summary, and a rule: run database code against the servers before committing.
 - **Task 3 confirmed on GitHub (PR #10):** `Database tests (postgres|mysql|mariadb)` each ran 58/58 against their service containers, with nothing skipped, so the server-only tests ran. PR #11 later showed one MySQL test timing out at 5 seconds on CI; the `db` project now allows 30 seconds (005).
 - **Still open:** task 6's manual `workflow_dispatch` run (none on GitHub as of 2026-09-27), and task 5's optional GitHub proof (proved locally).
+- **Task 6 confirmed on GitHub (2026-09-27):** the owner started the Database workflow by hand on `main` (run 36330888030). The jobs `Database tests (postgres|mysql|mariadb, latest)` used `postgres:latest`, `mysql:lts` and `mariadb:lts`, and passed 66/66 each.
+- **Task 5 is closed on the local proof:** with search broken, only PostgreSQL failed, using the same `db` project and minimum images as CI. The GitHub version (a throwaway branch going red) was offered as optional and not requested.
 
