@@ -15,7 +15,7 @@
   checklist) and add `better-sqlite3: true` to `allowBuilds`, with the reason in the pull request.
   *Done when:* unit tests cover URL parsing, and an integration test connects to in-memory SQLite.
 
-- [ ] **3. Helpers.** `newId`, column builders, timestamp handling, `json`, `containsInsensitive`, `upsert`.
+- [x] **3. Helpers.** `newId`, column builders, timestamp handling, `json`, `containsInsensitive`, `upsert`.
   *Done when:* tests for each helper pass on SQLite, and the dialect-specific branches have unit tests on the generated SQL (Kysely `compile()`).
 
 - [ ] **4. Migration runner.** Static migration list, Kysely `Migrator`, `pnpm db:migrate` script with readable output.
@@ -61,4 +61,9 @@
   - The UTC session settings use Kysely's `onCreateConnection`: `SET time_zone = '+00:00'` on MySQL, and `SET TIME ZONE 'UTC'` on PostgreSQL. The `mysql2` pool also uses `timezone: "Z"` and `charset: "utf8mb4"`.
   - `schema.ts` has an empty `Database` interface until task 5, with a Biome ignore comment.
   - Database tests are named `*.db.test.ts` from the start, ready for 004's split.
+- **Task 3 (2026-09-27): helpers** in `apps/web/src/server/db/`: `ids.ts`, `column-types.ts`, `dates.ts`, `json.ts`, `search.ts`, `upsert.ts`.
+  - **Search** uses `!` as the `LIKE … ESCAPE` character, not a backslash, because MySQL reads backslashes in string literals differently from PostgreSQL and SQLite. SQLite's `lower()` only folds ASCII letters; MySQL and PostgreSQL also fold accented ones.
+  - **Upsert on MySQL** uses `ON DUPLICATE KEY UPDATE col = VALUES(col)`. MySQL 8 prefers the `AS alias` form, but MariaDB doesn't support it, and both still accept `VALUES()`.
+  - **Upsert typing.** With a generic table name, Kysely rejects the dynamic update object, so the helper passes the table name as a plain `string` inside (option A of three, chosen by the owner). Callers are still checked through the helper's signature. `vitest` didn't catch this; `tsc` and `next build` did.
+  - **Tests.** `testing/compile-only.ts` builds a Kysely instance that only compiles SQL, so the MySQL and PostgreSQL branches have unit tests without a server (`helpers.test.ts`). `helpers.db.test.ts` runs the helpers on real SQLite: case-insensitive search with literal `%` and `_`, date and JSON round trips, and an insert then update through `upsert`. 004 runs it on the other databases.
 

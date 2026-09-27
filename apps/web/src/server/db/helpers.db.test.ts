@@ -1,0 +1,94 @@
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { columnTypes } from "./column-types";
+import { createDb } from "./create-db";
+import { fromDbDate, toDbDate } from "./dates";
+import { newId } from "./ids";
+import { decodeJson, encodeJson } from "./json";
+import { containsInsensitive } from "./search";
+import { upsert } from "./upsert";
+
+type TestDb = {
+  item: { id: string; name: string; data: string | null; created_at: string | Date };
+};
+
+// Runs on SQLite here; 004 runs the same file against MySQL and PostgreSQL.
+const { db: baseDb, dialect } = createDb("file::memory:");
+const db = baseDb.withTables<TestDb>();
+
+beforeAll(async () => {
+  const t = columnTypes(dialect);
+  await db.schema
+    .createTable("item")
+    .addColumn("id", t.id(), (c) => c.primaryKey())
+    .addColumn("name", t.string(255), (c) => c.notNull())
+    .addColumn("data", t.json())
+    .addColumn("created_at", t.timestamp(), (c) => c.notNull())
+    .execute();
+
+  const now = new Date("2026-09-27T00:00:00.000Z");
+  await db
+    .insertInto("item")
+    .values(
+      ["Code-Review", "code_review", "Secure coding", "100% coverage"].map((name) => ({
+        id: newId(),
+        name,
+        data: encodeJson({ name }),
+        created_at: toDbDate(now, dialect),
+      })),
+    )
+    .execute();
+});
+afterAll(() => db.destroy());
+
+const namesMatching = async (term: string) =>
+  (
+    await db
+      .selectFrom("item")
+      .select("name")
+      .where(containsInsensitive("name", term))
+      .orderBy("name")
+      .execute()
+  ).map((r) => r.name);
+
+describe("containsInsensitive on a real database", () => {
+  it("ignores case", async () => {
+    expect(await namesMatching("code-r")).toEqual(["Code-Review"]);
+    expect(await namesMatching("CODING")).toEqual(["Secure coding"]);
+  });
+
+  it("treats _ and % in the term as plain characters", async () => {
+    expect(await namesMatching("code_r")).toEqual(["code_review"]);
+    expect(await namesMatching("100%")).toEqual(["100% coverage"]);
+    expect(await namesMatching("%")).toEqual(["100% coverage"]);
+  });
+});
+
+describe("dates and JSON on a real database", () => {
+  it("reads back the same instant and the same value", async () => {
+    const row = await db
+      .selectFrom("item")
+      .selectAll()
+      .where("name", "=", "Code-Review")
+      .executeTakeFirstOrThrow();
+    expect(fromDbDate(row.created_at).toISOString()).toBe("2026-09-27T00:00:00.000Z");
+    expect(decodeJson(row.data)).toEqual({ name: "Code-Review" });
+  });
+});
+
+describe("upsert on a real database", () => {
+  it("inserts, then updates the same row on conflict", async () => {
+    const id = newId();
+    const row = (name: string) => ({
+      id,
+      name,
+      data: null,
+      created_at: toDbDate(new Date(), dialect),
+    });
+
+    await upsert(db, dialect, "item", row("first"), ["id"], ["name"]).execute();
+    await upsert(db, dialect, "item", row("second"), ["id"], ["name"]).execute();
+
+    const rows = await db.selectFrom("item").select("name").where("id", "=", id).execute();
+    expect(rows).toEqual([{ name: "second" }]);
+  });
+});
