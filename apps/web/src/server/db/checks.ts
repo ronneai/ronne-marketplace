@@ -126,3 +126,44 @@ export async function checkPermissions(db: Db, dialect: DatabaseDialect): Promis
     return { ok: false, step, message: (error as Error).message };
   }
 }
+
+/** Minimum supported server versions (docs/policies/dependencies.md §2, feature 004). */
+export const MINIMUM_VERSIONS = { postgres: [15, 0], mysql: [8, 4], mariadb: [10, 11] } as const;
+
+export type VersionCheck =
+  | { supported: true }
+  | { supported: false; product: string; minimum: string };
+
+/** Whether a server version string (from checkConnection) is one Ronne supports. SQLite always is. */
+export function checkServerVersion(dialect: DatabaseDialect, serverVersion: string): VersionCheck {
+  if (dialect === "sqlite") return { supported: true };
+  const [major = 0, minor = 0] = (serverVersion.match(/\d+/g) ?? []).map(Number);
+  const product =
+    dialect === "postgres" ? "postgres" : /mariadb/i.test(serverVersion) ? "mariadb" : "mysql";
+  const [minMajor, minMinor] = MINIMUM_VERSIONS[product];
+  const ok = major > minMajor || (major === minMajor && minor >= minMinor);
+  const names = { postgres: "PostgreSQL", mysql: "MySQL", mariadb: "MariaDB" } as const;
+  return ok
+    ? { supported: true }
+    : {
+        supported: false,
+        product: names[product],
+        minimum: product === "postgres" ? `${minMajor}` : `${minMajor}.${minMinor}`,
+      };
+}
+
+/**
+ * MySQL and MariaDB databases must use utf8mb4, or some text can't be stored. Other dialects pass.
+ * Returns the database's character set when it's wrong.
+ */
+export async function checkCharset(
+  db: Db,
+  dialect: DatabaseDialect,
+): Promise<{ ok: true } | { ok: false; charset: string }> {
+  if (dialect !== "mysql") return { ok: true };
+  const { rows } = await sql<{
+    charset: string;
+  }>`select @@character_set_database as charset`.execute(db);
+  const charset = rows[0]?.charset ?? "unknown";
+  return charset === "utf8mb4" ? { ok: true } : { ok: false, charset };
+}

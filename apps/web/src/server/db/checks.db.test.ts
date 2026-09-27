@@ -2,7 +2,7 @@ import { chmodSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { checkConnection, checkPermissions, PROBE_TABLE } from "./checks";
+import { checkCharset, checkConnection, checkPermissions, PROBE_TABLE } from "./checks";
 import { createDb } from "./create-db";
 import { createTestDb } from "./testing/test-db";
 
@@ -87,6 +87,12 @@ describe.skipIf(!isServer)("checkConnection against a server", () => {
       }),
     );
     expect(result).toMatchObject({ ok: false, kind: "database_missing" });
+  });
+
+  it("passes the character set check on a utf8mb4 database (and on PostgreSQL)", async () => {
+    const { db, dialect } = createDb(url.toString());
+    expect(await checkCharset(db, dialect)).toEqual({ ok: true });
+    await db.destroy();
   });
 
   it("passes the permission check", async () => {

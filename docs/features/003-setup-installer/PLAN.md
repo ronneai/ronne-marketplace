@@ -55,4 +55,18 @@
   - **Merge:** known keys are replaced in place, new ones appended, and other lines (comments, blanks, unknown keys) kept. `AUTH_SECRET` is never replaced once set.
   - **Write:** mode `0600`, through a temp file and a rename. An existing looser file is tightened to `0600`.
   - **Quoting follows Node's own parser** (`util.parseEnv`, the one behind `process.loadEnvFile`). It has no escape for quotes inside quotes, and treats `#` as a comment even with no space before it. So values are left unquoted when safe, otherwise single-quoted, and double-quoted or backticked only when needed. Values with line breaks, or with every kind of quote, are refused. Tests round-trip tricky values (URL-encoded passwords, `#`, apostrophes, both quote kinds, secrets) through that parser.
+- **Task 4 (2026-09-27): interactive flow, built but not yet ticked.** Waiting on a manual run by the owner: `pnpm run setup` on a fresh clone with SQLite defaults, recorded here. Everything else is done:
+  - `src/server/setup/run-setup.ts` runs steps 1–9 from the spec against a `SetupPrompts` interface (`prompts.ts`). Every question has a stable id. `clack-prompts.ts` adapts `@clack/prompts`, turning Ctrl+C into `SetupCancelledError`. `scripts/setup.ts` is the entry point, as `pnpm run setup` in both `apps/web` and the root.
+  - `testing/scripted-prompts.ts` answers by id and applies each question's validator like clack does. So the tests cover the whole flow:
+    - a first run;
+    - a second run (reuses `.env`, keeps `AUTH_SECRET`, no second root);
+    - a failing database followed by a retry;
+    - invalid email and short password rejected at the prompt;
+    - mismatched confirmation;
+    - Ctrl+C at the root prompts (no partial user; the next run finishes);
+    - non-interactive mode stopping instead of asking again.
+  - **Server test:** it runs setup against an empty MySQL or PostgreSQL database, with a wrong password first. It passed on PostgreSQL 18 and 15, MySQL 8.4 and MariaDB 10.11 (142/142 each).
+  - **Added to `db/checks.ts`:** `checkCharset` (MySQL/MariaDB must be `utf8mb4`) and `checkServerVersion` (warns below PostgreSQL 15, MySQL 8.4 or MariaDB 10.11, but continues). The PostgreSQL permission failure shows the `GRANT CREATE ON SCHEMA public` fix.
+  - DATABASE_URL credentials and the database name are URL-encoded (`database-url.ts`); IPv6 hosts get brackets.
+  - `createTestDb()` now also returns the database's `url`.
 
