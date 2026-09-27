@@ -8,7 +8,7 @@
   domain errors (`TokenLimitError`, `TokenNameTakenError`), in `domains/identity`.
   *Done when:* unit tests cover the format, hashing and lifetime math.
 
-- [ ] **2. Token repository and services.** Create, list your own, revoke, look up by hash with the
+- [x] **2. Token repository and services.** Create, list your own, revoke, look up by hash with the
   user, and a throttled `last_used_at` update. Each change records its 007 event in its transaction.
   *Done when:* database tests cover create, list, revoke, lookup, the limits, and the once-a-minute update.
 
@@ -45,4 +45,28 @@
     `TRUST_PROXY`), not "per IP address"; and the prefix column is mentioned.
   - **Tests:** the format over 1,000 tokens, a known SHA-256 value, the preview, 9 malformed values,
     names, lifetimes, expiry and status.
+- **Task 2 (2026-09-27): repository and services.**
+  - **`TokenRepository`** (`repositories/token-repository.ts`, Kysely in
+    `kysely-token-repository.ts`):
+    - counting active tokens (not revoked, and no expiry or one still ahead), and checking active
+      names;
+    - insert, list your own (newest first), find one you own, and revoke;
+    - `findByHash` with the owner, in one join;
+    - `touchLastUsed`, a conditional update that writes only when `last_used_at` is null or over a
+      minute old.
+  - **Services** (`services/access-tokens.ts`):
+    - **`createToken`** checks `account.manage_own`, the 50-active limit and duplicate active names,
+      in one transaction with `access_token.created { name, expiresAt, via }`. Only the hash and the
+      12-character prefix are stored.
+    - **`listTokens`** and **`revokeToken`**: someone else's token is "not found", never
+      "forbidden"; revoking twice records one event.
+    - **`authenticateToken`** checks the format first (no database work for junk), then the hash,
+      revoked, expired and a disabled user, and returns `token_missing`, `token_invalid`,
+      `token_expired`, `token_revoked` or `user_disabled`.
+  - **Actions** (`actions/access-tokens.ts`): `listMyTokens`, `createMyToken`, `revokeMyToken` and
+    `authenticateToken`.
+  - **Tests** (all four databases): the plain token only in the result; the hash and prefix stored;
+    the lifetimes; a duplicate active name, which is allowed again after revoking; the 51st token;
+    ownership; each failure code; and the once-a-minute update, on a clock that starts now (a fixed
+    date could fall after the 90-day expiry).
 
