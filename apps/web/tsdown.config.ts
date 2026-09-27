@@ -15,6 +15,7 @@ export default defineConfig({
     setup: "scripts/setup.ts",
     migrate: "scripts/migrate.ts",
     "reset-root-password": "scripts/reset-root-password.ts",
+    start: "scripts/start.ts",
   },
   outDir: "dist-scripts",
   format: "esm",

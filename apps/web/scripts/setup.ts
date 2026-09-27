@@ -44,11 +44,19 @@ try {
     databaseUrl: interactive ? undefined : command.databaseUrl,
     storagePath: interactive ? undefined : command.storagePath,
   });
-  const done = [
-    "Ronne is set up.",
-    "Start it with `pnpm build && pnpm start` (or `pnpm dev` while developing),",
-    `then open ${result.publicUrl} and sign in as ${result.rootEmail}.`,
-  ];
+  // In the Docker image (RONNE_RUNTIME=docker) the server is already running and needs a restart.
+  const done =
+    process.env.RONNE_RUNTIME === "docker"
+      ? [
+          "Ronne is set up.",
+          "Restart it with `docker compose restart web`,",
+          `then open ${result.publicUrl} and sign in as ${result.rootEmail}.`,
+        ]
+      : [
+          "Ronne is set up.",
+          "Start it with `pnpm build && pnpm start` (or `pnpm dev` while developing),",
+          `then open ${result.publicUrl} and sign in as ${result.rootEmail}.`,
+        ];
   if (interactive) p.outro(done.join("\n"));
   else console.log(done.join("\n"));
 } catch (error) {

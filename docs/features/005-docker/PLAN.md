@@ -16,7 +16,7 @@
 - [x] **4. Dockerfile.** Multi-stage build: install → build → a slim runtime with the standalone output, the compiled scripts, a non-root user, `/app/data`, `RONNE_ENV_FILE`, `HEALTHCHECK` and the start script.
   *Done when:* `docker build` succeeds locally, and the container shows the setup-required screen.
 
-- [ ] **5. Start script.** Config detection, migrations before start, the writable-volume check, and exit on migration failure.
+- [x] **5. Start script.** Config detection, migrations before start, the writable-volume check, and exit on migration failure.
   *Done when:* manual checks for a fresh volume, a configured volume, and a read-only volume behave as in SPEC.md (recorded in Notes).
 
 - [ ] **6. `compose.yaml`.** The web service, the volume, and the `mysql` and `postgres` profiles.
@@ -76,4 +76,16 @@
     2. `docker exec … pnpm run setup --yes`, with `DATABASE_URL=file:./data/ronne.db` and the root variables, writes `/app/data/.env` (0600), `ronne.db` and `storage/`.
     3. After `docker restart`, it returns 200 `{"status":"ok"}`, shows the normal page, and Docker reports `healthy`.
   - **Non-interactive setup needs `DATABASE_URL`**, as in 003. The interactive run asks, and defaults to SQLite. Setup's closing message still says `pnpm build && pnpm start`, to be fixed in task 5.
+- **Task 5 (2026-09-27): start script.** `scripts/start.ts` is bundled to `dist-scripts/start.mjs` and is the image's `CMD`. The logic lives in `src/server/setup/prepare-start.ts`:
+  1. **Check `RONNE_DATA_DIR` (`/app/data`) is writable** with a probe file. If not, `StartError` prints the `chown` fix and exits 1.
+  2. **Before setup,** start in setup-required mode and log the setup command.
+  3. **After setup,** apply pending migrations. A failure (including `DatabaseAheadOfAppError`) exits 1, so the server never serves a half-migrated database and the restart policy retries.
+  4. **Start the standalone `server.js`** in the same process, through a dynamic `import()`, so signals go straight to Next.js.
+- **Setup's closing message** says "Restart it with `docker compose restart web`" when `RONNE_RUNTIME=docker`, which the image sets.
+- **Tests** (`prepare-start.db.test.ts`): setup mode; migrations applied, then nothing to do; a database with an unknown migration refused; an unwritable folder refused with the `chown` hint.
+- **Checked with the image and named volumes:**
+  1. Fresh volume: setup mode, 503, then setup in the container.
+  2. Same volume in a new container: "The database is up to date", then 200.
+  3. Root-owned volume: exit 1 with the `chown` command.
+- **Testing gotcha:** Docker copies the image's folder ownership onto an *empty* named volume on first mount. An empty root-owned volume therefore becomes writable, and the unwritable case only happens when the volume already has content. The first attempt at scenario 3 simply started the server.
 
