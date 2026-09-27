@@ -11,7 +11,7 @@ the same change that completes it.
   list, exported for the web app and 011.
   *Done when:* unit tests cover the character rules, lengths, `@` stripping and reserved names.
 
-- [ ] **2. Migration `0004_scopes`.** The table, the unique index, the table-level foreign key
+- [x] **2. Migration `0004_scopes`.** The table, the unique index, the table-level foreign key
   (`ON DELETE SET NULL`), and the Kysely `ScopeTable` type.
   *Done when:* it migrates on SQLite and the 004 servers, with a foreign-key test.
 
@@ -34,3 +34,8 @@ the same change that completes it.
   - **Reserved scopes are still valid item names:** `@team/admin` is fine, `@admin/x` isn't.
   - **Note:** `packages/core` compiles as NodeNext, so relative imports need `.js` (`./names.js`).
     The first commit attempt stopped on it: the pre-commit typecheck caught it.
+- **Task 2 (2026-09-27): migration `0004_scopes`** and the `ScopeTable` Kysely type. It has a
+  unique `name` (without the `@`), `description varchar(300)`, and `created_by`, whose table-level
+  foreign key sets null on delete. Tested on all four databases: the foreign key read back from each
+  catalogue, a deleted creator, and a duplicate name refused.
+

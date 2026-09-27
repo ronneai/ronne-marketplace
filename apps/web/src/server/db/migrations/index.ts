@@ -1,6 +1,7 @@
 import { identity } from "./0001_identity";
 import { auditLog } from "./0002_audit_log";
 import { accessTokenPrefix } from "./0003_access_token_prefix";
+import { scopes } from "./0004_scopes";
 import type { AppMigration } from "./types";
 
 /**
@@ -11,4 +12,5 @@ export const migrations: Record<string, AppMigration> = {
   "0001_identity": identity,
   "0002_audit_log": auditLog,
   "0003_access_token_prefix": accessTokenPrefix,
+  "0004_scopes": scopes,
 };
