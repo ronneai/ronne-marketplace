@@ -9,7 +9,10 @@
 #   docker compose --profile mysql up -d            then in setup: host "mysql", database and user "ronne"
 # The database's password is RONNE_DB_PASSWORD (set it in the environment or a .env file next to
 # this one). These databases are only reachable inside this compose project.
-name: ronne
+# Not "ronne": that name is reserved for another product, whose compose project may exist on the
+# same machine. A shared project name would share volumes (ronne_postgres-data), so `down -v` here
+# could delete the other project's data.
+name: ronne-marketplace
 
 services:
   web:

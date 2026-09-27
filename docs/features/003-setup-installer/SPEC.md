@@ -95,14 +95,14 @@ migrations, and the `identity` domain's actions for the root account. It doesn't
 
 ## Acceptance criteria
 
-- [ ] On a fresh clone with SQLite defaults, `pnpm run setup` completes and prints the URL. `.env` has mode `0600`, and the database has one root user.
-- [ ] The same works with MySQL, MariaDB and PostgreSQL URLs (checked in CI by 004).
-- [ ] A wrong password, wrong host and missing database each give their own message, then ask again with the other answers kept.
-- [ ] Running setup a second time creates no second root and keeps `AUTH_SECRET`.
-- [ ] Non-interactive mode completes with only env vars, and exits with `2` naming the missing value when one is absent.
-- [ ] The root's password is stored as an argon2id hash in `account`, and the `user` row has `role = root`.
-- [ ] `reset-root-password` changes the password, removes root's sessions and revokes root's tokens.
-- [ ] Ctrl+C at the root-account prompt leaves the database migrated with no partial user.
+- [x] On a fresh clone with SQLite defaults, `pnpm run setup` completes and prints the URL. `.env` has mode `0600`, and the database has one root user.
+- [x] The same works with MySQL, MariaDB and PostgreSQL URLs (checked in CI by 004).
+- [x] A wrong password, wrong host and missing database each give their own message, then ask again with the other answers kept.
+- [x] Running setup a second time creates no second root and keeps `AUTH_SECRET`.
+- [x] Non-interactive mode completes with only env vars, and exits with `2` naming the missing value when one is absent.
+- [x] The root's password is stored as an argon2id hash in `account`, and the `user` row has `role = root`.
+- [x] `reset-root-password` changes the password, removes root's sessions and revokes root's tokens.
+- [x] Ctrl+C at the root-account prompt leaves the database migrated with no partial user.
 
 ## Open questions
 
