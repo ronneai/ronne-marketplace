@@ -121,4 +121,8 @@
   Light is the default; an old `system` cookie reads as light. The `prefers-color-scheme` block in
   `tokens.css` is gone (a test checks it stays gone), and the header button switches light ↔ dark,
   showing a moon in light and a sun in dark. The favicon still follows the browser's own setting.
+- **Changed later (2026-09-27, owner decision):** the header shows the user's **name**, not their
+  email (cut at 12rem). The open menu starts with the name and the email, on every screen size.
+  Phones keep the icon. The end-to-end users got readable names (`E2E_NAMES`), and the tests find
+  the name in the header's menu button (`e2e/helpers.ts`).
 

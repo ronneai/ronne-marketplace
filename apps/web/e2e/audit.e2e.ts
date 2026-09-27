@@ -6,7 +6,8 @@ const signIn = async (page: Page, email: string) => {
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password", { exact: true }).fill(E2E_PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page.getByText(email, { exact: true })).toBeVisible();
+  // Signed in: the page left /sign-in (the header shows the name, not the email).
+  await expect(page).not.toHaveURL(/\/sign-in/);
 };
 
 test("root reads the audit log: setup, and its own sign-in", async ({ page }) => {

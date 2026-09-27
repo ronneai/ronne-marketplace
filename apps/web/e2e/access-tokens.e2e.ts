@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
-import { E2E_PASSWORD, E2E_USERS } from "./users";
+import { headerName } from "./helpers";
+import { E2E_NAMES, E2E_PASSWORD, E2E_USERS } from "./users";
 
 test("create a token, use it on the API, revoke it, and it stops working", async ({
   page,
@@ -9,7 +10,7 @@ test("create a token, use it on the API, revoke it, and it stops working", async
   await page.getByLabel("Email").fill(E2E_USERS.tokens);
   await page.getByLabel("Password", { exact: true }).fill(E2E_PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page.getByText(E2E_USERS.tokens, { exact: true })).toBeVisible();
+  await expect(headerName(page, E2E_NAMES.tokens)).toBeVisible();
 
   await page.goto("/account/tokens");
   await expect(page.getByRole("heading", { name: "Access tokens" })).toBeVisible();
@@ -46,7 +47,7 @@ test("the API ignores a signed-in browser's cookies", async ({ page }) => {
   await page.getByLabel("Email").fill(E2E_USERS.tokens);
   await page.getByLabel("Password", { exact: true }).fill(E2E_PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page.getByText(E2E_USERS.tokens, { exact: true })).toBeVisible();
+  await expect(headerName(page, E2E_NAMES.tokens)).toBeVisible();
   const response = await page.request.get("/api/v1/me");
   expect(response.status()).toBe(401);
   expect(await response.json()).toMatchObject({ error: { code: "token_missing" } });

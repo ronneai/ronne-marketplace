@@ -1,6 +1,6 @@
 import { can, type Permission } from "@/server/domains/identity/models/permissions";
 
-export type ShellUser = { email: string; role: "root" | "moderator" | "user" };
+export type ShellUser = { name: string; email: string; role: "root" | "moderator" | "user" };
 
 /** An item shows when it needs no permission, or the user holds it (the one permission map, 008). */
 export type NavItem = {

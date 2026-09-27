@@ -45,15 +45,16 @@ export const AppShell = ({
             {user ? (
               <details className="relative">
                 <summary className="flex cursor-pointer list-none items-center gap-2 rounded-control px-2 py-1 text-sm text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus">
-                  {/* On a phone the email doesn't fit, so an icon opens the menu, which shows it. */}
-                  <span className="hidden font-mono text-xs sm:inline">{user.email}</span>
+                  {/* The name, not the email (owner, 2026-09-27). On a phone an icon opens the menu. */}
+                  <span className="hidden max-w-48 truncate text-sm sm:inline">{user.name}</span>
                   <CircleUser size={18} aria-label="Account menu" className="sm:hidden" />
                   {user.role !== "user" ? <Badge>{user.role}</Badge> : null}
                 </summary>
                 <div className="absolute right-0 z-10 mt-2 grid w-56 gap-0.5 rounded-panel border border-strong bg-surface p-1">
-                  <p className="truncate px-3 py-1.5 font-mono text-xs text-muted sm:hidden">
-                    Signed in as {user.email}
-                  </p>
+                  <div className="grid gap-0.5 border-b border-hairline px-3 pt-1.5 pb-2">
+                    <p className="truncate text-sm font-semibold text-fg">{user.name}</p>
+                    <p className="truncate font-mono text-xs text-muted">{user.email}</p>
+                  </div>
                   <Link href="/account/password" className={menuItem}>
                     Account
                   </Link>

@@ -7,8 +7,12 @@ describe("canViewStyleguide", () => {
   it("is open in development and root-only in production", () => {
     expect(canViewStyleguide("development", null)).toBe(true);
     expect(canViewStyleguide("production", null)).toBe(false);
-    expect(canViewStyleguide("production", { email: "u@example.com", role: "user" })).toBe(false);
-    expect(canViewStyleguide("production", { email: "r@example.com", role: "root" })).toBe(true);
+    expect(
+      canViewStyleguide("production", { name: "U", email: "u@example.com", role: "user" }),
+    ).toBe(false);
+    expect(
+      canViewStyleguide("production", { name: "R", email: "r@example.com", role: "root" }),
+    ).toBe(true);
   });
 });
 

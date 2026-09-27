@@ -17,7 +17,7 @@ compose parts; they don't restyle them.
 - Light and dark themes, switched by a button in the header next to the user menu, and remembered in a cookie. Light is the default. There's no "follow the OS" mode (owner decision, 2026-09-27; it was the default before).
 - `components/ui` primitives: Button, Input (text, password with show/hide), Checkbox, Label and
   field error, Card and Panel, Badge, Notice, Table, Tabs, Dialog, CopyableCommand, and Page header.
-- The app shell: a header with the full brand (`BrandLogo`) and navigation, a user menu, a footer, and a centered content column.
+- The app shell: a header with the full brand (`BrandLogo`) and navigation, a user menu (showing the user's name; the menu adds the email), a footer, and a centered content column.
 - Brand assets: the favicon (light and dark), the monogram (`BrandMark`) and the full brand, monogram plus wordmark (`BrandLogo`), from `Branding/SVG`.
 - An internal `/styleguide` page (root only in production) showing every primitive in both themes.
 
