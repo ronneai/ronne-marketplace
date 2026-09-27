@@ -7,7 +7,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!**/*.code-workspace"]
+    "includes": ["**", "!**/*.code-workspace", "!docs/UI-Mocks-Materials"]
   },
   "overrides": [
     {

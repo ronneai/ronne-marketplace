@@ -371,6 +371,7 @@ written `pnpm run setup`. Full behaviour, including a non-interactive mode for D
 | Command | Description |
 |---|---|
 | `rmk login [--registry <url>]` | Prompts for email and password, exchanges them for a **personal access token**, and stores it in `~/.config/rmk/config.json` (mode 0600). |
+| `rmk login --token <token>` | Uses a personal access token created in the web app (**Access tokens**), for example in CI or where typing a password isn't wanted. |
 | `rmk logout` / `rmk whoami` | Revoke the token locally and on the server / show the current user and registry. |
 | `rmk search <query>` · `rmk list [--installed]` | Browse the catalogue / show installed items. |
 | `rmk info <item>[@version]` | Show metadata, versions, dist-tags and dependencies. |
@@ -403,7 +404,7 @@ written `pnpm run setup`. Full behaviour, including a non-interactive mode for D
 
 | Area | Pages / features |
 |---|---|
-| Auth | Login, logout, change password, manage personal access tokens |
+| Auth | Sign in (email and password only), sign out, change password, manage personal access tokens. "Forgot password" explains that a root admin resets it; there's no email in the MVP |
 | Catalogue | Search and filter by type and keyword; item page with README, versions, dist-tags, dependencies and install snippet |
 | Authoring | Submission editor: manifest form + file editor (Monaco) + **visual composer** |
 | Review | Queue of `submitted` items; diff view; comments; approve / request changes / reject; risk flags (§12) |
@@ -696,5 +697,10 @@ Design points:
 | Planning | One folder per feature, `docs/features/NNN-slug/` with `SPEC.md` and `PLAN.md`; the index there replaces a separate milestone plan; specs only for the current and next milestone | Specs stay next to the work and outlive the schedule; no duplicated acceptance criteria |
 | Setup command | `pnpm run setup` (not `pnpm setup`, a pnpm built-in); non-interactive mode for Docker/CI | Avoids silently running pnpm's own command |
 | Docker | `node:24-slim` (current LTS, pinned by digest), standalone Next.js, state and config on one `/app/data` volume, migrations on start, setup-required mode until configured | One volume to back up; upgrades apply migrations automatically |
+| Design system | One system from the brand and the Stitch design notes (kept locally in the git-ignored `docs/UI-Mocks-Materials/`; the rules and tokens are in 032's spec): Manrope and IBM Plex Mono self-hosted; flat (no shadows); teal as the single accent; no red, yellow or green alerts; light and dark themes following the OS with a toggle ([032](../features/032-design-system/SPEC.md)) | Consistent pages from M1 on; no font CDN for a self-hosted product |
+| Web sign-in | Email and password only; tokens don't sign in to the web; "Forgot?" points to a root reset (no email) | Tokens stay machine credentials, so a leaked token can't open a browser session |
+| CLI login | `rmk login` exchanges email and password for a token (`POST /api/v1/auth/token`), and `rmk login --token` accepts one made in the web app; browser-based login waits for SSO's device flow | Matches the MVP and the mock's `--token`, without new endpoints before SSO |
+| Single root | The admin UI assigns only `user` and `moderator`, and can't modify root; root recovers through `pnpm run reset-root-password` | Keeps "one instance owner"; a transfer flow can come later |
+| Access tokens | `rmk_` + 43 base64url characters, SHA-256 hashed, 30/90/365 days or no expiry, at most 50 active per user, bearer only on `/api/v1` | Recognizable by secret scanning; revocable; no cookies on the API |
 | Dependencies | Permissive licenses only (MIT, ISC, BSD, Apache-2.0 …; CC-BY-4.0 for data); no copyleft or paid tools; latest stable/LTS; CI license + audit + image scans; pnpm release-age delay, build allowlist, trust policy | Ronne must be freely redistributable and must not ship known vulnerabilities |
 | Packages | `@ronne/{marketplace,rmk,mcp,core}`; binary `rmk`; Node 24 LTS target, 22 LTS minimum; Docker amd64 + arm64 | Unscoped `rmk` is taken on npm; `@ronne` scope ownership to confirm |

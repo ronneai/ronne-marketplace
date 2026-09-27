@@ -18,3 +18,7 @@ data/
 
 # Compiled setup/migrate/reset scripts (feature 005)
 dist-scripts/
+
+# Design source material (brand files, Stitch mocks, design notes). Kept locally, never published.
+# Feature 032 copies only what the app serves (fonts, logos, favicons) into apps/web.
+docs/UI-Mocks-Materials/
