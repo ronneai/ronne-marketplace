@@ -33,4 +33,10 @@
   - `docker/test-databases.compose.yml` runs PostgreSQL 15, MySQL 8.4 and MariaDB 10.11 (the minimum versions, as in CI) on 127.0.0.1 only (ports 54315, 53384 and 53311), with health checks. MySQL's check pings over TCP, so it doesn't pass while the temporary init server is still running.
   - Root scripts: `pnpm test:db:up` (`up -d --wait`, about 9 seconds with cached images), `pnpm test:db:down` (removes the data too), and `pnpm test:db:postgres`, `:mysql` and `:mariadb`. They run `apps/web/scripts/test-db.mjs`, plain Node that sets `TEST_DATABASE_URL`, so they work on Windows without `cross-env`.
   - All three passed with 58/58 (no skips, because the server-only tests run).
+- **Task 3 (2026-09-27): CI matrix, written but not yet ticked.** Waiting on the first GitHub run, when the owner asks for the pull request. The owner asked for no pushes without a request.
+  - `.github/workflows/database.yml`, job `test`, named `Database tests (<database>)`, runs on push to `main` and on pull requests.
+  - One service container per entry: `postgres:15`, `mysql:8.4` and `mariadb:10.11`, each with its health command. It runs `pnpm test:db` with `TEST_DATABASE_URL`.
+  - The actions are pinned to the same SHAs as `ci.yml`, with `permissions: contents: read` and `persist-credentials: false`.
+  - The YAML parses, and the images and health commands are the ones proven locally with `docker/test-databases.compose.yml`.
+  - **After merging,** add the three `Database tests (…)` checks to the required checks on `main`.
 
