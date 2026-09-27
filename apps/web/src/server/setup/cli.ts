@@ -64,3 +64,36 @@ export function parseSetupCommand(argv: string[], env: Env, hasTerminal: boolean
     rootPassword: env.RONNE_ROOT_PASSWORD,
   };
 }
+
+export type ResetCommand =
+  | { mode: "interactive" }
+  | { mode: "non-interactive"; rootPassword?: string; databaseUrl?: string }
+  | { mode: "error"; exitCode: 2; message: string };
+
+/** reset-root-password's flags: only --yes. The new password comes from RONNE_ROOT_PASSWORD. */
+export function parseResetCommand(argv: string[], env: Env, hasTerminal: boolean): ResetCommand {
+  let yes = false;
+  try {
+    yes =
+      parseArgs({ args: argv, strict: true, options: { yes: { type: "boolean", short: "y" } } })
+        .values.yes === true;
+  } catch (error) {
+    return { mode: "error", exitCode: 2, message: (error as Error).message };
+  }
+  if (yes || (env.CI === "true" && !hasTerminal)) {
+    return {
+      mode: "non-interactive",
+      rootPassword: env.RONNE_ROOT_PASSWORD,
+      databaseUrl: env.DATABASE_URL,
+    };
+  }
+  if (!hasTerminal) {
+    return {
+      mode: "error",
+      exitCode: 2,
+      message:
+        "There's no terminal to ask for the password. Run it with --yes and RONNE_ROOT_PASSWORD set.",
+    };
+  }
+  return { mode: "interactive" };
+}

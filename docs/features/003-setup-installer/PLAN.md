@@ -24,7 +24,7 @@
 - [x] **5. Non-interactive mode.** Flags, env vars, TTY detection, plain output and exit codes.
   *Done when:* a test runs the command as a child process with env vars only and gets a migrated database with a root; another test gets exit code 2 for a missing value.
 
-- [ ] **6. `reset-root-password` command.** Interactive and `--yes` modes.
+- [x] **6. `reset-root-password` command.** Interactive and `--yes` modes.
   *Done when:* a child-process test resets the password, and the old password no longer verifies.
 
 - [ ] **7. Docs.** Update the README's getting-started section, and change `pnpm setup` to `pnpm run setup` anywhere it still appears.
@@ -85,4 +85,9 @@
     `CI` is set explicitly in each child, because GitHub Actions sets `CI=true`. Next.js makes `NODE_ENV` a required key of `ProcessEnv`, so the child's environment sets it.
   - The server smoke test (setup `--yes` against an empty MySQL or PostgreSQL database) is what 004's task 4 asks for. It passed on PostgreSQL 18 and 15, MySQL 8.4 and MariaDB 10.11 (157/157 each).
   - `pnpm run setup --yes` from the repo root passes the flag through to `apps/web` and exits 0.
+- **Task 6 (2026-09-27): `pnpm run reset-root-password`** (root and `apps/web`).
+  - `setup/reset-root.ts` reuses the `SetupPrompts` interface and task 2's `resetRootPassword` action. The password is asked twice when interactive; with `--yes` it comes from `RONNE_ROOT_PASSWORD`. `DATABASE_URL` comes from the environment or `.env` (`RONNE_ENV_FILE`). `parseResetCommand` in `cli.ts` accepts only `--yes`.
+  - **Exit codes:** 0 done; 1 when there's no root yet (a clear message); 2 for a missing or short password, no `DATABASE_URL`, or no terminal without `--yes`.
+  - **Tests** run the real scripts: setup, then reset. Afterwards the old password no longer signs in through Better Auth and the new one does. There are separate tests for no root, missing input and no terminal.
+  - A database that was never migrated (no tables) still ends with the driver's error and a stack trace, rather than a friendly message. `pnpm run setup` is the documented first step, so this was left as it is.
 
