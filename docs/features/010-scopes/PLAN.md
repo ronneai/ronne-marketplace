@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Name rules in `packages/core`.** `normalizeScopeName`, `isValidName` and the reserved
+- [x] **1. Name rules in `packages/core`.** `normalizeScopeName`, `isValidName` and the reserved
   list, exported for the web app and 011.
   *Done when:* unit tests cover the character rules, lengths, `@` stripping and reserved names.
 
@@ -26,3 +26,11 @@ the same change that completes it.
   a user sees it on `/scopes` but gets a 404 on `/admin/scopes`.
 
 ## Notes
+- **Task 1 (2026-09-27): name rules** (`packages/core/src/names.ts`), exported from `@ronneai/core`.
+  - **`nameProblem(name, kind)`** returns `empty`, `too_long`, `characters`, `edges` or `reserved`
+    (scopes only), or null; `NAME_PROBLEM_MESSAGES` has one sentence for each.
+  - **Also:** `isValidName`, `normalizeScopeName` (trims, lowercases, strips a leading `@`),
+    `parseItemName` (`@scope/name` → its parts) and `RESERVED_SCOPES`.
+  - **Reserved scopes are still valid item names:** `@team/admin` is fine, `@admin/x` isn't.
+  - **Note:** `packages/core` compiles as NodeNext, so relative imports need `.js` (`./names.js`).
+    The first commit attempt stopped on it: the pre-commit typecheck caught it.

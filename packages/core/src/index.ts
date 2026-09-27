@@ -18,3 +18,14 @@ export type ItemType = (typeof ITEM_TYPES)[number];
 export const isItemType = (value: string): value is ItemType => {
   return (ITEM_TYPES as readonly string[]).includes(value);
 };
+
+export {
+  isValidName,
+  NAME_MAX_LENGTH,
+  NAME_PROBLEM_MESSAGES,
+  type NameProblem,
+  nameProblem,
+  normalizeScopeName,
+  parseItemName,
+  RESERVED_SCOPES,
+} from "./names.js";
