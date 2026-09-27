@@ -1,0 +1,18 @@
+# Only what the image build needs. Everything else stays out of the build context.
+**/node_modules
+**/.next
+**/.turbo
+**/dist
+**/dist-scripts
+**/data
+**/.env
+**/.env.*
+!**/.env.example
+.git
+.github
+.githooks
+.claude
+docs
+examples
+*.code-workspace
+**/*.tsbuildinfo

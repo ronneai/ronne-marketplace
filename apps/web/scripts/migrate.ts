@@ -1,12 +1,13 @@
 // pnpm db:migrate — applies pending migrations to DATABASE_URL.
-// Reads DATABASE_URL from the environment, or from .env when it isn't set.
-import { existsSync } from "node:fs";
+// Reads DATABASE_URL from the environment, or from the settings file (RONNE_ENV_FILE or .env).
+import { resolve } from "node:path";
+import { loadConfig } from "../src/server/config";
 import { createDb } from "../src/server/db/create-db";
 import { migrateToLatest } from "../src/server/db/migrate";
 import { redactDatabaseUrl } from "../src/server/db/url";
 
-if (!process.env.DATABASE_URL && existsSync(".env")) process.loadEnvFile(".env");
-const url = process.env.DATABASE_URL;
+const appDir = resolve(import.meta.dirname, "..");
+const url = loadConfig({ appDir }).databaseUrl;
 if (!url) {
   console.error(
     "✗ DATABASE_URL isn't set. Run `pnpm run setup` first, or set it in the environment.",
@@ -14,7 +15,7 @@ if (!url) {
   process.exit(2);
 }
 
-const { db, dialect } = createDb(url);
+const { db, dialect } = createDb(url, { baseDir: appDir });
 try {
   console.log(`Migrating ${redactDatabaseUrl(url)} (${dialect})`);
   const applied = await migrateToLatest(db, dialect);

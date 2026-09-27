@@ -19,7 +19,17 @@ export default defineConfig({
     ...shared,
     projects: [
       { extends: true, test: { name: "unit", include, exclude: dbInclude } },
-      { extends: true, test: { name: "db", include: dbInclude } },
+      {
+        extends: true,
+        test: {
+          name: "db",
+          include: dbInclude,
+          // Real schema changes on MySQL, MariaDB and PostgreSQL can take longer than Vitest's 5s
+          // default on a shared CI machine (a MySQL migration test timed out there in PR #11).
+          testTimeout: 30_000,
+          hookTimeout: 30_000,
+        },
+      },
     ],
   },
 });

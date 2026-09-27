@@ -332,7 +332,8 @@ how to set them.
 Two supported paths:
 
 - **Node:** `pnpm dlx @ronne/marketplace init` (or run `pnpm run setup` from a clone or fork)
-- **Docker:** `docker compose up`, followed by `docker compose exec web pnpm run setup`
+- **Docker:** `docker compose up -d`, then `docker compose exec web pnpm run setup`, then `docker compose restart web`
+  (details in [feature 005](../features/005-docker/SPEC.md))
 
 Supported databases: SQLite (default), MySQL 8.4+, MariaDB 10.11+ and PostgreSQL 15+. Every pull
 request runs the database tests on the minimum versions, and a weekly run tests the latest ones

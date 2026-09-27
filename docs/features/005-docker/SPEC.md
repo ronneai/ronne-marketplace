@@ -24,7 +24,7 @@ It works on amd64 and arm64, keeps all state on one volume, and survives upgrade
 ## Behaviour
 
 **Image:**
-- Based on `node:24-slim`, the current Node.js LTS on Debian stable (glibc, so `better-sqlite3` uses its prebuilt binaries on both architectures). The tag is pinned by digest, and Dependabot updates it.
+- Based on `node:24-trixie-slim`: the current Node.js LTS on the current Debian stable (13). The plain `node:24-slim` tag is still Debian 12. It's glibc, so `better-sqlite3` can use prebuilt binaries on both architectures; the build stage also has `python3 make g++` for when it can't. The image is pinned by digest, and Dependabot updates it.
 - Next.js `output: "standalone"`.
 - Runs as a non-root user with UID 1000.
 - Exposes port 3000.

@@ -1,0 +1,66 @@
+name: Image
+
+# The Docker image (feature 005): builds for amd64 and arm64, runs the amd64 image and checks it
+# answers in setup mode, and scans it for known vulnerabilities (docs/policies/dependencies.md §3).
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: image-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  image:
+    name: Docker image (build, run, scan)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+        with:
+          platforms: arm64
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build for amd64 and arm64
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Load the amd64 image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          tags: ronne-web:ci
+          cache-from: type=gha
+
+      - name: Run it and check it answers in setup mode
+        run: |
+          docker run -d --name ronne -p 3000:3000 ronne-web:ci
+          for i in $(seq 1 60); do
+            body=$(curl -s http://127.0.0.1:3000/api/health || true)
+            case "$body" in *setup_required*) echo "OK: $body"; exit 0 ;; esac
+            sleep 1
+          done
+          echo "The container didn't answer with setup_required. Last response: $body"
+          docker logs ronne
+          exit 1
+
+      # Trivy's own image, pinned by digest, instead of a third-party action.
+      - name: Scan for known vulnerabilities (Trivy)
+        run: >-
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock
+          aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969
+          image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 ronne-web:ci

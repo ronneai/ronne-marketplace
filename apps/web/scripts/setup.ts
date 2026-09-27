@@ -7,6 +7,7 @@
 // Exit codes: 0 done, 1 a check or step failed, 2 invalid or missing input.
 import { resolve } from "node:path";
 import * as p from "@clack/prompts";
+import { envFilePath } from "../src/server/config";
 import { clackPrompts } from "../src/server/setup/clack-prompts";
 import { parseSetupCommand } from "../src/server/setup/cli";
 import {
@@ -19,7 +20,7 @@ import { runSetup, SetupFailedError } from "../src/server/setup/run-setup";
 
 const appDir = resolve(import.meta.dirname, "..");
 // RONNE_ENV_FILE moves .env, for Docker's data volume (feature 005) and for tests.
-const envPath = resolve(appDir, process.env.RONNE_ENV_FILE || ".env");
+const envPath = envFilePath(appDir);
 
 const command = parseSetupCommand(
   process.argv.slice(2),
@@ -43,11 +44,19 @@ try {
     databaseUrl: interactive ? undefined : command.databaseUrl,
     storagePath: interactive ? undefined : command.storagePath,
   });
-  const done = [
-    "Ronne is set up.",
-    "Start it with `pnpm build && pnpm start` (or `pnpm dev` while developing),",
-    `then open ${result.publicUrl} and sign in as ${result.rootEmail}.`,
-  ];
+  // In the Docker image (RONNE_RUNTIME=docker) the server is already running and needs a restart.
+  const done =
+    process.env.RONNE_RUNTIME === "docker"
+      ? [
+          "Ronne is set up.",
+          "Restart it with `docker compose restart web`,",
+          `then open ${result.publicUrl} and sign in as ${result.rootEmail}.`,
+        ]
+      : [
+          "Ronne is set up.",
+          "Start it with `pnpm build && pnpm start` (or `pnpm dev` while developing),",
+          `then open ${result.publicUrl} and sign in as ${result.rootEmail}.`,
+        ];
   if (interactive) p.outro(done.join("\n"));
   else console.log(done.join("\n"));
 } catch (error) {
