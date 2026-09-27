@@ -51,12 +51,17 @@ compose parts; they don't restyle them.
 | `border` | `rgba(20, 33, 61, 0.10)` | `rgba(191, 233, 225, 0.12)` |
 | `border-strong` (notices, containment) | `rgba(20, 33, 61, 0.30)` | Teal or Mint hairline |
 | `accent` (fills) | Teal | Teal |
-| `on-accent` (text on teal) | White | Ink |
+| `on-accent` (text on teal) | **Ink** | Ink |
+| `focus` (focus ring) | **Navy** | Teal |
 | `link` | Navy, semibold | Teal |
 | `tint` (selection, soft fill) | Mint | Navy |
 
 - **Teal is never text in the light theme** (the light note's rule). It fails contrast on white. In
   the dark theme, teal text is allowed (7.4:1 on Ink).
+- **The light theme differs from its design note in two places** (owner decision, 2026-09-27). The
+  note's white labels on teal buttons (2.54:1) and teal focus ring on white or Paper (2.4–2.5:1)
+  fail WCAG. So labels on teal are **Ink** (7.37:1), as in the dark theme, and the light focus ring
+  is **Navy** (15.97:1). The brand teal fill is unchanged, and buttons look the same in both themes.
 - Tokens live in `apps/web/src/app/tokens.css` as CSS variables under `:root` (light) and
   `[data-theme="dark"]`. Tailwind 4's `@theme` maps them to utilities (`bg-surface`, `text-muted`,
   `border-hairline`…), so components never use raw hex values.

@@ -1,12 +1,35 @@
 @import "tailwindcss";
+@import "./tokens.css";
 
-/* Brand fonts (feature 032): Manrope for human text, IBM Plex Mono for machine values. */
-@theme {
+/*
+ * Tailwind utilities for the design tokens (feature 032): bg-canvas, bg-surface, text-fg,
+ * text-muted, border-hairline, border-strong, bg-accent, text-on-accent, text-link, bg-tint,
+ * outline-focus, rounded-control (6px) and rounded-panel (8px). `inline` keeps the var() references,
+ * so the theme switches at runtime.
+ */
+@theme inline {
   --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, "SFMono-Regular", monospace;
+
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-hairline: var(--border);
+  --color-strong: var(--border-strong);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-link: var(--link);
+  --color-tint: var(--tint);
+  --color-focus: var(--focus);
+
+  --radius-control: 6px;
+  --radius-panel: 8px;
 }
 
 body {
+  background: var(--canvas);
+  color: var(--fg);
   font-family: var(--font-sans);
   font-weight: 500;
 }

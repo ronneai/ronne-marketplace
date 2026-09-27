@@ -1,0 +1,58 @@
+/*
+ * Design tokens (feature 032). The only place colours are defined: components use the Tailwind
+ * utilities mapped in globals.css (bg-surface, text-muted, border-hairline…), never raw values.
+ *
+ * Palette: Ink #0B1220, Navy #14213D, Teal #18B6A4, Mint #BFE9E1, Paper #F7F9FA.
+ * Light theme: labels on teal are Ink and the focus ring is Navy. The design note's white-on-teal
+ * (2.54:1) and teal ring on white (2.4:1) fail WCAG; owner decision, 2026-09-27.
+ * tokens.test.ts checks every documented pair against WCAG AA from these values.
+ */
+
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+  --canvas: #f7f9fa;
+  --surface: #ffffff;
+  --fg: #0b1220;
+  --muted: #14213d;
+  --border: rgba(20, 33, 61, 0.1);
+  --border-strong: rgba(20, 33, 61, 0.3);
+  --accent: #18b6a4;
+  --on-accent: #0b1220;
+  --link: #14213d;
+  --tint: #bfe9e1;
+  --focus: #14213d;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --canvas: #0b1220;
+  --surface: #14213d;
+  --fg: #f7f9fa;
+  --muted: #bfe9e1;
+  --border: rgba(191, 233, 225, 0.12);
+  --border-strong: rgba(191, 233, 225, 0.3);
+  --accent: #18b6a4;
+  --on-accent: #0b1220;
+  --link: #18b6a4;
+  --tint: #14213d;
+  --focus: #18b6a4;
+}
+
+/* "system" follows the OS. Same values as [data-theme="dark"]. */
+@media (prefers-color-scheme: dark) {
+  [data-theme="system"] {
+    color-scheme: dark;
+    --canvas: #0b1220;
+    --surface: #14213d;
+    --fg: #f7f9fa;
+    --muted: #bfe9e1;
+    --border: rgba(191, 233, 225, 0.12);
+    --border-strong: rgba(191, 233, 225, 0.3);
+    --accent: #18b6a4;
+    --on-accent: #0b1220;
+    --link: #18b6a4;
+    --tint: #14213d;
+    --focus: #18b6a4;
+  }
+}
