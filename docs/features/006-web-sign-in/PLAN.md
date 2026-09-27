@@ -20,7 +20,7 @@
   `changePassword` (rules from 003, other sessions ended) and `signOut`.
   *Done when:* database tests cover each, including a wrong current password.
 
-- [ ] **4. Route protection.** `src/proxy.ts` (cookie present or redirect with `next`), the protected
+- [x] **4. Route protection.** `src/proxy.ts` (cookie present or redirect with `next`), the protected
   `(app)` layout with `requireUser`, the public routes, and a safe `next`.
   *Done when:* tests cover redirects for protected, public and setup-required paths, and reject
   `//evil.test` and `https://evil.test` as `next`.
@@ -82,4 +82,21 @@
     30-day session. With `revokeOtherSessions`, it ends every session and starts a new one for this
     browser.
   - **`signOut`** ends the session, and does nothing without one.
+- **Task 4 (2026-09-27): route protection.**
+  - **`src/proxy.ts`** redirects a page request without a `ronne.*` session cookie to
+    `/sign-in?next=…`, and otherwise sets `x-ronne-path` (replacing any value the client sent). Its
+    matcher skips `/api/*` (API routes answer with their own status codes), `_next` assets and the
+    icons. It imports only `models/route-guard.ts` and `models/session-cookie.ts`, which are plain code.
+  - **The `(app)` layout** calls `requireUser`, which checks the session in the database, and passes
+    the user to the shell. `/styleguide` now gets the real user (root-only in production).
+  - **`safeNextPath`** accepts only a path starting with a single `/`, with no backslash. It parses
+    the path and checks the origin again, because the URL parser drops tabs and newlines
+    (`/\t/evil.test` becomes `//evil.test`). It never returns sign-in itself.
+  - **Checked live** (`next start`): `/`, `/account/password?x=1` and `/styleguide` redirect with
+    `next`; `/api/health`, `/api/auth/get-session` and `/icon.svg` pass; `/api/auth/sign-in/email`
+    is a 404; a forged session cookie gets past the proxy and is sent to sign-in by the layout.
+  - **Found for task 7:** Next.js loads `apps/web/.env` into the environment on its own, so a server
+    started with `RONNE_ENV_FILE` pointing elsewhere still sees a developer's local `DATABASE_URL`.
+    The end-to-end harness must run where that file doesn't apply. Before setup, the root layout
+    still shows the setup screen on every page, as its test covers.
 

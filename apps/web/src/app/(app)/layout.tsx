@@ -1,10 +1,19 @@
+import { headers } from "next/headers";
 import type { ReactNode } from "react";
 import { AppShell } from "@/components/app-shell/AppShell";
+import { PATH_HEADER, requireUser } from "@/server/domains/identity/actions/session";
 
 /**
- * Pages inside the app frame (feature 032). Feature 006 makes this layout require a signed-in user
- * and passes it to the shell, with the sign-out action.
+ * Pages inside the app frame (feature 032). Every page here needs a signed-in user (feature 006):
+ * `src/proxy.ts` only checks for a cookie, so this is where the session is really checked.
  */
-export default function AppLayout({ children }: { children: ReactNode }) {
-  return <AppShell user={null}>{children}</AppShell>;
+export default async function AppLayout({ children }: { children: ReactNode }) {
+  const requestHeaders = await headers();
+  const user = await requireUser(requestHeaders);
+  const current = (requestHeaders.get(PATH_HEADER) ?? "/").split("?")[0];
+  return (
+    <AppShell user={user} current={current}>
+      {children}
+    </AppShell>
+  );
 }

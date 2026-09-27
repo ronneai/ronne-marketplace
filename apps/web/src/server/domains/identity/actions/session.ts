@@ -1,15 +1,14 @@
 import { redirect } from "next/navigation";
 import { clientIp } from "../models/client-ip";
+import { PATH_HEADER, signInUrl } from "../models/route-guard";
 import type { CurrentUser } from "../models/user";
 import { type AppAuth, getAppAuth } from "../repositories/auth-instance";
 import { betterAuthSessionStore } from "../repositories/better-auth-session-store";
 import { kyselyIdentityRepository } from "../repositories/kysely-identity-repository";
 import * as service from "../services/session";
 
+export { PATH_HEADER } from "../models/route-guard";
 export type { ChangePasswordResult, SignInInput, SignInResult } from "../services/session";
-
-/** The request header `src/proxy.ts` sets to the requested path, so sign-in can send people back. */
-export const PATH_HEADER = "x-ronne-path";
 
 /**
  * Entry points for pages, layouts and server actions. `app` defaults to the running server's
@@ -32,7 +31,7 @@ export const getCurrentUser = (
 export async function requireUser(headers: Headers, app?: AppAuth): Promise<CurrentUser> {
   const user = await getCurrentUser(headers, app);
   if (user) return user;
-  redirect(`/sign-in?next=${encodeURIComponent(headers.get(PATH_HEADER) ?? "/")}`);
+  redirect(signInUrl(headers.get(PATH_HEADER) ?? "/"));
 }
 
 export function signIn(
