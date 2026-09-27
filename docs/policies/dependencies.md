@@ -45,6 +45,9 @@ Docker base images, GitHub Actions, and any tool that CI or the install process 
   (`core`, `rmk`, `mcp`) use `^` ranges for their runtime dependencies, so users can dedupe and get
   fixes. The lockfile is always committed, and CI installs with `--frozen-lockfile`.
 - **Updates.** Dependabot opens grouped update pull requests weekly. Major versions get their own pull request and a read of the changelog.
+- **`@types/node` follows the minimum Node.js**, not the target: 22.x today. Otherwise type-checking
+  would allow APIs that the oldest supported runtime doesn't have. Dependabot ignores its major
+  versions; it moves to the next major by hand, in the same change that raises the minimum.
 
 ## 3. Security
 

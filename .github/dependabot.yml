@@ -12,6 +12,11 @@ updates:
     commit-message:
       prefix: "[chore]"
     open-pull-requests-limit: 10
+    ignore:
+      # Types follow the minimum supported Node.js (22), not the newest, so code can't use APIs that
+      # Node 22 lacks. Move to a new major by hand when the minimum changes (dependency policy §2).
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     groups:
       # Minor and patch updates together; each major version gets its own PR.
       npm-minor-and-patch:
