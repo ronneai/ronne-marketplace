@@ -23,8 +23,8 @@ export const CopyableCommand = ({
     setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <div className="flex items-center justify-between gap-2 rounded-control border border-hairline bg-canvas py-1.5 pr-1.5 pl-3">
-      <code className="overflow-x-auto font-mono text-[13px] whitespace-nowrap text-fg">
+    <div className="flex min-w-0 items-center justify-between gap-2 rounded-control border border-hairline bg-canvas py-1.5 pr-1.5 pl-3">
+      <code className="min-w-0 overflow-x-auto font-mono text-[13px] whitespace-nowrap text-fg">
         {prompt ? <span className="text-muted select-none">$ </span> : null}
         {command}
       </code>

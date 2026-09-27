@@ -10,10 +10,12 @@ vi.mock("@/server/domains/identity/actions/user-admin", () => admin);
 vi.mock("@/server/http/request-headers", () => ({
   requestHeaders: async () => new Headers({ "x-ronne-path": "/admin/users?q=x" }),
 }));
+const navigation = vi.hoisted(() => ({ path: "/admin/users" }));
 vi.mock("next/navigation", () => ({
   notFound: () => {
     throw new Error("NEXT_NOT_FOUND");
   },
+  usePathname: () => navigation.path,
 }));
 
 const { UsersPage } = await import("./UsersPage");
@@ -105,8 +107,9 @@ describe("UsersPage", () => {
 });
 
 describe("AdminNav", () => {
-  it("marks the current section", () => {
-    const html = renderToStaticMarkup(<AdminNav current="/admin/audit" />);
+  it("marks the current section from the live path", () => {
+    navigation.path = "/admin/audit";
+    const html = renderToStaticMarkup(<AdminNav />);
     expect(html).toMatch(/aria-current="page"[^>]*>Audit log</);
     expect(html).not.toMatch(/aria-current="page"[^>]*>Users</);
   });
@@ -115,6 +118,7 @@ describe("AdminNav", () => {
 describe("root only", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    navigation.path = "/admin/users";
     admin.adminListUsers.mockResolvedValue({ users: [user()], nextCursor: null });
   });
 

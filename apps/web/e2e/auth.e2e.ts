@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
-import { E2E_PASSWORD, E2E_USERS } from "./users";
+import { headerName } from "./helpers";
+import { E2E_NAMES, E2E_PASSWORD, E2E_USERS } from "./users";
 
 // Next.js's route announcer is also a role="alert", so match the notice by its ERR: prefix.
 const errorNotice = (page: Page) => page.getByRole("alert").filter({ hasText: "ERR:" });
@@ -21,7 +22,7 @@ test("signs in and comes back to the page that was asked for", async ({ page }) 
 
   await signIn(page, E2E_USERS.root);
   await expect(page).toHaveURL(/\/account\/password$/);
-  await expect(page.getByText(E2E_USERS.root, { exact: true })).toBeVisible();
+  await expect(headerName(page, E2E_NAMES.root)).toBeVisible();
   await expect(page.getByRole("link", { name: "Admin" })).toBeVisible();
 });
 
@@ -58,9 +59,9 @@ test("remember me gives a 30-day cookie; without it, a browser-session cookie", 
 test("signs out, and the back button doesn't show the page again", async ({ page }) => {
   await page.goto("/sign-in");
   await signIn(page, E2E_USERS.signOut);
-  await expect(page.getByText(E2E_USERS.signOut, { exact: true })).toBeVisible();
+  await expect(headerName(page, E2E_NAMES.signOut)).toBeVisible();
 
-  await page.getByText(E2E_USERS.signOut, { exact: true }).click();
+  await headerName(page, E2E_NAMES.signOut).click();
   await page.getByRole("button", { name: "Sign out" }).click();
   await expect(page).toHaveURL(/\/sign-in$/);
   expect(await sessionCookie(page)).toBeUndefined();
@@ -68,7 +69,7 @@ test("signs out, and the back button doesn't show the page again", async ({ page
   await page.goBack();
   await page.reload();
   await expect(page).toHaveURL(/\/sign-in/);
-  await expect(page.getByText(E2E_USERS.signOut, { exact: true })).toHaveCount(0);
+  await expect(headerName(page, E2E_NAMES.signOut)).toHaveCount(0);
 });
 
 test("changes the password: this browser stays in, others are signed out", async ({ browser }) => {
@@ -77,7 +78,7 @@ test("changes the password: this browser stays in, others are signed out", async
   for (const page of [here, elsewhere]) {
     await page.goto("/sign-in");
     await signIn(page, E2E_USERS.changePassword);
-    await expect(page.getByText(E2E_USERS.changePassword, { exact: true })).toBeVisible();
+    await expect(headerName(page, E2E_NAMES.changePassword)).toBeVisible();
   }
 
   const next = "a brand new e2e passphrase";
@@ -95,10 +96,10 @@ test("changes the password: this browser stays in, others are signed out", async
   await expect(here.getByText("Password changed")).toBeVisible();
 
   await here.goto("/");
-  await expect(here.getByText(E2E_USERS.changePassword, { exact: true })).toBeVisible();
+  await expect(headerName(here, E2E_NAMES.changePassword)).toBeVisible();
   await elsewhere.goto("/");
   await expect(elsewhere).toHaveURL(/\/sign-in$/);
 
   await signIn(elsewhere, E2E_USERS.changePassword, next);
-  await expect(elsewhere.getByText(E2E_USERS.changePassword, { exact: true })).toBeVisible();
+  await expect(headerName(elsewhere, E2E_NAMES.changePassword)).toBeVisible();
 });

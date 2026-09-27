@@ -1,6 +1,6 @@
+import { CliAuthPanel } from "@/components/cli-auth/CliAuthPanel";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { Panel } from "@/components/ui/Panel";
-import { CliAuthPanel } from "./CliAuthPanel";
 import { SignInForm } from "./SignInForm";
 
 /** The sign-in screen (spec 006, from the mock): the card, then the CLI panel below it. */

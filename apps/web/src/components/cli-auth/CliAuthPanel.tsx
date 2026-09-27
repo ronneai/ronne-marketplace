@@ -2,8 +2,11 @@ import Link from "next/link";
 import { CopyableCommand } from "@/components/ui/CopyableCommand";
 import { Panel } from "@/components/ui/Panel";
 
-/** How `rmk` signs in (from the mock). The commands arrive with 009 and 022. */
-export const CliAuthPanel = () => {
+/**
+ * How `rmk` signs in (from the mock), on the sign-in page and on Access tokens. The server side is
+ * 009; the commands arrive with 022. `linkToTokens` is off on the Access tokens page itself.
+ */
+export const CliAuthPanel = ({ linkToTokens = true }: { linkToTokens?: boolean }) => {
   return (
     <Panel className="grid gap-3">
       <div className="flex items-center justify-between">
@@ -16,10 +19,16 @@ export const CliAuthPanel = () => {
       </div>
       <div className="grid gap-1.5">
         <p className="text-xs text-muted">
-          Or with a personal token from{" "}
-          <Link href="/account/tokens" className="text-link underline underline-offset-2">
-            Access tokens
-          </Link>
+          {linkToTokens ? (
+            <>
+              Or with a personal token from{" "}
+              <Link href="/account/tokens" className="text-link underline underline-offset-2">
+                Access tokens
+              </Link>
+            </>
+          ) : (
+            "Or with a personal token from this page"
+          )}
         </p>
         <CopyableCommand command="rmk login --token <token>" />
       </div>

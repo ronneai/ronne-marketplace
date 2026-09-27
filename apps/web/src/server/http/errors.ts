@@ -8,9 +8,10 @@ export const errorResponse = (
   code: string,
   message: string,
   details?: Record<string, unknown>,
+  headers: Record<string, string> = {},
 ) => {
   const body: ApiError = { error: details ? { code, message, details } : { code, message } };
-  return Response.json(body, { status, headers: { "cache-control": "no-store" } });
+  return Response.json(body, { status, headers: { "cache-control": "no-store", ...headers } });
 };
 
 /** Returned by API routes until `pnpm run setup` has configured the instance (feature 005). */

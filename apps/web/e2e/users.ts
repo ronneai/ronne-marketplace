@@ -11,4 +11,16 @@ export const E2E_USERS = {
   signOut: "sign-out@e2e.test",
   changePassword: "change-password@e2e.test",
   notRoot: "not-root@e2e.test",
+  tokens: "tokens@e2e.test",
 } as const;
+
+/** The display names, which the header shows (not the email). */
+export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
+  root: "Root",
+  wrongPassword: "Wrong Password",
+  remember: "Remember Me",
+  signOut: "Sign Out Tester",
+  changePassword: "Change Password Tester",
+  notRoot: "Not Root",
+  tokens: "Token Tester",
+};

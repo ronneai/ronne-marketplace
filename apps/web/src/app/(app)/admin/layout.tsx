@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { AdminNav } from "@/features/admin/AdminNav";
-import { getCurrentUser, PATH_HEADER } from "@/server/domains/identity/actions/session";
+import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { can } from "@/server/domains/identity/models/permissions";
 import { requestHeaders } from "@/server/http/request-headers";
 
@@ -13,10 +13,9 @@ const AdminLayout = async ({ children }: { children: ReactNode }) => {
   const request = await requestHeaders();
   const user = await getCurrentUser(request);
   if (!can(user, "users.view")) notFound();
-  const current = (request.get(PATH_HEADER) ?? "/admin").split("?")[0] ?? "/admin";
   return (
     <>
-      <AdminNav current={current} />
+      <AdminNav />
       {children}
     </>
   );

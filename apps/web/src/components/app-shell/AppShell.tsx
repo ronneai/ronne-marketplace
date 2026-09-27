@@ -1,25 +1,30 @@
+import { CircleUser } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { setThemeFromForm } from "@/features/theme/actions";
+import { ThemeToggle } from "@/features/theme/ThemeToggle";
+import type { Theme } from "@/features/theme/theme";
 import { Badge } from "../ui/Badge";
 import { BrandLogo } from "../ui/BrandLogo";
-import { isCurrent, navFor, type ShellUser } from "./nav";
+import { MainNav } from "./MainNav";
+import { navFor, type ShellUser } from "./nav";
 
 const menuItem = "block w-full rounded-control px-3 py-1.5 text-left text-sm text-fg hover:bg-tint";
 
 /**
  * The page frame (feature 032): a full-width header with the brand, role-aware navigation and the
  * user menu; a content column at 72% of the width on large screens (full width below 1024px); and a
- * full-width footer. The user menu is a native <details>, so it works without JavaScript. The (app) layout passes `signOutAction` (feature 006).
+ * full-width footer. The theme switch sits in the header, next to the user menu. The user menu is
+ * a native <details>, so it works without JavaScript. The (app) layout passes `signOutAction` (006).
  */
 export const AppShell = ({
   user,
-  current = "/",
+  theme = "light",
   signOutAction,
   children,
 }: {
   user: ShellUser | null;
-  current?: string;
+  /** The theme cookie's value, for the header's theme switch. */
+  theme?: Theme;
   signOutAction?: () => Promise<void>;
   children: ReactNode;
 }) => {
@@ -34,62 +39,39 @@ export const AppShell = ({
             <BrandLogo height={34} className="h-6 w-auto sm:h-[34px]" />
             <span className="hidden font-mono text-xs text-muted sm:inline">/ registry</span>
           </Link>
-          <nav aria-label="Main" className="flex items-center gap-1">
-            {navFor(user).map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={isCurrent(item, current) ? "page" : undefined}
-                className="rounded-control px-2 py-1.5 text-sm text-muted sm:px-3 hover:text-fg aria-[current=page]:bg-tint aria-[current=page]:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-          {user ? (
-            <details className="relative ml-auto">
-              <summary className="flex cursor-pointer list-none items-center gap-2 rounded-control px-2 py-1 text-sm text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus">
-                {/* On a phone the email doesn't fit next to the navigation, so the menu shows it instead. */}
-                <span className="hidden font-mono text-xs sm:inline">{user.email}</span>
-                <span className="font-mono text-xs sm:hidden">account</span>
-                {user.role !== "user" ? <Badge>{user.role}</Badge> : null}
-              </summary>
-              <div className="absolute right-0 z-10 mt-2 grid w-56 gap-0.5 rounded-panel border border-strong bg-surface p-1">
-                <p className="truncate px-3 py-1.5 font-mono text-xs text-muted sm:hidden">
-                  Signed in as {user.email}
-                </p>
-                <Link href="/account/password" className={menuItem}>
-                  Account
-                </Link>
-                <Link href="/account/tokens" className={menuItem}>
-                  Access tokens
-                </Link>
-                <form
-                  action={setThemeFromForm}
-                  className="grid grid-cols-3 gap-1 border-t border-hairline px-1 pt-1.5 pb-1"
-                >
-                  {(["system", "light", "dark"] as const).map((theme) => (
-                    <button
-                      key={theme}
-                      type="submit"
-                      name="theme"
-                      value={theme}
-                      className="rounded-control py-1 text-xs text-muted hover:bg-tint hover:text-fg"
-                    >
-                      {theme}
-                    </button>
-                  ))}
-                </form>
-                {signOutAction ? (
-                  <form action={signOutAction} className="border-t border-hairline pt-0.5">
-                    <button type="submit" className={menuItem}>
-                      Sign out
-                    </button>
-                  </form>
-                ) : null}
-              </div>
-            </details>
-          ) : null}
+          <MainNav items={navFor(user)} />
+          <div className="ml-auto flex items-center gap-1 sm:gap-2">
+            <ThemeToggle theme={theme} />
+            {user ? (
+              <details className="relative">
+                <summary className="flex cursor-pointer list-none items-center gap-2 rounded-control px-2 py-1 text-sm text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus">
+                  {/* The name, not the email (owner, 2026-09-27). On a phone an icon opens the menu. */}
+                  <span className="hidden max-w-48 truncate text-sm sm:inline">{user.name}</span>
+                  <CircleUser size={18} aria-label="Account menu" className="sm:hidden" />
+                  {user.role !== "user" ? <Badge>{user.role}</Badge> : null}
+                </summary>
+                <div className="absolute right-0 z-10 mt-2 grid w-56 gap-0.5 rounded-panel border border-strong bg-surface p-1">
+                  <div className="grid gap-0.5 border-b border-hairline px-3 pt-1.5 pb-2">
+                    <p className="truncate text-sm font-semibold text-fg">{user.name}</p>
+                    <p className="truncate font-mono text-xs text-muted">{user.email}</p>
+                  </div>
+                  <Link href="/account/password" className={menuItem}>
+                    Account
+                  </Link>
+                  <Link href="/account/tokens" className={menuItem}>
+                    Access tokens
+                  </Link>
+                  {signOutAction ? (
+                    <form action={signOutAction} className="border-t border-hairline pt-0.5">
+                      <button type="submit" className={menuItem}>
+                        Sign out
+                      </button>
+                    </form>
+                  ) : null}
+                </div>
+              </details>
+            ) : null}
+          </div>
         </div>
       </header>
       <main className="mx-auto w-full flex-1 px-4 py-8 sm:px-6 lg:w-[72%] lg:px-0">{children}</main>

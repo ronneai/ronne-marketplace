@@ -80,3 +80,33 @@ export class InvalidRoleError extends IdentityError {
     super(`"${role}" isn't a role that can be given here. Use user or moderator.`);
   }
 }
+
+export class InvalidTokenNameError extends IdentityError {
+  constructor() {
+    super("A token name needs 1 to 100 characters.");
+  }
+}
+
+export class InvalidTokenLifetimeError extends IdentityError {
+  constructor(readonly value: string) {
+    super(`"${value}" isn't a token lifetime. Use 30, 90 or 365 days, or no expiry.`);
+  }
+}
+
+export class TokenLimitError extends IdentityError {
+  constructor(readonly limit: number) {
+    super(`You have ${limit} active tokens, the most allowed. Revoke an old token first.`);
+  }
+}
+
+export class TokenNameTakenError extends IdentityError {
+  constructor(readonly tokenName: string) {
+    super(`You already have an active token named "${tokenName}".`);
+  }
+}
+
+export class TokenNotFoundError extends IdentityError {
+  constructor() {
+    super("That token doesn't exist, or isn't yours.");
+  }
+}

@@ -33,6 +33,8 @@ const PAIRS: [string, string, number][] = [
   ["on-accent", "accent", 4.5],
   ["link", "canvas", 4.5],
   ["link", "surface", 4.5],
+  // The header's current item: link-coloured text on the tint (feature 009's navigation fix).
+  ["link", "tint", 4.5],
   ["focus", "canvas", 3],
   ["focus", "surface", 3],
 ];
@@ -51,6 +53,7 @@ describe.each([
   });
 });
 
-it("keeps the system-dark block identical to [data-theme=dark]", () => {
-  expect(block('[data-theme="system"]')).toEqual(block('[data-theme="dark"]'));
+it("has only the light and dark themes: no OS-following block", () => {
+  expect(css).not.toContain('[data-theme="system"]');
+  expect(css).not.toContain("prefers-color-scheme");
 });

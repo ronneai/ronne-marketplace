@@ -1,7 +1,9 @@
+import { cookies } from "next/headers";
 import type { ReactNode } from "react";
 import { AppShell } from "@/components/app-shell/AppShell";
 import { signOutFromMenu } from "@/features/account/actions";
-import { PATH_HEADER, requireUser } from "@/server/domains/identity/actions/session";
+import { parseTheme, THEME_COOKIE } from "@/features/theme/theme";
+import { requireUser } from "@/server/domains/identity/actions/session";
 import { requestHeaders } from "@/server/http/request-headers";
 
 /**
@@ -11,9 +13,9 @@ import { requestHeaders } from "@/server/http/request-headers";
 const AppLayout = async ({ children }: { children: ReactNode }) => {
   const request = await requestHeaders();
   const user = await requireUser(request);
-  const current = (request.get(PATH_HEADER) ?? "/").split("?")[0];
+  const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
   return (
-    <AppShell user={user} current={current} signOutAction={signOutFromMenu}>
+    <AppShell user={user} theme={theme} signOutAction={signOutFromMenu}>
       {children}
     </AppShell>
   );
