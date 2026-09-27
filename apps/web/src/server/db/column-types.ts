@@ -30,3 +30,12 @@ export function columnTypes(dialect: DatabaseDialect) {
     boolean: (): ColumnType => (dialect === "sqlite" ? "integer" : "boolean"),
   };
 }
+
+/**
+ * Table options added to every CREATE TABLE: MySQL tables use utf8mb4, so any text can be stored.
+ * Use it as `.$call(tableDefaults(dialect))`.
+ */
+export function tableDefaults(dialect: DatabaseDialect) {
+  return <T extends { modifyEnd(modifier: Expression<unknown>): T }>(builder: T): T =>
+    dialect === "mysql" ? builder.modifyEnd(sql`default charset = utf8mb4`) : builder;
+}

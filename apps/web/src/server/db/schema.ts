@@ -1,6 +1,80 @@
+import type { ColumnType, Generated } from "kysely";
+
 /**
- * Kysely table types for the whole app. Each migration that adds a table adds its interface here
- * (0001_identity arrives in feature 002, task 5).
+ * Timestamps are Dates in MySQL and PostgreSQL and ISO text in SQLite. Write them with toDbDate()
+ * and read them with fromDbDate() (dates.ts).
  */
-// biome-ignore lint/suspicious/noEmptyInterface: filled in by the first migration.
-export interface Database {}
+export type Timestamp = ColumnType<Date | string, Date | string, Date | string>;
+
+/** Better Auth's email_verified: boolean in MySQL and PostgreSQL, 0/1 in SQLite. */
+type DbBoolean = ColumnType<boolean | number, boolean | number, boolean | number>;
+
+/** Better Auth's user table, plus role and disabled_at (migration 0001_identity). */
+export interface UserTable {
+  id: string;
+  name: string;
+  email: string;
+  email_verified: DbBoolean;
+  image: string | null;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+  role: Generated<"root" | "moderator" | "user">;
+  disabled_at: Timestamp | null;
+}
+
+export interface SessionTable {
+  id: string;
+  expires_at: Timestamp;
+  token: string;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+  ip_address: string | null;
+  user_agent: string | null;
+  user_id: string;
+}
+
+export interface AccountTable {
+  id: string;
+  account_id: string;
+  provider_id: string;
+  user_id: string;
+  access_token: string | null;
+  refresh_token: string | null;
+  id_token: string | null;
+  access_token_expires_at: Timestamp | null;
+  refresh_token_expires_at: Timestamp | null;
+  scope: string | null;
+  password: string | null;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+}
+
+export interface VerificationTable {
+  id: string;
+  identifier: string;
+  value: string;
+  expires_at: Timestamp;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+}
+
+/** Personal access tokens for rmk and the MCP server. Only the sha256 hash is stored. */
+export interface AccessTokenTable {
+  id: string;
+  user_id: string;
+  name: string;
+  token_hash: string;
+  last_used_at: Timestamp | null;
+  expires_at: Timestamp | null;
+  revoked_at: Timestamp | null;
+  created_at: Timestamp;
+}
+
+/** Kysely table types for the whole app. Each migration that adds a table adds its interface here. */
+export interface Database {
+  user: UserTable;
+  session: SessionTable;
+  account: AccountTable;
+  verification: VerificationTable;
+  access_tokens: AccessTokenTable;
+}

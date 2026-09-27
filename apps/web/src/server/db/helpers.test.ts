@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { columnTypes } from "./column-types";
+import { columnTypes, tableDefaults } from "./column-types";
 import { fromDbDate, toDbDate } from "./dates";
 import { isId, newId } from "./ids";
 import { decodeJson, encodeJson } from "./json";
@@ -55,6 +55,18 @@ describe("columnTypes", () => {
 
   it("uses timestamptz in PostgreSQL", () => {
     expect(createSql("postgres")).toContain('"created_at" timestamptz');
+  });
+
+  it("creates MySQL tables as utf8mb4, and leaves the others alone", () => {
+    const create = (dialect: DatabaseDialect) =>
+      compileOnly(dialect)
+        .schema.createTable("t")
+        .addColumn("id", "varchar(26)")
+        .$call(tableDefaults(dialect))
+        .compile().sql;
+    expect(create("mysql")).toMatch(/default charset = utf8mb4$/);
+    expect(create("postgres")).not.toContain("charset");
+    expect(create("sqlite")).not.toContain("charset");
   });
 });
 

@@ -18,7 +18,7 @@ const runMigrate = (env: Record<string, string | undefined>) =>
 describe("pnpm db:migrate", () => {
   it("migrates a new SQLite file and is safe to run again", () => {
     const env = { DATABASE_URL: `file:${join(dir, "ronne.db")}` };
-    expect(runMigrate(env)).toContain("✓");
+    expect(runMigrate(env)).toContain("applied 0001_identity");
     expect(runMigrate(env)).toContain("Nothing to migrate");
   }, 60_000);
 

@@ -21,7 +21,7 @@
 - [x] **4. Migration runner.** Static migration list, Kysely `Migrator`, `pnpm db:migrate` script with readable output.
   *Done when:* running it twice on an empty SQLite file migrates once, then reports nothing to do.
 
-- [ ] **5. `0001_identity`.** The tables, indexes and foreign keys from SPEC.md, matching the
+- [x] **5. `0001_identity`.** The tables, indexes and foreign keys from SPEC.md, matching the
   column list from task 1. Hand-written Kysely `Database` types in `db/schema.ts`.
   *Done when:* a test migrates a fresh database and checks each table and column exists (through Kysely's introspection).
 
@@ -74,4 +74,12 @@
   - `migrateToLatest<DB>(db: Kysely<DB>)` is generic, because `Kysely<Database>` isn't assignable to `Kysely<unknown>` (option A, chosen by the owner). `vitest` passed; `tsc` caught 13 errors from that one cause.
   - `pnpm db:migrate` (from `apps/web` or the root) runs `scripts/migrate.ts` with **`tsx`**. Node's own type stripping can't resolve the app's extensionless imports. `esbuild`, tsx's compiler, is set to `false` in `allowBuilds`: its postinstall only checks for a binary that pnpm already installs as an optional dependency.
   - The done-when ("twice on an empty SQLite file: migrates once, then nothing to do") is covered by the runner tests with test migrations, and by a script test that runs the real command twice. With the real list still empty, the first run also reports nothing to do; task 5 makes it apply `0001_identity`.
+- **Task 5 (2026-09-27): migration `0001_identity`.**
+  - It creates Better Auth's four tables with the task 1 columns, `role varchar(16) not null default 'user'`, `disabled_at`, and `access_tokens`. There's an index on every foreign key, and `ON DELETE CASCADE` to `user`.
+  - MySQL tables get `default charset = utf8mb4` through `tableDefaults(dialect)`, so the migration never checks the dialect.
+  - **Checked against Better Auth 1.7.5:** after the migration, `getMigrations()` returns nothing to create or add, and no "schema mismatch" is logged. A real `signUpEmail` stores a ULID, the default role and a hashed password.
+  - `domains/identity/models/auth-schema.ts` holds the field mapping (Better Auth name → column) as plain data. 003's Better Auth setup must import it rather than repeat it.
+  - `better-auth` is a **dev dependency** here, used only by this test. 003 moves it to `dependencies`.
+  - `db/schema.ts` has Kysely types for the five tables. Timestamps are `Date | string`, read with `fromDbDate()`, and `email_verified` is `boolean | number`.
+  - `pnpm db:migrate` on a new file now applies `0001_identity`, and the second run reports nothing to do. Task 4's done-when now holds with a real migration.
 
