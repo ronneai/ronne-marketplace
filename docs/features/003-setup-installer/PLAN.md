@@ -4,7 +4,7 @@
 
 ## Tasks
 
-- [ ] **1. Better Auth config in `identity`.** Server config with the Kysely adapter, snake_case
+- [x] **1. Better Auth config in `identity`.** Server config with the Kysely adapter, snake_case
   field mapping and ULID ids (from 002's spike notes), argon2id through custom hash and verify
   functions, and the `role` and `disabled_at` additional fields. No routes or cookies yet.
   *Done when:* a test creates a user through it on SQLite and reads back an argon2id hash in `account`.
@@ -31,3 +31,12 @@
   *Done when:* the README steps work as written on a fresh clone.
 
 ## Notes
+- **Task 1 (2026-09-27): Better Auth setup.** `createAuth()` in `domains/identity/repositories/better-auth.ts`.
+  - It uses `authSchema` from 002 for the field mapping, `newId()` for ids, and `telemetry: { enabled: false }`.
+  - Password length is 12–128.
+  - **`disableSignUp: true`:** only root creates users. A test proves `signUpEmail` is refused and writes nothing.
+  - **argon2id** via `@node-rs/argon2`, behind a `PasswordHasher` interface in `models/`. Its parameters are OWASP's minimum (m=19456, t=2, p=1), passed explicitly. The algorithm is the library's default, argon2id: its `Algorithm` is a `const enum`, which `isolatedModules` can't use, so a test checks the `$argon2id$` prefix instead.
+  - **Better Auth 1.7.5 API:** `internalAdapter.createUser` needs a provisioning source (`{ method: "admin" }`).
+  - **Dependencies:** `better-auth` moved from dev to runtime dependencies. Added `@node-rs/argon2` 2.2.1 (native binaries as optional platform packages, no install script) and `@clack/prompts` 1.8.1 for task 4. All MIT.
+  - Login rate limiting (MVP §9.5) belongs to the web login in 006.
+

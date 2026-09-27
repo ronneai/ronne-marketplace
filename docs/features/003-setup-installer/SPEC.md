@@ -79,6 +79,8 @@ inputs aren't needed. Output is plain lines with no colours or spinners. Exit co
 `RONNE_ROOT_PASSWORD` with `--yes`), updates the root's password, and ends all of root's sessions.
 Root's access tokens are revoked too, since a reset usually means the old credentials can't be trusted.
 
+**Better Auth's public sign-up endpoint is disabled** (`emailAndPassword.disableSignUp`). Users are created only by root: here by setup, and later from the admin UI (008). Nobody can register through `/api/auth/sign-up`.
+
 **Where the code lives:** the command in `apps/web/scripts/`. It calls `db/` for checks and
 migrations, and the `identity` domain's actions for the root account. It doesn't write SQL itself.
 
