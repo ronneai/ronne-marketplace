@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import type { ReactNode } from "react";
 import { SetupRequired } from "@/features/setup-required/SetupRequired";
 import { isConfigured, loadConfig } from "@/server/config";
+import { manrope, plexMono } from "./fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -15,7 +16,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   await connection();
   const configured = isConfigured(loadConfig());
   return (
-    <html lang="en">
+    <html lang="en" className={`${manrope.variable} ${plexMono.variable}`}>
       <body className="bg-white text-neutral-900 antialiased">
         {configured ? children : <SetupRequired />}
       </body>

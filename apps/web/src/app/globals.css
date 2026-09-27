@@ -1,1 +1,12 @@
 @import "tailwindcss";
+
+/* Brand fonts (feature 032): Manrope for human text, IBM Plex Mono for machine values. */
+@theme {
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SFMono-Regular", monospace;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-weight: 500;
+}
