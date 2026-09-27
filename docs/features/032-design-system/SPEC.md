@@ -18,7 +18,7 @@ compose parts; they don't restyle them.
 - `components/ui` primitives: Button, Input (text, password with show/hide), Checkbox, Label and
   field error, Card and Panel, Badge, Notice, Table, Tabs, Dialog, CopyableCommand, and Page header.
 - The app shell: a header with the brand and navigation, a user menu, a footer, and a centered content column.
-- Brand assets: the favicon (light and dark), the monogram and the wordmark from `Branding/SVG`.
+- Brand assets: the favicon (light and dark), the monogram (`BrandMark`) and the full brand, monogram plus wordmark (`BrandLogo`), from `Branding/SVG`.
 - An internal `/styleguide` page (root only in production) showing every primitive in both themes.
 
 **Out:**
@@ -97,7 +97,7 @@ instead, with no runtime CDN: `lucide-react` (ISC), if it passes the dependency 
 - **Middle:** navigation, showing only pages that exist. In M1 that's the home page, and **Admin** for root. Catalogue, Reviews, Composer and Releases arrive with their features.
 - **Right:** the user's email, a role badge (`root`, `moderator`) and a menu (Account, Access tokens, theme, Sign out).
 - **Footer:** the version and license, and GitHub.
-- **Layout:** 1024px content column, 24px side padding, 16px on mobile.
+- **Layout:** the header and footer span the full width. The content column is 72% of the width from 1024px up (owner decision, 2026-09-27, for more room), and full width with 24px side padding below that (16px on mobile). The sign-in and setup screens keep their narrow centered card.
 
 **Not taken from the mocks, on purpose:**
 - **The `daemon: local (0.14.0)` chip.** There's no daemon.

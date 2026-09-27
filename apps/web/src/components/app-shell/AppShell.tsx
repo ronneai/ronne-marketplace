@@ -8,9 +8,9 @@ import { navFor, type ShellUser } from "./nav";
 const menuItem = "block w-full rounded-control px-3 py-1.5 text-left text-sm text-fg hover:bg-tint";
 
 /**
- * The page frame (feature 032): header with the brand, role-aware navigation and the user menu, a
- * 1024px content column, and the footer. The user menu is a native <details>, so it works without
- * JavaScript. The (app) layout passes `signOutAction` (feature 006).
+ * The page frame (feature 032): a full-width header with the brand, role-aware navigation and the
+ * user menu; a content column at 72% of the width on large screens (full width below 1024px); and a
+ * full-width footer. The user menu is a native <details>, so it works without JavaScript. The (app) layout passes `signOutAction` (feature 006).
  */
 export function AppShell({
   user,
@@ -26,14 +26,14 @@ export function AppShell({
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-hairline bg-surface">
-        <div className="mx-auto flex h-14 max-w-5xl items-center gap-6 px-4 sm:px-6">
+        <div className="flex h-14 items-center gap-3 px-4 sm:gap-6 sm:px-6">
           <Link
             href="/"
             className="flex items-center gap-2 text-fg outline-offset-4 focus-visible:outline-2 focus-visible:outline-focus"
           >
             <BrandMark size={22} />
             <span className="text-base font-semibold tracking-[-0.01em]">ronne</span>
-            <span className="font-mono text-xs text-muted">/ registry</span>
+            <span className="hidden font-mono text-xs text-muted sm:inline">/ registry</span>
           </Link>
           <nav aria-label="Main" className="flex items-center gap-1">
             {navFor(user).map((item) => (
@@ -50,10 +50,15 @@ export function AppShell({
           {user ? (
             <details className="relative ml-auto">
               <summary className="flex cursor-pointer list-none items-center gap-2 rounded-control px-2 py-1 text-sm text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus">
-                <span className="font-mono text-xs">{user.email}</span>
+                {/* On a phone the email doesn't fit next to the navigation, so the menu shows it instead. */}
+                <span className="hidden font-mono text-xs sm:inline">{user.email}</span>
+                <span className="font-mono text-xs sm:hidden">account</span>
                 {user.role !== "user" ? <Badge>{user.role}</Badge> : null}
               </summary>
               <div className="absolute right-0 z-10 mt-2 grid w-56 gap-0.5 rounded-panel border border-strong bg-surface p-1">
+                <p className="truncate px-3 py-1.5 font-mono text-xs text-muted sm:hidden">
+                  Signed in as {user.email}
+                </p>
                 <Link href="/account/password" className={menuItem}>
                   Account
                 </Link>
@@ -88,9 +93,9 @@ export function AppShell({
           ) : null}
         </div>
       </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6">{children}</main>
+      <main className="mx-auto w-full flex-1 px-4 py-8 sm:px-6 lg:w-[72%] lg:px-0">{children}</main>
       <footer className="border-t border-hairline">
-        <div className="mx-auto flex max-w-5xl flex-wrap justify-between gap-2 px-4 py-4 font-mono text-xs text-muted sm:px-6">
+        <div className="flex flex-wrap justify-between gap-2 px-4 py-4 font-mono text-xs text-muted sm:px-6">
           <span>ronne registry · open source (MIT)</span>
           <a href="https://github.com/ronneai/ronne-marketplace" className="hover:text-fg">
             github

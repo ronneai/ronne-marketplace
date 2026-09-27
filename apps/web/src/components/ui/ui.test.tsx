@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
   Badge,
+  BrandLogo,
   Button,
   CopyableCommand,
   Dialog,
@@ -137,5 +138,18 @@ describe("Tabs, CopyableCommand, Dialog", () => {
     expect(out).toContain("<dialog");
     expect(out).toContain('aria-labelledby="dialog-title"');
     expect(out).toContain('aria-label="Close"');
+  });
+});
+
+describe("BrandLogo", () => {
+  it("is the monogram and the wordmark, themed through currentColor and the accent", () => {
+    const out = html(<BrandLogo height={40} />);
+    expect(out).toContain('aria-label="Ronne AI"');
+    expect(out).toContain(">ronne</text>");
+    expect(out).toContain(">AI</text>");
+    expect(out.match(/fill-current/g)).toHaveLength(2);
+    expect(out.match(/fill-accent/g)).toHaveLength(2);
+    // No hard-coded colours from the brand file: the theme decides.
+    expect(out).not.toMatch(/#[0-9a-f]{3,6}/i);
   });
 });

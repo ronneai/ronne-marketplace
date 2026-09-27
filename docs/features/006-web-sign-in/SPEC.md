@@ -79,7 +79,7 @@ the work behind the `identity` domain, as configured in 003.
   `//`). Anything else goes to `/`, so it can't be used as an open redirect.
 
 **Sign-in page** (from the mock, in the 032 design system):
-- A card with the monogram, "Sign in to Ronne", and the subtitle "Use your email and password".
+- A card with the full brand (monogram and wordmark, owner decision), "Sign in to Ronne", and the subtitle "Use your email and password".
 - Fields: **Email** (no usernames exist, so the mock's "Email or Username" becomes "Email"),
   **Password** (with show/hide), and **Remember me (30 days)**.
 - **"Forgot?"** opens a note: "Ask a root administrator to reset your password. If you're root, run

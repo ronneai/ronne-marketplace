@@ -1,5 +1,6 @@
 // Shared UI primitives (feature 032). Pages compose these; they don't restyle them.
 export { Badge } from "./Badge";
+export { BrandLogo } from "./BrandLogo";
 export { BrandMark } from "./BrandMark";
 export { Button, buttonClasses } from "./Button";
 export { CopyableCommand } from "./CopyableCommand";
