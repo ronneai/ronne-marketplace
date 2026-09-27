@@ -22,7 +22,7 @@
 - [ ] **6. Weekly latest-version run.** A `schedule` and `workflow_dispatch` trigger that swap in the latest images, without being required for merging.
   *Done when:* a manual run completes.
 
-- [ ] **7. Docs.** Add the supported versions to MVP §5 and the README.
+- [x] **7. Docs.** Add the supported versions to MVP §5 and the README.
   *Done when:* both list them.
 
 ## Notes
@@ -54,4 +54,7 @@
 - **Task 6 (2026-09-27): weekly latest-version run, written but not yet ticked.** Waiting on a manual `workflow_dispatch` run, which needs the workflow on GitHub.
   - `database.yml` gains `schedule` (Mondays 04:37 UTC) and `workflow_dispatch`. On those events each entry uses its `latest` image: `postgres:latest`, `mysql:lts` or `mariadb:lts`. Job names get ", latest". Pull request and push runs keep the minimum versions and their exact names, so the required checks are unaffected, and a scheduled failure never blocks a pull request.
   - **Checked locally:** all three latest images pass the `db` project (58/58 each). On 2026-09-27 they were **PostgreSQL 18.6, MySQL 9.7.2 and MariaDB 12.3.3**. MySQL's current LTS is 9.7, so the spec's "latest 8.x or 9.x LTS" means 9.7 for now.
+- **Task 7 (2026-09-27): docs.**
+  - MVP §5 lists the supported databases and how they're tested. The README already had them (from 003), and gained the `test:db` commands.
+  - CLAUDE.md gained the `test:db` commands, the database workflow in its CI summary, and a rule: run database code against the servers before committing.
 

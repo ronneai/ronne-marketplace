@@ -33,6 +33,8 @@ Use Node.js 24 (`.nvmrc`) and pnpm installed directly (`npm install --global pnp
 | `pnpm lint` / `pnpm format` | Biome check / Biome fix |
 | `pnpm typecheck` | Type-checks every package |
 | `pnpm test` | Runs every Vitest suite; `pnpm --filter @ronne/core test` for one package |
+| `pnpm test:db` | Only the database tests (`*.db.test.ts`, the `db` Vitest project) |
+| `pnpm test:db:up` then `pnpm test:db:postgres` / `:mysql` / `:mariadb` | Database tests against local Docker servers at the minimum versions; `pnpm test:db:down` stops them |
 | `pnpm licenses:check` | Checks every installed package's license against `license-policy.json` |
 | `pnpm audit --audit-level high` | Fails on known high or critical vulnerabilities |
 | `pnpm run setup` | Configures an instance (interactive, or `--yes` with env vars). Never `pnpm setup`: that's a pnpm built-in |
@@ -40,7 +42,9 @@ Use Node.js 24 (`.nvmrc`) and pnpm installed directly (`npm install --global pnp
 | `pnpm db:migrate` | Applies pending migrations to `DATABASE_URL` |
 | `pnpm hooks:install` | Turns on the local `pre-commit` checks and the commit-message check (once per clone) |
 
-CI (`.github/workflows/`) runs lint, typecheck, test and build on Node 22 and 24, the license and audit checks, CodeQL, and the PR title check.
+CI (`.github/workflows/`) runs lint, typecheck, test and build on Node 22 and 24, the database tests on PostgreSQL 15, MySQL 8.4 and MariaDB 10.11 (`database.yml`, plus a weekly run on the latest versions), the license and audit checks, CodeQL, and the PR title check.
+
+A test that needs a database is named `*.db.test.ts` and gets one from `createTestDb()`. Before committing database code, run it against the servers too (`pnpm test:db:up`): SQLite is lenient where PostgreSQL and MySQL aren't.
 
 After adding a workspace package, run `pnpm install --frozen-lockfile` to confirm the lockfile has it; if not, `pnpm install --fix-lockfile`.
 

@@ -70,6 +70,9 @@ everywhere and revokes its access tokens (`--yes` with `RONNE_ROOT_PASSWORD` wor
 | `pnpm run setup` | Configures an instance: database, `.env`, tables and the root account |
 | `pnpm run reset-root-password` | Sets a new root password and signs root out everywhere |
 | `pnpm db:migrate` | Applies pending database migrations |
+| `pnpm test:db` | Runs only the database tests (in-memory SQLite, or `TEST_DATABASE_URL`) |
+| `pnpm test:db:up` / `pnpm test:db:down` | Starts or stops local PostgreSQL, MySQL and MariaDB test servers (Docker) |
+| `pnpm test:db:postgres` (or `:mysql`, `:mariadb`) | Runs the database tests against one of those servers |
 | `pnpm exec rmk --version` | Runs the local `rmk` CLI (after `pnpm build`) |
 
 **Layout**

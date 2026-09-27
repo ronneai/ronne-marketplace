@@ -334,6 +334,10 @@ Two supported paths:
 - **Node:** `pnpm dlx @ronne/marketplace init` (or run `pnpm run setup` from a clone or fork)
 - **Docker:** `docker compose up`, followed by `docker compose exec web pnpm run setup`
 
+Supported databases: SQLite (default), MySQL 8.4+, MariaDB 10.11+ and PostgreSQL 15+. Every pull
+request runs the database tests on the minimum versions, and a weekly run tests the latest ones
+([feature 004](../features/004-ci-db-matrix/SPEC.md)).
+
 Supported runtimes: the target is the newest Node.js Active LTS (24 in September 2026), used for
 development, CI and the Docker image. The minimum for self-hosting and `rmk` is the oldest LTS
 still receiving security fixes (22, until April 2027). The Docker image is built for `linux/amd64`
