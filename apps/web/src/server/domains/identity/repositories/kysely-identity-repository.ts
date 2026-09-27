@@ -70,6 +70,37 @@ export const kyselyIdentityRepository = (
       return { id: row.id, email: row.email, name: row.name, role: row.role };
     },
 
+    async findCredentialByEmail(email) {
+      const row = await db
+        .selectFrom("user")
+        .leftJoin("account", (join) =>
+          join
+            .onRef("account.user_id", "=", "user.id")
+            .on("account.provider_id", "=", CREDENTIAL_PROVIDER),
+        )
+        .select([
+          "user.id",
+          "user.email",
+          "user.name",
+          "user.role",
+          "user.disabled_at",
+          "account.password",
+        ])
+        .where("user.email", "=", email)
+        .executeTakeFirst();
+      if (!row) return null;
+      return {
+        user: {
+          id: row.id,
+          email: row.email,
+          name: row.name,
+          role: isRole(row.role) ? row.role : "user",
+        },
+        disabledAt: fromDbDate(row.disabled_at),
+        passwordHash: row.password ?? null,
+      };
+    },
+
     async findUser(userId) {
       const row = await db
         .selectFrom("user")

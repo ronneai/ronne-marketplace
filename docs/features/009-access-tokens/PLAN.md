@@ -16,7 +16,7 @@
   §11 with `WWW-Authenticate` and `no-store`.
   *Done when:* tests cover each failure code, a valid token, a disabled user, and cookies being ignored.
 
-- [ ] **4. API routes.** `POST` and `DELETE /api/v1/auth/token` and `GET /api/v1/me`. The password
+- [x] **4. API routes.** `POST` and `DELETE /api/v1/auth/token` and `GET /api/v1/me`. The password
   exchange goes through Better Auth's verification with the 006 rate limit, and no web session.
   *Done when:* route tests cover the success and failure cases, including 429, and a secret-leak test.
 
@@ -84,4 +84,29 @@
     doesn't have.
   - **Tests** (all four databases): the header parsing, a valid token, each failure code with its
     headers, cookies being ignored, 503 before setup, and the token never echoed in an error.
+- **Task 4 (2026-09-27): API routes.** The handlers live in `server/http/api-v1.ts` and the routes in
+  `app/api/v1/...`.
+  - **`POST /api/v1/auth/token`** (`services/token-exchange.ts`):
+    - **No web session.** The password is checked with the same argon2 hasher Better Auth uses,
+      against the credential account (`IdentityRepository.findCredentialByEmail`).
+    - **Timing:** an unknown email is still checked against a dummy hash, so it takes as long as a
+      real account.
+    - **Limit and failures:** it shares 006's limit. Every failure is the same 401
+      `invalid_credentials`, and is recorded as `auth.sign_in_failed` with `via: "cli"`.
+    - **Name:** the default comes from a `User-Agent` like `rmk/0.1.0 (laptop; …)`, giving
+      `rmk on laptop`, or plain `rmk`. **022 should send that format.** Logging in again from the
+      same machine gets `rmk on laptop (2)` and so on, never a name clash.
+    - **Other answers:** 429 `rate_limited` with `Retry-After`; 409 `token_limit` for the 51st
+      token; 400 `invalid_request` for a body that isn't a JSON object.
+  - **`DELETE /api/v1/auth/token`:** guarded; revokes the calling token (204), and records
+    `access_token.revoked { by: "owner" }`. The guard runs before the app instance is looked up,
+    so before setup it answers 503, not an exception.
+  - **`GET /api/v1/me`:** guarded; returns the user and the token's id, name and expiry.
+  - **Every token response** is `Cache-Control: no-store`.
+  - **Tests** (all four databases):
+    - the exchange: a 90-day token, no session created, the audit event, and the same 401 for five
+      kinds of failure;
+    - the 429, the 400s and the name suffixes;
+    - `/me` then `DELETE`, then `token_revoked`, and a missing token;
+    - a secret-leak test: no password or plain token in any response, audit row or token row.
 

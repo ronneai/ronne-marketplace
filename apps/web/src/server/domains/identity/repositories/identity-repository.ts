@@ -25,6 +25,12 @@ export interface IdentityRepository {
   findRoot(): Promise<RootAccount | null>;
   /** The user, or null when they don't exist or are disabled. */
   findActiveUser(userId: string): Promise<CurrentUser | null>;
+  /** A user and their password hash, for checking credentials outside a web sign-in (009). */
+  findCredentialByEmail(email: string): Promise<{
+    user: CurrentUser;
+    disabledAt: Date | null;
+    passwordHash: string | null;
+  } | null>;
   /** Any user, disabled or not. */
   findUser(userId: string): Promise<UserSummary | null>;
   /** Newest first. */
