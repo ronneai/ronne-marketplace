@@ -1,0 +1,11 @@
+// The owner's convention (2026-09-27): functions and components are arrow functions,
+// `const name = (…) => …`, never `function name(…) {…}` declarations or expressions.
+language js
+
+or {
+  JsFunctionDeclaration(),
+  JsFunctionExportDefaultDeclaration(),
+  JsFunctionExpression()
+} as $fn where {
+  register_diagnostic(span=$fn, message="Write this as an arrow function: `const name = (…) => …` (see CLAUDE.md).", severity="error")
+}

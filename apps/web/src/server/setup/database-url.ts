@@ -21,7 +21,7 @@ export const DEFAULT_SQLITE_PATH = "./data/ronne.db";
  * Builds DATABASE_URL from setup's answers. The user, password and database name are URL-encoded,
  * so characters such as @, :, / or # in a password can't break the URL.
  */
-export function buildDatabaseUrl(answers: DatabaseAnswers): string {
+export const buildDatabaseUrl = (answers: DatabaseAnswers): string => {
   if (answers.dialect === "sqlite") return `file:${answers.path}`;
   const credentials = `${encodeURIComponent(answers.user)}:${encodeURIComponent(answers.password)}`;
   const host =
@@ -29,4 +29,4 @@ export function buildDatabaseUrl(answers: DatabaseAnswers): string {
       ? `[${answers.host}]`
       : answers.host;
   return `${answers.dialect}://${credentials}@${host}:${answers.port}/${encodeURIComponent(answers.database)}`;
-}
+};

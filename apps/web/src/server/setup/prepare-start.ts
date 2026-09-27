@@ -23,12 +23,12 @@ export type StartPlan = { mode: "setup-required" } | { mode: "ready"; applied: s
  * 3. after setup, apply pending migrations, so upgrading the image upgrades the database.
  * A failed migration throws StartError instead of serving a half-migrated database.
  */
-export async function prepareStart(options: {
+export const prepareStart = async (options: {
   appDir: string;
   dataDir: string;
   env?: Record<string, string | undefined>;
   log?: (line: string) => void;
-}): Promise<StartPlan> {
+}): Promise<StartPlan> => {
   const log = options.log ?? ((line) => console.log(line));
   checkWritable(options.dataDir);
 
@@ -55,9 +55,9 @@ export async function prepareStart(options: {
   } finally {
     await db.destroy();
   }
-}
+};
 
-function checkWritable(dataDir: string) {
+const checkWritable = (dataDir: string) => {
   const probe = join(dataDir, `.write-check-${randomBytes(4).toString("hex")}`);
   try {
     mkdirSync(dataDir, { recursive: true });
@@ -69,4 +69,4 @@ function checkWritable(dataDir: string) {
         "by root, fix its owner with: docker compose run --rm --user root web chown -R 1000:1000 /app/data",
     );
   }
-}
+};

@@ -35,22 +35,22 @@ export class MigrationFailedError extends Error {
 // biome-ignore lint/suspicious/noExplicitAny: migrations run before the typed schema exists.
 type AnyDb = Kysely<any>;
 
-async function executedMigrations(db: AnyDb): Promise<string[]> {
+const executedMigrations = async (db: AnyDb): Promise<string[]> => {
   const tables = await db.introspection.getTables();
   if (!tables.some((t) => t.name === MIGRATION_TABLE)) return [];
   const rows = await db.selectFrom(MIGRATION_TABLE).select("name").execute();
   return rows.map((r) => r.name as string);
-}
+};
 
 /**
  * Runs every pending migration, in order, and returns the names it applied (empty when the database
  * is already up to date). Stops at the first failure; migrations before it stay applied.
  */
-export async function migrateToLatest<DB>(
+export const migrateToLatest = async <DB>(
   db: Kysely<DB>,
   dialect: DatabaseDialect,
   migrations: Record<string, AppMigration> = allMigrations,
-): Promise<string[]> {
+): Promise<string[]> => {
   const anyDb = db as AnyDb;
   const known = new Set(Object.keys(migrations));
   const unknown = (await executedMigrations(anyDb)).filter((name) => !known.has(name));
@@ -76,4 +76,4 @@ export async function migrateToLatest<DB>(
     throw new MigrationFailedError(failed, applied, { cause: error });
   }
   return applied;
-}
+};

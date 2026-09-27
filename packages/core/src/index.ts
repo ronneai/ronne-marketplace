@@ -15,6 +15,6 @@ export const ITEM_TYPES = [
 
 export type ItemType = (typeof ITEM_TYPES)[number];
 
-export function isItemType(value: string): value is ItemType {
+export const isItemType = (value: string): value is ItemType => {
   return (ITEM_TYPES as readonly string[]).includes(value);
-}
+};

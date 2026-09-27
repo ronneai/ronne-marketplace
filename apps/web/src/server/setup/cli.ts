@@ -20,7 +20,7 @@ type Env = Record<string, string | undefined>;
  * terminal. The root password is only read from RONNE_ROOT_PASSWORD, never a flag, to keep it out
  * of shell history.
  */
-export function parseSetupCommand(argv: string[], env: Env, hasTerminal: boolean): SetupCommand {
+export const parseSetupCommand = (argv: string[], env: Env, hasTerminal: boolean): SetupCommand => {
   let values: Record<string, string | boolean | undefined>;
   try {
     ({ values } = parseArgs({
@@ -63,7 +63,7 @@ export function parseSetupCommand(argv: string[], env: Env, hasTerminal: boolean
     rootName: pick("root-name", "RONNE_ROOT_NAME"),
     rootPassword: env.RONNE_ROOT_PASSWORD,
   };
-}
+};
 
 export type ResetCommand =
   | { mode: "interactive" }
@@ -71,7 +71,7 @@ export type ResetCommand =
   | { mode: "error"; exitCode: 2; message: string };
 
 /** reset-root-password's flags: only --yes. The new password comes from RONNE_ROOT_PASSWORD. */
-export function parseResetCommand(argv: string[], env: Env, hasTerminal: boolean): ResetCommand {
+export const parseResetCommand = (argv: string[], env: Env, hasTerminal: boolean): ResetCommand => {
   let yes = false;
   try {
     yes =
@@ -96,4 +96,4 @@ export function parseResetCommand(argv: string[], env: Env, hasTerminal: boolean
     };
   }
   return { mode: "interactive" };
-}
+};

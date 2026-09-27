@@ -23,13 +23,13 @@ const now = (deps: SessionDeps) => (deps.now ?? (() => new Date()))();
  * The signed-in user, or null. The user is read again on every call, so disabling someone (or
  * changing their role) takes effect on their next request, even with a valid session cookie.
  */
-export async function currentUser(
+export const currentUser = async (
   deps: SessionDeps,
   headers: Headers,
-): Promise<CurrentUser | null> {
+): Promise<CurrentUser | null> => {
   const session = await deps.sessions.currentSession(headers);
   return session ? deps.repo.findActiveUser(session.userId) : null;
-}
+};
 
 export type SignInInput = { email: string; password: string; rememberMe: boolean };
 
@@ -48,11 +48,11 @@ const typedEmail = (email: string) => email.trim().toLowerCase().slice(0, 255);
  * Every attempt is audited (007). Better Auth writes the session in its own transaction, so the
  * event is recorded right after it, not in the same transaction.
  */
-export async function signIn(
+export const signIn = async (
   deps: SessionDeps,
   context: RequestContext,
   input: SignInInput,
-): Promise<SignInResult> {
+): Promise<SignInResult> => {
   const failed = async (reason: "invalid" | "disabled" | "rate_limited") => {
     const metadata: AuditMetadata = { email: typedEmail(input.email), reason };
     await deps.repo.recordAudit(
@@ -110,7 +110,7 @@ export async function signIn(
     now(deps),
   );
   return { ok: true, headers: result.headers };
-}
+};
 
 export type ChangePasswordResult =
   | { ok: true }
@@ -122,11 +122,11 @@ export type ChangePasswordResult =
  * keeps this session and ends the others. Wrong current passwords count against the same limit as
  * sign-in, so a stolen session can't be used to guess the password.
  */
-export async function changePassword(
+export const changePassword = async (
   deps: SessionDeps,
   context: RequestContext,
   input: { current: string; next: string },
-): Promise<ChangePasswordResult> {
+): Promise<ChangePasswordResult> => {
   const user = await currentUser(deps, context.headers);
   if (!user) return { ok: false, error: "not_signed_in" };
   requirePermission(user, "account.manage_own");
@@ -158,10 +158,10 @@ export async function changePassword(
     now(deps),
   );
   return { ok: true };
-}
+};
 
 /** Ends the request's session, and records it. Without a session, there's nothing to do. */
-export async function signOut(deps: SessionDeps, context: RequestContext): Promise<void> {
+export const signOut = async (deps: SessionDeps, context: RequestContext): Promise<void> => {
   const session = await deps.sessions.currentSession(context.headers);
   await deps.sessions.signOut(context.headers);
   if (!session) return;
@@ -174,4 +174,4 @@ export async function signOut(deps: SessionDeps, context: RequestContext): Promi
     },
     now(deps),
   );
-}
+};

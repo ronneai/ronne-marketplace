@@ -7,10 +7,10 @@ import type { DatabaseDialect } from "../../../db/url";
 import { type AuditMetadata, actionsInGroup } from "../models/audit-event";
 import type { AuditRepository } from "./audit-repository";
 
-export function kyselyAuditRepository(
+export const kyselyAuditRepository = (
   db: Kysely<Database>,
   dialect: DatabaseDialect,
-): AuditRepository {
+): AuditRepository => {
   return {
     async insert(row) {
       const id = newId();
@@ -82,4 +82,4 @@ export function kyselyAuditRepository(
       return rows.map((r) => ({ id: r.actor_id as string, email: r.email }));
     },
   };
-}
+};

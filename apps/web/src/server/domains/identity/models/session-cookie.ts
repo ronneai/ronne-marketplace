@@ -10,6 +10,6 @@ export const SESSION_COOKIE_NAMES = [
 ] as const;
 
 /** Whether a request carries a session cookie. It says nothing about the session being valid. */
-export function hasSessionCookie(cookies: { has(name: string): boolean }): boolean {
+export const hasSessionCookie = (cookies: { has(name: string): boolean }): boolean => {
   return SESSION_COOKIE_NAMES.some((name) => cookies.has(name));
-}
+};

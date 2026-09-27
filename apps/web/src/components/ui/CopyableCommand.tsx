@@ -7,7 +7,7 @@ import { useState } from "react";
  * A mono command or secret with a copy button: `rmk` snippets and one-time tokens (design system 032).
  * Without JavaScript, the text is still there to select.
  */
-export function CopyableCommand({
+export const CopyableCommand = ({
   command,
   label = "Copy",
   prompt = true,
@@ -15,13 +15,13 @@ export function CopyableCommand({
   command: string;
   label?: string;
   prompt?: boolean;
-}) {
+}) => {
   const [copied, setCopied] = useState(false);
-  async function copy() {
+  const copy = async () => {
     await navigator.clipboard.writeText(command);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  }
+  };
   return (
     <div className="flex items-center justify-between gap-2 rounded-control border border-hairline bg-canvas py-1.5 pr-1.5 pl-3">
       <code className="overflow-x-auto font-mono text-[13px] whitespace-nowrap text-fg">
@@ -38,4 +38,4 @@ export function CopyableCommand({
       </button>
     </div>
   );
-}
+};

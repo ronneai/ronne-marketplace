@@ -8,10 +8,10 @@ export const CANCEL = Symbol("cancel");
  * order (for questions asked again). Like clack, an answer that fails the question's validator is
  * rejected and the next answer in the list is used. Unexpected questions fail the test.
  */
-export function scriptedPrompts(
+export const scriptedPrompts = (
   script: Record<string, Answer | Answer[]>,
   options: { interactive?: boolean } = {},
-) {
+) => {
   const queues = new Map(
     Object.entries(script).map(([id, a]) => [id, Array.isArray(a) ? [...a] : [a]]),
   );
@@ -59,4 +59,4 @@ export function scriptedPrompts(
     rejected,
     unused: () => [...queues].filter(([, q]) => q.length > 0).map(([id]) => id),
   };
-}
+};

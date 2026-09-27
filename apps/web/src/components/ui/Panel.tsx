@@ -2,11 +2,11 @@ import type { HTMLAttributes, ReactNode } from "react";
 import { cn } from "./cn";
 
 /** A flat raised surface: 8px radius, 1px hairline, no shadow (design system 032). */
-export function Panel({
+export const Panel = ({
   padding = "md",
   className,
   ...props
-}: HTMLAttributes<HTMLDivElement> & { padding?: "sm" | "md" | "lg" }) {
+}: HTMLAttributes<HTMLDivElement> & { padding?: "sm" | "md" | "lg" }) => {
   const pad = { sm: "p-3", md: "p-4", lg: "p-6" }[padding];
   return (
     <div
@@ -14,9 +14,9 @@ export function Panel({
       {...props}
     />
   );
-}
+};
 
-export function PageHeader({
+export const PageHeader = ({
   title,
   description,
   actions,
@@ -24,7 +24,7 @@ export function PageHeader({
   title: ReactNode;
   description?: ReactNode;
   actions?: ReactNode;
-}) {
+}) => {
   return (
     <header className="flex flex-wrap items-start justify-between gap-4 pb-6">
       <div className="grid gap-1">
@@ -34,4 +34,4 @@ export function PageHeader({
       {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
     </header>
   );
-}
+};

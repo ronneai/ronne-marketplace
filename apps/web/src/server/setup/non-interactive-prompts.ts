@@ -37,13 +37,13 @@ const SOURCES: Record<string, string> = {
  * SetupPrompts that answer from flags and environment variables, with plain output (no colours or
  * spinners) for Docker and CI. Nothing is ever asked: a missing or invalid value is an error.
  */
-export function nonInteractivePrompts(
+export const nonInteractivePrompts = (
   values: NonInteractiveValues,
   out: { stdout: (line: string) => void; stderr: (line: string) => void } = {
     stdout: (line) => console.log(line),
     stderr: (line) => console.error(line),
   },
-): SetupPrompts {
+): SetupPrompts => {
   const answers: Record<string, string | undefined> = {
     public_url: values.publicUrl,
     "root.email": values.rootEmail,
@@ -82,4 +82,4 @@ export function nonInteractivePrompts(
       error: (m) => out.stderr(`✗ ${m}`),
     },
   };
-}
+};

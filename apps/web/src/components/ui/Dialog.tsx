@@ -7,7 +7,7 @@ import { type ReactNode, useEffect, useRef } from "react";
  * A modal dialog on the native <dialog> element: the browser traps focus, makes the page behind it
  * inert, and closes it on Esc. Flat 8px panel (design system 032).
  */
-export function Dialog({
+export const Dialog = ({
   open,
   onClose,
   title,
@@ -17,7 +17,7 @@ export function Dialog({
   onClose: () => void;
   title: ReactNode;
   children: ReactNode;
-}) {
+}) => {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const dialog = ref.current;
@@ -49,4 +49,4 @@ export function Dialog({
       <div className="p-4">{children}</div>
     </dialog>
   );
-}
+};

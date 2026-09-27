@@ -23,15 +23,15 @@ export class UnsupportedDatabaseUrlError extends Error {
 }
 
 /** Hides the password in a database URL, so it's safe to show in errors and logs. */
-export function redactDatabaseUrl(url: string): string {
+export const redactDatabaseUrl = (url: string): string => {
   return url.replace(/^([a-z][a-z0-9+.-]*:\/\/[^:/@]*:)[^@]*@/i, "$1***@");
-}
+};
 
 /**
  * Turns DATABASE_URL into driver settings. SQLite paths are resolved against `baseDir`
  * (the app root); `file::memory:` opens an in-memory database.
  */
-export function parseDatabaseUrl(url: string, baseDir: string = process.cwd()): DatabaseConfig {
+export const parseDatabaseUrl = (url: string, baseDir: string = process.cwd()): DatabaseConfig => {
   const trimmed = url.trim();
 
   if (trimmed.startsWith("file:")) {
@@ -47,4 +47,4 @@ export function parseDatabaseUrl(url: string, baseDir: string = process.cwd()): 
     return { dialect: "postgres", connectionString: trimmed };
   }
   throw new UnsupportedDatabaseUrlError(url);
-}
+};

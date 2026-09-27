@@ -4,7 +4,7 @@ import { Notice } from "@/components/ui/Notice";
 import { Panel } from "@/components/ui/Panel";
 
 /** Shown on every page until `pnpm run setup` has configured the instance (feature 005). */
-export function SetupRequired() {
+export const SetupRequired = () => {
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col justify-center gap-4 px-4 py-12">
       <Panel padding="lg" className="grid gap-4">
@@ -31,4 +31,4 @@ export function SetupRequired() {
       </Notice>
     </main>
   );
-}
+};

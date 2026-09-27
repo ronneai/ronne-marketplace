@@ -12,12 +12,12 @@ export const AUDIT_PAGE_SIZE = 50;
  * leaves no event and an event never exists without its change. Throws on an unknown action,
  * secret-looking metadata or metadata over 4 KB: those are bugs, not something to store.
  */
-export async function recordAudit(
+export const recordAudit = async (
   db: Kysely<Database>,
   dialect: DatabaseDialect,
   event: NewAuditEvent,
   now: Date = new Date(),
-): Promise<string> {
+): Promise<string> => {
   const metadata = validateAuditEvent(event);
   return kyselyAuditRepository(db, dialect).insert({
     actorId: event.actorId,
@@ -28,22 +28,22 @@ export async function recordAudit(
     ipAddress: event.ipAddress ?? null,
     createdAt: now,
   });
-}
+};
 
 export type AuditPage = { events: AuditEvent[]; nextCursor: string | null };
 
 /** One page of events, newest first, with the cursor for the next page (null on the last). */
-export async function listAuditEvents(
+export const listAuditEvents = async (
   db: Kysely<Database>,
   dialect: DatabaseDialect,
   query: Omit<AuditQuery, "limit"> & { limit?: number },
-): Promise<AuditPage> {
+): Promise<AuditPage> => {
   const limit = query.limit ?? AUDIT_PAGE_SIZE;
   // One more than the page, to know whether another page exists without a count query.
   const rows = await kyselyAuditRepository(db, dialect).list({ ...query, limit: limit + 1 });
   const events = rows.slice(0, limit);
   return { events, nextCursor: rows.length > limit ? (events.at(-1)?.id ?? null) : null };
-}
+};
 
 export const listAuditActors = (db: Kysely<Database>, dialect: DatabaseDialect) =>
   kyselyAuditRepository(db, dialect).actors();

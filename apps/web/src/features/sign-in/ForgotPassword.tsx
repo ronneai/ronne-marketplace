@@ -2,7 +2,7 @@
  * "Forgot?" opens a note on who can reset a password. The MVP sends no email (spec 006). A native
  * <details>, so it works without JavaScript.
  */
-export function ForgotPassword() {
+export const ForgotPassword = () => {
   return (
     <details className="group text-right">
       <summary className="cursor-pointer list-none text-sm text-link underline-offset-2 hover:underline outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus [&::-webkit-details-marker]:hidden">
@@ -15,4 +15,4 @@ export function ForgotPassword() {
       </p>
     </details>
   );
-}
+};

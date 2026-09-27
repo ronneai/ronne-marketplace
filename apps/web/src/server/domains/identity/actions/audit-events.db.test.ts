@@ -28,13 +28,13 @@ const sessionIds = async () =>
     (r) => r.id,
   );
 
-async function signedIn(rememberMe = false) {
+const signedIn = async (rememberMe = false) => {
   const result = await signIn(proxied(), { email, password, rememberMe }, app);
   if (!result.ok) throw new Error(result.error);
   const headers = cookieHeaders(result.headers.get("set-cookie"));
   headers.set("x-forwarded-for", "203.0.113.9");
   return headers;
-}
+};
 
 describe("006's audit events", () => {
   it("auth.signed_in: the user, their new session, remember me and the IP", async () => {

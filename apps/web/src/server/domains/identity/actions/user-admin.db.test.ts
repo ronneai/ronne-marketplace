@@ -34,11 +34,11 @@ let rootId: string;
 let asRoot: Headers;
 const rootPassword = "correct horse battery";
 
-async function headersFor(email: string, password: string) {
+const headersFor = async (email: string, password: string) => {
   const result = await signIn(new Headers(), { email, password, rememberMe: false }, app);
   if (!result.ok) throw new Error(`sign-in failed for ${email}: ${result.error}`);
   return cookieHeaders(result.headers.get("set-cookie"));
-}
+};
 
 beforeEach(async () => {
   t = await createTestDb();
@@ -58,7 +58,7 @@ const events = async (action: string) =>
 const canSignIn = async (email: string, password: string) =>
   (await signIn(new Headers(), { email, password, rememberMe: false }, testAppAuth(t))).ok;
 
-async function addToken(userId: string) {
+const addToken = async (userId: string) => {
   await t.db
     .insertInto("access_tokens")
     .values({
@@ -72,7 +72,7 @@ async function addToken(userId: string) {
       created_at: toDbDate(new Date(), t.dialect),
     })
     .execute();
-}
+};
 
 const activeTokens = async (userId: string) =>
   (

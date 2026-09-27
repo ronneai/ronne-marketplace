@@ -8,11 +8,11 @@ import { E2E_PASSWORD, E2E_USERS } from "./users";
 const appDir = resolve(import.meta.dirname, "..");
 
 /** A free TCP port, found by a child process (the config is loaded synchronously). */
-function freePort(): number {
+const freePort = (): number => {
   const script =
     "const s=require('node:net').createServer();s.listen(0,'127.0.0.1',()=>{console.log(s.address().port);s.close()})";
   return Number(execFileSync(process.execPath, ["-e", script], { encoding: "utf8" }).trim());
-}
+};
 
 /**
  * Creates a throwaway instance for one test run: SQLite in a temporary folder, configured by
@@ -21,7 +21,7 @@ function freePort(): number {
  * Every setting is passed as an environment variable, which takes precedence over files: Next.js
  * loads apps/web/.env on its own, and a developer's local instance must never be used by the tests.
  */
-export function prepareInstance(): { baseURL: string; env: Record<string, string> } {
+export const prepareInstance = (): { baseURL: string; env: Record<string, string> } => {
   const dir = mkdtempSync(join(tmpdir(), "ronne-e2e-"));
   const port = Number(process.env.E2E_PORT) || freePort();
   const baseURL = `http://localhost:${port}`;
@@ -56,4 +56,4 @@ export function prepareInstance(): { baseURL: string; env: Record<string, string
       NEXT_TELEMETRY_DISABLED: "1",
     },
   };
-}
+};

@@ -16,7 +16,7 @@ const selectClasses =
  * /admin/audit (spec 007): read-only, newest first, 50 a page. The filters are a GET form, so they
  * work without JavaScript and every view has a URL.
  */
-export function AuditLogPage({
+export const AuditLogPage = ({
   events,
   nextCursor,
   filters,
@@ -29,7 +29,7 @@ export function AuditLogPage({
   /** Whether this isn't the first page. */
   paged: boolean;
   actors: { id: string; email: string | null }[];
-}) {
+}) => {
   return (
     <>
       <PageHeader
@@ -151,4 +151,4 @@ export function AuditLogPage({
       </nav>
     </>
   );
-}
+};

@@ -24,16 +24,16 @@ const first = (value: string | string[] | undefined) =>
   (Array.isArray(value) ? value[0] : value) ?? "";
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
-function utcDay(value: string, plusDays = 0): Date | undefined {
+const utcDay = (value: string, plusDays = 0): Date | undefined => {
   if (!DAY.test(value)) return undefined;
   const date = new Date(`${value}T00:00:00Z`);
   if (Number.isNaN(date.getTime())) return undefined;
   date.setUTCDate(date.getUTCDate() + plusDays);
   return date;
-}
+};
 
 /** Reads /admin/audit's query string. Anything malformed is ignored rather than trusted. */
-export function parseAuditQuery(params: SearchParams): AuditPageQuery {
+export const parseAuditQuery = (params: SearchParams): AuditPageQuery => {
   const group = first(params.group);
   const actor = first(params.actor);
   const from = first(params.from);
@@ -56,13 +56,13 @@ export function parseAuditQuery(params: SearchParams): AuditPageQuery {
     from: utcDay(from),
     to: utcDay(to, 1),
   };
-}
+};
 
 /** The URL of another page with the same filters. */
-export function auditPageUrl(filters: AuditFilters, cursor?: string): string {
+export const auditPageUrl = (filters: AuditFilters, cursor?: string): string => {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(filters)) if (value) params.set(key, value);
   if (cursor) params.set("cursor", cursor);
   const query = params.toString();
   return query ? `/admin/audit?${query}` : "/admin/audit";
-}
+};

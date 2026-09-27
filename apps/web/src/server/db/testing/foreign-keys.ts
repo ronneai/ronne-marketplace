@@ -16,11 +16,11 @@ const PG_ON_DELETE: Record<string, string> = {
 };
 
 /** Lists the foreign keys that really exist on the given tables, for tests. */
-export async function foreignKeys(
+export const foreignKeys = async (
   db: Db,
   dialect: DatabaseDialect,
   tables: string[],
-): Promise<ForeignKey[]> {
+): Promise<ForeignKey[]> => {
   let rows: Row[] = [];
   if (dialect === "sqlite") {
     for (const table of tables) {
@@ -50,4 +50,4 @@ export async function foreignKeys(
     .filter((r) => tables.includes(r.tbl))
     .map((r) => ({ table: r.tbl, references: r.ref, onDelete: r.on_delete.toUpperCase() }))
     .sort((a, b) => a.table.localeCompare(b.table));
-}
+};

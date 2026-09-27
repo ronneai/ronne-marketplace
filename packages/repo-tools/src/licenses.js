@@ -9,7 +9,7 @@
  * @param {Set<string>} allowed
  * @returns {boolean}
  */
-export function isExpressionAllowed(expression, allowed) {
+export const isExpressionAllowed = (expression, allowed) => {
   const tokens = expression.replace(/[()]/g, " $& ").trim().split(/\s+/).filter(Boolean);
   let position = 0;
 
@@ -17,7 +17,7 @@ export function isExpressionAllowed(expression, allowed) {
   const next = () => tokens[position++];
 
   // or := and ("OR" and)* ; and := atom ("AND" atom)* ; atom := "(" or ")" | id ("WITH" id)?
-  function parseOr() {
+  const parseOr = () => {
     let result = parseAnd();
     while (peek()?.toUpperCase() === "OR") {
       next();
@@ -25,8 +25,8 @@ export function isExpressionAllowed(expression, allowed) {
       result = result || right;
     }
     return result;
-  }
-  function parseAnd() {
+  };
+  const parseAnd = () => {
     let result = parseAtom();
     while (peek()?.toUpperCase() === "AND") {
       next();
@@ -34,8 +34,8 @@ export function isExpressionAllowed(expression, allowed) {
       result = result && right;
     }
     return result;
-  }
-  function parseAtom() {
+  };
+  const parseAtom = () => {
     const token = next();
     if (token === undefined) throw new Error("unexpected end");
     if (token === "(") {
@@ -50,7 +50,7 @@ export function isExpressionAllowed(expression, allowed) {
       if (next() === undefined) throw new Error("missing exception after WITH");
     }
     return allowed.has(token.replace(/\+$/, ""));
-  }
+  };
 
   try {
     const result = parseOr();
@@ -58,12 +58,12 @@ export function isExpressionAllowed(expression, allowed) {
   } catch {
     return false;
   }
-}
+};
 
 /** Matches a package name against an exception's `package`, which may end in `*`. */
-function matchesPackage(pattern, name) {
+const matchesPackage = (pattern, name) => {
   return pattern.endsWith("*") ? name.startsWith(pattern.slice(0, -1)) : pattern === name;
-}
+};
 
 /**
  * @typedef {{ name: string, versions: string[], license?: string }} LicensedPackage
@@ -77,7 +77,7 @@ function matchesPackage(pattern, name) {
  * @param {LicensePolicy} policy
  * @returns {{ violations: Violation[], checked: number, unusedExceptions: string[] }}
  */
-export function checkLicenses(report, policy) {
+export const checkLicenses = (report, policy) => {
   const allowed = new Set(policy.allowed);
   const usedExceptions = new Set();
   /** @type {Violation[]} */
@@ -106,4 +106,4 @@ export function checkLicenses(report, policy) {
     .filter((key) => !usedExceptions.has(key));
 
   return { violations, checked, unusedExceptions };
-}
+};

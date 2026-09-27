@@ -4,9 +4,9 @@ import type { AuditQuery } from "../repositories/audit-repository";
 import { type AuditPage, listAuditActors, listAuditEvents } from "./audit";
 
 /** The running server's audit log, for /admin/audit. Pages check that the viewer is root first. */
-export async function appAuditPage(
+export const appAuditPage = async (
   query: Omit<AuditQuery, "limit">,
-): Promise<AuditPage & { actors: { id: string; email: string | null }[] }> {
+): Promise<AuditPage & { actors: { id: string; email: string | null }[] }> => {
   const config = loadConfig();
   if (!isConfigured(config)) return { events: [], nextCursor: null, actors: [] };
   const { db, dialect } = getAppDb(config.databaseUrl);
@@ -15,4 +15,4 @@ export async function appAuditPage(
     listAuditActors(db, dialect),
   ]);
   return { ...page, actors };
-}
+};

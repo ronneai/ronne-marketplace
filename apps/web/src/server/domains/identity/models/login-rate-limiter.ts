@@ -57,6 +57,6 @@ export class LoginRateLimiter {
 }
 
 /** The limiter keys for one attempt: the email, and the IP when it's known. */
-export function loginRateLimitKeys(email: string, ip: string | null): string[] {
+export const loginRateLimitKeys = (email: string, ip: string | null): string[] => {
   return ip ? [`email:${email}`, `ip:${ip}`] : [`email:${email}`];
-}
+};

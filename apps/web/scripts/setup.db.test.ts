@@ -19,7 +19,7 @@ const root = {
   RONNE_ROOT_PASSWORD: "correct horse battery",
 };
 
-function setup(args: string[], env: Record<string, string>) {
+const setup = (args: string[], env: Record<string, string>) => {
   const result = spawnSync("pnpm", ["exec", "tsx", "scripts/setup.ts", ...args], {
     cwd: new URL("..", import.meta.url),
     // CI is set explicitly: GitHub Actions sets CI=true, which changes the mode.
@@ -34,7 +34,7 @@ function setup(args: string[], env: Record<string, string>) {
     encoding: "utf8",
   });
   return { code: result.status, stdout: result.stdout, stderr: result.stderr };
-}
+};
 
 const sqlite = () => ({
   DATABASE_URL: `file:${join(dir, "ronne.db")}`,

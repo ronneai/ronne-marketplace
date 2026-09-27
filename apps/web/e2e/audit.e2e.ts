@@ -1,13 +1,13 @@
 import { expect, type Page, test } from "@playwright/test";
 import { E2E_PASSWORD, E2E_USERS } from "./users";
 
-async function signIn(page: Page, email: string) {
+const signIn = async (page: Page, email: string) => {
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password", { exact: true }).fill(E2E_PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByText(email, { exact: true })).toBeVisible();
-}
+};
 
 test("root reads the audit log: setup, and its own sign-in", async ({ page }) => {
   await signIn(page, E2E_USERS.root);

@@ -2,15 +2,15 @@ import type { HTMLAttributes, TdHTMLAttributes, ThHTMLAttributes } from "react";
 import { cn } from "./cn";
 
 /** Dense tables: header on canvas, 36–40px rows with hairlines; `mono` cells for machine values. */
-export function Table({ className, ...props }: HTMLAttributes<HTMLTableElement>) {
+export const Table = ({ className, ...props }: HTMLAttributes<HTMLTableElement>) => {
   return (
     <div className="overflow-x-auto rounded-panel border border-hairline bg-surface">
       <table className={cn("w-full border-collapse text-left text-sm", className)} {...props} />
     </div>
   );
-}
+};
 
-export function Th({ className, ...props }: ThHTMLAttributes<HTMLTableCellElement>) {
+export const Th = ({ className, ...props }: ThHTMLAttributes<HTMLTableCellElement>) => {
   return (
     <th
       scope="col"
@@ -21,13 +21,13 @@ export function Th({ className, ...props }: ThHTMLAttributes<HTMLTableCellElemen
       {...props}
     />
   );
-}
+};
 
-export function Td({
+export const Td = ({
   mono = false,
   className,
   ...props
-}: TdHTMLAttributes<HTMLTableCellElement> & { mono?: boolean }) {
+}: TdHTMLAttributes<HTMLTableCellElement> & { mono?: boolean }) => {
   return (
     <td
       className={cn(
@@ -38,4 +38,4 @@ export function Td({
       {...props}
     />
   );
-}
+};

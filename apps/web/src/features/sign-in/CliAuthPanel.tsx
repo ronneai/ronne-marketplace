@@ -3,7 +3,7 @@ import { CopyableCommand } from "@/components/ui/CopyableCommand";
 import { Panel } from "@/components/ui/Panel";
 
 /** How `rmk` signs in (from the mock). The commands arrive with 009 and 022. */
-export function CliAuthPanel() {
+export const CliAuthPanel = () => {
   return (
     <Panel className="grid gap-3">
       <div className="flex items-center justify-between">
@@ -29,4 +29,4 @@ export function CliAuthPanel() {
       </div>
     </Panel>
   );
-}
+};

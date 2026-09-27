@@ -4,12 +4,12 @@ import { E2E_PASSWORD, E2E_USERS } from "./users";
 // Next.js's route announcer is also a role="alert", so match the notice by its ERR: prefix.
 const errorNotice = (page: Page) => page.getByRole("alert").filter({ hasText: "ERR:" });
 
-async function signIn(page: Page, email: string, password = E2E_PASSWORD, remember = false) {
+const signIn = async (page: Page, email: string, password = E2E_PASSWORD, remember = false) => {
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password", { exact: true }).fill(password);
   if (remember) await page.getByLabel("Remember me (30 days)").check();
   await page.getByRole("button", { name: "Sign in" }).click();
-}
+};
 
 const sessionCookie = async (page: Page) =>
   (await page.context().cookies()).find((c) => c.name === "ronne.session_token");

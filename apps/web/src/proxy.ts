@@ -7,7 +7,7 @@ import { hasSessionCookie } from "@/server/domains/identity/models/session-cooki
  * doesn't check that the session is valid; the (app) layout does that with `requireUser`, which
  * reads the path this sets in PATH_HEADER to come back to it.
  */
-export function proxy(request: NextRequest) {
+export const proxy = (request: NextRequest) => {
   const { pathname, search } = request.nextUrl;
   if (!isPublicPath(pathname) && !hasSessionCookie(request.cookies)) {
     return NextResponse.redirect(new URL(signInUrl(`${pathname}${search}`), request.url));
@@ -15,7 +15,7 @@ export function proxy(request: NextRequest) {
   const headers = new Headers(request.headers);
   headers.set(PATH_HEADER, `${pathname}${search}`);
   return NextResponse.next({ request: { headers } });
-}
+};
 
 export const config = {
   // Everything except the API (it answers 401 itself), Next's assets and the icons.

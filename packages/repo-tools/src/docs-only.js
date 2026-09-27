@@ -7,9 +7,9 @@ import { readFileSync } from "node:fs";
 import { isDocumentation } from "./pre-commit.js";
 
 /** @param {string[]} files */
-export function needsChecks(files) {
+export const needsChecks = (files) => {
   return files.length === 0 || !files.every(isDocumentation);
-}
+};
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const files = readFileSync(0, "utf8")

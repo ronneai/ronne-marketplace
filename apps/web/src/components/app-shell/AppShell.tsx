@@ -12,7 +12,7 @@ const menuItem = "block w-full rounded-control px-3 py-1.5 text-left text-sm tex
  * user menu; a content column at 72% of the width on large screens (full width below 1024px); and a
  * full-width footer. The user menu is a native <details>, so it works without JavaScript. The (app) layout passes `signOutAction` (feature 006).
  */
-export function AppShell({
+export const AppShell = ({
   user,
   current = "/",
   signOutAction,
@@ -22,7 +22,7 @@ export function AppShell({
   current?: string;
   signOutAction?: () => Promise<void>;
   children: ReactNode;
-}) {
+}) => {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-hairline bg-surface">
@@ -103,4 +103,4 @@ export function AppShell({
       </footer>
     </div>
   );
-}
+};

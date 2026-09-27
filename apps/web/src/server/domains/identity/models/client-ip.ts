@@ -8,11 +8,11 @@ import { isIP } from "node:net";
  * TRUST_PROXY=true, and then the rightmost entry is used: the one the proxy in front of Ronne
  * appended. Entries further left came from the client.
  */
-export function clientIp(
+export const clientIp = (
   headers: { get(name: string): string | null },
   trustProxy: boolean,
-): string | null {
+): string | null => {
   if (!trustProxy) return null;
   const last = headers.get("x-forwarded-for")?.split(",").at(-1)?.trim();
   return last && isIP(last) ? last : null;
-}
+};

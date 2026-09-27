@@ -17,7 +17,7 @@ const GIT_GENERATED = /^(Merge |Revert "|fixup! |squash! |amend! )/;
  *   generated titles can run past the limit.
  * @returns {{ valid: true } | { valid: false, errors: string[] }}
  */
-export function checkSubject(message, { checkLength = true } = {}) {
+export const checkSubject = (message, { checkLength = true } = {}) => {
   const subject = (message.split("\n")[0] ?? "").trimEnd();
   if (GIT_GENERATED.test(subject)) return { valid: true };
 
@@ -52,4 +52,4 @@ export function checkSubject(message, { checkLength = true } = {}) {
   }
 
   return errors.length === 0 ? { valid: true } : { valid: false, errors };
-}
+};

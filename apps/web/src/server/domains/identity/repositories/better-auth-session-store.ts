@@ -6,7 +6,7 @@ import type { SessionStore } from "./session-store";
 const isRefusal = (error: unknown) =>
   error instanceof APIError && error.statusCode >= 400 && error.statusCode < 500;
 
-export function betterAuthSessionStore(auth: Auth): SessionStore {
+export const betterAuthSessionStore = (auth: Auth): SessionStore => {
   return {
     async currentSession(headers) {
       const found = await auth.api.getSession({ headers });
@@ -57,4 +57,4 @@ export function betterAuthSessionStore(auth: Auth): SessionStore {
       }
     },
   };
-}
+};

@@ -20,10 +20,10 @@ export const NAV: NavItem[] = [
   { href: "/admin/users", label: "Admin", permission: "users.view", section: "/admin" },
 ];
 
-export function navFor(user: ShellUser | null): NavItem[] {
+export const navFor = (user: ShellUser | null): NavItem[] => {
   if (!user) return [];
   return NAV.filter((item) => !item.permission || can(user, item.permission));
-}
+};
 
 export const isCurrent = (item: NavItem, path: string): boolean =>
   item.section ? path === item.section || path.startsWith(`${item.section}/`) : item.href === path;

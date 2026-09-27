@@ -1,6 +1,6 @@
 import { PageHeader, Panel } from "@/components/ui/Panel";
 
-export default function HomePage() {
+const HomePage = () => {
   return (
     <>
       <PageHeader
@@ -15,4 +15,6 @@ export default function HomePage() {
       </Panel>
     </>
   );
-}
+};
+
+export default HomePage;

@@ -41,14 +41,14 @@ export type AuthConfig = {
  * Better Auth, configured for Ronne. Only the identity domain imports this; the rest of the app
  * goes through identity's actions (MVP §9.5).
  */
-export function createAuth({
+export const createAuth = ({
   db,
   dialect,
   secret,
   baseURL,
   trustProxy = false,
   hasher = argon2PasswordHasher,
-}: AuthConfig) {
+}: AuthConfig) => {
   return betterAuth({
     database: { db, type: dialect },
     secret,
@@ -105,6 +105,6 @@ export function createAuth({
     // Lets server actions set the session cookie. It must stay the last plugin.
     plugins: [nextCookies()],
   });
-}
+};
 
 export type Auth = ReturnType<typeof createAuth>;
