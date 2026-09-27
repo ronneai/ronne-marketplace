@@ -1,5 +1,5 @@
 {
-  "name": "@ronne/core",
+  "name": "@ronneai/core",
   "version": "0.0.0",
   "description": "Manifest schema, resolver, packer and platform renderers shared by Ronne's web app, CLI and MCP server.",
   "license": "MIT",

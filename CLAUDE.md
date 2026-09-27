@@ -33,10 +33,10 @@ Use Node.js 24 (`.nvmrc`) and pnpm installed directly (`npm install --global pnp
 | `pnpm build` | Builds every package and the web app (Turborepo) |
 | `pnpm lint` / `pnpm format` | Biome check / Biome fix |
 | `pnpm typecheck` | Type-checks every package |
-| `pnpm test` | Runs every Vitest suite; `pnpm --filter @ronne/core test` for one package |
+| `pnpm test` | Runs every Vitest suite; `pnpm --filter @ronneai/core test` for one package |
 | `pnpm test:db` | Only the database tests (`*.db.test.ts`, the `db` Vitest project) |
 | `pnpm test:db:up` then `pnpm test:db:postgres` / `:mysql` / `:mariadb` | Database tests against local Docker servers at the minimum versions; `pnpm test:db:down` stops them |
-| `pnpm test:e2e` | Builds the web app and runs the Playwright tests (`apps/web/e2e`) against a throwaway SQLite instance. First run `pnpm --filter @ronne/web exec playwright install chromium` |
+| `pnpm test:e2e` | Builds the web app and runs the Playwright tests (`apps/web/e2e`) against a throwaway SQLite instance. First run `pnpm --filter @ronneai/web exec playwright install chromium` |
 | `pnpm licenses:check` | Checks every installed package's license against `license-policy.json` |
 | `pnpm audit --audit-level high` | Fails on known high or critical vulnerabilities |
 | `pnpm run setup` | Configures an instance (interactive, or `--yes` with env vars). Never `pnpm setup`: that's a pnpm built-in |

@@ -1,5 +1,5 @@
 {
-  "name": "@ronne/repo-tools",
+  "name": "@ronneai/repo-tools",
   "version": "0.0.0",
   "private": true,
   "description": "Dependency-free checks for this repository: commit message and PR title format, and dependency licenses.",

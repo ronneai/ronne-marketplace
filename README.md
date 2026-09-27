@@ -121,7 +121,7 @@ only prints its version. From a clone, after `pnpm build`, run it with `pnpm exe
 | `pnpm run setup` | Configures an instance: database, `.env`, tables and the root account |
 | `pnpm run reset-root-password` | Sets a new root password and signs root out everywhere |
 | `pnpm db:migrate` | Applies pending database migrations |
-| `pnpm test:e2e` | Builds the web app and runs the end-to-end tests (Playwright, Chromium) against a throwaway instance. Install the browser once with `pnpm --filter @ronne/web exec playwright install chromium` |
+| `pnpm test:e2e` | Builds the web app and runs the end-to-end tests (Playwright, Chromium) against a throwaway instance. Install the browser once with `pnpm --filter @ronneai/web exec playwright install chromium` |
 | `pnpm test:db` | Runs only the database tests (in-memory SQLite, or `TEST_DATABASE_URL`) |
 | `pnpm test:db:up` / `pnpm test:db:down` | Starts or stops local PostgreSQL, MySQL and MariaDB test servers (Docker) |
 | `pnpm test:db:postgres` (or `:mysql`, `:mariadb`) | Runs the database tests against one of those servers |

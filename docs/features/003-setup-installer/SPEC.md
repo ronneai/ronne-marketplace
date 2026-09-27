@@ -21,7 +21,7 @@ every wrong answer is caught with a clear message before anything is written.
 **Out:**
 - Web login, sessions and cookies → 006.
 - Recording root creation in the audit log → 007 adds the table; setup writes nothing to it.
-- `pnpm dlx @ronne/marketplace init` (download and then run setup) → when packages are published, before M4.
+- `pnpm dlx @ronneai/marketplace init` (download and then run setup) → when packages are published, before M4.
 
 ## Behaviour
 

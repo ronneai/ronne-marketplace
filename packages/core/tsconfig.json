@@ -1,5 +1,5 @@
 {
-  "extends": "@ronne/config/tsconfig/library.json",
+  "extends": "@ronneai/config/tsconfig/library.json",
   "compilerOptions": {
     "rootDir": "src",
     "outDir": "dist"

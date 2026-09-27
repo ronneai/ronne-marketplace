@@ -1,4 +1,4 @@
-import { testDefaults } from "@ronne/config/vitest";
+import { testDefaults } from "@ronneai/config/vitest";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
