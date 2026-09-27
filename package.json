@@ -17,7 +17,9 @@
     "test": "turbo run test",
     "hooks:install": "git config core.hooksPath .githooks",
     "licenses:check": "pnpm licenses list --json | node packages/repo-tools/src/check-licenses.js",
-    "db:migrate": "pnpm --filter @ronne/web db:migrate"
+    "db:migrate": "pnpm --filter @ronne/web db:migrate",
+    "setup": "pnpm --filter @ronne/web run setup",
+    "reset-root-password": "pnpm --filter @ronne/web run reset-root-password"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.14",

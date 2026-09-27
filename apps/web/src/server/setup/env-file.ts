@@ -1,0 +1,98 @@
+import { randomBytes } from "node:crypto";
+import { chmodSync, existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { parseEnv } from "node:util";
+
+/** Keys setup writes. Other lines in .env are kept as they are. */
+export type SetupEnv = {
+  DATABASE_URL: string;
+  AUTH_SECRET: string;
+  STORAGE_PATH: string;
+  PUBLIC_URL: string;
+};
+
+/**
+ * Keys kept when they already have a value. A new AUTH_SECRET would end every session, so setup
+ * never replaces one.
+ */
+const KEEP_IF_SET = new Set(["AUTH_SECRET"]);
+
+const LINE = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=/;
+const SAFE_UNQUOTED = /^[A-Za-z0-9_\-.:/@%+=,~]*$/;
+
+/**
+ * Formats a value so Node's .env parser (util.parseEnv, process.loadEnvFile) reads it back exactly.
+ * That parser has no escape for a quote inside quotes, and treats `#` as a comment even without a
+ * space before it, so the quoting style is chosen from what the value contains.
+ */
+export function formatEnvValue(value: string): string {
+  if (/[\r\n]/.test(value)) throw new Error("A .env value can't contain a line break.");
+  if (SAFE_UNQUOTED.test(value)) return value;
+  if (!value.includes("'")) return `'${value}'`;
+  // Double quotes expand \n, so they're only safe without backslashes.
+  if (!value.includes('"') && !value.includes("\\")) return `"${value}"`;
+  if (!value.includes("`")) return `\`${value}\``;
+  throw new Error(
+    "This value contains every kind of quote, so it can't be written to .env safely.",
+  );
+}
+
+/** Reads .env into key/value pairs, the way the app will read it. A missing file is empty. */
+export type EnvValues = Record<string, string | undefined>;
+
+export function readEnvFile(path: string): EnvValues {
+  return existsSync(path) ? parseEnv(readFileSync(path, "utf8")) : {};
+}
+
+/**
+ * Returns `existing` with `updates` applied: known keys are replaced in place, new ones are
+ * appended, and every other line (comments, blank lines, other keys) is kept. A key in KEEP_IF_SET
+ * that already has a value isn't replaced.
+ */
+export function mergeEnv(existing: string, updates: Partial<SetupEnv>): string {
+  const current = parseEnv(existing);
+  const pending = new Map(
+    Object.entries(updates).filter(
+      ([key, value]) => value !== undefined && !(KEEP_IF_SET.has(key) && current[key]),
+    ) as [string, string][],
+  );
+
+  const lines = existing === "" ? [] : existing.replace(/\n$/, "").split("\n");
+  const merged = lines.map((line) => {
+    const key = LINE.exec(line)?.[1];
+    if (!key || !pending.has(key)) return line;
+    const value = pending.get(key) as string;
+    pending.delete(key);
+    return `${key}=${formatEnvValue(value)}`;
+  });
+  for (const [key, value] of pending) merged.push(`${key}=${formatEnvValue(value)}`);
+  return `${merged.join("\n")}\n`;
+}
+
+/**
+ * Writes .env readable only by its owner (0600), through a temporary file and a rename, so a crash
+ * never leaves half a file.
+ */
+export function writeEnvFile(path: string, content: string): void {
+  const temporary = `${path}.tmp-${process.pid}`;
+  writeFileSync(temporary, content, { mode: 0o600 });
+  chmodSync(temporary, 0o600);
+  renameSync(temporary, path);
+}
+
+/** Merges `updates` into the .env at `path` (created if missing) and returns the values now in it. */
+export function updateEnvFile(path: string, updates: Partial<SetupEnv>): EnvValues {
+  const existing = existsSync(path) ? readFileSync(path, "utf8") : "";
+  const content = mergeEnv(existing, updates);
+  writeEnvFile(path, content);
+  return parseEnv(content);
+}
+
+/** A new AUTH_SECRET: 32 random bytes, base64. */
+export function generateAuthSecret(): string {
+  return randomBytes(32).toString("base64");
+}
+
+/** Secrets shorter than 32 characters get a warning in setup, but are kept. */
+export function isWeakSecret(secret: string): boolean {
+  return secret.length < 32;
+}

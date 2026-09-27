@@ -7,7 +7,13 @@ import { newId } from "../ids";
 import { migrateToLatest } from "../migrate";
 import { type DatabaseDialect, parseDatabaseUrl } from "../url";
 
-export type TestDb = { db: Db; dialect: DatabaseDialect; cleanup: () => Promise<void> };
+export type TestDb = {
+  db: Db;
+  dialect: DatabaseDialect;
+  /** The database's URL, for code under test that opens its own connection. */
+  url: string;
+  cleanup: () => Promise<void>;
+};
 
 /**
  * A fresh database for one test file. Reads TEST_DATABASE_URL:
@@ -25,13 +31,15 @@ export async function createTestDb(options: { migrate?: boolean } = {}): Promise
   if (dialect === "sqlite") {
     if (baseUrl === "file::memory:") {
       const { db } = createDb(baseUrl);
-      created = { db, dialect, cleanup: () => db.destroy() };
+      created = { db, dialect, url: baseUrl, cleanup: () => db.destroy() };
     } else {
       const dir = mkdtempSync(join(tmpdir(), "ronne-test-"));
-      const { db } = createDb(`file:${join(dir, "test.db")}`);
+      const fileUrl = `file:${join(dir, "test.db")}`;
+      const { db } = createDb(fileUrl);
       created = {
         db,
         dialect,
+        url: fileUrl,
         cleanup: async () => {
           await db.destroy();
           rmSync(dir, { recursive: true, force: true });
@@ -49,6 +57,7 @@ export async function createTestDb(options: { migrate?: boolean } = {}): Promise
     created = {
       db,
       dialect,
+      url: url.toString(),
       cleanup: async () => {
         await db.destroy();
         await sql`drop database if exists ${sql.id(name)}`.execute(admin);
