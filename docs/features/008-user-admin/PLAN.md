@@ -8,7 +8,7 @@
   plus the domain errors `ForbiddenError`, `UserNotFoundError`, `EmailTakenError` and `CannotModifyRootError`.
   *Done when:* a table test covers roles × permissions against MVP §2.
 
-- [ ] **2. User repository and services.**
+- [x] **2. User repository and services.**
   - List users with search, filters and a cursor.
   - Create a user with a password (reusing 003's write).
   - Change a role (`user` ↔ `moderator` only).
@@ -50,4 +50,29 @@
   - Each character comes from `crypto.randomInt`, so there's no modulo bias.
   - **Tests:** the alphabet has no look-alikes; a password has 20 characters and passes 003's rules;
     2,000 draws never repeat and use every character.
+- **Task 2 (2026-09-27): repository and services** (`services/user-admin.ts`, and the wiring in
+  `actions/user-admin.ts`).
+  - **`IdentityRepository` gains** `findUser`, `listUsers` (search, role, status, cursor),
+    `emailTaken`, `setRole`, `disableUser` and `countActiveAccessTokens`.
+  - **The services:** `listUsers`, `createUser`, `changeRole`, `disableUser`, `enableUser`,
+    `resetPassword` and `disableImpact`, which gives the disable dialog its session and token counts.
+    - Each checks `users.view` or `users.manage` first.
+    - Each loads its target in the transaction and throws `CannotModifyRootError` for root.
+    - Each writes the change and its 007 event together.
+  - **Roles:** only `user` and `moderator` can be given (`ASSIGNABLE_ROLES`). Anything else, root
+    included, is `InvalidRoleError`.
+  - **No-ops record nothing:** changing to the same role, disabling a disabled user and enabling an
+    active one.
+  - **The actions** take the request headers, find the actor with `getCurrentUser`, and pass the
+    client IP for the event.
+  - **Tests** (all four databases):
+    - every operation refused to a user, a moderator and a signed-out visitor;
+    - a generated and a typed password work, and neither is in the log;
+    - duplicate emails in any case are refused, and so are `root` and unknown roles;
+    - disable ends sessions and revokes tokens, and enable leaves tokens revoked;
+    - a failing audit write rolls the whole disable back;
+    - reset makes the old password stop working;
+    - root is refused by every operation;
+    - search ignores case and matches `%` literally, the role and status filters work, and it pages
+      at 50.
 

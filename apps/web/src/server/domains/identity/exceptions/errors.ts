@@ -74,3 +74,9 @@ export class CannotModifyRootError extends IdentityError {
     );
   }
 }
+
+export class InvalidRoleError extends IdentityError {
+  constructor(readonly role: string) {
+    super(`"${role}" isn't a role that can be given here. Use user or moderator.`);
+  }
+}
