@@ -31,7 +31,7 @@ RUN pnpm install --frozen-lockfile
 # ---- Build the standalone server and the scripts ----
 FROM deps AS build
 COPY . .
-RUN NEXT_OUTPUT=standalone pnpm --filter @ronne/web build \
+RUN NEXT_OUTPUT=standalone pnpm --filter @ronneai/web build \
  && node docker/collect-native.mjs apps/web /native/node_modules
 
 # ---- Runtime ----

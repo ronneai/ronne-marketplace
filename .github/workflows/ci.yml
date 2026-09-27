@@ -114,7 +114,7 @@ jobs:
         if: needs.changes.outputs.code != 'false'
       # Chromium from Playwright's own download, with the system libraries it needs. This is the
       # only step that fetches browsers: installing @playwright/test runs no scripts.
-      - run: pnpm --filter @ronne/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @ronneai/web exec playwright install --with-deps chromium
         if: needs.changes.outputs.code != 'false'
       # Builds the web app, sets up a throwaway SQLite instance and runs the tests (apps/web/e2e).
       - run: pnpm test:e2e

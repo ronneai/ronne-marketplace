@@ -26,18 +26,18 @@ lints, type-checks and runs tests locally and in CI, so no feature has to set up
 - Database code → [002](../002-db-layer/SPEC.md).
 - Real CLI commands → 022. Real MCP tools → 027.
 - Playwright end-to-end tests → 006, with the first real UI flow.
-- Publishing packages to npm → before M4, once the `@ronne` scope is confirmed.
+- Publishing packages to npm → before M4, under the `@ronneai` scope. The workspace packages were renamed from `@ronne/*` to `@ronneai/*` on 2026-09-27, after the owner confirmed `@ronneai` is theirs on npmjs.com.
 
 ## Behaviour
 
 **Layout** (MVP §9.1):
 
 ```
-apps/web/            @ronne/web          private, not published
-packages/core/       @ronne/core
-packages/cli/        @ronne/rmk          bin: rmk
-packages/mcp/        @ronne/mcp
-packages/config/     @ronne/config       private
+apps/web/            @ronneai/web          private, not published
+packages/core/       @ronneai/core
+packages/cli/        @ronneai/rmk          bin: rmk
+packages/mcp/        @ronneai/mcp
+packages/config/     @ronneai/config       private
 ```
 
 **Root scripts** (all go through Turborepo, so only changed packages rerun):
@@ -95,7 +95,7 @@ length rule.
 
 - [x] A fresh clone runs `pnpm install && pnpm lint && pnpm typecheck && pnpm test && pnpm build` with no errors.
 - [x] `pnpm dev` serves a placeholder page at `http://localhost:3000` styled with Tailwind.
-- [x] `pnpm exec rmk --version` (from the repo root, which has `@ronne/rmk` as a workspace dev dependency) prints the package version.
+- [x] `pnpm exec rmk --version` (from the repo root, which has `@ronneai/rmk` as a workspace dev dependency) prints the package version.
 - [x] Each package has at least one Vitest test, and it runs through `pnpm test`.
 - [x] A Biome error, a type error or a failing test makes CI fail.
 - [x] The examples check passes on the current `examples/items/` and fails when a manifest is broken.

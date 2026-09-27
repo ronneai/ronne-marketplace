@@ -169,10 +169,10 @@ importers:
       '@biomejs/biome':
         specifier: 2.5.14
         version: 2.5.14
-      '@ronne/config':
+      '@ronneai/config':
         specifier: workspace:*
         version: link:packages/config
-      '@ronne/rmk':
+      '@ronneai/rmk':
         specifier: workspace:*
         version: link:packages/cli
       '@types/node':

@@ -1,5 +1,5 @@
 {
-  "extends": "@ronne/config/tsconfig/nextjs.json",
+  "extends": "@ronneai/config/tsconfig/nextjs.json",
   "compilerOptions": {
     "paths": {
       "@/*": ["./src/*"]

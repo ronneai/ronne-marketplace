@@ -1,4 +1,4 @@
-import { testDefaults } from "@ronne/config/vitest";
+import { testDefaults } from "@ronneai/config/vitest";
 import { defineConfig } from "vitest/config";
 
 // Two projects, so CI can run just the database tests against each server (feature 004):

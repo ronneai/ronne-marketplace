@@ -1,6 +1,6 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.5.14/schema.json",
-  "extends": ["@ronne/config/biome"],
+  "extends": ["@ronneai/config/biome"],
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -20,15 +20,15 @@
               "options": {
                 "patterns": [
                   {
-                    "group": ["@ronne/web", "@ronne/web/**"],
+                    "group": ["@ronneai/web", "@ronneai/web/**"],
                     "message": "packages/core is shared by everything, so it can't import other Ronne packages (MVP §9.1)."
                   },
                   {
-                    "group": ["@ronne/rmk", "@ronne/rmk/**"],
+                    "group": ["@ronneai/rmk", "@ronneai/rmk/**"],
                     "message": "packages/core is shared by everything, so it can't import other Ronne packages (MVP §9.1)."
                   },
                   {
-                    "group": ["@ronne/mcp", "@ronne/mcp/**"],
+                    "group": ["@ronneai/mcp", "@ronneai/mcp/**"],
                     "message": "packages/core is shared by everything, so it can't import other Ronne packages (MVP §9.1)."
                   }
                 ]
@@ -48,12 +48,12 @@
               "options": {
                 "patterns": [
                   {
-                    "group": ["@ronne/web", "@ronne/web/**"],
-                    "message": "The CLI may only import @ronne/core (MVP §9.1)."
+                    "group": ["@ronneai/web", "@ronneai/web/**"],
+                    "message": "The CLI may only import @ronneai/core (MVP §9.1)."
                   },
                   {
-                    "group": ["@ronne/mcp", "@ronne/mcp/**"],
-                    "message": "The CLI may only import @ronne/core (MVP §9.1)."
+                    "group": ["@ronneai/mcp", "@ronneai/mcp/**"],
+                    "message": "The CLI may only import @ronneai/core (MVP §9.1)."
                   }
                 ]
               }
@@ -72,12 +72,12 @@
               "options": {
                 "patterns": [
                   {
-                    "group": ["@ronne/web", "@ronne/web/**"],
-                    "message": "The MCP server may only import @ronne/core (MVP §9.1)."
+                    "group": ["@ronneai/web", "@ronneai/web/**"],
+                    "message": "The MCP server may only import @ronneai/core (MVP §9.1)."
                   },
                   {
-                    "group": ["@ronne/rmk", "@ronne/rmk/**"],
-                    "message": "The MCP server may only import @ronne/core (MVP §9.1)."
+                    "group": ["@ronneai/rmk", "@ronneai/rmk/**"],
+                    "message": "The MCP server may only import @ronneai/core (MVP §9.1)."
                   }
                 ]
               }
@@ -96,12 +96,12 @@
               "options": {
                 "patterns": [
                   {
-                    "group": ["@ronne/rmk", "@ronne/rmk/**"],
-                    "message": "The web app may import @ronne/core, never the CLI or the MCP server (MVP §9.1)."
+                    "group": ["@ronneai/rmk", "@ronneai/rmk/**"],
+                    "message": "The web app may import @ronneai/core, never the CLI or the MCP server (MVP §9.1)."
                   },
                   {
-                    "group": ["@ronne/mcp", "@ronne/mcp/**"],
-                    "message": "The web app may import @ronne/core, never the CLI or the MCP server (MVP §9.1)."
+                    "group": ["@ronneai/mcp", "@ronneai/mcp/**"],
+                    "message": "The web app may import @ronneai/core, never the CLI or the MCP server (MVP §9.1)."
                   },
                   {
                     "group": ["better-sqlite3", "pg", "pg/**", "mysql2", "mysql2/**"],
@@ -128,12 +128,12 @@
               "options": {
                 "patterns": [
                   {
-                    "group": ["@ronne/rmk", "@ronne/rmk/**"],
-                    "message": "The web app may import @ronne/core, never the CLI or the MCP server (MVP §9.1)."
+                    "group": ["@ronneai/rmk", "@ronneai/rmk/**"],
+                    "message": "The web app may import @ronneai/core, never the CLI or the MCP server (MVP §9.1)."
                   },
                   {
-                    "group": ["@ronne/mcp", "@ronne/mcp/**"],
-                    "message": "The web app may import @ronne/core, never the CLI or the MCP server (MVP §9.1)."
+                    "group": ["@ronneai/mcp", "@ronneai/mcp/**"],
+                    "message": "The web app may import @ronneai/core, never the CLI or the MCP server (MVP §9.1)."
                   },
                   {
                     "group": ["better-auth", "better-auth/**", "@better-auth/**"],
@@ -156,12 +156,12 @@
               "options": {
                 "patterns": [
                   {
-                    "group": ["@ronne/rmk", "@ronne/rmk/**"],
-                    "message": "The web app may import @ronne/core, never the CLI or the MCP server (MVP §9.1)."
+                    "group": ["@ronneai/rmk", "@ronneai/rmk/**"],
+                    "message": "The web app may import @ronneai/core, never the CLI or the MCP server (MVP §9.1)."
                   },
                   {
-                    "group": ["@ronne/mcp", "@ronne/mcp/**"],
-                    "message": "The web app may import @ronne/core, never the CLI or the MCP server (MVP §9.1)."
+                    "group": ["@ronneai/mcp", "@ronneai/mcp/**"],
+                    "message": "The web app may import @ronneai/core, never the CLI or the MCP server (MVP §9.1)."
                   },
                   {
                     "group": ["better-sqlite3", "pg", "pg/**", "mysql2", "mysql2/**"],
