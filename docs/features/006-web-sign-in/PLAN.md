@@ -29,7 +29,7 @@
   the rate-limit message, and the CLI authentication panel, using 032's parts.
   *Done when:* render tests pass, and it works with JavaScript off (checked by hand, noted).
 
-- [ ] **6. Account pages.** `/account/password`, and sign-out in the user menu.
+- [x] **6. Account pages.** `/account/password`, and sign-out in the user menu.
   *Done when:* render and action tests pass.
 
 - [ ] **7. Playwright.** Add `@playwright/test` after the dependency checklist. The e2e harness does
@@ -118,4 +118,24 @@
     null on an unconfigured instance (`getAppAuthIfConfigured`). Rechecked: no errors.
   - **Local testing note:** `next start` loads `apps/web/.env`, and environment variables take
     precedence in `loadConfig`. The throwaway instance was started with its values exported.
+- **Task 6 (2026-09-27): account pages.**
+  - **`/account/password`** (`features/account/`): current, new and confirm, each with show/hide.
+    Errors sit next to their field, and the rate limit shows as a notice. A confirmation that doesn't
+    match never reaches the server. On success: "Password changed. You're still signed in here;
+    other sessions were signed out."
+  - **Sign-out:** the (app) layout passes `signOutFromMenu` to the shell's user menu. It ends the
+    session, clears the cookie and goes to `/sign-in`.
+  - **Bug found live, and fixed:** after changing the password, the page redirected to sign-in.
+    Better Auth replaces the session and its cookie. Next.js re-renders the page with the new
+    cookie in `cookies()`, but `headers()` keeps the original Cookie header (its source has a TODO
+    on this). The layout read the old, deleted session. `server/http/request-headers.ts` rebuilds
+    the Cookie header from `cookies()`, and every page, layout and action uses it.
+  - **Checked live without JavaScript** (`next start`, curl posting the forms):
+    - A wrong current password shows its error.
+    - A change keeps this browser signed in with a new cookie, signs the other browser out, and
+      only the new password signs in.
+    - Sign-out answers 303 to `/sign-in` and clears the cookie; the old cookie then gets a 307.
+    - Protected pages are sent with `Cache-Control: private, no-cache, no-store`, so the back button
+      reloads them (and redirects) rather than showing a cached copy.
+  - The home page no longer says sign-in is coming.
 

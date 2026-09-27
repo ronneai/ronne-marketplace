@@ -10,7 +10,7 @@ const menuItem = "block w-full rounded-control px-3 py-1.5 text-left text-sm tex
 /**
  * The page frame (feature 032): header with the brand, role-aware navigation and the user menu, a
  * 1024px content column, and the footer. The user menu is a native <details>, so it works without
- * JavaScript. Sign-out is wired by feature 006 through `signOutAction`.
+ * JavaScript. The (app) layout passes `signOutAction` (feature 006).
  */
 export function AppShell({
   user,

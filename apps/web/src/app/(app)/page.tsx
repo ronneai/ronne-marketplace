@@ -9,7 +9,7 @@ export default function HomePage() {
       />
       <Panel>
         <p className="text-sm text-muted">
-          This instance is being built. Sign-in, the catalogue and reviews arrive in later
+          This instance is being built. The catalogue, submissions and reviews arrive in later
           milestones.
         </p>
       </Panel>
