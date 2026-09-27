@@ -46,6 +46,40 @@ It exits with `0` when done, `1` when a check fails, and `2` when a value is mis
 **Forgot the root password?** `pnpm run reset-root-password` sets a new one, signs root out
 everywhere and revokes its access tokens (`--yes` with `RONNE_ROOT_PASSWORD` works here too).
 
+### With Docker
+
+You need Docker with Compose. Nothing else: the image has Node.js, and SQLite needs no server.
+
+```sh
+git clone https://github.com/ronneai/ronne-marketplace.git
+cd ronne-marketplace
+docker compose up -d                          # builds the image and starts Ronne
+docker compose exec web pnpm run setup        # asks the same questions as above
+docker compose restart web                    # picks up the new settings
+```
+
+Open http://localhost:3000 (or set `RONNE_PORT` before `up`). Until setup has run, every page shows
+"This instance isn't set up yet", and `/api/health` answers `503`.
+
+- **Your data** (the SQLite file, stored items and the settings file) lives in the `ronne-data`
+  volume, mounted at `/app/data`. Recreating or upgrading the container keeps it. Back up that volume.
+- **Upgrading:** pull the new code, then `docker compose up -d --build`. Pending database migrations run
+  when the container starts. If they fail, the container stops instead of serving a half-migrated database.
+- **PostgreSQL or MySQL instead of SQLite:** `docker compose --profile postgres up -d` (or
+  `--profile mysql`) also starts that database. Set `RONNE_DB_PASSWORD` first. In setup, use host
+  `postgres` (or `mysql`), and database and user `ronne`.
+- **Without prompts:** `docker compose exec -T web pnpm run setup --yes`, with the variables from
+  the section above passed as `-e NAME=value` (`DATABASE_URL=file:./data/ronne.db` for SQLite).
+- **Root password:** `docker compose exec web pnpm run reset-root-password`.
+- **"isn't writable" on start:** the volume is owned by root. Fix it once with
+  `docker compose run --rm --user root web chown -R 1000:1000 /app/data`.
+
+**Behind a reverse proxy** (nginx, Caddy, Traefik): proxy HTTPS to port 3000, and set `PUBLIC_URL`
+to the public address, for example `PUBLIC_URL=https://ronne.example.com docker compose up -d`.
+`TRUST_PROXY=true` will tell Ronne to trust the proxy's `X-Forwarded-*` headers once sign-in exists
+(feature 006). Today nothing reads them, so it has no effect yet. Only set it when a proxy you control
+sits in front of Ronne.
+
 ## Development
 
 **Requirements**

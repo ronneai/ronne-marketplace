@@ -26,7 +26,7 @@
   Trivy with `--severity HIGH,CRITICAL --ignore-unfixed`, and the `docker` ecosystem added to Dependabot.
   *Done when:* a pull request shows the job passing, and an older base image with a known CVE makes the scan fail (recorded in Notes).
 
-- [ ] **8. Docs.** The Docker section of the README, including reverse proxies and `TRUST_PROXY`.
+- [x] **8. Docs.** The Docker section of the README, including reverse proxies and `TRUST_PROXY`.
   *Done when:* the README steps work as written.
 
 ## Notes
@@ -109,4 +109,9 @@
   - **The first local Trivy scan failed: 4 HIGH (`brace-expansion`, `ip-address`, `tar`), all inside the base image's own npm.** The bare `node:24-trixie-slim` has the same 4; Debian packages and Ronne's dependencies had 0. **Option A (owner's choice):** the runtime stage removes npm, npx, corepack and Yarn 1, which nothing at runtime uses. After that, Trivy exits 0. Setup, restart (200), `reset-root-password` and `db:migrate` were re-run in the container, and they all still work. The image size is unchanged (422 MB), because the base layers still hold those files; only the final filesystem, which is what gets scanned and run, is smaller.
   - **Dependabot:** added the `docker` (the Dockerfile's base digest) and `docker-compose` (`/` and `/docker`) ecosystems, weekly, with a 3-day cooldown and the `[chore]` prefix. The base image moved from an `ARG` into `FROM`, so Dependabot can see it. The Trivy digest in `image.yml` is in a `docker run` line, which Dependabot doesn't update, so bump it by hand.
   - **After merging,** add `Docker image (build, run, scan)` to the required checks on `main`.
+- **Task 8 (2026-09-27): docs.**
+  - The README has a "With Docker" section: up, setup, restart, `RONNE_PORT`, the setup screen, the `ronne-data` volume and backups, upgrades running migrations on start, the PostgreSQL and MySQL profiles, `--yes` in the container, `reset-root-password`, and the `chown` fix.
+  - **Reverse proxies:** `PUBLIC_URL`, plus a note that `TRUST_PROXY` is read by `loadConfig()` but unused until sign-in (006). It's documented as having no effect yet, rather than implying it does something.
+  - MVP §5's Docker line now includes the restart step and links to this feature.
+  - The README steps were run as written through compose (task 6) and with plain `docker run` (tasks 4 and 5).
 
