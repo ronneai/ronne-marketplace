@@ -26,9 +26,9 @@ request instead of reaching a user.
 | Database | Minimum (tested on PRs) | Latest (tested weekly) |
 |---|---|---|
 | SQLite | the version bundled with `better-sqlite3` | — |
-| MySQL | 8.4 LTS | latest 8.x or 9.x LTS |
-| MariaDB | 10.11 LTS | latest LTS |
-| PostgreSQL | 15 | latest |
+| MySQL | 8.4 LTS | `mysql:lts` (9.7 in September 2026) |
+| MariaDB | 10.11 LTS | `mariadb:lts` (12.3 in September 2026) |
+| PostgreSQL | 15 | `postgres:latest` (18 in September 2026) |
 
 These versions go into MVP §5 and the README as the supported list.
 

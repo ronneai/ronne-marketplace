@@ -19,7 +19,13 @@
     "licenses:check": "pnpm licenses list --json | node packages/repo-tools/src/check-licenses.js",
     "db:migrate": "pnpm --filter @ronne/web db:migrate",
     "setup": "pnpm --filter @ronne/web run setup",
-    "reset-root-password": "pnpm --filter @ronne/web run reset-root-password"
+    "reset-root-password": "pnpm --filter @ronne/web run reset-root-password",
+    "test:db": "pnpm --filter @ronne/web test:db",
+    "test:db:up": "docker compose -f docker/test-databases.compose.yml up -d --wait",
+    "test:db:down": "docker compose -f docker/test-databases.compose.yml down -v",
+    "test:db:postgres": "pnpm --filter @ronne/web exec node scripts/test-db.mjs postgres",
+    "test:db:mysql": "pnpm --filter @ronne/web exec node scripts/test-db.mjs mysql",
+    "test:db:mariadb": "pnpm --filter @ronne/web exec node scripts/test-db.mjs mariadb"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.14",

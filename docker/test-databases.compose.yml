@@ -1,0 +1,46 @@
+# Local database servers for the database tests (feature 004): the minimum versions Ronne supports,
+# the same ones CI tests on every pull request.
+#
+#   pnpm test:db:up        start them and wait until they're healthy
+#   pnpm test:db:postgres  (or :mysql, :mariadb) run the database tests against one
+#   pnpm test:db:down      stop them and delete their data
+#
+# Ports listen on 127.0.0.1 only. The password is for local tests, never for a real instance.
+name: ronne-test-databases
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_PASSWORD: ronne-test
+    ports: ["127.0.0.1:54315:5432"]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: ronne-test
+      MYSQL_DATABASE: ronne
+    ports: ["127.0.0.1:53384:3306"]
+    healthcheck:
+      # Over TCP, so it only passes once the real server is up (not the temporary init server).
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-pronne-test"]
+      interval: 2s
+      timeout: 5s
+      retries: 60
+
+  mariadb:
+    image: mariadb:10.11
+    environment:
+      MARIADB_ROOT_PASSWORD: ronne-test
+      MARIADB_DATABASE: ronne
+    ports: ["127.0.0.1:53311:3306"]
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 2s
+      timeout: 5s
+      retries: 60
