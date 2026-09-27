@@ -34,7 +34,7 @@ services:
       retries: 60
 
   mariadb:
-    image: mariadb:10.11
+    image: mariadb:13.0
     environment:
       MARIADB_ROOT_PASSWORD: ronne-test
       MARIADB_DATABASE: ronne
