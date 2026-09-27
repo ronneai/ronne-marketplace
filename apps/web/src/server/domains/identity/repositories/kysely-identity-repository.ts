@@ -3,6 +3,7 @@ import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
 import type { Database } from "../../../db/schema";
 import type { DatabaseDialect } from "../../../db/url";
+import { recordAudit } from "../../audit/actions/audit";
 import { isRole } from "../models/user";
 import type { IdentityRepository, NewUserWithPassword } from "./identity-repository";
 
@@ -45,6 +46,25 @@ export function kyselyIdentityRepository(
       // A role outside the three known ones gets no access rather than a guess.
       if (!row || !isRole(row.role)) return null;
       return { id: row.id, email: row.email, name: row.name, role: row.role };
+    },
+
+    async userStatusByEmail(email) {
+      const row = await db
+        .selectFrom("user")
+        .select("disabled_at")
+        .where("email", "=", email)
+        .executeTakeFirst();
+      if (!row) return null;
+      return row.disabled_at ? "disabled" : "active";
+    },
+
+    async countSessions(userId) {
+      const row = await db
+        .selectFrom("session")
+        .select((eb) => eb.fn.countAll<number | string | bigint>().as("n"))
+        .where("user_id", "=", userId)
+        .executeTakeFirstOrThrow();
+      return Number(row.n);
     },
 
     async createUserWithPassword(user: NewUserWithPassword, now: Date) {
@@ -103,16 +123,25 @@ export function kyselyIdentityRepository(
     },
 
     async deleteSessions(userId) {
-      await db.deleteFrom("session").where("user_id", "=", userId).execute();
+      const result = await db
+        .deleteFrom("session")
+        .where("user_id", "=", userId)
+        .executeTakeFirst();
+      return Number(result.numDeletedRows);
     },
 
     async revokeAccessTokens(userId, now) {
-      await db
+      const result = await db
         .updateTable("access_tokens")
         .set({ revoked_at: at(now) })
         .where("user_id", "=", userId)
         .where("revoked_at", "is", null)
-        .execute();
+        .executeTakeFirst();
+      return Number(result.numUpdatedRows);
+    },
+
+    async recordAudit(event, now) {
+      await recordAudit(db, dialect, event, now);
     },
   };
 }

@@ -8,19 +8,26 @@ const isRefusal = (error: unknown) =>
 
 export function betterAuthSessionStore(auth: Auth): SessionStore {
   return {
-    async sessionUserId(headers) {
-      const session = await auth.api.getSession({ headers });
-      return session?.user.id ?? null;
+    async currentSession(headers) {
+      const found = await auth.api.getSession({ headers });
+      return found ? { userId: found.user.id, sessionId: found.session.id } : null;
     },
 
     async signIn(headers, { email, password, rememberMe }) {
       try {
-        const { headers: responseHeaders } = await auth.api.signInEmail({
+        const { headers: responseHeaders, response } = await auth.api.signInEmail({
           body: { email, password, rememberMe },
           headers,
           returnHeaders: true,
         });
-        return responseHeaders;
+        // The response carries the session token; only its id leaves this module.
+        const ctx = await auth.$context;
+        const found = await ctx.internalAdapter.findSession(response.token);
+        if (!found) throw new Error("Better Auth signed in but its session can't be found.");
+        return {
+          headers: responseHeaders,
+          session: { userId: found.user.id, sessionId: found.session.id },
+        };
       } catch (error) {
         // Unknown email, wrong password, and a disabled user (the session hook refuses it) all
         // end here, so the caller can't tell them apart.
