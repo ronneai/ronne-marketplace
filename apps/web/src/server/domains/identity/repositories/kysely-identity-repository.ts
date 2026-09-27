@@ -3,6 +3,7 @@ import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
 import type { Database } from "../../../db/schema";
 import type { DatabaseDialect } from "../../../db/url";
+import { isRole } from "../models/user";
 import type { IdentityRepository, NewUserWithPassword } from "./identity-repository";
 
 /** Better Auth's provider id for email and password accounts. */
@@ -32,6 +33,18 @@ export function kyselyIdentityRepository(
         name: row.name,
         disabledAt: fromDbDate(row.disabled_at),
       };
+    },
+
+    async findActiveUser(userId) {
+      const row = await db
+        .selectFrom("user")
+        .select(["id", "email", "name", "role"])
+        .where("id", "=", userId)
+        .where("disabled_at", "is", null)
+        .executeTakeFirst();
+      // A role outside the three known ones gets no access rather than a guess.
+      if (!row || !isRole(row.role)) return null;
+      return { id: row.id, email: row.email, name: row.name, role: row.role };
     },
 
     async createUserWithPassword(user: NewUserWithPassword, now: Date) {

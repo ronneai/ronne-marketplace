@@ -511,7 +511,7 @@ moves to `components/` (UI primitives go in `components/ui`).
 - **Better Auth owns its tables:** `user`, `session`, `account` and `verification`, created through
   our migration set so all three databases share one schema. `role` and `disabled_at` are added to
   `user` as Better Auth additional fields. Password hashes live in `account`, as Better Auth expects.
-- **Passwords** are hashed with argon2id, set through Better Auth's custom hash functions (its default is scrypt). Login is rate-limited.
+- **Passwords** are hashed with argon2id, set through Better Auth's custom hash functions (its default is scrypt). Login is rate-limited: 5 attempts a minute per email, and per client IP behind a trusted proxy (006).
 - **Web sessions** use httpOnly, secure, SameSite=Lax cookies, backed by Better Auth's `session` table.
 - **CLI and MCP** use personal access tokens from our own `access_tokens` table in the `identity`
   domain, not a Better Auth plugin. A token looks like `rmk_<random>`; only its sha256 hash is
@@ -699,6 +699,7 @@ Design points:
 | Docker | `node:24-slim` (current LTS, pinned by digest), standalone Next.js, state and config on one `/app/data` volume, migrations on start, setup-required mode until configured | One volume to back up; upgrades apply migrations automatically |
 | Design system | One system from the brand and the Stitch design notes (kept locally in the git-ignored `docs/UI-Mocks-Materials/`; the rules and tokens are in 032's spec): Manrope and IBM Plex Mono self-hosted; flat (no shadows); teal as the single accent; no red, yellow or green alerts; light and dark themes following the OS with a toggle ([032](../features/032-design-system/SPEC.md)) | Consistent pages from M1 on; no font CDN for a self-hosted product |
 | Web sign-in | Email and password only; tokens don't sign in to the web; "Forgot?" points to a root reset (no email) | Tokens stay machine credentials, so a leaked token can't open a browser session |
+| Login rate limit | Ronne's own in-memory limiter on the sign-in action: 5 attempts a minute per email, and per client IP only with `TRUST_PROXY=true`; Better Auth's HTTP sign-in is not served | Better Auth's limiter skips server actions, and without a trusted proxy the client IP can be forged ([006](../features/006-web-sign-in/SPEC.md)) |
 | CLI login | `rmk login` exchanges email and password for a token (`POST /api/v1/auth/token`), and `rmk login --token` accepts one made in the web app; browser-based login waits for SSO's device flow | Matches the MVP and the mock's `--token`, without new endpoints before SSO |
 | Single root | The admin UI assigns only `user` and `moderator`, and can't modify root; root recovers through `pnpm run reset-root-password` | Keeps "one instance owner"; a transfer flow can come later |
 | Access tokens | `rmk_` + 43 base64url characters, SHA-256 hashed, 30/90/365 days or no expiry, at most 50 active per user, bearer only on `/api/v1` | Recognizable by secret scanning; revocable; no cookies on the API |

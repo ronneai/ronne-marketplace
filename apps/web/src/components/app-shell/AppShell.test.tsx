@@ -27,8 +27,8 @@ describe("AppShell", () => {
 
   it("renders the brand, the content and the footer, with no user menu when signed out", () => {
     const html = render(null);
-    expect(html).toContain('aria-label="Ronne"');
-    expect(html).toContain("ronne");
+    expect(html).toContain('aria-label="Ronne AI"');
+    expect(html).toContain(">ronne</text>");
     expect(html).toContain("<p>content</p>");
     expect(html).toContain("open source (MIT)");
     expect(html).not.toContain("<details");

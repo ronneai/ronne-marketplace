@@ -22,3 +22,7 @@ dist-scripts/
 # Design source material (brand files, Stitch mocks, design notes). Kept locally, never published.
 # Feature 032 copies only what the app serves (fonts, logos, favicons) into apps/web.
 docs/UI-Mocks-Materials/
+
+# Playwright output (feature 006)
+playwright-report/
+test-results/

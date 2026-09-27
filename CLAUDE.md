@@ -36,6 +36,7 @@ Use Node.js 24 (`.nvmrc`) and pnpm installed directly (`npm install --global pnp
 | `pnpm test` | Runs every Vitest suite; `pnpm --filter @ronne/core test` for one package |
 | `pnpm test:db` | Only the database tests (`*.db.test.ts`, the `db` Vitest project) |
 | `pnpm test:db:up` then `pnpm test:db:postgres` / `:mysql` / `:mariadb` | Database tests against local Docker servers at the minimum versions; `pnpm test:db:down` stops them |
+| `pnpm test:e2e` | Builds the web app and runs the Playwright tests (`apps/web/e2e`) against a throwaway SQLite instance. First run `pnpm --filter @ronne/web exec playwright install chromium` |
 | `pnpm licenses:check` | Checks every installed package's license against `license-policy.json` |
 | `pnpm audit --audit-level high` | Fails on known high or critical vulnerabilities |
 | `pnpm run setup` | Configures an instance (interactive, or `--yes` with env vars). Never `pnpm setup`: that's a pnpm built-in |
@@ -43,7 +44,7 @@ Use Node.js 24 (`.nvmrc`) and pnpm installed directly (`npm install --global pnp
 | `pnpm db:migrate` | Applies pending migrations to `DATABASE_URL` |
 | `pnpm hooks:install` | Turns on the local `pre-commit` checks and the commit-message check (once per clone) |
 
-CI (`.github/workflows/`) runs lint, typecheck, test and build on Node 22 and 24, the database tests on PostgreSQL 15, MySQL 8.4 and MariaDB 10.11 (`database.yml`, plus a weekly run on the latest versions), the license and audit checks, CodeQL, and the PR title check.
+CI (`.github/workflows/`) runs lint, typecheck, test and build on Node 22 and 24, the database tests on PostgreSQL 15, MySQL 8.4 and MariaDB 10.11 (`database.yml`, plus a weekly run on the latest versions), the end-to-end tests in Chromium, the license and audit checks, CodeQL, and the PR title check.
 
 Pull requests that only change documentation (`.md`, `.mdx`, `.txt`, the pre-commit hook's rule) skip the heavy CI steps: the reusable `changes.yml` workflow detects them, and the required checks still report success. Pushes to `main`, and the scheduled and manual runs, always run everything.
 

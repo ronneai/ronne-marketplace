@@ -2,6 +2,15 @@ import { InvalidEmailError, InvalidNameError } from "../exceptions/errors";
 
 export type Role = "root" | "moderator" | "user";
 
+/** The signed-in person, as the rest of the app sees them. */
+export type CurrentUser = { id: string; email: string; name: string; role: Role };
+
+const ROLES: readonly Role[] = ["root", "moderator", "user"];
+
+export function isRole(value: unknown): value is Role {
+  return ROLES.includes(value as Role);
+}
+
 export type RootAccount = { id: string; email: string; name: string; disabledAt: Date | null };
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

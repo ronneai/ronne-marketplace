@@ -42,3 +42,9 @@ export class RootNotFoundError extends IdentityError {
     super("There's no root account yet. Run `pnpm run setup` to create one.");
   }
 }
+
+export class NotConfiguredError extends IdentityError {
+  constructor() {
+    super("Ronne isn't set up yet: there's no DATABASE_URL or AUTH_SECRET. Run `pnpm run setup`.");
+  }
+}

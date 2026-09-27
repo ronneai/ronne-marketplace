@@ -101,3 +101,8 @@
     wide (the swatches wrap and there's no horizontal scroll), with no console errors. A production
     build (`next start`) returns 404 at `/styleguide` and 200 at `/`. Screenshots weren't kept in the
     repo; the UI materials they'd sit next to stay private.
+- **Changed later (2026-09-27, owner decision, on the 006 branch):** the header and footer now span the
+  full width, and the content column is 72% of the width from 1024px up (it was 1024px). Sign-in uses
+  the new `BrandLogo` (monogram and wordmark) in place of the monogram alone, and so does the header
+  (34px tall, 24px on phones, where the navigation padding also tightens so it fits at 360px). SPEC.md has the rule.
+

@@ -76,9 +76,9 @@ Open http://localhost:3000 (or set `RONNE_PORT` before `up`). Until setup has ru
 
 **Behind a reverse proxy** (nginx, Caddy, Traefik): proxy HTTPS to port 3000, and set `PUBLIC_URL`
 to the public address, for example `PUBLIC_URL=https://ronne.example.com docker compose up -d`.
-`TRUST_PROXY=true` will tell Ronne to trust the proxy's `X-Forwarded-*` headers once sign-in exists
-(feature 006). Today nothing reads them, so it has no effect yet. Only set it when a proxy you control
-sits in front of Ronne.
+Set `TRUST_PROXY=true` too, so Ronne takes the client's address from the proxy's `X-Forwarded-For`:
+sign-in is then rate-limited per address as well as per email, and sessions record it. Only set it
+when a proxy you control sits in front of Ronne and adds that header; otherwise anyone could forge it.
 
 ## Development
 
@@ -104,6 +104,7 @@ sits in front of Ronne.
 | `pnpm run setup` | Configures an instance: database, `.env`, tables and the root account |
 | `pnpm run reset-root-password` | Sets a new root password and signs root out everywhere |
 | `pnpm db:migrate` | Applies pending database migrations |
+| `pnpm test:e2e` | Builds the web app and runs the end-to-end tests (Playwright, Chromium) against a throwaway instance. Install the browser once with `pnpm --filter @ronne/web exec playwright install chromium` |
 | `pnpm test:db` | Runs only the database tests (in-memory SQLite, or `TEST_DATABASE_URL`) |
 | `pnpm test:db:up` / `pnpm test:db:down` | Starts or stops local PostgreSQL, MySQL and MariaDB test servers (Docker) |
 | `pnpm test:db:postgres` (or `:mysql`, `:mariadb`) | Runs the database tests against one of those servers |
