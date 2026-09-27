@@ -493,7 +493,7 @@ moves to `components/` (UI primitives go in `components/ui`).
 | Primary keys | ULIDs stored as `varchar(26)`, generated in the app. No auto-increment, so IDs are the same on all three databases and sort by creation time. |
 | Timestamps | Stored in UTC. Columns are named `*_at`. |
 | JSON | Stored as `text` and parsed in the repository layer. No JSON operators in queries. |
-| Booleans | Avoided in favour of nullable timestamps (`disabled_at`, `revoked_at`, `yanked_at`). |
+| Booleans | Avoided in favour of nullable timestamps (`disabled_at`, `revoked_at`, `yanked_at`). The one exception is Better Auth's `user.email_verified`, which it requires as a boolean. |
 | Search | Case-insensitive `LIKE` on name, description and keywords, through a helper in `db/`. Full-text search is a later improvement. |
 | Upserts | Only through the `db/` helper, which picks `ON CONFLICT` or `ON DUPLICATE KEY` for the dialect. |
 | Strings | `varchar(n)` with an explicit length when indexed, because MySQL needs index lengths. `text` otherwise. |
