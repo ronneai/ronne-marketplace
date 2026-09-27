@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { checkConnection, checkPermissions, PROBE_TABLE } from "./checks";
 import { createDb } from "./create-db";
+import { createTestDb } from "./testing/test-db";
 
 const dir = mkdtempSync(join(tmpdir(), "ronne-checks-"));
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
@@ -29,13 +30,13 @@ describe("checkConnection", () => {
   });
 });
 
-describe("checkPermissions on SQLite", () => {
+describe("checkPermissions", () => {
   it("creates, writes, reads and drops the probe table, leaving nothing behind", async () => {
-    const { db, dialect } = createDb("file::memory:");
+    const { db, dialect, cleanup } = await createTestDb({ migrate: false });
     expect(await checkPermissions(db, dialect)).toEqual({ ok: true });
     const tables = (await db.introspection.getTables()).map((t) => t.name);
     expect(tables).not.toContain(PROBE_TABLE);
-    await db.destroy();
+    await cleanup();
   });
 
   it("reports the create step on a read-only database file", async () => {

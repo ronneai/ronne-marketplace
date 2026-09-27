@@ -28,7 +28,7 @@
 - [x] **6. Connection and permission checks.** `checkConnection` with error kinds, `checkPermissions` with the probe table.
   *Done when:* tests cover `ok` and at least one failure kind on SQLite; MySQL and PostgreSQL cases are written and run in 004.
 
-- [ ] **7. Test helper and lint rule.** `createTestDb()` honouring `TEST_DATABASE_URL`, and a Biome rule stopping driver imports outside `db/`.
+- [x] **7. Test helper and lint rule.** `createTestDb()` honouring `TEST_DATABASE_URL`, and a Biome rule stopping driver imports outside `db/`.
   *Done when:* the repository tests use it, and a deliberate import of `pg` from a domain fails lint.
 
 ## Notes
@@ -92,4 +92,15 @@
     pg can wrap these in an `AggregateError`, which is handled. The closed-port cases need no server, so they always run.
   - **Added beyond the spec:** the `invalid_url` kind (a malformed `DATABASE_URL`, password still redacted), `serverVersion`, and a connect timeout in `createDb`, because `pg` has none by default. The spec is updated.
   - **Limited users, checked by hand:** a PostgreSQL 18 login role without `CREATE` on `public`, and a MySQL user with only `SELECT`, both connect but fail `checkPermissions` at `create`. That's the PostgreSQL 15+ default, recorded in the spec's edge cases for 003.
+- **Task 7 (2026-09-27): `createTestDb()` and the driver lint rule.**
+  - `db/testing/test-db.ts`: in-memory SQLite by default, a temp file for a `file:` URL, and a new `ronne_test_<ulid>` database on MySQL or PostgreSQL, dropped by `cleanup()`. Every database test now uses it, except the SQLite-specific ones (WAL, read-only file, which stay on SQLite).
+  - **Biome:** the `apps/web/**` override blocks `better-sqlite3`, `pg` and `mysql2` (and their subpaths). A later override for `apps/web/src/server/db/**` allows them, and still blocks the CLI and MCP packages. Checked with deliberate imports: from a domain and from a script, lint fails; from `db/`, it passes.
+  - **Full suite on four servers in Docker, a preview of 004:**
+    - PostgreSQL 18 and 15 and MariaDB 10.11 passed first time.
+    - **MySQL 8.4 failed:** deleting a user left their access tokens. `information_schema` showed **0 foreign keys** on MySQL 8.4 and 3 on MariaDB, because MySQL before 9.0 ignores inline column `REFERENCES`.
+    - **Fixed (option A, chosen by the owner):** `0001_identity` now uses table-level `addForeignKeyConstraint` (`<table>_user_id_fk`, `ON DELETE CASCADE`). It was edited in place, since it was never released.
+    - **Added:** `testing/foreign-keys.ts`, which lists the real foreign keys per dialect (`pragma_foreign_key_list`, `pg_constraint`, `information_schema`); a test that the three foreign keys exist and cascade on every database; and `migrations.guard.test.ts`, which fails on inline `.references(` in any migration (checked with a temporary bad migration).
+
+    After the fix, **79/79 tests pass on PostgreSQL 18, PostgreSQL 15, MySQL 8.4 and MariaDB 10.11**, and 75 pass (4 skipped) on SQLite.
+  - The password-masking test's child process prints the redacted `UnsupportedDatabaseUrlError` to stderr. That's expected noise in the test output, not a failure.
 

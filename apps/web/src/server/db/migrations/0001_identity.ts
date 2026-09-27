@@ -4,7 +4,8 @@ import type { AppMigration } from "./types";
 
 /**
  * Better Auth's tables (user, session, account, verification) with our snake_case columns, plus
- * our own access_tokens. Checked against Better Auth in 0001_identity.db.test.ts; the field
+ * our own access_tokens. Foreign keys are table-level constraints: MySQL 8.4 silently ignores
+ * inline column REFERENCES (see migrations.guard.test.ts). Checked against Better Auth in 0001_identity.db.test.ts; the field
  * mapping lives in domains/identity/models/auth-schema.ts. See docs/features/002-db-layer/SPEC.md.
  */
 export const identity: AppMigration = (dialect) => ({
@@ -35,7 +36,10 @@ export const identity: AppMigration = (dialect) => ({
       .addColumn("updated_at", t.timestamp(), (c) => c.notNull())
       .addColumn("ip_address", t.text())
       .addColumn("user_agent", t.text())
-      .addColumn("user_id", t.id(), (c) => c.notNull().references("user.id").onDelete("cascade"))
+      .addColumn("user_id", t.id(), (c) => c.notNull())
+      .addForeignKeyConstraint("session_user_id_fk", ["user_id"], "user", ["id"], (fk) =>
+        fk.onDelete("cascade"),
+      )
       .$call(defaults)
       .execute();
     await db.schema.createIndex("session_user_id_idx").on("session").column("user_id").execute();
@@ -45,7 +49,10 @@ export const identity: AppMigration = (dialect) => ({
       .addColumn("id", t.id(), (c) => c.primaryKey())
       .addColumn("account_id", t.text(), (c) => c.notNull())
       .addColumn("provider_id", t.text(), (c) => c.notNull())
-      .addColumn("user_id", t.id(), (c) => c.notNull().references("user.id").onDelete("cascade"))
+      .addColumn("user_id", t.id(), (c) => c.notNull())
+      .addForeignKeyConstraint("account_user_id_fk", ["user_id"], "user", ["id"], (fk) =>
+        fk.onDelete("cascade"),
+      )
       .addColumn("access_token", t.text())
       .addColumn("refresh_token", t.text())
       .addColumn("id_token", t.text())
@@ -79,7 +86,10 @@ export const identity: AppMigration = (dialect) => ({
     await db.schema
       .createTable("access_tokens")
       .addColumn("id", t.id(), (c) => c.primaryKey())
-      .addColumn("user_id", t.id(), (c) => c.notNull().references("user.id").onDelete("cascade"))
+      .addColumn("user_id", t.id(), (c) => c.notNull())
+      .addForeignKeyConstraint("access_tokens_user_id_fk", ["user_id"], "user", ["id"], (fk) =>
+        fk.onDelete("cascade"),
+      )
       .addColumn("name", t.string(100), (c) => c.notNull())
       .addColumn("token_hash", t.string(64), (c) => c.notNull().unique())
       .addColumn("last_used_at", t.timestamp())

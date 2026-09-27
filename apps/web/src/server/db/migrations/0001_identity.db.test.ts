@@ -2,15 +2,20 @@ import { betterAuth } from "better-auth";
 import { getMigrations } from "better-auth/db/migration";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { authSchema } from "../../domains/identity/models/auth-schema";
-import { createDb } from "../create-db";
+import type { Db } from "../create-db";
 import { fromDbDate, toDbDate } from "../dates";
 import { newId } from "../ids";
 import { migrateToLatest } from "../migrate";
+import { foreignKeys } from "../testing/foreign-keys";
+import { createTestDb, type TestDb } from "../testing/test-db";
+import type { DatabaseDialect } from "../url";
 
-// Runs on SQLite here; 004 runs the same file against MySQL and PostgreSQL.
-const { db, dialect } = createDb("file::memory:");
+// Runs on the database in TEST_DATABASE_URL (in-memory SQLite by default; 004 runs all of them).
+let fresh: TestDb;
+let db: Db;
+let dialect: DatabaseDialect;
 
-const authOptions = {
+const authOptions = () => ({
   database: { db, type: dialect },
   secret: "test-secret-test-secret-test-secret-00",
   baseURL: "http://localhost:3000",
@@ -18,22 +23,41 @@ const authOptions = {
   advanced: { database: { generateId: () => newId() } },
   emailAndPassword: { enabled: true },
   ...authSchema,
-} as const;
+});
 
 beforeAll(async () => {
+  fresh = await createTestDb({ migrate: false });
+  ({ db, dialect } = fresh);
   expect(await migrateToLatest(db, dialect)).toEqual(["0001_identity"]);
 });
-afterAll(() => db.destroy());
+afterAll(() => fresh.cleanup());
 
 describe("0001_identity", () => {
   it("matches what Better Auth expects: nothing to create or add", async () => {
-    const { toBeCreated, toBeAdded } = await getMigrations(authOptions);
+    const { toBeCreated, toBeAdded } = await getMigrations(authOptions());
     expect(toBeCreated).toEqual([]);
     expect(toBeAdded).toEqual([]);
   });
 
+  it("creates real foreign keys that cascade on delete, on every database", async () => {
+    // MySQL 8.4 silently ignores inline column REFERENCES, so this fails if one comes back.
+    expect(
+      await foreignKeys(db, dialect, [
+        "session",
+        "account",
+        "access_tokens",
+        "verification",
+        "user",
+      ]),
+    ).toEqual([
+      { table: "access_tokens", references: "user", onDelete: "CASCADE" },
+      { table: "account", references: "user", onDelete: "CASCADE" },
+      { table: "session", references: "user", onDelete: "CASCADE" },
+    ]);
+  });
+
   it("works with Better Auth: sign-up stores a user with our ids, columns and default role", async () => {
-    const auth = betterAuth(authOptions);
+    const auth = betterAuth(authOptions());
     const { user } = await auth.api.signUpEmail({
       body: { email: "root@example.com", password: "correct horse battery", name: "Root" },
     });

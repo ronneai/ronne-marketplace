@@ -1,7 +1,6 @@
 import { type Kysely, sql } from "kysely";
 import { afterEach, describe, expect, it } from "vitest";
 import { columnTypes } from "./column-types";
-import { createDb, type Db } from "./create-db";
 import {
   DatabaseAheadOfAppError,
   MIGRATION_TABLE,
@@ -9,6 +8,7 @@ import {
   migrateToLatest,
 } from "./migrate";
 import type { AppMigration } from "./migrations/types";
+import { createTestDb, type TestDb } from "./testing/test-db";
 
 const createTable =
   (table: string): AppMigration =>
@@ -35,18 +35,18 @@ const tableNames = async <DB>(db: Kysely<DB>) =>
     .sort();
 
 describe("migrateToLatest", () => {
-  const dbs: Db[] = [];
-  const freshDb = () => {
-    const created = createDb("file::memory:");
-    dbs.push(created.db);
+  const opened: TestDb[] = [];
+  const freshDb = async () => {
+    const created = await createTestDb({ migrate: false });
+    opened.push(created);
     return created;
   };
   afterEach(async () => {
-    for (const db of dbs.splice(0)) await db.destroy();
+    for (const t of opened.splice(0)) await t.cleanup();
   });
 
   it("applies pending migrations in order, then has nothing left to do", async () => {
-    const { db, dialect } = freshDb();
+    const { db, dialect } = await freshDb();
     const list = { "0001_first": createTable("first"), "0002_second": createTable("second") };
 
     expect(await migrateToLatest(db, dialect, list)).toEqual(["0001_first", "0002_second"]);
@@ -55,7 +55,7 @@ describe("migrateToLatest", () => {
   });
 
   it("applies only the new migration when one is added later", async () => {
-    const { db, dialect } = freshDb();
+    const { db, dialect } = await freshDb();
     await migrateToLatest(db, dialect, { "0001_first": createTable("first") });
 
     const applied = await migrateToLatest(db, dialect, {
@@ -66,7 +66,7 @@ describe("migrateToLatest", () => {
   });
 
   it("refuses a database migrated by a newer version", async () => {
-    const { db, dialect } = freshDb();
+    const { db, dialect } = await freshDb();
     await migrateToLatest(db, dialect, {
       "0001_first": createTable("first"),
       "0002_second": createTable("second"),
@@ -78,7 +78,7 @@ describe("migrateToLatest", () => {
   });
 
   it("stops at a failing migration and reports which one", async () => {
-    const { db, dialect } = freshDb();
+    const { db, dialect } = await freshDb();
     const list = {
       "0001_first": createTable("first"),
       "0002_broken": failing,
@@ -92,7 +92,7 @@ describe("migrateToLatest", () => {
   });
 
   it("does nothing on an empty list", async () => {
-    const { db, dialect } = freshDb();
+    const { db, dialect } = await freshDb();
     expect(await migrateToLatest(db, dialect, {})).toEqual([]);
   });
 });

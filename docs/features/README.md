@@ -38,7 +38,7 @@ New folders start from [`_template/`](./_template/).
 | ID | Feature | Depends on | Status |
 |---|---|---|---|
 | [001](./001-monorepo-scaffold/SPEC.md) | Monorepo scaffold, tooling and CI | — | done |
-| [002](./002-db-layer/SPEC.md) | Database layer and first migration | 001 | in progress |
+| [002](./002-db-layer/SPEC.md) | Database layer and first migration | 001 | done |
 | [003](./003-setup-installer/SPEC.md) | `pnpm run setup` installer and root account | 002 | specified |
 | [004](./004-ci-db-matrix/SPEC.md) | CI against SQLite, MySQL and PostgreSQL | 002, 003 | specified |
 | [005](./005-docker/SPEC.md) | Docker image and compose | 003 | specified |

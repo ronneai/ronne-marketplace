@@ -497,6 +497,7 @@ moves to `components/` (UI primitives go in `components/ui`).
 | Search | Case-insensitive `LIKE` on name, description and keywords, through a helper in `db/`. Full-text search is a later improvement. |
 | Upserts | Only through the `db/` helper, which picks `ON CONFLICT` or `ON DUPLICATE KEY` for the dialect. |
 | Strings | `varchar(n)` with an explicit length when indexed, because MySQL needs index lengths. `text` otherwise. |
+| Foreign keys | Table-level constraints (`addForeignKeyConstraint`), never inline column `REFERENCES`: MySQL 8.4 accepts inline ones and silently creates nothing. A test rejects inline `.references(` in migrations. |
 
 ### 9.5 Auth
 

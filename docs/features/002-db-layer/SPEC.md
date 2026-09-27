@@ -87,11 +87,14 @@ the pending ones and prints what ran.
 - `checkPermissions(db)`: creates, writes to, reads and drops a table called `_ronne_probe`. Returns `ok`, or which step failed (`create`, `write`, `read` or `drop`). It leaves nothing behind, even after a failure.
 
 **Tests** use `createTestDb()`. It reads `TEST_DATABASE_URL` and defaults to an in-memory SQLite
-database. It migrates, and cleans up after each test file. On MySQL and PostgreSQL, each test file
-gets its own database (or schema), so files can run in parallel.
+database (a `file:` URL gives a new file in a temp folder). It migrates unless `{ migrate: false }`,
+and `cleanup()` removes everything. On MySQL and PostgreSQL, each call creates its own database,
+`ronne_test_<id>`, with the URL's credentials (which need `CREATE DATABASE`), and drops it on
+cleanup, so test files can run in parallel against one server.
 
 ## Edge cases
 
+- **MySQL ignores inline foreign keys.** MySQL 8.4 (like every MySQL before 9.0) parses a column's inline `REFERENCES … ON DELETE CASCADE` and creates nothing. MariaDB honours it. Foreign keys are therefore table-level constraints (`addForeignKeyConstraint`). `migrations.guard.test.ts` fails on inline `.references(` in any migration, and `0001_identity.db.test.ts` checks the real foreign keys on each database.
 - **MySQL index lengths.** Indexed text columns use `varchar(n)` with an explicit length (emails 255, token hashes 64, ULIDs 26).
 - **MySQL `utf8mb4`.** The installer (003) checks the database's character set. The migration sets it on each table.
 - **Case-insensitive email.** Emails are stored lowercase, so the unique index works on every database whatever its collation.
@@ -104,13 +107,13 @@ gets its own database (or schema), so files can run in parallel.
 
 ## Acceptance criteria
 
-- [ ] `createDb()` connects to each of the three URL formats; other formats fail with a clear message.
-- [ ] `pnpm db:migrate` on an empty database creates the `0001_identity` tables, and running it again does nothing.
-- [ ] After `0001_identity`, Better Auth's `getMigrations(options)` reports nothing to create or add on SQLite (here) and on MySQL and PostgreSQL (in 004).
-- [ ] Every helper has tests covering each dialect's branch, and they pass on SQLite locally.
-- [ ] `containsInsensitive` finds `Code-Review` with `code-r` and treats `%` and `_` in the search term as plain characters.
-- [ ] `checkConnection` returns `auth_failed` for a wrong password and `unreachable` for a closed port. `checkPermissions` returns `ok` on a writable database.
-- [ ] Nothing outside `db/` imports a database driver or checks the dialect (enforced by a lint rule).
+- [x] `createDb()` connects to each of the three URL formats; other formats fail with a clear message.
+- [x] `pnpm db:migrate` on an empty database creates the `0001_identity` tables, and running it again does nothing.
+- [x] After `0001_identity`, Better Auth's `getMigrations(options)` reports nothing to create or add on SQLite (here) and on MySQL and PostgreSQL (in 004).
+- [x] Every helper has tests covering each dialect's branch, and they pass on SQLite locally.
+- [x] `containsInsensitive` finds `Code-Review` with `code-r` and treats `%` and `_` in the search term as plain characters.
+- [x] `checkConnection` returns `auth_failed` for a wrong password and `unreachable` for a closed port. `checkPermissions` returns `ok` on a writable database.
+- [x] Nothing outside `db/` imports a database driver or checks the dialect (enforced by a lint rule).
 
 ## Open questions
 

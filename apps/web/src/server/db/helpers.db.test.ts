@@ -1,21 +1,27 @@
+import type { Kysely } from "kysely";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { columnTypes } from "./column-types";
-import { createDb } from "./create-db";
 import { fromDbDate, toDbDate } from "./dates";
 import { newId } from "./ids";
 import { decodeJson, encodeJson } from "./json";
 import { containsInsensitive } from "./search";
+import { createTestDb, type TestDb as FreshDb } from "./testing/test-db";
 import { upsert } from "./upsert";
+import type { DatabaseDialect } from "./url";
 
 type TestDb = {
   item: { id: string; name: string; data: string | null; created_at: string | Date };
 };
 
-// Runs on SQLite here; 004 runs the same file against MySQL and PostgreSQL.
-const { db: baseDb, dialect } = createDb("file::memory:");
-const db = baseDb.withTables<TestDb>();
+// Runs on the database in TEST_DATABASE_URL (in-memory SQLite by default; 004 runs all of them).
+let fresh: FreshDb;
+let db: Kysely<TestDb>;
+let dialect: DatabaseDialect;
 
 beforeAll(async () => {
+  fresh = await createTestDb({ migrate: false });
+  db = fresh.db.withTables<TestDb>() as unknown as Kysely<TestDb>;
+  dialect = fresh.dialect;
   const t = columnTypes(dialect);
   await db.schema
     .createTable("item")
@@ -38,7 +44,7 @@ beforeAll(async () => {
     )
     .execute();
 });
-afterAll(() => db.destroy());
+afterAll(() => fresh.cleanup());
 
 const namesMatching = async (term: string) =>
   (
