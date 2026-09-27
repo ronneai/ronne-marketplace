@@ -1,0 +1,33 @@
+{
+  "$comment": "Read by packages/repo-tools/src/check-licenses.js. The rules and every exception are explained in docs/policies/dependencies.md (§1 and §5). Change both together.",
+  "allowed": [
+    "MIT",
+    "ISC",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "Apache-2.0",
+    "0BSD",
+    "Unlicense",
+    "CC0-1.0",
+    "BlueOak-1.0.0",
+    "Zlib",
+    "Python-2.0"
+  ],
+  "exceptions": [
+    {
+      "id": "E-2",
+      "package": "caniuse-lite",
+      "license": "CC-BY-4.0"
+    },
+    {
+      "id": "E-4",
+      "package": "lightningcss",
+      "license": "MPL-2.0"
+    },
+    {
+      "id": "E-4",
+      "package": "lightningcss-*",
+      "license": "MPL-2.0"
+    }
+  ]
+}

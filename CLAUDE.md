@@ -8,17 +8,38 @@ Ronne AI Marketplace is an open-source (MIT), self-hosted, curated registry of A
 agents, rules, commands, hooks, MCP servers and more. Items are delivered to AI coding tools such as
 Claude Code, Codex and Cursor.
 
-**There is no code yet.** The repo holds only the planning docs:
+The monorepo is scaffolded (feature 001); the product features start with 002. Where things are:
 
 - `docs/MVP/ideas.txt`: the original requirements, written by the owner.
 - `docs/MVP/MVP.md`: the MVP design. It is the source of truth for scope, architecture, the data model, the API, milestones (M0–M6) and the decision log (§15).
 - `docs/spec/`: detailed contracts. `manifest.md` and `ronne.schema.json` define `ronne.yaml`; `cli-files.md` defines `rmk.config.json`, `rmk.lock` and `.rmk/state.json`.
 - `docs/features/`: the work, one folder per feature (`NNN-slug/SPEC.md` + `PLAN.md`). `docs/features/README.md` is the index and the milestone plan.
-- `examples/items/`: one sample item per type. Each must pass `ronne.schema.json`; they are the golden-file inputs for renderers.
+- `docs/policies/dependencies.md`: the rules for every dependency (below).
+- `examples/items/`: one sample item per type. Each must pass `ronne.schema.json` (checked by a test in `packages/core`); they are the golden-file inputs for renderers.
 
 To work on a feature, read its `SPEC.md`, follow `PLAN.md` in order, and tick tasks as they land. If the behaviour changes, update `SPEC.md` in the same change; when the feature is finished, set its status in the index.
 
-When a task touches a decision, check `MVP.md` first. If the work changes a decision, update the doc and its decision log in the same change. When the M0 scaffolding lands, replace this section with the real build, lint and test commands.
+When a task touches a decision, check `MVP.md` first. If the work changes a decision, update the doc and its decision log in the same change.
+
+## Commands
+
+Use Node.js 24 (`.nvmrc`) and pnpm installed directly (`npm install --global pnpm`), not through Corepack, which can't start pnpm 12.
+
+| Command | Does |
+|---|---|
+| `pnpm install` | Installs dependencies through the supply-chain checks in `pnpm-workspace.yaml` |
+| `pnpm dev` | Runs the web app at http://localhost:3000 |
+| `pnpm build` | Builds every package and the web app (Turborepo) |
+| `pnpm lint` / `pnpm format` | Biome check / Biome fix |
+| `pnpm typecheck` | Type-checks every package |
+| `pnpm test` | Runs every Vitest suite; `pnpm --filter @ronne/core test` for one package |
+| `pnpm licenses:check` | Checks every installed package's license against `license-policy.json` |
+| `pnpm audit --audit-level high` | Fails on known high or critical vulnerabilities |
+| `pnpm hooks:install` | Turns on the local commit-message check (once per clone) |
+
+CI (`.github/workflows/`) runs lint, typecheck, test and build on Node 22 and 24, the license and audit checks, CodeQL, and the PR title check.
+
+After adding a workspace package, run `pnpm install --frozen-lockfile` to confirm the lockfile has it; if not, `pnpm install --fix-lockfile`.
 
 ## Commits and pull requests
 

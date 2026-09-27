@@ -96,7 +96,7 @@ Each release includes a CycloneDX SBOM and an up-to-date `THIRD_PARTY_NOTICES`.
 
 | Rule | Where it's checked |
 |---|---|
-| Licenses | `pnpm licenses list` + allowlist script, in CI (001) |
+| Licenses | `pnpm licenses:check`: `pnpm licenses list --json` checked against `license-policy.json` by `packages/repo-tools`, in CI (001) |
 | Known vulnerabilities | `pnpm audit` in CI (001); Dependabot alerts; Trivy on the image (005) |
 | Fresh-release protection | `minimumReleaseAge` in `pnpm-workspace.yaml` (001) |
 | Install scripts | `strictDepBuilds` + `allowBuilds` (001) |
@@ -107,11 +107,13 @@ Each release includes a CycloneDX SBOM and an up-to-date `THIRD_PARTY_NOTICES`.
 
 ## 5. Exceptions
 
-Every exception has an ID, a reason and, for vulnerabilities, an expiry date. The license-check
-script reads the same list from `license-policy.json` at the repo root.
+Every exception has an ID, a reason and, for vulnerabilities, an expiry date. The license check
+reads license exceptions from `license-policy.json` at the repo root, so each one is listed in both
+places. It warns when an exception no longer matches any installed package.
 
 | ID | Package | Issue | Decision | Review by |
 |---|---|---|---|---|
 | E-1 | `sharp` (optional dependency of `next`) | Its bundled `@img/sharp-libvips-*` binaries are LGPL-3.0-or-later. | **Not installed.** Excluded with `ignoredOptionalDependencies`. `next.config` sets `images.unoptimized: true`, since the UI doesn't need server-side image optimization. | — |
 | E-2 | `caniuse-lite` (dependency of `next`) | CC-BY-4.0 | **Allowed** as a data-only package (§1). Credited in `THIRD_PARTY_NOTICES`. | — |
 | E-3 | `undici-types@6.21.0` (pinned `~6.21.0` by `@types/node@22`) | Fails `trustPolicy: no-downgrade`: 6.13.0–6.19.2 were published with provenance, and 6.19.3–7.0.0 (July–November 2024) were published by hand, without it, by the same long-time maintainer. Later releases use trusted publishing again. | **Allowed**, for this exact version only, through `trustPolicyExclude`. Same publisher as the releases before and after it, public for nearly two years, and type definitions only (no runtime code). | When `@types/node` for our minimum Node.js moves off `~6.21.0` (pruned automatically) |
+| E-4 | `lightningcss` and its platform binaries `lightningcss-*` (through `@tailwindcss/postcss` and `vite`) | MPL-2.0 (file-level copyleft) | **Allowed.** Build and test time only: Tailwind uses it to compile CSS, and Vite uses it in tests. It doesn't ship in the built app or the Docker image. We use it unmodified; MPL-2.0 only asks for the source of modified MPL files, and it's free to redistribute. No permissive alternative exists for Tailwind CSS 4, which the requirements name. | If it ever ends up in the runtime bundle or the image |

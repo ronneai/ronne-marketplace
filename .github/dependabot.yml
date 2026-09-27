@@ -1,0 +1,33 @@
+# Weekly updates with a 3-day cooldown (docs/policies/dependencies.md §2, §3).
+# The "[chore]" prefix makes titles match the PR title check: Dependabot adds the colon.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 3
+    commit-message:
+      prefix: "[chore]"
+    open-pull-requests-limit: 10
+    groups:
+      # Minor and patch updates together; each major version gets its own PR.
+      npm-minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 3
+    commit-message:
+      prefix: "[chore]"
+    groups:
+      github-actions:
+        patterns: ["*"]
+        update-types: [minor, patch]
