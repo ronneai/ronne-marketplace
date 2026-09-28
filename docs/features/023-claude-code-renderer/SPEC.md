@@ -151,6 +151,9 @@ exactly that element, and reports a conflict when it's gone or changed.
 
 ## Open questions
 
+The owner started 023 (2026-09-28) without answering these, so it's built on the recommendations;
+any can still change.
+
 1. **Same-named items from two scopes fail** with `name_clash` (recommended for the MVP: the
    folder names stay what people expect), or the second is written as `<scope>-<name>`.
 2. **Canonical hook variables such as `$RMK_FILE_PATHS`:** warn and leave them to the hook's own

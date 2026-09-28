@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Re-check and file types.** Re-check the locations against Claude Code's docs; then
+- [x] **1. Re-check and file types.** Re-check the locations against Claude Code's docs; then
   `skill`, `agent`, `rule`, `command` and `output-style`, with markers and the mappings.
   *Done when:* golden files for their example items in both scopes are committed.
 
@@ -28,3 +28,15 @@ the same change that completes it.
   *Done when:* the docs render tests cover them, and each helper's link lands on a real section.
 
 ## Notes
+- **Built on the recommendations (2026-09-28).** The owner started 023 without answering the
+  spec's open questions: same-named items from two scopes fail with `name_clash` (022's applier
+  sees the collision), canonical hook variables warn, and `lsp-server` goes through a local plugin.
+- **Task 1 (2026-09-28): re-check and file types.** The locations were checked against Claude
+  Code's docs earlier the same day (spec 023), so not repeated. `render/claude-code/`: `mappings.ts`
+  (tools, events, models) and `renderer.ts`. Markdown files get `---` on line 1 and the marker
+  after the frontmatter; frontmatter values are quoted when YAML would read them as something
+  else (`argument-hint: "[target]"`, glob lists). Skills copy the item folder as it is, `ronne.yaml`
+  included, with the manifest's `entry` renamed to `SKILL.md`. Agents map tools (unknown ones
+  warn) and the model (`default` left out); an agent's only override is `model`. Rules: `always`
+  and `glob` to `.claude/rules/`, `model` and `manual` as skills. Commands are skills with
+  `argument-hint`, `arguments` and `disable-model-invocation`, `{{name}}` → `$name`.
