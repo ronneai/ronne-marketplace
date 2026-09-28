@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "kind": "json-key",
+    "path": ".claude.json",
+    "key": [
+      "mcpServers",
+      "github-mcp"
+    ]
+  }
+]

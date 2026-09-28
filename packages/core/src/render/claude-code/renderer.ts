@@ -1,6 +1,6 @@
 import { type ItemType, isItemType } from "../../item-types.js";
 import type { PackageFile } from "../../package-file.js";
-import { disabledWarning, managedMarker, targetsFor, toolName } from "../helpers.js";
+import { disabledWarning, envRef, managedMarker, targetsFor, toolName } from "../helpers.js";
 import type {
   Change,
   ChangeFile,
@@ -9,7 +9,7 @@ import type {
   RenderScope,
   RenderWarning,
 } from "../types.js";
-import { MODELS, TOOLS } from "./mappings.js";
+import { EVENTS, MODELS, TOOLS } from "./mappings.js";
 
 /**
  * The Claude Code renderer (feature 023). Where Claude Code reads each type was checked against
@@ -209,6 +209,159 @@ const renderOutputStyle = (
   warnings: [],
 });
 
+const SETTINGS = ".claude/settings.json";
+
+/** Where a script rmk wrote can be run from, in each scope. */
+const scriptPath = (scope: RenderScope, path: string) =>
+  scope === "project" ? `"$CLAUDE_PROJECT_DIR"/${path}` : `"$HOME"/${path}`;
+
+/** A script with the marker as a `#` comment after its shebang, or at the top. */
+const script = (item: RenderInput, content: string): string => {
+  const marker = managedMarker(item.name, item.version, "hash");
+  const lines = content.split("\n");
+  return lines[0]?.startsWith("#!")
+    ? [lines[0], marker, ...lines.slice(1)].join("\n")
+    : `${marker}\n${content}`;
+};
+
+const unsupported = (message: string): RenderWarning => ({ code: "unsupported_field", message });
+
+const renderHook = (
+  item: RenderInput,
+  n: string,
+  block: Record<string, unknown>,
+  scope: RenderScope,
+): Rendered => {
+  const event = EVENTS[String(block.event)];
+  if (!event)
+    return {
+      changes: [],
+      warnings: [
+        unsupported(
+          `Claude Code has no event for \`${String(block.event)}\`, so ${item.name} was left out.`,
+        ),
+      ],
+    };
+  const warnings: RenderWarning[] = [];
+  const changes: Change[] = [];
+  const run = record(block.run);
+  let command = typeof run.command === "string" ? run.command : "";
+  if (typeof run.script === "string") {
+    const path = `.claude/hooks/${n}/${run.script}`;
+    changes.push({
+      kind: "file",
+      path,
+      content: script(item, fileText(item.files, run.script)),
+      executable: true,
+    });
+    command = scriptPath(scope, path);
+  } else if (/\$RMK_[A-Z_]+/.test(command))
+    warnings.push(
+      unsupported(
+        `${item.name}'s command uses an $RMK_ variable; Claude Code passes the event as JSON on stdin instead, so the hook has to read it from there.`,
+      ),
+    );
+  const tool = record(block.matcher).tool;
+  const entry: Record<string, unknown> = {};
+  if (typeof tool === "string") {
+    const mapped = toolName(tool, TOOLS);
+    if ("name" in mapped) entry.matcher = mapped.name;
+    else warnings.push(mapped.warning);
+  }
+  const handler: Record<string, unknown> = { type: "command", command };
+  if (typeof block.timeout === "number") handler.timeout = block.timeout;
+  entry.hooks = [handler];
+  changes.push({ kind: "json-array-item", path: SETTINGS, key: ["hooks", event], item: entry });
+  return { changes, warnings };
+};
+
+const renderMcpServer = (
+  item: RenderInput,
+  n: string,
+  block: Record<string, unknown>,
+  scope: RenderScope,
+): Rendered => {
+  const env = Object.fromEntries(
+    (Array.isArray(block.env) ? block.env : [])
+      .map((v) => String(record(v).name ?? ""))
+      .filter((name) => name)
+      .map((name) => [name, envRef(name, "json-template")]),
+  );
+  const value: Record<string, unknown> =
+    block.transport === "http"
+      ? { type: "http", url: block.url, ...(block.headers ? { headers: block.headers } : {}) }
+      : { command: block.command, ...(Array.isArray(block.args) ? { args: block.args } : {}) };
+  if (Object.keys(env).length) value.env = env;
+  return {
+    changes: [
+      {
+        kind: "json-key",
+        path: scope === "project" ? ".mcp.json" : ".claude.json",
+        key: ["mcpServers", n],
+        value,
+      },
+    ],
+    warnings: [],
+  };
+};
+
+/** One permission rule as Claude Code writes it, or null when it can't say it. */
+const permissionRule = (tool: string, pattern: string | undefined): string | null => {
+  const mapped = toolName(tool, TOOLS);
+  if ("warning" in mapped) return null;
+  if (pattern === undefined) return mapped.name;
+  if (tool.startsWith("mcp:") || tool === "web-search") return null;
+  return tool === "web-fetch" ? `WebFetch(domain:${pattern})` : `${mapped.name}(${pattern})`;
+};
+
+const renderPermissionPolicy = (item: RenderInput, block: Record<string, unknown>): Rendered => {
+  const warnings: RenderWarning[] = [];
+  const changes: Change[] = [];
+  for (const raw of Array.isArray(block.rules) ? block.rules : []) {
+    const rule = record(raw);
+    const tool = String(rule.tool ?? "");
+    const pattern = typeof rule.pattern === "string" ? rule.pattern : undefined;
+    const written = permissionRule(tool, pattern);
+    if (written === null) {
+      warnings.push(
+        unsupported(
+          `Claude Code can't express the rule for \`${tool}\`${pattern ? ` with a pattern` : ""} in ${item.name}, so it was left out.`,
+        ),
+      );
+      continue;
+    }
+    changes.push({
+      kind: "json-array-item",
+      path: SETTINGS,
+      key: ["permissions", String(rule.decision)],
+      item: written,
+    });
+  }
+  return { changes, warnings };
+};
+
+const renderStatusline = (
+  item: RenderInput,
+  n: string,
+  block: Record<string, unknown>,
+  scope: RenderScope,
+): Rendered => {
+  const name = String(block.script);
+  const path = `.claude/statusline/${n}/${name}`;
+  return {
+    changes: [
+      { kind: "file", path, content: script(item, fileText(item.files, name)), executable: true },
+      {
+        kind: "json-key",
+        path: SETTINGS,
+        key: ["statusLine"],
+        value: { type: "command", command: scriptPath(scope, path) },
+      },
+    ],
+    warnings: [],
+  };
+};
+
 export const claudeCodeRenderer: PlatformRenderer = {
   id: RENDERER_ID,
   name: RENDERER_NAME,
@@ -223,7 +376,6 @@ export const claudeCodeRenderer: PlatformRenderer = {
     const block = record(type ? item.manifest[type] : undefined);
     const n = shortName(item.name);
     const scope: RenderScope = context.scope;
-    void scope;
     switch (type) {
       case "skill":
         return renderSkill(item, n, block);
@@ -235,6 +387,14 @@ export const claudeCodeRenderer: PlatformRenderer = {
         return renderCommand(item, n, block);
       case "output-style":
         return renderOutputStyle(item, n, block);
+      case "hook":
+        return renderHook(item, n, block, scope);
+      case "mcp-server":
+        return renderMcpServer(item, n, block, scope);
+      case "permission-policy":
+        return renderPermissionPolicy(item, block);
+      case "statusline":
+        return renderStatusline(item, n, block, scope);
       default:
         return {
           changes: [],

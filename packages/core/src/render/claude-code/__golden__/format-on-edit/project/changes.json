@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "kind": "json-array-item",
+    "path": ".claude/settings.json",
+    "key": [
+      "hooks",
+      "PostToolUse"
+    ]
+  }
+]

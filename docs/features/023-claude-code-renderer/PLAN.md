@@ -11,7 +11,7 @@ the same change that completes it.
   `skill`, `agent`, `rule`, `command` and `output-style`, with markers and the mappings.
   *Done when:* golden files for their example items in both scopes are committed.
 
-- [ ] **2. Settings.** `hook`, `permission-policy` and `statusline` in the settings file, with
+- [x] **2. Settings.** `hook`, `permission-policy` and `statusline` in the settings file, with
   `json-array-item` added to 021's change kinds, and `mcp-server` in `.mcp.json` and `~/.claude.json`.
   *Done when:* golden files are committed, and unit tests cover adding and removing one array element
   among others.
@@ -40,3 +40,13 @@ the same change that completes it.
   warn) and the model (`default` left out); an agent's only override is `model`. Rules: `always`
   and `glob` to `.claude/rules/`, `model` and `manual` as skills. Commands are skills with
   `argument-hint`, `arguments` and `disable-model-invocation`, `{{name}}` → `$name`.
+- **Task 2 (2026-09-28): settings.** Hooks are one `json-array-item` under `hooks.<Event>` with
+  `matcher` (the mapped tool, left out when the manifest has none) and one `command` handler with
+  the manifest's `timeout`; a `run.script` is written to `.claude/hooks/<n>/` (executable, marker
+  after the shebang) and run as `"$CLAUDE_PROJECT_DIR"/…` or `"$HOME"/…`; a command using an
+  `$RMK_` variable, or an event Claude Code lacks, is an `unsupported_field` warning. MCP servers
+  are `mcpServers.<n>` in `.mcp.json` (user: `.claude.json`): `command`/`args` or `type: http`/`url`/
+  `headers`, and `env` with `${NAME}` references only. Permission rules are strings in
+  `permissions.<decision>`: `Bash(pattern)`, `Read(…)`, `WebFetch(domain:…)`, `mcp__server__tool`;
+  an MCP or web-search rule with a pattern is left out with a warning. The status line script goes
+  to `.claude/statusline/<n>/` and `statusLine` points at it. (`json-array-item` was added to 021.)

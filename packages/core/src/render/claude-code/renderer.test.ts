@@ -76,4 +76,148 @@ describe("the Claude Code renderer", () => {
       warnings: [{ code: "disabled_by_manifest" }],
     });
   });
+
+  it("writes a hook as one array element, mapping the event and the tool", () => {
+    const result = render("format-on-edit");
+    expect(result.changes).toEqual([
+      {
+        kind: "json-array-item",
+        path: ".claude/settings.json",
+        key: ["hooks", "PostToolUse"],
+        item: {
+          matcher: "Edit",
+          hooks: [
+            {
+              type: "command",
+              command: "npx --no-install biome format --write $RMK_FILE_PATHS",
+              timeout: 30,
+            },
+          ],
+        },
+      },
+    ]);
+    // The canonical variable isn't Claude Code's: the hook has to read stdin.
+    expect(result.warnings.map((w) => w.code)).toEqual(["unsupported_field"]);
+    const item = example("format-on-edit");
+    const scripted = {
+      ...item,
+      files: [
+        ...item.files,
+        {
+          path: "fmt.sh",
+          bytes: new TextEncoder().encode("#!/bin/sh\necho hi\n"),
+          executable: true,
+        },
+      ],
+      manifest: { ...item.manifest, hook: { event: "session.start", run: { script: "fmt.sh" } } },
+    };
+    const user = claudeCodeRenderer.render(scripted, { scope: "user" });
+    expect(user.changes[0]).toMatchObject({
+      kind: "file",
+      path: ".claude/hooks/format-on-edit/fmt.sh",
+      executable: true,
+    });
+    expect(text(user.changes[0]).split("\n").slice(0, 2)).toEqual([
+      "#!/bin/sh",
+      "# managed by rmk: @examples/format-on-edit@1.0.0",
+    ]);
+    expect(user.changes[1]).toMatchObject({
+      key: ["hooks", "SessionStart"],
+      item: {
+        hooks: [{ type: "command", command: '"$HOME"/.claude/hooks/format-on-edit/fmt.sh' }],
+      },
+    });
+    expect(user.warnings).toEqual([]);
+    const odd = {
+      ...item,
+      manifest: { ...item.manifest, hook: { event: "moon.rise", run: { command: "x" } } },
+    };
+    expect(claudeCodeRenderer.render(odd, { scope: "project" })).toMatchObject({
+      changes: [],
+      warnings: [{ code: "unsupported_field" }],
+    });
+  });
+
+  it("writes an MCP server with env references only, in .mcp.json or ~/.claude.json", () => {
+    const project = render("github-mcp").changes[0];
+    expect(project).toEqual({
+      kind: "json-key",
+      path: ".mcp.json",
+      key: ["mcpServers", "github-mcp"],
+      value: {
+        type: "http",
+        url: "https://api.githubcopilot.com/mcp/",
+        headers: { Authorization: "Bearer ${GITHUB_TOKEN}" },
+        env: { GITHUB_TOKEN: "${GITHUB_TOKEN}" },
+      },
+    });
+    expect(render("github-mcp", "user").changes[0]).toMatchObject({ path: ".claude.json" });
+    expect(JSON.stringify(project)).not.toContain("ghp_");
+  });
+
+  it("writes each permission rule as a string in its decision's list, and warns about the rest", () => {
+    expect(render("safe-git").changes).toEqual([
+      {
+        kind: "json-array-item",
+        path: ".claude/settings.json",
+        key: ["permissions", "deny"],
+        item: "Bash(git push --force*)",
+      },
+      {
+        kind: "json-array-item",
+        path: ".claude/settings.json",
+        key: ["permissions", "ask"],
+        item: "Bash(git push*)",
+      },
+      {
+        kind: "json-array-item",
+        path: ".claude/settings.json",
+        key: ["permissions", "ask"],
+        item: "Bash(git reset --hard*)",
+      },
+    ]);
+    const item = example("safe-git");
+    const more = {
+      ...item,
+      manifest: {
+        ...item.manifest,
+        "permission-policy": {
+          rules: [
+            { tool: "web-fetch", pattern: "*.example.com", decision: "allow" },
+            { tool: "mcp:github/search", decision: "allow" },
+            { tool: "mcp:github", pattern: "x", decision: "deny" },
+            { tool: "web-search", decision: "deny" },
+          ],
+        },
+      },
+    };
+    const result = claudeCodeRenderer.render(more, { scope: "project" });
+    expect(result.changes.map((c) => (c.kind === "json-array-item" ? c.item : ""))).toEqual([
+      "WebFetch(domain:*.example.com)",
+      "mcp__github__search",
+      "WebSearch",
+    ]);
+    expect(result.warnings).toHaveLength(1);
+  });
+
+  it("writes the status line script and points statusLine at it", () => {
+    const result = render("git-branch");
+    expect(result.changes[0]).toMatchObject({
+      kind: "file",
+      path: ".claude/statusline/git-branch/statusline.sh",
+      executable: true,
+    });
+    expect(text(result.changes[0])).toContain(
+      "#!/bin/sh\n# managed by rmk: @examples/git-branch@1.0.0\n",
+    );
+    expect(result.changes[1]).toEqual({
+      kind: "json-key",
+      path: ".claude/settings.json",
+      key: ["statusLine"],
+      value: {
+        type: "command",
+        command: '"$CLAUDE_PROJECT_DIR"/.claude/statusline/git-branch/statusline.sh',
+      },
+    });
+  });
 });
