@@ -119,6 +119,9 @@ tool gets from an item is documented by each renderer's feature (023 for Claude 
 
 ## Open questions
 
+The owner started 021 (2026-09-28) without answering these, so it's built on the recommendations;
+either can still change.
+
 1. **Golden files live next to each renderer** in `packages/core` (recommended: a renderer and its
    expected output change together), or in one top-level `golden/` folder.
 2. **Renderers stay in `packages/core`** (recommended for the MVP: one package, and the web app's
