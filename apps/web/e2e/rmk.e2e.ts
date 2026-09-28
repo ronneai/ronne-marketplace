@@ -1,0 +1,108 @@
+import { execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { expect, test } from "@playwright/test";
+import { E2E_PASSWORD, E2E_PROPOSAL_ITEM, E2E_RMK_ITEMS, E2E_SCOPE, E2E_USERS } from "./users";
+
+const BIN = fileURLToPath(new URL("../../../packages/cli/dist/bin.js", import.meta.url));
+const baseURL: string = JSON.parse(process.env.RONNE_E2E_INSTANCE ?? "{}").baseURL;
+
+/**
+ * `rmk` against the running instance (features 022 and 023): a token from the API, then install,
+ * update, outdated and remove in a temporary project, with the Claude Code renderer.
+ */
+test("rmk installs an agent with its skill and MCP server into a project, updates a hook, and removes them", async ({
+  request,
+}) => {
+  const home = mkdtempSync(join(tmpdir(), "rmk-e2e-home-"));
+  const project = mkdtempSync(join(tmpdir(), "rmk-e2e-project-"));
+  mkdirSync(join(project, ".claude"));
+  const token = await request.post("/api/v1/auth/token", {
+    data: { email: E2E_USERS.installer, password: E2E_PASSWORD, name: "e2e rmk" },
+  });
+  expect(token.status()).toBe(201);
+  const env = {
+    ...process.env,
+    HOME: home,
+    RMK_TOKEN: (await token.json()).token,
+    RMK_REGISTRY: baseURL,
+  };
+  const rmk = (...args: string[]) => {
+    try {
+      return {
+        code: 0,
+        out: execFileSync("node", [BIN, ...args], {
+          cwd: project,
+          env,
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "pipe"],
+        }),
+      };
+    } catch (error) {
+      const failed = error as { status: number; stdout: string; stderr: string };
+      return { code: failed.status, out: `${failed.stdout}${failed.stderr}` };
+    }
+  };
+  const read = (path: string) => readFileSync(join(project, path), "utf8");
+  const name = (item: string) => `@${E2E_SCOPE}/${item}`;
+
+  try {
+    expect(rmk("whoami").out).toContain(E2E_USERS.installer);
+
+    // The agent brings the skill and the MCP server it depends on.
+    const install = rmk("install", name(E2E_RMK_ITEMS.agent), "--target", "claude-code");
+    expect(install.code, install.out).toBe(0);
+    expect(install.out).toContain(
+      "Set these environment variables before using the MCP servers: KIT_TOKEN.",
+    );
+    expect(read(`.claude/agents/${E2E_RMK_ITEMS.agent}.md`)).toContain("tools: Read, mcp__kit-mcp");
+    expect(read(`.claude/skills/${E2E_PROPOSAL_ITEM}/SKILL.md`)).toContain("Write the why");
+    expect(JSON.parse(read(".mcp.json")).mcpServers[E2E_RMK_ITEMS.mcp]).toEqual({
+      command: "npx",
+      args: ["-y", "@example/mcp"],
+      env: { KIT_TOKEN: "${KIT_TOKEN}" },
+    });
+    // The skill's version depends on what other tests released before this one ran.
+    const dependencies = JSON.parse(read("rmk.lock")).items[name(E2E_RMK_ITEMS.agent)].dependencies;
+    expect(dependencies[name(E2E_RMK_ITEMS.mcp)]).toBe("1.0.0");
+    expect(dependencies[name(E2E_PROPOSAL_ITEM)]).toMatch(/^1\.\d+\.\d+$/);
+    expect(JSON.parse(read(".rmk/state.json")).entries).toHaveLength(3);
+
+    // A hook pinned at 1.0.0, then updated within ^1.0.0 to 1.1.0.
+    expect(rmk("install", `${name(E2E_RMK_ITEMS.hook)}@1.0.0`).code).toBe(0);
+    expect(JSON.parse(read(".claude/settings.json")).hooks.PostToolUse[0].hooks[0].command).toBe(
+      "echo kit 1.0.0",
+    );
+    const config = JSON.parse(read("rmk.config.json"));
+    config.dependencies[name(E2E_RMK_ITEMS.hook)] = "^1.0.0";
+    writeFileSync(join(project, "rmk.config.json"), JSON.stringify(config));
+    const outdated = rmk("outdated");
+    expect(outdated.out).toContain(`${name(E2E_RMK_ITEMS.hook)}  ^1.0.0  1.0.0  1.1.0  1.1.0`);
+    const update = rmk("update", name(E2E_RMK_ITEMS.hook));
+    expect(update.code, update.out).toBe(0);
+    expect(update.out).toContain(`${name(E2E_RMK_ITEMS.hook)}: 1.0.0 → 1.1.0`);
+    const hooks = JSON.parse(read(".claude/settings.json")).hooks.PostToolUse;
+    expect(hooks).toHaveLength(1);
+    expect(hooks[0].hooks[0].command).toBe("echo kit 1.1.0");
+
+    // Something of the user's next to rmk's things is never touched.
+    writeFileSync(join(project, ".claude/agents/mine.md"), "mine\n");
+    const settings = JSON.parse(read(".claude/settings.json"));
+    settings.permissions = { allow: ["Read"] };
+    writeFileSync(join(project, ".claude/settings.json"), JSON.stringify(settings, null, 2));
+    const remove = rmk("remove", name(E2E_RMK_ITEMS.agent), name(E2E_RMK_ITEMS.hook));
+    expect(remove.code, remove.out).toBe(0);
+    expect(existsSync(join(project, `.claude/agents/${E2E_RMK_ITEMS.agent}.md`))).toBe(false);
+    expect(existsSync(join(project, `.claude/skills/${E2E_PROPOSAL_ITEM}`))).toBe(false);
+    expect(JSON.parse(read(".mcp.json"))).toEqual({});
+    expect(JSON.parse(read(".claude/settings.json"))).toEqual({ permissions: { allow: ["Read"] } });
+    expect(read(".claude/agents/mine.md")).toBe("mine\n");
+    expect(JSON.parse(read(".rmk/state.json")).entries).toEqual([]);
+    expect(rmk("list", "--installed").out).toContain("Nothing is installed here");
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+    rmSync(project, { recursive: true, force: true });
+  }
+});

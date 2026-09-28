@@ -14,5 +14,11 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
+  },
+  "dependencies": {
+    "@ronneai/core": "workspace:^"
+  },
+  "engines": {
+    "node": ">=22.12"
   }
 }

@@ -36,3 +36,8 @@ the same change that completes it.
   differs, unexpected) or rewrites the files with `UPDATE_GOLDEN=1`. `render/example/renderer.ts`
   is the reference renderer, each type through a different change kind, with 74 golden files under
   `render/example/__golden__/`. Biome skips `**/__golden__`: generated fixtures stay byte-exact.
+- **Sections carry the body (2026-09-28, from 022).** A `section` change's `text` is the body
+  between the fences, and rmk adds the fences when it writes; `stateHash` hashes the body with
+  one trailing newline. Building the applier showed the fenced text and the state file's
+  "text between the fences" couldn't otherwise hash the same. The example renderer's golden files
+  changed accordingly.

@@ -41,6 +41,7 @@ export {
   defaultTag,
   highestMatching,
   highestStable,
+  isVersionRange,
   nextVersion,
   PRERELEASE_ID,
   type ReleaseChoice,

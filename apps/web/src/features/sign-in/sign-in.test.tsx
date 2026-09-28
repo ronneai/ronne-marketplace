@@ -19,9 +19,9 @@ describe("SignInPage", () => {
       "Forgot?",
       "Ask a root administrator to reset your password",
       "pnpm run reset-root-password",
-      "CLI authentication",
+      "Use rmk from the terminal",
       "rmk login",
-      "rmk login --token &lt;token&gt;",
+      "--token &lt;token&gt;",
       "rmk whoami",
       'href="/account/tokens"',
     ]) {
@@ -56,5 +56,16 @@ describe("SignInForm errors", () => {
   it("shows the rate-limit message", () => {
     const html = renderToStaticMarkup(<SignInForm next="/" initial={{ error: "rate_limited" }} />);
     expect(html).toContain("Too many attempts, wait a minute");
+  });
+
+  it("says where to get rmk, and puts this instance's URL in the login commands", () => {
+    const html = renderToStaticMarkup(<SignInPage next="/" registry="https://ronne.example" />);
+    expect(html).toContain("isn&#x27;t on npm yet");
+    expect(html).toContain('href="https://github.com/ronneai/ronne-marketplace#the-rmk-cli"');
+    expect(html).toContain("rmk login --registry https://ronne.example<");
+    expect(html).toContain("rmk login --registry https://ronne.example --token &lt;token&gt;");
+    expect(renderToStaticMarkup(<SignInPage next="/" />)).toContain(
+      "rmk login --registry &lt;url&gt;<",
+    );
   });
 });

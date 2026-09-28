@@ -20,11 +20,14 @@ export const TokensPage = ({
   now,
   toolbar,
   revoke,
+  registry,
 }: {
   tokens: AccessTokenSummary[];
   now: Date;
   toolbar?: ReactNode;
   revoke?: (token: AccessTokenSummary) => ReactNode;
+  /** This instance's public URL, for the CLI panel's `--registry`. */
+  registry?: string;
 }) => (
   <>
     <PageHeader
@@ -73,7 +76,7 @@ export const TokensPage = ({
           </tbody>
         </Table>
       )}
-      <CliAuthPanel linkToTokens={false} />
+      <CliAuthPanel linkToTokens={false} registry={registry} />
     </div>
   </>
 );

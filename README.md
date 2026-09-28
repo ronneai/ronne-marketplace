@@ -5,10 +5,11 @@ hooks, MCP servers and more. A team installs it on its own infrastructure, propo
 and releases them, and installs them into AI coding tools such as Claude Code, Codex and Cursor with
 the `rmk` CLI or from inside those tools through an MCP server.
 
-> **Status:** early development. Milestones M0 and M1 are done: Ronne installs, and you can sign
-> in, manage your personal access tokens and, as root, manage users and read the audit log. Items,
-> reviews, releases and the `rmk` CLI come in later milestones. The design is in [`docs/MVP/MVP.md`](docs/MVP/MVP.md), and
-> progress is tracked in [`docs/features/`](docs/features/README.md).
+> **Status:** early development. Milestones M0 to M4 are done: Ronne installs; people sign in and
+> get tokens; items go from a draft through review to a catalogue of released versions, with
+> change proposals and version management; and `rmk` installs them into Claude Code. Codex, Cursor
+> and the registry MCP server come in M5. The design is in [`docs/MVP/MVP.md`](docs/MVP/MVP.md), and
+> the work is tracked in [`docs/features/README.md`](docs/features/README.md).
 
 ## Getting started
 
@@ -84,17 +85,24 @@ when a proxy you control sits in front of Ronne and adds that header; otherwise 
 
 ## The `rmk` CLI
 
-`rmk` installs approved items into your AI coding tools. **It isn't released yet.** It arrives in
-milestone M4 ([feature 022](docs/features/README.md#m4--rmk--claude-code)), and will be installed
-from npm:
+`rmk` installs approved items into your AI coding tools, and keeps them current: `login`, `search`,
+`info`, `install`, `update`, `outdated`, `remove`, `list` and `platforms`, with a lockfile so a team
+gets the same files. Claude Code is supported first; Codex and Cursor follow in M5.
+
+**It isn't on npm yet.** Until it's published, it comes with this repository. From a clone, with
+Node.js 22.12 or later:
 
 ```sh
-npm install --global @ronneai/rmk   # not published yet
+pnpm install
+pnpm build
+node packages/cli/dist/bin.js --help
+cd packages/cli && npm link        # optional: use it as `rmk` from anywhere
+rmk login --registry https://your-ronne-instance.example
 ```
 
-The package is `@ronneai/rmk` because the unscoped `rmk` name is taken on npm; the command is still
-`rmk`. Until then, the code in `packages/cli` is a placeholder that only prints its version. From a
-clone, after `pnpm build`, run it with `pnpm exec rmk --version`.
+Once published, the install becomes `npm install --global @ronneai/rmk`. The package is
+`@ronneai/rmk` because the unscoped `rmk` name is taken on npm; the command is still `rmk`. The
+Documentation inside the app (Docs → Installing with rmk) explains the commands and the files it writes.
 
 ## Development
 

@@ -84,7 +84,7 @@ export const exampleRenderer: PlatformRenderer = {
           kind: "section",
           path: "AGENTS.md",
           key: item.name,
-          text: section(item.name, text(item.files, block.body)),
+          text: text(item.files, block.body),
         });
         break;
       case "command":

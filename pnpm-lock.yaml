@@ -303,7 +303,11 @@ importers:
         specifier: 4.23.15
         version: 4.23.15
 
-  packages/cli: {}
+  packages/cli:
+    dependencies:
+      '@ronneai/core':
+        specifier: workspace:^
+        version: link:../core
 
   packages/config: {}
 
