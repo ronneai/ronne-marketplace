@@ -72,19 +72,21 @@ export const kyselyItemRepository = (
   versions: async (itemId) => {
     const rows = await db
       .selectFrom("item_versions")
+      .leftJoin("user", "user.id", "item_versions.published_by")
       .select([
-        "id",
-        "item_id",
-        "version",
-        "sha256",
-        "size",
-        "published_at",
-        "yanked_at",
-        "yank_reason",
-        "deprecated_message",
-        "published_by",
+        "item_versions.id",
+        "item_versions.item_id",
+        "item_versions.version",
+        "item_versions.sha256",
+        "item_versions.size",
+        "item_versions.published_at",
+        "item_versions.yanked_at",
+        "item_versions.yank_reason",
+        "item_versions.deprecated_message",
+        "item_versions.published_by",
+        "user.name as published_by_name",
       ])
-      .where("item_id", "=", itemId)
+      .where("item_versions.item_id", "=", itemId)
       .execute();
     const dependencies = rows.length
       ? await db
@@ -115,6 +117,7 @@ export const kyselyItemRepository = (
       yankReason: row.yank_reason,
       deprecatedMessage: row.deprecated_message,
       publishedBy: row.published_by,
+      publishedByName: row.published_by_name,
       dependencies: Object.fromEntries(
         dependencies
           .filter((dependency) => dependency.version_id === row.id)

@@ -67,12 +67,12 @@ state neither chose.
 
 ## Acceptance criteria
 
-- [ ] Moving, adding and removing tags follow the rules above, and `latest` never points to a pre-release or disappears while a stable non-yanked version exists.
-- [ ] Deprecate and undeprecate change only the message; the version stays resolvable.
-- [ ] Yank and unyank follow the rules above, never delete an artifact, and move `latest` when it pointed to the yanked version.
-- [ ] Only moderators and root change anything; everyone signed in reads the Versions page.
-- [ ] Every change is audited, in the same transaction as the change, and concurrent changes to one item are serialised.
-- [ ] Playwright: a moderator deprecates a version, yanks the latest one (and sees `latest` move back), then unyanks it.
+- [x] Moving, adding and removing tags follow the rules above, and `latest` never points to a pre-release or disappears while a stable non-yanked version exists.
+- [x] Deprecate and undeprecate change only the message; the version stays resolvable.
+- [x] Yank and unyank follow the rules above, never delete an artifact, and move `latest` when it pointed to the yanked version.
+- [x] Only moderators and root change anything; everyone signed in reads the Versions page.
+- [x] Every change is audited, in the same transaction as the change, and concurrent changes to one item are serialised.
+- [x] Playwright: a moderator deprecates a version, yanks the latest one (and sees `latest` move back), then unyanks it.
 
 ## Open questions
 

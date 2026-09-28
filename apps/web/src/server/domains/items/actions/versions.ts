@@ -4,7 +4,7 @@ import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-insta
 import { kyselyItemRepository } from "../repositories/kysely-item-repository";
 import * as service from "../services/versions";
 
-export type { ItemRef } from "../services/versions";
+export type { ItemRef, VersionRow, VersionsPage } from "../services/versions";
 
 /** Entry points for version management (feature 016). Thin: the service checks everything. */
 const deps = ({ db, dialect }: AppAuth): service.VersionDeps => ({
@@ -36,3 +36,9 @@ export const deprecate = wrap(service.deprecate);
 export const undeprecate = wrap(service.undeprecate);
 export const yank = wrap(service.yank);
 export const unyank = wrap(service.unyank);
+
+export const listVersions = async (
+  headers: Headers,
+  ref: service.ItemRef,
+  app: AppAuth = getAppAuth(),
+) => service.listVersions(deps(app), await actor(headers, app), ref);

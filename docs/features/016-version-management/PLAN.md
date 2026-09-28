@@ -16,7 +16,7 @@ the same change that completes it.
   *Done when:* database tests cover each action, refusals, `latest` after a yank, and concurrent
   changes on all four databases.
 
-- [ ] **3. The Versions page.** The list, and the action dialogs for moderators and root.
+- [x] **3. The Versions page.** The list, and the action dialogs for moderators and root.
   *Done when:* render and action tests pass, and the Playwright test in the acceptance criteria passes.
 
 ## Notes
@@ -44,3 +44,12 @@ the same change that completes it.
     the review flow (tests; later imports).
   - Database tests on all four databases: tag moves, rollbacks, refusals, deprecation, yanks moving
     and removing `latest`, permissions, and two moderators moving `latest` at once.
+- **Task 3 (2026-09-28): the Versions page.** `/items/[scope]/[name]/versions` (a 404 for an
+  unknown item) shows the tags, marking any that point to a yanked version and saying when there's
+  no `latest`, and every version newest first with its tags, published at and by, size, short
+  sha256 (the full one on hover), deprecation message and yank reason. Moderators and root get the
+  actions as dialogs (`features/versions/ChangeDialog.tsx`), through one server action,
+  `changeVersions`, that turns domain errors into the dialog's message. `listVersions` joins the
+  publisher's name. The e2e seed now publishes `@e2e-seeded/versioned` (1.0.0 and 1.1.0 on
+  `latest`) directly through the item repository, with a second moderator, since 015 can only make
+  a first release per submission. Render and action tests, and the Playwright test.

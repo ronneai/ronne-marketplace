@@ -15,6 +15,7 @@ export const E2E_USERS = {
   submitter: "submitter@e2e.test",
   hookAuthor: "hook-author@e2e.test",
   moderator: "moderator@e2e.test",
+  releaser: "releaser@e2e.test",
 } as const;
 
 /** The display names, which the header shows (not the email). */
@@ -29,13 +30,17 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   submitter: "Submitter",
   hookAuthor: "Hook Author",
   moderator: "Mo Moderator",
+  releaser: "Rae Releaser",
 };
 
 /** Seeded with the moderator role; everyone else is a user. */
-export const E2E_MODERATORS: readonly (keyof typeof E2E_USERS)[] = ["moderator"];
+export const E2E_MODERATORS: readonly (keyof typeof E2E_USERS)[] = ["moderator", "releaser"];
 
 /**
  * A scope the seed creates, for tests that need one without signing in as root: root already
  * signs in 5 times in a run, the per-email limit a minute.
  */
 export const E2E_SCOPE = "e2e-seeded";
+
+/** An item the seed publishes with two versions (1.0.0 and 1.1.0 on latest), for the Versions page. */
+export const E2E_VERSIONED_ITEM = "versioned";

@@ -26,6 +26,8 @@ export type ItemVersion = {
   yankReason: string | null;
   deprecatedMessage: string | null;
   publishedBy: string;
+  /** The publisher's name, or null if the user is gone. */
+  publishedByName: string | null;
   /** `@scope/name` → range, from the version's manifest. */
   dependencies: Record<string, string>;
 };

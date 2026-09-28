@@ -1,4 +1,4 @@
-import { requirePermission } from "../../identity/models/permissions";
+import { can, requirePermission } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
 import {
   ItemNotFoundError,
@@ -213,3 +213,39 @@ export const unyank = (
       { type: "item_version", id: version.id },
     );
   });
+
+/** A version as the Versions page shows it, with the tags that point to it. */
+export type VersionRow = ItemVersion & { tags: string[] };
+
+export type VersionsPage = {
+  item: Item;
+  /** Newest first. */
+  versions: VersionRow[];
+  tags: { tag: string; version: string }[];
+  canManage: boolean;
+};
+
+/** An item's versions and tags (feature 016): everyone signed in reads them. */
+export const listVersions = async (
+  deps: VersionDeps,
+  actor: VersionActor,
+  ref: ItemRef,
+): Promise<VersionsPage> => {
+  requirePermission(actor.user, "account.manage_own");
+  const item = await deps.items.findByName(ref.scope, ref.name);
+  if (!item) throw new ItemNotFoundError(nameOf(ref));
+  const versions = await deps.items.versions(item.id);
+  const tags = await deps.items.tags(item.id);
+  const versionOf = (id: string) => versions.find((v) => v.id === id)?.version ?? "?";
+  return {
+    item,
+    versions: versions
+      .map((v) => ({ ...v, tags: tags.filter((t) => t.versionId === v.id).map((t) => t.tag) }))
+      .sort(
+        (a, b) =>
+          b.publishedAt.getTime() - a.publishedAt.getTime() || (a.version < b.version ? 1 : -1),
+      ),
+    tags: tags.map((t) => ({ tag: t.tag, version: versionOf(t.versionId) })),
+    canManage: can(actor.user, "versions.manage"),
+  };
+};
