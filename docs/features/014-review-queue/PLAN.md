@@ -11,7 +11,7 @@ the same change that completes it.
   `submission_revision_files`, with their Kysely types.
   *Done when:* it migrates on SQLite and the three servers, with foreign-key tests.
 
-- [ ] **2. Risk flags in `packages/core`.** `riskFlags(manifest, files)` for each kind in the spec,
+- [x] **2. Risk flags in `packages/core`.** `riskFlags(manifest, files)` for each kind in the spec,
   with the file and line each is about.
   *Done when:* a test per flag, including a clean item with none and a policy whose `allow` rules are
   listed as widening.
@@ -45,3 +45,9 @@ the same change that completes it.
   and number), `submission_revision_files` (the shape of `submission_files`, paths compared exactly
   with `exactString`), and `review_events` (indexed by submission and time). Revisions and events
   cascade with their submission; the users behind them are RESTRICT. Tested on all four databases.
+- **Task 2 (2026-09-28): risk flags.** `riskFlags(manifest, files)` in `packages/core`, exported
+  for the web app and later `rmk info`. Each flag has a kind, one sentence with `backticked` code,
+  and the file and line it's about (the manifest line for type flags, found by the value it
+  quotes). A policy's `allow` rules come first and are marked `widening`. An executable shell
+  script is one `executable` flag, not two. Each host is listed once, where it first appears. A
+  test per kind, and a plain rule with no flags.
