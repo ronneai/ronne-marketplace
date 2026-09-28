@@ -10,7 +10,7 @@ the same change that completes it.
 - [x] **1. Spec and plan.** This feature's SPEC and PLAN, and its row in the index.
   *Done when:* they're committed.
 
-- [ ] **2. Documentation shell and HelpTip.** `/docs` with its topic list and pages, the nav item,
+- [x] **2. Documentation shell and HelpTip.** `/docs` with its topic list and pages, the nav item,
   and the shared `HelpTip`.
   *Done when:* render tests cover the topic list, a topic page, the nav item and HelpTip.
 
@@ -26,3 +26,9 @@ the same change that completes it.
 - **Built on the recommendations (2026-09-28).** The owner started 033 without a spec; it was
   written first and built without waiting for answers: the documentation needs sign-in, and each
   topic has its own page.
+- **Task 2 (2026-09-28): shell and HelpTip.** `components/help/topics.ts` lists the eight topics and
+  their sections (typed slugs and section ids, `docsHref`), shared by the pages and the inline
+  helpers. `/docs` is the overview and `/docs/[topic]` the rest (a 404 otherwise); the layout puts
+  `DocsNav` beside the page on wide screens and above it on phones. `DocsPage` renders a topic's
+  sections as anchored `<section>`s. `components/ui/HelpTip` is a `<details>` with the question, the
+  answer and Learn more. Docs is in the main nav after Scopes.
