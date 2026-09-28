@@ -39,4 +39,6 @@ export interface ItemRepository {
   versionDetail(versionId: string): Promise<VersionDetail | null>;
   /** A user's display name, or null if they're gone. */
   userName(userId: string): Promise<string | null>;
+  /** One more download of the item's artifacts (019), in a single UPDATE so none is lost. */
+  countDownload(itemId: string): Promise<void>;
 }

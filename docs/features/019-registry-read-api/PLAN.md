@@ -15,7 +15,7 @@ the same change that completes it.
   *Done when:* database tests cover search, filters, sorts, paging, tags and versions (yanked and
   deprecated), 404s and 401s, on all four databases.
 
-- [ ] **3. Versions and tarballs.** `GET …/{version}` and `GET`/`HEAD …/tarball` with the checksum,
+- [x] **3. Versions and tarballs.** `GET …/{version}` and `GET`/`HEAD …/tarball` with the checksum,
   caching headers, and the download count.
   *Done when:* database tests cover the manifest and files, a yanked download, `ETag`/304, a
   missing or corrupt artifact, and concurrent downloads each counted once.
@@ -41,3 +41,10 @@ the same change that completes it.
 - **Task 2 (2026-09-28): search and items.** `server/http/registry-api.ts` has `listItems` and
   `getItem`, taking the token guard and the app as injectable deps for tests; the routes in
   `app/api/v1/items/` only call them. A leading `@` in the path's scope is accepted.
+- **Task 3 (2026-09-28): versions and tarballs.** `getVersion` answers 018's item page data for one
+  version (`versionJson`). `getTarball` serves `GET` and `HEAD`: `findDownload` looks the version up
+  without touching storage (HEAD, and a matching `If-None-Match` for a 304), and `downloadArtifact`
+  (`items/services/downloads.ts`) reads the file, checks its sha256, and counts it with
+  `countDownload`, a single `UPDATE … download_count + 1`. A missing or corrupt file is
+  `ArtifactUnavailableError`, 500 `artifact_unavailable`, not counted. The spec now says only the
+  tarball is cached as immutable: a version's JSON can still change (deprecated, yanked, tags).

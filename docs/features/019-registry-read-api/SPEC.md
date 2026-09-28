@@ -97,9 +97,10 @@ downloaded is stored. A `HEAD` request answers the same headers without counting
 that's missing, or whose checksum doesn't match the version's, is 500 `artifact_unavailable` and
 isn't counted.
 
-**Caching.** Version and tarball responses never change, so they carry
+**Caching.** A tarball never changes, so it carries
 `Cache-Control: private, max-age=31536000, immutable` and an `ETag` of the sha256 (`If-None-Match`
-answers 304, not counted). Search and item responses are `private, no-cache`.
+answers 304, not counted). Search, item and version responses are `private, no-cache`: a version's
+files never change, but it can still be deprecated, yanked or re-tagged.
 
 **Errors** use MVP §11's shape, with these codes: 009's token codes (401), `invalid_request` (400),
 `item_not_found` and `version_not_found` (404), `artifact_unavailable` (500), `setup_required` (503).

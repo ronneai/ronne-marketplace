@@ -1,5 +1,9 @@
 import { ForbiddenError } from "../domains/identity/exceptions/errors";
-import { ItemNotFoundError, VersionNotFoundError } from "../domains/items/exceptions/errors";
+import {
+  ArtifactUnavailableError,
+  ItemNotFoundError,
+  VersionNotFoundError,
+} from "../domains/items/exceptions/errors";
 
 /** The one error shape for every API response (MVP §11). `code` is stable; clients may rely on it. */
 export type ApiError = {
@@ -26,6 +30,8 @@ export const domainErrorResponse = (error: unknown): Response | null => {
     return errorResponse(404, "item_not_found", error.message);
   if (error instanceof VersionNotFoundError)
     return errorResponse(404, "version_not_found", error.message);
+  if (error instanceof ArtifactUnavailableError)
+    return errorResponse(500, "artifact_unavailable", error.message);
   if (error instanceof ForbiddenError) return errorResponse(403, "forbidden", error.message);
   return null;
 };

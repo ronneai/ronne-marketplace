@@ -1,4 +1,8 @@
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { ItemType } from "@ronneai/core";
+import { packItem, unpackItem } from "@ronneai/core/pack";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createTestDb, type TestDb } from "../db/testing/test-db";
 import { authenticateToken, exchangePassword } from "../domains/identity/actions/access-tokens";
@@ -7,7 +11,9 @@ import type { AppAuth } from "../domains/identity/repositories/auth-instance";
 import { createTestUser, testAppAuth } from "../domains/identity/testing/test-auth";
 import { kyselyItemRepository } from "../domains/items/repositories/kysely-item-repository";
 import { kyselyScopeRepository } from "../domains/items/repositories/kysely-scope-repository";
-import { getItem, listItems, type RegistryApiDeps } from "./registry-api";
+import { localStorage } from "../storage/local-storage";
+import type { StorageAdapter } from "../storage/storage-adapter";
+import { getItem, getTarball, getVersion, listItems, type RegistryApiDeps } from "./registry-api";
 
 let t: TestDb;
 let app: AppAuth;
@@ -15,14 +21,19 @@ let deps: RegistryApiDeps;
 let token: string;
 let publisher: string;
 let scopeId: string;
+let storageRoot: string;
+let storage: StorageAdapter;
 const BASE = "http://localhost:3000/api/v1";
 const password = "correct horse battery";
 
 beforeEach(async () => {
   t = await createTestDb();
   app = testAppAuth(t);
+  storageRoot = await mkdtemp(join(tmpdir(), "ronne-api-"));
+  storage = localStorage(storageRoot);
   deps = {
     app,
+    storage,
     guard: { configured: () => true, authenticate: (value) => authenticateToken(value, app) },
   };
   ({ id: publisher } = await createRoot(t.db, t.dialect, {
@@ -45,7 +56,10 @@ beforeEach(async () => {
     createdAt: new Date(),
   });
 });
-afterEach(() => t.cleanup());
+afterEach(async () => {
+  await t.cleanup();
+  await rm(storageRoot, { recursive: true, force: true });
+});
 
 let clock = Date.UTC(2026, 8, 1);
 const tick = () => {
@@ -199,5 +213,148 @@ describe("GET /items/{scope}/{name}", () => {
     expect(
       (await getItem(get("/items/team/empty"), { scope: "team", name: "empty" }, deps)).status,
     ).toBe(404);
+  });
+});
+
+/** @team/kit released as 1.0.0 with a real artifact in storage; returns its bytes and ids. */
+const releaseWithArtifact = async () => {
+  const text = (value: string) => new TextEncoder().encode(value);
+  const files = [
+    {
+      path: "ronne.yaml",
+      bytes: text(
+        'name: "@team/kit"\ntype: skill\ndescription: A kit.\nlicense: MIT\nskill:\n  entry: SKILL.md\n',
+      ),
+    },
+    { path: "SKILL.md", bytes: text("---\nname: kit\ndescription: A kit.\n---\n\nDo it.\n") },
+  ];
+  const packed = await packItem(files, { version: "1.0.0" });
+  await storage.put("team/kit/1.0.0.tgz", packed.tgz);
+  const items = kyselyItemRepository(t.db, t.dialect);
+  const itemId = await items.insertItem({
+    scopeId,
+    name: "kit",
+    type: "skill",
+    description: "A kit.",
+    ownerId: publisher,
+    createdAt: tick(),
+  });
+  const versionId = await items.insertVersion({
+    itemId,
+    version: "1.0.0",
+    manifest: {
+      name: "@team/kit",
+      type: "skill",
+      description: "A kit.",
+      license: "MIT",
+      version: "1.0.0",
+    },
+    readme: "# Kit\n",
+    files: files.map((f) => ({ path: f.path, size: f.bytes.length, executable: false })),
+    notes: "First.",
+    artifactPath: "team/kit/1.0.0.tgz",
+    sha256: packed.sha256,
+    size: packed.size,
+    publishedBy: publisher,
+    publishedAt: tick(),
+    submissionId: null,
+    dependencies: [],
+    riskFlags: [{ kind: "network", message: "It mentions `example.com`." }],
+  });
+  await items.setTag(itemId, "latest", versionId);
+  return { packed, itemId, versionId };
+};
+
+const kit = { scope: "team", name: "kit", version: "1.0.0" };
+const tarball = (headers: Record<string, string> = {}, method = "GET") =>
+  new Request(`${BASE}/items/team/kit/1.0.0/tarball`, {
+    method,
+    headers: { authorization: `Bearer ${token}`, ...headers },
+  });
+const downloads = async () =>
+  (await body(await getItem(get("/items/team/kit"), kit, deps))).json.downloads;
+
+describe("GET /items/{scope}/{name}/{version}", () => {
+  it("answers the version's manifest, README, files, risk flags and notes", async () => {
+    await releaseWithArtifact();
+    const { status, json } = await body(await getVersion(get("/items/team/kit/1.0.0"), kit, deps));
+    expect(status).toBe(200);
+    expect(json).toMatchObject({
+      name: "@team/kit",
+      version: "1.0.0",
+      tags: ["latest"],
+      yanked: false,
+      manifest: { license: "MIT", version: "1.0.0" },
+      readme: "# Kit\n",
+      notes: "First.",
+      riskFlags: [{ kind: "network" }],
+    });
+    expect(json.files.map((f: { path: string }) => f.path)).toEqual(["ronne.yaml", "SKILL.md"]);
+    const missing = await body(
+      await getVersion(get("/items/team/kit/9.9.9"), { ...kit, version: "9.9.9" }, deps),
+    );
+    expect([missing.status, missing.json.error.code]).toEqual([404, "version_not_found"]);
+  });
+});
+
+describe("GET /items/{scope}/{name}/{version}/tarball", () => {
+  it("downloads the artifact with its checksum, and counts it", async () => {
+    const { packed } = await releaseWithArtifact();
+    const response = await getTarball(tarball(), kit, deps);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-checksum-sha256")).toBe(packed.sha256);
+    expect(response.headers.get("content-type")).toBe("application/gzip");
+    expect(response.headers.get("etag")).toBe(`"${packed.sha256}"`);
+    expect(response.headers.get("cache-control")).toBe("private, max-age=31536000, immutable");
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    expect(bytes).toEqual(packed.tgz);
+    expect((await unpackItem(bytes)).map((f) => f.path).sort()).toEqual(["SKILL.md", "ronne.yaml"]);
+    expect(await downloads()).toBe(1);
+  });
+
+  it("doesn't count HEAD or a matching If-None-Match, and still downloads a yanked version", async () => {
+    const { packed, versionId } = await releaseWithArtifact();
+    const head = await getTarball(tarball({}, "HEAD"), kit, deps);
+    expect(head.status).toBe(200);
+    expect(head.headers.get("content-length")).toBe(String(packed.size));
+    expect(await head.text()).toBe("");
+    const cached = await getTarball(tarball({ "if-none-match": `"${packed.sha256}"` }), kit, deps);
+    expect(cached.status).toBe(304);
+    expect(await downloads()).toBe(0);
+    await kyselyItemRepository(t.db, t.dialect).setYanked(versionId, {
+      at: new Date(),
+      reason: "x",
+    });
+    expect((await getTarball(tarball(), kit, deps)).status).toBe(200);
+    expect(await downloads()).toBe(1);
+  });
+
+  it("counts every one of many downloads at once", async () => {
+    await releaseWithArtifact();
+    const responses = await Promise.all(
+      Array.from({ length: 8 }, () => getTarball(tarball(), kit, deps)),
+    );
+    expect(responses.map((r) => r.status)).toEqual(Array(8).fill(200));
+    expect(await downloads()).toBe(8);
+  });
+
+  it("is a 500 for a missing or corrupt artifact, and doesn't count it", async () => {
+    await releaseWithArtifact();
+    const empty = { ...deps, storage: localStorage(join(storageRoot, "empty")) };
+    const missing = await body(await getTarball(tarball(), kit, empty));
+    expect([missing.status, missing.json.error.code]).toEqual([500, "artifact_unavailable"]);
+    const otherRoot = join(storageRoot, "other");
+    await localStorage(otherRoot).put("team/kit/1.0.0.tgz", new Uint8Array([1, 2, 3]));
+    const corrupt = await getTarball(tarball(), kit, { ...deps, storage: localStorage(otherRoot) });
+    expect(corrupt.status).toBe(500);
+    expect(await downloads()).toBe(0);
+    const unknown = await getTarball(
+      new Request(`${BASE}/items/team/kit/2.0.0/tarball`, {
+        headers: { authorization: `Bearer ${token}` },
+      }),
+      { ...kit, version: "2.0.0" },
+      deps,
+    );
+    expect(unknown.status).toBe(404);
   });
 });

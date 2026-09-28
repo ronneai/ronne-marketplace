@@ -296,6 +296,14 @@ export const kyselyItemRepository = (
       : null;
   },
 
+  countDownload: async (itemId) => {
+    await db
+      .updateTable("items")
+      .set((eb) => ({ download_count: eb("download_count", "+", 1) }))
+      .where("id", "=", itemId)
+      .execute();
+  },
+
   userName: async (userId) =>
     (await db.selectFrom("user").select("name").where("id", "=", userId).executeTakeFirst())
       ?.name ?? null,

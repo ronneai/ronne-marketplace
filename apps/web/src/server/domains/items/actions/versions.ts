@@ -1,8 +1,10 @@
+import { getStorage, type StorageAdapter } from "../../../storage";
 import { getCurrentUser } from "../../identity/actions/session";
 import { clientIp } from "../../identity/models/client-ip";
 import type { CurrentUser } from "../../identity/models/user";
 import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-instance";
 import { kyselyItemRepository } from "../repositories/kysely-item-repository";
+import * as downloads from "../services/downloads";
 import * as page from "../services/item-page";
 import * as service from "../services/versions";
 
@@ -61,3 +63,20 @@ export const itemPageAs = (
   version?: string,
   app: AppAuth = getAppAuth(),
 ) => page.itemPage(deps(app), { user, ip: null }, ref, version);
+
+/** The version a download is for (019), without reading or counting it: HEAD and 304s. */
+export const findDownloadAs = (
+  user: CurrentUser,
+  ref: service.ItemRef,
+  version: string,
+  app: AppAuth = getAppAuth(),
+) => downloads.findDownload(deps(app), { user, ip: null }, ref, version);
+
+/** A version's artifact, checked and counted (019). */
+export const downloadArtifactAs = (
+  user: CurrentUser,
+  ref: service.ItemRef,
+  version: string,
+  app: AppAuth = getAppAuth(),
+  storage: StorageAdapter = getStorage(),
+) => downloads.downloadArtifact({ ...deps(app), storage }, { user, ip: null }, ref, version);
