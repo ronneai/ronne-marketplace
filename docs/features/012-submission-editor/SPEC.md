@@ -115,7 +115,9 @@ draft's existence isn't revealed. (From 013, submitted ones are visible to moder
   one.
 - **Saving:** the Save button and Ctrl/Cmd+S send the changed files in one server action. The page
   warns before leaving with unsaved changes. Saving writes the files, bumps `updated_at`, and
-  returns the server's issues. There's no autosave in M2.
+  returns the server's issues. There's no autosave in M2. Server actions accept up to 28 MB (a
+  full 20 MB draft as base64); `src/proxy.ts` refuses anything over 1 MB outside `/submissions/`
+  and without a session cookie, so the larger limit isn't open to anyone else.
 - **Limits** (MVP §12, 011's defaults): the header shows the file count and total size against 500
   files and 20 MB, and uploads over 1 MB are refused on the client and again on the server.
 - **Draft settings:** rename the item (scope and name; the type stays; `name` in `ronne.yaml` follows, keeping its comments and quoting), or delete the draft. Delete

@@ -30,7 +30,7 @@ the same change that completes it.
   name, type with descriptions and risk notes).
   *Done when:* render and action tests pass.
 
-- [ ] **6. The editor: files and code.** `/submissions/[id]` with the file tree, CodeMirror 6
+- [x] **6. The editor: files and code.** `/submissions/[id]` with the file tree, CodeMirror 6
   (dependency checklist in Notes, themed with 032's tokens), uploads, save with Ctrl/Cmd+S, the
   unsaved-changes warning, the limits in the header, and binary files.
   *Done when:* render tests pass, and Playwright edits a file, saves and reloads.
@@ -105,3 +105,46 @@ the same change that completes it.
   - "Submissions" joins the main nav for everyone signed in (`submissions.create`). With it, the
     header overflowed at 375px and hid the account menu, so the nav now scrolls sideways on
     phones while the theme switch and account menu stay in place (checked at 375 and 320px).
+- **Task 6 (2026-09-27): the editor, files and code.**
+  - **The dependency checklist** (policy §3), all from the CodeMirror project, MIT, with no install
+    scripts:
+
+    | Package | Version | Released |
+    |---|---|---|
+    | `@codemirror/state` | 6.7.6 | 2026-09-22 |
+    | `@codemirror/view` | 6.43.13 | 2026-09-22 |
+    | `@codemirror/commands` | 6.11.1 | 2026-09-15 |
+    | `@codemirror/language` | 6.12.4 | 2026-06-25 |
+    | `@codemirror/lang-yaml` | 6.1.3 | 2026-03-24 |
+    | `@codemirror/lang-markdown` | 6.5.2 | 2026-08-04 |
+    | `@codemirror/lang-json` | 6.0.2 | 2025-06-19 |
+    | `@codemirror/lang-javascript` | 6.2.5 | 2026-03-02 |
+    | `@codemirror/legacy-modes` | 6.5.4 | 2026-09-02 |
+    | `@lezer/highlight` | 1.2.4 | 2026-09-24 |
+
+    `@lezer/highlight` is direct because the theme needs its `tags`. They bring 16 more packages,
+    all MIT and from the same project (`@lezer/*`, `@codemirror/autocomplete`, `lint`,
+    `lang-html`, `lang-css`, `crelt`, `style-mod`, `w3c-keyname`, `@marijn/find-cluster-break`).
+    `pnpm licenses:check` and `pnpm audit` pass, and the lockfile passes pnpm's supply-chain checks.
+  - `features/draft-editor/`: `files.ts` is the file state as a pure reducer (edit, put, rename,
+    remove, executable, saved). Saved files that are deleted or renamed away are kept with their
+    `loadedAt` for the stale check, and a file created again at their path takes it back. A save
+    marks a file clean only if it didn't change while the save was on its way.
+  - `CodeEditor` uses CodeMirror directly, with one `EditorState` per file (so undo survives
+    switching files), a theme on 032's CSS variables (light and dark), and languages by extension
+    or shebang. Outside changes to a file (the form in task 7, imports) replace its document as one
+    undoable change.
+  - Uploads and binary files: `toDraftContent` decides text or base64 in the browser, and files
+    over 1 MB are refused there before the server refuses them again. Binary files show their size
+    and can be replaced or deleted. `.zip` import, and renaming or deleting the draft (Settings),
+    need the editor to be saved first, and then reload it: the page keys the editor on the draft's
+    `updatedAt`.
+  - The save action revalidates nothing: in a server action, `revalidatePath` also refreshes the
+    current page, which remounted the editor and lost the cursor and undo history (the e2e test
+    caught it).
+  - **Body size:** Next.js limits server actions to 1 MB. `next.config.ts` raises it to 28 MB (a
+    full 20 MB draft as base64), and `src/proxy.ts` answers 413 to any body over 1 MB unless it's
+    for `/submissions/…` with a session cookie (`bodyTooLarge` in `route-guard.ts`, tested).
+  - Unsaved changes: the browser's prompt on close or reload, and a confirm for links in the app.
+  - Playwright (`e2e/drafts.e2e.ts`): root creates a scope; a user creates an agent draft, edits
+    `prompt.md` in CodeMirror, saves with Ctrl/Cmd+S, reloads and sees it; root gets a 404.

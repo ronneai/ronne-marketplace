@@ -41,3 +41,27 @@ export const signInUrl = (path: string): string => {
   const next = safeNextPath(path);
   return next === "/" ? SIGN_IN_PATH : `${SIGN_IN_PATH}?next=${encodeURIComponent(next)}`;
 };
+
+/** The server-action body limit in next.config.ts: a full 20 MB draft, as base64, fits. */
+export const LARGE_BODY_LIMIT = 28 * 1024 * 1024;
+/** Every other request keeps Next.js's default. */
+export const DEFAULT_BODY_LIMIT = 1024 * 1024;
+
+/**
+ * Whether the proxy refuses a request for its size, before Next.js reads the body. Large bodies are
+ * only for the draft editor (saves and .zip imports, feature 012), and only with a session cookie,
+ * so no one can send 28 MB to sign-in. The action still checks the session and the draft's owner.
+ */
+export const bodyTooLarge = (request: {
+  method: string;
+  pathname: string;
+  contentLength: number | null;
+  hasSession: boolean;
+}): boolean => {
+  if (request.method !== "POST" || request.contentLength === null) return false;
+  const limit =
+    request.hasSession && request.pathname.startsWith("/submissions/")
+      ? LARGE_BODY_LIMIT
+      : DEFAULT_BODY_LIMIT;
+  return request.contentLength > limit;
+};
