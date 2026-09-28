@@ -1,6 +1,7 @@
 import { CreateTokenDialog } from "@/features/account-tokens/CreateTokenDialog";
 import { RevokeTokenButton } from "@/features/account-tokens/RevokeTokenButton";
 import { TokensPage } from "@/features/account-tokens/TokensPage";
+import { loadConfig } from "@/server/config";
 import { listMyTokens } from "@/server/domains/identity/actions/access-tokens";
 import { requestHeaders } from "@/server/http/request-headers";
 
@@ -11,6 +12,7 @@ const AccessTokens = async () => {
   const tokens = await listMyTokens(await requestHeaders());
   return (
     <TokensPage
+      registry={loadConfig().publicUrl}
       tokens={tokens}
       now={new Date()}
       toolbar={<CreateTokenDialog />}

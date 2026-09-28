@@ -117,7 +117,7 @@ describe("TokensPage", () => {
       ">expired<",
       ">revoked<",
       "revoke laptop",
-      "rmk login --token",
+      "--token &lt;token&gt;",
     ]) {
       expect(html, text).toContain(text);
     }

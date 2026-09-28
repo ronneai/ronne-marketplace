@@ -4,7 +4,7 @@ import { Panel } from "@/components/ui/Panel";
 import { SignInForm } from "./SignInForm";
 
 /** The sign-in screen (spec 006, from the mock): the card, then the CLI panel below it. */
-export const SignInPage = ({ next }: { next: string }) => {
+export const SignInPage = ({ next, registry }: { next: string; registry?: string }) => {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center gap-4 px-4 py-12">
       <Panel padding="lg" className="grid gap-6">
@@ -19,7 +19,7 @@ export const SignInPage = ({ next }: { next: string }) => {
         </div>
         <SignInForm next={next} />
       </Panel>
-      <CliAuthPanel />
+      <CliAuthPanel registry={registry} />
     </main>
   );
 };
