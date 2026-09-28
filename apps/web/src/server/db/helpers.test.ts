@@ -37,12 +37,13 @@ describe("columnTypes", () => {
       .addColumn("created_at", t.timestamp())
       .addColumn("data", t.json())
       .addColumn("flag", t.boolean())
+      .addColumn("content", t.longText())
       .compile().sql;
   };
 
   it("uses text for timestamps and integer for booleans in SQLite", () => {
     expect(createSql("sqlite")).toBe(
-      'create table "example" ("id" varchar(26) primary key, "name" varchar(255), "body" text, "created_at" text, "data" text, "flag" integer)',
+      'create table "example" ("id" varchar(26) primary key, "name" varchar(255), "body" text, "created_at" text, "data" text, "flag" integer, "content" text)',
     );
   });
 
@@ -51,6 +52,11 @@ describe("columnTypes", () => {
     expect(ddl).toContain("`created_at` datetime(3)");
     expect(ddl).not.toMatch(/\btimestamp\b/);
     expect(ddl).toContain("`flag` boolean");
+  });
+
+  it("uses longtext for long text in MySQL, whose text stops at 64 KB", () => {
+    expect(createSql("mysql")).toContain("`content` longtext");
+    expect(createSql("postgres")).toContain('"content" text');
   });
 
   it("uses timestamptz in PostgreSQL", () => {

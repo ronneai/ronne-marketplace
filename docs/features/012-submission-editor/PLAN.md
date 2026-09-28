@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Migration `0005_submissions`.** Both tables, indexes and table-level foreign keys,
+- [x] **1. Migration `0005_submissions`.** Both tables, indexes and table-level foreign keys,
   `columnTypes.longText()`, and the Kysely types.
   *Done when:* it migrates on SQLite and the 004 servers; a foreign-key test, and a test that a
   1 MB file round-trips on each database.
@@ -41,3 +41,9 @@ the same change that completes it.
   test in the acceptance criteria passes.
 
 ## Notes
+- **Task 1 (2026-09-27): migration `0005_submissions`.**
+  - `columnTypes.longText()` is `longtext` on MySQL (through `sql`, since Kysely doesn't know the
+    name) and `text` elsewhere. A 1 MB text file with multi-byte characters, and a 1 MB binary file
+    as base64, round-trip on SQLite, PostgreSQL 15, MySQL 8.4 and MariaDB 10.11.
+  - `executable` uses the boolean helper and is written with `toDbBoolean` (SQLite can't bind
+    booleans). The helpers' comments now allow booleans for flags with no moment behind them.

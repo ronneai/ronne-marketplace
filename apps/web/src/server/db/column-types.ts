@@ -16,6 +16,11 @@ export const columnTypes = (dialect: DatabaseDialect) => {
     /** Unindexed text of any length. */
     text: (): ColumnType => "text",
     /**
+     * Text of up to several MB, such as a draft's file (feature 012). MySQL's `text` stops at 64 KB,
+     * so it gets `longtext`; `text` has no limit that matters elsewhere.
+     */
+    longText: (): ColumnType => (dialect === "mysql" ? sql`longtext` : "text"),
+    /**
      * A UTC timestamp: `timestamptz` in PostgreSQL, `datetime(3)` in MySQL, ISO-8601 text in SQLite.
      * Never MySQL's `timestamp`, which ends in 2038.
      */
@@ -26,7 +31,10 @@ export const columnTypes = (dialect: DatabaseDialect) => {
     },
     /** JSON, stored as text and parsed in repositories. */
     json: (): ColumnType => "text",
-    /** Only for Better Auth's `email_verified`. Everywhere else, use a nullable timestamp. */
+    /**
+     * A flag with no moment behind it, such as Better Auth's `email_verified` or a file's
+     * `executable`. When the moment matters (disabled, revoked), use a nullable timestamp instead.
+     */
     boolean: (): ColumnType => (dialect === "sqlite" ? "integer" : "boolean"),
   };
 };
