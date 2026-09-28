@@ -26,7 +26,7 @@ the same change that completes it.
   *Done when:* database tests cover a first release, a pre-release, refusals, a retry after a failed
   transaction, and two concurrent publishes.
 
-- [ ] **5. The real registry lookup.** `kyselyRegistryLookup`, and 013's checks switched to it.
+- [x] **5. The real registry lookup.** `kyselyRegistryLookup`, and 013's checks switched to it.
   *Done when:* 013's tests still pass, and new ones cover a dependency on a released item and a
   published name.
 
@@ -73,3 +73,11 @@ the same change that completes it.
   - The web Vitest config aliases `@ronneai/core/pack` to its source, as `@ronneai/core` already was.
   - Database tests on all four databases: a first release, a pre-release on `next`, who may
     publish, refusals (nothing stored), and two concurrent publishes.
+- **Task 5 (2026-09-28): the real registry lookup.** `kyselyRegistryLookup` answers 013's
+  `findItem` and `publishedVersions` from the new tables (yanked versions marked, dependencies by
+  name). The repository hands it out (`registry()`), bound to its own connection: wired through the
+  app's main handle instead, the checks inside `submitDraft`'s transaction deadlocked on SQLite's
+  single connection (and would have read outside the transaction elsewhere). `deps.registry` is now
+  only for tests with a fake. Database tests on all four databases: a skill depending on a released
+  MCP server submits; an unmatched range, a type the item can't depend on, and a yanked-only
+  version are refused; a published name can't be proposed again.

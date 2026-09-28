@@ -2,6 +2,7 @@ import type { ItemType } from "@ronneai/core";
 import type { NewAuditEvent } from "../../audit/models/audit-event";
 import type { NewReviewEvent, ReviewEvent, Revision, RevisionFile } from "../models/review";
 import type { DraftFile, Submission, SubmissionStatus } from "../models/submission";
+import type { RegistryLookup } from "./registry-lookup";
 
 export type NewSubmission = {
   authorId: string;
@@ -60,6 +61,11 @@ export interface SubmissionRepository {
   /** Locks the submission's row until the transaction ends, so two decisions can't both pass. */
   lockSubmission(id: string): Promise<void>;
   recordAudit(event: NewAuditEvent, now: Date): Promise<void>;
+  /**
+   * Published items, read on the same connection: inside a transaction, the registry checks see
+   * what it has locked, and SQLite, which has one connection, doesn't wait on itself.
+   */
+  registry(): RegistryLookup;
   /** Snapshots `files` as the submission's next revision (feature 014). */
   createRevision(
     submissionId: string,
