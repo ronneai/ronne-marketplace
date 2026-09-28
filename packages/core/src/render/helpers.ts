@@ -19,9 +19,16 @@ export const managedMarker = (item: string, version: string, syntax: CommentSynt
 export const sectionBegin = (item: string) => `<!-- rmk:begin ${item} -->`;
 export const sectionEnd = (item: string) => `<!-- rmk:end ${item} -->`;
 
+/** `text` without its trailing newlines; a loop rather than a regex, which CodeQL flags as slow. */
+const trimTrailingNewlines = (text: string): string => {
+  let end = text.length;
+  while (end > 0 && text[end - 1] === "\n") end -= 1;
+  return text.slice(0, end);
+};
+
 /** A fenced block for one item inside a shared Markdown file such as `AGENTS.md`. */
 export const section = (item: string, text: string): string =>
-  `${sectionBegin(item)}\n${text.replace(/\n+$/, "")}\n${sectionEnd(item)}\n`;
+  `${sectionBegin(item)}\n${trimTrailingNewlines(text)}\n${sectionEnd(item)}\n`;
 
 /** JSON with sorted keys and no whitespace: the same value always hashes the same. */
 export const canonicalJson = (value: unknown): string =>
