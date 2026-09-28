@@ -18,7 +18,9 @@ const toEditorDraft = (draft: Draft & { mine: boolean }): EditorDraft => ({
   submittedAt: draft.submittedAt?.toISOString() ?? null,
   mine: draft.mine,
   readOnly: !(draft.mine && isEditable(draft.status)),
-  canSubmit: draft.mine && canTransition(draft.status, "submit"),
+  canSubmit:
+    draft.mine &&
+    (canTransition(draft.status, "submit") || canTransition(draft.status, "resubmit")),
   canWithdraw: draft.mine && canTransition(draft.status, "withdraw"),
   files: draft.files.map((file) => ({
     path: file.path,

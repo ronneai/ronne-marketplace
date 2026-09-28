@@ -7,6 +7,7 @@ import type { Database } from "../../../db/schema";
 import { upsert } from "../../../db/upsert";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
+import type { ReviewEventKind, Revision } from "../models/review";
 import type { DraftFile, Submission, SubmissionStatus } from "../models/submission";
 import type { SubmissionRepository } from "./submission-repository";
 
@@ -155,6 +156,123 @@ export const kyselySubmissionRepository = (
     recordAudit: async (event, now) => {
       await recordAudit(db, dialect, event, now);
     },
+
+    createRevision: async (submissionId, createdBy, files, at) => {
+      const last = await db
+        .selectFrom("submission_revisions")
+        .select((eb) => eb.fn.max("number").as("number"))
+        .where("submission_id", "=", submissionId)
+        .executeTakeFirst();
+      const revision: Revision = {
+        id: newId(),
+        submissionId,
+        number: Number(last?.number ?? 0) + 1,
+        createdBy,
+        createdAt: at,
+      };
+      await db
+        .insertInto("submission_revisions")
+        .values({
+          id: revision.id,
+          submission_id: submissionId,
+          number: revision.number,
+          created_by: createdBy,
+          created_at: toDbDate(at, dialect),
+        })
+        .execute();
+      for (const file of files)
+        await db
+          .insertInto("submission_revision_files")
+          .values({
+            revision_id: revision.id,
+            path: file.path,
+            encoding: file.encoding,
+            content: file.content,
+            size: file.size,
+            executable: toDbBoolean(file.executable, dialect),
+          })
+          .execute();
+      return revision;
+    },
+
+    revisions: async (submissionId) =>
+      (
+        await db
+          .selectFrom("submission_revisions")
+          .selectAll()
+          .where("submission_id", "=", submissionId)
+          .orderBy("number")
+          .execute()
+      ).map((row) => ({
+        id: row.id,
+        submissionId: row.submission_id,
+        number: Number(row.number),
+        createdBy: row.created_by,
+        createdAt: fromDbDate(row.created_at),
+      })),
+
+    revisionFiles: async (revisionId) =>
+      (
+        await db
+          .selectFrom("submission_revision_files")
+          .selectAll()
+          .where("revision_id", "=", revisionId)
+          .execute()
+      )
+        .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
+        .map((row) => ({
+          path: row.path,
+          encoding: row.encoding,
+          content: row.content,
+          size: Number(row.size),
+          executable: Boolean(row.executable),
+        })),
+
+    addEvent: async (event) => {
+      const id = newId();
+      await db
+        .insertInto("review_events")
+        .values({
+          id,
+          submission_id: event.submissionId,
+          actor_id: event.actorId,
+          kind: event.kind,
+          body: event.body,
+          revision: event.revision,
+          created_at: toDbDate(event.createdAt, dialect),
+        })
+        .execute();
+      return id;
+    },
+
+    events: async (submissionId) =>
+      (
+        await db
+          .selectFrom("review_events")
+          .innerJoin("user", "user.id", "review_events.actor_id")
+          .select([
+            "review_events.id",
+            "review_events.submission_id",
+            "review_events.actor_id",
+            "user.name as actor_name",
+            "review_events.kind",
+            "review_events.body",
+            "review_events.revision",
+            "review_events.created_at",
+          ])
+          .where("review_events.submission_id", "=", submissionId)
+          .orderBy("review_events.created_at")
+          .orderBy("review_events.id")
+          .execute()
+      ).map((row) => ({
+        id: row.id,
+        submissionId: row.submission_id,
+        actor: { id: row.actor_id, name: row.actor_name },
+        kind: row.kind as ReviewEventKind,
+        body: row.body,
+        revision: row.revision === null ? null : Number(row.revision),
+        createdAt: fromDbDate(row.created_at),
+      })),
 
     delete: async (id) => {
       await db.deleteFrom("submissions").where("id", "=", id).execute();

@@ -227,6 +227,14 @@ describe("the draft page", () => {
     expect(html).toContain("</svg>Settings<");
   });
 
+  it("offers Resubmit for review, and editing, when changes were requested", () => {
+    const html = view({ status: "changes_requested" });
+    expect(html).toContain("Resubmit for review");
+    // Renaming and deleting are for drafts.
+    expect(html).not.toContain("</svg>Settings<");
+    expect(html).not.toMatch(/<fieldset disabled=""/);
+  });
+
   it("shows a submitted submission read-only, with only Withdraw", () => {
     const html = view({
       status: "submitted",

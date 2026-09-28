@@ -83,7 +83,7 @@ author comments on their own (recommended, see Open questions). Comments aren't 
 is their record. Comments can't be edited or deleted, so the thread is a faithful history.
 
 **`review_events`** (MVP §10, extended): id, submission_id (cascade), actor_id (RESTRICT), kind
-(`comment`, `request_changes`, `approve`, `reject`, `override`, `resubmit`, `withdraw`), body (text,
+(`submit`, `resubmit`, `comment`, `request_changes`, `approve`, `reject`, `override`, `withdraw`), body (text,
 nullable), revision (the revision it's about), created_at. Submit, resubmit and withdraw also add an
 event, so the thread tells the whole story.
 

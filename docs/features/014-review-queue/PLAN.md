@@ -16,7 +16,7 @@ the same change that completes it.
   *Done when:* a test per flag, including a clean item with none and a policy whose `allow` rules are
   listed as widening.
 
-- [ ] **3. Revisions and resubmit.** Snapshot on submit and resubmit, `changes_requested` editable,
+- [x] **3. Revisions and resubmit.** Snapshot on submit and resubmit, `changes_requested` editable,
   `resubmit` through 013's checks, and submit, resubmit and withdraw events in the thread.
   *Done when:* database tests cover the snapshots, resubmit's checks, and that later edits don't change
   a revision.
@@ -51,3 +51,17 @@ the same change that completes it.
   quotes). A policy's `allow` rules come first and are marked `widening`. An executable shell
   script is one `executable` flag, not two. Each host is listed once, where it first appears. A
   test per kind, and a plain rule with no flags.
+- **Task 3 (2026-09-28): revisions and resubmit.**
+  - `submitDraft` handles both: `submit` for a draft, `resubmit` for one sent back for changes
+    (`checkSubmission` picks the same way). After 013's checks it snapshots the saved files as the
+    next revision (`createRevision`, numbered 1, 2, …), adds a `submit` or `resubmit` event, and
+    records `submission.submitted` or the new `submission.resubmitted` with the revision number.
+    `submitted_at` keeps the first submit's time, so the queue shows how long it has waited.
+  - Withdraw adds a `withdraw` event with the latest revision (none for a draft never submitted).
+    The spec's event kinds gain `submit` (MVP §10 too).
+  - `isEditable` is now `draft` or `changes_requested`: saving and importing use it. Renaming and
+    deleting stay draft-only (`ownDraft`), and the editor shows Settings for drafts only.
+  - The editor offers **Resubmit for review** when changes were requested, through the same dialog.
+  - Database tests on all four databases: the snapshot doesn't change with later edits, resubmit
+    makes revision 2 and re-runs the checks, editing is allowed only when changes are requested,
+    and the conversation records submit, resubmit and withdraw.

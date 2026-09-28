@@ -68,9 +68,17 @@ const ownSubmission = async (
   return submission;
 };
 
-const ownDraft = async (repo: SubmissionRepository, actor: DraftActor, id: string) => {
+/** The actor's own submission, if its files can be edited: a draft, or sent back for changes. */
+const ownEditable = async (repo: SubmissionRepository, actor: DraftActor, id: string) => {
   const submission = await ownSubmission(repo, actor, id);
   if (!isEditable(submission.status)) throw new SubmissionNotEditableError();
+  return submission;
+};
+
+/** The actor's own draft: renaming and deleting stop once it's been submitted. */
+const ownDraft = async (repo: SubmissionRepository, actor: DraftActor, id: string) => {
+  const submission = await ownSubmission(repo, actor, id);
+  if (submission.status !== "draft") throw new SubmissionNotEditableError();
   return submission;
 };
 
@@ -214,7 +222,7 @@ export const saveDraftFiles = async (
   checkChanges(changes, limits);
   const at = now(deps);
   const draft = await deps.repo.transaction(async (repo) => {
-    const submission = await ownDraft(repo, actor, id);
+    const submission = await ownEditable(repo, actor, id);
     const current = new Map((await repo.files(submission.id)).map((file) => [file.path, file]));
 
     if (!changes.overwrite) {

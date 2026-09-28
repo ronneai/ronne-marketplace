@@ -1,5 +1,6 @@
 import type { ItemType } from "@ronneai/core";
 import type { NewAuditEvent } from "../../audit/models/audit-event";
+import type { NewReviewEvent, ReviewEvent, Revision, RevisionFile } from "../models/review";
 import type { DraftFile, Submission, SubmissionStatus } from "../models/submission";
 
 export type NewSubmission = {
@@ -43,6 +44,20 @@ export interface SubmissionRepository {
    */
   lockScope(scopeId: string): Promise<void>;
   recordAudit(event: NewAuditEvent, now: Date): Promise<void>;
+  /** Snapshots `files` as the submission's next revision (feature 014). */
+  createRevision(
+    submissionId: string,
+    createdBy: string,
+    files: readonly DraftFile[],
+    at: Date,
+  ): Promise<Revision>;
+  /** Oldest first. */
+  revisions(submissionId: string): Promise<Revision[]>;
+  /** In path order, by code unit. */
+  revisionFiles(revisionId: string): Promise<RevisionFile[]>;
+  addEvent(event: NewReviewEvent): Promise<string>;
+  /** The conversation, oldest first, with each actor's name. */
+  events(submissionId: string): Promise<ReviewEvent[]>;
   /** In path order, by code unit, the same on every database. */
   files(submissionId: string): Promise<DraftFile[]>;
   /** Inserts the file, or replaces the one at its path. */

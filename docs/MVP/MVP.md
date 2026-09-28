@@ -542,7 +542,7 @@ IDs are ULIDs and timestamps are UTC (§9.4).
 | `submission_files` | submission_id, path — PK (submission_id, path); encoding (`utf8`/`base64`), content (long text), size, executable, updated_at. Draft files live in the database; published packages go to the `StorageAdapter` |
 | `submission_revisions` | id, submission_id, number, created_by, created_at: a snapshot on every submit and resubmit, which reviewers read and releases pack ([014](../features/014-review-queue/SPEC.md)) |
 | `submission_revision_files` | revision_id, path — PK (revision_id, path); encoding, content, size, executable (as `submission_files`) |
-| `review_events` | id, submission_id, actor_id, kind (`comment`/`request_changes`/`approve`/`reject`/`override`/`resubmit`/`withdraw`), body, revision, created_at |
+| `review_events` | id, submission_id, actor_id, kind (`submit`/`resubmit`/`comment`/`request_changes`/`approve`/`reject`/`override`/`withdraw`), body, revision, created_at |
 | `audit_log` | id, actor_id, action, target_type, target_id, metadata (JSON), created_at |
 
 ## 11. REST API sketch (`/api/v1`)

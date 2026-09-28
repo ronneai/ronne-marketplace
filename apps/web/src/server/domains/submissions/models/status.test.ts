@@ -66,7 +66,7 @@ describe("transition", () => {
     );
   });
 
-  it("lets only drafts be edited", () => {
-    expect(SUBMISSION_STATUSES.filter(isEditable)).toEqual(["draft"]);
+  it("lets drafts and submissions sent back for changes be edited", () => {
+    expect(SUBMISSION_STATUSES.filter(isEditable)).toEqual(["draft", "changes_requested"]);
   });
 });
