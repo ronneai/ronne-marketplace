@@ -107,6 +107,9 @@ any can still change.
 
 1. **Markdown library:** `markdown-it` (MIT) with `html: false` (recommended: safe by default, no
    sanitiser needed), or `marked` (MIT) with a sanitiser, through the dependency checklist.
+   *Built with `marked`:* `markdown-it` 15 depends on `argparse` 3, which is PSF-2.0 and would need a
+   license exception. `marked` has no dependencies, and its renderer escapes raw HTML and filters
+   URLs itself (PLAN, task 2).
 2. **Catalogue, item and home pages need sign-in** (recommended; the instance is private and the proxy
    already requires a session), or they're public to anyone who can reach the instance.
 3. **"Most used" counts all-time downloads** (recommended: one column, one query), or downloads

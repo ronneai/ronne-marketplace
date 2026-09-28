@@ -14,7 +14,7 @@ the same change that completes it.
   `items.download_count`, and the home page's queries: recently published, most used, and the
   viewer's counts.
 
-- [ ] **2. Markdown.** The chosen library through the dependency checklist, with raw HTML off, safe
+- [x] **2. Markdown.** The chosen library through the dependency checklist, with raw HTML off, safe
   links and images, and shifted headings.
   *Done when:* unit tests cover ordinary Markdown and hostile input (script tags, event attributes,
   `javascript:` links).
@@ -33,8 +33,8 @@ the same change that completes it.
 
 ## Notes
 - **Built on the recommendations (2026-09-28).** The owner started 018 without answering the
-  spec's open questions: `markdown-it` with raw HTML off, sign-in for every page, and all-time
-  download counts.
+  spec's open questions: sign-in for every page, and all-time download counts. The Markdown
+  library is `marked`, not the recommended `markdown-it` (see task 2).
 - **Task 1 (2026-09-28): catalogue queries.** Migration `0009_catalogue` keeps the listing on the
   rows, so listing is one query with the same keyset paging on every database:
   - `items`: `download_count`, `listed_version_id` (`latest`'s version, else the newest),
@@ -48,3 +48,12 @@ the same change that completes it.
     counts, both sorts with installable items first, base64url JSON cursors (a bad one starts over),
     24 a page; and the home page's recent and most used lists. The viewer's own counts reuse
     `listMySubmissions` and `countNeedsReview`.
+- **Task 2 (2026-09-28): Markdown with `marked`.** `markdown-it` 15 depends on `argparse` 3, which is
+  PSF-2.0: not on §1's allowed list, so it would need an exception. `marked` 18.0.14 passes the
+  checklist as it is: MIT, no dependencies, its own types, four maintainers, releases every few
+  weeks, no advisories (`pnpm audit`), no install scripts. `components/markdown/render-markdown.ts`
+  overrides its renderer instead of sanitising afterwards: raw HTML (block and inline) is escaped
+  text; links only to http(s), mailto or `#anchors`, checked after stripping the control
+  characters and whitespace browsers ignore, and external ones open with `noopener noreferrer
+  nofollow`; images only from https, lazy and without a referrer, else their alt text; headings one
+  level down. `Markdown` renders it, styled by `.markdown` in globals.css with the tokens.
