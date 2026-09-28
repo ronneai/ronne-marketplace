@@ -30,8 +30,8 @@ should be in the app.
 ## Behaviour
 
 **Documentation** (`/docs`, everyone signed in, like every other page):
-- A topic list (a sidebar on wide screens, a row that scrolls sideways at the top on phones) and
-  the topic's page.
+- A topic list, grouped under labels (Getting started, Organising, Publishing, Installing): a
+  sidebar on wide screens, a row that scrolls sideways at the top on phones. Then the topic's page.
 - **Topics:**
   - **Overview:** what Ronne is, and the path of an item: draft → review → release → install.
   - **Scopes:** what a scope is (`@team/code-reviewer`), who creates them (root), who may propose in

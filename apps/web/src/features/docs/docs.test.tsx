@@ -1,7 +1,7 @@
 import { ITEM_TYPES } from "@ronneai/core";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { docsHref, TOPICS, topicOf } from "@/components/help/topics";
+import { docsHref, TOPIC_GROUPS, TOPICS, topicOf } from "@/components/help/topics";
 import { TYPE_INFO } from "@/components/submissions/item-types";
 import { HelpTip } from "@/components/ui/HelpTip";
 
@@ -22,6 +22,18 @@ const topic = async (slug: string) =>
   renderToStaticMarkup(await DocsTopic({ params: Promise.resolve({ topic: slug }) }));
 
 describe("the Documentation", () => {
+  it("groups every topic once, with the groups labelled in order", () => {
+    expect(TOPIC_GROUPS.flatMap((g) => g.topics).sort()).toEqual(TOPICS.map((t) => t.slug).sort());
+    const html = renderToStaticMarkup(<DocsNav />);
+    const at = (text: string) => html.indexOf(`>${text}<`);
+    expect(at("Getting started")).toBeLessThan(at("Overview"));
+    expect(at("Roles")).toBeLessThan(at("Organising"));
+    expect(at("Organising")).toBeLessThan(at("Scopes"));
+    expect(at("Publishing")).toBeLessThan(at("Submitting and review"));
+    expect(at("Installing")).toBeLessThan(at("Installing with rmk"));
+    expect(html.match(/<ul aria-labelledby="docs-group-\d"/g)).toHaveLength(4);
+  });
+
   it("lists every topic, and marks the current one", () => {
     const html = renderToStaticMarkup(<DocsNav />);
     for (const t of TOPICS) expect(html).toContain(`href="${docsHref(t.slug)}"`);

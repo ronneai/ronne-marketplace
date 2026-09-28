@@ -381,7 +381,7 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             <tr>
               <Td className="font-mono text-sm">patch</Td>
               <Td className="text-sm">Fixes; nothing new, nothing removed.</Td>
-              <Td className="font-mono text-xs">1.4.0 → 1.4.1</Td>
+              <Td className="font-mono text-xs whitespace-nowrap">1.4.0 → 1.4.1</Td>
             </tr>
             <tr>
               <Td className="font-mono text-sm">minor</Td>
@@ -389,7 +389,7 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
                 Something new that doesn&apos;t break anyone: a file, a dependency, a keyword, an
                 option.
               </Td>
-              <Td className="font-mono text-xs">1.4.0 → 1.5.0</Td>
+              <Td className="font-mono text-xs whitespace-nowrap">1.4.0 → 1.5.0</Td>
             </tr>
             <tr>
               <Td className="font-mono text-sm">major</Td>
@@ -397,7 +397,7 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
                 A change that breaks something for installs: an option, a dependency or a named file
                 removed.
               </Td>
-              <Td className="font-mono text-xs">1.4.0 → 2.0.0</Td>
+              <Td className="font-mono text-xs whitespace-nowrap">1.4.0 → 2.0.0</Td>
             </tr>
           </tbody>
         </Table>

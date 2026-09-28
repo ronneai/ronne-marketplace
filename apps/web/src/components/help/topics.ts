@@ -89,6 +89,14 @@ export type Topic = (typeof TOPICS)[number];
 export type TopicSlug = Topic["slug"];
 export type SectionOf<T extends TopicSlug> = Extract<Topic, { slug: T }>["sections"][number]["id"];
 
+/** How the Documentation's menu groups the topics, in order (owner's request, 2026-09-28). */
+export const TOPIC_GROUPS: { label: string; topics: readonly TopicSlug[] }[] = [
+  { label: "Getting started", topics: ["overview", "roles"] },
+  { label: "Organising", topics: ["scopes", "items"] },
+  { label: "Publishing", topics: ["review", "versions", "changes"] },
+  { label: "Installing", topics: ["rmk"] },
+];
+
 export const topicOf = (slug: string): Topic | undefined => TOPICS.find((t) => t.slug === slug);
 
 /** A topic's page, or one of its sections. The overview is `/docs` itself. */

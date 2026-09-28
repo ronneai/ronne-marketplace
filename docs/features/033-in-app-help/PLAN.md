@@ -51,3 +51,9 @@ the same change that completes it.
   end of its sideways scroll.
 - **Phones (2026-09-28).** Screenshots at 390 px: no page scrolls sideways. The topic list became a
   row that scrolls sideways on phones, instead of a full list pushing the page down.
+- **Topic groups (2026-09-28, owner's request).** The menu groups the topics under labels, with a
+  line between groups: Getting started (Overview, Roles), Organising (Scopes, Items and types),
+  Publishing (Submitting and review, Versions and tags, Changing a published item) and Installing
+  (Installing with rmk). `TOPIC_GROUPS` in `topics.ts`; a test checks each topic is in exactly one
+  group. On phones the labels are hidden in the sideways row, which scrolls the current topic into
+  view.
