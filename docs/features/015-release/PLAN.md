@@ -16,7 +16,7 @@ the same change that completes it.
   *Done when:* tests cover put, get, exists, a retried identical put, a refused different put, and
   unsafe keys.
 
-- [ ] **3. Versions.** Computing the next version from the choice (stable, pre-release, bumps) and the
+- [x] **3. Versions.** Computing the next version from the choice (stable, pre-release, bumps) and the
   tag rules, in `packages/core` next to `highestMatching`.
   *Done when:* a table test covers first releases, bumps, pre-release numbering and dropping the
   suffix.
@@ -47,3 +47,11 @@ the same change that completes it.
   bytes again succeed, different ones throw `StorageConflictError`. Keys that are absolute, have
   `..`, `.`, empty segments, backslashes or control characters throw `StorageKeyError`. `get`
   returns the bytes rather than a stream: artifacts are at most 5 MB, and 019 can add streaming.
+- **Task 3 (2026-09-28): versions.** In `packages/core` (`versions.ts`): `nextVersion(published,
+  choice)` from semver's `inc` (with `"1"` as the pre-release base, so numbering starts at `.1`):
+  the first stable release is `1.0.0`, the first pre-release `1.0.0-<id>.1`, a bump raises the
+  highest published version (yanked ones included, since versions aren't reused), a stable release
+  from a pre-release drops its suffix, and a pre-release continues its line. It returns null when
+  the result wouldn't be higher than every published version (`alpha` after `beta`) or the id is
+  invalid. `defaultTag` (`latest` or `next`) and `tagProblem` (the name rules; no tag that reads as
+  a semver range, such as `x` or `v1`; `latest` only on a stable version). A table test.
