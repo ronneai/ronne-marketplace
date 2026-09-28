@@ -141,13 +141,13 @@ exactly that element, and reports a conflict when it's gone or changed.
 
 ## Acceptance criteria
 
-- [ ] Every example item renders in both scopes to the paths and shapes above, and the golden files are committed.
-- [ ] Tool names, hook events and model hints map as in the table, and anything unmappable is a warning, not a failure.
-- [ ] Hooks and permission rules are added and removed as single array elements (`json-array-item`), leaving other elements alone.
-- [ ] No secret value is written for MCP servers; env vars are referenced.
+- [x] Every example item renders in both scopes to the paths and shapes above, and the golden files are committed.
+- [x] Tool names, hook events and model hints map as in the table, and anything unmappable is a warning, not a failure.
+- [x] Hooks and permission rules are added and removed as single array elements (`json-array-item`), leaving other elements alone.
+- [x] No secret value is written for MCP servers; env vars are referenced.
 - [ ] An end-to-end test installs a skill, an agent, a hook and an MCP server into a temporary project with `rmk --target claude-code`, and removes them, leaving files that weren't rmk's untouched.
-- [ ] The locations are re-checked against Claude Code's documentation when this is built, and MVP §3.3 matches.
-- [ ] The Claude Code section, the types table's links and the item page helper are in the app, matching what the renderer writes.
+- [x] The locations are re-checked against Claude Code's documentation when this is built, and MVP §3.3 matches.
+- [x] The Claude Code section, the types table's links and the item page helper are in the app, matching what the renderer writes.
 
 ## Open questions
 

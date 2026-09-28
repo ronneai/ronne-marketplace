@@ -23,7 +23,7 @@ the same change that completes it.
 - [ ] **4. End to end.** `rmk install --target claude-code` of a skill, an agent, a hook and an MCP
   server into a temporary project, then `rmk remove`.
   *Done when:* it passes in CI, and unmanaged files and keys are untouched.
-- [ ] **5. Documentation.** The Claude Code section, the types table's links, and the item page's
+- [x] **5. Documentation.** The Claude Code section, the types table's links, and the item page's
   helper.
   *Done when:* the docs render tests cover them, and each helper's link lands on a real section.
 
@@ -58,3 +58,10 @@ the same change that completes it.
   same settings key. How a project registers a local marketplace is what the docs said on
   2026-09-28; the end-to-end test (task 4) is where it's proven. Bundles write nothing. The renderer
   is in `RENDERERS`, and exported from `@ronneai/core/render`.
+- **Task 5 (2026-09-28): documentation.** Installing with rmk gains a "Claude Code" section (where
+  each type goes, in plain words, and the six things worth knowing: rules, commands as skills, MCP
+  approval and env references, output styles, language servers as plugins, markers). The types
+  table has an "In Claude Code" column linking to it, and the item page a "Where does this go in
+  Claude Code?" helper next to the type.
+- **Task 4 waits for 022.** The end-to-end test installs with `rmk`, which doesn't exist yet: it's
+  part of 022's end-to-end task, and this feature stays in progress until it passes.
