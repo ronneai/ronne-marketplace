@@ -1,6 +1,4 @@
-<!-- rmk:begin @examples/house-style -->
 - Prefer `type` over `interface` unless declaration merging is needed.
 - No default exports, except where a framework requires them (Next.js pages).
 - Throw domain exceptions from services; never return error strings.
 - Name booleans as questions: `isReady`, `hasAccess`.
-<!-- rmk:end @examples/house-style -->

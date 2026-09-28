@@ -15,7 +15,7 @@ the same change that completes it.
 - [x] **2. Reading the registry.** `search`, `info`, `list`, `platforms`.
   *Done when:* tests against a stub server cover each, in text and `--json`.
 
-- [ ] **3. The applier.** Planning changes against the state file and the disk, conflicts and
+- [x] **3. The applier.** Planning changes against the state file and the disk, conflicts and
   `--force`, JSON key editing, sections, atomic writes, and the state file itself.
   *Done when:* unit tests over a temporary folder cover every change kind created, replaced,
   removed, edited by the user (conflict) and missing, plus unmanaged content left alone.
@@ -59,3 +59,14 @@ the same change that completes it.
   and versions, and the latest or asked-for version's dependencies and risk flags), `list` (the
   config's dependencies, or `--installed` from the lockfile) and `platforms` (021's `RENDERERS`
   with what each supports).
+- **Task 3 (2026-09-28): the applier.** `apply.ts`: `planChanges` compares every wanted change
+  with `.rmk/state.json` and the disk (`diskHash`, per kind) before anything is written: create,
+  replace, unchanged, remove, `gone` (the user removed it: dropped, and rendered again only when
+  wanted) or a conflict (`unmanaged`, or `edited` since rmk wrote it), which `--force` overrides.
+  An identical change from two targets becomes one entry with both targets; different content for
+  one place is `name_clash`. `applyPlan` writes through a temporary file and a rename, edits JSON
+  key by key keeping the file's other keys and indentation, appends and removes array elements by
+  their canonical hash, and fences sections; an object left empty by its last key is removed.
+  `toml-key` waits for the Codex renderer (024). A section change now carries the body only and
+  rmk adds the fences (021's spec updated), so the state file's hash of "the text between the
+  fences" is what the renderer's change hashes too.

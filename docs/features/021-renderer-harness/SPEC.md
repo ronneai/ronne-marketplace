@@ -63,7 +63,7 @@ exactly those.
 | `json-key` | path, key path, value |
 | `toml-key` | path, key path, value |
 | `json-array-item` | path, the array's key path, the element (hooks and permission rules, 023) |
-| `section` | path (a Markdown file), the item's name as the key, text |
+| `section` | path (a Markdown file), the item's name as the key, the body text (rmk adds the fences) |
 
 A change that several targets make identically (`.agents/skills/<n>/` for Codex and Cursor) is
 written once; 022 merges equal changes and records every target on one state entry.

@@ -71,7 +71,8 @@ export const stateHash = async (change: Change): Promise<string> => {
     case "json-array-item":
       return sha256Hex(encoder.encode(canonicalJson(change.item)));
     case "section":
-      return sha256Hex(encoder.encode(change.text));
+      // As it sits between the fences: one trailing newline, however many were given.
+      return sha256Hex(encoder.encode(`${trimTrailingNewlines(change.text)}\n`));
   }
 };
 

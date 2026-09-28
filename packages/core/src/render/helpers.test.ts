@@ -58,9 +58,14 @@ describe("hashes", () => {
     expect(
       await stateHash({ kind: "toml-key", path: "c.toml", key: ["a"], value: { x: 2, y: 1 } }),
     ).toBe(key);
+    // A section hashes its body as it sits between the fences: one trailing newline.
+    const body = await stateHash({ kind: "file", path: "x", content: "hi\n" });
     expect(await stateHash({ kind: "section", path: "AGENTS.md", key: "@t/x", text: "hi" })).toBe(
-      file,
+      body,
     );
+    expect(
+      await stateHash({ kind: "section", path: "AGENTS.md", key: "@t/x", text: "hi\n\n" }),
+    ).toBe(body);
   });
 
   it("hashes a folder by its files' paths, hashes and executable bits, in path order", async () => {

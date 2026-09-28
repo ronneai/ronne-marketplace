@@ -44,7 +44,10 @@ export type Change =
   | { kind: "toml-key"; path: string; key: string[]; value: unknown }
   /** One element of a JSON array, such as a hook or a permission rule (023). */
   | { kind: "json-array-item"; path: string; key: string[]; item: unknown }
-  /** A fenced `rmk:begin` / `rmk:end` block in a shared Markdown file, keyed by the item's name. */
+  /**
+   * A fenced `rmk:begin` / `rmk:end` block in a shared Markdown file, keyed by the item's name.
+   * `text` is the body only: rmk adds the fences, and the state file hashes the body.
+   */
   | { kind: "section"; path: string; key: string; text: string };
 
 export type ChangeKind = Change["kind"];
