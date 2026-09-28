@@ -12,6 +12,7 @@ import { SubmissionInvalidError, SubmissionNotFoundError } from "../exceptions/e
 import { OPEN_STATUSES, transition } from "../models/status";
 import {
   type Draft,
+  type DraftFile,
   fileBytes,
   itemNameOf,
   MANIFEST_PATH,
@@ -71,12 +72,14 @@ export const viewSubmission = async (
 };
 
 /** 011's checks on the saved files, then the registry checks. */
-const allIssues = async (
+export const allIssues = async (
   deps: SubmissionDeps,
   repo: SubmissionRepository,
   submission: Submission,
+  /** The files to check: the saved ones by default, or a revision's (the review page, 014). */
+  given?: readonly Omit<DraftFile, "updatedAt">[],
 ): Promise<ManifestIssue[]> => {
-  const files = await repo.files(submission.id);
+  const files = given ?? (await repo.files(submission.id));
   const issues = validateDraft(submission, files, deps.limits ?? DEFAULT_LIMITS);
   if (hasErrors(issues)) return issues;
 

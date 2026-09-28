@@ -134,6 +134,10 @@ export const kyselySubmissionRepository = (
       }));
     },
 
+    userName: async (userId) =>
+      (await db.selectFrom("user").select("name").where("id", "=", userId).executeTakeFirst())
+        ?.name ?? null,
+
     countByStatus: async (status) => {
       const row = await db
         .selectFrom("submissions")

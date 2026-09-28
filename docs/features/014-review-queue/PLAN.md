@@ -33,7 +33,7 @@ the same change that completes it.
 - [x] **6. The queue.** `/reviews` with its three tabs, the risk badge, and the nav item and count.
   *Done when:* render and action tests pass.
 
-- [ ] **7. The review page.** Header, risk summary with links, files (changes or all), checks, the
+- [x] **7. The review page.** Header, risk summary with links, files (changes or all), checks, the
   conversation, and the decision dialogs; the author's page shows the conversation and flags.
   *Done when:* render tests pass, and the Playwright test in the acceptance criteria passes.
 
@@ -100,3 +100,23 @@ the same change that completes it.
     badge, a "yours" mark, and statuses on Decided. **Reviews** joins the main nav for reviewers,
     with the Needs review count as a small badge (`MainNav counts`, from the app layout).
   - `utcMinute` moved to `components/ui/time.ts`, shared by My submissions and the queue.
+- **Task 7 (2026-09-28): the review page.**
+  - `services/review-page.ts`: `getReview` gathers the page from the latest revision: its files,
+    the diff from the previous revision, the risk flags, 013's checks on those files (`allIssues`
+    now takes the files to check), the conversation, and what the viewer may do (decide, override,
+    comment). The author sees their own; reviewers any that isn't a draft.
+  - `/reviews/[id]`: header, decision buttons (each a dialog asking for its message; reject is
+    destructive), `RiskSummary` (flags with links to their line in All files; `allow` rules marked
+    `WIDENS:`), Files with **Changes since revision N** (the default from revision 2) or **All
+    files** (every line anchored), the checks, and the `Conversation` with its comment form. Comment
+    bodies are plain text, never HTML.
+  - The author's page, once submitted, shows the risk summary (without links: the review page is
+    for reviewers) and the conversation, where they can reply.
+  - **Found on the way:** submissions sent before this branch had no revision, so their review page
+    had no files and approving one would have approved nothing. `0006_reviews` now backfills
+    revision 1 and its `submit` event for every submitted submission (`backfillRevisions`, safe to
+    run twice), tested on all four databases.
+  - Playwright (`e2e/review.e2e.ts`): a user submits a hook; a moderator sees the queue count, the
+    `⚠ risk` badge and the risk summary, and requests changes; the user reads it, edits the script
+    and resubmits; the moderator sees the change since revision 1 and approves. The e2e seed gains
+    a moderator and the hook's author.

@@ -1,6 +1,69 @@
 import type { Kysely } from "kysely";
 import { columnTypes, tableDefaults } from "../column-types";
+import { newId } from "../ids";
+import type { Database } from "../schema";
 import type { AppMigration } from "./types";
+
+/**
+ * Submissions sent before this migration (feature 013) have no revision. Their files have been
+ * frozen since they were submitted, so revision 1 is a copy of them, with the `submit` event the
+ * conversation starts with. Submissions that already have a revision are skipped, so it can run
+ * again safely. Timestamps and flags are copied as each database stores them.
+ */
+export const backfillRevisions = async (db: Kysely<Database>): Promise<number> => {
+  const submitted = await db
+    .selectFrom("submissions")
+    .select(["id", "author_id", "submitted_at", "updated_at"])
+    .where("submitted_at", "is not", null)
+    .where((eb) =>
+      eb.not(
+        eb.exists(
+          eb
+            .selectFrom("submission_revisions")
+            .select("submission_revisions.id")
+            .whereRef("submission_revisions.submission_id", "=", "submissions.id"),
+        ),
+      ),
+    )
+    .execute();
+  for (const submission of submitted) {
+    const revisionId = newId();
+    const at = submission.submitted_at ?? submission.updated_at;
+    await db
+      .insertInto("submission_revisions")
+      .values({
+        id: revisionId,
+        submission_id: submission.id,
+        number: 1,
+        created_by: submission.author_id,
+        created_at: at,
+      })
+      .execute();
+    const files = await db
+      .selectFrom("submission_files")
+      .select(["path", "encoding", "content", "size", "executable"])
+      .where("submission_id", "=", submission.id)
+      .execute();
+    for (const file of files)
+      await db
+        .insertInto("submission_revision_files")
+        .values({ revision_id: revisionId, ...file })
+        .execute();
+    await db
+      .insertInto("review_events")
+      .values({
+        id: newId(),
+        submission_id: submission.id,
+        actor_id: submission.author_id,
+        kind: "submit",
+        body: null,
+        revision: 1,
+        created_at: at,
+      })
+      .execute();
+  }
+  return submitted.length;
+};
 
 /**
  * Review (feature 014). Every submit and resubmit snapshots the submission's files as a revision,
@@ -83,5 +146,7 @@ export const reviews: AppMigration = (dialect) => ({
       .on("review_events")
       .columns(["submission_id", "created_at"])
       .execute();
+
+    await backfillRevisions(db as Kysely<Database>);
   },
 });

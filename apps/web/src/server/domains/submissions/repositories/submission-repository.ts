@@ -32,6 +32,8 @@ export interface SubmissionRepository {
     after?: { updatedAt: Date; id: string };
   }): Promise<(Submission & { authorName: string })[]>;
   countByStatus(status: SubmissionStatus): Promise<number>;
+  /** A user's display name, or null if there's no such user. */
+  userName(userId: string): Promise<string | null>;
   /**
    * Whether another submission with one of `statuses` proposes this scope and name. The registry
    * check (013) asks it inside the submit transaction.

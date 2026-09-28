@@ -66,7 +66,7 @@ New folders start from [`_template/`](./_template/).
 
 | ID | Feature | Depends on | Status |
 |---|---|---|---|
-| [014](./014-review-queue/SPEC.md) | Review queue: diff, comments, decisions, root override, risk flags | 013, 007 | in progress |
+| [014](./014-review-queue/SPEC.md) | Review queue: diff, comments, decisions, root override, risk flags | 013, 007 | done |
 | [015](./015-release/SPEC.md) | Release: semver bump, pack, `StorageAdapter`, dist-tags | 014 | specified |
 | [016](./016-version-management/SPEC.md) | Version management: move tags, deprecate, yank | 015 | specified |
 | [017](./017-change-proposals/SPEC.md) | Change proposals: diff against base, stale and rebase | 015, 018 | specified |
