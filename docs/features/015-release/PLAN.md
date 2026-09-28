@@ -21,7 +21,7 @@ the same change that completes it.
   *Done when:* a table test covers first releases, bumps, pre-release numbering and dropping the
   suffix.
 
-- [ ] **4. Publish service.** Pack the approved revision, store it, and the transaction (item,
+- [x] **4. Publish service.** Pack the approved revision, store it, and the transaction (item,
   version, dependencies, tag, status, audit), with the dependency checks re-run.
   *Done when:* database tests cover a first release, a pre-release, refusals, a retry after a failed
   transaction, and two concurrent publishes.
@@ -55,3 +55,21 @@ the same change that completes it.
   the result wouldn't be higher than every published version (`alpha` after `beta`) or the id is
   invalid. `defaultTag` (`latest` or `next`) and `tagProblem` (the name rules; no tag that reads as
   a semver range, such as `x` or `v1`; `latest` only on a stable version). A table test.
+- **Task 4 (2026-09-28): publish service.**
+  - `items` domain: `ItemRepository` (find by `@scope/name`, insert an item, versions with their
+    dependencies by name, insert a version with its dependency rows, move a tag, lock an item).
+  - `ReleaseStore`: one READ COMMITTED transaction over the submission and item repositories.
+  - `services/publish.ts`: the author, or `submissions.publish` (moderator, root, new). It reads the
+    approved revision, re-runs 011's and 013's checks, computes the version (`nextVersion`) and the
+    tag (`defaultTag`, `tagProblem`), packs with `packItem`, stores the `.tgz`, then in one
+    transaction: locks the submission and re-checks its status, creates the item on its first
+    release, locks it, refuses an existing version, inserts the version (manifest with `version`,
+    README from `readme` or `README.md`, file list, notes, sha256) and its dependencies, updates the
+    item's description, moves the tag, marks the submission `published`, adds a `publish` event
+    ("released it as 1.0.0") and records `version.published` and `dist_tag.moved`.
+  - New errors: `ReleaseVersionError`, `VersionExistsError`, `ReleaseTagError`,
+    `ReleaseNotesError`, `ReleasePackError`. New audit groups `version` and `dist_tag`, and target
+    types `item` and `item_version`.
+  - The web Vitest config aliases `@ronneai/core/pack` to its source, as `@ronneai/core` already was.
+  - Database tests on all four databases: a first release, a pre-release on `next`, who may
+    publish, refusals (nothing stored), and two concurrent publishes.

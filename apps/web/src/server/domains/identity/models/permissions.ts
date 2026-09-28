@@ -23,6 +23,8 @@ export const PERMISSIONS = {
   "submissions.review": ["moderator", "root"],
   /** Approve your own submission, with a reason; audited as an override (MVP §2, feature 014). */
   "submissions.override": ["root"],
+  /** Release any approved submission; authors release their own without it (MVP §2, 015). */
+  "submissions.publish": ["moderator", "root"],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;
