@@ -79,6 +79,12 @@ draft's existence isn't revealed. (From 013, submitted ones are visible to moder
   you already have a draft with the same name.
 - **Type:** the 11 types, each with a one-line description (MVP §3.1), and a note on the high-risk
   ones (hook, mcp-server, permission-policy, statusline, lsp-server: reviewers see a risk flag).
+- **Layout** (after the owner's Stitch mock, 2026-09-28, in 032's design system): two numbered
+  sections, "Where it lives" (scope chips and the name, with `@scope/` inside the field) and "What
+  it is" (type cards with a filter box and Guidance / Runtime & tools / Bundles chips), and a side
+  panel that previews the real starter `ronne.yaml`, says whether reviewers will see a risk flag,
+  and holds Create. The mock's daemon, tool-compatibility, scaffolding-path and schema-version
+  details aren't Ronne's, so they're left out.
 - **Create** writes the draft with a **starter template** for the type: a `ronne.yaml` with `name`,
   `type`, a placeholder description and the type block, plus the files it refers to (for example
   `prompt.md` for an agent, or a `SKILL.md` with matching frontmatter for a skill). Templates live

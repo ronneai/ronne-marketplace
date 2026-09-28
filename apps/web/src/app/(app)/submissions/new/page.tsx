@@ -1,3 +1,5 @@
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import { PageHeader } from "@/components/ui/Panel";
 import { NewDraftForm } from "@/features/submissions/NewDraftForm";
 import type { ScopeOption } from "@/features/submissions/types";
@@ -28,9 +30,34 @@ const NewItem = async () => {
   const [scopes, mine] = await Promise.all([allScopes(headers), listMySubmissions(headers)]);
   return (
     <>
+      <nav aria-label="Breadcrumb" className="pb-3">
+        <ol className="flex items-center gap-2 font-mono text-xs text-muted">
+          <li>
+            <Link
+              href="/submissions"
+              className="inline-flex items-center gap-1 hover:text-fg hover:underline"
+            >
+              <ArrowLeft size={14} aria-hidden="true" />
+              Submissions
+            </Link>
+          </li>
+          <li aria-hidden="true">/</li>
+          <li aria-current="page" className="font-semibold text-fg">
+            New item
+          </li>
+        </ol>
+      </nav>
       <PageHeader
         title="New item"
-        description="Pick where it lives, its name and its type. You'll get starter files to edit, and only you see the draft until you submit it."
+        description={
+          <>
+            Pick where it lives, its name and its type. The draft starts with a{" "}
+            <code className="rounded-control bg-tint px-1.5 py-0.5 font-mono text-xs text-fg">
+              ronne.yaml
+            </code>{" "}
+            and the files it names, and only you see it until you submit it.
+          </>
+        }
       />
       <NewDraftForm scopes={scopes} mine={mine.map(itemNameOf)} />
     </>

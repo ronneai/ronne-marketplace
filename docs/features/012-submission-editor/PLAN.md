@@ -169,3 +169,14 @@ the same change that completes it.
   - Playwright covers the acceptance scenario: the template's one problem, the prompt in
     CodeMirror, the description in the form, the problem gone, the YAML with its comments, save,
     reload, and root's 404.
+- **New item redesign (2026-09-28, owner's mock `submissions-new-item.ai`).** The same form,
+  reorganised with the design system: numbered section panels; scope chips (a search box from 9
+  scopes) with the chosen scope's description; the name field with the `@scope/` prefix and a
+  check when valid; type cards with a tag, a `risk` badge on the five high-risk types, a filter
+  box and group chips; and a sticky side panel with the starter `ronne.yaml` from `draftTemplate`
+  (the real template, not a mock), the other starter files, the review note, and Create. New
+  tokens `--code-bg`, `--code-fg` and `--code-muted` (Ink block, Paper text, both themes) are in
+  `tokens.css`, with their contrast checked in `tokens.test.ts`. Sections are titled "Where it
+  lives" and "What it is", so the Name field's label stays unique. Left out: the mock's daemon
+  status, tool compatibility, scaffolding path, `version`/`permissions` fields and schema version,
+  which Ronne doesn't have.

@@ -37,6 +37,9 @@ const PAIRS: [string, string, number][] = [
   ["link", "tint", 4.5],
   ["focus", "canvas", 3],
   ["focus", "surface", 3],
+  // Code previews (the New item page's starter files).
+  ["code-fg", "code-bg", 4.5],
+  ["code-muted", "code-bg", 4.5],
 ];
 
 describe.each([

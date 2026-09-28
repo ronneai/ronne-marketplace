@@ -108,7 +108,9 @@ describe("NewDraftForm", () => {
     expect(html).toContain("@team");
     expect(html.match(/name="type"/g)).toHaveLength(11);
     // hook, mcp-server, permission-policy, statusline and lsp-server.
-    expect(html.match(/RISK:/g)).toHaveLength(5);
+    expect(html.match(/>risk</g)).toHaveLength(5);
+    // No type picked yet: the side panel asks for one.
+    expect(html).toContain("Pick a type to see the ronne.yaml");
     expect(html).toContain('href="/scopes"');
   });
 

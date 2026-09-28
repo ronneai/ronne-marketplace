@@ -22,6 +22,10 @@
   --link: #14213d;
   --tint: #bfe9e1;
   --focus: #14213d;
+  /* Code previews: an Ink block with Paper text, in both themes. */
+  --code-bg: #0b1220;
+  --code-fg: #f7f9fa;
+  --code-muted: #bfe9e1;
 }
 
 [data-theme="dark"] {
@@ -37,4 +41,7 @@
   --link: #18b6a4;
   --tint: #14213d;
   --focus: #18b6a4;
+  --code-bg: #0b1220;
+  --code-fg: #f7f9fa;
+  --code-muted: #bfe9e1;
 }

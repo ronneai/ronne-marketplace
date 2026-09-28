@@ -30,10 +30,15 @@ test("a user drafts an agent in CodeMirror and the form, fixes its problem, save
     .click();
   await expect(user.getByText("You have no drafts yet.")).toBeVisible();
   await user.getByRole("link", { name: "New item" }).click();
-  await user.getByText("@e2e-drafts", { exact: true }).click();
+  await user.getByRole("radio", { name: "@e2e-drafts" }).check();
   await user.getByLabel("Name").fill("Reviewer");
   await expect(user.getByText("@e2e-drafts/reviewer")).toBeVisible();
-  await user.getByText("agent", { exact: true }).click();
+  // The type cards are labels around a hidden radio: click the card, as a person does.
+  await user
+    .locator("label")
+    .filter({ has: user.locator('input[name="type"][value="agent"]') })
+    .click();
+  await expect(user.getByRole("radio", { name: /^agent/ })).toBeChecked();
   await user.getByRole("button", { name: "Create draft" }).click();
   await expect(user).toHaveURL(/\/submissions\/[0-9A-Z]{26}$/);
   const url = user.url();
