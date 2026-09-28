@@ -108,6 +108,7 @@ describe("names and references", () => {
 
   it("references environment variables without their values", () => {
     expect(envRef("GITHUB_TOKEN", "shell")).toBe("$GITHUB_TOKEN");
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: the tool's own placeholder syntax.
     expect(envRef("GITHUB_TOKEN", "json-template")).toBe("${GITHUB_TOKEN}");
   });
 

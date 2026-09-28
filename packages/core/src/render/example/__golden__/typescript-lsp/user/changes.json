@@ -1,0 +1,10 @@
+[
+  {
+    "kind": "toml-key",
+    "path": "example-home/config.toml",
+    "key": [
+      "lsp",
+      "typescript-lsp"
+    ]
+  }
+]

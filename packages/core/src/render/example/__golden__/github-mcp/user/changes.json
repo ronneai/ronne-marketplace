@@ -1,0 +1,10 @@
+[
+  {
+    "kind": "json-key",
+    "path": "example-home/mcp.json",
+    "key": [
+      "mcpServers",
+      "github-mcp"
+    ]
+  }
+]

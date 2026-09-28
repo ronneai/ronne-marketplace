@@ -112,10 +112,10 @@ tool gets from an item is documented by each renderer's feature (023 for Claude 
 
 ## Acceptance criteria
 
-- [ ] `PlatformRenderer`, the change types, warnings and helpers are exported from `packages/core`, with unit tests for each helper.
-- [ ] The harness renders every example item with the reference renderer in both scopes, and fails with a readable diff when output changes; `UPDATE_GOLDEN=1` rewrites the golden files.
-- [ ] `RENDERERS` lists the renderers with their ids, names, versions and supported types, for `rmk platforms`.
-- [ ] Renderers can't write outside the project (or home) folder.
+- [x] `PlatformRenderer`, the change types, warnings and helpers are exported from `packages/core`, with unit tests for each helper.
+- [x] The harness renders every example item with the reference renderer in both scopes, and fails with a readable diff when output changes; `UPDATE_GOLDEN=1` rewrites the golden files.
+- [x] `RENDERERS` lists the renderers with their ids, names, versions and supported types, for `rmk platforms`.
+- [x] Renderers can't write outside the project (or home) folder.
 
 ## Open questions
 
