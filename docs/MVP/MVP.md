@@ -536,7 +536,7 @@ IDs are ULIDs and timestamps are UTC (§9.4).
 | `access_tokens` | id, user_id, name, token_hash (unique), last_used_at, expires_at, revoked_at, created_at |
 | `scopes` | id, name (unique), description, created_by (set null), created_at |
 | `items` | id, scope_id, name, type, description, owner_id, created_at — unique (scope_id, name) |
-| `item_versions` | id, item_id, version, manifest (JSON), readme, files (JSON: paths, sizes, executable), notes, artifact_path, sha256, size, published_by, published_at, deprecated_message, yanked_at, submission_id. `readme` and `files` are copied at publish so pages never unpack an artifact ([015](../features/015-release/SPEC.md)) |
+| `item_versions` | id, item_id, version, manifest (JSON), readme, files (JSON: paths, sizes, executable), notes, artifact_path, sha256, size, published_by, published_at, deprecated_message, yanked_at, yank_reason, submission_id. `readme` and `files` are copied at publish so pages never unpack an artifact ([015](../features/015-release/SPEC.md)) |
 | `dist_tags` | item_id, tag, version_id — PK (item_id, tag) |
 | `version_dependencies` | version_id, depends_on_item_id, range |
 | `submissions` | id, author_id, scope_id, name, type, item_id (null for new), base_version_id, status, created_at, updated_at, submitted_at. The manifest is the `ronne.yaml` in `submission_files` |

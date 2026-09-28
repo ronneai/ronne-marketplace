@@ -31,3 +31,28 @@ export class ScopeNotFoundError extends ItemsError {
     super("That scope doesn't exist.");
   }
 }
+
+/** No published item by that name: never released, or a mistyped name. */
+export class ItemNotFoundError extends ItemsError {
+  constructor(readonly itemName: string) {
+    super(`${itemName} isn't a published item.`);
+  }
+}
+
+export class VersionNotFoundError extends ItemsError {
+  constructor(
+    readonly itemName: string,
+    readonly version: string,
+  ) {
+    super(`${itemName} has no version ${version}.`);
+  }
+}
+
+/** A tag change the rules refuse (version-rules.ts), with the rule's own sentence. */
+export class TagRuleError extends ItemsError {}
+
+export class VersionMessageError extends ItemsError {
+  constructor(what: string) {
+    super(`${what} needs 1 to 300 characters.`);
+  }
+}

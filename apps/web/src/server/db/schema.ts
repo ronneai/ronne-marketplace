@@ -189,6 +189,8 @@ export interface ItemVersionTable {
   published_at: Timestamp;
   deprecated_message: string | null;
   yanked_at: Timestamp | null;
+  /** Why it was yanked (migration 0008, feature 016). */
+  yank_reason: string | null;
   /** The submission it was released from. */
   submission_id: string | null;
 }

@@ -25,6 +25,8 @@ export const PERMISSIONS = {
   "submissions.override": ["root"],
   /** Release any approved submission; authors release their own without it (MVP §2, 015). */
   "submissions.publish": ["moderator", "root"],
+  /** Move and remove dist-tags, deprecate and yank versions (MVP §2, feature 016). */
+  "versions.manage": ["moderator", "root"],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

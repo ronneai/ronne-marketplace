@@ -3,15 +3,21 @@ import type { Kysely } from "kysely";
 import { fromDbDate, toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
 import { encodeJson } from "../../../db/json";
-import { forUpdate } from "../../../db/locks";
+import { forUpdate, readCommittedTransaction } from "../../../db/locks";
 import type { Database } from "../../../db/schema";
 import type { DatabaseDialect } from "../../../db/url";
+import { recordAudit } from "../../audit/actions/audit";
 import type { ItemRepository } from "./item-repository";
 
 export const kyselyItemRepository = (
   db: Kysely<Database>,
   dialect: DatabaseDialect,
 ): ItemRepository => ({
+  transaction: (work) =>
+    readCommittedTransaction(db, dialect).execute((trx) =>
+      work(kyselyItemRepository(trx, dialect)),
+    ),
+
   findByName: async (scope, name) => {
     const row = await db
       .selectFrom("items")
@@ -74,7 +80,9 @@ export const kyselyItemRepository = (
         "size",
         "published_at",
         "yanked_at",
+        "yank_reason",
         "deprecated_message",
+        "published_by",
       ])
       .where("item_id", "=", itemId)
       .execute();
@@ -104,7 +112,9 @@ export const kyselyItemRepository = (
       size: Number(row.size),
       publishedAt: fromDbDate(row.published_at),
       yankedAt: fromDbDate(row.yanked_at),
+      yankReason: row.yank_reason,
       deprecatedMessage: row.deprecated_message,
+      publishedBy: row.published_by,
       dependencies: Object.fromEntries(
         dependencies
           .filter((dependency) => dependency.version_id === row.id)
@@ -132,6 +142,7 @@ export const kyselyItemRepository = (
         published_at: toDbDate(version.publishedAt, dialect),
         deprecated_message: null,
         yanked_at: null,
+        yank_reason: null,
         submission_id: version.submissionId,
       })
       .execute();
@@ -174,5 +185,43 @@ export const kyselyItemRepository = (
       db.selectFrom("items").select("id").where("id", "=", itemId),
       dialect,
     ).execute();
+  },
+
+  tags: async (itemId) =>
+    (
+      await db
+        .selectFrom("dist_tags")
+        .select(["tag", "version_id"])
+        .where("item_id", "=", itemId)
+        .execute()
+    )
+      .map((row) => ({ tag: row.tag, versionId: row.version_id }))
+      .sort((a, b) => (a.tag < b.tag ? -1 : a.tag > b.tag ? 1 : 0)),
+
+  removeTag: async (itemId, tag) => {
+    await db.deleteFrom("dist_tags").where("item_id", "=", itemId).where("tag", "=", tag).execute();
+  },
+
+  setDeprecated: async (versionId, message) => {
+    await db
+      .updateTable("item_versions")
+      .set({ deprecated_message: message })
+      .where("id", "=", versionId)
+      .execute();
+  },
+
+  setYanked: async (versionId, yanked) => {
+    await db
+      .updateTable("item_versions")
+      .set({
+        yanked_at: yanked ? toDbDate(yanked.at, dialect) : null,
+        yank_reason: yanked?.reason ?? null,
+      })
+      .where("id", "=", versionId)
+      .execute();
+  },
+
+  recordAudit: async (event, now) => {
+    await recordAudit(db, dialect, event, now);
   },
 });

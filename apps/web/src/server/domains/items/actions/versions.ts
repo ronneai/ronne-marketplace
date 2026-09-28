@@ -1,0 +1,38 @@
+import { getCurrentUser } from "../../identity/actions/session";
+import { clientIp } from "../../identity/models/client-ip";
+import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-instance";
+import { kyselyItemRepository } from "../repositories/kysely-item-repository";
+import * as service from "../services/versions";
+
+export type { ItemRef } from "../services/versions";
+
+/** Entry points for version management (feature 016). Thin: the service checks everything. */
+const deps = ({ db, dialect }: AppAuth): service.VersionDeps => ({
+  items: kyselyItemRepository(db, dialect),
+});
+
+const actor = async (headers: Headers, app: AppAuth): Promise<service.VersionActor> => ({
+  user: await getCurrentUser(headers, app),
+  ip: clientIp(headers, app.trustProxy),
+});
+
+type Action<I> = (headers: Headers, ref: service.ItemRef, input: I, app?: AppAuth) => Promise<void>;
+
+const wrap =
+  <I>(
+    run: (
+      deps: service.VersionDeps,
+      actor: service.VersionActor,
+      ref: service.ItemRef,
+      input: I,
+    ) => Promise<void>,
+  ): Action<I> =>
+  async (headers, ref, input, app = getAppAuth()) =>
+    run(deps(app), await actor(headers, app), ref, input);
+
+export const moveTag = wrap(service.moveTag);
+export const removeTag = wrap(service.removeTag);
+export const deprecate = wrap(service.deprecate);
+export const undeprecate = wrap(service.undeprecate);
+export const yank = wrap(service.yank);
+export const unyank = wrap(service.unyank);
