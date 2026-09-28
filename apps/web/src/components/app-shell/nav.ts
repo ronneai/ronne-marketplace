@@ -7,18 +7,19 @@ export type NavItem = {
   href: string;
   label: string;
   permission?: Permission;
-  /** The item is current on every path under this one, for example "/admin". */
-  section?: string;
+  /** The item is current on every path under this one (or these), for example "/admin". */
+  section?: string | string[];
   /** Hidden on phones, to fit the header; the logo already links home. */
   hideOnPhone?: boolean;
 };
 
 /**
- * Top navigation. Only pages that exist are listed (feature 032): Catalogue, Reviews, Composer and
- * Releases join as their features land.
+ * Top navigation. Only pages that exist are listed (feature 032): Composer and Releases join as
+ * their features land. Catalogue (018) is current on item pages too.
  */
 export const NAV: NavItem[] = [
   { href: "/", label: "Home", hideOnPhone: true },
+  { href: "/catalogue", label: "Catalogue", section: ["/catalogue", "/items"] },
   {
     href: "/submissions",
     label: "Submissions",
@@ -36,4 +37,6 @@ export const navFor = (user: ShellUser | null): NavItem[] => {
 };
 
 export const isCurrent = (item: NavItem, path: string): boolean =>
-  item.section ? path === item.section || path.startsWith(`${item.section}/`) : item.href === path;
+  item.section
+    ? [item.section].flat().some((section) => path === section || path.startsWith(`${section}/`))
+    : item.href === path;

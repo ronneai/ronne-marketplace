@@ -19,7 +19,7 @@ the same change that completes it.
   *Done when:* unit tests cover ordinary Markdown and hostile input (script tags, event attributes,
   `javascript:` links).
 
-- [ ] **3. The catalogue page.** Search box, filter chips, sort, cards, paging, the empty state, and
+- [x] **3. The catalogue page.** Search box, filter chips, sort, cards, paging, the empty state, and
   the nav item.
   *Done when:* render tests pass.
 
@@ -57,3 +57,11 @@ the same change that completes it.
   characters and whitespace browsers ignore, and external ones open with `noopener noreferrer
   nofollow`; images only from https, lazy and without a referrer, else their alt text; headings one
   level down. `Markdown` renders it, styled by `.markdown` in globals.css with the tokens.
+- **Task 3 (2026-09-28): the catalogue page.** `/catalogue`, laid out like the registry mock:
+  search with a scope select (a GET form, so it works without JavaScript), the 11 type chips with
+  counts plus All, the two sorts as links, stacked item cards, Next page and First page, and the
+  two empty states. `components/catalogue/ItemCard.tsx` is shared with the home page: name, listed
+  version, type, `⚠ risk`, `deprecated` with its message, "no installable version", keywords,
+  published date, and `rmk install` with a copy button (not for uninstallable items). Catalogue is
+  in the main nav after Home, and stays current on item pages (a nav item may now own several
+  sections).

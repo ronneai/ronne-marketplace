@@ -8,20 +8,31 @@ vi.mock("@/features/theme/actions", () => ({ setThemeFromForm: vi.fn() }));
 
 const { AppShell } = await import("./AppShell");
 
-import { navFor } from "./nav";
+import { isCurrent, navFor } from "./nav";
 
 describe("navFor", () => {
-  it("shows nothing signed out, Home, Submissions and Scopes for everyone, Reviews to reviewers, and Admin only for root", () => {
+  it("shows nothing signed out, Home, Catalogue, Submissions and Scopes for everyone, Reviews to reviewers, and Admin only for root", () => {
     expect(navFor(null)).toEqual([]);
     expect(navFor({ name: "U", email: "u@example.com", role: "user" }).map((i) => i.label)).toEqual(
-      ["Home", "Submissions", "Scopes"],
+      ["Home", "Catalogue", "Submissions", "Scopes"],
     );
     expect(
       navFor({ name: "M", email: "m@example.com", role: "moderator" }).map((i) => i.label),
-    ).toEqual(["Home", "Submissions", "Reviews", "Scopes"]);
+    ).toEqual(["Home", "Catalogue", "Submissions", "Reviews", "Scopes"]);
     expect(navFor({ name: "R", email: "r@example.com", role: "root" }).map((i) => i.label)).toEqual(
-      ["Home", "Submissions", "Reviews", "Scopes", "Admin"],
+      ["Home", "Catalogue", "Submissions", "Reviews", "Scopes", "Admin"],
     );
+  });
+});
+
+describe("isCurrent", () => {
+  it("marks Catalogue on the catalogue and on item pages, and Home only on the home page", () => {
+    const [home, catalogue] = navFor({ name: "U", email: "u@example.com", role: "user" });
+    expect(catalogue && isCurrent(catalogue, "/catalogue")).toBe(true);
+    expect(catalogue && isCurrent(catalogue, "/items/team/fmt/versions")).toBe(true);
+    expect(catalogue && isCurrent(catalogue, "/itemsx")).toBe(false);
+    expect(home && isCurrent(home, "/")).toBe(true);
+    expect(home && isCurrent(home, "/catalogue")).toBe(false);
   });
 });
 
