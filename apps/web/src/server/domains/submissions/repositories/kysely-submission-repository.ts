@@ -2,6 +2,7 @@ import type { ItemType } from "@ronneai/core";
 import type { Kysely } from "kysely";
 import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
+import { decodeJson, encodeJson } from "../../../db/json";
 import { forUpdate, readCommittedTransaction } from "../../../db/locks";
 import type { Database } from "../../../db/schema";
 import { upsert } from "../../../db/upsert";
@@ -26,6 +27,7 @@ type SubmissionRow = {
   item_id: string | null;
   base_version_id: string | null;
   base_version: string | null;
+  rebase_conflicts: string | null;
 };
 
 const toSubmission = (row: SubmissionRow): Submission => ({
@@ -44,6 +46,7 @@ const toSubmission = (row: SubmissionRow): Submission => ({
           itemId: row.item_id,
           baseVersionId: row.base_version_id,
           baseVersion: row.base_version ?? "",
+          conflicts: decodeJson<string[]>(row.rebase_conflicts) ?? [],
         }
       : null,
 });
@@ -61,6 +64,7 @@ export const kyselySubmissionRepository = (
         "submissions.item_id",
         "submissions.base_version_id",
         "base.version as base_version",
+        "submissions.rebase_conflicts",
         "submissions.id",
         "submissions.author_id",
         "submissions.scope_id",
@@ -101,6 +105,7 @@ export const kyselySubmissionRepository = (
           type: submission.type,
           item_id: submission.proposal?.itemId ?? null,
           base_version_id: submission.proposal?.baseVersionId ?? null,
+          rebase_conflicts: null,
           status: submission.status,
           created_at: at,
           updated_at: at,
@@ -218,6 +223,25 @@ export const kyselySubmissionRepository = (
     },
 
     registry: () => kyselyRegistryLookup(db, dialect),
+
+    setProposalBase: async (id, baseVersionId, conflicts) => {
+      await db
+        .updateTable("submissions")
+        .set({
+          base_version_id: baseVersionId,
+          rebase_conflicts: conflicts.length ? encodeJson(conflicts) : null,
+        })
+        .where("id", "=", id)
+        .execute();
+    },
+
+    setConflicts: async (id, conflicts) => {
+      await db
+        .updateTable("submissions")
+        .set({ rebase_conflicts: conflicts.length ? encodeJson(conflicts) : null })
+        .where("id", "=", id)
+        .execute();
+    },
 
     recordAudit: async (event, now) => {
       await recordAudit(db, dialect, event, now);

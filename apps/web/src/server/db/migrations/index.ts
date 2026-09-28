@@ -7,6 +7,7 @@ import { reviews } from "./0006_reviews";
 import { items } from "./0007_items";
 import { yankReason } from "./0008_yank_reason";
 import { catalogue } from "./0009_catalogue";
+import { proposalConflicts } from "./0010_proposal_conflicts";
 import type { AppMigration } from "./types";
 
 /**
@@ -23,4 +24,5 @@ export const migrations: Record<string, AppMigration> = {
   "0007_items": items,
   "0008_yank_reason": yankReason,
   "0009_catalogue": catalogue,
+  "0010_proposal_conflicts": proposalConflicts,
 };

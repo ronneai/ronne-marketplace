@@ -63,6 +63,9 @@ export interface SubmissionRepository {
   /** Locks the submission's row until the transaction ends, so two decisions can't both pass. */
   lockSubmission(id: string): Promise<void>;
   recordAudit(event: NewAuditEvent, now: Date): Promise<void>;
+  /** Moves a proposal to a newer base version, with the conflicts its rebase left (017). */
+  setProposalBase(id: string, baseVersionId: string, conflicts: readonly string[]): Promise<void>;
+  setConflicts(id: string, conflicts: readonly string[]): Promise<void>;
   /**
    * Published items, read on the same connection: inside a transaction, the registry checks see
    * what it has locked, and SQLite, which has one connection, doesn't wait on itself.

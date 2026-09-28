@@ -31,7 +31,13 @@ export type Submission = {
 };
 
 /** What a change proposal (017) changes: the item, and the version it started from. */
-export type Proposal = { itemId: string; baseVersionId: string; baseVersion: string };
+export type Proposal = {
+  itemId: string;
+  baseVersionId: string;
+  baseVersion: string;
+  /** Paths the last rebase couldn't merge; submitting waits until the author resolves them. */
+  conflicts: string[];
+};
 
 /** One file of a draft, as stored. `content` is text, or base64 for binary files. */
 export type DraftFile = {

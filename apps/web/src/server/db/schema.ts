@@ -110,6 +110,8 @@ export interface SubmissionTable {
   /** Null for a new item; 017 fills it for change proposals. */
   item_id: string | null;
   base_version_id: string | null;
+  /** JSON: a proposal's open rebase conflicts, as paths (migration 0010, feature 017). */
+  rebase_conflicts: string | null;
   status: string;
   created_at: Timestamp;
   updated_at: Timestamp;

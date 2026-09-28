@@ -27,6 +27,7 @@ export const AUDIT_ACTIONS = [
   "submission.changes_requested",
   "submission.rejected",
   "submission.override_approved",
+  "submission.rebased",
   "version.published",
   "version.deprecated",
   "version.undeprecated",

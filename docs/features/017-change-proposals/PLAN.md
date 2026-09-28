@@ -17,7 +17,7 @@ the same change that completes it.
   *Done when:* database tests cover a proposal going stale when a version is published, and a refused
   approve.
 
-- [ ] **3. Rebase.** The whole-file three-way merge, conflicts and resolving them, and the submit
+- [x] **3. Rebase.** The whole-file three-way merge, conflicts and resolving them, and the submit
   refusal while conflicts are open.
   *Done when:* unit tests cover every row of the merge rules, and database tests cover a rebase with
   and without conflicts.
@@ -53,3 +53,13 @@ the same change that completes it.
   meanwhile (added to the spec: it would undo the newer release). `typeIssues` in the registry
   checks compares a proposal's type with the published item's (`TypeChangedError`, code
   `type_changed`); proposals run it instead of the free-name check.
+- **Task 3 (2026-09-28): rebase.** `models/rebase.ts`: `mergeFiles`, the whole-file three-way merge
+  (a file's encoding and executable bit count as content), with a unit test per rule.
+  `rebaseProposal` reads the old base's and the newest version's files from their artifacts, locks
+  the proposal and checks it's still on that base, merges, writes only what changed, and moves the
+  base; a `submitted` or `approved` proposal goes back to `changes_requested` (a new `rebase`
+  transition, extended to `approved` in the spec so an approved proposal that went stale can be
+  brought up to date and reviewed again). It records a `rebase` event in the conversation ("rebased
+  it onto 1.1.0") and audits `submission.rebased` with the conflicts. Conflicts are stored in
+  `submissions.rebase_conflicts` (migration `0010`); each is a `rebase_conflict` error in the
+  submit checks until `resolveConflict` clears it.

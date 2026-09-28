@@ -92,6 +92,15 @@ export const allIssues = async (
   const dependencies = (manifest?.dependencies ?? {}) as Record<string, string>;
   return [
     ...issues,
+    // Files a rebase (017) left in conflict, until the author resolves them.
+    ...(submission.proposal?.conflicts ?? []).map(
+      (path): ManifestIssue => ({
+        severity: "error",
+        code: "rebase_conflict",
+        message: `${path} changed both in this proposal and in ${submission.proposal?.baseVersion}: compare them, make it right, then mark it resolved.`,
+        file: path,
+      }),
+    ),
     // A change proposal (017) is for its item: it needs no free name, but keeps the item's type.
     ...(submission.proposal
       ? await typeIssues(registry, submission)

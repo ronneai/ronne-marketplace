@@ -12,13 +12,18 @@ import type { AppAuth } from "../../identity/repositories/auth-instance";
 import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testing/test-auth";
 import { createScope } from "../../items/actions/scopes";
 import {
+  ConflictNotFoundError,
+  NotAProposalError,
   ProposalArtifactError,
   ProposalBaseNotFoundError,
+  ProposalCurrentError,
   ProposalRenameError,
+  SubmissionInvalidError,
   SubmissionStaleError,
 } from "../exceptions/errors";
+import { kyselySubmissionRepository } from "../repositories/kysely-submission-repository";
 import { createDraft, getDraft, renameDraft, saveDraftFiles } from "./drafts";
-import { proposeChange } from "./proposals";
+import { proposeChange, rebaseProposal, resolveConflict } from "./proposals";
 import { publishSubmission } from "./publish";
 import { decide, getReview } from "./reviews";
 import { submitDraft } from "./submissions";
@@ -287,5 +292,83 @@ describe("stale proposals", () => {
     ).resolves.toMatchObject({
       status: "approved",
     });
+  });
+});
+
+describe("rebase", () => {
+  const item = { item: "@team/secure-coding", version: "1.0.0" };
+  /** Someone else's proposal released as 1.1.0, changing `files`. */
+  const releaseNewer = async (files: Record<string, string>) => {
+    const newer = await proposeChange(asAuthor, item, app, storage);
+    await write(asAuthor, newer.id, files);
+    await release(asAuthor, newer.id, "minor");
+  };
+
+  it("merges what each side changed, and the result is released as the next version", async () => {
+    await releasedSkill();
+    const mine = await proposeChange(asOther, item, app, storage);
+    await write(asOther, mine.id, { "README.md": "# Mine\n", "NOTES.md": "Added.\n" });
+    const skill = text(await getDraft(asOther, mine.id, app), "SKILL.md");
+    await releaseNewer({ "SKILL.md": `${skill}\nMore from 1.1.0.\n` });
+
+    const rebased = await rebaseProposal(asOther, mine.id, app, storage);
+    expect(rebased).toMatchObject({
+      status: "draft",
+      conflicts: [],
+      proposal: { baseVersion: "1.1.0", conflicts: [] },
+    });
+    expect(text(rebased, "README.md")).toBe("# Mine\n");
+    expect(text(rebased, "NOTES.md")).toBe("Added.\n");
+    expect(text(rebased, "SKILL.md")).toContain("More from 1.1.0.");
+    // What's saved matches what was returned.
+    const saved = await getDraft(asOther, mine.id, app);
+    expect(saved.proposal?.baseVersion).toBe("1.1.0");
+    expect(text(saved, "SKILL.md")).toContain("More from 1.1.0.");
+    await expect(rebaseProposal(asOther, mine.id, app, storage)).rejects.toThrow(
+      ProposalCurrentError,
+    );
+
+    expect((await release(asOther, mine.id, "minor")).version).toBe("1.2.0");
+  });
+
+  it("lists conflicts, refuses to submit until they're resolved, and sends a submitted proposal back", async () => {
+    await releasedSkill();
+    const mine = await proposeChange(asOther, item, app, storage);
+    await write(asOther, mine.id, { "README.md": "# Mine\n" });
+    await submitDraft(asOther, mine.id, app);
+    await releaseNewer({ "README.md": "# Theirs\n" });
+
+    const rebased = await rebaseProposal(asOther, mine.id, app, storage);
+    expect(rebased).toMatchObject({ status: "changes_requested", conflicts: ["README.md"] });
+    expect(text(rebased, "README.md")).toBe("# Mine\n");
+    const events = await kyselySubmissionRepository(t.db, t.dialect).events(mine.id);
+    expect(events.at(-1)).toMatchObject({ kind: "rebase", body: "1.1.0" });
+
+    await expect(submitDraft(asOther, mine.id, app)).rejects.toThrow(SubmissionInvalidError);
+    await expect(resolveConflict(asOther, mine.id, "SKILL.md", app, storage)).rejects.toThrow(
+      ConflictNotFoundError,
+    );
+    expect(await resolveConflict(asOther, mine.id, "README.md", app, storage)).toEqual([]);
+    await expect(submitDraft(asOther, mine.id, app)).resolves.toMatchObject({
+      status: "submitted",
+    });
+    await expect(decide(asModerator, mine.id, { decision: "approve" }, app)).resolves.toMatchObject(
+      {
+        status: "approved",
+      },
+    );
+  });
+
+  it("is for the author's own proposals only", async () => {
+    await releasedSkill();
+    const mine = await proposeChange(asOther, item, app, storage);
+    await expect(rebaseProposal(asOther, mine.id, app, storage)).rejects.toThrow(
+      ProposalCurrentError,
+    );
+    await expect(rebaseProposal(asAuthor, mine.id, app, storage)).rejects.toThrow(/doesn't exist/);
+    const fresh = await createDraft(asOther, { scope: "team", name: "new-one", type: "rule" }, app);
+    await expect(rebaseProposal(asOther, fresh.id, app, storage)).rejects.toThrow(
+      NotAProposalError,
+    );
   });
 });

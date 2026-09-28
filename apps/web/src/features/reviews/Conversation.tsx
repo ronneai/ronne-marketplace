@@ -13,10 +13,11 @@ const SAID: Record<ReviewEventKind, (event: ReviewEvent) => string> = {
   override: () => "approved their own submission, as root (override)",
   withdraw: () => "withdrew it",
   publish: (e) => `released it as ${e.body ?? "a new version"}`,
+  rebase: (e) => `rebased it onto ${e.body ?? "a newer version"}`,
 };
 
 /** Events whose body is part of the sentence, not a message under it. */
-const INLINE_BODY = new Set<ReviewEventKind>(["publish"]);
+const INLINE_BODY = new Set<ReviewEventKind>(["publish", "rebase"]);
 
 const DECISIONS = new Set<ReviewEventKind>(["request_changes", "approve", "reject", "override"]);
 

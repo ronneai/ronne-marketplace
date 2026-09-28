@@ -325,3 +325,24 @@ export class TypeChangedError extends SubmissionsError {
     );
   }
 }
+
+/** Rebasing or resolving applies to change proposals (017) only. */
+export class NotAProposalError extends SubmissionsError {
+  constructor() {
+    super("Only a change proposal can be rebased: this submission is a new item.");
+  }
+}
+
+/** Rebasing a proposal that's already on the item's newest version. */
+export class ProposalCurrentError extends SubmissionsError {
+  constructor(readonly baseVersion: string) {
+    super(`Nothing to rebase: ${baseVersion} is still the newest version.`);
+  }
+}
+
+/** Resolving a path the last rebase didn't leave in conflict. */
+export class ConflictNotFoundError extends SubmissionsError {
+  constructor(readonly path: string) {
+    super(`${path} has no conflict to resolve.`);
+  }
+}

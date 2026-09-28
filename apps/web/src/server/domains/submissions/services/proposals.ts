@@ -1,25 +1,34 @@
 import { DEFAULT_LIMITS, parseItemName } from "@ronneai/core";
 import { PackError, unpackItem } from "@ronneai/core/pack";
 import { parseDocument } from "yaml";
+import { isId } from "../../../db/ids";
 import type { StorageAdapter } from "../../../storage";
 import { requirePermission } from "../../identity/models/permissions";
 import {
+  ConflictNotFoundError,
+  NotAProposalError,
   ProposalArtifactError,
   ProposalBaseNotFoundError,
+  ProposalCurrentError,
+  SubmissionNotEditableError,
   SubmissionNotFoundError,
   SubmissionStaleError,
 } from "../exceptions/errors";
 import { staleAgainst } from "../models/proposal";
-import type { Submission } from "../models/submission";
+import { mergeFiles } from "../models/rebase";
+import { isEditable, transition } from "../models/status";
 import {
   byteSize,
   type Draft,
   type DraftFile,
+  itemNameOf,
   MANIFEST_PATH,
+  type Submission,
   toDraftContent,
 } from "../models/submission";
 import type { PublishedVersion, RegistryLookup } from "../repositories/registry-lookup";
 import type { DraftActor, DraftDeps } from "./drafts";
+import type { SubmissionActor } from "./submissions";
 
 /**
  * Change proposals (feature 017, MVP §4.1): a draft of a published item's next version, started from
@@ -120,7 +129,12 @@ export const proposeChange = async (
       createdAt: at,
       updatedAt: at,
       submittedAt: null,
-      proposal: { itemId: item.id, baseVersionId: base.id, baseVersion: base.version },
+      proposal: {
+        itemId: item.id,
+        baseVersionId: base.id,
+        baseVersion: base.version,
+        conflicts: [],
+      },
       files: written,
     };
   });
@@ -147,4 +161,118 @@ export const requireCurrent = async (registry: RegistryLookup, submission: Submi
       submission.proposal.baseVersion,
       newer,
     );
+};
+
+/** The actor's own change proposal, or SubmissionNotFoundError / NotAProposalError. */
+const ownProposal = async (deps: ProposalDeps, actor: DraftActor, id: string) => {
+  requirePermission(actor.user, "submissions.create");
+  const submission = isId(id) ? await deps.repo.find(id) : null;
+  if (!submission || submission.authorId !== actor.user?.id) throw new SubmissionNotFoundError();
+  if (!submission.proposal) throw new NotAProposalError();
+  return { ...submission, proposal: submission.proposal };
+};
+
+export type Rebased = Draft & { conflicts: string[] };
+
+/**
+ * Moves a stale proposal onto its item's newest version (017), merging by whole files
+ * (`models/rebase.ts`): what only the author changed stays, what only the newer version changed
+ * comes in, and what both changed stays the author's, listed as a conflict to resolve before
+ * submitting. A proposal under review or approved goes back to `changes_requested` first. The files
+ * are read from both versions' artifacts before the transaction; inside it, the proposal is locked
+ * and must still be on the base the merge started from.
+ */
+export const rebaseProposal = async (
+  deps: ProposalDeps,
+  actor: SubmissionActor,
+  id: string,
+): Promise<Rebased> => {
+  const submission = await ownProposal(deps, actor, id);
+  const status = isEditable(submission.status)
+    ? submission.status
+    : transition(submission.status, "rebase");
+  const registry = deps.registry ?? deps.repo.registry();
+  const versions = await registry.publishedVersions(submission.proposal.itemId);
+  const newerVersion = staleAgainst(submission.proposal.baseVersion, versions);
+  if (!newerVersion) throw new ProposalCurrentError(submission.proposal.baseVersion);
+  const base = versions.find((v) => v.id === submission.proposal.baseVersionId);
+  const newer = versions.find((v) => v.version === newerVersion);
+  const itemName = itemNameOf(submission);
+  if (!base || !newer) throw new ProposalBaseNotFoundError(itemName, newerVersion);
+  const baseFiles = await versionFiles(deps, itemName, base);
+  const newerFiles = await versionFiles(deps, itemName, newer);
+
+  const at = (deps.now ?? (() => new Date()))();
+  return deps.repo.transaction(async (repo) => {
+    await repo.lockSubmission(submission.id);
+    const current = await repo.find(submission.id);
+    if (current?.status !== submission.status || current.proposal?.baseVersionId !== base.id)
+      throw new SubmissionNotEditableError();
+    const mine = await repo.files(submission.id);
+    const { files, conflicts } = mergeFiles(
+      new Map(baseFiles.map((f) => [f.path, f])),
+      new Map(mine.map((f) => [f.path, f])),
+      new Map(newerFiles.map((f): [string, DraftFile] => [f.path, { ...f, updatedAt: at }])),
+    );
+    const before = new Map(mine.map((f) => [f.path, f]));
+    for (const path of before.keys())
+      if (!files.has(path)) await repo.deleteFile(submission.id, path);
+    for (const [path, file] of files)
+      if (before.get(path) !== file) await repo.writeFile(submission.id, file);
+    await repo.setProposalBase(submission.id, newer.id, conflicts);
+    if (status !== submission.status)
+      await repo.setStatus(submission.id, status, { updatedAt: at });
+    else await repo.update(submission.id, { updatedAt: at });
+    if (submission.status !== "draft")
+      await repo.addEvent({
+        submissionId: submission.id,
+        actorId: actor.user?.id ?? "",
+        kind: "rebase",
+        body: newer.version,
+        revision: (await repo.revisions(submission.id)).at(-1)?.number ?? null,
+        createdAt: at,
+      });
+    await repo.recordAudit(
+      {
+        actorId: actor.user?.id ?? null,
+        action: "submission.rebased",
+        target: { type: "submission", id: submission.id },
+        metadata: { name: itemName, from: base.version, to: newer.version, conflicts },
+        ipAddress: actor.ip,
+      },
+      at,
+    );
+    return {
+      ...submission,
+      status,
+      updatedAt: at,
+      proposal: {
+        ...submission.proposal,
+        baseVersionId: newer.id,
+        baseVersion: newer.version,
+        conflicts,
+      },
+      files: [...files.values()].sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0)),
+      conflicts,
+    };
+  });
+};
+
+/** Marks one of the last rebase's conflicts resolved: the author has made the file what it should be. */
+export const resolveConflict = async (
+  deps: ProposalDeps,
+  actor: DraftActor,
+  id: string,
+  path: string,
+): Promise<string[]> => {
+  const at = (deps.now ?? (() => new Date()))();
+  return deps.repo.transaction(async (repo) => {
+    const submission = await ownProposal({ ...deps, repo }, actor, id);
+    if (!isEditable(submission.status)) throw new SubmissionNotEditableError();
+    if (!submission.proposal.conflicts.includes(path)) throw new ConflictNotFoundError(path);
+    const conflicts = submission.proposal.conflicts.filter((p) => p !== path);
+    await repo.setConflicts(submission.id, conflicts);
+    await repo.update(submission.id, { updatedAt: at });
+    return conflicts;
+  });
 };

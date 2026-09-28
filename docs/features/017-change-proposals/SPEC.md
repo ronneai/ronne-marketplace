@@ -48,14 +48,15 @@ So is **releasing** one that went stale after it was approved (another proposal 
 first): releasing it would undo what the newer version changed. Yanked versions don't make a
 proposal stale.
 
-**Rebase** (the author, on a draft or `changes_requested` proposal, or one that's `submitted` and
-stale, which moves it back to `changes_requested` first). Moves the base to the item's newest version,
+**Rebase** (the author, on a draft or `changes_requested` proposal, or one that's `submitted` or
+`approved` and stale, which moves it back to `changes_requested` first, so it's reviewed again). Moves the base to the item's newest version,
 file by file (a three-way merge by whole files, recommended; see Open questions):
 - Changed only by the author since the old base: keep the author's.
 - Changed only in the newer version: take the newer version's.
 - Changed by both: keep the author's, and list it as a **conflict** with a link to a diff of the two;
   the author edits it, and marks it resolved. Submitting is refused while conflicts are open.
 - Added or removed on one side: follow that side; added with different content on both: a conflict.
+- Removed on one side and changed on the other: a conflict, kept as the author has it.
 
 **Releasing a proposal** (015's dialog). The publish dialog suggests a bump from the diff to the base:
 - **major:** the type block loses a field, a dependency is removed, or a file the manifest names is
