@@ -32,5 +32,9 @@ the same change that completes it.
 - [ ] **6. End to end.** Against a built instance with a published item: install into a temporary
   project with the reference renderer, update after a new release, remove.
   *Done when:* it passes in CI.
+- [ ] **7. Documentation.** The rewritten Installing with rmk topic, the item page's helper, and the
+  Deprecate or yank section.
+  *Done when:* the docs render tests cover the new sections, and no page still says `rmk` isn't
+  released.
 
 ## Notes

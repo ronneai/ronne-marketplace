@@ -106,6 +106,20 @@ Node's own modules (`util.parseArgs`, `readline`), so the CLI adds no dependenci
 - **User scope:** the same, with `~/.config/rmk/user.lock` and `user-state.json`, and each tool's
   user folders.
 
+## Documentation
+
+- **Installing with rmk** is rewritten from "coming soon" to how it works: logging in, `install`
+  (with a tag, a range or a pinned version), `update`, `outdated`, `remove`, `list`, `info`,
+  `search`, `--json`, and the exit codes. Its sections become What rmk does, Logging in,
+  Installing, Keeping items up to date, The files it writes (`rmk.config.json`, `rmk.lock`,
+  `.rmk/state.json`, and which to commit), and Your own edits (conflicts and `--force`).
+- **The "When it arrives" section is removed**, and the overview's install step links to the new
+  sections.
+- **Item page:** an inline helper by the install commands, "How do I install it?", linking to
+  Installing.
+- **Versions and tags → Deprecate or yank:** what `rmk` prints for a deprecated version, and that a
+  yanked one pinned in a lockfile still installs.
+
 ## Acceptance criteria
 
 - [ ] Each command works as above against a real instance, with `--json` output and the exit codes.
@@ -115,6 +129,7 @@ Node's own modules (`util.parseArgs`, `readline`), so the CLI adds no dependenci
 - [ ] `update`, `outdated` and `remove` follow the lockfile and ranges as specified; `remove` takes away dependencies nothing else needs.
 - [ ] The token file is created `0600`, and a readable one is refused.
 - [ ] An end-to-end test installs an item from a running instance into a temporary project with the reference renderer (021), updates it after a new release, and removes it.
+- [ ] The Installing with rmk topic describes the released commands and files, the item page has its helper, and nothing in the app still says `rmk` isn't released.
 
 ## Open questions
 

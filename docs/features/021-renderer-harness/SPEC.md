@@ -104,6 +104,12 @@ change kind, so the harness and the helpers are tested before any real renderer 
   item name (for example `mcpServers.<name>`), so it only happens with a bug.
 - **A path that would leave the project folder:** refused by the helpers (`..`, absolute paths).
 
+## Documentation
+
+None in the app: the renderer interface and the harness are for people building Ronne, and change
+nothing people see or do. They're documented in this spec and in `packages/core`'s code. What each
+tool gets from an item is documented by each renderer's feature (023 for Claude Code).
+
 ## Acceptance criteria
 
 - [ ] `PlatformRenderer`, the change types, warnings and helpers are exported from `packages/core`, with unit tests for each helper.

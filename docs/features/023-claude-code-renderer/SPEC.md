@@ -129,6 +129,16 @@ exactly that element, and reports a conflict when it's gone or changed.
 - **Settings JSON with comments or trailing commas:** refused with a clear message rather than
   rewritten.
 
+## Documentation
+
+- **Installing with rmk → a new section, "Claude Code":** where each type goes in the project and
+  in the home folder (this spec's table, in plain words); that rules go to `.claude/rules/` and
+  `rmk` never writes `CLAUDE.md` or `AGENTS.md`; that Claude Code asks once before using a
+  project's MCP servers; how to pick an installed output style; and that language servers come as a
+  small local plugin.
+- **Items and types → The types:** each type's row links to where it goes in Claude Code.
+- **Inline helper on the item page**, next to the type: "Where does this go in Claude Code?".
+
 ## Acceptance criteria
 
 - [ ] Every example item renders in both scopes to the paths and shapes above, and the golden files are committed.
@@ -137,6 +147,7 @@ exactly that element, and reports a conflict when it's gone or changed.
 - [ ] No secret value is written for MCP servers; env vars are referenced.
 - [ ] An end-to-end test installs a skill, an agent, a hook and an MCP server into a temporary project with `rmk --target claude-code`, and removes them, leaving files that weren't rmk's untouched.
 - [ ] The locations are re-checked against Claude Code's documentation when this is built, and MVP §3.3 matches.
+- [ ] The Claude Code section, the types table's links and the item page helper are in the app, matching what the renderer writes.
 
 ## Open questions
 

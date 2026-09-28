@@ -23,5 +23,8 @@ the same change that completes it.
 - [ ] **4. End to end.** `rmk install --target claude-code` of a skill, an agent, a hook and an MCP
   server into a temporary project, then `rmk remove`.
   *Done when:* it passes in CI, and unmanaged files and keys are untouched.
+- [ ] **5. Documentation.** The Claude Code section, the types table's links, and the item page's
+  helper.
+  *Done when:* the docs render tests cover them, and each helper's link lands on a real section.
 
 ## Notes

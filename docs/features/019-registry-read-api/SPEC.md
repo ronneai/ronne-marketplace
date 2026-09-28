@@ -115,6 +115,15 @@ exceptions to API errors in `server/http/`.
 - **A cursor from another sort or query:** starts from the first page, as the catalogue does.
 - **Concurrent downloads:** each one is counted; the single `UPDATE` can't lose one.
 
+## Documentation
+
+- **Installing with rmk → a new section, "Tokens and the API":** what a personal access token is,
+  where to make one (Account → Access tokens), that `rmk` and the MCP server read the registry with
+  it, what a token can read (everything published), and that each download is counted for Most used
+  without recording who downloaded.
+- **Inline helper on the Access tokens page:** "What's a token for?", linking to that section.
+- **Home page:** Most used needs no new text; its count is explained in the section above.
+
 ## Acceptance criteria
 
 - [ ] Each endpoint answers the shapes above, and 401 without a valid token, on all four databases.
@@ -122,6 +131,7 @@ exceptions to API errors in `server/http/`.
 - [ ] The tarball downloads with a matching `X-Checksum-Sha256`, yanked versions included, and each download adds exactly one to `download_count`, also under concurrent requests; HEAD and 304 don't.
 - [ ] Unknown items and versions are 404 with their codes; a missing or corrupt artifact is 500 `artifact_unavailable`.
 - [ ] The home page's Most used shows items once they've been downloaded (018).
+- [ ] The Documentation section and helper above are in the app, and the helper links to a real section.
 
 ## Open questions
 

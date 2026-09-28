@@ -96,12 +96,21 @@ isn't a map of names to ranges or tags, or has more than 200 entries.
 - **Pre-releases:** a range only matches a pre-release if it names one (semver's own rule), so
   `^1.0.0` never picks `1.1.0-beta.1`.
 
+## Documentation
+
+- **Items and types → Dependencies:** how an install picks versions: one version of each item, the
+  highest that fits every range asking for it; what a conflict looks like and how the author fixes
+  it (widen a range, or release a version that fits); pre-releases only when a range names one.
+- **Versions and tags → Tags:** a tag is resolved to its version when installed, and the lockfile
+  keeps that version until `rmk update`.
+
 ## Acceptance criteria
 
 - [ ] Unit tests cover each rule and edge case with an in-memory registry, including a conflict that names who asked for each range.
 - [ ] The same request against the same registry always gives the same `Resolution`.
 - [ ] `POST /api/v1/resolve` answers resolutions and each error code, on all four databases.
 - [ ] The resolution's shape is exactly `rmk.lock`'s `items`.
+- [ ] The Dependencies and Tags sections say how versions are chosen, as above.
 
 ## Open questions
 

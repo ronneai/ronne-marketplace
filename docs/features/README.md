@@ -18,7 +18,11 @@ the design in [`MVP.md`](../MVP/MVP.md). They link to them.
    image must pass the [dependency policy](../policies/dependencies.md) checklist.
 3. **Keep the docs honest.** If the work changes the behaviour, update `SPEC.md` in the same
    change. If it changes a decision, also update MVP.md and its decision log (§15).
-4. **Finish** by setting the status here to `done`.
+4. **Keep the in-app Documentation current.** Every feature that changes what people see or do
+   updates the Documentation topics and inline helpers ([033](./033-in-app-help/SPEC.md)) in the
+   same pull request, as its spec's Documentation section lists. A spec with nothing to add says
+   "None" and why.
+5. **Finish** by setting the status here to `done`.
 
 **Numbering.** IDs are three digits, given in order of creation, and never reused or renamed. The
 slug is short and lowercase. The milestone and status live only in this table.

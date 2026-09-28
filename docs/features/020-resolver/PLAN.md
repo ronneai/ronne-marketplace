@@ -16,5 +16,7 @@ the same change that completes it.
 - [ ] **2. The database registry and the endpoint.** A `RegistryReader` over the items domain, and
   `POST /api/v1/resolve` with 019's conventions.
   *Done when:* database tests cover a resolution and each error, on all four databases.
+- [ ] **3. Documentation.** The Dependencies and Tags sections.
+  *Done when:* the docs render tests cover the new text.
 
 ## Notes

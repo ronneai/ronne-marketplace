@@ -24,5 +24,7 @@ the same change that completes it.
   token in the web app, downloads a published item's tarball with it, and sees Most used on the
   home page.
   *Done when:* it passes in CI.
+- [ ] **5. Documentation.** The "Tokens and the API" section and the Access tokens helper.
+  *Done when:* the docs render tests cover the section, and the helper's link lands on it.
 
 ## Notes
