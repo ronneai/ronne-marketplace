@@ -76,6 +76,9 @@ state neither chose.
 
 ## Open questions
 
+The owner started 016 (2026-09-28) without answering these, so it's built on the recommendations;
+either can still change.
+
 1. **Yanking the `latest` version moves `latest` back** to the highest remaining stable version
    (recommended), or yanking it is refused until someone moves `latest` by hand.
 2. **Unyank exists** (recommended, for a yank made by mistake), or a yank is final.

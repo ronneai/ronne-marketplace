@@ -61,3 +61,7 @@ export const tagProblem = (tag: string, version: string): string | null => {
     return "latest can only point to a stable version, not a pre-release.";
   return null;
 };
+
+/** The highest stable (non-pre-release) version, or null: where `latest` can point (MVP §3.4). */
+export const highestStable = (versions: readonly string[]): string | null =>
+  rsort(versions.filter((version) => valid(version) !== null && !prerelease(version)))[0] ?? null;

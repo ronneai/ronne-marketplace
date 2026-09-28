@@ -27,6 +27,7 @@ export {
   type Bump,
   defaultTag,
   highestMatching,
+  highestStable,
   nextVersion,
   PRERELEASE_ID,
   type ReleaseChoice,
