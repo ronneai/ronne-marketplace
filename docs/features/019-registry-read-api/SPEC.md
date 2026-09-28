@@ -138,8 +138,8 @@ the session; the API uses variants that take the token's user (`searchCatalogueA
 
 ## Open questions
 
-1. **Tarballs need a token** (recommended: the instance is private, and `rmk` always has one), or
-   they're public so plain tools can fetch them.
-2. **Count every successful `GET` of a tarball** (recommended: simple, and nothing about who
-   downloaded is stored), or only the first per token per version per day, which needs a table of
-   recent downloads.
+Both answered by the owner on 2026-09-28, as built:
+
+1. **Tarballs need a token.** The instance stays private, and `rmk` always has one.
+2. **Every successful `GET` of a tarball counts.** Simple, and nothing about who downloaded is
+   stored; a CI job that installs on every run counts every time.

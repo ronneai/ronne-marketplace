@@ -28,8 +28,8 @@ the same change that completes it.
   *Done when:* the docs render tests cover the section, and the helper's link lands on it.
 
 ## Notes
-- **Built on the recommendations (2026-09-28).** The owner started 019 without answering the
-  spec's open questions: tarballs need a token, and every successful download counts.
+- **Open questions (2026-09-28).** Built on the recommendations, then confirmed by the owner:
+  tarballs need a token, and every successful download counts.
 - **Task 1 (2026-09-28): conventions.** `server/http/api-query.ts` parses `limit` (1–100, 20 by
   default), `type`, `sort` and `q`, refusing what it doesn't understand. `domainErrorResponse` in
   `errors.ts` maps `ItemNotFoundError` and `VersionNotFoundError` to 404 `item_not_found` and
