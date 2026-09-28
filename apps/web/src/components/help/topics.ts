@@ -80,6 +80,7 @@ export const TOPICS = [
     summary: "How items get into your AI tools, and how to keep them current.",
     sections: [
       { id: "what", title: "What rmk does" },
+      { id: "getting", title: "Getting rmk" },
       { id: "login", title: "Logging in" },
       { id: "installing", title: "Installing" },
       { id: "updating", title: "Keeping items up to date" },

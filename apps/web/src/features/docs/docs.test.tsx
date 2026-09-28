@@ -112,9 +112,10 @@ describe("the topics", () => {
     expect(versions).toContain(">yanked<");
     const rmk = await topic("rmk");
     expect(rmk).not.toContain("released yet");
-    for (const id of ["login", "installing", "updating", "files", "edits"])
+    for (const id of ["getting", "login", "installing", "updating", "files", "edits"])
       expect(rmk).toContain(`id="${id}"`);
     expect(rmk).toContain("rmk.lock");
+    expect(rmk).toContain("packages/cli/dist/bin.js");
     expect(rmk).toContain("code 3");
     expect(rmk).toContain('id="tokens"');
     expect(rmk).toContain('id="claude-code"');

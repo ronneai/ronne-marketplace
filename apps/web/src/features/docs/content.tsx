@@ -619,6 +619,20 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </p>
       </>
     ),
+    getting: (
+      <>
+        <p>
+          <Code>rmk</Code> needs Node.js 22.12 or later. It isn&apos;t on npm yet: until it is, it
+          comes with Ronne&apos;s own repository. From a copy of the repository:
+        </p>
+        <Example>{"pnpm install\npnpm build\nnode packages/cli/dist/bin.js --help"}</Example>
+        <p>
+          To use it as <Code>rmk</Code> from anywhere, link it once:{" "}
+          <Code>cd packages/cli && npm link</Code>. Once it&apos;s published, the install becomes{" "}
+          <Code>npm install --global @ronneai/rmk</Code>, and this page will say so.
+        </p>
+      </>
+    ),
     login: (
       <>
         <Example>{"rmk login --registry https://ronne.example"}</Example>
