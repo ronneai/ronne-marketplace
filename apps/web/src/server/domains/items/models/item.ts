@@ -9,6 +9,8 @@ export type Item = {
   description: string;
   ownerId: string | null;
   createdAt: Date;
+  /** Artifact downloads through the API (018, 019). */
+  downloadCount: number;
 };
 
 /** One file of a published version, as the catalogue lists it. */

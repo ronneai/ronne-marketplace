@@ -26,8 +26,9 @@ Most used (018).
 ## Behaviour
 
 **Access.** Every endpoint needs a bearer token (009's guard: `Authorization: Bearer rmk_…`). A
-missing, expired, revoked or disabled user's token gets 401 `unauthorized`; before setup, 503
-`setup_required`. Tokens read what any signed-in user reads in the web app: everything published.
+missing, invalid, expired or revoked token, or a disabled user's, gets 401 with 009's codes
+(`token_missing`, `token_invalid`, `token_expired`, `token_revoked`, `user_disabled`), which
+clients may already rely on; before setup, 503 `setup_required`. Tokens read what any signed-in user reads in the web app: everything published.
 Cookies are ignored (009).
 
 **Names in paths.** `{scope}` and `{name}` are the item name's parts, without `@`
@@ -100,12 +101,13 @@ isn't counted.
 `Cache-Control: private, max-age=31536000, immutable` and an `ETag` of the sha256 (`If-None-Match`
 answers 304, not counted). Search and item responses are `private, no-cache`.
 
-**Errors** use MVP §11's shape, with these codes: `unauthorized` (401), `invalid_request` (400),
+**Errors** use MVP §11's shape, with these codes: 009's token codes (401), `invalid_request` (400),
 `item_not_found` and `version_not_found` (404), `artifact_unavailable` (500), `setup_required` (503).
 
 **Where it lives.** Route handlers in `app/api/v1/items/…` are thin adapters over the `items`
 domain's actions (018's catalogue, 016's versions, 018's item page), with a mapper from domain
-exceptions to API errors in `server/http/`.
+exceptions to API errors in `server/http/`. The domain actions the web pages use read the user from
+the session; the API uses variants that take the token's user (`searchCatalogueAs`, `itemPageAs`).
 
 ## Edge cases
 
@@ -126,7 +128,7 @@ exceptions to API errors in `server/http/`.
 
 ## Acceptance criteria
 
-- [ ] Each endpoint answers the shapes above, and 401 without a valid token, on all four databases.
+- [ ] Each endpoint answers the shapes above, and 401 with 009's codes without a valid token, on all four databases.
 - [ ] Search, filters, both sorts and cursor paging match the catalogue, with `limit` capped at 100.
 - [ ] The tarball downloads with a matching `X-Checksum-Sha256`, yanked versions included, and each download adds exactly one to `download_count`, also under concurrent requests; HEAD and 304 don't.
 - [ ] Unknown items and versions are 404 with their codes; a missing or corrupt artifact is 500 `artifact_unavailable`.

@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Conventions.** The domain-exception → API error mapper, query parsing (`limit`, `cursor`,
+- [x] **1. Conventions.** The domain-exception → API error mapper, query parsing (`limit`, `cursor`,
   enums), and the JSON shapes as typed serializers shared by the endpoints.
   *Done when:* unit tests cover the mapper and the parsers.
 
@@ -28,3 +28,13 @@ the same change that completes it.
   *Done when:* the docs render tests cover the section, and the helper's link lands on it.
 
 ## Notes
+- **Built on the recommendations (2026-09-28).** The owner started 019 without answering the
+  spec's open questions: tarballs need a token, and every successful download counts.
+- **Task 1 (2026-09-28): conventions.** `server/http/api-query.ts` parses `limit` (1–100, 20 by
+  default), `type`, `sort` and `q`, refusing what it doesn't understand. `domainErrorResponse` in
+  `errors.ts` maps `ItemNotFoundError` and `VersionNotFoundError` to 404 `item_not_found` and
+  `version_not_found`. `registry-json.ts` has the item, version and summary shapes. The catalogue
+  service gains `searchCatalogue` (a page without type counts, with `limit`), which the web
+  catalogue now builds on; the items domain gains `searchCatalogueAs` and `itemPageAs`, which take
+  the token's user; `Item` carries `downloadCount`. The spec keeps 009's token error codes instead
+  of a single `unauthorized`.

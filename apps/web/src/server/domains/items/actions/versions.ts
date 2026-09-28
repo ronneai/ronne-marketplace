@@ -1,5 +1,6 @@
 import { getCurrentUser } from "../../identity/actions/session";
 import { clientIp } from "../../identity/models/client-ip";
+import type { CurrentUser } from "../../identity/models/user";
 import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-instance";
 import { kyselyItemRepository } from "../repositories/kysely-item-repository";
 import * as page from "../services/item-page";
@@ -52,3 +53,11 @@ export const itemPage = async (
   version?: string,
   app: AppAuth = getAppAuth(),
 ) => page.itemPage(deps(app), await actor(headers, app), ref, version);
+
+/** For 019's API, where the user comes from a bearer token rather than a session. */
+export const itemPageAs = (
+  user: CurrentUser,
+  ref: service.ItemRef,
+  version?: string,
+  app: AppAuth = getAppAuth(),
+) => page.itemPage(deps(app), { user, ip: null }, ref, version);

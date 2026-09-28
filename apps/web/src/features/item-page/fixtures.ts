@@ -31,6 +31,7 @@ export const itemPageData = (overrides: Partial<ItemPage> = {}): ItemPage => {
       description: "GitHub tools.",
       ownerId: "u1",
       createdAt: new Date("2026-09-01T00:00:00Z"),
+      downloadCount: 0,
     },
     versions: [
       latest,

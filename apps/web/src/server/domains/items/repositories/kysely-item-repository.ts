@@ -67,6 +67,7 @@ export const kyselyItemRepository = (
         "items.description",
         "items.owner_id",
         "items.created_at",
+        "items.download_count",
       ])
       .where("scopes.name", "=", scope)
       .where("items.name", "=", name)
@@ -80,6 +81,7 @@ export const kyselyItemRepository = (
           description: row.description,
           ownerId: row.owner_id,
           createdAt: fromDbDate(row.created_at),
+          downloadCount: Number(row.download_count),
         }
       : null;
   },
