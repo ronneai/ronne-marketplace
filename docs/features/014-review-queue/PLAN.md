@@ -30,7 +30,7 @@ the same change that completes it.
   added, removed, changed and binary files, and the size limit.
   *Done when:* unit tests cover each case, including a diff too large to show.
 
-- [ ] **6. The queue.** `/reviews` with its three tabs, the risk badge, and the nav item and count.
+- [x] **6. The queue.** `/reviews` with its three tabs, the risk badge, and the nav item and count.
   *Done when:* render and action tests pass.
 
 - [ ] **7. The review page.** Header, risk summary with links, files (changes or all), checks, the
@@ -90,3 +90,13 @@ the same change that completes it.
     side from `structuredPatch`. Binary files show only that they changed; a flipped executable
     flag is its own change. A file over 2,000 lines on either side is `too_large`. `before` null
     (a first revision) lists every file as added.
+- **Task 6 (2026-09-28): the queue.**
+  - `services/queue.ts`: `listQueue` for the three tabs (Needs review and Waiting on the author,
+    oldest submit first, shown whole up to 200; Decided, newest change first, 50 a page by an
+    `updatedAt|id` cursor), each row with its author's name, latest revision, `risky` (the latest
+    revision has risk flags, through `latestRiskFlags`, which the review page reuses) and `mine`.
+    `countNeedsReview` gives the nav its number (0 for anyone who can't review).
+  - `/reviews` (moderators and root; a 404 for others): tabs as links, and a table with a `⚠ risk`
+    badge, a "yours" mark, and statuses on Decided. **Reviews** joins the main nav for reviewers,
+    with the Needs review count as a small badge (`MainNav counts`, from the app layout).
+  - `utcMinute` moved to `components/ui/time.ts`, shared by My submissions and the queue.

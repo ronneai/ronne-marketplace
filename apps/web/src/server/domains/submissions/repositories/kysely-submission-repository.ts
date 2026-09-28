@@ -108,6 +108,41 @@ export const kyselySubmissionRepository = (
           .execute()
       ).map(toSubmission),
 
+    listForReview: async ({ statuses, order, limit, after }) => {
+      if (statuses.length === 0) return [];
+      let query = submissions()
+        .innerJoin("user", "user.id", "submissions.author_id")
+        .select("user.name as author_name")
+        .where("submissions.status", "in", [...statuses])
+        .limit(limit);
+      query =
+        order === "oldest"
+          ? query.orderBy("submissions.submitted_at").orderBy("submissions.id")
+          : query.orderBy("submissions.updated_at", "desc").orderBy("submissions.id", "desc");
+      if (after) {
+        const at = toDbDate(after.updatedAt, dialect);
+        query = query.where((eb) =>
+          eb.or([
+            eb("submissions.updated_at", "<", at),
+            eb.and([eb("submissions.updated_at", "=", at), eb("submissions.id", "<", after.id)]),
+          ]),
+        );
+      }
+      return (await query.execute()).map((row) => ({
+        ...toSubmission(row),
+        authorName: row.author_name,
+      }));
+    },
+
+    countByStatus: async (status) => {
+      const row = await db
+        .selectFrom("submissions")
+        .select((eb) => eb.fn.countAll().as("count"))
+        .where("status", "=", status)
+        .executeTakeFirst();
+      return Number(row?.count ?? 0);
+    },
+
     isNameProposed: async (scopeId, name, statuses, exceptId) => {
       if (statuses.length === 0) return false;
       const found = await db

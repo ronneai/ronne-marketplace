@@ -11,16 +11,16 @@ const { AppShell } = await import("./AppShell");
 import { navFor } from "./nav";
 
 describe("navFor", () => {
-  it("shows nothing signed out, Home, Submissions and Scopes for everyone, and Admin only for root", () => {
+  it("shows nothing signed out, Home, Submissions and Scopes for everyone, Reviews to reviewers, and Admin only for root", () => {
     expect(navFor(null)).toEqual([]);
     expect(navFor({ name: "U", email: "u@example.com", role: "user" }).map((i) => i.label)).toEqual(
       ["Home", "Submissions", "Scopes"],
     );
     expect(
       navFor({ name: "M", email: "m@example.com", role: "moderator" }).map((i) => i.label),
-    ).toEqual(["Home", "Submissions", "Scopes"]);
+    ).toEqual(["Home", "Submissions", "Reviews", "Scopes"]);
     expect(navFor({ name: "R", email: "r@example.com", role: "root" }).map((i) => i.label)).toEqual(
-      ["Home", "Submissions", "Scopes", "Admin"],
+      ["Home", "Submissions", "Reviews", "Scopes", "Admin"],
     );
   });
 });

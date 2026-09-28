@@ -20,12 +20,15 @@ export const AppShell = ({
   user,
   theme = "light",
   signOutAction,
+  navCounts,
   children,
 }: {
   user: ShellUser | null;
   /** The theme cookie's value, for the header's theme switch. */
   theme?: Theme;
   signOutAction?: () => Promise<void>;
+  /** Numbers for nav items, by href (MainNav). */
+  navCounts?: Record<string, number>;
   children: ReactNode;
 }) => {
   return (
@@ -39,7 +42,7 @@ export const AppShell = ({
             <BrandLogo height={34} className="h-6 w-auto sm:h-[34px]" />
             <span className="hidden font-mono text-xs text-muted sm:inline">/ registry</span>
           </Link>
-          <MainNav items={navFor(user)} />
+          <MainNav items={navFor(user)} counts={navCounts} />
           <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
             <ThemeToggle theme={theme} />
             {user ? (

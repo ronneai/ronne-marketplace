@@ -21,6 +21,18 @@ export interface SubmissionRepository {
   /** Newest change first. */
   listByAuthor(authorId: string): Promise<Submission[]>;
   /**
+   * Submissions in `statuses`, with their author's name, for the review queue (014). `oldest`
+   * orders by the first submit, oldest first; `newest` by the last change, newest first, and pages
+   * from `after` (the last row of the previous page).
+   */
+  listForReview(query: {
+    statuses: readonly SubmissionStatus[];
+    order: "oldest" | "newest";
+    limit: number;
+    after?: { updatedAt: Date; id: string };
+  }): Promise<(Submission & { authorName: string })[]>;
+  countByStatus(status: SubmissionStatus): Promise<number>;
+  /**
    * Whether another submission with one of `statuses` proposes this scope and name. The registry
    * check (013) asks it inside the submit transaction.
    */
