@@ -55,6 +55,17 @@ test("a user drafts an agent in CodeMirror and the form, fixes its problem, save
   await user.keyboard.press("ControlOrMeta+a");
   await user.keyboard.type("You review diffs for bugs.");
   await expect(user.getByText("Unsaved changes.")).toBeVisible();
+  // Leaving with unsaved changes asks first, in the app's own dialog; staying keeps the edit.
+  await user
+    .getByRole("navigation", { name: "Main" })
+    .getByRole("link", { name: "Submissions" })
+    .click();
+  const leave = user.getByRole("dialog", { name: "Leave without saving?" });
+  await expect(leave).toBeVisible();
+  await leave.getByRole("button", { name: "Stay on this page" }).click();
+  await expect(leave).toBeHidden();
+  await expect(user).toHaveURL(url);
+  await expect(user.getByText("Unsaved changes.")).toBeVisible();
 
   // The description, in the form: the problem goes away.
   await files.getByRole("button", { name: /ronne\.yaml/ }).click();
@@ -79,7 +90,19 @@ test("a user drafts an agent in CodeMirror and the form, fixes its problem, save
   );
   await files.getByRole("button", { name: /prompt\.md/ }).click();
   await expect(user.getByLabel("Contents of prompt.md")).toHaveText("You review diffs for bugs.");
-  await user.goto("/submissions");
+  // An unsaved edit, then leaving on purpose.
+  await files.getByRole("button", { name: /prompt\.md/ }).click();
+  await user.getByLabel("Contents of prompt.md").press("End");
+  await user.keyboard.type(" Unsaved.");
+  await user
+    .getByRole("navigation", { name: "Main" })
+    .getByRole("link", { name: "Submissions" })
+    .click();
+  await user
+    .getByRole("dialog", { name: "Leave without saving?" })
+    .getByRole("button", { name: "Leave without saving" })
+    .click();
+  await expect(user).toHaveURL(/\/submissions$/);
   await expect(user.getByRole("link", { name: "@e2e-drafts/reviewer" })).toBeVisible();
 
   // Private: root gets a 404 for someone else's draft.

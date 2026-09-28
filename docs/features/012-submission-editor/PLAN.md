@@ -180,3 +180,13 @@ the same change that completes it.
   lives" and "What it is", so the Name field's label stays unique. Left out: the mock's daemon
   status, tool compatibility, scaffolding path, `version`/`permissions` fields and schema version,
   which Ronne doesn't have.
+- **Leaving with unsaved changes (2026-09-28, owner's request).** The editor used `window.confirm`
+  for links, which looked like the browser's, not the app's. `components/ui/UnsavedChangesGuard`
+  is a shared component: give it `dirty` and, while it's true, a plain click on a link (not a new
+  tab, a download, or this page) opens a design-system `Dialog` instead, and "Leave without saving"
+  continues there (`router.push` inside the app, a full load outside it). Closing or reloading the
+  tab still gets the browser's prompt, since browsers don't allow a custom one. The editor passes
+  `isDirty` of its whole file state. The stale-save notice's "Reload" now uses `router.refresh()`,
+  which remounts the editor with the saved draft without a browser prompt. Tested in `leavingHref`
+  unit tests and in Playwright (stay, then leave). Not covered: the browser's Back button, which
+  Next.js handles itself and can't be cancelled.

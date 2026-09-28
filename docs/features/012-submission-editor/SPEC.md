@@ -120,7 +120,9 @@ draft's existence isn't revealed. (From 013, submitted ones are visible to moder
   and a draft can be saved while it has errors (a draft is work in progress). 013 refuses to submit
   one.
 - **Saving:** the Save button and Ctrl/Cmd+S send the changed files in one server action. The page
-  warns before leaving with unsaved changes. Saving writes the files, bumps `updated_at`, and
+  warns before leaving with unsaved changes (any changed, new, renamed or deleted file, or
+  executable flag): a link opens the shared `UnsavedChangesGuard` dialog ("Stay on this page" or
+  "Leave without saving"), and closing or reloading the tab gets the browser's own prompt. Saving writes the files, bumps `updated_at`, and
   returns the server's issues. There's no autosave in M2. Server actions accept up to 28 MB (a
   full 20 MB draft as base64); `src/proxy.ts` refuses anything over 1 MB outside `/submissions/`
   and without a session cookie, so the larger limit isn't open to anyone else.

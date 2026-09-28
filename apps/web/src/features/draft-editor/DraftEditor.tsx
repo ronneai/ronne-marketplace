@@ -2,10 +2,12 @@
 
 import { DEFAULT_LIMITS, formatBytes, type ManifestIssue } from "@ronneai/core";
 import { FilePlus, FolderPlus, Settings, Upload } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useReducer, useRef, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/Notice";
+import { UnsavedChangesGuard } from "@/components/ui/UnsavedChangesGuard";
 import { IssueList } from "@/components/validation/IssueList";
 import {
   MANIFEST_PATH,
@@ -17,7 +19,7 @@ import { CodeEditor } from "./CodeEditor";
 import { DeleteFileDialog, DraftSettingsDialog, ImportZipDialog, PathDialog } from "./FileDialogs";
 import { FileTree } from "./FileTree";
 import { changesOf, filesReducer, isDirty, newPathProblem, totalsOf } from "./files";
-import { useDebounced, useSaveShortcut, useUnsavedWarning } from "./hooks";
+import { useDebounced, useSaveShortcut } from "./hooks";
 import { ManifestForm } from "./ManifestForm";
 import type { EditorDraft, SaveResult } from "./types";
 
@@ -52,6 +54,7 @@ export const DraftEditor = ({
   draft: EditorDraft;
   limits?: typeof DEFAULT_LIMITS;
 }) => {
+  const router = useRouter();
   const [state, dispatch] = useReducer(filesReducer, { files: draft.files, removed: [] });
   const [selected, setSelected] = useState(MANIFEST_PATH);
   const [open, setOpen] = useState<Open>(null);
@@ -65,7 +68,6 @@ export const DraftEditor = ({
   const dirty = isDirty(state);
   const file = state.files.find((f) => f.path === selected) ?? state.files[0];
   const totals = totalsOf(state.files);
-  useUnsavedWarning(dirty);
 
   // 011's checks, in the browser, once typing pauses: the same function the server runs on save.
   const settled = useDebounced(state.files, 300);
@@ -194,7 +196,7 @@ export const DraftEditor = ({
           <div className="grid gap-3">
             <p>{status.message}</p>
             <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" onClick={() => window.location.reload()}>
+              <Button variant="secondary" onClick={() => router.refresh()}>
                 Reload and lose my changes
               </Button>
               <Button onClick={() => save(true)} loading={saving}>
@@ -374,6 +376,10 @@ export const DraftEditor = ({
         </section>
       </div>
 
+      <UnsavedChangesGuard
+        dirty={dirty}
+        message="Your changes to this draft aren't saved. If you leave now, they're lost."
+      />
       {open?.kind === "new-file" ? (
         <PathDialog
           title={open.folder ? "New folder" : "New file"}
