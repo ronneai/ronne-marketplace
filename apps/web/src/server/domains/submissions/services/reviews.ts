@@ -13,6 +13,7 @@ import type { ReviewEventKind } from "../models/review";
 import { OPEN_STATUSES, type SubmissionAction, transition } from "../models/status";
 import { itemNameOf, type Submission } from "../models/submission";
 import type { SubmissionRepository } from "../repositories/submission-repository";
+import { requireCurrent } from "./proposals";
 import type { SubmissionActor, SubmissionDeps } from "./submissions";
 
 /**
@@ -116,6 +117,9 @@ export const decide = async (
     if (input.decision !== "override" && mine)
       throw new OwnSubmissionError(can(actor.user, "submissions.override"));
     const status = transition(submission.status, decision.action);
+    // A stale proposal (017) is rebased before anyone approves it.
+    if (decision.action === "approve")
+      await requireCurrent(deps.registry ?? repo.registry(), submission);
     await repo.setStatus(submission.id, status, { updatedAt: at });
     const revision = await latestRevision(repo, submission.id);
     await repo.addEvent({

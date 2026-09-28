@@ -12,3 +12,14 @@ export const getStorage = (): StorageAdapter => {
   storage ??= localStorage(loadConfig().storagePath);
   return storage;
 };
+
+/**
+ * The instance's storage, found on first use: for entry points whose callers only sometimes read
+ * artifacts (a change proposal's checks, 017), so the rest never load the configuration.
+ */
+export const instanceStorage: StorageAdapter = {
+  put: (key, bytes) => getStorage().put(key, bytes),
+  get: (key) => getStorage().get(key),
+  exists: (key) => getStorage().exists(key),
+  size: (key) => getStorage().size(key),
+};

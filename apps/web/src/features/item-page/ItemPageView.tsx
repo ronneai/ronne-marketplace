@@ -6,6 +6,7 @@ import { Notice } from "@/components/ui/Notice";
 import { Panel } from "@/components/ui/Panel";
 import { utcMinute } from "@/components/ui/time";
 import type { ItemPage } from "@/server/domains/items/actions/versions";
+import { ProposeButton } from "./ProposeButton";
 import { ITEM_TABS, type ItemTab, itemTabHref, TAB_LABELS } from "./tabs";
 
 const text = (value: unknown) => (typeof value === "string" && value ? value : null);
@@ -41,28 +42,31 @@ export const ItemPageView = ({
         / <span className="text-fg">{name}</span>
       </nav>
 
-      <header className="grid gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="font-mono text-xl font-semibold break-all text-fg">{name}</h1>
-          <span className="font-mono text-sm text-muted">v{shown.version}</span>
-          <Badge>{page.item.type}</Badge>
-          {shown.tags.map((tag) => (
-            <Badge key={tag} tone="accent">
-              {tag}
-            </Badge>
-          ))}
-          {shown.deprecatedMessage ? <Badge tone="warning">deprecated</Badge> : null}
-          {shown.yankedAt ? <Badge tone="error">yanked</Badge> : null}
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div className="grid min-w-0 gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="font-mono text-xl font-semibold break-all text-fg">{name}</h1>
+            <span className="font-mono text-sm text-muted">v{shown.version}</span>
+            <Badge>{page.item.type}</Badge>
+            {shown.tags.map((tag) => (
+              <Badge key={tag} tone="accent">
+                {tag}
+              </Badge>
+            ))}
+            {shown.deprecatedMessage ? <Badge tone="warning">deprecated</Badge> : null}
+            {shown.yankedAt ? <Badge tone="error">yanked</Badge> : null}
+          </div>
+          <p className="text-sm text-fg">{description || "No description."}</p>
+          <p className="font-mono text-xs text-muted">
+            {[
+              license ? `license ${license}` : "no license given",
+              ...keywords.map((k) => `#${k}`),
+              `by ${page.ownerName ?? "a former user"}`,
+              `published ${utcMinute(shown.publishedAt)}`,
+            ].join(" · ")}
+          </p>
         </div>
-        <p className="text-sm text-fg">{description || "No description."}</p>
-        <p className="font-mono text-xs text-muted">
-          {[
-            license ? `license ${license}` : "no license given",
-            ...keywords.map((k) => `#${k}`),
-            `by ${page.ownerName ?? "a former user"}`,
-            `published ${utcMinute(shown.publishedAt)}`,
-          ].join(" · ")}
-        </p>
+        <ProposeButton item={name} version={shown.version} />
       </header>
 
       {other ? (

@@ -540,7 +540,7 @@ IDs are ULIDs and timestamps are UTC (§9.4).
 | `item_versions` | id, item_id, version, manifest (JSON), readme, files (JSON: paths, sizes, executable), notes, artifact_path, sha256, size, published_by, published_at, deprecated_message, yanked_at, yank_reason, submission_id, description, keywords, risk_flags (for search and the catalogue, 018). `readme` and `files` are copied at publish so pages never unpack an artifact ([015](../features/015-release/SPEC.md)) |
 | `dist_tags` | item_id, tag, version_id — PK (item_id, tag) |
 | `version_dependencies` | version_id, depends_on_item_id, range |
-| `submissions` | id, author_id, scope_id, name, type, item_id (null for new), base_version_id, status, created_at, updated_at, submitted_at. The manifest is the `ronne.yaml` in `submission_files` |
+| `submissions` | id, author_id, scope_id, name, type, item_id (null for new), base_version_id, rebase_conflicts (JSON paths a rebase left, [017](../features/017-change-proposals/SPEC.md)), status, created_at, updated_at, submitted_at. The manifest is the `ronne.yaml` in `submission_files` |
 | `submission_files` | submission_id, path — PK (submission_id, path); encoding (`utf8`/`base64`), content (long text), size, executable, updated_at. Draft files live in the database; published packages go to the `StorageAdapter` |
 | `submission_revisions` | id, submission_id, number, created_by, created_at: a snapshot on every submit and resubmit, which reviewers read and releases pack ([014](../features/014-review-queue/SPEC.md)) |
 | `submission_revision_files` | revision_id, path — PK (revision_id, path); encoding, content, size, executable (as `submission_files`) |

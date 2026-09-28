@@ -266,3 +266,83 @@ export class ReleaseNotesError extends SubmissionsError {
 
 /** Packing refused the files, such as a package over 5 MB (MVP §12). */
 export class ReleasePackError extends SubmissionsError {}
+
+/** A change proposal (017) keeps its item's scope and name: a new name is a new item. */
+export class ProposalRenameError extends SubmissionsError {
+  constructor() {
+    super(
+      "A change proposal keeps its item's scope and name. To use another name, start a new item.",
+    );
+  }
+}
+
+/** Proposing a change to an item or version that isn't published. */
+export class ProposalBaseNotFoundError extends SubmissionsError {
+  constructor(
+    readonly itemName: string,
+    readonly version?: string,
+  ) {
+    super(
+      version
+        ? `${itemName} has no version ${version} to propose a change to.`
+        : `${itemName} isn't a published item.`,
+    );
+  }
+}
+
+/** A version's artifact couldn't be read back to start a proposal from it. */
+export class ProposalArtifactError extends SubmissionsError {
+  constructor(
+    readonly itemName: string,
+    readonly version: string,
+  ) {
+    super(`The files of ${itemName} ${version} couldn't be read. Ask root to check the storage.`);
+  }
+}
+
+/** A proposal whose item has a newer version (017): it has to be rebased before it's approved. */
+export class SubmissionStaleError extends SubmissionsError {
+  constructor(
+    readonly itemName: string,
+    readonly baseVersion: string,
+    readonly newer: string,
+  ) {
+    super(
+      `This proposal changes ${itemName} ${baseVersion}, but ${newer} has been released since. The author rebases it onto ${newer} first.`,
+    );
+  }
+}
+
+/** A proposal (017) can't change its item's type (manifest spec §6, layer 3). */
+export class TypeChangedError extends SubmissionsError {
+  constructor(
+    readonly itemName: string,
+    readonly from: string,
+    readonly to: string,
+  ) {
+    super(
+      `${itemName} is a ${from}; a change can't make it a ${to}. Start a new item for another type.`,
+    );
+  }
+}
+
+/** Rebasing or resolving applies to change proposals (017) only. */
+export class NotAProposalError extends SubmissionsError {
+  constructor() {
+    super("Only a change proposal can be rebased: this submission is a new item.");
+  }
+}
+
+/** Rebasing a proposal that's already on the item's newest version. */
+export class ProposalCurrentError extends SubmissionsError {
+  constructor(readonly baseVersion: string) {
+    super(`Nothing to rebase: ${baseVersion} is still the newest version.`);
+  }
+}
+
+/** Resolving a path the last rebase didn't leave in conflict. */
+export class ConflictNotFoundError extends SubmissionsError {
+  constructor(readonly path: string) {
+    super(`${path} has no conflict to resolve.`);
+  }
+}

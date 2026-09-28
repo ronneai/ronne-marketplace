@@ -2,11 +2,18 @@ import type { ManifestIssue, RiskFlag } from "@ronneai/core";
 import { parseManifest, riskFlags } from "@ronneai/core";
 import { isId } from "../../../db/ids";
 import { can, requirePermission } from "../../identity/models/permissions";
-import { SubmissionNotFoundError } from "../exceptions/errors";
+import { SubmissionNotFoundError, SubmissionsError } from "../exceptions/errors";
+import {
+  type ManifestFieldChange,
+  manifestChanges,
+  type SuggestedBump,
+  suggestBump,
+} from "../models/bump";
 import { diffRevisions, type FileChange } from "../models/diff";
 import type { ReviewEvent, Revision, RevisionFile } from "../models/review";
 import { canTransition, OPEN_STATUSES } from "../models/status";
 import { fileBytes, MANIFEST_PATH, type Submission, toPackageFile } from "../models/submission";
+import { baseFilesOf, staleVersion } from "./proposals";
 import { allIssues, type SubmissionActor, type SubmissionDeps } from "./submissions";
 
 /** Everything the review page, and the author's view of it, shows (feature 014). */
@@ -26,6 +33,61 @@ export type ReviewView = {
    * whether the page links to the Versions page (016). */
   published: string[];
   can: { decide: boolean; override: boolean; comment: boolean; publish: boolean };
+  /** For a change proposal (017): what it changes against its base version. Null for new items. */
+  proposal: ProposalView | null;
+};
+
+export type ProposalView = {
+  baseVersion: string;
+  /** The newer version it has to be rebased onto, or null. */
+  stale: string | null;
+  /** The latest revision against the base version's files; null if they couldn't be read. */
+  changes: FileChange[] | null;
+  manifest: ManifestFieldChange[];
+  /** The bump the publish dialog suggests. */
+  suggested: SuggestedBump | null;
+};
+
+const manifestOf = (files: readonly RevisionFile[]): Record<string, unknown> | null => {
+  const file = files.find((f) => f.path === MANIFEST_PATH);
+  return file ? (parseManifest(new TextDecoder().decode(fileBytes(file))).manifest ?? null) : null;
+};
+
+/** A proposal's comparison with its base; the diff is left out if the base can't be read. */
+const proposalView = async (
+  deps: SubmissionDeps,
+  submission: Submission,
+  files: readonly RevisionFile[] | null,
+): Promise<ProposalView | null> => {
+  if (!submission.proposal) return null;
+  const registry = deps.registry ?? deps.repo.registry();
+  const stale = await staleVersion(registry, submission);
+  let base: RevisionFile[] | null = null;
+  if (deps.storage && files)
+    try {
+      base = await baseFilesOf(
+        { storage: deps.storage, limits: deps.limits },
+        registry,
+        submission,
+      );
+    } catch (error) {
+      if (!(error instanceof SubmissionsError)) throw error;
+    }
+  const before = base ? manifestOf(base) : null;
+  const after = files ? manifestOf(files) : null;
+  return {
+    baseVersion: submission.proposal.baseVersion,
+    stale,
+    changes: base && files ? diffRevisions(base, [...files]) : null,
+    manifest: before && after ? manifestChanges(before, after) : [],
+    suggested:
+      base && files && before && after
+        ? suggestBump(
+            { manifest: before, paths: base.map((f) => f.path) },
+            { manifest: after, paths: files.map((f) => f.path) },
+          )
+        : null,
+  };
 };
 
 /**
@@ -80,6 +142,7 @@ export const getReview = async (
     issues: latest ? await allIssues(deps, deps.repo, submission, files) : [],
     events: await deps.repo.events(submission.id),
     published,
+    proposal: await proposalView(deps, submission, latest ? files : null),
     can: {
       decide: reviewer && !mine && submitted && canTransition(submission.status, "approve"),
       override: mine && submitted && can(actor.user, "submissions.override"),

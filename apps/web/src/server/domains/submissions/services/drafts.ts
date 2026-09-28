@@ -20,6 +20,7 @@ import {
   InvalidItemNameError,
   InvalidItemTypeError,
   ManifestRequiredError,
+  ProposalRenameError,
   StaleFilesError,
   SubmissionNotEditableError,
   SubmissionNotFoundError,
@@ -40,6 +41,7 @@ import {
 import { draftTemplate } from "../models/templates";
 import { readZip } from "../models/zip";
 import type { SubmissionRepository } from "../repositories/submission-repository";
+import { withStale } from "./proposals";
 
 /**
  * Drafts (feature 012). Anyone signed in writes drafts of new items; a draft is visible only to its
@@ -138,18 +140,19 @@ export const createDraft = async (
       createdAt: at,
       updatedAt: at,
       submittedAt: null,
+      proposal: null,
       files,
     };
   });
 };
 
-/** Your own drafts and submissions, newest change first. */
+/** Your own drafts and submissions, newest change first, with the proposals that are stale (017). */
 export const listMySubmissions = async (
   deps: DraftDeps,
   actor: DraftActor,
-): Promise<Submission[]> => {
+): Promise<(Submission & { stale: string | null })[]> => {
   requirePermission(actor.user, "submissions.create");
-  return deps.repo.listByAuthor(actor.user?.id ?? "");
+  return withStale(deps.repo.registry(), await deps.repo.listByAuthor(actor.user?.id ?? ""));
 };
 
 export const getDraft = async (deps: DraftDeps, actor: DraftActor, id: string): Promise<Draft> => {
@@ -328,6 +331,7 @@ export const renameDraft = async (
   const at = now(deps);
   return deps.repo.transaction(async (repo) => {
     const submission = await ownDraft(repo, actor, id);
+    if (submission.proposal) throw new ProposalRenameError();
     const scope = await findScope(repo, input.scope);
     const renamed = { ...submission, scope, name, updatedAt: at };
     const manifest = (await repo.files(submission.id)).find((file) => file.path === MANIFEST_PATH);

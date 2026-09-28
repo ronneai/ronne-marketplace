@@ -22,7 +22,10 @@ export const kyselyRegistryLookup = (
     },
     publishedVersions: async (itemId) =>
       (await items.versions(itemId)).map((version) => ({
+        id: version.id,
         version: version.version,
+        publishedAt: version.publishedAt,
+        artifactPath: version.artifactPath,
         yanked: version.yankedAt !== null,
         dependencies: version.dependencies,
       })),

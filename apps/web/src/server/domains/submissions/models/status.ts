@@ -24,7 +24,8 @@ export type SubmissionAction =
   | "approve"
   | "reject"
   | "withdraw"
-  | "publish";
+  | "publish"
+  | "rebase";
 
 /**
  * Every allowed move, and the only place they're decided: services call `transition`. 013 uses
@@ -42,6 +43,9 @@ export const TRANSITIONS: Record<
   reject: { from: ["submitted"], to: "rejected" },
   withdraw: { from: ["draft", "submitted", "changes_requested"], to: "withdrawn" },
   publish: { from: ["approved"], to: "published" },
+  // A stale proposal under review, or approved, goes back to its author to rebase (017). Drafts and
+  // proposals sent back for changes rebase in place.
+  rebase: { from: ["submitted", "approved"], to: "changes_requested" },
 };
 
 export const canTransition = (from: SubmissionStatus, action: SubmissionAction): boolean =>

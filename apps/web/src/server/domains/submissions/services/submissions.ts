@@ -6,6 +6,7 @@ import {
   parseManifest,
 } from "@ronneai/core";
 import { isId } from "../../../db/ids";
+import type { StorageAdapter } from "../../../storage";
 import { can, requirePermission } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
 import { SubmissionInvalidError, SubmissionNotFoundError } from "../exceptions/errors";
@@ -21,7 +22,8 @@ import {
 } from "../models/submission";
 import type { RegistryLookup } from "../repositories/registry-lookup";
 import type { SubmissionRepository } from "../repositories/submission-repository";
-import { dependencyIssues, nameIssues } from "./registry-checks";
+import { baseFilesOf } from "./proposals";
+import { dependencyIssues, nameIssues, typeIssues } from "./registry-checks";
 
 /**
  * Submitting and withdrawing (feature 013). The author submits a draft after every check a
@@ -32,6 +34,8 @@ export type SubmissionDeps = {
   repo: SubmissionRepository;
   /** Published items and versions, for tests; by default the repository's own (015). */
   registry?: RegistryLookup;
+  /** Where artifacts are, to compare a change proposal with its base version (017). */
+  storage?: StorageAdapter;
   now?: () => Date;
   limits?: PackageLimits;
 };
@@ -92,22 +96,68 @@ export const allIssues = async (
   const dependencies = (manifest?.dependencies ?? {}) as Record<string, string>;
   return [
     ...issues,
-    ...(await nameIssues(registry, {
-      scope: submission.scope.name,
-      name: submission.name,
-      proposedElsewhere: await repo.isNameProposed(
-        submission.scope.id,
-        submission.name,
-        OPEN_STATUSES,
-        submission.id,
-      ),
-    })),
+    // A proposal (017) that changes nothing has nothing to release.
+    ...(submission.proposal && deps.storage
+      ? await noChangeIssues(
+          { storage: deps.storage, limits: deps.limits },
+          registry,
+          submission,
+          files,
+        )
+      : []),
+    // Files a rebase (017) left in conflict, until the author resolves them.
+    ...(submission.proposal?.conflicts ?? []).map(
+      (path): ManifestIssue => ({
+        severity: "error",
+        code: "rebase_conflict",
+        message: `${path} changed both in this proposal and in ${submission.proposal?.baseVersion}: compare them, make it right, then mark it resolved.`,
+        file: path,
+      }),
+    ),
+    // A change proposal (017) is for its item: it needs no free name, but keeps the item's type.
+    ...(submission.proposal
+      ? await typeIssues(registry, submission)
+      : await nameIssues(registry, {
+          scope: submission.scope.name,
+          name: submission.name,
+          proposedElsewhere: await repo.isNameProposed(
+            submission.scope.id,
+            submission.name,
+            OPEN_STATUSES,
+            submission.id,
+          ),
+        })),
     ...(await dependencyIssues(registry, {
       itemName: itemNameOf(submission),
       type: submission.type,
       dependencies,
     })),
   ];
+};
+
+const noChangeIssues = async (
+  deps: { storage: StorageAdapter; limits?: PackageLimits },
+  registry: RegistryLookup,
+  submission: Submission,
+  files: readonly Omit<DraftFile, "updatedAt">[],
+): Promise<ManifestIssue[]> => {
+  const base = await baseFilesOf(deps, registry, submission);
+  const key = (f: Omit<DraftFile, "updatedAt">) =>
+    `${f.path}\u0000${f.encoding}\u0000${f.executable}\u0000${f.content}`;
+  const same =
+    base !== null &&
+    base.length === files.length &&
+    base.map(key).sort().join("\u0001") === files.map(key).sort().join("\u0001");
+  return same
+    ? [
+        {
+          severity: "error",
+          code: "no_changes",
+          message: `No changes to ${submission.proposal?.baseVersion}: change something before submitting.`,
+          file: MANIFEST_PATH,
+        },
+      ]
+    : [];
 };
 
 /** Submit for a draft, resubmit for one sent back for changes (014). */

@@ -11,7 +11,9 @@ vi.mock("next/navigation", () => ({
   notFound: () => {
     throw new Error("NEXT_NOT_FOUND");
   },
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
+vi.mock("./actions", () => ({ proposeChangeAction: vi.fn() }));
 
 const { default: Item } = await import("@/app/(app)/items/[scope]/[name]/page");
 
@@ -51,6 +53,8 @@ describe("the item page", () => {
     expect(html).toContain('href="/items/team/github/versions"');
     expect(html).toContain('href="/items/team/github?tab=files"');
     expect(html).not.toContain("You&#x27;re looking at");
+    // Anyone signed in may propose a change (017).
+    expect(html).toContain("Propose a change");
   });
 
   it("shows another version by URL, with a banner saying whether it's yanked", async () => {

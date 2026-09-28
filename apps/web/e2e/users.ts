@@ -17,6 +17,7 @@ export const E2E_USERS = {
   moderator: "moderator@e2e.test",
   releaser: "releaser@e2e.test",
   browser: "browser@e2e.test",
+  proposer: "proposer@e2e.test",
 } as const;
 
 /** The display names, which the header shows (not the email). */
@@ -33,6 +34,7 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   moderator: "Mo Moderator",
   releaser: "Rae Releaser",
   browser: "Bea Browser",
+  proposer: "Pat Proposer",
 };
 
 /** Seeded with the moderator role; everyone else is a user. */
@@ -49,3 +51,6 @@ export const E2E_VERSIONED_ITEM = "versioned";
 
 /** A skill the seed publishes with a README and keywords, for the catalogue and item page (018). */
 export const E2E_SKILL = "secret-scanner";
+
+/** A skill the seed releases as 1.0.0 with a real artifact, for change proposals (017). */
+export const E2E_PROPOSAL_ITEM = "prompt-kit";

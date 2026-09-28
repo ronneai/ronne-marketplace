@@ -1,4 +1,5 @@
 import type { ItemType, ManifestIssue } from "@ronneai/core";
+import type { FileChange } from "@/server/domains/submissions/models/diff";
 import type { SubmissionStatus } from "@/server/domains/submissions/models/status";
 
 /** A draft's file in the editor. `loadedAt` is the server's `updatedAt` for it, or null if it's new. */
@@ -29,6 +30,22 @@ export type EditorDraft = {
   canWithdraw: boolean;
   /** The item's Versions page, once it has a published version (feature 016). */
   versionsHref: string | null;
+  /** For a change proposal (feature 017); null for a new item. */
+  proposal: EditorProposal | null;
+};
+
+/** What the editor shows about a change proposal (017). */
+export type EditorProposal = {
+  /** `@scope/name`, and its page showing the base version. */
+  itemName: string;
+  baseVersion: string;
+  baseHref: string;
+  /** The newer version it has to be rebased onto, or null. */
+  stale: string | null;
+  canRebase: boolean;
+  canResolve: boolean;
+  /** Files the last rebase left in conflict, each with its base version against the author's. */
+  conflicts: { path: string; change: FileChange | null }[];
 };
 
 /** The files a save sends, with what was sent, so later edits stay unsaved. */

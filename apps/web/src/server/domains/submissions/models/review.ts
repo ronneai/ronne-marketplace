@@ -27,6 +27,7 @@ export const REVIEW_EVENT_KINDS = [
   "override",
   "withdraw",
   "publish",
+  "rebase",
 ] as const;
 
 export type ReviewEventKind = (typeof REVIEW_EVENT_KINDS)[number];

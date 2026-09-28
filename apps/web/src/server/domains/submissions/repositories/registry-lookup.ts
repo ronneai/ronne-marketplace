@@ -3,7 +3,11 @@ import type { ItemType } from "@ronneai/core";
 export type PublishedItem = { id: string; scope: string; name: string; type: ItemType };
 
 export type PublishedVersion = {
+  id: string;
   version: string;
+  publishedAt: Date;
+  /** Where its `.tgz` is, for proposals (017) that start from it. */
+  artifactPath: string;
   yanked: boolean;
   /** The version's own dependencies, from its manifest: `@scope/name` → range. */
   dependencies: Readonly<Record<string, string>>;

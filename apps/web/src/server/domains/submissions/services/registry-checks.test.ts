@@ -5,7 +5,7 @@ import {
   type RegistryLookup,
   unreleasedRegistry,
 } from "../repositories/registry-lookup";
-import { dependencyIssues, nameIssues } from "./registry-checks";
+import { dependencyIssues, nameIssues, typeIssues } from "./registry-checks";
 
 type Fake = Record<
   string,
@@ -19,7 +19,14 @@ const fakeRegistry = (items: Fake): RegistryLookup => ({
     return found ? { id: `@${scope}/${name}`, scope, name, type: found.type } : null;
   },
   publishedVersions: async (id) =>
-    (items[id]?.versions ?? []).map((v) => ({ yanked: false, dependencies: {}, ...v })),
+    (items[id]?.versions ?? []).map((v) => ({
+      id: `${id}@${v.version}`,
+      publishedAt: new Date(0),
+      artifactPath: "",
+      yanked: false,
+      dependencies: {},
+      ...v,
+    })),
 });
 
 const agent = (dependencies: Record<string, string>) => ({
@@ -135,5 +142,23 @@ describe("nameIssues", () => {
     expect(
       await nameIssues(registry, { scope: "team", name: "free", proposedElsewhere: false }),
     ).toEqual([]);
+  });
+});
+
+describe("typeIssues", () => {
+  const registry = fakeRegistry({
+    "@team/fmt": { type: "hook", versions: [{ version: "1.0.0" }] },
+  });
+  it("refuses a proposal whose type isn't its item's", async () => {
+    expect(
+      await typeIssues(registry, { scope: { name: "team" }, name: "fmt", type: "hook" }),
+    ).toEqual([]);
+    const [issue] = await typeIssues(registry, {
+      scope: { name: "team" },
+      name: "fmt",
+      type: "rule",
+    });
+    expect(issue).toMatchObject({ code: "type_changed", path: "/type" });
+    expect(issue?.message).toContain("@team/fmt is a hook; a change can't make it a rule.");
   });
 });

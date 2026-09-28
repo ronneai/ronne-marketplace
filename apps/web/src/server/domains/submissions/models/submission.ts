@@ -26,6 +26,17 @@ export type Submission = {
   createdAt: Date;
   updatedAt: Date;
   submittedAt: Date | null;
+  /** Set for a change to a published item (017); null for a new item. */
+  proposal: Proposal | null;
+};
+
+/** What a change proposal (017) changes: the item, and the version it started from. */
+export type Proposal = {
+  itemId: string;
+  baseVersionId: string;
+  baseVersion: string;
+  /** Paths the last rebase couldn't merge; submitting waits until the author resolves them. */
+  conflicts: string[];
 };
 
 /** One file of a draft, as stored. `content` is text, or base64 for binary files. */

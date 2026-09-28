@@ -44,15 +44,19 @@ side by side. Reviewers see both this and **Changes since revision N**.
 its base (any newer stable version, or a newer pre-release on the same line). It's computed, not
 stored, so it's always current. Stale proposals show a `stale` badge in the queue, My submissions and
 the review page, and **approve is refused** (`SubmissionStaleError`) until the author rebases.
+So is **releasing** one that went stale after it was approved (another proposal was released
+first): releasing it would undo what the newer version changed. Yanked versions don't make a
+proposal stale.
 
-**Rebase** (the author, on a draft or `changes_requested` proposal, or one that's `submitted` and
-stale, which moves it back to `changes_requested` first). Moves the base to the item's newest version,
+**Rebase** (the author, on a draft or `changes_requested` proposal, or one that's `submitted` or
+`approved` and stale, which moves it back to `changes_requested` first, so it's reviewed again). Moves the base to the item's newest version,
 file by file (a three-way merge by whole files, recommended; see Open questions):
 - Changed only by the author since the old base: keep the author's.
 - Changed only in the newer version: take the newer version's.
 - Changed by both: keep the author's, and list it as a **conflict** with a link to a diff of the two;
   the author edits it, and marks it resolved. Submitting is refused while conflicts are open.
 - Added or removed on one side: follow that side; added with different content on both: a conflict.
+- Removed on one side and changed on the other: a conflict, kept as the author has it.
 
 **Releasing a proposal** (015's dialog). The publish dialog suggests a bump from the diff to the base:
 - **major:** the type block loses a field, a dependency is removed, or a file the manifest names is
@@ -73,15 +77,18 @@ The publisher can choose another bump. The version, the tag rules and the rest a
 
 ## Acceptance criteria
 
-- [ ] Proposing a change creates a draft from the base version's files, with the item's scope, name and type fixed.
-- [ ] The review page shows the diff to the base version as well as the diff since the last revision.
-- [ ] A proposal becomes stale when a newer version is published, and approve is refused until it's rebased.
-- [ ] Rebase merges file by file as specified, lists conflicts, and refuses to submit while any are open.
-- [ ] Releasing a proposal suggests the bump from the diff, and publishes the item's next version.
-- [ ] Changing the type is refused by the registry checks.
-- [ ] Playwright: a user proposes a change to a published skill, a second version is released meanwhile, the user rebases, a moderator approves, and the author releases 1.1.0.
+- [x] Proposing a change creates a draft from the base version's files, with the item's scope, name and type fixed.
+- [x] The review page shows the diff to the base version as well as the diff since the last revision.
+- [x] A proposal becomes stale when a newer version is published, and approve is refused until it's rebased.
+- [x] Rebase merges file by file as specified, lists conflicts, and refuses to submit while any are open.
+- [x] Releasing a proposal suggests the bump from the diff, and publishes the item's next version.
+- [x] Changing the type is refused by the registry checks.
+- [x] Playwright: a user proposes a change to a published skill, a second version is released meanwhile, the user rebases, a moderator approves, and the author releases 1.1.0.
 
 ## Open questions
+
+The owner started 017 (2026-09-28) without answering these, so it's built on the recommendations;
+any can still change.
 
 1. **Rebase merges by whole files** (recommended: simple, and conflicts are rare in small items), or by
    lines within a file (a three-way text merge), or rebase isn't offered and the author starts again.

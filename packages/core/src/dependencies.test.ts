@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { DEPENDENCY_TYPES, ITEM_TYPES, mayDependOn, mayHaveDependencies } from "./index.js";
-import { defaultTag, highestMatching, highestStable, nextVersion, tagProblem } from "./versions.js";
+import {
+  defaultTag,
+  highestMatching,
+  highestStable,
+  nextVersion,
+  supersededBy,
+  tagProblem,
+} from "./versions.js";
 
 describe("DEPENDENCY_TYPES", () => {
   it("matches manifest spec §3", () => {
@@ -91,5 +98,20 @@ describe("highestStable", () => {
     expect(highestStable(["1.0.0", "1.2.0", "2.0.0-beta.1", "x"])).toBe("1.2.0");
     expect(highestStable(["2.0.0-beta.1"])).toBeNull();
     expect(highestStable([])).toBeNull();
+  });
+});
+
+describe("supersededBy", () => {
+  it("finds the newest stable version after a stable base, ignoring pre-releases", () => {
+    expect(supersededBy("1.0.0", ["1.0.0", "1.1.0", "1.0.1", "2.0.0-beta.1"])).toBe("1.1.0");
+    expect(supersededBy("1.0.0", ["1.0.0", "1.1.0-beta.1"])).toBeNull();
+    expect(supersededBy("1.1.0", ["1.0.0", "1.1.0"])).toBeNull();
+  });
+
+  it("counts newer pre-releases of the same line after a pre-release base, and any newer stable", () => {
+    expect(supersededBy("2.0.0-beta.1", ["2.0.0-beta.1", "2.0.0-beta.2"])).toBe("2.0.0-beta.2");
+    expect(supersededBy("2.0.0-beta.1", ["2.0.0-beta.2", "2.0.0"])).toBe("2.0.0");
+    expect(supersededBy("2.0.0-beta.1", ["2.1.0-beta.1"])).toBeNull();
+    expect(supersededBy("x", ["1.0.0"])).toBeNull();
   });
 });

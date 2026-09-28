@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation";
+import { itemPath } from "@/components/catalogue/ItemCard";
 import { RiskSummary } from "@/components/risk-flags/RiskSummary";
 import { DraftEditor } from "@/features/draft-editor/DraftEditor";
-import type { EditorDraft } from "@/features/draft-editor/types";
+import type { EditorDraft, EditorProposal } from "@/features/draft-editor/types";
 import { Conversation } from "@/features/reviews/Conversation";
 import { PublishDialog } from "@/features/reviews/PublishDialog";
 import { versionsPath } from "@/features/versions/links";
+import { type ProposalPanel, proposalPanel } from "@/server/domains/submissions/actions/proposals";
 import { getReview } from "@/server/domains/submissions/actions/reviews";
 import { viewSubmission } from "@/server/domains/submissions/actions/submissions";
 import { SubmissionNotFoundError } from "@/server/domains/submissions/exceptions/errors";
@@ -14,9 +16,30 @@ import { requestHeaders } from "@/server/http/request-headers";
 
 export const metadata = { title: "Draft · Ronne" };
 
+const REBASABLE = new Set(["draft", "changes_requested", "submitted", "approved"]);
+
+/** The editor's view of a change proposal (017): the author's panel, or the basics for anyone else. */
+const toEditorProposal = (
+  draft: Draft & { mine: boolean },
+  panel: ProposalPanel | null,
+): EditorProposal | null => {
+  if (!draft.proposal) return null;
+  const itemName = itemNameOf(draft);
+  return {
+    itemName,
+    baseVersion: draft.proposal.baseVersion,
+    baseHref: `${itemPath({ scope: draft.scope.name, name: draft.name })}?version=${encodeURIComponent(draft.proposal.baseVersion)}`,
+    stale: panel?.stale ?? null,
+    canRebase: draft.mine && REBASABLE.has(draft.status),
+    canResolve: draft.mine && isEditable(draft.status),
+    conflicts: panel?.conflicts ?? [],
+  };
+};
+
 const toEditorDraft = (
   draft: Draft & { mine: boolean },
   versionsHref: string | null,
+  panel: ProposalPanel | null,
 ): EditorDraft => ({
   id: draft.id,
   scope: draft.scope.name,
@@ -31,6 +54,7 @@ const toEditorDraft = (
     (canTransition(draft.status, "submit") || canTransition(draft.status, "resubmit")),
   canWithdraw: draft.mine && canTransition(draft.status, "withdraw"),
   versionsHref,
+  proposal: toEditorProposal(draft, panel),
   files: draft.files.map((file) => ({
     path: file.path,
     encoding: file.encoding,
@@ -58,12 +82,14 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
   }
   // Once submitted, the author also sees the risk summary and the conversation (feature 014).
   const review = draft.status === "draft" ? null : await getReview(request, id);
+  // A change proposal (017): the author sees whether it's stale, and its conflicts.
+  const panel = draft.proposal && draft.mine ? await proposalPanel(request, id) : null;
   return (
     <div className="grid gap-6">
       {/* A new version from the server (an import, a rename, a submit) starts the editor afresh. */}
       <DraftEditor
         key={draft.updatedAt.toISOString()}
-        draft={toEditorDraft(draft, review?.published.length ? versionsPath(draft) : null)}
+        draft={toEditorDraft(draft, review?.published.length ? versionsPath(draft) : null, panel)}
       />
       {review?.can.publish ? (
         <section
@@ -83,6 +109,7 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
             itemName={itemNameOf(draft)}
             published={review.published}
             versionsHref={versionsPath(draft)}
+            suggested={review.proposal?.suggested ?? null}
           />
         </section>
       ) : null}

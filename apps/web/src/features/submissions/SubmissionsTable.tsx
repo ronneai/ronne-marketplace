@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ProposalBadges } from "@/components/submissions/ProposalBadges";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { Badge } from "@/components/ui/Badge";
 import { buttonClasses } from "@/components/ui/Button";
@@ -21,7 +22,7 @@ export const statusFilter = (value: string | string[] | undefined): SubmissionSt
 };
 
 /** Newest change first, with withdrawn ones last (spec 013): they're only kept for history. */
-export const inListOrder = (submissions: readonly Submission[]): Submission[] =>
+export const inListOrder = <S extends Submission>(submissions: readonly S[]): S[] =>
   [...submissions].sort(
     (a, b) =>
       Number(a.status === "withdrawn") - Number(b.status === "withdrawn") ||
@@ -68,7 +69,12 @@ export const StatusFilters = ({
 };
 
 /** My submissions (feature 012): your drafts and submissions, newest change first. */
-export const SubmissionsTable = ({ submissions }: { submissions: Submission[] }) => {
+export const SubmissionsTable = ({
+  submissions,
+}: {
+  /** With `stale` for change proposals (017) that a newer version overtook. */
+  submissions: (Submission & { stale?: string | null })[];
+}) => {
   if (submissions.length === 0)
     return (
       <Panel padding="lg" className="grid justify-items-start gap-3">
@@ -101,6 +107,11 @@ export const SubmissionsTable = ({ submissions }: { submissions: Submission[] })
               >
                 {itemNameOf(submission)}
               </Link>
+              {submission.proposal ? (
+                <span className="ml-2 inline-flex flex-wrap gap-1 align-middle">
+                  <ProposalBadges proposal={submission.proposal} stale={submission.stale} />
+                </span>
+              ) : null}
             </Td>
             <Td>
               <Badge>{submission.type}</Badge>

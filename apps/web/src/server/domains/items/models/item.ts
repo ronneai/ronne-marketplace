@@ -21,6 +21,8 @@ export type ItemVersion = {
   version: string;
   sha256: string;
   size: number;
+  /** Where its `.tgz` is in the StorageAdapter. */
+  artifactPath: string;
   publishedAt: Date;
   yankedAt: Date | null;
   yankReason: string | null;

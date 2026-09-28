@@ -1,4 +1,15 @@
-import { gt, inc, maxSatisfying, prerelease, rsort, valid, validRange } from "semver";
+import {
+  gt,
+  inc,
+  major,
+  maxSatisfying,
+  minor,
+  patch,
+  prerelease,
+  rsort,
+  valid,
+  validRange,
+} from "semver";
 
 /**
  * The highest of `versions` that `range` accepts, or null: what the resolver (020) installs, and
@@ -65,3 +76,26 @@ export const tagProblem = (tag: string, version: string): string | null => {
 /** The highest stable (non-pre-release) version, or null: where `latest` can point (MVP §3.4). */
 export const highestStable = (versions: readonly string[]): string | null =>
   rsort(versions.filter((version) => valid(version) !== null && !prerelease(version)))[0] ?? null;
+
+const lineOf = (version: string) => `${major(version)}.${minor(version)}.${patch(version)}`;
+
+/**
+ * The newest of `versions` that supersedes `base` (feature 017, MVP §4.1): a proposal started from
+ * `base` is stale while one exists. Any newer stable version supersedes it; a newer pre-release only
+ * supersedes a pre-release of the same version line (`2.0.0-beta.2` supersedes `2.0.0-beta.1`, while
+ * `1.1.0-beta.1` doesn't supersede `1.0.0`). Null when nothing newer counts.
+ */
+export const supersededBy = (base: string, versions: readonly string[]): string | null => {
+  if (!valid(base)) return null;
+  const baseIsPre = prerelease(base) !== null;
+  return (
+    rsort(
+      versions.filter(
+        (version) =>
+          valid(version) !== null &&
+          gt(version, base) &&
+          (prerelease(version) === null || (baseIsPre && lineOf(version) === lineOf(base))),
+      ),
+    )[0] ?? null
+  );
+};

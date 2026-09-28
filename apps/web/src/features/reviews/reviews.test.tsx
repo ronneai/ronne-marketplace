@@ -29,6 +29,8 @@ const row = (overrides: Partial<QueueRow> = {}): QueueRow => ({
   createdAt: new Date("2026-09-28T09:00:00Z"),
   updatedAt: new Date("2026-09-28T10:00:00Z"),
   submittedAt: new Date("2026-09-28T09:30:00Z"),
+  proposal: null,
+  stale: null,
   revision: 2,
   risky: true,
   mine: false,
@@ -47,6 +49,26 @@ beforeEach(() => {
 });
 
 describe("the queue", () => {
+  it("marks change proposals, and stale ones", () => {
+    const html = renderToStaticMarkup(
+      <QueueTable
+        tab="needs"
+        rows={[
+          row({
+            proposal: { itemId: "i", baseVersionId: "v", baseVersion: "1.0.0", conflicts: [] },
+            stale: "1.1.0",
+          }),
+        ]}
+        nextCursor={null}
+      />,
+    );
+    expect(html).toContain(">change to 1.0.0<");
+    expect(html).toContain(">stale<");
+    expect(
+      renderToStaticMarkup(<QueueTable tab="needs" rows={[row()]} nextCursor={null} />),
+    ).not.toContain("change to");
+  });
+
   it("reads the tab from the query, Needs review by default", () => {
     expect(queueTab(undefined)).toBe("needs");
     expect(queueTab("decided")).toBe("decided");

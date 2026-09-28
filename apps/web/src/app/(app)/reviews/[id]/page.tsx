@@ -1,15 +1,18 @@
 import { History } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AllFiles, FileChanges } from "@/components/files/FileViews";
 import { RiskSummary } from "@/components/risk-flags/RiskSummary";
+import { ProposalBadges } from "@/components/submissions/ProposalBadges";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { Badge } from "@/components/ui/Badge";
 import { buttonClasses } from "@/components/ui/Button";
+import { Notice } from "@/components/ui/Notice";
 import { utcMinute } from "@/components/ui/time";
 import { IssueList } from "@/components/validation/IssueList";
 import { Conversation } from "@/features/reviews/Conversation";
 import { DecisionBar } from "@/features/reviews/DecisionBar";
-import { AllFiles, FileChanges } from "@/features/reviews/FileViews";
+import { ProposalChanges } from "@/features/reviews/ProposalChanges";
 import { PublishDialog } from "@/features/reviews/PublishDialog";
 import { versionsPath } from "@/features/versions/links";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
@@ -49,10 +52,17 @@ const Review = async ({
     if (error instanceof SubmissionNotFoundError) notFound();
     throw error;
   }
-  const { submission, current, previous } = review;
-  // Changes since the last revision by default from revision 2 on; revision 1 is all files.
-  const view = (await searchParams).view === "all" || previous === null ? "all" : "changes";
+  const { submission, current, previous, proposal } = review;
+  // A proposal (017) opens on its changes to its base version. Otherwise, changes since the last
+  // revision by default from revision 2 on; revision 1 is all files.
+  const defaultView = proposal ? "base" : previous === null ? "all" : "changes";
+  const asked = (await searchParams).view;
+  const view =
+    asked === "all" || (asked === "changes" && previous !== null) || (asked === "base" && proposal)
+      ? asked
+      : defaultView;
   const base = `/reviews/${submission.id}`;
+  const viewHref = (v: string) => (v === defaultView ? base : `${base}?view=${v}`);
   const decisions: ReviewDecision[] = [
     ...(review.can.decide ? (["approve", "request_changes", "reject"] as const) : []),
     ...(review.can.override ? (["override"] as const) : []),
@@ -72,6 +82,7 @@ const Review = async ({
           <p className="flex flex-wrap items-center gap-2 text-sm text-muted">
             <Badge>{submission.type}</Badge>
             <StatusBadge status={submission.status} />
+            <ProposalBadges proposal={submission.proposal} stale={proposal?.stale} />
             <span>
               by <span className="text-fg">{submission.authorName}</span>
               {review.mine ? " (you)" : ""}
@@ -98,6 +109,7 @@ const Review = async ({
               itemName={itemNameOf(submission)}
               published={review.published}
               versionsHref={versionsPath(submission)}
+              suggested={proposal?.suggested ?? null}
             />
           ) : null}
         </div>
@@ -108,6 +120,16 @@ const Review = async ({
         </p>
       ) : null}
 
+      {proposal?.stale ? (
+        <Notice
+          kind="warn"
+          title={`${proposal.stale} has been released since this proposal started.`}
+        >
+          It changes {proposal.baseVersion}, so approving it now would undo what {proposal.stale}{" "}
+          changed. The author rebases it onto {proposal.stale} first.
+        </Notice>
+      ) : null}
+
       <RiskSummary flags={review.flags} base={base} />
 
       {current ? (
@@ -116,10 +138,19 @@ const Review = async ({
             <h2 id="files" className="text-lg font-semibold text-fg">
               Files
             </h2>
-            <nav aria-label="Files view" className="flex gap-1">
+            <nav aria-label="Files view" className="flex flex-wrap gap-1">
+              {proposal ? (
+                <Link
+                  href={viewHref("base")}
+                  aria-current={view === "base" ? "page" : undefined}
+                  className={viewTab}
+                >
+                  Changes to {proposal.baseVersion}
+                </Link>
+              ) : null}
               {previous !== null ? (
                 <Link
-                  href={base}
+                  href={viewHref("changes")}
                   aria-current={view === "changes" ? "page" : undefined}
                   className={viewTab}
                 >
@@ -127,7 +158,7 @@ const Review = async ({
                 </Link>
               ) : null}
               <Link
-                href={`${base}?view=all`}
+                href={viewHref("all")}
                 aria-current={view === "all" ? "page" : undefined}
                 className={viewTab}
               >
@@ -135,7 +166,9 @@ const Review = async ({
               </Link>
             </nav>
           </div>
-          {view === "changes" ? (
+          {view === "base" && proposal ? (
+            <ProposalChanges proposal={proposal} />
+          ) : view === "changes" ? (
             <FileChanges changes={review.changes} since={previous} />
           ) : (
             <AllFiles files={current.files} />
