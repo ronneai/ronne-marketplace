@@ -126,7 +126,9 @@ the author's own submission page show the same flags.
 
 ## Open questions
 
-Recommendations are written into the spec above; confirm or change them.
+Recommendations are written into the spec above; confirm or change them. The owner started 014
+(2026-09-28) without answering these, so it's built on the recommendations; any of them can still
+change.
 
 1. **Changes requested is editable, with a diff since the last revision** (recommended), or the author
    withdraws and starts a new draft, or edits without per-revision snapshots.

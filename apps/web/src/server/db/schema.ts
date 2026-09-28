@@ -128,6 +128,38 @@ export interface SubmissionFileTable {
   updated_at: Timestamp;
 }
 
+/** A snapshot of a submission's files, made on every submit and resubmit (migration 0006, 014). */
+export interface SubmissionRevisionTable {
+  id: string;
+  submission_id: string;
+  /** 1 for the first submit, then one more for each resubmit. */
+  number: number;
+  created_by: string;
+  created_at: Timestamp;
+}
+
+/** A revision's files: the same shape as submission_files, without `updated_at`. */
+export interface SubmissionRevisionFileTable {
+  revision_id: string;
+  path: string;
+  encoding: "utf8" | "base64";
+  content: string;
+  size: number;
+  executable: DbBoolean;
+}
+
+/** The review conversation: comments, decisions, submits and withdrawals (migration 0006, 014). */
+export interface ReviewEventTable {
+  id: string;
+  submission_id: string;
+  actor_id: string;
+  kind: string;
+  body: string | null;
+  /** The revision the event is about, when there is one. */
+  revision: number | null;
+  created_at: Timestamp;
+}
+
 /** Kysely table types for the whole app. Each migration that adds a table adds its interface here. */
 export interface Database {
   user: UserTable;
@@ -139,4 +171,7 @@ export interface Database {
   scopes: ScopeTable;
   submissions: SubmissionTable;
   submission_files: SubmissionFileTable;
+  submission_revisions: SubmissionRevisionTable;
+  submission_revision_files: SubmissionRevisionFileTable;
+  review_events: ReviewEventTable;
 }

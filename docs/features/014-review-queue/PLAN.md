@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Migration `0006_reviews`.** `review_events`, `submission_revisions` and
+- [x] **1. Migration `0006_reviews`.** `review_events`, `submission_revisions` and
   `submission_revision_files`, with their Kysely types.
   *Done when:* it migrates on SQLite and the three servers, with foreign-key tests.
 
@@ -38,3 +38,10 @@ the same change that completes it.
   *Done when:* render tests pass, and the Playwright test in the acceptance criteria passes.
 
 ## Notes
+- **Built on the recommendations (2026-09-28).** The owner started 014 without answering the
+  spec's open questions, so it follows them: changes requested is editable with a diff since the
+  last revision, one thread, the author may reply, and a diff library through the checklist.
+- **Task 1 (2026-09-28): migration `0006_reviews`.** `submission_revisions` (unique per submission
+  and number), `submission_revision_files` (the shape of `submission_files`, paths compared exactly
+  with `exactString`), and `review_events` (indexed by submission and time). Revisions and events
+  cascade with their submission; the users behind them are RESTRICT. Tested on all four databases.
