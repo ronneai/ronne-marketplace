@@ -26,7 +26,7 @@ the same change that completes it.
   bump suggestion in the publish dialog.
   *Done when:* unit tests cover each bump rule, and render tests cover both diffs.
 
-- [ ] **5. Pages.** Propose a change on the item page, the stale badges, the rebase flow in the editor,
+- [x] **5. Pages.** Propose a change on the item page, the stale badges, the rebase flow in the editor,
   and the conflict list.
   *Done when:* render and action tests pass, and the Playwright test in the acceptance criteria passes.
 
@@ -73,3 +73,13 @@ the same change that completes it.
   proposal identical to its base is refused at submit (`no_changes`, "No changes to 1.0.0"). Submit,
   check and the review page read artifacts through `instanceStorage`, which loads the configuration
   only when a proposal needs it.
+- **Task 5 (2026-09-28): pages.** The item page has **Propose a change**, from the version it shows
+  (`ProposeButton`, `proposeChangeAction`), which opens the new draft in the editor. The editor's
+  `ProposalBar` says which version it changes and links to it; once stale, it offers **Rebase onto
+  1.1.0** (disabled until the editor's changes are saved, since the page reloads with the merged
+  files); and it lists conflicts, each with its diff against the base (`proposalPanel`) and **Mark
+  resolved**. Settings keeps only Delete for a proposal. `ProposalBadges` ("change to 1.0.0",
+  `stale`) mark proposals in the review queue, My submissions and the review page's header, where a
+  warning explains why it can't be approved yet. `FileViews` moved to `components/files`, shared by
+  the review page and the editor. The e2e seed releases `@e2e-seeded/prompt-kit` 1.0.0 with a real
+  artifact (packed with core's `packItem`) for the Playwright test.

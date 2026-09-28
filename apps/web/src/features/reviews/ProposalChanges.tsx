@@ -1,6 +1,6 @@
+import { FileChanges } from "@/components/files/FileViews";
 import { Table, Td, Th } from "@/components/ui/Table";
 import type { ProposalView } from "@/server/domains/submissions/actions/reviews";
-import { FileChanges } from "./FileViews";
 
 /**
  * What a change proposal changes against the version it started from (feature 017): the manifest's

@@ -77,13 +77,13 @@ The publisher can choose another bump. The version, the tag rules and the rest a
 
 ## Acceptance criteria
 
-- [ ] Proposing a change creates a draft from the base version's files, with the item's scope, name and type fixed.
-- [ ] The review page shows the diff to the base version as well as the diff since the last revision.
-- [ ] A proposal becomes stale when a newer version is published, and approve is refused until it's rebased.
-- [ ] Rebase merges file by file as specified, lists conflicts, and refuses to submit while any are open.
-- [ ] Releasing a proposal suggests the bump from the diff, and publishes the item's next version.
-- [ ] Changing the type is refused by the registry checks.
-- [ ] Playwright: a user proposes a change to a published skill, a second version is released meanwhile, the user rebases, a moderator approves, and the author releases 1.1.0.
+- [x] Proposing a change creates a draft from the base version's files, with the item's scope, name and type fixed.
+- [x] The review page shows the diff to the base version as well as the diff since the last revision.
+- [x] A proposal becomes stale when a newer version is published, and approve is refused until it's rebased.
+- [x] Rebase merges file by file as specified, lists conflicts, and refuses to submit while any are open.
+- [x] Releasing a proposal suggests the bump from the diff, and publishes the item's next version.
+- [x] Changing the type is refused by the registry checks.
+- [x] Playwright: a user proposes a change to a published skill, a second version is released meanwhile, the user rebases, a moderator approves, and the author releases 1.1.0.
 
 ## Open questions
 

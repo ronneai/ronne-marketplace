@@ -80,6 +80,22 @@ describe("createDraftFromForm", () => {
 });
 
 describe("SubmissionsTable", () => {
+  it("marks change proposals, and stale ones", () => {
+    const html = renderToStaticMarkup(
+      <SubmissionsTable
+        submissions={[
+          {
+            ...submission(),
+            proposal: { itemId: "i", baseVersionId: "v", baseVersion: "1.0.0", conflicts: [] },
+            stale: "1.1.0",
+          },
+        ]}
+      />,
+    );
+    expect(html).toContain(">change to 1.0.0<");
+    expect(html).toContain(">stale<");
+  });
+
   it("links each draft to its editor, with its type, status and last change", () => {
     const html = renderToStaticMarkup(<SubmissionsTable submissions={[submission()]} />);
     expect(html).toContain('href="/submissions/01J0000000000000000000000A"');

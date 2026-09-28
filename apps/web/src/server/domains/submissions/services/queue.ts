@@ -3,6 +3,7 @@ import { requirePermission } from "../../identity/models/permissions";
 import type { SubmissionStatus } from "../models/status";
 import { fileBytes, MANIFEST_PATH, type Submission, toPackageFile } from "../models/submission";
 import type { SubmissionRepository } from "../repositories/submission-repository";
+import { withStale } from "./proposals";
 import type { SubmissionActor, SubmissionDeps } from "./submissions";
 
 /** The review queue (feature 014): what needs a reviewer, what waits on its author, what's decided. */
@@ -23,6 +24,8 @@ export const DECIDED_PAGE_SIZE = 50;
 
 export type QueueRow = Submission & {
   authorName: string;
+  /** For a change proposal (017): the newer version it has to be rebased onto, or null. */
+  stale: string | null;
   revision: number | null;
   risky: boolean;
   mine: boolean;
@@ -85,7 +88,7 @@ export const listQueue = async (
   );
   const last = rows.at(-1);
   return {
-    rows,
+    rows: await withStale(deps.registry ?? deps.repo.registry(), rows),
     nextCursor: paged && found.length > DECIDED_PAGE_SIZE && last ? cursorOf(last) : null,
   };
 };

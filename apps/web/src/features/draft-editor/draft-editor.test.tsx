@@ -194,6 +194,7 @@ describe("the draft page", () => {
           canSubmit: true,
           canWithdraw: true,
           versionsHref: null,
+          proposal: null,
           files: [{ ...saved("logo.png", "iVBORw=="), encoding: "base64", size: 4 }],
         }}
       />,
@@ -217,6 +218,7 @@ describe("the draft page", () => {
           canSubmit: true,
           canWithdraw: true,
           versionsHref: null,
+          proposal: null,
           files: [saved("prompt.md", "Hi"), saved("ronne.yaml", "name: x\n")],
           ...overrides,
         }}

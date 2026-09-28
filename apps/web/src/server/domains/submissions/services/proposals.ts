@@ -13,7 +13,9 @@ import {
   SubmissionNotEditableError,
   SubmissionNotFoundError,
   SubmissionStaleError,
+  SubmissionsError,
 } from "../exceptions/errors";
+import { diffRevisions, type FileChange } from "../models/diff";
 import { staleAgainst } from "../models/proposal";
 import { mergeFiles } from "../models/rebase";
 import { isEditable, transition } from "../models/status";
@@ -288,4 +290,59 @@ export const baseFilesOf = async (
   const version = (await registry.publishedVersions(itemId)).find((v) => v.id === baseVersionId);
   if (!version) throw new ProposalBaseNotFoundError(itemNameOf(submission), baseVersion);
   return versionFiles(deps, itemNameOf(submission), version);
+};
+
+/** Proposals that can still move on; a closed one is never shown as stale. */
+const OPEN_PROPOSAL = new Set<Submission["status"]>([
+  "draft",
+  "submitted",
+  "changes_requested",
+  "approved",
+]);
+
+/** Each submission with the version it's behind (017), for lists: null for new items and closed ones. */
+export const withStale = async <S extends Submission>(
+  registry: RegistryLookup,
+  submissions: readonly S[],
+): Promise<(S & { stale: string | null })[]> =>
+  Promise.all(
+    submissions.map(async (submission) => ({
+      ...submission,
+      stale: OPEN_PROPOSAL.has(submission.status) ? await staleVersion(registry, submission) : null,
+    })),
+  );
+
+/** What the author's editor shows about a proposal: its base, whether it's stale, and its conflicts. */
+export type ProposalPanel = {
+  baseVersion: string;
+  stale: string | null;
+  /** Each conflict, with the file as the base version has it against the author's; null if unreadable. */
+  conflicts: { path: string; change: FileChange | null }[];
+};
+
+export const proposalPanel = async (
+  deps: ProposalDeps,
+  actor: DraftActor,
+  id: string,
+): Promise<ProposalPanel> => {
+  const submission = await ownProposal(deps, actor, id);
+  const registry = deps.registry ?? deps.repo.registry();
+  const { conflicts, baseVersion } = submission.proposal;
+  let base: BaseFile[] | null = null;
+  if (conflicts.length)
+    try {
+      base = await baseFilesOf(deps, registry, submission);
+    } catch (error) {
+      if (!(error instanceof SubmissionsError)) throw error;
+    }
+  const mine = conflicts.length ? await deps.repo.files(submission.id) : [];
+  const only = (files: readonly BaseFile[], path: string) => files.filter((f) => f.path === path);
+  return {
+    baseVersion,
+    stale: await staleVersion(registry, submission),
+    conflicts: conflicts.map((path) => ({
+      path,
+      change: base ? (diffRevisions(only(base, path), only(mine, path))[0] ?? null) : null,
+    })),
+  };
 };

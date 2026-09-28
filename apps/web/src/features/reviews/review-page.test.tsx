@@ -19,7 +19,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 const { RiskSummary } = await import("@/components/risk-flags/RiskSummary");
-const { AllFiles, FileChanges } = await import("./FileViews");
+const { AllFiles, FileChanges } = await import("@/components/files/FileViews");
 const { Conversation } = await import("./Conversation");
 const { DecisionBar } = await import("./DecisionBar");
 const { default: ReviewPage } = await import("@/app/(app)/reviews/[id]/page");

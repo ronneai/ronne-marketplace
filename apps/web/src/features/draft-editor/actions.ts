@@ -10,6 +10,7 @@ import {
   renameDraft,
   saveDraftFiles,
 } from "@/server/domains/submissions/actions/drafts";
+import { rebaseProposal, resolveConflict } from "@/server/domains/submissions/actions/proposals";
 import {
   checkSubmission,
   submitDraft,
@@ -137,5 +138,28 @@ export const withdrawAction = async (id: string): Promise<ActionResult> => {
   }
   revalidatePath(`/submissions/${id}`);
   revalidatePath("/submissions");
+  return { ok: true };
+};
+
+/** Rebases the proposal onto its item's newest version (017); the page reloads with the result. */
+export const rebaseAction = async (id: string): Promise<ActionResult> => {
+  try {
+    await rebaseProposal(await requestHeaders(), id);
+  } catch (error) {
+    return { ok: false, error: message(error) };
+  }
+  revalidatePath(`/submissions/${id}`);
+  revalidatePath("/submissions");
+  return { ok: true };
+};
+
+/** Marks one rebase conflict resolved (017). */
+export const resolveConflictAction = async (id: string, path: string): Promise<ActionResult> => {
+  try {
+    await resolveConflict(await requestHeaders(), id, path);
+  } catch (error) {
+    return { ok: false, error: message(error) };
+  }
+  revalidatePath(`/submissions/${id}`);
   return { ok: true };
 };

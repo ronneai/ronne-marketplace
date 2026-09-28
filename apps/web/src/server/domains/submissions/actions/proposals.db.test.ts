@@ -246,7 +246,9 @@ describe("stale proposals", () => {
       storage,
     );
 
-    // 1.0.1 is out: the second can't be approved, and the approved third can't be released.
+    // 1.0.1 is out: reviewers see it's stale, the second can't be approved, and the approved third
+    // can't be released.
+    expect((await getReview(asModerator, second.id, app, storage)).proposal?.stale).toBe("1.0.1");
     await expect(decide(asModerator, second.id, { decision: "approve" }, app)).rejects.toThrow(
       SubmissionStaleError,
     );

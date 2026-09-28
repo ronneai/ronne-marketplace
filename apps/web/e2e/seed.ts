@@ -1,14 +1,17 @@
 // Adds the end-to-end test users, and a scope, to the instance that setup just created (DATABASE_URL). Run by
 // the harness with tsx; root comes from setup itself.
+import { packItem } from "@ronneai/core/pack";
 import { createDb } from "../src/server/db/create-db";
 import { argon2PasswordHasher } from "../src/server/domains/identity/repositories/argon2-password-hasher";
 import { kyselyIdentityRepository } from "../src/server/domains/identity/repositories/kysely-identity-repository";
 import { kyselyItemRepository } from "../src/server/domains/items/repositories/kysely-item-repository";
 import { kyselyScopeRepository } from "../src/server/domains/items/repositories/kysely-scope-repository";
+import { localStorage } from "../src/server/storage/local-storage";
 import {
   E2E_MODERATORS,
   E2E_NAMES,
   E2E_PASSWORD,
+  E2E_PROPOSAL_ITEM,
   E2E_SCOPE,
   E2E_SKILL,
   E2E_USERS,
@@ -106,4 +109,55 @@ const skillVersion = await items.insertVersion({
   riskFlags: [],
 });
 await items.setTag(skillId, "latest", skillVersion);
+
+// A skill released as 1.0.0 with a real artifact in storage, which a change proposal starts from
+// (feature 017).
+const storagePath = process.env.STORAGE_PATH;
+if (!storagePath) throw new Error("STORAGE_PATH is required");
+const description = "Prompts for writing good commit messages.";
+const kitFiles = {
+  "ronne.yaml": `name: "@${E2E_SCOPE}/${E2E_PROPOSAL_ITEM}"\ntype: skill\ndescription: ${description}\nlicense: MIT\nskill:\n  entry: SKILL.md\n`,
+  "SKILL.md": `---\nname: ${E2E_PROPOSAL_ITEM}\ndescription: ${description}\n---\n\nWrite the why, not the what.\n`,
+  "README.md": "# Prompt kit\n\nThe first version.\n",
+};
+const kit = await packItem(
+  Object.entries(kitFiles).map(([path, text]) => ({ path, bytes: new TextEncoder().encode(text) })),
+  { version: "1.0.0" },
+);
+const kitPath = `${E2E_SCOPE}/${E2E_PROPOSAL_ITEM}/1.0.0.tgz`;
+await localStorage(storagePath).put(kitPath, kit.tgz);
+const kitId = await items.insertItem({
+  scopeId,
+  name: E2E_PROPOSAL_ITEM,
+  type: "skill",
+  description,
+  ownerId: ids.releaser ?? "",
+  createdAt: new Date(),
+});
+const kitVersion = await items.insertVersion({
+  itemId: kitId,
+  version: "1.0.0",
+  manifest: {
+    name: `@${E2E_SCOPE}/${E2E_PROPOSAL_ITEM}`,
+    type: "skill",
+    description,
+    license: "MIT",
+  },
+  readme: kitFiles["README.md"],
+  files: Object.entries(kitFiles).map(([path, text]) => ({
+    path,
+    size: text.length,
+    executable: false,
+  })),
+  notes: null,
+  artifactPath: kitPath,
+  sha256: kit.sha256,
+  size: kit.size,
+  publishedBy: ids.releaser ?? "",
+  publishedAt: new Date(),
+  submissionId: null,
+  dependencies: [],
+  riskFlags: [],
+});
+await items.setTag(kitId, "latest", kitVersion);
 await db.destroy();

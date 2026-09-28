@@ -1,15 +1,17 @@
 import { History } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AllFiles, FileChanges } from "@/components/files/FileViews";
 import { RiskSummary } from "@/components/risk-flags/RiskSummary";
+import { ProposalBadges } from "@/components/submissions/ProposalBadges";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { Badge } from "@/components/ui/Badge";
 import { buttonClasses } from "@/components/ui/Button";
+import { Notice } from "@/components/ui/Notice";
 import { utcMinute } from "@/components/ui/time";
 import { IssueList } from "@/components/validation/IssueList";
 import { Conversation } from "@/features/reviews/Conversation";
 import { DecisionBar } from "@/features/reviews/DecisionBar";
-import { AllFiles, FileChanges } from "@/features/reviews/FileViews";
 import { ProposalChanges } from "@/features/reviews/ProposalChanges";
 import { PublishDialog } from "@/features/reviews/PublishDialog";
 import { versionsPath } from "@/features/versions/links";
@@ -80,6 +82,7 @@ const Review = async ({
           <p className="flex flex-wrap items-center gap-2 text-sm text-muted">
             <Badge>{submission.type}</Badge>
             <StatusBadge status={submission.status} />
+            <ProposalBadges proposal={submission.proposal} stale={proposal?.stale} />
             <span>
               by <span className="text-fg">{submission.authorName}</span>
               {review.mine ? " (you)" : ""}
@@ -115,6 +118,16 @@ const Review = async ({
         <p className="text-sm text-muted">
           This is your own submission: another moderator or root reviews it.
         </p>
+      ) : null}
+
+      {proposal?.stale ? (
+        <Notice
+          kind="warn"
+          title={`${proposal.stale} has been released since this proposal started.`}
+        >
+          It changes {proposal.baseVersion}, so approving it now would undo what {proposal.stale}{" "}
+          changed. The author rebases it onto {proposal.stale} first.
+        </Notice>
       ) : null}
 
       <RiskSummary flags={review.flags} base={base} />

@@ -50,3 +50,18 @@ export const resolveConflict = async (
     id,
     path,
   );
+
+/** The author's view of a proposal in the editor: base, stale, and the conflicts with their diffs. */
+export const proposalPanel = async (
+  headers: Headers,
+  id: string,
+  app: AppAuth = getAppAuth(),
+  storage: StorageAdapter = getStorage(),
+) =>
+  service.proposalPanel(
+    proposalDeps(app, storage),
+    { user: await getCurrentUser(headers, app) },
+    id,
+  );
+
+export type { ProposalPanel } from "../services/proposals";

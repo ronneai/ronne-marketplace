@@ -23,6 +23,7 @@ import { FileTree } from "./FileTree";
 import { changesOf, filesReducer, isDirty, newPathProblem, totalsOf } from "./files";
 import { useDebounced, useSaveShortcut } from "./hooks";
 import { ManifestForm } from "./ManifestForm";
+import { ProposalBar } from "./ProposalBar";
 import { SubmitDialog, WithdrawDialog } from "./SubmitDialogs";
 import type { EditorDraft, SaveResult } from "./types";
 
@@ -208,6 +209,15 @@ export const DraftEditor = ({
           ) : null}
         </div>
       </header>
+
+      {draft.proposal ? (
+        <ProposalBar
+          draftId={draft.id}
+          proposal={draft.proposal}
+          status={draft.status}
+          dirty={dirty}
+        />
+      ) : null}
 
       {readOnly ? (
         <Notice
@@ -520,6 +530,7 @@ export const DraftEditor = ({
           scope={draft.scope}
           name={draft.name}
           dirty={dirty}
+          proposal={draft.proposal !== null}
           onClose={() => setOpen(null)}
         />
       ) : null}

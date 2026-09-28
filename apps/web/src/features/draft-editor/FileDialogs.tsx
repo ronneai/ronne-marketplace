@@ -196,12 +196,15 @@ export const DraftSettingsDialog = ({
   scope,
   name,
   dirty,
+  proposal = false,
   onClose,
 }: {
   draftId: string;
   scope: string;
   name: string;
   dirty: boolean;
+  /** A change proposal (017) keeps its item's scope and name: only deleting is offered. */
+  proposal?: boolean;
   onClose: () => void;
 }) => {
   const router = useRouter();
@@ -211,7 +214,17 @@ export const DraftSettingsDialog = ({
   return (
     <Dialog open onClose={onClose} title="Draft settings">
       <div className="grid gap-6">
+        {proposal ? (
+          <p className="text-sm text-fg">
+            A change proposal keeps its item&apos;s scope and name:{" "}
+            <span className="font-mono">
+              @{scope}/{name}
+            </span>
+            . To use another name, start a new item.
+          </p>
+        ) : null}
         <form
+          hidden={proposal}
           className="grid gap-4"
           action={(form) =>
             start(async () => {
