@@ -6,14 +6,14 @@ import {
   type PackageLimits,
   parseManifest,
 } from "@ronneai/core";
+import type { SubmissionStatus } from "./status";
 
 /**
  * Drafts and submissions (feature 012). Plain data and pure functions only: the editor imports
  * this file in the browser, so it validates exactly as the server does.
  */
 
-/** 012 only creates drafts; 013 adds submitted, withdrawn, approved and rejected (MVP §4.1). */
-export type SubmissionStatus = "draft";
+export type { SubmissionStatus } from "./status";
 
 export type Submission = {
   id: string;

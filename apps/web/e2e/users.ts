@@ -12,6 +12,7 @@ export const E2E_USERS = {
   changePassword: "change-password@e2e.test",
   notRoot: "not-root@e2e.test",
   tokens: "tokens@e2e.test",
+  submitter: "submitter@e2e.test",
 } as const;
 
 /** The display names, which the header shows (not the email). */
@@ -23,4 +24,11 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   changePassword: "Change Password Tester",
   notRoot: "Not Root",
   tokens: "Token Tester",
+  submitter: "Submitter",
 };
+
+/**
+ * A scope the seed creates, for tests that need one without signing in as root: root already
+ * signs in 5 times in a run, the per-email limit a minute.
+ */
+export const E2E_SCOPE = "e2e-seeded";

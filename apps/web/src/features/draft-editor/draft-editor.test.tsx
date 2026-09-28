@@ -7,8 +7,8 @@ import { changesOf, type FilesState, filesReducer, isDirty, newPathProblem } fro
 import { languageFor } from "./languages";
 import type { EditorFile } from "./types";
 
-const drafts = vi.hoisted(() => ({ getDraft: vi.fn() }));
-vi.mock("@/server/domains/submissions/actions/drafts", () => drafts);
+const drafts = vi.hoisted(() => ({ viewSubmission: vi.fn() }));
+vi.mock("@/server/domains/submissions/actions/submissions", () => drafts);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
 vi.mock("next/navigation", () => ({
   notFound: () => {
@@ -159,7 +159,7 @@ describe("the draft page", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("opens the editor on ronne.yaml, with the files and the limits", async () => {
-    drafts.getDraft.mockResolvedValue(draft());
+    drafts.viewSubmission.mockResolvedValue({ ...draft(), mine: true });
     const html = renderToStaticMarkup(
       await DraftPage({ params: Promise.resolve({ id: "01J0000000000000000000000A" }) }),
     );
@@ -172,7 +172,7 @@ describe("the draft page", () => {
   });
 
   it("answers 404 for someone else's draft", async () => {
-    drafts.getDraft.mockRejectedValue(new SubmissionNotFoundError());
+    drafts.viewSubmission.mockRejectedValue(new SubmissionNotFoundError());
     await expect(DraftPage({ params: Promise.resolve({ id: "x" }) })).rejects.toThrow(
       "NEXT_NOT_FOUND",
     );
@@ -187,11 +187,79 @@ describe("the draft page", () => {
           name: "reviewer",
           type: "agent",
           status: "draft",
+          submittedAt: null,
+          mine: true,
+          readOnly: false,
+          canSubmit: true,
+          canWithdraw: true,
           files: [{ ...saved("logo.png", "iVBORw=="), encoding: "base64", size: 4 }],
         }}
       />,
     );
     expect(html).toContain("A binary file, 1 KB");
     expect(html).toContain(">Replace<");
+  });
+
+  const view = (overrides: Partial<Parameters<typeof DraftEditor>[0]["draft"]>) =>
+    renderToStaticMarkup(
+      <DraftEditor
+        draft={{
+          id: "d",
+          scope: "platform",
+          name: "reviewer",
+          type: "agent",
+          status: "draft",
+          submittedAt: null,
+          mine: true,
+          readOnly: false,
+          canSubmit: true,
+          canWithdraw: true,
+          files: [saved("prompt.md", "Hi"), saved("ronne.yaml", "name: x\n")],
+          ...overrides,
+        }}
+      />,
+    );
+
+  it("offers Submit for review and Withdraw on your own draft", () => {
+    const html = view({});
+    expect(html).toContain("Submit for review");
+    expect(html).toContain("Withdraw");
+    expect(html).toContain("</svg>Settings<");
+  });
+
+  it("shows a submitted submission read-only, with only Withdraw", () => {
+    const html = view({
+      status: "submitted",
+      submittedAt: "2026-09-28T10:00:00.000Z",
+      readOnly: true,
+      canSubmit: false,
+    });
+    expect(html).toContain("Submitted for review on 2026-09-28.");
+    expect(html).not.toContain("Submit for review<");
+    expect(html).not.toContain("</svg>Settings<");
+    expect(html).not.toContain(">Saved<");
+    expect(html).toContain("Withdraw");
+    // The form is disabled as a whole.
+    expect(html).toMatch(/<fieldset disabled=""/);
+  });
+
+  it("shows someone else's submission, and a withdrawn one, with no actions", () => {
+    const theirs = view({
+      status: "submitted",
+      mine: false,
+      readOnly: true,
+      canSubmit: false,
+      canWithdraw: false,
+    });
+    expect(theirs).toContain("Someone else&#x27;s submission.");
+    expect(theirs).not.toContain("Withdraw");
+    const withdrawn = view({
+      status: "withdrawn",
+      readOnly: true,
+      canSubmit: false,
+      canWithdraw: false,
+    });
+    expect(withdrawn).toContain("Withdrawn.");
+    expect(withdrawn).toContain(">withdrawn<");
   });
 });

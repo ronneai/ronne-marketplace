@@ -5,6 +5,7 @@ export const inputClasses = cn(
   "h-9 w-full rounded-control border border-strong bg-surface px-3 text-sm text-fg",
   "placeholder:text-muted/60 outline-offset-2 focus-visible:border-fg focus-visible:outline-2 focus-visible:outline-focus",
   "aria-invalid:border-fg",
+  "disabled:cursor-not-allowed disabled:border-hairline disabled:bg-canvas disabled:text-muted",
 );
 
 export const Label = ({ className, ...props }: LabelHTMLAttributes<HTMLLabelElement>) => {

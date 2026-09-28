@@ -1,13 +1,11 @@
 import { validRange } from "semver";
 import { parse as parseYaml } from "yaml";
 import type { ManifestIssue } from "./issues.js";
+import { type ItemType, isItemType, mayHaveDependencies } from "./item-types.js";
 import { DEFAULT_LIMITS, formatBytes, type PackageLimits } from "./limits.js";
 import type { Manifest } from "./manifest.js";
 import { parseItemName } from "./names.js";
 import type { PackageFile } from "./package-file.js";
-
-/** Types that may have dependencies (manifest spec §3). Which types they may depend on needs the registry (013). */
-const MAY_DEPEND = new Set(["bundle", "agent", "skill", "command"]);
 
 const PATH_MAX_LENGTH = 255;
 
@@ -292,7 +290,12 @@ export const checkPackage = (
   // Dependencies.
   const dependencies = (manifest.dependencies ?? {}) as Record<string, unknown>;
   const names = Object.keys(dependencies);
-  if (names.length > 0 && !MAY_DEPEND.has(String(manifest.type)))
+  // Which types they may depend on needs the registry (013).
+  if (
+    names.length > 0 &&
+    isItemType(String(manifest.type)) &&
+    !mayHaveDependencies(manifest.type as ItemType)
+  )
     issues.push(
       error(
         "dependencies_not_allowed",

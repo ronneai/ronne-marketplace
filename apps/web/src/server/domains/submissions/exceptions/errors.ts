@@ -1,4 +1,9 @@
-import { formatBytes, NAME_PROBLEM_MESSAGES, type NameProblem } from "@ronneai/core";
+import {
+  formatBytes,
+  type ManifestIssue,
+  NAME_PROBLEM_MESSAGES,
+  type NameProblem,
+} from "@ronneai/core";
 
 /** Errors the submissions domain raises. Pages turn them into `ERR:` lines. */
 export class SubmissionsError extends Error {
@@ -33,10 +38,96 @@ export class DraftScopeNotFoundError extends SubmissionsError {
   }
 }
 
-/** Only drafts can be edited, renamed or deleted; 013 adds submitted ones, which can't. */
-export class DraftNotEditableError extends SubmissionsError {
+/** Only drafts can be edited, renamed or deleted; a submitted one is frozen for review. */
+export class SubmissionNotEditableError extends SubmissionsError {
   constructor() {
     super("This submission isn't a draft any more, so it can't be changed.");
+  }
+}
+
+const STATUS_WORDS: Record<string, string> = {
+  changes_requested: "sent back for changes",
+};
+
+/** A move MVP §4.1 doesn't allow, such as withdrawing twice. */
+export class InvalidStatusTransitionError extends SubmissionsError {
+  constructor(
+    readonly from: string,
+    readonly action: string,
+  ) {
+    super(
+      `A submission that's ${STATUS_WORDS[from] ?? from} can't be ${
+        { submit: "submitted", resubmit: "resubmitted", withdraw: "withdrawn" }[action] ??
+        `${action.replace("_", " ")}d`
+      }.`,
+    );
+  }
+}
+
+/** Submit refused: 011's checks found errors in the saved files. */
+export class SubmissionInvalidError extends SubmissionsError {
+  constructor(readonly issues: readonly ManifestIssue[]) {
+    const errors = issues.filter((issue) => issue.severity === "error").length;
+    super(
+      `The draft has ${errors} ${errors === 1 ? "problem" : "problems"} to fix before it can be submitted.`,
+    );
+  }
+}
+
+export class ItemNameTakenError extends SubmissionsError {
+  constructor(
+    readonly itemName: string,
+    readonly by: "published" | "submission",
+  ) {
+    super(
+      by === "published"
+        ? `${itemName} is already a published item. Pick another name, or propose a change to it.`
+        : `${itemName} is already proposed by another submission under review. Pick another name.`,
+    );
+  }
+}
+
+export class DependencyNotFoundError extends SubmissionsError {
+  constructor(readonly dependency: string) {
+    super(
+      `${dependency} isn't a published item. A dependency has to be released before items can depend on it.`,
+    );
+  }
+}
+
+/** "an agent", "an mcp-server", "a hook": the article as the type is read aloud. */
+const withArticle = (type: string) =>
+  `${/^(agent|output-style|mcp-server|lsp-server)$/.test(type) ? "an" : "a"} ${type}`;
+
+export class DependencyTypeNotAllowedError extends SubmissionsError {
+  constructor(
+    readonly dependency: string,
+    dependencyType: string,
+    type: string,
+    allowed: readonly string[],
+  ) {
+    super(
+      `${dependency} is ${withArticle(dependencyType)}, which ${withArticle(type)} can't depend on. ${
+        allowed.length > 0
+          ? `${withArticle(type)[0]?.toUpperCase()}${withArticle(type).slice(1)} may depend on: ${allowed.join(", ")}.`
+          : `${withArticle(type)[0]?.toUpperCase()}${withArticle(type).slice(1)} can't have dependencies.`
+      }`,
+    );
+  }
+}
+
+export class DependencyRangeUnmatchedError extends SubmissionsError {
+  constructor(
+    readonly dependency: string,
+    readonly range: string,
+  ) {
+    super(`No published version of ${dependency} matches ${range}.`);
+  }
+}
+
+export class DependencyCycleError extends SubmissionsError {
+  constructor(readonly cycle: readonly string[]) {
+    super(`The dependencies go round in a circle: ${cycle.join(" → ")}.`);
   }
 }
 

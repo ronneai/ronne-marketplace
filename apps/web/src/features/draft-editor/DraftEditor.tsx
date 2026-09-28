@@ -1,7 +1,7 @@
 "use client";
 
 import { DEFAULT_LIMITS, formatBytes, type ManifestIssue } from "@ronneai/core";
-import { FilePlus, FolderPlus, Settings, Upload } from "lucide-react";
+import { FilePlus, FolderPlus, Lock, Send, Settings, Undo2, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useReducer, useRef, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/Badge";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/Notice";
 import { UnsavedChangesGuard } from "@/components/ui/UnsavedChangesGuard";
 import { IssueList } from "@/components/validation/IssueList";
+import { statusLabel } from "@/server/domains/submissions/models/status";
 import {
   MANIFEST_PATH,
   toDraftContent,
@@ -21,6 +22,7 @@ import { FileTree } from "./FileTree";
 import { changesOf, filesReducer, isDirty, newPathProblem, totalsOf } from "./files";
 import { useDebounced, useSaveShortcut } from "./hooks";
 import { ManifestForm } from "./ManifestForm";
+import { SubmitDialog, WithdrawDialog } from "./SubmitDialogs";
 import type { EditorDraft, SaveResult } from "./types";
 
 type Open =
@@ -29,6 +31,8 @@ type Open =
   | { kind: "delete"; path: string }
   | { kind: "import" }
   | { kind: "settings" }
+  | { kind: "submit" }
+  | { kind: "withdraw" }
   | null;
 
 type Status =
@@ -45,7 +49,8 @@ const toolClasses =
 
 /**
  * The draft editor (feature 012): a file tree on the left, CodeMirror on the right, and one Save
- * for every change. Limits are checked here first and again on the server.
+ * for every change. Limits are checked here first and again on the server. Once submitted, or
+ * when someone else's submission is opened, the same page shows it read-only (feature 013).
  */
 export const DraftEditor = ({
   draft,
@@ -66,6 +71,8 @@ export const DraftEditor = ({
   const replace = useRef<HTMLInputElement>(null);
 
   const dirty = isDirty(state);
+  const readOnly = draft.readOnly;
+  const itemName = `@${draft.scope}/${draft.name}`;
   const file = state.files.find((f) => f.path === selected) ?? state.files[0];
   const totals = totalsOf(state.files);
 
@@ -148,12 +155,12 @@ export const DraftEditor = ({
     <div className="grid gap-4">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="grid min-w-0 gap-1">
-          <h1 className="truncate font-mono text-xl font-semibold text-fg">
-            @{draft.scope}/{draft.name}
-          </h1>
+          <h1 className="truncate font-mono text-xl font-semibold text-fg">{itemName}</h1>
           <div className="flex flex-wrap items-center gap-2">
             <Badge>{draft.type}</Badge>
-            <Badge>{draft.status}</Badge>
+            <Badge tone={draft.status === "draft" ? "muted" : "accent"}>
+              {statusLabel(draft.status)}
+            </Badge>
             <span
               className={`font-mono text-xs ${overLimit ? "font-semibold text-fg" : "text-muted"}`}
             >
@@ -162,18 +169,64 @@ export const DraftEditor = ({
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" onClick={() => setOpen({ kind: "settings" })}>
-            <Settings size={16} aria-hidden="true" />
-            Settings
-          </Button>
-          <Button onClick={() => save()} loading={saving} disabled={!dirty}>
-            {dirty ? "Save" : "Saved"}
-          </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {draft.canWithdraw ? (
+            <Button variant="ghost" onClick={() => setOpen({ kind: "withdraw" })}>
+              <Undo2 size={16} aria-hidden="true" />
+              Withdraw
+            </Button>
+          ) : null}
+          {readOnly ? null : (
+            <>
+              <Button variant="ghost" onClick={() => setOpen({ kind: "settings" })}>
+                <Settings size={16} aria-hidden="true" />
+                Settings
+              </Button>
+              <Button
+                variant={draft.canSubmit ? "secondary" : "primary"}
+                onClick={() => save()}
+                loading={saving}
+                disabled={!dirty}
+              >
+                {dirty ? "Save" : "Saved"}
+              </Button>
+            </>
+          )}
+          {draft.canSubmit ? (
+            <Button onClick={() => setOpen({ kind: "submit" })}>
+              <Send size={16} aria-hidden="true" />
+              Submit for review
+            </Button>
+          ) : null}
         </div>
       </header>
 
-      <p role="status" aria-live="polite" className="min-h-5 text-sm text-fg">
+      {readOnly ? (
+        <Notice
+          kind="info"
+          title={
+            draft.status === "withdrawn"
+              ? "Withdrawn."
+              : draft.mine
+                ? `Submitted for review${draft.submittedAt ? ` on ${draft.submittedAt.slice(0, 10)}` : ""}.`
+                : "Someone else's submission."
+          }
+        >
+          <p className="flex items-start gap-2">
+            <Lock size={14} aria-hidden="true" className="mt-0.5 shrink-0" />
+            {draft.status === "withdrawn"
+              ? "It stays here, read-only, for history. To carry on, start a new draft."
+              : draft.mine
+                ? "Its files are frozen, so reviewers see exactly what you submitted. You can withdraw it until it's approved."
+                : "You can read it, but only its author can change or withdraw it."}
+          </p>
+        </Notice>
+      ) : null}
+      <p
+        role="status"
+        aria-live="polite"
+        className={readOnly ? "sr-only" : "min-h-5 text-sm text-fg"}
+      >
         {status?.kind === "saved" && !dirty ? (
           <>
             <span className="mr-2 font-mono text-xs font-semibold">OK:</span>
@@ -216,7 +269,7 @@ export const DraftEditor = ({
             Files ({totals.count})
           </summary>
           <div className="grid gap-2 border-t border-hairline p-2 lg:border-t-0">
-            <div className="flex flex-wrap gap-1">
+            <div className={readOnly ? "hidden" : "flex flex-wrap gap-1"}>
               <button
                 type="button"
                 className={toolClasses}
@@ -286,6 +339,7 @@ export const DraftEditor = ({
                       <input
                         type="checkbox"
                         checked={file.executable}
+                        disabled={readOnly}
                         onChange={(event) =>
                           dispatch({
                             type: "executable",
@@ -298,7 +352,7 @@ export const DraftEditor = ({
                       Executable
                     </label>
                   )}
-                  {file.path !== MANIFEST_PATH ? (
+                  {file.path !== MANIFEST_PATH && !readOnly ? (
                     <>
                       <button
                         type="button"
@@ -320,7 +374,11 @@ export const DraftEditor = ({
               </div>
               <div className="h-[60vh] overflow-hidden rounded-panel border border-hairline">
                 {file.path === MANIFEST_PATH && view === "form" ? (
-                  <div className="h-full overflow-y-auto bg-surface">
+                  <fieldset
+                    disabled={readOnly}
+                    className="h-full min-w-0 overflow-y-auto bg-surface"
+                  >
+                    <legend className="sr-only">ronne.yaml</legend>
                     <ManifestForm
                       text={file.content}
                       type={draft.type}
@@ -330,14 +388,16 @@ export const DraftEditor = ({
                         .filter((path) => path !== MANIFEST_PATH)}
                       onChange={(content) => onChange(MANIFEST_PATH, content)}
                       onShowYaml={() => setView("yaml")}
+                      readOnly={readOnly}
                     />
-                  </div>
+                  </fieldset>
                 ) : file.encoding === "utf8" ? (
                   <CodeEditor
                     path={file.path}
                     value={file.content}
                     onChange={onChange}
                     goToLine={goTo}
+                    readOnly={readOnly}
                   />
                 ) : (
                   <div className="grid h-full place-content-center justify-items-center gap-3 bg-surface p-6 text-center">
@@ -345,9 +405,11 @@ export const DraftEditor = ({
                       A binary file, {formatBytes(file.size)}. It can be replaced or deleted, but
                       not edited here.
                     </p>
-                    <Button variant="secondary" onClick={() => replace.current?.click()}>
-                      Replace
-                    </Button>
+                    {readOnly ? null : (
+                      <Button variant="secondary" onClick={() => replace.current?.click()}>
+                        Replace
+                      </Button>
+                    )}
                     <input
                       ref={replace}
                       type="file"
@@ -370,7 +432,9 @@ export const DraftEditor = ({
             <h2 className="text-sm font-semibold text-fg">Problems</h2>
             <IssueList issues={issues} onSelect={openIssue} />
             <p className="text-xs text-muted">
-              A draft can be saved with problems; it has to be free of errors to be submitted.
+              {readOnly
+                ? "The same checks that ran when it was submitted."
+                : "A draft can be saved with problems; it has to be free of errors to be submitted."}
             </p>
           </section>
         </section>
@@ -429,6 +493,17 @@ export const DraftEditor = ({
       ) : null}
       {open?.kind === "import" ? (
         <ImportZipDialog draftId={draft.id} dirty={dirty} onClose={() => setOpen(null)} />
+      ) : null}
+      {open?.kind === "submit" ? (
+        <SubmitDialog
+          draftId={draft.id}
+          itemName={itemName}
+          dirty={dirty}
+          onClose={() => setOpen(null)}
+        />
+      ) : null}
+      {open?.kind === "withdraw" ? (
+        <WithdrawDialog draftId={draft.id} itemName={itemName} onClose={() => setOpen(null)} />
       ) : null}
       {open?.kind === "settings" ? (
         <DraftSettingsDialog

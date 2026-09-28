@@ -2,9 +2,11 @@ import type { ItemType } from "@ronneai/core";
 import type { Kysely } from "kysely";
 import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
+import { forUpdate, readCommittedTransaction } from "../../../db/locks";
 import type { Database } from "../../../db/schema";
 import { upsert } from "../../../db/upsert";
 import type { DatabaseDialect } from "../../../db/url";
+import { recordAudit } from "../../audit/actions/audit";
 import type { DraftFile, Submission, SubmissionStatus } from "../models/submission";
 import type { SubmissionRepository } from "./submission-repository";
 
@@ -55,8 +57,12 @@ export const kyselySubmissionRepository = (
       ]);
 
   return {
+    // READ COMMITTED, so the name check after `lockScope` sees a submit that committed while this
+    // one waited (MySQL's default snapshot wouldn't).
     transaction: (work) =>
-      db.transaction().execute((trx) => work(kyselySubmissionRepository(trx, dialect))),
+      readCommittedTransaction(db, dialect).execute((trx) =>
+        work(kyselySubmissionRepository(trx, dialect)),
+      ),
 
     findScope: async (name) =>
       (await db
@@ -101,6 +107,20 @@ export const kyselySubmissionRepository = (
           .execute()
       ).map(toSubmission),
 
+    isNameProposed: async (scopeId, name, statuses, exceptId) => {
+      if (statuses.length === 0) return false;
+      const found = await db
+        .selectFrom("submissions")
+        .select("id")
+        .where("scope_id", "=", scopeId)
+        .where("name", "=", name)
+        .where("status", "in", [...statuses])
+        .where("id", "!=", exceptId)
+        .limit(1)
+        .executeTakeFirst();
+      return found !== undefined;
+    },
+
     update: async (id, changes) => {
       await db
         .updateTable("submissions")
@@ -111,6 +131,29 @@ export const kyselySubmissionRepository = (
         })
         .where("id", "=", id)
         .execute();
+    },
+
+    setStatus: async (id, status, at) => {
+      await db
+        .updateTable("submissions")
+        .set({
+          status,
+          updated_at: toDbDate(at.updatedAt, dialect),
+          ...(at.submittedAt ? { submitted_at: toDbDate(at.submittedAt, dialect) } : {}),
+        })
+        .where("id", "=", id)
+        .execute();
+    },
+
+    lockScope: async (scopeId) => {
+      await forUpdate(
+        db.selectFrom("scopes").select("id").where("id", "=", scopeId),
+        dialect,
+      ).execute();
+    },
+
+    recordAudit: async (event, now) => {
+      await recordAudit(db, dialect, event, now);
     },
 
     delete: async (id) => {

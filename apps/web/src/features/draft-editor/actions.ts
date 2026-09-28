@@ -10,9 +10,18 @@ import {
   renameDraft,
   saveDraftFiles,
 } from "@/server/domains/submissions/actions/drafts";
-import { StaleFilesError, SubmissionsError } from "@/server/domains/submissions/exceptions/errors";
+import {
+  checkSubmission,
+  submitDraft,
+  withdrawSubmission,
+} from "@/server/domains/submissions/actions/submissions";
+import {
+  StaleFilesError,
+  SubmissionInvalidError,
+  SubmissionsError,
+} from "@/server/domains/submissions/exceptions/errors";
 import { requestHeaders } from "@/server/http/request-headers";
-import type { ActionResult, SaveResult } from "./types";
+import type { ActionResult, SaveResult, SubmitResult } from "./types";
 
 /** Domain and permission errors become a message; anything else is a real failure. */
 const message = (error: unknown): string => {
@@ -95,4 +104,38 @@ export const deleteDraftAction = async (id: string): Promise<ActionResult> => {
   }
   revalidatePath("/submissions");
   redirect("/submissions");
+};
+
+/** What submitting would say, for the confirmation dialog (feature 013). */
+export const checkSubmissionAction = async (id: string): Promise<SubmitResult> => {
+  try {
+    return { ok: true, issues: await checkSubmission(await requestHeaders(), id) };
+  } catch (error) {
+    return { ok: false, error: message(error), issues: [] };
+  }
+};
+
+/** Submits the saved draft for review. The page then reloads it, read-only. */
+export const submitDraftAction = async (id: string): Promise<SubmitResult> => {
+  try {
+    const { issues } = await submitDraft(await requestHeaders(), id);
+    revalidatePath(`/submissions/${id}`);
+    revalidatePath("/submissions");
+    return { ok: true, issues };
+  } catch (error) {
+    if (error instanceof SubmissionInvalidError)
+      return { ok: false, error: error.message, issues: [...error.issues] };
+    return { ok: false, error: message(error), issues: [] };
+  }
+};
+
+export const withdrawAction = async (id: string): Promise<ActionResult> => {
+  try {
+    await withdrawSubmission(await requestHeaders(), id);
+  } catch (error) {
+    return { ok: false, error: message(error) };
+  }
+  revalidatePath(`/submissions/${id}`);
+  revalidatePath("/submissions");
+  return { ok: true };
 };

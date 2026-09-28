@@ -1,15 +1,25 @@
 import Link from "next/link";
 import { buttonClasses } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/Panel";
-import { SubmissionsTable } from "@/features/submissions/SubmissionsTable";
+import {
+  inListOrder,
+  StatusFilters,
+  SubmissionsTable,
+  statusFilter,
+} from "@/features/submissions/SubmissionsTable";
 import { listMySubmissions } from "@/server/domains/submissions/actions/drafts";
 import { requestHeaders } from "@/server/http/request-headers";
 
 export const metadata = { title: "My submissions · Ronne" };
 
-/** Every signed-in user sees their own drafts and submissions (feature 012). */
-const Submissions = async () => {
-  const submissions = await listMySubmissions(await requestHeaders());
+/** Every signed-in user sees their own drafts and submissions (012), filtered by status (013). */
+const Submissions = async ({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) => {
+  const status = statusFilter((await searchParams).status);
+  const submissions = inListOrder(await listMySubmissions(await requestHeaders()));
   return (
     <>
       <PageHeader
@@ -23,7 +33,10 @@ const Submissions = async () => {
           ) : null
         }
       />
-      <SubmissionsTable submissions={submissions} />
+      <StatusFilters submissions={submissions} status={status} />
+      <SubmissionsTable
+        submissions={status ? submissions.filter((s) => s.status === status) : submissions}
+      />
     </>
   );
 };

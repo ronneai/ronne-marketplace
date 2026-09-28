@@ -1,7 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
-import { type ReactNode, useEffect, useRef } from "react";
+import { type ReactNode, useEffect, useId, useRef } from "react";
 
 /**
  * A modal dialog on the native <dialog> element: the browser traps focus, makes the page behind it
@@ -19,6 +19,8 @@ export const Dialog = ({
   children: ReactNode;
 }) => {
   const ref = useRef<HTMLDialogElement>(null);
+  // Unique per dialog: a page can hold several (the editor has its leave guard and its own).
+  const titleId = useId();
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
@@ -30,11 +32,11 @@ export const Dialog = ({
     <dialog
       ref={ref}
       onClose={onClose}
-      aria-labelledby="dialog-title"
+      aria-labelledby={titleId}
       className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-panel border border-strong bg-surface p-0 text-left text-fg backdrop:bg-canvas/80"
     >
       <div className="flex items-center justify-between border-b border-hairline px-4 py-3">
-        <h2 id="dialog-title" className="text-lg font-semibold">
+        <h2 id={titleId} className="text-lg font-semibold">
           {title}
         </h2>
         <button

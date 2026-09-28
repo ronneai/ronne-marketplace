@@ -13,7 +13,6 @@ import { requirePermission } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
 import {
   DraftLimitError,
-  DraftNotEditableError,
   DraftScopeNotFoundError,
   FileTooLargeError,
   InvalidFileContentError,
@@ -22,9 +21,11 @@ import {
   InvalidItemTypeError,
   ManifestRequiredError,
   StaleFilesError,
+  SubmissionNotEditableError,
   SubmissionNotFoundError,
   ZipImportError,
 } from "../exceptions/errors";
+import { isEditable } from "../models/status";
 import {
   byteSize,
   type Draft,
@@ -69,7 +70,7 @@ const ownSubmission = async (
 
 const ownDraft = async (repo: SubmissionRepository, actor: DraftActor, id: string) => {
   const submission = await ownSubmission(repo, actor, id);
-  if (submission.status !== "draft") throw new DraftNotEditableError();
+  if (!isEditable(submission.status)) throw new SubmissionNotEditableError();
   return submission;
 };
 

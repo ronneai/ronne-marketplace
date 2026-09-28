@@ -136,8 +136,24 @@ describe("Tabs, CopyableCommand, Dialog", () => {
       </Dialog>,
     );
     expect(out).toContain("<dialog");
-    expect(out).toContain('aria-labelledby="dialog-title"');
+    const labelledBy = out.match(/aria-labelledby="([^"]+)"/)?.[1];
+    expect(out).toContain(`<h2 id="${labelledBy}"`);
     expect(out).toContain('aria-label="Close"');
+  });
+
+  it("gives each dialog its own title id, so two on a page keep their names", () => {
+    const out = html(
+      <>
+        <Dialog open={false} onClose={() => {}} title="One">
+          a
+        </Dialog>
+        <Dialog open={false} onClose={() => {}} title="Two">
+          b
+        </Dialog>
+      </>,
+    );
+    const ids = [...out.matchAll(/aria-labelledby="([^"]+)"/g)].map((m) => m[1]);
+    expect(new Set(ids).size).toBe(2);
   });
 });
 

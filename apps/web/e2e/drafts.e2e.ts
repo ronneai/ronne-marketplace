@@ -30,7 +30,10 @@ test("a user drafts an agent in CodeMirror and the form, fixes its problem, save
     .click();
   await expect(user.getByText("You have no drafts yet.")).toBeVisible();
   await user.getByRole("link", { name: "New item" }).click();
-  await user.getByRole("radio", { name: "@e2e-drafts" }).check();
+  await user
+    .locator("label")
+    .filter({ has: user.locator('input[name="scope"][value="e2e-drafts"]') })
+    .click();
   await user.getByLabel("Name").fill("Reviewer");
   await expect(user.getByText("@e2e-drafts/reviewer")).toBeVisible();
   // The type cards are labels around a hidden radio: click the card, as a person does.

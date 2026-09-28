@@ -3,10 +3,70 @@ import { Badge } from "@/components/ui/Badge";
 import { buttonClasses } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Panel";
 import { Table, Td, Th } from "@/components/ui/Table";
+import {
+  SUBMISSION_STATUSES,
+  type SubmissionStatus,
+  statusLabel,
+} from "@/server/domains/submissions/models/status";
 import { itemNameOf, type Submission } from "@/server/domains/submissions/models/submission";
 
 /** `2026-09-27 14:05 UTC`: the same for every viewer, like the rest of the app. */
 const when = (date: Date) => `${date.toISOString().slice(0, 16).replace("T", " ")} UTC`;
+
+/** `?status=`, when it's a status; otherwise every status. */
+export const statusFilter = (value: string | string[] | undefined): SubmissionStatus | null => {
+  const status = Array.isArray(value) ? value[0] : value;
+  return status && (SUBMISSION_STATUSES as readonly string[]).includes(status)
+    ? (status as SubmissionStatus)
+    : null;
+};
+
+/** Newest change first, with withdrawn ones last (spec 013): they're only kept for history. */
+export const inListOrder = (submissions: readonly Submission[]): Submission[] =>
+  [...submissions].sort(
+    (a, b) =>
+      Number(a.status === "withdrawn") - Number(b.status === "withdrawn") ||
+      b.updatedAt.getTime() - a.updatedAt.getTime(),
+  );
+
+const chipClasses =
+  "rounded-full border border-hairline px-3 py-1 font-mono text-xs text-muted hover:text-fg aria-[current=page]:border-transparent aria-[current=page]:bg-fg aria-[current=page]:text-canvas outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
+
+/** Status filters (feature 013): All, then each status you have, with its count. */
+export const StatusFilters = ({
+  submissions,
+  status,
+}: {
+  submissions: readonly Submission[];
+  status: SubmissionStatus | null;
+}) => {
+  const counts = new Map<SubmissionStatus, number>();
+  for (const submission of submissions)
+    counts.set(submission.status, (counts.get(submission.status) ?? 0) + 1);
+  const shown = SUBMISSION_STATUSES.filter((s) => counts.has(s));
+  if (shown.length < 2 && status === null) return null;
+  return (
+    <nav aria-label="Filter by status" className="flex flex-wrap gap-2 pb-4">
+      <Link
+        href="/submissions"
+        aria-current={status === null ? "page" : undefined}
+        className={chipClasses}
+      >
+        All ({submissions.length})
+      </Link>
+      {shown.map((s) => (
+        <Link
+          key={s}
+          href={`/submissions?status=${s}`}
+          aria-current={status === s ? "page" : undefined}
+          className={chipClasses}
+        >
+          {statusLabel(s)} ({counts.get(s)})
+        </Link>
+      ))}
+    </nav>
+  );
+};
 
 /** My submissions (feature 012): your drafts and submissions, newest change first. */
 export const SubmissionsTable = ({ submissions }: { submissions: Submission[] }) => {
@@ -48,7 +108,7 @@ export const SubmissionsTable = ({ submissions }: { submissions: Submission[] })
             </Td>
             <Td>
               <Badge tone={submission.status === "draft" ? "muted" : "accent"}>
-                {submission.status}
+                {statusLabel(submission.status)}
               </Badge>
             </Td>
             <Td className="whitespace-nowrap font-mono text-xs text-muted">
