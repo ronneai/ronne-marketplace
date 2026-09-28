@@ -18,7 +18,7 @@ the same change that completes it.
   descriptions shared with the New item form.
   *Done when:* render tests cover each topic's sections, and the types match the form's.
 
-- [ ] **4. Inline helpers.** HelpTips in the places the spec lists, and a test that every "Learn
+- [x] **4. Inline helpers.** HelpTips in the places the spec lists, and a test that every "Learn
   more" target exists.
   *Done when:* render tests pass, and the Playwright test in the acceptance criteria passes.
 
@@ -38,3 +38,16 @@ the same change that completes it.
   permission matrix without what isn't built (instance settings). The types table uses the New item
   form's own descriptions and risk marks: `item-types.ts` moved to `components/submissions`, shared
   by both. `rmk` is described in the future tense, as not released yet.
+- **Task 4 (2026-09-28): inline helpers.** `components/help/Help.tsx` holds every helper (question,
+  answer, link) in one registry, used as `<Help id="…" />`, and a test checks each link lands on a
+  real topic section. They're in the New item form (scope, name, type), the manifest form, the
+  submit dialog, the risk summary, the review page's decisions, the publish dialog (bump, tag), the
+  Versions tab (tags, deprecate or yank) and under Propose a change; the Scopes page links to its
+  topic. Render tests check each place; the dialogs' helpers are checked in the review Playwright
+  test, and a new one follows "What's a scope?" to the Documentation.
+- **Header order (2026-09-28, owner's request).** Admin and Docs sit at the right of the header,
+  just before the appearance switch: `[Admin] [Docs] [appearance]`. They're still in the one Main
+  navigation (a `NavItem` can be `end`), so there's a single landmark; on phones they come at the
+  end of its sideways scroll.
+- **Phones (2026-09-28).** Screenshots at 390 px: no page scrolls sideways. The topic list became a
+  row that scrolls sideways on phones, instead of a full list pushing the page down.

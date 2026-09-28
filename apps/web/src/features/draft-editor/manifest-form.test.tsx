@@ -57,6 +57,7 @@ describe("ManifestForm", () => {
     // An agent may have dependencies; the name and type are read-only.
     expect(html).toContain(">dependencies</legend>");
     expect(html).not.toContain('id="field-name"');
+    expect(html).toContain("What goes in ronne.yaml?");
   });
 
   it("marks a referenced file that doesn't exist", () => {

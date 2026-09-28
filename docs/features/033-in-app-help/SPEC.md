@@ -15,7 +15,8 @@ should be in the app.
 ## Scope
 
 **In:**
-- **Documentation** (`/docs`) in the main nav: an overview and one page per topic.
+- **Documentation** (`/docs`) in the main nav, at the right next to Admin and the appearance switch:
+  an overview and one page per topic.
 - A shared **HelpTip**: a short explanation that opens in place, with a "Learn more" link to its
   topic.
 - Inline helpers in the places people get stuck, listed below.
@@ -29,7 +30,8 @@ should be in the app.
 ## Behaviour
 
 **Documentation** (`/docs`, everyone signed in, like every other page):
-- A topic list (a sidebar on wide screens, a list at the top on phones) and the topic's page.
+- A topic list (a sidebar on wide screens, a row that scrolls sideways at the top on phones) and
+  the topic's page.
 - **Topics:**
   - **Overview:** what Ronne is, and the path of an item: draft → review → release → install.
   - **Scopes:** what a scope is (`@team/code-reviewer`), who creates them (root), who may propose in
@@ -75,11 +77,11 @@ JavaScript, is keyboard accessible, and stays closed until asked.
 
 ## Acceptance criteria
 
-- [ ] `/docs` lists every topic, and each topic page renders its sections, for everyone signed in; Docs is in the main nav.
-- [ ] The Items and types topic shows all 11 types with the same descriptions as the New item form.
-- [ ] HelpTip works without JavaScript, and every "Learn more" link points at an existing topic section.
-- [ ] Inline helpers appear in each place listed above.
-- [ ] Playwright: a user opens "What's a scope?" in the New item form, follows Learn more to the Scopes topic, and moves to another topic from the list.
+- [x] `/docs` lists every topic, and each topic page renders its sections, for everyone signed in; Docs is in the main nav.
+- [x] The Items and types topic shows all 11 types with the same descriptions as the New item form.
+- [x] HelpTip works without JavaScript, and every "Learn more" link points at an existing topic section.
+- [x] Inline helpers appear in each place listed above.
+- [x] Playwright: a user opens "What's a scope?" in the New item form, follows Learn more to the Scopes topic, and moves to another topic from the list.
 
 ## Open questions
 

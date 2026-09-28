@@ -2,7 +2,7 @@ import { DEPENDENCY_TYPES, ITEM_TYPES, NAME_MAX_LENGTH } from "@ronneai/core";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { docsHref, type TopicSlug } from "@/components/help/topics";
-import { HIGH_RISK_NOTE, TYPE_INFO } from "@/components/submissions/item-types";
+import { TYPE_INFO } from "@/components/submissions/item-types";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { Badge } from "@/components/ui/Badge";
 import { Table, Td, Th } from "@/components/ui/Table";
@@ -164,7 +164,7 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         <p>
           Every item has one type, chosen when its draft is created; it can&apos;t change later.
           Types marked <Badge tone="warning">⚠ risk</Badge> run programs or change what the agent
-          may do: {HIGH_RISK_NOTE.charAt(0).toLowerCase() + HIGH_RISK_NOTE.slice(1)}
+          may do, so reviewers see a risk flag on them.
         </p>
         <Table>
           <thead>

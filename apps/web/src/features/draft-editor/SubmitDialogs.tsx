@@ -3,6 +3,7 @@
 import { hasErrors } from "@ronneai/core";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
+import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { FieldError } from "@/components/ui/Field";
@@ -81,6 +82,7 @@ export const SubmitDialog = ({
                 Once submitted, its files are frozen: reviewers see exactly these. You can withdraw
                 it until it's approved.
               </p>
+              <Help id="after-submit" />
             </div>
           )}
           <div className="flex flex-wrap justify-end gap-2">

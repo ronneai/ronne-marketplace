@@ -1,6 +1,7 @@
 import { formatBytes } from "@ronneai/core";
 import Link from "next/link";
 import { itemPath } from "@/components/catalogue/ItemCard";
+import { Help } from "@/components/help/Help";
 import { Badge } from "@/components/ui/Badge";
 import { Panel } from "@/components/ui/Panel";
 import { Table, Td, Th } from "@/components/ui/Table";
@@ -24,6 +25,10 @@ export const VersionsTab = ({ page }: { page: Page }) => {
         Versions never change once published. Tags point installs at them; deprecating warns, and
         yanking stops new installs.
       </p>
+      <div className="flex flex-wrap gap-x-6 gap-y-2">
+        <Help id="tag" />
+        <Help id="deprecate-yank" />
+      </div>
 
       <Panel className="grid gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2">

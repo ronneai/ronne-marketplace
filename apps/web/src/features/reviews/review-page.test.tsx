@@ -70,8 +70,10 @@ describe("RiskSummary", () => {
 
   it("shows file and line as text without a review page, and nothing without flags", () => {
     const html = renderToStaticMarkup(<RiskSummary flags={flags} />);
-    expect(html).not.toContain("href=");
+    // No links into files; only the helper's link to the Documentation (033).
+    expect(html.match(/href="[^"]*"/g)).toEqual(['href="/docs/review#reviewing"']);
     expect(html).toContain("ronne.yaml:6");
+    expect(html).toContain("Why is it flagged?");
     expect(renderToStaticMarkup(<RiskSummary flags={[]} />)).toBe("");
   });
 });
@@ -203,6 +205,7 @@ describe("the review page", () => {
     expect(html).toMatch(/aria-current="page"[^>]*>Changes since revision 1/);
     expect(html).toContain("Checks on revision 2");
     expect(html).toContain("resubmitted it as revision 2");
+    expect(html).toContain("What do these do?");
   });
 
   it("shows all files on request, and tells a reviewer about their own submission", async () => {

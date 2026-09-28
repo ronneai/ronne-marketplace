@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { docsHref } from "@/components/help/topics";
 import { PageHeader } from "@/components/ui/Panel";
 import { parseScopesQuery, type SearchParams } from "@/features/scopes/query";
 import { ScopesTable } from "@/features/scopes/ScopesTable";
@@ -14,7 +16,15 @@ const Scopes = async ({ searchParams }: { searchParams: Promise<SearchParams> })
     <>
       <PageHeader
         title="Scopes"
-        description="Every item lives in a scope, like @platform/code-reviewer. Anyone can propose items in any scope: review is the gate. Root creates new scopes."
+        description={
+          <>
+            Every item lives in a scope, like @platform/code-reviewer. Anyone can propose items in
+            any scope: review is the gate. Root creates new scopes.{" "}
+            <Link href={docsHref("scopes")} className="text-link underline underline-offset-2">
+              More about scopes
+            </Link>
+          </>
+        }
       />
       <ScopesTable
         base="/scopes"
