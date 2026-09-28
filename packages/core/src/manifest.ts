@@ -218,6 +218,8 @@ export const parseManifest = (
     const seen = new Set<string>();
     for (const error of errors) {
       if (typeProblem && /^#\/allOf\/\d+\/then\//.test(error.schemaPath)) continue;
+      // With an unknown type, "a block for another type" only repeats the type error.
+      if (typeProblem && error.keyword === "const" && error.instancePath === "/type") continue;
       const described = describe(error);
       if (!described) continue;
       const key = `${described.pointer}|${described.message}`;

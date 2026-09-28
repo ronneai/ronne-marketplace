@@ -86,6 +86,11 @@ describe("parseManifest: schema messages", () => {
     expect(
       messages('name: "@a/b"\ntype: bundle\ndescription: Hi.\ndependencies:\n  foo: "^1.0.0"\n'),
     ).toEqual(["`foo` in `dependencies` isn't a full item name. Use @scope/name."]);
+    expect(
+      messages('name: "@a/b"\ntype: agnet\ndescription: Hi.\nagent:\n  prompt: p.md\n'),
+    ).toEqual([
+      "`type` must be one of: skill, agent, rule, command, hook, mcp-server, permission-policy, output-style, statusline, lsp-server, bundle.",
+    ]);
     expect(messages(`${rule()}agent:\n  prompt: p.md\n`)).toEqual([
       "This manifest has a block for `agent`, but its type isn't `agent`. Keep only the block for its own type.",
     ]);

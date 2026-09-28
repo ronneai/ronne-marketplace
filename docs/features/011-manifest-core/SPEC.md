@@ -112,13 +112,13 @@ links, devices, paths outside `package/`, and anything over the limits, before w
 
 ## Acceptance criteria
 
-- [ ] The schema lives only in `packages/core`, and every example in `examples/items/` passes it.
-- [ ] `parseManifest` reports schema errors as one sentence each with a JSON pointer and a line number, and refuses aliases and duplicate keys.
-- [ ] `checkPackage` catches each rule above, with a test per rule, including every secret pattern.
-- [ ] `packItem` is deterministic: packing the same files twice gives identical bytes and sha256, and entry order, times and modes are as specified.
-- [ ] `unpackItem(packItem(x))` gives back `x`, and hostile archives (traversal, symlinks, too big) are refused.
-- [ ] The validation entry point builds and runs in the browser (a render test in the web app imports it).
-- [ ] New and moved dependencies pass the checklist, `pnpm licenses:check` and `pnpm audit`.
+- [x] The schema lives only in `packages/core`, and every example in `examples/items/` passes it.
+- [x] `parseManifest` reports schema errors as one sentence each with a JSON pointer and a line number, and refuses aliases and duplicate keys.
+- [x] `checkPackage` catches each rule above, with a test per rule, including every secret pattern.
+- [x] `packItem` is deterministic: packing the same files twice gives identical bytes and sha256, and entry order, times and modes are as specified.
+- [x] `unpackItem(packItem(x))` gives back `x`, and hostile archives (traversal, symlinks, too big) are refused.
+- [x] The validation entry point builds and runs in the browser (a render test in the web app imports it).
+- [x] New and moved dependencies pass the checklist, `pnpm licenses:check` and `pnpm audit`.
 
 ## Open questions
 

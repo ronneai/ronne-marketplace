@@ -14,6 +14,7 @@ import {
   Th,
 } from "@/components/ui";
 import { Checkbox, Label } from "@/components/ui/Field";
+import { ManifestCheckDemo } from "../manifest-validation/ManifestCheckDemo";
 import { DialogDemo } from "./DialogDemo";
 
 const SWATCHES = [
@@ -149,6 +150,16 @@ export const Styleguide = () => {
         <ThemeSample theme="light" />
         <ThemeSample theme="dark" />
       </div>
+      <Panel padding="lg" className="grid gap-3">
+        <h2 className="font-mono text-xs font-semibold text-muted">
+          manifest validation (feature 011)
+        </h2>
+        <p className="text-sm text-muted">
+          The same checks as the server, running in your browser. Edit the manifest to see the
+          problems change.
+        </p>
+        <ManifestCheckDemo />
+      </Panel>
     </div>
   );
 };

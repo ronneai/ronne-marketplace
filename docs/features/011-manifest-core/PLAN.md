@@ -26,7 +26,7 @@ the same change that completes it.
   *Done when:* packing is byte-identical across runs, a round trip returns the same files, and
   hostile archives (built in the tests) are refused.
 
-- [ ] **5. Use it from the web app.** Add `@ronneai/core` to `apps/web`, and a client component
+- [x] **5. Use it from the web app.** Add `@ronneai/core` to `apps/web`, and a client component
   test that validates a manifest, so the browser entry point is proven before 012 needs it.
   *Done when:* `pnpm build` bundles it into a client component, and the test passes.
 
@@ -115,4 +115,10 @@ the same change that completes it.
     - hand-made hostile archives are refused: traversal, outside `package/`, duplicates, no
       manifest, not gzip, a symlink with a valid checksum, and each limit;
     - a 50 MB gzip bomb of zeros (about 50 KB compressed) is stopped while decompressing.
-
+- **Task 5 (2026-09-27): in the browser.**
+  - `features/manifest-validation/` has `IssueList` (errors first, `ERR:`/`WARN:`, `file:line`, an
+    optional `onSelect` for 012's editor; backticked names render as code) and `ManifestCheckDemo`,
+    a client component that runs `parseManifest` on each edit. The styleguide shows the demo.
+  - Checked in a production build: editing the sample updates the problems with no network requests.
+  - The browser check found one noisy case: with a misspelled `type`, the "block for another type"
+    error repeated the type error. `parseManifest` now drops it when the type itself is wrong.
