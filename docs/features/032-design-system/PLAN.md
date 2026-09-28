@@ -128,4 +128,10 @@
 - **Changed later (2026-09-27, 010):** the header gained "Scopes" for everyone. On phones, "Home"
   hides (the logo links home) and the header's padding and gaps are tighter, so three links still
   fit at 360px.
+- **White text on teal (2026-09-28, owner's request).** Primary buttons and accent badges now have
+  white labels. White on the brand Teal `#18B6A4` is 2.54:1, so the owner chose a deeper fill for
+  them: a new token `accent-strong`, Deep teal `#0D7C70` (white 5.08:1; 3.14:1 on the dark
+  surface, 4.81:1 on Paper), and `on-accent` is now white. `accent` keeps the brand Teal for marks,
+  borders, selections and the dark focus ring. `tokens.test.ts` checks white on `accent-strong`;
+  the styleguide shows the new swatch.
 

@@ -4,7 +4,7 @@ import { cn } from "./cn";
 export type ButtonVariant = "primary" | "secondary" | "ghost";
 
 const VARIANTS: Record<ButtonVariant, string> = {
-  primary: "bg-accent text-on-accent hover:opacity-90",
+  primary: "bg-accent-strong text-on-accent hover:opacity-90",
   secondary: "border border-strong bg-surface text-fg hover:border-accent",
   ghost: "text-muted hover:bg-tint hover:text-fg",
 };

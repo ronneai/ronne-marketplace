@@ -23,6 +23,7 @@ const SWATCHES = [
   ["fg", "bg-fg"],
   ["muted", "bg-muted"],
   ["accent", "bg-accent"],
+  ["accent-strong", "bg-accent-strong"],
   ["tint", "bg-tint"],
   ["focus", "bg-focus"],
 ] as const;

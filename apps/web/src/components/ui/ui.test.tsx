@@ -24,7 +24,7 @@ describe("Button", () => {
   it("is a type=button teal primary by default, with a focus ring", () => {
     const out = html(<Button>Sign in</Button>);
     expect(out).toContain('type="button"');
-    expect(out).toContain("bg-accent text-on-accent");
+    expect(out).toContain("bg-accent-strong text-on-accent");
     expect(out).toContain("focus-visible:outline-focus");
   });
 

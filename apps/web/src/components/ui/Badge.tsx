@@ -1,7 +1,7 @@
 import type { HTMLAttributes } from "react";
 import { cn } from "./cn";
 
-/** A pill in IBM Plex Mono 600 11px. `accent` = teal fill, `muted` = soft fill (design system 032). */
+/** A pill in IBM Plex Mono 600 11px. `accent` = Deep teal with white text, `muted` = soft fill (032). */
 export const Badge = ({
   tone = "muted",
   className,
@@ -11,7 +11,9 @@ export const Badge = ({
     <span
       className={cn(
         "inline-flex h-5 items-center rounded-full px-2 font-mono text-[11px] leading-none font-semibold tracking-[0.03em]",
-        tone === "accent" ? "bg-accent text-on-accent" : "border border-hairline bg-tint text-fg",
+        tone === "accent"
+          ? "bg-accent-strong text-on-accent"
+          : "border border-hairline bg-tint text-fg",
         className,
       )}
       {...props}

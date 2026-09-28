@@ -30,7 +30,8 @@ const PAIRS: [string, string, number][] = [
   ["fg", "surface", 4.5],
   ["muted", "canvas", 4.5],
   ["muted", "surface", 4.5],
-  ["on-accent", "accent", 4.5],
+  // White labels on Deep teal: primary buttons and accent badges (owner decision, 2026-09-28).
+  ["on-accent", "accent-strong", 4.5],
   ["link", "canvas", 4.5],
   ["link", "surface", 4.5],
   // The header's current item: link-coloured text on the tint (feature 009's navigation fix).
