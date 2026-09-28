@@ -20,8 +20,8 @@ the same change that completes it.
   *Done when:* the docs render tests cover the new text.
 
 ## Notes
-- **Built on the recommendations (2026-09-28).** The owner started 020 without answering the
-  spec's open questions: no backtracking, and `rmk` resolves with `POST /resolve`.
+- **Open questions (2026-09-28).** Built on the recommendations, then confirmed by the owner: no
+  backtracking, and `rmk` resolves with `POST /resolve`.
 - **Task 1 (2026-09-28): the resolver.** `packages/core/src/resolve.ts`. Tags become versions
   first. A work queue, always taking the first name in order, settles each item on its locked
   version while it fits every range (even yanked), else the highest non-yanked one that does;

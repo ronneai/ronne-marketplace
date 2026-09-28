@@ -114,11 +114,12 @@ isn't a map of names to ranges or tags, or has more than 200 entries.
 
 ## Open questions
 
-The owner started 020 (2026-09-28) without answering these, so it's built on the recommendations;
-either can still change.
+Both answered by the owner on 2026-09-28, as built:
 
-1. **No backtracking** (recommended: the highest version that fits every range, re-examined as
-   ranges arrive; a rare dead end is reported as a conflict the author can fix by widening a
-   range), or a backtracking search that tries older versions to escape a conflict.
-2. **`rmk` resolves with `POST /resolve`** (recommended: one request, and the server reads the
-   database directly), or on the client with `resolve()` over the read API, one request per item.
+1. **No backtracking.** The highest version that fits every range, re-examined as ranges arrive; a
+   dead end is reported as a conflict that names who asked for each range, and the author widens a
+   range or releases a fitting version. A search through older versions could pick an old version
+   quietly; naming the conflict is safer. Worth revisiting if conflicts turn out to be common.
+2. **`rmk` resolves with `POST /resolve`.** One request, the server reads the database directly,
+   and the MCP server resolves the same way with no code of its own. `resolve()` stays in core, so
+   a client-side path is possible later.
