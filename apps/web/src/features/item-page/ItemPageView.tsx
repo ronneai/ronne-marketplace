@@ -33,7 +33,7 @@ export const ItemPageView = ({
   const license = text(shown.manifest.license);
   const description = text(shown.manifest.description) ?? page.item.description;
   return (
-    <div className="grid gap-6">
+    <div className="grid grid-cols-1 gap-6">
       <nav aria-label="Breadcrumb" className="font-mono text-xs text-muted">
         <Link href="/catalogue" className="hover:text-fg hover:underline">
           Catalogue
@@ -103,13 +103,16 @@ export const ItemPageView = ({
         )}
       </Panel>
 
-      <nav aria-label="Item" className="flex flex-wrap gap-1 border-b border-hairline">
+      <nav
+        aria-label="Item"
+        className="flex gap-1 overflow-x-auto border-b border-hairline [scrollbar-width:none]"
+      >
         {ITEM_TABS.map((t) => (
           <Link
             key={t}
             href={itemTabHref(ref, t, other ? shown.version : null)}
             aria-current={t === tab ? "page" : undefined}
-            className="-mb-px border-b-2 border-transparent px-3 py-2 text-sm text-muted hover:text-fg aria-[current=page]:border-accent-strong aria-[current=page]:font-semibold aria-[current=page]:text-fg"
+            className="-mb-px shrink-0 border-b-2 border-transparent px-3 py-2 whitespace-nowrap text-sm text-muted hover:text-fg aria-[current=page]:border-accent-strong aria-[current=page]:font-semibold aria-[current=page]:text-fg"
           >
             {TAB_LABELS[t]}
             {t === "risks" && shown.riskFlags.length ? ` (${shown.riskFlags.length})` : ""}

@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { E2E_PASSWORD, E2E_SCOPE, E2E_SKILL, E2E_USERS } from "./users";
 
-test("a user searches the catalogue, filters by type, reads a skill's README and copies the install command", async ({
+test("a user searches from the home page, filters by type, reads a skill's README and copies the install command", async ({
   page,
   context,
 }) => {
@@ -12,11 +12,10 @@ test("a user searches the catalogue, filters by type, reads a skill's README and
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).not.toHaveURL(/\/sign-in/);
 
-  await page
-    .getByRole("navigation", { name: "Main" })
-    .getByRole("link", { name: "Catalogue" })
-    .click();
-  await page.getByLabel("Search").fill("security");
+  // The home page lists what's new, and its search box leads into the catalogue.
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Recently published" })).toBeVisible();
+  await page.getByLabel("Search the catalogue").fill("security");
   await page.getByRole("button", { name: "Search", exact: true }).click();
   await expect(page).toHaveURL(/\/catalogue\?q=security/);
   await page

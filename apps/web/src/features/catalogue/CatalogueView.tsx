@@ -24,9 +24,9 @@ export const CatalogueView = ({ page, paged }: { page: CataloguePage; paged: boo
   const total = page.typeCounts.reduce((sum, t) => sum + t.count, 0);
   const filtered = Boolean(query.q || query.type || query.scope);
   return (
-    <div className="grid gap-5">
+    <div className="grid grid-cols-1 gap-5">
       <form method="get" action="/catalogue" className="flex flex-wrap items-end gap-2">
-        <div className="grid min-w-0 flex-1 basis-60 gap-1.5">
+        <div className="grid w-full min-w-0 gap-1.5 sm:w-auto sm:flex-1">
           <Label htmlFor="catalogue-search">Search</Label>
           <Input
             id="catalogue-search"
@@ -132,7 +132,7 @@ export const CatalogueView = ({ page, paged }: { page: CataloguePage; paged: boo
           </div>
         )
       ) : (
-        <ul className="grid gap-3">
+        <ul className="grid grid-cols-1 gap-3">
           {page.entries.map((entry) => (
             <li key={entry.id}>
               <ItemCard entry={entry} />

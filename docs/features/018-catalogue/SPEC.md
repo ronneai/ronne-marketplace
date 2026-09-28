@@ -91,14 +91,14 @@ questions), headings shifted so the page keeps one `h1`, and the design system's
 
 ## Acceptance criteria
 
-- [ ] The catalogue lists published items only, with search, type and scope filters, both sorts and cursor paging, on all four databases.
-- [ ] Each card shows the latest version, the risk badge and deprecation as specified.
-- [ ] The item page shows the header, install commands, and the README, Versions, Dependencies, Files and What it can do tabs, for `latest` and for another version.
-- [ ] README rendering never runs HTML or scripts from the item, tested with hostile input.
-- [ ] Items without a published version aren't listed, and their pages are 404s.
-- [ ] The home page shows recently published and most used items (most used hidden with no downloads, and items with no installable version left out), the viewer's submissions in progress and, for moderators and root, the review count; an empty registry explains how items arrive.
-- [ ] `items.download_count` exists on all four databases, and the most used query orders by it.
-- [ ] Playwright: a user starts from the home page's search box, searches for a published skill, filters by type, opens it, reads its README and copies the install command.
+- [x] The catalogue lists published items only, with search, type and scope filters, both sorts and cursor paging, on all four databases.
+- [x] Each card shows the latest version, the risk badge and deprecation as specified.
+- [x] The item page shows the header, install commands, and the README, Versions, Dependencies, Files and What it can do tabs, for `latest` and for another version.
+- [x] README rendering never runs HTML or scripts from the item, tested with hostile input.
+- [x] Items without a published version aren't listed, and their pages are 404s.
+- [x] The home page shows recently published and most used items (most used hidden with no downloads, and items with no installable version left out), the viewer's submissions in progress and, for moderators and root, the review count; an empty registry explains how items arrive.
+- [x] `items.download_count` exists on all four databases, and the most used query orders by it.
+- [x] Playwright: a user starts from the home page's search box, searches for a published skill, filters by type, opens it, reads its README and copies the install command.
 
 ## Open questions
 

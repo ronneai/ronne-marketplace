@@ -31,7 +31,7 @@ export const ItemCard = ({
       : []),
   ];
   return (
-    <article className="grid gap-2 rounded-panel border border-hairline bg-surface p-4">
+    <article className="grid grid-cols-1 gap-2 rounded-panel border border-hairline bg-surface p-4">
       <div className="flex flex-wrap items-center gap-2">
         <Heading className="min-w-0 break-all">
           <Link

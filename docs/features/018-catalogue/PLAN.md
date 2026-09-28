@@ -26,7 +26,7 @@ the same change that completes it.
 - [x] **4. The item page.** Header, install commands, the tabs, another version by URL, and 404s.
   *Done when:* render tests pass, and the Playwright test in the acceptance criteria passes.
 
-- [ ] **5. The home page.** Search box, Recently published, Most used (hidden without downloads),
+- [x] **5. The home page.** Search box, Recently published, Most used (hidden without downloads),
   For you, and the empty registry, replacing the placeholder.
   *Done when:* render tests cover each section, hidden and shown, for a user and a moderator, and
   the Playwright test starts from the home page.
@@ -76,3 +76,13 @@ the same change that completes it.
   colours when it's yanked or deprecated. `RiskSummary` and its anchors moved to
   `components/risk-flags`, shared with the review page. "Propose a change" waits for 017.
   The e2e seed publishes `@e2e-seeded/secret-scanner` with a README for the Playwright test.
+- **Task 5 (2026-09-28): the home page.** `features/home/HomeView.tsx` replaces the placeholder: a
+  search box that opens `/catalogue?q=`, For you (your drafts, your submissions with changes
+  requested, and for moderators and root how many wait for review, each a line linking on, left
+  out when there's nothing), Recently published (6, with See all), Most used (6 with their download
+  counts, hidden until something is downloaded) and the empty registry. The Playwright test now
+  starts from the home page's search box.
+- **Phone widths (2026-09-28).** Screenshots at 390 px showed the home page and catalogue scrolling
+  sideways: a single-column grid sizes its column to the min-content of a long `rmk install`
+  command. The new pages' grids use `grid-cols-1` (`minmax(0, 1fr)`), the search forms dropped a
+  fixed basis, and the item page's tabs scroll sideways like the main nav instead of wrapping.
