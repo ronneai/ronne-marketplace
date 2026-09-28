@@ -11,7 +11,7 @@ the same change that completes it.
   enums), and the JSON shapes as typed serializers shared by the endpoints.
   *Done when:* unit tests cover the mapper and the parsers.
 
-- [ ] **2. Search and items.** `GET /items` and `GET /items/{scope}/{name}` over 018's services.
+- [x] **2. Search and items.** `GET /items` and `GET /items/{scope}/{name}` over 018's services.
   *Done when:* database tests cover search, filters, sorts, paging, tags and versions (yanked and
   deprecated), 404s and 401s, on all four databases.
 
@@ -38,3 +38,6 @@ the same change that completes it.
   catalogue now builds on; the items domain gains `searchCatalogueAs` and `itemPageAs`, which take
   the token's user; `Item` carries `downloadCount`. The spec keeps 009's token error codes instead
   of a single `unauthorized`.
+- **Task 2 (2026-09-28): search and items.** `server/http/registry-api.ts` has `listItems` and
+  `getItem`, taking the token guard and the app as injectable deps for tests; the routes in
+  `app/api/v1/items/` only call them. A leading `@` in the path's scope is accepted.
