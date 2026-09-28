@@ -23,6 +23,9 @@ type SubmissionRow = {
   created_at: Date | string;
   updated_at: Date | string;
   submitted_at: Date | string | null;
+  item_id: string | null;
+  base_version_id: string | null;
+  base_version: string | null;
 };
 
 const toSubmission = (row: SubmissionRow): Submission => ({
@@ -35,6 +38,14 @@ const toSubmission = (row: SubmissionRow): Submission => ({
   createdAt: fromDbDate(row.created_at),
   updatedAt: fromDbDate(row.updated_at),
   submittedAt: fromDbDate(row.submitted_at),
+  proposal:
+    row.item_id && row.base_version_id
+      ? {
+          itemId: row.item_id,
+          baseVersionId: row.base_version_id,
+          baseVersion: row.base_version ?? "",
+        }
+      : null,
 });
 
 export const kyselySubmissionRepository = (
@@ -45,7 +56,11 @@ export const kyselySubmissionRepository = (
     db
       .selectFrom("submissions")
       .innerJoin("scopes", "scopes.id", "submissions.scope_id")
+      .leftJoin("item_versions as base", "base.id", "submissions.base_version_id")
       .select([
+        "submissions.item_id",
+        "submissions.base_version_id",
+        "base.version as base_version",
         "submissions.id",
         "submissions.author_id",
         "submissions.scope_id",
@@ -84,8 +99,8 @@ export const kyselySubmissionRepository = (
           scope_id: submission.scopeId,
           name: submission.name,
           type: submission.type,
-          item_id: null,
-          base_version_id: null,
+          item_id: submission.proposal?.itemId ?? null,
+          base_version_id: submission.proposal?.baseVersionId ?? null,
           status: submission.status,
           created_at: at,
           updated_at: at,
@@ -157,6 +172,8 @@ export const kyselySubmissionRepository = (
         .where("name", "=", name)
         .where("status", "in", [...statuses])
         .where("id", "!=", exceptId)
+        // Change proposals (017) are for an existing item: they don't hold its name.
+        .where("item_id", "is", null)
         .limit(1)
         .executeTakeFirst();
       return found !== undefined;

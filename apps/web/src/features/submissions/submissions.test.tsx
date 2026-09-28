@@ -40,6 +40,7 @@ const submission = (overrides: Partial<Submission> = {}): Submission => ({
   createdAt: new Date("2026-09-27T10:00:00Z"),
   updatedAt: new Date("2026-09-27T14:05:00Z"),
   submittedAt: null,
+  proposal: null,
   ...overrides,
 });
 

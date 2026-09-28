@@ -29,6 +29,7 @@ const row = (overrides: Partial<QueueRow> = {}): QueueRow => ({
   createdAt: new Date("2026-09-28T09:00:00Z"),
   updatedAt: new Date("2026-09-28T10:00:00Z"),
   submittedAt: new Date("2026-09-28T09:30:00Z"),
+  proposal: null,
   revision: 2,
   risky: true,
   mine: false,

@@ -7,6 +7,7 @@ export const versionRow = (overrides: Partial<VersionRow> = {}): VersionRow => (
   version: "1.1.0",
   sha256: "ab".repeat(32),
   size: 2048,
+  artifactPath: "team/github/1.1.0.tgz",
   publishedAt: new Date("2026-09-28T09:00:00Z"),
   yankedAt: null,
   yankReason: null,

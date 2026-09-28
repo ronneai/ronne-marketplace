@@ -83,6 +83,9 @@ The publisher can choose another bump. The version, the tag rules and the rest a
 
 ## Open questions
 
+The owner started 017 (2026-09-28) without answering these, so it's built on the recommendations;
+any can still change.
+
 1. **Rebase merges by whole files** (recommended: simple, and conflicts are rare in small items), or by
    lines within a file (a three-way text merge), or rebase isn't offered and the author starts again.
 2. **The suggested bump rules** above, or always suggest patch and let the publisher decide.

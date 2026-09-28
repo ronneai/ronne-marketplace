@@ -127,6 +127,7 @@ const draft = (): Draft => ({
   createdAt: new Date(T1),
   updatedAt: new Date(T1),
   submittedAt: null,
+  proposal: null,
   files: [
     {
       path: "logo.png",

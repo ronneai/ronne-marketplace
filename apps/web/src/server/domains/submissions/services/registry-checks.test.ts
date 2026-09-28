@@ -19,7 +19,14 @@ const fakeRegistry = (items: Fake): RegistryLookup => ({
     return found ? { id: `@${scope}/${name}`, scope, name, type: found.type } : null;
   },
   publishedVersions: async (id) =>
-    (items[id]?.versions ?? []).map((v) => ({ yanked: false, dependencies: {}, ...v })),
+    (items[id]?.versions ?? []).map((v) => ({
+      id: `${id}@${v.version}`,
+      publishedAt: new Date(0),
+      artifactPath: "",
+      yanked: false,
+      dependencies: {},
+      ...v,
+    })),
 });
 
 const agent = (dependencies: Record<string, string>) => ({

@@ -20,6 +20,7 @@ import {
   InvalidItemNameError,
   InvalidItemTypeError,
   ManifestRequiredError,
+  ProposalRenameError,
   StaleFilesError,
   SubmissionNotEditableError,
   SubmissionNotFoundError,
@@ -138,6 +139,7 @@ export const createDraft = async (
       createdAt: at,
       updatedAt: at,
       submittedAt: null,
+      proposal: null,
       files,
     };
   });
@@ -328,6 +330,7 @@ export const renameDraft = async (
   const at = now(deps);
   return deps.repo.transaction(async (repo) => {
     const submission = await ownDraft(repo, actor, id);
+    if (submission.proposal) throw new ProposalRenameError();
     const scope = await findScope(repo, input.scope);
     const renamed = { ...submission, scope, name, updatedAt: at };
     const manifest = (await repo.files(submission.id)).find((file) => file.path === MANIFEST_PATH);

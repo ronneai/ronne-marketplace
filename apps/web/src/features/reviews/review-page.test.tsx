@@ -154,6 +154,7 @@ const view = (overrides: Partial<ReviewView> = {}): ReviewView => ({
     createdAt: new Date("2026-09-28T09:00:00Z"),
     updatedAt: new Date("2026-09-28T10:00:00Z"),
     submittedAt: new Date("2026-09-28T10:00:00Z"),
+    proposal: null,
   },
   mine: false,
   revisions: [],

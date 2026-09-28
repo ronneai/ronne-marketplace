@@ -11,6 +11,8 @@ export type NewSubmission = {
   type: ItemType;
   status: SubmissionStatus;
   createdAt: Date;
+  /** For a change proposal (017): the item and the version it starts from. */
+  proposal?: { itemId: string; baseVersionId: string };
 };
 
 /** What the submission services need from storage. Implemented with Kysely in kysely-submission-repository.ts. */

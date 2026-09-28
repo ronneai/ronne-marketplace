@@ -92,16 +92,19 @@ export const allIssues = async (
   const dependencies = (manifest?.dependencies ?? {}) as Record<string, string>;
   return [
     ...issues,
-    ...(await nameIssues(registry, {
-      scope: submission.scope.name,
-      name: submission.name,
-      proposedElsewhere: await repo.isNameProposed(
-        submission.scope.id,
-        submission.name,
-        OPEN_STATUSES,
-        submission.id,
-      ),
-    })),
+    // A change proposal (017) is for its item: it needs no free name.
+    ...(submission.proposal
+      ? []
+      : await nameIssues(registry, {
+          scope: submission.scope.name,
+          name: submission.name,
+          proposedElsewhere: await repo.isNameProposed(
+            submission.scope.id,
+            submission.name,
+            OPEN_STATUSES,
+            submission.id,
+          ),
+        })),
     ...(await dependencyIssues(registry, {
       itemName: itemNameOf(submission),
       type: submission.type,

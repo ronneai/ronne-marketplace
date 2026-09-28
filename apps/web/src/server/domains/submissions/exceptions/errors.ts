@@ -266,3 +266,36 @@ export class ReleaseNotesError extends SubmissionsError {
 
 /** Packing refused the files, such as a package over 5 MB (MVP §12). */
 export class ReleasePackError extends SubmissionsError {}
+
+/** A change proposal (017) keeps its item's scope and name: a new name is a new item. */
+export class ProposalRenameError extends SubmissionsError {
+  constructor() {
+    super(
+      "A change proposal keeps its item's scope and name. To use another name, start a new item.",
+    );
+  }
+}
+
+/** Proposing a change to an item or version that isn't published. */
+export class ProposalBaseNotFoundError extends SubmissionsError {
+  constructor(
+    readonly itemName: string,
+    readonly version?: string,
+  ) {
+    super(
+      version
+        ? `${itemName} has no version ${version} to propose a change to.`
+        : `${itemName} isn't a published item.`,
+    );
+  }
+}
+
+/** A version's artifact couldn't be read back to start a proposal from it. */
+export class ProposalArtifactError extends SubmissionsError {
+  constructor(
+    readonly itemName: string,
+    readonly version: string,
+  ) {
+    super(`The files of ${itemName} ${version} couldn't be read. Ask root to check the storage.`);
+  }
+}
