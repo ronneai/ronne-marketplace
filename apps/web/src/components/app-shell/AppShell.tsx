@@ -40,7 +40,7 @@ export const AppShell = ({
             className="flex shrink-0 items-center gap-2 text-fg outline-offset-4 focus-visible:outline-2 focus-visible:outline-focus"
           >
             <BrandLogo height={34} className="h-6 w-auto sm:h-[34px]" />
-            <span className="hidden font-mono text-xs text-muted sm:inline">/ registry</span>
+            <span className="hidden font-mono text-xs text-muted sm:inline">/ marketplace</span>
           </Link>
           <MainNav items={navFor(user)} counts={navCounts} />
           <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
@@ -80,7 +80,7 @@ export const AppShell = ({
       <main className="mx-auto w-full flex-1 px-4 py-8 sm:px-6 lg:w-[72%] lg:px-0">{children}</main>
       <footer className="border-t border-hairline">
         <div className="flex flex-wrap justify-between gap-2 px-4 py-4 font-mono text-xs text-muted sm:px-6">
-          <span>ronne registry · open source (MIT)</span>
+          <span>ronne marketplace · open source (MIT)</span>
           <a href="https://github.com/ronneai/ronne-marketplace" className="hover:text-fg">
             github
           </a>
