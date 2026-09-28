@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Catalogue queries.** Search, type and scope filters, both sorts and cursor paging over
+- [x] **1. Catalogue queries.** Search, type and scope filters, both sorts and cursor paging over
   published items, in an `items` domain service that 019 will reuse.
   *Done when:* database tests cover search (with `%` and `_`), each filter, both sorts, paging, and
   items without an installable version, on all four databases. Also the migration for
@@ -32,3 +32,19 @@ the same change that completes it.
   the Playwright test starts from the home page.
 
 ## Notes
+- **Built on the recommendations (2026-09-28).** The owner started 018 without answering the
+  spec's open questions: `markdown-it` with raw HTML off, sign-in for every page, and all-time
+  download counts.
+- **Task 1 (2026-09-28): catalogue queries.** Migration `0009_catalogue` keeps the listing on the
+  rows, so listing is one query with the same keyset paging on every database:
+  - `items`: `download_count`, `listed_version_id` (`latest`'s version, else the newest),
+    `installable` (any version not yanked) and `last_published_at`. `models/listing.ts` computes
+    them; the item repository recomputes them after every release, tag change and yank, so no
+    caller can forget.
+  - `item_versions`: `description` and `keywords` from the manifest (search reads the listed
+    version's), and `risk_flags` computed at release from the released files, since file contents
+    aren't kept with a version. The migration backfills all of it from each version's revision.
+  - `kyselyCatalogueRepository` and `services/catalogue.ts`: search, type and scope filters, type
+    counts, both sorts with installable items first, base64url JSON cursors (a bad one starts over),
+    24 a page; and the home page's recent and most used lists. The viewer's own counts reuse
+    `listMySubmissions` and `countNeedsReview`.

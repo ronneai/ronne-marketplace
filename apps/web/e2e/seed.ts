@@ -65,6 +65,7 @@ for (const version of ["1.0.0", "1.1.0"])
     publishedAt: new Date(),
     submissionId: null,
     dependencies: [],
+    riskFlags: [],
   });
 await items.setTag(itemId, "latest", latest);
 await db.destroy();

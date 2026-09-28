@@ -74,6 +74,7 @@ beforeEach(async () => {
       publishedAt: new Date(),
       submissionId: null,
       dependencies: [],
+      riskFlags: [],
     });
   await items.setTag(itemId, "latest", ids["1.1.0"] ?? "");
   await items.setTag(itemId, "next", ids["2.0.0-beta.1"] ?? "");

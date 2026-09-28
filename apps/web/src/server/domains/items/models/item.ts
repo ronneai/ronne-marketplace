@@ -1,4 +1,4 @@
-import type { ItemType } from "@ronneai/core";
+import type { ItemType, RiskFlag } from "@ronneai/core";
 
 /** A published item (feature 015): created by its first release. */
 export type Item = {
@@ -48,4 +48,6 @@ export type NewItemVersion = {
   submissionId: string | null;
   /** Resolved to item ids, as `version_dependencies` stores them. */
   dependencies: { itemId: string; range: string }[];
+  /** What it can do (014), from the files it was released with; the catalogue shows them (018). */
+  riskFlags: RiskFlag[];
 };

@@ -102,6 +102,9 @@ questions), headings shifted so the page keeps one `h1`, and the design system's
 
 ## Open questions
 
+The owner started 018 (2026-09-28) without answering these, so it's built on the recommendations;
+any can still change.
+
 1. **Markdown library:** `markdown-it` (MIT) with `html: false` (recommended: safe by default, no
    sanitiser needed), or `marked` (MIT) with a sanitiser, through the dependency checklist.
 2. **Catalogue, item and home pages need sign-in** (recommended; the instance is private and the proxy

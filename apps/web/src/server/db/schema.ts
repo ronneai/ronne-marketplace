@@ -170,6 +170,14 @@ export interface ItemTable {
   /** The first author; informational (MVP §15). */
   owner_id: string | null;
   created_at: Timestamp;
+  /** Artifact downloads, counted by the tarball endpoint (migration 0009, features 018 and 019). */
+  download_count: Generated<number>;
+  /** The version the catalogue shows: `latest`'s, else the newest (0009). */
+  listed_version_id: string | null;
+  /** Whether any version isn't yanked (0009). */
+  installable: Generated<boolean | number>;
+  /** When the newest version was released (0009). */
+  last_published_at: Timestamp | null;
 }
 
 /** An immutable published version. `manifest` and `files` are JSON text. */
@@ -193,6 +201,12 @@ export interface ItemVersionTable {
   yank_reason: string | null;
   /** The submission it was released from. */
   submission_id: string | null;
+  /** From the manifest, for search (migration 0009, feature 018). */
+  description: Generated<string>;
+  /** The manifest's keywords, space-separated, for search (0009). */
+  keywords: Generated<string>;
+  /** JSON: the version's risk flags (014), computed at release (0009). */
+  risk_flags: string | null;
 }
 
 /** A movable pointer to a version, such as `latest` (MVP §3.4). */
