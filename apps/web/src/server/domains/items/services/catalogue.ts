@@ -13,6 +13,8 @@ export type CatalogueDeps = { catalogue: CatalogueRepository };
 export const CATALOGUE_PAGE_SIZE = 24;
 export const HOME_LIST_SIZE = 6;
 export const CATALOGUE_SEARCH_MAX_LENGTH = 100;
+/** The most items one API page returns (019, MVP §11). */
+export const API_PAGE_MAX = 100;
 
 export type CatalogueQuery = {
   q?: string;
@@ -68,34 +70,64 @@ const cursorOf = (entry: CatalogueEntry, sort: CatalogueSort): CatalogueCursor =
       }
     : { sort, installable: entry.installable, scope: entry.scope, name: entry.name };
 
+/** A page of published items, without the catalogue page's type counts and scopes: 019's API. */
+export type CatalogueSearch = { entries: CatalogueEntry[]; nextCursor: string | null };
+
+export const searchCatalogue = async (
+  deps: CatalogueDeps,
+  actor: ScopeActor,
+  query: {
+    q?: string;
+    type?: ItemType | null;
+    scope?: string | null;
+    sort?: CatalogueSort;
+    cursor?: string;
+    limit?: number;
+  },
+): Promise<CatalogueSearch> => {
+  requirePermission(actor.user, "account.manage_own");
+  const sort = query.sort ?? "recent";
+  const limit = Math.min(Math.max(query.limit ?? CATALOGUE_PAGE_SIZE, 1), API_PAGE_MAX);
+  const rows = await deps.catalogue.list({
+    search: query.q || undefined,
+    type: query.type ?? undefined,
+    scope: query.scope ?? undefined,
+    sort,
+    after: decodeCursor(query.cursor, sort),
+    limit: limit + 1,
+  });
+  const entries = rows.slice(0, limit);
+  const last = entries.at(-1);
+  return {
+    entries,
+    nextCursor: rows.length > limit && last ? encodeCursor(cursorOf(last, sort)) : null,
+  };
+};
+
 export const browseCatalogue = async (
   deps: CatalogueDeps,
   actor: ScopeActor,
   query: CatalogueQuery,
 ): Promise<CataloguePage> => {
-  requirePermission(actor.user, "account.manage_own");
   const q = (query.q ?? "").trim().slice(0, CATALOGUE_SEARCH_MAX_LENGTH);
   const type = query.type && isItemType(query.type) ? query.type : null;
   const scope = query.scope?.trim() || null;
   const sort: CatalogueSort = query.sort === "name" ? "name" : "recent";
-  const filter = { search: q || undefined, scope: scope ?? undefined };
-
-  const rows = await deps.catalogue.list({
-    ...filter,
-    type: type ?? undefined,
+  const { entries, nextCursor } = await searchCatalogue(deps, actor, {
+    q,
+    type,
+    scope,
     sort,
-    after: decodeCursor(query.cursor, sort),
-    limit: CATALOGUE_PAGE_SIZE + 1,
+    cursor: query.cursor,
   });
-  const entries = rows.slice(0, CATALOGUE_PAGE_SIZE);
-  const last = entries.at(-1);
   const counts = new Map(
-    (await deps.catalogue.typeCounts(filter)).map((row) => [row.type, row.count]),
+    (await deps.catalogue.typeCounts({ search: q || undefined, scope: scope ?? undefined })).map(
+      (row) => [row.type, row.count],
+    ),
   );
   return {
     entries,
-    nextCursor:
-      rows.length > CATALOGUE_PAGE_SIZE && last ? encodeCursor(cursorOf(last, sort)) : null,
+    nextCursor,
     typeCounts: ITEM_TYPES.map((t) => ({ type: t, count: counts.get(t) ?? 0 })),
     scopes: await deps.catalogue.scopes(),
     query: { q, type, scope, sort },

@@ -56,3 +56,15 @@ export class VersionMessageError extends ItemsError {
     super(`${what} needs 1 to 300 characters.`);
   }
 }
+
+/** A version's stored artifact is missing, or doesn't match its checksum (019). */
+export class ArtifactUnavailableError extends ItemsError {
+  constructor(
+    readonly itemName: string,
+    readonly version: string,
+  ) {
+    super(
+      `The package of ${itemName} ${version} can't be served right now. Ask root to check the storage.`,
+    );
+  }
+}

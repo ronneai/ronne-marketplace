@@ -26,8 +26,9 @@ Most used (018).
 ## Behaviour
 
 **Access.** Every endpoint needs a bearer token (009's guard: `Authorization: Bearer rmk_…`). A
-missing, expired, revoked or disabled user's token gets 401 `unauthorized`; before setup, 503
-`setup_required`. Tokens read what any signed-in user reads in the web app: everything published.
+missing, invalid, expired or revoked token, or a disabled user's, gets 401 with 009's codes
+(`token_missing`, `token_invalid`, `token_expired`, `token_revoked`, `user_disabled`), which
+clients may already rely on; before setup, 503 `setup_required`. Tokens read what any signed-in user reads in the web app: everything published.
 Cookies are ignored (009).
 
 **Names in paths.** `{scope}` and `{name}` are the item name's parts, without `@`
@@ -96,16 +97,18 @@ downloaded is stored. A `HEAD` request answers the same headers without counting
 that's missing, or whose checksum doesn't match the version's, is 500 `artifact_unavailable` and
 isn't counted.
 
-**Caching.** Version and tarball responses never change, so they carry
+**Caching.** A tarball never changes, so it carries
 `Cache-Control: private, max-age=31536000, immutable` and an `ETag` of the sha256 (`If-None-Match`
-answers 304, not counted). Search and item responses are `private, no-cache`.
+answers 304, not counted). Search, item and version responses are `private, no-cache`: a version's
+files never change, but it can still be deprecated, yanked or re-tagged.
 
-**Errors** use MVP §11's shape, with these codes: `unauthorized` (401), `invalid_request` (400),
+**Errors** use MVP §11's shape, with these codes: 009's token codes (401), `invalid_request` (400),
 `item_not_found` and `version_not_found` (404), `artifact_unavailable` (500), `setup_required` (503).
 
 **Where it lives.** Route handlers in `app/api/v1/items/…` are thin adapters over the `items`
 domain's actions (018's catalogue, 016's versions, 018's item page), with a mapper from domain
-exceptions to API errors in `server/http/`.
+exceptions to API errors in `server/http/`. The domain actions the web pages use read the user from
+the session; the API uses variants that take the token's user (`searchCatalogueAs`, `itemPageAs`).
 
 ## Edge cases
 
@@ -126,17 +129,17 @@ exceptions to API errors in `server/http/`.
 
 ## Acceptance criteria
 
-- [ ] Each endpoint answers the shapes above, and 401 without a valid token, on all four databases.
-- [ ] Search, filters, both sorts and cursor paging match the catalogue, with `limit` capped at 100.
-- [ ] The tarball downloads with a matching `X-Checksum-Sha256`, yanked versions included, and each download adds exactly one to `download_count`, also under concurrent requests; HEAD and 304 don't.
-- [ ] Unknown items and versions are 404 with their codes; a missing or corrupt artifact is 500 `artifact_unavailable`.
-- [ ] The home page's Most used shows items once they've been downloaded (018).
-- [ ] The Documentation section and helper above are in the app, and the helper links to a real section.
+- [x] Each endpoint answers the shapes above, and 401 with 009's codes without a valid token, on all four databases.
+- [x] Search, filters, both sorts and cursor paging match the catalogue, with `limit` capped at 100.
+- [x] The tarball downloads with a matching `X-Checksum-Sha256`, yanked versions included, and each download adds exactly one to `download_count`, also under concurrent requests; HEAD and 304 don't.
+- [x] Unknown items and versions are 404 with their codes; a missing or corrupt artifact is 500 `artifact_unavailable`.
+- [x] The home page's Most used shows items once they've been downloaded (018).
+- [x] The Documentation section and helper above are in the app, and the helper links to a real section.
 
 ## Open questions
 
-1. **Tarballs need a token** (recommended: the instance is private, and `rmk` always has one), or
-   they're public so plain tools can fetch them.
-2. **Count every successful `GET` of a tarball** (recommended: simple, and nothing about who
-   downloaded is stored), or only the first per token per version per day, which needs a table of
-   recent downloads.
+Both answered by the owner on 2026-09-28, as built:
+
+1. **Tarballs need a token.** The instance stays private, and `rmk` always has one.
+2. **Every successful `GET` of a tarball counts.** Simple, and nothing about who downloaded is
+   stored; a CI job that installs on every run counts every time.

@@ -67,6 +67,7 @@ export const kyselyItemRepository = (
         "items.description",
         "items.owner_id",
         "items.created_at",
+        "items.download_count",
       ])
       .where("scopes.name", "=", scope)
       .where("items.name", "=", name)
@@ -80,6 +81,7 @@ export const kyselyItemRepository = (
           description: row.description,
           ownerId: row.owner_id,
           createdAt: fromDbDate(row.created_at),
+          downloadCount: Number(row.download_count),
         }
       : null;
   },
@@ -292,6 +294,14 @@ export const kyselyItemRepository = (
           riskFlags: decodeJson<RiskFlag[]>(row.risk_flags) ?? [],
         }
       : null;
+  },
+
+  countDownload: async (itemId) => {
+    await db
+      .updateTable("items")
+      .set((eb) => ({ download_count: eb("download_count", "+", 1) }))
+      .where("id", "=", itemId)
+      .execute();
   },
 
   userName: async (userId) =>

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { CliAuthPanel } from "@/components/cli-auth/CliAuthPanel";
+import { Help } from "@/components/help/Help";
 import { Badge } from "@/components/ui/Badge";
 import { PageHeader } from "@/components/ui/Panel";
 import { Table, Td, Th } from "@/components/ui/Table";
@@ -32,6 +33,7 @@ export const TokensPage = ({
       actions={toolbar}
     />
     <div className="grid gap-6">
+      <Help id="token" />
       {tokens.length === 0 ? (
         <p className="rounded-panel border border-hairline bg-surface p-4 text-sm text-muted">
           No tokens yet. Create one, or run <code className="font-mono text-fg">rmk login</code>.

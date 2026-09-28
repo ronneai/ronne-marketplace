@@ -68,6 +68,12 @@ export const HELP = {
       "Deprecate warns: the version stays installable and shows your message. Yank stops new installs, for a broken or unsafe version; projects that pin it keep working.",
     href: docsHref("versions", "deprecate-yank"),
   },
+  token: {
+    question: "What's a token for?",
+    answer:
+      "It lets rmk and the registry's MCP server read the registry as you: search, read items and download them. It can't sign in to this website, and you can revoke it here at any time.",
+    href: docsHref("rmk", "tokens"),
+  },
   propose: {
     question: "What happens when I propose a change?",
     answer:

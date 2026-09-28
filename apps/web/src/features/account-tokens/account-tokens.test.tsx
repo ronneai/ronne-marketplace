@@ -126,10 +126,11 @@ describe("TokensPage", () => {
     expect(html).not.toContain('href="/account/tokens"');
   });
 
-  it("explains an empty list", () => {
-    expect(renderToStaticMarkup(<TokensPage tokens={[]} now={new Date()} />)).toContain(
-      "No tokens yet",
-    );
+  it("explains an empty list, and what a token is for", () => {
+    const html = renderToStaticMarkup(<TokensPage tokens={[]} now={new Date()} />);
+    expect(html).toContain("No tokens yet");
+    expect(html).toContain("What&#x27;s a token for?");
+    expect(html).toContain('href="/docs/rmk#tokens"');
   });
 
   it("the one-time panel shows the token and a ready rmk login line", () => {
