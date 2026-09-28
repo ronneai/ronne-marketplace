@@ -59,27 +59,27 @@ jobs:
             port: 3306
             url: mysql://root:ronne-test@127.0.0.1:3306/ronne
             health: healthcheck.sh --connect --innodb_initialized
-    services:
-      database:
-        image: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && matrix.latest || matrix.image }}
-        # Each image reads only its own variables; the others are ignored.
-        env:
-          POSTGRES_PASSWORD: ronne-test
-          MYSQL_ROOT_PASSWORD: ronne-test
-          MYSQL_DATABASE: ronne
-          MARIADB_ROOT_PASSWORD: ronne-test
-          MARIADB_DATABASE: ronne
-        ports:
-          - ${{ matrix.port }}:${{ matrix.port }}
-        options: >-
-          --health-cmd "${{ matrix.health }}"
-          --health-interval 2s
-          --health-timeout 5s
-          --health-retries 60
     steps:
       - name: Documentation only, nothing to check
         if: needs.changes.outputs.code == 'false'
         run: echo "This pull request only changes documentation, so the checks are skipped."
+      # Started in a step, not as a service container: GitHub starts service containers before any
+      # step, even when every step skips, which cost each documentation-only pull request 10–40
+      # seconds. It boots while dependencies install; the tests wait for it to be healthy.
+      - name: Start ${{ matrix.database }}
+        if: needs.changes.outputs.code != 'false'
+        env:
+          IMAGE: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && matrix.latest || matrix.image }}
+          PORT: ${{ matrix.port }}
+          HEALTH: ${{ matrix.health }}
+        # Each image reads only its own variables; the others are ignored.
+        run: >-
+          docker run -d --name database -p "$PORT:$PORT"
+          -e POSTGRES_PASSWORD=ronne-test
+          -e MYSQL_ROOT_PASSWORD=ronne-test -e MYSQL_DATABASE=ronne
+          -e MARIADB_ROOT_PASSWORD=ronne-test -e MARIADB_DATABASE=ronne
+          --health-cmd "$HEALTH" --health-interval 2s --health-timeout 5s --health-retries 60
+          "$IMAGE"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: needs.changes.outputs.code != 'false'
         with:
@@ -93,6 +93,15 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
         if: needs.changes.outputs.code != 'false'
+      - name: Wait for ${{ matrix.database }}
+        if: needs.changes.outputs.code != 'false'
+        run: |
+          for i in $(seq 1 90); do
+            health=$(docker inspect -f '{{.State.Health.Status}}' database)
+            if [ "$health" = healthy ]; then echo "The database is healthy."; exit 0; fi
+            sleep 2
+          done
+          echo "The database didn't become healthy."; docker logs database; exit 1
       # Includes the setup smoke test: `pnpm run setup --yes` against an empty database (task 4).
       - name: Database tests
         if: needs.changes.outputs.code != 'false'
