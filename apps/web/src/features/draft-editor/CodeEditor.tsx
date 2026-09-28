@@ -60,10 +60,17 @@ const highlight = HighlightStyle.define([
   { tag: [tags.number, tags.bool, tags.null, tags.atom], color: "var(--link)" },
 ]);
 
-const stateFor = (path: string, doc: string, onChange: (content: string) => void) =>
+const stateFor = (
+  path: string,
+  doc: string,
+  onChange: (content: string) => void,
+  readOnly: boolean,
+) =>
   EditorState.create({
     doc,
     extensions: [
+      EditorState.readOnly.of(readOnly),
+      EditorView.editable.of(!readOnly),
       lineNumbers(),
       highlightActiveLineGutter(),
       highlightActiveLine(),
@@ -93,12 +100,15 @@ export const CodeEditor = ({
   value,
   onChange,
   goToLine,
+  readOnly = false,
 }: {
   path: string;
   value: string;
   onChange: (path: string, content: string) => void;
   /** Moves the cursor to a line when it changes, such as from a validation issue. */
   goToLine?: { line: number; at: number } | null;
+  /** Shown but not editable, such as a submitted submission (feature 013). */
+  readOnly?: boolean;
 }) => {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
@@ -119,6 +129,9 @@ export const CodeEditor = ({
   // `value` is only the starting document when a file opens; the next effect follows changes.
   const latest = useRef(value);
   latest.current = value;
+  // Fixed for a page: a submission's status changes by reloading it.
+  const locked = useRef(readOnly);
+  locked.current = readOnly;
 
   // Switching files: keep the old file's state, restore or create the new one's.
   useEffect(() => {
@@ -126,7 +139,8 @@ export const CodeEditor = ({
     if (!editor) return;
     const saved = states.current.get(path);
     editor.setState(
-      saved ?? stateFor(path, latest.current, (content) => change.current(path, content)),
+      saved ??
+        stateFor(path, latest.current, (content) => change.current(path, content), locked.current),
     );
     return () => {
       states.current.set(path, editor.state);

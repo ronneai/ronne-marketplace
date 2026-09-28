@@ -350,6 +350,7 @@ export const ManifestForm = ({
   files,
   onChange,
   onShowYaml,
+  readOnly = false,
 }: {
   text: string;
   type: ItemType;
@@ -357,6 +358,8 @@ export const ManifestForm = ({
   files: readonly string[];
   onChange: (text: string) => void;
   onShowYaml: () => void;
+  /** A submitted submission: the fieldset around the form disables it; this drops the hints. */
+  readOnly?: boolean;
 }) => {
   const manifest = useMemo(() => readManifest(text), [text]);
   const fields = useMemo(() => blockFields(type), [type]);
@@ -386,9 +389,11 @@ export const ManifestForm = ({
         <p className="font-mono text-fg">
           {itemName} <span className="text-muted">· {type}</span>
         </p>
-        <p className="text-xs text-muted">
-          The name and type come from the draft. Change the name in Settings; the type is fixed.
-        </p>
+        {readOnly ? null : (
+          <p className="text-xs text-muted">
+            The name and type come from the draft. Change the name in Settings; the type is fixed.
+          </p>
+        )}
       </div>
 
       <div className="grid gap-1.5">

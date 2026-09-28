@@ -1,9 +1,10 @@
-// Adds the end-to-end test users to the instance that setup just created (DATABASE_URL). Run by
+// Adds the end-to-end test users, and a scope, to the instance that setup just created (DATABASE_URL). Run by
 // the harness with tsx; root comes from setup itself.
 import { createDb } from "../src/server/db/create-db";
 import { argon2PasswordHasher } from "../src/server/domains/identity/repositories/argon2-password-hasher";
 import { kyselyIdentityRepository } from "../src/server/domains/identity/repositories/kysely-identity-repository";
-import { E2E_NAMES, E2E_PASSWORD, E2E_USERS } from "./users";
+import { kyselyScopeRepository } from "../src/server/domains/items/repositories/kysely-scope-repository";
+import { E2E_NAMES, E2E_PASSWORD, E2E_SCOPE, E2E_USERS } from "./users";
 
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error("DATABASE_URL is required");
@@ -17,4 +18,10 @@ for (const [key, email] of Object.entries(E2E_USERS) as [keyof typeof E2E_USERS,
     new Date(),
   );
 }
+await kyselyScopeRepository(db, dialect).insert({
+  name: E2E_SCOPE,
+  description: "Created by the end-to-end seed.",
+  createdBy: null,
+  createdAt: new Date(),
+});
 await db.destroy();

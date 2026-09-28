@@ -62,3 +62,6 @@ export const OPEN_STATUSES: readonly SubmissionStatus[] = [
   "changes_requested",
   "approved",
 ];
+
+/** How a status reads on a page: `changes_requested` is "changes requested". */
+export const statusLabel = (status: SubmissionStatus): string => status.replace("_", " ");

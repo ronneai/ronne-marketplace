@@ -23,7 +23,7 @@ the same change that completes it.
   *Done when:* database tests cover submit, refused submits, the concurrent-name case, withdraw from
   each allowed state, the audit events, and who can see what.
 
-- [ ] **4. Pages.** Submit with its confirmation and check results, the read-only view, withdraw,
+- [x] **4. Pages.** Submit with its confirmation and check results, the read-only view, withdraw,
   and the status filters on My submissions.
   *Done when:* render and action tests pass, and the Playwright test in the acceptance criteria passes.
 
@@ -67,3 +67,22 @@ the same change that completes it.
     refused submits with their issues, the name held by an open submission and freed by withdrawing
     it, dependencies in M2, withdraw from each allowed status (and not twice, or once approved),
     the audit events, and who can submit, withdraw and view.
+- **Task 4 (2026-09-28): pages.**
+  - The editor page loads through `viewSubmission` and gives the editor `readOnly`, `canSubmit`
+    and `canWithdraw` (from `isEditable` and `canTransition`). Read-only, it shows a notice
+    (submitted, withdrawn, or someone else's), hides Save, Settings and the file tools, disables
+    the form with a `<fieldset disabled>`, and makes CodeMirror read-only (`EditorState.readOnly`
+    and `EditorView.editable`). The Problems panel still shows the checks.
+  - `SubmitDialogs.tsx`: **Submit for review** asks to save unsaved changes first, then runs
+    `checkSubmission` on the saved files and lists the results; Submit is only enabled with no
+    errors. **Withdraw** confirms first ("It can't be undone"). Both reload the page, which remounts
+    the editor in its new state.
+  - My submissions: status filter chips with counts (`?status=`), shown once there are two
+    statuses, and withdrawn submissions last.
+  - **Found on the way:** the shared `Dialog` used a fixed `id="dialog-title"`, so with the leave
+    guard on the page, the submit dialog was announced by the other dialog's title. Each dialog
+    now gets its own id (`useId`), with a test. Disabled inputs now look disabled (`inputClasses`).
+  - Playwright (`e2e/submit.e2e.ts`): a skill draft with its two placeholder descriptions fixed,
+    saved (submit asks first), submitted after "All checks passed", read-only, then withdrawn. The
+    e2e seed now creates a scope (`E2E_SCOPE`), since root already signs in 5 times per run, the
+    per-email limit a minute.

@@ -18,7 +18,9 @@ vi.mock("next/navigation", () => ({
 }));
 
 const actions = await import("./actions");
-const { SubmissionsTable } = await import("./SubmissionsTable");
+const { inListOrder, StatusFilters, SubmissionsTable, statusFilter } = await import(
+  "./SubmissionsTable"
+);
 const { NewDraftForm } = await import("./NewDraftForm");
 const { default: SubmissionsPage } = await import("@/app/(app)/submissions/page");
 const { default: NewItemPage } = await import("@/app/(app)/submissions/new/page");
@@ -93,6 +95,42 @@ describe("SubmissionsTable", () => {
   });
 });
 
+describe("status filters and order", () => {
+  const list = [
+    submission({ id: "a", status: "withdrawn", updatedAt: new Date("2026-09-28T10:00:00Z") }),
+    submission({ id: "b", status: "draft", updatedAt: new Date("2026-09-26T10:00:00Z") }),
+    submission({ id: "c", status: "submitted", updatedAt: new Date("2026-09-27T10:00:00Z") }),
+  ];
+
+  it("lists newest first, with withdrawn ones last", () => {
+    expect(inListOrder(list).map((s) => s.id)).toEqual(["c", "b", "a"]);
+  });
+
+  it("offers All and each status you have, with counts, and marks the current one", () => {
+    const html = renderToStaticMarkup(<StatusFilters submissions={list} status="submitted" />);
+    expect(html).toContain("All (3)");
+    expect(html).toContain('href="/submissions?status=withdrawn"');
+    expect(html).not.toContain("status=approved");
+    expect(html).toMatch(/aria-current="page"[^>]*>submitted \(1\)/);
+  });
+
+  it("reads only real statuses from the query", () => {
+    expect(statusFilter("changes_requested")).toBe("changes_requested");
+    expect(statusFilter(["draft", "x"])).toBe("draft");
+    expect(statusFilter("nope")).toBeNull();
+    expect(statusFilter(undefined)).toBeNull();
+  });
+
+  it("filters the page by ?status=", async () => {
+    drafts.listMySubmissions.mockResolvedValue(list);
+    const html = renderToStaticMarkup(
+      await SubmissionsPage({ searchParams: Promise.resolve({ status: "draft" }) }),
+    );
+    expect(html).toContain('href="/submissions/b"');
+    expect(html).not.toContain('href="/submissions/c"');
+  });
+});
+
 describe("NewDraftForm", () => {
   it("offers every scope and every type, with the risk note on high-risk types", () => {
     const html = renderToStaticMarkup(
@@ -123,7 +161,7 @@ describe("NewDraftForm", () => {
 
 describe("pages", () => {
   it("lists my submissions, with New item", async () => {
-    const html = renderToStaticMarkup(await SubmissionsPage());
+    const html = renderToStaticMarkup(await SubmissionsPage({ searchParams: Promise.resolve({}) }));
     expect(html).toContain("My submissions");
     expect(html).toContain("@platform/code-reviewer");
     expect(html).toContain('href="/submissions/new"');

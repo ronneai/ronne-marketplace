@@ -78,7 +78,7 @@ submission is visible to its author, and to moderators and root read-only
   success, the page turns read-only.
 - **Withdraw** (in the header, for the allowed statuses) asks for confirmation: "It can't be
   undone. You can start a new draft." On success, the page shows it as withdrawn.
-- **My submissions** gains status filters, and shows withdrawn ones last.
+- **My submissions** gains status filters (once there are two statuses), and shows withdrawn ones last.
 
 **Errors** (identity-style domain errors, mapped to the dialog's `ERR:` line):
 `SubmissionNotFoundError`, `SubmissionNotEditableError`, `InvalidStatusTransitionError`,
@@ -98,14 +98,14 @@ submission is visible to its author, and to moderators and root read-only
 
 ## Acceptance criteria
 
-- [ ] A valid draft with no dependencies submits; it becomes `submitted`, read-only, and `submission.submitted` is recorded in the same transaction.
-- [ ] A draft with schema or package errors can't be submitted, and the errors are listed.
-- [ ] The name check refuses a name proposed by another open submission (and, with 015, a published item), and two concurrent submits of one name can't both succeed.
-- [ ] Dependency checks refuse missing, wrong-type, unmatched and cyclic dependencies, tested with a fake `RegistryLookup`; in M2, the real lookup reports every dependency as not released yet.
-- [ ] Withdraw works from `draft`, `submitted` and `changes_requested`, is final, and records `submission.withdrawn`.
-- [ ] Only the author submits and withdraws. Moderators and root can open submitted submissions read-only; others get a 404.
-- [ ] Every status change goes through one transition function, with a table test of allowed and refused moves.
-- [ ] Playwright: create a skill draft, fix its placeholder description, submit, see it read-only, and withdraw it.
+- [x] A valid draft with no dependencies submits; it becomes `submitted`, read-only, and `submission.submitted` is recorded in the same transaction.
+- [x] A draft with schema or package errors can't be submitted, and the errors are listed.
+- [x] The name check refuses a name proposed by another open submission (and, with 015, a published item), and two concurrent submits of one name can't both succeed.
+- [x] Dependency checks refuse missing, wrong-type, unmatched and cyclic dependencies, tested with a fake `RegistryLookup`; in M2, the real lookup reports every dependency as not released yet.
+- [x] Withdraw works from `draft`, `submitted` and `changes_requested`, is final, and records `submission.withdrawn`.
+- [x] Only the author submits and withdraws. Moderators and root can open submitted submissions read-only; others get a 404.
+- [x] Every status change goes through one transition function, with a table test of allowed and refused moves.
+- [x] Playwright: create a skill draft, fix its placeholder description, submit, see it read-only, and withdraw it.
 
 ## Open questions
 
