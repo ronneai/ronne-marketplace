@@ -4,15 +4,13 @@ import { Badge } from "@/components/ui/Badge";
 import { buttonClasses } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Panel";
 import { Table, Td, Th } from "@/components/ui/Table";
+import { utcMinute } from "@/components/ui/time";
 import {
   SUBMISSION_STATUSES,
   type SubmissionStatus,
   statusLabel,
 } from "@/server/domains/submissions/models/status";
 import { itemNameOf, type Submission } from "@/server/domains/submissions/models/submission";
-
-/** `2026-09-27 14:05 UTC`: the same for every viewer, like the rest of the app. */
-const when = (date: Date) => `${date.toISOString().slice(0, 16).replace("T", " ")} UTC`;
 
 /** `?status=`, when it's a status; otherwise every status. */
 export const statusFilter = (value: string | string[] | undefined): SubmissionStatus | null => {
@@ -112,7 +110,7 @@ export const SubmissionsTable = ({ submissions }: { submissions: Submission[] })
             </Td>
             <Td className="whitespace-nowrap font-mono text-xs text-muted">
               <time dateTime={submission.updatedAt.toISOString()}>
-                {when(submission.updatedAt)}
+                {utcMinute(submission.updatedAt)}
               </time>
             </Td>
           </tr>

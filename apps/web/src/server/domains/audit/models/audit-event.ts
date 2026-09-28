@@ -21,7 +21,12 @@ export const AUDIT_ACTIONS = [
   "scope.created",
   "scope.updated",
   "submission.submitted",
+  "submission.resubmitted",
   "submission.withdrawn",
+  "submission.approved",
+  "submission.changes_requested",
+  "submission.rejected",
+  "submission.override_approved",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

@@ -16,11 +16,14 @@ import type { SubmitResult } from "./types";
  * changes have to be saved first: the server only checks what's saved.
  */
 export const SubmitDialog = ({
+  resubmit = false,
   draftId,
   itemName,
   dirty,
   onClose,
 }: {
+  /** Sent back for changes (014): the same checks, then the next revision. */
+  resubmit?: boolean;
   draftId: string;
   itemName: string;
   dirty: boolean;
@@ -28,6 +31,7 @@ export const SubmitDialog = ({
 }) => {
   const router = useRouter();
   const [result, setResult] = useState<SubmitResult | null>(null);
+  const label = resubmit ? "Resubmit for review" : "Submit for review";
   const [checking, startCheck] = useTransition();
   const [submitting, startSubmit] = useTransition();
 
@@ -39,7 +43,7 @@ export const SubmitDialog = ({
   const blocked = !result?.ok || hasErrors(result.issues);
 
   return (
-    <Dialog open onClose={onClose} title="Submit for review">
+    <Dialog open onClose={onClose} title={label}>
       {dirty ? (
         <div className="grid gap-4">
           <p className="text-sm text-fg">
@@ -95,7 +99,7 @@ export const SubmitDialog = ({
                 })
               }
             >
-              Submit for review
+              {label}
             </Button>
           </div>
         </div>

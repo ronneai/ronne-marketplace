@@ -12,6 +12,7 @@ import { SubmissionInvalidError, SubmissionNotFoundError } from "../exceptions/e
 import { OPEN_STATUSES, transition } from "../models/status";
 import {
   type Draft,
+  type DraftFile,
   fileBytes,
   itemNameOf,
   MANIFEST_PATH,
@@ -71,12 +72,14 @@ export const viewSubmission = async (
 };
 
 /** 011's checks on the saved files, then the registry checks. */
-const allIssues = async (
+export const allIssues = async (
   deps: SubmissionDeps,
   repo: SubmissionRepository,
   submission: Submission,
+  /** The files to check: the saved ones by default, or a revision's (the review page, 014). */
+  given?: readonly Omit<DraftFile, "updatedAt">[],
 ): Promise<ManifestIssue[]> => {
-  const files = await repo.files(submission.id);
+  const files = given ?? (await repo.files(submission.id));
   const issues = validateDraft(submission, files, deps.limits ?? DEFAULT_LIMITS);
   if (hasErrors(issues)) return issues;
 
@@ -106,9 +109,13 @@ const allIssues = async (
   ];
 };
 
+/** Submit for a draft, resubmit for one sent back for changes (014). */
+const sendAction = (status: Submission["status"]) =>
+  status === "changes_requested" ? ("resubmit" as const) : ("submit" as const);
+
 /**
- * What submitting would say, without submitting: the submit dialog lists these first. Errors
- * block the submit; warnings are shown and allowed.
+ * What submitting (or resubmitting) would say, without doing it: the submit dialog lists these
+ * first. Errors block it; warnings are shown and allowed.
  */
 export const checkSubmission = async (
   deps: SubmissionDeps,
@@ -116,47 +123,69 @@ export const checkSubmission = async (
   id: string,
 ): Promise<ManifestIssue[]> => {
   const submission = await own(deps.repo, actor, id);
-  transition(submission.status, "submit");
+  transition(submission.status, sendAction(submission.status));
   return allIssues(deps, deps.repo, submission);
 };
 
 /**
- * Sends a draft for review. The checks run on the saved files, inside the transaction that
- * changes the status, after locking the scope: two submissions of one name can't both pass.
+ * Sends a draft for review, or a submission sent back for changes for another look (014). The
+ * checks run on the saved files, inside the transaction that changes the status, after locking the
+ * scope: two submissions of one name can't both pass. The files are snapshotted as the next
+ * revision, which reviewers read and a release packs, and the conversation records it.
  */
 export const submitDraft = async (
   deps: SubmissionDeps,
   actor: SubmissionActor,
   id: string,
-): Promise<Submission & { issues: ManifestIssue[] }> => {
+): Promise<Submission & { issues: ManifestIssue[]; revision: number }> => {
   const at = now(deps);
   return deps.repo.transaction(async (repo) => {
     const submission = await own(repo, actor, id);
-    const status = transition(submission.status, "submit");
+    const action = sendAction(submission.status);
+    const status = transition(submission.status, action);
     await repo.lockScope(submission.scope.id);
     const issues = await allIssues(deps, repo, submission);
     if (hasErrors(issues)) throw new SubmissionInvalidError(issues);
 
-    await repo.setStatus(submission.id, status, { updatedAt: at, submittedAt: at });
-    const manifestFile = (await repo.files(submission.id)).find((f) => f.path === MANIFEST_PATH);
+    const files = await repo.files(submission.id);
+    const submittedAt = submission.submittedAt ?? at;
+    await repo.setStatus(submission.id, status, { updatedAt: at, submittedAt });
+    const revision = await repo.createRevision(submission.id, actor.user?.id ?? "", files, at);
+    await repo.addEvent({
+      submissionId: submission.id,
+      actorId: actor.user?.id ?? "",
+      kind: action,
+      body: null,
+      revision: revision.number,
+      createdAt: at,
+    });
+    const manifestFile = files.find((f) => f.path === MANIFEST_PATH);
     const manifest = manifestFile
       ? parseManifest(new TextDecoder().decode(fileBytes(manifestFile))).manifest
       : null;
     await repo.recordAudit(
       {
         actorId: actor.user?.id ?? null,
-        action: "submission.submitted",
+        action: action === "submit" ? "submission.submitted" : "submission.resubmitted",
         target: { type: "submission", id: submission.id },
         metadata: {
           name: itemNameOf(submission),
           type: submission.type,
+          revision: revision.number,
           dependencies: (manifest?.dependencies ?? {}) as Record<string, string>,
         },
         ipAddress: actor.ip,
       },
       at,
     );
-    return { ...submission, status, updatedAt: at, submittedAt: at, issues };
+    return {
+      ...submission,
+      status,
+      updatedAt: at,
+      submittedAt,
+      issues,
+      revision: revision.number,
+    };
   });
 };
 
@@ -174,6 +203,15 @@ export const withdrawSubmission = async (
     const submission = await own(repo, actor, id);
     const status = transition(submission.status, "withdraw");
     await repo.setStatus(submission.id, status, { updatedAt: at });
+    const latest = (await repo.revisions(submission.id)).at(-1);
+    await repo.addEvent({
+      submissionId: submission.id,
+      actorId: actor.user?.id ?? "",
+      kind: "withdraw",
+      body: null,
+      revision: latest?.number ?? null,
+      createdAt: at,
+    });
     await repo.recordAudit(
       {
         actorId: actor.user?.id ?? null,

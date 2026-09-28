@@ -53,8 +53,12 @@ export const transition = (from: SubmissionStatus, action: SubmissionAction): Su
   return TRANSITIONS[action].to;
 };
 
-/** Only drafts can be edited; 014 decides whether `changes_requested` becomes editable. */
-export const isEditable = (status: SubmissionStatus): boolean => status === "draft";
+/**
+ * What the author can edit: a draft, and a submission sent back for changes (014), which they fix
+ * and resubmit. Renaming and deleting stay draft-only.
+ */
+export const isEditable = (status: SubmissionStatus): boolean =>
+  status === "draft" || status === "changes_requested";
 
 /** Submissions that hold their name against others: a draft doesn't (MVP §4.1, spec 013). */
 export const OPEN_STATUSES: readonly SubmissionStatus[] = [

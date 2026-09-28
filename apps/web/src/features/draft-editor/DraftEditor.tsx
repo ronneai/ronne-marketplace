@@ -176,10 +176,13 @@ export const DraftEditor = ({
           ) : null}
           {readOnly ? null : (
             <>
-              <Button variant="ghost" onClick={() => setOpen({ kind: "settings" })}>
-                <Settings size={16} aria-hidden="true" />
-                Settings
-              </Button>
+              {/* Renaming and deleting are for drafts; under review the name is held. */}
+              {draft.status === "draft" ? (
+                <Button variant="ghost" onClick={() => setOpen({ kind: "settings" })}>
+                  <Settings size={16} aria-hidden="true" />
+                  Settings
+                </Button>
+              ) : null}
               <Button
                 variant={draft.canSubmit ? "secondary" : "primary"}
                 onClick={() => save()}
@@ -193,7 +196,7 @@ export const DraftEditor = ({
           {draft.canSubmit ? (
             <Button onClick={() => setOpen({ kind: "submit" })}>
               <Send size={16} aria-hidden="true" />
-              Submit for review
+              {draft.status === "changes_requested" ? "Resubmit for review" : "Submit for review"}
             </Button>
           ) : null}
         </div>
@@ -494,6 +497,7 @@ export const DraftEditor = ({
       ) : null}
       {open?.kind === "submit" ? (
         <SubmitDialog
+          resubmit={draft.status === "changes_requested"}
           draftId={draft.id}
           itemName={itemName}
           dirty={dirty}

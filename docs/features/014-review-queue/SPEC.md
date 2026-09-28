@@ -36,6 +36,8 @@ revision: `submission_revisions` (id, submission_id, number, created_at, created
 `submission_revision_files` (revision_id, path, encoding, content, size, executable), the same shape
 as `submission_files`. Revision 1 is the first submit. Reviewers always read a revision, never the
 live files, so what they approve is exactly what gets released (015 packs the approved revision).
+Submissions sent before `0006_reviews` get revision 1 and their `submit` event from the migration
+(`backfillRevisions`): their files have been frozen since they were submitted.
 
 **Changes requested is editable** (recommended, see Open questions). After "request changes", the
 author edits the submission as they did the draft (012's editor) and presses **Resubmit**, which runs
@@ -83,7 +85,7 @@ author comments on their own (recommended, see Open questions). Comments aren't 
 is their record. Comments can't be edited or deleted, so the thread is a faithful history.
 
 **`review_events`** (MVP §10, extended): id, submission_id (cascade), actor_id (RESTRICT), kind
-(`comment`, `request_changes`, `approve`, `reject`, `override`, `resubmit`, `withdraw`), body (text,
+(`submit`, `resubmit`, `comment`, `request_changes`, `approve`, `reject`, `override`, `withdraw`), body (text,
 nullable), revision (the revision it's about), created_at. Submit, resubmit and withdraw also add an
 event, so the thread tells the whole story.
 
@@ -115,18 +117,20 @@ the author's own submission page show the same flags.
 
 ## Acceptance criteria
 
-- [ ] `0006_reviews` creates the three tables with table-level foreign keys on all four databases.
-- [ ] Every submit and resubmit creates a revision, and reviewers read the revision, not live files.
-- [ ] Approve, request changes, reject and override follow the permission matrix and 013's transition table, each in one transaction with its audit event; two concurrent decisions can't both succeed.
-- [ ] A moderator can't decide on their own submission; root's self-approval requires a reason and is audited as an override.
-- [ ] The author can edit and resubmit after changes were requested, and the reviewer sees the diff since the previous revision.
-- [ ] `riskFlags` covers every row of the table above, with a test per flag, and the review page shows them with links to file and line.
-- [ ] The queue's three tabs list the right submissions, and the nav shows the Needs review count to moderators and root only.
-- [ ] Playwright: a user submits a hook; a moderator sees its risk flag, requests changes; the user edits and resubmits; the moderator sees the diff and approves.
+- [x] `0006_reviews` creates the three tables with table-level foreign keys on all four databases.
+- [x] Every submit and resubmit creates a revision, and reviewers read the revision, not live files.
+- [x] Approve, request changes, reject and override follow the permission matrix and 013's transition table, each in one transaction with its audit event; two concurrent decisions can't both succeed.
+- [x] A moderator can't decide on their own submission; root's self-approval requires a reason and is audited as an override.
+- [x] The author can edit and resubmit after changes were requested, and the reviewer sees the diff since the previous revision.
+- [x] `riskFlags` covers every row of the table above, with a test per flag, and the review page shows them with links to file and line.
+- [x] The queue's three tabs list the right submissions, and the nav shows the Needs review count to moderators and root only.
+- [x] Playwright: a user submits a hook; a moderator sees its risk flag, requests changes; the user edits and resubmits; the moderator sees the diff and approves.
 
 ## Open questions
 
-Recommendations are written into the spec above; confirm or change them.
+Recommendations are written into the spec above; confirm or change them. The owner started 014
+(2026-09-28) without answering these, so it's built on the recommendations; any of them can still
+change.
 
 1. **Changes requested is editable, with a diff since the last revision** (recommended), or the author
    withdraws and starts a new draft, or edits without per-revision snapshots.

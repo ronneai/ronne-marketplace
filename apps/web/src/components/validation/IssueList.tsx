@@ -1,7 +1,7 @@
 import type { ManifestIssue } from "@ronneai/core";
 
 /** A message with its `backticked` names shown as code. */
-const Message = ({ text }: { text: string }) =>
+export const CodeText = ({ text }: { text: string }) =>
   text.split(/`([^`]+)`/).map((part, i) =>
     i % 2 === 1 ? (
       // The parts of one message never move, so their index is their identity.
@@ -48,7 +48,7 @@ export const IssueList = ({
               {issue.severity === "error" ? "ERR:" : "WARN:"}
             </span>
             <span className="text-fg">
-              <Message text={issue.message} />
+              <CodeText text={issue.message} />
             </span>
             <span className="ml-2 font-mono text-xs text-muted">{where}</span>
           </>

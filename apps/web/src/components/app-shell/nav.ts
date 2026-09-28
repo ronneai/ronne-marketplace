@@ -25,6 +25,7 @@ export const NAV: NavItem[] = [
     permission: "submissions.create",
     section: "/submissions",
   },
+  { href: "/reviews", label: "Reviews", permission: "submissions.review", section: "/reviews" },
   { href: "/scopes", label: "Scopes" },
   { href: "/admin/users", label: "Admin", permission: "users.view", section: "/admin" },
 ];

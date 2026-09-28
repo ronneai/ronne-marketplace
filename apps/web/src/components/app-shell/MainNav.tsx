@@ -11,7 +11,14 @@ import { isCurrent, type NavItem } from "./nav";
  * navy as the header, so on its own it didn't show. On a narrow phone the items scroll sideways,
  * so the theme switch and account menu stay in view.
  */
-export const MainNav = ({ items }: { items: NavItem[] }) => {
+export const MainNav = ({
+  items,
+  counts = {},
+}: {
+  items: NavItem[];
+  /** A number shown next to an item, by its href: the Needs review count on Reviews (014). */
+  counts?: Record<string, number>;
+}) => {
   const path = usePathname() ?? "/";
   return (
     <nav
@@ -26,6 +33,12 @@ export const MainNav = ({ items }: { items: NavItem[] }) => {
           className={`${item.hideOnPhone ? "hidden sm:inline-block " : ""}shrink-0 whitespace-nowrap rounded-control px-2 py-1.5 text-sm text-muted sm:px-3 hover:text-fg aria-[current=page]:bg-tint aria-[current=page]:font-semibold aria-[current=page]:text-link outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus`}
         >
           {item.label}
+          {counts[item.href] ? (
+            <span className="ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-strong px-1 font-mono text-[10px] font-semibold text-on-accent">
+              {counts[item.href]}
+              <span className="sr-only"> waiting</span>
+            </span>
+          ) : null}
         </Link>
       ))}
     </nav>

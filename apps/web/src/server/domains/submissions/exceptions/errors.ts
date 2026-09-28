@@ -191,3 +191,44 @@ export class ZipImportError extends SubmissionsError {
     super(`That .zip can't be imported: ${reason}`);
   }
 }
+
+/** A reviewer deciding on their own submission; root can approve its own through an override. */
+export class OwnSubmissionError extends SubmissionsError {
+  constructor(canOverride: boolean) {
+    super(
+      canOverride
+        ? "You can't review your own submission. As root, you can approve it with an override and a reason."
+        : "You can't review your own submission: another moderator or root has to.",
+    );
+  }
+}
+
+export const REVIEW_MESSAGE_MAX_LENGTH = 5000;
+
+/** A decision that needs a message without one, or any message that's too long. */
+export class ReviewMessageError extends SubmissionsError {
+  constructor(
+    readonly reason: "required" | "too_long",
+    what: string,
+  ) {
+    super(
+      reason === "required"
+        ? `${what} needs a message, so the author knows what to do.`
+        : `A message can have at most ${REVIEW_MESSAGE_MAX_LENGTH.toLocaleString("en")} characters.`,
+    );
+  }
+}
+
+/** Comments are for submissions under review; drafts and closed ones have no conversation. */
+export class ConversationClosedError extends SubmissionsError {
+  constructor() {
+    super("This submission isn't under review, so it can't take comments.");
+  }
+}
+
+/** An override is root approving its own submission; others' are approved normally. */
+export class OverrideNotNeededError extends SubmissionsError {
+  constructor() {
+    super("An override is only for your own submission. Approve this one instead.");
+  }
+}
