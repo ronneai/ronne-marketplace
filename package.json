@@ -33,7 +33,7 @@
     "@ronneai/config": "workspace:*",
     "@ronneai/rmk": "workspace:*",
     "@types/node": "22.20.4",
-    "turbo": "2.11.3",
+    "turbo": "2.11.4",
     "typescript": "7.0.2",
     "vitest": "5.0.1"
   }
