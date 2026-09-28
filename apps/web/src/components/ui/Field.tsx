@@ -4,7 +4,7 @@ import { cn } from "./cn";
 export const inputClasses = cn(
   "h-9 w-full rounded-control border border-strong bg-surface px-3 text-sm text-fg",
   "placeholder:text-muted/60 outline-offset-2 focus-visible:border-fg focus-visible:outline-2 focus-visible:outline-focus",
-  "aria-invalid:border-fg",
+  "aria-invalid:border-error data-warning:border-warning",
   "disabled:cursor-not-allowed disabled:border-hairline disabled:bg-canvas disabled:text-muted",
 );
 
@@ -13,12 +13,28 @@ export const Label = ({ className, ...props }: LabelHTMLAttributes<HTMLLabelElem
   return <label className={cn("text-sm font-semibold text-fg", className)} {...props} />;
 };
 
-/** Errors are text with a mono `ERR:` prefix, never a red colour (design system 032). */
+/**
+ * A field's error: red text with a mono `ERR:` prefix (design system 032). The input it's about
+ * gets `aria-invalid`, which gives it a red border.
+ */
 export const FieldError = ({ id, children }: { id: string; children?: ReactNode }) => {
   if (!children) return null;
   return (
-    <p id={id} role="alert" className="text-sm text-fg">
+    <p id={id} role="alert" className="text-sm text-error-text">
       <span className="font-mono text-xs font-semibold">ERR:</span> {children}
+    </p>
+  );
+};
+
+/**
+ * A field's warning: allowed, but worth a look. Amber text with `WARN:`; the input it's about gets
+ * `data-warning`, which gives it an amber border.
+ */
+export const FieldWarning = ({ id, children }: { id: string; children?: ReactNode }) => {
+  if (!children) return null;
+  return (
+    <p id={id} className="text-sm text-warning-text">
+      <span className="font-mono text-xs font-semibold">WARN:</span> {children}
     </p>
   );
 };
@@ -27,27 +43,34 @@ export const Input = ({ className, ...props }: InputHTMLAttributes<HTMLInputElem
   return <input className={cn(inputClasses, className)} {...props} />;
 };
 
-/** A labelled input with an optional hint and error, wired with aria attributes. */
+/** A labelled input with an optional hint, error or warning, wired with aria attributes. */
 export const TextField = ({
   id,
   label,
   hint,
   error,
+  warning,
   ...props
 }: InputHTMLAttributes<HTMLInputElement> & {
   id: string;
   label: string;
   hint?: ReactNode;
   error?: ReactNode;
+  /** Allowed, but worth a look; an error wins over it. */
+  warning?: ReactNode;
 }) => {
+  const warn = warning && !error ? warning : null;
   const describedBy =
-    [hint ? `${id}-hint` : "", error ? `${id}-error` : ""].filter(Boolean).join(" ") || undefined;
+    [hint ? `${id}-hint` : "", error ? `${id}-error` : "", warn ? `${id}-warning` : ""]
+      .filter(Boolean)
+      .join(" ") || undefined;
   return (
     <div className="grid gap-1.5">
       <Label htmlFor={id}>{label}</Label>
       <Input
         id={id}
         aria-invalid={error ? true : undefined}
+        data-warning={warn ? "" : undefined}
         aria-describedby={describedBy}
         {...props}
       />
@@ -57,6 +80,7 @@ export const TextField = ({
         </p>
       ) : null}
       <FieldError id={`${id}-error`}>{error}</FieldError>
+      <FieldWarning id={`${id}-warning`}>{warn}</FieldWarning>
     </div>
   );
 };

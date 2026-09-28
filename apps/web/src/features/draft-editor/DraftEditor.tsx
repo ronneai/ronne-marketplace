@@ -4,12 +4,12 @@ import { DEFAULT_LIMITS, formatBytes, type ManifestIssue } from "@ronneai/core";
 import { FilePlus, FolderPlus, Lock, Send, Settings, Undo2, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useReducer, useRef, useState, useTransition } from "react";
+import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/Notice";
 import { UnsavedChangesGuard } from "@/components/ui/UnsavedChangesGuard";
 import { IssueList } from "@/components/validation/IssueList";
-import { statusLabel } from "@/server/domains/submissions/models/status";
 import {
   MANIFEST_PATH,
   toDraftContent,
@@ -158,9 +158,7 @@ export const DraftEditor = ({
           <h1 className="truncate font-mono text-xl font-semibold text-fg">{itemName}</h1>
           <div className="flex flex-wrap items-center gap-2">
             <Badge>{draft.type}</Badge>
-            <Badge tone={draft.status === "draft" ? "muted" : "accent"}>
-              {statusLabel(draft.status)}
-            </Badge>
+            <StatusBadge status={draft.status} />
             <span
               className={`font-mono text-xs ${overLimit ? "font-semibold text-fg" : "text-muted"}`}
             >
@@ -236,10 +234,10 @@ export const DraftEditor = ({
               : ""}
           </>
         ) : status?.kind === "error" ? (
-          <>
+          <span className="text-error-text">
             <span className="mr-2 font-mono text-xs font-semibold">ERR:</span>
             {status.message}
-          </>
+          </span>
         ) : dirty ? (
           <span className="text-muted">Unsaved changes. Save with Ctrl+S or ⌘S.</span>
         ) : null}

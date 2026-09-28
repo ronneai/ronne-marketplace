@@ -37,7 +37,7 @@ compose parts; they don't restyle them.
 | Depth | **Completely flat.** No shadows, blurs, glows or gradients. Surfaces separate by tone and 1px hairlines. |
 | Radii | 6px for buttons and inputs, 8px for cards, panels and dialogs, full pill for badges. |
 | Spacing | A 4 and 8px rhythm (4, 8, 12, 16, 24). Dense, with 36px controls. |
-| Notices | **No red, yellow or green.** Warnings and errors are framed panels with a mono prefix (`WARN:`, `ERR:`), not colour alarms. |
+| Notices | **Red for errors and amber for warnings, and nowhere else** (owner's style-guide mock, 2026-09-28; it replaces "no red, yellow or green"). Both keep the mono prefix (`WARN:`, `ERR:`), so the colour is never the only signal. Information stays a framed panel. |
 | Accent | Teal `#18B6A4` is the one accent: primary buttons, focus rings, active states, badges. |
 
 **Palette** (the brand sheet): Ink `#0B1220`, Navy `#14213D`, Teal `#18B6A4`, Mint `#BFE9E1` and Paper `#F7F9FA`.
@@ -50,18 +50,31 @@ compose parts; they don't restyle them.
 | `text-muted` (labels, meta) | Navy `#14213D` | Mint `#BFE9E1` |
 | `border` | `rgba(20, 33, 61, 0.10)` | `rgba(191, 233, 225, 0.12)` |
 | `border-strong` (notices, containment) | `rgba(20, 33, 61, 0.30)` | Teal or Mint hairline |
-| `accent` (fills) | Teal | Teal |
-| `on-accent` (text on teal) | **Ink** | Ink |
+| `accent` (marks, borders, selections) | Teal | Teal |
+| `accent-strong` (fills that carry text: primary buttons, accent badges) | **Deep teal `#0D7C70`** | Deep teal |
+| `on-accent` (text on `accent-strong`) | **White** | White |
 | `focus` (focus ring) | **Navy** | Teal |
 | `link` | Navy, semibold | Teal |
 | `tint` (selection, soft fill) | Mint | Navy |
 
 - **Teal is never text in the light theme** (the light note's rule). It fails contrast on white. In
   the dark theme, teal text is allowed (7.4:1 on Ink).
-- **The light theme differs from its design note in two places** (owner decision, 2026-09-27). The
-  note's white labels on teal buttons (2.54:1) and teal focus ring on white or Paper (2.4–2.5:1)
-  fail WCAG. So labels on teal are **Ink** (7.37:1), as in the dark theme, and the light focus ring
-  is **Navy** (15.97:1). The brand teal fill is unchanged, and buttons look the same in both themes.
+- **White labels on teal fills** (owner decision, 2026-09-28, replacing the Ink labels decided on
+  2026-09-27). White on the brand Teal would be 2.54:1 and fail WCAG, so fills that carry text
+  (primary buttons, accent badges) use **Deep teal `#0D7C70`**: white on it is 5.08:1, and it keeps
+  at least 3.1:1 against every background of both themes. The brand Teal stays for marks, borders,
+  selections and the dark focus ring. Buttons and badges look the same in both themes.
+- **Errors and warnings** (owner's style-guide mock, 2026-09-28): `error` Red `#D9383A` (dark
+  `#FF6B6B`) and `warning` Amber `#C07D18` (dark `#F6AD55`) for fills, borders and bars;
+  `error-text` `#C22F31` and `warning-text` `#9A6414` in the light theme, where the fill colours
+  are under 4.5:1 on Paper (the dark theme uses the fill colours for text); `error-subtle` and
+  `warning-subtle` backgrounds (`#FEF2F2`, `#FFFBEB`; dark `#361317`, `#33220F`); `on-error` white
+  (dark Ink). They're used for: invalid and warned fields (red or amber border, `ERR:`/`WARN:`
+  line), error and warning notices (subtle fill, a 3 px bar), `warning` and `error` badges (risk
+  flags, changes requested, rejected), the `destructive` button (delete, withdraw, leave without
+  saving), and the `ERR:`/`WARN:` prefixes in issue lists.
+- **The light focus ring is Navy** (15.97:1), not the design note's teal ring (2.4–2.5:1 on white
+  or Paper, which fails WCAG; owner decision, 2026-09-27).
 - Tokens live in `apps/web/src/app/tokens.css` as CSS variables under `:root` (light) and
   `[data-theme="dark"]`. Tailwind 4's `@theme` maps them to utilities (`bg-surface`, `text-muted`,
   `border-hairline`…), so components never use raw hex values.
@@ -128,7 +141,7 @@ instead, with no runtime CDN: `lucide-react` (ISC), if it passes the dependency 
 - [x] The app shell renders the brand, the navigation for the user's role, and the user menu, and
       the favicon switches with the theme.
 - [x] Automated contrast checks pass for every documented text and background pair in both themes.
-- [x] The UI has no shadows, gradients, red, yellow or green (a lint check on classes and CSS).
+- [x] The UI has no shadows, gradients, or raw red, yellow or green classes (a lint check on classes and CSS); red and amber come only from the error and warning tokens.
 
 ## Open questions
 

@@ -286,7 +286,7 @@ export const NewDraftForm = ({ scopes, mine }: { scopes: ScopeOption[]; mine: st
                     <span className="flex flex-wrap items-center gap-2 pr-6">
                       <span className="font-mono text-sm font-semibold text-fg">{candidate}</span>
                       <Badge>{info.tag}</Badge>
-                      {info.highRisk ? <Badge tone="accent">risk</Badge> : null}
+                      {info.highRisk ? <Badge tone="warning">⚠ risk</Badge> : null}
                     </span>
                     <span className="text-xs text-muted">{info.description}</span>
                     {type === candidate ? (
@@ -338,7 +338,7 @@ export const NewDraftForm = ({ scopes, mine }: { scopes: ScopeOption[]; mine: st
                     <ShieldCheck size={16} aria-hidden="true" />
                     Review
                   </span>
-                  <Badge tone={TYPE_INFO[type as ItemType].highRisk ? "accent" : "muted"}>
+                  <Badge tone={TYPE_INFO[type as ItemType].highRisk ? "warning" : "muted"}>
                     {TYPE_INFO[type as ItemType].highRisk ? "risk flag" : "standard"}
                   </Badge>
                 </p>

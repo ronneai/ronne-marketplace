@@ -129,6 +129,7 @@ export const WithdrawDialog = ({
             Keep it
           </Button>
           <Button
+            variant="destructive"
             loading={pending}
             onClick={() =>
               start(async () => {

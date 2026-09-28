@@ -23,8 +23,17 @@ const SWATCHES = [
   ["fg", "bg-fg"],
   ["muted", "bg-muted"],
   ["accent", "bg-accent"],
+  ["accent-strong", "bg-accent-strong"],
   ["tint", "bg-tint"],
   ["focus", "bg-focus"],
+] as const;
+
+/** Errors and warnings (the owner's style-guide mock, 2026-09-28): the only red and amber. */
+const SIGNALS = [
+  ["error", "bg-error"],
+  ["warning", "bg-warning"],
+  ["error-subtle", "bg-error-subtle"],
+  ["warning-subtle", "bg-warning-subtle"],
 ] as const;
 
 const Section = ({ title, children }: { title: string; children: ReactNode }) => {
@@ -56,6 +65,14 @@ export const ThemeSample = ({ theme }: { theme: "light" | "dark" }) => {
             </div>
           ))}
         </div>
+        <div className="grid grid-cols-2 gap-2 border-t border-hairline pt-3 sm:grid-cols-4">
+          {SIGNALS.map(([name, cls]) => (
+            <div key={name} className="grid gap-1">
+              <div className={`h-8 rounded-control border border-hairline ${cls}`} />
+              <span className="font-mono text-[11px] text-muted">{name}</span>
+            </div>
+          ))}
+        </div>
       </Section>
       <Section title="type">
         <p className="text-[28px] leading-9 font-semibold tracking-[-0.02em]">Headline 28/600</p>
@@ -70,6 +87,7 @@ export const ThemeSample = ({ theme }: { theme: "light" | "dark" }) => {
           <Button variant="secondary">Secondary</Button>
           <Button variant="ghost">Ghost</Button>
           <Button loading>Saving</Button>
+          <Button variant="destructive">Delete</Button>
         </div>
       </Section>
       <Section title="fields">
@@ -81,6 +99,13 @@ export const ThemeSample = ({ theme }: { theme: "light" | "dark" }) => {
             hint="The email you sign in with"
           />
           <TextField id={`${theme}-name`} label="Name" defaultValue="" error="A name is required" />
+          <TextField
+            id={`${theme}-item`}
+            label="Item"
+            defaultValue="@platform/deploy-hook"
+            warning="A hook runs shell commands: reviewers see a risk flag."
+            className="font-mono"
+          />
           <div className="grid gap-1.5">
             <Label htmlFor={`${theme}-password`}>Password</Label>
             <PasswordInput id={`${theme}-password`} defaultValue="correct horse battery" />
@@ -93,6 +118,9 @@ export const ThemeSample = ({ theme }: { theme: "light" | "dark" }) => {
           <Badge tone="accent">root</Badge>
           <Badge>moderator</Badge>
           <Badge>mcp-server</Badge>
+          <Badge tone="warning">⚠ risk</Badge>
+          <Badge tone="warning">changes requested</Badge>
+          <Badge tone="error">rejected</Badge>
         </div>
         <Notice kind="info" title="Setup finished">
           Restart the container to apply it.
@@ -100,7 +128,9 @@ export const ThemeSample = ({ theme }: { theme: "light" | "dark" }) => {
         <Notice kind="warn" title="This hook runs shell commands">
           Review it before approving.
         </Notice>
-        <Notice kind="error" title="Email or password is wrong" />
+        <Notice kind="error" title="1.4.0 is already published">
+          Published versions can't change. Release 1.4.1 instead.
+        </Notice>
       </Section>
       <Section title="table">
         <Table>

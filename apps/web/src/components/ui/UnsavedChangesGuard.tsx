@@ -93,7 +93,9 @@ export const UnsavedChangesGuard = ({
           <Button variant="secondary" onClick={() => setPending(null)}>
             Stay on this page
           </Button>
-          <Button onClick={leave}>Leave without saving</Button>
+          <Button variant="destructive" onClick={leave}>
+            Leave without saving
+          </Button>
         </div>
       </div>
     </Dialog>
