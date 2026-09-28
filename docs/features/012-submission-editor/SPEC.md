@@ -55,7 +55,7 @@ Indexes on (`author_id`, `status`) and (`scope_id`, `name`). The manifest isn't 
 | Column | Type | Notes |
 |---|---|---|
 | `submission_id` | ULID | FK → `submissions`, **ON DELETE CASCADE** |
-| `path` | `varchar(255)` | Relative, validated by 011's path rules. PK (`submission_id`, `path`) |
+| `path` | `varchar(255)` | Relative, validated by 011's path rules. PK (`submission_id`, `path`). Compared exactly: a new `columnTypes.exactString()` gives MySQL a binary collation, whose default ignores case and accents |
 | `encoding` | `varchar(8)` | `utf8` for text, `base64` for binary files |
 | `content` | long text | Up to 1 MB of file; a new `columnTypes.longText()` helper gives `longtext` on MySQL (whose `text` stops at 64 KB) and `text` elsewhere |
 | `size` | integer | Bytes of the file, for the limits |
@@ -79,6 +79,12 @@ draft's existence isn't revealed. (From 013, submitted ones are visible to moder
   you already have a draft with the same name.
 - **Type:** the 11 types, each with a one-line description (MVP §3.1), and a note on the high-risk
   ones (hook, mcp-server, permission-policy, statusline, lsp-server: reviewers see a risk flag).
+- **Layout** (after the owner's Stitch mock, 2026-09-28, in 032's design system): two numbered
+  sections, "Where it lives" (scope chips and the name, with `@scope/` inside the field) and "What
+  it is" (type cards with a filter box and Guidance / Runtime & tools / Bundles chips), and a side
+  panel that previews the real starter `ronne.yaml`, says whether reviewers will see a risk flag,
+  and holds Create. The mock's daemon, tool-compatibility, scaffolding-path and schema-version
+  details aren't Ronne's, so they're left out.
 - **Create** writes the draft with a **starter template** for the type: a `ronne.yaml` with `name`,
   `type`, a placeholder description and the type block, plus the files it refers to (for example
   `prompt.md` for an agent, or a `SKILL.md` with matching frontmatter for a skill). Templates live
@@ -105,18 +111,24 @@ draft's existence isn't revealed. (From 013, submitted ones are visible to moder
   and TypeScript highlighting, themed with 032's tokens. Binary files show their size and type, and
   can be replaced or deleted, not edited.
 - **`.zip` import:** replaces or merges (you choose) the draft's files with the archive's. A single
-  top-level folder is unwrapped. It uses `fflate` on the server, and refuses symlinks, `..`,
-  absolute paths, and anything over the limits, before changing the draft.
+  top-level folder is unwrapped, and archivers' own files (`__MACOSX/`, `.DS_Store`) are skipped.
+  It uses `fflate` on the server, and refuses symlinks, `..`, absolute paths, encrypted entries,
+  and anything over the limits, before changing the draft. Replacing with an archive that has no
+  `ronne.yaml` is refused.
 - **Validation:** a panel under the editor lists 011's issues (errors, then warnings) as you type,
-  debounced; clicking one opens the file and line. The same checks run on the server when you save,
+  debounced; clicking one opens the file and line (ronne.yaml's in the YAML view). The same checks run on the server when you save,
   and a draft can be saved while it has errors (a draft is work in progress). 013 refuses to submit
   one.
 - **Saving:** the Save button and Ctrl/Cmd+S send the changed files in one server action. The page
-  warns before leaving with unsaved changes. Saving writes the files, bumps `updated_at`, and
-  returns the server's issues. There's no autosave in M2.
+  warns before leaving with unsaved changes (any changed, new, renamed or deleted file, or
+  executable flag): a link opens the shared `UnsavedChangesGuard` dialog ("Stay on this page" or
+  "Leave without saving"), and closing or reloading the tab gets the browser's own prompt. Saving writes the files, bumps `updated_at`, and
+  returns the server's issues. There's no autosave in M2. Server actions accept up to 28 MB (a
+  full 20 MB draft as base64); `src/proxy.ts` refuses anything over 1 MB outside `/submissions/`
+  and without a session cookie, so the larger limit isn't open to anyone else.
 - **Limits** (MVP §12, 011's defaults): the header shows the file count and total size against 500
   files and 20 MB, and uploads over 1 MB are refused on the client and again on the server.
-- **Draft settings:** rename the item (scope and name; the type stays), or delete the draft. Delete
+- **Draft settings:** rename the item (scope and name; the type stays; `name` in `ronne.yaml` follows, keeping its comments and quoting), or delete the draft. Delete
   asks for confirmation and removes the draft and its files for good (it was never submitted, so
   there's nothing to keep for history).
 
@@ -147,17 +159,17 @@ one transaction.
 
 ## Acceptance criteria
 
-- [ ] `0005_submissions` creates both tables, indexes and table-level foreign keys on all four databases, and `longText()` stores a 1 MB file on MySQL.
-- [ ] Anyone signed in can create a draft of each of the 11 types from its template, and each template passes 011 apart from its placeholder description.
-- [ ] Drafts are private: another user, root included, gets a 404 for someone else's draft (page and actions).
-- [ ] The form and the YAML stay in step both ways, and comments in `ronne.yaml` survive form edits.
-- [ ] Files can be created, renamed, deleted, uploaded and marked executable; binary files are stored and kept byte-for-byte.
-- [ ] `.zip` import merges or replaces, unwraps a single top folder, and refuses traversal, symlinks and oversized archives without changing the draft.
-- [ ] Validation issues from 011 show as you type and after saving, and link to the file and line.
-- [ ] The limits hold on the client and the server.
-- [ ] A save that would overwrite a newer version of a file warns first.
-- [ ] Deleting a draft removes it and its files.
-- [ ] Playwright: create an agent draft, edit its prompt in CodeMirror, change the description in the form, see a validation error disappear, save, reload, and see the changes.
+- [x] `0005_submissions` creates both tables, indexes and table-level foreign keys on all four databases, and `longText()` stores a 1 MB file on MySQL.
+- [x] Anyone signed in can create a draft of each of the 11 types from its template, and each template passes 011 apart from its placeholder description.
+- [x] Drafts are private: another user, root included, gets a 404 for someone else's draft (page and actions).
+- [x] The form and the YAML stay in step both ways, and comments in `ronne.yaml` survive form edits.
+- [x] Files can be created, renamed, deleted, uploaded and marked executable; binary files are stored and kept byte-for-byte.
+- [x] `.zip` import merges or replaces, unwraps a single top folder, and refuses traversal, symlinks and oversized archives without changing the draft.
+- [x] Validation issues from 011 show as you type and after saving, and link to the file and line.
+- [x] The limits hold on the client and the server.
+- [x] A save that would overwrite a newer version of a file warns first.
+- [x] Deleting a draft removes it and its files.
+- [x] Playwright: create an agent draft, edit its prompt in CodeMirror, change the description in the form, see a validation error disappear, save, reload, and see the changes.
 
 ## Open questions
 

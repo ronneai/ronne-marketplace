@@ -2,11 +2,18 @@ import { describe, expect, it } from "vitest";
 import { can, PERMISSIONS, type Permission } from "./permissions";
 import type { Role } from "./user";
 
-// MVP §2's matrix for M1's permissions: role → what it can do.
+// MVP §2's matrix for the permissions so far: role → what it can do.
 const EXPECTED: Record<Role, Permission[]> = {
-  user: ["account.manage_own"],
-  moderator: ["account.manage_own"],
-  root: ["account.manage_own", "users.view", "users.manage", "audit.view", "scopes.manage"],
+  user: ["account.manage_own", "submissions.create"],
+  moderator: ["account.manage_own", "submissions.create"],
+  root: [
+    "account.manage_own",
+    "users.view",
+    "users.manage",
+    "audit.view",
+    "scopes.manage",
+    "submissions.create",
+  ],
 };
 
 describe("permissions", () => {

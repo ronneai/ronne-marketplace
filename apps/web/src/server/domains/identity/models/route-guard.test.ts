@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isPublicPath, safeNextPath, signInUrl } from "./route-guard";
+import { bodyTooLarge, isPublicPath, safeNextPath, signInUrl } from "./route-guard";
 
 describe("safeNextPath", () => {
   it("keeps paths on this site, with their query and hash", () => {
@@ -45,5 +45,30 @@ describe("isPublicPath and signInUrl", () => {
     expect(signInUrl("/items?tab=mine")).toBe("/sign-in?next=%2Fitems%3Ftab%3Dmine");
     expect(signInUrl("/")).toBe("/sign-in");
     expect(signInUrl("//evil.test")).toBe("/sign-in");
+  });
+});
+
+describe("bodyTooLarge", () => {
+  const MB = 1024 * 1024;
+  const post = (pathname: string, contentLength: number | null, hasSession = true) =>
+    bodyTooLarge({ method: "POST", pathname, contentLength, hasSession });
+
+  it("lets the draft editor send up to 28 MB, with a session", () => {
+    expect(post("/submissions/01J0000000000000000000000A", 27 * MB)).toBe(false);
+    expect(post("/submissions/01J0000000000000000000000A", 29 * MB)).toBe(true);
+  });
+
+  it("keeps 1 MB everywhere else, and without a session", () => {
+    expect(post("/sign-in", 2 * MB, false)).toBe(true);
+    expect(post("/submissions/01J0000000000000000000000A", 2 * MB, false)).toBe(true);
+    expect(post("/admin/scopes", 2 * MB)).toBe(true);
+    expect(post("/admin/scopes", MB)).toBe(false);
+  });
+
+  it("leaves GETs and bodies without a length to Next.js's own limit", () => {
+    expect(
+      bodyTooLarge({ method: "GET", pathname: "/", contentLength: 50 * MB, hasSession: false }),
+    ).toBe(false);
+    expect(post("/sign-in", null, false)).toBe(false);
   });
 });

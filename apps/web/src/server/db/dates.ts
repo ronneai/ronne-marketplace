@@ -23,8 +23,9 @@ export const fromDbDate = ((value: Date | string | null): Date | null => {
 }) as FromDbDate;
 
 /**
- * Converts a boolean for writing. SQLite drivers can't bind booleans, so it gets 0 or 1. Only for
- * Better Auth's email_verified: everywhere else, use a nullable timestamp (MVP §9.4).
+ * Converts a boolean for writing. SQLite drivers can't bind booleans, so it gets 0 or 1. For flags
+ * with no moment behind them (email_verified, a file's executable bit); when the moment matters,
+ * use a nullable timestamp (MVP §9.4).
  */
 export const toDbBoolean = (value: boolean, dialect: DatabaseDialect): boolean | number => {
   return dialect === "sqlite" ? Number(value) : value;

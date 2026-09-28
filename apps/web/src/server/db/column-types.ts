@@ -13,8 +13,21 @@ export const columnTypes = (dialect: DatabaseDialect) => {
     id: (): ColumnType => "varchar(26)",
     /** An indexed or length-limited string. */
     string: (length: number): ColumnType => `varchar(${length})`,
+    /**
+     * A string compared byte for byte, such as a file path. MySQL's default collation ignores case
+     * and accents, so `README.md` and `readme.md` would be one key there but two everywhere else.
+     */
+    exactString: (length: number): ColumnType =>
+      dialect === "mysql"
+        ? sql.raw(`varchar(${length}) character set utf8mb4 collate utf8mb4_bin`)
+        : `varchar(${length})`,
     /** Unindexed text of any length. */
     text: (): ColumnType => "text",
+    /**
+     * Text of up to several MB, such as a draft's file (feature 012). MySQL's `text` stops at 64 KB,
+     * so it gets `longtext`; `text` has no limit that matters elsewhere.
+     */
+    longText: (): ColumnType => (dialect === "mysql" ? sql`longtext` : "text"),
     /**
      * A UTC timestamp: `timestamptz` in PostgreSQL, `datetime(3)` in MySQL, ISO-8601 text in SQLite.
      * Never MySQL's `timestamp`, which ends in 2038.
@@ -26,7 +39,10 @@ export const columnTypes = (dialect: DatabaseDialect) => {
     },
     /** JSON, stored as text and parsed in repositories. */
     json: (): ColumnType => "text",
-    /** Only for Better Auth's `email_verified`. Everywhere else, use a nullable timestamp. */
+    /**
+     * A flag with no moment behind it, such as Better Auth's `email_verified` or a file's
+     * `executable`. When the moment matters (disabled, revoked), use a nullable timestamp instead.
+     */
     boolean: (): ColumnType => (dialect === "sqlite" ? "integer" : "boolean"),
   };
 };

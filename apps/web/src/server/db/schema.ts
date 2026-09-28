@@ -6,7 +6,7 @@ import type { ColumnType, Generated } from "kysely";
  */
 export type Timestamp = ColumnType<Date | string, Date | string, Date | string>;
 
-/** Better Auth's email_verified: boolean in MySQL and PostgreSQL, 0/1 in SQLite. */
+/** A boolean column: boolean in PostgreSQL, 0/1 in MySQL and SQLite. */
 type DbBoolean = ColumnType<boolean | number, boolean | number, boolean | number>;
 
 /** Better Auth's user table, plus role and disabled_at (migration 0001_identity). */
@@ -96,6 +96,38 @@ export interface ScopeTable {
   created_at: Timestamp;
 }
 
+/**
+ * Drafts and submissions of items (migration 0005_submissions, feature 012). The manifest isn't a
+ * column: it's the `ronne.yaml` row in submission_files.
+ */
+export interface SubmissionTable {
+  id: string;
+  author_id: string;
+  scope_id: string;
+  /** The item's name without the scope. */
+  name: string;
+  type: string;
+  /** Null for a new item; 017 fills it for change proposals. */
+  item_id: string | null;
+  base_version_id: string | null;
+  status: string;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+  submitted_at: Timestamp | null;
+}
+
+/** A submission's files. `content` is UTF-8 text, or base64 when `encoding` is `base64`. */
+export interface SubmissionFileTable {
+  submission_id: string;
+  path: string;
+  encoding: "utf8" | "base64";
+  content: string;
+  /** Bytes of the file itself, not of its base64. */
+  size: number;
+  executable: DbBoolean;
+  updated_at: Timestamp;
+}
+
 /** Kysely table types for the whole app. Each migration that adds a table adds its interface here. */
 export interface Database {
   user: UserTable;
@@ -105,4 +137,6 @@ export interface Database {
   access_tokens: AccessTokenTable;
   audit_log: AuditLogTable;
   scopes: ScopeTable;
+  submissions: SubmissionTable;
+  submission_files: SubmissionFileTable;
 }

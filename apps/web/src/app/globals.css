@@ -22,6 +22,9 @@
   --color-link: var(--link);
   --color-tint: var(--tint);
   --color-focus: var(--focus);
+  --color-code-bg: var(--code-bg);
+  --color-code-fg: var(--code-fg);
+  --color-code-muted: var(--code-muted);
 
   --radius-control: 6px;
   --radius-panel: 8px;

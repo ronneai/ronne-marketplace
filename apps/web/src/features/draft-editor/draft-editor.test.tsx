@@ -1,0 +1,197 @@
+import { renderToStaticMarkup } from "react-dom/server";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { SubmissionNotFoundError } from "@/server/domains/submissions/exceptions/errors";
+import type { Draft } from "@/server/domains/submissions/models/submission";
+import { treeRows } from "./FileTree";
+import { changesOf, type FilesState, filesReducer, isDirty, newPathProblem } from "./files";
+import { languageFor } from "./languages";
+import type { EditorFile } from "./types";
+
+const drafts = vi.hoisted(() => ({ getDraft: vi.fn() }));
+vi.mock("@/server/domains/submissions/actions/drafts", () => drafts);
+vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
+vi.mock("next/navigation", () => ({
+  notFound: () => {
+    throw new Error("NEXT_NOT_FOUND");
+  },
+  useRouter: () => ({ refresh: vi.fn() }),
+}));
+vi.mock("./actions", () => ({}));
+
+const { DraftEditor } = await import("./DraftEditor");
+const { default: DraftPage } = await import("@/app/(app)/submissions/[id]/page");
+
+const T1 = "2026-09-27T10:00:00.000Z";
+const saved = (path: string, content: string): EditorFile => ({
+  path,
+  encoding: "utf8",
+  content,
+  size: content.length,
+  executable: false,
+  loadedAt: T1,
+  dirty: false,
+});
+const start = (): FilesState => ({
+  files: [saved("prompt.md", "Hi"), saved("ronne.yaml", "name: x\n")],
+  removed: [],
+});
+
+describe("filesReducer", () => {
+  it("tracks edits, new files, renames and deletes, and what a save sends", () => {
+    let state = filesReducer(start(), { type: "edit", path: "prompt.md", content: "Héllo" });
+    expect(state.files[0]).toMatchObject({ content: "Héllo", size: 6, dirty: true });
+    state = filesReducer(state, { type: "put", path: "docs/a.md", encoding: "utf8", content: "A" });
+    state = filesReducer(state, { type: "rename", from: "prompt.md", to: "agent.md" });
+    state = filesReducer(state, { type: "remove", path: "docs/a.md" });
+    expect(state.files.map((f) => f.path)).toEqual(["agent.md", "ronne.yaml"]);
+    expect(changesOf(state)).toEqual({
+      writes: [
+        { path: "agent.md", encoding: "utf8", content: "Héllo", executable: false, loadedAt: null },
+      ],
+      // The saved file renamed away; docs/a.md was never saved, so there's nothing to delete.
+      deletes: [{ path: "prompt.md", loadedAt: T1 }],
+    });
+  });
+
+  it("keeps a saved file's loadedAt when it comes back to its path, so stale checks still work", () => {
+    let state = filesReducer(start(), { type: "rename", from: "prompt.md", to: "x.md" });
+    state = filesReducer(state, { type: "rename", from: "x.md", to: "prompt.md" });
+    expect(changesOf(state)).toEqual({
+      writes: [
+        { path: "prompt.md", encoding: "utf8", content: "Hi", executable: false, loadedAt: T1 },
+      ],
+      deletes: [],
+    });
+  });
+
+  it("marks files saved, unless they changed while the save was on its way", () => {
+    let state = filesReducer(start(), { type: "edit", path: "prompt.md", content: "one" });
+    state = filesReducer(state, { type: "edit", path: "ronne.yaml", content: "name: y\n" });
+    const sent = changesOf(state).writes;
+    state = filesReducer(state, { type: "edit", path: "prompt.md", content: "one, two" });
+    const T2 = "2026-09-27T11:00:00.000Z";
+    state = filesReducer(state, {
+      type: "saved",
+      saved: [
+        { path: "prompt.md", loadedAt: T2 },
+        { path: "ronne.yaml", loadedAt: T2 },
+      ],
+      sent,
+      removed: [],
+    });
+    expect(state.files.map((f) => [f.path, f.dirty, f.loadedAt])).toEqual([
+      ["prompt.md", true, T2],
+      ["ronne.yaml", false, T2],
+    ]);
+    expect(isDirty(state)).toBe(true);
+  });
+
+  it("checks new paths", () => {
+    const state = start();
+    expect(newPathProblem(state, "prompt.md")).toBe("There's already a file at prompt.md.");
+    expect(newPathProblem(state, "../x")).toContain("outside the item");
+    expect(newPathProblem(state, "prompt.md/x")).toBe("A file can't be inside another file.");
+    expect(newPathProblem(state, "docs/usage.md")).toBeNull();
+    expect(newPathProblem(state, "other.yaml", "ronne.yaml")).toContain("can't be renamed");
+    // Uploading over a file is allowed, ronne.yaml included.
+    expect(newPathProblem(state, "ronne.yaml", "ronne.yaml")).toBeNull();
+  });
+});
+
+describe("file tree and languages", () => {
+  it("shows each folder once, before its files", () => {
+    const rows = treeRows([saved("a/b/c.md", ""), saved("a/d.md", ""), saved("z.md", "")]);
+    expect(rows.map((r) => (r.kind === "folder" ? `${r.path}/` : r.file.path))).toEqual([
+      "a/",
+      "a/b/",
+      "a/b/c.md",
+      "a/d.md",
+      "z.md",
+    ]);
+  });
+
+  it("highlights by extension, and shell scripts by their shebang", () => {
+    expect(languageFor("notes.txt", "plain")).toEqual([]);
+    expect(languageFor("run", "#!/bin/sh\necho hi")).not.toEqual([]);
+    expect(languageFor("ronne.yaml", "")).not.toEqual([]);
+  });
+});
+
+const draft = (): Draft => ({
+  id: "01J0000000000000000000000A",
+  authorId: "u1",
+  scope: { id: "s1", name: "platform" },
+  name: "reviewer",
+  type: "agent",
+  status: "draft",
+  createdAt: new Date(T1),
+  updatedAt: new Date(T1),
+  submittedAt: null,
+  files: [
+    {
+      path: "logo.png",
+      encoding: "base64",
+      content: "iVBORw==",
+      size: 4,
+      executable: false,
+      updatedAt: new Date(T1),
+    },
+    {
+      path: "prompt.md",
+      encoding: "utf8",
+      content: "Hi",
+      size: 2,
+      executable: false,
+      updatedAt: new Date(T1),
+    },
+    {
+      path: "ronne.yaml",
+      encoding: "utf8",
+      content: "name: x\n",
+      size: 8,
+      executable: false,
+      updatedAt: new Date(T1),
+    },
+  ],
+});
+
+describe("the draft page", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("opens the editor on ronne.yaml, with the files and the limits", async () => {
+    drafts.getDraft.mockResolvedValue(draft());
+    const html = renderToStaticMarkup(
+      await DraftPage({ params: Promise.resolve({ id: "01J0000000000000000000000A" }) }),
+    );
+    expect(html).toContain("@platform/reviewer");
+    expect(html).toContain("3 of 500 files");
+    expect(html).toContain("of 20 MB");
+    for (const path of ["logo.png", "prompt.md", "ronne.yaml"]) expect(html).toContain(path);
+    expect(html).toContain('aria-current="true"');
+    expect(html).toMatch(/aria-current="true"[^>]*>.*ronne\.yaml/s);
+  });
+
+  it("answers 404 for someone else's draft", async () => {
+    drafts.getDraft.mockRejectedValue(new SubmissionNotFoundError());
+    await expect(DraftPage({ params: Promise.resolve({ id: "x" }) })).rejects.toThrow(
+      "NEXT_NOT_FOUND",
+    );
+  });
+
+  it("shows a binary file's size and offers to replace it", () => {
+    const html = renderToStaticMarkup(
+      <DraftEditor
+        draft={{
+          id: "d",
+          scope: "platform",
+          name: "reviewer",
+          type: "agent",
+          status: "draft",
+          files: [{ ...saved("logo.png", "iVBORw=="), encoding: "base64", size: 4 }],
+        }}
+      />,
+    );
+    expect(html).toContain("A binary file, 1 KB");
+    expect(html).toContain(">Replace<");
+  });
+});

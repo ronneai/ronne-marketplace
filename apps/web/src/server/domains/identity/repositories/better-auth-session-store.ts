@@ -1,10 +1,15 @@
-import { APIError } from "better-auth/api";
+import { isAPIError } from "better-auth/api";
 import type { Auth } from "./better-auth";
 import type { SessionStore } from "./session-store";
 
-/** Better Auth's answer to a wrong email, password or disabled user: a 4xx, not a crash. */
+/**
+ * Better Auth's answer to a wrong email, password or disabled user: a 4xx, not a crash.
+ * `isAPIError`, not `instanceof APIError`: under `next dev`, Turbopack can load better-auth more
+ * than once (the page and its server actions are separate layers), and an error thrown by one copy
+ * isn't an instance of the other's class. The wrong-credentials error then escaped as a crash.
+ */
 const isRefusal = (error: unknown) =>
-  error instanceof APIError && error.statusCode >= 400 && error.statusCode < 500;
+  isAPIError(error) && error.statusCode >= 400 && error.statusCode < 500;
 
 export const betterAuthSessionStore = (auth: Auth): SessionStore => {
   return {
@@ -52,7 +57,7 @@ export const betterAuthSessionStore = (auth: Auth): SessionStore => {
         });
         return true;
       } catch (error) {
-        if (error instanceof APIError && error.body?.code === "INVALID_PASSWORD") return false;
+        if (isAPIError(error) && error.body?.code === "INVALID_PASSWORD") return false;
         throw error;
       }
     },
