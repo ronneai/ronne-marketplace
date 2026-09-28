@@ -1,7 +1,9 @@
+import { History } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { Badge } from "@/components/ui/Badge";
+import { buttonClasses } from "@/components/ui/Button";
 import { utcMinute } from "@/components/ui/time";
 import { IssueList } from "@/components/validation/IssueList";
 import { Conversation } from "@/features/reviews/Conversation";
@@ -83,6 +85,12 @@ const Review = async ({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {review.published.length > 0 ? (
+            <Link href={versionsPath(submission)} className={buttonClasses("secondary")}>
+              <History size={16} aria-hidden="true" />
+              View versions
+            </Link>
+          ) : null}
           <DecisionBar id={submission.id} decisions={decisions} />
           {review.can.publish ? (
             <PublishDialog

@@ -27,6 +27,8 @@ export type EditorDraft = {
   readOnly: boolean;
   canSubmit: boolean;
   canWithdraw: boolean;
+  /** The item's Versions page, once it has a published version (feature 016). */
+  versionsHref: string | null;
 };
 
 /** The files a save sends, with what was sent, so later edits stay unsaved. */

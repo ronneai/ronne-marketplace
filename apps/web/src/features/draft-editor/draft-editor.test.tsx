@@ -192,6 +192,7 @@ describe("the draft page", () => {
           readOnly: false,
           canSubmit: true,
           canWithdraw: true,
+          versionsHref: null,
           files: [{ ...saved("logo.png", "iVBORw=="), encoding: "base64", size: 4 }],
         }}
       />,
@@ -214,6 +215,7 @@ describe("the draft page", () => {
           readOnly: false,
           canSubmit: true,
           canWithdraw: true,
+          versionsHref: null,
           files: [saved("prompt.md", "Hi"), saved("ronne.yaml", "name: x\n")],
           ...overrides,
         }}
@@ -269,5 +271,19 @@ describe("the draft page", () => {
     });
     expect(withdrawn).toContain("Withdrawn.");
     expect(withdrawn).toContain(">withdrawn<");
+  });
+
+  it("links a released item to its Versions page, and nothing else does", () => {
+    const released = view({
+      status: "published",
+      readOnly: true,
+      canSubmit: false,
+      canWithdraw: false,
+      versionsHref: "/items/platform/reviewer/versions",
+    });
+    expect(released).toMatch(
+      /<a [^>]*href="\/items\/platform\/reviewer\/versions"[^>]*>.*View versions<\/a>/,
+    );
+    expect(view({})).not.toContain("View versions");
   });
 });

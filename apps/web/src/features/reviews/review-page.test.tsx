@@ -220,6 +220,14 @@ describe("the review page", () => {
     expect(await render()).toContain("Publish");
   });
 
+  it("links to the item's Versions page in the header once it has a published version", async () => {
+    expect(await render()).not.toContain("View versions");
+    reviews.getReview.mockResolvedValue(view({ published: ["1.0.0"] }));
+    expect(await render()).toMatch(
+      /<a [^>]*href="\/items\/team\/fmt\/versions"[^>]*>.*View versions<\/a>/,
+    );
+  });
+
   it("is a 404 for anyone who can't review, and for a submission they can't see", async () => {
     reviews.getReview.mockRejectedValue(new SubmissionNotFoundError());
     await expect(render()).rejects.toThrow("NEXT_NOT_FOUND");

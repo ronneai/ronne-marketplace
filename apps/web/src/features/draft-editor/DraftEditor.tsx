@@ -1,12 +1,13 @@
 "use client";
 
 import { DEFAULT_LIMITS, formatBytes, type ManifestIssue } from "@ronneai/core";
-import { FilePlus, FolderPlus, Lock, Send, Settings, Undo2, Upload } from "lucide-react";
+import { FilePlus, FolderPlus, History, Lock, Send, Settings, Undo2, Upload } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useReducer, useRef, useState, useTransition } from "react";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+import { Button, buttonClasses } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/Notice";
 import { UnsavedChangesGuard } from "@/components/ui/UnsavedChangesGuard";
 import { IssueList } from "@/components/validation/IssueList";
@@ -168,6 +169,12 @@ export const DraftEditor = ({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {draft.versionsHref ? (
+            <Link href={draft.versionsHref} className={buttonClasses("secondary")}>
+              <History size={16} aria-hidden="true" />
+              View versions
+            </Link>
+          ) : null}
           {draft.canWithdraw ? (
             <Button variant="ghost" onClick={() => setOpen({ kind: "withdraw" })}>
               <Undo2 size={16} aria-hidden="true" />

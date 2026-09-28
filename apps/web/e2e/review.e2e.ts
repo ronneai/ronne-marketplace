@@ -106,7 +106,12 @@ test("a moderator reviews a hook, the author publishes it, and another item depe
   );
   await publish.getByRole("button", { name: "Done" }).click();
 
-  // The release in the conversation leads to the Versions page, read-only for the author.
+  // The header, and the release in the conversation, lead to the Versions page, read-only for the
+  // author.
+  await expect(author.getByRole("link", { name: "View versions" })).toHaveAttribute(
+    "href",
+    `/items/${E2E_SCOPE}/fmt-hook/versions`,
+  );
   await author.getByRole("link", { name: "released it as 1.0.0" }).click();
   await expect(author).toHaveURL(new RegExp(`/items/${E2E_SCOPE}/fmt-hook/versions$`));
   await expect(author.getByText("latest → 1.0.0")).toBeVisible();

@@ -58,3 +58,7 @@ the same change that completes it.
   "View versions" link in the Publish dialog lead to it (`features/versions/links.ts`,
   `versionsPath`). The review Playwright test follows the conversation link as the author and finds
   the page without actions.
+- **Header link (2026-09-28).** The conversation link was hard to find, so the headers of the
+  review page and the author's submission page also get "View versions" once the item has a
+  published version. The review page data now loads the item's versions for published submissions
+  too, not only approved ones.

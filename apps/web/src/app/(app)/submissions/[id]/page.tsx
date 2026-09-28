@@ -14,7 +14,10 @@ import { requestHeaders } from "@/server/http/request-headers";
 
 export const metadata = { title: "Draft · Ronne" };
 
-const toEditorDraft = (draft: Draft & { mine: boolean }): EditorDraft => ({
+const toEditorDraft = (
+  draft: Draft & { mine: boolean },
+  versionsHref: string | null,
+): EditorDraft => ({
   id: draft.id,
   scope: draft.scope.name,
   name: draft.name,
@@ -27,6 +30,7 @@ const toEditorDraft = (draft: Draft & { mine: boolean }): EditorDraft => ({
     draft.mine &&
     (canTransition(draft.status, "submit") || canTransition(draft.status, "resubmit")),
   canWithdraw: draft.mine && canTransition(draft.status, "withdraw"),
+  versionsHref,
   files: draft.files.map((file) => ({
     path: file.path,
     encoding: file.encoding,
@@ -57,7 +61,10 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
   return (
     <div className="grid gap-6">
       {/* A new version from the server (an import, a rename, a submit) starts the editor afresh. */}
-      <DraftEditor key={draft.updatedAt.toISOString()} draft={toEditorDraft(draft)} />
+      <DraftEditor
+        key={draft.updatedAt.toISOString()}
+        draft={toEditorDraft(draft, review?.published.length ? versionsPath(draft) : null)}
+      />
       {review?.can.publish ? (
         <section
           aria-labelledby="release"
