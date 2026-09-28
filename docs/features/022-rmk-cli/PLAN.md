@@ -25,7 +25,7 @@ the same change that completes it.
   *Done when:* tests cover a fresh install, a reinstall from the lockfile, a checksum mismatch, an
   unsupported type's warning, missing env vars, and user scope.
 
-- [ ] **5. Update, outdated and remove.**
+- [x] **5. Update, outdated and remove.**
   *Done when:* tests cover updating within a range, a yanked locked version, outdated's columns, and
   removing an item with dependencies still needed by another.
 
@@ -84,3 +84,9 @@ the same change that completes it.
   with 3. User scope writes under the home folder, with `user.lock` (carrying the direct
   dependencies) and `user-state.json` under `~/.config/rmk`. Core gains `isVersionRange`. The
   registry never sees who installs what: only downloads are counted (019).
+- **Task 5 (2026-09-28): update, outdated and remove.** `manage.ts`, over the install pipeline:
+  `update` re-resolves with the named items unlocked (all, when none are named) and says what
+  moved; `outdated` resolves once with no locks for "wanted" and reads each item for "latest";
+  `remove` re-resolves without the items and lets the applier delete what the resolution no longer
+  holds, dependencies nothing else needs included, then rewrites the config. The fake registry in
+  `testing.ts` is shared by the install and manage tests.

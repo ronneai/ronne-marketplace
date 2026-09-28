@@ -1,6 +1,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { packItem } from "@ronneai/core/pack";
 import type { Io } from "./io.js";
 
 /**
@@ -110,3 +111,179 @@ export const identityRoutes = (token = "rmk_test_token"): Record<string, Route> 
           json: { error: { code: "token_invalid", message: "The access token isn't valid." } },
         },
 });
+
+const text = (value: string) => new TextEncoder().encode(value);
+
+/** A registry with a skill (1.0.0 and 1.1.0), an MCP server the skill needs, and a hook. */
+export const buildRegistry = async () => {
+  const skill = async (version: string, body: string) =>
+    packItem(
+      [
+        {
+          path: "ronne.yaml",
+          bytes: text(
+            `name: "@team/secure"\ntype: skill\ndescription: Secure.\nskill:\n  entry: SKILL.md\ndependencies:\n  "@team/gh": "^1.0.0"\n`,
+          ),
+        },
+        {
+          path: "SKILL.md",
+          bytes: text(`---\nname: secure\ndescription: Secure.\n---\n${body}\n`),
+        },
+      ],
+      { version },
+    );
+  const packed = {
+    "@team/secure@1.0.0": await skill("1.0.0", "Check inputs."),
+    "@team/secure@1.1.0": await skill("1.1.0", "Check inputs and secrets."),
+    "@team/gh@1.2.0": await packItem(
+      [
+        {
+          path: "ronne.yaml",
+          bytes: text(
+            'name: "@team/gh"\ntype: mcp-server\ndescription: GitHub.\nmcp-server:\n  transport: stdio\n  command: npx\n  env:\n    - name: GITHUB_TOKEN\n      required: true\n      secret: true\n',
+          ),
+        },
+      ],
+      { version: "1.2.0" },
+    ),
+    "@team/fmt@1.0.0": await packItem(
+      [
+        {
+          path: "ronne.yaml",
+          bytes: text(
+            'name: "@team/fmt"\ntype: hook\ndescription: Formats.\nhook:\n  event: tool.after\n  matcher:\n    tool: edit\n  run:\n    command: "npx biome format --write"\n',
+          ),
+        },
+      ],
+      { version: "1.0.0" },
+    ),
+  };
+  const sha = (key: keyof typeof packed) => packed[key].sha256;
+  const resolutions: Record<string, unknown> = {
+    "@team/secure": {
+      items: {
+        "@team/gh": {
+          version: "1.2.0",
+          type: "mcp-server",
+          sha256: sha("@team/gh@1.2.0"),
+          dependencies: {},
+        },
+        "@team/secure": {
+          version: "1.1.0",
+          type: "skill",
+          sha256: sha("@team/secure@1.1.0"),
+          dependencies: { "@team/gh": "1.2.0" },
+        },
+      },
+      warnings: [],
+    },
+  };
+  const routes: Record<string, Route> = {
+    ...identityRoutes(),
+    "POST /resolve": ({ body }) => {
+      const { dependencies, locked } = body as {
+        dependencies: Record<string, string>;
+        locked?: Record<string, string>;
+      };
+      const names = Object.keys(dependencies).sort();
+      if (names.includes("@team/nope"))
+        return {
+          status: 404,
+          json: {
+            error: { code: "item_not_found", message: "@team/nope isn't a published item." },
+          },
+        };
+      const items: Record<string, unknown> = {};
+      if (names.includes("@team/secure")) {
+        const version = locked?.["@team/secure"] ?? "1.1.0";
+        items["@team/secure"] = {
+          version,
+          type: "skill",
+          sha256: sha(`@team/secure@${version}` as keyof typeof packed),
+          dependencies: { "@team/gh": "1.2.0" },
+        };
+        items["@team/gh"] = {
+          version: "1.2.0",
+          type: "mcp-server",
+          sha256: sha("@team/gh@1.2.0"),
+          dependencies: {},
+        };
+      }
+      if (names.includes("@team/fmt"))
+        items["@team/fmt"] = {
+          version: "1.0.0",
+          type: "hook",
+          sha256: sha("@team/fmt@1.0.0"),
+          dependencies: {},
+        };
+      return {
+        json: {
+          items,
+          warnings: names.includes("@team/fmt")
+            ? [
+                {
+                  item: "@team/fmt",
+                  version: "1.0.0",
+                  code: "deprecated",
+                  message: "Use @team/fmt2.",
+                },
+              ]
+            : [],
+        },
+      };
+    },
+  };
+  const versionRow = (version: string, key: keyof typeof packed, yanked = false) => ({
+    version,
+    publishedAt: "2026-09-20T00:00:00.000Z",
+    sha256: packed[key].sha256,
+    size: packed[key].size,
+    deprecated: null,
+    yanked,
+    dependencies: {},
+  });
+  routes["GET /items/team/secure"] = () => ({
+    json: {
+      name: "@team/secure",
+      type: "skill",
+      description: "Secure.",
+      owner: "Ada",
+      downloads: 0,
+      tags: { latest: "1.1.0" },
+      versions: [
+        versionRow("1.1.0", "@team/secure@1.1.0"),
+        versionRow("1.0.0", "@team/secure@1.0.0"),
+      ],
+    },
+  });
+  routes["GET /items/team/gh"] = () => ({
+    json: {
+      name: "@team/gh",
+      type: "mcp-server",
+      description: "GitHub.",
+      owner: "Ada",
+      downloads: 0,
+      tags: { latest: "1.2.0" },
+      versions: [versionRow("1.2.0", "@team/gh@1.2.0")],
+    },
+  });
+  routes["GET /items/team/fmt"] = () => ({
+    json: {
+      name: "@team/fmt",
+      type: "hook",
+      description: "Formats.",
+      owner: "Ada",
+      downloads: 0,
+      tags: { latest: "1.0.0" },
+      versions: [versionRow("1.0.0", "@team/fmt@1.0.0")],
+    },
+  });
+  for (const [key, item] of Object.entries(packed)) {
+    const [name, version] = key.split("@").slice(1);
+    routes[`GET /items/team/${name?.split("/")[1]}/${version}/tarball`] = () => ({
+      bytes: item.tgz,
+      headers: { "x-checksum-sha256": item.sha256, "content-type": "application/gzip" },
+    });
+  }
+  return { routes, packed };
+};

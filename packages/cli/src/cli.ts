@@ -4,6 +4,7 @@ import { normalizeRegistry, readUserConfig, registryFor, writeUserConfig } from 
 import { RmkError, usage } from "./errors.js";
 import { installCommand } from "./install.js";
 import type { Io } from "./io.js";
+import { outdatedCommand, removeCommand, updateCommand } from "./manage.js";
 import { done, failed, output, type RunResult } from "./output.js";
 import { list, platforms, withApi } from "./registry-commands.js";
 
@@ -138,6 +139,9 @@ export type Command = (io: Io, args: Args, out: ReturnType<typeof output>) => Pr
 const { search, info } = withApi((io, args) => connect(io, args));
 
 const install: Command = (io, args, out) => installCommand(io, args, out, connect(io, args).api);
+const update: Command = (io, args, out) => updateCommand(io, args, out, connect(io, args).api);
+const outdated: Command = (io, args, out) => outdatedCommand(io, args, out, connect(io, args).api);
+const remove: Command = (io, args, out) => removeCommand(io, args, out, connect(io, args).api);
 
 export const COMMANDS: Record<string, Command> = {
   login,
@@ -148,6 +152,9 @@ export const COMMANDS: Record<string, Command> = {
   list,
   platforms,
   install,
+  update,
+  outdated,
+  remove,
 };
 
 /** Runs rmk with the given arguments (without the node and script paths). */
