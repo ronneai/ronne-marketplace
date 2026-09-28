@@ -1,9 +1,16 @@
+import { ResolveError, type ResolveRequest } from "@ronneai/core";
 import type { AppAuth } from "../domains/identity/repositories/auth-instance";
 import { searchCatalogueAs } from "../domains/items/actions/catalogue";
-import { downloadArtifactAs, findDownloadAs, itemPageAs } from "../domains/items/actions/versions";
+import {
+  downloadArtifactAs,
+  findDownloadAs,
+  itemPageAs,
+  resolveAs,
+} from "../domains/items/actions/versions";
 import type { StorageAdapter } from "../storage";
 import { parseLimit, parseSearch, parseSort, parseType } from "./api-query";
 import { domainErrorResponse, errorResponse } from "./errors";
+import { readJsonObject } from "./read-json";
 import { itemJson, itemSummaryJson, versionJson } from "./registry-json";
 import { requireToken, type TokenGuardDeps } from "./require-token";
 
@@ -151,6 +158,61 @@ export const getTarball = async (
       headers: { ...headers, "content-length": String(artifact.size) },
     });
   } catch (error) {
+    return orDomainError(error);
+  }
+};
+
+/** The most items one resolve request may ask for directly. */
+export const RESOLVE_MAX_ITEMS = 200;
+
+/** A `{ name: range-or-tag }` map, or null when it isn't one. */
+const stringMap = (value: unknown): Record<string, string> | null => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const entries = Object.entries(value);
+  return entries.every(([, v]) => typeof v === "string" && v.length > 0 && v.length <= 256)
+    ? (Object.fromEntries(entries) as Record<string, string>)
+    : null;
+};
+
+/** The status for each resolver failure: conflicts and cycles are 409, missing things 404. */
+const RESOLVE_STATUS = {
+  resolve_conflict: 409,
+  dependency_cycle: 409,
+  item_not_found: 404,
+  tag_not_found: 404,
+  no_matching_version: 404,
+} as const;
+
+/**
+ * POST /api/v1/resolve: `{ dependencies, locked? }` → one version of every item, as `rmk.lock`'s
+ * `items` (feature 020), with deprecation warnings.
+ */
+export const postResolve = async (request: Request, deps: RegistryApiDeps = {}) => {
+  const guard = await requireToken(request, deps.guard);
+  if (!guard.ok) return guard.response;
+  const body = await readJsonObject(request);
+  const dependencies = stringMap(body?.dependencies);
+  const locked = body?.locked === undefined ? {} : stringMap(body.locked);
+  if (!dependencies || !locked)
+    return errorResponse(
+      400,
+      "invalid_request",
+      'Send JSON: { "dependencies": { "@scope/name": "range or tag" }, "locked"?: { "@scope/name": "version" } }.',
+    );
+  if (Object.keys(dependencies).length > RESOLVE_MAX_ITEMS)
+    return errorResponse(
+      400,
+      "invalid_request",
+      `Ask for at most ${RESOLVE_MAX_ITEMS} items in one request.`,
+    );
+  const resolveRequest: ResolveRequest = { dependencies, locked };
+  try {
+    return Response.json(await resolveAs(guard.auth.user, resolveRequest, deps.app), {
+      headers: { "cache-control": "no-store" },
+    });
+  } catch (error) {
+    if (error instanceof ResolveError)
+      return errorResponse(RESOLVE_STATUS[error.code], error.code, error.message, error.details);
     return orDomainError(error);
   }
 };

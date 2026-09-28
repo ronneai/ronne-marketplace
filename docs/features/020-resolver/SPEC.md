@@ -106,16 +106,20 @@ isn't a map of names to ranges or tags, or has more than 200 entries.
 
 ## Acceptance criteria
 
-- [ ] Unit tests cover each rule and edge case with an in-memory registry, including a conflict that names who asked for each range.
-- [ ] The same request against the same registry always gives the same `Resolution`.
-- [ ] `POST /api/v1/resolve` answers resolutions and each error code, on all four databases.
-- [ ] The resolution's shape is exactly `rmk.lock`'s `items`.
-- [ ] The Dependencies and Tags sections say how versions are chosen, as above.
+- [x] Unit tests cover each rule and edge case with an in-memory registry, including a conflict that names who asked for each range.
+- [x] The same request against the same registry always gives the same `Resolution`.
+- [x] `POST /api/v1/resolve` answers resolutions and each error code, on all four databases.
+- [x] The resolution's shape is exactly `rmk.lock`'s `items`.
+- [x] The Dependencies and Tags sections say how versions are chosen, as above.
 
 ## Open questions
 
-1. **No backtracking** (recommended: the highest version that fits every range, re-examined as
-   ranges arrive; a rare dead end is reported as a conflict the author can fix by widening a
-   range), or a backtracking search that tries older versions to escape a conflict.
-2. **`rmk` resolves with `POST /resolve`** (recommended: one request, and the server reads the
-   database directly), or on the client with `resolve()` over the read API, one request per item.
+Both answered by the owner on 2026-09-28, as built:
+
+1. **No backtracking.** The highest version that fits every range, re-examined as ranges arrive; a
+   dead end is reported as a conflict that names who asked for each range, and the author widens a
+   range or releases a fitting version. A search through older versions could pick an old version
+   quietly; naming the conflict is safer. Worth revisiting if conflicts turn out to be common.
+2. **`rmk` resolves with `POST /resolve`.** One request, the server reads the database directly,
+   and the MCP server resolves the same way with no code of its own. `resolve()` stays in core, so
+   a client-side path is possible later.

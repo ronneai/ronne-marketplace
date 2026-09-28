@@ -13,7 +13,14 @@ import { kyselyItemRepository } from "../domains/items/repositories/kysely-item-
 import { kyselyScopeRepository } from "../domains/items/repositories/kysely-scope-repository";
 import { localStorage } from "../storage/local-storage";
 import type { StorageAdapter } from "../storage/storage-adapter";
-import { getItem, getTarball, getVersion, listItems, type RegistryApiDeps } from "./registry-api";
+import {
+  getItem,
+  getTarball,
+  getVersion,
+  listItems,
+  postResolve,
+  type RegistryApiDeps,
+} from "./registry-api";
 
 let t: TestDb;
 let app: AppAuth;
@@ -70,7 +77,12 @@ const tick = () => {
 /** Releases versions through the repository, `latest` on the last stable one. */
 const release = async (
   name: string,
-  { type = "skill" as ItemType, versions = ["1.0.0"], keywords = [] as string[] } = {},
+  {
+    type = "skill" as ItemType,
+    versions = ["1.0.0"],
+    keywords = [] as string[],
+    dependsOn = {} as Record<string, string>,
+  } = {},
 ) => {
   const items = kyselyItemRepository(t.db, t.dialect);
   const itemId = await items.insertItem({
@@ -96,7 +108,12 @@ const release = async (
       publishedBy: publisher,
       publishedAt: tick(),
       submissionId: null,
-      dependencies: [],
+      dependencies: await Promise.all(
+        Object.entries(dependsOn).map(async ([dependency, range]) => ({
+          itemId: (await items.findByName("team", dependency.replace("@team/", "")))?.id ?? "",
+          range,
+        })),
+      ),
       riskFlags: [],
     });
     await items.setTag(itemId, version.includes("-") ? "next" : "latest", ids[version] ?? "");
@@ -356,5 +373,97 @@ describe("GET /items/{scope}/{name}/{version}/tarball", () => {
       deps,
     );
     expect(unknown.status).toBe(404);
+  });
+});
+
+describe("POST /resolve", () => {
+  const post = (payload: unknown, auth: string | null = token) =>
+    new Request(`${BASE}/resolve`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        ...(auth ? { authorization: `Bearer ${auth}` } : {}),
+      },
+      body: typeof payload === "string" ? payload : JSON.stringify(payload),
+    });
+
+  it("resolves tags and ranges to one version each, with dependencies pinned and warnings", async () => {
+    const { ids } = await release("mcp", { type: "mcp-server", versions: ["1.0.0", "1.2.0"] });
+    await kyselyItemRepository(t.db, t.dialect).setDeprecated(ids["1.2.0"] ?? "", "Use 2.x.");
+    await release("skill", { dependsOn: { "@team/mcp": "^1.0.0" } });
+    const { status, json } = await body(
+      await postResolve(post({ dependencies: { "@team/skill": "latest" } }), deps),
+    );
+    expect(status).toBe(200);
+    expect(json.items).toEqual({
+      "@team/mcp": {
+        version: "1.2.0",
+        type: "mcp-server",
+        sha256: "a".repeat(64),
+        dependencies: {},
+      },
+      "@team/skill": {
+        version: "1.0.0",
+        type: "skill",
+        sha256: "a".repeat(64),
+        dependencies: { "@team/mcp": "1.2.0" },
+      },
+    });
+    expect(json.warnings).toEqual([
+      { item: "@team/mcp", version: "1.2.0", code: "deprecated", message: "Use 2.x." },
+    ]);
+    // A locked version that still fits is kept.
+    const locked = await body(
+      await postResolve(
+        post({ dependencies: { "@team/skill": "latest" }, locked: { "@team/mcp": "1.0.0" } }),
+        deps,
+      ),
+    );
+    expect(locked.json.items["@team/mcp"].version).toBe("1.0.0");
+  });
+
+  it("answers conflicts with who asked, and missing items, tags and versions", async () => {
+    await release("mcp", { type: "mcp-server", versions: ["1.0.0", "2.0.0"] });
+    await release("skill", { dependsOn: { "@team/mcp": "^2.0.0" } });
+    const conflict = await body(
+      await postResolve(
+        post({ dependencies: { "@team/skill": "^1.0.0", "@team/mcp": "^1.0.0" } }),
+        deps,
+      ),
+    );
+    expect(conflict.status).toBe(409);
+    expect(conflict.json.error).toMatchObject({
+      code: "resolve_conflict",
+      details: {
+        item: "@team/mcp",
+        ranges: [{ range: "^1.0.0" }, { range: "^2.0.0", from: "@team/skill@1.0.0" }],
+      },
+    });
+    for (const [dependencies, code] of [
+      [{ "@team/nope": "^1.0.0" }, "item_not_found"],
+      [{ "@team/mcp": "beta" }, "tag_not_found"],
+      [{ "@team/mcp": "^9.0.0" }, "no_matching_version"],
+    ] as const) {
+      const { status, json } = await body(await postResolve(post({ dependencies }), deps));
+      expect([status, json.error.code]).toEqual([404, code]);
+    }
+  });
+
+  it("refuses a malformed body, too many items, and requests without a token", async () => {
+    for (const payload of [
+      "not json",
+      [],
+      { dependencies: [] },
+      { dependencies: { "@team/x": 1 } },
+      { dependencies: {}, locked: "x" },
+    ]) {
+      const { status, json } = await body(await postResolve(post(payload), deps));
+      expect([status, json.error.code]).toEqual([400, "invalid_request"]);
+    }
+    const many = Object.fromEntries(Array.from({ length: 201 }, (_, i) => [`@team/i${i}`, "*"]));
+    expect((await postResolve(post({ dependencies: many }), deps)).status).toBe(400);
+    expect((await postResolve(post({ dependencies: {} }, null), deps)).status).toBe(401);
+    const empty = await body(await postResolve(post({ dependencies: {} }), deps));
+    expect(empty).toEqual({ status: 200, json: { items: {}, warnings: [] } });
   });
 });

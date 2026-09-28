@@ -107,6 +107,8 @@ describe("the topics", () => {
       expect(review).toContain(`>${status}<`);
     const versions = await topic("versions");
     expect(versions).toContain("1.4.0 → 1.5.0");
+    expect(versions).toContain("the lockfile keeps that version");
+    expect(await topic("items")).toContain("How an install picks versions");
     expect(versions).toContain(">yanked<");
     const rmk = await topic("rmk");
     expect(rmk).toContain("rmk isn&#x27;t released yet.");

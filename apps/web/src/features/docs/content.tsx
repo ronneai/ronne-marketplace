@@ -222,6 +222,19 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           Every other type depends on nothing. At submit, each dependency must be published, allowed
           for the type, and have a version in its range, with no cycles.
         </p>
+        <h3 className="font-semibold text-fg">How an install picks versions</h3>
+        <p>
+          An install gets <strong>one version of each item</strong>: the highest one that fits every
+          range asking for it, whether you asked for the item yourself or something you asked for
+          depends on it. Yanked versions are skipped, and a range only picks a pre-release when it
+          names one (<Code>^1.1.0-beta.1</Code>, not <Code>^1.0.0</Code>).
+        </p>
+        <p>
+          If no version fits every range, the install stops and says which ranges disagree and who
+          asked for each, such as <Code>^1.0.0 (the request)</Code> and{" "}
+          <Code>^2.0.0 (@platform/code-reviewer@1.4.0)</Code>. The fix is to widen a range, or to
+          release a version that fits both.
+        </p>
       </>
     ),
     manifest: (
@@ -425,6 +438,10 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             hyphens, starting with a letter, and not something that reads as a version range.
           </li>
         </Bullets>
+        <p>
+          When an item is installed by tag, the tag is turned into the version it points to at that
+          moment, and the lockfile keeps that version until <Code>rmk update</Code> looks again.
+        </p>
       </>
     ),
     "deprecate-yank": (
