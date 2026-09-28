@@ -1,4 +1,5 @@
 import type { ItemType } from "@ronneai/core";
+import type { NewAuditEvent } from "../../audit/models/audit-event";
 import type { DraftFile, Submission, SubmissionStatus } from "../models/submission";
 
 export type NewSubmission = {
@@ -30,6 +31,18 @@ export interface SubmissionRepository {
   ): Promise<boolean>;
   update(id: string, changes: { scopeId?: string; name?: string; updatedAt: Date }): Promise<void>;
   delete(id: string): Promise<void>;
+  /** Sets the status, and `submitted_at` when given. */
+  setStatus(
+    id: string,
+    status: SubmissionStatus,
+    at: { updatedAt: Date; submittedAt?: Date },
+  ): Promise<void>;
+  /**
+   * Locks the scope's row until the transaction ends, so submits in one scope run one at a time
+   * and two submissions can't both take a name.
+   */
+  lockScope(scopeId: string): Promise<void>;
+  recordAudit(event: NewAuditEvent, now: Date): Promise<void>;
   /** In path order, by code unit, the same on every database. */
   files(submissionId: string): Promise<DraftFile[]>;
   /** Inserts the file, or replaces the one at its path. */

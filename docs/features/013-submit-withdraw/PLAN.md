@@ -17,7 +17,7 @@ the same change that completes it.
   *Done when:* unit tests with a fake lookup cover each failure and a passing graph, and a database
   test covers the open-submission name check.
 
-- [ ] **3. Submit and withdraw services.** Submit (011's checks on saved files, then the registry
+- [x] **3. Submit and withdraw services.** Submit (011's checks on saved files, then the registry
   checks, then the status change and audit event in one transaction), withdraw, read access for
   `submissions.view_submitted`, and the editor refusing non-drafts.
   *Done when:* database tests cover submit, refused submits, the concurrent-name case, withdraw from
@@ -50,3 +50,20 @@ the same change that completes it.
     error's. The cycle walk follows the highest matching version and walks each item once.
   - `isNameProposed(scopeId, name, statuses, exceptId)` on the repository, tested on all four
     databases: drafts, closed submissions, other scopes and the submission itself never count.
+- **Task 3 (2026-09-28): submit and withdraw services.**
+  - `services/submissions.ts`: `viewSubmission` (the author, or moderators and root once it isn't
+    a draft), `checkSubmission` (what submitting would say, for the confirmation), `submitDraft`
+    and `withdrawSubmission`. Audit events `submission.submitted { name, type, dependencies }` and
+    `submission.withdrawn { name, from }`, a `submission` group and target type, and the
+    `submissions.view_submitted` permission (moderator, root).
+  - **Concurrent submits.** Inside the transaction, submit locks the scope's row
+    (`forUpdate` in `db/locks.ts`: `SELECT … FOR UPDATE`, nothing on SQLite, whose writers already
+    run one at a time), then checks the name. The test of two simultaneous submits caught a race on
+    MySQL and MariaDB: their REPEATABLE READ snapshot, taken at the transaction's first read, hid
+    the other submit's commit from the name check that ran after the lock. The submissions
+    repository now runs its transactions at READ COMMITTED (`readCommittedTransaction`, PostgreSQL's
+    default), and the test passes on all four databases, repeatedly.
+  - Database tests: a valid submit (frozen afterwards: no save, rename, delete or second submit),
+    refused submits with their issues, the name held by an open submission and freed by withdrawing
+    it, dependencies in M2, withdraw from each allowed status (and not twice, or once approved),
+    the audit events, and who can submit, withdraw and view.

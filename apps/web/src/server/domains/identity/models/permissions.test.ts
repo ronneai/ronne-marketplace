@@ -5,7 +5,7 @@ import type { Role } from "./user";
 // MVP §2's matrix for the permissions so far: role → what it can do.
 const EXPECTED: Record<Role, Permission[]> = {
   user: ["account.manage_own", "submissions.create"],
-  moderator: ["account.manage_own", "submissions.create"],
+  moderator: ["account.manage_own", "submissions.create", "submissions.view_submitted"],
   root: [
     "account.manage_own",
     "users.view",
@@ -13,6 +13,7 @@ const EXPECTED: Record<Role, Permission[]> = {
     "audit.view",
     "scopes.manage",
     "submissions.create",
+    "submissions.view_submitted",
   ],
 };
 

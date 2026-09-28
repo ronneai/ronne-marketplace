@@ -17,6 +17,8 @@ export const PERMISSIONS = {
   "scopes.manage": ["root"],
   /** Create, edit and delete your own drafts (feature 012). */
   "submissions.create": ["user", "moderator", "root"],
+  /** Open submitted (not draft) submissions read-only; 014's review queue builds on it. */
+  "submissions.view_submitted": ["moderator", "root"],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;
