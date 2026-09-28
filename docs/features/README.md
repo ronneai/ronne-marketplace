@@ -71,6 +71,7 @@ New folders start from [`_template/`](./_template/).
 | 016 | Version management: move tags, deprecate, yank | 015 | planned |
 | 017 | Change proposals: diff against base, stale and rebase | 015 | planned |
 | 018 | Catalogue: search, filters, item page | 015 | planned |
+| 033 | In-app help: a Documentation page (how the registry works and is organised: scopes, items and types, the submission lifecycle, versions and dist-tags, `rmk`) and inline helpers in each feature (explanations and examples where people need them) | 012, 013 | planned |
 
 ### M4 — `rmk` + Claude Code
 
