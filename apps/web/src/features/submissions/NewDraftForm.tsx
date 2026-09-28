@@ -4,6 +4,14 @@ import { ITEM_TYPES, type ItemType, NAME_PROBLEM_MESSAGES, nameProblem } from "@
 import { ArrowRight, CircleCheck, FileCode, Info, Search, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, useActionState, useMemo, useState } from "react";
+import { Help } from "@/components/help/Help";
+import {
+  HIGH_RISK_NOTE,
+  STANDARD_RISK_NOTE,
+  TYPE_GROUPS,
+  TYPE_INFO,
+  type TypeGroup,
+} from "@/components/submissions/item-types";
 import { Badge } from "@/components/ui/Badge";
 import { Button, buttonClasses } from "@/components/ui/Button";
 import { FieldError, inputClasses } from "@/components/ui/Field";
@@ -11,13 +19,6 @@ import { Notice } from "@/components/ui/Notice";
 import { MANIFEST_PATH } from "@/server/domains/submissions/models/submission";
 import { draftTemplate } from "@/server/domains/submissions/models/templates";
 import { createDraftFromForm } from "./actions";
-import {
-  HIGH_RISK_NOTE,
-  STANDARD_RISK_NOTE,
-  TYPE_GROUPS,
-  TYPE_INFO,
-  type TypeGroup,
-} from "./item-types";
 import type { NewDraftState, ScopeOption } from "./types";
 
 /** With more scopes than this, the chips get a search box. */
@@ -124,6 +125,7 @@ export const NewDraftForm = ({ scopes, mine }: { scopes: ScopeOption[]; mine: st
         >
           <fieldset className="grid gap-2">
             <legend className="pb-2 text-sm font-semibold text-fg">Scope</legend>
+            <Help id="scope" />
             {scopes.length > SCOPE_SEARCH_FROM ? (
               <input
                 type="search"
@@ -206,6 +208,7 @@ export const NewDraftForm = ({ scopes, mine }: { scopes: ScopeOption[]; mine: st
                 ? NAME_PROBLEM_MESSAGES[problem]
                 : "The item's full name. Lowercase letters, digits and hyphens."}
             </p>
+            <Help id="name" />
             {scope && name && mine.includes(itemName) ? (
               <p className="text-xs text-fg">
                 <span className="mr-2 font-mono font-semibold">NOTE:</span>You already have a draft
@@ -221,6 +224,7 @@ export const NewDraftForm = ({ scopes, mine }: { scopes: ScopeOption[]; mine: st
           aside={<span className="font-mono text-xs text-muted">{ITEM_TYPES.length} types</span>}
         >
           <div className="grid gap-3">
+            <Help id="type" />
             <div className="relative">
               <Search
                 size={16}

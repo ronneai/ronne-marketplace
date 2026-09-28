@@ -55,6 +55,7 @@ describe("the item page", () => {
     expect(html).not.toContain("You&#x27;re looking at");
     // Anyone signed in may propose a change (017).
     expect(html).toContain("Propose a change");
+    expect(html).toContain("What happens when I propose a change?");
   });
 
   it("shows another version by URL, with a banner saying whether it's yanked", async () => {

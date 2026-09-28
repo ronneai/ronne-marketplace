@@ -3,6 +3,7 @@
 import { GitPullRequest } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { proposeChangeAction } from "./actions";
 
@@ -36,6 +37,7 @@ export const ProposeButton = ({ item, version }: { item: string; version: string
           {error}
         </p>
       ) : null}
+      <Help id="propose" className="max-w-xs" />
     </div>
   );
 };

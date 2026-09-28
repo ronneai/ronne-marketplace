@@ -5,6 +5,7 @@ import { Rocket } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { Help } from "@/components/help/Help";
 import { Button, buttonClasses } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
@@ -152,6 +153,7 @@ export const PublishDialog = ({
                 <fieldset className="grid gap-2">
                   <legend className="pb-1 text-sm font-semibold text-fg">Change</legend>
                   {suggested ? <BumpSuggestion suggested={suggested} /> : null}
+                  <Help id="bump" />
                   {(["patch", "minor", "major"] as const).map((b) => (
                     <label key={b} className={radio}>
                       <input
@@ -184,6 +186,7 @@ export const PublishDialog = ({
                 <p className="text-xs text-muted">
                   Installing without a version uses latest. Pre-releases go to next by default.
                 </p>
+                <Help id="tag" />
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="release-notes">Release notes (optional)</Label>

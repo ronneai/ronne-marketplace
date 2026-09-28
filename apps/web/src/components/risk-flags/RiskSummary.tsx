@@ -1,6 +1,7 @@
 import type { RiskFlag } from "@ronneai/core";
 import { ShieldAlert } from "lucide-react";
 import Link from "next/link";
+import { Help } from "@/components/help/Help";
 import { CodeText } from "@/components/validation/IssueList";
 import { fileAnchor, lineAnchor } from "./anchors";
 
@@ -59,6 +60,7 @@ export const RiskSummary = ({
       <p className="text-xs text-muted">
         These are worked out from the files; the author can't set or hide them.
       </p>
+      <Help id="risk" />
     </section>
   );
 };

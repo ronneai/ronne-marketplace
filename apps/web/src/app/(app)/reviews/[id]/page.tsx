@@ -2,6 +2,7 @@ import { History } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AllFiles, FileChanges } from "@/components/files/FileViews";
+import { Help } from "@/components/help/Help";
 import { RiskSummary } from "@/components/risk-flags/RiskSummary";
 import { ProposalBadges } from "@/components/submissions/ProposalBadges";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
@@ -114,6 +115,7 @@ const Review = async ({
           ) : null}
         </div>
       </header>
+      {decisions.length > 0 ? <Help id="decisions" /> : null}
       {review.mine && !review.can.override && submission.status === "submitted" ? (
         <p className="text-sm text-muted">
           This is your own submission: another moderator or root reviews it.

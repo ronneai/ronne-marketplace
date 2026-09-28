@@ -34,6 +34,7 @@ test("a moderator reviews a hook, the author publishes it, and another item depe
   await author.getByRole("button", { name: "Submit for review" }).click();
   const submit = author.getByRole("dialog", { name: "Submit for review" });
   await expect(submit.getByText("All checks passed.")).toBeVisible();
+  await expect(submit.getByText("What happens next?")).toBeVisible();
   await submit.getByRole("button", { name: "Submit for review" }).click();
   await expect(author.getByText(/Submitted for review on/)).toBeVisible();
 
@@ -95,6 +96,8 @@ test("a moderator reviews a hook, the author publishes it, and another item depe
     name: new RegExp(`Publish @${E2E_SCOPE}/fmt-hook`),
   });
   await expect(publish.getByText(/1\.0\.0 as latest/)).toBeVisible();
+  await publish.getByText("What's a tag?").click();
+  await expect(publish.getByText(/A name that points to a version/)).toBeVisible();
   await publish.getByRole("button", { name: "Publish 1.0.0" }).click();
   await expect(
     publish.getByText(`Published @${E2E_SCOPE}/fmt-hook 1.0.0 as latest.`),

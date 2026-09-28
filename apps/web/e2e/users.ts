@@ -18,6 +18,7 @@ export const E2E_USERS = {
   releaser: "releaser@e2e.test",
   browser: "browser@e2e.test",
   proposer: "proposer@e2e.test",
+  reader: "reader@e2e.test",
 } as const;
 
 /** The display names, which the header shows (not the email). */
@@ -35,6 +36,7 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   releaser: "Rae Releaser",
   browser: "Bea Browser",
   proposer: "Pat Proposer",
+  reader: "Rea Reader",
 };
 
 /** Seeded with the moderator role; everyone else is a user. */

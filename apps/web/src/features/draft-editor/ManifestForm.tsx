@@ -3,6 +3,7 @@
 import { type ItemType, mayHaveDependencies } from "@ronneai/core";
 import { Plus, X } from "lucide-react";
 import { useMemo, useState } from "react";
+import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { inputClasses, Label } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
@@ -394,6 +395,7 @@ export const ManifestForm = ({
             The name and type come from the draft. Change the name in Settings; the type is fixed.
           </p>
         )}
+        <Help id="manifest" />
       </div>
 
       <div className="grid gap-1.5">

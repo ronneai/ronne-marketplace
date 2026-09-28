@@ -52,6 +52,8 @@ describe("the Versions page", () => {
     versions.itemPage.mockResolvedValue(pageData({ canManage: true }));
     const html = await render();
     expect(html).toContain(">Yank<");
+    expect(html).toContain("Deprecate or yank?");
+    expect(html).toContain("What&#x27;s a tag?");
     expect(html).toContain(">Unyank<");
     expect(html).toContain(">Deprecate<");
     expect(html).toContain(">Undeprecate<");
