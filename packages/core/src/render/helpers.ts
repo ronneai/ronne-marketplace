@@ -20,7 +20,7 @@ export const sectionBegin = (item: string) => `<!-- rmk:begin ${item} -->`;
 export const sectionEnd = (item: string) => `<!-- rmk:end ${item} -->`;
 
 /** `text` without its trailing newlines; a loop rather than a regex, which CodeQL flags as slow. */
-const trimTrailingNewlines = (text: string): string => {
+export const trimTrailingNewlines = (text: string): string => {
   let end = text.length;
   while (end > 0 && text[end - 1] === "\n") end -= 1;
   return text.slice(0, end);

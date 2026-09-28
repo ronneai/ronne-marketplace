@@ -17,6 +17,7 @@ export {
   type ToolTable,
   targetsFor,
   toolName,
+  trimTrailingNewlines,
 } from "./helpers.js";
 export { RENDERERS, rendererById } from "./registry.js";
 export type {

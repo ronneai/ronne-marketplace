@@ -1,6 +1,13 @@
 import { type ItemType, isItemType } from "../../item-types.js";
 import type { PackageFile } from "../../package-file.js";
-import { disabledWarning, envRef, managedMarker, targetsFor, toolName } from "../helpers.js";
+import {
+  disabledWarning,
+  envRef,
+  managedMarker,
+  targetsFor,
+  toolName,
+  trimTrailingNewlines,
+} from "../helpers.js";
 import type {
   Change,
   ChangeFile,
@@ -51,7 +58,7 @@ const markdown = (
       : `${key}: ${typeof value === "boolean" ? String(value) : yamlValue(value)}`,
   );
   const head = lines.length ? `---\n${lines.join("\n")}\n---\n` : "";
-  return `${head}${managedMarker(item.name, item.version, "html")}\n\n${body.replace(/\n+$/, "")}\n`;
+  return `${head}${managedMarker(item.name, item.version, "html")}\n\n${trimTrailingNewlines(body)}\n`;
 };
 
 const skillFiles = (item: RenderInput, entry: string): ChangeFile[] =>
