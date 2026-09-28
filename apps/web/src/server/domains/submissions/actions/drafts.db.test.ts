@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { ITEM_TYPES } from "@ronneai/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { createRoot } from "../../identity/actions/root-account";
@@ -19,7 +20,7 @@ import {
   StaleFilesError,
   SubmissionNotFoundError,
 } from "../exceptions/errors";
-import { fileBytes } from "../models/submission";
+import { fileBytes, validateDraft } from "../models/submission";
 import { kyselySubmissionRepository } from "../repositories/kysely-submission-repository";
 import * as service from "../services/drafts";
 import {
@@ -61,6 +62,9 @@ afterEach(() => t.cleanup());
 const newAgent = () =>
   createDraft(asUser, { scope: "platform", name: "reviewer", type: "agent" }, app);
 
+const manifestOf = (draft: { files: { path: string; content: string; updatedAt: Date }[] }) =>
+  draft.files.find((file) => file.path === "ronne.yaml");
+
 const text = (path: string, content: string, loadedAt: Date | null = null) => ({
   path,
   encoding: "utf8" as const,
@@ -82,6 +86,24 @@ describe("createDraft", () => {
     const manifest = loaded.files.find((file) => file.path === "ronne.yaml");
     expect(manifest?.content).toContain('name: "@platform/reviewer"');
     expect(manifest?.content).toContain("type: agent");
+  });
+
+  it("creates a draft of each type, with its template's files and flags", async () => {
+    for (const type of ITEM_TYPES) {
+      const draft = await createDraft(asUser, { scope: "team", name: type, type }, app);
+      const stored = await getDraft(asUser, draft.id, app);
+      expect(stored.files, type).toEqual(draft.files);
+      const issues = validateDraft(stored, stored.files);
+      expect(
+        issues.some((issue) => issue.path === "/description"),
+        type,
+      ).toBe(true);
+    }
+    const hook = (await listMySubmissions(asUser, app)).find((s) => s.type === "hook");
+    const script = (await getDraft(asUser, hook?.id ?? "", app)).files.find(
+      (f) => f.path === "hook.sh",
+    );
+    expect(script?.executable).toBe(true);
   });
 
   it("refuses a bad name, an unknown type or scope, and anyone signed out", async () => {
@@ -133,6 +155,7 @@ describe("privacy", () => {
     }
     await expect(getDraft(asUser, "not-an-id", app)).rejects.toThrow(SubmissionNotFoundError);
     expect((await getDraft(asUser, draft.id, app)).files.map((f) => f.path)).toEqual([
+      "prompt.md",
       "ronne.yaml",
     ]);
   });
@@ -147,7 +170,7 @@ describe("saveDraftFiles", () => {
       draft.id,
       {
         writes: [
-          text("prompt.md", "You review code."),
+          text("notes.md", "Review notes."),
           { ...text("bin/run.sh", "#!/bin/sh\necho hi\n"), executable: true },
           {
             path: "logo.png",
@@ -164,6 +187,7 @@ describe("saveDraftFiles", () => {
     expect(saved.draft.files.map((f) => f.path)).toEqual([
       "bin/run.sh",
       "logo.png",
+      "notes.md",
       "prompt.md",
       "ronne.yaml",
     ]);
@@ -174,24 +198,24 @@ describe("saveDraftFiles", () => {
       true,
     );
     expect(loaded.files.find((f) => f.path === "bin/run.sh")?.executable).toBe(true);
-    // The template's placeholder description is flagged, and so is the prompt the manifest lacks.
-    expect(saved.issues.map((i) => i.code)).toContain("schema");
+    // The template's empty description is flagged.
+    expect(saved.issues).toMatchObject([{ code: "schema", path: "/description" }]);
 
-    const prompt = loaded.files.find((f) => f.path === "prompt.md");
+    const notes = loaded.files.find((f) => f.path === "notes.md");
     await saveDraftFiles(
       asUser,
       draft.id,
-      { writes: [], deletes: [{ path: "prompt.md", loadedAt: prompt?.updatedAt ?? null }] },
+      { writes: [], deletes: [{ path: "notes.md", loadedAt: notes?.updatedAt ?? null }] },
       app,
     );
     expect((await getDraft(asUser, draft.id, app)).files.map((f) => f.path)).not.toContain(
-      "prompt.md",
+      "notes.md",
     );
   });
 
   it("flags a name or type in ronne.yaml that doesn't match the draft", async () => {
     const draft = await newAgent();
-    const manifest = draft.files[0];
+    const manifest = manifestOf(draft);
     const { issues } = await saveDraftFiles(
       asUser,
       draft.id,
@@ -240,6 +264,7 @@ describe("saveDraftFiles", () => {
       }),
     ).rejects.toThrow(FileTooLargeError);
     expect((await getDraft(asUser, draft.id, app)).files.map((f) => f.path)).toEqual([
+      "prompt.md",
       "ronne.yaml",
     ]);
   });
@@ -275,12 +300,12 @@ describe("saveDraftFiles", () => {
       writes: [],
       deletes: [{ path: "b.md", loadedAt: b?.updatedAt ?? null }],
     });
-    expect(saved.draft.files.map((f) => f.path)).toEqual(["a.md", "ronne.yaml"]);
+    expect(saved.draft.files.map((f) => f.path)).toEqual(["a.md", "prompt.md", "ronne.yaml"]);
   });
 
   it("warns before overwriting a file that changed since it was loaded, and overwrites when asked", async () => {
     const draft = await newAgent();
-    const loadedAt = draft.files[0]?.updatedAt ?? null;
+    const loadedAt = manifestOf(draft)?.updatedAt ?? null;
     const later = { now: () => new Date(Date.now() + 1000) };
     const user = await getCurrentUser(asUser, app);
     const repo = kyselySubmissionRepository(t.db, t.dialect);
@@ -315,7 +340,7 @@ describe("renameDraft", () => {
           text(
             "ronne.yaml",
             '# Our reviewer.\nname: "@platform/reviewer" # the item\ntype: agent\n',
-            draft.files[0]?.updatedAt,
+            manifestOf(draft)?.updatedAt,
           ),
         ],
         deletes: [],
@@ -324,7 +349,7 @@ describe("renameDraft", () => {
     );
     const renamed = await renameDraft(asUser, draft.id, { scope: "@team", name: "Critic" }, app);
     expect(renamed).toMatchObject({ scope: { name: "team" }, name: "critic", type: "agent" });
-    const manifest = (await getDraft(asUser, draft.id, app)).files[0]?.content;
+    const manifest = manifestOf(await getDraft(asUser, draft.id, app))?.content;
     expect(manifest).toBe('# Our reviewer.\nname: "@team/critic" # the item\ntype: agent\n');
   });
 

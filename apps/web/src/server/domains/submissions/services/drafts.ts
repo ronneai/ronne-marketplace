@@ -45,6 +45,10 @@ import type { SubmissionRepository } from "../repositories/submission-repository
 export type DraftDeps = { repo: SubmissionRepository; now?: () => Date; limits?: PackageLimits };
 export type DraftActor = { user: CurrentUser | null };
 
+/** By code unit, as the repository returns them. */
+const sortByPath = <T extends { path: string }>(files: T[]): T[] =>
+  files.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+
 const now = (deps: DraftDeps) => (deps.now ?? (() => new Date()))();
 const limitsOf = (deps: DraftDeps) => deps.limits ?? DEFAULT_LIMITS;
 
@@ -101,14 +105,16 @@ export const createDraft = async (
       status: "draft",
       createdAt: at,
     });
-    const files: DraftFile[] = draftTemplate(type, itemNameOf({ scope, name })).map((file) => ({
-      path: file.path,
-      encoding: "utf8",
-      content: file.content,
-      size: byteSize({ encoding: "utf8", content: file.content }),
-      executable: file.executable ?? false,
-      updatedAt: at,
-    }));
+    const files: DraftFile[] = sortByPath(draftTemplate(type, itemNameOf({ scope, name }))).map(
+      (file) => ({
+        path: file.path,
+        encoding: "utf8",
+        content: file.content,
+        size: byteSize({ encoding: "utf8", content: file.content }),
+        executable: file.executable ?? false,
+        updatedAt: at,
+      }),
+    );
     for (const file of files) await repo.writeFile(id, file);
     return {
       id,

@@ -1,0 +1,45 @@
+import { ITEM_TYPES } from "@ronneai/core";
+import { describe, expect, it } from "vitest";
+import { validateDraft } from "./submission";
+import { draftTemplate } from "./templates";
+
+const files = (type: (typeof ITEM_TYPES)[number]) =>
+  draftTemplate(type, "@platform/starter").map((file) => ({
+    path: file.path,
+    encoding: "utf8" as const,
+    content: file.content,
+    executable: file.executable ?? false,
+  }));
+
+const draft = (type: (typeof ITEM_TYPES)[number]) => ({
+  scope: { name: "platform" },
+  name: "starter",
+  type,
+});
+
+describe("draftTemplate", () => {
+  it.each(ITEM_TYPES)("%s passes 011's checks except for the empty description", (type) => {
+    const issues = validateDraft(draft(type), files(type));
+    expect(issues.length).toBeGreaterThan(0);
+    for (const issue of issues)
+      expect(
+        issue.path === "/description" ||
+          issue.message === "SKILL.md's frontmatter needs a description.",
+        `${type}: ${issue.message}`,
+      ).toBe(true);
+  });
+
+  it.each(ITEM_TYPES)("%s passes completely once the description is written", (type) => {
+    const written = files(type).map((file) => ({
+      ...file,
+      content: file.content.replace('description: ""', "description: A starter."),
+    }));
+    expect(validateDraft(draft(type), written)).toEqual([]);
+  });
+
+  it("marks scripts executable, and names the skill after the item", () => {
+    expect(files("hook").find((f) => f.path === "hook.sh")?.executable).toBe(true);
+    expect(files("statusline").find((f) => f.path === "statusline.sh")?.executable).toBe(true);
+    expect(files("skill").find((f) => f.path === "SKILL.md")?.content).toContain("name: starter\n");
+  });
+});

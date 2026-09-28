@@ -18,7 +18,7 @@ the same change that completes it.
   *Done when:* database tests cover each operation, privacy (other users and root get "not found"),
   the limits, and the conflict check on stale saves.
 
-- [ ] **3. Templates.** A starter `ronne.yaml` and files for each of the 11 types.
+- [x] **3. Templates.** A starter `ronne.yaml` and files for each of the 11 types.
   *Done when:* each template passes 011's checks except for the placeholder description.
 
 - [ ] **4. `.zip` import.** Server-side unzip with `fflate`, merge or replace, top-folder
@@ -63,5 +63,17 @@ the same change that completes it.
     `updatedAt` with the `loadedAt` the editor sends; `overwrite` skips it.
   - Renaming rewrites `name` in `ronne.yaml` through the `yaml` document API, so comments and
     quoting stay. `yaml` 2.9.1 is now a direct dependency of `apps/web` too (checked in 011).
-  - `createDraft` uses a placeholder template (`ronne.yaml` only); task 3 fills in the 11 types.
   - Database tests pass on SQLite, PostgreSQL 15, MySQL 8.4 and MariaDB 10.11.
+- **Task 3 (2026-09-27): templates.**
+  - `models/templates.ts` has a starter for each of the 11 types: `ronne.yaml` plus the files it
+    names (`SKILL.md` with matching frontmatter, `prompt.md`, `rule.md`, `command.md`, `style.md`,
+    and executable `hook.sh` and `statusline.sh`). The MCP server, permission policy, LSP server and
+    bundle need no other file.
+  - The description is `""` on purpose: it's the one error each template has (plus `SKILL.md`'s
+    matching description), so the editor's first problem asks the author to write it. The
+    acceptance test "change the description in the form, see a validation error disappear" relies
+    on it.
+  - Short YAML comments explain each field and its choices; they survive form edits (task 7), so
+    they're a first piece of the inline help planned for 033.
+  - Tests: every template fails only on the description, passes completely once it's written, and
+    creates a draft of each type on all four databases.
