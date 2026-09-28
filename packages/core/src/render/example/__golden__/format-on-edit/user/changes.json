@@ -1,0 +1,10 @@
+[
+  {
+    "kind": "json-array-item",
+    "path": "example-home/settings.json",
+    "key": [
+      "hooks",
+      "tool.after"
+    ]
+  }
+]

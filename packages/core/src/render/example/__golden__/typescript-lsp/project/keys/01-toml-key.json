@@ -1,0 +1,24 @@
+{
+  "command": "typescript-language-server",
+  "args": [
+    "--stdio"
+  ],
+  "languages": [
+    {
+      "id": "typescript",
+      "extensions": [
+        ".ts",
+        ".tsx"
+      ]
+    },
+    {
+      "id": "javascript",
+      "extensions": [
+        ".js",
+        ".jsx",
+        ".mjs",
+        ".cjs"
+      ]
+    }
+  ]
+}

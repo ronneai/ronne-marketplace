@@ -1,0 +1,7 @@
+{
+  "transport": "http",
+  "url": "https://api.githubcopilot.com/mcp/",
+  "env": {
+    "GITHUB_TOKEN": "${GITHUB_TOKEN}"
+  }
+}

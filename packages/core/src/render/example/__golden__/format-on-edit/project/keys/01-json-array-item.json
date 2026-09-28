@@ -1,0 +1,5 @@
+{
+  "item": "@examples/format-on-edit",
+  "matcher": "edit",
+  "command": "npx --no-install biome format --write $RMK_FILE_PATHS"
+}

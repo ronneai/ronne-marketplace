@@ -1,0 +1,26 @@
+[
+  {
+    "kind": "json-array-item",
+    "path": ".example/settings.json",
+    "key": [
+      "permissions",
+      "deny"
+    ]
+  },
+  {
+    "kind": "json-array-item",
+    "path": ".example/settings.json",
+    "key": [
+      "permissions",
+      "ask"
+    ]
+  },
+  {
+    "kind": "json-array-item",
+    "path": ".example/settings.json",
+    "key": [
+      "permissions",
+      "ask"
+    ]
+  }
+]
