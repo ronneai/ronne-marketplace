@@ -22,7 +22,7 @@ the same change that completes it.
   literals, limits, semver ranges and dependency presence.
   *Done when:* a test per rule and per secret pattern passes, and every example package passes.
 
-- [ ] **4. Packer and unpacker.** The ustar writer and reader, `packItem` and `unpackItem`.
+- [x] **4. Packer and unpacker.** The ustar writer and reader, `packItem` and `unpackItem`.
   *Done when:* packing is byte-identical across runs, a round trip returns the same files, and
   hostile archives (built in the tests) are refused.
 
@@ -89,4 +89,30 @@ the same change that completes it.
     `semver.validRange` (so `latest` fails); an item can't depend on itself.
   - **Tests:** every example package passes (read from its folder), with a test per rule and per
     secret format, the ordinary values that mustn't match, and the limits with small custom values.
+- **Task 4 (2026-09-27): packer and unpacker** (`src/pack/`, exported as `@ronneai/core/pack`).
+  - **`tar.ts`** is a ustar writer and reader for regular files only:
+    - fields are octal with NUL, mtime, uid and gid are 0, and the checksum is checked on read;
+    - paths over 100 bytes are split into ustar's 155-byte prefix at a `/`;
+    - the reader refuses links, devices and extended headers.
+  - **`packItem(files, { version })`** is async (the SHA-256 comes from Web Crypto).
+    - It reads `ronne.yaml` from the files and sets `version` with the `yaml` document API, so the
+      author's comments and key order survive; `\r\n` becomes `\n`.
+    - It sorts `package/…` entries by path, leaves out `.ronne/`, and uses mode 0644 (0755 when
+      executable).
+    - It compresses with `gzipSync(level 9, mtime 0)`, and refuses over 5 MB packed.
+    - **Spec change:** it takes the files and a version, not the parsed manifest.
+  - **`unpackItem(tgz, limits)`** decompresses with fflate's streaming `Gunzip` and stops as soon as
+    the output passes the limit. It checks every entry (inside `package/`, a safe path, no
+    duplicates, the file and size limits), and needs a `ronne.yaml`. It returns `executable` from
+    the mode.
+  - **Tests:**
+    - packing is byte-identical across runs, and in any file order;
+    - the SHA-256 matches Node's `createHash`;
+    - the gzip header has no time and no name;
+    - comments survive, and the version is set;
+    - long paths use the prefix;
+    - a round trip gives back the same files;
+    - hand-made hostile archives are refused: traversal, outside `package/`, duplicates, no
+      manifest, not gzip, a symlink with a valid checksum, and each limit;
+    - a 50 MB gzip bomb of zeros (about 50 KB compressed) is stopped while decompressing.
 

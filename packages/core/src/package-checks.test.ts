@@ -165,7 +165,9 @@ describe("secrets typed into an MCP server", () => {
 
   it("allows variable references and ordinary values", () => {
     for (const value of [
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: an environment variable reference, on purpose.
       "Bearer ${GITHUB_TOKEN}",
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: an environment variable reference, on purpose.
       "${API_KEY}",
       "-y",
       "@modelcontextprotocol/server-github",

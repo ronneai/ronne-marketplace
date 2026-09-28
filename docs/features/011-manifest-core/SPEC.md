@@ -83,13 +83,14 @@ with the YAML line of the offending node.
   the item's type may have dependencies of any kind at all (manifest spec §3). Whether the target
   types are allowed needs the registry, so that's 013.
 
-**`packItem(manifest, files, { version })`:**
+**`packItem(files, { version })`** (async; it reads `ronne.yaml` from the files, so the author's comments and key order survive):
 - Writes `ronne.yaml` with `version` filled in, then every file, under a `package/` folder (as npm does).
 - **Deterministic:** entries sorted by path, mtime 0, uid and gid 0, mode `0644` (or `0755` when
   `executable`), a gzip header with no name or time. The same content always gives the same bytes
   and the same sha256, which 015 relies on for immutability, and which makes tests exact.
 - Uses a small ustar writer in `packages/core` (a few dozen lines) and `fflate` for gzip.
-- Returns `{ tgz, sha256, size }`, and fails with `package_too_large` over 5 MB.
+- Returns `{ tgz, sha256, size }`, and fails with `package_too_large` over 5 MB. The SHA-256 comes
+  from Web Crypto, so it works in Node and in browsers alike.
 
 **`unpackItem(tgz, limits?)`:** the inverse, for `rmk` and for tests. It refuses symlinks, hard
 links, devices, paths outside `package/`, and anything over the limits, before writing anything.
