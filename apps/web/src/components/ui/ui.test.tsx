@@ -34,9 +34,10 @@ describe("Button", () => {
     expect(out).toContain('aria-busy="true"');
   });
 
-  it("has secondary and ghost variants", () => {
+  it("has secondary, ghost and destructive variants", () => {
     expect(html(<Button variant="secondary">x</Button>)).toContain("bg-surface");
     expect(html(<Button variant="ghost">x</Button>)).toContain("text-muted");
+    expect(html(<Button variant="destructive">Delete</Button>)).toContain("bg-error text-on-error");
   });
 });
 
@@ -55,6 +56,19 @@ describe("TextField", () => {
   it("has no error markup without an error", () => {
     expect(html(<TextField id="name" label="Name" />)).not.toContain("ERR:");
   });
+
+  it("shows an error in red and a warning in amber, and an error wins over a warning", () => {
+    const error = html(<TextField id="n" label="Name" error="Required" />);
+    expect(error).toContain("aria-invalid:border-error");
+    expect(error).toMatch(/text-error-text[^>]*>.*ERR:/);
+    const warning = html(<TextField id="n" label="Item" warning="Risky" />);
+    expect(warning).toContain('data-warning=""');
+    expect(warning).toContain('aria-describedby="n-warning"');
+    expect(warning).toMatch(/text-warning-text[^>]*>.*WARN:/);
+    const both = html(<TextField id="n" label="Item" error="Required" warning="Risky" />);
+    expect(both).not.toContain("WARN:");
+    expect(both).not.toContain('data-warning=""');
+  });
 });
 
 describe("Checkbox and PasswordInput", () => {
@@ -70,14 +84,23 @@ describe("Checkbox and PasswordInput", () => {
 });
 
 describe("Badge, Notice, Panel, PageHeader", () => {
-  it("renders badges in mono, accent or muted", () => {
-    expect(html(<Badge tone="accent">root</Badge>)).toMatch(/font-mono.*bg-accent/);
+  it("renders badges in mono: accent, muted, warning or error", () => {
+    expect(html(<Badge tone="accent">root</Badge>)).toMatch(/font-mono.*bg-accent-strong/);
     expect(html(<Badge>user</Badge>)).toContain("bg-tint");
+    expect(html(<Badge tone="warning">risk</Badge>)).toContain(
+      "bg-warning-subtle text-warning-text",
+    );
+    expect(html(<Badge tone="error">rejected</Badge>)).toContain("bg-error-subtle text-error-text");
   });
 
-  it("prefixes notices instead of colouring them, and uses alert only for errors", () => {
-    expect(html(<Notice kind="error" title="Nope" />)).toMatch(/role="alert".*ERR:/);
-    expect(html(<Notice kind="warn" title="Careful" />)).toMatch(/role="status".*WARN:/);
+  it("prefixes notices, colours warnings amber and errors red, and uses alert only for errors", () => {
+    const error = html(<Notice kind="error" title="Nope" />);
+    expect(error).toMatch(/role="alert".*ERR:/);
+    expect(error).toContain("border-l-error bg-error-subtle");
+    const warn = html(<Notice kind="warn" title="Careful" />);
+    expect(warn).toMatch(/role="status".*WARN:/);
+    expect(warn).toContain("border-l-warning bg-warning-subtle");
+    expect(html(<Notice kind="info" title="Done" />)).toContain("border-strong bg-surface");
   });
 
   it("renders a flat panel and a page header", () => {

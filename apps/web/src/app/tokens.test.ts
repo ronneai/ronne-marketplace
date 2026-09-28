@@ -41,6 +41,19 @@ const PAIRS: [string, string, number][] = [
   // Code previews (the New item page's starter files).
   ["code-fg", "code-bg", 4.5],
   ["code-muted", "code-bg", 4.5],
+  // Errors and warnings (owner's style-guide mock, 2026-09-28): text on every background it
+  // appears on, labels on a red fill, and fills and borders at 3:1 for non-text.
+  ["error-text", "canvas", 4.5],
+  ["error-text", "surface", 4.5],
+  ["error-text", "error-subtle", 4.5],
+  ["on-error", "error", 4.5],
+  ["error", "canvas", 3],
+  ["error", "surface", 3],
+  ["warning-text", "canvas", 4.5],
+  ["warning-text", "surface", 4.5],
+  ["warning-text", "warning-subtle", 4.5],
+  ["warning", "canvas", 3],
+  ["warning", "surface", 3],
 ];
 
 describe.each([

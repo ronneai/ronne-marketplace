@@ -17,7 +17,8 @@ const Message = ({ text }: { text: string }) =>
 /**
  * Validation issues from `@ronneai/core` (feature 011): errors first, then warnings, each with the
  * file and line it's about. The submission editor (012) shows these under the editor and links each
- * one to its place. Plain text with mono `ERR:` / `WARN:` prefixes, as design system 032 wants.
+ * one to its place. Mono `ERR:` / `WARN:` prefixes in red and amber (design system 032); the
+ * message stays in the text colour, so a long list is still easy to read.
  */
 export const IssueList = ({
   issues,
@@ -41,7 +42,9 @@ export const IssueList = ({
         const where = `${issue.file ?? "ronne.yaml"}${issue.line ? `:${issue.line}` : ""}`;
         const content = (
           <>
-            <span className="mr-2 font-mono text-xs font-semibold text-fg">
+            <span
+              className={`mr-2 font-mono text-xs font-semibold ${issue.severity === "error" ? "text-error-text" : "text-warning-text"}`}
+            >
               {issue.severity === "error" ? "ERR:" : "WARN:"}
             </span>
             <span className="text-fg">

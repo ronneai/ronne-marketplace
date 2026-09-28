@@ -26,6 +26,13 @@
   --color-code-bg: var(--code-bg);
   --color-code-fg: var(--code-fg);
   --color-code-muted: var(--code-muted);
+  --color-error: var(--error);
+  --color-on-error: var(--on-error);
+  --color-error-text: var(--error-text);
+  --color-error-subtle: var(--error-subtle);
+  --color-warning: var(--warning);
+  --color-warning-text: var(--warning-text);
+  --color-warning-subtle: var(--warning-subtle);
 
   --radius-control: 6px;
   --radius-panel: 8px;

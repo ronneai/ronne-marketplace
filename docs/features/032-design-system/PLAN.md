@@ -134,4 +134,20 @@
   surface, 4.81:1 on Paper), and `on-accent` is now white. `accent` keeps the brand Teal for marks,
   borders, selections and the dark focus ring. `tokens.test.ts` checks white on `accent-strong`;
   the styleguide shows the new swatch.
+- **Errors and warnings in colour (2026-09-28, owner's style-guide mock
+  `stitch_ronne.ai/style-guide`).** The rule "no red, yellow or green" is replaced by "red and
+  amber only for errors and warnings". New tokens `error`, `on-error`, `error-text`,
+  `error-subtle`, `warning`, `warning-text` and `warning-subtle`, with the mock's values, except
+  light `error-text` `#C22F31` (the mock's `#D9383A` is 4.34:1 on Paper and 4.19:1 on its own
+  subtle fill) and light `warning-text` `#9A6414` (as the mock's text; its `#C07D18` is 3.39:1).
+  `tokens.test.ts` checks every text pair at 4.5:1 and the fills at 3:1 in both themes.
+  - Components: `inputClasses` (`aria-invalid` red border, `data-warning` amber border),
+    `FieldError` in red, a new `FieldWarning` and `TextField warning`, `Notice` warn and error
+    frames (subtle fill, 3 px bar, coloured title), `Badge` `warning` and `error` tones, a
+    `destructive` `Button`, and coloured prefixes in `IssueList`. A shared `StatusBadge` gives
+    each submission status its tone (changes requested amber, rejected red).
+  - Uses: high-risk type badges and the review note are `warning`; delete file, delete draft,
+    withdraw and leave without saving are `destructive`. The styleguide shows all of it.
+  - The lint check on raw red, yellow and green classes stays: colour still only comes from tokens.
+  - Left out from the mock: its `SYS.SPEC`/`SPEC_REV` labels and the green dot, which aren't ours.
 

@@ -90,7 +90,9 @@ export const DeleteFileDialog = ({
         <Button variant="ghost" onClick={onClose}>
           Cancel
         </Button>
-        <Button onClick={onDone}>Delete</Button>
+        <Button variant="destructive" onClick={onDone}>
+          Delete
+        </Button>
       </div>
     </div>
   </Dialog>
@@ -267,6 +269,7 @@ export const DraftSettingsDialog = ({
                   Keep it
                 </Button>
                 <Button
+                  variant="destructive"
                   loading={pending}
                   onClick={() =>
                     start(async () => {

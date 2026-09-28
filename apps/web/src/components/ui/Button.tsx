@@ -1,12 +1,14 @@
 import type { ButtonHTMLAttributes } from "react";
 import { cn } from "./cn";
 
-export type ButtonVariant = "primary" | "secondary" | "ghost";
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "destructive";
 
 const VARIANTS: Record<ButtonVariant, string> = {
   primary: "bg-accent-strong text-on-accent hover:opacity-90",
   secondary: "border border-strong bg-surface text-fg hover:border-accent",
   ghost: "text-muted hover:bg-tint hover:text-fg",
+  /** For actions that lose work or can't be undone: delete, withdraw, leave without saving. */
+  destructive: "bg-error text-on-error hover:opacity-90",
 };
 
 /** Flat, 36px, 6px radius; a 2px focus ring (Navy in light, Teal in dark). Design system 032. */

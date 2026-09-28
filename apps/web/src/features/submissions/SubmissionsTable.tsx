@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { Badge } from "@/components/ui/Badge";
 import { buttonClasses } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Panel";
@@ -107,9 +108,7 @@ export const SubmissionsTable = ({ submissions }: { submissions: Submission[] })
               <Badge>{submission.type}</Badge>
             </Td>
             <Td>
-              <Badge tone={submission.status === "draft" ? "muted" : "accent"}>
-                {statusLabel(submission.status)}
-              </Badge>
+              <StatusBadge status={submission.status} />
             </Td>
             <Td className="whitespace-nowrap font-mono text-xs text-muted">
               <time dateTime={submission.updatedAt.toISOString()}>

@@ -7,6 +7,10 @@
  * labels (5.08:1); white on the brand Teal would be 2.54:1 (owner decision, 2026-09-28, replacing
  * Ink labels on Teal from 2026-09-27). Brand Teal stays for marks, borders and the dark focus ring.
  * The light focus ring is Navy: a teal ring on white is 2.4:1.
+ *
+ * Errors and warnings (owner's style-guide mock, 2026-09-28): red and amber, only for those. Each
+ * has a fill and border colour, a text colour (darker in the light theme, where the fill colour is
+ * under 4.5:1 on Paper), and a subtle background for notices and badges.
  * tokens.test.ts checks every documented pair against WCAG AA from these values.
  */
 
@@ -29,6 +33,13 @@
   --code-bg: #0b1220;
   --code-fg: #f7f9fa;
   --code-muted: #bfe9e1;
+  --error: #d9383a;
+  --on-error: #ffffff;
+  --error-text: #c22f31;
+  --error-subtle: #fef2f2;
+  --warning: #c07d18;
+  --warning-text: #9a6414;
+  --warning-subtle: #fffbeb;
 }
 
 [data-theme="dark"] {
@@ -48,4 +59,11 @@
   --code-bg: #0b1220;
   --code-fg: #f7f9fa;
   --code-muted: #bfe9e1;
+  --error: #ff6b6b;
+  --on-error: #0b1220;
+  --error-text: #ff6b6b;
+  --error-subtle: #361317;
+  --warning: #f6ad55;
+  --warning-text: #f6ad55;
+  --warning-subtle: #33220f;
 }

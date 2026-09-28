@@ -4,9 +4,20 @@ import { cn } from "./cn";
 export type NoticeKind = "info" | "warn" | "error";
 const PREFIX: Record<NoticeKind, string> = { info: "INFO:", warn: "WARN:", error: "ERR:" };
 
+const FRAME: Record<NoticeKind, string> = {
+  info: "border border-strong bg-surface",
+  warn: "border border-warning/40 border-l-[3px] border-l-warning bg-warning-subtle",
+  error: "border border-error/40 border-l-[3px] border-l-error bg-error-subtle",
+};
+const TITLE: Record<NoticeKind, string> = {
+  info: "text-fg",
+  warn: "text-warning-text",
+  error: "text-error-text",
+};
+
 /**
- * A notice framed by a strong hairline, with a mono prefix. No red, yellow or green: urgency is in
- * the wording and placement (design system 032).
+ * A notice with a mono prefix (design system 032). Information is framed by a strong hairline;
+ * warnings and errors are amber and red, on a subtle fill with a bar on the left.
  */
 export const Notice = ({
   kind = "info",
@@ -22,13 +33,15 @@ export const Notice = ({
   return (
     <div
       role={kind === "error" ? "alert" : "status"}
-      className={cn("rounded-panel border border-strong bg-surface p-4 text-sm text-fg", className)}
+      className={cn("rounded-panel p-4 text-sm text-fg", FRAME[kind], className)}
     >
-      <p className="font-semibold">
+      <p className={cn("font-semibold", TITLE[kind])}>
         <span className="mr-2 font-mono text-xs font-semibold">{PREFIX[kind]}</span>
         {title}
       </p>
-      {children ? <div className="mt-1 text-muted">{children}</div> : null}
+      {children ? (
+        <div className={cn("mt-1", kind === "info" ? "text-muted" : "text-fg")}>{children}</div>
+      ) : null}
     </div>
   );
 };
