@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. The resolver.** `resolve()`, `RegistryReader`, `Resolution` and `ResolveError` in
+- [x] **1. The resolver.** `resolve()`, `RegistryReader`, `Resolution` and `ResolveError` in
   `packages/core`, with an in-memory registry for tests.
   *Done when:* unit tests cover tags, highest-fitting versions, locks (fitting, yanked, no longer
   fitting), deprecation warnings, conflicts with who asked, cycles, missing items, pre-releases and
@@ -20,3 +20,13 @@ the same change that completes it.
   *Done when:* the docs render tests cover the new text.
 
 ## Notes
+- **Built on the recommendations (2026-09-28).** The owner started 020 without answering the
+  spec's open questions: no backtracking, and `rmk` resolves with `POST /resolve`.
+- **Task 1 (2026-09-28): the resolver.** `packages/core/src/resolve.ts`. Tags become versions
+  first. A work queue, always taking the first name in order, settles each item on its locked
+  version while it fits every range (even yanked), else the highest non-yanked one that does;
+  choosing a new version withdraws the ranges its previous version put on other items, so items
+  nothing needs any more drop out. A conflict (several ranges, each met by some version, none by
+  all) names every range and who asked; a single range nobody meets is `no_matching_version`.
+  Cycles are checked once it settles. Each item is read from the registry once. 13 unit tests,
+  including one that pins down the no-backtracking behaviour.

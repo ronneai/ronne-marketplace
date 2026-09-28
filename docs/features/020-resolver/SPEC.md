@@ -114,6 +114,9 @@ isn't a map of names to ranges or tags, or has more than 200 entries.
 
 ## Open questions
 
+The owner started 020 (2026-09-28) without answering these, so it's built on the recommendations;
+either can still change.
+
 1. **No backtracking** (recommended: the highest version that fits every range, re-examined as
    ranges arrive; a rare dead end is reported as a conflict the author can fix by widening a
    range), or a backtracking search that tries older versions to escape a conflict.

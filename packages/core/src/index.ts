@@ -21,6 +21,19 @@ export {
 } from "./names.js";
 export { checkPackage, pathProblem, secretLike } from "./package-checks.js";
 export type { PackageFile } from "./package-file.js";
+export {
+  REQUESTED,
+  type RegistryItem,
+  type RegistryReader,
+  type RegistryVersion,
+  type Resolution,
+  type ResolvedItem,
+  ResolveError,
+  type ResolveErrorCode,
+  type ResolveRequest,
+  type ResolveWarning,
+  resolve,
+} from "./resolve.js";
 export { type RiskFlag, type RiskFlagKind, riskFlags } from "./risk-flags.js";
 export { manifestSchema } from "./schema/index.js";
 export {
