@@ -2,7 +2,8 @@
   "extends": "@ronneai/config/tsconfig/library.json",
   "compilerOptions": {
     "rootDir": "src",
-    "outDir": "dist"
+    "outDir": "dist",
+    "resolveJsonModule": true
   },
   "include": ["src"]
 }

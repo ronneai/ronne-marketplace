@@ -7,7 +7,7 @@ One sample item for every type in the [manifest spec](../../docs/spec/manifest.m
 - reference material for authors.
 
 All of them use the `@examples` scope. Every `ronne.yaml` here must pass
-[`ronne.schema.json`](../../docs/spec/ronne.schema.json).
+[`ronne.schema.json`](../../packages/core/src/schema/ronne.schema.json).
 
 | Item | Type | Shows |
 |---|---|---|

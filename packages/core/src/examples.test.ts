@@ -4,9 +4,10 @@ import addFormats from "ajv-formats";
 import { describe, expect, it } from "vitest";
 import { parse } from "yaml";
 
-// Until the schema moves into this package (feature 011), it lives with the spec.
 const repoRoot = new URL("../../../", import.meta.url);
-const schema = JSON.parse(readFileSync(new URL("docs/spec/ronne.schema.json", repoRoot), "utf8"));
+const schema = JSON.parse(
+  readFileSync(new URL("./schema/ronne.schema.json", import.meta.url), "utf8"),
+);
 const examplesDir = new URL("examples/items/", repoRoot);
 
 // strictTypes is off because the schema's if/then blocks use `required` without repeating `type`,

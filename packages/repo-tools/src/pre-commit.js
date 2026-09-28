@@ -2,7 +2,7 @@
 
 /**
  * Files that can't change behaviour: Markdown and plain text, wherever they are. Other files under
- * docs/ aren't included: docs/spec/ronne.schema.json is read by the tests.
+ * docs/ aren't included: files under it that aren't Markdown or text (such as JSON) can be read by tests.
  */
 export const isDocumentation = (path) => {
   return /\.(md|mdx|txt)$/i.test(path);

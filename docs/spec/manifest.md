@@ -1,6 +1,6 @@
 # Manifest spec — `ronne.yaml`
 
-> Status: draft · Part of the [MVP](../MVP/MVP.md) (§3) · Machine-readable form: [`ronne.schema.json`](./ronne.schema.json)
+> Status: draft · Part of the [MVP](../MVP/MVP.md) (§3) · Machine-readable form: [`ronne.schema.json`](../../packages/core/src/schema/ronne.schema.json) (in `packages/core`, published as `@ronneai/core/schema.json`)
 > · Samples of every type: [`examples/items/`](../../examples/items/)
 
 Every item version is a folder with a `ronne.yaml` at its root plus the files it lists. The manifest
@@ -207,7 +207,7 @@ Used in `agent.tools`, `hook.matcher.tool` and `permission-policy` rules. Render
 
 ## 6. Validation layers
 
-1. **Schema** (`ronne.schema.json`): shape, names, enums, required blocks per type.
+1. **Schema** (`packages/core/src/schema/ronne.schema.json`): shape, names, enums, required blocks per type.
 2. **Package checks** (`packages/core`): every referenced file exists; `SKILL.md` frontmatter
    matches; no path escapes the folder; the upload limits in MVP §12 hold.
 3. **Registry checks** (server): the scope exists; dependencies exist, have a type this item may depend on (§3), and each range matches at

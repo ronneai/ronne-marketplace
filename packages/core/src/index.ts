@@ -19,6 +19,9 @@ export const isItemType = (value: string): value is ItemType => {
   return (ITEM_TYPES as readonly string[]).includes(value);
 };
 
+export { fieldName, hasErrors, type ManifestIssue } from "./issues.js";
+export { DEFAULT_LIMITS, formatBytes, type PackageLimits } from "./limits.js";
+export { MANIFEST_MAX_BYTES, type Manifest, parseManifest } from "./manifest.js";
 export {
   isValidName,
   NAME_MAX_LENGTH,
@@ -29,3 +32,6 @@ export {
   parseItemName,
   RESERVED_SCOPES,
 } from "./names.js";
+export { checkPackage, pathProblem, secretLike } from "./package-checks.js";
+export type { PackageFile } from "./package-file.js";
+export { manifestSchema } from "./schema/index.js";

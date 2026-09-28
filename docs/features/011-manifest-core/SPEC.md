@@ -1,6 +1,6 @@
 # 011 — Manifest core
 
-> Milestone: M2 · Depends on: 001 · Design: [MVP §3.2](../../MVP/MVP.md#32-canonical-manifest--ronneyaml), [§4.2](../../MVP/MVP.md#42-release), [§12](../../MVP/MVP.md#12-security-considerations) · Contracts: [`docs/spec/manifest.md`](../../spec/manifest.md), [`ronne.schema.json`](../../spec/ronne.schema.json)
+> Milestone: M2 · Depends on: 001 · Design: [MVP §3.2](../../MVP/MVP.md#32-canonical-manifest--ronneyaml), [§4.2](../../MVP/MVP.md#42-release), [§12](../../MVP/MVP.md#12-security-considerations) · Contracts: [`docs/spec/manifest.md`](../../spec/manifest.md), [`ronne.schema.json`](../../../packages/core/src/schema/ronne.schema.json)
 
 ## Goal
 
@@ -11,7 +11,7 @@ the server checks them again on submit, and the release packs them with it.
 ## Scope
 
 **In** (all in `packages/core`):
-- **The schema moves here.** `packages/core/schema/ronne.schema.json` becomes the only copy, and
+- **The schema moves here.** `packages/core/src/schema/ronne.schema.json` becomes the only copy (published as `@ronneai/core/schema.json`), and
   `docs/spec/manifest.md` links to it. The examples test reads it from there.
 - **Parsing and schema validation** of `ronne.yaml`, with readable issues.
 - **Package checks** (manifest spec §6, layer 2): referenced files, `SKILL.md` frontmatter, paths,
@@ -69,22 +69,28 @@ with the YAML line of the offending node.
   without its scope.
 - **Paths:** relative, `/` only, no `..`, no leading `/`, no backslash, no control characters,
   at most 255 characters, and unique once case is ignored. `.ronne/` is never packed.
-- **Secret-looking literals:** in `mcp-server.env`, `headers` and `args`, a literal that matches a
-  known token pattern is an error: `ghp_`, `github_pat_`, `sk-`, `xox[bp]-`, `AKIA…`, `rmk_`, JWTs,
-  and high-entropy strings over 32 characters. Values must reference variables (`${NAME}`).
+- **Secret-looking literals** in `mcp-server`'s `args`, `headers` and `url`:
+  - **A known token format is an error:** GitHub (`ghp_`, `github_pat_`…), OpenAI and Anthropic
+    (`sk-`), Slack (`xox…-`), AWS (`AKIA…`), Ronne (`rmk_`) and JWTs.
+  - **A long random-looking string is only a warning:** 32+ characters of high entropy, with a
+    lower bar for hex. It can't be told apart from, say, a git commit hash, and an error would block
+    submitting (013).
+
+  Values should reference variables (`${NAME}`), which are ignored by the check.
 - **Limits** (MVP §12): 500 files, 1 MB a file, 20 MB unpacked, and 5 MB packed (checked by the
   packer). The defaults are exported; root will be able to change them in instance settings later.
 - **Dependencies:** each range is a valid semver range (`semver`), dist-tags aren't allowed, and
   the item's type may have dependencies of any kind at all (manifest spec §3). Whether the target
   types are allowed needs the registry, so that's 013.
 
-**`packItem(manifest, files, { version })`:**
+**`packItem(files, { version })`** (async; it reads `ronne.yaml` from the files, so the author's comments and key order survive):
 - Writes `ronne.yaml` with `version` filled in, then every file, under a `package/` folder (as npm does).
 - **Deterministic:** entries sorted by path, mtime 0, uid and gid 0, mode `0644` (or `0755` when
   `executable`), a gzip header with no name or time. The same content always gives the same bytes
   and the same sha256, which 015 relies on for immutability, and which makes tests exact.
 - Uses a small ustar writer in `packages/core` (a few dozen lines) and `fflate` for gzip.
-- Returns `{ tgz, sha256, size }`, and fails with `package_too_large` over 5 MB.
+- Returns `{ tgz, sha256, size }`, and fails with `package_too_large` over 5 MB. The SHA-256 comes
+  from Web Crypto, so it works in Node and in browsers alike.
 
 **`unpackItem(tgz, limits?)`:** the inverse, for `rmk` and for tests. It refuses symlinks, hard
 links, devices, paths outside `package/`, and anything over the limits, before writing anything.
@@ -106,13 +112,13 @@ links, devices, paths outside `package/`, and anything over the limits, before w
 
 ## Acceptance criteria
 
-- [ ] The schema lives only in `packages/core`, and every example in `examples/items/` passes it.
-- [ ] `parseManifest` reports schema errors as one sentence each with a JSON pointer and a line number, and refuses aliases and duplicate keys.
-- [ ] `checkPackage` catches each rule above, with a test per rule, including every secret pattern.
-- [ ] `packItem` is deterministic: packing the same files twice gives identical bytes and sha256, and entry order, times and modes are as specified.
-- [ ] `unpackItem(packItem(x))` gives back `x`, and hostile archives (traversal, symlinks, too big) are refused.
-- [ ] The validation entry point builds and runs in the browser (a render test in the web app imports it).
-- [ ] New and moved dependencies pass the checklist, `pnpm licenses:check` and `pnpm audit`.
+- [x] The schema lives only in `packages/core`, and every example in `examples/items/` passes it.
+- [x] `parseManifest` reports schema errors as one sentence each with a JSON pointer and a line number, and refuses aliases and duplicate keys.
+- [x] `checkPackage` catches each rule above, with a test per rule, including every secret pattern.
+- [x] `packItem` is deterministic: packing the same files twice gives identical bytes and sha256, and entry order, times and modes are as specified.
+- [x] `unpackItem(packItem(x))` gives back `x`, and hostile archives (traversal, symlinks, too big) are refused.
+- [x] The validation entry point builds and runs in the browser (a render test in the web app imports it).
+- [x] New and moved dependencies pass the checklist, `pnpm licenses:check` and `pnpm audit`.
 
 ## Open questions
 
