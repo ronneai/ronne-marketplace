@@ -83,6 +83,7 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
             itemName={itemNameOf(draft)}
             published={review.published}
             versionsHref={versionsPath(draft)}
+            suggested={review.proposal?.suggested ?? null}
           />
         </section>
       ) : null}

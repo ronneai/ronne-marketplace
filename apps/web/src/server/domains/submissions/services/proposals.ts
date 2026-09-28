@@ -276,3 +276,16 @@ export const resolveConflict = async (
     return conflicts;
   });
 };
+
+/** The files of the version a proposal is based on, or null for a new item. */
+export const baseFilesOf = async (
+  deps: Pick<ProposalDeps, "storage" | "limits">,
+  registry: RegistryLookup,
+  submission: Pick<Submission, "proposal" | "scope" | "name">,
+): Promise<BaseFile[] | null> => {
+  if (!submission.proposal) return null;
+  const { baseVersionId, baseVersion, itemId } = submission.proposal;
+  const version = (await registry.publishedVersions(itemId)).find((v) => v.id === baseVersionId);
+  if (!version) throw new ProposalBaseNotFoundError(itemNameOf(submission), baseVersion);
+  return versionFiles(deps, itemNameOf(submission), version);
+};

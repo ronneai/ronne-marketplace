@@ -9,10 +9,19 @@ import { Button, buttonClasses } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
+import type { SuggestedBump } from "@/server/domains/submissions/models/bump";
 import { publishAction } from "./actions";
 import type { PublishResult } from "./types";
 
 const radio = "flex items-start gap-2 text-sm text-fg";
+
+/** Why the dialog picked a bump for a change proposal (017); the publisher can pick another. */
+export const BumpSuggestion = ({ suggested }: { suggested: SuggestedBump }) => (
+  <p className="text-xs text-muted">
+    Suggested: <span className="font-semibold text-fg">{suggested.bump}</span>, because{" "}
+    {suggested.reasons.join("; ")}.
+  </p>
+);
 const radioInput = "mt-0.5 size-4 accent-(--accent)";
 
 /**
@@ -25,9 +34,12 @@ export const PublishDialog = ({
   itemName,
   published,
   versionsHref,
+  suggested = null,
 }: {
   id: string;
   itemName: string;
+  /** For a change proposal (017): the bump its changes suggest, and why. */
+  suggested?: SuggestedBump | null;
   /** The item's Versions page, offered once the release is out. */
   versionsHref: string;
   /** The item's versions so far; empty for a first release. */
@@ -37,7 +49,7 @@ export const PublishDialog = ({
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<"stable" | "prerelease">("stable");
   const [preId, setPreId] = useState("beta");
-  const [bump, setBump] = useState<Bump>("minor");
+  const [bump, setBump] = useState<Bump>(suggested?.bump ?? "minor");
   const [tag, setTag] = useState("");
   const [notes, setNotes] = useState("");
   const [result, setResult] = useState<PublishResult | null>(null);
@@ -139,6 +151,7 @@ export const PublishDialog = ({
               {first ? null : (
                 <fieldset className="grid gap-2">
                   <legend className="pb-1 text-sm font-semibold text-fg">Change</legend>
+                  {suggested ? <BumpSuggestion suggested={suggested} /> : null}
                   {(["patch", "minor", "major"] as const).map((b) => (
                     <label key={b} className={radio}>
                       <input

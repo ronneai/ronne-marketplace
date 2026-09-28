@@ -23,6 +23,7 @@ const { AllFiles, FileChanges } = await import("./FileViews");
 const { Conversation } = await import("./Conversation");
 const { DecisionBar } = await import("./DecisionBar");
 const { default: ReviewPage } = await import("@/app/(app)/reviews/[id]/page");
+const { BumpSuggestion } = await import("./PublishDialog");
 
 const text = (path: string, content: string) => ({
   path,
@@ -168,6 +169,7 @@ const view = (overrides: Partial<ReviewView> = {}): ReviewView => ({
   events: [event({ revision: 2, kind: "resubmit" })],
   published: [],
   can: { decide: true, override: false, comment: true, publish: false },
+  proposal: null,
   ...overrides,
 });
 
@@ -239,5 +241,76 @@ describe("the review page", () => {
       role: "user",
     });
     await expect(render()).rejects.toThrow("NEXT_NOT_FOUND");
+  });
+});
+
+describe("a change proposal's review", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    session.getCurrentUser.mockResolvedValue({
+      id: "m",
+      email: "m@x.test",
+      name: "M",
+      role: "moderator",
+    });
+  });
+  const proposal = (overrides: Partial<NonNullable<ReviewView["proposal"]>> = {}) => ({
+    baseVersion: "1.0.0",
+    stale: null,
+    changes: diffRevisions([text("README.md", "Old.")], [text("README.md", "New.")]),
+    manifest: [{ field: "description", before: "Old.", after: "New." }],
+    suggested: { bump: "patch" as const, reasons: ["nothing is added or removed"] },
+    ...overrides,
+  });
+  const renderWith = async (
+    p: ReturnType<typeof proposal> | null,
+    search: Record<string, string> = {},
+  ) => {
+    const data = view();
+    reviews.getReview.mockResolvedValue({ ...data, proposal: p });
+    return renderToStaticMarkup(
+      await ReviewPage({
+        params: Promise.resolve({ id: "01J0000000000000000000000A" }),
+        searchParams: Promise.resolve(search),
+      }),
+    );
+  };
+
+  it("opens on the changes to the base version: manifest fields side by side, then the files", async () => {
+    const html = await renderWith(proposal());
+    expect(html).toMatch(/aria-current="page"[^>]*>Changes to 1\.0\.0/);
+    expect(html).toContain('href="/reviews/01J0000000000000000000000A?view=changes"');
+    expect(html).toContain('href="/reviews/01J0000000000000000000000A?view=all"');
+    expect(html).toContain("ronne.yaml fields");
+    expect(html).toMatch(/>description<\/td><td[^>]*>Old\.<\/td><td[^>]*>New\.</);
+    expect(html).toContain('aria-label="README.md"');
+  });
+
+  it("still shows the changes since the last revision on request", async () => {
+    const html = await renderWith(proposal(), { view: "changes" });
+    expect(html).toMatch(/aria-current="page"[^>]*>Changes since revision 1/);
+    expect(html).toMatch(/href="\/reviews\/01J0000000000000000000000A"[^>]*>Changes to/);
+  });
+
+  it("says when nothing changed, or when the base can't be read", async () => {
+    expect(await renderWith(proposal({ changes: [], manifest: [] }))).toContain(
+      "No changes to 1.0.0.",
+    );
+    expect(await renderWith(proposal({ changes: null }))).toContain("couldn&#x27;t be read");
+  });
+
+  it("has no base view for a new item", async () => {
+    const html = await renderWith(null, { view: "base" });
+    expect(html).not.toContain("Changes to");
+  });
+
+  it("explains the suggested bump", () => {
+    const html = renderToStaticMarkup(
+      <BumpSuggestion
+        suggested={{ bump: "minor", reasons: ["`a.md` is new", "keyword `x` is new"] }}
+      />,
+    );
+    expect(html).toMatch(/Suggested: <span[^>]*>minor<\/span>, because/);
+    expect(html).toContain("`a.md` is new; keyword `x` is new.");
   });
 });

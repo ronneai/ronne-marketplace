@@ -10,6 +10,7 @@ import { IssueList } from "@/components/validation/IssueList";
 import { Conversation } from "@/features/reviews/Conversation";
 import { DecisionBar } from "@/features/reviews/DecisionBar";
 import { AllFiles, FileChanges } from "@/features/reviews/FileViews";
+import { ProposalChanges } from "@/features/reviews/ProposalChanges";
 import { PublishDialog } from "@/features/reviews/PublishDialog";
 import { versionsPath } from "@/features/versions/links";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
@@ -49,10 +50,17 @@ const Review = async ({
     if (error instanceof SubmissionNotFoundError) notFound();
     throw error;
   }
-  const { submission, current, previous } = review;
-  // Changes since the last revision by default from revision 2 on; revision 1 is all files.
-  const view = (await searchParams).view === "all" || previous === null ? "all" : "changes";
+  const { submission, current, previous, proposal } = review;
+  // A proposal (017) opens on its changes to its base version. Otherwise, changes since the last
+  // revision by default from revision 2 on; revision 1 is all files.
+  const defaultView = proposal ? "base" : previous === null ? "all" : "changes";
+  const asked = (await searchParams).view;
+  const view =
+    asked === "all" || (asked === "changes" && previous !== null) || (asked === "base" && proposal)
+      ? asked
+      : defaultView;
   const base = `/reviews/${submission.id}`;
+  const viewHref = (v: string) => (v === defaultView ? base : `${base}?view=${v}`);
   const decisions: ReviewDecision[] = [
     ...(review.can.decide ? (["approve", "request_changes", "reject"] as const) : []),
     ...(review.can.override ? (["override"] as const) : []),
@@ -98,6 +106,7 @@ const Review = async ({
               itemName={itemNameOf(submission)}
               published={review.published}
               versionsHref={versionsPath(submission)}
+              suggested={proposal?.suggested ?? null}
             />
           ) : null}
         </div>
@@ -116,10 +125,19 @@ const Review = async ({
             <h2 id="files" className="text-lg font-semibold text-fg">
               Files
             </h2>
-            <nav aria-label="Files view" className="flex gap-1">
+            <nav aria-label="Files view" className="flex flex-wrap gap-1">
+              {proposal ? (
+                <Link
+                  href={viewHref("base")}
+                  aria-current={view === "base" ? "page" : undefined}
+                  className={viewTab}
+                >
+                  Changes to {proposal.baseVersion}
+                </Link>
+              ) : null}
               {previous !== null ? (
                 <Link
-                  href={base}
+                  href={viewHref("changes")}
                   aria-current={view === "changes" ? "page" : undefined}
                   className={viewTab}
                 >
@@ -127,7 +145,7 @@ const Review = async ({
                 </Link>
               ) : null}
               <Link
-                href={`${base}?view=all`}
+                href={viewHref("all")}
                 aria-current={view === "all" ? "page" : undefined}
                 className={viewTab}
               >
@@ -135,7 +153,9 @@ const Review = async ({
               </Link>
             </nav>
           </div>
-          {view === "changes" ? (
+          {view === "base" && proposal ? (
+            <ProposalChanges proposal={proposal} />
+          ) : view === "changes" ? (
             <FileChanges changes={review.changes} since={previous} />
           ) : (
             <AllFiles files={current.files} />

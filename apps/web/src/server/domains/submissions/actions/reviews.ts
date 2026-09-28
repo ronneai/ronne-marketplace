@@ -1,3 +1,4 @@
+import { instanceStorage, type StorageAdapter } from "../../../storage";
 import { getCurrentUser } from "../../identity/actions/session";
 import { clientIp } from "../../identity/models/client-ip";
 import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-instance";
@@ -8,7 +9,7 @@ import * as service from "../services/reviews";
 import type { SubmissionActor, SubmissionDeps } from "../services/submissions";
 
 export type { QueuePage, QueueRow, QueueTab } from "../services/queue";
-export type { ReviewView } from "../services/review-page";
+export type { ProposalView, ReviewView } from "../services/review-page";
 export type { ReviewDecision } from "../services/reviews";
 
 /** Entry points for review decisions and comments (feature 014). Thin: the services check. */
@@ -44,5 +45,10 @@ export const listQueue = async (
 export const countNeedsReview = async (headers: Headers, app: AppAuth = getAppAuth()) =>
   queue.countNeedsReview(deps(app), await actor(headers, app));
 
-export const getReview = async (headers: Headers, id: string, app: AppAuth = getAppAuth()) =>
-  page.getReview(deps(app), await actor(headers, app), id);
+/** `storage` holds a change proposal's base version (017); the instance's by default. */
+export const getReview = async (
+  headers: Headers,
+  id: string,
+  app: AppAuth = getAppAuth(),
+  storage: StorageAdapter = instanceStorage,
+) => page.getReview({ ...deps(app), storage }, await actor(headers, app), id);

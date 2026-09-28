@@ -22,7 +22,7 @@ the same change that completes it.
   *Done when:* unit tests cover every row of the merge rules, and database tests cover a rebase with
   and without conflicts.
 
-- [ ] **4. Diff to the base and the suggested bump.** The review page's diff against the base, and the
+- [x] **4. Diff to the base and the suggested bump.** The review page's diff against the base, and the
   bump suggestion in the publish dialog.
   *Done when:* unit tests cover each bump rule, and render tests cover both diffs.
 
@@ -63,3 +63,13 @@ the same change that completes it.
   it onto 1.1.0") and audits `submission.rebased` with the conflicts. Conflicts are stored in
   `submissions.rebase_conflicts` (migration `0010`); each is a `rebase_conflict` error in the
   submit checks until `resolveConflict` clears it.
+- **Task 4 (2026-09-28): diff to the base and the suggested bump.** `models/bump.ts`:
+  `suggestBump` (the spec's rules, with the reasons it gives) and `manifestChanges` (top-level
+  fields that differ, as YAML). `getReview` adds a `proposal` view: the base version, whether it's
+  stale, the latest revision against the base's files (014's `diffRevisions`), the manifest fields
+  and the suggestion; if the base's artifact can't be read, the diff is left out and the page says
+  so. The review page opens a proposal on **Changes to 1.0.0**, next to Changes since revision N and
+  All files; the publish dialog starts on the suggested bump and says why (`BumpSuggestion`). A
+  proposal identical to its base is refused at submit (`no_changes`, "No changes to 1.0.0"). Submit,
+  check and the review page read artifacts through `instanceStorage`, which loads the configuration
+  only when a proposal needs it.

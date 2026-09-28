@@ -26,7 +26,7 @@ import { createDraft, getDraft, renameDraft, saveDraftFiles } from "./drafts";
 import { proposeChange, rebaseProposal, resolveConflict } from "./proposals";
 import { publishSubmission } from "./publish";
 import { decide, getReview } from "./reviews";
-import { submitDraft } from "./submissions";
+import { checkSubmission, submitDraft } from "./submissions";
 
 let t: TestDb;
 let app: AppAuth;
@@ -94,7 +94,7 @@ const release = async (
   id: string,
   bump: "patch" | "minor" | "major" = "patch",
 ) => {
-  await submitDraft(headers, id, app);
+  await submitDraft(headers, id, app, storage);
   await decide(asModerator, id, { decision: "approve" }, app);
   return publishSubmission(headers, id, { choice: { kind: "stable", bump } }, app, storage);
 };
@@ -161,7 +161,8 @@ describe("proposeChange", () => {
       storage,
     );
     await write(asOther, first.id, { "README.md": "# Secure coding\n\nVersion two.\n" });
-    await submitDraft(asAuthor, second.id, app);
+    await write(asAuthor, second.id, { "NOTES.md": "Another change.\n" });
+    await submitDraft(asAuthor, second.id, app, storage);
     expect((await release(asOther, first.id, "minor")).version).toBe("1.1.0");
 
     const fromOld = await proposeChange(
@@ -232,7 +233,7 @@ describe("stale proposals", () => {
       [asAuthor, third.id, "Three."],
     ] as const) {
       await write(headers, id, { "README.md": readme });
-      await submitDraft(headers, id, app);
+      await submitDraft(headers, id, app, storage);
     }
     // The third is approved before anything else is released.
     await decide(asModerator, third.id, { decision: "approve" }, app);
@@ -265,7 +266,7 @@ describe("stale proposals", () => {
       { decision: "request_changes", message: "Rebase, please." },
       app,
     );
-    expect((await getReview(asModerator, second.id, app)).submission.status).toBe(
+    expect((await getReview(asModerator, second.id, app, storage)).submission.status).toBe(
       "changes_requested",
     );
   });
@@ -275,7 +276,7 @@ describe("stale proposals", () => {
     const item = { item: "@team/secure-coding", version: "1.0.0" };
     const beta = await proposeChange(asOther, item, app, storage);
     await write(asOther, beta.id, { "README.md": "Beta." });
-    await submitDraft(asOther, beta.id, app);
+    await submitDraft(asOther, beta.id, app, storage);
     await decide(asModerator, beta.id, { decision: "approve" }, app);
     await publishSubmission(
       asOther,
@@ -286,7 +287,7 @@ describe("stale proposals", () => {
     );
     const waiting = await proposeChange(asAuthor, item, app, storage);
     await write(asAuthor, waiting.id, { "README.md": "Stable." });
-    await submitDraft(asAuthor, waiting.id, app);
+    await submitDraft(asAuthor, waiting.id, app, storage);
     await expect(
       decide(asModerator, waiting.id, { decision: "approve" }, app),
     ).resolves.toMatchObject({
@@ -335,7 +336,7 @@ describe("rebase", () => {
     await releasedSkill();
     const mine = await proposeChange(asOther, item, app, storage);
     await write(asOther, mine.id, { "README.md": "# Mine\n" });
-    await submitDraft(asOther, mine.id, app);
+    await submitDraft(asOther, mine.id, app, storage);
     await releaseNewer({ "README.md": "# Theirs\n" });
 
     const rebased = await rebaseProposal(asOther, mine.id, app, storage);
@@ -344,12 +345,14 @@ describe("rebase", () => {
     const events = await kyselySubmissionRepository(t.db, t.dialect).events(mine.id);
     expect(events.at(-1)).toMatchObject({ kind: "rebase", body: "1.1.0" });
 
-    await expect(submitDraft(asOther, mine.id, app)).rejects.toThrow(SubmissionInvalidError);
+    await expect(submitDraft(asOther, mine.id, app, storage)).rejects.toThrow(
+      SubmissionInvalidError,
+    );
     await expect(resolveConflict(asOther, mine.id, "SKILL.md", app, storage)).rejects.toThrow(
       ConflictNotFoundError,
     );
     expect(await resolveConflict(asOther, mine.id, "README.md", app, storage)).toEqual([]);
-    await expect(submitDraft(asOther, mine.id, app)).resolves.toMatchObject({
+    await expect(submitDraft(asOther, mine.id, app, storage)).resolves.toMatchObject({
       status: "submitted",
     });
     await expect(decide(asModerator, mine.id, { decision: "approve" }, app)).resolves.toMatchObject(
@@ -370,5 +373,56 @@ describe("rebase", () => {
     await expect(rebaseProposal(asOther, fresh.id, app, storage)).rejects.toThrow(
       NotAProposalError,
     );
+  });
+});
+
+describe("the review of a proposal", () => {
+  const item = { item: "@team/secure-coding", version: "1.0.0" };
+
+  it("refuses to submit a proposal that changes nothing", async () => {
+    await releasedSkill();
+    const draft = await proposeChange(asOther, item, app, storage);
+    await expect(submitDraft(asOther, draft.id, app, storage)).rejects.toThrow(
+      SubmissionInvalidError,
+    );
+    const issues = await checkSubmission(asOther, draft.id, app, storage);
+    expect(issues.map((i) => i.message)).toEqual([
+      "No changes to 1.0.0: change something before submitting.",
+    ]);
+  });
+
+  it("shows the changes to the base version, the manifest fields, stale, and the suggested bump", async () => {
+    await releasedSkill();
+    const draft = await proposeChange(asOther, item, app, storage);
+    const manifest = text(draft, "ronne.yaml");
+    await write(asOther, draft.id, {
+      "README.md": "# Secure coding\n\nVersion two.\n",
+      "docs/usage.md": "Use it.\n",
+      "ronne.yaml": manifest.replace(
+        "description: Checks code.",
+        "description: Checks code better.",
+      ),
+    });
+    await submitDraft(asOther, draft.id, app, storage);
+    const view = await getReview(asModerator, draft.id, app, storage);
+    expect(view.proposal).toMatchObject({
+      baseVersion: "1.0.0",
+      stale: null,
+      manifest: [{ field: "description", before: "Checks code.", after: "Checks code better." }],
+      suggested: { bump: "minor", reasons: ["`docs/usage.md` is new"] },
+    });
+    expect(view.proposal?.changes?.map((c) => [c.path, c.status])).toEqual([
+      ["README.md", "changed"],
+      ["docs/usage.md", "added"],
+      ["ronne.yaml", "changed"],
+    ]);
+
+    // A new item has no proposal view.
+    const fresh = await createDraft(asOther, { scope: "team", name: "fresh", type: "rule" }, app);
+    await write(asOther, fresh.id, {
+      "ronne.yaml": text(fresh, "ronne.yaml").replace('description: ""', "description: New."),
+    });
+    await submitDraft(asOther, fresh.id, app, storage);
+    expect((await getReview(asModerator, fresh.id, app, storage)).proposal).toBeNull();
   });
 });

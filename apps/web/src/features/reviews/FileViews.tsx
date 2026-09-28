@@ -13,17 +13,22 @@ const FileHeader = ({ path, children }: { path: string; children?: React.ReactNo
   </div>
 );
 
-/** What changed between two revisions, file by file (feature 014). */
+/** What changed between two revisions, or against a proposal's base (017), file by file (014). */
 export const FileChanges = ({
   changes,
   since,
+  emptyText,
 }: {
   changes: FileChange[];
   since: number | null;
+  /** What to say when nothing changed; "No changes since revision N." by default. */
+  emptyText?: string;
 }) => {
   if (changes.length === 0)
     return (
-      <p className="text-sm text-muted">No changes{since ? ` since revision ${since}` : ""}.</p>
+      <p className="text-sm text-muted">
+        {emptyText ?? `No changes${since ? ` since revision ${since}` : ""}.`}
+      </p>
     );
   return (
     <div className="grid gap-4">

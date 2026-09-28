@@ -6,6 +6,7 @@ import {
   parseManifest,
 } from "@ronneai/core";
 import { isId } from "../../../db/ids";
+import type { StorageAdapter } from "../../../storage";
 import { can, requirePermission } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
 import { SubmissionInvalidError, SubmissionNotFoundError } from "../exceptions/errors";
@@ -21,6 +22,7 @@ import {
 } from "../models/submission";
 import type { RegistryLookup } from "../repositories/registry-lookup";
 import type { SubmissionRepository } from "../repositories/submission-repository";
+import { baseFilesOf } from "./proposals";
 import { dependencyIssues, nameIssues, typeIssues } from "./registry-checks";
 
 /**
@@ -32,6 +34,8 @@ export type SubmissionDeps = {
   repo: SubmissionRepository;
   /** Published items and versions, for tests; by default the repository's own (015). */
   registry?: RegistryLookup;
+  /** Where artifacts are, to compare a change proposal with its base version (017). */
+  storage?: StorageAdapter;
   now?: () => Date;
   limits?: PackageLimits;
 };
@@ -92,6 +96,15 @@ export const allIssues = async (
   const dependencies = (manifest?.dependencies ?? {}) as Record<string, string>;
   return [
     ...issues,
+    // A proposal (017) that changes nothing has nothing to release.
+    ...(submission.proposal && deps.storage
+      ? await noChangeIssues(
+          { storage: deps.storage, limits: deps.limits },
+          registry,
+          submission,
+          files,
+        )
+      : []),
     // Files a rebase (017) left in conflict, until the author resolves them.
     ...(submission.proposal?.conflicts ?? []).map(
       (path): ManifestIssue => ({
@@ -120,6 +133,31 @@ export const allIssues = async (
       dependencies,
     })),
   ];
+};
+
+const noChangeIssues = async (
+  deps: { storage: StorageAdapter; limits?: PackageLimits },
+  registry: RegistryLookup,
+  submission: Submission,
+  files: readonly Omit<DraftFile, "updatedAt">[],
+): Promise<ManifestIssue[]> => {
+  const base = await baseFilesOf(deps, registry, submission);
+  const key = (f: Omit<DraftFile, "updatedAt">) =>
+    `${f.path}\u0000${f.encoding}\u0000${f.executable}\u0000${f.content}`;
+  const same =
+    base !== null &&
+    base.length === files.length &&
+    base.map(key).sort().join("\u0001") === files.map(key).sort().join("\u0001");
+  return same
+    ? [
+        {
+          severity: "error",
+          code: "no_changes",
+          message: `No changes to ${submission.proposal?.baseVersion}: change something before submitting.`,
+          file: MANIFEST_PATH,
+        },
+      ]
+    : [];
 };
 
 /** Submit for a draft, resubmit for one sent back for changes (014). */
