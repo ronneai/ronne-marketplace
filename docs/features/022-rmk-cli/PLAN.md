@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Foundations.** Argument parsing, the user config (mode `0600`, env overrides), the API
+- [x] **1. Foundations.** Argument parsing, the user config (mode `0600`, env overrides), the API
   client with its errors, `--json` output and exit codes; `login`, `logout`, `whoami`.
   *Done when:* unit tests cover the config file's permissions, env overrides and parsing; and tests
   against a stub server cover login by password and by token, logout offline, and API errors.
@@ -38,3 +38,17 @@ the same change that completes it.
   released.
 
 ## Notes
+- **Built on the recommendations (2026-09-28).** The owner started 022 without answering the
+  spec's open questions: a download cache keyed by sha256, and `install <item>` records `latest`.
+  Resolution goes through `POST /resolve` (020's answer).
+- **Task 1 (2026-09-28): foundations.** `packages/cli` now depends on `@ronneai/core`
+  (`workspace:^`). `io.ts` is everything outside rmk's code (env, home, cwd, fetch, prompts), so
+  tests run against `testing.ts`'s fake registry and temporary folders. `config.ts`: the user
+  config (0700 folder, 0600 file, refused when other users can read it, `RMK_TOKEN` and
+  `RMK_REGISTRY` over it). `api.ts`: the client with `ApiError` (the registry's code and message,
+  or `unreachable`), `User-Agent: rmk/<version>`, and `checkRegistryUrl` (http only for localhost
+  or `--insecure`). `output.ts`: sentences, or one JSON object with `--json`; exit codes 1, 2, 3
+  through `RmkError`. `cli.ts`: `login` (password prompt with echo off, or `--token` checked with
+  `GET /me`; the first registry becomes the default), `logout` (revokes on the server when it can,
+  removes the token either way), `whoami`. The password prompt is Node's own readline, so the CLI
+  still has no dependency beyond core.

@@ -133,6 +133,9 @@ Node's own modules (`util.parseArgs`, `readline`), so the CLI adds no dependenci
 
 ## Open questions
 
+The owner started 022 (2026-09-28) without answering these, so it's built on the recommendations;
+any can still change.
+
 1. **A download cache in the home folder** (recommended: faster reinstalls, keyed by sha256 so it
    can't serve a wrong file), or always download.
 2. **`install` with a bare name records `latest`** in `rmk.config.json` (recommended: it follows
