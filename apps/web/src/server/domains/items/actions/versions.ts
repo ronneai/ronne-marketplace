@@ -1,3 +1,4 @@
+import type { ResolveRequest } from "@ronneai/core";
 import { getStorage, type StorageAdapter } from "../../../storage";
 import { getCurrentUser } from "../../identity/actions/session";
 import { clientIp } from "../../identity/models/client-ip";
@@ -6,6 +7,7 @@ import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-insta
 import { kyselyItemRepository } from "../repositories/kysely-item-repository";
 import * as downloads from "../services/downloads";
 import * as page from "../services/item-page";
+import * as resolving from "../services/resolve";
 import * as service from "../services/versions";
 
 export type { ItemPage } from "../services/item-page";
@@ -80,3 +82,10 @@ export const downloadArtifactAs = (
   app: AppAuth = getAppAuth(),
   storage: StorageAdapter = getStorage(),
 ) => downloads.downloadArtifact({ ...deps(app), storage }, { user, ip: null }, ref, version);
+
+/** Resolves a set of items to one version each (020), as the token's user. */
+export const resolveAs = (
+  user: CurrentUser,
+  request: ResolveRequest,
+  app: AppAuth = getAppAuth(),
+) => resolving.resolveRequest(deps(app), { user, ip: null }, request);

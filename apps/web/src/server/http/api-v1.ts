@@ -2,26 +2,16 @@ import { exchangePassword, revokeCallingToken } from "../domains/identity/action
 import { IdentityError, TokenLimitError } from "../domains/identity/exceptions/errors";
 import { type AppAuth, getAppAuth } from "../domains/identity/repositories/auth-instance";
 import { errorResponse } from "./errors";
+import { readJsonObject } from "./read-json";
 import { requireToken, type TokenGuardDeps } from "./require-token";
 
 /** Token responses are never cached (spec 009). */
 const json = (body: unknown, status = 200) =>
   Response.json(body, { status, headers: { "cache-control": "no-store" } });
 
-const readJson = async (request: Request): Promise<Record<string, unknown> | null> => {
-  try {
-    const body: unknown = await request.json();
-    return body && typeof body === "object" && !Array.isArray(body)
-      ? (body as Record<string, unknown>)
-      : null;
-  } catch {
-    return null;
-  }
-};
-
 /** POST /api/v1/auth/token: `{ email, password, name? }` → a 90-day token, for `rmk login`. */
 export const postToken = async (request: Request, app: AppAuth = getAppAuth()) => {
-  const body = await readJson(request);
+  const body = await readJsonObject(request);
   if (!body)
     return errorResponse(400, "invalid_request", 'Send JSON: { "email", "password", "name"? }.');
   try {
