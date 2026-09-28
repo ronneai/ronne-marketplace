@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Migration `0007_items`.** `items`, `item_versions`, `dist_tags` and
+- [x] **1. Migration `0007_items`.** `items`, `item_versions`, `dist_tags` and
   `version_dependencies`, with their Kysely types.
   *Done when:* it migrates on SQLite and the three servers, with foreign-key and unique-index tests.
 
@@ -34,3 +34,10 @@ the same change that completes it.
   *Done when:* render and action tests pass, and the Playwright test in the acceptance criteria passes.
 
 ## Notes
+- **Built on the recommendations (2026-09-28).** The owner started 015 without answering the
+  spec's open questions: the author, moderators and root publish, and versions may have notes.
+- **Task 1 (2026-09-28): migration `0007_items`.** `items` (unique scope and name; the owner sets
+  null), `item_versions` (versions compared exactly with `exactString`, so `1.1.0-beta.1` and
+  `1.1.0-Beta.1` are two; manifest, README and file list as `longText`, since MySQL's `text` stops
+  at 64 KB), `dist_tags` (one per tag per item) and `version_dependencies`. Everything else is
+  RESTRICT: published versions are never deleted. Tested on all four databases, with a 1 MB README.

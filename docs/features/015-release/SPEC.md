@@ -104,6 +104,9 @@ version and its sha256.
 
 ## Open questions
 
+The owner started 015 (2026-09-28) without answering these, so it's built on the recommendations;
+either can still change.
+
 1. **Who may publish:** the author, moderators and root, as MVP §2 says (recommended), or moderators
    and root only.
 2. **Release notes** in the publish dialog, stored on the version (recommended; MVP §8 lists "notes"),
