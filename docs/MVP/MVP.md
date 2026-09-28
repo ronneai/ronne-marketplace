@@ -409,6 +409,7 @@ written `pnpm run setup`. Full behaviour, including a non-interactive mode for D
 | Area | Pages / features |
 |---|---|
 | Auth | Sign in (email and password only), sign out, change password, manage personal access tokens. "Forgot password" explains that a root admin resets it; there's no email in the MVP |
+| Home | Search box; recently published and most used items (by download count); the viewer's submissions in progress and, for moderators and root, the review count ([018](../features/018-catalogue/SPEC.md)). A page of its own, which later sections join |
 | Catalogue | Search and filter by type and keyword; item page with README, versions, dist-tags, dependencies and install snippet |
 | Authoring | Submission editor: manifest form + file editor (CodeMirror 6) + `.zip` import + **visual composer** |
 | Review | Queue of `submitted` items; diff view; comments; approve / request changes / reject; risk flags (§12) |
@@ -535,7 +536,7 @@ IDs are ULIDs and timestamps are UTC (§9.4).
 | `verification` *(Better Auth)* | id, identifier, value, expires_at |
 | `access_tokens` | id, user_id, name, token_hash (unique), last_used_at, expires_at, revoked_at, created_at |
 | `scopes` | id, name (unique), description, created_by (set null), created_at |
-| `items` | id, scope_id, name, type, description, owner_id, created_at — unique (scope_id, name) |
+| `items` | id, scope_id, name, type, description, owner_id, download_count (counted by the tarball endpoint, [018](../features/018-catalogue/SPEC.md)), created_at — unique (scope_id, name) |
 | `item_versions` | id, item_id, version, manifest (JSON), readme, files (JSON: paths, sizes, executable), notes, artifact_path, sha256, size, published_by, published_at, deprecated_message, yanked_at, yank_reason, submission_id. `readme` and `files` are copied at publish so pages never unpack an artifact ([015](../features/015-release/SPEC.md)) |
 | `dist_tags` | item_id, tag, version_id — PK (item_id, tag) |
 | `version_dependencies` | version_id, depends_on_item_id, range |
@@ -664,7 +665,7 @@ Design points:
 
 - **More platforms.** Tier-3 community renderers via the `PlatformRenderer` interface (§3.3).
 - **Native plugin export.** Publish approved bundles as native marketplace feeds for Claude Code, Codex, Cursor and Copilot (§3.3).
-- **Install telemetry** (opt-in), so moderators can see which items are used.
+- **Install telemetry** (opt-in), so moderators can see which items are used. The MVP only counts artifact downloads on the server, for the home page's "Most used" (018).
 
 ### 14.5 Decided out of scope for now
 
@@ -712,6 +713,7 @@ Design points:
 | Login rate limit | Ronne's own in-memory limiter on the sign-in action: 5 attempts a minute per email, and per client IP only with `TRUST_PROXY=true`; Better Auth's HTTP sign-in is not served | Better Auth's limiter skips server actions, and without a trusted proxy the client IP can be forged ([006](../features/006-web-sign-in/SPEC.md)) |
 | CLI login | `rmk login` exchanges email and password for a token (`POST /api/v1/auth/token`), and `rmk login --token` accepts one made in the web app; browser-based login waits for SSO's device flow | Matches the MVP and the mock's `--token`, without new endpoints before SSO |
 | Single root | The admin UI assigns only `user` and `moderator`, and can't modify root; root recovers through `pnpm run reset-root-password` | Keeps "one instance owner"; a transfer flow can come later |
+| Download counts | The tarball endpoint adds one to `items.download_count` per download; nothing about who downloaded is stored. The home page ranks "Most used" by it | The owner wants most used items on the home page (2026-09-28); a server-side count needs no telemetry from `rmk`, which stays opt-in and post-MVP |
 | Access tokens | `rmk_` + 43 base64url characters, SHA-256 hashed, 30/90/365 days or no expiry, at most 50 active per user, bearer only on `/api/v1` | Recognizable by secret scanning; revocable; no cookies on the API |
 | Dependencies | Permissive licenses only (MIT, ISC, BSD, Apache-2.0 …; CC-BY-4.0 for data); no copyleft or paid tools; latest stable/LTS; CI license + audit + image scans; pnpm release-age delay, build allowlist, trust policy | Ronne must be freely redistributable and must not ship known vulnerabilities |
 | Packages | `@ronneai/{marketplace,rmk,mcp,core}`; binary `rmk`; Node 24 LTS target, 22 LTS minimum; Docker amd64 + arm64 | Unscoped `rmk` is taken on npm; the owner holds `@ronneai` on npmjs.com (as on GitHub), not `@ronne` (confirmed 2026-09-27) |
