@@ -13,7 +13,7 @@ the same change that completes it.
   *Done when:* `pnpm install --frozen-lockfile`, `pnpm licenses:check` and `pnpm audit` pass, and
   the examples test reads the moved schema.
 
-- [ ] **2. Parsing and schema validation.** `parseManifest`, the safe YAML options, and Ajv errors
+- [x] **2. Parsing and schema validation.** `parseManifest`, the safe YAML options, and Ajv errors
   turned into `ManifestIssue`s with pointers and line numbers.
   *Done when:* tests cover every example, one broken example per type, duplicate keys, aliases, a
   non-mapping document, oversized input, and the wording of the common errors.
@@ -53,4 +53,23 @@ the same change that completes it.
     - Links in MVP.md, the manifest spec, `examples/items/README.md` and CLAUDE.md point there now.
   - **Entry points:** `.`, `./pack` (the `PackageFile` type for now; task 4 adds the packer) and
     `./schema.json`. Checked by importing each from the built package.
+- **Task 2 (2026-09-27): `parseManifest`** (`src/manifest.ts`), with `ManifestIssue`, `hasErrors`
+  and `fieldName` (`src/issues.ts`).
+  - **YAML** (`yaml`, core schema) with unique keys and a `LineCounter`.
+    - **Anchors and aliases** are found with a visitor and refused, and `toJS({ maxAliasCount: 0 })`
+      guards again.
+    - **Refused:** input over 64 KB before parsing, and anything but a mapping at the top.
+    - **YAML errors** keep their line numbers.
+  - **Schema errors** come from Ajv (2020-12, `allErrors`, compiled once, on first use), each turned
+    into one sentence with its JSON pointer and the line of its YAML node, or of the nearest existing
+    parent for a missing field.
+  - **Noise removed:**
+    - `if` and `allOf` wrapper errors;
+    - when `type` is missing or unknown, the 10 `if`/`then` "… is required" errors (only the type
+      error shows);
+    - a dependency key's pattern error, which repeats the `propertyNames` error that names the key.
+  - **The manifest comes back whenever it's a mapping,** even an invalid one, so package checks can
+    still run.
+  - **The skill block is optional** (its `entry` defaults to `SKILL.md`), so the per-type test breaks
+    skills with an escaping `entry` path instead of removing the block.
 
