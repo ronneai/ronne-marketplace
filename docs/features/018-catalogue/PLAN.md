@@ -86,3 +86,11 @@ the same change that completes it.
   sideways: a single-column grid sizes its column to the min-content of a long `rmk install`
   command. The new pages' grids use `grid-cols-1` (`minmax(0, 1fr)`), the search forms dropped a
   fixed basis, and the item page's tabs scroll sideways like the main nav instead of wrapping.
+- **CI fix (2026-09-28): build `@ronneai/core` before the scripts.** 0009 is the first migration to
+  import `@ronneai/core` (for `riskFlags`), and `setup`, `db:migrate` and `reset-root-password` load
+  migrations through `tsx`, which resolves the package to its build. The database CI job never built
+  it, and the README's source install runs setup before `pnpm build`, so both failed with
+  `ERR_MODULE_NOT_FOUND`; it passed locally only because the build was already there. Those three
+  scripts, `test:db` and `test:db:<database>` now run `pnpm --filter @ronneai/core build` first.
+  Checked by deleting `packages/core/dist`, then running `pnpm test:db`, `pnpm run setup --yes` and
+  `pnpm db:migrate`. The Docker image is unaffected: its scripts are compiled with the package.
