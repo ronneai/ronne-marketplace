@@ -77,7 +77,8 @@ exists, so two writers can't race; it refuses keys with `..` or absolute paths, 
 **The registry lookup** (`kyselyRegistryLookup`): `findItem` and `publishedVersions` over the new
 tables, so 013's name and dependency checks see published items.
 
-**The publish dialog** (on `/submissions/[id]` when approved, and on the review page): stable or
+**The publish dialog** (on `/submissions/[id]` when approved, as an **Approved** panel, and on the
+review page): stable or
 pre-release (with its id), the tag (with its default), optional release notes (Markdown, up to 2,000
 characters), and a summary: "Publishes @scope/name 1.0.0 as latest". On success, the page shows the
 version and its sha256.
@@ -95,13 +96,13 @@ version and its sha256.
 
 ## Acceptance criteria
 
-- [ ] `0007_items` creates the four tables, unique indexes and table-level foreign keys on all four databases.
-- [ ] Publishing packs the approved revision deterministically, stores it, and records the version, its dependencies, the dist-tag and the audit events in one transaction.
-- [ ] The version rules hold: first stable and pre-release, bumps, pre-release numbering, never reused, and pre-releases never `latest`.
-- [ ] The local `StorageAdapter` never overwrites different bytes, accepts a retried identical put, and refuses unsafe keys.
-- [ ] Only the author, moderators and root publish, and only from `approved`.
-- [ ] 013's registry checks now see published items: a draft can depend on a released item, and a published name can't be proposed again.
-- [ ] Playwright: a moderator approves a skill, the author publishes it as `1.0.0` on `latest`, and a second draft depending on `^1.0.0` submits.
+- [x] `0007_items` creates the four tables, unique indexes and table-level foreign keys on all four databases.
+- [x] Publishing packs the approved revision deterministically, stores it, and records the version, its dependencies, the dist-tag and the audit events in one transaction.
+- [x] The version rules hold: first stable and pre-release, bumps, pre-release numbering, never reused, and pre-releases never `latest`.
+- [x] The local `StorageAdapter` never overwrites different bytes, accepts a retried identical put, and refuses unsafe keys.
+- [x] Only the author, moderators and root publish, and only from `approved`.
+- [x] 013's registry checks now see published items: a draft can depend on a released item, and a published name can't be proposed again.
+- [x] Playwright: a moderator approves a skill, the author publishes it as `1.0.0` on `latest`, and a second draft depending on `^1.0.0` submits.
 
 ## Open questions
 

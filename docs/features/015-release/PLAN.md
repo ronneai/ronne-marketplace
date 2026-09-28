@@ -30,7 +30,7 @@ the same change that completes it.
   *Done when:* 013's tests still pass, and new ones cover a dependency on a released item and a
   published name.
 
-- [ ] **6. The publish dialog.** On the submission and review pages, with the summary and the result.
+- [x] **6. The publish dialog.** On the submission and review pages, with the summary and the result.
   *Done when:* render and action tests pass, and the Playwright test in the acceptance criteria passes.
 
 ## Notes
@@ -81,3 +81,14 @@ the same change that completes it.
   only for tests with a fake. Database tests on all four databases: a skill depending on a released
   MCP server submits; an unmatched range, a type the item can't depend on, and a yanked-only
   version are refused; a published name can't be proposed again.
+- **Task 6 (2026-09-28): the publish dialog.** `PublishDialog`: stable or pre-release (with its id),
+  the bump once the item has versions, the tag (its default as the placeholder), and optional
+  notes; it previews the version with the same `nextVersion` the server uses ("Publishes
+  @scope/name 1.0.0 as latest"), and shows the version and sha256 when it's done. It's on the
+  review page for moderators and root, and on the author's page as an **Approved** panel.
+  `getReview` gains `can.publish` and the item's `published` versions.
+  - **Found on the way:** revalidating the page after publishing re-rendered it as `published`,
+    which no longer holds the dialog, so the result vanished (the e2e test caught it). The action
+    doesn't revalidate; the dialog's Done refreshes the page.
+  - Playwright (`e2e/review.e2e.ts`, extended): after approval, the author publishes 1.0.0 on
+    `latest` and sees its sha256, then an agent depending on it with `^1.0.0` submits.

@@ -2,12 +2,13 @@ import { notFound } from "next/navigation";
 import { DraftEditor } from "@/features/draft-editor/DraftEditor";
 import type { EditorDraft } from "@/features/draft-editor/types";
 import { Conversation } from "@/features/reviews/Conversation";
+import { PublishDialog } from "@/features/reviews/PublishDialog";
 import { RiskSummary } from "@/features/reviews/RiskSummary";
 import { getReview } from "@/server/domains/submissions/actions/reviews";
 import { viewSubmission } from "@/server/domains/submissions/actions/submissions";
 import { SubmissionNotFoundError } from "@/server/domains/submissions/exceptions/errors";
 import { canTransition, isEditable } from "@/server/domains/submissions/models/status";
-import type { Draft } from "@/server/domains/submissions/models/submission";
+import { type Draft, itemNameOf } from "@/server/domains/submissions/models/submission";
 import { requestHeaders } from "@/server/http/request-headers";
 
 export const metadata = { title: "Draft · Ronne" };
@@ -56,6 +57,22 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
     <div className="grid gap-6">
       {/* A new version from the server (an import, a rename, a submit) starts the editor afresh. */}
       <DraftEditor key={draft.updatedAt.toISOString()} draft={toEditorDraft(draft)} />
+      {review?.can.publish ? (
+        <section
+          aria-labelledby="release"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-panel border border-hairline bg-surface p-4"
+        >
+          <div className="grid gap-1">
+            <h2 id="release" className="text-sm font-semibold text-fg">
+              Approved
+            </h2>
+            <p className="text-sm text-muted">
+              Publish it to make it installable. Versions never change once published.
+            </p>
+          </div>
+          <PublishDialog id={id} itemName={itemNameOf(draft)} published={review.published} />
+        </section>
+      ) : null}
       {review ? (
         <>
           <RiskSummary flags={review.flags} />

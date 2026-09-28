@@ -2,10 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
+import { type PublishInput, publishSubmission } from "@/server/domains/submissions/actions/publish";
 import { comment, decide, type ReviewDecision } from "@/server/domains/submissions/actions/reviews";
 import { SubmissionsError } from "@/server/domains/submissions/exceptions/errors";
 import { requestHeaders } from "@/server/http/request-headers";
-import type { ReviewActionState } from "./types";
+import type { PublishResult, ReviewActionState } from "./types";
 
 const message = (error: unknown): string => {
   if (error instanceof SubmissionsError || error instanceof IdentityError) return error.message;
@@ -47,4 +48,18 @@ export const commentFromForm = async (
   }
   refresh(id);
   return { done: true };
+};
+
+/**
+ * Releases an approved submission (feature 015); the dialog shows the version and sha256. It
+ * doesn't revalidate: that re-renders the page at once, and the page, now `published`, no longer
+ * holds the dialog, so the result would vanish. The dialog's Done refreshes the page instead.
+ */
+export const publishAction = async (id: string, input: PublishInput): Promise<PublishResult> => {
+  try {
+    const published = await publishSubmission(await requestHeaders(), id, input);
+    return { ok: true, version: published.version, tag: published.tag, sha256: published.sha256 };
+  } catch (error) {
+    return { ok: false, error: message(error) };
+  }
 };
