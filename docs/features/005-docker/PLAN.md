@@ -119,3 +119,9 @@
 - **Compose project renamed (2026-09-27): `ronne` → `ronne-marketplace`.** The owner's machine already had another compose project called `ronne` (the other product the name is reserved for), with volumes such as `ronne_postgres-data`. Our `name: ronne` would have shared them: `--profile postgres` would have mounted that database, and `down -v` would have deleted its data. Nothing was touched, because the tests used their own project names. The volumes are now `ronne-marketplace_*`.
 - **Dependabot ignores majors (2026-09-27):** its first run proposed `node` 24 → 26 (not an LTS yet), and moving the test databases off their deliberate minimum versions (`postgres` 15 → 18, `mariadb` 10.11 → 13.0, `mysql` 8.4 → 26.7). The `docker` and `docker-compose` entries now ignore semver-major updates of `node`, `postgres`, `mysql` and `mariadb`. Majors move by hand, with the policy, as for `@types/node`.
 
+- **Faster image check (2026-09-28):** `Docker image (build, run, scan)` took 7–8 minutes and gated every merge. Measured: arm64 under QEMU took ~4.7 minutes (`pnpm install` 97 s, `next build` 170 s, against 23 s and 24 s natively), the `mode=max` cache export 137 s, and the build record upload ~30 s. Now:
+  - each architecture builds natively on its own runner, in parallel (`ubuntu-latest` and `ubuntu-24.04-arm`, free for public repositories), and each one runs the health check and the Trivy scan, which only amd64 had before;
+  - the cache is exported only on pushes to `main` (a PR's cache is only visible to that PR), with a scope per architecture; PRs read `main`'s;
+  - the build summary and record upload are off;
+  - a small job keeps the name `Docker image (build, run, scan)`, which branch protection requires, and passes when both builds pass or were skipped for a docs-only PR.
+  - Not done: installing only `@ronneai/web...` in the image. `packages/core` builds with the root's TypeScript, which a filtered install leaves out.
