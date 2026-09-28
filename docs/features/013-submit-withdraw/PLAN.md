@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Status transitions.** The status list, the allowed moves (with the owner's withdraw
+- [x] **1. Status transitions.** The status list, the allowed moves (with the owner's withdraw
   decision), and the domain errors.
   *Done when:* a table test covers every allowed and refused move.
 
@@ -28,3 +28,11 @@ the same change that completes it.
   *Done when:* render and action tests pass, and the Playwright test in the acceptance criteria passes.
 
 ## Notes
+- **Task 1 (2026-09-28): status transitions.** `models/status.ts` lists MVP §4.1's seven statuses
+  and every action (`submit`, `resubmit`, `request_changes`, `approve`, `reject`, `withdraw`,
+  `publish`), with the moves in one table; `transition(from, action)` returns the new status or
+  throws `InvalidStatusTransitionError`, whose message says it in words ("A submission that's
+  withdrawn can't be withdrawn."). The 014 and 015 moves are in the table too, so the table test
+  covers all 7 × 7 pairs. `isEditable` (drafts only) and `OPEN_STATUSES` (the statuses that hold a
+  name) live beside it. 012's `DraftNotEditableError` is now the spec's `SubmissionNotEditableError`,
+  and the other errors the spec names are in `exceptions/errors.ts`.
