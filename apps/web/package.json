@@ -32,7 +32,7 @@
     "@lezer/highlight": "1.2.4",
     "@node-rs/argon2": "2.2.1",
     "@ronneai/core": "workspace:*",
-    "better-auth": "1.7.5",
+    "better-auth": "1.7.6",
     "better-sqlite3": "13.0.3",
     "fflate": "0.8.3",
     "kysely": "0.29.6",
