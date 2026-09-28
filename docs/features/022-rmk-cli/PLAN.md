@@ -20,7 +20,7 @@ the same change that completes it.
   *Done when:* unit tests over a temporary folder cover every change kind created, replaced,
   removed, edited by the user (conflict) and missing, plus unmanaged content left alone.
 
-- [ ] **4. Install.** Targets, resolution, downloads with the cache and checksums, rendering, and
+- [x] **4. Install.** Targets, resolution, downloads with the cache and checksums, rendering, and
   writing `rmk.config.json` and `rmk.lock`.
   *Done when:* tests cover a fresh install, a reinstall from the lockfile, a checksum mismatch, an
   unsupported type's warning, missing env vars, and user scope.
@@ -70,3 +70,17 @@ the same change that completes it.
   `toml-key` waits for the Codex renderer (024). A section change now carries the body only and
   rmk adds the fences (021's spec updated), so the state file's hash of "the text between the
   fences" is what the renderer's change hashes too.
+- **Task 4 (2026-09-28): install.** `install.ts`: the targets come from `--target` (ids, or
+  `all`), else the config's `targets`, else each renderer's `detect()` over the project (one match
+  wins; several ask at a terminal; none fails with `no_target`, except that with one renderer built
+  in and a terminal it says so and uses it). Resolution is one `POST /resolve` with the config's
+  dependencies and the lockfile's versions as `locked`; with no arguments and a lockfile, that
+  installs exactly the lockfile. Artifacts come from `~/.cache/rmk/artifacts/<sha256>.tgz` or are
+  downloaded and checked against the resolution's sha256 (and the `X-Checksum-Sha256` header): a
+  mismatch stops before anything is written. Each item is unpacked and rendered for every target;
+  a type a target can't take is a warning. The applier plans everything, and only with no
+  conflicts are the files, `.rmk/state.json`, `rmk.lock` and `rmk.config.json` written (a bare
+  `install <item>` records `latest`; `--target` is saved as the config's `targets`). Conflicts exit
+  with 3. User scope writes under the home folder, with `user.lock` (carrying the direct
+  dependencies) and `user-state.json` under `~/.config/rmk`. Core gains `isVersionRange`. The
+  registry never sees who installs what: only downloads are counted (019).

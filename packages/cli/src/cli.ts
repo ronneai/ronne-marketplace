@@ -2,6 +2,7 @@ import { parseArgs } from "node:util";
 import { ApiError, apiClient, checkRegistryUrl, rmkVersion } from "./api.js";
 import { normalizeRegistry, readUserConfig, registryFor, writeUserConfig } from "./config.js";
 import { RmkError, usage } from "./errors.js";
+import { installCommand } from "./install.js";
 import type { Io } from "./io.js";
 import { done, failed, output, type RunResult } from "./output.js";
 import { list, platforms, withApi } from "./registry-commands.js";
@@ -136,6 +137,8 @@ export type Command = (io: Io, args: Args, out: ReturnType<typeof output>) => Pr
 
 const { search, info } = withApi((io, args) => connect(io, args));
 
+const install: Command = (io, args, out) => installCommand(io, args, out, connect(io, args).api);
+
 export const COMMANDS: Record<string, Command> = {
   login,
   logout,
@@ -144,6 +147,7 @@ export const COMMANDS: Record<string, Command> = {
   info,
   list,
   platforms,
+  install,
 };
 
 /** Runs rmk with the given arguments (without the node and script paths). */

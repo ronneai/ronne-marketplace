@@ -73,6 +73,9 @@ export const tagProblem = (tag: string, version: string): string | null => {
   return null;
 };
 
+/** Whether `value` reads as a semver range (`^1.2.0`, `>=1 <2`, `1.0.0`), as `rmk install` takes it. */
+export const isVersionRange = (value: string): boolean => validRange(value) !== null;
+
 /** The highest stable (non-pre-release) version, or null: where `latest` can point (MVP §3.4). */
 export const highestStable = (versions: readonly string[]): string | null =>
   rsort(versions.filter((version) => valid(version) !== null && !prerelease(version)))[0] ?? null;

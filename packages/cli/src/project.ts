@@ -75,20 +75,28 @@ export const writeProjectConfig = (dir: string, config: ProjectConfig) => {
   writeJsonFile(join(dir, CONFIG_FILE), value);
 };
 
-export const readLockfile = (dir: string): Lockfile | null => {
-  const raw = readJson<Partial<Lockfile>>(join(dir, LOCK_FILE), "The lockfile");
+export type LockfileWithDependencies = Lockfile & { dependencies?: Record<string, string> };
+
+/** `rmk.lock`, or user scope's `user.lock`, which also carries the direct dependencies. */
+export const readLockfile = (dir: string, file = LOCK_FILE): LockfileWithDependencies | null => {
+  const raw = readJson<Partial<LockfileWithDependencies>>(join(dir, file), "The lockfile");
   if (!raw) return null;
   if (typeof raw.registry !== "string" || !raw.items || typeof raw.items !== "object")
     throw new RmkError(
-      `The lockfile (${join(dir, LOCK_FILE)}) doesn't have the shape rmk writes.`,
+      `The lockfile (${join(dir, file)}) doesn't have the shape rmk writes.`,
       1,
       "bad_file",
     );
-  return { version: 1, registry: raw.registry, items: { ...raw.items } };
+  return {
+    version: 1,
+    registry: raw.registry,
+    items: { ...raw.items },
+    ...(raw.dependencies ? { dependencies: raw.dependencies } : {}),
+  };
 };
 
-export const writeLockfile = (dir: string, lock: Lockfile) =>
-  writeJsonFile(join(dir, LOCK_FILE), lock);
+export const writeLockfile = (dir: string, lock: LockfileWithDependencies, file = LOCK_FILE) =>
+  writeJsonFile(join(dir, file), lock);
 
 /** `@scope/name` and an optional `@version` or `@tag` after it. */
 export const splitItemRef = (ref: string): { name: string; at?: string } => {
