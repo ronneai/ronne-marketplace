@@ -167,11 +167,11 @@ the manifest, versioning, review, dependency resolution and the lockfile. A plat
 ```ts
 interface PlatformRenderer {
   id: string;                                      // "claude-code", "codex", …
-  detect(projectDir: string): boolean;             // auto-pick the target
+  detect(probe: ProjectProbe): Promise<boolean>;   // auto-pick the target
   supports(type: ItemType): SupportLevel;          // "native" | "degraded" | "none"
-  render(item: ResolvedItem, scope: "project" | "user"): FileChange[];
-  remove(item: InstalledItem): FileChange[];
+  render(item: RenderInput, context: { scope: "project" | "user" }): RenderResult;
 }
+// Removing needs no method: .rmk/state.json records every change rmk made (spec 021).
 ```
 
 Adding a platform means writing one module plus fixture tests (golden files). That is days, not weeks,
@@ -200,24 +200,24 @@ Mitigations: renderers are versioned, each has golden-file tests, and each platf
 
 #### Mapping (project scope; user scope uses the home-directory equivalents)
 
-Surveyed September 2026. Paths are re-verified when each renderer is built.
+Surveyed September 2026; the Claude Code column was re-checked on 2026-09-28 for 023. Paths are re-verified when each renderer is built.
 
 | Type | Claude Code | Codex CLI | Cursor | Copilot | Gemini CLI | Devin Desktop |
 |---|---|---|---|---|---|---|
 | skill | `.claude/skills/<n>/` | `.agents/skills/<n>/` | `.agents/skills/<n>/` | `.github/skills/<n>/` | `.agents/skills/<n>/` | `.agents/skills/<n>/` |
 | agent | `.claude/agents/<n>.md` | `.codex/agents/<n>.toml` | `.cursor/agents/<n>.md` | `.github/agents/<n>.agent.md` | `.gemini/agents/<n>.md` | none |
 | rule | `.claude/rules/<n>.md` | section in `AGENTS.md` | `.cursor/rules/<n>.mdc` | `.github/instructions/<n>.instructions.md` | section in `GEMINI.md` | `.devin/rules/<n>.md` |
-| command | `.claude/commands/<n>.md` (or rendered as a skill) | rendered as a skill | `.cursor/commands/<n>.md` | `.github/prompts/<n>.prompt.md` | `.gemini/commands/<n>.toml` | `.devin/workflows/<n>.md` |
+| command | rendered as a skill, `.claude/skills/<n>/` (`.claude/commands/` is legacy) | rendered as a skill | `.cursor/commands/<n>.md` | `.github/prompts/<n>.prompt.md` | `.gemini/commands/<n>.toml` | `.devin/workflows/<n>.md` |
 | hook | `hooks` in `.claude/settings.json` | `hooks.json` / `[hooks]` in `config.toml` | `.cursor/hooks.json` | `.github/hooks/<n>.json` | `hooks` in `.gemini/settings.json` | `.devin/hooks.json` |
 | mcp-server | `.mcp.json` | `[mcp_servers.<n>]` in `config.toml` | `.cursor/mcp.json` | `.vscode/mcp.json` / `.github/mcp.json` | `mcpServers` in `.gemini/settings.json` | `~/.codeium/windsurf/mcp_config.json` |
 | permission-policy | `permissions` in `.claude/settings.json` | `~/.codex/rules/<n>.rules` | none | `.github/copilot/settings.json` | policy file (to verify) | none |
 | output-style | `.claude/output-styles/<n>.md` | none | none | none | none | none |
 | statusline | `statusLine` in settings | `tui.status_line` in `config.toml` | none | none | none | none |
-| lsp-server | `.lsp.json` via generated plugin | none | built-in, not needed | `.github/lsp.json` | none | none |
+| lsp-server | `.lsp.json` in a generated local plugin (plugins only) | none | built-in, not needed | `.github/lsp.json` | none | none |
 | bundle | installs members (or native plugin export) | same | same | same | same | same |
 
 Notes:
-- Claude Code doesn't read `AGENTS.md`, so rules for Claude go to `.claude/rules/`.
+- Claude Code reads `AGENTS.md` only when the project has no `CLAUDE.md` (checked 2026-09-28), so rules for Claude go to `.claude/rules/`, which it always reads ([023](../features/023-claude-code-renderer/SPEC.md)).
 - When one project targets several tools, the renderer writes each shared format once. For example, a single `.agents/skills/<n>/` serves Codex, Cursor, Gemini and Devin.
 
 #### Native plugin export (post-MVP option)
@@ -713,6 +713,7 @@ Design points:
 | Login rate limit | Ronne's own in-memory limiter on the sign-in action: 5 attempts a minute per email, and per client IP only with `TRUST_PROXY=true`; Better Auth's HTTP sign-in is not served | Better Auth's limiter skips server actions, and without a trusted proxy the client IP can be forged ([006](../features/006-web-sign-in/SPEC.md)) |
 | CLI login | `rmk login` exchanges email and password for a token (`POST /api/v1/auth/token`), and `rmk login --token` accepts one made in the web app; browser-based login waits for SSO's device flow | Matches the MVP and the mock's `--token`, without new endpoints before SSO |
 | Single root | The admin UI assigns only `user` and `moderator`, and can't modify root; root recovers through `pnpm run reset-root-password` | Keeps "one instance owner"; a transfer flow can come later |
+| Renderer output | Renderers are pure: they return the changes to make (files, folders, JSON and TOML keys, JSON array elements, Markdown sections), and `rmk` applies them and records each in `.rmk/state.json`. There is no `remove()`: removing undoes exactly what the state file recorded ([021](../features/021-renderer-harness/SPEC.md)) | One place decides what may be written or deleted, and renderers stay testable with golden files |
 | Download counts | The tarball endpoint adds one to `items.download_count` per download; nothing about who downloaded is stored. The home page ranks "Most used" by it | The owner wants most used items on the home page (2026-09-28); a server-side count needs no telemetry from `rmk`, which stays opt-in and post-MVP |
 | Access tokens | `rmk_` + 43 base64url characters, SHA-256 hashed, 30/90/365 days or no expiry, at most 50 active per user, bearer only on `/api/v1` | Recognizable by secret scanning; revocable; no cookies on the API |
 | Dependencies | Permissive licenses only (MIT, ISC, BSD, Apache-2.0 …; CC-BY-4.0 for data); no copyleft or paid tools; latest stable/LTS; CI license + audit + image scans; pnpm release-age delay, build allowlist, trust policy | Ronne must be freely redistributable and must not ship known vulnerabilities |

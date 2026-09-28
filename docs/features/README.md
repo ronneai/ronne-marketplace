@@ -18,7 +18,11 @@ the design in [`MVP.md`](../MVP/MVP.md). They link to them.
    image must pass the [dependency policy](../policies/dependencies.md) checklist.
 3. **Keep the docs honest.** If the work changes the behaviour, update `SPEC.md` in the same
    change. If it changes a decision, also update MVP.md and its decision log (§15).
-4. **Finish** by setting the status here to `done`.
+4. **Keep the in-app Documentation current.** Every feature that changes what people see or do
+   updates the Documentation topics and inline helpers ([033](./033-in-app-help/SPEC.md)) in the
+   same pull request, as its spec's Documentation section lists. A spec with nothing to add says
+   "None" and why.
+5. **Finish** by setting the status here to `done`.
 
 **Numbering.** IDs are three digits, given in order of creation, and never reused or renamed. The
 slug is short and lowercase. The milestone and status live only in this table.
@@ -77,11 +81,11 @@ New folders start from [`_template/`](./_template/).
 
 | ID | Feature | Depends on | Status |
 |---|---|---|---|
-| 019 | Registry read API (`/api/v1` items, tarball with download count, errors, pagination) | 009, 015, 018 | planned |
-| 020 | Resolver in `packages/core` | 011 | planned |
-| 021 | Renderer interface and golden-file test harness | 011 | planned |
-| 022 | `rmk` CLI: login, search, info, install, update, remove, outdated; lockfile and state file | 019, 020, 021 | planned |
-| 023 | Claude Code renderer, every item type | 021 | planned |
+| [019](./019-registry-read-api/SPEC.md) | Registry read API (`/api/v1` items, versions, tarball with download count, errors, pagination) | 009, 015, 018 | specified |
+| [020](./020-resolver/SPEC.md) | Resolver in `packages/core`, and `POST /api/v1/resolve` | 011, 019 | specified |
+| [021](./021-renderer-harness/SPEC.md) | Renderer interface and golden-file test harness | 011 | specified |
+| [022](./022-rmk-cli/SPEC.md) | `rmk` CLI: login, search, info, install, update, remove, outdated; lockfile and state file | 019, 020, 021 | specified |
+| [023](./023-claude-code-renderer/SPEC.md) | Claude Code renderer, every item type | 021 | specified |
 
 ### M5 — Codex, Cursor, MCP
 

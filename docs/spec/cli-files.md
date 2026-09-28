@@ -119,6 +119,7 @@ What rmk wrote, so it can update or remove it without touching anything else (MV
 | `dir` | A whole folder rmk created (skills) | a hash of the sorted file paths and their hashes |
 | `json-key` | One key path inside a JSON file | the canonical JSON of the value at `key` |
 | `toml-key` | One key path inside a TOML file | the canonical JSON of the value at `key` |
+| `json-array-item` | One element of the array at `key` in a JSON file, such as a Claude Code hook or permission rule ([023](../features/023-claude-code-renderer/SPEC.md)) | the canonical JSON of the element, which is how rmk finds it again |
 | `section` | A fenced `rmk:begin` / `rmk:end` block in a Markdown file | the text between the fences |
 
 - Paths are relative to the project root (or the home folder for user scope) and always use `/`.
