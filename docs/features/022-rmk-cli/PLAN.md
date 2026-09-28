@@ -12,7 +12,7 @@ the same change that completes it.
   *Done when:* unit tests cover the config file's permissions, env overrides and parsing; and tests
   against a stub server cover login by password and by token, logout offline, and API errors.
 
-- [ ] **2. Reading the registry.** `search`, `info`, `list`, `platforms`.
+- [x] **2. Reading the registry.** `search`, `info`, `list`, `platforms`.
   *Done when:* tests against a stub server cover each, in text and `--json`.
 
 - [ ] **3. The applier.** Planning changes against the state file and the disk, conflicts and
@@ -52,3 +52,10 @@ the same change that completes it.
   `GET /me`; the first registry becomes the default), `logout` (revokes on the server when it can,
   removes the token either way), `whoami`. The password prompt is Node's own readline, so the CLI
   still has no dependency beyond core.
+- **Task 2 (2026-09-28): reading the registry.** `project.ts` reads and writes `rmk.config.json`
+  and `rmk.lock` (sorted keys, two spaces, a trailing newline, written through a rename) and splits
+  `@scope/name@version`. `registry-commands.ts`: `search` (019's `/items`, with `--type` and
+  `--scope`, marks for risk, deprecation, yanked and uninstallable), `info` (the item, its tags
+  and versions, and the latest or asked-for version's dependencies and risk flags), `list` (the
+  config's dependencies, or `--installed` from the lockfile) and `platforms` (021's `RENDERERS`
+  with what each supports).

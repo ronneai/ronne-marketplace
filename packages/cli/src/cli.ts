@@ -4,6 +4,7 @@ import { normalizeRegistry, readUserConfig, registryFor, writeUserConfig } from 
 import { RmkError, usage } from "./errors.js";
 import type { Io } from "./io.js";
 import { done, failed, output, type RunResult } from "./output.js";
+import { list, platforms, withApi } from "./registry-commands.js";
 
 /**
  * `rmk` (feature 022, MVP §6): the commands, their arguments, and the exit codes. Each command is
@@ -133,7 +134,17 @@ const whoami = async (io: Io, args: Args, out: ReturnType<typeof output>) => {
 
 export type Command = (io: Io, args: Args, out: ReturnType<typeof output>) => Promise<void>;
 
-export const COMMANDS: Record<string, Command> = { login, logout, whoami };
+const { search, info } = withApi((io, args) => connect(io, args));
+
+export const COMMANDS: Record<string, Command> = {
+  login,
+  logout,
+  whoami,
+  search,
+  info,
+  list,
+  platforms,
+};
 
 /** Runs rmk with the given arguments (without the node and script paths). */
 export const run = async (argv: string[], io: Io): Promise<RunResult> => {
