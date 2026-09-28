@@ -4,6 +4,13 @@ import { ITEM_TYPES, type ItemType, NAME_PROBLEM_MESSAGES, nameProblem } from "@
 import { ArrowRight, CircleCheck, FileCode, Info, Search, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, useActionState, useMemo, useState } from "react";
+import {
+  HIGH_RISK_NOTE,
+  STANDARD_RISK_NOTE,
+  TYPE_GROUPS,
+  TYPE_INFO,
+  type TypeGroup,
+} from "@/components/submissions/item-types";
 import { Badge } from "@/components/ui/Badge";
 import { Button, buttonClasses } from "@/components/ui/Button";
 import { FieldError, inputClasses } from "@/components/ui/Field";
@@ -11,13 +18,6 @@ import { Notice } from "@/components/ui/Notice";
 import { MANIFEST_PATH } from "@/server/domains/submissions/models/submission";
 import { draftTemplate } from "@/server/domains/submissions/models/templates";
 import { createDraftFromForm } from "./actions";
-import {
-  HIGH_RISK_NOTE,
-  STANDARD_RISK_NOTE,
-  TYPE_GROUPS,
-  TYPE_INFO,
-  type TypeGroup,
-} from "./item-types";
 import type { NewDraftState, ScopeOption } from "./types";
 
 /** With more scopes than this, the chips get a search box. */

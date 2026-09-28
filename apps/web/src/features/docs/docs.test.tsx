@@ -1,6 +1,8 @@
+import { ITEM_TYPES } from "@ronneai/core";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { docsHref, TOPICS, topicOf } from "@/components/help/topics";
+import { TYPE_INFO } from "@/components/submissions/item-types";
 import { HelpTip } from "@/components/ui/HelpTip";
 
 const navigation = vi.hoisted(() => ({ path: "/docs/scopes" }));
@@ -12,6 +14,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 const { DocsNav } = await import("./DocsNav");
+const { CONTENT } = await import("./content");
 const { default: Docs } = await import("@/app/(app)/docs/page");
 const { default: DocsTopic } = await import("@/app/(app)/docs/[topic]/page");
 
@@ -60,5 +63,39 @@ describe("HelpTip", () => {
     expect(html).toContain("The first part of an item&#x27;s name.");
     expect(html).toMatch(/href="\/docs\/scopes#what"[^>]*>Learn more</);
     expect(renderToStaticMarkup(<HelpTip question="Q">A.</HelpTip>)).not.toContain("Learn more");
+  });
+});
+
+describe("the topics", () => {
+  it("fill every section of every topic", () => {
+    for (const t of TOPICS)
+      for (const section of t.sections)
+        expect(CONTENT[t.slug][section.id], `${t.slug}#${section.id}`).toBeDefined();
+  });
+
+  it("show all 11 types with the New item form's descriptions, and which are flagged", async () => {
+    const html = await topic("items");
+    for (const type of ITEM_TYPES) {
+      expect(html).toContain(`id="type-${type}"`);
+      expect(html).toContain(TYPE_INFO[type].description.replaceAll("'", "&#x27;"));
+    }
+    expect(html.match(/⚠ risk/g)?.length).toBe(
+      1 + ITEM_TYPES.filter((type) => TYPE_INFO[type].highRisk).length,
+    );
+    expect(html).toContain("skill, mcp-server, hook, rule, command");
+    expect(html).toContain("any type");
+  });
+
+  it("explain scopes with examples, statuses with their badges, and tags", async () => {
+    const scopes = await topic("scopes");
+    expect(scopes).toContain("@platform/code-reviewer");
+    expect(scopes).toContain("up to 64");
+    const review = await topic("review");
+    for (const status of ["changes requested", "withdrawn", "published"])
+      expect(review).toContain(`>${status}<`);
+    const versions = await topic("versions");
+    expect(versions).toContain("1.4.0 → 1.5.0");
+    expect(versions).toContain(">yanked<");
+    expect(await topic("rmk")).toContain("rmk isn&#x27;t released yet.");
   });
 });

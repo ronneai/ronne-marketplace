@@ -14,7 +14,7 @@ the same change that completes it.
   and the shared `HelpTip`.
   *Done when:* render tests cover the topic list, a topic page, the nav item and HelpTip.
 
-- [ ] **3. Topics.** The eight topics' content, from MVP §2–§4 and the M2–M3 specs, with the type
+- [x] **3. Topics.** The eight topics' content, from MVP §2–§4 and the M2–M3 specs, with the type
   descriptions shared with the New item form.
   *Done when:* render tests cover each topic's sections, and the types match the form's.
 
@@ -32,3 +32,9 @@ the same change that completes it.
   `DocsNav` beside the page on wide screens and above it on phones. `DocsPage` renders a topic's
   sections as anchored `<section>`s. `components/ui/HelpTip` is a `<details>` with the question, the
   answer and Learn more. Docs is in the main nav after Scopes.
+- **Task 3 (2026-09-28): topics.** `features/docs/content.tsx` holds the eight topics' words by
+  section id, written from how the app behaves: naming rules and the name length from core, the
+  dependency table from `DEPENDENCY_TYPES`, the statuses with their badges, the tag rules, and the
+  permission matrix without what isn't built (instance settings). The types table uses the New item
+  form's own descriptions and risk marks: `item-types.ts` moved to `components/submissions`, shared
+  by both. `rmk` is described in the future tense, as not released yet.
