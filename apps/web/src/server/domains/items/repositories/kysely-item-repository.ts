@@ -1,12 +1,13 @@
-import type { ItemType } from "@ronneai/core";
+import type { ItemType, RiskFlag } from "@ronneai/core";
 import type { Kysely } from "kysely";
 import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
-import { encodeJson } from "../../../db/json";
+import { decodeJson, encodeJson } from "../../../db/json";
 import { forUpdate, readCommittedTransaction } from "../../../db/locks";
 import type { Database } from "../../../db/schema";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
+import type { VersionFile } from "../models/item";
 import { listingOf, searchFieldsOf } from "../models/listing";
 import type { ItemRepository } from "./item-repository";
 
@@ -273,4 +274,25 @@ export const kyselyItemRepository = (
   recordAudit: async (event, now) => {
     await recordAudit(db, dialect, event, now);
   },
+
+  versionDetail: async (versionId) => {
+    const row = await db
+      .selectFrom("item_versions")
+      .select(["manifest", "readme", "files", "notes", "risk_flags"])
+      .where("id", "=", versionId)
+      .executeTakeFirst();
+    return row
+      ? {
+          manifest: decodeJson<Record<string, unknown>>(row.manifest),
+          readme: row.readme,
+          files: decodeJson<VersionFile[]>(row.files),
+          notes: row.notes,
+          riskFlags: decodeJson<RiskFlag[]>(row.risk_flags) ?? [],
+        }
+      : null;
+  },
+
+  userName: async (userId) =>
+    (await db.selectFrom("user").select("name").where("id", "=", userId).executeTakeFirst())
+      ?.name ?? null,
 });

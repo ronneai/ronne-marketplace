@@ -1,5 +1,6 @@
 import { formatBytes } from "@ronneai/core";
 import Link from "next/link";
+import { itemPath } from "@/components/catalogue/ItemCard";
 import { Badge } from "@/components/ui/Badge";
 import { Panel } from "@/components/ui/Panel";
 import { Table, Td, Th } from "@/components/ui/Table";
@@ -8,27 +9,21 @@ import type { VersionsPage as Page } from "@/server/domains/items/actions/versio
 import { TagControls, VersionControls } from "./VersionControls";
 
 /**
- * An item's versions (feature 016): its tags, and every version with when and by whom it was
- * published, its size and sha256, and any deprecation or yank. Moderators and root get the actions.
+ * An item's versions (feature 016), the item page's Versions tab (018): its tags, and every version
+ * with when and by whom it was published, its size and sha256, and any deprecation or yank. Each
+ * version links to the item page showing it. Moderators and root get the actions.
  */
-export const VersionsPage = ({ page }: { page: Page }) => {
+export const VersionsTab = ({ page }: { page: Page }) => {
   const itemRef = { scope: page.item.scope.name, name: page.item.name };
-  const itemName = `@${itemRef.scope}/${itemRef.name}`;
   const choices = page.versions.map((v) => ({ version: v.version, yanked: v.yankedAt !== null }));
   const yanked = new Set(choices.filter((v) => v.yanked).map((v) => v.version));
   const hasLatest = page.tags.some((tag) => tag.tag === "latest");
   return (
     <div className="grid gap-6">
-      <nav aria-label="Breadcrumb" className="font-mono text-xs text-muted">
-        <span className="text-fg">{itemName}</span> / Versions
-      </nav>
-      <header className="grid gap-1">
-        <h1 className="font-mono text-xl font-semibold text-fg">{itemName}</h1>
-        <p className="text-sm text-muted">
-          Versions never change once published. Tags point installs at them; deprecating warns, and
-          yanking stops new installs.
-        </p>
-      </header>
+      <p className="text-sm text-muted">
+        Versions never change once published. Tags point installs at them; deprecating warns, and
+        yanking stops new installs.
+      </p>
 
       <Panel className="grid gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -82,7 +77,12 @@ export const VersionsPage = ({ page }: { page: Page }) => {
               <Td>
                 <div className="grid gap-1">
                   <span className="flex flex-wrap items-center gap-1.5">
-                    <span className="font-mono text-sm font-semibold text-fg">{v.version}</span>
+                    <Link
+                      href={`${itemPath(itemRef)}?version=${encodeURIComponent(v.version)}`}
+                      className="font-mono text-sm font-semibold text-fg underline-offset-2 hover:underline"
+                    >
+                      {v.version}
+                    </Link>
                     {v.tags.map((tag) => (
                       <Badge key={tag} tone="accent">
                         {tag}

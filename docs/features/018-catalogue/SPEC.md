@@ -58,7 +58,7 @@ and what's used most in the registry.
   - **What it can do:** the version's risk flags (014), as the review page shows them.
 - **Another version** (`?version=1.1.0`): the page shows that version; a banner says it isn't
   `latest`, and whether it's deprecated or yanked.
-- **Propose a change** (017), for everyone signed in.
+- **Propose a change** (017), for everyone signed in: added by 017, which builds on this page.
 - A missing item, or one with no published version, is a 404.
 
 **The home page** (`/`, everyone signed in; replaces the scaffold's placeholder):

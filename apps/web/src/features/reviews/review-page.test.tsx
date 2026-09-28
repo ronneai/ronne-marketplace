@@ -18,7 +18,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
 }));
 
-const { RiskSummary } = await import("./RiskSummary");
+const { RiskSummary } = await import("@/components/risk-flags/RiskSummary");
 const { AllFiles, FileChanges } = await import("./FileViews");
 const { Conversation } = await import("./Conversation");
 const { DecisionBar } = await import("./DecisionBar");

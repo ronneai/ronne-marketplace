@@ -6,11 +6,12 @@ import { signIn } from "../../identity/actions/session";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import type { AppAuth } from "../../identity/repositories/auth-instance";
 import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testing/test-auth";
+import { ItemNotFoundError, VersionNotFoundError } from "../exceptions/errors";
 import { kyselyItemRepository } from "../repositories/kysely-item-repository";
 import { CATALOGUE_PAGE_SIZE } from "../services/catalogue";
 import { browseCatalogue, homeLists } from "./catalogue";
 import { createScope } from "./scopes";
-import { unyank, yank } from "./versions";
+import { itemPage, unyank, yank } from "./versions";
 
 let t: TestDb;
 let app: AppAuth;
@@ -266,5 +267,56 @@ describe("the home page's lists", () => {
       ["three", 9],
       ["two", 5],
     ]);
+  });
+});
+
+describe("the item page's data", () => {
+  it("shows latest by default, another version on request, and the owner", async () => {
+    await release("tool", {
+      versions: ["1.0.0", "1.1.0", "2.0.0-beta.1"],
+      flags: [{ kind: "network", message: "It mentions `example.com`." }],
+      keywords: ["cli"],
+    });
+    const ref = { scope: "team", name: "tool" };
+    const page = await itemPage(asUser, ref, undefined, app);
+    expect(page).toMatchObject({
+      listed: "1.1.0",
+      latest: "1.1.0",
+      installable: true,
+      ownerName: "Root",
+    });
+    expect(page.shown).toMatchObject({
+      version: "1.1.0",
+      tags: ["latest"],
+      manifest: { keywords: ["cli"] },
+      riskFlags: [{ kind: "network" }],
+      files: [],
+    });
+    expect((await itemPage(asUser, ref, "2.0.0-beta.1", app)).shown).toMatchObject({
+      version: "2.0.0-beta.1",
+      tags: ["next"],
+    });
+    await expect(itemPage(asUser, ref, "9.9.9", app)).rejects.toThrow(VersionNotFoundError);
+  });
+
+  it("is not found for an unknown item or one without versions, and for signed-out users", async () => {
+    await expect(itemPage(asUser, { scope: "team", name: "nope" }, undefined, app)).rejects.toThrow(
+      ItemNotFoundError,
+    );
+    await kyselyItemRepository(t.db, t.dialect).insertItem({
+      scopeId: scopeIds.team ?? "",
+      name: "empty",
+      type: "rule",
+      description: "",
+      ownerId: null,
+      createdAt: tick(),
+    });
+    await expect(
+      itemPage(asUser, { scope: "team", name: "empty" }, undefined, app),
+    ).rejects.toThrow(ItemNotFoundError);
+    await release("tool");
+    await expect(
+      itemPage(new Headers(), { scope: "team", name: "tool" }, undefined, app),
+    ).rejects.toThrow(ForbiddenError);
   });
 });

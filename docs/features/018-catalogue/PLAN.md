@@ -23,7 +23,7 @@ the same change that completes it.
   the nav item.
   *Done when:* render tests pass.
 
-- [ ] **4. The item page.** Header, install commands, the tabs, another version by URL, and 404s.
+- [x] **4. The item page.** Header, install commands, the tabs, another version by URL, and 404s.
   *Done when:* render tests pass, and the Playwright test in the acceptance criteria passes.
 
 - [ ] **5. The home page.** Search box, Recently published, Most used (hidden without downloads),
@@ -65,3 +65,14 @@ the same change that completes it.
   published date, and `rmk install` with a copy button (not for uninstallable items). Catalogue is
   in the main nav after Home, and stays current on item pages (a nav item may now own several
   sections).
+- **Task 4 (2026-09-28): the item page.** `/items/[scope]/[name]` with tabs as links: README
+  (default), Dependencies, Files and What it can do by `?tab=`, and Versions at 016's
+  `/items/[scope]/[name]/versions`, which now renders inside the same page (`VersionsTab`, each
+  version linking to `?version=`). `services/item-page.ts` builds on 016's `listVersions`, picks the
+  shown version (`?version=`, else the listed one) and adds its manifest, README, files and risk
+  flags (`versionDetail`) and the owner's name. A missing item, one without versions, or an unknown
+  version is a 404. The header shows license, keywords, owner and publish time; Install has both
+  commands (none when every version is yanked); another version gets a banner, in error or warning
+  colours when it's yanked or deprecated. `RiskSummary` and its anchors moved to
+  `components/risk-flags`, shared with the review page. "Propose a change" waits for 017.
+  The e2e seed publishes `@e2e-seeded/secret-scanner` with a README for the Playwright test.

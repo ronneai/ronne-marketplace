@@ -1,6 +1,6 @@
 import type { ItemType } from "@ronneai/core";
 import type { NewAuditEvent } from "../../audit/models/audit-event";
-import type { Item, ItemVersion, NewItemVersion } from "../models/item";
+import type { Item, ItemVersion, NewItemVersion, VersionDetail } from "../models/item";
 
 /**
  * What releases (015) and version management (016) need from storage. Kysely in
@@ -35,4 +35,8 @@ export interface ItemRepository {
   /** Yanks (`at` and a reason) or unyanks (nulls) a version. */
   setYanked(versionId: string, yanked: { at: Date; reason: string } | null): Promise<void>;
   recordAudit(event: NewAuditEvent, now: Date): Promise<void>;
+  /** A version's manifest, README, files and risk flags, for its page (018). */
+  versionDetail(versionId: string): Promise<VersionDetail | null>;
+  /** A user's display name, or null if they're gone. */
+  userName(userId: string): Promise<string | null>;
 }
