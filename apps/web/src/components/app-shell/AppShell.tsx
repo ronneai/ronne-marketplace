@@ -34,13 +34,13 @@ export const AppShell = ({
         <div className="flex h-14 items-center gap-1.5 px-3 sm:gap-6 sm:px-6">
           <Link
             href="/"
-            className="flex items-center gap-2 text-fg outline-offset-4 focus-visible:outline-2 focus-visible:outline-focus"
+            className="flex shrink-0 items-center gap-2 text-fg outline-offset-4 focus-visible:outline-2 focus-visible:outline-focus"
           >
             <BrandLogo height={34} className="h-6 w-auto sm:h-[34px]" />
             <span className="hidden font-mono text-xs text-muted sm:inline">/ registry</span>
           </Link>
           <MainNav items={navFor(user)} />
-          <div className="ml-auto flex items-center gap-1 sm:gap-2">
+          <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
             <ThemeToggle theme={theme} />
             {user ? (
               <details className="relative">

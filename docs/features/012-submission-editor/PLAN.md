@@ -26,7 +26,7 @@ the same change that completes it.
   *Done when:* tests with crafted archives (traversal, symlink, too many files, too big, one top
   folder) pass, and a refused import leaves the draft unchanged.
 
-- [ ] **5. My submissions and New item.** `/submissions` and `/submissions/new` (scope picker,
+- [x] **5. My submissions and New item.** `/submissions` and `/submissions/new` (scope picker,
   name, type with descriptions and risk notes).
   *Done when:* render and action tests pass.
 
@@ -93,3 +93,15 @@ the same change that completes it.
     (the draft would lose it) and suggests merging. Text is stored as UTF-8, and anything else
     (invalid UTF-8, or NUL bytes) as base64, by `toDraftContent`, which uploads will share.
   - `fflate` 0.8.3 is now a direct dependency of `apps/web` too (checked in 011).
+- **Task 5 (2026-09-27): My submissions and New item.**
+  - `features/submissions/`: `SubmissionsTable` (item, type, status, last change in UTC; an empty
+    state that explains drafts), `NewDraftForm` and `createDraftFromForm`, which opens the editor.
+  - The scope picker is a radio list with a search box once there are more than 6 scopes. The page
+    collects every page of `listScopes` (capped at 20 pages of 50): root creates each scope, so
+    there are few. With no scope, the page says root has to create one first.
+  - The name shows `@scope/name` as you type, and a note (not an error) when you already have a
+    draft with that name. The 11 types show MVP §3.1's one-liners, and hook, mcp-server,
+    permission-policy, statusline and lsp-server carry a `RISK:` note.
+  - "Submissions" joins the main nav for everyone signed in (`submissions.create`). With it, the
+    header overflowed at 375px and hid the account menu, so the nav now scrolls sideways on
+    phones while the theme switch and account menu stay in place (checked at 375 and 320px).

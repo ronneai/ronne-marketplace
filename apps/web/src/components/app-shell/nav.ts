@@ -19,6 +19,12 @@ export type NavItem = {
  */
 export const NAV: NavItem[] = [
   { href: "/", label: "Home", hideOnPhone: true },
+  {
+    href: "/submissions",
+    label: "Submissions",
+    permission: "submissions.create",
+    section: "/submissions",
+  },
   { href: "/scopes", label: "Scopes" },
   { href: "/admin/users", label: "Admin", permission: "users.view", section: "/admin" },
 ];
