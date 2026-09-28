@@ -100,8 +100,22 @@ test("a moderator reviews a hook, the author publishes it, and another item depe
     publish.getByText(`Published @${E2E_SCOPE}/fmt-hook 1.0.0 as latest.`),
   ).toBeVisible();
   await expect(publish.getByText(/sha256 [0-9a-f]{64}/)).toBeVisible();
+  await expect(publish.getByRole("link", { name: "View versions" })).toHaveAttribute(
+    "href",
+    `/items/${E2E_SCOPE}/fmt-hook/versions`,
+  );
   await publish.getByRole("button", { name: "Done" }).click();
-  await expect(author.getByText("released it as 1.0.0")).toBeVisible();
+
+  // The header, and the release in the conversation, lead to the Versions page, read-only for the
+  // author.
+  await expect(author.getByRole("link", { name: "View versions" })).toHaveAttribute(
+    "href",
+    `/items/${E2E_SCOPE}/fmt-hook/versions`,
+  );
+  await author.getByRole("link", { name: "released it as 1.0.0" }).click();
+  await expect(author).toHaveURL(new RegExp(`/items/${E2E_SCOPE}/fmt-hook/versions$`));
+  await expect(author.getByText("latest → 1.0.0")).toBeVisible();
+  await expect(author.getByRole("button", { name: "Yank", exact: true })).toHaveCount(0);
 
   // An agent that depends on the released hook now submits.
   await author.goto("/submissions/new");

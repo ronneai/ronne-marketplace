@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { utcMinute } from "@/components/ui/time";
 import type { ReviewEvent, ReviewEventKind } from "@/server/domains/submissions/models/review";
 import { CommentForm } from "./CommentForm";
@@ -27,10 +28,13 @@ export const Conversation = ({
   id,
   events,
   canComment,
+  versionsHref,
 }: {
   id: string;
   events: ReviewEvent[];
   canComment: boolean;
+  /** The item's Versions page, which a release links to. */
+  versionsHref: string;
 }) => (
   <section aria-labelledby="conversation" className="grid gap-3">
     <h2 id="conversation" className="text-lg font-semibold text-fg">
@@ -43,7 +47,14 @@ export const Conversation = ({
           className={`rounded-panel border p-3 text-sm ${DECISIONS.has(event.kind) ? "border-strong bg-surface" : "border-hairline bg-surface"}`}
         >
           <p className="text-fg">
-            <span className="font-semibold">{event.actor.name}</span> {SAID[event.kind](event)}
+            <span className="font-semibold">{event.actor.name}</span>{" "}
+            {event.kind === "publish" ? (
+              <Link href={versionsHref} className="underline underline-offset-2">
+                {SAID[event.kind](event)}
+              </Link>
+            ) : (
+              SAID[event.kind](event)
+            )}
             <span className="ml-2 font-mono text-xs text-muted">
               <time dateTime={event.createdAt.toISOString()}>{utcMinute(event.createdAt)}</time>
             </span>

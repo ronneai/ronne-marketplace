@@ -24,7 +24,7 @@ import {
 import { kyselySubmissionRepository } from "../repositories/kysely-submission-repository";
 import { createDraft, saveDraftFiles } from "./drafts";
 import { publishSubmission } from "./publish";
-import { decide } from "./reviews";
+import { decide, getReview } from "./reviews";
 import { submitDraft } from "./submissions";
 
 let t: TestDb;
@@ -161,6 +161,8 @@ describe("publishSubmission", () => {
       .select("status")
       .executeTakeFirstOrThrow();
     expect(submission.status).toBe("published");
+    // The review page still knows its versions, to link to the Versions page (016).
+    expect((await getReview(asAuthor, id, app)).published).toEqual(["1.0.0"]);
 
     const events = await kyselySubmissionRepository(t.db, t.dialect).events(id);
     expect(events.at(-1)).toMatchObject({ kind: "publish", body: "1.0.0" });

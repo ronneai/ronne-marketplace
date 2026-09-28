@@ -53,7 +53,10 @@ downloads it, so existing projects keep working. The artifact is never deleted.
 **The Versions page** (`/items/[scope]/[name]/versions`): every version, newest first, with its tags,
 published at and by, size and sha256, and any deprecation or yank. Everyone signed in can read it;
 moderators and root get the actions (move tag, add tag, remove tag, deprecate, undeprecate, yank,
-unyank) as dialogs. Each action locks the item's row, so two moderators can't leave the tags in a
+unyank) as dialogs. Until 018's item page and catalogue link to it, it's reached from a release:
+a "View versions" link in the header of the review page and the author's submission page once the
+item has a published version, the "released it as 1.2.0" line in the conversation, and "View
+versions" in the Publish dialog once the release is out. Each action locks the item's row, so two moderators can't leave the tags in a
 state neither chose.
 
 ## Edge cases
@@ -67,14 +70,17 @@ state neither chose.
 
 ## Acceptance criteria
 
-- [ ] Moving, adding and removing tags follow the rules above, and `latest` never points to a pre-release or disappears while a stable non-yanked version exists.
-- [ ] Deprecate and undeprecate change only the message; the version stays resolvable.
-- [ ] Yank and unyank follow the rules above, never delete an artifact, and move `latest` when it pointed to the yanked version.
-- [ ] Only moderators and root change anything; everyone signed in reads the Versions page.
-- [ ] Every change is audited, in the same transaction as the change, and concurrent changes to one item are serialised.
-- [ ] Playwright: a moderator deprecates a version, yanks the latest one (and sees `latest` move back), then unyanks it.
+- [x] Moving, adding and removing tags follow the rules above, and `latest` never points to a pre-release or disappears while a stable non-yanked version exists.
+- [x] Deprecate and undeprecate change only the message; the version stays resolvable.
+- [x] Yank and unyank follow the rules above, never delete an artifact, and move `latest` when it pointed to the yanked version.
+- [x] Only moderators and root change anything; everyone signed in reads the Versions page.
+- [x] Every change is audited, in the same transaction as the change, and concurrent changes to one item are serialised.
+- [x] Playwright: a moderator deprecates a version, yanks the latest one (and sees `latest` move back), then unyanks it.
 
 ## Open questions
+
+The owner started 016 (2026-09-28) without answering these, so it's built on the recommendations;
+either can still change.
 
 1. **Yanking the `latest` version moves `latest` back** to the highest remaining stable version
    (recommended), or yanking it is refused until someone moves `latest` by hand.

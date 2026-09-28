@@ -10,7 +10,9 @@ the same change that completes it.
 - [ ] **1. Catalogue queries.** Search, type and scope filters, both sorts and cursor paging over
   published items, in an `items` domain service that 019 will reuse.
   *Done when:* database tests cover search (with `%` and `_`), each filter, both sorts, paging, and
-  items without an installable version, on all four databases.
+  items without an installable version, on all four databases. Also the migration for
+  `items.download_count`, and the home page's queries: recently published, most used, and the
+  viewer's counts.
 
 - [ ] **2. Markdown.** The chosen library through the dependency checklist, with raw HTML off, safe
   links and images, and shifted headings.
@@ -23,5 +25,10 @@ the same change that completes it.
 
 - [ ] **4. The item page.** Header, install commands, the tabs, another version by URL, and 404s.
   *Done when:* render tests pass, and the Playwright test in the acceptance criteria passes.
+
+- [ ] **5. The home page.** Search box, Recently published, Most used (hidden without downloads),
+  For you, and the empty registry, replacing the placeholder.
+  *Done when:* render tests cover each section, hidden and shown, for a user and a moderator, and
+  the Playwright test starts from the home page.
 
 ## Notes

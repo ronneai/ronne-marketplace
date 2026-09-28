@@ -1,7 +1,9 @@
+import { History } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { Badge } from "@/components/ui/Badge";
+import { buttonClasses } from "@/components/ui/Button";
 import { utcMinute } from "@/components/ui/time";
 import { IssueList } from "@/components/validation/IssueList";
 import { Conversation } from "@/features/reviews/Conversation";
@@ -9,6 +11,7 @@ import { DecisionBar } from "@/features/reviews/DecisionBar";
 import { AllFiles, FileChanges } from "@/features/reviews/FileViews";
 import { PublishDialog } from "@/features/reviews/PublishDialog";
 import { RiskSummary } from "@/features/reviews/RiskSummary";
+import { versionsPath } from "@/features/versions/links";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { can } from "@/server/domains/identity/models/permissions";
 import {
@@ -82,12 +85,19 @@ const Review = async ({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {review.published.length > 0 ? (
+            <Link href={versionsPath(submission)} className={buttonClasses("secondary")}>
+              <History size={16} aria-hidden="true" />
+              View versions
+            </Link>
+          ) : null}
           <DecisionBar id={submission.id} decisions={decisions} />
           {review.can.publish ? (
             <PublishDialog
               id={submission.id}
               itemName={itemNameOf(submission)}
               published={review.published}
+              versionsHref={versionsPath(submission)}
             />
           ) : null}
         </div>
@@ -143,7 +153,12 @@ const Review = async ({
         <IssueList issues={review.issues} />
       </section>
 
-      <Conversation id={submission.id} events={review.events} canComment={review.can.comment} />
+      <Conversation
+        id={submission.id}
+        events={review.events}
+        canComment={review.can.comment}
+        versionsHref={versionsPath(submission)}
+      />
     </div>
   );
 };

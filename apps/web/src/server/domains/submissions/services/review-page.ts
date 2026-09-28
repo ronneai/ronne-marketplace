@@ -22,7 +22,8 @@ export type ReviewView = {
   flags: RiskFlag[];
   issues: ManifestIssue[];
   events: ReviewEvent[];
-  /** The item's published versions, yanked ones included, for the publish dialog's preview (015). */
+  /** The item's published versions, yanked ones included: the publish dialog's preview (015), and
+   * whether the page links to the Versions page (016). */
   published: string[];
   can: { decide: boolean; override: boolean; comment: boolean; publish: boolean };
 };
@@ -57,9 +58,11 @@ export const getReview = async (
 
   const submitted = submission.status === "submitted";
   const approved = submission.status === "approved";
-  const item = approved
-    ? await deps.repo.registry().findItem(submission.scope.name, submission.name)
-    : null;
+  // Approved: the publish dialog's preview. Published: the link to the Versions page.
+  const item =
+    approved || submission.status === "published"
+      ? await deps.repo.registry().findItem(submission.scope.name, submission.name)
+      : null;
   const published = item
     ? (await deps.repo.registry().publishedVersions(item.id)).map((v) => v.version)
     : [];

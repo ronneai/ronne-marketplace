@@ -6,7 +6,8 @@
 
 Everyone signed in can find what's in the registry and decide whether to install it: search and filter
 the published items, and open an item's page with its README, versions, dependencies, what it can do
-(its risk flags) and the command to install it.
+(its risk flags) and the command to install it. The home page becomes the starting point: what's new
+and what's used most in the registry.
 
 ## Scope
 
@@ -16,12 +17,17 @@ the published items, and open an item's page with its README, versions, dependen
   dependencies, files, risk flags, and the install command.
 - Rendering README Markdown safely.
 - **Catalogue** in the main nav, for everyone signed in.
+- **The home page** (`/`): recently published and most used items, and what's waiting for the
+  viewer. It stays a page of its own, never a redirect, since more sections will join it later.
+- **Download counts:** a count per item, which the home page's "Most used" reads. 019's tarball
+  endpoint adds to it.
 
 **Out:**
 - The per-platform support matrix → 026.
 - The read API for `rmk` and the MCP server → 019 (the same search service, over HTTP).
 - Downloading an artifact from the web page → 019's tarball endpoint.
-- Install counts and ratings (MVP §14, later).
+- Counting downloads: 019's tarball endpoint does it; 018 adds the column and reads it.
+- Ratings, and opt-in install telemetry from `rmk` (MVP §14, later).
 
 ## Behaviour
 
@@ -55,6 +61,24 @@ the published items, and open an item's page with its README, versions, dependen
 - **Propose a change** (017), for everyone signed in.
 - A missing item, or one with no published version, is a 404.
 
+**The home page** (`/`, everyone signed in; replaces the scaffold's placeholder):
+- **Search:** a search box that opens `/catalogue?q=…`.
+- **Recently published:** the 6 items with the most recent release, as catalogue cards, and "See
+  all" to the catalogue sorted by most recently published.
+- **Most used:** the 6 items with the most downloads, as catalogue cards with their count. Hidden
+  while no item has been downloaded yet (before 019, or on a new instance).
+- **For you:** your submissions in progress (drafts and changes requested), linking to
+  `/submissions`; for moderators and root, how many wait for review, linking to `/reviews`. A line
+  each, left out when there's nothing.
+- **An empty registry:** explains how items arrive (submit, review, release) and links to a new
+  submission.
+- Items with no installable version (every version yanked) are left out of both lists.
+
+**Download counts:** `items.download_count`, an integer starting at 0. 019's tarball endpoint adds
+one per artifact download, in a single `UPDATE … SET download_count = download_count + 1`, so
+concurrent downloads never lose a count. It counts downloads, not people or projects: a CI job that
+installs on every run counts every time. Nothing about who downloaded is stored.
+
 **Markdown** is rendered on the server with a Markdown library with raw HTML turned off (see Open
 questions), headings shifted so the page keeps one `h1`, and the design system's type styles.
 
@@ -72,11 +96,15 @@ questions), headings shifted so the page keeps one `h1`, and the design system's
 - [ ] The item page shows the header, install commands, and the README, Versions, Dependencies, Files and What it can do tabs, for `latest` and for another version.
 - [ ] README rendering never runs HTML or scripts from the item, tested with hostile input.
 - [ ] Items without a published version aren't listed, and their pages are 404s.
-- [ ] Playwright: a user searches for a published skill, filters by type, opens it, reads its README and copies the install command.
+- [ ] The home page shows recently published and most used items (most used hidden with no downloads, and items with no installable version left out), the viewer's submissions in progress and, for moderators and root, the review count; an empty registry explains how items arrive.
+- [ ] `items.download_count` exists on all four databases, and the most used query orders by it.
+- [ ] Playwright: a user starts from the home page's search box, searches for a published skill, filters by type, opens it, reads its README and copies the install command.
 
 ## Open questions
 
 1. **Markdown library:** `markdown-it` (MIT) with `html: false` (recommended: safe by default, no
    sanitiser needed), or `marked` (MIT) with a sanitiser, through the dependency checklist.
-2. **Catalogue and item pages need sign-in** (recommended; the instance is private and the proxy
+2. **Catalogue, item and home pages need sign-in** (recommended; the instance is private and the proxy
    already requires a session), or they're public to anyone who can reach the instance.
+3. **"Most used" counts all-time downloads** (recommended: one column, one query), or downloads
+   over the last 30 days, which needs a count per item per day and a cleanup job.

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEPENDENCY_TYPES, ITEM_TYPES, mayDependOn, mayHaveDependencies } from "./index.js";
-import { defaultTag, highestMatching, nextVersion, tagProblem } from "./versions.js";
+import { defaultTag, highestMatching, highestStable, nextVersion, tagProblem } from "./versions.js";
 
 describe("DEPENDENCY_TYPES", () => {
   it("matches manifest spec §3", () => {
@@ -83,5 +83,13 @@ describe("tags", () => {
     expect(tagProblem("x", "1.0.0")).toContain("version range");
     expect(tagProblem("v1", "1.0.0")).toContain("version range");
     expect(tagProblem("latest", "1.1.0-beta.1")).toContain("stable version");
+  });
+});
+
+describe("highestStable", () => {
+  it("skips pre-releases and invalid versions", () => {
+    expect(highestStable(["1.0.0", "1.2.0", "2.0.0-beta.1", "x"])).toBe("1.2.0");
+    expect(highestStable(["2.0.0-beta.1"])).toBeNull();
+    expect(highestStable([])).toBeNull();
   });
 });

@@ -23,7 +23,11 @@ export type ItemVersion = {
   size: number;
   publishedAt: Date;
   yankedAt: Date | null;
+  yankReason: string | null;
   deprecatedMessage: string | null;
+  publishedBy: string;
+  /** The publisher's name, or null if the user is gone. */
+  publishedByName: string | null;
   /** `@scope/name` → range, from the version's manifest. */
   dependencies: Record<string, string>;
 };
@@ -40,7 +44,8 @@ export type NewItemVersion = {
   size: number;
   publishedBy: string;
   publishedAt: Date;
-  submissionId: string;
+  /** The submission it was released from; null for versions made outside the review flow. */
+  submissionId: string | null;
   /** Resolved to item ids, as `version_dependencies` stores them. */
   dependencies: { itemId: string; range: string }[];
 };

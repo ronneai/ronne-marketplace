@@ -28,7 +28,12 @@ export const AUDIT_ACTIONS = [
   "submission.rejected",
   "submission.override_approved",
   "version.published",
+  "version.deprecated",
+  "version.undeprecated",
+  "version.yanked",
+  "version.unyanked",
   "dist_tag.moved",
+  "dist_tag.removed",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

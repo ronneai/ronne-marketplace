@@ -68,16 +68,16 @@ New folders start from [`_template/`](./_template/).
 |---|---|---|---|
 | [014](./014-review-queue/SPEC.md) | Review queue: diff, comments, decisions, root override, risk flags | 013, 007 | done |
 | [015](./015-release/SPEC.md) | Release: semver bump, pack, `StorageAdapter`, dist-tags | 014 | done |
-| [016](./016-version-management/SPEC.md) | Version management: move tags, deprecate, yank | 015 | specified |
+| [016](./016-version-management/SPEC.md) | Version management: move tags, deprecate, yank | 015 | done |
 | [017](./017-change-proposals/SPEC.md) | Change proposals: diff against base, stale and rebase | 015, 018 | specified |
-| [018](./018-catalogue/SPEC.md) | Catalogue: search, filters, item page | 015 | specified |
+| [018](./018-catalogue/SPEC.md) | Catalogue: search, filters, item page, home page | 015 | specified |
 | 033 | In-app help: a Documentation page (how the registry works and is organised: scopes, items and types, the submission lifecycle, versions and dist-tags, `rmk`) and inline helpers in each feature (explanations and examples where people need them) | 012, 013 | planned |
 
 ### M4 — `rmk` + Claude Code
 
 | ID | Feature | Depends on | Status |
 |---|---|---|---|
-| 019 | Registry read API (`/api/v1` items, tarball, errors, pagination) | 009, 015 | planned |
+| 019 | Registry read API (`/api/v1` items, tarball with download count, errors, pagination) | 009, 015, 018 | planned |
 | 020 | Resolver in `packages/core` | 011 | planned |
 | 021 | Renderer interface and golden-file test harness | 011 | planned |
 | 022 | `rmk` CLI: login, search, info, install, update, remove, outdated; lockfile and state file | 019, 020, 021 | planned |

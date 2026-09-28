@@ -11,6 +11,7 @@ const EXPECTED: Record<Role, Permission[]> = {
     "submissions.view_submitted",
     "submissions.review",
     "submissions.publish",
+    "versions.manage",
   ],
   root: [
     "account.manage_own",
@@ -23,6 +24,7 @@ const EXPECTED: Record<Role, Permission[]> = {
     "submissions.review",
     "submissions.override",
     "submissions.publish",
+    "versions.manage",
   ],
 };
 

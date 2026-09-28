@@ -4,6 +4,7 @@ import type { EditorDraft } from "@/features/draft-editor/types";
 import { Conversation } from "@/features/reviews/Conversation";
 import { PublishDialog } from "@/features/reviews/PublishDialog";
 import { RiskSummary } from "@/features/reviews/RiskSummary";
+import { versionsPath } from "@/features/versions/links";
 import { getReview } from "@/server/domains/submissions/actions/reviews";
 import { viewSubmission } from "@/server/domains/submissions/actions/submissions";
 import { SubmissionNotFoundError } from "@/server/domains/submissions/exceptions/errors";
@@ -13,7 +14,10 @@ import { requestHeaders } from "@/server/http/request-headers";
 
 export const metadata = { title: "Draft · Ronne" };
 
-const toEditorDraft = (draft: Draft & { mine: boolean }): EditorDraft => ({
+const toEditorDraft = (
+  draft: Draft & { mine: boolean },
+  versionsHref: string | null,
+): EditorDraft => ({
   id: draft.id,
   scope: draft.scope.name,
   name: draft.name,
@@ -26,6 +30,7 @@ const toEditorDraft = (draft: Draft & { mine: boolean }): EditorDraft => ({
     draft.mine &&
     (canTransition(draft.status, "submit") || canTransition(draft.status, "resubmit")),
   canWithdraw: draft.mine && canTransition(draft.status, "withdraw"),
+  versionsHref,
   files: draft.files.map((file) => ({
     path: file.path,
     encoding: file.encoding,
@@ -56,7 +61,10 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
   return (
     <div className="grid gap-6">
       {/* A new version from the server (an import, a rename, a submit) starts the editor afresh. */}
-      <DraftEditor key={draft.updatedAt.toISOString()} draft={toEditorDraft(draft)} />
+      <DraftEditor
+        key={draft.updatedAt.toISOString()}
+        draft={toEditorDraft(draft, review?.published.length ? versionsPath(draft) : null)}
+      />
       {review?.can.publish ? (
         <section
           aria-labelledby="release"
@@ -70,13 +78,23 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
               Publish it to make it installable. Versions never change once published.
             </p>
           </div>
-          <PublishDialog id={id} itemName={itemNameOf(draft)} published={review.published} />
+          <PublishDialog
+            id={id}
+            itemName={itemNameOf(draft)}
+            published={review.published}
+            versionsHref={versionsPath(draft)}
+          />
         </section>
       ) : null}
       {review ? (
         <>
           <RiskSummary flags={review.flags} />
-          <Conversation id={id} events={review.events} canComment={review.can.comment} />
+          <Conversation
+            id={id}
+            events={review.events}
+            canComment={review.can.comment}
+            versionsHref={versionsPath(draft)}
+          />
         </>
       ) : null}
     </div>
