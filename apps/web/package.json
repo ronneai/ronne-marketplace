@@ -16,7 +16,7 @@
     "reset-root-password": "pnpm --filter @ronneai/core --silent build && tsx scripts/reset-root-password.ts",
     "test:db": "pnpm --filter @ronneai/core --silent build && vitest run --project db",
     "build:scripts": "tsdown",
-    "test:e2e": "pnpm --filter @ronneai/core build && next build && playwright test"
+    "test:e2e": "pnpm --filter @ronneai/core build && pnpm --filter @ronneai/rmk build && next build && playwright test"
   },
   "dependencies": {
     "@clack/prompts": "1.8.1",

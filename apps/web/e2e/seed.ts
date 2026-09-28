@@ -12,6 +12,7 @@ import {
   E2E_NAMES,
   E2E_PASSWORD,
   E2E_PROPOSAL_ITEM,
+  E2E_RMK_ITEMS,
   E2E_SCOPE,
   E2E_SKILL,
   E2E_USERS,
@@ -160,4 +161,73 @@ const kitVersion = await items.insertVersion({
   riskFlags: [],
 });
 await items.setTag(kitId, "latest", kitVersion);
+
+// Items for `rmk` end to end (022, 023): each with a real artifact, packed like a release.
+const release = async (
+  name: string,
+  type: "agent" | "hook" | "mcp-server",
+  version: string,
+  files: Record<string, string>,
+  dependencies: { itemId: string; range: string }[] = [],
+) => {
+  const packed = await packItem(
+    Object.entries(files).map(([path, text]) => ({ path, bytes: new TextEncoder().encode(text) })),
+    { version },
+  );
+  const path = `${E2E_SCOPE}/${name}/${version}.tgz`;
+  await localStorage(storagePath).put(path, packed.tgz);
+  const existing = await items.findByName(E2E_SCOPE, name);
+  const itemId =
+    existing?.id ??
+    (await items.insertItem({
+      scopeId,
+      name,
+      type,
+      description: `The ${name} item.`,
+      ownerId: ids.releaser ?? "",
+      createdAt: new Date(),
+    }));
+  const versionId = await items.insertVersion({
+    itemId,
+    version,
+    manifest: { name: `@${E2E_SCOPE}/${name}`, type, description: `The ${name} item.`, version },
+    readme: null,
+    files: Object.entries(files).map(([p, text]) => ({
+      path: p,
+      size: text.length,
+      executable: false,
+    })),
+    notes: null,
+    artifactPath: path,
+    sha256: packed.sha256,
+    size: packed.size,
+    publishedBy: ids.releaser ?? "",
+    publishedAt: new Date(),
+    submissionId: null,
+    dependencies,
+    riskFlags: [],
+  });
+  await items.setTag(itemId, "latest", versionId);
+  return itemId;
+};
+const mcpId = await release(E2E_RMK_ITEMS.mcp, "mcp-server", "1.0.0", {
+  "ronne.yaml": `name: "@${E2E_SCOPE}/${E2E_RMK_ITEMS.mcp}"\ntype: mcp-server\ndescription: The kit-mcp item.\nmcp-server:\n  transport: stdio\n  command: npx\n  args: ["-y", "@example/mcp"]\n  env:\n    - name: KIT_TOKEN\n      required: true\n      secret: true\n`,
+});
+await release(
+  E2E_RMK_ITEMS.agent,
+  "agent",
+  "1.0.0",
+  {
+    "ronne.yaml": `name: "@${E2E_SCOPE}/${E2E_RMK_ITEMS.agent}"\ntype: agent\ndescription: The kit-agent item.\nagent:\n  prompt: prompt.md\n  tools: [read, "mcp:${E2E_RMK_ITEMS.mcp}"]\n  model: fast\ndependencies:\n  "@${E2E_SCOPE}/${E2E_PROPOSAL_ITEM}": "^1.0.0"\n  "@${E2E_SCOPE}/${E2E_RMK_ITEMS.mcp}": "^1.0.0"\n`,
+    "prompt.md": "Review with the kit.\n",
+  },
+  [
+    { itemId: kitId, range: "^1.0.0" },
+    { itemId: mcpId, range: "^1.0.0" },
+  ],
+);
+for (const version of ["1.0.0", "1.1.0"])
+  await release(E2E_RMK_ITEMS.hook, "hook", version, {
+    "ronne.yaml": `name: "@${E2E_SCOPE}/${E2E_RMK_ITEMS.hook}"\ntype: hook\ndescription: The kit-hook item.\nhook:\n  event: tool.after\n  matcher:\n    tool: edit\n  run:\n    command: "echo kit ${version}"\n`,
+  });
 await db.destroy();

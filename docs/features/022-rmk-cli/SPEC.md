@@ -122,14 +122,14 @@ Node's own modules (`util.parseArgs`, `readline`), so the CLI adds no dependenci
 
 ## Acceptance criteria
 
-- [ ] Each command works as above against a real instance, with `--json` output and the exit codes.
-- [ ] `install` writes `rmk.lock` and `.rmk/state.json` exactly as cli-files.md describes, and a second `install` from the lockfile writes the same files.
-- [ ] A checksum mismatch stops before anything is written.
-- [ ] An edited managed file or key is reported as a conflict and left alone, and `--force` replaces it; unmanaged content is never touched.
-- [ ] `update`, `outdated` and `remove` follow the lockfile and ranges as specified; `remove` takes away dependencies nothing else needs.
-- [ ] The token file is created `0600`, and a readable one is refused.
-- [ ] An end-to-end test installs an item from a running instance into a temporary project with the reference renderer (021), updates it after a new release, and removes it.
-- [ ] The Installing with rmk topic describes the released commands and files, the item page has its helper, and nothing in the app still says `rmk` isn't released.
+- [x] Each command works as above against a real instance, with `--json` output and the exit codes.
+- [x] `install` writes `rmk.lock` and `.rmk/state.json` exactly as cli-files.md describes, and a second `install` from the lockfile writes the same files.
+- [x] A checksum mismatch stops before anything is written.
+- [x] An edited managed file or key is reported as a conflict and left alone, and `--force` replaces it; unmanaged content is never touched.
+- [x] `update`, `outdated` and `remove` follow the lockfile and ranges as specified; `remove` takes away dependencies nothing else needs.
+- [x] The token file is created `0600`, and a readable one is refused.
+- [x] An end-to-end test installs an item from a running instance into a temporary project with the reference renderer (021), updates it after a new release, and removes it.
+- [x] The Installing with rmk topic describes the released commands and files, the item page has its helper, and nothing in the app still says `rmk` isn't released.
 
 ## Open questions
 

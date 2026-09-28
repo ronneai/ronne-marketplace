@@ -20,7 +20,7 @@ the same change that completes it.
   checking how a project enables it; bundles render nothing of their own.
   *Done when:* golden files are committed.
 
-- [ ] **4. End to end.** `rmk install --target claude-code` of a skill, an agent, a hook and an MCP
+- [x] **4. End to end.** `rmk install --target claude-code` of a skill, an agent, a hook and an MCP
   server into a temporary project, then `rmk remove`.
   *Done when:* it passes in CI, and unmanaged files and keys are untouched.
 - [x] **5. Documentation.** The Claude Code section, the types table's links, and the item page's
@@ -63,5 +63,6 @@ the same change that completes it.
   approval and env references, output styles, language servers as plugins, markers). The types
   table has an "In Claude Code" column linking to it, and the item page a "Where does this go in
   Claude Code?" helper next to the type.
-- **Task 4 waits for 022.** The end-to-end test installs with `rmk`, which doesn't exist yet: it's
-  part of 022's end-to-end task, and this feature stays in progress until it passes.
+- **Task 4 (2026-09-28): end to end**, delivered with 022: `apps/web/e2e/rmk.e2e.ts` installs a
+  skill, an agent, a hook and an MCP server into a temporary project with `--target claude-code`,
+  updates the hook, and removes them, with the user's own file and setting untouched.

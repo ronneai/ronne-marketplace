@@ -20,6 +20,7 @@ export const E2E_USERS = {
   proposer: "proposer@e2e.test",
   reader: "reader@e2e.test",
   downloader: "downloader@e2e.test",
+  installer: "installer@e2e.test",
 } as const;
 
 /** The display names, which the header shows (not the email). */
@@ -39,6 +40,7 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   proposer: "Pat Proposer",
   reader: "Rea Reader",
   downloader: "Dan Downloader",
+  installer: "Ines Installer",
 };
 
 /** Seeded with the moderator role; everyone else is a user. */
@@ -58,3 +60,6 @@ export const E2E_SKILL = "secret-scanner";
 
 /** A skill the seed releases as 1.0.0 with a real artifact, for change proposals (017). */
 export const E2E_PROPOSAL_ITEM = "prompt-kit";
+
+/** Items the seed releases with real artifacts for `rmk` (022, 023): an MCP server, an agent that needs it and the skill, and a hook with two versions. */
+export const E2E_RMK_ITEMS = { mcp: "kit-mcp", agent: "kit-agent", hook: "kit-hook" } as const;

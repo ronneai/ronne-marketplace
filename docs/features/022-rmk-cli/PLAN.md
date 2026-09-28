@@ -29,7 +29,7 @@ the same change that completes it.
   *Done when:* tests cover updating within a range, a yanked locked version, outdated's columns, and
   removing an item with dependencies still needed by another.
 
-- [ ] **6. End to end.** Against a built instance with a published item: install into a temporary
+- [x] **6. End to end.** Against a built instance with a published item: install into a temporary
   project with the reference renderer, update after a new release, remove.
   *Done when:* it passes in CI.
 - [x] **7. Documentation.** The rewritten Installing with rmk topic, the item page's helper, and the
@@ -96,3 +96,16 @@ the same change that completes it.
   Tokens and the API and Claude Code. "When it arrives" is gone, and the overview's install step
   links to Installing. The item page has "How do I install it?" by the install commands, and
   Deprecate or yank says what rmk prints and that a pinned yanked version still installs.
+- **Task 6 (2026-09-28): end to end.** `apps/web/e2e/rmk.e2e.ts` runs the built CLI
+  (`packages/cli/dist/bin.js`; `pnpm test:e2e` now builds it) against the Playwright instance:
+  a token from `POST /api/v1/auth/token`, then `install` of a seeded agent (which brings the skill
+  and MCP server it needs, and lists the env var to set), `install` of a hook pinned at 1.0.0,
+  `outdated`, `update` to 1.1.0, and `remove` of both, with a file and a setting of the user's
+  left untouched. It's also 023's end-to-end criterion (skill, agent, hook, MCP server). It caught
+  one bug: updating an item whose setting is an array element added the new element without
+  removing the old one; `planChanges` now removes a changed element before the new one is written.
+  The skill's version isn't asserted exactly, since another test releases a newer one first.
+- **Getting rmk (2026-09-28, owner's question).** The Documentation now says how to get `rmk`
+  itself: not on npm yet, so built from the repository (`pnpm build`, then
+  `node packages/cli/dist/bin.js`, or `npm link` in `packages/cli`), with the npm command it will
+  have once published. Publishing is the release chore after M4 (spec, Out).
