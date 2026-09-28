@@ -300,7 +300,11 @@ export const planChanges = async (
         // The user removed it: it comes back, since it's wanted.
         plan.gone.push(previous);
         plan.writes.push({ wanted: w, entry });
-      } else plan.writes.push({ wanted: w, entry });
+      } else {
+        // A changed element: the old one goes before the new one is added.
+        if (previous && previous.sha256 !== hash) plan.removes.push(previous);
+        plan.writes.push({ wanted: w, entry });
+      }
       continue;
     }
     const onDisk = await diskHash(root, change);

@@ -260,4 +260,22 @@ describe("applying changes", () => {
     chmodSync(join(root, "bin/run.sh"), 0o644);
     expect(existsSync(join(root, "bin/run.sh.tmp"))).toBe(false);
   });
+
+  it("replaces a changed array element instead of adding a second one", async () => {
+    const hook = (command: string): Wanted =>
+      wanted({
+        kind: "json-array-item",
+        path: ".claude/settings.json",
+        key: ["hooks", "PostToolUse"],
+        item: { matcher: "Edit", hooks: [{ type: "command", command }] },
+      });
+    const { state } = await install(emptyState(), [hook("echo v1")]);
+    const updated = await install(state, [hook("echo v2")]);
+    expect(updated.plan.removes).toHaveLength(1);
+    expect(updated.plan.writes).toHaveLength(1);
+    expect(json(".claude/settings.json").hooks.PostToolUse).toEqual([
+      { matcher: "Edit", hooks: [{ type: "command", command: "echo v2" }] },
+    ]);
+    expect(updated.state.entries).toHaveLength(1);
+  });
 });
