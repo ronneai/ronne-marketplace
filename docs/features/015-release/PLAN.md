@@ -11,7 +11,7 @@ the same change that completes it.
   `version_dependencies`, with their Kysely types.
   *Done when:* it migrates on SQLite and the three servers, with foreign-key and unique-index tests.
 
-- [ ] **2. `StorageAdapter`.** The interface and the local-disk implementation (temporary file and
+- [x] **2. `StorageAdapter`.** The interface and the local-disk implementation (temporary file and
   rename, no overwrite of different bytes, safe keys), wired to `STORAGE_PATH`.
   *Done when:* tests cover put, get, exists, a retried identical put, a refused different put, and
   unsafe keys.
@@ -41,3 +41,9 @@ the same change that completes it.
   `1.1.0-Beta.1` are two; manifest, README and file list as `longText`, since MySQL's `text` stops
   at 64 KB), `dist_tags` (one per tag per item) and `version_dependencies`. Everything else is
   RESTRICT: published versions are never deleted. Tested on all four databases, with a 1 MB README.
+- **Task 2 (2026-09-28): `StorageAdapter`.** `server/storage/`: the interface, `localStorage(root)`
+  and `getStorage()` over `STORAGE_PATH`. A put writes a temporary file and hard-links it into
+  place, which fails when the key exists, so two concurrent puts can't both win (tested); the same
+  bytes again succeed, different ones throw `StorageConflictError`. Keys that are absolute, have
+  `..`, `.`, empty segments, backslashes or control characters throw `StorageKeyError`. `get`
+  returns the bytes rather than a stream: artifacts are at most 5 MB, and 019 can add streaming.

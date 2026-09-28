@@ -68,10 +68,11 @@ not a valid semver range).
    `dist_tag.moved { name, tag, from, to }`.
 5. If the transaction fails, the stored file stays but nothing points to it; a retry reuses it (step 3).
 
-**`StorageAdapter`** (`server/storage/`): `put(key, bytes)`, `get(key)` (a stream), `exists(key)`,
-`size(key)`. The local implementation writes under `STORAGE_PATH` through a temporary file and a
-rename, refuses keys with `..` or absolute paths, and never deletes (yanked versions keep their
-files, MVP §3.4).
+**`StorageAdapter`** (`server/storage/`): `put(key, bytes)`, `get(key)` (the bytes: artifacts are at
+most 5 MB, MVP §12), `exists(key)`, `size(key)`. The local implementation writes under
+`STORAGE_PATH` through a temporary file hard-linked into place, which fails if the key already
+exists, so two writers can't race; it refuses keys with `..` or absolute paths, and never deletes
+(yanked versions keep their files, MVP §3.4).
 
 **The registry lookup** (`kyselyRegistryLookup`): `findItem` and `publishedVersions` over the new
 tables, so 013's name and dependency checks see published items.
