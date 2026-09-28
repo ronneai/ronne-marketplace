@@ -6,7 +6,7 @@ import type { AppMigration } from "./types";
  * Drafts and submissions (feature 012). Draft files live in the database, so a save is one
  * transaction and one backup covers everything; published packages go to the StorageAdapter (015).
  * Authors and scopes are RESTRICT: users are disabled, never deleted, and scopes are never deleted.
- * A submission's files go with it. Table-level foreign keys, as in 0001.
+ * A submission's files go with it, and their paths compare exactly, case and accents included. Table-level foreign keys, as in 0001.
  */
 export const submissions: AppMigration = (dialect) => ({
   async up(db: Kysely<unknown>) {
@@ -54,7 +54,7 @@ export const submissions: AppMigration = (dialect) => ({
         ["id"],
         (fk) => fk.onDelete("cascade"),
       )
-      .addColumn("path", t.string(255), (c) => c.notNull())
+      .addColumn("path", t.exactString(255), (c) => c.notNull())
       .addPrimaryKeyConstraint("submission_files_pk", ["submission_id", "path"])
       .addColumn("encoding", t.string(8), (c) => c.notNull())
       .addColumn("content", t.longText(), (c) => c.notNull())

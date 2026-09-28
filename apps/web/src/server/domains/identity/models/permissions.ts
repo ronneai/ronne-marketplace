@@ -4,7 +4,7 @@ import type { Role } from "./user";
 /**
  * Every permission, and which roles hold it (MVP §2's matrix). The one place authorization is
  * decided (MVP §9.5): actions call `can()` or `requirePermission()`, never compare roles themselves.
- * Later features add their permissions here, such as `submissions.review` for moderator and root.
+ * Later features add their permissions here, such as `submissions.review` for moderator and root (013).
  */
 export const PERMISSIONS = {
   /** Own password and own access tokens. */
@@ -15,6 +15,8 @@ export const PERMISSIONS = {
   "audit.view": ["root"],
   /** Create scopes and edit their descriptions (feature 010). */
   "scopes.manage": ["root"],
+  /** Create, edit and delete your own drafts (feature 012). */
+  "submissions.create": ["user", "moderator", "root"],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

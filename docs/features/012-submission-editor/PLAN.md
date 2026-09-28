@@ -12,7 +12,7 @@ the same change that completes it.
   *Done when:* it migrates on SQLite and the 004 servers; a foreign-key test, and a test that a
   1 MB file round-trips on each database.
 
-- [ ] **2. `submissions` domain: drafts.** Model, repository (interface + Kysely), services and
+- [x] **2. `submissions` domain: drafts.** Model, repository (interface + Kysely), services and
   actions: create (with templates), list mine, get, save files, rename, delete; the author-only
   rule; `submissions.create` in the permission map.
   *Done when:* database tests cover each operation, privacy (other users and root get "not found"),
@@ -47,3 +47,21 @@ the same change that completes it.
     as base64, round-trip on SQLite, PostgreSQL 15, MySQL 8.4 and MariaDB 10.11.
   - `executable` uses the boolean helper and is written with `toDbBoolean` (SQLite can't bind
     booleans). The helpers' comments now allow booleans for flags with no moment behind them.
+  - `path` uses a new `columnTypes.exactString()`: on MySQL, `varchar … collate utf8mb4_bin`, since
+    the default collation would make `README.md` and `readme.md` (or `e.md` and `é.md`) one key.
+    Files are sorted in JavaScript, not by the database, for the same reason.
+- **Task 2 (2026-09-27): the `submissions` domain.**
+  - `models/submission.ts` is pure, so the editor can import it: `validateDraft` runs 011's checks
+    plus `name_mismatch` and `type_mismatch` against the draft, and `byteSize`/`fileBytes` handle
+    base64 with `atob`, which works in the browser.
+  - Services: `createDraft`, `listMySubmissions`, `getDraft`, `saveDraftFiles`, `renameDraft` and
+    `deleteDraft`. Someone else's draft, root's included, and a malformed id all give
+    `SubmissionNotFoundError`. Item names are trimmed and lowercased, as scope names are.
+  - A save is checked before the transaction (paths, duplicates, `ronne.yaml` not deleted, base64,
+    1 MB per file) and inside it (ownership, stale files, 500 files and 20 MB). A draft already over
+    a limit can still save changes that shrink it. The stale check compares each file's
+    `updatedAt` with the `loadedAt` the editor sends; `overwrite` skips it.
+  - Renaming rewrites `name` in `ronne.yaml` through the `yaml` document API, so comments and
+    quoting stay. `yaml` 2.9.1 is now a direct dependency of `apps/web` too (checked in 011).
+  - `createDraft` uses a placeholder template (`ronne.yaml` only); task 3 fills in the 11 types.
+  - Database tests pass on SQLite, PostgreSQL 15, MySQL 8.4 and MariaDB 10.11.

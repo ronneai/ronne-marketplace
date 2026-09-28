@@ -131,6 +131,16 @@ describe("0005_submissions", () => {
     await expect(insertFile(id, "prompt.md", "two")).rejects.toThrow();
   });
 
+  it("tells paths apart by case and accents on every database", async () => {
+    const id = await insertSubmission(
+      await insertUser("case@example.com"),
+      await insertScope("case"),
+    );
+    for (const path of ["README.md", "readme.md", "e.md", "é.md"]) await insertFile(id, path, path);
+    expect((await readFile(id, "readme.md")).content).toBe("readme.md");
+    expect((await readFile(id, "é.md")).content).toBe("é.md");
+  });
+
   it("stores a 1 MB text file and a 1 MB binary file unchanged", async () => {
     const id = await insertSubmission(
       await insertUser("big@example.com"),

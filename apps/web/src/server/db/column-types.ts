@@ -13,6 +13,14 @@ export const columnTypes = (dialect: DatabaseDialect) => {
     id: (): ColumnType => "varchar(26)",
     /** An indexed or length-limited string. */
     string: (length: number): ColumnType => `varchar(${length})`,
+    /**
+     * A string compared byte for byte, such as a file path. MySQL's default collation ignores case
+     * and accents, so `README.md` and `readme.md` would be one key there but two everywhere else.
+     */
+    exactString: (length: number): ColumnType =>
+      dialect === "mysql"
+        ? sql.raw(`varchar(${length}) character set utf8mb4 collate utf8mb4_bin`)
+        : `varchar(${length})`,
     /** Unindexed text of any length. */
     text: (): ColumnType => "text",
     /**

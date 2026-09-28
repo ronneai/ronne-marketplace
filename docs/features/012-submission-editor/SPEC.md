@@ -55,7 +55,7 @@ Indexes on (`author_id`, `status`) and (`scope_id`, `name`). The manifest isn't 
 | Column | Type | Notes |
 |---|---|---|
 | `submission_id` | ULID | FK → `submissions`, **ON DELETE CASCADE** |
-| `path` | `varchar(255)` | Relative, validated by 011's path rules. PK (`submission_id`, `path`) |
+| `path` | `varchar(255)` | Relative, validated by 011's path rules. PK (`submission_id`, `path`). Compared exactly: a new `columnTypes.exactString()` gives MySQL a binary collation, whose default ignores case and accents |
 | `encoding` | `varchar(8)` | `utf8` for text, `base64` for binary files |
 | `content` | long text | Up to 1 MB of file; a new `columnTypes.longText()` helper gives `longtext` on MySQL (whose `text` stops at 64 KB) and `text` elsewhere |
 | `size` | integer | Bytes of the file, for the limits |
@@ -116,7 +116,7 @@ draft's existence isn't revealed. (From 013, submitted ones are visible to moder
   returns the server's issues. There's no autosave in M2.
 - **Limits** (MVP §12, 011's defaults): the header shows the file count and total size against 500
   files and 20 MB, and uploads over 1 MB are refused on the client and again on the server.
-- **Draft settings:** rename the item (scope and name; the type stays), or delete the draft. Delete
+- **Draft settings:** rename the item (scope and name; the type stays; `name` in `ronne.yaml` follows, keeping its comments and quoting), or delete the draft. Delete
   asks for confirmation and removes the draft and its files for good (it was never submitted, so
   there's nothing to keep for history).
 
