@@ -1,0 +1,40 @@
+# 014 — Plan
+
+> Spec: [SPEC.md](./SPEC.md)
+
+Tasks in build order. Each is small enough for one session and ends with a check. Tick a task in
+the same change that completes it.
+
+## Tasks
+
+- [ ] **1. Migration `0006_reviews`.** `review_events`, `submission_revisions` and
+  `submission_revision_files`, with their Kysely types.
+  *Done when:* it migrates on SQLite and the three servers, with foreign-key tests.
+
+- [ ] **2. Risk flags in `packages/core`.** `riskFlags(manifest, files)` for each kind in the spec,
+  with the file and line each is about.
+  *Done when:* a test per flag, including a clean item with none and a policy whose `allow` rules are
+  listed as widening.
+
+- [ ] **3. Revisions and resubmit.** Snapshot on submit and resubmit, `changes_requested` editable,
+  `resubmit` through 013's checks, and submit, resubmit and withdraw events in the thread.
+  *Done when:* database tests cover the snapshots, resubmit's checks, and that later edits don't change
+  a revision.
+
+- [ ] **4. Decisions and comments.** The permissions, approve / request changes / reject / override,
+  comments, the row lock, and the audit events.
+  *Done when:* database tests cover each decision and who may take it, required messages, the
+  override, and two concurrent decisions on all four databases.
+
+- [ ] **5. Diff.** A line diff per file between two revisions (the chosen library or our own), with
+  added, removed, changed and binary files, and the size limit.
+  *Done when:* unit tests cover each case, including a diff too large to show.
+
+- [ ] **6. The queue.** `/reviews` with its three tabs, the risk badge, and the nav item and count.
+  *Done when:* render and action tests pass.
+
+- [ ] **7. The review page.** Header, risk summary with links, files (changes or all), checks, the
+  conversation, and the decision dialogs; the author's page shows the conversation and flags.
+  *Done when:* render tests pass, and the Playwright test in the acceptance criteria passes.
+
+## Notes

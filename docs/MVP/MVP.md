@@ -535,12 +535,14 @@ IDs are ULIDs and timestamps are UTC (§9.4).
 | `access_tokens` | id, user_id, name, token_hash (unique), last_used_at, expires_at, revoked_at, created_at |
 | `scopes` | id, name (unique), description, created_by (set null), created_at |
 | `items` | id, scope_id, name, type, description, owner_id, created_at — unique (scope_id, name) |
-| `item_versions` | id, item_id, version, manifest (JSON), artifact_path, sha256, size, published_by, published_at, deprecated_message, yanked_at |
+| `item_versions` | id, item_id, version, manifest (JSON), readme, files (JSON: paths, sizes, executable), notes, artifact_path, sha256, size, published_by, published_at, deprecated_message, yanked_at, submission_id. `readme` and `files` are copied at publish so pages never unpack an artifact ([015](../features/015-release/SPEC.md)) |
 | `dist_tags` | item_id, tag, version_id — PK (item_id, tag) |
 | `version_dependencies` | version_id, depends_on_item_id, range |
 | `submissions` | id, author_id, scope_id, name, type, item_id (null for new), base_version_id, status, created_at, updated_at, submitted_at. The manifest is the `ronne.yaml` in `submission_files` |
 | `submission_files` | submission_id, path — PK (submission_id, path); encoding (`utf8`/`base64`), content (long text), size, executable, updated_at. Draft files live in the database; published packages go to the `StorageAdapter` |
-| `review_events` | id, submission_id, actor_id, kind (`comment`/`request_changes`/`approve`/`reject`/`override`), body, created_at |
+| `submission_revisions` | id, submission_id, number, created_by, created_at: a snapshot on every submit and resubmit, which reviewers read and releases pack ([014](../features/014-review-queue/SPEC.md)) |
+| `submission_revision_files` | revision_id, path — PK (revision_id, path); encoding, content, size, executable (as `submission_files`) |
+| `review_events` | id, submission_id, actor_id, kind (`comment`/`request_changes`/`approve`/`reject`/`override`/`resubmit`/`withdraw`), body, revision, created_at |
 | `audit_log` | id, actor_id, action, target_type, target_id, metadata (JSON), created_at |
 
 ## 11. REST API sketch (`/api/v1`)
