@@ -1,18 +1,24 @@
 "use client";
 
-import { DEFAULT_LIMITS, formatBytes } from "@ronneai/core";
+import { DEFAULT_LIMITS, formatBytes, type ManifestIssue } from "@ronneai/core";
 import { FilePlus, FolderPlus, Settings, Upload } from "lucide-react";
-import { useCallback, useReducer, useRef, useState, useTransition } from "react";
+import { useCallback, useMemo, useReducer, useRef, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/Notice";
-import { MANIFEST_PATH, toDraftContent } from "@/server/domains/submissions/models/submission";
+import { IssueList } from "@/components/validation/IssueList";
+import {
+  MANIFEST_PATH,
+  toDraftContent,
+  validateDraft,
+} from "@/server/domains/submissions/models/submission";
 import { saveDraftAction } from "./actions";
 import { CodeEditor } from "./CodeEditor";
 import { DeleteFileDialog, DraftSettingsDialog, ImportZipDialog, PathDialog } from "./FileDialogs";
 import { FileTree } from "./FileTree";
 import { changesOf, filesReducer, isDirty, newPathProblem, totalsOf } from "./files";
-import { useSaveShortcut, useUnsavedWarning } from "./hooks";
+import { useDebounced, useSaveShortcut, useUnsavedWarning } from "./hooks";
+import { ManifestForm } from "./ManifestForm";
 import type { EditorDraft, SaveResult } from "./types";
 
 type Open =
@@ -24,7 +30,7 @@ type Open =
   | null;
 
 type Status =
-  | { kind: "saved"; at: Date }
+  | { kind: "saved"; at: Date; issues: ManifestIssue[] }
   | { kind: "error"; message: string }
   | { kind: "stale"; message: string }
   | null;
@@ -51,6 +57,8 @@ export const DraftEditor = ({
   const [open, setOpen] = useState<Open>(null);
   const [status, setStatus] = useState<Status>(null);
   const [saving, startSave] = useTransition();
+  const [view, setView] = useState<"form" | "yaml">("form");
+  const [goTo, setGoTo] = useState<{ line: number; at: number } | null>(null);
   const upload = useRef<HTMLInputElement>(null);
   const replace = useRef<HTMLInputElement>(null);
 
@@ -58,6 +66,26 @@ export const DraftEditor = ({
   const file = state.files.find((f) => f.path === selected) ?? state.files[0];
   const totals = totalsOf(state.files);
   useUnsavedWarning(dirty);
+
+  // 011's checks, in the browser, once typing pauses: the same function the server runs on save.
+  const settled = useDebounced(state.files, 300);
+  const identity = useMemo(
+    () => ({ scope: { name: draft.scope }, name: draft.name, type: draft.type }),
+    [draft.scope, draft.name, draft.type],
+  );
+  const issues = useMemo(
+    () => validateDraft(identity, settled, limits),
+    [identity, settled, limits],
+  );
+
+  /** Opens the file and line an issue is about; in ronne.yaml, that's the YAML view. */
+  const openIssue = (issue: ManifestIssue) => {
+    const path = issue.file ?? MANIFEST_PATH;
+    if (!state.files.some((f) => f.path === path)) return;
+    setSelected(path);
+    if (path === MANIFEST_PATH) setView("yaml");
+    if (issue.line) setGoTo({ line: issue.line, at: Date.now() });
+  };
 
   const save = useCallback(
     (overwrite = false) => {
@@ -79,7 +107,7 @@ export const DraftEditor = ({
           sent: changes.writes,
           removed: changes.deletes.map((f) => f.path),
         });
-        setStatus({ kind: "saved", at: new Date() });
+        setStatus({ kind: "saved", at: new Date(), issues: result.issues });
       });
     },
     [state, saving, draft.id],
@@ -148,6 +176,9 @@ export const DraftEditor = ({
           <>
             <span className="mr-2 font-mono text-xs font-semibold">OK:</span>
             Saved at {status.at.toLocaleTimeString()}.
+            {status.issues.some((issue) => issue.severity === "error")
+              ? " Fix the problems below before you submit it."
+              : ""}
           </>
         ) : status?.kind === "error" ? (
           <>
@@ -233,21 +264,38 @@ export const DraftEditor = ({
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="truncate font-mono text-sm text-fg">{file.path}</span>
                 <div className="flex flex-wrap items-center gap-1">
-                  <label className="flex items-center gap-1.5 px-2 text-xs text-muted">
-                    <input
-                      type="checkbox"
-                      checked={file.executable}
-                      onChange={(event) =>
-                        dispatch({
-                          type: "executable",
-                          path: file.path,
-                          executable: event.target.checked,
-                        })
-                      }
-                      className="size-4 accent-(--accent)"
-                    />
-                    Executable
-                  </label>
+                  {file.path === MANIFEST_PATH ? (
+                    <fieldset className="flex gap-1 rounded-control border border-hairline bg-canvas p-0.5">
+                      <legend className="sr-only">ronne.yaml view</legend>
+                      {(["form", "yaml"] as const).map((mode) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          aria-pressed={view === mode}
+                          onClick={() => setView(mode)}
+                          className="h-7 rounded-control px-3 text-xs font-semibold text-muted hover:text-fg aria-pressed:border aria-pressed:border-hairline aria-pressed:bg-surface aria-pressed:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
+                        >
+                          {mode === "form" ? "Form" : "YAML"}
+                        </button>
+                      ))}
+                    </fieldset>
+                  ) : (
+                    <label className="flex items-center gap-1.5 px-2 text-xs text-muted">
+                      <input
+                        type="checkbox"
+                        checked={file.executable}
+                        onChange={(event) =>
+                          dispatch({
+                            type: "executable",
+                            path: file.path,
+                            executable: event.target.checked,
+                          })
+                        }
+                        className="size-4 accent-(--accent)"
+                      />
+                      Executable
+                    </label>
+                  )}
                   {file.path !== MANIFEST_PATH ? (
                     <>
                       <button
@@ -269,8 +317,26 @@ export const DraftEditor = ({
                 </div>
               </div>
               <div className="h-[60vh] overflow-hidden rounded-panel border border-hairline">
-                {file.encoding === "utf8" ? (
-                  <CodeEditor path={file.path} value={file.content} onChange={onChange} />
+                {file.path === MANIFEST_PATH && view === "form" ? (
+                  <div className="h-full overflow-y-auto bg-surface">
+                    <ManifestForm
+                      text={file.content}
+                      type={draft.type}
+                      itemName={`@${draft.scope}/${draft.name}`}
+                      files={state.files
+                        .map((f) => f.path)
+                        .filter((path) => path !== MANIFEST_PATH)}
+                      onChange={(content) => onChange(MANIFEST_PATH, content)}
+                      onShowYaml={() => setView("yaml")}
+                    />
+                  </div>
+                ) : file.encoding === "utf8" ? (
+                  <CodeEditor
+                    path={file.path}
+                    value={file.content}
+                    onChange={onChange}
+                    goToLine={goTo}
+                  />
                 ) : (
                   <div className="grid h-full place-content-center justify-items-center gap-3 bg-surface p-6 text-center">
                     <p className="text-sm text-fg">
@@ -295,6 +361,16 @@ export const DraftEditor = ({
               </div>
             </>
           ) : null}
+          <section
+            aria-label="Problems"
+            className="grid gap-2 rounded-panel border border-hairline bg-surface p-3"
+          >
+            <h2 className="text-sm font-semibold text-fg">Problems</h2>
+            <IssueList issues={issues} onSelect={openIssue} />
+            <p className="text-xs text-muted">
+              A draft can be saved with problems; it has to be free of errors to be submitted.
+            </p>
+          </section>
         </section>
       </div>
 

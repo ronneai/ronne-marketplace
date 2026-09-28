@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * Warns before leaving with unsaved changes: the browser's own prompt when closing or reloading,
@@ -43,4 +43,14 @@ export const useSaveShortcut = (save: () => void) => {
     window.addEventListener("keydown", keydown);
     return () => window.removeEventListener("keydown", keydown);
   }, []);
+};
+
+/** `value`, once it has stopped changing for `delay` ms: validation doesn't run on every key. */
+export const useDebounced = <T>(value: T, delay: number): T => {
+  const [settled, setSettled] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setSettled(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return settled;
 };

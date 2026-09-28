@@ -110,7 +110,7 @@ draft's existence isn't revealed. (From 013, submitted ones are visible to moder
   and anything over the limits, before changing the draft. Replacing with an archive that has no
   `ronne.yaml` is refused.
 - **Validation:** a panel under the editor lists 011's issues (errors, then warnings) as you type,
-  debounced; clicking one opens the file and line. The same checks run on the server when you save,
+  debounced; clicking one opens the file and line (ronne.yaml's in the YAML view). The same checks run on the server when you save,
   and a draft can be saved while it has errors (a draft is work in progress). 013 refuses to submit
   one.
 - **Saving:** the Save button and Ctrl/Cmd+S send the changed files in one server action. The page
@@ -151,17 +151,17 @@ one transaction.
 
 ## Acceptance criteria
 
-- [ ] `0005_submissions` creates both tables, indexes and table-level foreign keys on all four databases, and `longText()` stores a 1 MB file on MySQL.
-- [ ] Anyone signed in can create a draft of each of the 11 types from its template, and each template passes 011 apart from its placeholder description.
-- [ ] Drafts are private: another user, root included, gets a 404 for someone else's draft (page and actions).
-- [ ] The form and the YAML stay in step both ways, and comments in `ronne.yaml` survive form edits.
-- [ ] Files can be created, renamed, deleted, uploaded and marked executable; binary files are stored and kept byte-for-byte.
-- [ ] `.zip` import merges or replaces, unwraps a single top folder, and refuses traversal, symlinks and oversized archives without changing the draft.
-- [ ] Validation issues from 011 show as you type and after saving, and link to the file and line.
-- [ ] The limits hold on the client and the server.
-- [ ] A save that would overwrite a newer version of a file warns first.
-- [ ] Deleting a draft removes it and its files.
-- [ ] Playwright: create an agent draft, edit its prompt in CodeMirror, change the description in the form, see a validation error disappear, save, reload, and see the changes.
+- [x] `0005_submissions` creates both tables, indexes and table-level foreign keys on all four databases, and `longText()` stores a 1 MB file on MySQL.
+- [x] Anyone signed in can create a draft of each of the 11 types from its template, and each template passes 011 apart from its placeholder description.
+- [x] Drafts are private: another user, root included, gets a 404 for someone else's draft (page and actions).
+- [x] The form and the YAML stay in step both ways, and comments in `ronne.yaml` survive form edits.
+- [x] Files can be created, renamed, deleted, uploaded and marked executable; binary files are stored and kept byte-for-byte.
+- [x] `.zip` import merges or replaces, unwraps a single top folder, and refuses traversal, symlinks and oversized archives without changing the draft.
+- [x] Validation issues from 011 show as you type and after saving, and link to the file and line.
+- [x] The limits hold on the client and the server.
+- [x] A save that would overwrite a newer version of a file warns first.
+- [x] Deleting a draft removes it and its files.
+- [x] Playwright: create an agent draft, edit its prompt in CodeMirror, change the description in the form, see a validation error disappear, save, reload, and see the changes.
 
 ## Open questions
 

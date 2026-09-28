@@ -1,7 +1,7 @@
 import { parseManifest } from "@ronneai/core";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { IssueList } from "./IssueList";
+import { IssueList } from "@/components/validation/IssueList";
 import { ManifestCheckDemo } from "./ManifestCheckDemo";
 
 describe("IssueList", () => {

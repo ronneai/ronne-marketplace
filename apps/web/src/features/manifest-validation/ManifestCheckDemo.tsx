@@ -3,7 +3,7 @@
 import { parseManifest } from "@ronneai/core";
 import { useDeferredValue, useMemo, useState } from "react";
 import { inputClasses } from "@/components/ui/Field";
-import { IssueList } from "./IssueList";
+import { IssueList } from "@/components/validation/IssueList";
 
 const SAMPLE = `name: "@platform/code-reviewer"
 type: agent

@@ -9,7 +9,7 @@ const signIn = async (page: Page, email: string) => {
   await expect(page).not.toHaveURL(/\/sign-in/);
 };
 
-test("a user drafts an agent, edits its prompt in CodeMirror, saves and reloads; no one else sees it", async ({
+test("a user drafts an agent in CodeMirror and the form, fixes its problem, saves and reloads; no one else sees it", async ({
   browser,
 }) => {
   const root = await browser.newPage();
@@ -38,23 +38,41 @@ test("a user drafts an agent, edits its prompt in CodeMirror, saves and reloads;
   await expect(user).toHaveURL(/\/submissions\/[0-9A-Z]{26}$/);
   const url = user.url();
 
-  await user
-    .getByRole("list", { name: "Files" })
-    .getByRole("button", { name: /prompt\.md/ })
-    .click();
-  const prompt = user.getByLabel("Contents of prompt.md");
-  await prompt.click();
+  // The template's one problem: the empty description.
+  const problems = user.getByRole("region", { name: "Problems" });
+  await expect(problems.getByRole("listitem")).toHaveCount(1);
+  await expect(problems.getByText(/description/)).toBeVisible();
+
+  // The prompt, in CodeMirror.
+  const files = user.getByRole("list", { name: "Files" });
+  await files.getByRole("button", { name: /prompt\.md/ }).click();
+  await user.getByLabel("Contents of prompt.md").click();
   await user.keyboard.press("ControlOrMeta+a");
   await user.keyboard.type("You review diffs for bugs.");
   await expect(user.getByText("Unsaved changes.")).toBeVisible();
+
+  // The description, in the form: the problem goes away.
+  await files.getByRole("button", { name: /ronne\.yaml/ }).click();
+  await user.getByRole("button", { name: "Form", exact: true }).click();
+  await user.getByLabel("description").fill("Reviews diffs for bugs before a pull request.");
+  await expect(problems.getByText("No problems found.")).toBeVisible();
+
+  // The YAML follows the form, and keeps the template's comments.
+  await user.getByRole("button", { name: "YAML", exact: true }).click();
+  const yaml = user.getByLabel("Contents of ronne.yaml");
+  // In place, so it keeps the placeholder's quotes.
+  await expect(yaml).toContainText('description: "Reviews diffs for bugs before a pull request."');
+  await expect(yaml).toContainText("# The file with the agent's system prompt.");
+
   await user.keyboard.press("ControlOrMeta+s");
   await expect(user.getByText(/Saved at/)).toBeVisible();
 
   await user.reload();
-  await user
-    .getByRole("list", { name: "Files" })
-    .getByRole("button", { name: /prompt\.md/ })
-    .click();
+  await expect(problems.getByText("No problems found.")).toBeVisible();
+  await expect(user.getByLabel("description")).toHaveValue(
+    "Reviews diffs for bugs before a pull request.",
+  );
+  await files.getByRole("button", { name: /prompt\.md/ }).click();
   await expect(user.getByLabel("Contents of prompt.md")).toHaveText("You review diffs for bugs.");
   await user.goto("/submissions");
   await expect(user.getByRole("link", { name: "@e2e-drafts/reviewer" })).toBeVisible();

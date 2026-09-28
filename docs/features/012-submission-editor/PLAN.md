@@ -35,7 +35,7 @@ the same change that completes it.
   unsaved-changes warning, the limits in the header, and binary files.
   *Done when:* render tests pass, and Playwright edits a file, saves and reloads.
 
-- [ ] **7. The editor: form and validation.** The form generated from the schema, kept in step
+- [x] **7. The editor: form and validation.** The form generated from the schema, kept in step
   with the YAML (comments survive), and the validation panel with links to file and line.
   *Done when:* tests cover both directions of the sync and comment preservation, and the Playwright
   test in the acceptance criteria passes.
@@ -148,3 +148,24 @@ the same change that completes it.
   - Unsaved changes: the browser's prompt on close or reload, and a confirm for links in the app.
   - Playwright (`e2e/drafts.e2e.ts`): root creates a scope; a user creates an agent draft, edits
     `prompt.md` in CodeMirror, saves with Ctrl/Cmd+S, reloads and sees it; root gets a 404.
+- **Task 7 (2026-09-27): the form and validation.**
+  - `manifest-yaml.ts`: `writeField` changes one field through the `yaml` document API. A scalar
+    changes in place (keeping its quotes and comment); a list or mapping is replaced, keeping its
+    flow style and comments; an emptied optional field is removed. It prints with `lineWidth: 0`
+    and no flow padding, so untouched lines stay as written: a test rewrites the description of
+    every example and template and checks that only that line changed.
+  - `manifest-fields.ts` generates the type block's fields from the schema: `relPath` becomes a
+    file picker (a missing file is marked), enums become selects, `toolName` a text box with
+    suggestions, arrays become rows, objects groups, and `headers` key/value rows. The common
+    fields (description with its 300 counter, license with common SPDX ids plus other, keywords up
+    to 10, readme) and dependencies (for bundle, agent, skill and command) are fixed.
+  - `ManifestForm` reads ronne.yaml on every change, so the form and the YAML are one document.
+    With a YAML error, the form points to the YAML view. `name` and `type` are read-only.
+  - The Problems panel runs `validateDraft` in the browser, 300 ms after typing stops. Clicking a
+    problem opens its file, switching ronne.yaml to the YAML view, and moves to its line. After a
+    save, the status line says whether errors are left to fix before submitting.
+  - `IssueList` moved to `components/validation/`, since the styleguide demo and the editor both
+    use it.
+  - Playwright covers the acceptance scenario: the template's one problem, the prompt in
+    CodeMirror, the description in the form, the problem gone, the YAML with its comments, save,
+    reload, and root's 404.
