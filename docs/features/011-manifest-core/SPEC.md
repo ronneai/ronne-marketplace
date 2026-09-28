@@ -69,9 +69,14 @@ with the YAML line of the offending node.
   without its scope.
 - **Paths:** relative, `/` only, no `..`, no leading `/`, no backslash, no control characters,
   at most 255 characters, and unique once case is ignored. `.ronne/` is never packed.
-- **Secret-looking literals:** in `mcp-server.env`, `headers` and `args`, a literal that matches a
-  known token pattern is an error: `ghp_`, `github_pat_`, `sk-`, `xox[bp]-`, `AKIA…`, `rmk_`, JWTs,
-  and high-entropy strings over 32 characters. Values must reference variables (`${NAME}`).
+- **Secret-looking literals** in `mcp-server`'s `args`, `headers` and `url`:
+  - **A known token format is an error:** GitHub (`ghp_`, `github_pat_`…), OpenAI and Anthropic
+    (`sk-`), Slack (`xox…-`), AWS (`AKIA…`), Ronne (`rmk_`) and JWTs.
+  - **A long random-looking string is only a warning:** 32+ characters of high entropy, with a
+    lower bar for hex. It can't be told apart from, say, a git commit hash, and an error would block
+    submitting (013).
+
+  Values should reference variables (`${NAME}`), which are ignored by the check.
 - **Limits** (MVP §12): 500 files, 1 MB a file, 20 MB unpacked, and 5 MB packed (checked by the
   packer). The defaults are exported; root will be able to change them in instance settings later.
 - **Dependencies:** each range is a valid semver range (`semver`), dist-tags aren't allowed, and

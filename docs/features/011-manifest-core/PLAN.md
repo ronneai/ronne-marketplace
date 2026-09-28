@@ -18,7 +18,7 @@ the same change that completes it.
   *Done when:* tests cover every example, one broken example per type, duplicate keys, aliases, a
   non-mapping document, oversized input, and the wording of the common errors.
 
-- [ ] **3. Package checks.** Referenced files, `SKILL.md` frontmatter, paths, secret-looking
+- [x] **3. Package checks.** Referenced files, `SKILL.md` frontmatter, paths, secret-looking
   literals, limits, semver ranges and dependency presence.
   *Done when:* a test per rule and per secret pattern passes, and every example package passes.
 
@@ -72,4 +72,21 @@ the same change that completes it.
     still run.
   - **The skill block is optional** (its `entry` defaults to `SKILL.md`), so the per-type test breaks
     skills with an escaping `entry` path instead of removing the block.
+- **Task 3 (2026-09-27): `checkPackage`** (`src/package-checks.ts`), with `DEFAULT_LIMITS` and
+  `formatBytes` (`src/limits.ts`).
+  - **Files the manifest names:** each type's path field (`skill.entry` defaults to `SKILL.md`),
+    `files[]`, and a named file that `files` leaves out (it wouldn't be packed). A missing `readme`
+    isn't an error. The issue carries the manifest pointer, so the editor can link to it.
+  - **`SKILL.md`:** YAML frontmatter (aliases off) with a description, and a name equal to the
+    item's name without its scope.
+  - **Paths:** `pathProblem()` refuses empty paths, over 255 characters, control characters, `\`,
+    a leading `/`, `..`, and empty or `.` segments. Two paths differing only in case are refused.
+  - **Limits:** 500 files, 1 MB a file and 20 MB in all, where `.ronne/` doesn't count. (5 MB packed
+    is the packer's check, in task 4.)
+  - **Secrets:** `secretLike()` returns `{ kind, certain }`. Known formats are errors; long random
+    strings are warnings (spec updated, because a commit hash would otherwise block submitting).
+  - **Dependencies:** only bundles, agents, skills and commands may have them; ranges must pass
+    `semver.validRange` (so `latest` fails); an item can't depend on itself.
+  - **Tests:** every example package passes (read from its folder), with a test per rule and per
+    secret format, the ordinary values that mustn't match, and the limits with small custom values.
 
