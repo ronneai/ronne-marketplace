@@ -129,12 +129,12 @@ the session; the API uses variants that take the token's user (`searchCatalogueA
 
 ## Acceptance criteria
 
-- [ ] Each endpoint answers the shapes above, and 401 with 009's codes without a valid token, on all four databases.
-- [ ] Search, filters, both sorts and cursor paging match the catalogue, with `limit` capped at 100.
-- [ ] The tarball downloads with a matching `X-Checksum-Sha256`, yanked versions included, and each download adds exactly one to `download_count`, also under concurrent requests; HEAD and 304 don't.
-- [ ] Unknown items and versions are 404 with their codes; a missing or corrupt artifact is 500 `artifact_unavailable`.
-- [ ] The home page's Most used shows items once they've been downloaded (018).
-- [ ] The Documentation section and helper above are in the app, and the helper links to a real section.
+- [x] Each endpoint answers the shapes above, and 401 with 009's codes without a valid token, on all four databases.
+- [x] Search, filters, both sorts and cursor paging match the catalogue, with `limit` capped at 100.
+- [x] The tarball downloads with a matching `X-Checksum-Sha256`, yanked versions included, and each download adds exactly one to `download_count`, also under concurrent requests; HEAD and 304 don't.
+- [x] Unknown items and versions are 404 with their codes; a missing or corrupt artifact is 500 `artifact_unavailable`.
+- [x] The home page's Most used shows items once they've been downloaded (018).
+- [x] The Documentation section and helper above are in the app, and the helper links to a real section.
 
 ## Open questions
 

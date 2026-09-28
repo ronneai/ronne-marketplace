@@ -571,6 +571,26 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </p>
       </>
     ),
+    tokens: (
+      <>
+        <p>
+          <Code>rmk</Code> and the registry&apos;s MCP server read the registry through its API,
+          with a <strong>personal access token</strong>. You make one under{" "}
+          <To href="/account/tokens">Access tokens</To> in your account, or <Code>rmk login</Code>{" "}
+          makes one for you. A token acts as you: it can read everything published, search, and
+          download items. It can&apos;t sign in to this website, and you can revoke it at any time.
+        </p>
+        <Example>
+          {
+            "curl -H 'Authorization: Bearer rmk_…' \\\n  https://ronne.example/api/v1/items?q=security"
+          }
+        </Example>
+        <p>
+          Each download of an item adds one to its count, which the home page uses for Most used.
+          Nothing about who downloaded it is stored.
+        </p>
+      </>
+    ),
     status: (
       <p>
         <strong>rmk isn&apos;t released yet.</strong> It arrives in the next milestone, with Claude

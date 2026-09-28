@@ -20,11 +20,11 @@ the same change that completes it.
   *Done when:* database tests cover the manifest and files, a yanked download, `ETag`/304, a
   missing or corrupt artifact, and concurrent downloads each counted once.
 
-- [ ] **4. End to end.** A Playwright test (or an API test against the built app) that makes a
+- [x] **4. End to end.** A Playwright test (or an API test against the built app) that makes a
   token in the web app, downloads a published item's tarball with it, and sees Most used on the
   home page.
   *Done when:* it passes in CI.
-- [ ] **5. Documentation.** The "Tokens and the API" section and the Access tokens helper.
+- [x] **5. Documentation.** The "Tokens and the API" section and the Access tokens helper.
   *Done when:* the docs render tests cover the section, and the helper's link lands on it.
 
 ## Notes
@@ -48,3 +48,11 @@ the same change that completes it.
   `countDownload`, a single `UPDATE … download_count + 1`. A missing or corrupt file is
   `ArtifactUnavailableError`, 500 `artifact_unavailable`, not counted. The spec now says only the
   tarball is cached as immutable: a version's JSON can still change (deprecated, yanked, tags).
+- **Task 4 (2026-09-28): end to end.** `e2e/registry-api.e2e.ts`: a user makes a token on the
+  Access tokens page, searches and reads `@e2e-seeded/prompt-kit` with it (from a context without
+  cookies), downloads 1.0.0 with a matching checksum and size, is refused without the token, and
+  finds the item under Most used on the home page with "1 download".
+- **Task 5 (2026-09-28): documentation.** Installing with rmk gains "Tokens and the API" (what a
+  token does and can't, where to make one, a `curl` example, and that downloads are counted without
+  recording who). The Access tokens page has a "What's a token for?" helper below its heading (not
+  inside it: the heading's description is a `<p>`, which can't hold a `<details>`).

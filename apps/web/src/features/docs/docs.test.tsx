@@ -108,6 +108,10 @@ describe("the topics", () => {
     const versions = await topic("versions");
     expect(versions).toContain("1.4.0 → 1.5.0");
     expect(versions).toContain(">yanked<");
-    expect(await topic("rmk")).toContain("rmk isn&#x27;t released yet.");
+    const rmk = await topic("rmk");
+    expect(rmk).toContain("rmk isn&#x27;t released yet.");
+    expect(rmk).toContain('id="tokens"');
+    expect(rmk).toContain('href="/account/tokens"');
+    expect(rmk).toContain("Nothing about who downloaded it is stored.");
   });
 });

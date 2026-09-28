@@ -80,6 +80,7 @@ export const TOPICS = [
     summary: "How items get into your AI tools.",
     sections: [
       { id: "what", title: "What rmk does" },
+      { id: "tokens", title: "Tokens and the API" },
       { id: "status", title: "When it arrives" },
     ],
   },

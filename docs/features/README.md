@@ -81,7 +81,7 @@ New folders start from [`_template/`](./_template/).
 
 | ID | Feature | Depends on | Status |
 |---|---|---|---|
-| [019](./019-registry-read-api/SPEC.md) | Registry read API (`/api/v1` items, versions, tarball with download count, errors, pagination) | 009, 015, 018 | in progress |
+| [019](./019-registry-read-api/SPEC.md) | Registry read API (`/api/v1` items, versions, tarball with download count, errors, pagination) | 009, 015, 018 | done |
 | [020](./020-resolver/SPEC.md) | Resolver in `packages/core`, and `POST /api/v1/resolve` | 011, 019 | specified |
 | [021](./021-renderer-harness/SPEC.md) | Renderer interface and golden-file test harness | 011 | specified |
 | [022](./022-rmk-cli/SPEC.md) | `rmk` CLI: login, search, info, install, update, remove, outdated; lockfile and state file | 019, 020, 021 | specified |
