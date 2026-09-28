@@ -6,7 +6,7 @@ import type { Role } from "./user";
 const EXPECTED: Record<Role, Permission[]> = {
   user: ["account.manage_own"],
   moderator: ["account.manage_own"],
-  root: ["account.manage_own", "users.view", "users.manage", "audit.view"],
+  root: ["account.manage_own", "users.view", "users.manage", "audit.view", "scopes.manage"],
 };
 
 describe("permissions", () => {

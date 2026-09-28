@@ -13,6 +13,8 @@ export const PERMISSIONS = {
   /** Create users, change roles, disable, enable and reset passwords. */
   "users.manage": ["root"],
   "audit.view": ["root"],
+  /** Create scopes and edit their descriptions (feature 010). */
+  "scopes.manage": ["root"],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

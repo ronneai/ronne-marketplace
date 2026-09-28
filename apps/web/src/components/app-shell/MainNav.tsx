@@ -19,7 +19,7 @@ export const MainNav = ({ items }: { items: NavItem[] }) => {
           key={item.href}
           href={item.href}
           aria-current={isCurrent(item, path) ? "page" : undefined}
-          className="rounded-control px-2 py-1.5 text-sm text-muted sm:px-3 hover:text-fg aria-[current=page]:bg-tint aria-[current=page]:font-semibold aria-[current=page]:text-link outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
+          className={`${item.hideOnPhone ? "hidden sm:inline-block " : ""}rounded-control px-2 py-1.5 text-sm text-muted sm:px-3 hover:text-fg aria-[current=page]:bg-tint aria-[current=page]:font-semibold aria-[current=page]:text-link outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus`}
         >
           {item.label}
         </Link>

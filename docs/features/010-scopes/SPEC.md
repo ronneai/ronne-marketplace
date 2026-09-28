@@ -48,8 +48,8 @@ agree. Until 011 lands, 010 adds it to `packages/core` itself.
 `internal` are refused, so an item can't pass itself off as part of Ronne.
 
 **`/admin/scopes`** (root, in 008's admin area, next to Users and Audit log):
-- **Table:** name (`@name`, mono), description, created by, created (UTC), and the number of items
-  (0 until M3 publishes the first ones).
+- **Table:** name (`@name`, mono), description, created by and created (UTC). The number of items
+  in each scope joins when items exist (015); until then it would always be 0.
 - **Create scope** (a dialog): name and description. The name is shown as `@name` while typing, with
   the rules under the field.
 - **Edit description:** a dialog. The name can't be changed.
@@ -76,13 +76,13 @@ and that root creates new scopes. This is the page the editor's picker links to.
 
 ## Acceptance criteria
 
-- [ ] `0004_scopes` creates the table, unique index and table-level foreign key on all four
+- [x] `0004_scopes` creates the table, unique index and table-level foreign key on all four
       databases, with a foreign-key test like 0002's.
-- [ ] The name rules and reserved names are enforced by one function in `packages/core`, with tests.
-- [ ] Root creates scopes and edits descriptions; each change records its 007 event in the same transaction.
-- [ ] Duplicate names are refused regardless of case and a leading `@`.
-- [ ] Non-root users can't create or edit scopes (404 page, `ForbiddenError` action), but can list and search them.
-- [ ] `scopes.manage` is in the permission map, and its table test is updated.
+- [x] The name rules and reserved names are enforced by one function in `packages/core`, with tests.
+- [x] Root creates scopes and edits descriptions; each change records its 007 event in the same transaction.
+- [x] Duplicate names are refused regardless of case and a leading `@`.
+- [x] Non-root users can't create or edit scopes (404 page, `ForbiddenError` action), but can list and search them.
+- [x] `scopes.manage` is in the permission map, and its table test is updated.
 
 ## Open questions
 

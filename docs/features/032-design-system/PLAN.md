@@ -125,4 +125,7 @@
   email (cut at 12rem). The open menu starts with the name and the email, on every screen size.
   Phones keep the icon. The end-to-end users got readable names (`E2E_NAMES`), and the tests find
   the name in the header's menu button (`e2e/helpers.ts`).
+- **Changed later (2026-09-27, 010):** the header gained "Scopes" for everyone. On phones, "Home"
+  hides (the logo links home) and the header's padding and gaps are tighter, so three links still
+  fit at 360px.
 

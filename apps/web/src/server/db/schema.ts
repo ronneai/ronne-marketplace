@@ -87,6 +87,15 @@ export interface AuditLogTable {
   created_at: Timestamp;
 }
 
+/** Scopes (migration 0004_scopes). `name` is stored without the `@`. */
+export interface ScopeTable {
+  id: string;
+  name: string;
+  description: string;
+  created_by: string | null;
+  created_at: Timestamp;
+}
+
 /** Kysely table types for the whole app. Each migration that adds a table adds its interface here. */
 export interface Database {
   user: UserTable;
@@ -95,4 +104,5 @@ export interface Database {
   verification: VerificationTable;
   access_tokens: AccessTokenTable;
   audit_log: AuditLogTable;
+  scopes: ScopeTable;
 }

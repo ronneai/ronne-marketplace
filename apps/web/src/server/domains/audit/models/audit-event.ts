@@ -18,19 +18,21 @@ export const AUDIT_ACTIONS = [
   "user.enabled",
   "access_token.created",
   "access_token.revoked",
+  "scope.created",
+  "scope.updated",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
 /** The groups the audit page filters by: the part before the dot. */
-export const AUDIT_ACTION_GROUPS = ["auth", "user", "access_token", "instance"] as const;
+export const AUDIT_ACTION_GROUPS = ["auth", "user", "access_token", "scope", "instance"] as const;
 export type AuditActionGroup = (typeof AUDIT_ACTION_GROUPS)[number];
 
 export const actionsInGroup = (group: AuditActionGroup): AuditAction[] => {
   return AUDIT_ACTIONS.filter((action) => action.startsWith(`${group}.`));
 };
 
-export type AuditTargetType = "user" | "access_token" | "session" | "instance" | "none";
+export type AuditTargetType = "user" | "access_token" | "session" | "scope" | "instance" | "none";
 
 export type AuditMetadataValue =
   | string

@@ -57,7 +57,7 @@ New folders start from [`_template/`](./_template/).
 
 | ID | Feature | Depends on | Status |
 |---|---|---|---|
-| [010](./010-scopes/SPEC.md) | Scopes (root creates and lists) | 008 | specified |
+| [010](./010-scopes/SPEC.md) | Scopes (root creates and lists) | 008 | done |
 | [011](./011-manifest-core/SPEC.md) | Manifest core: schema, package checks and packer in `packages/core` | 001 | specified |
 | [012](./012-submission-editor/SPEC.md) | Submission editor: drafts of any type, form + file editor | 010, 011 | specified |
 | [013](./013-submit-withdraw/SPEC.md) | Submit and withdraw, with registry checks | 012 | specified |
