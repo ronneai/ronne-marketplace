@@ -1,8 +1,8 @@
 import { formatBytes } from "@ronneai/core";
+import { fileAnchor, lineAnchor } from "@/components/risk-flags/anchors";
 import { Badge } from "@/components/ui/Badge";
 import type { FileChange } from "@/server/domains/submissions/models/diff";
 import type { RevisionFile } from "@/server/domains/submissions/models/review";
-import { fileAnchor, lineAnchor } from "./anchors";
 
 const STATUS_TONE = { added: "accent", removed: "error", changed: "muted" } as const;
 

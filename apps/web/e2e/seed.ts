@@ -10,6 +10,7 @@ import {
   E2E_NAMES,
   E2E_PASSWORD,
   E2E_SCOPE,
+  E2E_SKILL,
   E2E_USERS,
   E2E_VERSIONED_ITEM,
 } from "./users";
@@ -65,6 +66,44 @@ for (const version of ["1.0.0", "1.1.0"])
     publishedAt: new Date(),
     submissionId: null,
     dependencies: [],
+    riskFlags: [],
   });
 await items.setTag(itemId, "latest", latest);
+
+// A skill with a README, for the catalogue and the item page (feature 018).
+const skillId = await items.insertItem({
+  scopeId,
+  name: E2E_SKILL,
+  type: "skill",
+  description: "Finds leaked secrets and other security mistakes.",
+  ownerId: ids.releaser ?? "",
+  createdAt: new Date(),
+});
+const skillVersion = await items.insertVersion({
+  itemId: skillId,
+  version: "1.0.0",
+  manifest: {
+    name: `@${E2E_SCOPE}/${E2E_SKILL}`,
+    type: "skill",
+    description: "Finds leaked secrets and other security mistakes.",
+    license: "MIT",
+    keywords: ["security", "owasp"],
+  },
+  readme: "# Secret scanner\n\nReviews your changes for **leaked secrets** and injection.\n",
+  files: [
+    { path: "README.md", size: 70, executable: false },
+    { path: "SKILL.md", size: 300, executable: false },
+    { path: "ronne.yaml", size: 150, executable: false },
+  ],
+  notes: null,
+  artifactPath: `${E2E_SCOPE}/${E2E_SKILL}/1.0.0.tgz`,
+  sha256: "1".repeat(64),
+  size: 900,
+  publishedBy: ids.releaser ?? "",
+  publishedAt: new Date(),
+  submissionId: null,
+  dependencies: [],
+  riskFlags: [],
+});
+await items.setTag(skillId, "latest", skillVersion);
 await db.destroy();

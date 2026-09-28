@@ -7,6 +7,7 @@ import {
   parseItemName,
   parseManifest,
   type ReleaseChoice,
+  riskFlags,
   tagProblem,
 } from "@ronneai/core";
 import { PackError, packItem } from "@ronneai/core/pack";
@@ -164,6 +165,7 @@ export const publishSubmission = async (
       publishedAt: at,
       submissionId: submission.id,
       dependencies,
+      riskFlags: riskFlags(manifest, files.map(toPackageFile)),
     });
     await items.updateDescription(itemId, String(manifest.description ?? ""));
     const previousId = await items.setTag(itemId, tag, versionId);

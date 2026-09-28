@@ -7,28 +7,90 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Catalogue queries.** Search, type and scope filters, both sorts and cursor paging over
+- [x] **1. Catalogue queries.** Search, type and scope filters, both sorts and cursor paging over
   published items, in an `items` domain service that 019 will reuse.
   *Done when:* database tests cover search (with `%` and `_`), each filter, both sorts, paging, and
   items without an installable version, on all four databases. Also the migration for
   `items.download_count`, and the home page's queries: recently published, most used, and the
   viewer's counts.
 
-- [ ] **2. Markdown.** The chosen library through the dependency checklist, with raw HTML off, safe
+- [x] **2. Markdown.** The chosen library through the dependency checklist, with raw HTML off, safe
   links and images, and shifted headings.
   *Done when:* unit tests cover ordinary Markdown and hostile input (script tags, event attributes,
   `javascript:` links).
 
-- [ ] **3. The catalogue page.** Search box, filter chips, sort, cards, paging, the empty state, and
+- [x] **3. The catalogue page.** Search box, filter chips, sort, cards, paging, the empty state, and
   the nav item.
   *Done when:* render tests pass.
 
-- [ ] **4. The item page.** Header, install commands, the tabs, another version by URL, and 404s.
+- [x] **4. The item page.** Header, install commands, the tabs, another version by URL, and 404s.
   *Done when:* render tests pass, and the Playwright test in the acceptance criteria passes.
 
-- [ ] **5. The home page.** Search box, Recently published, Most used (hidden without downloads),
+- [x] **5. The home page.** Search box, Recently published, Most used (hidden without downloads),
   For you, and the empty registry, replacing the placeholder.
   *Done when:* render tests cover each section, hidden and shown, for a user and a moderator, and
   the Playwright test starts from the home page.
 
 ## Notes
+- **Built on the recommendations (2026-09-28).** The owner started 018 without answering the
+  spec's open questions: sign-in for every page, and all-time download counts. The Markdown
+  library is `marked`, not the recommended `markdown-it` (see task 2).
+- **Task 1 (2026-09-28): catalogue queries.** Migration `0009_catalogue` keeps the listing on the
+  rows, so listing is one query with the same keyset paging on every database:
+  - `items`: `download_count`, `listed_version_id` (`latest`'s version, else the newest),
+    `installable` (any version not yanked) and `last_published_at`. `models/listing.ts` computes
+    them; the item repository recomputes them after every release, tag change and yank, so no
+    caller can forget.
+  - `item_versions`: `description` and `keywords` from the manifest (search reads the listed
+    version's), and `risk_flags` computed at release from the released files, since file contents
+    aren't kept with a version. The migration backfills all of it from each version's revision.
+  - `kyselyCatalogueRepository` and `services/catalogue.ts`: search, type and scope filters, type
+    counts, both sorts with installable items first, base64url JSON cursors (a bad one starts over),
+    24 a page; and the home page's recent and most used lists. The viewer's own counts reuse
+    `listMySubmissions` and `countNeedsReview`.
+- **Task 2 (2026-09-28): Markdown with `marked`.** `markdown-it` 15 depends on `argparse` 3, which is
+  PSF-2.0: not on §1's allowed list, so it would need an exception. `marked` 18.0.14 passes the
+  checklist as it is: MIT, no dependencies, its own types, four maintainers, releases every few
+  weeks, no advisories (`pnpm audit`), no install scripts. `components/markdown/render-markdown.ts`
+  overrides its renderer instead of sanitising afterwards: raw HTML (block and inline) is escaped
+  text; links only to http(s), mailto or `#anchors`, checked after stripping the control
+  characters and whitespace browsers ignore, and external ones open with `noopener noreferrer
+  nofollow`; images only from https, lazy and without a referrer, else their alt text; headings one
+  level down. `Markdown` renders it, styled by `.markdown` in globals.css with the tokens.
+- **Task 3 (2026-09-28): the catalogue page.** `/catalogue`, laid out like the registry mock:
+  search with a scope select (a GET form, so it works without JavaScript), the 11 type chips with
+  counts plus All, the two sorts as links, stacked item cards, Next page and First page, and the
+  two empty states. `components/catalogue/ItemCard.tsx` is shared with the home page: name, listed
+  version, type, `⚠ risk`, `deprecated` with its message, "no installable version", keywords,
+  published date, and `rmk install` with a copy button (not for uninstallable items). Catalogue is
+  in the main nav after Home, and stays current on item pages (a nav item may now own several
+  sections).
+- **Task 4 (2026-09-28): the item page.** `/items/[scope]/[name]` with tabs as links: README
+  (default), Dependencies, Files and What it can do by `?tab=`, and Versions at 016's
+  `/items/[scope]/[name]/versions`, which now renders inside the same page (`VersionsTab`, each
+  version linking to `?version=`). `services/item-page.ts` builds on 016's `listVersions`, picks the
+  shown version (`?version=`, else the listed one) and adds its manifest, README, files and risk
+  flags (`versionDetail`) and the owner's name. A missing item, one without versions, or an unknown
+  version is a 404. The header shows license, keywords, owner and publish time; Install has both
+  commands (none when every version is yanked); another version gets a banner, in error or warning
+  colours when it's yanked or deprecated. `RiskSummary` and its anchors moved to
+  `components/risk-flags`, shared with the review page. "Propose a change" waits for 017.
+  The e2e seed publishes `@e2e-seeded/secret-scanner` with a README for the Playwright test.
+- **Task 5 (2026-09-28): the home page.** `features/home/HomeView.tsx` replaces the placeholder: a
+  search box that opens `/catalogue?q=`, For you (your drafts, your submissions with changes
+  requested, and for moderators and root how many wait for review, each a line linking on, left
+  out when there's nothing), Recently published (6, with See all), Most used (6 with their download
+  counts, hidden until something is downloaded) and the empty registry. The Playwright test now
+  starts from the home page's search box.
+- **Phone widths (2026-09-28).** Screenshots at 390 px showed the home page and catalogue scrolling
+  sideways: a single-column grid sizes its column to the min-content of a long `rmk install`
+  command. The new pages' grids use `grid-cols-1` (`minmax(0, 1fr)`), the search forms dropped a
+  fixed basis, and the item page's tabs scroll sideways like the main nav instead of wrapping.
+- **CI fix (2026-09-28): build `@ronneai/core` before the scripts.** 0009 is the first migration to
+  import `@ronneai/core` (for `riskFlags`), and `setup`, `db:migrate` and `reset-root-password` load
+  migrations through `tsx`, which resolves the package to its build. The database CI job never built
+  it, and the README's source install runs setup before `pnpm build`, so both failed with
+  `ERR_MODULE_NOT_FOUND`; it passed locally only because the build was already there. Those three
+  scripts, `test:db` and `test:db:<database>` now run `pnpm --filter @ronneai/core build` first.
+  Checked by deleting `packages/core/dist`, then running `pnpm test:db`, `pnpm run setup --yes` and
+  `pnpm db:migrate`. The Docker image is unaffected: its scripts are compiled with the package.

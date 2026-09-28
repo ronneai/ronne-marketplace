@@ -1,13 +1,49 @@
-import type { ItemType } from "@ronneai/core";
+import type { ItemType, RiskFlag } from "@ronneai/core";
 import type { Kysely } from "kysely";
-import { fromDbDate, toDbDate } from "../../../db/dates";
+import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
-import { encodeJson } from "../../../db/json";
+import { decodeJson, encodeJson } from "../../../db/json";
 import { forUpdate, readCommittedTransaction } from "../../../db/locks";
 import type { Database } from "../../../db/schema";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
+import type { VersionFile } from "../models/item";
+import { listingOf, searchFieldsOf } from "../models/listing";
 import type { ItemRepository } from "./item-repository";
+
+/** Recomputes how the catalogue lists an item (feature 018) after its versions or tags change. */
+const refreshListing = async (db: Kysely<Database>, dialect: DatabaseDialect, itemId: string) => {
+  const versions = await db
+    .selectFrom("item_versions")
+    .select(["id", "published_at", "yanked_at"])
+    .where("item_id", "=", itemId)
+    .execute();
+  const latest = await db
+    .selectFrom("dist_tags")
+    .select("version_id")
+    .where("item_id", "=", itemId)
+    .where("tag", "=", "latest")
+    .executeTakeFirst();
+  const listing = listingOf(
+    versions.map((v) => ({
+      id: v.id,
+      publishedAt: fromDbDate(v.published_at),
+      yankedAt: fromDbDate(v.yanked_at),
+    })),
+    latest?.version_id ?? null,
+  );
+  await db
+    .updateTable("items")
+    .set({
+      listed_version_id: listing.listedVersionId,
+      installable: toDbBoolean(listing.installable, dialect),
+      last_published_at: listing.lastPublishedAt
+        ? toDbDate(listing.lastPublishedAt, dialect)
+        : null,
+    })
+    .where("id", "=", itemId)
+    .execute();
+};
 
 export const kyselyItemRepository = (
   db: Kysely<Database>,
@@ -147,6 +183,8 @@ export const kyselyItemRepository = (
         yanked_at: null,
         yank_reason: null,
         submission_id: version.submissionId,
+        ...searchFieldsOf(version.manifest),
+        risk_flags: encodeJson(version.riskFlags),
       })
       .execute();
     for (const dependency of version.dependencies)
@@ -158,6 +196,7 @@ export const kyselyItemRepository = (
           range: dependency.range,
         })
         .execute();
+    await refreshListing(db, dialect, version.itemId);
     return id;
   },
 
@@ -180,6 +219,7 @@ export const kyselyItemRepository = (
         .insertInto("dist_tags")
         .values({ item_id: itemId, tag, version_id: versionId })
         .execute();
+    await refreshListing(db, dialect, itemId);
     return current?.version_id ?? null;
   },
 
@@ -203,6 +243,7 @@ export const kyselyItemRepository = (
 
   removeTag: async (itemId, tag) => {
     await db.deleteFrom("dist_tags").where("item_id", "=", itemId).where("tag", "=", tag).execute();
+    await refreshListing(db, dialect, itemId);
   },
 
   setDeprecated: async (versionId, message) => {
@@ -222,9 +263,36 @@ export const kyselyItemRepository = (
       })
       .where("id", "=", versionId)
       .execute();
+    const version = await db
+      .selectFrom("item_versions")
+      .select("item_id")
+      .where("id", "=", versionId)
+      .executeTakeFirst();
+    if (version) await refreshListing(db, dialect, version.item_id);
   },
 
   recordAudit: async (event, now) => {
     await recordAudit(db, dialect, event, now);
   },
+
+  versionDetail: async (versionId) => {
+    const row = await db
+      .selectFrom("item_versions")
+      .select(["manifest", "readme", "files", "notes", "risk_flags"])
+      .where("id", "=", versionId)
+      .executeTakeFirst();
+    return row
+      ? {
+          manifest: decodeJson<Record<string, unknown>>(row.manifest),
+          readme: row.readme,
+          files: decodeJson<VersionFile[]>(row.files),
+          notes: row.notes,
+          riskFlags: decodeJson<RiskFlag[]>(row.risk_flags) ?? [],
+        }
+      : null;
+  },
+
+  userName: async (userId) =>
+    (await db.selectFrom("user").select("name").where("id", "=", userId).executeTakeFirst())
+      ?.name ?? null,
 });

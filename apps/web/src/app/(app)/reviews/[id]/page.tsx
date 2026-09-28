@@ -1,6 +1,7 @@
 import { History } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { RiskSummary } from "@/components/risk-flags/RiskSummary";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { Badge } from "@/components/ui/Badge";
 import { buttonClasses } from "@/components/ui/Button";
@@ -10,7 +11,6 @@ import { Conversation } from "@/features/reviews/Conversation";
 import { DecisionBar } from "@/features/reviews/DecisionBar";
 import { AllFiles, FileChanges } from "@/features/reviews/FileViews";
 import { PublishDialog } from "@/features/reviews/PublishDialog";
-import { RiskSummary } from "@/features/reviews/RiskSummary";
 import { versionsPath } from "@/features/versions/links";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { can } from "@/server/domains/identity/models/permissions";

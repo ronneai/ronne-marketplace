@@ -2,8 +2,10 @@ import { getCurrentUser } from "../../identity/actions/session";
 import { clientIp } from "../../identity/models/client-ip";
 import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-instance";
 import { kyselyItemRepository } from "../repositories/kysely-item-repository";
+import * as page from "../services/item-page";
 import * as service from "../services/versions";
 
+export type { ItemPage } from "../services/item-page";
 export type { ItemRef, VersionRow, VersionsPage } from "../services/versions";
 
 /** Entry points for version management (feature 016). Thin: the service checks everything. */
@@ -42,3 +44,11 @@ export const listVersions = async (
   ref: service.ItemRef,
   app: AppAuth = getAppAuth(),
 ) => service.listVersions(deps(app), await actor(headers, app), ref);
+
+/** An item's page (feature 018): `version` from `?version=`, else the listed one. */
+export const itemPage = async (
+  headers: Headers,
+  ref: service.ItemRef,
+  version?: string,
+  app: AppAuth = getAppAuth(),
+) => page.itemPage(deps(app), await actor(headers, app), ref, version);

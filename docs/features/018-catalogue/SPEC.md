@@ -58,7 +58,7 @@ and what's used most in the registry.
   - **What it can do:** the version's risk flags (014), as the review page shows them.
 - **Another version** (`?version=1.1.0`): the page shows that version; a banner says it isn't
   `latest`, and whether it's deprecated or yanked.
-- **Propose a change** (017), for everyone signed in.
+- **Propose a change** (017), for everyone signed in: added by 017, which builds on this page.
 - A missing item, or one with no published version, is a 404.
 
 **The home page** (`/`, everyone signed in; replaces the scaffold's placeholder):
@@ -91,19 +91,25 @@ questions), headings shifted so the page keeps one `h1`, and the design system's
 
 ## Acceptance criteria
 
-- [ ] The catalogue lists published items only, with search, type and scope filters, both sorts and cursor paging, on all four databases.
-- [ ] Each card shows the latest version, the risk badge and deprecation as specified.
-- [ ] The item page shows the header, install commands, and the README, Versions, Dependencies, Files and What it can do tabs, for `latest` and for another version.
-- [ ] README rendering never runs HTML or scripts from the item, tested with hostile input.
-- [ ] Items without a published version aren't listed, and their pages are 404s.
-- [ ] The home page shows recently published and most used items (most used hidden with no downloads, and items with no installable version left out), the viewer's submissions in progress and, for moderators and root, the review count; an empty registry explains how items arrive.
-- [ ] `items.download_count` exists on all four databases, and the most used query orders by it.
-- [ ] Playwright: a user starts from the home page's search box, searches for a published skill, filters by type, opens it, reads its README and copies the install command.
+- [x] The catalogue lists published items only, with search, type and scope filters, both sorts and cursor paging, on all four databases.
+- [x] Each card shows the latest version, the risk badge and deprecation as specified.
+- [x] The item page shows the header, install commands, and the README, Versions, Dependencies, Files and What it can do tabs, for `latest` and for another version.
+- [x] README rendering never runs HTML or scripts from the item, tested with hostile input.
+- [x] Items without a published version aren't listed, and their pages are 404s.
+- [x] The home page shows recently published and most used items (most used hidden with no downloads, and items with no installable version left out), the viewer's submissions in progress and, for moderators and root, the review count; an empty registry explains how items arrive.
+- [x] `items.download_count` exists on all four databases, and the most used query orders by it.
+- [x] Playwright: a user starts from the home page's search box, searches for a published skill, filters by type, opens it, reads its README and copies the install command.
 
 ## Open questions
 
+The owner started 018 (2026-09-28) without answering these, so it's built on the recommendations;
+any can still change.
+
 1. **Markdown library:** `markdown-it` (MIT) with `html: false` (recommended: safe by default, no
    sanitiser needed), or `marked` (MIT) with a sanitiser, through the dependency checklist.
+   *Built with `marked`:* `markdown-it` 15 depends on `argparse` 3, which is PSF-2.0 and would need a
+   license exception. `marked` has no dependencies, and its renderer escapes raw HTML and filters
+   URLs itself (PLAN, task 2).
 2. **Catalogue, item and home pages need sign-in** (recommended; the instance is private and the proxy
    already requires a session), or they're public to anyone who can reach the instance.
 3. **"Most used" counts all-time downloads** (recommended: one column, one query), or downloads

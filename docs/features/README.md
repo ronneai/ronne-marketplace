@@ -70,7 +70,7 @@ New folders start from [`_template/`](./_template/).
 | [015](./015-release/SPEC.md) | Release: semver bump, pack, `StorageAdapter`, dist-tags | 014 | done |
 | [016](./016-version-management/SPEC.md) | Version management: move tags, deprecate, yank | 015 | done |
 | [017](./017-change-proposals/SPEC.md) | Change proposals: diff against base, stale and rebase | 015, 018 | specified |
-| [018](./018-catalogue/SPEC.md) | Catalogue: search, filters, item page, home page | 015 | specified |
+| [018](./018-catalogue/SPEC.md) | Catalogue: search, filters, item page, home page | 015 | done |
 | 033 | In-app help: a Documentation page (how the registry works and is organised: scopes, items and types, the submission lifecycle, versions and dist-tags, `rmk`) and inline helpers in each feature (explanations and examples where people need them) | 012, 013 | planned |
 
 ### M4 — `rmk` + Claude Code

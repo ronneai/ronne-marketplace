@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
+import { RiskSummary } from "@/components/risk-flags/RiskSummary";
 import { DraftEditor } from "@/features/draft-editor/DraftEditor";
 import type { EditorDraft } from "@/features/draft-editor/types";
 import { Conversation } from "@/features/reviews/Conversation";
 import { PublishDialog } from "@/features/reviews/PublishDialog";
-import { RiskSummary } from "@/features/reviews/RiskSummary";
 import { versionsPath } from "@/features/versions/links";
 import { getReview } from "@/server/domains/submissions/actions/reviews";
 import { viewSubmission } from "@/server/domains/submissions/actions/submissions";

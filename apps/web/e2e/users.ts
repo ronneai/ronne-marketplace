@@ -16,6 +16,7 @@ export const E2E_USERS = {
   hookAuthor: "hook-author@e2e.test",
   moderator: "moderator@e2e.test",
   releaser: "releaser@e2e.test",
+  browser: "browser@e2e.test",
 } as const;
 
 /** The display names, which the header shows (not the email). */
@@ -31,6 +32,7 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   hookAuthor: "Hook Author",
   moderator: "Mo Moderator",
   releaser: "Rae Releaser",
+  browser: "Bea Browser",
 };
 
 /** Seeded with the moderator role; everyone else is a user. */
@@ -44,3 +46,6 @@ export const E2E_SCOPE = "e2e-seeded";
 
 /** An item the seed publishes with two versions (1.0.0 and 1.1.0 on latest), for the Versions page. */
 export const E2E_VERSIONED_ITEM = "versioned";
+
+/** A skill the seed publishes with a README and keywords, for the catalogue and item page (018). */
+export const E2E_SKILL = "secret-scanner";

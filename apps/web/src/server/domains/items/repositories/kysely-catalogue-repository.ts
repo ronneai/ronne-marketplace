@@ -1,0 +1,162 @@
+import type { ItemType } from "@ronneai/core";
+import type { Kysely, SelectQueryBuilder } from "kysely";
+import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
+import { decodeJson } from "../../../db/json";
+import type { Database } from "../../../db/schema";
+import { containsInsensitive } from "../../../db/search";
+import type { DatabaseDialect } from "../../../db/url";
+import type { CatalogueEntry, CatalogueFilter } from "../models/catalogue";
+import type { CatalogueRepository } from "./catalogue-repository";
+
+type Row = {
+  id: string;
+  scope_name: string;
+  name: string;
+  type: string;
+  version: string;
+  description: string;
+  keywords: string;
+  published_at: Date | string;
+  last_published_at: Date | string | null;
+  risk_flags: string | null;
+  deprecated_message: string | null;
+  installable: boolean | number;
+  download_count: number | string;
+};
+
+const toEntry = (row: Row): CatalogueEntry => ({
+  id: row.id,
+  scope: row.scope_name,
+  name: row.name,
+  type: row.type as ItemType,
+  version: row.version,
+  description: row.description,
+  keywords: row.keywords ? row.keywords.split(" ") : [],
+  publishedAt: fromDbDate(row.published_at),
+  lastPublishedAt: fromDbDate(row.last_published_at ?? row.published_at),
+  risky: (decodeJson<unknown[]>(row.risk_flags) ?? []).length > 0,
+  deprecatedMessage: row.deprecated_message,
+  installable: Boolean(row.installable),
+  downloadCount: Number(row.download_count),
+});
+
+export const kyselyCatalogueRepository = (
+  db: Kysely<Database>,
+  dialect: DatabaseDialect,
+): CatalogueRepository => {
+  const listed = () =>
+    db
+      .selectFrom("items")
+      .innerJoin("scopes", "scopes.id", "items.scope_id")
+      .innerJoin("item_versions", "item_versions.id", "items.listed_version_id");
+
+  const filtered = <O>(
+    query: SelectQueryBuilder<
+      Database & Record<string, never>,
+      "items" | "scopes" | "item_versions",
+      O
+    >,
+    { search, type, scope }: CatalogueFilter,
+  ) => {
+    let q = query;
+    if (search)
+      q = q.where((eb) =>
+        eb.or([
+          containsInsensitive("items.name", search),
+          containsInsensitive("item_versions.description", search),
+          containsInsensitive("item_versions.keywords", search),
+        ]),
+      );
+    if (type) q = q.where("items.type", "=", type);
+    if (scope) q = q.where("scopes.name", "=", scope);
+    return q;
+  };
+
+  const entries = () =>
+    listed().select([
+      "items.id",
+      "scopes.name as scope_name",
+      "items.name",
+      "items.type",
+      "item_versions.version",
+      "item_versions.description",
+      "item_versions.keywords",
+      "item_versions.published_at",
+      "items.last_published_at",
+      "item_versions.risk_flags",
+      "item_versions.deprecated_message",
+      "items.installable",
+      "items.download_count",
+    ]);
+
+  return {
+    list: async ({ sort, after, limit, ...filter }) => {
+      let query = filtered(entries(), filter).orderBy("items.installable", "desc").limit(limit);
+      query =
+        sort === "recent"
+          ? query.orderBy("items.last_published_at", "desc").orderBy("items.id", "desc")
+          : query.orderBy("scopes.name").orderBy("items.name");
+      if (after) {
+        const installable = toDbBoolean(after.installable, dialect);
+        query = query.where((eb) =>
+          eb.or([
+            eb("items.installable", "<", installable),
+            eb.and([
+              eb("items.installable", "=", installable),
+              after.sort === "recent"
+                ? eb.or([
+                    eb(
+                      "items.last_published_at",
+                      "<",
+                      toDbDate(new Date(after.lastPublishedAt), dialect),
+                    ),
+                    eb.and([
+                      eb(
+                        "items.last_published_at",
+                        "=",
+                        toDbDate(new Date(after.lastPublishedAt), dialect),
+                      ),
+                      eb("items.id", "<", after.id),
+                    ]),
+                  ])
+                : eb.or([
+                    eb("scopes.name", ">", after.scope),
+                    eb.and([
+                      eb("scopes.name", "=", after.scope),
+                      eb("items.name", ">", after.name),
+                    ]),
+                  ]),
+            ]),
+          ]),
+        );
+      }
+      return (await query.execute()).map(toEntry);
+    },
+
+    typeCounts: async (filter) =>
+      (
+        await filtered(
+          listed().select((eb) => ["items.type", eb.fn.countAll().as("count")]),
+          filter,
+        )
+          .groupBy("items.type")
+          .execute()
+      ).map((row) => ({ type: row.type, count: Number(row.count) })),
+
+    scopes: async () =>
+      (await listed().select("scopes.name").distinct().orderBy("scopes.name").execute()).map(
+        (row) => row.name,
+      ),
+
+    mostUsed: async (limit) =>
+      (
+        await entries()
+          .where("items.installable", "=", toDbBoolean(true, dialect))
+          .where("items.download_count", ">", 0)
+          .orderBy("items.download_count", "desc")
+          .orderBy("items.id")
+          .limit(limit)
+          .execute()
+      ).map(toEntry),
+  };
+};

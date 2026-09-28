@@ -1,8 +1,12 @@
 import type { ItemType } from "@ronneai/core";
 import type { NewAuditEvent } from "../../audit/models/audit-event";
-import type { Item, ItemVersion, NewItemVersion } from "../models/item";
+import type { Item, ItemVersion, NewItemVersion, VersionDetail } from "../models/item";
 
-/** What releases (015) and the registry lookup need from storage. Kysely in kysely-item-repository.ts. */
+/**
+ * What releases (015) and version management (016) need from storage. Kysely in
+ * kysely-item-repository.ts. Every change to versions or tags also refreshes the item's catalogue
+ * listing (018, `models/listing.ts`), so no caller can forget it.
+ */
 export interface ItemRepository {
   transaction<T>(work: (repo: ItemRepository) => Promise<T>): Promise<T>;
   /** By scope name and item name, as `@scope/name` reads. */
@@ -31,4 +35,8 @@ export interface ItemRepository {
   /** Yanks (`at` and a reason) or unyanks (nulls) a version. */
   setYanked(versionId: string, yanked: { at: Date; reason: string } | null): Promise<void>;
   recordAudit(event: NewAuditEvent, now: Date): Promise<void>;
+  /** A version's manifest, README, files and risk flags, for its page (018). */
+  versionDetail(versionId: string): Promise<VersionDetail | null>;
+  /** A user's display name, or null if they're gone. */
+  userName(userId: string): Promise<string | null>;
 }

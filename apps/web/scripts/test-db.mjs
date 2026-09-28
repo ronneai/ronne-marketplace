@@ -18,6 +18,11 @@ if (!url) {
 }
 
 console.log(`Database tests against ${target} (start it first with \`pnpm test:db:up\`)`);
+// The script tests run setup and migrate through tsx, which loads @ronneai/core from its build.
+const built = spawnSync("pnpm", ["--filter", "@ronneai/core", "--silent", "build"], {
+  stdio: "inherit",
+});
+if (built.status !== 0) process.exit(built.status ?? 1);
 const result = spawnSync("pnpm", ["exec", "vitest", "run", "--project", "db", ...rest], {
   stdio: "inherit",
   env: { ...process.env, TEST_DATABASE_URL: url },
