@@ -29,3 +29,6 @@ export {
   parseItemName,
   RESERVED_SCOPES,
 } from "./names.js";
+
+export type { PackageFile } from "./package-file.js";
+export { manifestSchema } from "./schema/index.js";

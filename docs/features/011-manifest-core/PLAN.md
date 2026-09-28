@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Dependencies and entry points.** Move `ajv`, `ajv-formats` and `yaml` to runtime
+- [x] **1. Dependencies and entry points.** Move `ajv`, `ajv-formats` and `yaml` to runtime
   dependencies, add `semver` and `fflate` (checklist in Notes), and set up the `.` and `./pack`
   exports. Move the schema to `packages/core/schema/`, and update the examples test and the links.
   *Done when:* `pnpm install --frozen-lockfile`, `pnpm licenses:check` and `pnpm audit` pass, and
@@ -31,3 +31,26 @@ the same change that completes it.
   *Done when:* `pnpm build` bundles it into a client component, and the test passes.
 
 ## Notes
+- **Task 1 (2026-09-27): dependencies and entry points.**
+  - **The dependency checklist** (policy §3):
+
+    | Package | Version | Licence | Released | Install scripts | Its dependencies |
+    |---|---|---|---|---|---|
+    | `ajv` | 8.20.0 | MIT | 2026-04-24 | none | 4, all already installed |
+    | `ajv-formats` | 3.0.1 | MIT | 2024-03-30 | none | `ajv` |
+    | `yaml` | 2.9.1 | ISC | 2026-09-11 | none | none |
+    | `semver` | 7.8.5 | ISC | 2026-06-19 | none | none |
+    | `fflate` | 0.8.3 | MIT | 2026-05-16 | none | none |
+    | `@types/semver` (dev) | 7.8.0 | MIT | 2026-08-02 | none | none |
+
+    All are maintained, widely used libraries with no open advisories. `ajv`, `ajv-formats` and
+    `yaml` moved from dev to runtime dependencies. `pnpm licenses:check` and `pnpm audit` pass.
+    (`fflate` also published a 0.7.5 backport after 0.8.3; 0.8.3 is the newest.)
+  - **The schema** moved (`git mv`, so its history follows) to `packages/core/src/schema/ronne.schema.json`.
+    - `src/schema/index.ts` imports it as JSON (`with { type: "json" }`, with `resolveJsonModule`),
+      so the build copies it into `dist/schema/`.
+    - It's exported as `manifestSchema`, and as `@ronneai/core/schema.json` for editors.
+    - Links in MVP.md, the manifest spec, `examples/items/README.md` and CLAUDE.md point there now.
+  - **Entry points:** `.`, `./pack` (the `PackageFile` type for now; task 4 adds the packer) and
+    `./schema.json`. Checked by importing each from the built package.
+

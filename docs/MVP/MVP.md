@@ -3,7 +3,7 @@
 > Status: draft · Source requirements: [`ideas.txt`](./ideas.txt) · Decisions: see [Decision log](#15-decision-log)
 >
 > Detailed specs live in [`docs/spec/`](../spec/): the [manifest](../spec/manifest.md) and its
-> [JSON Schema](../spec/ronne.schema.json), and the [CLI files](../spec/cli-files.md).
+> [JSON Schema](../../packages/core/src/schema/ronne.schema.json), and the [CLI files](../spec/cli-files.md).
 > Sample items of every type are in [`examples/items/`](../../examples/items/).
 > Every dependency follows the [dependency policy](../policies/dependencies.md): licenses, versions and security.
 

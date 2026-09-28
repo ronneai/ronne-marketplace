@@ -12,11 +12,11 @@ The monorepo is scaffolded (feature 001); the product features start with 002. W
 
 - `docs/MVP/ideas.txt`: the original requirements, written by the owner.
 - `docs/MVP/MVP.md`: the MVP design. It is the source of truth for scope, architecture, the data model, the API, milestones (M0–M6) and the decision log (§15).
-- `docs/spec/`: detailed contracts. `manifest.md` and `ronne.schema.json` define `ronne.yaml`; `cli-files.md` defines `rmk.config.json`, `rmk.lock` and `.rmk/state.json`.
+- `docs/spec/`: detailed contracts. `manifest.md` (with the schema, `packages/core/src/schema/ronne.schema.json`) defines `ronne.yaml`; `cli-files.md` defines `rmk.config.json`, `rmk.lock` and `.rmk/state.json`.
 - `docs/features/`: the work, one folder per feature (`NNN-slug/SPEC.md` + `PLAN.md`). `docs/features/README.md` is the index and the milestone plan.
 - `docs/policies/dependencies.md`: the rules for every dependency (below).
 - `docs/UI-Mocks-Materials/` (**git-ignored, kept only on the owner's machine; never commit or publish it**): the brand files, the Manrope font, the Stitch mocks and the two `DESIGN.md` notes. Feature 032 turns them into the design system and copies only what the app serves into `apps/web`; UI work follows it (flat, no shadows, teal as the single accent, no red, yellow or green, Manrope and IBM Plex Mono).
-- `examples/items/`: one sample item per type. Each must pass `ronne.schema.json` (checked by a test in `packages/core`); they are the golden-file inputs for renderers.
+- `examples/items/`: one sample item per type. Each must pass the manifest schema (checked by a test in `packages/core`); they are the golden-file inputs for renderers.
 
 To work on a feature, read its `SPEC.md`, follow `PLAN.md` in order, and tick tasks as they land. If the behaviour changes, update `SPEC.md` in the same change; when the feature is finished, set its status in the index.
 
