@@ -57,6 +57,7 @@ describe("the item page", () => {
     expect(html).toContain("Propose a change");
     expect(html).toContain("What happens when I propose a change?");
     expect(html).toContain("Where does this go in Claude Code?");
+    expect(html).toContain("How do I install it?");
   });
 
   it("shows another version by URL, with a banner saying whether it's yanked", async () => {

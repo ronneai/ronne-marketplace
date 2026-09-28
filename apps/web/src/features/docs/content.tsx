@@ -103,8 +103,8 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             <To href={docsHref("versions")}>More on versions</To>.
           </li>
           <li>
-            <strong>Install.</strong> It appears in the <To href="/catalogue">Catalogue</To>, with
-            the command to install it.
+            <strong>Install.</strong> It appears in the <To href="/catalogue">Catalogue</To>, and{" "}
+            <To href={docsHref("rmk", "installing")}>rmk install</To> puts it into your AI tools.
           </li>
         </Steps>
         <p>
@@ -483,7 +483,8 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
               <Badge tone="warning">deprecated</Badge>
             </Td>
             <Td className="text-sm">
-              It stays installable, and its message is shown wherever it&apos;s installed.
+              It stays installable, and <Code>rmk</Code> prints its message whenever it installs or
+              updates it.
             </Td>
             <Td className="text-sm">
               There&apos;s a better version or item: &quot;Use 1.2.0 or later.&quot;
@@ -494,8 +495,9 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
               <Badge tone="error">yanked</Badge>
             </Td>
             <Td className="text-sm">
-              New installs can&apos;t get it; projects that pin it in their lockfile still do. If{" "}
-              <Code>latest</Code> pointed to it, it moves back to the newest stable version left.
+              New installs can&apos;t get it; a project whose lockfile pins it still installs it,
+              with a warning. If <Code>latest</Code> pointed to it, it moves back to the newest
+              stable version left.
             </Td>
             <Td className="text-sm">It&apos;s broken or unsafe. It can be unyanked.</Td>
           </tr>
@@ -599,17 +601,170 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
     what: (
       <>
         <p>
-          <Code>rmk</Code> is Ronne&apos;s command-line tool. It will install items from this
-          registry into a project, writing each AI tool&apos;s own files, and keep them up to date.
-          Every item page already shows its command:
+          <Code>rmk</Code> is Ronne&apos;s command-line tool. It installs items from this registry
+          into a project, or into your home folder, writing each AI tool&apos;s own files, and keeps
+          them up to date. Every item page shows its command:
         </p>
         <Example>
           {"rmk install @platform/secure-coding\nrmk install @platform/secure-coding@1.2.0"}
         </Example>
         <p>
-          It will record what it installed in a lockfile, so everyone on the project gets the same
-          versions, and never overwrite files you changed yourself.
+          It records what it installed in a lockfile, so everyone on the project gets the same
+          versions, and it never overwrites a file or setting you wrote yourself. Nothing from an
+          item runs at install time: hooks and scripts are written, not run.
         </p>
+        <p>
+          <Code>rmk --help</Code> lists every command, and <Code>--json</Code> makes any of them
+          answer with one JSON object, for scripts and agents.
+        </p>
+      </>
+    ),
+    login: (
+      <>
+        <Example>{"rmk login --registry https://ronne.example"}</Example>
+        <p>
+          It asks for your email and password, and stores a{" "}
+          <To href={docsHref("rmk", "tokens")}>token</To> for this registry in{" "}
+          <Code>~/.config/rmk/config.json</Code>, readable by you alone. With a token made under{" "}
+          <To href="/account/tokens">Access tokens</To>, or in CI, use{" "}
+          <Code>rmk login --token rmk_…</Code>, or set <Code>RMK_TOKEN</Code> and{" "}
+          <Code>RMK_REGISTRY</Code>. <Code>rmk whoami</Code> says who you are;{" "}
+          <Code>rmk logout</Code> revokes the token.
+        </p>
+        <p>
+          The token only travels over https, except to <Code>localhost</Code>.
+        </p>
+      </>
+    ),
+    installing: (
+      <>
+        <Example>
+          {
+            "rmk install @platform/code-reviewer          # latest\nrmk install @platform/code-reviewer@^1.4.0   # a range\nrmk install @platform/code-reviewer@next     # a tag\nrmk install                                  # exactly the lockfile"
+          }
+        </Example>
+        <Steps>
+          <li>
+            <strong>Target.</strong> Which AI tool: <Code>--target claude-code</Code>, the{" "}
+            <Code>targets</Code> in <Code>rmk.config.json</Code>, or what the project looks like it
+            uses. <Code>rmk platforms</Code> lists the tools and what each supports; a type a tool
+            can&apos;t take is a warning, and the rest carries on.
+          </li>
+          <li>
+            <strong>Resolve.</strong> The registry picks one version of each item, dependencies
+            included, as <To href={docsHref("items", "dependencies")}>Dependencies</To> explains.
+          </li>
+          <li>
+            <strong>Download and check.</strong> Each package&apos;s checksum is checked before
+            anything is written; a mismatch stops the install.
+          </li>
+          <li>
+            <strong>Write.</strong> The files each tool reads, then the lockfile and the state file.
+            Deprecated versions print their message, and MCP servers list the environment variables
+            you still have to set.
+          </li>
+        </Steps>
+        <p>
+          <Code>rmk install</Code> with nothing after it installs exactly what the lockfile holds,
+          so a teammate gets the same files. <Code>--scope user</Code> installs into your home
+          folder instead of the project.
+        </p>
+      </>
+    ),
+    updating: (
+      <>
+        <Example>
+          {
+            "rmk outdated\nrmk update                    # everything, within its ranges\nrmk update @platform/code-reviewer\nrmk remove @platform/code-reviewer"
+          }
+        </Example>
+        <Bullets>
+          <li>
+            <Code>rmk outdated</Code> shows, for each item you asked for, the version locked, the
+            newest its range allows, and the newest published.
+          </li>
+          <li>
+            <Code>rmk update</Code> moves items to the newest version their ranges allow, and
+            rewrites their files. Items you don&apos;t name stay where they are.
+          </li>
+          <li>
+            <Code>rmk remove</Code> deletes an item&apos;s files and settings, and those of any
+            dependency nothing else needs.
+          </li>
+          <li>
+            <Code>rmk list</Code> shows what the project asks for; <Code>rmk list --installed</Code>{" "}
+            what the lockfile holds.
+          </li>
+        </Bullets>
+      </>
+    ),
+    files: (
+      <>
+        <Table>
+          <thead>
+            <tr>
+              <Th>File</Th>
+              <Th>What it holds</Th>
+              <Th>Commit it?</Th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <Td className="font-mono text-xs">rmk.config.json</Td>
+              <Td className="text-sm">
+                What you asked for: each item with its range or tag, and the targets.
+              </Td>
+              <Td className="text-sm">Yes</Td>
+            </tr>
+            <tr>
+              <Td className="font-mono text-xs">rmk.lock</Td>
+              <Td className="text-sm">What was resolved: one version and checksum per item.</Td>
+              <Td className="text-sm">Yes</Td>
+            </tr>
+            <tr>
+              <Td className="font-mono text-xs">.rmk/state.json</Td>
+              <Td className="text-sm">
+                Every file and setting rmk wrote, with a hash, so it can update or remove exactly
+                those.
+              </Td>
+              <Td className="text-sm">Yes: a teammate&apos;s rmk needs it to know what it owns.</Td>
+            </tr>
+            <tr>
+              <Td className="font-mono text-xs">~/.config/rmk/</Td>
+              <Td className="text-sm">
+                Your token, and the lockfile and state for home-folder installs.
+              </Td>
+              <Td className="text-sm">No</Td>
+            </tr>
+          </tbody>
+        </Table>
+        <p>
+          Downloads are cached under <Code>~/.cache/rmk/</Code>, by checksum.
+        </p>
+      </>
+    ),
+    edits: (
+      <>
+        <p>
+          Every file rmk writes carries a <Code>managed by rmk</Code> marker, and every setting it
+          adds is tracked in the state file. Before it changes or removes one, it checks that the
+          file or setting is still what it wrote.
+        </p>
+        <Bullets>
+          <li>
+            A file or setting rmk didn&apos;t write is never touched. If an install would need its
+            place, that&apos;s a <strong>conflict</strong>: rmk stops, lists them, and exits with
+            code 3.
+          </li>
+          <li>One you edited since rmk wrote it is a conflict too, on update and on removal.</li>
+          <li>
+            <Code>--force</Code> replaces them; otherwise move them aside and run again.
+          </li>
+          <li>
+            One you deleted is taken as removed on purpose: rmk forgets it, and writes it again only
+            when you install or update.
+          </li>
+        </Bullets>
       </>
     ),
     tokens: (
@@ -684,13 +839,6 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           </li>
         </Bullets>
       </>
-    ),
-    status: (
-      <p>
-        <strong>rmk isn&apos;t released yet.</strong> It arrives in the next milestone, with Claude
-        Code first, then Codex and Cursor. Until then, the catalogue and item pages show what&apos;s
-        published and the commands to use.
-      </p>
     ),
   },
 };

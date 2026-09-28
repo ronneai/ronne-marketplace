@@ -77,12 +77,16 @@ export const TOPICS = [
   {
     slug: "rmk",
     title: "Installing with rmk",
-    summary: "How items get into your AI tools.",
+    summary: "How items get into your AI tools, and how to keep them current.",
     sections: [
       { id: "what", title: "What rmk does" },
+      { id: "login", title: "Logging in" },
+      { id: "installing", title: "Installing" },
+      { id: "updating", title: "Keeping items up to date" },
+      { id: "files", title: "The files it writes" },
+      { id: "edits", title: "Your own edits" },
       { id: "tokens", title: "Tokens and the API" },
       { id: "claude-code", title: "Claude Code" },
-      { id: "status", title: "When it arrives" },
     ],
   },
 ] as const;

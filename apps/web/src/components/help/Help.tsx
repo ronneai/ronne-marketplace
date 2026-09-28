@@ -74,6 +74,12 @@ export const HELP = {
       "It lets rmk and the registry's MCP server read the registry as you: search, read items and download them. It can't sign in to this website, and you can revoke it here at any time.",
     href: docsHref("rmk", "tokens"),
   },
+  install: {
+    question: "How do I install it?",
+    answer:
+      "Copy the command into a terminal in your project, after rmk login. rmk resolves the version, checks the download, writes the files your AI tool reads, and records them in rmk.lock so teammates get the same.",
+    href: docsHref("rmk", "installing"),
+  },
   "claude-code": {
     question: "Where does this go in Claude Code?",
     answer:

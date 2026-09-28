@@ -91,7 +91,10 @@ export const ItemPageView = ({
       ) : null}
 
       <Panel className="grid gap-2">
-        <h2 className="text-sm font-semibold text-fg">Install</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-fg">Install</h2>
+          <Help id="install" />
+        </div>
         {page.installable ? (
           <>
             <CopyableCommand command={`rmk install ${name}`} />
