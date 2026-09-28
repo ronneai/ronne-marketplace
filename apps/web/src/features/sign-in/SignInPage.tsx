@@ -3,10 +3,13 @@ import { BrandLogo } from "@/components/ui/BrandLogo";
 import { Panel } from "@/components/ui/Panel";
 import { SignInForm } from "./SignInForm";
 
-/** The sign-in screen (spec 006, from the mock): the card, then the CLI panel below it. */
+/**
+ * The sign-in screen (spec 006, from the mock): the card, with the terminal guide beside it on
+ * wide screens and below it on phones (022).
+ */
 export const SignInPage = ({ next, registry }: { next: string; registry?: string }) => {
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center gap-4 px-4 py-12">
+    <main className="mx-auto grid min-h-screen w-full max-w-5xl content-center gap-6 px-4 py-12 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-start">
       <Panel padding="lg" className="grid gap-6">
         <div className="grid gap-3">
           <BrandLogo height={40} className="text-fg" />

@@ -109,3 +109,11 @@ the same change that completes it.
   itself: not on npm yet, so built from the repository (`pnpm build`, then
   `node packages/cli/dist/bin.js`, or `npm link` in `packages/cli`), with the npm command it will
   have once published. Publishing is the release chore after M4 (spec, Out).
+- **The sign-in page's terminal guide (2026-09-28, owner's request).** The "CLI authentication"
+  box was too small and said nothing about getting `rmk`. It's now "Use rmk from the terminal",
+  beside the sign-in card on wide screens and below it on phones, as three numbered steps with
+  copyable commands: get rmk (the repository's commands, since it isn't on npm yet, with a link to
+  the README), sign in (`rmk login --registry <this instance's URL>`, or with a token), then
+  `rmk whoami` and `rmk install`. `CopyableCommand` gained `wrap`, so long commands wrap instead of
+  clipping. The same panel is on the Access tokens page. The README's `rmk` section and status
+  line say the same.

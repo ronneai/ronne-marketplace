@@ -1,13 +1,31 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { CopyableCommand } from "@/components/ui/CopyableCommand";
 import { Panel } from "@/components/ui/Panel";
 
 const README_RMK = "https://github.com/ronneai/ronne-marketplace#the-rmk-cli";
 
+const Step = ({ n, title, children }: { n: number; title: string; children: ReactNode }) => (
+  <li className="grid grid-cols-[1.75rem_minmax(0,1fr)] gap-x-3 gap-y-2">
+    <span
+      aria-hidden="true"
+      className="mt-0.5 inline-flex size-7 items-center justify-center rounded-full bg-accent-strong font-mono text-xs font-semibold text-on-accent"
+    >
+      {n}
+    </span>
+    <h3 className="self-center text-sm font-semibold text-fg">{title}</h3>
+    <div className="col-span-2 grid gap-2 sm:col-span-1 sm:col-start-2">{children}</div>
+  </li>
+);
+
+const Hint = ({ children }: { children: ReactNode }) => (
+  <p className="text-xs text-muted">{children}</p>
+);
+
 /**
- * How `rmk` signs in (from the mock), on the sign-in page and on Access tokens: where to get it,
- * and the login commands, with this instance's URL when it's known (`registry`). The server side is
- * 009; the commands are 022's. `linkToTokens` is off on the Access tokens page itself.
+ * Using `rmk` from the terminal, on the sign-in page and on Access tokens (022): how to get it,
+ * how to sign in (with this instance's URL when it's known, `registry`), and what comes next.
+ * `linkToTokens` is off on the Access tokens page itself.
  */
 export const CliAuthPanel = ({
   linkToTokens = true,
@@ -19,45 +37,53 @@ export const CliAuthPanel = ({
 }) => {
   const at = registry ? ` --registry ${registry}` : " --registry <url>";
   return (
-    <Panel className="grid gap-3">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-fg">CLI authentication</h2>
-        <span className="font-mono text-xs text-muted">rmk</span>
-      </div>
-      <p className="text-xs text-muted">
-        <span className="font-mono">rmk</span> isn&apos;t on npm yet: it comes with Ronne&apos;s
-        repository, see{" "}
-        <a href={README_RMK} className="text-link underline underline-offset-2">
-          the README
-        </a>
-        .{" "}
-        {linkToTokens
-          ? "Once signed in, the Documentation explains the rest."
-          : "The Documentation explains the rest."}
-      </p>
-      <div className="grid gap-1.5">
-        <p className="text-xs text-muted">Sign in with your email and password</p>
-        <CopyableCommand command={`rmk login${at}`} />
-      </div>
-      <div className="grid gap-1.5">
-        <p className="text-xs text-muted">
-          {linkToTokens ? (
-            <>
-              Or with a personal token from{" "}
-              <Link href="/account/tokens" className="text-link underline underline-offset-2">
-                Access tokens
-              </Link>
-            </>
-          ) : (
-            "Or with a personal token from this page"
-          )}
+    <Panel padding="lg" className="grid gap-5">
+      <div className="grid gap-1">
+        <h2 className="text-lg font-semibold text-fg">Use rmk from the terminal</h2>
+        <p className="text-sm text-muted">
+          <span className="font-mono">rmk</span> installs items from this registry into your AI
+          coding tools, and keeps them up to date.
         </p>
-        <CopyableCommand command={`rmk login${at} --token <token>`} />
       </div>
-      <div className="grid gap-1.5">
-        <p className="text-xs text-muted">Check who you&apos;re signed in as</p>
-        <CopyableCommand command="rmk whoami" />
-      </div>
+      <ol className="grid gap-5">
+        <Step n={1} title="Get rmk">
+          <Hint>
+            It isn&apos;t on npm yet, so it comes with Ronne&apos;s repository (
+            <a href={README_RMK} className="text-link underline underline-offset-2">
+              the README
+            </a>
+            ). From a clone, with Node.js 22.12 or later:
+          </Hint>
+          <CopyableCommand command="pnpm install && pnpm build" wrap />
+          <CopyableCommand command="cd packages/cli && npm link" wrap />
+        </Step>
+        <Step n={2} title="Sign in">
+          <Hint>
+            With your email and password, or with a personal token{" "}
+            {linkToTokens ? (
+              <>
+                from{" "}
+                <Link href="/account/tokens" className="text-link underline underline-offset-2">
+                  Access tokens
+                </Link>
+              </>
+            ) : (
+              "from this page"
+            )}
+            .
+          </Hint>
+          <CopyableCommand command={`rmk login${at}`} wrap />
+          <CopyableCommand command={`rmk login${at} --token <token>`} wrap />
+        </Step>
+        <Step n={3} title="Check, then install">
+          <Hint>
+            <span className="font-mono">rmk whoami</span> says who you are. Every item page shows
+            its install command; the Documentation explains the rest once you&apos;re signed in.
+          </Hint>
+          <CopyableCommand command="rmk whoami" />
+          <CopyableCommand command="rmk install @scope/name" wrap />
+        </Step>
+      </ol>
     </Panel>
   );
 };

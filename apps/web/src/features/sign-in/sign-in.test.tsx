@@ -19,7 +19,7 @@ describe("SignInPage", () => {
       "Forgot?",
       "Ask a root administrator to reset your password",
       "pnpm run reset-root-password",
-      "CLI authentication",
+      "Use rmk from the terminal",
       "rmk login",
       "--token &lt;token&gt;",
       "rmk whoami",

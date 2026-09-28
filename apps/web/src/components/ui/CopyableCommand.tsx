@@ -11,10 +11,13 @@ export const CopyableCommand = ({
   command,
   label = "Copy",
   prompt = true,
+  wrap = false,
 }: {
   command: string;
   label?: string;
   prompt?: boolean;
+  /** Long commands wrap onto more lines instead of scrolling sideways. */
+  wrap?: boolean;
 }) => {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
@@ -23,8 +26,10 @@ export const CopyableCommand = ({
     setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <div className="flex min-w-0 items-center justify-between gap-2 rounded-control border border-hairline bg-canvas py-1.5 pr-1.5 pl-3">
-      <code className="min-w-0 overflow-x-auto font-mono text-[13px] whitespace-nowrap text-fg">
+    <div className="flex min-w-0 items-start justify-between gap-2 rounded-control border border-hairline bg-canvas py-1.5 pr-1.5 pl-3">
+      <code
+        className={`min-w-0 font-mono text-[13px] text-fg ${wrap ? "whitespace-pre-wrap break-words" : "overflow-x-auto whitespace-nowrap"}`}
+      >
         {prompt ? <span className="text-muted select-none">$ </span> : null}
         {command}
       </code>
