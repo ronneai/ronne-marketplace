@@ -13,6 +13,7 @@ import {
   DependencyTypeNotAllowedError,
   ItemNameTakenError,
   type SubmissionsError,
+  TypeChangedError,
 } from "../exceptions/errors";
 import { MANIFEST_PATH } from "../models/submission";
 import type {
@@ -44,6 +45,26 @@ export const nameIssues = async (
   if (input.proposedElsewhere)
     return [issue("name_taken", new ItemNameTakenError(itemName, "submission"), "/name")];
   return [];
+};
+
+/**
+ * A change proposal (017) keeps its item's type (manifest spec §6, layer 3). The draft's own type is
+ * fixed, and 011's checks already hold the manifest to it; this compares it with the published item.
+ */
+export const typeIssues = async (
+  registry: RegistryLookup,
+  submission: { scope: { name: string }; name: string; type: ItemType },
+): Promise<ManifestIssue[]> => {
+  const item = await registry.findItem(submission.scope.name, submission.name);
+  return item && item.type !== submission.type
+    ? [
+        issue(
+          "type_changed",
+          new TypeChangedError(`@${item.scope}/${item.name}`, item.type, submission.type),
+          "/type",
+        ),
+      ]
+    : [];
 };
 
 type Resolved = { item: PublishedItem; version: PublishedVersion };

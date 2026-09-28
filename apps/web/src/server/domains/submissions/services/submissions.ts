@@ -21,7 +21,7 @@ import {
 } from "../models/submission";
 import type { RegistryLookup } from "../repositories/registry-lookup";
 import type { SubmissionRepository } from "../repositories/submission-repository";
-import { dependencyIssues, nameIssues } from "./registry-checks";
+import { dependencyIssues, nameIssues, typeIssues } from "./registry-checks";
 
 /**
  * Submitting and withdrawing (feature 013). The author submits a draft after every check a
@@ -92,9 +92,9 @@ export const allIssues = async (
   const dependencies = (manifest?.dependencies ?? {}) as Record<string, string>;
   return [
     ...issues,
-    // A change proposal (017) is for its item: it needs no free name.
+    // A change proposal (017) is for its item: it needs no free name, but keeps the item's type.
     ...(submission.proposal
-      ? []
+      ? await typeIssues(registry, submission)
       : await nameIssues(registry, {
           scope: submission.scope.name,
           name: submission.name,

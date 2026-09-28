@@ -31,5 +31,6 @@ export {
   nextVersion,
   PRERELEASE_ID,
   type ReleaseChoice,
+  supersededBy,
   tagProblem,
 } from "./versions.js";

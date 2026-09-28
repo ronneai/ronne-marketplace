@@ -29,6 +29,7 @@ import type { RevisionFile } from "../models/review";
 import { transition } from "../models/status";
 import { fileBytes, itemNameOf, MANIFEST_PATH, toPackageFile } from "../models/submission";
 import type { ReleaseStore } from "../repositories/release-store";
+import { requireCurrent } from "./proposals";
 import { allIssues, type SubmissionActor, type SubmissionDeps } from "./submissions";
 
 /**
@@ -119,6 +120,8 @@ export const publishSubmission = async (
     await submissions.lockSubmission(submission.id);
     const current = await submissions.find(submission.id);
     transition(current?.status ?? submission.status, "publish");
+    // Another proposal may have been released since this one was approved (017).
+    await requireCurrent(submissions.registry(), submission);
 
     const existing = await items.findByName(submission.scope.name, submission.name);
     const itemId =

@@ -299,3 +299,29 @@ export class ProposalArtifactError extends SubmissionsError {
     super(`The files of ${itemName} ${version} couldn't be read. Ask root to check the storage.`);
   }
 }
+
+/** A proposal whose item has a newer version (017): it has to be rebased before it's approved. */
+export class SubmissionStaleError extends SubmissionsError {
+  constructor(
+    readonly itemName: string,
+    readonly baseVersion: string,
+    readonly newer: string,
+  ) {
+    super(
+      `This proposal changes ${itemName} ${baseVersion}, but ${newer} has been released since. The author rebases it onto ${newer} first.`,
+    );
+  }
+}
+
+/** A proposal (017) can't change its item's type (manifest spec §6, layer 3). */
+export class TypeChangedError extends SubmissionsError {
+  constructor(
+    readonly itemName: string,
+    readonly from: string,
+    readonly to: string,
+  ) {
+    super(
+      `${itemName} is a ${from}; a change can't make it a ${to}. Start a new item for another type.`,
+    );
+  }
+}

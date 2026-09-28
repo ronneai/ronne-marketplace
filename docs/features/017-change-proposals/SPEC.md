@@ -44,6 +44,9 @@ side by side. Reviewers see both this and **Changes since revision N**.
 its base (any newer stable version, or a newer pre-release on the same line). It's computed, not
 stored, so it's always current. Stale proposals show a `stale` badge in the queue, My submissions and
 the review page, and **approve is refused** (`SubmissionStaleError`) until the author rebases.
+So is **releasing** one that went stale after it was approved (another proposal was released
+first): releasing it would undo what the newer version changed. Yanked versions don't make a
+proposal stale.
 
 **Rebase** (the author, on a draft or `changes_requested` proposal, or one that's `submitted` and
 stale, which moves it back to `changes_requested` first). Moves the base to the item's newest version,

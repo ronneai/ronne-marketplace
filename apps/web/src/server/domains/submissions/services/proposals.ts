@@ -7,7 +7,10 @@ import {
   ProposalArtifactError,
   ProposalBaseNotFoundError,
   SubmissionNotFoundError,
+  SubmissionStaleError,
 } from "../exceptions/errors";
+import { staleAgainst } from "../models/proposal";
+import type { Submission } from "../models/submission";
 import {
   byteSize,
   type Draft,
@@ -121,4 +124,27 @@ export const proposeChange = async (
       files: written,
     };
   });
+};
+
+/** The version a proposal is behind, or null: new items and up-to-date proposals aren't stale. */
+export const staleVersion = async (
+  registry: RegistryLookup,
+  submission: Pick<Submission, "proposal">,
+): Promise<string | null> =>
+  submission.proposal
+    ? staleAgainst(
+        submission.proposal.baseVersion,
+        await registry.publishedVersions(submission.proposal.itemId),
+      )
+    : null;
+
+/** Refuses to approve or release a stale proposal: it would undo what the newer version changed. */
+export const requireCurrent = async (registry: RegistryLookup, submission: Submission) => {
+  const newer = await staleVersion(registry, submission);
+  if (newer && submission.proposal)
+    throw new SubmissionStaleError(
+      `@${submission.scope.name}/${submission.name}`,
+      submission.proposal.baseVersion,
+      newer,
+    );
 };

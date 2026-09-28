@@ -15,11 +15,12 @@ import {
   ProposalArtifactError,
   ProposalBaseNotFoundError,
   ProposalRenameError,
+  SubmissionStaleError,
 } from "../exceptions/errors";
 import { createDraft, getDraft, renameDraft, saveDraftFiles } from "./drafts";
 import { proposeChange } from "./proposals";
 import { publishSubmission } from "./publish";
-import { decide } from "./reviews";
+import { decide, getReview } from "./reviews";
 import { submitDraft } from "./submissions";
 
 let t: TestDb;
@@ -210,5 +211,81 @@ describe("proposeChange", () => {
     await expect(
       proposeChange(new Headers(), { item: "@team/secure-coding", version: "1.0.0" }, app, storage),
     ).rejects.toThrow(ForbiddenError);
+  });
+});
+
+describe("stale proposals", () => {
+  it("go stale when a newer version is released, and can't be approved or released", async () => {
+    await releasedSkill();
+    const item = { item: "@team/secure-coding", version: "1.0.0" };
+    const first = await proposeChange(asOther, item, app, storage);
+    const second = await proposeChange(asOther, item, app, storage);
+    const third = await proposeChange(asAuthor, item, app, storage);
+    for (const [headers, id, readme] of [
+      [asOther, first.id, "One."],
+      [asOther, second.id, "Two."],
+      [asAuthor, third.id, "Three."],
+    ] as const) {
+      await write(headers, id, { "README.md": readme });
+      await submitDraft(headers, id, app);
+    }
+    // The third is approved before anything else is released.
+    await decide(asModerator, third.id, { decision: "approve" }, app);
+    await decide(asModerator, first.id, { decision: "approve" }, app);
+    await publishSubmission(
+      asOther,
+      first.id,
+      { choice: { kind: "stable", bump: "patch" } },
+      app,
+      storage,
+    );
+
+    // 1.0.1 is out: the second can't be approved, and the approved third can't be released.
+    await expect(decide(asModerator, second.id, { decision: "approve" }, app)).rejects.toThrow(
+      SubmissionStaleError,
+    );
+    await expect(
+      publishSubmission(
+        asAuthor,
+        third.id,
+        { choice: { kind: "stable", bump: "patch" } },
+        app,
+        storage,
+      ),
+    ).rejects.toThrow(/1\.0\.1 has been released since/);
+    // Other decisions still work on a stale proposal.
+    await decide(
+      asModerator,
+      second.id,
+      { decision: "request_changes", message: "Rebase, please." },
+      app,
+    );
+    expect((await getReview(asModerator, second.id, app)).submission.status).toBe(
+      "changes_requested",
+    );
+  });
+
+  it("aren't made stale by a pre-release, or by a yanked newer version", async () => {
+    await releasedSkill();
+    const item = { item: "@team/secure-coding", version: "1.0.0" };
+    const beta = await proposeChange(asOther, item, app, storage);
+    await write(asOther, beta.id, { "README.md": "Beta." });
+    await submitDraft(asOther, beta.id, app);
+    await decide(asModerator, beta.id, { decision: "approve" }, app);
+    await publishSubmission(
+      asOther,
+      beta.id,
+      { choice: { kind: "prerelease", id: "beta", bump: "minor" } },
+      app,
+      storage,
+    );
+    const waiting = await proposeChange(asAuthor, item, app, storage);
+    await write(asAuthor, waiting.id, { "README.md": "Stable." });
+    await submitDraft(asAuthor, waiting.id, app);
+    await expect(
+      decide(asModerator, waiting.id, { decision: "approve" }, app),
+    ).resolves.toMatchObject({
+      status: "approved",
+    });
   });
 });

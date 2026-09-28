@@ -12,7 +12,7 @@ the same change that completes it.
   *Done when:* database tests cover starting from `latest` and from an older version, and refused
   renames.
 
-- [ ] **2. Stale and the type check.** Computing stale, refusing approve while stale, and
+- [x] **2. Stale and the type check.** Computing stale, refusing approve while stale, and
   `TypeChangedError` in the registry checks.
   *Done when:* database tests cover a proposal going stale when a version is published, and a refused
   approve.
@@ -44,3 +44,12 @@ the same change that completes it.
   several can be open for one item. The registry lookup's versions now carry their id, publish
   time and artifact path. Releasing a proposal already worked through 015: it publishes the item's
   next version.
+- **Task 2 (2026-09-28): stale and the type check.** Core gains `supersededBy(base, versions)`: the
+  newest version that makes a proposal from `base` stale (any newer stable version; a newer
+  pre-release only for a pre-release base on the same `major.minor.patch` line). `models/proposal.ts`
+  applies it to the non-yanked published versions; `staleVersion` and `requireCurrent` in
+  `services/proposals.ts` read them through the registry lookup, so stale is never stored. Approving
+  (and overriding) a stale proposal is refused, and so is releasing an approved one that went stale
+  meanwhile (added to the spec: it would undo the newer release). `typeIssues` in the registry
+  checks compares a proposal's type with the published item's (`TypeChangedError`, code
+  `type_changed`); proposals run it instead of the free-name check.
