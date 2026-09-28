@@ -19,9 +19,8 @@ the same change that completes it.
   fails on a changed output.
 
 ## Notes
-- **Built on the recommendations (2026-09-28).** The owner started 021 without answering the
-  spec's open questions: golden files live next to each renderer, and renderers stay in
-  `packages/core`.
+- **Open questions (2026-09-28).** Built on the recommendations, then confirmed by the owner:
+  golden files live next to each renderer, and renderers stay in `packages/core`.
 - **Task 1 (2026-09-28): the interface and helpers.** `@ronneai/core/render`: `PlatformRenderer`
   (`detect` takes a `ProjectProbe` with `exists(path)`), the six change kinds including
   `json-array-item` (023), warnings, `RENDERERS` (empty until 023) and `rendererById`. Helpers:

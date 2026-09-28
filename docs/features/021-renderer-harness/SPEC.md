@@ -119,11 +119,12 @@ tool gets from an item is documented by each renderer's feature (023 for Claude 
 
 ## Open questions
 
-The owner started 021 (2026-09-28) without answering these, so it's built on the recommendations;
-either can still change.
+Both answered by the owner on 2026-09-28, as built:
 
-1. **Golden files live next to each renderer** in `packages/core` (recommended: a renderer and its
-   expected output change together), or in one top-level `golden/` folder.
-2. **Renderers stay in `packages/core`** (recommended for the MVP: one package, and the web app's
-   support matrix, 026, reads `supports()`), or each is its own package so the community can publish
-   renderers separately.
+1. **Golden files live next to each renderer** in `packages/core` (`render/<renderer>/__golden__/`):
+   a renderer and its expected output change together, in one folder, and each platform's
+   maintainer owns both. Biome skips `__golden__`, so fixtures inside `src/` cost nothing.
+2. **Renderers stay in `packages/core`** for the MVP: fewer moving parts while the interface is
+   new, the web app's support matrix (026) reads `supports()` by import, and `rmk` ships them all.
+   The interface and the harness are what let a community renderer exist later, when moving to
+   one package per renderer is mechanical.
