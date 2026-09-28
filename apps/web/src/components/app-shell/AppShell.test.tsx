@@ -8,6 +8,7 @@ vi.mock("@/features/theme/actions", () => ({ setThemeFromForm: vi.fn() }));
 
 const { AppShell } = await import("./AppShell");
 
+import { MainNav } from "./MainNav";
 import { isCurrent, navFor } from "./nav";
 
 describe("navFor", () => {
@@ -20,8 +21,21 @@ describe("navFor", () => {
       navFor({ name: "M", email: "m@example.com", role: "moderator" }).map((i) => i.label),
     ).toEqual(["Home", "Catalogue", "Submissions", "Reviews", "Scopes", "Docs"]);
     expect(navFor({ name: "R", email: "r@example.com", role: "root" }).map((i) => i.label)).toEqual(
-      ["Home", "Catalogue", "Submissions", "Reviews", "Scopes", "Docs", "Admin"],
+      ["Home", "Catalogue", "Submissions", "Reviews", "Scopes", "Admin", "Docs"],
     );
+  });
+});
+
+describe("MainNav", () => {
+  it("puts Admin and Docs at the right, before the appearance switch", () => {
+    const html = renderToStaticMarkup(
+      <MainNav items={navFor({ name: "R", email: "r@example.com", role: "root" })} />,
+    );
+    const at = (label: string) => html.indexOf(`>${label}</a>`);
+    const spacer = html.indexOf('<span class="ml-auto">');
+    expect(at("Scopes")).toBeLessThan(spacer);
+    expect(spacer).toBeLessThan(at("Admin"));
+    expect(at("Admin")).toBeLessThan(at("Docs"));
   });
 });
 
