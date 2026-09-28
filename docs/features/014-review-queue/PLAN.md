@@ -26,7 +26,7 @@ the same change that completes it.
   *Done when:* database tests cover each decision and who may take it, required messages, the
   override, and two concurrent decisions on all four databases.
 
-- [ ] **5. Diff.** A line diff per file between two revisions (the chosen library or our own), with
+- [x] **5. Diff.** A line diff per file between two revisions (the chosen library or our own), with
   added, removed, changed and binary files, and the size limit.
   *Done when:* unit tests cover each case, including a diff too large to show.
 
@@ -81,3 +81,12 @@ the same change that completes it.
   - MVP §2's matrix now lets the author comment on their own submission (the spec's
     recommendation).
   - Database tests on all four databases, including two moderators deciding at the same moment.
+- **Task 5 (2026-09-28): diff.**
+  - **The dependency checklist** (policy §3): `diff` 9.0.0 (jsdiff), BSD-3-Clause, released
+    2026-04-13, no dependencies, no install scripts, its own types. `pnpm licenses:check` and
+    `pnpm audit` pass. It's in `apps/web` only, since only the review page uses it.
+  - `models/diff.ts`: `diffRevisions(before, after)` lists added, removed and changed files in path
+    order (unchanged ones are left out), with hunks of 3 context lines and line numbers on each
+    side from `structuredPatch`. Binary files show only that they changed; a flipped executable
+    flag is its own change. A file over 2,000 lines on either side is `too_large`. `before` null
+    (a first revision) lists every file as added.
