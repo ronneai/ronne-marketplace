@@ -36,6 +36,13 @@ export const saveDraftFiles = async (
   app: AppAuth = getAppAuth(),
 ) => service.saveDraftFiles(deps(app), await actor(headers, app), id, changes);
 
+export const importZip = async (
+  headers: Headers,
+  id: string,
+  input: { archive: Uint8Array; mode: "merge" | "replace" },
+  app: AppAuth = getAppAuth(),
+) => service.importZip(deps(app), await actor(headers, app), id, input);
+
 export const renameDraft = async (
   headers: Headers,
   id: string,

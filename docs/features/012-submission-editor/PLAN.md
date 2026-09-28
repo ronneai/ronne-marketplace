@@ -21,7 +21,7 @@ the same change that completes it.
 - [x] **3. Templates.** A starter `ronne.yaml` and files for each of the 11 types.
   *Done when:* each template passes 011's checks except for the placeholder description.
 
-- [ ] **4. `.zip` import.** Server-side unzip with `fflate`, merge or replace, top-folder
+- [x] **4. `.zip` import.** Server-side unzip with `fflate`, merge or replace, top-folder
   unwrapping, and the traversal, symlink and size checks.
   *Done when:* tests with crafted archives (traversal, symlink, too many files, too big, one top
   folder) pass, and a refused import leaves the draft unchanged.
@@ -77,3 +77,19 @@ the same change that completes it.
     they're a first piece of the inline help planned for 033.
   - Tests: every template fails only on the description, passes completely once it's written, and
     creates a draft of each type on all four databases.
+- **Task 4 (2026-09-27): `.zip` import.**
+  - `models/zip.ts` reads the central directory itself, because fflate's unzip API doesn't expose
+    an entry's Unix mode, which is needed to refuse symlinks and keep the executable bit.
+  - Everything is checked before anything is inflated: encrypted entries, ZIP64, links and
+    special files, 011's path rules, the file count, and each file's and the total's declared size.
+    The archive itself may be at most the total limit (20 MB).
+  - Entries are inflated with fflate's `inflateSync` into a buffer of the declared size, which it
+    never grows (checked), and then the CRC-32 is compared, so an entry that lies about its size is
+    refused as damaged instead of expanding.
+  - `__MACOSX/` and `.DS_Store` are skipped, so a zip made in macOS's Finder still unwraps its
+    single top folder. Folder entries are skipped too.
+  - `importZip` reads the archive, then saves through `saveDraftFiles` with `overwrite`, so it
+    shares the save's checks and transaction. `replace` refuses an archive without `ronne.yaml`
+    (the draft would lose it) and suggests merging. Text is stored as UTF-8, and anything else
+    (invalid UTF-8, or NUL bytes) as base64, by `toDraftContent`, which uploads will share.
+  - `fflate` 0.8.3 is now a direct dependency of `apps/web` too (checked in 011).

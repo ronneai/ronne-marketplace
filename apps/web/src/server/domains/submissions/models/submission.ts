@@ -64,6 +64,25 @@ export const fileBytes = (file: { encoding: "utf8" | "base64"; content: string }
     ? new TextEncoder().encode(file.content)
     : Uint8Array.from(atob(file.content), (char) => char.charCodeAt(0));
 
+/**
+ * How a file's bytes are stored: as text when they're valid UTF-8 without NUL bytes, otherwise as
+ * base64. Runs in the browser for uploads and on the server for .zip imports.
+ */
+export const toDraftContent = (
+  bytes: Uint8Array,
+): { encoding: "utf8" | "base64"; content: string } => {
+  if (!bytes.includes(0))
+    try {
+      return { encoding: "utf8", content: new TextDecoder("utf-8", { fatal: true }).decode(bytes) };
+    } catch {
+      // Not UTF-8: stored as base64 below.
+    }
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 0x8000)
+    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return { encoding: "base64", content: btoa(binary) };
+};
+
 export const toPackageFile = (file: Omit<DraftFile, "updatedAt" | "size">): PackageFile => ({
   path: file.path,
   bytes: fileBytes(file),

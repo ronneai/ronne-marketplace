@@ -93,3 +93,10 @@ export class StaleFilesError extends SubmissionsError {
     );
   }
 }
+
+/** A .zip import refused before anything changed. */
+export class ZipImportError extends SubmissionsError {
+  constructor(reason: string) {
+    super(`That .zip can't be imported: ${reason}`);
+  }
+}

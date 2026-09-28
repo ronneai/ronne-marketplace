@@ -105,8 +105,10 @@ draft's existence isn't revealed. (From 013, submitted ones are visible to moder
   and TypeScript highlighting, themed with 032's tokens. Binary files show their size and type, and
   can be replaced or deleted, not edited.
 - **`.zip` import:** replaces or merges (you choose) the draft's files with the archive's. A single
-  top-level folder is unwrapped. It uses `fflate` on the server, and refuses symlinks, `..`,
-  absolute paths, and anything over the limits, before changing the draft.
+  top-level folder is unwrapped, and archivers' own files (`__MACOSX/`, `.DS_Store`) are skipped.
+  It uses `fflate` on the server, and refuses symlinks, `..`, absolute paths, encrypted entries,
+  and anything over the limits, before changing the draft. Replacing with an archive that has no
+  `ronne.yaml` is refused.
 - **Validation:** a panel under the editor lists 011's issues (errors, then warnings) as you type,
   debounced; clicking one opens the file and line. The same checks run on the server when you save,
   and a draft can be saved while it has errors (a draft is work in progress). 013 refuses to submit

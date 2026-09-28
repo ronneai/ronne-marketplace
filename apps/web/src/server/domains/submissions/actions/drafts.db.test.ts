@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { ITEM_TYPES } from "@ronneai/core";
+import { strToU8, zipSync } from "fflate";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { createRoot } from "../../identity/actions/root-account";
@@ -19,6 +20,7 @@ import {
   ManifestRequiredError,
   StaleFilesError,
   SubmissionNotFoundError,
+  ZipImportError,
 } from "../exceptions/errors";
 import { fileBytes, validateDraft } from "../models/submission";
 import { kyselySubmissionRepository } from "../repositories/kysely-submission-repository";
@@ -27,6 +29,7 @@ import {
   createDraft,
   deleteDraft,
   getDraft,
+  importZip,
   listMySubmissions,
   renameDraft,
   saveDraftFiles,
@@ -375,5 +378,84 @@ describe("deleteDraft", () => {
       .where("submission_id", "=", draft.id)
       .execute();
     expect(left).toEqual([]);
+  });
+});
+
+describe("importZip", () => {
+  const archive = zipSync({
+    "reviewer/ronne.yaml": strToU8(
+      'name: "@platform/reviewer"\ntype: agent\ndescription: Hi.\nagent:\n  prompt: prompt.md\n',
+    ),
+    "reviewer/prompt.md": strToU8("From the zip."),
+    "reviewer/logo.png": new Uint8Array([137, 80, 78, 71, 0, 255]),
+    "reviewer/run.sh": [strToU8("#!/bin/sh\n"), { os: 3, attrs: 0o100755 << 16 }],
+  });
+  const contents = async (id: string) =>
+    Object.fromEntries(
+      (await getDraft(asUser, id, app)).files.map((f) => [
+        f.path,
+        [f.encoding, f.content, f.executable],
+      ]),
+    );
+
+  it("merges: the archive's files win, the draft's others stay", async () => {
+    const draft = await newAgent();
+    await saveDraftFiles(
+      asUser,
+      draft.id,
+      { writes: [text("notes.md", "mine")], deletes: [] },
+      app,
+    );
+    const { issues } = await importZip(asUser, draft.id, { archive, mode: "merge" }, app);
+    expect(issues).toEqual([]);
+    expect(await contents(draft.id)).toEqual({
+      "logo.png": ["base64", "iVBORwD/", false],
+      "notes.md": ["utf8", "mine", false],
+      "prompt.md": ["utf8", "From the zip.", false],
+      "ronne.yaml": ["utf8", expect.stringContaining("description: Hi."), false],
+      "run.sh": ["utf8", "#!/bin/sh\n", true],
+    });
+  });
+
+  it("replaces: only the archive's files are left", async () => {
+    const draft = await newAgent();
+    await saveDraftFiles(
+      asUser,
+      draft.id,
+      { writes: [text("notes.md", "mine")], deletes: [] },
+      app,
+    );
+    await importZip(asUser, draft.id, { archive, mode: "replace" }, app);
+    expect(Object.keys(await contents(draft.id))).toEqual([
+      "logo.png",
+      "prompt.md",
+      "ronne.yaml",
+      "run.sh",
+    ]);
+  });
+
+  it("refuses a bad archive, or replacing without ronne.yaml, changing nothing", async () => {
+    const draft = await newAgent();
+    const before = await contents(draft.id);
+    await expect(
+      importZip(
+        asUser,
+        draft.id,
+        { archive: zipSync({ "../x.md": strToU8("x") }), mode: "merge" },
+        app,
+      ),
+    ).rejects.toThrow(ZipImportError);
+    await expect(
+      importZip(
+        asUser,
+        draft.id,
+        { archive: zipSync({ "a.md": strToU8("a") }), mode: "replace" },
+        app,
+      ),
+    ).rejects.toThrow("it has no ronne.yaml");
+    expect(await contents(draft.id)).toEqual(before);
+    await expect(importZip(asOther, draft.id, { archive, mode: "merge" }, app)).rejects.toThrow(
+      SubmissionNotFoundError,
+    );
   });
 });

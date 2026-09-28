@@ -23,6 +23,7 @@ import {
   ManifestRequiredError,
   StaleFilesError,
   SubmissionNotFoundError,
+  ZipImportError,
 } from "../exceptions/errors";
 import {
   byteSize,
@@ -32,9 +33,11 @@ import {
   itemNameOf,
   MANIFEST_PATH,
   type Submission,
+  toDraftContent,
   validateDraft,
 } from "../models/submission";
 import { draftTemplate } from "../models/templates";
+import { readZip } from "../models/zip";
 import type { SubmissionRepository } from "../repositories/submission-repository";
 
 /**
@@ -254,6 +257,42 @@ export const saveDraftFiles = async (
     return { ...submission, updatedAt: at, files };
   });
   return { draft, issues: validateDraft(draft, draft.files, limits) };
+};
+
+/**
+ * Imports a .zip of the item. `merge` writes the archive's files over the draft's and keeps the
+ * rest; `replace` leaves only the archive's. The archive is read and checked completely first, so a
+ * refused import changes nothing. Importing is an explicit overwrite, so stale files don't stop it.
+ */
+export const importZip = async (
+  deps: DraftDeps,
+  actor: DraftActor,
+  id: string,
+  input: { archive: Uint8Array; mode: "merge" | "replace" },
+): Promise<SavedDraft> => {
+  requirePermission(actor.user, "submissions.create");
+  const draft = await getDraft(deps, actor, id);
+  const files = readZip(input.archive, limitsOf(deps));
+  const paths = new Set(files.map((file) => file.path));
+  if (input.mode === "replace" && !paths.has(MANIFEST_PATH))
+    throw new ZipImportError(
+      "it has no ronne.yaml, and replacing would leave the draft without one. Merge it instead.",
+    );
+  return saveDraftFiles(deps, actor, id, {
+    writes: files.map((file) => ({
+      path: file.path,
+      ...toDraftContent(file.bytes),
+      executable: file.executable,
+      loadedAt: null,
+    })),
+    deletes:
+      input.mode === "replace"
+        ? draft.files
+            .filter((file) => !paths.has(file.path))
+            .map((file) => ({ path: file.path, loadedAt: file.updatedAt }))
+        : [],
+    overwrite: true,
+  });
 };
 
 /** ronne.yaml with `name` changed, keeping its comments and quoting; unchanged if it can't be read. */
