@@ -103,6 +103,7 @@ describe("Conversation", () => {
       <Conversation
         id="s"
         canComment
+        versionsHref="/items/team/fmt/versions"
         events={[
           event({}),
           event({ id: "e2", kind: "comment", actor: { id: "m", name: "Mo" }, body: "<b>Why?</b>" }),
@@ -112,15 +113,19 @@ describe("Conversation", () => {
             actor: { id: "m", name: "Mo" },
             body: "Fix it.",
           }),
+          event({ id: "e4", kind: "publish", actor: { id: "m", name: "Mo" }, body: "1.0.0" }),
         ]}
       />,
     );
     expect(html).toContain("submitted revision 1");
     expect(html).toContain("requested changes");
     expect(html).toContain("&lt;b&gt;Why?&lt;/b&gt;");
+    expect(html).toMatch(/<a [^>]*href="\/items\/team\/fmt\/versions">released it as 1\.0\.0<\/a>/);
     expect(html).toContain('name="body"');
     expect(
-      renderToStaticMarkup(<Conversation id="s" canComment={false} events={[]} />),
+      renderToStaticMarkup(
+        <Conversation id="s" canComment={false} events={[]} versionsHref="/v" />,
+      ),
     ).not.toContain('name="body"');
   });
 });

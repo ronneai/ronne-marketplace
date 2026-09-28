@@ -53,7 +53,9 @@ downloads it, so existing projects keep working. The artifact is never deleted.
 **The Versions page** (`/items/[scope]/[name]/versions`): every version, newest first, with its tags,
 published at and by, size and sha256, and any deprecation or yank. Everyone signed in can read it;
 moderators and root get the actions (move tag, add tag, remove tag, deprecate, undeprecate, yank,
-unyank) as dialogs. Each action locks the item's row, so two moderators can't leave the tags in a
+unyank) as dialogs. Until 018's item page and catalogue link to it, it's reached from a release:
+the "released it as 1.2.0" line in a submission's conversation (the review page and the author's
+submission page), and "View versions" in the Publish dialog once the release is out. Each action locks the item's row, so two moderators can't leave the tags in a
 state neither chose.
 
 ## Edge cases

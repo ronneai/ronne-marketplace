@@ -4,6 +4,7 @@ import type { EditorDraft } from "@/features/draft-editor/types";
 import { Conversation } from "@/features/reviews/Conversation";
 import { PublishDialog } from "@/features/reviews/PublishDialog";
 import { RiskSummary } from "@/features/reviews/RiskSummary";
+import { versionsPath } from "@/features/versions/links";
 import { getReview } from "@/server/domains/submissions/actions/reviews";
 import { viewSubmission } from "@/server/domains/submissions/actions/submissions";
 import { SubmissionNotFoundError } from "@/server/domains/submissions/exceptions/errors";
@@ -70,13 +71,23 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
               Publish it to make it installable. Versions never change once published.
             </p>
           </div>
-          <PublishDialog id={id} itemName={itemNameOf(draft)} published={review.published} />
+          <PublishDialog
+            id={id}
+            itemName={itemNameOf(draft)}
+            published={review.published}
+            versionsHref={versionsPath(draft)}
+          />
         </section>
       ) : null}
       {review ? (
         <>
           <RiskSummary flags={review.flags} />
-          <Conversation id={id} events={review.events} canComment={review.can.comment} />
+          <Conversation
+            id={id}
+            events={review.events}
+            canComment={review.can.comment}
+            versionsHref={versionsPath(draft)}
+          />
         </>
       ) : null}
     </div>

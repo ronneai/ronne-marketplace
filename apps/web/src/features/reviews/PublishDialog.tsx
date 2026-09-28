@@ -2,9 +2,10 @@
 
 import { type Bump, defaultTag, nextVersion, type ReleaseChoice, tagProblem } from "@ronneai/core";
 import { Rocket } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Button } from "@/components/ui/Button";
+import { Button, buttonClasses } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
@@ -23,9 +24,12 @@ export const PublishDialog = ({
   id,
   itemName,
   published,
+  versionsHref,
 }: {
   id: string;
   itemName: string;
+  /** The item's Versions page, offered once the release is out. */
+  versionsHref: string;
   /** The item's versions so far; empty for a first release. */
   published: string[];
 }) => {
@@ -71,7 +75,10 @@ export const PublishDialog = ({
               >
                 <span className="font-mono text-xs break-all">sha256 {result.sha256}</span>
               </Notice>
-              <div className="flex justify-end">
+              <div className="flex flex-wrap justify-end gap-2">
+                <Link href={versionsHref} className={buttonClasses("secondary")}>
+                  View versions
+                </Link>
                 <Button
                   onClick={() => {
                     setOpen(false);

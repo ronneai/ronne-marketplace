@@ -105,3 +105,15 @@ describe("the Versions page", () => {
     await expect(render()).rejects.toThrow("NEXT_NOT_FOUND");
   });
 });
+
+describe("versionsPath", () => {
+  it("builds the Versions page's URL, escaping each part", async () => {
+    const { versionsPath } = await import("./links");
+    expect(versionsPath({ scope: { name: "team" }, name: "github" })).toBe(
+      "/items/team/github/versions",
+    );
+    expect(versionsPath({ scope: { name: "a b" }, name: "c/d" })).toBe(
+      "/items/a%20b/c%2Fd/versions",
+    );
+  });
+});

@@ -9,6 +9,7 @@ import { DecisionBar } from "@/features/reviews/DecisionBar";
 import { AllFiles, FileChanges } from "@/features/reviews/FileViews";
 import { PublishDialog } from "@/features/reviews/PublishDialog";
 import { RiskSummary } from "@/features/reviews/RiskSummary";
+import { versionsPath } from "@/features/versions/links";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { can } from "@/server/domains/identity/models/permissions";
 import {
@@ -88,6 +89,7 @@ const Review = async ({
               id={submission.id}
               itemName={itemNameOf(submission)}
               published={review.published}
+              versionsHref={versionsPath(submission)}
             />
           ) : null}
         </div>
@@ -143,7 +145,12 @@ const Review = async ({
         <IssueList issues={review.issues} />
       </section>
 
-      <Conversation id={submission.id} events={review.events} canComment={review.can.comment} />
+      <Conversation
+        id={submission.id}
+        events={review.events}
+        canComment={review.can.comment}
+        versionsHref={versionsPath(submission)}
+      />
     </div>
   );
 };

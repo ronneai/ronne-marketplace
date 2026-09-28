@@ -53,3 +53,8 @@ the same change that completes it.
   publisher's name. The e2e seed now publishes `@e2e-seeded/versioned` (1.0.0 and 1.1.0 on
   `latest`) directly through the item repository, with a second moderator, since 015 can only make
   a first release per submission. Render and action tests, and the Playwright test.
+- **Links to the page (2026-09-28).** Nothing linked to the Versions page, and 018 brings the item
+  page and the catalogue. Until then, the "released it as …" line in the conversation and a
+  "View versions" link in the Publish dialog lead to it (`features/versions/links.ts`,
+  `versionsPath`). The review Playwright test follows the conversation link as the author and finds
+  the page without actions.
