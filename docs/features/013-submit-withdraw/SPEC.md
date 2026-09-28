@@ -50,7 +50,11 @@ the content is frozen for release, and it can't be withdrawn. MVP §4.1's diagra
      names;
    - each dependency **exists**, has a **type this item may depend on** (manifest spec §3), and its
      range matches **at least one published, non-yanked version**;
-   - **no cycles** through the dependencies' published versions.
+   - **no cycles** through the dependencies' published versions, following each dependency's
+     highest matching non-yanked version (the one the resolver installs, MVP §4.3).
+
+   Registry problems are reported like 011's issues (a code, a message, `ronne.yaml`), so a
+   refused submit lists every problem at once.
 3. In one transaction: the status becomes `submitted`, `submitted_at` is set, and
    `submission.submitted { name, type, dependencies }` is recorded.
 

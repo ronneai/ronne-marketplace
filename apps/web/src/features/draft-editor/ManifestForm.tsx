@@ -1,6 +1,6 @@
 "use client";
 
-import type { ItemType } from "@ronneai/core";
+import { type ItemType, mayHaveDependencies } from "@ronneai/core";
 import { Plus, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
@@ -12,7 +12,6 @@ import {
   type Field,
   KEYWORDS_MAX,
   LICENSES,
-  MAY_DEPEND,
   type NamedField,
 } from "./manifest-fields";
 import { type FieldPath, readManifest, writeField } from "./manifest-yaml";
@@ -379,7 +378,7 @@ export const ManifestForm = ({
     onChange(writeField(text, path, value, { required }));
   const block = (manifest[type] ?? {}) as Record<string, unknown>;
   const description = typeof manifest.description === "string" ? manifest.description : "";
-  const mayDepend = MAY_DEPEND.includes(type);
+  const mayDepend = mayHaveDependencies(type);
 
   return (
     <div className="grid gap-6 p-4">

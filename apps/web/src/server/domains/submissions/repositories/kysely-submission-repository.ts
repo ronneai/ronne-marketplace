@@ -101,6 +101,20 @@ export const kyselySubmissionRepository = (
           .execute()
       ).map(toSubmission),
 
+    isNameProposed: async (scopeId, name, statuses, exceptId) => {
+      if (statuses.length === 0) return false;
+      const found = await db
+        .selectFrom("submissions")
+        .select("id")
+        .where("scope_id", "=", scopeId)
+        .where("name", "=", name)
+        .where("status", "in", [...statuses])
+        .where("id", "!=", exceptId)
+        .limit(1)
+        .executeTakeFirst();
+      return found !== undefined;
+    },
+
     update: async (id, changes) => {
       await db
         .updateTable("submissions")

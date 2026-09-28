@@ -18,6 +18,16 @@ export interface SubmissionRepository {
   find(id: string): Promise<Submission | null>;
   /** Newest change first. */
   listByAuthor(authorId: string): Promise<Submission[]>;
+  /**
+   * Whether another submission with one of `statuses` proposes this scope and name. The registry
+   * check (013) asks it inside the submit transaction.
+   */
+  isNameProposed(
+    scopeId: string,
+    name: string,
+    statuses: readonly SubmissionStatus[],
+    exceptId: string,
+  ): Promise<boolean>;
   update(id: string, changes: { scopeId?: string; name?: string; updatedAt: Date }): Promise<void>;
   delete(id: string): Promise<void>;
   /** In path order, by code unit, the same on every database. */

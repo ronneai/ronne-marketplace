@@ -78,9 +78,6 @@ export const blockFields = (type: ItemType): NamedField[] => {
   return block ? fieldsOf(block) : [];
 };
 
-/** Types that may have dependencies (manifest spec §3); a bundle is only its dependencies. */
-export const MAY_DEPEND: readonly ItemType[] = ["bundle", "agent", "skill", "command"];
-
 export const DESCRIPTION_MAX_LENGTH = 300;
 export const KEYWORDS_MAX = 10;
 
