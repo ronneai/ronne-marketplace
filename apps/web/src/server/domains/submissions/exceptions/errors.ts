@@ -232,3 +232,37 @@ export class OverrideNotNeededError extends SubmissionsError {
     super("An override is only for your own submission. Approve this one instead.");
   }
 }
+
+/** The release choice gives no valid version: a bad pre-release id, or one that sorts too low. */
+export class ReleaseVersionError extends SubmissionsError {
+  constructor() {
+    super(
+      "That doesn't give a new version: a pre-release id is lowercase letters and digits, starting with a letter, and has to sort after the current one.",
+    );
+  }
+}
+
+/** Versions are immutable and never reused, yanked ones included (MVP §3.4). */
+export class VersionExistsError extends SubmissionsError {
+  constructor(
+    readonly itemName: string,
+    readonly version: string,
+  ) {
+    super(`${itemName} ${version} is already published, and versions are never reused.`);
+  }
+}
+
+export class ReleaseTagError extends SubmissionsError {}
+
+export const RELEASE_NOTES_MAX_LENGTH = 2000;
+
+export class ReleaseNotesError extends SubmissionsError {
+  constructor() {
+    super(
+      `Release notes can have at most ${RELEASE_NOTES_MAX_LENGTH.toLocaleString("en")} characters.`,
+    );
+  }
+}
+
+/** Packing refused the files, such as a package over 5 MB (MVP §12). */
+export class ReleasePackError extends SubmissionsError {}

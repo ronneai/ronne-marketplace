@@ -4,6 +4,7 @@ import { accessTokenPrefix } from "./0003_access_token_prefix";
 import { scopes } from "./0004_scopes";
 import { submissions } from "./0005_submissions";
 import { reviews } from "./0006_reviews";
+import { items } from "./0007_items";
 import type { AppMigration } from "./types";
 
 /**
@@ -17,4 +18,5 @@ export const migrations: Record<string, AppMigration> = {
   "0004_scopes": scopes,
   "0005_submissions": submissions,
   "0006_reviews": reviews,
+  "0007_items": items,
 };

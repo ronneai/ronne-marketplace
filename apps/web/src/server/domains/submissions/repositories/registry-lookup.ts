@@ -11,7 +11,7 @@ export type PublishedVersion = {
 
 /**
  * What the registry checks (spec 013) need to know about published items. Releases (015) create
- * items and versions; 015 replaces `unreleasedRegistry` with a lookup on those tables, and the
+ * items and versions; the repository's `registry()` reads those tables (015), and the
  * checks don't change.
  */
 export interface RegistryLookup {
@@ -19,7 +19,7 @@ export interface RegistryLookup {
   publishedVersions(itemId: string): Promise<PublishedVersion[]>;
 }
 
-/** M2: nothing is released yet, so no item is published. */
+/** A registry with nothing published: for tests. The app uses `kyselyRegistryLookup` (015). */
 export const unreleasedRegistry: RegistryLookup = {
   findItem: async () => null,
   publishedVersions: async () => [],

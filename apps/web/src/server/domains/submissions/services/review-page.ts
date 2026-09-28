@@ -22,7 +22,9 @@ export type ReviewView = {
   flags: RiskFlag[];
   issues: ManifestIssue[];
   events: ReviewEvent[];
-  can: { decide: boolean; override: boolean; comment: boolean };
+  /** The item's published versions, yanked ones included, for the publish dialog's preview (015). */
+  published: string[];
+  can: { decide: boolean; override: boolean; comment: boolean; publish: boolean };
 };
 
 /**
@@ -54,6 +56,13 @@ export const getReview = async (
     : null;
 
   const submitted = submission.status === "submitted";
+  const approved = submission.status === "approved";
+  const item = approved
+    ? await deps.repo.registry().findItem(submission.scope.name, submission.name)
+    : null;
+  const published = item
+    ? (await deps.repo.registry().publishedVersions(item.id)).map((v) => v.version)
+    : [];
   return {
     submission: {
       ...submission,
@@ -67,10 +76,12 @@ export const getReview = async (
     flags: manifest ? riskFlags(manifest, files.map(toPackageFile)) : [],
     issues: latest ? await allIssues(deps, deps.repo, submission, files) : [],
     events: await deps.repo.events(submission.id),
+    published,
     can: {
       decide: reviewer && !mine && submitted && canTransition(submission.status, "approve"),
       override: mine && submitted && can(actor.user, "submissions.override"),
       comment: (reviewer || mine) && OPEN_STATUSES.includes(submission.status),
+      publish: approved && (mine || can(actor.user, "submissions.publish")),
     },
   };
 };

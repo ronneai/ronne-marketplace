@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEPENDENCY_TYPES, ITEM_TYPES, mayDependOn, mayHaveDependencies } from "./index.js";
-import { highestMatching } from "./versions.js";
+import { defaultTag, highestMatching, nextVersion, tagProblem } from "./versions.js";
 
 describe("DEPENDENCY_TYPES", () => {
   it("matches manifest spec §3", () => {
@@ -30,5 +30,58 @@ describe("highestMatching", () => {
     expect(highestMatching(["2.0.0-beta.1"], "^2.0.0")).toBeNull();
     expect(highestMatching(["2.0.0-beta.1"], "^2.0.0-beta.0")).toBe("2.0.0-beta.1");
     expect(highestMatching([], "*")).toBeNull();
+  });
+});
+
+describe("nextVersion", () => {
+  const stable = (bump: "major" | "minor" | "patch" = "patch") => ({
+    kind: "stable" as const,
+    bump,
+  });
+  const pre = (id: string, bump: "major" | "minor" | "patch" = "minor") => ({
+    kind: "prerelease" as const,
+    id,
+    bump,
+  });
+
+  it.each([
+    [[], stable(), "1.0.0"],
+    [[], pre("beta"), "1.0.0-beta.1"],
+    [["1.0.0"], stable("patch"), "1.0.1"],
+    [["1.0.0"], stable("minor"), "1.1.0"],
+    [["1.0.0"], stable("major"), "2.0.0"],
+    [["1.0.0"], pre("beta", "minor"), "1.1.0-beta.1"],
+    [["1.0.0"], pre("rc", "patch"), "1.0.1-rc.1"],
+    [["1.0.0", "1.1.0-beta.1", "1.1.0-beta.2"], pre("beta"), "1.1.0-beta.3"],
+    [["1.1.0-beta.2"], stable("minor"), "1.1.0"],
+    [["1.1.0-beta.2"], stable("patch"), "1.1.0"],
+    [["1.1.0-alpha.3"], pre("beta"), "1.1.0-beta.1"],
+    [["2.0.0", "1.5.0", "not-a-version"], stable("patch"), "2.0.1"],
+  ] as const)("%j then %j is %s", (published, choice, expected) => {
+    expect(nextVersion(published, choice)).toBe(expected);
+  });
+
+  it("refuses a pre-release that would sort below what's published, and bad ids", () => {
+    expect(nextVersion(["1.1.0-beta.2"], pre("alpha"))).toBeNull();
+    expect(nextVersion([], pre("Beta"))).toBeNull();
+    expect(nextVersion([], pre("1rc"))).toBeNull();
+    expect(nextVersion([], pre(""))).toBeNull();
+  });
+});
+
+describe("tags", () => {
+  it("defaults stable versions to latest and pre-releases to next", () => {
+    expect(defaultTag("1.2.0")).toBe("latest");
+    expect(defaultTag("1.2.0-beta.1")).toBe("next");
+  });
+
+  it("refuses bad names, names that read as ranges, and latest on a pre-release", () => {
+    expect(tagProblem("latest", "1.0.0")).toBeNull();
+    expect(tagProblem("next", "1.1.0-beta.1")).toBeNull();
+    expect(tagProblem("stable-2", "2.0.0")).toBeNull();
+    expect(tagProblem("Latest", "1.0.0")).toContain("lowercase");
+    expect(tagProblem("x", "1.0.0")).toContain("version range");
+    expect(tagProblem("v1", "1.0.0")).toContain("version range");
+    expect(tagProblem("latest", "1.1.0-beta.1")).toContain("stable version");
   });
 });

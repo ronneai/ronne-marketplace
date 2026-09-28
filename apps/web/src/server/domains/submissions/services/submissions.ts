@@ -19,7 +19,7 @@ import {
   type Submission,
   validateDraft,
 } from "../models/submission";
-import { type RegistryLookup, unreleasedRegistry } from "../repositories/registry-lookup";
+import type { RegistryLookup } from "../repositories/registry-lookup";
 import type { SubmissionRepository } from "../repositories/submission-repository";
 import { dependencyIssues, nameIssues } from "./registry-checks";
 
@@ -30,7 +30,7 @@ import { dependencyIssues, nameIssues } from "./registry-checks";
  */
 export type SubmissionDeps = {
   repo: SubmissionRepository;
-  /** Published items and versions; nothing until releases (015). */
+  /** Published items and versions, for tests; by default the repository's own (015). */
   registry?: RegistryLookup;
   now?: () => Date;
   limits?: PackageLimits;
@@ -83,7 +83,8 @@ export const allIssues = async (
   const issues = validateDraft(submission, files, deps.limits ?? DEFAULT_LIMITS);
   if (hasErrors(issues)) return issues;
 
-  const registry = deps.registry ?? unreleasedRegistry;
+  // A test may pass its own; otherwise the repository's, on the caller's connection.
+  const registry = deps.registry ?? repo.registry();
   const manifestFile = files.find((file) => file.path === MANIFEST_PATH);
   const manifest = manifestFile
     ? parseManifest(new TextDecoder().decode(fileBytes(manifestFile))).manifest

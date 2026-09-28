@@ -16,10 +16,18 @@ export default defineConfig({
   // The same "@/…" alias as tsconfig.json, which Next.js reads but Vitest doesn't.
   // `@ronneai/core` from its source, so tests don't need `packages/core` built first.
   resolve: {
-    alias: {
-      "@": new URL("./src", import.meta.url).pathname,
-      "@ronneai/core": new URL("../../packages/core/src/index.ts", import.meta.url).pathname,
-    },
+    // Exact matches, most specific first: `@ronneai/core/pack` is the packer's own entry point.
+    alias: [
+      { find: /^@\//, replacement: `${new URL("./src/", import.meta.url).pathname}` },
+      {
+        find: /^@ronneai\/core\/pack$/,
+        replacement: new URL("../../packages/core/src/pack/index.ts", import.meta.url).pathname,
+      },
+      {
+        find: /^@ronneai\/core$/,
+        replacement: new URL("../../packages/core/src/index.ts", import.meta.url).pathname,
+      },
+    ],
   },
   // Next.js keeps JSX as-is ("jsx": "preserve"), so tests compile it with React's automatic runtime.
   oxc: { jsx: { runtime: "automatic" } },

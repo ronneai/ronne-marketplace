@@ -7,6 +7,7 @@ import { IssueList } from "@/components/validation/IssueList";
 import { Conversation } from "@/features/reviews/Conversation";
 import { DecisionBar } from "@/features/reviews/DecisionBar";
 import { AllFiles, FileChanges } from "@/features/reviews/FileViews";
+import { PublishDialog } from "@/features/reviews/PublishDialog";
 import { RiskSummary } from "@/features/reviews/RiskSummary";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { can } from "@/server/domains/identity/models/permissions";
@@ -80,9 +81,18 @@ const Review = async ({
             ) : null}
           </p>
         </div>
-        <DecisionBar id={submission.id} decisions={decisions} />
+        <div className="flex flex-wrap items-center gap-2">
+          <DecisionBar id={submission.id} decisions={decisions} />
+          {review.can.publish ? (
+            <PublishDialog
+              id={submission.id}
+              itemName={itemNameOf(submission)}
+              published={review.published}
+            />
+          ) : null}
+        </div>
       </header>
-      {review.mine && !review.can.override ? (
+      {review.mine && !review.can.override && submission.status === "submitted" ? (
         <p className="text-sm text-muted">
           This is your own submission: another moderator or root reviews it.
         </p>

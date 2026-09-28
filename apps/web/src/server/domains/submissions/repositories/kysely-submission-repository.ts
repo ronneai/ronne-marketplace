@@ -9,6 +9,7 @@ import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
 import type { ReviewEventKind, Revision } from "../models/review";
 import type { DraftFile, Submission, SubmissionStatus } from "../models/submission";
+import { kyselyRegistryLookup } from "./kysely-registry-lookup";
 import type { SubmissionRepository } from "./submission-repository";
 
 type SubmissionRow = {
@@ -198,6 +199,8 @@ export const kyselySubmissionRepository = (
         dialect,
       ).execute();
     },
+
+    registry: () => kyselyRegistryLookup(db, dialect),
 
     recordAudit: async (event, now) => {
       await recordAudit(db, dialect, event, now);

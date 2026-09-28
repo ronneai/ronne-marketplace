@@ -160,7 +160,8 @@ const view = (overrides: Partial<ReviewView> = {}): ReviewView => ({
   ],
   issues: [],
   events: [event({ revision: 2, kind: "resubmit" })],
-  can: { decide: true, override: false, comment: true },
+  published: [],
+  can: { decide: true, override: false, comment: true, publish: false },
   ...overrides,
 });
 
@@ -198,12 +199,20 @@ describe("the review page", () => {
 
   it("shows all files on request, and tells a reviewer about their own submission", async () => {
     reviews.getReview.mockResolvedValue(
-      view({ mine: true, can: { decide: false, override: false, comment: true } }),
+      view({ mine: true, can: { decide: false, override: false, comment: true, publish: false } }),
     );
     const html = await render({ view: "all" });
     expect(html).toContain('id="file-hook.sh-L1"');
     expect(html).toContain("This is your own submission");
     expect(html).not.toContain(">Approve<");
+  });
+
+  it("offers Publish on an approved submission to those who may publish", async () => {
+    expect(await render()).not.toContain(">Publish<");
+    reviews.getReview.mockResolvedValue(
+      view({ can: { decide: false, override: false, comment: true, publish: true } }),
+    );
+    expect(await render()).toContain("Publish");
   });
 
   it("is a 404 for anyone who can't review, and for a submission they can't see", async () => {

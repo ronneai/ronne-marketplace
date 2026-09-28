@@ -9,7 +9,7 @@ const signIn = async (page: Page, email: string) => {
   await expect(page).not.toHaveURL(/\/sign-in/);
 };
 
-test("a moderator reviews a hook: sees its risk, requests changes, then approves the resubmission", async ({
+test("a moderator reviews a hook, the author publishes it, and another item depends on it", async ({
   browser,
 }) => {
   // The author writes a hook and submits it.
@@ -87,4 +87,44 @@ test("a moderator reviews a hook: sees its risk, requests changes, then approves
   await approve.getByRole("button", { name: "Approve", exact: true }).click();
   await expect(moderator.getByText("approved it")).toBeVisible();
   await expect(moderator.getByRole("button", { name: "Approve", exact: true })).toHaveCount(0);
+
+  // The author publishes it: the first release is 1.0.0, on latest (feature 015).
+  await author.goto(submissionUrl);
+  await author.getByRole("button", { name: "Publish", exact: true }).click();
+  const publish = author.getByRole("dialog", {
+    name: new RegExp(`Publish @${E2E_SCOPE}/fmt-hook`),
+  });
+  await expect(publish.getByText(/1\.0\.0 as latest/)).toBeVisible();
+  await publish.getByRole("button", { name: "Publish 1.0.0" }).click();
+  await expect(
+    publish.getByText(`Published @${E2E_SCOPE}/fmt-hook 1.0.0 as latest.`),
+  ).toBeVisible();
+  await expect(publish.getByText(/sha256 [0-9a-f]{64}/)).toBeVisible();
+  await publish.getByRole("button", { name: "Done" }).click();
+  await expect(author.getByText("released it as 1.0.0")).toBeVisible();
+
+  // An agent that depends on the released hook now submits.
+  await author.goto("/submissions/new");
+  await author
+    .locator("label")
+    .filter({ has: author.locator(`input[value="${E2E_SCOPE}"]`) })
+    .click();
+  await author.getByLabel("Name").fill("formatter-agent");
+  await author
+    .locator("label")
+    .filter({ has: author.locator('input[name="type"][value="agent"]') })
+    .click();
+  await author.getByRole("button", { name: "Create draft" }).click();
+  await expect(author).toHaveURL(/\/submissions\/[0-9A-Z]{26}$/);
+  await author.getByLabel("description").fill("Formats and reviews.");
+  await author.getByRole("button", { name: "Add dependency" }).click();
+  await author.getByLabel("Dependency 1: Item").fill(`@${E2E_SCOPE}/fmt-hook`);
+  await author.getByLabel("Dependency 1: Range").fill("^1.0.0");
+  await author.keyboard.press("ControlOrMeta+s");
+  await expect(author.getByText(/Saved at/)).toBeVisible();
+  await author.getByRole("button", { name: "Submit for review" }).click();
+  const second = author.getByRole("dialog", { name: "Submit for review" });
+  await expect(second.getByText("All checks passed.")).toBeVisible();
+  await second.getByRole("button", { name: "Submit for review" }).click();
+  await expect(author.getByText(/Submitted for review on/)).toBeVisible();
 });

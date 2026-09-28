@@ -160,6 +160,53 @@ export interface ReviewEventTable {
   created_at: Timestamp;
 }
 
+/** A published item (migration 0007_items, feature 015): created by its first release. */
+export interface ItemTable {
+  id: string;
+  scope_id: string;
+  name: string;
+  type: string;
+  description: string;
+  /** The first author; informational (MVP §15). */
+  owner_id: string | null;
+  created_at: Timestamp;
+}
+
+/** An immutable published version. `manifest` and `files` are JSON text. */
+export interface ItemVersionTable {
+  id: string;
+  item_id: string;
+  version: string;
+  manifest: string;
+  readme: string | null;
+  /** JSON: `[{ path, size, executable }]`. */
+  files: string;
+  notes: string | null;
+  artifact_path: string;
+  sha256: string;
+  size: number;
+  published_by: string;
+  published_at: Timestamp;
+  deprecated_message: string | null;
+  yanked_at: Timestamp | null;
+  /** The submission it was released from. */
+  submission_id: string | null;
+}
+
+/** A movable pointer to a version, such as `latest` (MVP §3.4). */
+export interface DistTagTable {
+  item_id: string;
+  tag: string;
+  version_id: string;
+}
+
+/** A version's dependencies, from its manifest. */
+export interface VersionDependencyTable {
+  version_id: string;
+  depends_on_item_id: string;
+  range: string;
+}
+
 /** Kysely table types for the whole app. Each migration that adds a table adds its interface here. */
 export interface Database {
   user: UserTable;
@@ -174,4 +221,8 @@ export interface Database {
   submission_revisions: SubmissionRevisionTable;
   submission_revision_files: SubmissionRevisionFileTable;
   review_events: ReviewEventTable;
+  items: ItemTable;
+  item_versions: ItemVersionTable;
+  dist_tags: DistTagTable;
+  version_dependencies: VersionDependencyTable;
 }

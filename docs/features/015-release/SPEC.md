@@ -68,15 +68,17 @@ not a valid semver range).
    `dist_tag.moved { name, tag, from, to }`.
 5. If the transaction fails, the stored file stays but nothing points to it; a retry reuses it (step 3).
 
-**`StorageAdapter`** (`server/storage/`): `put(key, bytes)`, `get(key)` (a stream), `exists(key)`,
-`size(key)`. The local implementation writes under `STORAGE_PATH` through a temporary file and a
-rename, refuses keys with `..` or absolute paths, and never deletes (yanked versions keep their
-files, MVP §3.4).
+**`StorageAdapter`** (`server/storage/`): `put(key, bytes)`, `get(key)` (the bytes: artifacts are at
+most 5 MB, MVP §12), `exists(key)`, `size(key)`. The local implementation writes under
+`STORAGE_PATH` through a temporary file hard-linked into place, which fails if the key already
+exists, so two writers can't race; it refuses keys with `..` or absolute paths, and never deletes
+(yanked versions keep their files, MVP §3.4).
 
 **The registry lookup** (`kyselyRegistryLookup`): `findItem` and `publishedVersions` over the new
 tables, so 013's name and dependency checks see published items.
 
-**The publish dialog** (on `/submissions/[id]` when approved, and on the review page): stable or
+**The publish dialog** (on `/submissions/[id]` when approved, as an **Approved** panel, and on the
+review page): stable or
 pre-release (with its id), the tag (with its default), optional release notes (Markdown, up to 2,000
 characters), and a summary: "Publishes @scope/name 1.0.0 as latest". On success, the page shows the
 version and its sha256.
@@ -94,15 +96,18 @@ version and its sha256.
 
 ## Acceptance criteria
 
-- [ ] `0007_items` creates the four tables, unique indexes and table-level foreign keys on all four databases.
-- [ ] Publishing packs the approved revision deterministically, stores it, and records the version, its dependencies, the dist-tag and the audit events in one transaction.
-- [ ] The version rules hold: first stable and pre-release, bumps, pre-release numbering, never reused, and pre-releases never `latest`.
-- [ ] The local `StorageAdapter` never overwrites different bytes, accepts a retried identical put, and refuses unsafe keys.
-- [ ] Only the author, moderators and root publish, and only from `approved`.
-- [ ] 013's registry checks now see published items: a draft can depend on a released item, and a published name can't be proposed again.
-- [ ] Playwright: a moderator approves a skill, the author publishes it as `1.0.0` on `latest`, and a second draft depending on `^1.0.0` submits.
+- [x] `0007_items` creates the four tables, unique indexes and table-level foreign keys on all four databases.
+- [x] Publishing packs the approved revision deterministically, stores it, and records the version, its dependencies, the dist-tag and the audit events in one transaction.
+- [x] The version rules hold: first stable and pre-release, bumps, pre-release numbering, never reused, and pre-releases never `latest`.
+- [x] The local `StorageAdapter` never overwrites different bytes, accepts a retried identical put, and refuses unsafe keys.
+- [x] Only the author, moderators and root publish, and only from `approved`.
+- [x] 013's registry checks now see published items: a draft can depend on a released item, and a published name can't be proposed again.
+- [x] Playwright: a moderator approves a skill, the author publishes it as `1.0.0` on `latest`, and a second draft depending on `^1.0.0` submits.
 
 ## Open questions
+
+The owner started 015 (2026-09-28) without answering these, so it's built on the recommendations;
+either can still change.
 
 1. **Who may publish:** the author, moderators and root, as MVP §2 says (recommended), or moderators
    and root only.

@@ -27,6 +27,8 @@ export const AUDIT_ACTIONS = [
   "submission.changes_requested",
   "submission.rejected",
   "submission.override_approved",
+  "version.published",
+  "dist_tag.moved",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
@@ -38,6 +40,8 @@ export const AUDIT_ACTION_GROUPS = [
   "access_token",
   "scope",
   "submission",
+  "version",
+  "dist_tag",
   "instance",
 ] as const;
 export type AuditActionGroup = (typeof AUDIT_ACTION_GROUPS)[number];
@@ -52,6 +56,8 @@ export type AuditTargetType =
   | "session"
   | "scope"
   | "submission"
+  | "item"
+  | "item_version"
   | "instance"
   | "none";
 

@@ -23,4 +23,12 @@ export { checkPackage, pathProblem, secretLike } from "./package-checks.js";
 export type { PackageFile } from "./package-file.js";
 export { type RiskFlag, type RiskFlagKind, riskFlags } from "./risk-flags.js";
 export { manifestSchema } from "./schema/index.js";
-export { highestMatching } from "./versions.js";
+export {
+  type Bump,
+  defaultTag,
+  highestMatching,
+  nextVersion,
+  PRERELEASE_ID,
+  type ReleaseChoice,
+  tagProblem,
+} from "./versions.js";
