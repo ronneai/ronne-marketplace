@@ -13,10 +13,10 @@ the same change that completes it.
   fitting), deprecation warnings, conflicts with who asked, cycles, missing items, pre-releases and
   determinism.
 
-- [ ] **2. The database registry and the endpoint.** A `RegistryReader` over the items domain, and
+- [x] **2. The database registry and the endpoint.** A `RegistryReader` over the items domain, and
   `POST /api/v1/resolve` with 019's conventions.
   *Done when:* database tests cover a resolution and each error, on all four databases.
-- [ ] **3. Documentation.** The Dependencies and Tags sections.
+- [x] **3. Documentation.** The Dependencies and Tags sections.
   *Done when:* the docs render tests cover the new text.
 
 ## Notes
@@ -30,3 +30,13 @@ the same change that completes it.
   all) names every range and who asked; a single range nobody meets is `no_matching_version`.
   Cycles are checked once it settles. Each item is read from the registry once. 13 unit tests,
   including one that pins down the no-backtracking behaviour.
+- **Task 2 (2026-09-28): the database registry and the endpoint.** `items/services/resolve.ts`:
+  `databaseRegistry` reads an item's versions and tags through the item repository (null for an
+  item with no version), and `resolveRequest` runs core's resolver for anyone signed in.
+  `postResolve` in `registry-api.ts` checks the body (maps of strings, at most 200 items), answers
+  the resolution, and maps `ResolveError` to 409 (conflict, cycle) or 404 (missing item, tag or
+  version) with its details. `readJsonObject` moved to `http/read-json.ts`, shared with 009's
+  token route.
+- **Task 3 (2026-09-28): documentation.** Items and types → Dependencies explains how an install
+  picks versions and what a conflict says; Versions and tags → Tags says a tag becomes a version at
+  install and the lockfile keeps it.

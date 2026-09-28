@@ -106,11 +106,11 @@ isn't a map of names to ranges or tags, or has more than 200 entries.
 
 ## Acceptance criteria
 
-- [ ] Unit tests cover each rule and edge case with an in-memory registry, including a conflict that names who asked for each range.
-- [ ] The same request against the same registry always gives the same `Resolution`.
-- [ ] `POST /api/v1/resolve` answers resolutions and each error code, on all four databases.
-- [ ] The resolution's shape is exactly `rmk.lock`'s `items`.
-- [ ] The Dependencies and Tags sections say how versions are chosen, as above.
+- [x] Unit tests cover each rule and edge case with an in-memory registry, including a conflict that names who asked for each range.
+- [x] The same request against the same registry always gives the same `Resolution`.
+- [x] `POST /api/v1/resolve` answers resolutions and each error code, on all four databases.
+- [x] The resolution's shape is exactly `rmk.lock`'s `items`.
+- [x] The Dependencies and Tags sections say how versions are chosen, as above.
 
 ## Open questions
 
