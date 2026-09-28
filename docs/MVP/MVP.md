@@ -49,7 +49,8 @@ Items are written once in a canonical format and delivered to the major AI codin
 | Browse catalogue, install items (web / CLI / MCP) | ✅ | ✅ | ✅ |
 | Create draft & submit new item | ✅ | ✅ | ✅ |
 | Propose change to an existing item | ✅ | ✅ | ✅ |
-| Comment on / request changes in a review | — | ✅ | ✅ |
+| Comment in a review | own | ✅ | ✅ |
+| Request changes in a review | — | ✅ | ✅ |
 | Approve or reject a submission (not their own) | — | ✅ | ✅ |
 | Publish an approved submission (own or any) | own | ✅ | ✅ |
 | Move dist-tags, deprecate a version | — | ✅ | ✅ |

@@ -21,7 +21,7 @@ the same change that completes it.
   *Done when:* database tests cover the snapshots, resubmit's checks, and that later edits don't change
   a revision.
 
-- [ ] **4. Decisions and comments.** The permissions, approve / request changes / reject / override,
+- [x] **4. Decisions and comments.** The permissions, approve / request changes / reject / override,
   comments, the row lock, and the audit events.
   *Done when:* database tests cover each decision and who may take it, required messages, the
   override, and two concurrent decisions on all four databases.
@@ -65,3 +65,19 @@ the same change that completes it.
   - Database tests on all four databases: the snapshot doesn't change with later edits, resubmit
     makes revision 2 and re-runs the checks, editing is allowed only when changes are requested,
     and the conversation records submit, resubmit and withdraw.
+- **Task 4 (2026-09-28): decisions and comments.**
+  - `services/reviews.ts`: `decide` (approve, request changes, reject, override) and `comment`.
+    Each locks the submission's row (`lockSubmission`, `FOR UPDATE` in the READ COMMITTED
+    transaction from 013), reads its status fresh, goes through `transition`, adds an event with
+    the latest revision, and records the audit event, in one transaction.
+  - Permissions `submissions.review` (moderator, root) and `submissions.override` (root). A reviewer
+    deciding on their own submission gets `OwnSubmissionError`, which tells root about the
+    override; root using the override on someone else's gets `OverrideNotNeededError`.
+  - Messages: required to request changes, reject or override (`ReviewMessageError`), up to
+    5,000 characters. Audit events `submission.approved`, `.changes_requested`, `.rejected` and
+    `.override_approved`, with the message.
+  - Comments: reviewers on any submission under review, the author on their own; drafts and closed
+    submissions refuse them (`ConversationClosedError`). Not audited.
+  - MVP §2's matrix now lets the author comment on their own submission (the spec's
+    recommendation).
+  - Database tests on all four databases, including two moderators deciding at the same moment.

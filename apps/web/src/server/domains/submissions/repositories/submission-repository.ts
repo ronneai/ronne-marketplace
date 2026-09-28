@@ -43,6 +43,8 @@ export interface SubmissionRepository {
    * and two submissions can't both take a name.
    */
   lockScope(scopeId: string): Promise<void>;
+  /** Locks the submission's row until the transaction ends, so two decisions can't both pass. */
+  lockSubmission(id: string): Promise<void>;
   recordAudit(event: NewAuditEvent, now: Date): Promise<void>;
   /** Snapshots `files` as the submission's next revision (feature 014). */
   createRevision(

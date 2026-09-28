@@ -146,6 +146,13 @@ export const kyselySubmissionRepository = (
         .execute();
     },
 
+    lockSubmission: async (id) => {
+      await forUpdate(
+        db.selectFrom("submissions").select("id").where("id", "=", id),
+        dialect,
+      ).execute();
+    },
+
     lockScope: async (scopeId) => {
       await forUpdate(
         db.selectFrom("scopes").select("id").where("id", "=", scopeId),

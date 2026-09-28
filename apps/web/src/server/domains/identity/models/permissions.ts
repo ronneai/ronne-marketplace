@@ -19,6 +19,10 @@ export const PERMISSIONS = {
   "submissions.create": ["user", "moderator", "root"],
   /** Open submitted (not draft) submissions read-only; 014's review queue builds on it. */
   "submissions.view_submitted": ["moderator", "root"],
+  /** Approve, request changes on or reject others' submissions, and comment on any (feature 014). */
+  "submissions.review": ["moderator", "root"],
+  /** Approve your own submission, with a reason; audited as an override (MVP §2, feature 014). */
+  "submissions.override": ["root"],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;
