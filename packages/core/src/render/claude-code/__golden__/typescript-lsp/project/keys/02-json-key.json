@@ -1,0 +1,6 @@
+{
+  "source": {
+    "source": "directory",
+    "path": ".claude/rmk-plugins/typescript-lsp"
+  }
+}

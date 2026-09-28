@@ -81,6 +81,7 @@ export const TOPICS = [
     sections: [
       { id: "what", title: "What rmk does" },
       { id: "tokens", title: "Tokens and the API" },
+      { id: "claude-code", title: "Claude Code" },
       { id: "status", title: "When it arrives" },
     ],
   },

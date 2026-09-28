@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "file",
+    "path": ".claude/statusline/git-branch/statusline.sh",
+    "executable": true
+  },
+  {
+    "kind": "json-key",
+    "path": ".claude/settings.json",
+    "key": [
+      "statusLine"
+    ]
+  }
+]

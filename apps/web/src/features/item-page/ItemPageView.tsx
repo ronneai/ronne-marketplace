@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { Help } from "@/components/help/Help";
 import { Badge } from "@/components/ui/Badge";
 import { CopyableCommand } from "@/components/ui/CopyableCommand";
 import { Notice } from "@/components/ui/Notice";
@@ -55,6 +56,7 @@ export const ItemPageView = ({
             ))}
             {shown.deprecatedMessage ? <Badge tone="warning">deprecated</Badge> : null}
             {shown.yankedAt ? <Badge tone="error">yanked</Badge> : null}
+            <Help id="claude-code" />
           </div>
           <p className="text-sm text-fg">{description || "No description."}</p>
           <p className="font-mono text-xs text-muted">

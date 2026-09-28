@@ -1,0 +1,36 @@
+[
+  {
+    "kind": "dir",
+    "path": ".claude/rmk-plugins/typescript-lsp",
+    "files": [
+      {
+        "path": ".claude-plugin/plugin.json",
+        "executable": false
+      },
+      {
+        "path": ".claude-plugin/marketplace.json",
+        "executable": false
+      },
+      {
+        "path": ".lsp.json",
+        "executable": false
+      }
+    ]
+  },
+  {
+    "kind": "json-key",
+    "path": ".claude/settings.json",
+    "key": [
+      "extraKnownMarketplaces",
+      "rmk-typescript-lsp"
+    ]
+  },
+  {
+    "kind": "json-key",
+    "path": ".claude/settings.json",
+    "key": [
+      "enabledPlugins",
+      "typescript-lsp@rmk-typescript-lsp"
+    ]
+  }
+]

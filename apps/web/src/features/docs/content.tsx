@@ -37,6 +37,24 @@ const To = ({ href, children }: { href: string; children: ReactNode }) => (
   </Link>
 );
 
+/** Where each type goes in Claude Code (renderer 023, checked against its docs on 2026-09-28). */
+const CLAUDE_CODE_PATHS: [string, string][] = [
+  ["skill", ".claude/skills/<name>/"],
+  ["agent", ".claude/agents/<name>.md"],
+  ["rule", ".claude/rules/<name>.md, or a skill when the AI decides or you ask"],
+  ["command", ".claude/skills/<name>/, run as /<name>"],
+  ["hook", "hooks in .claude/settings.json; a script under .claude/hooks/<name>/"],
+  ["mcp-server", "mcpServers in .mcp.json (your home folder: ~/.claude.json)"],
+  ["permission-policy", "permissions in .claude/settings.json"],
+  ["output-style", ".claude/output-styles/<name>.md"],
+  [
+    "statusline",
+    "statusLine in .claude/settings.json; the script under .claude/statusline/<name>/",
+  ],
+  ["lsp-server", "a local plugin under .claude/rmk-plugins/<name>/"],
+  ["bundle", "nothing of its own: its items are installed one by one"],
+];
+
 const PERMISSIONS: [string, string, string, string][] = [
   ["Browse the catalogue and item pages", "✓", "✓", "✓"],
   ["Create drafts and submit new items", "✓", "✓", "✓"],
@@ -171,6 +189,7 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             <tr>
               <Th>Type</Th>
               <Th>What it is</Th>
+              <Th>In Claude Code</Th>
             </tr>
           </thead>
           <tbody>
@@ -183,6 +202,11 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
                   </span>
                 </Td>
                 <Td className="text-sm">{TYPE_INFO[type].description}</Td>
+                <Td className="font-mono text-xs">
+                  <To href={docsHref("rmk", "claude-code")}>
+                    {CLAUDE_CODE_PATHS.find(([t]) => t === type)?.[1].split(",")[0] ?? ""}
+                  </To>
+                </Td>
               </tr>
             ))}
           </tbody>
@@ -606,6 +630,59 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           Each download of an item adds one to its count, which the home page uses for Most used.
           Nothing about who downloaded it is stored.
         </p>
+      </>
+    ),
+    "claude-code": (
+      <>
+        <p>
+          With <Code>--target claude-code</Code>, <Code>rmk</Code> writes each item where Claude
+          Code reads it: in the project, or in your home folder with <Code>--scope user</Code>.
+        </p>
+        <Table>
+          <thead>
+            <tr>
+              <Th>Type</Th>
+              <Th>Where it goes</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {CLAUDE_CODE_PATHS.map(([type, where]) => (
+              <tr key={type}>
+                <Td>
+                  <Badge>{type}</Badge>
+                </Td>
+                <Td className="text-sm">{where}</Td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+        <Bullets>
+          <li>
+            Rules go to <Code>.claude/rules/</Code>, which Claude Code always reads.{" "}
+            <Code>rmk</Code> never writes <Code>CLAUDE.md</Code> or <Code>AGENTS.md</Code>.
+          </li>
+          <li>
+            Commands are installed as skills: Claude Code merged the two, and you run them the same
+            way, as <Code>/name</Code>.
+          </li>
+          <li>
+            Claude Code asks once before it uses a project&apos;s MCP servers. Their secrets are
+            never written: the config references environment variables such as{" "}
+            <Code>{"${GITHUB_TOKEN}"}</Code>, which you set yourself.
+          </li>
+          <li>
+            An output style is installed, not switched on: pick it with <Code>/output-style</Code>.
+          </li>
+          <li>
+            Claude Code only takes language servers from plugins, so an <Code>lsp-server</Code>{" "}
+            becomes a small local plugin under <Code>.claude/rmk-plugins/</Code>, registered in the
+            settings.
+          </li>
+          <li>
+            Every generated file carries a <Code>managed by rmk</Code> marker, and settings entries
+            are tracked, so <Code>rmk</Code> never overwrites what you wrote by hand.
+          </li>
+        </Bullets>
       </>
     ),
     status: (

@@ -1,0 +1,20 @@
+[
+  {
+    "kind": "dir",
+    "path": ".claude/skills/secure-coding",
+    "files": [
+      {
+        "path": "SKILL.md",
+        "executable": false
+      },
+      {
+        "path": "checklist.md",
+        "executable": false
+      },
+      {
+        "path": "ronne.yaml",
+        "executable": false
+      }
+    ]
+  }
+]

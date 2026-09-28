@@ -113,6 +113,9 @@ describe("the topics", () => {
     const rmk = await topic("rmk");
     expect(rmk).toContain("rmk isn&#x27;t released yet.");
     expect(rmk).toContain('id="tokens"');
+    expect(rmk).toContain('id="claude-code"');
+    expect(rmk).toContain(".claude/rules/");
+    expect(await topic("items")).toContain('href="/docs/rmk#claude-code"');
     expect(rmk).toContain('href="/account/tokens"');
     expect(rmk).toContain("Nothing about who downloaded it is stored.");
   });
