@@ -362,6 +362,76 @@ const renderStatusline = (
   };
 };
 
+/**
+ * Claude Code only takes language servers from plugins, so an `lsp-server` becomes a small local
+ * plugin with its own one-plugin marketplace, registered and enabled in the settings file. One
+ * marketplace per plugin, so no two items ever write the same settings key.
+ */
+const renderLspServer = (
+  item: RenderInput,
+  n: string,
+  block: Record<string, unknown>,
+): Rendered => {
+  const extensionToLanguage: Record<string, string> = {};
+  for (const raw of Array.isArray(block.languages) ? block.languages : []) {
+    const language = record(raw);
+    for (const extension of strings(language.extensions))
+      extensionToLanguage[extension] = String(language.id ?? "");
+  }
+  const plugin = `.claude/rmk-plugins/${n}`;
+  const marketplace = `rmk-${n}`;
+  const json = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
+  return {
+    changes: [
+      {
+        kind: "dir",
+        path: plugin,
+        files: [
+          {
+            path: ".claude-plugin/plugin.json",
+            content: json({
+              name: n,
+              description: item.manifest.description,
+              version: item.version,
+            }),
+          },
+          {
+            path: ".claude-plugin/marketplace.json",
+            content: json({
+              name: marketplace,
+              owner: { name: "rmk" },
+              plugins: [{ name: n, source: "./" }],
+            }),
+          },
+          {
+            path: ".lsp.json",
+            content: json({
+              [n]: {
+                command: block.command,
+                ...(Array.isArray(block.args) ? { args: block.args } : {}),
+                extensionToLanguage,
+              },
+            }),
+          },
+        ],
+      },
+      {
+        kind: "json-key",
+        path: SETTINGS,
+        key: ["extraKnownMarketplaces", marketplace],
+        value: { source: { source: "directory", path: plugin } },
+      },
+      {
+        kind: "json-key",
+        path: SETTINGS,
+        key: ["enabledPlugins", `${n}@${marketplace}`],
+        value: true,
+      },
+    ],
+    warnings: [],
+  };
+};
+
 export const claudeCodeRenderer: PlatformRenderer = {
   id: RENDERER_ID,
   name: RENDERER_NAME,
@@ -395,6 +465,11 @@ export const claudeCodeRenderer: PlatformRenderer = {
         return renderPermissionPolicy(item, block);
       case "statusline":
         return renderStatusline(item, n, block, scope);
+      case "lsp-server":
+        return renderLspServer(item, n, block);
+      case "bundle":
+        // Its members are installed as items of their own (the resolver, 020); nothing to write.
+        return { changes: [], warnings: [] };
       default:
         return {
           changes: [],

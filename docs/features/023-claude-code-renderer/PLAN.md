@@ -16,7 +16,7 @@ the same change that completes it.
   *Done when:* golden files are committed, and unit tests cover adding and removing one array element
   among others.
 
-- [ ] **3. LSP servers and bundles.** The local plugin and marketplace for `lsp-server`, after
+- [x] **3. LSP servers and bundles.** The local plugin and marketplace for `lsp-server`, after
   checking how a project enables it; bundles render nothing of their own.
   *Done when:* golden files are committed.
 
@@ -50,3 +50,11 @@ the same change that completes it.
   `permissions.<decision>`: `Bash(pattern)`, `Read(…)`, `WebFetch(domain:…)`, `mcp__server__tool`;
   an MCP or web-search rule with a pattern is left out with a warning. The status line script goes
   to `.claude/statusline/<n>/` and `statusLine` points at it. (`json-array-item` was added to 021.)
+- **Task 3 (2026-09-28): LSP servers and bundles.** An `lsp-server` is a local plugin,
+  `.claude/rmk-plugins/<n>/` (`plugin.json`, `.lsp.json` with `extensionToLanguage` from the
+  manifest's languages, and a one-plugin `marketplace.json`), registered as
+  `extraKnownMarketplaces.rmk-<n>` and switched on as `enabledPlugins["<n>@rmk-<n>"]` in the
+  settings file. One marketplace per plugin, rather than one shared one, so no two items write the
+  same settings key. How a project registers a local marketplace is what the docs said on
+  2026-09-28; the end-to-end test (task 4) is where it's proven. Bundles write nothing. The renderer
+  is in `RENDERERS`, and exported from `@ronneai/core/render`.

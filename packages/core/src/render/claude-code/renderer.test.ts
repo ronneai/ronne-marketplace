@@ -220,4 +220,45 @@ describe("the Claude Code renderer", () => {
       },
     });
   });
+
+  it("writes a language server as a local plugin with its own marketplace, registered and enabled", () => {
+    const result = render("typescript-lsp");
+    expect(result.warnings).toEqual([]);
+    expect(result.changes.map((c) => [c.kind, c.path, "key" in c ? c.key : null])).toEqual([
+      ["dir", ".claude/rmk-plugins/typescript-lsp", null],
+      ["json-key", ".claude/settings.json", ["extraKnownMarketplaces", "rmk-typescript-lsp"]],
+      [
+        "json-key",
+        ".claude/settings.json",
+        ["enabledPlugins", "typescript-lsp@rmk-typescript-lsp"],
+      ],
+    ]);
+    const plugin = result.changes[0];
+    const file = (path: string) =>
+      plugin?.kind === "dir" ? String(plugin.files.find((f) => f.path === path)?.content) : "";
+    expect(JSON.parse(file(".lsp.json"))).toEqual({
+      "typescript-lsp": {
+        command: "typescript-language-server",
+        args: ["--stdio"],
+        extensionToLanguage: {
+          ".ts": "typescript",
+          ".tsx": "typescript",
+          ".js": "javascript",
+          ".jsx": "javascript",
+          ".mjs": "javascript",
+          ".cjs": "javascript",
+        },
+      },
+    });
+    expect(JSON.parse(file(".claude-plugin/marketplace.json")).plugins).toEqual([
+      { name: "typescript-lsp", source: "./" },
+    ]);
+    expect(claudeCodeRenderer.supports("lsp-server")).toBe("degraded");
+  });
+
+  it("writes nothing for a bundle, and is listed for rmk platforms", async () => {
+    expect(render("starter-kit")).toEqual({ changes: [], warnings: [] });
+    const { RENDERERS } = await import("../registry.js");
+    expect(RENDERERS.map((r) => r.id)).toEqual(["claude-code"]);
+  });
 });

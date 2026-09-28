@@ -1,0 +1,12 @@
+{
+  "name": "rmk-typescript-lsp",
+  "owner": {
+    "name": "rmk"
+  },
+  "plugins": [
+    {
+      "name": "typescript-lsp",
+      "source": "./"
+    }
+  ]
+}
