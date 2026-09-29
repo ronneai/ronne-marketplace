@@ -26,6 +26,7 @@ const entry = (name: string, downloadCount = 0): CatalogueEntry => ({
   deprecatedMessage: null,
   installable: true,
   downloadCount,
+  support: { "claude-code": "native", codex: "native", cursor: "native" },
 });
 
 const render = async () => renderToStaticMarkup(await HomePage());

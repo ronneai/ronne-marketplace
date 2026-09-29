@@ -19,6 +19,7 @@ describe("registry JSON", () => {
         deprecatedMessage: null,
         installable: true,
         downloadCount: 7,
+        support: { "claude-code": "native", codex: "native", cursor: "off" },
       }),
     ).toEqual({
       name: "@team/fmt",
@@ -31,6 +32,7 @@ describe("registry JSON", () => {
       installable: true,
       risky: true,
       downloads: 7,
+      support: { "claude-code": "native", codex: "native", cursor: "off" },
     });
   });
 

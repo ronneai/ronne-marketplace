@@ -22,6 +22,13 @@ export {
   trimTrailingNewlines,
 } from "./helpers.js";
 export { RENDERERS, rendererById } from "./registry.js";
+export {
+  disabledTargets,
+  installsIn,
+  supportFor,
+  supportOf,
+  type ToolSupport,
+} from "./support.js";
 export type {
   Change,
   ChangeFile,

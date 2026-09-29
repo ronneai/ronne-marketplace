@@ -143,6 +143,7 @@ describe("GET /items", () => {
       keywords: ["a"],
       installable: true,
       downloads: 0,
+      support: { "claude-code": "native", codex: "native", cursor: "native" },
     });
     expect(json.nextCursor).toBeNull();
   });
@@ -166,10 +167,19 @@ describe("GET /items", () => {
       "@team/hooky",
     ]);
     expect(second.json.nextCursor).toBeNull();
+    await release("styled", { type: "output-style" });
+    expect(await names("?tool=codex&sort=name")).not.toContain("@team/styled");
+    expect(await names("?tool=claude-code&type=output-style")).toEqual(["@team/styled"]);
   });
 
   it("refuses what it doesn't understand, and requests without a valid token", async () => {
-    for (const query of ["?type=widget", "?sort=stars", "?limit=0", "?limit=101"]) {
+    for (const query of [
+      "?type=widget",
+      "?tool=copilot",
+      "?sort=stars",
+      "?limit=0",
+      "?limit=101",
+    ]) {
       const { status, json } = await body(await listItems(get(`/items${query}`), deps));
       expect([status, json.error.code]).toEqual([400, "invalid_request"]);
     }
@@ -208,6 +218,11 @@ describe("GET /items/{scope}/{name}", () => {
       ["1.1.0", false, null],
       ["1.0.0", false, "Use 1.1.0."],
     ]);
+    expect(json.versions[0].support).toEqual({
+      "claude-code": "native",
+      codex: "native",
+      cursor: "native",
+    });
     // A leading @ in the path works too.
     expect(
       (await getItem(get("/items/@team/tool"), { scope: "@team", name: "tool" }, deps)).status,
@@ -305,6 +320,7 @@ describe("GET /items/{scope}/{name}/{version}", () => {
       readme: "# Kit\n",
       notes: "First.",
       riskFlags: [{ kind: "network" }],
+      support: { "claude-code": "native", codex: "native", cursor: "native" },
     });
     expect(json.files.map((f: { path: string }) => f.path)).toEqual(["ronne.yaml", "SKILL.md"]);
     const missing = await body(

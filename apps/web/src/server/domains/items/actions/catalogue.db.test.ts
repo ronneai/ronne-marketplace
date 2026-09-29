@@ -68,6 +68,7 @@ const release = async (
     keywords?: string[];
     versions?: string[];
     flags?: RiskFlag[];
+    targets?: Record<string, unknown>;
   } = {},
 ) => {
   const items = kyselyItemRepository(t.db, t.dialect);
@@ -92,6 +93,7 @@ const release = async (
         name: `@${scope}/${name}`,
         description: options.description ?? `The ${name} item.`,
         keywords: options.keywords ?? [],
+        ...(options.targets ? { targets: options.targets } : {}),
       },
       readme: null,
       files: [],
@@ -174,6 +176,32 @@ describe("the catalogue", () => {
       type: null,
       sort: "recent",
     });
+  });
+
+  it("lists the items a tool supports, and says each item's support", async () => {
+    await release("skill", { type: "skill" });
+    await release("style", { type: "output-style" });
+    await release("off-in-cursor", { type: "rule", targets: { cursor: { enabled: false } } });
+    await release("policy", { type: "permission-policy", scope: "tools" });
+    expect(names(await browse({ tool: "cursor", sort: "name" }))).toEqual([
+      "@team/skill",
+      "@tools/policy",
+    ]);
+    expect(names(await browse({ tool: "claude-code" }))).toHaveLength(4);
+    const page = await browse({ tool: "codex", sort: "name" });
+    expect(names(page)).toEqual(["@team/off-in-cursor", "@team/skill", "@tools/policy"]);
+    expect(page.query.tool).toBe("codex");
+    expect(page.typeCounts.find((c) => c.type === "output-style")?.count).toBe(0);
+    expect(page.entries.find((e) => e.name === "off-in-cursor")?.support).toEqual({
+      "claude-code": "native",
+      codex: "native",
+      cursor: "off",
+    });
+    expect(page.entries.find((e) => e.name === "policy")?.support).toMatchObject({
+      codex: "degraded",
+    });
+    // An unknown tool is dropped, not an error.
+    expect((await browse({ tool: "copilot" })).query.tool).toBeNull();
   });
 
   it("sorts by name, and lists items with every version yanked last", async () => {

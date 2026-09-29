@@ -8,7 +8,7 @@ import {
   resolveAs,
 } from "../domains/items/actions/versions";
 import type { StorageAdapter } from "../storage";
-import { parseLimit, parseSearch, parseSort, parseType } from "./api-query";
+import { parseLimit, parseSearch, parseSort, parseTool, parseType } from "./api-query";
 import { domainErrorResponse, errorResponse } from "./errors";
 import { readJsonObject } from "./read-json";
 import { itemJson, itemSummaryJson, versionJson } from "./registry-json";
@@ -43,11 +43,13 @@ export const listItems = async (request: Request, deps: RegistryApiDeps = {}) =>
   const params = new URL(request.url).searchParams;
   const q = parseSearch(params.get("q"));
   const type = parseType(params.get("type"));
+  const tool = parseTool(params.get("tool"));
   const sort = parseSort(params.get("sort"));
   const limit = parseLimit(params.get("limit"));
   const invalid = (message: string) => errorResponse(400, "invalid_request", message);
   if (!q.ok) return invalid(q.message);
   if (!type.ok) return invalid(type.message);
+  if (!tool.ok) return invalid(tool.message);
   if (!sort.ok) return invalid(sort.message);
   if (!limit.ok) return invalid(limit.message);
   try {
@@ -56,6 +58,7 @@ export const listItems = async (request: Request, deps: RegistryApiDeps = {}) =>
       {
         q: q.value,
         type: type.value,
+        tool: tool.value,
         scope: params.get("scope")?.replace(/^@/, "") || null,
         sort: sort.value,
         cursor: params.get("cursor") ?? undefined,

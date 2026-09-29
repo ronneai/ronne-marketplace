@@ -1,4 +1,5 @@
 import { type ItemType, isItemType } from "@ronneai/core";
+import { RENDERERS, rendererById } from "@ronneai/core/render";
 
 /**
  * Query-string parsing for `/api/v1` (MVP §11, feature 019). Unlike the web pages, which drop what
@@ -25,6 +26,14 @@ export const parseLimit = (value: string | null): Parsed<number> => {
 export const parseType = (value: string | null): Parsed<ItemType | null> => {
   if (value === null || value === "") return ok(null);
   return isItemType(value) ? ok(value) : fail(`\`type\` must be an item type; ${value} isn't one.`);
+};
+
+/** `?tool=`: a renderer id (026), or none. */
+export const parseTool = (value: string | null): Parsed<string | null> => {
+  if (value === null || value === "") return ok(null);
+  if (rendererById(value)) return ok(value);
+  const ids = RENDERERS.map((r) => r.id).join(", ");
+  return fail(`\`tool\` must be one of ${ids}; ${value} isn't one.`);
 };
 
 /** `?sort=`: `recent` (the default) or `name`. */

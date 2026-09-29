@@ -24,6 +24,7 @@ const entry = (overrides: Partial<CatalogueEntry> = {}): CatalogueEntry => ({
   deprecatedMessage: null,
   installable: true,
   downloadCount: 3,
+  support: { "claude-code": "native", codex: "native", cursor: "native" },
   ...overrides,
 });
 
@@ -32,7 +33,7 @@ const pageOf = (overrides: Partial<CataloguePage> = {}): CataloguePage => ({
   nextCursor: null,
   typeCounts: ITEM_TYPES.map((type) => ({ type, count: type === "hook" ? 1 : 0 })),
   scopes: ["team", "tools"],
-  query: { q: "", type: null, scope: null, sort: "recent" },
+  query: { q: "", type: null, scope: null, tool: null, sort: "recent" },
   ...overrides,
 });
 
@@ -66,7 +67,7 @@ describe("the catalogue page", () => {
 
   it("shows the type chips with counts, the scopes, and the sorts, keeping the rest of the query", async () => {
     catalogue.browseCatalogue.mockResolvedValue(
-      pageOf({ query: { q: "x", type: "hook", scope: "team", sort: "name" } }),
+      pageOf({ query: { q: "x", type: "hook", scope: "team", tool: null, sort: "name" } }),
     );
     const html = await render();
     expect(html).toMatch(
@@ -103,7 +104,10 @@ describe("the catalogue page", () => {
     expect(empty).toContain("Nothing is published yet.");
     expect(empty).toContain('href="/submissions/new"');
     catalogue.browseCatalogue.mockResolvedValue(
-      pageOf({ entries: [], query: { q: "zzz", type: null, scope: null, sort: "recent" } }),
+      pageOf({
+        entries: [],
+        query: { q: "zzz", type: null, scope: null, tool: null, sort: "recent" },
+      }),
     );
     expect(await render({ q: "zzz" })).toContain("No items match.");
   });

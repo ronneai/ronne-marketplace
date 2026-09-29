@@ -34,6 +34,8 @@ export type ItemVersion = {
   publishedByName: string | null;
   /** `@scope/name` → range, from the version's manifest. */
   dependencies: Record<string, string>;
+  /** The AI tools its manifest turns off (026). */
+  disabledTargets: string[];
 };
 
 export type NewItemVersion = {

@@ -8,6 +8,7 @@ import { items } from "./0007_items";
 import { yankReason } from "./0008_yank_reason";
 import { catalogue } from "./0009_catalogue";
 import { proposalConflicts } from "./0010_proposal_conflicts";
+import { disabledTargets } from "./0011_disabled_targets";
 import type { AppMigration } from "./types";
 
 /**
@@ -25,4 +26,5 @@ export const migrations: Record<string, AppMigration> = {
   "0008_yank_reason": yankReason,
   "0009_catalogue": catalogue,
   "0010_proposal_conflicts": proposalConflicts,
+  "0011_disabled_targets": disabledTargets,
 };

@@ -44,14 +44,20 @@ since the manifest may differ between versions.
 as small muted marks (`claude-code`, `codex`, `cursor`), and leave out `off` and `none`.
 
 **The catalogue filter** `?tool=<id>` lists items whose listed version is `native` or `degraded`
-for that renderer. It's computed at query time from the type and the listed version's manifest,
-which the catalogue already reads: no new column.
+for that renderer: the item's type is one the renderer takes, and the version's manifest doesn't
+turn the tool off. The catalogue doesn't read manifests, and reading `targets` out of stored JSON
+isn't the same on SQLite, PostgreSQL and MySQL, so each version keeps the tools its manifest turns
+off in a small column, `item_versions.disabled_targets` (migration 0011, written at release and
+backfilled), padded as ` cursor codex ` so the filter is one `NOT LIKE '% <id> %'` everywhere, as
+`keywords` is for search (018). The type counts follow the filter; the web page drops an unknown
+tool, and the API answers it with a 400.
 
 **The API** (019) adds `support: { "<id>": "native" | "degraded" | "off" | "none" }` to item
 summaries and versions, so `rmk info` (022) and the MCP server (027) can say the same.
 
-**Where it lives:** a pure `supportOf(manifest, type)` in `packages/core/src/render/` over
-`RENDERERS`, used by the web app, the API and `rmk`.
+**Where it lives:** `packages/core/src/render/support.ts` over `RENDERERS`: `supportOf(manifest,
+type)`, `supportFor(type, disabled)` for rows that keep only the column, `disabledTargets(manifest)`
+and `installsIn(level)`. A type a tool can't take stays `none` even when turned off.
 
 ## Documentation
 
@@ -70,10 +76,10 @@ summaries and versions, so `rmk info` (022) and the MCP server (027) can say the
 
 ## Acceptance criteria
 
-- [ ] `supportOf` gives the four levels from `supports()` and the manifest's `targets`, with unit tests.
+- [x] `supportOf` gives the four levels from `supports()` and the manifest's `targets`, with unit tests.
 - [ ] The item page's Tools panel shows every renderer with its level and line, for `latest` and for another version.
 - [ ] Cards mark the supporting tools; `?tool=` filters the catalogue on all four databases.
-- [ ] The API's summaries and versions carry `support`.
+- [x] The API's summaries and versions carry `support`, and `?tool=` filters them (400 for an unknown tool).
 - [ ] The Documentation's types table has a column per tool, and the helper links to it.
 
 ## Open questions

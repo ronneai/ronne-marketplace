@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. `supportOf`.** The pure function in core over `RENDERERS` and the manifest's `targets`,
+- [x] **1. `supportOf`.** The pure function in core over `RENDERERS` and the manifest's `targets`,
   and `support` in the API's summaries and versions.
   *Done when:* unit tests cover the four levels, and the API tests see `support`.
 
@@ -19,3 +19,8 @@ the same change that completes it.
   *Done when:* the docs render tests cover them, and the helper's link lands on a real section.
 
 ## Notes
+
+- Task 1 added migration 0011 (`item_versions.disabled_targets`) with the filter itself, since the
+  API's summaries need each listed version's support and the catalogue query doesn't load
+  manifests. Tested on SQLite, PostgreSQL 15, MySQL 8.4 and MariaDB 10.11.
+

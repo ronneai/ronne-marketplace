@@ -1,3 +1,4 @@
+import { supportFor } from "@ronneai/core/render";
 import type { CatalogueEntry } from "../domains/items/actions/catalogue";
 import type { ItemPage, VersionRow } from "../domains/items/actions/versions";
 
@@ -19,9 +20,10 @@ export const itemSummaryJson = (entry: CatalogueEntry) => ({
   installable: entry.installable,
   risky: entry.risky,
   downloads: entry.downloadCount,
+  support: entry.support,
 });
 
-const versionRowJson = (v: VersionRow) => ({
+const versionRowJson = (type: string, v: VersionRow) => ({
   version: v.version,
   publishedAt: v.publishedAt.toISOString(),
   sha256: v.sha256,
@@ -29,6 +31,7 @@ const versionRowJson = (v: VersionRow) => ({
   deprecated: v.deprecatedMessage,
   yanked: v.yankedAt !== null,
   dependencies: v.dependencies,
+  support: supportFor(type, v.disabledTargets),
 });
 
 /** An item, its tags and its versions, newest first, yanked ones included. */
@@ -39,7 +42,7 @@ export const itemJson = (page: ItemPage) => ({
   owner: page.ownerName,
   downloads: page.item.downloadCount,
   tags: Object.fromEntries(page.tags.map((t) => [t.tag, t.version])),
-  versions: page.versions.map(versionRowJson),
+  versions: page.versions.map((v) => versionRowJson(page.item.type, v)),
 });
 
 /** One version, with what its page shows: manifest, README, files, risk flags, notes, yank. */
@@ -48,7 +51,7 @@ export const versionJson = (page: ItemPage) => {
   return {
     name: nameOf(page.item),
     type: page.item.type,
-    ...versionRowJson(v),
+    ...versionRowJson(page.item.type, v),
     tags: v.tags,
     yankedAt: v.yankedAt?.toISOString() ?? null,
     yankReason: v.yankReason,
