@@ -100,9 +100,9 @@ New folders start from [`_template/`](./_template/).
 
 | ID | Feature | Depends on | Status |
 |---|---|---|---|
-| 028 | GitHub Copilot renderer | 021 | planned |
-| 029 | Gemini CLI / Antigravity CLI renderer | 021 | planned |
-| 030 | Devin Desktop renderer | 021 | planned |
+| [028](./028-copilot-renderer/SPEC.md) | GitHub Copilot renderer (the CLI and VS Code) | 021, 022, 025 | specified |
+| [029](./029-gemini-antigravity-renderers/SPEC.md) | Antigravity CLI and Gemini CLI renderers | 021, 022, 025 | specified |
+| [030](./030-devin-renderer/SPEC.md) | Devin renderer (Devin Desktop and the Devin CLI) | 021, 022, 025 | specified |
 
 ### M6 — Visual composer and npm
 
