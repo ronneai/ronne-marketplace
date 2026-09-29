@@ -125,13 +125,15 @@ CLI.
 
 ## Documentation
 
-- **Installing with rmk → a new section, "Cursor":** where each type goes, that skills and
-  commands live in the shared `.agents/skills/` folder, that a permission policy only applies to
-  Cursor's CLI, that output styles, status lines and language servers are skipped, and what
-  happens with Claude Code and Cursor together.
-- **Items and types → The types:** the Cursor column (026's matrix).
-- The item page helper "Where does this go in Claude Code?" becomes "Where does this go in my
-  tool?", covering the tools with renderers.
+- **The Cursor page** in the Documentation's "Installing" group (024 made one page per tool): where
+  each type goes; "With Claude Code" (Cursor reads Claude Code's skills, agents and hooks through
+  Third-Party Imports, so rmk leaves skills, commands and hooks to Claude Code's copy); good to know
+  (the shared `.agents/skills/`, rules by activation and none in user scope, read-only agents,
+  `${env:NAME}`, permissions for the CLI only, what's skipped).
+- **Installing with rmk:** Cursor's row in "Your AI tools" (target `cursor`, picked up by
+  `.cursor/`), and the Installing step names `cursor`.
+- **Items and types → The types:** an "In Cursor" column.
+- The item page helper "Where does this go in my AI tool?" covers Cursor.
 
 ## Edge cases
 
@@ -145,12 +147,13 @@ CLI.
 
 ## Acceptance criteria
 
-- [ ] Every example item renders in both scopes to the paths and shapes above, and the golden files are committed.
-- [ ] Tools and events map as in the table; anything unmappable, and every `none` type, is a warning.
-- [ ] `hooks.json` gets one `version` key however many hook items are installed, and keeps it until the last one leaves.
-- [ ] No secret value is written for MCP servers; `${env:NAME}` references are used.
-- [ ] The end-to-end test installs a skill, an agent, a hook and an MCP server with `rmk --target cursor`, and removes them, leaving the user's files untouched; installing with `claude-code,cursor` writes the shared skill folder once.
-- [ ] The locations are re-checked against Cursor's documentation when this is built, and MVP §3.3 matches.
+- [x] Every example item renders in both scopes to the paths and shapes above, and the golden files are committed.
+- [x] Tools and events map as in the table; anything unmappable, and every `none` type, is a warning.
+- [x] `hooks.json` gets one `version` key however many hook items are installed, and keeps it until the last one leaves.
+- [x] No secret value is written for MCP servers; `${env:NAME}` references are used.
+- [x] The end-to-end test installs a skill, an agent, a hook, an MCP server and a rule in a project with `.cursor/` (so Cursor is the detected target), then with `claude-code,cursor`, where the skill and the hook are written once (Claude Code's copies), and removes them, leaving the person's own MCP server untouched. A CLI test covers `codex,cursor` sharing `.agents/skills/`.
+- [x] The in-app Documentation has Cursor's page, its row in "Your AI tools", the types table's Cursor column and the item page helper, with render tests.
+- [x] The locations are re-checked against Cursor's documentation when this is built, and MVP §3.3 matches.
 
 ## Open questions
 

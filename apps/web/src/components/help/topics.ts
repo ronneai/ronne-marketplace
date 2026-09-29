@@ -112,8 +112,12 @@ export const TOPICS = [
   {
     slug: "cursor",
     title: "Cursor",
-    summary: "Where Cursor support stands.",
-    sections: [{ id: "status", title: "Not supported yet" }],
+    summary: "Where rmk puts each type of item for Cursor, and how it works with Claude Code.",
+    sections: [
+      { id: "paths", title: "Where each type goes" },
+      { id: "with-claude-code", title: "With Claude Code" },
+      { id: "notes", title: "Good to know" },
+    ],
   },
 ] as const;
 

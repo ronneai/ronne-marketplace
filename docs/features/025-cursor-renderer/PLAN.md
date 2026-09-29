@@ -19,7 +19,7 @@ the same change that completes it.
   rules, and the renderer in `RENDERERS`.
   *Done when:* golden files and `rmk platforms` show them.
 
-- [ ] **4. End to end and documentation.** `rmk install --target cursor` and `--target
+- [x] **4. End to end and documentation.** `rmk install --target cursor` and `--target
   claude-code,cursor` in the Playwright suite, and the Documentation section and helper.
   *Done when:* it passes in CI, and the docs render tests cover the new section.
 

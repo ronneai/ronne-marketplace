@@ -128,7 +128,11 @@ describe("the topics", () => {
     expect(codex).toContain('id="trust"');
     expect(codex).toContain(".codex/agents/&lt;name&gt;.toml");
     expect(codex).toContain("/hooks");
-    expect(await topic("cursor")).toContain("doesn&#x27;t write for Cursor yet");
+    const cursor = await topic("cursor");
+    expect(cursor).toContain('id="with-claude-code"');
+    expect(cursor).toContain(".cursor/rules/&lt;name&gt;.mdc");
+    expect(cursor).toContain("Third-Party Imports");
+    expect(await topic("items")).toContain('href="/docs/cursor#paths"');
     expect(await topic("items")).toContain('href="/docs/claude-code#paths"');
     expect(await topic("items")).toContain('href="/docs/codex#paths"');
     expect(rmk).toContain('href="/account/tokens"');
