@@ -73,11 +73,16 @@
                 "patterns": [
                   {
                     "group": ["@ronneai/web", "@ronneai/web/**"],
-                    "message": "The MCP server may only import @ronneai/core (MVP §9.1)."
+                    "message": "The MCP server may import @ronneai/core and @ronneai/rmk/lib, never the web app (MVP §9.1)."
                   },
                   {
-                    "group": ["@ronneai/rmk", "@ronneai/rmk/**"],
-                    "message": "The MCP server may only import @ronneai/core (MVP §9.1)."
+                    "group": [
+                      "@ronneai/rmk",
+                      "@ronneai/rmk/**",
+                      "!@ronneai/rmk/lib",
+                      "!@ronneai/rmk/testing"
+                    ],
+                    "message": "The MCP server may import @ronneai/core and rmk's library entry, @ronneai/rmk/lib, never rmk's commands (MVP §9.1, feature 027)."
                   }
                 ]
               }

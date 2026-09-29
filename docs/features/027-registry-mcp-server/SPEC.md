@@ -69,7 +69,9 @@ Code, that the project's MCP servers need approving once.
 **Shared code.** The install pipeline lives in `packages/cli` (022). It's exported as a library
 entry, `@ronneai/rmk/lib` (targets, resolve, fetch, render, plan, apply, and the report), and
 `packages/mcp` depends on it, so the server and the command can't drift. `rmk mcp-setup` is a
-CLI command; the server never imports the CLI's command layer.
+CLI command; the server never imports the CLI's command layer. MVP §9.1 said `mcp` depends on
+core only; the owner chose this over moving the pipeline into core (2026-09-29), and the Biome
+rule allows `@ronneai/rmk/lib` (and `/testing` in tests) and nothing else from `rmk`.
 
 **Security** (MVP §12): the server does what the person's token allows and nothing more; it
 writes only inside the project (or home, for user scope), through the same path checks as `rmk`
