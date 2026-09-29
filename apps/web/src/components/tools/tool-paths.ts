@@ -1,3 +1,5 @@
+import type { TopicSlug } from "@/components/help/topics";
+
 /**
  * Where each type goes in each AI tool, as the Documentation says it (features 023–025, each
  * checked against the tool's docs when its renderer was built): the tool pages list them in full,
@@ -67,3 +69,21 @@ export const TOOL_PATHS: Record<string, [string, string][]> = {
 
 /** The place itself, without the notes after it: up to the first comma, parenthesis or semicolon. */
 export const shortPlace = (where: string): string => where.split(/[,(;]/)[0]?.trim() ?? where;
+
+/** Each tool's page in the Documentation, by renderer id. */
+export const TOOL_PAGES: Record<string, TopicSlug> = {
+  "claude-code": "claude-code",
+  codex: "codex",
+  cursor: "cursor",
+};
+
+/**
+ * Where a type goes in a tool, in short: "installs its items" for a bundle, "" if unknown. With an
+ * item's name, `<name>` becomes it, as the renderers name the files.
+ */
+export const placeFor = (toolId: string, type: string, name?: string): string => {
+  if (type === "bundle") return "installs its items";
+  const where = TOOL_PATHS[toolId]?.find(([t]) => t === type)?.[1];
+  const place = where ? shortPlace(where) : "";
+  return name ? place.replaceAll("<name>", name) : place;
+};

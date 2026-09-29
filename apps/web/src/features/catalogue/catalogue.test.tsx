@@ -52,6 +52,7 @@ describe("the catalogue page", () => {
       q: "fmt",
       type: "hook",
       scope: undefined,
+      tool: undefined,
       sort: undefined,
       cursor: "c",
     });
@@ -59,8 +60,12 @@ describe("the catalogue page", () => {
     expect(html).toContain(">@team/fmt<");
     expect(html).toContain("v1.2.0");
     expect(html).toContain(">hook<");
-    expect(html).toContain("#format · #lint · published 2026-09-20");
+    expect(html).toContain(
+      "#format · #lint · published 2026-09-20 · works in Claude Code, Codex, Cursor",
+    );
     expect(html).toContain("rmk install @team/fmt");
+    expect(html).toContain("published 2026-09-20 · works in Claude Code, Codex, Cursor");
+    expect(html).toContain('<option value="cursor">Cursor</option>');
     expect(html).not.toContain("⚠ risk");
     expect(html).not.toContain("downloads");
   });
@@ -87,6 +92,16 @@ describe("the catalogue page", () => {
         entries: [
           entry({ risky: true, deprecatedMessage: "Use @team/fmt2." }),
           entry({ id: "i2", name: "gone", installable: false }),
+          entry({
+            id: "i3",
+            name: "style",
+            support: { "claude-code": "native", codex: "none", cursor: "off" },
+          }),
+          entry({
+            id: "i4",
+            name: "nowhere",
+            support: { "claude-code": "off", codex: "none", cursor: "none" },
+          }),
         ],
       }),
     );
@@ -96,6 +111,8 @@ describe("the catalogue page", () => {
     expect(html).toContain("Deprecated: Use @team/fmt2.");
     expect(html).toContain("no installable version");
     expect(html).not.toContain("rmk install @team/gone");
+    expect(html).toContain("works in Claude Code<");
+    expect(html).toContain("works in no built-in tool");
   });
 
   it("explains how items arrive when nothing is published, and says when nothing matches", async () => {
@@ -126,14 +143,16 @@ describe("catalogue query helpers", () => {
       q: "a",
       type: undefined,
       scope: undefined,
+      tool: undefined,
       sort: "name",
       cursor: undefined,
     });
   });
 
   it("builds URLs without defaults or empty values", () => {
-    const query = { q: "", type: null, scope: null, sort: "recent" as const };
+    const query = { q: "", type: null, scope: null, tool: null, sort: "recent" as const };
     expect(catalogueHref(query)).toBe("/catalogue");
+    expect(catalogueHref(query, { tool: "codex" })).toBe("/catalogue?tool=codex");
     expect(catalogueHref(query, { q: "a b", sort: "name" })).toBe("/catalogue?q=a+b&sort=name");
   });
 });

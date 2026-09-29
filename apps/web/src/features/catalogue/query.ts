@@ -10,11 +10,18 @@ export const parseCatalogueQuery = (params: SearchParams): CatalogueQuery => ({
   q: first(params.q),
   type: first(params.type) || undefined,
   scope: first(params.scope) || undefined,
+  tool: first(params.tool) || undefined,
   sort: first(params.sort) || undefined,
   cursor: first(params.cursor) || undefined,
 });
 
-type Shown = { q: string; type: string | null; scope: string | null; sort: "recent" | "name" };
+type Shown = {
+  q: string;
+  type: string | null;
+  scope: string | null;
+  tool: string | null;
+  sort: "recent" | "name";
+};
 
 /** The catalogue's URL for `query` with `changes`; the default sort and empty values are left out. */
 export const catalogueHref = (query: Shown, changes: Partial<Shown> & { cursor?: string } = {}) => {
@@ -23,6 +30,7 @@ export const catalogueHref = (query: Shown, changes: Partial<Shown> & { cursor?:
   if (next.q) params.set("q", next.q);
   if (next.type) params.set("type", next.type);
   if (next.scope) params.set("scope", next.scope);
+  if (next.tool) params.set("tool", next.tool);
   if (next.sort !== "recent") params.set("sort", next.sort);
   if (changes.cursor) params.set("cursor", changes.cursor);
   const search = params.toString();

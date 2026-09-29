@@ -34,14 +34,19 @@ so it's always what `rmk` would do.
 | `off` | the manifest's `targets.<id>.enabled` is `false` for the shown version |
 | `none` | `supports(type)` is `none`: `rmk` skips the item there with a warning |
 
-**The item page** gets a **Tools** panel under Install: each renderer's name, its level as a badge
-(`native` accent, `degraded` warning, `off` and `none` muted), and one line saying what the level
-means for this item ("Installed as a local plugin", "Turned off in ronne.yaml", "Skipped: Codex
-has no place for output styles"). Levels are computed for the version shown (`?version=` too),
-since the manifest may differ between versions.
+**The item page** gets a **Works in** panel under Install: each renderer's name (linking to its
+Documentation page), its level as a badge (`supported` accent, `partly` warning, `turned off` and
+`skipped` muted), and one line saying what the level means for this item: where it goes, with the
+item's own name in the path (`.claude/agents/kit-agent.md`), "…with some of it left out", "This
+version's ronne.yaml keeps it away from this tool", or "Codex has no place for output-style items,
+so rmk skips it there with a warning". Levels are computed for the version shown (`?version=` too),
+since the manifest may differ between versions. The panel replaces the header's "Where does this go
+in my AI tool?" helper, which it answers.
 
-**Cards** (catalogue and home) show the tools that support the listed version natively or partly,
-as small muted marks (`claude-code`, `codex`, `cursor`), and leave out `off` and `none`.
+**Cards** (catalogue and home) say which tools the listed version installs in, natively or partly,
+in their footer line ("published 2026-09-29 · works in Claude Code, Codex, Cursor"), leaving out
+`off` and `none` ("works in no built-in tool" when nothing's left). The catalogue's form has a
+"Works in" select for the filter.
 
 **The catalogue filter** `?tool=<id>` lists items whose listed version is `native` or `degraded`
 for that renderer: the item's type is one the renderer takes, and the version's manifest doesn't
@@ -77,8 +82,8 @@ and `installsIn(level)`. A type a tool can't take stays `none` even when turned 
 ## Acceptance criteria
 
 - [x] `supportOf` gives the four levels from `supports()` and the manifest's `targets`, with unit tests.
-- [ ] The item page's Tools panel shows every renderer with its level and line, for `latest` and for another version.
-- [ ] Cards mark the supporting tools; `?tool=` filters the catalogue on all four databases.
+- [x] The item page's Works in panel shows every renderer with its level and line, for `latest` and for another version.
+- [x] Cards mark the supporting tools; `?tool=` filters the catalogue on all four databases.
 - [x] The API's summaries and versions carry `support`, and `?tool=` filters them (400 for an unknown tool).
 - [ ] The Documentation's types table has a column per tool, and the helper links to it.
 
