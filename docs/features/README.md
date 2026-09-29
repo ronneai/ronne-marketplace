@@ -104,8 +104,9 @@ New folders start from [`_template/`](./_template/).
 | 029 | Gemini CLI / Antigravity CLI renderer | 021 | planned |
 | 030 | Devin Desktop renderer | 021 | planned |
 
-### M6 — Visual composer
+### M6 — Visual composer and npm
 
 | ID | Feature | Depends on | Status |
 |---|---|---|---|
-| 031 | Visual composer (React Flow over `dependencies`) | 012 | planned |
+| [031](./031-visual-composer/SPEC.md) | Visual composer (React Flow over `dependencies`) | 012, 013, 018 | specified |
+| [034](./034-npm-packages/SPEC.md) | Publishing `rmk` and the MCP server to npm (`@ronneai/core`, `rmk`, `mcp`) | 022, 027 | specified |

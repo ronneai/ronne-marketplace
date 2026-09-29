@@ -606,7 +606,7 @@ its own `SPEC.md` and `PLAN.md`, and the index there tracks their status.
 | M4 | `rmk` + Claude Code | `login`, `search`, `info`, `install`, `update`, `remove`, `outdated`; lockfile; renderer interface + golden-file test harness; Claude Code renderer for every item type. |
 | M5 | Codex, Cursor, MCP | Codex and Cursor renderers with unsupported-type warnings; shared `.agents/skills` output; per-item support matrix in the web UI; registry MCP server and `rmk mcp-setup`. |
 | M5b | Tier-2 platforms (right after MVP) | Copilot, Gemini/Antigravity and Devin Desktop renderers. |
-| M6 | Visual composer | React Flow canvas editing `dependencies`; round-trips to `ronne.yaml`; shown as a text diff in review. |
+| M6 | Visual composer and npm | React Flow canvas editing `dependencies`; round-trips to `ronne.yaml`; shown as a text diff in review. `rmk` and the MCP server published to npm under `@ronneai` ([034](../features/034-npm-packages/SPEC.md)). |
 
 ## 14. Future topics
 
