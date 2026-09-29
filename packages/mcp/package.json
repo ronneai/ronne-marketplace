@@ -1,9 +1,31 @@
 {
   "name": "@ronneai/mcp",
   "version": "0.0.0",
-  "description": "MCP server that lets AI coding tools search and install items from a Ronne marketplace.",
+  "description": "rmk-mcp: an MCP server that lets AI coding tools search and install items from a Ronne AI Marketplace.",
+  "keywords": [
+    "ronne",
+    "mcp",
+    "model-context-protocol",
+    "ai",
+    "agent-skills",
+    "claude-code",
+    "codex",
+    "cursor"
+  ],
   "license": "MIT",
+  "homepage": "https://github.com/ronneai/ronne-marketplace/tree/main/packages/mcp#readme",
+  "bugs": {
+    "url": "https://github.com/ronneai/ronne-marketplace/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ronneai/ronne-marketplace.git",
+    "directory": "packages/mcp"
+  },
   "type": "module",
+  "bin": {
+    "rmk-mcp": "./dist/bin.js"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -11,7 +33,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "!dist/**/*.map"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
@@ -24,10 +47,11 @@
     "@ronneai/rmk": "workspace:^",
     "zod": "^4.6.5"
   },
-  "bin": {
-    "rmk-mcp": "./dist/bin.js"
-  },
   "engines": {
     "node": ">=22.12"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }

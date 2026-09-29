@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Package metadata and contents.** `package.json` fields, READMEs and LICENSE for core,
+- [x] **1. Package metadata and contents.** `package.json` fields, READMEs and LICENSE for core,
   rmk and mcp; the `pnpm pack` allowlist check in CI.
   *Done when:* the check passes, and fails on an unexpected file.
 
@@ -26,3 +26,13 @@ the same change that completes it.
   docs render tests cover the new text.
 
 ## Notes
+
+- Task 1: each package's `files` is `dist` without `.map` files: the maps point at sources that
+  aren't published. `@ronneai/core`'s runtime dependencies were pinned exactly; they're `^` ranges
+  now, as the dependency policy wants for published packages (the lockfile keeps the same
+  versions). The MCP server's `src/testing.ts` is test-only, so its build leaves it out; `rmk` keeps
+  shipping `dist/testing.js` (open question 4, built on the recommendation). `pnpm packages:check`
+  (`packages/repo-tools/src/packs.js`) runs `pnpm pack --dry-run --json` per package, checks the
+  files against an allowlist, and checks each LICENSE copy against the repository's; CI runs it
+  after the build.
+

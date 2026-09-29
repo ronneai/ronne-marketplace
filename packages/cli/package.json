@@ -1,14 +1,46 @@
 {
   "name": "@ronneai/rmk",
   "version": "0.0.0",
-  "description": "rmk: install and manage Ronne marketplace items in your AI coding tools.",
+  "description": "rmk: install and manage items from a Ronne AI Marketplace in your AI coding tools (Claude Code, Codex, Cursor).",
+  "keywords": [
+    "ronne",
+    "rmk",
+    "cli",
+    "ai",
+    "agent-skills",
+    "mcp",
+    "claude-code",
+    "codex",
+    "cursor"
+  ],
   "license": "MIT",
+  "homepage": "https://github.com/ronneai/ronne-marketplace/tree/main/packages/cli#readme",
+  "bugs": {
+    "url": "https://github.com/ronneai/ronne-marketplace/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ronneai/ronne-marketplace.git",
+    "directory": "packages/cli"
+  },
   "type": "module",
   "bin": {
     "rmk": "./dist/bin.js"
   },
+  "exports": {
+    "./lib": {
+      "types": "./dist/lib.d.ts",
+      "default": "./dist/lib.js"
+    },
+    "./package.json": "./package.json",
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "default": "./dist/testing.js"
+    }
+  },
   "files": [
-    "dist"
+    "dist",
+    "!dist/**/*.map"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
@@ -22,15 +54,8 @@
   "engines": {
     "node": ">=22.12"
   },
-  "exports": {
-    "./lib": {
-      "types": "./dist/lib.d.ts",
-      "default": "./dist/lib.js"
-    },
-    "./package.json": "./package.json",
-    "./testing": {
-      "types": "./dist/testing.d.ts",
-      "default": "./dist/testing.js"
-    }
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }

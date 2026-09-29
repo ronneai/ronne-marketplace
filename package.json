@@ -26,7 +26,8 @@
     "test:db:postgres": "pnpm --filter @ronneai/web exec node scripts/test-db.mjs postgres",
     "test:db:mysql": "pnpm --filter @ronneai/web exec node scripts/test-db.mjs mysql",
     "test:db:mariadb": "pnpm --filter @ronneai/web exec node scripts/test-db.mjs mariadb",
-    "test:e2e": "pnpm --filter @ronneai/web test:e2e"
+    "test:e2e": "pnpm --filter @ronneai/web test:e2e",
+    "packages:check": "node packages/repo-tools/src/check-packs.js"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.14",
