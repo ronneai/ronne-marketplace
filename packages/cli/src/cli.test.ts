@@ -11,12 +11,15 @@ const rmk = (...argv: string[]) => run(argv, io);
 const config = () => JSON.parse(readFileSync(configPath(io), "utf8"));
 
 describe("rmk basics", () => {
-  it("prints the version, usage, and refuses unknown commands and options with exit 2", async () => {
+  it("prints the version and usage (help with exit 0), and refuses unknown commands and options with exit 2", async () => {
     io = fakeIo({});
     expect((await rmk("--version")).stdout).toMatch(/^\d+\.\d+\.\d+\n$/);
     expect(await rmk()).toMatchObject({ exitCode: 2 });
     expect((await rmk()).stdout).toContain("Usage: rmk");
-    expect(await rmk("--help")).toMatchObject({ exitCode: 2 });
+    expect(await rmk("--help")).toMatchObject({
+      exitCode: 0,
+      stdout: expect.stringContaining("Usage: rmk"),
+    });
     expect(await rmk("fly")).toMatchObject({
       exitCode: 2,
       stderr: expect.stringContaining("`fly`"),
