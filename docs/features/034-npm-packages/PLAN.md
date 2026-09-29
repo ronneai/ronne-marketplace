@@ -11,7 +11,7 @@ the same change that completes it.
   rmk and mcp; the `pnpm pack` allowlist check in CI.
   *Done when:* the check passes, and fails on an unexpected file.
 
-- [ ] **2. Versions and the smoke test.** `pnpm release:version` and `pnpm release:smoke`, the
+- [x] **2. Versions and the smoke test.** `pnpm release:version` and `pnpm release:smoke`, the
   smoke test in CI on Node 22 and 24.
   *Done when:* both run locally and in CI.
 
@@ -35,4 +35,11 @@ the same change that completes it.
   (`packages/repo-tools/src/packs.js`) runs `pnpm pack --dry-run --json` per package, checks the
   files against an allowlist, and checks each LICENSE copy against the repository's; CI runs it
   after the build.
+- Task 2: `pnpm release:version <version>` (`packages/repo-tools/src/release.js`) rewrites only the
+  `"version"` line of the three `package.json` files; `sharedVersion` is what the release workflow
+  will use to check a tag. `pnpm release:smoke` packs the three packages with pnpm, installs the
+  tarballs into an empty folder with npm, checks no `workspace:` range survived, and runs
+  `rmk --version`, `rmk --help` and an MCP `initialize` against `rmk-mcp`; CI runs it on Node 22
+  and 24. It found that `rmk --help` exited with 2 (022's usage-error code): it exits 0 now, and
+  `rmk` with no command still exits 2.
 

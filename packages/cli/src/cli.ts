@@ -173,7 +173,8 @@ export const run = async (argv: string[], io: Io): Promise<RunResult> => {
   const [name, ...rest] = args.positionals;
   if (!name || args.values.help) {
     out.say(USAGE);
-    return done(out, name ? 0 : 2);
+    // Asking for help isn't a usage error; running rmk with no command is.
+    return done(out, name || args.values.help ? 0 : 2);
   }
   const command = COMMANDS[name];
   if (!command) return failed(out, usage(`rmk doesn't have a \`${name}\` command.\n\n${USAGE}`));

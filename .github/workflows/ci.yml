@@ -68,6 +68,9 @@ jobs:
       # What core, rmk and the MCP server would publish: only dist code, README and LICENSE (034).
       - run: pnpm packages:check
         if: needs.changes.outputs.code != 'false'
+      # Installs the packed tarballs with npm and runs rmk and rmk-mcp, as a user would (034).
+      - run: pnpm release:smoke
+        if: needs.changes.outputs.code != 'false'
 
   dependencies:
     name: Licenses and known vulnerabilities
