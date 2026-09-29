@@ -15,7 +15,7 @@ the same change that completes it.
   *Done when:* render tests cover the panel for `latest` and another version, and the database
   tests cover the filter on all four databases.
 
-- [ ] **3. Documentation.** The types table's tool columns, the Installing line, and the helper.
+- [x] **3. Documentation.** The types table's tool columns, the Installing line, and the helper.
   *Done when:* the docs render tests cover them, and the helper's link lands on a real section.
 
 ## Notes
@@ -26,4 +26,6 @@ the same change that completes it.
 - Task 2: the tool path lists moved from `features/docs/` to `components/tools/tool-paths.ts`, since
   the item page uses them too (`placeFor` puts the item's name into the path). The card marks went
   into the footer line after a screenshot showed a line of its own on every card was noisy.
+- Task 3: the types table's tool columns were already done by 025's rework of Items and types.
+  `rmk info` and `rmk search --target` were added here, as the spec's API section anticipated.
 

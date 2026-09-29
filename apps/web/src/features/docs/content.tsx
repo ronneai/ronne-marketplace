@@ -847,6 +847,14 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           file two tools read is written once and recorded for both. <Code>rmk platforms</Code>{" "}
           lists every tool and what it supports.
         </p>
+        <p>
+          Before you install, an item&apos;s page says under <strong>Works in</strong> which of
+          these tools it goes to, and where: supported, partly, turned off by the item&apos;s own{" "}
+          <Code>ronne.yaml</Code>, or skipped. The catalogue&apos;s <strong>Works in</strong> filter
+          lists the items one tool takes, as does{" "}
+          <Code>rmk search &lt;query&gt; --target codex</Code>, and <Code>rmk info</Code> prints
+          each tool&apos;s level for a version.
+        </p>
       </>
     ),
   },

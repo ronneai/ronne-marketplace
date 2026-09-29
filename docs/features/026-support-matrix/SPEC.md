@@ -66,11 +66,16 @@ and `installsIn(level)`. A type a tool can't take stays `none` even when turned 
 
 ## Documentation
 
-- **Items and types → The types:** the "In Claude Code" column becomes one column per tool with
-  the level for each type, linking to that tool's section under Installing with rmk.
-- **Installing with rmk → Installing:** a line on the Tools panel and the catalogue filter.
-- **Inline helper on the item page's Tools panel:** "What do these levels mean?", linking to the
-  types table.
+- **Items and types → The types:** already one card per tool and type since 025's rework, each from
+  the renderer's `supports()` and linking to the tool's page; nothing more to add.
+- **Installing with rmk → Your AI tools:** a paragraph on the item page's Works in panel, the
+  catalogue's Works in filter, `rmk search <query> --target <tool>` and `rmk info`'s levels.
+- **Inline helper on the item page's Works in panel:** "What do these mean?" (`support`), linking to
+  the types list. It replaces the header's "Where does this go in my AI tool?" helper, which the
+  panel itself now answers.
+
+`rmk` says the same as the web app: `rmk info` prints each tool's level for the version, and
+`rmk search` takes `--target <tool>` (the id it uses for installs) as the API's `?tool=`.
 
 ## Edge cases
 
@@ -85,7 +90,7 @@ and `installsIn(level)`. A type a tool can't take stays `none` even when turned 
 - [x] The item page's Works in panel shows every renderer with its level and line, for `latest` and for another version.
 - [x] Cards mark the supporting tools; `?tool=` filters the catalogue on all four databases.
 - [x] The API's summaries and versions carry `support`, and `?tool=` filters them (400 for an unknown tool).
-- [ ] The Documentation's types table has a column per tool, and the helper links to it.
+- [x] The Documentation's types list shows every tool per type, the Your AI tools section explains the panel and the filters, and the helper links to the types list.
 
 ## Open questions
 
