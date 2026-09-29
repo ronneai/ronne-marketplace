@@ -1,6 +1,7 @@
 import { parseArgs } from "node:util";
 import { ApiError, apiClient, checkRegistryUrl, rmkVersion } from "./api.js";
 import { normalizeRegistry, readUserConfig, registryFor, writeUserConfig } from "./config.js";
+import { connectRegistry } from "./connect.js";
 import { RmkError, usage } from "./errors.js";
 import { installCommand } from "./install.js";
 import type { Io } from "./io.js";
@@ -55,19 +56,12 @@ const parse = (argv: string[]): Args => {
 const str = (value: string | boolean | undefined) =>
   typeof value === "string" ? value : undefined;
 
-/** The registry and a client for it; `needToken` refuses to go on without one. */
-const connect = (io: Io, args: Args, needToken = true) => {
-  const config = readUserConfig(io);
-  const registry = registryFor(io, config, str(args.values.registry));
-  checkRegistryUrl(registry.url, args.values.insecure === true);
-  if (needToken && !registry.token)
-    throw new RmkError(
-      `You're not logged in to ${registry.url}. Run \`rmk login\`.`,
-      1,
-      "not_logged_in",
-    );
-  return { config, registry, api: apiClient(io.fetch, registry.url, registry.token) };
-};
+const connect = (io: Io, args: Args, needToken = true) =>
+  connectRegistry(io, {
+    registry: str(args.values.registry),
+    insecure: args.values.insecure === true,
+    needToken,
+  });
 
 const login = async (io: Io, args: Args, out: ReturnType<typeof output>) => {
   const config = readUserConfig(io);

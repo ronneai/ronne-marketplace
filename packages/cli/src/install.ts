@@ -16,10 +16,19 @@ import {
   rendererById,
 } from "@ronneai/core/render";
 import type { ApiClient } from "./api.js";
-import { applyPlan, type Plan, planChanges, readState, type Wanted, writeState } from "./apply.js";
+import {
+  applyPlan,
+  type Plan,
+  planChanges,
+  readState,
+  type State,
+  type Wanted,
+  writeState,
+} from "./apply.js";
 import { configDir } from "./config.js";
 import { RmkError, usage } from "./errors.js";
 import type { Io } from "./io.js";
+import { applyOperation, planOperation } from "./operations.js";
 import type { Output } from "./output.js";
 import {
   LOCK_FILE,
@@ -214,11 +223,19 @@ export type InstallResult = {
   scope: Scope;
 };
 
+/** A resolved, rendered and planned install that hasn't written anything yet (027). */
+export type Prepared = InstallResult & {
+  /** The direct dependencies it was resolved for (user scope keeps them in its lockfile). */
+  dependencies: Record<string, string>;
+  registry: string;
+  state: State;
+};
+
 /**
- * Resolves `dependencies` (with `locked` kept where it fits), downloads and renders, plans, and
- * writes everything. Returns what happened; the caller prints it and picks the exit code.
+ * Resolves `dependencies` (with `locked` kept where it fits), downloads and checks, renders and
+ * plans against the state file and the disk. Writes nothing but the download cache: `commit` does.
  */
-export const installResolved = async (
+export const prepareInstall = async (
   io: Io,
   api: ApiClient,
   options: {
@@ -228,7 +245,7 @@ export const installResolved = async (
     scope: Scope;
     force: boolean;
   },
-): Promise<InstallResult> => {
+): Promise<Prepared> => {
   const resolution = await api.post<Resolution>("/resolve", {
     dependencies: options.dependencies,
     locked: options.locked,
@@ -240,32 +257,53 @@ export const installResolved = async (
     const tgz = await fetchArtifact(io, api, name, item.version, item.sha256);
     rendered.push(renderItem(name, item.version, tgz, options.targets, options.scope));
   }
-  const { root, lock, state: statePath } = places(io, options.scope);
+  const { root, state: statePath } = places(io, options.scope);
   const state = readState(statePath);
   // Every change carries every target the item was rendered for: a change two targets share is one entry.
   const wanted = wantedOf(rendered, (r) => r.targets);
   const plan = await planChanges(root, state, wanted, { force: options.force });
-  if (plan.conflicts.length === 0) {
-    const next = applyPlan(root, state, plan);
-    mkdirSync(join(statePath, ".."), { recursive: true });
-    writeState(statePath, next);
-    const lockfile: Lockfile & { dependencies?: Record<string, string> } = {
-      version: 1,
-      registry: api.registry,
-      items: resolution.items,
-    };
-    if (options.scope === "user") lockfile.dependencies = options.dependencies;
-    // User scope has no rmk.config.json: its lockfile carries the direct dependencies.
-    mkdirSync(dirname(lock), { recursive: true });
-    writeLockfile(dirname(lock), lockfile, basename(lock));
-  }
   return {
     resolution,
     rendered,
     plan,
     targets: options.targets.map((t) => t.id),
     scope: options.scope,
+    dependencies: options.dependencies,
+    registry: api.registry,
+    state,
   };
+};
+
+/** Writes a prepared install with no conflicts: the files, then the state file and the lockfile. */
+export const commitInstall = (io: Io, prepared: Prepared) => {
+  if (prepared.plan.conflicts.length)
+    throw new RmkError("A plan with conflicts can't be written.", 3, "conflicts", {
+      conflicts: prepared.plan.conflicts,
+    });
+  const { root, lock, state: statePath } = places(io, prepared.scope);
+  const next = applyPlan(root, prepared.state, prepared.plan);
+  mkdirSync(join(statePath, ".."), { recursive: true });
+  writeState(statePath, next);
+  const lockfile: Lockfile & { dependencies?: Record<string, string> } = {
+    version: 1,
+    registry: prepared.registry,
+    items: prepared.resolution.items,
+  };
+  // User scope has no rmk.config.json: its lockfile carries the direct dependencies.
+  if (prepared.scope === "user") lockfile.dependencies = prepared.dependencies;
+  mkdirSync(dirname(lock), { recursive: true });
+  writeLockfile(dirname(lock), lockfile, basename(lock));
+};
+
+/** Prepares and, when nothing conflicts, commits: what `rmk install`, `update` and `remove` do. */
+export const installResolved = async (
+  io: Io,
+  api: ApiClient,
+  options: Parameters<typeof prepareInstall>[2],
+): Promise<Prepared> => {
+  const prepared = await prepareInstall(io, api, options);
+  if (prepared.plan.conflicts.length === 0) commitInstall(io, prepared);
+  return prepared;
 };
 
 /** `rmk install [<item>[@tag|range]...]`. */
@@ -275,56 +313,16 @@ export const installCommand = async (
   out: Output,
   api: ApiClient,
 ): Promise<void> => {
-  const scope = scopeOf(typeof args.values.scope === "string" ? args.values.scope : undefined);
-  const force = args.values.force === true;
-  const { lock: lockPath } = places(io, scope);
-  const config = scope === "project" ? readProjectConfig(io.cwd) : null;
-  const existingLock =
-    scope === "project"
-      ? readLockfile(io.cwd)
-      : (readLockfile(join(lockPath, "..")) as
-          | (Lockfile & { dependencies?: Record<string, string> })
-          | null);
-  if (existingLock && existingLock.registry !== api.registry && !args.values.registry)
-    throw new RmkError(
-      `${lockPath} is for ${existingLock.registry}, not ${api.registry}. Use --registry ${existingLock.registry}, or remove the lockfile.`,
-      1,
-      "lock_registry",
-    );
-
-  const dependencies: Record<string, string> = {
-    ...(scope === "project"
-      ? (config?.dependencies ?? {})
-      : ((existingLock as { dependencies?: Record<string, string> } | null)?.dependencies ?? {})),
-  };
-  for (const ref of args.positionals) {
-    const { name, at } = splitItemRef(ref);
-    if (!/^@[^/]+\/[^/@]+$/.test(name))
-      throw usage(`${ref} isn't an item: use @scope/name, with @tag or @range after it.`);
-    if (at && !isVersionRange(at) && !/^[a-z][a-z0-9-]{0,31}$/.test(at))
-      throw usage(`${at} is neither a version range nor a tag.`);
-    dependencies[name] = at ?? "latest";
-  }
-  // With nothing asked for, a lockfile installs exactly what it holds.
-  const locked = Object.fromEntries(
-    Object.entries(existingLock?.items ?? {}).map(([name, item]) => [name, item.version]),
-  );
-  const targets = await chooseTargets(
-    io,
-    typeof args.values.target === "string" ? args.values.target : undefined,
-    config?.targets,
-    out,
-  );
-  const result = await installResolved(io, api, { dependencies, locked, targets, scope, force });
-
-  if (scope === "project" && result.plan.conflicts.length === 0) {
-    const next = config ?? { version: 1 as const, dependencies: {} };
-    next.dependencies = dependencies;
-    if (!next.targets && typeof args.values.target === "string" && args.values.target !== "all")
-      next.targets = result.targets;
-    writeProjectConfig(io.cwd, next);
-  }
-  report(out, result, io);
+  const operation = await planOperation(io, api, {
+    kind: "install",
+    items: args.positionals,
+    target: typeof args.values.target === "string" ? args.values.target : undefined,
+    scope: typeof args.values.scope === "string" ? args.values.scope : undefined,
+    registryGiven: Boolean(args.values.registry),
+    force: args.values.force === true,
+  });
+  if (operation.plan.conflicts.length === 0) applyOperation(io, operation);
+  report(out, operation, io);
 };
 
 /**

@@ -21,5 +21,12 @@
   },
   "engines": {
     "node": ">=22.12"
+  },
+  "exports": {
+    "./lib": {
+      "types": "./dist/lib.d.ts",
+      "default": "./dist/lib.js"
+    },
+    "./package.json": "./package.json"
   }
 }

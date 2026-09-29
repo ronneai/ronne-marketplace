@@ -170,6 +170,13 @@ describe("rmk install", () => {
     });
     expect(existsSync(join(io.home, ".config/rmk/user-state.json"))).toBe(true);
     expect(existsSync(join(io.cwd, "rmk.lock"))).toBe(false);
+    // A second install keeps what the first asked for: user.lock is read back, not rmk.lock.
+    const again = await rmk("install", "@team/gh", "--scope", "user", "--target", "claude-code");
+    expect(again.exitCode, again.stderr).toBe(0);
+    expect(
+      JSON.parse(readFileSync(join(io.home, ".config/rmk/user.lock"), "utf8")).dependencies,
+    ).toEqual({ "@team/secure": "latest", "@team/gh": "latest" });
+    expect(existsSync(join(io.home, ".claude/skills/secure/SKILL.md"))).toBe(true);
   });
 });
 
