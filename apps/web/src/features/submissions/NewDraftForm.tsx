@@ -311,7 +311,7 @@ export const NewDraftForm = ({ scopes, mine }: { scopes: ScopeOption[]; mine: st
         </Section>
       </div>
 
-      <aside aria-label="Starter files" className="grid gap-4 lg:sticky lg:top-6">
+      <aside aria-label="Starter files" className="grid gap-4 lg:sticky lg:top-20">
         <div className="grid gap-4 rounded-panel border border-hairline bg-surface p-4">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-fg">
             <FileCode size={16} aria-hidden="true" />

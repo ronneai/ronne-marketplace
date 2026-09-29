@@ -92,7 +92,8 @@ describe("the topics", () => {
       expect(html).toContain(TYPE_INFO[type].description.replaceAll("'", "&#x27;"));
     }
     expect(html.match(/⚠ risk/g)?.length).toBe(
-      1 + ITEM_TYPES.filter((type) => TYPE_INFO[type].highRisk).length,
+      // The callout shows the flag twice; then one per risky type.
+      2 + ITEM_TYPES.filter((type) => TYPE_INFO[type].highRisk).length,
     );
     expect(html).toContain("skill, mcp-server, hook, rule, command");
     expect(html).toContain("any type");
@@ -132,9 +133,15 @@ describe("the topics", () => {
     expect(cursor).toContain('id="with-claude-code"');
     expect(cursor).toContain(".cursor/rules/&lt;name&gt;.mdc");
     expect(cursor).toContain("Third-Party Imports");
-    expect(await topic("items")).toContain('href="/docs/cursor#paths"');
-    expect(await topic("items")).toContain('href="/docs/claude-code#paths"');
-    expect(await topic("items")).toContain('href="/docs/codex#paths"');
+    const items = await topic("items");
+    for (const tool of ["claude-code", "codex", "cursor"])
+      expect(items).toContain(`href="/docs/${tool}#paths"`);
+    expect(items).toContain(
+      'aria-label="Codex: partly supported, .codex/rules/&lt;name&gt;.rules"',
+    );
+    expect(items).toContain('aria-label="Cursor: not supported"');
+    expect(items).toContain("Core AI capabilities");
+    expect(items).toContain("bundle → any type");
     expect(rmk).toContain('href="/account/tokens"');
     expect(rmk).toContain("Nothing about who downloaded it is stored.");
   });

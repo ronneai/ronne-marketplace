@@ -132,7 +132,18 @@ CLI.
   `${env:NAME}`, permissions for the CLI only, what's skipped).
 - **Installing with rmk:** Cursor's row in "Your AI tools" (target `cursor`, picked up by
   `.cursor/`), and the Installing step names `cursor`.
-- **Items and types → The types:** an "In Cursor" column.
+- **Items and types** follows the owner's mockup (`docs/UI-Mocks-Materials/stitch_ronne.ai/docs-items`,
+  2026-09-29), with the mockup's placeholder text replaced by what the app does:
+  - a callout for the type rule, the risk flag and the one approval every item needs;
+  - filter chips for all types or one of four groups (core capabilities, integrations,
+    guardrails, environment), with a legend;
+  - per group, a numbered heading and one row per type: its name, risk flag and description, and a
+    card per AI tool with where it goes (✓) or "Skipped", from each renderer's `supports()` and the
+    tool pages' path lists (`features/docs/tool-paths.ts`), linking to the tool's page;
+  - dependency cards generated from core's `DEPENDENCY_TYPES`.
+  Left out from the mockup, since the app has no such thing: the "Validate Spec" button, a spec
+  version, multi-maintainer review, the per-type tags and the "Adapter Docs" link. The risk flag
+  stays amber, since the design system keeps red for errors.
 - The item page helper "Where does this go in my AI tool?" covers Cursor.
 
 ## Edge cases
@@ -152,7 +163,7 @@ CLI.
 - [x] `hooks.json` gets one `version` key however many hook items are installed, and keeps it until the last one leaves.
 - [x] No secret value is written for MCP servers; `${env:NAME}` references are used.
 - [x] The end-to-end test installs a skill, an agent, a hook, an MCP server and a rule in a project with `.cursor/` (so Cursor is the detected target), then with `claude-code,cursor`, where the skill and the hook are written once (Claude Code's copies), and removes them, leaving the person's own MCP server untouched. A CLI test covers `codex,cursor` sharing `.agents/skills/`.
-- [x] The in-app Documentation has Cursor's page, its row in "Your AI tools", the types table's Cursor column and the item page helper, with render tests.
+- [x] The in-app Documentation has Cursor's page, its row in "Your AI tools", the reworked Items and types page and the item page helper, with render tests.
 - [x] The locations are re-checked against Cursor's documentation when this is built, and MVP §3.3 matches.
 
 ## Open questions
