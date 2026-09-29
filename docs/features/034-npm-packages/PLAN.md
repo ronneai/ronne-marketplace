@@ -72,4 +72,8 @@ the same change that completes it.
   one, as `NODE_AUTH_TOKEN`: the first release uses a granular token limited to `@ronneai`,
   expiring in 7 days; then each package gets its trusted publisher, the secret is deleted, the
   token revoked, and publishing goes back to OIDC alone.
+- The first dry run of `release.yml` (2026-09-29) passed every check and the packing, then failed
+  to publish: `npm publish release/x.tgz` reads the path as a GitHub `user/repo` and runs `git
+  ls-remote`. The tarball paths start with `./` now. Running the steps locally hadn't caught it
+  because that run used absolute paths.
 
