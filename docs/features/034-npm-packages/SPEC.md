@@ -92,6 +92,9 @@ install it instead.
 
 ## Open questions
 
+The owner started 034 (2026-09-29) without answering these, so it's built on the recommendations
+(trusted publishing, one version, `0.1.0`, `rmk` keeps its `testing` entry); any can still change.
+
 1. **Trusted publishing** (recommended: no token to leak or rotate, and provenance comes with it;
    the owner links each package to this repository's release workflow on npmjs.com once), or an
    `NPM_TOKEN` secret with publish rights.

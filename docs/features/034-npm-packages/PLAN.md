@@ -54,4 +54,8 @@ the same change that completes it.
 - Still to do for "done when": after this merges, the owner links the three packages to this
   repository's `release.yml` as a trusted publisher on npmjs.com, and runs the workflow by hand
   once with "dry run".
+- Task 4, in part: the three packages are at `0.1.0` (`pnpm release:version 0.1.0`), so pushing the
+  tag `v0.1.0` after the owner's npmjs.com setup publishes the first release. The rest of task 4
+  (the docs saying "npm install") waits for that release to exist, in its own change, since the
+  Documentation says only what's true.
 

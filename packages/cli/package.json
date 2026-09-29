@@ -1,6 +1,6 @@
 {
   "name": "@ronneai/rmk",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "rmk: install and manage items from a Ronne AI Marketplace in your AI coding tools (Claude Code, Codex, Cursor).",
   "keywords": [
     "ronne",
