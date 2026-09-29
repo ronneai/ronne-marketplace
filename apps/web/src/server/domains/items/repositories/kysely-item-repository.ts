@@ -8,7 +8,7 @@ import type { Database } from "../../../db/schema";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
 import type { VersionFile } from "../models/item";
-import { listingOf, searchFieldsOf } from "../models/listing";
+import { disabledTargetsField, listingOf, searchFieldsOf } from "../models/listing";
 import type { ItemRepository } from "./item-repository";
 
 /** Recomputes how the catalogue lists an item (feature 018) after its versions or tags change. */
@@ -124,6 +124,7 @@ export const kyselyItemRepository = (
         "item_versions.deprecated_message",
         "item_versions.published_by",
         "user.name as published_by_name",
+        "item_versions.disabled_targets",
       ])
       .where("item_versions.item_id", "=", itemId)
       .execute();
@@ -163,6 +164,7 @@ export const kyselyItemRepository = (
           .filter((dependency) => dependency.version_id === row.id)
           .map((dependency) => [`@${dependency.scope_name}/${dependency.name}`, dependency.range]),
       ),
+      disabledTargets: row.disabled_targets.split(" ").filter(Boolean),
     }));
   },
 
@@ -188,6 +190,7 @@ export const kyselyItemRepository = (
         yank_reason: null,
         submission_id: version.submissionId,
         ...searchFieldsOf(version.manifest),
+        disabled_targets: disabledTargetsField(version.manifest),
         risk_flags: encodeJson(version.riskFlags),
       })
       .execute();

@@ -79,6 +79,7 @@ const catalogueRoutes: Record<string, Route> = {
       readme: null,
       notes: null,
       riskFlags: [{ kind: "network", message: "It mentions `example.com`." }],
+      support: { "claude-code": "native", codex: "native", cursor: "off" },
     },
   }),
 };
@@ -98,6 +99,8 @@ describe("rmk search and info", () => {
     );
     expect(io.requests[0]?.path).toBe("/api/v1/items?q=team&scope=team");
     expect((await rmk("search", "team", "--type", "skill")).stdout).not.toContain("gone");
+    await rmk("search", "team", "--target", "codex");
+    expect(io.requests.at(-1)?.path).toBe("/api/v1/items?q=team&tool=codex");
     expect((await rmk("search", "zzz")).stdout).toBe('Nothing matches "zzz".\n');
     expect(JSON.parse((await rmk("search", "fmt", "--json")).stdout).items).toHaveLength(1);
     expect(await rmk("search")).toMatchObject({ exitCode: 2 });
@@ -111,7 +114,7 @@ describe("rmk search and info", () => {
     );
     expect(stdout).toContain("  2.0.0-beta.1  2026-09-21  [yanked]\n  1.2.0  2026-09-20\n");
     expect(stdout).toContain(
-      "1.2.0: @team/mcp ^1.0.0\nwhat it can do: It mentions `example.com`.\n",
+      "1.2.0: @team/mcp ^1.0.0\nworks in: claude-code native, codex native, cursor off\nwhat it can do: It mentions `example.com`.\n",
     );
     expect(io.requests.map((r) => r.path)).toEqual([
       "/api/v1/items/team/fmt",

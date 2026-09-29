@@ -3,11 +3,11 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { docsHref, type TopicSlug } from "@/components/help/topics";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
+import { CLAUDE_CODE_PATHS, CODEX_PATHS, CURSOR_PATHS } from "@/components/tools/tool-paths";
 import { Badge } from "@/components/ui/Badge";
 import { Table, Td, Th } from "@/components/ui/Table";
 import { DependencyCards } from "./DependencyCards";
 import { TypesList } from "./TypesList";
-import { CLAUDE_CODE_PATHS, CODEX_PATHS, CURSOR_PATHS } from "./tool-paths";
 
 /**
  * The Documentation's words (feature 033), by topic and section id (`components/help/topics.ts`).
@@ -846,6 +846,14 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           with <Code>--target</Code>. <Code>--target claude-code,codex</Code> writes for both, and a
           file two tools read is written once and recorded for both. <Code>rmk platforms</Code>{" "}
           lists every tool and what it supports.
+        </p>
+        <p>
+          Before you install, an item&apos;s page says under <strong>Works in</strong> which of
+          these tools it goes to, and where: supported, partly, turned off by the item&apos;s own{" "}
+          <Code>ronne.yaml</Code>, or skipped. The catalogue&apos;s <strong>Works in</strong> filter
+          lists the items one tool takes, as does{" "}
+          <Code>rmk search &lt;query&gt; --target codex</Code>, and <Code>rmk info</Code> prints
+          each tool&apos;s level for a version.
         </p>
       </>
     ),

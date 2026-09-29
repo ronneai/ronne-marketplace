@@ -1,4 +1,5 @@
-import type { ItemType } from "@ronneai/core";
+import { ITEM_TYPES, type ItemType } from "@ronneai/core";
+import { installsIn, rendererById, supportFor } from "@ronneai/core/render";
 import type { Kysely, SelectQueryBuilder } from "kysely";
 import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
 import { decodeJson } from "../../../db/json";
@@ -22,6 +23,7 @@ type Row = {
   deprecated_message: string | null;
   installable: boolean | number;
   download_count: number | string;
+  disabled_targets: string;
 };
 
 const toEntry = (row: Row): CatalogueEntry => ({
@@ -38,6 +40,7 @@ const toEntry = (row: Row): CatalogueEntry => ({
   deprecatedMessage: row.deprecated_message,
   installable: Boolean(row.installable),
   downloadCount: Number(row.download_count),
+  support: supportFor(row.type, row.disabled_targets.split(" ").filter(Boolean)),
 });
 
 export const kyselyCatalogueRepository = (
@@ -56,7 +59,7 @@ export const kyselyCatalogueRepository = (
       "items" | "scopes" | "item_versions",
       O
     >,
-    { search, type, scope }: CatalogueFilter,
+    { search, type, scope, tool }: CatalogueFilter,
   ) => {
     let q = query;
     if (search)
@@ -69,6 +72,16 @@ export const kyselyCatalogueRepository = (
       );
     if (type) q = q.where("items.type", "=", type);
     if (scope) q = q.where("scopes.name", "=", scope);
+    if (tool) {
+      // The types the tool takes, and not turned off in the listed version's manifest (026).
+      const renderer = rendererById(tool);
+      const types = renderer ? ITEM_TYPES.filter((t) => installsIn(renderer.supports(t))) : [];
+      q = types.length
+        ? q
+            .where("items.type", "in", types)
+            .where("item_versions.disabled_targets", "not like", `% ${tool} %`)
+        : q.where((eb) => eb.lit(false));
+    }
     return q;
   };
 
@@ -87,6 +100,7 @@ export const kyselyCatalogueRepository = (
       "item_versions.deprecated_message",
       "items.installable",
       "items.download_count",
+      "item_versions.disabled_targets",
     ]);
 
   return {

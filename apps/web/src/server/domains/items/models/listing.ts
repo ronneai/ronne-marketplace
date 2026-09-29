@@ -1,3 +1,4 @@
+import { disabledTargets } from "@ronneai/core/render";
 /**
  * How the catalogue lists an item (feature 018), kept on the item's row so listing stays one simple
  * query on every database. Recomputed whenever a release, a tag or a yank changes it.
@@ -39,4 +40,16 @@ export const searchFieldsOf = (manifest: unknown): { description: string; keywor
     description: typeof m.description === "string" ? m.description.slice(0, 300) : "",
     keywords: keywords.join(" ").slice(0, 400),
   };
+};
+
+/**
+ * The tools a version's manifest turns off (026), space-separated with a space at each end, so the
+ * catalogue's `?tool=` filter is one `NOT LIKE '% <id> %'` on every database. Empty when none.
+ */
+export const disabledTargetsField = (manifest: unknown): string => {
+  const ids = disabledTargets(
+    manifest && typeof manifest === "object" ? (manifest as Record<string, unknown>) : {},
+  ).filter((id) => /^[a-z0-9-]+$/.test(id));
+  const field = ids.length ? ` ${ids.join(" ")} ` : "";
+  return field.length <= 200 ? field : "";
 };

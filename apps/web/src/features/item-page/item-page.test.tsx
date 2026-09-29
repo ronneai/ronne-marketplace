@@ -56,7 +56,12 @@ describe("the item page", () => {
     // Anyone signed in may propose a change (017).
     expect(html).toContain("Propose a change");
     expect(html).toContain("What happens when I propose a change?");
-    expect(html).toContain("Where does this go in my AI tool?");
+    // Works in: every tool, from the renderers and this version's manifest (026).
+    expect(html).toContain(">Works in<");
+    expect(html).toContain("What do these mean?");
+    for (const tool of ["Claude Code", "Codex", "Cursor"]) expect(html).toContain(`>${tool}</a>`);
+    expect(html).toContain("mcpServers in .mcp.json</code>.");
+    expect(html).toContain("mcp_servers in .codex/config.toml</code>.");
     expect(html).toContain("How do I install it?");
   });
 
@@ -72,6 +77,27 @@ describe("the item page", () => {
     expect(html).toContain('href="/items/team/github?tab=files"');
     expect(html).toContain('href="/items/team/github?tab=dependencies&amp;version=1.0.0"');
     expect(html).toContain(">yanked<");
+  });
+
+  it("works out the tools for the version shown, from its own manifest", async () => {
+    const shown = itemPageData().shown;
+    versions.itemPage.mockResolvedValue(
+      itemPageData({
+        shown: {
+          ...shown,
+          manifest: { ...shown.manifest, targets: { cursor: { enabled: false } } },
+        },
+      }),
+    );
+    const html = await render({ version: "1.1.0" });
+    expect(html).toContain(">turned off<");
+    expect(html).toContain("This version&#x27;s ronne.yaml keeps it away from this tool.");
+    versions.itemPage.mockResolvedValue(
+      itemPageData({ item: { ...itemPageData().item, type: "output-style" } }),
+    );
+    const style = await render({});
+    expect(style).toContain("Codex has no place for output-style items");
+    expect(style.match(/>skipped</g)).toHaveLength(2);
   });
 
   it("notes a deprecated latest, and has nothing to install when every version is yanked", async () => {

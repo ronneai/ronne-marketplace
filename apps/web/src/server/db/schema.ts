@@ -209,6 +209,8 @@ export interface ItemVersionTable {
   keywords: Generated<string>;
   /** JSON: the version's risk flags (014), computed at release (0009). */
   risk_flags: string | null;
+  /** The AI tools its manifest turns off, as ` id id `, for the `?tool=` filter (0011, 026). */
+  disabled_targets: Generated<string>;
 }
 
 /** A movable pointer to a version, such as `latest` (MVP §3.4). */

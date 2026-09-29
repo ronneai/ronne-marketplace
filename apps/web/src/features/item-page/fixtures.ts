@@ -15,6 +15,7 @@ export const versionRow = (overrides: Partial<VersionRow> = {}): VersionRow => (
   publishedBy: "u1",
   publishedByName: "Rae Releaser",
   dependencies: {},
+  disabledTargets: [],
   tags: ["latest"],
   ...overrides,
 });

@@ -18,7 +18,7 @@ export const USAGE = `Usage: rmk <command> [options]
   logout
   whoami
   platforms
-  search <query> [--type <type>] [--scope <scope>]
+  search <query> [--type <type>] [--scope <scope>] [--target <tool>]
   info <item>[@version]
   list [--installed]
   install [<item>[@tag|range]...] [--target <ids>|all] [--scope project|user] [--force]

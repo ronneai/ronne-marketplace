@@ -8,6 +8,7 @@ import { Panel } from "@/components/ui/Panel";
 import { utcMinute } from "@/components/ui/time";
 import type { ItemPage } from "@/server/domains/items/actions/versions";
 import { ProposeButton } from "./ProposeButton";
+import { ToolsPanel } from "./ToolsPanel";
 import { ITEM_TABS, type ItemTab, itemTabHref, TAB_LABELS } from "./tabs";
 
 const text = (value: unknown) => (typeof value === "string" && value ? value : null);
@@ -56,7 +57,6 @@ export const ItemPageView = ({
             ))}
             {shown.deprecatedMessage ? <Badge tone="warning">deprecated</Badge> : null}
             {shown.yankedAt ? <Badge tone="error">yanked</Badge> : null}
-            <Help id="claude-code" />
           </div>
           <p className="text-sm text-fg">{description || "No description."}</p>
           <p className="font-mono text-xs text-muted">
@@ -111,6 +111,8 @@ export const ItemPageView = ({
           </p>
         )}
       </Panel>
+
+      <ToolsPanel name={ref.name} type={page.item.type} manifest={shown.manifest} />
 
       <nav
         aria-label="Item"

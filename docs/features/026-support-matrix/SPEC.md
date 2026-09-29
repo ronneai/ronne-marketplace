@@ -34,32 +34,48 @@ so it's always what `rmk` would do.
 | `off` | the manifest's `targets.<id>.enabled` is `false` for the shown version |
 | `none` | `supports(type)` is `none`: `rmk` skips the item there with a warning |
 
-**The item page** gets a **Tools** panel under Install: each renderer's name, its level as a badge
-(`native` accent, `degraded` warning, `off` and `none` muted), and one line saying what the level
-means for this item ("Installed as a local plugin", "Turned off in ronne.yaml", "Skipped: Codex
-has no place for output styles"). Levels are computed for the version shown (`?version=` too),
-since the manifest may differ between versions.
+**The item page** gets a **Works in** panel under Install: each renderer's name (linking to its
+Documentation page), its level as a badge (`supported` accent, `partly` warning, `turned off` and
+`skipped` muted), and one line saying what the level means for this item: where it goes, with the
+item's own name in the path (`.claude/agents/kit-agent.md`), "…with some of it left out", "This
+version's ronne.yaml keeps it away from this tool", or "Codex has no place for output-style items,
+so rmk skips it there with a warning". Levels are computed for the version shown (`?version=` too),
+since the manifest may differ between versions. The panel replaces the header's "Where does this go
+in my AI tool?" helper, which it answers.
 
-**Cards** (catalogue and home) show the tools that support the listed version natively or partly,
-as small muted marks (`claude-code`, `codex`, `cursor`), and leave out `off` and `none`.
+**Cards** (catalogue and home) say which tools the listed version installs in, natively or partly,
+in their footer line ("published 2026-09-29 · works in Claude Code, Codex, Cursor"), leaving out
+`off` and `none` ("works in no built-in tool" when nothing's left). The catalogue's form has a
+"Works in" select for the filter.
 
 **The catalogue filter** `?tool=<id>` lists items whose listed version is `native` or `degraded`
-for that renderer. It's computed at query time from the type and the listed version's manifest,
-which the catalogue already reads: no new column.
+for that renderer: the item's type is one the renderer takes, and the version's manifest doesn't
+turn the tool off. The catalogue doesn't read manifests, and reading `targets` out of stored JSON
+isn't the same on SQLite, PostgreSQL and MySQL, so each version keeps the tools its manifest turns
+off in a small column, `item_versions.disabled_targets` (migration 0011, written at release and
+backfilled), padded as ` cursor codex ` so the filter is one `NOT LIKE '% <id> %'` everywhere, as
+`keywords` is for search (018). The type counts follow the filter; the web page drops an unknown
+tool, and the API answers it with a 400.
 
 **The API** (019) adds `support: { "<id>": "native" | "degraded" | "off" | "none" }` to item
 summaries and versions, so `rmk info` (022) and the MCP server (027) can say the same.
 
-**Where it lives:** a pure `supportOf(manifest, type)` in `packages/core/src/render/` over
-`RENDERERS`, used by the web app, the API and `rmk`.
+**Where it lives:** `packages/core/src/render/support.ts` over `RENDERERS`: `supportOf(manifest,
+type)`, `supportFor(type, disabled)` for rows that keep only the column, `disabledTargets(manifest)`
+and `installsIn(level)`. A type a tool can't take stays `none` even when turned off.
 
 ## Documentation
 
-- **Items and types → The types:** the "In Claude Code" column becomes one column per tool with
-  the level for each type, linking to that tool's section under Installing with rmk.
-- **Installing with rmk → Installing:** a line on the Tools panel and the catalogue filter.
-- **Inline helper on the item page's Tools panel:** "What do these levels mean?", linking to the
-  types table.
+- **Items and types → The types:** already one card per tool and type since 025's rework, each from
+  the renderer's `supports()` and linking to the tool's page; nothing more to add.
+- **Installing with rmk → Your AI tools:** a paragraph on the item page's Works in panel, the
+  catalogue's Works in filter, `rmk search <query> --target <tool>` and `rmk info`'s levels.
+- **Inline helper on the item page's Works in panel:** "What do these mean?" (`support`), linking to
+  the types list. It replaces the header's "Where does this go in my AI tool?" helper, which the
+  panel itself now answers.
+
+`rmk` says the same as the web app: `rmk info` prints each tool's level for the version, and
+`rmk search` takes `--target <tool>` (the id it uses for installs) as the API's `?tool=`.
 
 ## Edge cases
 
@@ -70,11 +86,11 @@ summaries and versions, so `rmk info` (022) and the MCP server (027) can say the
 
 ## Acceptance criteria
 
-- [ ] `supportOf` gives the four levels from `supports()` and the manifest's `targets`, with unit tests.
-- [ ] The item page's Tools panel shows every renderer with its level and line, for `latest` and for another version.
-- [ ] Cards mark the supporting tools; `?tool=` filters the catalogue on all four databases.
-- [ ] The API's summaries and versions carry `support`.
-- [ ] The Documentation's types table has a column per tool, and the helper links to it.
+- [x] `supportOf` gives the four levels from `supports()` and the manifest's `targets`, with unit tests.
+- [x] The item page's Works in panel shows every renderer with its level and line, for `latest` and for another version.
+- [x] Cards mark the supporting tools; `?tool=` filters the catalogue on all four databases.
+- [x] The API's summaries and versions carry `support`, and `?tool=` filters them (400 for an unknown tool).
+- [x] The Documentation's types list shows every tool per type, the Your AI tools section explains the panel and the filters, and the helper links to the types list.
 
 ## Open questions
 

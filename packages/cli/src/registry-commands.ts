@@ -41,6 +41,8 @@ type VersionInfo = ItemInfo["versions"][number] & {
   readme: string | null;
   riskFlags: { kind: string; message: string }[];
   notes: string | null;
+  /** Each AI tool's support for this version (026), by renderer id. */
+  support?: Record<string, string>;
 };
 
 const str = (value: string | boolean | undefined) =>
@@ -79,6 +81,9 @@ export const withApi = (
     if (type) params.set("type", type);
     const scope = str(args.values.scope);
     if (scope) params.set("scope", scope.replace(/^@/, ""));
+    // An AI tool: only items that install in it (026).
+    const target = str(args.values.target);
+    if (target) params.set("tool", target);
     const page = await connect(io, args).api.get<{ items: Summary[]; nextCursor: string | null }>(
       `/items?${params}`,
     );
@@ -120,6 +125,12 @@ export const withApi = (
         `${detail.version}: ${dependencies.length ? dependencies.map(([n, r]) => `${n} ${r}`).join(", ") : "no dependencies"}`,
       );
       if (detail.deprecated) out.say(`deprecated: ${detail.deprecated}`);
+      if (detail.support)
+        out.say(
+          `works in: ${Object.entries(detail.support)
+            .map(([tool, level]) => `${tool} ${level}`)
+            .join(", ")}`,
+        );
       for (const flag of detail.riskFlags) out.say(`what it can do: ${flag.message}`);
     }
   };

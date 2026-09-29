@@ -1,3 +1,4 @@
+import { installsIn, RENDERERS } from "@ronneai/core/render";
 import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { CopyableCommand } from "@/components/ui/CopyableCommand";
@@ -11,7 +12,8 @@ const day = (date: Date) => date.toISOString().slice(0, 10);
 
 /**
  * One published item, as the catalogue and the home page list it (feature 018): its name, listed
- * version, type, what it can do and whether it's deprecated, with the command to install it.
+ * version, type, what it can do, the AI tools it works in (026) and whether it's deprecated, with
+ * the command to install it.
  */
 export const ItemCard = ({
   entry,
@@ -23,9 +25,11 @@ export const ItemCard = ({
   showDownloads?: boolean;
 }) => {
   const name = `@${entry.scope}/${entry.name}`;
+  const tools = RENDERERS.filter((r) => installsIn(entry.support[r.id])).map((r) => r.name);
   const details = [
     ...entry.keywords.map((keyword) => `#${keyword}`),
     `published ${day(entry.publishedAt)}`,
+    tools.length ? `works in ${tools.join(", ")}` : "works in no built-in tool",
     ...(showDownloads
       ? [`${entry.downloadCount} download${entry.downloadCount === 1 ? "" : "s"}`]
       : []),

@@ -1,3 +1,4 @@
+import { RENDERERS } from "@ronneai/core/render";
 import Link from "next/link";
 import { ItemCard } from "@/components/catalogue/ItemCard";
 import { buttonClasses } from "@/components/ui/Button";
@@ -22,7 +23,7 @@ const chip = (active: boolean, empty = false) =>
 export const CatalogueView = ({ page, paged }: { page: CataloguePage; paged: boolean }) => {
   const { query } = page;
   const total = page.typeCounts.reduce((sum, t) => sum + t.count, 0);
-  const filtered = Boolean(query.q || query.type || query.scope);
+  const filtered = Boolean(query.q || query.type || query.scope || query.tool);
   return (
     <div className="grid grid-cols-1 gap-5">
       <form method="get" action="/catalogue" className="flex flex-wrap items-end gap-2">
@@ -53,6 +54,22 @@ export const CatalogueView = ({ page, paged }: { page: CataloguePage; paged: boo
             ))}
           </select>
         </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="catalogue-tool">Works in</Label>
+          <select
+            id="catalogue-tool"
+            name="tool"
+            defaultValue={query.tool ?? ""}
+            className={inputClasses}
+          >
+            <option value="">Any tool</option>
+            {RENDERERS.map((renderer) => (
+              <option key={renderer.id} value={renderer.id}>
+                {renderer.name}
+              </option>
+            ))}
+          </select>
+        </div>
         {query.type ? <input type="hidden" name="type" value={query.type} /> : null}
         {query.sort === "name" ? <input type="hidden" name="sort" value="name" /> : null}
         <button type="submit" className={buttonClasses("secondary")}>
@@ -60,7 +77,7 @@ export const CatalogueView = ({ page, paged }: { page: CataloguePage; paged: boo
         </button>
         {filtered ? (
           <Link
-            href={catalogueHref(query, { q: "", type: null, scope: null })}
+            href={catalogueHref(query, { q: "", type: null, scope: null, tool: null })}
             className={buttonClasses("ghost")}
           >
             Clear

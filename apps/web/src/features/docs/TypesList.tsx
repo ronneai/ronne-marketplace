@@ -2,8 +2,8 @@ import type { ItemType } from "@ronneai/core";
 import { RENDERERS } from "@ronneai/core/render";
 import { docsHref, type TopicSlug } from "@/components/help/topics";
 import { TYPE_INFO } from "@/components/submissions/item-types";
+import { placeFor, TOOL_PAGES } from "@/components/tools/tool-paths";
 import { TypesExplorer } from "./TypesExplorer";
-import { shortPlace, TOOL_PATHS } from "./tool-paths";
 import type { TypeGroup, TypeRow } from "./types";
 
 /**
@@ -38,26 +38,18 @@ const GROUPS: { id: string; title: string; chip: string; types: ItemType[] }[] =
   },
 ];
 
-const TOOL_PAGES: Record<string, TopicSlug> = {
-  "claude-code": "claude-code",
-  codex: "codex",
-  cursor: "cursor",
-};
-
 const row = (type: ItemType): TypeRow => ({
   type,
   description: TYPE_INFO[type].description,
   highRisk: TYPE_INFO[type].highRisk === true,
   tools: RENDERERS.filter((renderer) => renderer.id in TOOL_PAGES).map((renderer) => {
     const level = renderer.supports(type);
-    const where = TOOL_PATHS[renderer.id]?.find(([t]) => t === type)?.[1] ?? "";
     return {
       id: renderer.id,
       name: renderer.name,
       href: docsHref(TOOL_PAGES[renderer.id] as TopicSlug, "paths"),
       level,
-      place:
-        level === "none" ? "Skipped" : type === "bundle" ? "installs its items" : shortPlace(where),
+      place: level === "none" ? "Skipped" : placeFor(renderer.id, type),
     };
   }),
 });

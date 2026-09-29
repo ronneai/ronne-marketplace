@@ -80,11 +80,11 @@ export const HELP = {
       "Copy the command into a terminal in your project, after rmk login. rmk resolves the version, checks the download, writes the files your AI tool reads, and records them in rmk.lock so teammates get the same.",
     href: docsHref("rmk", "installing"),
   },
-  "claude-code": {
-    question: "Where does this go in my AI tool?",
+  support: {
+    question: "What do these mean?",
     answer:
-      "rmk writes each type where the tool reads it. Claude Code: skills under .claude/skills/, agents under .claude/agents/, rules under .claude/rules/, hooks and permissions in .claude/settings.json, MCP servers in .mcp.json. Codex: skills and commands under .agents/skills/, agents under .codex/agents/, rules in AGENTS.md, hooks in .codex/hooks.json, MCP servers in .codex/config.toml. Cursor: skills and commands under .agents/skills/, agents under .cursor/agents/, rules under .cursor/rules/, hooks in .cursor/hooks.json, MCP servers in .cursor/mcp.json. Settings entries are tracked, so your own edits stay.",
-    href: docsHref("rmk", "tools"),
+      "Supported: rmk writes the item where the tool reads it. Partly: the tool takes it through a workaround, and some of it is left out. Turned off: this version's ronne.yaml keeps it away from that tool. Skipped: the tool has no place for this type; rmk warns and installs the rest.",
+    href: docsHref("items", "types"),
   },
   propose: {
     question: "What happens when I propose a change?",

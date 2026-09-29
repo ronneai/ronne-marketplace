@@ -120,6 +120,8 @@ describe("the topics", () => {
     expect(rmk).toContain("code 3");
     expect(rmk).toContain('id="tokens"');
     expect(rmk).toContain('id="tools"');
+    expect(rmk).toContain("<strong>Works in</strong>");
+    expect(rmk).toContain("rmk search &lt;query&gt; --target codex");
     for (const tool of ["claude-code", "codex", "cursor"])
       expect(rmk).toContain(`href="/docs/${tool}"`);
     const claude = await topic("claude-code");
