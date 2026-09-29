@@ -23,7 +23,7 @@ the same change that completes it.
   `AGENTS.md` size warning, and the renderer in `RENDERERS`.
   *Done when:* golden files and `rmk platforms` show them.
 
-- [ ] **5. End to end and documentation.** `rmk install --target codex` in the Playwright suite,
+- [x] **5. End to end and documentation.** `rmk install --target codex` in the Playwright suite,
   and the Documentation section.
   *Done when:* it passes in CI, and the docs render tests cover the new section.
 
@@ -54,4 +54,7 @@ the same change that completes it.
 - Task 4: with two renderers, a project where neither is detected no longer falls back to the only
   one: `rmk` asks for `--target` (022's rule for zero or several detected tools). The 32 KiB note
   checks the one `AGENTS.md` rmk wrote, not the concatenation Codex builds from every folder.
+- Task 5: the e2e seed gained `kit-rule` (an `always` rule), so the Codex test covers the
+  `AGENTS.md` section too. The item page's helper became "Where does this go in my AI tool?" rather
+  than a second helper per tool.
 

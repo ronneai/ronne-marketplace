@@ -120,6 +120,10 @@ describe("the topics", () => {
     expect(rmk).toContain('id="tokens"');
     expect(rmk).toContain('id="claude-code"');
     expect(rmk).toContain(".claude/rules/");
+    expect(rmk).toContain('id="codex"');
+    expect(rmk).toContain(".codex/agents/&lt;name&gt;.toml");
+    expect(rmk).toContain("/hooks");
+    expect(await topic("items")).toContain('href="/docs/rmk#codex"');
     expect(await topic("items")).toContain('href="/docs/rmk#claude-code"');
     expect(rmk).toContain('href="/account/tokens"');
     expect(rmk).toContain("Nothing about who downloaded it is stored.");

@@ -106,3 +106,92 @@ test("rmk installs an agent with its skill and MCP server into a project, update
     rmSync(project, { recursive: true, force: true });
   }
 });
+
+/**
+ * The same against Codex (024): the shared skills folder, a TOML agent, `config.toml`, `hooks.json`
+ * and a section in `AGENTS.md`, next to the person's own text and keys, which rmk leaves alone.
+ */
+test("rmk installs for Codex, next to the person's AGENTS.md and config.toml, and removes cleanly", async ({
+  request,
+}) => {
+  const home = mkdtempSync(join(tmpdir(), "rmk-e2e-home-"));
+  const project = mkdtempSync(join(tmpdir(), "rmk-e2e-project-"));
+  mkdirSync(join(project, ".codex"));
+  writeFileSync(join(project, "AGENTS.md"), "# Our project\n\nUse pnpm.\n");
+  writeFileSync(join(project, ".codex/config.toml"), 'model = "o3"\n');
+  const token = await request.post("/api/v1/auth/token", {
+    data: { email: E2E_USERS.installer, password: E2E_PASSWORD, name: "e2e rmk codex" },
+  });
+  expect(token.status()).toBe(201);
+  const env = {
+    ...process.env,
+    HOME: home,
+    RMK_TOKEN: (await token.json()).token,
+    RMK_REGISTRY: baseURL,
+  };
+  const rmk = (...args: string[]) => {
+    try {
+      return {
+        code: 0,
+        out: execFileSync("node", [BIN, ...args], {
+          cwd: project,
+          env,
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "pipe"],
+        }),
+      };
+    } catch (error) {
+      const failed = error as { status: number; stdout: string; stderr: string };
+      return { code: failed.status, out: `${failed.stdout}${failed.stderr}` };
+    }
+  };
+  const read = (path: string) => readFileSync(join(project, path), "utf8");
+  const name = (item: string) => `@${E2E_SCOPE}/${item}`;
+
+  try {
+    // Only .codex/ is here, so rmk picks Codex on its own.
+    const install = rmk(
+      "install",
+      name(E2E_RMK_ITEMS.agent),
+      name(E2E_RMK_ITEMS.hook),
+      name(E2E_RMK_ITEMS.rule),
+    );
+    expect(install.code, install.out).toBe(0);
+    expect(install.out).toContain("for codex.");
+    expect(install.out).toContain("Note: Codex reads .codex/config.toml");
+    expect(install.out).toContain("open /hooks in Codex");
+    expect(read(`.codex/agents/${E2E_RMK_ITEMS.agent}.toml`)).toContain(
+      `name = "${E2E_RMK_ITEMS.agent}"`,
+    );
+    expect(read(`.agents/skills/${E2E_PROPOSAL_ITEM}/SKILL.md`)).toContain("Write the why");
+    const config = read(".codex/config.toml");
+    expect(config).toContain('model = "o3"');
+    expect(config).toContain(`[mcp_servers.${E2E_RMK_ITEMS.mcp}]`);
+    expect(config).toContain('env_vars = [ "KIT_TOKEN" ]');
+    expect(JSON.parse(read(".codex/hooks.json")).hooks.PostToolUse[0].hooks[0].command).toBe(
+      "echo kit 1.1.0",
+    );
+    const agentsMd = read("AGENTS.md");
+    expect(agentsMd.startsWith("# Our project\n\nUse pnpm.\n")).toBe(true);
+    expect(agentsMd).toContain(`<!-- rmk:begin ${name(E2E_RMK_ITEMS.rule)} -->`);
+    expect(agentsMd).toContain("Keep functions small.");
+    expect(JSON.parse(read("rmk.config.json")).targets).toBeUndefined();
+
+    const remove = rmk(
+      "remove",
+      name(E2E_RMK_ITEMS.agent),
+      name(E2E_RMK_ITEMS.hook),
+      name(E2E_RMK_ITEMS.rule),
+    );
+    expect(remove.code, remove.out).toBe(0);
+    expect(read("AGENTS.md")).toBe("# Our project\n\nUse pnpm.\n");
+    expect(read(".codex/config.toml")).toBe('model = "o3"\n');
+    expect(existsSync(join(project, `.codex/agents/${E2E_RMK_ITEMS.agent}.toml`))).toBe(false);
+    expect(existsSync(join(project, `.agents/skills/${E2E_PROPOSAL_ITEM}`))).toBe(false);
+    expect(JSON.parse(read(".codex/hooks.json"))).toEqual({});
+    expect(JSON.parse(read(".rmk/state.json")).entries).toEqual([]);
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+    rmSync(project, { recursive: true, force: true });
+  }
+});

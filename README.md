@@ -7,8 +7,8 @@ the `rmk` CLI or from inside those tools through an MCP server.
 
 > **Status:** early development. Milestones M0 to M4 are done: Ronne installs; people sign in and
 > get tokens; items go from a draft through review to a catalogue of released versions, with
-> change proposals and version management; and `rmk` installs them into Claude Code. Codex, Cursor
-> and the registry MCP server come in M5. The design is in [`docs/MVP/MVP.md`](docs/MVP/MVP.md), and
+> change proposals and version management; and `rmk` installs them into Claude Code and Codex.
+> Cursor and the registry MCP server follow in M5. The design is in [`docs/MVP/MVP.md`](docs/MVP/MVP.md), and
 > the work is tracked in [`docs/features/README.md`](docs/features/README.md).
 
 ## Getting started
@@ -87,7 +87,7 @@ when a proxy you control sits in front of Ronne and adds that header; otherwise 
 
 `rmk` installs approved items into your AI coding tools, and keeps them current: `login`, `search`,
 `info`, `install`, `update`, `outdated`, `remove`, `list` and `platforms`, with a lockfile so a team
-gets the same files. Claude Code is supported first; Codex and Cursor follow in M5.
+gets the same files. Claude Code and Codex are supported; Cursor follows in M5.
 
 **It isn't on npm yet.** Until it's published, it comes with this repository. From a clone, with
 Node.js 22.12 or later:

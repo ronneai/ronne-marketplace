@@ -88,6 +88,7 @@ export const TOPICS = [
       { id: "edits", title: "Your own edits" },
       { id: "tokens", title: "Tokens and the API" },
       { id: "claude-code", title: "Claude Code" },
+      { id: "codex", title: "Codex" },
     ],
   },
 ] as const;

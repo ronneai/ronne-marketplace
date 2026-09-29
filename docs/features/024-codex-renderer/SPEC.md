@@ -129,8 +129,11 @@ value, as for JSON keys (cli-files.md).
 - **Installing with rmk → a new section, "Codex":** where each type goes, trusting the project
   and reviewing hooks in `/hooks`, that skills and commands share `.agents/skills/` with Cursor,
   the 32 KiB instructions cap, that MCP secrets are passed by variable name, and what's skipped.
-- **Items and types → The types:** the Codex column (026's matrix).
-- The item page helper "Where does this go in my tool?" (025) covers Codex.
+- **Items and types → The types:** an "In Codex" column next to Claude Code's, linking to the new
+  section (026 turns the columns into its support matrix).
+- **Installing with rmk → Installing:** the target step names `--target codex` and both tools.
+- The item page helper, now "Where does this go in my AI tool?", covers Claude Code and Codex
+  (025 adds Cursor).
 
 ## Edge cases
 
@@ -144,16 +147,18 @@ value, as for JSON keys (cli-files.md).
 
 ## Acceptance criteria
 
-- [ ] Every example item renders in both scopes to the paths and shapes above, and the golden files are committed.
-- [ ] `toml-key` changes are created, replaced, removed and detected as edited or unmanaged by the applier, with unit tests, keeping other keys; the TOML library passes the dependency checklist.
-- [ ] Events and decisions map as in the table; anything unmappable, and every `none` type, is a warning.
-- [ ] MCP servers reference variables by name only; no secret value is written.
-- [ ] The end-to-end test installs a skill, an agent, a hook and an MCP server with `rmk --target codex`, and removes them, leaving the user's `AGENTS.md` text and `config.toml` keys untouched.
-- [ ] The locations are re-checked against Codex's documentation when this is built, and MVP §3.3 matches.
+- [x] Every example item renders in both scopes to the paths and shapes above, and the golden files are committed.
+- [x] `toml-key` changes are created, replaced, removed and detected as edited or unmanaged by the applier, with unit tests, keeping other keys; the TOML library passes the dependency checklist.
+- [x] Events and decisions map as in the table; anything unmappable, and every `none` type, is a warning.
+- [x] MCP servers reference variables by name only; no secret value is written.
+- [x] The end-to-end test installs a skill, an agent, a hook, an MCP server and a rule with `rmk` in a project with `.codex/` (so Codex is the detected target), and removes them, leaving the user's `AGENTS.md` text and `config.toml` keys untouched.
+- [x] The in-app Documentation has the Codex section, the types table's Codex column and the updated item page helper, with render tests.
+- [x] The locations are re-checked against Codex's documentation when this is built, and MVP §3.3 matches.
 
 ## Open questions
 
-The owner hasn't answered these; they're built on the recommendations unless answered first.
+The owner started 024 (2026-09-28) without answering these, so it's built on the recommendations;
+any can still change.
 
 1. **Hook matchers are left out** (recommended: Codex's tool names aren't documented, and a wrong
    matcher silently disables the hook), or written as the Claude Code name on the guess that Codex
