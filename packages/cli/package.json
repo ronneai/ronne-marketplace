@@ -16,7 +16,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@ronneai/core": "workspace:^"
+    "@ronneai/core": "workspace:^",
+    "smol-toml": "^1.9.0"
   },
   "engines": {
     "node": ">=22.12"

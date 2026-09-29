@@ -19,6 +19,7 @@ import {
   sectionEnd,
   stateHash,
 } from "@ronneai/core/render";
+import { parse as parseToml, stringify as stringifyToml } from "smol-toml";
 import { RmkError } from "./errors.js";
 import { writeJsonFile } from "./project.js";
 
@@ -83,6 +84,37 @@ const readJsonFile = (file: string): { value: JsonObject; indent: string } | nul
       1,
       "bad_file",
     );
+  }
+};
+
+/** A TOML file as a plain object (024); rmk writes it back in smol-toml's canonical layout. */
+const readTomlFile = (file: string): JsonObject | null => {
+  if (!existsSync(file)) return null;
+  try {
+    return parseToml(readFileSync(file, "utf8")) as JsonObject;
+  } catch (error) {
+    throw new RmkError(
+      `${file} isn't a TOML file rmk can edit: ${(error as Error).message}`,
+      1,
+      "bad_file",
+    );
+  }
+};
+
+/** A value's hash as the state file stores it, or null when there's none. */
+const keyHash = (value: unknown) => (value === undefined ? null : hashText(canonicalJson(value)));
+
+/**
+ * Whether rewriting a TOML file loses something the person wrote, such as comments or their own
+ * layout: rmk writes it back in one canonical layout (024).
+ */
+export const tomlRewriteLoses = (file: string): boolean => {
+  if (!existsSync(file)) return false;
+  const text = readFileSync(file, "utf8");
+  try {
+    return stringifyToml(parseToml(text)).trim() !== text.trim();
+  } catch {
+    return false;
   }
 };
 
@@ -187,17 +219,13 @@ export const diskHash = async (
             })),
           })
         : null;
-    case "json-key":
-    case "toml-key": {
-      if (change.kind === "toml-key")
-        throw new RmkError(
-          "TOML files come with the Codex renderer (feature 024).",
-          1,
-          "unsupported",
-        );
+    case "json-key": {
       const json = readJsonFile(file);
-      const value = json ? getAt(json.value, change.key as string[]) : undefined;
-      return value === undefined ? null : hashText(canonicalJson(value));
+      return keyHash(json ? getAt(json.value, change.key as string[]) : undefined);
+    }
+    case "toml-key": {
+      const toml = readTomlFile(file);
+      return keyHash(toml ? getAt(toml, change.key as string[]) : undefined);
     }
     case "json-array-item":
       return null;
@@ -240,6 +268,8 @@ export type Plan = {
   /** Entries whose file or key the user removed: dropped, and rendered again only when wanted. */
   gone: StateEntry[];
   conflicts: Conflict[];
+  /** TOML files the plan rewrites whose comments or layout won't survive (024). */
+  reformatted: string[];
 };
 
 /**
@@ -252,7 +282,14 @@ export const planChanges = async (
   wanted: Wanted[],
   { force = false } = {},
 ): Promise<Plan> => {
-  const plan: Plan = { writes: [], unchanged: [], removes: [], gone: [], conflicts: [] };
+  const plan: Plan = {
+    writes: [],
+    unchanged: [],
+    removes: [],
+    gone: [],
+    conflicts: [],
+    reformatted: [],
+  };
   const known = new Map(state.entries.map((entry) => [identity(entry), entry]));
   const seen = new Set<string>();
   for (const w of wanted) {
@@ -275,7 +312,7 @@ export const planChanges = async (
         continue;
       }
       throw new RmkError(
-        `${w.item} and ${other?.wanted.item ?? "another item"} both write ${change.path}${change.kind === "json-key" || change.kind === "json-array-item" ? ` (${keyOf(change)})` : ""} with different content.`,
+        `${w.item} and ${other?.wanted.item ?? "another item"} both write ${change.path}${change.kind === "file" || change.kind === "dir" ? "" : ` (${keyOf(change).split("\0").join(".")})`} with different content.`,
         1,
         "name_clash",
         { path: change.path },
@@ -336,6 +373,16 @@ export const planChanges = async (
       });
     else plan.removes.push(entry);
   }
+  if (plan.conflicts.length === 0)
+    plan.reformatted = [
+      ...new Set(
+        [...plan.writes.map((w) => w.entry), ...plan.removes]
+          .filter((entry) => entry.kind === "toml-key")
+          .map((entry) => entry.path),
+      ),
+    ]
+      .filter((path) => tomlRewriteLoses(join(root, path)))
+      .sort();
   return plan;
 };
 
@@ -352,6 +399,18 @@ const editJson = (root: string, path: string, edit: (value: JsonObject) => void)
   edit(json.value);
   if (Object.keys(json.value).length === 0 && !existsSync(file)) return;
   writeAtomic(file, `${JSON.stringify(json.value, null, json.indent)}\n`);
+};
+
+/** Edits a TOML file's keys; a file left with no keys is removed. */
+const editToml = (root: string, path: string, edit: (value: JsonObject) => void) => {
+  const file = join(root, path);
+  const value = readTomlFile(file) ?? {};
+  edit(value);
+  if (Object.keys(value).length === 0) {
+    if (existsSync(file)) rmSync(file);
+    return;
+  }
+  writeAtomic(file, stringifyToml(value));
 };
 
 const editText = (root: string, path: string, edit: (text: string | null) => string | null) => {
@@ -398,11 +457,8 @@ const write = (root: string, change: Change) => {
       return;
     }
     case "toml-key":
-      throw new RmkError(
-        "TOML files come with the Codex renderer (feature 024).",
-        1,
-        "unsupported",
-      );
+      editToml(root, change.path, (value) => setAt(value, change.key, change.value));
+      return;
   }
 };
 
@@ -435,6 +491,7 @@ const remove = (root: string, entry: StateEntry) => {
       });
       return;
     case "toml-key":
+      editToml(root, entry.path, (value) => deleteAt(value, entry.key as string[]));
       return;
   }
 };

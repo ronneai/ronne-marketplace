@@ -99,11 +99,12 @@ have no Codex form and are left out with a warning. The file starts with the mar
 **`output-style`, `statusline`, `lsp-server`** — `none`: `rmk` warns and skips (MVP §3.3).
 
 **TOML in the applier.** `toml-key` edits read the file, set or delete the key path, and write it
-back keeping the other keys; the library and its use go through the dependency checklist
-(`docs/policies/dependencies.md`): one small MIT parser with no dependencies of its own, on its
-latest version. Comments in a file rmk edits aren't kept (the library's output is canonical), which
-`rmk` says the first time it edits a file that has them; the state file's hash is the canonical
-JSON of the value, as for JSON keys (cli-files.md).
+back keeping the other keys, through `smol-toml` (BSD-3-Clause, no dependencies; checklist in
+the plan's notes). A file left with no keys is removed. Comments and the person's own layout in a
+file rmk edits aren't kept (the library writes one canonical layout): the plan lists every TOML
+file whose rewrite loses something, and `rmk` prints a note for each, which happens only the first
+time, since rmk's own layout survives a rewrite. The state file's hash is the canonical JSON of the
+value, as for JSON keys (cli-files.md).
 
 **Mappings.**
 

@@ -341,6 +341,7 @@ export const report = (out: Output, result: InstallResult, io: Io) => {
   out.set("written", written);
   out.set("removed", removed);
   out.set("conflicts", plan.conflicts);
+  out.set("reformatted", plan.reformatted);
   out.set(
     "warnings",
     warnings.map((w) => ({ item: w.item, code: w.code, message: w.message })),
@@ -373,7 +374,11 @@ export const report = (out: Output, result: InstallResult, io: Io) => {
     out.say("Everything was already in place.");
   for (const w of written)
     out.say(
-      `  wrote ${w.path}${w.kind === "json-key" || w.kind === "json-array-item" ? " (a setting)" : ""}`,
+      `  wrote ${w.path}${w.kind === "json-key" || w.kind === "toml-key" || w.kind === "json-array-item" ? " (a setting)" : ""}`,
+    );
+  for (const path of plan.reformatted)
+    out.say(
+      `Note: rmk rewrote ${path} in its own layout; its comments and formatting weren't kept.`,
     );
   for (const r of removed) out.say(`  removed ${r.path}`);
   for (const d of resolution.warnings) out.say(`Deprecated: ${d.item}@${d.version}: ${d.message}`);
