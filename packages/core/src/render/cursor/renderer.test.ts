@@ -170,7 +170,7 @@ describe("the Cursor renderer", () => {
     ).toMatchObject({ changes: [], warnings: [{ code: "covered_by_target" }] });
   });
 
-  it("writes MCP servers with ${env:NAME} references only", () => {
+  it("writes MCP servers with env: references, never values", () => {
     expect(render("github-mcp", { scope: "user" }).changes).toEqual([
       {
         kind: "json-key",
@@ -231,5 +231,17 @@ describe("the Cursor renderer", () => {
     ]);
     expect(other.changes[0]).toMatchObject({ path: ".cursor/cli-config.json" });
     expect(other.warnings).toHaveLength(1);
+  });
+
+  it("skips what Cursor has no place for, writes nothing for a bundle, and is listed", async () => {
+    for (const name of ["concise", "git-branch", "typescript-lsp"]) {
+      const type = String(example(name).manifest.type);
+      expect(cursorRenderer.supports(type as never)).toBe("none");
+      expect(render(name).warnings.map((w) => w.code)).toEqual(["unsupported_type"]);
+    }
+    expect(cursorRenderer.supports("permission-policy")).toBe("degraded");
+    expect(render("starter-kit")).toEqual({ changes: [], warnings: [] });
+    const { RENDERERS } = await import("../registry.js");
+    expect(RENDERERS.map((r) => r.id)).toEqual(["claude-code", "codex", "cursor"]);
   });
 });

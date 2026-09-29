@@ -15,7 +15,7 @@ the same change that completes it.
   `mcp-server` with `${env:NAME}`, and `permission-policy` for the CLI.
   *Done when:* golden files are committed, and applier tests cover a key two items want.
 
-- [ ] **3. The rest.** `output-style`, `statusline` and `lsp-server` as `none`, bundles, user-scope
+- [x] **3. The rest.** `output-style`, `statusline` and `lsp-server` as `none`, bundles, user-scope
   rules, and the renderer in `RENDERERS`.
   *Done when:* golden files and `rmk platforms` show them.
 

@@ -1,6 +1,6 @@
 [
   {
     "code": "unsupported_type",
-    "message": "@examples/typescript-lsp (lsp-server) isn't rendered for Cursor yet."
+    "message": "Cursor has no place for @examples/typescript-lsp (lsp-server), so it was skipped there."
   }
 ]

@@ -207,6 +207,41 @@ describe("rmk install for Codex", () => {
   });
 });
 
+describe("rmk install for Cursor", () => {
+  const entries = () =>
+    JSON.parse(read(".rmk/state.json")).entries.map(
+      (e: { kind: string; path: string; targets: string[] }) => [e.kind, e.path],
+    );
+
+  it("writes Cursor's files, sharing the skills folder with Codex", async () => {
+    await start();
+    const result = await rmk("install", "@team/secure", "--target", "codex,cursor");
+    expect(result.exitCode, result.stdout).toBe(0);
+    expect(JSON.parse(read(".cursor/mcp.json"))).toEqual({
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: Cursor's own reference syntax
+      mcpServers: { gh: { command: "npx", env: { GITHUB_TOKEN: "${env:GITHUB_TOKEN}" } } },
+    });
+    expect(entries()).toEqual([
+      ["dir", ".agents/skills/secure"],
+      ["toml-key", ".codex/config.toml"],
+      ["json-key", ".cursor/mcp.json"],
+    ]);
+  });
+
+  it("leaves the skill to Claude Code's copy when both are targets", async () => {
+    await start();
+    const result = await rmk("install", "@team/secure", "--target", "claude-code,cursor");
+    expect(result.exitCode, result.stdout).toBe(0);
+    expect(result.stdout).toContain("Cursor reads Claude Code's copy of @team/secure");
+    expect(existsSync(join(io.cwd, ".agents/skills/secure"))).toBe(false);
+    expect(entries()).toEqual([
+      ["dir", ".claude/skills/secure"],
+      ["json-key", ".cursor/mcp.json"],
+      ["json-key", ".mcp.json"],
+    ]);
+  });
+});
+
 describe("tool notes", () => {
   it("says when Codex needs the project trusted, hooks reviewed, or AGENTS.md is too long", () => {
     const root = mkdtempSync(join(tmpdir(), "rmk-notes-"));

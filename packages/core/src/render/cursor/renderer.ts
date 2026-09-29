@@ -353,6 +353,19 @@ export const cursorRenderer: PlatformRenderer = {
         return renderMcpServer(n, block);
       case "permission-policy":
         return renderPermissionPolicy(item, block, scope);
+      case "output-style":
+      case "statusline":
+      case "lsp-server":
+        // `rmk` skips these before rendering (`supports` says none); said here for the goldens.
+        return {
+          changes: [],
+          warnings: [
+            {
+              code: "unsupported_type",
+              message: `Cursor has no place for ${item.name} (${type}), so it was skipped there.`,
+            },
+          ],
+        };
       case "bundle":
         // Its members are installed as items of their own (the resolver, 020); nothing to write.
         return { changes: [], warnings: [] };

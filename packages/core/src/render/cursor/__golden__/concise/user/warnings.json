@@ -1,6 +1,6 @@
 [
   {
     "code": "unsupported_type",
-    "message": "@examples/concise (output-style) isn't rendered for Cursor yet."
+    "message": "Cursor has no place for @examples/concise (output-style), so it was skipped there."
   }
 ]
