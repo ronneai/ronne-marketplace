@@ -11,9 +11,9 @@ import { navFor, type ShellUser } from "./nav";
 const menuItem = "block w-full rounded-control px-3 py-1.5 text-left text-sm text-fg hover:bg-tint";
 
 /**
- * The page frame (feature 032): a full-width header with the brand, role-aware navigation and the
- * user menu; a content column at 72% of the width on large screens (full width below 1024px); and a
- * full-width footer. The theme switch sits in the header, next to the user menu. The user menu is
+ * The page frame (feature 032): a full-width header, which stays at the top as the page scrolls,
+ * with the brand, role-aware navigation and the user menu; a content column at 72% of the width on
+ * large screens (full width below 1024px); and a full-width footer. The theme switch sits in the header, next to the user menu. The user menu is
  * a native <details>, so it works without JavaScript. The (app) layout passes `signOutAction` (006).
  */
 export const AppShell = ({
@@ -33,7 +33,7 @@ export const AppShell = ({
 }) => {
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="border-b border-hairline bg-surface">
+      <header className="sticky top-0 z-30 border-b border-hairline bg-surface">
         <div className="flex h-14 items-center gap-1.5 px-3 sm:gap-6 sm:px-6">
           <Link
             href="/"

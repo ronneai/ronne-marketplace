@@ -38,6 +38,11 @@
   --radius-panel: 8px;
 }
 
+/* The header sticks to the top (AppShell): anchor jumps land below it. */
+html {
+  scroll-padding-top: 4.5rem;
+}
+
 body {
   background: var(--canvas);
   color: var(--fg);
