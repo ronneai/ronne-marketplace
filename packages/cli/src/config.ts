@@ -56,8 +56,13 @@ export const writeUserConfig = (io: Io, config: UserConfig) => {
   chmodSync(path, 0o600);
 };
 
-/** A registry URL as a key: no trailing slash. */
-export const normalizeRegistry = (url: string) => url.trim().replace(/\/+$/, "");
+/** A registry URL as a key: no trailing slash. A loop, not a regex, which CodeQL flags as slow. */
+export const normalizeRegistry = (url: string) => {
+  const trimmed = url.trim();
+  let end = trimmed.length;
+  while (end > 0 && trimmed[end - 1] === "/") end -= 1;
+  return trimmed.slice(0, end);
+};
 
 export type Registry = { url: string; token: string | null; email?: string };
 
