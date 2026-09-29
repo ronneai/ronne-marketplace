@@ -103,11 +103,11 @@ export const toolName = (
       };
 };
 
-export type EnvSyntax = "shell" | "json-template";
+export type EnvSyntax = "shell" | "json-template" | "cursor";
 
 /** A reference to an environment variable, never its value (MVP §4.3). */
 export const envRef = (name: string, syntax: EnvSyntax): string =>
-  syntax === "shell" ? `$${name}` : `\${${name}}`;
+  syntax === "shell" ? `$${name}` : syntax === "cursor" ? `\${env:${name}}` : `\${${name}}`;
 
 /**
  * What the manifest says about one renderer (manifest spec §4): whether the item is offered to it,
@@ -187,7 +187,10 @@ const yamlValue = (value: string) =>
     ? value
     : JSON.stringify(value);
 
-export type Frontmatter = [string, string | string[] | boolean][];
+/** A value written as it is, unquoted, for a tool that reads it its own way (Cursor's `globs`). */
+export type RawValue = { raw: string };
+
+export type Frontmatter = [string, string | string[] | boolean | RawValue][];
 
 /**
  * A Markdown file with YAML frontmatter: `---` on line 1 (tools skip a file otherwise), then the
@@ -201,7 +204,7 @@ export const frontmatterMarkdown = (
   const lines = front.map(([key, value]) =>
     Array.isArray(value)
       ? `${key}:\n${value.map((v) => `  - ${yamlValue(v)}`).join("\n")}`
-      : `${key}: ${typeof value === "boolean" ? String(value) : yamlValue(value)}`,
+      : `${key}: ${typeof value === "boolean" ? String(value) : typeof value === "object" ? value.raw : yamlValue(value)}`,
   );
   const head = lines.length ? `---\n${lines.join("\n")}\n---\n` : "";
   return `${head}${managedMarker(item.name, item.version, "html")}\n\n${trimTrailingNewlines(body)}\n`;

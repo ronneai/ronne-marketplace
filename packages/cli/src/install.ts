@@ -180,7 +180,10 @@ export const renderItem = (
       });
       continue;
     }
-    const result = target.render({ name, version, manifest, files }, { scope });
+    const result = target.render(
+      { name, version, manifest, files },
+      { scope, targets: targets.map((t) => t.id) },
+    );
     rendered.changes.push(...result.changes);
     rendered.warnings.push(
       ...result.warnings.map((w) => ({ ...w, message: `${target.name}: ${w.message}` })),

@@ -42,10 +42,21 @@ table and MVP §3.3 if anything moved.
 
 `detect()` is true when the project has a `.cursor/` folder.
 
-**Files shared with other tools.** `.agents/skills/<n>/` is the same folder Codex (024) reads, so
-one `dir` change serves both targets and 022 records it once with both. Cursor also reads Claude
-Code's `.claude/skills/`, `.claude/agents/` and `.claude/settings.json` hooks for compatibility,
-so a project with both targets would see a skill or a hook twice; see Open questions.
+**Files shared with other tools.** `.agents/skills/<n>/` is the same folder Codex (024) reads, and
+both renderers write it through the same core helpers (`render/agents-skills.ts`), so one `dir`
+change serves both targets and 022 records it once with both. Cursor also reads Claude Code's
+files: skills from `.claude/skills/`, agents from `.claude/agents/` (Cursor's own `.cursor/agents/`
+wins on a name clash), and hooks from `.claude/settings.json`, `.claude/settings.local.json` and
+`~/.claude/settings.json`, where "all matching hooks from every source run". The hooks import is
+Cursor's "Include Third-Party Plugins, Skills, and Other Configs" setting, on by default.
+
+So a renderer is told every target of the install (`RenderContext.targets`, added here), and when
+Claude Code is one of them and the item doesn't turn Claude Code off, Cursor leaves out its own
+copy of what it would read twice: **skills and commands** (unless Codex is a target too, since
+`.agents/skills/` is written for Codex anyway) and **hooks**. Each gets a `covered_by_target`
+warning (a new warning code) naming Claude Code's copy. Agents, rules, MCP servers and permissions
+are still written: an agent name clash resolves to Cursor's own file, and the others aren't
+imported.
 
 ## Behaviour by type
 
@@ -55,14 +66,16 @@ tracked through the state file.
 **`skill`** — the item's folder as it is, `entry` renamed to `SKILL.md`. `SKILL.md`'s `name`
 must match the folder, which the manifest already requires (spec §2).
 
-**`agent`** — `name`, `description`, and `model` when the manifest sets a hint (`fast` and `strong`
-have no documented Cursor ids, so the hint is left out with an `unsupported_field` warning, and
-Cursor's `inherit` applies); the prompt as the body. Cursor's agents have no `tools` field: a
-manifest that lists tools gets one `unsupported_field` warning and the list is left out. Its
+**`agent`** — `name`, `description`, and `model` from `targets.cursor.overrides.model` (any other
+override is an `invalid_override` warning); `fast` and `strong` have no documented Cursor ids, so a
+hint is left out with an `unsupported_field` warning, and Cursor's `inherit` applies. The prompt is
+the body. Cursor's agents have no `tools` field: a manifest that lists tools gets one
+`unsupported_field` warning and the list is left out, and a list with none of `edit`, `write` or
+`shell` becomes `readonly: true`, so a reviewer that couldn't change files still can't. Its
 dependencies are installed as items of their own.
 
 **`rule`** — `.cursor/rules/<n>.mdc`, by activation: `always` → `alwaysApply: true`; `glob` →
-`alwaysApply: false` and `globs`; `model` → `alwaysApply: false` and `description` (the manifest's);
+`alwaysApply: false` and `globs`, comma-separated and unquoted as in Cursor's own examples; `model` → `alwaysApply: false` and `description` (the manifest's);
 `manual` → `alwaysApply: false` alone, used as `@<n>`. In user scope, rules are `none` (they live in
 settings) with a warning that says so.
 

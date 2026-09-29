@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Re-check and the file types.** The locations against Cursor's docs; then `skill`,
+- [x] **1. Re-check and the file types.** The locations against Cursor's docs; then `skill`,
   `agent`, `rule` (project only) and `command`, with markers and mappings.
   *Done when:* golden files for their example items in both scopes are committed.
 
@@ -24,3 +24,19 @@ the same change that completes it.
   *Done when:* it passes in CI, and the docs render tests cover the new section.
 
 ## Notes
+
+- Task 1, the re-check (2026-09-29, cursor.com/docs: context/skills, context/subagents,
+  context/rules, context/mcp, agent/hooks, reference/third-party-hooks, cli/reference/permissions):
+  - Skills: also `.cursor/skills/`, and `.claude/skills/` and `.codex/skills/` for compatibility;
+    frontmatter adds `paths`, `icon`, `color`, `metadata`. Precedence between folders isn't documented.
+  - Agents: also read from `.claude/agents/` and `.codex/agents/`; `.cursor/` wins a name clash.
+    Frontmatter: `name`, `description`, `model` (`inherit` or a model id), `readonly`,
+    `is_background`.
+  - Rules: `globs` unquoted and comma-separated in every example.
+  - Hooks: Claude Code's hooks are imported by default and all of them run, which is why a hook is
+    left to Claude Code's copy when both are targets. Project hooks run from the project root.
+  - Permissions: `Shell(command:args)` takes a glob over the arguments, which changes open
+    question 2 (task 2).
+- `RenderContext` gained `targets`, and `RenderWarningCode` gained `covered_by_target`; rmk passes
+  the install's target ids. The harness renders without targets, so golden files show Cursor alone.
+
