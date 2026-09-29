@@ -51,9 +51,18 @@ the same change that completes it.
   through an environment variable. The pack and dry-run publish steps were run locally.
 - Each package's build now empties `dist/` first: `tsc` never removes output whose source is gone,
   and a stale `dist/testing.js` in the MCP server was caught by `packages:check` locally.
-- Still to do for "done when": after this merges, the owner links the three packages to this
-  repository's `release.yml` as a trusted publisher on npmjs.com, and runs the workflow by hand
-  once with "dry run".
+- Still to do for "done when", by the owner after this merges:
+  1. GitHub → Settings → Environments: create `npm`, with the owner as required reviewer (and,
+     optionally, only `v*` tags allowed to deploy).
+  2. npmjs.com: for each of `@ronneai/core`, `@ronneai/rmk` and `@ronneai/mcp`, add a trusted
+     publisher: GitHub Actions, `ronneai/ronne-marketplace`, workflow `release.yml`, environment
+     `npm`. (A package must exist before its settings do; if npm doesn't allow setting a trusted
+     publisher before the first version, the first publish needs a one-off token, then the
+     setting "disallow tokens".)
+  3. npmjs.com: two-factor authentication on; after the first release, each package set to
+     "require two-factor authentication and disallow tokens".
+  4. GitHub → Settings → Rules: a tag ruleset so only admins create or delete `v*` tags.
+  5. Run the Release workflow by hand with a tag `v0.1.0` and "dry run", then push the tag.
 - Task 4, in part: the three packages are at `0.1.0` (`pnpm release:version 0.1.0`), so pushing the
   tag `v0.1.0` after the owner's npmjs.com setup publishes the first release. The rest of task 4
   (the docs saying "npm install") waits for that release to exist, in its own change, since the

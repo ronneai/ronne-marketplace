@@ -47,7 +47,16 @@ packages' version, it runs the full checks (lint, typecheck, test, build, licens
 the three packages, runs the smoke test on the tarballs, then publishes them in dependency order
 (core, rmk, mcp) with provenance, and creates a GitHub release for the tag. It uses npm's
 **trusted publishing** (OpenID Connect from GitHub Actions, no long-lived token), which the
-owner sets up once on npmjs.com for each package (see Open questions). A failed step publishes
+owner sets up once on npmjs.com for each package (see Open questions).
+
+**Who can publish** (owner's question, 2026-09-29): only the owner. npm accepts `@ronneai/*` only
+from its owners, and with trusted publishing only from this repository's `release.yml` in the
+`npm` environment; forks have another repository identity, and running the workflow needs write
+access. The job runs in a GitHub environment, `npm`, whose required reviewer is the owner, so every
+publish waits for their approval, and the trusted publisher names that environment. The owner also
+turns on two-factor authentication on npmjs.com, sets each package to "require two-factor
+authentication and disallow tokens" once trusted publishing works, and adds a tag ruleset so only
+admins create `v*` tags. A failed step publishes
 nothing; a partially published release is finished by re-running, since each `publish` skips a
 version that's already there.
 

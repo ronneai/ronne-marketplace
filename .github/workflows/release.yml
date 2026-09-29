@@ -3,7 +3,8 @@ name: Release
 # Publishes @ronneai/core, @ronneai/rmk and @ronneai/mcp to npm when a tag vX.Y.Z matching their
 # version is pushed (feature 034). npm's trusted publishing: GitHub's OIDC token proves the package
 # comes from this workflow, so there's no npm token to store, and every version gets provenance.
-# Each package must be linked to this repository and workflow once on npmjs.com.
+# Each package must be linked to this repository, this workflow and the "npm" environment once on
+# npmjs.com, and the "npm" environment needs the owner as its required reviewer.
 # Run by hand with "dry run" to check everything without publishing.
 
 on:
@@ -34,6 +35,10 @@ jobs:
   release:
     name: Check, pack and publish
     runs-on: ubuntu-latest
+    # Waits for the owner's approval before anything runs: the "npm" environment has the owner as
+    # its required reviewer (GitHub Settings → Environments), and npm's trusted publisher is set to
+    # this environment too, so no publish happens without that click.
+    environment: npm
     timeout-minutes: 30
     permissions:
       contents: write # the GitHub release
