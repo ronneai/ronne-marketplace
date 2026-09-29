@@ -1,0 +1,9 @@
+{
+  "hooks": [
+    {
+      "type": "command",
+      "command": "npx --no-install biome format --write $RMK_FILE_PATHS",
+      "timeout": 30
+    }
+  ]
+}

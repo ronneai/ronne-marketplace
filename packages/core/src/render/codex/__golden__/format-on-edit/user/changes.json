@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "kind": "json-array-item",
+    "path": ".codex/hooks.json",
+    "key": [
+      "hooks",
+      "PostToolUse"
+    ]
+  }
+]

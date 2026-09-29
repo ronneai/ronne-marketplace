@@ -124,4 +124,124 @@ describe("the Codex renderer", () => {
       warnings: [{ code: "disabled_by_manifest" }],
     });
   });
+
+  it("writes a hook as one element of hooks.json, with no matcher", () => {
+    const { changes } = render("format-on-edit", "user");
+    expect(changes).toEqual([
+      {
+        kind: "json-array-item",
+        path: ".codex/hooks.json",
+        key: ["hooks", "PostToolUse"],
+        item: {
+          hooks: [
+            {
+              type: "command",
+              command: "npx --no-install biome format --write $RMK_FILE_PATHS",
+              timeout: 30,
+            },
+          ],
+        },
+      },
+    ]);
+    const scripted = withBlock("format-on-edit", "hook", {
+      event: "session.start",
+      run: { script: "go.sh" },
+    });
+    scripted.files = [
+      ...scripted.files,
+      { path: "go.sh", bytes: new TextEncoder().encode("#!/bin/sh\necho hi\n"), executable: true },
+    ];
+    const result = codexRenderer.render(scripted, { scope: "project" });
+    expect(result.changes[0]).toMatchObject({
+      kind: "file",
+      path: ".codex/hooks/format-on-edit/go.sh",
+      executable: true,
+      content: "#!/bin/sh\n# managed by rmk: @examples/format-on-edit@1.0.0\necho hi\n",
+    });
+    expect(result.changes[1]).toMatchObject({
+      key: ["hooks", "SessionStart"],
+      item: {
+        hooks: [
+          {
+            type: "command",
+            command: '"$(git rev-parse --show-toplevel)"/.codex/hooks/format-on-edit/go.sh',
+          },
+        ],
+      },
+    });
+    expect(result.warnings).toEqual([]);
+    const unknown = codexRenderer.render(
+      withBlock("format-on-edit", "hook", { event: "file.saved", run: { command: "x" } }),
+      { scope: "project" },
+    );
+    expect(unknown).toMatchObject({ changes: [], warnings: [{ code: "unsupported_field" }] });
+  });
+
+  it("writes MCP servers with secrets by name only", () => {
+    expect(render("github-mcp").changes).toEqual([
+      {
+        kind: "toml-key",
+        path: ".codex/config.toml",
+        key: ["mcp_servers", "github-mcp"],
+        value: { url: "https://api.githubcopilot.com/mcp/", bearer_token_env_var: "GITHUB_TOKEN" },
+      },
+    ]);
+    const http = codexRenderer.render(
+      withBlock("github-mcp", "mcp-server", {
+        transport: "http",
+        url: "https://x.example/mcp",
+        // biome-ignore lint/suspicious/noTemplateCurlyInString: the manifest's own ${NAME} references
+        headers: { "X-Key": "${KEY}", "X-Team": "core", "X-Mixed": "id ${ID}" },
+      }),
+      { scope: "project" },
+    );
+    expect(http.changes[0]).toMatchObject({
+      value: {
+        url: "https://x.example/mcp",
+        http_headers: { "X-Team": "core" },
+        env_http_headers: { "X-Key": "KEY" },
+      },
+    });
+    expect(http.warnings.map((w) => w.code)).toEqual(["unsupported_field"]);
+    const stdio = codexRenderer.render(
+      withBlock("github-mcp", "mcp-server", {
+        transport: "stdio",
+        command: "npx",
+        args: ["-y", "server"],
+        env: [{ name: "TOKEN", secret: true }],
+      }),
+      { scope: "user" },
+    );
+    expect(stdio.changes[0]).toMatchObject({
+      path: ".codex/config.toml",
+      value: { command: "npx", args: ["-y", "server"], env_vars: ["TOKEN"] },
+    });
+    expect(JSON.stringify(stdio.changes)).not.toContain("${");
+  });
+
+  it("writes shell rules as prefix rules, and leaves out what Codex can't say", () => {
+    const { changes, warnings } = render("safe-git");
+    expect(text(changes[0])).toBe(
+      [
+        "# managed by rmk: @examples/safe-git@1.0.0",
+        'prefix_rule(pattern = ["git", "push", "--force"], decision = "forbidden")',
+        'prefix_rule(pattern = ["git", "push"], decision = "prompt")',
+        'prefix_rule(pattern = ["git", "reset", "--hard"], decision = "prompt")',
+        "",
+      ].join("\n"),
+    );
+    expect(warnings.map((w) => w.code)).toEqual(["unsupported_field", "unsupported_field"]);
+    const other = codexRenderer.render(
+      withBlock("safe-git", "permission-policy", {
+        rules: [
+          { tool: "read", pattern: "**/.env", decision: "deny" },
+          { tool: "shell", pattern: "rm -rf *", decision: "deny" },
+          { tool: "shell", pattern: "git * --force", decision: "deny" },
+        ],
+      }),
+      { scope: "project" },
+    );
+    expect(text(other.changes[0])).toContain('prefix_rule(pattern = ["rm", "-rf"]');
+    expect(other.warnings).toHaveLength(2);
+  });
 });

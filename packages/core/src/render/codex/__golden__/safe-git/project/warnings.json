@@ -1,6 +1,10 @@
 [
   {
-    "code": "unsupported_type",
-    "message": "@examples/safe-git (permission-policy) isn't rendered for Codex yet."
+    "code": "unsupported_field",
+    "message": "Codex matches whole words, so `git push --force*` in @examples/safe-git became `git push --force`: `--force` no longer covers longer options that start the same way."
+  },
+  {
+    "code": "unsupported_field",
+    "message": "Codex matches whole words, so `git reset --hard*` in @examples/safe-git became `git reset --hard`: `--hard` no longer covers longer options that start the same way."
   }
 ]

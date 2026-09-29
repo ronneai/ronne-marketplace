@@ -15,7 +15,7 @@ the same change that completes it.
   `agent` (TOML), `rule` (sections and skills) and `command`.
   *Done when:* golden files for their example items in both scopes are committed.
 
-- [ ] **3. Settings.** `hook`, `mcp-server` (`toml-key`, with the header shapes) and
+- [x] **3. Settings.** `hook`, `mcp-server` (`toml-key`, with the header shapes) and
   `permission-policy` (`.rules`), plus the trust and `/hooks` notes rmk prints.
   *Done when:* golden files are committed, and unit tests cover the header and decision mappings.
 
@@ -49,4 +49,6 @@ the same change that completes it.
   `frontmatterMarkdown`, `withHashMarker`, …) moved from the Claude Code renderer into `helpers.ts`;
   its golden files didn't change. Core's tests parse the agent TOML with `smol-toml`, pinned as a
   dev dependency.
+- Task 3: the trust and `/hooks` notes are `toolNotes()` in `packages/cli/src/install.ts`, printed
+  after the install summary from the paths written; `InstallResult` now carries the scope.
 

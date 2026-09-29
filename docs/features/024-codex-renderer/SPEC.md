@@ -86,7 +86,10 @@ same event names (`SessionStart`, `PreToolUse`, `PostToolUse`, `PermissionReques
 `UserPromptSubmit`, `Stop`, `PreCompact`, `SubagentStart`, `SubagentStop`, `SessionEnd`). Codex's
 `matcher` is a regular expression over its own tool names, which its docs don't list, so the
 matcher is left out with an `unsupported_field` warning when the manifest sets one: the hook
-runs for every tool and reads the event on stdin. A `run.script` goes to `.codex/hooks/<n>/`.
+runs for every tool and reads the event on stdin. A `run.script` goes to `.codex/hooks/<n>/`,
+run as `"$(git rev-parse --show-toplevel)"/.codex/hooks/<n>/…` (Codex finds project hooks at the
+repository root and documents no variable for it), or `"$HOME"/…` in user scope. `$RMK_` variables
+in a command warn as in 023.
 
 **`mcp-server`** — `[mcp_servers.<n>]` as `toml-key` changes in `config.toml`: stdio as
 `command`, `args` and `env_vars = ["NAME", …]` (Codex passes named variables through: no values,
@@ -97,8 +100,10 @@ no `${VAR}`); http as `url`, with `Authorization: "Bearer ${VAR}"` becoming `bea
 **`permission-policy`** (degraded) — `.codex/rules/<n>.rules`: one `prefix_rule` per `shell` rule,
 the pattern split into words with a trailing `*` dropped (`git push*` → `["git", "push"]`), and
 `decision` mapped `allow` → `allow`, `ask` → `prompt`, `deny` → `forbidden`. Rules for other tools
-have no Codex form and are left out with a warning. The file starts with the marker as a
-`#` comment.
+have no Codex form and are left out with a warning, as is a shell pattern with a wildcard anywhere
+but the end. Codex matches whole words, so a `*` attached to an option (`--force*`) warns that the
+option no longer covers longer ones (`--force-with-lease`); on a plain word (`push*`) it doesn't.
+The file starts with the marker as a `#` comment, and isn't written when no rule is left.
 
 **`output-style`, `statusline`, `lsp-server`** — `none`: `rmk` warns and skips (MVP §3.3).
 

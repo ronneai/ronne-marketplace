@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "kind": "toml-key",
+    "path": ".codex/config.toml",
+    "key": [
+      "mcp_servers",
+      "github-mcp"
+    ]
+  }
+]

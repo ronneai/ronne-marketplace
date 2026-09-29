@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { run } from "./cli.js";
+import { toolNotes } from "./install.js";
 import { buildRegistry, type FakeIo, fakeIo, REGISTRY } from "./testing.js";
 
 let io: FakeIo;
@@ -168,5 +169,17 @@ describe("rmk install", () => {
     });
     expect(existsSync(join(io.home, ".config/rmk/user-state.json"))).toBe(true);
     expect(existsSync(join(io.cwd, "rmk.lock"))).toBe(false);
+  });
+});
+
+describe("tool notes", () => {
+  it("says when Codex needs the project trusted or hooks reviewed", () => {
+    expect(toolNotes([".agents/skills/x", "AGENTS.md"], "project")).toEqual([]);
+    expect(toolNotes([".codex/config.toml"], "project")).toEqual([
+      expect.stringContaining("only in a project you trust"),
+    ]);
+    expect(toolNotes([".codex/hooks.json"], "project")).toHaveLength(2);
+    expect(toolNotes([".codex/rules/safe-git.rules"], "user")).toEqual([]);
+    expect(toolNotes([".codex/hooks.json"], "user")).toEqual([expect.stringContaining("/hooks")]);
   });
 });

@@ -208,6 +208,7 @@ export type InstallResult = {
   rendered: Rendered[];
   plan: Plan;
   targets: string[];
+  scope: Scope;
 };
 
 /**
@@ -255,7 +256,13 @@ export const installResolved = async (
     mkdirSync(dirname(lock), { recursive: true });
     writeLockfile(dirname(lock), lockfile, basename(lock));
   }
-  return { resolution, rendered, plan, targets: options.targets.map((t) => t.id) };
+  return {
+    resolution,
+    rendered,
+    plan,
+    targets: options.targets.map((t) => t.id),
+    scope: options.scope,
+  };
 };
 
 /** `rmk install [<item>[@tag|range]...]`. */
@@ -315,6 +322,27 @@ export const installCommand = async (
     writeProjectConfig(io.cwd, next);
   }
   report(out, result, io);
+};
+
+/**
+ * What a tool needs from the person before it uses what was written (024): Codex reads a project's
+ * `.codex/` settings only once the project is trusted, and runs new hooks only once reviewed.
+ */
+export const toolNotes = (paths: string[], scope: Scope): string[] => {
+  const notes: string[] = [];
+  const codexSettings = paths.some(
+    (path) =>
+      path === ".codex/config.toml" ||
+      path === ".codex/hooks.json" ||
+      path.startsWith(".codex/rules/"),
+  );
+  if (scope === "project" && codexSettings)
+    notes.push(
+      "Codex reads .codex/config.toml, hooks and rules only in a project you trust: trust this one when Codex asks.",
+    );
+  if (paths.includes(".codex/hooks.json"))
+    notes.push("Codex runs new or changed hooks only after you review them: open /hooks in Codex.");
+  return notes;
 };
 
 /** Prints an install's outcome, and sets the exit code through the `Output`'s data. */
@@ -383,6 +411,11 @@ export const report = (out: Output, result: InstallResult, io: Io) => {
   for (const r of removed) out.say(`  removed ${r.path}`);
   for (const d of resolution.warnings) out.say(`Deprecated: ${d.item}@${d.version}: ${d.message}`);
   for (const w of warnings) out.say(`Warning: ${w.message}`);
+  for (const note of toolNotes(
+    written.map((w) => w.path),
+    result.scope,
+  ))
+    out.say(`Note: ${note}`);
   if (missingEnv.length)
     out.say(
       `Set these environment variables before using the MCP servers: ${missingEnv.join(", ")}.`,
