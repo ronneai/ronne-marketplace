@@ -1,6 +1,10 @@
 [
   {
-    "code": "unsupported_type",
-    "message": "@examples/safe-git (permission-policy) isn't rendered for Cursor yet."
+    "code": "unsupported_field",
+    "message": "Cursor's CLI has no \"ask\" permissions, so the rule for `shell` `git push*` in @examples/safe-git was left out."
+  },
+  {
+    "code": "unsupported_field",
+    "message": "Cursor's CLI has no \"ask\" permissions, so the rule for `shell` `git reset --hard*` in @examples/safe-git was left out."
   }
 ]

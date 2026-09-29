@@ -2,6 +2,7 @@ import { type ItemType, isItemType } from "../../item-types.js";
 import { commandSkill, skillFolder } from "../agents-skills.js";
 import {
   disabledWarning,
+  envRef,
   type Frontmatter,
   fileText,
   frontmatterMarkdown,
@@ -9,6 +10,7 @@ import {
   shortName,
   strings,
   targetsFor,
+  withHashMarker,
 } from "../helpers.js";
 import type {
   Change,
@@ -18,6 +20,7 @@ import type {
   RenderScope,
   RenderWarning,
 } from "../types.js";
+import { EVENTS, matcherFor } from "./mappings.js";
 
 /**
  * The Cursor renderer (feature 025). Where Cursor (the editor and its `agent` CLI) reads each type
@@ -153,6 +156,157 @@ const renderRule = (
   };
 };
 
+const HOOKS = ".cursor/hooks.json";
+
+/**
+ * One element of `hooks.<event>` in `hooks.json`, and the file's `version: 1`, which every hook item
+ * wants identically (the applier keeps one entry while any of them does).
+ */
+const renderHook = (
+  item: RenderInput,
+  n: string,
+  block: Record<string, unknown>,
+  context: RenderContext,
+): Rendered => {
+  if (claudeCodeCovers(item, context)) return covered(item, "hooks in .claude/settings.json");
+  const event = EVENTS[String(block.event)];
+  if (!event)
+    return {
+      changes: [],
+      warnings: [
+        unsupported(
+          `Cursor has no event for \`${String(block.event)}\`, so ${item.name} was left out.`,
+        ),
+      ],
+    };
+  const warnings: RenderWarning[] = [];
+  const changes: Change[] = [];
+  const run = record(block.run);
+  let command = typeof run.command === "string" ? run.command : "";
+  if (typeof run.script === "string") {
+    const path = `.cursor/hooks/${n}/${run.script}`;
+    changes.push({
+      kind: "file",
+      path,
+      content: withHashMarker(item, fileText(item.files, run.script)),
+      executable: true,
+    });
+    // Project hooks run from the project root, user hooks from ~/.cursor/ (Cursor's docs).
+    command = context.scope === "project" ? path : `hooks/${n}/${run.script}`;
+  } else if (/\$RMK_[A-Z_]+/.test(command))
+    warnings.push(
+      unsupported(
+        `${item.name}'s command uses an $RMK_ variable; Cursor passes the event as JSON on stdin instead, so the hook has to read it from there.`,
+      ),
+    );
+  const entry: Record<string, unknown> = { command };
+  if (typeof block.timeout === "number") entry.timeout = block.timeout;
+  const tool = record(block.matcher).tool;
+  if (typeof tool === "string") {
+    const matcher = matcherFor(tool);
+    if (matcher) entry.matcher = matcher;
+    else
+      warnings.push({
+        code: "unmapped_tool",
+        message: `Cursor has no hook matcher for \`${tool}\`, so ${item.name} runs for every tool.`,
+      });
+  }
+  changes.push(
+    { kind: "json-key", path: HOOKS, key: ["version"], value: 1 },
+    { kind: "json-array-item", path: HOOKS, key: ["hooks", event], item: entry },
+  );
+  return { changes, warnings };
+};
+
+/** `${NAME}` in a manifest value as Cursor's `${env:NAME}`. */
+const cursorRefs = (text: string) =>
+  text.replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g, (_match, name: string) => envRef(name, "cursor"));
+
+const renderMcpServer = (n: string, block: Record<string, unknown>): Rendered => {
+  const value: Record<string, unknown> = {};
+  if (block.transport === "http") {
+    value.url = block.url;
+    const headers = Object.entries(record(block.headers));
+    if (headers.length)
+      value.headers = Object.fromEntries(headers.map(([k, v]) => [k, cursorRefs(String(v))]));
+  } else {
+    value.command = block.command;
+    if (Array.isArray(block.args)) value.args = block.args;
+    const env = (Array.isArray(block.env) ? block.env : [])
+      .map((v) => String(record(v).name ?? ""))
+      .filter((name) => name);
+    if (env.length)
+      value.env = Object.fromEntries(env.map((name) => [name, envRef(name, "cursor")]));
+  }
+  return {
+    changes: [{ kind: "json-key", path: ".cursor/mcp.json", key: ["mcpServers", n], value }],
+    warnings: [],
+  };
+};
+
+/** One rule as Cursor's CLI writes it, or null when it can't say it. */
+const permissionToken = (tool: string, pattern: string | undefined): string | null => {
+  const mcp = /^mcp:([^/]+)(?:\/(.+))?$/.exec(tool);
+  if (mcp) return `Mcp(${mcp[1]}:${mcp[2] ?? "*"})`;
+  switch (tool) {
+    case "shell": {
+      if (pattern === undefined) return "Shell(*)";
+      const [command, ...args] = pattern.trim().split(/\s+/);
+      if (!command) return null;
+      return args.length ? `Shell(${command}:${args.join(" ")})` : `Shell(${command})`;
+    }
+    case "read":
+      return `Read(${pattern ?? "**"})`;
+    case "edit":
+    case "write":
+      return `Write(${pattern ?? "**"})`;
+    case "web-fetch":
+      return `WebFetch(${pattern ?? "*"})`;
+    default:
+      return null;
+  }
+};
+
+/**
+ * `permissions` in the `agent` CLI's config (degraded): Cursor's editor doesn't document it, and the
+ * CLI has `allow` and `deny` but no `ask`.
+ */
+const renderPermissionPolicy = (
+  item: RenderInput,
+  block: Record<string, unknown>,
+  scope: RenderScope,
+): Rendered => {
+  const warnings: RenderWarning[] = [];
+  const changes: Change[] = [];
+  const path = scope === "project" ? ".cursor/cli.json" : ".cursor/cli-config.json";
+  for (const raw of Array.isArray(block.rules) ? block.rules : []) {
+    const rule = record(raw);
+    const tool = String(rule.tool ?? "");
+    const pattern = typeof rule.pattern === "string" ? rule.pattern : undefined;
+    const decision = String(rule.decision);
+    const token = permissionToken(tool, pattern);
+    const label = `\`${tool}\`${pattern ? ` \`${pattern}\`` : ""}`;
+    if (decision === "ask") {
+      warnings.push(
+        unsupported(
+          `Cursor's CLI has no "ask" permissions, so the rule for ${label} in ${item.name} was left out.`,
+        ),
+      );
+      continue;
+    }
+    if (!token || (decision !== "allow" && decision !== "deny")) {
+      warnings.push(
+        unsupported(
+          `Cursor's CLI can't express the rule for ${label} in ${item.name}, so it was left out.`,
+        ),
+      );
+      continue;
+    }
+    changes.push({ kind: "json-array-item", path, key: ["permissions", decision], item: token });
+  }
+  return { changes, warnings };
+};
+
 export const cursorRenderer: PlatformRenderer = {
   id: RENDERER_ID,
   name: RENDERER_NAME,
@@ -193,6 +347,12 @@ export const cursorRenderer: PlatformRenderer = {
           const { change, warnings } = commandSkill(item, n, block);
           return { changes: [change], warnings };
         });
+      case "hook":
+        return renderHook(item, n, block, context);
+      case "mcp-server":
+        return renderMcpServer(n, block);
+      case "permission-policy":
+        return renderPermissionPolicy(item, block, scope);
       case "bundle":
         // Its members are installed as items of their own (the resolver, 020); nothing to write.
         return { changes: [], warnings: [] };

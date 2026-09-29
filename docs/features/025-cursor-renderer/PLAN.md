@@ -11,7 +11,7 @@ the same change that completes it.
   `agent`, `rule` (project only) and `command`, with markers and mappings.
   *Done when:* golden files for their example items in both scopes are committed.
 
-- [ ] **2. Settings.** `hook` (with the shared `version` key and the applier change it needs),
+- [x] **2. Settings.** `hook` (with the shared `version` key and the applier change it needs),
   `mcp-server` with `${env:NAME}`, and `permission-policy` for the CLI.
   *Done when:* golden files are committed, and applier tests cover a key two items want.
 
@@ -39,4 +39,9 @@ the same change that completes it.
     question 2 (task 2).
 - `RenderContext` gained `targets`, and `RenderWarningCode` gained `covered_by_target`; rmk passes
   the install's target ids. The harness renders without targets, so golden files show Cursor alone.
+- Task 2: `planChanges` merged an identical change from a second item only when the first was a
+  pending write; when the key was already on disk (the first item's entry `unchanged`), the second
+  item hit a false `name_clash`. It now looks in both, so `hooks.json`'s `version` stays one entry
+  while any hook item wants it. The CLI permissions note is `toolNotes()` in `install.ts`, as
+  Codex's are.
 

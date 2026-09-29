@@ -225,6 +225,9 @@ describe("tool notes", () => {
         expect.stringContaining("AGENTS.md is over 32 KiB"),
       ]);
       expect(toolNotes(["CLAUDE.md"], "project", root)).toEqual([]);
+      expect(toolNotes([".cursor/cli.json"], "project", root)).toEqual([
+        expect.stringContaining("only for its agent CLI"),
+      ]);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

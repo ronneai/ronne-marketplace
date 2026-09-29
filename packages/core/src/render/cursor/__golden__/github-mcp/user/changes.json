@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "kind": "json-key",
+    "path": ".cursor/mcp.json",
+    "key": [
+      "mcpServers",
+      "github-mcp"
+    ]
+  }
+]

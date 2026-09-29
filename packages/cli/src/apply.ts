@@ -306,13 +306,17 @@ export const planChanges = async (
       sha256: hash,
     };
     if (seen.has(id)) {
-      const other = plan.writes.find((x) => identity(x.entry) === id);
-      if (other && other.entry.sha256 === hash) {
-        other.entry.targets = [...new Set([...other.entry.targets, ...w.targets])];
+      // The same change from another target, or from another item (such as Cursor's
+      // `hooks.json` version, which every hook wants): one entry, kept while anything wants it.
+      const other = [...plan.writes.map((x) => x.entry), ...plan.unchanged].find(
+        (x) => identity(x) === id,
+      );
+      if (other && other.sha256 === hash) {
+        other.targets = [...new Set([...other.targets, ...w.targets])];
         continue;
       }
       throw new RmkError(
-        `${w.item} and ${other?.wanted.item ?? "another item"} both write ${change.path}${change.kind === "file" || change.kind === "dir" ? "" : ` (${keyOf(change).split("\0").join(".")})`} with different content.`,
+        `${w.item} and ${other?.item ?? "another item"} both write ${change.path}${change.kind === "file" || change.kind === "dir" ? "" : ` (${keyOf(change).split("\0").join(".")})`} with different content.`,
         1,
         "name_clash",
         { path: change.path },

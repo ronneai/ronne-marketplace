@@ -112,4 +112,124 @@ describe("the Cursor renderer", () => {
       warnings: [{ code: "unsupported_type" }],
     });
   });
+
+  it("writes a hook with Cursor's event and matcher, and the file's version", () => {
+    expect(render("format-on-edit").changes).toEqual([
+      { kind: "json-key", path: ".cursor/hooks.json", key: ["version"], value: 1 },
+      {
+        kind: "json-array-item",
+        path: ".cursor/hooks.json",
+        key: ["hooks", "postToolUse"],
+        item: {
+          command: "npx --no-install biome format --write $RMK_FILE_PATHS",
+          timeout: 30,
+          matcher: "Write",
+        },
+      },
+    ]);
+    const scripted = withBlock("format-on-edit", "hook", {
+      event: "tool.before",
+      matcher: { tool: "mcp:github-mcp/create_issue" },
+      run: { script: "go.sh" },
+    });
+    scripted.files = [
+      ...scripted.files,
+      { path: "go.sh", bytes: new TextEncoder().encode("#!/bin/sh\necho hi\n"), executable: true },
+    ];
+    const project = cursorRenderer.render(scripted, { scope: "project" });
+    expect(project.changes[0]).toMatchObject({
+      path: ".cursor/hooks/format-on-edit/go.sh",
+      content: "#!/bin/sh\n# managed by rmk: @examples/format-on-edit@1.0.0\necho hi\n",
+    });
+    expect(project.changes[2]).toMatchObject({
+      key: ["hooks", "preToolUse"],
+      item: { command: ".cursor/hooks/format-on-edit/go.sh", matcher: "MCP:create_issue" },
+    });
+    expect(cursorRenderer.render(scripted, { scope: "user" }).changes[2]).toMatchObject({
+      item: { command: "hooks/format-on-edit/go.sh" },
+    });
+    const odd = cursorRenderer.render(
+      withBlock("format-on-edit", "hook", {
+        event: "tool.after",
+        matcher: { tool: "web-search" },
+        run: { command: "x" },
+      }),
+      { scope: "project" },
+    );
+    expect(odd.warnings.map((w) => w.code)).toEqual(["unmapped_tool"]);
+    const permission = cursorRenderer.render(
+      withBlock("format-on-edit", "hook", { event: "permission.request", run: { command: "x" } }),
+      { scope: "project" },
+    );
+    expect(permission).toMatchObject({ changes: [], warnings: [{ code: "unsupported_field" }] });
+  });
+
+  it("leaves a hook to Claude Code's copy when both are targets", () => {
+    expect(
+      render("format-on-edit", { scope: "project", targets: ["claude-code", "cursor"] }),
+    ).toMatchObject({ changes: [], warnings: [{ code: "covered_by_target" }] });
+  });
+
+  it("writes MCP servers with ${env:NAME} references only", () => {
+    expect(render("github-mcp", { scope: "user" }).changes).toEqual([
+      {
+        kind: "json-key",
+        path: ".cursor/mcp.json",
+        key: ["mcpServers", "github-mcp"],
+        value: {
+          url: "https://api.githubcopilot.com/mcp/",
+          // biome-ignore lint/suspicious/noTemplateCurlyInString: Cursor's own reference syntax
+          headers: { Authorization: "Bearer ${env:GITHUB_TOKEN}" },
+        },
+      },
+    ]);
+    const stdio = cursorRenderer.render(
+      withBlock("github-mcp", "mcp-server", {
+        transport: "stdio",
+        command: "npx",
+        args: ["-y", "server"],
+        env: [{ name: "TOKEN", secret: true }],
+      }),
+      { scope: "project" },
+    );
+    expect(stdio.changes[0]).toMatchObject({
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: Cursor's own reference syntax
+      value: { command: "npx", args: ["-y", "server"], env: { TOKEN: "${env:TOKEN}" } },
+    });
+  });
+
+  it("writes CLI permissions, with arguments, and leaves out ask rules", () => {
+    const { changes, warnings } = render("safe-git");
+    expect(changes).toEqual([
+      {
+        kind: "json-array-item",
+        path: ".cursor/cli.json",
+        key: ["permissions", "deny"],
+        item: "Shell(git:push --force*)",
+      },
+    ]);
+    expect(warnings).toHaveLength(2);
+    const other = cursorRenderer.render(
+      withBlock("safe-git", "permission-policy", {
+        rules: [
+          { tool: "read", pattern: ".env*", decision: "deny" },
+          { tool: "write", decision: "allow" },
+          { tool: "shell", pattern: "ls", decision: "allow" },
+          { tool: "web-fetch", pattern: "*.github.com", decision: "allow" },
+          { tool: "mcp:datadog", decision: "allow" },
+          { tool: "glob", decision: "allow" },
+        ],
+      }),
+      { scope: "user" },
+    );
+    expect(other.changes.map((c) => (c.kind === "json-array-item" ? c.item : null))).toEqual([
+      "Read(.env*)",
+      "Write(**)",
+      "Shell(ls)",
+      "WebFetch(*.github.com)",
+      "Mcp(datadog:*)",
+    ]);
+    expect(other.changes[0]).toMatchObject({ path: ".cursor/cli-config.json" });
+    expect(other.warnings).toHaveLength(1);
+  });
 });

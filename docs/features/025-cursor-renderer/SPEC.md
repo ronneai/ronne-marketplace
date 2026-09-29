@@ -85,22 +85,29 @@ manifest's `args` are listed in the body as a note; an `unsupported_field` warni
 aren't passed.
 
 **`hook`** — one `json-array-item` under `hooks.<event>` in `hooks.json`:
-`{ "type": "command", "command": "…", "timeout": 30, "matcher": "<Tool>" }`, and the file's
-`"version": 1` as a `json-key` (see Edge cases). A `run.script` is copied to `.cursor/hooks/<n>/`
-and run as `"$CURSOR_PROJECT_DIR"/…` (user scope: `"$HOME"/…`). Cursor passes the event as JSON on
-stdin; `$RMK_` variables warn as in 023. Events with no equivalent (`permission.request`) warn and
-are left out.
+`{ "command": "…", "timeout": 30, "matcher": "<Tool>" }` (`type` defaults to `command`), and the
+file's `"version": 1` as a `json-key` that every hook item wants (see Edge cases). A `run.script` is
+copied to `.cursor/hooks/<n>/` and run by its path from where Cursor runs hooks: the project root
+(`.cursor/hooks/<n>/…`), or `~/.cursor/` in user scope (`hooks/<n>/…`). Cursor passes the event as
+JSON on stdin; `$RMK_` variables warn as in 023. A tool with no Cursor matcher (`glob`,
+`web-search`, an MCP server without a tool) is an `unmapped_tool` warning, and the hook runs for
+every tool. Events with no equivalent (`permission.request`) warn and are left out. With Claude
+Code also a target, the hook is left to Claude Code's copy, which Cursor runs (see above).
 
 **`mcp-server`** — `mcpServers.<n>` in `mcp.json`: stdio as `command`, `args` and `env` with
-`${env:NAME}` references (Cursor's syntax); http as `url` and `headers` with the same references.
-No secret value is ever written.
+`${env:NAME}` references (Cursor's syntax); http as `url` and `headers`, each `${NAME}` in a header
+becoming `${env:NAME}`. No secret value is ever written.
 
-**`permission-policy`** (degraded) — Cursor's CLI takes `Shell(<base command>)`, `Read(<glob>)`,
-`Write(<glob>)`, `WebFetch(<domain>)` and `Mcp(<server>:<tool>)`, in `allow` and `deny` only.
-So: `deny` and `allow` rules whose pattern is a bare command (`git`), a glob or a domain are
-written; a shell pattern with arguments (`git push --force*`) can't be said without widening it to
-the whole command, so it's left out with a warning; `ask` rules are left out with a warning, since
-the CLI has no `ask`. The panel and `rmk` say the policy only applies to Cursor's CLI.
+**`permission-policy`** (degraded) — `permissions` in the `agent` CLI's config (`.cursor/cli.json`,
+or `~/.cursor/cli-config.json` in user scope), which takes `Shell(<command>)` or
+`Shell(<command>:<args glob>)`, `Read(<glob>)`, `Write(<glob>)`, `WebFetch(<domain>)` and
+`Mcp(<server>:<tool>)`, in `allow` and `deny` only. So a shell pattern becomes its first word and
+the rest as the arguments glob (`git push --force*` → `Shell(git:push --force*)`); a rule with no
+pattern covers everything (`Shell(*)`, `Read(**)`); `edit` and `write` are both `Write`; `glob`,
+`grep` and `web-search` have no permission and warn; `ask` rules are left out with a warning,
+since the CLI has no `ask`. Cursor's docs don't say whether the arguments glob matches the rest of
+the command as one string; `rmk` notes after an install that the policy only applies to Cursor's
+CLI.
 
 **`output-style`, `statusline`, `lsp-server`** — `none`: `rmk` warns and skips (MVP §3.3).
 
@@ -147,13 +154,13 @@ the CLI has no `ask`. The panel and `rmk` say the policy only applies to Cursor'
 
 ## Open questions
 
-The owner hasn't answered these; they're built on the recommendations unless answered first.
+The owner started 025 (2026-09-29) without answering these, so it's built on the recommendations,
+as revised by the re-check; any can still change.
 
-1. **With Claude Code and Cursor both as targets, skills go only to `.agents/skills/`** and Claude
-   Code's renderer skips `.claude/skills/` for them (recommended: Cursor reads both folders, so
-   one copy avoids a skill appearing twice; Claude Code doesn't read `.agents/skills/`, though, so
-   this needs 023 to write skills to `.claude/skills/` only when Cursor isn't a target, or as
-   symbolic links), or each renderer writes its own folder and Cursor shows the skill twice.
-2. **Shell permission rules with arguments are left out** (recommended: widening `git push
-   --force*` to all of `git` would be wrong and harmful), or written as the base command with a
-   warning.
+1. **With Claude Code and Cursor both as targets, Cursor leaves skills, commands and hooks to
+   Claude Code's copy** (built: Cursor reads `.claude/skills/` and imports Claude Code's hooks by
+   default, and runs every hook it finds, so its own copy would be a second one), or each renderer
+   writes its own and the person turns off Cursor's Third-Party Imports. The spec's first
+   recommendation, writing only `.agents/skills/`, would have left Claude Code without the skill.
+2. ~~Shell permission rules with arguments are left out~~ — answered by the re-check: Cursor's
+   CLI takes `Shell(<command>:<args glob>)`, so they're written without widening (2026-09-29).
