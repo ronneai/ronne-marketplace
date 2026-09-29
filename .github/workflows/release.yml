@@ -89,7 +89,8 @@ jobs:
         run: |
           for name in core rmk mcp; do
             package="@ronneai/$name"
-            tarball="release/ronneai-$name-$VERSION.tgz"
+            # ./ matters: npm reads "release/x.tgz" as a GitHub user/repo, not a file.
+            tarball="./release/ronneai-$name-$VERSION.tgz"
             if npm view "$package@$VERSION" version >/dev/null 2>&1; then
               echo "$package@$VERSION is already on npm; skipping."
               continue
