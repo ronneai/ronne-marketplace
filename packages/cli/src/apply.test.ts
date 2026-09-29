@@ -386,4 +386,14 @@ describe("applying changes", () => {
     expect(none.plan.removes).toHaveLength(1);
     expect(json(".cursor/hooks.json")).toEqual({});
   });
+
+  it("refuses a key path that would reach an object's prototype", async () => {
+    for (const key of [["__proto__", "polluted"], ["mcpServers", "constructor"], ["prototype"]]) {
+      const plan = await planChanges(root, emptyState(), [
+        wanted({ kind: "json-key", path: ".mcp.json", key, value: { yes: true } }),
+      ]);
+      expect(() => applyPlan(root, emptyState(), plan)).toThrow(/rmk won't write the key/);
+    }
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+  });
 });

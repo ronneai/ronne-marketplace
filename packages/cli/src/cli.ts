@@ -1,10 +1,12 @@
 import { parseArgs } from "node:util";
 import { ApiError, apiClient, checkRegistryUrl, rmkVersion } from "./api.js";
 import { normalizeRegistry, readUserConfig, registryFor, writeUserConfig } from "./config.js";
+import { connectRegistry } from "./connect.js";
 import { RmkError, usage } from "./errors.js";
 import { installCommand } from "./install.js";
 import type { Io } from "./io.js";
 import { outdatedCommand, removeCommand, updateCommand } from "./manage.js";
+import { mcpSetupCommand } from "./mcp-setup.js";
 import { done, failed, output, type RunResult } from "./output.js";
 import { list, platforms, withApi } from "./registry-commands.js";
 
@@ -25,6 +27,7 @@ export const USAGE = `Usage: rmk <command> [options]
   update [<item>...]
   outdated
   remove <item>...
+  mcp-setup [--target <ids>|all] [--scope project|user] [--remove] [--command <cmd>]
 
 Options: --json (one JSON object per command), --registry <url>, --version, --help`;
 
@@ -40,6 +43,8 @@ const OPTIONS = {
   target: { type: "string" },
   installed: { type: "boolean" },
   force: { type: "boolean" },
+  remove: { type: "boolean" },
+  command: { type: "string" },
 } as const;
 
 export type Args = { values: Record<string, string | boolean | undefined>; positionals: string[] };
@@ -55,19 +60,12 @@ const parse = (argv: string[]): Args => {
 const str = (value: string | boolean | undefined) =>
   typeof value === "string" ? value : undefined;
 
-/** The registry and a client for it; `needToken` refuses to go on without one. */
-const connect = (io: Io, args: Args, needToken = true) => {
-  const config = readUserConfig(io);
-  const registry = registryFor(io, config, str(args.values.registry));
-  checkRegistryUrl(registry.url, args.values.insecure === true);
-  if (needToken && !registry.token)
-    throw new RmkError(
-      `You're not logged in to ${registry.url}. Run \`rmk login\`.`,
-      1,
-      "not_logged_in",
-    );
-  return { config, registry, api: apiClient(io.fetch, registry.url, registry.token) };
-};
+const connect = (io: Io, args: Args, needToken = true) =>
+  connectRegistry(io, {
+    registry: str(args.values.registry),
+    insecure: args.values.insecure === true,
+    needToken,
+  });
 
 const login = async (io: Io, args: Args, out: ReturnType<typeof output>) => {
   const config = readUserConfig(io);
@@ -155,6 +153,7 @@ export const COMMANDS: Record<string, Command> = {
   update,
   outdated,
   remove,
+  "mcp-setup": (io, args, out) => mcpSetupCommand(io, args, out),
 };
 
 /** Runs rmk with the given arguments (without the node and script paths). */

@@ -46,6 +46,10 @@ test("a token made in the web app reads the registry and downloads an item, whic
   // The home page's Most used shows it, with its count.
   await page.goto("/");
   const mostUsed = page.getByRole("region", { name: "Most used" });
-  await expect(mostUsed.getByRole("link", { name, exact: true })).toBeVisible();
-  await expect(mostUsed.getByText(/\b1 download\b/)).toBeVisible();
+  const card = mostUsed
+    .getByRole("article")
+    .filter({ has: page.getByRole("link", { name, exact: true }) });
+  await expect(card).toBeVisible();
+  // At least this download; other tests (such as rmk-mcp's) may have downloaded it too.
+  await expect(card.getByText(/\b[1-9]\d* downloads?\b/)).toBeVisible();
 });

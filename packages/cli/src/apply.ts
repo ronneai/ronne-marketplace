@@ -127,14 +127,29 @@ const getAt = (object: JsonObject, key: string[]): unknown => {
   return current;
 };
 
+/**
+ * A key path part that would reach the object's prototype instead of a key of its own. Renderers'
+ * keys come from validated item names, but the applier is a library entry too (027), so it refuses
+ * them itself rather than trusting every caller.
+ */
+const unsafeKey = (part: string) =>
+  new RmkError(
+    `rmk won't write the key "${part}": it would change how every object behaves, not this file.`,
+    1,
+    "unsafe_key",
+  );
+
 const setAt = (object: JsonObject, key: string[], value: unknown) => {
   let current = object;
   for (const part of key.slice(0, -1)) {
+    if (part === "__proto__" || part === "constructor" || part === "prototype")
+      throw unsafeKey(part);
     const next = current[part];
     if (!next || typeof next !== "object" || Array.isArray(next)) current[part] = {};
     current = current[part] as JsonObject;
   }
   const last = key.at(-1);
+  if (last === "__proto__" || last === "constructor" || last === "prototype") throw unsafeKey(last);
   if (last !== undefined) current[last] = value;
 };
 
@@ -143,6 +158,8 @@ const deleteAt = (object: JsonObject, key: string[]) => {
   const parents: [JsonObject, string][] = [];
   let current: unknown = object;
   for (const part of key) {
+    if (part === "__proto__" || part === "constructor" || part === "prototype")
+      throw unsafeKey(part);
     if (!current || typeof current !== "object" || Array.isArray(current)) return;
     parents.push([current as JsonObject, part]);
     current = (current as JsonObject)[part];

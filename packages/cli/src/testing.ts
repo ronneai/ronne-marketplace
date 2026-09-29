@@ -287,3 +287,4 @@ export const buildRegistry = async () => {
   }
   return { routes, packed };
 };
+export { run } from "./cli.js";

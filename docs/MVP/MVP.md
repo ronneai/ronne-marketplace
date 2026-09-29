@@ -434,7 +434,7 @@ ronne-marketplace/
 ├─ packages/
 │  ├─ core/                # manifest schema, semver resolver, packer, platform renderers, API client
 │  ├─ cli/                 # `rmk` (commander/citty), depends on core
-│  ├─ mcp/                 # registry MCP server, depends on core
+│  ├─ mcp/                 # registry MCP server, depends on core and cli's library entry (`@ronneai/rmk/lib`)
 │  └─ config/              # shared tsconfig, biome, vitest presets
 ├─ docs/
 ├─ biome.json
@@ -692,6 +692,7 @@ Design points:
 | Artifacts | Immutable `.tgz` + sha256 on local disk behind a StorageAdapter | Simple to self-host; S3 can be added later |
 | Composition | React Flow visual composer over manifest `dependencies` | Visual UX, but reviews stay text diffs |
 | Monorepo | pnpm + Turborepo (`apps/web`, `packages/{core,cli,mcp,config}`) | Shared core between web, CLI and MCP |
+| MCP server and `rmk` | `packages/mcp` imports `@ronneai/rmk/lib`, `rmk`'s install pipeline as functions (plan, apply, lockfile, state, registry access), and never `rmk`'s command layer; nothing else outside core crosses packages (owner, 2026-09-29, [027](../features/027-registry-mcp-server/SPEC.md)) | The server plans and applies installs exactly as `rmk` does, so one pipeline serves both and they can't drift; moving it into core would put file-system and network code into what the web app imports |
 | Front-end | React, Next.js, Tailwind, Biome, Vitest; feature-first folders; shared `components/ui` | From the requirements |
 | Auth schema | Better Auth owns `user`/`session`/`account`/`verification` (plus `role`, `disabled_at`); argon2id via custom hash; PATs in our own `access_tokens` table | Don't fight the library's schema; keep token format and revocation under our control |
 | Scopes | Every item is scoped; root creates scopes; anyone may propose in any scope; `owner_id` is informational | Review is the gate, so scope membership adds admin work without adding safety |
