@@ -121,6 +121,10 @@ describe("the topics", () => {
     expect(rmk).toContain('id="tokens"');
     expect(rmk).toContain('id="tools"');
     expect(rmk).toContain("<strong>Works in</strong>");
+    expect(rmk).toContain('id="mcp"');
+    expect(rmk).toContain("rmk mcp-setup --remove");
+    expect(rmk).toContain("A plan lasts 10 minutes and is applied once.");
+    expect(rmk).toContain("The registry MCP server, <code");
     expect(rmk).toContain("rmk search &lt;query&gt; --target codex");
     for (const tool of ["claude-code", "codex", "cursor"])
       expect(rmk).toContain(`href="/docs/${tool}"`);

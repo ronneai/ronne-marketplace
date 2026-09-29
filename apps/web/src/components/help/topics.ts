@@ -88,6 +88,7 @@ export const TOPICS = [
       { id: "edits", title: "Your own edits" },
       { id: "tokens", title: "Tokens and the API" },
       { id: "tools", title: "Your AI tools" },
+      { id: "mcp", title: "From inside your AI tool" },
     ],
   },
   {

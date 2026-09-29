@@ -94,7 +94,7 @@ New folders start from [`_template/`](./_template/).
 | [024](./024-codex-renderer/SPEC.md) | Codex renderer, and TOML keys in the applier | 021, 022 | done |
 | [025](./025-cursor-renderer/SPEC.md) | Cursor renderer | 021, 022 | done |
 | [026](./026-support-matrix/SPEC.md) | Per-item support matrix in the web UI, the API and the catalogue filter | 018, 023 | done |
-| [027](./027-registry-mcp-server/SPEC.md) | Registry MCP server (`rmk-mcp`) and `rmk mcp-setup` | 022 | specified |
+| [027](./027-registry-mcp-server/SPEC.md) | Registry MCP server (`rmk-mcp`) and `rmk mcp-setup` | 022 | done |
 
 ### M5b — Tier-2 platforms (right after the MVP)
 

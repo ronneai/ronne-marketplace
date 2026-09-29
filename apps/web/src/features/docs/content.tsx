@@ -789,6 +789,10 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           Each download of an item adds one to its count, which the home page uses for Most used.
           Nothing about who downloaded it is stored.
         </p>
+        <p>
+          The registry MCP server, <Code>rmk-mcp</Code>, uses the token <Code>rmk login</Code>{" "}
+          saved, or <Code>RMK_TOKEN</Code>: it can do what the token can, and never shows it.
+        </p>
       </>
     ),
     tools: (
@@ -854,6 +858,53 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           lists the items one tool takes, as does{" "}
           <Code>rmk search &lt;query&gt; --target codex</Code>, and <Code>rmk info</Code> prints
           each tool&apos;s level for a version.
+        </p>
+      </>
+    ),
+    mcp: (
+      <>
+        <p>
+          The registry MCP server, <Code>rmk-mcp</Code>, lets your AI tool do what <Code>rmk</Code>{" "}
+          does, from the conversation: search the marketplace, read an item, list what&apos;s
+          installed and what&apos;s outdated, and install, update or remove items. It runs on your
+          machine, in the project folder, as you: it uses the token from <Code>rmk login</Code>.
+        </p>
+        <Example>
+          {
+            "rmk mcp-setup                # for the tools this project uses\nrmk mcp-setup --target all\nrmk mcp-setup --remove"
+          }
+        </Example>
+        <p>
+          <Code>rmk mcp-setup</Code> adds the server to each tool&apos;s MCP settings as{" "}
+          <Code>ronne-registry</Code>, and records it like any setting <Code>rmk</Code> writes, so{" "}
+          <Code>--remove</Code> takes exactly it away and it never replaces an entry you made.
+          Claude Code asks once before it uses a project&apos;s MCP servers; restart the tool, or
+          reload its MCP servers, to start it.
+        </p>
+        <Steps>
+          <li>
+            <strong>Plan.</strong> Asked to install something, the assistant first makes a plan: the
+            versions, every file and setting it would write or remove, warnings, what each new item
+            can do, and the environment variables its MCP servers need. Planning writes nothing.
+          </li>
+          <li>
+            <strong>Apply.</strong> Once you&apos;ve seen the plan, the assistant applies it; your
+            tool asks you before it runs, unless you&apos;ve allowed it to. It writes exactly that
+            plan, then the lockfile, as <Code>rmk</Code> would.
+          </li>
+        </Steps>
+        <p>
+          A plan lasts 10 minutes and is applied once. If anything it touches changes in between,
+          such as an install from the terminal, it&apos;s refused and the assistant plans again. A
+          plan with conflicts can&apos;t be applied from the tool: move the files aside, or use{" "}
+          <Code>rmk install --force</Code> at the terminal. Authoring, review and releases stay in
+          this website.
+        </p>
+        <p>
+          Like <Code>rmk</Code>, <Code>rmk-mcp</Code> isn&apos;t on npm yet: it comes with the
+          repository, in <Code>packages/mcp</Code>. After <Code>pnpm build</Code>, link it once (
+          <Code>cd packages/mcp && npm link</Code>), or register it by its path:{" "}
+          <Code>rmk mcp-setup --command &quot;node /path/to/packages/mcp/dist/bin.js&quot;</Code>.
         </p>
       </>
     ),

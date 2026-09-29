@@ -5,10 +5,10 @@ hooks, MCP servers and more. A team installs it on its own infrastructure, propo
 and releases them, and installs them into AI coding tools such as Claude Code, Codex and Cursor with
 the `rmk` CLI or from inside those tools through an MCP server.
 
-> **Status:** early development. Milestones M0 to M4 are done: Ronne installs; people sign in and
-> get tokens; items go from a draft through review to a catalogue of released versions, with
-> change proposals and version management; and `rmk` installs them into Claude Code, Codex and
-> Cursor. The registry MCP server follows in M5. The design is in [`docs/MVP/MVP.md`](docs/MVP/MVP.md), and
+> **Status:** early development. Milestones M0 to M5 are done: Ronne AI Marketplace installs;
+> people sign in and get tokens; items go from a draft through review to a catalogue of released
+> versions, with change proposals and version management; `rmk` installs them into Claude Code,
+> Codex and Cursor; and the registry MCP server does the same from inside those tools. The design is in [`docs/MVP/MVP.md`](docs/MVP/MVP.md), and
 > the work is tracked in [`docs/features/README.md`](docs/features/README.md).
 
 ## Getting started
@@ -86,8 +86,12 @@ when a proxy you control sits in front of Ronne and adds that header; otherwise 
 ## The `rmk` CLI
 
 `rmk` installs approved items into your AI coding tools, and keeps them current: `login`, `search`,
-`info`, `install`, `update`, `outdated`, `remove`, `list` and `platforms`, with a lockfile so a team
-gets the same files. Claude Code, Codex and Cursor are supported.
+`info`, `install`, `update`, `outdated`, `remove`, `list`, `platforms` and `mcp-setup`, with a
+lockfile so a team gets the same files. Claude Code, Codex and Cursor are supported.
+
+The registry MCP server, `rmk-mcp` (`packages/mcp`), does the same from inside those tools: the
+assistant searches, shows a plan of what an install would change, and applies it once you've seen
+it. `rmk mcp-setup` adds it to each tool's MCP settings.
 
 **It isn't on npm yet.** Until it's published, it comes with this repository. From a clone, with
 Node.js 22.12 or later:
@@ -98,6 +102,7 @@ pnpm build
 node packages/cli/dist/bin.js --help
 cd packages/cli && npm link        # optional: use it as `rmk` from anywhere
 rmk login --registry https://your-ronne-instance.example
+cd packages/mcp && npm link        # optional: `rmk-mcp`, for rmk mcp-setup
 ```
 
 Once published, the install becomes `npm install --global @ronneai/rmk`. The package is

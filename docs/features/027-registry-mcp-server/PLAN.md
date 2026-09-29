@@ -25,7 +25,7 @@ the same change that completes it.
   state file.
   *Done when:* tests cover setup and `--remove` for Claude Code, leaving other entries alone.
 
-- [ ] **5. End to end and documentation.** The built server driven by an MCP client against the
+- [x] **5. End to end and documentation.** The built server driven by an MCP client against the
   Playwright instance, and the Documentation section and helpers.
   *Done when:* it passes in CI, and the docs render tests cover the new section.
 
@@ -64,4 +64,9 @@ the same change that completes it.
 - Task 4: `prepareInstall` sets `rmk mcp-setup`'s state entries aside (`Prepared.kept`) and
   `commitInstall` writes them back unchanged; otherwise the next install would have removed the
   registration as no longer wanted. `mcp-setup` plans only its own entries the same way.
+- Task 5: the end-to-end test talks to the built `rmk-mcp` with a few lines of newline-delimited
+  JSON-RPC rather than the SDK's client, so the web app gains no dependency. `pnpm test:e2e` now
+  builds `@ronneai/mcp` too. `registry-api.e2e.ts` checked for exactly "1 download" on the home
+  page; the MCP test downloads the same item first, so it now checks that item's own card shows a
+  count.
 

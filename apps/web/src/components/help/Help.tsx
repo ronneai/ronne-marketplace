@@ -77,7 +77,7 @@ export const HELP = {
   install: {
     question: "How do I install it?",
     answer:
-      "Copy the command into a terminal in your project, after rmk login. rmk resolves the version, checks the download, writes the files your AI tool reads, and records them in rmk.lock so teammates get the same.",
+      "Copy the command into a terminal in your project, after rmk login. rmk resolves the version, checks the download, writes the files your AI tool reads, and records them in rmk.lock so teammates get the same. With the registry MCP server set up, you can also ask your AI tool to install it: it shows you the plan first.",
     href: docsHref("rmk", "installing"),
   },
   support: {

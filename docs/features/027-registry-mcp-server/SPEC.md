@@ -82,10 +82,13 @@ writes only inside the project (or home, for user scope), through the same path 
 
 ## Documentation
 
-- **Installing with rmk → a new section, "From inside your AI tool":** what the server does, the
-  two-step flow and why, `rmk mcp-setup`, and that plans expire.
-- **Item page:** the install helper mentions asking the assistant.
-- **Tokens and the API:** the MCP server reads with the same token.
+- **Installing with rmk → From inside your AI tool** (new): what the server does, `rmk mcp-setup`
+  and `--remove`, the plan-then-apply steps and why, that a plan lasts 10 minutes and is applied
+  once, stale plans and conflicts, and how to get `rmk-mcp` until it's on npm.
+- **Item page:** the "How do I install it?" helper mentions asking the assistant, which shows the
+  plan first.
+- **Tokens and the API:** `rmk-mcp` uses the same token, can do what it can, and never shows it.
+- The README's status and `rmk` section.
 
 ## Edge cases
 
@@ -97,13 +100,18 @@ writes only inside the project (or home, for user scope), through the same path 
 
 ## Acceptance criteria
 
-- [ ] The server lists and runs every tool above over stdio, with a test client; read tools match `rmk`'s output.
-- [ ] `plan_install` writes nothing; `apply_plan` writes the plan and the files, and refuses expired and stale plans and plans with conflicts.
-- [ ] `rmk mcp-setup` registers the server for Claude Code (and every renderer that lands), records it in the state file, and `--remove` undoes it without touching other entries.
-- [ ] Without a token, every tool says to run `rmk login`; the token never appears in any output.
-- [ ] An end-to-end test drives the built `rmk-mcp` with an MCP client against the Playwright instance: search, plan, apply, and a stale apply refused.
+- [x] The server lists and runs every tool above over stdio, with a test client; read tools match `rmk`'s output.
+- [x] `plan_install` writes nothing; `apply_plan` writes the plan and the files, and refuses expired and stale plans and plans with conflicts.
+- [x] `rmk mcp-setup` registers the server for Claude Code (and every renderer that lands), records it in the state file, and `--remove` undoes it without touching other entries.
+- [x] Without a token, every tool says to run `rmk login`; the token never appears in any output.
+- [x] An end-to-end test drives the built `rmk-mcp` with an MCP client against the Playwright instance: search, plan, apply, and a stale apply refused.
+- [x] The Documentation has the new section, the token note and the helper, with render tests.
 
 ## Open questions
+
+The owner started 027 (2026-09-29) without answering these, so it's built on the recommendations;
+any can still change. Separately, the owner chose to let `packages/mcp` import `@ronneai/rmk/lib`
+(see Shared code).
 
 1. **Build on `@modelcontextprotocol/sdk`** (recommended: the reference implementation of the
    protocol, MIT, current; its 17 dependencies are all permissive, but it's the heaviest package
