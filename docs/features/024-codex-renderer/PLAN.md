@@ -11,7 +11,7 @@ the same change that completes it.
   created, replaced, removed, edited and unmanaged in `planChanges` and `applyPlan`.
   *Done when:* applier unit tests cover each case over a temporary folder, keeping other keys.
 
-- [ ] **2. Re-check and the file types.** The locations against Codex's docs; then `skill`,
+- [x] **2. Re-check and the file types.** The locations against Codex's docs; then `skill`,
   `agent` (TOML), `rule` (sections and skills) and `command`.
   *Done when:* golden files for their example items in both scopes are committed.
 
@@ -42,4 +42,11 @@ the same change that completes it.
   6. *Weight:* one package, no dependencies.
 - rmk writes TOML back in smol-toml's layout, so the note about lost comments and layout compares
   the file with its own canonical rewrite: a file rmk already wrote never triggers it again.
+- Task 2: the locations were checked against Codex's documentation on 2026-09-28, the day this was
+  built, so the check in the spec stands. `.agents/skills/` folders are written by shared helpers in
+  `packages/core/src/render/agents-skills.ts`, which Cursor (025) uses too, so the two renderers
+  can't drift into a `name_clash`. The helpers both renderers need (`record`, `fileText`,
+  `frontmatterMarkdown`, `withHashMarker`, …) moved from the Claude Code renderer into `helpers.ts`;
+  its golden files didn't change. Core's tests parse the agent TOML with `smol-toml`, pinned as a
+  dev dependency.
 

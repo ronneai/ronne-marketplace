@@ -335,6 +335,9 @@ importers:
       '@types/semver':
         specifier: 7.8.0
         version: 7.8.0
+      smol-toml:
+        specifier: 1.9.0
+        version: 1.9.0
 
   packages/mcp: {}
 

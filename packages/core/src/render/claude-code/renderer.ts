@@ -1,12 +1,16 @@
 import { type ItemType, isItemType } from "../../item-types.js";
-import type { PackageFile } from "../../package-file.js";
 import {
   disabledWarning,
   envRef,
-  managedMarker,
+  type Frontmatter,
+  fileText,
+  frontmatterMarkdown,
+  record,
+  shortName,
+  strings,
   targetsFor,
   toolName,
-  trimTrailingNewlines,
+  withHashMarker,
 } from "../helpers.js";
 import type {
   Change,
@@ -27,39 +31,8 @@ import { EVENTS, MODELS, TOOLS } from "./mappings.js";
 export const RENDERER_ID = "claude-code";
 export const RENDERER_NAME = "Claude Code";
 
-const record = (value: unknown): Record<string, unknown> =>
-  value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-const strings = (value: unknown): string[] =>
-  Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
-const shortName = (name: string) => name.slice(name.indexOf("/") + 1);
-const decoder = new TextDecoder();
-const fileText = (files: readonly PackageFile[], path: unknown): string => {
-  const file = typeof path === "string" ? files.find((f) => f.path === path) : undefined;
-  return file ? decoder.decode(file.bytes) : "";
-};
-
-/** A YAML frontmatter value: quoted when it could read as something else. */
-const yamlValue = (value: string) =>
-  /^[A-Za-z0-9][A-Za-z0-9_ .,()'-]*$/.test(value) && !/^(true|false|null|yes|no)$/i.test(value)
-    ? value
-    : JSON.stringify(value);
-
-/** `---` on line 1 (Claude Code skips a file otherwise), then the managed marker, then the body. */
-const markdown = (
-  item: RenderInput,
-  front: [string, string | string[] | boolean][],
-  body: string,
-): string => {
-  const lines = front.map(([key, value]) =>
-    Array.isArray(value)
-      ? `${key}:\n${value.map((v) => `  - ${yamlValue(v)}`).join("\n")}`
-      : `${key}: ${typeof value === "boolean" ? String(value) : yamlValue(value)}`,
-  );
-  const head = lines.length ? `---\n${lines.join("\n")}\n---\n` : "";
-  return `${head}${managedMarker(item.name, item.version, "html")}\n\n${trimTrailingNewlines(body)}\n`;
-};
+const markdown = (item: RenderInput, front: Frontmatter, body: string) =>
+  frontmatterMarkdown(item, front, body);
 
 const skillFiles = (item: RenderInput, entry: string): ChangeFile[] =>
   item.files.map((file) => ({
@@ -69,12 +42,7 @@ const skillFiles = (item: RenderInput, entry: string): ChangeFile[] =>
   }));
 
 /** A skill written from a rule or a command, which Claude Code merged into skills. */
-const skillOf = (
-  item: RenderInput,
-  n: string,
-  front: [string, string | string[] | boolean][],
-  body: string,
-): Change => ({
+const skillOf = (item: RenderInput, n: string, front: Frontmatter, body: string): Change => ({
   kind: "dir",
   path: `.claude/skills/${n}`,
   files: [{ path: "SKILL.md", content: markdown(item, [["name", n], ...front], body) }],
@@ -106,7 +74,7 @@ const renderAgent = (
     if ("name" in mapped) tools.push(mapped.name);
     else warnings.push(mapped.warning);
   }
-  const front: [string, string | string[] | boolean][] = [
+  const front: Frontmatter = [
     ["name", n],
     ["description", String(item.manifest.description ?? "")],
   ];
@@ -180,9 +148,7 @@ const renderCommand = (item: RenderInput, n: string, block: Record<string, unkno
   const args = (Array.isArray(block.args) ? block.args : []).map(record);
   const names = args.map((arg) => String(arg.name ?? ""));
   const hint = args.map((arg) => (arg.required ? `<${arg.name}>` : `[${arg.name}]`)).join(" ");
-  const front: [string, string | string[] | boolean][] = [
-    ["description", String(item.manifest.description ?? "")],
-  ];
+  const front: Frontmatter = [["description", String(item.manifest.description ?? "")]];
   if (hint) front.push(["argument-hint", hint]);
   if (names.length) front.push(["arguments", names]);
   front.push(["disable-model-invocation", true]);
@@ -222,14 +188,7 @@ const SETTINGS = ".claude/settings.json";
 const scriptPath = (scope: RenderScope, path: string) =>
   scope === "project" ? `"$CLAUDE_PROJECT_DIR"/${path}` : `"$HOME"/${path}`;
 
-/** A script with the marker as a `#` comment after its shebang, or at the top. */
-const script = (item: RenderInput, content: string): string => {
-  const marker = managedMarker(item.name, item.version, "hash");
-  const lines = content.split("\n");
-  return lines[0]?.startsWith("#!")
-    ? [lines[0], marker, ...lines.slice(1)].join("\n")
-    : `${marker}\n${content}`;
-};
+const script = withHashMarker;
 
 const unsupported = (message: string): RenderWarning => ({ code: "unsupported_field", message });
 

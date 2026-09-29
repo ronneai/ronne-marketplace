@@ -61,20 +61,24 @@ an install that wrote any of them.
 **`agent`** — a TOML file: `name = "<n>"`, `description`, and `developer_instructions` as a
 multi-line string holding the prompt file's text, with the marker as a `#` comment on line 1.
 Codex agents have no tool list and no `fast`/`strong` model ids, so tools and the model hint are
-left out with an `unsupported_field` warning each. Its dependencies are installed as items of
+left out with an `unsupported_field` warning each; `targets.codex.overrides.model` sets Codex's
+`model` key, and any other override is an `invalid_override` warning. Its dependencies are installed as items of
 their own; a manifest that names an MCP server the agent uses could become `[mcp_servers.<n>]`
 inside the agent file later (see Open questions).
 
 **`rule`** — by activation: `always` → a fenced `section` in `AGENTS.md` (`rmk:begin`/`rmk:end`,
 021), `glob` → the same section, opening with one line saying which files it's for, since Codex has
 no glob scoping; `model` → a skill whose description is the manifest's; `manual` → a skill, used as
-`/<n>`. The section is appended after what's there; a project's own `AGENTS.md` text is never
+`/<n>`, with `disable-model-invocation: true` as Cursor's commands have it. The section is appended after what's there; a project's own `AGENTS.md` text is never
 touched (022). Codex caps the concatenated instructions at 32 KiB: `rmk` warns when `AGENTS.md`
 passes it after an install.
 
-**`command`** — a skill with `description`; `{{name}}` placeholders stay, and the manifest's `args`
-are listed in the body as a note, with an `unsupported_field` warning that Codex skills don't take
-arguments.
+**`command`** — a skill with `description` and `disable-model-invocation: true`; `{{name}}`
+placeholders stay, and the manifest's `args` are listed after the body as a note, with an
+`unsupported_field` warning that skills don't take arguments. The folder is written by the same
+core helpers as Cursor's (`render/agents-skills.ts`), byte for byte, so with both targets it's one
+state entry: Codex doesn't document `disable-model-invocation`, so it may still pick the skill on
+its own.
 
 **`hook`** — one `json-array-item` under `hooks.<Event>` in `hooks.json`, Codex's shape being
 Claude Code's: `{ "hooks": [{ "type": "command", "command": "…", "timeout": 30 }] }`, with the
