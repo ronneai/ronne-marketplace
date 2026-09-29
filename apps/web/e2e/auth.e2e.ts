@@ -18,7 +18,9 @@ const sessionCookie = async (page: Page) =>
 test("signs in and comes back to the page that was asked for", async ({ page }) => {
   await page.goto("/account/password");
   await expect(page).toHaveURL(/\/sign-in\?next=%2Faccount%2Fpassword$/);
-  await expect(page.getByRole("heading", { name: "Sign in to Ronne" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Sign in to Ronne AI Marketplace" }),
+  ).toBeVisible();
 
   await signIn(page, E2E_USERS.root);
   await expect(page).toHaveURL(/\/account\/password$/);

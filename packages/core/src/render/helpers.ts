@@ -1,5 +1,6 @@
 import type { Manifest } from "../manifest.js";
 import { sha256Hex } from "../pack/pack.js";
+import type { PackageFile } from "../package-file.js";
 import type { Change, ChangeFile, RenderWarning } from "./types.js";
 
 /** What every renderer shares (feature 021): markers, sections, hashes, names and references. */
@@ -158,3 +159,62 @@ export const changePaths = (change: Change): string[] =>
   change.kind === "dir"
     ? [change.path, ...change.files.map((file) => `${change.path}/${file.path}`)]
     : [change.path];
+
+/** A manifest block as a record: anything else reads as empty. */
+export const record = (value: unknown): Record<string, unknown> =>
+  value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+
+/** The strings in a manifest list; anything else is skipped. */
+export const strings = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
+
+/** `name` from `@scope/name`: what renderers call files and folders. */
+export const shortName = (name: string) => name.slice(name.indexOf("/") + 1);
+
+const decoder = new TextDecoder();
+
+/** A package file's text by its path, or "" when it isn't there. */
+export const fileText = (files: readonly PackageFile[], path: unknown): string => {
+  const file = typeof path === "string" ? files.find((f) => f.path === path) : undefined;
+  return file ? decoder.decode(file.bytes) : "";
+};
+
+/** A YAML frontmatter value: quoted when it could read as something else. */
+const yamlValue = (value: string) =>
+  /^[A-Za-z0-9][A-Za-z0-9_ .,()'-]*$/.test(value) && !/^(true|false|null|yes|no)$/i.test(value)
+    ? value
+    : JSON.stringify(value);
+
+export type Frontmatter = [string, string | string[] | boolean][];
+
+/**
+ * A Markdown file with YAML frontmatter: `---` on line 1 (tools skip a file otherwise), then the
+ * managed marker, then the body.
+ */
+export const frontmatterMarkdown = (
+  item: { name: string; version: string },
+  front: Frontmatter,
+  body: string,
+): string => {
+  const lines = front.map(([key, value]) =>
+    Array.isArray(value)
+      ? `${key}:\n${value.map((v) => `  - ${yamlValue(v)}`).join("\n")}`
+      : `${key}: ${typeof value === "boolean" ? String(value) : yamlValue(value)}`,
+  );
+  const head = lines.length ? `---\n${lines.join("\n")}\n---\n` : "";
+  return `${head}${managedMarker(item.name, item.version, "html")}\n\n${trimTrailingNewlines(body)}\n`;
+};
+
+/** A script or config with the marker as a `#` comment after its shebang, or at the top. */
+export const withHashMarker = (
+  item: { name: string; version: string },
+  content: string,
+): string => {
+  const marker = managedMarker(item.name, item.version, "hash");
+  const lines = content.split("\n");
+  return lines[0]?.startsWith("#!")
+    ? [lines[0], marker, ...lines.slice(1)].join("\n")
+    : `${marker}\n${content}`;
+};

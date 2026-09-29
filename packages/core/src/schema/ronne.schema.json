@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Ronne item manifest (ronne.yaml)",
+  "title": "Ronne AI Marketplace item manifest (ronne.yaml)",
   "description": "Draft. See docs/spec/manifest.md. Moves to packages/core in M2.",
   "type": "object",
   "required": ["name", "type", "description"],

@@ -1,0 +1,7 @@
+[
+  {
+    "kind": "file",
+    "path": ".codex/rules/safe-git.rules",
+    "executable": false
+  }
+]

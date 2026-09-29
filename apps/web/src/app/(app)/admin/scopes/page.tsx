@@ -8,7 +8,7 @@ import { can } from "@/server/domains/identity/models/permissions";
 import { listScopes } from "@/server/domains/items/actions/scopes";
 import { requestHeaders } from "@/server/http/request-headers";
 
-export const metadata = { title: "Scopes · Admin · Ronne" };
+export const metadata = { title: "Scopes · Admin · Ronne AI Marketplace" };
 
 /** Root only (`scopes.manage`): anyone else gets a 404. */
 const AdminScopes = async ({ searchParams }: { searchParams: Promise<SearchParams> }) => {

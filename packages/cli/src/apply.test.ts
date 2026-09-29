@@ -10,6 +10,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Change } from "@ronneai/core/render";
+import { parse as parseToml } from "smol-toml";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { applyPlan, emptyState, planChanges, type State, type Wanted } from "./apply.js";
 
@@ -277,5 +278,93 @@ describe("applying changes", () => {
       { matcher: "Edit", hooks: [{ type: "command", command: "echo v2" }] },
     ]);
     expect(updated.state.entries).toHaveLength(1);
+  });
+
+  describe("TOML keys (024)", () => {
+    const server = (command = "npx", name = "github"): Wanted =>
+      wanted(
+        {
+          kind: "toml-key",
+          path: ".codex/config.toml",
+          key: ["mcp_servers", name],
+          value: { command, args: ["-y", "server"], env_vars: ["GITHUB_TOKEN"] },
+        },
+        "@t/x",
+        ["codex"],
+      );
+    const toml = () => parseToml(read(".codex/config.toml"));
+
+    it("creates the file, and removes it when the last key goes", async () => {
+      const { plan, state } = await install(emptyState(), [server()]);
+      expect(plan.conflicts).toEqual([]);
+      expect(plan.reformatted).toEqual([]);
+      expect(toml()).toEqual({
+        mcp_servers: {
+          github: { command: "npx", args: ["-y", "server"], env_vars: ["GITHUB_TOKEN"] },
+        },
+      });
+      expect(state.entries[0]).toMatchObject({ kind: "toml-key", key: ["mcp_servers", "github"] });
+      const removed = await install(state, []);
+      expect(removed.plan.removes).toHaveLength(1);
+      expect(existsSync(join(root, ".codex/config.toml"))).toBe(false);
+      expect(removed.state.entries).toEqual([]);
+    });
+
+    it("keeps the other keys, and says when the rewrite drops comments", async () => {
+      mkdirSync(join(root, ".codex"), { recursive: true });
+      writeFileSync(
+        join(root, ".codex/config.toml"),
+        '# my settings\nmodel = "o3"\n\n[mcp_servers.mine]\ncommand = "mine"\n',
+      );
+      const { plan, state } = await install(emptyState(), [server()]);
+      expect(plan.reformatted).toEqual([".codex/config.toml"]);
+      expect(toml()).toMatchObject({ model: "o3", mcp_servers: { mine: { command: "mine" } } });
+      expect(read(".codex/config.toml")).not.toContain("# my settings");
+      const again = await install(state, [server("bunx")]);
+      expect(again.plan.reformatted).toEqual([]);
+      expect(again.plan.writes).toHaveLength(1);
+      const removed = await install(again.state, []);
+      expect(toml()).toEqual({ model: "o3", mcp_servers: { mine: { command: "mine" } } });
+      expect(removed.state.entries).toEqual([]);
+    });
+
+    it("leaves a key it didn't write, or one edited since, unless forced", async () => {
+      mkdirSync(join(root, ".codex"), { recursive: true });
+      writeFileSync(join(root, ".codex/config.toml"), '[mcp_servers.github]\ncommand = "own"\n');
+      const unmanaged = await install(emptyState(), [server()]);
+      expect(unmanaged.plan.conflicts).toMatchObject([{ reason: "unmanaged" }]);
+      expect(toml()).toEqual({ mcp_servers: { github: { command: "own" } } });
+
+      rmSync(join(root, ".codex/config.toml"));
+      const { state } = await install(emptyState(), [server()]);
+      writeFileSync(
+        join(root, ".codex/config.toml"),
+        read(".codex/config.toml").replace('"npx"', '"edited"'),
+      );
+      const edited = await install(state, [server("bunx")]);
+      expect(edited.plan.conflicts).toMatchObject([{ reason: "edited" }]);
+      const forced = await install(state, [server("bunx")], true);
+      expect(forced.plan.conflicts).toEqual([]);
+      expect(toml()).toMatchObject({ mcp_servers: { github: { command: "bunx" } } });
+    });
+
+    it("drops the entry when the person removed the key", async () => {
+      const { state } = await install(emptyState(), [server(), server("uvx", "other")]);
+      writeFileSync(
+        join(root, ".codex/config.toml"),
+        '[mcp_servers.other]\ncommand = "uvx"\nargs = [ "-y", "server" ]\nenv_vars = [ "GITHUB_TOKEN" ]\n',
+      );
+      const plan = await planChanges(root, state, []);
+      expect(plan.gone.map((e) => e.key)).toEqual([["mcp_servers", "github"]]);
+      expect(plan.removes.map((e) => e.key)).toEqual([["mcp_servers", "other"]]);
+    });
+
+    it("refuses a file that isn't TOML", async () => {
+      mkdirSync(join(root, ".codex"), { recursive: true });
+      writeFileSync(join(root, ".codex/config.toml"), "not = [toml\n");
+      await expect(planChanges(root, emptyState(), [server()])).rejects.toThrow(
+        /isn't a TOML file rmk can edit/,
+      );
+    });
   });
 });

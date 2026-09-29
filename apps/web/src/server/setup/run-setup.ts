@@ -105,7 +105,7 @@ export const runSetup = async (options: SetupOptions): Promise<SetupResult> => {
   const publicUrl = (
     await prompts.text({
       id: "public_url",
-      message: "Where will people open Ronne (PUBLIC_URL)?",
+      message: "Where will people open Ronne AI Marketplace (PUBLIC_URL)?",
       initial: env.PUBLIC_URL || "http://localhost:3000",
       validate: (value) =>
         /^https?:\/\/[^\s/]+/.test(value.trim())
@@ -211,7 +211,7 @@ const askDatabase = async (
 ): Promise<DatabaseAnswers> => {
   const dialect = await prompts.select({
     id: "database.kind",
-    message: "Which database should Ronne use?",
+    message: "Which database should Ronne AI Marketplace use?",
     initial: previous?.dialect ?? "sqlite",
     choices: [
       {
@@ -288,7 +288,7 @@ const validateDatabase = async (
   const version = checkServerVersion(connection.dialect, connection.serverVersion);
   if (!version.supported) {
     prompts.log.warn(
-      `${version.product} ${connection.serverVersion} is older than the minimum Ronne supports (${version.minimum}). Setup continues, but it isn't tested.`,
+      `${version.product} ${connection.serverVersion} is older than the minimum Ronne AI Marketplace supports (${version.minimum}). Setup continues, but it isn't tested.`,
     );
   }
 
@@ -296,7 +296,7 @@ const validateDatabase = async (
   try {
     const charset = await checkCharset(db, dialect);
     if (!charset.ok) {
-      return `The database uses the ${charset.charset} character set; Ronne needs utf8mb4.\nRun: ALTER DATABASE <name> CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`;
+      return `The database uses the ${charset.charset} character set; Ronne AI Marketplace needs utf8mb4.\nRun: ALTER DATABASE <name> CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`;
     }
     const permissions = await checkPermissions(db, dialect);
     if (!permissions.ok) {

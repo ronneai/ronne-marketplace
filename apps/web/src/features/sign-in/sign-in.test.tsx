@@ -11,7 +11,7 @@ describe("SignInPage", () => {
   it("renders the card, the form and the CLI panel from the mock", () => {
     const html = renderToStaticMarkup(<SignInPage next="/items" />);
     for (const text of [
-      "Sign in to Ronne",
+      "Sign in to Ronne AI Marketplace",
       "Use your email and password",
       ">Email<",
       ">Password<",

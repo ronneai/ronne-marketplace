@@ -14,7 +14,7 @@ import { canTransition, isEditable } from "@/server/domains/submissions/models/s
 import { type Draft, itemNameOf } from "@/server/domains/submissions/models/submission";
 import { requestHeaders } from "@/server/http/request-headers";
 
-export const metadata = { title: "Draft · Ronne" };
+export const metadata = { title: "Draft · Ronne AI Marketplace" };
 
 const REBASABLE = new Set(["draft", "changes_requested", "submitted", "approved"]);
 

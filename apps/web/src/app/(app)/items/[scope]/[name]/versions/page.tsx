@@ -2,7 +2,7 @@ import { ItemPageView } from "@/features/item-page/ItemPageView";
 import { type ItemParams, loadItemPage } from "@/features/item-page/load";
 import { VersionsTab } from "@/features/versions/VersionsTab";
 
-export const metadata = { title: "Versions · Ronne" };
+export const metadata = { title: "Versions · Ronne AI Marketplace" };
 
 /**
  * The item page's Versions tab (features 016 and 018): everyone signed in reads it; moderators and

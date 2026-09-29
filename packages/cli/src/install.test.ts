@@ -1,7 +1,9 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { run } from "./cli.js";
+import { CODEX_INSTRUCTIONS_LIMIT, toolNotes } from "./install.js";
 import { buildRegistry, type FakeIo, fakeIo, REGISTRY } from "./testing.js";
 
 let io: FakeIo;
@@ -168,5 +170,63 @@ describe("rmk install", () => {
     });
     expect(existsSync(join(io.home, ".config/rmk/user-state.json"))).toBe(true);
     expect(existsSync(join(io.cwd, "rmk.lock"))).toBe(false);
+  });
+});
+
+describe("rmk install for Codex", () => {
+  it("writes the shared skills folder and config.toml, notes trust, and removes cleanly", async () => {
+    await start();
+    mkdirSync(join(io.cwd, ".codex"));
+    writeFileSync(join(io.cwd, ".codex/config.toml"), 'model = "o3"\n');
+    const result = await rmk("install", "@team/secure", "--target", "claude-code,codex");
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("for claude-code, codex.");
+    expect(result.stdout).toContain("wrote .codex/config.toml (a setting)");
+    expect(result.stdout).toContain("Note: Codex reads .codex/config.toml");
+    expect(read(".agents/skills/secure/SKILL.md")).toContain("Check inputs and secrets.");
+    expect(read(".codex/config.toml")).toBe(
+      'model = "o3"\n\n[mcp_servers.gh]\ncommand = "npx"\nenv_vars = [ "GITHUB_TOKEN" ]\n',
+    );
+    const state = JSON.parse(read(".rmk/state.json"));
+    expect(
+      state.entries.map((e: { kind: string; path: string; targets: string[] }) => [
+        e.kind,
+        e.path,
+        e.targets,
+      ]),
+    ).toEqual([
+      ["dir", ".agents/skills/secure", ["claude-code", "codex"]],
+      ["dir", ".claude/skills/secure", ["claude-code", "codex"]],
+      ["toml-key", ".codex/config.toml", ["claude-code", "codex"]],
+      ["json-key", ".mcp.json", ["claude-code", "codex"]],
+    ]);
+    const removed = await rmk("remove", "@team/secure");
+    expect(removed.exitCode).toBe(0);
+    expect(read(".codex/config.toml")).toBe('model = "o3"\n');
+    expect(existsSync(join(io.cwd, ".agents/skills/secure"))).toBe(false);
+  });
+});
+
+describe("tool notes", () => {
+  it("says when Codex needs the project trusted, hooks reviewed, or AGENTS.md is too long", () => {
+    const root = mkdtempSync(join(tmpdir(), "rmk-notes-"));
+    try {
+      expect(toolNotes([".agents/skills/x", "AGENTS.md"], "project", root)).toEqual([]);
+      expect(toolNotes([".codex/config.toml"], "project", root)).toEqual([
+        expect.stringContaining("only in a project you trust"),
+      ]);
+      expect(toolNotes([".codex/hooks.json"], "project", root)).toHaveLength(2);
+      expect(toolNotes([".codex/rules/safe-git.rules"], "user", root)).toEqual([]);
+      expect(toolNotes([".codex/hooks.json"], "user", root)).toEqual([
+        expect.stringContaining("/hooks"),
+      ]);
+      writeFileSync(join(root, "AGENTS.md"), "x".repeat(CODEX_INSTRUCTIONS_LIMIT + 1));
+      expect(toolNotes(["AGENTS.md"], "project", root)).toEqual([
+        expect.stringContaining("AGENTS.md is over 32 KiB"),
+      ]);
+      expect(toolNotes(["CLAUDE.md"], "project", root)).toEqual([]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

@@ -1,7 +1,7 @@
 import { PageHeader, Panel } from "@/components/ui/Panel";
 import { ChangePasswordForm } from "@/features/account/ChangePasswordForm";
 
-export const metadata = { title: "Change password · Ronne" };
+export const metadata = { title: "Change password · Ronne AI Marketplace" };
 
 /** The (app) layout already requires a signed-in user. */
 const ChangePasswordPage = () => {

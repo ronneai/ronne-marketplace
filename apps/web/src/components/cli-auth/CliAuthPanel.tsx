@@ -48,7 +48,7 @@ export const CliAuthPanel = ({
       <ol className="grid gap-5">
         <Step n={1} title="Get rmk">
           <Hint>
-            It isn&apos;t on npm yet, so it comes with Ronne&apos;s repository (
+            It isn&apos;t on npm yet, so it comes with the Ronne AI Marketplace repository (
             <a href={README_RMK} className="text-link underline underline-offset-2">
               the README
             </a>

@@ -8,7 +8,7 @@ import { listMySubmissions } from "@/server/domains/submissions/actions/drafts";
 import { itemNameOf } from "@/server/domains/submissions/models/submission";
 import { requestHeaders } from "@/server/http/request-headers";
 
-export const metadata = { title: "New item · Ronne" };
+export const metadata = { title: "New item · Ronne AI Marketplace" };
 
 /** Scopes are few (root creates each one), so the picker gets them all, up to a generous cap. */
 const MAX_SCOPE_PAGES = 20;

@@ -6,7 +6,7 @@ import { can } from "@/server/domains/identity/models/permissions";
 import { listQueue } from "@/server/domains/submissions/actions/reviews";
 import { requestHeaders } from "@/server/http/request-headers";
 
-export const metadata = { title: "Reviews · Ronne" };
+export const metadata = { title: "Reviews · Ronne AI Marketplace" };
 
 /** The review queue (feature 014): moderators and root only; anyone else gets a 404. */
 const Reviews = async ({

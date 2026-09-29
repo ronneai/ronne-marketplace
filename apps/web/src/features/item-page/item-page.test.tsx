@@ -56,7 +56,7 @@ describe("the item page", () => {
     // Anyone signed in may propose a change (017).
     expect(html).toContain("Propose a change");
     expect(html).toContain("What happens when I propose a change?");
-    expect(html).toContain("Where does this go in Claude Code?");
+    expect(html).toContain("Where does this go in my AI tool?");
     expect(html).toContain("How do I install it?");
   });
 

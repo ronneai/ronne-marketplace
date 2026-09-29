@@ -78,7 +78,7 @@ const SECRET_PATTERNS: { name: string; pattern: RegExp }[] = [
   { name: "an OpenAI or Anthropic key", pattern: /\bsk-(?:ant-|proj-)?[A-Za-z0-9_-]{20,}/ },
   { name: "a Slack token", pattern: /\bxox[abprs]-[A-Za-z0-9-]{10,}/ },
   { name: "an AWS access key", pattern: /\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/ },
-  { name: "a Ronne access token", pattern: /\brmk_[A-Za-z0-9_-]{43}\b/ },
+  { name: "a Ronne AI Marketplace access token", pattern: /\brmk_[A-Za-z0-9_-]{43}\b/ },
   {
     name: "a JSON Web Token",
     pattern: /\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/,

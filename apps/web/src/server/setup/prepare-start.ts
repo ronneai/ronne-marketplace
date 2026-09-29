@@ -35,7 +35,7 @@ export const prepareStart = async (options: {
   const config = loadConfig({ appDir: options.appDir, env: options.env ?? process.env });
   if (!isConfigured(config)) {
     log(
-      "Ronne isn't set up yet: starting in setup mode. Run `docker compose exec web pnpm run setup`.",
+      "Ronne AI Marketplace isn't set up yet: starting in setup mode. Run `docker compose exec web pnpm run setup`.",
     );
     return { mode: "setup-required" };
   }

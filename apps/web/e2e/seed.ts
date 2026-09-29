@@ -162,10 +162,10 @@ const kitVersion = await items.insertVersion({
 });
 await items.setTag(kitId, "latest", kitVersion);
 
-// Items for `rmk` end to end (022, 023): each with a real artifact, packed like a release.
+// Items for `rmk` end to end (022, 023, 024): each with a real artifact, packed like a release.
 const release = async (
   name: string,
-  type: "agent" | "hook" | "mcp-server",
+  type: "agent" | "hook" | "mcp-server" | "rule",
   version: string,
   files: Record<string, string>,
   dependencies: { itemId: string; range: string }[] = [],
@@ -230,4 +230,8 @@ for (const version of ["1.0.0", "1.1.0"])
   await release(E2E_RMK_ITEMS.hook, "hook", version, {
     "ronne.yaml": `name: "@${E2E_SCOPE}/${E2E_RMK_ITEMS.hook}"\ntype: hook\ndescription: The kit-hook item.\nhook:\n  event: tool.after\n  matcher:\n    tool: edit\n  run:\n    command: "echo kit ${version}"\n`,
   });
+await release(E2E_RMK_ITEMS.rule, "rule", "1.0.0", {
+  "ronne.yaml": `name: "@${E2E_SCOPE}/${E2E_RMK_ITEMS.rule}"\ntype: rule\ndescription: The kit-rule item.\nrule:\n  body: rule.md\n  activation: always\n`,
+  "rule.md": "Keep functions small.\n",
+});
 await db.destroy();

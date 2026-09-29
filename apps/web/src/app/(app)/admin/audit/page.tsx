@@ -6,7 +6,7 @@ import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { can } from "@/server/domains/identity/models/permissions";
 import { requestHeaders } from "@/server/http/request-headers";
 
-export const metadata = { title: "Audit log · Ronne" };
+export const metadata = { title: "Audit log · Ronne AI Marketplace" };
 
 /** Root only (`audit.view`): anyone else gets a 404, so the page's existence isn't revealed (spec 007). */
 const AuditLog = async ({ searchParams }: { searchParams: Promise<SearchParams> }) => {

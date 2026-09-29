@@ -1,0 +1,10 @@
+[
+  {
+    "code": "unsupported_field",
+    "message": "Codex agents have no tool list, so @examples/code-reviewer's tools were left out: it gets the session's tools."
+  },
+  {
+    "code": "unsupported_field",
+    "message": "Codex has no model for the `strong` hint, so @examples/code-reviewer uses the session's model; set targets.codex.overrides.model to choose one."
+  }
+]

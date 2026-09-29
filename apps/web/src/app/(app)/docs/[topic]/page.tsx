@@ -3,7 +3,7 @@ import { topicOf } from "@/components/help/topics";
 import { CONTENT } from "@/features/docs/content";
 import { DocsPage } from "@/features/docs/DocsPage";
 
-export const metadata = { title: "Documentation · Ronne" };
+export const metadata = { title: "Documentation · Ronne AI Marketplace" };
 
 /** One topic of the Documentation (feature 033); the overview lives at /docs itself. */
 const DocsTopic = async ({ params }: { params: Promise<{ topic: string }> }) => {

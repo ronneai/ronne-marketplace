@@ -10,7 +10,7 @@ import {
 import { listMySubmissions } from "@/server/domains/submissions/actions/drafts";
 import { requestHeaders } from "@/server/http/request-headers";
 
-export const metadata = { title: "My submissions · Ronne" };
+export const metadata = { title: "My submissions · Ronne AI Marketplace" };
 
 /** Every signed-in user sees their own drafts and submissions (012), filtered by status (013). */
 const Submissions = async ({

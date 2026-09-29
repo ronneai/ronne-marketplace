@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { safeNextPath } from "@/server/domains/identity/models/route-guard";
 import { requestHeaders } from "@/server/http/request-headers";
 
-export const metadata = { title: "Sign in · Ronne" };
+export const metadata = { title: "Sign in · Ronne AI Marketplace" };
 
 const SignIn = async ({
   searchParams,

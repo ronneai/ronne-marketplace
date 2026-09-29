@@ -4,7 +4,7 @@ import { parseCatalogueQuery, type SearchParams } from "@/features/catalogue/que
 import { browseCatalogue } from "@/server/domains/items/actions/catalogue";
 import { requestHeaders } from "@/server/http/request-headers";
 
-export const metadata = { title: "Catalogue · Ronne" };
+export const metadata = { title: "Catalogue · Ronne AI Marketplace" };
 
 /** Every published item (feature 018), for everyone signed in (the (app) layout requires a session). */
 const Catalogue = async ({ searchParams }: { searchParams: Promise<SearchParams> }) => {

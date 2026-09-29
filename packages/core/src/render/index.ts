@@ -1,6 +1,7 @@
 // `@ronneai/core/render`: the renderer interface and what renderers share (feature 021).
 
 export { claudeCodeRenderer } from "./claude-code/renderer.js";
+export { codexRenderer } from "./codex/renderer.js";
 export {
   type CommentSyntax,
   canonicalJson,

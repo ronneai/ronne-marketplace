@@ -55,6 +55,46 @@ const CLAUDE_CODE_PATHS: [string, string][] = [
   ["bundle", "nothing of its own: its items are installed one by one"],
 ];
 
+/** Where each type goes in Codex (renderer 024, checked against its docs on 2026-09-28). */
+const CODEX_PATHS: [string, string][] = [
+  ["skill", ".agents/skills/<name>/ (your home folder: ~/.agents/skills/)"],
+  ["agent", ".codex/agents/<name>.toml"],
+  [
+    "rule",
+    "a section in AGENTS.md (your home folder: ~/.codex/AGENTS.md), or a skill when the AI decides or you ask",
+  ],
+  ["command", ".agents/skills/<name>/, run as /<name>"],
+  ["hook", "hooks in .codex/hooks.json; a script under .codex/hooks/<name>/"],
+  ["mcp-server", "mcp_servers in .codex/config.toml"],
+  ["permission-policy", ".codex/rules/<name>.rules, for shell commands only"],
+  ["output-style", "not supported: skipped with a warning"],
+  ["statusline", "not supported: skipped with a warning"],
+  ["lsp-server", "not supported: skipped with a warning"],
+  ["bundle", "nothing of its own: its items are installed one by one"],
+];
+
+/** A tool's paths as a table of type and place. */
+const PathsTable = ({ paths }: { paths: [string, string][] }) => (
+  <Table>
+    <thead>
+      <tr>
+        <Th>Type</Th>
+        <Th>Where it goes</Th>
+      </tr>
+    </thead>
+    <tbody>
+      {paths.map(([type, where]) => (
+        <tr key={type}>
+          <Td>
+            <Badge>{type}</Badge>
+          </Td>
+          <Td className="text-sm">{where}</Td>
+        </tr>
+      ))}
+    </tbody>
+  </Table>
+);
+
 const PERMISSIONS: [string, string, string, string][] = [
   ["Browse the catalogue and item pages", "✓", "✓", "✓"],
   ["Create drafts and submit new items", "✓", "✓", "✓"],
@@ -73,9 +113,9 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
     what: (
       <>
         <p>
-          Ronne is your team&apos;s own registry of AI capabilities: skills, agents, rules,
-          commands, hooks, MCP servers and more. It runs on your infrastructure. Everything in it
-          has been reviewed before anyone can install it.
+          Ronne AI Marketplace is your team&apos;s own marketplace of AI capabilities: skills,
+          agents, rules, commands, hooks, MCP servers and more. It runs on your infrastructure.
+          Everything in it has been reviewed before anyone can install it.
         </p>
         <p>
           Each item is written once, in a tool-neutral form. Installing it with{" "}
@@ -190,6 +230,7 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
               <Th>Type</Th>
               <Th>What it is</Th>
               <Th>In Claude Code</Th>
+              <Th>In Codex</Th>
             </tr>
           </thead>
           <tbody>
@@ -203,8 +244,15 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
                 </Td>
                 <Td className="text-sm">{TYPE_INFO[type].description}</Td>
                 <Td className="font-mono text-xs">
-                  <To href={docsHref("rmk", "claude-code")}>
+                  <To href={docsHref("claude-code", "paths")}>
                     {CLAUDE_CODE_PATHS.find(([t]) => t === type)?.[1].split(",")[0] ?? ""}
+                  </To>
+                </Td>
+                <Td className="font-mono text-xs">
+                  <To href={docsHref("codex", "paths")}>
+                    {CODEX_PATHS.find(([t]) => t === type)?.[1]
+                      .split(/[,(]/)[0]
+                      ?.trim() ?? ""}
                   </To>
                 </Td>
               </tr>
@@ -601,9 +649,9 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
     what: (
       <>
         <p>
-          <Code>rmk</Code> is Ronne&apos;s command-line tool. It installs items from this registry
-          into a project, or into your home folder, writing each AI tool&apos;s own files, and keeps
-          them up to date. Every item page shows its command:
+          <Code>rmk</Code> is Ronne AI Marketplace&apos;s command-line tool. It installs items from
+          this marketplace into a project, or into your home folder, writing each AI tool&apos;s own
+          files, and keeps them up to date. Every item page shows its command:
         </p>
         <Example>
           {"rmk install @platform/secure-coding\nrmk install @platform/secure-coding@1.2.0"}
@@ -623,7 +671,7 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
       <>
         <p>
           <Code>rmk</Code> needs Node.js 22.12 or later. It isn&apos;t on npm yet: until it is, it
-          comes with Ronne&apos;s own repository. From a copy of the repository:
+          comes with the Ronne AI Marketplace repository. From a copy of the repository:
         </p>
         <Example>{"pnpm install\npnpm build\nnode packages/cli/dist/bin.js --help"}</Example>
         <p>
@@ -659,7 +707,8 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </Example>
         <Steps>
           <li>
-            <strong>Target.</strong> Which AI tool: <Code>--target claude-code</Code>, the{" "}
+            <strong>Target.</strong> Which AI tool: <Code>--target claude-code</Code>,{" "}
+            <Code>--target codex</Code> or both (<Code>claude-code,codex</Code>), the{" "}
             <Code>targets</Code> in <Code>rmk.config.json</Code>, or what the project looks like it
             uses. <Code>rmk platforms</Code> lists the tools and what each supports; a type a tool
             can&apos;t take is a warning, and the rest carries on.
@@ -801,57 +850,168 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </p>
       </>
     ),
-    "claude-code": (
+    tools: (
+      <>
+        <p>
+          <Code>rmk</Code> writes for one AI tool or several. Each tool has its own page: where
+          every type of item goes, and what to know before the tool uses it.
+        </p>
+        <Table>
+          <thead>
+            <tr>
+              <Th>Tool</Th>
+              <Th>Target</Th>
+              <Th>Picked up when the project has</Th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <Td>
+                <To href={docsHref("claude-code")}>Claude Code</To>
+              </Td>
+              <Td>
+                <Code>claude-code</Code>
+              </Td>
+              <Td>
+                <Code>.claude/</Code> or <Code>CLAUDE.md</Code>
+              </Td>
+            </tr>
+            <tr>
+              <Td>
+                <To href={docsHref("codex")}>Codex</To>
+              </Td>
+              <Td>
+                <Code>codex</Code>
+              </Td>
+              <Td>
+                <Code>.codex/</Code>
+              </Td>
+            </tr>
+            <tr>
+              <Td>
+                <To href={docsHref("cursor")}>Cursor</To>
+              </Td>
+              <Td className="text-muted">not yet</Td>
+              <Td className="text-muted">–</Td>
+            </tr>
+          </tbody>
+        </Table>
+        <p>
+          With one tool picked up, <Code>rmk</Code> uses it; with several, it asks, or you say which
+          with <Code>--target</Code>. <Code>--target claude-code,codex</Code> writes for both, and a
+          file two tools read is written once and recorded for both. <Code>rmk platforms</Code>{" "}
+          lists every tool and what it supports.
+        </p>
+      </>
+    ),
+  },
+  "claude-code": {
+    paths: (
       <>
         <p>
           With <Code>--target claude-code</Code>, <Code>rmk</Code> writes each item where Claude
           Code reads it: in the project, or in your home folder with <Code>--scope user</Code>.
         </p>
-        <Table>
-          <thead>
-            <tr>
-              <Th>Type</Th>
-              <Th>Where it goes</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {CLAUDE_CODE_PATHS.map(([type, where]) => (
-              <tr key={type}>
-                <Td>
-                  <Badge>{type}</Badge>
-                </Td>
-                <Td className="text-sm">{where}</Td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
-        <Bullets>
-          <li>
-            Rules go to <Code>.claude/rules/</Code>, which Claude Code always reads.{" "}
-            <Code>rmk</Code> never writes <Code>CLAUDE.md</Code> or <Code>AGENTS.md</Code>.
-          </li>
-          <li>
-            Commands are installed as skills: Claude Code merged the two, and you run them the same
-            way, as <Code>/name</Code>.
-          </li>
-          <li>
-            Claude Code asks once before it uses a project&apos;s MCP servers. Their secrets are
-            never written: the config references environment variables such as{" "}
-            <Code>{"${GITHUB_TOKEN}"}</Code>, which you set yourself.
-          </li>
-          <li>
-            An output style is installed, not switched on: pick it with <Code>/output-style</Code>.
-          </li>
-          <li>
-            Claude Code only takes language servers from plugins, so an <Code>lsp-server</Code>{" "}
-            becomes a small local plugin under <Code>.claude/rmk-plugins/</Code>, registered in the
-            settings.
-          </li>
-          <li>
-            Every generated file carries a <Code>managed by rmk</Code> marker, and settings entries
-            are tracked, so <Code>rmk</Code> never overwrites what you wrote by hand.
-          </li>
-        </Bullets>
+        <PathsTable paths={CLAUDE_CODE_PATHS} />
+      </>
+    ),
+    notes: (
+      <Bullets>
+        <li>
+          Rules go to <Code>.claude/rules/</Code>, which Claude Code always reads. <Code>rmk</Code>{" "}
+          never writes <Code>CLAUDE.md</Code> or <Code>AGENTS.md</Code>.
+        </li>
+        <li>
+          Commands are installed as skills: Claude Code merged the two, and you run them the same
+          way, as <Code>/name</Code>.
+        </li>
+        <li>
+          Claude Code asks once before it uses a project&apos;s MCP servers. Their secrets are never
+          written: the config references environment variables such as{" "}
+          <Code>{"${GITHUB_TOKEN}"}</Code>, which you set yourself.
+        </li>
+        <li>
+          An output style is installed, not switched on: pick it with <Code>/output-style</Code>.
+        </li>
+        <li>
+          Claude Code only takes language servers from plugins, so an <Code>lsp-server</Code>{" "}
+          becomes a small local plugin under <Code>.claude/rmk-plugins/</Code>, registered in the
+          settings.
+        </li>
+        <li>
+          Every generated file carries a <Code>managed by rmk</Code> marker, and settings entries
+          are tracked, so <Code>rmk</Code> never overwrites what you wrote by hand.
+        </li>
+      </Bullets>
+    ),
+  },
+  codex: {
+    paths: (
+      <>
+        <p>
+          With <Code>--target codex</Code>, <Code>rmk</Code> writes each item where Codex reads it:
+          in the project, or in your home folder with <Code>--scope user</Code>.
+        </p>
+        <PathsTable paths={CODEX_PATHS} />
+      </>
+    ),
+    trust: (
+      <p>
+        Codex reads a project&apos;s <Code>.codex/config.toml</Code>, hooks and rules only once you
+        trust the project, and runs new or changed hooks only after you review them with{" "}
+        <Code>/hooks</Code>. <Code>rmk</Code> reminds you after an install that needs either.
+      </p>
+    ),
+    notes: (
+      <Bullets>
+        <li>
+          Skills and commands go to <Code>.agents/skills/</Code>, the folder Cursor reads too, so
+          one copy serves both. Commands become skills you run as <Code>/name</Code>; Codex
+          doesn&apos;t pass them arguments, so a note in the skill says what each placeholder is.
+        </li>
+        <li>
+          Rules are sections of <Code>AGENTS.md</Code> between <Code>rmk:begin</Code> and{" "}
+          <Code>rmk:end</Code> markers, and your own text around them is never touched. Codex reads
+          at most 32 KiB of instructions, and <Code>rmk</Code> warns when <Code>AGENTS.md</Code>{" "}
+          passes that.
+        </li>
+        <li>
+          MCP servers get their secrets by the variable&apos;s name (<Code>env_vars</Code>,{" "}
+          <Code>bearer_token_env_var</Code>): nothing secret is written, and you set the variables
+          yourself.
+        </li>
+        <li>
+          <Code>rmk</Code> writes <Code>config.toml</Code> back in one layout when it adds or
+          removes a server, so comments in it aren&apos;t kept. It says so the first time.
+        </li>
+        <li>
+          Codex agents have no tool list and no fast or strong model: an agent gets the
+          session&apos;s tools and model, unless its item sets a Codex model. Hooks run for every
+          tool, since Codex&apos;s tool names aren&apos;t documented; a hook meant for one tool
+          reads the event on stdin and checks.
+        </li>
+        <li>
+          Permission policies become Codex rules for shell commands only, which Codex marks as
+          experimental. Output styles, status lines and language servers have no place in Codex, and
+          are skipped with a warning.
+        </li>
+      </Bullets>
+    ),
+  },
+  cursor: {
+    status: (
+      <>
+        <p>
+          This version of <Code>rmk</Code> doesn&apos;t write for Cursor yet:{" "}
+          <Code>--target cursor</Code> is refused, and <Code>rmk platforms</Code> lists the tools it
+          supports.
+        </p>
+        <p>
+          Cursor also reads skills from <Code>.agents/skills/</Code>, and skills and agents from
+          Claude Code&apos;s <Code>.claude/</Code> folder, so items installed for{" "}
+          <To href={docsHref("codex")}>Codex</To> or{" "}
+          <To href={docsHref("claude-code")}>Claude Code</To> may already show up in it.
+        </p>
       </>
     ),
   },

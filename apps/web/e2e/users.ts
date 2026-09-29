@@ -62,4 +62,9 @@ export const E2E_SKILL = "secret-scanner";
 export const E2E_PROPOSAL_ITEM = "prompt-kit";
 
 /** Items the seed releases with real artifacts for `rmk` (022, 023): an MCP server, an agent that needs it and the skill, and a hook with two versions. */
-export const E2E_RMK_ITEMS = { mcp: "kit-mcp", agent: "kit-agent", hook: "kit-hook" } as const;
+export const E2E_RMK_ITEMS = {
+  mcp: "kit-mcp",
+  agent: "kit-agent",
+  hook: "kit-hook",
+  rule: "kit-rule",
+} as const;

@@ -5,7 +5,7 @@ import { loadConfig } from "@/server/config";
 import { listMyTokens } from "@/server/domains/identity/actions/access-tokens";
 import { requestHeaders } from "@/server/http/request-headers";
 
-export const metadata = { title: "Access tokens · Ronne" };
+export const metadata = { title: "Access tokens · Ronne AI Marketplace" };
 
 /** Every signed-in user manages their own tokens; the (app) layout already requires a session. */
 const AccessTokens = async () => {

@@ -144,7 +144,7 @@ describe("secrets typed into an MCP server", () => {
       [`sk-ant-${"a1B2".repeat(8)}`, "an OpenAI or Anthropic key"],
       ["xoxb-1234567890-abcdefghij", "a Slack token"],
       ["AKIAIOSFODNN7EXAMPLE", "an AWS access key"],
-      [`rmk_${"a".repeat(43)}`, "a Ronne access token"],
+      [`rmk_${"a".repeat(43)}`, "a Ronne AI Marketplace access token"],
       [
         "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U",
         "a JSON Web Token",
