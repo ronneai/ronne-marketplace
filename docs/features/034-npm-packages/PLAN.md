@@ -15,7 +15,7 @@ the same change that completes it.
   smoke test in CI on Node 22 and 24.
   *Done when:* both run locally and in CI.
 
-- [ ] **3. The release workflow.** `release.yml` on a `vX.Y.Z` tag: checks, pack, smoke test,
+- [x] **3. The release workflow.** `release.yml` on a `vX.Y.Z` tag: checks, pack, smoke test,
   publish in order with provenance, GitHub release; the tag/version check.
   *Done when:* a dry run (`--dry-run` publish) passes in CI on a test tag, and the owner has set up
   trusted publishing.
@@ -42,4 +42,16 @@ the same change that completes it.
   `rmk --version`, `rmk --help` and an MCP `initialize` against `rmk-mcp`; CI runs it on Node 22
   and 24. It found that `rmk --help` exited with 2 (022's usage-error code): it exits 0 now, and
   `rmk` with no command still exits 2.
+- Task 3: `.github/workflows/release.yml` runs on a pushed `vX.Y.Z` tag, or by hand with a tag and
+  "dry run" (the default), which checks and packs without publishing. It checks the tag against
+  the shared version (`release-check.js`), that npm is 11.5.1 or later (trusted publishing), runs
+  every check plus `packages:check` and `release:smoke`, packs with pnpm (so `workspace:^` becomes a
+  real range), then publishes each tarball with npm in dependency order, skipping a version already
+  on npm, and creates the GitHub release with the tarballs attached. The tag reaches the shell only
+  through an environment variable. The pack and dry-run publish steps were run locally.
+- Each package's build now empties `dist/` first: `tsc` never removes output whose source is gone,
+  and a stale `dist/testing.js` in the MCP server was caught by `packages:check` locally.
+- Still to do for "done when": after this merges, the owner links the three packages to this
+  repository's `release.yml` as a trusted publisher on npmjs.com, and runs the workflow by hand
+  once with "dry run".
 

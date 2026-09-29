@@ -45,6 +45,9 @@ Use Node.js 24 (`.nvmrc`) and pnpm installed directly (`npm install --global pnp
 | `pnpm run reset-root-password` | New root password; ends root's sessions and revokes its tokens |
 | `pnpm db:migrate` | Applies pending migrations to `DATABASE_URL` |
 | `pnpm hooks:install` | Turns on the local `pre-commit` checks and the commit-message check (once per clone) |
+| `pnpm packages:check` | After `pnpm build`: checks what `@ronneai/core`, `rmk` and `mcp` would publish against an allowlist |
+| `pnpm release:smoke` | After `pnpm build`: installs the packed packages with npm in an empty folder and runs `rmk` and `rmk-mcp` |
+| `pnpm release:version <x.y.z>` | Sets the version the three published packages share; then commit and push the tag `vX.Y.Z` to publish (`.github/workflows/release.yml`) |
 
 CI (`.github/workflows/`) runs lint, typecheck, test and build on Node 22 and 24, the database tests on PostgreSQL 15, MySQL 8.4 and MariaDB 10.11 (`database.yml`, plus a weekly run on the latest versions), the end-to-end tests in Chromium, the license and audit checks, CodeQL, and the PR title check.
 

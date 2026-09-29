@@ -28,4 +28,28 @@ describe("release versions", () => {
       "The published packages have different versions: core 0.1.0, cli 0.1.0, mcp 0.2.0. Run pnpm release:version.",
     );
   });
+
+  it("checks a tag against the packages' version, as the release workflow does", async () => {
+    const { execFileSync } = await import("node:child_process");
+    const script = new URL("./release-check.js", import.meta.url).pathname;
+    const run = (tag) => {
+      try {
+        return {
+          code: 0,
+          out: execFileSync("node", [script, tag], { encoding: "utf8", stdio: "pipe" }),
+        };
+      } catch (error) {
+        return { code: error.status, out: String(error.stderr) };
+      }
+    };
+    const { readFileSync } = await import("node:fs");
+    const version = JSON.parse(
+      readFileSync(new URL("../../cli/package.json", import.meta.url), "utf8"),
+    ).version;
+    expect(run(`v${version}`)).toEqual({ code: 0, out: `${version}\n` });
+    expect(run("v999.0.0")).toMatchObject({
+      code: 1,
+      out: expect.stringContaining("doesn't match"),
+    });
+  });
 });
