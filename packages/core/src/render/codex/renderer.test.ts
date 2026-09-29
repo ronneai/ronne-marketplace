@@ -244,4 +244,16 @@ describe("the Codex renderer", () => {
     expect(text(other.changes[0])).toContain('prefix_rule(pattern = ["rm", "-rf"]');
     expect(other.warnings).toHaveLength(2);
   });
+
+  it("skips what Codex has no place for, writes nothing for a bundle, and is listed", async () => {
+    for (const name of ["concise", "git-branch", "typescript-lsp"]) {
+      const type = String(example(name).manifest.type);
+      expect(codexRenderer.supports(type as never)).toBe("none");
+      expect(render(name).warnings.map((w) => w.code)).toEqual(["unsupported_type"]);
+    }
+    expect(codexRenderer.supports("permission-policy")).toBe("degraded");
+    expect(render("starter-kit")).toEqual({ changes: [], warnings: [] });
+    const { RENDERERS } = await import("../registry.js");
+    expect(RENDERERS.map((r) => r.id)).toEqual(["claude-code", "codex"]);
+  });
 });

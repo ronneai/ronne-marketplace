@@ -1,6 +1,6 @@
 [
   {
     "code": "unsupported_type",
-    "message": "@examples/typescript-lsp (lsp-server) isn't rendered for Codex yet."
+    "message": "Codex has no place for @examples/typescript-lsp (lsp-server), so it was skipped there."
   }
 ]

@@ -19,7 +19,7 @@ the same change that completes it.
   `permission-policy` (`.rules`), plus the trust and `/hooks` notes rmk prints.
   *Done when:* golden files are committed, and unit tests cover the header and decision mappings.
 
-- [ ] **4. The rest.** `output-style`, `statusline` and `lsp-server` as `none`, bundles, the
+- [x] **4. The rest.** `output-style`, `statusline` and `lsp-server` as `none`, bundles, the
   `AGENTS.md` size warning, and the renderer in `RENDERERS`.
   *Done when:* golden files and `rmk platforms` show them.
 
@@ -51,4 +51,7 @@ the same change that completes it.
   dev dependency.
 - Task 3: the trust and `/hooks` notes are `toolNotes()` in `packages/cli/src/install.ts`, printed
   after the install summary from the paths written; `InstallResult` now carries the scope.
+- Task 4: with two renderers, a project where neither is detected no longer falls back to the only
+  one: `rmk` asks for `--target` (022's rule for zero or several detected tools). The 32 KiB note
+  checks the one `AGENTS.md` rmk wrote, not the concatenation Codex builds from every folder.
 

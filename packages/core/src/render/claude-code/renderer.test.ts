@@ -259,6 +259,6 @@ describe("the Claude Code renderer", () => {
   it("writes nothing for a bundle, and is listed for rmk platforms", async () => {
     expect(render("starter-kit")).toEqual({ changes: [], warnings: [] });
     const { RENDERERS } = await import("../registry.js");
-    expect(RENDERERS.map((r) => r.id)).toEqual(["claude-code"]);
+    expect(RENDERERS.map((r) => r.id)).toContain("claude-code");
   });
 });

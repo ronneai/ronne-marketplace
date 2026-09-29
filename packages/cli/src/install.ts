@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import {
   type ItemType,
@@ -326,9 +326,12 @@ export const installCommand = async (
 
 /**
  * What a tool needs from the person before it uses what was written (024): Codex reads a project's
- * `.codex/` settings only once the project is trusted, and runs new hooks only once reviewed.
+ * `.codex/` settings only once the project is trusted, runs new hooks only once reviewed, and reads
+ * at most 32 KiB of `AGENTS.md`. `root` is the project, or the home folder in user scope.
  */
-export const toolNotes = (paths: string[], scope: Scope): string[] => {
+export const CODEX_INSTRUCTIONS_LIMIT = 32 * 1024;
+
+export const toolNotes = (paths: string[], scope: Scope, root: string): string[] => {
   const notes: string[] = [];
   const codexSettings = paths.some(
     (path) =>
@@ -342,6 +345,16 @@ export const toolNotes = (paths: string[], scope: Scope): string[] => {
     );
   if (paths.includes(".codex/hooks.json"))
     notes.push("Codex runs new or changed hooks only after you review them: open /hooks in Codex.");
+  const agentsMd = scope === "project" ? "AGENTS.md" : ".codex/AGENTS.md";
+  const file = join(root, agentsMd);
+  if (
+    paths.includes(agentsMd) &&
+    existsSync(file) &&
+    statSync(file).size > CODEX_INSTRUCTIONS_LIMIT
+  )
+    notes.push(
+      `${agentsMd} is over 32 KiB, and Codex stops reading its instructions there: move some rules to skills, or raise project_doc_max_bytes in Codex's config.`,
+    );
   return notes;
 };
 
@@ -414,6 +427,7 @@ export const report = (out: Output, result: InstallResult, io: Io) => {
   for (const note of toolNotes(
     written.map((w) => w.path),
     result.scope,
+    places(io, result.scope).root,
   ))
     out.say(`Note: ${note}`);
   if (missingEnv.length)
