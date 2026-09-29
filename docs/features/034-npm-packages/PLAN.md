@@ -67,4 +67,9 @@ the same change that completes it.
   tag `v0.1.0` after the owner's npmjs.com setup publishes the first release. The rest of task 4
   (the docs saying "npm install") waits for that release to exist, in its own change, since the
   Documentation says only what's true.
+- npm offers no trusted publisher for a package that doesn't exist yet (checked with the owner,
+  2026-09-29), so `release.yml` passes the `npm` environment's `NPM_TOKEN` secret, when there is
+  one, as `NODE_AUTH_TOKEN`: the first release uses a granular token limited to `@ronneai`,
+  expiring in 7 days; then each package gets its trusted publisher, the secret is deleted, the
+  token revoked, and publishing goes back to OIDC alone.
 
