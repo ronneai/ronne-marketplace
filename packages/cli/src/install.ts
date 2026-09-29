@@ -180,7 +180,10 @@ export const renderItem = (
       });
       continue;
     }
-    const result = target.render({ name, version, manifest, files }, { scope });
+    const result = target.render(
+      { name, version, manifest, files },
+      { scope, targets: targets.map((t) => t.id) },
+    );
     rendered.changes.push(...result.changes);
     rendered.warnings.push(
       ...result.warnings.map((w) => ({ ...w, message: `${target.name}: ${w.message}` })),
@@ -327,7 +330,8 @@ export const installCommand = async (
 /**
  * What a tool needs from the person before it uses what was written (024): Codex reads a project's
  * `.codex/` settings only once the project is trusted, runs new hooks only once reviewed, and reads
- * at most 32 KiB of `AGENTS.md`. `root` is the project, or the home folder in user scope.
+ * at most 32 KiB of `AGENTS.md`; Cursor documents its permissions only for its CLI (025). `root` is
+ * the project, or the home folder in user scope.
  */
 export const CODEX_INSTRUCTIONS_LIMIT = 32 * 1024;
 
@@ -345,6 +349,10 @@ export const toolNotes = (paths: string[], scope: Scope, root: string): string[]
     );
   if (paths.includes(".codex/hooks.json"))
     notes.push("Codex runs new or changed hooks only after you review them: open /hooks in Codex.");
+  if (paths.includes(".cursor/cli.json") || paths.includes(".cursor/cli-config.json"))
+    notes.push(
+      "Cursor documents the permissions rmk wrote only for its agent CLI, not for the editor.",
+    );
   const agentsMd = scope === "project" ? "AGENTS.md" : ".codex/AGENTS.md";
   const file = join(root, agentsMd);
   if (

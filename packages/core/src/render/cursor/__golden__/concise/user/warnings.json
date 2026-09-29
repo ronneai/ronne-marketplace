@@ -1,0 +1,6 @@
+[
+  {
+    "code": "unsupported_type",
+    "message": "Cursor has no place for @examples/concise (output-style), so it was skipped there."
+  }
+]

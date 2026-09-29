@@ -28,7 +28,14 @@ export type RenderInput = {
 
 export type RenderScope = "project" | "user";
 
-export type RenderContext = { scope: RenderScope };
+export type RenderContext = {
+  scope: RenderScope;
+  /**
+   * Every target of this install, this one included (025). A tool that also reads another tool's
+   * files, as Cursor reads Claude Code's skills and hooks, can leave out its own copy.
+   */
+  targets?: readonly string[];
+};
 
 /** One file, in bytes or text; `executable` is the 0755 bit (011). */
 export type ChangeFile = { path: string; content: Uint8Array | string; executable?: boolean };
@@ -57,7 +64,9 @@ export type RenderWarningCode =
   | "unsupported_field"
   | "unmapped_tool"
   | "invalid_override"
-  | "disabled_by_manifest";
+  | "disabled_by_manifest"
+  /** Another target of the same install writes a copy this tool already reads (025). */
+  | "covered_by_target";
 
 /** Something the tool can't take as written; `rmk` prints it and carries on (MVP §3.3). */
 export type RenderWarning = { code: RenderWarningCode; message: string };

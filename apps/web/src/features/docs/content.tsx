@@ -1,11 +1,13 @@
-import { DEPENDENCY_TYPES, ITEM_TYPES, NAME_MAX_LENGTH } from "@ronneai/core";
+import { NAME_MAX_LENGTH } from "@ronneai/core";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { docsHref, type TopicSlug } from "@/components/help/topics";
-import { TYPE_INFO } from "@/components/submissions/item-types";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { Badge } from "@/components/ui/Badge";
 import { Table, Td, Th } from "@/components/ui/Table";
+import { DependencyCards } from "./DependencyCards";
+import { TypesList } from "./TypesList";
+import { CLAUDE_CODE_PATHS, CODEX_PATHS, CURSOR_PATHS } from "./tool-paths";
 
 /**
  * The Documentation's words (feature 033), by topic and section id (`components/help/topics.ts`).
@@ -36,42 +38,6 @@ const To = ({ href, children }: { href: string; children: ReactNode }) => (
     {children}
   </Link>
 );
-
-/** Where each type goes in Claude Code (renderer 023, checked against its docs on 2026-09-28). */
-const CLAUDE_CODE_PATHS: [string, string][] = [
-  ["skill", ".claude/skills/<name>/"],
-  ["agent", ".claude/agents/<name>.md"],
-  ["rule", ".claude/rules/<name>.md, or a skill when the AI decides or you ask"],
-  ["command", ".claude/skills/<name>/, run as /<name>"],
-  ["hook", "hooks in .claude/settings.json; a script under .claude/hooks/<name>/"],
-  ["mcp-server", "mcpServers in .mcp.json (your home folder: ~/.claude.json)"],
-  ["permission-policy", "permissions in .claude/settings.json"],
-  ["output-style", ".claude/output-styles/<name>.md"],
-  [
-    "statusline",
-    "statusLine in .claude/settings.json; the script under .claude/statusline/<name>/",
-  ],
-  ["lsp-server", "a local plugin under .claude/rmk-plugins/<name>/"],
-  ["bundle", "nothing of its own: its items are installed one by one"],
-];
-
-/** Where each type goes in Codex (renderer 024, checked against its docs on 2026-09-28). */
-const CODEX_PATHS: [string, string][] = [
-  ["skill", ".agents/skills/<name>/ (your home folder: ~/.agents/skills/)"],
-  ["agent", ".codex/agents/<name>.toml"],
-  [
-    "rule",
-    "a section in AGENTS.md (your home folder: ~/.codex/AGENTS.md), or a skill when the AI decides or you ask",
-  ],
-  ["command", ".agents/skills/<name>/, run as /<name>"],
-  ["hook", "hooks in .codex/hooks.json; a script under .codex/hooks/<name>/"],
-  ["mcp-server", "mcp_servers in .codex/config.toml"],
-  ["permission-policy", ".codex/rules/<name>.rules, for shell commands only"],
-  ["output-style", "not supported: skipped with a warning"],
-  ["statusline", "not supported: skipped with a warning"],
-  ["lsp-server", "not supported: skipped with a warning"],
-  ["bundle", "nothing of its own: its items are installed one by one"],
-];
 
 /** A tool's paths as a table of type and place. */
 const PathsTable = ({ paths }: { paths: [string, string][] }) => (
@@ -219,46 +185,42 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
   items: {
     types: (
       <>
-        <p>
-          Every item has one type, chosen when its draft is created; it can&apos;t change later.
-          Types marked <Badge tone="warning">⚠ risk</Badge> run programs or change what the agent
-          may do, so reviewers see a risk flag on them.
-        </p>
-        <Table>
-          <thead>
-            <tr>
-              <Th>Type</Th>
-              <Th>What it is</Th>
-              <Th>In Claude Code</Th>
-              <Th>In Codex</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {ITEM_TYPES.map((type) => (
-              <tr key={type} id={`type-${type}`}>
-                <Td className="align-top">
-                  <span className="flex flex-wrap items-center gap-1.5">
-                    <Badge>{type}</Badge>
-                    {TYPE_INFO[type].highRisk ? <Badge tone="warning">⚠ risk</Badge> : null}
-                  </span>
-                </Td>
-                <Td className="text-sm">{TYPE_INFO[type].description}</Td>
-                <Td className="font-mono text-xs">
-                  <To href={docsHref("claude-code", "paths")}>
-                    {CLAUDE_CODE_PATHS.find(([t]) => t === type)?.[1].split(",")[0] ?? ""}
-                  </To>
-                </Td>
-                <Td className="font-mono text-xs">
-                  <To href={docsHref("codex", "paths")}>
-                    {CODEX_PATHS.find(([t]) => t === type)?.[1]
-                      .split(/[,(]/)[0]
-                      ?.trim() ?? ""}
-                  </To>
-                </Td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
+        <div className="flex items-start gap-3 rounded-panel border border-hairline bg-surface p-4">
+          <span className="grid size-8 shrink-0 place-items-center rounded-control bg-tint text-fg">
+            <svg aria-hidden viewBox="0 0 20 20" className="size-4" fill="none">
+              <path
+                d="M10 2l6 2.5v5c0 4-2.6 6.9-6 8.5-3.4-1.6-6-4.5-6-8.5v-5L10 2z"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M7 10l2 2 4-4"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </span>
+          <div className="grid gap-1">
+            <p className="flex flex-wrap items-center gap-2">
+              <span className="rounded-sm bg-tint px-1.5 py-0.5 font-mono text-[11px] font-semibold tracking-[0.06em] text-fg uppercase">
+                One type per item
+              </span>
+              <Badge tone="warning">⚠ risk</Badge>
+              <span className="font-semibold text-fg">Reviewed before release</span>
+            </p>
+            <p className="text-muted">
+              Every item has one type, chosen when its draft is created; it can&apos;t change later.
+              Types marked <Badge tone="warning">⚠ risk</Badge> run programs or change what the
+              agent may do, so reviewers see a risk flag on them. Every item, risky or not, needs
+              one approval from a moderator or root who isn&apos;t its author before it&apos;s
+              released.
+            </p>
+          </div>
+        </div>
+        <TypesList />
       </>
     ),
     dependencies: (
@@ -268,31 +230,10 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           manifest, each with a version range such as <Code>^1.0.0</Code>. Installing one installs
           what it depends on.
         </p>
-        <Table>
-          <thead>
-            <tr>
-              <Th>Type</Th>
-              <Th>May depend on</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {ITEM_TYPES.filter((type) => DEPENDENCY_TYPES[type].length > 0).map((type) => (
-              <tr key={type}>
-                <Td>
-                  <Badge>{type}</Badge>
-                </Td>
-                <Td className="font-mono text-xs">
-                  {DEPENDENCY_TYPES[type].length === ITEM_TYPES.length
-                    ? "any type"
-                    : DEPENDENCY_TYPES[type].join(", ")}
-                </Td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
+        <DependencyCards />
         <p>
-          Every other type depends on nothing. At submit, each dependency must be published, allowed
-          for the type, and have a version in its range, with no cycles.
+          At submit, each dependency must be published, allowed for the type, and have a version in
+          its range, with no cycles.
         </p>
         <h3 className="font-semibold text-fg">How an install picks versions</h3>
         <p>
@@ -707,8 +648,8 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </Example>
         <Steps>
           <li>
-            <strong>Target.</strong> Which AI tool: <Code>--target claude-code</Code>,{" "}
-            <Code>--target codex</Code> or both (<Code>claude-code,codex</Code>), the{" "}
+            <strong>Target.</strong> Which AI tools: <Code>--target claude-code</Code>,{" "}
+            <Code>codex</Code>, <Code>cursor</Code>, several (<Code>claude-code,cursor</Code>), the{" "}
             <Code>targets</Code> in <Code>rmk.config.json</Code>, or what the project looks like it
             uses. <Code>rmk platforms</Code> lists the tools and what each supports; a type a tool
             can&apos;t take is a warning, and the rest carries on.
@@ -891,8 +832,12 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
               <Td>
                 <To href={docsHref("cursor")}>Cursor</To>
               </Td>
-              <Td className="text-muted">not yet</Td>
-              <Td className="text-muted">–</Td>
+              <Td>
+                <Code>cursor</Code>
+              </Td>
+              <Td>
+                <Code>.cursor/</Code>
+              </Td>
             </tr>
           </tbody>
         </Table>
@@ -999,20 +944,66 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
     ),
   },
   cursor: {
-    status: (
+    paths: (
       <>
         <p>
-          This version of <Code>rmk</Code> doesn&apos;t write for Cursor yet:{" "}
-          <Code>--target cursor</Code> is refused, and <Code>rmk platforms</Code> lists the tools it
-          supports.
+          With <Code>--target cursor</Code>, <Code>rmk</Code> writes each item where Cursor reads
+          it, for the editor and its <Code>agent</Code> CLI: in the project, or in your home folder
+          with <Code>--scope user</Code>.
+        </p>
+        <PathsTable paths={CURSOR_PATHS} />
+      </>
+    ),
+    "with-claude-code": (
+      <>
+        <p>
+          Cursor also reads Claude Code&apos;s files: its skills, its agents, and the hooks in its
+          settings, which Cursor runs as well as its own. That&apos;s Cursor&apos;s Third-Party
+          Imports setting, on by default.
         </p>
         <p>
-          Cursor also reads skills from <Code>.agents/skills/</Code>, and skills and agents from
-          Claude Code&apos;s <Code>.claude/</Code> folder, so items installed for{" "}
-          <To href={docsHref("codex")}>Codex</To> or{" "}
-          <To href={docsHref("claude-code")}>Claude Code</To> may already show up in it.
+          So when you install for both (<Code>--target claude-code,cursor</Code>), Cursor leaves
+          skills, commands and hooks to Claude Code&apos;s copy instead of writing a second one, and{" "}
+          <Code>rmk</Code> says so for each. If you turn Third-Party Imports off in Cursor, install
+          for Cursor alone to get its own copies. Agents, rules, MCP servers and permissions are
+          written for both tools.
         </p>
       </>
+    ),
+    notes: (
+      <Bullets>
+        <li>
+          Skills and commands go to <Code>.agents/skills/</Code>, the folder Codex reads too, so one
+          copy serves both. Commands become skills you run as <Code>/name</Code>; Cursor
+          doesn&apos;t pass them arguments, so a note in the skill says what each placeholder is.
+        </li>
+        <li>
+          Rules become <Code>.cursor/rules/</Code> files: always on, for matching files, picked by
+          the AI from their description, or added when you mention them with <Code>@name</Code>.
+          Cursor keeps your personal rules in its settings, so a rule installed with{" "}
+          <Code>--scope user</Code> is skipped.
+        </li>
+        <li>
+          Agents have no tool list in Cursor. An agent whose tools don&apos;t change files or run
+          commands is written as read-only; its model is Cursor&apos;s default unless the item sets
+          a Cursor model.
+        </li>
+        <li>
+          MCP servers reference their secrets as{" "}
+          {/* biome-ignore lint/suspicious/noTemplateCurlyInString: Cursor's syntax, shown as text */}
+          <Code>{"${env:NAME}"}</Code>: nothing secret is written, and you set the variables
+          yourself.
+        </li>
+        <li>
+          Permission policies go to the <Code>agent</Code> CLI&apos;s config, which has allow and
+          deny but no ask, so ask rules are left out. Cursor documents these permissions only for
+          its CLI, not the editor.
+        </li>
+        <li>
+          Output styles, status lines and language servers have no place in Cursor, and are skipped
+          with a warning.
+        </li>
+      </Bullets>
     ),
   },
 };

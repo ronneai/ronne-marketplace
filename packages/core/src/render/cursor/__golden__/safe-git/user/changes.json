@@ -1,0 +1,10 @@
+[
+  {
+    "kind": "json-array-item",
+    "path": ".cursor/cli-config.json",
+    "key": [
+      "permissions",
+      "deny"
+    ]
+  }
+]

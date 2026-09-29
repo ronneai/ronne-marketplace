@@ -195,3 +195,86 @@ test("rmk installs for Codex, next to the person's AGENTS.md and config.toml, an
     rmSync(project, { recursive: true, force: true });
   }
 });
+
+/**
+ * Cursor (025): its own files alone, then with Claude Code, where Cursor reads Claude Code's skill
+ * and hook, so each is written once.
+ */
+test("rmk installs for Cursor, alone and with Claude Code, and removes cleanly", async ({
+  request,
+}) => {
+  const home = mkdtempSync(join(tmpdir(), "rmk-e2e-home-"));
+  const project = mkdtempSync(join(tmpdir(), "rmk-e2e-project-"));
+  mkdirSync(join(project, ".cursor"));
+  writeFileSync(
+    join(project, ".cursor/mcp.json"),
+    '{ "mcpServers": { "mine": { "url": "x" } } }\n',
+  );
+  const token = await request.post("/api/v1/auth/token", {
+    data: { email: E2E_USERS.installer, password: E2E_PASSWORD, name: "e2e rmk cursor" },
+  });
+  expect(token.status()).toBe(201);
+  const env = {
+    ...process.env,
+    HOME: home,
+    RMK_TOKEN: (await token.json()).token,
+    RMK_REGISTRY: baseURL,
+  };
+  const rmk = (...args: string[]) => {
+    try {
+      return {
+        code: 0,
+        out: execFileSync("node", [BIN, ...args], {
+          cwd: project,
+          env,
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "pipe"],
+        }),
+      };
+    } catch (error) {
+      const failed = error as { status: number; stdout: string; stderr: string };
+      return { code: failed.status, out: `${failed.stdout}${failed.stderr}` };
+    }
+  };
+  const read = (path: string) => readFileSync(join(project, path), "utf8");
+  const name = (item: string) => `@${E2E_SCOPE}/${item}`;
+  const items = [name(E2E_RMK_ITEMS.agent), name(E2E_RMK_ITEMS.hook), name(E2E_RMK_ITEMS.rule)];
+
+  try {
+    // Only .cursor/ is here, so rmk picks Cursor on its own.
+    const install = rmk("install", ...items);
+    expect(install.code, install.out).toBe(0);
+    expect(install.out).toContain("for cursor.");
+    expect(read(`.cursor/agents/${E2E_RMK_ITEMS.agent}.md`)).toContain(
+      `name: ${E2E_RMK_ITEMS.agent}`,
+    );
+    expect(read(`.agents/skills/${E2E_PROPOSAL_ITEM}/SKILL.md`)).toContain("Write the why");
+    expect(read(`.cursor/rules/${E2E_RMK_ITEMS.rule}.mdc`)).toMatch(/^---\nalwaysApply: true\n/);
+    const mcp = JSON.parse(read(".cursor/mcp.json")).mcpServers;
+    expect(mcp.mine).toEqual({ url: "x" });
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: Cursor's own reference syntax
+    expect(mcp[E2E_RMK_ITEMS.mcp].env).toEqual({ KIT_TOKEN: "${env:KIT_TOKEN}" });
+    const hooks = JSON.parse(read(".cursor/hooks.json"));
+    expect(hooks.version).toBe(1);
+    expect(hooks.hooks.postToolUse).toEqual([{ command: "echo kit 1.1.0", matcher: "Write" }]);
+
+    // With Claude Code too, Cursor leaves the skill and the hook to Claude Code's copies.
+    const both = rmk("install", "--target", "claude-code,cursor");
+    expect(both.code, both.out).toBe(0);
+    expect(both.out).toContain("Cursor reads Claude Code's copy");
+    expect(existsSync(join(project, `.agents/skills/${E2E_PROPOSAL_ITEM}`))).toBe(false);
+    expect(read(`.claude/skills/${E2E_PROPOSAL_ITEM}/SKILL.md`)).toContain("Write the why");
+    expect(JSON.parse(read(".cursor/hooks.json"))).toEqual({});
+    expect(JSON.parse(read(".claude/settings.json")).hooks.PostToolUse).toHaveLength(1);
+
+    const remove = rmk("remove", ...items, "--target", "claude-code,cursor");
+    expect(remove.code, remove.out).toBe(0);
+    expect(JSON.parse(read(".cursor/mcp.json"))).toEqual({ mcpServers: { mine: { url: "x" } } });
+    expect(existsSync(join(project, `.cursor/agents/${E2E_RMK_ITEMS.agent}.md`))).toBe(false);
+    expect(existsSync(join(project, `.cursor/rules/${E2E_RMK_ITEMS.rule}.mdc`))).toBe(false);
+    expect(JSON.parse(read(".rmk/state.json")).entries).toEqual([]);
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+    rmSync(project, { recursive: true, force: true });
+  }
+});

@@ -204,13 +204,13 @@ Surveyed September 2026; the Claude Code, Codex and Cursor columns were re-check
 
 | Type | Claude Code | Codex CLI | Cursor | Copilot | Gemini CLI | Devin Desktop |
 |---|---|---|---|---|---|---|
-| skill | `.claude/skills/<n>/` | `.agents/skills/<n>/` (user: `~/.agents/skills/`) | `.agents/skills/<n>/` (also `.cursor/skills/`) | `.github/skills/<n>/` | `.agents/skills/<n>/` | `.agents/skills/<n>/` |
-| agent | `.claude/agents/<n>.md` | `.codex/agents/<n>.toml` (`name`, `description`, `developer_instructions`) | `.cursor/agents/<n>.md` (no tools field) | `.github/agents/<n>.agent.md` | `.gemini/agents/<n>.md` | none |
+| skill | `.claude/skills/<n>/` | `.agents/skills/<n>/` (user: `~/.agents/skills/`) | `.agents/skills/<n>/` (also reads `.cursor/skills/`, `.claude/skills/`, `.codex/skills/`) | `.github/skills/<n>/` | `.agents/skills/<n>/` | `.agents/skills/<n>/` |
+| agent | `.claude/agents/<n>.md` | `.codex/agents/<n>.toml` (`name`, `description`, `developer_instructions`) | `.cursor/agents/<n>.md` (no tools field; `readonly`; also reads `.claude/agents/`) | `.github/agents/<n>.agent.md` | `.gemini/agents/<n>.md` | none |
 | rule | `.claude/rules/<n>.md` | section in `AGENTS.md` (one file per folder, 32 KiB cap) | `.cursor/rules/<n>.mdc` (user rules are a setting, not a file) | `.github/instructions/<n>.instructions.md` | section in `GEMINI.md` | `.devin/rules/<n>.md` |
-| command | rendered as a skill, `.claude/skills/<n>/` (`.claude/commands/` is legacy) | rendered as a skill (custom prompts are deprecated) | `.cursor/commands/<n>.md` | `.github/prompts/<n>.prompt.md` | `.gemini/commands/<n>.toml` | `.devin/workflows/<n>.md` |
-| hook | `hooks` in `.claude/settings.json` | `.codex/hooks.json` (same events as Claude Code; trusted in `/hooks` first) | `.cursor/hooks.json` (`version: 1`, its own event names) | `.github/hooks/<n>.json` | `hooks` in `.gemini/settings.json` | `.devin/hooks.json` |
+| command | rendered as a skill, `.claude/skills/<n>/` (`.claude/commands/` is legacy) | rendered as a skill (custom prompts are deprecated) | rendered as a skill with `disable-model-invocation: true` | `.github/prompts/<n>.prompt.md` | `.gemini/commands/<n>.toml` | `.devin/workflows/<n>.md` |
+| hook | `hooks` in `.claude/settings.json` | `.codex/hooks.json` (same events as Claude Code; trusted in `/hooks` first) | `.cursor/hooks.json` (`version: 1`, its own event names; also runs Claude Code's hooks) | `.github/hooks/<n>.json` | `hooks` in `.gemini/settings.json` | `.devin/hooks.json` |
 | mcp-server | `.mcp.json` | `[mcp_servers.<n>]` in `.codex/config.toml` (secrets by env var name: `env_vars`, `bearer_token_env_var`) | `.cursor/mcp.json` (`${env:NAME}`) | `.vscode/mcp.json` / `.github/mcp.json` | `mcpServers` in `.gemini/settings.json` | `~/.codeium/windsurf/mcp_config.json` |
-| permission-policy | `permissions` in `.claude/settings.json` | `.codex/rules/<n>.rules` (Starlark, `allow`/`prompt`/`forbidden`; experimental) | `permissions` in `.cursor/cli.json` (the CLI only) | `.github/copilot/settings.json` | policy file (to verify) | none |
+| permission-policy | `permissions` in `.claude/settings.json` | `.codex/rules/<n>.rules` (Starlark, `allow`/`prompt`/`forbidden`; experimental) | `permissions` in `.cursor/cli.json` (the CLI only; `Shell(cmd:args)`, no ask) | `.github/copilot/settings.json` | policy file (to verify) | none |
 | output-style | `.claude/output-styles/<n>.md` | none | none | none | none | none |
 | statusline | `statusLine` in settings | none (`tui.status_line` takes built-in ids only) | none (the CLI has one, undocumented) | none | none | none |
 | lsp-server | `.lsp.json` in a generated local plugin (plugins only) | none | built-in, not needed | `.github/lsp.json` | none | none |
@@ -218,7 +218,7 @@ Surveyed September 2026; the Claude Code, Codex and Cursor columns were re-check
 
 Notes:
 - Claude Code reads `AGENTS.md` only when the project has no `CLAUDE.md` (checked 2026-09-28), so rules for Claude go to `.claude/rules/`, which it always reads ([023](../features/023-claude-code-renderer/SPEC.md)).
-- The Codex and Cursor columns were re-checked on 2026-09-28 for [024](../features/024-codex-renderer/SPEC.md) and [025](../features/025-cursor-renderer/SPEC.md): both moved commands into skills, and Cursor also reads `.claude/skills/`, `.claude/agents/` and Claude Code's hooks for compatibility, which matters when both are targets.
+- The Codex and Cursor columns were re-checked on 2026-09-28 for [024](../features/024-codex-renderer/SPEC.md) and [025](../features/025-cursor-renderer/SPEC.md): both moved commands into skills, and Cursor also reads `.claude/skills/`, `.claude/agents/` and Claude Code's hooks for compatibility, which matters when both are targets. With both targets, Cursor leaves skills, commands and hooks to Claude Code's copy (re-checked 2026-09-29 for 025).
 - When one project targets several tools, the renderer writes each shared format once. For example, a single `.agents/skills/<n>/` serves Codex, Cursor, Gemini and Devin.
 
 #### Native plugin export (post-MVP option)

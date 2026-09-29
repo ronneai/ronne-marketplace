@@ -367,4 +367,23 @@ describe("applying changes", () => {
       );
     });
   });
+
+  it("keeps one entry for a key several items want, until the last one leaves", async () => {
+    const version = (item: string): Wanted =>
+      wanted({ kind: "json-key", path: ".cursor/hooks.json", key: ["version"], value: 1 }, item, [
+        "cursor",
+      ]);
+    const first = await install(emptyState(), [version("@t/a"), version("@t/b")]);
+    expect(first.plan.writes).toHaveLength(1);
+    expect(first.state.entries).toHaveLength(1);
+    // Already on disk: both still want it, and neither is a clash.
+    const again = await install(first.state, [version("@t/a"), version("@t/b")]);
+    expect(again.plan.unchanged).toHaveLength(1);
+    const onlyB = await install(again.state, [version("@t/b")]);
+    expect(onlyB.plan.removes).toEqual([]);
+    expect(json(".cursor/hooks.json")).toEqual({ version: 1 });
+    const none = await install(onlyB.state, []);
+    expect(none.plan.removes).toHaveLength(1);
+    expect(json(".cursor/hooks.json")).toEqual({});
+  });
 });

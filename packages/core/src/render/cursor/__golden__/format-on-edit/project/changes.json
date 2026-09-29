@@ -1,0 +1,17 @@
+[
+  {
+    "kind": "json-key",
+    "path": ".cursor/hooks.json",
+    "key": [
+      "version"
+    ]
+  },
+  {
+    "kind": "json-array-item",
+    "path": ".cursor/hooks.json",
+    "key": [
+      "hooks",
+      "postToolUse"
+    ]
+  }
+]

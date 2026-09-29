@@ -2,6 +2,7 @@
 
 export { claudeCodeRenderer } from "./claude-code/renderer.js";
 export { codexRenderer } from "./codex/renderer.js";
+export { cursorRenderer } from "./cursor/renderer.js";
 export {
   type CommentSyntax,
   canonicalJson,

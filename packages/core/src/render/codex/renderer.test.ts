@@ -254,6 +254,6 @@ describe("the Codex renderer", () => {
     expect(codexRenderer.supports("permission-policy")).toBe("degraded");
     expect(render("starter-kit")).toEqual({ changes: [], warnings: [] });
     const { RENDERERS } = await import("../registry.js");
-    expect(RENDERERS.map((r) => r.id)).toEqual(["claude-code", "codex"]);
+    expect(RENDERERS.map((r) => r.id)).toContain("codex");
   });
 });

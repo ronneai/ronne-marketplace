@@ -1,0 +1,6 @@
+[
+  {
+    "code": "unsupported_type",
+    "message": "Cursor keeps user rules in its settings, not in a file, so @examples/house-style was skipped; paste it into Cursor Settings → Rules, or install it in a project."
+  }
+]

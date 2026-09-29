@@ -83,7 +83,7 @@ export const HELP = {
   "claude-code": {
     question: "Where does this go in my AI tool?",
     answer:
-      "rmk writes each type where the tool reads it. Claude Code: skills under .claude/skills/, agents under .claude/agents/, rules under .claude/rules/, hooks and permissions in .claude/settings.json, MCP servers in .mcp.json. Codex: skills and commands under .agents/skills/, agents under .codex/agents/, rules in AGENTS.md, hooks in .codex/hooks.json, MCP servers in .codex/config.toml. Settings entries are tracked, so your own edits stay.",
+      "rmk writes each type where the tool reads it. Claude Code: skills under .claude/skills/, agents under .claude/agents/, rules under .claude/rules/, hooks and permissions in .claude/settings.json, MCP servers in .mcp.json. Codex: skills and commands under .agents/skills/, agents under .codex/agents/, rules in AGENTS.md, hooks in .codex/hooks.json, MCP servers in .codex/config.toml. Cursor: skills and commands under .agents/skills/, agents under .cursor/agents/, rules under .cursor/rules/, hooks in .cursor/hooks.json, MCP servers in .cursor/mcp.json. Settings entries are tracked, so your own edits stay.",
     href: docsHref("rmk", "tools"),
   },
   propose: {

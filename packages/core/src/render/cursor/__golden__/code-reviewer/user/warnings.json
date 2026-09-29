@@ -1,0 +1,6 @@
+[
+  {
+    "code": "disabled_by_manifest",
+    "message": "@examples/code-reviewer isn't offered for Cursor: its manifest turns that target off."
+  }
+]
