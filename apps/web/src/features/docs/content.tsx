@@ -61,6 +61,34 @@ const PathsTable = ({ paths }: { paths: [string, string][] }) => (
   </Table>
 );
 
+/** The registry MCP server's tools (feature 027), as the server registers them. */
+const MCP_TOOLS: [string, string, string][] = [
+  [
+    "search_items",
+    "Finds items by name, description or keyword; by type, scope or AI tool too.",
+    "Nothing",
+  ],
+  [
+    "get_item",
+    "An item's tags and versions, and a version's dependencies, risk flags, the tools it works in and README.",
+    "Nothing",
+  ],
+  ["list_installed", "What the lockfile holds, and which items you asked for.", "Nothing"],
+  [
+    "check_outdated",
+    "For each item you asked for: locked, newest its range allows, newest published.",
+    "Nothing",
+  ],
+  ["plan_install", "Plans installing items, with @tag or @range if wanted.", "Nothing"],
+  ["plan_update", "Plans updating items, or all of them, within their ranges.", "Nothing"],
+  ["plan_remove", "Plans removing items, and what nothing else needs any more.", "Nothing"],
+  [
+    "apply_plan",
+    "Writes a plan made in the last 10 minutes, once.",
+    "The plan's files, the lockfile and the state",
+  ],
+];
+
 const PERMISSIONS: [string, string, string, string][] = [
   ["Browse the catalogue and item pages", "✓", "✓", "✓"],
   ["Create drafts and submit new items", "✓", "✓", "✓"],
@@ -790,8 +818,9 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           Nothing about who downloaded it is stored.
         </p>
         <p>
-          The registry MCP server, <Code>rmk-mcp</Code>, uses the token <Code>rmk login</Code>{" "}
-          saved, or <Code>RMK_TOKEN</Code>: it can do what the token can, and never shows it.
+          The <To href={docsHref("mcp")}>registry MCP server</To>, <Code>rmk-mcp</Code>, uses the
+          token <Code>rmk login</Code> saved, or <Code>RMK_TOKEN</Code>: it can do what the token
+          can, and never shows it.
         </p>
       </>
     ),
@@ -862,51 +891,144 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
       </>
     ),
     mcp: (
+      <p>
+        You can also ask your AI tool to search and install items, through the registry MCP server,{" "}
+        <Code>rmk-mcp</Code>: it shows you a plan first, then writes exactly that, as{" "}
+        <Code>rmk</Code> would. <To href={docsHref("mcp")}>Registry MCP server</To> explains how to
+        set it up and what it can do.
+      </p>
+    ),
+  },
+  mcp: {
+    what: (
       <>
         <p>
-          The registry MCP server, <Code>rmk-mcp</Code>, lets your AI tool do what <Code>rmk</Code>{" "}
-          does, from the conversation: search the marketplace, read an item, list what&apos;s
-          installed and what&apos;s outdated, and install, update or remove items. It runs on your
-          machine, in the project folder, as you: it uses the token from <Code>rmk login</Code>.
+          The registry MCP server, <Code>rmk-mcp</Code>, lets your AI tool (Claude Code, Codex,
+          Cursor, or any tool that speaks MCP) do what <Code>rmk</Code> does, from the conversation.
+          Ask it to find a skill for reviewing SQL, to explain what an item would change, or to
+          update everything, and the assistant uses the server&apos;s tools.
         </p>
+        <p>
+          It runs on your machine, started by the AI tool in your project folder, and reads this
+          marketplace as you, with the token from <Code>rmk login</Code>. It uses <Code>rmk</Code>
+          &apos;s own code, so it resolves, renders and writes exactly as <Code>rmk</Code> does, and{" "}
+          <Code>rmk.lock</Code> and the state file stay the same whichever you use. Authoring,
+          review and releases stay in this website.
+        </p>
+      </>
+    ),
+    setup: (
+      <>
+        <Steps>
+          <li>
+            <strong>Get it.</strong> Like <Code>rmk</Code>, <Code>rmk-mcp</Code> isn&apos;t on npm
+            yet: it comes with the repository, in <Code>packages/mcp</Code>. After{" "}
+            <Code>pnpm build</Code>, link it once with <Code>cd packages/mcp && npm link</Code>, or
+            register it by its path, below.
+          </li>
+          <li>
+            <strong>Log in</strong> with <Code>rmk login</Code>, if you haven&apos;t: the server
+            uses that token.
+          </li>
+          <li>
+            <strong>Register it</strong> with each AI tool, from the project folder:
+          </li>
+        </Steps>
         <Example>
           {
-            "rmk mcp-setup                # for the tools this project uses\nrmk mcp-setup --target all\nrmk mcp-setup --remove"
+            'rmk mcp-setup                # for the tools this project uses\nrmk mcp-setup --target all    # for every tool rmk knows\nrmk mcp-setup --scope user    # in your home folder, for every project\nrmk mcp-setup --command "node /path/to/packages/mcp/dist/bin.js"\nrmk mcp-setup --remove'
           }
         </Example>
         <p>
           <Code>rmk mcp-setup</Code> adds the server to each tool&apos;s MCP settings as{" "}
-          <Code>ronne-registry</Code>, and records it like any setting <Code>rmk</Code> writes, so{" "}
-          <Code>--remove</Code> takes exactly it away and it never replaces an entry you made.
-          Claude Code asks once before it uses a project&apos;s MCP servers; restart the tool, or
-          reload its MCP servers, to start it.
-        </p>
-        <Steps>
-          <li>
-            <strong>Plan.</strong> Asked to install something, the assistant first makes a plan: the
-            versions, every file and setting it would write or remove, warnings, what each new item
-            can do, and the environment variables its MCP servers need. Planning writes nothing.
-          </li>
-          <li>
-            <strong>Apply.</strong> Once you&apos;ve seen the plan, the assistant applies it; your
-            tool asks you before it runs, unless you&apos;ve allowed it to. It writes exactly that
-            plan, then the lockfile, as <Code>rmk</Code> would.
-          </li>
-        </Steps>
-        <p>
-          A plan lasts 10 minutes and is applied once. If anything it touches changes in between,
-          such as an install from the terminal, it&apos;s refused and the assistant plans again. A
-          plan with conflicts can&apos;t be applied from the tool: move the files aside, or use{" "}
-          <Code>rmk install --force</Code> at the terminal. Authoring, review and releases stay in
-          this website.
+          <Code>ronne-registry</Code> (<Code>.mcp.json</Code> for Claude Code,{" "}
+          <Code>.codex/config.toml</Code> for Codex, <Code>.cursor/mcp.json</Code> for Cursor), and
+          records it like any setting <Code>rmk</Code> writes: installs leave it alone,{" "}
+          <Code>--remove</Code> takes exactly it away, and it never replaces an entry you made.
         </p>
         <p>
-          Like <Code>rmk</Code>, <Code>rmk-mcp</Code> isn&apos;t on npm yet: it comes with the
-          repository, in <Code>packages/mcp</Code>. After <Code>pnpm build</Code>, link it once (
-          <Code>cd packages/mcp && npm link</Code>), or register it by its path:{" "}
-          <Code>rmk mcp-setup --command &quot;node /path/to/packages/mcp/dist/bin.js&quot;</Code>.
+          Then restart the tool, or reload its MCP servers. Claude Code asks once before it uses a
+          project&apos;s MCP servers, and Codex reads <Code>.codex/config.toml</Code> only in a
+          project you trust.
         </p>
       </>
+    ),
+    tools: (
+      <>
+        <Table>
+          <thead>
+            <tr>
+              <Th>Tool</Th>
+              <Th>What it does</Th>
+              <Th>Writes</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {MCP_TOOLS.map(([name, does, writes]) => (
+              <tr key={name}>
+                <Td className="align-top font-mono text-xs whitespace-nowrap">{name}</Td>
+                <Td className="align-top text-sm">{does}</Td>
+                <Td className="align-top text-sm">{writes}</Td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+        <p>
+          Every tool except <Code>apply_plan</Code> is marked as read-only for your AI tool, so{" "}
+          <Code>apply_plan</Code> is the one it asks you about. <Code>list_installed</Code>,{" "}
+          <Code>check_outdated</Code> and the plan tools take <Code>scope: user</Code> for your home
+          folder, and the plan tools take <Code>targets</Code>, such as{" "}
+          <Code>[&quot;codex&quot;]</Code>, when the folder looks like several tools.
+        </p>
+      </>
+    ),
+    plans: (
+      <>
+        <Steps>
+          <li>
+            <strong>Plan.</strong> Asked to install, update or remove, the assistant first makes a
+            plan: the versions, every file and setting it would write or remove, warnings about what
+            a tool can&apos;t take, what each new item can do (its risk flags), and the environment
+            variables its MCP servers need. Planning writes nothing to your project.
+          </li>
+          <li>
+            <strong>Apply.</strong> Once you&apos;ve seen the plan, the assistant applies it with{" "}
+            <Code>apply_plan</Code>; your tool asks you before it runs, unless you&apos;ve allowed
+            it to. It writes exactly that plan, then the lockfile and the state file, and says what
+            it wrote.
+          </li>
+        </Steps>
+        <Bullets>
+          <li>A plan lasts 10 minutes, and is applied once.</li>
+          <li>
+            If anything the plan touches changes in between, such as an install from the terminal or
+            another AI tool, it&apos;s refused as stale, and the assistant plans again.
+          </li>
+          <li>
+            A plan with conflicts (a file or setting <Code>rmk</Code> didn&apos;t write, or that
+            changed since it did) can&apos;t be applied from the AI tool: move them aside, or use{" "}
+            <Code>rmk install --force</Code> at the terminal, on purpose.
+          </li>
+        </Bullets>
+      </>
+    ),
+    access: (
+      <Bullets>
+        <li>
+          It can do what your token can: read what&apos;s published and download it. It never shows
+          the token, and it can&apos;t sign in to this website.
+        </li>
+        <li>
+          It writes only in the project folder (or your home folder, with <Code>scope: user</Code>
+          ), through the same checks as <Code>rmk</Code>, and never runs an item&apos;s code: hooks
+          and scripts are written, not run.
+        </li>
+        <li>
+          Without a token, every tool says to run <Code>rmk login</Code>. If the marketplace
+          can&apos;t be reached, <Code>list_installed</Code> still works: it only reads the
+          lockfile.
+        </li>
+      </Bullets>
     ),
   },
   "claude-code": {

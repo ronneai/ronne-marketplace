@@ -82,9 +82,12 @@ writes only inside the project (or home, for user scope), through the same path 
 
 ## Documentation
 
-- **Installing with rmk → From inside your AI tool** (new): what the server does, `rmk mcp-setup`
-  and `--remove`, the plan-then-apply steps and why, that a plan lasts 10 minutes and is applied
-  once, stale plans and conflicts, and how to get `rmk-mcp` until it's on npm.
+- **Registry MCP server**, a page of its own in the Documentation's "Installing" group (owner's
+  request, 2026-09-29): what it does; setting it up (getting `rmk-mcp` until it's on npm,
+  `rmk mcp-setup` and its options, approving and trusting it in each tool); the tools, as a table
+  of what each does and writes; plans (the two steps, 10 minutes, applied once, stale plans,
+  conflicts); and what it can reach. Installing with rmk keeps a short "From inside your AI tool"
+  section that links to it.
 - **Item page:** the "How do I install it?" helper mentions asking the assistant, which shows the
   plan first.
 - **Tokens and the API:** `rmk-mcp` uses the same token, can do what it can, and never shows it.
@@ -105,7 +108,7 @@ writes only inside the project (or home, for user scope), through the same path 
 - [x] `rmk mcp-setup` registers the server for Claude Code (and every renderer that lands), records it in the state file, and `--remove` undoes it without touching other entries.
 - [x] Without a token, every tool says to run `rmk login`; the token never appears in any output.
 - [x] An end-to-end test drives the built `rmk-mcp` with an MCP client against the Playwright instance: search, plan, apply, and a stale apply refused.
-- [x] The Documentation has the new section, the token note and the helper, with render tests.
+- [x] The Documentation has the Registry MCP server page, the pointer from Installing with rmk, the token note and the helper, with render tests.
 
 ## Open questions
 

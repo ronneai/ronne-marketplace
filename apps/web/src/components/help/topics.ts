@@ -92,6 +92,18 @@ export const TOPICS = [
     ],
   },
   {
+    slug: "mcp",
+    title: "Registry MCP server",
+    summary: "Search and install items by asking your AI tool, with a plan you see first.",
+    sections: [
+      { id: "what", title: "What it does" },
+      { id: "setup", title: "Setting it up" },
+      { id: "tools", title: "The tools" },
+      { id: "plans", title: "Plans" },
+      { id: "access", title: "What it can reach" },
+    ],
+  },
+  {
     slug: "claude-code",
     title: "Claude Code",
     summary: "Where rmk puts each type of item for Claude Code, and what to know.",
@@ -131,7 +143,7 @@ export const TOPIC_GROUPS: { label: string; topics: readonly TopicSlug[] }[] = [
   { label: "Getting started", topics: ["overview", "roles"] },
   { label: "Organising", topics: ["scopes", "items"] },
   { label: "Publishing", topics: ["review", "versions", "changes"] },
-  { label: "Installing", topics: ["rmk", "claude-code", "codex", "cursor"] },
+  { label: "Installing", topics: ["rmk", "mcp", "claude-code", "codex", "cursor"] },
 ];
 
 export const topicOf = (slug: string): Topic | undefined => TOPICS.find((t) => t.slug === slug);

@@ -122,9 +122,14 @@ describe("the topics", () => {
     expect(rmk).toContain('id="tools"');
     expect(rmk).toContain("<strong>Works in</strong>");
     expect(rmk).toContain('id="mcp"');
-    expect(rmk).toContain("rmk mcp-setup --remove");
-    expect(rmk).toContain("A plan lasts 10 minutes and is applied once.");
-    expect(rmk).toContain("The registry MCP server, <code");
+    expect(rmk).toContain('href="/docs/mcp"');
+    const mcp = await topic("mcp");
+    expect(mcp).toContain(">Registry MCP server</h1>");
+    for (const id of ["what", "setup", "tools", "plans", "access"])
+      expect(mcp).toContain(`id="${id}"`);
+    for (const tool of ["search_items", "plan_install", "apply_plan"]) expect(mcp).toContain(tool);
+    expect(mcp).toContain("rmk mcp-setup --remove");
+    expect(mcp).toContain("A plan lasts 10 minutes, and is applied once.");
     expect(rmk).toContain("rmk search &lt;query&gt; --target codex");
     for (const tool of ["claude-code", "codex", "cursor"])
       expect(rmk).toContain(`href="/docs/${tool}"`);
