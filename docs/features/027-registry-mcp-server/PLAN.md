@@ -16,7 +16,7 @@ the same change that completes it.
   `search_items`, `get_item`, `list_installed`, `check_outdated`.
   *Done when:* a test client lists the tools and gets the same answers as `rmk` from a fake registry.
 
-- [ ] **3. Plans.** `plan_install`, `plan_update`, `plan_remove` and `apply_plan`, with expiry,
+- [x] **3. Plans.** `plan_install`, `plan_update`, `plan_remove` and `apply_plan`, with expiry,
   staleness and conflicts.
   *Done when:* tests cover a plan that writes nothing, an apply that writes it, and expired, stale
   and conflicting plans refused.
@@ -54,4 +54,11 @@ the same change that completes it.
 - `@ronneai/rmk` now ships `dist/testing.js` (the fake registry and I/O, a few KB with no test-only
   dependencies) as `@ronneai/rmk/testing`, so the server's tests use the same fixtures as `rmk`'s,
   and `run` from it, so they compare answers with `rmk`'s own output.
+- Task 3: a plan's fingerprint (`operationFingerprint` in `@ronneai/rmk/lib`) hashes the lockfile,
+  the state file, the project config and every file or folder the plan writes, removes or keeps;
+  `apply_plan` refuses with `plan_stale` when it differs. A plan is applied once, then forgotten.
+  A plan with conflicts gets a `planId` too, and `apply_plan` refuses it with `conflicts`. Every
+  `plan_*` tool is annotated read-only (it writes nothing to the project; the download cache is
+  `rmk`'s own), and `apply_plan` destructive, so it's the call the AI tool asks the person about.
+  When several tools look used, the plan answers `no_target` asking for `targets`.
 

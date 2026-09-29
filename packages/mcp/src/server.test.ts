@@ -1,66 +1,18 @@
-import {
-  buildRegistry,
-  type FakeIo,
-  fakeIo,
-  REGISTRY,
-  type Route,
-  run,
-} from "@ronneai/rmk/testing";
+import { type FakeIo, run } from "@ronneai/rmk/testing";
 import { afterEach, describe, expect, it } from "vitest";
-import { connectedClient } from "./testing.js";
+import { startServer } from "./testing.js";
 
 let io: FakeIo;
 afterEach(() => io?.cleanup());
 
-const summary = (name: string, type = "skill") => ({
-  name,
-  type,
-  description: `The ${name} item.`,
-  keywords: [],
-  version: "1.1.0",
-  publishedAt: "2026-09-20T00:00:00.000Z",
-  deprecated: null,
-  installable: true,
-  risky: false,
-  downloads: 0,
-  support: { "claude-code": "native", codex: "native", cursor: "native" },
-});
-
-const start = async ({ login = true } = {}) => {
-  const { routes } = await buildRegistry();
-  const all: Record<string, Route> = {
-    ...routes,
-    "GET /items/team/secure/1.1.0": () => ({
-      json: {
-        version: "1.1.0",
-        publishedAt: "2026-09-20T00:00:00.000Z",
-        sha256: "a",
-        size: 1,
-        deprecated: null,
-        yanked: false,
-        dependencies: { "@team/gh": "^1.0.0" },
-        readme: null,
-        notes: null,
-        riskFlags: [],
-        support: { "claude-code": "native", codex: "native", cursor: "native" },
-      },
-    }),
-    "GET /items": ({ url }) => ({
-      json: {
-        items: [summary("@team/secure"), summary("@team/gh", "mcp-server")].filter((i) =>
-          i.name.includes(url.searchParams.get("q") ?? ""),
-        ),
-        nextCursor: null,
-      },
-    }),
-  };
-  io = fakeIo(all, { interactive: false });
-  if (login) await run(["login", "--registry", REGISTRY, "--token", "rmk_test_token"], io);
-  return connectedClient(io);
+const start = async (options: { login?: boolean } = {}) => {
+  const started = await startServer(options);
+  io = started.io;
+  return started;
 };
 
 describe("the registry MCP server", () => {
-  it("lists its tools, marking the read ones read-only", async () => {
+  it("lists its tools, marking all but apply_plan read-only", async () => {
     const { client } = await start();
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name)).toEqual([
@@ -68,8 +20,15 @@ describe("the registry MCP server", () => {
       "get_item",
       "list_installed",
       "check_outdated",
+      "plan_install",
+      "plan_update",
+      "plan_remove",
+      "apply_plan",
     ]);
-    expect(tools.every((t) => t.annotations?.readOnlyHint === true)).toBe(true);
+    // Planning writes nothing; only apply_plan does, so only it needs the person's approval.
+    expect(tools.filter((t) => t.annotations?.readOnlyHint !== true).map((t) => t.name)).toEqual([
+      "apply_plan",
+    ]);
     expect(client.getServerVersion()?.name).toBe("ronne-registry");
   });
 

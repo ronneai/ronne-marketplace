@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { type Io, RmkError, rmkVersion } from "@ronneai/rmk/lib";
 import { z } from "zod";
+import { applyPlanTool, planStore, planTool } from "./plan-tools.js";
 import { checkOutdated, getItem, listInstalled, searchItems } from "./read-tools.js";
 import { failure, type ToolAnswer } from "./text.js";
 
@@ -29,7 +30,8 @@ const scope = z
   .optional()
   .describe("project (the default): this folder; user: your home folder");
 
-export const createServer = (io: Io, _options: ServerOptions = {}) => {
+export const createServer = (io: Io, options: ServerOptions = {}) => {
+  const plans = planStore(options.now ?? Date.now);
   const server = new McpServer(
     { name: serverInfo.name, version: serverInfo.version },
     {
@@ -96,6 +98,67 @@ export const createServer = (io: Io, _options: ServerOptions = {}) => {
       annotations: read,
     },
     guarded((input) => checkOutdated(io, input)),
+  );
+
+  const targets = z
+    .array(z.string())
+    .optional()
+    .describe(
+      "AI tool ids, such as claude-code, codex or cursor; left out, the project's config or what the folder looks like decides",
+    );
+  // Planning writes nothing to the project; only apply_plan does.
+  const planning = { readOnlyHint: true, openWorldHint: true };
+
+  server.registerTool(
+    "plan_install",
+    {
+      title: "Plan an install",
+      description:
+        "Works out what installing items would write, remove and warn about, with their risk flags, and writes nothing. Show the plan to the person; apply it with apply_plan.",
+      inputSchema: {
+        items: z.array(z.string()).describe("@scope/name, with @tag or @range after it if wanted"),
+        targets,
+        scope,
+      },
+      annotations: planning,
+    },
+    guarded((input) => planTool(io, plans, "install", input)),
+  );
+
+  server.registerTool(
+    "plan_update",
+    {
+      title: "Plan an update",
+      description:
+        "Works out what updating items (or all of them) within their ranges would change, and writes nothing. Apply it with apply_plan.",
+      inputSchema: { items: z.array(z.string()).optional(), targets, scope },
+      annotations: planning,
+    },
+    guarded((input) => planTool(io, plans, "update", input)),
+  );
+
+  server.registerTool(
+    "plan_remove",
+    {
+      title: "Plan a removal",
+      description:
+        "Works out what removing items, and whatever nothing else needs, would take away, and writes nothing. Apply it with apply_plan.",
+      inputSchema: { items: z.array(z.string()).min(1), targets, scope },
+      annotations: planning,
+    },
+    guarded((input) => planTool(io, plans, "remove", input)),
+  );
+
+  server.registerTool(
+    "apply_plan",
+    {
+      title: "Apply a plan",
+      description:
+        "Writes exactly what a plan_* tool showed, then the lockfile and state. Only after the person has seen the plan. Refuses a plan that expired, changed underneath, or has conflicts.",
+      inputSchema: { planId: z.string() },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
+    },
+    guarded((input) => applyPlanTool(io, plans, input)),
   );
 
   return server;

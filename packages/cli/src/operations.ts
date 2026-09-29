@@ -1,6 +1,9 @@
-import { basename, dirname } from "node:path";
+import { createHash } from "node:crypto";
+import { existsSync, readFileSync } from "node:fs";
+import { basename, dirname, join } from "node:path";
 import { isVersionRange } from "@ronneai/core";
 import type { ApiClient } from "./api.js";
+import { diskHash } from "./apply.js";
 import { RmkError, usage } from "./errors.js";
 import {
   chooseTargets,
@@ -13,6 +16,7 @@ import {
 import type { Io } from "./io.js";
 import { output } from "./output.js";
 import {
+  CONFIG_FILE,
   type LockfileWithDependencies,
   type ProjectConfig,
   readLockfile,
@@ -159,3 +163,28 @@ export const removedItems = (operation: Operation) =>
   Object.keys(operation.lockedBefore)
     .filter((name) => !(name in operation.resolution.items))
     .sort();
+
+const fileText = (path: string) => (existsSync(path) ? readFileSync(path, "utf8") : "");
+
+/**
+ * What an operation's plan depends on, as one hash: the lockfile, the state file, the project
+ * config, and every file and folder it writes, removes or keeps. If any changes before the plan is
+ * applied, the plan is stale (027): another client, or the person, got there first.
+ */
+export const operationFingerprint = async (io: Io, operation: Operation): Promise<string> => {
+  const { root, lock, state } = places(io, operation.scope);
+  const hash = createHash("sha256");
+  hash.update(fileText(lock)).update("\0").update(fileText(state)).update("\0");
+  if (operation.scope === "project") hash.update(fileText(join(io.cwd, CONFIG_FILE)));
+  const entries = [
+    ...operation.plan.writes.map((w) => w.entry),
+    ...operation.plan.removes,
+    ...operation.plan.unchanged,
+  ];
+  const paths = new Map<string, { kind: "file" | "dir"; path: string }>();
+  for (const entry of entries)
+    paths.set(entry.path, { kind: entry.kind === "dir" ? "dir" : "file", path: entry.path });
+  for (const [path, place] of [...paths].sort(([a], [b]) => (a < b ? -1 : 1)))
+    hash.update(`\0${path}\0${(await diskHash(root, place)) ?? "-"}`);
+  return hash.digest("hex");
+};

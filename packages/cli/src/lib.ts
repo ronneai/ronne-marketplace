@@ -25,6 +25,7 @@ export {
   type Operation,
   type OperationKind,
   type OperationRequest,
+  operationFingerprint,
   planOperation,
   projectState,
   removedItems,
