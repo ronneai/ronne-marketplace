@@ -3,7 +3,7 @@ import { DependenciesTab, FilesTab, ReadmeTab, RisksTab } from "@/features/item-
 import { type ItemParams, loadItemPage } from "@/features/item-page/load";
 import { tabFrom } from "@/features/item-page/tabs";
 
-export const metadata = { title: "Item · Ronne" };
+export const metadata = { title: "Item · Ronne AI Marketplace" };
 
 type SearchParams = Promise<{ tab?: string | string[]; version?: string | string[] }>;
 const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);

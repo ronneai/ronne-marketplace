@@ -27,7 +27,7 @@ import { SubmissionNotFoundError } from "@/server/domains/submissions/exceptions
 import { itemNameOf } from "@/server/domains/submissions/models/submission";
 import { requestHeaders } from "@/server/http/request-headers";
 
-export const metadata = { title: "Review · Ronne" };
+export const metadata = { title: "Review · Ronne AI Marketplace" };
 
 const viewTab =
   "rounded-control px-3 py-1.5 text-sm text-muted hover:text-fg aria-[current=page]:bg-tint aria-[current=page]:font-semibold aria-[current=page]:text-fg";

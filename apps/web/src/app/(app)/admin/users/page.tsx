@@ -8,7 +8,7 @@ import { adminListUsers } from "@/server/domains/identity/actions/user-admin";
 import { can } from "@/server/domains/identity/models/permissions";
 import { requestHeaders } from "@/server/http/request-headers";
 
-export const metadata = { title: "Users · Ronne" };
+export const metadata = { title: "Users · Ronne AI Marketplace" };
 
 /** Root only (`users.view`): anyone else gets a 404. */
 const Users = async ({ searchParams }: { searchParams: Promise<SearchParams> }) => {

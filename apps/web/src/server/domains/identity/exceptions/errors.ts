@@ -45,7 +45,9 @@ export class RootNotFoundError extends IdentityError {
 
 export class NotConfiguredError extends IdentityError {
   constructor() {
-    super("Ronne isn't set up yet: there's no DATABASE_URL or AUTH_SECRET. Run `pnpm run setup`.");
+    super(
+      "Ronne AI Marketplace isn't set up yet: there's no DATABASE_URL or AUTH_SECRET. Run `pnpm run setup`.",
+    );
   }
 }
 

@@ -6,9 +6,9 @@ export const TOPICS = [
   {
     slug: "overview",
     title: "Overview",
-    summary: "What Ronne is, and the path of an item from draft to install.",
+    summary: "What Ronne AI Marketplace is, and the path of an item from draft to install.",
     sections: [
-      { id: "what", title: "What Ronne is" },
+      { id: "what", title: "What Ronne AI Marketplace is" },
       { id: "path", title: "The path of an item" },
     ],
   },

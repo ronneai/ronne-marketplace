@@ -6,7 +6,7 @@ import { ScopesTable } from "@/features/scopes/ScopesTable";
 import { listScopes } from "@/server/domains/items/actions/scopes";
 import { requestHeaders } from "@/server/http/request-headers";
 
-export const metadata = { title: "Scopes · Ronne" };
+export const metadata = { title: "Scopes · Ronne AI Marketplace" };
 
 /** Every signed-in user (the (app) layout requires a session). */
 const Scopes = async ({ searchParams }: { searchParams: Promise<SearchParams> }) => {

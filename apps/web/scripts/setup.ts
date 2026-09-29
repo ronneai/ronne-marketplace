@@ -34,7 +34,7 @@ if (command.mode === "error") {
 }
 
 const interactive = command.mode === "interactive";
-if (interactive) p.intro("Ronne setup");
+if (interactive) p.intro("Ronne AI Marketplace setup");
 
 try {
   const result = await runSetup({
@@ -48,12 +48,12 @@ try {
   const done =
     process.env.RONNE_RUNTIME === "docker"
       ? [
-          "Ronne is set up.",
+          "Ronne AI Marketplace is set up.",
           "Restart it with `docker compose restart web`,",
           `then open ${result.publicUrl} and sign in as ${result.rootEmail}.`,
         ]
       : [
-          "Ronne is set up.",
+          "Ronne AI Marketplace is set up.",
           "Start it with `pnpm build && pnpm start` (or `pnpm dev` while developing),",
           `then open ${result.publicUrl} and sign in as ${result.rootEmail}.`,
         ];

@@ -11,8 +11,8 @@ export const MIGRATION_LOCK_TABLE = "ronne_migration_lock";
 export class DatabaseAheadOfAppError extends Error {
   constructor(readonly unknownMigrations: string[]) {
     super(
-      `The database was migrated by a newer version of Ronne (unknown migrations: ${unknownMigrations.join(", ")}). ` +
-        "Upgrade Ronne instead of running an older version against this database.",
+      `The database was migrated by a newer version of Ronne AI Marketplace (unknown migrations: ${unknownMigrations.join(", ")}). ` +
+        "Upgrade Ronne AI Marketplace instead of running an older version against this database.",
     );
     this.name = "DatabaseAheadOfAppError";
   }

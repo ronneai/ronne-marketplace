@@ -113,9 +113,9 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
     what: (
       <>
         <p>
-          Ronne is your team&apos;s own registry of AI capabilities: skills, agents, rules,
-          commands, hooks, MCP servers and more. It runs on your infrastructure. Everything in it
-          has been reviewed before anyone can install it.
+          Ronne AI Marketplace is your team&apos;s own marketplace of AI capabilities: skills,
+          agents, rules, commands, hooks, MCP servers and more. It runs on your infrastructure.
+          Everything in it has been reviewed before anyone can install it.
         </p>
         <p>
           Each item is written once, in a tool-neutral form. Installing it with{" "}
@@ -649,9 +649,9 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
     what: (
       <>
         <p>
-          <Code>rmk</Code> is Ronne&apos;s command-line tool. It installs items from this registry
-          into a project, or into your home folder, writing each AI tool&apos;s own files, and keeps
-          them up to date. Every item page shows its command:
+          <Code>rmk</Code> is Ronne AI Marketplace&apos;s command-line tool. It installs items from
+          this marketplace into a project, or into your home folder, writing each AI tool&apos;s own
+          files, and keeps them up to date. Every item page shows its command:
         </p>
         <Example>
           {"rmk install @platform/secure-coding\nrmk install @platform/secure-coding@1.2.0"}
@@ -671,7 +671,7 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
       <>
         <p>
           <Code>rmk</Code> needs Node.js 22.12 or later. It isn&apos;t on npm yet: until it is, it
-          comes with Ronne&apos;s own repository. From a copy of the repository:
+          comes with the Ronne AI Marketplace repository. From a copy of the repository:
         </p>
         <Example>{"pnpm install\npnpm build\nnode packages/cli/dist/bin.js --help"}</Example>
         <p>

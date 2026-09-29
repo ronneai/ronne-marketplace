@@ -14,8 +14,8 @@ export const SetupRequired = () => {
             This instance isn&apos;t set up yet
           </h1>
           <p className="text-sm text-muted">
-            Ronne needs a database and a root account before it can be used. Run setup where Ronne
-            is installed, then restart it.
+            Ronne AI Marketplace needs a database and a root account before it can be used. Run
+            setup where it&apos;s installed, then restart it.
           </p>
         </div>
         <div className="grid gap-2">
