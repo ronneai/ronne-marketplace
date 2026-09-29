@@ -64,7 +64,10 @@ several, the plan says which and asks the assistant to pass `targets`.
 target's renderer, as if it were an `mcp-server` item named `ronne-registry` with `command:
 rmk-mcp`, and records it in `.rmk/state.json` like any change, so `rmk mcp-setup --remove` takes
 it away and it never overwrites an entry the person made. It prints what it wrote and, for Claude
-Code, that the project's MCP servers need approving once.
+Code, that the project's MCP servers need approving once. Its entries are recorded under the item
+name `rmk mcp-setup` (not a valid item name, so it can't clash), and `rmk install`, `update` and
+`remove` leave them alone. `--command "<cmd> <args>"` registers another command than `rmk-mcp`,
+for a server run from a copy of the repository until `@ronneai/mcp` is on npm.
 
 **Shared code.** The install pipeline lives in `packages/cli` (022). It's exported as a library
 entry, `@ronneai/rmk/lib` (targets, resolve, fetch, render, plan, apply, and the report), and

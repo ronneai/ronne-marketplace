@@ -22,6 +22,7 @@ import {
   planChanges,
   readState,
   type State,
+  type StateEntry,
   type Wanted,
   writeState,
 } from "./apply.js";
@@ -228,8 +229,14 @@ export type Prepared = InstallResult & {
   /** The direct dependencies it was resolved for (user scope keeps them in its lockfile). */
   dependencies: Record<string, string>;
   registry: string;
+  /** The state entries this install manages: every item's, but not `rmk mcp-setup`'s. */
   state: State;
+  /** `rmk mcp-setup`'s entries, kept as they are (027). */
+  kept: StateEntry[];
 };
+
+/** The state file's item name for `rmk mcp-setup`'s registration: not an item, so never resolved. */
+export const MCP_SETUP_ITEM = "rmk mcp-setup";
 
 /**
  * Resolves `dependencies` (with `locked` kept where it fits), downloads and checks, renders and
@@ -258,7 +265,13 @@ export const prepareInstall = async (
     rendered.push(renderItem(name, item.version, tgz, options.targets, options.scope));
   }
   const { root, state: statePath } = places(io, options.scope);
-  const state = readState(statePath);
+  const all = readState(statePath);
+  // mcp-setup's registration isn't an item: installs leave it alone (027).
+  const state: State = {
+    version: 1,
+    entries: all.entries.filter((e) => e.item !== MCP_SETUP_ITEM),
+  };
+  const kept = all.entries.filter((e) => e.item === MCP_SETUP_ITEM);
   // Every change carries every target the item was rendered for: a change two targets share is one entry.
   const wanted = wantedOf(rendered, (r) => r.targets);
   const plan = await planChanges(root, state, wanted, { force: options.force });
@@ -271,6 +284,7 @@ export const prepareInstall = async (
     dependencies: options.dependencies,
     registry: api.registry,
     state,
+    kept,
   };
 };
 
@@ -282,6 +296,7 @@ export const commitInstall = (io: Io, prepared: Prepared) => {
     });
   const { root, lock, state: statePath } = places(io, prepared.scope);
   const next = applyPlan(root, prepared.state, prepared.plan);
+  next.entries.push(...prepared.kept);
   mkdirSync(join(statePath, ".."), { recursive: true });
   writeState(statePath, next);
   const lockfile: Lockfile & { dependencies?: Record<string, string> } = {

@@ -21,7 +21,7 @@ the same change that completes it.
   *Done when:* tests cover a plan that writes nothing, an apply that writes it, and expired, stale
   and conflicting plans refused.
 
-- [ ] **4. `rmk mcp-setup`.** Registering and removing the server through the renderers and the
+- [x] **4. `rmk mcp-setup`.** Registering and removing the server through the renderers and the
   state file.
   *Done when:* tests cover setup and `--remove` for Claude Code, leaving other entries alone.
 
@@ -61,4 +61,7 @@ the same change that completes it.
   `plan_*` tool is annotated read-only (it writes nothing to the project; the download cache is
   `rmk`'s own), and `apply_plan` destructive, so it's the call the AI tool asks the person about.
   When several tools look used, the plan answers `no_target` asking for `targets`.
+- Task 4: `prepareInstall` sets `rmk mcp-setup`'s state entries aside (`Prepared.kept`) and
+  `commitInstall` writes them back unchanged; otherwise the next install would have removed the
+  registration as no longer wanted. `mcp-setup` plans only its own entries the same way.
 

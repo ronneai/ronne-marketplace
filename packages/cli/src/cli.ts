@@ -6,6 +6,7 @@ import { RmkError, usage } from "./errors.js";
 import { installCommand } from "./install.js";
 import type { Io } from "./io.js";
 import { outdatedCommand, removeCommand, updateCommand } from "./manage.js";
+import { mcpSetupCommand } from "./mcp-setup.js";
 import { done, failed, output, type RunResult } from "./output.js";
 import { list, platforms, withApi } from "./registry-commands.js";
 
@@ -26,6 +27,7 @@ export const USAGE = `Usage: rmk <command> [options]
   update [<item>...]
   outdated
   remove <item>...
+  mcp-setup [--target <ids>|all] [--scope project|user] [--remove] [--command <cmd>]
 
 Options: --json (one JSON object per command), --registry <url>, --version, --help`;
 
@@ -41,6 +43,8 @@ const OPTIONS = {
   target: { type: "string" },
   installed: { type: "boolean" },
   force: { type: "boolean" },
+  remove: { type: "boolean" },
+  command: { type: "string" },
 } as const;
 
 export type Args = { values: Record<string, string | boolean | undefined>; positionals: string[] };
@@ -149,6 +153,7 @@ export const COMMANDS: Record<string, Command> = {
   update,
   outdated,
   remove,
+  "mcp-setup": (io, args, out) => mcpSetupCommand(io, args, out),
 };
 
 /** Runs rmk with the given arguments (without the node and script paths). */
