@@ -87,9 +87,33 @@ export const TOPICS = [
       { id: "files", title: "The files it writes" },
       { id: "edits", title: "Your own edits" },
       { id: "tokens", title: "Tokens and the API" },
-      { id: "claude-code", title: "Claude Code" },
-      { id: "codex", title: "Codex" },
+      { id: "tools", title: "Your AI tools" },
     ],
+  },
+  {
+    slug: "claude-code",
+    title: "Claude Code",
+    summary: "Where rmk puts each type of item for Claude Code, and what to know.",
+    sections: [
+      { id: "paths", title: "Where each type goes" },
+      { id: "notes", title: "Good to know" },
+    ],
+  },
+  {
+    slug: "codex",
+    title: "Codex",
+    summary: "Where rmk puts each type of item for Codex, and what Codex asks of you first.",
+    sections: [
+      { id: "paths", title: "Where each type goes" },
+      { id: "trust", title: "Trust and hook review" },
+      { id: "notes", title: "Good to know" },
+    ],
+  },
+  {
+    slug: "cursor",
+    title: "Cursor",
+    summary: "Where Cursor support stands.",
+    sections: [{ id: "status", title: "Not supported yet" }],
   },
 ] as const;
 
@@ -102,7 +126,7 @@ export const TOPIC_GROUPS: { label: string; topics: readonly TopicSlug[] }[] = [
   { label: "Getting started", topics: ["overview", "roles"] },
   { label: "Organising", topics: ["scopes", "items"] },
   { label: "Publishing", topics: ["review", "versions", "changes"] },
-  { label: "Installing", topics: ["rmk"] },
+  { label: "Installing", topics: ["rmk", "claude-code", "codex", "cursor"] },
 ];
 
 export const topicOf = (slug: string): Topic | undefined => TOPICS.find((t) => t.slug === slug);

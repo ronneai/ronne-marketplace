@@ -244,12 +244,12 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
                 </Td>
                 <Td className="text-sm">{TYPE_INFO[type].description}</Td>
                 <Td className="font-mono text-xs">
-                  <To href={docsHref("rmk", "claude-code")}>
+                  <To href={docsHref("claude-code", "paths")}>
                     {CLAUDE_CODE_PATHS.find(([t]) => t === type)?.[1].split(",")[0] ?? ""}
                   </To>
                 </Td>
                 <Td className="font-mono text-xs">
-                  <To href={docsHref("rmk", "codex")}>
+                  <To href={docsHref("codex", "paths")}>
                     {CODEX_PATHS.find(([t]) => t === type)?.[1]
                       .split(/[,(]/)[0]
                       ?.trim() ?? ""}
@@ -850,88 +850,168 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </p>
       </>
     ),
-    "claude-code": (
+    tools: (
+      <>
+        <p>
+          <Code>rmk</Code> writes for one AI tool or several. Each tool has its own page: where
+          every type of item goes, and what to know before the tool uses it.
+        </p>
+        <Table>
+          <thead>
+            <tr>
+              <Th>Tool</Th>
+              <Th>Target</Th>
+              <Th>Picked up when the project has</Th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <Td>
+                <To href={docsHref("claude-code")}>Claude Code</To>
+              </Td>
+              <Td>
+                <Code>claude-code</Code>
+              </Td>
+              <Td>
+                <Code>.claude/</Code> or <Code>CLAUDE.md</Code>
+              </Td>
+            </tr>
+            <tr>
+              <Td>
+                <To href={docsHref("codex")}>Codex</To>
+              </Td>
+              <Td>
+                <Code>codex</Code>
+              </Td>
+              <Td>
+                <Code>.codex/</Code>
+              </Td>
+            </tr>
+            <tr>
+              <Td>
+                <To href={docsHref("cursor")}>Cursor</To>
+              </Td>
+              <Td className="text-muted">not yet</Td>
+              <Td className="text-muted">–</Td>
+            </tr>
+          </tbody>
+        </Table>
+        <p>
+          With one tool picked up, <Code>rmk</Code> uses it; with several, it asks, or you say which
+          with <Code>--target</Code>. <Code>--target claude-code,codex</Code> writes for both, and a
+          file two tools read is written once and recorded for both. <Code>rmk platforms</Code>{" "}
+          lists every tool and what it supports.
+        </p>
+      </>
+    ),
+  },
+  "claude-code": {
+    paths: (
       <>
         <p>
           With <Code>--target claude-code</Code>, <Code>rmk</Code> writes each item where Claude
           Code reads it: in the project, or in your home folder with <Code>--scope user</Code>.
         </p>
         <PathsTable paths={CLAUDE_CODE_PATHS} />
-        <Bullets>
-          <li>
-            Rules go to <Code>.claude/rules/</Code>, which Claude Code always reads.{" "}
-            <Code>rmk</Code> never writes <Code>CLAUDE.md</Code> or <Code>AGENTS.md</Code>.
-          </li>
-          <li>
-            Commands are installed as skills: Claude Code merged the two, and you run them the same
-            way, as <Code>/name</Code>.
-          </li>
-          <li>
-            Claude Code asks once before it uses a project&apos;s MCP servers. Their secrets are
-            never written: the config references environment variables such as{" "}
-            <Code>{"${GITHUB_TOKEN}"}</Code>, which you set yourself.
-          </li>
-          <li>
-            An output style is installed, not switched on: pick it with <Code>/output-style</Code>.
-          </li>
-          <li>
-            Claude Code only takes language servers from plugins, so an <Code>lsp-server</Code>{" "}
-            becomes a small local plugin under <Code>.claude/rmk-plugins/</Code>, registered in the
-            settings.
-          </li>
-          <li>
-            Every generated file carries a <Code>managed by rmk</Code> marker, and settings entries
-            are tracked, so <Code>rmk</Code> never overwrites what you wrote by hand.
-          </li>
-        </Bullets>
       </>
     ),
-    codex: (
+    notes: (
+      <Bullets>
+        <li>
+          Rules go to <Code>.claude/rules/</Code>, which Claude Code always reads. <Code>rmk</Code>{" "}
+          never writes <Code>CLAUDE.md</Code> or <Code>AGENTS.md</Code>.
+        </li>
+        <li>
+          Commands are installed as skills: Claude Code merged the two, and you run them the same
+          way, as <Code>/name</Code>.
+        </li>
+        <li>
+          Claude Code asks once before it uses a project&apos;s MCP servers. Their secrets are never
+          written: the config references environment variables such as{" "}
+          <Code>{"${GITHUB_TOKEN}"}</Code>, which you set yourself.
+        </li>
+        <li>
+          An output style is installed, not switched on: pick it with <Code>/output-style</Code>.
+        </li>
+        <li>
+          Claude Code only takes language servers from plugins, so an <Code>lsp-server</Code>{" "}
+          becomes a small local plugin under <Code>.claude/rmk-plugins/</Code>, registered in the
+          settings.
+        </li>
+        <li>
+          Every generated file carries a <Code>managed by rmk</Code> marker, and settings entries
+          are tracked, so <Code>rmk</Code> never overwrites what you wrote by hand.
+        </li>
+      </Bullets>
+    ),
+  },
+  codex: {
+    paths: (
       <>
         <p>
           With <Code>--target codex</Code>, <Code>rmk</Code> writes each item where Codex reads it:
-          in the project, or in your home folder with <Code>--scope user</Code>. A project with a{" "}
-          <Code>.codex/</Code> folder is picked up on its own.
+          in the project, or in your home folder with <Code>--scope user</Code>.
         </p>
         <PathsTable paths={CODEX_PATHS} />
-        <Bullets>
-          <li>
-            Codex reads a project&apos;s <Code>.codex/config.toml</Code>, hooks and rules only once
-            you trust the project, and runs new or changed hooks only after you review them with{" "}
-            <Code>/hooks</Code>. <Code>rmk</Code> reminds you after an install that needs either.
-          </li>
-          <li>
-            Skills and commands go to <Code>.agents/skills/</Code>, the folder Cursor reads too, so
-            one copy serves both. Commands become skills you run as <Code>/name</Code>; Codex
-            doesn&apos;t pass them arguments, so a note in the skill says what each placeholder is.
-          </li>
-          <li>
-            Rules are sections of <Code>AGENTS.md</Code> between <Code>rmk:begin</Code> and{" "}
-            <Code>rmk:end</Code> markers, and your own text around them is never touched. Codex
-            reads at most 32 KiB of instructions, and <Code>rmk</Code> warns when{" "}
-            <Code>AGENTS.md</Code> passes that.
-          </li>
-          <li>
-            MCP servers get their secrets by the variable&apos;s name (<Code>env_vars</Code>,{" "}
-            <Code>bearer_token_env_var</Code>): nothing secret is written, and you set the variables
-            yourself.
-          </li>
-          <li>
-            <Code>rmk</Code> writes <Code>config.toml</Code> back in one layout when it adds or
-            removes a server, so comments in it aren&apos;t kept. It says so the first time.
-          </li>
-          <li>
-            Codex agents have no tool list and no fast or strong model: an agent gets the
-            session&apos;s tools and model, unless its item sets a Codex model. Hooks run for every
-            tool, since Codex&apos;s tool names aren&apos;t documented; a hook meant for one tool
-            reads the event on stdin and checks.
-          </li>
-          <li>
-            Permission policies become Codex rules for shell commands only, which Codex marks as
-            experimental. Output styles, status lines and language servers have no place in Codex,
-            and are skipped with a warning.
-          </li>
-        </Bullets>
+      </>
+    ),
+    trust: (
+      <p>
+        Codex reads a project&apos;s <Code>.codex/config.toml</Code>, hooks and rules only once you
+        trust the project, and runs new or changed hooks only after you review them with{" "}
+        <Code>/hooks</Code>. <Code>rmk</Code> reminds you after an install that needs either.
+      </p>
+    ),
+    notes: (
+      <Bullets>
+        <li>
+          Skills and commands go to <Code>.agents/skills/</Code>, the folder Cursor reads too, so
+          one copy serves both. Commands become skills you run as <Code>/name</Code>; Codex
+          doesn&apos;t pass them arguments, so a note in the skill says what each placeholder is.
+        </li>
+        <li>
+          Rules are sections of <Code>AGENTS.md</Code> between <Code>rmk:begin</Code> and{" "}
+          <Code>rmk:end</Code> markers, and your own text around them is never touched. Codex reads
+          at most 32 KiB of instructions, and <Code>rmk</Code> warns when <Code>AGENTS.md</Code>{" "}
+          passes that.
+        </li>
+        <li>
+          MCP servers get their secrets by the variable&apos;s name (<Code>env_vars</Code>,{" "}
+          <Code>bearer_token_env_var</Code>): nothing secret is written, and you set the variables
+          yourself.
+        </li>
+        <li>
+          <Code>rmk</Code> writes <Code>config.toml</Code> back in one layout when it adds or
+          removes a server, so comments in it aren&apos;t kept. It says so the first time.
+        </li>
+        <li>
+          Codex agents have no tool list and no fast or strong model: an agent gets the
+          session&apos;s tools and model, unless its item sets a Codex model. Hooks run for every
+          tool, since Codex&apos;s tool names aren&apos;t documented; a hook meant for one tool
+          reads the event on stdin and checks.
+        </li>
+        <li>
+          Permission policies become Codex rules for shell commands only, which Codex marks as
+          experimental. Output styles, status lines and language servers have no place in Codex, and
+          are skipped with a warning.
+        </li>
+      </Bullets>
+    ),
+  },
+  cursor: {
+    status: (
+      <>
+        <p>
+          This version of <Code>rmk</Code> doesn&apos;t write for Cursor yet:{" "}
+          <Code>--target cursor</Code> is refused, and <Code>rmk platforms</Code> lists the tools it
+          supports.
+        </p>
+        <p>
+          Cursor also reads skills from <Code>.agents/skills/</Code>, and skills and agents from
+          Claude Code&apos;s <Code>.claude/</Code> folder, so items installed for{" "}
+          <To href={docsHref("codex")}>Codex</To> or{" "}
+          <To href={docsHref("claude-code")}>Claude Code</To> may already show up in it.
+        </p>
       </>
     ),
   },

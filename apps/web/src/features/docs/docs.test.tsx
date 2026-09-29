@@ -118,13 +118,19 @@ describe("the topics", () => {
     expect(rmk).toContain("packages/cli/dist/bin.js");
     expect(rmk).toContain("code 3");
     expect(rmk).toContain('id="tokens"');
-    expect(rmk).toContain('id="claude-code"');
-    expect(rmk).toContain(".claude/rules/");
-    expect(rmk).toContain('id="codex"');
-    expect(rmk).toContain(".codex/agents/&lt;name&gt;.toml");
-    expect(rmk).toContain("/hooks");
-    expect(await topic("items")).toContain('href="/docs/rmk#codex"');
-    expect(await topic("items")).toContain('href="/docs/rmk#claude-code"');
+    expect(rmk).toContain('id="tools"');
+    for (const tool of ["claude-code", "codex", "cursor"])
+      expect(rmk).toContain(`href="/docs/${tool}"`);
+    const claude = await topic("claude-code");
+    expect(claude).toContain(">Claude Code</h1>");
+    expect(claude).toContain(".claude/rules/");
+    const codex = await topic("codex");
+    expect(codex).toContain('id="trust"');
+    expect(codex).toContain(".codex/agents/&lt;name&gt;.toml");
+    expect(codex).toContain("/hooks");
+    expect(await topic("cursor")).toContain("doesn&#x27;t write for Cursor yet");
+    expect(await topic("items")).toContain('href="/docs/claude-code#paths"');
+    expect(await topic("items")).toContain('href="/docs/codex#paths"');
     expect(rmk).toContain('href="/account/tokens"');
     expect(rmk).toContain("Nothing about who downloaded it is stored.");
   });

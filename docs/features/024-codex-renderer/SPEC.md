@@ -126,14 +126,18 @@ value, as for JSON keys (cli-files.md).
 
 ## Documentation
 
-- **Installing with rmk → a new section, "Codex":** where each type goes, trusting the project
-  and reviewing hooks in `/hooks`, that skills and commands share `.agents/skills/` with Cursor,
-  the 32 KiB instructions cap, that MCP secrets are passed by variable name, and what's skipped.
-- **Items and types → The types:** an "In Codex" column next to Claude Code's, linking to the new
-  section (026 turns the columns into its support matrix).
-- **Installing with rmk → Installing:** the target step names `--target codex` and both tools.
-- The item page helper, now "Where does this go in my AI tool?", covers Claude Code and Codex
-  (025 adds Cursor).
+- **Each AI tool gets its own page** in the Documentation's "Installing" group (owner's request,
+  2026-09-28): **Claude Code** (where each type goes, good to know), **Codex** (where each type
+  goes; trust and hook review; good to know: the shared `.agents/skills/`, the 32 KiB instructions
+  cap, MCP secrets by variable name, dropped TOML comments, what's skipped) and **Cursor** (not
+  supported yet, and which of the other tools' files it already reads). 025 fills in Cursor's.
+- **Installing with rmk → Your AI tools:** replaces the per-tool sections with a table of tools,
+  targets and what makes rmk pick each up, linking to their pages; the Installing step names
+  `--target codex` and both tools.
+- **Items and types → The types:** an "In Codex" column next to Claude Code's, linking to each
+  tool's page (026 turns the columns into its support matrix).
+- The item page helper, now "Where does this go in my AI tool?", covers Claude Code and Codex and
+  links to "Your AI tools" (025 adds Cursor).
 
 ## Edge cases
 
@@ -152,7 +156,7 @@ value, as for JSON keys (cli-files.md).
 - [x] Events and decisions map as in the table; anything unmappable, and every `none` type, is a warning.
 - [x] MCP servers reference variables by name only; no secret value is written.
 - [x] The end-to-end test installs a skill, an agent, a hook, an MCP server and a rule with `rmk` in a project with `.codex/` (so Codex is the detected target), and removes them, leaving the user's `AGENTS.md` text and `config.toml` keys untouched.
-- [x] The in-app Documentation has the Codex section, the types table's Codex column and the updated item page helper, with render tests.
+- [x] The in-app Documentation has a page per AI tool (Claude Code, Codex, Cursor), the types table's Codex column and the updated item page helper, with render tests.
 - [x] The locations are re-checked against Codex's documentation when this is built, and MVP §3.3 matches.
 
 ## Open questions
