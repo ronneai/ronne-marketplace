@@ -195,26 +195,26 @@ Mitigations: renderers are versioned, each has golden-file tests, and each platf
 | Tier | Platforms | When |
 |---|---|---|
 | 1 | Claude Code, Codex CLI, Cursor | MVP (M4–M5) |
-| 2 | GitHub Copilot (VS Code + CLI), Gemini CLI / Antigravity CLI, Devin Desktop (ex-Windsurf) | Right after the MVP |
+| 2 | GitHub Copilot (VS Code + CLI), Antigravity CLI and Gemini CLI, Devin (Desktop and CLI; ex-Windsurf) | Right after the MVP |
 | 3 | Kiro, Cline / Roo, JetBrains Junie, … | Community renderers |
 
 #### Mapping (project scope; user scope uses the home-directory equivalents)
 
-Surveyed September 2026; the Claude Code, Codex and Cursor columns were re-checked on 2026-09-28 for 023, 024 and 025. Paths are re-verified when each renderer is built.
+Surveyed September 2026; the Claude Code, Codex and Cursor columns were re-checked on 2026-09-28 for 023, 024 and 025, and the Copilot, Gemini CLI, Antigravity CLI and Devin columns on 2026-09-28 for the 028–030 specs. Paths are re-verified when each renderer is built.
 
-| Type | Claude Code | Codex CLI | Cursor | Copilot | Gemini CLI | Devin Desktop |
-|---|---|---|---|---|---|---|
-| skill | `.claude/skills/<n>/` | `.agents/skills/<n>/` (user: `~/.agents/skills/`) | `.agents/skills/<n>/` (also reads `.cursor/skills/`, `.claude/skills/`, `.codex/skills/`) | `.github/skills/<n>/` | `.agents/skills/<n>/` | `.agents/skills/<n>/` |
-| agent | `.claude/agents/<n>.md` | `.codex/agents/<n>.toml` (`name`, `description`, `developer_instructions`) | `.cursor/agents/<n>.md` (no tools field; `readonly`; also reads `.claude/agents/`) | `.github/agents/<n>.agent.md` | `.gemini/agents/<n>.md` | none |
-| rule | `.claude/rules/<n>.md` | section in `AGENTS.md` (one file per folder, 32 KiB cap) | `.cursor/rules/<n>.mdc` (user rules are a setting, not a file) | `.github/instructions/<n>.instructions.md` | section in `GEMINI.md` | `.devin/rules/<n>.md` |
-| command | rendered as a skill, `.claude/skills/<n>/` (`.claude/commands/` is legacy) | rendered as a skill (custom prompts are deprecated) | rendered as a skill with `disable-model-invocation: true` | `.github/prompts/<n>.prompt.md` | `.gemini/commands/<n>.toml` | `.devin/workflows/<n>.md` |
-| hook | `hooks` in `.claude/settings.json` | `.codex/hooks.json` (same events as Claude Code; trusted in `/hooks` first) | `.cursor/hooks.json` (`version: 1`, its own event names; also runs Claude Code's hooks) | `.github/hooks/<n>.json` | `hooks` in `.gemini/settings.json` | `.devin/hooks.json` |
-| mcp-server | `.mcp.json` | `[mcp_servers.<n>]` in `.codex/config.toml` (secrets by env var name: `env_vars`, `bearer_token_env_var`) | `.cursor/mcp.json` (`${env:NAME}`) | `.vscode/mcp.json` / `.github/mcp.json` | `mcpServers` in `.gemini/settings.json` | `~/.codeium/windsurf/mcp_config.json` |
-| permission-policy | `permissions` in `.claude/settings.json` | `.codex/rules/<n>.rules` (Starlark, `allow`/`prompt`/`forbidden`; experimental) | `permissions` in `.cursor/cli.json` (the CLI only; `Shell(cmd:args)`, no ask) | `.github/copilot/settings.json` | policy file (to verify) | none |
-| output-style | `.claude/output-styles/<n>.md` | none | none | none | none | none |
-| statusline | `statusLine` in settings | none (`tui.status_line` takes built-in ids only) | none (the CLI has one, undocumented) | none | none | none |
-| lsp-server | `.lsp.json` in a generated local plugin (plugins only) | none | built-in, not needed | `.github/lsp.json` | none | none |
-| bundle | installs members (or native plugin export) | same | same | same | same | same |
+| Type | Claude Code | Codex CLI | Cursor | Copilot | Gemini CLI | Antigravity CLI | Devin |
+|---|---|---|---|---|---|---|---|
+| skill | `.claude/skills/<n>/` | `.agents/skills/<n>/` (user: `~/.agents/skills/`) | `.agents/skills/<n>/` (also reads `.cursor/skills/`, `.claude/skills/`, `.codex/skills/`) | `.agents/skills/<n>/` (also reads `.github/`, `.claude/skills/`) | `.agents/skills/<n>/` (also `.gemini/skills/`) | `.agents/skills/<n>/` | `.agents/skills/<n>/` (also reads `.claude/`, `.github/`, `.windsurf/skills/`) |
+| agent | `.claude/agents/<n>.md` | `.codex/agents/<n>.toml` (`name`, `description`, `developer_instructions`) | `.cursor/agents/<n>.md` (no tools field; `readonly`; also reads `.claude/agents/`) | `.github/agents/<n>.agent.md` (also reads `.claude/agents/`) | `.gemini/agents/<n>.md` | `.agents/agents/<n>.md` (own tool names) | `.devin/agents/<n>.md` (preview; also reads `.claude/`) |
+| rule | `.claude/rules/<n>.md` | section in `AGENTS.md` (one file per folder, 32 KiB cap) | `.cursor/rules/<n>.mdc` (user rules are a setting, not a file) | `.github/instructions/<n>.instructions.md` (`applyTo`) | section in `GEMINI.md` | `.agents/rules/<n>.md` (`trigger`, `globs`) | `.devin/rules/<n>.md` (`trigger`) |
+| command | rendered as a skill, `.claude/skills/<n>/` (`.claude/commands/` is legacy) | rendered as a skill (custom prompts are deprecated) | rendered as a skill with `disable-model-invocation: true` | rendered as a skill (prompt files are VS Code Local only) | `.gemini/commands/<n>.toml` | rendered as a skill (every skill is a command) | rendered as a skill (workflows dropped with Cascade) |
+| hook | `hooks` in `.claude/settings.json` | `.codex/hooks.json` (same events as Claude Code; trusted in `/hooks` first) | `.cursor/hooks.json` (`version: 1`, its own event names; also runs Claude Code's hooks) | `.github/hooks/<n>.json` (CLI format, one file per item) | `hooks` in `.gemini/settings.json` (`BeforeTool`…, ms) | `<n>` in `.agents/hooks.json` | `.devin/hooks.v1.json` (Claude Code format) |
+| mcp-server | `.mcp.json` | `[mcp_servers.<n>]` in `.codex/config.toml` (secrets by env var name: `env_vars`, `bearer_token_env_var`) | `.cursor/mcp.json` (`${env:NAME}`) | `.github/mcp.json` (CLI) and `.vscode/mcp.json` (VS Code) | `mcpServers` in `.gemini/settings.json` | `.agents/mcp_config.json` (no env reference syntax documented) | `.devin/mcp_config.json` |
+| permission-policy | `permissions` in `.claude/settings.json` | `.codex/rules/<n>.rules` (Starlark, `allow`/`prompt`/`forbidden`; experimental) | `permissions` in `.cursor/cli.json` (the CLI only; `Shell(cmd:args)`, no ask) | none (nothing a repo can commit) | user only: `~/.gemini/policies/<n>.toml` (project policies non-functional) | user only: `~/.gemini/antigravity-cli/settings.json` | `permissions` in `.devin/config.json` |
+| output-style | `.claude/output-styles/<n>.md` | none | none | none | none | none | none |
+| statusline | `statusLine` in settings | none (`tui.status_line` takes built-in ids only) | none (the CLI has one, undocumented) | user only: `statusLine` in `~/.copilot/settings.json` | none | user only: `statusLine` | none |
+| lsp-server | `.lsp.json` in a generated local plugin (plugins only) | none | built-in, not needed | `.github/lsp.json` (CLI) | none | none | none |
+| bundle | installs members (or native plugin export) | same | same | same | same | same | same |
 
 Notes:
 - Claude Code reads `AGENTS.md` only when the project has no `CLAUDE.md` (checked 2026-09-28), so rules for Claude go to `.claude/rules/`, which it always reads ([023](../features/023-claude-code-renderer/SPEC.md)).
@@ -605,7 +605,7 @@ its own `SPEC.md` and `PLAN.md`, and the index there tracks their status.
 | M3 | Review & release | Review queue with diff and risk flags; approval rule (1 non-author moderator/root, root override); publish with semver bump and dist-tags; deprecate/yank; audit log. |
 | M4 | `rmk` + Claude Code | `login`, `search`, `info`, `install`, `update`, `remove`, `outdated`; lockfile; renderer interface + golden-file test harness; Claude Code renderer for every item type. |
 | M5 | Codex, Cursor, MCP | Codex and Cursor renderers with unsupported-type warnings; shared `.agents/skills` output; per-item support matrix in the web UI; registry MCP server and `rmk mcp-setup`. |
-| M5b | Tier-2 platforms (right after MVP) | Copilot, Gemini/Antigravity and Devin Desktop renderers. |
+| M5b | Tier-2 platforms (right after MVP) | Copilot, Antigravity CLI and Gemini CLI, and Devin renderers ([028](../features/028-copilot-renderer/SPEC.md)–[030](../features/030-devin-renderer/SPEC.md)). |
 | M6 | Visual composer and npm | React Flow canvas editing `dependencies`; round-trips to `ronne.yaml`; shown as a text diff in review. `rmk` and the MCP server published to npm under `@ronneai` ([034](../features/034-npm-packages/SPEC.md)). |
 
 ## 14. Future topics
