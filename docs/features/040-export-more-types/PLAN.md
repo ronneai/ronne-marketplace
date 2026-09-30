@@ -12,7 +12,7 @@ the same change that completes it.
   `render/claude-code/`; fix the contract and this spec where they differ.
   *Done when:* the contract carries the date of the check, and any change is in the spec.
 
-- [ ] **2. The agent reader.** `read/claude-code/agent.ts`, with the tool and model tables
+- [x] **2. The agent reader.** `read/claude-code/agent.ts`, with the tool and model tables
   reversed from `mappings.ts`.
   *Done when:* golden and round-trip tests pass for the example agent, and tests cover a warning
   per dropped field, `tools` as a string, and a missing `tools`.

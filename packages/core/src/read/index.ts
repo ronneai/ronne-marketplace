@@ -1,5 +1,6 @@
 // `@ronneai/core/read`: the readers, which turn an AI tool's own files into an item (feature 038).
 
+export { agentName, readAgent } from "./claude-code/agent.js";
 export { readSkill, skillName } from "./skill.js";
 export { DESCRIPTION_MAX_LENGTH, fitDescription, toItemName } from "./text.js";
 export {

@@ -15,7 +15,15 @@ export type ReadWarningCode =
   /** The uploaded copy of the entry file got its `name` set; the file on disk didn't. */
   | "entry_name_set"
   /** `version` was left out: the packer sets it when the item is released. */
-  | "version_removed";
+  | "version_removed"
+  /** A native field the manifest can't carry was left out (040). */
+  | "field_dropped"
+  /** A tool with no canonical name was left out of an agent's tools (040). */
+  | "tool_dropped"
+  /** A model the manifest doesn't name was read as `default` (040). */
+  | "model_default"
+  /** The native name couldn't be an item name, and was made into one (040). */
+  | "name_changed";
 
 /** Something the person should know before uploading; the preview lists them. */
 export type ReadWarning = { code: ReadWarningCode; message: string; file?: string };
