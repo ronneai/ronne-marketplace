@@ -92,9 +92,10 @@ email filled in and a notice that the instance is set up (the setup page would o
 there anyway, now that the instance is ready). A failure comes back to the form with the list
 filled in and the error on its field, with the passwords empty (they're never sent back).
 
-The page says nothing about the terminal (owner's decision, 2026-09-30): the web setup is the
-way in, and `pnpm run setup` stays documented in the README and the Documentation for scripts and
-for people who prefer it. At the bottom, a warning: anyone who can open this page can set the
+The page, the README's install sections, `compose.yaml` and the Documentation say nothing about
+the terminal (owner's decision, 2026-09-30): the web setup is the way in. `pnpm run setup` and its
+`--yes` mode stay documented in the README's Development section, for scripts, CI, and a host that
+must be set up before its port is exposed. At the bottom, a warning: anyone who can open this page can set the
 instance up; finish it now, before the address is shared.
 
 **What it writes**, exactly as 003: the settings file (`RONNE_ENV_FILE`, or `apps/web/.env`)
@@ -178,9 +179,8 @@ steps, as sign-in is over the identity domain.
   - `docker`: `compose.yaml` alone, `docker compose up -d`, open the address, the volume, the
     profiles for PostgreSQL and MySQL.
   - `node`: Node 24, `pnpm install`, `pnpm dev` (or `pnpm build && pnpm start`), open the address.
-  - `setup`: what the wizard asks and writes, Test connection, the Install list, resuming, that
-    the same setup runs from the terminal (`pnpm run setup`, `--yes` with the variables) and why
-    someone would (a public host: the first visitor owns the instance).
+  - `setup`: what the wizard asks and writes, Test connection, the Install list, resuming, and
+    that the first visitor owns the instance (nothing about the terminal).
   - `root`: one root, what it can do, `pnpm run reset-root-password`.
   - `upgrade`: `docker compose pull web && docker compose up -d`, or pull and rebuild; migrations
     run on start.
@@ -189,10 +189,10 @@ steps, as sign-in is over the identity domain.
 - **Inline helpers:** none in `Help.tsx`. Its helpers link into the Documentation, which needs a
   signed-in session and would bounce back to `/setup`. The wizard uses inline tips (the shared
   `HelpTip` without a link) for the database kinds, the public URL and the root account.
-- **Outside the app:** the README's Node and Docker sections say to open the address and follow
-  the setup, keep the terminal commands as the alternative, and carry the first-visitor
-  sentence; the README's Development table and `CLAUDE.md`'s command table gain
-  `pnpm run reset-setup`; `compose.yaml`'s header and `pnpm run setup`'s closing message drop the restart step;
+- **Outside the app:** the README's Getting started leads with the Docker image, then building
+  from source, both ending in "open the address and follow the setup" with the first-visitor
+  sentence; the terminal setup and `--yes` move to its Development section; the README's
+  Development table and `CLAUDE.md`'s command table gain `pnpm run reset-setup`; `compose.yaml`'s header and `pnpm run setup`'s closing message drop the restart step;
   MVP §5 and §15 (new "Web setup" row; the "Setup command" and "Docker" rows); 003's spec gets a
   "Where the code lives" note and 005's setup-required paragraph points here.
 

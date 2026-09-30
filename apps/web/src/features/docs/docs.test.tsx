@@ -117,7 +117,7 @@ describe("the topics", () => {
       expect(install).toContain(`id="${id}"`);
     expect(install).toContain("docker compose up -d");
     expect(install).toContain("Test connection");
-    expect(install).toContain("pnpm run setup --yes");
+    expect(install).not.toContain("pnpm run setup");
     expect(install).toContain("reset-root-password");
     expect(install).not.toContain("docker compose restart");
     expect(install).toContain("Nothing needs a restart");

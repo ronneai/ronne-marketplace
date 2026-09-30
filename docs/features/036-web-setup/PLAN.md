@@ -135,6 +135,9 @@ the same change that completes it.
   clone. Checked live: after `pnpm run setup --yes` a running `pnpm dev` answered health with 200
   and `/setup` with a redirect; after `pnpm run reset-setup --yes`, without a restart, `/` ended
   on `/setup` and health answered 503.
+- After task 8 (owner, 2026-09-30): the README's install sections, `compose.yaml` and the
+  "Installing Ronne" topic describe only the image (or the source) and the web setup; the
+  terminal setup and `--yes` are in the README's Development section.
 - Task 4: the install logic lives in `features/setup/install.ts` as functions of a context
   (app folder, settings file, environment, database opener, audit origin), and `actions.ts` only
   builds that context from the request; `install.db.test.ts` runs the steps against a temporary

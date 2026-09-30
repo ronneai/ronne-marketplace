@@ -3,8 +3,7 @@
 #
 #   docker compose up -d                            start Ronne (SQLite, data in the ronne-data volume)
 #   then open http://localhost:3000 (or PUBLIC_URL) and follow the setup in the browser.
-#   Anyone who can open that address first can set it up: do it straight away, or set it up before
-#   exposing the port with `docker compose exec web pnpm run setup` (asks the same questions).
+#   Anyone who can open that address before you can set it up, so open it right after `up`.
 #
 #   docker compose pull web && docker compose up -d       upgrade (migrations run on start)
 #   RONNE_IMAGE=ronneai/marketplace:0.1.0                 pin a version (environment or .env)

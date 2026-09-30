@@ -221,13 +221,8 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </Steps>
         <p>
           A setup that was interrupted after the settings were written resumes at Install on the
-          next visit, keeping the database. Anyone who can open the address can run the setup, so on
-          a shared host do it straight away, or set the instance up before exposing the port: the
-          same setup runs in the terminal as <Code>pnpm run setup</Code> (in Docker,{" "}
-          <Code>docker compose exec web pnpm run setup</Code>), and without prompts as{" "}
-          <Code>pnpm run setup --yes</Code> with <Code>DATABASE_URL</Code>, <Code>PUBLIC_URL</Code>,{" "}
-          <Code>RONNE_ROOT_EMAIL</Code>, <Code>RONNE_ROOT_NAME</Code> and{" "}
-          <Code>RONNE_ROOT_PASSWORD</Code> set. Both write the same settings and never create a
+          next visit, keeping the database. Anyone who can open the address before you can set the
+          instance up, so open it right after starting it. Running the setup again never creates a
           second root.
         </p>
       </>
@@ -700,9 +695,8 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </li>
         <li>
           <strong>root:</strong> the instance&apos;s owner, created by{" "}
-          <To href={docsHref("install", "setup")}>the setup</To> (in the browser, or{" "}
-          <Code>pnpm run setup</Code>). Everything a moderator does, plus users, scopes and the
-          audit log. Root creates every account: nobody signs up.
+          <To href={docsHref("install", "setup")}>the setup</To>. Everything a moderator does, plus
+          users, scopes and the audit log. Root creates every account: nobody signs up.
         </li>
       </Bullets>
     ),
