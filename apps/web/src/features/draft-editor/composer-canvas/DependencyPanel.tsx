@@ -1,6 +1,7 @@
 "use client";
 
 import type { ItemType } from "@ronneai/core";
+import { Help } from "@/components/help/Help";
 import { Notice } from "@/components/ui/Notice";
 import { useComposer } from "./context";
 import { DependencyFactsLine, DependencyProblems, RangeField, RemoveButton } from "./nodes";
@@ -36,6 +37,7 @@ export const DependencyPanel = ({
         <p className="text-xs text-muted">
           {type === "bundle" ? "The items this bundle installs." : "Items installed with this one."}
         </p>
+        <Help id="canvas" />
       </div>
       {failed ? (
         <Notice kind="warn" title="The catalogue couldn't be reached.">

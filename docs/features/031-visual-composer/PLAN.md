@@ -22,7 +22,7 @@ the same change that completes it.
   adding by click or drop with the starting range.
   *Done when:* action tests on the database and render tests cover it.
 
-- [ ] **4. Review, end to end and documentation.** The review diff leaving `.ronne/` out, the
+- [x] **4. Review, end to end and documentation.** The review diff leaving `.ronne/` out, the
   Playwright test, and the Documentation part and helper.
   *Done when:* it passes in CI, and the docs render tests cover the new part.
 
@@ -57,3 +57,9 @@ the same change that completes it.
   allowed types and `installable`, so what it offers passes 013's type and version checks. A
   dragged result carries its name and version as `application/x-ronne-dependency`; the canvas
   ignores any other drop.
+- **Task 4.** `reviewDiff` (`models/diff.ts`) splits a diff into the released files' changes
+  and the `.ronne/` paths that changed; `FileChanges` names those in a line under the diff. Two
+  things found on the way, fixed with it: a proposal's suggested bump counted
+  `.ronne/layout.json` as a new file (a minor release for moving a node), and its "no changes"
+  check saw an arranged canvas as a change. The Playwright test drags with explicit mouse
+  steps: `dragTo` pressed and released without the moves a native drag needs.

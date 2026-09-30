@@ -9,7 +9,7 @@ import {
   type SuggestedBump,
   suggestBump,
 } from "../models/bump";
-import { diffRevisions, type FileChange } from "../models/diff";
+import { type FileChange, isUnreleased, reviewDiff } from "../models/diff";
 import type { ReviewEvent, Revision, RevisionFile } from "../models/review";
 import { canTransition, OPEN_STATUSES } from "../models/status";
 import { fileBytes, MANIFEST_PATH, type Submission, toPackageFile } from "../models/submission";
@@ -26,6 +26,8 @@ export type ReviewView = {
   /** The revision before it, which "Changes since" compares with; null for revision 1. */
   previous: number | null;
   changes: FileChange[];
+  /** Files under `.ronne/` that changed too (031): named, not diffed, since they aren't released. */
+  unreleased: string[];
   flags: RiskFlag[];
   issues: ManifestIssue[];
   events: ReviewEvent[];
@@ -43,6 +45,8 @@ export type ProposalView = {
   stale: string | null;
   /** The latest revision against the base version's files; null if they couldn't be read. */
   changes: FileChange[] | null;
+  /** Files under `.ronne/` the proposal has, which the base, a released version, never does. */
+  unreleased: string[];
   manifest: ManifestFieldChange[];
   /** The bump the publish dialog suggests. */
   suggested: SuggestedBump | null;
@@ -75,16 +79,21 @@ const proposalView = async (
     }
   const before = base ? manifestOf(base) : null;
   const after = files ? manifestOf(files) : null;
+  const diff = base && files ? reviewDiff(base, files) : null;
+  // The bump is about what's released: a canvas layout isn't a new file of the item.
+  const released = (side: readonly RevisionFile[]) =>
+    side.map((f) => f.path).filter((path) => !isUnreleased(path));
   return {
     baseVersion: submission.proposal.baseVersion,
     stale,
-    changes: base && files ? diffRevisions(base, [...files]) : null,
+    changes: diff?.changes ?? null,
+    unreleased: diff?.unreleased ?? [],
     manifest: before && after ? manifestChanges(before, after) : [],
     suggested:
       base && files && before && after
         ? suggestBump(
-            { manifest: before, paths: base.map((f) => f.path) },
-            { manifest: after, paths: files.map((f) => f.path) },
+            { manifest: before, paths: released(base) },
+            { manifest: after, paths: released(files) },
           )
         : null,
   };
@@ -128,6 +137,7 @@ export const getReview = async (
   const published = item
     ? (await deps.repo.registry().publishedVersions(item.id)).map((v) => v.version)
     : [];
+  const diff = latest ? reviewDiff(previousFiles, files) : { changes: [], unreleased: [] };
   return {
     submission: {
       ...submission,
@@ -137,7 +147,8 @@ export const getReview = async (
     revisions,
     current: latest ? { number: latest.number, files } : null,
     previous: before?.number ?? null,
-    changes: latest ? diffRevisions(previousFiles, files) : [],
+    changes: diff.changes,
+    unreleased: diff.unreleased,
     flags: manifest ? riskFlags(manifest, files.map(toPackageFile)) : [],
     issues: latest ? await allIssues(deps, deps.repo, submission, files) : [],
     events: await deps.repo.events(submission.id),

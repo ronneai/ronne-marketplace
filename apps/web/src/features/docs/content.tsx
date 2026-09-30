@@ -390,12 +390,57 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </p>
       </>
     ),
+    canvas: (
+      <>
+        <p>
+          An agent or a bundle is mostly the items it uses, so its draft shows{" "}
+          <Code>ronne.yaml</Code> a third way, next to Form and YAML: <strong>Canvas</strong>. The
+          draft is the node in the centre, and each dependency is a node joined to it, with its
+          type, the version the catalogue lists, the AI tools it works in, and its range.
+        </p>
+        <Bullets>
+          <li>
+            <strong>Add:</strong> search the catalogue under the canvas. It offers published items
+            of the types the draft may depend on. <strong>Add</strong> puts one on the canvas with
+            the range <Code>^</Code> and its listed version, such as <Code>^1.4.0</Code> (a
+            pre-release starts on that exact version); dragging it onto the canvas puts it where you
+            drop it.
+          </li>
+          <li>
+            <strong>Change a range:</strong> type it in the node, or in the list under the canvas.
+            It&apos;s a version range such as <Code>^1.0.0</Code>; a tag such as <Code>latest</Code>{" "}
+            isn&apos;t one.
+          </li>
+          <li>
+            <strong>Remove:</strong> the node&apos;s × button, or select the node and press Delete.
+          </li>
+          <li>
+            <strong>Problems</strong> show in the node: what submitting would say about that
+            dependency, such as that it isn&apos;t published or no version fits the range.
+          </li>
+          <li>
+            <strong>Without a mouse:</strong> Tab reaches each node and its fields, Enter selects a
+            node and the arrow keys move it; the list under the canvas has every dependency, with
+            the same fields.
+          </li>
+        </Bullets>
+        <p>
+          The canvas changes only <Code>dependencies</Code> in <Code>ronne.yaml</Code>: the form and
+          the YAML show the same thing, and reviewers read it as lines in the file&apos;s diff.
+          Where you put the nodes is kept in <Code>.ronne/layout.json</Code>, a file of the draft.
+          It&apos;s left out of review diffs and isn&apos;t released, so a{" "}
+          <To href={docsHref("changes")}>change proposal</To> starts with the nodes placed
+          automatically.
+        </p>
+      </>
+    ),
     manifest: (
       <>
         <p>
           An item is a small folder of files. <Code>ronne.yaml</Code>, its manifest, says what it
           is; the other files are its content, such as <Code>SKILL.md</Code> for a skill. The editor
-          shows <Code>ronne.yaml</Code> as a form or as YAML.
+          shows <Code>ronne.yaml</Code> as a form or as YAML, and an agent&apos;s or a bundle&apos;s
+          also as a <To href={docsHref("items", "canvas")}>canvas</To>.
         </p>
         <Example>
           {
@@ -489,6 +534,9 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           </li>
           <li>
             <strong>The changes</strong> since the last revision, or every file on the first one.
+            Files in <Code>.ronne/</Code>, such as a{" "}
+            <To href={docsHref("items", "canvas")}>canvas</To>&apos;s layout, aren&apos;t released,
+            so the changes only say that they changed.
           </li>
           <li>The checks, and the conversation with the author.</li>
         </Bullets>

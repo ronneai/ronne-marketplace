@@ -80,8 +80,11 @@ from the top, which grows with the number of dependencies. The packer already le
 out of released packages (011), so a change proposal (017), which starts from the released files,
 starts with an automatic layout. The file editor shows `.ronne/layout.json` like any file.
 
-**In review**, the diff leaves `.ronne/` out, with a line saying the canvas layout changed, since it
-isn't part of what's released (see Open questions).
+**In review**, the diffs (the changes since the last revision, and a change proposal's changes
+to its base version) leave `.ronne/` out and end with a line saying the canvas layout changed,
+since it isn't part of what's released. "All files" still lists it, as a file of the submission.
+For the same reason a proposal's suggested bump doesn't count `.ronne/layout.json` as a new file,
+and a proposal that only arranged the canvas still has "no changes" to submit.
 
 **Where it lives.** `apps/web/src/features/draft-editor/composer-canvas/` (MVP §9, feature-first),
 with its hooks, types and tests. What it reads from the registry is in the `submissions` domain
@@ -109,28 +112,33 @@ which gains two filters for it: several types, and installable only.
 
 ## Documentation
 
-- **Submitting and review** (or Items and types → Dependencies): a short "Composing on a canvas"
-  part: the Canvas view, adding from the catalogue, ranges, that the canvas only edits
-  `dependencies` and reviewers see the text diff, and that the layout isn't released.
-- **Inline helper** in the canvas's side panel: "What does the canvas change?" → "Only
-  `dependencies` in ronne.yaml. Positions are kept with your draft and aren't released."
+- **Items and types → Composing on a canvas**, a section of its own after Dependencies: the
+  Canvas view, adding from the catalogue, ranges, removing, problems, keyboard use, that the
+  canvas only edits `dependencies` and reviewers see the text diff, and that the layout isn't
+  released. "ronne.yaml and the files" links to it, and **Submitting and review → What reviewers
+  look at** says that files in `.ronne/` are only named in the changes.
+- **Inline helper** in the list under the canvas: "What does the canvas change?" → "Only
+  dependencies in ronne.yaml. Positions are kept with your draft and aren't released."
 
 ## Acceptance criteria
 
-- [ ] An agent or bundle draft has a Canvas view; skills and other types don't.
-- [ ] Adding, re-ranging and removing on the canvas changes `dependencies` in `ronne.yaml`, and changes in the form or YAML show on the canvas, with render and unit tests.
-- [ ] The picker offers only published items of allowed types, with a starting range from the latest version.
-- [ ] Positions are saved in `.ronne/layout.json`, missing ones placed automatically, and moving nodes never changes `ronne.yaml`.
-- [ ] Released packages don't contain `.ronne/`; the review diff leaves it out.
-- [ ] Everything on the canvas can be done from the keyboard.
-- [ ] An end-to-end test composes an agent from two catalogue items on the canvas, saves, reloads, and sees them in the YAML.
-- [ ] The Documentation part and the helper say what the canvas does.
+- [x] An agent or bundle draft has a Canvas view; skills and other types don't.
+- [x] Adding, re-ranging and removing on the canvas changes `dependencies` in `ronne.yaml`, and changes in the form or YAML show on the canvas, with render and unit tests.
+- [x] The picker offers only published items of allowed types, with a starting range from the latest version.
+- [x] Positions are saved in `.ronne/layout.json`, missing ones placed automatically, and moving nodes never changes `ronne.yaml`.
+- [x] Released packages don't contain `.ronne/`; the review diff leaves it out.
+- [x] Everything on the canvas can be done from the keyboard.
+- [x] An end-to-end test composes an agent from two catalogue items on the canvas, saves, reloads, and sees them in the YAML.
+- [x] The Documentation part and the helper say what the canvas does.
 
 ## Open questions
 
-1. **The review diff leaves `.ronne/layout.json` out** (recommended: it isn't released, and a
-   moved node isn't something to approve), or shows it like any other file.
-2. **A canvas for agents and bundles only** (recommended: they're the types that combine several
-   kinds of item), or for every type that may have dependencies, including skills and commands.
-3. **The starting range is `^<latest>`** (recommended: npm's default, and the resolver keeps it
-   current within the major), or the exact latest version.
+None open. The three the spec started with were built as recommended (2026-09-30), for the owner
+to confirm:
+
+1. **The review diff leaves `.ronne/layout.json` out** and says that it changed: it isn't
+   released, and a moved node isn't something to approve.
+2. **A canvas for agents and bundles only**: they're the types that combine several kinds of
+   item. Skills and commands keep the form.
+3. **The starting range is `^<latest>`**: npm's default, and the resolver keeps it current within
+   the major. A pre-release starts on its exact version.

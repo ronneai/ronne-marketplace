@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DIFF_MAX_LINES, diffRevisions } from "./diff";
+import { DIFF_MAX_LINES, diffRevisions, isUnreleased, reviewDiff } from "./diff";
 import type { RevisionFile } from "./review";
 
 const text = (path: string, content: string, executable = false): RevisionFile => ({
@@ -72,5 +72,32 @@ describe("diffRevisions", () => {
     const big = Array.from({ length: DIFF_MAX_LINES + 1 }, (_, i) => `line ${i}`).join("\n");
     const [change] = diffRevisions([text("big.txt", big)], [text("big.txt", `${big}\nmore`)]);
     expect(change?.hunks).toBe("too_large");
+  });
+});
+
+describe("reviewDiff", () => {
+  it("leaves .ronne/ out of the changes and names what changed there", () => {
+    const layout = (x: number) =>
+      text(".ronne/layout.json", `{"version":1,"nodes":{"@a/b":{"x":${x},"y":0}}}\n`);
+    const before = [layout(0), text("ronne.yaml", "name: x\n")];
+    const after = [layout(40), text(".ronne/notes.md", "Mine.\n"), text("ronne.yaml", "name: y\n")];
+    const diff = reviewDiff(before, after);
+    expect(diff.changes.map((c) => c.path)).toEqual(["ronne.yaml"]);
+    expect(diff.unreleased).toEqual([".ronne/layout.json", ".ronne/notes.md"]);
+    // Only the layout moved: nothing to review, and it's still named.
+    expect(reviewDiff(before, [layout(40), text("ronne.yaml", "name: x\n")])).toEqual({
+      changes: [],
+      unreleased: [".ronne/layout.json"],
+    });
+    expect(reviewDiff(before, before)).toEqual({ changes: [], unreleased: [] });
+    // A first revision: every file is added, the layout among the unreleased.
+    expect(reviewDiff(null, before).unreleased).toEqual([".ronne/layout.json"]);
+  });
+
+  it("knows .ronne/ from names that only look like it", () => {
+    expect(isUnreleased(".ronne/layout.json")).toBe(true);
+    expect(isUnreleased(".ronne")).toBe(false);
+    expect(isUnreleased("docs/.ronne/layout.json")).toBe(false);
+    expect(isUnreleased(".ronnex/a")).toBe(false);
   });
 });

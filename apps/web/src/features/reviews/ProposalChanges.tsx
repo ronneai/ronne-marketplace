@@ -38,6 +38,7 @@ export const ProposalChanges = ({ proposal }: { proposal: ProposalView }) => (
     {proposal.changes ? (
       <FileChanges
         changes={proposal.changes}
+        unreleased={proposal.unreleased}
         since={null}
         emptyText={`No changes to ${proposal.baseVersion}.`}
       />

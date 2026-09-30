@@ -167,6 +167,15 @@ describe("the topics", () => {
     expect(items).toContain('aria-label="Cursor: not supported"');
     expect(items).toContain("Core AI capabilities");
     expect(items).toContain("bundle → any type");
+    // Composing on a canvas (031): what it edits, and what isn't released.
+    expect(items).toMatch(/<h2 id="canvas-title"[^>]*>Composing on a canvas<\/h2>/);
+    expect(items).toContain("<strong>Canvas</strong>");
+    expect(items).toContain("search the catalogue under the canvas");
+    expect(items).toContain("The canvas changes only");
+    expect(items).toContain(".ronne/layout.json");
+    expect(items).toContain("isn&#x27;t released");
+    expect(items).toContain('href="/docs/items#canvas"');
+    expect(await topic("review")).toContain("the changes only say that they changed");
     expect(rmk).toContain('href="/account/tokens"');
     expect(rmk).toContain("Nothing about who downloaded it is stored.");
   });

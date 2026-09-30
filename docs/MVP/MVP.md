@@ -426,11 +426,12 @@ written `pnpm run setup`. Full behaviour, including a non-interactive mode for D
 | Release | Publish dialog (bump, dist-tag, notes); move tags; deprecate / yank |
 | Admin (root) | Users (create, disable, reset password, change role); instance settings; audit log |
 
-**Visual composer.** Built with React Flow. It shows a canvas where an agent (or bundle) node connects
-to skill, MCP server, hook, rule and command nodes picked from the catalogue, each with a
-version-range selector. The canvas is a **view over `dependencies` in `ronne.yaml`**: saving
-writes the manifest, so reviews always see a plain text diff. Canvas positions are stored in
-`.ronne/layout.json` inside the item and ignored by renderers.
+**Visual composer** ([031](../features/031-visual-composer/SPEC.md)). Built with React Flow. It
+shows a canvas where an agent (or bundle) node connects to skill, MCP server, hook, rule and command
+nodes picked from the catalogue, each with a version-range selector. The canvas is a **view over
+`dependencies` in `ronne.yaml`**: saving writes the manifest, so reviews always see a plain text
+diff. Canvas positions are stored in `.ronne/layout.json` in the draft. The packer leaves `.ronne/`
+out, so they are never released, and review diffs only say that they changed.
 
 ## 9. Architecture
 

@@ -391,6 +391,29 @@ describe("the review of a proposal", () => {
     expect(issues.map((i) => i.message)).toEqual([
       "No changes to 1.0.0: change something before submitting.",
     ]);
+    // Arranging the canvas (031) changes nothing that would be released.
+    await write(asOther, draft.id, { ".ronne/layout.json": '{"version":1,"nodes":{}}\n' });
+    expect((await checkSubmission(asOther, draft.id, app, storage)).map((i) => i.code)).toEqual([
+      "no_changes",
+    ]);
+  });
+
+  it("keeps the canvas layout out of a proposal's changes and its suggested bump", async () => {
+    await releasedSkill();
+    const draft = await proposeChange(asOther, item, app, storage);
+    await write(asOther, draft.id, {
+      ".ronne/layout.json": '{"version":1,"nodes":{}}\n',
+      "README.md": "# Secure coding\n\nVersion two.\n",
+    });
+    await submitDraft(asOther, draft.id, app, storage);
+    const view = await getReview(asModerator, draft.id, app, storage);
+    expect(view.proposal?.changes?.map((c) => c.path)).toEqual(["README.md"]);
+    expect(view.proposal?.unreleased).toEqual([".ronne/layout.json"]);
+    // Not "`.ronne/layout.json` is new", which would make it a minor release.
+    expect(view.proposal?.suggested).toEqual({
+      bump: "patch",
+      reasons: ["nothing is added or removed"],
+    });
   });
 
   it("shows the changes to the base version, the manifest fields, stale, and the suggested bump", async () => {

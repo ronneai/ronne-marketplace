@@ -13,22 +13,53 @@ const FileHeader = ({ path, children }: { path: string; children?: React.ReactNo
   </div>
 );
 
+const LAYOUT_PATH = ".ronne/layout.json";
+
+/**
+ * The line a diff ends with when files under `.ronne/` changed (feature 031): they're named, not
+ * shown, because they stay with the draft and aren't released.
+ */
+const Unreleased = ({ paths }: { paths: readonly string[] }) => {
+  if (paths.length === 0) return null;
+  const layoutOnly = paths.length === 1 && paths[0] === LAYOUT_PATH;
+  return (
+    <p className="text-sm text-muted">
+      {layoutOnly ? "The canvas layout (" : null}
+      {paths.map((path, i) => (
+        <span key={path}>
+          {i > 0 ? ", " : null}
+          <code className="font-mono text-[0.85em]">{path}</code>
+        </span>
+      ))}
+      {layoutOnly
+        ? ") changed too. It isn't released, so it isn't part of this diff."
+        : " changed too. Files in .ronne/ aren't released, so they aren't part of this diff."}
+    </p>
+  );
+};
+
 /** What changed between two revisions, or against a proposal's base (017), file by file (014). */
 export const FileChanges = ({
   changes,
+  unreleased = [],
   since,
   emptyText,
 }: {
   changes: FileChange[];
+  /** Files under `.ronne/` that changed too: named under the diff, not shown in it (031). */
+  unreleased?: readonly string[];
   since: number | null;
   /** What to say when nothing changed; "No changes since revision N." by default. */
   emptyText?: string;
 }) => {
   if (changes.length === 0)
     return (
-      <p className="text-sm text-muted">
-        {emptyText ?? `No changes${since ? ` since revision ${since}` : ""}.`}
-      </p>
+      <div className="grid gap-2">
+        <p className="text-sm text-muted">
+          {emptyText ?? `No changes${since ? ` since revision ${since}` : ""}.`}
+        </p>
+        <Unreleased paths={unreleased} />
+      </div>
     );
   return (
     <div className="grid gap-4">
@@ -97,6 +128,7 @@ export const FileChanges = ({
           ) : null}
         </section>
       ))}
+      <Unreleased paths={unreleased} />
     </div>
   );
 };
