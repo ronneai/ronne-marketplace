@@ -14,7 +14,7 @@ the same change that completes it.
   *Done when:* a `*.db.test.ts` shows the draft and its files land together, a refused upload
   leaves nothing, and the 51st draft is refused, on all four database servers (`pnpm test:db:up`).
 
-- [ ] **2. The audit event.** `submission.draft_created` in `AUDIT_ACTIONS`, recorded in the same
+- [x] **2. The audit event.** `submission.draft_created` in `AUDIT_ACTIONS`, recorded in the same
   transaction with `{ name, type, via, tokenId, tokenName, files, bytes }`; the audit page shows it.
   *Done when:* a test reads the event with the token's name, and one proves no key trips
   `isSecretKey`.

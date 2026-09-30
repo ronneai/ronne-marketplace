@@ -48,7 +48,8 @@ import { withStale } from "./proposals";
 /**
  * Drafts (feature 012). Anyone signed in writes drafts of new items; a draft is visible only to its
  * author, so everyone else, root included, gets SubmissionNotFoundError. Drafts are private work in
- * progress, so nothing here is audited; 013 records submitting and withdrawing.
+ * progress, so the web's are not audited (a session is the person); 013 records submitting and
+ * withdrawing. A draft uploaded with a token is (037), so a leaked token's work can be traced.
  */
 export type DraftDeps = { repo: SubmissionRepository; now?: () => Date; limits?: PackageLimits };
 export type DraftActor = { user: CurrentUser | null };
@@ -310,6 +311,9 @@ export const saveDraftFiles = async (
 /** The most drafts an author may have for the API to create another (037). */
 export const MAX_API_DRAFTS = 50;
 
+/** Who uploads: the token's user, the token, and the caller's address. */
+export type UploadActor = DraftActor & { ip: string | null; token: { id: string; name: string } };
+
 export type UploadFile = {
   path: string;
   encoding: "utf8" | "base64";
@@ -321,11 +325,12 @@ export type UploadFile = {
  * A draft of a new item with its files, in one transaction and with no template (037): what `rmk`
  * and the MCP server upload. Paths, content and limits are checked as a save checks them, before
  * anything is written. Like a save, a draft with errors is still created, and they're in `issues`.
- * Unlike the web form, an author with MAX_API_DRAFTS drafts is refused.
+ * Unlike the web form, an author with MAX_API_DRAFTS drafts is refused, and the draft is audited
+ * with the token that made it: root reads the audit log, so root sees the draft's name.
  */
 export const createDraftFromFiles = async (
   deps: DraftDeps,
-  actor: DraftActor,
+  actor: UploadActor,
   input: { scope: string; name: string; type: string; files: readonly UploadFile[] },
 ): Promise<SavedDraft> => {
   requirePermission(actor.user, "submissions.create");
@@ -357,7 +362,26 @@ export const createDraftFromFiles = async (
     const scope = await findScope(repo, input.scope);
     if ((await repo.countDrafts(authorId)) >= MAX_API_DRAFTS)
       throw new DraftQuotaError(MAX_API_DRAFTS);
-    return insertDraft(repo, { authorId, scope, name, type, files, at });
+    const draft = await insertDraft(repo, { authorId, scope, name, type, files, at });
+    await repo.recordAudit(
+      {
+        actorId: authorId,
+        action: "submission.draft_created",
+        target: { type: "submission", id: draft.id },
+        metadata: {
+          name: itemNameOf(draft),
+          type,
+          via: "api",
+          tokenId: actor.token.id,
+          tokenName: actor.token.name,
+          files: count,
+          bytes,
+        },
+        ipAddress: actor.ip,
+      },
+      at,
+    );
+    return draft;
   });
   return { draft, issues: validateDraft(draft, draft.files, limits) };
 };

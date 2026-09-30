@@ -3,6 +3,8 @@ import { ITEM_TYPES } from "@ronneai/core";
 import { strToU8, zipSync } from "fflate";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
+import { listAuditEvents } from "../../audit/actions/audit";
+import { isSecretKey } from "../../audit/models/audit-event";
 import { createRoot } from "../../identity/actions/root-account";
 import { getCurrentUser, signIn } from "../../identity/actions/session";
 import { ForbiddenError } from "../../identity/exceptions/errors";
@@ -139,7 +141,7 @@ describe("createDraftFromFiles", () => {
     getCurrentUser(asUser, app).then((user) =>
       service.createDraftFromFiles(
         { repo: kyselySubmissionRepository(t.db, t.dialect) },
-        { user },
+        { user, ip: "203.0.113.7", token: { id: "tok-1", name: "laptop" } },
         { ...input, type: "skill", files },
       ),
     );
@@ -172,6 +174,11 @@ describe("createDraftFromFiles", () => {
       ).n,
     );
 
+  const drafted = async () =>
+    (await listAuditEvents(t.db, t.dialect, {})).events.filter(
+      (event) => event.action === "submission.draft_created",
+    );
+
   it("creates the draft and its files together, with no template, for the author only", async () => {
     const { draft, issues } = await upload(skill());
     expect(draft).toMatchObject({
@@ -191,6 +198,34 @@ describe("createDraftFromFiles", () => {
     ]);
     expect(stored.files.find((f) => f.path === "logo.png")?.content).toBe("iVBORw0KGgo=");
     await expect(getDraft(asOther, draft.id, app)).rejects.toThrow(SubmissionNotFoundError);
+  });
+
+  it("records who uploaded it and with which token, with no secret-looking key", async () => {
+    const { draft } = await upload(skill());
+    const [event, ...others] = await drafted();
+    expect(others).toEqual([]);
+    expect(event).toMatchObject({
+      actorId: draft.authorId,
+      actorEmail: "u@example.com",
+      targetType: "submission",
+      targetId: draft.id,
+      ipAddress: "203.0.113.7",
+      metadata: {
+        name: "@team/secure-coding",
+        type: "skill",
+        via: "api",
+        tokenId: "tok-1",
+        tokenName: "laptop",
+        files: 4,
+        bytes: draft.files.reduce((sum, file) => sum + file.size, 0),
+      },
+    });
+    expect(Object.keys(event?.metadata ?? {}).filter(isSecretKey)).toEqual([]);
+  });
+
+  it("records nothing for the web's drafts", async () => {
+    await newAgent();
+    expect(await drafted()).toEqual([]);
   });
 
   it("creates a draft with errors, and reports them as a save does", async () => {
@@ -230,7 +265,7 @@ describe("createDraftFromFiles", () => {
       getCurrentUser(asUser, app).then((user) =>
         service.createDraftFromFiles(
           { repo: kyselySubmissionRepository(t.db, t.dialect) },
-          { user },
+          { user, ip: "203.0.113.7", token: { id: "tok-1", name: "laptop" } },
           { scope: "team", name: "ok", type: "skil", files: skill() },
         ),
       ),
@@ -238,11 +273,11 @@ describe("createDraftFromFiles", () => {
     await expect(
       service.createDraftFromFiles(
         { repo: kyselySubmissionRepository(t.db, t.dialect) },
-        { user: null },
+        { user: null, ip: null, token: { id: "tok-1", name: "laptop" } },
         { scope: "team", name: "ok", type: "skill", files: skill() },
       ),
     ).rejects.toThrow(ForbiddenError);
-    expect([await draftCount(), await fileCount()]).toEqual([0, 0]);
+    expect([await draftCount(), await fileCount(), (await drafted()).length]).toEqual([0, 0, 0]);
   });
 
   it("holds the file count and total size", async () => {
@@ -253,12 +288,12 @@ describe("createDraftFromFiles", () => {
           repo: kyselySubmissionRepository(t.db, t.dialect),
           limits: { ...limits, maxFileBytes: 1024, maxPackedBytes: 1024 },
         },
-        { user },
+        { user, ip: "203.0.113.7", token: { id: "tok-1", name: "laptop" } },
         { scope: "team", name: "secure-coding", type: "skill", files: skill() },
       );
     await expect(tight({ maxFiles: 3, maxTotalBytes: 10_000 })).rejects.toThrow(DraftLimitError);
     await expect(tight({ maxFiles: 10, maxTotalBytes: 50 })).rejects.toThrow(DraftLimitError);
-    expect([await draftCount(), await fileCount()]).toEqual([0, 0]);
+    expect([await draftCount(), await fileCount(), (await drafted()).length]).toEqual([0, 0, 0]);
   });
 
   it("refuses the 51st draft, counting the web's drafts but not submitted ones or others'", async () => {
@@ -269,6 +304,7 @@ describe("createDraftFromFiles", () => {
     expect(last.draft.status).toBe("draft");
     await expect(upload(skill())).rejects.toThrow(DraftQuotaError);
     expect(await draftCount()).toBe(service.MAX_API_DRAFTS + 1);
+    expect(await drafted()).toHaveLength(1);
 
     await t.db
       .updateTable("submissions")

@@ -20,6 +20,7 @@ export const AUDIT_ACTIONS = [
   "access_token.revoked",
   "scope.created",
   "scope.updated",
+  "submission.draft_created",
   "submission.submitted",
   "submission.resubmitted",
   "submission.withdrawn",
