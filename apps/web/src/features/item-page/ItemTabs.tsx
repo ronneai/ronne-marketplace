@@ -1,11 +1,10 @@
-import { formatBytes, type RiskFlag } from "@ronneai/core";
+import type { RiskFlag } from "@ronneai/core";
 import Link from "next/link";
 import { itemPath } from "@/components/catalogue/ItemCard";
 import { Markdown } from "@/components/markdown/Markdown";
 import { RiskSummary } from "@/components/risk-flags/RiskSummary";
 import { Panel } from "@/components/ui/Panel";
 import { Table, Td, Th } from "@/components/ui/Table";
-import type { VersionFile } from "@/server/domains/items/models/item";
 
 /** The version's README, rendered safely; without one, its description and a note. */
 export const ReadmeTab = ({
@@ -60,28 +59,6 @@ export const DependenciesTab = ({ dependencies }: { dependencies: Record<string,
     </Table>
   );
 };
-
-/** The version's files, as released: path, size and whether it's executable. */
-export const FilesTab = ({ files }: { files: VersionFile[] }) => (
-  <Table>
-    <thead>
-      <tr>
-        <Th>Path</Th>
-        <Th>Size</Th>
-        <Th>Executable</Th>
-      </tr>
-    </thead>
-    <tbody>
-      {files.map((file) => (
-        <tr key={file.path}>
-          <Td className="font-mono text-sm break-all">{file.path}</Td>
-          <Td className="font-mono text-xs">{formatBytes(file.size)}</Td>
-          <Td className="font-mono text-xs">{file.executable ? "yes" : "no"}</Td>
-        </tr>
-      ))}
-    </tbody>
-  </Table>
-);
 
 /** What the version can do on a machine (014), as the review page shows it. */
 export const RisksTab = ({ flags }: { flags: RiskFlag[] }) =>

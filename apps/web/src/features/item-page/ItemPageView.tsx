@@ -82,7 +82,7 @@ export const ItemPageView = ({
               ? `It's deprecated: ${shown.deprecatedMessage}`
               : null}{" "}
           <Link
-            href={itemTabHref(ref, tab === "versions" ? "readme" : tab)}
+            href={itemTabHref(ref, tab === "versions" ? "overview" : tab)}
             className="underline underline-offset-2"
           >
             Show {page.latest ? "latest" : page.listed}

@@ -34,7 +34,7 @@ the same change that completes it.
   fallback).
   *Done when:* component tests cover each kind of file, the toggle and the fallback.
 
-- [ ] **6. The tabs.** Overview first and the default, README at `?tab=readme`, the route loading the
+- [x] **6. The tabs.** Overview first and the default, README at `?tab=readme`, the route loading the
   contents for Overview and Files only, the error notice, and the lazy canvas.
   *Done when:* `item-page.test.tsx` covers the tabs, `?file=` and the notice, and `catalogue.e2e.ts`
   covers an agent's prompt, Source, Files and the read-only canvas.
