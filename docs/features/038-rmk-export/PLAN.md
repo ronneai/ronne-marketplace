@@ -49,7 +49,7 @@ the same change that completes it. Tasks 1 and 2 touch only `packages/core` and 
   `packages/cli/src/lib.ts`.
   *Done when:* `pnpm packages:check` and `pnpm release:smoke` pass.
 
-- [ ] **9. End to end.** In `apps/web/e2e/rmk.e2e.ts`: write a skill folder, export it with the
+- [x] **9. End to end.** In `apps/web/e2e/rmk.e2e.ts`: write a skill folder, export it with the
   built `rmk`, open the draft signed in.
   *Done when:* `pnpm test:e2e` passes.
 
