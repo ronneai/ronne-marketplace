@@ -28,7 +28,7 @@ the same change that completes it.
   *Done when:* an oversized body gets `413 body_too_large` with and without `content-length`, and
   the existing API tests still pass.
 
-- [ ] **5. Error mapping and the rate limit.** The submission errors in the spec's table in
+- [x] **5. Error mapping and the rate limit.** The submission errors in the spec's table in
   `server/http/errors.ts`; a per-user limiter from `LoginRateLimiter`.
   *Done when:* `errors.test.ts` covers every row, and the limiter test passes with a moved clock.
 

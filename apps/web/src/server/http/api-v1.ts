@@ -1,7 +1,7 @@
 import { exchangePassword, revokeCallingToken } from "../domains/identity/actions/access-tokens";
 import { IdentityError, TokenLimitError } from "../domains/identity/exceptions/errors";
 import { type AppAuth, getAppAuth } from "../domains/identity/repositories/auth-instance";
-import { errorResponse } from "./errors";
+import { errorResponse, rateLimitedResponse } from "./errors";
 import { readJsonObjectWithin, SMALL_JSON_MAX_BYTES } from "./read-json";
 import { requireToken, type TokenGuardDeps } from "./require-token";
 
@@ -27,13 +27,7 @@ export const postToken = async (request: Request, app: AppAuth = getAppAuth()) =
       return json({ token, id, name, expiresAt: expiresAt?.toISOString() ?? null }, 201);
     }
     if (result.error === "rate_limited")
-      return errorResponse(
-        429,
-        "rate_limited",
-        "Too many attempts, wait a minute.",
-        { retryAfterSeconds: result.retryAfterSeconds },
-        { "retry-after": String(result.retryAfterSeconds) },
-      );
+      return rateLimitedResponse("Too many attempts, wait a minute.", result.retryAfterSeconds);
     return errorResponse(401, "invalid_credentials", "Email or password is wrong.");
   } catch (error) {
     if (error instanceof TokenLimitError) return errorResponse(409, "token_limit", error.message);

@@ -160,9 +160,9 @@ export class FileTooLargeError extends SubmissionsError {
   constructor(
     readonly path: string,
     size: number,
-    limit: number,
+    readonly max: number,
   ) {
-    super(`${path} is ${formatBytes(size)}; a file can be at most ${formatBytes(limit)}.`);
+    super(`${path} is ${formatBytes(size)}; a file can be at most ${formatBytes(max)}.`);
   }
 }
 
@@ -170,7 +170,7 @@ export class DraftLimitError extends SubmissionsError {
   constructor(
     readonly limit: "files" | "total",
     actual: number,
-    max: number,
+    readonly max: number,
   ) {
     super(
       limit === "files"
