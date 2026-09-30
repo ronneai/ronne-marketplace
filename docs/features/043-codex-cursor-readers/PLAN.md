@@ -24,7 +24,7 @@ the same change that completes it.
   *Done when:* each example item rendered for Cursor reads back and renders the same where nothing
   is lost, and tests cover every activation and the edge cases in the spec.
 
-- [ ] **4. Finding them and whose they are.** In `packages/cli/src/export.ts`: the Codex and
+- [x] **4. Finding them and whose they are.** In `packages/cli/src/export.ts`: the Codex and
   Cursor places in both scopes, TOML parsed with `smol-toml`, `LocalItem.tool`, state entries of
   kind `toml-key`, the `#` marker, and each tool's `ronne-registry` left out.
   *Done when:* tests cover each type written here, installed, installed and edited, and a config

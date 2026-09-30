@@ -27,7 +27,7 @@ export {
   uploadExport,
 } from "./export.js";
 export { previewText, releaseOrder } from "./export-command.js";
-export { type Finding, type FindingStatus } from "./export-dependencies.js";
+export type { Finding, FindingStatus } from "./export-dependencies.js";
 export {
   chooseTargets,
   commitInstall,
