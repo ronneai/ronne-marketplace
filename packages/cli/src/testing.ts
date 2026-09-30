@@ -20,6 +20,8 @@ export type Route = (request: RouteRequest) => RouteAnswer | Promise<RouteAnswer
 export type FakeIo = Io & {
   requests: { method: string; path: string; headers: Record<string, string>; body: unknown }[];
   answers: string[];
+  /** Every question asked, in order. */
+  questions: string[];
   cleanup(): void;
 };
 
@@ -36,7 +38,11 @@ export const fakeIo = (
     interactive: options.interactive ?? true,
     requests: [],
     answers: [],
-    prompt: async () => io.answers.shift() ?? "",
+    questions: [],
+    prompt: async (question) => {
+      io.questions.push(question);
+      return io.answers.shift() ?? "";
+    },
     fetch: (async (input: string | URL | Request, init?: RequestInit) => {
       const url = new URL(
         typeof input === "string" ? input : input instanceof URL ? input.href : input.url,

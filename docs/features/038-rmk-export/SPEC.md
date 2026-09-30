@@ -105,7 +105,9 @@ that nothing is submitted until the person does it in the web app.
 **Without a terminal, or with `--json`,** nothing is asked: `--to` and `--yes` are required
 (`--dry-run` needs neither), and a missing one is a usage error whose details list the scopes.
 `--json` prints `{ ok, registry, to, exported: [{ local, name, type, id, url, issues, submitIssues,
-warnings, skipped }], refused: [{ path, code, message }] }`.
+warnings, skipped }], refused: [{ path, code, message }] }`. With `--dry-run`, `planned` lists each
+item as it would be uploaded (`local`, `name`, `type`, `files` with sizes, `manifest`, `skipped`,
+`warnings`, `issues`, `published`); with no items named, `found` lists the skills found.
 
 **Exit codes** (022): 0 when the uploads were made, or the person answered no; 1 on an error,
 including an upload that failed after others succeeded (the output says which drafts exist); 2 for

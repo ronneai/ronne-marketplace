@@ -39,7 +39,7 @@ the same change that completes it. Tasks 1 and 2 touch only `packages/core` and 
   *Done when:* tests show one request per item, the bodies' files, and a failure on the second item
   reported with the first draft's address.
 
-- [ ] **7. The command.** `export` in `COMMANDS`, `to`, `name`, `yes` and `dry-run` in `OPTIONS`,
+- [x] **7. The command.** `export` in `COMMANDS`, `to`, `name`, `yes` and `dry-run` in `OPTIONS`,
   the usage text, the preview inside the prompt (`rmk` prints only when a command ends), `--json`
   and the exit codes.
   *Done when:* `cli.test.ts` covers a terminal run with each prompt, a run without a terminal,

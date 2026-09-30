@@ -3,6 +3,7 @@ import { ApiError, apiClient, checkRegistryUrl, rmkVersion } from "./api.js";
 import { normalizeRegistry, readUserConfig, registryFor, writeUserConfig } from "./config.js";
 import { connectRegistry } from "./connect.js";
 import { RmkError, usage } from "./errors.js";
+import { exportCommand } from "./export-command.js";
 import { installCommand } from "./install.js";
 import type { Io } from "./io.js";
 import { outdatedCommand, removeCommand, updateCommand } from "./manage.js";
@@ -28,6 +29,8 @@ export const USAGE = `Usage: rmk <command> [options]
   outdated
   remove <item>...
   mcp-setup [--target <ids>|all] [--scope project|user] [--remove] [--command <cmd>]
+  export [<folder|name>...] [--to <@scope>] [--name <name>] [--scope project|user]
+         [--dry-run] [--yes] [--force]
 
 Options: --json (one JSON object per command), --registry <url>, --version, --help`;
 
@@ -45,6 +48,10 @@ const OPTIONS = {
   force: { type: "boolean" },
   remove: { type: "boolean" },
   command: { type: "string" },
+  to: { type: "string" },
+  name: { type: "string" },
+  yes: { type: "boolean", short: "y" },
+  "dry-run": { type: "boolean" },
 } as const;
 
 export type Args = { values: Record<string, string | boolean | undefined>; positionals: string[] };
@@ -154,6 +161,7 @@ export const COMMANDS: Record<string, Command> = {
   outdated,
   remove,
   "mcp-setup": (io, args, out) => mcpSetupCommand(io, args, out),
+  export: (io, args, out) => exportCommand(io, args, out, connect(io, args).api),
 };
 
 /** Runs rmk with the given arguments (without the node and script paths). */
