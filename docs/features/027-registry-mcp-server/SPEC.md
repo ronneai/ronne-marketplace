@@ -77,13 +77,14 @@ entry, `@ronneai/rmk/lib` (targets, resolve, fetch, render, plan, apply, and the
 CLI command; the server never imports the CLI's command layer. MVP §9.1 said `mcp` depends on
 core only; the owner chose this over moving the pipeline into core (2026-09-29), and the Biome
 rule allows `@ronneai/rmk/lib` (and `/testing` in tests) and nothing else from `rmk`. The export
-pipeline will be exported the same way (038, 2026-09-30).
+pipeline is exported the same way (038, 2026-09-30).
 
 **Security** (MVP §12): the server does what the person's token allows and nothing more; it
 writes only inside the project (or home, for user scope), through the same path checks as `rmk`
-(021); it never prints the token; and it runs no item code. (*2026-09-30:* 039 will add the one
+(021); it never prints the token; and it runs no item code. (*2026-09-30:* 039 adds the one
 thing it sends out: the files of a local item the person approved for export, to the person's own
-registry, under 039's own security rules.)
+registry, under 039's own security rules. `apply_plan` and 039's `export_items` are then the only
+tools that aren't read-only, and the server's instructions cover exporting too.)
 
 ## Documentation
 

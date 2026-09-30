@@ -1,6 +1,12 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { type Io, RmkError, rmkVersion } from "@ronneai/rmk/lib";
+import { type Io, type Operation, RmkError, rmkVersion } from "@ronneai/rmk/lib";
 import { z } from "zod";
+import {
+  exportItemsTool,
+  listLocalItems,
+  planExportTool,
+  type StoredExport,
+} from "./export-tools.js";
 import { applyPlanTool, planStore, planTool } from "./plan-tools.js";
 import { checkOutdated, getItem, listInstalled, searchItems } from "./read-tools.js";
 import { failure, type ToolAnswer } from "./text.js";
@@ -31,12 +37,14 @@ const scope = z
   .describe("project (the default): this folder; user: your home folder");
 
 export const createServer = (io: Io, options: ServerOptions = {}) => {
-  const plans = planStore(options.now ?? Date.now);
+  const plans = planStore<Operation>(options.now ?? Date.now);
+  // Kept apart, so apply_plan can't take an export plan and export_items can't take an install.
+  const exports = planStore<StoredExport>(options.now ?? Date.now);
   const server = new McpServer(
     { name: serverInfo.name, version: serverInfo.version },
     {
       instructions:
-        "Search and install items from a Ronne AI Marketplace. Installing takes two steps: a plan_* tool shows what would change and writes nothing; apply_plan writes it, once the person has seen the plan.",
+        "Search and install items from a Ronne AI Marketplace, and send items the person wrote to it as drafts. Installing takes two steps: a plan_* tool shows what would change and writes nothing; apply_plan writes it, once the person has seen the plan. Exporting takes two steps too: plan_export shows every file that would be uploaded and sends nothing; export_items uploads it, once the person has seen the plan. Ask the person which scope to export to; never choose it. Show them the plan before calling export_items. Drafts are never submitted from here: the person reviews and submits them in the web app.",
     },
   );
   const read = { readOnlyHint: true, openWorldHint: true };
@@ -159,6 +167,58 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },
     guarded((input) => applyPlanTool(io, plans, input)),
+  );
+
+  server.registerTool(
+    "list_local_items",
+    {
+      title: "List items to export",
+      description:
+        "The skills in this project's AI tool folders (or your home folder's, with scope user), each with whose it is: yours, installed, installed and edited, a registry copy, or written by rmk. Only items marked yours can be exported. Reads no network.",
+      inputSchema: {
+        scope,
+        type: z.string().optional().describe("An item type, such as skill"),
+      },
+      annotations: { readOnlyHint: true, openWorldHint: false },
+    },
+    guarded((input) => listLocalItems(io, input)),
+  );
+
+  server.registerTool(
+    "plan_export",
+    {
+      title: "Plan an export",
+      description:
+        "Works out what exporting items as drafts would upload: each item's name, every file with its size, every file left out and why, the ronne.yaml it makes, and the checks' findings. Sends nothing. Without to, it answers the marketplace's scopes: ask the person which one, never choose. Show the plan to the person; upload it with export_items.",
+      inputSchema: {
+        items: z
+          .array(z.string())
+          .min(1)
+          .describe("Names or folders exactly as list_local_items shows them"),
+        to: z.string().optional().describe("The marketplace scope the person chose, such as @team"),
+        name: z.string().optional().describe("The item's name, for a single item"),
+        scope,
+      },
+      annotations: planning,
+    },
+    guarded((input) => planExportTool(io, exports, input)),
+  );
+
+  server.registerTool(
+    "export_items",
+    {
+      title: "Export as drafts",
+      description:
+        "Uploads exactly what plan_export showed, one private draft per item, and says where each draft is. Only after the person has seen the plan. Refuses a plan that expired, was used, or whose files changed. Nothing is submitted: the person does that in the web app.",
+      inputSchema: { planId: z.string() },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
+    },
+    guarded((input) => exportItemsTool(io, exports, input)),
   );
 
   return server;

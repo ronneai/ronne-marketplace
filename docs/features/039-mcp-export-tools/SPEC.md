@@ -31,7 +31,7 @@ facts.
 
 | Tool | Input | Does |
 |---|---|---|
-| `list_local_items` | `scope?`, `type?` | the items found in the project (or the home folder), each with its type, name, folder, and origin: **yours**, **installed** (`@scope/name@version`), **installed and edited**, or **a registry copy**. No network |
+| `list_local_items` | `scope?`, `type?` | the items found in the project (or the home folder), each with its type, name, folder, and origin: **yours**, **installed** (`@scope/name@version`), **installed and edited**, **a registry copy**, or **written by rmk** (a rule or command rendered as a skill). No network |
 | `plan_export` | `items: string[]`, `to?`, `name?`, `scope?` | 038's plan for those items: **uploads nothing**. Returns a `planId`, and per item the name it would get, every file with its size, every skipped file and why, the generated `ronne.yaml`, the warnings and the issues |
 | `export_items` | `planId` | uploads exactly that plan, one draft per item (037), and returns each draft's address and what is left to fix before it can be submitted |
 
@@ -72,7 +72,9 @@ but its author.
 
 ## Edge cases
 
-- **No token:** every tool says to run `rmk login`, as in 027.
+- **No token:** `plan_export` and `export_items` say to run `rmk login`, as in 027, before
+  anything else; `list_local_items` reaches no registry and works without one, as `list_installed`
+  does.
 - **The registry can't be reached:** `plan_export` and `export_items` answer `unreachable`;
   `list_local_items` still works.
 - **The person edits the skill between the plan and the approval:** `plan_stale`; the assistant
@@ -102,14 +104,14 @@ but its author.
 
 ## Acceptance criteria
 
-- [ ] The server lists the three tools with the annotations above; `apply_plan` and `export_items` are the only tools that aren't read-only.
-- [ ] `list_local_items` gives the same items and origins as `rmk export --dry-run --json` in the same folder.
-- [ ] `plan_export` without `to` returns the scopes and no `planId`, and sends no `POST`; with `to` it returns the plan and sends none either.
-- [ ] `export_items` creates the drafts of exactly that plan and returns their addresses; it refuses an expired plan, a used one, a stale one (a file edited after the plan), and an install plan's id.
-- [ ] A path outside the listed items, and an installed item, are refused; there is no way to force them.
-- [ ] Without a token every tool says to run `rmk login`; the token never appears in any output.
-- [ ] An end-to-end test drives the built `rmk-mcp` against the Playwright instance: list, plan without a scope, plan, export, and the draft opens in the web app.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] The server lists the three tools with the annotations above; `apply_plan` and `export_items` are the only tools that aren't read-only.
+- [x] `list_local_items` gives the same items and origins as `rmk export --dry-run --json` in the same folder.
+- [x] `plan_export` without `to` returns the scopes and no `planId`, and sends no `POST`; with `to` it returns the plan and sends none either.
+- [x] `export_items` creates the drafts of exactly that plan and returns their addresses; it refuses an expired plan, a used one, a stale one (a file edited after the plan), and an install plan's id.
+- [x] A path outside the listed items, and an installed item, are refused; there is no way to force them.
+- [x] Without a token every tool that reaches the registry says to run `rmk login`; the token never appears in any output.
+- [x] An end-to-end test drives the built `rmk-mcp` against the Playwright instance: list, plan without a scope, plan, export, and the draft opens in the web app.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Open questions
 

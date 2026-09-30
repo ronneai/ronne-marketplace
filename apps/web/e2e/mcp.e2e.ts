@@ -1,5 +1,5 @@
 import { type ChildProcessWithoutNullStreams, execFileSync, spawn } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
@@ -97,6 +97,85 @@ test("rmk-mcp searches, plans and applies an install, and refuses a stale plan",
     const stale = await client.call("apply_plan", { planId: later.data.planId });
     expect(stale.isError).toBe(true);
     expect(stale.data).toMatchObject({ error: { code: "plan_stale" } });
+  } finally {
+    server.kill();
+    rmSync(home, { recursive: true, force: true });
+    rmSync(project, { recursive: true, force: true });
+  }
+});
+
+/**
+ * Exporting from inside the AI tool (039): the built rmk-mcp lists a skill the person wrote, asks
+ * for the scope instead of choosing it, plans, uploads, and the draft opens in the web app.
+ */
+test("rmk-mcp lists a hand-written skill, asks for the scope, plans and exports it as a draft", async ({
+  browser,
+  request,
+}) => {
+  const home = mkdtempSync(join(tmpdir(), "rmk-e2e-home-"));
+  const project = mkdtempSync(join(tmpdir(), "rmk-e2e-project-"));
+  mkdirSync(join(project, ".claude/skills/e2e-mcp-export"), { recursive: true });
+  writeFileSync(
+    join(project, ".claude/skills/e2e-mcp-export/SKILL.md"),
+    "---\nname: e2e-mcp-export\ndescription: Exported from inside the AI tool.\n---\nDo it.\n",
+  );
+  const token = await request.post("/api/v1/auth/token", {
+    data: { email: E2E_USERS.mcpExporter, password: E2E_PASSWORD, name: "e2e rmk-mcp export" },
+  });
+  expect(token.status()).toBe(201);
+  const tokenValue: string = (await token.json()).token;
+  const env = { ...process.env, HOME: home, XDG_CONFIG_HOME: join(home, ".config") };
+  execFileSync("node", [RMK, "login", "--registry", baseURL, "--token", tokenValue], {
+    cwd: project,
+    env,
+    encoding: "utf8",
+  });
+  const server = spawn("node", [MCP], { cwd: project, env });
+
+  try {
+    const client = mcpClient(server);
+    await client.request("initialize", {
+      protocolVersion: "2025-06-18",
+      capabilities: {},
+      clientInfo: { name: "e2e", version: "0" },
+    });
+    client.notify("notifications/initialized");
+
+    const listed = await client.call("list_local_items");
+    expect(listed.data).toMatchObject({
+      items: [{ name: "e2e-mcp-export", folder: ".claude/skills/e2e-mcp-export", origin: "yours" }],
+    });
+
+    const unscoped = await client.call("plan_export", { items: ["e2e-mcp-export"] });
+    expect(unscoped.data.planId).toBeUndefined();
+    expect(unscoped.data.needs).toEqual(["to"]);
+    expect(unscoped.text).toContain(`@${E2E_SCOPE}`);
+
+    const plan = await client.call("plan_export", {
+      items: ["e2e-mcp-export"],
+      to: `@${E2E_SCOPE}`,
+    });
+    expect(plan.isError, plan.text).toBe(false);
+    expect(plan.text).toContain(
+      `@${E2E_SCOPE}/e2e-mcp-export  (from .claude/skills/e2e-mcp-export)`,
+    );
+
+    const exported = await client.call("export_items", { planId: plan.data.planId });
+    expect(exported.isError, exported.text).toBe(false);
+    const [draft] = exported.data.exported as { url: string; name: string }[];
+    expect(draft?.url).toMatch(new RegExp(`^${baseURL}/submissions/[0-9A-Z]{26}$`));
+    expect(JSON.stringify([listed, unscoped, plan, exported])).not.toContain(tokenValue);
+
+    const author = await browser.newPage();
+    await author.goto("/sign-in");
+    await author.getByLabel("Email").fill(E2E_USERS.mcpExporter);
+    await author.getByLabel("Password", { exact: true }).fill(E2E_PASSWORD);
+    await author.getByRole("button", { name: "Sign in" }).click();
+    await expect(author).not.toHaveURL(/\/sign-in/);
+    await author.goto(draft?.url ?? "");
+    const files = author.getByRole("list", { name: "Files" });
+    await expect(files.getByRole("button", { name: /SKILL\.md/ })).toBeVisible();
+    await expect(files.getByRole("button", { name: /ronne\.yaml/ })).toBeVisible();
   } finally {
     server.kill();
     rmSync(home, { recursive: true, force: true });

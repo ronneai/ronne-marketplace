@@ -68,6 +68,7 @@ export const TOPICS = [
       { id: "preview", title: "The preview" },
       { id: "next", title: "What arrives, and what to do next" },
       { id: "installed", title: "Items rmk installed" },
+      { id: "mcp", title: "From inside your AI tool" },
       { id: "options", title: "Options" },
     ],
   },

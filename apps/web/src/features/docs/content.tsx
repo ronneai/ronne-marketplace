@@ -87,6 +87,21 @@ const MCP_TOOLS: [string, string, string][] = [
     "Writes a plan made in the last 10 minutes, once.",
     "The plan's files, the lockfile and the state",
   ],
+  [
+    "list_local_items",
+    "The skills in your AI tools' folders, and whose each is: yours, installed (edited or not), a registry copy, or written by rmk.",
+    "Nothing",
+  ],
+  [
+    "plan_export",
+    "Plans sending skills of yours to this marketplace as drafts: every file, and what's left out.",
+    "Nothing",
+  ],
+  [
+    "export_items",
+    "Uploads an export plan made in the last 10 minutes, once, as private drafts.",
+    "Sends the plan's files to this marketplace",
+  ],
 ];
 
 const PERMISSIONS: [string, string, string, string][] = [
@@ -815,6 +830,36 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </Bullets>
       </>
     ),
+    mcp: (
+      <>
+        <p>
+          With the <To href={docsHref("mcp")}>registry MCP server</To> set up, you can ask your AI
+          tool instead: <em>&ldquo;export my deploy-check skill to the marketplace&rdquo;</em>. The
+          assistant:
+        </p>
+        <Steps>
+          <li>
+            lists the skills it finds and whose each is (<Code>list_local_items</Code>);
+          </li>
+          <li>
+            asks you which scope, from this marketplace&apos;s list: it can&apos;t choose one for
+            you;
+          </li>
+          <li>
+            shows the plan: the name, every file with its size, what&apos;s left out and why, and
+            the <Code>ronne.yaml</Code> (<Code>plan_export</Code>, which sends nothing);
+          </li>
+          <li>
+            once you&apos;ve seen it, uploads it (<Code>export_items</Code>, which your tool asks
+            you about) and gives you each draft&apos;s address.
+          </li>
+        </Steps>
+        <p>
+          It exports only skills that are yours, found in your AI tools&apos; folders. A folder
+          elsewhere, and <Code>--force</Code>, are for <Code>rmk export</Code> in a terminal.
+        </p>
+      </>
+    ),
     options: (
       <Table>
         <thead>
@@ -1235,8 +1280,9 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
       <p>
         You can also ask your AI tool to search and install items, through the registry MCP server,{" "}
         <Code>rmk-mcp</Code>: it shows you a plan first, then writes exactly that, as{" "}
-        <Code>rmk</Code> would. <To href={docsHref("mcp")}>Registry MCP server</To> explains how to
-        set it up and what it can do.
+        <Code>rmk</Code> would. It can export a skill you wrote as a draft the same way.{" "}
+        <To href={docsHref("mcp")}>Registry MCP server</To> explains how to set it up and what it
+        can do.
       </p>
     ),
   },
@@ -1253,8 +1299,12 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           It runs on your machine, started by the AI tool in your project folder, and reads this
           marketplace as you, with the token from <Code>rmk login</Code>. It uses <Code>rmk</Code>
           &apos;s own code, so it resolves, renders and writes exactly as <Code>rmk</Code> does, and{" "}
-          <Code>rmk.lock</Code> and the state file stay the same whichever you use. Authoring,
-          review and releases stay in this website.
+          <Code>rmk.lock</Code> and the state file stay the same whichever you use.
+        </p>
+        <p>
+          It can also send a skill you wrote in your AI tool to this marketplace as a private draft,
+          as <To href={docsHref("export")}>rmk export</To> does. Reviewing, submitting and releasing
+          stay in this website.
         </p>
       </>
     ),
@@ -1302,7 +1352,7 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             <tr>
               <Th>Tool</Th>
               <Th>What it does</Th>
-              <Th>Writes</Th>
+              <Th>Writes or sends</Th>
             </tr>
           </thead>
           <tbody>
@@ -1316,11 +1366,12 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           </tbody>
         </Table>
         <p>
-          Every tool except <Code>apply_plan</Code> is marked as read-only for your AI tool, so{" "}
-          <Code>apply_plan</Code> is the one it asks you about. <Code>list_installed</Code>,{" "}
-          <Code>check_outdated</Code> and the plan tools take <Code>scope: user</Code> for your home
-          folder, and the plan tools take <Code>targets</Code>, such as{" "}
-          <Code>[&quot;codex&quot;]</Code>, when the folder looks like several tools.
+          Two tools act, and your AI tool asks you about them: <Code>apply_plan</Code> on your
+          files, and <Code>export_items</Code> on this marketplace. Every other tool is marked as
+          read-only. <Code>list_installed</Code>, <Code>check_outdated</Code> and the plan tools
+          take <Code>scope: user</Code> for your home folder, and the plan tools take{" "}
+          <Code>targets</Code>, such as <Code>[&quot;codex&quot;]</Code>, when the folder looks like
+          several tools.
         </p>
       </>
     ),
@@ -1352,13 +1403,25 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             <Code>rmk install --force</Code> at the terminal, on purpose.
           </li>
         </Bullets>
+        <p>
+          Export plans work the same way: <Code>plan_export</Code> shows every file that would be
+          uploaded and sends nothing, and <Code>export_items</Code> uploads exactly that plan, once,
+          within 10 minutes. If you edit the skill in between, the plan is refused as stale. Install
+          plans and export plans are kept apart: neither tool takes the other&apos;s.
+        </p>
       </>
     ),
     access: (
       <Bullets>
         <li>
-          It can do what your token can: read what&apos;s published and download it. It never shows
-          the token, and it can&apos;t sign in to this website.
+          It can do what your token can: read what&apos;s published and download it, and create
+          drafts in your name. It never shows the token, and it can&apos;t sign in to this website.
+        </li>
+        <li>
+          It sends only skills it found in your AI tools&apos; folders and that are yours, never a
+          folder you name, never the files <To href={docsHref("export", "reads")}>export</To> leaves
+          out, and only when you approve <Code>export_items</Code>. What arrives is a draft only you
+          see.
         </li>
         <li>
           It writes only in the project folder (or your home folder, with <Code>scope: user</Code>
@@ -1366,9 +1429,10 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           and scripts are written, not run.
         </li>
         <li>
-          Without a token, every tool says to run <Code>rmk login</Code>. If the marketplace
-          can&apos;t be reached, <Code>list_installed</Code> still works: it only reads the
-          lockfile.
+          Without a token, every tool that reaches the marketplace says to run{" "}
+          <Code>rmk login</Code>. If the marketplace can&apos;t be reached,{" "}
+          <Code>list_installed</Code> and <Code>list_local_items</Code> still work: they only read
+          your files.
         </li>
       </Bullets>
     ),

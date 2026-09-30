@@ -22,22 +22,28 @@ import { answer, failure, type ToolAnswer } from "./text.js";
  */
 export const PLAN_TTL_MS = 10 * 60 * 1000;
 
-type StoredPlan = { operation: Operation; fingerprint: string; expiresAt: number };
+/** A plan kept for its apply step: what to do, and the fingerprint of what it read. */
+export type StoredPlan<T> = { value: T; fingerprint: string; expiresAt: number };
 
-export const planStore = (now: () => number) => {
-  const plans = new Map<string, StoredPlan>();
+/**
+ * Plans in memory, each under a random id for ten minutes and taken once. Generic over what a plan
+ * is: the server keeps one store for installs and one for exports (039), so neither apply step
+ * can take the other's plan.
+ */
+export const planStore = <T>(now: () => number) => {
+  const plans = new Map<string, StoredPlan<T>>();
   const sweep = () => {
     for (const [id, plan] of plans) if (plan.expiresAt <= now()) plans.delete(id);
   };
   return {
-    put: (operation: Operation, fingerprint: string) => {
+    put: (value: T, fingerprint: string) => {
       sweep();
       const id = randomBytes(9).toString("base64url");
-      plans.set(id, { operation, fingerprint, expiresAt: now() + PLAN_TTL_MS });
+      plans.set(id, { value, fingerprint, expiresAt: now() + PLAN_TTL_MS });
       return id;
     },
     /** The plan, once: applying or refusing it forgets it. */
-    take: (id: string) => {
+    take: (id: string): StoredPlan<T> | null => {
       const plan = plans.get(id);
       plans.delete(id);
       return plan && plan.expiresAt > now() ? plan : null;
@@ -45,7 +51,7 @@ export const planStore = (now: () => number) => {
   };
 };
 
-export type PlanStore = ReturnType<typeof planStore>;
+export type PlanStore<T> = ReturnType<typeof planStore<T>>;
 
 type PlanInput = { items?: string[]; targets?: string[]; scope?: "project" | "user" };
 
@@ -75,7 +81,7 @@ const keyOf = (key: string[] | string | undefined) =>
 
 export const planTool = async (
   io: Io,
-  store: PlanStore,
+  store: PlanStore<Operation>,
   kind: OperationKind,
   input: PlanInput,
 ): Promise<ToolAnswer> => {
@@ -183,7 +189,7 @@ export const planTool = async (
 
 export const applyPlanTool = async (
   io: Io,
-  store: PlanStore,
+  store: PlanStore<Operation>,
   input: { planId: string },
 ): Promise<ToolAnswer> => {
   const stored = store.take(input.planId);
@@ -192,19 +198,19 @@ export const applyPlanTool = async (
       "plan_expired",
       "There's no such plan: plans last 10 minutes and are applied once. Make a new plan.",
     );
-  const conflicts = stored.operation.plan.conflicts.length;
+  const conflicts = stored.value.plan.conflicts.length;
   if (conflicts)
     return failure(
       "conflicts",
       `This plan has ${conflicts} conflict${conflicts === 1 ? "" : "s"}: files or settings rmk didn't write, or that changed since. Move them aside and plan again; --force is only for rmk at the terminal.`,
     );
-  if ((await operationFingerprint(io, stored.operation)) !== stored.fingerprint)
+  if ((await operationFingerprint(io, stored.value)) !== stored.fingerprint)
     return failure(
       "plan_stale",
       "Something this plan touches changed since it was made (another install, or an edit). Make a new plan.",
     );
-  applyOperation(io, stored.operation);
+  applyOperation(io, stored.value);
   const out = output(false);
-  report(out, stored.operation, io);
+  report(out, stored.value, io);
   return answer(out.lines, { applied: true, ...out.data });
 };

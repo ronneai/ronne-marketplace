@@ -25,6 +25,7 @@ export const E2E_USERS = {
   exporter: "exporter@e2e.test",
   outsider: "outsider@e2e.test",
   cliExporter: "cli-exporter@e2e.test",
+  mcpExporter: "mcp-exporter@e2e.test",
 } as const;
 
 /** The display names, which the header shows (not the email). */
@@ -49,6 +50,7 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   exporter: "Exa Exporter",
   outsider: "Otto Outsider",
   cliExporter: "Cy Exporter",
+  mcpExporter: "Mo Exporter",
 };
 
 /** Seeded with the moderator role; everyone else is a user. */

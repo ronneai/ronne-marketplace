@@ -244,6 +244,30 @@ export const ownershipOf = async (
   return { owner: "local" };
 };
 
+/** The files whose ownership depends on them, read alone: no walk, no network. */
+const OWNERSHIP_FILES = ["ronne.yaml", "SKILL.md"];
+
+/**
+ * Every item in a scope with whose it is (native-readers.md §2), for the MCP server's
+ * `list_local_items` (039): what `planExport` would export or refuse, without reading whole folders.
+ */
+export const describeLocalItems = async (
+  io: Io,
+  scope: Scope,
+): Promise<{ item: LocalItem; ownership: Ownership }[]> => {
+  const described: { item: LocalItem; ownership: Ownership }[] = [];
+  for (const item of discoverLocalItems(io, scope)) {
+    const files: PackageFile[] = OWNERSHIP_FILES.flatMap((path) => {
+      const full = join(item.dir, path);
+      return existsSync(full) && statSync(full).isFile()
+        ? [{ path, bytes: new Uint8Array(readFileSync(full)) }]
+        : [];
+    });
+    described.push({ item, ownership: await ownershipOf(io, item.dir, files) });
+  }
+  return described;
+};
+
 /** What `rmk export` was asked to do; `planExport` turns it into a plan, sending nothing. */
 export type ExportRequest = {
   /** Folders with a `SKILL.md`, or the names of skills in the scope's folders. */
