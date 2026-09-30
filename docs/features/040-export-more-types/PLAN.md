@@ -17,7 +17,7 @@ the same change that completes it.
   *Done when:* golden and round-trip tests pass for the example agent, and tests cover a warning
   per dropped field, `tools` as a string, and a missing `tools`.
 
-- [ ] **3. The command reader.** `read/claude-code/command.ts`: body, arguments, placeholders.
+- [x] **3. The command reader.** `read/claude-code/command.ts`: body, arguments, placeholders.
   *Done when:* named placeholders round-trip, and tests cover a subfolder name and a positional
   placeholder left as written.
 
