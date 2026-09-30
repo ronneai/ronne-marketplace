@@ -461,6 +461,10 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           <To href={docsHref("changes")}>change proposal</To> starts with the nodes placed
           automatically.
         </p>
+        <p>
+          A released agent&apos;s or bundle&apos;s page shows the same canvas, read-only, on its{" "}
+          <To href={docsHref("items", "contents")}>Overview</To>.
+        </p>
       </>
     ),
     manifest: (
@@ -492,6 +496,45 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             There&apos;s no <Code>version</Code>: the release sets it.
           </li>
         </Bullets>
+      </>
+    ),
+    contents: (
+      <>
+        <p>
+          Every item page shows what the item is before you install it: the files of the version
+          you&apos;re looking at, exactly as <Code>rmk install</Code> gets them. They come from the
+          released package and are checked against its checksum first; reading them isn&apos;t
+          counted as a download.
+        </p>
+        <Bullets>
+          <li>
+            <strong>Overview</strong>, where the page opens: the item&apos;s settings from{" "}
+            <Code>ronne.yaml</Code>, such as an agent&apos;s tools and model, a rule&apos;s
+            activation and globs, a hook&apos;s event and command, or an MCP server&apos;s
+            transport, command or URL and the names of the environment variables it needs. Then its
+            main file: a skill&apos;s <Code>SKILL.md</Code>, an agent&apos;s prompt, a rule&apos;s,
+            command&apos;s or output style&apos;s body, or a hook&apos;s or status line&apos;s
+            script. MCP servers, permission policies and language servers are only settings, so they
+            have no main file.
+          </li>
+          <li>
+            <strong>Dependencies on the canvas:</strong> an agent or a bundle shows the items it
+            uses on the same <To href={docsHref("items", "canvas")}>canvas</To> as the editor,
+            read-only. Each node links to that item&apos;s page.
+          </li>
+          <li>
+            <strong>Files:</strong> every file of the version, <Code>ronne.yaml</Code> included, in
+            a tree. Markdown is shown rendered, with its frontmatter as a table; the{" "}
+            <strong>Source</strong> tab shows the text exactly as written. Other files are shown as
+            text. Binary files and text over 512 KB are listed but not shown. The file you open is
+            in the address, so you can send someone a link to it.
+          </li>
+        </Bullets>
+        <p>
+          <Code>?version=</Code> works here too, yanked versions included. If a version&apos;s
+          package is missing or doesn&apos;t match its checksum, the page says so instead of showing
+          anything: tell an administrator.
+        </p>
       </>
     ),
   },

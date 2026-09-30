@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+import { Help } from "@/components/help/Help";
 import { FilesBrowser } from "@/features/item-page/files/FilesBrowser";
 import { selectedFile } from "@/features/item-page/files/shown";
 import { ItemPageView } from "@/features/item-page/ItemPageView";
@@ -20,6 +22,14 @@ type SearchParams = Promise<{
   file?: string | string[];
 }>;
 const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
+
+/** Overview and Files show the released files; the helper says what that means (044). */
+const WithContentsHelp = ({ children }: { children: ReactNode }) => (
+  <div className="grid gap-3">
+    <Help id="contents" className="justify-self-end" />
+    {children}
+  </div>
+);
 
 /**
  * An item's page (feature 018): Overview (044), README, Dependencies, Files and What it can do,
@@ -46,27 +56,31 @@ const Item = async ({
   return (
     <ItemPageView page={page} tab={tab}>
       {tab === "overview" ? (
-        <OverviewTab
-          itemName={`@${ref.scope}/${ref.name}`}
-          type={type}
-          manifest={shown.manifest}
-          dependencies={shown.dependencies}
-          files={files}
-          facts={await loadDependencyFacts(shown.dependencies)}
-          filesHref={itemTabHref(ref, "files", version)}
-        />
+        <WithContentsHelp>
+          <OverviewTab
+            itemName={`@${ref.scope}/${ref.name}`}
+            type={type}
+            manifest={shown.manifest}
+            dependencies={shown.dependencies}
+            files={files}
+            facts={await loadDependencyFacts(shown.dependencies)}
+            filesHref={itemTabHref(ref, "files", version)}
+          />
+        </WithContentsHelp>
       ) : tab === "dependencies" ? (
         <DependenciesTab dependencies={shown.dependencies} />
       ) : tab === "files" ? (
-        files ? (
-          <FilesBrowser
-            key={shown.version}
-            files={files}
-            selected={selectedFile(files, first(query.file), bodyPath)}
-          />
-        ) : (
-          <UnavailableFiles />
-        )
+        <WithContentsHelp>
+          {files ? (
+            <FilesBrowser
+              key={shown.version}
+              files={files}
+              selected={selectedFile(files, first(query.file), bodyPath)}
+            />
+          ) : (
+            <UnavailableFiles />
+          )}
+        </WithContentsHelp>
       ) : tab === "risks" ? (
         <RisksTab flags={shown.riskFlags} />
       ) : (

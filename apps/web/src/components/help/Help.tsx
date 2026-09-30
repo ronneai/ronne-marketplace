@@ -80,6 +80,12 @@ export const HELP = {
       "It lets rmk and the registry's MCP server read the registry as you, and create drafts in your name: only you see them, and nothing is submitted until you do it here. It can't sign in to this website, and you can revoke it here at any time.",
     href: docsHref("rmk", "tokens"),
   },
+  contents: {
+    question: "What am I looking at?",
+    answer:
+      "This version's files as released: exactly what rmk install gets, checked against the package's checksum. Overview shows the item's settings and main file; Files shows every file, with Markdown rendered and its source a tab away.",
+    href: docsHref("items", "contents"),
+  },
   install: {
     question: "How do I install it?",
     answer:

@@ -38,12 +38,14 @@ export const TOPICS = [
   {
     slug: "items",
     title: "Items and types",
-    summary: "The 11 kinds of item, what each is for, and what an item is made of.",
+    summary:
+      "The 11 kinds of item, what each is for, what an item is made of, and reading one before you install it.",
     sections: [
       { id: "types", title: "The types" },
       { id: "dependencies", title: "Dependencies" },
       { id: "canvas", title: "Composing on a canvas" },
       { id: "manifest", title: "ronne.yaml and the files" },
+      { id: "contents", title: "Reading an item before you install it" },
     ],
   },
   {

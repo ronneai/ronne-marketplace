@@ -133,4 +133,4 @@ contract [`docs/spec/native-readers.md`](../spec/native-readers.md).
 
 | ID | Feature | Depends on | Status |
 |---|---|---|---|
-| [044](./044-item-contents/SPEC.md) | Item contents on the item page: an Overview tab (settings, body file, read-only dependency canvas) and a Files viewer, read from the checked artifact | 018, 026, 031 | specified |
+| [044](./044-item-contents/SPEC.md) | Item contents on the item page: an Overview tab (settings, body file, read-only dependency canvas) and a Files viewer, read from the checked artifact | 018, 026, 031 | done |

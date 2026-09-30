@@ -103,15 +103,15 @@ like the rest of their page. Only the Overview and Files tabs read the artifact.
 
 ## Acceptance criteria
 
-- [ ] The item page opens on Overview. README, Dependencies, Files and What it can do are still reachable, with `?version=`.
-- [ ] Overview shows each example type's settings rows and body file (`examples/items/*`), and never an MCP header value.
-- [ ] Overview shows the read-only canvas for an item with dependencies, and each node links to the dependency's page.
-- [ ] Files shows a tree and the selected file's contents. `?file=` selects one, and an unknown path falls back to the body file.
-- [ ] Markdown is rendered with a working Source toggle, and frontmatter shows as a table.
-- [ ] Binary and very large files show a notice instead of their contents.
-- [ ] The contents match the released `.tgz`. A missing artifact or a checksum mismatch shows the error notice, and the download count doesn't change.
-- [ ] A yanked version's files can be read with `?version=`.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] The item page opens on Overview. README, Dependencies, Files and What it can do are still reachable, with `?version=`.
+- [x] Overview shows each example type's settings rows and body file (`examples/items/*`), and never an MCP header value.
+- [x] Overview shows the read-only canvas for an item with dependencies, and each node links to the dependency's page.
+- [x] Files shows a tree and the selected file's contents. `?file=` selects one, and an unknown path falls back to the body file.
+- [x] Markdown is rendered with a working Source toggle, and frontmatter shows as a table.
+- [x] Binary and very large files show a notice instead of their contents.
+- [x] The contents match the released `.tgz`. A missing artifact or a checksum mismatch shows the error notice, and the download count doesn't change.
+- [x] A yanked version's files can be read with `?version=`.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Open questions
 

@@ -137,7 +137,7 @@ describe("the item page", () => {
     versions.itemPage.mockResolvedValue(itemPageData({ installable: false }));
     const none = await render();
     expect(none).toContain("Every version is yanked");
-    expect(none).not.toContain("rmk install");
+    expect(none).not.toContain("rmk install @team/github");
   });
 
   it("shows the files, the dependencies with links, and what it can do", async () => {
@@ -187,6 +187,8 @@ describe("the item page", () => {
   it("opens on Overview: the settings, the body file, the canvas and a link to every file", async () => {
     const html = await render();
     expect(html).toMatch(/aria-current="page"[^>]*>Overview</);
+    expect(html).toContain("What am I looking at?");
+    expect(html).toContain('href="/docs/items#contents"');
     // An MCP server: its settings are the whole item.
     versions.itemPage.mockResolvedValue(
       itemPageData({

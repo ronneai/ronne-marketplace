@@ -39,7 +39,7 @@ the same change that completes it.
   *Done when:* `item-page.test.tsx` covers the tabs, `?file=` and the notice, and `catalogue.e2e.ts`
   covers an agent's prompt, Source, Files and the read-only canvas.
 
-- [ ] **7. Documentation.** The `items#contents` section, the `contents` helper, and the note in
+- [x] **7. Documentation.** The `items#contents` section, the `contents` helper, and the note in
   `items#canvas`.
   *Done when:* the docs render tests pass, and every new helper's link lands on a real section.
 
