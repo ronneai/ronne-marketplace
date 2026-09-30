@@ -20,6 +20,7 @@ import {
   applyMigrations,
   checkDatabase,
   createRootAccount,
+  describeServer,
   findRootAccount,
   formatProblem,
   writeSettings,
@@ -109,6 +110,19 @@ describe("checkDatabase", () => {
     } finally {
       await t.cleanup();
     }
+  });
+});
+
+describe("describeServer", () => {
+  it("names the product with the version a server reports", () => {
+    expect(describeServer({ dialect: "sqlite", serverVersion: "3.45.0" })).toBe("SQLite");
+    expect(describeServer({ dialect: "postgres", serverVersion: "15.14" })).toBe(
+      "PostgreSQL 15.14",
+    );
+    expect(describeServer({ dialect: "mysql", serverVersion: "8.4.3" })).toBe("MySQL 8.4.3");
+    expect(describeServer({ dialect: "mysql", serverVersion: "11.4.2-MariaDB" })).toBe(
+      "MariaDB 11.4.2",
+    );
   });
 });
 

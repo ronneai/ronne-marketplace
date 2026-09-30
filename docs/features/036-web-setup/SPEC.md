@@ -92,10 +92,10 @@ email filled in and a notice that the instance is set up (the setup page would o
 there anyway, now that the instance is ready). A failure comes back to the form with the list
 filled in and the error on its field, with the passwords empty (they're never sent back).
 
-Below the form, "Prefer the terminal?" keeps today's commands (`pnpm run setup`, `docker compose
-exec web pnpm run setup`, and the note that `pnpm setup` is a pnpm command). At the bottom, a
-warning: anyone who can open this page can set the instance up; finish it now, or run setup from
-the terminal.
+The page says nothing about the terminal (owner's decision, 2026-09-30): the web setup is the
+way in, and `pnpm run setup` stays documented in the README and the Documentation for scripts and
+for people who prefer it. At the bottom, a warning: anyone who can open this page can set the
+instance up; finish it now, before the address is shared.
 
 **What it writes**, exactly as 003: the settings file (`RONNE_ENV_FILE`, or `apps/web/.env`)
 with `DATABASE_URL`, `AUTH_SECRET` (generated, an existing one kept), `STORAGE_PATH` (the
@@ -134,7 +134,7 @@ steps, as sign-in is over the identity domain.
   first visit, anyone who can reach the port can set the instance up and become root. On a
   laptop or a private network that's fine; on a public host, set it up before exposing the port
   (`pnpm run setup --yes` with the `RONNE_ROOT_*` variables, or `docker compose run --rm -e … web
-  pnpm run setup --yes`), or open the page straight away. The README and the page's footer say so.
+  pnpm run setup --yes`), or open the page straight away. The README says so, and the page's footer warns without naming the terminal.
 - **Test connection is an anonymous probe** while no root exists: it tells "unreachable" from
   "wrong password" for any host and port the server can reach. Accepted: it only exists while
   anyone could take the instance anyway, and it goes away with the wizard.

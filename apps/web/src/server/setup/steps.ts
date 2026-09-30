@@ -14,6 +14,9 @@ import { createRoot, findRoot } from "../domains/identity/actions/root-account";
 import type { RootAccount } from "../domains/identity/models/user";
 import type { NewRoot, RootOrigin } from "../domains/identity/services/root-account";
 import { generateAuthSecret, isWeakSecret, readEnvFile, updateEnvFile } from "./env-file";
+import { describeServer } from "./server-name";
+
+export { describeServer } from "./server-name";
 
 /**
  * The steps of setting an instance up (MVP §5, features 003 and 036), with no prompts and no
@@ -75,7 +78,7 @@ export const checkDatabase = async (url: string, options: StepOptions): Promise<
   const version = checkServerVersion(connection.dialect, connection.serverVersion);
   const warning = version.supported
     ? undefined
-    : `${version.product} ${connection.serverVersion} is older than the minimum Ronne AI Marketplace supports (${version.minimum}). Setup continues, but it isn't tested.`;
+    : `${describeServer(connection)} is older than the minimum Ronne AI Marketplace supports (${version.minimum}). Setup continues, but it isn't tested.`;
 
   const { db, dialect } = createDb(url, { baseDir: options.appDir });
   try {

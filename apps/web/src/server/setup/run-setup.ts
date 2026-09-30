@@ -16,6 +16,7 @@ import {
   applyMigrations,
   checkDatabase,
   createRootAccount,
+  describeServer,
   findRootAccount,
   formatProblem,
   writeSettings,
@@ -84,9 +85,7 @@ export const runSetup = async (options: SetupOptions): Promise<SetupResult> => {
     const check = await checkDatabase(databaseUrl, { appDir });
     if (check.ok) {
       if (check.warning) prompts.log.warn(check.warning);
-      prompts.log.success(
-        `Connected to ${check.dialect === "sqlite" ? "SQLite" : check.serverVersion} and checked permissions.`,
-      );
+      prompts.log.success(`Connected to ${describeServer(check)} and checked permissions.`);
       break;
     }
     const problem = formatProblem(check.problem);

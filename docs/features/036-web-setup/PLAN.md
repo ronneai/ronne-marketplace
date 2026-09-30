@@ -74,7 +74,7 @@ the same change that completes it.
   Docker, read-only URL, the checkbox only when `incomplete`) and `form.test.ts` pass, and a
   browser with JavaScript off completes setup on SQLite from `pnpm dev` and signs in.
 
-- [ ] **5. The progressive wizard.** `SetupWizard.tsx` (`"use client"`) hydrates the same form:
+- [x] **5. The progressive wizard.** `SetupWizard.tsx` (`"use client"`) hydrates the same form:
   one fieldset at a time with a step header and Next/Back; Test connection reads the form and
   calls `testDatabase` in a transition, showing the explanation and detail; the final submit runs
   `installSettings` → `installMigrations` → `installRoot` and updates `StepList.tsx` (pending,
@@ -146,6 +146,21 @@ the same change that completes it.
   migrations done, root failed), the values kept and the password cleared; the retry landed on
   sign-in with the email and the notice, and root signed in. `Select` in `components/ui/Field.tsx`
   replaced four local copies of the same classes.
+- Task 5: the wizard is the same `SetupForm`: the server renders the single form, and an effect
+  after hydration switches to one group at a time, so the no-JavaScript markup is exactly what a
+  browser without it gets. A client component can't import `server/setup/steps.ts` (it pulls the
+  database and argon2 into the browser bundle: the build failed), so the product name in
+  "Connected to PostgreSQL 15.19" comes from `server/setup/server-name.ts`, a module with no
+  runtime imports that the terminal uses too (it used to print "Connected to 15.19"). The page uses
+  the full brand logo (owner, 2026-09-30). Checked in Chromium: SQLite with Test connection; on
+  the local PostgreSQL (`pnpm test:db:up`) a wrong password showed "The server refused the user
+  name or password." and the right one "Connected to PostgreSQL 15.19 …", then the install; and
+  after `pnpm run setup --yes` stopped at the root prompt (exit 2), the page said the setup
+  didn't finish, kept the database, and Install reported "Database up to date" then the root,
+  and root signed in. Two things about checking against `next dev`: the browser must use
+  `localhost`, not `127.0.0.1` (Next blocks its dev resources for other origins, so nothing
+  hydrates), and only one dev server can run per checkout (`.next/dev/lock`), so with the owner's
+  `pnpm dev` running the checks used `next build` + `next start` on another port.
 
 Facts the design rests on (checked in the code, 2026-09-29):
 

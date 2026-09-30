@@ -32,14 +32,14 @@ const FIELDS = [
 ];
 
 describe("SetupPage", () => {
-  it("shows every question, the Install button, the terminal commands and the warning", () => {
+  it("shows every question, the Install button and the warning, and nothing about the terminal", () => {
     const html = renderToStaticMarkup(<SetupPage page={page()} />);
     expect(html).toContain("Set up Ronne AI Marketplace");
     expect(html).toContain("isn&#x27;t set up yet");
     for (const name of FIELDS) expect(html, name).toContain(`name="${name}"`);
     expect(html).toContain(">Install<");
-    expect(html).toContain("pnpm run setup");
-    expect(html).toContain("docker compose exec web pnpm run setup");
+    expect(html).not.toContain("pnpm run setup");
+    expect(html).not.toContain("terminal");
     expect(html).toContain("Anyone who can open this page can set the instance up");
     expect(html).not.toContain("database.keep");
     expect(html).not.toContain("docker compose --profile");
