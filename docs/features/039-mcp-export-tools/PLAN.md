@@ -25,7 +25,7 @@ the same change that completes it.
   *Done when:* tests cover the drafts created, and expired, used, stale and install plans refused,
   and a partial failure.
 
-- [ ] **5. Registration.** The three tools in `server.ts` with their annotations and input
+- [x] **5. Registration.** The three tools in `server.ts` with their annotations and input
   descriptions, and the instructions (ask for the scope, show the plan, never submit).
   *Done when:* `server.test.ts` lists eleven tools in order and expects `apply_plan` and
   `export_items` as the only ones that aren't read-only.
