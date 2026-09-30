@@ -7,8 +7,8 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Reading an artifact.** `artifactFiles` in `server/domains/items/services/`: storage,
-  sha256 check, `unpackItem`, text or base64, sorted. 017's `versionFiles` uses it and still drops
+- [x] **1. Reading an artifact.** `artifactFiles` in `server/domains/items/services/`: storage,
+  sha256 check, `unpackItem`, sorted; the page gets text, or why not (binary, too large). 017's `versionFiles` uses it and still drops
   `version`. `versionContents` finds a published version (yanked included) behind `account.manage_own`,
   and a missing or mismatched artifact becomes `ArtifactUnavailableError`.
   *Done when:* `*.db.test.ts` covers the files matching the packed ones, `ronne.yaml` as released, a

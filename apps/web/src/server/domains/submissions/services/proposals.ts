@@ -1,9 +1,9 @@
-import { DEFAULT_LIMITS, parseItemName } from "@ronneai/core";
-import { PackError, unpackItem } from "@ronneai/core/pack";
+import { parseItemName } from "@ronneai/core";
 import { parseDocument } from "yaml";
 import { isId } from "../../../db/ids";
 import type { StorageAdapter } from "../../../storage";
 import { requirePermission } from "../../identity/models/permissions";
+import { artifactFiles } from "../../items/services/artifact-files";
 import {
   ConflictNotFoundError,
   NotAProposalError,
@@ -57,32 +57,23 @@ const withoutVersion = (text: string): string => {
 export const versionFiles = async (
   deps: Pick<ProposalDeps, "storage" | "limits">,
   itemName: string,
-  version: Pick<PublishedVersion, "version" | "artifactPath">,
+  version: Pick<PublishedVersion, "version" | "artifactPath" | "sha256">,
 ): Promise<BaseFile[]> => {
-  const tgz = await deps.storage.get(version.artifactPath);
-  if (!tgz) throw new ProposalArtifactError(itemName, version.version);
-  let unpacked: ReturnType<typeof unpackItem>;
-  try {
-    unpacked = unpackItem(tgz, deps.limits ?? DEFAULT_LIMITS);
-  } catch (error) {
-    if (error instanceof PackError) throw new ProposalArtifactError(itemName, version.version);
-    throw error;
-  }
-  return unpacked
-    .map((file) => {
-      const stored = toDraftContent(file.bytes);
-      const content =
-        file.path === MANIFEST_PATH && stored.encoding === "utf8"
-          ? { encoding: "utf8" as const, content: withoutVersion(stored.content) }
-          : stored;
-      return {
-        path: file.path,
-        ...content,
-        size: byteSize(content),
-        executable: file.executable ?? false,
-      };
-    })
-    .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+  const files = await artifactFiles(deps, version);
+  if (!files) throw new ProposalArtifactError(itemName, version.version);
+  return files.map((file) => {
+    const stored = toDraftContent(file.bytes);
+    const content =
+      file.path === MANIFEST_PATH && stored.encoding === "utf8"
+        ? { encoding: "utf8" as const, content: withoutVersion(stored.content) }
+        : stored;
+    return {
+      path: file.path,
+      ...content,
+      size: byteSize(content),
+      executable: file.executable ?? false,
+    };
+  });
 };
 
 /**

@@ -26,6 +26,7 @@ export const kyselyRegistryLookup = (
         version: version.version,
         publishedAt: version.publishedAt,
         artifactPath: version.artifactPath,
+        sha256: version.sha256,
         yanked: version.yankedAt !== null,
         dependencies: version.dependencies,
       })),
