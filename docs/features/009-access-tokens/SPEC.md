@@ -26,6 +26,7 @@ an email and password. Every API request with a token is checked the same way, i
 - Browser-based CLI login (the mock's "browser loopback") → with SSO, post-MVP (§14.3), as the device flow. Owner decision, 2026-09-27.
 - Signing in to the **web** with a token: not supported (owner decision; see 006).
 - Token scopes (read-only versus write): every token acts as its user, for now. Scopes can come once there are write APIs (M3 and later).
+  *2026-09-30:* the first write API is specified, creating a draft ([037](../037-draft-upload-api/SPEC.md)), and the owner decided every token may use it, still without scopes: a draft is private until its author submits it in the web app. Scopes stay open for a write that other people would see.
 - Root viewing or revoking other users' tokens individually: 008 revokes them all on disable or reset.
 
 ## Behaviour

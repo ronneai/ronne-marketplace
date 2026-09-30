@@ -17,7 +17,7 @@ for the Copilot CLI and Copilot in VS Code, with golden files and warnings for t
 
 **Out:**
 - Copilot plugins and marketplaces (`plugin.json`, `marketplace.json`) as a way to install: MVP
-  §3.3's native plugin export, later.
+  §3.3's native plugin feeds, later.
 - The cloud agent's MCP servers and secrets, which live in the repository's settings on GitHub,
   not in files.
 - Managed (MDM or server) permission policies.

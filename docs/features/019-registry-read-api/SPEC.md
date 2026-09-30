@@ -21,6 +21,7 @@ Most used (018).
 **Out:**
 - `POST /api/v1/resolve` → 020, with the resolver it runs.
 - Writing through the API (authoring, review, release, admin): web only in the MVP (MVP §11).
+  *2026-09-30:* after the MVP, M7 adds one write, creating a draft, and `GET /api/v1/scopes` ([037](../037-draft-upload-api/SPEC.md)), with this feature's guard and error shape.
 - Rate limits on reads, and the `426` "rmk too old" reply: when a breaking change first needs them.
 
 ## Behaviour

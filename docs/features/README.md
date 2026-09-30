@@ -112,3 +112,19 @@ New folders start from [`_template/`](./_template/).
 | [034](./034-npm-packages/SPEC.md) | Publishing `rmk` and the MCP server to npm (`@ronneai/core`, `rmk`, `mcp`) | 022, 027 | done |
 | [035](./035-docker-hub-image/SPEC.md) | Publishing the web app's Docker image to Docker Hub (`ronneai/marketplace`) | 005, 034 | done |
 | [036](./036-web-setup/SPEC.md) | Web setup wizard: the first run is set up from the browser, with the installation progress, then sign-in | 003, 005, 006, 032 | done |
+
+### M7 — Export from your tools
+
+An item a person wrote in their AI tool goes to the marketplace as a draft, from `rmk` or from
+inside the tool (owner, 2026-09-30). The mapping from a tool's files back to an item is the
+contract [`docs/spec/native-readers.md`](../spec/native-readers.md).
+
+| ID | Feature | Depends on | Status |
+|---|---|---|---|
+| [037](./037-draft-upload-api/SPEC.md) | Draft upload API: `GET /api/v1/scopes`, `POST /api/v1/drafts` (a draft with its files, as the token's user), the audit event, and limits for writes by token | 007, 009, 010, 012, 013, 019 | specified |
+| [038](./038-rmk-export/SPEC.md) | `rmk export` for skills: the reader in `packages/core`, finding local skills, choosing the scope, the preview, the upload | 037, 011, 022 | specified |
+| [039](./039-mcp-export-tools/SPEC.md) | MCP export tools: `list_local_items`, `plan_export`, `export_items` | 038, 027 | specified |
+| [040](./040-export-more-types/SPEC.md) | Export more types: agents, commands, rules and MCP servers from Claude Code's files | 038, 039, 023 | specified |
+| [041](./041-export-dependencies/SPEC.md) | Dependencies on export: detect what an item uses, ask, recommend exporting it too, upload in order | 040 | specified |
+| 042 | Export an edited installed item as a change proposal | 041, 017 | planned |
+| 043 | Readers for Codex's and Cursor's own files | 040 | planned |

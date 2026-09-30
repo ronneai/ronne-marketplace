@@ -24,6 +24,7 @@ person wrote by hand is ever overwritten.
 - `rmk mcp-setup` → 027.
 - Publishing `@ronneai/rmk` to npm: a release chore once M4 is done.
 - Creating accounts: never; root creates users in the web app (MVP §2).
+- Sending local items to the registry: `rmk export` → [038](../038-rmk-export/SPEC.md) (M7, added 2026-09-30). It adds `--to`, `--name`, `--yes` and `--dry-run`, and the first yes/no question; this feature's flags and exit codes keep their meaning.
 
 ## Behaviour
 

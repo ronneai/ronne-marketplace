@@ -22,7 +22,7 @@ renderer serves both.
 - The removed Cascade agent's formats (workflows, `.devin/hooks.json` with `pre_*` events,
   `~/.codeium/windsurf/mcp_config.json`): Devin Local doesn't read them (see below).
 - Devin's native plugins (`.devin-plugin/plugin.json`) as a way to install: MVP §3.3's native
-  plugin export, later.
+  plugin feeds, later.
 - Devin's cloud agent: only the local agent's files.
 
 ## Where Devin reads things

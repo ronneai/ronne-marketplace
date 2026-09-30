@@ -20,6 +20,8 @@ writes anything the person hasn't seen as a plan first (MVP §7).
 
 **Out:**
 - Authoring, review and release through MCP: web only in the MVP (MVP §11).
+  *2026-09-30:* after the MVP, M7 adds three tools that send a local item to the registry as a
+  draft ([039](../039-mcp-export-tools/SPEC.md)); review, submitting and release stay in the web app.
 - A remote (HTTP) MCP server: the server is local, next to the project.
 - Prompts and resources beyond what the tools need; a `ronne://` resource scheme can come later.
 
@@ -74,11 +76,14 @@ entry, `@ronneai/rmk/lib` (targets, resolve, fetch, render, plan, apply, and the
 `packages/mcp` depends on it, so the server and the command can't drift. `rmk mcp-setup` is a
 CLI command; the server never imports the CLI's command layer. MVP §9.1 said `mcp` depends on
 core only; the owner chose this over moving the pipeline into core (2026-09-29), and the Biome
-rule allows `@ronneai/rmk/lib` (and `/testing` in tests) and nothing else from `rmk`.
+rule allows `@ronneai/rmk/lib` (and `/testing` in tests) and nothing else from `rmk`. The export
+pipeline will be exported the same way (038, 2026-09-30).
 
 **Security** (MVP §12): the server does what the person's token allows and nothing more; it
 writes only inside the project (or home, for user scope), through the same path checks as `rmk`
-(021); it never prints the token; and it runs no item code.
+(021); it never prints the token; and it runs no item code. (*2026-09-30:* 039 will add the one
+thing it sends out: the files of a local item the person approved for export, to the person's own
+registry, under 039's own security rules.)
 
 ## Documentation
 
