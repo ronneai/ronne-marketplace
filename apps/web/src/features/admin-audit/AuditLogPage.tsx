@@ -1,16 +1,13 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { buttonClasses } from "@/components/ui/Button";
-import { Input, Label } from "@/components/ui/Field";
+import { Input, Label, selectClasses } from "@/components/ui/Field";
 import { PageHeader } from "@/components/ui/Panel";
 import { Table, Td, Th } from "@/components/ui/Table";
 import type { AuditEvent } from "@/server/domains/audit/models/audit-event";
 import { AUDIT_ACTION_GROUPS } from "@/server/domains/audit/models/audit-event";
 import { actorLabel, detailPairs, formatUtc } from "./format";
 import { type AuditFilters, auditPageUrl } from "./query";
-
-const selectClasses =
-  "h-9 w-full rounded-control border border-strong bg-surface px-2 text-sm text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
 
 /**
  * /admin/audit (spec 007): read-only, newest first, 50 a page. The filters are a GET form, so they

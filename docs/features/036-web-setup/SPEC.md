@@ -87,8 +87,10 @@ functions.
    root email prefilled.
 
 Without JavaScript the same form shows all three groups at once and one **Install** button runs
-the three steps in one request; the page comes back with the list filled in and any field errors,
-with the passwords empty (they're never sent back).
+the three steps in one request. When it finishes, the browser lands on `/sign-in` with the root
+email filled in and a notice that the instance is set up (the setup page would only redirect
+there anyway, now that the instance is ready). A failure comes back to the form with the list
+filled in and the error on its field, with the passwords empty (they're never sent back).
 
 Below the form, "Prefer the terminal?" keeps today's commands (`pnpm run setup`, `docker compose
 exec web pnpm run setup`, and the note that `pnpm setup` is a pnpm command). At the bottom, a

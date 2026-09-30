@@ -58,7 +58,7 @@ the same change that completes it.
   server cases and the outside-`apps/web` path; after `pnpm run setup` then `pnpm run reset-setup
   --yes`, a running `pnpm dev` answers `/` with a redirect to `/setup`.
 
-- [ ] **4. The form and the no-JavaScript install.** `apps/web/src/features/setup/`: `SetupPage`
+- [x] **4. The form and the no-JavaScript install.** `apps/web/src/features/setup/`: `SetupPage`
   (server: brand mark, heading, the form, "Prefer the terminal?", the first-visitor warning),
   `SetupForm` (the three fieldsets with 003's prompt ids as field names, all visible without
   JavaScript, one Install button bound to `installAll` with `useActionState`), `form.ts` (pure
@@ -135,6 +135,17 @@ the same change that completes it.
   clone. Checked live: after `pnpm run setup --yes` a running `pnpm dev` answered health with 200
   and `/setup` with a redirect; after `pnpm run reset-setup --yes`, without a restart, `/` ended
   on `/setup` and health answered 503.
+- Task 4: the install logic lives in `features/setup/install.ts` as functions of a context
+  (app folder, settings file, environment, database opener, audit origin), and `actions.ts` only
+  builds that context from the request; `install.db.test.ts` runs the steps against a temporary
+  app folder. Without JavaScript, a redirect from the *page* after the action came back as a 307,
+  which the browser re-sent as a POST to `/sign-in` ("Failed to find Server Action"); a
+  `redirect()` inside the action gives the 303 the framework documents, so `installAll` redirects
+  to `/sign-in?email=…&setup=done` itself, and the spec says so. Checked in Chromium with
+  JavaScript off against `pnpm dev`: a short password came back with the list (settings and
+  migrations done, root failed), the values kept and the password cleared; the retry landed on
+  sign-in with the email and the notice, and root signed in. `Select` in `components/ui/Field.tsx`
+  replaced four local copies of the same classes.
 
 Facts the design rests on (checked in the code, 2026-09-29):
 

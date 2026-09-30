@@ -3,14 +3,11 @@
 import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
-import { FieldError, Label, TextField } from "@/components/ui/Field";
+import { FieldError, Label, selectClasses, TextField } from "@/components/ui/Field";
 import { createUserFromForm } from "./actions";
 import { OneTimePassword } from "./OneTimePassword";
 import { PasswordChoice } from "./PasswordChoice";
 import type { AdminActionState } from "./types";
-
-const selectClasses =
-  "h-9 w-full rounded-control border border-strong bg-surface px-2 text-sm text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
 
 const CreateUserForm = ({ onDone }: { onDone: () => void }) => {
   const [state, action, pending] = useActionState<AdminActionState, FormData>(

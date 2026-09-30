@@ -2,14 +2,11 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { buttonClasses } from "@/components/ui/Button";
-import { Input, Label } from "@/components/ui/Field";
+import { Input, Label, selectClasses } from "@/components/ui/Field";
 import { PageHeader } from "@/components/ui/Panel";
 import { Table, Td, Th } from "@/components/ui/Table";
 import type { UserSummary } from "@/server/domains/identity/models/user";
 import { type UserFilters, usersPageUrl } from "./query";
-
-const selectClasses =
-  "h-9 w-full rounded-control border border-strong bg-surface px-2 text-sm text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
 
 /** `2026-09-27`, in UTC. */
 const day = (date: Date) => date.toISOString().slice(0, 10);

@@ -12,7 +12,11 @@ const one = (value: string | string[] | undefined) => (Array.isArray(value) ? va
 const SignIn = async ({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string | string[]; email?: string | string[] }>;
+  searchParams: Promise<{
+    next?: string | string[];
+    email?: string | string[];
+    setup?: string | string[];
+  }>;
 }) => {
   const params = await searchParams;
   const next = safeNextPath(one(params.next));
@@ -20,7 +24,14 @@ const SignIn = async ({
   const email = (one(params.email) ?? "").trim().slice(0, 255) || undefined;
   // Already signed in: straight on.
   if (await getCurrentUser(await requestHeaders())) redirect(next);
-  return <SignInPage next={next} registry={loadConfig().publicUrl} email={email} />;
+  return (
+    <SignInPage
+      next={next}
+      registry={loadConfig().publicUrl}
+      email={email}
+      setupDone={one(params.setup) === "done"}
+    />
+  );
 };
 
 export default SignIn;

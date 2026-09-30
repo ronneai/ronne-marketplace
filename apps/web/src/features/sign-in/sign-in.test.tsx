@@ -58,6 +58,13 @@ describe("SignInForm errors", () => {
     expect(html).toContain("Too many attempts, wait a minute");
   });
 
+  it("fills in the email and says the instance is set up, after the web setup", () => {
+    const html = renderToStaticMarkup(<SignInPage next="/" email="root@example.com" setupDone />);
+    expect(html).toContain('value="root@example.com"');
+    expect(html).toContain("Ronne AI Marketplace is set up");
+    expect(renderToStaticMarkup(<SignInPage next="/" />)).not.toContain("is set up");
+  });
+
   it("says where to get rmk, and puts this instance's URL in the login commands", () => {
     const html = renderToStaticMarkup(<SignInPage next="/" registry="https://ronne.example" />);
     expect(html).not.toContain("npm yet");
