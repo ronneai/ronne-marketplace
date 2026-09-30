@@ -21,7 +21,9 @@ const freePort = (): number => {
  * Every setting is passed as an environment variable, which takes precedence over files: Next.js
  * loads apps/web/.env on its own, and a developer's local instance must never be used by the tests.
  */
-export const prepareInstance = (): { baseURL: string; env: Record<string, string> } => {
+export type Instance = { baseURL: string; env: Record<string, string> };
+
+export const prepareInstance = (): Instance => {
   const dir = mkdtempSync(join(tmpdir(), "ronne-e2e-"));
   const port = Number(process.env.E2E_PORT) || freePort();
   const baseURL = `http://localhost:${port}`;
@@ -52,6 +54,30 @@ export const prepareInstance = (): { baseURL: string; env: Record<string, string
     env: {
       ...base,
       AUTH_SECRET: written.AUTH_SECRET ?? "",
+      TRUST_PROXY: "false",
+      NEXT_TELEMETRY_DISABLED: "1",
+    },
+  };
+};
+
+/**
+ * An instance that isn't set up yet, for the web setup's tests (feature 036): a temporary folder,
+ * a settings file that doesn't exist, and the settings a developer's `.env` could supply set to
+ * empty, which `loadConfig` counts as unset. The server answers `/setup` (its readiness URL) and
+ * 503 on `/api/health` until a test sets it up, so each test file gets its own.
+ */
+export const prepareBlankInstance = (): Instance & { dir: string } => {
+  const dir = mkdtempSync(join(tmpdir(), "ronne-e2e-blank-"));
+  const port = freePort();
+  return {
+    dir,
+    baseURL: `http://localhost:${port}`,
+    env: {
+      RONNE_ENV_FILE: join(dir, ".env"),
+      DATABASE_URL: "",
+      AUTH_SECRET: "",
+      PUBLIC_URL: "",
+      STORAGE_PATH: join(dir, "storage"),
       TRUST_PROXY: "false",
       NEXT_TELEMETRY_DISABLED: "1",
     },

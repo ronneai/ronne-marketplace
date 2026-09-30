@@ -7,7 +7,7 @@ import { expect, test } from "@playwright/test";
 import { E2E_PASSWORD, E2E_PROPOSAL_ITEM, E2E_RMK_ITEMS, E2E_SCOPE, E2E_USERS } from "./users";
 
 const BIN = fileURLToPath(new URL("../../../packages/cli/dist/bin.js", import.meta.url));
-const baseURL: string = JSON.parse(process.env.RONNE_E2E_INSTANCE ?? "{}").baseURL;
+const baseURL: string = JSON.parse(process.env.RONNE_E2E_INSTANCE ?? "{}").main.baseURL;
 
 /**
  * `rmk` against the running instance (features 022 and 023): a token from the API, then install,

@@ -85,7 +85,7 @@ the same change that completes it.
   (`pnpm test:db:up`), a wrong password shows the terminal's words, and after `pnpm run setup` is
   cancelled at the root prompt the page resumes at Install with the database kept.
 
-- [ ] **6. End to end.** `e2e/harness.ts` gains `prepareBlankInstance()` (a temporary folder, a
+- [x] **6. End to end.** `e2e/harness.ts` gains `prepareBlankInstance()` (a temporary folder, a
   settings path that doesn't exist yet, `DATABASE_URL`, `AUTH_SECRET` and `PUBLIC_URL` set to
   empty so nothing from a developer's `.env` leaks in, a free port); `playwright.config.ts` runs
   it as extra web servers with readiness on `/setup`, and projects `wizard` and `wizard-nojs`
@@ -161,6 +161,12 @@ the same change that completes it.
   `localhost`, not `127.0.0.1` (Next blocks its dev resources for other origins, so nothing
   hydrates), and only one dev server can run per checkout (`.next/dev/lock`), so with the owner's
   `pnpm dev` running the checks used `next build` + `next start` on another port.
+- Task 6: `RONNE_E2E_INSTANCE` now carries three instances (`main`, `wizard`, `nojs`), so the
+  `rmk` and MCP tests read `main.baseURL`. The blank instances wait on `/setup` (health is 503
+  there until the test sets them up). In the setup form, the database and the root account both
+  have a "Password" field, so the tests select the setup fields by name and keep the labels for
+  the sign-in page. The whole suite passed locally with the three servers: the wizard test also
+  checks the audit log shows one `instance.root_created` row on its own instance.
 
 Facts the design rests on (checked in the code, 2026-09-29):
 
