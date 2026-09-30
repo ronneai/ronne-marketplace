@@ -25,8 +25,8 @@ change** on its page (038); this feature does the proposing from where the edit 
 - The preview shows the change against the base, file by file.
 
 **Out** (and where it goes instead):
-- Installs rendered for Codex or Cursor: after 043, which reads their files; until then refused
-  with the pointer, as today.
+- Installs rendered for tools export doesn't read (anything but Claude Code, Codex and Cursor):
+  refused with the pointer, as today. (043 is built, so Codex and Cursor installs are in.)
 - Types the export readers don't cover (hooks, permission policies, status lines, LSP servers,
   output styles, bundles): refused with the pointer; they're changed in the web editor.
 - Replacing an open proposal the person already has for the item: a second draft, as for new
@@ -114,6 +114,9 @@ later (a proposal from an uploaded folder). `planExport` gains `PlannedItem.prop
   file, a server's one key).
 - **A skill folder installed for Claude Code and also linked into `.agents/skills/`:** one item,
   counted once (038).
+- **A command, or a rule applied by the AI or by hand, that `rmk` wrote as a skill** (Claude
+  Code, 023): the local copy's type isn't the item's, so the edit can't be mapped back; refused,
+  pointing to the web editor.
 - **The merge changes `ronne.yaml`'s `version`:** never; drafts carry none (017).
 - **A published name, but the person means a new item:** `--new` (and `--name` to rename it).
 - **The same edit exported twice:** two proposal drafts; see Open questions.

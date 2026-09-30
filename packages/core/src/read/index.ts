@@ -14,7 +14,7 @@ export {
 } from "./cursor/command.js";
 export { readCursorMcpServer } from "./cursor/mcp-server.js";
 export { readCursorRule } from "./cursor/rule.js";
-export { withDependencies } from "./dependencies.js";
+export { withDependencies, withoutVersion } from "./dependencies.js";
 export { type FieldChange, type MergeResult, mergeChange } from "./merge.js";
 export { readSkill, skillName } from "./skill.js";
 export { DESCRIPTION_MAX_LENGTH, fitDescription, toItemName } from "./text.js";

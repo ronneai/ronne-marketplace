@@ -13,3 +13,11 @@ export const withDependencies = (
   doc.set("dependencies", { ...dependencies });
   return doc.toString({ lineWidth: 0 });
 };
+
+/** `ronne.yaml` without `version`, keeping the rest of the text: drafts carry none (017). */
+export const withoutVersion = (manifestText: string): string => {
+  const doc = parseDocument(manifestText);
+  if (!doc.has("version")) return manifestText;
+  doc.delete("version");
+  return doc.toString({ lineWidth: 0 });
+};

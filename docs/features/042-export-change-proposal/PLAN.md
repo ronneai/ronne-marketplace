@@ -19,7 +19,7 @@ the same change that completes it.
   *Done when:* unit tests cover each merge row for each type, and that keywords, `license`,
   `targets`, the base's dependencies and an unmapped tool survive.
 
-- [ ] **3. Reading an install.** In `packages/cli/src/export.ts`: the base from the state entry
+- [x] **3. Reading an install.** In `packages/cli/src/export.ts`: the base from the state entry
   (or the registry copy's `version`, or `latest`), the artifact downloaded and checked, rendered
   for the tool the entry names, read as R; the local files read as L, markers removed; which tool's
   files changed when there are several.

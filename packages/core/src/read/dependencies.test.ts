@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { withDependencies } from "./dependencies.js";
+import { withDependencies, withoutVersion } from "./dependencies.js";
 
 describe("withDependencies", () => {
   it("sets dependencies and keeps the rest of the text, comments included", () => {
@@ -15,5 +15,12 @@ describe("withDependencies", () => {
 
   it("changes nothing without dependencies", () => {
     expect(withDependencies("name: x\n", {})).toBe("name: x\n");
+  });
+
+  it("withoutVersion removes version and nothing else", () => {
+    expect(withoutVersion('# A.\nname: "@t/a"\nversion: 1.2.0\ntype: skill\n')).toBe(
+      '# A.\nname: "@t/a"\ntype: skill\n',
+    );
+    expect(withoutVersion("name: x\n")).toBe("name: x\n");
   });
 });
