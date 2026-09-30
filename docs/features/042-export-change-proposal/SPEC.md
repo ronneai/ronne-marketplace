@@ -143,15 +143,15 @@ later (a proposal from an uploaded folder). `planExport` gains `PlannedItem.prop
 
 ## Acceptance criteria
 
-- [ ] An installed agent, skill, command, rule and MCP server, each edited, plans as a proposal to its item based on the installed version; unchanged ones are still refused.
-- [ ] The merge keeps what the round trip loses (keywords, `license`, `targets`, the base's dependencies, an unmapped tool) and takes every local edit, field by field and file by file; tests cover each type and each row of the merge.
-- [ ] An own item whose name is published with the same type plans as a proposal from `latest`; `--new` makes a new-item draft.
-- [ ] An edit the item can't carry is refused as "nothing changed", naming what was dropped.
-- [ ] `POST /api/v1/drafts` with `base` creates a proposal draft with the uploaded files, answers each new error code, and counts towards the draft limit; the audit event says it's a proposal.
-- [ ] A proposal whose base isn't the newest arrives stale, and both the preview and the result say so.
-- [ ] An item installed for more than one tool is one item per tool, and `--from` says which copy the proposal comes from.
-- [ ] An end-to-end test installs a published skill with the built `rmk`, edits it, exports it as a proposal, and a moderator sees the diff to the base in the review page.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] An installed agent, skill, command, rule and MCP server, each edited, plans as a proposal to its item based on the installed version; unchanged ones are still refused.
+- [x] The merge keeps what the round trip loses (keywords, `license`, `targets`, the base's dependencies, an unmapped tool) and takes every local edit, field by field and file by file; tests cover each type and each row of the merge.
+- [x] An own item whose name is published with the same type plans as a proposal from `latest`; `--new` makes a new-item draft.
+- [x] An edit the item can't carry is refused as "nothing changed", naming what was dropped.
+- [x] `POST /api/v1/drafts` with `base` creates a proposal draft with the uploaded files, answers each new error code, and counts towards the draft limit; the audit event says it's a proposal.
+- [x] A proposal whose base isn't the newest arrives stale, and both the preview and the result say so.
+- [x] An item installed for more than one tool is one item per tool, and `--from` says which copy the proposal comes from.
+- [x] An end-to-end test installs a published skill with the built `rmk`, edits it, exports it as a proposal, and a moderator sees the diff to the base in the review page.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Open questions
 

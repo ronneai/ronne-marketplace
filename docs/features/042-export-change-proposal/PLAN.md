@@ -41,7 +41,7 @@ the same change that completes it.
   proposal; a moderator opens it and sees the diff to the base.
   *Done when:* `pnpm test:e2e` passes.
 
-- [ ] **7. Documentation.** The sections in the spec's Documentation section, and the contract
+- [x] **7. Documentation.** The sections in the spec's Documentation section, and the contract
   (`docs/spec/native-readers.md` §2) for installed and edited items.
   *Done when:* the docs render tests pass, and every new helper's link lands on a real section.
 
