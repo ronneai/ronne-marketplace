@@ -106,7 +106,7 @@ the same change that completes it.
   *Done when:* both walkthroughs sign in without `docker compose restart web`, the read-only
   `PUBLIC_URL` is visible, and `pnpm lint`, `pnpm typecheck`, `pnpm test` and `pnpm build` pass.
 
-- [ ] **8. Documentation.** The `install` topic and its five sections, the roles wording, MVP §5
+- [x] **8. Documentation.** The `install` topic and its five sections, the roles wording, MVP §5
   and §15 (the new "Web setup" row, and the "Setup command" and "Docker" rows), the notes in
   003's and 005's specs, and the index status.
   *Done when:* `docs.test.tsx` and `help.test.tsx` pass, every new section renders, and the
@@ -175,6 +175,11 @@ the same change that completes it.
   three steps done, health 200 and root signed in, all without `docker compose restart web`; then
   the same with `--profile postgres` (host `postgres`, database and user `ronne`,
   `RONNE_DB_PASSWORD`), which reported "Connected to PostgreSQL 18.6".
+- Task 8: the `install` topic sits in "Getting started" between Overview and Roles. Its words
+  come from what the app does now (the four steps, the read-only public address, the resume, the
+  terminal alternative and `--yes`), and the docs test checks it never says "restart". MVP §5
+  describes the setup once for both front ends and §15 gains a "Web setup" row; 003 says where
+  the shared steps live, and 005's setup-required paragraph points here.
 
 Facts the design rests on (checked in the code, 2026-09-29):
 

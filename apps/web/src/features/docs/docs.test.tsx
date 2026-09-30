@@ -111,6 +111,16 @@ describe("the topics", () => {
     expect(versions).toContain("the lockfile keeps that version");
     expect(await topic("items")).toContain("How an install picks versions");
     expect(versions).toContain(">yanked<");
+    const install = await topic("install");
+    expect(install).toContain(">Installing Ronne</h1>");
+    for (const id of ["docker", "node", "setup", "root", "upgrade"])
+      expect(install).toContain(`id="${id}"`);
+    expect(install).toContain("docker compose up -d");
+    expect(install).toContain("Test connection");
+    expect(install).toContain("pnpm run setup --yes");
+    expect(install).toContain("reset-root-password");
+    expect(install).not.toContain("docker compose restart");
+    expect(install).toContain("Nothing needs a restart");
     const rmk = await topic("rmk");
     expect(rmk).not.toContain("released yet");
     for (const id of ["getting", "login", "installing", "updating", "files", "edits"])

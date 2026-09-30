@@ -200,29 +200,29 @@ steps, as sign-in is over the identity domain.
 
 Each one is checkable, and each maps to at least one test or a manual check named in `PLAN.md`.
 
-- [ ] From a fresh clone, `pnpm dev` opens on `/setup`; the wizard completes on SQLite, the
+- [x] From a fresh clone, `pnpm dev` opens on `/setup`; the wizard completes on SQLite, the
   Install list shows the three steps done, **Sign in** lands on `/sign-in` with the email
   prefilled, and root signs in without restarting anything. (Tasks 5, 6)
-- [ ] From an empty folder holding only `compose.yaml`, `docker compose up -d` and the browser
+- [x] From an empty folder holding only `compose.yaml`, `docker compose up -d` and the browser
   give a working instance without `docker compose exec` or `restart`; `PUBLIC_URL` from the
   environment is shown read-only. (Task 7)
-- [ ] With JavaScript off, the single-form version completes setup and signs in. (Tasks 4, 6)
-- [ ] Test connection shows the terminal's words for a wrong password, an unreachable host and a
+- [x] With JavaScript off, the single-form version completes setup and signs in. (Tasks 4, 6)
+- [x] Test connection shows the terminal's words for a wrong password, an unreachable host and a
   missing database on MySQL and PostgreSQL, and the version warning for an old server. (Task 1)
-- [ ] A `pnpm run setup` cancelled at the root prompt leaves the instance `incomplete`; the
+- [x] A `pnpm run setup` cancelled at the root prompt leaves the instance `incomplete`; the
   wizard resumes at Install with the database kept. (Task 5)
-- [ ] Until `ready`, every page redirects to `/setup` and `/api/health`, `/api/v1/*` and the
+- [x] Until `ready`, every page redirects to `/setup` and `/api/health`, `/api/v1/*` and the
   token exchange answer `503 setup_required`; a configured instance whose database doesn't
   answer shows the panel, never the wizard; once `ready`, `/setup` redirects. (Tasks 2, 6)
-- [ ] A second root attempt fails with "already set up", and the audit log holds exactly one
+- [x] A second root attempt fails with "already set up", and the audit log holds exactly one
   `instance.root_created` row, with `via: web` from the wizard and `via: cli` from the
   terminal. (Tasks 1, 6)
-- [ ] `pnpm run setup` behaves as 003 says, and its tests pass unchanged. (Task 1)
-- [ ] `pnpm run reset-setup` removes a clone's settings file, SQLite database and storage after
+- [x] `pnpm run setup` behaves as 003 says, and its tests pass unchanged. (Task 1)
+- [x] `pnpm run reset-setup` removes a clone's settings file, SQLite database and storage after
   confirmation, the running `pnpm dev` shows the wizard on the next request, and the command
   refuses to run with `NODE_ENV=production` or `RONNE_RUNTIME=docker` and isn't in the Docker
   image. (Task 3)
-- [ ] The Documentation and inline helpers listed above say what the feature does now. (Task 8)
+- [x] The Documentation and inline helpers listed above say what the feature does now. (Task 8)
 
 ## Open questions
 
