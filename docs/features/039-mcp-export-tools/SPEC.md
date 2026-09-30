@@ -72,7 +72,9 @@ but its author.
 
 ## Edge cases
 
-- **No token:** every tool says to run `rmk login`, as in 027.
+- **No token:** `plan_export` and `export_items` say to run `rmk login`, as in 027, before
+  anything else; `list_local_items` reaches no registry and works without one, as `list_installed`
+  does.
 - **The registry can't be reached:** `plan_export` and `export_items` answer `unreachable`;
   `list_local_items` still works.
 - **The person edits the skill between the plan and the approval:** `plan_stale`; the assistant
@@ -107,7 +109,7 @@ but its author.
 - [ ] `plan_export` without `to` returns the scopes and no `planId`, and sends no `POST`; with `to` it returns the plan and sends none either.
 - [ ] `export_items` creates the drafts of exactly that plan and returns their addresses; it refuses an expired plan, a used one, a stale one (a file edited after the plan), and an install plan's id.
 - [ ] A path outside the listed items, and an installed item, are refused; there is no way to force them.
-- [ ] Without a token every tool says to run `rmk login`; the token never appears in any output.
+- [ ] Without a token every tool that reaches the registry says to run `rmk login`; the token never appears in any output.
 - [ ] An end-to-end test drives the built `rmk-mcp` against the Playwright instance: list, plan without a scope, plan, export, and the draft opens in the web app.
 - [ ] The Documentation and inline helpers listed above say what the feature does now.
 

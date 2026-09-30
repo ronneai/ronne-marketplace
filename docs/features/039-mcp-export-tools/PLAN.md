@@ -30,7 +30,7 @@ the same change that completes it.
   *Done when:* `server.test.ts` lists eleven tools in order and expects `apply_plan` and
   `export_items` as the only ones that aren't read-only.
 
-- [ ] **6. Without a token, without a network.** The guards the other tools have.
+- [x] **6. Without a token, without a network.** The guards the other tools have.
   *Done when:* the existing "run `rmk login`" test covers the new tools, and `list_local_items`
   answers with the registry unreachable.
 

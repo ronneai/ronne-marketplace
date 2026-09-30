@@ -133,6 +133,7 @@ export const planExportTool = async (
   store: PlanStore<StoredExport>,
   input: { items: string[]; to?: string; name?: string; scope?: "project" | "user" },
 ): Promise<ToolAnswer> => {
+  const { api } = connectRegistry(io);
   const scope = input.scope ?? "project";
   const listed = await describeLocalItems(io, scope);
   const unknown = input.items.filter(
@@ -144,7 +145,6 @@ export const planExportTool = async (
       `${unknown.join(", ")} ${unknown.length === 1 ? "isn't" : "aren't"} among the items list_local_items finds${scope === "user" ? " in the home folder" : ""}. Only those can be exported from here; for another folder, the person runs rmk export in a terminal.`,
     );
 
-  const { api } = connectRegistry(io);
   if (!input.to) return askForScope(await fetchScopes(api), "Which scope should the drafts go in?");
 
   const request: ExportRequest = {
@@ -210,13 +210,13 @@ export const exportItemsTool = async (
   store: PlanStore<StoredExport>,
   input: { planId: string },
 ): Promise<ToolAnswer> => {
+  const { api } = connectRegistry(io);
   const stored = store.take(input.planId);
   if (!stored)
     return failure(
       "plan_expired",
       "There's no such export plan: plans last 10 minutes and are used once, and install plans aren't export plans. Make a new plan with plan_export.",
     );
-  const { api } = connectRegistry(io);
   const plan = await planExport(io, api, stored.value.request);
   if (plan.fingerprint !== stored.fingerprint)
     return failure(
