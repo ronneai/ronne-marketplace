@@ -38,7 +38,7 @@ the same change that completes it.
   release the skill, and submit the agent.
   *Done when:* `pnpm test:e2e` passes, including the refused Submit before the release.
 
-- [ ] **8. Documentation.** The sections in the spec's Documentation section.
+- [x] **8. Documentation.** The sections in the spec's Documentation section.
   *Done when:* the docs render tests pass, and every new helper's link lands on a real section.
 
 ## Notes

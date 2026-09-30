@@ -94,7 +94,7 @@ const MCP_TOOLS: [string, string, string][] = [
   ],
   [
     "plan_export",
-    "Plans sending items of yours to this marketplace as drafts: every file, and what's left out. Takes type, and an MCP server's description.",
+    "Plans sending items of yours to this marketplace as drafts: every file, and what's left out. Takes type, an MCP server's description, and dependencies (include or omit) for the items of yours they use.",
     "Nothing",
   ],
   [
@@ -412,6 +412,11 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           <Code>^2.0.0 (@platform/code-reviewer@1.4.0)</Code>. The fix is to widen a range, or to
           release a version that fits both.
         </p>
+        <p>
+          An item exported with <Code>rmk export</Code> gets its dependencies filled in from what it
+          uses, such as the skills an agent loads:{" "}
+          <To href={docsHref("export", "dependencies")}>Exporting your own items</To>.
+        </p>
       </>
     ),
     canvas: (
@@ -538,7 +543,11 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           <li>
             the name is free: no published item, and no open submission by someone else, uses it;
           </li>
-          <li>each dependency exists, is allowed for the type, and has a matching version;</li>
+          <li>
+            each dependency exists, is allowed for the type, and has a matching version. A
+            dependency exported with an item is a draft too: release it first, and the item&apos;s
+            checks say which;
+          </li>
           <li>
             for a <To href={docsHref("changes")}>change proposal</To>: the type is the item&apos;s,
             it changes something, and no rebase conflict is left open.
@@ -826,6 +835,59 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </p>
       </>
     ),
+    dependencies: (
+      <>
+        <p>
+          An item often uses others: an agent loads skills, and agents, skills and commands call MCP
+          servers through their tools. <Code>rmk export</Code> finds them, follows them through (an
+          agent that loads a skill that uses a server needs both), and says what each is:
+        </p>
+        <Bullets>
+          <li>
+            <strong>yours:</strong> an item you wrote here, not in the registry yet;
+          </li>
+          <li>
+            <strong>installed:</strong> <Code>rmk</Code> installed it, so the item depends on that
+            registry item at the version you have. Nothing is uploaded for it;
+          </li>
+          <li>
+            <strong>already published:</strong> yours, but the scope already has a published item of
+            that name and type, so the item depends on that one instead of a copy;
+          </li>
+          <li>
+            <strong>can&apos;t be declared:</strong> built into the tool, from a plugin, somewhere
+            export doesn&apos;t read, or a pair the types don&apos;t allow. A warning names it.
+          </li>
+        </Bullets>
+        <p>When some are yours, it asks what to do with them:</p>
+        <Steps>
+          <li>
+            <strong>Export them too</strong> (recommended): each becomes its own draft, uploaded
+            first, and the item declares them at <Code>^1.0.0</Code>, the first release. Without
+            them, the item won&apos;t work for whoever installs it.
+          </li>
+          <li>
+            <strong>Export without them:</strong> only the item, which may not work where
+            they&apos;re missing. Installed ones are still declared.
+          </li>
+          <li>
+            <strong>Cancel.</strong>
+          </li>
+        </Steps>
+        <p>
+          Without a terminal, choose with <Code>--with-deps</Code> or <Code>--no-deps</Code>; from
+          your AI tool, the assistant asks you. If an upload fails, the items that depend on it
+          aren&apos;t sent.
+        </p>
+        <p>
+          <strong>The order to submit in.</strong> An item can be submitted only once its
+          dependencies are released, so <Code>rmk</Code> says the order:{" "}
+          <em>submit and release @team/github first; then @team/reviewer can be submitted.</em>{" "}
+          Until then, the item&apos;s draft says the same in its checks. To install all of them as
+          one item, make a bundle on the <To href={docsHref("items", "canvas")}>canvas</To>.
+        </p>
+      </>
+    ),
     next: (
       <>
         <p>
@@ -940,6 +1002,10 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             you;
           </li>
           <li>
+            if it uses items of yours, shows them and asks whether to export them too, recommending
+            it;
+          </li>
+          <li>
             shows the plan: the name, every file with its size, what&apos;s left out and why, and
             the <Code>ronne.yaml</Code> (<Code>plan_export</Code>, which sends nothing);
           </li>
@@ -977,6 +1043,10 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
                 "An MCP server's description, which isn't on disk; in a terminal you're asked.",
               ],
               ["--scope user", "Look in your home folder rather than the project."],
+              [
+                "--with-deps / --no-deps",
+                "Export the items of yours it uses too, or without them. One is needed without a terminal when there are any.",
+              ],
               ["--dry-run", "Show the preview and upload nothing."],
               ["--yes", "Upload without asking. Needed without a terminal, with --to."],
               [
