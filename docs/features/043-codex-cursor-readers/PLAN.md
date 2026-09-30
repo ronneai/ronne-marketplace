@@ -19,7 +19,7 @@ the same change that completes it.
   *Done when:* the example agent and MCP server rendered for Codex read back and render the same,
   and a test proves no value from the fixture's `env` or headers is in the output.
 
-- [ ] **3. The Cursor readers.** `read/cursor/{agent,rule,command,mcp-server}.ts`: `readonly`,
+- [x] **3. The Cursor readers.** `read/cursor/{agent,rule,command,mcp-server}.ts`: `readonly`,
   the rule's activation from `alwaysApply`, `globs` and `description`, `${env:NAME}`.
   *Done when:* each example item rendered for Cursor reads back and renders the same where nothing
   is lost, and tests cover every activation and the edge cases in the spec.

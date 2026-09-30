@@ -6,6 +6,14 @@ export { mcpServerName, readMcpServer } from "./claude-code/mcp-server.js";
 export { readRule, ruleName } from "./claude-code/rule.js";
 export { codexAgentName, readCodexAgent } from "./codex/agent.js";
 export { readCodexMcpServer } from "./codex/mcp-server.js";
+export { cursorAgentName, readCursorAgent } from "./cursor/agent.js";
+export {
+  CURSOR_COMMAND_EXTENSIONS,
+  cursorCommandName,
+  readCursorCommand,
+} from "./cursor/command.js";
+export { readCursorMcpServer } from "./cursor/mcp-server.js";
+export { readCursorRule } from "./cursor/rule.js";
 export { withDependencies } from "./dependencies.js";
 export { readSkill, skillName } from "./skill.js";
 export { DESCRIPTION_MAX_LENGTH, fitDescription, toItemName } from "./text.js";
