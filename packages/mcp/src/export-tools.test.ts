@@ -94,6 +94,7 @@ describe("list_local_items", () => {
         {
           name: "copied",
           type: "skill",
+          tool: "claude-code",
           folder: ".claude/skills/copied",
           origin: "registry_copy",
           item: "@other/copied",
@@ -102,6 +103,7 @@ describe("list_local_items", () => {
         {
           name: "edited",
           type: "skill",
+          tool: "shared",
           folder: ".agents/skills/edited",
           origin: "installed_edited",
           item: "@team/edited",
@@ -110,15 +112,23 @@ describe("list_local_items", () => {
         {
           name: "installed",
           type: "skill",
+          tool: "claude-code",
           folder: ".claude/skills/installed",
           origin: "installed",
           item: "@team/installed",
           version: "1.0.0",
         },
-        { name: "mine", type: "skill", folder: ".claude/skills/mine", origin: "yours" },
+        {
+          name: "mine",
+          type: "skill",
+          tool: "claude-code",
+          folder: ".claude/skills/mine",
+          origin: "yours",
+        },
         {
           name: "rendered",
           type: "skill",
+          tool: "claude-code",
           folder: ".claude/skills/rendered",
           origin: "rendered",
           item: "@examples/house-style",
@@ -127,9 +137,9 @@ describe("list_local_items", () => {
       ],
     });
     const text = result.content[0]?.text ?? "";
-    expect(text).toContain("mine  skill  .claude/skills/mine  yours");
+    expect(text).toContain("mine  skill  claude-code  .claude/skills/mine  yours");
     expect(text).toContain(
-      "edited  skill  .agents/skills/edited  installed and edited (@team/edited@1.0.0)",
+      "edited  skill  shared  .agents/skills/edited  installed and edited (@team/edited@1.0.0)",
     );
     expect(text).toContain("Only items marked yours can be exported");
   });
@@ -382,6 +392,7 @@ describe("the other types over MCP (040)", () => {
       {
         name: "tracker",
         type: "mcp-server",
+        tool: "claude-code",
         folder: ".mcp.json (mcpServers.tracker)",
         origin: "yours",
       },
@@ -487,5 +498,31 @@ describe("dependencies over MCP (041)", () => {
     expect(
       (planned.structuredContent as { items: { name: string }[] }).items.map((i) => i.name),
     ).toEqual(["@team/reviewer"]);
+  });
+});
+
+describe("Codex and Cursor over MCP (043)", () => {
+  it("lists each item's tool, narrows with from, and settles a name two tools have", async () => {
+    await project();
+    write(".cursor/agents/mine.md", "---\nname: mine\ndescription: Mine in Cursor.\n---\nDo.\n");
+    const listed = (await listLocalItems(io, { from: "cursor" })).structuredContent as {
+      items: { name: string; tool: string }[];
+    };
+    // The shared .agents/skills/ folder is Cursor's too.
+    expect(listed.items.map((i) => `${i.tool}:${i.name}`)).toEqual([
+      "shared:edited",
+      "cursor:mine",
+    ]);
+    const store = planStore<StoredExport>(Date.now);
+    const ambiguous = await planExportTool(io, store, { items: ["mine"], to: "team" });
+    expect(ambiguous.structuredContent).toMatchObject({ error: { code: "ambiguous" } });
+    const planned = await planExportTool(io, store, {
+      items: ["mine"],
+      to: "team",
+      from: "cursor",
+    });
+    expect(planned.structuredContent).toMatchObject({
+      items: [{ local: ".cursor/agents/mine.md", type: "agent" }],
+    });
   });
 });

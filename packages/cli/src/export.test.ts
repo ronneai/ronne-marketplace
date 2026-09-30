@@ -9,6 +9,7 @@ import {
   discoverLocalItems,
   type ExportPlan,
   findSkills,
+  mcpConfigs,
   ownershipOf,
   planExport,
   readMcpServers,
@@ -901,5 +902,186 @@ describe("dependencies on export (041)", () => {
       expect.stringContaining("plugin-thing"),
       expect.stringContaining("@team/secure is already published, so it depends on that at ^2.1.0"),
     ]);
+  });
+});
+
+describe("Codex's and Cursor's files (043)", () => {
+  const project = () => {
+    io = fakeIo(exportRoutes().routes);
+    write(
+      io.cwd,
+      ".codex/agents/planner.toml",
+      'name = "planner"\ndescription = "Plans."\ndeveloper_instructions = "Plan it."\nmodel = "gpt-5"\n',
+    );
+    write(
+      io.cwd,
+      ".codex/config.toml",
+      '[mcp_servers.jira]\ncommand = "jira-mcp"\n\n[mcp_servers.ronne-registry]\ncommand = "rmk-mcp"\n',
+    );
+    write(
+      io.cwd,
+      ".cursor/agents/auditor.md",
+      "---\nname: auditor\ndescription: Audits.\nreadonly: true\n---\nAudit.\n",
+    );
+    write(
+      io.cwd,
+      ".cursor/rules/frontend/style.mdc",
+      "---\nglobs: src/**/*.tsx\nalwaysApply: false\n---\n# Style\n",
+    );
+    write(io.cwd, ".cursor/rules/notes.md", "ignored by Cursor");
+    write(io.cwd, ".cursor/commands/ship.txt", "Ship the release.\n");
+    write(
+      io.cwd,
+      ".cursor/mcp.json",
+      JSON.stringify({ mcpServers: { tracker: { url: "https://t.example/mcp" } } }),
+    );
+  };
+  const listed = () =>
+    discoverLocalItems(io, "project").map((i) => `${i.tool}:${i.type}:${i.name}:${i.display}`);
+
+  it("finds each tool's items, with the tool, and never rmk-mcp's server", () => {
+    project();
+    expect(listed()).toEqual([
+      "cursor:agent:auditor:.cursor/agents/auditor.md",
+      "cursor:rule:frontend-style:.cursor/rules/frontend/style.mdc",
+      "codex:mcp-server:jira:.codex/config.toml (mcp_servers.jira)",
+      "codex:agent:planner:.codex/agents/planner.toml",
+      "cursor:command:ship:.cursor/commands/ship.txt",
+      "cursor:mcp-server:tracker:.cursor/mcp.json (mcpServers.tracker)",
+    ]);
+  });
+
+  it("finds the home folder's items, but no Cursor rules there", () => {
+    io = fakeIo({});
+    write(io.home, ".codex/config.toml", '[mcp_servers.personal]\ncommand = "p"\n');
+    write(io.home, ".cursor/rules/mine.mdc", "---\nalwaysApply: true\n---\nMine.\n");
+    write(io.home, ".cursor/agents/helper.md", "---\nname: helper\n---\nHelp.\n");
+    expect(discoverLocalItems(io, "user").map((i) => `${i.tool}:${i.type}:${i.name}`)).toEqual([
+      "cursor:agent:helper",
+      "codex:mcp-server:personal",
+    ]);
+  });
+
+  it("tells installed, and installed and edited, for Codex files and TOML keys", async () => {
+    project();
+    const { root, state } = places(io, "project");
+    const entries = [
+      { item: "@team/planner", kind: "file" as const, path: ".codex/agents/planner.toml" },
+      {
+        item: "@team/jira",
+        kind: "toml-key" as const,
+        path: ".codex/config.toml",
+        key: ["mcp_servers", "jira"],
+      },
+      {
+        item: "@team/tracker",
+        kind: "json-key" as const,
+        path: ".cursor/mcp.json",
+        key: ["mcpServers", "tracker"],
+      },
+    ];
+    writeState(state, {
+      version: 1,
+      entries: await Promise.all(
+        entries.map(async (e) => ({
+          ...e,
+          version: "1.0.0",
+          targets: ["codex"],
+          sha256: (await diskHash(root, e)) ?? "",
+        })),
+      ),
+    });
+    const owners = async () =>
+      Object.fromEntries(
+        (await describeLocalItems(io, "project")).map(({ item, ownership }) => [
+          item.name,
+          ownership.owner === "installed"
+            ? `installed${ownership.edited ? " and edited" : ""}`
+            : ownership.owner,
+        ]),
+      );
+    expect(await owners()).toMatchObject({
+      planner: "installed",
+      jira: "installed",
+      tracker: "installed",
+      auditor: "local",
+    });
+    write(io.cwd, ".codex/config.toml", '[mcp_servers.jira]\ncommand = "jira-mcp-2"\n');
+    write(
+      io.cwd,
+      ".codex/agents/planner.toml",
+      'name = "planner"\ndescription = "Plans more."\ndeveloper_instructions = "Plan."\n',
+    );
+    expect(await owners()).toMatchObject({
+      planner: "installed and edited",
+      jira: "installed and edited",
+    });
+  });
+
+  it("calls a TOML file with rmk's marker rendered, and leaves out rmk mcp-setup's entries", async () => {
+    project();
+    write(
+      io.cwd,
+      ".codex/agents/reviewer.toml",
+      '# managed by rmk: @examples/code-reviewer@1.0.0\nname = "reviewer"\ndescription = "R."\ndeveloper_instructions = "R."\n',
+    );
+    write(
+      io.cwd,
+      ".cursor/mcp.json",
+      JSON.stringify({
+        mcpServers: { registry: { command: "node" }, tracker: { url: "https://t.example" } },
+      }),
+    );
+    writeState(places(io, "project").state, {
+      version: 1,
+      entries: [
+        {
+          item: "rmk mcp-setup",
+          version: "0.1.0",
+          targets: ["cursor"],
+          kind: "json-key",
+          path: ".cursor/mcp.json",
+          key: ["mcpServers", "registry"],
+          sha256: "",
+        },
+      ],
+    });
+    const described = await describeLocalItems(io, "project");
+    expect(described.find((d) => d.item.name === "reviewer")?.ownership).toMatchObject({
+      owner: "rendered",
+    });
+    expect(described.filter((d) => d.item.type === "mcp-server").map((d) => d.item.key)).toEqual([
+      "jira",
+      "tracker",
+    ]);
+  });
+
+  it("skips a config that doesn't parse, with the reason, and lists the rest", () => {
+    project();
+    write(io.cwd, ".codex/config.toml", "[mcp_servers.jira\ncommand = ");
+    expect(listed().some((l) => l.startsWith("codex:mcp-server"))).toBe(false);
+    expect(listed()).toContain("codex:agent:planner:.codex/agents/planner.toml");
+    expect(mcpConfigs(io, "project").find((c) => c.tool === "codex")?.problem).toContain(
+      "config.toml isn't valid TOML",
+    );
+  });
+
+  it("plans each tool's items with its own reader", async () => {
+    project();
+    const api = apiClient(io.fetch, REGISTRY, "rmk_test_token");
+    const plan = await planExport(io, api, {
+      items: ["planner", "frontend-style", "ship", "jira", "tracker", "auditor"],
+      to: "team",
+      description: undefined,
+    });
+    expect(plan.refused).toEqual([]);
+    const manifest = (name: string) =>
+      plan.items.find((i) => i.name === `@team/${name}`)?.manifestText ?? "";
+    expect(manifest("planner")).toContain("model: gpt-5");
+    expect(manifest("frontend-style")).toContain("activation: glob");
+    expect(manifest("ship")).toContain("description: Ship the release.");
+    expect(manifest("jira")).toContain("command: jira-mcp");
+    expect(manifest("tracker")).toContain("transport: http");
+    expect(manifest("auditor")).toContain("- read");
   });
 });

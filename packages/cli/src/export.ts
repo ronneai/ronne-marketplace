@@ -16,19 +16,31 @@ import {
 } from "@ronneai/core";
 import {
   agentName,
+  CURSOR_COMMAND_EXTENSIONS,
+  codexAgentName,
   commandName,
+  cursorAgentName,
+  cursorCommandName,
   mcpServerName,
   ReadError,
   type ReadResult,
   readAgent,
+  readCodexAgent,
+  readCodexMcpServer,
   readCommand,
+  readCursorAgent,
+  readCursorCommand,
+  readCursorMcpServer,
+  readCursorRule,
   readMcpServer,
   readRule,
   readSkill,
   ruleName,
   skillName,
+  toItemName,
   withDependencies,
 } from "@ronneai/core/read";
+import { parse as parseToml } from "smol-toml";
 import { type ApiClient, ApiError } from "./api.js";
 import { diskHash, readState } from "./apply.js";
 import { RmkError, usage } from "./errors.js";
@@ -57,9 +69,20 @@ export const EXPORT_TYPES: readonly ExportType[] = [
   "mcp-server",
 ];
 
+/** The AI tool an item was written for; `shared` is `.agents/skills/`, which Codex and Cursor read. */
+export type SourceTool = "claude-code" | "codex" | "cursor" | "shared";
+/** The tools `--from` names (043). */
+export type ExportTool = Exclude<SourceTool, "shared">;
+export const EXPORT_TOOLS: readonly ExportTool[] = ["claude-code", "codex", "cursor"];
+
+/** Whether an item is one `--from <tool>` means: the shared skills folder counts for Codex and Cursor. */
+export const fromTool = (item: { tool: SourceTool }, from: ExportTool | undefined) =>
+  !from || item.tool === from || (item.tool === "shared" && from !== "claude-code");
+
 /** An item found on disk. */
 export type LocalItem = {
   type: ExportType;
+  tool: SourceTool;
   /** The item's short name, which `rmk export <name>` matches. */
   name: string;
   /**
@@ -67,7 +90,7 @@ export type LocalItem = {
    * file, or the JSON file an MCP server is a key of.
    */
   path: string;
-  /** An MCP server's key under `mcpServers`. */
+  /** An MCP server's key under `mcpServers` (or Codex's `mcp_servers`). */
   key?: string;
   /** As shown: relative to the scope's root, with `/`, and the key for an MCP server. */
   display: string;
@@ -104,6 +127,7 @@ export const findSkills = (io: Io, scope: Scope): LocalItem[] => {
       seen.add(real);
       found.push({
         type: "skill",
+        tool: folder === ".claude/skills" ? "claude-code" : "shared",
         name,
         path: dir,
         display: toSlashes(relative(root, dir)),
@@ -125,57 +149,135 @@ const realFile = (path: string): string | null => {
   }
 };
 
-/** Where Claude Code keeps agents, commands and rules, read recursively (native-readers.md §5–7). */
-const MARKDOWN_FOLDERS = {
-  agent: ".claude/agents",
-  command: ".claude/commands",
-  rule: ".claude/rules",
-} as const;
+/** A single-file item's source: where a tool keeps that type, and the extensions it reads. */
+type FileSource = {
+  tool: Exclude<SourceTool, "shared">;
+  type: "agent" | "command" | "rule";
+  folder: string;
+  extensions: readonly string[];
+  /** Cursor keeps user rules in its settings, not in files. */
+  projectOnly?: boolean;
+};
 
-const markdownFiles = (dir: string, under = ""): string[] => {
+/** Where each tool keeps agents, commands and rules, read recursively (native-readers.md §5–10). */
+export const FILE_SOURCES: readonly FileSource[] = [
+  { tool: "claude-code", type: "agent", folder: ".claude/agents", extensions: [".md"] },
+  { tool: "claude-code", type: "command", folder: ".claude/commands", extensions: [".md"] },
+  { tool: "claude-code", type: "rule", folder: ".claude/rules", extensions: [".md"] },
+  { tool: "codex", type: "agent", folder: ".codex/agents", extensions: [".toml"] },
+  { tool: "cursor", type: "agent", folder: ".cursor/agents", extensions: [".md"] },
+  {
+    tool: "cursor",
+    type: "rule",
+    folder: ".cursor/rules",
+    extensions: [".mdc"],
+    projectOnly: true,
+  },
+  {
+    tool: "cursor",
+    type: "command",
+    folder: ".cursor/commands",
+    extensions: CURSOR_COMMAND_EXTENSIONS,
+  },
+];
+
+const filesUnder = (dir: string, extensions: readonly string[], under = ""): string[] => {
   if (!realFolder(dir)) return [];
   return readdirSync(dir)
     .sort()
     .flatMap((entry) => {
       const full = join(dir, entry);
       const path = under ? `${under}/${entry}` : entry;
-      if (realFolder(full)) return markdownFiles(full, path);
-      return entry.endsWith(".md") && realFile(full) ? [path] : [];
+      if (realFolder(full)) return filesUnder(full, extensions, path);
+      return extensions.some((e) => entry.endsWith(e)) && realFile(full) ? [path] : [];
     });
 };
 
-/** The agents, commands or rules in a scope, named as the readers name them. */
-const findMarkdown = (io: Io, scope: Scope, type: keyof typeof MARKDOWN_FOLDERS): LocalItem[] => {
+/** A TOML file's parsed value, or null when it doesn't parse. */
+const tomlOf = (text: string): unknown => {
+  try {
+    return parseToml(text);
+  } catch {
+    return null;
+  }
+};
+
+/** A path under a tool's folder as a name: a subfolder joins it, the extension goes. */
+const nameFromPath = (under: string, extensions: readonly string[]) => {
+  const ext = extensions.find((e) => under.endsWith(e));
+  return toItemName((ext ? under.slice(0, -ext.length) : under).split("/").join("-"));
+};
+
+/** The name a single-file item suggests, as its tool names it (native-readers.md §5–10). */
+export const suggestedName = (
+  source: Pick<FileSource, "tool" | "type" | "extensions">,
+  file: PackageFile,
+  under: string,
+): string => {
+  const base = basename(under);
+  if (source.tool === "codex")
+    return codexAgentName(tomlOf(new TextDecoder().decode(file.bytes)), base);
+  if (source.tool === "cursor")
+    return source.type === "agent"
+      ? cursorAgentName(file, base)
+      : source.type === "command"
+        ? cursorCommandName(file, under)
+        : nameFromPath(under, source.extensions);
+  return source.type === "agent"
+    ? agentName(file, base)
+    : source.type === "command"
+      ? commandName(under)
+      : ruleName(under);
+};
+
+/** The agents, commands and rules of one source in a scope, named as the readers name them. */
+const findFiles = (io: Io, scope: Scope, source: FileSource): LocalItem[] => {
+  if (source.projectOnly && scope === "user") return [];
   const { root } = places(io, scope);
-  const folder = join(root, MARKDOWN_FOLDERS[type]);
-  return markdownFiles(folder).map((under) => {
+  const folder = join(root, source.folder);
+  return filesUnder(folder, source.extensions).map((under) => {
     const path = join(folder, under);
-    const name =
-      type === "agent"
-        ? agentName({ path: under, bytes: new Uint8Array(readFileSync(path)) }, basename(under))
-        : type === "command"
-          ? commandName(under)
-          : ruleName(under);
-    return { type, name, path, display: toSlashes(relative(root, path)), scope };
+    const file = { path: under, bytes: new Uint8Array(readFileSync(path)) };
+    return {
+      type: source.type,
+      tool: source.tool,
+      name: suggestedName(source, file, under),
+      path,
+      display: toSlashes(relative(root, path)),
+      scope,
+    };
   });
 };
 
-/** Where MCP servers are: the project's `.mcp.json`, or `~/.claude.json`'s top level for user scope. */
-const mcpConfigPath = (io: Io, scope: Scope) =>
-  scope === "project" ? join(io.cwd, ".mcp.json") : join(io.home, ".claude.json");
+/** Where each tool keeps MCP servers, per scope (native-readers.md §8–10). */
+const MCP_SOURCES: readonly {
+  tool: Exclude<SourceTool, "shared">;
+  file: (scope: Scope) => string;
+  toml: boolean;
+}[] = [
+  {
+    tool: "claude-code",
+    file: (scope) => (scope === "project" ? ".mcp.json" : ".claude.json"),
+    toml: false,
+  },
+  { tool: "codex", file: () => ".codex/config.toml", toml: true },
+  { tool: "cursor", file: () => ".cursor/mcp.json", toml: false },
+];
 
-/** The `mcpServers` of a scope's config, or the reason it can't be read. */
-export const readMcpServers = (
-  io: Io,
-  scope: Scope,
-): { path: string; servers: Record<string, unknown>; problem: string | null } => {
-  const path = mcpConfigPath(io, scope);
-  if (!realFile(path)) return { path, servers: {}, problem: null };
+/** The table MCP servers are under: Codex's `mcp_servers`, everyone else's `mcpServers`. */
+export const serversKey = (path: string) => (path.endsWith(".toml") ? "mcp_servers" : "mcpServers");
+
+/** The servers in one config file, or the reason it can't be read. */
+export const serversIn = (
+  path: string,
+): { servers: Record<string, unknown>; problem: string | null } => {
+  if (!realFile(path)) return { servers: {}, problem: null };
+  const toml = path.endsWith(".toml");
   try {
-    const json = JSON.parse(readFileSync(path, "utf8")) as { mcpServers?: unknown };
-    const servers = json?.mcpServers;
+    const text = readFileSync(path, "utf8");
+    const parsed = (toml ? parseToml(text) : JSON.parse(text)) as Record<string, unknown>;
+    const servers = parsed?.[serversKey(path)];
     return {
-      path,
       servers:
         servers && typeof servers === "object" && !Array.isArray(servers)
           ? (servers as Record<string, unknown>)
@@ -184,43 +286,63 @@ export const readMcpServers = (
     };
   } catch (error) {
     return {
-      path,
       servers: {},
-      problem: `${basename(path)} isn't valid JSON (${(error as Error).message}), so its MCP servers can't be read.`,
+      problem: `${basename(path)} isn't valid ${toml ? "TOML" : "JSON"} (${(error as Error).message}), so its MCP servers can't be read.`,
     };
   }
 };
 
-/** The MCP servers in a scope, less the one `rmk mcp-setup` registered, which is never an item. */
+/** Every tool's MCP config in a scope: where it is, its servers, and why it can't be read. */
+export const mcpConfigs = (io: Io, scope: Scope) => {
+  const { root } = places(io, scope);
+  return MCP_SOURCES.map((source) => {
+    const path = join(root, source.file(scope));
+    return { tool: source.tool, path, ...serversIn(path) };
+  });
+};
+
+/** Claude Code's MCP config in a scope (040). */
+export const readMcpServers = (io: Io, scope: Scope) => {
+  const [claude] = mcpConfigs(io, scope);
+  return claude as NonNullable<typeof claude>;
+};
+
+/**
+ * Every tool's MCP servers in a scope, less the ones `rmk mcp-setup` registered, which are never
+ * items.
+ */
 const findMcpServers = (io: Io, scope: Scope): LocalItem[] => {
   const { root, state } = places(io, scope);
-  const { path, servers } = readMcpServers(io, scope);
-  const file = toSlashes(relative(root, path));
-  const setup = new Set(
-    readState(state)
-      .entries.filter((e) => e.item === MCP_SETUP_ITEM && e.kind === "json-key")
-      .map((e) => (Array.isArray(e.key) ? e.key.at(-1) : undefined)),
+  const entries = readState(state).entries.filter(
+    (e) => e.item === MCP_SETUP_ITEM && (e.kind === "json-key" || e.kind === "toml-key"),
   );
-  return Object.keys(servers)
-    .filter((key) => key !== SERVER_NAME && !setup.has(key))
-    .sort()
-    .map((key) => ({
-      type: "mcp-server" as const,
-      name: mcpServerName(key),
-      path,
-      key,
-      display: `${file} (mcpServers.${key})`,
-      scope,
-    }));
+  return mcpConfigs(io, scope).flatMap(({ tool, path, servers }) => {
+    const file = toSlashes(relative(root, path));
+    const setup = new Set(
+      entries
+        .filter((e) => e.path === file)
+        .map((e) => (Array.isArray(e.key) ? e.key.at(-1) : undefined)),
+    );
+    return Object.keys(servers)
+      .filter((key) => key !== SERVER_NAME && !setup.has(key))
+      .sort()
+      .map((key) => ({
+        type: "mcp-server" as const,
+        tool,
+        name: mcpServerName(key),
+        path,
+        key,
+        display: `${file} (${serversKey(path)}.${key})`,
+        scope,
+      }));
+  });
 };
 
 /** Every item `rmk export` can find in a scope, by name then type then place (038, 040). */
 export const discoverLocalItems = (io: Io, scope: Scope): LocalItem[] =>
   [
     ...findSkills(io, scope),
-    ...findMarkdown(io, scope, "agent"),
-    ...findMarkdown(io, scope, "command"),
-    ...findMarkdown(io, scope, "rule"),
+    ...FILE_SOURCES.flatMap((source) => findFiles(io, scope, source)),
     ...findMcpServers(io, scope),
   ].sort((a, b) =>
     a.name !== b.name
@@ -365,10 +487,10 @@ const installedEntry = (io: Io, place: Place) => {
       const entry = readState(state).entries.find((e) =>
         place.key === undefined
           ? (e.kind === "dir" || e.kind === "file") && e.path === toSlashes(path)
-          : e.kind === "json-key" &&
+          : (e.kind === "json-key" || e.kind === "toml-key") &&
             e.path === toSlashes(path) &&
             Array.isArray(e.key) &&
-            e.key.join("\0") === ["mcpServers", place.key].join("\0"),
+            e.key.join("\0") === [serversKey(place.path), place.key].join("\0"),
       );
       if (entry) return { root, scope, entry };
     }
@@ -407,9 +529,10 @@ export const ownershipOf = async (
         version: String(fields.version),
       };
   }
+  // A skill's SKILL.md, or the one file of an agent, command or rule (a `#` comment in TOML).
   const markdown =
     textOf(files, "SKILL.md") ??
-    (files.length === 1 && files[0]?.path.endsWith(".md") ? textOf(files, files[0].path) : null);
+    (files.length === 1 && files[0] ? textOf(files, files[0].path) : null);
   const marker = MARKER.exec(markdown ?? "");
   if (marker) return { owner: "rendered", item: marker[1] ?? "", version: marker[2] ?? "" };
   return { owner: "local" };
@@ -453,6 +576,8 @@ export type ExportRequest = {
   items: readonly (string | LocalItem)[];
   /** Only items of this type: for names that more than one type has, and for a file's type. */
   type?: ExportType;
+  /** Only items written for this tool (043): for names that more than one tool has. */
+  from?: ExportTool;
   /** An MCP server's description, which isn't on disk; for a single item. */
   description?: string;
   /**
@@ -529,14 +654,29 @@ export const fetchScopes = async (api: ApiClient): Promise<Scopes> => {
 };
 
 /** A thing to export: what it is, where, and how it's shown. */
-type Target = { local: string; type: ExportType; path: string; key?: string; name?: string };
+type Target = {
+  local: string;
+  type: ExportType;
+  tool: SourceTool;
+  path: string;
+  key?: string;
+  name?: string;
+};
 
-/** The Claude Code folder a file is in decides its type (native-readers.md §5–7). */
-const typeOfFile = (path: string): ExportType | null => {
-  const parts = toSlashes(path).split("/");
-  for (const [type, folder] of Object.entries(MARKDOWN_FOLDERS) as [ExportType, string][])
-    if (parts.includes(folder.split("/").at(-1) ?? "")) return type;
-  return null;
+/**
+ * The folder a file is in decides its tool and type (native-readers.md §5–10): `.cursor/rules/`
+ * is a Cursor rule, `.claude/agents/` a Claude Code agent. Elsewhere, `type` says what it is, and
+ * the extension which tool (`.toml` Codex, `.mdc` Cursor).
+ */
+const sourceOfFile = (path: string, type?: ExportType): FileSource | null => {
+  const slashed = `/${toSlashes(path)}`;
+  const inFolder = FILE_SOURCES.find(
+    (source) => slashed.includes(`/${source.folder}/`) && (!type || source.type === type),
+  );
+  if (inFolder) return inFolder;
+  if (type !== "agent" && type !== "command" && type !== "rule") return null;
+  const tool = path.endsWith(".toml") ? "codex" : path.endsWith(".mdc") ? "cursor" : "claude-code";
+  return FILE_SOURCES.find((source) => source.tool === tool && source.type === type) ?? null;
 };
 
 /**
@@ -553,41 +693,61 @@ const resolveItems = (io: Io, request: ExportRequest): Target[] => {
   };
   return request.items.map((arg): Target => {
     if (typeof arg !== "string")
-      return { local: arg.display, type: arg.type, path: arg.path, key: arg.key, name: arg.name };
+      return {
+        local: arg.display,
+        type: arg.type,
+        tool: arg.tool,
+        path: arg.path,
+        key: arg.key,
+        name: arg.name,
+      };
     const path = resolve(io.cwd, arg);
     if (realFolder(path)) {
       if (request.type && request.type !== "skill")
         throw usage(
           `${arg} is a folder, so it's a skill, not ${request.type === "agent" ? "an" : "a"} ${request.type}.`,
         );
-      return { local: arg, type: "skill", path };
+      return {
+        local: arg,
+        type: "skill",
+        tool: toSlashes(path).includes("/.claude/") ? "claude-code" : "shared",
+        path,
+      };
     }
     if (realFile(path)) {
-      const type = request.type ?? typeOfFile(path);
-      if (!type || type === "skill" || type === "mcp-server")
+      const source = sourceOfFile(path, request.type);
+      if (!source)
         throw usage(
-          `Say what ${arg} is with --type agent, command or rule: it isn't in .claude/agents/, commands/ or rules/.`,
+          `Say what ${arg} is with --type agent, command or rule: it isn't in an AI tool's agents, commands or rules folder.`,
         );
-      return { local: arg, type, path };
+      return { local: arg, type: source.type, tool: source.tool, path };
     }
     const matches = discovered().filter(
-      (item) => item.name === arg && (!request.type || item.type === request.type),
+      (item) =>
+        item.name === arg &&
+        (!request.type || item.type === request.type) &&
+        fromTool(item, request.from),
     );
     if (matches.length === 0)
       throw usage(
-        `No ${request.type ?? "item"} called ${arg} here. rmk export, with nothing after it, lists what it finds.`,
+        `No ${request.type ?? "item"} called ${arg} here${request.from ? ` for ${request.from}` : ""}. rmk export, with nothing after it, lists what it finds.`,
       );
     if (matches.length > 1)
       throw new RmkError(
-        `${arg} is more than one item: ${matches.map((m) => `${m.display} (${m.type})`).join(", ")}. Say which with --type, or give the path.`,
+        `${arg} is more than one item: ${matches.map((m) => `${m.display} (${m.type}, ${m.tool})`).join(", ")}. Say which with --type or --from, or give the path.`,
         2,
         "ambiguous",
-        { paths: matches.map((m) => m.display), types: matches.map((m) => m.type) },
+        {
+          paths: matches.map((m) => m.display),
+          types: matches.map((m) => m.type),
+          tools: matches.map((m) => m.tool),
+        },
       );
     const [match] = matches as [LocalItem];
     return {
       local: match.display,
       type: match.type,
+      tool: match.tool,
       path: match.path,
       key: match.key,
       name: match.name,
@@ -722,6 +882,7 @@ export const planExport = async (
                 {
                   local: f.item.display,
                   type: f.item.type,
+                  tool: f.item.tool,
                   path: f.item.path,
                   key: f.item.key,
                   name: f.item.name,
@@ -805,7 +966,7 @@ export const planExport = async (
         read = readSkill(walked.files, { itemName: `@${scope}/${short}` });
       } else if (type === "mcp-server") {
         const key = target.key ?? "";
-        const value = readMcpServers(io, scopeOf(request.scope)).servers[key];
+        const value = serversIn(target.path).servers[key];
         hash.update(
           `\0${target.path}\0${key}\0${sha256(new TextEncoder().encode(JSON.stringify(value ?? null)))}`,
         );
@@ -821,7 +982,13 @@ export const planExport = async (
           continue;
         }
         const description = request.description ?? (await hooks.describe?.(local));
-        read = readMcpServer(key, value, {
+        const reader =
+          target.tool === "codex"
+            ? readCodexMcpServer
+            : target.tool === "cursor"
+              ? readCursorMcpServer
+              : readMcpServer;
+        read = reader(key, value, {
           itemName: `@${scope}/${short}`,
           ...(description ? { description } : {}),
         });
@@ -839,8 +1006,14 @@ export const planExport = async (
           bytes: new Uint8Array(readFileSync(target.path)),
         };
         hash.update(`\0${realFile(target.path) ?? target.path}\0${sha256(file.bytes)}`);
-        if (textOrNull(file) === null) {
-          refuse("not_text", "It isn't UTF-8 text, so it can't be read as Markdown.");
+        const text = textOrNull(file);
+        if (text === null) {
+          refuse("not_text", "It isn't UTF-8 text, so it can't be read.");
+          continue;
+        }
+        const toml = target.tool === "codex" ? tomlOf(text) : undefined;
+        if (toml === null) {
+          refuse("not_toml", "It isn't valid TOML, so Codex can't read it either.");
           continue;
         }
         const refusal = ownershipRefusal(
@@ -853,15 +1026,30 @@ export const planExport = async (
           continue;
         }
         scope = scopeFor([file]);
-        const suggested =
-          target.name ?? (type === "agent" ? agentName(file, file.path) : commandName(file.path));
+        const source = sourceOfFile(target.path, type) ?? FILE_SOURCES[0];
+        const suggested = target.name ?? (source ? suggestedName(source, file, file.path) : "");
         const short = named(suggested);
         if (!short) {
           refuse("invalid_name", "Its name can't be an item name. Give one with --name.");
           continue;
         }
-        const reader = type === "agent" ? readAgent : type === "command" ? readCommand : readRule;
-        read = reader(file, { itemName: `@${scope}/${short}` });
+        const itemName = `@${scope}/${short}`;
+        if (target.tool === "codex") read = readCodexAgent(toml, { itemName, fileName: file.path });
+        else if (target.tool === "cursor")
+          read = (
+            type === "agent"
+              ? readCursorAgent
+              : type === "command"
+                ? readCursorCommand
+                : readCursorRule
+          )(file, { itemName });
+        else
+          read = (type === "agent" ? readAgent : type === "command" ? readCommand : readRule)(
+            file,
+            {
+              itemName,
+            },
+          );
       }
     } catch (error) {
       if (error instanceof ReadError) {

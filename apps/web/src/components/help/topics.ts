@@ -61,7 +61,7 @@ export const TOPICS = [
     slug: "export",
     title: "Exporting your own items",
     summary:
-      "Sending a skill, agent, command, rule or MCP server you wrote to the marketplace as a draft.",
+      "Sending a skill, agent, command, rule or MCP server you wrote in Claude Code, Codex or Cursor to the marketplace as a draft.",
     sections: [
       { id: "what", title: "What it's for" },
       { id: "reads", title: "What it reads, and what it never uploads" },

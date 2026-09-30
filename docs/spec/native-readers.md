@@ -7,8 +7,8 @@ renderer turns `ronne.yaml` into a tool's files, and a reader turns a tool's fil
 `ronne.yaml` and the files that go with it ([manifest spec](./manifest.md)).
 
 Status: the skill reader is built (038, `readSkill` in `@ronneai/core/read`); the other four types
-are built (040). Codex's and Cursor's own files are specified by
-[043](../features/043-codex-cursor-readers/SPEC.md), which adds their sections here once checked;
+are built (040); Codex's and Cursor's own files (§9–10) are
+[043](../features/043-codex-cursor-readers/SPEC.md)'s, checked on 2026-09-30;
 exporting an edited install as a change proposal is
 [042](../features/042-export-change-proposal/SPEC.md). §5–8 were checked against Claude Code's documentation (sub-agents, commands
 and skills, memory and rules, MCP) and its renderer on **2026-09-30**. The readers' tool, model
@@ -173,8 +173,101 @@ Claude Code keeps per project under `projects.<path>.mcpServers` (its local scop
   that the installed item expects `API_KEY` itself.
 - The server `rmk mcp-setup` registered is never listed.
 
-## 9. Not read
+## 9. Codex (043)
+
+Checked against Codex's documentation (learn.chatgpt.com/docs: agent-configuration/subagents,
+extend/mcp) and the Codex renderer (024) on **2026-09-30**. Codex's TOML is parsed by `rmk` with
+`smol-toml`; the readers take the parsed value.
+
+**Agent.** Source: `.codex/agents/*.toml` (project) and `~/.codex/agents/*.toml` (home). Codex
+requires `name`, `description` and `developer_instructions`, and identifies the agent by `name`.
+
+| Manifest | From |
+|---|---|
+| name | `name`; without one (Codex would refuse the file), the file's name, with a warning |
+| `description` | `description` |
+| `agent.prompt` | `prompt.md`, from `developer_instructions` (always inline: Codex has no separate file) |
+| `agent.tools` | none: Codex agents have no tool list |
+| `targets.codex.overrides.model` | `model`, which the Codex renderer reads; the manifest's own `agent.model` is left at the default |
+
+- Dropped, with a warning each: `model_reasoning_effort`, `sandbox_mode`, `nickname_candidates`,
+  `skills`, servers defined inline under `mcp_servers` (export the server on its own), and any
+  other key.
+- The marker is a `# managed by rmk: …` comment at the top.
+
+**MCP server.** Source: `[mcp_servers.<n>]` in `.codex/config.toml` (project; Codex reads it only
+in a trusted project, export reads it regardless) and `~/.codex/config.toml` (home). Codex's
+transports are stdio and streamable HTTP (which also serves SSE).
+
+| Manifest | From |
+|---|---|
+| `transport` | `stdio` with a `command`; `http` with a `url` |
+| `command`, `args` | as written |
+| `env` | the keys of `env` (never the values) and the names in `env_vars` (a string, or `{ name, source }`); secret by §8's rule |
+| `url` | as written |
+| `headers` | `bearer_token_env_var` as `Authorization: Bearer ${VAR}`; each `env_http_headers` entry as `${VAR}`; `http_headers` literals through §8's credential rules. Each variable is declared in `env` |
+
+- Dropped, with a warning each: `cwd`, `startup_timeout_sec`, `tool_timeout_sec`, `required`,
+  `enabled_tools`, `disabled_tools`, `default_tools_approval_mode`, `tools`, `oauth`, and any other
+  key. `enabled = false` is kept out too, with a warning that the server is off in Codex.
+- `bearer_token_env_var` and a literal `Authorization` in `http_headers`: the variable wins, the
+  literal is dropped (never uploaded).
+
+## 10. Cursor (043)
+
+Checked against Cursor's documentation (cursor.com/docs: context/rules, context/subagents,
+context/mcp, and commands) and the Cursor renderer (025) on **2026-09-30**.
+
+**Agent.** Source: `.cursor/agents/*.md` (project) and `~/.cursor/agents/*.md` (home). (Cursor
+also reads `.claude/agents/` and `.codex/agents/`; those are §5's and §9's.)
+
+| Manifest | From |
+|---|---|
+| name | frontmatter `name`, else the file's name, as Cursor does |
+| `description` | `description` |
+| `agent.prompt` | `prompt.md`, the body |
+| `agent.tools` | `readonly: true` → `read`, `grep`, `glob` (the renderer writes `readonly` for tools that change nothing); otherwise none |
+| `targets.cursor.overrides.model` | `model`, unless it's `inherit` (Cursor's default) |
+
+- Dropped, with a warning each: `is_background`, and any other field.
+
+**Rule.** Source: `.cursor/rules/**/*.mdc` (project only: Cursor keeps user rules in its settings;
+`.md` files there are ignored by Cursor and by export).
+
+| Manifest | From |
+|---|---|
+| `description` | frontmatter `description`, else the body's first line |
+| `rule.body` | `rule.md`, the body |
+| `rule.activation` | `alwaysApply: true` → `always` (with `globs` dropped, with a warning); else `globs` → `glob`; else a `description` → `model`; else `manual` |
+| `rule.globs` | `globs`, comma-separated (or a list) |
+
+**Command.** Source: `.cursor/commands/**/*.{md,mdc,markdown,txt}` (project) and
+`~/.cursor/commands/` (home).
+
+| Manifest | From |
+|---|---|
+| name | frontmatter `name`, else the file's name (a subfolder joins it, as §6) |
+| `description` | frontmatter `description`, else the body's first line |
+| `command.body` | `command.md`, the body; Cursor commands take no declared arguments |
+
+**MCP server.** Source: `mcpServers.<n>` in `.cursor/mcp.json` (project) and `~/.cursor/mcp.json`
+(home). stdio (`type: "stdio"`, or a `command`) or remote (a `url`, streamable HTTP or SSE).
+
+| Manifest | From |
+|---|---|
+| `transport` | `stdio` with a `command`; `http` with a `url` |
+| `command`, `args`, `url`, `headers` | as written, with `${env:NAME}` read as `${NAME}`; literals through §8's credential rules |
+| `env` | the keys of `env` (never the values); secret by §8's rule |
+
+- Dropped, with a warning each: `envFile`, `auth` (OAuth), and any other key. Cursor's other
+  variables (`${userHome}`, `${workspaceFolder}`, `${workspaceFolderBasename}`, `${pathSeparator}`,
+  `${/}`) have no equivalent: the value stays as written, with a warning.
+- Finding for 025, not changed here: Cursor's documentation now shows `type: "stdio"` as required
+  for stdio servers, and the Cursor renderer writes none.
+
+## 11. Not read
 
 Hooks, permission policies, status lines and LSP servers live as keys inside the tools' settings
 files next to the person's own settings; output styles and bundles are rare. They're authored in
-the web app. Codex's and Cursor's own formats (other than the shared `.agents/skills/`) are 043.
+the web app. Rules written as sections of `AGENTS.md` have no boundary (§7). Codex's custom prompts
+and Cursor's `.cursorrules` are deprecated by their tools, and not read.

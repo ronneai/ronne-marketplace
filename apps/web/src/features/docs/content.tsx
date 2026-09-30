@@ -89,12 +89,12 @@ const MCP_TOOLS: [string, string, string][] = [
   ],
   [
     "list_local_items",
-    "The skills, agents, commands, rules and MCP servers in your AI tools' folders, and whose each is: yours, installed (edited or not), a registry copy, or written by rmk. Takes type.",
+    "The skills, agents, commands, rules and MCP servers in Claude Code's, Codex's and Cursor's folders, with the tool each is for, and whose each is: yours, installed (edited or not), a registry copy, or written by rmk. Takes type and from.",
     "Nothing",
   ],
   [
     "plan_export",
-    "Plans sending items of yours to this marketplace as drafts: every file, and what's left out. Takes type, an MCP server's description, and dependencies (include or omit) for the items of yours they use.",
+    "Plans sending items of yours to this marketplace as drafts: every file, and what's left out. Takes type, from (the tool), an MCP server's description, and dependencies (include or omit) for the items of yours they use.",
     "Nothing",
   ],
   [
@@ -720,8 +720,8 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
     what: (
       <>
         <p>
-          You wrote a skill, an agent, a command, a rule or an MCP server for Claude Code, and want
-          your team to have it. <Code>rmk export</Code> reads it, writes the{" "}
+          You wrote a skill, an agent, a command, a rule or an MCP server for Claude Code, Codex or
+          Cursor, and want your team to have it. <Code>rmk export</Code> reads it, writes the{" "}
           <To href={docsHref("items", "manifest")}>ronne.yaml</To> it lacks, shows you everything it
           would upload, and creates a <strong>private draft</strong> here. You check it in the web
           app and submit it for review like any other draft.
@@ -740,25 +740,37 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
     reads: (
       <>
         <p>
-          It looks where Claude Code keeps each type, in the project or, with{" "}
-          <Code>--scope user</Code>, in your home folder:
+          It looks where each tool keeps each type, in the project or, with{" "}
+          <Code>--scope user</Code>, in your home folder (subfolders included):
         </p>
         <Bullets>
           <li>
             <strong>skills:</strong> folders with a <Code>SKILL.md</Code> in{" "}
-            <Code>.claude/skills/</Code> and <Code>.agents/skills/</Code>;
+            <Code>.claude/skills/</Code>, and in <Code>.agents/skills/</Code>, which Codex and
+            Cursor share;
           </li>
           <li>
-            <strong>agents, commands and rules:</strong> Markdown files in{" "}
+            <strong>Claude Code:</strong> agents, commands and rules as Markdown in{" "}
             <Code>.claude/agents/</Code>, <Code>.claude/commands/</Code> and{" "}
-            <Code>.claude/rules/</Code>, subfolders included;
+            <Code>.claude/rules/</Code>; MCP servers in <Code>.mcp.json</Code>, or at the top of{" "}
+            <Code>~/.claude.json</Code>;
           </li>
           <li>
-            <strong>MCP servers:</strong> <Code>mcpServers</Code> in the project&apos;s{" "}
-            <Code>.mcp.json</Code>, or at the top of <Code>~/.claude.json</Code>. The{" "}
-            <Code>ronne-registry</Code> server <Code>rmk mcp-setup</Code> adds is never listed.
+            <strong>Codex:</strong> agents in <Code>.codex/agents/*.toml</Code>, and MCP servers
+            under <Code>mcp_servers</Code> in <Code>.codex/config.toml</Code>;
+          </li>
+          <li>
+            <strong>Cursor:</strong> agents in <Code>.cursor/agents/</Code>, rules in{" "}
+            <Code>.cursor/rules/*.mdc</Code> (projects only), commands in{" "}
+            <Code>.cursor/commands/</Code>, and MCP servers in <Code>.cursor/mcp.json</Code>.
           </li>
         </Bullets>
+        <p>
+          The <Code>ronne-registry</Code> server <Code>rmk mcp-setup</Code> adds is never listed.
+          Rules written inside <Code>AGENTS.md</Code>, hooks and permission settings aren&apos;t
+          read, nor Cursor&apos;s old <Code>.cursorrules</Code> or Codex&apos;s custom prompts. When
+          the same name is an item in two tools, say which with <Code>--from</Code>.
+        </p>
         <p>
           You name what to export, or give its path (a skill&apos;s folder, or an agent, command or
           rule file). A skill is its folder: every file in it is uploaded, keeping scripts
@@ -907,8 +919,8 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
     keeps: (
       <>
         <p>
-          Claude Code&apos;s files can say things a portable item can&apos;t. Each one left out is a
-          warning in the preview, by name, so you decide before uploading.
+          A tool&apos;s own files can say things a portable item can&apos;t. Each one left out is a
+          warning in the preview, by name, so you decide before uploading. For Claude Code:
         </p>
         <Table>
           <thead>
@@ -949,6 +961,58 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             ))}
           </tbody>
         </Table>
+        <p>For Codex and Cursor:</p>
+        <Table>
+          <thead>
+            <tr>
+              <Th>Tool and type</Th>
+              <Th>Kept</Th>
+              <Th>Left out</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {(
+              [
+                [
+                  "Codex agent",
+                  "Name, description, the instructions; its model, for Codex only.",
+                  "Sandbox and reasoning settings, skills, and servers defined inside it. Codex agents have no tool list.",
+                ],
+                [
+                  "Codex MCP server",
+                  "The command and arguments or the address; bearer_token_env_var and env_http_headers as headers that reference variables; the variables' names.",
+                  "Every value; cwd, timeouts, tool lists, approval modes, oauth and other settings.",
+                ],
+                [
+                  "Cursor agent",
+                  "Name, description, the prompt; readonly as tools that change nothing; its model, for Cursor only.",
+                  "Running in the background, and other settings.",
+                ],
+                [
+                  "Cursor rule",
+                  "The body; alwaysApply as always, globs as a glob rule, a description alone as a rule the AI chooses, none as manual.",
+                  "Nothing Cursor reads.",
+                ],
+                ["Cursor command", "The body, name and description.", "Nothing."],
+                [
+                  "Cursor MCP server",
+                  "The command, arguments, address and headers, with ${env:NAME} as ${NAME}; the variables' names.",
+                  "Every value; envFile, auth and other settings. Cursor's own variables, such as ${workspaceFolder}, stay as written.",
+                ],
+              ] as const
+            ).map(([what, kept, lost]) => (
+              <tr key={what}>
+                <Td className="align-top text-sm">{what}</Td>
+                <Td className="align-top text-sm">{kept}</Td>
+                <Td className="align-top text-sm">{lost}</Td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+        <p>
+          A model a Codex or Cursor agent names is kept for that tool only, so it still uses it
+          there; other tools use their default.
+        </p>
         <p>
           A description is one line of at most 300 characters. An agent&apos;s or command&apos;s
           longer one is cut, and the cut text is what Claude Code reads once the item is installed.
@@ -1037,6 +1101,10 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
               [
                 "--type <type>",
                 "Only skills, agents, commands, rules or MCP servers (mcp-server).",
+              ],
+              [
+                "--from <tool>",
+                "Only items written for claude-code, codex or cursor. The shared .agents/skills/ counts for codex and cursor.",
               ],
               [
                 "--description <text>",
@@ -1666,6 +1734,10 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           in the project, or in your home folder with <Code>--scope user</Code>.
         </p>
         <PathsTable paths={CODEX_PATHS} />
+        <p>
+          <Code>rmk export --from codex</Code> reads the agents and MCP servers you wrote for Codex
+          from the same places: <To href={docsHref("export")}>Exporting your own items</To>.
+        </p>
       </>
     ),
     trust: (
@@ -1720,6 +1792,11 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           with <Code>--scope user</Code>.
         </p>
         <PathsTable paths={CURSOR_PATHS} />
+        <p>
+          <Code>rmk export --from cursor</Code> reads the agents, rules, commands and MCP servers
+          you wrote for Cursor from the same places:{" "}
+          <To href={docsHref("export")}>Exporting your own items</To>.
+        </p>
       </>
     ),
     "with-claude-code": (

@@ -132,4 +132,25 @@ describe("findDependencies", () => {
       [],
     );
   });
+
+  it("looks for a reference in the dependent's own tool first (043)", async () => {
+    await project();
+    write(
+      io.cwd,
+      ".cursor/mcp.json",
+      JSON.stringify({ mcpServers: { github: { url: "https://cursor.example/mcp" } } }),
+    );
+    const findings = await findDependencies(io, "project", [
+      { ...selected("reviewer"), tool: "claude-code" },
+    ]);
+    expect(findings.find((f) => f.reference.name === "github")?.item?.display).toBe(
+      ".mcp.json (mcpServers.github)",
+    );
+    const fromCursor = await findDependencies(io, "project", [
+      { ...selected("reviewer"), tool: "cursor" },
+    ]);
+    expect(fromCursor.find((f) => f.reference.name === "github")?.item?.display).toBe(
+      ".cursor/mcp.json (mcpServers.github)",
+    );
+  });
 });

@@ -174,15 +174,21 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
     .optional()
     .describe("Only items of this type: skill, agent, command, rule or mcp-server");
 
+  const exportFrom = z
+    .enum(["claude-code", "codex", "cursor"])
+    .optional()
+    .describe("Only items written for this AI tool: claude-code, codex or cursor");
+
   server.registerTool(
     "list_local_items",
     {
       title: "List items to export",
       description:
-        "The skills, agents, commands, rules and MCP servers in this project's AI tool folders (or your home folder's, with scope user), each with whose it is: yours, installed, installed and edited, a registry copy, or written by rmk. Only items marked yours can be exported. Reads no network.",
+        "The skills, agents, commands, rules and MCP servers in this project's AI tool folders (Claude Code's, Codex's and Cursor's) (or your home folder's, with scope user), each with whose it is: yours, installed, installed and edited, a registry copy, or written by rmk. Only items marked yours can be exported. Reads no network.",
       inputSchema: {
         scope,
         type: exportType,
+        from: exportFrom,
       },
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
@@ -204,6 +210,9 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
         name: z.string().optional().describe("The item's name, for a single item"),
         type: exportType.describe(
           "skill, agent, command, rule or mcp-server: needed when a name is more than one item",
+        ),
+        from: exportFrom.describe(
+          "claude-code, codex or cursor: needed when a name is an item in more than one tool",
         ),
         description: z
           .string()

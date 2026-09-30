@@ -11,11 +11,14 @@ export { RmkError } from "./errors.js";
 export {
   describeLocalItems,
   discoverLocalItems,
+  EXPORT_TOOLS,
   type ExportedItem,
   type ExportPlan,
   type ExportRequest,
+  type ExportTool,
   type ExportWarning,
   fetchScopes,
+  fromTool,
   type LocalItem,
   type Ownership,
   type PlannedItem,
@@ -24,10 +27,11 @@ export {
   type Scopes,
   type Skipped,
   type SkipReason,
+  type SourceTool,
   uploadExport,
 } from "./export.js";
 export { previewText, releaseOrder } from "./export-command.js";
-export { type Finding, type FindingStatus } from "./export-dependencies.js";
+export type { Finding, FindingStatus } from "./export-dependencies.js";
 export {
   chooseTargets,
   commitInstall,

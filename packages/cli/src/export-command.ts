@@ -4,17 +4,20 @@ import type { Args } from "./cli.js";
 import { RmkError, usage } from "./errors.js";
 import {
   discoverLocalItems,
+  EXPORT_TOOLS,
   EXPORT_TYPES,
   type ExportedItem,
   type ExportHooks,
   type ExportPlan,
   type ExportRequest,
+  type ExportTool,
   type ExportType,
   fetchScopes,
+  fromTool,
   type LocalItem,
+  mcpConfigs,
   type PlannedItem,
   planExport,
-  readMcpServers,
   type Scopes,
   type SkipReason,
   uploadExport,
@@ -145,6 +148,15 @@ const dependenciesOption = (args: Args): "include" | "omit" | undefined => {
   return withDeps ? "include" : noDeps ? "omit" : undefined;
 };
 
+/** `--from`, checked: one of the tools export reads (043). */
+const fromOption = (args: Args): ExportTool | undefined => {
+  const value = str(args.values.from);
+  if (value === undefined) return undefined;
+  if (!(EXPORT_TOOLS as readonly string[]).includes(value))
+    throw usage(`--from is one of ${EXPORT_TOOLS.join(", ")}.`);
+  return value as ExportTool;
+};
+
 /** `--type`, checked: one of the types export reads. */
 const typeOption = (args: Args): ExportType | undefined => {
   const value = str(args.values.type);
@@ -162,16 +174,18 @@ const chooseItems = async (
 ): Promise<(string | LocalItem)[] | null> => {
   const scope = scopeOf(str(args.values.scope));
   const type = typeOption(args);
-  const found = discoverLocalItems(io, scope).filter((f) => !type || f.type === type);
+  const from = fromOption(args);
+  const found = discoverLocalItems(io, scope).filter(
+    (f) => (!type || f.type === type) && fromTool(f, from),
+  );
   out.set(
     "found",
-    found.map((f) => ({ name: f.name, type: f.type, path: f.display })),
+    found.map((f) => ({ name: f.name, type: f.type, tool: f.tool, path: f.display })),
   );
-  const unreadable = readMcpServers(io, scope).problem;
-  if (unreadable) out.say(unreadable);
+  for (const { problem } of mcpConfigs(io, scope)) if (problem) out.say(problem);
   if (found.length === 0) {
     out.say(
-      `No ${type ?? "skills, agents, commands, rules or MCP servers"} found in this ${scope === "user" ? "home folder" : "project"}'s AI tool folders. Give a folder or file: rmk export <path>`,
+      `No ${type ?? "skills, agents, commands, rules or MCP servers"} found in this ${scope === "user" ? "home folder" : "project"}'s AI tool folders${from ? ` for ${from}` : ""}. Give a folder or file: rmk export <path>`,
     );
     return null;
   }
@@ -290,6 +304,7 @@ export const exportCommand = async (io: Io, args: Args, out: Output, api: ApiCli
     force: args.values.force === true,
     dependencies: dependenciesOption(args),
     type: typeOption(args),
+    from: fromOption(args),
     description: str(args.values.description),
   };
   // An MCP server has no description on disk: in a terminal, ask once for each.

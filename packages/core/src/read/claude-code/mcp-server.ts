@@ -58,13 +58,18 @@ const withoutDefaults = (value: string, where: string, warnings: ReadWarning[]) 
 export const readMcpServer = (
   key: string,
   value: unknown,
-  options: { itemName: string; description?: string },
+  options: {
+    itemName: string;
+    description?: string;
+    /** How the source names the server, for warnings: `mcpServers.<key>` by default. */
+    where?: string;
+  },
 ): ReadResult => {
   const { name: short } = checkedName(options.itemName);
   if (!value || typeof value !== "object" || Array.isArray(value))
     throw new ReadError("manifest_invalid", `The MCP server ${key} isn't an object.`);
   const config = value as Record<string, unknown>;
-  const where = `mcpServers.${key}`;
+  const where = options.where ?? `mcpServers.${key}`;
   const warnings: ReadWarning[] = [];
 
   const type = config.type ?? "stdio";

@@ -14,7 +14,7 @@ that works in Cursor or Codex gets the same way into the marketplace.
 - Readers for Codex: agents (`.codex/agents/*.toml`) and MCP servers (`[mcp_servers.<n>]` in
   `.codex/config.toml`), in the project and the home folder.
 - Readers for Cursor: agents (`.cursor/agents/*.md`), rules (`.cursor/rules/*.mdc`), commands
-  (`.cursor/commands/*.md`) and MCP servers (`mcpServers` in `.cursor/mcp.json`), in the project and
+  (`.cursor/commands/`, as `.md`, `.mdc`, `.markdown` or `.txt`) and MCP servers (`mcpServers` in `.cursor/mcp.json`), in the project and
   the home folder (rules: project only, as Cursor keeps user rules in its settings).
 - Telling what the person wrote from what `rmk` installed for these tools: state entries of kind
   `file`, `json-key` and `toml-key`, and the markers the Codex and Cursor renderers write.
@@ -56,7 +56,9 @@ tools' documentation before building (the first task).
 
 Skills are already found in `.agents/skills/`, the folder Codex and Cursor share (038).
 
-**Which tool.** Each item found says which tool it's from. The same name in two tools (an agent
+**Which tool.** Each item found says which tool it's from: its folder shows it in the list and
+the preview, and `--json` and the MCP tools carry `tool` (`claude-code`, `codex`, `cursor`, or
+`shared` for `.agents/skills/`, which `--from codex` and `--from cursor` both include). The same name in two tools (an agent
 `reviewer` for Claude Code and for Cursor) is ambiguous, as two types are in 040: the command lists
 them and asks for `--from cursor`, `--type`, or the path. The same MCP server configured for two
 tools is two items; a person who wants one of them names it.
@@ -65,12 +67,12 @@ tools is two items; a person who wants one of them names it.
 
 | Tool | Type | Kept | Lost, with a warning |
 |---|---|---|---|
-| Codex | agent | name, description, the instructions; the model as `targets.codex.overrides.model`, which the Codex renderer reads, so Codex keeps it and other tools use their default | every other key, such as sandbox or reasoning settings. Codex agents have no tool list, so the item has none |
-| Codex | mcp-server | stdio's command, arguments and variables (`env` keys and `env_vars`, names only); http's address, `bearer_token_env_var` as an `Authorization: Bearer ${VAR}` header, `env_http_headers` as `${VAR}` headers | every value; literal `http_headers` go through 040's credential rules; timeouts, `enabled`, tool lists and other keys |
+| Codex | agent | name, description, the instructions; the model as `targets.codex.overrides.model`, which the Codex renderer reads, so Codex keeps it and other tools use their default | every other key, such as sandbox or reasoning settings, skills, and servers defined inline under `mcp_servers`. Codex agents have no tool list, so the item has none |
+| Codex | mcp-server | stdio's command, arguments and variables (`env` keys and `env_vars`, names only); http's address, `bearer_token_env_var` as an `Authorization: Bearer ${VAR}` header, `env_http_headers` as `${VAR}` headers | every value; literal `http_headers` go through 040's credential rules; `cwd`, timeouts, `enabled`, `required`, tool lists, approval modes, `oauth` and other keys |
 | Cursor | agent | name, description, the prompt; `readonly: true` as the tools `read`, `grep` and `glob`; the model as `targets.cursor.overrides.model` | other keys, such as running in the background |
 | Cursor | rule | the body; `alwaysApply: true` as `always`, `globs` as `glob`, a description alone as `model`, none of them as `manual` | nothing Cursor reads |
-| Cursor | command | the body, and its first line as the description | nothing: Cursor commands have no arguments or settings |
-| Cursor | mcp-server | command, arguments, the variables' names, address, headers; `${env:NAME}` read as `${NAME}` | every value; other keys |
+| Cursor | command | the body; `name` and `description` from the frontmatter, else the file's name and the body's first line | nothing: Cursor commands have no arguments or other settings |
+| Cursor | mcp-server | command, arguments, the variables' names, address, headers; `${env:NAME}` read as `${NAME}` | every value; `envFile`, `auth` and other keys; Cursor's own variables (`${userHome}`, `${workspaceFolder}`…) stay as written, with a warning |
 
 **Whose it is** (contract §2) now includes the Codex and Cursor renders: a state entry for the
 file, the JSON key or the TOML key (`mcp_servers.<n>`) means `rmk` installed it; so does the marker,
@@ -80,6 +82,10 @@ server `rmk mcp-setup` registers for each tool is never listed.
 **Dependencies** (041). References are matched against items from every tool. When a name is
 configured for more than one tool, the one from the dependent's own tool wins (a Cursor agent's
 server is looked for in `.cursor/mcp.json` first).
+
+**Checked on 2026-09-30** against both tools' documentation (contract §9–10). One finding for the
+Cursor renderer (025), not changed here: Cursor's documentation now shows `type: "stdio"` as
+required for stdio MCP servers, and the renderer writes none.
 
 **For the features that build on this.** The readers are
 `packages/core/src/read/codex/{agent,mcp-server}.ts` and `…/cursor/{agent,rule,command,mcp-server}.ts`,
@@ -91,9 +97,10 @@ runtime dependencies don't change. `LocalItem` gains `tool`.
 
 - **`.codex/config.toml` or `.cursor/mcp.json` that doesn't parse:** that tool's MCP servers are
   skipped with the reason; everything else lists.
-- **A Codex agent without `name`:** the file's name, as Codex does (checked in the first task).
-- **A Codex agent's instructions in a separate file** (if Codex allows a path): read from that
-  file, and the preview names it.
+- **A Codex agent without `name`:** Codex requires one and would refuse the file; export takes the
+  file's name, with a warning. Its instructions are always inline in `developer_instructions`
+  (Codex has no separate file).
+- **A Codex server with `enabled = false`:** exported, with a warning that it's off in Codex.
 - **An `.mdc` rule with `alwaysApply: true` and `globs`:** `always`, as Cursor applies it; the
   globs are dropped with a warning.
 - **A Cursor MCP server with `${env:NAME}` inside other text:** read as `${NAME}` in the same
@@ -116,14 +123,14 @@ runtime dependencies don't change. `LocalItem` gains `tool`.
 
 ## Acceptance criteria
 
-- [ ] The mappings in `docs/spec/native-readers.md` for Codex and Cursor carry the date they were checked against each tool's documentation.
-- [ ] For each type in the table, the example item rendered for that tool reads back into an item that passes the schema and package checks, and rendering it again gives the same files where the type loses nothing.
-- [ ] Every dropped setting produces exactly one warning that names it, in the CLI's preview and in `plan_export`.
-- [ ] No value of a Codex `env` or Cursor `env`, and no literal credential from headers, appears in any request; a test greps the request bodies for the fixture's secrets.
-- [ ] Items `rmk` installed for Codex and Cursor (files, JSON keys, TOML keys, markers), and each tool's `ronne-registry` server, are refused or not listed.
-- [ ] The same name in two tools is ambiguous and `--from` (MCP: `from`) settles it; the list and the preview name the tool.
-- [ ] An end-to-end test exports a Cursor rule and a Codex MCP server with the built `rmk`.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] The mappings in `docs/spec/native-readers.md` for Codex and Cursor carry the date they were checked against each tool's documentation.
+- [x] For each type in the table, the example item rendered for that tool reads back into an item that passes the schema and package checks, and rendering it again gives the same files where the type loses nothing.
+- [x] Every dropped setting produces exactly one warning that names it, in the CLI's preview and in `plan_export`.
+- [x] No value of a Codex `env` or Cursor `env`, and no literal credential from headers, appears in any request; a test greps the request bodies for the fixture's secrets.
+- [x] Items `rmk` installed for Codex and Cursor (files, JSON keys, TOML keys, markers), and each tool's `ronne-registry` server, are refused or not listed.
+- [x] The same name in two tools is ambiguous and `--from` (MCP: `from`) settles it; the list and the preview show each item's folder, which names its tool, and `--json` and the MCP tools carry `tool`.
+- [x] An end-to-end test exports a Cursor rule and a Codex MCP server with the built `rmk`.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Open questions
 
