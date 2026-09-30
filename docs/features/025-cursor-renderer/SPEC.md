@@ -16,7 +16,7 @@ written, and warnings for what Cursor has no place for.
 - Golden files for every example item, and the end-to-end install through `rmk`.
 
 **Out:**
-- Cursor's own plugin marketplace as a way to install (native plugin export, MVP §3.3, later).
+- Cursor's own plugin marketplace as a way to install (native plugin feeds, MVP §3.3, later).
 - Team and Enterprise rule and hook locations: only project and user scope.
 
 ## Where Cursor reads things

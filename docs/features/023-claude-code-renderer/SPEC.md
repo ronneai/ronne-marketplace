@@ -16,7 +16,7 @@ written. It's the first real renderer, so it also proves 021's interface on ever
 - Golden files for every example item.
 
 **Out:**
-- Claude Code's plugin marketplace as a way to install (native plugin export, MVP §3.3, later).
+- Claude Code's plugin marketplace as a way to install (native plugin feeds, MVP §3.3, later).
 - Features Claude Code has that no item type describes yet (themes, monitors, workflows).
 
 ## Where Claude Code reads things

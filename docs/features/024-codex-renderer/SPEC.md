@@ -18,7 +18,7 @@ the first renderer to write TOML, so the applier learns to edit TOML keys.
 
 **Out:**
 - Codex's plugin marketplace (`.agents/plugins/marketplace.json`) as a way to install (native
-  plugin export, MVP §3.3, later).
+  plugin feeds, MVP §3.3, later).
 - Admin (`/etc/codex`) and cloud-managed locations: only project and user scope.
 
 ## Where Codex reads things

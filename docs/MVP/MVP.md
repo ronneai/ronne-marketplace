@@ -87,7 +87,7 @@ it to each tool, and platforms without an equivalent are skipped with a warning.
 | `output-style` | A system-prompt style that changes how the agent responds | Markdown | Claude Code only |
 | `statusline` | A status-line script / config | Script + `statusline.yaml` | Claude Code, Codex |
 | `lsp-server` | A language-server config that gives the agent code intelligence | `lsp.yaml` | Claude Code (via plugin), Copilot CLI |
-| `bundle` | A named set of items installed together; the unit the visual composer edits (§8) | `ronne.yaml` with `dependencies` only | Plugins / extensions / powers (see *native plugin export* in §3.3) |
+| `bundle` | A named set of items installed together; the unit the visual composer edits (§8) | `ronne.yaml` with `dependencies` only | Plugins / extensions / powers (see *native plugin feeds* in §3.3) |
 
 Every item name is **scoped**, such as `@team/code-review`, and unique within the instance. Scopes
 and names are lowercase `a-z`, `0-9` and `-`. An item's type is fixed when it is first created; a
@@ -214,14 +214,14 @@ Surveyed September 2026; the Claude Code, Codex and Cursor columns were re-check
 | output-style | `.claude/output-styles/<n>.md` | none | none | none | none | none | none |
 | statusline | `statusLine` in settings | none (`tui.status_line` takes built-in ids only) | none (the CLI has one, undocumented) | user only: `statusLine` in `~/.copilot/settings.json` | none | user only: `statusLine` | none |
 | lsp-server | `.lsp.json` in a generated local plugin (plugins only) | none | built-in, not needed | `.github/lsp.json` (CLI) | none | none | none |
-| bundle | installs members (or native plugin export) | same | same | same | same | same | same |
+| bundle | installs members (or native plugin feeds) | same | same | same | same | same | same |
 
 Notes:
 - Claude Code reads `AGENTS.md` only when the project has no `CLAUDE.md` (checked 2026-09-28), so rules for Claude go to `.claude/rules/`, which it always reads ([023](../features/023-claude-code-renderer/SPEC.md)).
 - The Codex and Cursor columns were re-checked on 2026-09-28 for [024](../features/024-codex-renderer/SPEC.md) and [025](../features/025-cursor-renderer/SPEC.md): both moved commands into skills, and Cursor also reads `.claude/skills/`, `.claude/agents/` and Claude Code's hooks for compatibility, which matters when both are targets. With both targets, Cursor leaves skills, commands and hooks to Claude Code's copy (re-checked 2026-09-29 for 025).
 - When one project targets several tools, the renderer writes each shared format once. For example, a single `.agents/skills/<n>/` serves Codex, Cursor, Gemini and Devin.
 
-#### Native plugin export (post-MVP option)
+#### Native plugin feeds (post-MVP option)
 
 Several platforms have their own plugin marketplaces:
 - Claude Code: `.claude-plugin/marketplace.json`
@@ -231,7 +231,8 @@ Several platforms have their own plugin marketplaces:
 
 A Ronne instance could also **publish its approved bundles as a native marketplace feed** for each of
 these. Users could then subscribe from inside the tool without `rmk`, while Ronne stays the source of
-truth and the approval gate.
+truth and the approval gate. (This was called "native plugin export" until 2026-09-30; "export" now
+means sending a local item to the registry as a draft, §4.1 and §6.)
 
 Rules for renderers:
 
@@ -280,6 +281,7 @@ stateDiagram-v2
 ```
 
 - **Drafts** are private to the author. They can be edited in the form editor, the file editor or the visual composer.
+- **A draft can also arrive from the author's AI tool** (M7, owner 2026-09-30): `rmk export`, or the registry MCP server's export tools, read an item the person wrote in the tool's own files (a skill folder, an agent, a command, a rule, an MCP server), show what would be uploaded, and create the draft with the person's token ([037](../features/037-draft-upload-api/SPEC.md)–[041](../features/041-export-dependencies/SPEC.md), [native readers spec](../spec/native-readers.md)). The person picks the scope. Nothing is submitted from there: reviewing the draft and submitting it stay in the web app.
 - **Withdrawing** is allowed until approval: from `draft`, `submitted` or `changes_requested` (owner decision, 2026-09-27). It's final.
 - **Approval** needs one moderator or root other than the author. Root can self-approve as an audited override.
 - **Approval freezes the content**, so any later edit sends the submission back to `submitted`.
@@ -392,6 +394,7 @@ written `pnpm run setup`. Full behaviour, including a non-interactive mode for D
 | `rmk install <item>[@tag\|range]... [--target <platform>[,<platform>]\|all] [--scope project\|user]` | Install items. The default target comes from `rmk.config.json`, or is detected from the project. `rmk platforms` lists the available renderers and which item types each supports. |
 | `rmk update [item]` · `rmk outdated` | Update within ranges / list available updates. |
 | `rmk remove <item>` | Remove the item and its managed files. Dependencies are removed too if nothing else needs them. |
+| `rmk export [<path\|name>...] [--to <@scope>]` | Send items you wrote in your AI tool's folders to the registry as **drafts** (M7, [038](../features/038-rmk-export/SPEC.md)): shows what would be uploaded, asks, uploads, and prints each draft's address. It never submits, and refuses items `rmk` installed. |
 
 - There is no `register` command.
 - Every command except `login` needs a valid token. Tokens can be revoked from the web UI.
@@ -407,11 +410,17 @@ written `pnpm run setup`. Full behaviour, including a non-interactive mode for D
   `planId` and a readable list of the files and keys it would change, plus any warnings (skipped
   types, missing env vars, risk flags).
 - **Apply tool:** `apply_plan(planId)`. It writes the planned changes.
+- **Export tools** (M7, [039](../features/039-mcp-export-tools/SPEC.md)): `list_local_items` and
+  `plan_export` read and upload nothing; `export_items(planId)` creates the drafts of that plan in
+  the registry. `plan_export` gives no `planId` until the person has chosen the scope (and, with
+  [041](../features/041-export-dependencies/SPEC.md), what to do with the item's dependencies), so
+  the assistant has to ask.
 - It runs locally over stdio and reuses the `rmk` token and config, plus the same resolver and renderers from `packages/core`.
 - **Why two steps:** an AI tool asks the user for permission *before* a tool call runs, not after.
   Splitting plan and apply means the user sees the plan in the conversation, and then approves the
   `apply_plan` call. Plans expire after 10 minutes, and applying fails if the lockfile or any
-  target file changed since the plan was made.
+  target file changed since the plan was made. Exports follow the same rule: the plan names every
+  file that would leave the machine, and `export_items` is the call the person approves.
 - `rmk mcp-setup --target <platform>` registers the MCP server with each platform.
 
 ## 8. Web application
@@ -570,9 +579,12 @@ IDs are ULIDs and timestamps are UTC (§9.4).
 | `GET /items/{scope}/{name}/{version}` | Version manifest + dependencies |
 | `GET /items/{scope}/{name}/{version}/tarball` | Download the artifact (with an `X-Checksum-Sha256` header) |
 | `POST /resolve` | Resolve a set of `{name, range}` to a flat, pinned dependency set |
+| `GET /scopes` | The scopes a draft can be created in (M7, [037](../features/037-draft-upload-api/SPEC.md)) |
+| `POST /drafts` | Create a draft of a new item with its files, as the token's user (M7, 037) |
 
-Authoring, review, release and admin actions are only available in the web UI (as server actions)
-for the MVP. That keeps the public API read-mostly.
+Editing, submitting, review, release and admin actions are only available in the web UI (as server
+actions). The API reads, with one exception since M7 (owner, 2026-09-30): a token can **create a
+draft**, which is private to its author and reaches nobody until they submit it in the web app.
 
 **Conventions**
 
@@ -592,6 +604,8 @@ review is the security boundary.
 
 - **Risk flags in review.** Submissions containing `hook`s, `mcp-server`s, `permission-policy` items (especially ones that *widen* permissions), `statusline` / `lsp-server` commands, executable scripts, network URLs or shell commands get a highlighted risk summary in the review view.
 - **No secrets in items.** `mcp-server` configs declare env var *names*. `rmk` asks for or reads the values locally and never uploads them.
+- **Export sends only what the person saw** (M7). `rmk export` and the MCP export tools upload the files listed in the preview and nothing else: never `.env` files, keys, `.git` or symbolic links, never the value of an environment variable, and an item containing a known secret format is stopped ([native readers spec](../spec/native-readers.md) §3). Over MCP only items found in the tools' own folders can be exported, never an arbitrary path.
+- **Writes by token** (M7). A token can create drafts and nothing else. Each is recorded in the audit log with the token's name; the request body, the number of drafts per person and the upload rate are limited ([037](../features/037-draft-upload-api/SPEC.md)).
 - **Integrity.** Published versions are immutable, and `rmk` checks sha256 checksums on every download and against `rmk.lock`.
 - **Managed-file boundaries.** Renderers write only inside known target paths and never overwrite unmanaged content.
 - **Audit log** for approvals, overrides, releases, tag moves, yanks, and user and role changes.
@@ -617,6 +631,7 @@ its own `SPEC.md` and `PLAN.md`, and the index there tracks their status.
 | M5 | Codex, Cursor, MCP | Codex and Cursor renderers with unsupported-type warnings; shared `.agents/skills` output; per-item support matrix in the web UI; registry MCP server and `rmk mcp-setup`. |
 | M5b | Tier-2 platforms (right after MVP) | Copilot, Antigravity CLI and Gemini CLI, and Devin renderers ([028](../features/028-copilot-renderer/SPEC.md)–[030](../features/030-devin-renderer/SPEC.md)). |
 | M6 | Visual composer and npm | React Flow canvas editing `dependencies`; round-trips to `ronne.yaml`; shown as a text diff in review. `rmk` and the MCP server published to npm under `@ronneai` ([034](../features/034-npm-packages/SPEC.md)). |
+| M7 | Export from your tools (after the MVP) | A skill, agent, command, rule or MCP server written in Claude Code's files (and skills in `.agents/skills`) is sent to the registry as a draft with `rmk export` or from inside the AI tool; the person chooses the scope and sees every file before it's uploaded; local dependencies are detected and offered for export too; submitting stays in the web app ([037](../features/037-draft-upload-api/SPEC.md)–[041](../features/041-export-dependencies/SPEC.md)). |
 
 ## 14. Future topics
 
@@ -675,12 +690,12 @@ Design points:
 ### 14.4 Other future topics
 
 - **More platforms.** Tier-3 community renderers via the `PlatformRenderer` interface (§3.3).
-- **Native plugin export.** Publish approved bundles as native marketplace feeds for Claude Code, Codex, Cursor and Copilot (§3.3).
+- **Native plugin feeds.** Publish approved bundles as native marketplace feeds for Claude Code, Codex, Cursor and Copilot (§3.3).
 - **Install telemetry** (opt-in), so moderators can see which items are used. The MVP only counts artifact downloads on the server, for the home page's "Most used" (018).
 
 ### 14.5 Decided out of scope for now
 
-- Importing items from external/public marketplaces or existing `.claude` / `.cursor` folders.
+- Importing items from external/public marketplaces. (Existing `.claude` folders were on this list until 2026-09-30; exporting the person's own items from them is M7. Cursor's and Codex's own formats are feature 043, planned.)
 - S3-compatible storage (the StorageAdapter interface stays, so it can be added later).
 - Notifications (email / webhooks).
 
@@ -694,7 +709,7 @@ Design points:
 | Item types | All current customization types: skill, agent, rule, command, hook, mcp-server, permission-policy, output-style, statusline, lsp-server, bundle; canonical hook events | Cover everything the platforms support; degrade with warnings where a platform lacks a type |
 | Platforms | Goal: any. Tier 1 in MVP (Claude Code, Codex, Cursor); tier 2 next (Copilot, Gemini/Antigravity, Devin Desktop); tier 3 community | Pluggable `PlatformRenderer`; prefer cross-tool standards (Agent Skills, AGENTS.md, MCP) |
 | SSO | Wanted soon after MVP: OIDC first via Better Auth, then SAML; CLI uses the device flow | One OIDC integration covers most IdPs |
-| Out of scope for now | External import, S3 storage, notifications | Keep MVP focused |
+| Out of scope for now | Import from external marketplaces, S3 storage, notifications. Exporting a person's own local items is no longer out: see "Export" below | Keep MVP focused |
 | Backend | Next.js monolith with a domain-first clean architecture; server actions + `/api/v1` | One deployable to self-host; the domain layer stays framework-independent |
 | DB access | Kysely; SQLite (default) / MySQL-MariaDB / PostgreSQL chosen at install | One query layer and one migration set across three dialects at runtime |
 | Approval | 1 approval from a moderator/root who isn't the author; root override is audited | Four-eyes review without slowing small teams |
@@ -702,7 +717,7 @@ Design points:
 | Artifacts | Immutable `.tgz` + sha256 on local disk behind a StorageAdapter | Simple to self-host; S3 can be added later |
 | Composition | React Flow visual composer over manifest `dependencies` | Visual UX, but reviews stay text diffs |
 | Monorepo | pnpm + Turborepo (`apps/web`, `packages/{core,cli,mcp,config}`) | Shared core between web, CLI and MCP |
-| MCP server and `rmk` | `packages/mcp` imports `@ronneai/rmk/lib`, `rmk`'s install pipeline as functions (plan, apply, lockfile, state, registry access), and never `rmk`'s command layer; nothing else outside core crosses packages (owner, 2026-09-29, [027](../features/027-registry-mcp-server/SPEC.md)) | The server plans and applies installs exactly as `rmk` does, so one pipeline serves both and they can't drift; moving it into core would put file-system and network code into what the web app imports |
+| MCP server and `rmk` | `packages/mcp` imports `@ronneai/rmk/lib`, `rmk`'s install pipeline as functions (plan, apply, lockfile, state, registry access), and never `rmk`'s command layer; nothing else outside core crosses packages (owner, 2026-09-29, [027](../features/027-registry-mcp-server/SPEC.md)). The export pipeline (find, plan, upload) is exported the same way ([038](../features/038-rmk-export/SPEC.md), 2026-09-30) | The server plans and applies installs exactly as `rmk` does, so one pipeline serves both and they can't drift; moving it into core would put file-system and network code into what the web app imports |
 | Front-end | React, Next.js, Tailwind, Biome, Vitest; feature-first folders; shared `components/ui` | From the requirements |
 | Auth schema | Better Auth owns `user`/`session`/`account`/`verification` (plus `role`, `disabled_at`); argon2id via custom hash; PATs in our own `access_tokens` table | Don't fight the library's schema; keep token format and revocation under our control |
 | Scopes | Every item is scoped; root creates scopes; anyone may propose in any scope; `owner_id` is informational | Review is the gate, so scope membership adds admin work without adding safety |
@@ -710,9 +725,9 @@ Design points:
 | Secrets | rmk never stores secret values; rendered configs reference env vars and rmk reports missing ones | No secrets on disk from us; every platform reads env vars |
 | Managed content | Markers in files that allow comments; `.rmk/state.json` with hashes for JSON/TOML keys; stop on user edits unless `--force` | JSON can't hold markers; hashes detect local edits safely |
 | Resolver | One version per item per install scope; conflicts and cycles fail; dependency types restricted (§3.1) | Rendered paths are named per item, so versions can't coexist |
-| MCP writes | Two steps: `plan_*` tools return a plan, `apply_plan` writes it | AI tools ask permission before a call, so the plan must be visible first |
+| MCP writes | Two steps: `plan_*` tools return a plan, `apply_plan` writes it. Uploads too: `plan_export` returns the plan, `export_items` sends it ([039](../features/039-mcp-export-tools/SPEC.md)) | AI tools ask permission before a call, so the plan must be visible first |
 | DB portability | ULID keys, UTC timestamps, JSON as text, `LIKE` search, upserts via a helper | Keeps one migration set working on all three databases |
-| API conventions | One error shape with stable codes; cursor pagination; `/api/vN` versioning | Stable contract for `rmk` and the MCP server |
+| API conventions | One error shape with stable codes; cursor pagination; `/api/vN` versioning. Reads, plus creating a draft (M7); every `POST` body has a size limit ([037](../features/037-draft-upload-api/SPEC.md)) | Stable contract for `rmk` and the MCP server |
 | Commit format | `[type] NNN: Description` (or `[type]: Description` without a feature); types `docs`, `feat`, `chore`, `bugfix`; same format for PR titles, checked in CI and by a local hook | Squash merges make the PR title the commit on `main`; the feature ID links history to `docs/features` |
 | Planning | One folder per feature, `docs/features/NNN-slug/` with `SPEC.md` and `PLAN.md`; the index there replaces a separate milestone plan; specs only for the current and next milestone | Specs stay next to the work and outlive the schedule; no duplicated acceptance criteria |
 | Setup command | `pnpm run setup` (not `pnpm setup`, a pnpm built-in); non-interactive mode for Docker/CI. Since 036 it shares its steps with the web setup and is the terminal alternative | Avoids silently running pnpm's own command |
@@ -728,7 +743,10 @@ Design points:
 | Single root | The admin UI assigns only `user` and `moderator`, and can't modify root; root recovers through `pnpm run reset-root-password` | Keeps "one instance owner"; a transfer flow can come later |
 | Renderer output | Renderers are pure: they return the changes to make (files, folders, JSON and TOML keys, JSON array elements, Markdown sections), and `rmk` applies them and records each in `.rmk/state.json`. There is no `remove()`: removing undoes exactly what the state file recorded ([021](../features/021-renderer-harness/SPEC.md)) | One place decides what may be written or deleted, and renderers stay testable with golden files |
 | Download counts | The tarball endpoint adds one to `items.download_count` per download; nothing about who downloaded is stored. The home page ranks "Most used" by it | The owner wants most used items on the home page (2026-09-28); a server-side count needs no telemetry from `rmk`, which stays opt-in and post-MVP |
-| Access tokens | `rmk_` + 43 base64url characters, SHA-256 hashed, 30/90/365 days or no expiry, at most 50 active per user, bearer only on `/api/v1` | Recognizable by secret scanning; revocable; no cookies on the API |
+| Access tokens | `rmk_` + 43 base64url characters, SHA-256 hashed, 30/90/365 days or no expiry, at most 50 active per user, bearer only on `/api/v1`. No token scopes: every token reads as its user and may create drafts (owner, 2026-09-30, [037](../features/037-draft-upload-api/SPEC.md)) | Recognizable by secret scanning; revocable; no cookies on the API. A draft is private and submitting needs the web app, so a read-only kind of token would protect little; it becomes worth having if a token ever does something other people see |
+| Export | A person's own local items go to the registry as **drafts**, from `rmk export` and the MCP tools `plan_export` / `export_items`; the person chooses the scope; submitting stays in the web app; items `rmk` installed are refused (a change proposal from them is 042); skills first, then agents, commands, rules and MCP servers from Claude Code's files (owner, 2026-09-30, M7: [037](../features/037-draft-upload-api/SPEC.md)–[041](../features/041-export-dependencies/SPEC.md)). "Native plugin export" was renamed "native plugin feeds" to free the word | People write items in their tools first; rebuilding them by hand in the editor is the step that keeps them out of the registry. A draft is the safe landing: nothing is visible to others until its author submits it |
+| Native readers | The reverse of a renderer, in `packages/core`: pure, read-only, and lossy only with a warning per dropped field; secrets and environment values never leave the machine ([native readers spec](../spec/native-readers.md)) | The mapping tables are the renderers' reversed, so both directions stay in step, and the web app could use the readers later |
+| Dependencies on export | Detected from what an item uses; the person is asked and exporting them too is recommended; 013's rule stays for now: a dependency is released before its dependent can be submitted, and export says the order ([041](../features/041-export-dependencies/SPEC.md), 2026-09-30; the rule is that spec's first open question) | An exported item should work where it's installed; keeping the rule keeps "approved means installable" |
 | Dependencies | Permissive licenses only (MIT, ISC, BSD, Apache-2.0 …; CC-BY-4.0 for data); no copyleft or paid tools; latest stable/LTS; CI license + audit + image scans; pnpm release-age delay, build allowlist, trust policy | Ronne must be freely redistributable and must not ship known vulnerabilities |
 | Packages | `@ronneai/{marketplace,rmk,mcp,core}`; binary `rmk`; Node 24 LTS target, 22 LTS minimum; Docker amd64 + arm64 | Unscoped `rmk` is taken on npm; the owner holds `@ronneai` on npmjs.com (as on GitHub), not `@ronne` (confirmed 2026-09-27) |
 | Package registry | Publish to npmjs.com under `@ronneai`; not GitHub Packages as the install source (a mirror there is possible later). The command stays `rmk` | GitHub Packages only takes the repository owner's scope (`@ronneai`), and installing from it needs a GitHub token with `read:packages` and an `.npmrc` registry line, even for public packages: too much friction for a CLI anyone should install with one command |

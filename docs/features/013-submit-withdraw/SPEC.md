@@ -64,6 +64,11 @@ implementation finds none: **in M2, no item is published, so any draft with depe
 dependency check**, with a message that says the dependency must be released first. 015 replaces
 the lookup with the real tables, and the checks don't change.
 
+*2026-09-30:* exporting an item together with its dependencies (M7,
+[041](../041-export-dependencies/SPEC.md)) keeps this rule: the dependencies' drafts are submitted
+and released first, and export tells the person the order. Whether to relax it is 041's first open
+question.
+
 **Frozen content.** Once submitted, the editor opens read-only (the files, the form, and the
 validation results from the submit), with a notice saying so. The save actions refuse any
 submission that isn't a draft (`SubmissionNotEditableError`).

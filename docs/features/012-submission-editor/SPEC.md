@@ -28,6 +28,7 @@ M2's core: after it, Ronne holds real items, even before anything is reviewed or
 - The visual composer → M6 (027+). The dependency list is edited in the form here.
 - Showing risk flags → 014 (reviewers see them). The editor only shows validation issues.
 - Uploading from the CLI or the API: authoring is web-only in the MVP (MVP §11).
+  *2026-09-30:* M7 adds it after the MVP: `POST /api/v1/drafts` ([037](../037-draft-upload-api/SPEC.md)) creates a draft from `rmk export` or the MCP server; editing and submitting it stay here.
 
 ## Behaviour
 
@@ -138,7 +139,9 @@ and `deleteDraft`. Each checks `submissions.create` and that the actor is the au
 one transaction.
 
 **Audit:** drafts are private work in progress, so creating and editing them isn't audited.
-013 records submitting and withdrawing.
+013 records submitting and withdrawing. (*2026-09-30:* a draft created with a token will be
+audited, with the token's name: [037](../037-draft-upload-api/SPEC.md). Drafts made here stay
+unaudited.)
 
 **New dependencies** (each through the checklist): the CodeMirror 6 packages we use
 (`@codemirror/state`, `view`, `commands`, `language`, `lang-yaml`, `lang-markdown`, `lang-json`,
