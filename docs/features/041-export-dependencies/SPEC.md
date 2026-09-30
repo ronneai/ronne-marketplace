@@ -56,7 +56,8 @@ depends on both.
 Installed dependencies are declared in both of the first two cases; there's nothing to decide
 about them. With no finding of the person's own, nothing is asked.
 
-- **In the terminal:** the question, or `--with-deps` / `--no-deps`. Without a terminal, or with
+- **In the terminal:** the question (Enter takes the recommendation), or `--with-deps` /
+  `--no-deps`. Without a terminal, or with
   `--json`, one of the two flags is required when there's something to decide (exit 2, with the
   findings in the error's details).
 - **Through MCP:** `plan_export` gains `dependencies: "include" | "omit"`. Without it, when
@@ -70,6 +71,9 @@ person named.
 
 **The upload** goes dependencies first. If one fails, the items that depend on it aren't
 uploaded, and the output says which drafts exist.
+
+With `--json`, the result adds `order: [{ item, after: [...] }]`, and a dry run's `planned`
+items carry their `dependencies` and `usedByAnother`.
 
 **Afterwards** the person has several drafts, and 013 only lets an item be submitted once its
 dependencies are released. The result says so in order, from the server's own checks (037's

@@ -30,7 +30,8 @@ export const USAGE = `Usage: rmk <command> [options]
   remove <item>...
   mcp-setup [--target <ids>|all] [--scope project|user] [--remove] [--command <cmd>]
   export [<path|name>...] [--to <@scope>] [--type <type>] [--name <name>]
-         [--description <text>] [--scope project|user] [--dry-run] [--yes] [--force]
+         [--description <text>] [--with-deps | --no-deps] [--scope project|user]
+         [--dry-run] [--yes] [--force]
 
 Options: --json (one JSON object per command), --registry <url>, --version, --help`;
 
@@ -53,6 +54,8 @@ const OPTIONS = {
   yes: { type: "boolean", short: "y" },
   "dry-run": { type: "boolean" },
   description: { type: "string" },
+  "with-deps": { type: "boolean" },
+  "no-deps": { type: "boolean" },
 } as const;
 
 export type Args = { values: Record<string, string | boolean | undefined>; positionals: string[] };

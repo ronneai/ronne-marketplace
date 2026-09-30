@@ -26,7 +26,7 @@ the same change that completes it.
   person's own; same name and type means "already in the registry".
   *Done when:* tests cover published with the same type, with another type, and not published.
 
-- [ ] **5. The CLI.** The findings in the preview, the question, `--with-deps` and `--no-deps`,
+- [x] **5. The CLI.** The findings in the preview, the question, `--with-deps` and `--no-deps`,
   the usage error without a terminal, and the order in the result (from `submitIssues`).
   *Done when:* `cli.test.ts` covers each choice, each flag, and `--json`.
 

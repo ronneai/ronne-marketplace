@@ -489,3 +489,102 @@ describe("rmk export for agents, commands, rules and MCP servers (040)", () => {
     expect(manifest.content).toContain("description: Talks to GitHub.");
   });
 });
+
+describe("rmk export with dependencies (041)", () => {
+  const setup = (interactive = false) => {
+    const registry = exportRoutes({ scopes: [{ name: "team", description: "A team." }] });
+    io = fakeIo(
+      { ...identityRoutes("rmk_test_token"), ...registry.routes },
+      { env: { RMK_TOKEN: "rmk_test_token", RMK_REGISTRY: REGISTRY }, interactive },
+    );
+    const write = (path: string, text: string) => {
+      mkdirSync(dirname(join(io.cwd, path)), { recursive: true });
+      writeFileSync(join(io.cwd, path), text);
+    };
+    write(
+      ".claude/agents/reviewer.md",
+      "---\nname: reviewer\ndescription: Reviews.\nskills: [secure]\ntools: Read, mcp__github__search\n---\nReview.\n",
+    );
+    write(".claude/skills/secure/SKILL.md", "---\nname: secure\ndescription: Secure.\n---\nGo.\n");
+    write(
+      ".mcp.json",
+      JSON.stringify({ mcpServers: { github: { type: "http", url: "https://g.example/mcp" } } }),
+    );
+    return registry;
+  };
+  const posts = () => io.requests.filter((r) => r.method === "POST");
+
+  it("asks in a terminal, exports them too by default, dependencies first, and says the order", async () => {
+    const { drafts } = setup(true);
+    io.answers.push("", "GitHub.", "y");
+    const result = await rmk("export", "reviewer", "--to", "team");
+    expect(result.exitCode).toBe(0);
+    expect(io.questions[0]).toContain(
+      "  - MCP server github  (.mcp.json (mcpServers.github)): yours",
+    );
+    expect(io.questions[0]).toContain("  1. Export them too (recommended)");
+    expect(io.questions[2]).toContain("Depends on:\n    @team/github ^1.0.0  (exported with it)");
+    expect(io.questions[2]).toContain(
+      "@team/secure  skill  (from .claude/skills/secure)  used by another item",
+    );
+    expect(drafts.map((d) => d.name)).toEqual(["@team/github", "@team/secure", "@team/reviewer"]);
+    expect(result.stdout).toContain(
+      "Submit and release @team/github and @team/secure first; then @team/reviewer can be submitted.",
+    );
+  });
+
+  it("exports only the item when the answer is 2, and nothing when it's 3", async () => {
+    const { drafts } = setup(true);
+    io.answers.push("2", "y");
+    expect((await rmk("export", "reviewer", "--to", "team")).exitCode).toBe(0);
+    expect(drafts.map((d) => d.name)).toEqual(["@team/reviewer"]);
+    io.answers.push("3");
+    expect(await rmk("export", "reviewer", "--to", "team")).toMatchObject({
+      exitCode: 0,
+      stdout: "Nothing exported.\n",
+    });
+    expect(posts()).toHaveLength(1);
+  });
+
+  it("without a terminal, needs --with-deps or --no-deps, and takes either", async () => {
+    const { drafts } = setup();
+    const missing = await rmk("export", "reviewer", "--to", "team", "--yes", "--json");
+    expect(missing.exitCode).toBe(2);
+    expect(JSON.parse(missing.stdout).error).toMatchObject({
+      code: "dependencies_required",
+      findings: [
+        { status: "yours", reference: { name: "github" } },
+        { status: "yours", reference: { name: "secure" } },
+      ],
+    });
+    expect(posts()).toEqual([]);
+    const both = await rmk(
+      "export",
+      "reviewer",
+      "--to",
+      "team",
+      "--yes",
+      "--with-deps",
+      "--no-deps",
+    );
+    expect(both.exitCode).toBe(2);
+
+    const withDeps = JSON.parse(
+      (await rmk("export", "reviewer", "--to", "team", "--yes", "--with-deps", "--json")).stdout,
+    );
+    expect(withDeps.exported.map((e: { name: string }) => e.name)).toEqual([
+      "@team/github",
+      "@team/secure",
+      "@team/reviewer",
+    ]);
+    expect(withDeps.order).toEqual([
+      { item: "@team/reviewer", after: ["@team/github", "@team/secure"] },
+    ]);
+    const noDeps = JSON.parse(
+      (await rmk("export", "reviewer", "--to", "team", "--yes", "--no-deps", "--json")).stdout,
+    );
+    expect(noDeps.exported.map((e: { name: string }) => e.name)).toEqual(["@team/reviewer"]);
+    expect(noDeps.order).toBeUndefined();
+    expect(drafts).toHaveLength(4);
+  });
+});
