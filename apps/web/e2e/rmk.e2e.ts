@@ -365,3 +365,122 @@ test("rmk exports a hand-written skill as a draft that opens in the web editor",
     rmSync(project, { recursive: true, force: true });
   }
 });
+
+/**
+ * `rmk export` for the other types (040): an agent and an MCP server from Claude Code's own files,
+ * uploaded with the built `rmk`. The server's credentials never leave the machine: the draft
+ * declares variables instead.
+ */
+test("rmk exports an agent and an MCP server, keeping the server's credentials out", async ({
+  browser,
+  request,
+}) => {
+  const home = mkdtempSync(join(tmpdir(), "rmk-e2e-home-"));
+  const project = mkdtempSync(join(tmpdir(), "rmk-e2e-project-"));
+  const secret = `ghp_${"e2E9".repeat(9)}`;
+  mkdirSync(join(project, ".claude/agents"), { recursive: true });
+  writeFileSync(
+    join(project, ".claude/agents/e2e-agent.md"),
+    "---\nname: e2e-agent\ndescription: Reviews diffs before they're pushed.\ntools: Read, Grep\nmodel: opus\ncolor: green\n---\nYou review diffs.\n",
+  );
+  writeFileSync(
+    join(project, ".mcp.json"),
+    JSON.stringify({
+      mcpServers: {
+        "e2e-tracker": {
+          type: "http",
+          url: "https://tracker.example/mcp",
+          headers: { Authorization: `Bearer ${secret}` },
+        },
+      },
+    }),
+  );
+  const token = await request.post("/api/v1/auth/token", {
+    data: { email: E2E_USERS.typesExporter, password: E2E_PASSWORD, name: "e2e rmk export types" },
+  });
+  expect(token.status()).toBe(201);
+  const env = {
+    ...process.env,
+    HOME: home,
+    RMK_TOKEN: (await token.json()).token,
+    RMK_REGISTRY: baseURL,
+  };
+  const rmk = (...args: string[]) => {
+    try {
+      return {
+        code: 0,
+        out: execFileSync("node", [BIN, ...args], {
+          cwd: project,
+          env,
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "pipe"],
+        }),
+      };
+    } catch (error) {
+      const failed = error as { status: number; stdout: string; stderr: string };
+      return { code: failed.status, out: `${failed.stdout}${failed.stderr}` };
+    }
+  };
+
+  try {
+    const listed = JSON.parse(rmk("export", "--json").out);
+    expect(listed.found).toEqual([
+      { name: "e2e-agent", type: "agent", path: ".claude/agents/e2e-agent.md" },
+      { name: "e2e-tracker", type: "mcp-server", path: ".mcp.json (mcpServers.e2e-tracker)" },
+    ]);
+
+    const agent = rmk("export", "e2e-agent", "--to", `@${E2E_SCOPE}`, "--yes", "--json");
+    expect(agent.code, agent.out).toBe(0);
+    const [agentDraft] = JSON.parse(agent.out).exported;
+    expect(agentDraft).toMatchObject({
+      name: `@${E2E_SCOPE}/e2e-agent`,
+      type: "agent",
+      issues: [],
+    });
+    expect(agentDraft.warnings.map((w: { message: string }) => w.message)).toEqual([
+      expect.stringContaining("`color` was left out"),
+    ]);
+
+    const server = rmk(
+      "export",
+      "e2e-tracker",
+      "--to",
+      `@${E2E_SCOPE}`,
+      "--description",
+      "Tracks issues.",
+      "--yes",
+      "--json",
+    );
+    expect(server.code, server.out).toBe(0);
+    expect(server.out).not.toContain(secret);
+    const [serverDraft] = JSON.parse(server.out).exported;
+    expect(serverDraft).toMatchObject({
+      name: `@${E2E_SCOPE}/e2e-tracker`,
+      type: "mcp-server",
+      issues: [],
+    });
+
+    const author = await browser.newPage();
+    await author.goto("/sign-in");
+    await author.getByLabel("Email").fill(E2E_USERS.typesExporter);
+    await author.getByLabel("Password", { exact: true }).fill(E2E_PASSWORD);
+    await author.getByRole("button", { name: "Sign in" }).click();
+    await expect(author).not.toHaveURL(/\/sign-in/);
+
+    await author.goto(agentDraft.url);
+    const agentFiles = author.getByRole("list", { name: "Files" });
+    await expect(agentFiles.getByRole("button", { name: /prompt\.md/ })).toBeVisible();
+    await expect(agentFiles.getByRole("button", { name: /ronne\.yaml/ })).toBeVisible();
+
+    await author.goto(serverDraft.url);
+    const serverFiles = author.getByRole("list", { name: "Files" });
+    await serverFiles.getByRole("button", { name: /ronne\.yaml/ }).click();
+    await author.getByRole("button", { name: "YAML", exact: true }).click();
+    const manifest = author.getByLabel("Contents of ronne.yaml");
+    await expect(manifest).toContainText("Bearer ${E2E_TRACKER_TOKEN}");
+    await expect(manifest).not.toContainText(secret);
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+    rmSync(project, { recursive: true, force: true });
+  }
+});

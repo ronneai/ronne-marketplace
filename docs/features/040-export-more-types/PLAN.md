@@ -39,7 +39,7 @@ the same change that completes it.
   *Done when:* `cli.test.ts` and the MCP tests cover each, and the secret grep over the fake
   registry's requests passes.
 
-- [ ] **8. End to end.** One agent and one MCP server exported with the built `rmk` against the
+- [x] **8. End to end.** One agent and one MCP server exported with the built `rmk` against the
   Playwright instance.
   *Done when:* `pnpm test:e2e` passes.
 
