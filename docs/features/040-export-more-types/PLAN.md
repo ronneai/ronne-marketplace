@@ -21,7 +21,7 @@ the same change that completes it.
   *Done when:* named placeholders round-trip, and tests cover a subfolder name and a positional
   placeholder left as written.
 
-- [ ] **4. The rule reader.** `read/claude-code/rule.ts`.
+- [x] **4. The rule reader.** `read/claude-code/rule.ts`.
   *Done when:* tests cover `paths` as a list and as a string, and no `paths`.
 
 - [ ] **5. The MCP server reader.** `read/claude-code/mcp-server.ts`: transports, names without

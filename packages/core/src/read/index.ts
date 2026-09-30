@@ -2,6 +2,7 @@
 
 export { agentName, readAgent } from "./claude-code/agent.js";
 export { commandName, readCommand } from "./claude-code/command.js";
+export { readRule, ruleName } from "./claude-code/rule.js";
 export { readSkill, skillName } from "./skill.js";
 export { DESCRIPTION_MAX_LENGTH, fitDescription, toItemName } from "./text.js";
 export {
