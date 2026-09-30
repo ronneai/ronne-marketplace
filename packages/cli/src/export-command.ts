@@ -19,6 +19,7 @@ import {
   type SkipReason,
   uploadExport,
 } from "./export.js";
+import type { Finding } from "./export-dependencies.js";
 import { scopeOf } from "./install.js";
 import type { Io } from "./io.js";
 import type { Output } from "./output.js";
@@ -49,7 +50,18 @@ const indent = (text: string, by: string) =>
     .join("\n");
 
 const itemPreview = (registry: string, item: PlannedItem): string[] => {
-  const lines = [`${item.name}  ${item.type}  (from ${item.local})`, "  Files:"];
+  const lines = [
+    `${item.name}  ${item.type}  (from ${item.local})${item.asDependency ? "  used by another item" : ""}`,
+  ];
+  const depends = Object.entries(item.dependencies);
+  if (depends.length > 0) {
+    lines.push("  Depends on:");
+    for (const [name, range] of depends)
+      lines.push(
+        `    ${name} ${range}${item.dependsOn.includes(name) ? "  (exported with it)" : "  (already in the registry)"}`,
+      );
+  }
+  lines.push("  Files:");
   for (const file of item.files)
     lines.push(
       `    ${file.path}  ${formatBytes(file.bytes.length)}${file.executable ? "  executable" : ""}`,
@@ -101,6 +113,8 @@ const plannedJson = (item: PlannedItem) => ({
   warnings: item.warnings,
   issues: item.issues,
   published: item.published,
+  dependencies: item.dependencies,
+  usedByAnother: item.asDependency,
 });
 
 const refusedJson = (plan: ExportPlan) =>
@@ -121,6 +135,14 @@ const askScope = async (io: Io, scopes: Scopes): Promise<string> => {
   if (!chosen || !scopes.some((s) => s.name === chosen))
     throw usage(`${answer || "Nothing"} isn't one of the scopes. Run it again, or use --to.`);
   return chosen;
+};
+
+/** `--with-deps` or `--no-deps`: what to do with the person's own items an export uses (041). */
+const dependenciesOption = (args: Args): "include" | "omit" | undefined => {
+  const withDeps = args.values["with-deps"] === true;
+  const noDeps = args.values["no-deps"] === true;
+  if (withDeps && noDeps) throw usage("Use --with-deps or --no-deps, not both.");
+  return withDeps ? "include" : noDeps ? "omit" : undefined;
 };
 
 /** `--type`, checked: one of the types export reads. */
@@ -174,6 +196,63 @@ const chooseItems = async (
   });
 };
 
+/** The order to submit and release in (041): an item's dependencies are released first (013). */
+export const releaseOrder = (plan: ExportPlan, exported: readonly ExportedItem[]) =>
+  plan.items
+    .filter((item) => exported.some((e) => e.name === item.name))
+    .map((item) => ({
+      item: item.name,
+      after: item.dependsOn.filter((name) => exported.some((e) => e.name === name)),
+    }))
+    .filter((step) => step.after.length > 0);
+
+const reportOrder = (out: Output, order: ReturnType<typeof releaseOrder>) => {
+  if (order.length === 0) return;
+  out.set("order", order);
+  for (const step of order)
+    out.say(
+      `Submit and release ${step.after.join(" and ")} first; then ${step.item} can be submitted. Until then, its draft says so.`,
+    );
+};
+
+/** A finding as the question lists it. */
+const findingLine = (finding: Finding): string => {
+  const what = `${finding.reference.kind === "mcp-server" ? "MCP server" : finding.reference.kind} ${finding.reference.name}`;
+  switch (finding.status) {
+    case "yours":
+      return `  - ${what}  (${finding.item?.display}): yours`;
+    case "installed":
+    case "published":
+      return `  - ${what}: ${finding.registry?.name} ${finding.registry?.version} from the registry, declared either way`;
+    case "selected":
+      return `  - ${what}: already being exported`;
+    default:
+      return `  - ${what}: can't be declared (${finding.note})`;
+  }
+};
+
+/** Asks what to do with the person's own items the exported ones use; exporting them is the default. */
+const askDependencies = async (
+  io: Io,
+  findings: readonly Finding[],
+): Promise<"include" | "omit" | "cancel"> => {
+  const answer = (
+    await io.prompt(
+      `${[
+        "What you're exporting uses:",
+        ...findings.map(findingLine),
+        "Items of yours need to be in the registry too, or it won't work for whoever installs it.",
+        "  1. Export them too (recommended)",
+        "  2. Export without them",
+        "  3. Cancel",
+      ].join("\n")}\nChoice [1]: `,
+    )
+  ).trim();
+  if (answer === "" || answer === "1") return "include";
+  if (answer === "2") return "omit";
+  return "cancel";
+};
+
 const reportExported = (out: Output, exported: ExportedItem[]) => {
   for (const item of exported) {
     out.say(`${item.name}: draft created at ${item.url}`);
@@ -209,6 +288,7 @@ export const exportCommand = async (io: Io, args: Args, out: Output, api: ApiCli
     name: str(args.values.name),
     scope: str(args.values.scope),
     force: args.values.force === true,
+    dependencies: dependenciesOption(args),
     type: typeOption(args),
     description: str(args.values.description),
   };
@@ -230,13 +310,25 @@ export const exportCommand = async (io: Io, args: Args, out: Output, api: ApiCli
         },
       }
     : {};
-  let plan: ExportPlan;
-  try {
-    plan = await planExport(io, api, request, hooks);
-  } catch (error) {
-    if (!(error instanceof RmkError) || error.code !== "scope_required" || !asking) throw error;
-    request.to = await askScope(io, error.details.scopes as Scopes);
-    plan = await planExport(io, api, request, hooks);
+  // In a terminal, the scope and the dependencies are asked for as they come up.
+  let plan: ExportPlan | null = null;
+  while (!plan) {
+    try {
+      plan = await planExport(io, api, request, hooks);
+    } catch (error) {
+      if (!(error instanceof RmkError) || !asking) throw error;
+      if (error.code === "scope_required")
+        request.to = await askScope(io, error.details.scopes as Scopes);
+      else if (error.code === "dependencies_required") {
+        const choice = await askDependencies(io, error.details.findings as Finding[]);
+        if (choice === "cancel") {
+          out.set("exported", []);
+          out.say("Nothing exported.");
+          return;
+        }
+        request.dependencies = choice;
+      } else throw error;
+    }
   }
   out.set("to", plan.to);
   out.set("refused", refusedJson(plan));
@@ -268,10 +360,13 @@ export const exportCommand = async (io: Io, args: Args, out: Output, api: ApiCli
     const exported = await uploadExport(api, plan);
     out.set("exported", exported);
     reportExported(out, exported);
+    reportOrder(out, releaseOrder(plan, exported));
   } catch (error) {
     if (error instanceof RmkError && Array.isArray(error.details.exported)) {
-      out.set("exported", error.details.exported);
-      reportExported(out, error.details.exported as ExportedItem[]);
+      const exported = error.details.exported as ExportedItem[];
+      out.set("exported", exported);
+      reportExported(out, exported);
+      reportOrder(out, releaseOrder(plan, exported));
     }
     throw error;
   }

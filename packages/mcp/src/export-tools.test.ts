@@ -422,3 +422,70 @@ describe("the other types over MCP (040)", () => {
     expect(JSON.stringify(io.requests)).not.toContain(SECRET);
   });
 });
+
+describe("dependencies over MCP (041)", () => {
+  const setup = async () => {
+    await project();
+    write(
+      ".claude/agents/reviewer.md",
+      "---\nname: reviewer\ndescription: Reviews.\nskills: [mine]\n---\nReview.\n",
+    );
+    return planStore<StoredExport>(Date.now);
+  };
+
+  it("answers the findings and no planId until the person chooses", async () => {
+    const store = await setup();
+    const result = await planExportTool(io, store, { items: ["reviewer"], to: "team" });
+    expect(result.isError).toBeUndefined();
+    expect(result.structuredContent).toEqual({
+      needs: ["dependencies"],
+      findings: [
+        {
+          status: "yours",
+          reference: { kind: "skill", name: "mine" },
+          usedBy: [".claude/agents/reviewer.md"],
+          item: { name: "mine", type: "skill", folder: ".claude/skills/mine" },
+        },
+      ],
+    });
+    expect(result.content[0]?.text).toContain("recommend it");
+    expect(io.requests.filter((r) => r.method === "POST")).toEqual([]);
+  });
+
+  it("plans the item with its dependencies, uploads them first, and says the order", async () => {
+    const store = await setup();
+    const planned = await planExportTool(io, store, {
+      items: ["reviewer"],
+      to: "team",
+      dependencies: "include",
+    });
+    const data = planned.structuredContent as {
+      planId: string;
+      items: { name: string; dependencies: Record<string, string>; usedByAnother: boolean }[];
+    };
+    expect(data.items.map((i) => [i.name, i.usedByAnother, i.dependencies])).toEqual([
+      ["@team/mine", true, {}],
+      ["@team/reviewer", false, { "@team/mine": "^1.0.0" }],
+    ]);
+    const exported = await exportItemsTool(io, store, { planId: data.planId });
+    expect(registry.drafts.map((d) => d.name)).toEqual(["@team/mine", "@team/reviewer"]);
+    expect(exported.structuredContent).toMatchObject({
+      order: [{ item: "@team/reviewer", after: ["@team/mine"] }],
+    });
+    expect(exported.content[0]?.text).toContain(
+      "Submit and release @team/mine first; then @team/reviewer can be submitted.",
+    );
+  });
+
+  it("exports only the item with omit", async () => {
+    const store = await setup();
+    const planned = await planExportTool(io, store, {
+      items: ["reviewer"],
+      to: "team",
+      dependencies: "omit",
+    });
+    expect(
+      (planned.structuredContent as { items: { name: string }[] }).items.map((i) => i.name),
+    ).toEqual(["@team/reviewer"]);
+  });
+});

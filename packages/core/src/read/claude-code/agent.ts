@@ -16,8 +16,11 @@ import {
   textOf,
 } from "./shared.js";
 
-/** The frontmatter fields an agent keeps; `skills` and `mcpServers` become references (041). */
-const KEPT = ["name", "description", "tools", "model"];
+/**
+ * The frontmatter fields an agent keeps. `skills` and the servers `mcpServers` names become
+ * references, which export declares as dependencies (041); inline server definitions can't be.
+ */
+const KEPT = ["name", "description", "tools", "model", "skills", "mcpServers"];
 
 /**
  * The short name an agent file suggests: its frontmatter `name` (which identifies it in Claude
@@ -82,7 +85,13 @@ export const readAgent = (file: PackageFile, options: { itemName: string }): Rea
   for (const skill of listOf(data?.skills))
     references.push({ kind: "skill", name: skill, from: "skills" });
   for (const server of Array.isArray(data?.mcpServers) ? data.mcpServers : [])
-    if (typeof server === "string" && !references.some((r) => r.name === server))
+    if (typeof server !== "string")
+      warnings.push({
+        code: "field_dropped",
+        message: `An MCP server defined inside ${source}'s \`mcpServers\` was left out: export the server on its own, and the agent can name it.`,
+        file: source,
+      });
+    else if (!references.some((r) => r.name === server))
       references.push({ kind: "mcp-server", name: server, from: "mcpServers" });
 
   warnings.push(...droppedFields(data, KEPT, source, "agent"));

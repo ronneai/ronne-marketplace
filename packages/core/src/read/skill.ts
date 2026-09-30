@@ -3,6 +3,7 @@ import { parseFrontmatter } from "../frontmatter.js";
 import type { Manifest } from "../manifest.js";
 import { isValidName, parseItemName } from "../names.js";
 import type { PackageFile } from "../package-file.js";
+import { listOf, mcpServerOf } from "./claude-code/shared.js";
 import { firstLine, fitDescription, toItemName } from "./text.js";
 import { ReadError, type ReadResult, type ReadWarning } from "./types.js";
 
@@ -150,6 +151,11 @@ export const readSkill = (
     manifestText,
     files: [...out.values()].sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0)),
     warnings,
-    references: [],
+    // The MCP servers behind its allowed tools (native-readers.md §4), for 041.
+    references: listOf(front.data?.["allowed-tools"], /[\s,]+/)
+      .map(mcpServerOf)
+      .filter((server): server is string => server !== null)
+      .filter((server, i, all) => all.indexOf(server) === i)
+      .map((name) => ({ kind: "mcp-server" as const, name, from: "allowed-tools" })),
   };
 };

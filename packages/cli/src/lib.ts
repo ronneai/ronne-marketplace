@@ -26,7 +26,8 @@ export {
   type SkipReason,
   uploadExport,
 } from "./export.js";
-export { previewText } from "./export-command.js";
+export { previewText, releaseOrder } from "./export-command.js";
+export { type Finding, type FindingStatus } from "./export-dependencies.js";
 export {
   chooseTargets,
   commitInstall,

@@ -4,6 +4,7 @@ export { agentName, readAgent } from "./claude-code/agent.js";
 export { commandName, readCommand } from "./claude-code/command.js";
 export { mcpServerName, readMcpServer } from "./claude-code/mcp-server.js";
 export { readRule, ruleName } from "./claude-code/rule.js";
+export { withDependencies } from "./dependencies.js";
 export { readSkill, skillName } from "./skill.js";
 export { DESCRIPTION_MAX_LENGTH, fitDescription, toItemName } from "./text.js";
 export {

@@ -206,3 +206,23 @@ describe("skillName", () => {
     expect(skillName(skill("Valid Fallback"), "!!!")).toBe("valid-fallback");
   });
 });
+
+describe("readSkill's references", () => {
+  it("names the MCP servers behind its allowed tools, once each, and none without them", () => {
+    const read = (front: string) =>
+      readSkill([file("SKILL.md", `---\nname: a\ndescription: A.\n${front}---\nBody.\n`)], {
+        itemName: "@team/a",
+      }).references;
+    expect(
+      read("allowed-tools: Read mcp__github__search mcp__github__issues, mcp__jira\n"),
+    ).toEqual([
+      { kind: "mcp-server", name: "github", from: "allowed-tools" },
+      { kind: "mcp-server", name: "jira", from: "allowed-tools" },
+    ]);
+    expect(read("allowed-tools: [Bash(git *), mcp__aws__deploy]\n")).toEqual([
+      { kind: "mcp-server", name: "aws", from: "allowed-tools" },
+    ]);
+    expect(read("allowed-tools: Read Grep\n")).toEqual([]);
+    expect(read("")).toEqual([]);
+  });
+});

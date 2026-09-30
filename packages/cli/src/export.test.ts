@@ -711,3 +711,195 @@ describe("the other types (040)", () => {
     expect(readMcpServers(io, "project").problem).toContain(".mcp.json isn't valid JSON");
   });
 });
+
+describe("dependencies on export (041)", () => {
+  /** An agent using a skill (which uses a server), a server, an installed skill and a plugin's server. */
+  const setup = async (
+    fail: Record<string, { status: number; json?: unknown }> = {},
+    published: Record<string, Route> = {},
+  ) => {
+    const registry = exportRoutes({ fail });
+    io = fakeIo({ ...registry.routes, ...published });
+    write(
+      io.cwd,
+      ".claude/agents/reviewer.md",
+      "---\nname: reviewer\ndescription: Reviews.\nskills: [secure, installed-skill]\ntools: Read, mcp__github__search, mcp__plugin-thing__x\n---\nReview.\n",
+    );
+    write(
+      io.cwd,
+      ".claude/skills/secure/SKILL.md",
+      "---\nname: secure\ndescription: Secure.\nallowed-tools: mcp__jira__x\n---\nGo.\n",
+    );
+    write(
+      io.cwd,
+      ".claude/skills/installed-skill/SKILL.md",
+      "---\nname: installed-skill\ndescription: I.\n---\nGo.\n",
+    );
+    write(
+      io.cwd,
+      ".mcp.json",
+      JSON.stringify({
+        mcpServers: {
+          github: { type: "http", url: "https://g.example/mcp" },
+          jira: { command: "jira" },
+        },
+      }),
+    );
+    const path = ".claude/skills/installed-skill";
+    writeState(places(io, "project").state, {
+      version: 1,
+      entries: [
+        {
+          item: "@team/installed-skill",
+          version: "1.3.0",
+          targets: ["claude-code"],
+          kind: "dir",
+          path,
+          sha256: (await diskHash(io.cwd, { kind: "dir", path })) ?? "",
+        },
+      ],
+    });
+    return { api: apiClient(io.fetch, REGISTRY, "rmk_test_token"), drafts: registry.drafts };
+  };
+  const plan = (api: ReturnType<typeof apiClient>, dependencies?: "include" | "omit") =>
+    planExport(io, api, {
+      items: ["reviewer"],
+      to: "team",
+      ...(dependencies ? { dependencies } : {}),
+    });
+
+  it("stops for a decision when the item uses items of the person's own", async () => {
+    const { api } = await setup();
+    const error = await plan(api).catch((e) => e);
+    expect(error).toMatchObject({ code: "dependencies_required", exitCode: 2 });
+    expect(
+      error.details.findings.map(
+        (f: { status: string; reference: { name: string } }) => `${f.status}:${f.reference.name}`,
+      ),
+    ).toEqual([
+      "yours:github",
+      "not_found:plugin-thing",
+      "yours:secure",
+      "installed:installed-skill",
+      "yours:jira",
+    ]);
+    expect(io.requests.filter((r) => r.method === "POST")).toEqual([]);
+  });
+
+  it("exports them too: one item each, dependencies first, declared at ^1.0.0 and installed ones at their version", async () => {
+    const { api } = await setup();
+    const result = await plan(api, "include");
+    expect(result.items.map((i) => [i.name, i.asDependency])).toEqual([
+      ["@team/github", true],
+      ["@team/jira", true],
+      ["@team/secure", true],
+      ["@team/reviewer", false],
+    ]);
+    const reviewer = result.items.at(-1);
+    expect(reviewer?.dependencies).toEqual({
+      "@team/github": "^1.0.0",
+      "@team/secure": "^1.0.0",
+      "@team/installed-skill": "^1.3.0",
+    });
+    expect(reviewer?.manifestText).toContain('dependencies:\n  "@team/github": ^1.0.0');
+    expect(result.items.find((i) => i.name === "@team/secure")?.dependencies).toEqual({
+      "@team/jira": "^1.0.0",
+    });
+    expect(reviewer?.warnings.map((w) => w.code)).toEqual(["dependency_missing"]);
+    expect(reviewer?.warnings[0]?.message).toContain("plugin-thing");
+    // The manifests pass the checks; only the servers lack the description no file holds.
+    for (const item of result.items)
+      expect(
+        item.issues.filter((i) => i.severity === "error").map((i) => i.path),
+        item.name,
+      ).toEqual(item.type === "mcp-server" ? ["/description"] : []);
+  });
+
+  it("exports without them: only the item, the installed one still declared, and a warning", async () => {
+    const { api } = await setup();
+    const result = await plan(api, "omit");
+    expect(result.items.map((i) => i.name)).toEqual(["@team/reviewer"]);
+    const [reviewer] = result.items;
+    expect(reviewer?.dependencies).toEqual({ "@team/installed-skill": "^1.3.0" });
+    expect(reviewer?.warnings.map((w) => w.code)).toEqual([
+      "dependency_omitted",
+      "dependency_missing",
+      "dependency_omitted",
+    ]);
+    expect(reviewer?.warnings[0]?.message).toContain("may not work where that's missing");
+  });
+
+  it("uploads dependencies first, and nothing that depends on one that failed", async () => {
+    const { api, drafts } = await setup({
+      "@team/github": {
+        status: 409,
+        json: { error: { code: "draft_limit", message: "Too many drafts." } },
+      },
+    });
+    const planned = await plan(api, "include");
+    const error = await uploadExport(api, planned).catch((e) => e);
+    expect(error).toMatchObject({
+      code: "draft_limit",
+      details: { failed: ["@team/github"], notUploaded: ["@team/reviewer"] },
+    });
+    // jira and secure don't need github; the reviewer does.
+    expect(drafts.map((d) => d.name)).toEqual(["@team/jira", "@team/secure"]);
+    expect(error.message).toContain("Not uploaded, since they depend on it: @team/reviewer.");
+  });
+
+  it("sends nothing else when the first upload fails and everything depends on it", async () => {
+    const { api, drafts } = await setup({
+      "@team/jira": {
+        status: 409,
+        json: { error: { code: "draft_limit", message: "Too many drafts." } },
+      },
+    });
+    write(
+      io.cwd,
+      ".claude/agents/reviewer.md",
+      "---\nname: reviewer\ndescription: R.\nskills: [secure]\n---\nR.\n",
+    );
+    const planned = await plan(api, "include");
+    expect(planned.items.map((i) => i.name)).toEqual([
+      "@team/jira",
+      "@team/secure",
+      "@team/reviewer",
+    ]);
+    await uploadExport(api, planned).catch(() => undefined);
+    expect(io.requests.filter((r) => r.method === "POST")).toHaveLength(1);
+    expect(drafts).toEqual([]);
+  });
+
+  it("depends on a published item of the same name and type instead of uploading a copy", async () => {
+    const { api } = await setup(
+      {},
+      {
+        "GET /items/team/secure": () => ({
+          json: { type: "skill", tags: { latest: "2.1.0" }, versions: [{ version: "2.1.0" }] },
+        }),
+        "GET /items/team/github": () => ({
+          json: { type: "agent", tags: { latest: "1.0.0" }, versions: [{ version: "1.0.0" }] },
+        }),
+      },
+    );
+    const result = await plan(api, "include");
+    expect(result.findings.map((f) => `${f.status}:${f.reference.name}`)).toEqual([
+      "name_taken:github",
+      "not_found:plugin-thing",
+      "published:secure",
+      "installed:installed-skill",
+    ]);
+    // secure is the registry's now, so its own server isn't followed or uploaded either.
+    expect(result.items.map((i) => i.name)).toEqual(["@team/reviewer"]);
+    const [reviewer] = result.items;
+    expect(reviewer?.dependencies).toEqual({
+      "@team/secure": "^2.1.0",
+      "@team/installed-skill": "^1.3.0",
+    });
+    expect(reviewer?.warnings.map((w) => w.message)).toEqual([
+      expect.stringContaining("@team/github is already published as an agent"),
+      expect.stringContaining("plugin-thing"),
+      expect.stringContaining("@team/secure is already published, so it depends on that at ^2.1.0"),
+    ]);
+  });
+});

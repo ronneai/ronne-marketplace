@@ -27,6 +27,8 @@ export const E2E_USERS = {
   cliExporter: "cli-exporter@e2e.test",
   mcpExporter: "mcp-exporter@e2e.test",
   typesExporter: "types-exporter@e2e.test",
+  depsExporter: "deps-exporter@e2e.test",
+  depsModerator: "deps-moderator@e2e.test",
 } as const;
 
 /** The display names, which the header shows (not the email). */
@@ -53,10 +55,16 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   cliExporter: "Cy Exporter",
   mcpExporter: "Mo Exporter",
   typesExporter: "Ty Exporter",
+  depsExporter: "Dee Exporter",
+  depsModerator: "Dee Moderator",
 };
 
 /** Seeded with the moderator role; everyone else is a user. */
-export const E2E_MODERATORS: readonly (keyof typeof E2E_USERS)[] = ["moderator", "releaser"];
+export const E2E_MODERATORS: readonly (keyof typeof E2E_USERS)[] = [
+  "moderator",
+  "releaser",
+  "depsModerator",
+];
 
 /**
  * A scope the seed creates, for tests that need one without signing in as root: root already

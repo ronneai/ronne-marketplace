@@ -44,7 +44,7 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
     { name: serverInfo.name, version: serverInfo.version },
     {
       instructions:
-        "Search and install items from a Ronne AI Marketplace, and send items the person wrote to it as drafts. Installing takes two steps: a plan_* tool shows what would change and writes nothing; apply_plan writes it, once the person has seen the plan. Exporting takes two steps too: plan_export shows every file that would be uploaded and sends nothing; export_items uploads it, once the person has seen the plan. Ask the person which scope to export to; never choose it. Show them the plan before calling export_items. Drafts are never submitted from here: the person reviews and submits them in the web app.",
+        "Search and install items from a Ronne AI Marketplace, and send items the person wrote to it as drafts. Installing takes two steps: a plan_* tool shows what would change and writes nothing; apply_plan writes it, once the person has seen the plan. Exporting takes two steps too: plan_export shows every file that would be uploaded and sends nothing; export_items uploads it, once the person has seen the plan. Ask the person which scope to export to; never choose it. When plan_export says the items use the person's own items, show them and ask whether to export those too, recommending it. Show them the plan before calling export_items. Drafts are never submitted from here: the person reviews and submits them in the web app.",
     },
   );
   const read = { readOnlyHint: true, openWorldHint: true };
@@ -210,6 +210,12 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
           .optional()
           .describe(
             "An MCP server's description, which isn't on disk: ask the person for one sentence",
+          ),
+        dependencies: z
+          .enum(["include", "omit"])
+          .optional()
+          .describe(
+            "The person's choice for their own items that these use: include (export them too, recommended) or omit",
           ),
         scope,
       },

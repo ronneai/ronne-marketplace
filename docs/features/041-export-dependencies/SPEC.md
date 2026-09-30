@@ -56,7 +56,8 @@ depends on both.
 Installed dependencies are declared in both of the first two cases; there's nothing to decide
 about them. With no finding of the person's own, nothing is asked.
 
-- **In the terminal:** the question, or `--with-deps` / `--no-deps`. Without a terminal, or with
+- **In the terminal:** the question (Enter takes the recommendation), or `--with-deps` /
+  `--no-deps`. Without a terminal, or with
   `--json`, one of the two flags is required when there's something to decide (exit 2, with the
   findings in the error's details).
 - **Through MCP:** `plan_export` gains `dependencies: "include" | "omit"`. Without it, when
@@ -70,6 +71,9 @@ person named.
 
 **The upload** goes dependencies first. If one fails, the items that depend on it aren't
 uploaded, and the output says which drafts exist.
+
+With `--json`, the result adds `order: [{ item, after: [...] }]`, and a dry run's `planned`
+items carry their `dependencies` and `usedByAnother`.
 
 **Afterwards** the person has several drafts, and 013 only lets an item be submitted once its
 dependencies are released. The result says so in order, from the server's own checks (037's
@@ -110,15 +114,15 @@ submitted."* Until then the dependent draft shows the same message in the web ed
 
 ## Acceptance criteria
 
-- [ ] An agent that loads a local skill and uses a local MCP server produces those two findings, and through the skill, the skill's own MCP server.
-- [ ] "Export them too" creates one draft per item, dependencies first, and the dependents' manifests declare them at `^1.0.0` in the chosen scope.
-- [ ] An installed dependency is declared at `^<installed version>` and nothing is uploaded for it.
-- [ ] "Export without them" uploads only the named items, without the person's own dependencies declared, and the preview warns.
-- [ ] A not-found reference and a forbidden pair each produce a warning and no dependency; the manifests pass `checkPackage`.
-- [ ] Without a terminal and without `--with-deps` or `--no-deps`, the command exits 2 and sends nothing; `plan_export` without `dependencies` returns the findings and no `planId`.
-- [ ] After the upload, the output names the drafts to release first, and the dependent draft's Submit is refused in the web app until then, with 013's message.
-- [ ] An end-to-end test exports an agent with its skill, then submits and releases the skill and submits the agent in the web app.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] An agent that loads a local skill and uses a local MCP server produces those two findings, and through the skill, the skill's own MCP server.
+- [x] "Export them too" creates one draft per item, dependencies first, and the dependents' manifests declare them at `^1.0.0` in the chosen scope.
+- [x] An installed dependency is declared at `^<installed version>` and nothing is uploaded for it.
+- [x] "Export without them" uploads only the named items, without the person's own dependencies declared, and the preview warns.
+- [x] A not-found reference and a forbidden pair each produce a warning and no dependency; the manifests pass `checkPackage`.
+- [x] Without a terminal and without `--with-deps` or `--no-deps`, the command exits 2 and sends nothing; `plan_export` without `dependencies` returns the findings and no `planId`.
+- [x] After the upload, the output names the drafts to release first, and the dependent draft's Submit is refused in the web app until then, with 013's message.
+- [x] An end-to-end test exports an agent with its skill, then submits and releases the skill and submits the agent in the web app.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Open questions
 
