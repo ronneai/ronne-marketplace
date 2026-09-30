@@ -30,7 +30,7 @@ the same change that completes it.
   *Done when:* tests cover each type written here, installed, installed and edited, and a config
   that doesn't parse.
 
-- [ ] **5. The CLI and the tools.** `--from` and `from`, the tool in the list and the preview,
+- [x] **5. The CLI and the tools.** `--from` and `from`, the tool in the list and the preview,
   ambiguity across tools, and 041's matching by the dependent's own tool first.
   *Done when:* `cli.test.ts` and the MCP tests cover each, and the secret grep over the fake
   registry's requests passes.

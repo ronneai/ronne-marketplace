@@ -56,7 +56,9 @@ tools' documentation before building (the first task).
 
 Skills are already found in `.agents/skills/`, the folder Codex and Cursor share (038).
 
-**Which tool.** Each item found says which tool it's from. The same name in two tools (an agent
+**Which tool.** Each item found says which tool it's from: its folder shows it in the list and
+the preview, and `--json` and the MCP tools carry `tool` (`claude-code`, `codex`, `cursor`, or
+`shared` for `.agents/skills/`, which `--from codex` and `--from cursor` both include). The same name in two tools (an agent
 `reviewer` for Claude Code and for Cursor) is ambiguous, as two types are in 040: the command lists
 them and asks for `--from cursor`, `--type`, or the path. The same MCP server configured for two
 tools is two items; a person who wants one of them names it.
@@ -126,7 +128,7 @@ runtime dependencies don't change. `LocalItem` gains `tool`.
 - [ ] Every dropped setting produces exactly one warning that names it, in the CLI's preview and in `plan_export`.
 - [ ] No value of a Codex `env` or Cursor `env`, and no literal credential from headers, appears in any request; a test greps the request bodies for the fixture's secrets.
 - [ ] Items `rmk` installed for Codex and Cursor (files, JSON keys, TOML keys, markers), and each tool's `ronne-registry` server, are refused or not listed.
-- [ ] The same name in two tools is ambiguous and `--from` (MCP: `from`) settles it; the list and the preview name the tool.
+- [ ] The same name in two tools is ambiguous and `--from` (MCP: `from`) settles it; the list and the preview show each item's folder, which names its tool, and `--json` and the MCP tools carry `tool`.
 - [ ] An end-to-end test exports a Cursor rule and a Codex MCP server with the built `rmk`.
 - [ ] The Documentation and inline helpers listed above say what the feature does now.
 

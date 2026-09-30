@@ -425,8 +425,18 @@ test("rmk exports an agent and an MCP server, keeping the server's credentials o
   try {
     const listed = JSON.parse(rmk("export", "--json").out);
     expect(listed.found).toEqual([
-      { name: "e2e-agent", type: "agent", path: ".claude/agents/e2e-agent.md" },
-      { name: "e2e-tracker", type: "mcp-server", path: ".mcp.json (mcpServers.e2e-tracker)" },
+      {
+        name: "e2e-agent",
+        type: "agent",
+        tool: "claude-code",
+        path: ".claude/agents/e2e-agent.md",
+      },
+      {
+        name: "e2e-tracker",
+        type: "mcp-server",
+        tool: "claude-code",
+        path: ".mcp.json (mcpServers.e2e-tracker)",
+      },
     ]);
 
     const agent = rmk("export", "e2e-agent", "--to", `@${E2E_SCOPE}`, "--yes", "--json");

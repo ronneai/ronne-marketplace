@@ -405,7 +405,7 @@ describe("rmk export for agents, commands, rules and MCP servers (040)", () => {
     ]);
     const agents = await json("export", "--type", "agent");
     expect(agents.body.found).toEqual([
-      { name: "reviewer", type: "agent", path: ".claude/agents/reviewer.md" },
+      { name: "reviewer", type: "agent", tool: "claude-code", path: ".claude/agents/reviewer.md" },
     ]);
     const ambiguous = await json("export", "review", "--to", "team", "--dry-run");
     expect(ambiguous.code).toBe(2);
@@ -586,5 +586,101 @@ describe("rmk export with dependencies (041)", () => {
     expect(noDeps.exported.map((e: { name: string }) => e.name)).toEqual(["@team/reviewer"]);
     expect(noDeps.order).toBeUndefined();
     expect(drafts).toHaveLength(4);
+  });
+});
+
+describe("rmk export from Codex and Cursor (043)", () => {
+  const SECRETS = { env: `sk-ant-${"a1B2c3D4".repeat(4)}`, header: `ghp_${"a1B2".repeat(9)}` };
+  const setup = () => {
+    const registry = exportRoutes({ scopes: [{ name: "team", description: "A team." }] });
+    io = fakeIo(
+      { ...identityRoutes("rmk_test_token"), ...registry.routes },
+      { env: { RMK_TOKEN: "rmk_test_token", RMK_REGISTRY: REGISTRY }, interactive: false },
+    );
+    const write = (path: string, text: string) => {
+      mkdirSync(dirname(join(io.cwd, path)), { recursive: true });
+      writeFileSync(join(io.cwd, path), text);
+    };
+    write(
+      ".claude/agents/reviewer.md",
+      "---\nname: reviewer\ndescription: Reviews.\n---\nReview.\n",
+    );
+    write(
+      ".cursor/agents/reviewer.md",
+      "---\nname: reviewer\ndescription: Reviews in Cursor.\n---\nReview.\n",
+    );
+    write(
+      ".codex/config.toml",
+      `[mcp_servers.jira]\ncommand = "jira-mcp"\nenv = { JIRA_API_KEY = "${SECRETS.env}" }\n`,
+    );
+    write(
+      ".cursor/mcp.json",
+      JSON.stringify({
+        mcpServers: {
+          tracker: {
+            url: "https://t.example/mcp",
+            headers: { Authorization: `Bearer ${SECRETS.header}` },
+          },
+        },
+      }),
+    );
+    return registry;
+  };
+  const json = async (...argv: string[]) => {
+    const result = await rmk(...argv, "--json");
+    return { code: result.exitCode, body: JSON.parse(result.stdout) };
+  };
+
+  it("lists each tool's items with the tool, and narrows with --from", async () => {
+    setup();
+    const all = await json("export");
+    expect(
+      all.body.found.map((f: { name: string; tool: string }) => `${f.tool}:${f.name}`),
+    ).toEqual(["codex:jira", "claude-code:reviewer", "cursor:reviewer", "cursor:tracker"]);
+    const cursor = await json("export", "--from", "cursor");
+    expect(cursor.body.found.map((f: { name: string }) => f.name)).toEqual(["reviewer", "tracker"]);
+    expect((await json("export", "--from", "vscode")).code).toBe(2);
+  });
+
+  it("says a name two tools have is ambiguous, and --from settles it", async () => {
+    setup();
+    const ambiguous = await json("export", "reviewer", "--to", "team", "--dry-run");
+    expect(ambiguous.code).toBe(2);
+    expect(ambiguous.body.error).toMatchObject({
+      code: "ambiguous",
+      tools: ["claude-code", "cursor"],
+    });
+    const cursor = await json(
+      "export",
+      "reviewer",
+      "--from",
+      "cursor",
+      "--to",
+      "team",
+      "--dry-run",
+    );
+    expect(cursor.body.planned).toMatchObject([
+      { local: ".cursor/agents/reviewer.md", name: "@team/reviewer", type: "agent" },
+    ]);
+    expect(cursor.body.planned[0].manifest).toContain("Reviews in Cursor.");
+  });
+
+  it("uploads Codex's and Cursor's servers with no secret in any request", async () => {
+    const { drafts } = setup();
+    for (const name of ["jira", "tracker"]) {
+      const result = await json(
+        "export",
+        name,
+        "--to",
+        "team",
+        "--description",
+        "A server.",
+        "--yes",
+      );
+      expect(result.code, name).toBe(0);
+    }
+    expect(drafts.map((d) => d.name)).toEqual(["@team/jira", "@team/tracker"]);
+    const sent = JSON.stringify(io.requests);
+    for (const secret of Object.values(SECRETS)) expect(sent).not.toContain(secret);
   });
 });

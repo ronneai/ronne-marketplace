@@ -71,6 +71,13 @@ export const EXPORT_TYPES: readonly ExportType[] = [
 
 /** The AI tool an item was written for; `shared` is `.agents/skills/`, which Codex and Cursor read. */
 export type SourceTool = "claude-code" | "codex" | "cursor" | "shared";
+/** The tools `--from` names (043). */
+export type ExportTool = Exclude<SourceTool, "shared">;
+export const EXPORT_TOOLS: readonly ExportTool[] = ["claude-code", "codex", "cursor"];
+
+/** Whether an item is one `--from <tool>` means: the shared skills folder counts for Codex and Cursor. */
+export const fromTool = (item: { tool: SourceTool }, from: ExportTool | undefined) =>
+  !from || item.tool === from || (item.tool === "shared" && from !== "claude-code");
 
 /** An item found on disk. */
 export type LocalItem = {
@@ -569,6 +576,8 @@ export type ExportRequest = {
   items: readonly (string | LocalItem)[];
   /** Only items of this type: for names that more than one type has, and for a file's type. */
   type?: ExportType;
+  /** Only items written for this tool (043): for names that more than one tool has. */
+  from?: ExportTool;
   /** An MCP server's description, which isn't on disk; for a single item. */
   description?: string;
   /**
@@ -714,11 +723,14 @@ const resolveItems = (io: Io, request: ExportRequest): Target[] => {
       return { local: arg, type: source.type, tool: source.tool, path };
     }
     const matches = discovered().filter(
-      (item) => item.name === arg && (!request.type || item.type === request.type),
+      (item) =>
+        item.name === arg &&
+        (!request.type || item.type === request.type) &&
+        fromTool(item, request.from),
     );
     if (matches.length === 0)
       throw usage(
-        `No ${request.type ?? "item"} called ${arg} here. rmk export, with nothing after it, lists what it finds.`,
+        `No ${request.type ?? "item"} called ${arg} here${request.from ? ` for ${request.from}` : ""}. rmk export, with nothing after it, lists what it finds.`,
       );
     if (matches.length > 1)
       throw new RmkError(

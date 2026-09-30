@@ -4,8 +4,10 @@ import {
   type ExportedItem,
   type ExportPlan,
   type ExportRequest,
+  type ExportTool,
   type Finding,
   fetchScopes,
+  fromTool,
   type Io,
   type LocalItem,
   type Ownership,
@@ -59,15 +61,16 @@ const ORIGIN_WORDS: Record<Origin, string> = {
 /** The items in the project (or the home folder), and whose each is. Reads no network. */
 export const listLocalItems = async (
   io: Io,
-  input: { scope?: "project" | "user"; type?: string },
+  input: { scope?: "project" | "user"; type?: string; from?: ExportTool },
 ): Promise<ToolAnswer> => {
   const scope = input.scope ?? "project";
   const found = (await describeLocalItems(io, scope)).filter(
-    ({ item }) => !input.type || item.type === input.type,
+    ({ item }) => (!input.type || item.type === input.type) && fromTool(item, input.from),
   );
   const items = found.map(({ item, ownership }) => ({
     name: item.name,
     type: item.type,
+    tool: item.tool,
     folder: item.display,
     ...originOf(ownership),
   }));
@@ -82,7 +85,7 @@ export const listLocalItems = async (
     `Items found${scope === "user" ? " in the home folder" : ""}:`,
     ...items.map(
       (i) =>
-        `  ${i.name}  ${i.type}  ${i.folder}  ${ORIGIN_WORDS[i.origin]}${i.item ? ` (${i.item}${i.version ? `@${i.version}` : ""})` : ""}`,
+        `  ${i.name}  ${i.type}  ${i.tool}  ${i.folder}  ${ORIGIN_WORDS[i.origin]}${i.item ? ` (${i.item}${i.version ? `@${i.version}` : ""})` : ""}`,
     ),
   ];
   if (items.some((i) => i.origin !== "yours"))
@@ -180,6 +183,7 @@ export const planExportTool = async (
     name?: string;
     scope?: "project" | "user";
     type?: string;
+    from?: ExportTool;
     description?: string;
     dependencies?: "include" | "omit";
   },
@@ -195,13 +199,14 @@ export const planExportTool = async (
       .filter(
         (item) =>
           (item.name === wanted || item.display === wanted) &&
-          (!input.type || item.type === input.type),
+          (!input.type || item.type === input.type) &&
+          fromTool(item, input.from),
       );
     if (matches.length === 0) unknown.push(wanted);
     else if (matches.length > 1)
       return failure(
         "ambiguous",
-        `${wanted} is more than one item: ${matches.map((m) => `${m.display} (${m.type})`).join(", ")}. Say which with type, or use the folder or file as list_local_items shows it.`,
+        `${wanted} is more than one item: ${matches.map((m) => `${m.display} (${m.type}, ${m.tool})`).join(", ")}. Say which with type or from, or use the folder or file as list_local_items shows it.`,
       );
     else chosen.push(matches[0] as LocalItem);
   }

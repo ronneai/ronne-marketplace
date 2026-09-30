@@ -2,7 +2,13 @@ import { readFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { type ItemType, mayDependOn, type PackageFile } from "@ronneai/core";
 import { type ItemReference, readAgent, readCommand, readSkill } from "@ronneai/core/read";
-import { describeLocalItems, type ExportType, type LocalItem, type Ownership } from "./export.js";
+import {
+  describeLocalItems,
+  type ExportType,
+  type LocalItem,
+  type Ownership,
+  type SourceTool,
+} from "./export.js";
 import type { Scope } from "./install.js";
 import type { Io } from "./io.js";
 
@@ -15,6 +21,8 @@ import type { Io } from "./io.js";
 /** Something being exported: what it is and where, as `planExport` resolves it. */
 export type Selected = {
   type: ExportType;
+  /** The tool it was written for: its references are looked for there first (043). */
+  tool?: SourceTool;
   path: string;
   key?: string;
   local: string;
@@ -125,7 +133,12 @@ export const findDependencies = async (
         (using.type === "mcp-server" ? using.key : using.name) === reference.name
       )
         continue;
-      const found = here.find(matches(reference));
+      // The dependent's own tool first: a Cursor agent's server is looked for in .cursor/mcp.json.
+      const candidates = here.filter(matches(reference));
+      const found =
+        candidates.find(({ item }) => item.tool === using.tool) ??
+        candidates.find(({ item }) => item.tool === "shared") ??
+        candidates[0];
       const key = found
         ? `${found.item.path}\0${found.item.key ?? ""}`
         : `${reference.kind}\0${reference.name}`;

@@ -29,7 +29,7 @@ export const USAGE = `Usage: rmk <command> [options]
   outdated
   remove <item>...
   mcp-setup [--target <ids>|all] [--scope project|user] [--remove] [--command <cmd>]
-  export [<path|name>...] [--to <@scope>] [--type <type>] [--name <name>]
+  export [<path|name>...] [--to <@scope>] [--type <type>] [--from <tool>] [--name <name>]
          [--description <text>] [--with-deps | --no-deps] [--scope project|user]
          [--dry-run] [--yes] [--force]
 
@@ -55,6 +55,7 @@ const OPTIONS = {
   "dry-run": { type: "boolean" },
   description: { type: "string" },
   "with-deps": { type: "boolean" },
+  from: { type: "string" },
   "no-deps": { type: "boolean" },
 } as const;
 
