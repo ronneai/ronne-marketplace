@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. The API takes a base.** `POST /api/v1/drafts` with `base`: the checks (item, type,
+- [x] **1. The API takes a base.** `POST /api/v1/drafts` with `base`: the checks (item, type,
   version), a proposal draft with the uploaded files through the submissions service (sharing
   017's insert with `proposeChange`), the new error codes, `proposal` in the response, and the
   audit metadata.

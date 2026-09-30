@@ -6,10 +6,12 @@ import {
   nameProblem,
   normalizeScopeName,
   type PackageLimits,
+  parseItemName,
   pathProblem,
 } from "@ronneai/core";
 import { isScalar, parseDocument } from "yaml";
 import { isId } from "../../../db/ids";
+import type { StorageAdapter } from "../../../storage";
 import { requirePermission } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
 import {
@@ -22,10 +24,12 @@ import {
   InvalidItemNameError,
   InvalidItemTypeError,
   ManifestRequiredError,
+  ProposalBaseNotFoundError,
   ProposalRenameError,
   StaleFilesError,
   SubmissionNotEditableError,
   SubmissionNotFoundError,
+  TypeChangedError,
   ZipImportError,
 } from "../exceptions/errors";
 import { isEditable } from "../models/status";
@@ -42,9 +46,11 @@ import {
 } from "../models/submission";
 import { draftTemplate } from "../models/templates";
 import { readZip } from "../models/zip";
+import type { RegistryLookup } from "../repositories/registry-lookup";
 import type { SubmissionRepository } from "../repositories/submission-repository";
-import { withStale } from "./proposals";
+import { staleVersion, withStale } from "./proposals";
 import { registryIssues } from "./registry-checks";
+import { noChangeIssues } from "./submissions";
 
 /**
  * Drafts (feature 012). Anyone signed in writes drafts of new items; a draft is visible only to its
@@ -52,7 +58,13 @@ import { registryIssues } from "./registry-checks";
  * progress, so the web's are not audited (a session is the person); 013 records submitting and
  * withdrawing. A draft uploaded with a token is (037), so a leaked token's work can be traced.
  */
-export type DraftDeps = { repo: SubmissionRepository; now?: () => Date; limits?: PackageLimits };
+export type DraftDeps = {
+  repo: SubmissionRepository;
+  now?: () => Date;
+  limits?: PackageLimits;
+  /** Where published versions are, to tell a proposal that changes nothing (042). */
+  storage?: StorageAdapter;
+};
 export type DraftActor = { user: CurrentUser | null };
 
 /** By code unit, as the repository returns them. */
@@ -112,9 +124,11 @@ const insertDraft = async (
     type: ItemType;
     files: DraftFile[];
     at: Date;
+    /** For a change proposal (017, 042): the item and the version it starts from. */
+    proposal?: { itemId: string; baseVersionId: string; baseVersion: string };
   },
 ): Promise<Draft> => {
-  const { authorId, scope, name, type, at } = draft;
+  const { authorId, scope, name, type, at, proposal } = draft;
   const files = sortByPath(draft.files);
   const id = await repo.insert({
     authorId,
@@ -123,6 +137,9 @@ const insertDraft = async (
     type,
     status: "draft",
     createdAt: at,
+    ...(proposal
+      ? { proposal: { itemId: proposal.itemId, baseVersionId: proposal.baseVersionId } }
+      : {}),
   });
   for (const file of files) await repo.writeFile(id, file);
   return {
@@ -135,7 +152,7 @@ const insertDraft = async (
     createdAt: at,
     updatedAt: at,
     submittedAt: null,
-    proposal: null,
+    proposal: proposal ? { ...proposal, conflicts: [] } : null,
     files,
   };
 };
@@ -315,8 +332,14 @@ export const MAX_API_DRAFTS = 50;
 /** Who uploads: the token's user, the token, and the caller's address. */
 export type UploadActor = DraftActor & { ip: string | null; token: { id: string; name: string } };
 
-/** An uploaded draft: 011's issues, and what Submit would refuse right now (013), as advice. */
-export type UploadedDraft = SavedDraft & { submitIssues: ManifestIssue[] };
+/**
+ * An uploaded draft: 011's issues, and what Submit would refuse right now (013), as advice; for a
+ * change proposal (042), the version it's based on and whether a newer one is out.
+ */
+export type UploadedDraft = SavedDraft & {
+  submitIssues: ManifestIssue[];
+  proposal: { item: string; baseVersion: string; stale: string | null } | null;
+};
 
 export type UploadFile = {
   path: string;
@@ -336,7 +359,14 @@ export type UploadFile = {
 export const createDraftFromFiles = async (
   deps: DraftDeps,
   actor: UploadActor,
-  input: { scope: string; name: string; type: string; files: readonly UploadFile[] },
+  input: {
+    scope: string;
+    name: string;
+    type: string;
+    files: readonly UploadFile[];
+    /** A published version of `@scope/name`: the draft is a change proposal to it (017, 042). */
+    base?: string;
+  },
 ): Promise<UploadedDraft> => {
   requirePermission(actor.user, "submissions.create");
   const authorId = actor.user?.id ?? "";
@@ -365,9 +395,13 @@ export const createDraftFromFiles = async (
 
   const draft = await deps.repo.transaction(async (repo) => {
     const scope = await findScope(repo, input.scope);
+    const proposal =
+      input.base === undefined
+        ? undefined
+        : await proposalBase(repo.registry(), `@${scope.name}/${name}`, type, input.base);
     if ((await repo.countDrafts(authorId)) >= MAX_API_DRAFTS)
       throw new DraftQuotaError(MAX_API_DRAFTS);
-    const draft = await insertDraft(repo, { authorId, scope, name, type, files, at });
+    const draft = await insertDraft(repo, { authorId, scope, name, type, files, at, proposal });
     await repo.recordAudit(
       {
         actorId: authorId,
@@ -381,6 +415,7 @@ export const createDraftFromFiles = async (
           tokenName: actor.token.name,
           files: count,
           bytes,
+          ...(proposal ? { proposal: true, baseVersion: proposal.baseVersion } : {}),
         },
         ipAddress: actor.ip,
       },
@@ -388,11 +423,44 @@ export const createDraftFromFiles = async (
     );
     return draft;
   });
+  const registry = deps.repo.registry();
   return {
     draft,
     issues: validateDraft(draft, draft.files, limits),
-    submitIssues: await registryIssues(deps.repo, deps.repo.registry(), draft, draft.files),
+    submitIssues: [
+      ...(await registryIssues(deps.repo, registry, draft, draft.files)),
+      ...(draft.proposal && deps.storage
+        ? await noChangeIssues({ storage: deps.storage, limits }, registry, draft, draft.files)
+        : []),
+    ],
+    proposal: draft.proposal
+      ? {
+          item: itemNameOf(draft),
+          baseVersion: draft.proposal.baseVersion,
+          stale: await staleVersion(registry, draft),
+        }
+      : null,
   };
+};
+
+/**
+ * The item and version a proposal from the API starts from (042), checked as 017 checks one from
+ * the item page: the item is published, the version exists (yanked ones too), and the type is the
+ * item's.
+ */
+const proposalBase = async (
+  registry: RegistryLookup,
+  itemName: string,
+  type: ItemType,
+  version: string,
+) => {
+  const parsed = parseItemName(itemName);
+  const item = parsed ? await registry.findItem(parsed.scope, parsed.name) : null;
+  if (!item) throw new ProposalBaseNotFoundError(itemName);
+  if (item.type !== type) throw new TypeChangedError(itemName, item.type, type);
+  const base = (await registry.publishedVersions(item.id)).find((v) => v.version === version);
+  if (!base) throw new ProposalBaseNotFoundError(itemName, version);
+  return { itemId: item.id, baseVersionId: base.id, baseVersion: base.version };
 };
 
 /**

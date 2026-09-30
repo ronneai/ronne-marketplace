@@ -1,5 +1,10 @@
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { packItem } from "@ronneai/core/pack";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createTestDb, type TestDb } from "../db/testing/test-db";
+import { listAuditEvents } from "../domains/audit/actions/audit";
 import { authenticateToken, exchangePassword } from "../domains/identity/actions/access-tokens";
 import { createRoot } from "../domains/identity/actions/root-account";
 import type { AppAuth } from "../domains/identity/repositories/auth-instance";
@@ -7,6 +12,7 @@ import { createTestUser, testAppAuth } from "../domains/identity/testing/test-au
 import { kyselyItemRepository } from "../domains/items/repositories/kysely-item-repository";
 import { kyselyScopeRepository } from "../domains/items/repositories/kysely-scope-repository";
 import { kyselySubmissionRepository } from "../domains/submissions/repositories/kysely-submission-repository";
+import { localStorage } from "../storage/local-storage";
 import { type DraftsApiDeps, getScopes, postDraft } from "./drafts-api";
 import { createUploadLimiter } from "./upload-rate-limit";
 
@@ -178,6 +184,7 @@ describe("POST /drafts", () => {
       bytes: files().reduce((sum, file) => sum + Buffer.byteLength(file.content), 0),
       issues: [],
       submitIssues: [],
+      proposal: null,
     });
     const repo = kyselySubmissionRepository(t.db, t.dialect);
     const user = await t.db
@@ -341,5 +348,146 @@ describe("POST /drafts", () => {
     const invalid = await body(await postDraft(post(upload(), "rmk_nope"), deps));
     expect([invalid.status, invalid.json.error.code]).toEqual([401, "token_invalid"]);
     expect(await counts()).toEqual({ drafts: 0, files: 0, uploads: 0 });
+  });
+});
+
+describe("POST /drafts with a base (042)", () => {
+  const text = (value: string) => new TextEncoder().encode(value);
+  const skillFiles = (description = "A kit.") => [
+    {
+      path: "ronne.yaml",
+      content: `name: "@team/kit"\ntype: skill\ndescription: ${description}\nskill:\n  entry: SKILL.md\n`,
+    },
+    { path: "SKILL.md", content: `---\nname: kit\ndescription: ${description}\n---\nDo it.\n` },
+  ];
+  let storageRoot: string;
+
+  /** @team/kit published at the given versions, each with its artifact, `latest` on the last. */
+  const publish = async (versions: string[]) => {
+    storageRoot = mkdtempSync(join(tmpdir(), "ronne-proposals-"));
+    const storage = localStorage(storageRoot);
+    deps = { ...deps, storage };
+    const items = kyselyItemRepository(t.db, t.dialect);
+    const itemId = await items.insertItem({
+      scopeId: teamId,
+      name: "kit",
+      type: "skill",
+      description: "A kit.",
+      ownerId: rootId,
+      createdAt: new Date(),
+    });
+    for (const version of versions) {
+      const files = skillFiles().map((f) => ({ path: f.path, bytes: text(f.content) }));
+      const packed = await packItem(files, { version });
+      await storage.put(`team/kit/${version}.tgz`, packed.tgz);
+      const versionId = await items.insertVersion({
+        itemId,
+        version,
+        manifest: { name: "@team/kit", type: "skill", description: "A kit.", version },
+        readme: null,
+        files: files.map((f) => ({ path: f.path, size: f.bytes.length, executable: false })),
+        notes: null,
+        artifactPath: `team/kit/${version}.tgz`,
+        sha256: packed.sha256,
+        size: packed.size,
+        publishedBy: rootId,
+        publishedAt: new Date(),
+        submissionId: null,
+        dependencies: [],
+        riskFlags: [],
+      });
+      await items.setTag(itemId, "latest", versionId);
+    }
+  };
+  afterEach(() => storageRoot && rmSync(storageRoot, { recursive: true, force: true }));
+  const post = (payload: unknown) =>
+    new Request(`${BASE}/drafts`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${tokens.user}` },
+      body: JSON.stringify(payload),
+    });
+  const proposal = (base: string, description = "A better kit.", type = "skill") => ({
+    name: "@team/kit",
+    type,
+    base,
+    files: skillFiles(description).map((f) => ({ ...f, encoding: "utf8" })),
+  });
+
+  it("creates a proposal draft with the uploaded files, and says what it's based on", async () => {
+    await publish(["1.0.0"]);
+    const { status, json } = await body(await postDraft(post(proposal("1.0.0")), deps));
+    expect(status).toBe(201);
+    expect(json).toMatchObject({
+      name: "@team/kit",
+      status: "draft",
+      issues: [],
+      submitIssues: [],
+      proposal: { item: "@team/kit", baseVersion: "1.0.0", stale: null },
+    });
+    const draft = await kyselySubmissionRepository(t.db, t.dialect).find(json.id);
+    expect(draft?.proposal).toMatchObject({ baseVersion: "1.0.0" });
+    const [event] = (await listAuditEvents(t.db, t.dialect, {})).events.filter(
+      (e) => e.action === "submission.draft_created",
+    );
+    expect(event?.metadata).toMatchObject({ proposal: true, baseVersion: "1.0.0" });
+  });
+
+  it("says a proposal from an older version is stale, and one that changes nothing", async () => {
+    await publish(["1.0.0", "1.1.0"]);
+    const stale = await body(await postDraft(post(proposal("1.0.0")), deps));
+    expect(stale.json.proposal).toEqual({
+      item: "@team/kit",
+      baseVersion: "1.0.0",
+      stale: "1.1.0",
+    });
+    const same = await body(await postDraft(post(proposal("1.1.0", "A kit.")), deps));
+    expect(same.status).toBe(201);
+    expect(same.json.submitIssues.map((i: { code: string }) => i.code)).toEqual(["no_changes"]);
+  });
+
+  it("answers item_not_found, version_not_found and type_changed, and creates nothing", async () => {
+    await publish(["1.0.0"]);
+    const cases: [unknown, number, string][] = [
+      [{ ...proposal("1.0.0"), name: "@team/nothing" }, 404, "item_not_found"],
+      [proposal("9.9.9"), 404, "version_not_found"],
+      [proposal("1.0.0", "A kit.", "rule"), 400, "type_changed"],
+      [{ ...proposal("1.0.0"), base: "" }, 400, "invalid_request"],
+    ];
+    for (const [payload, status, code] of cases) {
+      const { json, ...rest } = await body(await postDraft(post(payload), deps));
+      expect([rest.status, json.error.code]).toEqual([status, code]);
+    }
+    expect(await kyselySubmissionRepository(t.db, t.dialect).listByAuthor("x")).toEqual([]);
+    expect(
+      Number(
+        (
+          await t.db
+            .selectFrom("submissions")
+            .select((eb) => eb.fn.countAll().as("n"))
+            .executeTakeFirstOrThrow()
+        ).n,
+      ),
+    ).toBe(0);
+  });
+
+  it("counts proposals towards the draft limit", async () => {
+    await publish(["1.0.0"]);
+    const user = await t.db
+      .selectFrom("user")
+      .select("id")
+      .where("email", "=", "u@example.com")
+      .executeTakeFirstOrThrow();
+    const repo = kyselySubmissionRepository(t.db, t.dialect);
+    for (let i = 0; i < 50; i += 1)
+      await repo.insert({
+        authorId: user.id,
+        scopeId: teamId,
+        name: `d${i}`,
+        type: "rule",
+        status: "draft",
+        createdAt: new Date(),
+      });
+    const { status, json } = await body(await postDraft(post(proposal("1.0.0")), deps));
+    expect([status, json.error.code]).toEqual([409, "draft_limit"]);
   });
 });

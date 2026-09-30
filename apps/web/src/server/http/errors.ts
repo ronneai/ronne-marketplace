@@ -14,6 +14,8 @@ import {
   InvalidItemNameError,
   InvalidItemTypeError,
   ManifestRequiredError,
+  ProposalBaseNotFoundError,
+  TypeChangedError,
 } from "../domains/submissions/exceptions/errors";
 
 /** The one error shape for every API response (MVP §11). `code` is stable; clients may rely on it. */
@@ -61,6 +63,18 @@ const submissionErrorResponse = (error: unknown): Response | null => {
     return errorResponse(400, "manifest_required", error.message);
   if (error instanceof DraftScopeNotFoundError)
     return errorResponse(404, "scope_not_found", error.message, { scope: error.scopeName });
+  if (error instanceof ProposalBaseNotFoundError)
+    return error.version
+      ? errorResponse(404, "version_not_found", error.message, {
+          item: error.itemName,
+          version: error.version,
+        })
+      : errorResponse(404, "item_not_found", error.message, { item: error.itemName });
+  if (error instanceof TypeChangedError)
+    return errorResponse(400, "type_changed", error.message, {
+      item: error.itemName,
+      type: error.from,
+    });
   if (error instanceof DraftQuotaError)
     return errorResponse(409, "draft_limit", error.message, { limit: error.limit });
   if (error instanceof FileTooLargeError)

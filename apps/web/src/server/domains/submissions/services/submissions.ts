@@ -114,7 +114,8 @@ export const allIssues = async (
   ];
 };
 
-const noChangeIssues = async (
+/** A proposal (017) whose files are its base version's: there's nothing to release. */
+export const noChangeIssues = async (
   deps: { storage: StorageAdapter; limits?: PackageLimits },
   registry: RegistryLookup,
   submission: Submission,

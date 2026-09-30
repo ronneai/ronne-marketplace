@@ -1,3 +1,4 @@
+import { instanceStorage, type StorageAdapter } from "../../../storage";
 import type { Authenticated } from "../../identity/actions/access-tokens";
 import { getCurrentUser } from "../../identity/actions/session";
 import { clientIp } from "../../identity/models/client-ip";
@@ -18,8 +19,9 @@ export type {
  * Entry points for /submissions (feature 012). Thin: they find who's asking and wire the
  * dependencies; the services check permissions and ownership.
  */
-const deps = ({ db, dialect }: AppAuth): service.DraftDeps => ({
+const deps = ({ db, dialect }: AppAuth, storage?: StorageAdapter): service.DraftDeps => ({
   repo: kyselySubmissionRepository(db, dialect),
+  ...(storage ? { storage } : {}),
 });
 
 const actor = async (headers: Headers, app: AppAuth): Promise<service.DraftActor> => ({
@@ -39,11 +41,18 @@ export const createDraft = async (
 export const createDraftFromFilesAs = (
   auth: Authenticated,
   headers: Headers,
-  input: { scope: string; name: string; type: string; files: readonly service.UploadFile[] },
+  input: {
+    scope: string;
+    name: string;
+    type: string;
+    files: readonly service.UploadFile[];
+    base?: string;
+  },
   app: AppAuth = getAppAuth(),
+  storage: StorageAdapter = instanceStorage,
 ) =>
   service.createDraftFromFiles(
-    deps(app),
+    deps(app, storage),
     {
       user: auth.user,
       ip: clientIp(headers, app.trustProxy),
