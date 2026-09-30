@@ -24,7 +24,7 @@ the same change that completes it. Tasks 1 and 2 touch only `packages/core` and 
   *Done when:* tests on a temporary folder cover every skip reason, a linked skill folder, and a
   folder over the limits.
 
-- [ ] **4. Whose it is.** The ownership check: the state entry (with `readState` and `diskHash`),
+- [x] **4. Whose it is.** The ownership check: the state entry (with `readState` and `diskHash`),
   the `version`, the marker.
   *Done when:* tests cover written here, installed, installed and edited, a registry copy, a
   rendered rule, and the home folder as the project.

@@ -1,6 +1,7 @@
 import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
-import { basename, join, relative } from "node:path";
-import { DEFAULT_LIMITS, type PackageFile, type PackageLimits } from "@ronneai/core";
+import { basename, isAbsolute, join, relative } from "node:path";
+import { DEFAULT_LIMITS, type PackageFile, type PackageLimits, parseManifest } from "@ronneai/core";
+import { diskHash, readState } from "./apply.js";
 import { places, type Scope } from "./install.js";
 import type { Io } from "./io.js";
 
@@ -154,3 +155,71 @@ export const walkItemFolder = (
 
 /** The folder's own name, for a path given on the command line. */
 export const folderName = (dir: string): string => basename(realpathSync(dir));
+
+/**
+ * Whose an item is (native-readers.md §2). Export is for what the person wrote, so anything `rmk`
+ * installed or rendered, or copied from a registry, is refused with the reason.
+ */
+export type Ownership =
+  | { owner: "local" }
+  /** The state file has an entry for this folder; `edited` when it changed since. */
+  | { owner: "installed"; item: string; version: string; edited: boolean; scope: Scope }
+  /** Its `ronne.yaml` has a `version`, which only the packer sets. */
+  | { owner: "registry_copy"; item: string | null; version: string }
+  /** Its entry file carries rmk's managed marker: a rule or command rendered as a skill. */
+  | { owner: "rendered"; item: string; version: string };
+
+const MARKER = /managed by rmk: (@[a-z0-9-]+\/[a-z0-9-]+)@([^\s>]+)/;
+
+const textOf = (files: readonly PackageFile[], path: string) => {
+  const file = files.find((f) => f.path === path);
+  return file ? new TextDecoder().decode(file.bytes) : null;
+};
+
+/** The state entry for exactly this folder, in either scope's state file. */
+const installedEntry = (io: Io, dir: string) => {
+  for (const scope of ["project", "user"] as const) {
+    const { root, state } = places(io, scope);
+    for (const candidate of new Set([dir, realFolder(dir) ?? dir])) {
+      const path = relative(root, candidate);
+      if (!path || path.startsWith("..") || isAbsolute(path)) continue;
+      const entry = readState(state).entries.find(
+        (e) => e.kind === "dir" && e.path === toSlashes(path),
+      );
+      if (entry) return { root, scope, entry };
+    }
+  }
+  return null;
+};
+
+export const ownershipOf = async (
+  io: Io,
+  dir: string,
+  files: readonly PackageFile[],
+): Promise<Ownership> => {
+  const installed = installedEntry(io, dir);
+  if (installed) {
+    const { root, scope, entry } = installed;
+    return {
+      owner: "installed",
+      item: entry.item,
+      version: entry.version,
+      edited: (await diskHash(root, entry)) !== entry.sha256,
+      scope,
+    };
+  }
+  const manifest = textOf(files, "ronne.yaml");
+  if (manifest !== null) {
+    // One that doesn't parse has no version here; the reader refuses it, with its own reason.
+    const fields = parseManifest(manifest).manifest ?? {};
+    if (fields.version !== undefined && fields.version !== null)
+      return {
+        owner: "registry_copy",
+        item: typeof fields.name === "string" ? fields.name : null,
+        version: String(fields.version),
+      };
+  }
+  const marker = MARKER.exec(textOf(files, "SKILL.md") ?? "");
+  if (marker) return { owner: "rendered", item: marker[1] ?? "", version: marker[2] ?? "" };
+  return { owner: "local" };
+};
