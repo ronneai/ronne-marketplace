@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Check the mappings.** Every row of `docs/spec/native-readers.md` §5–8 against Claude
+- [x] **1. Check the mappings.** Every row of `docs/spec/native-readers.md` §5–8 against Claude
   Code's current documentation (CLAUDE.md: platform paths change often) and against
   `render/claude-code/`; fix the contract and this spec where they differ.
   *Done when:* the contract carries the date of the check, and any change is in the spec.
