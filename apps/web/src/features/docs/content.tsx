@@ -89,12 +89,12 @@ const MCP_TOOLS: [string, string, string][] = [
   ],
   [
     "list_local_items",
-    "The skills in your AI tools' folders, and whose each is: yours, installed (edited or not), a registry copy, or written by rmk.",
+    "The skills, agents, commands, rules and MCP servers in your AI tools' folders, and whose each is: yours, installed (edited or not), a registry copy, or written by rmk. Takes type.",
     "Nothing",
   ],
   [
     "plan_export",
-    "Plans sending skills of yours to this marketplace as drafts: every file, and what's left out.",
+    "Plans sending items of yours to this marketplace as drafts: every file, and what's left out. Takes type, and an MCP server's description.",
     "Nothing",
   ],
   [
@@ -379,6 +379,12 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           </div>
         </div>
         <TypesList />
+        <p>
+          Skills, agents, commands, rules and MCP servers you already wrote for Claude Code can be
+          sent here as drafts with <To href={docsHref("export")}>rmk export</To>. The other types
+          (hooks, permission policies, status lines, LSP servers, output styles and bundles) are
+          made here, with <strong>New item</strong>.
+        </p>
       </>
     ),
     dependencies: (
@@ -705,30 +711,49 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
     what: (
       <>
         <p>
-          You wrote a skill in your AI tool, in <Code>.claude/skills/</Code> or{" "}
-          <Code>.agents/skills/</Code>, and want your team to have it. <Code>rmk export</Code> reads
-          its folder, adds the <To href={docsHref("items", "manifest")}>ronne.yaml</To> it lacks,
-          shows you everything it would upload, and creates a <strong>private draft</strong> here.
-          You check it in the web app and submit it for review like any other draft.
+          You wrote a skill, an agent, a command, a rule or an MCP server for Claude Code, and want
+          your team to have it. <Code>rmk export</Code> reads it, writes the{" "}
+          <To href={docsHref("items", "manifest")}>ronne.yaml</To> it lacks, shows you everything it
+          would upload, and creates a <strong>private draft</strong> here. You check it in the web
+          app and submit it for review like any other draft.
         </p>
         <Example>
           {
-            "rmk export                          # lists the skills it finds here\nrmk export secure-coding --to @platform"
+            'rmk export                          # lists what it finds here\nrmk export secure-coding --to @platform\nrmk export github --type mcp-server --to @platform --description "GitHub\'s issues and pull requests."'
           }
         </Example>
         <p>
-          Skills are exported for now. <Code>rmk export</Code> only reads: it never changes the
-          folder, and it never submits anything.
+          <Code>rmk export</Code> only reads: it never changes your files, and it never submits
+          anything.
         </p>
       </>
     ),
     reads: (
       <>
         <p>
-          A skill is its folder: <Code>rmk export</Code> takes a skill&apos;s name (from{" "}
-          <Code>.claude/skills/</Code> or <Code>.agents/skills/</Code> in the project, or in your
-          home folder with <Code>--scope user</Code>) or the path of any folder with a{" "}
-          <Code>SKILL.md</Code>. It uploads every file in it, keeping scripts executable, except:
+          It looks where Claude Code keeps each type, in the project or, with{" "}
+          <Code>--scope user</Code>, in your home folder:
+        </p>
+        <Bullets>
+          <li>
+            <strong>skills:</strong> folders with a <Code>SKILL.md</Code> in{" "}
+            <Code>.claude/skills/</Code> and <Code>.agents/skills/</Code>;
+          </li>
+          <li>
+            <strong>agents, commands and rules:</strong> Markdown files in{" "}
+            <Code>.claude/agents/</Code>, <Code>.claude/commands/</Code> and{" "}
+            <Code>.claude/rules/</Code>, subfolders included;
+          </li>
+          <li>
+            <strong>MCP servers:</strong> <Code>mcpServers</Code> in the project&apos;s{" "}
+            <Code>.mcp.json</Code>, or at the top of <Code>~/.claude.json</Code>. The{" "}
+            <Code>ronne-registry</Code> server <Code>rmk mcp-setup</Code> adds is never listed.
+          </li>
+        </Bullets>
+        <p>
+          You name what to export, or give its path (a skill&apos;s folder, or an agent, command or
+          rule file). A skill is its folder: every file in it is uploaded, keeping scripts
+          executable, except:
         </p>
         <Bullets>
           <li>
@@ -769,20 +794,28 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           or, in a terminal, from the list <Code>rmk</Code> shows. It never picks one for you.
         </p>
         <p>
-          The name is <Code>SKILL.md</Code>&apos;s <Code>name</Code> when it&apos;s a valid item
-          name, else the folder&apos;s name in lowercase with hyphens (<Code>My Skill!</Code>{" "}
-          becomes <Code>my-skill</Code>). <Code>--name</Code> sets another, for one skill.
+          The name is the one Claude Code uses: a skill&apos;s or an agent&apos;s <Code>name</Code>,
+          a command&apos;s or rule&apos;s file name (with its subfolder: <Code>review/diff.md</Code>{" "}
+          is <Code>review-diff</Code>), or an MCP server&apos;s key. When it isn&apos;t a valid item
+          name, it&apos;s made into one, in lowercase with hyphens (<Code>My Skill!</Code> becomes{" "}
+          <Code>my-skill</Code>). <Code>--name</Code> sets another, for one item. If two items share
+          a name, such as a skill and a command called <Code>review</Code>, say which with{" "}
+          <Code>--type</Code>, or give the path.
         </p>
       </>
     ),
     preview: (
       <>
-        <p>Before anything leaves your machine, the question shows, for each skill:</p>
+        <p>Before anything leaves your machine, the question shows, for each item:</p>
         <Bullets>
-          <li>the registry and the account you&apos;re logged in as, and the item&apos;s name;</li>
+          <li>
+            the registry and the account you&apos;re logged in as, and the item&apos;s name and
+            type;
+          </li>
           <li>every file with its size, and every file left out, with why;</li>
           <li>
-            the <Code>ronne.yaml</Code> it made, and its warnings;
+            the <Code>ronne.yaml</Code> it made, and its warnings: each thing the item loses from
+            Claude Code&apos;s format, by name;
           </li>
           <li>what the checks find, to fix in the web app before submitting;</li>
           <li>whether the name is already published, which Submit would refuse.</li>
@@ -796,7 +829,7 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
     next: (
       <>
         <p>
-          Each skill arrives as a draft under <To href="/submissions">Submissions</To>, which only
+          Each item arrives as a draft under <To href="/submissions">Submissions</To>, which only
           you see, and <Code>rmk</Code> prints its address and what is left to fix. Open it, fix
           what the checks say, and submit it: from there it follows{" "}
           <To href={docsHref("review")}>the usual review</To>.
@@ -809,6 +842,67 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </p>
       </>
     ),
+    keeps: (
+      <>
+        <p>
+          Claude Code&apos;s files can say things a portable item can&apos;t. Each one left out is a
+          warning in the preview, by name, so you decide before uploading.
+        </p>
+        <Table>
+          <thead>
+            <tr>
+              <Th>Type</Th>
+              <Th>Kept</Th>
+              <Th>Left out</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {(
+              [
+                [
+                  "agent",
+                  "Name, description, the prompt, tools Ronne has a name for, and a haiku or opus model (as fast or strong).",
+                  "Other tools (such as Skill); other models (sonnet, inherit), which become each tool's default; every other setting, such as permissionMode or color.",
+                ],
+                [
+                  "command",
+                  "Description, the body, named arguments ($name becomes {{name}}), license.",
+                  "allowed-tools, model and other settings. $0 and $ARGUMENTS[N] stay as written and work only in Claude Code. A command the model could run itself becomes one only you run.",
+                ],
+                ["rule", "The body, and the paths it applies to.", "Nothing Claude Code reads."],
+                [
+                  "mcp-server",
+                  "stdio or http, the command and arguments, the address, headers, and the names of its variables.",
+                  "Every value; the default in ${VAR:-default}; oauth, headersHelper, timeout and other settings. sse and ws servers can't be exported.",
+                ],
+              ] as const
+            ).map(([type, kept, lost]) => (
+              <tr key={type}>
+                <Td className="align-top">
+                  <Badge>{type}</Badge>
+                </Td>
+                <Td className="align-top text-sm">{kept}</Td>
+                <Td className="align-top text-sm">{lost}</Td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+        <p>
+          A description is one line of at most 300 characters. An agent&apos;s or command&apos;s
+          longer one is cut, and the cut text is what Claude Code reads once the item is installed.
+        </p>
+        <p>
+          <strong>MCP servers: names, never values.</strong> The values of a server&apos;s{" "}
+          <Code>env</Code> are never uploaded; each becomes a variable the item declares, marked
+          secret when it looks like a credential, and whoever installs it sets it. A token written
+          into a header, an argument or the address is taken out and replaced by a variable such as{" "}
+          <Code>{"${GITHUB_TOKEN}"}</Code>; the preview says where. If a credential can&apos;t be
+          told apart from the text around it, the server isn&apos;t exported: move it into an
+          environment variable first. A server has no description on disk, so{" "}
+          <Code>rmk export</Code> asks for one, or takes <Code>--description</Code>.
+        </p>
+      </>
+    ),
     installed: (
       <>
         <p>
@@ -816,12 +910,12 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </p>
         <Bullets>
           <li>
-            a skill <Code>rmk</Code> installed, edited since or not: to change it, use{" "}
+            anything <Code>rmk</Code> installed, edited since or not: to change it, use{" "}
             <strong>Propose a change</strong> on its page, and the link is in the message (
             <To href={docsHref("changes")}>changing a published item</To>);
           </li>
           <li>
-            a rule or command <Code>rmk</Code> wrote as a skill;
+            a file <Code>rmk</Code> wrote, such as a rule or command it wrote as a skill;
           </li>
           <li>
             a folder whose <Code>ronne.yaml</Code> has a <Code>version</Code>, a copy from a
@@ -834,12 +928,12 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
       <>
         <p>
           With the <To href={docsHref("mcp")}>registry MCP server</To> set up, you can ask your AI
-          tool instead: <em>&ldquo;export my deploy-check skill to the marketplace&rdquo;</em>. The
+          tool instead: <em>&ldquo;export my deploy-check agent to the marketplace&rdquo;</em>. The
           assistant:
         </p>
         <Steps>
           <li>
-            lists the skills it finds and whose each is (<Code>list_local_items</Code>);
+            lists what it finds and whose each is (<Code>list_local_items</Code>);
           </li>
           <li>
             asks you which scope, from this marketplace&apos;s list: it can&apos;t choose one for
@@ -855,8 +949,9 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           </li>
         </Steps>
         <p>
-          It exports only skills that are yours, found in your AI tools&apos; folders. A folder
-          elsewhere, and <Code>--force</Code>, are for <Code>rmk export</Code> in a terminal.
+          It exports only items that are yours, found in your AI tools&apos; folders. For an MCP
+          server it asks you for a description. A file or folder elsewhere, and <Code>--force</Code>
+          , are for <Code>rmk export</Code> in a terminal.
         </p>
       </>
     ),
@@ -873,10 +968,21 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             [
               ["--to @scope", "The scope the drafts go in."],
               ["--name <name>", "The item's name, for one skill."],
-              ["--scope user", "Look for skills in your home folder rather than the project."],
+              [
+                "--type <type>",
+                "Only skills, agents, commands, rules or MCP servers (mcp-server).",
+              ],
+              [
+                "--description <text>",
+                "An MCP server's description, which isn't on disk; in a terminal you're asked.",
+              ],
+              ["--scope user", "Look in your home folder rather than the project."],
               ["--dry-run", "Show the preview and upload nothing."],
               ["--yes", "Upload without asking. Needed without a terminal, with --to."],
-              ["--force", "Export a registry copy, or a skill with a secret in it."],
+              [
+                "--force",
+                "Export a registry copy, or a skill with a secret in it (never an MCP server's).",
+              ],
               ["--json", "Answer with one JSON object, for scripts and agents; nothing is asked."],
             ] as const
           ).map(([option, does]) => (
@@ -1004,7 +1110,7 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           answer with one JSON object, for scripts and agents.
         </p>
         <p>
-          It also works the other way: <Code>rmk export</Code> sends a skill you wrote in your AI
+          It also works the other way: <Code>rmk export</Code> sends an item you wrote in your AI
           tool to this marketplace as a draft.{" "}
           <To href={docsHref("export")}>Exporting your own items</To>.
         </p>
@@ -1280,7 +1386,7 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
       <p>
         You can also ask your AI tool to search and install items, through the registry MCP server,{" "}
         <Code>rmk-mcp</Code>: it shows you a plan first, then writes exactly that, as{" "}
-        <Code>rmk</Code> would. It can export a skill you wrote as a draft the same way.{" "}
+        <Code>rmk</Code> would. It can export an item you wrote as a draft the same way.{" "}
         <To href={docsHref("mcp")}>Registry MCP server</To> explains how to set it up and what it
         can do.
       </p>
@@ -1302,7 +1408,7 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           <Code>rmk.lock</Code> and the state file stay the same whichever you use.
         </p>
         <p>
-          It can also send a skill you wrote in your AI tool to this marketplace as a private draft,
+          It can also send an item you wrote in your AI tool to this marketplace as a private draft,
           as <To href={docsHref("export")}>rmk export</To> does. Reviewing, submitting and releasing
           stay in this website.
         </p>
@@ -1418,10 +1524,10 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           drafts in your name. It never shows the token, and it can&apos;t sign in to this website.
         </li>
         <li>
-          It sends only skills it found in your AI tools&apos; folders and that are yours, never a
+          It sends only items it found in your AI tools&apos; folders and that are yours, never a
           folder you name, never the files <To href={docsHref("export", "reads")}>export</To> leaves
-          out, and only when you approve <Code>export_items</Code>. What arrives is a draft only you
-          see.
+          out or an MCP server&apos;s credentials, and only when you approve{" "}
+          <Code>export_items</Code>. What arrives is a draft only you see.
         </li>
         <li>
           It writes only in the project folder (or your home folder, with <Code>scope: user</Code>
@@ -1445,6 +1551,11 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           Code reads it: in the project, or in your home folder with <Code>--scope user</Code>.
         </p>
         <PathsTable paths={CLAUDE_CODE_PATHS} />
+        <p>
+          <Code>rmk export</Code> reads the same places the other way, for skills, agents, commands,
+          rules and MCP servers you wrote:{" "}
+          <To href={docsHref("export")}>Exporting your own items</To>.
+        </p>
       </>
     ),
     notes: (

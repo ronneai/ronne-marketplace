@@ -118,14 +118,14 @@ copied, so the two directions can't drift. Each returns `references` (038), whic
 
 ## Acceptance criteria
 
-- [ ] For each of the four types, the example item rendered for Claude Code reads back into an item that passes the schema and package checks, and rendering that gives the same files (where the type loses nothing). A command is rendered as a skill (023), so its round trip goes through the same text written as a `.claude/commands/` file, and compares the manifests and bodies.
-- [ ] Every dropped field produces exactly one warning that names it, shown in the CLI's preview and in `plan_export`.
-- [ ] No value of an `env` key, and no literal credential from a header or argument, appears in any request; a test greps the request bodies for the fixture's secrets.
-- [ ] Items `rmk` installed (files and JSON keys), and `rmk mcp-setup`'s server, are refused or not listed.
-- [ ] `rmk export --type` and the tools' `type` narrow the list, and an ambiguous name asks for it.
-- [ ] The mappings in `docs/spec/native-readers.md` §5–8 carry the date they were last checked against Claude Code's documentation.
-- [ ] An end-to-end test exports one agent and one MCP server with the built `rmk`.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] For each of the four types, the example item rendered for Claude Code reads back into an item that passes the schema and package checks, and rendering that gives the same files (where the type loses nothing). A command is rendered as a skill (023), so its round trip goes through the same text written as a `.claude/commands/` file, and compares the manifests and bodies.
+- [x] Every dropped field produces exactly one warning that names it, shown in the CLI's preview and in `plan_export`.
+- [x] No value of an `env` key, and no literal credential from a header or argument, appears in any request; a test greps the request bodies for the fixture's secrets.
+- [x] Items `rmk` installed (files and JSON keys), and `rmk mcp-setup`'s server, are refused or not listed.
+- [x] `rmk export --type` and the tools' `type` narrow the list, and an ambiguous name asks for it.
+- [x] The mappings in `docs/spec/native-readers.md` §5–8 carry the date they were last checked against Claude Code's documentation.
+- [x] An end-to-end test exports one agent and one MCP server with the built `rmk`.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Open questions
 
