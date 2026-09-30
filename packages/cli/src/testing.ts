@@ -295,7 +295,13 @@ export const buildRegistry = async () => {
 };
 export { run } from "./cli.js";
 
-export type FakeDraft = { id: string; name: string; type: string; files: unknown[] };
+export type FakeDraft = {
+  id: string;
+  name: string;
+  type: string;
+  files: unknown[];
+  base?: string;
+};
 
 /**
  * The routes `rmk export` uses (037): the scopes, and a draft store that creates each upload, or
@@ -316,7 +322,7 @@ export const exportRoutes = (
       },
     }),
     "POST /drafts": ({ body }) => {
-      const upload = body as { name: string; type: string; files: unknown[] };
+      const upload = body as { name: string; type: string; files: unknown[]; base?: string };
       const failure = options.fail?.[upload.name];
       if (failure) return failure;
       const id = `01DRAFT${String(drafts.length + 1).padStart(19, "0")}`;
@@ -334,6 +340,9 @@ export const exportRoutes = (
           bytes: 0,
           issues: [],
           submitIssues: [],
+          proposal: upload.base
+            ? { item: upload.name, baseVersion: upload.base, stale: null }
+            : null,
         },
       };
     },

@@ -31,7 +31,7 @@ export const USAGE = `Usage: rmk <command> [options]
   mcp-setup [--target <ids>|all] [--scope project|user] [--remove] [--command <cmd>]
   export [<path|name>...] [--to <@scope>] [--type <type>] [--from <tool>] [--name <name>]
          [--description <text>] [--with-deps | --no-deps] [--scope project|user]
-         [--dry-run] [--yes] [--force]
+         [--dry-run] [--yes] [--force] [--new]
 
 Options: --json (one JSON object per command), --registry <url>, --version, --help`;
 
@@ -56,6 +56,7 @@ const OPTIONS = {
   description: { type: "string" },
   "with-deps": { type: "boolean" },
   from: { type: "string" },
+  new: { type: "boolean" },
   "no-deps": { type: "boolean" },
 } as const;
 

@@ -2,6 +2,7 @@ import { loadConfig } from "../config";
 import type { AppAuth } from "../domains/identity/repositories/auth-instance";
 import { listScopesAs } from "../domains/items/actions/scopes";
 import { createDraftFromFilesAs, type UploadFile } from "../domains/submissions/actions/drafts";
+import type { StorageAdapter } from "../storage";
 import { parseLimit, parseSearch } from "./api-query";
 import { domainErrorResponse, errorResponse, rateLimitedResponse } from "./errors";
 import { MIB, readJsonObjectWithin } from "./read-json";
@@ -17,6 +18,8 @@ export type DraftsApiDeps = {
   app?: AppAuth;
   guard?: TokenGuardDeps;
   limiter?: UploadLimiter;
+  /** Where published versions are, to tell a proposal that changes nothing (042). */
+  storage?: StorageAdapter;
   /** The instance's public address, for the draft's `url`; by default PUBLIC_URL, or none. */
   publicUrl?: string | null;
 };
@@ -73,7 +76,7 @@ const parseFile = (value: unknown): UploadFile | null => {
 
 const parseUpload = (
   body: Record<string, unknown> | null,
-): Parsed<{ name: string; type: string; files: UploadFile[] }> => {
+): Parsed<{ name: string; type: string; files: UploadFile[]; base?: string }> => {
   if (!body || typeof body.name !== "string" || typeof body.type !== "string")
     return { ok: false, message: SHAPE };
   if (!Array.isArray(body.files)) return { ok: false, message: SHAPE };
@@ -83,7 +86,17 @@ const parseUpload = (
     if (!file) return { ok: false, message: `files[${index}] isn't a file. ${SHAPE}` };
     files.push(file);
   }
-  return { ok: true, value: { name: body.name, type: body.type, files } };
+  if (body.base !== undefined && (typeof body.base !== "string" || !body.base.trim()))
+    return { ok: false, message: "`base` is a published version of the item, such as 1.2.0." };
+  return {
+    ok: true,
+    value: {
+      name: body.name,
+      type: body.type,
+      files,
+      ...(typeof body.base === "string" ? { base: body.base.trim() } : {}),
+    },
+  };
 };
 
 const publicUrlOf = (deps: DraftsApiDeps): string | null => {
@@ -117,7 +130,7 @@ export const postDraft = async (request: Request, deps: DraftsApiDeps = {}) => {
       `${upload.value.name || "(empty)"} isn't an item name: use @scope/name.`,
     );
   try {
-    const { draft, issues, submitIssues } = await createDraftFromFilesAs(
+    const { draft, issues, submitIssues, proposal } = await createDraftFromFilesAs(
       guard.auth,
       request.headers,
       {
@@ -125,8 +138,10 @@ export const postDraft = async (request: Request, deps: DraftsApiDeps = {}) => {
         name: itemName[2] ?? "",
         type: upload.value.type,
         files: upload.value.files,
+        ...(upload.value.base ? { base: upload.value.base } : {}),
       },
       deps.app,
+      ...(deps.storage ? [deps.storage] : []),
     );
     const path = `/submissions/${draft.id}`;
     const base = publicUrlOf(deps);
@@ -142,6 +157,7 @@ export const postDraft = async (request: Request, deps: DraftsApiDeps = {}) => {
         bytes: draft.files.reduce((sum, file) => sum + file.size, 0),
         issues,
         submitIssues,
+        proposal,
       },
       { status: 201, headers: { "cache-control": "no-store" } },
     );

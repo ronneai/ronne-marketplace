@@ -167,6 +167,7 @@ const plannedData = (plan: ExportPlan) =>
     published: item.published,
     dependencies: item.dependencies,
     usedByAnother: item.asDependency,
+    proposal: item.proposal ?? null,
   }));
 
 /**
@@ -186,6 +187,7 @@ export const planExportTool = async (
     from?: ExportTool;
     description?: string;
     dependencies?: "include" | "omit";
+    new?: boolean;
   },
 ): Promise<ToolAnswer> => {
   const { api } = connectRegistry(io);
@@ -226,6 +228,7 @@ export const planExportTool = async (
     force: false,
     ...(input.description ? { description: input.description } : {}),
     ...(input.dependencies ? { dependencies: input.dependencies } : {}),
+    ...(input.new ? { new: true } : {}),
   };
   let plan: ExportPlan;
   try {
@@ -267,7 +270,9 @@ const draftLines = (exported: ExportedItem[]) =>
   exported.flatMap((item) => {
     const left = [...item.issues, ...item.submitIssues].filter((i) => i.severity === "error");
     return [
-      `${item.name}: draft created at ${item.url}`,
+      item.proposal
+        ? `${item.name}: proposal from ${item.proposal.baseVersion} created at ${item.url}${item.proposal.stale ? `, stale (${item.proposal.stale} is out): the person rebases it in the web app first` : ""}`
+        : `${item.name}: draft created at ${item.url}`,
       ...left.map((issue) => `  To fix before submitting: ${issue.message}`),
     ];
   });

@@ -52,10 +52,38 @@ const indent = (text: string, by: string) =>
     .map((line) => `${by}${line}`)
     .join("\n");
 
+/** A value as the preview shows it: short, on one line. */
+const shown = (value: unknown) => {
+  const text =
+    value === undefined ? "(none)" : typeof value === "string" ? value : JSON.stringify(value);
+  return text.length > 80 ? `${text.slice(0, 77)}...` : text;
+};
+
+/** What a proposal changes against its base (042), file by file and field by field. */
+const proposalChanges = (changes: NonNullable<PlannedItem["proposal"]>["changes"]): string[] => {
+  const lines = ["  Changes:"];
+  for (const path of changes.added) lines.push(`    + ${path}`);
+  for (const path of changes.removed) lines.push(`    - ${path}`);
+  for (const path of changes.changed) lines.push(`    ~ ${path}`);
+  for (const field of changes.fields)
+    lines.push(`    ~ ronne.yaml ${field.field}: ${shown(field.from)} → ${shown(field.to)}`);
+  return lines;
+};
+
 const itemPreview = (registry: string, item: PlannedItem): string[] => {
-  const lines = [
-    `${item.name}  ${item.type}  (from ${item.local})${item.asDependency ? "  used by another item" : ""}`,
-  ];
+  const lines = item.proposal
+    ? [
+        `Proposal to ${item.proposal.item}, from ${item.proposal.baseVersion}  ${item.type}  (from ${item.local})`,
+        ...(item.proposal.stale
+          ? [
+              `  ${item.proposal.stale} is out since ${item.proposal.baseVersion}, so it arrives stale: rebase it in the web app after uploading.`,
+            ]
+          : []),
+        ...proposalChanges(item.proposal.changes),
+      ]
+    : [
+        `${item.name}  ${item.type}  (from ${item.local})${item.asDependency ? "  used by another item" : ""}`,
+      ];
   const depends = Object.entries(item.dependencies);
   if (depends.length > 0) {
     lines.push("  Depends on:");
@@ -118,6 +146,7 @@ const plannedJson = (item: PlannedItem) => ({
   published: item.published,
   dependencies: item.dependencies,
   usedByAnother: item.asDependency,
+  proposal: item.proposal ?? null,
 });
 
 const refusedJson = (plan: ExportPlan) =>
@@ -269,7 +298,11 @@ const askDependencies = async (
 
 const reportExported = (out: Output, exported: ExportedItem[]) => {
   for (const item of exported) {
-    out.say(`${item.name}: draft created at ${item.url}`);
+    out.say(
+      item.proposal
+        ? `${item.name}: proposal from ${item.proposal.baseVersion} created at ${item.url}. Once reviewed and approved, it's released as the item's next version.${item.proposal.stale ? ` It's stale (${item.proposal.stale} is out): rebase it first.` : ""}`
+        : `${item.name}: draft created at ${item.url}`,
+    );
     const left = [...item.issues, ...item.submitIssues].filter((i) => i.severity === "error");
     if (left.length > 0) {
       out.say("  Fix before submitting:");
@@ -302,6 +335,7 @@ export const exportCommand = async (io: Io, args: Args, out: Output, api: ApiCli
     name: str(args.values.name),
     scope: str(args.values.scope),
     force: args.values.force === true,
+    new: args.values.new === true,
     dependencies: dependenciesOption(args),
     type: typeOption(args),
     from: fromOption(args),

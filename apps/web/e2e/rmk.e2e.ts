@@ -735,3 +735,99 @@ test("rmk exports a Cursor rule and a Codex MCP server", async ({ browser, reque
     rmSync(project, { recursive: true, force: true });
   }
 });
+
+/**
+ * A change as a proposal (042): a published skill installed with the built `rmk`, edited in the
+ * project, and exported; it arrives as a change proposal to the installed version, and a moderator
+ * reviews its diff to that version.
+ */
+test("rmk exports an edited install as a change proposal that a moderator reviews against its base", async ({
+  browser,
+  request,
+}) => {
+  const home = mkdtempSync(join(tmpdir(), "rmk-e2e-home-"));
+  const project = mkdtempSync(join(tmpdir(), "rmk-e2e-project-"));
+  mkdirSync(join(project, ".claude"));
+  const token = await request.post("/api/v1/auth/token", {
+    data: {
+      email: E2E_USERS.changeExporter,
+      password: E2E_PASSWORD,
+      name: "e2e rmk export change",
+    },
+  });
+  expect(token.status()).toBe(201);
+  const env = {
+    ...process.env,
+    HOME: home,
+    RMK_TOKEN: (await token.json()).token,
+    RMK_REGISTRY: baseURL,
+  };
+  const rmk = (...args: string[]) => {
+    try {
+      return {
+        code: 0,
+        out: execFileSync("node", [BIN, ...args], {
+          cwd: project,
+          env,
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "pipe"],
+        }),
+      };
+    } catch (error) {
+      const failed = error as { status: number; stdout: string; stderr: string };
+      return { code: failed.status, out: `${failed.stdout}${failed.stderr}` };
+    }
+  };
+  const signIn = async (email: string) => {
+    const page = await browser.newPage();
+    await page.goto("/sign-in");
+    await page.getByLabel("Email").fill(email);
+    await page.getByLabel("Password", { exact: true }).fill(E2E_PASSWORD);
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await expect(page).not.toHaveURL(/\/sign-in/);
+    return page;
+  };
+  const item = `@${E2E_SCOPE}/${E2E_PROPOSAL_ITEM}`;
+
+  try {
+    const install = rmk("install", item, "--target", "claude-code");
+    expect(install.code, install.out).toBe(0);
+    const version = JSON.parse(readFileSync(join(project, "rmk.lock"), "utf8")).items[item].version;
+    const skillMd = join(project, `.claude/skills/${E2E_PROPOSAL_ITEM}/SKILL.md`);
+
+    // Unchanged, there's nothing to export.
+    const unchanged = rmk("export", E2E_PROPOSAL_ITEM, "--yes", "--json");
+    expect(unchanged.code).toBe(1);
+    expect(JSON.parse(unchanged.out).refused[0].code).toBe("installed");
+
+    writeFileSync(skillMd, `${readFileSync(skillMd, "utf8")}\nAlso check the tests.\n`);
+    const dryRun = rmk("export", E2E_PROPOSAL_ITEM, "--dry-run");
+    expect(dryRun.code, dryRun.out).toBe(0);
+    expect(dryRun.out).toContain(`Proposal to ${item}, from ${version}`);
+    expect(dryRun.out).toContain("~ SKILL.md");
+
+    const exported = rmk("export", E2E_PROPOSAL_ITEM, "--yes", "--json");
+    expect(exported.code, exported.out).toBe(0);
+    const [draft] = JSON.parse(exported.out).exported;
+    expect(draft.proposal).toEqual({ item, baseVersion: version, stale: null });
+
+    const author = await signIn(E2E_USERS.changeExporter);
+    await author.goto(draft.url);
+    await expect(author.getByText(`A change to ${item} ${version}.`)).toBeVisible();
+    await author.getByRole("button", { name: "Submit for review" }).click();
+    const submit = author.getByRole("dialog", { name: "Submit for review" });
+    await expect(submit.getByText("All checks passed.")).toBeVisible();
+    await submit.getByRole("button", { name: "Submit for review" }).click();
+    await expect(author.getByText(/Submitted for review on/)).toBeVisible();
+
+    const moderator = await signIn(E2E_USERS.changeModerator);
+    await moderator.goto(`/reviews/${draft.id}`);
+    const changes = moderator.getByRole("link", { name: `Changes to ${version}` });
+    await expect(changes).toBeVisible();
+    await changes.click();
+    await expect(moderator.getByText("Also check the tests.")).toBeVisible();
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+    rmSync(project, { recursive: true, force: true });
+  }
+});

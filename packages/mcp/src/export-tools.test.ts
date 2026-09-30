@@ -1,5 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { packItem } from "@ronneai/core/pack";
 import { diskHash } from "@ronneai/rmk/lib";
 import {
   exportRoutes,
@@ -7,6 +8,7 @@ import {
   fakeIo,
   identityRoutes,
   REGISTRY,
+  type Route,
   run,
 } from "@ronneai/rmk/testing";
 import { afterEach, describe, expect, it } from "vitest";
@@ -31,7 +33,10 @@ const skillMd = (name: string) =>
   `---\nname: ${name}\ndescription: The ${name} skill.\n---\nBody.\n`;
 
 /** A project with a skill of every origin, and a registry that knows none of their names. */
-const project = async (fail: Record<string, { status: number; json?: unknown }> = {}) => {
+const project = async (
+  fail: Record<string, { status: number; json?: unknown }> = {},
+  extra: Record<string, Route> = {},
+) => {
   registry = exportRoutes({ fail });
   const notFound = () => ({
     status: 404,
@@ -47,6 +52,7 @@ const project = async (fail: Record<string, { status: number; json?: unknown }> 
           notFound,
         ]),
       ),
+      ...extra,
     },
     { interactive: false, env: { RMK_TOKEN: "rmk_test_token", RMK_REGISTRY: REGISTRY } },
   );
@@ -161,7 +167,9 @@ describe("list_local_items", () => {
       ...dryRun.planned.map((p) => [p.local, "yours"] as [string, string]),
       ...dryRun.refused.map((r) => [r.path, r.code] as [string, string]),
     ]);
-    const asRmkCode = (origin: string) => (origin === "installed_edited" ? "installed" : origin);
+    // An edited install and a registry copy are proposals (042); this registry lacks their items.
+    const asRmkCode = (origin: string) =>
+      origin === "installed_edited" || origin === "registry_copy" ? "base_not_found" : origin;
     expect(Object.fromEntries(listed.items.map((i) => [i.folder, asRmkCode(i.origin)]))).toEqual(
       Object.fromEntries(fromRmk),
     );
@@ -256,12 +264,13 @@ describe("plan_export", () => {
     expect(data.planId).toBeUndefined();
     expect(data.refused).toEqual([
       expect.objectContaining({ path: ".claude/skills/installed", code: "installed" }),
-      expect.objectContaining({ path: ".agents/skills/edited", code: "installed" }),
+      // Edited, it's a proposal (042), and this registry doesn't have its item.
+      expect.objectContaining({ path: ".agents/skills/edited", code: "base_not_found" }),
     ]);
-    expect(installed.content[0]?.text).toContain("Propose a change");
+    expect(installed.content[0]?.text).toContain("unchanged since: there's nothing to export");
     const copy = await plan({ items: [".claude/skills/copied"], to: "team" });
     expect((copy.structuredContent as { refused: { code: string }[] }).refused[0]?.code).toBe(
-      "registry_copy",
+      "base_not_found",
     );
   });
 
@@ -524,5 +533,59 @@ describe("Codex and Cursor over MCP (043)", () => {
     expect(planned.structuredContent).toMatchObject({
       items: [{ local: ".cursor/agents/mine.md", type: "agent" }],
     });
+  });
+});
+
+describe("proposals over MCP (042)", () => {
+  it("plans the person's own published skill as a proposal, and exports it with its base", async () => {
+    const packed = await packItem(
+      [
+        {
+          path: "ronne.yaml",
+          bytes: new TextEncoder().encode(
+            'name: "@team/mine"\ntype: skill\ndescription: The mine skill.\nkeywords: [mine]\nskill:\n  entry: SKILL.md\n',
+          ),
+        },
+        { path: "SKILL.md", bytes: new TextEncoder().encode(skillMd("mine")) },
+      ],
+      { version: "2.0.0" },
+    );
+    await project(
+      {},
+      {
+        "GET /items/team/mine": () => ({
+          json: { type: "skill", tags: { latest: "2.0.0" }, versions: [{ version: "2.0.0" }] },
+        }),
+        "GET /items/team/mine/2.0.0": () => ({ json: { version: "2.0.0", sha256: packed.sha256 } }),
+        "GET /items/team/mine/2.0.0/tarball": () => ({
+          bytes: packed.tgz,
+          headers: { "x-checksum-sha256": packed.sha256 },
+        }),
+      },
+    );
+    write(".claude/skills/mine/notes.md", "Notes.\n");
+    const store = planStore<StoredExport>(Date.now);
+    const planned = await planExportTool(io, store, { items: ["mine"], to: "team" });
+    const data = planned.structuredContent as {
+      planId: string;
+      items: {
+        manifest: string;
+        proposal: { baseVersion: string; changes: { added: string[] } };
+      }[];
+    };
+    expect(data.items[0]?.proposal).toMatchObject({
+      baseVersion: "2.0.0",
+      changes: { added: ["notes.md"] },
+    });
+    expect(data.items[0]?.manifest).toContain("keywords");
+    expect(planned.content[0]?.text).toContain("Proposal to @team/mine, from 2.0.0");
+    const exported = await exportItemsTool(io, store, { planId: data.planId });
+    expect(exported.content[0]?.text).toContain("@team/mine: proposal from 2.0.0 created at");
+    expect(registry.drafts[0]?.base).toBe("2.0.0");
+
+    const asNew = await planExportTool(io, store, { items: ["mine"], to: "team", new: true });
+    expect(
+      (asNew.structuredContent as { items: { proposal: unknown }[] }).items[0]?.proposal,
+    ).toBeNull();
   });
 });

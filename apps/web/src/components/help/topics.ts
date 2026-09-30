@@ -71,6 +71,7 @@ export const TOPICS = [
       { id: "dependencies", title: "Dependencies" },
       { id: "next", title: "What arrives, and what to do next" },
       { id: "installed", title: "Items rmk installed" },
+      { id: "proposals", title: "Proposing a change" },
       { id: "mcp", title: "From inside your AI tool" },
       { id: "options", title: "Options" },
     ],

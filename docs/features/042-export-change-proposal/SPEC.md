@@ -25,8 +25,8 @@ change** on its page (038); this feature does the proposing from where the edit 
 - The preview shows the change against the base, file by file.
 
 **Out** (and where it goes instead):
-- Installs rendered for Codex or Cursor: after 043, which reads their files; until then refused
-  with the pointer, as today.
+- Installs rendered for tools export doesn't read (anything but Claude Code, Codex and Cursor):
+  refused with the pointer, as today. (043 is built, so Codex and Cursor installs are in.)
 - Types the export readers don't cover (hooks, permission policies, status lines, LSP servers,
   output styles, bundles): refused with the pointer; they're changed in the web editor.
 - Replacing an open proposal the person already has for the item: a second draft, as for new
@@ -66,7 +66,10 @@ export), and **L** what the reader reads from the local files:
 - where **L differs from R**, it's taken from **L**: that's the person's edit;
 - a file in L but not in R is added; a file in R but not in L is removed.
 
-For a skill the folder is the item, so R is B's files and the merge is by file. For an agent,
+For a skill the folder is the item, so R is B's files and the merge is by file. R is what the
+local copy would be if unchanged: a skill folder the person wrote has no `ronne.yaml` (an install
+has the item's), so R is read without one too, and the fields only a `ronne.yaml` carries stay the
+base's. For an agent,
 command, rule or MCP server, R and L are the readers' items, compared field by field (description,
 tools, model, arguments, globs, the server's settings) and by content file (`prompt.md`,
 `command.md`, `rule.md`). The markers `rmk` writes are removed before reading. 041's dependency
@@ -104,9 +107,9 @@ later (a proposal from an uploaded folder). `planExport` gains `PlannedItem.prop
 
 - **The installed version was yanked:** the proposal is based on it anyway (017 allows it) and
   arrives stale when a newer version exists.
-- **The item was installed for several tools** (Claude Code and Codex): the state has an entry per
-  tool. The tool whose files changed is read; if files changed for more than one, the command lists
-  them and asks for `--target` (the MCP tools take `target`).
+- **The item was installed for several tools** (Claude Code and Codex): each tool's copy is its own
+  item in the list, so a name that's in more than one is ambiguous, and `--from` (the MCP tools'
+  `from`, 043) says which copy the proposal comes from.
 - **Edited, then the installed version isn't in the registry any more** (a different registry, or
   the item was renamed): refused, saying which item and version the state names.
 - **The person edited a file the item doesn't own** (a new file next to an installed agent): not
@@ -114,6 +117,9 @@ later (a proposal from an uploaded folder). `planExport` gains `PlannedItem.prop
   file, a server's one key).
 - **A skill folder installed for Claude Code and also linked into `.agents/skills/`:** one item,
   counted once (038).
+- **A command, or a rule applied by the AI or by hand, that `rmk` wrote as a skill** (Claude
+  Code, 023): the local copy's type isn't the item's, so the edit can't be mapped back; refused,
+  pointing to the web editor.
 - **The merge changes `ronne.yaml`'s `version`:** never; drafts carry none (017).
 - **A published name, but the person means a new item:** `--new` (and `--name` to rename it).
 - **The same edit exported twice:** two proposal drafts; see Open questions.
@@ -137,15 +143,15 @@ later (a proposal from an uploaded folder). `planExport` gains `PlannedItem.prop
 
 ## Acceptance criteria
 
-- [ ] An installed agent, skill, command, rule and MCP server, each edited, plans as a proposal to its item based on the installed version; unchanged ones are still refused.
-- [ ] The merge keeps what the round trip loses (keywords, `license`, `targets`, the base's dependencies, an unmapped tool) and takes every local edit, field by field and file by file; tests cover each type and each row of the merge.
-- [ ] An own item whose name is published with the same type plans as a proposal from `latest`; `--new` makes a new-item draft.
-- [ ] An edit the item can't carry is refused as "nothing changed", naming what was dropped.
-- [ ] `POST /api/v1/drafts` with `base` creates a proposal draft with the uploaded files, answers each new error code, and counts towards the draft limit; the audit event says it's a proposal.
-- [ ] A proposal whose base isn't the newest arrives stale, and both the preview and the result say so.
-- [ ] Installs for more than one tool with edits in more than one ask for `--target`.
-- [ ] An end-to-end test installs a published skill with the built `rmk`, edits it, exports it as a proposal, and a moderator sees the diff to the base in the review page.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] An installed agent, skill, command, rule and MCP server, each edited, plans as a proposal to its item based on the installed version; unchanged ones are still refused.
+- [x] The merge keeps what the round trip loses (keywords, `license`, `targets`, the base's dependencies, an unmapped tool) and takes every local edit, field by field and file by file; tests cover each type and each row of the merge.
+- [x] An own item whose name is published with the same type plans as a proposal from `latest`; `--new` makes a new-item draft.
+- [x] An edit the item can't carry is refused as "nothing changed", naming what was dropped.
+- [x] `POST /api/v1/drafts` with `base` creates a proposal draft with the uploaded files, answers each new error code, and counts towards the draft limit; the audit event says it's a proposal.
+- [x] A proposal whose base isn't the newest arrives stale, and both the preview and the result say so.
+- [x] An item installed for more than one tool is one item per tool, and `--from` says which copy the proposal comes from.
+- [x] An end-to-end test installs a published skill with the built `rmk`, edits it, exports it as a proposal, and a moderator sees the diff to the base in the review page.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Open questions
 

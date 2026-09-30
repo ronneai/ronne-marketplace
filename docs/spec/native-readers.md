@@ -44,9 +44,9 @@ Export is for what the person wrote. In order:
 
 | Sign | Means | Export |
 |---|---|---|
-| `.rmk/state.json` (or the user-scope state) has an entry for exactly this folder, file or key ([cli-files](./cli-files.md)) | `rmk` installed it; the hash says whether it was edited since | refused, pointing to **Propose a change** on the item's page (a change proposal is 042) |
-| The folder's `ronne.yaml` has a `version` | a copy from a registry: the packer sets `version`, authors leave it out | refused; `rmk export --force` exports it as a new item without the version |
-| The file carries the managed marker (`managed by rmk: @scope/name@x.y.z`) | `rmk` rendered it | refused |
+| `.rmk/state.json` (or the user-scope state) has an entry for exactly this folder, file or key ([cli-files](./cli-files.md)) | `rmk` installed it; the hash says whether it was edited since | edited: a **change proposal** to the installed version, merged onto it ([042](../features/042-export-change-proposal/SPEC.md)); unchanged: refused, as there's nothing to export |
+| The folder's `ronne.yaml` has a `version` | a copy from a registry: the packer sets `version`, authors leave it out | a change proposal to that version when the item is published (042); `--force` exports it as a new item without the version |
+| The file carries the managed marker (`managed by rmk: @scope/name@x.y.z`) | refused: without the state, the edit can't be told from the render; pointing to **Propose a change** |
 | none of these | written here | exported |
 
 Entries recorded under `rmk mcp-setup` are never items.
