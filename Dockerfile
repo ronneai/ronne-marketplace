@@ -9,6 +9,11 @@
 FROM node:24-trixie-slim@sha256:8ec5d7557396cfe32d21c3f9c13072355ceab22b584578ca4bb28af31120cffe AS base
 ENV NEXT_TELEMETRY_DISABLED=1 \
     TURBO_TELEMETRY_DISABLED=1
+# Debian's security updates: a fix Debian publishes before the Node image is rebuilt with it still
+# gets in, so the Trivy scan (docs/policies/dependencies.md §3) doesn't block every build meanwhile.
+RUN apt-get update \
+ && apt-get upgrade -y --no-install-recommends \
+ && rm -rf /var/lib/apt/lists/*
 
 # ---- Install dependencies (with the supply-chain settings in pnpm-workspace.yaml) ----
 FROM base AS deps
