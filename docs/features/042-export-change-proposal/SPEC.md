@@ -66,7 +66,10 @@ export), and **L** what the reader reads from the local files:
 - where **L differs from R**, it's taken from **L**: that's the person's edit;
 - a file in L but not in R is added; a file in R but not in L is removed.
 
-For a skill the folder is the item, so R is B's files and the merge is by file. For an agent,
+For a skill the folder is the item, so R is B's files and the merge is by file. R is what the
+local copy would be if unchanged: a skill folder the person wrote has no `ronne.yaml` (an install
+has the item's), so R is read without one too, and the fields only a `ronne.yaml` carries stay the
+base's. For an agent,
 command, rule or MCP server, R and L are the readers' items, compared field by field (description,
 tools, model, arguments, globs, the server's settings) and by content file (`prompt.md`,
 `command.md`, `rule.md`). The markers `rmk` writes are removed before reading. 041's dependency
@@ -104,9 +107,9 @@ later (a proposal from an uploaded folder). `planExport` gains `PlannedItem.prop
 
 - **The installed version was yanked:** the proposal is based on it anyway (017 allows it) and
   arrives stale when a newer version exists.
-- **The item was installed for several tools** (Claude Code and Codex): the state has an entry per
-  tool. The tool whose files changed is read; if files changed for more than one, the command lists
-  them and asks for `--target` (the MCP tools take `target`).
+- **The item was installed for several tools** (Claude Code and Codex): each tool's copy is its own
+  item in the list, so a name that's in more than one is ambiguous, and `--from` (the MCP tools'
+  `from`, 043) says which copy the proposal comes from.
 - **Edited, then the installed version isn't in the registry any more** (a different registry, or
   the item was renamed): refused, saying which item and version the state names.
 - **The person edited a file the item doesn't own** (a new file next to an installed agent): not
@@ -146,7 +149,7 @@ later (a proposal from an uploaded folder). `planExport` gains `PlannedItem.prop
 - [ ] An edit the item can't carry is refused as "nothing changed", naming what was dropped.
 - [ ] `POST /api/v1/drafts` with `base` creates a proposal draft with the uploaded files, answers each new error code, and counts towards the draft limit; the audit event says it's a proposal.
 - [ ] A proposal whose base isn't the newest arrives stale, and both the preview and the result say so.
-- [ ] Installs for more than one tool with edits in more than one ask for `--target`.
+- [ ] An item installed for more than one tool is one item per tool, and `--from` says which copy the proposal comes from.
 - [ ] An end-to-end test installs a published skill with the built `rmk`, edits it, exports it as a proposal, and a moderator sees the diff to the base in the review page.
 - [ ] The Documentation and inline helpers listed above say what the feature does now.
 

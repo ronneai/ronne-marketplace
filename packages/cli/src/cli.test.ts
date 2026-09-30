@@ -1,5 +1,6 @@
 import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { packItem } from "@ronneai/core/pack";
 import { afterEach, describe, expect, it } from "vitest";
 import { run } from "./cli.js";
 import { configPath } from "./config.js";
@@ -682,5 +683,78 @@ describe("rmk export from Codex and Cursor (043)", () => {
     expect(drafts.map((d) => d.name)).toEqual(["@team/jira", "@team/tracker"]);
     const sent = JSON.stringify(io.requests);
     for (const secret of Object.values(SECRETS)) expect(sent).not.toContain(secret);
+  });
+});
+
+describe("rmk export as a change proposal (042)", () => {
+  const setup = async () => {
+    const registry = exportRoutes({ scopes: [{ name: "team", description: "A team." }] });
+    const files = [
+      {
+        path: "ronne.yaml",
+        bytes: new TextEncoder().encode(
+          'name: "@team/reviewer"\ntype: agent\ndescription: Reviews.\nkeywords: [review]\nagent:\n  prompt: prompt.md\n',
+        ),
+      },
+      { path: "prompt.md", bytes: new TextEncoder().encode("Review it.\n") },
+    ];
+    const packed = await packItem(files, { version: "1.1.0" });
+    io = fakeIo(
+      {
+        ...identityRoutes("rmk_test_token"),
+        ...registry.routes,
+        "GET /items/team/reviewer": () => ({
+          json: { type: "agent", tags: { latest: "1.1.0" }, versions: [{ version: "1.1.0" }] },
+        }),
+        "GET /items/team/reviewer/1.1.0": () => ({
+          json: { version: "1.1.0", sha256: packed.sha256 },
+        }),
+        "GET /items/team/reviewer/1.1.0/tarball": () => ({
+          bytes: packed.tgz,
+          headers: { "x-checksum-sha256": packed.sha256 },
+        }),
+      },
+      { env: { RMK_TOKEN: "rmk_test_token", RMK_REGISTRY: REGISTRY }, interactive: false },
+    );
+    mkdirSync(join(io.cwd, ".claude/agents"), { recursive: true });
+    writeFileSync(
+      join(io.cwd, ".claude/agents/reviewer.md"),
+      "---\nname: reviewer\ndescription: Reviews, and says why.\n---\nReview it.\n",
+    );
+    return registry;
+  };
+
+  it("previews a published own item as a proposal, with what changes", async () => {
+    await setup();
+    const result = await rmk("export", "reviewer", "--to", "team", "--dry-run");
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain(
+      "Proposal to @team/reviewer, from 1.1.0  agent  (from .claude/agents/reviewer.md)",
+    );
+    expect(result.stdout).toContain(
+      "  Changes:\n    ~ ronne.yaml description: Reviews. → Reviews, and says why.",
+    );
+    expect(result.stdout).toContain("keywords:");
+  });
+
+  it("uploads it with its base, and says it's a proposal; --new makes a new item", async () => {
+    const { drafts } = await setup();
+    const proposal = JSON.parse(
+      (await rmk("export", "reviewer", "--to", "team", "--yes", "--json")).stdout,
+    );
+    expect(proposal.exported).toMatchObject([
+      {
+        name: "@team/reviewer",
+        proposal: { item: "@team/reviewer", baseVersion: "1.1.0", stale: null },
+      },
+    ]);
+    expect(drafts[0]?.base).toBe("1.1.0");
+    const text = await rmk("export", "reviewer", "--to", "team", "--yes");
+    expect(text.stdout).toContain("@team/reviewer: proposal from 1.1.0 created at");
+    const asNew = JSON.parse(
+      (await rmk("export", "reviewer", "--to", "team", "--yes", "--new", "--json")).stdout,
+    );
+    expect(asNew.exported[0].proposal).toBeNull();
+    expect(drafts[2]?.base).toBeUndefined();
   });
 });

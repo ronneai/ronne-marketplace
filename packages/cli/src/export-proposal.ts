@@ -248,8 +248,22 @@ export const readChange = async (
     );
   const description =
     typeof baseManifest.description === "string" ? baseManifest.description : undefined;
-  const rendered = readContent(place, changeContent(change, place), base.item, description);
-  const local = readContent(place, localContent(place), base.item, description);
+  const localFiles = localContent(place);
+  let renderedFiles = changeContent(change, place);
+  // R is what the local copy would be if unchanged. A skill folder the person wrote has no
+  // ronne.yaml (an install has the item's), so R is read without one too; the fields only a
+  // ronne.yaml carries (keywords, license…) then stay the base's.
+  if (
+    renderedFiles.kind === "dir" &&
+    localFiles.kind === "dir" &&
+    !localFiles.files.some((f) => f.path === "ronne.yaml")
+  )
+    renderedFiles = {
+      kind: "dir",
+      files: renderedFiles.files.filter((f) => f.path !== "ronne.yaml"),
+    };
+  const rendered = readContent(place, renderedFiles, base.item, description);
+  const local = readContent(place, localFiles, base.item, description);
   return {
     base: baseFiles,
     rendered,

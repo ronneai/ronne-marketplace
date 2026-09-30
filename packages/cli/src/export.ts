@@ -1416,6 +1416,8 @@ export type ExportedItem = {
   submitIssues: ManifestIssue[];
   warnings: ExportWarning[];
   skipped: Skipped[];
+  /** For a change proposal (042): the item, its base version, and a newer version if there is one. */
+  proposal: { item: string; baseVersion: string; stale: string | null } | null;
 };
 
 type DraftResponse = {
@@ -1424,6 +1426,7 @@ type DraftResponse = {
   url: string | null;
   issues: ManifestIssue[];
   submitIssues: ManifestIssue[];
+  proposal?: { item: string; baseVersion: string; stale: string | null } | null;
 };
 
 /** A file as 037 takes it: text as `utf8`, anything else as `base64`. */
@@ -1470,6 +1473,8 @@ export const uploadExport = async (api: ApiClient, plan: ExportPlan): Promise<Ex
         name: item.name,
         type: item.type,
         files: item.files.map(uploadFile),
+        // A change proposal (042): the version it's based on.
+        ...(item.proposal ? { base: item.proposal.baseVersion } : {}),
       });
     } catch (error) {
       if (!(error instanceof ApiError)) throw error;
@@ -1486,6 +1491,7 @@ export const uploadExport = async (api: ApiClient, plan: ExportPlan): Promise<Ex
       submitIssues: draft.submitIssues,
       warnings: item.warnings,
       skipped: item.skipped,
+      proposal: draft.proposal ?? null,
     });
   }
   const [first] = failed;

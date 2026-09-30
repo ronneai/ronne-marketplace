@@ -31,7 +31,7 @@ the same change that completes it.
   change against the base in the plan.
   *Done when:* tests cover each row of the table, `--new`, and nothing changed.
 
-- [ ] **5. The CLI, the tools and the upload.** The preview of a proposal (files added, removed and
+- [x] **5. The CLI, the tools and the upload.** The preview of a proposal (files added, removed and
   changed, manifest fields, stale), `--target` for several tools, `base` sent by `uploadExport`,
   and the result; `plan_export` and `export_items` the same.
   *Done when:* `cli.test.ts` and the MCP tests cover a proposal planned, uploaded and reported,
