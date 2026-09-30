@@ -53,7 +53,7 @@ the same change that completes it. Tasks 1 and 2 touch only `packages/core` and 
   built `rmk`, open the draft signed in.
   *Done when:* `pnpm test:e2e` passes.
 
-- [ ] **10. Documentation.** The new topic, the sentences in `rmk#what` and `overview#path`, the
+- [x] **10. Documentation.** The new topic, the sentences in `rmk#what` and `overview#path`, the
   My submissions helper, and the README.
   *Done when:* the docs render tests pass, and every new helper's link lands on a real section.
 

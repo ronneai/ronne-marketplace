@@ -124,7 +124,8 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           <li>
             <strong>Draft.</strong> Anyone signed in starts one under{" "}
             <To href="/submissions">Submissions</To>, in a <To href={docsHref("scopes")}>scope</To>{" "}
-            and with a <To href={docsHref("items", "types")}>type</To>. Drafts are private.
+            and with a <To href={docsHref("items", "types")}>type</To>, or sends a skill they wrote
+            in their AI tool with <To href={docsHref("export")}>rmk export</To>. Drafts are private.
           </li>
           <li>
             <strong>Review.</strong> Submitting runs the checks, then a moderator or root who
@@ -685,6 +686,166 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
     ),
   },
 
+  export: {
+    what: (
+      <>
+        <p>
+          You wrote a skill in your AI tool, in <Code>.claude/skills/</Code> or{" "}
+          <Code>.agents/skills/</Code>, and want your team to have it. <Code>rmk export</Code> reads
+          its folder, adds the <To href={docsHref("items", "manifest")}>ronne.yaml</To> it lacks,
+          shows you everything it would upload, and creates a <strong>private draft</strong> here.
+          You check it in the web app and submit it for review like any other draft.
+        </p>
+        <Example>
+          {
+            "rmk export                          # lists the skills it finds here\nrmk export secure-coding --to @platform"
+          }
+        </Example>
+        <p>
+          Skills are exported for now. <Code>rmk export</Code> only reads: it never changes the
+          folder, and it never submits anything.
+        </p>
+      </>
+    ),
+    reads: (
+      <>
+        <p>
+          A skill is its folder: <Code>rmk export</Code> takes a skill&apos;s name (from{" "}
+          <Code>.claude/skills/</Code> or <Code>.agents/skills/</Code> in the project, or in your
+          home folder with <Code>--scope user</Code>) or the path of any folder with a{" "}
+          <Code>SKILL.md</Code>. It uploads every file in it, keeping scripts executable, except:
+        </p>
+        <Bullets>
+          <li>
+            <strong>Never part of an item:</strong> <Code>.git/</Code>, <Code>.hg/</Code>,{" "}
+            <Code>.svn/</Code>, <Code>node_modules/</Code>, <Code>__pycache__/</Code>,{" "}
+            <Code>.DS_Store</Code>, <Code>Thumbs.db</Code>, <Code>.ronne/</Code>.
+          </li>
+          <li>
+            <strong>Likely secrets:</strong> <Code>.env</Code>, <Code>.env.*</Code>,{" "}
+            <Code>*.pem</Code>, <Code>*.key</Code>, <Code>id_rsa*</Code>, <Code>.npmrc</Code>,{" "}
+            <Code>.netrc</Code>.
+          </li>
+          <li>
+            <strong>Symbolic links</strong> inside the folder, which are never followed.
+          </li>
+        </Bullets>
+        <p>
+          A file that contains something that is certainly a secret, such as a provider&apos;s API
+          key, stops that skill: the file is named, the value isn&apos;t shown. Remove it (use an
+          environment variable instead), or add <Code>--force</Code>. A folder over the upload
+          limits (500 files, 1 MB a file, 20 MB in all) is stopped too.
+        </p>
+        <p>
+          <Code>ronne.yaml</Code> is made from <Code>SKILL.md</Code>&apos;s frontmatter: its{" "}
+          <Code>description</Code> (on one line, and cut at 300 characters, with a warning) and{" "}
+          <Code>license</Code>. A <Code>ronne.yaml</Code> you wrote in the folder is used instead,
+          with only its <Code>name</Code> set. When <Code>SKILL.md</Code>&apos;s <Code>name</Code>{" "}
+          isn&apos;t the item&apos;s name, the uploaded copy gets it set; your file stays as it is.
+        </p>
+      </>
+    ),
+    scope: (
+      <>
+        <p>
+          Every item is <Code>@scope/name</Code>, and only root creates{" "}
+          <To href={docsHref("scopes")}>scopes</To>, so you choose one that exists:{" "}
+          <Code>--to @team</Code>, or the scope in the folder&apos;s own <Code>ronne.yaml</Code>,
+          or, in a terminal, from the list <Code>rmk</Code> shows. It never picks one for you.
+        </p>
+        <p>
+          The name is <Code>SKILL.md</Code>&apos;s <Code>name</Code> when it&apos;s a valid item
+          name, else the folder&apos;s name in lowercase with hyphens (<Code>My Skill!</Code>{" "}
+          becomes <Code>my-skill</Code>). <Code>--name</Code> sets another, for one skill.
+        </p>
+      </>
+    ),
+    preview: (
+      <>
+        <p>Before anything leaves your machine, the question shows, for each skill:</p>
+        <Bullets>
+          <li>the registry and the account you&apos;re logged in as, and the item&apos;s name;</li>
+          <li>every file with its size, and every file left out, with why;</li>
+          <li>
+            the <Code>ronne.yaml</Code> it made, and its warnings;
+          </li>
+          <li>what the checks find, to fix in the web app before submitting;</li>
+          <li>whether the name is already published, which Submit would refuse.</li>
+        </Bullets>
+        <p>
+          Then it asks <strong>Upload n item(s) as drafts?</strong>, and nothing is sent unless you
+          answer yes.
+        </p>
+      </>
+    ),
+    next: (
+      <>
+        <p>
+          Each skill arrives as a draft under <To href="/submissions">Submissions</To>, which only
+          you see, and <Code>rmk</Code> prints its address and what is left to fix. Open it, fix
+          what the checks say, and submit it: from there it follows{" "}
+          <To href={docsHref("review")}>the usual review</To>.
+        </p>
+        <p>
+          Exporting the same skill twice makes two drafts; delete the one you don&apos;t need. A
+          draft made this way counts towards the{" "}
+          <To href={docsHref("rmk", "tokens")}>limits for tokens</To>, and is written to the audit
+          log.
+        </p>
+      </>
+    ),
+    installed: (
+      <>
+        <p>
+          <Code>rmk export</Code> is for what you wrote. It refuses, and says why:
+        </p>
+        <Bullets>
+          <li>
+            a skill <Code>rmk</Code> installed, edited since or not: to change it, use{" "}
+            <strong>Propose a change</strong> on its page, and the link is in the message (
+            <To href={docsHref("changes")}>changing a published item</To>);
+          </li>
+          <li>
+            a rule or command <Code>rmk</Code> wrote as a skill;
+          </li>
+          <li>
+            a folder whose <Code>ronne.yaml</Code> has a <Code>version</Code>, a copy from a
+            registry. <Code>--force</Code> exports it as a new item, without the version.
+          </li>
+        </Bullets>
+      </>
+    ),
+    options: (
+      <Table>
+        <thead>
+          <tr>
+            <Th>Option</Th>
+            <Th>Does</Th>
+          </tr>
+        </thead>
+        <tbody>
+          {(
+            [
+              ["--to @scope", "The scope the drafts go in."],
+              ["--name <name>", "The item's name, for one skill."],
+              ["--scope user", "Look for skills in your home folder rather than the project."],
+              ["--dry-run", "Show the preview and upload nothing."],
+              ["--yes", "Upload without asking. Needed without a terminal, with --to."],
+              ["--force", "Export a registry copy, or a skill with a secret in it."],
+              ["--json", "Answer with one JSON object, for scripts and agents; nothing is asked."],
+            ] as const
+          ).map(([option, does]) => (
+            <tr key={option}>
+              <Td>
+                <Code>{option}</Code>
+              </Td>
+              <Td className="text-sm">{does}</Td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+    ),
+  },
   changes: {
     propose: (
       <>
@@ -796,6 +957,11 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         <p>
           <Code>rmk --help</Code> lists every command, and <Code>--json</Code> makes any of them
           answer with one JSON object, for scripts and agents.
+        </p>
+        <p>
+          It also works the other way: <Code>rmk export</Code> sends a skill you wrote in your AI
+          tool to this marketplace as a draft.{" "}
+          <To href={docsHref("export")}>Exporting your own items</To>.
         </p>
       </>
     ),

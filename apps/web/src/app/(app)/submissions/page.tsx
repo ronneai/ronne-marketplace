@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Help } from "@/components/help/Help";
 import { buttonClasses } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/Panel";
 import {
@@ -33,6 +34,7 @@ const Submissions = async ({
           ) : null
         }
       />
+      <Help id="export" />
       <StatusFilters submissions={submissions} status={status} />
       <SubmissionsTable
         submissions={status ? submissions.filter((s) => s.status === status) : submissions}

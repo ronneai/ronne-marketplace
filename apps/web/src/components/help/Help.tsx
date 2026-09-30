@@ -98,6 +98,12 @@ export const HELP = {
       "You get a draft of this version, with all its files, to edit and submit. Once reviewed and approved, it's released as the item's next version.",
     href: docsHref("changes", "propose"),
   },
+  export: {
+    question: "Already wrote it in your AI tool?",
+    answer:
+      "Send it here with rmk export: it reads the skill's folder, shows you everything it would upload, and creates a private draft here for you to check and submit.",
+    href: docsHref("export", "what"),
+  },
 } as const satisfies Record<string, { question: string; answer: string; href: string }>;
 
 export type HelpId = keyof typeof HELP;

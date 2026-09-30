@@ -162,17 +162,17 @@ a usage error.
 
 ## Acceptance criteria
 
-- [ ] `readSkill` turns the example skill's rendered folder back into an item that passes `parseManifest` and `checkPackage`, and rendering that item gives the same folder.
-- [ ] `rmk export` exports a hand-written skill from `.claude/skills/` and from `.agents/skills/`, in project and user scope, and prints the draft's address; the draft opens in the web editor with the same files.
-- [ ] An installed skill, an installed and edited one, a copy with a `version`, and a rendered rule or command are each refused with the item's name and the pointer; `--force` exports only the copy.
-- [ ] The scope comes from `--to`, the folder's `ronne.yaml`, or the prompt, and never from a default.
-- [ ] Nothing in the two skip lists, and no symbolic link, is ever in a request; a certain secret stops the item; the preview lists every skipped file.
-- [ ] `--dry-run` sends no `POST`; without a terminal, a missing `--to` or `--yes` exits 2 and sends none.
-- [ ] A long description is cut with a warning, and a missing `name` is set in the uploaded `SKILL.md` while the file on disk stays byte for byte the same.
-- [ ] `--json` prints the shape above, and the exit codes are as listed, including a partial upload.
-- [ ] `pnpm packages:check` and `pnpm release:smoke` pass with the new `@ronneai/core/read` entry and library exports.
-- [ ] An end-to-end test exports a skill with the built `rmk` against the Playwright instance.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] `readSkill` turns the example skill's rendered folder back into an item that passes `parseManifest` and `checkPackage`, and rendering that item gives the same folder.
+- [x] `rmk export` exports a hand-written skill from `.claude/skills/` and from `.agents/skills/`, in project and user scope, and prints the draft's address; the draft opens in the web editor with the same files.
+- [x] An installed skill, an installed and edited one, a copy with a `version`, and a rendered rule or command are each refused with the item's name and the pointer; `--force` exports only the copy.
+- [x] The scope comes from `--to`, the folder's `ronne.yaml`, or the prompt, and never from a default.
+- [x] Nothing in the two skip lists, and no symbolic link, is ever in a request; a certain secret stops the item; the preview lists every skipped file.
+- [x] `--dry-run` sends no `POST`; without a terminal, a missing `--to` or `--yes` exits 2 and sends none.
+- [x] A long description is cut with a warning, and a missing `name` is set in the uploaded `SKILL.md` while the file on disk stays byte for byte the same.
+- [x] `--json` prints the shape above, and the exit codes are as listed, including a partial upload.
+- [x] `pnpm packages:check` and `pnpm release:smoke` pass with the new `@ronneai/core/read` entry and library exports.
+- [x] An end-to-end test exports a skill with the built `rmk` against the Playwright instance.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Open questions
 
