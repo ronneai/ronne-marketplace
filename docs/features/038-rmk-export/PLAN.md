@@ -29,7 +29,7 @@ the same change that completes it. Tasks 1 and 2 touch only `packages/core` and 
   *Done when:* tests cover written here, installed, installed and edited, a registry copy, a
   rendered rule, and the home folder as the project.
 
-- [ ] **5. `planExport`.** Items, scope, manifest, local checks, the name pre-check, the secret
+- [x] **5. `planExport`.** Items, scope, manifest, local checks, the name pre-check, the secret
   scan, and the fingerprint. Writes nothing and sends no `POST`.
   *Done when:* the same folder gives the same fingerprint, any changed byte gives another, and a
   test proves no skipped file's bytes are in the plan.

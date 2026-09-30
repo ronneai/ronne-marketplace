@@ -1,10 +1,12 @@
 import { chmodSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { apiClient } from "./api.js";
 import { diskHash, writeState } from "./apply.js";
-import { findSkills, ownershipOf, walkItemFolder } from "./export.js";
+import { RmkError } from "./errors.js";
+import { type ExportPlan, findSkills, ownershipOf, planExport, walkItemFolder } from "./export.js";
 import { places } from "./install.js";
-import { type FakeIo, fakeIo } from "./testing.js";
+import { type FakeIo, fakeIo, REGISTRY, type Route } from "./testing.js";
 
 let io: FakeIo;
 afterEach(() => io?.cleanup());
@@ -220,5 +222,238 @@ describe("ownershipOf", () => {
       item: "@examples/house-style",
       version: "1.0.0",
     });
+  });
+});
+
+describe("planExport", () => {
+  const SCOPES = [
+    { name: "team", description: "A team." },
+    { name: "platform", description: "Shared tools." },
+  ];
+  const routes = (published: string[] = []): Record<string, Route> => ({
+    "GET /scopes": () => ({ json: { scopes: SCOPES, nextCursor: null } }),
+    ...Object.fromEntries(
+      ["team", "platform"].flatMap((scope) =>
+        ["review", "copied", "big", "keys", "deploy"].map((name) => [
+          `GET /items/${scope}/${name}`,
+          () =>
+            published.includes(`@${scope}/${name}`)
+              ? { json: { name: `@${scope}/${name}` } }
+              : { status: 404, json: { error: { code: "item_not_found", message: "No." } } },
+        ]),
+      ),
+    ),
+  });
+  const setup = (published: string[] = []) => {
+    io = fakeIo(routes(published));
+    return apiClient(io.fetch, REGISTRY, "rmk_test_token");
+  };
+  const plan = (api: ReturnType<typeof setup>, request: Parameters<typeof planExport>[2]) =>
+    planExport(io, api, request);
+  const reviewSkill = () => {
+    skill(io.cwd, ".claude/skills", "review");
+    write(io.cwd, ".claude/skills/review/checklist.md", "Check it.\n");
+  };
+
+  it("plans a hand-written skill without sending anything but reads", async () => {
+    const api = setup();
+    reviewSkill();
+    const result = await plan(api, { items: ["review"], to: "@team" });
+    expect(result).toMatchObject({ registry: REGISTRY, to: "team", refused: [] });
+    const [item] = result.items;
+    expect(item).toMatchObject({
+      local: ".claude/skills/review",
+      name: "@team/review",
+      type: "skill",
+      skipped: [],
+      warnings: [],
+      issues: [],
+      published: false,
+    });
+    expect(item?.files.map((f) => f.path)).toEqual(["SKILL.md", "checklist.md", "ronne.yaml"]);
+    expect(item?.manifestText).toBe(
+      'name: "@team/review"\ntype: skill\ndescription: review.\nskill:\n  entry: SKILL.md\n',
+    );
+    expect(io.requests.every((r) => r.method === "GET")).toBe(true);
+  });
+
+  it("takes the scope from --to, else the folder's ronne.yaml, and never picks one itself", async () => {
+    const api = setup();
+    reviewSkill();
+    await expect(plan(api, { items: ["review"] })).rejects.toMatchObject({
+      code: "scope_required",
+      exitCode: 2,
+      details: { scopes: SCOPES },
+    });
+    await expect(plan(api, { items: ["review"], to: "nowhere" })).rejects.toMatchObject({
+      code: "scope_not_found",
+      exitCode: 2,
+    });
+    write(
+      io.cwd,
+      ".claude/skills/review/ronne.yaml",
+      'name: "@platform/review"\ntype: skill\ndescription: R.\n',
+    );
+    expect((await plan(api, { items: ["review"] })).items[0]?.name).toBe("@platform/review");
+    expect((await plan(api, { items: ["review"], to: "team" })).items[0]?.name).toBe(
+      "@team/review",
+    );
+  });
+
+  it("takes a folder path or a name, --name for one item, and says when a name is ambiguous", async () => {
+    const api = setup();
+    reviewSkill();
+    write(io.cwd, "loose/My Tool/SKILL.md", "---\ndescription: Loose.\n---\n");
+    const byPath = await plan(api, { items: ["loose/My Tool"], to: "team" });
+    expect(byPath.items[0]).toMatchObject({ local: "loose/My Tool", name: "@team/my-tool" });
+    const named = await plan(api, { items: ["review"], to: "team", name: "code-review" });
+    expect(named.items[0]?.name).toBe("@team/code-review");
+    await expect(
+      plan(api, { items: ["review", "loose/My Tool"], to: "team", name: "x" }),
+    ).rejects.toMatchObject({ exitCode: 2 });
+    await expect(plan(api, { items: ["missing"], to: "team" })).rejects.toMatchObject({
+      exitCode: 2,
+    });
+    skill(io.cwd, ".agents/skills", "review");
+    await expect(plan(api, { items: ["review"], to: "team" })).rejects.toMatchObject({
+      code: "ambiguous",
+      details: { paths: [".agents/skills/review", ".claude/skills/review"] },
+    });
+  });
+
+  it("refuses what isn't the person's, the empty and the oversized, and goes on with the rest", async () => {
+    const api = setup();
+    reviewSkill();
+    const copied = join(io.cwd, "copied");
+    write(copied, "SKILL.md", "---\nname: copied\ndescription: C.\n---\n");
+    write(
+      copied,
+      "ronne.yaml",
+      'name: "@other/copied"\nversion: 1.4.0\ntype: skill\ndescription: C.\n',
+    );
+    const rendered = join(io.cwd, "rendered");
+    write(
+      rendered,
+      "SKILL.md",
+      "---\nname: r\n---\n<!-- managed by rmk: @examples/house-style@1.0.0 -->\n",
+    );
+    write(io.cwd, "empty/.env", "X=1");
+    write(io.cwd, "big/SKILL.md", "---\nname: big\ndescription: B.\n---\n");
+    write(io.cwd, "big/data.bin", "x".repeat(1024 * 1024 + 1));
+    const result = await plan(api, {
+      items: ["review", "copied", "rendered", "empty", "big"],
+      to: "team",
+    });
+    expect(result.items.map((i) => i.name)).toEqual(["@team/review"]);
+    expect(result.refused.map((r) => [r.local, r.code])).toEqual([
+      ["copied", "registry_copy"],
+      ["rendered", "rendered"],
+      ["empty", "empty"],
+      ["big", "too_large"],
+    ]);
+    expect(result.refused[1]?.message).toContain(`${REGISTRY}/items/examples/house-style`);
+
+    const forced = await plan(api, { items: ["copied"], to: "team", force: true });
+    expect(forced.items[0]?.warnings.map((w) => w.code)).toEqual(["version_removed"]);
+    expect(forced.items[0]?.manifestText).not.toContain("version");
+  });
+
+  it("refuses an installed skill, pointing to its page", async () => {
+    const api = setup();
+    reviewSkill();
+    const sha256 = (await diskHash(io.cwd, { kind: "dir", path: ".claude/skills/review" })) ?? "";
+    writeState(places(io, "project").state, {
+      version: 1,
+      entries: [
+        {
+          item: "@team/review",
+          version: "1.0.0",
+          targets: ["claude-code"],
+          kind: "dir",
+          path: ".claude/skills/review",
+          sha256,
+        },
+      ],
+    });
+    const result = await plan(api, { items: ["review"], to: "team" });
+    expect(result.items).toEqual([]);
+    expect(result.refused).toEqual([
+      {
+        local: ".claude/skills/review",
+        code: "installed",
+        message: `This is @team/review 1.0.0, installed by rmk. To change it, use Propose a change on its page: ${REGISTRY}/items/team/review`,
+      },
+    ]);
+  });
+
+  it("stops an item with a certain secret, naming the file but not the value", async () => {
+    const api = setup();
+    const secret = `ghp_${"a1B2".repeat(9)}`;
+    write(io.cwd, "keys/SKILL.md", "---\nname: keys\ndescription: K.\n---\n");
+    write(io.cwd, "keys/config.md", `token: ${secret}\n`);
+    const result = await plan(api, { items: ["keys"], to: "team" });
+    expect(result.refused).toEqual([
+      expect.objectContaining({ code: "secret", message: expect.stringContaining("config.md") }),
+    ]);
+    expect(JSON.stringify(result)).not.toContain(secret);
+    expect((await plan(api, { items: ["keys"], to: "team", force: true })).items).toHaveLength(1);
+  });
+
+  it("never puts a skipped file's bytes in the plan", async () => {
+    const api = setup();
+    reviewSkill();
+    const marker = "NEVER-UPLOAD-THIS-VALUE";
+    for (const path of [".env", "id_rsa", ".git/config", "node_modules/a/x.js", "server.pem"])
+      write(io.cwd, `.claude/skills/review/${path}`, marker);
+    symlinkSync(join(io.home, "outside.md"), join(io.cwd, ".claude/skills/review/link.md"));
+    write(io.home, "outside.md", marker);
+    const result = await plan(api, { items: ["review"], to: "team" });
+    const everything = (p: ExportPlan) =>
+      JSON.stringify(p, (_key, value) =>
+        value instanceof Uint8Array ? new TextDecoder().decode(value) : value,
+      );
+    expect(everything(result)).not.toContain(marker);
+    expect(result.items[0]?.skipped.map((s) => s.path)).toEqual([
+      ".env",
+      ".git/",
+      "id_rsa",
+      "link.md",
+      "node_modules/",
+      "server.pem",
+    ]);
+  });
+
+  it("gives the same fingerprint for the same files, and another for any change", async () => {
+    const api = setup();
+    reviewSkill();
+    const fingerprint = async () =>
+      (await plan(api, { items: ["review"], to: "team" })).fingerprint;
+    const first = await fingerprint();
+    expect(await fingerprint()).toBe(first);
+    write(io.cwd, ".claude/skills/review/checklist.md", "Check it!\n");
+    const edited = await fingerprint();
+    expect(edited).not.toBe(first);
+    chmodSync(join(io.cwd, ".claude/skills/review/checklist.md"), 0o755);
+    expect(await fingerprint()).not.toBe(edited);
+    expect((await plan(api, { items: ["review"], to: "platform" })).fingerprint).not.toBe(
+      await fingerprint(),
+    );
+  });
+
+  it("says when the name is already published, and when the registry has no scopes", async () => {
+    const api = setup(["@team/review"]);
+    reviewSkill();
+    expect((await plan(api, { items: ["review"], to: "team" })).items[0]?.published).toBe(true);
+    const bare = fakeIo({ "GET /scopes": () => ({ json: { scopes: [], nextCursor: null } }) });
+    try {
+      const err = await planExport(bare, apiClient(bare.fetch, REGISTRY, "t"), {
+        items: ["x"],
+        to: "team",
+      }).catch((e) => e);
+      expect(err).toBeInstanceOf(RmkError);
+      expect(err.code).toBe("no_scopes");
+    } finally {
+      bare.cleanup();
+    }
   });
 });

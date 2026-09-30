@@ -1,9 +1,26 @@
+import { createHash } from "node:crypto";
 import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
-import { basename, isAbsolute, join, relative } from "node:path";
-import { DEFAULT_LIMITS, type PackageFile, type PackageLimits, parseManifest } from "@ronneai/core";
+import { basename, isAbsolute, join, relative, resolve } from "node:path";
+import {
+  checkPackage,
+  DEFAULT_LIMITS,
+  formatBytes,
+  isValidName,
+  type ManifestIssue,
+  normalizeScopeName,
+  type PackageFile,
+  type PackageLimits,
+  parseItemName,
+  parseManifest,
+  secretLike,
+} from "@ronneai/core";
+import { ReadError, type ReadResult, readSkill, skillName } from "@ronneai/core/read";
+import { type ApiClient, ApiError } from "./api.js";
 import { diskHash, readState } from "./apply.js";
-import { places, type Scope } from "./install.js";
+import { RmkError, usage } from "./errors.js";
+import { places, type Scope, scopeOf } from "./install.js";
 import type { Io } from "./io.js";
+import { itemPath } from "./registry-commands.js";
 
 /**
  * `rmk export` (feature 038): what a person wrote in their AI tool, sent to the registry as a
@@ -222,4 +239,306 @@ export const ownershipOf = async (
   const marker = MARKER.exec(textOf(files, "SKILL.md") ?? "");
   if (marker) return { owner: "rendered", item: marker[1] ?? "", version: marker[2] ?? "" };
   return { owner: "local" };
+};
+
+/** What `rmk export` was asked to do; `planExport` turns it into a plan, sending nothing. */
+export type ExportRequest = {
+  /** Folders with a `SKILL.md`, or the names of skills in the scope's folders. */
+  items: readonly string[];
+  /** The marketplace scope, `@team` or `team`. Without it, each folder's `ronne.yaml` must say. */
+  to?: string;
+  /** The item's name, for a single item. */
+  name?: string;
+  /** project (the default) or user: where names are looked up. */
+  scope?: string;
+  /** Export a registry copy as a new item, and an item with a certain secret. */
+  force?: boolean;
+};
+
+/** A reason to look before uploading; `rmk` lists them in the preview. */
+export type ExportWarning = { code: string; message: string; file?: string };
+
+export type PlannedItem = {
+  /** The folder, as shown. */
+  local: string;
+  dir: string;
+  /** `@scope/name`. */
+  name: string;
+  type: "skill";
+  /** What will be uploaded, `ronne.yaml` included, by path. */
+  files: PackageFile[];
+  manifestText: string;
+  skipped: Skipped[];
+  warnings: ExportWarning[];
+  /** What 011's checks find in the files: the draft is created with them anyway. */
+  issues: ManifestIssue[];
+  /** The name is already published: Submit will refuse the draft. */
+  published: boolean;
+};
+
+export type RefusedItem = { local: string; code: string; message: string };
+
+export type ExportPlan = {
+  registry: string;
+  to: string | null;
+  items: PlannedItem[];
+  refused: RefusedItem[];
+  /** Every read file's path, hash and executable bit, and the names: 039 checks it didn't change. */
+  fingerprint: string;
+};
+
+export type Scopes = { name: string; description: string }[];
+
+/** The registry's scopes (037), every page. */
+export const fetchScopes = async (api: ApiClient): Promise<Scopes> => {
+  const scopes: Scopes = [];
+  let cursor: string | null = null;
+  do {
+    const page: { scopes: Scopes; nextCursor: string | null } = await api.get(
+      `/scopes?limit=100${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`,
+    );
+    scopes.push(...page.scopes);
+    cursor = page.nextCursor;
+  } while (cursor);
+  return scopes;
+};
+
+/** The folders to export: paths as given, or names looked up in the scope's skill folders. */
+const resolveItems = (io: Io, request: ExportRequest) => {
+  const scope = scopeOf(request.scope);
+  const found = findSkills(io, scope);
+  return request.items.map((arg) => {
+    const path = resolve(io.cwd, arg);
+    if (realFolder(path)) return { local: arg, dir: path };
+    const matches = found.filter((item) => item.name === arg);
+    if (matches.length === 0)
+      throw usage(
+        `No skill folder or skill called ${arg}. rmk export, with nothing after it, lists the skills here.`,
+      );
+    if (matches.length > 1)
+      throw new RmkError(
+        `${arg} is in more than one place: ${matches.map((m) => m.display).join(", ")}. Give the folder instead.`,
+        2,
+        "ambiguous",
+        { paths: matches.map((m) => m.display) },
+      );
+    const [match] = matches as [LocalItem];
+    return { local: match.display, dir: match.dir };
+  });
+};
+
+const pagePath = (registry: string, name: string) => `${registry}${itemPath(name)}`;
+
+/** Why an item isn't the person's to export, or null when it is. */
+const ownershipRefusal = (
+  registry: string,
+  ownership: Ownership,
+  force: boolean,
+): { code: string; message: string } | null => {
+  switch (ownership.owner) {
+    case "installed":
+      return {
+        code: "installed",
+        message: `This is ${ownership.item} ${ownership.version}, installed by rmk${
+          ownership.edited ? " and edited since" : ""
+        }. To change it, use Propose a change on its page: ${pagePath(registry, ownership.item)}`,
+      };
+    case "rendered":
+      return {
+        code: "rendered",
+        message: `rmk wrote this from ${ownership.item} ${ownership.version}. To change it, use Propose a change on its page: ${pagePath(registry, ownership.item)}`,
+      };
+    case "registry_copy":
+      return force
+        ? null
+        : {
+            code: "registry_copy",
+            message: `Its ronne.yaml has version ${ownership.version}, so it's a copy of ${
+              ownership.item ?? "an item"
+            } from a registry. To change that item, propose a change on its page; to export it as a new item, add --force.`,
+          };
+    case "local":
+      return null;
+  }
+};
+
+const decoder = new TextDecoder("utf-8", { fatal: true });
+/** A file's text, or null for a binary file. */
+const textOrNull = (file: PackageFile): string | null => {
+  if (file.bytes.includes(0)) return null;
+  try {
+    return decoder.decode(file.bytes);
+  } catch {
+    return null;
+  }
+};
+
+const sha256 = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
+
+/** The scope the folder's own `ronne.yaml` names, or null. */
+const manifestScope = (files: readonly PackageFile[]): string | null => {
+  const file = files.find((f) => f.path === "ronne.yaml");
+  const name = file ? parseManifest(new TextDecoder().decode(file.bytes)).manifest?.name : null;
+  return typeof name === "string" ? (parseItemName(name)?.scope ?? null) : null;
+};
+
+const isPublished = async (api: ApiClient, name: string): Promise<boolean> => {
+  try {
+    await api.get(itemPath(name));
+    return true;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return false;
+    throw error;
+  }
+};
+
+const overLimitMessage = (over: OverLimit) =>
+  over.limit === "file"
+    ? `${over.path} is ${formatBytes(over.size)}; a file can be at most ${formatBytes(over.max)}.`
+    : over.limit === "files"
+      ? `It has more than ${over.max} files, the most an item can have.`
+      : `Its files come to more than ${formatBytes(over.max)}, the most an item can have.`;
+
+/**
+ * Everything `rmk export` would upload, and why anything is left out, without sending a draft
+ * or writing a file: the folders are read, checked for whose they are, turned into items by the
+ * reader, checked (011) and scanned for secrets, and each name is looked up in the registry.
+ * The scope is `to`, or the folder's own `ronne.yaml`'s; never a default.
+ */
+export const planExport = async (
+  io: Io,
+  api: ApiClient,
+  request: ExportRequest,
+): Promise<ExportPlan> => {
+  if (request.items.length === 0)
+    throw usage("Say which skills to export: rmk export <folder|name>");
+  if (request.name !== undefined && request.items.length > 1)
+    throw usage("--name names one item; export the others separately.");
+  const scopes = await fetchScopes(api);
+  if (scopes.length === 0)
+    throw new RmkError(
+      `${api.registry} has no scopes yet. Root creates them in the web app, under Admin → Scopes.`,
+      1,
+      "no_scopes",
+    );
+  const to = request.to === undefined ? null : normalizeScopeName(request.to);
+  const known = new Set(scopes.map((s) => s.name));
+  if (to !== null && !known.has(to))
+    throw new RmkError(`${api.registry} has no scope @${to}.`, 2, "scope_not_found", { scopes });
+
+  const items: PlannedItem[] = [];
+  const refused: RefusedItem[] = [];
+  const hash = createHash("sha256");
+  for (const { local, dir } of resolveItems(io, request)) {
+    const refuse = (code: string, message: string) => refused.push({ local, code, message });
+    const walked = walkItemFolder(dir);
+    hash.update(`\0${realFolder(dir) ?? dir}`);
+    if (walked.over) {
+      refuse(
+        "too_large",
+        `${overLimitMessage(walked.over)} Remove files, or add it in the web app.`,
+      );
+      continue;
+    }
+    for (const file of walked.files)
+      hash.update(`\0${file.path}\0${sha256(file.bytes)}\0${file.executable ? 1 : 0}`);
+    if (walked.files.length === 0) {
+      refuse("empty", "There's nothing to upload in it.");
+      continue;
+    }
+    if (!walked.files.some((file) => file.path === "SKILL.md")) {
+      refuse("not_a_skill", "It has no SKILL.md, so it isn't a skill.");
+      continue;
+    }
+    const refusal = ownershipRefusal(
+      api.registry,
+      await ownershipOf(io, dir, walked.files),
+      request.force ?? false,
+    );
+    if (refusal) {
+      refuse(refusal.code, refusal.message);
+      continue;
+    }
+
+    const scope = to ?? manifestScope(walked.files);
+    if (scope === null)
+      throw new RmkError(
+        `Say which scope ${local} goes in, with --to @scope.`,
+        2,
+        "scope_required",
+        { scopes },
+      );
+    if (!known.has(scope)) {
+      refuse(
+        "scope_not_found",
+        `Its ronne.yaml names @${scope}, which ${api.registry} doesn't have. Use --to.`,
+      );
+      continue;
+    }
+    const short = request.name ?? skillName(walked.files, folderName(dir));
+    if (!isValidName(short, "item")) {
+      refuse("invalid_name", `${short || "Its name"} can't be an item name. Give one with --name.`);
+      continue;
+    }
+
+    let read: ReadResult;
+    try {
+      read = readSkill(walked.files, { itemName: `@${scope}/${short}` });
+    } catch (error) {
+      if (error instanceof ReadError) {
+        refuse(error.code, error.message);
+        continue;
+      }
+      throw error;
+    }
+
+    const warnings: ExportWarning[] = [...read.warnings];
+    let secret: string | null = null;
+    for (const file of read.files) {
+      const text = textOrNull(file);
+      if (text === null) continue;
+      const found = secretLike(text);
+      if (found?.certain) secret ??= `${file.path} contains ${found.kind}`;
+      else if (found)
+        warnings.push({
+          code: "possible_secret",
+          message: `${file.path} contains what may be ${found.kind}. Check it before uploading.`,
+          file: file.path,
+        });
+      if (process.platform === "win32" && text.startsWith("#!"))
+        warnings.push({
+          code: "not_executable",
+          message: `${file.path} starts with #! but Windows has no executable bit, so it arrives not executable. Set it in the web editor.`,
+          file: file.path,
+        });
+    }
+    if (secret && !request.force) {
+      refuse(
+        "secret",
+        `${secret}. Remove it (use an environment variable instead), or add --force.`,
+      );
+      continue;
+    }
+
+    const parsed = parseManifest(read.manifestText);
+    const issues = [
+      ...parsed.issues.map((issue) => ({ ...issue, file: "ronne.yaml" })),
+      ...(parsed.manifest ? checkPackage(parsed.manifest, read.files) : []),
+    ];
+    const name = `@${scope}/${short}`;
+    hash.update(`\0=${name}`);
+    items.push({
+      local,
+      dir,
+      name,
+      type: "skill",
+      files: read.files,
+      manifestText: read.manifestText,
+      skipped: walked.skipped,
+      warnings,
+      issues,
+      published: await isPublished(api, name),
+    });
+  }
+  return { registry: api.registry, to, items, refused, fingerprint: hash.digest("hex") };
 };
