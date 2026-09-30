@@ -1,5 +1,8 @@
 import { chmodSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { parseManifest } from "@ronneai/core";
+import { packItem } from "@ronneai/core/pack";
+import { type Change, claudeCodeRenderer } from "@ronneai/core/render";
 import { afterEach, describe, expect, it } from "vitest";
 import { apiClient } from "./api.js";
 import { diskHash, writeState } from "./apply.js";
@@ -357,7 +360,8 @@ describe("planExport", () => {
     });
     expect(result.items.map((i) => i.name)).toEqual(["@team/review"]);
     expect(result.refused.map((r) => [r.local, r.code])).toEqual([
-      ["copied", "registry_copy"],
+      // A registry copy is a proposal now (042); this one's item isn't in the registry.
+      ["copied", "base_not_found"],
       ["rendered", "rendered"],
       ["empty", "empty"],
       ["big", "too_large"],
@@ -392,7 +396,8 @@ describe("planExport", () => {
       {
         local: ".claude/skills/review",
         code: "installed",
-        message: `This is @team/review 1.0.0, installed by rmk. To change it, use Propose a change on its page: ${REGISTRY}/items/team/review`,
+        message:
+          "This is @team/review 1.0.0, installed by rmk and unchanged since: there's nothing to export.",
       },
     ]);
   });
@@ -1083,5 +1088,131 @@ describe("Codex's and Cursor's files (043)", () => {
     expect(manifest("jira")).toContain("command: jira-mcp");
     expect(manifest("tracker")).toContain("transport: http");
     expect(manifest("auditor")).toContain("- read");
+  });
+});
+
+describe("change proposals (042)", () => {
+  const encoder = new TextEncoder();
+  const AGENT_YAML = (description: string) =>
+    `name: "@team/reviewer"\ntype: agent\ndescription: ${description}\nkeywords: [review]\nagent:\n  prompt: prompt.md\n  tools: [read]\n`;
+  const agentFiles = (description = "Reviews.") => [
+    { path: "ronne.yaml", bytes: encoder.encode(AGENT_YAML(description)) },
+    { path: "prompt.md", bytes: encoder.encode("Review it.\n") },
+  ];
+
+  /** The registry: @team/reviewer at each version, with scopes and drafts. */
+  const setup = async (versions: string[]) => {
+    const registry = exportRoutes();
+    const routes: Record<string, Route> = { ...registry.routes };
+    for (const version of versions) {
+      const packed = await packItem(agentFiles(), { version });
+      routes[`GET /items/team/reviewer/${version}`] = () => ({
+        json: { version, sha256: packed.sha256 },
+      });
+      routes[`GET /items/team/reviewer/${version}/tarball`] = () => ({
+        bytes: packed.tgz,
+        headers: { "x-checksum-sha256": packed.sha256 },
+      });
+    }
+    routes["GET /items/team/reviewer"] = () => ({
+      json: {
+        type: "agent",
+        tags: { latest: versions.at(-1) },
+        versions: versions.map((version) => ({ version })),
+      },
+    });
+    io = fakeIo(routes);
+    return { api: apiClient(io.fetch, REGISTRY, "rmk_test_token"), drafts: registry.drafts };
+  };
+
+  /** Installs version 1.0.0 for Claude Code, as rmk would, and returns the file's path. */
+  const install = async () => {
+    const files = agentFiles();
+    const { changes } = claudeCodeRenderer.render(
+      {
+        name: "@team/reviewer",
+        version: "1.0.0",
+        manifest: { ...(parseManifest(AGENT_YAML("Reviews.")).manifest ?? {}), version: "1.0.0" },
+        files,
+      },
+      { scope: "project" },
+    );
+    const [change] = changes as Extract<Change, { kind: "file" }>[];
+    write(io.cwd, change?.path ?? "", String(change?.content));
+    const entry = { item: "@team/reviewer", kind: "file" as const, path: change?.path ?? "" };
+    writeState(places(io, "project").state, {
+      version: 1,
+      entries: [
+        {
+          ...entry,
+          version: "1.0.0",
+          targets: ["claude-code"],
+          sha256: (await diskHash(io.cwd, entry)) ?? "",
+        },
+      ],
+    });
+    return join(io.cwd, change?.path ?? "");
+  };
+
+  it("plans an edited install as a proposal from the installed version, and says when it's stale", async () => {
+    const { api } = await setup(["1.0.0", "1.1.0"]);
+    const path = await install();
+    writeFileSync(path, readFileSync(path, "utf8").replace("Review it.", "Review it; say why."));
+    const plan = await planExport(io, api, { items: ["reviewer"] });
+    expect(plan.refused).toEqual([]);
+    const [item] = plan.items;
+    expect(item).toMatchObject({
+      name: "@team/reviewer",
+      type: "agent",
+      proposal: {
+        item: "@team/reviewer",
+        baseVersion: "1.0.0",
+        stale: "1.1.0",
+        changes: { changed: ["prompt.md"], fields: [] },
+      },
+    });
+    expect(parseManifest(item?.manifestText ?? "").manifest?.keywords).toEqual(["review"]);
+    expect(item?.issues.filter((i) => i.severity === "error")).toEqual([]);
+  });
+
+  it("refuses an edit the item can't carry as nothing changed, saying what was left out", async () => {
+    const { api } = await setup(["1.0.0"]);
+    const path = await install();
+    writeFileSync(
+      path,
+      readFileSync(path, "utf8").replace("tools: Read", "tools: Read\ncolor: blue"),
+    );
+    const plan = await planExport(io, api, { items: ["reviewer"] });
+    expect(plan.items).toEqual([]);
+    expect(plan.refused).toEqual([
+      expect.objectContaining({ code: "no_changes", message: expect.stringContaining("`color`") }),
+    ]);
+  });
+
+  it("plans the person's own item whose name is published as a proposal from latest, or a new item with --new", async () => {
+    const { api } = await setup(["1.0.0", "1.1.0"]);
+    write(
+      io.cwd,
+      ".claude/agents/reviewer.md",
+      "---\nname: reviewer\ndescription: Reviews better.\ntools: Read\n---\nReview it.\n",
+    );
+    const plan = await planExport(io, api, { items: ["reviewer"], to: "team" });
+    expect(plan.items[0]?.proposal).toMatchObject({
+      baseVersion: "1.1.0",
+      stale: null,
+      changes: { fields: [{ field: "description", to: "Reviews better." }] },
+    });
+    const asNew = await planExport(io, api, { items: ["reviewer"], to: "team", new: true });
+    expect(asNew.items[0]).toMatchObject({ name: "@team/reviewer", published: true });
+    expect(asNew.items[0]?.proposal).toBeUndefined();
+  });
+
+  it("plans a registry copy as a proposal from its version, and --force as a new item", async () => {
+    const { api } = await setup(["1.0.0"]);
+    write(io.cwd, "copy/SKILL.md", "---\nname: reviewer\ndescription: R.\n---\nR.\n");
+    write(io.cwd, "copy/ronne.yaml", 'name: "@team/reviewer"\nversion: 1.0.0\ntype: agent\n');
+    const plan = await planExport(io, api, { items: ["copy"], to: "team" });
+    // A skill folder holding an agent's manifest: its type isn't the item's, so it's refused.
+    expect(plan.refused.map((r) => r.code)).toEqual(["type_mismatch"]);
   });
 });

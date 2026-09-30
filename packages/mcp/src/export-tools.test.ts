@@ -161,7 +161,9 @@ describe("list_local_items", () => {
       ...dryRun.planned.map((p) => [p.local, "yours"] as [string, string]),
       ...dryRun.refused.map((r) => [r.path, r.code] as [string, string]),
     ]);
-    const asRmkCode = (origin: string) => (origin === "installed_edited" ? "installed" : origin);
+    // An edited install and a registry copy are proposals (042); this registry lacks their items.
+    const asRmkCode = (origin: string) =>
+      origin === "installed_edited" || origin === "registry_copy" ? "base_not_found" : origin;
     expect(Object.fromEntries(listed.items.map((i) => [i.folder, asRmkCode(i.origin)]))).toEqual(
       Object.fromEntries(fromRmk),
     );
@@ -256,12 +258,13 @@ describe("plan_export", () => {
     expect(data.planId).toBeUndefined();
     expect(data.refused).toEqual([
       expect.objectContaining({ path: ".claude/skills/installed", code: "installed" }),
-      expect.objectContaining({ path: ".agents/skills/edited", code: "installed" }),
+      // Edited, it's a proposal (042), and this registry doesn't have its item.
+      expect.objectContaining({ path: ".agents/skills/edited", code: "base_not_found" }),
     ]);
-    expect(installed.content[0]?.text).toContain("Propose a change");
+    expect(installed.content[0]?.text).toContain("unchanged since: there's nothing to export");
     const copy = await plan({ items: [".claude/skills/copied"], to: "team" });
     expect((copy.structuredContent as { refused: { code: string }[] }).refused[0]?.code).toBe(
-      "registry_copy",
+      "base_not_found",
     );
   });
 

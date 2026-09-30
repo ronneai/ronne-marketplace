@@ -21,6 +21,7 @@ import {
   commandName,
   cursorAgentName,
   cursorCommandName,
+  type MergeResult,
   mcpServerName,
   ReadError,
   type ReadResult,
@@ -45,6 +46,7 @@ import { type ApiClient, ApiError } from "./api.js";
 import { diskHash, readState } from "./apply.js";
 import { RmkError, usage } from "./errors.js";
 import { type Finding, findDependencies } from "./export-dependencies.js";
+import { type BaseRef, readChange } from "./export-proposal.js";
 import { MCP_SETUP_ITEM, places, type Scope, scopeOf } from "./install.js";
 import type { Io } from "./io.js";
 import { SERVER_NAME } from "./mcp-setup.js";
@@ -593,6 +595,11 @@ export type ExportRequest = {
   scope?: string;
   /** Export a registry copy as a new item, and an item with a certain secret. */
   force?: boolean;
+  /**
+   * A new item even when the item is a change to a published one (042): a registry copy, or the
+   * person's own item whose name is published. Without it, those become change proposals.
+   */
+  new?: boolean;
 };
 
 /** A reason to look before uploading; `rmk` lists them in the preview. */
@@ -622,6 +629,14 @@ export type PlannedItem = {
   dependsOn: string[];
   /** It's here because another item uses it. */
   asDependency: boolean;
+  /** A change proposal to a published item (042): its base version, and what changed. */
+  proposal?: {
+    item: string;
+    baseVersion: string;
+    /** The item's newest version when it's newer than the base: rebase in the web app. */
+    stale: string | null;
+    changes: MergeResult["changes"];
+  };
 };
 
 export type RefusedItem = { local: string; code: string; message: string };
@@ -767,9 +782,9 @@ const ownershipRefusal = (
     case "installed":
       return {
         code: "installed",
-        message: `This is ${ownership.item} ${ownership.version}, installed by rmk${
-          ownership.edited ? " and edited since" : ""
-        }. To change it, use Propose a change on its page: ${pagePath(registry, ownership.item)}`,
+        message: ownership.edited
+          ? `This is ${ownership.item} ${ownership.version}, installed by rmk and edited since. Without --new, rmk export proposes the change; or use Propose a change on its page: ${pagePath(registry, ownership.item)}`
+          : `This is ${ownership.item} ${ownership.version}, installed by rmk and unchanged since: there's nothing to export.`,
       };
     case "rendered":
       return {
@@ -818,6 +833,64 @@ const isPublished = async (api: ApiClient, name: string): Promise<boolean> => {
     if (error instanceof ApiError && error.status === 404) return false;
     throw error;
   }
+};
+
+/** A published item's type and newest version, or null when the name isn't published. */
+const publishedItem = async (
+  api: ApiClient,
+  name: string,
+): Promise<{ type: string; latest: string | null } | null> => {
+  try {
+    const item = await api.get<PublishedItem>(itemPath(name));
+    return {
+      type: item.type,
+      latest: item.tags?.latest ?? item.versions?.[0]?.version ?? null,
+    };
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null;
+    throw error;
+  }
+};
+
+/** The secret scan over what would be uploaded (038): a certain secret, and warnings. */
+const scanFiles = (files: readonly PackageFile[]) => {
+  const warnings: ExportWarning[] = [];
+  let secret: string | null = null;
+  for (const file of files) {
+    const text = textOrNull(file);
+    if (text === null) continue;
+    const found = secretLike(text);
+    if (found?.certain) secret ??= `${file.path} contains ${found.kind}`;
+    else if (found)
+      warnings.push({
+        code: "possible_secret",
+        message: `${file.path} contains what may be ${found.kind}. Check it before uploading.`,
+        file: file.path,
+      });
+    if (process.platform === "win32" && text.startsWith("#!"))
+      warnings.push({
+        code: "not_executable",
+        message: `${file.path} starts with #! but Windows has no executable bit, so it arrives not executable. Set it in the web editor.`,
+        file: file.path,
+      });
+  }
+  return { secret, warnings };
+};
+
+/** Whose the item at a target is, from the few files that decide it. */
+const ownershipAt = async (io: Io, target: Target): Promise<Ownership> => {
+  const files: PackageFile[] =
+    target.type === "skill"
+      ? OWNERSHIP_FILES.flatMap((path) => {
+          const full = join(target.path, path);
+          return existsSync(full) && statSync(full).isFile()
+            ? [{ path, bytes: new Uint8Array(readFileSync(full)) }]
+            : [];
+        })
+      : target.type === "mcp-server"
+        ? []
+        : [{ path: basename(target.path), bytes: new Uint8Array(readFileSync(target.path)) }];
+  return ownershipOf(io, target, files);
 };
 
 const overLimitMessage = (over: OverLimit) =>
@@ -897,9 +970,101 @@ export const planExport = async (
   const items: PlannedItem[] = [];
   const refused: RefusedItem[] = [];
   const hash = createHash("sha256");
+  /**
+   * Plans a change proposal (042): the edit read against its base and merged onto it. Refused
+   * when it can't be read, when nothing the item carries changed, or when it holds a secret.
+   */
+  const planProposal = async (target: Target & { asDependency?: boolean }, base: BaseRef) => {
+    const refuse = (code: string, message: string) =>
+      refused.push({ local: target.local, code, message });
+    let change: Awaited<ReturnType<typeof readChange>>;
+    try {
+      change = await readChange(
+        io,
+        api,
+        {
+          type: target.type,
+          tool: target.tool,
+          path: target.path,
+          key: target.key,
+          scope: scopeOf(request.scope),
+        },
+        base,
+      );
+    } catch (error) {
+      if (error instanceof RmkError && !(error instanceof ApiError)) {
+        refuse(error.code, error.message);
+        return;
+      }
+      if (error instanceof ReadError) {
+        refuse(error.code, error.message);
+        return;
+      }
+      throw error;
+    }
+    const lost = change.local.warnings.map((w) => w.message);
+    if (change.merged.unchanged) {
+      refuse(
+        "no_changes",
+        `Nothing ${base.item} carries changed since ${base.version}${lost.length > 0 ? `; what changed can't be part of the item: ${lost.join(" ")}` : "."}`,
+      );
+      return;
+    }
+    const scanned = scanFiles(change.merged.files);
+    if (scanned.secret && (!request.force || target.type === "mcp-server")) {
+      refuse(
+        "secret",
+        `${scanned.secret}. Remove it (use an environment variable instead), or add --force.`,
+      );
+      return;
+    }
+    for (const file of change.merged.files)
+      hash.update(`\0${file.path}\0${sha256(file.bytes)}\0${file.executable ? 1 : 0}`);
+    hash.update(`\0=${base.item}@${base.version}`);
+    const latest = (await publishedItem(api, base.item))?.latest ?? null;
+    const deps = change.merged.manifest.dependencies;
+    items.push({
+      local: target.local,
+      path: target.path,
+      ...(target.key !== undefined ? { key: target.key } : {}),
+      name: base.item,
+      type: target.type,
+      files: change.merged.files,
+      manifestText: change.merged.manifestText,
+      skipped: target.type === "skill" ? walkItemFolder(target.path).skipped : [],
+      warnings: [...change.local.warnings, ...scanned.warnings],
+      issues: [],
+      published: false,
+      dependencies: deps && typeof deps === "object" ? { ...(deps as Record<string, string>) } : {},
+      dependsOn: [],
+      asDependency: target.asDependency === true,
+      proposal: {
+        item: base.item,
+        baseVersion: base.version,
+        stale: latest && latest !== base.version ? latest : null,
+        changes: change.merged.changes,
+      },
+    });
+  };
+
   for (const target of targets) {
     const { local, type } = target;
     const refuse = (code: string, message: string) => refused.push({ local, code, message });
+    // An edited install, or a registry copy, is a change to its item (042), unless --new.
+    if (!request.new) {
+      const ownership = await ownershipAt(io, target);
+      const base =
+        ownership.owner === "installed" && ownership.edited
+          ? { item: ownership.item, version: ownership.version }
+          : // --force still exports a registry copy as a new item (038).
+            ownership.owner === "registry_copy" && ownership.item && !request.force
+            ? { item: ownership.item, version: ownership.version }
+            : null;
+      if (base) {
+        await planProposal(target, base);
+        continue;
+      }
+    }
     const scopeFor = (files: readonly PackageFile[]) => {
       const scope = to ?? (type === "skill" ? manifestScope(files) : null);
       if (scope === null)
@@ -1059,26 +1224,9 @@ export const planExport = async (
       throw error;
     }
 
-    const warnings: ExportWarning[] = [...read.warnings];
-    let secret: string | null = null;
-    for (const file of read.files) {
-      const text = textOrNull(file);
-      if (text === null) continue;
-      const found = secretLike(text);
-      if (found?.certain) secret ??= `${file.path} contains ${found.kind}`;
-      else if (found)
-        warnings.push({
-          code: "possible_secret",
-          message: `${file.path} contains what may be ${found.kind}. Check it before uploading.`,
-          file: file.path,
-        });
-      if (process.platform === "win32" && text.startsWith("#!"))
-        warnings.push({
-          code: "not_executable",
-          message: `${file.path} starts with #! but Windows has no executable bit, so it arrives not executable. Set it in the web editor.`,
-          file: file.path,
-        });
-    }
+    const scanned = scanFiles(read.files);
+    const warnings: ExportWarning[] = [...read.warnings, ...scanned.warnings];
+    const secret = scanned.secret;
     // An MCP server's credentials are always taken out by its reader: no force puts one back.
     if (secret && (!request.force || type === "mcp-server")) {
       refuse(
@@ -1089,6 +1237,14 @@ export const planExport = async (
     }
 
     const name = String(read.manifest.name);
+    // The person's own item whose name is published with the same type: a change to it (042).
+    if (!request.new && !target.asDependency) {
+      const published = await publishedItem(api, name);
+      if (published?.type === type && published.latest) {
+        await planProposal(target, { item: name, version: published.latest });
+        continue;
+      }
+    }
     hash.update(`\0=${name}`);
     items.push({
       local,
@@ -1149,8 +1305,8 @@ const reachable = (findings: readonly Finding[], named: readonly Target[]): Find
 
 type PublishedItem = {
   type: string;
-  tags: Record<string, string>;
-  versions: { version: string }[];
+  tags?: Record<string, string>;
+  versions?: { version: string }[];
 };
 
 /**
@@ -1169,7 +1325,7 @@ const checkPublished = async (api: ApiClient, scope: string, findings: Finding[]
       if (error instanceof ApiError && error.status === 404) continue;
       throw error;
     }
-    const version = published.tags.latest ?? published.versions[0]?.version;
+    const version = published.tags?.latest ?? published.versions?.[0]?.version;
     if (published.type === finding.item.type && version) {
       finding.status = "published";
       finding.registry = { name, version };
@@ -1194,6 +1350,8 @@ const declareDependencies = (
   const planned = (f: Finding) =>
     f.item ? items.find((i) => i.path === f.item?.path && i.key === f.item?.key) : undefined;
   for (const item of items) {
+    // A proposal starts from its base's dependencies (042); only an addition rewrites ronne.yaml.
+    const declared = JSON.stringify(item.dependencies);
     const warn = (code: string, message: string) => item.warnings.push({ code, message });
     for (const finding of findings.filter((f) => f.usedBy.includes(item.local))) {
       const what = `${finding.reference.kind === "mcp-server" ? "the MCP server" : "the skill"} ${finding.reference.name}`;
@@ -1222,7 +1380,7 @@ const declareDependencies = (
       } else
         warn("dependency_missing", `It uses ${what}, which can't be declared: ${finding.note}`);
     }
-    if (Object.keys(item.dependencies).length > 0) {
+    if (JSON.stringify(item.dependencies) !== declared) {
       item.manifestText = withDependencies(item.manifestText, item.dependencies);
       const bytes = new TextEncoder().encode(item.manifestText);
       item.files = item.files.map((f) => (f.path === "ronne.yaml" ? { ...f, bytes } : f));

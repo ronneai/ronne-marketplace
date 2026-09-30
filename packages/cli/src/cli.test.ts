@@ -319,7 +319,7 @@ describe("rmk export", () => {
     expect(refused.exitCode).toBe(1);
     expect(JSON.parse(refused.stdout)).toMatchObject({
       ok: false,
-      refused: [{ path: ".claude/skills/deploy", code: "registry_copy" }],
+      refused: [{ path: ".claude/skills/deploy", code: "base_not_found" }],
       error: { code: "nothing_to_export" },
     });
 

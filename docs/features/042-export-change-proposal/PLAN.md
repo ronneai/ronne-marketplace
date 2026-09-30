@@ -26,7 +26,7 @@ the same change that completes it.
   *Done when:* tests with a fake registry cover each type installed and edited, a yanked base, an
   item no longer in the registry, and edits for two tools.
 
-- [ ] **4. `planExport` plans proposals.** The table in the spec's Behaviour: edited installs,
+- [x] **4. `planExport` plans proposals.** The table in the spec's Behaviour: edited installs,
   registry copies and published own names become proposals; `--new`; "nothing changed"; the
   change against the base in the plan.
   *Done when:* tests cover each row of the table, `--new`, and nothing changed.
