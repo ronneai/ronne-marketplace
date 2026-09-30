@@ -40,7 +40,7 @@ the same change that completes it.
   *Done when:* tests cover `201` with and without issues, each error row, `submitIssues` for a
   taken name and an unreleased dependency, and `url` with and without `PUBLIC_URL`.
 
-- [ ] **8. End to end.** Playwright: upload with a token from `POST /auth/token`, then open the
+- [x] **8. End to end.** Playwright: upload with a token from `POST /auth/token`, then open the
   returned URL signed in as that user and see the files in the editor; another user gets a 404.
   *Done when:* `pnpm test:e2e` passes.
 
