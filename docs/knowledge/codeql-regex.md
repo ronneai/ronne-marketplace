@@ -55,6 +55,9 @@ a match that runs to the end of the string before failing, and the next `${` doe
   `[^{}]*`, not `[^}]*`.
 - **Don't put two quantifiers side by side over overlapping characters**, such as `\s*\w*\s*`,
   `(a+)+`, `(a|a)*` or `.*.*`. Make each piece match something the next one can't.
+- **Split on the plain delimiter, then trim**, rather than `split(/\s*,\s*/)`: an unanchored
+  `\s*,` rescans every run of spaces that has no comma after it. CodeQL didn't flag this one in
+  `listOf` (040), but it's the same flaw, and it was fixed with the other.
 - **Bound what you can.** `{0,64}` instead of `*` when the thing has a known maximum (names are
   64 characters, a manifest 64 KB).
 - **Anchor both ends** (`^…$`) for "is this string exactly X" checks, and test the whole string

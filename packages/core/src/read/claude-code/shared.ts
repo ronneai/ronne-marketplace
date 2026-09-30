@@ -44,8 +44,12 @@ export const canonicalModel = (native: string): "fast" | "strong" | null => {
   return null;
 };
 
-/** A frontmatter value that may be a YAML list or a comma- (or space-) separated string. */
-export const listOf = (value: unknown, separator: RegExp = /\s*,\s*/): string[] => {
+/**
+ * A frontmatter value that may be a YAML list or a comma- (or space-) separated string. Parts are
+ * trimmed after splitting on a plain separator: a pattern such as `\s*,\s*` runs in quadratic
+ * time on long runs of spaces (docs/knowledge/codeql-regex.md).
+ */
+export const listOf = (value: unknown, separator: string | RegExp = ","): string[] => {
   if (Array.isArray(value)) return value.map((v) => String(v).trim()).filter(Boolean);
   if (typeof value === "string")
     return value

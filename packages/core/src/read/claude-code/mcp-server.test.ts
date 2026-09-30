@@ -200,4 +200,14 @@ describe("readMcpServer", () => {
       url: "https://x.example/${MCP_9LIVES_TOKEN}",
     });
   });
+
+  it("reads ${VAR:-default} in linear time, even on crafted input", () => {
+    const started = performance.now();
+    const crafted = "${A:-".repeat(100_000);
+    const result = read({ command: "server", args: [crafted, `a\${B:-x}b\${C}\${:-y}`] });
+    expect(result.manifest["mcp-server"]).toMatchObject({
+      args: [crafted, "a${B}b${C}${:-y}"],
+    });
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
 });

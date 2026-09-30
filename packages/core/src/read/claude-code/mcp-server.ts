@@ -22,15 +22,38 @@ export const mcpServerName = (key: string): string => toItemName(key);
 
 type Taken = { name: string; where: string };
 
-/** `${VAR:-default}` as `${VAR}`: the default isn't uploaded, since it may be a literal credential. */
-const withoutDefaults = (value: string, where: string, warnings: ReadWarning[]) =>
-  value.replace(/\$\{([A-Za-z_][A-Za-z0-9_]*):-[^}]*\}/g, (_match, name: string) => {
+const VAR_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+/**
+ * `${VAR:-default}` as `${VAR}`: the default isn't uploaded, since it may be a literal credential.
+ * A loop with indexOf, not a regex: a pattern for this runs in quadratic time on crafted input
+ * (docs/knowledge/codeql-regex.md).
+ */
+const withoutDefaults = (value: string, where: string, warnings: ReadWarning[]) => {
+  let out = "";
+  let from = 0;
+  for (;;) {
+    const start = value.indexOf("${", from);
+    if (start === -1) break;
+    const close = value.indexOf("}", start + 2);
+    if (close === -1) break;
+    const inner = value.slice(start + 2, close);
+    const colon = inner.indexOf(":-");
+    const name = colon === -1 ? "" : inner.slice(0, colon);
+    if (!VAR_NAME.test(name)) {
+      out += value.slice(from, start + 2);
+      from = start + 2;
+      continue;
+    }
     warnings.push({
       code: "field_dropped",
       message: `The default in \${${name}:-…} (${where}) was left out: it may be a literal credential. The installed item needs ${name} set.`,
     });
-    return `\${${name}}`;
-  });
+    out += `${value.slice(from, start)}\${${name}}`;
+    from = close + 1;
+  }
+  return out + value.slice(from);
+};
 
 export const readMcpServer = (
   key: string,
