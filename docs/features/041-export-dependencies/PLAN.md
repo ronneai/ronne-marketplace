@@ -11,7 +11,7 @@ the same change that completes it.
   servers behind tool names in agents, skills and commands.
   *Done when:* unit tests cover each source, and a file with none returns none.
 
-- [ ] **2. Findings.** In `packages/cli/src/export.ts`: each reference against the items found on
+- [x] **2. Findings.** In `packages/cli/src/export.ts`: each reference against the items found on
   disk, the state file, the current selection and the type table (`mayDependOn` in core), followed
   through dependencies of dependencies.
   *Done when:* tests cover every row of the spec's table, a shared dependency counted once, and a
