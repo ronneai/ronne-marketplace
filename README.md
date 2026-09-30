@@ -59,7 +59,7 @@ and SQLite needs no server. No clone is needed, only [`compose.yaml`](compose.ya
 mkdir ronne && cd ronne
 curl -fsSLO https://raw.githubusercontent.com/ronneai/ronne-marketplace/main/compose.yaml
 docker compose up -d                          # pulls the image and starts Ronne
-docker compose exec web pnpm run setup        # asks the same questions as above
+docker compose exec web pnpm run setup        # database, public URL and the root account
 docker compose restart web                    # picks up the new settings
 ```
 
@@ -70,15 +70,21 @@ Open http://localhost:3000 (or set `RONNE_PORT` before `up`). Until setup has ru
   volume (Docker names it `ronne-marketplace_ronne-data`), mounted at `/app/data`. Recreating or upgrading the container keeps it. Back up that volume.
 - **Upgrading:** `docker compose pull web && docker compose up -d`. Pending database migrations run
   when the container starts. If they fail, the container stops instead of serving a half-migrated database.
-- **Versions:** `latest` is the newest stable release. To pin one, set `RONNE_IMAGE` in the
-  environment or in a `.env` file next to `compose.yaml`: `RONNE_IMAGE=ronneai/marketplace:0.1.0`.
-  Each release is tagged `X.Y.Z`, `X.Y` and, from major 1, `X`; a pre-release only `X.Y.Z`. The
-  image is built for `linux/amd64` and `linux/arm64`, carries the same version as the npm packages,
-  and has BuildKit provenance and SBOM attestations (`docker buildx imagetools inspect ronneai/marketplace:latest`).
+- **Versions:** to pin one, set `RONNE_IMAGE` in the environment or in a `.env` file next to
+  `compose.yaml`: `RONNE_IMAGE=ronneai/marketplace:0.1.1`. The tags:
+
+  | Tag | Meaning |
+  |---|---|
+  | `latest` | The newest stable release |
+  | `X.Y.Z` | One release, never moved |
+  | `X.Y` | The newest patch of that minor |
+  | `X` | The newest release of that major, from major 1 |
+
+  A pre-release gets only its `X.Y.Z` tag, and `latest` doesn't move. Every image is built for
+  `linux/amd64` and `linux/arm64`, carries the same version as the npm packages, and has BuildKit
+  provenance and SBOM attestations (`docker buildx imagetools inspect ronneai/marketplace:latest`).
 - **Pull limits:** Docker Hub allows anonymous pulls of 100 per 6 hours per address, and 200 for a
   free account that's logged in (`docker login`). A busy shared address can hit it.
-- **Building from a checkout** (contributors): `docker compose -f compose.yaml -f compose.build.yaml up -d --build`.
-  The override builds the local image under its own name, so a later `pull` never replaces it.
 - **PostgreSQL or MySQL instead of SQLite:** `docker compose --profile postgres up -d` (or
   `--profile mysql`) also starts that database. Set `RONNE_DB_PASSWORD` first. In setup, use host
   `postgres` (or `mysql`), and database and user `ronne`.
@@ -93,6 +99,10 @@ to the public address, for example `PUBLIC_URL=https://ronne.example.com docker 
 Set `TRUST_PROXY=true` too, so Ronne takes the client's address from the proxy's `X-Forwarded-For`:
 sign-in is then rate-limited per address as well as per email, and sessions record it. Only set it
 when a proxy you control sits in front of Ronne and adds that header; otherwise anyone could forge it.
+
+**Building the image from a checkout** (contributors):
+`docker compose -f compose.yaml -f compose.build.yaml up -d --build`. The override builds the local
+image under its own name, `ronne-web:local`, so a later `docker compose pull` never replaces it.
 
 ## The `rmk` CLI
 
