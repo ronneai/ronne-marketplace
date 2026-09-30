@@ -21,21 +21,27 @@ you create an empty database and a user first.
 git clone https://github.com/ronneai/ronne-marketplace.git
 cd ronne-marketplace
 pnpm install
-pnpm run setup          # not `pnpm setup`, which is a pnpm command that configures pnpm itself
-pnpm build && pnpm start
+pnpm build && pnpm start          # or `pnpm dev` while developing
 ```
 
-`pnpm run setup` asks which database to use, checks that it can connect and create tables, writes
-`apps/web/.env` (readable only by you), creates the tables, and creates the **root** account, which
-can do everything, including managing other users. Running it again is safe: it keeps your
-settings and never creates a second root.
+Then open http://localhost:3000 and follow the setup: it asks which database to use, checks that it
+can connect and create tables, asks for the public address and the **root** account (which can do
+everything, including managing other users), writes `apps/web/.env` (readable only by you), creates
+the tables and the root account, and sends you to sign in. No restart is needed. Anyone who can
+open that address first can set the instance up, so on a shared host do it straight away, or set it
+up from the terminal before exposing the port (below).
+
+The same setup runs in the terminal with `pnpm run setup` (not `pnpm setup`, which is a pnpm
+command that configures pnpm itself). Running either again is safe: they keep your settings and
+never create a second root. To start over on a development clone, `pnpm run reset-setup`.
 
 **Supported databases:** SQLite (the default), MySQL 8.4+, MariaDB 10.11+ and PostgreSQL 15+.
 On PostgreSQL 15 and later, a user that doesn't own the database also needs
 `GRANT CREATE ON SCHEMA public TO <user>;`. Setup tells you if it's missing.
 
-**Without prompts** (Docker, CI, scripts), pass `--yes` and give the values as environment
-variables. The password is never a flag:
+**Without prompts** (Docker, CI, scripts, or a public host you'd rather set up before exposing),
+pass `--yes` to `pnpm run setup` and give the values as environment variables. The password is
+never a flag:
 
 ```sh
 DATABASE_URL=file:./data/ronne.db PUBLIC_URL=https://ronne.example.com \
@@ -59,12 +65,13 @@ and SQLite needs no server. No clone is needed, only [`compose.yaml`](compose.ya
 mkdir ronne && cd ronne
 curl -fsSLO https://raw.githubusercontent.com/ronneai/ronne-marketplace/main/compose.yaml
 docker compose up -d                          # pulls the image and starts Ronne
-docker compose exec web pnpm run setup        # database, public URL and the root account
-docker compose restart web                    # picks up the new settings
 ```
 
-Open http://localhost:3000 (or set `RONNE_PORT` before `up`). Until setup has run, every page shows
-"This instance isn't set up yet", and `/api/health` answers `503`.
+Then open http://localhost:3000 (or set `RONNE_PORT` before `up`) and follow the setup in the
+browser: database, root account, done, with no restart. Until it has run, every page shows the
+setup and `/api/health` answers `503`. Anyone who can open that address first can set the
+instance up: do it straight away, or set it up from the terminal before exposing the port, with
+`docker compose exec web pnpm run setup` (or `-T … pnpm run setup --yes` with the variables above).
 
 - **Your data** (the SQLite file, stored items and the settings file) lives in the `ronne-data`
   volume (Docker names it `ronne-marketplace_ronne-data`), mounted at `/app/data`. Recreating or upgrading the container keeps it. Back up that volume.

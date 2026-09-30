@@ -44,17 +44,17 @@ try {
     databaseUrl: interactive ? undefined : command.databaseUrl,
     storagePath: interactive ? undefined : command.storagePath,
   });
-  // In the Docker image (RONNE_RUNTIME=docker) the server is already running and needs a restart.
+  // The app reads its settings on each request (feature 036), so a running server, in Docker or
+  // `pnpm dev`, picks the setup up without a restart.
   const done =
     process.env.RONNE_RUNTIME === "docker"
       ? [
           "Ronne AI Marketplace is set up.",
-          "Restart it with `docker compose restart web`,",
-          `then open ${result.publicUrl} and sign in as ${result.rootEmail}.`,
+          `Open ${result.publicUrl} and sign in as ${result.rootEmail}.`,
         ]
       : [
           "Ronne AI Marketplace is set up.",
-          "Start it with `pnpm build && pnpm start` (or `pnpm dev` while developing),",
+          "If it isn't running, start it with `pnpm build && pnpm start` (or `pnpm dev` while developing),",
           `then open ${result.publicUrl} and sign in as ${result.rootEmail}.`,
         ];
   if (interactive) p.outro(done.join("\n"));

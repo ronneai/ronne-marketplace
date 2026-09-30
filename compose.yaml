@@ -2,15 +2,16 @@
 # published image, ronneai/marketplace on Docker Hub, so no clone is needed.
 #
 #   docker compose up -d                            start Ronne (SQLite, data in the ronne-data volume)
-#   docker compose exec web pnpm run setup          set it up (asks questions), then:
-#   docker compose restart web
+#   then open http://localhost:3000 (or PUBLIC_URL) and follow the setup in the browser.
+#   Anyone who can open that address first can set it up: do it straight away, or set it up before
+#   exposing the port with `docker compose exec web pnpm run setup` (asks the same questions).
 #
 #   docker compose pull web && docker compose up -d       upgrade (migrations run on start)
 #   RONNE_IMAGE=ronneai/marketplace:0.1.0                 pin a version (environment or .env)
 #   docker compose -f compose.yaml -f compose.build.yaml up -d --build
 #                                                         build the image from this checkout instead
 #
-# To try it with PostgreSQL or MySQL instead of SQLite, add a profile, and point setup at it:
+# To try it with PostgreSQL or MySQL instead of SQLite, add a profile, and point the setup at it:
 #   docker compose --profile postgres up -d         then in setup: host "postgres", database and user "ronne"
 #   docker compose --profile mysql up -d            then in setup: host "mysql", database and user "ronne"
 # The database's password is RONNE_DB_PASSWORD (set it in the environment or a .env file next to

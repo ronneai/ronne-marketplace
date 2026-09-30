@@ -97,7 +97,7 @@ the same change that completes it.
   *Done when:* `pnpm test:e2e` passes, and `audit.e2e.ts` still finds one `instance.root_created`
   row on the main instance.
 
-- [ ] **7. Docker and the terminal path.** `scripts/setup.ts`'s closing message drops the
+- [x] **7. Docker and the terminal path.** `scripts/setup.ts`'s closing message drops the
   restart step; `compose.yaml`'s header and `.env.example` say to open the address; the README's
   Node and Docker sections say to open the address and follow the setup, keep the terminal
   commands, and carry the first-visitor sentence. Then build with `compose.build.yaml` and walk
@@ -167,6 +167,14 @@ the same change that completes it.
   have a "Password" field, so the tests select the setup fields by name and keep the labels for
   the sign-in page. The whole suite passed locally with the three servers: the wizard test also
   checks the audit log shows one `instance.root_created` row on its own instance.
+- Task 7: the terminal setup's closing message no longer says to restart (in Docker it says to
+  open the address; from a clone, to start the server if it isn't running). Checked with the
+  image built by `compose.build.yaml`, from a folder holding only `compose.yaml`
+  (`RONNE_IMAGE=ronne-web:local`): health 503, the wizard on `/setup` with the default SQLite
+  path inside the volume, `PUBLIC_URL` from the environment shown read-only with its note, the
+  three steps done, health 200 and root signed in, all without `docker compose restart web`; then
+  the same with `--profile postgres` (host `postgres`, database and user `ronne`,
+  `RONNE_DB_PASSWORD`), which reported "Connected to PostgreSQL 18.6".
 
 Facts the design rests on (checked in the code, 2026-09-29):
 
