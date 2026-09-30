@@ -278,3 +278,90 @@ test("rmk installs for Cursor, alone and with Claude Code, and removes cleanly",
     rmSync(project, { recursive: true, force: true });
   }
 });
+
+/**
+ * `rmk export` (038): a skill the person wrote in `.claude/skills/`, uploaded with the built `rmk`
+ * as a draft, which its author opens in the web editor with the same files. The folder on disk
+ * isn't changed, and what's never uploaded stays behind.
+ */
+test("rmk exports a hand-written skill as a draft that opens in the web editor", async ({
+  browser,
+  request,
+}) => {
+  const home = mkdtempSync(join(tmpdir(), "rmk-e2e-home-"));
+  const project = mkdtempSync(join(tmpdir(), "rmk-e2e-project-"));
+  const folder = join(project, ".claude/skills/e2e-cli-export");
+  mkdirSync(join(folder, "scripts"), { recursive: true });
+  // No name in the frontmatter: the uploaded copy gets one, the file on disk doesn't.
+  const skillMd =
+    "---\ndescription: Checks a diff before it's pushed.\n---\n\nRun scripts/check.sh.\n";
+  writeFileSync(join(folder, "SKILL.md"), skillMd);
+  writeFileSync(join(folder, "scripts/check.sh"), "#!/bin/sh\necho ok\n", { mode: 0o755 });
+  writeFileSync(join(folder, ".env"), "TOKEN=never-uploaded\n");
+  const token = await request.post("/api/v1/auth/token", {
+    data: { email: E2E_USERS.cliExporter, password: E2E_PASSWORD, name: "e2e rmk export" },
+  });
+  expect(token.status()).toBe(201);
+  const env = {
+    ...process.env,
+    HOME: home,
+    RMK_TOKEN: (await token.json()).token,
+    RMK_REGISTRY: baseURL,
+  };
+  const rmk = (...args: string[]) => {
+    try {
+      return {
+        code: 0,
+        out: execFileSync("node", [BIN, ...args], {
+          cwd: project,
+          env,
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "pipe"],
+        }),
+      };
+    } catch (error) {
+      const failed = error as { status: number; stdout: string; stderr: string };
+      return { code: failed.status, out: `${failed.stdout}${failed.stderr}` };
+    }
+  };
+
+  try {
+    const dryRun = rmk("export", "e2e-cli-export", "--to", `@${E2E_SCOPE}`, "--dry-run");
+    expect(dryRun.code, dryRun.out).toBe(0);
+    expect(dryRun.out).toContain(
+      `@${E2E_SCOPE}/e2e-cli-export  (from .claude/skills/e2e-cli-export)`,
+    );
+    expect(dryRun.out).toContain(".env  (may hold a secret)");
+
+    const exported = rmk("export", "e2e-cli-export", "--to", `@${E2E_SCOPE}`, "--yes", "--json");
+    expect(exported.code, exported.out).toBe(0);
+    const result = JSON.parse(exported.out);
+    expect(result.exported).toHaveLength(1);
+    const [draft] = result.exported;
+    expect(draft).toMatchObject({
+      name: `@${E2E_SCOPE}/e2e-cli-export`,
+      type: "skill",
+      issues: [],
+      skipped: [{ path: ".env", reason: "secret_file" }],
+    });
+    expect(draft.url).toMatch(new RegExp(`^${baseURL}/submissions/[0-9A-Z]{26}$`));
+    expect(readFileSync(join(folder, "SKILL.md"), "utf8")).toBe(skillMd);
+
+    const author = await browser.newPage();
+    await author.goto("/sign-in");
+    await author.getByLabel("Email").fill(E2E_USERS.cliExporter);
+    await author.getByLabel("Password", { exact: true }).fill(E2E_PASSWORD);
+    await author.getByRole("button", { name: "Sign in" }).click();
+    await expect(author).not.toHaveURL(/\/sign-in/);
+    await author.goto(draft.url);
+    const files = author.getByRole("list", { name: "Files" });
+    for (const path of [/SKILL\.md/, /ronne\.yaml/, /check\.sh/])
+      await expect(files.getByRole("button", { name: path })).toBeVisible();
+    await expect(files.getByRole("button", { name: /\.env/ })).toHaveCount(0);
+    await files.getByRole("button", { name: /SKILL\.md/ }).click();
+    await expect(author.getByLabel("Contents of SKILL.md")).toContainText("name: e2e-cli-export");
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+    rmSync(project, { recursive: true, force: true });
+  }
+});

@@ -1,5 +1,5 @@
 import { validRange } from "semver";
-import { parse as parseYaml } from "yaml";
+import { parseFrontmatter } from "./frontmatter.js";
 import type { ManifestIssue } from "./issues.js";
 import { type ItemType, isItemType, mayHaveDependencies } from "./item-types.js";
 import { DEFAULT_LIMITS, formatBytes, type PackageLimits } from "./limits.js";
@@ -55,20 +55,6 @@ const referencedFiles = (
   if (Array.isArray(manifest.files))
     for (const [i, path] of manifest.files.entries()) add(`files[${i}]`, path);
   return refs;
-};
-
-/** YAML frontmatter at the top of a Markdown file, or null. */
-const frontmatter = (text: string): Record<string, unknown> | null => {
-  const match = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(text);
-  if (!match) return null;
-  try {
-    const value = parseYaml(match[1] ?? "", { maxAliasCount: 0 });
-    return value && typeof value === "object" && !Array.isArray(value)
-      ? (value as Record<string, unknown>)
-      : null;
-  } catch {
-    return null;
-  }
 };
 
 /** Known token formats, as they'd appear if someone pasted a real secret. */
@@ -227,7 +213,7 @@ export const checkPackage = (
     const entry = String(((manifest.skill ?? {}) as Record<string, unknown>).entry ?? "SKILL.md");
     const content = text(byPath.get(entry));
     if (byPath.has(entry)) {
-      const meta = content === null ? null : frontmatter(content);
+      const meta = content === null ? null : parseFrontmatter(content).data;
       if (!meta)
         issues.push(
           error("skill_frontmatter", `${entry} needs YAML frontmatter with name and description.`, {

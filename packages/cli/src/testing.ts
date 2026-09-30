@@ -20,6 +20,8 @@ export type Route = (request: RouteRequest) => RouteAnswer | Promise<RouteAnswer
 export type FakeIo = Io & {
   requests: { method: string; path: string; headers: Record<string, string>; body: unknown }[];
   answers: string[];
+  /** Every question asked, in order. */
+  questions: string[];
   cleanup(): void;
 };
 
@@ -36,7 +38,11 @@ export const fakeIo = (
     interactive: options.interactive ?? true,
     requests: [],
     answers: [],
-    prompt: async () => io.answers.shift() ?? "",
+    questions: [],
+    prompt: async (question) => {
+      io.questions.push(question);
+      return io.answers.shift() ?? "";
+    },
     fetch: (async (input: string | URL | Request, init?: RequestInit) => {
       const url = new URL(
         typeof input === "string" ? input : input instanceof URL ? input.href : input.url,
@@ -288,3 +294,49 @@ export const buildRegistry = async () => {
   return { routes, packed };
 };
 export { run } from "./cli.js";
+
+export type FakeDraft = { id: string; name: string; type: string; files: unknown[] };
+
+/**
+ * The routes `rmk export` uses (037): the scopes, and a draft store that creates each upload, or
+ * answers `fail` for the names in it.
+ */
+export const exportRoutes = (
+  options: {
+    scopes?: { name: string; description: string }[];
+    fail?: Record<string, { status: number; json?: unknown }>;
+  } = {},
+) => {
+  const drafts: FakeDraft[] = [];
+  const routes: Record<string, Route> = {
+    "GET /scopes": () => ({
+      json: {
+        scopes: options.scopes ?? [{ name: "team", description: "A team." }],
+        nextCursor: null,
+      },
+    }),
+    "POST /drafts": ({ body }) => {
+      const upload = body as { name: string; type: string; files: unknown[] };
+      const failure = options.fail?.[upload.name];
+      if (failure) return failure;
+      const id = `01DRAFT${String(drafts.length + 1).padStart(19, "0")}`;
+      drafts.push({ id, ...upload });
+      return {
+        status: 201,
+        json: {
+          id,
+          path: `/submissions/${id}`,
+          url: `${REGISTRY}/submissions/${id}`,
+          name: upload.name,
+          type: upload.type,
+          status: "draft",
+          files: upload.files.length,
+          bytes: 0,
+          issues: [],
+          submitIssues: [],
+        },
+      };
+    },
+  };
+  return { routes, drafts };
+};

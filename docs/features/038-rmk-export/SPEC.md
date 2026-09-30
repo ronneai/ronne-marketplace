@@ -105,15 +105,18 @@ that nothing is submitted until the person does it in the web app.
 **Without a terminal, or with `--json`,** nothing is asked: `--to` and `--yes` are required
 (`--dry-run` needs neither), and a missing one is a usage error whose details list the scopes.
 `--json` prints `{ ok, registry, to, exported: [{ local, name, type, id, url, issues, submitIssues,
-warnings, skipped }], refused: [{ path, code, message }] }`.
+warnings, skipped }], refused: [{ path, code, message }] }`. With `--dry-run`, `planned` lists each
+item as it would be uploaded (`local`, `name`, `type`, `files` with sizes, `manifest`, `skipped`,
+`warnings`, `issues`, `published`); with no items named, `found` lists the skills found.
 
 **Exit codes** (022): 0 when the uploads were made, or the person answered no; 1 on an error,
 including an upload that failed after others succeeded (the output says which drafts exist); 2 for
 a usage error.
 
 **For the features that build on this.**
-- `packages/core/src/read/` holds the readers: `readSkill(files, { itemName, existingManifest? })`
-  returns `{ manifest, manifestText, files, warnings, references }`. It reads no disk and no
+- `packages/core/src/read/` holds the readers: `readSkill(files, { itemName })` returns
+  `{ manifest, manifestText, files, warnings, references }`, finding a hand-written `ronne.yaml`
+  among the files, and `skillName(files, folderName)` suggests the short name. It reads no disk and no
   network, like a renderer (021), and is published as `@ronneai/core/read`. `references` is empty
   until 041.
 - `packages/cli/src/export.ts` holds the rest: finding items, walking folders, the ownership
@@ -159,17 +162,17 @@ a usage error.
 
 ## Acceptance criteria
 
-- [ ] `readSkill` turns the example skill's rendered folder back into an item that passes `parseManifest` and `checkPackage`, and rendering that item gives the same folder.
-- [ ] `rmk export` exports a hand-written skill from `.claude/skills/` and from `.agents/skills/`, in project and user scope, and prints the draft's address; the draft opens in the web editor with the same files.
-- [ ] An installed skill, an installed and edited one, a copy with a `version`, and a rendered rule or command are each refused with the item's name and the pointer; `--force` exports only the copy.
-- [ ] The scope comes from `--to`, the folder's `ronne.yaml`, or the prompt, and never from a default.
-- [ ] Nothing in the two skip lists, and no symbolic link, is ever in a request; a certain secret stops the item; the preview lists every skipped file.
-- [ ] `--dry-run` sends no `POST`; without a terminal, a missing `--to` or `--yes` exits 2 and sends none.
-- [ ] A long description is cut with a warning, and a missing `name` is set in the uploaded `SKILL.md` while the file on disk stays byte for byte the same.
-- [ ] `--json` prints the shape above, and the exit codes are as listed, including a partial upload.
-- [ ] `pnpm packages:check` and `pnpm release:smoke` pass with the new `@ronneai/core/read` entry and library exports.
-- [ ] An end-to-end test exports a skill with the built `rmk` against the Playwright instance.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] `readSkill` turns the example skill's rendered folder back into an item that passes `parseManifest` and `checkPackage`, and rendering that item gives the same folder.
+- [x] `rmk export` exports a hand-written skill from `.claude/skills/` and from `.agents/skills/`, in project and user scope, and prints the draft's address; the draft opens in the web editor with the same files.
+- [x] An installed skill, an installed and edited one, a copy with a `version`, and a rendered rule or command are each refused with the item's name and the pointer; `--force` exports only the copy.
+- [x] The scope comes from `--to`, the folder's `ronne.yaml`, or the prompt, and never from a default.
+- [x] Nothing in the two skip lists, and no symbolic link, is ever in a request; a certain secret stops the item; the preview lists every skipped file.
+- [x] `--dry-run` sends no `POST`; without a terminal, a missing `--to` or `--yes` exits 2 and sends none.
+- [x] A long description is cut with a warning, and a missing `name` is set in the uploaded `SKILL.md` while the file on disk stays byte for byte the same.
+- [x] `--json` prints the shape above, and the exit codes are as listed, including a partial upload.
+- [x] `pnpm packages:check` and `pnpm release:smoke` pass with the new `@ronneai/core/read` entry and library exports.
+- [x] An end-to-end test exports a skill with the built `rmk` against the Playwright instance.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Open questions
 

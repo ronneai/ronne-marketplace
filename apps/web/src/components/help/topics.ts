@@ -58,6 +58,20 @@ export const TOPICS = [
     ],
   },
   {
+    slug: "export",
+    title: "Exporting your own items",
+    summary: "Sending a skill you wrote in your AI tool to the marketplace as a draft, with rmk.",
+    sections: [
+      { id: "what", title: "What it's for" },
+      { id: "reads", title: "What it reads, and what it never uploads" },
+      { id: "scope", title: "Choosing the scope" },
+      { id: "preview", title: "The preview" },
+      { id: "next", title: "What arrives, and what to do next" },
+      { id: "installed", title: "Items rmk installed" },
+      { id: "options", title: "Options" },
+    ],
+  },
+  {
     slug: "versions",
     title: "Versions and tags",
     summary: "Semantic versions, dist-tags, deprecating and yanking.",
@@ -155,7 +169,7 @@ export type SectionOf<T extends TopicSlug> = Extract<Topic, { slug: T }>["sectio
 export const TOPIC_GROUPS: { label: string; topics: readonly TopicSlug[] }[] = [
   { label: "Getting started", topics: ["overview", "install", "roles"] },
   { label: "Organising", topics: ["scopes", "items"] },
-  { label: "Publishing", topics: ["review", "versions", "changes"] },
+  { label: "Publishing", topics: ["export", "review", "versions", "changes"] },
   { label: "Installing", topics: ["rmk", "mcp", "claude-code", "codex", "cursor"] },
 ];
 

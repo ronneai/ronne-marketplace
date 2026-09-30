@@ -32,6 +32,10 @@
       "types": "./dist/pack/index.d.ts",
       "default": "./dist/pack/index.js"
     },
+    "./read": {
+      "types": "./dist/read/index.d.ts",
+      "default": "./dist/read/index.js"
+    },
     "./render": {
       "types": "./dist/render/index.d.ts",
       "default": "./dist/render/index.js"

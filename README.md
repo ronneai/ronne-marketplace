@@ -93,7 +93,9 @@ image under its own name, `ronne-web:local`, so a later `docker compose pull` ne
 
 `rmk` installs approved items into your AI coding tools, and keeps them current: `login`, `search`,
 `info`, `install`, `update`, `outdated`, `remove`, `list`, `platforms` and `mcp-setup`, with a
-lockfile so a team gets the same files. Claude Code, Codex and Cursor are supported.
+lockfile so a team gets the same files. Claude Code, Codex and Cursor are supported. `rmk export`
+goes the other way: it sends a skill you wrote in your AI tool to the registry as a private draft,
+after showing you everything it would upload.
 
 The registry MCP server, `rmk-mcp` (`packages/mcp`), does the same from inside those tools: the
 assistant searches, shows a plan of what an install would change, and applies it once you've seen
@@ -105,6 +107,7 @@ Both are on npm, and need Node.js 22.12 or later:
 npm install --global @ronneai/rmk @ronneai/mcp
 rmk login --registry https://your-ronne-instance.example
 rmk install @scope/name
+rmk export my-skill --to @scope    # a skill from .claude/skills/, as a draft
 rmk mcp-setup                      # registers rmk-mcp with the AI tools this project uses
 ```
 
@@ -112,7 +115,8 @@ The package is [`@ronneai/rmk`](https://www.npmjs.com/package/@ronneai/rmk) beca
 `rmk` name is taken on npm; the command is still `rmk`. The server is
 [`@ronneai/mcp`](https://www.npmjs.com/package/@ronneai/mcp), and both build on
 [`@ronneai/core`](https://www.npmjs.com/package/@ronneai/core). The Documentation inside the app
-(Docs → Installing with rmk, and Registry MCP server) explains the commands and the files they write.
+(Docs → Installing with rmk, Exporting your own items, and Registry MCP server) explains the
+commands and the files they write.
 
 If you built them from a clone before and linked them, run `npm unlink --global @ronneai/rmk
 @ronneai/mcp` first, so the npm install is what `rmk` runs. Contributors can still run the local
