@@ -15,10 +15,10 @@ the same change that completes it.
   yanked version, a missing artifact, a checksum mismatch and an unchanged download count, and the
   proposal tests still pass.
 
-- [ ] **2. Canvas facts for everyone.** `dependencyFacts` in the items domain, from the catalogue's
+- [x] **2. Canvas facts for everyone.** `dependencyFacts` in the items domain, from the catalogue's
   `byNames` and `factsOf`, behind `account.manage_own`.
-  *Done when:* a db test covers a listed dependency, a missing one and a member without
-  `submissions.create`.
+  *Done when:* a db test covers a listed dependency, a missing one, a name that isn't one, and a
+  signed-out visitor.
 
 - [ ] **3. Shared code and canvas.** Move `CodeEditor`, `languages.ts` and `FileTree` to
   `components/code/`, and the canvas pieces (`ComposerCanvas`, nodes, context, css, `toGraph`, layout)

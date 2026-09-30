@@ -1,7 +1,13 @@
-import { ITEM_TYPES, type ItemType, isItemType } from "@ronneai/core";
+import { ITEM_TYPES, type ItemType, isItemType, parseItemName } from "@ronneai/core";
 import { rendererById } from "@ronneai/core/render";
 import { requirePermission } from "../../identity/models/permissions";
-import type { CatalogueCursor, CatalogueEntry, CatalogueSort } from "../models/catalogue";
+import {
+  type CatalogueCursor,
+  type CatalogueEntry,
+  type CatalogueSort,
+  type DependencyFacts,
+  factsOf,
+} from "../models/catalogue";
 import type { CatalogueRepository } from "../repositories/catalogue-repository";
 import type { ScopeActor } from "./scopes";
 
@@ -166,4 +172,27 @@ export const homeLists = async (deps: CatalogueDeps, actor: ScopeActor): Promise
     recent: recent.filter((entry) => entry.installable),
     mostUsed: await deps.catalogue.mostUsed(HOME_LIST_SIZE),
   };
+};
+
+/**
+ * The catalogue's facts about each of `names` (`@scope/name`), for an item page's read-only canvas
+ * (044). A name that isn't listed, or isn't a name, is left out.
+ */
+export const dependencyFacts = async (
+  deps: CatalogueDeps,
+  actor: ScopeActor,
+  names: readonly string[],
+): Promise<Record<string, DependencyFacts>> => {
+  requirePermission(actor.user, "account.manage_own");
+  const parsed = names.flatMap((name) => {
+    const ref = parseItemName(name);
+    return ref ? [ref] : [];
+  });
+  if (parsed.length === 0) return {};
+  return Object.fromEntries(
+    (await deps.catalogue.byNames(parsed)).map((entry) => [
+      `@${entry.scope}/${entry.name}`,
+      factsOf(entry),
+    ]),
+  );
 };

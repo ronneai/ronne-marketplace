@@ -5,7 +5,7 @@ import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-insta
 import { kyselyCatalogueRepository } from "../repositories/kysely-catalogue-repository";
 import * as service from "../services/catalogue";
 
-export type { CatalogueEntry } from "../models/catalogue";
+export type { CatalogueEntry, DependencyFacts } from "../models/catalogue";
 export type {
   CataloguePage,
   CatalogueQuery,
@@ -28,6 +28,13 @@ export const browseCatalogue = async (
   query: service.CatalogueQuery,
   app: AppAuth = getAppAuth(),
 ) => service.browseCatalogue(deps(app), await actor(headers, app), query);
+
+/** The catalogue's facts about an item page's dependencies, for its read-only canvas (044). */
+export const dependencyFacts = async (
+  headers: Headers,
+  names: readonly string[],
+  app: AppAuth = getAppAuth(),
+) => service.dependencyFacts(deps(app), await actor(headers, app), names);
 
 export const homeLists = async (headers: Headers, app: AppAuth = getAppAuth()) =>
   service.homeLists(deps(app), await actor(headers, app));

@@ -1,5 +1,5 @@
 import type { ItemType } from "@ronneai/core";
-import type { ToolSupport } from "@ronneai/core/render";
+import { installsIn, RENDERERS, type ToolSupport } from "@ronneai/core/render";
 
 /** How the catalogue sorts (feature 018): most recently published first, or by `@scope/name`. */
 export type CatalogueSort = "recent" | "name";
@@ -44,3 +44,23 @@ export type CatalogueFilter = {
   /** Only items with a version that can still be installed. */
   installable?: boolean;
 };
+
+/**
+ * What the catalogue says about a published item as a dependency (031, 044): its type, listed
+ * version, description and the tools it installs in (026).
+ */
+export type DependencyFacts = {
+  type: ItemType;
+  /** The listed version: `latest`'s, else the newest release. */
+  version: string;
+  description: string;
+  /** The AI tools it installs in, by name. */
+  tools: string[];
+};
+
+export const factsOf = (entry: CatalogueEntry): DependencyFacts => ({
+  type: entry.type,
+  version: entry.version,
+  description: entry.description,
+  tools: RENDERERS.filter((r) => installsIn(entry.support[r.id])).map((r) => r.name),
+});
