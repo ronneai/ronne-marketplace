@@ -1,0 +1,11 @@
+# Build the image from this checkout instead of pulling it from Docker Hub (feature 035):
+#
+#   docker compose -f compose.yaml -f compose.build.yaml up -d --build
+#
+# The local image gets its own name, so it never shadows the Docker Hub tag, and a later
+# `docker compose pull` never replaces a local build. Not named compose.override.yaml, which
+# Compose would load for everyone.
+services:
+  web:
+    build: .
+    image: ronne-web:local

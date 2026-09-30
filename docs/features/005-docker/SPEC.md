@@ -18,7 +18,8 @@ It works on amd64 and arm64, keeps all state on one volume, and survives upgrade
 - A CI job that builds the image for both architectures.
 
 **Out:**
-- Publishing images to a registry (GHCR) → at the first release.
+- Publishing the image to a registry → [035](../035-docker-hub-image/SPEC.md): Docker Hub, as
+  `ronneai/marketplace`, from the release workflow.
 - Kubernetes manifests or Helm charts → post-MVP, if asked for.
 
 ## Behaviour

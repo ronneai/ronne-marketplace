@@ -163,12 +163,12 @@ already shows the compose command, which doesn't change. What does change:
   image has the scanned image's layers.
 - [ ] A dry run from `main` builds, runs and scans both architectures and pushes nothing.
 - [ ] Re-running a finished release changes nothing on Docker Hub or npm and ends green.
-- [ ] `pnpm release:version` sets `apps/web` too, and the tag check covers it.
+- [x] `pnpm release:version` sets `apps/web` too, and the tag check covers it.
 - [ ] `image.yml` behaves as before with the shared composite action.
 - [ ] From an empty folder holding only `compose.yaml`: `docker compose up -d` answers `503
   setup_required`, setup runs in the container, and after a restart `/api/health` answers 200.
-- [ ] From a checkout, the `compose.build.yaml` override builds and runs the local image.
-- [ ] The README, MVP §5 and §15, 005's and 034's specs and the dependency policy say what the
+- [x] From a checkout, the `compose.build.yaml` override builds and runs the local image.
+- [x] The README, MVP §5 and §15, 005's and 034's specs and the dependency policy say what the
   feature does now.
 
 ## Open questions

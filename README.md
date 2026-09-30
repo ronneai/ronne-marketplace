@@ -51,12 +51,14 @@ everywhere and revokes its access tokens (`--yes` with `RONNE_ROOT_PASSWORD` wor
 
 ### With Docker
 
-You need Docker with Compose. Nothing else: the image has Node.js, and SQLite needs no server.
+You need Docker with Compose. Nothing else: the image,
+[`ronneai/marketplace`](https://hub.docker.com/r/ronneai/marketplace) on Docker Hub, has Node.js,
+and SQLite needs no server. No clone is needed, only [`compose.yaml`](compose.yaml):
 
 ```sh
-git clone https://github.com/ronneai/ronne-marketplace.git
-cd ronne-marketplace
-docker compose up -d                          # builds the image and starts Ronne
+mkdir ronne && cd ronne
+curl -fsSLO https://raw.githubusercontent.com/ronneai/ronne-marketplace/main/compose.yaml
+docker compose up -d                          # pulls the image and starts Ronne
 docker compose exec web pnpm run setup        # asks the same questions as above
 docker compose restart web                    # picks up the new settings
 ```
@@ -66,8 +68,17 @@ Open http://localhost:3000 (or set `RONNE_PORT` before `up`). Until setup has ru
 
 - **Your data** (the SQLite file, stored items and the settings file) lives in the `ronne-data`
   volume (Docker names it `ronne-marketplace_ronne-data`), mounted at `/app/data`. Recreating or upgrading the container keeps it. Back up that volume.
-- **Upgrading:** pull the new code, then `docker compose up -d --build`. Pending database migrations run
+- **Upgrading:** `docker compose pull web && docker compose up -d`. Pending database migrations run
   when the container starts. If they fail, the container stops instead of serving a half-migrated database.
+- **Versions:** `latest` is the newest stable release. To pin one, set `RONNE_IMAGE` in the
+  environment or in a `.env` file next to `compose.yaml`: `RONNE_IMAGE=ronneai/marketplace:0.1.0`.
+  Each release is tagged `X.Y.Z`, `X.Y` and, from major 1, `X`; a pre-release only `X.Y.Z`. The
+  image is built for `linux/amd64` and `linux/arm64`, carries the same version as the npm packages,
+  and has BuildKit provenance and SBOM attestations (`docker buildx imagetools inspect ronneai/marketplace:latest`).
+- **Pull limits:** Docker Hub allows anonymous pulls of 100 per 6 hours per address, and 200 for a
+  free account that's logged in (`docker login`). A busy shared address can hit it.
+- **Building from a checkout** (contributors): `docker compose -f compose.yaml -f compose.build.yaml up -d --build`.
+  The override builds the local image under its own name, so a later `pull` never replaces it.
 - **PostgreSQL or MySQL instead of SQLite:** `docker compose --profile postgres up -d` (or
   `--profile mysql`) also starts that database. Set `RONNE_DB_PASSWORD` first. In setup, use host
   `postgres` (or `mysql`), and database and user `ronne`.

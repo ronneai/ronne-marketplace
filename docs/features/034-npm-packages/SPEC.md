@@ -32,8 +32,9 @@ yet".
 
 **Versions.** The three packages share one version, starting at `0.1.0`: `rmk` and the server are
 built against the same core, and `workspace:^` becomes `^0.1.0` when pnpm packs them. `pnpm
-release:version <semver>` sets it in all three `package.json` files (and nowhere else) and checks
-the result with `pnpm install --frozen-lockfile`. `rmk --version` and the MCP server's
+release:version <semver>` sets it in all three `package.json` files and in `apps/web`'s, whose
+Docker image carries the same version ([035](../035-docker-hub-image/SPEC.md)), and nowhere else;
+the tag check covers the four. `rmk --version` and the MCP server's
 `serverInfo.version` already read their own `package.json`.
 
 **Package contents.** Each package gets `repository`, `homepage`, `bugs`, `keywords`, `engines`
@@ -45,7 +46,8 @@ maps unless decided, and `@ronneai/rmk` ships `testing` (027) only if the open q
 **The workflow** (`.github/workflows/release.yml`): on a pushed tag `vX.Y.Z` matching the
 packages' version, it runs the full checks (lint, typecheck, test, build, licenses, audit), packs
 the three packages, runs the smoke test on the tarballs, then publishes them in dependency order
-(core, rmk, mcp) with provenance, and creates a GitHub release for the tag. It uses npm's
+(core, rmk, mcp) with provenance. The GitHub release for the tag is created last, after the Docker
+image is published too ([035](../035-docker-hub-image/SPEC.md)). It uses npm's
 **trusted publishing** (OpenID Connect from GitHub Actions, no long-lived token), which the
 owner sets up once on npmjs.com for each package (see Open questions).
 

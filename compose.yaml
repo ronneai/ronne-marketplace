@@ -1,8 +1,14 @@
-# Ronne with Docker Compose (feature 005).
+# Ronne with Docker Compose (features 005 and 035). This file is enough on its own: it pulls the
+# published image, ronneai/marketplace on Docker Hub, so no clone is needed.
 #
 #   docker compose up -d                            start Ronne (SQLite, data in the ronne-data volume)
 #   docker compose exec web pnpm run setup          set it up (asks questions), then:
 #   docker compose restart web
+#
+#   docker compose pull web && docker compose up -d       upgrade (migrations run on start)
+#   RONNE_IMAGE=ronneai/marketplace:0.1.0                 pin a version (environment or .env)
+#   docker compose -f compose.yaml -f compose.build.yaml up -d --build
+#                                                         build the image from this checkout instead
 #
 # To try it with PostgreSQL or MySQL instead of SQLite, add a profile, and point setup at it:
 #   docker compose --profile postgres up -d         then in setup: host "postgres", database and user "ronne"
@@ -16,8 +22,7 @@ name: ronne-marketplace
 
 services:
   web:
-    build: .
-    image: ronne-web:local
+    image: ${RONNE_IMAGE:-ronneai/marketplace:latest}
     restart: unless-stopped
     ports:
       - "${RONNE_PORT:-3000}:3000"
