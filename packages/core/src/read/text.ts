@@ -3,18 +3,23 @@ import { isValidName, NAME_MAX_LENGTH } from "../names.js";
 /** The manifest's limit on `description` (manifest spec §1). */
 export const DESCRIPTION_MAX_LENGTH = 300;
 
+/** `value` without hyphens at either end; a loop rather than a regex, which CodeQL flags as slow. */
+const trimDashes = (value: string): string => {
+  let start = 0;
+  let end = value.length;
+  while (start < end && value[start] === "-") start += 1;
+  while (end > start && value[end - 1] === "-") end -= 1;
+  return value.slice(start, end);
+};
+
 /**
  * A native name as an item name: as it is when it's valid, else lowercase with `-` for every other
  * character (`My Skill!` → `my-skill`). Empty when nothing usable is left.
  */
 export const toItemName = (value: string): string => {
   if (isValidName(value, "item")) return value;
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, NAME_MAX_LENGTH)
-    .replace(/-+$/, "");
+  const dashed = trimDashes(value.toLowerCase().replace(/[^a-z0-9]+/g, "-"));
+  return trimDashes(dashed.slice(0, NAME_MAX_LENGTH));
 };
 
 /** On one line, whitespace collapsed. */
