@@ -26,6 +26,7 @@ export {
   type SkipReason,
   uploadExport,
 } from "./export.js";
+export { previewText } from "./export-command.js";
 export {
   chooseTargets,
   commitInstall,

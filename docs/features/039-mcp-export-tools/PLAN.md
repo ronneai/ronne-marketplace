@@ -16,7 +16,7 @@ the same change that completes it.
   *Done when:* a test compares its answer with `rmk export --dry-run --json` for the same folder,
   with a skill of each origin.
 
-- [ ] **3. `plan_export`.** Over `planExport`; the answer without `to` (scopes, `needs`, no
+- [x] **3. `plan_export`.** Over `planExport`; the answer without `to` (scopes, `needs`, no
   `planId`); the text of the plan.
   *Done when:* tests show no `planId` and no `POST` without a scope, a plan with one, and
   `scope_not_found` with the list.

@@ -10,7 +10,8 @@ import {
   run,
 } from "@ronneai/rmk/testing";
 import { afterEach, describe, expect, it } from "vitest";
-import { listLocalItems } from "./export-tools.js";
+import { listLocalItems, planExportTool, type StoredExport } from "./export-tools.js";
+import { planStore } from "./plan-tools.js";
 
 let io: FakeIo;
 afterEach(() => io?.cleanup());
@@ -163,5 +164,95 @@ describe("list_local_items", () => {
       scope: "user",
       items: [],
     });
+  });
+});
+
+describe("plan_export", () => {
+  const plan = (input: Parameters<typeof planExportTool>[2]) =>
+    planExportTool(io, planStore<StoredExport>(Date.now), input);
+  const posts = () => io.requests.filter((r) => r.method === "POST");
+
+  it("without a scope, answers the scopes and needs, with no planId, and sends nothing", async () => {
+    await project();
+    const result = await plan({ items: ["mine"] });
+    expect(result.isError).toBeUndefined();
+    expect(result.structuredContent).toEqual({
+      needs: ["to"],
+      scopes: [{ name: "team", description: "A team." }],
+    });
+    expect(result.content[0]?.text).toContain("Never choose it yourself.");
+    expect(posts()).toEqual([]);
+  });
+
+  it("with a scope, answers the plan and a planId, and sends nothing", async () => {
+    await project();
+    const result = await plan({ items: ["mine"], to: "@team" });
+    const data = result.structuredContent as Record<string, unknown>;
+    expect(data.planId).toEqual(expect.any(String));
+    expect(data).toMatchObject({
+      registry: REGISTRY,
+      to: "team",
+      refused: [],
+      items: [
+        {
+          local: ".claude/skills/mine",
+          name: "@team/mine",
+          type: "skill",
+          files: [
+            { path: "SKILL.md", executable: false },
+            { path: "ronne.yaml", executable: false },
+          ],
+          manifest: expect.stringContaining('name: "@team/mine"'),
+          published: false,
+        },
+      ],
+    });
+    const text = result.content[0]?.text ?? "";
+    expect(text).toContain("@team/mine  (from .claude/skills/mine)");
+    expect(text).toContain(`call export_items with planId "${data.planId}"`);
+    expect(posts()).toEqual([]);
+  });
+
+  it("answers scope_not_found with the list", async () => {
+    await project();
+    const result = await plan({ items: ["mine"], to: "nowhere" });
+    expect(result.isError).toBe(true);
+    expect(result.structuredContent).toMatchObject({
+      error: { code: "scope_not_found" },
+      needs: ["to"],
+      scopes: [{ name: "team", description: "A team." }],
+    });
+  });
+
+  it("takes only listed items: no other path, and installed items are refused with no planId", async () => {
+    await project();
+    write("elsewhere/tool/SKILL.md", skillMd("tool"));
+    const path = await plan({ items: ["elsewhere/tool"], to: "team" });
+    expect(path).toMatchObject({
+      isError: true,
+      structuredContent: { error: { code: "not_listed" } },
+    });
+    const installed = await plan({ items: ["installed", "edited"], to: "team" });
+    const data = installed.structuredContent as Record<string, unknown>;
+    expect(data.planId).toBeUndefined();
+    expect(data.refused).toEqual([
+      expect.objectContaining({ path: ".claude/skills/installed", code: "installed" }),
+      expect.objectContaining({ path: ".agents/skills/edited", code: "installed" }),
+    ]);
+    expect(installed.content[0]?.text).toContain("Propose a change");
+    const copy = await plan({ items: [".claude/skills/copied"], to: "team" });
+    expect((copy.structuredContent as { refused: { code: string }[] }).refused[0]?.code).toBe(
+      "registry_copy",
+    );
+  });
+
+  it("says when an item is stopped by a secret, and plans the rest", async () => {
+    await project();
+    write(".claude/skills/mine/config.md", `token: ghp_${"a1B2".repeat(9)}\n`);
+    const result = await plan({ items: ["mine", "installed"], to: "team" });
+    const data = result.structuredContent as { planId?: string; refused: { code: string }[] };
+    expect(data.planId).toBeUndefined();
+    expect(data.refused.map((r) => r.code)).toEqual(["secret", "installed"]);
+    expect(result.content[0]?.text).toContain("no plan to upload");
   });
 });

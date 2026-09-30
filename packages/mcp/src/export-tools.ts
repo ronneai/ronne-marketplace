@@ -1,5 +1,18 @@
-import { describeLocalItems, type Io, type Ownership } from "@ronneai/rmk/lib";
-import { answer, type ToolAnswer } from "./text.js";
+import {
+  connectRegistry,
+  describeLocalItems,
+  type ExportPlan,
+  type ExportRequest,
+  fetchScopes,
+  type Io,
+  type Ownership,
+  planExport,
+  previewText,
+  RmkError,
+  type Scopes,
+} from "@ronneai/rmk/lib";
+import type { PlanStore } from "./plan-tools.js";
+import { answer, failure, type ToolAnswer } from "./text.js";
 
 /**
  * Exporting from inside the AI tool (feature 039, MVP §7): 038's pipeline behind three tools. Only
@@ -72,4 +85,103 @@ export const listLocalItems = async (
       "Only items marked yours can be exported. To change an installed item, the person proposes a change on its page in the web app.",
     );
   return answer(lines, { scope, items });
+};
+
+/** What an export plan keeps until `export_items`: the request, to plan again and compare. */
+export type StoredExport = { request: ExportRequest };
+
+const scopesLines = (scopes: Scopes) =>
+  scopes.map((s) => `  @${s.name}${s.description ? `  ${s.description}` : ""}`);
+
+/** The answer when the person hasn't chosen a scope: the choices, and no plan to apply. */
+const askForScope = (scopes: Scopes, reason: string): ToolAnswer =>
+  answer(
+    [
+      reason,
+      ...scopesLines(scopes),
+      "Ask the person which scope to export to, then call plan_export again with to. Never choose it yourself.",
+    ],
+    { needs: ["to"], scopes },
+  );
+
+const plannedData = (plan: ExportPlan) =>
+  plan.items.map((item) => ({
+    local: item.local,
+    name: item.name,
+    type: item.type,
+    files: item.files.map((f) => ({
+      path: f.path,
+      size: f.bytes.length,
+      executable: f.executable ?? false,
+    })),
+    manifest: item.manifestText,
+    skipped: item.skipped,
+    warnings: item.warnings,
+    issues: item.issues,
+    published: item.published,
+  }));
+
+/**
+ * 038's plan for items `list_local_items` found, sending nothing. Only names or folders from that
+ * list are taken, never another path, and there's no force. Without `to` it answers the scopes and
+ * no `planId`: the scope is the person's choice.
+ */
+export const planExportTool = async (
+  io: Io,
+  store: PlanStore<StoredExport>,
+  input: { items: string[]; to?: string; name?: string; scope?: "project" | "user" },
+): Promise<ToolAnswer> => {
+  const scope = input.scope ?? "project";
+  const listed = await describeLocalItems(io, scope);
+  const unknown = input.items.filter(
+    (wanted) => !listed.some(({ item }) => item.name === wanted || item.display === wanted),
+  );
+  if (unknown.length > 0)
+    return failure(
+      "not_listed",
+      `${unknown.join(", ")} ${unknown.length === 1 ? "isn't" : "aren't"} among the items list_local_items finds${scope === "user" ? " in the home folder" : ""}. Only those can be exported from here; for another folder, the person runs rmk export in a terminal.`,
+    );
+
+  const { api } = connectRegistry(io);
+  if (!input.to) return askForScope(await fetchScopes(api), "Which scope should the drafts go in?");
+
+  const request: ExportRequest = {
+    items: input.items,
+    to: input.to,
+    name: input.name,
+    scope,
+    force: false,
+  };
+  let plan: ExportPlan;
+  try {
+    plan = await planExport(io, api, request);
+  } catch (error) {
+    if (error instanceof RmkError && error.code === "scope_not_found")
+      return {
+        ...askForScope(error.details.scopes as Scopes, `${error.message} These are the scopes:`),
+        isError: true,
+        structuredContent: {
+          error: { code: "scope_not_found", message: error.message },
+          needs: ["to"],
+          scopes: error.details.scopes,
+        },
+      };
+    throw error;
+  }
+
+  const me = await api.me();
+  const lines = [previewText(plan, me.email).trimEnd()];
+  const planId = plan.items.length > 0 ? store.put({ request }, plan.fingerprint) : null;
+  if (planId)
+    lines.push(
+      `To upload ${plan.items.length === 1 ? "it" : "them"} as private drafts, once the person has seen this plan, call export_items with planId "${planId}". It expires in 10 minutes. Nothing is submitted: the person reviews and submits each draft in the web app.`,
+    );
+  else lines.push("Nothing here can be exported, so there is no plan to upload.");
+  return answer(lines, {
+    ...(planId ? { planId } : {}),
+    registry: plan.registry,
+    to: plan.to,
+    items: plannedData(plan),
+    refused: plan.refused.map((r) => ({ path: r.local, code: r.code, message: r.message })),
+  });
 };
