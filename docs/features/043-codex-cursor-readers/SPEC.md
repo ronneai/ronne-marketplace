@@ -123,14 +123,14 @@ runtime dependencies don't change. `LocalItem` gains `tool`.
 
 ## Acceptance criteria
 
-- [ ] The mappings in `docs/spec/native-readers.md` for Codex and Cursor carry the date they were checked against each tool's documentation.
-- [ ] For each type in the table, the example item rendered for that tool reads back into an item that passes the schema and package checks, and rendering it again gives the same files where the type loses nothing.
-- [ ] Every dropped setting produces exactly one warning that names it, in the CLI's preview and in `plan_export`.
-- [ ] No value of a Codex `env` or Cursor `env`, and no literal credential from headers, appears in any request; a test greps the request bodies for the fixture's secrets.
-- [ ] Items `rmk` installed for Codex and Cursor (files, JSON keys, TOML keys, markers), and each tool's `ronne-registry` server, are refused or not listed.
-- [ ] The same name in two tools is ambiguous and `--from` (MCP: `from`) settles it; the list and the preview show each item's folder, which names its tool, and `--json` and the MCP tools carry `tool`.
-- [ ] An end-to-end test exports a Cursor rule and a Codex MCP server with the built `rmk`.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] The mappings in `docs/spec/native-readers.md` for Codex and Cursor carry the date they were checked against each tool's documentation.
+- [x] For each type in the table, the example item rendered for that tool reads back into an item that passes the schema and package checks, and rendering it again gives the same files where the type loses nothing.
+- [x] Every dropped setting produces exactly one warning that names it, in the CLI's preview and in `plan_export`.
+- [x] No value of a Codex `env` or Cursor `env`, and no literal credential from headers, appears in any request; a test greps the request bodies for the fixture's secrets.
+- [x] Items `rmk` installed for Codex and Cursor (files, JSON keys, TOML keys, markers), and each tool's `ronne-registry` server, are refused or not listed.
+- [x] The same name in two tools is ambiguous and `--from` (MCP: `from`) settles it; the list and the preview show each item's folder, which names its tool, and `--json` and the MCP tools carry `tool`.
+- [x] An end-to-end test exports a Cursor rule and a Codex MCP server with the built `rmk`.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Open questions
 

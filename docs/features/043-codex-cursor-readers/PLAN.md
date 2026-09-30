@@ -38,7 +38,7 @@ the same change that completes it.
 - [x] **6. End to end.** A Cursor rule and a Codex MCP server exported with the built `rmk`.
   *Done when:* `pnpm test:e2e` passes.
 
-- [ ] **7. Documentation.** The sections in the spec's Documentation section.
+- [x] **7. Documentation.** The sections in the spec's Documentation section.
   *Done when:* the docs render tests pass, and every new helper's link lands on a real section.
 
 ## Notes
