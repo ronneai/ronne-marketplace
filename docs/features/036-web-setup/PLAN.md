@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Shared steps and the audit origin.** `apps/web/src/server/setup/steps.ts`: the step
+- [x] **1. Shared steps and the audit origin.** `apps/web/src/server/setup/steps.ts`: the step
   logic now private in `run-setup.ts`, as four functions with no prompts and no logging, each
   opening and closing its own connection (`createDb`, never the cached pool): `checkDatabase(url)`
   (003's connection, version, charset and permission checks; a problem is `{ kind, explanation,
@@ -113,6 +113,14 @@ the same change that completes it.
   index says `done`.
 
 ## Notes
+
+- Task 1: `steps.ts` opens a connection per step (`createDb`), so its tests use a SQLite file in
+  a temporary folder rather than `createTestDb()`'s in-memory database, which would be a
+  different empty database on every open. `writeSettings` computes `restartNeeded` from the
+  process environment it's given (a `DATABASE_URL` or `PUBLIC_URL` there that differs from what
+  was written), not by re-reading the file. The terminal's logged lines didn't change:
+  `run-setup.db.test.ts` and `scripts/setup.db.test.ts` passed untouched, on SQLite, PostgreSQL
+  and MySQL.
 
 Facts the design rests on (checked in the code, 2026-09-29):
 

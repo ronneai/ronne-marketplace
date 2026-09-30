@@ -1,16 +1,5 @@
-import { mkdirSync } from "node:fs";
-import { isAbsolute, resolve } from "node:path";
-import {
-  type ConnectionFailure,
-  checkCharset,
-  checkConnection,
-  checkPermissions,
-  checkServerVersion,
-} from "../db/checks";
-import { createDb } from "../db/create-db";
-import { DatabaseAheadOfAppError, migrateToLatest } from "../db/migrate";
-import { type DatabaseDialect, redactDatabaseUrl } from "../db/url";
-import { createRoot, findRoot } from "../domains/identity/actions/root-account";
+import { DatabaseAheadOfAppError } from "../db/migrate";
+import { redactDatabaseUrl } from "../db/url";
 import { IdentityError } from "../domains/identity/exceptions/errors";
 import { validatePassword } from "../domains/identity/models/password";
 import { normalizeEmail, normalizeName } from "../domains/identity/models/user";
@@ -20,8 +9,17 @@ import {
   DEFAULT_PORTS,
   DEFAULT_SQLITE_PATH,
 } from "./database-url";
-import { generateAuthSecret, isWeakSecret, readEnvFile, updateEnvFile } from "./env-file";
+import { readEnvFile } from "./env-file";
 import type { SetupPrompts } from "./prompts";
+import { normalizePublicUrl, PUBLIC_URL_RULE } from "./public-url";
+import {
+  applyMigrations,
+  checkDatabase,
+  createRootAccount,
+  findRootAccount,
+  formatProblem,
+  writeSettings,
+} from "./steps";
 
 export type SetupOptions = {
   /** apps/web: SQLite paths and STORAGE_PATH are relative to it. */
@@ -45,16 +43,6 @@ export class SetupFailedError extends Error {
   }
 }
 
-const FAILURE_EXPLANATIONS: Record<ConnectionFailure, string> = {
-  invalid_url: "The connection details don't form a valid database URL.",
-  unreachable:
-    "Couldn't reach the database server. Check the host and port, and that the server is running.",
-  auth_failed: "The server refused the user name or password.",
-  database_missing:
-    "The server has no database with that name. Create it first; setup doesn't create databases.",
-  unknown: "The connection failed.",
-};
-
 const wrap = (validate: (value: string) => unknown) => (value: string) => {
   try {
     validate(value);
@@ -64,7 +52,10 @@ const wrap = (validate: (value: string) => unknown) => (value: string) => {
   }
 };
 
-/** The interactive (or scripted) setup from MVP §5 and feature 003. Each step is safe to repeat. */
+/**
+ * The interactive (or scripted) setup from MVP §5 and feature 003: the prompts and the loops,
+ * around the steps in `steps.ts` that the web setup (036) shares. Each step is safe to repeat.
+ */
 export const runSetup = async (options: SetupOptions): Promise<SetupResult> => {
   const { appDir, envPath, prompts } = options;
   const env = readEnvFile(envPath);
@@ -84,50 +75,45 @@ export const runSetup = async (options: SetupOptions): Promise<SetupResult> => {
       );
   }
 
-  let dialect: DatabaseDialect;
   let answers: DatabaseAnswers | undefined;
   for (;;) {
     if (!databaseUrl) {
       answers = await askDatabase(prompts, answers);
       databaseUrl = buildDatabaseUrl(answers);
     }
-    const problem = await validateDatabase(databaseUrl, appDir, prompts);
-    if (!problem) {
-      dialect = createDb(databaseUrl, { baseDir: appDir }).dialect;
+    const check = await checkDatabase(databaseUrl, { appDir });
+    if (check.ok) {
+      if (check.warning) prompts.log.warn(check.warning);
+      prompts.log.success(
+        `Connected to ${check.dialect === "sqlite" ? "SQLite" : check.serverVersion} and checked permissions.`,
+      );
       break;
     }
+    const problem = formatProblem(check.problem);
     prompts.log.error(problem);
     if (!prompts.interactive) throw new SetupFailedError(problem);
     databaseUrl = undefined;
   }
 
   // 5. Public URL.
-  const publicUrl = (
+  const publicUrl = normalizePublicUrl(
     await prompts.text({
       id: "public_url",
       message: "Where will people open Ronne AI Marketplace (PUBLIC_URL)?",
       initial: env.PUBLIC_URL || "http://localhost:3000",
-      validate: (value) =>
-        /^https?:\/\/[^\s/]+/.test(value.trim())
-          ? undefined
-          : "Use an http:// or https:// address.",
-    })
-  )
-    .trim()
-    .replace(/\/+$/, "");
+      validate: (value) => (normalizePublicUrl(value) ? undefined : PUBLIC_URL_RULE),
+    }),
+  ) as string;
 
   // 6. .env. An existing AUTH_SECRET is always kept: a new one would sign everyone out.
-  const storagePath = options.storagePath || env.STORAGE_PATH || "./data/storage";
-  const written = updateEnvFile(envPath, {
-    DATABASE_URL: databaseUrl,
-    AUTH_SECRET: env.AUTH_SECRET || generateAuthSecret(),
-    STORAGE_PATH: storagePath,
-    PUBLIC_URL: publicUrl,
+  const written = writeSettings({
+    appDir,
+    envPath,
+    databaseUrl,
+    publicUrl,
+    storagePath: options.storagePath,
   });
-  mkdirSync(isAbsolute(storagePath) ? storagePath : resolve(appDir, storagePath), {
-    recursive: true,
-  });
-  if (written.AUTH_SECRET && isWeakSecret(written.AUTH_SECRET)) {
+  if (written.weakSecret) {
     prompts.log.warn(
       "The AUTH_SECRET in .env is shorter than 32 characters. It's kept, but consider replacing it.",
     );
@@ -135,73 +121,75 @@ export const runSetup = async (options: SetupOptions): Promise<SetupResult> => {
   prompts.log.success(`Saved ${envPath} (readable only by you).`);
 
   // 7. Migrations.
-  const { db } = createDb(databaseUrl, { baseDir: appDir });
   try {
-    try {
-      const applied = await migrateToLatest(db, dialect);
-      prompts.log.success(
-        applied.length === 0
-          ? "The database is up to date."
-          : `Applied migrations: ${applied.join(", ")}.`,
-      );
-    } catch (error) {
-      if (error instanceof DatabaseAheadOfAppError) throw new SetupFailedError(error.message);
-      throw error;
-    }
-
-    // 8. Root account.
-    const existing = await findRoot(db, dialect);
-    if (existing) {
-      prompts.log.info(
-        `A root account already exists (${existing.email}). Setup doesn't create another.`,
-      );
-      if (existing.disabledAt) {
-        prompts.log.warn(
-          "That root account is disabled. Run `pnpm run reset-root-password` to enable it again.",
-        );
-      }
-      return { publicUrl, rootEmail: existing.email, rootCreated: false };
-    }
-
-    prompts.log.step(
-      "Create the root account: it can do everything, including managing other users.",
+    const { applied } = await applyMigrations(databaseUrl, { appDir });
+    prompts.log.success(
+      applied.length === 0
+        ? "The database is up to date."
+        : `Applied migrations: ${applied.join(", ")}.`,
     );
-    const email = await prompts.text({
-      id: "root.email",
-      message: "Root email",
-      validate: wrap(normalizeEmail),
-    });
-    const name = await prompts.text({
-      id: "root.name",
-      message: "Display name",
-      validate: wrap(normalizeName),
-    });
-    let password: string;
-    for (;;) {
-      password = await prompts.password({
-        id: "root.password",
-        message: "Password (12 to 128 characters)",
-        validate: wrap(validatePassword),
-      });
-      const again = await prompts.password({
-        id: "root.password_again",
-        message: "Type the password again",
-      });
-      if (again === password) break;
-      prompts.log.error("The two passwords don't match.");
-      if (!prompts.interactive) throw new SetupFailedError("The two passwords don't match.");
-    }
+  } catch (error) {
+    if (error instanceof DatabaseAheadOfAppError) throw new SetupFailedError(error.message);
+    throw error;
+  }
 
-    try {
-      const root = await createRoot(db, dialect, { email, name, password });
-      prompts.log.success(`Created the root account ${root.email}.`);
-      return { publicUrl, rootEmail: root.email, rootCreated: true };
-    } catch (error) {
-      if (error instanceof IdentityError) throw new SetupFailedError(error.message);
-      throw error;
+  // 8. Root account.
+  const existing = await findRootAccount(databaseUrl, { appDir });
+  if (existing) {
+    prompts.log.info(
+      `A root account already exists (${existing.email}). Setup doesn't create another.`,
+    );
+    if (existing.disabledAt) {
+      prompts.log.warn(
+        "That root account is disabled. Run `pnpm run reset-root-password` to enable it again.",
+      );
     }
-  } finally {
-    await db.destroy();
+    return { publicUrl, rootEmail: existing.email, rootCreated: false };
+  }
+
+  prompts.log.step(
+    "Create the root account: it can do everything, including managing other users.",
+  );
+  const email = await prompts.text({
+    id: "root.email",
+    message: "Root email",
+    validate: wrap(normalizeEmail),
+  });
+  const name = await prompts.text({
+    id: "root.name",
+    message: "Display name",
+    validate: wrap(normalizeName),
+  });
+  let password: string;
+  for (;;) {
+    password = await prompts.password({
+      id: "root.password",
+      message: "Password (12 to 128 characters)",
+      validate: wrap(validatePassword),
+    });
+    const again = await prompts.password({
+      id: "root.password_again",
+      message: "Type the password again",
+    });
+    if (again === password) break;
+    prompts.log.error("The two passwords don't match.");
+    if (!prompts.interactive) throw new SetupFailedError("The two passwords don't match.");
+  }
+
+  try {
+    const root = await createRootAccount(
+      databaseUrl,
+      { appDir },
+      { email, name, password },
+      {
+        via: "cli",
+      },
+    );
+    prompts.log.success(`Created the root account ${root.email}.`);
+    return { publicUrl, rootEmail: root.email, rootCreated: true };
+  } catch (error) {
+    if (error instanceof IdentityError) throw new SetupFailedError(error.message);
+    throw error;
   }
 };
 
@@ -274,43 +262,4 @@ const askDatabase = async (
     user: user.trim(),
     password,
   };
-};
-
-/** Returns a message describing what's wrong, or undefined when the database is ready to use. */
-const validateDatabase = async (
-  url: string,
-  appDir: string,
-  prompts: SetupPrompts,
-): Promise<string | undefined> => {
-  const connection = await checkConnection(url, { baseDir: appDir });
-  if (!connection.ok) return `${FAILURE_EXPLANATIONS[connection.kind]}\n${connection.message}`;
-
-  const version = checkServerVersion(connection.dialect, connection.serverVersion);
-  if (!version.supported) {
-    prompts.log.warn(
-      `${version.product} ${connection.serverVersion} is older than the minimum Ronne AI Marketplace supports (${version.minimum}). Setup continues, but it isn't tested.`,
-    );
-  }
-
-  const { db, dialect } = createDb(url, { baseDir: appDir });
-  try {
-    const charset = await checkCharset(db, dialect);
-    if (!charset.ok) {
-      return `The database uses the ${charset.charset} character set; Ronne AI Marketplace needs utf8mb4.\nRun: ALTER DATABASE <name> CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`;
-    }
-    const permissions = await checkPermissions(db, dialect);
-    if (!permissions.ok) {
-      const hint =
-        dialect === "postgres"
-          ? "\nOn PostgreSQL 15 and later, grant it with: GRANT CREATE ON SCHEMA public TO <user>; (or make the user the database owner)."
-          : "";
-      return `The database user can't ${permissions.step} tables: ${permissions.message}${hint}`;
-    }
-  } finally {
-    await db.destroy();
-  }
-  prompts.log.success(
-    `Connected to ${dialect === "sqlite" ? "SQLite" : connection.serverVersion} and checked permissions.`,
-  );
-  return undefined;
 };
