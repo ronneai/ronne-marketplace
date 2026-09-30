@@ -24,7 +24,7 @@ the same change that completes it.
 - [x] **4. The rule reader.** `read/claude-code/rule.ts`.
   *Done when:* tests cover `paths` as a list and as a string, and no `paths`.
 
-- [ ] **5. The MCP server reader.** `read/claude-code/mcp-server.ts`: transports, names without
+- [x] **5. The MCP server reader.** `read/claude-code/mcp-server.ts`: transports, names without
   values, literal credentials replaced, unsupported transports.
   *Done when:* a test proves no value from the fixture's `env` or headers is in the output, and the
   output passes `checkPackage`'s secret check.
