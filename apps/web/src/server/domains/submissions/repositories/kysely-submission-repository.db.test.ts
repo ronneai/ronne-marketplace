@@ -86,3 +86,16 @@ describe("isNameProposed", () => {
     expect(await proposed(open)).toBe(false);
   });
 });
+
+describe("countDrafts", () => {
+  it("counts only the author's drafts", async () => {
+    const repo = kyselySubmissionRepository(t.db, t.dialect);
+    const before = await repo.countDrafts(authorId);
+    await submissionIn(scopeId, "counted", "draft");
+    await submissionIn(otherScopeId, "counted", "draft");
+    await submissionIn(scopeId, "sent", "submitted");
+    await submissionIn(scopeId, "gone", "withdrawn");
+    expect(await repo.countDrafts(authorId)).toBe(before + 2);
+    expect(await repo.countDrafts("someone-else")).toBe(0);
+  });
+});

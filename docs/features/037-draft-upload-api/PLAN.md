@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. The service.** `createDraftFromFiles` in `submissions/services/drafts.ts`: the checks
+- [x] **1. The service.** `createDraftFromFiles` in `submissions/services/drafts.ts`: the checks
   `saveDraftFiles` runs on paths, content and limits, then the row and the files in one
   transaction, with no template. `createDraft` shares the insert. `countDrafts(authorId)` in the
   repository, and `DraftQuotaError`.

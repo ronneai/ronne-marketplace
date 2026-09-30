@@ -11,6 +11,7 @@ import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testi
 import { createScope } from "../../items/actions/scopes";
 import {
   DraftLimitError,
+  DraftQuotaError,
   DraftScopeNotFoundError,
   FileTooLargeError,
   InvalidFileContentError,
@@ -129,6 +130,152 @@ describe("createDraft", () => {
     await newAgent();
     await newAgent();
     expect(await listMySubmissions(asUser, app)).toHaveLength(2);
+  });
+});
+
+describe("createDraftFromFiles", () => {
+  const manifest = 'name: "@team/secure-coding"\ntype: skill\ndescription: Checks code.\n';
+  const upload = (files: service.UploadFile[], input = { scope: "team", name: "secure-coding" }) =>
+    getCurrentUser(asUser, app).then((user) =>
+      service.createDraftFromFiles(
+        { repo: kyselySubmissionRepository(t.db, t.dialect) },
+        { user },
+        { ...input, type: "skill", files },
+      ),
+    );
+  const skill = (): service.UploadFile[] => [
+    { path: "ronne.yaml", encoding: "utf8", content: manifest },
+    {
+      path: "SKILL.md",
+      encoding: "utf8",
+      content: "---\nname: secure-coding\ndescription: Checks code.\n---\nHi.\n",
+    },
+    { path: "scripts/check.sh", encoding: "utf8", content: "#!/bin/sh\n", executable: true },
+    { path: "logo.png", encoding: "base64", content: "iVBORw0KGgo=" },
+  ];
+  const draftCount = async () =>
+    Number(
+      (
+        await t.db
+          .selectFrom("submissions")
+          .select((eb) => eb.fn.countAll().as("n"))
+          .executeTakeFirstOrThrow()
+      ).n,
+    );
+  const fileCount = async () =>
+    Number(
+      (
+        await t.db
+          .selectFrom("submission_files")
+          .select((eb) => eb.fn.countAll().as("n"))
+          .executeTakeFirstOrThrow()
+      ).n,
+    );
+
+  it("creates the draft and its files together, with no template, for the author only", async () => {
+    const { draft, issues } = await upload(skill());
+    expect(draft).toMatchObject({
+      scope: { name: "team" },
+      name: "secure-coding",
+      type: "skill",
+      status: "draft",
+    });
+    expect(issues.filter((issue) => issue.severity === "error")).toEqual([]);
+    const stored = await getDraft(asUser, draft.id, app);
+    expect(stored.files).toEqual(draft.files);
+    expect(stored.files.map((f) => [f.path, f.encoding, f.executable])).toEqual([
+      ["SKILL.md", "utf8", false],
+      ["logo.png", "base64", false],
+      ["ronne.yaml", "utf8", false],
+      ["scripts/check.sh", "utf8", true],
+    ]);
+    expect(stored.files.find((f) => f.path === "logo.png")?.content).toBe("iVBORw0KGgo=");
+    await expect(getDraft(asOther, draft.id, app)).rejects.toThrow(SubmissionNotFoundError);
+  });
+
+  it("creates a draft with errors, and reports them as a save does", async () => {
+    const files = skill().map((file) =>
+      file.path === "ronne.yaml" ? { ...file, content: manifest.replace("skill", "rule") } : file,
+    );
+    const { draft, issues } = await upload(files);
+    expect(issues.map((issue) => issue.code)).toContain("type_mismatch");
+    expect((await getDraft(asUser, draft.id, app)).files).toHaveLength(4);
+  });
+
+  it("refuses bad input before writing anything", async () => {
+    const refused = [
+      [() => upload(skill(), { scope: "team", name: "no spaces" }), InvalidItemNameError],
+      [() => upload(skill(), { scope: "nowhere", name: "ok" }), DraftScopeNotFoundError],
+      [() => upload(skill().filter((f) => f.path !== "ronne.yaml")), ManifestRequiredError],
+      [
+        () => upload([...skill(), { path: "../x.md", encoding: "utf8", content: "x" }]),
+        InvalidFilePathError,
+      ],
+      [() => upload([...skill(), skill()[1] as service.UploadFile]), InvalidFilePathError],
+      [
+        () => upload([...skill(), { path: "x.bin", encoding: "base64", content: "not base64!" }]),
+        InvalidFileContentError,
+      ],
+      [
+        () =>
+          upload([
+            ...skill(),
+            { path: "big.md", encoding: "utf8", content: "x".repeat(1024 * 1024 + 1) },
+          ]),
+        FileTooLargeError,
+      ],
+    ] as const;
+    for (const [attempt, error] of refused) await expect(attempt()).rejects.toThrow(error);
+    await expect(
+      getCurrentUser(asUser, app).then((user) =>
+        service.createDraftFromFiles(
+          { repo: kyselySubmissionRepository(t.db, t.dialect) },
+          { user },
+          { scope: "team", name: "ok", type: "skil", files: skill() },
+        ),
+      ),
+    ).rejects.toThrow(InvalidItemTypeError);
+    await expect(
+      service.createDraftFromFiles(
+        { repo: kyselySubmissionRepository(t.db, t.dialect) },
+        { user: null },
+        { scope: "team", name: "ok", type: "skill", files: skill() },
+      ),
+    ).rejects.toThrow(ForbiddenError);
+    expect([await draftCount(), await fileCount()]).toEqual([0, 0]);
+  });
+
+  it("holds the file count and total size", async () => {
+    const user = await getCurrentUser(asUser, app);
+    const tight = (limits: { maxFiles: number; maxTotalBytes: number }) =>
+      service.createDraftFromFiles(
+        {
+          repo: kyselySubmissionRepository(t.db, t.dialect),
+          limits: { ...limits, maxFileBytes: 1024, maxPackedBytes: 1024 },
+        },
+        { user },
+        { scope: "team", name: "secure-coding", type: "skill", files: skill() },
+      );
+    await expect(tight({ maxFiles: 3, maxTotalBytes: 10_000 })).rejects.toThrow(DraftLimitError);
+    await expect(tight({ maxFiles: 10, maxTotalBytes: 50 })).rejects.toThrow(DraftLimitError);
+    expect([await draftCount(), await fileCount()]).toEqual([0, 0]);
+  });
+
+  it("refuses the 51st draft, counting the web's drafts but not submitted ones or others'", async () => {
+    for (let i = 0; i < service.MAX_API_DRAFTS - 1; i += 1)
+      await createDraft(asUser, { scope: "team", name: `d${i}`, type: "rule" }, app);
+    await createDraft(asOther, { scope: "team", name: "theirs", type: "rule" }, app);
+    const last = await upload(skill());
+    expect(last.draft.status).toBe("draft");
+    await expect(upload(skill())).rejects.toThrow(DraftQuotaError);
+    expect(await draftCount()).toBe(service.MAX_API_DRAFTS + 1);
+
+    await t.db
+      .updateTable("submissions")
+      .set({ status: "submitted" })
+      .where("id", "=", last.draft.id)
+      .execute();
+    await expect(upload(skill())).resolves.toMatchObject({ draft: { status: "draft" } });
   });
 });
 
