@@ -26,7 +26,7 @@ the same change that completes it.
   draft editor's `model.ts`). Given `hrefOf`, a dependency node links to its page.
   *Done when:* the draft editor and composer tests pass unchanged, and a test shows the node link.
 
-- [ ] **4. Overview model.** `bodyPathOf` and `settingsOf` in `features/item-page/overview/model.ts`.
+- [x] **4. Overview model.** `bodyPathOf` and `settingsOf` in `features/item-page/overview/model.ts`.
   *Done when:* unit tests cover every example type, and no MCP header value appears.
 
 - [ ] **5. Files viewer.** `FileContent` (Markdown rendered on the server with frontmatter and a
