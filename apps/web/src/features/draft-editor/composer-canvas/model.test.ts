@@ -153,13 +153,13 @@ describe("the layout file", () => {
 
   it("places dependencies without a position on a ring, in name order from the top", () => {
     expect(placeNodes([], {})).toEqual({});
-    expect(placeNodes(["@a/a"], {})).toEqual({ "@a/a": { x: 0, y: -300 } });
+    expect(placeNodes(["@a/a"], {})).toEqual({ "@a/a": { x: 0, y: -190 } });
     const four = placeNodes(["@d/d", "@b/b", "@a/a", "@c/c"], {});
     expect(four).toEqual({
-      "@a/a": { x: 0, y: -300 },
-      "@b/b": { x: 300, y: 0 },
-      "@c/c": { x: 0, y: 300 },
-      "@d/d": { x: -300, y: 0 },
+      "@a/a": { x: 0, y: -190 },
+      "@b/b": { x: 290, y: 0 },
+      "@c/c": { x: 0, y: 190 },
+      "@d/d": { x: -290, y: 0 },
     });
     // The author's positions win; the others keep their place on the ring.
     expect(placeNodes(["@a/a", "@b/b", "@c/c", "@d/d"], { "@b/b": { x: 40, y: 50 } })).toEqual({
@@ -168,12 +168,16 @@ describe("the layout file", () => {
     });
   });
 
-  it("grows the ring so a large set doesn't overlap", () => {
-    const names = Array.from({ length: 20 }, (_, i) => `@a/item-${String(i).padStart(2, "0")}`);
+  it.each([2, 3, 5, 6, 9, 20, 60])("grows the ring so %i nodes don't overlap", (count) => {
+    const names = Array.from({ length: count }, (_, i) => `@a/item-${String(i).padStart(2, "0")}`);
     const placed = Object.values(placeNodes(names, {}));
-    for (const [i, a] of placed.entries())
+    // A node is 240 wide and about 160 tall, and its position is its centre.
+    for (const [i, a] of placed.entries()) {
       for (const b of placed.slice(i + 1))
-        expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeGreaterThanOrEqual(295);
+        expect(Math.abs(a.x - b.x) >= 240 || Math.abs(a.y - b.y) >= 160, `${i}`).toBe(true);
+      // And clear of the draft's node in the centre.
+      expect(Math.abs(a.x) >= 250 || Math.abs(a.y) >= 120).toBe(true);
+    }
   });
 
   it("stores moves in whole pixels, and drops dependencies that are gone", () => {
@@ -183,7 +187,7 @@ describe("the layout file", () => {
       "@b/b": { x: 10, y: -1 },
     });
     // A name typed in the YAML can be anything.
-    expect(placeNodes(["constructor"], {})).toEqual({ constructor: { x: 0, y: -300 } });
+    expect(placeNodes(["constructor"], {})).toEqual({ constructor: { x: 0, y: -190 } });
   });
 });
 
@@ -248,7 +252,7 @@ describe("toGraph", () => {
   it("gives each node its range, position, catalogue facts and problems", () => {
     expect(graph.nodes[1]).toMatchObject({
       type: "dependency",
-      position: { x: 0, y: -300 },
+      position: { x: 0, y: -190 },
       data: {
         name: "@platform/secure-coding",
         range: "latest",

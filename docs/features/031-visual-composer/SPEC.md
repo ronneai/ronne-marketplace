@@ -31,26 +31,35 @@ keep seeing a plain text diff (MVP §15).
 
 **Where it is.** With `ronne.yaml` open in an `agent` or `bundle` draft, the view switch reads
 **Form · YAML · Canvas**. The canvas loads only when chosen (a separate client chunk), so the
-editor stays as fast as it is. Submitted drafts show it read-only, as they show the form.
+editor stays as fast as it is. The view is taller than a file's, for the canvas and the list under
+it. Submitted drafts show it read-only, as they show the form: nothing can be typed, removed or
+moved.
 
 **The canvas** (React Flow):
 - The draft itself is the centre node: its name and type. It stays in the centre; the dependencies
   are arranged around it.
 - Each dependency is a node joined to it by an edge: the item's name, its type badge, the range
-  (`^1.2.0`), and, from the catalogue, its latest version, its description, and the tools it works
-  in (026). A dependency that isn't published, or whose type isn't allowed, shows the same problem
-  the form shows (013's checks), in the node.
-- **Add**: a side panel searches the catalogue (018's search, filtered to the allowed types, and
+  (`^1.2.0`), and, from the catalogue, its listed version (`latest`'s, else the newest release),
+  its description, and the tools it works in (026). The node shows what submitting would say
+  about that dependency (013's checks): it isn't published, its type isn't allowed, no published
+  version matches the range, or it leads round in a circle. The registry is asked once typing
+  pauses; until it answers, the node says it is checking the catalogue.
+- **Add**: the panel under the canvas searches the catalogue (018's search, filtered to the allowed types, and
   to items with an installable version); choosing one adds a node with the range `^<latest>`,
   or `latest`'s version exactly for a pre-release-only item. Dragging from the panel onto the
   canvas does the same, where it's dropped.
 - **Change the range**: a field in the node, checked as the form checks it: a semver range
   (dist-tags aren't allowed in ranges, [manifest spec §3](../../spec/manifest.md)). A range that
   isn't one shows 011's problem in the node.
-- **Remove**: a button on the node, or Delete with the node selected.
-- Pan, zoom, fit to view, and a mini-map for larger sets. Everything also works from the keyboard:
-  nodes are focusable in list order, and the side panel lists every dependency, so nothing needs
-  a mouse (the form stays the accessible equivalent too).
+- **Remove**: a button on the node, or Delete or Backspace with the node selected and the focus
+  on the canvas.
+- Pan, zoom, fit to view, and a mini-map once there are 8 dependencies or more. The view is
+  fitted while the canvas opens; after that it only changes when the author changes it.
+- **The panel under the canvas** lists every dependency in name order, with the same range
+  field, problems and remove button; a name there brings its node into view.
+- Everything also works from the keyboard: nodes are focusable in name order, Enter or Space
+  selects one, the arrow keys move it, Delete removes it, and the panel's list does the rest, so
+  nothing needs a mouse (the form stays the accessible equivalent too).
 
 **Round-trip.** The canvas holds no state of its own beyond positions: it reads `dependencies`
 from the draft's parsed manifest and writes it back through the same change path the form uses,
@@ -72,8 +81,10 @@ starts with an automatic layout. The file editor shows `.ronne/layout.json` like
 isn't part of what's released (see Open questions).
 
 **Where it lives.** `apps/web/src/features/draft-editor/composer-canvas/` (MVP §9, feature-first),
-with its hooks, types and tests; the catalogue search for the picker is a server action over 018's
-`searchCatalogue`, as the catalogue page uses it.
+with its hooks, types and tests. What it reads from the registry is in the `submissions` domain
+(`services/composer.ts`), behind server actions: each dependency's catalogue facts and 013's
+problems, at most 50 dependencies a request (the canvas asks again for the rest), and the
+catalogue search for the picker, over 018's `searchCatalogue`, as the catalogue page uses it.
 
 **Dependency.** `@xyflow/react` (React Flow), MIT, through the dependency checklist in the PR.
 
@@ -84,8 +95,10 @@ with its hooks, types and tests; the catalogue search for the picker is a server
   submission to refuse.
 - **A dist-tag as the range** (`next`, typed in the node or the YAML): shown as is, with 011's
   problem, since a range has to be a semver range.
-- **The YAML doesn't parse**: the canvas shows the YAML view's error and a link to it, and edits
-  nothing until it parses.
+- **The YAML doesn't parse**: the canvas says it needs valid YAML, with a button to the YAML
+  view, and edits nothing until it parses.
+- **The registry can't be reached**: the dependencies show as `ronne.yaml` has them, the panel
+  says so, and the next change asks again.
 - **Many dependencies**: fit to view on open; the mini-map helps; no limit beyond the manifest's.
 - **A layout file that doesn't parse, is another version, or names items no longer there**:
   ignored, and rewritten on the next move.

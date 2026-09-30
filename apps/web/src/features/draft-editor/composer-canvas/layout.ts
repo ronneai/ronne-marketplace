@@ -5,9 +5,10 @@ export const LAYOUT_PATH = ".ronne/layout.json";
 
 const LAYOUT_VERSION = 1;
 
-/** The ring's smallest radius, and the room each node gets on it. */
-const RING_MIN = 300;
-const NODE_GAP = 300;
+/** The ring at its smallest: an ellipse, wider than tall like the nodes on it. */
+const RING = { x: 290, y: 190 };
+/** The room a node takes on the ring, with the gap to the next one. */
+const ROOM = { x: 270, y: 180 };
 
 const byName = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 
@@ -73,6 +74,27 @@ export const moveNodes = (
       .map(([name, { x, y }]) => [name, { x: Math.round(x), y: Math.round(y) }]),
   );
 
+const onRing = (index: number, count: number, scale: number): Position => {
+  const angle = (2 * Math.PI * index) / count - Math.PI / 2;
+  return {
+    x: Math.round(RING.x * scale * Math.cos(angle)),
+    y: Math.round(RING.y * scale * Math.sin(angle)),
+  };
+};
+
+/** How much the ring grows for `count` nodes, so each is a node clear of the next, across or down. */
+const ringScale = (count: number): number => {
+  let scale = 1;
+  const clear = () =>
+    Array.from({ length: count }, (_, i) => i).every((i) => {
+      const a = onRing(i, count, scale);
+      const b = onRing((i + 1) % count, count, scale);
+      return Math.abs(a.x - b.x) >= ROOM.x || Math.abs(a.y - b.y) >= ROOM.y;
+    });
+  while (count > 1 && !clear()) scale *= 1.05;
+  return scale;
+};
+
 /**
  * Where each dependency's node goes: where the author put it, or else on a ring around the draft's
  * node, which sits at the origin. The ring has a place for every dependency, in name order from
@@ -83,20 +105,8 @@ export const placeNodes = (
   layout: Layout,
 ): Record<string, Position> => {
   const names = [...dependencies].sort(byName);
-  const radius =
-    names.length < 2
-      ? RING_MIN
-      : Math.max(RING_MIN, Math.round(NODE_GAP / (2 * Math.sin(Math.PI / names.length))));
+  const scale = ringScale(names.length);
   return Object.fromEntries(
-    names.map((name, i) => {
-      const angle = (2 * Math.PI * i) / names.length - Math.PI / 2;
-      return [
-        name,
-        stored(layout, name) ?? {
-          x: Math.round(radius * Math.cos(angle)),
-          y: Math.round(radius * Math.sin(angle)),
-        },
-      ];
-    }),
+    names.map((name, i) => [name, stored(layout, name) ?? onRing(i, names.length, scale)]),
   );
 };

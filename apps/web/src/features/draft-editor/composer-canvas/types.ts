@@ -1,29 +1,22 @@
 import type { ItemType } from "@ronneai/core";
+import type {
+  DependencyFacts,
+  DependencyReport,
+} from "@/server/domains/submissions/models/composer";
+
+export type { DependencyFacts, DependencyReport };
 
 export type Position = { x: number; y: number };
 
 /** Where the author put each dependency's node, by `@scope/name` (`.ronne/layout.json`). */
 export type Layout = Readonly<Record<string, Position>>;
 
-/** What the catalogue says about a published item (018), with the tools it works in (026). */
-export type DependencyFacts = {
-  type: ItemType;
-  /** The listed version: `latest`'s, else the newest release. */
-  version: string;
-  description: string;
-  /** The AI tools it installs in, by name. */
-  tools: string[];
-};
-
-/** A dependency as the registry sees it: its facts, or null if it isn't published, and 013's problems. */
-export type DependencyReport = { facts: DependencyFacts | null; problems: string[] };
-
 export type ItemNodeData = { name: string; type: ItemType };
 
 export type DependencyNodeData = {
   name: string;
   range: string;
-  /** Undefined until the registry has answered. */
+  /** From the catalogue: null if it isn't published, undefined until the registry has answered. */
   facts: DependencyFacts | null | undefined;
   problems: string[];
 };

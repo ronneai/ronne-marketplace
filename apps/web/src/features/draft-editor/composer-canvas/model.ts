@@ -8,6 +8,9 @@ import type { ComposerEdge, ComposerNode, DependencyReport, Layout } from "./typ
 export const ITEM_NODE_ID = "item";
 export const dependencyNodeId = (name: string) => `dependency:${name}`;
 
+/** The types with a canvas: the ones whose dependencies are several kinds of item (MVP §3.1). */
+export const hasCanvas = (type: ItemType): boolean => type === "agent" || type === "bundle";
+
 const byName = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 
 /**
@@ -97,7 +100,7 @@ export const toGraph = ({
   type: ItemType;
   dependencies: Readonly<Record<string, string>>;
   layout: Layout;
-  reports?: Readonly<Record<string, DependencyReport>>;
+  reports?: Readonly<Record<string, DependencyReport | undefined>>;
   issues?: readonly ManifestIssue[];
 }): { nodes: ComposerNode[]; edges: ComposerEdge[] } => {
   const names = Object.keys(dependencies).sort(byName);

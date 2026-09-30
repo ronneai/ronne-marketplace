@@ -147,6 +147,21 @@ export const kyselyCatalogueRepository = (
       return (await query.execute()).map(toEntry);
     },
 
+    byNames: async (names) =>
+      names.length === 0
+        ? []
+        : (
+            await entries()
+              .where((eb) =>
+                eb.or(
+                  names.map(({ scope, name }) =>
+                    eb.and([eb("scopes.name", "=", scope), eb("items.name", "=", name)]),
+                  ),
+                ),
+              )
+              .execute()
+          ).map(toEntry),
+
     typeCounts: async (filter) =>
       (
         await filtered(
