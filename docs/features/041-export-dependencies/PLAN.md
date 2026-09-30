@@ -30,7 +30,7 @@ the same change that completes it.
   the usage error without a terminal, and the order in the result (from `submitIssues`).
   *Done when:* `cli.test.ts` covers each choice, each flag, and `--json`.
 
-- [ ] **6. The MCP tools.** `dependencies` in `plan_export`, the answer without it, and the
+- [x] **6. The MCP tools.** `dependencies` in `plan_export`, the answer without it, and the
   instructions.
   *Done when:* tests show no `planId` until it's given, and a plan that includes the dependencies.
 

@@ -48,6 +48,7 @@ describe("the registry MCP server", () => {
     const instructions = client.getInstructions() ?? "";
     expect(instructions).toContain("Ask the person which scope to export to; never choose it.");
     expect(instructions).toContain("Drafts are never submitted from here");
+    expect(instructions).toContain("ask whether to export those too, recommending it");
   });
 
   it("searches and reads items as rmk does", async () => {

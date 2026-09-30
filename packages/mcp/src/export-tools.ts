@@ -4,6 +4,7 @@ import {
   type ExportedItem,
   type ExportPlan,
   type ExportRequest,
+  type Finding,
   fetchScopes,
   type Io,
   type LocalItem,
@@ -11,6 +12,7 @@ import {
   planExport,
   previewText,
   RmkError,
+  releaseOrder,
   type Scopes,
   uploadExport,
 } from "@ronneai/rmk/lib";
@@ -107,6 +109,44 @@ const askForScope = (scopes: Scopes, reason: string): ToolAnswer =>
     { needs: ["to"], scopes },
   );
 
+const findingText = (finding: Finding): string => {
+  const what = `${finding.reference.kind === "mcp-server" ? "the MCP server" : "the skill"} ${finding.reference.name}`;
+  switch (finding.status) {
+    case "yours":
+      return `  ${what} (${finding.item?.display}): the person's own, not in the registry`;
+    case "installed":
+    case "published":
+      return `  ${what}: ${finding.registry?.name} ${finding.registry?.version}, from the registry; declared either way`;
+    case "selected":
+      return `  ${what}: already in this export`;
+    default:
+      return `  ${what}: can't be declared (${finding.note})`;
+  }
+};
+
+/** The answer when the items use the person's own items and they haven't said what to do. */
+const askForDependencies = (findings: Finding[]): ToolAnswer =>
+  answer(
+    [
+      "What's being exported uses:",
+      ...findings.map(findingText),
+      'Show these to the person and ask whether to export their own items too; recommend it, since without them the item won\'t work for whoever installs it. Then call plan_export again with dependencies: "include" (export them too) or "omit" (without them).',
+    ],
+    {
+      needs: ["dependencies"],
+      findings: findings.map((f) => ({
+        status: f.status,
+        reference: f.reference,
+        usedBy: f.usedBy,
+        ...(f.item
+          ? { item: { name: f.item.name, type: f.item.type, folder: f.item.display } }
+          : {}),
+        ...(f.registry ? { registry: f.registry } : {}),
+        ...(f.note ? { note: f.note } : {}),
+      })),
+    },
+  );
+
 const plannedData = (plan: ExportPlan) =>
   plan.items.map((item) => ({
     local: item.local,
@@ -122,6 +162,8 @@ const plannedData = (plan: ExportPlan) =>
     warnings: item.warnings,
     issues: item.issues,
     published: item.published,
+    dependencies: item.dependencies,
+    usedByAnother: item.asDependency,
   }));
 
 /**
@@ -139,6 +181,7 @@ export const planExportTool = async (
     scope?: "project" | "user";
     type?: string;
     description?: string;
+    dependencies?: "include" | "omit";
   },
 ): Promise<ToolAnswer> => {
   const { api } = connectRegistry(io);
@@ -177,11 +220,14 @@ export const planExportTool = async (
     scope,
     force: false,
     ...(input.description ? { description: input.description } : {}),
+    ...(input.dependencies ? { dependencies: input.dependencies } : {}),
   };
   let plan: ExportPlan;
   try {
     plan = await planExport(io, api, request);
   } catch (error) {
+    if (error instanceof RmkError && error.code === "dependencies_required")
+      return askForDependencies(error.details.findings as Finding[]);
     if (error instanceof RmkError && error.code === "scope_not_found")
       return {
         ...askForScope(error.details.scopes as Scopes, `${error.message} These are the scopes:`),
@@ -221,6 +267,12 @@ const draftLines = (exported: ExportedItem[]) =>
     ];
   });
 
+const orderLines = (order: ReturnType<typeof releaseOrder>) =>
+  order.map(
+    (step) =>
+      `Submit and release ${step.after.join(" and ")} first; then ${step.item} can be submitted.`,
+  );
+
 const REMINDER =
   "Nothing is submitted: the person opens each draft, checks it, and submits it in the web app.";
 
@@ -249,7 +301,11 @@ export const exportItemsTool = async (
     );
   try {
     const exported = await uploadExport(api, plan);
-    return answer([...draftLines(exported), REMINDER], { exported });
+    const order = releaseOrder(plan, exported);
+    return answer([...draftLines(exported), ...orderLines(order), REMINDER], {
+      exported,
+      ...(order.length > 0 ? { order } : {}),
+    });
   } catch (error) {
     if (!(error instanceof RmkError) || !Array.isArray(error.details.exported)) throw error;
     const exported = error.details.exported as ExportedItem[];
