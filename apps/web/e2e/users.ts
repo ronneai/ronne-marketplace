@@ -30,6 +30,8 @@ export const E2E_USERS = {
   depsExporter: "deps-exporter@e2e.test",
   depsModerator: "deps-moderator@e2e.test",
   toolsExporter: "tools-exporter@e2e.test",
+  changeExporter: "change-exporter@e2e.test",
+  changeModerator: "change-moderator@e2e.test",
 } as const;
 
 /** The display names, which the header shows (not the email). */
@@ -59,6 +61,8 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   depsExporter: "Dee Exporter",
   depsModerator: "Dee Moderator",
   toolsExporter: "Tia Exporter",
+  changeExporter: "Chan Exporter",
+  changeModerator: "Chan Moderator",
 };
 
 /** Seeded with the moderator role; everyone else is a user. */
@@ -66,6 +70,7 @@ export const E2E_MODERATORS: readonly (keyof typeof E2E_USERS)[] = [
   "moderator",
   "releaser",
   "depsModerator",
+  "changeModerator",
 ];
 
 /**

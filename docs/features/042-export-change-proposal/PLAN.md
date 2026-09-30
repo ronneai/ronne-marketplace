@@ -37,7 +37,7 @@ the same change that completes it.
   *Done when:* `cli.test.ts` and the MCP tests cover a proposal planned, uploaded and reported,
   and a stale one.
 
-- [ ] **6. End to end.** Install a published skill with the built `rmk`, edit it, export it as a
+- [x] **6. End to end.** Install a published skill with the built `rmk`, edit it, export it as a
   proposal; a moderator opens it and sees the diff to the base.
   *Done when:* `pnpm test:e2e` passes.
 
