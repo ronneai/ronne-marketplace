@@ -38,7 +38,7 @@ the same change that completes it.
   without a scope, plan, export, open the draft.
   *Done when:* `pnpm test:e2e` passes.
 
-- [ ] **8. Documentation.** `MCP_TOOLS` and the sections in the spec's Documentation section, the
+- [x] **8. Documentation.** `MCP_TOOLS` and the sections in the spec's Documentation section, the
   README's MCP section, and 027's spec where its sentences changed.
   *Done when:* the docs render tests pass, and every new helper's link lands on a real section.
 

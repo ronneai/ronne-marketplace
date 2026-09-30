@@ -99,7 +99,9 @@ after showing you everything it would upload.
 
 The registry MCP server, `rmk-mcp` (`packages/mcp`), does the same from inside those tools: the
 assistant searches, shows a plan of what an install would change, and applies it once you've seen
-it. `rmk mcp-setup` adds it to each tool's MCP settings.
+it. It can export a skill you wrote the same way: it asks which scope, shows every file it would
+upload, and creates the draft once you've approved. `rmk mcp-setup` adds it to each tool's MCP
+settings.
 
 Both are on npm, and need Node.js 22.12 or later:
 

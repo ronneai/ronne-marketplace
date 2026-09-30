@@ -104,14 +104,14 @@ but its author.
 
 ## Acceptance criteria
 
-- [ ] The server lists the three tools with the annotations above; `apply_plan` and `export_items` are the only tools that aren't read-only.
-- [ ] `list_local_items` gives the same items and origins as `rmk export --dry-run --json` in the same folder.
-- [ ] `plan_export` without `to` returns the scopes and no `planId`, and sends no `POST`; with `to` it returns the plan and sends none either.
-- [ ] `export_items` creates the drafts of exactly that plan and returns their addresses; it refuses an expired plan, a used one, a stale one (a file edited after the plan), and an install plan's id.
-- [ ] A path outside the listed items, and an installed item, are refused; there is no way to force them.
-- [ ] Without a token every tool that reaches the registry says to run `rmk login`; the token never appears in any output.
-- [ ] An end-to-end test drives the built `rmk-mcp` against the Playwright instance: list, plan without a scope, plan, export, and the draft opens in the web app.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] The server lists the three tools with the annotations above; `apply_plan` and `export_items` are the only tools that aren't read-only.
+- [x] `list_local_items` gives the same items and origins as `rmk export --dry-run --json` in the same folder.
+- [x] `plan_export` without `to` returns the scopes and no `planId`, and sends no `POST`; with `to` it returns the plan and sends none either.
+- [x] `export_items` creates the drafts of exactly that plan and returns their addresses; it refuses an expired plan, a used one, a stale one (a file edited after the plan), and an install plan's id.
+- [x] A path outside the listed items, and an installed item, are refused; there is no way to force them.
+- [x] Without a token every tool that reaches the registry says to run `rmk login`; the token never appears in any output.
+- [x] An end-to-end test drives the built `rmk-mcp` against the Playwright instance: list, plan without a scope, plan, export, and the draft opens in the web app.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Open questions
 
