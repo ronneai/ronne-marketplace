@@ -112,8 +112,9 @@ including an upload that failed after others succeeded (the output says which dr
 a usage error.
 
 **For the features that build on this.**
-- `packages/core/src/read/` holds the readers: `readSkill(files, { itemName, existingManifest? })`
-  returns `{ manifest, manifestText, files, warnings, references }`. It reads no disk and no
+- `packages/core/src/read/` holds the readers: `readSkill(files, { itemName })` returns
+  `{ manifest, manifestText, files, warnings, references }`, finding a hand-written `ronne.yaml`
+  among the files, and `skillName(files, folderName)` suggests the short name. It reads no disk and no
   network, like a renderer (021), and is published as `@ronneai/core/read`. `references` is empty
   until 041.
 - `packages/cli/src/export.ts` holds the rest: finding items, walking folders, the ownership

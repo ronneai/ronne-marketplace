@@ -11,7 +11,7 @@ the same change that completes it. Tasks 1 and 2 touch only `packages/core` and 
   `packages/core/src/package-checks.ts` into its own module, returning the data and the body.
   *Done when:* `package-checks.test.ts` passes unchanged and the parser has its own tests.
 
-- [ ] **2. The skill reader.** `packages/core/src/read/` with `readSkill`, the manifest writer
+- [x] **2. The skill reader.** `packages/core/src/read/` with `readSkill`, the manifest writer
   (YAML out, with the `yaml` package core already has), the types, and the `./read` entry in the
   package's `exports`. `docs/spec/native-readers.md` §1–4 updated wherever building changed them.
   *Done when:* a golden test shows the example skill's rendered folder reads back into an item

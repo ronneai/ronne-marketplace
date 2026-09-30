@@ -6,8 +6,8 @@ A reader is the reverse of a renderer ([MVP §3.3](../MVP/MVP.md#33-platform-ren
 renderer turns `ronne.yaml` into a tool's files, and a reader turns a tool's files into a
 `ronne.yaml` and the files that go with it ([manifest spec](./manifest.md)).
 
-Status: the skill reader is specified by 038; the other four types by 040. Nothing here is built
-yet. The mappings for agents, commands, rules and MCP servers were taken from the Claude Code
+Status: the skill reader is built (038, `readSkill` in `@ronneai/core/read`); the other four types
+are specified by 040. The mappings for agents, commands, rules and MCP servers were taken from the Claude Code
 renderer's tables (`packages/core/src/render/claude-code/`) and a read of Claude Code's
 documentation on 2026-09-30; 040's first task checks them again and dates this page.
 
@@ -27,7 +27,10 @@ documentation on 2026-09-30; 040's first task checks them again and dates this p
   the name is the native name when it's a valid item name, else it's put in lowercase with `-` for
   every other character.
 - **Descriptions** are one line and at most 300 characters (manifest spec §1): longer ones are cut
-  at a word, with a warning.
+  at a word and end with `…`, with a warning.
+- **Refusals.** Files that can't become an item at all (no entry file, a `ronne.yaml` that doesn't
+  parse or is another type's, a name that isn't `@scope/name`) raise a `ReadError` with a code;
+  `rmk` refuses that item and goes on with the others.
 - **`references`** are what the item uses that could be another item (a skill an agent loads, an
   MCP server a tool name points at). 041 turns them into `dependencies`.
 
@@ -66,14 +69,18 @@ nothing else, except `name` in the uploaded `SKILL.md`.
 |---|---|
 | `name` | `SKILL.md` frontmatter `name`, else the folder's name |
 | `type` | `skill` |
-| `description` | frontmatter `description`; without one, the body's first line |
+| `description` | frontmatter `description`; without one, the body's first line of text, without heading marks (with a warning) |
 | `license` | frontmatter `license` |
 | `skill.entry` | `SKILL.md` |
 | files | the whole folder, less §3 |
 
-- A `ronne.yaml` the person wrote in the folder is kept as the base; only `name` is set.
+- A `ronne.yaml` the person wrote in the folder is kept as the base, with its comments: only `name`
+  is set (and `type` when it's missing), and a `version` is removed with a warning. Its
+  `skill.entry` names the entry file. The reader finds it among the files it's given.
+- The short name `rmk` suggests is `SKILL.md`'s `name` when it's a valid item name, else the
+  folder's name made into one (`skillName`).
 - `SKILL.md`'s `name` must equal the item's short name (manifest spec §2): the uploaded copy gets
-  that line set or added.
+  that line set or added (a frontmatter block with only `name` when it has none), with a warning.
 - References (for 041): MCP servers named in `allowed-tools` (`mcp__<server>__…`).
 
 ## 5. Agent (040)
