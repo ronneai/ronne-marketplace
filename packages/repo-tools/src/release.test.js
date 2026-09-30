@@ -3,10 +3,11 @@ import { isVersion, sharedVersion, withVersion } from "./release.js";
 
 const pkg = (name, version) =>
   `{\n  "name": "${name}",\n  "version": "${version}",\n  "description": "x"\n}\n`;
-const texts = (core, cli, mcp) => ({
+const texts = (core, cli, mcp, web = core) => ({
   core: pkg("@ronneai/core", core),
   cli: pkg("@ronneai/rmk", cli),
   mcp: pkg("@ronneai/mcp", mcp),
+  web: pkg("@ronneai/web", web),
 });
 
 describe("release versions", () => {
@@ -19,14 +20,22 @@ describe("release versions", () => {
   it("sets one version everywhere, changing nothing else", () => {
     const next = withVersion(texts("0.0.0", "0.0.0", "0.0.0"), "0.1.0");
     expect(next.cli).toBe(pkg("@ronneai/rmk", "0.1.0"));
+    expect(next.web).toBe(pkg("@ronneai/web", "0.1.0"));
     expect(sharedVersion(next)).toBe("0.1.0");
     expect(() => withVersion(texts("0", "0", "0"), "one")).toThrow(/isn't a version/);
   });
 
-  it("names the packages whose versions differ", () => {
+  it("names the packages whose versions differ, the web app included", () => {
     expect(() => sharedVersion(texts("0.1.0", "0.1.0", "0.2.0"))).toThrow(
-      "The published packages have different versions: core 0.1.0, cli 0.1.0, mcp 0.2.0. Run pnpm release:version.",
+      "The published packages and the web app have different versions: core 0.1.0, cli 0.1.0, mcp 0.2.0, web 0.1.0. Run pnpm release:version.",
     );
+    expect(() => sharedVersion(texts("0.1.0", "0.1.0", "0.1.0", "0.0.0"))).toThrow(/web 0\.0\.0/);
+  });
+
+  it("needs the web app's package.json, since the image carries the version", () => {
+    const { web: _web, ...withoutWeb } = texts("0.1.0", "0.1.0", "0.1.0");
+    expect(() => withVersion(withoutWeb, "0.1.0")).toThrow("apps/web/package.json is missing.");
+    expect(() => sharedVersion(withoutWeb)).toThrow("apps/web/package.json is missing.");
   });
 
   it("checks a tag against the packages' version, as the release workflow does", async () => {

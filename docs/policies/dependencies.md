@@ -94,7 +94,10 @@ each tool is checked against a known-vulnerable fixture when it's added.
 private vulnerability reporting.
 
 **Publishing (from M4).** npm packages are published from CI with provenance, by accounts that use 2FA.
-Each release includes a CycloneDX SBOM and an up-to-date `THIRD_PARTY_NOTICES`.
+Each release includes a CycloneDX SBOM and an up-to-date `THIRD_PARTY_NOTICES`. The Docker image
+(`ronneai/marketplace`, feature 035) is published from the same release workflow, after each
+architecture was run and scanned with Trivy, and every image carries a BuildKit provenance
+attestation (`mode=max`) and an SPDX SBOM attestation, readable with `docker buildx imagetools inspect`.
 
 ## 4. Enforcement summary
 

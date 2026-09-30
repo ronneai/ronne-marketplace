@@ -1,0 +1,63 @@
+name: Build, run and scan the image
+description: >-
+  Builds the web app's Docker image for one architecture and loads it into the local Docker,
+  runs it until /api/health answers setup_required, and scans it with Trivy for fixable high and
+  critical vulnerabilities (docs/policies/dependencies.md §3). Shared by image.yml (every pull
+  request and push to main, feature 005) and release.yml (feature 035), so the image that's
+  published is checked exactly as the one on every pull request.
+
+inputs:
+  arch:
+    description: "amd64 or arm64; the runner must be that architecture (no emulation)"
+    required: true
+  tag:
+    description: "The local tag for the loaded image"
+    default: ronne-web:ci
+  cache-to:
+    description: "A cache-to value for the build, or empty to write no cache"
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+    # The cache is read from the scope image.yml writes on pushes to main.
+    - name: Build and load the image
+      uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+      env:
+        # The build summary and record artifact aren't used, and uploading them took ~30 s.
+        DOCKER_BUILD_SUMMARY: false
+        DOCKER_BUILD_RECORD_UPLOAD: false
+      with:
+        context: .
+        platforms: linux/${{ inputs.arch }}
+        load: true
+        tags: ${{ inputs.tag }}
+        cache-from: type=gha,scope=image-${{ inputs.arch }}
+        cache-to: ${{ inputs.cache-to }}
+
+    - name: Run it and check it answers in setup mode
+      shell: bash
+      env:
+        TAG: ${{ inputs.tag }}
+      run: |
+        docker run -d --name ronne -p 3000:3000 "$TAG"
+        for i in $(seq 1 60); do
+          body=$(curl -s http://127.0.0.1:3000/api/health || true)
+          case "$body" in *setup_required*) echo "OK: $body"; docker rm -f ronne >/dev/null; exit 0 ;; esac
+          sleep 1
+        done
+        echo "The container didn't answer with setup_required. Last response: $body"
+        docker logs ronne
+        exit 1
+
+    # Trivy's own image, pinned by digest (a multi-arch index), instead of a third-party action.
+    - name: Scan for known vulnerabilities (Trivy)
+      shell: bash
+      env:
+        TAG: ${{ inputs.tag }}
+      run: >-
+        docker run --rm -v /var/run/docker.sock:/var/run/docker.sock
+        aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969
+        image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 "$TAG"

@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 // Usage: node packages/repo-tools/src/release-check.js <tag>   (for example v0.1.0)
-// Checks that the tag names the version core, rmk and the MCP server share, and prints it; the
-// release workflow stops here when they differ, before publishing anything (feature 034).
+// Checks that the tag names the version core, rmk, the MCP server and the web app (its Docker
+// image, 035) share, and prints it; the release workflow stops here when they differ, before
+// publishing anything (feature 034).
 import { readFileSync } from "node:fs";
-import { PUBLISHED } from "./packs.js";
-import { sharedVersion } from "./release.js";
+import { sharedVersion, VERSIONED } from "./release.js";
 
 const tag = process.argv[2] ?? "";
 try {
   const texts = Object.fromEntries(
-    Object.keys(PUBLISHED).map((folder) => [
-      folder,
-      readFileSync(new URL(`../../${folder}/package.json`, import.meta.url), "utf8"),
+    Object.entries(VERSIONED).map(([key, path]) => [
+      key,
+      readFileSync(new URL(`../../../${path}`, import.meta.url), "utf8"),
     ]),
   );
   const version = sharedVersion(texts);

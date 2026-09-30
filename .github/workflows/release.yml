@@ -1,11 +1,24 @@
 name: Release
 
-# Publishes @ronneai/core, @ronneai/rmk and @ronneai/mcp to npm when a tag vX.Y.Z matching their
-# version is pushed (feature 034). npm's trusted publishing: GitHub's OIDC token proves the package
-# comes from this workflow, so there's no npm token to store, and every version gets provenance.
-# Each package must be linked to this repository, this workflow and the "npm" environment once on
-# npmjs.com, and the "npm" environment needs the owner as its required reviewer.
-# Run by hand with "dry run" to check everything without publishing.
+# Publishes a release when a tag vX.Y.Z matching the shared version is pushed:
+#
+# 1. `release` (feature 034): @ronneai/core, @ronneai/rmk and @ronneai/mcp to npm. npm's trusted
+#    publishing: GitHub's OIDC token proves the package comes from this workflow, so there's no npm
+#    token to store, and every version gets provenance. Each package must be linked to this
+#    repository, this workflow and the "npm" environment once on npmjs.com, and the "npm"
+#    environment needs the owner as its required reviewer: nothing runs without that click.
+# 2. `image` and `manifest` (feature 035): the web app's Docker image, docker.io/ronneai/marketplace,
+#    for linux/amd64 and linux/arm64. Each architecture is built natively, run and scanned with the
+#    same composite action as every pull request (.github/actions/build-image), then pushed by
+#    digest with OCI labels, and BuildKit provenance and SBOM attestations. The manifest job tags the
+#    multi-architecture list X.Y.Z, X.Y, X (not for major 0) and latest (not for a pre-release), and
+#    refuses to move a version that already points at other images. Docker Hub's credentials live in
+#    the "dockerhub" environment (DOCKERHUB_USERNAME, DOCKERHUB_TOKEN); it needs no reviewer of its
+#    own, since its jobs only run after the npm job the owner approved.
+# 3. `github-release`: the GitHub release, once every artefact of the version exists.
+#
+# Run by hand with "dry run" (from main, so the current workflow runs) to check everything, build,
+# run and scan both images, and publish nothing.
 
 on:
   push:
@@ -16,7 +29,7 @@ on:
         description: "The tag to check, such as v0.1.0 (it must match the packages' version)"
         required: true
       dry_run:
-        description: "Check and pack, but don't publish"
+        description: "Check, pack, build and scan, but don't publish"
         type: boolean
         default: true
 
@@ -30,6 +43,9 @@ concurrency:
 env:
   NEXT_TELEMETRY_DISABLED: "1"
   TURBO_TELEMETRY_DISABLED: "1"
+  IMAGE: docker.io/ronneai/marketplace
+  TAG: ${{ inputs.tag || github.ref_name }}
+  DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
 
 jobs:
   release:
@@ -41,11 +57,10 @@ jobs:
     environment: npm
     timeout-minutes: 30
     permissions:
-      contents: write # the GitHub release
+      contents: read
       id-token: write # npm trusted publishing and provenance
-    env:
-      TAG: ${{ inputs.tag || github.ref_name }}
-      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -101,8 +116,199 @@ jobs:
               npm publish "$tarball" --access public --provenance
             fi
           done
-      - name: GitHub release
+      # For the GitHub release, once the image is published too.
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: env.DRY_RUN != 'true'
+        with:
+          name: npm-tarballs
+          path: release/*.tgz
+          retention-days: 1
+          overwrite: true
+          if-no-files-found: error
+
+  # One job per architecture, each on a runner of that architecture (no emulation). The image is
+  # built, run and scanned first, exactly as on every pull request; only then it's pushed, untagged,
+  # by digest. The push is the same build again in the same builder (every layer a cache hit), and a
+  # guard checks the pushed image has the scanned image's layers.
+  image:
+    name: Image (${{ matrix.arch }})
+    needs: release
+    environment: dockerhub
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    env:
+      VERSION: ${{ needs.release.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/build-image
+        with:
+          arch: ${{ matrix.arch }}
+
+      # Nothing below runs on a dry run: the image was built, run and scanned, and stays here.
+      - name: Labels and annotations
+        id: meta
+        if: env.DRY_RUN != 'true'
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: ${{ env.IMAGE }}
+          # The tags aren't used here (the push is by digest); they're computed in `manifest`.
+          tags: type=raw,value=${{ env.VERSION }}
+          labels: |
+            org.opencontainers.image.title=Ronne AI Marketplace
+            org.opencontainers.image.description=Self-hosted, curated registry of AI capabilities for AI coding tools
+            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.version=${{ env.VERSION }}
+      # Its own step, so the token can become an OIDC connection (DOCKERHUB_OIDC_CONNECTIONID and
+      # id-token: write) once Docker-Sponsored Open Source accepts Ronne; nothing else changes.
+      - name: Log in to Docker Hub
+        if: env.DRY_RUN != 'true'
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Push by digest, with attestations
+        id: push
+        if: env.DRY_RUN != 'true'
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        env:
+          DOCKER_BUILD_SUMMARY: false
+          DOCKER_BUILD_RECORD_UPLOAD: false
+        with:
+          context: .
+          platforms: linux/${{ matrix.arch }}
+          labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=image-${{ matrix.arch }}
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+      - name: The pushed image has the scanned image's layers
         if: env.DRY_RUN != 'true'
         env:
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          scanned=$(docker image inspect ronne-web:ci --format '{{json .RootFS.Layers}}' | jq -c .)
+          # With attestations the push is a one-platform index; .Image is then keyed by platform.
+          pushed=$(docker buildx imagetools inspect "$IMAGE@$DIGEST" --format '{{json .Image}}' \
+            | jq -c 'if has("rootfs") then .rootfs.diff_ids else [.[] | select(type == "object" and has("rootfs"))][0].rootfs.diff_ids end')
+          echo "scanned: $scanned"
+          echo "pushed:  $pushed"
+          [ "$scanned" = "$pushed" ] || { echo "The pushed image differs from the one that was scanned."; exit 1; }
+          mkdir -p digests
+          printf '%s' "$DIGEST" > "digests/${{ matrix.arch }}"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: env.DRY_RUN != 'true'
+        with:
+          name: digest-${{ matrix.arch }}
+          path: digests/*
+          retention-days: 1
+          overwrite: true
+          if-no-files-found: error
+
+  # Tags the two pushed images as one multi-architecture image. Versions are immutable, as npm's
+  # and Ronne's own are: a version tag that already lists exactly these images is a re-run and is
+  # skipped; one that lists other images fails, and the answer is a new version.
+  manifest:
+    name: Tag the multi-architecture image
+    needs: [release, image]
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
+    environment: dockerhub
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      VERSION: ${{ needs.release.outputs.version }}
+      # Annotations on the index (the manifest list), not on each image's manifest.
+      DOCKER_METADATA_ANNOTATIONS_LEVELS: index
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: digest-*
+          merge-multiple: true
+          path: digests
+      # X.Y.Z, X.Y and X, plus latest; a pre-release gets only X.Y.Z (metadata-action's rule), and
+      # a major of 0 gets no X tag, since it promises nothing.
+      - name: Tags and annotations
+        id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=semver,pattern={{version}},value=v${{ env.VERSION }}
+            type=semver,pattern={{major}}.{{minor}},value=v${{ env.VERSION }}
+            type=semver,pattern={{major}},value=v${{ env.VERSION }},enable=${{ !startsWith(needs.release.outputs.version, '0.') }}
+          labels: |
+            org.opencontainers.image.title=Ronne AI Marketplace
+            org.opencontainers.image.description=Self-hosted, curated registry of AI capabilities for AI coding tools
+            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.version=${{ env.VERSION }}
+      - name: Log in to Docker Hub
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Create the manifest list and tag it
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+          ANNOTATIONS: ${{ steps.meta.outputs.annotations }}
+        run: |
+          ls -l digests
+          # The manifests each pushed image consists of (its image manifest and its attestation).
+          children() {
+            raw=$(docker buildx imagetools inspect "$1" --raw 2>/dev/null) || return 0
+            case "$(printf '%s' "$raw" | jq -r .mediaType)" in
+              *index*|*manifest.list*) printf '%s' "$raw" | jq -r '.manifests[].digest' ;;
+              *) printf '%s\n' "${1#*@}" ;;
+            esac
+          }
+          want=$(for f in digests/*; do children "$IMAGE@$(cat "$f")"; done | sort)
+          have=$(children "$IMAGE:$VERSION" | sort)
+          if [ -n "$have" ]; then
+            if [ "$have" = "$want" ]; then
+              echo "$IMAGE:$VERSION already lists exactly these images; nothing to do."
+              exit 0
+            fi
+            echo "$IMAGE:$VERSION already exists and lists other images. Versions are immutable: release a new version instead."
+            exit 1
+          fi
+          args=()
+          for tag in $TAGS; do args+=(--tag "$tag"); done
+          while IFS= read -r annotation; do
+            [ -n "$annotation" ] && args+=(--annotation "$annotation")
+          done <<< "$ANNOTATIONS"
+          sources=$(for f in digests/*; do printf '%s@%s ' "$IMAGE" "$(cat "$f")"; done)
+          # shellcheck disable=SC2086
+          docker buildx imagetools create "${args[@]}" $sources
+          docker buildx imagetools inspect "$IMAGE:$VERSION"
+
+  # Last, so a release on GitHub exists only once every artefact of it does.
+  github-release:
+    name: GitHub release
+    needs: [release, manifest]
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: npm-tarballs
+          path: release
+      - name: GitHub release
+        env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$TAG" --verify-tag --generate-notes --title "$TAG" release/*.tgz
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create "$TAG" --verify-tag --generate-notes --title "$TAG" \
+            --notes "Docker image: \`docker pull ${IMAGE#docker.io/}:$VERSION\` (linux/amd64, linux/arm64). npm: \`npm install --global @ronneai/rmk@$VERSION @ronneai/mcp@$VERSION\`." \
+            release/*.tgz

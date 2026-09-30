@@ -336,8 +336,10 @@ how to set them.
 Two supported paths:
 
 - **Node:** `pnpm dlx @ronneai/marketplace init` (or run `pnpm run setup` from a clone or fork)
-- **Docker:** `docker compose up -d`, then `docker compose exec web pnpm run setup`, then `docker compose restart web`
-  (details in [feature 005](../features/005-docker/SPEC.md))
+- **Docker:** with only `compose.yaml`, `docker compose up -d` (pulls `ronneai/marketplace` from
+  Docker Hub), then `docker compose exec web pnpm run setup`, then `docker compose restart web`
+  (details in [feature 005](../features/005-docker/SPEC.md) and, for the published image,
+  [035](../features/035-docker-hub-image/SPEC.md))
 
 Supported databases: SQLite (default), MySQL 8.4+, MariaDB 10.11+ and PostgreSQL 15+. Every pull
 request runs the database tests on the minimum versions, and a weekly run tests the latest ones
@@ -706,7 +708,7 @@ Design points:
 | Commit format | `[type] NNN: Description` (or `[type]: Description` without a feature); types `docs`, `feat`, `chore`, `bugfix`; same format for PR titles, checked in CI and by a local hook | Squash merges make the PR title the commit on `main`; the feature ID links history to `docs/features` |
 | Planning | One folder per feature, `docs/features/NNN-slug/` with `SPEC.md` and `PLAN.md`; the index there replaces a separate milestone plan; specs only for the current and next milestone | Specs stay next to the work and outlive the schedule; no duplicated acceptance criteria |
 | Setup command | `pnpm run setup` (not `pnpm setup`, a pnpm built-in); non-interactive mode for Docker/CI | Avoids silently running pnpm's own command |
-| Docker | `node:24-slim` (current LTS, pinned by digest), standalone Next.js, state and config on one `/app/data` volume, migrations on start, setup-required mode until configured | One volume to back up; upgrades apply migrations automatically |
+| Docker | `node:24-slim` (current LTS, pinned by digest), standalone Next.js, state and config on one `/app/data` volume, migrations on start, setup-required mode until configured. Published to Docker Hub as `ronneai/marketplace` (amd64 and arm64, the npm packages' version, tags `X.Y.Z`/`X.Y`/`X`/`latest`, provenance and SBOM attestations) by the release workflow, after each image was run and scanned ([035](../features/035-docker-hub-image/SPEC.md), 2026-09-29) | One volume to back up; upgrades apply migrations automatically; one file (`compose.yaml`) is enough to run it, and "Ronne 0.1.0" means one thing on npm and Docker Hub |
 | Design system | One system from the brand and the Stitch design notes (kept locally in the git-ignored `docs/UI-Mocks-Materials/`; the rules and tokens are in 032's spec): Manrope and IBM Plex Mono self-hosted; flat (no shadows); teal as the single accent; no red, yellow or green alerts; light and dark themes, light by default, switched by a header toggle (no "follow the OS" mode, owner decision 2026-09-27) ([032](../features/032-design-system/SPEC.md)) | Consistent pages from M1 on; no font CDN for a self-hosted product |
 | Draft files | In the database (`submission_files`), not a folder on disk; published `.tgz` files still go to the `StorageAdapter` | A save is one transaction with the manifest, and one database backup covers everything; the upload limits keep rows small ([012](../features/012-submission-editor/SPEC.md)) |
 | File editor | CodeMirror 6 rather than Monaco, plus single-file upload and `.zip` import | Much smaller, easier to theme with our tokens and usable on phones; `.zip` import brings in existing skill folders ([012](../features/012-submission-editor/SPEC.md)) |

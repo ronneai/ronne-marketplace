@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. One version for four files.** `packages/repo-tools/src/release.js`: a `VERSIONED` map
+- [x] **1. One version for four files.** `packages/repo-tools/src/release.js`: a `VERSIONED` map
   (the three `PUBLISHED` packages' `package.json` paths plus `apps/web/package.json`, from the
   repository root) that `withVersion` and `sharedVersion` iterate; `release-check.js` and
   `release-version.js` read it; `PUBLISHED` and `checkPack` stay as they are (the web app isn't
@@ -16,7 +16,7 @@ the same change that completes it.
   `release.test.js` runs the check against the real files.
   *Done when:* `pnpm test` passes and `node packages/repo-tools/src/release-check.js v0.1.0` prints `0.1.0`.
 
-- [ ] **2. The shared composite action.** `.github/actions/build-image/action.yml` with inputs
+- [x] **2. The shared composite action.** `.github/actions/build-image/action.yml` with inputs
   `arch`, `tag` (default `ronne-web:ci`) and `cache-to` (default empty): set up Buildx, build and
   load with `cache-from` scope `image-<arch>`, the probe loop, the Trivy scan (its pinned digest
   now lives in one place). `image.yml`'s build job becomes checkout plus the action, passing
@@ -24,7 +24,7 @@ the same change that completes it.
   don't change. Add the action's folder to Dependabot's `github-actions` entry.
   *Done when:* the pull request's `Docker image (build, run, scan)` check passes as before.
 
-- [ ] **3. The publish jobs in `release.yml`.** `release` exports `outputs.version`; the `image`
+- [x] **3. The publish jobs in `release.yml`.** `release` exports `outputs.version`; the `image`
   matrix job (environment `dockerhub`) uses the action, then `docker/metadata-action` (tags with
   `value=v<version>`, the `{{major}}` tag disabled for `0.`, `latest` from `flavor`), logs in,
   pushes by digest (`outputs: type=image,name=docker.io/ronneai/marketplace,push-by-digest=true,name-canonical=true,push=true`,
@@ -41,7 +41,7 @@ the same change that completes it.
   *Done when:* a dry run dispatched from `main` with the current tag builds, runs and scans both
   architectures and pushes nothing (checked on Docker Hub).
 
-- [ ] **4. `compose.yaml` and `compose.build.yaml`.** `web` loses `build:` and gets
+- [x] **4. `compose.yaml` and `compose.build.yaml`.** `web` loses `build:` and gets
   `image: ${RONNE_IMAGE:-ronneai/marketplace:latest}`; the header explains pull, upgrade, pin and
   the override. `compose.build.yaml` adds `build: .` and `image: ronne-web:local`. Dependabot's
   `docker-compose` entry ignores `ronneai/marketplace` (our own output).
@@ -50,7 +50,7 @@ the same change that completes it.
   instance (recorded in Notes). Until the first release exists, the first check uses a locally
   pushed tag or waits for task 6.
 
-- [ ] **5. Docs.** The README's "With Docker" section; MVP §5 and the §15 Docker row; 005's "Out"
+- [x] **5. Docs.** The README's "With Docker" section; MVP §5 and the §15 Docker row; 005's "Out"
   line; 034's spec (four files, release after the image); dependency policy §3 "Publishing".
   *Done when:* the README steps work as written from an empty folder.
 
@@ -60,6 +60,33 @@ the same change that completes it.
   acceptance criterion in the spec is ticked.
 
 ## Notes
+
+**Progress (2026-09-29).** Tasks 1–5 are built in one change; tasks 2 and 3's "done when" (the
+pull request's image check, and the dry run from `main`) are checked once it's on GitHub, and
+task 6 is the owner's.
+
+- Task 1: `VERSIONED` in `release.js` maps a key to a path from the repository root (`core`,
+  `cli`, `mcp` under `packages/`, and `web`); `PUBLISHED` is untouched. `pnpm release:version
+  0.1.0` moved `apps/web` from `0.0.0`; the tag check and its test read the four files.
+- Task 2: the composite action removes its container after the probe, so the release job's push
+  runs on a clean daemon; nothing else moved. Dependabot's `github-actions` entry lists the
+  action's folder as a second directory.
+- Task 3: the guard reads the pushed image's config with `imagetools inspect --format '{{json
+  .Image}}'`, which is one config for a one-platform index (the attestation manifest isn't in it)
+  and a map by platform otherwise; both shapes are handled. The manifest job compares the child
+  manifests (image plus attestation, per architecture) of the existing version tag with this
+  run's, since `imagetools create` flattens the per-architecture indexes into one list. The
+  guard, the create (tags and index annotations) and the re-run and mismatch paths were run
+  locally against a `registry:2` container with a tiny image pushed by digest with attestations.
+  `gh release create` takes the notes from `--notes` prepended to `--generate-notes`. The release
+  job uploads the npm tarballs as an artifact for the last job.
+- Task 4: from a folder holding only `compose.yaml`, with `RONNE_IMAGE=ronne-web:local` (no
+  release on Docker Hub yet), `docker compose up -d` answered `503 setup_required`, `setup --yes`
+  ran in the container, and after `restart web` `/api/health` answered `200`. From the checkout,
+  `docker compose -f compose.yaml -f compose.build.yaml build web` produced `ronne-web:local`.
+  The same check against the Docker Hub image is task 6's.
+- Task 5: the README's Docker section starts from an empty folder and a `curl` of `compose.yaml`
+  from `main`.
 
 **Docker-side setup (owner, once).** Written 2026-09-29 from Docker's docs of that day; menu
 names may move.
