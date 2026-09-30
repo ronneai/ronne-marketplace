@@ -9,6 +9,22 @@ export { configDir, readUserConfig } from "./config.js";
 export { connectRegistry } from "./connect.js";
 export { RmkError } from "./errors.js";
 export {
+  discoverLocalItems,
+  type ExportedItem,
+  type ExportPlan,
+  type ExportRequest,
+  type ExportWarning,
+  fetchScopes,
+  type LocalItem,
+  type PlannedItem,
+  planExport,
+  type RefusedItem,
+  type Scopes,
+  type Skipped,
+  type SkipReason,
+  uploadExport,
+} from "./export.js";
+export {
   chooseTargets,
   commitInstall,
   type InstallResult,

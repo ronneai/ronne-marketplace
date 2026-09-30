@@ -45,7 +45,7 @@ the same change that completes it. Tasks 1 and 2 touch only `packages/core` and 
   *Done when:* `cli.test.ts` covers a terminal run with each prompt, a run without a terminal,
   `--dry-run`, and every exit code.
 
-- [ ] **8. The library.** `discoverLocalItems`, `planExport`, `uploadExport` and their types in
+- [x] **8. The library.** `discoverLocalItems`, `planExport`, `uploadExport` and their types in
   `packages/cli/src/lib.ts`.
   *Done when:* `pnpm packages:check` and `pnpm release:smoke` pass.
 

@@ -79,6 +79,9 @@ export const findSkills = (io: Io, scope: Scope): LocalItem[] => {
   );
 };
 
+/** Every item `rmk export` can find in a scope: skills for now; 040 adds the other types. */
+export const discoverLocalItems = (io: Io, scope: Scope): LocalItem[] => findSkills(io, scope);
+
 /** Folders that are never part of an item, wherever they are in it (native-readers.md §3). */
 const NEVER_FOLDERS = new Set([".git", ".hg", ".svn", "node_modules", "__pycache__", ".ronne"]);
 const NEVER_FILES = new Set([".DS_Store", "Thumbs.db"]);

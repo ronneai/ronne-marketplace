@@ -3,11 +3,11 @@ import type { ApiClient } from "./api.js";
 import type { Args } from "./cli.js";
 import { RmkError, usage } from "./errors.js";
 import {
+  discoverLocalItems,
   type ExportedItem,
   type ExportPlan,
   type ExportRequest,
   fetchScopes,
-  findSkills,
   type PlannedItem,
   planExport,
   type Scopes,
@@ -120,7 +120,7 @@ const askScope = async (io: Io, scopes: Scopes): Promise<string> => {
 
 /** With no items named: the skills found, and in a terminal, which to export. */
 const chooseItems = async (io: Io, args: Args, out: Output): Promise<string[] | null> => {
-  const found = findSkills(io, scopeOf(str(args.values.scope)));
+  const found = discoverLocalItems(io, scopeOf(str(args.values.scope)));
   out.set(
     "found",
     found.map((f) => ({ name: f.name, type: f.type, path: f.display })),
