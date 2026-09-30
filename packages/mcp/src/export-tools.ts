@@ -1,6 +1,7 @@
 import {
   connectRegistry,
   describeLocalItems,
+  type ExportedItem,
   type ExportPlan,
   type ExportRequest,
   fetchScopes,
@@ -10,6 +11,7 @@ import {
   previewText,
   RmkError,
   type Scopes,
+  uploadExport,
 } from "@ronneai/rmk/lib";
 import type { PlanStore } from "./plan-tools.js";
 import { answer, failure, type ToolAnswer } from "./text.js";
@@ -184,4 +186,61 @@ export const planExportTool = async (
     items: plannedData(plan),
     refused: plan.refused.map((r) => ({ path: r.local, code: r.code, message: r.message })),
   });
+};
+
+const draftLines = (exported: ExportedItem[]) =>
+  exported.flatMap((item) => {
+    const left = [...item.issues, ...item.submitIssues].filter((i) => i.severity === "error");
+    return [
+      `${item.name}: draft created at ${item.url}`,
+      ...left.map((issue) => `  To fix before submitting: ${issue.message}`),
+    ];
+  });
+
+const REMINDER =
+  "Nothing is submitted: the person opens each draft, checks it, and submits it in the web app.";
+
+/**
+ * Uploads exactly the plan the person saw, once: the folders are planned again, and a plan whose
+ * files changed since is refused as stale. One draft per item (037). If one fails, the drafts
+ * already created are named; the plan is used up either way.
+ */
+export const exportItemsTool = async (
+  io: Io,
+  store: PlanStore<StoredExport>,
+  input: { planId: string },
+): Promise<ToolAnswer> => {
+  const stored = store.take(input.planId);
+  if (!stored)
+    return failure(
+      "plan_expired",
+      "There's no such export plan: plans last 10 minutes and are used once, and install plans aren't export plans. Make a new plan with plan_export.",
+    );
+  const { api } = connectRegistry(io);
+  const plan = await planExport(io, api, stored.value.request);
+  if (plan.fingerprint !== stored.fingerprint)
+    return failure(
+      "plan_stale",
+      "The files changed since this plan was made. Make a new plan with plan_export and show it to the person.",
+    );
+  try {
+    const exported = await uploadExport(api, plan);
+    return answer([...draftLines(exported), REMINDER], { exported });
+  } catch (error) {
+    if (!(error instanceof RmkError) || !Array.isArray(error.details.exported)) throw error;
+    const exported = error.details.exported as ExportedItem[];
+    const failed = plan.items.slice(exported.length).map((item) => item.name);
+    return {
+      ...answer(
+        [
+          ...draftLines(exported),
+          `Not uploaded: ${failed.join(", ")}. ${error.message}`,
+          "This plan is used up; plan_export again for what's left.",
+          ...(exported.length > 0 ? [REMINDER] : []),
+        ],
+        { exported, error: { code: error.code, message: error.message }, notUploaded: failed },
+      ),
+      isError: true,
+    };
+  }
 };

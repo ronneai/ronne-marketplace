@@ -21,7 +21,7 @@ the same change that completes it.
   *Done when:* tests show no `planId` and no `POST` without a scope, a plan with one, and
   `scope_not_found` with the list.
 
-- [ ] **4. `export_items`.** Re-plan, compare fingerprints, `uploadExport`, the answer.
+- [x] **4. `export_items`.** Re-plan, compare fingerprints, `uploadExport`, the answer.
   *Done when:* tests cover the drafts created, and expired, used, stale and install plans refused,
   and a partial failure.
 

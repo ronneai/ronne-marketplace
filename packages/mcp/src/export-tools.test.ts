@@ -10,10 +10,16 @@ import {
   run,
 } from "@ronneai/rmk/testing";
 import { afterEach, describe, expect, it } from "vitest";
-import { listLocalItems, planExportTool, type StoredExport } from "./export-tools.js";
+import {
+  exportItemsTool,
+  listLocalItems,
+  planExportTool,
+  type StoredExport,
+} from "./export-tools.js";
 import { planStore } from "./plan-tools.js";
 
 let io: FakeIo;
+let registry: ReturnType<typeof exportRoutes>;
 afterEach(() => io?.cleanup());
 
 const write = (path: string, content: string) => {
@@ -25,7 +31,8 @@ const skillMd = (name: string) =>
   `---\nname: ${name}\ndescription: The ${name} skill.\n---\nBody.\n`;
 
 /** A project with a skill of every origin, and a registry that knows none of their names. */
-const project = async () => {
+const project = async (fail: Record<string, { status: number; json?: unknown }> = {}) => {
+  registry = exportRoutes({ fail });
   const notFound = () => ({
     status: 404,
     json: { error: { code: "item_not_found", message: "No." } },
@@ -33,7 +40,7 @@ const project = async () => {
   io = fakeIo(
     {
       ...identityRoutes("rmk_test_token"),
-      ...exportRoutes().routes,
+      ...registry.routes,
       ...Object.fromEntries(
         ["mine", "installed", "edited", "copied", "rendered"].map((n) => [
           `GET /items/team/${n}`,
@@ -254,5 +261,92 @@ describe("plan_export", () => {
     expect(data.planId).toBeUndefined();
     expect(data.refused.map((r) => r.code)).toEqual(["secret", "installed"]);
     expect(result.content[0]?.text).toContain("no plan to upload");
+  });
+});
+
+describe("export_items", () => {
+  const setup = async (fail = {}) => {
+    await project(fail);
+    let clock = 1_000_000;
+    const store = planStore<StoredExport>(() => clock);
+    const plan = async (items: string[]) =>
+      (
+        (await planExportTool(io, store, { items, to: "team" })).structuredContent as {
+          planId: string;
+        }
+      ).planId;
+    return {
+      store,
+      plan,
+      exportItems: (planId: string) => exportItemsTool(io, store, { planId }),
+      later: (ms: number) => {
+        clock += ms;
+      },
+    };
+  };
+  const posts = () => io.requests.filter((r) => r.method === "POST");
+
+  it("uploads exactly the plan, once, and says where each draft is", async () => {
+    const { plan, exportItems } = await setup();
+    write(".claude/skills/other/SKILL.md", skillMd("other"));
+    const planId = await plan(["mine", "other"]);
+    const result = await exportItems(planId);
+    expect(result.isError).toBeUndefined();
+    expect(registry.drafts.map((d) => d.name)).toEqual(["@team/mine", "@team/other"]);
+    expect(posts()).toHaveLength(2);
+    const text = result.content[0]?.text ?? "";
+    expect(text).toContain(
+      `@team/mine: draft created at ${REGISTRY}/submissions/${registry.drafts[0]?.id}`,
+    );
+    expect(text).toContain("Nothing is submitted");
+    expect((result.structuredContent as { exported: unknown[] }).exported).toHaveLength(2);
+
+    const again = await exportItems(planId);
+    expect(again.structuredContent).toMatchObject({ error: { code: "plan_expired" } });
+    expect(posts()).toHaveLength(2);
+  });
+
+  it("refuses an expired plan, an unknown or install plan's id, and a stale one", async () => {
+    const { plan, exportItems, later } = await setup();
+    const expired = await plan(["mine"]);
+    later(10 * 60 * 1000 + 1);
+    expect((await exportItems(expired)).structuredContent).toMatchObject({
+      error: { code: "plan_expired" },
+    });
+    const installStore = planStore<string>(Date.now);
+    const installId = installStore.put("an install", "x");
+    expect((await exportItems(installId)).structuredContent).toMatchObject({
+      error: { code: "plan_expired" },
+    });
+    const stale = await plan(["mine"]);
+    write(".claude/skills/mine/SKILL.md", `${skillMd("mine")}Edited.\n`);
+    expect((await exportItems(stale)).structuredContent).toMatchObject({
+      error: { code: "plan_stale" },
+    });
+    expect(posts()).toEqual([]);
+  });
+
+  it("names the drafts made when a later upload fails, and uses the plan up", async () => {
+    const { plan, exportItems } = await setup({
+      "@team/other": {
+        status: 409,
+        json: { error: { code: "draft_limit", message: "You already have 50 drafts." } },
+      },
+    });
+    write(".claude/skills/other/SKILL.md", skillMd("other"));
+    const planId = await plan(["mine", "other"]);
+    const result = await exportItems(planId);
+    expect(result.isError).toBe(true);
+    expect(result.structuredContent).toMatchObject({
+      exported: [{ name: "@team/mine" }],
+      notUploaded: ["@team/other"],
+      error: { code: "draft_limit" },
+    });
+    const text = result.content[0]?.text ?? "";
+    expect(text).toContain("@team/mine: draft created at");
+    expect(text).toContain("Not uploaded: @team/other.");
+    expect((await exportItems(planId)).structuredContent).toMatchObject({
+      error: { code: "plan_expired" },
+    });
   });
 });
