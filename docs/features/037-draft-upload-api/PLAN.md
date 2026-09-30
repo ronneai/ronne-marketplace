@@ -44,7 +44,7 @@ the same change that completes it.
   returned URL signed in as that user and see the files in the editor; another user gets a 404.
   *Done when:* `pnpm test:e2e` passes.
 
-- [ ] **9. Documentation.** The token section and helper and the proxy note in the spec's
+- [x] **9. Documentation.** The token section and helper and the proxy note in the spec's
   Documentation section; MVP §11's table if anything changed while building.
   *Done when:* the docs render tests pass, and every new helper's link lands on a real section.
 

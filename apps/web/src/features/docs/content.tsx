@@ -170,7 +170,9 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           <Code>PUBLIC_URL</Code> and <Code>RONNE_PORT</Code> are set in the environment, for
           example <Code>PUBLIC_URL=https://ronne.example docker compose up -d</Code> behind a
           reverse proxy (with <Code>TRUST_PROXY=true</Code> when the proxy adds{" "}
-          <Code>X-Forwarded-For</Code>).
+          <Code>X-Forwarded-For</Code>). The proxy&apos;s request body limit needs to be at least 28
+          MB, for drafts sent with a <To href={docsHref("rmk", "tokens")}>token</To>; nginx&apos;s
+          default is 1 MB (<Code>client_max_body_size 28m;</Code>).
         </p>
       </>
     ),
@@ -970,7 +972,8 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           with a <strong>personal access token</strong>. You make one under{" "}
           <To href="/account/tokens">Access tokens</To> in your account, or <Code>rmk login</Code>{" "}
           makes one for you. A token acts as you: it can read everything published, search, and
-          download items. It can&apos;t sign in to this website, and you can revoke it at any time.
+          download items, <strong>and it can create drafts in your name</strong>. It can&apos;t sign
+          in to this website, and you can revoke it at any time.
         </p>
         <Example>
           {
@@ -980,6 +983,14 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         <p>
           Each download of an item adds one to its count, which the home page uses for Most used.
           Nothing about who downloaded it is stored.
+        </p>
+        <p>
+          A draft created with a token (<Code>POST /api/v1/drafts</Code>, with its files) is like
+          one you start here: only you see it, under <To href="/submissions">Submissions</To>, and
+          nothing reaches a reviewer until you open it and submit it. A token can create drafts
+          while you have fewer than 50 (submit or delete some to make room), and at most 30 in 10
+          minutes. Each one is written to the audit log with the token&apos;s name and the
+          draft&apos;s name, which root can read; its files aren&apos;t.
         </p>
         <p>
           The <To href={docsHref("mcp")}>registry MCP server</To>, <Code>rmk-mcp</Code>, uses the

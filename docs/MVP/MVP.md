@@ -591,7 +591,7 @@ draft**, which is private to its author and reaches nobody until they submit it 
 - **Errors** always use one shape, produced by the domain-exception mapper in `http/`:
   `{ "error": { "code": "item_not_found", "message": "…", "details": { … } } }`. `code` is a stable
   snake_case string that clients can rely on. The HTTP status carries the category (400, 401, 403,
-  404, 409, 422, 429).
+  404, 409, 413, 422, 429).
 - **Pagination** is cursor-based: `?limit=` (default 20, max 100) and `?cursor=`. Responses include
   `nextCursor`, or `null` on the last page.
 - **Versioning:** breaking changes go to `/api/v2`. `rmk` sends its version in `User-Agent`, and the

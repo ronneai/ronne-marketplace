@@ -77,7 +77,7 @@ export const HELP = {
   token: {
     question: "What's a token for?",
     answer:
-      "It lets rmk and the registry's MCP server read the registry as you: search, read items and download them. It can't sign in to this website, and you can revoke it here at any time.",
+      "It lets rmk and the registry's MCP server read the registry as you, and create drafts in your name: only you see them, and nothing is submitted until you do it here. It can't sign in to this website, and you can revoke it here at any time.",
     href: docsHref("rmk", "tokens"),
   },
   install: {
