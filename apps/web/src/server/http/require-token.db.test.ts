@@ -29,7 +29,7 @@ beforeEach(async () => {
   );
   if (!result.ok) throw new Error(result.error);
   session = cookieHeaders(result.headers.get("set-cookie"));
-  guard = { configured: () => true, authenticate: (token) => authenticateToken(token, app) };
+  guard = { ready: async () => true, authenticate: (token) => authenticateToken(token, app) };
 });
 afterEach(() => t.cleanup());
 
@@ -124,7 +124,7 @@ describe("requireToken", () => {
   it("says setup is required before setup", async () => {
     const result = await requireToken(new Request("http://localhost:3000/api/v1/me"), {
       ...guard,
-      configured: () => false,
+      ready: async () => false,
     });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.response.status).toBe(503);

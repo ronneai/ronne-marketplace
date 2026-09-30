@@ -1,4 +1,9 @@
-import type { InputHTMLAttributes, LabelHTMLAttributes, ReactNode } from "react";
+import type {
+  InputHTMLAttributes,
+  LabelHTMLAttributes,
+  ReactNode,
+  SelectHTMLAttributes,
+} from "react";
 import { cn } from "./cn";
 
 export const inputClasses = cn(
@@ -41,6 +46,16 @@ export const FieldWarning = ({ id, children }: { id: string; children?: ReactNod
 
 export const Input = ({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) => {
   return <input className={cn(inputClasses, className)} {...props} />;
+};
+
+export const selectClasses = cn(
+  "h-9 w-full rounded-control border border-strong bg-surface px-2 text-sm text-fg",
+  "outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus aria-invalid:border-error",
+);
+
+/** A native select, styled like an input. */
+export const Select = ({ className, ...props }: SelectHTMLAttributes<HTMLSelectElement>) => {
+  return <select className={cn(selectClasses, className)} {...props} />;
 };
 
 /** A labelled input with an optional hint, error or warning, wired with aria attributes. */

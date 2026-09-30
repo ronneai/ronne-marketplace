@@ -1,13 +1,24 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { AppConfig } from "../config";
 import { createTestDb, type TestDb } from "../db/testing/test-db";
+import { createRoot } from "../domains/identity/actions/root-account";
 import { health } from "./health";
 
 let t: TestDb;
+let empty: TestDb;
 beforeAll(async () => {
-  t = await createTestDb({ migrate: false });
+  t = await createTestDb();
+  await createRoot(t.db, t.dialect, {
+    email: "root@example.com",
+    name: "Root",
+    password: "correct horse battery",
+  });
+  empty = await createTestDb({ migrate: false });
 });
-afterAll(() => t.cleanup());
+afterAll(async () => {
+  await t.cleanup();
+  await empty.cleanup();
+});
 
 const config = (overrides: Partial<AppConfig> = {}): AppConfig => ({
   envFile: "/nowhere/.env",
@@ -24,6 +35,15 @@ describe("health", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ status: "ok" });
     expect(response.headers.get("cache-control")).toBe("no-store");
+  });
+
+  it("returns 503 setup_required while the settings exist but the database has no tables or root", async () => {
+    const response = await health(config({ databaseUrl: empty.url }), () => ({
+      db: empty.db,
+      dialect: empty.dialect,
+    }));
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({ error: { code: "setup_required" } });
   });
 
   it("returns 503 setup_required before setup", async () => {

@@ -1,11 +1,11 @@
 import { connection } from "next/server";
-import { isConfigured, loadConfig } from "@/server/config";
 import { deleteToken, postToken } from "@/server/http/api-v1";
 import { setupRequiredResponse } from "@/server/http/errors";
+import { getSetupState } from "@/server/setup/state";
 
 export const POST = async (request: Request) => {
   await connection();
-  if (!isConfigured(loadConfig())) return setupRequiredResponse();
+  if ((await getSetupState()) !== "ready") return setupRequiredResponse();
   return postToken(request);
 };
 

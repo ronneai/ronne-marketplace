@@ -3,13 +3,10 @@
 import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
-import { Checkbox, FieldError, Label, TextField } from "@/components/ui/Field";
+import { Checkbox, FieldError, Label, selectClasses, TextField } from "@/components/ui/Field";
 import { createTokenFromForm } from "./actions";
 import { CreatedTokenPanel } from "./CreatedTokenPanel";
 import type { TokenActionState } from "./types";
-
-const selectClasses =
-  "h-9 w-full rounded-control border border-strong bg-surface px-2 text-sm text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
 
 const CreateTokenForm = ({ onDone }: { onDone: () => void }) => {
   const [state, action, pending] = useActionState<TokenActionState, FormData>(

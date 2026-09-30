@@ -335,11 +335,18 @@ how to set them.
 
 Two supported paths:
 
-- **Node:** `pnpm dlx @ronneai/marketplace init` (or run `pnpm run setup` from a clone or fork)
+- **Node:** `pnpm dlx @ronneai/marketplace init` (or, from a clone or fork, `pnpm build && pnpm
+  start` and open the address)
 - **Docker:** with only `compose.yaml`, `docker compose up -d` (pulls `ronneai/marketplace` from
-  Docker Hub), then `docker compose exec web pnpm run setup`, then `docker compose restart web`
-  (details in [feature 005](../features/005-docker/SPEC.md) and, for the published image,
-  [035](../features/035-docker-hub-image/SPEC.md))
+  Docker Hub) and open the address (details in [feature 005](../features/005-docker/SPEC.md) and,
+  for the published image, [035](../features/035-docker-hub-image/SPEC.md))
+
+Either way, the first visit opens the setup in the browser ([036](../features/036-web-setup/SPEC.md)):
+until the instance is set up, every page redirects to `/setup` and the API answers `503
+setup_required`. The same setup runs in the terminal as `pnpm run setup` (in Docker,
+`docker compose exec web pnpm run setup`), for scripts, and for a public host that should be set up
+before its port is exposed, since the first visitor owns the instance. Neither needs a restart:
+the app reads its settings on each request.
 
 Supported databases: SQLite (default), MySQL 8.4+, MariaDB 10.11+ and PostgreSQL 15+. Every pull
 request runs the database tests on the minimum versions, and a weekly run tests the latest ones
@@ -355,7 +362,7 @@ because the unscoped `rmk` package name is taken), `@ronneai/mcp` and `@ronneai/
 `@ronneai` scope is ours on npmjs.com and matches the GitHub organisation; `@ronne` isn't ours.
 They're published to npmjs.com, not GitHub Packages: see the decision log (§15).
 
-The interactive `setup` script:
+The setup, in the browser or as the `setup` script:
 
 1. **Pick a database:** SQLite (default, stored in `./data/ronne.db`), MySQL/MariaDB, or PostgreSQL.
 2. **Enter server details** (not asked for SQLite): host, port, database name, user and password. Ronne does **not** install the database server.
@@ -363,9 +370,9 @@ The interactive `setup` script:
 4. **Write `.env`**: `DATABASE_URL`, a generated `AUTH_SECRET`, `STORAGE_PATH`, `PUBLIC_URL`.
 5. **Run migrations** with Kysely's migrator.
 6. **Create the root account**: email, password (entered twice), and display name.
-7. Print the URL and the next steps.
+7. Send the person to sign in (the browser), or print the URL and the next steps (the script).
 
-`setup` refuses to create a second root account if one already exists. A separate `pnpm run reset-root-password` command handles recovery.
+The setup refuses to create a second root account if one already exists. A separate `pnpm run reset-root-password` command handles recovery.
 
 `pnpm setup` (without `run`) is a pnpm built-in that configures pnpm itself, so the command is always
 written `pnpm run setup`. Full behaviour, including a non-interactive mode for Docker and CI, is in
@@ -707,8 +714,9 @@ Design points:
 | API conventions | One error shape with stable codes; cursor pagination; `/api/vN` versioning | Stable contract for `rmk` and the MCP server |
 | Commit format | `[type] NNN: Description` (or `[type]: Description` without a feature); types `docs`, `feat`, `chore`, `bugfix`; same format for PR titles, checked in CI and by a local hook | Squash merges make the PR title the commit on `main`; the feature ID links history to `docs/features` |
 | Planning | One folder per feature, `docs/features/NNN-slug/` with `SPEC.md` and `PLAN.md`; the index there replaces a separate milestone plan; specs only for the current and next milestone | Specs stay next to the work and outlive the schedule; no duplicated acceptance criteria |
-| Setup command | `pnpm run setup` (not `pnpm setup`, a pnpm built-in); non-interactive mode for Docker/CI | Avoids silently running pnpm's own command |
-| Docker | `node:24-slim` (current LTS, pinned by digest), standalone Next.js, state and config on one `/app/data` volume, migrations on start, setup-required mode until configured. Published to Docker Hub as `ronneai/marketplace` (amd64 and arm64, the npm packages' version, tags `X.Y.Z`/`X.Y`/`X`/`latest`, provenance and SBOM attestations) by the release workflow, after each image was run and scanned ([035](../features/035-docker-hub-image/SPEC.md), 2026-09-29) | One volume to back up; upgrades apply migrations automatically; one file (`compose.yaml`) is enough to run it, and "Ronne 0.1.0" means one thing on npm and Docker Hub |
+| Setup command | `pnpm run setup` (not `pnpm setup`, a pnpm built-in); non-interactive mode for Docker/CI. Since 036 it shares its steps with the web setup and is the terminal alternative | Avoids silently running pnpm's own command |
+| Web setup | The first visit to an instance that isn't set up opens the setup in the browser (`/setup`): database with a connection test, public address, root account, then the install shown step by step, then sign-in; open to the first visitor (no setup code; the terminal path exists for hosts that must be set up before the port is exposed); no restart afterwards; `pnpm run reset-setup` puts a development clone back to "not set up" ([036](../features/036-web-setup/SPEC.md), owner 2026-09-29) | `docker compose up -d` from one file, or `pnpm dev` from a clone, ends in a working instance without a terminal step |
+| Docker | `node:24-slim` (current LTS, pinned by digest), standalone Next.js, state and config on one `/app/data` volume, migrations on start, the web setup until set up (036; before that, a "run setup" screen). Published to Docker Hub as `ronneai/marketplace` (amd64 and arm64, the npm packages' version, tags `X.Y.Z`/`X.Y`/`X`/`latest`, provenance and SBOM attestations) by the release workflow, after each image was run and scanned ([035](../features/035-docker-hub-image/SPEC.md), 2026-09-29) | One volume to back up; upgrades apply migrations automatically; one file (`compose.yaml`) is enough to run it, and "Ronne 0.1.0" means one thing on npm and Docker Hub |
 | Design system | One system from the brand and the Stitch design notes (kept locally in the git-ignored `docs/UI-Mocks-Materials/`; the rules and tokens are in 032's spec): Manrope and IBM Plex Mono self-hosted; flat (no shadows); teal as the single accent; no red, yellow or green alerts; light and dark themes, light by default, switched by a header toggle (no "follow the OS" mode, owner decision 2026-09-27) ([032](../features/032-design-system/SPEC.md)) | Consistent pages from M1 on; no font CDN for a self-hosted product |
 | Draft files | In the database (`submission_files`), not a folder on disk; published `.tgz` files still go to the `StorageAdapter` | A save is one transaction with the manifest, and one database backup covers everything; the upload limits keep rows small ([012](../features/012-submission-editor/SPEC.md)) |
 | File editor | CodeMirror 6 rather than Monaco, plus single-file upload and `.zip` import | Much smaller, easier to theme with our tokens and usable on phones; `.zip` import brings in existing skill folders ([012](../features/012-submission-editor/SPEC.md)) |

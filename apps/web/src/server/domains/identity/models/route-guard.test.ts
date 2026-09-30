@@ -34,11 +34,18 @@ describe("safeNextPath", () => {
 });
 
 describe("isPublicPath and signInUrl", () => {
-  it("treats only sign-in as public", () => {
+  it("treats only sign-in and setup as public", () => {
     expect(isPublicPath("/sign-in")).toBe(true);
+    expect(isPublicPath("/setup")).toBe(true);
+    expect(isPublicPath("/setup/")).toBe(true);
     expect(isPublicPath("/")).toBe(false);
     expect(isPublicPath("/sign-inx")).toBe(false);
+    expect(isPublicPath("/setupx")).toBe(false);
     expect(isPublicPath("/account/password")).toBe(false);
+  });
+
+  it("never sends anyone back to setup after sign-in", () => {
+    expect(safeNextPath("/setup")).toBe("/");
   });
 
   it("builds the sign-in URL with an encoded next, and none for the home page", () => {

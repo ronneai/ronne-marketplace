@@ -21,7 +21,7 @@ const BASE = "http://localhost:3000/api/v1";
 beforeEach(async () => {
   t = await createTestDb();
   app = testAppAuth(t);
-  guard = { configured: () => true, authenticate: (token) => authenticateToken(token, app) };
+  guard = { ready: async () => true, authenticate: (token) => authenticateToken(token, app) };
   userId = await createTestUser(app, { email, password });
 });
 afterEach(() => t.cleanup());

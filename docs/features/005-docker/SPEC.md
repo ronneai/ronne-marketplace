@@ -44,10 +44,10 @@ set to `/app/data/.env` in the image. Variables set directly in the environment 
    instead of serving a half-migrated database.
 3. Start the Next.js server.
 
-**Setup-required mode.** Every page shows one screen: "This instance isn't set up yet", with the exact
-command to run. API routes return `503` with error code `setup_required` (MVP §11 error format).
-After setup finishes, the user restarts the container (`docker compose restart web`), and setup's
-final message says so.
+**Setup-required mode.** Until the instance is set up, every page opens the web setup
+([036](../036-web-setup/SPEC.md); before 036, a screen with the command to run), and API routes
+return `503` with error code `setup_required` (MVP §11 error format). No restart follows: the app
+reads its settings on each request (036), so the container picks a finished setup up at once.
 
 **Health endpoint:** `GET /api/health` returns `200 {"status":"ok"}` when the database answers,
 `503` otherwise, including in setup-required mode. The image's `HEALTHCHECK` uses it.
@@ -71,7 +71,7 @@ The image is scanned with Trivy, which fails on high or critical vulnerabilities
 
 ## Acceptance criteria
 
-- [x] `docker compose up`, then `docker compose exec web pnpm run setup` with SQLite defaults, then `docker compose restart web` gives a working instance at `http://localhost:3000`.
+- [x] `docker compose up`, then `docker compose exec web pnpm run setup` with SQLite defaults, then `docker compose restart web` gives a working instance at `http://localhost:3000` (since 036: the browser's setup, or the same command, with no restart).
 - [x] Before setup, pages show the setup-required screen and `/api/health` returns `503`.
 - [x] Removing and recreating the container keeps the database, config and root account (state is on the volume).
 - [x] The same flow works with `--profile postgres` and `--profile mysql`.

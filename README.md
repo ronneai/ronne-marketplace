@@ -13,41 +13,12 @@ the `rmk` CLI or from inside those tools through an MCP server.
 
 ## Getting started
 
-You need Node.js and pnpm (see [Requirements](#development)), and optionally a database server.
-Ronne never installs a database: SQLite needs nothing extra, and for MySQL, MariaDB or PostgreSQL
-you create an empty database and a user first.
-
-```sh
-git clone https://github.com/ronneai/ronne-marketplace.git
-cd ronne-marketplace
-pnpm install
-pnpm run setup          # not `pnpm setup`, which is a pnpm command that configures pnpm itself
-pnpm build && pnpm start
-```
-
-`pnpm run setup` asks which database to use, checks that it can connect and create tables, writes
-`apps/web/.env` (readable only by you), creates the tables, and creates the **root** account, which
-can do everything, including managing other users. Running it again is safe: it keeps your
-settings and never creates a second root.
-
-**Supported databases:** SQLite (the default), MySQL 8.4+, MariaDB 10.11+ and PostgreSQL 15+.
-On PostgreSQL 15 and later, a user that doesn't own the database also needs
-`GRANT CREATE ON SCHEMA public TO <user>;`. Setup tells you if it's missing.
-
-**Without prompts** (Docker, CI, scripts), pass `--yes` and give the values as environment
-variables. The password is never a flag:
-
-```sh
-DATABASE_URL=file:./data/ronne.db PUBLIC_URL=https://ronne.example.com \
-RONNE_ROOT_EMAIL=you@example.com RONNE_ROOT_NAME="Your Name" RONNE_ROOT_PASSWORD='…' \
-pnpm run setup --yes
-```
-
-It exits with `0` when done, `1` when a check fails, and `2` when a value is missing or invalid.
-`--database-url`, `--public-url`, `--storage-path`, `--root-email` and `--root-name` work as flags too.
-
-**Forgot the root password?** `pnpm run reset-root-password` sets a new one, signs root out
-everywhere and revokes its access tokens (`--yes` with `RONNE_ROOT_PASSWORD` works here too).
+Run the image, open it in the browser, and the setup does the rest: it asks which database to use,
+checks the connection, asks for the public address and the **root** account, creates the tables
+and the account, and sends you to sign in. Ronne never installs a database: SQLite (the default)
+needs nothing extra, and for MySQL 8.4+, MariaDB 10.11+ or PostgreSQL 15+ you create an empty
+database and a user first (on PostgreSQL 15 and later, a user that doesn't own the database also
+needs `GRANT CREATE ON SCHEMA public TO <user>;`; the setup tells you if it's missing).
 
 ### With Docker
 
@@ -59,12 +30,10 @@ and SQLite needs no server. No clone is needed, only [`compose.yaml`](compose.ya
 mkdir ronne && cd ronne
 curl -fsSLO https://raw.githubusercontent.com/ronneai/ronne-marketplace/main/compose.yaml
 docker compose up -d                          # pulls the image and starts Ronne
-docker compose exec web pnpm run setup        # database, public URL and the root account
-docker compose restart web                    # picks up the new settings
 ```
 
-Open http://localhost:3000 (or set `RONNE_PORT` before `up`). Until setup has run, every page shows
-"This instance isn't set up yet", and `/api/health` answers `503`.
+Then open http://localhost:3000 (or set `RONNE_PORT` before `up`) and follow the setup. Anyone
+who can open that address before you can set the instance up, so open it right after `up`.
 
 - **Your data** (the SQLite file, stored items and the settings file) lives in the `ronne-data`
   volume (Docker names it `ronne-marketplace_ronne-data`), mounted at `/app/data`. Recreating or upgrading the container keeps it. Back up that volume.
@@ -86,13 +55,29 @@ Open http://localhost:3000 (or set `RONNE_PORT` before `up`). Until setup has ru
 - **Pull limits:** Docker Hub allows anonymous pulls of 100 per 6 hours per address, and 200 for a
   free account that's logged in (`docker login`). A busy shared address can hit it.
 - **PostgreSQL or MySQL instead of SQLite:** `docker compose --profile postgres up -d` (or
-  `--profile mysql`) also starts that database. Set `RONNE_DB_PASSWORD` first. In setup, use host
-  `postgres` (or `mysql`), and database and user `ronne`.
-- **Without prompts:** `docker compose exec -T web pnpm run setup --yes`, with the variables from
-  the section above passed as `-e NAME=value` (`DATABASE_URL=file:./data/ronne.db` for SQLite).
-- **Root password:** `docker compose exec web pnpm run reset-root-password`.
+  `--profile mysql`) also starts that database. Set `RONNE_DB_PASSWORD` first. In the setup, use
+  the host `postgres` (or `mysql`), and the database and user `ronne`.
+- **Forgot the root password:** `docker compose exec web pnpm run reset-root-password` sets a new
+  one and signs root out everywhere.
 - **"isn't writable" on start:** the volume is owned by root. Fix it once with
   `docker compose run --rm --user root web chown -R 1000:1000 /app/data`.
+
+### From source
+
+For developers, or a host without Docker. You need Node.js and pnpm (see
+[Requirements](#development)).
+
+```sh
+git clone https://github.com/ronneai/ronne-marketplace.git
+cd ronne-marketplace
+pnpm install
+pnpm build && pnpm start          # or `pnpm dev` while developing
+```
+
+Then open http://localhost:3000 and follow the setup. It writes `apps/web/.env` (readable only by
+you) and, with SQLite, the database under `apps/web/data/`. Anyone who can open that address before
+you can set the instance up, so open it right after starting. A forgotten root password is reset
+with `pnpm run reset-root-password`.
 
 **Behind a reverse proxy** (nginx, Caddy, Traefik): proxy HTTPS to port 3000, and set `PUBLIC_URL`
 to the public address, for example `PUBLIC_URL=https://ronne.example.com docker compose up -d`.
@@ -144,6 +129,23 @@ version is described under Development.
   in `package.json` (`packageManager`) on its own. Don't use Corepack: current Corepack releases
   can't start pnpm 12. If `pnpm` is a Corepack shim on your machine, run `corepack disable pnpm` first.
 
+**Setting up without the browser** (CI, scripts, or a host that must be set up before its port is
+exposed). The same setup runs in the terminal as `pnpm run setup` (not `pnpm setup`, a pnpm
+built-in), and without prompts with `--yes` and the values as environment variables; the password
+is never a flag:
+
+```sh
+DATABASE_URL=file:./data/ronne.db PUBLIC_URL=https://ronne.example.com \
+RONNE_ROOT_EMAIL=you@example.com RONNE_ROOT_NAME="Your Name" RONNE_ROOT_PASSWORD='…' \
+pnpm run setup --yes
+```
+
+In Docker: `docker compose exec -T web pnpm run setup --yes`, with the variables passed as
+`-e NAME=value`. It exits with `0` when done, `1` when a check fails, and `2` when a value is
+missing or invalid; `--database-url`, `--public-url`, `--storage-path`, `--root-email` and
+`--root-name` work as flags too. Running it again is safe: it keeps the settings and never creates
+a second root. To start over on a development clone, `pnpm run reset-setup`.
+
 **Commands**
 
 | Command | What it does |
@@ -158,6 +160,7 @@ version is described under Development.
 | `pnpm hooks:install` | Turns on the local git hooks (once per clone): checks before each commit, and the commit-message format |
 | `pnpm run setup` | Configures an instance: database, `.env`, tables and the root account |
 | `pnpm run reset-root-password` | Sets a new root password and signs root out everywhere |
+| `pnpm run reset-setup` | Development only: removes this clone's settings file, SQLite database and storage, so the setup can be run again |
 | `pnpm db:migrate` | Applies pending database migrations |
 | `pnpm test:e2e` | Builds the web app and runs the end-to-end tests (Playwright, Chromium) against a throwaway instance. Install the browser once with `pnpm --filter @ronneai/web exec playwright install chromium` |
 | `pnpm test:db` | Runs only the database tests (in-memory SQLite, or `TEST_DATABASE_URL`) |

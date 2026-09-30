@@ -7,13 +7,18 @@
 export const PATH_HEADER = "x-ronne-path";
 
 export const SIGN_IN_PATH = "/sign-in";
+/** The web setup (feature 036): the only page until the instance is ready. */
+export const SETUP_PATH = "/setup";
+
+const under = (pathname: string, base: string) =>
+  pathname === base || pathname.startsWith(`${base}/`);
 
 /**
  * Pages anyone can open. API routes and static files never reach the proxy (see its matcher):
  * `/api/*` answers with its own status codes instead of redirecting.
  */
 export const isPublicPath = (pathname: string): boolean => {
-  return pathname === SIGN_IN_PATH || pathname.startsWith(`${SIGN_IN_PATH}/`);
+  return under(pathname, SIGN_IN_PATH) || under(pathname, SETUP_PATH);
 };
 
 const ORIGIN = "http://ronne.invalid";

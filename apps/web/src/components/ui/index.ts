@@ -5,7 +5,7 @@ export { BrandMark } from "./BrandMark";
 export { Button, buttonClasses } from "./Button";
 export { CopyableCommand } from "./CopyableCommand";
 export { Dialog } from "./Dialog";
-export { Checkbox, FieldError, Input, Label, TextField } from "./Field";
+export { Checkbox, FieldError, Input, Label, Select, TextField } from "./Field";
 export { Notice } from "./Notice";
 export { PageHeader, Panel } from "./Panel";
 export { PasswordInput } from "./PasswordInput";

@@ -13,6 +13,18 @@ export const TOPICS = [
     ],
   },
   {
+    slug: "install",
+    title: "Installing Ronne",
+    summary: "Running an instance with Docker or Node, the first-run setup, root, and upgrading.",
+    sections: [
+      { id: "docker", title: "With Docker" },
+      { id: "node", title: "With Node" },
+      { id: "setup", title: "The setup" },
+      { id: "root", title: "The root account" },
+      { id: "upgrade", title: "Upgrading" },
+    ],
+  },
+  {
     slug: "scopes",
     title: "Scopes",
     summary: "The first part of every item's name, and how to organise them.",
@@ -140,7 +152,7 @@ export type SectionOf<T extends TopicSlug> = Extract<Topic, { slug: T }>["sectio
 
 /** How the Documentation's menu groups the topics, in order (owner's request, 2026-09-28). */
 export const TOPIC_GROUPS: { label: string; topics: readonly TopicSlug[] }[] = [
-  { label: "Getting started", topics: ["overview", "roles"] },
+  { label: "Getting started", topics: ["overview", "install", "roles"] },
   { label: "Organising", topics: ["scopes", "items"] },
   { label: "Publishing", topics: ["review", "versions", "changes"] },
   { label: "Installing", topics: ["rmk", "mcp", "claude-code", "codex", "cursor"] },

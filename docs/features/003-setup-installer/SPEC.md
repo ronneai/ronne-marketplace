@@ -84,6 +84,12 @@ Root's access tokens are revoked too, since a reset usually means the old creden
 **Where the code lives:** the command in `apps/web/scripts/`. It calls `db/` for checks and
 migrations, and the `identity` domain's actions for the root account. It doesn't write SQL itself.
 
+**Where the code lives** (since [036](../036-web-setup/SPEC.md)). The steps (checking the database,
+writing the settings, applying the migrations, creating root) are functions in
+`apps/web/src/server/setup/steps.ts`, shared with the web setup; `run-setup.ts` keeps the prompts
+and the loops around them, and the words it prints are the ones the web setup shows. The closing
+message no longer says to restart: the app reads its settings on each request.
+
 ## Edge cases
 
 - **Existing `.env` with a different database.** When the user starts over, setup warns that the old database is left untouched and isn't migrated.

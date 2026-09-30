@@ -68,6 +68,19 @@ describe("createRoot", () => {
     expect(JSON.stringify(events[0])).not.toContain(root.password);
   });
 
+  it("records the web setup as the origin, with the client's address", async () => {
+    const created = await createRoot(t.db, t.dialect, root, { via: "web", ipAddress: "10.0.0.7" });
+    const events = await auditEvents();
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      actorId: null,
+      action: "instance.root_created",
+      targetId: created.id,
+      metadata: { via: "web", email: "root@example.com" },
+      ipAddress: "10.0.0.7",
+    });
+  });
+
   it("refuses a second root and writes nothing", async () => {
     await createRoot(t.db, t.dialect, root);
     await expect(

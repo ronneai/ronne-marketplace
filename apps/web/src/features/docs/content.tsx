@@ -149,6 +149,118 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
     ),
   },
 
+  install: {
+    docker: (
+      <>
+        <p>
+          You need Docker with Compose, and one file: <Code>compose.yaml</Code> from the repository.
+          It pulls the image <Code>ronneai/marketplace</Code> from Docker Hub, so no clone is
+          needed. SQLite needs no server; for PostgreSQL or MySQL, a profile starts one next to
+          Ronne.
+        </p>
+        <Example>
+          {
+            "mkdir ronne && cd ronne\ncurl -fsSLO https://raw.githubusercontent.com/ronneai/ronne-marketplace/main/compose.yaml\ndocker compose up -d                          # then open http://localhost:3000\ndocker compose --profile postgres up -d       # or --profile mysql, with RONNE_DB_PASSWORD set"
+          }
+        </Example>
+        <p>
+          Then open the address and follow <To href={docsHref("install", "setup")}>the setup</To>.
+          Your data (the SQLite file, stored items and the settings) lives in the{" "}
+          <Code>ronne-data</Code> volume, mounted at <Code>/app/data</Code>; back that volume up.{" "}
+          <Code>PUBLIC_URL</Code> and <Code>RONNE_PORT</Code> are set in the environment, for
+          example <Code>PUBLIC_URL=https://ronne.example docker compose up -d</Code> behind a
+          reverse proxy (with <Code>TRUST_PROXY=true</Code> when the proxy adds{" "}
+          <Code>X-Forwarded-For</Code>).
+        </p>
+      </>
+    ),
+    node: (
+      <>
+        <p>You need Node.js 24 (22.12 or later works) and pnpm. From a clone of the repository:</p>
+        <Example>
+          {"pnpm install\npnpm build && pnpm start          # or pnpm dev while developing"}
+        </Example>
+        <p>
+          Then open http://localhost:3000 and follow{" "}
+          <To href={docsHref("install", "setup")}>the setup</To>. The settings go to{" "}
+          <Code>apps/web/.env</Code>, readable only by you, and a SQLite database to{" "}
+          <Code>apps/web/data/</Code> by default.
+        </p>
+      </>
+    ),
+    setup: (
+      <>
+        <p>
+          Until the instance is set up, every page opens the setup, and the API answers{" "}
+          <Code>503 setup_required</Code>. The setup asks for:
+        </p>
+        <Steps>
+          <li>
+            <strong>The database.</strong> SQLite (the default: a file, nothing else to install),
+            MySQL or MariaDB, or PostgreSQL, with the host, port, name, user and password of an
+            existing, empty database. <strong>Test connection</strong> connects, checks the server
+            version and, on MySQL, the <Code>utf8mb4</Code> character set, and checks that the user
+            can create, write, read and drop tables (through a probe table it removes again). A
+            problem is explained in plain words, with the driver&apos;s message.
+          </li>
+          <li>
+            <strong>The public address</strong>: where people open Ronne AI Marketplace. When it
+            comes from the environment (as <Code>compose.yaml</Code> sets <Code>PUBLIC_URL</Code>),
+            it&apos;s shown read-only, since the environment wins over the settings file.
+          </li>
+          <li>
+            <strong>The root account</strong>: email, display name and a password of 12 to 128
+            characters, typed twice.
+          </li>
+          <li>
+            <strong>Install</strong>: the settings are written, the migrations applied and the root
+            account created, each shown as it happens. A failure returns to the question it&apos;s
+            about; Retry resumes from the failed step. Then <strong>Sign in</strong> opens the
+            sign-in page with the root email filled in. Nothing needs a restart.
+          </li>
+        </Steps>
+        <p>
+          A setup that was interrupted after the settings were written resumes at Install on the
+          next visit, keeping the database. Anyone who can open the address before you can set the
+          instance up, so open it right after starting it. Running the setup again never creates a
+          second root.
+        </p>
+      </>
+    ),
+    root: (
+      <>
+        <p>
+          There is one root account: the instance&apos;s owner, created by the setup. It can do
+          everything a <To href={docsHref("roles", "roles")}>moderator</To> can, plus create and
+          manage users, create scopes and read the audit log. Nobody signs up: root creates every
+          other account.
+        </p>
+        <p>
+          A forgotten root password is reset where the instance is installed:{" "}
+          <Code>pnpm run reset-root-password</Code> (in Docker,{" "}
+          <Code>docker compose exec web pnpm run reset-root-password</Code>). It sets a new
+          password, signs root out everywhere, revokes root&apos;s access tokens and re-enables the
+          account if it was disabled.
+        </p>
+      </>
+    ),
+    upgrade: (
+      <>
+        <Example>
+          {
+            "docker compose pull web && docker compose up -d     # Docker\ngit pull && pnpm install && pnpm build && pnpm start   # a clone"
+          }
+        </Example>
+        <p>
+          Pending database migrations run when the server starts. If one fails, the server stops
+          instead of serving a half-migrated database. Each release is tagged <Code>X.Y.Z</Code>,{" "}
+          <Code>X.Y</Code> and <Code>latest</Code> on Docker Hub; to pin one, set{" "}
+          <Code>RONNE_IMAGE=ronneai/marketplace:X.Y.Z</Code> next to <Code>compose.yaml</Code>. The
+          image and the <To href={docsHref("rmk", "getting")}>npm packages</To> share a version.
+        </p>
+      </>
+    ),
+  },
   scopes: {
     what: (
       <>
@@ -582,8 +694,9 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           and look after versions.
         </li>
         <li>
-          <strong>root:</strong> the instance&apos;s owner, created at setup. Everything a moderator
-          does, plus users, scopes and the audit log. Root creates every account: nobody signs up.
+          <strong>root:</strong> the instance&apos;s owner, created by{" "}
+          <To href={docsHref("install", "setup")}>the setup</To>. Everything a moderator does, plus
+          users, scopes and the audit log. Root creates every account: nobody signs up.
         </li>
       </Bullets>
     ),
