@@ -2,15 +2,17 @@
 
 import { formatBytes } from "@ronneai/core";
 import { FileText, Folder, Terminal } from "lucide-react";
-import type { EditorFile } from "./types";
 
-type Row =
+/** What the tree shows of a file: an editor's file, or a released one (044). */
+export type TreeFile = { path: string; size: number; executable: boolean; dirty?: boolean };
+
+type Row<F extends TreeFile> =
   | { kind: "folder"; path: string; depth: number }
-  | { kind: "file"; file: EditorFile; depth: number };
+  | { kind: "file"; file: F; depth: number };
 
 /** Files in path order, with a row for each folder the first time it appears. */
-export const treeRows = (files: readonly EditorFile[]): Row[] => {
-  const rows: Row[] = [];
+export const treeRows = <F extends TreeFile>(files: readonly F[]): Row<F>[] => {
+  const rows: Row<F>[] = [];
   const shown = new Set<string>();
   for (const file of files) {
     const parts = file.path.split("/");
@@ -25,13 +27,13 @@ export const treeRows = (files: readonly EditorFile[]): Row[] => {
   return rows;
 };
 
-/** The draft's files, with their sizes and unsaved marks (feature 012). */
+/** A list of files as a tree, with their sizes and unsaved marks: the draft editor (012), the item page (044). */
 export const FileTree = ({
   files,
   selected,
   onSelect,
 }: {
-  files: readonly EditorFile[];
+  files: readonly TreeFile[];
   selected: string;
   onSelect: (path: string) => void;
 }) => (

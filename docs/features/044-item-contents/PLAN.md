@@ -20,9 +20,10 @@ the same change that completes it.
   *Done when:* a db test covers a listed dependency, a missing one, a name that isn't one, and a
   signed-out visitor.
 
-- [ ] **3. Shared code and canvas.** Move `CodeEditor`, `languages.ts` and `FileTree` to
+- [x] **3. Shared code and canvas.** Move `CodeEditor`, `languages.ts` and `FileTree` to
   `components/code/`, and the canvas pieces (`ComposerCanvas`, nodes, context, css, `toGraph`, layout)
-  to `components/dependency-canvas/`. In read-only mode, a dependency node links to its page.
+  to `components/dependency-canvas/` (`graph.ts` holds `toGraph`; the YAML edits stay in the
+  draft editor's `model.ts`). Given `hrefOf`, a dependency node links to its page.
   *Done when:* the draft editor and composer tests pass unchanged, and a test shows the node link.
 
 - [ ] **4. Overview model.** `bodyPathOf` and `settingsOf` in `features/item-page/overview/model.ts`.

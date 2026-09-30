@@ -3,17 +3,18 @@
 import type { ItemType, ManifestIssue } from "@ronneai/core";
 import { ReactFlowProvider, useReactFlow } from "@xyflow/react";
 import { useCallback, useMemo, useState } from "react";
+import { ComposerCanvas, FIT } from "@/components/dependency-canvas/ComposerCanvas";
+import { ComposerContext } from "@/components/dependency-canvas/context";
+import { toGraph } from "@/components/dependency-canvas/graph";
+import { readLayout } from "@/components/dependency-canvas/layout";
 import { Button } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/Notice";
 import type { FilesAction } from "../files";
 import { CataloguePicker } from "./CataloguePicker";
-import { ComposerCanvas, FIT } from "./ComposerCanvas";
 import { composerChanges } from "./changes";
-import { ComposerContext } from "./context";
 import { DependencyPanel } from "./DependencyPanel";
 import { useDependencyReports } from "./hooks";
-import { readLayout } from "./layout";
-import { readDependencies, startingRange, toGraph } from "./model";
+import { readDependencies, startingRange } from "./model";
 import type { PickerEntry, Position } from "./types";
 
 type Props = {

@@ -1,10 +1,15 @@
 "use client";
 
 import type { ItemType } from "@ronneai/core";
+import { useComposer } from "@/components/dependency-canvas/context";
+import {
+  DependencyFactsLine,
+  DependencyProblems,
+  RangeField,
+  RemoveButton,
+} from "@/components/dependency-canvas/nodes";
 import { Help } from "@/components/help/Help";
 import { Notice } from "@/components/ui/Notice";
-import { useComposer } from "./context";
-import { DependencyFactsLine, DependencyProblems, RangeField, RemoveButton } from "./nodes";
 import type { ComposerNode } from "./types";
 
 /**

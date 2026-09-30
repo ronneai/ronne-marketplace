@@ -1,7 +1,12 @@
 import type { ItemType } from "@ronneai/core";
+import {
+  LAYOUT_PATH,
+  moveNodes,
+  readLayout,
+  writeLayout,
+} from "@/components/dependency-canvas/layout";
 import { MANIFEST_PATH } from "@/server/domains/submissions/models/submission";
 import type { FilesAction } from "../files";
-import { LAYOUT_PATH, moveNodes, readLayout, writeLayout } from "./layout";
 import { addDependency, readDependencies, removeDependency, setDependencyRange } from "./model";
 import type { Position } from "./types";
 
