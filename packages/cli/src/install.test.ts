@@ -225,8 +225,10 @@ describe("rmk install for Cursor", () => {
     const result = await rmk("install", "@team/secure", "--target", "codex,cursor");
     expect(result.exitCode, result.stdout).toBe(0);
     expect(JSON.parse(read(".cursor/mcp.json"))).toEqual({
-      // biome-ignore lint/suspicious/noTemplateCurlyInString: Cursor's own reference syntax
-      mcpServers: { gh: { command: "npx", env: { GITHUB_TOKEN: "${env:GITHUB_TOKEN}" } } },
+      mcpServers: {
+        // biome-ignore lint/suspicious/noTemplateCurlyInString: Cursor's own reference syntax
+        gh: { type: "stdio", command: "npx", env: { GITHUB_TOKEN: "${env:GITHUB_TOKEN}" } },
+      },
     });
     expect(entries()).toEqual([
       ["dir", ".agents/skills/secure"],

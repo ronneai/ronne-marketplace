@@ -230,6 +230,8 @@ const renderMcpServer = (n: string, block: Record<string, unknown>): Rendered =>
     if (headers.length)
       value.headers = Object.fromEntries(headers.map(([k, v]) => [k, cursorRefs(String(v))]));
   } else {
+    // Cursor's documentation requires the type for a stdio server (checked 2026-09-30).
+    value.type = "stdio";
     value.command = block.command;
     if (Array.isArray(block.args)) value.args = block.args;
     const env = (Array.isArray(block.env) ? block.env : [])

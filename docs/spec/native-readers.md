@@ -262,8 +262,8 @@ also reads `.claude/agents/` and `.codex/agents/`; those are §5's and §9's.)
 - Dropped, with a warning each: `envFile`, `auth` (OAuth), and any other key. Cursor's other
   variables (`${userHome}`, `${workspaceFolder}`, `${workspaceFolderBasename}`, `${pathSeparator}`,
   `${/}`) have no equivalent: the value stays as written, with a warning.
-- Finding for 025, not changed here: Cursor's documentation now shows `type: "stdio"` as required
-  for stdio servers, and the Cursor renderer writes none.
+- Cursor's documentation shows `type: "stdio"` as required for stdio servers; the Cursor renderer
+  (025) writes it since this check. Either way the reader reads a `command` as stdio.
 
 ## 11. Not read
 
