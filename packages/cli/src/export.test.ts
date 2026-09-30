@@ -1,14 +1,17 @@
-import { chmodSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { apiClient } from "./api.js";
 import { diskHash, writeState } from "./apply.js";
 import { RmkError } from "./errors.js";
 import {
+  describeLocalItems,
+  discoverLocalItems,
   type ExportPlan,
   findSkills,
   ownershipOf,
   planExport,
+  readMcpServers,
   uploadExport,
   walkItemFolder,
 } from "./export.js";
@@ -199,7 +202,7 @@ describe("ownershipOf", () => {
     await recordInstall("user", ".claude/skills/review");
     const [found] = findSkills(io, "project");
     expect(found?.display).toBe(".claude/skills/review");
-    expect(await ownership(found?.dir ?? "")).toMatchObject({ owner: "installed", scope: "user" });
+    expect(await ownership(found?.path ?? "")).toMatchObject({ owner: "installed", scope: "user" });
   });
 
   it("calls a folder whose ronne.yaml has a version a registry copy", async () => {
@@ -562,5 +565,149 @@ describe("uploadExport", () => {
     expect(error.message).toContain(
       "the server in front of the registry refused a request this size",
     );
+  });
+});
+
+describe("the other types (040)", () => {
+  const agentMd = (name: string) =>
+    `---\nname: ${name}\ndescription: The ${name} agent.\n---\nDo it.\n`;
+  /** A project with one of each type, as a person writes them. */
+  const project = () => {
+    io = fakeIo({});
+    skill(io.cwd, ".claude/skills", "review");
+    write(io.cwd, ".claude/agents/reviewer.md", agentMd("code-reviewer"));
+    write(io.cwd, ".claude/agents/team/helper.md", agentMd("helper"));
+    write(io.cwd, ".claude/commands/review/diff.md", "---\ndescription: Diffs.\n---\nGo.\n");
+    write(io.cwd, ".claude/rules/style.md", "# Style\n");
+    write(io.cwd, ".claude/rules/notes.txt", "not a rule");
+    write(
+      io.cwd,
+      ".mcp.json",
+      JSON.stringify({
+        mcpServers: {
+          github: { type: "http", url: "https://x.example/mcp" },
+          "ronne-registry": { command: "rmk-mcp" },
+        },
+      }),
+    );
+  };
+  /** Records an install, as rmk does: the entry and the hash of what's on disk. */
+  const recordInstall = async (
+    entries: { item: string; kind: "dir" | "file" | "json-key"; path: string; key?: string[] }[],
+  ) => {
+    const { root, state } = places(io, "project");
+    writeState(state, {
+      version: 1,
+      entries: await Promise.all(
+        entries.map(async (e) => ({
+          ...e,
+          version: "1.0.0",
+          targets: ["claude-code"],
+          sha256: (await diskHash(root, e)) ?? "",
+        })),
+      ),
+    });
+  };
+
+  it("finds every type, named as the readers name them, and never rmk-mcp's own server", () => {
+    project();
+    expect(discoverLocalItems(io, "project").map((i) => [i.type, i.name, i.display])).toEqual([
+      ["agent", "code-reviewer", ".claude/agents/reviewer.md"],
+      ["mcp-server", "github", ".mcp.json (mcpServers.github)"],
+      ["agent", "helper", ".claude/agents/team/helper.md"],
+      ["skill", "review", ".claude/skills/review"],
+      ["command", "review-diff", ".claude/commands/review/diff.md"],
+      ["rule", "style", ".claude/rules/style.md"],
+    ]);
+  });
+
+  it("finds the user-scope servers at the top of ~/.claude.json only", () => {
+    io = fakeIo({});
+    write(
+      io.home,
+      ".claude.json",
+      JSON.stringify({
+        mcpServers: { personal: { command: "p" } },
+        projects: { "/x": { mcpServers: { local: { command: "l" } } } },
+      }),
+    );
+    write(io.home, ".claude/agents/mine.md", agentMd("mine"));
+    expect(discoverLocalItems(io, "user").map((i) => [i.type, i.name])).toEqual([
+      ["agent", "mine"],
+      ["mcp-server", "personal"],
+    ]);
+  });
+
+  it("tells written here, installed, and installed and edited for files and keys", async () => {
+    project();
+    await recordInstall([
+      { item: "@team/code-reviewer", kind: "file", path: ".claude/agents/reviewer.md" },
+      { item: "@team/github", kind: "json-key", path: ".mcp.json", key: ["mcpServers", "github"] },
+    ]);
+    const owners = async () =>
+      Object.fromEntries(
+        (await describeLocalItems(io, "project")).map(({ item, ownership }) => [
+          item.name,
+          ownership.owner === "installed"
+            ? `installed${ownership.edited ? " and edited" : ""}`
+            : ownership.owner,
+        ]),
+      );
+    expect(await owners()).toEqual({
+      "code-reviewer": "installed",
+      github: "installed",
+      helper: "local",
+      review: "local",
+      "review-diff": "local",
+      style: "local",
+    });
+    write(io.cwd, ".claude/agents/reviewer.md", `${agentMd("code-reviewer")}Mine now.\n`);
+    const mcp = JSON.parse(readFileSync(join(io.cwd, ".mcp.json"), "utf8"));
+    mcp.mcpServers.github.url = "https://y.example/mcp";
+    writeFileSync(join(io.cwd, ".mcp.json"), JSON.stringify(mcp));
+    expect(await owners()).toMatchObject({
+      "code-reviewer": "installed and edited",
+      github: "installed and edited",
+    });
+  });
+
+  it("calls a Markdown file with rmk's marker rendered", async () => {
+    project();
+    write(
+      io.cwd,
+      ".claude/rules/house-style.md",
+      "---\npaths:\n  - src/**\n---\n<!-- managed by rmk: @examples/house-style@1.0.0 -->\n\nBody.\n",
+    );
+    const found = (await describeLocalItems(io, "project")).find(
+      (d) => d.item.name === "house-style",
+    );
+    expect(found?.ownership).toEqual({
+      owner: "rendered",
+      item: "@examples/house-style",
+      version: "1.0.0",
+    });
+  });
+
+  it("leaves out a server rmk mcp-setup recorded under another name, and a config that doesn't parse", async () => {
+    project();
+    const mcp = JSON.parse(readFileSync(join(io.cwd, ".mcp.json"), "utf8"));
+    mcp.mcpServers.registry = { command: "node", args: ["mcp/dist/bin.js"] };
+    writeFileSync(join(io.cwd, ".mcp.json"), JSON.stringify(mcp));
+    await recordInstall([
+      {
+        item: "rmk mcp-setup",
+        kind: "json-key",
+        path: ".mcp.json",
+        key: ["mcpServers", "registry"],
+      },
+    ]);
+    expect(
+      discoverLocalItems(io, "project")
+        .filter((i) => i.type === "mcp-server")
+        .map((i) => i.key),
+    ).toEqual(["github"]);
+    writeFileSync(join(io.cwd, ".mcp.json"), "{ not json");
+    expect(discoverLocalItems(io, "project").some((i) => i.type === "mcp-server")).toBe(false);
+    expect(readMcpServers(io, "project").problem).toContain(".mcp.json isn't valid JSON");
   });
 });

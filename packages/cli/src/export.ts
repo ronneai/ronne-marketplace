@@ -14,12 +14,22 @@ import {
   parseManifest,
   secretLike,
 } from "@ronneai/core";
-import { ReadError, type ReadResult, readSkill, skillName } from "@ronneai/core/read";
+import {
+  agentName,
+  commandName,
+  mcpServerName,
+  ReadError,
+  type ReadResult,
+  readSkill,
+  ruleName,
+  skillName,
+} from "@ronneai/core/read";
 import { type ApiClient, ApiError } from "./api.js";
 import { diskHash, readState } from "./apply.js";
 import { RmkError, usage } from "./errors.js";
-import { places, type Scope, scopeOf } from "./install.js";
+import { MCP_SETUP_ITEM, places, type Scope, scopeOf } from "./install.js";
 import type { Io } from "./io.js";
+import { SERVER_NAME } from "./mcp-setup.js";
 import { itemPath } from "./registry-commands.js";
 
 /**
@@ -31,14 +41,29 @@ import { itemPath } from "./registry-commands.js";
 /** Where skills live, relative to the project or the home folder (native-readers.md §4). */
 export const SKILL_FOLDERS = [".claude/skills", ".agents/skills"] as const;
 
+/** The types `rmk export` reads from Claude Code's files (038, 040). */
+export type ExportType = "skill" | "agent" | "command" | "rule" | "mcp-server";
+export const EXPORT_TYPES: readonly ExportType[] = [
+  "skill",
+  "agent",
+  "command",
+  "rule",
+  "mcp-server",
+];
+
 /** An item found on disk. */
 export type LocalItem = {
-  type: "skill";
-  /** The folder's name, which `rmk export <name>` matches. */
+  type: ExportType;
+  /** The item's short name, which `rmk export <name>` matches. */
   name: string;
-  /** The folder, as found (it may be a link). */
-  dir: string;
-  /** The folder, as shown: relative to the scope's root, with `/`. */
+  /**
+   * Where it is, as found (it may be a link): a skill's folder, an agent's, command's or rule's
+   * file, or the JSON file an MCP server is a key of.
+   */
+  path: string;
+  /** An MCP server's key under `mcpServers`. */
+  key?: string;
+  /** As shown: relative to the scope's root, with `/`, and the key for an MCP server. */
   display: string;
   scope: Scope;
 };
@@ -71,7 +96,13 @@ export const findSkills = (io: Io, scope: Scope): LocalItem[] => {
       const real = realFolder(dir);
       if (!real || seen.has(real) || !existsSync(join(real, "SKILL.md"))) continue;
       seen.add(real);
-      found.push({ type: "skill", name, dir, display: toSlashes(relative(root, dir)), scope });
+      found.push({
+        type: "skill",
+        name,
+        path: dir,
+        display: toSlashes(relative(root, dir)),
+        scope,
+      });
     }
   }
   return found.sort((a, b) =>
@@ -79,8 +110,123 @@ export const findSkills = (io: Io, scope: Scope): LocalItem[] => {
   );
 };
 
-/** Every item `rmk export` can find in a scope: skills for now; 040 adds the other types. */
-export const discoverLocalItems = (io: Io, scope: Scope): LocalItem[] => findSkills(io, scope);
+/** A file, following a link to one; null for anything else. */
+const realFile = (path: string): string | null => {
+  try {
+    return statSync(path).isFile() ? realpathSync(path) : null;
+  } catch {
+    return null;
+  }
+};
+
+/** Where Claude Code keeps agents, commands and rules, read recursively (native-readers.md §5–7). */
+const MARKDOWN_FOLDERS = {
+  agent: ".claude/agents",
+  command: ".claude/commands",
+  rule: ".claude/rules",
+} as const;
+
+const markdownFiles = (dir: string, under = ""): string[] => {
+  if (!realFolder(dir)) return [];
+  return readdirSync(dir)
+    .sort()
+    .flatMap((entry) => {
+      const full = join(dir, entry);
+      const path = under ? `${under}/${entry}` : entry;
+      if (realFolder(full)) return markdownFiles(full, path);
+      return entry.endsWith(".md") && realFile(full) ? [path] : [];
+    });
+};
+
+/** The agents, commands or rules in a scope, named as the readers name them. */
+const findMarkdown = (io: Io, scope: Scope, type: keyof typeof MARKDOWN_FOLDERS): LocalItem[] => {
+  const { root } = places(io, scope);
+  const folder = join(root, MARKDOWN_FOLDERS[type]);
+  return markdownFiles(folder).map((under) => {
+    const path = join(folder, under);
+    const name =
+      type === "agent"
+        ? agentName({ path: under, bytes: new Uint8Array(readFileSync(path)) }, basename(under))
+        : type === "command"
+          ? commandName(under)
+          : ruleName(under);
+    return { type, name, path, display: toSlashes(relative(root, path)), scope };
+  });
+};
+
+/** Where MCP servers are: the project's `.mcp.json`, or `~/.claude.json`'s top level for user scope. */
+const mcpConfigPath = (io: Io, scope: Scope) =>
+  scope === "project" ? join(io.cwd, ".mcp.json") : join(io.home, ".claude.json");
+
+/** The `mcpServers` of a scope's config, or the reason it can't be read. */
+export const readMcpServers = (
+  io: Io,
+  scope: Scope,
+): { path: string; servers: Record<string, unknown>; problem: string | null } => {
+  const path = mcpConfigPath(io, scope);
+  if (!realFile(path)) return { path, servers: {}, problem: null };
+  try {
+    const json = JSON.parse(readFileSync(path, "utf8")) as { mcpServers?: unknown };
+    const servers = json?.mcpServers;
+    return {
+      path,
+      servers:
+        servers && typeof servers === "object" && !Array.isArray(servers)
+          ? (servers as Record<string, unknown>)
+          : {},
+      problem: null,
+    };
+  } catch (error) {
+    return {
+      path,
+      servers: {},
+      problem: `${basename(path)} isn't valid JSON (${(error as Error).message}), so its MCP servers can't be read.`,
+    };
+  }
+};
+
+/** The MCP servers in a scope, less the one `rmk mcp-setup` registered, which is never an item. */
+const findMcpServers = (io: Io, scope: Scope): LocalItem[] => {
+  const { root, state } = places(io, scope);
+  const { path, servers } = readMcpServers(io, scope);
+  const file = toSlashes(relative(root, path));
+  const setup = new Set(
+    readState(state)
+      .entries.filter((e) => e.item === MCP_SETUP_ITEM && e.kind === "json-key")
+      .map((e) => (Array.isArray(e.key) ? e.key.at(-1) : undefined)),
+  );
+  return Object.keys(servers)
+    .filter((key) => key !== SERVER_NAME && !setup.has(key))
+    .sort()
+    .map((key) => ({
+      type: "mcp-server" as const,
+      name: mcpServerName(key),
+      path,
+      key,
+      display: `${file} (mcpServers.${key})`,
+      scope,
+    }));
+};
+
+/** Every item `rmk export` can find in a scope, by name then type then place (038, 040). */
+export const discoverLocalItems = (io: Io, scope: Scope): LocalItem[] =>
+  [
+    ...findSkills(io, scope),
+    ...findMarkdown(io, scope, "agent"),
+    ...findMarkdown(io, scope, "command"),
+    ...findMarkdown(io, scope, "rule"),
+    ...findMcpServers(io, scope),
+  ].sort((a, b) =>
+    a.name !== b.name
+      ? a.name < b.name
+        ? -1
+        : 1
+      : a.type !== b.type
+        ? EXPORT_TYPES.indexOf(a.type) - EXPORT_TYPES.indexOf(b.type)
+        : a.display < b.display
+          ? -1
+          : 1,
+  );
 
 /** Folders that are never part of an item, wherever they are in it (native-readers.md §3). */
 const NEVER_FOLDERS = new Set([".git", ".hg", ".svn", "node_modules", "__pycache__", ".ronne"]);
@@ -182,11 +328,11 @@ export const folderName = (dir: string): string => basename(realpathSync(dir));
  */
 export type Ownership =
   | { owner: "local" }
-  /** The state file has an entry for this folder; `edited` when it changed since. */
+  /** The state file has an entry for this folder, file or key; `edited` when it changed since. */
   | { owner: "installed"; item: string; version: string; edited: boolean; scope: Scope }
   /** Its `ronne.yaml` has a `version`, which only the packer sets. */
   | { owner: "registry_copy"; item: string | null; version: string }
-  /** Its entry file carries rmk's managed marker: a rule or command rendered as a skill. */
+  /** Its Markdown carries rmk's managed marker: something `rmk` wrote, such as a rule as a skill. */
   | { owner: "rendered"; item: string; version: string };
 
 const MARKER = /managed by rmk: (@[a-z0-9-]+\/[a-z0-9-]+)@([^\s>]+)/;
@@ -196,15 +342,27 @@ const textOf = (files: readonly PackageFile[], path: string) => {
   return file ? new TextDecoder().decode(file.bytes) : null;
 };
 
-/** The state entry for exactly this folder, in either scope's state file. */
-const installedEntry = (io: Io, dir: string) => {
+/** What an ownership check looks at: a folder or file, or a key of a JSON file. */
+export type Place = { path: string; key?: string };
+
+/**
+ * The state entry for exactly this place, in either scope's state file: a `dir` or `file` entry
+ * for its path, or a `json-key` entry for `mcpServers.<key>` in its file.
+ */
+const installedEntry = (io: Io, place: Place) => {
+  const real = realFolder(place.path) ?? realFile(place.path) ?? place.path;
   for (const scope of ["project", "user"] as const) {
     const { root, state } = places(io, scope);
-    for (const candidate of new Set([dir, realFolder(dir) ?? dir])) {
+    for (const candidate of new Set([place.path, real])) {
       const path = relative(root, candidate);
       if (!path || path.startsWith("..") || isAbsolute(path)) continue;
-      const entry = readState(state).entries.find(
-        (e) => e.kind === "dir" && e.path === toSlashes(path),
+      const entry = readState(state).entries.find((e) =>
+        place.key === undefined
+          ? (e.kind === "dir" || e.kind === "file") && e.path === toSlashes(path)
+          : e.kind === "json-key" &&
+            e.path === toSlashes(path) &&
+            Array.isArray(e.key) &&
+            e.key.join("\0") === ["mcpServers", place.key].join("\0"),
       );
       if (entry) return { root, scope, entry };
     }
@@ -212,12 +370,16 @@ const installedEntry = (io: Io, dir: string) => {
   return null;
 };
 
+/**
+ * Whose the item at `place` is. `files` are what decides it besides the state: a skill's
+ * `ronne.yaml` and `SKILL.md`, or a single Markdown file; none for an MCP server.
+ */
 export const ownershipOf = async (
   io: Io,
-  dir: string,
+  place: Place | string,
   files: readonly PackageFile[],
 ): Promise<Ownership> => {
-  const installed = installedEntry(io, dir);
+  const installed = installedEntry(io, typeof place === "string" ? { path: place } : place);
   if (installed) {
     const { root, scope, entry } = installed;
     return {
@@ -239,7 +401,10 @@ export const ownershipOf = async (
         version: String(fields.version),
       };
   }
-  const marker = MARKER.exec(textOf(files, "SKILL.md") ?? "");
+  const markdown =
+    textOf(files, "SKILL.md") ??
+    (files.length === 1 && files[0]?.path.endsWith(".md") ? textOf(files, files[0].path) : null);
+  const marker = MARKER.exec(markdown ?? "");
   if (marker) return { owner: "rendered", item: marker[1] ?? "", version: marker[2] ?? "" };
   return { owner: "local" };
 };
@@ -257,13 +422,18 @@ export const describeLocalItems = async (
 ): Promise<{ item: LocalItem; ownership: Ownership }[]> => {
   const described: { item: LocalItem; ownership: Ownership }[] = [];
   for (const item of discoverLocalItems(io, scope)) {
-    const files: PackageFile[] = OWNERSHIP_FILES.flatMap((path) => {
-      const full = join(item.dir, path);
-      return existsSync(full) && statSync(full).isFile()
-        ? [{ path, bytes: new Uint8Array(readFileSync(full)) }]
-        : [];
-    });
-    described.push({ item, ownership: await ownershipOf(io, item.dir, files) });
+    const files: PackageFile[] =
+      item.type === "skill"
+        ? OWNERSHIP_FILES.flatMap((path) => {
+            const full = join(item.path, path);
+            return existsSync(full) && statSync(full).isFile()
+              ? [{ path, bytes: new Uint8Array(readFileSync(full)) }]
+              : [];
+          })
+        : item.type === "mcp-server"
+          ? []
+          : [{ path: basename(item.path), bytes: new Uint8Array(readFileSync(item.path)) }];
+    described.push({ item, ownership: await ownershipOf(io, item, files) });
   }
   return described;
 };
@@ -350,7 +520,7 @@ const resolveItems = (io: Io, request: ExportRequest) => {
         { paths: matches.map((m) => m.display) },
       );
     const [match] = matches as [LocalItem];
-    return { local: match.display, dir: match.dir };
+    return { local: match.display, dir: match.path };
   });
 };
 

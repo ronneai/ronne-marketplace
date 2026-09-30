@@ -29,7 +29,7 @@ the same change that completes it.
   *Done when:* a test proves no value from the fixture's `env` or headers is in the output, and the
   output passes `checkPackage`'s secret check.
 
-- [ ] **6. Finding them and whose they are.** In `packages/cli/src/export.ts`: the three folders,
+- [x] **6. Finding them and whose they are.** In `packages/cli/src/export.ts`: the three folders,
   the two JSON files (only `mcpServers`), state entries of kind `file` and `json-key`, the marker,
   and `rmk mcp-setup`'s entry left out.
   *Done when:* tests cover each type written here, installed, and installed and edited.
