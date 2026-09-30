@@ -7,7 +7,10 @@ renderer turns `ronne.yaml` into a tool's files, and a reader turns a tool's fil
 `ronne.yaml` and the files that go with it ([manifest spec](./manifest.md)).
 
 Status: the skill reader is built (038, `readSkill` in `@ronneai/core/read`); the other four types
-are specified by 040. §5–8 were checked against Claude Code's documentation (sub-agents, commands
+are built (040). Codex's and Cursor's own files are specified by
+[043](../features/043-codex-cursor-readers/SPEC.md), which adds their sections here once checked;
+exporting an edited install as a change proposal is
+[042](../features/042-export-change-proposal/SPEC.md). §5–8 were checked against Claude Code's documentation (sub-agents, commands
 and skills, memory and rules, MCP) and its renderer on **2026-09-30**. The readers' tool, model
 and placeholder tables are the renderer's (`packages/core/src/render/claude-code/mappings.ts`),
 reversed in code.

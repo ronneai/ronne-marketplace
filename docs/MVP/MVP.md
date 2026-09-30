@@ -695,7 +695,7 @@ Design points:
 
 ### 14.5 Decided out of scope for now
 
-- Importing items from external/public marketplaces. (Existing `.claude` folders were on this list until 2026-09-30; exporting the person's own items from them is M7. Cursor's and Codex's own formats are feature 043, planned.)
+- Importing items from external/public marketplaces. (Existing `.claude` folders were on this list until 2026-09-30; exporting the person's own items from them is M7. Cursor's and Codex's own formats are feature [043](../features/043-codex-cursor-readers/SPEC.md).)
 - S3-compatible storage (the StorageAdapter interface stays, so it can be added later).
 - Notifications (email / webhooks).
 
