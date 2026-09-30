@@ -542,3 +542,85 @@ export const planExport = async (
   }
   return { registry: api.registry, to, items, refused, fingerprint: hash.digest("hex") };
 };
+
+/** A draft the registry created (037). */
+export type ExportedItem = {
+  local: string;
+  name: string;
+  type: "skill";
+  id: string;
+  /** The draft's page. */
+  url: string;
+  /** 011's checks on the draft, and what Submit would refuse now, as the registry saw them. */
+  issues: ManifestIssue[];
+  submitIssues: ManifestIssue[];
+  warnings: ExportWarning[];
+  skipped: Skipped[];
+};
+
+type DraftResponse = {
+  id: string;
+  path: string;
+  url: string | null;
+  issues: ManifestIssue[];
+  submitIssues: ManifestIssue[];
+};
+
+/** A file as 037 takes it: text as `utf8`, anything else as `base64`. */
+const uploadFile = (file: PackageFile) => {
+  const text = textOrNull(file);
+  return {
+    path: file.path,
+    encoding: text === null ? ("base64" as const) : ("utf8" as const),
+    content: text ?? Buffer.from(file.bytes).toString("base64"),
+    executable: file.executable ?? false,
+  };
+};
+
+/** Why an upload was refused, in words that say what to do. */
+const uploadMessage = (item: PlannedItem, error: ApiError) =>
+  error.status === 413 && !error.code.startsWith("http_")
+    ? `${item.local}: ${error.message}`
+    : error.status === 413
+      ? `${item.local}: the server in front of the registry refused a request this size. Its request body limit needs to be at least 28 MB (see Installing Ronne → With Docker in the registry's Documentation).`
+      : `${item.local}: ${error.message}`;
+
+/**
+ * Sends a plan: one `POST /drafts` (037) per item, in order. Each draft is private to the person
+ * and nothing is submitted. If one fails, the drafts already created are in the error's
+ * `details.exported`, so the person knows which exist.
+ */
+export const uploadExport = async (api: ApiClient, plan: ExportPlan): Promise<ExportedItem[]> => {
+  const exported: ExportedItem[] = [];
+  for (const item of plan.items) {
+    let draft: DraftResponse;
+    try {
+      draft = await api.post<DraftResponse>("/drafts", {
+        name: item.name,
+        type: item.type,
+        files: item.files.map(uploadFile),
+      });
+    } catch (error) {
+      if (!(error instanceof ApiError)) throw error;
+      const made = exported.map((e) => `${e.name} (${e.url})`).join(", ");
+      throw new RmkError(
+        `${uploadMessage(item, error)}${made ? ` Drafts already created: ${made}.` : ""}`,
+        1,
+        error.code,
+        { ...error.details, item: item.name, exported },
+      );
+    }
+    exported.push({
+      local: item.local,
+      name: item.name,
+      type: item.type,
+      id: draft.id,
+      url: draft.url ?? `${api.registry}${draft.path}`,
+      issues: draft.issues,
+      submitIssues: draft.submitIssues,
+      warnings: item.warnings,
+      skipped: item.skipped,
+    });
+  }
+  return exported;
+};

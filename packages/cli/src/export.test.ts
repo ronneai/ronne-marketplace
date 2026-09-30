@@ -4,9 +4,16 @@ import { afterEach, describe, expect, it } from "vitest";
 import { apiClient } from "./api.js";
 import { diskHash, writeState } from "./apply.js";
 import { RmkError } from "./errors.js";
-import { type ExportPlan, findSkills, ownershipOf, planExport, walkItemFolder } from "./export.js";
+import {
+  type ExportPlan,
+  findSkills,
+  ownershipOf,
+  planExport,
+  uploadExport,
+  walkItemFolder,
+} from "./export.js";
 import { places } from "./install.js";
-import { type FakeIo, fakeIo, REGISTRY, type Route } from "./testing.js";
+import { exportRoutes, type FakeIo, fakeIo, REGISTRY, type Route } from "./testing.js";
 
 let io: FakeIo;
 afterEach(() => io?.cleanup());
@@ -455,5 +462,105 @@ describe("planExport", () => {
     } finally {
       bare.cleanup();
     }
+  });
+});
+
+describe("uploadExport", () => {
+  const notPublished: Route = () => ({
+    status: 404,
+    json: { error: { code: "item_not_found", message: "No." } },
+  });
+  const setup = (options: Parameters<typeof exportRoutes>[0] = {}) => {
+    const registry = exportRoutes(options);
+    io = fakeIo({
+      ...registry.routes,
+      "GET /items/team/one": notPublished,
+      "GET /items/team/two": notPublished,
+    });
+    write(io.cwd, ".claude/skills/one/SKILL.md", "---\nname: one\ndescription: One.\n---\n");
+    write(io.cwd, ".claude/skills/one/run.sh", "#!/bin/sh\n", 0o755);
+    write(io.cwd, ".claude/skills/one/logo.png", "\u0000PNG");
+    write(io.cwd, ".claude/skills/two/SKILL.md", "---\nname: two\ndescription: Two.\n---\n");
+    return { api: apiClient(io.fetch, REGISTRY, "rmk_test_token"), drafts: registry.drafts };
+  };
+  const posts = () => io.requests.filter((r) => r.method === "POST");
+
+  it("sends one POST /drafts per item, with text as utf8 and anything else as base64", async () => {
+    const { api, drafts } = setup();
+    const plan = await planExport(io, api, { items: ["one", "two"], to: "team" });
+    expect(posts()).toEqual([]);
+    const exported = await uploadExport(api, plan);
+    expect(posts().map((r) => r.path)).toEqual(["/api/v1/drafts", "/api/v1/drafts"]);
+    expect(drafts.map((d) => d.name)).toEqual(["@team/one", "@team/two"]);
+    expect(posts()[0]?.body).toEqual({
+      name: "@team/one",
+      type: "skill",
+      files: [
+        {
+          path: "SKILL.md",
+          encoding: "utf8",
+          content: "---\nname: one\ndescription: One.\n---\n",
+          executable: false,
+        },
+        {
+          path: "logo.png",
+          encoding: "base64",
+          content: Buffer.from("\u0000PNG").toString("base64"),
+          executable: false,
+        },
+        {
+          path: "ronne.yaml",
+          encoding: "utf8",
+          content: expect.stringContaining('name: "@team/one"'),
+          executable: false,
+        },
+        { path: "run.sh", encoding: "utf8", content: "#!/bin/sh\n", executable: true },
+      ],
+    });
+    expect(exported).toEqual([
+      expect.objectContaining({
+        local: ".claude/skills/one",
+        name: "@team/one",
+        id: drafts[0]?.id,
+        url: `${REGISTRY}/submissions/${drafts[0]?.id}`,
+        issues: [],
+        submitIssues: [],
+      }),
+      expect.objectContaining({ name: "@team/two" }),
+    ]);
+  });
+
+  it("stops at a failed upload, saying which drafts already exist", async () => {
+    const { api, drafts } = setup({
+      fail: {
+        "@team/two": {
+          status: 409,
+          json: {
+            error: {
+              code: "draft_limit",
+              message: "You already have 50 drafts.",
+              details: { limit: 50 },
+            },
+          },
+        },
+      },
+    });
+    const plan = await planExport(io, api, { items: ["one", "two"], to: "team" });
+    const error = await uploadExport(api, plan).catch((e) => e);
+    expect(error).toBeInstanceOf(RmkError);
+    expect(error).toMatchObject({ code: "draft_limit", exitCode: 1 });
+    expect(error.message).toBe(
+      `.claude/skills/two: You already have 50 drafts. Drafts already created: @team/one (${REGISTRY}/submissions/${drafts[0]?.id}).`,
+    );
+    expect(error.details.exported.map((e: { name: string }) => e.name)).toEqual(["@team/one"]);
+  });
+
+  it("explains a 413 from a proxy in front of the registry", async () => {
+    const { api } = setup({ fail: { "@team/one": { status: 413 } } });
+    const plan = await planExport(io, api, { items: ["one"], to: "team" });
+    const error = await uploadExport(api, plan).catch((e) => e);
+    expect(error.message).toContain(
+      "the server in front of the registry refused a request this size",
+    );
   });
 });

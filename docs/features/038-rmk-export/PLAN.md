@@ -34,7 +34,7 @@ the same change that completes it. Tasks 1 and 2 touch only `packages/core` and 
   *Done when:* the same folder gives the same fingerprint, any changed byte gives another, and a
   test proves no skipped file's bytes are in the plan.
 
-- [ ] **6. `uploadExport`.** One `POST /drafts` per item; the fake registry in `testing.ts` gains
+- [x] **6. `uploadExport`.** One `POST /drafts` per item; the fake registry in `testing.ts` gains
   `GET /scopes` and `POST /drafts`.
   *Done when:* tests show one request per item, the bodies' files, and a failure on the second item
   reported with the first draft's address.
