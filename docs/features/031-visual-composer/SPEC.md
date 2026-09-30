@@ -34,7 +34,8 @@ keep seeing a plain text diff (MVP §15).
 editor stays as fast as it is. Submitted drafts show it read-only, as they show the form.
 
 **The canvas** (React Flow):
-- The draft itself is the centre node: its name and type.
+- The draft itself is the centre node: its name and type. It stays in the centre; the dependencies
+  are arranged around it.
 - Each dependency is a node joined to it by an edge: the item's name, its type badge, the range
   (`^1.2.0`), and, from the catalogue, its latest version, its description, and the tools it works
   in (026). A dependency that isn't published, or whose type isn't allowed, shows the same problem
@@ -43,8 +44,9 @@ editor stays as fast as it is. Submitted drafts show it read-only, as they show 
   to items with an installable version); choosing one adds a node with the range `^<latest>`,
   or `latest`'s version exactly for a pre-release-only item. Dragging from the panel onto the
   canvas does the same, where it's dropped.
-- **Change the range**: a field in the node, checked as the form checks it (a semver range or a
-  dist-tag).
+- **Change the range**: a field in the node, checked as the form checks it: a semver range
+  (dist-tags aren't allowed in ranges, [manifest spec §3](../../spec/manifest.md)). A range that
+  isn't one shows 011's problem in the node.
 - **Remove**: a button on the node, or Delete with the node selected.
 - Pan, zoom, fit to view, and a mini-map for larger sets. Everything also works from the keyboard:
   nodes are focusable in list order, and the side panel lists every dependency, so nothing needs
@@ -52,12 +54,17 @@ editor stays as fast as it is. Submitted drafts show it read-only, as they show 
 
 **Round-trip.** The canvas holds no state of its own beyond positions: it reads `dependencies`
 from the draft's parsed manifest and writes it back through the same change path the form uses,
-so unsaved-changes, the save shortcut and validation work as they do. Keys are written in name
-order, the way the form writes them, so moving nodes never changes `ronne.yaml`.
+so unsaved-changes, the save shortcut and validation work as they do. Each change touches only
+its own line: a new dependency goes in name order among the ones there, a range changes in place,
+and the other lines keep their order and comments. Removing the last one removes `dependencies`
+(a bundle keeps `dependencies: {}`, which it must have), as emptying it in the form does. Moving
+nodes never changes `ronne.yaml`.
 
 **Layout.** Positions live in `.ronne/layout.json` (`{ "version": 1, "nodes": { "@scope/name":
-{ "x": 0, "y": 0 } } }`), a draft file like any other, saved with the draft. A dependency without
-a position is placed automatically (a ring around the centre). The packer already leaves `.ronne/`
+{ "x": 0, "y": 0 } } }`), a draft file like any other, saved with the draft. A position is a node's
+centre, in whole pixels from the draft's node, and is stored once the author moves the node. A
+dependency without a position is placed automatically: on a ring around the centre, in name order
+from the top, which grows with the number of dependencies. The packer already leaves `.ronne/`
 out of released packages (011), so a change proposal (017), which starts from the released files,
 starts with an automatic layout. The file editor shows `.ronne/layout.json` like any file.
 
@@ -75,12 +82,13 @@ with its hooks, types and tests; the catalogue search for the picker is a server
 - **A dependency the catalogue doesn't have** (typed in the YAML, or since removed): a node marked
   "not published", with the same message the form gives; it can be removed or kept for a
   submission to refuse.
-- **A dist-tag as the range** (`next`): shown as is; the field accepts it.
+- **A dist-tag as the range** (`next`, typed in the node or the YAML): shown as is, with 011's
+  problem, since a range has to be a semver range.
 - **The YAML doesn't parse**: the canvas shows the YAML view's error and a link to it, and edits
   nothing until it parses.
 - **Many dependencies**: fit to view on open; the mini-map helps; no limit beyond the manifest's.
-- **A layout file that doesn't parse, or names items no longer there**: ignored, and rewritten on
-  the next move.
+- **A layout file that doesn't parse, is another version, or names items no longer there**:
+  ignored, and rewritten on the next move.
 
 ## Documentation
 

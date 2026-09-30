@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. The model.** Pure functions from a manifest and a layout to nodes and edges, and back
+- [x] **1. The model.** Pure functions from a manifest and a layout to nodes and edges, and back
   from a canvas change to `dependencies`; `.ronne/layout.json` read and written; automatic
   placement.
   *Done when:* unit tests cover adding, removing, re-ranging, round-trips with the form's output,
@@ -27,3 +27,9 @@ the same change that completes it.
   *Done when:* it passes in CI, and the docs render tests cover the new part.
 
 ## Notes
+
+- **Task 1.** The model is `composer-canvas/model.ts` (dependencies in the YAML, and the graph)
+  and `layout.ts` (the layout file and placement). The spec said keys are written in name order
+  "the way the form writes them", but the form writes them in the order of its rows; the canvas
+  instead changes one line at a time and inserts new ones in name order. The spec also let a
+  dist-tag be a range, which the manifest contract (§3) and 011's checks refuse; it now says so.
