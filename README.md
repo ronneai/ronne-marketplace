@@ -93,21 +93,26 @@ The registry MCP server, `rmk-mcp` (`packages/mcp`), does the same from inside t
 assistant searches, shows a plan of what an install would change, and applies it once you've seen
 it. `rmk mcp-setup` adds it to each tool's MCP settings.
 
-**It isn't on npm yet.** Until it's published, it comes with this repository. From a clone, with
-Node.js 22.12 or later:
+Both are on npm, and need Node.js 22.12 or later:
 
 ```sh
-pnpm install
-pnpm build
-node packages/cli/dist/bin.js --help
-cd packages/cli && npm link        # optional: use it as `rmk` from anywhere
+npm install --global @ronneai/rmk @ronneai/mcp
 rmk login --registry https://your-ronne-instance.example
-cd packages/mcp && npm link        # optional: `rmk-mcp`, for rmk mcp-setup
+rmk install @scope/name
+rmk mcp-setup                      # registers rmk-mcp with the AI tools this project uses
 ```
 
-Once published, the install becomes `npm install --global @ronneai/rmk`. The package is
-`@ronneai/rmk` because the unscoped `rmk` name is taken on npm; the command is still `rmk`. The
-Documentation inside the app (Docs → Installing with rmk) explains the commands and the files it writes.
+The package is [`@ronneai/rmk`](https://www.npmjs.com/package/@ronneai/rmk) because the unscoped
+`rmk` name is taken on npm; the command is still `rmk`. The server is
+[`@ronneai/mcp`](https://www.npmjs.com/package/@ronneai/mcp), and both build on
+[`@ronneai/core`](https://www.npmjs.com/package/@ronneai/core). The Documentation inside the app
+(Docs → Installing with rmk, and Registry MCP server) explains the commands and the files they write.
+
+If you built them from a clone before and linked them, run `npm unlink --global @ronneai/rmk
+@ronneai/mcp` first, so the npm install is what `rmk` runs. Contributors can still run the local
+build: after `pnpm build`, `pnpm exec rmk` (or `node packages/cli/dist/bin.js`), and
+`rmk mcp-setup --command "node /path/to/packages/mcp/dist/bin.js"` for the server. Releasing a new
+version is described under Development.
 
 ## Development
 
@@ -138,6 +143,9 @@ Documentation inside the app (Docs → Installing with rmk) explains the command
 | `pnpm test:db:up` / `pnpm test:db:down` | Starts or stops local PostgreSQL, MySQL and MariaDB test servers (Docker) |
 | `pnpm test:db:postgres` (or `:mysql`, `:mariadb`) | Runs the database tests against one of those servers |
 | `pnpm exec rmk --version` | Runs the local `rmk` CLI (after `pnpm build`) |
+| `pnpm packages:check` | Checks what `@ronneai/core`, `@ronneai/rmk` and `@ronneai/mcp` would publish against an allowlist (after `pnpm build`) |
+| `pnpm release:smoke` | Installs the packed packages with npm in an empty folder and runs `rmk` and `rmk-mcp` (after `pnpm build`) |
+| `pnpm release:version <x.y.z>` | Sets the version the three published packages share. Commit it, then push the tag `vX.Y.Z`: the Release workflow checks, packs and publishes them to npm with provenance, and creates the GitHub release |
 
 **Layout**
 

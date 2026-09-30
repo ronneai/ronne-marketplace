@@ -60,7 +60,8 @@ describe("SignInForm errors", () => {
 
   it("says where to get rmk, and puts this instance's URL in the login commands", () => {
     const html = renderToStaticMarkup(<SignInPage next="/" registry="https://ronne.example" />);
-    expect(html).toContain("isn&#x27;t on npm yet");
+    expect(html).not.toContain("npm yet");
+    expect(html).toContain("npm install --global @ronneai/rmk<");
     expect(html).toContain('href="https://github.com/ronneai/ronne-marketplace#the-rmk-cli"');
     expect(html).toContain("rmk login --registry https://ronne.example<");
     expect(html).toContain("rmk login --registry https://ronne.example --token &lt;token&gt;");

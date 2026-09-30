@@ -48,14 +48,13 @@ export const CliAuthPanel = ({
       <ol className="grid gap-5">
         <Step n={1} title="Get rmk">
           <Hint>
-            It isn&apos;t on npm yet, so it comes with the Ronne AI Marketplace repository (
+            From npm, with Node.js 22.12 or later (
             <a href={README_RMK} className="text-link underline underline-offset-2">
               the README
-            </a>
-            ). From a clone, with Node.js 22.12 or later:
+            </a>{" "}
+            has more):
           </Hint>
-          <CopyableCommand command="pnpm install && pnpm build" wrap />
-          <CopyableCommand command="cd packages/cli && npm link" wrap />
+          <CopyableCommand command="npm install --global @ronneai/rmk" wrap />
         </Step>
         <Step n={2} title="Sign in">
           <Hint>
