@@ -723,8 +723,9 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           You wrote a skill, an agent, a command, a rule or an MCP server for Claude Code, Codex or
           Cursor, and want your team to have it. <Code>rmk export</Code> reads it, writes the{" "}
           <To href={docsHref("items", "manifest")}>ronne.yaml</To> it lacks, shows you everything it
-          would upload, and creates a <strong>private draft</strong> here. You check it in the web
-          app and submit it for review like any other draft.
+          would upload, and creates a <strong>private draft</strong> here: a new item, or a{" "}
+          <To href={docsHref("export", "proposals")}>change proposal</To> when it changes a
+          published one. You check it in the web app and submit it for review like any other draft.
         </p>
         <Example>
           {
@@ -793,7 +794,7 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </Bullets>
         <p>
           A file that contains something that is certainly a secret, such as a provider&apos;s API
-          key, stops that skill: the file is named, the value isn&apos;t shown. Remove it (use an
+          key, stops that item: the file is named, the value isn&apos;t shown. Remove it (use an
           environment variable instead), or add <Code>--force</Code>. A folder over the upload
           limits (500 files, 1 MB a file, 20 MB in all) is stopped too.
         </p>
@@ -815,13 +816,14 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           or, in a terminal, from the list <Code>rmk</Code> shows. It never picks one for you.
         </p>
         <p>
-          The name is the one Claude Code uses: a skill&apos;s or an agent&apos;s <Code>name</Code>,
-          a command&apos;s or rule&apos;s file name (with its subfolder: <Code>review/diff.md</Code>{" "}
-          is <Code>review-diff</Code>), or an MCP server&apos;s key. When it isn&apos;t a valid item
-          name, it&apos;s made into one, in lowercase with hyphens (<Code>My Skill!</Code> becomes{" "}
-          <Code>my-skill</Code>). <Code>--name</Code> sets another, for one item. If two items share
-          a name, such as a skill and a command called <Code>review</Code>, say which with{" "}
-          <Code>--type</Code>, or give the path.
+          The name is the one your AI tool uses: a skill&apos;s or an agent&apos;s <Code>name</Code>
+          , a command&apos;s or rule&apos;s file name (with its subfolder:{" "}
+          <Code>review/diff.md</Code> is <Code>review-diff</Code>), or an MCP server&apos;s key.
+          When it isn&apos;t a valid item name, it&apos;s made into one, in lowercase with hyphens (
+          <Code>My Skill!</Code> becomes <Code>my-skill</Code>). <Code>--name</Code> sets another,
+          for one item. If two items share a name, such as a skill and a command called{" "}
+          <Code>review</Code>, say which with <Code>--type</Code>; if two tools have it, with{" "}
+          <Code>--from</Code>; or give the path.
         </p>
       </>
     ),
@@ -836,10 +838,14 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           <li>every file with its size, and every file left out, with why;</li>
           <li>
             the <Code>ronne.yaml</Code> it made, and its warnings: each thing the item loses from
-            Claude Code&apos;s format, by name;
+            your tool&apos;s format, by name;
           </li>
+          <li>what it depends on, and whether each is exported with it or already published;</li>
           <li>what the checks find, to fix in the web app before submitting;</li>
-          <li>whether the name is already published, which Submit would refuse.</li>
+          <li>
+            for a <To href={docsHref("export", "proposals")}>change proposal</To>, the version it
+            starts from, what it changes, and whether a newer version is out.
+          </li>
         </Bullets>
         <p>
           Then it asks <strong>Upload n item(s) as drafts?</strong>, and nothing is sent unless you
@@ -909,8 +915,9 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           <To href={docsHref("review")}>the usual review</To>.
         </p>
         <p>
-          Exporting the same skill twice makes two drafts; delete the one you don&apos;t need. A
-          draft made this way counts towards the{" "}
+          A change proposal is reviewed like any proposal and released as the item&apos;s next
+          version. Exporting the same item twice makes two drafts (or two proposals); delete the one
+          you don&apos;t need. A draft made this way counts towards the{" "}
           <To href={docsHref("rmk", "tokens")}>limits for tokens</To>, and is written to the audit
           log.
         </p>
@@ -1119,9 +1126,10 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           </li>
         </Steps>
         <p>
-          It exports only items that are yours, found in your AI tools&apos; folders. For an MCP
-          server it asks you for a description. A file or folder elsewhere, and <Code>--force</Code>
-          , are for <Code>rmk export</Code> in a terminal.
+          It exports only items found in your AI tools&apos; folders: your own, and installed ones
+          you edited, as <To href={docsHref("export", "proposals")}>change proposals</To>. For an
+          MCP server it asks you for a description. A file or folder elsewhere, and{" "}
+          <Code>--force</Code>, are for <Code>rmk export</Code> in a terminal.
         </p>
       </>
     ),
