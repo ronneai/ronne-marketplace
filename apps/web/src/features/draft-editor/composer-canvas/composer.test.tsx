@@ -1,5 +1,5 @@
 import type { ItemType } from "@ronneai/core";
-import type { ReactNode } from "react";
+import type { DragEvent, ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { draftTemplate } from "@/server/domains/submissions/models/templates";
@@ -9,15 +9,21 @@ import { ComposerCanvas } from "./ComposerCanvas";
 import { composerChanges } from "./changes";
 import { ComposerContext } from "./context";
 import { DependencyPanel } from "./DependencyPanel";
+import { DRAG_TYPE, readDragged, startDrag } from "./drag";
 import { LAYOUT_PATH } from "./layout";
-import { hasCanvas, toGraph } from "./model";
+import { hasCanvas, startingRange, toGraph } from "./model";
+import type { PickerEntry } from "./types";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("../actions", () => ({}));
-vi.mock("./actions", () => ({ dependencyReportsAction: vi.fn() }));
+vi.mock("./actions", () => ({
+  dependencyReportsAction: vi.fn(),
+  searchDependenciesAction: vi.fn(),
+}));
 
 const { DraftEditor } = await import("../DraftEditor");
 const { ComposerView } = await import("./ComposerView");
+const { CataloguePicker, PickerResults } = await import("./CataloguePicker");
 
 const file = (path: string, content: string): EditorFile => ({
   path,
@@ -189,7 +195,7 @@ describe("the canvas", () => {
       false,
       <DependencyPanel type="bundle" nodes={graph.nodes.slice(0, 1)} failed onShow={() => {}} />,
     );
-    expect(empty).toContain("None yet.");
+    expect(empty).toContain("None yet. Add one from the catalogue, or drag it onto the canvas.");
     expect(empty).toContain("The items this bundle installs.");
     expect(empty).toContain("The catalogue couldn&#x27;t be reached.");
   });
@@ -210,6 +216,102 @@ describe("the canvas", () => {
     expect(html).toContain("The canvas needs valid YAML.");
     expect(html).toContain("Open the YAML");
     expect(html).not.toContain("react-flow");
+  });
+});
+
+const view = (readOnly: boolean, type: "agent" | "bundle" = "agent") =>
+  renderToStaticMarkup(
+    <ComposerView
+      itemName="@platform/reviewer"
+      type={type}
+      manifest={'name: "@platform/reviewer"\ndependencies:\n  "@tools/github": ^2.1.0\n'}
+      layout={undefined}
+      issues={[]}
+      readOnly={readOnly}
+      onChange={() => {}}
+      onShowYaml={() => {}}
+    />,
+  );
+
+const github: PickerEntry = {
+  name: "@tools/github",
+  type: "mcp-server",
+  version: "2.1.3",
+  description: "GitHub's MCP server.",
+  tools: ["Claude Code", "Codex"],
+};
+const upcoming: PickerEntry = {
+  name: "@platform/upcoming",
+  type: "skill",
+  version: "1.0.0-beta.2",
+  description: "",
+  tools: [],
+};
+
+describe("the picker", () => {
+  it("is under the canvas with the list, and gone once the draft is submitted", () => {
+    const html = view(false);
+    expect(html).toContain("Add from the catalogue");
+    expect(html).toContain('aria-label="Search the catalogue"');
+    expect(html).toContain('aria-label="Remove @tools/github"');
+    const submitted = view(true);
+    expect(submitted).not.toContain("Add from the catalogue");
+    expect(submitted).toMatch(/<input[^>]*aria-label="Range of @tools\/github"[^>]*disabled=""/);
+  });
+
+  it("offers only the types the draft may depend on", () => {
+    const types = (html: string) =>
+      [...html.matchAll(/<option value="([a-z-]+)"/g)].map((match) => match[1]);
+    expect(types(view(false))).toEqual(["skill", "mcp-server", "hook", "rule", "command"]);
+    expect(types(view(false, "bundle"))).toContain("agent");
+    expect(types(view(false, "bundle"))).toHaveLength(11);
+  });
+
+  it("lists results to add or drag, and marks the ones already there", () => {
+    const html = renderToStaticMarkup(
+      <PickerResults
+        entries={[github, upcoming]}
+        added={new Set(["@tools/github"])}
+        onAdd={() => {}}
+      />,
+    );
+    expect(html.match(/<li/g)).toHaveLength(2);
+    expect(html).toContain("GitHub&#x27;s MCP server.");
+    expect(html).toContain(">v2.1.3<");
+    expect(html).toMatch(/<li draggable="false"[^>]*>.*@tools\/github.*>added</s);
+    expect(html).not.toContain('aria-label="Add @tools/github"');
+    expect(html).toMatch(/<li draggable="true"[^>]*>.*@platform\/upcoming/s);
+    expect(html).toContain('aria-label="Add @platform/upcoming"');
+  });
+
+  it("says it's searching until the catalogue answers", () => {
+    const html = renderToStaticMarkup(
+      <CataloguePicker
+        itemName="@platform/reviewer"
+        type="agent"
+        added={new Set()}
+        onAdd={() => {}}
+      />,
+    );
+    expect(html).toContain("Searching…");
+    expect(html).toContain('aria-label="Search the catalogue"');
+  });
+
+  it("carries a result onto the canvas, and ignores anything else dropped there", () => {
+    const data = new Map<string, string>();
+    const event = {
+      dataTransfer: {
+        setData: (type: string, value: string) => data.set(type, value),
+        getData: (type: string) => data.get(type) ?? "",
+        effectAllowed: "",
+      },
+    } as unknown as DragEvent;
+    expect(readDragged(event)).toBeNull();
+    data.set(DRAG_TYPE, '{"name":1}');
+    expect(readDragged(event)).toBeNull();
+    startDrag(event, upcoming);
+    expect(data.get("text/plain")).toBe("@platform/upcoming");
+    expect(readDragged(event)).toEqual(upcoming);
   });
 });
 
@@ -293,6 +395,20 @@ describe("edits on the canvas", () => {
     expect(JSON.parse(content(state, LAYOUT_PATH) ?? "")).toEqual({
       version: 1,
       nodes: { "@tools/github": { x: 0, y: 200 } },
+    });
+  });
+
+  it("add a picked item with its starting range: ^latest, or a pre-release exactly", () => {
+    let state = apply(start(), "agent", (c) => c.add(github.name, startingRange(github.version)));
+    state = apply(state, "agent", (c) =>
+      c.add(upcoming.name, startingRange(upcoming.version), { x: -200.2, y: 140 }),
+    );
+    expect(content(state, "ronne.yaml")).toContain(
+      'dependencies:\n  "@platform/upcoming": 1.0.0-beta.2\n  "@tools/github": ^2.1.3\n',
+    );
+    // Added with its button it goes on the ring; dropped, it stays where it was dropped.
+    expect(JSON.parse(content(state, LAYOUT_PATH) ?? "").nodes).toEqual({
+      "@platform/upcoming": { x: -200, y: 140 },
     });
   });
 

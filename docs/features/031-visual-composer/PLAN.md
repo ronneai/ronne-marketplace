@@ -18,7 +18,7 @@ the same change that completes it.
   ranges, problems and removal; keyboard use.
   *Done when:* render tests cover the view switch, the nodes, and edits reaching the manifest.
 
-- [ ] **3. The picker.** The catalogue search as a server action, filtered by allowed types, and
+- [x] **3. The picker.** The catalogue search as a server action, filtered by allowed types, and
   adding by click or drop with the starting range.
   *Done when:* action tests on the database and render tests cover it.
 
@@ -52,3 +52,8 @@ the same change that completes it.
   centre to centre under the nodes, so they meet each node's border wherever it is. A node's
   range field keeps what was typed in its own state, because React Flow hands a node its data an
   effect later, which would lose the caret. React Flow's attribution stays visible.
+- **Task 3.** The picker is `CataloguePicker.tsx`, beside the list under the canvas. Its search
+  is `searchDependencies` in the composer service, which calls 018's `searchCatalogue` with the
+  allowed types and `installable`, so what it offers passes 013's type and version checks. A
+  dragged result carries its name and version as `application/x-ronne-dependency`; the canvas
+  ignores any other drop.

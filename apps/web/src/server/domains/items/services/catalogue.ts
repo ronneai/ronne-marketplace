@@ -88,6 +88,9 @@ export const searchCatalogue = async (
   query: {
     q?: string;
     type?: ItemType | null;
+    /** Any of these types, and only installable items: 031's picker. */
+    types?: readonly ItemType[];
+    installable?: boolean;
     scope?: string | null;
     tool?: string | null;
     sort?: CatalogueSort;
@@ -101,6 +104,8 @@ export const searchCatalogue = async (
   const rows = await deps.catalogue.list({
     search: query.q || undefined,
     type: query.type ?? undefined,
+    types: query.types,
+    installable: query.installable,
     scope: query.scope ?? undefined,
     tool: query.tool ?? undefined,
     sort,

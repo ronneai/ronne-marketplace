@@ -2,18 +2,19 @@
 
 import type { ItemType, ManifestIssue } from "@ronneai/core";
 import { ReactFlowProvider, useReactFlow } from "@xyflow/react";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/Notice";
 import type { FilesAction } from "../files";
+import { CataloguePicker } from "./CataloguePicker";
 import { ComposerCanvas, FIT } from "./ComposerCanvas";
 import { composerChanges } from "./changes";
 import { ComposerContext } from "./context";
 import { DependencyPanel } from "./DependencyPanel";
 import { useDependencyReports } from "./hooks";
 import { readLayout } from "./layout";
-import { readDependencies, toGraph } from "./model";
-import type { Position } from "./types";
+import { readDependencies, startingRange, toGraph } from "./model";
+import type { PickerEntry, Position } from "./types";
 
 type Props = {
   itemName: string;
@@ -63,26 +64,52 @@ const Composer = ({
     (moved: Record<string, Position>) => onChange(changes.move(moved)),
     [changes, onChange],
   );
+  // Added with its button, a dependency goes on the ring and the view is fitted to show it;
+  // dropped, it stays where it was dropped.
+  const [fitSignal, setFitSignal] = useState(0);
+  const add = (entry: PickerEntry, at?: Position) => {
+    onChange(changes.add(entry.name, startingRange(entry.version), at));
+    if (!at) setFitSignal((signal) => signal + 1);
+  };
+  const added = useMemo(() => new Set(Object.keys(dependencies)), [dependencies]);
 
   return (
     <ComposerContext value={actions}>
-      <div className="grid h-full grid-rows-[minmax(0,1fr)_auto]">
+      <div className="grid h-full grid-rows-[minmax(14rem,1fr)_auto]">
         <section aria-label="Canvas" className="min-h-0 min-w-0">
           <ComposerCanvas
             nodes={nodes}
             edges={edges}
             readOnly={readOnly}
             settled={failed || Object.values(reports).every((report) => report !== undefined)}
+            fitSignal={fitSignal}
             onMove={onMove}
             onRemove={actions.remove}
+            onDropEntry={add}
           />
         </section>
-        <DependencyPanel
-          type={type}
-          nodes={nodes}
-          failed={failed}
-          onShow={(id) => void flow.fitView({ ...FIT, nodes: [{ id }] })}
-        />
+        <div
+          className={
+            readOnly
+              ? "border-t border-hairline bg-surface"
+              : "grid border-t border-hairline bg-surface md:grid-cols-2 md:divide-x md:divide-hairline"
+          }
+        >
+          {readOnly ? null : (
+            <div className="max-h-44 overflow-y-auto p-3 md:max-h-60">
+              <CataloguePicker itemName={itemName} type={type} added={added} onAdd={add} />
+            </div>
+          )}
+          <div className="max-h-44 overflow-y-auto p-3 md:max-h-60">
+            <DependencyPanel
+              type={type}
+              nodes={nodes}
+              failed={failed}
+              wide={readOnly}
+              onShow={(id) => void flow.fitView({ ...FIT, nodes: [{ id }] })}
+            />
+          </div>
+        </div>
       </div>
     </ComposerContext>
   );

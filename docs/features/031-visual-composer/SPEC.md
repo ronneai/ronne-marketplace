@@ -44,10 +44,13 @@ moved.
   about that dependency (013's checks): it isn't published, its type isn't allowed, no published
   version matches the range, or it leads round in a circle. The registry is asked once typing
   pauses; until it answers, the node says it is checking the catalogue.
-- **Add**: the panel under the canvas searches the catalogue (018's search, filtered to the allowed types, and
-  to items with an installable version); choosing one adds a node with the range `^<latest>`,
-  or `latest`'s version exactly for a pre-release-only item. Dragging from the panel onto the
-  canvas does the same, where it's dropped.
+- **Add**: the panel under the canvas has a picker over the catalogue: 018's search (name,
+  description, keywords), newest first, with a type filter, limited to the types the draft may
+  depend on and to items with an installable version, 12 at a time with "Show more". The draft's
+  own item is never offered, and one that is already a dependency says "added". **Add** puts it
+  on the ring with the range `^<listed version>`, or that exact version when it is a pre-release
+  (an item with only pre-releases), and fits the view to show it. Dragging a result onto the
+  canvas does the same and leaves the node where it's dropped.
 - **Change the range**: a field in the node, checked as the form checks it: a semver range
   (dist-tags aren't allowed in ranges, [manifest spec §3](../../spec/manifest.md)). A range that
   isn't one shows 011's problem in the node.
@@ -84,7 +87,8 @@ isn't part of what's released (see Open questions).
 with its hooks, types and tests. What it reads from the registry is in the `submissions` domain
 (`services/composer.ts`), behind server actions: each dependency's catalogue facts and 013's
 problems, at most 50 dependencies a request (the canvas asks again for the rest), and the
-catalogue search for the picker, over 018's `searchCatalogue`, as the catalogue page uses it.
+catalogue search for the picker, over 018's `searchCatalogue`, as the catalogue page uses it,
+which gains two filters for it: several types, and installable only.
 
 **Dependency.** `@xyflow/react` (React Flow), MIT, through the dependency checklist in the PR.
 

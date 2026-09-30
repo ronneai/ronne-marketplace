@@ -1,13 +1,22 @@
-import { type ItemType, isItemType, isVersionRange, parseItemName } from "@ronneai/core";
+import {
+  DEPENDENCY_TYPES,
+  type ItemType,
+  isItemType,
+  isVersionRange,
+  parseItemName,
+} from "@ronneai/core";
 import { installsIn, RENDERERS } from "@ronneai/core/render";
 import { requirePermission } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
 import type { CatalogueEntry } from "../../items/models/catalogue";
 import type { CatalogueRepository } from "../../items/repositories/catalogue-repository";
+import { CATALOGUE_SEARCH_MAX_LENGTH, searchCatalogue } from "../../items/services/catalogue";
 import {
   DEPENDENCY_REPORTS_MAX,
   type DependencyFacts,
   type DependencyReport,
+  PICKER_PAGE_SIZE,
+  type PickerPage,
 } from "../models/composer";
 import type { RegistryLookup } from "../repositories/registry-lookup";
 import { dependencyIssues } from "./registry-checks";
@@ -72,4 +81,37 @@ export const dependencyReports = async (
     ]);
   }
   return Object.fromEntries(reports);
+};
+
+/**
+ * The catalogue for the picker: 018's search, newest first, over the types an item of `type` may
+ * depend on (manifest spec §3) and only items with a version that can be installed, so everything
+ * it offers would pass 013's checks. `only` narrows it to one of those types.
+ */
+export const searchDependencies = async (
+  deps: ComposerDeps,
+  actor: ComposerActor,
+  input: { type: ItemType; q?: string; only?: ItemType | null; cursor?: string },
+): Promise<PickerPage> => {
+  requirePermission(actor.user, "submissions.create");
+  const allowed = isItemType(input.type) ? DEPENDENCY_TYPES[input.type] : [];
+  const types = input.only ? allowed.filter((type) => type === input.only) : allowed;
+  if (types.length === 0) return { entries: [], nextCursor: null };
+  const { entries, nextCursor } = await searchCatalogue({ catalogue: deps.catalogue }, actor, {
+    q: String(input.q ?? "")
+      .trim()
+      .slice(0, CATALOGUE_SEARCH_MAX_LENGTH),
+    types,
+    installable: true,
+    sort: "recent",
+    cursor: typeof input.cursor === "string" ? input.cursor : undefined,
+    limit: PICKER_PAGE_SIZE,
+  });
+  return {
+    entries: entries.map((entry) => ({
+      name: `@${entry.scope}/${entry.name}`,
+      ...factsOf(entry),
+    })),
+    nextCursor,
+  };
 };

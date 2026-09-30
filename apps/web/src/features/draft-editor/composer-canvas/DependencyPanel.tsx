@@ -2,6 +2,7 @@
 
 import type { ItemType } from "@ronneai/core";
 import { Notice } from "@/components/ui/Notice";
+import { useComposer } from "./context";
 import { DependencyFactsLine, DependencyProblems, RangeField, RemoveButton } from "./nodes";
 import type { ComposerNode } from "./types";
 
@@ -13,20 +14,21 @@ export const DependencyPanel = ({
   type,
   nodes,
   failed,
+  wide = false,
   onShow,
 }: {
   type: ItemType;
   nodes: readonly ComposerNode[];
   /** The registry couldn't be asked about the dependencies. */
   failed: boolean;
+  /** The list has the panel's whole width (read-only, without the picker): two columns. */
+  wide?: boolean;
   onShow: (id: string) => void;
 }) => {
+  const { readOnly } = useComposer();
   const dependencies = nodes.flatMap((node) => (node.type === "dependency" ? [node] : []));
   return (
-    <aside
-      aria-label="Dependencies"
-      className="grid max-h-56 content-start gap-3 overflow-y-auto border-t border-hairline bg-surface p-3"
-    >
+    <aside aria-label="Dependencies" className="grid content-start gap-3">
       <div className="grid gap-1">
         <h2 className="text-sm font-semibold text-fg">
           Dependencies <span className="font-mono text-xs text-muted">({dependencies.length})</span>
@@ -42,9 +44,11 @@ export const DependencyPanel = ({
         </Notice>
       ) : null}
       {dependencies.length === 0 ? (
-        <p className="text-sm text-muted">None yet.</p>
+        <p className="text-sm text-muted">
+          None yet.{readOnly ? "" : " Add one from the catalogue, or drag it onto the canvas."}
+        </p>
       ) : (
-        <ul className="grid gap-2 sm:grid-cols-2 2xl:grid-cols-3">
+        <ul className={wide ? "grid gap-2 sm:grid-cols-2" : "grid gap-2"}>
           {dependencies.map(({ id, data }) => (
             <li
               key={id}

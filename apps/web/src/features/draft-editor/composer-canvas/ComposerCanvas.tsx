@@ -9,12 +9,14 @@ import {
   type NodeChange,
   Panel,
   ReactFlow,
+  type ReactFlowInstance,
   useReactFlow,
 } from "@xyflow/react";
 import { Maximize, ZoomIn, ZoomOut } from "lucide-react";
 import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { DRAG_TYPE, readDragged } from "./drag";
 import { type FlowNode, nodeTypes } from "./nodes";
-import type { ComposerEdge, ComposerNode, Position } from "./types";
+import type { ComposerEdge, ComposerNode, PickerEntry, Position } from "./types";
 
 /** The mini-map shows once the set is large enough to get lost in. */
 export const MINIMAP_FROM = 8;
@@ -80,15 +82,16 @@ const Controls = () => {
 };
 
 /**
- * Fits the view while the canvas opens: the nodes grow as the catalogue answers, and each new size
- * is fitted again. After that the view is the author's, and only Fit to view changes it.
+ * Fits the view while the canvas opens, and after a dependency is added with its button: the nodes
+ * grow as the catalogue answers, and each new size is fitted again. Otherwise the view is the
+ * author's, and only Fit to view changes it.
  */
-const FitWhileOpening = ({ opening, sizes }: { opening: boolean; sizes: string }) => {
+const FitWhile = ({ fitting, sizes }: { fitting: boolean; sizes: string }) => {
   const flow = useReactFlow();
   // biome-ignore lint/correctness/useExhaustiveDependencies: `sizes` is what it reacts to.
   useEffect(() => {
-    if (opening) void flow.fitView(FIT);
-  }, [opening, sizes, flow]);
+    if (fitting) void flow.fitView(FIT);
+  }, [fitting, sizes, flow]);
   return null;
 };
 
@@ -102,30 +105,42 @@ export const ComposerCanvas = ({
   edges,
   readOnly,
   settled,
+  fitSignal = 0,
   onMove,
   onRemove,
+  onDropEntry,
 }: {
   nodes: readonly ComposerNode[];
   edges: readonly ComposerEdge[];
   readOnly: boolean;
   /** The catalogue has answered for every dependency, so the nodes have their final content. */
   settled: boolean;
+  /** Changes when the view should be fitted again: a dependency was added with its button. */
+  fitSignal?: number;
   onMove: (moved: Record<string, Position>) => void;
   onRemove: (names: readonly string[]) => void;
+  /** A picker result dropped on the canvas, and where: its node's centre. */
+  onDropEntry?: (entry: PickerEntry, at: Position) => void;
 }) => {
   const [held, setHeld] = useState<ReadonlyMap<string, Held>>(new Map());
   const latest = useRef(modelNodes);
   latest.current = modelNodes;
   const nodes = useMemo(() => withHeld(modelNodes, held), [modelNodes, held]);
 
-  // Opening ends a moment after the last answer, for its sizes to be measured, or as soon as the
+  // Fitting ends a moment after the last answer, for its sizes to be measured, or as soon as the
   // author pans or zooms.
-  const [opening, setOpening] = useState(true);
+  const [fitting, setFitting] = useState(true);
+  const fitted = useRef(fitSignal);
   useEffect(() => {
+    if (fitSignal !== fitted.current) {
+      fitted.current = fitSignal;
+      setFitting(true);
+    }
     if (!settled) return;
-    const timer = setTimeout(() => setOpening(false), 500);
+    const timer = setTimeout(() => setFitting(false), 500);
     return () => clearTimeout(timer);
-  }, [settled]);
+  }, [settled, fitSignal]);
+  const toFlowPosition = useRef<ReactFlowInstance["screenToFlowPosition"] | null>(null);
   const sizes = nodes
     .map((node) => `${node.id}:${node.measured?.width}x${node.measured?.height}`)
     .join(" ");
@@ -192,7 +207,21 @@ export const ComposerCanvas = ({
       onNodesChange={onNodesChange}
       onKeyDown={onKeyDown}
       onMoveStart={(event) => {
-        if (event) setOpening(false);
+        if (event) setFitting(false);
+      }}
+      onInit={(instance) => {
+        toFlowPosition.current = instance.screenToFlowPosition;
+      }}
+      onDragOver={(event) => {
+        if (readOnly || !event.dataTransfer.types.includes(DRAG_TYPE)) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "copy";
+      }}
+      onDrop={(event) => {
+        const entry = readDragged(event);
+        if (readOnly || !entry || !toFlowPosition.current) return;
+        event.preventDefault();
+        onDropEntry?.(entry, toFlowPosition.current({ x: event.clientX, y: event.clientY }));
       }}
       nodeOrigin={[0.5, 0.5]}
       nodesDraggable={!readOnly}
@@ -211,7 +240,7 @@ export const ComposerCanvas = ({
     >
       <Background gap={24} />
       <Controls />
-      <FitWhileOpening opening={opening} sizes={sizes} />
+      <FitWhile fitting={fitting} sizes={sizes} />
       {modelNodes.length > MINIMAP_FROM ? (
         <MiniMap pannable zoomable ariaLabel="Mini-map of the canvas" />
       ) : null}

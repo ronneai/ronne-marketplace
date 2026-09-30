@@ -36,7 +36,11 @@ export type CatalogueCursor =
 export type CatalogueFilter = {
   search?: string;
   type?: ItemType;
+  /** Any of these types (031's picker); with `type`, both apply. */
+  types?: readonly ItemType[];
   scope?: string;
   /** A renderer id: only items whose listed version installs in that tool (026). */
   tool?: string;
+  /** Only items with a version that can still be installed. */
+  installable?: boolean;
 };

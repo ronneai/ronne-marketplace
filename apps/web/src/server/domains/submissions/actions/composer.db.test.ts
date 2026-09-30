@@ -8,8 +8,8 @@ import type { AppAuth } from "../../identity/repositories/auth-instance";
 import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testing/test-auth";
 import { createScope } from "../../items/actions/scopes";
 import { kyselyItemRepository } from "../../items/repositories/kysely-item-repository";
-import { DEPENDENCY_REPORTS_MAX } from "../models/composer";
-import { dependencyReports } from "./composer";
+import { DEPENDENCY_REPORTS_MAX, PICKER_PAGE_SIZE } from "../models/composer";
+import { dependencyReports, searchDependencies } from "./composer";
 
 // What the visual composer (031) reads: the catalogue's facts and 013's checks, per dependency.
 let t: TestDb;
@@ -201,5 +201,84 @@ describe("dependencyReports", () => {
     await expect(reports({ "@team/a": "^1.0.0" }, "agent", new Headers())).rejects.toThrow(
       ForbiddenError,
     );
+  });
+});
+
+const search = (
+  input: Partial<Parameters<typeof searchDependencies>[1]> = {},
+  headers: Headers = asUser,
+) => searchDependencies(headers, { type: "agent", ...input }, app);
+const found = async (input: Partial<Parameters<typeof searchDependencies>[1]> = {}) =>
+  (await search(input)).entries.map((entry) => entry.name);
+
+describe("searchDependencies", () => {
+  beforeEach(async () => {
+    await release("secure-coding", { versions: ["1.0.0", "1.4.0"] });
+    await release("github", { type: "mcp-server" });
+    await release("on-save", { type: "hook" });
+    await release("style", { type: "rule" });
+    await release("review", { type: "command" });
+    await release("other-agent", { type: "agent" });
+    await release("starter", { type: "bundle" });
+    await release("quiet", { type: "output-style" });
+  });
+
+  it("offers an agent the types it may depend on, newest first, with the catalogue's facts", async () => {
+    const page = await search();
+    expect(page.entries.map((entry) => entry.name)).toEqual([
+      "@team/review",
+      "@team/style",
+      "@team/on-save",
+      "@team/github",
+      "@team/secure-coding",
+    ]);
+    expect(page.nextCursor).toBeNull();
+    expect(page.entries.at(-1)).toEqual({
+      name: "@team/secure-coding",
+      type: "skill",
+      version: "1.4.0",
+      description: "The secure-coding item.",
+      tools: ["Claude Code", "Codex", "Cursor"],
+    });
+  });
+
+  it("offers a bundle every type, and a type without dependencies nothing", async () => {
+    expect(await found({ type: "bundle" })).toHaveLength(8);
+    expect(await found({ type: "skill" })).toEqual(["@team/github"]);
+    expect(await found({ type: "rule" })).toEqual([]);
+    expect(await found({ type: "nothing" as ItemType })).toEqual([]);
+  });
+
+  it("searches names and descriptions, and narrows to one allowed type", async () => {
+    expect(await found({ q: "  secure " })).toEqual(["@team/secure-coding"]);
+    expect(await found({ q: "nothing like it" })).toEqual([]);
+    expect(await found({ only: "hook" })).toEqual(["@team/on-save"]);
+    // A type the item can't depend on isn't offered, however it's asked for.
+    expect(await found({ only: "agent" })).toEqual([]);
+    expect(await found({ type: "bundle", only: "agent" })).toEqual(["@team/other-agent"]);
+  });
+
+  it("leaves out items with nothing to install, and lists a pre-release-only item by its version", async () => {
+    await release("withdrawn", { type: "rule", yanked: true });
+    await release("upcoming", { versions: ["1.0.0-beta.1"] });
+    const page = await search();
+    expect(page.entries.map((entry) => entry.name)).not.toContain("@team/withdrawn");
+    expect(page.entries[0]).toMatchObject({ name: "@team/upcoming", version: "1.0.0-beta.1" });
+  });
+
+  it("pages through a large catalogue", async () => {
+    for (let i = 0; i < PICKER_PAGE_SIZE; i++) await release(`extra-${i}`);
+    const first = await search();
+    expect(first.entries).toHaveLength(PICKER_PAGE_SIZE);
+    expect(first.nextCursor).not.toBeNull();
+    const second = await search({ cursor: first.nextCursor ?? undefined });
+    expect(second.entries).toHaveLength(5);
+    expect(second.nextCursor).toBeNull();
+    const names = [...first.entries, ...second.entries].map((entry) => entry.name);
+    expect(new Set(names).size).toBe(PICKER_PAGE_SIZE + 5);
+  });
+
+  it("is for signed-in users", async () => {
+    await expect(search({}, new Headers())).rejects.toThrow(ForbiddenError);
   });
 });

@@ -2,9 +2,10 @@ import type { ItemType } from "@ronneai/core";
 import type {
   DependencyFacts,
   DependencyReport,
+  PickerEntry,
 } from "@/server/domains/submissions/models/composer";
 
-export type { DependencyFacts, DependencyReport };
+export type { DependencyFacts, DependencyReport, PickerEntry };
 
 export type Position = { x: number; y: number };
 

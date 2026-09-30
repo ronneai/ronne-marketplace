@@ -21,3 +21,9 @@ export const dependencyReports = async (
   input: Parameters<typeof service.dependencyReports>[2],
   app: AppAuth = getAppAuth(),
 ) => service.dependencyReports(deps(app), await actor(headers, app), input);
+
+export const searchDependencies = async (
+  headers: Headers,
+  input: Parameters<typeof service.searchDependencies>[2],
+  app: AppAuth = getAppAuth(),
+) => service.searchDependencies(deps(app), await actor(headers, app), input);
