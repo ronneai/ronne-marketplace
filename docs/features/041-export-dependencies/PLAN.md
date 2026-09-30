@@ -22,7 +22,7 @@ the same change that completes it.
   *Done when:* the manifests pass `checkPackage`, and a test with a fake registry failing the
   first `POST` shows nothing else sent.
 
-- [ ] **4. The published-name check.** `GET /items/<scope>/<name>` for each dependency of the
+- [x] **4. The published-name check.** `GET /items/<scope>/<name>` for each dependency of the
   person's own; same name and type means "already in the registry".
   *Done when:* tests cover published with the same type, with another type, and not published.
 

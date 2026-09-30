@@ -714,9 +714,12 @@ describe("the other types (040)", () => {
 
 describe("dependencies on export (041)", () => {
   /** An agent using a skill (which uses a server), a server, an installed skill and a plugin's server. */
-  const setup = async (fail: Record<string, { status: number; json?: unknown }> = {}) => {
+  const setup = async (
+    fail: Record<string, { status: number; json?: unknown }> = {},
+    published: Record<string, Route> = {},
+  ) => {
     const registry = exportRoutes({ fail });
-    io = fakeIo(registry.routes);
+    io = fakeIo({ ...registry.routes, ...published });
     write(
       io.cwd,
       ".claude/agents/reviewer.md",
@@ -865,5 +868,38 @@ describe("dependencies on export (041)", () => {
     await uploadExport(api, planned).catch(() => undefined);
     expect(io.requests.filter((r) => r.method === "POST")).toHaveLength(1);
     expect(drafts).toEqual([]);
+  });
+
+  it("depends on a published item of the same name and type instead of uploading a copy", async () => {
+    const { api } = await setup(
+      {},
+      {
+        "GET /items/team/secure": () => ({
+          json: { type: "skill", tags: { latest: "2.1.0" }, versions: [{ version: "2.1.0" }] },
+        }),
+        "GET /items/team/github": () => ({
+          json: { type: "agent", tags: { latest: "1.0.0" }, versions: [{ version: "1.0.0" }] },
+        }),
+      },
+    );
+    const result = await plan(api, "include");
+    expect(result.findings.map((f) => `${f.status}:${f.reference.name}`)).toEqual([
+      "name_taken:github",
+      "not_found:plugin-thing",
+      "published:secure",
+      "installed:installed-skill",
+    ]);
+    // secure is the registry's now, so its own server isn't followed or uploaded either.
+    expect(result.items.map((i) => i.name)).toEqual(["@team/reviewer"]);
+    const [reviewer] = result.items;
+    expect(reviewer?.dependencies).toEqual({
+      "@team/secure": "^2.1.0",
+      "@team/installed-skill": "^1.3.0",
+    });
+    expect(reviewer?.warnings.map((w) => w.message)).toEqual([
+      expect.stringContaining("@team/github is already published as an agent"),
+      expect.stringContaining("plugin-thing"),
+      expect.stringContaining("@team/secure is already published, so it depends on that at ^2.1.0"),
+    ]);
   });
 });

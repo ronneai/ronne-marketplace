@@ -21,7 +21,16 @@ export type Selected = {
   name?: string;
 };
 
-export type FindingStatus = "yours" | "installed" | "selected" | "not_found" | "not_allowed";
+export type FindingStatus =
+  | "yours"
+  | "installed"
+  | "selected"
+  | "not_found"
+  | "not_allowed"
+  /** Yours, but the scope already has a published item of that name and type: depend on it. */
+  | "published"
+  /** Yours, but the scope has a published item of that name and another type. */
+  | "name_taken";
 
 export type Finding = {
   status: FindingStatus;
@@ -31,7 +40,7 @@ export type Finding = {
   usedBy: string[];
   /** The local item, for `yours` and `selected`. */
   item?: LocalItem;
-  /** The registry item and version, for `installed`. */
+  /** The registry item and version, for `installed` and `published`. */
   registry?: { name: string; version: string };
   /** Why it can't be declared, for `not_found` and `not_allowed`. */
   note?: string;

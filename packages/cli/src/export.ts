@@ -702,7 +702,9 @@ export const planExport = async (
     throw usage("--description describes one item; export the others separately.");
 
   // What the items use (041): the person's own items need a decision before anything is planned.
-  const findings = await findDependencies(io, scopeOf(request.scope), named);
+  const found = await findDependencies(io, scopeOf(request.scope), named);
+  if (to !== null) await checkPublished(api, to, found);
+  const findings = reachable(found, named);
   const theirs = findings.filter((f) => f.status === "yours");
   if (theirs.length > 0 && request.dependencies === undefined)
     throw new RmkError(
@@ -938,6 +940,59 @@ export const planExport = async (
 };
 
 /**
+ * The findings still reached from the named items, through items of the person's own that will
+ * be exported: once a dependency turns out to be published, what it uses isn't the plan's concern.
+ */
+const reachable = (findings: readonly Finding[], named: readonly Target[]): Finding[] => {
+  const using = new Set(named.map((t) => t.local));
+  const kept: Finding[] = [];
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const finding of findings) {
+      if (kept.includes(finding) || !finding.usedBy.some((u) => using.has(u))) continue;
+      kept.push(finding);
+      grew = true;
+      if (finding.status === "yours" && finding.item) using.add(finding.item.display);
+    }
+  }
+  return findings.filter((f) => kept.includes(f));
+};
+
+type PublishedItem = {
+  type: string;
+  tags: Record<string, string>;
+  versions: { version: string }[];
+};
+
+/**
+ * A dependency of the person's own whose name is already published in the scope (041): with the
+ * same type it's the registry's item, so the item depends on its latest version and nothing is
+ * uploaded (a draft of it would be refused at Submit); with another type, one has to be renamed.
+ */
+const checkPublished = async (api: ApiClient, scope: string, findings: Finding[]) => {
+  for (const finding of findings) {
+    if (finding.status !== "yours" || !finding.item) continue;
+    const name = `@${scope}/${finding.item.name}`;
+    let published: PublishedItem;
+    try {
+      published = await api.get<PublishedItem>(itemPath(name));
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) continue;
+      throw error;
+    }
+    const version = published.tags.latest ?? published.versions[0]?.version;
+    if (published.type === finding.item.type && version) {
+      finding.status = "published";
+      finding.registry = { name, version };
+    } else {
+      finding.status = "name_taken";
+      finding.note = `${name} is already published as ${published.type === "agent" ? "an" : "a"} ${published.type}, so this ${finding.item.type} can't have that name. Rename one of them.`;
+    }
+  }
+};
+
+/**
  * Writes each planned item's `dependencies` from the findings (041): another planned item at
  * `^1.0.0` (a first release is always 1.0.0), an installed one at `^<its version>`. What can't be
  * declared is a warning on the item that uses it.
@@ -960,7 +1015,13 @@ const declareDependencies = (
         item.dependsOn.push(dependency.name);
       } else if (finding.status === "installed" && finding.registry)
         item.dependencies[finding.registry.name] = `^${finding.registry.version}`;
-      else if (finding.status === "yours" || finding.status === "selected") {
+      else if (finding.status === "published" && finding.registry) {
+        item.dependencies[finding.registry.name] = `^${finding.registry.version}`;
+        warn(
+          "dependency_published",
+          `It uses ${what}; ${finding.registry.name} is already published, so it depends on that at ^${finding.registry.version} and your copy isn't uploaded.`,
+        );
+      } else if (finding.status === "yours" || finding.status === "selected") {
         const stopped = refused.find((r) => r.local === finding.item?.display);
         warn(
           "dependency_omitted",
