@@ -11,7 +11,7 @@ the same change that completes it.
   over what it keeps; the server creates one for installs and one for exports.
   *Done when:* `plan-tools.test.ts` passes unchanged.
 
-- [ ] **2. `list_local_items`.** In a new `packages/mcp/src/export-tools.ts`, over
+- [x] **2. `list_local_items`.** In a new `packages/mcp/src/export-tools.ts`, over
   `discoverLocalItems` from `@ronneai/rmk/lib`.
   *Done when:* a test compares its answer with `rmk export --dry-run --json` for the same folder,
   with a skill of each origin.

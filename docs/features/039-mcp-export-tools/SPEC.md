@@ -31,7 +31,7 @@ facts.
 
 | Tool | Input | Does |
 |---|---|---|
-| `list_local_items` | `scope?`, `type?` | the items found in the project (or the home folder), each with its type, name, folder, and origin: **yours**, **installed** (`@scope/name@version`), **installed and edited**, or **a registry copy**. No network |
+| `list_local_items` | `scope?`, `type?` | the items found in the project (or the home folder), each with its type, name, folder, and origin: **yours**, **installed** (`@scope/name@version`), **installed and edited**, **a registry copy**, or **written by rmk** (a rule or command rendered as a skill). No network |
 | `plan_export` | `items: string[]`, `to?`, `name?`, `scope?` | 038's plan for those items: **uploads nothing**. Returns a `planId`, and per item the name it would get, every file with its size, every skipped file and why, the generated `ronne.yaml`, the warnings and the issues |
 | `export_items` | `planId` | uploads exactly that plan, one draft per item (037), and returns each draft's address and what is left to fix before it can be submitted |
 

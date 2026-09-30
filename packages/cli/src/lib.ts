@@ -9,6 +9,7 @@ export { configDir, readUserConfig } from "./config.js";
 export { connectRegistry } from "./connect.js";
 export { RmkError } from "./errors.js";
 export {
+  describeLocalItems,
   discoverLocalItems,
   type ExportedItem,
   type ExportPlan,
@@ -16,6 +17,7 @@ export {
   type ExportWarning,
   fetchScopes,
   type LocalItem,
+  type Ownership,
   type PlannedItem,
   planExport,
   type RefusedItem,
