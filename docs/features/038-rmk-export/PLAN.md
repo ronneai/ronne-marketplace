@@ -18,7 +18,7 @@ the same change that completes it. Tasks 1 and 2 touch only `packages/core` and 
   that passes `parseManifest` and `checkPackage`, and rendering it gives the same folder; tests
   cover the long description, the missing name, and a hand-written `ronne.yaml`.
 
-- [ ] **3. Finding and walking.** In `packages/cli/src/export.ts`: the skills under
+- [x] **3. Finding and walking.** In `packages/cli/src/export.ts`: the skills under
   `.claude/skills/` and `.agents/skills/` for a scope, and the folder walker with the skip lists,
   links, executable bits, and an early stop past the limits.
   *Done when:* tests on a temporary folder cover every skip reason, a linked skill folder, and a
