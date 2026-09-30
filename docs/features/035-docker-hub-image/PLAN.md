@@ -54,7 +54,7 @@ the same change that completes it.
   line; 034's spec (four files, release after the image); dependency policy §3 "Publishing".
   *Done when:* the README steps work as written from an empty folder.
 
-- [ ] **6. Owner setup and the first release.** The Docker Hub checklist in Notes, the `dockerhub`
+- [x] **6. Owner setup and the first release.** The Docker Hub checklist in Notes, the `dockerhub`
   environment, the dry run, then the next `vX.Y.Z` tag.
   *Done when:* Docker Hub shows the version's tags for both platforms with attestations, and every
   acceptance criterion in the spec is ticked.
@@ -87,6 +87,23 @@ task 6 is the owner's.
   The same check against the Docker Hub image is task 6's.
 - Task 5: the README's Docker section starts from an empty folder and a `curl` of `compose.yaml`
   from `main`.
+- Tasks 2, 3 and 6 (2026-09-30): the pull request's `Docker image (build, run, scan)` check passed
+  through the composite action. The owner created the Docker ID `ronneai` (personal, free plan;
+  a second Docker ID, since Docker Hub allows one per email), the public repository, the token
+  and the `dockerhub` environment. The dry run from `main` (run 36661513251) built, ran and
+  scanned both architectures and skipped every push step. `v0.1.0` couldn't publish an image
+  (that tag holds the older workflow), so the first image release was `0.1.1` (run 36662238616):
+  npm, both images, the manifest and the GitHub release, in that order. Checked afterwards:
+  tags `0.1.1`, `0.1` and `latest` share one index with `linux/amd64`, `linux/arm64` and an
+  attestation manifest each (SLSA provenance, SPDX 2.3 SBOM with 163 packages); no `0` tag; the
+  index annotations carry source, version and licence; the guard's scanned and pushed layers
+  matched. From an empty folder with `compose.yaml` fetched from `main`, `docker compose up -d`
+  pulled the image and answered `503 setup_required`, setup ran, and after a restart `/api/health`
+  answered `200`. Two things found and fixed after the release: the index's description
+  annotation was empty (metadata-action doesn't copy custom labels to annotations, and the GitHub
+  repository description is blank), and the GitHub release step would fail on a re-run because
+  the release exists. Still to check when they first happen: a pre-release's tags, and a
+  re-run of a finished release end to end.
 
 **Docker-side setup (owner, once).** Written 2026-09-29 from Docker's docs of that day; menu
 names may move.

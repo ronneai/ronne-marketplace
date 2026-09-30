@@ -110,4 +110,4 @@ New folders start from [`_template/`](./_template/).
 |---|---|---|---|
 | [031](./031-visual-composer/SPEC.md) | Visual composer (React Flow over `dependencies`) | 012, 013, 018 | specified |
 | [034](./034-npm-packages/SPEC.md) | Publishing `rmk` and the MCP server to npm (`@ronneai/core`, `rmk`, `mcp`) | 022, 027 | done |
-| [035](./035-docker-hub-image/SPEC.md) | Publishing the web app's Docker image to Docker Hub (`ronneai/marketplace`) | 005, 034 | in progress |
+| [035](./035-docker-hub-image/SPEC.md) | Publishing the web app's Docker image to Docker Hub (`ronneai/marketplace`) | 005, 034 | done |

@@ -114,7 +114,9 @@ so `docker compose up -d` pulls the image and a clone isn't needed (the file alo
 **Repository settings on Docker Hub** (owner, by hand; there's no action for it without a third
 party): public, the description from the root `package.json`, an overview with the README's
 Docker section and a link to GitHub, and, after the first release, immutable tags for exact
-versions only (a regex rule, so `latest`, `X.Y` and `X` can still move).
+versions only (a regex rule, so `latest`, `X.Y` and `X` can still move). The first release,
+`0.1.1`, went out on 2026-09-30 from the personal Docker ID `ronneai` (created for it; the owner's
+own Docker ID isn't involved), with a Read & Write token in the `dockerhub` environment.
 
 ## Edge cases
 
@@ -154,18 +156,20 @@ already shows the compose command, which doesn't change. What does change:
 
 ## Acceptance criteria
 
-- [ ] A tag `vX.Y.Z` publishes `ronneai/marketplace` for `linux/amd64` and `linux/arm64` with the
+- [x] A tag `vX.Y.Z` publishes `ronneai/marketplace` for `linux/amd64` and `linux/arm64` with the
   tags in the table, labels, index annotations, and provenance and SBOM attestations
   (`docker buildx imagetools inspect`, `docker inspect`).
-- [ ] A pre-release tag publishes only its exact version tag, and `latest` doesn't move.
-- [ ] A version in major 0 gets no `0` tag.
-- [ ] Both architectures are run, probed and scanned before anything is pushed; the pushed
+- [ ] A pre-release tag publishes only its exact version tag, and `latest` doesn't move
+  (metadata-action's documented rule; checked at the first pre-release).
+- [x] A version in major 0 gets no `0` tag.
+- [x] Both architectures are run, probed and scanned before anything is pushed; the pushed
   image has the scanned image's layers.
-- [ ] A dry run from `main` builds, runs and scans both architectures and pushes nothing.
-- [ ] Re-running a finished release changes nothing on Docker Hub or npm and ends green.
+- [x] A dry run from `main` builds, runs and scans both architectures and pushes nothing.
+- [ ] Re-running a finished release changes nothing on Docker Hub or npm and ends green (the
+  manifest job's skip was checked against a local registry; the whole path, at the next release).
 - [x] `pnpm release:version` sets `apps/web` too, and the tag check covers it.
-- [ ] `image.yml` behaves as before with the shared composite action.
-- [ ] From an empty folder holding only `compose.yaml`: `docker compose up -d` answers `503
+- [x] `image.yml` behaves as before with the shared composite action.
+- [x] From an empty folder holding only `compose.yaml`: `docker compose up -d` answers `503
   setup_required`, setup runs in the container, and after a restart `/api/health` answers 200.
 - [x] From a checkout, the `compose.build.yaml` override builds and runs the local image.
 - [x] The README, MVP §5 and §15, 005's and 034's specs and the dependency policy say what the

@@ -168,6 +168,11 @@ jobs:
             org.opencontainers.image.description=Self-hosted, curated registry of AI capabilities for AI coding tools
             org.opencontainers.image.licenses=MIT
             org.opencontainers.image.version=${{ env.VERSION }}
+          # Custom labels aren't copied to the annotations (the generated ones are), so the
+          # description, which metadata-action otherwise takes from the empty GitHub repository
+          # description, is given again here.
+          annotations: |
+            org.opencontainers.image.description=Self-hosted, curated registry of AI capabilities for AI coding tools
       # Its own step, so the token can become an OIDC connection (DOCKERHUB_OIDC_CONNECTIONID and
       # id-token: write) once Docker-Sponsored Open Source accepts Ronne; nothing else changes.
       - name: Log in to Docker Hub
@@ -251,6 +256,11 @@ jobs:
             org.opencontainers.image.description=Self-hosted, curated registry of AI capabilities for AI coding tools
             org.opencontainers.image.licenses=MIT
             org.opencontainers.image.version=${{ env.VERSION }}
+          # Custom labels aren't copied to the annotations (the generated ones are), so the
+          # description, which metadata-action otherwise takes from the empty GitHub repository
+          # description, is given again here.
+          annotations: |
+            org.opencontainers.image.description=Self-hosted, curated registry of AI capabilities for AI coding tools
       - name: Log in to Docker Hub
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
@@ -309,6 +319,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "The release $TAG already exists; nothing to do."
+            exit 0
+          fi
           gh release create "$TAG" --verify-tag --generate-notes --title "$TAG" \
             --notes "Docker image: \`docker pull ${IMAGE#docker.io/}:$VERSION\` (linux/amd64, linux/arm64). npm: \`npm install --global @ronneai/rmk@$VERSION @ronneai/mcp@$VERSION\`." \
             release/*.tgz
