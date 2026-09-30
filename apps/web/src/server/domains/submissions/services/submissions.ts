@@ -11,7 +11,7 @@ import { can, requirePermission } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
 import { SubmissionInvalidError, SubmissionNotFoundError } from "../exceptions/errors";
 import { isUnreleased } from "../models/diff";
-import { OPEN_STATUSES, transition } from "../models/status";
+import { transition } from "../models/status";
 import {
   type Draft,
   type DraftFile,
@@ -24,7 +24,7 @@ import {
 import type { RegistryLookup } from "../repositories/registry-lookup";
 import type { SubmissionRepository } from "../repositories/submission-repository";
 import { baseFilesOf } from "./proposals";
-import { dependencyIssues, nameIssues, typeIssues } from "./registry-checks";
+import { registryIssues } from "./registry-checks";
 
 /**
  * Submitting and withdrawing (feature 013). The author submits a draft after every check a
@@ -90,11 +90,6 @@ export const allIssues = async (
 
   // A test may pass its own; otherwise the repository's, on the caller's connection.
   const registry = deps.registry ?? repo.registry();
-  const manifestFile = files.find((file) => file.path === MANIFEST_PATH);
-  const manifest = manifestFile
-    ? parseManifest(new TextDecoder().decode(fileBytes(manifestFile))).manifest
-    : null;
-  const dependencies = (manifest?.dependencies ?? {}) as Record<string, string>;
   return [
     ...issues,
     // A proposal (017) that changes nothing has nothing to release.
@@ -115,24 +110,7 @@ export const allIssues = async (
         file: path,
       }),
     ),
-    // A change proposal (017) is for its item: it needs no free name, but keeps the item's type.
-    ...(submission.proposal
-      ? await typeIssues(registry, submission)
-      : await nameIssues(registry, {
-          scope: submission.scope.name,
-          name: submission.name,
-          proposedElsewhere: await repo.isNameProposed(
-            submission.scope.id,
-            submission.name,
-            OPEN_STATUSES,
-            submission.id,
-          ),
-        })),
-    ...(await dependencyIssues(registry, {
-      itemName: itemNameOf(submission),
-      type: submission.type,
-      dependencies,
-    })),
+    ...(await registryIssues(repo, registry, submission, files)),
   ];
 };
 

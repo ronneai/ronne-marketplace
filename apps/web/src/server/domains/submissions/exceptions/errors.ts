@@ -147,8 +147,12 @@ export class InvalidFileContentError extends SubmissionsError {
 }
 
 export class ManifestRequiredError extends SubmissionsError {
-  constructor() {
-    super("ronne.yaml can't be deleted: every item has one.");
+  constructor(reason: "deleted" | "missing" = "deleted") {
+    super(
+      reason === "deleted"
+        ? "ronne.yaml can't be deleted: every item has one."
+        : "The files have no ronne.yaml: every item has one.",
+    );
   }
 }
 
@@ -156,9 +160,9 @@ export class FileTooLargeError extends SubmissionsError {
   constructor(
     readonly path: string,
     size: number,
-    limit: number,
+    readonly max: number,
   ) {
-    super(`${path} is ${formatBytes(size)}; a file can be at most ${formatBytes(limit)}.`);
+    super(`${path} is ${formatBytes(size)}; a file can be at most ${formatBytes(max)}.`);
   }
 }
 
@@ -166,13 +170,20 @@ export class DraftLimitError extends SubmissionsError {
   constructor(
     readonly limit: "files" | "total",
     actual: number,
-    max: number,
+    readonly max: number,
   ) {
     super(
       limit === "files"
         ? `That would give the draft ${actual} files; the limit is ${max}.`
         : `That would make the draft ${formatBytes(actual)}; the limit is ${formatBytes(max)}.`,
     );
+  }
+}
+
+/** The API's cap on drafts per author (037); the web editor has none. */
+export class DraftQuotaError extends SubmissionsError {
+  constructor(readonly limit: number) {
+    super(`You already have ${limit} drafts. Submit or delete some before uploading more.`);
   }
 }
 

@@ -81,19 +81,23 @@ export const updateScopeDescription = async (
 
 export type ScopesPage = { scopes: Scope[]; nextCursor: string | null };
 
-/** Everyone signed in can list scopes: they need them to know where their items can go. */
+/**
+ * Everyone signed in can list scopes: they need them to know where their items can go. The pages
+ * use SCOPES_PAGE_SIZE; the API (037) passes its own `limit`.
+ */
 export const listScopes = async (
   deps: ScopeDeps,
   actor: ScopeActor,
-  query: { search?: string; cursor?: string },
+  query: { search?: string; cursor?: string; limit?: number },
 ): Promise<ScopesPage> => {
   requirePermission(actor.user, "account.manage_own");
   const search = query.search?.trim().slice(0, SCOPE_SEARCH_MAX_LENGTH) || undefined;
-  const rows = await deps.repo.list({ search, cursor: query.cursor, limit: SCOPES_PAGE_SIZE + 1 });
-  const scopes = rows.slice(0, SCOPES_PAGE_SIZE);
+  const size = query.limit ?? SCOPES_PAGE_SIZE;
+  const rows = await deps.repo.list({ search, cursor: query.cursor, limit: size + 1 });
+  const scopes = rows.slice(0, size);
   return {
     scopes,
-    nextCursor: rows.length > SCOPES_PAGE_SIZE ? (scopes.at(-1)?.name ?? null) : null,
+    nextCursor: rows.length > size ? (scopes.at(-1)?.name ?? null) : null,
   };
 };
 

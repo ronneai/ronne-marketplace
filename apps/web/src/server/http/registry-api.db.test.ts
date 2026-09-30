@@ -482,4 +482,14 @@ describe("POST /resolve", () => {
     const empty = await body(await postResolve(post({ dependencies: {} }), deps));
     expect(empty).toEqual({ status: 200, json: { items: {}, warnings: [] } });
   });
+
+  it("answers 413 for a body over 1 MiB, with or without content-length", async () => {
+    const big = JSON.stringify({ dependencies: {}, padding: "x".repeat(1024 * 1024) });
+    const withLength = post(big);
+    withLength.headers.set("content-length", String(big.length));
+    for (const request of [post(big), withLength]) {
+      const { status, json } = await body(await postResolve(request, deps));
+      expect([status, json.error.code]).toEqual([413, "body_too_large"]);
+    }
+  });
 });

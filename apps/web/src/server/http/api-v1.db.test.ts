@@ -116,6 +116,17 @@ describe("POST /api/v1/auth/token", () => {
       expect(await code(response)).toBe("invalid_request");
     }
   });
+
+  it("answers 413 for a body over 1 MiB, with or without content-length, creating no token", async () => {
+    const big = JSON.stringify({ email, password, name: "x".repeat(1024 * 1024) });
+    const lengths: Record<string, string>[] = [{}, { "content-length": String(big.length) }];
+    for (const headers of lengths) {
+      const response = await login(big, headers);
+      expect(response.status).toBe(413);
+      expect(await code(response)).toBe("body_too_large");
+    }
+    expect(await t.db.selectFrom("access_tokens").select("id").execute()).toEqual([]);
+  });
 });
 
 describe("GET /api/v1/me and DELETE /api/v1/auth/token", () => {

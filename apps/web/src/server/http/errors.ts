@@ -4,6 +4,17 @@ import {
   ItemNotFoundError,
   VersionNotFoundError,
 } from "../domains/items/exceptions/errors";
+import {
+  DraftLimitError,
+  DraftQuotaError,
+  DraftScopeNotFoundError,
+  FileTooLargeError,
+  InvalidFileContentError,
+  InvalidFilePathError,
+  InvalidItemNameError,
+  InvalidItemTypeError,
+  ManifestRequiredError,
+} from "../domains/submissions/exceptions/errors";
 
 /** The one error shape for every API response (MVP §11). `code` is stable; clients may rely on it. */
 export type ApiError = {
@@ -33,8 +44,47 @@ export const domainErrorResponse = (error: unknown): Response | null => {
   if (error instanceof ArtifactUnavailableError)
     return errorResponse(500, "artifact_unavailable", error.message);
   if (error instanceof ForbiddenError) return errorResponse(403, "forbidden", error.message);
+  return submissionErrorResponse(error);
+};
+
+/** The submissions domain's errors that uploading a draft (037) can raise. */
+const submissionErrorResponse = (error: unknown): Response | null => {
+  if (error instanceof InvalidItemNameError)
+    return errorResponse(400, "invalid_name", error.message);
+  if (error instanceof InvalidItemTypeError)
+    return errorResponse(400, "invalid_type", error.message);
+  if (error instanceof InvalidFilePathError)
+    return errorResponse(400, "invalid_path", error.message, { path: error.path });
+  if (error instanceof InvalidFileContentError)
+    return errorResponse(400, "invalid_content", error.message, { path: error.path });
+  if (error instanceof ManifestRequiredError)
+    return errorResponse(400, "manifest_required", error.message);
+  if (error instanceof DraftScopeNotFoundError)
+    return errorResponse(404, "scope_not_found", error.message, { scope: error.scopeName });
+  if (error instanceof DraftQuotaError)
+    return errorResponse(409, "draft_limit", error.message, { limit: error.limit });
+  if (error instanceof FileTooLargeError)
+    return errorResponse(413, "file_too_large", error.message, {
+      path: error.path,
+      limit: error.max,
+    });
+  if (error instanceof DraftLimitError)
+    return errorResponse(413, "draft_too_large", error.message, {
+      limit: error.max,
+      of: error.limit === "files" ? "files" : "bytes",
+    });
   return null;
 };
+
+/** `429 rate_limited`, with `retry-after`. */
+export const rateLimitedResponse = (message: string, retryAfterSeconds: number) =>
+  errorResponse(
+    429,
+    "rate_limited",
+    message,
+    { retryAfterSeconds },
+    { "retry-after": String(retryAfterSeconds) },
+  );
 
 /** Returned by API routes until the instance is set up (features 005 and 036). */
 export const setupRequiredResponse = () => {

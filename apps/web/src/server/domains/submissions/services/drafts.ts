@@ -1,5 +1,6 @@
 import {
   DEFAULT_LIMITS,
+  type ItemType,
   isItemType,
   type ManifestIssue,
   nameProblem,
@@ -13,6 +14,7 @@ import { requirePermission } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
 import {
   DraftLimitError,
+  DraftQuotaError,
   DraftScopeNotFoundError,
   FileTooLargeError,
   InvalidFileContentError,
@@ -42,11 +44,13 @@ import { draftTemplate } from "../models/templates";
 import { readZip } from "../models/zip";
 import type { SubmissionRepository } from "../repositories/submission-repository";
 import { withStale } from "./proposals";
+import { registryIssues } from "./registry-checks";
 
 /**
  * Drafts (feature 012). Anyone signed in writes drafts of new items; a draft is visible only to its
  * author, so everyone else, root included, gets SubmissionNotFoundError. Drafts are private work in
- * progress, so nothing here is audited; 013 records submitting and withdrawing.
+ * progress, so the web's are not audited (a session is the person); 013 records submitting and
+ * withdrawing. A draft uploaded with a token is (037), so a leaked token's work can be traced.
  */
 export type DraftDeps = { repo: SubmissionRepository; now?: () => Date; limits?: PackageLimits };
 export type DraftActor = { user: CurrentUser | null };
@@ -98,6 +102,49 @@ const findScope = async (repo: SubmissionRepository, value: string) => {
   return scope;
 };
 
+/** Inserts a draft with its files; the caller runs it inside a transaction. */
+const insertDraft = async (
+  repo: SubmissionRepository,
+  draft: {
+    authorId: string;
+    scope: { id: string; name: string };
+    name: string;
+    type: ItemType;
+    files: DraftFile[];
+    at: Date;
+  },
+): Promise<Draft> => {
+  const { authorId, scope, name, type, at } = draft;
+  const files = sortByPath(draft.files);
+  const id = await repo.insert({
+    authorId,
+    scopeId: scope.id,
+    name,
+    type,
+    status: "draft",
+    createdAt: at,
+  });
+  for (const file of files) await repo.writeFile(id, file);
+  return {
+    id,
+    authorId,
+    scope,
+    name,
+    type,
+    status: "draft",
+    createdAt: at,
+    updatedAt: at,
+    submittedAt: null,
+    proposal: null,
+    files,
+  };
+};
+
+const typeFrom = (value: string): ItemType => {
+  if (!isItemType(value)) throw new InvalidItemTypeError(value);
+  return value;
+};
+
 export const createDraft = async (
   deps: DraftDeps,
   actor: DraftActor,
@@ -106,43 +153,19 @@ export const createDraft = async (
   requirePermission(actor.user, "submissions.create");
   const authorId = actor.user?.id ?? "";
   const name = itemNameFrom(input.name);
-  if (!isItemType(input.type)) throw new InvalidItemTypeError(input.type);
-  const type = input.type;
+  const type = typeFrom(input.type);
   const at = now(deps);
   return deps.repo.transaction(async (repo) => {
     const scope = await findScope(repo, input.scope);
-    const id = await repo.insert({
-      authorId,
-      scopeId: scope.id,
-      name,
-      type,
-      status: "draft",
-      createdAt: at,
-    });
-    const files: DraftFile[] = sortByPath(draftTemplate(type, itemNameOf({ scope, name }))).map(
-      (file) => ({
-        path: file.path,
-        encoding: "utf8",
-        content: file.content,
-        size: byteSize({ encoding: "utf8", content: file.content }),
-        executable: file.executable ?? false,
-        updatedAt: at,
-      }),
-    );
-    for (const file of files) await repo.writeFile(id, file);
-    return {
-      id,
-      authorId,
-      scope,
-      name,
-      type,
-      status: "draft",
-      createdAt: at,
+    const files = draftTemplate(type, itemNameOf({ scope, name })).map((file) => ({
+      path: file.path,
+      encoding: "utf8" as const,
+      content: file.content,
+      size: byteSize({ encoding: "utf8", content: file.content }),
+      executable: file.executable ?? false,
       updatedAt: at,
-      submittedAt: null,
-      proposal: null,
-      files,
-    };
+    }));
+    return insertDraft(repo, { authorId, scope, name, type, files, at });
   });
 };
 
@@ -180,24 +203,39 @@ export type DraftChanges = {
 };
 export type SavedDraft = { draft: Draft; issues: ManifestIssue[] };
 
-/** Checks what can be checked without the database, so a bad save touches nothing. */
-const checkChanges = (changes: DraftChanges, limits: PackageLimits) => {
+/** What can be checked without the database, so a bad write touches nothing: the paths first. */
+const checkPaths = (paths: readonly string[], what: string) => {
   const seen = new Set<string>();
-  for (const { path } of [...changes.writes, ...changes.deletes]) {
+  for (const path of paths) {
     const problem = pathProblem(path);
     if (problem) throw new InvalidFilePathError(path, problem);
-    if (seen.has(path)) throw new InvalidFilePathError(path, "appears twice in one save");
+    if (seen.has(path)) throw new InvalidFilePathError(path, `appears twice in one ${what}`);
     seen.add(path);
   }
-  if (changes.deletes.some((file) => file.path === MANIFEST_PATH))
-    throw new ManifestRequiredError();
-  for (const file of changes.writes) {
+};
+
+/** Then each written file's content and size. */
+const checkContent = (
+  writes: readonly { path: string; encoding: "utf8" | "base64"; content: string }[],
+  limits: PackageLimits,
+) => {
+  for (const file of writes) {
     if (file.encoding === "base64" && !isBase64(file.content))
       throw new InvalidFileContentError(file.path);
     const size = byteSize(file);
     if (size > limits.maxFileBytes)
       throw new FileTooLargeError(file.path, size, limits.maxFileBytes);
   }
+};
+
+const checkChanges = (changes: DraftChanges, limits: PackageLimits) => {
+  checkPaths(
+    [...changes.writes, ...changes.deletes].map((file) => file.path),
+    "save",
+  );
+  if (changes.deletes.some((file) => file.path === MANIFEST_PATH))
+    throw new ManifestRequiredError();
+  checkContent(changes.writes, limits);
 };
 
 const totals = (files: Iterable<{ size: number }>) => {
@@ -269,6 +307,92 @@ export const saveDraftFiles = async (
     return { ...submission, updatedAt: at, files };
   });
   return { draft, issues: validateDraft(draft, draft.files, limits) };
+};
+
+/** The most drafts an author may have for the API to create another (037). */
+export const MAX_API_DRAFTS = 50;
+
+/** Who uploads: the token's user, the token, and the caller's address. */
+export type UploadActor = DraftActor & { ip: string | null; token: { id: string; name: string } };
+
+/** An uploaded draft: 011's issues, and what Submit would refuse right now (013), as advice. */
+export type UploadedDraft = SavedDraft & { submitIssues: ManifestIssue[] };
+
+export type UploadFile = {
+  path: string;
+  encoding: "utf8" | "base64";
+  content: string;
+  executable?: boolean;
+};
+
+/**
+ * A draft of a new item with its files, in one transaction and with no template (037): what `rmk`
+ * and the MCP server upload. Paths, content and limits are checked as a save checks them, before
+ * anything is written. Like a save, a draft with errors is still created, and they're in `issues`.
+ * Unlike the web form, an author with MAX_API_DRAFTS drafts is refused, and the draft is audited
+ * with the token that made it: root reads the audit log, so root sees the draft's name. Nothing
+ * is reserved or submitted: `submitIssues` only tells the client what Submit would refuse.
+ */
+export const createDraftFromFiles = async (
+  deps: DraftDeps,
+  actor: UploadActor,
+  input: { scope: string; name: string; type: string; files: readonly UploadFile[] },
+): Promise<UploadedDraft> => {
+  requirePermission(actor.user, "submissions.create");
+  const authorId = actor.user?.id ?? "";
+  const name = itemNameFrom(input.name);
+  const type = typeFrom(input.type);
+  const limits = limitsOf(deps);
+  checkPaths(
+    input.files.map((file) => file.path),
+    "upload",
+  );
+  if (!input.files.some((file) => file.path === MANIFEST_PATH))
+    throw new ManifestRequiredError("missing");
+  checkContent(input.files, limits);
+  const at = now(deps);
+  const files: DraftFile[] = input.files.map((file) => ({
+    path: file.path,
+    encoding: file.encoding,
+    content: file.content,
+    size: byteSize(file),
+    executable: file.executable ?? false,
+    updatedAt: at,
+  }));
+  const { count, bytes } = totals(files);
+  if (count > limits.maxFiles) throw new DraftLimitError("files", count, limits.maxFiles);
+  if (bytes > limits.maxTotalBytes) throw new DraftLimitError("total", bytes, limits.maxTotalBytes);
+
+  const draft = await deps.repo.transaction(async (repo) => {
+    const scope = await findScope(repo, input.scope);
+    if ((await repo.countDrafts(authorId)) >= MAX_API_DRAFTS)
+      throw new DraftQuotaError(MAX_API_DRAFTS);
+    const draft = await insertDraft(repo, { authorId, scope, name, type, files, at });
+    await repo.recordAudit(
+      {
+        actorId: authorId,
+        action: "submission.draft_created",
+        target: { type: "submission", id: draft.id },
+        metadata: {
+          name: itemNameOf(draft),
+          type,
+          via: "api",
+          tokenId: actor.token.id,
+          tokenName: actor.token.name,
+          files: count,
+          bytes,
+        },
+        ipAddress: actor.ip,
+      },
+      at,
+    );
+    return draft;
+  });
+  return {
+    draft,
+    issues: validateDraft(draft, draft.files, limits),
+    submitIssues: await registryIssues(deps.repo, deps.repo.registry(), draft, draft.files),
+  };
 };
 
 /**

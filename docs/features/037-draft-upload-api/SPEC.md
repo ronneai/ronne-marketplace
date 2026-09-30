@@ -104,6 +104,10 @@ or `type_mismatch`, exactly as the editor shows for an imported `.zip` (012).
 | 413 | `file_too_large` / `draft_too_large` | a file over 1 MiB; more than 500 files or 20 MiB (`details.limit`) |
 | 429 | `rate_limited` | more than 30 uploads in 10 minutes, with `retry-after` |
 
+`details` names what was refused: `path` for `invalid_path`, `invalid_content` and
+`file_too_large`; `scope` for `scope_not_found`; `limit` for every limit, with `of` (`files` or
+`bytes`) for `draft_too_large`; `retryAfterSeconds` for `rate_limited`.
+
 Token errors, `forbidden` and `setup_required` are 019's.
 
 **Limits.** Until now a token could only read, and `/api/v1` had no limit on a request's size (the
@@ -161,15 +165,15 @@ instead of the session, the way the `items` domain's `…As` actions do (019). T
 
 ## Acceptance criteria
 
-- [ ] `GET /api/v1/scopes` lists scopes with search and pagination, for every role, and refuses a request without a token.
-- [ ] `POST /api/v1/drafts` creates the draft and its files in one transaction, with no template files, owned by the token's user, and answers its `path`, `url`, `issues` and `submitIssues`; the author opens it in the web editor.
-- [ ] A draft with validation errors is created and the errors are in `issues`; a draft whose name is taken or whose dependency isn't released says so in `submitIssues`.
-- [ ] Every row of the error table is returned for its case, and a refused request leaves no draft, no files and no audit event.
-- [ ] A body over the limit is refused with or without `content-length`; `POST /auth/token` and `POST /resolve` refuse bodies over 1 MiB.
-- [ ] The 51st draft and the 31st upload in 10 minutes are refused with their codes.
-- [ ] `submission.draft_created` is recorded with the token's id and name, and no secret-looking key.
-- [ ] The service and repository tests pass on SQLite, PostgreSQL, MySQL and MariaDB.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] `GET /api/v1/scopes` lists scopes with search and pagination, for every role, and refuses a request without a token.
+- [x] `POST /api/v1/drafts` creates the draft and its files in one transaction, with no template files, owned by the token's user, and answers its `path`, `url`, `issues` and `submitIssues`; the author opens it in the web editor.
+- [x] A draft with validation errors is created and the errors are in `issues`; a draft whose name is taken or whose dependency isn't released says so in `submitIssues`.
+- [x] Every row of the error table is returned for its case, and a refused request leaves no draft, no files and no audit event.
+- [x] A body over the limit is refused with or without `content-length`; `POST /auth/token` and `POST /resolve` refuse bodies over 1 MiB.
+- [x] The 51st draft and the 31st upload in 10 minutes are refused with their codes.
+- [x] `submission.draft_created` is recorded with the token's id and name, and no secret-looking key.
+- [x] The service and repository tests pass on SQLite, PostgreSQL, MySQL and MariaDB.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Open questions
 

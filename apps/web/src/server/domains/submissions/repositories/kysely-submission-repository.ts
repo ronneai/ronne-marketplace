@@ -168,6 +168,16 @@ export const kyselySubmissionRepository = (
       return Number(row?.count ?? 0);
     },
 
+    countDrafts: async (authorId) => {
+      const row = await db
+        .selectFrom("submissions")
+        .select((eb) => eb.fn.countAll().as("count"))
+        .where("author_id", "=", authorId)
+        .where("status", "=", "draft")
+        .executeTakeFirst();
+      return Number(row?.count ?? 0);
+    },
+
     isNameProposed: async (scopeId, name, statuses, exceptId) => {
       if (statuses.length === 0) return false;
       const found = await db

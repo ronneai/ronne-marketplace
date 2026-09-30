@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { listAuditEvents } from "../../audit/actions/audit";
 import { createRoot } from "../../identity/actions/root-account";
-import { signIn } from "../../identity/actions/session";
+import { getCurrentUser, signIn } from "../../identity/actions/session";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import type { AppAuth } from "../../identity/repositories/auth-instance";
 import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testing/test-auth";
@@ -13,7 +13,7 @@ import {
   ScopeNotFoundError,
 } from "../exceptions/errors";
 import { kyselyScopeRepository } from "../repositories/kysely-scope-repository";
-import { createScope, findScope, listScopes, updateScopeDescription } from "./scopes";
+import { createScope, findScope, listScopes, listScopesAs, updateScopeDescription } from "./scopes";
 
 let t: TestDb;
 let app: AppAuth;
@@ -151,5 +151,26 @@ describe("listScopes", () => {
     ).toEqual(["scope-07"]);
     expect((await listScopes(asUser, { search: "%" }, app)).scopes).toEqual([]);
     await expect(listScopes(new Headers(), {}, app)).rejects.toThrow(ForbiddenError);
+  });
+});
+
+describe("listScopesAs", () => {
+  it("lists scopes for a token's user of every role, with the API's page size", async () => {
+    for (const name of ["alpha", "beta", "gamma"])
+      await createScope(asRoot, { name, description: `The ${name} team` }, app);
+    const asMod = await headersFor("m@example.com");
+    for (const headers of [asUser, asMod, asRoot]) {
+      const user = await getCurrentUser(headers, app);
+      if (!user) throw new Error("not signed in");
+      const first = await listScopesAs(user, { limit: 2 }, app);
+      expect(first.scopes.map((s) => s.name)).toEqual(["alpha", "beta"]);
+      expect(first.nextCursor).toBe("beta");
+      const rest = await listScopesAs(user, { limit: 2, cursor: "beta" }, app);
+      expect(rest).toEqual({
+        scopes: [expect.objectContaining({ name: "gamma" })],
+        nextCursor: null,
+      });
+      expect((await listScopesAs(user, { search: "gam" }, app)).scopes).toHaveLength(1);
+    }
   });
 });

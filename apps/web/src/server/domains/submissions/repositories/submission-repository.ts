@@ -35,6 +35,8 @@ export interface SubmissionRepository {
     after?: { updatedAt: Date; id: string };
   }): Promise<(Submission & { authorName: string })[]>;
   countByStatus(status: SubmissionStatus): Promise<number>;
+  /** The author's submissions that are still drafts, for the API's draft limit (037). */
+  countDrafts(authorId: string): Promise<number>;
   /** A user's display name, or null if there's no such user. */
   userName(userId: string): Promise<string | null>;
   /**
