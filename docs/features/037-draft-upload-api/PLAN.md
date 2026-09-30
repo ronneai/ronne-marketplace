@@ -35,7 +35,7 @@ the same change that completes it.
 - [x] **6. `GET /api/v1/scopes`.** The handler in `server/http/drafts-api.ts` and the route.
   *Done when:* tests in the style of `registry-api.db.test.ts` cover paging, search and `401`.
 
-- [ ] **7. `POST /api/v1/drafts`.** The handler and the route: token, rate, body, shape, service,
+- [x] **7. `POST /api/v1/drafts`.** The handler and the route: token, rate, body, shape, service,
   then `issues` and `submitIssues`.
   *Done when:* tests cover `201` with and without issues, each error row, `submitIssues` for a
   taken name and an unreleased dependency, and `url` with and without `PUBLIC_URL`.

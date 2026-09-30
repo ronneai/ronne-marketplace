@@ -10,6 +10,7 @@ export type {
   FileDelete,
   FileWrite,
   SavedDraft,
+  UploadedDraft,
   UploadFile,
 } from "../services/drafts";
 

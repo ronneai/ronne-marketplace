@@ -5,6 +5,7 @@ import {
   type ManifestIssue,
   mayDependOn,
   parseItemName,
+  parseManifest,
 } from "@ronneai/core";
 import {
   DependencyCycleError,
@@ -15,12 +16,20 @@ import {
   type SubmissionsError,
   TypeChangedError,
 } from "../exceptions/errors";
-import { MANIFEST_PATH } from "../models/submission";
+import { OPEN_STATUSES } from "../models/status";
+import {
+  type DraftFile,
+  fileBytes,
+  itemNameOf,
+  MANIFEST_PATH,
+  type Submission,
+} from "../models/submission";
 import type {
   PublishedItem,
   PublishedVersion,
   RegistryLookup,
 } from "../repositories/registry-lookup";
+import type { SubmissionRepository } from "../repositories/submission-repository";
 
 /** A registry problem as one of 011's issues, so submit lists them all in one place. */
 const issue = (code: string, error: SubmissionsError, path?: string): ManifestIssue => ({
@@ -153,4 +162,42 @@ export const dependencyIssues = async (
   };
   const cycle = await walk(input.dependencies, [input.itemName]);
   return cycle ? [issue("dependency_cycle", new DependencyCycleError(cycle), "/dependencies")] : [];
+};
+
+/**
+ * What Submit (013) checks against the registry: the name, or a proposal's type, then the
+ * dependencies ronne.yaml lists (none when it doesn't parse). Submit runs it once 011's checks
+ * pass; an upload (037) runs it straight away, as advice.
+ */
+export const registryIssues = async (
+  repo: SubmissionRepository,
+  registry: RegistryLookup,
+  submission: Submission,
+  files: readonly Omit<DraftFile, "updatedAt">[],
+): Promise<ManifestIssue[]> => {
+  const manifestFile = files.find((file) => file.path === MANIFEST_PATH);
+  const manifest = manifestFile
+    ? parseManifest(new TextDecoder().decode(fileBytes(manifestFile))).manifest
+    : null;
+  const dependencies = (manifest?.dependencies ?? {}) as Record<string, string>;
+  return [
+    // A change proposal (017) is for its item: it needs no free name, but keeps the item's type.
+    ...(submission.proposal
+      ? await typeIssues(registry, submission)
+      : await nameIssues(registry, {
+          scope: submission.scope.name,
+          name: submission.name,
+          proposedElsewhere: await repo.isNameProposed(
+            submission.scope.id,
+            submission.name,
+            OPEN_STATUSES,
+            submission.id,
+          ),
+        })),
+    ...(await dependencyIssues(registry, {
+      itemName: itemNameOf(submission),
+      type: submission.type,
+      dependencies,
+    })),
+  ];
 };

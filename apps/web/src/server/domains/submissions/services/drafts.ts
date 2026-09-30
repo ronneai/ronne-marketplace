@@ -44,6 +44,7 @@ import { draftTemplate } from "../models/templates";
 import { readZip } from "../models/zip";
 import type { SubmissionRepository } from "../repositories/submission-repository";
 import { withStale } from "./proposals";
+import { registryIssues } from "./registry-checks";
 
 /**
  * Drafts (feature 012). Anyone signed in writes drafts of new items; a draft is visible only to its
@@ -314,6 +315,9 @@ export const MAX_API_DRAFTS = 50;
 /** Who uploads: the token's user, the token, and the caller's address. */
 export type UploadActor = DraftActor & { ip: string | null; token: { id: string; name: string } };
 
+/** An uploaded draft: 011's issues, and what Submit would refuse right now (013), as advice. */
+export type UploadedDraft = SavedDraft & { submitIssues: ManifestIssue[] };
+
 export type UploadFile = {
   path: string;
   encoding: "utf8" | "base64";
@@ -326,13 +330,14 @@ export type UploadFile = {
  * and the MCP server upload. Paths, content and limits are checked as a save checks them, before
  * anything is written. Like a save, a draft with errors is still created, and they're in `issues`.
  * Unlike the web form, an author with MAX_API_DRAFTS drafts is refused, and the draft is audited
- * with the token that made it: root reads the audit log, so root sees the draft's name.
+ * with the token that made it: root reads the audit log, so root sees the draft's name. Nothing
+ * is reserved or submitted: `submitIssues` only tells the client what Submit would refuse.
  */
 export const createDraftFromFiles = async (
   deps: DraftDeps,
   actor: UploadActor,
   input: { scope: string; name: string; type: string; files: readonly UploadFile[] },
-): Promise<SavedDraft> => {
+): Promise<UploadedDraft> => {
   requirePermission(actor.user, "submissions.create");
   const authorId = actor.user?.id ?? "";
   const name = itemNameFrom(input.name);
@@ -383,7 +388,11 @@ export const createDraftFromFiles = async (
     );
     return draft;
   });
-  return { draft, issues: validateDraft(draft, draft.files, limits) };
+  return {
+    draft,
+    issues: validateDraft(draft, draft.files, limits),
+    submitIssues: await registryIssues(deps.repo, deps.repo.registry(), draft, draft.files),
+  };
 };
 
 /**
