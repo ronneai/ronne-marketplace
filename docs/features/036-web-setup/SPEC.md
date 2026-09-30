@@ -22,6 +22,8 @@ who prefer it, and both run the same code.
   audit row saying whether root was created from the terminal or the web.
 - No restart after setup, in Docker or from a clone, and the docs and messages that still say
   "then restart".
+- `pnpm run reset-setup`, a development-only command that removes the local setup so the wizard
+  can be run again.
 - The Documentation topic on installing and running an instance.
 
 **Out** (and where it goes instead):
@@ -46,7 +48,9 @@ file and the database (`apps/web/src/server/setup/state.ts`):
 | `ready` | Settings, tables and a root account | The app; `/setup` redirects to `/` when signed in, else to `/sign-in` | As today |
 
 `ready` is remembered per process once seen (keyed by the database URL), since root can't be
-deleted or demoted; the other states are checked on each request. The `setup_required` message
+deleted or demoted; the other states are checked on each request. In development
+(`NODE_ENV` isn't `production`) nothing is remembered, so a reset (below) takes effect on the
+next request without restarting `pnpm dev`. The `setup_required` message
 now says "Open it in a browser and follow the setup, or run `pnpm run setup`", with no restart
 sentence. `prepareStart` (005) is unchanged apart from that wording: before setup the server
 starts in setup mode, after setup it applies pending migrations.
@@ -105,6 +109,17 @@ that rule (it was cached once per process). `pnpm run setup` stops telling Docke
 restart, and so do the README, `compose.yaml` and the setup-mode log line, which now says to open
 the instance in a browser.
 
+**Resetting, in development only.** `pnpm run reset-setup` puts a clone back to "not set up",
+so the wizard can be tried again: it removes the settings file (`RONNE_ENV_FILE`, or
+`apps/web/.env`), the SQLite database it names when that file lives under `apps/web` (with its
+`-wal` and `-shm` files), and the storage folder when it lives under `apps/web/data`. It lists
+what it will remove and asks for confirmation, or takes `--yes`. It refuses to run when
+`NODE_ENV=production` or `RONNE_RUNTIME=docker`, and it isn't compiled into the Docker image, so
+an instance can't be reset by it. With a MySQL or PostgreSQL database it removes only the
+settings file and says the database is untouched: drop it by hand to start over, or the wizard
+will find its tables and root and the instance will simply be ready again. The running
+`pnpm dev` picks the reset up on the next request.
+
 **Where the code lives.** Setup stays a module above the domains, `apps/web/src/server/setup/`:
 the step functions (`steps.ts`: check the database, write the settings, apply migrations, create
 root) and the state; `run-setup.ts` keeps the terminal's prompts and loops and calls the steps;
@@ -148,6 +163,9 @@ steps, as sign-in is over the identity domain.
 - **Secrets:** the database password travels only from the form to the action; results, URLs,
   logs and the audit row never contain it (URLs are shown redacted). Server actions are protected
   by the framework's origin check, as every form in the app.
+- **`reset-setup` outside a clone:** the two environment checks make it exit with an error and
+  no changes; a settings file whose SQLite path points outside `apps/web` is removed, but the
+  database file isn't, and the command says so.
 - **The API before setup:** `/api/v1/*` and the token exchange answer `503 setup_required` until
   `ready`, so `rmk login` against an unfinished instance gets a clear error, not a 500.
 
@@ -171,7 +189,8 @@ steps, as sign-in is over the identity domain.
   `HelpTip` without a link) for the database kinds, the public URL and the root account.
 - **Outside the app:** the README's Node and Docker sections say to open the address and follow
   the setup, keep the terminal commands as the alternative, and carry the first-visitor
-  sentence; `compose.yaml`'s header and `pnpm run setup`'s closing message drop the restart step;
+  sentence; the README's Development table and `CLAUDE.md`'s command table gain
+  `pnpm run reset-setup`; `compose.yaml`'s header and `pnpm run setup`'s closing message drop the restart step;
   MVP §5 and §15 (new "Web setup" row; the "Setup command" and "Docker" rows); 003's spec gets a
   "Where the code lives" note and 005's setup-required paragraph points here.
 
@@ -181,23 +200,27 @@ Each one is checkable, and each maps to at least one test or a manual check name
 
 - [ ] From a fresh clone, `pnpm dev` opens on `/setup`; the wizard completes on SQLite, the
   Install list shows the three steps done, **Sign in** lands on `/sign-in` with the email
-  prefilled, and root signs in without restarting anything. (Tasks 4, 5)
+  prefilled, and root signs in without restarting anything. (Tasks 5, 6)
 - [ ] From an empty folder holding only `compose.yaml`, `docker compose up -d` and the browser
   give a working instance without `docker compose exec` or `restart`; `PUBLIC_URL` from the
-  environment is shown read-only. (Task 6)
-- [ ] With JavaScript off, the single-form version completes setup and signs in. (Tasks 3, 5)
+  environment is shown read-only. (Task 7)
+- [ ] With JavaScript off, the single-form version completes setup and signs in. (Tasks 4, 6)
 - [ ] Test connection shows the terminal's words for a wrong password, an unreachable host and a
   missing database on MySQL and PostgreSQL, and the version warning for an old server. (Task 1)
 - [ ] A `pnpm run setup` cancelled at the root prompt leaves the instance `incomplete`; the
-  wizard resumes at Install with the database kept. (Task 4)
+  wizard resumes at Install with the database kept. (Task 5)
 - [ ] Until `ready`, every page redirects to `/setup` and `/api/health`, `/api/v1/*` and the
   token exchange answer `503 setup_required`; a configured instance whose database doesn't
-  answer shows the panel, never the wizard; once `ready`, `/setup` redirects. (Tasks 2, 5)
+  answer shows the panel, never the wizard; once `ready`, `/setup` redirects. (Tasks 2, 6)
 - [ ] A second root attempt fails with "already set up", and the audit log holds exactly one
   `instance.root_created` row, with `via: web` from the wizard and `via: cli` from the
-  terminal. (Tasks 1, 5)
+  terminal. (Tasks 1, 6)
 - [ ] `pnpm run setup` behaves as 003 says, and its tests pass unchanged. (Task 1)
-- [ ] The Documentation and inline helpers listed above say what the feature does now. (Task 7)
+- [ ] `pnpm run reset-setup` removes a clone's settings file, SQLite database and storage after
+  confirmation, the running `pnpm dev` shows the wizard on the next request, and the command
+  refuses to run with `NODE_ENV=production` or `RONNE_RUNTIME=docker` and isn't in the Docker
+  image. (Task 3)
+- [ ] The Documentation and inline helpers listed above say what the feature does now. (Task 8)
 
 ## Open questions
 

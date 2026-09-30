@@ -44,7 +44,21 @@ the same change that completes it.
   the `incomplete` and `unavailable` cases, `prepare-start.db.test.ts` passes, and with an empty
   `RONNE_ENV_FILE` `/` lands on `/setup` while `/api/health` answers 503.
 
-- [ ] **3. The form and the no-JavaScript install.** `apps/web/src/features/setup/`: `SetupPage`
+- [ ] **3. The development reset.** `apps/web/scripts/reset-setup.ts` and the root script
+  `reset-setup`: refuses when `NODE_ENV=production` or `RONNE_RUNTIME=docker` (exit 2, nothing
+  touched); reads the settings file through `loadConfig`; lists the settings file, the SQLite
+  file named by `DATABASE_URL` when it resolves under `apps/web` (plus `-wal` and `-shm`), and
+  the storage folder when it's under `apps/web/data`; asks for confirmation (the `SetupPrompts`
+  `confirm`) unless `--yes`; removes them and prints each; with a server database it removes the
+  settings file only and says the database is untouched. Not listed in `tsdown.config.ts`, so it
+  isn't in `dist-scripts` or the image, and `docker/pnpm` keeps rejecting it. In development,
+  `getSetupState` skips the `ready` cache, so `pnpm dev` shows the wizard on the next request.
+  `README.md`'s Development table and `CLAUDE.md`'s command table get the row.
+  *Done when:* `reset-setup.test.ts` covers the refusals, the listing, `--yes`, the SQLite and
+  server cases and the outside-`apps/web` path; after `pnpm run setup` then `pnpm run reset-setup
+  --yes`, a running `pnpm dev` answers `/` with a redirect to `/setup`.
+
+- [ ] **4. The form and the no-JavaScript install.** `apps/web/src/features/setup/`: `SetupPage`
   (server: brand mark, heading, the form, "Prefer the terminal?", the first-visitor warning),
   `SetupForm` (the three fieldsets with 003's prompt ids as field names, all visible without
   JavaScript, one Install button bound to `installAll` with `useActionState`), `form.ts` (pure
@@ -60,7 +74,7 @@ the same change that completes it.
   Docker, read-only URL, the checkbox only when `incomplete`) and `form.test.ts` pass, and a
   browser with JavaScript off completes setup on SQLite from `pnpm dev` and signs in.
 
-- [ ] **4. The progressive wizard.** `SetupWizard.tsx` (`"use client"`) hydrates the same form:
+- [ ] **5. The progressive wizard.** `SetupWizard.tsx` (`"use client"`) hydrates the same form:
   one fieldset at a time with a step header and Next/Back; Test connection reads the form and
   calls `testDatabase` in a transition, showing the explanation and detail; the final submit runs
   `installSettings` → `installMigrations` → `installRoot` and updates `StepList.tsx` (pending,
@@ -71,7 +85,7 @@ the same change that completes it.
   (`pnpm test:db:up`), a wrong password shows the terminal's words, and after `pnpm run setup` is
   cancelled at the root prompt the page resumes at Install with the database kept.
 
-- [ ] **5. End to end.** `e2e/harness.ts` gains `prepareBlankInstance()` (a temporary folder, a
+- [ ] **6. End to end.** `e2e/harness.ts` gains `prepareBlankInstance()` (a temporary folder, a
   settings path that doesn't exist yet, `DATABASE_URL`, `AUTH_SECRET` and `PUBLIC_URL` set to
   empty so nothing from a developer's `.env` leaks in, a free port); `playwright.config.ts` runs
   it as extra web servers with readiness on `/setup`, and projects `wizard` and `wizard-nojs`
@@ -83,7 +97,7 @@ the same change that completes it.
   *Done when:* `pnpm test:e2e` passes, and `audit.e2e.ts` still finds one `instance.root_created`
   row on the main instance.
 
-- [ ] **6. Docker and the terminal path.** `scripts/setup.ts`'s closing message drops the
+- [ ] **7. Docker and the terminal path.** `scripts/setup.ts`'s closing message drops the
   restart step; `compose.yaml`'s header and `.env.example` say to open the address; the README's
   Node and Docker sections say to open the address and follow the setup, keep the terminal
   commands, and carry the first-visitor sentence. Then build with `compose.build.yaml` and walk
@@ -92,7 +106,7 @@ the same change that completes it.
   *Done when:* both walkthroughs sign in without `docker compose restart web`, the read-only
   `PUBLIC_URL` is visible, and `pnpm lint`, `pnpm typecheck`, `pnpm test` and `pnpm build` pass.
 
-- [ ] **7. Documentation.** The `install` topic and its five sections, the roles wording, MVP §5
+- [ ] **8. Documentation.** The `install` topic and its five sections, the roles wording, MVP §5
   and §15 (the new "Web setup" row, and the "Setup command" and "Docker" rows), the notes in
   003's and 005's specs, and the index status.
   *Done when:* `docs.test.tsx` and `help.test.tsx` pass, every new section renders, and the
