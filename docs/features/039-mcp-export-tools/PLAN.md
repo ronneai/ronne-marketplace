@@ -34,7 +34,7 @@ the same change that completes it.
   *Done when:* the existing "run `rmk login`" test covers the new tools, and `list_local_items`
   answers with the registry unreachable.
 
-- [ ] **7. End to end.** In `apps/web/e2e/mcp.e2e.ts`, with the built `rmk-mcp`: list, plan
+- [x] **7. End to end.** In `apps/web/e2e/mcp.e2e.ts`, with the built `rmk-mcp`: list, plan
   without a scope, plan, export, open the draft.
   *Done when:* `pnpm test:e2e` passes.
 
