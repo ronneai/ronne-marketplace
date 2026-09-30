@@ -7,7 +7,7 @@ the same change that completes it. Tasks 1 and 2 touch only `packages/core` and 
 
 ## Tasks
 
-- [ ] **1. One frontmatter parser.** Move the private `frontmatter()` out of
+- [x] **1. One frontmatter parser.** Move the private `frontmatter()` out of
   `packages/core/src/package-checks.ts` into its own module, returning the data and the body.
   *Done when:* `package-checks.test.ts` passes unchanged and the parser has its own tests.
 
