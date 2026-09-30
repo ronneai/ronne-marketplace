@@ -193,8 +193,13 @@ describe("the Cursor renderer", () => {
       { scope: "project" },
     );
     expect(stdio.changes[0]).toMatchObject({
-      // biome-ignore lint/suspicious/noTemplateCurlyInString: Cursor's own reference syntax
-      value: { command: "npx", args: ["-y", "server"], env: { TOKEN: "${env:TOKEN}" } },
+      value: {
+        type: "stdio",
+        command: "npx",
+        args: ["-y", "server"],
+        // biome-ignore lint/suspicious/noTemplateCurlyInString: Cursor's own reference syntax
+        env: { TOKEN: "${env:TOKEN}" },
+      },
     });
   });
 

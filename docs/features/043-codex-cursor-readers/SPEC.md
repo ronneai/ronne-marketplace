@@ -84,8 +84,8 @@ configured for more than one tool, the one from the dependent's own tool wins (a
 server is looked for in `.cursor/mcp.json` first).
 
 **Checked on 2026-09-30** against both tools' documentation (contract §9–10). One finding for the
-Cursor renderer (025), not changed here: Cursor's documentation now shows `type: "stdio"` as
-required for stdio MCP servers, and the renderer writes none.
+Cursor renderer (025): Cursor's documentation now shows `type: "stdio"` as required for stdio MCP
+servers, and the renderer wrote none; it's been fixed since, as a 025 bugfix.
 
 **For the features that build on this.** The readers are
 `packages/core/src/read/codex/{agent,mcp-server}.ts` and `…/cursor/{agent,rule,command,mcp-server}.ts`,

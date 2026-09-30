@@ -94,7 +94,7 @@ JSON on stdin; `$RMK_` variables warn as in 023. A tool with no Cursor matcher (
 every tool. Events with no equivalent (`permission.request`) warn and are left out. With Claude
 Code also a target, the hook is left to Claude Code's copy, which Cursor runs (see above).
 
-**`mcp-server`** — `mcpServers.<n>` in `mcp.json`: stdio as `command`, `args` and `env` with
+**`mcp-server`** — `mcpServers.<n>` in `mcp.json`: stdio as `type: "stdio"` (which Cursor's documentation requires, checked 2026-09-30), `command`, `args` and `env` with
 `${env:NAME}` references (Cursor's syntax); http as `url` and `headers`, each `${NAME}` in a header
 becoming `${env:NAME}`. No secret value is ever written.
 
