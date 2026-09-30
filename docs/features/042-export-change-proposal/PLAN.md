@@ -14,7 +14,7 @@ the same change that completes it.
   *Done when:* `drafts-api.db.test.ts` covers a proposal created, each new error, the draft limit
   counting it, and a stale base; on all four database servers.
 
-- [ ] **2. The merge.** `mergeChange` in `packages/core/src/read/`: by file for skills, by field
+- [x] **2. The merge.** `mergeChange` in `packages/core/src/read/`: by file for skills, by field
   and content file for the other types, from B, R and L as the spec defines them.
   *Done when:* unit tests cover each merge row for each type, and that keywords, `license`,
   `targets`, the base's dependencies and an unmapped tool survive.
