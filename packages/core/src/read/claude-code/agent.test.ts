@@ -120,11 +120,9 @@ describe("readAgent", () => {
       { kind: "skill", name: "deploy-check", from: "skills" },
       { kind: "mcp-server", name: "aws", from: "mcpServers" },
     ]);
-    expect(read.warnings.map((w) => w.code)).toEqual([
-      "name_changed",
-      "field_dropped",
-      "field_dropped",
-    ]);
+    // `skills` and named servers become dependencies (041); the inline definition can't.
+    expect(read.warnings.map((w) => w.code)).toEqual(["name_changed", "field_dropped"]);
+    expect(read.warnings[1]?.message).toContain("defined inside whatever.md's `mcpServers`");
     expect(agentName(file("whatever.md", text), "whatever.md")).toBe("deploy-helper");
     expect(agentName(file("x.md", "---\ndescription: D.\n---\n"), "Code Review.md")).toBe(
       "code-review",

@@ -17,7 +17,7 @@ the same change that completes it.
   *Done when:* tests cover every row of the spec's table, a shared dependency counted once, and a
   self-reference ignored.
 
-- [ ] **3. Manifests and order.** `dependencies` written into the generated manifests with their
+- [x] **3. Manifests and order.** `dependencies` written into the generated manifests with their
   ranges; the upload order; a failed dependency stopping its dependents.
   *Done when:* the manifests pass `checkPackage`, and a test with a fake registry failing the
   first `POST` shows nothing else sent.

@@ -27,10 +27,12 @@ import {
   readSkill,
   ruleName,
   skillName,
+  withDependencies,
 } from "@ronneai/core/read";
 import { type ApiClient, ApiError } from "./api.js";
 import { diskHash, readState } from "./apply.js";
 import { RmkError, usage } from "./errors.js";
+import { type Finding, findDependencies } from "./export-dependencies.js";
 import { MCP_SETUP_ITEM, places, type Scope, scopeOf } from "./install.js";
 import type { Io } from "./io.js";
 import { SERVER_NAME } from "./mcp-setup.js";
@@ -453,6 +455,11 @@ export type ExportRequest = {
   type?: ExportType;
   /** An MCP server's description, which isn't on disk; for a single item. */
   description?: string;
+  /**
+   * What to do with the person's own items the exported ones use (041): export them too, or
+   * leave them out. Required when there are any; `planExport` stops with `dependencies_required`.
+   */
+  dependencies?: "include" | "omit";
   /** The marketplace scope, `@team` or `team`. Without it, each folder's `ronne.yaml` must say. */
   to?: string;
   /** The item's name, for a single item. */
@@ -484,6 +491,12 @@ export type PlannedItem = {
   issues: ManifestIssue[];
   /** The name is already published: Submit will refuse the draft. */
   published: boolean;
+  /** What its manifest declares (041): other planned items at `^1.0.0`, installed ones. */
+  dependencies: Record<string, string>;
+  /** The planned items it depends on, by name: they're uploaded first. */
+  dependsOn: string[];
+  /** It's here because another item uses it. */
+  asDependency: boolean;
 };
 
 export type RefusedItem = { local: string; code: string; message: string };
@@ -493,6 +506,8 @@ export type ExportPlan = {
   to: string | null;
   items: PlannedItem[];
   refused: RefusedItem[];
+  /** What the items use, and whose each is (041). */
+  findings: Finding[];
   /** Every read file's path, hash and executable bit, and the names: 039 checks it didn't change. */
   fingerprint: string;
 };
@@ -682,9 +697,39 @@ export const planExport = async (
   if (to !== null && !known.has(to))
     throw new RmkError(`${api.registry} has no scope @${to}.`, 2, "scope_not_found", { scopes });
 
-  const targets = resolveItems(io, request);
-  if (request.description !== undefined && targets.length > 1)
+  const named = resolveItems(io, request);
+  if (request.description !== undefined && named.length > 1)
     throw usage("--description describes one item; export the others separately.");
+
+  // What the items use (041): the person's own items need a decision before anything is planned.
+  const findings = await findDependencies(io, scopeOf(request.scope), named);
+  const theirs = findings.filter((f) => f.status === "yours");
+  if (theirs.length > 0 && request.dependencies === undefined)
+    throw new RmkError(
+      `${theirs.length === 1 ? "An item" : `${theirs.length} items`} of yours ${theirs.length === 1 ? "is" : "are"} used by what you're exporting: ${theirs.map((f) => f.item?.display).join(", ")}. Export them too (recommended) with --with-deps, or without them with --no-deps.`,
+      2,
+      "dependencies_required",
+      { findings },
+    );
+  const targets: (Target & { asDependency?: boolean })[] = [
+    ...named,
+    ...(request.dependencies === "include"
+      ? theirs.flatMap((f) =>
+          f.item
+            ? [
+                {
+                  local: f.item.display,
+                  type: f.item.type,
+                  path: f.item.path,
+                  key: f.item.key,
+                  name: f.item.name,
+                  asDependency: true,
+                },
+              ]
+            : [],
+        )
+      : []),
+  ];
 
   const items: PlannedItem[] = [];
   const refused: RefusedItem[] = [];
@@ -853,11 +898,6 @@ export const planExport = async (
       continue;
     }
 
-    const parsed = parseManifest(read.manifestText);
-    const issues = [
-      ...parsed.issues.map((issue) => ({ ...issue, file: "ronne.yaml" })),
-      ...(parsed.manifest ? checkPackage(parsed.manifest, read.files) : []),
-    ];
     const name = String(read.manifest.name);
     hash.update(`\0=${name}`);
     items.push({
@@ -870,11 +910,90 @@ export const planExport = async (
       manifestText: read.manifestText,
       skipped,
       warnings,
-      issues,
-      published: await isPublished(api, name),
+      issues: [],
+      published: false,
+      dependencies: {},
+      dependsOn: [],
+      asDependency: target.asDependency === true,
     });
   }
-  return { registry: api.registry, to, items, refused, fingerprint: hash.digest("hex") };
+
+  declareDependencies(items, refused, findings, request.dependencies ?? "omit");
+  for (const item of items) {
+    const parsed = parseManifest(item.manifestText);
+    item.issues = [
+      ...parsed.issues.map((issue) => ({ ...issue, file: "ronne.yaml" })),
+      ...(parsed.manifest ? checkPackage(parsed.manifest, item.files) : []),
+    ];
+    item.published = await isPublished(api, item.name);
+  }
+  return {
+    registry: api.registry,
+    to,
+    items: inUploadOrder(items),
+    refused,
+    findings,
+    fingerprint: hash.digest("hex"),
+  };
+};
+
+/**
+ * Writes each planned item's `dependencies` from the findings (041): another planned item at
+ * `^1.0.0` (a first release is always 1.0.0), an installed one at `^<its version>`. What can't be
+ * declared is a warning on the item that uses it.
+ */
+const declareDependencies = (
+  items: PlannedItem[],
+  refused: readonly RefusedItem[],
+  findings: readonly Finding[],
+  choice: "include" | "omit",
+) => {
+  const planned = (f: Finding) =>
+    f.item ? items.find((i) => i.path === f.item?.path && i.key === f.item?.key) : undefined;
+  for (const item of items) {
+    const warn = (code: string, message: string) => item.warnings.push({ code, message });
+    for (const finding of findings.filter((f) => f.usedBy.includes(item.local))) {
+      const what = `${finding.reference.kind === "mcp-server" ? "the MCP server" : "the skill"} ${finding.reference.name}`;
+      const dependency = planned(finding);
+      if (dependency) {
+        item.dependencies[dependency.name] = "^1.0.0";
+        item.dependsOn.push(dependency.name);
+      } else if (finding.status === "installed" && finding.registry)
+        item.dependencies[finding.registry.name] = `^${finding.registry.version}`;
+      else if (finding.status === "yours" || finding.status === "selected") {
+        const stopped = refused.find((r) => r.local === finding.item?.display);
+        warn(
+          "dependency_omitted",
+          stopped
+            ? `It uses ${what}, which can't be exported (${stopped.message}), so it isn't declared.`
+            : choice === "omit"
+              ? `It uses ${what}, which isn't exported with it, so it may not work where that's missing.`
+              : `It uses ${what}, which isn't declared.`,
+        );
+      } else
+        warn("dependency_missing", `It uses ${what}, which can't be declared: ${finding.note}`);
+    }
+    if (Object.keys(item.dependencies).length > 0) {
+      item.manifestText = withDependencies(item.manifestText, item.dependencies);
+      const bytes = new TextEncoder().encode(item.manifestText);
+      item.files = item.files.map((f) => (f.path === "ronne.yaml" ? { ...f, bytes } : f));
+    }
+  }
+};
+
+/** Dependencies before the items that use them; otherwise in the order they were planned. */
+const inUploadOrder = (items: PlannedItem[]): PlannedItem[] => {
+  const ordered: PlannedItem[] = [];
+  const pending = [...items];
+  while (pending.length > 0) {
+    const ready = pending.findIndex((item) =>
+      item.dependsOn.every((name) => ordered.some((o) => o.name === name)),
+    );
+    // No cycles can come from export (041), but never loop for ever.
+    const [next] = pending.splice(ready === -1 ? 0 : ready, 1);
+    if (next) ordered.push(next);
+  }
+  return ordered;
 };
 
 /** A draft the registry created (037). */
@@ -926,7 +1045,18 @@ const uploadMessage = (item: PlannedItem, error: ApiError) =>
  */
 export const uploadExport = async (api: ApiClient, plan: ExportPlan): Promise<ExportedItem[]> => {
   const exported: ExportedItem[] = [];
+  const failed: { item: PlannedItem; error: ApiError }[] = [];
+  const skipped: PlannedItem[] = [];
   for (const item of plan.items) {
+    // An item whose dependency didn't upload would declare a draft that doesn't exist.
+    if (
+      item.dependsOn.some((name) =>
+        [...failed.map((f) => f.item), ...skipped].some((i) => i.name === name),
+      )
+    ) {
+      skipped.push(item);
+      continue;
+    }
     let draft: DraftResponse;
     try {
       draft = await api.post<DraftResponse>("/drafts", {
@@ -936,13 +1066,8 @@ export const uploadExport = async (api: ApiClient, plan: ExportPlan): Promise<Ex
       });
     } catch (error) {
       if (!(error instanceof ApiError)) throw error;
-      const made = exported.map((e) => `${e.name} (${e.url})`).join(", ");
-      throw new RmkError(
-        `${uploadMessage(item, error)}${made ? ` Drafts already created: ${made}.` : ""}`,
-        1,
-        error.code,
-        { ...error.details, item: item.name, exported },
-      );
+      failed.push({ item, error });
+      continue;
     }
     exported.push({
       local: item.local,
@@ -955,6 +1080,23 @@ export const uploadExport = async (api: ApiClient, plan: ExportPlan): Promise<Ex
       warnings: item.warnings,
       skipped: item.skipped,
     });
+  }
+  const [first] = failed;
+  if (first) {
+    const made = exported.map((e) => `${e.name} (${e.url})`).join(", ");
+    const notSent = skipped.map((i) => i.name).join(", ");
+    throw new RmkError(
+      `${failed.map((f) => uploadMessage(f.item, f.error)).join(" ")}${notSent ? ` Not uploaded, since they depend on it: ${notSent}.` : ""}${made ? ` Drafts already created: ${made}.` : ""}`,
+      1,
+      first.error.code,
+      {
+        ...first.error.details,
+        item: first.item.name,
+        exported,
+        failed: failed.map((f) => f.item.name),
+        notUploaded: skipped.map((i) => i.name),
+      },
+    );
   }
   return exported;
 };
