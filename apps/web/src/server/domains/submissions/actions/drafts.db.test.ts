@@ -30,6 +30,7 @@ import { kyselySubmissionRepository } from "../repositories/kysely-submission-re
 import * as service from "../services/drafts";
 import {
   createDraft,
+  createDraftFromFilesAs,
   deleteDraft,
   getDraft,
   importZip,
@@ -312,6 +313,43 @@ describe("createDraftFromFiles", () => {
       .where("id", "=", last.draft.id)
       .execute();
     await expect(upload(skill())).resolves.toMatchObject({ draft: { status: "draft" } });
+  });
+});
+
+describe("createDraftFromFilesAs", () => {
+  it("creates the draft as the token's user, for every role, auditing the token and address", async () => {
+    const files: service.UploadFile[] = [
+      { path: "ronne.yaml", encoding: "utf8", content: "name: x\n" },
+    ];
+    const proxied = { ...app, trustProxy: true };
+    for (const [headers, email] of [
+      [asUser, "u@example.com"],
+      [asOther, "other@example.com"],
+      [asRoot, "root@example.com"],
+    ] as const) {
+      const user = await getCurrentUser(headers, app);
+      if (!user) throw new Error("not signed in");
+      const { draft } = await createDraftFromFilesAs(
+        { user, token: { id: `tok-${email}`, name: "laptop", expiresAt: null } },
+        new Headers({ "x-forwarded-for": "198.51.100.4" }),
+        { scope: "team", name: "from-api", type: "rule", files },
+        proxied,
+      );
+      expect(draft.authorId).toBe(user.id);
+      expect((await getDraft(headers, draft.id, app)).files.map((f) => f.path)).toEqual([
+        "ronne.yaml",
+      ]);
+      const events = (await listAuditEvents(t.db, t.dialect, {})).events.filter(
+        (event) => event.targetId === draft.id,
+      );
+      expect(events).toMatchObject([
+        {
+          actorEmail: email,
+          ipAddress: "198.51.100.4",
+          metadata: { tokenId: `tok-${email}`, tokenName: "laptop" },
+        },
+      ]);
+    }
   });
 });
 

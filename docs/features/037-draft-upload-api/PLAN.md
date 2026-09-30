@@ -19,7 +19,7 @@ the same change that completes it.
   *Done when:* a test reads the event with the token's name, and one proves no key trips
   `isSecretKey`.
 
-- [ ] **3. The token-user actions.** `createDraftFromFilesAs` (submissions) and `listScopesAs`
+- [x] **3. The token-user actions.** `createDraftFromFilesAs` (submissions) and `listScopesAs`
   (items), taking the token's user like `itemPageAs`.
   *Done when:* action tests create a draft and list scopes as a user, a moderator and root.
 
