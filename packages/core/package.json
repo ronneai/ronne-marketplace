@@ -1,6 +1,6 @@
 {
   "name": "@ronneai/core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Manifest schema, resolver, packer and AI tool renderers shared by Ronne AI Marketplace, rmk and its MCP server.",
   "keywords": [
     "ronne",
