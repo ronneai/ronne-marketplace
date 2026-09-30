@@ -32,7 +32,7 @@ the same change that completes it.
   `server/http/errors.ts`; a per-user limiter from `LoginRateLimiter`.
   *Done when:* `errors.test.ts` covers every row, and the limiter test passes with a moved clock.
 
-- [ ] **6. `GET /api/v1/scopes`.** The handler in `server/http/drafts-api.ts` and the route.
+- [x] **6. `GET /api/v1/scopes`.** The handler in `server/http/drafts-api.ts` and the route.
   *Done when:* tests in the style of `registry-api.db.test.ts` cover paging, search and `401`.
 
 - [ ] **7. `POST /api/v1/drafts`.** The handler and the route: token, rate, body, shape, service,
