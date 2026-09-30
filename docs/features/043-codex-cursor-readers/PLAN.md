@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Check the mappings.** Codex's and Cursor's current documentation for agents, rules,
+- [x] **1. Check the mappings.** Codex's and Cursor's current documentation for agents, rules,
   commands and MCP servers (CLAUDE.md: platform paths change often), against the renderers (024,
   025); write the contract's Codex and Cursor sections with the date, and fix this spec where they
   differ.

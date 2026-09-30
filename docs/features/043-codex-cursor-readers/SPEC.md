@@ -14,7 +14,7 @@ that works in Cursor or Codex gets the same way into the marketplace.
 - Readers for Codex: agents (`.codex/agents/*.toml`) and MCP servers (`[mcp_servers.<n>]` in
   `.codex/config.toml`), in the project and the home folder.
 - Readers for Cursor: agents (`.cursor/agents/*.md`), rules (`.cursor/rules/*.mdc`), commands
-  (`.cursor/commands/*.md`) and MCP servers (`mcpServers` in `.cursor/mcp.json`), in the project and
+  (`.cursor/commands/`, as `.md`, `.mdc`, `.markdown` or `.txt`) and MCP servers (`mcpServers` in `.cursor/mcp.json`), in the project and
   the home folder (rules: project only, as Cursor keeps user rules in its settings).
 - Telling what the person wrote from what `rmk` installed for these tools: state entries of kind
   `file`, `json-key` and `toml-key`, and the markers the Codex and Cursor renderers write.
@@ -65,12 +65,12 @@ tools is two items; a person who wants one of them names it.
 
 | Tool | Type | Kept | Lost, with a warning |
 |---|---|---|---|
-| Codex | agent | name, description, the instructions; the model as `targets.codex.overrides.model`, which the Codex renderer reads, so Codex keeps it and other tools use their default | every other key, such as sandbox or reasoning settings. Codex agents have no tool list, so the item has none |
-| Codex | mcp-server | stdio's command, arguments and variables (`env` keys and `env_vars`, names only); http's address, `bearer_token_env_var` as an `Authorization: Bearer ${VAR}` header, `env_http_headers` as `${VAR}` headers | every value; literal `http_headers` go through 040's credential rules; timeouts, `enabled`, tool lists and other keys |
+| Codex | agent | name, description, the instructions; the model as `targets.codex.overrides.model`, which the Codex renderer reads, so Codex keeps it and other tools use their default | every other key, such as sandbox or reasoning settings, skills, and servers defined inline under `mcp_servers`. Codex agents have no tool list, so the item has none |
+| Codex | mcp-server | stdio's command, arguments and variables (`env` keys and `env_vars`, names only); http's address, `bearer_token_env_var` as an `Authorization: Bearer ${VAR}` header, `env_http_headers` as `${VAR}` headers | every value; literal `http_headers` go through 040's credential rules; `cwd`, timeouts, `enabled`, `required`, tool lists, approval modes, `oauth` and other keys |
 | Cursor | agent | name, description, the prompt; `readonly: true` as the tools `read`, `grep` and `glob`; the model as `targets.cursor.overrides.model` | other keys, such as running in the background |
 | Cursor | rule | the body; `alwaysApply: true` as `always`, `globs` as `glob`, a description alone as `model`, none of them as `manual` | nothing Cursor reads |
-| Cursor | command | the body, and its first line as the description | nothing: Cursor commands have no arguments or settings |
-| Cursor | mcp-server | command, arguments, the variables' names, address, headers; `${env:NAME}` read as `${NAME}` | every value; other keys |
+| Cursor | command | the body; `name` and `description` from the frontmatter, else the file's name and the body's first line | nothing: Cursor commands have no arguments or other settings |
+| Cursor | mcp-server | command, arguments, the variables' names, address, headers; `${env:NAME}` read as `${NAME}` | every value; `envFile`, `auth` and other keys; Cursor's own variables (`${userHome}`, `${workspaceFolder}`…) stay as written, with a warning |
 
 **Whose it is** (contract §2) now includes the Codex and Cursor renders: a state entry for the
 file, the JSON key or the TOML key (`mcp_servers.<n>`) means `rmk` installed it; so does the marker,
@@ -80,6 +80,10 @@ server `rmk mcp-setup` registers for each tool is never listed.
 **Dependencies** (041). References are matched against items from every tool. When a name is
 configured for more than one tool, the one from the dependent's own tool wins (a Cursor agent's
 server is looked for in `.cursor/mcp.json` first).
+
+**Checked on 2026-09-30** against both tools' documentation (contract §9–10). One finding for the
+Cursor renderer (025), not changed here: Cursor's documentation now shows `type: "stdio"` as
+required for stdio MCP servers, and the renderer writes none.
 
 **For the features that build on this.** The readers are
 `packages/core/src/read/codex/{agent,mcp-server}.ts` and `…/cursor/{agent,rule,command,mcp-server}.ts`,
@@ -91,9 +95,10 @@ runtime dependencies don't change. `LocalItem` gains `tool`.
 
 - **`.codex/config.toml` or `.cursor/mcp.json` that doesn't parse:** that tool's MCP servers are
   skipped with the reason; everything else lists.
-- **A Codex agent without `name`:** the file's name, as Codex does (checked in the first task).
-- **A Codex agent's instructions in a separate file** (if Codex allows a path): read from that
-  file, and the preview names it.
+- **A Codex agent without `name`:** Codex requires one and would refuse the file; export takes the
+  file's name, with a warning. Its instructions are always inline in `developer_instructions`
+  (Codex has no separate file).
+- **A Codex server with `enabled = false`:** exported, with a warning that it's off in Codex.
 - **An `.mdc` rule with `alwaysApply: true` and `globs`:** `always`, as Cursor applies it; the
   globs are dropped with a warning.
 - **A Cursor MCP server with `${env:NAME}` inside other text:** read as `${NAME}` in the same
