@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. A store for any plan.** `planStore` in `packages/mcp/src/plan-tools.ts` becomes generic
+- [x] **1. A store for any plan.** `planStore` in `packages/mcp/src/plan-tools.ts` becomes generic
   over what it keeps; the server creates one for installs and one for exports.
   *Done when:* `plan-tools.test.ts` passes unchanged.
 

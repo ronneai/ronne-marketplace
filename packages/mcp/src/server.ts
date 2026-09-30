@@ -1,5 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { type Io, RmkError, rmkVersion } from "@ronneai/rmk/lib";
+import { type Io, type Operation, RmkError, rmkVersion } from "@ronneai/rmk/lib";
 import { z } from "zod";
 import { applyPlanTool, planStore, planTool } from "./plan-tools.js";
 import { checkOutdated, getItem, listInstalled, searchItems } from "./read-tools.js";
@@ -31,7 +31,7 @@ const scope = z
   .describe("project (the default): this folder; user: your home folder");
 
 export const createServer = (io: Io, options: ServerOptions = {}) => {
-  const plans = planStore(options.now ?? Date.now);
+  const plans = planStore<Operation>(options.now ?? Date.now);
   const server = new McpServer(
     { name: serverInfo.name, version: serverInfo.version },
     {
