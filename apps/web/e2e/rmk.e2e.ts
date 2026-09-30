@@ -484,3 +484,127 @@ test("rmk exports an agent and an MCP server, keeping the server's credentials o
     rmSync(project, { recursive: true, force: true });
   }
 });
+
+/**
+ * Dependencies on export (041): an agent that loads a skill of the person's own, exported with
+ * it. The agent can't be submitted until the skill is released; then it can.
+ */
+test("rmk exports an agent with its skill, and the agent is submitted once the skill is released", async ({
+  browser,
+  request,
+}) => {
+  const home = mkdtempSync(join(tmpdir(), "rmk-e2e-home-"));
+  const project = mkdtempSync(join(tmpdir(), "rmk-e2e-project-"));
+  mkdirSync(join(project, ".claude/agents"), { recursive: true });
+  mkdirSync(join(project, ".claude/skills/e2e-dep-skill"), { recursive: true });
+  writeFileSync(
+    join(project, ".claude/agents/e2e-dep-agent.md"),
+    "---\nname: e2e-dep-agent\ndescription: Reviews with the house checklist.\nskills: [e2e-dep-skill]\ntools: Read\n---\nReview the diff.\n",
+  );
+  writeFileSync(
+    join(project, ".claude/skills/e2e-dep-skill/SKILL.md"),
+    "---\nname: e2e-dep-skill\ndescription: The house review checklist.\n---\nCheck names and tests.\n",
+  );
+  const token = await request.post("/api/v1/auth/token", {
+    data: { email: E2E_USERS.depsExporter, password: E2E_PASSWORD, name: "e2e rmk export deps" },
+  });
+  expect(token.status()).toBe(201);
+  const env = {
+    ...process.env,
+    HOME: home,
+    RMK_TOKEN: (await token.json()).token,
+    RMK_REGISTRY: baseURL,
+  };
+  const rmk = (...args: string[]) => {
+    try {
+      return {
+        code: 0,
+        out: execFileSync("node", [BIN, ...args], {
+          cwd: project,
+          env,
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "pipe"],
+        }),
+      };
+    } catch (error) {
+      const failed = error as { status: number; stdout: string; stderr: string };
+      return { code: failed.status, out: `${failed.stdout}${failed.stderr}` };
+    }
+  };
+  const signIn = async (email: string) => {
+    const page = await browser.newPage();
+    await page.goto("/sign-in");
+    await page.getByLabel("Email").fill(email);
+    await page.getByLabel("Password", { exact: true }).fill(E2E_PASSWORD);
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await expect(page).not.toHaveURL(/\/sign-in/);
+    return page;
+  };
+  const skillName = `@${E2E_SCOPE}/e2e-dep-skill`;
+  const agentName = `@${E2E_SCOPE}/e2e-dep-agent`;
+
+  try {
+    // Without a terminal, the choice is required.
+    const undecided = rmk("export", "e2e-dep-agent", "--to", `@${E2E_SCOPE}`, "--yes", "--json");
+    expect(undecided.code).toBe(2);
+
+    const exported = rmk(
+      "export",
+      "e2e-dep-agent",
+      "--to",
+      `@${E2E_SCOPE}`,
+      "--yes",
+      "--with-deps",
+      "--json",
+    );
+    expect(exported.code, exported.out).toBe(0);
+    const result = JSON.parse(exported.out);
+    expect(result.exported.map((e: { name: string }) => e.name)).toEqual([skillName, agentName]);
+    expect(result.order).toEqual([{ item: agentName, after: [skillName] }]);
+    const [skillDraft, agentDraft] = result.exported as { id: string; url: string }[];
+
+    // The agent can't be submitted before the skill is released.
+    const author = await signIn(E2E_USERS.depsExporter);
+    await author.goto(agentDraft?.url ?? "");
+    await author.getByRole("button", { name: "Submit for review" }).click();
+    const refused = author.getByRole("dialog", { name: "Submit for review" });
+    await expect(refused.getByText("Fix these before submitting:")).toBeVisible();
+    await expect(
+      refused.getByText(new RegExp(`${skillName} isn't a published item`)),
+    ).toBeVisible();
+    await refused.getByRole("button", { name: "Close" }).first().click();
+
+    // The skill: submitted, approved by a moderator, and published as 1.0.0.
+    await author.goto(skillDraft?.url ?? "");
+    await author.getByRole("button", { name: "Submit for review" }).click();
+    const submitSkill = author.getByRole("dialog", { name: "Submit for review" });
+    await expect(submitSkill.getByText("All checks passed.")).toBeVisible();
+    await submitSkill.getByRole("button", { name: "Submit for review" }).click();
+    await expect(author.getByText(/Submitted for review on/)).toBeVisible();
+
+    const moderator = await signIn(E2E_USERS.depsModerator);
+    await moderator.goto(`/reviews/${skillDraft?.id}`);
+    await moderator.getByRole("button", { name: "Approve", exact: true }).click();
+    const approve = moderator.getByRole("dialog", { name: "Approve this submission?" });
+    await approve.getByRole("button", { name: "Approve", exact: true }).click();
+    await expect(moderator.getByText("approved it")).toBeVisible();
+
+    await author.goto(skillDraft?.url ?? "");
+    await author.getByRole("button", { name: "Publish", exact: true }).click();
+    const publish = author.getByRole("dialog", { name: new RegExp(`Publish ${skillName}`) });
+    await publish.getByRole("button", { name: "Publish 1.0.0" }).click();
+    await expect(publish.getByText(`Published ${skillName} 1.0.0 as latest.`)).toBeVisible();
+    await publish.getByRole("button", { name: "Done" }).click();
+
+    // Now the agent's checks pass, and it's submitted.
+    await author.goto(agentDraft?.url ?? "");
+    await author.getByRole("button", { name: "Submit for review" }).click();
+    const submitAgent = author.getByRole("dialog", { name: "Submit for review" });
+    await expect(submitAgent.getByText("All checks passed.")).toBeVisible();
+    await submitAgent.getByRole("button", { name: "Submit for review" }).click();
+    await expect(author.getByText(/Submitted for review on/)).toBeVisible();
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+    rmSync(project, { recursive: true, force: true });
+  }
+});

@@ -34,7 +34,7 @@ the same change that completes it.
   instructions.
   *Done when:* tests show no `planId` until it's given, and a plan that includes the dependencies.
 
-- [ ] **7. End to end.** An agent with a skill: export both, then in the web app submit and
+- [x] **7. End to end.** An agent with a skill: export both, then in the web app submit and
   release the skill, and submit the agent.
   *Done when:* `pnpm test:e2e` passes, including the refused Submit before the release.
 
