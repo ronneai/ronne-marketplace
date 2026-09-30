@@ -618,3 +618,120 @@ test("rmk exports an agent with its skill, and the agent is submitted once the s
     rmSync(project, { recursive: true, force: true });
   }
 });
+
+/**
+ * Codex's and Cursor's own files (043): a Cursor rule and a Codex MCP server, exported with the
+ * built `rmk`. The server's token stays on the machine; the draft declares a variable.
+ */
+test("rmk exports a Cursor rule and a Codex MCP server", async ({ browser, request }) => {
+  const home = mkdtempSync(join(tmpdir(), "rmk-e2e-home-"));
+  const project = mkdtempSync(join(tmpdir(), "rmk-e2e-project-"));
+  const secret = `ghp_${"t0oL".repeat(9)}`;
+  mkdirSync(join(project, ".cursor/rules"), { recursive: true });
+  mkdirSync(join(project, ".codex"), { recursive: true });
+  writeFileSync(
+    join(project, ".cursor/rules/e2e-cursor-style.mdc"),
+    "---\nglobs: src/**/*.tsx, src/**/*.ts\nalwaysApply: false\n---\n# Component style\n\nOne component per file.\n",
+  );
+  writeFileSync(
+    join(project, ".codex/config.toml"),
+    `[mcp_servers.e2e-codex-tracker]\nurl = "https://tracker.example/mcp"\nbearer_token_env_var = "TRACKER_TOKEN"\nhttp_headers = { "X-Api-Key" = "${secret}" }\n`,
+  );
+  const token = await request.post("/api/v1/auth/token", {
+    data: { email: E2E_USERS.toolsExporter, password: E2E_PASSWORD, name: "e2e rmk export tools" },
+  });
+  expect(token.status()).toBe(201);
+  const env = {
+    ...process.env,
+    HOME: home,
+    RMK_TOKEN: (await token.json()).token,
+    RMK_REGISTRY: baseURL,
+  };
+  const rmk = (...args: string[]) => {
+    try {
+      return {
+        code: 0,
+        out: execFileSync("node", [BIN, ...args], {
+          cwd: project,
+          env,
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "pipe"],
+        }),
+      };
+    } catch (error) {
+      const failed = error as { status: number; stdout: string; stderr: string };
+      return { code: failed.status, out: `${failed.stdout}${failed.stderr}` };
+    }
+  };
+
+  try {
+    const listed = JSON.parse(rmk("export", "--json").out);
+    expect(listed.found).toEqual([
+      {
+        name: "e2e-codex-tracker",
+        type: "mcp-server",
+        tool: "codex",
+        path: ".codex/config.toml (mcp_servers.e2e-codex-tracker)",
+      },
+      {
+        name: "e2e-cursor-style",
+        type: "rule",
+        tool: "cursor",
+        path: ".cursor/rules/e2e-cursor-style.mdc",
+      },
+    ]);
+
+    const rule = rmk("export", "e2e-cursor-style", "--to", `@${E2E_SCOPE}`, "--yes", "--json");
+    expect(rule.code, rule.out).toBe(0);
+    const [ruleDraft] = JSON.parse(rule.out).exported;
+    expect(ruleDraft).toMatchObject({
+      name: `@${E2E_SCOPE}/e2e-cursor-style`,
+      type: "rule",
+      issues: [],
+    });
+
+    const server = rmk(
+      "export",
+      "e2e-codex-tracker",
+      "--to",
+      `@${E2E_SCOPE}`,
+      "--description",
+      "Tracks issues.",
+      "--yes",
+      "--json",
+    );
+    expect(server.code, server.out).toBe(0);
+    expect(server.out).not.toContain(secret);
+    const [serverDraft] = JSON.parse(server.out).exported;
+    expect(serverDraft).toMatchObject({
+      name: `@${E2E_SCOPE}/e2e-codex-tracker`,
+      type: "mcp-server",
+      issues: [],
+    });
+
+    const author = await browser.newPage();
+    await author.goto("/sign-in");
+    await author.getByLabel("Email").fill(E2E_USERS.toolsExporter);
+    await author.getByLabel("Password", { exact: true }).fill(E2E_PASSWORD);
+    await author.getByRole("button", { name: "Sign in" }).click();
+    await expect(author).not.toHaveURL(/\/sign-in/);
+
+    for (const [draft, expected] of [
+      [ruleDraft, "activation: glob"],
+      [serverDraft, "Bearer ${TRACKER_TOKEN}"],
+    ] as const) {
+      await author.goto(draft.url);
+      await author
+        .getByRole("list", { name: "Files" })
+        .getByRole("button", { name: /ronne\.yaml/ })
+        .click();
+      await author.getByRole("button", { name: "YAML", exact: true }).click();
+      const manifest = author.getByLabel("Contents of ronne.yaml");
+      await expect(manifest).toContainText(expected);
+      await expect(manifest).not.toContainText(secret);
+    }
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+    rmSync(project, { recursive: true, force: true });
+  }
+});

@@ -35,7 +35,7 @@ the same change that completes it.
   *Done when:* `cli.test.ts` and the MCP tests cover each, and the secret grep over the fake
   registry's requests passes.
 
-- [ ] **6. End to end.** A Cursor rule and a Codex MCP server exported with the built `rmk`.
+- [x] **6. End to end.** A Cursor rule and a Codex MCP server exported with the built `rmk`.
   *Done when:* `pnpm test:e2e` passes.
 
 - [ ] **7. Documentation.** The sections in the spec's Documentation section.
