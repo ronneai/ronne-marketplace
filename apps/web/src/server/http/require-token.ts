@@ -1,9 +1,9 @@
-import { isConfigured, loadConfig } from "../config";
 import {
   type Authenticated,
   authenticateToken,
   type TokenFailure,
 } from "../domains/identity/actions/access-tokens";
+import { getSetupState } from "../setup/state";
 import { errorResponse, setupRequiredResponse } from "./errors";
 
 const MESSAGES: Record<TokenFailure, string> = {
@@ -48,12 +48,13 @@ export type TokenGuardResult =
  *   // guard.auth.user, guard.auth.token
  */
 export type TokenGuardDeps = {
-  configured: () => boolean;
+  /** The instance is set up (feature 036): the API answers 503 until then. */
+  ready: () => Promise<boolean>;
   authenticate: (token: string | null) => ReturnType<typeof authenticateToken>;
 };
 
 const appDeps: TokenGuardDeps = {
-  configured: () => isConfigured(loadConfig()),
+  ready: async () => (await getSetupState()) === "ready",
   authenticate: (token) => authenticateToken(token),
 };
 
@@ -61,7 +62,7 @@ export const requireToken = async (
   request: Request,
   deps: TokenGuardDeps = appDeps,
 ): Promise<TokenGuardResult> => {
-  if (!deps.configured()) return { ok: false, response: setupRequiredResponse() };
+  if (!(await deps.ready())) return { ok: false, response: setupRequiredResponse() };
   const result = await deps.authenticate(bearerToken(request.headers));
   return result.ok
     ? { ok: true, auth: result.value }

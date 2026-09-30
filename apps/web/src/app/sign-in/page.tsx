@@ -7,16 +7,20 @@ import { requestHeaders } from "@/server/http/request-headers";
 
 export const metadata = { title: "Sign in · Ronne AI Marketplace" };
 
+const one = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
+
 const SignIn = async ({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string | string[] }>;
+  searchParams: Promise<{ next?: string | string[]; email?: string | string[] }>;
 }) => {
-  const { next: raw } = await searchParams;
-  const next = safeNextPath(Array.isArray(raw) ? raw[0] : raw);
+  const params = await searchParams;
+  const next = safeNextPath(one(params.next));
+  // The web setup (036) sends root here with the email filled in.
+  const email = (one(params.email) ?? "").trim().slice(0, 255) || undefined;
   // Already signed in: straight on.
   if (await getCurrentUser(await requestHeaders())) redirect(next);
-  return <SignInPage next={next} registry={loadConfig().publicUrl} />;
+  return <SignInPage next={next} registry={loadConfig().publicUrl} email={email} />;
 };
 
 export default SignIn;

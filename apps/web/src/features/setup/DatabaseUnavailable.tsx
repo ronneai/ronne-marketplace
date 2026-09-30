@@ -1,21 +1,26 @@
 import { BrandMark } from "@/components/ui/BrandMark";
 import { CopyableCommand } from "@/components/ui/CopyableCommand";
-import { Notice } from "@/components/ui/Notice";
 import { Panel } from "@/components/ui/Panel";
 
-/** Shown on every page until `pnpm run setup` has configured the instance (feature 005). */
-export const SetupRequired = () => {
+/**
+ * Shown instead of every page when the instance is set up but its database doesn't answer
+ * (feature 036). Never the setup: a live instance mustn't be pointed at another database by a
+ * visitor.
+ */
+export const DatabaseUnavailable = ({ database }: { database: string }) => {
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col justify-center gap-4 px-4 py-12">
       <Panel padding="lg" className="grid gap-4">
         <BrandMark size={32} className="text-fg" />
         <div className="grid gap-1">
           <h1 className="text-[22px] leading-7 font-semibold tracking-[-0.015em] text-fg">
-            This instance isn&apos;t set up yet
+            The database isn&apos;t answering
           </h1>
           <p className="text-sm text-muted">
-            Ronne AI Marketplace needs a database and a root account before it can be used. Run
-            setup where it&apos;s installed, then restart it.
+            Ronne AI Marketplace is set up to use <code className="font-mono">{database}</code>, but
+            can&apos;t reach it. Check that the server is running and that the settings still match
+            it; to change them, run setup again where it&apos;s installed, or set{" "}
+            <code className="font-mono">DATABASE_URL</code> in the environment.
           </p>
         </div>
         <div className="grid gap-2">
@@ -25,10 +30,6 @@ export const SetupRequired = () => {
           <CopyableCommand command="docker compose exec web pnpm run setup" />
         </div>
       </Panel>
-      <Notice kind="info" title="Not `pnpm setup`">
-        That&apos;s a pnpm command that configures pnpm itself. Use{" "}
-        <code className="font-mono">pnpm run setup</code>.
-      </Notice>
     </main>
   );
 };

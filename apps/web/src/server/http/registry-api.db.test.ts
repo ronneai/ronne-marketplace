@@ -41,7 +41,7 @@ beforeEach(async () => {
   deps = {
     app,
     storage,
-    guard: { configured: () => true, authenticate: (value) => authenticateToken(value, app) },
+    guard: { ready: async () => true, authenticate: (value) => authenticateToken(value, app) },
   };
   ({ id: publisher } = await createRoot(t.db, t.dialect, {
     email: "root@example.com",

@@ -25,7 +25,7 @@ the same change that completes it.
   root created then refused, the audit row's `via` and address), and `run-setup.db.test.ts` and
   `scripts/setup.db.test.ts` pass unchanged.
 
-- [ ] **2. The setup state and its callers.** `apps/web/src/server/setup/state.ts`:
+- [x] **2. The setup state and its callers.** `apps/web/src/server/setup/state.ts`:
   `getSetupState(config, getDb)` → `not_configured` | `incomplete` | `unavailable` | `ready`
   (no settings; settings but no `user` table or no root; a thrown connection error; a root),
   `ready` cached on `globalThis` keyed by the database URL, plus a reset for tests.
@@ -121,6 +121,13 @@ the same change that completes it.
   was written), not by re-reading the file. The terminal's logged lines didn't change:
   `run-setup.db.test.ts` and `scripts/setup.db.test.ts` passed untouched, on SQLite, PostgreSQL
   and MySQL.
+- Task 2: `getSetupState` remembers `ready` only when asked, and the default is "in production"
+  (`NODE_ENV`), so tests and `pnpm dev` always check. It races the check against a 3 s timeout,
+  so an unreachable server makes every page answer with the panel in bounded time instead of
+  hanging. The root layout can't tell the proxy to skip sign-in, so before setup `/` still goes
+  through `/sign-in`, which then redirects to `/setup`: two hops, one page. The token guard's
+  `configured` dependency became `ready`, and `health` answers `setup_required` for both
+  `not_configured` and `incomplete`, so Docker's health check stays red until root exists.
 
 Facts the design rests on (checked in the code, 2026-09-29):
 

@@ -36,11 +36,11 @@ export const domainErrorResponse = (error: unknown): Response | null => {
   return null;
 };
 
-/** Returned by API routes until `pnpm run setup` has configured the instance (feature 005). */
+/** Returned by API routes until the instance is set up (features 005 and 036). */
 export const setupRequiredResponse = () => {
   return errorResponse(
     503,
     "setup_required",
-    "This instance isn't set up yet. Run `pnpm run setup` (in Docker: `docker compose exec web pnpm run setup`), then restart it.",
+    "This instance isn't set up yet. Open it in a browser and follow the setup, or run `pnpm run setup` (in Docker: `docker compose exec web pnpm run setup`).",
   );
 };
