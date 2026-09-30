@@ -1,0 +1,36 @@
+/*
+ * The composer's canvas (feature 031): React Flow on the design tokens (032), so it follows the
+ * light and dark themes. Flat like the rest: hairlines, no shadows, teal as the only accent.
+ */
+.composer-canvas {
+  --xy-background-color: var(--canvas);
+  --xy-background-pattern-color: var(--border-strong);
+  --xy-edge-stroke: var(--border-strong);
+  --xy-edge-stroke-width: 1.5;
+  --xy-edge-stroke-selected: var(--accent-strong);
+  --xy-minimap-background-color: var(--surface);
+  --xy-minimap-mask-background-color: color-mix(in srgb, var(--canvas) 75%, transparent);
+  --xy-minimap-node-background-color: var(--border-strong);
+  --xy-attribution-background-color: transparent;
+  --xy-selection-background-color: color-mix(in srgb, var(--accent) 12%, transparent);
+  --xy-selection-border: 1px dashed var(--accent-strong);
+}
+
+.composer-canvas .react-flow__node {
+  border-radius: var(--radius-panel);
+}
+
+.composer-canvas .react-flow__node:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.composer-canvas .react-flow__minimap {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  overflow: hidden;
+}
+
+.composer-canvas .react-flow__attribution a {
+  color: var(--muted);
+}

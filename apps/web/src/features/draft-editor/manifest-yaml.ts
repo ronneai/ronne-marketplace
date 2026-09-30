@@ -6,7 +6,7 @@ export type FieldPath = readonly (string | number)[];
  * How ronne.yaml is printed after a form edit: never fold long lines, and `[a, b]` for flow lists
  * as people write them. Untouched parts print as they were, comments included.
  */
-const PRINT = { lineWidth: 0, flowCollectionPadding: false } as const;
+export const PRINT = { lineWidth: 0, flowCollectionPadding: false } as const;
 
 /** ronne.yaml as the form reads it, or null while its YAML doesn't parse. */
 export const readManifest = (text: string): Record<string, unknown> | null => {

@@ -171,7 +171,7 @@ const Review = async ({
           {view === "base" && proposal ? (
             <ProposalChanges proposal={proposal} />
           ) : view === "changes" ? (
-            <FileChanges changes={review.changes} since={previous} />
+            <FileChanges changes={review.changes} unreleased={review.unreleased} since={previous} />
           ) : (
             <AllFiles files={current.files} />
           )}

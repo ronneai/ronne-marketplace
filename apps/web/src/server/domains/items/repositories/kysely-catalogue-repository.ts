@@ -59,7 +59,7 @@ export const kyselyCatalogueRepository = (
       "items" | "scopes" | "item_versions",
       O
     >,
-    { search, type, scope, tool }: CatalogueFilter,
+    { search, type, types, scope, tool, installable }: CatalogueFilter,
   ) => {
     let q = query;
     if (search)
@@ -71,6 +71,9 @@ export const kyselyCatalogueRepository = (
         ]),
       );
     if (type) q = q.where("items.type", "=", type);
+    if (types)
+      q = types.length ? q.where("items.type", "in", [...types]) : q.where((eb) => eb.lit(false));
+    if (installable) q = q.where("items.installable", "=", toDbBoolean(true, dialect));
     if (scope) q = q.where("scopes.name", "=", scope);
     if (tool) {
       // The types the tool takes, and not turned off in the listed version's manifest (026).
@@ -146,6 +149,21 @@ export const kyselyCatalogueRepository = (
       }
       return (await query.execute()).map(toEntry);
     },
+
+    byNames: async (names) =>
+      names.length === 0
+        ? []
+        : (
+            await entries()
+              .where((eb) =>
+                eb.or(
+                  names.map(({ scope, name }) =>
+                    eb.and([eb("scopes.name", "=", scope), eb("items.name", "=", name)]),
+                  ),
+                ),
+              )
+              .execute()
+          ).map(toEntry),
 
     typeCounts: async (filter) =>
       (

@@ -91,6 +91,33 @@ describe("file views", () => {
     );
   });
 
+  it("names what changed under .ronne/ in a line, without showing it", () => {
+    const changes = diffRevisions([text("a.md", "one\n")], [text("a.md", "two\n")]);
+    const html = renderToStaticMarkup(
+      <FileChanges changes={changes} unreleased={[".ronne/layout.json"]} since={1} />,
+    );
+    expect(html).toContain('aria-label="a.md"');
+    expect(html).not.toContain('aria-label=".ronne/layout.json"');
+    expect(html).toMatch(
+      /The canvas layout \(.*\.ronne\/layout\.json.*\) changed too\. It isn&#x27;t released, so it isn&#x27;t part of this diff\./,
+    );
+    // Alone, it's the only thing the diff has to say.
+    const alone = renderToStaticMarkup(
+      <FileChanges changes={[]} unreleased={[".ronne/layout.json"]} since={1} />,
+    );
+    expect(alone).toContain("No changes since revision 1.");
+    expect(alone).toContain("The canvas layout (");
+    // Anything else kept there is named as it is.
+    const other = renderToStaticMarkup(
+      <FileChanges changes={[]} unreleased={[".ronne/layout.json", ".ronne/notes.md"]} since={1} />,
+    );
+    expect(other).toContain(".ronne/notes.md");
+    expect(other).toContain("Files in .ronne/ aren&#x27;t released");
+    expect(renderToStaticMarkup(<FileChanges changes={changes} since={1} />)).not.toContain(
+      "changed too",
+    );
+  });
+
   it("gives every line of every file an anchor", () => {
     const html = renderToStaticMarkup(
       <AllFiles files={[text("ronne.yaml", "name: x\ntype: rule")]} />,
@@ -164,6 +191,7 @@ const view = (overrides: Partial<ReviewView> = {}): ReviewView => ({
   current: { number: 2, files: [text("hook.sh", "echo hi")] },
   previous: 1,
   changes: diffRevisions([text("hook.sh", "echo")], [text("hook.sh", "echo hi")]),
+  unreleased: [],
   flags: [
     { kind: "hook", message: "The hook runs the script `hook.sh`.", file: "ronne.yaml", line: 5 },
   ],
@@ -261,6 +289,7 @@ describe("a change proposal's review", () => {
     baseVersion: "1.0.0",
     stale: null,
     changes: diffRevisions([text("README.md", "Old.")], [text("README.md", "New.")]),
+    unreleased: [] as string[],
     manifest: [{ field: "description", before: "Old.", after: "New." }],
     suggested: { bump: "patch" as const, reasons: ["nothing is added or removed"] },
     ...overrides,

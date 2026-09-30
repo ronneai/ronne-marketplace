@@ -2,12 +2,14 @@
 
 import { DEFAULT_LIMITS, formatBytes, type ManifestIssue } from "@ronneai/core";
 import { FilePlus, FolderPlus, History, Lock, Send, Settings, Undo2, Upload } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useReducer, useRef, useState, useTransition } from "react";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { Badge } from "@/components/ui/Badge";
 import { Button, buttonClasses } from "@/components/ui/Button";
+import { cn } from "@/components/ui/cn";
 import { Notice } from "@/components/ui/Notice";
 import { UnsavedChangesGuard } from "@/components/ui/UnsavedChangesGuard";
 import { IssueList } from "@/components/validation/IssueList";
@@ -18,9 +20,18 @@ import {
 } from "@/server/domains/submissions/models/submission";
 import { saveDraftAction } from "./actions";
 import { CodeEditor } from "./CodeEditor";
+import { LAYOUT_PATH } from "./composer-canvas/layout";
+import { hasCanvas } from "./composer-canvas/model";
 import { DeleteFileDialog, DraftSettingsDialog, ImportZipDialog, PathDialog } from "./FileDialogs";
 import { FileTree } from "./FileTree";
-import { changesOf, filesReducer, isDirty, newPathProblem, totalsOf } from "./files";
+import {
+  changesOf,
+  type FilesAction,
+  filesReducer,
+  isDirty,
+  newPathProblem,
+  totalsOf,
+} from "./files";
 import { useDebounced, useSaveShortcut } from "./hooks";
 import { ManifestForm } from "./ManifestForm";
 import { ProposalBar } from "./ProposalBar";
@@ -42,6 +53,25 @@ type Status =
   | { kind: "error"; message: string }
   | { kind: "stale"; message: string }
   | null;
+
+type View = "form" | "yaml" | "canvas";
+const VIEW_LABELS: Record<View, string> = { form: "Form", yaml: "YAML", canvas: "Canvas" };
+
+/**
+ * The canvas (feature 031) and React Flow with it, in a chunk of their own that loads when the
+ * view is first chosen, so the editor is as fast as it was for everyone who never opens it.
+ */
+const ComposerView = dynamic(
+  () => import("./composer-canvas/ComposerView").then((module) => module.ComposerView),
+  {
+    ssr: false,
+    loading: () => (
+      <p role="status" className="grid h-full place-content-center bg-surface text-sm text-muted">
+        Loading the canvas…
+      </p>
+    ),
+  },
+);
 
 const folderOf = (path: string) =>
   path.includes("/") ? path.slice(0, path.lastIndexOf("/") + 1) : "";
@@ -67,7 +97,7 @@ export const DraftEditor = ({
   const [open, setOpen] = useState<Open>(null);
   const [status, setStatus] = useState<Status>(null);
   const [saving, startSave] = useTransition();
-  const [view, setView] = useState<"form" | "yaml">("form");
+  const [view, setView] = useState<View>("form");
   const [goTo, setGoTo] = useState<{ line: number; at: number } | null>(null);
   const upload = useRef<HTMLInputElement>(null);
   const replace = useRef<HTMLInputElement>(null);
@@ -76,6 +106,12 @@ export const DraftEditor = ({
   const readOnly = draft.readOnly;
   const itemName = `@${draft.scope}/${draft.name}`;
   const file = state.files.find((f) => f.path === selected) ?? state.files[0];
+  // Agents and bundles, whose dependencies are several kinds of item, also have a canvas (031).
+  const views: readonly View[] = hasCanvas(draft.type)
+    ? ["form", "yaml", "canvas"]
+    : ["form", "yaml"];
+  const composing = file?.path === MANIFEST_PATH && view === "canvas" && hasCanvas(draft.type);
+  const layout = state.files.find((f) => f.path === LAYOUT_PATH && f.encoding === "utf8");
   const totals = totalsOf(state.files);
 
   // 011's checks, in the browser, once typing pauses: the same function the server runs on save.
@@ -128,6 +164,10 @@ export const DraftEditor = ({
   const onChange = useCallback((path: string, content: string) => {
     dispatch({ type: "edit", path, content });
   }, []);
+  const onCompose = useCallback((actions: FilesAction[]) => {
+    for (const action of actions) dispatch(action);
+  }, []);
+  const showYaml = useCallback(() => setView("yaml"), []);
 
   /** Reads chosen files in the browser; each goes into the selected file's folder. */
   const addFiles = async (list: FileList | null, target?: string) => {
@@ -340,7 +380,7 @@ export const DraftEditor = ({
                   {file.path === MANIFEST_PATH ? (
                     <fieldset className="flex gap-1 rounded-control border border-hairline bg-canvas p-0.5">
                       <legend className="sr-only">ronne.yaml view</legend>
-                      {(["form", "yaml"] as const).map((mode) => (
+                      {views.map((mode) => (
                         <button
                           key={mode}
                           type="button"
@@ -348,7 +388,7 @@ export const DraftEditor = ({
                           onClick={() => setView(mode)}
                           className="h-7 rounded-control px-3 text-xs font-semibold text-muted hover:text-fg aria-pressed:border aria-pressed:border-hairline aria-pressed:bg-surface aria-pressed:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
                         >
-                          {mode === "form" ? "Form" : "YAML"}
+                          {VIEW_LABELS[mode]}
                         </button>
                       ))}
                     </fieldset>
@@ -390,7 +430,13 @@ export const DraftEditor = ({
                   ) : null}
                 </div>
               </div>
-              <div className="h-[60vh] overflow-hidden rounded-panel border border-hairline">
+              <div
+                className={cn(
+                  "overflow-hidden rounded-panel border border-hairline",
+                  // The canvas and the list under it need more room than a file does.
+                  composing ? "h-[85vh] min-h-[38rem]" : "h-[60vh]",
+                )}
+              >
                 {file.path === MANIFEST_PATH && view === "form" ? (
                   <fieldset
                     disabled={readOnly}
@@ -405,10 +451,21 @@ export const DraftEditor = ({
                         .map((f) => f.path)
                         .filter((path) => path !== MANIFEST_PATH)}
                       onChange={(content) => onChange(MANIFEST_PATH, content)}
-                      onShowYaml={() => setView("yaml")}
+                      onShowYaml={showYaml}
                       readOnly={readOnly}
                     />
                   </fieldset>
+                ) : composing ? (
+                  <ComposerView
+                    itemName={itemName}
+                    type={draft.type}
+                    manifest={file.content}
+                    layout={layout?.content}
+                    issues={issues}
+                    readOnly={readOnly}
+                    onChange={onCompose}
+                    onShowYaml={showYaml}
+                  />
                 ) : file.encoding === "utf8" ? (
                   <CodeEditor
                     path={file.path}

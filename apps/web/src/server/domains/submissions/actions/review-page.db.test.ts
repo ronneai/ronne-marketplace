@@ -101,6 +101,20 @@ describe("getReview", () => {
     expect(view.current?.number).toBe(2);
     expect(view.previous).toBe(1);
     expect(view.changes.map((c) => [c.path, c.status])).toEqual([["hook.sh", "changed"]]);
+    expect(view.unreleased).toEqual([]);
+  });
+
+  it("leaves the canvas layout out of the diff, and says it changed", async () => {
+    const id = await submittedHook();
+    await decide(asModerator, id, { decision: "request_changes", message: "Tidy up." }, app);
+    await write(id, ".ronne/layout.json", '{"version":1,"nodes":{}}\n');
+    await submitDraft(asAuthor, id, app);
+
+    const view = await getReview(asModerator, id, app);
+    expect(view.changes).toEqual([]);
+    expect(view.unreleased).toEqual([".ronne/layout.json"]);
+    // It's still one of the submission's files, under All files.
+    expect(view.current?.files.map((f) => f.path)).toContain(".ronne/layout.json");
   });
 
   it("gives the author their own view, without decisions, and no one else any", async () => {

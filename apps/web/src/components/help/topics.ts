@@ -42,6 +42,7 @@ export const TOPICS = [
     sections: [
       { id: "types", title: "The types" },
       { id: "dependencies", title: "Dependencies" },
+      { id: "canvas", title: "Composing on a canvas" },
       { id: "manifest", title: "ronne.yaml and the files" },
     ],
   },

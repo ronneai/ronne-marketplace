@@ -21,6 +21,7 @@ export const E2E_USERS = {
   reader: "reader@e2e.test",
   downloader: "downloader@e2e.test",
   installer: "installer@e2e.test",
+  composer: "composer@e2e.test",
 } as const;
 
 /** The display names, which the header shows (not the email). */
@@ -41,6 +42,7 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   reader: "Rea Reader",
   downloader: "Dan Downloader",
   installer: "Ines Installer",
+  composer: "Cam Composer",
 };
 
 /** Seeded with the moderator role; everyone else is a user. */

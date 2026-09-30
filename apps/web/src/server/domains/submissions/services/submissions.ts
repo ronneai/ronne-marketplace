@@ -10,6 +10,7 @@ import type { StorageAdapter } from "../../../storage";
 import { can, requirePermission } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
 import { SubmissionInvalidError, SubmissionNotFoundError } from "../exceptions/errors";
+import { isUnreleased } from "../models/diff";
 import { OPEN_STATUSES, transition } from "../models/status";
 import {
   type Draft,
@@ -144,10 +145,12 @@ const noChangeIssues = async (
   const base = await baseFilesOf(deps, registry, submission);
   const key = (f: Omit<DraftFile, "updatedAt">) =>
     `${f.path}\u0000${f.encoding}\u0000${f.executable}\u0000${f.content}`;
+  // What would be released: a canvas layout under `.ronne/` (031) is no change to the item.
+  const mine = files.filter((f) => !isUnreleased(f.path));
   const same =
     base !== null &&
-    base.length === files.length &&
-    base.map(key).sort().join("\u0001") === files.map(key).sort().join("\u0001");
+    base.length === mine.length &&
+    base.map(key).sort().join("\u0001") === mine.map(key).sort().join("\u0001");
   return same
     ? [
         {

@@ -32,6 +32,12 @@ export const HELP = {
       "What the item is: its name, type, description and keywords, and its type's own settings. The other files are its content. There's no version: the release sets it.",
     href: docsHref("items", "manifest"),
   },
+  canvas: {
+    question: "What does the canvas change?",
+    answer:
+      "Only dependencies in ronne.yaml. Positions are kept with your draft and aren't released.",
+    href: docsHref("items", "canvas"),
+  },
   "after-submit": {
     question: "What happens next?",
     answer:

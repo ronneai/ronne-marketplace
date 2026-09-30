@@ -26,6 +26,16 @@ export type FileChange = {
   hunks?: DiffHunk[] | "too_large";
 };
 
+/**
+ * `.ronne/` holds what the editor keeps beside an item, such as the canvas's layout (feature 031).
+ * The packer leaves it out (011), so it's never released, and it isn't part of what a review
+ * approves.
+ */
+export const isUnreleased = (path: string): boolean => path.startsWith(".ronne/");
+
+/** A diff as a review shows it: the changes to what's released, and which `.ronne/` files changed. */
+export type ReviewDiff = { changes: FileChange[]; unreleased: string[] };
+
 const lineCount = (text: string) => text.split("\n").length;
 
 const hunksOf = (before: string, after: string): DiffHunk[] | "too_large" => {
@@ -93,4 +103,19 @@ export const diffRevisions = (
     });
   }
   return changes;
+};
+
+/**
+ * `diffRevisions` for a review: files under `.ronne/` are left out of the changes and only named,
+ * so moving nodes on the canvas isn't something to read line by line or approve.
+ */
+export const reviewDiff = (
+  before: readonly RevisionFile[] | null,
+  after: readonly RevisionFile[],
+): ReviewDiff => {
+  const all = diffRevisions(before, after);
+  return {
+    changes: all.filter((change) => !isUnreleased(change.path)),
+    unreleased: all.filter((change) => isUnreleased(change.path)).map((change) => change.path),
+  };
 };
