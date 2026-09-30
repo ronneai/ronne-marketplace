@@ -29,8 +29,8 @@ export const USAGE = `Usage: rmk <command> [options]
   outdated
   remove <item>...
   mcp-setup [--target <ids>|all] [--scope project|user] [--remove] [--command <cmd>]
-  export [<folder|name>...] [--to <@scope>] [--name <name>] [--scope project|user]
-         [--dry-run] [--yes] [--force]
+  export [<path|name>...] [--to <@scope>] [--type <type>] [--name <name>]
+         [--description <text>] [--scope project|user] [--dry-run] [--yes] [--force]
 
 Options: --json (one JSON object per command), --registry <url>, --version, --help`;
 
@@ -52,6 +52,7 @@ const OPTIONS = {
   name: { type: "string" },
   yes: { type: "boolean", short: "y" },
   "dry-run": { type: "boolean" },
+  description: { type: "string" },
 } as const;
 
 export type Args = { values: Record<string, string | boolean | undefined>; positionals: string[] };

@@ -95,7 +95,7 @@ describe("the registry MCP server", () => {
     // Listing what's here needs no registry.
     const listed = await call("list_local_items");
     expect(listed.isError).toBe(false);
-    expect(listed.text).toContain("No skills found");
+    expect(listed.text).toContain("No skills, agents, commands, rules or MCP servers found");
     io.cleanup();
     const logged = await start();
     const text = JSON.stringify(await logged.call("get_item", { name: "@team/secure" }));

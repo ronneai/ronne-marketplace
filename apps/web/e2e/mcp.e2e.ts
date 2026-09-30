@@ -157,7 +157,7 @@ test("rmk-mcp lists a hand-written skill, asks for the scope, plans and exports 
     });
     expect(plan.isError, plan.text).toBe(false);
     expect(plan.text).toContain(
-      `@${E2E_SCOPE}/e2e-mcp-export  (from .claude/skills/e2e-mcp-export)`,
+      `@${E2E_SCOPE}/e2e-mcp-export  skill  (from .claude/skills/e2e-mcp-export)`,
     );
 
     const exported = await client.call("export_items", { planId: plan.data.planId });

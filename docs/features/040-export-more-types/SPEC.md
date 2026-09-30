@@ -50,7 +50,10 @@ the command lists them and asks for `--type`, or for the path.
 
 The path decides the type: a folder under `skills/` is a skill even when it acts like a command,
 and a rule that Claude Code applies by description or by hand is a skill on disk and is exported
-as one.
+as one. Subfolders of `agents/`, `commands/` and `rules/` are read, as Claude Code reads them. A
+command or rule in a subfolder is named with it (`review/diff.md` → `review-diff`); an agent is
+named by its frontmatter `name` wherever it is. Checked against Claude Code's documentation on
+2026-09-30 (contract §5–8).
 
 **Whose it is** (contract §2) now covers single files and keys: a state entry of kind `file` for
 that path, or `json-key` for that key, means `rmk` installed it; so does the managed marker in a
@@ -61,10 +64,10 @@ them one by one, each with a warning in the preview, so the person decides befor
 
 | Type | Kept | Lost, with a warning |
 |---|---|---|
-| agent | name, description, prompt, tools that have a canonical name (manifest spec §5), `fast` or `strong` model | tools Ronne has no name for; any other model; every other setting in the frontmatter |
-| command | description, body, named arguments | tool restrictions, model, other settings; positional placeholders work only in Claude Code; a command the model could invoke itself becomes one only the person invokes |
-| rule | body, the paths it applies to | nothing Claude Code itself reads |
-| mcp-server | transport, command and arguments, address, headers that reference variables, the variables' names | every value; authentication helpers, timeouts and other keys |
+| agent | name, description, prompt, tools that have a canonical name (manifest spec §5), a `haiku` or `opus` model as `fast` or `strong` | tools Ronne has no name for; any other model (`sonnet`, `inherit`, another id); every other setting in the frontmatter |
+| command | description, body, named arguments, license | tool restrictions, model, other settings; positional placeholders (`$0`, `$ARGUMENTS[N]`) work only in Claude Code; a command the model could invoke itself becomes one only the person invokes |
+| rule | body, the paths it applies to | nothing Claude Code itself reads (`paths` is its only field) |
+| mcp-server | transport (`stdio`, or `http` and `streamable-http`), command and arguments, address, headers that reference variables, the variables' names | every value, and the default in `${VAR:-default}`; `oauth`, `headersHelper`, `timeout`, `alwaysLoad` and other keys |
 
 **MCP servers and secrets.** A server's configuration is where tokens live, so this reader is the
 strict one:
@@ -91,8 +94,8 @@ copied, so the two directions can't drift. Each returns `references` (038), whic
 - **A command in a subfolder** (`review/diff.md`): named `review-diff`.
 - **The same command as a file and as a skill folder:** two items of two types; `--type` chooses.
 - **`paths` as one comma-separated string:** read like a list.
-- **An MCP server with a transport the manifest doesn't have** (anything but `stdio` and `http`):
-  listed as not exportable, with the reason.
+- **An MCP server with a transport the manifest doesn't have** (`sse`, which Claude Code
+  deprecates, or `ws`): listed as not exportable, with the reason.
 - **A variable name that isn't a valid one** (lowercase, dashes): dropped with a warning.
 - **`.mcp.json` or `~/.claude.json` that doesn't parse:** the MCP servers are skipped with the
   reason; the other types still list.
@@ -115,14 +118,14 @@ copied, so the two directions can't drift. Each returns `references` (038), whic
 
 ## Acceptance criteria
 
-- [ ] For each of the four types, the example item rendered for Claude Code reads back into an item that passes the schema and package checks, and rendering that gives the same files (where the type loses nothing).
-- [ ] Every dropped field produces exactly one warning that names it, shown in the CLI's preview and in `plan_export`.
-- [ ] No value of an `env` key, and no literal credential from a header or argument, appears in any request; a test greps the request bodies for the fixture's secrets.
-- [ ] Items `rmk` installed (files and JSON keys), and `rmk mcp-setup`'s server, are refused or not listed.
-- [ ] `rmk export --type` and the tools' `type` narrow the list, and an ambiguous name asks for it.
-- [ ] The mappings in `docs/spec/native-readers.md` §5–8 carry the date they were last checked against Claude Code's documentation.
-- [ ] An end-to-end test exports one agent and one MCP server with the built `rmk`.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] For each of the four types, the example item rendered for Claude Code reads back into an item that passes the schema and package checks, and rendering that gives the same files (where the type loses nothing). A command is rendered as a skill (023), so its round trip goes through the same text written as a `.claude/commands/` file, and compares the manifests and bodies.
+- [x] Every dropped field produces exactly one warning that names it, shown in the CLI's preview and in `plan_export`.
+- [x] No value of an `env` key, and no literal credential from a header or argument, appears in any request; a test greps the request bodies for the fixture's secrets.
+- [x] Items `rmk` installed (files and JSON keys), and `rmk mcp-setup`'s server, are refused or not listed.
+- [x] `rmk export --type` and the tools' `type` narrow the list, and an ambiguous name asks for it.
+- [x] The mappings in `docs/spec/native-readers.md` §5–8 carry the date they were last checked against Claude Code's documentation.
+- [x] An end-to-end test exports one agent and one MCP server with the built `rmk`.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Open questions
 

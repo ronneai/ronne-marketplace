@@ -94,12 +94,13 @@ image under its own name, `ronne-web:local`, so a later `docker compose pull` ne
 `rmk` installs approved items into your AI coding tools, and keeps them current: `login`, `search`,
 `info`, `install`, `update`, `outdated`, `remove`, `list`, `platforms` and `mcp-setup`, with a
 lockfile so a team gets the same files. Claude Code, Codex and Cursor are supported. `rmk export`
-goes the other way: it sends a skill you wrote in your AI tool to the registry as a private draft,
-after showing you everything it would upload.
+goes the other way: it sends a skill, agent, command, rule or MCP server you wrote for Claude Code
+to the registry as a private draft, after showing you everything it would upload (and never an MCP
+server's credentials).
 
 The registry MCP server, `rmk-mcp` (`packages/mcp`), does the same from inside those tools: the
 assistant searches, shows a plan of what an install would change, and applies it once you've seen
-it. It can export a skill you wrote the same way: it asks which scope, shows every file it would
+it. It can export an item you wrote the same way: it asks which scope, shows every file it would
 upload, and creates the draft once you've approved. `rmk mcp-setup` adds it to each tool's MCP
 settings.
 

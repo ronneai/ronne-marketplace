@@ -15,6 +15,10 @@ The monorepo is scaffolded (feature 001); the product features start with 002. W
 - `docs/spec/`: detailed contracts. `manifest.md` (with the schema, `packages/core/src/schema/ronne.schema.json`) defines `ronne.yaml`; `cli-files.md` defines `rmk.config.json`, `rmk.lock` and `.rmk/state.json`.
 - `docs/features/`: the work, one folder per feature (`NNN-slug/SPEC.md` + `PLAN.md`). `docs/features/README.md` is the index and the milestone plan.
 - `docs/policies/dependencies.md`: the rules for every dependency (below).
+- `docs/knowledge/`: lessons learned while building, one topic per file, such as
+  `codeql-regex.md` (how to write regular expressions CodeQL won't fail). Before writing code in
+  an area a note covers, read it and follow it; when a check fails for a reason the next person
+  could avoid, add or update a note in the same change.
 - `docs/UI-Mocks-Materials/` (**git-ignored, kept only on the owner's machine; never commit or publish it**): the brand files, the Manrope font, the Stitch mocks and the two `DESIGN.md` notes. Feature 032 turns them into the design system and copies only what the app serves into `apps/web`; UI work follows it (flat, no shadows, teal as the single accent, red and amber only for errors and warnings (tokens, never raw colours), Manrope and IBM Plex Mono).
 - `examples/items/`: one sample item per type. Each must pass the manifest schema (checked by a test in `packages/core`); they are the golden-file inputs for renderers.
 
