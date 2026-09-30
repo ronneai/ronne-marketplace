@@ -169,15 +169,20 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
     guarded((input) => applyPlanTool(io, plans, input)),
   );
 
+  const exportType = z
+    .enum(["skill", "agent", "command", "rule", "mcp-server"])
+    .optional()
+    .describe("Only items of this type: skill, agent, command, rule or mcp-server");
+
   server.registerTool(
     "list_local_items",
     {
       title: "List items to export",
       description:
-        "The skills in this project's AI tool folders (or your home folder's, with scope user), each with whose it is: yours, installed, installed and edited, a registry copy, or written by rmk. Only items marked yours can be exported. Reads no network.",
+        "The skills, agents, commands, rules and MCP servers in this project's AI tool folders (or your home folder's, with scope user), each with whose it is: yours, installed, installed and edited, a registry copy, or written by rmk. Only items marked yours can be exported. Reads no network.",
       inputSchema: {
         scope,
-        type: z.string().optional().describe("An item type, such as skill"),
+        type: exportType,
       },
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
@@ -189,7 +194,7 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
     {
       title: "Plan an export",
       description:
-        "Works out what exporting items as drafts would upload: each item's name, every file with its size, every file left out and why, the ronne.yaml it makes, and the checks' findings. Sends nothing. Without to, it answers the marketplace's scopes: ask the person which one, never choose. Show the plan to the person; upload it with export_items.",
+        "Works out what exporting items as drafts would upload: each item's name, every file with its size, every file left out and why, the ronne.yaml it makes, what the item keeps and loses from the AI tool's format, and the checks' findings. Sends nothing. An MCP server's credentials are never uploaded, only its variables' names. Without to, it answers the marketplace's scopes: ask the person which one, never choose. Show the plan to the person; upload it with export_items.",
       inputSchema: {
         items: z
           .array(z.string())
@@ -197,6 +202,15 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
           .describe("Names or folders exactly as list_local_items shows them"),
         to: z.string().optional().describe("The marketplace scope the person chose, such as @team"),
         name: z.string().optional().describe("The item's name, for a single item"),
+        type: exportType.describe(
+          "skill, agent, command, rule or mcp-server: needed when a name is more than one item",
+        ),
+        description: z
+          .string()
+          .optional()
+          .describe(
+            "An MCP server's description, which isn't on disk: ask the person for one sentence",
+          ),
         scope,
       },
       annotations: planning,

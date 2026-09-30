@@ -329,7 +329,7 @@ test("rmk exports a hand-written skill as a draft that opens in the web editor",
     const dryRun = rmk("export", "e2e-cli-export", "--to", `@${E2E_SCOPE}`, "--dry-run");
     expect(dryRun.code, dryRun.out).toBe(0);
     expect(dryRun.out).toContain(
-      `@${E2E_SCOPE}/e2e-cli-export  (from .claude/skills/e2e-cli-export)`,
+      `@${E2E_SCOPE}/e2e-cli-export  skill  (from .claude/skills/e2e-cli-export)`,
     );
     expect(dryRun.out).toContain(".env  (may hold a secret)");
 

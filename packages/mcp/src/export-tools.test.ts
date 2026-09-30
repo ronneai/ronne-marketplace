@@ -159,7 +159,9 @@ describe("list_local_items", () => {
 
   it("says when there's nothing, and looks in the home folder with scope user", async () => {
     io = fakeIo({}, { interactive: false });
-    expect((await listLocalItems(io, {})).content[0]?.text).toContain("No skills found");
+    expect((await listLocalItems(io, {})).content[0]?.text).toContain(
+      "No skills, agents, commands, rules or MCP servers found",
+    );
     mkdirSync(join(io.home, ".claude/skills/personal"), { recursive: true });
     writeFileSync(join(io.home, ".claude/skills/personal/SKILL.md"), skillMd("personal"));
     const user = await listLocalItems(io, { scope: "user" });
@@ -215,7 +217,7 @@ describe("plan_export", () => {
       ],
     });
     const text = result.content[0]?.text ?? "";
-    expect(text).toContain("@team/mine  (from .claude/skills/mine)");
+    expect(text).toContain("@team/mine  skill  (from .claude/skills/mine)");
     expect(text).toContain(`call export_items with planId "${data.planId}"`);
     expect(posts()).toEqual([]);
   });
@@ -348,5 +350,75 @@ describe("export_items", () => {
     expect((await exportItems(planId)).structuredContent).toMatchObject({
       error: { code: "plan_expired" },
     });
+  });
+});
+
+describe("the other types over MCP (040)", () => {
+  const SECRET = `ghp_${"a1B2".repeat(9)}`;
+  const setup = async () => {
+    await project();
+    write(".claude/commands/mine.md", "---\ndescription: My command.\n---\nDo it.\n");
+    write(
+      ".mcp.json",
+      JSON.stringify({
+        mcpServers: {
+          tracker: {
+            type: "http",
+            url: "https://t.example/mcp",
+            headers: { Authorization: `Bearer ${SECRET}` },
+          },
+        },
+      }),
+    );
+    return planStore<StoredExport>(Date.now);
+  };
+
+  it("lists and narrows by type", async () => {
+    await setup();
+    const listed = (await listLocalItems(io, { type: "mcp-server" })).structuredContent as {
+      items: { name: string; type: string; folder: string; origin: string }[];
+    };
+    expect(listed.items).toEqual([
+      {
+        name: "tracker",
+        type: "mcp-server",
+        folder: ".mcp.json (mcpServers.tracker)",
+        origin: "yours",
+      },
+    ]);
+  });
+
+  it("asks for type when a name is more than one item, and plans with it", async () => {
+    const store = await setup();
+    const ambiguous = await planExportTool(io, store, { items: ["mine"], to: "team" });
+    expect(ambiguous.structuredContent).toMatchObject({ error: { code: "ambiguous" } });
+    const planned = await planExportTool(io, store, {
+      items: ["mine"],
+      to: "team",
+      type: "command",
+    });
+    expect(planned.structuredContent).toMatchObject({
+      items: [{ name: "@team/mine", type: "command" }],
+    });
+  });
+
+  it("exports an MCP server with its description, and sends no credential", async () => {
+    const store = await setup();
+    const planned = await planExportTool(io, store, {
+      items: [".mcp.json (mcpServers.tracker)"],
+      to: "team",
+      description: "Tracks issues.",
+    });
+    const data = planned.structuredContent as {
+      planId: string;
+      items: { manifest: string; warnings: { code: string }[] }[];
+    };
+    expect(data.items[0]?.manifest).toContain("description: Tracks issues.");
+    expect(data.items[0]?.warnings.map((w) => w.code)).toContain("secret_replaced");
+    expect(JSON.stringify(planned)).not.toContain(SECRET);
+    const exported = await exportItemsTool(io, store, { planId: data.planId });
+    expect(exported.isError).toBeUndefined();
+    expect(registry.drafts.map((d) => d.name)).toEqual(["@team/tracker"]);
+    expect(JSON.stringify(io.requests)).not.toContain(SECRET);
   });
 });

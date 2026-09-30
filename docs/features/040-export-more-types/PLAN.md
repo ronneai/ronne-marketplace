@@ -34,7 +34,7 @@ the same change that completes it.
   and `rmk mcp-setup`'s entry left out.
   *Done when:* tests cover each type written here, installed, and installed and edited.
 
-- [ ] **7. The CLI and the tools.** `--type` and `--description`, ambiguous names, the kept-and-lost
+- [x] **7. The CLI and the tools.** `--type` and `--description`, ambiguous names, the kept-and-lost
   warnings in the preview; `type` and `description` in `list_local_items` and `plan_export`.
   *Done when:* `cli.test.ts` and the MCP tests cover each, and the secret grep over the fake
   registry's requests passes.

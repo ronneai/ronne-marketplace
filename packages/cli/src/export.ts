@@ -20,6 +20,10 @@ import {
   mcpServerName,
   ReadError,
   type ReadResult,
+  readAgent,
+  readCommand,
+  readMcpServer,
+  readRule,
   readSkill,
   ruleName,
   skillName,
@@ -440,8 +444,15 @@ export const describeLocalItems = async (
 
 /** What `rmk export` was asked to do; `planExport` turns it into a plan, sending nothing. */
 export type ExportRequest = {
-  /** Folders with a `SKILL.md`, or the names of skills in the scope's folders. */
-  items: readonly string[];
+  /**
+   * Folders with a `SKILL.md`, agent, command or rule files, the names of items in the scope's
+   * folders, or items `discoverLocalItems` found.
+   */
+  items: readonly (string | LocalItem)[];
+  /** Only items of this type: for names that more than one type has, and for a file's type. */
+  type?: ExportType;
+  /** An MCP server's description, which isn't on disk; for a single item. */
+  description?: string;
   /** The marketplace scope, `@team` or `team`. Without it, each folder's `ronne.yaml` must say. */
   to?: string;
   /** The item's name, for a single item. */
@@ -456,12 +467,14 @@ export type ExportRequest = {
 export type ExportWarning = { code: string; message: string; file?: string };
 
 export type PlannedItem = {
-  /** The folder, as shown. */
+  /** Where it is, as shown. */
   local: string;
-  dir: string;
+  /** The folder, file, or JSON file (with `key`) it was read from. */
+  path: string;
+  key?: string;
   /** `@scope/name`. */
   name: string;
-  type: "skill";
+  type: ExportType;
   /** What will be uploaded, `ronne.yaml` included, by path. */
   files: PackageFile[];
   manifestText: string;
@@ -500,27 +513,70 @@ export const fetchScopes = async (api: ApiClient): Promise<Scopes> => {
   return scopes;
 };
 
-/** The folders to export: paths as given, or names looked up in the scope's skill folders. */
-const resolveItems = (io: Io, request: ExportRequest) => {
+/** A thing to export: what it is, where, and how it's shown. */
+type Target = { local: string; type: ExportType; path: string; key?: string; name?: string };
+
+/** The Claude Code folder a file is in decides its type (native-readers.md §5–7). */
+const typeOfFile = (path: string): ExportType | null => {
+  const parts = toSlashes(path).split("/");
+  for (const [type, folder] of Object.entries(MARKDOWN_FOLDERS) as [ExportType, string][])
+    if (parts.includes(folder.split("/").at(-1) ?? "")) return type;
+  return null;
+};
+
+/**
+ * What to export: items found, folders and files as given, or names looked up among what
+ * `discoverLocalItems` finds in the scope, of `type` when it's given. A name more than one item
+ * has is ambiguous, and the error lists them.
+ */
+const resolveItems = (io: Io, request: ExportRequest): Target[] => {
   const scope = scopeOf(request.scope);
-  const found = findSkills(io, scope);
-  return request.items.map((arg) => {
+  let found: LocalItem[] | null = null;
+  const discovered = () => {
+    found ??= discoverLocalItems(io, scope);
+    return found;
+  };
+  return request.items.map((arg): Target => {
+    if (typeof arg !== "string")
+      return { local: arg.display, type: arg.type, path: arg.path, key: arg.key, name: arg.name };
     const path = resolve(io.cwd, arg);
-    if (realFolder(path)) return { local: arg, dir: path };
-    const matches = found.filter((item) => item.name === arg);
+    if (realFolder(path)) {
+      if (request.type && request.type !== "skill")
+        throw usage(
+          `${arg} is a folder, so it's a skill, not ${request.type === "agent" ? "an" : "a"} ${request.type}.`,
+        );
+      return { local: arg, type: "skill", path };
+    }
+    if (realFile(path)) {
+      const type = request.type ?? typeOfFile(path);
+      if (!type || type === "skill" || type === "mcp-server")
+        throw usage(
+          `Say what ${arg} is with --type agent, command or rule: it isn't in .claude/agents/, commands/ or rules/.`,
+        );
+      return { local: arg, type, path };
+    }
+    const matches = discovered().filter(
+      (item) => item.name === arg && (!request.type || item.type === request.type),
+    );
     if (matches.length === 0)
       throw usage(
-        `No skill folder or skill called ${arg}. rmk export, with nothing after it, lists the skills here.`,
+        `No ${request.type ?? "item"} called ${arg} here. rmk export, with nothing after it, lists what it finds.`,
       );
     if (matches.length > 1)
       throw new RmkError(
-        `${arg} is in more than one place: ${matches.map((m) => m.display).join(", ")}. Give the folder instead.`,
+        `${arg} is more than one item: ${matches.map((m) => `${m.display} (${m.type})`).join(", ")}. Say which with --type, or give the path.`,
         2,
         "ambiguous",
-        { paths: matches.map((m) => m.display) },
+        { paths: matches.map((m) => m.display), types: matches.map((m) => m.type) },
       );
     const [match] = matches as [LocalItem];
-    return { local: match.display, dir: match.path };
+    return {
+      local: match.display,
+      type: match.type,
+      path: match.path,
+      key: match.key,
+      name: match.name,
+    };
   });
 };
 
@@ -602,13 +658,16 @@ const overLimitMessage = (over: OverLimit) =>
  * reader, checked (011) and scanned for secrets, and each name is looked up in the registry.
  * The scope is `to`, or the folder's own `ronne.yaml`'s; never a default.
  */
+/** What `planExport` may ask the person, in a terminal: an MCP server's description. */
+export type ExportHooks = { describe?: (local: string) => Promise<string | undefined> };
+
 export const planExport = async (
   io: Io,
   api: ApiClient,
   request: ExportRequest,
+  hooks: ExportHooks = {},
 ): Promise<ExportPlan> => {
-  if (request.items.length === 0)
-    throw usage("Say which skills to export: rmk export <folder|name>");
+  if (request.items.length === 0) throw usage("Say what to export: rmk export <folder|file|name>");
   if (request.name !== undefined && request.items.length > 1)
     throw usage("--name names one item; export the others separately.");
   const scopes = await fetchScopes(api);
@@ -623,64 +682,140 @@ export const planExport = async (
   if (to !== null && !known.has(to))
     throw new RmkError(`${api.registry} has no scope @${to}.`, 2, "scope_not_found", { scopes });
 
+  const targets = resolveItems(io, request);
+  if (request.description !== undefined && targets.length > 1)
+    throw usage("--description describes one item; export the others separately.");
+
   const items: PlannedItem[] = [];
   const refused: RefusedItem[] = [];
   const hash = createHash("sha256");
-  for (const { local, dir } of resolveItems(io, request)) {
+  for (const target of targets) {
+    const { local, type } = target;
     const refuse = (code: string, message: string) => refused.push({ local, code, message });
-    const walked = walkItemFolder(dir);
-    hash.update(`\0${realFolder(dir) ?? dir}`);
-    if (walked.over) {
-      refuse(
-        "too_large",
-        `${overLimitMessage(walked.over)} Remove files, or add it in the web app.`,
-      );
-      continue;
-    }
-    for (const file of walked.files)
-      hash.update(`\0${file.path}\0${sha256(file.bytes)}\0${file.executable ? 1 : 0}`);
-    if (walked.files.length === 0) {
-      refuse("empty", "There's nothing to upload in it.");
-      continue;
-    }
-    if (!walked.files.some((file) => file.path === "SKILL.md")) {
-      refuse("not_a_skill", "It has no SKILL.md, so it isn't a skill.");
-      continue;
-    }
-    const refusal = ownershipRefusal(
-      api.registry,
-      await ownershipOf(io, dir, walked.files),
-      request.force ?? false,
-    );
-    if (refusal) {
-      refuse(refusal.code, refusal.message);
-      continue;
-    }
-
-    const scope = to ?? manifestScope(walked.files);
-    if (scope === null)
-      throw new RmkError(
-        `Say which scope ${local} goes in, with --to @scope.`,
-        2,
-        "scope_required",
-        { scopes },
-      );
-    if (!known.has(scope)) {
-      refuse(
-        "scope_not_found",
-        `Its ronne.yaml names @${scope}, which ${api.registry} doesn't have. Use --to.`,
-      );
-      continue;
-    }
-    const short = request.name ?? skillName(walked.files, folderName(dir));
-    if (!isValidName(short, "item")) {
-      refuse("invalid_name", `${short || "Its name"} can't be an item name. Give one with --name.`);
-      continue;
-    }
+    const scopeFor = (files: readonly PackageFile[]) => {
+      const scope = to ?? (type === "skill" ? manifestScope(files) : null);
+      if (scope === null)
+        throw new RmkError(
+          `Say which scope ${local} goes in, with --to @scope.`,
+          2,
+          "scope_required",
+          { scopes },
+        );
+      return scope;
+    };
+    const named = (suggested: string) => {
+      const short = request.name ?? suggested;
+      return isValidName(short, "item") ? short : null;
+    };
 
     let read: ReadResult;
+    let scope: string;
+    let skipped: Skipped[] = [];
     try {
-      read = readSkill(walked.files, { itemName: `@${scope}/${short}` });
+      if (type === "skill") {
+        const walked = walkItemFolder(target.path);
+        hash.update(`\0${realFolder(target.path) ?? target.path}`);
+        if (walked.over) {
+          refuse(
+            "too_large",
+            `${overLimitMessage(walked.over)} Remove files, or add it in the web app.`,
+          );
+          continue;
+        }
+        for (const file of walked.files)
+          hash.update(`\0${file.path}\0${sha256(file.bytes)}\0${file.executable ? 1 : 0}`);
+        if (walked.files.length === 0) {
+          refuse("empty", "There's nothing to upload in it.");
+          continue;
+        }
+        if (!walked.files.some((file) => file.path === "SKILL.md")) {
+          refuse("not_a_skill", "It has no SKILL.md, so it isn't a skill.");
+          continue;
+        }
+        const refusal = ownershipRefusal(
+          api.registry,
+          await ownershipOf(io, target.path, walked.files),
+          request.force ?? false,
+        );
+        if (refusal) {
+          refuse(refusal.code, refusal.message);
+          continue;
+        }
+        scope = scopeFor(walked.files);
+        const short = named(skillName(walked.files, folderName(target.path)));
+        if (!short) {
+          refuse("invalid_name", "Its name can't be an item name. Give one with --name.");
+          continue;
+        }
+        skipped = walked.skipped;
+        if (!known.has(scope)) {
+          refuse(
+            "scope_not_found",
+            `Its ronne.yaml names @${scope}, which ${api.registry} doesn't have. Use --to.`,
+          );
+          continue;
+        }
+        read = readSkill(walked.files, { itemName: `@${scope}/${short}` });
+      } else if (type === "mcp-server") {
+        const key = target.key ?? "";
+        const value = readMcpServers(io, scopeOf(request.scope)).servers[key];
+        hash.update(
+          `\0${target.path}\0${key}\0${sha256(new TextEncoder().encode(JSON.stringify(value ?? null)))}`,
+        );
+        const refusal = ownershipRefusal(api.registry, await ownershipOf(io, target, []), false);
+        if (refusal) {
+          refuse(refusal.code, refusal.message);
+          continue;
+        }
+        scope = scopeFor([]);
+        const short = named(target.name ?? mcpServerName(key));
+        if (!short) {
+          refuse("invalid_name", "Its name can't be an item name. Give one with --name.");
+          continue;
+        }
+        const description = request.description ?? (await hooks.describe?.(local));
+        read = readMcpServer(key, value, {
+          itemName: `@${scope}/${short}`,
+          ...(description ? { description } : {}),
+        });
+      } else {
+        const size = statSync(target.path).size;
+        if (size > DEFAULT_LIMITS.maxFileBytes) {
+          refuse(
+            "too_large",
+            `It's ${formatBytes(size)}; a file can be at most ${formatBytes(DEFAULT_LIMITS.maxFileBytes)}.`,
+          );
+          continue;
+        }
+        const file: PackageFile = {
+          path: basename(target.path),
+          bytes: new Uint8Array(readFileSync(target.path)),
+        };
+        hash.update(`\0${realFile(target.path) ?? target.path}\0${sha256(file.bytes)}`);
+        if (textOrNull(file) === null) {
+          refuse("not_text", "It isn't UTF-8 text, so it can't be read as Markdown.");
+          continue;
+        }
+        const refusal = ownershipRefusal(
+          api.registry,
+          await ownershipOf(io, target.path, [file]),
+          false,
+        );
+        if (refusal) {
+          refuse(refusal.code, refusal.message);
+          continue;
+        }
+        scope = scopeFor([file]);
+        const suggested =
+          target.name ?? (type === "agent" ? agentName(file, file.path) : commandName(file.path));
+        const short = named(suggested);
+        if (!short) {
+          refuse("invalid_name", "Its name can't be an item name. Give one with --name.");
+          continue;
+        }
+        const reader = type === "agent" ? readAgent : type === "command" ? readCommand : readRule;
+        read = reader(file, { itemName: `@${scope}/${short}` });
+      }
     } catch (error) {
       if (error instanceof ReadError) {
         refuse(error.code, error.message);
@@ -709,7 +844,8 @@ export const planExport = async (
           file: file.path,
         });
     }
-    if (secret && !request.force) {
+    // An MCP server's credentials are always taken out by its reader: no force puts one back.
+    if (secret && (!request.force || type === "mcp-server")) {
       refuse(
         "secret",
         `${secret}. Remove it (use an environment variable instead), or add --force.`,
@@ -722,16 +858,17 @@ export const planExport = async (
       ...parsed.issues.map((issue) => ({ ...issue, file: "ronne.yaml" })),
       ...(parsed.manifest ? checkPackage(parsed.manifest, read.files) : []),
     ];
-    const name = `@${scope}/${short}`;
+    const name = String(read.manifest.name);
     hash.update(`\0=${name}`);
     items.push({
       local,
-      dir,
+      path: target.path,
+      ...(target.key !== undefined ? { key: target.key } : {}),
       name,
-      type: "skill",
+      type,
       files: read.files,
       manifestText: read.manifestText,
-      skipped: walked.skipped,
+      skipped,
       warnings,
       issues,
       published: await isPublished(api, name),
@@ -744,7 +881,7 @@ export const planExport = async (
 export type ExportedItem = {
   local: string;
   name: string;
-  type: "skill";
+  type: ExportType;
   id: string;
   /** The draft's page. */
   url: string;

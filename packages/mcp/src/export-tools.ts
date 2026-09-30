@@ -6,6 +6,7 @@ import {
   type ExportRequest,
   fetchScopes,
   type Io,
+  type LocalItem,
   type Ownership,
   planExport,
   previewText,
@@ -71,7 +72,7 @@ export const listLocalItems = async (
   if (items.length === 0)
     return answer(
       [
-        `No skills found in .claude/skills/ or .agents/skills/${scope === "user" ? " in the home folder" : ""}. Items from the registry are installed with install tools, not exported.`,
+        `No ${input.type ?? "skills, agents, commands, rules or MCP servers"} found in the AI tool folders${scope === "user" ? " of the home folder" : ""}. Items from the registry are installed with install tools, not exported.`,
       ],
       { scope, items },
     );
@@ -131,28 +132,51 @@ const plannedData = (plan: ExportPlan) =>
 export const planExportTool = async (
   io: Io,
   store: PlanStore<StoredExport>,
-  input: { items: string[]; to?: string; name?: string; scope?: "project" | "user" },
+  input: {
+    items: string[];
+    to?: string;
+    name?: string;
+    scope?: "project" | "user";
+    type?: string;
+    description?: string;
+  },
 ): Promise<ToolAnswer> => {
   const { api } = connectRegistry(io);
   const scope = input.scope ?? "project";
   const listed = await describeLocalItems(io, scope);
-  const unknown = input.items.filter(
-    (wanted) => !listed.some(({ item }) => item.name === wanted || item.display === wanted),
-  );
+  const chosen: LocalItem[] = [];
+  const unknown: string[] = [];
+  for (const wanted of input.items) {
+    const matches = listed
+      .map(({ item }) => item)
+      .filter(
+        (item) =>
+          (item.name === wanted || item.display === wanted) &&
+          (!input.type || item.type === input.type),
+      );
+    if (matches.length === 0) unknown.push(wanted);
+    else if (matches.length > 1)
+      return failure(
+        "ambiguous",
+        `${wanted} is more than one item: ${matches.map((m) => `${m.display} (${m.type})`).join(", ")}. Say which with type, or use the folder or file as list_local_items shows it.`,
+      );
+    else chosen.push(matches[0] as LocalItem);
+  }
   if (unknown.length > 0)
     return failure(
       "not_listed",
-      `${unknown.join(", ")} ${unknown.length === 1 ? "isn't" : "aren't"} among the items list_local_items finds${scope === "user" ? " in the home folder" : ""}. Only those can be exported from here; for another folder, the person runs rmk export in a terminal.`,
+      `${unknown.join(", ")} ${unknown.length === 1 ? "isn't" : "aren't"} among the items list_local_items finds${scope === "user" ? " in the home folder" : ""}${input.type ? ` of type ${input.type}` : ""}. Only those can be exported from here; for anything else, the person runs rmk export in a terminal.`,
     );
 
   if (!input.to) return askForScope(await fetchScopes(api), "Which scope should the drafts go in?");
 
   const request: ExportRequest = {
-    items: input.items,
+    items: chosen,
     to: input.to,
     name: input.name,
     scope,
     force: false,
+    ...(input.description ? { description: input.description } : {}),
   };
   let plan: ExportPlan;
   try {

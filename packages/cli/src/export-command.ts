@@ -4,12 +4,17 @@ import type { Args } from "./cli.js";
 import { RmkError, usage } from "./errors.js";
 import {
   discoverLocalItems,
+  EXPORT_TYPES,
   type ExportedItem,
+  type ExportHooks,
   type ExportPlan,
   type ExportRequest,
+  type ExportType,
   fetchScopes,
+  type LocalItem,
   type PlannedItem,
   planExport,
+  readMcpServers,
   type Scopes,
   type SkipReason,
   uploadExport,
@@ -44,7 +49,7 @@ const indent = (text: string, by: string) =>
     .join("\n");
 
 const itemPreview = (registry: string, item: PlannedItem): string[] => {
-  const lines = [`${item.name}  (from ${item.local})`, "  Files:"];
+  const lines = [`${item.name}  ${item.type}  (from ${item.local})`, "  Files:"];
   for (const file of item.files)
     lines.push(
       `    ${file.path}  ${formatBytes(file.bytes.length)}${file.executable ? "  executable" : ""}`,
@@ -118,28 +123,45 @@ const askScope = async (io: Io, scopes: Scopes): Promise<string> => {
   return chosen;
 };
 
-/** With no items named: the skills found, and in a terminal, which to export. */
-const chooseItems = async (io: Io, args: Args, out: Output): Promise<string[] | null> => {
-  const found = discoverLocalItems(io, scopeOf(str(args.values.scope)));
+/** `--type`, checked: one of the types export reads. */
+const typeOption = (args: Args): ExportType | undefined => {
+  const value = str(args.values.type);
+  if (value === undefined) return undefined;
+  if (!(EXPORT_TYPES as readonly string[]).includes(value))
+    throw usage(`--type is one of ${EXPORT_TYPES.join(", ")}.`);
+  return value as ExportType;
+};
+
+/** With no items named: what's found (of `--type`), and in a terminal, which to export. */
+const chooseItems = async (
+  io: Io,
+  args: Args,
+  out: Output,
+): Promise<(string | LocalItem)[] | null> => {
+  const scope = scopeOf(str(args.values.scope));
+  const type = typeOption(args);
+  const found = discoverLocalItems(io, scope).filter((f) => !type || f.type === type);
   out.set(
     "found",
     found.map((f) => ({ name: f.name, type: f.type, path: f.display })),
   );
+  const unreadable = readMcpServers(io, scope).problem;
+  if (unreadable) out.say(unreadable);
   if (found.length === 0) {
     out.say(
-      "No skills found in .claude/skills/ or .agents/skills/. Give a folder: rmk export <folder>",
+      `No ${type ?? "skills, agents, commands, rules or MCP servers"} found in this ${scope === "user" ? "home folder" : "project"}'s AI tool folders. Give a folder or file: rmk export <path>`,
     );
     return null;
   }
-  const list = found.map((f, i) => `  ${i + 1}. ${f.name}  (${f.display})`);
+  const list = found.map((f, i) => `  ${i + 1}. ${f.name}  ${f.type}  (${f.display})`);
   if (!io.interactive || out.json) {
-    out.say(["Skills found here:", ...list].join("\n"));
-    out.say("Export one with rmk export <name or folder>.");
+    out.say(["Found here:", ...list].join("\n"));
+    out.say("Export one with rmk export <name or path>, and --type when a name is taken twice.");
     return null;
   }
   const answer = (
     await io.prompt(
-      `${["Skills found here:", ...list].join("\n")}\nWhich to export? (numbers or names, comma-separated; nothing to stop) `,
+      `${["Found here:", ...list].join("\n")}\nWhich to export? (numbers or names, comma-separated; nothing to stop) `,
     )
   ).trim();
   if (!answer) {
@@ -148,8 +170,7 @@ const chooseItems = async (io: Io, args: Args, out: Output): Promise<string[] | 
   }
   return answer.split(",").map((part) => {
     const value = part.trim();
-    const byNumber = /^\d+$/.test(value) ? found[Number(value) - 1] : undefined;
-    return byNumber ? byNumber.display : value;
+    return (/^\d+$/.test(value) ? found[Number(value) - 1] : undefined) ?? value;
   });
 };
 
@@ -188,14 +209,34 @@ export const exportCommand = async (io: Io, args: Args, out: Output, api: ApiCli
     name: str(args.values.name),
     scope: str(args.values.scope),
     force: args.values.force === true,
+    type: typeOption(args),
+    description: str(args.values.description),
   };
+  // An MCP server has no description on disk: in a terminal, ask once for each.
+  const described = new Map<string, string | undefined>();
+  const hooks: ExportHooks = asking
+    ? {
+        describe: async (local) => {
+          if (!described.has(local))
+            described.set(
+              local,
+              (
+                await io.prompt(
+                  `${local} has no description. In one sentence, what does this MCP server give the AI tool? (nothing to leave it for the web app) `,
+                )
+              ).trim() || undefined,
+            );
+          return described.get(local);
+        },
+      }
+    : {};
   let plan: ExportPlan;
   try {
-    plan = await planExport(io, api, request);
+    plan = await planExport(io, api, request, hooks);
   } catch (error) {
     if (!(error instanceof RmkError) || error.code !== "scope_required" || !asking) throw error;
     request.to = await askScope(io, error.details.scopes as Scopes);
-    plan = await planExport(io, api, request);
+    plan = await planExport(io, api, request, hooks);
   }
   out.set("to", plan.to);
   out.set("refused", refusedJson(plan));

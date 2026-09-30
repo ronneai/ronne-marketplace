@@ -206,12 +206,12 @@ describe("rmk export", () => {
     io.answers.push("2", "1", "y");
     const result = await rmk("export");
     expect(io.questions[0]).toContain(
-      "1. deploy  (.claude/skills/deploy)\n  2. review  (.claude/skills/review)",
+      "1. deploy  skill  (.claude/skills/deploy)\n  2. review  skill  (.claude/skills/review)",
     );
     expect(io.questions[1]).toContain("1. @team  A team.");
     const preview = io.questions[2] ?? "";
     expect(preview).toContain(`Registry: ${REGISTRY}, as dev@example.com`);
-    expect(preview).toContain("@team/review  (from .claude/skills/review)");
+    expect(preview).toContain("@team/review  skill  (from .claude/skills/review)");
     expect(preview).toContain(".env  (may hold a secret)");
     expect(preview).toContain('name: "@team/review"');
     expect(preview).toMatch(/Upload 1 item as drafts to https:\/\/ronne\.example\? \[y\/N\] $/);
@@ -239,7 +239,7 @@ describe("rmk export", () => {
     setup({ interactive: false });
     const result = await rmk("export", "review", "deploy", "--to", "team", "--dry-run");
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("@team/deploy  (from .claude/skills/deploy)");
+    expect(result.stdout).toContain("@team/deploy  skill  (from .claude/skills/deploy)");
     expect(result.stdout).toContain("Dry run: nothing was uploaded.");
     const json = JSON.parse(
       (await rmk("export", "review", "--to", "team", "--dry-run", "--json")).stdout,
@@ -297,7 +297,7 @@ describe("rmk export", () => {
     setup({ interactive: false });
     const result = await rmk("export");
     expect(result).toMatchObject({ exitCode: 0 });
-    expect(result.stdout).toContain("1. deploy  (.claude/skills/deploy)");
+    expect(result.stdout).toContain("1. deploy  skill  (.claude/skills/deploy)");
     expect(posts()).toEqual([]);
   });
 
@@ -335,5 +335,157 @@ describe("rmk export", () => {
     expect(result.exitCode).toBe(1);
     expect(JSON.parse(result.stdout).error.code).toBe("not_logged_in");
     expect(io.requests).toEqual([]);
+  });
+});
+
+describe("rmk export for agents, commands, rules and MCP servers (040)", () => {
+  const SECRETS = { env: `sk-ant-${"a1B2c3D4".repeat(4)}`, header: `ghp_${"a1B2".repeat(9)}` };
+  const NAMES = ["reviewer", "review", "style", "github"];
+  const setup = (interactive = false) => {
+    const registry = exportRoutes({ scopes: [{ name: "team", description: "A team." }] });
+    io = fakeIo(
+      {
+        ...identityRoutes("rmk_test_token"),
+        ...registry.routes,
+        ...Object.fromEntries(
+          NAMES.map((name) => [
+            `GET /items/team/${name}`,
+            () => ({ status: 404, json: { error: { code: "item_not_found", message: "No." } } }),
+          ]),
+        ),
+      },
+      { env: { RMK_TOKEN: "rmk_test_token", RMK_REGISTRY: REGISTRY }, interactive },
+    );
+    const write = (path: string, text: string) => {
+      mkdirSync(dirname(join(io.cwd, path)), { recursive: true });
+      writeFileSync(join(io.cwd, path), text);
+    };
+    write(
+      ".claude/agents/reviewer.md",
+      "---\nname: reviewer\ndescription: Reviews diffs.\ntools: Read, Grep, Skill\nmodel: sonnet\ncolor: blue\n---\nReview it.\n",
+    );
+    write(".claude/skills/review/SKILL.md", "---\nname: review\ndescription: Reviews.\n---\nGo.\n");
+    write(
+      ".claude/commands/review.md",
+      "---\ndescription: Reviews a file.\narguments: [file]\nallowed-tools: Read\n---\nReview $file.\n",
+    );
+    write(".claude/rules/style.md", "---\npaths: src/**/*.ts\n---\n# Style\n\nUse tabs.\n");
+    write(
+      ".mcp.json",
+      JSON.stringify({
+        mcpServers: {
+          github: {
+            type: "http",
+            url: "https://api.example.com/mcp",
+            headers: { Authorization: `Bearer ${SECRETS.header}` },
+            env: { GITHUB_API_KEY: SECRETS.env },
+            timeout: 600000,
+          },
+        },
+      }),
+    );
+    return registry;
+  };
+  const json = async (...argv: string[]) => {
+    const result = await rmk(...argv, "--json");
+    return { code: result.exitCode, body: JSON.parse(result.stdout) };
+  };
+
+  it("lists every type, narrows with --type, and says a name two types have is ambiguous", async () => {
+    setup();
+    const all = await json("export");
+    expect(
+      all.body.found.map((f: { name: string; type: string }) => `${f.type}:${f.name}`),
+    ).toEqual([
+      "mcp-server:github",
+      "skill:review",
+      "command:review",
+      "agent:reviewer",
+      "rule:style",
+    ]);
+    const agents = await json("export", "--type", "agent");
+    expect(agents.body.found).toEqual([
+      { name: "reviewer", type: "agent", path: ".claude/agents/reviewer.md" },
+    ]);
+    const ambiguous = await json("export", "review", "--to", "team", "--dry-run");
+    expect(ambiguous.code).toBe(2);
+    expect(ambiguous.body.error).toMatchObject({
+      code: "ambiguous",
+      types: ["skill", "command"],
+    });
+    const command = await json(
+      "export",
+      "review",
+      "--type",
+      "command",
+      "--to",
+      "team",
+      "--dry-run",
+    );
+    expect(command.body.planned).toMatchObject([{ name: "@team/review", type: "command" }]);
+    expect((await json("export", "--type", "hook")).code).toBe(2);
+  });
+
+  it("uploads each type, with what it loses in the warnings, and no secret in any request", async () => {
+    const { drafts } = setup();
+    const dryRun = await rmk(
+      "export",
+      "reviewer",
+      "style",
+      "github",
+      "--to",
+      "team",
+      "--description",
+      "GitHub.",
+      "--dry-run",
+    );
+    expect(dryRun.exitCode).toBe(2);
+    expect(dryRun.stderr).toContain("--description describes one item");
+    const preview = (await rmk("export", "reviewer", "--to", "team", "--dry-run")).stdout;
+    expect(preview).toContain("@team/reviewer  agent  (from .claude/agents/reviewer.md)");
+    expect(preview).toContain("`Skill` was left out");
+    expect(preview).toContain("`sonnet` was read as the default");
+    expect(preview).toContain("`color` was left out");
+
+    for (const argv of [
+      ["reviewer"],
+      ["review", "--type", "command"],
+      ["style"],
+      ["github", "--description", "GitHub's issues and pull requests."],
+    ]) {
+      const result = await json("export", ...argv, "--to", "team", "--yes");
+      expect(result.code, argv.join(" ")).toBe(0);
+    }
+    expect(drafts.map((d) => [d.name, d.type])).toEqual([
+      ["@team/reviewer", "agent"],
+      ["@team/review", "command"],
+      ["@team/style", "rule"],
+      ["@team/github", "mcp-server"],
+    ]);
+    const github = drafts[3]?.files.find((f) => (f as { path: string }).path === "ronne.yaml") as {
+      content: string;
+    };
+    expect(github.content).toContain("Authorization: Bearer ${GITHUB_TOKEN}");
+    expect(github.content).toContain("name: GITHUB_API_KEY");
+    expect(github.content).toContain("GitHub's issues and pull requests.");
+    const sent = JSON.stringify(io.requests);
+    for (const secret of Object.values(SECRETS)) expect(sent).not.toContain(secret);
+  });
+
+  it("asks for an MCP server's description in a terminal", async () => {
+    const { drafts } = setup(true);
+    io.answers.push("Talks to GitHub.", "y");
+    const result = await rmk("export", "github", "--to", "team");
+    expect(result.exitCode).toBe(0);
+    expect(io.questions[0]).toContain(".mcp.json (mcpServers.github) has no description");
+    expect(io.questions[1]).toContain(
+      "A credential in mcpServers.github.headers.Authorization was taken out",
+    );
+    const manifest = drafts[0]?.files.find(
+      (f) => (f as { path: string }).path === "ronne.yaml",
+    ) as {
+      content: string;
+    };
+    expect(manifest.content).toContain("description: Talks to GitHub.");
   });
 });
