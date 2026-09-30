@@ -23,7 +23,7 @@ the same change that completes it.
   (items), taking the token's user like `itemPageAs`.
   *Done when:* action tests create a draft and list scopes as a user, a moderator and root.
 
-- [ ] **4. Body limits.** `readJsonObjectWithin(request, maxBytes)` in `server/http/read-json.ts`,
+- [x] **4. Body limits.** `readJsonObjectWithin(request, maxBytes)` in `server/http/read-json.ts`,
   counting streamed bytes; 1 MiB on `postToken` and `postResolve`.
   *Done when:* an oversized body gets `413 body_too_large` with and without `content-length`, and
   the existing API tests still pass.

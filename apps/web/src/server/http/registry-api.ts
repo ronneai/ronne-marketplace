@@ -10,7 +10,7 @@ import {
 import type { StorageAdapter } from "../storage";
 import { parseLimit, parseSearch, parseSort, parseTool, parseType } from "./api-query";
 import { domainErrorResponse, errorResponse } from "./errors";
-import { readJsonObject } from "./read-json";
+import { readJsonObjectWithin, SMALL_JSON_MAX_BYTES } from "./read-json";
 import { itemJson, itemSummaryJson, versionJson } from "./registry-json";
 import { requireToken, type TokenGuardDeps } from "./require-token";
 
@@ -193,7 +193,9 @@ const RESOLVE_STATUS = {
 export const postResolve = async (request: Request, deps: RegistryApiDeps = {}) => {
   const guard = await requireToken(request, deps.guard);
   if (!guard.ok) return guard.response;
-  const body = await readJsonObject(request);
+  const read = await readJsonObjectWithin(request, SMALL_JSON_MAX_BYTES);
+  if (!read.ok) return read.response;
+  const body = read.body;
   const dependencies = stringMap(body?.dependencies);
   const locked = body?.locked === undefined ? {} : stringMap(body.locked);
   if (!dependencies || !locked)

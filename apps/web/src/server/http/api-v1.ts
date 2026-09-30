@@ -2,7 +2,7 @@ import { exchangePassword, revokeCallingToken } from "../domains/identity/action
 import { IdentityError, TokenLimitError } from "../domains/identity/exceptions/errors";
 import { type AppAuth, getAppAuth } from "../domains/identity/repositories/auth-instance";
 import { errorResponse } from "./errors";
-import { readJsonObject } from "./read-json";
+import { readJsonObjectWithin, SMALL_JSON_MAX_BYTES } from "./read-json";
 import { requireToken, type TokenGuardDeps } from "./require-token";
 
 /** Token responses are never cached (spec 009). */
@@ -11,7 +11,9 @@ const json = (body: unknown, status = 200) =>
 
 /** POST /api/v1/auth/token: `{ email, password, name? }` → a 90-day token, for `rmk login`. */
 export const postToken = async (request: Request, app: AppAuth = getAppAuth()) => {
-  const body = await readJsonObject(request);
+  const read = await readJsonObjectWithin(request, SMALL_JSON_MAX_BYTES);
+  if (!read.ok) return read.response;
+  const body = read.body;
   if (!body)
     return errorResponse(400, "invalid_request", 'Send JSON: { "email", "password", "name"? }.');
   try {
