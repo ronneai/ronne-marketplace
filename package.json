@@ -20,6 +20,7 @@
     "db:migrate": "pnpm --filter @ronneai/web db:migrate",
     "setup": "pnpm --filter @ronneai/web run setup",
     "reset-root-password": "pnpm --filter @ronneai/web run reset-root-password",
+    "reset-setup": "pnpm --filter @ronneai/web run reset-setup",
     "test:db": "pnpm --filter @ronneai/web test:db",
     "test:db:up": "docker compose -f docker/test-databases.compose.yml up -d --wait",
     "test:db:down": "docker compose -f docker/test-databases.compose.yml down -v",

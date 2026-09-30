@@ -11,6 +11,7 @@ case "$1" in
   reset-root-password) shift; exec node dist-scripts/reset-root-password.mjs "$@" ;;
   db:migrate) shift; exec node dist-scripts/migrate.mjs "$@" ;;
   *)
+    # reset-setup is development-only on purpose: to start over here, remove the ronne-data volume.
     echo "This image only supports: pnpm run setup, pnpm run reset-root-password, pnpm db:migrate" >&2
     exit 2 ;;
 esac

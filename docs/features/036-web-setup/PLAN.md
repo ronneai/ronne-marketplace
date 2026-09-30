@@ -44,7 +44,7 @@ the same change that completes it.
   the `incomplete` and `unavailable` cases, `prepare-start.db.test.ts` passes, and with an empty
   `RONNE_ENV_FILE` `/` lands on `/setup` while `/api/health` answers 503.
 
-- [ ] **3. The development reset.** `apps/web/scripts/reset-setup.ts` and the root script
+- [x] **3. The development reset.** `apps/web/scripts/reset-setup.ts` and the root script
   `reset-setup`: refuses when `NODE_ENV=production` or `RONNE_RUNTIME=docker` (exit 2, nothing
   touched); reads the settings file through `loadConfig`; lists the settings file, the SQLite
   file named by `DATABASE_URL` when it resolves under `apps/web` (plus `-wal` and `-shm`), and
@@ -128,6 +128,13 @@ the same change that completes it.
   through `/sign-in`, which then redirects to `/setup`: two hops, one page. The token guard's
   `configured` dependency became `ready`, and `health` answers `setup_required` for both
   `not_configured` and `incomplete`, so Docker's health check stays red until root exists.
+- Task 3: `reset-setup` acts on what the app sees (`loadConfig`, so `RONNE_ENV_FILE` and the
+  environment count), and only removes files under the app folder (the database) or under
+  `data/` (storage); anything else is listed as left alone. Its CLI test points `RONNE_ENV_FILE`
+  at a temporary folder with a database outside the app, so it never touches the developer's own
+  clone. Checked live: after `pnpm run setup --yes` a running `pnpm dev` answered health with 200
+  and `/setup` with a redirect; after `pnpm run reset-setup --yes`, without a restart, `/` ended
+  on `/setup` and health answered 503.
 
 Facts the design rests on (checked in the code, 2026-09-29):
 
