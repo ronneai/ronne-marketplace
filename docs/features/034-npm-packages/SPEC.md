@@ -68,9 +68,10 @@ packages): installs the packed tarballs into an empty folder with npm, as a user
 §2); the release checks that none of them resolves to a version with a known high or critical
 advisory, as CI already does.
 
-**Once published**, the defaults change to match: `rmk mcp-setup` keeps `rmk-mcp` as the command,
-which now works after the global install, and every place that says "isn't on npm yet" says how to
-install it instead.
+**Once published** (`0.1.0` went out on 2026-09-29), the defaults match: `rmk mcp-setup` keeps
+`rmk-mcp` as the command, which works after the global install, and every place that said "isn't
+on npm yet" says how to install from npm instead. Building from a clone stays a note for
+contributors, with `npm unlink --global` for anyone who linked a local build before.
 
 ## Edge cases
 
@@ -83,21 +84,24 @@ install it instead.
 
 ## Documentation
 
-- **Installing with rmk → Getting rmk:** `npm install --global @ronneai/rmk` (and `@ronneai/mcp`
-  for the server), with the Node version; building from a clone becomes a note for contributors.
-- **Registry MCP server → Setting it up:** the npm install, and `--command` only for a clone.
-- **Sign-in page** (the CLI panel's "Get rmk" step) and the **README**: the npm install.
+- **Installing with rmk → Getting rmk:** `npm install --global @ronneai/rmk`, with the Node
+  version, `npm update --global` for newer releases, `npm unlink --global` for a linked clone,
+  and running from a clone as a note for contributors.
+- **Registry MCP server → Setting it up:** `npm install --global @ronneai/rmk @ronneai/mcp`, and
+  `--command` only for a clone.
+- **Sign-in page** (the CLI panel's "Get rmk" step) and the **README**: the npm install; the
+  README also lists the release commands under Development.
 - **Each package's README** on npm: what it is, how to install, and a link to the instance's
   Documentation.
 
 ## Acceptance criteria
 
-- [ ] The three packages share a version set by `pnpm release:version`, and the lockfile stays frozen.
-- [ ] `pnpm pack` contents match an allowlist in CI; each package has its README, LICENSE and metadata.
-- [ ] The smoke test installs the tarballs with npm and runs `rmk` and an MCP `initialize` against `rmk-mcp`, in CI on Node 22 and 24.
-- [ ] A tag `vX.Y.Z` publishes core, rmk and mcp with provenance and creates a GitHub release; a mismatched tag publishes nothing.
-- [ ] The first release (`0.1.0`) is on npmjs.com, and `npm install --global @ronneai/rmk @ronneai/mcp` gives working `rmk` and `rmk-mcp`.
-- [ ] No page, README or helper says "isn't on npm yet"; the Documentation says how to install from npm.
+- [x] The three packages share a version set by `pnpm release:version`, and the lockfile stays frozen.
+- [x] `pnpm pack` contents match an allowlist in CI; each package has its README, LICENSE and metadata.
+- [x] The smoke test installs the tarballs with npm and runs `rmk` and an MCP `initialize` against `rmk-mcp`, in CI on Node 22 and 24.
+- [x] A tag `vX.Y.Z` publishes core, rmk and mcp with provenance and creates a GitHub release; a mismatched tag publishes nothing.
+- [x] The first release (`0.1.0`) is on npmjs.com, and `npm install --global @ronneai/rmk @ronneai/mcp` gives working `rmk` and `rmk-mcp`.
+- [x] No page, README or helper says "isn't on npm yet"; the Documentation says how to install from npm.
 
 ## Open questions
 

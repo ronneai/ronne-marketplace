@@ -639,14 +639,17 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
     getting: (
       <>
         <p>
-          <Code>rmk</Code> needs Node.js 22.12 or later. It isn&apos;t on npm yet: until it is, it
-          comes with the Ronne AI Marketplace repository. From a copy of the repository:
+          <Code>rmk</Code> is on npm as <Code>@ronneai/rmk</Code> (the unscoped name was taken; the
+          command is still <Code>rmk</Code>). It needs Node.js 22.12 or later:
         </p>
-        <Example>{"pnpm install\npnpm build\nnode packages/cli/dist/bin.js --help"}</Example>
+        <Example>{"npm install --global @ronneai/rmk\nrmk --version"}</Example>
         <p>
-          To use it as <Code>rmk</Code> from anywhere, link it once:{" "}
-          <Code>cd packages/cli && npm link</Code>. Once it&apos;s published, the install becomes{" "}
-          <Code>npm install --global @ronneai/rmk</Code>, and this page will say so.
+          <Code>npm update --global @ronneai/rmk</Code> gets a newer release. If you built it from a
+          copy of the repository before and linked it, unlink that first (
+          <Code>npm unlink --global @ronneai/rmk</Code>), so the npm install is the <Code>rmk</Code>{" "}
+          you run. Contributors can still run it from a copy of the repository: after{" "}
+          <Code>pnpm install</Code> and <Code>pnpm build</Code>, it&apos;s{" "}
+          <Code>node packages/cli/dist/bin.js</Code>.
         </p>
       </>
     ),
@@ -921,10 +924,11 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
       <>
         <Steps>
           <li>
-            <strong>Get it.</strong> Like <Code>rmk</Code>, <Code>rmk-mcp</Code> isn&apos;t on npm
-            yet: it comes with the repository, in <Code>packages/mcp</Code>. After{" "}
-            <Code>pnpm build</Code>, link it once with <Code>cd packages/mcp && npm link</Code>, or
-            register it by its path, below.
+            <strong>Get it.</strong> <Code>npm install --global @ronneai/rmk @ronneai/mcp</Code>{" "}
+            installs <Code>rmk</Code> and <Code>rmk-mcp</Code> (Node.js 22.12 or later). Running a
+            copy of the repository instead? After <Code>pnpm build</Code> the server is{" "}
+            <Code>packages/mcp/dist/bin.js</Code>: register it by its path with{" "}
+            <Code>--command</Code>, below.
           </li>
           <li>
             <strong>Log in</strong> with <Code>rmk login</Code>, if you haven&apos;t: the server

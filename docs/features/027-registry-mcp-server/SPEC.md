@@ -67,7 +67,7 @@ it away and it never overwrites an entry the person made. It prints what it wrot
 Code, that the project's MCP servers need approving once. Its entries are recorded under the item
 name `rmk mcp-setup` (not a valid item name, so it can't clash), and `rmk install`, `update` and
 `remove` leave them alone. `--command "<cmd> <args>"` registers another command than `rmk-mcp`,
-for a server run from a copy of the repository until `@ronneai/mcp` is on npm.
+for a server run from a copy of the repository instead of the npm install (034).
 
 **Shared code.** The install pipeline lives in `packages/cli` (022). It's exported as a library
 entry, `@ronneai/rmk/lib` (targets, resolve, fetch, render, plan, apply, and the report), and
@@ -83,7 +83,7 @@ writes only inside the project (or home, for user scope), through the same path 
 ## Documentation
 
 - **Registry MCP server**, a page of its own in the Documentation's "Installing" group (owner's
-  request, 2026-09-29): what it does; setting it up (getting `rmk-mcp` until it's on npm,
+  request, 2026-09-29): what it does; setting it up (getting `rmk-mcp` from npm, or a clone with `--command`,
   `rmk mcp-setup` and its options, approving and trusting it in each tool); the tools, as a table
   of what each does and writes; plans (the two steps, 10 minutes, applied once, stale plans,
   conflicts); and what it can reach. Installing with rmk keeps a short "From inside your AI tool"

@@ -20,7 +20,7 @@ the same change that completes it.
   *Done when:* a dry run (`--dry-run` publish) passes in CI on a test tag, and the owner has set up
   trusted publishing.
 
-- [ ] **4. First release and documentation.** `0.1.0` published; every "isn't on npm yet" replaced
+- [x] **4. First release and documentation.** `0.1.0` published; every "isn't on npm yet" replaced
   with the npm install.
   *Done when:* `npm install --global @ronneai/rmk @ronneai/mcp` works on a clean machine, and the
   docs render tests cover the new text.
@@ -76,4 +76,11 @@ the same change that completes it.
   to publish: `npm publish release/x.tgz` reads the path as a GitHub `user/repo` and runs `git
   ls-remote`. The tarball paths start with `./` now. Running the steps locally hadn't caught it
   because that run used absolute paths.
-
+- Task 4, the rest (2026-09-29): `v0.1.0` was pushed after the owner's npmjs.com setup; the
+  Release workflow published `@ronneai/core`, `@ronneai/rmk` and `@ronneai/mcp` at `0.1.0` with
+  provenance and created the GitHub release. The Documentation (rmk → Getting rmk, MCP server →
+  Setting it up), the sign-in page's CLI panel and the README say `npm install --global` now, with
+  building from a clone kept as a note for contributors and `npm unlink --global` for a linked
+  build; the README's Development table lists `packages:check`, `release:smoke` and
+  `release:version`. The docs and sign-in render tests check the new text and that "npm yet" is
+  gone.

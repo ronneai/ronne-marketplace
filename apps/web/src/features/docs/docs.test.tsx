@@ -116,7 +116,9 @@ describe("the topics", () => {
     for (const id of ["getting", "login", "installing", "updating", "files", "edits"])
       expect(rmk).toContain(`id="${id}"`);
     expect(rmk).toContain("rmk.lock");
-    expect(rmk).toContain("packages/cli/dist/bin.js");
+    expect(rmk).not.toContain("npm yet");
+    expect(rmk).toContain("npm install --global @ronneai/rmk\nrmk --version");
+    expect(rmk).toContain("npm unlink --global @ronneai/rmk");
     expect(rmk).toContain("code 3");
     expect(rmk).toContain('id="tokens"');
     expect(rmk).toContain('id="tools"');
@@ -128,6 +130,8 @@ describe("the topics", () => {
     for (const id of ["what", "setup", "tools", "plans", "access"])
       expect(mcp).toContain(`id="${id}"`);
     for (const tool of ["search_items", "plan_install", "apply_plan"]) expect(mcp).toContain(tool);
+    expect(mcp).not.toContain("npm yet");
+    expect(mcp).toContain("npm install --global @ronneai/rmk @ronneai/mcp");
     expect(mcp).toContain("rmk mcp-setup --remove");
     expect(mcp).toContain("A plan lasts 10 minutes, and is applied once.");
     expect(rmk).toContain("rmk search &lt;query&gt; --target codex");
