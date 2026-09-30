@@ -95,6 +95,7 @@ describe("readAgent", () => {
       tools: ["shell", "web-fetch"],
     });
     expect(tools("").manifest.agent).toEqual({ prompt: "prompt.md" });
+    expect(tools("").references).toEqual([]);
   });
 
   it("reads haiku and opus, as aliases or full ids, and anything else as default with a warning", () => {

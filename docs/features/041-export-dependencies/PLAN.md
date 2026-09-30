@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. References.** The readers (038, 040) fill `references`: an agent's skills, and the MCP
+- [x] **1. References.** The readers (038, 040) fill `references`: an agent's skills, and the MCP
   servers behind tool names in agents, skills and commands.
   *Done when:* unit tests cover each source, and a file with none returns none.
 

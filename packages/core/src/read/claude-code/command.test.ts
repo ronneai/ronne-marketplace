@@ -79,6 +79,7 @@ describe("readCommand", () => {
       "Move {{issue}} to {{branch}}, not $issues, \\$issue or $ARGUMENTS.\n",
     );
     expect(result.warnings).toEqual([]);
+    expect(result.references).toEqual([]);
   });
 
   it("keeps positional placeholders as written, with a warning", () => {
