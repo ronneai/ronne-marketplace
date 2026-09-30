@@ -13,7 +13,7 @@ the same change that completes it.
   differ.
   *Done when:* the contract carries the date of the check, and any change is in the spec.
 
-- [ ] **2. The Codex readers.** `read/codex/agent.ts` (from the parsed TOML) and
+- [x] **2. The Codex readers.** `read/codex/agent.ts` (from the parsed TOML) and
   `read/codex/mcp-server.ts` (stdio, http, `bearer_token_env_var`, `env_http_headers`, literal
   headers through 040's credential rules).
   *Done when:* the example agent and MCP server rendered for Codex read back and render the same,
