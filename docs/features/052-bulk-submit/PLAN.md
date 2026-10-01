@@ -30,7 +30,7 @@ the same change that completes it.
   *Done when:* `submit.test.ts` covers names, ids, `--all`, an ambiguous name, nothing ready, some
   ready, `--dry-run`, no terminal without `--yes`, and the exit codes.
 
-- [ ] **4. MCP tools.** `check_drafts` (read-only) and `submit_drafts`, plus the server
+- [x] **4. MCP tools.** `check_drafts` (read-only) and `submit_drafts`, plus the server
   instructions.
   *Done when:* the MCP tests cover a check that sends nothing and a submit of a mixed batch.
 
@@ -53,3 +53,5 @@ goes into `SPEC.md` instead.
   `dependency_not_found` message names another draft in the same batch waits for that one. The
   message starts with the dependency's name (013's `DependencyNotFoundError`); if that wording
   changes, the order disappears, though the issue itself is still shown.
+- The MCP tools reuse `planSubmit`, `sendSubmit` and `submitLines` from `@ronneai/rmk/lib`, as MVP
+  §15's "MCP server and `rmk`" row asks: never `rmk`'s command layer.

@@ -119,6 +119,84 @@ const previewLines = (drafts: readonly CheckedDraft[], unknown: readonly string[
   return lines;
 };
 
+/** What a submit would do (052): each draft checked, names with no draft, and the preview. */
+export type SubmitPlan = {
+  checked: CheckedDraft[];
+  ready: CheckedDraft[];
+  /** Not ready, not submittable, not found, and names the person has no draft of. */
+  notReady: CheckedDraft[];
+  /** With `all`: how many open drafts were left for another run. */
+  more: number;
+  preview: string[];
+  order: { item: string; after: string[] }[];
+};
+
+/**
+ * Checks the drafts named (`@scope/name` or ids) or `all` of them, sending nothing for review:
+ * `rmk submit` and the MCP server's `check_drafts` both start here.
+ */
+export const planSubmit = async (
+  api: ApiClient,
+  selection: { refs: readonly string[] } | { all: true },
+): Promise<SubmitPlan> => {
+  const all = "all" in selection;
+  const { ids, unknown } = all ? { ids: [], unknown: [] } : await resolveNames(api, selection.refs);
+  const checked =
+    all || ids.length > 0
+      ? await api.post<{ drafts: CheckedDraft[]; more: number }>(
+          "/drafts/check",
+          all ? { all: true } : { ids },
+        )
+      : { drafts: [], more: 0 };
+  const more =
+    checked.more > 0
+      ? [`${checked.more} more of your drafts weren't looked at: run it again for those.`]
+      : [];
+  return {
+    checked: checked.drafts,
+    ready: checked.drafts.filter((d) => d.ready),
+    notReady: [
+      ...checked.drafts.filter((d) => !d.ready),
+      ...unknown.map((name) => ({ id: name, name, result: "not_found", ready: false })),
+    ],
+    more: checked.more,
+    preview: [...previewLines(checked.drafts, unknown), ...more],
+    order: releaseOrder(checked.drafts),
+  };
+};
+
+/** Submits the ready drafts of a plan (`POST /drafts/submit`), and splits what went from what didn't. */
+export const sendSubmit = async (api: ApiClient, plan: SubmitPlan) => {
+  const { results } = await api.post<{ results: SubmitResult[] }>("/drafts/submit", {
+    ids: plan.ready.map((d) => d.id),
+  });
+  const submitted = results.filter((r) => r.result === "submitted" || r.result === "resubmitted");
+  const refusedAtSubmit = results.filter((r) => !submitted.includes(r));
+  return {
+    submitted,
+    refusedAtSubmit,
+    notSubmitted: [...refusedAtSubmit, ...plan.notReady],
+  };
+};
+
+/** The lines that say what happened, for `rmk` and the MCP server alike. */
+export const submitLines = (outcome: Awaited<ReturnType<typeof sendSubmit>>, plan: SubmitPlan) => {
+  const lines: string[] = [];
+  for (const result of outcome.submitted)
+    lines.push(
+      `${result.name}: ${result.result} for review (revision ${result.revision}) at ${result.url ?? result.path}`,
+    );
+  for (const result of outcome.refusedAtSubmit) {
+    lines.push(`Not submitted: ${label(result)}`);
+    for (const issue of errorsOf(result.issues)) lines.push(`  - ${issue.message}`);
+  }
+  if (plan.notReady.length > 0)
+    lines.push(
+      `Not ready, so not submitted: ${plan.notReady.map((d) => d.name ?? d.id).join(", ")}. Fix them in the web app, then submit again.`,
+    );
+  return lines;
+};
+
 /** `rmk submit [<@scope/name|id>...] [--all] [--dry-run] [--yes]`. */
 export const submitCommand = async (io: Io, args: Args, out: Output, api: ApiClient) => {
   const all = args.values.all === true;
@@ -131,46 +209,23 @@ export const submitCommand = async (io: Io, args: Args, out: Output, api: ApiCli
   if (!asking && !dryRun && !yes)
     throw usage("Without a terminal to ask, add --yes to submit (after checking with --dry-run).");
 
-  const { ids, unknown } = all
-    ? { ids: [], unknown: [] }
-    : await resolveNames(api, args.positionals);
-  const checked =
-    all || ids.length > 0
-      ? await api.post<{ drafts: CheckedDraft[]; more: number }>(
-          "/drafts/check",
-          all ? { all: true } : { ids },
-        )
-      : { drafts: [], more: 0 };
-  const ready = checked.drafts.filter((d) => d.ready);
-  const notReady = [
-    ...checked.drafts.filter((d) => !d.ready),
-    ...unknown.map((name) => ({ id: name, name, result: "not_found", ready: false })),
-  ];
+  const plan = await planSubmit(api, all ? { all: true } : { refs: args.positionals });
   out.set("registry", api.registry);
-  out.set("checked", checked.drafts);
-  const preview = previewLines(checked.drafts, unknown);
-  const more =
-    checked.more > 0
-      ? [`${checked.more} more of your drafts weren't looked at: run rmk submit --all again after.`]
-      : [];
-
-  if (checked.drafts.length === 0 && unknown.length === 0) {
+  out.set("checked", plan.checked);
+  if (plan.checked.length === 0 && plan.notReady.length === 0) {
     out.set("submitted", []);
     out.set("notSubmitted", []);
     out.say("You have no drafts to submit.");
     return;
   }
-  if (dryRun) {
+  if (dryRun || plan.ready.length === 0) {
     out.set("submitted", []);
-    out.set("notSubmitted", notReady);
-    for (const line of [...preview, ...more]) out.say(line);
-    out.say("Dry run: nothing was submitted.");
-    return;
-  }
-  if (ready.length === 0) {
-    out.set("submitted", []);
-    out.set("notSubmitted", notReady);
-    for (const line of [...preview, ...more]) out.say(line);
+    out.set("notSubmitted", plan.notReady);
+    for (const line of plan.preview) out.say(line);
+    if (dryRun) {
+      out.say("Dry run: nothing was submitted.");
+      return;
+    }
     throw new RmkError(
       "Nothing is ready to submit: fix the drafts above in the web app first.",
       1,
@@ -178,8 +233,9 @@ export const submitCommand = async (io: Io, args: Args, out: Output, api: ApiCli
     );
   }
   if (!yes) {
+    const count = plan.ready.length;
     const answer = await io.prompt(
-      `${[...preview, ...more].join("\n")}\n\nSubmit ${ready.length} draft${ready.length === 1 ? "" : "s"} for review? Reviewers see them; you can withdraw one until it's approved. [y/N] `,
+      `${plan.preview.join("\n")}\n\nSubmit ${count} draft${count === 1 ? "" : "s"} for review? Reviewers see them; you can withdraw one until it's approved. [y/N] `,
     );
     if (!/^y(es)?$/i.test(answer.trim())) {
       out.set("submitted", []);
@@ -189,29 +245,13 @@ export const submitCommand = async (io: Io, args: Args, out: Output, api: ApiCli
     }
   }
 
-  const { results } = await api.post<{ results: SubmitResult[] }>("/drafts/submit", {
-    ids: ready.map((d) => d.id),
-  });
-  const submitted = results.filter((r) => r.result === "submitted" || r.result === "resubmitted");
-  const refused = [...results.filter((r) => !submitted.includes(r)), ...notReady];
-  out.set("submitted", submitted);
-  out.set("notSubmitted", refused);
-  for (const result of submitted)
-    out.say(
-      `${result.name}: ${result.result} for review (revision ${result.revision}) at ${result.url ?? result.path}`,
-    );
-  for (const result of results.filter((r) => !submitted.includes(r))) {
-    out.say(`Not submitted: ${label(result)}`);
-    for (const issue of errorsOf(result.issues)) out.say(`  - ${issue.message}`);
-  }
-  if (notReady.length > 0)
-    out.say(
-      `Not ready, so not submitted: ${notReady.map((d) => d.name ?? d.id).join(", ")}. Fix them in the web app, then run rmk submit again.`,
-    );
-  for (const line of more) out.say(line);
-  if (refused.length > 0)
+  const outcome = await sendSubmit(api, plan);
+  out.set("submitted", outcome.submitted);
+  out.set("notSubmitted", outcome.notSubmitted);
+  for (const line of submitLines(outcome, plan)) out.say(line);
+  if (outcome.notSubmitted.length > 0)
     throw new RmkError(
-      `${refused.length} of ${results.length + notReady.length} weren't submitted.`,
+      `${outcome.notSubmitted.length} of ${outcome.submitted.length + outcome.notSubmitted.length} weren't submitted.`,
       1,
       "not_all_submitted",
     );
