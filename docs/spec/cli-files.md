@@ -7,7 +7,7 @@ diffs stay small and stable. Each has a `version` field so the format can change
 
 | File | Where | Committed? | Written by |
 |---|---|:-:|---|
-| `rmk.config.json` | project root | ✅ | the user (or `rmk init`) |
+| `rmk.config.json` | project root | ✅ | the user (or `rmk init`), `install` |
 | `rmk.lock` | project root | ✅ | `install`, `update`, `remove` |
 | `.rmk/state.json` | project root | ✅ | `install`, `update`, `remove` |
 | `~/.config/rmk/config.json` | home | — | `login`, `logout` (mode `0600`) |
@@ -20,7 +20,7 @@ Without the state file, a teammate's `rmk` couldn't tell which keys in `.claude/
 
 ## `rmk.config.json`
 
-Project settings. Optional: without it, rmk uses the default registry from the user config and detects targets.
+Project settings. Optional: without it, rmk uses the lockfile's registry or the default one from the user config, and detects targets.
 
 ```json
 {
@@ -34,6 +34,8 @@ Project settings. Optional: without it, rmk uses the default registry from the u
 }
 ```
 
+- `registry`: the registry this project uses. `rmk install` writes it when it's missing, and
+  replaces it when `--registry` is given (the lockfile follows). See [Which registry](#which-registry).
 - `targets`: the renderers to use. If absent, rmk runs each renderer's `detect()` and asks when
   none or several match. `--target` on the command line overrides it.
 - `dependencies`: what the user asked for directly. `rmk install <item>` adds to it and `rmk remove`
@@ -151,10 +153,26 @@ What rmk wrote, so it can update or remove it without touching anything else (MV
 ```
 
 - Created with mode `0600`. rmk warns and refuses to read it if it's readable by other users.
+- `registries` holds a token per registry URL, so one machine can be logged in to several.
+- `defaultRegistry` is the first registry logged in to, or the last one named with
+  `rmk login --registry`. A login through `RMK_REGISTRY` or a project's registry doesn't change it.
 - The `RMK_TOKEN` and `RMK_REGISTRY` env vars override the file, for CI.
 - The file holds only rmk's own token. Secrets for MCP servers are never stored (MVP §4.3).
 - `telemetry` is the person's `rmk telemetry on|off`. It only counts where a registry's usage policy
   lets people choose; absent means on there ([046](../features/046-usage-telemetry/SPEC.md)).
+
+## Which registry
+
+Every command, and the registry MCP server, talks to the first registry it finds:
+
+1. `--registry <url>`;
+2. `RMK_REGISTRY`;
+3. the project's, in the current folder: `registry` in `rmk.config.json`, else in `rmk.lock`
+   (skipped by `install`, `update`, `outdated` and `remove` with `--scope user`);
+4. `defaultRegistry` in `~/.config/rmk/config.json`.
+
+The token is `RMK_TOKEN`, else the one saved for that registry. `rmk whoami` says which registry
+it used and where it came from. URLs are compared without trailing slashes.
 
 ## `~/.cache/rmk/usage/`
 

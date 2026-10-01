@@ -2,11 +2,13 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync
 import { join } from "node:path";
 import { RmkError } from "./errors.js";
 import type { Io } from "./io.js";
+import { readLockfile, readProjectConfig } from "./project.js";
 
 /**
  * `~/.config/rmk/config.json` (cli-files.md): the default registry and a token per registry. Only
  * rmk's own token lives here; it's written with mode 0600, and a file other users can read is
- * refused. `RMK_TOKEN` and `RMK_REGISTRY` override it, for CI.
+ * refused. `RMK_TOKEN` and `RMK_REGISTRY` override it, for CI; a project's registry overrides the
+ * default.
  */
 export type UserConfig = {
   version: 1;
@@ -69,20 +71,80 @@ export const normalizeRegistry = (url: string) => {
   return trimmed.slice(0, end);
 };
 
-export type Registry = { url: string; token: string | null; email?: string };
+/** Where a command's registry came from, in the order rmk looks (cli-files.md). */
+export type RegistrySource = "flag" | "env" | "project" | "lockfile" | "default";
+
+export type Registry = {
+  url: string;
+  token: string | null;
+  email?: string;
+  source: RegistrySource;
+};
+
+/** The registry the project in `dir` uses: its `rmk.config.json`, else its `rmk.lock`. */
+const projectRegistry = (dir: string): { url: string; source: RegistrySource } | null => {
+  const config = readProjectConfig(dir)?.registry;
+  if (config) return { url: config, source: "project" };
+  const lock = readLockfile(dir)?.registry;
+  return lock ? { url: lock, source: "lockfile" } : null;
+};
 
 /**
- * The registry a command talks to, and the token for it: `--registry`, else `RMK_REGISTRY`, else
- * the config's default; the token from `RMK_TOKEN`, else the config.
+ * The registry URL a command talks to: `--registry`, else `RMK_REGISTRY`, else the project's
+ * (`rmk.config.json`, then `rmk.lock`, in the current folder) unless `project` is false, as for a
+ * user-scope install, else the user config's default. Null when none of them names one.
  */
-export const registryFor = (io: Io, config: UserConfig, override?: string): Registry => {
-  const url = normalizeRegistry(override || io.env.RMK_REGISTRY || config.defaultRegistry || "");
-  if (!url)
+export const resolveRegistry = (
+  io: Io,
+  config: UserConfig,
+  override?: string,
+  project = true,
+): { url: string; source: RegistrySource } | null => {
+  const local = project ? projectRegistry(io.cwd) : null;
+  const found: { url: string | undefined; source: RegistrySource }[] = [
+    { url: override, source: "flag" },
+    { url: io.env.RMK_REGISTRY, source: "env" },
+    ...(local ? [local] : []),
+    { url: config.defaultRegistry, source: "default" },
+  ];
+  for (const { url, source } of found) {
+    const normalized = normalizeRegistry(url ?? "");
+    if (normalized) return { url: normalized, source };
+  }
+  return null;
+};
+
+/**
+ * The registry a command talks to (`resolveRegistry`), and the token for it: `RMK_TOKEN`, else the
+ * one saved for that registry.
+ */
+export const registryFor = (
+  io: Io,
+  config: UserConfig,
+  override?: string,
+  project = true,
+): Registry => {
+  const resolved = resolveRegistry(io, config, override, project);
+  if (!resolved)
     throw new RmkError(
       "No registry: run `rmk login --registry <url>`, or set RMK_REGISTRY.",
       2,
       "no_registry",
     );
-  const saved = config.registries[url];
-  return { url, token: io.env.RMK_TOKEN || saved?.token || null, email: saved?.email };
+  const saved = config.registries[resolved.url];
+  return {
+    url: resolved.url,
+    token: io.env.RMK_TOKEN || saved?.token || null,
+    email: saved?.email,
+    source: resolved.source,
+  };
+};
+
+/** How `rmk whoami` says where the registry came from. */
+export const REGISTRY_SOURCE: Record<RegistrySource, string> = {
+  flag: "--registry",
+  env: "RMK_REGISTRY",
+  project: "rmk.config.json",
+  lockfile: "rmk.lock",
+  default: "the default registry",
 };

@@ -39,6 +39,7 @@ describe("rmk install", () => {
     });
     expect(JSON.parse(read("rmk.config.json"))).toEqual({
       dependencies: { "@team/secure": "latest" },
+      registry: REGISTRY,
       version: 1,
     });
     const lock = JSON.parse(read("rmk.lock"));
@@ -84,6 +85,20 @@ describe("rmk install", () => {
     });
     expect(io.requests.filter((r) => r.path.endsWith("/tarball")).length).toBe(downloads);
     expect(existsSync(join(io.home, ".cache", "rmk", "artifacts"))).toBe(true);
+  });
+
+  it("records the registry in rmk.config.json, keeps it, and moves it only with --registry", async () => {
+    const OTHER = "http://localhost:8888";
+    await start({ RMK_TOKEN: "rmk_test_token" });
+    await rmk("install", "@team/secure");
+    // Another default doesn't move the project: it stays on the registry in its config.
+    await rmk("login", "--registry", OTHER, "--token", "rmk_test_token");
+    expect((await rmk("install", "@team/fmt")).exitCode).toBe(0);
+    expect(JSON.parse(read("rmk.config.json")).registry).toBe(REGISTRY);
+    expect(JSON.parse(read("rmk.lock")).registry).toBe(REGISTRY);
+    expect((await rmk("install", "--registry", OTHER)).exitCode).toBe(0);
+    expect(JSON.parse(read("rmk.config.json")).registry).toBe(OTHER);
+    expect(JSON.parse(read("rmk.lock")).registry).toBe(OTHER);
   });
 
   it("stops before writing anything when a checksum doesn't match", async () => {
@@ -146,6 +161,7 @@ describe("rmk install", () => {
     expect(explicit.exitCode).toBe(0);
     expect(JSON.parse(read("rmk.config.json"))).toEqual({
       dependencies: { "@team/secure": "^1.0.0" },
+      registry: REGISTRY,
       targets: ["claude-code"],
       version: 1,
     });

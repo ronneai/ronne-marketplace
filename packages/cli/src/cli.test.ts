@@ -61,6 +61,23 @@ describe("rmk login", () => {
     expect(statSync(configPath(io)).mode & 0o777).toBe(0o600);
   });
 
+  it("makes a registry named with --registry the default, and says which one it replaced", async () => {
+    const OTHER = "http://localhost:8888";
+    io = fakeIo(identityRoutes("rmk_a"));
+    await rmk("login", "--registry", REGISTRY, "--token", "rmk_a");
+    const second = await rmk("login", "--registry", OTHER, "--token", "rmk_a");
+    expect(second.stdout).toBe(
+      `Logged in to ${OTHER} as dev@example.com.\nIt's now the default registry, instead of ${REGISTRY}.\n`,
+    );
+    expect(config().defaultRegistry).toBe(OTHER);
+    expect(Object.keys(config().registries)).toEqual([REGISTRY, OTHER].sort());
+    expect((await rmk("whoami")).stdout).toContain(`at ${OTHER} (from the default registry)`);
+    // Logging in again with no --registry keeps the default.
+    expect((await rmk("login", "--token", "rmk_a")).stdout).toBe(
+      `Logged in to ${OTHER} as dev@example.com.\n`,
+    );
+  });
+
   it("takes a token made in the web app, after checking it", async () => {
     io = fakeIo(identityRoutes("rmk_web"));
     expect(
@@ -110,12 +127,13 @@ describe("rmk whoami and logout", () => {
     io = fakeIo(identityRoutes("rmk_stored"));
     await rmk("login", "--registry", REGISTRY, "--token", "rmk_stored");
     expect((await rmk("whoami")).stdout).toBe(
-      `Dev <dev@example.com> (user) at ${REGISTRY}, with the token "rmk on laptop".\n`,
+      `Dev <dev@example.com> (user) at ${REGISTRY} (from the default registry), with the token "rmk on laptop".\n`,
     );
     const json = JSON.parse((await rmk("whoami", "--json")).stdout);
     expect(json).toMatchObject({
       ok: true,
       registry: REGISTRY,
+      registrySource: "default",
       user: { email: "dev@example.com" },
     });
     io.env.RMK_TOKEN = "rmk_env";
@@ -124,6 +142,34 @@ describe("rmk whoami and logout", () => {
       stderr: "The access token isn't valid.\n",
     });
     expect(io.requests.at(-1)?.headers.authorization).toBe("Bearer rmk_env");
+  });
+
+  it("uses the project's registry over the default: rmk.config.json, then rmk.lock", async () => {
+    const OTHER = "https://other.example:8888";
+    io = fakeIo(identityRoutes("rmk_a"));
+    await rmk("login", "--registry", REGISTRY, "--token", "rmk_a");
+    // Logged in to OTHER through the env, so the default stays REGISTRY.
+    io.env.RMK_REGISTRY = OTHER;
+    await rmk("login", "--token", "rmk_a");
+    expect(config().defaultRegistry).toBe(REGISTRY);
+    expect(Object.keys(config().registries)).toEqual([OTHER, REGISTRY]);
+    delete io.env.RMK_REGISTRY;
+
+    writeFileSync(
+      join(io.cwd, "rmk.lock"),
+      JSON.stringify({ version: 1, registry: OTHER, items: {} }),
+    );
+    expect((await rmk("whoami")).stdout).toContain(`at ${OTHER} (from rmk.lock)`);
+    writeFileSync(
+      join(io.cwd, "rmk.config.json"),
+      JSON.stringify({ version: 1, registry: `${REGISTRY}/`, dependencies: {} }),
+    );
+    expect((await rmk("whoami")).stdout).toContain(`at ${REGISTRY} (from rmk.config.json)`);
+    io.env.RMK_REGISTRY = OTHER;
+    expect((await rmk("whoami")).stdout).toContain(`at ${OTHER} (from RMK_REGISTRY)`);
+    expect((await rmk("whoami", "--registry", REGISTRY)).stdout).toContain(
+      `at ${REGISTRY} (from --registry)`,
+    );
   });
 
   it("needs a login first, and refuses a config other users can read", async () => {
