@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **0. Check the tools.** Confirm the spec's open question (the `Skill` tool's input) from a real
+- [x] **0. Check the tools.** Confirm the spec's open question (the `Skill` tool's input) from a real
   Claude Code payload, and re-check every hook event in the spec's table against the vendors' docs.
   (The owner's decisions are already in the spec, MVP §14.6 and the decision log.)
   *Done when:* the open question is answered in the spec, and the table matches the docs.
@@ -51,3 +51,15 @@ the same change that completes it.
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- **Task 0 (2026-09-30).** Claude Code 2.1.286, `claude -p` in a scratch project with logging hooks:
+  - `PreToolUse` / `PostToolUse` on `Skill`: `"tool_input": {"skill": "echo-probe"}`; `PostToolUse`
+    adds `"tool_response": {"success": true, "commandName": "echo-probe"}`.
+  - `/echo-probe` typed: `UserPromptExpansion` with `"expansion_type": "slash_command"`,
+    `"command_name": "echo-probe"`, `"command_args": ""`, `"command_source": "projectSettings"`; no
+    `PreToolUse` on that path.
+  - A custom agent: `SubagentStart` and `SubagentStop` with `"agent_type": "probe-agent"` and an
+    `agent_id`; `SubagentStop` has no outcome field.
+  - `-p` ran the project's hooks without a trust prompt.
+  - Codex's and Cursor's events were checked against their docs the same day; no change to the
+    spec's table. Their payloads come from the docs' examples until someone can run those tools.

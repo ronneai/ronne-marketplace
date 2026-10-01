@@ -73,7 +73,7 @@ as for renderers, MVP §3.3):
 | | Claude Code | Codex | Cursor |
 |---|---|---|---|
 | Hook file | `~/.claude/settings.json` | `~/.codex/hooks.json` | `~/.cursor/hooks.json` |
-| Skills | The model choosing one: `PostToolUse` / `PostToolUseFailure` on `Skill`. Typed by the person: `UserPromptExpansion` (`slash_command`) | No event: not counted | No event: not counted |
+| Skills | The model choosing one: `PostToolUse` / `PostToolUseFailure` on `Skill` (`tool_input.skill`). Typed by the person: `UserPromptExpansion` (`slash_command`) | No event: not counted | No event: not counted |
 | Commands | `UserPromptExpansion` (`command_name`) | No event | No event |
 | Agents | `SubagentStart` (`agent_type`) | `SubagentStart` (`agent_type`) | `subagentStop` (`subagent_type`), if custom agents' names appear there |
 | MCP servers | `PostToolUse` / `PostToolUseFailure` on `mcp__<server>__…` | `PostToolUse` on `mcp__<server>__…` | `afterMCPExecution` (`mcp_server_name`), `postToolUseFailure` |
@@ -201,6 +201,5 @@ Answered by the owner on 2026-09-30 (MVP §14.6's "decisions to make first"):
 
 ## Open questions
 
-- **Claude Code's `Skill` tool input** doesn't document the field that holds the skill's name;
-  building starts by confirming it from a real payload. If it can't be relied on, Claude Code skills
-  count only when typed (`UserPromptExpansion`).
+- None. (The `Skill` tool's input was confirmed on 2026-09-30 from real Claude Code 2.1.286 payloads:
+  `tool_input.skill` names the skill, and `PostToolUse` adds `tool_response.success`.)
