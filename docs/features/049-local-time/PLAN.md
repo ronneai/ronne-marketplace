@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. `<LocalTime>`.** The client component and its three precisions, UTC on the server and
+- [x] **1. `<LocalTime>`.** The client component and its three precisions, UTC on the server and
   in `title`, local after hydration.
   *Done when:* a component test renders the server form, and a test with a fixed time zone renders
   the local forms (minute, second, day across midnight).
