@@ -19,7 +19,7 @@ the same change that completes it.
   between check and submit, someone else's id, a status that can't be submitted, resubmitting, and
   the audit, on every database.
 
-- [ ] **2. API.** `POST /api/v1/drafts/check` and `POST /api/v1/drafts/submit` in
+- [x] **2. API.** `POST /api/v1/drafts/check` and `POST /api/v1/drafts/submit` in
   `server/http/drafts-api.ts` and their routes. They take `ids` or `all`, with the 100-id limit, the
   submit rate limit, and the error codes.
   *Done when:* the drafts API tests cover each row of the error table and each result.

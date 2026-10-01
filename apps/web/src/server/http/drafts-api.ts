@@ -9,13 +9,21 @@ import {
   type UploadedDraft,
   type UploadFile,
 } from "../domains/submissions/actions/drafts";
+import {
+  type BulkSelection,
+  type CheckedDraft,
+  checkManyDraftsAs,
+  type SubmittedDraft,
+  submitManyDraftsAs,
+} from "../domains/submissions/actions/submissions";
 import type { Submission } from "../domains/submissions/models/submission";
+import { MAX_BULK } from "../domains/submissions/services/bulk-submit";
 import type { StorageAdapter } from "../storage";
 import { parseLimit, parseSearch } from "./api-query";
 import { domainErrorResponse, errorResponse, rateLimitedResponse } from "./errors";
 import { MIB, readJsonObjectWithin } from "./read-json";
 import { requireToken, type TokenGuardDeps } from "./require-token";
-import { type UploadLimiter, uploadLimiter } from "./upload-rate-limit";
+import { submitLimiter, type UploadLimiter, uploadLimiter } from "./upload-rate-limit";
 
 /**
  * The API that creates drafts (feature 037): what `rmk export` and the MCP server's export tools
@@ -26,6 +34,8 @@ export type DraftsApiDeps = {
   app?: AppAuth;
   guard?: TokenGuardDeps;
   limiter?: UploadLimiter;
+  /** Submit requests (052): their own, smaller limit. */
+  submitLimiter?: UploadLimiter;
   /** Where published versions are, to tell a proposal that changes nothing (042). */
   storage?: StorageAdapter;
   /** The instance's public address, for the draft's `url`; by default PUBLIC_URL, or none. */
@@ -273,6 +283,134 @@ export const getDrafts = async (request: Request, deps: DraftsApiDeps = {}) => {
     const drafts = await listOpenDraftsAs(guard.auth, name?.trim() ?? undefined, deps.app);
     return Response.json(
       { drafts: drafts.map((submission) => openDraftJson(deps, submission)) },
+      { headers: { "cache-control": "no-store" } },
+    );
+  } catch (error) {
+    return orDomainError(error);
+  }
+};
+
+const SELECTION =
+  'Send JSON: { "ids": ["…", …] } (at most 100, each once), or { "all": true } for every draft of yours.';
+
+/** A bulk request's body (052): `ids`, or `all`. */
+const parseSelection = (
+  body: Record<string, unknown> | null,
+): Parsed<BulkSelection> | { tooMany: number } => {
+  if (body?.all === true && body.ids === undefined) return { ok: true, value: { all: true } };
+  const ids = body?.ids;
+  if (!Array.isArray(ids) || ids.length === 0 || ids.some((id) => typeof id !== "string"))
+    return { ok: false, message: SELECTION };
+  if (new Set(ids).size !== ids.length) return { ok: false, message: `Each id once. ${SELECTION}` };
+  if (ids.length > MAX_BULK) return { tooMany: ids.length };
+  return { ok: true, value: { ids: ids as string[] } };
+};
+
+/** A bulk request, in order: the token, then (for submit) the rate, the body's size and shape. */
+const readSelection = async (
+  request: Request,
+  deps: DraftsApiDeps,
+  limiter: UploadLimiter | null,
+): Promise<
+  { ok: true; auth: Authenticated; selection: BulkSelection } | { ok: false; response: Response }
+> => {
+  const guard = await requireToken(request, deps.guard);
+  if (!guard.ok) return guard;
+  if (limiter) {
+    const rate = limiter.consume(guard.auth.user.id);
+    if (!rate.allowed)
+      return {
+        ok: false,
+        response: rateLimitedResponse(
+          "Too many submits: at most 10 requests in 10 minutes. Wait, then try again.",
+          rate.retryAfterSeconds,
+        ),
+      };
+  }
+  const read = await readJsonObjectWithin(request, MIB);
+  if (!read.ok) return read;
+  const selection = parseSelection(read.body);
+  if ("tooMany" in selection)
+    return {
+      ok: false,
+      response: errorResponse(
+        413,
+        "too_many",
+        `That's ${selection.tooMany} drafts; one request takes at most ${MAX_BULK}.`,
+        { limit: MAX_BULK },
+      ),
+    };
+  if (!selection.ok)
+    return { ok: false, response: errorResponse(400, "invalid_request", selection.message) };
+  return { ok: true, auth: guard.auth, selection: selection.value };
+};
+
+/** A draft as a bulk answer names it: where it is, its item, and its status. */
+const draftOf = (deps: DraftsApiDeps, submission: Submission) => ({
+  ...placeOf(deps, submission.id),
+  name: `@${submission.scope.name}/${submission.name}`,
+  type: submission.type,
+  status: submission.status,
+});
+
+const checkedJson = (deps: DraftsApiDeps, draft: CheckedDraft) => ({
+  id: draft.id,
+  result: draft.result,
+  ready: draft.result === "ready",
+  ...("submission" in draft ? draftOf(deps, draft.submission) : {}),
+  ...("issues" in draft ? { issues: draft.issues } : {}),
+});
+
+const submittedJson = (deps: DraftsApiDeps, draft: SubmittedDraft) => ({
+  id: draft.id,
+  result: draft.result,
+  ...("submission" in draft ? draftOf(deps, draft.submission) : {}),
+  ...("revision" in draft ? { revision: draft.revision } : {}),
+  ...("issues" in draft ? { issues: draft.issues } : {}),
+});
+
+/**
+ * POST /api/v1/drafts/check (052): whether Submit would take each of the token's user's drafts
+ * (`ids`, or `all` of them), with what's in the way, without submitting anything.
+ */
+export const checkDrafts = async (request: Request, deps: DraftsApiDeps = {}) => {
+  const read = await readSelection(request, deps, null);
+  if (!read.ok) return read.response;
+  try {
+    const { drafts, more } = await checkManyDraftsAs(
+      read.auth,
+      request.headers,
+      read.selection,
+      deps.app,
+      ...(deps.storage ? [deps.storage] : []),
+    );
+    return Response.json(
+      { drafts: drafts.map((draft) => checkedJson(deps, draft)), more },
+      { headers: { "cache-control": "no-store" } },
+    );
+  } catch (error) {
+    return orDomainError(error);
+  }
+};
+
+/**
+ * POST /api/v1/drafts/submit (052): submits each of the selection that's ready, each on its own,
+ * and answers every result; one that isn't ready doesn't make the request fail. A token may submit
+ * its user's drafts (owner, 2026-10-01); each submit's audit event names it.
+ */
+export const submitDrafts = async (request: Request, deps: DraftsApiDeps = {}) => {
+  const read = await readSelection(request, deps, deps.submitLimiter ?? submitLimiter());
+  if (!read.ok) return read.response;
+  try {
+    const { results, more } = await submitManyDraftsAs(
+      read.auth,
+      request.headers,
+      read.selection,
+      deps.app,
+      ...(deps.storage ? [deps.storage] : []),
+    );
+    return Response.json(
+      { results: results.map((draft) => submittedJson(deps, draft)), more },
       { headers: { "cache-control": "no-store" } },
     );
   } catch (error) {

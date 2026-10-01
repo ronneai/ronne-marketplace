@@ -32,3 +32,26 @@ export const uploadLimiter = (): UploadLimiter => {
   shared.__ronneUploadLimiter ??= createUploadLimiter();
   return shared.__ronneUploadLimiter;
 };
+
+/** At most 10 submit requests per user in 10 minutes (052); each takes up to 100 drafts. */
+export const SUBMITS_PER_WINDOW = 10;
+
+/** Counts `POST /drafts/submit` requests per user, as uploads are counted. */
+export const createSubmitLimiter = (now?: () => number): UploadLimiter => {
+  const limiter = new LoginRateLimiter({
+    max: SUBMITS_PER_WINDOW,
+    windowMs: UPLOAD_WINDOW_MS,
+    now,
+  });
+  return {
+    consume: (userId: string): RateLimitDecision => limiter.consume([`submit:${userId}`]),
+  };
+};
+
+const sharedSubmit = globalThis as { __ronneSubmitLimiter?: UploadLimiter };
+
+/** The running server's submit limiter. */
+export const submitLimiter = (): UploadLimiter => {
+  sharedSubmit.__ronneSubmitLimiter ??= createSubmitLimiter();
+  return sharedSubmit.__ronneSubmitLimiter;
+};
