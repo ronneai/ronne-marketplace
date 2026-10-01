@@ -25,7 +25,8 @@ import type { SubmissionActor, SubmissionDeps } from "./submissions";
 
 const now = (deps: SubmissionDeps) => (deps.now ?? (() => new Date()))();
 
-const messageFrom = (value: string | undefined, required: string | null): string | null => {
+/** A trimmed message, null when empty; ReviewMessageError when it's required or too long. */
+export const messageFrom = (value: string | undefined, required: string | null): string | null => {
   const message = (value ?? "").trim();
   if (!message) {
     if (required) throw new ReviewMessageError("required", required);
@@ -102,7 +103,12 @@ export const decide = async (
   deps: SubmissionDeps,
   actor: SubmissionActor,
   id: string,
-  input: { decision: ReviewDecision; message?: string },
+  input: {
+    decision: ReviewDecision;
+    message?: string;
+    /** How it was decided, for the audit log: approving many at once (054). */
+    via?: "bulk";
+  },
 ): Promise<Submission> => {
   const decision = DECISIONS[input.decision];
   requirePermission(
@@ -136,7 +142,12 @@ export const decide = async (
         actorId: actor.user?.id ?? null,
         action: decision.audit,
         target: { type: "submission", id: submission.id },
-        metadata: { name: itemNameOf(submission), revision, ...(message ? { message } : {}) },
+        metadata: {
+          name: itemNameOf(submission),
+          revision,
+          ...(message ? { message } : {}),
+          ...(input.via ? { via: input.via } : {}),
+        },
         ipAddress: actor.ip,
       },
       at,

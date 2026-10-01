@@ -221,7 +221,7 @@ export class OwnSubmissionError extends SubmissionsError {
   constructor(canOverride: boolean) {
     super(
       canOverride
-        ? "You can't review your own submission. As root, you can approve it with an override and a reason."
+        ? "You can't review your own submission. As root, you can approve it with an override."
         : "You can't review your own submission: another moderator or root has to.",
     );
   }
@@ -240,6 +240,16 @@ export class ReviewMessageError extends SubmissionsError {
         ? `${what} needs a message, so the author knows what to do.`
         : `A message can have at most ${REVIEW_MESSAGE_MAX_LENGTH.toLocaleString("en")} characters.`,
     );
+  }
+}
+
+/** Approving many at once (054) takes at most `limit` submissions per request. */
+export class BulkLimitError extends SubmissionsError {
+  constructor(
+    readonly count: number,
+    readonly limit: number,
+  ) {
+    super(`That's ${count} submissions; one request takes at most ${limit}.`);
   }
 }
 

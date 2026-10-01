@@ -16,7 +16,7 @@ the same change that completes it.
   *Done when:* `reviews.db.test.ts` covers an override with and without a reason (event body and
   audit metadata), and request changes and reject still refuse an empty message.
 
-- [ ] **2. Domain.** `approveMany` in the `submissions` service, over 014's `decide`, each
+- [x] **2. Domain.** `approveMany` in the `submissions` service, over 014's `decide`, each
   submission in its own transaction, with the spec's result kinds and `via: "bulk"` in the audit
   metadata. `approvable` (status, author, override, staleness) shared by the queue and the service.
   An action for a session.

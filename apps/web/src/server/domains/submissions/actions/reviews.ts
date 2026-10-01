@@ -3,11 +3,13 @@ import { getCurrentUser } from "../../identity/actions/session";
 import { clientIp } from "../../identity/models/client-ip";
 import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-instance";
 import { kyselySubmissionRepository } from "../repositories/kysely-submission-repository";
+import * as bulk from "../services/bulk-approve";
 import * as queue from "../services/queue";
 import * as page from "../services/review-page";
 import * as service from "../services/reviews";
 import type { SubmissionActor, SubmissionDeps } from "../services/submissions";
 
+export type { ApprovedSubmission } from "../services/bulk-approve";
 export type { QueuePage, QueueRow, QueueTab } from "../services/queue";
 export type { ProposalView, ReviewView } from "../services/review-page";
 export type { ReviewDecision } from "../services/reviews";
@@ -28,6 +30,13 @@ export const decide = async (
   input: { decision: service.ReviewDecision; message?: string },
   app: AppAuth = getAppAuth(),
 ) => service.decide(deps(app), await actor(headers, app), id, input);
+
+/** Approves several at once (054), with one optional message for all. */
+export const approveMany = async (
+  headers: Headers,
+  input: { ids: readonly string[]; message?: string },
+  app: AppAuth = getAppAuth(),
+) => bulk.approveMany(deps(app), await actor(headers, app), input);
 
 export const comment = async (
   headers: Headers,
