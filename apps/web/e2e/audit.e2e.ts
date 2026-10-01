@@ -10,7 +10,18 @@ const signIn = async (page: Page, email: string) => {
   await expect(page).not.toHaveURL(/\/sign-in/);
 };
 
-test("root reads the audit log: setup, and its own sign-in", async ({ page }) => {
+/** Chooses a usage policy on Admin › Settings and saves it. */
+const choosePolicy = async (page: Page, label: string) => {
+  await page.getByRole("radio", { name: new RegExp(`^${label}`) }).check();
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText("Usage reporting saved.")).toBeVisible();
+};
+
+// Root is the only root, and sign-in allows 5 attempts a minute per email, so root's admin pages
+// share this one sign-in (docs/knowledge/e2e-sign-in-limit.md).
+test("root reads the audit log: setup, its own sign-in, and a settings change", async ({
+  page,
+}) => {
   await signIn(page, E2E_USERS.root);
   await page.getByRole("link", { name: "Admin" }).click();
   await expect(page).toHaveURL(/\/admin\/users$/);
@@ -40,6 +51,21 @@ test("root reads the audit log: setup, and its own sign-in", async ({ page }) =>
   await expect(rows.filter({ hasText: "auth.signed_in" })).toHaveCount(0);
   await expect(rows.filter({ hasText: "instance.root_created" })).toHaveCount(1);
 
+  // Admin › Settings: root sets the usage policy (046); the change is audited.
+  await admin.getByRole("link", { name: "Settings" }).click();
+  await expect(current(admin)).toHaveText("Settings");
+  await expect(page.getByRole("radio", { name: /^Off/ })).toBeChecked();
+  await choosePolicy(page, "People choose");
+  await page.reload();
+  await expect(page.getByRole("radio", { name: /^People choose/ })).toBeChecked();
+  await admin.getByRole("link", { name: "Audit log" }).click();
+  await page.getByLabel("Action").selectOption("settings");
+  await page.getByRole("button", { name: "Filter" }).click();
+  await expect(rows.filter({ hasText: "settings.usage_policy" })).toHaveCount(1);
+  // Back to a new instance's default, so other tests see an instance that collects nothing.
+  await admin.getByRole("link", { name: "Settings" }).click();
+  await choosePolicy(page, "Off");
+
   await admin.getByRole("link", { name: "Users" }).click();
   await expect(current(admin)).toHaveText("Users");
   await main.getByRole("link", { name: "Home" }).click();
@@ -52,4 +78,5 @@ test("anyone but root gets a 404", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Admin" })).toHaveCount(0);
   const response = await page.goto("/admin/audit");
   expect(response?.status()).toBe(404);
+  expect((await page.goto("/admin/settings"))?.status()).toBe(404);
 });

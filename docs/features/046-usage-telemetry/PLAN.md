@@ -31,7 +31,8 @@ the same change that completes it.
   topic, which task 6 writes.)
   *Done when:* `*.db.test.ts` covers the default `off`, root changing it, another role refused, the
   audit entry and the API following the change without a restart, on all four database servers; a
-  component test covers the page; `settings.e2e.ts` changes the policy as root.
+  component test covers the page; `audit.e2e.ts`'s root test changes the policy and finds it in the
+  audit log.
 
 - [x] **3. `rmk`: the policy, the queue and sending.** Each registry's policy from `GET /usage`
   (daily, and at `rmk login`), kept in the usage state; the rules per policy (`rmk telemetry off`,
@@ -55,7 +56,7 @@ the same change that completes it.
   of the spec's table, an item `rmk` didn't install, a name matching two items, and that the hook
   always exits 0 and prints nothing; install and `off` round-trip, leaving an edited hook.
 
-- [ ] **6. Documentation.** The `usage` topic, the `rmk` and `roles` sections and the `usage-policy`
+- [x] **6. Documentation.** The `usage` topic, the `rmk` and `roles` sections and the `usage-policy`
   helper in the spec's Documentation section; `docs/spec/cli-files.md` gets the config's `telemetry` field and the queue.
   *Done when:* the docs render tests pass, and every link to the new topic lands on a real section.
 
@@ -84,8 +85,9 @@ goes into `SPEC.md` instead.
   `false` or `0`. MVP §11, §12 and the access tokens decision now say a token may report usage.
 - **Task 2b.** Settings are their own domain (`domains/settings`) with an `instance_settings` table
   (migration 0013); a missing row reads as the default, so nothing is seeded. The usage domain reads
-  the policy on every request, so a change applies at once. `settings.e2e.ts` puts the policy back to
-  `off` at the end, because the end-to-end tests share one instance.
+  the policy on every request, so a change applies at once. The end-to-end check lives in `audit.e2e.ts`'s
+  root test, which puts the policy back to `off`: a separate `settings.e2e.ts` was a sixth root
+  sign-in and tripped the 5-a-minute limit (`docs/knowledge/e2e-sign-in-limit.md`).
 - **Task 3.** `packages/cli/src/telemetry.ts` holds the rules, the queue and sending;
   `telemetry-command.ts` the command. The queue is append-only JSONL per registry under
   `~/.cache/rmk/usage/`, so a hook and a command can write at once; a send moves the file aside

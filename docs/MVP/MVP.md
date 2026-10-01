@@ -395,6 +395,7 @@ written `pnpm run setup`. Full behaviour, including a non-interactive mode for D
 | `rmk update [item]` · `rmk outdated` | Update within ranges / list available updates. |
 | `rmk remove <item>` | Remove the item and its managed files. Dependencies are removed too if nothing else needs them. |
 | `rmk export [<path\|name>...] [--to <@scope>]` | Send items you wrote in your AI tool's folders to the registry as **drafts** (M7, [038](../features/038-rmk-export/SPEC.md)): shows what would be uploaded, asks, uploads, and prints each draft's address. It never submits, and refuses items `rmk` installed. |
+| `rmk telemetry [on\|off\|status\|preview\|flush]` | Usage reporting under each registry's policy ([046](../features/046-usage-telemetry/SPEC.md)): `status` shows the policy and whether rmk reports; `off` and `on` are the person's choice where the policy lets them choose; `preview` prints what would be sent. `rmk telemetry hook <tool>` is what the AI tools' usage hooks run. |
 
 - There is no `register` command.
 - Every command except `login` needs a valid token. Tokens can be revoked from the web UI.

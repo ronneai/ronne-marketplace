@@ -12,7 +12,8 @@ diffs stay small and stable. Each has a `version` field so the format can change
 | `.rmk/state.json` | project root | ✅ | `install`, `update`, `remove` |
 | `~/.config/rmk/config.json` | home | — | `login`, `logout` (mode `0600`) |
 | `~/.config/rmk/user.lock` | home | — | user-scope installs |
-| `~/.config/rmk/user-state.json` | home | — | user-scope installs |
+| `~/.config/rmk/user-state.json` | home | — | user-scope installs, `rmk mcp-setup --scope user`, and the usage hooks (046) |
+| `~/.cache/rmk/usage/` | home | — | usage reporting (046): one queue per registry and `state.json` |
 
 The lockfile and state file are committed together, because a team shares the rendered files too.
 Without the state file, a teammate's `rmk` couldn't tell which keys in `.claude/settings.json` it owns.
@@ -144,13 +145,30 @@ What rmk wrote, so it can update or remove it without touching anything else (MV
       "token": "rmk_…",
       "email": "dev@example.com"
     }
-  }
+  },
+  "telemetry": { "enabled": false, "decidedAt": "2026-10-05T12:00:00.000Z" }
 }
 ```
 
 - Created with mode `0600`. rmk warns and refuses to read it if it's readable by other users.
 - The `RMK_TOKEN` and `RMK_REGISTRY` env vars override the file, for CI.
 - The file holds only rmk's own token. Secrets for MCP servers are never stored (MVP §4.3).
+- `telemetry` is the person's `rmk telemetry on|off`. It only counts where a registry's usage policy
+  lets people choose; absent means on there ([046](../features/046-usage-telemetry/SPEC.md)).
+
+## `~/.cache/rmk/usage/`
+
+Usage reporting (046). Nothing here is needed to install anything; deleting the folder loses only
+counts not sent yet.
+
+- `<sha256 of the registry, 16 hex>.jsonl`: the queue for one registry, one usage line per line
+  (`{ day, item, version, tool, event, trigger?, outcome?, count }`), appended by commands and by
+  the tools' hooks. Lines older than 3 days and anything past 1 MB (oldest first) are dropped when
+  it's read.
+- `state.json`: per registry, its usage policy and when it was checked, which policy's notice was
+  printed, and the last send and send attempt.
+- The usage hooks themselves are entries in each tool's user-level settings, recorded in
+  `user-state.json` under the item name `rmk telemetry`.
 
 ## User scope
 

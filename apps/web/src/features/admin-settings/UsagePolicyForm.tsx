@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { FieldError } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
@@ -37,7 +38,9 @@ export const UsagePolicyForm = ({ policy }: { policy: UsagePolicy }) => {
   return (
     <form action={action} className="grid gap-4">
       <fieldset className="grid gap-3" aria-describedby="usage-policy-hint">
-        <legend className="mb-1 text-sm font-semibold text-fg">Usage reporting</legend>
+        <legend className="mb-1 flex items-center gap-2 text-sm font-semibold text-fg">
+          Usage reporting <Help id="usage-policy" />
+        </legend>
         <p id="usage-policy-hint" className="text-sm text-muted">
           Counts of installs, removals and runs of the items rmk installed from this instance, by
           day, item, version and tool. Never who, where, or what was asked.

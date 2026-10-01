@@ -123,6 +123,7 @@ export const TOPICS = [
       { id: "tokens", title: "Tokens and the API" },
       { id: "tools", title: "Your AI tools" },
       { id: "mcp", title: "From inside your AI tool" },
+      { id: "telemetry", title: "Usage reporting" },
     ],
   },
   {
@@ -135,6 +136,20 @@ export const TOPICS = [
       { id: "tools", title: "The tools" },
       { id: "plans", title: "Plans" },
       { id: "access", title: "What it can reach" },
+    ],
+  },
+  {
+    slug: "usage",
+    title: "Usage data",
+    summary: "What rmk reports about the items it installed, who decides, and how to stop it.",
+    sections: [
+      { id: "what", title: "What it's for" },
+      { id: "policy", title: "Who decides" },
+      { id: "sent", title: "What is sent" },
+      { id: "never", title: "What is never sent" },
+      { id: "switch", title: "Turning it off" },
+      { id: "tools", title: "What each AI tool reports" },
+      { id: "instance", title: "What the instance keeps" },
     ],
   },
   {
@@ -177,7 +192,7 @@ export const TOPIC_GROUPS: { label: string; topics: readonly TopicSlug[] }[] = [
   { label: "Getting started", topics: ["overview", "install", "roles"] },
   { label: "Organising", topics: ["scopes", "items"] },
   { label: "Publishing", topics: ["export", "review", "versions", "changes"] },
-  { label: "Installing", topics: ["rmk", "mcp", "claude-code", "codex", "cursor"] },
+  { label: "Installing", topics: ["rmk", "mcp", "usage", "claude-code", "codex", "cursor"] },
 ];
 
 export const topicOf = (slug: string): Topic | undefined => TOPICS.find((t) => t.slug === slug);

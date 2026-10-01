@@ -211,24 +211,24 @@ Saving takes effect at once (no restart) and is recorded in the audit log
 
 ## Acceptance criteria
 
-- [ ] A new instance's policy is `off`; root changes it on Admin › Settings, the change is audited
+- [x] A new instance's policy is `off`; root changes it on Admin › Settings, the change is audited
       and takes effect without a restart; nobody else can change it.
-- [ ] `rmk` reports nothing to an `off` or unknown registry; reports by default to `choice` unless
+- [x] `rmk` reports nothing to an `off` or unknown registry; reports by default to `choice` unless
       `rmk telemetry off` or `RMK_TELEMETRY=0`; always reports to `required`, refusing `off` there;
       `status` says which rule decided.
-- [ ] The notice is printed once per registry and policy.
-- [ ] `install` adds the user-level hook for the tools it installs into when reporting is on, says
+- [x] The notice is printed once per registry and policy.
+- [x] `install` adds the user-level hook for the tools it installs into when reporting is on, says
       so, and records it in the user state; `off` removes it where allowed and deletes the queue.
-- [ ] Install, update, remove and `apply_plan` queue `install` and `remove`.
-- [ ] The hook counts runs of `rmk`-installed items from each tool's documented payloads (golden
+- [x] Install, update, remove and `apply_plan` queue `install` and `remove`.
+- [x] The hook counts runs of `rmk`-installed items from each tool's documented payloads (golden
       payload tests per tool), ignores everything else, ignores Cursor's copy of Claude Code's hook,
       exits 0 and prints nothing.
-- [ ] `preview` prints exactly what would be sent, and no event field outside the list exists.
-- [ ] `POST /api/v1/usage` stores daily sums, ignores unknown items and bad
+- [x] `preview` prints exactly what would be sent, and no event field outside the list exists.
+- [x] `POST /api/v1/usage` stores daily sums, ignores unknown items and bad
       days, enforces the size and rate limits, and answers `403 usage_disabled` when the policy is
       `off`; on all four database servers.
-- [ ] Nothing about the person or the project is sent or stored, and retention deletes old rows.
-- [ ] The Documentation listed above says what the feature does now.
+- [x] Nothing about the person or the project is sent or stored, and retention deletes old rows.
+- [x] The Documentation listed above says what the feature does now.
 
 ## Decisions
 
