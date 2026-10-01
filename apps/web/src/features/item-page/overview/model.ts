@@ -178,3 +178,54 @@ const RISK_LABELS: Record<RiskFlagKind, string> = {
 export const riskLabelsOf = (flags: readonly { kind: RiskFlagKind }[]): string[] => [
   ...new Set(flags.map((flag) => RISK_LABELS[flag.kind])),
 ];
+
+const BODY_ROLES: Partial<Record<ItemType, string>> = {
+  agent: "system instruction",
+  skill: "skill entry",
+  rule: "rule body",
+  command: "command template",
+  "output-style": "output style",
+  hook: "hook script",
+  statusline: "status line script",
+};
+
+/** What the main file is for, as the Overview's card names it (045). */
+export const bodyRoleOf = (type: ItemType): string | null => BODY_ROLES[type] ?? null;
+
+/**
+ * The limits an item's own manifest sets (045), as sentences with `code` in backticks: an agent's
+ * tool list, a rule's activation, a hook's matcher, a permission policy's `deny` and `ask` rules.
+ */
+export const guardrailsOf = (manifest: Manifest, type: ItemType): string[] => {
+  const block = blockOf(manifest, type);
+  switch (type) {
+    case "agent": {
+      const tools = texts(block.tools);
+      return tools.length > 0
+        ? [`Only these tools: ${tools.map((tool) => `\`${tool}\``).join(", ")}.`]
+        : [];
+    }
+    case "rule": {
+      const globs = texts(block.globs);
+      if (block.activation === "glob" && globs.length > 0)
+        return [`Applies only to files matching ${globs.map((g) => `\`${g}\``).join(", ")}.`];
+      if (block.activation === "manual") return ["Applies only when someone asks for it."];
+      return [];
+    }
+    case "hook": {
+      const tool = text(record(block.matcher).tool);
+      return tool ? [`Runs only for the \`${tool}\` tool.`] : [];
+    }
+    case "permission-policy":
+      return policyRulesOf(manifest).flatMap((rule) => {
+        const what = `\`${rule.tool}${rule.pattern ? ` ${rule.pattern}` : ""}\``;
+        return rule.decision === "deny"
+          ? [`Blocks ${what}.`]
+          : rule.decision === "ask"
+            ? [`Asks before ${what}.`]
+            : [];
+      });
+    default:
+      return [];
+  }
+};

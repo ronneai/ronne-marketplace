@@ -15,7 +15,7 @@ the same change that completes it.
   override and a version without review; on all four database servers. (A review's actor can't be
   deleted, `review_events_actor_id_fk` restricts it, so the "former user" case is only a fallback.)
 
-- [ ] **2. The dashboard.** The stat cards, the Install card with quick flags (and the panel gone
+- [x] **2. The dashboard.** The stat cards, the Install card with quick flags (and the panel gone
   from the other tabs), capabilities and guardrails, the main file card with its role, and the side
   column (package verification, configuration, Used by, maintainers and review, included files).
   *Done when:* `item-page.test.tsx` covers each card from real data and the hidden ones, and

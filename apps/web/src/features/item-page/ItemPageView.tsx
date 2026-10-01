@@ -1,10 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Help } from "@/components/help/Help";
 import { Badge } from "@/components/ui/Badge";
-import { CopyableCommand } from "@/components/ui/CopyableCommand";
 import { Notice } from "@/components/ui/Notice";
-import { Panel } from "@/components/ui/Panel";
 import { utcMinute } from "@/components/ui/time";
 import type { ItemPage } from "@/server/domains/items/actions/versions";
 import { ProposeButton } from "./ProposeButton";
@@ -88,28 +85,6 @@ export const ItemPageView = ({
           </Link>
         </Notice>
       ) : null}
-
-      <Panel className="grid gap-2">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold text-fg">Install</h2>
-          <Help id="install" />
-        </div>
-        {page.installable ? (
-          <>
-            <CopyableCommand command={`rmk install ${name}`} />
-            <CopyableCommand command={`rmk install ${name}@${shown.version}`} />
-            {!other && shown.deprecatedMessage ? (
-              <p className="text-xs text-warning-text">
-                This version is deprecated: {shown.deprecatedMessage}
-              </p>
-            ) : null}
-          </>
-        ) : (
-          <p className="text-sm text-error-text">
-            Every version is yanked: there's nothing to install. Projects that pin one keep working.
-          </p>
-        )}
-      </Panel>
 
       <nav
         aria-label="Item"
