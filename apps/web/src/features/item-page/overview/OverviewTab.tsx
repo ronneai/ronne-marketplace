@@ -568,8 +568,9 @@ const IncludedFiles = ({
  */
 /** Under the minimum: why there are no usage numbers, where usage is or was collected (047). */
 const UsageMinimum = () => (
-  <p id="usage" className="text-sm text-muted">
+  <p id="usage" className="flex flex-wrap items-center gap-2 text-sm text-muted">
     Usage appears once this item has 20 reported installs or runs in 30 days.
+    <Help id="usage" />
   </p>
 );
 
@@ -599,7 +600,7 @@ export const OverviewTab = ({
         <div className="grid min-w-0 gap-4">
           <Install page={page} name={name} />
           {usage.shown ? (
-            <Card id="usage" title="Usage, last 14 days">
+            <Card id="usage" title="Usage, last 14 days" aside={<Help id="usage" />}>
               <UsageBody
                 usage={usage}
                 type={type}

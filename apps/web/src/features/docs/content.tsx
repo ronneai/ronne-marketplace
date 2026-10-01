@@ -535,9 +535,13 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           </li>
         </Bullets>
         <p>
-          Usage (how many projects have it installed, how often it runs and in which tools), runtime
+          Once an item has enough reported usage, its first two cards become{" "}
+          <strong>Installs</strong> and <strong>Runs</strong> over 30 days,{" "}
+          <strong>Works in</strong> shows each tool&apos;s share, and a <strong>Usage</strong> card
+          after Install charts the last 14 days.{" "}
+          <To href={docsHref("usage", "reading")}>Reading the numbers</To> explains them. Runtime
           requirements and signed releases aren&apos;t shown yet: the registry doesn&apos;t collect
-          or store them. Usage will come from opt-in telemetry, and only what people turn on.
+          or store them.
         </p>
         <p>
           <Code>?version=</Code> works here too, yanked versions included. If a version&apos;s
@@ -731,40 +735,48 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
       </>
     ),
     "deprecate-yank": (
-      <Table>
-        <thead>
-          <tr>
-            <Th>Action</Th>
-            <Th>What happens</Th>
-            <Th>When to use it</Th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <Td>
-              <Badge tone="warning">deprecated</Badge>
-            </Td>
-            <Td className="text-sm">
-              It stays installable, and <Code>rmk</Code> prints its message whenever it installs or
-              updates it.
-            </Td>
-            <Td className="text-sm">
-              There&apos;s a better version or item: &quot;Use 1.2.0 or later.&quot;
-            </Td>
-          </tr>
-          <tr>
-            <Td>
-              <Badge tone="error">yanked</Badge>
-            </Td>
-            <Td className="text-sm">
-              New installs can&apos;t get it; a project whose lockfile pins it still installs it,
-              with a warning. If <Code>latest</Code> pointed to it, it moves back to the newest
-              stable version left.
-            </Td>
-            <Td className="text-sm">It&apos;s broken or unsafe. It can be unyanked.</Td>
-          </tr>
-        </tbody>
-      </Table>
+      <>
+        <Table>
+          <thead>
+            <tr>
+              <Th>Action</Th>
+              <Th>What happens</Th>
+              <Th>When to use it</Th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <Td>
+                <Badge tone="warning">deprecated</Badge>
+              </Td>
+              <Td className="text-sm">
+                It stays installable, and <Code>rmk</Code> prints its message whenever it installs
+                or updates it.
+              </Td>
+              <Td className="text-sm">
+                There&apos;s a better version or item: &quot;Use 1.2.0 or later.&quot;
+              </Td>
+            </tr>
+            <tr>
+              <Td>
+                <Badge tone="error">yanked</Badge>
+              </Td>
+              <Td className="text-sm">
+                New installs can&apos;t get it; a project whose lockfile pins it still installs it,
+                with a warning. If <Code>latest</Code> pointed to it, it moves back to the newest
+                stable version left.
+              </Td>
+              <Td className="text-sm">It&apos;s broken or unsafe. It can be unyanked.</Td>
+            </tr>
+          </tbody>
+        </Table>
+        <p>
+          Where the item has enough <To href={docsHref("usage", "reading")}>reported usage</To>, the
+          Versions page shows each version&apos;s runs and installs over 30 days, and both dialogs
+          say them before you confirm: who would still get a deprecation warning, and what a yank
+          would stop.
+        </p>
+      </>
     ),
   },
 
@@ -798,14 +810,14 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </p>
         <Bullets>
           <li>
-            <strong>skills:</strong> folders with a <Code>SKILL.md</Code> in{" "}
+            <strong>skills:</strong> folders with a <Code>SKILL.md</Code> in" "
             <Code>.claude/skills/</Code>, and in <Code>.agents/skills/</Code>, which Codex and
             Cursor share;
           </li>
           <li>
-            <strong>Claude Code:</strong> agents, commands and rules as Markdown in{" "}
-            <Code>.claude/agents/</Code>, <Code>.claude/commands/</Code> and{" "}
-            <Code>.claude/rules/</Code>; MCP servers in <Code>.mcp.json</Code>, or at the top of{" "}
+            <strong>Claude Code:</strong> agents, commands and rules as Markdown in" "
+            <Code>.claude/agents/</Code>, <Code>.claude/commands/</Code> and" "
+            <Code>.claude/rules/</Code>; MCP servers in <Code>.mcp.json</Code>, or at the top of" "
             <Code>~/.claude.json</Code>;
           </li>
           <li>
@@ -1816,9 +1828,10 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           and how those runs end, and sends those counts to this instance.
         </p>
         <p>
-          The counts are meant for moderators and authors: what&apos;s worth keeping up, and what a
-          deprecation or a yank would reach. Nothing in the app shows them yet. Only totals are
-          kept: nothing says who, or where.
+          The counts are for everyone choosing an item, and for moderators and authors: what&apos;s
+          worth keeping up, and what a deprecation or a yank would reach. They show on the item page
+          (<To href={docsHref("usage", "reading")}>Reading the numbers</To>). Only totals are kept:
+          nothing says who, or where.
         </p>
       </>
     ),
@@ -1951,8 +1964,50 @@ rmk telemetry preview   # what would be sent now`}</Example>
         The instance adds each report to daily totals per item, version, tool, event, trigger and
         outcome, and keeps them 90 days. Nothing about the person, the token or the project is
         stored with them. A line it can&apos;t count (an item it doesn&apos;t have, a day too old)
-        is ignored. Nothing in the app shows the totals yet; the item page will.
+        is ignored.
       </p>
+    ),
+    reading: (
+      <>
+        <p>
+          An item&apos;s usage shows on its page once it has{" "}
+          <strong>20 reported installs or runs in the last 30 days</strong>. Below that, the
+          Overview says so and shows its usual cards. The minimum keeps a handful of events from
+          looking like a trend; it can&apos;t tell one busy person from many.
+        </p>
+        <Bullets>
+          <li>
+            <strong>Installs, 30 days:</strong> installs reported by <Code>rmk</Code>, once per tool
+            (an item installed for two tools counts twice), with the removals and the all-time
+            downloads under it.
+          </li>
+          <li>
+            <strong>Runs, 30 days:</strong> how often the AI tools ran it, the average per day, and
+            the share that succeeded among runs whose outcome was reported, from 20 such runs on.
+            Hooks, rules, output styles, status lines, permission policies, LSP servers and bundles
+            don&apos;t run on their own: they show installs instead.
+          </li>
+          <li>
+            <strong>Works in:</strong> each tool&apos;s share of the runs (or installs), with a bar
+            in each tool&apos;s colour.
+          </li>
+          <li>
+            <strong>Usage, last 14 days:</strong> runs per day, today left out because it&apos;s
+            still filling up, with the busiest day; then runs by tool, by what started them (typed,
+            chosen by the model, used inside an agent, CI) and by how they ended. A tool that
+            can&apos;t report this item&apos;s runs is named there (
+            <To href={docsHref("usage", "tools")}>What each AI tool reports</To>).
+          </li>
+          <li>
+            <strong>Versions:</strong> runs and installs per version over 30 days, also in the
+            deprecate and yank dialogs.
+          </li>
+        </Bullets>
+        <p>
+          When root turns usage off, what&apos;s stored keeps showing, with a note, until its 90
+          days run out.
+        </p>
+      </>
     ),
   },
   "claude-code": {

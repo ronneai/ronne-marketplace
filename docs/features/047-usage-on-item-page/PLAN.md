@@ -30,7 +30,7 @@ the same change that completes it.
   *Done when:* the versions feature's tests cover the columns under the minimum and both dialogs;
   `versions.e2e.ts` reads the sentence in the deprecate dialog.
 
-- [ ] **5. Documentation.** The sections and the `usage` helper in the spec's Documentation section.
+- [x] **5. Documentation.** The sections and the `usage` helper in the spec's Documentation section.
   *Done when:* the docs render tests pass, and the helper's link lands on `usage#reading`.
 
 ## Notes

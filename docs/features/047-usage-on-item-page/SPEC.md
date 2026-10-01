@@ -123,16 +123,16 @@ Both read `usage_daily` by `(item_id, day)`. `today` is passed in, so tests fix 
 
 ## Acceptance criteria
 
-- [ ] Under 20 events in 30 days, the Overview matches 045 with the minimum line; at 20 and over,
+- [x] Under 20 events in 30 days, the Overview matches 045 with the minimum line; at 20 and over,
       Installs, Runs and Works in's shares appear.
-- [ ] The success rate appears only with 20 or more runs whose outcome is known.
-- [ ] The Usage card shows 14 full days with the peak, by tool, by trigger and by outcome, each with a
+- [x] The success rate appears only with 20 or more runs whose outcome is known.
+- [x] The Usage card shows 14 full days with the peak, by tool, by trigger and by outcome, each with a
       text alternative, and the gaps for the item's type and tools.
-- [ ] Types without runs show installs instead of runs.
-- [ ] The Versions page and the deprecate and yank dialogs show runs and installs per version under
+- [x] Types without runs show installs instead of runs.
+- [x] The Versions page and the deprecate and yank dialogs show runs and installs per version under
       the same minimum.
-- [ ] With usage switched off and no data, nothing about usage appears.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] With usage switched off and no data, nothing about usage appears.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Decisions
 

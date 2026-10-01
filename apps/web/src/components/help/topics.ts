@@ -150,6 +150,7 @@ export const TOPICS = [
       { id: "switch", title: "Turning it off" },
       { id: "tools", title: "What each AI tool reports" },
       { id: "instance", title: "What the instance keeps" },
+      { id: "reading", title: "Reading the numbers" },
     ],
   },
   {
