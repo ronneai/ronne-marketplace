@@ -53,7 +53,14 @@ const Submissions = async ({
       <Help id="export" />
       <BulkSubmitProvider ready={ready}>
         <StatusFilters submissions={submissions} status={status} />
-        <BulkToolbar />
+        <BulkToolbar
+          help={
+            <>
+              <Help id="submit-many" />
+              <Help id="ready" />
+            </>
+          }
+        />
         <SubmissionsTable
           submissions={status ? submissions.filter((s) => s.status === status) : submissions}
           errors={checked.length > 0 ? errors : undefined}

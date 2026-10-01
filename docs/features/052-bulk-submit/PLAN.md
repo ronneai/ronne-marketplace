@@ -40,7 +40,7 @@ the same change that completes it.
   *Done when:* the component tests cover selection and the dialog, and an end-to-end test submits
   three drafts, one of them not ready.
 
-- [ ] **6. Documentation.** The sections and helpers in the spec's Documentation section, MVP §11's
+- [x] **6. Documentation.** The sections and helpers in the spec's Documentation section, MVP §11's
   endpoints, and the `rmk` README's command list. (§15's token decision is already recorded.)
   *Done when:* the docs render tests pass, and every new helper's link lands on a real section.
 
