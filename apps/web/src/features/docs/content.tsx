@@ -115,7 +115,7 @@ const PERMISSIONS: [string, string, string, string][] = [
   ["Approve their own submission (override, audited)", "–", "–", "✓"],
   ["Create scopes", "–", "–", "✓"],
   ["Create and disable users, change roles, read the audit log", "–", "–", "✓"],
-  ["Set the usage policy (Admin › Settings)", "–", "–", "✓"],
+  ["Set the usage policy and minimum (Admin › Settings)", "–", "–", "✓"],
 ];
 
 export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
@@ -535,10 +535,9 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           </li>
         </Bullets>
         <p>
-          Once an item has enough reported usage, its first two cards become{" "}
-          <strong>Installs</strong> and <strong>Runs</strong> over 30 days,{" "}
-          <strong>Works in</strong> shows each tool&apos;s share, and a <strong>Usage</strong> card
-          after Install charts the last 14 days.{" "}
+          Once usage of an item is reported, its first two cards become <strong>Installs</strong>{" "}
+          and <strong>Runs</strong> over 30 days, <strong>Works in</strong> shows each tool&apos;s
+          share, and a <strong>Usage</strong> card after Install charts the last 14 days.{" "}
           <To href={docsHref("usage", "reading")}>Reading the numbers</To> explains them. Runtime
           requirements and signed releases aren&apos;t shown yet: the registry doesn&apos;t collect
           or store them.
@@ -771,7 +770,7 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           </tbody>
         </Table>
         <p>
-          Where the item has enough <To href={docsHref("usage", "reading")}>reported usage</To>, the
+          Where the item has <To href={docsHref("usage", "reading")}>reported usage</To>, the
           Versions page shows each version&apos;s runs and installs over 30 days, and both dialogs
           say them before you confirm: who would still get a deprecation warning, and what a yank
           would stop.
@@ -1970,10 +1969,15 @@ rmk telemetry preview   # what would be sent now`}</Example>
     reading: (
       <>
         <p>
-          An item&apos;s usage shows on its page once it has{" "}
-          <strong>20 reported installs or runs in the last 30 days</strong>. Below that, the
-          Overview says so and shows its usual cards. The minimum keeps a handful of events from
-          looking like a trend; it can&apos;t tell one busy person from many.
+          An item&apos;s usage shows on its page as soon as any install or run of it was reported in
+          the last 30 days. Without any, the Overview says so and shows its usual cards. Small
+          numbers are shown as they are: a few runs may be one person trying the item out.
+        </p>
+        <p>
+          Root can set a <strong>minimum</strong> in Admin › Settings: an item then shows its usage
+          only from that many installs plus runs in 30 days, and below it the Overview names the
+          minimum. It keeps a handful of events from looking like a trend; it can&apos;t tell one
+          busy person from many.
         </p>
         <Bullets>
           <li>

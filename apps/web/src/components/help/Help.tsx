@@ -113,7 +113,13 @@ export const HELP = {
   usage: {
     question: "Where do these numbers come from?",
     answer:
-      "From rmk, on machines that report to this instance under root's usage policy: installs, removals and runs of this item, by day, version and AI tool. They show once the item has 20 reported installs or runs in 30 days.",
+      "From rmk, on machines that report to this instance under root's usage policy: installs, removals and runs of this item, by day, version and AI tool. The success rate needs 20 runs whose outcome was reported.",
+    href: docsHref("usage", "reading"),
+  },
+  "usage-minimum": {
+    question: "Why set a minimum?",
+    answer:
+      "Item pages show usage as soon as any install or run is reported (0). With a minimum, an item shows its usage only from that many installs plus runs in 30 days, so a handful of events doesn't look like a trend and one team's habits don't show.",
     href: docsHref("usage", "reading"),
   },
   "usage-policy": {

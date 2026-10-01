@@ -285,7 +285,7 @@ const agentId = await release(
     { itemId: mcpId, range: "^1.0.0" },
   ],
 );
-// A few runs of the agent, under the usage minimum (047): its Overview says why it shows no usage.
+// A few runs of the agent (047): with no minimum by default, its Overview shows them.
 await kyselyUsageRepository(db, dialect).add([
   {
     itemId: agentId,

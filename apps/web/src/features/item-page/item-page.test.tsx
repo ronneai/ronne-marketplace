@@ -55,10 +55,15 @@ beforeEach(() => {
   versions.itemPage.mockResolvedValue(itemPageData());
   versions.versionContents.mockResolvedValue(FILES);
   catalogue.dependencyFacts.mockResolvedValue({});
-  usage.itemUsage.mockResolvedValue({ shown: false, collecting: false, hasData: false });
+  usage.itemUsage.mockResolvedValue({
+    shown: false,
+    collecting: false,
+    hasData: false,
+    underMinimum: null,
+  });
 });
 
-/** An item's usage from the minimum on (047), as the usage domain summarises it. */
+/** An item's usage (047), as the usage domain summarises it. */
 const usageShown = (extra: Record<string, unknown> = {}) => ({
   shown: true,
   collecting: true,
@@ -413,12 +418,24 @@ describe("usage on the Overview (047)", () => {
     expect(html).toContain("Runs aren&#x27;t counted for mcp-servers");
   });
 
-  it("keeps 045's cards under the minimum, with a line saying why", async () => {
-    usage.itemUsage.mockResolvedValue({ shown: false, collecting: true, hasData: false });
+  it("keeps 045's cards without usage, with a line saying why: nothing, or under root's minimum", async () => {
+    usage.itemUsage.mockResolvedValue({
+      shown: false,
+      collecting: true,
+      hasData: false,
+      underMinimum: null,
+    });
+    expect(await render()).toContain("No installs or runs reported in the last 30 days.");
+    usage.itemUsage.mockResolvedValue({
+      shown: false,
+      collecting: true,
+      hasData: true,
+      underMinimum: 25,
+    });
     const html = await render();
     expect(html).toContain(">Downloads<");
     expect(html).toContain(
-      "Usage appears once this item has 20 reported installs or runs in 30 days.",
+      "Usage appears once this item has 25 reported installs or runs in 30 days.",
     );
     // The helper beside it is a <details>: inside a <p> it breaks hydration in the browser.
     expect(html).not.toMatch(/<p\b[^>]*>(?:(?!<\/p>)[\s\S])*?<details/);
@@ -428,6 +445,7 @@ describe("usage on the Overview (047)", () => {
   it("says nothing about usage where the instance collects none and has none", async () => {
     const html = await render();
     expect(html).not.toContain("Usage appears once");
+    expect(html).not.toContain("No installs or runs");
     expect(html).not.toContain("Installs, 30 days");
   });
 

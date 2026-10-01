@@ -95,9 +95,9 @@ export const recordUsage = async (
   return { accepted, ignored: list.length - accepted };
 };
 
-/** The item's usage for its page (047): everyone signed in sees it, from the minimum on. */
+/** The item's usage for its page (047): everyone signed in sees it. */
 export const itemUsage = async (
-  deps: Pick<UsageDeps, "usage" | "policy" | "now">,
+  deps: Pick<UsageDeps, "usage" | "policy" | "now"> & { minimum: number },
   actor: UsageActor,
   item: { id: string; type: ItemType },
 ): Promise<UsageSummary> => {
@@ -108,13 +108,14 @@ export const itemUsage = async (
     today,
     type: item.type,
     collecting: deps.policy !== "off",
+    minimum: deps.minimum,
     hasData: rows.length > 0 || (await deps.usage.hasAny(item.id)),
   });
 };
 
-/** Runs and installs per version for the Versions page (047), or null under the minimum. */
+/** Runs and installs per version for the Versions page (047), or null when there are none. */
 export const itemUsageByVersion = async (
-  deps: Pick<UsageDeps, "usage" | "now">,
+  deps: Pick<UsageDeps, "usage" | "now"> & { minimum: number },
   actor: UsageActor,
   itemId: string,
 ) => {
@@ -123,5 +124,6 @@ export const itemUsageByVersion = async (
   return byVersion(
     await deps.usage.rowsBetween(itemId, daysBefore(today, WINDOW_DAYS - 1), today),
     today,
+    deps.minimum,
   );
 };

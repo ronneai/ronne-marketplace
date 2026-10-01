@@ -36,7 +36,7 @@ export const UsagePolicyForm = ({ policy }: { policy: UsagePolicy }) => {
   );
   const [chosen, setChosen] = useState<UsagePolicy>(policy);
   return (
-    <form action={action} className="grid gap-4">
+    <form action={action} aria-label="Usage reporting" className="grid gap-4">
       <fieldset className="grid gap-3" aria-describedby="usage-policy-hint">
         <legend className="mb-1 flex items-center gap-2 text-sm font-semibold text-fg">
           Usage reporting <Help id="usage-policy" />

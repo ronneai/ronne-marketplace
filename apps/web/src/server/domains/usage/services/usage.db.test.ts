@@ -245,43 +245,62 @@ describe("the item page's usage (047)", () => {
       })),
     );
   const item = () => ({ id: itemId, type: "agent" as const });
+  /** The page's deps, with root's minimum (0 by default). */
+  const page = (overrides: Partial<UsageDeps> = {}, minimum = 0) => ({
+    ...deps(overrides),
+    minimum,
+  });
 
-  it("reads the last 30 days only, and nothing under the minimum", async () => {
+  it("reads the last 30 days only, and shows any usage there by default", async () => {
     await add([{ day: "2026-08-01", event: "run", count: 500 }]);
-    expect(await itemUsage(deps(), { user }, item())).toEqual({
+    expect(await itemUsage(page(), { user }, item())).toEqual({
       shown: false,
       collecting: true,
       hasData: true,
+      underMinimum: null,
     });
     await add([
-      { day: "2026-10-04", event: "run", count: 15 },
-      { day: "2026-10-04", version: "1.0.0", event: "install", count: 5 },
+      { day: "2026-10-04", event: "run", count: 1 },
+      { day: "2026-10-04", version: "1.0.0", event: "install", count: 1 },
     ]);
-    expect(await itemUsage(deps(), { user }, item())).toMatchObject({
+    expect(await itemUsage(page(), { user }, item())).toMatchObject({
       shown: true,
-      runs: 15,
-      installs: 5,
+      runs: 1,
+      installs: 1,
     });
-    expect(await itemUsageByVersion(deps(), { user }, itemId)).toEqual({
-      "1.1.0": { runs: 15, installs: 0 },
-      "1.0.0": { runs: 0, installs: 5 },
+    expect(await itemUsageByVersion(page(), { user }, itemId)).toEqual({
+      "1.1.0": { runs: 1, installs: 0 },
+      "1.0.0": { runs: 0, installs: 1 },
     });
   });
 
+  it("shows nothing under root's minimum", async () => {
+    await add([{ day: "2026-10-04", event: "run", count: 4 }]);
+    expect(await itemUsage(page({}, 5), { user }, item())).toEqual({
+      shown: false,
+      collecting: true,
+      hasData: true,
+      underMinimum: 5,
+    });
+    expect(await itemUsageByVersion(page({}, 5), { user }, itemId)).toBeNull();
+    expect(await itemUsage(page({}, 4), { user }, item())).toMatchObject({ shown: true });
+  });
+
   it("says when the instance no longer collects, and when there's nothing at all", async () => {
-    expect(await itemUsage(deps({ policy: "off" }), { user }, item())).toEqual({
+    expect(await itemUsage(page({ policy: "off" }), { user }, item())).toEqual({
       shown: false,
       collecting: false,
       hasData: false,
+      underMinimum: null,
     });
     await add([{ day: "2026-10-04", event: "run", count: 20 }]);
-    expect(await itemUsage(deps({ policy: "off" }), { user }, item())).toMatchObject({
+    expect(await itemUsage(page({ policy: "off" }), { user }, item())).toMatchObject({
       shown: true,
       collecting: false,
     });
   });
 
   it("needs a signed-in user", async () => {
-    await expect(itemUsage(deps(), { user: null }, item())).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(itemUsage(page(), { user: null }, item())).rejects.toBeInstanceOf(ForbiddenError);
   });
 });

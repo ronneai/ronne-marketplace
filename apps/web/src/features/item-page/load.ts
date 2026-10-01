@@ -47,10 +47,10 @@ export const loadDependencyFacts = async (dependencies: Record<string, string>) 
     ? {}
     : dependencyFacts(await requestHeaders(), Object.keys(dependencies));
 
-/** The item's usage for the Overview (047): numbers only from the minimum on. */
+/** The item's usage for the Overview (047). */
 export const loadUsage = async (item: { id: string; type: ItemType }) =>
   itemUsage(await requestHeaders(), item);
 
-/** Runs and installs per version for the Versions page (047), or null under the minimum. */
+/** Runs and installs per version for the Versions page (047), or null when there are none. */
 export const loadUsageByVersion = async (itemId: string) =>
   itemUsageByVersion(await requestHeaders(), itemId);

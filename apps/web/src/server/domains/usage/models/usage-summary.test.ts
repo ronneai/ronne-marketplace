@@ -21,19 +21,37 @@ const shown = (s: UsageSummary) => {
 };
 
 describe("summarizeUsage", () => {
-  it("shows nothing under 20 installs and runs in 30 days, counting today and 29 days back", () => {
-    expect(summary([row({ count: 19 })])).toEqual({
+  it("shows any install or run of the last 30 days by default, counting today and 29 days back", () => {
+    expect(summary([])).toEqual({
+      shown: false,
+      collecting: true,
+      hasData: false,
+      underMinimum: null,
+    });
+    expect(summary([row({ event: "remove", count: 5 })]).shown).toBe(false);
+    expect(summary([row({ day: daysBefore(TODAY, 30) })]).shown).toBe(false);
+    expect(summary([row({ day: daysBefore(TODAY, 29) })]).shown).toBe(true);
+    expect(summary([row({ event: "install", trigger: "", outcome: "" })]).shown).toBe(true);
+  });
+
+  it("shows nothing under root's minimum, and says which it is", () => {
+    const withMinimum = (rows: DailyRow[]) =>
+      summarizeUsage(rows, {
+        today: TODAY,
+        type: "skill",
+        collecting: true,
+        hasData: true,
+        minimum: 20,
+      });
+    expect(withMinimum([row({ count: 19 })])).toEqual({
       shown: false,
       collecting: true,
       hasData: true,
+      underMinimum: 20,
     });
-    expect(summary([row({ count: 19 }), row({ event: "remove", count: 50 })]).shown).toBe(false);
-    expect(summary([row({ count: 19 }), row({ day: daysBefore(TODAY, 30) })]).shown).toBe(false);
-    expect(summary([row({ count: 19 }), row({ day: daysBefore(TODAY, 29) })]).shown).toBe(true);
-    expect(
-      summary([row({ count: 10 }), row({ event: "install", count: 10, trigger: "", outcome: "" })])
-        .shown,
-    ).toBe(true);
+    expect(withMinimum([row({ count: 10 }), row({ event: "install", count: 10 })]).shown).toBe(
+      true,
+    );
   });
 
   it("counts installs, removals and runs, and the average per day", () => {
@@ -118,8 +136,12 @@ describe("summarizeUsage", () => {
 });
 
 describe("usageByVersion", () => {
-  it("counts runs and installs per version over 30 days, from the minimum on", () => {
-    expect(usageByVersion([row({ count: 19 })], TODAY)).toBeNull();
+  it("counts runs and installs per version over 30 days, from root's minimum on", () => {
+    expect(usageByVersion([], TODAY)).toBeNull();
+    expect(usageByVersion([row({ count: 19 })], TODAY, 20)).toBeNull();
+    expect(usageByVersion([row({ count: 1 })], TODAY)).toEqual({
+      "1.0.0": { runs: 1, installs: 0 },
+    });
     expect(
       usageByVersion(
         [

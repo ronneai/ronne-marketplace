@@ -566,12 +566,17 @@ const IncludedFiles = ({
  * Used by, maintainers and review, and the included files. Only what the registry knows is shown:
  * usage needs telemetry (MVP §14.6). Null `files` means the artifact couldn't be read.
  */
-/** Under the minimum: why there are no usage numbers, where usage is or was collected (047). */
-const UsageMinimum = () => (
+/**
+ * Why there are no usage numbers, where usage is or was collected (047): nothing in 30 days, or
+ * fewer installs and runs than root's minimum.
+ */
+const NoUsage = ({ minimum }: { minimum: number | null }) => (
   // A div, not a p: the helper is a <details>, which HTML doesn't allow inside a paragraph.
   <div id="usage" className="flex flex-wrap items-center gap-2">
     <p className="text-sm text-muted">
-      Usage appears once this item has 20 reported installs or runs in 30 days.
+      {minimum
+        ? `Usage appears once this item has ${minimum.toLocaleString("en-US")} reported installs or runs in 30 days.`
+        : "No installs or runs reported in the last 30 days."}
     </p>
     <Help id="usage" />
   </div>
@@ -611,7 +616,7 @@ export const OverviewTab = ({
               />
             </Card>
           ) : usage.collecting || usage.hasData ? (
-            <UsageMinimum />
+            <NoUsage minimum={usage.underMinimum} />
           ) : null}
           <Capabilities page={page} />
           {files === null ? <UnavailableFiles /> : null}

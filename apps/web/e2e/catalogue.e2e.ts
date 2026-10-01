@@ -101,11 +101,10 @@ test("an agent's Overview sums it up, shows its prompt and its dependencies on a
 
   await page.goto(`/items/${E2E_SCOPE}/${E2E_RMK_ITEMS.agent}`);
   await expect(page.getByRole("region", { name: "Package verification" })).toBeVisible();
-  // Under the usage minimum, with its helper beside it.
-  await expect(
-    page.getByText("Usage appears once this item has 20 reported installs"),
-  ).toBeVisible();
-  await page.getByText("Where do these numbers come from?").click();
+  // Its 3 runs show, with no minimum by default (047); the e2e instance's policy is off.
+  const usage = page.getByRole("region", { name: "Usage, last 14 days" });
+  await expect(usage.getByText("This instance no longer collects usage")).toBeVisible();
+  await usage.getByText("Where do these numbers come from?").click();
   await expect(page.getByRole("link", { name: "Learn more" }).first()).toHaveAttribute(
     "href",
     "/docs/usage#reading",

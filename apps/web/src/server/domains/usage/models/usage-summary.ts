@@ -3,11 +3,9 @@ import { daysBefore, RUN_OUTCOMES, RUN_TRIGGERS } from "./usage-event";
 
 /**
  * What the item page shows of an item's usage (feature 047), worked out from its daily totals
- * (046). Numbers leave this module only when the item has enough activity to show them.
+ * (046). By default any install or run in the window shows; root can set a minimum (owner,
+ * 2026-10-01), and under it no number leaves this module.
  */
-
-/** Usage appears once an item has this many installs plus runs in the window (047's decision 1). */
-export const MIN_EVENTS = 20;
 /** A success rate needs this many runs whose outcome is known. */
 export const MIN_KNOWN_OUTCOMES = 20;
 /** The stat cards' window, in days, today included. */
@@ -47,7 +45,7 @@ export type UsageNumbers = {
   runs: number;
   /** Runs per day over the window, one decimal. */
   runsPerDay: number;
-  /** Successful runs among those whose outcome is known, 0–1; null under the minimum. */
+  /** Successful runs among those whose outcome is known, 0–1; null under 20 known outcomes. */
   successRate: number | null;
   /** Each tool's runs (or installs, for a type without runs) over the window, biggest first. */
   tools: Share[];
@@ -62,7 +60,13 @@ export type UsageNumbers = {
 };
 
 export type UsageSummary =
-  | { shown: false; collecting: boolean; hasData: boolean }
+  | {
+      shown: false;
+      collecting: boolean;
+      hasData: boolean;
+      /** Installs or runs in the window, but fewer than the minimum: the page names the minimum. */
+      underMinimum: number | null;
+    }
   | ({ shown: true; collecting: boolean; runsCounted: boolean } & UsageNumbers);
 
 const sharesOf = (counts: Map<string, number>, order?: readonly string[]): Share[] => {
@@ -78,12 +82,19 @@ const add = (map: Map<string, number>, key: string, n: number) =>
   map.set(key, (map.get(key) ?? 0) + n);
 
 /**
- * The summary of an item's rows from the window (`today` and the 29 days before it). Under the
- * minimum it says only whether there's anything stored, so the page can say why nothing shows.
+ * The summary of an item's rows from the window (`today` and the 29 days before it). Without any
+ * install or run there, it says only whether anything is stored, so the page can say why.
  */
 export const summarizeUsage = (
   rows: readonly DailyRow[],
-  options: { today: string; type: ItemType; collecting: boolean; hasData: boolean },
+  options: {
+    today: string;
+    type: ItemType;
+    collecting: boolean;
+    hasData: boolean;
+    /** Root's usage minimum (settings); 0 shows any usage. */
+    minimum?: number;
+  },
 ): UsageSummary => {
   const from = daysBefore(options.today, WINDOW_DAYS - 1);
   const inWindow = rows.filter((r) => r.day >= from && r.day <= options.today);
@@ -92,8 +103,15 @@ export const summarizeUsage = (
   const installs = total("install");
   const removals = total("remove");
   const runs = total("run");
-  if (installs + runs < MIN_EVENTS)
-    return { shown: false, collecting: options.collecting, hasData: options.hasData };
+  const events = installs + runs;
+  const minimum = options.minimum ?? 0;
+  if (events === 0 || events < minimum)
+    return {
+      shown: false,
+      collecting: options.collecting,
+      hasData: options.hasData,
+      underMinimum: events > 0 ? minimum : null,
+    };
 
   const counted = runsCounted(options.type);
   const known = inWindow.filter((r) => r.event === "run" && r.outcome !== "unknown");
@@ -151,17 +169,21 @@ export const summarizeUsage = (
   };
 };
 
-/** Runs and installs per version over the window, for the Versions page; null under the minimum. */
+/**
+ * Runs and installs per version over the window, for the Versions page; null when there are none,
+ * or fewer than the minimum.
+ */
 export const usageByVersion = (
   rows: readonly DailyRow[],
   today: string,
+  minimum = 0,
 ): Record<string, { runs: number; installs: number }> | null => {
   const from = daysBefore(today, WINDOW_DAYS - 1);
   const inWindow = rows.filter((r) => r.day >= from && r.day <= today);
   const events = inWindow
     .filter((r) => r.event === "run" || r.event === "install")
     .reduce((sum, r) => sum + r.count, 0);
-  if (events < MIN_EVENTS) return null;
+  if (events === 0 || events < minimum) return null;
   const versions: Record<string, { runs: number; installs: number }> = {};
   for (const r of inWindow) {
     const entry = versions[r.version] ?? { runs: 0, installs: 0 };

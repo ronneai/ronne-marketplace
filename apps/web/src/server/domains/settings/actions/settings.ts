@@ -25,5 +25,14 @@ export const setUsagePolicy = async (
   app: AppAuth = getAppAuth(),
 ) => service.setUsagePolicy(deps(app), await actor(headers, app), value);
 
+export const setUsageMinimum = async (
+  headers: Headers,
+  value: unknown,
+  app: AppAuth = getAppAuth(),
+) => service.setUsageMinimum(deps(app), await actor(headers, app), value);
+
+/** The usage minimum, for the item page (047). */
+export const usageMinimum = (app: AppAuth = getAppAuth()) => service.usageMinimum(deps(app));
+
 /** The usage policy, for the usage API (anyone may follow it; only root changes it). */
 export const usagePolicy = (app: AppAuth = getAppAuth()) => service.usagePolicy(deps(app));

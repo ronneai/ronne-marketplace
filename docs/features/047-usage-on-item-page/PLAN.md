@@ -56,3 +56,7 @@ goes into `SPEC.md` instead.
 - **After task 5.** The minimum line put its helper inside a `<p>`; `pnpm dev` showed nesting and
   hydration errors (`docs/knowledge/help-tips-and-paragraphs.md`). The line is a `<div>` now, and
   `item-page.test.tsx` fails on a `<details>` inside a `<p>`.
+- **No minimum by default (owner, 2026-10-01).** With 20 required, a new instance showed only the
+  line. The minimum is now an instance setting (`usage_minimum`, default 0) on Admin › Settings, next
+  to the policy; the summary returns `underMinimum` so the page can name it. Admin › Settings has
+  two forms now, each named (`aria-label`) so tests and screen readers can tell their Save apart.
