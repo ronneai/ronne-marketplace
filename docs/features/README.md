@@ -29,6 +29,9 @@ slug is short and lowercase. The milestone and status live only in this table.
 
 **Status:** `planned` (listed here, no folder yet) → `specified` (`SPEC.md` and `PLAN.md` written)
 → `in progress` → `done`. `dropped` features keep their row and folder, with the reason in `SPEC.md`.
+`on hold` features keep their row, folder and spec but aren't picked until the owner takes them off
+hold; their `SPEC.md` says since when and why. A spec on hold is re-checked against what was built
+since (and, for renderers, the vendors' current docs) before work starts.
 
 **When to write a spec.** Only for the current milestone and the next one. Later features stay
 `planned` until then, so their specs are based on what has actually been built.
@@ -96,13 +99,15 @@ New folders start from [`_template/`](./_template/).
 | [026](./026-support-matrix/SPEC.md) | Per-item support matrix in the web UI, the API and the catalogue filter | 018, 023 | done |
 | [027](./027-registry-mcp-server/SPEC.md) | Registry MCP server (`rmk-mcp`) and `rmk mcp-setup` | 022 | done |
 
-### M5b — Tier-2 platforms (right after the MVP)
+### M5b — Tier-2 platforms (on hold)
+
+On hold since 2026-09-30 (owner): not implemented now.
 
 | ID | Feature | Depends on | Status |
 |---|---|---|---|
-| [028](./028-copilot-renderer/SPEC.md) | GitHub Copilot renderer (the CLI and VS Code) | 021, 022, 025 | specified |
-| [029](./029-gemini-antigravity-renderers/SPEC.md) | Antigravity CLI and Gemini CLI renderers | 021, 022, 025 | specified |
-| [030](./030-devin-renderer/SPEC.md) | Devin renderer (Devin Desktop and the Devin CLI) | 021, 022, 025 | specified |
+| [028](./028-copilot-renderer/SPEC.md) | GitHub Copilot renderer (the CLI and VS Code) | 021, 022, 025 | on hold |
+| [029](./029-gemini-antigravity-renderers/SPEC.md) | Antigravity CLI and Gemini CLI renderers | 021, 022, 025 | on hold |
+| [030](./030-devin-renderer/SPEC.md) | Devin renderer (Devin Desktop and the Devin CLI) | 021, 022, 025 | on hold |
 
 ### M6 — Visual composer and npm
 
@@ -135,7 +140,7 @@ contract [`docs/spec/native-readers.md`](../spec/native-readers.md).
 |---|---|---|---|
 | [044](./044-item-contents/SPEC.md) | Item contents on the item page: an Overview tab (settings, body file, read-only dependency canvas) and a Files viewer, read from the checked artifact | 018, 026, 031 | done |
 | [045](./045-item-overview-dashboard/SPEC.md) | Item overview dashboard from the owner's mockup: stat cards, Install with quick flags, capabilities and guardrails, Used by, maintainers and review, package verification; only what the registry knows | 044 | done |
-| 048 | Runtime requirements in the manifest (`requires`: Node.js, git, the `rmk` version…), checked by `rmk install` and shown on the Overview | 011, 022, 045 | planned |
+| [048](./048-runtime-requirements/SPEC.md) | Runtime requirements in the manifest (`requires`: Node.js, git, the `rmk` version…), checked by `rmk install` and shown on the Overview | 011, 022, 045 | specified |
 
 ### M9 — Usage insights
 
@@ -145,5 +150,5 @@ on the instance.
 
 | ID | Feature | Depends on | Status |
 |---|---|---|---|
-| 046 | Opt-in usage telemetry: `rmk telemetry`, install and remove events per project, run events from `rmk`-managed hooks where each tool allows, `POST /api/v1/usage`, daily aggregates, an instance switch | 022, 023, 024, 025, 045 | planned |
-| 047 | Usage on the item page: installs in active projects, harness distribution, invocations and success rate, the daily volume chart, the harness and trigger breakdowns | 046 | planned |
+| [046](./046-usage-telemetry/SPEC.md) | Opt-in usage telemetry: `rmk telemetry`, install and remove events, run events from `rmk`-managed hooks where each tool allows, `POST /api/v1/usage`, daily aggregates, an instance switch | 022, 023, 024, 025, 045 | specified |
+| [047](./047-usage-on-item-page/SPEC.md) | Usage on the item page: installs, harness distribution, invocations and success rate, the daily volume chart, the harness and trigger breakdowns; runs and installs per version | 046 | specified |
