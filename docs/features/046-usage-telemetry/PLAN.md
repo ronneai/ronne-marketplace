@@ -18,7 +18,7 @@ the same change that completes it.
   *Done when:* `*.db.test.ts` covers sums, ignored events, retention and cascade; on all four
   database servers.
 
-- [ ] **2. The API and the switch.** `USAGE_TELEMETRY` in `loadConfig`; `GET` and `POST
+- [x] **2. The API and the switch.** `USAGE_TELEMETRY` in `loadConfig`; `GET` and `POST
   /api/v1/usage` in `server/http`, with the token guard, the body limit, the rate limiter and
   `403 usage_disabled`.
   *Done when:* `usage-api.db.test.ts` covers acceptance, every ignore rule, the limits, `401` and the
@@ -67,3 +67,6 @@ goes into `SPEC.md` instead.
   validates one event, the service sums a report's lines before writing, and `upsertAdding` in
   `db/upsert.ts` adds counts in the database, so concurrent reports never lose one. The trigger
   column is `run_trigger`, because `trigger` is a reserved word in SQL.
+- **Task 2.** The API checks, in order: the token, the switch (so a client told to stop isn't also
+  told to slow down), the rate, the body's size, then the domain. `USAGE_TELEMETRY` accepts `off`,
+  `false` or `0`. MVP §11, §12 and the access tokens decision now say a token may report usage.

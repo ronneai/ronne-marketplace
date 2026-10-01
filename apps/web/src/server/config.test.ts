@@ -56,6 +56,14 @@ describe("loadConfig", () => {
     const config = loadConfig({ appDir: join(dir, "empty"), env: {} });
     expect(config.databaseUrl).toBeUndefined();
     expect(config.trustProxy).toBe(false);
+    expect(config.usageTelemetry).toBe(true);
     expect(isConfigured(config)).toBe(false);
+  });
+
+  it("accepts usage reports unless USAGE_TELEMETRY turns them off", () => {
+    const usage = (value: string) =>
+      loadConfig({ appDir: join(dir, "empty"), env: { USAGE_TELEMETRY: value } }).usageTelemetry;
+    for (const off of ["off", "OFF", "false", "0"]) expect(usage(off), off).toBe(false);
+    for (const on of ["on", "true", ""]) expect(usage(on), on).toBe(true);
   });
 });
