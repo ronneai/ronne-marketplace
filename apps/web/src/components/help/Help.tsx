@@ -110,6 +110,12 @@ export const HELP = {
       "Send it here with rmk export: it reads your skill, agent, command, rule or MCP server from Claude Code, Codex or Cursor, shows you everything it would upload, and creates a private draft here for you to check and submit.",
     href: docsHref("export", "what"),
   },
+  "usage-policy": {
+    question: "What does rmk report?",
+    answer:
+      "Daily counts of installs, removals and runs of the items rmk installed from this instance, by item, version and AI tool. Never who, which project, or what was asked. Off: nothing. People choose: on unless they run rmk telemetry off. Required: always.",
+    href: docsHref("usage", "policy"),
+  },
 } as const satisfies Record<string, { question: string; answer: string; href: string }>;
 
 export type HelpId = keyof typeof HELP;

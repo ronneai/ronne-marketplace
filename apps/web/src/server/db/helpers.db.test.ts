@@ -6,7 +6,7 @@ import { newId } from "./ids";
 import { decodeJson, encodeJson } from "./json";
 import { containsInsensitive } from "./search";
 import { createTestDb, type TestDb as FreshDb } from "./testing/test-db";
-import { upsert } from "./upsert";
+import { upsert, upsertAdding } from "./upsert";
 import type { DatabaseDialect } from "./url";
 
 type TestDb = {
@@ -96,5 +96,23 @@ describe("upsert on a real database", () => {
 
     const rows = await db.selectFrom("item").select("name").where("id", "=", id).execute();
     expect(rows).toEqual([{ name: "second" }]);
+  });
+});
+
+describe("upsertAdding on a real database", () => {
+  it("inserts, then adds to the existing row on conflict", async () => {
+    await db.schema
+      .createTable("counter")
+      .addColumn("key", columnTypes(dialect).string(32), (c) => c.primaryKey())
+      .addColumn("count", "integer", (c) => c.notNull())
+      .execute();
+    const counters = db as unknown as Kysely<{ counter: { key: string; count: number } }>;
+    const add = (count: number) =>
+      upsertAdding(counters, dialect, "counter", { key: "a", count }, ["key"], ["count"]).execute();
+    await add(2);
+    await add(3);
+    await Promise.all([add(1), add(1), add(1)]);
+    const rows = await counters.selectFrom("counter").select(["key", "count"]).execute();
+    expect(rows.map((r) => ({ ...r, count: Number(r.count) }))).toEqual([{ key: "a", count: 8 }]);
   });
 });

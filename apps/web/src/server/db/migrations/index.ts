@@ -9,6 +9,8 @@ import { yankReason } from "./0008_yank_reason";
 import { catalogue } from "./0009_catalogue";
 import { proposalConflicts } from "./0010_proposal_conflicts";
 import { disabledTargets } from "./0011_disabled_targets";
+import { usage } from "./0012_usage";
+import { instanceSettings } from "./0013_instance_settings";
 import type { AppMigration } from "./types";
 
 /**
@@ -27,4 +29,6 @@ export const migrations: Record<string, AppMigration> = {
   "0009_catalogue": catalogue,
   "0010_proposal_conflicts": proposalConflicts,
   "0011_disabled_targets": disabledTargets,
+  "0012_usage": usage,
+  "0013_instance_settings": instanceSettings,
 };

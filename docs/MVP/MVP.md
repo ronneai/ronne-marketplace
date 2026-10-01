@@ -58,7 +58,7 @@ Items are written once in a canonical format and delivered to the major AI codin
 | Approve own submission (override, audited) | — | — | ✅ |
 | Create scopes | — | — | ✅ |
 | Create / disable users, change roles | — | — | ✅ |
-| Instance settings | — | — | ✅ |
+| Instance settings (the usage policy, [046](../features/046-usage-telemetry/SPEC.md)) | — | — | ✅ |
 
 Users are **only created from the web app** (by root). The CLI never registers accounts.
 
@@ -395,6 +395,7 @@ written `pnpm run setup`. Full behaviour, including a non-interactive mode for D
 | `rmk update [item]` · `rmk outdated` | Update within ranges / list available updates. |
 | `rmk remove <item>` | Remove the item and its managed files. Dependencies are removed too if nothing else needs them. |
 | `rmk export [<path\|name>...] [--to <@scope>]` | Send items you wrote in your AI tool's folders to the registry as **drafts** (M7, [038](../features/038-rmk-export/SPEC.md)): shows what would be uploaded, asks, uploads, and prints each draft's address. It never submits, and refuses items `rmk` installed. |
+| `rmk telemetry [on\|off\|status\|preview\|flush]` | Usage reporting under each registry's policy ([046](../features/046-usage-telemetry/SPEC.md)): `status` shows the policy and whether rmk reports; `off` and `on` are the person's choice where the policy lets them choose; `preview` prints what would be sent. `rmk telemetry hook <tool>` is what the AI tools' usage hooks run. |
 
 - There is no `register` command.
 - Every command except `login` needs a valid token. Tokens can be revoked from the web UI.
@@ -566,6 +567,8 @@ IDs are ULIDs and timestamps are UTC (§9.4).
 | `submission_revision_files` | revision_id, path — PK (revision_id, path); encoding, content, size, executable (as `submission_files`) |
 | `review_events` | id, submission_id, actor_id, kind (`submit`/`resubmit`/`comment`/`request_changes`/`approve`/`reject`/`override`/`withdraw`), body, revision, created_at |
 | `audit_log` | id, actor_id, action, target_type, target_id, metadata (JSON), created_at |
+| `usage_daily` | item_id, day, version, tool, event, run_trigger, outcome, count — PK on all but count: daily usage totals from `rmk`, kept 90 days, nothing per person or project ([046](../features/046-usage-telemetry/SPEC.md)) |
+| `instance_settings` | key (PK), value, updated_by (set null), updated_at: settings root changes in the app, such as the usage policy; no row means the default (046) |
 
 ## 11. REST API sketch (`/api/v1`)
 
@@ -581,10 +584,12 @@ IDs are ULIDs and timestamps are UTC (§9.4).
 | `POST /resolve` | Resolve a set of `{name, range}` to a flat, pinned dependency set |
 | `GET /scopes` | The scopes a draft can be created in (M7, [037](../features/037-draft-upload-api/SPEC.md)) |
 | `POST /drafts` | Create a draft of a new item with its files, as the token's user (M7, 037) |
+| `GET /usage` · `POST /usage` | Whether the instance accepts usage; report daily counts of installs, removals and runs (M9, [046](../features/046-usage-telemetry/SPEC.md)) |
 
 Editing, submitting, review, release and admin actions are only available in the web UI (as server
-actions). The API reads, with one exception since M7 (owner, 2026-09-30): a token can **create a
-draft**, which is private to its author and reaches nobody until they submit it in the web app.
+actions). The API reads, with two exceptions (owner, 2026-09-30): a token can **create a draft**
+(M7), which is private to its author and reaches nobody until they submit it in the web app, and
+**report usage** (M9), which only adds to daily totals.
 
 **Conventions**
 
@@ -605,7 +610,7 @@ review is the security boundary.
 - **Risk flags in review.** Submissions containing `hook`s, `mcp-server`s, `permission-policy` items (especially ones that *widen* permissions), `statusline` / `lsp-server` commands, executable scripts, network URLs or shell commands get a highlighted risk summary in the review view.
 - **No secrets in items.** `mcp-server` configs declare env var *names*. `rmk` asks for or reads the values locally and never uploads them.
 - **Export sends only what the person saw** (M7). `rmk export` and the MCP export tools upload the files listed in the preview and nothing else: never `.env` files, keys, `.git` or symbolic links, never the value of an environment variable, and an item containing a known secret format is stopped ([native readers spec](../spec/native-readers.md) §3). Over MCP only items found in the tools' own folders can be exported, never an arbitrary path.
-- **Writes by token** (M7). A token can create drafts and nothing else. Each is recorded in the audit log with the token's name; the request body, the number of drafts per person and the upload rate are limited ([037](../features/037-draft-upload-api/SPEC.md)).
+- **Writes by token** (M7, M9). A token can create drafts and report usage, and nothing else. Each draft is recorded in the audit log with the token's name; the request body, the number of drafts per person and the upload rate are limited ([037](../features/037-draft-upload-api/SPEC.md)). A usage report adds to daily totals, stores nothing about who sent it, has a 256 KiB body limit and a rate of 60 per 10 minutes, and isn't audited ([046](../features/046-usage-telemetry/SPEC.md)).
 - **Integrity.** Published versions are immutable, and `rmk` checks sha256 checksums on every download and against `rmk.lock`.
 - **Managed-file boundaries.** Renderers write only inside known target paths and never overwrite unmanaged content.
 - **Audit log** for approvals, overrides, releases, tag moves, yanks, and user and role changes.
@@ -691,7 +696,7 @@ Design points:
 
 - **More platforms.** Tier-3 community renderers via the `PlatformRenderer` interface (§3.3).
 - **Native plugin feeds.** Publish approved bundles as native marketplace feeds for Claude Code, Codex, Cursor and Copilot (§3.3).
-- **Install telemetry** (opt-in), so moderators can see which items are used. The MVP only counts artifact downloads on the server, for the home page's "Most used" (018). Designed in §14.6; planned as M9.
+- **Install telemetry** (a policy root sets per instance, off by default), so moderators can see which items are used. The MVP only counts artifact downloads on the server, for the home page's "Most used" (018). Designed in §14.6; planned as M9.
 
 ### 14.5 Decided out of scope for now
 
@@ -718,9 +723,11 @@ what each number needs, so M9 ([features 046, 047](../features/README.md)) start
 
 **How it could work**
 
-- **Opt-in, always.** Off by default on every machine (`rmk telemetry on|off|status`), and an instance
-  setting can turn it off for everyone. The in-app Documentation says exactly what is sent, and
-  `rmk telemetry preview` prints it.
+- **Root decides, per instance** (owner, 2026-09-30; it was "opt-in, always" until 046 was being
+  built). On **Admin › Settings**: `off` (a new instance's default), `choice` (on unless the person
+  runs `rmk telemetry off` or sets `RMK_TELEMETRY=0`) or `required` (nothing turns it off). `rmk`
+  prints a notice the first time it reports to a registry. The in-app Documentation says exactly what
+  is sent, and `rmk telemetry preview` prints it.
 - **What an event carries:** the item and version, the tool, the event (install, remove, run), for a
   run its trigger and outcome (success, error, cancelled) when the tool reports them, the day and a
   count. **Never** prompts, file contents, paths, project or repository names or ids, branch names,
@@ -741,11 +748,12 @@ what each number needs, so M9 ([features 046, 047](../features/README.md)) start
 **On the item page ([047](../features/047-usage-on-item-page/SPEC.md)):** installs and runs over 30
 days replace 045's downloads and versions cards, Works in shows each tool's share, and a Usage card
 (daily runs, by tool, trigger and outcome) appears on the Overview, once an item has 20 reported
-installs or runs in 30 days, with "Usage is opt-in; numbers come from people who turned it on." The
+installs or runs in 30 days, with a note saying the numbers come from `rmk` where the instance collects usage. The
 Versions page shows runs and installs per version.
 
-**Decided (owner, 2026-09-30):** no projects for now; 90 days of daily totals; any token may report
-usage; installs only where a tool can't report runs; usage shows from 20 events in 30 days, to
+**Decided (owner, 2026-09-30):** a usage policy root sets per instance (off by default; people
+choose, on unless they opt out; or required); run hooks added by `rmk install` with a notice; no
+projects for now; 90 days of daily totals; any token may report usage; installs only where a tool can't report runs; usage shows from 20 events in 30 days, to
 everyone signed in; the home page's "Most used" stays on downloads.
 
 **Later: counting projects.** "Installed in N active projects" needs a project id, which 046 leaves
@@ -810,8 +818,8 @@ out (owner, 2026-09-30). The design, for when it's picked up:
 | Renderer output | Renderers are pure: they return the changes to make (files, folders, JSON and TOML keys, JSON array elements, Markdown sections), and `rmk` applies them and records each in `.rmk/state.json`. There is no `remove()`: removing undoes exactly what the state file recorded ([021](../features/021-renderer-harness/SPEC.md)) | One place decides what may be written or deleted, and renderers stay testable with golden files |
 | Item contents on the item page | The item page reads the shown version's `.tgz` from the `StorageAdapter` to show its files (Overview and Files tabs), checked against its sha256 and not counted as a download; web only, no API or MCP endpoint per file yet ([044](../features/044-item-contents/SPEC.md), owner, 2026-09-30) | People should see exactly what they would install; copying every file into the database at release would duplicate the artifact |
 | Download counts | The tarball endpoint adds one to `items.download_count` per download; nothing about who downloaded is stored. The home page ranks "Most used" by it | The owner wants most used items on the home page (2026-09-28); a server-side count needs no telemetry from `rmk`, which stays opt-in and post-MVP |
-| Usage telemetry | Opt-in per machine (`rmk telemetry`), off by default; run hooks in each tool's user-level settings, never the project's; daily totals only, kept 90 days, nothing per person or project; any token may report; an instance can refuse with `USAGE_TELEMETRY=off`; shown on the item page from 20 events in 30 days, to everyone signed in; "Most used" stays on downloads (owner, 2026-09-30, [046](../features/046-usage-telemetry/SPEC.md), [047](../features/047-usage-on-item-page/SPEC.md)) | Moderators learn what's used without the instance learning who uses it or where; projects can come later (§14.6) |
-| Access tokens | `rmk_` + 43 base64url characters, SHA-256 hashed, 30/90/365 days or no expiry, at most 50 active per user, bearer only on `/api/v1`. No token scopes: every token reads as its user and may create drafts (owner, 2026-09-30, [037](../features/037-draft-upload-api/SPEC.md)) | Recognizable by secret scanning; revocable; no cookies on the API. A draft is private and submitting needs the web app, so a read-only kind of token would protect little; it becomes worth having if a token ever does something other people see |
+| Usage telemetry | A policy root sets per instance on Admin › Settings: off (a new instance's default), people choose (on unless they run `rmk telemetry off` or set `RMK_TELEMETRY=0`) or required (nothing turns it off); `rmk` prints a notice the first time it reports to a registry, and `rmk install` adds a run hook to each tool's user-level settings when reporting is on; daily totals only, kept 90 days, nothing per person or project; any token may report; shown on the item page from 20 events in 30 days, to everyone signed in; "Most used" stays on downloads (owner, 2026-09-30, [046](../features/046-usage-telemetry/SPEC.md), [047](../features/047-usage-on-item-page/SPEC.md)) | The instance owner decides what their instance collects; counts only, so moderators learn what's used without the instance learning who uses it or where; projects can come later (§14.6) |
+| Access tokens | `rmk_` + 43 base64url characters, SHA-256 hashed, 30/90/365 days or no expiry, at most 50 active per user, bearer only on `/api/v1`. No token scopes: every token reads as its user and may create drafts and report usage (owner, 2026-09-30, [037](../features/037-draft-upload-api/SPEC.md), [046](../features/046-usage-telemetry/SPEC.md)) | Recognizable by secret scanning; revocable; no cookies on the API. A draft is private and submitting needs the web app, so a read-only kind of token would protect little; it becomes worth having if a token ever does something other people see |
 | Export | A person's own local items go to the registry as **drafts**, from `rmk export` and the MCP tools `plan_export` / `export_items`; the person chooses the scope; submitting stays in the web app; an item `rmk` installed and the person edited, or their own item whose name is published, becomes a change proposal merged onto its base version ([042](../features/042-export-change-proposal/SPEC.md)); skills first, then agents, commands, rules and MCP servers from Claude Code's files (owner, 2026-09-30, M7: [037](../features/037-draft-upload-api/SPEC.md)–[041](../features/041-export-dependencies/SPEC.md)). "Native plugin export" was renamed "native plugin feeds" to free the word | People write items in their tools first; rebuilding them by hand in the editor is the step that keeps them out of the registry. A draft is the safe landing: nothing is visible to others until its author submits it |
 | Native readers | The reverse of a renderer, in `packages/core`: pure, read-only, and lossy only with a warning per dropped field; secrets and environment values never leave the machine ([native readers spec](../spec/native-readers.md)) | The mapping tables are the renderers' reversed, so both directions stay in step, and the web app could use the readers later |
 | Dependencies on export | Detected from what an item uses; the person is asked and exporting them too is recommended; 013's rule stays for now: a dependency is released before its dependent can be submitted, and export says the order ([041](../features/041-export-dependencies/SPEC.md), 2026-09-30; the rule is that spec's first open question) | An exported item should work where it's installed; keeping the rule keeps "approved means installable" |

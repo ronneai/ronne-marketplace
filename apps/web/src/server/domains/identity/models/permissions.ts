@@ -27,6 +27,8 @@ export const PERMISSIONS = {
   "submissions.publish": ["moderator", "root"],
   /** Move and remove dist-tags, deprecate and yank versions (MVP §2, feature 016). */
   "versions.manage": ["moderator", "root"],
+  /** Instance settings, such as the usage policy (feature 046). */
+  "settings.manage": ["root"],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

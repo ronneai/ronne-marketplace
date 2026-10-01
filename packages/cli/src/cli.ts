@@ -10,6 +10,8 @@ import { outdatedCommand, removeCommand, updateCommand } from "./manage.js";
 import { mcpSetupCommand } from "./mcp-setup.js";
 import { done, failed, output, type RunResult } from "./output.js";
 import { list, platforms, withApi } from "./registry-commands.js";
+import { flushAfterCommand, refreshPolicy, usageNotice } from "./telemetry.js";
+import { telemetryCommand } from "./telemetry-command.js";
 
 /**
  * `rmk` (feature 022, MVP §6): the commands, their arguments, and the exit codes. Each command is
@@ -32,6 +34,7 @@ export const USAGE = `Usage: rmk <command> [options]
   export [<path|name>...] [--to <@scope>] [--type <type>] [--from <tool>] [--name <name>]
          [--description <text>] [--with-deps | --no-deps] [--scope project|user]
          [--dry-run] [--yes] [--force] [--new]
+  telemetry [on | off | status | preview | flush]
 
 Options: --json (one JSON object per command), --registry <url>, --version, --help`;
 
@@ -112,6 +115,10 @@ const login = async (io: Io, args: Args, out: ReturnType<typeof output>) => {
   out.set("registry", url);
   out.set("email", email);
   out.say(`Logged in to ${url} as ${email}.`);
+  // The registry's usage policy, and its notice when rmk will report there (046).
+  await refreshPolicy(io, url, token, { force: true });
+  const notice = usageNotice(io, url);
+  if (notice) out.say(notice);
 };
 
 const logout = async (io: Io, args: Args, out: ReturnType<typeof output>) => {
@@ -168,6 +175,7 @@ export const COMMANDS: Record<string, Command> = {
   remove,
   "mcp-setup": (io, args, out) => mcpSetupCommand(io, args, out),
   export: (io, args, out) => exportCommand(io, args, out, connect(io, args).api),
+  telemetry: (io, args, out) => telemetryCommand(io, args, out),
 };
 
 /** Runs rmk with the given arguments (without the node and script paths). */
@@ -197,5 +205,8 @@ export const run = async (argv: string[], io: Io): Promise<RunResult> => {
     return done(out);
   } catch (error) {
     return failed(out, error);
+  } finally {
+    // Queued usage goes out at the end of a command (046); `rmk telemetry` sends only on `flush`.
+    if (name !== "telemetry") await flushAfterCommand(io);
   }
 };

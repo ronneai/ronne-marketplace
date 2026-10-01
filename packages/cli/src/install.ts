@@ -26,9 +26,9 @@ import {
   type Wanted,
   writeState,
 } from "./apply.js";
-import { configDir } from "./config.js";
+import { configDir, readUserConfig, registryFor } from "./config.js";
 import { RmkError, usage } from "./errors.js";
-import type { Io } from "./io.js";
+import { type Io, nowOf } from "./io.js";
 import { applyOperation, planOperation } from "./operations.js";
 import type { Output } from "./output.js";
 import {
@@ -41,6 +41,8 @@ import {
   writeProjectConfig,
 } from "./project.js";
 import { itemPath } from "./registry-commands.js";
+import { dayOf, queueUsage, refreshPolicy, type UsageLine, usageNotice } from "./telemetry.js";
+import { addUsageHooks } from "./usage-hooks.js";
 
 /**
  * Installing (feature 022, MVP §4.3): resolve, download and check, render for each target, plan
@@ -222,13 +224,14 @@ export type InstallResult = {
   plan: Plan;
   targets: string[];
   scope: Scope;
+  /** The registry it was resolved from, where its usage goes (046). */
+  registry: string;
 };
 
 /** A resolved, rendered and planned install that hasn't written anything yet (027). */
 export type Prepared = InstallResult & {
   /** The direct dependencies it was resolved for (user scope keeps them in its lockfile). */
   dependencies: Record<string, string>;
-  registry: string;
   /** The state entries this install manages: every item's, but not `rmk mcp-setup`'s. */
   state: State;
   /** `rmk mcp-setup`'s entries, kept as they are (027). */
@@ -257,6 +260,12 @@ export const prepareInstall = async (
     dependencies: options.dependencies,
     locked: options.locked,
   });
+  // The registry's usage policy, checked daily, decides whether this install is reported (046).
+  try {
+    await refreshPolicy(io, api.registry, registryFor(io, readUserConfig(io), api.registry).token);
+  } catch {
+    // Without a readable config there's nothing to report with.
+  }
   const rendered: Rendered[] = [];
   for (const [name, item] of Object.entries(resolution.items).sort(([a], [b]) =>
     a < b ? -1 : 1,
@@ -288,6 +297,34 @@ export const prepareInstall = async (
   };
 };
 
+/**
+ * The usage lines an install makes (046): `install` for each item new or at another version, and
+ * `remove` for each item gone, once per tool it was written for. Nothing about the project.
+ */
+export const usageLinesOf = (
+  io: Io,
+  prepared: Prepared,
+  before: Record<string, { version: string }>,
+): UsageLine[] => {
+  const day = dayOf(nowOf(io));
+  const lines: UsageLine[] = [];
+  for (const [item, resolved] of Object.entries(prepared.resolution.items)) {
+    if (before[item]?.version === resolved.version) continue;
+    for (const id of prepared.targets)
+      if ((rendererById(id)?.supports(resolved.type) ?? "none") !== "none")
+        lines.push({ day, item, version: resolved.version, tool: id, event: "install", count: 1 });
+  }
+  for (const [item, locked] of Object.entries(before)) {
+    if (item in prepared.resolution.items) continue;
+    const tools = new Set(
+      prepared.state.entries.filter((e) => e.item === item).flatMap((e) => e.targets),
+    );
+    for (const tool of [...tools].sort())
+      lines.push({ day, item, version: locked.version, tool, event: "remove", count: 1 });
+  }
+  return lines;
+};
+
 /** Writes a prepared install with no conflicts: the files, then the state file and the lockfile. */
 export const commitInstall = (io: Io, prepared: Prepared) => {
   if (prepared.plan.conflicts.length)
@@ -295,6 +332,7 @@ export const commitInstall = (io: Io, prepared: Prepared) => {
       conflicts: prepared.plan.conflicts,
     });
   const { root, lock, state: statePath } = places(io, prepared.scope);
+  const before = readLockfile(dirname(lock), basename(lock))?.items ?? {};
   const next = applyPlan(root, prepared.state, prepared.plan);
   next.entries.push(...prepared.kept);
   mkdirSync(join(statePath, ".."), { recursive: true });
@@ -308,6 +346,7 @@ export const commitInstall = (io: Io, prepared: Prepared) => {
   if (prepared.scope === "user") lockfile.dependencies = prepared.dependencies;
   mkdirSync(dirname(lock), { recursive: true });
   writeLockfile(dirname(lock), lockfile, basename(lock));
+  queueUsage(io, prepared.registry, usageLinesOf(io, prepared, before));
 };
 
 /** Prepares and, when nothing conflicts, commits: what `rmk install`, `update` and `remove` do. */
@@ -338,6 +377,7 @@ export const installCommand = async (
   });
   if (operation.plan.conflicts.length === 0) applyOperation(io, operation);
   report(out, operation, io);
+  for (const line of await addUsageHooks(io, operation)) out.say(`Note: ${line}`);
 };
 
 /**
@@ -455,4 +495,8 @@ export const report = (out: Output, result: InstallResult, io: Io) => {
     out.say(
       `Set these environment variables before using the MCP servers: ${missingEnv.join(", ")}.`,
     );
+  if (written.length || removed.length) {
+    const notice = usageNotice(io, result.registry);
+    if (notice) out.say(`Note: ${notice}`);
+  }
 };

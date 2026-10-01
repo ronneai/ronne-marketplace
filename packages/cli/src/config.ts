@@ -12,6 +12,8 @@ export type UserConfig = {
   version: 1;
   defaultRegistry?: string;
   registries: Record<string, { token: string; email?: string }>;
+  /** The person's choice about usage reporting (046): one per machine, for every registry. */
+  telemetry?: { enabled: boolean; decidedAt: string };
 };
 
 export const configDir = (io: Io) =>
@@ -34,6 +36,9 @@ export const readUserConfig = (io: Io): UserConfig => {
     version: 1,
     defaultRegistry: parsed.defaultRegistry,
     registries: parsed.registries ?? {},
+    ...(parsed.telemetry && typeof parsed.telemetry.enabled === "boolean"
+      ? { telemetry: { enabled: parsed.telemetry.enabled, decidedAt: parsed.telemetry.decidedAt } }
+      : {}),
   };
 };
 

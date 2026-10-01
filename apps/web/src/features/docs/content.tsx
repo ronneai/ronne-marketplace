@@ -115,6 +115,7 @@ const PERMISSIONS: [string, string, string, string][] = [
   ["Approve their own submission (override, audited)", "–", "–", "✓"],
   ["Create scopes", "–", "–", "✓"],
   ["Create and disable users, change roles, read the audit log", "–", "–", "✓"],
+  ["Set the usage policy (Admin › Settings)", "–", "–", "✓"],
 ];
 
 export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
@@ -1304,7 +1305,8 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         <li>
           <strong>root:</strong> the instance&apos;s owner, created by{" "}
           <To href={docsHref("install", "setup")}>the setup</To>. Everything a moderator does, plus
-          users, scopes and the audit log. Root creates every account: nobody signs up.
+          users, scopes, the audit log and the instance&apos;s settings. Root creates every account:
+          nobody signs up.
         </li>
       </Bullets>
     ),
@@ -1643,6 +1645,15 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         can do.
       </p>
     ),
+    telemetry: (
+      <p>
+        When the instance collects usage, <Code>rmk</Code> sends it daily counts of installs,
+        removals and runs of the items it installed, and says so the first time.{" "}
+        <Code>rmk telemetry status</Code> shows each instance&apos;s policy, and{" "}
+        <Code>rmk telemetry off</Code> stops it where people may choose.{" "}
+        <To href={docsHref("usage")}>Usage data</To> says exactly what is sent.
+      </p>
+    ),
   },
   mcp: {
     what: (
@@ -1793,6 +1804,155 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           your files.
         </li>
       </Bullets>
+    ),
+  },
+  usage: {
+    what: (
+      <>
+        <p>
+          Downloads say how often a package was fetched; they don&apos;t say whether an item is
+          used. When this instance collects usage, <Code>rmk</Code> counts, for the items it
+          installed, how often each is installed and removed, in which AI tool, how often it runs
+          and how those runs end, and sends those counts to this instance.
+        </p>
+        <p>
+          The counts are meant for moderators and authors: what&apos;s worth keeping up, and what a
+          deprecation or a yank would reach. Nothing in the app shows them yet. Only totals are
+          kept: nothing says who, or where.
+        </p>
+      </>
+    ),
+    policy: (
+      <>
+        <p>
+          Root decides, for the whole instance, in <strong>Admin › Settings</strong>. The change
+          applies at once and is recorded in the audit log.
+        </p>
+        <Bullets>
+          <li>
+            <strong>Off</strong> (a new instance&apos;s setting): <Code>rmk</Code> reports nothing,
+            and the instance refuses usage reports.
+          </li>
+          <li>
+            <strong>People choose:</strong> <Code>rmk</Code> reports unless the person turns it off
+            (<To href={docsHref("usage", "switch")}>Turning it off</To>).
+          </li>
+          <li>
+            <strong>Required:</strong> every <Code>rmk</Code> that installs from this instance
+            reports, and nothing turns it off.
+          </li>
+        </Bullets>
+        <p>
+          <Code>rmk</Code> asks the instance for its policy at most once a day, and at{" "}
+          <Code>rmk login</Code>. The first time it reports to an instance it says so, once, with a
+          link here.
+        </p>
+      </>
+    ),
+    sent: (
+      <>
+        <p>A report is a list of daily counts. This is a whole line, exactly as it travels:</p>
+        <Example>{`{ "day": "2026-10-01", "item": "@platform/code-reviewer", "version": "1.4.0",
+  "tool": "claude-code", "event": "run", "trigger": "model",
+  "outcome": "success", "count": 3 }`}</Example>
+        <Bullets>
+          <li>
+            <Code>event</Code>: <Code>install</Code>, <Code>remove</Code> or <Code>run</Code>.
+          </li>
+          <li>
+            <Code>trigger</Code>, for a run: typed by the person (<Code>user</Code>), chosen by the
+            model (<Code>model</Code>), used inside another agent (<Code>agent</Code>), in CI (
+            <Code>ci</Code>), or <Code>unknown</Code>.
+          </li>
+          <li>
+            <Code>outcome</Code>, for a run: <Code>success</Code>, <Code>error</Code>,{" "}
+            <Code>cancelled</Code>, or <Code>unknown</Code> when the tool doesn&apos;t say.
+          </li>
+        </Bullets>
+        <p>
+          Reports go only to the instance the item was installed from, with your access token, at
+          the end of an <Code>rmk</Code> command. <Code>rmk telemetry preview</Code> prints what is
+          waiting to be sent.
+        </p>
+      </>
+    ),
+    never: (
+      <p>
+        Never: who you are, your project or repository (its name, folder, remote or branch), prompts
+        or arguments, file contents or paths, what a tool was given or returned, session ids,
+        environment values, or anything about items <Code>rmk</Code> didn&apos;t install. Your token
+        is sent to authorise the report, and nothing about it is stored with the counts.
+      </p>
+    ),
+    switch: (
+      <>
+        <p>Where the instance lets people choose:</p>
+        <Example>{`rmk telemetry off       # stop, on this machine, and delete what's waiting
+rmk telemetry on        # report again
+rmk telemetry status    # each instance's policy, and whether rmk reports to it
+rmk telemetry preview   # what would be sent now`}</Example>
+        <p>
+          Setting <Code>RMK_TELEMETRY=0</Code> in the environment stops it too, for one script or a
+          whole machine. Where usage is required, neither works: <Code>rmk telemetry off</Code> says
+          so, and <Code>rmk</Code> keeps reporting to that instance.
+        </p>
+      </>
+    ),
+    tools: (
+      <>
+        <p>
+          Installs and removals are counted by <Code>rmk</Code> itself. Runs need the AI tool to
+          tell <Code>rmk</Code>, so when it reports, <Code>rmk install</Code> adds one hook,{" "}
+          <Code>rmk telemetry hook &lt;tool&gt;</Code>, to the tool&apos;s settings in your home
+          folder (never a project&apos;s, so nothing is committed), and says so.{" "}
+          <Code>rmk telemetry off</Code> removes it.
+        </p>
+        <Table>
+          <thead>
+            <tr>
+              <Th>Tool</Th>
+              <Th>Runs it reports</Th>
+              <Th>How they ended</Th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <Td>Claude Code</Td>
+              <Td className="text-sm">
+                Skills (chosen by the model or typed), commands, agents, MCP servers
+              </Td>
+              <Td className="text-sm">For skills and MCP servers</Td>
+            </tr>
+            <tr>
+              <Td>Codex</Td>
+              <Td className="text-sm">
+                Agents and MCP servers; skills and commands count installs only
+              </Td>
+              <Td className="text-sm">Not reported</Td>
+            </tr>
+            <tr>
+              <Td>Cursor</Td>
+              <Td className="text-sm">
+                Agents and MCP servers; skills and commands count installs only
+              </Td>
+              <Td className="text-sm">For agents and MCP servers</Td>
+            </tr>
+          </tbody>
+        </Table>
+        <p>
+          Hooks, rules, output styles, status lines, permission policies and LSP servers don&apos;t
+          run on their own: they count installs only. Codex runs a new hook only after you review it
+          in its <Code>/hooks</Code> screen.
+        </p>
+      </>
+    ),
+    instance: (
+      <p>
+        The instance adds each report to daily totals per item, version, tool, event, trigger and
+        outcome, and keeps them 90 days. Nothing about the person, the token or the project is
+        stored with them. A line it can&apos;t count (an item it doesn&apos;t have, a day too old)
+        is ignored. Nothing in the app shows the totals yet; the item page will.
+      </p>
     ),
   },
   "claude-code": {
