@@ -11,6 +11,10 @@
  * Errors and warnings (owner's style-guide mock, 2026-09-28): red and amber, only for those. Each
  * has a fill and border colour, a text colour (darker in the light theme, where the fill colour is
  * under 4.5:1 on Paper), and a subtle background for notices and badges.
+ *
+ * Syntax colours (044, owner's request, 2026-09-30) follow GitHub's Primer syntax palette, the one
+ * people know from reading code on GitHub: grey comments, green keys, blue strings and constants.
+ * Keywords are Primer's purple rather than its red, which this system keeps for errors.
  * tokens.test.ts checks every documented pair against WCAG AA from these values.
  */
 
@@ -33,6 +37,11 @@
   --code-bg: #0b1220;
   --code-fg: #f7f9fa;
   --code-muted: #bfe9e1;
+  --syntax-comment: #59636e;
+  --syntax-key: #116329;
+  --syntax-string: #0a3069;
+  --syntax-constant: #0550ae;
+  --syntax-keyword: #6639ba;
   --error: #d9383a;
   --on-error: #ffffff;
   --error-text: #c22f31;
@@ -59,6 +68,11 @@
   --code-bg: #0b1220;
   --code-fg: #f7f9fa;
   --code-muted: #bfe9e1;
+  --syntax-comment: #8b949e;
+  --syntax-key: #7ee787;
+  --syntax-string: #a5d6ff;
+  --syntax-constant: #79c0ff;
+  --syntax-keyword: #d2a8ff;
   --error: #ff6b6b;
   --on-error: #0b1220;
   --error-text: #ff6b6b;

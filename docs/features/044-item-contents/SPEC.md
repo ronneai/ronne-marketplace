@@ -69,7 +69,9 @@ else `ronne.yaml`. The viewer's header shows the path, the size and an "executab
 - **Markdown** (`.md`): rendered safely, like the README (raw HTML off, `https:` images only), but
   keeping each line break, as prompts and rules are often written one instruction a line. YAML
   frontmatter is shown as a small table above it. A **Rendered / Source** toggle shows the exact text.
-- **Other text:** read-only, with syntax highlighting chosen by the path (as in the draft editor).
+- **Other text:** read-only, with syntax highlighting chosen by the path (as in the draft editor), in
+  GitHub's syntax colours: grey comments, green keys, blue strings (plain YAML values too) and
+  constants, purple keywords. The draft editor uses the same colours.
 - **Binary:** "Binary file, not shown", with its size.
 - **Text over 512 KB:** "Too large to show here", with its size.
 

@@ -41,6 +41,14 @@ const PAIRS: [string, string, number][] = [
   // Code previews (the New item page's starter files).
   ["code-fg", "code-bg", 4.5],
   ["code-muted", "code-bg", 4.5],
+  // Syntax colours in the code viewer and editor (044): on the surface, and on the tint of the
+  // line the cursor is on.
+  ...["comment", "key", "string", "constant", "keyword"].flatMap(
+    (kind): [string, string, number][] => [
+      [`syntax-${kind}`, "surface", 4.5],
+      [`syntax-${kind}`, "tint", 4.5],
+    ],
+  ),
   // Errors and warnings (owner's style-guide mock, 2026-09-28): text on every background it
   // appears on, labels on a red fill, and fills and borders at 3:1 for non-text.
   ["error-text", "canvas", 4.5],
