@@ -37,7 +37,7 @@ nothing about them changes.
 - **Fixing what's missing** from `rmk` or the list. That happens in the editor, or by exporting
   again (051); [053](../053-export-descriptions/SPEC.md) closes the most common gap, a missing
   description.
-- **Reviewing in bulk** (approving many at once): 014's review is one submission at a time, on
+- **Reviewing in bulk** (approving many at once): [054](../054-bulk-approve/SPEC.md) adds approving; 014's review was one submission at a time, on
   purpose.
 
 ## Behaviour
