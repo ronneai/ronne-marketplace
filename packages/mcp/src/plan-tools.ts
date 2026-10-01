@@ -65,7 +65,7 @@ const VERB: Record<OperationKind, string> = {
 
 /** The risk flags of each item the plan brings in or changes, for the person to see first. */
 const newRisks = async (io: Io, operation: Operation) => {
-  const { api } = connectRegistry(io);
+  const { api } = connectRegistry(io, { project: operation.scope === "project" });
   const risks: { item: string; version: string; message: string }[] = [];
   for (const [name, item] of Object.entries(operation.resolution.items)) {
     if (operation.lockedBefore[name] === item.version) continue;
@@ -87,7 +87,7 @@ export const planTool = async (
   kind: OperationKind,
   input: PlanInput,
 ): Promise<ToolAnswer> => {
-  const { api } = connectRegistry(io);
+  const { api } = connectRegistry(io, { project: input.scope !== "user" });
   let operation: Operation;
   try {
     operation = await planOperation(io, api, {

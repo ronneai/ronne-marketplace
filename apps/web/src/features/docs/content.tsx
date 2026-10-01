@@ -1407,8 +1407,31 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           <Code>~/.config/rmk/config.json</Code>, readable by you alone. With a token made under{" "}
           <To href="/account/tokens">Access tokens</To>, or in CI, use{" "}
           <Code>rmk login --token rmk_…</Code>, or set <Code>RMK_TOKEN</Code> and{" "}
-          <Code>RMK_REGISTRY</Code>. <Code>rmk whoami</Code> says who you are;{" "}
-          <Code>rmk logout</Code> revokes the token.
+          <Code>RMK_REGISTRY</Code>. <Code>rmk whoami</Code> says who you are, at which registry,
+          and why that one; <Code>rmk logout</Code> revokes the token.
+        </p>
+        <p>
+          You can be logged in to several registries at once. Each command uses the first it finds:
+        </p>
+        <Steps>
+          <li>
+            <Code>--registry</Code> on the command line;
+          </li>
+          <li>
+            <Code>RMK_REGISTRY</Code>;
+          </li>
+          <li>
+            the project&apos;s: <Code>registry</Code> in <Code>rmk.config.json</Code>, else in{" "}
+            <Code>rmk.lock</Code>. <Code>rmk install</Code> records it, so a project keeps its
+            registry, and teammates use it too;
+          </li>
+          <li>
+            your default: the registry you last logged in to with <Code>--registry</Code>.
+          </li>
+        </Steps>
+        <p>
+          To move a project to another registry, run <Code>rmk install --registry &lt;url&gt;</Code>
+          : it updates both files.
         </p>
         <p>
           The token only travels over https, except to <Code>localhost</Code>.
@@ -1492,7 +1515,7 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             <tr>
               <Td className="font-mono text-xs">rmk.config.json</Td>
               <Td className="text-sm">
-                What you asked for: each item with its range or tag, and the targets.
+                What you asked for: each item with its range or tag, the targets, and the registry.
               </Td>
               <Td className="text-sm">Yes</Td>
             </tr>

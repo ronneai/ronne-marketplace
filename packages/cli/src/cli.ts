@@ -1,6 +1,6 @@
 import { parseArgs } from "node:util";
 import { ApiError, apiClient, checkRegistryUrl, rmkVersion } from "./api.js";
-import { normalizeRegistry, readUserConfig, registryFor, writeUserConfig } from "./config.js";
+import { REGISTRY_SOURCE, readUserConfig, resolveRegistry, writeUserConfig } from "./config.js";
 import { connectRegistry } from "./connect.js";
 import { RmkError, usage } from "./errors.js";
 import { exportCommand } from "./export-command.js";
@@ -83,12 +83,19 @@ const connect = (io: Io, args: Args, needToken = true) =>
     needToken,
   });
 
+/** For commands whose `--scope user` means the home folder: the project's registry doesn't apply. */
+const connectScoped = (io: Io, args: Args) =>
+  connectRegistry(io, {
+    registry: str(args.values.registry),
+    insecure: args.values.insecure === true,
+    project: args.values.scope !== "user",
+  });
+
 const login = async (io: Io, args: Args, out: ReturnType<typeof output>) => {
   const config = readUserConfig(io);
-  const url = normalizeRegistry(
-    str(args.values.registry) || io.env.RMK_REGISTRY || config.defaultRegistry || "",
-  );
-  if (!url) throw usage("Say which registry: rmk login --registry https://ronne.example");
+  const resolved = resolveRegistry(io, config, str(args.values.registry));
+  if (!resolved) throw usage("Say which registry: rmk login --registry https://ronne.example");
+  const { url } = resolved;
   checkRegistryUrl(url, args.values.insecure === true);
   let token = str(args.values.token);
   let email: string | undefined;
@@ -110,11 +117,16 @@ const login = async (io: Io, args: Args, out: ReturnType<typeof output>) => {
     token = created.token;
   }
   config.registries[url] = { token, email };
-  config.defaultRegistry ??= url;
+  // The registry named with --registry becomes the default; one from the env or a project doesn't.
+  const previous = config.defaultRegistry;
+  if (!previous || resolved.source === "flag") config.defaultRegistry = url;
   writeUserConfig(io, config);
   out.set("registry", url);
   out.set("email", email);
+  out.set("defaultRegistry", config.defaultRegistry);
   out.say(`Logged in to ${url} as ${email}.`);
+  if (previous && previous !== config.defaultRegistry)
+    out.say(`It's now the default registry, instead of ${previous}.`);
   // The registry's usage policy, and its notice when rmk will report there (046).
   await refreshPolicy(io, url, token, { force: true });
   const notice = usageNotice(io, url);
@@ -145,10 +157,11 @@ const whoami = async (io: Io, args: Args, out: ReturnType<typeof output>) => {
   const { registry, api } = connect(io, args);
   const me = await api.me();
   out.set("registry", registry.url);
+  out.set("registrySource", registry.source);
   out.set("user", { id: me.id, email: me.email, name: me.name, role: me.role });
   out.set("token", me.token);
   out.say(
-    `${me.name} <${me.email}> (${me.role}) at ${registry.url}, with the token "${me.token.name}".`,
+    `${me.name} <${me.email}> (${me.role}) at ${registry.url} (from ${REGISTRY_SOURCE[registry.source]}), with the token "${me.token.name}".`,
   );
 };
 
@@ -156,10 +169,14 @@ export type Command = (io: Io, args: Args, out: ReturnType<typeof output>) => Pr
 
 const { search, info } = withApi((io, args) => connect(io, args));
 
-const install: Command = (io, args, out) => installCommand(io, args, out, connect(io, args).api);
-const update: Command = (io, args, out) => updateCommand(io, args, out, connect(io, args).api);
-const outdated: Command = (io, args, out) => outdatedCommand(io, args, out, connect(io, args).api);
-const remove: Command = (io, args, out) => removeCommand(io, args, out, connect(io, args).api);
+const install: Command = (io, args, out) =>
+  installCommand(io, args, out, connectScoped(io, args).api);
+const update: Command = (io, args, out) =>
+  updateCommand(io, args, out, connectScoped(io, args).api);
+const outdated: Command = (io, args, out) =>
+  outdatedCommand(io, args, out, connectScoped(io, args).api);
+const remove: Command = (io, args, out) =>
+  removeCommand(io, args, out, connectScoped(io, args).api);
 
 export const COMMANDS: Record<string, Command> = {
   login,

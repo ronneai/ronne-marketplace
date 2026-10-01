@@ -104,10 +104,14 @@ export const planOperation = async (
     // With nothing asked for, a lockfile installs exactly what it holds.
     const prepared = await prepare(next, locked);
     const setTargets = Boolean(request.target && request.target !== "all");
+    const nextProject = nextConfig(next, setTargets);
+    // The project remembers its registry, so teammates and later commands use the same one.
+    if (nextProject && (!nextProject.registry || request.registryGiven))
+      nextProject.registry = api.registry;
     return {
       ...prepared,
       kind: "install",
-      config: nextConfig(next, setTargets),
+      config: nextProject,
       lockedBefore: locked,
     };
   }
