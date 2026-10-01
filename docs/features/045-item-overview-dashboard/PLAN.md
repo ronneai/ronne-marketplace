@@ -7,12 +7,13 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Used by and approval.** In the items domain: `dependents(itemId)` (items whose listed
+- [x] **1. Used by and approval.** In the items domain: `dependents(itemId)` (items whose listed
   version depends on it, with their ranges) and `approvalOf(submissionId)` (the latest `approve` or
   `override` event, with the approver's name), and the item page service returning `usedBy` and
   `shown.approval`.
   *Done when:* `*.db.test.ts` covers dependents through listed versions only, an approval, an
-  override, a version without review and a removed approver; on all four database servers.
+  override and a version without review; on all four database servers. (A review's actor can't be
+  deleted, `review_events_actor_id_fk` restricts it, so the "former user" case is only a fallback.)
 
 - [ ] **2. The dashboard.** The stat cards, the Install card with quick flags (and the panel gone
   from the other tabs), capabilities and guardrails, the main file card with its role, and the side

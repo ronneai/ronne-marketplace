@@ -1,6 +1,13 @@
 import type { ItemType } from "@ronneai/core";
 import type { NewAuditEvent } from "../../audit/models/audit-event";
-import type { Item, ItemVersion, NewItemVersion, VersionDetail } from "../models/item";
+import type {
+  Approval,
+  Dependent,
+  Item,
+  ItemVersion,
+  NewItemVersion,
+  VersionDetail,
+} from "../models/item";
 
 /**
  * What releases (015) and version management (016) need from storage. Kysely in
@@ -37,6 +44,10 @@ export interface ItemRepository {
   recordAudit(event: NewAuditEvent, now: Date): Promise<void>;
   /** A version's manifest, README, files and risk flags, for its page (018). */
   versionDetail(versionId: string): Promise<VersionDetail | null>;
+  /** Published items whose listed version depends on `itemId`, by name (045). */
+  dependents(itemId: string): Promise<Dependent[]>;
+  /** The latest approval of a submission, or null if it has none (045). */
+  approval(submissionId: string): Promise<Approval | null>;
   /** A user's display name, or null if they're gone. */
   userName(userId: string): Promise<string | null>;
   /** One more download of the item's artifacts (019), in a single UPDATE so none is lost. */

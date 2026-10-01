@@ -285,7 +285,7 @@ export const kyselyItemRepository = (
   versionDetail: async (versionId) => {
     const row = await db
       .selectFrom("item_versions")
-      .select(["manifest", "readme", "files", "notes", "risk_flags"])
+      .select(["manifest", "readme", "files", "notes", "risk_flags", "submission_id"])
       .where("id", "=", versionId)
       .executeTakeFirst();
     return row
@@ -295,7 +295,48 @@ export const kyselyItemRepository = (
           files: decodeJson<VersionFile[]>(row.files),
           notes: row.notes,
           riskFlags: decodeJson<RiskFlag[]>(row.risk_flags) ?? [],
+          submissionId: row.submission_id,
         }
+      : null;
+  },
+
+  dependents: async (itemId) => {
+    const rows = await db
+      .selectFrom("version_dependencies")
+      .innerJoin("items", "items.listed_version_id", "version_dependencies.version_id")
+      .innerJoin("scopes", "scopes.id", "items.scope_id")
+      .innerJoin("item_versions", "item_versions.id", "items.listed_version_id")
+      .select([
+        "scopes.name as scope_name",
+        "items.name",
+        "items.type",
+        "item_versions.version",
+        "version_dependencies.range",
+      ])
+      .where("version_dependencies.depends_on_item_id", "=", itemId)
+      .orderBy("scopes.name")
+      .orderBy("items.name")
+      .execute();
+    return rows.map((row) => ({
+      scope: row.scope_name,
+      name: row.name,
+      type: row.type as ItemType,
+      version: row.version,
+      range: row.range,
+    }));
+  },
+
+  approval: async (submissionId) => {
+    const row = await db
+      .selectFrom("review_events")
+      .leftJoin("user", "user.id", "review_events.actor_id")
+      .select(["review_events.kind", "review_events.created_at", "user.name"])
+      .where("review_events.submission_id", "=", submissionId)
+      .where("review_events.kind", "in", ["approve", "override"])
+      .orderBy("review_events.created_at", "desc")
+      .executeTakeFirst();
+    return row
+      ? { by: row.name ?? null, at: fromDbDate(row.created_at), override: row.kind === "override" }
       : null;
   },
 
