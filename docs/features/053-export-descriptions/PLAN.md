@@ -35,7 +35,7 @@ the same change that completes it.
   plan text's "written by your AI tool"; the server instructions.
   *Done when:* the MCP tests cover the round trip and that `export_items` uploads the shown text.
 
-- [ ] **5. Documentation.** The section and changes in the spec's Documentation section, and
+- [x] **5. Documentation.** The section and changes in the spec's Documentation section, and
   native-readers.md's note on which readers only ever take the first line.
   *Done when:* the docs render tests pass, and every new link lands on a real section.
 

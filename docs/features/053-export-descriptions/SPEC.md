@@ -141,18 +141,18 @@ person or the assistant gave for this export.
 
 ## Acceptance criteria
 
-- [ ] An item with no description, or one taken from the body, or a rule, or an MCP server needs
+- [x] An item with no description, or one taken from the body, or a rule, or an MCP server needs
   one. A proposal, or an update of a draft that has one, doesn't.
-- [ ] `planExport` refuses with `descriptions_required` and each item's suggestion and excerpt
+- [x] `planExport` refuses with `descriptions_required` and each item's suggestion and excerpt
   until every item has one, and refuses given text over 300 characters and unknown keys.
-- [ ] `plan_export` answers `needs: ["descriptions"]` with no `planId`, takes `descriptions`, shows
+- [x] `plan_export` answers `needs: ["descriptions"]` with no `planId`, takes `descriptions`, shows
   each as written by the AI tool, and `export_items` uploads exactly those.
-- [ ] `rmk export` asks in a terminal (Enter for the suggestion), takes `--describe` and
+- [x] `rmk export` asks in a terminal (Enter for the suggestion), takes `--describe` and
   `--descriptions` without one, and stops with exit `2` when one is missing.
-- [ ] The uploaded `ronne.yaml` has the description; a skill's uploaded `SKILL.md` has it in its
+- [x] The uploaded `ronne.yaml` has the description; a skill's uploaded `SKILL.md` has it in its
   frontmatter when the local one didn't; local files are unchanged.
-- [ ] Exporting again keeps a draft's description when the local item has none.
-- [ ] The Documentation listed above says what the feature does now.
+- [x] Exporting again keeps a draft's description when the local item has none.
+- [x] The Documentation listed above says what the feature does now.
 
 ## Decisions
 
