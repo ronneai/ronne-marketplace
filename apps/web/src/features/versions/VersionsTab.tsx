@@ -3,9 +3,9 @@ import Link from "next/link";
 import { itemPath } from "@/components/catalogue/ItemCard";
 import { Help } from "@/components/help/Help";
 import { Badge } from "@/components/ui/Badge";
+import { LocalTime } from "@/components/ui/LocalTime";
 import { Panel } from "@/components/ui/Panel";
 import { Table, Td, Th } from "@/components/ui/Table";
-import { utcMinute } from "@/components/ui/time";
 import type { VersionsPage as Page } from "@/server/domains/items/actions/versions";
 import { TagControls, VersionControls } from "./VersionControls";
 
@@ -101,13 +101,13 @@ export const VersionsTab = ({ page }: { page: Page }) => {
                   ) : null}
                   {v.yankedAt ? (
                     <span className="text-xs text-error-text">
-                      Yanked {utcMinute(v.yankedAt)}: {v.yankReason}
+                      Yanked <LocalTime value={v.yankedAt} />: {v.yankReason}
                     </span>
                   ) : null}
                 </div>
               </Td>
               <Td className="text-xs text-muted">
-                <span className="font-mono">{utcMinute(v.publishedAt)}</span>
+                <LocalTime value={v.publishedAt} className="font-mono" />
                 <br />
                 by {v.publishedByName ?? "a former user"}
               </Td>

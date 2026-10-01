@@ -12,7 +12,7 @@ the same change that completes it.
   *Done when:* a component test renders the server form, and a test with a fixed time zone renders
   the local forms (minute, second, day across midnight).
 
-- [ ] **2. Every timestamp.** The call sites in Scope, including the joined lines; `utcMinute` and
+- [x] **2. Every timestamp.** The call sites in Scope, including the joined lines; `utcMinute` and
   the pages' own `day()` helpers go.
   *Done when:* the page tests still pass with the UTC text in server HTML, and no `utcMinute`,
   `toISOString().slice` or `slice(0, 10)` date formatting is left in `app/`, `features/` or
@@ -26,3 +26,7 @@ the same change that completes it.
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- **Task 2.** `components/ui/time.ts` (`utcMinute`) and the audit log's `formatUtc` are gone; the
+  pages' own `day()` helpers too. Page tests that matched a whole sentence with a date in it now
+  compare the page's text (tags stripped), since the date is a `<time>` element.

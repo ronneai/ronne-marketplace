@@ -1,8 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/Badge";
+import { LocalTime } from "@/components/ui/LocalTime";
 import { Notice } from "@/components/ui/Notice";
-import { utcMinute } from "@/components/ui/time";
 import type { ItemPage } from "@/server/domains/items/actions/versions";
 import { ProposeButton } from "./ProposeButton";
 import { ITEM_TABS, type ItemTab, itemTabHref, TAB_LABELS } from "./tabs";
@@ -60,8 +60,8 @@ export const ItemPageView = ({
               license ? `license ${license}` : "no license given",
               ...keywords.map((k) => `#${k}`),
               `by ${page.ownerName ?? "a former user"}`,
-              `published ${utcMinute(shown.publishedAt)}`,
-            ].join(" · ")}
+            ].join(" · ")}{" "}
+            · published <LocalTime value={shown.publishedAt} />
           </p>
         </div>
         <ProposeButton item={name} version={shown.version} />

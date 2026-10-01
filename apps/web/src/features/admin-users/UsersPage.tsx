@@ -3,13 +3,13 @@ import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { buttonClasses } from "@/components/ui/Button";
 import { Input, Label, selectClasses } from "@/components/ui/Field";
+import { LocalTime } from "@/components/ui/LocalTime";
 import { PageHeader } from "@/components/ui/Panel";
 import { Table, Td, Th } from "@/components/ui/Table";
 import type { UserSummary } from "@/server/domains/identity/models/user";
 import { type UserFilters, usersPageUrl } from "./query";
 
 /** `2026-09-27`, in UTC. */
-const day = (date: Date) => date.toISOString().slice(0, 10);
 
 /**
  * /admin/users (spec 008): who can use this instance. The search and filters are a GET form, so
@@ -115,7 +115,7 @@ export const UsersPage = ({
                   {user.disabledAt ? "disabled" : "active"}
                 </Td>
                 <Td mono className="text-muted">
-                  <time dateTime={user.createdAt.toISOString()}>{day(user.createdAt)}</time>
+                  <LocalTime value={user.createdAt} precision="day" />
                 </Td>
                 <Td className="text-right">{actions?.(user)}</Td>
               </tr>

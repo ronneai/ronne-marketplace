@@ -8,8 +8,8 @@ import { ProposalBadges } from "@/components/submissions/ProposalBadges";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { Badge } from "@/components/ui/Badge";
 import { buttonClasses } from "@/components/ui/Button";
+import { LocalTime } from "@/components/ui/LocalTime";
 import { Notice } from "@/components/ui/Notice";
-import { utcMinute } from "@/components/ui/time";
 import { IssueList } from "@/components/validation/IssueList";
 import { Conversation } from "@/features/reviews/Conversation";
 import { DecisionBar } from "@/features/reviews/DecisionBar";
@@ -91,7 +91,7 @@ const Review = async ({
             {current ? <span className="font-mono text-xs">revision {current.number}</span> : null}
             {submission.submittedAt ? (
               <span className="font-mono text-xs">
-                submitted {utcMinute(submission.submittedAt)}
+                submitted <LocalTime value={submission.submittedAt} />
               </span>
             ) : null}
           </p>

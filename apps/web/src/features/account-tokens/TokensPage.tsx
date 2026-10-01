@@ -2,14 +2,13 @@ import type { ReactNode } from "react";
 import { CliAuthPanel } from "@/components/cli-auth/CliAuthPanel";
 import { Help } from "@/components/help/Help";
 import { Badge } from "@/components/ui/Badge";
+import { LocalTime } from "@/components/ui/LocalTime";
 import { PageHeader } from "@/components/ui/Panel";
 import { Table, Td, Th } from "@/components/ui/Table";
 import {
   type AccessTokenSummary,
   tokenStatus,
 } from "@/server/domains/identity/models/access-token";
-
-const day = (date: Date) => date.toISOString().slice(0, 10);
 
 /**
  * /account/tokens (spec 009): your personal access tokens for rmk and the MCP server. Only a preview
@@ -63,9 +62,23 @@ export const TokensPage = ({
                 <tr key={token.id} className={status === "active" ? undefined : "text-muted"}>
                   <Td>{token.name}</Td>
                   <Td mono>{token.preview}…</Td>
-                  <Td mono>{day(token.createdAt)}</Td>
-                  <Td mono>{token.lastUsedAt ? day(token.lastUsedAt) : "never"}</Td>
-                  <Td mono>{token.expiresAt ? day(token.expiresAt) : "no expiry"}</Td>
+                  <Td mono>
+                    <LocalTime value={token.createdAt} precision="day" />
+                  </Td>
+                  <Td mono>
+                    {token.lastUsedAt ? (
+                      <LocalTime value={token.lastUsedAt} precision="day" />
+                    ) : (
+                      "never"
+                    )}
+                  </Td>
+                  <Td mono>
+                    {token.expiresAt ? (
+                      <LocalTime value={token.expiresAt} precision="day" />
+                    ) : (
+                      "no expiry"
+                    )}
+                  </Td>
                   <Td>
                     <Badge tone={status === "active" ? "accent" : "muted"}>{status}</Badge>
                   </Td>

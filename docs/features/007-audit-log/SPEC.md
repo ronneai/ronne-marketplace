@@ -81,7 +81,9 @@ attacks, and it doesn't say whether the account exists.
   per IP address. A retention policy is post-MVP; the spec notes the growth risk.
 - **A disabled or deleted actor:** events keep `actor_id`. The page shows the email if the user
   still exists, and the id otherwise. Users are disabled, not deleted, in the MVP.
-- **Timestamps** are shown in UTC with the offset, never in local time without saying so.
+- **Timestamps** are shown in UTC with the offset, never in local time without saying so. Since
+  [049](../049-local-time/SPEC.md), they're in the reader's time zone with its name (`GMT-3`), and
+  UTC on hover; the From and To filters stay UTC days.
 - **Big metadata:** capped at 4 KB when serialized. Larger payloads are a programming error, and it throws.
 
 ## Acceptance criteria

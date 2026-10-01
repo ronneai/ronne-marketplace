@@ -3,9 +3,9 @@ import { ProposalBadges } from "@/components/submissions/ProposalBadges";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { Badge } from "@/components/ui/Badge";
 import { buttonClasses } from "@/components/ui/Button";
+import { LocalTime } from "@/components/ui/LocalTime";
 import { Panel } from "@/components/ui/Panel";
 import { Table, Td, Th } from "@/components/ui/Table";
-import { utcMinute } from "@/components/ui/time";
 import type { QueueRow, QueueTab } from "@/server/domains/submissions/actions/reviews";
 import { itemNameOf } from "@/server/domains/submissions/models/submission";
 import { QUEUE_TABS } from "@/server/domains/submissions/services/queue";
@@ -94,7 +94,9 @@ export const QueueTable = ({
               <Td className="text-sm">{row.authorName}</Td>
               <Td className="font-mono text-xs">{row.revision ?? "–"}</Td>
               <Td className="whitespace-nowrap font-mono text-xs text-muted">
-                {utcMinute(tab === "decided" ? row.updatedAt : (row.submittedAt ?? row.updatedAt))}
+                <LocalTime
+                  value={tab === "decided" ? row.updatedAt : (row.submittedAt ?? row.updatedAt)}
+                />
               </Td>
               {tab === "decided" ? (
                 <Td>

@@ -13,6 +13,7 @@ import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { Badge } from "@/components/ui/Badge";
 import { Button, buttonClasses } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
+import { LocalTime } from "@/components/ui/LocalTime";
 import { Notice } from "@/components/ui/Notice";
 import { UnsavedChangesGuard } from "@/components/ui/UnsavedChangesGuard";
 import { IssueList } from "@/components/validation/IssueList";
@@ -263,11 +264,22 @@ export const DraftEditor = ({
         <Notice
           kind="info"
           title={
-            draft.status === "withdrawn"
-              ? "Withdrawn."
-              : draft.mine
-                ? `Submitted for review${draft.submittedAt ? ` on ${draft.submittedAt.slice(0, 10)}` : ""}.`
-                : "Someone else's submission."
+            draft.status === "withdrawn" ? (
+              "Withdrawn."
+            ) : draft.mine ? (
+              <>
+                Submitted for review
+                {draft.submittedAt ? (
+                  <>
+                    {" "}
+                    on <LocalTime value={draft.submittedAt} precision="day" />
+                  </>
+                ) : null}
+                .
+              </>
+            ) : (
+              "Someone else's submission."
+            )
           }
         >
           <p className="flex items-start gap-2">

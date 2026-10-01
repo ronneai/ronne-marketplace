@@ -7,6 +7,9 @@ import type { Draft } from "@/server/domains/submissions/models/submission";
 import { changesOf, type FilesState, filesReducer, isDirty, newPathProblem } from "./files";
 import type { EditorFile } from "./types";
 
+/** The page as a reader sees it: tags and React's text separators gone. */
+const textOf = (html: string) => html.replace(/<!-- -->/g, "").replace(/<[^>]+>/g, "");
+
 const drafts = vi.hoisted(() => ({ viewSubmission: vi.fn() }));
 vi.mock("@/server/domains/submissions/actions/submissions", () => drafts);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
@@ -247,7 +250,7 @@ describe("the draft page", () => {
       readOnly: true,
       canSubmit: false,
     });
-    expect(html).toContain("Submitted for review on 2026-09-28.");
+    expect(textOf(html)).toContain("Submitted for review on 2026-09-28.");
     expect(html).not.toContain("Submit for review<");
     expect(html).not.toContain("</svg>Settings<");
     expect(html).not.toContain(">Saved<");

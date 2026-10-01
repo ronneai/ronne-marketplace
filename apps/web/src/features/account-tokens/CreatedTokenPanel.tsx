@@ -1,4 +1,5 @@
 import { CopyableCommand } from "@/components/ui/CopyableCommand";
+import { LocalTime } from "@/components/ui/LocalTime";
 import { Notice } from "@/components/ui/Notice";
 import type { CreatedToken } from "./types";
 
@@ -17,7 +18,13 @@ export const CreatedTokenPanel = ({ value }: { value: CreatedToken }) => (
       <CopyableCommand command={`rmk login --token ${value.token}`} />
     </div>
     <p className="text-xs text-muted">
-      {value.expiresAt ? `Expires ${value.expiresAt.slice(0, 10)} (UTC).` : "It never expires."}
+      {value.expiresAt ? (
+        <>
+          Expires <LocalTime value={value.expiresAt} precision="day" />.
+        </>
+      ) : (
+        "It never expires."
+      )}
     </p>
   </div>
 );
