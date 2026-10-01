@@ -2,13 +2,12 @@ import { installsIn, RENDERERS } from "@ronneai/core/render";
 import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { CopyableCommand } from "@/components/ui/CopyableCommand";
+import { LocalTime } from "@/components/ui/LocalTime";
 import type { CatalogueEntry } from "@/server/domains/items/actions/catalogue";
 
 /** An item's page (feature 018). */
 export const itemPath = (item: { scope: string; name: string }) =>
   `/items/${encodeURIComponent(item.scope)}/${encodeURIComponent(item.name)}`;
-
-const day = (date: Date) => date.toISOString().slice(0, 10);
 
 /**
  * One published item, as the catalogue and the home page list it (feature 018): its name, listed
@@ -26,9 +25,8 @@ export const ItemCard = ({
 }) => {
   const name = `@${entry.scope}/${entry.name}`;
   const tools = RENDERERS.filter((r) => installsIn(entry.support[r.id])).map((r) => r.name);
+  const keywords = entry.keywords.map((keyword) => `#${keyword}`);
   const details = [
-    ...entry.keywords.map((keyword) => `#${keyword}`),
-    `published ${day(entry.publishedAt)}`,
     tools.length ? `works in ${tools.join(", ")}` : "works in no built-in tool",
     ...(showDownloads
       ? [`${entry.downloadCount} download${entry.downloadCount === 1 ? "" : "s"}`]
@@ -56,7 +54,10 @@ export const ItemCard = ({
         <p className="text-xs text-warning-text">Deprecated: {entry.deprecatedMessage}</p>
       ) : null}
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-hairline pt-2">
-        <p className="font-mono text-xs text-muted">{details.join(" · ")}</p>
+        <p className="font-mono text-xs text-muted">
+          {[...keywords, ""].join(" · ")}published{" "}
+          <LocalTime value={entry.publishedAt} precision="day" /> · {details.join(" · ")}
+        </p>
         {entry.installable ? (
           <div className="w-full sm:w-auto">
             <CopyableCommand command={`rmk install ${name}`} />

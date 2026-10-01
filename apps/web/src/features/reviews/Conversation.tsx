@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { utcMinute } from "@/components/ui/time";
+import { LocalTime } from "@/components/ui/LocalTime";
 import type { ReviewEvent, ReviewEventKind } from "@/server/domains/submissions/models/review";
 import { CommentForm } from "./CommentForm";
 
@@ -57,7 +57,7 @@ export const Conversation = ({
               SAID[event.kind](event)
             )}
             <span className="ml-2 font-mono text-xs text-muted">
-              <time dateTime={event.createdAt.toISOString()}>{utcMinute(event.createdAt)}</time>
+              <LocalTime value={event.createdAt} />
             </span>
           </p>
           {event.body && !INLINE_BODY.has(event.kind) ? (

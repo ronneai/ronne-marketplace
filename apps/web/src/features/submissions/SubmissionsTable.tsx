@@ -3,9 +3,9 @@ import { ProposalBadges } from "@/components/submissions/ProposalBadges";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { Badge } from "@/components/ui/Badge";
 import { buttonClasses } from "@/components/ui/Button";
+import { LocalTime } from "@/components/ui/LocalTime";
 import { Panel } from "@/components/ui/Panel";
 import { Table, Td, Th } from "@/components/ui/Table";
-import { utcMinute } from "@/components/ui/time";
 import {
   SUBMISSION_STATUSES,
   type SubmissionStatus,
@@ -121,7 +121,7 @@ export const SubmissionsTable = ({
             </Td>
             <Td className="whitespace-nowrap font-mono text-xs text-muted">
               <time dateTime={submission.updatedAt.toISOString()}>
-                {utcMinute(submission.updatedAt)}
+                <LocalTime value={submission.updatedAt} />
               </time>
             </Td>
           </tr>

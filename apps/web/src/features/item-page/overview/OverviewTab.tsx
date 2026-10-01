@@ -8,9 +8,9 @@ import type { DependencyFacts } from "@/components/dependency-canvas/types";
 import { Help } from "@/components/help/Help";
 import { Badge } from "@/components/ui/Badge";
 import { CopyableCommand } from "@/components/ui/CopyableCommand";
+import { LocalTime } from "@/components/ui/LocalTime";
 import { Notice } from "@/components/ui/Notice";
 import { Table, Td, Th } from "@/components/ui/Table";
-import { utcMinute } from "@/components/ui/time";
 import { CodeText } from "@/components/validation/IssueList";
 import type { ItemPage } from "@/server/domains/items/actions/versions";
 import type { UsageSummary } from "@/server/domains/usage/models/usage-summary";
@@ -182,7 +182,15 @@ const Stats = ({ page, item, usage }: { page: ItemPage; item: ItemRef; usage: Us
             label="Versions"
             href={itemTabHref(item, "versions")}
             value={page.versions.length}
-            detail={newest ? `newest ${utcMinute(newest).slice(0, 10)}` : "none yet"}
+            detail={
+              newest ? (
+                <>
+                  newest <LocalTime value={newest} precision="day" />
+                </>
+              ) : (
+                "none yet"
+              )
+            }
           />
         </>
       )}
@@ -521,7 +529,7 @@ const Maintainers = ({ page }: { page: ItemPage }) => {
             <p>
               {`Approved by ${approval.by ?? "a former user"}`}
               {approval.override ? " (root override)" : ""}
-              <span className="block text-muted">{utcMinute(approval.at)}</span>
+              <LocalTime value={approval.at} className="block text-muted" />
             </p>
           </>
         ) : (

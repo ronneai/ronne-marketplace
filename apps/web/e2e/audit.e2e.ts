@@ -1,5 +1,8 @@
 import { expect, type Page, test } from "@playwright/test";
-import { E2E_PASSWORD, E2E_USERS } from "./users";
+import { E2E_PASSWORD, E2E_SCOPE, E2E_SKILL, E2E_USERS } from "./users";
+
+// A reader in São Paulo (049): pages show times there, with UTC on hover.
+test.use({ timezoneId: "America/Sao_Paulo" });
 
 const signIn = async (page: Page, email: string) => {
   await page.goto("/sign-in");
@@ -79,6 +82,15 @@ test("root reads the audit log: setup, its own sign-in, and a settings change", 
   await page.reload();
   await expect(minimum).toHaveValue("5");
   await saveMinimum("0");
+
+  // Local time (049): the audit log and an item page in the reader's zone, UTC on hover.
+  await admin.getByRole("link", { name: "Audit log" }).click();
+  const firstTime = page.getByRole("row").nth(1).locator("time");
+  await expect(firstTime).toHaveText(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} GMT-3$/);
+  await expect(firstTime).toHaveAttribute("title", /UTC$/);
+  await page.goto(`/items/${E2E_SCOPE}/${E2E_SKILL}`);
+  await expect(page.locator("header time").first()).toHaveText(/ GMT-3$/);
+  await page.goto("/admin/users");
 
   await admin.getByRole("link", { name: "Users" }).click();
   await expect(current(admin)).toHaveText("Users");

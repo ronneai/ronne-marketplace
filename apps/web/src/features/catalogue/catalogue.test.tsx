@@ -60,11 +60,14 @@ describe("the catalogue page", () => {
     expect(html).toContain(">@team/fmt<");
     expect(html).toContain("v1.2.0");
     expect(html).toContain(">hook<");
-    expect(html).toContain(
-      "#format · #lint · published 2026-09-20 · works in Claude Code, Codex, Cursor",
+    // The date is a <time>, in UTC on the server (049).
+    expect(html).toMatch(
+      /#format · #lint · published(?:<!-- -->)? <time[^>]*>2026-09-20<\/time> · (?:<!-- -->)?works in Claude Code, Codex, Cursor/,
     );
     expect(html).toContain("rmk install @team/fmt");
-    expect(html).toContain("published 2026-09-20 · works in Claude Code, Codex, Cursor");
+    expect(html).toMatch(
+      /published(?:<!-- -->)? <time[^>]*>2026-09-20<\/time> · (?:<!-- -->)?works in Claude Code, Codex, Cursor/,
+    );
     expect(html).toContain('<option value="cursor">Cursor</option>');
     expect(html).not.toContain("⚠ risk");
     expect(html).not.toContain("downloads");

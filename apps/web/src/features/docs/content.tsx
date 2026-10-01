@@ -132,6 +132,11 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           <To href={docsHref("rmk")}>rmk</To> turns it into the files each AI tool reads, such as
           Claude Code, Codex or Cursor.
         </p>
+        <p>
+          Dates and times are shown in your browser&apos;s time zone, with its name (such as{" "}
+          <Code>GMT-3</Code>); hover one to see it in UTC, which is how they&apos;re stored and how{" "}
+          <Code>rmk</Code> and the API give them.
+        </p>
       </>
     ),
     path: (
@@ -1997,9 +2002,10 @@ rmk telemetry preview   # what would be sent now`}</Example>
           </li>
           <li>
             <strong>Usage, last 14 days:</strong> runs per day, today left out because it&apos;s
-            still filling up, with the busiest day; then runs by tool, by what started them (typed,
-            chosen by the model, used inside an agent, CI) and by how they ended. A tool that
-            can&apos;t report this item&apos;s runs is named there (
+            still filling up, with the busiest day. Its days are UTC days, since usage is added up
+            per UTC day, unlike the other times in the app; then runs by tool, by what started them
+            (typed, chosen by the model, used inside an agent, CI) and by how they ended. A tool
+            that can&apos;t report this item&apos;s runs is named there (
             <To href={docsHref("usage", "tools")}>What each AI tool reports</To>).
           </li>
           <li>

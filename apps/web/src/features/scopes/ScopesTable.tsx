@@ -2,10 +2,9 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { buttonClasses } from "@/components/ui/Button";
 import { Input, Label } from "@/components/ui/Field";
+import { LocalTime } from "@/components/ui/LocalTime";
 import { Table, Td, Th } from "@/components/ui/Table";
 import type { Scope } from "@/server/domains/items/models/scope";
-
-const day = (date: Date) => date.toISOString().slice(0, 10);
 
 /** `?q=…&cursor=…` for another page of the same search. */
 export const scopesPageUrl = (base: string, search: string, cursor?: string) => {
@@ -89,7 +88,7 @@ export const ScopesTable = ({
                 {scope.createdBy?.email ?? "—"}
               </Td>
               <Td mono className="text-muted">
-                <time dateTime={scope.createdAt.toISOString()}>{day(scope.createdAt)}</time>
+                <LocalTime value={scope.createdAt} precision="day" />
               </Td>
               {actions ? <Td className="text-right">{actions(scope)}</Td> : null}
             </tr>

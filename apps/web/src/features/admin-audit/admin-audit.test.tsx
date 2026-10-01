@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuditEvent } from "@/server/domains/audit/models/audit-event";
-import { actorLabel, detailPairs, formatUtc } from "./format";
+import { actorLabel, detailPairs } from "./format";
 import { auditPageUrl, parseAuditQuery } from "./query";
 
 const session = vi.hoisted(() => ({ getCurrentUser: vi.fn() }));
@@ -65,10 +65,6 @@ describe("parseAuditQuery", () => {
 });
 
 describe("format", () => {
-  it("shows UTC with the zone", () => {
-    expect(formatUtc(new Date("2026-09-27T19:15:03.123Z"))).toBe("2026-09-27 19:15:03 UTC");
-  });
-
   it("names the actor: email, cli, system, or the id of a removed user", () => {
     expect(actorLabel({ actorId: ULID, actorEmail: "root@example.com", metadata: {} })).toBe(
       "root@example.com",

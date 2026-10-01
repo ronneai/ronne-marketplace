@@ -2,11 +2,12 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { buttonClasses } from "@/components/ui/Button";
 import { Input, Label, selectClasses } from "@/components/ui/Field";
+import { LocalTime } from "@/components/ui/LocalTime";
 import { PageHeader } from "@/components/ui/Panel";
 import { Table, Td, Th } from "@/components/ui/Table";
 import type { AuditEvent } from "@/server/domains/audit/models/audit-event";
 import { AUDIT_ACTION_GROUPS } from "@/server/domains/audit/models/audit-event";
-import { actorLabel, detailPairs, formatUtc } from "./format";
+import { actorLabel, detailPairs } from "./format";
 import { type AuditFilters, auditPageUrl } from "./query";
 
 /**
@@ -31,7 +32,7 @@ export const AuditLogPage = ({
     <>
       <PageHeader
         title="Audit log"
-        description="Who did what, when and from where. Times are in UTC. Read-only."
+        description="Who did what, when and from where. Times are in your time zone; hover one for UTC. Read-only."
       />
       <form
         method="get"
@@ -99,7 +100,7 @@ export const AuditLogPage = ({
             {events.map((event) => (
               <tr key={event.id} className="align-top">
                 <Td mono className="py-2 whitespace-nowrap">
-                  <time dateTime={event.createdAt.toISOString()}>{formatUtc(event.createdAt)}</time>
+                  <LocalTime value={event.createdAt} precision="second" />
                 </Td>
                 <Td className="py-2">
                   <span className="font-mono text-[13px]">{actorLabel(event)}</span>

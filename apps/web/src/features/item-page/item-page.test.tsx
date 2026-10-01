@@ -97,8 +97,9 @@ describe("the item page", () => {
     expect(html).toContain(">@team/github</h1>");
     expect(html).toContain("v1.1.0");
     expect(html).toContain(">mcp-server<");
-    expect(html).toContain(
-      "license MIT · #git · #api · by Rae Releaser · published 2026-09-28 09:00 UTC",
+    // The time is a <time>, in UTC on the server (049).
+    expect(html).toMatch(
+      /license MIT · #git · #api · by Rae Releaser(?:<!-- -->)? (?:<!-- -->)?· published <time[^>]*>2026-09-28 09:00 UTC<\/time>/,
     );
     // Install is on the Overview only (045): README goes straight to the README.
     expect(html).not.toContain("rmk install @team/github");
@@ -251,7 +252,7 @@ describe("the item page", () => {
     // Stat cards, from real data only.
     expect(html).toContain(">1,428<");
     expect(html).toContain("all versions, through rmk and the API");
-    expect(html).toMatch(/>2<\/div><p[^>]*>newest 2026-09-28</);
+    expect(html).toMatch(/>2<\/div><p[^>]*>newest <time[^>]*>2026-09-28<\/time>/);
     expect(html).toContain(" of 3 tools");
     expect(html).toContain(">Claude Code · Codex · Cursor<");
     expect(html).toContain(">approved<");

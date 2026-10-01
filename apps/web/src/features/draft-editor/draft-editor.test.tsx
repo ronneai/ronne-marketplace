@@ -247,7 +247,9 @@ describe("the draft page", () => {
       readOnly: true,
       canSubmit: false,
     });
-    expect(html).toContain("Submitted for review on 2026-09-28.");
+    expect(html).toMatch(
+      /Submitted for review(?:<!-- -->)? (?:<!-- -->)?on <time[^>]*>2026-09-28<\/time>\./,
+    );
     expect(html).not.toContain("Submit for review<");
     expect(html).not.toContain("</svg>Settings<");
     expect(html).not.toContain(">Saved<");
