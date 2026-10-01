@@ -65,4 +65,22 @@ export type VersionDetail = {
   files: VersionFile[];
   notes: string | null;
   riskFlags: RiskFlag[];
+  /** The submission it was released from (015); null when it wasn't released through review. */
+  submissionId: string | null;
 };
+
+/** A published item whose listed version depends on another, with the range it asks for (045). */
+export type Dependent = {
+  scope: string;
+  name: string;
+  type: ItemType;
+  /** Its listed version. */
+  version: string;
+  range: string;
+};
+
+/**
+ * Who approved a version's submission (014, 045): the latest `approve` or root's `override`. `by`
+ * is null when that user is gone.
+ */
+export type Approval = { by: string | null; at: Date; override: boolean };

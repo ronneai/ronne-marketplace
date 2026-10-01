@@ -508,15 +508,17 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </p>
         <Bullets>
           <li>
-            <strong>Overview</strong>, where the page opens, sums the item up.{" "}
-            <strong>At a glance</strong> has its settings from <Code>ronne.yaml</Code> (an
-            agent&apos;s tools and model, a rule&apos;s activation and globs, a hook&apos;s event
-            and command, an MCP server&apos;s transport, command or URL and the names of the
-            environment variables it needs, a permission policy&apos;s rules as a table), what it
-            can do on your machine, and the tools it works in. Under it is its main file, to read: a
-            skill&apos;s <Code>SKILL.md</Code>, an agent&apos;s prompt, a rule&apos;s,
+            <strong>Overview</strong>, where the page opens, sums the item up on one screen. At the
+            top: its downloads, how many versions it has, how many tools it works in, and its review
+            (who approved the version, and what it can do on your machine). Then{" "}
+            <strong>Install</strong>, with both commands and a quick <Code>--target</Code> for each
+            tool, and <strong>Capabilities and guardrails</strong>: what it can do, beside the
+            limits its own <Code>ronne.yaml</Code> sets (an agent&apos;s tool list, a rule&apos;s
+            globs, a policy&apos;s blocked commands). Then its main file, to read: a skill&apos;s{" "}
+            <Code>SKILL.md</Code>, an agent&apos;s prompt (its system instruction), a rule&apos;s,
             command&apos;s or output style&apos;s body, or a hook&apos;s or status line&apos;s
-            script. Its other files are listed below, each a link to it in Files.
+            script. Beside them: the package&apos;s checksum and size, its configuration, the items
+            that use it, its owner and approver, and every file, each a link to it in Files.
           </li>
           <li>
             <strong>Dependencies on the canvas:</strong> an agent or a bundle shows the items it
@@ -531,6 +533,11 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             is in the address, so you can send someone a link to it.
           </li>
         </Bullets>
+        <p>
+          Usage (how many projects have it installed, how often it runs and in which tools), runtime
+          requirements and signed releases aren&apos;t shown yet: the registry doesn&apos;t collect
+          or store them. Usage will come from opt-in telemetry, and only what people turn on.
+        </p>
         <p>
           <Code>?version=</Code> works here too, yanked versions included. If a version&apos;s
           package is missing or doesn&apos;t match its checksum, the page says so instead of showing
@@ -1334,7 +1341,8 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         <p>
           <Code>rmk</Code> is Ronne AI Marketplace&apos;s command-line tool. It installs items from
           this marketplace into a project, or into your home folder, writing each AI tool&apos;s own
-          files, and keeps them up to date. Every item page shows its command:
+          files, and keeps them up to date. Every item&apos;s Overview shows its commands, with a
+          quick <Code>--target</Code> for each tool it works in:
         </p>
         <Example>
           {"rmk install @platform/secure-coding\nrmk install @platform/secure-coding@1.2.0"}

@@ -134,3 +134,16 @@ contract [`docs/spec/native-readers.md`](../spec/native-readers.md).
 | ID | Feature | Depends on | Status |
 |---|---|---|---|
 | [044](./044-item-contents/SPEC.md) | Item contents on the item page: an Overview tab (settings, body file, read-only dependency canvas) and a Files viewer, read from the checked artifact | 018, 026, 031 | done |
+| [045](./045-item-overview-dashboard/SPEC.md) | Item overview dashboard from the owner's mockup: stat cards, Install with quick flags, capabilities and guardrails, Used by, maintainers and review, package verification; only what the registry knows | 044 | done |
+| 048 | Runtime requirements in the manifest (`requires`: Node.js, git, the `rmk` version…), checked by `rmk install` and shown on the Overview | 011, 022, 045 | planned |
+
+### M9 — Usage insights
+
+What the item overview mockup shows about usage needs data the registry doesn't collect yet. The
+design notes are [MVP §14.6](../MVP/MVP.md#146-usage-telemetry--post-mvp): opt-in, aggregated, kept
+on the instance.
+
+| ID | Feature | Depends on | Status |
+|---|---|---|---|
+| 046 | Opt-in usage telemetry: `rmk telemetry`, install and remove events per project, run events from `rmk`-managed hooks where each tool allows, `POST /api/v1/usage`, daily aggregates, an instance switch | 022, 023, 024, 025, 045 | planned |
+| 047 | Usage on the item page: installs in active projects, harness distribution, invocations and success rate, the daily volume chart, the harness and trigger breakdowns | 046 | planned |

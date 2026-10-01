@@ -33,19 +33,21 @@ test("a user searches from the home page, filters by type, reads a skill's conte
   // frontmatter, and the other files as links into Files.
   const nav = page.getByRole("navigation", { name: "Item" });
   await expect(nav.getByRole("link", { name: "Overview" })).toHaveAttribute("aria-current", "page");
-  await expect(page.getByRole("heading", { name: "At a glance" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Package verification" })).toBeVisible();
   const skill = page.getByRole("region", { name: "SKILL.md" });
   await expect(skill.getByRole("heading", { name: "Scanning for secrets" })).toBeVisible();
   await expect(skill.getByLabel("Frontmatter")).toContainText(E2E_SKILL);
   await expect(page.getByRole("link", { name: "README.md" })).toBeVisible();
 
-  const install = page
-    .locator("section, div")
-    .filter({ hasText: /^Install/ })
-    .first();
+  // Install is on the Overview (045), with a quick --target for each tool.
+  const install = page.getByRole("region", { name: "Install" });
   await install.getByRole("button", { name: "copy" }).first().click();
   await expect(install.getByText("copied")).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(`rmk install ${name}`);
+  await install.getByRole("button", { name: `Copy rmk install ${name} --target codex` }).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+    `rmk install ${name} --target codex`,
+  );
 
   // The other tabs are links of their own.
   await nav.getByRole("link", { name: "README" }).click();
@@ -80,7 +82,7 @@ test("an agent's Overview sums it up, shows its prompt and its dependencies on a
   await expect(page).not.toHaveURL(/\/sign-in/);
 
   await page.goto(`/items/${E2E_SCOPE}/${E2E_RMK_ITEMS.agent}`);
-  await expect(page.getByRole("heading", { name: "At a glance" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Package verification" })).toBeVisible();
   await expect(page.getByText("fast", { exact: true })).toBeVisible();
   await expect(
     page.getByRole("region", { name: "prompt.md" }).getByText("Review with the kit."),
@@ -104,4 +106,8 @@ test("an agent's Overview sums it up, shows its prompt and its dependencies on a
   await nodes.getByRole("link", { name: mcp }).click();
   await expect(page.getByRole("heading", { level: 1, name: mcp })).toBeVisible();
   await expect(page.getByText("KIT_TOKEN (required, secret)")).toBeVisible();
+  // The agent depends on this server, so the server's page lists it under Used by (045).
+  const agent = `@${E2E_SCOPE}/${E2E_RMK_ITEMS.agent}`;
+  await page.getByRole("region", { name: "Used by" }).getByRole("link", { name: agent }).click();
+  await expect(page.getByRole("heading", { level: 1, name: agent })).toBeVisible();
 });

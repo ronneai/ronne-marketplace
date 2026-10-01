@@ -1,5 +1,3 @@
-import type { ItemType } from "@ronneai/core";
-
 import type { DependencyFacts } from "../../items/models/catalogue";
 
 export type { DependencyFacts };

@@ -1,5 +1,5 @@
 import { ItemNotFoundError, VersionNotFoundError } from "../exceptions/errors";
-import type { VersionDetail } from "../models/item";
+import type { Approval, Dependent, VersionDetail } from "../models/item";
 import { listingOf } from "../models/listing";
 import {
   type ItemRef,
@@ -16,8 +16,10 @@ import {
  * Everyone signed in reads it; a missing item, or a version it doesn't have, is not found.
  */
 export type ItemPage = VersionsPage & {
-  /** The version shown, with what its page needs. */
-  shown: VersionRow & VersionDetail;
+  /** The version shown, with what its page needs, and who approved it (045). */
+  shown: VersionRow & VersionDetail & { approval: Approval | null };
+  /** Published items whose listed version depends on this one (045). */
+  usedBy: Dependent[];
   /** The version the catalogue lists; the page says when it shows another. */
   listed: string;
   /** Where `latest` points, or null. */
@@ -47,7 +49,12 @@ export const itemPage = async (
   if (!detail) throw new VersionNotFoundError(`@${ref.scope}/${ref.name}`, row.version);
   return {
     ...page,
-    shown: { ...row, ...detail },
+    shown: {
+      ...row,
+      ...detail,
+      approval: detail.submissionId ? await deps.items.approval(detail.submissionId) : null,
+    },
+    usedBy: await deps.items.dependents(page.item.id),
     listed: listed.version,
     latest,
     installable: listing.installable,

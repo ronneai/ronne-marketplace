@@ -69,8 +69,8 @@ describe("the item page", () => {
     expect(html).toContain(
       "license MIT · #git · #api · by Rae Releaser · published 2026-09-28 09:00 UTC",
     );
-    expect(html).toContain("rmk install @team/github<");
-    expect(html).toContain("rmk install @team/github@1.1.0");
+    // Install is on the Overview only (045): README goes straight to the README.
+    expect(html).not.toContain("rmk install @team/github");
     expect(html).toContain("<h2>GitHub</h2>");
     expect(html).toContain("&#60;script&#62;alert(1)&#60;/script&#62;");
     expect(html).not.toContain("<script>");
@@ -84,7 +84,6 @@ describe("the item page", () => {
     // Anyone signed in may propose a change (017).
     expect(html).toContain("Propose a change");
     expect(html).toContain("What happens when I propose a change?");
-    expect(html).toContain("How do I install it?");
     // Works in is a tab of its own, before What it can do (044), not a panel on every tab.
     expect(html).toContain('href="/items/team/github?tab=tools"');
     expect(html).not.toContain("What do these mean?");
@@ -189,14 +188,13 @@ describe("the item page", () => {
     expect(await render({ tab: "readme" })).toContain("This version has no README.");
   });
 
-  it("opens on Overview: a summary card, the main file to read, the other files and the canvas", async () => {
-    const html = await render();
-    expect(html).toMatch(/aria-current="page"[^>]*>Overview</);
-    expect(html).toContain("What am I looking at?");
-    expect(html).toContain('href="/docs/items#contents"');
-    // An MCP server: its settings are the whole item, and its files are links into Files.
+  it("opens on Overview: the stat cards, Install with quick flags, and the side column", async () => {
     versions.itemPage.mockResolvedValue(
       itemPageData({
+        item: { ...itemPageData().item, downloadCount: 1428 },
+        usedBy: [
+          { scope: "team", name: "starter-kit", type: "bundle", version: "1.0.0", range: "^1.0.0" },
+        ],
         shown: {
           ...itemPageData().shown,
           manifest: {
@@ -215,22 +213,47 @@ describe("the item page", () => {
         },
       }),
     );
-    const mcp = await render();
-    expect(mcp).toContain(">At a glance</h2>");
-    expect(mcp).toContain(">GITHUB_TOKEN (required, secret)</code>");
-    // What it can do, once per kind, and where it works, each linking to its tab.
-    expect(mcp).toContain(">Starts an MCP server · Mentions web addresses<");
-    expect(mcp).toContain('href="/items/team/github?tab=risks"');
-    expect(mcp).toContain('href="/items/team/github?tab=tools"');
-    expect(mcp).toMatch(/Claude Code<span[^>]*>supported</);
-    // No browser here: Files has it. Each file links there.
-    expect(mcp).not.toContain('aria-label="Files of this version"');
-    expect(mcp).toContain("Also included (2 files)");
-    expect(mcp).toContain('href="/items/team/github?tab=files&amp;file=ronne.yaml"');
-    expect(mcp).toContain('href="/items/team/github?tab=files&amp;file=bin%2Frun.sh"');
-    expect(mcp).not.toContain("Uses ");
+    const html = await render();
+    expect(html).toMatch(/aria-current="page"[^>]*>Overview</);
+    expect(html).toContain("What am I looking at?");
+    expect(html).toContain('href="/docs/items#contents"');
+    // Stat cards, from real data only.
+    expect(html).toContain(">1,428<");
+    expect(html).toContain("all versions, through rmk and the API");
+    expect(html).toMatch(/>2<\/div><p[^>]*>newest 2026-09-28</);
+    expect(html).toContain(" of 3 tools");
+    expect(html).toContain(">Claude Code · Codex · Cursor<");
+    expect(html).toContain(">approved<");
+    expect(html).toContain("3 flags");
+    expect(html).toContain(">Starts an MCP server · Mentions web addresses<");
+    expect(html).toContain('href="/items/team/github?tab=risks"');
+    expect(html).toContain('href="/items/team/github?tab=tools"');
+    // Install, with a quick --target for each tool it installs in.
+    expect(html).toContain("rmk install @team/github<");
+    expect(html).toContain("rmk install @team/github@1.1.0");
+    expect(html).toContain("How do I install it?");
+    for (const id of ["claude-code", "codex", "cursor"])
+      expect(html).toContain(`aria-label="Copy rmk install @team/github --target ${id}"`);
+    // Capabilities and guardrails.
+    expect(html).toContain("It starts <code");
+    expect(html).toContain("Its manifest sets no limits of its own.");
+    // The side column.
+    expect(html).toContain(`>${"ab".repeat(32)}</code>`);
+    expect(html).toContain(">2 KB<");
+    expect(html).toContain(">GITHUB_TOKEN (required, secret)<");
+    expect(html).toContain('href="/items/team/starter-kit"');
+    expect(html).toContain("bundle · asks ^1.0.0");
+    expect(html).toContain(">Rae Releaser<");
+    expect(html).toContain("Approved by Mo Moderator");
+    expect(html).toContain('href="/items/team/github?tab=files&amp;file=ronne.yaml"');
+    expect(html).toContain('href="/items/team/github?tab=files&amp;file=bin%2Frun.sh"');
+    expect(html).not.toContain("Uses ");
+    // Nothing the registry doesn't know: no usage, runtime requirements or signatures.
+    for (const missing of ["Invocations", "Telemetry", "Runtime requirements", "signed"])
+      expect(html).not.toContain(missing);
+  });
 
-    // An agent: its prompt to read, and its dependencies on the canvas.
+  it("shows an agent's prompt with its role, its guardrails and its dependencies on the canvas", async () => {
     versions.itemPage.mockResolvedValue(
       itemPageData({
         item: { ...itemPageData().item, type: "agent" },
@@ -238,6 +261,7 @@ describe("the item page", () => {
           ...itemPageData().shown,
           manifest: { agent: { prompt: "prompt.md", tools: ["read"] } },
           dependencies: { "@team/fmt": "^1.0.0" },
+          approval: null,
         },
       }),
     );
@@ -251,15 +275,19 @@ describe("the item page", () => {
     const agent = await render();
     expect(catalogue.dependencyFacts).toHaveBeenCalledWith(expect.any(Headers), ["@team/fmt"]);
     expect(agent).toContain(">prompt.md</h2>");
+    expect(agent).toContain(">system instruction<");
     expect(agent).toContain("<h2>Reviewer</h2>");
     expect(agent).toContain('href="/items/team/github?tab=files&amp;file=prompt.md"');
+    expect(agent).toContain("Only these tools: <code");
     expect(agent).toContain(">Nothing flagged<");
-    // Reading only: the source is in Files.
+    expect(agent).toContain(">not reviewed<");
+    expect(agent).toContain("Released without review.");
     expect(agent).not.toContain(">Source<");
-    expect(agent).toContain("Also included (2 files)");
     expect(agent).toContain("Uses 1 item");
     expect(agent).toContain("Loading the canvas…");
     expect(agent).toContain('href="/items/team/fmt"');
+    // Nothing depends on it: no Used by.
+    expect(agent).not.toContain('aria-label="Used by"');
 
     // A body file the manifest names but the version lacks.
     versions.versionContents.mockResolvedValue(FILES);
@@ -296,7 +324,7 @@ describe("the item page", () => {
     for (const tab of ["overview", "files"]) {
       const html = await render({ tab });
       expect(html).toContain("This version&#x27;s files can&#x27;t be read.");
-      expect(html).toContain("rmk install @team/github");
+      expect(html).toContain(">@team/github</h1>");
     }
   });
 

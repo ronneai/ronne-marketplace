@@ -3,7 +3,14 @@ import { join } from "node:path";
 import type { ItemType } from "@ronneai/core";
 import { describe, expect, it } from "vitest";
 import { parse } from "yaml";
-import { bodyPathOf, policyRulesOf, riskLabelsOf, settingsOf } from "./model";
+import {
+  bodyPathOf,
+  bodyRoleOf,
+  guardrailsOf,
+  policyRulesOf,
+  riskLabelsOf,
+  settingsOf,
+} from "./model";
 
 /** The sample items, one per type: 044's table is checked against them. */
 const EXAMPLES = join(import.meta.dirname, "../../../../../../examples/items");
@@ -159,5 +166,35 @@ describe("the Overview's summary (044)", () => {
       "Runs on an event",
     ]);
     expect(riskLabelsOf([])).toEqual([]);
+  });
+});
+
+describe("the dashboard's guardrails and roles (045)", () => {
+  it("reads the limits each type's manifest sets", () => {
+    const of = (folder: string) => {
+      const { manifest, type } = example(folder);
+      return guardrailsOf(manifest, type);
+    };
+    expect(of("code-reviewer")).toEqual([
+      "Only these tools: `read`, `grep`, `glob`, `shell`, `mcp:github-mcp`.",
+    ]);
+    expect(of("house-style")).toEqual(["Applies only to files matching `**/*.ts`, `**/*.tsx`."]);
+    expect(of("format-on-edit")).toEqual(["Runs only for the `edit` tool."]);
+    expect(of("safe-git")).toEqual([
+      "Blocks `shell git push --force*`.",
+      "Asks before `shell git push*`.",
+      "Asks before `shell git reset --hard*`.",
+    ]);
+    for (const folder of ["secure-coding", "github-mcp", "starter-kit", "concise"])
+      expect(of(folder)).toEqual([]);
+    expect(guardrailsOf({ rule: { activation: "manual" } }, "rule")).toEqual([
+      "Applies only when someone asks for it.",
+    ]);
+  });
+
+  it("names the main file's role", () => {
+    expect(bodyRoleOf("agent")).toBe("system instruction");
+    expect(bodyRoleOf("skill")).toBe("skill entry");
+    expect(bodyRoleOf("mcp-server")).toBeNull();
   });
 });

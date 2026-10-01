@@ -12,7 +12,7 @@ import { Panel } from "@/components/ui/Panel";
  * per built-in renderer, its level from the renderer's `supports()` and the version's own
  * `targets`, and what that means here. The same answer `rmk` acts on.
  */
-export const LEVEL: Record<ToolSupport, { label: string; tone: BadgeTone }> = {
+const LEVEL: Record<ToolSupport, { label: string; tone: BadgeTone }> = {
   native: { label: "supported", tone: "accent" },
   degraded: { label: "partly", tone: "warning" },
   off: { label: "turned off", tone: "muted" },
