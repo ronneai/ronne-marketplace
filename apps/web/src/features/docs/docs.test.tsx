@@ -63,17 +63,22 @@ describe("the Documentation", () => {
 });
 
 describe("HelpTip", () => {
-  it("is a closed details element with its question, answer and Learn more", () => {
+  it("is a closed popover's button, with the answer inline only without JavaScript (050)", () => {
     const html = renderToStaticMarkup(
       <HelpTip question="What's a scope?" href="/docs/scopes#what">
         The first part of an item&apos;s name.
       </HelpTip>,
     );
-    expect(html).toMatch(/^<details class="[^"]*">/);
-    expect(html).not.toContain("<details open");
+    expect(html).toMatch(/<button type="button"[^>]*aria-expanded="false"/);
+    expect(html).toMatch(/aria-haspopup="dialog"/);
     expect(html).toContain("What&#x27;s a scope?");
-    expect(html).toContain("The first part of an item&#x27;s name.");
+    // Closed: no popover on the page, and the answer only in the noscript fallback.
+    expect(html).not.toContain('role="dialog"');
+    expect(html).toMatch(
+      /<noscript>[\s\S]*The first part of an item&#x27;s name\.[\s\S]*<\/noscript>/,
+    );
     expect(html).toMatch(/href="\/docs\/scopes#what"[^>]*>Learn more</);
+    expect(html).not.toContain("<details");
     expect(renderToStaticMarkup(<HelpTip question="Q">A.</HelpTip>)).not.toContain("Learn more");
   });
 });

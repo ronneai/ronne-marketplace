@@ -30,6 +30,7 @@
     "@codemirror/legacy-modes": "6.5.4",
     "@codemirror/state": "6.7.6",
     "@codemirror/view": "6.43.13",
+    "@floating-ui/react": "0.27.20",
     "@lezer/highlight": "1.2.4",
     "@node-rs/argon2": "2.2.1",
     "@ronneai/core": "workspace:*",

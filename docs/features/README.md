@@ -160,3 +160,4 @@ Work that changes every part of the web app rather than one milestone's features
 | ID | Feature | Depends on | Status |
 |---|---|---|---|
 | [049](./049-local-time/SPEC.md) | Local time: every timestamp in the reader's time zone, UTC on hover; storage, the API and `rmk` stay UTC | 032 | done |
+| [050](./050-help-popovers/SPEC.md) | Helpers as popovers: an inline helper's answer floats next to its question (Floating UI) instead of opening inside the page | 033, 032 | done |

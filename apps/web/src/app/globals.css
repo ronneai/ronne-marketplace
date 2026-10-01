@@ -23,6 +23,8 @@
   --color-link: var(--link);
   --color-tint: var(--tint);
   --color-chart: var(--chart);
+  --color-popover: var(--popover);
+  --color-popover-border: var(--popover-border);
   --color-chart-neutral: var(--chart-neutral);
   --color-chart-well: var(--chart-well);
   --color-chart-cursor: var(--chart-cursor);

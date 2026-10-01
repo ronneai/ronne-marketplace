@@ -56,7 +56,9 @@ should be in the app.
 
 **HelpTip** (`components/ui/HelpTip`): a `<details>` with a short question as its summary, such as
 "What's a scope?", and 1–3 sentences plus **Learn more** to its topic's section. It works without
-JavaScript, is keyboard accessible, and stays closed until asked.
+JavaScript, is keyboard accessible, and stays closed until asked. Since
+[050](../050-help-popovers/SPEC.md) the question is a button and the answer opens in a light teal
+popover next to it (Floating UI), without moving the page; without JavaScript it shows inline.
 
 **Where inline help goes:**
 - **New item form:** the scope ("What's a scope?"), the name (rules and examples) and the type
