@@ -42,6 +42,7 @@ import {
 } from "./project.js";
 import { itemPath } from "./registry-commands.js";
 import { dayOf, queueUsage, refreshPolicy, type UsageLine, usageNotice } from "./telemetry.js";
+import { addUsageHooks } from "./usage-hooks.js";
 
 /**
  * Installing (feature 022, MVP §4.3): resolve, download and check, render for each target, plan
@@ -376,6 +377,7 @@ export const installCommand = async (
   });
   if (operation.plan.conflicts.length === 0) applyOperation(io, operation);
   report(out, operation, io);
+  for (const line of await addUsageHooks(io, operation)) out.say(`Note: ${line}`);
 };
 
 /**

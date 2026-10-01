@@ -1,3 +1,4 @@
+import { spawn } from "node:child_process";
 import { homedir } from "node:os";
 import { createInterface } from "node:readline/promises";
 
@@ -16,6 +17,10 @@ export type Io = {
   prompt(question: string, options?: { secret?: boolean }): Promise<string>;
   /** The time; tests fix it. Defaults to the clock. */
   now?: () => Date;
+  /** Everything on standard input, for `rmk telemetry hook` (046). Defaults to reading it. */
+  readStdin?: () => Promise<string>;
+  /** Starts `rmk telemetry flush` detached, so a tool's hook never waits for the network (046). */
+  sendInBackground?: () => void;
 };
 
 /** The current time, from the `Io` when it has a clock. */
@@ -58,4 +63,12 @@ export const defaultIo = (): Io => ({
   fetch: globalThis.fetch,
   interactive: Boolean(process.stdin.isTTY && process.stdout.isTTY),
   prompt: (question, options) => ask(question, options?.secret ?? false),
+  sendInBackground: () => {
+    const script = process.argv[1];
+    if (!script) return;
+    spawn(process.execPath, [script, "telemetry", "flush"], {
+      detached: true,
+      stdio: "ignore",
+    }).unref();
+  },
 });

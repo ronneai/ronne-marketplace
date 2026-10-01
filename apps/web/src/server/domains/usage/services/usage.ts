@@ -66,7 +66,7 @@ export const recordUsage = async (
   let accepted = 0;
   for (const event of valid) {
     const item = published.get(event.item);
-    if (!item || !item.versions.has(event.version)) continue;
+    if (!item?.versions.has(event.version)) continue;
     accepted += 1;
     const key = usageKey(event);
     const row = rows.get(key);

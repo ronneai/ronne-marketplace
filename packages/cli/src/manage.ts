@@ -12,6 +12,7 @@ import {
 } from "./operations.js";
 import type { Output } from "./output.js";
 import { itemPath } from "./registry-commands.js";
+import { addUsageHooks } from "./usage-hooks.js";
 
 /** Keeping a project's items current (feature 022): `update`, `outdated`, `remove`. */
 type Args = { positionals: string[]; values: Record<string, string | boolean | undefined> };
@@ -35,6 +36,7 @@ export const updateCommand = async (io: Io, args: Args, out: Output, api: ApiCli
   if (moved.length === 0) out.say("Everything is already at the newest version its range allows.");
   for (const m of moved) out.say(`${m.item}: ${m.from ?? "(new)"} → ${m.to}`);
   report(out, operation, io);
+  for (const line of await addUsageHooks(io, operation)) out.say(`Note: ${line}`);
 };
 
 export type Outdated = {

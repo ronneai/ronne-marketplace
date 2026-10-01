@@ -98,14 +98,14 @@ as for renderers, MVP §3.3):
 | Hook file | `~/.claude/settings.json` | `~/.codex/hooks.json` | `~/.cursor/hooks.json` |
 | Skills | The model choosing one: `PostToolUse` / `PostToolUseFailure` on `Skill` (`tool_input.skill`). Typed by the person: `UserPromptExpansion` (`slash_command`) | No event: not counted | No event: not counted |
 | Commands | `UserPromptExpansion` (`command_name`) | No event | No event |
-| Agents | `SubagentStart` (`agent_type`) | `SubagentStart` (`agent_type`) | `subagentStop` (`subagent_type`), if custom agents' names appear there |
-| MCP servers | `PostToolUse` / `PostToolUseFailure` on `mcp__<server>__…` | `PostToolUse` on `mcp__<server>__…` | `afterMCPExecution` (`mcp_server_name`), `postToolUseFailure` |
+| Agents | `SubagentStart` (`agent_type`; its `agent_id` is the new subagent's own, so the trigger is `model`) | `SubagentStart` (`agent_type`) | `subagentStop` (`subagent_type`), if custom agents' names appear there |
+| MCP servers | `PostToolUse` / `PostToolUseFailure` on `mcp__<server>__…` | `PostToolUse` on `mcp__<server>__…` | `afterMCPExecution` (`mcp_server_name`; `result_json`'s `isError` gives the outcome) |
 | Outcome | Skills and MCP: success or error. Agents and commands: unknown | Unknown | Agents: `status` (completed, error, aborted). MCP: success or error |
 | Before it runs | The workspace trust dialog | The person reviews the hook in `/hooks` (rmk says so) | Nothing for user hooks |
 
 - **Trigger:** `user` (typed by the person: `UserPromptExpansion`), `model` (the model chose it),
-  `agent` (the event fired inside a subagent: `agent_id` present, or Cursor's
-  `parent_conversation_id`), or `unknown`. A run under `CI` is `ci`; no tool's payload says it's
+  `agent` (a skill or MCP tool used inside a subagent: Claude Code's `agent_id` on a tool event), or
+  `unknown`. A run under `CI` is `ci`; no tool's payload says it's
   headless.
 - **Outcome:** `success`, `error`, `cancelled` where the tool says so; otherwise `unknown`, and 047
   shows a success rate only from runs with a known outcome.
@@ -174,8 +174,9 @@ Saving takes effect at once (no restart) and is recorded in the audit log
 - **Reporting on, but `rmk` isn't on `PATH` when the tool runs the hook:** the hook fails and the
   tool may show its usual hook error. `rmk install` doesn't add the hook when the command doesn't
   resolve, and `rmk telemetry status` says why.
-- **A hook edited by the person:** the usual conflict rule; `install` and `off` skip it and say so
-  unless `--force`.
+- **A hook edited by the person:** it's theirs now. rmk finds its hook entries by their exact content
+  (as for every hook it writes, 023), so an edited one is left in place and no longer tracked; `off`
+  removes the rest.
 - **Root changes the policy:** `rmk` sees it at its next daily check (or `rmk login`); a report sent
   meanwhile to an instance now `off` gets `403` and the queue is dropped. From `required` to
   `choice`, a person's earlier `rmk telemetry off` counts again.

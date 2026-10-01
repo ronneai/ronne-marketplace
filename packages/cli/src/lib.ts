@@ -57,3 +57,4 @@ export {
 export { type Output, output } from "./output.js";
 export { itemPath } from "./registry-commands.js";
 export { flushAfterCommand } from "./telemetry.js";
+export { addUsageHooks } from "./usage-hooks.js";

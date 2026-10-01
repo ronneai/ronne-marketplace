@@ -70,6 +70,8 @@ type RegistryState = {
   /** The policy whose notice was printed, so each is printed once. */
   noticed?: UsagePolicy;
   lastSent?: string;
+  /** When rmk last tried to send, sent or not: a hook doesn't start another send within the hour. */
+  lastAttempt?: string;
 };
 type UsageState = { version: 1; registries: Record<string, RegistryState> };
 
@@ -307,6 +309,12 @@ export const flushUsage = async (io: Io): Promise<FlushResult[]> => {
       results.push({ registry, sent: 0, kept: 0, outcome: "dropped", message: reporting.reason });
       continue;
     }
+    const attempted = readState(io);
+    attempted.registries[registry] = {
+      ...attempted.registries[registry],
+      lastAttempt: nowOf(io).toISOString(),
+    };
+    writeState(io, attempted);
     // Moved aside first, so a hook writing meanwhile starts a new queue instead of being lost.
     const sending = `${file}.${process.pid}.sending`;
     renameSync(file, sending);
@@ -356,6 +364,10 @@ export const flushUsage = async (io: Io): Promise<FlushResult[]> => {
   }
   return results;
 };
+
+/** When rmk last tried to send to a registry, or null. */
+export const lastSendAttempt = (io: Io, registry: string): string | null =>
+  readState(io).registries[registry]?.lastAttempt ?? null;
 
 /** At the end of a command: sends what's queued, quietly. */
 export const flushAfterCommand = async (io: Io) => {

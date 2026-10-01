@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import {
+  addUsageHooks,
   applyOperation,
   connectRegistry,
   flushAfterCommand,
@@ -213,6 +214,8 @@ export const applyPlanTool = async (
   applyOperation(io, stored.value);
   const out = output(false);
   report(out, stored.value, io);
+  if (stored.value.kind !== "remove")
+    for (const line of await addUsageHooks(io, stored.value)) out.say(`Note: ${line}`);
   // What the install queued for usage (046) goes now, as at the end of an rmk command.
   await flushAfterCommand(io);
   return answer(out.lines, { applied: true, ...out.data });

@@ -46,14 +46,14 @@ the same change that completes it.
   *Done when:* `install.test.ts` and the MCP server's tests check the queue after install, update and
   remove, and that nothing is queued when it's off.
 
-- [ ] **5. The run hooks.** `rmk install` adding the user-level hook for each tool it installs into
+- [x] **5. The run hooks.** `rmk install` adding the user-level hook for each tool it installs into
   when reporting is on (with its notice), and `rmk telemetry off` removing them where the policy
   allows (recorded under `rmk telemetry` in the user state); `rmk telemetry hook <tool>` mapping each tool's
   payload to a run of an installed item, the trigger and the outcome; Cursor's copy of Claude Code's
   hook ignored; the Codex `/hooks` note.
   *Done when:* golden payload tests per tool (from the vendors' documented examples) cover each row
   of the spec's table, an item `rmk` didn't install, a name matching two items, and that the hook
-  always exits 0 and prints nothing; install and `off` round-trip with the conflict rule.
+  always exits 0 and prints nothing; install and `off` round-trip, leaving an edited hook.
 
 - [ ] **6. Documentation.** The `usage` topic, the `rmk` and `roles` sections and the `usage-policy`
   helper in the spec's Documentation section; `docs/spec/cli-files.md` gets the config's `telemetry` field and the queue.
@@ -98,3 +98,10 @@ goes into `SPEC.md` instead.
   file). `prepareInstall` checks the registry's policy (daily) before anything is queued, and
   `report` prints the notice with the first install that writes something. The MCP server's
   `apply_plan` sends the queue right away, since it never ends a command the way `rmk` does.
+- **Task 5.** `packages/cli/src/usage-hooks.ts`. The hook command is `rmk telemetry hook <tool>`,
+  async in Claude Code and Codex. It finds the item through the project's `rmk.lock` (searched upward
+  from the event's folder) and the user lock, by unscoped name and type; two matches count as none.
+  A real Claude Code payload showed that `SubagentStart`'s `agent_id` is the new subagent's own, so
+  it can't mark delegation. The hook starts `rmk telemetry flush` in the background when nothing was
+  tried for an hour (`lastAttempt` in the usage state). Cursor's `version` key is managed with the
+  hooks, so `off` removes it even when the person kept an edited hook in that file.

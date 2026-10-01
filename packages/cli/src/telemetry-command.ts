@@ -10,6 +10,7 @@ import {
   refreshPolicy,
   usageSummary,
 } from "./telemetry.js";
+import { HOOK_FILES, hookedTools, removeUsageHooks, runHook } from "./usage-hooks.js";
 
 /**
  * `rmk telemetry on | off | status | preview | flush` (feature 046). The registry's policy decides
@@ -41,7 +42,9 @@ const choose = (io: Io, enabled: boolean) => {
 
 const status = (io: Io, out: Output) => {
   const registries = usageSummary(io);
+  const hooks = hookedTools(io);
   out.set("registries", registries);
+  out.set("hooks", hooks);
   if (registries.length === 0) {
     out.say("rmk isn't logged in to any registry, so it reports usage nowhere.");
     return;
@@ -56,14 +59,24 @@ const status = (io: Io, out: Output) => {
         `  ${r.queued} line${r.queued === 1 ? "" : "s"} queued${r.lastSent ? `; last sent ${r.lastSent.slice(0, 16).replace("T", " ")} UTC` : ""}.`,
       );
   }
+  out.say(
+    hooks.length
+      ? `Usage hook in: ${hooks.map((tool) => `~/${HOOK_FILES[tool]}`).join(", ")}.`
+      : "No usage hook is installed; rmk install adds one where it reports.",
+  );
 };
 
 export const telemetryCommand = async (
   io: Io,
-  args: { positionals: string[] },
+  args: { positionals: string[]; values?: Record<string, string | boolean | undefined> },
   out: Output,
 ): Promise<void> => {
-  const [sub = "status"] = args.positionals;
+  const [sub = "status", tool = ""] = args.positionals;
+  if (sub === "hook") {
+    // Run by an AI tool: prints nothing, whatever happens.
+    await runHook(io, tool);
+    return;
+  }
   if (sub === "status") {
     await refreshAll(io);
     status(io, out);
@@ -81,8 +94,17 @@ export const telemetryCommand = async (
     await refreshAll(io);
     clearChoiceQueues(io);
     out.say("Usage reporting is off wherever the registry's policy lets you choose.");
-    for (const r of usageSummary(io).filter((s) => s.policy === "required"))
+    const required = usageSummary(io).filter((s) => s.policy === "required");
+    for (const r of required)
       out.say(`${r.registry} requires usage reporting, so rmk keeps reporting to it.`);
+    if (required.length === 0 && hookedTools(io).length) {
+      const result = await removeUsageHooks(io, args.values?.force === true);
+      if (result.conflicts.length)
+        out.say(
+          `rmk's usage hook stays in ${result.conflicts.join(", ")}: it changed since rmk wrote it. Run again with --force to remove it.`,
+        );
+      else for (const path of result.removed) out.say(`Removed rmk's usage hook from ~/${path}.`);
+    }
     status(io, out);
     return;
   }
