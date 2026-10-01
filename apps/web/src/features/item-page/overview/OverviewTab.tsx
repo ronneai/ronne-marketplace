@@ -568,10 +568,13 @@ const IncludedFiles = ({
  */
 /** Under the minimum: why there are no usage numbers, where usage is or was collected (047). */
 const UsageMinimum = () => (
-  <p id="usage" className="flex flex-wrap items-center gap-2 text-sm text-muted">
-    Usage appears once this item has 20 reported installs or runs in 30 days.
+  // A div, not a p: the helper is a <details>, which HTML doesn't allow inside a paragraph.
+  <div id="usage" className="flex flex-wrap items-center gap-2">
+    <p className="text-sm text-muted">
+      Usage appears once this item has 20 reported installs or runs in 30 days.
+    </p>
     <Help id="usage" />
-  </p>
+  </div>
 );
 
 export const OverviewTab = ({

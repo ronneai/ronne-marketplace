@@ -272,7 +272,7 @@ const release = async (
 const mcpId = await release(E2E_RMK_ITEMS.mcp, "mcp-server", "1.0.0", {
   "ronne.yaml": `name: "@${E2E_SCOPE}/${E2E_RMK_ITEMS.mcp}"\ntype: mcp-server\ndescription: The kit-mcp item.\nmcp-server:\n  transport: stdio\n  command: npx\n  args: ["-y", "@example/mcp"]\n  env:\n    - name: KIT_TOKEN\n      required: true\n      secret: true\n`,
 });
-await release(
+const agentId = await release(
   E2E_RMK_ITEMS.agent,
   "agent",
   "1.0.0",
@@ -285,6 +285,19 @@ await release(
     { itemId: mcpId, range: "^1.0.0" },
   ],
 );
+// A few runs of the agent, under the usage minimum (047): its Overview says why it shows no usage.
+await kyselyUsageRepository(db, dialect).add([
+  {
+    itemId: agentId,
+    day: daysBefore(dayOf(new Date()), 1),
+    version: "1.0.0",
+    tool: "claude-code",
+    event: "run",
+    trigger: "model",
+    outcome: "success",
+    count: 3,
+  },
+]);
 for (const version of ["1.0.0", "1.1.0"])
   await release(E2E_RMK_ITEMS.hook, "hook", version, {
     "ronne.yaml": `name: "@${E2E_SCOPE}/${E2E_RMK_ITEMS.hook}"\ntype: hook\ndescription: The kit-hook item.\nhook:\n  event: tool.after\n  matcher:\n    tool: edit\n  run:\n    command: "echo kit ${version}"\n`,

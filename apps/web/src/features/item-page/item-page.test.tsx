@@ -420,6 +420,8 @@ describe("usage on the Overview (047)", () => {
     expect(html).toContain(
       "Usage appears once this item has 20 reported installs or runs in 30 days.",
     );
+    // The helper beside it is a <details>: inside a <p> it breaks hydration in the browser.
+    expect(html).not.toMatch(/<p\b[^>]*>(?:(?!<\/p>)[\s\S])*?<details/);
     expect(html).not.toContain("Installs, 30 days");
   });
 

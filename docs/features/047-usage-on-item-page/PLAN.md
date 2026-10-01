@@ -53,3 +53,6 @@ goes into `SPEC.md` instead.
 - **Task 4.** The dialogs render only when opened, so the sentence is `reachLine` (unit-tested) and
   `versions.e2e.ts` reads it in the open deprecate dialog; the e2e seed reports installs of the
   versioned rule's 1.0.0. A version nothing reported shows "–", not 0.
+- **After task 5.** The minimum line put its helper inside a `<p>`; `pnpm dev` showed nesting and
+  hydration errors (`docs/knowledge/help-tips-and-paragraphs.md`). The line is a `<div>` now, and
+  `item-page.test.tsx` fails on a `<details>` inside a `<p>`.

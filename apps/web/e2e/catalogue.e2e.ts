@@ -101,6 +101,15 @@ test("an agent's Overview sums it up, shows its prompt and its dependencies on a
 
   await page.goto(`/items/${E2E_SCOPE}/${E2E_RMK_ITEMS.agent}`);
   await expect(page.getByRole("region", { name: "Package verification" })).toBeVisible();
+  // Under the usage minimum, with its helper beside it.
+  await expect(
+    page.getByText("Usage appears once this item has 20 reported installs"),
+  ).toBeVisible();
+  await page.getByText("Where do these numbers come from?").click();
+  await expect(page.getByRole("link", { name: "Learn more" }).first()).toHaveAttribute(
+    "href",
+    "/docs/usage#reading",
+  );
   await expect(page.getByText("fast", { exact: true })).toBeVisible();
   await expect(
     page.getByRole("region", { name: "prompt.md" }).getByText("Review with the kit."),
