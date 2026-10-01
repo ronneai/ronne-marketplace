@@ -4,9 +4,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CatalogueEntry, CataloguePage } from "@/server/domains/items/actions/catalogue";
 import { catalogueHref, parseCatalogueQuery } from "./query";
 
-/** The page as a reader sees it: tags and React's text separators gone. */
-const textOf = (html: string) => html.replace(/<!-- -->/g, "").replace(/<[^>]+>/g, "");
-
 const catalogue = vi.hoisted(() => ({ browseCatalogue: vi.fn() }));
 vi.mock("@/server/domains/items/actions/catalogue", () => catalogue);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
@@ -63,12 +60,14 @@ describe("the catalogue page", () => {
     expect(html).toContain(">@team/fmt<");
     expect(html).toContain("v1.2.0");
     expect(html).toContain(">hook<");
-    // The page's text: the date is a <time>, in UTC on the server (049).
-    expect(textOf(html)).toContain(
-      "#format · #lint · published 2026-09-20 · works in Claude Code, Codex, Cursor",
+    // The date is a <time>, in UTC on the server (049).
+    expect(html).toMatch(
+      /#format · #lint · published(?:<!-- -->)? <time[^>]*>2026-09-20<\/time> · (?:<!-- -->)?works in Claude Code, Codex, Cursor/,
     );
     expect(html).toContain("rmk install @team/fmt");
-    expect(textOf(html)).toContain("published 2026-09-20 · works in Claude Code, Codex, Cursor");
+    expect(html).toMatch(
+      /published(?:<!-- -->)? <time[^>]*>2026-09-20<\/time> · (?:<!-- -->)?works in Claude Code, Codex, Cursor/,
+    );
     expect(html).toContain('<option value="cursor">Cursor</option>');
     expect(html).not.toContain("⚠ risk");
     expect(html).not.toContain("downloads");

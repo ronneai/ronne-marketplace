@@ -33,3 +33,9 @@ goes into `SPEC.md` instead.
 - **Task 3.** The end-to-end check lives in `audit.e2e.ts`'s root test (root's sign-ins are limited,
   `docs/knowledge/e2e-sign-in-limit.md`), with `timezoneId: "America/Sao_Paulo"` for the file. The
   server renders UTC, so seeing `GMT-3` proves the browser converted it.
+- **CI after the pull request.** Two of my tests failed there, not locally:
+  - A time zone's short name comes from Node's ICU data, which differs by build: Lisbon in winter is
+    `GMT` on macOS and `GMT+0` on the Ubuntu runners. The test accepts both; the time is what it
+    checks. The other names in the tests (`GMT-3`, `GMT+9`, `UTC`) agree everywhere.
+  - CodeQL flagged a tag-stripping test helper as incomplete sanitization (high), three times; the
+    tests now match the HTML with its `<time>` element instead (`docs/knowledge/codeql-regex.md`).

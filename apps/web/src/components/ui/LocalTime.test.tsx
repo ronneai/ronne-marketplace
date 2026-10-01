@@ -32,8 +32,9 @@ describe("LocalTime", () => {
   });
 
   it("uses the offset in force on the moment's own date", () => {
-    expect(localText("2026-01-15T12:00:00Z", "minute", "Europe/Lisbon")).toBe(
-      "2026-01-15 12:00 GMT",
+    // The zone's short name comes from Node's ICU data: "GMT" on some builds, "GMT+0" on others.
+    expect(localText("2026-01-15T12:00:00Z", "minute", "Europe/Lisbon")).toMatch(
+      /^2026-01-15 12:00 GMT(\+0)?$/,
     );
     expect(localText("2026-07-15T12:00:00Z", "minute", "Europe/Lisbon")).toBe(
       "2026-07-15 13:00 GMT+1",

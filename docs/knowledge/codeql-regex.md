@@ -77,3 +77,21 @@ If yes, rewrite it with a loop or a stricter class.
 The alert names the file and line, and the message names the input that's slow (for example
 "strings starting with '${{A:-' and with many repetitions of '${{A:-'"). After the fix, CodeQL
 closes the alert on the next run of the pull request.
+
+## A third query: removing tags with a regex (049)
+
+CodeQL also fails a pull request on `js/incomplete-multi-character-sanitization` (severity
+**high**), whatever the file is for, tests included. 049 added a test helper that turned rendered
+HTML into text:
+
+```ts
+const textOf = (html: string) => html.replace(/<[^>]+>/g, "");   // flagged, three times
+```
+
+CodeQL reads any tag-stripping `replace` as an attempt to sanitize HTML, and one pass can leave a
+`<script` behind (`<scr<b>ipt>` becomes `<script>`). It doesn't know the input is our own render
+output. **Don't strip tags in tests:** match the HTML itself, element included, which is stricter
+anyway: `toMatch(/published <time[^>]*>2026-09-20<\/time>/)`. React puts `<!-- -->` between
+adjacent text pieces, so allow `(?:<!-- -->)?` where text and an expression meet. In app code, never
+sanitize HTML with a regex at all: render text with React, or use the Markdown renderer's own
+sanitizer.
