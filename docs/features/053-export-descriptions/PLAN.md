@@ -7,8 +7,8 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **0. Decisions.** The owner settles Open question 1 (the body's first line: a suggestion or a
-  description), and the spec is updated to match before anything is built.
+- [x] **0. Decisions.** The owner settles the body's first line (a suggestion, confirmed by the AI
+  tool or the person), and the spec is updated to match before anything is built.
   *Done when:* the spec has no open question that changes what's built.
 
 - [ ] **1. Which items need one.** In `planExport`, using the readers' warnings and types (no

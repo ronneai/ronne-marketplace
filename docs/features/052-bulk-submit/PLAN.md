@@ -7,8 +7,8 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **0. Decisions.** The owner settles Open questions 1 (tokens that submit) and 2 (dependents
-  with their dependencies), and the spec is updated to match before anything is built.
+- [x] **0. Decisions.** The owner settles tokens that submit (every token) and dependents with their
+  dependencies (013's rule stays), and the spec is updated to match before anything is built.
   *Done when:* the spec has no open question that changes what's built.
 
 - [ ] **1. Domain.** `checkMany` and `submitMany` in the `submissions` service, over 013's
@@ -41,7 +41,7 @@ the same change that completes it.
   three drafts, one of them not ready.
 
 - [ ] **6. Documentation.** The sections and helpers in the spec's Documentation section, MVP §11's
-  endpoints, a §15 entry, and the `rmk` README's command list.
+  endpoints, and the `rmk` README's command list. (§15's token decision is already recorded.)
   *Done when:* the docs render tests pass, and every new helper's link lands on a real section.
 
 ## Notes

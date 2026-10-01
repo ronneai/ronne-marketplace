@@ -154,14 +154,15 @@ person or the assistant gave for this export.
 - [ ] Exporting again keeps a draft's description when the local item has none.
 - [ ] The Documentation listed above says what the feature does now.
 
+## Decisions
+
+1. **The body's first line** (owner, 2026-10-01): a *suggestion*, not a description. The AI tool
+   or the person confirms it, so a heading like "# House style" doesn't become one silently.
+
 ## Open questions
 
-1. **The body's first line.** Recommended: treat it as a *suggestion*, not a description, so the AI
-   tool or the person confirms it. That's the owner's "the harness sets it up". The alternative is
-   to keep using it silently, with 038's warning, and ask only when there's nothing at all, which
-   is fewer questions but leaves headings like "# House style" as descriptions.
-2. **Without an AI tool or a terminal** (CI): recommended `--describe` / `--descriptions`, refusing
+1. **Without an AI tool or a terminal** (CI): recommended `--describe` / `--descriptions`, refusing
    otherwise. `--accept-suggestions` (take every first line) could come later if scripts need it.
-3. **Writing back to the local file.** Recommended: never (038's "export only reads"). An opt-in
+2. **Writing back to the local file.** Recommended: never (038's "export only reads"). An opt-in
    `--write-descriptions` that adds them to the local frontmatter, so the next export doesn't ask
    again, is possible later; 051's "kept from your draft" covers most of that need now.

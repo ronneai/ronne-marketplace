@@ -29,9 +29,10 @@ nothing about them changes.
   **Resubmit** does in the editor.
 
 **Out** (and where it goes instead):
-- **Submitting a draft whose dependency is only a draft or in review.** 013's rule stays: a
-  dependency must be released first, so a dependent is "not ready" until then, with 013's message.
-  See Open questions.
+- **Submitting a draft whose dependency is only a draft or in review.** 013's rule stays (owner,
+  2026-10-01): a dependency must be released first, so a dependent is "not ready" until then, with
+  013's message, and `rmk` shows the order. Submitting a dependent with its dependencies can come
+  in a later feature.
 - **Withdrawing, deleting or editing in bulk:** later, if people ask.
 - **Fixing what's missing** from `rmk` or the list. That happens in the editor, or by exporting
   again (051); [053](../053-export-descriptions/SPEC.md) closes the most common gap, a missing
@@ -123,7 +124,9 @@ With `all` and more than 100 open drafts, the first 100 (newest change first) ar
 
 **Audit.** Each submit is 013's event, with `via: "api"`, `tokenId` and `tokenName` added when it
 came by token, as 037 does for drafts. A token can now make something **other people see**: the
-review queue. That is the moment 009 and 037 named for token scopes; see Open questions.
+review queue. That was the moment 009 and 037 named for token scopes, and the owner decided
+(2026-10-01) that **every token may submit**, without scopes: it's audited, rate-limited, and `rmk`
+and the MCP tool always ask the person first.
 
 **MCP server.** `check_drafts` (`items`: names or ids, or `all`) answers the same as `rmk submit
 --dry-run`, as text and structured content. `submit_drafts` (the same input) submits the ready
@@ -148,7 +151,7 @@ The server's instructions say to show the check first and submit only what the p
 
 - **A draft and its dependency, both drafts:** the dependency can be submitted, but the dependent
   isn't ready until the dependency is **released**. `rmk` lists the order. Submitting both at once
-  isn't possible yet (Open questions).
+  isn't possible yet (Out).
 - **The same name twice in one batch** (two drafts of one item): the second is refused at submit
   with 013's "name is taken by an open submission". The check can't tell in advance, because both
   are free until one is submitted. Its note says so.
@@ -194,19 +197,16 @@ The server's instructions say to show the check first and submit only what the p
   end-to-end test submits three drafts from the list, one of them not ready.
 - [ ] The Documentation and inline helpers listed above say what the feature does now.
 
+## Decisions
+
+1. **Tokens that submit** (owner, 2026-10-01): every token may submit its user's drafts, without
+   token scopes. MVP §15's "Access tokens" row and 009's note say so.
+2. **A dependent with its dependencies** (owner, 2026-10-01): 013's rule stays; a dependency is
+   released before its dependent is ready. `rmk` and the check show the order.
+
 ## Open questions
 
-1. **Tokens that submit.** Submitting makes something other people see (the review queue), which
-   009 and 037 set as the moment for token scopes. Recommended: every token may submit, like
-   drafts, because it's audited with the token's name, rate-limited, and `rmk` and the MCP tool
-   always ask the person first. The alternative is a **"Can submit drafts"** choice when creating a
-   token (off by default), with a `403 token_cannot_submit` and a line in Access tokens.
-   **Owner's decision.**
-2. **Submitting a dependent with its dependency.** 013 lets a dependent be submitted only after its
-   dependencies are released, so a batch from one export goes in rounds: submit, review, release,
-   then submit the next. Recommended: keep it for 052 and show the order. A later feature can let a
-   dependent go in **with** its dependencies when they're in review, approving them in order.
-3. **All or nothing.** Recommended: no; each ready draft goes on its own, which suits "submit what's
+1. **All or nothing.** Recommended: no; each ready draft goes on its own, which suits "submit what's
    ready". If people want it, `--all-or-nothing` can check first and refuse when any isn't ready.
-4. **The limits** (100 per request, 10 submit requests in 10 minutes) are guesses in 037's spirit:
+2. **The limits** (100 per request, 10 submit requests in 10 minutes) are guesses in 037's spirit:
    far more than a person needs, far less than a script gone wrong.
