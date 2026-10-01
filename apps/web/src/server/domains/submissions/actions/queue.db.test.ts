@@ -92,6 +92,28 @@ describe("the review queue", () => {
     ]);
   });
 
+  it("says which rows this reviewer can approve, as an override for root's own (054)", async () => {
+    await submitted("fmt", "hook");
+    await submitted("mine", "rule", asModerator);
+    await submitted("roots", "rule", asRoot);
+    const approvable = async (headers: Headers) =>
+      (await listQueue(headers, { tab: "needs" }, app)).rows.map((r) => [
+        r.name,
+        r.riskKinds,
+        r.approvable,
+      ]);
+    expect(await approvable(asModerator)).toEqual([
+      ["fmt", ["hook", "executable"], { approvable: true, override: false }],
+      ["mine", [], { approvable: false, reason: "Your own submission" }],
+      ["roots", [], { approvable: true, override: false }],
+    ]);
+    expect((await approvable(asRoot)).map(([name, , a]) => [name, a])).toEqual([
+      ["fmt", { approvable: true, override: false }],
+      ["mine", { approvable: true, override: false }],
+      ["roots", { approvable: true, override: true }],
+    ]);
+  });
+
   it("is for moderators and root only; others see a count of 0", async () => {
     await submitted("style");
     await expect(listQueue(asAuthor, { tab: "needs" }, app)).rejects.toThrow(ForbiddenError);

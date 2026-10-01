@@ -1,8 +1,9 @@
-import { parseManifest, type RiskFlag, riskFlags } from "@ronneai/core";
+import { parseManifest, type RiskFlag, type RiskFlagKind, riskFlags } from "@ronneai/core";
 import { requirePermission } from "../../identity/models/permissions";
 import type { SubmissionStatus } from "../models/status";
 import { fileBytes, MANIFEST_PATH, type Submission, toPackageFile } from "../models/submission";
 import type { SubmissionRepository } from "../repositories/submission-repository";
+import { type Approvability, approvability } from "./bulk-approve";
 import { withStale } from "./proposals";
 import type { SubmissionActor, SubmissionDeps } from "./submissions";
 
@@ -28,7 +29,11 @@ export type QueueRow = Submission & {
   stale: string | null;
   revision: number | null;
   risky: boolean;
+  /** Each kind of risk flag once, for approving many (054): risky ones are listed first. */
+  riskKinds: RiskFlagKind[];
   mine: boolean;
+  /** Whether this reviewer can approve it now, and why not (054). */
+  approvable: Approvability;
 };
 
 export type QueuePage = { rows: QueueRow[]; nextCursor: string | null };
@@ -82,13 +87,15 @@ export const listQueue = async (
         ...submission,
         revision,
         risky: flags.length > 0,
+        riskKinds: [...new Set(flags.map((flag) => flag.kind))],
         mine: submission.authorId === actor.user?.id,
       };
     }),
   );
   const last = rows.at(-1);
+  const stale = await withStale(deps.registry ?? deps.repo.registry(), rows);
   return {
-    rows: await withStale(deps.registry ?? deps.repo.registry(), rows),
+    rows: stale.map((row) => ({ ...row, approvable: approvability(actor, row) })),
     nextCursor: paged && found.length > DECIDED_PAGE_SIZE && last ? cursorOf(last) : null,
   };
 };

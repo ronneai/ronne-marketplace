@@ -3,10 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import { type PublishInput, publishSubmission } from "@/server/domains/submissions/actions/publish";
-import { comment, decide, type ReviewDecision } from "@/server/domains/submissions/actions/reviews";
+import {
+  approveMany,
+  comment,
+  decide,
+  type ReviewDecision,
+} from "@/server/domains/submissions/actions/reviews";
 import { SubmissionsError } from "@/server/domains/submissions/exceptions/errors";
 import { requestHeaders } from "@/server/http/request-headers";
-import type { PublishResult, ReviewActionState } from "./types";
+import type { ApproveManyState, PublishResult, ReviewActionState } from "./types";
 
 const message = (error: unknown): string => {
   if (error instanceof SubmissionsError || error instanceof IdentityError) return error.message;
@@ -33,6 +38,35 @@ export const decideAction = async (
   }
   refresh(id);
   return { done: true };
+};
+
+/** Approves the selected submissions (054), each on its own, with one optional message. */
+export const approveSelectedAction = async (
+  ids: string[],
+  text: string,
+): Promise<ApproveManyState> => {
+  let approved: Awaited<ReturnType<typeof approveMany>>;
+  try {
+    approved = await approveMany(await requestHeaders(), { ids, message: text });
+  } catch (error) {
+    return { error: message(error) };
+  }
+  for (const r of approved) if (r.result === "approved") refresh(r.id);
+  return {
+    results: approved.map((r) => ({
+      id: r.id,
+      name: "submission" in r ? `@${r.submission.scope.name}/${r.submission.name}` : r.id,
+      result: r.result,
+      override: r.result === "approved" && r.override,
+      revision: r.result === "approved" ? r.revision : null,
+      reason:
+        r.result === "not_approvable"
+          ? r.reason
+          : r.result === "not_found"
+            ? "It no longer exists, or you can't see it."
+            : null,
+    })),
+  };
 };
 
 /** Adds a comment from the conversation's form. */

@@ -24,7 +24,7 @@ the same change that completes it.
   own, root's own as an override, a stale proposal, someone else's decision in between, a withdrawn
   one, a demoted reviewer, the shared message and the empty one, on every database.
 
-- [ ] **3. The queue.** The Needs review rows carry `approvable` and the reason when not. Checkboxes,
+- [x] **3. The queue.** The Needs review rows carry `approvable` and the reason when not. Checkboxes,
   **Select all**, **Approve selected**, the confirmation (risky first, overrides marked, the
   optional message), the results, and the refresh, in `features/reviews`.
   *Done when:* `reviews.test.tsx` covers the checkboxes and the dialog, and a Playwright test

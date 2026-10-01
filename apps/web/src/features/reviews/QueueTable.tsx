@@ -9,6 +9,7 @@ import { Table, Td, Th } from "@/components/ui/Table";
 import type { QueueRow, QueueTab } from "@/server/domains/submissions/actions/reviews";
 import { itemNameOf } from "@/server/domains/submissions/models/submission";
 import { QUEUE_TABS } from "@/server/domains/submissions/services/queue";
+import { type ApprovableRow, ApproveSelectCell } from "./BulkApprove";
 
 const TAB_ORDER: QueueTab[] = ["needs", "waiting", "decided"];
 
@@ -43,7 +44,32 @@ export const QueueTabs = ({ tab }: { tab: QueueTab }) => (
   </nav>
 );
 
-/** One tab of the queue: each submission, who sent it, since when, and whether it's risky. */
+/** The rows this reviewer can approve now, for BulkApproveProvider (054). */
+export const approvableRows = (rows: QueueRow[]): Record<string, ApprovableRow> =>
+  Object.fromEntries(
+    rows.flatMap((row) =>
+      row.approvable.approvable
+        ? [
+            [
+              row.id,
+              {
+                name: itemNameOf(row),
+                type: row.type,
+                author: row.authorName,
+                revision: row.revision,
+                riskKinds: row.riskKinds,
+                override: row.approvable.override,
+              },
+            ],
+          ]
+        : [],
+    ),
+  );
+
+/**
+ * One tab of the queue: each submission, who sent it, since when, and whether it's risky. Needs
+ * review has a checkbox on each row for approving many (054), inside BulkApproveProvider.
+ */
 export const QueueTable = ({
   tab,
   rows,
@@ -64,6 +90,11 @@ export const QueueTable = ({
       <Table>
         <thead>
           <tr>
+            {tab === "needs" ? (
+              <Th>
+                <span className="sr-only">Select</span>
+              </Th>
+            ) : null}
             <Th>Item</Th>
             <Th>Type</Th>
             <Th>Author</Th>
@@ -75,6 +106,15 @@ export const QueueTable = ({
         <tbody>
           {rows.map((row) => (
             <tr key={row.id}>
+              {tab === "needs" ? (
+                <Td className="w-8">
+                  <ApproveSelectCell
+                    id={row.id}
+                    name={itemNameOf(row)}
+                    reason={row.approvable.approvable ? null : row.approvable.reason}
+                  />
+                </Td>
+              ) : null}
               <Td>
                 <span className="flex flex-wrap items-center gap-2">
                   <Link
