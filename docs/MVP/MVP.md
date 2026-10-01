@@ -629,7 +629,7 @@ its own `SPEC.md` and `PLAN.md`, and the index there tracks their status.
 | M3 | Review & release | Review queue with diff and risk flags; approval rule (1 non-author moderator/root, root override); publish with semver bump and dist-tags; deprecate/yank; audit log. |
 | M4 | `rmk` + Claude Code | `login`, `search`, `info`, `install`, `update`, `remove`, `outdated`; lockfile; renderer interface + golden-file test harness; Claude Code renderer for every item type. |
 | M5 | Codex, Cursor, MCP | Codex and Cursor renderers with unsupported-type warnings; shared `.agents/skills` output; per-item support matrix in the web UI; registry MCP server and `rmk mcp-setup`. |
-| M5b | Tier-2 platforms (right after MVP) | Copilot, Antigravity CLI and Gemini CLI, and Devin renderers ([028](../features/028-copilot-renderer/SPEC.md)–[030](../features/030-devin-renderer/SPEC.md)). |
+| M5b | Tier-2 platforms (on hold since 2026-09-30) | Copilot, Antigravity CLI and Gemini CLI, and Devin renderers ([028](../features/028-copilot-renderer/SPEC.md)–[030](../features/030-devin-renderer/SPEC.md)). |
 | M6 | Visual composer and npm | React Flow canvas editing `dependencies`; round-trips to `ronne.yaml`; shown as a text diff in review. `rmk` and the MCP server published to npm under `@ronneai` ([034](../features/034-npm-packages/SPEC.md)). |
 | M7 | Export from your tools (after the MVP) | A skill, agent, command, rule or MCP server written in Claude Code's files (and skills in `.agents/skills`) is sent to the registry as a draft with `rmk export` or from inside the AI tool; the person chooses the scope and sees every file before it's uploaded; local dependencies are detected and offered for export too; submitting stays in the web app ([037](../features/037-draft-upload-api/SPEC.md)–[041](../features/041-export-dependencies/SPEC.md)). |
 
@@ -755,7 +755,7 @@ from downloads to active projects.
 | CLI binary | `rmk` | Short; `ronne` / `ronneai` reserved |
 | Delivery to AI tools | Canonical `ronne.yaml` → per-platform renderers via `rmk`, plus a registry MCP server | Single source of truth; works in the terminal and inside the agents |
 | Item types | All current customization types: skill, agent, rule, command, hook, mcp-server, permission-policy, output-style, statusline, lsp-server, bundle; canonical hook events | Cover everything the platforms support; degrade with warnings where a platform lacks a type |
-| Platforms | Goal: any. Tier 1 in MVP (Claude Code, Codex, Cursor); tier 2 next (Copilot, Gemini/Antigravity, Devin Desktop); tier 3 community | Pluggable `PlatformRenderer`; prefer cross-tool standards (Agent Skills, AGENTS.md, MCP) |
+| Platforms | Goal: any. Tier 1 in MVP (Claude Code, Codex, Cursor); tier 2 (Copilot, Gemini/Antigravity, Devin Desktop) specified but on hold (owner, 2026-09-30: not implemented now; 028–030 keep their specs); tier 3 community | Pluggable `PlatformRenderer`; prefer cross-tool standards (Agent Skills, AGENTS.md, MCP) |
 | SSO | Wanted soon after MVP: OIDC first via Better Auth, then SAML; CLI uses the device flow | One OIDC integration covers most IdPs |
 | Out of scope for now | Import from external marketplaces, S3 storage, notifications. Exporting a person's own local items is no longer out: see "Export" below | Keep MVP focused |
 | Backend | Next.js monolith with a domain-first clean architecture; server actions + `/api/v1` | One deployable to self-host; the domain layer stays framework-independent |

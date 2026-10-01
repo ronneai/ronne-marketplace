@@ -2,6 +2,9 @@
 
 > Milestone: M5b · Depends on: 021, 022, 025 · Design: [MVP §3.1](../../MVP/MVP.md#31-item-types), [§3.3](../../MVP/MVP.md#33-platform-renderers) · Contracts: [`docs/spec/manifest.md`](../../spec/manifest.md), [`docs/spec/cli-files.md`](../../spec/cli-files.md)
 
+> **On hold** since 2026-09-30 (owner): not implemented now. Before work starts, re-check this spec
+> against what was built since and against the vendor's current docs.
+
 ## Goal
 
 `rmk install --target antigravity` and `--target gemini` put every item type each tool can take
