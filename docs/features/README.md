@@ -152,3 +152,11 @@ instance (off by default), aggregated, kept on the instance.
 |---|---|---|---|
 | [046](./046-usage-telemetry/SPEC.md) | Usage telemetry: root's usage policy (Admin › Settings), `rmk telemetry`, install and remove events, run events from `rmk`-managed hooks where each tool allows, `POST /api/v1/usage`, daily aggregates, an instance switch | 022, 023, 024, 025, 045 | done |
 | [047](./047-usage-on-item-page/SPEC.md) | Usage on the item page: installs, harness distribution, invocations and success rate, the daily volume chart, the harness and trigger breakdowns; runs and installs per version | 046 | specified |
+
+### Across the app
+
+Work that changes every part of the web app rather than one milestone's features.
+
+| ID | Feature | Depends on | Status |
+|---|---|---|---|
+| [049](./049-local-time/SPEC.md) | Local time: every timestamp in the reader's time zone, UTC on hover; storage, the API and `rmk` stay UTC | 032 | in progress |
