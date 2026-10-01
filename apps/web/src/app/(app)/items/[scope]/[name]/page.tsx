@@ -12,7 +12,7 @@ import {
 } from "@/features/item-page/load";
 import { bodyPathOf } from "@/features/item-page/overview/model";
 import { OverviewTab, UnavailableFiles } from "@/features/item-page/overview/OverviewTab";
-import { itemTabHref, tabFrom } from "@/features/item-page/tabs";
+import { tabFrom } from "@/features/item-page/tabs";
 
 export const metadata = { title: "Item · Ronne AI Marketplace" };
 
@@ -52,7 +52,6 @@ const Item = async ({
   const files =
     tab === "overview" || tab === "files" ? await loadContents(ref, shown.version) : null;
   const bodyPath = bodyPathOf(shown.manifest, type);
-  const version = shown.version !== page.listed ? shown.version : null;
   return (
     <ItemPageView page={page} tab={tab}>
       {tab === "overview" ? (
@@ -64,7 +63,6 @@ const Item = async ({
             dependencies={shown.dependencies}
             files={files}
             facts={await loadDependencyFacts(shown.dependencies)}
-            filesHref={itemTabHref(ref, "files", version)}
           />
         </WithContentsHelp>
       ) : tab === "dependencies" ? (

@@ -96,7 +96,6 @@ export const OverviewTab = ({
   dependencies,
   files,
   facts,
-  filesHref,
 }: {
   itemName: string;
   type: ItemType;
@@ -104,8 +103,6 @@ export const OverviewTab = ({
   dependencies: Record<string, string>;
   files: ShownFile[] | null;
   facts: Record<string, DependencyFacts>;
-  /** The Files tab, for this version. */
-  filesHref: string;
 }) => {
   const bodyPath = bodyPathOf(manifest, type);
   const body = bodyPath && files ? files.find((file) => file.path === bodyPath) : undefined;
@@ -124,14 +121,6 @@ export const OverviewTab = ({
       ) : null}
       {hasDependencies ? (
         <Dependencies itemName={itemName} type={type} dependencies={dependencies} facts={facts} />
-      ) : null}
-      {files && files.length > 0 ? (
-        <p className="text-sm">
-          <Link href={filesHref} className="text-fg underline underline-offset-2">
-            All {files.length} {files.length === 1 ? "file" : "files"}
-          </Link>{" "}
-          <span className="text-muted">as released, ronne.yaml included.</span>
-        </p>
       ) : null}
     </div>
   );

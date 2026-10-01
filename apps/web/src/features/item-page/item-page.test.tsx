@@ -208,8 +208,7 @@ describe("the item page", () => {
     const mcp = await render();
     expect(mcp).toContain(">Settings</h2>");
     expect(mcp).toContain(">GITHUB_TOKEN (required, secret)</code>");
-    expect(mcp).toContain('href="/items/team/github?tab=files"');
-    expect(mcp).toContain(">All 2 files</a>");
+    expect(mcp).not.toContain("All 2 files");
     expect(mcp).not.toContain("Uses ");
 
     // An agent: its prompt, rendered, and its dependencies on the canvas.

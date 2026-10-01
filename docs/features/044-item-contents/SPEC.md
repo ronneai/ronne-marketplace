@@ -61,7 +61,6 @@ as before.
    dependency is a node with its range, type, latest version and tools, joined to the centre. A node links to
    that item's page. Nothing can be moved, added or removed. It uses the default ring layout (released
    versions carry no `.ronne/layout.json`). For a bundle, the canvas is the main content.
-4. A link, "All N files", to the Files tab.
 
 **Files:** a file tree beside a viewer, stacked on narrow screens. The selected file is in `?file=`,
 so it can be linked. Without `?file=`, or with a path the version doesn't have, it shows the body file,
