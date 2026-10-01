@@ -2,6 +2,11 @@
 
 > Milestone: M8 · Depends on: 011, 022, 045 · Design: [MVP §4.3](../../MVP/MVP.md#43-install--update) · Contracts: [`docs/spec/manifest.md`](../../spec/manifest.md), [`docs/spec/cli-files.md`](../../spec/cli-files.md)
 
+> **On hold** since 2026-09-30 (owner): stopped during task 1. The started work (the schema field,
+> its checks and tests) is kept in the local git stash "048 task 1 WIP", made on the branch
+> `feat/048-runtime-requirements` (`git stash pop` there). Before work starts again, re-check this
+> spec against what was built since.
+
 ## Goal
 
 An item can say what it needs on the machine it runs on: a minimum `rmk`, a Node.js version, commands

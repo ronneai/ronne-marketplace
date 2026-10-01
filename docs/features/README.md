@@ -140,7 +140,7 @@ contract [`docs/spec/native-readers.md`](../spec/native-readers.md).
 |---|---|---|---|
 | [044](./044-item-contents/SPEC.md) | Item contents on the item page: an Overview tab (settings, body file, read-only dependency canvas) and a Files viewer, read from the checked artifact | 018, 026, 031 | done |
 | [045](./045-item-overview-dashboard/SPEC.md) | Item overview dashboard from the owner's mockup: stat cards, Install with quick flags, capabilities and guardrails, Used by, maintainers and review, package verification; only what the registry knows | 044 | done |
-| [048](./048-runtime-requirements/SPEC.md) | Runtime requirements in the manifest (`requires`: Node.js, git, the `rmk` version…), checked by `rmk install` and shown on the Overview | 011, 022, 045 | specified |
+| [048](./048-runtime-requirements/SPEC.md) | Runtime requirements in the manifest (`requires`: Node.js, git, the `rmk` version…), checked by `rmk install` and shown on the Overview | 011, 022, 045 | on hold |
 
 ### M9 — Usage insights
 
