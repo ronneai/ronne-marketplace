@@ -34,7 +34,7 @@ left out.
 - Python, Deno, Bun or other runtimes by name: `commands: [python3]` covers presence; versioned
   checks can be added later as more keys of `requires`.
 - The resolver choosing an older version whose `requires.rmk` fits: `rmk` stops and says to update
-  itself (Open questions).
+  itself (Decisions).
 - Catalogue filters by requirement: not asked for.
 - Reading requirements on export (M7): Claude Code's, Codex's and Cursor's files have no such field,
   so exported drafts have no `requires`; the author adds it in the editor.
@@ -147,13 +147,17 @@ Documentation says so.
 - [ ] The editor's form edits `requires`, and saving writes it to `ronne.yaml`.
 - [ ] The Documentation and inline helpers listed above say what the feature does now.
 
+## Decisions
+
+Answered by the owner on 2026-09-30:
+
+1. **A too-old `rmk`:** `rmk` stops and says to update itself. The resolver doesn't look for an older
+   version whose `requires.rmk` fits.
+2. **`node`, `commands` and `os`:** warnings only, and the item is installed. No `--strict` for now; it
+   can be added if teams ask.
+3. **Agent Skills' `compatibility` frontmatter:** not filled from `requires`. `SKILL.md` is installed
+   as the author wrote it; filling it is an idea for later.
+
 ## Open questions
 
-- **Should the resolver skip versions whose `requires.rmk` doesn't fit** (pnpm does this with
-  `engines` under `engine-strict`)? It would need `/resolve` to know the client's
-  version (it's in `User-Agent`) and the requirement stored per version. Built as: `rmk` stops and
-  says to update itself, which is simpler and always right.
-- **Should `node` and `os` block too** for some types (a `statusline` script that only runs on
-  Linux)? Built as warnings everywhere; a `--strict` flag can be added if teams ask.
-- **Agent Skills' `compatibility` frontmatter** is free text about the environment. A skill's
-  renderer could fill it from `requires` when the author left it empty. Not in this feature.
+- None.
