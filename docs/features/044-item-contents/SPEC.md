@@ -53,10 +53,11 @@ as before.
 
    A type with no rows shows no Settings panel. Header values and environment descriptions stay in
    `ronne.yaml`, which Files shows as released.
-2. **The body file**, when the type has one: skill `skill.entry` (default `SKILL.md`), agent
-   `agent.prompt`, rule `rule.body`, command `command.body`, output-style `output-style.body`, hook
-   `run.script`, statusline `statusline.script`. It is shown as Files shows it (below). A path the
-   manifest names but the version doesn't contain gets a notice.
+2. **The files**, as Files shows them (below): the tree on the left, with the body file open when the
+   type has one: skill `skill.entry` (default `SKILL.md`), agent `agent.prompt`, rule `rule.body`,
+   command `command.body`, output-style `output-style.body`, hook `run.script`, statusline
+   `statusline.script`; otherwise `ronne.yaml`. `?file=` opens another. A path the manifest names but
+   the version doesn't contain gets a notice.
 3. **Dependencies**, when there are any: the read-only canvas. The item is in the centre, and each direct
    dependency is a node with its range, type, latest version and tools, joined to the centre. A node links to
    that item's page. Nothing can be moved, added or removed. It uses the default ring layout (released
@@ -65,7 +66,8 @@ as before.
 **Files:** a file tree beside a viewer, stacked on narrow screens. The selected file is in `?file=`,
 so it can be linked. Without `?file=`, or with a path the version doesn't have, it shows the body file,
 else `ronne.yaml`. The viewer's header shows the path, the size and an "executable" badge.
-- **Markdown** (`.md`): rendered safely, like the README (raw HTML off, `https:` images only). YAML
+- **Markdown** (`.md`): rendered safely, like the README (raw HTML off, `https:` images only), but
+  keeping each line break, as prompts and rules are often written one instruction a line. YAML
   frontmatter is shown as a small table above it. A **Rendered / Source** toggle shows the exact text.
 - **Other text:** read-only, with syntax highlighting chosen by the path (as in the draft editor).
 - **Binary:** "Binary file, not shown", with its size.

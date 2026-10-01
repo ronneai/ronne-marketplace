@@ -57,11 +57,13 @@ const Item = async ({
       {tab === "overview" ? (
         <WithContentsHelp>
           <OverviewTab
+            key={shown.version}
             itemName={`@${ref.scope}/${ref.name}`}
             type={type}
             manifest={shown.manifest}
             dependencies={shown.dependencies}
             files={files}
+            requested={first(query.file)}
             facts={await loadDependencyFacts(shown.dependencies)}
           />
         </WithContentsHelp>

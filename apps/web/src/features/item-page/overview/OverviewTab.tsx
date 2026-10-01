@@ -3,7 +3,8 @@ import Link from "next/link";
 import type { DependencyFacts } from "@/components/dependency-canvas/types";
 import { Notice } from "@/components/ui/Notice";
 import { Panel } from "@/components/ui/Panel";
-import { FileContent } from "../files/FileContent";
+import { FilesBrowser } from "../files/FilesBrowser";
+import { selectedFile } from "../files/shown";
 import type { ShownFile } from "../files/types";
 import { DependencyGraph } from "./DependencyGraph";
 import { dependencyHref } from "./links";
@@ -86,8 +87,8 @@ const Dependencies = ({
 
 /**
  * The Overview tab (044): what the item is, from the shown version as released. Its settings, its
- * body file (a skill's SKILL.md, an agent's prompt, a rule's body…), and its dependencies on the
- * read-only canvas. Null `files` means the artifact couldn't be read.
+ * files with the body file open (a skill's SKILL.md, an agent's prompt, a rule's body…), and its
+ * dependencies on the read-only canvas. Null `files` means the artifact couldn't be read.
  */
 export const OverviewTab = ({
   itemName,
@@ -95,6 +96,7 @@ export const OverviewTab = ({
   manifest,
   dependencies,
   files,
+  requested,
   facts,
 }: {
   itemName: string;
@@ -102,23 +104,26 @@ export const OverviewTab = ({
   manifest: Record<string, unknown>;
   dependencies: Record<string, string>;
   files: ShownFile[] | null;
+  /** `?file=`: the file to open instead of the body file. */
+  requested: string | undefined;
   facts: Record<string, DependencyFacts>;
 }) => {
   const bodyPath = bodyPathOf(manifest, type);
-  const body = bodyPath && files ? files.find((file) => file.path === bodyPath) : undefined;
+  const missing = bodyPath && files ? !files.some((file) => file.path === bodyPath) : false;
   const hasDependencies = Object.keys(dependencies).length > 0;
   return (
     <div className="grid gap-4">
       <Settings manifest={manifest} type={type} />
-      {files === null ? (
-        <UnavailableFiles />
-      ) : bodyPath && !body ? (
+      {missing ? (
         <Notice kind="warn" title={`${bodyPath} isn't in this version.`}>
           The manifest names it, but the released package doesn't have it.
         </Notice>
-      ) : body ? (
-        <FileContent file={body} />
       ) : null}
+      {files === null ? (
+        <UnavailableFiles />
+      ) : (
+        <FilesBrowser files={files} selected={selectedFile(files, requested, bodyPath)} />
+      )}
       {hasDependencies ? (
         <Dependencies itemName={itemName} type={type} dependencies={dependencies} facts={facts} />
       ) : null}

@@ -209,6 +209,9 @@ describe("the item page", () => {
     expect(mcp).toContain(">Settings</h2>");
     expect(mcp).toContain(">GITHUB_TOKEN (required, secret)</code>");
     expect(mcp).not.toContain("All 2 files");
+    // Every file is a click away, on the left; with no body file, ronne.yaml is open.
+    expect(mcp).toContain('aria-label="Files of this version"');
+    expect(mcp).toContain(">ronne.yaml</h3>");
     expect(mcp).not.toContain("Uses ");
 
     // An agent: its prompt, rendered, and its dependencies on the canvas.
@@ -232,6 +235,8 @@ describe("the item page", () => {
     const agent = await render();
     expect(catalogue.dependencyFacts).toHaveBeenCalledWith(expect.any(Headers), ["@team/fmt"]);
     expect(agent).toContain(">prompt.md</h3>");
+    expect(agent).toMatch(/aria-current="true"[^>]*>.*prompt\.md/);
+    expect(await render({ file: "bin/run.sh" })).toContain(">bin/run.sh</h3>");
     expect(agent).toContain("<h2>Reviewer</h2>");
     expect(agent).toContain(">Source<");
     expect(agent).toContain("Uses 1 item");

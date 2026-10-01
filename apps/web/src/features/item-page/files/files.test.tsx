@@ -44,6 +44,10 @@ describe("frontmatter", () => {
     ]);
     expect(rendered.html).toContain("<h2>Secure coding</h2>");
     expect(rendered.html).not.toContain("<b>");
+    // Each line break is kept: prompts and rules are written one instruction a line.
+    expect(renderMarkdownFile("Be brief.\nCite files.\n").html).toBe(
+      "<p>Be brief.<br>Cite files.</p>\n",
+    );
     expect(renderMarkdownFile("---\n: : [\n---\nText").frontmatter).toBeNull();
     expect(renderMarkdownFile("---\n- a list\n---\nText")).toEqual({
       frontmatter: null,

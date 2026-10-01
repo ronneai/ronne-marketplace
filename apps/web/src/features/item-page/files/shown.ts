@@ -37,11 +37,11 @@ const shownValue = (value: unknown): string =>
 
 /**
  * A Markdown file's rendered view: its frontmatter as rows (none when it isn't a YAML map), and the
- * rest rendered safely as a README is (018).
+ * rest rendered safely as a README is (018), keeping each line break.
  */
 export const renderMarkdownFile = (text: string): RenderedMarkdown => {
   const split = splitFrontmatter(text);
-  if (!split) return { frontmatter: null, html: renderMarkdown(text) };
+  if (!split) return { frontmatter: null, html: renderMarkdown(text, { breaks: true }) };
   let frontmatter: [string, string][] | null = null;
   try {
     const value: unknown = parse(split.yaml);
@@ -50,7 +50,7 @@ export const renderMarkdownFile = (text: string): RenderedMarkdown => {
   } catch {
     // Not YAML: no table; the Source view shows it as written.
   }
-  return { frontmatter, html: renderMarkdown(split.body) };
+  return { frontmatter, html: renderMarkdown(split.body, { breaks: true }) };
 };
 
 export const isMarkdown = (path: string) => path.toLowerCase().endsWith(".md");

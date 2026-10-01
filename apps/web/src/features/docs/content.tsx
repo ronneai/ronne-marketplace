@@ -512,10 +512,10 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             <Code>ronne.yaml</Code>, such as an agent&apos;s tools and model, a rule&apos;s
             activation and globs, a hook&apos;s event and command, or an MCP server&apos;s
             transport, command or URL and the names of the environment variables it needs. Then its
-            main file: a skill&apos;s <Code>SKILL.md</Code>, an agent&apos;s prompt, a rule&apos;s,
-            command&apos;s or output style&apos;s body, or a hook&apos;s or status line&apos;s
-            script. MCP servers, permission policies and language servers are only settings, so they
-            have no main file.
+            files, listed on the left, with its main file open: a skill&apos;s <Code>SKILL.md</Code>
+            , an agent&apos;s prompt, a rule&apos;s, command&apos;s or output style&apos;s body, or
+            a hook&apos;s or status line&apos;s script. MCP servers, permission policies and
+            language servers are only settings, so they open on <Code>ronne.yaml</Code>.
           </li>
           <li>
             <strong>Dependencies on the canvas:</strong> an agent or a bundle shows the items it
@@ -524,10 +524,10 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           </li>
           <li>
             <strong>Files:</strong> every file of the version, <Code>ronne.yaml</Code> included, in
-            a tree. Markdown is shown rendered, with its frontmatter as a table; the{" "}
-            <strong>Source</strong> tab shows the text exactly as written. Other files are shown as
-            text. Binary files and text over 512 KB are listed but not shown. The file you open is
-            in the address, so you can send someone a link to it.
+            a tree. Markdown is shown rendered, line breaks kept, with its frontmatter as a table;
+            the <strong>Source</strong> tab shows the text exactly as written. Other files are shown
+            as text. Binary files and text over 512 KB are listed but not shown. The file you open
+            is in the address, so you can send someone a link to it.
           </li>
         </Bullets>
         <p>

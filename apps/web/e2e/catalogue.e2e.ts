@@ -81,6 +81,15 @@ test("an agent's Overview shows its prompt, its settings and its dependencies on
   await expect(
     page.getByRole("region", { name: "prompt.md" }).getByText("Review with the kit."),
   ).toBeVisible();
+  // The other files are on the left, as in Files.
+  await page
+    .getByRole("navigation", { name: "Files of this version" })
+    .getByRole("button", { name: /ronne\.yaml/ })
+    .click();
+  await expect(page).toHaveURL(/file=ronne\.yaml/);
+  await expect(
+    page.getByRole("region", { name: "ronne.yaml" }).getByText("model: fast"),
+  ).toBeVisible();
 
   const canvas = page.getByRole("region", { name: "Dependencies" });
   await expect(canvas.getByRole("heading", { name: "Uses 2 items" })).toBeVisible();
