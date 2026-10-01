@@ -102,12 +102,12 @@ submission it was released from). Both are read with the page; nothing new is st
 
 ## Acceptance criteria
 
-- [ ] The Overview shows the stat cards, Install with quick flags, capabilities and guardrails, the main file card, the canvas and the side column, from real data only.
-- [ ] The other tabs have no Install panel.
-- [ ] Used by lists the items whose listed version depends on this one, with their ranges.
-- [ ] Maintainers and review shows the approver of the shown version, an override, or "Released without review".
-- [ ] Nothing in the mockup that needs telemetry, runtime requirements or signatures is shown, and MVP §14.6 records what it needs.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] The Overview shows the stat cards, Install with quick flags, capabilities and guardrails, the main file card, the canvas and the side column, from real data only.
+- [x] The other tabs have no Install panel.
+- [x] Used by lists the items whose listed version depends on this one, with their ranges.
+- [x] Maintainers and review shows the approver of the shown version, an override, or "Released without review".
+- [x] Nothing in the mockup that needs telemetry, runtime requirements or signatures is shown, and MVP §14.6 records what it needs.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Open questions
 

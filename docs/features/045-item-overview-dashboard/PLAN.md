@@ -21,7 +21,7 @@ the same change that completes it.
   *Done when:* `item-page.test.tsx` covers each card from real data and the hidden ones, and
   `catalogue.e2e.ts` copies an install command from the Overview and follows a Used by link.
 
-- [ ] **3. Documentation.** The sections and helpers in the spec's Documentation section.
+- [x] **3. Documentation.** The sections and helpers in the spec's Documentation section.
   *Done when:* the docs render tests pass, and every helper's link lands on a real section.
 
 ## Notes
