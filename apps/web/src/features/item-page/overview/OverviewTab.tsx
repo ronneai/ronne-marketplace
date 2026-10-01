@@ -28,6 +28,7 @@ import {
   riskLabelsOf,
   settingsOf,
 } from "./model";
+import { toolColor, UsageBody } from "./UsageCard";
 
 /** What an item page shows when the version's files can't be read (044). */
 export const UnavailableFiles = () => (
@@ -42,13 +43,16 @@ type ItemRef = { scope: string; name: string };
 const Card = ({
   title,
   aside,
+  id,
   children,
 }: {
   title: string;
   aside?: ReactNode;
+  id?: string;
   children: ReactNode;
 }) => (
   <section
+    id={id}
     aria-label={title}
     className="grid min-w-0 content-start gap-3 rounded-panel border border-hairline bg-surface p-4"
   >
@@ -70,12 +74,15 @@ const Stat = ({
   badge,
   value,
   detail,
+  chart,
 }: {
   label: string;
   href: string;
   badge?: ReactNode;
   value: ReactNode;
   detail: ReactNode;
+  /** A small chart under the detail, such as the tools' distribution (047). */
+  chart?: ReactNode;
 }) => (
   <div className="grid min-w-0 content-start gap-1 rounded-panel border border-hairline bg-surface p-4">
     <div className="flex items-center justify-between gap-2">
@@ -89,6 +96,20 @@ const Stat = ({
     </div>
     <div className="text-2xl font-semibold text-fg">{value}</div>
     <p className="text-xs text-muted">{detail}</p>
+    {chart}
+  </div>
+);
+
+/** Each tool's share as one thin bar, in the tools' chart colours (the mockup's distribution). */
+const Distribution = ({ tools }: { tools: { key: string; share: number }[] }) => (
+  <div aria-hidden="true" className="mt-1.5 flex h-1.5 gap-0.5 overflow-hidden rounded-full">
+    {tools.map((t) => (
+      <div
+        key={t.key}
+        className={toolColor(t.key)}
+        style={{ width: `${Math.round(t.share * 1000) / 10}%` }}
+      />
+    ))}
   </div>
 );
 
@@ -174,6 +195,7 @@ const Stats = ({ page, item, usage }: { page: ItemPage; item: ItemRef; usage: Us
             <span className="text-sm font-normal text-muted"> of {RENDERERS.length} tools</span>
           </>
         }
+        chart={usage.shown && usage.tools.length > 1 ? <Distribution tools={usage.tools} /> : null}
         detail={
           usage.shown && usage.tools.length > 0
             ? usage.tools.map((t) => `${toolName(t.key)} ${percent(t.share)}`).join(" · ")
@@ -576,7 +598,17 @@ export const OverviewTab = ({
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="grid min-w-0 gap-4">
           <Install page={page} name={name} />
-          {!usage.shown && (usage.collecting || usage.hasData) ? <UsageMinimum /> : null}
+          {usage.shown ? (
+            <Card id="usage" title="Usage, last 14 days">
+              <UsageBody
+                usage={usage}
+                type={type}
+                tools={toolsOf(page).map((renderer) => renderer.id)}
+              />
+            </Card>
+          ) : usage.collecting || usage.hasData ? (
+            <UsageMinimum />
+          ) : null}
           <Capabilities page={page} />
           {files === null ? <UnavailableFiles /> : null}
           {files && bodyPath && !body ? (

@@ -394,6 +394,10 @@ describe("usage on the Overview (047)", () => {
     expect(html).toContain(">412<");
     expect(html).toContain("13.7 a day · 94% succeeded");
     expect(html).toContain(">Claude Code 62% · Cursor 28% · Codex 10%<");
+    // The distribution bar, each tool in its colour (the mockup's harness distribution).
+    expect(html).toMatch(/class="bg-chart-claude-code" style="width:62%"/);
+    expect(html).toMatch(/class="bg-chart-cursor" style="width:28%"/);
+    expect(html).toMatch(/class="bg-chart-codex" style="width:10%"/);
     expect(html).not.toContain(">Downloads<");
     expect(html).not.toContain("Usage appears once");
   });

@@ -85,6 +85,9 @@ export const E2E_VERSIONED_ITEM = "versioned";
 /** A skill the seed publishes with a README and keywords, for the catalogue and item page (018). */
 export const E2E_SKILL = "secret-scanner";
 
+/** The skill's busiest day of runs, 3 days ago (047): its Usage card names it as the peak. */
+export const E2E_USAGE_PEAK = 42;
+
 /** A skill the seed releases as 1.0.0 with a real artifact, for change proposals (017). */
 export const E2E_PROPOSAL_ITEM = "prompt-kit";
 

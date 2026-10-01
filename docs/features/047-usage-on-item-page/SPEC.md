@@ -71,9 +71,16 @@ Versions, which the Runs card replaces, is still the Versions tab with its count
 - A help helper and the note "Counted by rmk on machines that report to this instance; see Usage data for what's sent."
 - For a type with no runs, the card shows installs and removals per day instead.
 
-**Charts** are built from the design system's tokens with plain SVG and CSS, with no chart library:
-flat, teal for the data, muted for the rest, red and amber never (they mean errors and warnings, not
-"error runs"). Each chart has a text alternative.
+**Charts** follow the owner's item overview mockup (owner, 2026-10-01), in plain CSS from the design
+system's tokens, with no chart library:
+- **Daily bars:** neutral (`chart-neutral`) on a faint well, teal on hover, the peak in teal (`chart`).
+- **By tool, and the distribution under Works in:** each tool in its own colour, fixed per tool and
+  never by rank: Cursor teal-600, Claude Code indigo-500, Codex amber-600 (the mockup's hues one
+  step deeper, so each passes 3:1 on both surfaces and the colour-blind checks). The design
+  system's second exception to a single accent (032).
+- **What started them, how they ended:** neutral rows with a dot, the count and the share, as the
+  mockup's triggers. Never red: an error run is a labelled row.
+- Each bar names itself in text or on hover, and the daily numbers are in a table.
 
 **Versions page (016):** two columns, **Runs** and **Installs** over the last 30 days per version,
 shown when the item as a whole passes the minimum; versions with none show "–". The **deprecate**

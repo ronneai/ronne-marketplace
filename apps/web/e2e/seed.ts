@@ -7,6 +7,8 @@ import { argon2PasswordHasher } from "../src/server/domains/identity/repositorie
 import { kyselyIdentityRepository } from "../src/server/domains/identity/repositories/kysely-identity-repository";
 import { kyselyItemRepository } from "../src/server/domains/items/repositories/kysely-item-repository";
 import { kyselyScopeRepository } from "../src/server/domains/items/repositories/kysely-scope-repository";
+import { dayOf, daysBefore } from "../src/server/domains/usage/models/usage-event";
+import { kyselyUsageRepository } from "../src/server/domains/usage/repositories/kysely-usage-repository";
 import { localStorage } from "../src/server/storage/local-storage";
 import {
   E2E_MODERATORS,
@@ -16,6 +18,7 @@ import {
   E2E_RMK_ITEMS,
   E2E_SCOPE,
   E2E_SKILL,
+  E2E_USAGE_PEAK,
   E2E_USERS,
   E2E_VERSIONED_ITEM,
 } from "./users";
@@ -128,6 +131,32 @@ const skillVersion = await items.insertVersion({
   riskFlags: [],
 });
 await items.setTag(skillId, "latest", skillVersion);
+
+// Usage for the skill (047): runs over the last two weeks, the most 3 days ago, and installs, so its
+// Overview shows the usage cards and the Usage card's peak.
+const today = dayOf(new Date());
+await kyselyUsageRepository(db, dialect).add([
+  ...Array.from({ length: 14 }, (_, i) => ({
+    itemId: skillId,
+    day: daysBefore(today, i + 1),
+    version: "1.0.0",
+    tool: "claude-code",
+    event: "run",
+    trigger: i % 2 ? "user" : "model",
+    outcome: "success",
+    count: i === 2 ? E2E_USAGE_PEAK : 4,
+  })),
+  {
+    itemId: skillId,
+    day: daysBefore(today, 2),
+    version: "1.0.0",
+    tool: "cursor",
+    event: "install",
+    trigger: "",
+    outcome: "",
+    count: 6,
+  },
+]);
 
 // A skill released as 1.0.0 with a real artifact in storage, which a change proposal starts from
 // (feature 017).

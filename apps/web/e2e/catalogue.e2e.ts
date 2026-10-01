@@ -1,5 +1,12 @@
 import { expect, test } from "@playwright/test";
-import { E2E_PASSWORD, E2E_RMK_ITEMS, E2E_SCOPE, E2E_SKILL, E2E_USERS } from "./users";
+import {
+  E2E_PASSWORD,
+  E2E_RMK_ITEMS,
+  E2E_SCOPE,
+  E2E_SKILL,
+  E2E_USAGE_PEAK,
+  E2E_USERS,
+} from "./users";
 
 test("a user searches from the home page, filters by type, reads a skill's contents and README, and copies the install command", async ({
   page,
@@ -28,6 +35,17 @@ test("a user searches from the home page, filters by type, reads a skill's conte
   await page.getByRole("link", { name, exact: true }).click();
   await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();
   await expect(page.getByText("license MIT · #security · #owasp")).toBeVisible();
+
+  // Usage (047): the seeded runs pass the minimum, so the Overview shows them, with the peak.
+  const peakDay = new Date(Date.now() - 3 * 86_400_000).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
+  const usage = page.getByRole("region", { name: "Usage, last 14 days" });
+  await expect(usage.getByText(`Peak: ${E2E_USAGE_PEAK} on ${peakDay}`)).toBeVisible();
+  await expect(usage.getByText("Claude Code", { exact: true })).toBeVisible();
+  await expect(page.getByText("Runs, 30 days")).toBeVisible();
 
   // Overview (044): a summary, then the skill's SKILL.md as released, rendered with its
   // frontmatter, and the other files as links into Files.
