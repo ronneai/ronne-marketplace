@@ -4,7 +4,7 @@
 
 ## Tasks
 
-- [ ] **1. The popover.** Add `@floating-ui/react` (exact version) and rewrite `HelpTip` as a client
+- [x] **1. The popover.** Add `@floating-ui/react` (exact version) and rewrite `HelpTip` as a client
   component: button, popover with flip, shift, arrow and fixed positioning, dismiss, focus and ARIA;
   the `<noscript>` fallback.
   *Done when:* `pnpm install --frozen-lockfile` and `pnpm licenses:check` pass; unit tests cover the
@@ -17,3 +17,6 @@
   *Done when:* the full end-to-end suite passes.
 
 ## Notes
+- **Task 1.** Floating UI's `useRole` adds `role="dialog"`, but Biome can't see through the spread
+  props, so the role is also written out. The light teal panel is its own token pair (`popover`,
+  `popover-border`): the existing `tint` is navy in the dark theme, the same as the cards.

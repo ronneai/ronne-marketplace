@@ -32,6 +32,9 @@
   --on-accent: #ffffff;
   --link: #14213d;
   --tint: #bfe9e1;
+  /* Inline helpers' popovers (050): a light teal panel with a teal hairline. */
+  --popover: #e8f7f4;
+  --popover-border: rgba(24, 182, 164, 0.35);
   /* Chart marks (047): Deep teal on light, 3:1 or more against the surface. */
   --chart: #0d7c70;
   /* The usage charts' neutral bars and their well (the owner's mockup, 047). */
@@ -77,6 +80,9 @@
   --on-accent: #ffffff;
   --link: #18b6a4;
   --tint: #14213d;
+  /* Inline helpers' popovers (050): a deep teal panel, apart from the navy cards. */
+  --popover: #0f2a2e;
+  --popover-border: rgba(24, 182, 164, 0.45);
   /* Chart marks (047): Teal on dark, 3:1 or more against the surface. */
   --chart: #18b6a4;
   --chart-neutral: rgba(191, 233, 225, 0.22);

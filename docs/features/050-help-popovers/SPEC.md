@@ -31,8 +31,10 @@ a button row.
 - **Placement:** under the question, start-aligned (`bottom-start`); flips above when there's no
   room below, and shifts sideways to stay 8px inside the window. Recomputed on scroll and resize
   while open. A small arrow points at the question.
-- **Size and look:** at most 20rem wide, the same flat panel as before (hairline border, canvas
-  background, no shadow), above the page (`z` above cards and the header).
+- **Size and look:** at most 20rem wide, flat (no shadow), in a light teal (owner, 2026-10-01): the
+  `popover` token, `#E8F7F4` on light and `#0F2A2E` on dark, with a teal hairline
+  (`popover-border`); text 17:1 and links 14.5:1 on light, 14.3:1 and 5.9:1 on dark. Above the
+  page (`z` above cards and the header).
 - **Inside a dialog** (publish, submit): our dialogs are native modal `<dialog>`s in the browser's
   top layer, so the popover isn't portalled elsewhere; it renders where the helper is, with fixed
   positioning, which also lets it escape a parent that clips its content.
