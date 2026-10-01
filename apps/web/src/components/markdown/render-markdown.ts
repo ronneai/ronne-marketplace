@@ -52,5 +52,9 @@ const markdown = new Marked({
   },
 });
 
-export const renderMarkdown = (source: string): string =>
-  markdown.parse(source, { async: false }) as string;
+/**
+ * `breaks` keeps each line break, as GitHub does in comments: an item's own files (044), such as a
+ * prompt or a rule, are often written one instruction a line. A README joins lines into paragraphs.
+ */
+export const renderMarkdown = (source: string, options: { breaks?: boolean } = {}): string =>
+  markdown.parse(source, { async: false, breaks: options.breaks ?? false }) as string;

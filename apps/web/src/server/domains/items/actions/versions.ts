@@ -8,8 +8,10 @@ import { kyselyItemRepository } from "../repositories/kysely-item-repository";
 import * as downloads from "../services/downloads";
 import * as page from "../services/item-page";
 import * as resolving from "../services/resolve";
+import * as contents from "../services/version-contents";
 import * as service from "../services/versions";
 
+export type { ContentFile } from "../models/contents";
 export type { ItemPage } from "../services/item-page";
 export type { ItemRef, VersionRow, VersionsPage } from "../services/versions";
 
@@ -57,6 +59,15 @@ export const itemPage = async (
   version?: string,
   app: AppAuth = getAppAuth(),
 ) => page.itemPage(deps(app), await actor(headers, app), ref, version);
+
+/** A version's files with their contents, checked and not counted (044): its page's Overview and Files. */
+export const versionContents = async (
+  headers: Headers,
+  ref: service.ItemRef,
+  version: string,
+  app: AppAuth = getAppAuth(),
+  storage: StorageAdapter = getStorage(),
+) => contents.versionContents({ ...deps(app), storage }, await actor(headers, app), ref, version);
 
 /** For 019's API, where the user comes from a bearer token rather than a session. */
 export const itemPageAs = (

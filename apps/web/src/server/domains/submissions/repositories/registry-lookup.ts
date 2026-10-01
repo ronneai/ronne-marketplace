@@ -8,6 +8,8 @@ export type PublishedVersion = {
   publishedAt: Date;
   /** Where its `.tgz` is, for proposals (017) that start from it. */
   artifactPath: string;
+  /** The artifact's checksum, checked when it's read back. */
+  sha256: string;
   yanked: boolean;
   /** The version's own dependencies, from its manifest: `@scope/name` → range. */
   dependencies: Readonly<Record<string, string>>;

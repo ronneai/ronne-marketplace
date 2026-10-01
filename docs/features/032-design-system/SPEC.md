@@ -57,6 +57,10 @@ compose parts; they don't restyle them.
 | `link` | Navy, semibold | Teal |
 | `tint` (selection, soft fill) | Mint | Navy |
 
+- **Syntax colours are the one exception to a single accent** (owner, 2026-09-30, [044](../044-item-contents/SPEC.md)):
+  code in the viewer and editor uses GitHub's Primer syntax palette as `syntax-*` tokens (grey
+  comments, green keys, blue strings and constants, purple keywords, never red), at 4.5:1 on the
+  surface and the tint in both themes.
 - **Teal is never text in the light theme** (the light note's rule). It fails contrast on white. In
   the dark theme, teal text is allowed (7.4:1 on Ink).
 - **White labels on teal fills** (owner decision, 2026-09-28, replacing the Ink labels decided on

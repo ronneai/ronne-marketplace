@@ -9,7 +9,7 @@ import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testi
 import { ItemNotFoundError, VersionNotFoundError } from "../exceptions/errors";
 import { kyselyItemRepository } from "../repositories/kysely-item-repository";
 import { CATALOGUE_PAGE_SIZE } from "../services/catalogue";
-import { browseCatalogue, homeLists } from "./catalogue";
+import { browseCatalogue, dependencyFacts, homeLists } from "./catalogue";
 import { createScope } from "./scopes";
 import { itemPage, unyank, yank } from "./versions";
 
@@ -346,5 +346,28 @@ describe("the item page's data", () => {
     await expect(
       itemPage(new Headers(), { scope: "team", name: "tool" }, undefined, app),
     ).rejects.toThrow(ForbiddenError);
+  });
+});
+
+describe("dependency facts (044)", () => {
+  it("gives each listed dependency's facts, leaves out missing ones and bad names, and needs a sign-in", async () => {
+    await release("github", { type: "mcp-server", versions: ["1.0.0", "1.1.0"] });
+    const facts = await dependencyFacts(
+      asUser,
+      ["@team/github", "@team/missing", "not a name"],
+      app,
+    );
+    expect(facts).toEqual({
+      "@team/github": {
+        type: "mcp-server",
+        version: "1.1.0",
+        description: "The github item.",
+        tools: expect.any(Array),
+      },
+    });
+    expect(await dependencyFacts(asUser, [], app)).toEqual({});
+    await expect(dependencyFacts(new Headers(), ["@team/github"], app)).rejects.toThrow(
+      ForbiddenError,
+    );
   });
 });

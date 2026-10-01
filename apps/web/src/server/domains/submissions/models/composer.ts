@@ -1,14 +1,8 @@
 import type { ItemType } from "@ronneai/core";
 
-/** What the catalogue says about a published item (018), with the tools it works in (026). */
-export type DependencyFacts = {
-  type: ItemType;
-  /** The listed version: `latest`'s, else the newest release. */
-  version: string;
-  description: string;
-  /** The AI tools it installs in, by name. */
-  tools: string[];
-};
+import type { DependencyFacts } from "../../items/models/catalogue";
+
+export type { DependencyFacts };
 
 /**
  * A dependency as the registry sees it, for the canvas (feature 031): its facts, or null if it

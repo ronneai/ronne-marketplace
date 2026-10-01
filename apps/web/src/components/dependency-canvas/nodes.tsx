@@ -2,6 +2,7 @@
 
 import { Handle, type Node, type NodeProps, Position } from "@xyflow/react";
 import { X } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/components/ui/cn";
@@ -109,6 +110,25 @@ export const RemoveButton = ({ name }: { name: string }) => {
   );
 };
 
+/** A dependency's name, linking to its page where the canvas says where that is. */
+const DependencyName = ({ name }: { name: string }) => {
+  const { hrefOf } = useComposer();
+  const className = "font-mono text-[13px] font-semibold break-all text-fg";
+  return hrefOf ? (
+    <Link
+      href={hrefOf(name)}
+      className={cn(
+        className,
+        "nodrag nopan underline underline-offset-2 outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus",
+      )}
+    >
+      {name}
+    </Link>
+  ) : (
+    <p className={className}>{name}</p>
+  );
+};
+
 /**
  * One dependency: its name, what the catalogue says of it (type, listed version, description, the
  * tools it works in), its range, and its problems, which are the ones the checks report.
@@ -126,7 +146,7 @@ export const DependencyNode = ({ data, selected }: NodeProps<DependencyFlowNode>
   >
     <div className="flex items-start justify-between gap-2">
       <div className="grid min-w-0 gap-1.5">
-        <p className="font-mono text-[13px] font-semibold break-all text-fg">{data.name}</p>
+        <DependencyName name={data.name} />
         <div className="flex flex-wrap items-center gap-1.5">
           <DependencyFactsLine facts={data.facts} />
         </div>

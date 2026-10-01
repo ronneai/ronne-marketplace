@@ -1,6 +1,7 @@
 // Adds the end-to-end test users, and a scope, to the instance that setup just created (DATABASE_URL). Run by
 // the harness with tsx; root comes from setup itself.
 import { packItem } from "@ronneai/core/pack";
+import { parse } from "yaml";
 import { createDb } from "../src/server/db/create-db";
 import { argon2PasswordHasher } from "../src/server/domains/identity/repositories/argon2-password-hasher";
 import { kyselyIdentityRepository } from "../src/server/domains/identity/repositories/kysely-identity-repository";
@@ -74,7 +75,34 @@ for (const version of ["1.0.0", "1.1.0"])
   });
 await items.setTag(itemId, "latest", latest);
 
-// A skill with a README, for the catalogue and the item page (feature 018).
+const storagePath = process.env.STORAGE_PATH;
+if (!storagePath) throw new Error("STORAGE_PATH is required");
+
+// A skill with a README, for the catalogue and the item page (018), with a real artifact whose
+// files the item page shows (044).
+const skillManifest = {
+  name: `@${E2E_SCOPE}/${E2E_SKILL}`,
+  type: "skill",
+  description: "Finds leaked secrets and other security mistakes.",
+  license: "MIT",
+  keywords: ["security", "owasp"],
+};
+const skillFiles = [
+  {
+    path: "README.md",
+    text: "# Secret scanner\n\nReviews your changes for **leaked secrets** and injection.\n",
+  },
+  {
+    path: "SKILL.md",
+    text: `---\nname: ${E2E_SKILL}\ndescription: ${skillManifest.description}\n---\n\n# Scanning for secrets\n\nLook for keys, tokens and passwords in the diff.\n`,
+  },
+  {
+    path: "ronne.yaml",
+    text: `name: "${skillManifest.name}"\ntype: skill\ndescription: ${skillManifest.description}\nlicense: MIT\nkeywords: [security, owasp]\n`,
+  },
+].map((file) => ({ path: file.path, bytes: new TextEncoder().encode(file.text) }));
+const skillPacked = await packItem(skillFiles, { version: "1.0.0" });
+await localStorage(storagePath).put(`${E2E_SCOPE}/${E2E_SKILL}/1.0.0.tgz`, skillPacked.tgz);
 const skillId = await items.insertItem({
   scopeId,
   name: E2E_SKILL,
@@ -86,23 +114,13 @@ const skillId = await items.insertItem({
 const skillVersion = await items.insertVersion({
   itemId: skillId,
   version: "1.0.0",
-  manifest: {
-    name: `@${E2E_SCOPE}/${E2E_SKILL}`,
-    type: "skill",
-    description: "Finds leaked secrets and other security mistakes.",
-    license: "MIT",
-    keywords: ["security", "owasp"],
-  },
+  manifest: { ...skillManifest, version: "1.0.0" },
   readme: "# Secret scanner\n\nReviews your changes for **leaked secrets** and injection.\n",
-  files: [
-    { path: "README.md", size: 70, executable: false },
-    { path: "SKILL.md", size: 300, executable: false },
-    { path: "ronne.yaml", size: 150, executable: false },
-  ],
+  files: skillFiles.map((f) => ({ path: f.path, size: f.bytes.length, executable: false })),
   notes: null,
   artifactPath: `${E2E_SCOPE}/${E2E_SKILL}/1.0.0.tgz`,
-  sha256: "1".repeat(64),
-  size: 900,
+  sha256: skillPacked.sha256,
+  size: skillPacked.size,
   publishedBy: ids.releaser ?? "",
   publishedAt: new Date(),
   submissionId: null,
@@ -113,8 +131,6 @@ await items.setTag(skillId, "latest", skillVersion);
 
 // A skill released as 1.0.0 with a real artifact in storage, which a change proposal starts from
 // (feature 017).
-const storagePath = process.env.STORAGE_PATH;
-if (!storagePath) throw new Error("STORAGE_PATH is required");
 const description = "Prompts for writing good commit messages.";
 const kitFiles = {
   "ronne.yaml": `name: "@${E2E_SCOPE}/${E2E_PROPOSAL_ITEM}"\ntype: skill\ndescription: ${description}\nlicense: MIT\nskill:\n  entry: SKILL.md\n`,
@@ -190,7 +206,8 @@ const release = async (
   const versionId = await items.insertVersion({
     itemId,
     version,
-    manifest: { name: `@${E2E_SCOPE}/${name}`, type, description: `The ${name} item.`, version },
+    // As a release stores it (015): the parsed ronne.yaml with its version.
+    manifest: { ...parse(files["ronne.yaml"] ?? ""), version },
     readme: null,
     files: Object.entries(files).map(([p, text]) => ({
       path: p,

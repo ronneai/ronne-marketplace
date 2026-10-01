@@ -2,16 +2,17 @@ import type { ItemType } from "@ronneai/core";
 import type { DragEvent, ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+import { ComposerCanvas } from "@/components/dependency-canvas/ComposerCanvas";
+import { ComposerContext } from "@/components/dependency-canvas/context";
+import { DRAG_TYPE, readDragged, startDrag } from "@/components/dependency-canvas/drag";
+import { toGraph } from "@/components/dependency-canvas/graph";
+import { LAYOUT_PATH } from "@/components/dependency-canvas/layout";
 import { draftTemplate } from "@/server/domains/submissions/models/templates";
 import { type FilesAction, type FilesState, filesReducer, isDirty } from "../files";
 import type { EditorFile } from "../types";
-import { ComposerCanvas } from "./ComposerCanvas";
 import { composerChanges } from "./changes";
-import { ComposerContext } from "./context";
 import { DependencyPanel } from "./DependencyPanel";
-import { DRAG_TYPE, readDragged, startDrag } from "./drag";
-import { LAYOUT_PATH } from "./layout";
-import { hasCanvas, startingRange, toGraph } from "./model";
+import { hasCanvas, startingRange } from "./model";
 import type { PickerEntry } from "./types";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
@@ -175,6 +176,31 @@ describe("the canvas", () => {
     expect(canvas(false).match(/react-flow__node-dependency[^"]*draggable/g)).toHaveLength(3);
     expect(canvas(false)).not.toMatch(/react-flow__node-item[^"]*draggable/);
     expect(html).not.toMatch(/react-flow__node-[a-z]+[^"]*draggable/);
+  });
+
+  it("links each dependency to its page where the canvas is given where that is (044)", () => {
+    const html = renderToStaticMarkup(
+      <ComposerContext
+        value={{
+          readOnly: true,
+          setRange: () => {},
+          remove: () => {},
+          hrefOf: (name) => `/items/${name.slice(1)}`,
+        }}
+      >
+        <ComposerCanvas
+          nodes={graph.nodes}
+          edges={graph.edges}
+          readOnly
+          settled
+          onMove={() => {}}
+          onRemove={() => {}}
+        />
+      </ComposerContext>,
+    );
+    expect(html).toContain('href="/items/tools/github"');
+    expect(html).toContain('href="/items/team/other-agent"');
+    expect(canvas(true)).not.toContain('href="/items/');
   });
 
   it("lists every dependency under the canvas, with the same fields, for the keyboard", () => {

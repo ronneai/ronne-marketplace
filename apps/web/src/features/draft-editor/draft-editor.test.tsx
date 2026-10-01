@@ -1,10 +1,10 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { treeRows } from "@/components/code/FileTree";
+import { languageFor } from "@/components/code/languages";
 import { SubmissionNotFoundError } from "@/server/domains/submissions/exceptions/errors";
 import type { Draft } from "@/server/domains/submissions/models/submission";
-import { treeRows } from "./FileTree";
 import { changesOf, type FilesState, filesReducer, isDirty, newPathProblem } from "./files";
-import { languageFor } from "./languages";
 import type { EditorFile } from "./types";
 
 const drafts = vi.hoisted(() => ({ viewSubmission: vi.fn() }));

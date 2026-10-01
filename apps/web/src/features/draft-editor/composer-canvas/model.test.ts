@@ -1,16 +1,20 @@
 import { describe, expect, it } from "vitest";
+import { dependencyNodeId, ITEM_NODE_ID, toGraph } from "@/components/dependency-canvas/graph";
+import {
+  LAYOUT_PATH,
+  moveNodes,
+  placeNodes,
+  readLayout,
+  writeLayout,
+} from "@/components/dependency-canvas/layout";
 import { draftTemplate } from "@/server/domains/submissions/models/templates";
 import { readManifest, writeField } from "../manifest-yaml";
-import { LAYOUT_PATH, moveNodes, placeNodes, readLayout, writeLayout } from "./layout";
 import {
   addDependency,
-  dependencyNodeId,
-  ITEM_NODE_ID,
   readDependencies,
   removeDependency,
   setDependencyRange,
   startingRange,
-  toGraph,
 } from "./model";
 
 const template = (type: "agent" | "bundle") =>

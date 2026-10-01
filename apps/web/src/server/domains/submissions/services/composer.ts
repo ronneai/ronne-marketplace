@@ -5,15 +5,13 @@ import {
   isVersionRange,
   parseItemName,
 } from "@ronneai/core";
-import { installsIn, RENDERERS } from "@ronneai/core/render";
 import { requirePermission } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
-import type { CatalogueEntry } from "../../items/models/catalogue";
+import { factsOf } from "../../items/models/catalogue";
 import type { CatalogueRepository } from "../../items/repositories/catalogue-repository";
 import { CATALOGUE_SEARCH_MAX_LENGTH, searchCatalogue } from "../../items/services/catalogue";
 import {
   DEPENDENCY_REPORTS_MAX,
-  type DependencyFacts,
   type DependencyReport,
   PICKER_PAGE_SIZE,
   type PickerPage,
@@ -27,13 +25,6 @@ import { dependencyIssues } from "./registry-checks";
  */
 export type ComposerDeps = { registry: RegistryLookup; catalogue: CatalogueRepository };
 export type ComposerActor = { user: CurrentUser | null; ip: string | null };
-
-export const factsOf = (entry: CatalogueEntry): DependencyFacts => ({
-  type: entry.type,
-  version: entry.version,
-  description: entry.description,
-  tools: RENDERERS.filter((r) => installsIn(entry.support[r.id])).map((r) => r.name),
-});
 
 /**
  * Each dependency's catalogue facts and 013's problems with it, by name: the checks a submission

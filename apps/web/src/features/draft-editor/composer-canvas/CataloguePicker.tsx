@@ -3,13 +3,13 @@
 import { DEPENDENCY_TYPES, type ItemType } from "@ronneai/core";
 import { Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { startDrag } from "@/components/dependency-canvas/drag";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
 import { inputClasses, selectClasses } from "@/components/ui/Field";
 import { useDebounced } from "../hooks";
 import { searchDependenciesAction } from "./actions";
-import { startDrag } from "./drag";
 import type { PickerEntry } from "./types";
 
 /**

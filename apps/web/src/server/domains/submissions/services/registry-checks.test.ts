@@ -23,6 +23,7 @@ const fakeRegistry = (items: Fake): RegistryLookup => ({
       id: `${id}@${v.version}`,
       publishedAt: new Date(0),
       artifactPath: "",
+      sha256: "",
       yanked: false,
       dependencies: {},
       ...v,

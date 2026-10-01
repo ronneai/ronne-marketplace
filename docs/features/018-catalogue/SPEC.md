@@ -54,7 +54,8 @@ and what's used most in the registry.
     safely, and images only from `https:` URLs. No README: the description and a note.
   - **Versions:** 016's page.
   - **Dependencies:** each dependency of the shown version, with its range and a link to its page.
-  - **Files:** the shown version's files, sizes and executable flags, from 015's `files`.
+  - **Files:** the shown version's files, sizes and executable flags, from 015's `files`. 044 adds
+    their contents and an Overview tab.
   - **What it can do:** the version's risk flags (014), as the review page shows them.
 - **Another version** (`?version=1.1.0`): the page shows that version; a banner says it isn't
   `latest`, and whether it's deprecated or yanked.

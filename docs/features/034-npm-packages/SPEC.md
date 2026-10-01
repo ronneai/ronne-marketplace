@@ -37,7 +37,8 @@ Docker image carries the same version ([035](../035-docker-hub-image/SPEC.md)), 
 the tag check covers the four. `rmk --version` and the MCP server's
 `serverInfo.version` already read their own `package.json`.
 
-**Package contents.** Each package gets `repository`, `homepage`, `bugs`, `keywords`, `engines`
+**Package contents.** Each package gets `repository`, `homepage` (the product page,
+`https://www.ronne.ai/en/marketplace`, owner, 2026-09-30), `bugs`, `keywords`, `engines`
 (Node 22.12 or later), `publishConfig: { access: "public", provenance: true }`, a README for its
 npm page, and the repository's LICENSE. `files` stays `dist` (plus README and LICENSE). What each
 package holds is checked in CI with `pnpm pack` against an allowlist: no tests, no sources, no

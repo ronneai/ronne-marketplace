@@ -34,7 +34,8 @@ so it's always what `rmk` would do.
 | `off` | the manifest's `targets.<id>.enabled` is `false` for the shown version |
 | `none` | `supports(type)` is `none`: `rmk` skips the item there with a warning |
 
-**The item page** gets a **Works in** panel under Install: each renderer's name (linking to its
+**The item page** gets a **Works in** panel under Install (since [044](../044-item-contents/SPEC.md), a
+tab of its own, before What it can do): each renderer's name (linking to its
 Documentation page), its level as a badge (`supported` accent, `partly` warning, `turned off` and
 `skipped` muted), and one line saying what the level means for this item: where it goes, with the
 item's own name in the path (`.claude/agents/kit-agent.md`), "…with some of it left out", "This

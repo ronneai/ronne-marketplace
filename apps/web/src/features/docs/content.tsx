@@ -461,6 +461,10 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           <To href={docsHref("changes")}>change proposal</To> starts with the nodes placed
           automatically.
         </p>
+        <p>
+          A released agent&apos;s or bundle&apos;s page shows the same canvas, read-only, on its{" "}
+          <To href={docsHref("items", "contents")}>Overview</To>.
+        </p>
       </>
     ),
     manifest: (
@@ -492,6 +496,46 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             There&apos;s no <Code>version</Code>: the release sets it.
           </li>
         </Bullets>
+      </>
+    ),
+    contents: (
+      <>
+        <p>
+          Every item page shows what the item is before you install it: the files of the version
+          you&apos;re looking at, exactly as <Code>rmk install</Code> gets them. They come from the
+          released package and are checked against its checksum first; reading them isn&apos;t
+          counted as a download.
+        </p>
+        <Bullets>
+          <li>
+            <strong>Overview</strong>, where the page opens, sums the item up.{" "}
+            <strong>At a glance</strong> has its settings from <Code>ronne.yaml</Code> (an
+            agent&apos;s tools and model, a rule&apos;s activation and globs, a hook&apos;s event
+            and command, an MCP server&apos;s transport, command or URL and the names of the
+            environment variables it needs, a permission policy&apos;s rules as a table), what it
+            can do on your machine, and the tools it works in. Under it is its main file, to read: a
+            skill&apos;s <Code>SKILL.md</Code>, an agent&apos;s prompt, a rule&apos;s,
+            command&apos;s or output style&apos;s body, or a hook&apos;s or status line&apos;s
+            script. Its other files are listed below, each a link to it in Files.
+          </li>
+          <li>
+            <strong>Dependencies on the canvas:</strong> an agent or a bundle shows the items it
+            uses on the same <To href={docsHref("items", "canvas")}>canvas</To> as the editor,
+            read-only. Each node links to that item&apos;s page.
+          </li>
+          <li>
+            <strong>Files:</strong> every file of the version, <Code>ronne.yaml</Code> included, in
+            a tree. Markdown is shown rendered, line breaks kept, with its frontmatter as a table;
+            the <strong>Source</strong> tab shows the text exactly as written. Other files are shown
+            as text. Binary files and text over 512 KB are listed but not shown. The file you open
+            is in the address, so you can send someone a link to it.
+          </li>
+        </Bullets>
+        <p>
+          <Code>?version=</Code> works here too, yanked versions included. If a version&apos;s
+          package is missing or doesn&apos;t match its checksum, the page says so instead of showing
+          anything: tell an administrator.
+        </p>
       </>
     ),
   },
@@ -1573,7 +1617,7 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           lists every tool and what it supports.
         </p>
         <p>
-          Before you install, an item&apos;s page says under <strong>Works in</strong> which of
+          Before you install, an item&apos;s page says on its <strong>Works in</strong> tab which of
           these tools it goes to, and where: supported, partly, turned off by the item&apos;s own{" "}
           <Code>ronne.yaml</Code>, or skipped. The catalogue&apos;s <strong>Works in</strong> filter
           lists the items one tool takes, as does{" "}

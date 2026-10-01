@@ -1,6 +1,7 @@
 "use client";
 
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
+import { yamlLanguage } from "@codemirror/lang-yaml";
 import {
   bracketMatching,
   HighlightStyle,
@@ -44,21 +45,35 @@ const theme = EditorView.theme({
   ".cm-matchingBracket": { outline: "1px solid var(--accent)", backgroundColor: "transparent" },
 });
 
+/**
+ * GitHub's syntax colours (Primer), through 032's tokens so both themes follow: grey comments,
+ * green keys, blue strings and constants, purple keywords (044).
+ */
 const highlight = HighlightStyle.define([
   {
-    tag: [tags.keyword, tags.definitionKeyword, tags.moduleKeyword],
-    color: "var(--link)",
-    fontWeight: "600",
+    tag: [tags.keyword, tags.definitionKeyword, tags.moduleKeyword, tags.controlKeyword],
+    color: "var(--syntax-keyword)",
   },
-  { tag: [tags.propertyName, tags.definition(tags.propertyName)], color: "var(--link)" },
-  { tag: [tags.string, tags.special(tags.string)], color: "var(--accent)" },
-  { tag: [tags.comment, tags.meta], color: "var(--muted)", fontStyle: "italic" },
-  { tag: [tags.heading], fontWeight: "700" },
+  {
+    tag: [tags.propertyName, tags.definition(tags.propertyName), tags.attributeName],
+    color: "var(--syntax-key)",
+  },
+  { tag: [tags.string, tags.special(tags.string)], color: "var(--syntax-string)" },
+  { tag: [tags.comment, tags.meta], color: "var(--syntax-comment)", fontStyle: "italic" },
+  { tag: [tags.heading], fontWeight: "700", color: "var(--syntax-constant)" },
   { tag: [tags.emphasis], fontStyle: "italic" },
   { tag: [tags.strong], fontWeight: "700" },
   { tag: [tags.link, tags.url], color: "var(--link)", textDecoration: "underline" },
-  { tag: [tags.number, tags.bool, tags.null, tags.atom], color: "var(--link)" },
+  {
+    tag: [tags.number, tags.bool, tags.null, tags.atom, tags.labelName, tags.typeName],
+    color: "var(--syntax-constant)",
+  },
 ]);
+
+/** In YAML, a plain value is a string too, as GitHub shows it; elsewhere `content` is prose. */
+const yamlValues = HighlightStyle.define([{ tag: tags.content, color: "var(--syntax-string)" }], {
+  scope: yamlLanguage,
+});
 
 const stateFor = (
   path: string,
@@ -79,6 +94,7 @@ const stateFor = (
       indentOnInput(),
       bracketMatching(),
       syntaxHighlighting(highlight),
+      syntaxHighlighting(yamlValues),
       keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
       EditorView.lineWrapping,
       languageFor(path, doc),

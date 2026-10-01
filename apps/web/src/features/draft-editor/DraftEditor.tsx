@@ -6,6 +6,9 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useReducer, useRef, useState, useTransition } from "react";
+import { CodeEditor } from "@/components/code/CodeEditor";
+import { FileTree } from "@/components/code/FileTree";
+import { LAYOUT_PATH } from "@/components/dependency-canvas/layout";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { Badge } from "@/components/ui/Badge";
 import { Button, buttonClasses } from "@/components/ui/Button";
@@ -19,11 +22,8 @@ import {
   validateDraft,
 } from "@/server/domains/submissions/models/submission";
 import { saveDraftAction } from "./actions";
-import { CodeEditor } from "./CodeEditor";
-import { LAYOUT_PATH } from "./composer-canvas/layout";
 import { hasCanvas } from "./composer-canvas/model";
 import { DeleteFileDialog, DraftSettingsDialog, ImportZipDialog, PathDialog } from "./FileDialogs";
-import { FileTree } from "./FileTree";
 import {
   changesOf,
   type FilesAction,
