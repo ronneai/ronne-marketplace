@@ -58,6 +58,7 @@ export const TOPICS = [
       { id: "many", title: "Submitting many at once" },
       { id: "reviewing", title: "What reviewers look at" },
       { id: "decisions", title: "Decisions" },
+      { id: "approve-many", title: "Approving many at once" },
     ],
   },
   {

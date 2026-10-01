@@ -128,21 +128,21 @@ on any of them.
 
 ## Acceptance criteria
 
-- [ ] Root's override approves with or without a reason; with none, the event has no body and the
+- [x] Root's override approves with or without a reason; with none, the event has no body and the
   audit event has no `message`. Request changes and reject still refuse an empty message.
-- [ ] The domain approves many submissions, each in its own transaction, reporting `approved`
+- [x] The domain approves many submissions, each in its own transaction, reporting `approved`
   (with `override` for root's own), `not_found` and `not_approvable`. One that can't be approved
   doesn't stop the others, and each approval is audited as 014's, with `via: "bulk"`.
-- [ ] A moderator's own submission and a stale proposal are refused, and two reviewers approving
+- [x] A moderator's own submission and a stale proposal are refused, and two reviewers approving
   the same submissions at once approve each one once.
-- [ ] The message, when given, is the body of every approval event; when empty, none has one.
-- [ ] The Needs review tab shows a checkbox only on approvable rows, with the reason on the others;
+- [x] The message, when given, is the body of every approval event; when empty, none has one.
+- [x] The Needs review tab shows a checkbox only on approvable rows, with the reason on the others;
   the confirmation lists risky submissions first with their flags, marks overrides, and shows each
   result after approving.
-- [ ] The service tests pass on SQLite, PostgreSQL, MySQL and MariaDB, and an end-to-end test
+- [x] The service tests pass on SQLite, PostgreSQL, MySQL and MariaDB, and an end-to-end test
   approves three submissions from the queue with one message, one of them refused because it was
   withdrawn in between.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Decisions
 

@@ -30,7 +30,7 @@ the same change that completes it.
   *Done when:* `reviews.test.tsx` covers the checkboxes and the dialog, and a Playwright test
   approves three submissions with one message, one withdrawn in between.
 
-- [ ] **4. Documentation.** `review#decisions`, the new `review#approve-many`, the pointer in
+- [x] **4. Documentation.** `review#decisions`, the new `review#approve-many`, the pointer in
   `review#many`, the queue helper and the override hint.
   *Done when:* the docs render tests pass, and the new helper's link lands on a real section.
 

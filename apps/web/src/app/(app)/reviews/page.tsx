@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { Help } from "@/components/help/Help";
 import { PageHeader } from "@/components/ui/Panel";
 import { BulkApproveProvider, BulkApproveToolbar } from "@/features/reviews/BulkApprove";
 import { approvableRows, QueueTable, QueueTabs, queueTab } from "@/features/reviews/QueueTable";
@@ -30,7 +31,7 @@ const Reviews = async ({
       <QueueTabs tab={tab} />
       {tab === "needs" ? (
         <BulkApproveProvider approvable={approvableRows(rows)}>
-          <BulkApproveToolbar />
+          <BulkApproveToolbar help={<Help id="approve-many" />} />
           <QueueTable tab={tab} rows={rows} nextCursor={nextCursor} />
         </BulkApproveProvider>
       ) : (

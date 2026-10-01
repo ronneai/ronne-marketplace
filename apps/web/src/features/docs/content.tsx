@@ -674,6 +674,10 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           them reviewed and released, then submit what uses them. <Code>rmk submit</Code> says the
           order.
         </p>
+        <p>
+          Reviewers can approve many at once too:{" "}
+          <To href={docsHref("review", "approve-many")}>Approving many at once</To>.
+        </p>
       </>
     ),
     reviewing: (
@@ -711,10 +715,49 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           </li>
           <li>
             <strong>Override:</strong> root may approve their own submission. It&apos;s marked as an
-            override in the conversation and the audit log.
+            override in the conversation and the audit log, with or without a reason.
           </li>
         </Bullets>
-        <p>Every decision is recorded in the conversation and the audit log.</p>
+        <p>
+          Approving, the override included, takes an optional message. Request changes and reject
+          need one, so the author knows what to fix, or why it was closed. Every decision is
+          recorded in the conversation and the audit log.
+        </p>
+      </>
+    ),
+    "approve-many": (
+      <>
+        <p>
+          On <To href="/reviews">Reviews</To>, in <strong>Needs review</strong>, each submission you
+          can approve now has a checkbox. Tick the ones you want, or <strong>Select all</strong>,
+          then <strong>Approve selected</strong>.
+        </p>
+        <Bullets>
+          <li>
+            Some can&apos;t be selected, and their checkbox says why: a moderator&apos;s own
+            submission (another reviewer approves it), or a stale change proposal, which its author
+            rebases first.
+          </li>
+          <li>
+            The confirmation lists them with the ones that have{" "}
+            <To href={docsHref("review", "reviewing")}>risk flags</To> first, each flag named, so
+            nothing risky goes by unseen. Root&apos;s own are marked: they&apos;re approved as
+            overrides.
+          </li>
+          <li>
+            One optional message goes on every approval, as if typed on each page. Leave it empty
+            for none.
+          </li>
+          <li>
+            Each is approved on its own, and recorded as a normal approval in its conversation and
+            the audit log. One that was decided by someone else, withdrawn or went stale in the
+            meantime is reported, and the others are still approved.
+          </li>
+        </Bullets>
+        <p>
+          Request changes and reject stay one submission at a time, since each needs its own
+          message. Releasing is still done from each approved submission.
+        </p>
       </>
     ),
   },
