@@ -148,13 +148,10 @@ describe("decisions", () => {
     ).rejects.toThrow(ForbiddenError);
   });
 
-  it("lets root approve its own submission only by an override with a reason, audited as one", async () => {
+  it("lets root approve its own submission only by an override, audited as one", async () => {
     const own = await submitted(asRoot, "roots");
     await expect(decide(asRoot, own, { decision: "approve" }, app)).rejects.toThrow(
       OwnSubmissionError,
-    );
-    await expect(decide(asRoot, own, { decision: "override" }, app)).rejects.toThrow(
-      ReviewMessageError,
     );
     await decide(
       asRoot,
@@ -163,8 +160,22 @@ describe("decisions", () => {
       app,
     );
     expect(await status(own)).toBe("approved");
-    expect((await events(own)).at(-1)).toMatchObject({ kind: "override" });
-    expect(await audited("submission.override_approved")).toHaveLength(1);
+    expect((await events(own)).at(-1)).toMatchObject({
+      kind: "override",
+      body: "Urgent fix; I'm the only reviewer.",
+    });
+    const [withReason] = await audited("submission.override_approved");
+    expect(withReason?.metadata).toMatchObject({ message: "Urgent fix; I'm the only reviewer." });
+
+    // The reason is optional (054): it's still an override, with no body and no message.
+    const second = await submitted(asRoot, "roots-too");
+    await decide(asRoot, second, { decision: "override", message: "  " }, app);
+    expect(await status(second)).toBe("approved");
+    expect((await events(second)).at(-1)).toMatchObject({ kind: "override", body: null });
+    const withoutReason = (await audited("submission.override_approved")).find(
+      (e) => e.targetId === second,
+    );
+    expect(withoutReason?.metadata).not.toHaveProperty("message");
 
     const someoneElses = await submitted();
     await expect(

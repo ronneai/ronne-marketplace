@@ -42,8 +42,8 @@ const COPY: Record<
   override: {
     button: "Approve (override)",
     title: "Approve your own submission?",
-    hint: "Required. As root, you can approve your own submission; the reason goes into the audit log.",
-    required: true,
+    hint: "Optional. As root, you can approve your own submission; it's marked as an override in the conversation and the audit log.",
+    required: false,
     variant: "secondary",
   },
 };

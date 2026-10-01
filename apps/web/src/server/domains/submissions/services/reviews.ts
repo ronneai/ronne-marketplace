@@ -18,8 +18,8 @@ import type { SubmissionActor, SubmissionDeps } from "./submissions";
 
 /**
  * Review decisions and the conversation (feature 014). Moderators and root approve, request
- * changes or reject others' submissions; root approves its own only through an override with a
- * reason. Every decision locks the submission's row, goes through `transition`, adds an event and
+ * changes or reject others' submissions; root approves its own only through an override, with an
+ * optional reason (054). Every decision locks the submission's row, goes through `transition`, adds an event and
  * is audited, in one transaction.
  */
 
@@ -87,7 +87,8 @@ const DECISIONS = {
     action: "approve",
     kind: "override",
     audit: "submission.override_approved",
-    requires: "Approving your own submission",
+    // Optional since 054: it's still recorded as an override, with or without a reason.
+    requires: null,
   },
 } as const satisfies Record<string, Decision>;
 

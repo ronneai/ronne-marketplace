@@ -11,7 +11,7 @@ the same change that completes it.
   bulk, and the spec is updated to match before anything is built.
   *Done when:* the spec has no open question that changes what's built.
 
-- [ ] **1. Optional override reason.** `DECISIONS.override.requires` becomes `null` in
+- [x] **1. Optional override reason.** `DECISIONS.override.requires` becomes `null` in
   `services/reviews.ts`; the `DecisionBar` copy for the override is optional with the new hint.
   *Done when:* `reviews.db.test.ts` covers an override with and without a reason (event body and
   audit metadata), and request changes and reject still refuse an empty message.
