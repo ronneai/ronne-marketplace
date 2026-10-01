@@ -66,8 +66,11 @@ the lookup with the real tables, and the checks don't change.
 
 *2026-09-30:* exporting an item together with its dependencies (M7,
 [041](../041-export-dependencies/SPEC.md)) keeps this rule: the dependencies' drafts are submitted
-and released first, and export tells the person the order. Whether to relax it is 041's first open
-question.
+and released first, and export tells the person the order. Whether to relax it was 041's first
+open question.
+
+*2026-10-01:* [056](../056-pending-dependencies/SPEC.md) relaxes it: a dependency in review
+counts, and the range is checked at release.
 
 **Frozen content.** Once submitted, the editor opens read-only (the files, the form, and the
 validation results from the submit), with a notice saying so. The save actions refuse any
