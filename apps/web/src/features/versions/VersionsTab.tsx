@@ -7,14 +7,23 @@ import { LocalTime } from "@/components/ui/LocalTime";
 import { Panel } from "@/components/ui/Panel";
 import { Table, Td, Th } from "@/components/ui/Table";
 import type { VersionsPage as Page } from "@/server/domains/items/actions/versions";
-import { TagControls, VersionControls } from "./VersionControls";
+import { TagControls, VersionControls, type VersionReach } from "./VersionControls";
 
 /**
  * An item's versions (feature 016), the item page's Versions tab (018): its tags, and every version
  * with when and by whom it was published, its size and sha256, and any deprecation or yank. Each
  * version links to the item page showing it. Moderators and root get the actions.
  */
-export const VersionsTab = ({ page }: { page: Page }) => {
+const count = (n: number | undefined) => (n ? n.toLocaleString("en-US") : "–");
+
+export const VersionsTab = ({
+  page,
+  usage = null,
+}: {
+  page: Page;
+  /** Runs and installs per version over 30 days, when the item has enough usage to show (047). */
+  usage?: Record<string, VersionReach> | null;
+}) => {
   const itemRef = { scope: page.item.scope.name, name: page.item.name };
   const choices = page.versions.map((v) => ({ version: v.version, yanked: v.yankedAt !== null }));
   const yanked = new Set(choices.filter((v) => v.yanked).map((v) => v.version));
@@ -73,6 +82,12 @@ export const VersionsTab = ({ page }: { page: Page }) => {
             <Th>Published</Th>
             <Th>Size</Th>
             <Th>sha256</Th>
+            {usage ? (
+              <>
+                <Th>Runs, 30 days</Th>
+                <Th>Installs, 30 days</Th>
+              </>
+            ) : null}
             {page.canManage ? <Th>Actions</Th> : null}
           </tr>
         </thead>
@@ -115,6 +130,12 @@ export const VersionsTab = ({ page }: { page: Page }) => {
               <Td className="font-mono text-xs" title={v.sha256}>
                 {v.sha256.slice(0, 12)}…
               </Td>
+              {usage ? (
+                <>
+                  <Td className="font-mono text-xs">{count(usage[v.version]?.runs)}</Td>
+                  <Td className="font-mono text-xs">{count(usage[v.version]?.installs)}</Td>
+                </>
+              ) : null}
               {page.canManage ? (
                 <Td>
                   <VersionControls
@@ -122,6 +143,7 @@ export const VersionsTab = ({ page }: { page: Page }) => {
                     version={v.version}
                     deprecated={v.deprecatedMessage !== null}
                     yanked={v.yankedAt !== null}
+                    reach={usage ? (usage[v.version] ?? { runs: 0, installs: 0 }) : null}
                   />
                 </Td>
               ) : null}

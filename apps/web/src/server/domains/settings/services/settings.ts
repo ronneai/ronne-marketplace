@@ -1,11 +1,14 @@
 import { requirePermission } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
-import { InvalidUsagePolicyError } from "../exceptions/errors";
+import { InvalidUsageMinimumError, InvalidUsagePolicyError } from "../exceptions/errors";
 import {
+  DEFAULT_USAGE_MINIMUM,
   DEFAULT_USAGE_POLICY,
   isUsagePolicy,
+  USAGE_MINIMUM_KEY,
   USAGE_POLICY_KEY,
   type UsagePolicy,
+  usageMinimumFrom,
 } from "../models/usage-policy";
 import type { SettingsRepository } from "../repositories/settings-repository";
 
@@ -24,10 +27,17 @@ export const usagePolicy = async (deps: SettingsDeps): Promise<UsagePolicy> => {
   return stored && isUsagePolicy(stored.value) ? stored.value : DEFAULT_USAGE_POLICY;
 };
 
+/** The usage minimum (047): 0, the default, until root sets one. */
+export const usageMinimum = async (deps: SettingsDeps): Promise<number> => {
+  const stored = await deps.repo.get(USAGE_MINIMUM_KEY);
+  return (stored && usageMinimumFrom(stored.value)) ?? DEFAULT_USAGE_MINIMUM;
+};
+
 export type InstanceSettings = {
   usagePolicy: UsagePolicy;
   /** When root last changed it, or null while it's the default. */
   usagePolicyChangedAt: Date | null;
+  usageMinimum: number;
 };
 
 /** What Admin › Settings shows: root only. */
@@ -40,7 +50,36 @@ export const instanceSettings = async (
   return {
     usagePolicy: stored && isUsagePolicy(stored.value) ? stored.value : DEFAULT_USAGE_POLICY,
     usagePolicyChangedAt: stored?.updatedAt ?? null,
+    usageMinimum: await usageMinimum(deps),
   };
+};
+
+/** Root sets the usage minimum; the change is audited with the old and new value. */
+export const setUsageMinimum = async (
+  deps: SettingsDeps,
+  actor: SettingsActor,
+  value: unknown,
+): Promise<{ changed: boolean }> => {
+  requirePermission(actor.user, "settings.manage");
+  const minimum = usageMinimumFrom(value);
+  if (minimum === null) throw new InvalidUsageMinimumError();
+  const at = now(deps);
+  return deps.repo.transaction(async (repo) => {
+    const from = await usageMinimum({ repo });
+    if (from === minimum) return { changed: false };
+    await repo.set(USAGE_MINIMUM_KEY, String(minimum), actor.user?.id ?? null, at);
+    await repo.recordAudit(
+      {
+        actorId: actor.user?.id ?? null,
+        action: "settings.usage_minimum",
+        target: { type: "instance" },
+        metadata: { from, to: minimum },
+        ipAddress: actor.ip,
+      },
+      at,
+    );
+    return { changed: true };
+  });
 };
 
 /** Root sets the usage policy; the change is audited with the old and new value. */

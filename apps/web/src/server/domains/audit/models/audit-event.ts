@@ -37,6 +37,7 @@ export const AUDIT_ACTIONS = [
   "dist_tag.moved",
   "dist_tag.removed",
   "settings.usage_policy",
+  "settings.usage_minimum",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

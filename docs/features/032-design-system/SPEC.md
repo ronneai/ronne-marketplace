@@ -57,7 +57,14 @@ compose parts; they don't restyle them.
 | `link` | Navy, semibold | Teal |
 | `tint` (selection, soft fill) | Mint | Navy |
 
-- **Syntax colours are the one exception to a single accent** (owner, 2026-09-30, [044](../044-item-contents/SPEC.md)):
+- **Chart colours are the second exception** (owner, 2026-10-01, [047](../047-usage-on-item-page/SPEC.md)):
+  the usage charts give each AI tool its own colour, from the owner's item overview mockup one step
+  deeper so each passes 3:1 on both surfaces and the colour-blind checks: `chart-cursor` teal-600
+  `#0D9488`, `chart-claude-code` indigo-500 `#6366F1`, `chart-codex` amber-600 `#D97706`, in both
+  themes. The daily bars are `chart-neutral` on a `chart-well`, with the peak in `chart` (Deep teal
+  on light, Teal on dark). These are chart series only: amber still means a warning everywhere
+  else, and a run that ended in an error is a labelled row, never red.
+- **Syntax colours are the first exception to a single accent** (owner, 2026-09-30, [044](../044-item-contents/SPEC.md)):
   code in the viewer and editor uses GitHub's Primer syntax palette as `syntax-*` tokens (grey
   comments, green keys, blue strings and constants, purple keywords, never red), at 4.5:1 on the
   surface and the tint in both themes.

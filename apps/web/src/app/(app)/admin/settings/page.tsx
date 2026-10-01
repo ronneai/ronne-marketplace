@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { PageHeader, Panel } from "@/components/ui/Panel";
+import { UsageMinimumForm } from "@/features/admin-settings/UsageMinimumForm";
 import { UsagePolicyForm } from "@/features/admin-settings/UsagePolicyForm";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { can } from "@/server/domains/identity/models/permissions";
@@ -19,9 +20,14 @@ const AdminSettings = async () => {
         title="Settings"
         description="How this instance behaves. Each change takes effect at once and is recorded in the audit log."
       />
-      <Panel padding="lg">
-        <UsagePolicyForm policy={settings.usagePolicy} />
-      </Panel>
+      <div className="grid gap-4">
+        <Panel padding="lg">
+          <UsagePolicyForm policy={settings.usagePolicy} />
+        </Panel>
+        <Panel padding="lg">
+          <UsageMinimumForm minimum={settings.usageMinimum} />
+        </Panel>
+      </div>
     </>
   );
 };

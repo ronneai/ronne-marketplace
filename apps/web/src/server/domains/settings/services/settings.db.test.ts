@@ -5,9 +5,16 @@ import { listAuditEvents } from "../../audit/actions/audit";
 import { createRoot } from "../../identity/actions/root-account";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import type { CurrentUser } from "../../identity/models/user";
-import { InvalidUsagePolicyError } from "../exceptions/errors";
+import { InvalidUsageMinimumError, InvalidUsagePolicyError } from "../exceptions/errors";
 import { kyselySettingsRepository } from "../repositories/kysely-settings-repository";
-import { instanceSettings, type SettingsDeps, setUsagePolicy, usagePolicy } from "./settings";
+import {
+  instanceSettings,
+  type SettingsDeps,
+  setUsageMinimum,
+  setUsagePolicy,
+  usageMinimum,
+  usagePolicy,
+} from "./settings";
 
 // Runs on the database in TEST_DATABASE_URL (in-memory SQLite by default; 004 runs all of them).
 let t: TestDb;
@@ -35,6 +42,7 @@ describe("the usage policy", () => {
     expect(await instanceSettings(deps, { user: root, ip: null })).toEqual({
       usagePolicy: "off",
       usagePolicyChangedAt: null,
+      usageMinimum: 0,
     });
   });
 
@@ -52,6 +60,7 @@ describe("the usage policy", () => {
     expect(await instanceSettings(deps, { user: root, ip: null })).toEqual({
       usagePolicy: "required",
       usagePolicyChangedAt: at,
+      usageMinimum: 0,
     });
     const { events } = await listAuditEvents(t.db, t.dialect, { group: "settings" });
     expect(
@@ -79,6 +88,33 @@ describe("the usage policy", () => {
   it("reads a value it doesn't know as off", async () => {
     await deps.repo.set("usage_policy", "maybe", root.id, at);
     expect(await usagePolicy(deps)).toBe("off");
+  });
+});
+
+describe("the usage minimum", () => {
+  it("is 0 until root sets one, which is audited", async () => {
+    expect(await usageMinimum(deps)).toBe(0);
+    expect(await setUsageMinimum(deps, { user: root, ip: null }, "20")).toEqual({ changed: true });
+    expect(await usageMinimum(deps)).toBe(20);
+    expect(await setUsageMinimum(deps, { user: root, ip: null }, 20)).toEqual({ changed: false });
+    expect(await setUsageMinimum(deps, { user: root, ip: null }, "0")).toEqual({ changed: true });
+    const { events } = await listAuditEvents(t.db, t.dialect, { group: "settings" });
+    expect(events.map((e) => [e.action, e.metadata])).toEqual([
+      ["settings.usage_minimum", { from: 20, to: 0 }],
+      ["settings.usage_minimum", { from: 0, to: 20 }],
+    ]);
+  });
+
+  it("takes whole numbers from 0 to 10,000, from root only", async () => {
+    for (const bad of ["-1", "2.5", "10001", "", "many", null])
+      await expect(
+        setUsageMinimum(deps, { user: root, ip: null }, bad),
+        String(bad),
+      ).rejects.toBeInstanceOf(InvalidUsageMinimumError);
+    await expect(
+      setUsageMinimum(deps, { user: { ...root, role: "moderator" }, ip: null }, "5"),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+    expect(await usageMinimum(deps)).toBe(0);
   });
 });
 

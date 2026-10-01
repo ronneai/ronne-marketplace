@@ -23,4 +23,8 @@ export interface UsageRepository {
   add(rows: readonly UsageRow[]): Promise<void>;
   /** Deletes the totals of days before `day`. */
   deleteBefore(day: string): Promise<void>;
+  /** An item's daily totals from `from` to `to`, inclusive (047). */
+  rowsBetween(itemId: string, from: string, to: string): Promise<UsageRow[]>;
+  /** Whether anything is stored for an item. */
+  hasAny(itemId: string): Promise<boolean>;
 }

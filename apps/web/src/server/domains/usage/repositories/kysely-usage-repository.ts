@@ -65,4 +65,34 @@ export const kyselyUsageRepository = (
   async deleteBefore(day) {
     await db.deleteFrom("usage_daily").where("day", "<", day).execute();
   },
+
+  async rowsBetween(itemId, from, to) {
+    const rows = await db
+      .selectFrom("usage_daily")
+      .select(["day", "version", "tool", "event", "run_trigger", "outcome", "count"])
+      .where("item_id", "=", itemId)
+      .where("day", ">=", from)
+      .where("day", "<=", to)
+      .execute();
+    return rows.map((r) => ({
+      itemId,
+      day: r.day,
+      version: r.version,
+      tool: r.tool,
+      event: r.event,
+      trigger: r.run_trigger,
+      outcome: r.outcome,
+      count: Number(r.count),
+    }));
+  },
+
+  async hasAny(itemId) {
+    const row = await db
+      .selectFrom("usage_daily")
+      .select("item_id")
+      .where("item_id", "=", itemId)
+      .limit(1)
+      .executeTakeFirst();
+    return row !== undefined;
+  },
 });
