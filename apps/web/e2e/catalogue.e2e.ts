@@ -29,15 +29,15 @@ test("a user searches from the home page, filters by type, reads a skill's conte
   await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();
   await expect(page.getByText("license MIT · #security · #owasp")).toBeVisible();
 
-  // Overview (044): the skill's SKILL.md as released, rendered, with its frontmatter, and its
-  // exact source a tab away.
+  // Overview (044): a summary, then the skill's SKILL.md as released, rendered with its
+  // frontmatter, and the other files as links into Files.
   const nav = page.getByRole("navigation", { name: "Item" });
   await expect(nav.getByRole("link", { name: "Overview" })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("heading", { name: "At a glance" })).toBeVisible();
   const skill = page.getByRole("region", { name: "SKILL.md" });
   await expect(skill.getByRole("heading", { name: "Scanning for secrets" })).toBeVisible();
   await expect(skill.getByLabel("Frontmatter")).toContainText(E2E_SKILL);
-  await skill.getByRole("tab", { name: "Source" }).click();
-  await expect(skill.getByText("# Scanning for secrets")).toBeVisible();
+  await expect(page.getByRole("link", { name: "README.md" })).toBeVisible();
 
   const install = page
     .locator("section, div")
@@ -58,6 +58,10 @@ test("a user searches from the home page, filters by type, reads a skill's conte
     "aria-current",
     "true",
   );
+  // The exact source, a tab away from the rendered view.
+  const source = page.getByRole("region", { name: "SKILL.md" });
+  await source.getByRole("tab", { name: "Source" }).click();
+  await expect(source.getByText("# Scanning for secrets")).toBeVisible();
   await files.getByRole("button", { name: /ronne\.yaml/ }).click();
   await expect(page).toHaveURL(/file=ronne\.yaml/);
   const manifest = page.getByRole("region", { name: "ronne.yaml" });
@@ -66,7 +70,7 @@ test("a user searches from the home page, filters by type, reads a skill's conte
   await expect(page.getByRole("region", { name: "ronne.yaml" })).toBeVisible();
 });
 
-test("an agent's Overview shows its prompt, its settings and its dependencies on a read-only canvas", async ({
+test("an agent's Overview sums it up, shows its prompt and its dependencies on a read-only canvas", async ({
   page,
 }) => {
   await page.goto("/sign-in");
@@ -76,20 +80,16 @@ test("an agent's Overview shows its prompt, its settings and its dependencies on
   await expect(page).not.toHaveURL(/\/sign-in/);
 
   await page.goto(`/items/${E2E_SCOPE}/${E2E_RMK_ITEMS.agent}`);
-  await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "At a glance" })).toBeVisible();
   await expect(page.getByText("fast", { exact: true })).toBeVisible();
   await expect(
     page.getByRole("region", { name: "prompt.md" }).getByText("Review with the kit."),
   ).toBeVisible();
-  // The other files are on the left, as in Files.
-  await page
-    .getByRole("navigation", { name: "Files of this version" })
-    .getByRole("button", { name: /ronne\.yaml/ })
-    .click();
-  await expect(page).toHaveURL(/file=ronne\.yaml/);
-  await expect(
-    page.getByRole("region", { name: "ronne.yaml" }).getByText("model: fast"),
-  ).toBeVisible();
+  // The other files link to Files.
+  await expect(page.getByRole("link", { name: "ronne.yaml" })).toHaveAttribute(
+    "href",
+    `/items/${E2E_SCOPE}/${E2E_RMK_ITEMS.agent}?tab=files&file=ronne.yaml`,
+  );
 
   const canvas = page.getByRole("region", { name: "Dependencies" });
   await expect(canvas.getByRole("heading", { name: "Uses 2 items" })).toBeVisible();

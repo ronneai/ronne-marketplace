@@ -18,7 +18,7 @@ const ignore = () => {};
  * A text file as written, highlighted by its path, read-only. Until the editor loads (and on the
  * server) it is plain text, so the contents are there without it.
  */
-const Source = ({ path, text }: { path: string; text: string }) => {
+export const Source = ({ path, text }: { path: string; text: string }) => {
   const [ready, setReady] = useState(false);
   useEffect(() => setReady(true), []);
   if (text.trim() === "") return <p className="p-4 text-sm text-muted">This file is empty.</p>;
@@ -34,7 +34,7 @@ const Source = ({ path, text }: { path: string; text: string }) => {
 };
 
 /** Markdown as the README shows it, with its frontmatter as a table above it. */
-const Rendered = ({ markdown }: { markdown: RenderedMarkdown }) => (
+export const Rendered = ({ markdown }: { markdown: RenderedMarkdown }) => (
   <div className="grid gap-4 p-4">
     {markdown.frontmatter && markdown.frontmatter.length > 0 ? (
       <dl

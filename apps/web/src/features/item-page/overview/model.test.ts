@@ -3,7 +3,7 @@ import { join } from "node:path";
 import type { ItemType } from "@ronneai/core";
 import { describe, expect, it } from "vitest";
 import { parse } from "yaml";
-import { bodyPathOf, settingsOf } from "./model";
+import { bodyPathOf, policyRulesOf, riskLabelsOf, settingsOf } from "./model";
 
 /** The sample items, one per type: 044's table is checked against them. */
 const EXAMPLES = join(import.meta.dirname, "../../../../../../examples/items");
@@ -138,5 +138,26 @@ describe("an item's Overview (044)", () => {
     ]);
     expect(settingsOf({}, "mcp-server")).toEqual([]);
     expect(bodyPathOf({ agent: [] }, "agent")).toBeNull();
+  });
+});
+
+describe("the Overview's summary (044)", () => {
+  it("reads a permission policy's rules, leaving out incomplete ones", () => {
+    expect(policyRulesOf(example("safe-git").manifest)).toEqual([
+      { decision: "deny", tool: "shell", pattern: "git push --force*" },
+      { decision: "ask", tool: "shell", pattern: "git push*" },
+      { decision: "ask", tool: "shell", pattern: "git reset --hard*" },
+    ]);
+    expect(
+      policyRulesOf({ "permission-policy": { rules: [{ tool: "shell" }, { decision: "deny" }] } }),
+    ).toEqual([]);
+  });
+
+  it("says what the risk flags are about, once per kind", () => {
+    expect(riskLabelsOf([{ kind: "network" }, { kind: "hook" }, { kind: "network" }])).toEqual([
+      "Mentions web addresses",
+      "Runs on an event",
+    ]);
+    expect(riskLabelsOf([])).toEqual([]);
   });
 });

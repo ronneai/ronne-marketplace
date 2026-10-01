@@ -47,3 +47,14 @@ export const itemTabHref = (
   const query = params.toString();
   return query ? `${itemPath(item)}?${query}` : itemPath(item);
 };
+
+/** One file of the shown version in the Files tab (044). */
+export const fileHref = (
+  item: { scope: string; name: string },
+  path: string,
+  version?: string | null,
+) => {
+  const params = new URLSearchParams({ tab: "files", file: path });
+  if (version) params.set("version", version);
+  return `${itemPath(item)}?${params.toString()}`;
+};

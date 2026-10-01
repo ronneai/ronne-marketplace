@@ -36,31 +36,36 @@ starts with the item's contents (owner, 2026-09-30). Overview is the
 page's default (`/items/@scope/name`), and README moves to `?tab=readme`. `?version=` works on every tab
 as before.
 
-**Overview** shows the shown version:
-1. **Settings**, from the manifest's type block, as labelled rows:
+**Overview** sums up the shown version; browsing is the Files tab's job (owner, 2026-09-30):
+1. **At a glance**, one card:
+   - **Settings**, from the manifest's type block, as labelled rows:
 
-   | Type | Rows |
-   |---|---|
-   | agent | Tools, Model |
-   | skill | Entry file |
-   | rule | Activation, Globs |
-   | command | Arguments (name, required, description) |
-   | output-style | none |
-   | hook | Event, Matcher, Command (inline `run.command`) or Script, Timeout |
-   | statusline | Script |
-   | mcp-server | Transport, Command, Arguments, URL, Environment variables (name, required, secret), Headers (names only) |
-   | permission-policy | Rules (tool, pattern, decision) |
-   | lsp-server | Command, Arguments, Languages (id, extensions) |
-   | bundle | none |
+     | Type | Rows |
+     |---|---|
+     | agent | Tools, Model |
+     | skill | Entry file |
+     | rule | Activation, Globs |
+     | command | Arguments (name, required, description) |
+     | output-style | none |
+     | hook | Event, Matcher, Command (inline `run.command`) or Script, Timeout |
+     | statusline | Script |
+     | mcp-server | Transport, Command, Arguments, URL, Environment variables (name, required, secret), Headers (names only) |
+     | permission-policy | a table of its rules: decision (a badge, `allow` in the accent), tool, pattern (`any` when none) |
+     | lsp-server | Command, Arguments, Languages (id, extensions) |
+     | bundle | none |
 
-   A type with no rows shows no Settings panel. Header values and environment descriptions stay in
-   `ronne.yaml`, which Files shows as released.
-2. **The files**, as Files shows them (below): the tree on the left, with the body file open when the
-   type has one: skill `skill.entry` (default `SKILL.md`), agent `agent.prompt`, rule `rule.body`,
-   command `command.body`, output-style `output-style.body`, hook `run.script`, statusline
-   `statusline.script`; otherwise `ronne.yaml`. `?file=` opens another. A path the manifest names but
-   the version doesn't contain gets a notice.
-3. **Dependencies**, when there are any: the read-only canvas. The item is in the centre, and each direct
+     Header values and environment descriptions stay in `ronne.yaml`, which Files shows as released.
+   - **What it can do:** the risk flags (014), once per kind ("Runs on an event", "Starts an MCP
+     server", "Mentions web addresses"…), or "Nothing flagged"; it links to the tab.
+   - **Works in:** each tool with its level badge (026); it links to the tab.
+2. **The main file, to read**, when the type has one: skill `skill.entry` (default `SKILL.md`), agent
+   `agent.prompt`, rule `rule.body`, command `command.body`, output-style `output-style.body`, hook
+   `run.script`, statusline `statusline.script`. Markdown is rendered (no Source toggle here); a script
+   is shown as written. Its header links to it in Files. A path the manifest names but the version
+   doesn't contain gets a notice.
+3. **Also included:** every other file, `ronne.yaml` included, each a link to it in Files
+   (`?tab=files&file=…`), with its size and an "executable" badge.
+4. **Dependencies**, when there are any: the read-only canvas. The item is in the centre, and each direct
    dependency is a node with its range, type, latest version and tools, joined to the centre. A node links to
    that item's page. Nothing can be moved, added or removed. It uses the default ring layout (released
    versions carry no `.ronne/layout.json`). For a bundle, the canvas is the main content.

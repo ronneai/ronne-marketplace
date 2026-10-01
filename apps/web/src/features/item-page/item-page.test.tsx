@@ -189,12 +189,12 @@ describe("the item page", () => {
     expect(await render({ tab: "readme" })).toContain("This version has no README.");
   });
 
-  it("opens on Overview: the settings, the body file, the canvas and a link to every file", async () => {
+  it("opens on Overview: a summary card, the main file to read, the other files and the canvas", async () => {
     const html = await render();
     expect(html).toMatch(/aria-current="page"[^>]*>Overview</);
     expect(html).toContain("What am I looking at?");
     expect(html).toContain('href="/docs/items#contents"');
-    // An MCP server: its settings are the whole item.
+    // An MCP server: its settings are the whole item, and its files are links into Files.
     versions.itemPage.mockResolvedValue(
       itemPageData({
         shown: {
@@ -207,19 +207,30 @@ describe("the item page", () => {
               env: [{ name: "GITHUB_TOKEN", required: true, secret: true }],
             },
           },
+          riskFlags: [
+            { kind: "mcp_server", message: "It starts `npx`." },
+            { kind: "network", message: "It mentions `a.example`." },
+            { kind: "network", message: "It mentions `b.example`." },
+          ],
         },
       }),
     );
     const mcp = await render();
-    expect(mcp).toContain(">Settings</h2>");
+    expect(mcp).toContain(">At a glance</h2>");
     expect(mcp).toContain(">GITHUB_TOKEN (required, secret)</code>");
-    expect(mcp).not.toContain("All 2 files");
-    // Every file is a click away, on the left; with no body file, ronne.yaml is open.
-    expect(mcp).toContain('aria-label="Files of this version"');
-    expect(mcp).toContain(">ronne.yaml</h3>");
+    // What it can do, once per kind, and where it works, each linking to its tab.
+    expect(mcp).toContain(">Starts an MCP server · Mentions web addresses<");
+    expect(mcp).toContain('href="/items/team/github?tab=risks"');
+    expect(mcp).toContain('href="/items/team/github?tab=tools"');
+    expect(mcp).toMatch(/Claude Code<span[^>]*>supported</);
+    // No browser here: Files has it. Each file links there.
+    expect(mcp).not.toContain('aria-label="Files of this version"');
+    expect(mcp).toContain("Also included (2 files)");
+    expect(mcp).toContain('href="/items/team/github?tab=files&amp;file=ronne.yaml"');
+    expect(mcp).toContain('href="/items/team/github?tab=files&amp;file=bin%2Frun.sh"');
     expect(mcp).not.toContain("Uses ");
 
-    // An agent: its prompt, rendered, and its dependencies on the canvas.
+    // An agent: its prompt to read, and its dependencies on the canvas.
     versions.itemPage.mockResolvedValue(
       itemPageData({
         item: { ...itemPageData().item, type: "agent" },
@@ -239,11 +250,13 @@ describe("the item page", () => {
     });
     const agent = await render();
     expect(catalogue.dependencyFacts).toHaveBeenCalledWith(expect.any(Headers), ["@team/fmt"]);
-    expect(agent).toContain(">prompt.md</h3>");
-    expect(agent).toMatch(/aria-current="true"[^>]*>.*prompt\.md/);
-    expect(await render({ file: "bin/run.sh" })).toContain(">bin/run.sh</h3>");
+    expect(agent).toContain(">prompt.md</h2>");
     expect(agent).toContain("<h2>Reviewer</h2>");
-    expect(agent).toContain(">Source<");
+    expect(agent).toContain('href="/items/team/github?tab=files&amp;file=prompt.md"');
+    expect(agent).toContain(">Nothing flagged<");
+    // Reading only: the source is in Files.
+    expect(agent).not.toContain(">Source<");
+    expect(agent).toContain("Also included (2 files)");
     expect(agent).toContain("Uses 1 item");
     expect(agent).toContain("Loading the canvas…");
     expect(agent).toContain('href="/items/team/fmt"');
@@ -251,6 +264,29 @@ describe("the item page", () => {
     // A body file the manifest names but the version lacks.
     versions.versionContents.mockResolvedValue(FILES);
     expect(await render()).toContain("prompt.md isn&#x27;t in this version.");
+  });
+
+  it("shows a permission policy's rules as a table", async () => {
+    versions.itemPage.mockResolvedValue(
+      itemPageData({
+        item: { ...itemPageData().item, type: "permission-policy" },
+        shown: {
+          ...itemPageData().shown,
+          manifest: {
+            "permission-policy": {
+              rules: [
+                { tool: "shell", pattern: "git push*", decision: "ask" },
+                { tool: "web-fetch", decision: "allow" },
+              ],
+            },
+          },
+        },
+      }),
+    );
+    const html = await render({ version: "1.0.0" });
+    expect(html).toContain(">Decision</th>");
+    expect(html).toMatch(/>ask<\/span><\/td><td[^>]*>shell<\/td><td[^>]*>git push\*</);
+    expect(html).toMatch(/>allow<\/span><\/td><td[^>]*>web-fetch<\/td><td[^>]*>any</);
   });
 
   it("says when the version's files can't be read, and the rest of the page works", async () => {

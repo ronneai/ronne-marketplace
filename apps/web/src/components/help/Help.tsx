@@ -83,7 +83,7 @@ export const HELP = {
   contents: {
     question: "What am I looking at?",
     answer:
-      "This version's files as released: exactly what rmk install gets, checked against the package's checksum. Overview shows the item's settings and its files, with the main one open; Markdown is rendered, with its source a tab away.",
+      "This version's files as released: exactly what rmk install gets, checked against the package's checksum. Overview sums it up and shows its main file to read; Files shows every file, with Markdown rendered and its source a tab away.",
     href: docsHref("items", "contents"),
   },
   install: {

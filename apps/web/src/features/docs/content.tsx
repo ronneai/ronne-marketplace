@@ -508,14 +508,15 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </p>
         <Bullets>
           <li>
-            <strong>Overview</strong>, where the page opens: the item&apos;s settings from{" "}
-            <Code>ronne.yaml</Code>, such as an agent&apos;s tools and model, a rule&apos;s
-            activation and globs, a hook&apos;s event and command, or an MCP server&apos;s
-            transport, command or URL and the names of the environment variables it needs. Then its
-            files, listed on the left, with its main file open: a skill&apos;s <Code>SKILL.md</Code>
-            , an agent&apos;s prompt, a rule&apos;s, command&apos;s or output style&apos;s body, or
-            a hook&apos;s or status line&apos;s script. MCP servers, permission policies and
-            language servers are only settings, so they open on <Code>ronne.yaml</Code>.
+            <strong>Overview</strong>, where the page opens, sums the item up.{" "}
+            <strong>At a glance</strong> has its settings from <Code>ronne.yaml</Code> (an
+            agent&apos;s tools and model, a rule&apos;s activation and globs, a hook&apos;s event
+            and command, an MCP server&apos;s transport, command or URL and the names of the
+            environment variables it needs, a permission policy&apos;s rules as a table), what it
+            can do on your machine, and the tools it works in. Under it is its main file, to read: a
+            skill&apos;s <Code>SKILL.md</Code>, an agent&apos;s prompt, a rule&apos;s,
+            command&apos;s or output style&apos;s body, or a hook&apos;s or status line&apos;s
+            script. Its other files are listed below, each a link to it in Files.
           </li>
           <li>
             <strong>Dependencies on the canvas:</strong> an agent or a bundle shows the items it

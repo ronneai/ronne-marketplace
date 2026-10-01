@@ -1,4 +1,4 @@
-import type { ItemType } from "@ronneai/core";
+import type { ItemType, RiskFlagKind } from "@ronneai/core";
 
 /** One labelled row of an item's settings on its Overview (044): each value shows on its own line. */
 export type SettingRow = { label: string; values: string[] };
@@ -152,3 +152,29 @@ export const settingsOf = (manifest: Manifest, type: ItemType): SettingRow[] => 
       return [];
   }
 };
+
+/** One rule of a permission policy, for the Overview's table (044). */
+export type PolicyRule = { decision: string; tool: string; pattern: string | null };
+
+/** A permission policy's rules, in order; rules without a decision or a tool are left out. */
+export const policyRulesOf = (manifest: Manifest): PolicyRule[] =>
+  list(record(manifest["permission-policy"]).rules).flatMap((rule) => {
+    const decision = text(rule.decision);
+    const tool = text(rule.tool);
+    return decision && tool ? [{ decision, tool, pattern: text(rule.pattern) }] : [];
+  });
+
+const RISK_LABELS: Record<RiskFlagKind, string> = {
+  hook: "Runs on an event",
+  mcp_server: "Starts an MCP server",
+  permission_policy: "Changes permissions",
+  status_or_lsp: "Runs a command",
+  executable: "Ships executable files",
+  shell_script: "Ships shell scripts",
+  network: "Mentions web addresses",
+};
+
+/** What the risk flags (014) say, once per kind, in the order they first appear. */
+export const riskLabelsOf = (flags: readonly { kind: RiskFlagKind }[]): string[] => [
+  ...new Set(flags.map((flag) => RISK_LABELS[flag.kind])),
+];
