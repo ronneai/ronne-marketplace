@@ -24,7 +24,7 @@ the same change that completes it.
   submit rate limit, and the error codes.
   *Done when:* the drafts API tests cover each row of the error table and each result.
 
-- [ ] **3. `rmk submit`.** It resolves names to drafts (051's rule, ambiguous names refused), ids
+- [x] **3. `rmk submit`.** It resolves names to drafts (051's rule, ambiguous names refused), ids
   and `--all`. It checks, shows the preview with the release order, asks, submits, reports, and
   exits with the specified codes. It supports `--dry-run`, `--yes` and `--json`.
   *Done when:* `submit.test.ts` covers names, ids, `--all`, an ambiguous name, nothing ready, some
@@ -48,3 +48,8 @@ the same change that completes it.
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- `rmk submit` works out the release order from the check's issues: a not-ready draft whose
+  `dependency_not_found` message names another draft in the same batch waits for that one. The
+  message starts with the dependency's name (013's `DependencyNotFoundError`); if that wording
+  changes, the order disappears, though the issue itself is still shown.
