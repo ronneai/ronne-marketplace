@@ -9,6 +9,7 @@ import {
   loadContents,
   loadDependencyFacts,
   loadItemPage,
+  loadUsage,
 } from "@/features/item-page/load";
 import { bodyPathOf } from "@/features/item-page/overview/model";
 import { OverviewTab, UnavailableFiles } from "@/features/item-page/overview/OverviewTab";
@@ -62,6 +63,7 @@ const Item = async ({
             page={page}
             files={files}
             facts={await loadDependencyFacts(shown.dependencies)}
+            usage={await loadUsage({ id: page.item.id, type })}
           />
         </WithContentsHelp>
       ) : tab === "dependencies" ? (

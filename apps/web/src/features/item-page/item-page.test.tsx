@@ -12,6 +12,8 @@ import { itemTabHref, tabFrom } from "./tabs";
 const versions = vi.hoisted(() => ({ itemPage: vi.fn(), versionContents: vi.fn() }));
 vi.mock("@/server/domains/items/actions/versions", () => versions);
 const catalogue = vi.hoisted(() => ({ dependencyFacts: vi.fn() }));
+const usage = vi.hoisted(() => ({ itemUsage: vi.fn() }));
+vi.mock("@/server/domains/usage/actions/usage", () => usage);
 vi.mock("@/server/domains/items/actions/catalogue", () => catalogue);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
 vi.mock("next/navigation", () => ({
@@ -53,6 +55,30 @@ beforeEach(() => {
   versions.itemPage.mockResolvedValue(itemPageData());
   versions.versionContents.mockResolvedValue(FILES);
   catalogue.dependencyFacts.mockResolvedValue({});
+  usage.itemUsage.mockResolvedValue({ shown: false, collecting: false, hasData: false });
+});
+
+/** An item's usage from the minimum on (047), as the usage domain summarises it. */
+const usageShown = (extra: Record<string, unknown> = {}) => ({
+  shown: true,
+  collecting: true,
+  runsCounted: true,
+  installs: 34,
+  removals: 3,
+  runs: 412,
+  runsPerDay: 13.7,
+  successRate: 0.94,
+  tools: [
+    { key: "claude-code", count: 256, share: 0.62 },
+    { key: "cursor", count: 115, share: 0.28 },
+    { key: "codex", count: 41, share: 0.1 },
+  ],
+  days: [],
+  peak: null,
+  byTool: [],
+  byTrigger: [],
+  byOutcome: [],
+  ...extra,
 });
 
 describe("the item page", () => {
@@ -347,5 +373,60 @@ describe("item tabs", () => {
     expect(itemTabHref(item, "overview", "1.0.0")).toBe("/items/team/github?version=1.0.0");
     expect(itemTabHref(item, "readme")).toBe("/items/team/github?tab=readme");
     expect(itemTabHref(item, "versions", "1.0.0")).toBe("/items/team/github/versions");
+  });
+});
+
+describe("usage on the Overview (047)", () => {
+  it("shows Installs, Runs and each tool's share once the item has enough activity", async () => {
+    versions.itemPage.mockResolvedValue(
+      itemPageData({ item: { ...itemPageData().item, downloadCount: 1240 } }),
+    );
+    usage.itemUsage.mockResolvedValue(usageShown());
+    const html = await render();
+    expect(usage.itemUsage).toHaveBeenCalledWith(expect.any(Headers), {
+      id: "i1",
+      type: "mcp-server",
+    });
+    expect(html).toContain("Installs, 30 days");
+    expect(html).toContain(">34<");
+    expect(html).toContain("3 removed · 1,240 downloads");
+    expect(html).toContain("Runs, 30 days");
+    expect(html).toContain(">412<");
+    expect(html).toContain("13.7 a day · 94% succeeded");
+    expect(html).toContain(">Claude Code 62% · Cursor 28% · Codex 10%<");
+    expect(html).not.toContain(">Downloads<");
+    expect(html).not.toContain("Usage appears once");
+  });
+
+  it("says when the success rate isn't known, no runs came, or the type doesn't run", async () => {
+    usage.itemUsage.mockResolvedValue(usageShown({ successRate: null }));
+    expect(await render()).toContain("13.7 a day · success rate not reported");
+    usage.itemUsage.mockResolvedValue(usageShown({ runs: 0, tools: [] }));
+    expect(await render()).toContain("No runs reported");
+    usage.itemUsage.mockResolvedValue(usageShown({ runsCounted: false }));
+    const html = await render();
+    expect(html).toContain("Not counted");
+    expect(html).toContain("Runs aren&#x27;t counted for mcp-servers");
+  });
+
+  it("keeps 045's cards under the minimum, with a line saying why", async () => {
+    usage.itemUsage.mockResolvedValue({ shown: false, collecting: true, hasData: false });
+    const html = await render();
+    expect(html).toContain(">Downloads<");
+    expect(html).toContain(
+      "Usage appears once this item has 20 reported installs or runs in 30 days.",
+    );
+    expect(html).not.toContain("Installs, 30 days");
+  });
+
+  it("says nothing about usage where the instance collects none and has none", async () => {
+    const html = await render();
+    expect(html).not.toContain("Usage appears once");
+    expect(html).not.toContain("Installs, 30 days");
+  });
+
+  it("isn't read on the other tabs", async () => {
+    await render({ tab: "readme" });
+    expect(usage.itemUsage).not.toHaveBeenCalled();
   });
 });

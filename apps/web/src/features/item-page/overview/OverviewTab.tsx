@@ -13,6 +13,7 @@ import { Table, Td, Th } from "@/components/ui/Table";
 import { utcMinute } from "@/components/ui/time";
 import { CodeText } from "@/components/validation/IssueList";
 import type { ItemPage } from "@/server/domains/items/actions/versions";
+import type { UsageSummary } from "@/server/domains/usage/models/usage-summary";
 import { Rendered, Source } from "../files/FileContent";
 import type { ShownFile } from "../files/types";
 import { fileHref, itemTabHref } from "../tabs";
@@ -96,7 +97,15 @@ const toolsOf = (page: ItemPage) => {
   return RENDERERS.filter((renderer) => installsIn(support[renderer.id]));
 };
 
-const Stats = ({ page, item }: { page: ItemPage; item: ItemRef }) => {
+/** A share as a whole percentage. */
+const percent = (share: number) => `${Math.round(share * 100)}%`;
+
+const toolName = (id: string) => RENDERERS.find((renderer) => renderer.id === id)?.name ?? id;
+
+/** Where the usage cards link to: the Usage card on the Overview. */
+const USAGE_ANCHOR = "#usage";
+
+const Stats = ({ page, item, usage }: { page: ItemPage; item: ItemRef; usage: UsageSummary }) => {
   const { shown } = page;
   const version = shown.version !== page.listed ? shown.version : null;
   const tools = toolsOf(page);
@@ -106,20 +115,56 @@ const Stats = ({ page, item }: { page: ItemPage; item: ItemRef }) => {
   );
   const risks = riskLabelsOf(shown.riskFlags);
   const flags = shown.riskFlags.length;
+  const downloads = page.item.downloadCount.toLocaleString("en-US");
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <Stat
-        label="Downloads"
-        href={itemTabHref(item, "versions")}
-        value={page.item.downloadCount.toLocaleString("en-US")}
-        detail="all versions, through rmk and the API"
-      />
-      <Stat
-        label="Versions"
-        href={itemTabHref(item, "versions")}
-        value={page.versions.length}
-        detail={newest ? `newest ${utcMinute(newest).slice(0, 10)}` : "none yet"}
-      />
+      {usage.shown ? (
+        <>
+          <Stat
+            label="Installs, 30 days"
+            href={USAGE_ANCHOR}
+            value={usage.installs.toLocaleString("en-US")}
+            detail={`${usage.removals.toLocaleString("en-US")} removed · ${downloads} downloads`}
+          />
+          <Stat
+            label="Runs, 30 days"
+            href={USAGE_ANCHOR}
+            value={
+              usage.runsCounted ? (
+                usage.runs.toLocaleString("en-US")
+              ) : (
+                <span className="text-base">Not counted</span>
+              )
+            }
+            detail={
+              !usage.runsCounted
+                ? `Runs aren't counted for ${page.item.type}s`
+                : usage.runs === 0
+                  ? "No runs reported"
+                  : `${usage.runsPerDay} a day · ${
+                      usage.successRate === null
+                        ? "success rate not reported"
+                        : `${percent(usage.successRate)} succeeded`
+                    }`
+            }
+          />
+        </>
+      ) : (
+        <>
+          <Stat
+            label="Downloads"
+            href={itemTabHref(item, "versions")}
+            value={downloads}
+            detail="all versions, through rmk and the API"
+          />
+          <Stat
+            label="Versions"
+            href={itemTabHref(item, "versions")}
+            value={page.versions.length}
+            detail={newest ? `newest ${utcMinute(newest).slice(0, 10)}` : "none yet"}
+          />
+        </>
+      )}
       <Stat
         label="Works in"
         href={itemTabHref(item, "tools", version)}
@@ -129,7 +174,13 @@ const Stats = ({ page, item }: { page: ItemPage; item: ItemRef }) => {
             <span className="text-sm font-normal text-muted"> of {RENDERERS.length} tools</span>
           </>
         }
-        detail={tools.length > 0 ? tools.map((renderer) => renderer.name).join(" · ") : "none"}
+        detail={
+          usage.shown && usage.tools.length > 0
+            ? usage.tools.map((t) => `${toolName(t.key)} ${percent(t.share)}`).join(" · ")
+            : tools.length > 0
+              ? tools.map((renderer) => renderer.name).join(" · ")
+              : "none"
+        }
       />
       <Stat
         label="Review"
@@ -493,14 +544,23 @@ const IncludedFiles = ({
  * Used by, maintainers and review, and the included files. Only what the registry knows is shown:
  * usage needs telemetry (MVP §14.6). Null `files` means the artifact couldn't be read.
  */
+/** Under the minimum: why there are no usage numbers, where usage is or was collected (047). */
+const UsageMinimum = () => (
+  <p id="usage" className="text-sm text-muted">
+    Usage appears once this item has 20 reported installs or runs in 30 days.
+  </p>
+);
+
 export const OverviewTab = ({
   page,
   files,
   facts,
+  usage,
 }: {
   page: ItemPage;
   files: ShownFile[] | null;
   facts: Record<string, DependencyFacts>;
+  usage: UsageSummary;
 }) => {
   const item = { scope: page.item.scope.name, name: page.item.name };
   const name = `@${item.scope}/${item.name}`;
@@ -512,10 +572,11 @@ export const OverviewTab = ({
   const hrefOf = (path: string) => fileHref(item, path, version);
   return (
     <div className="grid gap-4">
-      <Stats page={page} item={item} />
+      <Stats page={page} item={item} usage={usage} />
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="grid min-w-0 gap-4">
           <Install page={page} name={name} />
+          {!usage.shown && (usage.collecting || usage.hasData) ? <UsageMinimum /> : null}
           <Capabilities page={page} />
           {files === null ? <UnavailableFiles /> : null}
           {files && bodyPath && !body ? (

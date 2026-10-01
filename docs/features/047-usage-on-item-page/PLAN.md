@@ -14,7 +14,7 @@ the same change that completes it.
   per-version counts, the 14 full days without today, the outcome split and a type without runs; on
   all four database servers.
 
-- [ ] **2. Stat cards.** The item page service returns the summary; Installs, Runs and Works in's
+- [x] **2. Stat cards.** The item page service returns the summary; Installs, Runs and Works in's
   shares replace 045's cards at the minimum and over, the minimum line below it, nothing with usage
   off and no data.
   *Done when:* `item-page.test.tsx` covers below, at and above the minimum, the success rate
@@ -41,3 +41,5 @@ goes into `SPEC.md` instead.
   them in TypeScript (a few hundred rows at most), so no dialect differs. Under the minimum the
   service returns only `shown: false` with whether anything is stored, so no number can reach the
   page. Bundles count as a type without runs.
+- **Task 2.** The page reads usage only on the Overview tab (`loadUsage` in `load.ts`). The usage
+  cards link to `#usage`: the minimum line has that id now, and the Usage card (task 3) takes it.
