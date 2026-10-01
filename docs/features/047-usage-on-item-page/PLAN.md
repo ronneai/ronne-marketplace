@@ -25,9 +25,10 @@ the same change that completes it.
   *Done when:* component tests cover each part and an empty day, and `catalogue.e2e.ts` opens an
   item with seeded usage and reads the peak.
 
-- [ ] **4. The Versions page and dialogs.** The Runs and Installs columns, and the counts in the
+- [x] **4. The Versions page and dialogs.** The Runs and Installs columns, and the counts in the
   deprecate and yank dialogs.
-  *Done when:* the versions feature's tests cover the columns under the minimum and both dialogs.
+  *Done when:* the versions feature's tests cover the columns under the minimum and both dialogs;
+  `versions.e2e.ts` reads the sentence in the deprecate dialog.
 
 - [ ] **5. Documentation.** The sections and the `usage` helper in the spec's Documentation section.
   *Done when:* the docs render tests pass, and the helper's link lands on `usage#reading`.
@@ -49,3 +50,6 @@ goes into `SPEC.md` instead.
   owner chose that. New tokens: `chart`, `chart-neutral`, `chart-well`, `chart-cursor`,
   `chart-claude-code`, `chart-codex`. Screenshots in both themes were checked by eye: three
   breakdown columns wrapped at the Overview's width, so it's two, as the mockup.
+- **Task 4.** The dialogs render only when opened, so the sentence is `reachLine` (unit-tested) and
+  `versions.e2e.ts` reads it in the open deprecate dialog; the e2e seed reports installs of the
+  versioned rule's 1.0.0. A version nothing reported shows "–", not 0.

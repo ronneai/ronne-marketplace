@@ -77,6 +77,19 @@ for (const version of ["1.0.0", "1.1.0"])
     riskFlags: [],
   });
 await items.setTag(itemId, "latest", latest);
+// Installs of 1.0.0 yesterday (047): enough usage for the Versions page and its dialogs to show it.
+await kyselyUsageRepository(db, dialect).add([
+  {
+    itemId,
+    day: daysBefore(dayOf(new Date()), 1),
+    version: "1.0.0",
+    tool: "claude-code",
+    event: "install",
+    trigger: "",
+    outcome: "",
+    count: 25,
+  },
+]);
 
 const storagePath = process.env.STORAGE_PATH;
 if (!storagePath) throw new Error("STORAGE_PATH is required");

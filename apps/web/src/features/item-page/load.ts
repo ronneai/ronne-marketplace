@@ -7,7 +7,7 @@ import {
   ItemNotFoundError,
   VersionNotFoundError,
 } from "@/server/domains/items/exceptions/errors";
-import { itemUsage } from "@/server/domains/usage/actions/usage";
+import { itemUsage, itemUsageByVersion } from "@/server/domains/usage/actions/usage";
 import { requestHeaders } from "@/server/http/request-headers";
 import { showFiles } from "./files/shown";
 
@@ -50,3 +50,7 @@ export const loadDependencyFacts = async (dependencies: Record<string, string>) 
 /** The item's usage for the Overview (047): numbers only from the minimum on. */
 export const loadUsage = async (item: { id: string; type: ItemType }) =>
   itemUsage(await requestHeaders(), item);
+
+/** Runs and installs per version for the Versions page (047), or null under the minimum. */
+export const loadUsageByVersion = async (itemId: string) =>
+  itemUsageByVersion(await requestHeaders(), itemId);

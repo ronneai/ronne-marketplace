@@ -6,6 +6,8 @@ import { ItemNotFoundError } from "@/server/domains/items/exceptions/errors";
 
 const versions = vi.hoisted(() => ({ itemPage: vi.fn() }));
 vi.mock("@/server/domains/items/actions/versions", () => versions);
+const usage = vi.hoisted(() => ({ itemUsage: vi.fn(), itemUsageByVersion: vi.fn() }));
+vi.mock("@/server/domains/usage/actions/usage", () => usage);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
 vi.mock("./actions", () => ({ changeVersions: vi.fn() }));
 vi.mock("next/navigation", () => ({
@@ -25,6 +27,7 @@ const render = async (scope = "team", name = "github") =>
 beforeEach(() => {
   vi.clearAllMocks();
   versions.itemPage.mockResolvedValue(pageData());
+  usage.itemUsageByVersion.mockResolvedValue(null);
 });
 
 describe("the Versions page", () => {
@@ -70,6 +73,19 @@ describe("the Versions page", () => {
     expect(html).toContain("no installable stable version");
   });
 
+  it("shows runs and installs per version from the usage minimum on, and nothing under it", async () => {
+    expect(await render()).not.toContain("Runs, 30 days");
+    usage.itemUsageByVersion.mockResolvedValue({ "1.1.0": { runs: 1240, installs: 9 } });
+    const html = await render();
+    expect(usage.itemUsageByVersion).toHaveBeenCalledWith(expect.any(Headers), "i1");
+    expect(html).toContain("Runs, 30 days");
+    expect(html).toContain("Installs, 30 days");
+    expect(html).toContain(">1,240<");
+    expect(html).toContain(">9<");
+    // A version nothing reported: a dash, not a zero.
+    expect(html).toMatch(/>–<\/td><td[^>]*>–</);
+  });
+
   it("is a 404 for an unknown item", async () => {
     versions.itemPage.mockRejectedValue(new ItemNotFoundError("@team/github"));
     await expect(render()).rejects.toThrow("NEXT_NOT_FOUND");
@@ -84,6 +100,18 @@ describe("versionsPath", () => {
     );
     expect(versionsPath({ scope: { name: "a b" }, name: "c/d" })).toBe(
       "/items/a%20b/c%2Fd/versions",
+    );
+  });
+});
+
+describe("reachLine", () => {
+  it("says what still uses a version, for the deprecate and yank dialogs", async () => {
+    const { reachLine } = await import("./VersionControls");
+    expect(reachLine({ runs: 1240, installs: 1 })).toBe(
+      "Reported in the last 30 days: 1,240 runs, 1 install.",
+    );
+    expect(reachLine({ runs: 0, installs: 0 })).toBe(
+      "Reported in the last 30 days: 0 runs, 0 installs.",
     );
   });
 });

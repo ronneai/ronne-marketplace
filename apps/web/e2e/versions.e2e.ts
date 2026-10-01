@@ -15,12 +15,17 @@ test("a moderator deprecates a version, yanks the latest one, then unyanks it", 
     page.getByRole("heading", { name: `@${E2E_SCOPE}/${E2E_VERSIONED_ITEM}` }),
   ).toBeVisible();
   await expect(page.getByText("latest → 1.1.0")).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Installs, 30 days" })).toBeVisible();
   const row = (version: string) =>
     page.getByRole("row", { name: new RegExp(`^${version.replaceAll(".", "\\.")}\\b`) });
 
   // Deprecate 1.0.0 with a message.
   await row("1.0.0").getByRole("button", { name: "Deprecate", exact: true }).click();
   const deprecate = page.getByRole("dialog", { name: "Deprecate 1.0.0" });
+  // What still uses it (047): the seed reports 25 installs of 1.0.0.
+  await expect(
+    deprecate.getByText("Reported in the last 30 days: 0 runs, 25 installs."),
+  ).toBeVisible();
   await deprecate.getByLabel("Message").fill("Use 1.1.0 or later.");
   await deprecate.getByRole("button", { name: "Deprecate", exact: true }).click();
   await expect(row("1.0.0").getByText("Use 1.1.0 or later.")).toBeVisible();
