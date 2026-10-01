@@ -63,9 +63,12 @@ const versionDetail = (
 export const startServer = async ({
   login = true,
   now,
+  routes: extra = {},
 }: {
   login?: boolean;
   now?: () => number;
+  /** More routes for the registry, or replacements. */
+  routes?: Record<string, Route>;
 } = {}) => {
   const { routes } = await buildRegistry();
   const all: Record<string, Route> = {
@@ -83,6 +86,7 @@ export const startServer = async ({
         nextCursor: null,
       },
     }),
+    ...extra,
   };
   const io = fakeIo(all, { interactive: false });
   if (login) await run(["login", "--registry", REGISTRY, "--token", "rmk_test_token"], io);

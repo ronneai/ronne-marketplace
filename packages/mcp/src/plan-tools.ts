@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import {
   applyOperation,
   connectRegistry,
+  flushAfterCommand,
   type Io,
   itemPath,
   type Operation,
@@ -212,5 +213,7 @@ export const applyPlanTool = async (
   applyOperation(io, stored.value);
   const out = output(false);
   report(out, stored.value, io);
+  // What the install queued for usage (046) goes now, as at the end of an rmk command.
+  await flushAfterCommand(io);
   return answer(out.lines, { applied: true, ...out.data });
 };

@@ -17,6 +17,34 @@ const start = async () => {
 const read = (path: string) => readFileSync(join(io.cwd, path), "utf8");
 const planIdOf = (data: Record<string, unknown>) => String(data.planId);
 
+describe("usage (046)", () => {
+  it("reports what apply_plan installed, under the registry's policy", async () => {
+    const reports: unknown[] = [];
+    const started = await startServer({
+      routes: {
+        "GET /usage": () => ({ json: { policy: "choice", retentionDays: 90 } }),
+        "POST /usage": ({ body }) => {
+          reports.push(body);
+          return { status: 202, json: { accepted: 2, ignored: 0 } };
+        },
+      },
+    });
+    io = started.io;
+    mkdirSync(join(io.cwd, ".claude"));
+    const plan = await started.call("plan_install", { items: ["@team/secure"] });
+    expect(reports).toEqual([]);
+    await started.call("apply_plan", { planId: planIdOf(plan.data) });
+    expect(reports).toEqual([
+      {
+        events: [
+          expect.objectContaining({ item: "@team/gh", event: "install", tool: "claude-code" }),
+          expect.objectContaining({ item: "@team/secure", event: "install", tool: "claude-code" }),
+        ],
+      },
+    ]);
+  });
+});
+
 describe("plans", () => {
   it("plans an install without writing anything, then applies exactly that", async () => {
     const { call } = await start();

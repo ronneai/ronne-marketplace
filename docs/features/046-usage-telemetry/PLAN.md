@@ -41,7 +41,7 @@ the same change that completes it.
   *Done when:* CLI tests cover each policy and each rule, the notice, the queue's limits, an offline
   send, `401`, `403 usage_disabled` and `preview`'s exact output.
 
-- [ ] **4. Install events.** Queue `install` and `remove` from `commitInstall` and the MCP server's
+- [x] **4. Install events.** Queue `install` and `remove` from `commitInstall` and the MCP server's
   `apply_plan`, only when reporting is on.
   *Done when:* `install.test.ts` and the MCP server's tests check the queue after install, update and
   remove, and that nothing is queued when it's off.
@@ -93,3 +93,8 @@ goes into `SPEC.md` instead.
   `~/.cache/rmk/usage/state.json`. A registry without `GET /api/v1/usage` (before 046) counts as
   `off`. Every command but `rmk telemetry` sends at its end; `rmk login` learns the policy and prints
   the notice.
+- **Task 4.** `commitInstall` compares the lockfile before and after: `install` for an item new or
+  at another version, `remove` for one gone, once per tool (removals take their tools from the state
+  file). `prepareInstall` checks the registry's policy (daily) before anything is queued, and
+  `report` prints the notice with the first install that writes something. The MCP server's
+  `apply_plan` sends the queue right away, since it never ends a command the way `rmk` does.
