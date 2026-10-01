@@ -168,6 +168,7 @@ const plannedData = (plan: ExportPlan) =>
     dependencies: item.dependencies,
     usedByAnother: item.asDependency,
     proposal: item.proposal ?? null,
+    updates: item.updates ?? null,
   }));
 
 /**
@@ -188,6 +189,7 @@ export const planExportTool = async (
     description?: string;
     dependencies?: "include" | "omit";
     new?: boolean;
+    newDraft?: boolean;
   },
 ): Promise<ToolAnswer> => {
   const { api } = connectRegistry(io);
@@ -229,6 +231,7 @@ export const planExportTool = async (
     ...(input.description ? { description: input.description } : {}),
     ...(input.dependencies ? { dependencies: input.dependencies } : {}),
     ...(input.new ? { new: true } : {}),
+    ...(input.newDraft ? { newDraft: true } : {}),
   };
   let plan: ExportPlan;
   try {
@@ -271,8 +274,8 @@ const draftLines = (exported: ExportedItem[]) =>
     const left = [...item.issues, ...item.submitIssues].filter((i) => i.severity === "error");
     return [
       item.proposal
-        ? `${item.name}: proposal from ${item.proposal.baseVersion} created at ${item.url}${item.proposal.stale ? `, stale (${item.proposal.stale} is out): the person rebases it in the web app first` : ""}`
-        : `${item.name}: draft created at ${item.url}`,
+        ? `${item.name}: proposal from ${item.proposal.baseVersion} ${item.updated ? "updated" : "created"} at ${item.url}${item.proposal.stale ? `, stale (${item.proposal.stale} is out): the person rebases it in the web app first` : ""}`
+        : `${item.name}: draft ${item.updated ? "updated" : "created"} at ${item.url}`,
       ...left.map((issue) => `  To fix before submitting: ${issue.message}`),
     ];
   });
@@ -289,7 +292,7 @@ const REMINDER =
 /**
  * Uploads exactly the plan the person saw, once: the folders are planned again, and a plan whose
  * files changed since is refused as stale. One draft per item (037). If one fails, the drafts
- * already created are named; the plan is used up either way.
+ * already uploaded are named; the plan is used up either way.
  */
 export const exportItemsTool = async (
   io: Io,

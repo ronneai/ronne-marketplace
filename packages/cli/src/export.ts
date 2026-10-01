@@ -600,6 +600,11 @@ export type ExportRequest = {
    * person's own item whose name is published. Without it, those become change proposals.
    */
   new?: boolean;
+  /**
+   * A separate draft for each item (051). Without it, an item the person already has a draft of
+   * (or one sent back for changes) updates that draft, and one that's only in review is refused.
+   */
+  newDraft?: boolean;
 };
 
 /** A reason to look before uploading; `rmk` lists them in the preview. */
@@ -637,6 +642,16 @@ export type PlannedItem = {
     stale: string | null;
     changes: MergeResult["changes"];
   };
+  /** The person's draft of this item that the upload replaces (051), instead of making another. */
+  updates?: OpenDraftRef;
+};
+
+/** A draft of the person's own that an export updates (051). */
+export type OpenDraftRef = {
+  id: string;
+  url: string;
+  status: "draft" | "changes_requested";
+  updatedAt: string;
 };
 
 export type RefusedItem = { local: string; code: string; message: string };
@@ -1265,6 +1280,7 @@ export const planExport = async (
   }
 
   declareDependencies(items, refused, findings, request.dependencies ?? "omit");
+  const planned: PlannedItem[] = [];
   for (const item of items) {
     const parsed = parseManifest(item.manifestText);
     item.issues = [
@@ -1272,11 +1288,27 @@ export const planExport = async (
       ...(parsed.manifest ? checkPackage(parsed.manifest, item.files) : []),
     ];
     item.published = await isPublished(api, item.name);
+    if (!request.newDraft) {
+      const found = await draftToUpdate(api, item);
+      if (found === "in_review") {
+        refused.push({
+          local: item.local,
+          code: "in_review",
+          message: `${item.name} is in review: withdraw it in the web app to change it, or export with --new-draft for a separate draft.`,
+        });
+        continue;
+      }
+      if (found) item.updates = found;
+    }
+    planned.push(item);
   }
+  // An item in review isn't uploaded; what uses it still declares it, and waits for nothing.
+  const kept = new Set(planned.map((item) => item.name));
+  for (const item of planned) item.dependsOn = item.dependsOn.filter((name) => kept.has(name));
   return {
     registry: api.registry,
     to,
-    items: inUploadOrder(items),
+    items: inUploadOrder(planned),
     refused,
     findings,
     fingerprint: hash.digest("hex"),
@@ -1403,6 +1435,53 @@ const inUploadOrder = (items: PlannedItem[]): PlannedItem[] => {
   return ordered;
 };
 
+/** One of the person's open submissions, as `GET /drafts` lists them (051). */
+type OpenDraft = {
+  id: string;
+  path: string;
+  url: string | null;
+  type: string;
+  status: string;
+  updatedAt: string;
+  proposal: { item: string; baseVersion: string } | null;
+};
+
+/**
+ * The person's draft of this item to update (051): the newest `draft` or `changes_requested` one
+ * that is the same item, that is the same type and, for a proposal, the same base version.
+ * "in_review" when the only ones are submitted, and null when there's none, or the registry is
+ * older than 051 and can't list them.
+ */
+const draftToUpdate = async (
+  api: ApiClient,
+  item: PlannedItem,
+): Promise<OpenDraftRef | "in_review" | null> => {
+  let drafts: OpenDraft[];
+  try {
+    drafts = (
+      await api.get<{ drafts: OpenDraft[] }>(`/drafts?name=${encodeURIComponent(item.name)}`)
+    ).drafts;
+  } catch (error) {
+    if (error instanceof ApiError && (error.status === 404 || error.status === 405)) return null;
+    throw error;
+  }
+  const same = drafts.filter(
+    (draft) =>
+      draft.type === item.type &&
+      (draft.proposal?.baseVersion ?? null) === (item.proposal?.baseVersion ?? null),
+  );
+  // Newest change first, as the registry lists them.
+  const editable = same.find((d) => d.status === "draft" || d.status === "changes_requested");
+  if (editable)
+    return {
+      id: editable.id,
+      url: editable.url ?? `${api.registry}${editable.path}`,
+      status: editable.status as OpenDraftRef["status"],
+      updatedAt: editable.updatedAt,
+    };
+  return same.some((d) => d.status === "submitted") ? "in_review" : null;
+};
+
 /** A draft the registry created (037). */
 export type ExportedItem = {
   local: string;
@@ -1418,6 +1497,8 @@ export type ExportedItem = {
   skipped: Skipped[];
   /** For a change proposal (042): the item, its base version, and a newer version if there is one. */
   proposal: { item: string; baseVersion: string; stale: string | null } | null;
+  /** An existing draft of the person's was updated (051), rather than a new one created. */
+  updated: boolean;
 };
 
 type DraftResponse = {
@@ -1449,8 +1530,8 @@ const uploadMessage = (item: PlannedItem, error: ApiError) =>
       : `${item.local}: ${error.message}`;
 
 /**
- * Sends a plan: one `POST /drafts` (037) per item, in order. Each draft is private to the person
- * and nothing is submitted. If one fails, the drafts already created are in the error's
+ * Sends a plan: one `POST /drafts` (037) per item, in order, or `PUT /drafts/{id}` for one that
+ * updates the person's draft (051). Each draft is private to the person and nothing is submitted. If one fails, the drafts already created are in the error's
  * `details.exported`, so the person knows which exist.
  */
 export const uploadExport = async (api: ApiClient, plan: ExportPlan): Promise<ExportedItem[]> => {
@@ -1469,13 +1550,17 @@ export const uploadExport = async (api: ApiClient, plan: ExportPlan): Promise<Ex
     }
     let draft: DraftResponse;
     try {
-      draft = await api.post<DraftResponse>("/drafts", {
+      const body = {
         name: item.name,
         type: item.type,
         files: item.files.map(uploadFile),
         // A change proposal (042): the version it's based on.
         ...(item.proposal ? { base: item.proposal.baseVersion } : {}),
-      });
+      };
+      // The person's draft of it is updated (051); otherwise a new one is created.
+      draft = item.updates
+        ? await api.put<DraftResponse>(`/drafts/${encodeURIComponent(item.updates.id)}`, body)
+        : await api.post<DraftResponse>("/drafts", body);
     } catch (error) {
       if (!(error instanceof ApiError)) throw error;
       failed.push({ item, error });
@@ -1492,6 +1577,7 @@ export const uploadExport = async (api: ApiClient, plan: ExportPlan): Promise<Ex
       warnings: item.warnings,
       skipped: item.skipped,
       proposal: draft.proposal ?? null,
+      updated: item.updates !== undefined,
     });
   }
   const [first] = failed;
@@ -1499,7 +1585,7 @@ export const uploadExport = async (api: ApiClient, plan: ExportPlan): Promise<Ex
     const made = exported.map((e) => `${e.name} (${e.url})`).join(", ");
     const notSent = skipped.map((i) => i.name).join(", ");
     throw new RmkError(
-      `${failed.map((f) => uploadMessage(f.item, f.error)).join(" ")}${notSent ? ` Not uploaded, since they depend on it: ${notSent}.` : ""}${made ? ` Drafts already created: ${made}.` : ""}`,
+      `${failed.map((f) => uploadMessage(f.item, f.error)).join(" ")}${notSent ? ` Not uploaded, since they depend on it: ${notSent}.` : ""}${made ? ` Drafts already uploaded: ${made}.` : ""}`,
       1,
       first.error.code,
       {

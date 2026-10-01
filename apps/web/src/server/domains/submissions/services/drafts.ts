@@ -16,6 +16,7 @@ import { requirePermission } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
 import {
   DraftLimitError,
+  DraftMismatchError,
   DraftQuotaError,
   DraftScopeNotFoundError,
   FileTooLargeError,
@@ -32,7 +33,7 @@ import {
   TypeChangedError,
   ZipImportError,
 } from "../exceptions/errors";
-import { isEditable } from "../models/status";
+import { isEditable, type SubmissionStatus } from "../models/status";
 import {
   byteSize,
   type Draft,
@@ -89,7 +90,7 @@ const ownSubmission = async (
 /** The actor's own submission, if its files can be edited: a draft, or sent back for changes. */
 const ownEditable = async (repo: SubmissionRepository, actor: DraftActor, id: string) => {
   const submission = await ownSubmission(repo, actor, id);
-  if (!isEditable(submission.status)) throw new SubmissionNotEditableError();
+  if (!isEditable(submission.status)) throw new SubmissionNotEditableError(submission.status);
   return submission;
 };
 
@@ -373,25 +374,8 @@ export const createDraftFromFiles = async (
   const name = itemNameFrom(input.name);
   const type = typeFrom(input.type);
   const limits = limitsOf(deps);
-  checkPaths(
-    input.files.map((file) => file.path),
-    "upload",
-  );
-  if (!input.files.some((file) => file.path === MANIFEST_PATH))
-    throw new ManifestRequiredError("missing");
-  checkContent(input.files, limits);
   const at = now(deps);
-  const files: DraftFile[] = input.files.map((file) => ({
-    path: file.path,
-    encoding: file.encoding,
-    content: file.content,
-    size: byteSize(file),
-    executable: file.executable ?? false,
-    updatedAt: at,
-  }));
-  const { count, bytes } = totals(files);
-  if (count > limits.maxFiles) throw new DraftLimitError("files", count, limits.maxFiles);
-  if (bytes > limits.maxTotalBytes) throw new DraftLimitError("total", bytes, limits.maxTotalBytes);
+  const { files, count, bytes } = uploadedFiles(input.files, limits, at);
 
   const draft = await deps.repo.transaction(async (repo) => {
     const scope = await findScope(repo, input.scope);
@@ -423,6 +407,38 @@ export const createDraftFromFiles = async (
     );
     return draft;
   });
+  return uploaded(deps, draft, limits);
+};
+
+/** An upload's files (037), checked as a save checks them, before anything is written. */
+const uploadedFiles = (input: readonly UploadFile[], limits: PackageLimits, at: Date) => {
+  checkPaths(
+    input.map((file) => file.path),
+    "upload",
+  );
+  if (!input.some((file) => file.path === MANIFEST_PATH))
+    throw new ManifestRequiredError("missing");
+  checkContent(input, limits);
+  const files: DraftFile[] = input.map((file) => ({
+    path: file.path,
+    encoding: file.encoding,
+    content: file.content,
+    size: byteSize(file),
+    executable: file.executable ?? false,
+    updatedAt: at,
+  }));
+  const { count, bytes } = totals(files);
+  if (count > limits.maxFiles) throw new DraftLimitError("files", count, limits.maxFiles);
+  if (bytes > limits.maxTotalBytes) throw new DraftLimitError("total", bytes, limits.maxTotalBytes);
+  return { files, count, bytes };
+};
+
+/** What the API answers for an uploaded draft: 011's issues, Submit's, and the proposal's base. */
+const uploaded = async (
+  deps: DraftDeps,
+  draft: Draft,
+  limits: PackageLimits,
+): Promise<UploadedDraft> => {
   const registry = deps.repo.registry();
   return {
     draft,
@@ -441,6 +457,98 @@ export const createDraftFromFiles = async (
         }
       : null,
   };
+};
+
+/** The statuses export looks for (051): the editable ones, and submitted ones it leaves alone. */
+const OPEN_STATUSES: readonly SubmissionStatus[] = ["draft", "changes_requested", "submitted"];
+
+/**
+ * Your own drafts, submissions sent back for changes, and submissions in review (051), newest
+ * change first; only those of `itemName` (`@scope/name`) when it's given. What `rmk export` looks
+ * at to update a draft instead of making another.
+ */
+export const listOpenDrafts = async (
+  deps: DraftDeps,
+  actor: DraftActor,
+  itemName?: string,
+): Promise<Submission[]> => {
+  requirePermission(actor.user, "submissions.create");
+  const wanted = itemName?.trim().toLowerCase();
+  return (await deps.repo.listByAuthor(actor.user?.id ?? "")).filter(
+    (submission) =>
+      OPEN_STATUSES.includes(submission.status) &&
+      (wanted === undefined || itemNameOf(submission) === wanted),
+  );
+};
+
+/**
+ * Replaces the files of your own draft, or one sent back for changes, with an upload (051): what
+ * `rmk export` does when you export an item again. The upload must be the same item: its name,
+ * type, and for a change proposal its base version; otherwise DraftMismatchError. Every file not
+ * in the upload is deleted. Checked as 037's upload is, audited as `submission.draft_updated`, and
+ * not counted against the draft limit, since it makes no new draft.
+ */
+export const replaceDraftFromFiles = async (
+  deps: DraftDeps,
+  actor: UploadActor,
+  id: string,
+  input: {
+    scope: string;
+    name: string;
+    type: string;
+    files: readonly UploadFile[];
+    base?: string;
+  },
+): Promise<UploadedDraft> => {
+  requirePermission(actor.user, "submissions.create");
+  const name = itemNameFrom(input.name);
+  const type = typeFrom(input.type);
+  const limits = limitsOf(deps);
+  const at = now(deps);
+  const { files, count, bytes } = uploadedFiles(input.files, limits, at);
+
+  const draft = await deps.repo.transaction(async (repo) => {
+    const submission = await ownEditable(repo, actor, id);
+    const baseVersion = submission.proposal?.baseVersion ?? null;
+    if (
+      normalizeScopeName(input.scope) !== submission.scope.name ||
+      name !== submission.name ||
+      type !== submission.type ||
+      (input.base ?? null) !== baseVersion
+    )
+      throw new DraftMismatchError({
+        name: itemNameOf(submission),
+        type: submission.type,
+        baseVersion,
+      });
+    const keep = new Set(files.map((file) => file.path));
+    for (const file of await repo.files(submission.id))
+      if (!keep.has(file.path)) await repo.deleteFile(submission.id, file.path);
+    for (const file of files) await repo.writeFile(submission.id, file);
+    await repo.update(submission.id, { updatedAt: at });
+    await repo.recordAudit(
+      {
+        actorId: actor.user?.id ?? "",
+        action: "submission.draft_updated",
+        target: { type: "submission", id: submission.id },
+        metadata: {
+          name: itemNameOf(submission),
+          type,
+          via: "api",
+          tokenId: actor.token.id,
+          tokenName: actor.token.name,
+          files: count,
+          bytes,
+          status: submission.status,
+          ...(baseVersion ? { proposal: true, baseVersion } : {}),
+        },
+        ipAddress: actor.ip,
+      },
+      at,
+    );
+    return { ...submission, updatedAt: at, files: sortByPath(files) };
+  });
+  return uploaded(deps, draft, limits);
 };
 
 /**

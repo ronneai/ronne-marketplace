@@ -13,6 +13,7 @@ import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testi
 import { createScope } from "../../items/actions/scopes";
 import {
   DraftLimitError,
+  DraftMismatchError,
   DraftQuotaError,
   DraftScopeNotFoundError,
   FileTooLargeError,
@@ -22,6 +23,7 @@ import {
   InvalidItemTypeError,
   ManifestRequiredError,
   StaleFilesError,
+  SubmissionNotEditableError,
   SubmissionNotFoundError,
   ZipImportError,
 } from "../exceptions/errors";
@@ -313,6 +315,143 @@ describe("createDraftFromFiles", () => {
       .where("id", "=", last.draft.id)
       .execute();
     await expect(upload(skill())).resolves.toMatchObject({ draft: { status: "draft" } });
+  });
+});
+
+describe("listOpenDrafts and replaceDraftFromFiles", () => {
+  const manifest = 'name: "@team/secure-coding"\ntype: skill\ndescription: Checks code.\n';
+  const token = { id: "tok-1", name: "laptop" };
+  const repo = () => kyselySubmissionRepository(t.db, t.dialect);
+  const skill = (body = "Hi."): service.UploadFile[] => [
+    { path: "ronne.yaml", encoding: "utf8", content: manifest },
+    { path: "SKILL.md", encoding: "utf8", content: `---\nname: secure-coding\n---\n${body}\n` },
+  ];
+  const as = async (headers: Headers) => ({
+    user: await getCurrentUser(headers, app),
+    ip: "203.0.113.7",
+    token,
+  });
+  const create = async (name = "secure-coding", headers = asUser) =>
+    (
+      await service.createDraftFromFiles({ repo: repo() }, await as(headers), {
+        scope: "team",
+        name,
+        type: "skill",
+        files: skill(),
+      })
+    ).draft;
+  const replace = async (
+    id: string,
+    files: service.UploadFile[],
+    input: { name?: string; type?: string; base?: string } = {},
+    headers = asUser,
+  ) =>
+    // A minute on, so the replaced draft is the newest even where timestamps keep only seconds.
+    service.replaceDraftFromFiles(
+      { repo: repo(), now: () => new Date(Date.now() + 60_000) },
+      await as(headers),
+      id,
+      {
+        scope: "team",
+        name: input.name ?? "secure-coding",
+        type: input.type ?? "skill",
+        files,
+        ...(input.base ? { base: input.base } : {}),
+      },
+    );
+  const setStatus = (id: string, status: "submitted" | "changes_requested" | "approved") =>
+    t.db.updateTable("submissions").set({ status }).where("id", "=", id).execute();
+  const updated = async () =>
+    (await listAuditEvents(t.db, t.dialect, {})).events.filter(
+      (event) => event.action === "submission.draft_updated",
+    );
+
+  it("lists your own open submissions of an item, newest change first", async () => {
+    const older = await create();
+    const newer = await create();
+    const inReview = await create();
+    await setStatus(inReview.id, "submitted");
+    const done = await create();
+    await setStatus(done.id, "approved");
+    await create("other-skill");
+    await create("secure-coding", asOther);
+    await replace(older.id, skill("Changed."));
+    const user = await getCurrentUser(asUser, app);
+    const listed = await service.listOpenDrafts({ repo: repo() }, { user }, "@Team/Secure-Coding");
+    // The one just replaced first; the other two were created in the same instant, maybe.
+    expect(listed[0]?.id).toBe(older.id);
+    expect(listed.map((s) => [s.id, s.status]).slice(1)).toEqual(
+      expect.arrayContaining([
+        [inReview.id, "submitted"],
+        [newer.id, "draft"],
+      ]),
+    );
+    expect(listed).toHaveLength(3);
+    expect(await service.listOpenDrafts({ repo: repo() }, { user })).toHaveLength(4);
+  });
+
+  it("replaces every file of your draft, audits it, and doesn't count against the limit", async () => {
+    const draft = await create();
+    await saveDraftFiles(
+      asUser,
+      draft.id,
+      { writes: [text("notes.md", "web edit")], deletes: [] },
+      app,
+    );
+    const files = [...skill("Changed."), { path: "extra.md", encoding: "utf8", content: "x" }];
+    const result = await replace(draft.id, files as service.UploadFile[]);
+    expect(result.draft).toMatchObject({ id: draft.id, status: "draft" });
+    const stored = await getDraft(asUser, draft.id, app);
+    expect(stored.files.map((f) => f.path)).toEqual(["SKILL.md", "extra.md", "ronne.yaml"]);
+    expect(stored.files.find((f) => f.path === "SKILL.md")?.content).toContain("Changed.");
+    const [event, ...others] = await updated();
+    expect(others).toEqual([]);
+    expect(event).toMatchObject({
+      targetId: draft.id,
+      ipAddress: "203.0.113.7",
+      metadata: {
+        name: "@team/secure-coding",
+        type: "skill",
+        via: "api",
+        tokenId: "tok-1",
+        tokenName: "laptop",
+        files: 3,
+        status: "draft",
+      },
+    });
+
+    for (let i = 0; i < service.MAX_API_DRAFTS - 1; i += 1)
+      await createDraft(asUser, { scope: "team", name: `d${i}`, type: "rule" }, app);
+    await expect(create()).rejects.toThrow(DraftQuotaError);
+    await expect(replace(draft.id, skill("Again."))).resolves.toBeTruthy();
+  });
+
+  it("replaces one sent back for changes, keeping its status", async () => {
+    const draft = await create();
+    await setStatus(draft.id, "changes_requested");
+    const result = await replace(draft.id, skill("Fixed."));
+    expect(result.draft.status).toBe("changes_requested");
+    expect((await updated())[0]?.metadata).toMatchObject({ status: "changes_requested" });
+  });
+
+  it("refuses someone else's, one in review, another item, and bad files, changing nothing", async () => {
+    const draft = await create();
+    const before = (await getDraft(asUser, draft.id, app)).files;
+    await expect(replace(draft.id, skill(), {}, asOther)).rejects.toThrow(SubmissionNotFoundError);
+    await expect(replace("not-an-id", skill())).rejects.toThrow(SubmissionNotFoundError);
+    await expect(replace(draft.id, skill(), { name: "renamed" })).rejects.toThrow(
+      DraftMismatchError,
+    );
+    await expect(replace(draft.id, skill(), { type: "rule" })).rejects.toThrow(DraftMismatchError);
+    await expect(replace(draft.id, skill(), { base: "1.0.0" })).rejects.toThrow(DraftMismatchError);
+    await expect(replace(draft.id, skill().slice(1))).rejects.toThrow(ManifestRequiredError);
+    await setStatus(draft.id, "submitted");
+    await expect(replace(draft.id, skill("Changed."))).rejects.toMatchObject({
+      constructor: SubmissionNotEditableError,
+      status: "submitted",
+    });
+    expect((await getDraft(asUser, draft.id, app)).files).toEqual(before);
+    expect(await updated()).toEqual([]);
   });
 });
 

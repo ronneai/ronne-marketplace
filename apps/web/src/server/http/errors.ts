@@ -6,6 +6,7 @@ import {
 } from "../domains/items/exceptions/errors";
 import {
   DraftLimitError,
+  DraftMismatchError,
   DraftQuotaError,
   DraftScopeNotFoundError,
   FileTooLargeError,
@@ -15,6 +16,8 @@ import {
   InvalidItemTypeError,
   ManifestRequiredError,
   ProposalBaseNotFoundError,
+  SubmissionNotEditableError,
+  SubmissionNotFoundError,
   TypeChangedError,
 } from "../domains/submissions/exceptions/errors";
 
@@ -49,7 +52,7 @@ export const domainErrorResponse = (error: unknown): Response | null => {
   return submissionErrorResponse(error);
 };
 
-/** The submissions domain's errors that uploading a draft (037) can raise. */
+/** The submissions domain's errors that uploading (037) or replacing (051) a draft can raise. */
 const submissionErrorResponse = (error: unknown): Response | null => {
   if (error instanceof InvalidItemNameError)
     return errorResponse(400, "invalid_name", error.message);
@@ -77,6 +80,20 @@ const submissionErrorResponse = (error: unknown): Response | null => {
     });
   if (error instanceof DraftQuotaError)
     return errorResponse(409, "draft_limit", error.message, { limit: error.limit });
+  // Replacing a draft (051): missing and someone else's look the same.
+  if (error instanceof SubmissionNotFoundError)
+    return errorResponse(404, "draft_not_found", "You have no draft with that id.");
+  if (error instanceof SubmissionNotEditableError)
+    return errorResponse(
+      409,
+      "not_editable",
+      error.status === "submitted"
+        ? "That draft is in review. Withdraw it in the web app to change it."
+        : error.message,
+      error.status ? { status: error.status } : undefined,
+    );
+  if (error instanceof DraftMismatchError)
+    return errorResponse(409, "draft_mismatch", error.message, { ...error.draft });
   if (error instanceof FileTooLargeError)
     return errorResponse(413, "file_too_large", error.message, {
       path: error.path,

@@ -84,6 +84,10 @@ const itemPreview = (registry: string, item: PlannedItem): string[] => {
     : [
         `${item.name}  ${item.type}  (from ${item.local})${item.asDependency ? "  used by another item" : ""}`,
       ];
+  if (item.updates)
+    lines.push(
+      `  Updates your draft ${item.updates.url} (${item.updates.status === "draft" ? "a draft" : "sent back for changes"}, last changed ${item.updates.updatedAt.slice(0, 16).replace("T", " ")} UTC): its files are replaced, including edits made in the web app since. --new-draft makes a separate draft instead.`,
+    );
   const depends = Object.entries(item.dependencies);
   if (depends.length > 0) {
     lines.push("  Depends on:");
@@ -147,6 +151,7 @@ const plannedJson = (item: PlannedItem) => ({
   dependencies: item.dependencies,
   usedByAnother: item.asDependency,
   proposal: item.proposal ?? null,
+  updates: item.updates ?? null,
 });
 
 const refusedJson = (plan: ExportPlan) =>
@@ -300,8 +305,8 @@ const reportExported = (out: Output, exported: ExportedItem[]) => {
   for (const item of exported) {
     out.say(
       item.proposal
-        ? `${item.name}: proposal from ${item.proposal.baseVersion} created at ${item.url}. Once reviewed and approved, it's released as the item's next version.${item.proposal.stale ? ` It's stale (${item.proposal.stale} is out): rebase it first.` : ""}`
-        : `${item.name}: draft created at ${item.url}`,
+        ? `${item.name}: proposal from ${item.proposal.baseVersion} ${item.updated ? "updated" : "created"} at ${item.url}. Once reviewed and approved, it's released as the item's next version.${item.proposal.stale ? ` It's stale (${item.proposal.stale} is out): rebase it first.` : ""}`
+        : `${item.name}: draft ${item.updated ? "updated" : "created"} at ${item.url}`,
     );
     const left = [...item.issues, ...item.submitIssues].filter((i) => i.severity === "error");
     if (left.length > 0) {
@@ -336,6 +341,7 @@ export const exportCommand = async (io: Io, args: Args, out: Output, api: ApiCli
     scope: str(args.values.scope),
     force: args.values.force === true,
     new: args.values.new === true,
+    newDraft: args.values["new-draft"] === true,
     dependencies: dependenciesOption(args),
     type: typeOption(args),
     from: fromOption(args),

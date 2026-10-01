@@ -145,7 +145,8 @@ a usage error.
 - **Windows:** no executable bits; scripts arrive not executable, with a warning when a file has a
   `#!` line.
 - **The same skill exported twice:** a second draft (037's open question). The preview can't know
-  about the first one yet.
+  about the first one yet. Since [051](../051-update-drafts-on-export/SPEC.md), it updates the
+  draft instead.
 
 ## Documentation
 

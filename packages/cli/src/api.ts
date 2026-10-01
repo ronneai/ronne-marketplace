@@ -57,6 +57,7 @@ export type ApiClient = {
   me(): Promise<MeResponse>;
   get<T>(path: string): Promise<T>;
   post<T>(path: string, body: unknown): Promise<T>;
+  put<T>(path: string, body: unknown): Promise<T>;
   /** A binary response, with its headers as a plain record (lowercase names). */
   bytes(path: string): Promise<{ bytes: Uint8Array; headers: Record<string, string> }>;
 };
@@ -107,6 +108,7 @@ export const apiClient = (
     me: () => json<MeResponse>("GET", "/me"),
     get: <T>(path: string) => json<T>("GET", path),
     post: <T>(path: string, body: unknown) => json<T>("POST", path, body),
+    put: <T>(path: string, body: unknown) => json<T>("PUT", path, body),
     bytes: async (path) => {
       const response = await request("GET", path);
       const headers: Record<string, string> = {};

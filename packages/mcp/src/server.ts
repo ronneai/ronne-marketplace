@@ -44,7 +44,7 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
     { name: serverInfo.name, version: serverInfo.version },
     {
       instructions:
-        "Search and install items from a Ronne AI Marketplace, and send items the person wrote to it as drafts. Installing takes two steps: a plan_* tool shows what would change and writes nothing; apply_plan writes it, once the person has seen the plan. Exporting takes two steps too: plan_export shows every file that would be uploaded and sends nothing; export_items uploads it, once the person has seen the plan. Ask the person which scope to export to; never choose it. When plan_export says the items use the person's own items, show them and ask whether to export those too, recommending it. Show them the plan before calling export_items. An edited install, or an item of the person's own whose name is published, becomes a change proposal to that item. Drafts are never submitted from here: the person reviews and submits them in the web app.",
+        "Search and install items from a Ronne AI Marketplace, and send items the person wrote to it as drafts. Installing takes two steps: a plan_* tool shows what would change and writes nothing; apply_plan writes it, once the person has seen the plan. Exporting takes two steps too: plan_export shows every file that would be uploaded and sends nothing; export_items uploads it, once the person has seen the plan. Ask the person which scope to export to; never choose it. When plan_export says the items use the person's own items, show them and ask whether to export those too, recommending it. Show them the plan before calling export_items. An edited install, or an item of the person's own whose name is published, becomes a change proposal to that item. Exporting an item the person already has a draft of updates that draft instead of making another. Drafts are never submitted from here: the person reviews and submits them in the web app.",
     },
   );
   const read = { readOnlyHint: true, openWorldHint: true };
@@ -200,7 +200,7 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
     {
       title: "Plan an export",
       description:
-        "Works out what exporting items as drafts would upload: each item's name, every file with its size, every file left out and why, the ronne.yaml it makes, what the item keeps and loses from the AI tool's format, and the checks' findings. Sends nothing. An MCP server's credentials are never uploaded, only its variables' names. Without to, it answers the marketplace's scopes: ask the person which one, never choose. Show the plan to the person; upload it with export_items.",
+        "Works out what exporting items as drafts would upload: each item's name, every file with its size, every file left out and why, the ronne.yaml it makes, what the item keeps and loses from the AI tool's format, the checks' findings, and which of the person's drafts it updates. Sends nothing. An MCP server's credentials are never uploaded, only its variables' names. Without to, it answers the marketplace's scopes: ask the person which one, never choose. Show the plan to the person; upload it with export_items.",
       inputSchema: {
         items: z
           .array(z.string())
@@ -226,6 +226,12 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
           .describe(
             "true to export as a new item even when it changes a published one (an edited install, or a published name); otherwise that's a change proposal",
           ),
+        newDraft: z
+          .boolean()
+          .optional()
+          .describe(
+            "true for a separate draft even when the person already has a draft of the item; otherwise that draft is updated (its files replaced), and an item that's only in review is left out",
+          ),
         dependencies: z
           .enum(["include", "omit"])
           .optional()
@@ -244,7 +250,7 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
     {
       title: "Export as drafts",
       description:
-        "Uploads exactly what plan_export showed, one private draft per item, and says where each draft is. Only after the person has seen the plan. Refuses a plan that expired, was used, or whose files changed. Nothing is submitted: the person does that in the web app.",
+        "Uploads exactly what plan_export showed, one private draft per item (updating the person's draft where the plan says so), and says where each draft is. Only after the person has seen the plan. Refuses a plan that expired, was used, or whose files changed. Nothing is submitted: the person does that in the web app.",
       inputSchema: { planId: z.string() },
       annotations: {
         readOnlyHint: false,

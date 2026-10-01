@@ -72,6 +72,7 @@ export const TOPICS = [
       { id: "keeps", title: "What each type keeps and loses" },
       { id: "dependencies", title: "Dependencies" },
       { id: "next", title: "What arrives, and what to do next" },
+      { id: "again", title: "Exporting again" },
       { id: "installed", title: "Items rmk installed" },
       { id: "proposals", title: "Proposing a change" },
       { id: "mcp", title: "From inside your AI tool" },
