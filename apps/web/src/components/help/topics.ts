@@ -69,6 +69,7 @@ export const TOPICS = [
       { id: "reads", title: "What it reads, and what it never uploads" },
       { id: "scope", title: "Choosing the scope" },
       { id: "preview", title: "The preview" },
+      { id: "descriptions", title: "Descriptions" },
       { id: "keeps", title: "What each type keeps and loses" },
       { id: "dependencies", title: "Dependencies" },
       { id: "next", title: "What arrives, and what to do next" },

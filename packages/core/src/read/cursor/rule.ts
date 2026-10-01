@@ -48,5 +48,11 @@ export const readCursorRule = (file: PackageFile, options: { itemName: string })
   const manifest: Manifest = { name: options.itemName, type: "rule" };
   if (described.description) manifest.description = described.description;
   manifest.rule = rule;
-  return result(manifest, [{ path: "rule.md", text: body }], warnings, []);
+  return result(
+    manifest,
+    [{ path: "rule.md", text: body }],
+    warnings,
+    [],
+    describedHere ? "item" : "body",
+  );
 };

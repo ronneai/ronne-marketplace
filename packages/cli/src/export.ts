@@ -21,6 +21,7 @@ import {
   commandName,
   cursorAgentName,
   cursorCommandName,
+  givenDescription,
   type MergeResult,
   mcpServerName,
   ReadError,
@@ -40,6 +41,7 @@ import {
   skillName,
   toItemName,
   withDependencies,
+  withDescription,
 } from "@ronneai/core/read";
 import { parse as parseToml } from "smol-toml";
 import { type ApiClient, ApiError } from "./api.js";
@@ -580,8 +582,21 @@ export type ExportRequest = {
   type?: ExportType;
   /** Only items written for this tool (043): for names that more than one tool has. */
   from?: ExportTool;
-  /** An MCP server's description, which isn't on disk; for a single item. */
+  /**
+   * The description of a single item (053): an MCP server's, which isn't on disk, or any item's
+   * that doesn't describe itself.
+   */
   description?: string;
+  /**
+   * Descriptions for items that don't describe themselves (053), by item: its `@scope/name`, its
+   * short name, or where it is as shown. Required for each that has none; the item's own wins.
+   */
+  descriptions?: Record<string, string>;
+  /**
+   * Items to leave out, as shown locally, when they still have no description (053): the person
+   * didn't give one in a terminal. They're refused with `description_required`; the rest goes on.
+   */
+  leaveOut?: readonly string[];
   /**
    * What to do with the person's own items the exported ones use (041): export them too, or
    * leave them out. Required when there are any; `planExport` stops with `dependencies_required`.
@@ -644,6 +659,32 @@ export type PlannedItem = {
   };
   /** The person's draft of this item that the upload replaces (051), instead of making another. */
   updates?: OpenDraftRef;
+  /** Where its description comes from (053), and whether one is still needed. */
+  description: PlannedDescription;
+};
+
+/**
+ * Where an item's description comes from (053): its own files (`item`), text given for this export
+ * (`given`), its base version (`base`, a proposal), or the draft it updates (`draft`). `missing`
+ * means it still needs one; `suggestion` is its body's first line, if it has one, for whoever
+ * writes it.
+ */
+export type PlannedDescription = {
+  origin: "item" | "given" | "base" | "draft" | "missing";
+  text: string | null;
+  suggestion: string | null;
+};
+
+/** What a reader found (053): only the item's own words, or text given to it, count. */
+const describedBy = (read: ReadResult): PlannedDescription => {
+  const text = typeof read.manifest.description === "string" ? read.manifest.description : null;
+  if (read.descriptionSource === "item" || read.descriptionSource === "given")
+    return { origin: read.descriptionSource, text, suggestion: null };
+  return {
+    origin: "missing",
+    text: null,
+    suggestion: read.descriptionSource === "body" ? text : null,
+  };
 };
 
 /** A draft of the person's own that an export updates (051). */
@@ -652,6 +693,8 @@ export type OpenDraftRef = {
   url: string;
   status: "draft" | "changes_requested";
   updatedAt: string;
+  /** The description in the draft's `ronne.yaml` (053), or null; a registry before 053 says none. */
+  description: string | null;
 };
 
 export type RefusedItem = { local: string; code: string; message: string };
@@ -921,14 +964,10 @@ const overLimitMessage = (over: OverLimit) =>
  * reader, checked (011) and scanned for secrets, and each name is looked up in the registry.
  * The scope is `to`, or the folder's own `ronne.yaml`'s; never a default.
  */
-/** What `planExport` may ask the person, in a terminal: an MCP server's description. */
-export type ExportHooks = { describe?: (local: string) => Promise<string | undefined> };
-
 export const planExport = async (
   io: Io,
   api: ApiClient,
   request: ExportRequest,
-  hooks: ExportHooks = {},
 ): Promise<ExportPlan> => {
   if (request.items.length === 0) throw usage("Say what to export: rmk export <folder|file|name>");
   if (request.name !== undefined && request.items.length > 1)
@@ -1059,6 +1098,15 @@ export const planExport = async (
         stale: latest && latest !== base.version ? latest : null,
         changes: change.merged.changes,
       },
+      // A proposal keeps its base's description unless the local item changed it (042's merge).
+      description: {
+        origin: "base",
+        text:
+          typeof change.merged.manifest.description === "string"
+            ? change.merged.manifest.description
+            : null,
+        suggestion: null,
+      },
     });
   };
 
@@ -1161,7 +1209,7 @@ export const planExport = async (
           refuse("invalid_name", "Its name can't be an item name. Give one with --name.");
           continue;
         }
-        const description = request.description ?? (await hooks.describe?.(local));
+        const description = request.description;
         const reader =
           target.tool === "codex"
             ? readCodexMcpServer
@@ -1276,17 +1324,13 @@ export const planExport = async (
       dependencies: {},
       dependsOn: [],
       asDependency: target.asDependency === true,
+      description: describedBy(read),
     });
   }
 
   declareDependencies(items, refused, findings, request.dependencies ?? "omit");
   const planned: PlannedItem[] = [];
   for (const item of items) {
-    const parsed = parseManifest(item.manifestText);
-    item.issues = [
-      ...parsed.issues.map((issue) => ({ ...issue, file: "ronne.yaml" })),
-      ...(parsed.manifest ? checkPackage(parsed.manifest, item.files) : []),
-    ];
     item.published = await isPublished(api, item.name);
     if (!request.newDraft) {
       const found = await draftToUpdate(api, item);
@@ -1298,21 +1342,156 @@ export const planExport = async (
         });
         continue;
       }
-      if (found) item.updates = found;
+      if (found) {
+        item.updates = found;
+        // The draft's description stays when the item still has none of its own (053).
+        if (item.description.origin === "missing" && found.description)
+          item.description = { origin: "draft", text: found.description, suggestion: null };
+      }
     }
     planned.push(item);
   }
-  // An item in review isn't uploaded; what uses it still declares it, and waits for nothing.
-  const kept = new Set(planned.map((item) => item.name));
-  for (const item of planned) item.dependsOn = item.dependsOn.filter((name) => kept.has(name));
+  const described = describeItems(planned, refused, request);
+  // An item in review, or left out, isn't uploaded; what uses it still declares it, and waits for
+  // nothing.
+  const kept = new Set(described.map((item) => item.name));
+  for (const item of described) item.dependsOn = item.dependsOn.filter((name) => kept.has(name));
+  // 011's checks, on the files as they'll be uploaded: with their descriptions.
+  for (const item of described) {
+    const parsed = parseManifest(item.manifestText);
+    item.issues = [
+      ...parsed.issues.map((issue) => ({ ...issue, file: "ronne.yaml" })),
+      ...(parsed.manifest ? checkPackage(parsed.manifest, item.files) : []),
+    ];
+  }
+  for (const item of described)
+    if (item.description.text) hash.update(`\0description=${item.name}=${item.description.text}`);
   return {
     registry: api.registry,
     to,
-    items: inUploadOrder(planned),
+    items: inUploadOrder(described),
     refused,
     findings,
     fingerprint: hash.digest("hex"),
   };
+};
+
+/** The names an item answers to in `descriptions` (053): its full name, short name, and place. */
+const keysOf = (item: { name: string; local: string }) => [
+  item.name,
+  item.name.slice(item.name.indexOf("/") + 1),
+  item.local,
+];
+
+/** The file whose words say what an item is (053), as uploaded: the assistant reads it. */
+const MAIN_FILE: Record<ExportType, string> = {
+  skill: "SKILL.md",
+  agent: "prompt.md",
+  command: "command.md",
+  rule: "rule.md",
+  // An MCP server has no text of its own; its ronne.yaml (credentials taken out) says what it runs.
+  "mcp-server": "ronne.yaml",
+};
+
+/** How much of an item's main file `descriptions_required` carries. */
+const EXCERPT_CHARS = 4000;
+
+/**
+ * Gives every planned item its description (053), or stops with `descriptions_required` naming
+ * those still without one. Given text (`descriptions`, or `description` for a single item) is put on
+ * one line and refused over 300 characters, and a key that names no item is refused; the item's own
+ * description, or a proposal's base's, wins over given text. A draft's is kept when nothing else
+ * says one. The description is written into what's uploaded, never into the local files. Returns
+ * the items to upload: those in `leaveOut` that still have none are refused instead.
+ */
+const describeItems = (
+  items: PlannedItem[],
+  refused: RefusedItem[],
+  request: ExportRequest,
+): PlannedItem[] => {
+  const given = new Map<string, string>(Object.entries(request.descriptions ?? {}));
+  const known = new Set([...items.flatMap(keysOf), ...refused.map((r) => r.local)]);
+  const unknown = [...given.keys()].filter((key) => !known.has(key));
+  if (unknown.length > 0)
+    throw new RmkError(
+      `${unknown.join(", ")} ${unknown.length === 1 ? "isn't" : "aren't"} among the items being exported, so ${unknown.length === 1 ? "its description has" : "their descriptions have"} nowhere to go.`,
+      2,
+      "unknown_item",
+      { items: unknown },
+    );
+  const missing: PlannedItem[] = [];
+  const left = new Set<PlannedItem>();
+  for (const item of items) {
+    const raw =
+      keysOf(item)
+        .map((key) => given.get(key))
+        .find((text) => text !== undefined) ??
+      // A single item's --description; an MCP server's already went to its reader.
+      (items.length === 1 && item.type !== "mcp-server" ? request.description : undefined);
+    const text = raw === undefined ? null : givenDescription(raw);
+    if (text?.tooLong)
+      throw new RmkError(
+        `The description for ${item.name} is ${text.text?.length} characters; it can be at most 300. Shorten it.`,
+        2,
+        "description_too_long",
+        { item: item.name },
+      );
+    const origin = item.description.origin;
+    // Described already: by its files, its base version, or text its reader was given.
+    if (origin === "item" || origin === "base" || origin === "given") {
+      if (text?.text && origin !== "given")
+        item.warnings.push({
+          code: "description_ignored",
+          message:
+            origin === "base"
+              ? `A proposal keeps ${item.proposal?.baseVersion}'s description unless the item changes it, so the one given was left out.`
+              : "The item's files already describe it, and that description is used; to change it, edit the file or the draft.",
+        });
+      continue;
+    }
+    const description = text?.text ?? (origin === "draft" ? item.description.text : null);
+    if (!description) {
+      if (request.leaveOut?.includes(item.local)) {
+        left.add(item);
+        refused.push({
+          local: item.local,
+          code: "description_required",
+          message: `${item.name} has no description, and none was given. Add one to it, or export it from your AI tool, which writes one.`,
+        });
+      } else missing.push(item);
+      continue;
+    }
+    const described = withDescription(item, description);
+    item.files = described.files;
+    item.manifestText = described.manifestText;
+    if (text?.text) item.description = { origin: "given", text: description, suggestion: null };
+    if (described.entryChanged)
+      item.warnings.push({
+        code: "description_added",
+        message: `The uploaded ${described.entryChanged} gets this description in its frontmatter, where AI tools read it; yours isn't changed.`,
+        file: described.entryChanged,
+      });
+  }
+  if (missing.length > 0)
+    throw new RmkError(
+      `${missing.length === 1 ? "An item doesn't" : `${missing.length} items don't`} say what ${missing.length === 1 ? "it does" : "they do"}, and every item needs a description: ${missing.map((m) => m.name).join(", ")}. Give one for each.`,
+      2,
+      "descriptions_required",
+      {
+        items: missing.map((item) => {
+          const main = item.files.find((f) => f.path === MAIN_FILE[item.type]);
+          const text = main ? (textOrNull(main) ?? "") : "";
+          return {
+            local: item.local,
+            name: item.name,
+            type: item.type,
+            suggestion: item.description.suggestion,
+            file: main ? { path: main.path, excerpt: text.slice(0, EXCERPT_CHARS) } : null,
+          };
+        }),
+      },
+    );
+  return items.filter((item) => !left.has(item));
 };
 
 /**
@@ -1444,6 +1623,7 @@ type OpenDraft = {
   status: string;
   updatedAt: string;
   proposal: { item: string; baseVersion: string } | null;
+  description?: string | null;
 };
 
 /**
@@ -1478,6 +1658,7 @@ const draftToUpdate = async (
       url: editable.url ?? `${api.registry}${editable.path}`,
       status: editable.status as OpenDraftRef["status"],
       updatedAt: editable.updatedAt,
+      description: editable.description?.trim() || null,
     };
   return same.some((d) => d.status === "submitted") ? "in_review" : null;
 };

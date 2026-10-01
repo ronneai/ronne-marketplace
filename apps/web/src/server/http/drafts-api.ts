@@ -240,13 +240,17 @@ export const putDraft = async (
   }
 };
 
-const openDraftJson = (deps: DraftsApiDeps, submission: Submission) => ({
+const openDraftJson = (
+  deps: DraftsApiDeps,
+  submission: Submission & { description: string | null },
+) => ({
   id: submission.id,
   ...placeOf(deps, submission.id),
   name: `@${submission.scope.name}/${submission.name}`,
   type: submission.type,
   status: submission.status,
   updatedAt: submission.updatedAt.toISOString(),
+  description: submission.description,
   proposal: submission.proposal
     ? {
         item: `@${submission.scope.name}/${submission.name}`,

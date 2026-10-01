@@ -44,7 +44,7 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
     { name: serverInfo.name, version: serverInfo.version },
     {
       instructions:
-        "Search and install items from a Ronne AI Marketplace, and send items the person wrote to it as drafts. Installing takes two steps: a plan_* tool shows what would change and writes nothing; apply_plan writes it, once the person has seen the plan. Exporting takes two steps too: plan_export shows every file that would be uploaded and sends nothing; export_items uploads it, once the person has seen the plan. Ask the person which scope to export to; never choose it. When plan_export says the items use the person's own items, show them and ask whether to export those too, recommending it. Show them the plan before calling export_items. An edited install, or an item of the person's own whose name is published, becomes a change proposal to that item. Exporting an item the person already has a draft of updates that draft instead of making another. Drafts are never submitted from here: the person reviews and submits them in the web app.",
+        "Search and install items from a Ronne AI Marketplace, and send items the person wrote to it as drafts. Installing takes two steps: a plan_* tool shows what would change and writes nothing; apply_plan writes it, once the person has seen the plan. Exporting takes two steps too: plan_export shows every file that would be uploaded and sends nothing; export_items uploads it, once the person has seen the plan. Ask the person which scope to export to; never choose it. When plan_export says the items use the person's own items, show them and ask whether to export those too, recommending it. Show them the plan before calling export_items. An edited install, or an item of the person's own whose name is published, becomes a change proposal to that item. Exporting an item the person already has a draft of updates that draft instead of making another. Every item needs a description: when plan_export says some have none, write one sentence for each from its content, at most 300 characters, without inventing features, pass them as descriptions, and show them to the person in the plan. Drafts are never submitted from here: the person reviews and submits them in the web app.",
     },
   );
   const read = { readOnlyHint: true, openWorldHint: true };
@@ -200,7 +200,7 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
     {
       title: "Plan an export",
       description:
-        "Works out what exporting items as drafts would upload: each item's name, every file with its size, every file left out and why, the ronne.yaml it makes, what the item keeps and loses from the AI tool's format, the checks' findings, and which of the person's drafts it updates. Sends nothing. An MCP server's credentials are never uploaded, only its variables' names. Without to, it answers the marketplace's scopes: ask the person which one, never choose. Show the plan to the person; upload it with export_items.",
+        "Works out what exporting items as drafts would upload: each item's name, every file with its size, every file left out and why, the ronne.yaml it makes, what the item keeps and loses from the AI tool's format, each description and where it came from, the checks' findings, and which of the person's drafts it updates. Items that don't describe themselves need descriptions: without them it answers which, with their content, so you can write them. Sends nothing. An MCP server's credentials are never uploaded, only its variables' names. Without to, it answers the marketplace's scopes: ask the person which one, never choose. Show the plan to the person; upload it with export_items.",
       inputSchema: {
         items: z
           .array(z.string())
@@ -225,6 +225,12 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
           .optional()
           .describe(
             "true to export as a new item even when it changes a published one (an edited install, or a published name); otherwise that's a change proposal",
+          ),
+        descriptions: z
+          .record(z.string(), z.string())
+          .optional()
+          .describe(
+            "A description for each item that doesn't have one, by its name as list_local_items shows it: one sentence, at most 300 characters, that you write from the item's content when plan_export asks for them",
           ),
         newDraft: z
           .boolean()

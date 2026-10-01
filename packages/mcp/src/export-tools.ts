@@ -127,6 +127,34 @@ const findingText = (finding: Finding): string => {
   }
 };
 
+/** An item that still needs a description (053), as `descriptions_required` lists it. */
+type NeededDescription = {
+  local: string;
+  name: string;
+  type: string;
+  suggestion: string | null;
+  file: { path: string; excerpt: string } | null;
+};
+
+/**
+ * The answer when items don't say what they do (053): each one, with what the assistant needs to
+ * write a description, and no plan. The assistant writes them; the person sees them in the plan.
+ */
+const askForDescriptions = (items: NeededDescription[]): ToolAnswer =>
+  answer(
+    [
+      `${items.length === 1 ? "This item doesn't" : "These items don't"} say what ${items.length === 1 ? "it does" : "they do"}, and every item needs a description:`,
+      ...items.flatMap((item) => [
+        "",
+        `${item.name} (${item.type}, ${item.local})${item.suggestion ? `; its first line: "${item.suggestion}"` : ""}`,
+        ...(item.file ? [`${item.file.path}:`, item.file.excerpt] : []),
+      ]),
+      "",
+      "Write one sentence for each item, at most 300 characters, saying what it does and when to use it, from its content; don't invent features. Then call plan_export again with descriptions (an object from each item's name, as list_local_items shows it, to its sentence), and show them to the person in the plan.",
+    ],
+    { needs: ["descriptions"], items },
+  );
+
 /** The answer when the items use the person's own items and they haven't said what to do. */
 const askForDependencies = (findings: Finding[]): ToolAnswer =>
   answer(
@@ -169,6 +197,7 @@ const plannedData = (plan: ExportPlan) =>
     usedByAnother: item.asDependency,
     proposal: item.proposal ?? null,
     updates: item.updates ?? null,
+    description: item.description,
   }));
 
 /**
@@ -190,6 +219,7 @@ export const planExportTool = async (
     dependencies?: "include" | "omit";
     new?: boolean;
     newDraft?: boolean;
+    descriptions?: Record<string, string>;
   },
 ): Promise<ToolAnswer> => {
   const { api } = connectRegistry(io);
@@ -232,6 +262,7 @@ export const planExportTool = async (
     ...(input.dependencies ? { dependencies: input.dependencies } : {}),
     ...(input.new ? { new: true } : {}),
     ...(input.newDraft ? { newDraft: true } : {}),
+    ...(input.descriptions ? { descriptions: input.descriptions } : {}),
   };
   let plan: ExportPlan;
   try {
@@ -239,6 +270,13 @@ export const planExportTool = async (
   } catch (error) {
     if (error instanceof RmkError && error.code === "dependencies_required")
       return askForDependencies(error.details.findings as Finding[]);
+    if (error instanceof RmkError && error.code === "descriptions_required")
+      return askForDescriptions(error.details.items as NeededDescription[]);
+    if (
+      error instanceof RmkError &&
+      (error.code === "description_too_long" || error.code === "unknown_item")
+    )
+      return failure(error.code, error.message);
     if (error instanceof RmkError && error.code === "scope_not_found")
       return {
         ...askForScope(error.details.scopes as Scopes, `${error.message} These are the scopes:`),
@@ -253,7 +291,7 @@ export const planExportTool = async (
   }
 
   const me = await api.me();
-  const lines = [previewText(plan, me.email).trimEnd()];
+  const lines = [previewText(plan, me.email, "written by your AI tool").trimEnd()];
   const planId = plan.items.length > 0 ? store.put({ request }, plan.fingerprint) : null;
   if (planId)
     lines.push(

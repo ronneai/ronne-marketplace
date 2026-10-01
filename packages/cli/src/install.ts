@@ -363,7 +363,7 @@ export const installResolved = async (
 /** `rmk install [<item>[@tag|range]...]`. */
 export const installCommand = async (
   io: Io,
-  args: { positionals: string[]; values: Record<string, string | boolean | undefined> },
+  args: { positionals: string[]; values: Record<string, string | boolean | string[] | undefined> },
   out: Output,
   api: ApiClient,
 ): Promise<void> => {

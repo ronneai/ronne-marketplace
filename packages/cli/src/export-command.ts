@@ -1,4 +1,7 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { formatBytes, type ManifestIssue } from "@ronneai/core";
+import { givenDescription } from "@ronneai/core/read";
 import type { ApiClient } from "./api.js";
 import type { Args } from "./cli.js";
 import { RmkError, usage } from "./errors.js";
@@ -7,7 +10,6 @@ import {
   EXPORT_TOOLS,
   EXPORT_TYPES,
   type ExportedItem,
-  type ExportHooks,
   type ExportPlan,
   type ExportRequest,
   type ExportTool,
@@ -33,7 +35,7 @@ import { itemPath } from "./registry-commands.js";
  * when a command ends, so everything a person must see before answering is in the question itself.
  */
 
-const str = (value: string | boolean | undefined) =>
+const str = (value: string | boolean | string[] | undefined) =>
   typeof value === "string" ? value : undefined;
 
 const SKIP_WORDS: Record<SkipReason, string> = {
@@ -70,7 +72,14 @@ const proposalChanges = (changes: NonNullable<PlannedItem["proposal"]>["changes"
   return lines;
 };
 
-const itemPreview = (registry: string, item: PlannedItem): string[] => {
+/** Where a description came from (053), as the preview says it; given text is the caller's. */
+const DESCRIPTION_ORIGIN: Partial<Record<PlannedItem["description"]["origin"], string>> = {
+  item: "from its files",
+  base: "from the version it's based on",
+  draft: "kept from your draft",
+};
+
+const itemPreview = (registry: string, item: PlannedItem, given: string): string[] => {
   const lines = item.proposal
     ? [
         `Proposal to ${item.proposal.item}, from ${item.proposal.baseVersion}  ${item.type}  (from ${item.local})`,
@@ -84,6 +93,10 @@ const itemPreview = (registry: string, item: PlannedItem): string[] => {
     : [
         `${item.name}  ${item.type}  (from ${item.local})${item.asDependency ? "  used by another item" : ""}`,
       ];
+  if (item.description.text)
+    lines.push(
+      `  Description: ${item.description.text}  (${DESCRIPTION_ORIGIN[item.description.origin] ?? given})`,
+    );
   if (item.updates)
     lines.push(
       `  Updates your draft ${item.updates.url} (${item.updates.status === "draft" ? "a draft" : "sent back for changes"}, last changed ${item.updates.updatedAt.slice(0, 16).replace("T", " ")} UTC): its files are replaced, including edits made in the web app since. --new-draft makes a separate draft instead.`,
@@ -123,9 +136,14 @@ const itemPreview = (registry: string, item: PlannedItem): string[] => {
 };
 
 /** The whole plan, as the person reads it before saying yes. */
-export const previewText = (plan: ExportPlan, account: string): string => {
+export const previewText = (
+  plan: ExportPlan,
+  account: string,
+  /** Who gave the descriptions that weren't on disk: you, in a terminal; the AI tool, by MCP. */
+  given = "you gave it",
+): string => {
   const lines = [`Registry: ${plan.registry}, as ${account}`, ""];
-  for (const item of plan.items) lines.push(...itemPreview(plan.registry, item), "");
+  for (const item of plan.items) lines.push(...itemPreview(plan.registry, item, given), "");
   if (plan.refused.length > 0) {
     lines.push("Not exported:");
     for (const refused of plan.refused) lines.push(`  ${refused.local}: ${refused.message}`);
@@ -152,6 +170,7 @@ const plannedJson = (item: PlannedItem) => ({
   usedByAnother: item.asDependency,
   proposal: item.proposal ?? null,
   updates: item.updates ?? null,
+  description: item.description,
 });
 
 const refusedJson = (plan: ExportPlan) =>
@@ -180,6 +199,37 @@ const dependenciesOption = (args: Args): "include" | "omit" | undefined => {
   const noDeps = args.values["no-deps"] === true;
   if (withDeps && noDeps) throw usage("Use --with-deps or --no-deps, not both.");
   return withDeps ? "include" : noDeps ? "omit" : undefined;
+};
+
+/**
+ * Descriptions for items that don't describe themselves (053): `--descriptions <file.json>`, an
+ * object from item to text, then each `--describe <item>=<text>` over it.
+ */
+const descriptionsOption = (io: Io, args: Args): Record<string, string> | undefined => {
+  const out: Record<string, string> = {};
+  const file = str(args.values.descriptions);
+  if (file !== undefined) {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(readFileSync(resolve(io.cwd, file), "utf8"));
+    } catch (error) {
+      throw usage(`--descriptions ${file} can't be read as JSON: ${(error as Error).message}`);
+    }
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
+      throw usage(`--descriptions ${file} is a JSON object from item to description.`);
+    for (const [item, text] of Object.entries(parsed)) {
+      if (typeof text !== "string")
+        throw usage(`--descriptions ${file}: ${item}'s description isn't text.`);
+      out[item] = text;
+    }
+  }
+  const given = args.values.describe;
+  for (const value of Array.isArray(given) ? given : typeof given === "string" ? [given] : []) {
+    const at = value.indexOf("=");
+    if (at <= 0) throw usage(`--describe takes <item>=<text>, such as --describe style="Tabs."`);
+    out[value.slice(0, at).trim()] = value.slice(at + 1);
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
 };
 
 /** `--from`, checked: one of the tools export reads (043). */
@@ -317,6 +367,40 @@ const reportExported = (out: Output, exported: ExportedItem[]) => {
   out.say("Nothing is submitted: open each draft, check it, and submit it in the web app.");
 };
 
+/** An item `planExport` needs a description for (053), as `descriptions_required` lists it. */
+type NeededDescription = { local: string; name: string; type: string; suggestion: string | null };
+
+/** How many empty answers before an item without a suggestion is left out. */
+const DESCRIPTION_TRIES = 3;
+
+/**
+ * Asks for each item's description (053): Enter takes the suggestion (its first line) when there is
+ * one; text over 300 characters is asked again; three empty answers leave the item out.
+ */
+const askDescriptions = async (io: Io, items: readonly NeededDescription[]) => {
+  const descriptions: Record<string, string> = {};
+  const leaveOut: string[] = [];
+  for (const item of items) {
+    const offer = item.suggestion ? ` [Enter for: "${item.suggestion}"]` : "";
+    let answer: string | null = null;
+    let note = "";
+    for (let tries = 0; answer === null && tries < DESCRIPTION_TRIES; ) {
+      const typed = await io.prompt(
+        `${note}${item.name} (${item.type}, ${item.local}) has no description.\nIn one sentence, what does it do?${offer} `,
+      );
+      const given = givenDescription(typed.trim() || (item.suggestion ?? ""));
+      note = "";
+      if (given.tooLong)
+        note = `That was ${given.text?.length} characters; a description can be at most 300.\n`;
+      else if (given.text) answer = given.text;
+      else tries += 1;
+    }
+    if (answer === null) leaveOut.push(item.local);
+    else descriptions[item.name] = answer;
+  }
+  return { descriptions, leaveOut };
+};
+
 export const exportCommand = async (io: Io, args: Args, out: Output, api: ApiClient) => {
   const dryRun = args.values["dry-run"] === true;
   const yes = args.values.yes === true;
@@ -342,34 +426,17 @@ export const exportCommand = async (io: Io, args: Args, out: Output, api: ApiCli
     force: args.values.force === true,
     new: args.values.new === true,
     newDraft: args.values["new-draft"] === true,
+    descriptions: descriptionsOption(io, args),
     dependencies: dependenciesOption(args),
     type: typeOption(args),
     from: fromOption(args),
     description: str(args.values.description),
   };
-  // An MCP server has no description on disk: in a terminal, ask once for each.
-  const described = new Map<string, string | undefined>();
-  const hooks: ExportHooks = asking
-    ? {
-        describe: async (local) => {
-          if (!described.has(local))
-            described.set(
-              local,
-              (
-                await io.prompt(
-                  `${local} has no description. In one sentence, what does this MCP server give the AI tool? (nothing to leave it for the web app) `,
-                )
-              ).trim() || undefined,
-            );
-          return described.get(local);
-        },
-      }
-    : {};
-  // In a terminal, the scope and the dependencies are asked for as they come up.
+  // In a terminal, the scope, the dependencies and the descriptions are asked for as they come up.
   let plan: ExportPlan | null = null;
   while (!plan) {
     try {
-      plan = await planExport(io, api, request, hooks);
+      plan = await planExport(io, api, request);
     } catch (error) {
       if (!(error instanceof RmkError) || !asking) throw error;
       if (error.code === "scope_required")
@@ -382,6 +449,10 @@ export const exportCommand = async (io: Io, args: Args, out: Output, api: ApiCli
           return;
         }
         request.dependencies = choice;
+      } else if (error.code === "descriptions_required") {
+        const asked = await askDescriptions(io, error.details.items as NeededDescription[]);
+        request.descriptions = { ...request.descriptions, ...asked.descriptions };
+        request.leaveOut = [...(request.leaveOut ?? []), ...asked.leaveOut];
       } else throw error;
     }
   }

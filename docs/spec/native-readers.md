@@ -26,7 +26,13 @@ reversed in code.
 - **Lossy is allowed, silent isn't.** A field the manifest can't carry is dropped with one warning
   that names it. The draft is reviewed by its author in the web app before anyone else sees it.
 - **The output passes the checks a save runs** (manifest spec §6, layers 1 and 2) whenever the
-  input allows it. What it can't fix (no description at all) arrives as an issue on the draft.
+  input allows it.
+- **Where the description came from** ([053](../features/053-export-descriptions/SPEC.md)). Each
+  reader reports `descriptionSource`: `item` (the item's own field, such as frontmatter
+  `description`), `body` (its body's first line, for want of one: always for a Claude Code rule,
+  and for a Cursor rule without `description`), `given` (an MCP server's, given to the reader), or
+  `none`. Export uses only `item` and `given` as they are; for `body` and `none` it asks for a
+  description, offering the first line as a suggestion, and doesn't upload the item without one.
 - **Names.** The item is `@<scope>/<name>`: the scope is the person's choice and never a default;
   the name is the native name when it's a valid item name, else it's put in lowercase with `-` for
   every other character.

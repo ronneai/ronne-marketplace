@@ -471,14 +471,30 @@ export const listOpenDrafts = async (
   deps: DraftDeps,
   actor: DraftActor,
   itemName?: string,
-): Promise<Submission[]> => {
+): Promise<(Submission & { description: string | null })[]> => {
   requirePermission(actor.user, "submissions.create");
   const wanted = itemName?.trim().toLowerCase();
-  return (await deps.repo.listByAuthor(actor.user?.id ?? "")).filter(
+  const open = (await deps.repo.listByAuthor(actor.user?.id ?? "")).filter(
     (submission) =>
       OPEN_STATUSES.includes(submission.status) &&
       (wanted === undefined || itemNameOf(submission) === wanted),
   );
+  // Each one's description (053): export keeps a draft's when the local item has none.
+  const described = [];
+  for (const submission of open) {
+    const manifest = (await deps.repo.files(submission.id)).find((f) => f.path === MANIFEST_PATH);
+    described.push({ ...submission, description: descriptionIn(manifest) });
+  }
+  return described;
+};
+
+/** The `description` in a draft's `ronne.yaml`, or null when it has none or can't be read. */
+const descriptionIn = (manifest: DraftFile | undefined): string | null => {
+  if (manifest?.encoding !== "utf8") return null;
+  const doc = parseDocument(manifest.content);
+  if (doc.errors.length > 0) return null;
+  const value = doc.get("description");
+  return typeof value === "string" && value.trim() ? value.trim() : null;
 };
 
 /**

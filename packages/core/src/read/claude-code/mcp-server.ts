@@ -193,5 +193,6 @@ export const readMcpServer = (
       });
   }
   manifest["mcp-server"] = block;
-  return result(manifest, [], warnings, []);
+  // An MCP server has no description on disk: one is only ever given (040, 053).
+  return result(manifest, [], warnings, [], "given");
 };

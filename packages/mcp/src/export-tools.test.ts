@@ -627,3 +627,79 @@ describe("updating the person's drafts (051)", () => {
     expect(registry.drafts.map((d) => d.name)).toEqual(["@team/mine"]);
   });
 });
+
+describe("descriptions (053)", () => {
+  const setup = async () => {
+    await project(
+      {},
+      {
+        "GET /items/team/house": () => ({
+          status: 404,
+          json: { error: { code: "item_not_found", message: "No." } },
+        }),
+      },
+    );
+    write(".claude/rules/house.md", "Use tabs.\n");
+    return planStore<StoredExport>(() => 1_000_000);
+  };
+
+  it("asks the assistant for one, with the item's content, and plans nothing until it has it", async () => {
+    const store = await setup();
+    const asked = await planExportTool(io, store, { items: ["house"], to: "team" });
+    expect(asked.isError).toBeUndefined();
+    expect(asked.structuredContent).toMatchObject({
+      needs: ["descriptions"],
+      items: [
+        {
+          name: "@team/house",
+          type: "rule",
+          suggestion: "Use tabs.",
+          file: { path: "rule.md", excerpt: "Use tabs.\n" },
+        },
+      ],
+    });
+    expect(asked.structuredContent).not.toHaveProperty("planId");
+    expect(asked.content[0]?.text).toContain("Write one sentence for each item");
+  });
+
+  it("plans with the assistant's descriptions, shows them as its own, and uploads exactly those", async () => {
+    const store = await setup();
+    const planned = await planExportTool(io, store, {
+      items: ["house"],
+      to: "team",
+      descriptions: { house: "Keeps the house style: tabs, not spaces." },
+    });
+    expect(planned.content[0]?.text).toContain(
+      "Description: Keeps the house style: tabs, not spaces.  (written by your AI tool)",
+    );
+    const data = planned.structuredContent as {
+      planId: string;
+      items: { description: unknown }[];
+    };
+    expect(data.items[0]?.description).toEqual({
+      origin: "given",
+      text: "Keeps the house style: tabs, not spaces.",
+      suggestion: null,
+    });
+    await exportItemsTool(io, store, { planId: data.planId });
+    const files = (registry.drafts[0]?.files ?? []) as { path: string; content: string }[];
+    const manifest = files.find((f) => f.path === "ronne.yaml");
+    expect(manifest?.content).toContain('description: "Keeps the house style: tabs, not spaces."');
+  });
+
+  it("refuses one over 300 characters, and one for an item that isn't planned", async () => {
+    const store = await setup();
+    const long = await planExportTool(io, store, {
+      items: ["house"],
+      to: "team",
+      descriptions: { house: "x".repeat(301) },
+    });
+    expect(long.structuredContent).toMatchObject({ error: { code: "description_too_long" } });
+    const unknown = await planExportTool(io, store, {
+      items: ["house"],
+      to: "team",
+      descriptions: { house: "Tabs.", hose: "Typo." },
+    });
+    expect(unknown.structuredContent).toMatchObject({ error: { code: "unknown_item" } });
+  });
+});

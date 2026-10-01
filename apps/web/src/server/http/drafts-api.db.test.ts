@@ -403,6 +403,7 @@ describe("GET and PUT /drafts (051)", () => {
           type: "skill",
           status: "draft",
           updatedAt: expect.stringMatching(/^\d{4}-\d\d-\d\dT/),
+          description: "Checks code.",
           proposal: null,
         },
         expect.objectContaining({ id: inReview, status: "submitted" }),
@@ -416,6 +417,31 @@ describe("GET and PUT /drafts (051)", () => {
     expect([bad.status, bad.json.error.code]).toEqual([400, "invalid_name"]);
     const anonymous = await body(await getDrafts(get("/drafts", null), deps));
     expect([anonymous.status, anonymous.json.error.code]).toEqual([401, "token_missing"]);
+  });
+
+  it("lists each draft's description from its ronne.yaml, or null (053)", async () => {
+    const described = await create();
+    const undescribed = (
+      await body(
+        await postDraft(
+          send(
+            "POST",
+            "/drafts",
+            upload({
+              files: [
+                { path: "ronne.yaml", encoding: "utf8", content: 'name: "@team/secure-coding"\n' },
+              ],
+            }),
+          ),
+          deps,
+        ),
+      )
+    ).json.id as string;
+    const { json } = await body(await getDrafts(get("/drafts?name=@team/secure-coding"), deps));
+    const byId = Object.fromEntries(
+      json.drafts.map((d: { id: string; description: string | null }) => [d.id, d.description]),
+    );
+    expect(byId).toEqual({ [described]: "Checks code.", [undescribed]: null });
   });
 
   it("replaces your draft's files, answering as POST does", async () => {

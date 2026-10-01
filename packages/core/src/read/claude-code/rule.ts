@@ -43,5 +43,6 @@ export const readRule = (file: PackageFile, options: { itemName: string }): Read
     globs.length > 0
       ? { body: "rule.md", activation: "glob", globs }
       : { body: "rule.md", activation: "always" };
-  return result(manifest, [{ path: "rule.md", text: body }], warnings, []);
+  // A Claude Code rule has no description of its own: it's always its first line (053).
+  return result(manifest, [{ path: "rule.md", text: body }], warnings, [], "body");
 };

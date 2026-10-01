@@ -915,6 +915,11 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             starts from, what it changes, and whether a newer version is out;
           </li>
           <li>
+            each item&apos;s <strong>description</strong> and where it came from: its files, you,
+            your AI tool, the version it&apos;s based on, or your draft (see{" "}
+            <To href={docsHref("export", "descriptions")}>Descriptions</To>);
+          </li>
+          <li>
             when you already have a draft of the item, <strong>Updates your draft</strong>, with its
             address: see <To href={docsHref("export", "again")}>Exporting again</To>.
           </li>
@@ -922,6 +927,48 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         <p>
           Then it asks <strong>Upload n item(s) as drafts?</strong>, and nothing is sent unless you
           answer yes.
+        </p>
+      </>
+    ),
+    descriptions: (
+      <>
+        <p>
+          Every item needs a <strong>description</strong>: one line, at most 300 characters, saying
+          what it does. It&apos;s what people read in the catalogue and what AI tools use to decide
+          when to use the item. <Code>rmk export</Code> takes it from the item&apos;s own files when
+          they have one, such as <Code>description</Code> in a skill&apos;s, agent&apos;s or
+          command&apos;s frontmatter. When they don&apos;t, it asks:
+        </p>
+        <Bullets>
+          <li>
+            <strong>In a terminal</strong>, for each item: type one sentence, or press Enter to take
+            its first line when it has one.
+          </li>
+          <li>
+            <strong>From your AI tool</strong>, the assistant reads the item and writes one, and the
+            plan shows it as <em>written by your AI tool</em> before anything is uploaded.
+          </li>
+          <li>
+            <strong>Without a terminal</strong>, give them with{" "}
+            <Code>--describe style=&quot;Tabs, not spaces.&quot;</Code> (once per item) or{" "}
+            <Code>--descriptions descriptions.json</Code>, an object from item to text.
+          </li>
+        </Bullets>
+        <p>
+          A Claude Code rule, and a Cursor rule without <Code>description</Code>, only have their
+          first line, and an MCP server has nothing on disk, so they&apos;re always asked about. A
+          first line is only offered, never used on its own: it&apos;s often a heading. An item
+          without one isn&apos;t uploaded. A{" "}
+          <To href={docsHref("export", "proposals")}>change proposal</To> keeps the description of
+          the version it&apos;s based on, and{" "}
+          <To href={docsHref("export", "again")}>exporting again</To> keeps your draft&apos;s when
+          the item still has none.
+        </p>
+        <p>
+          The description goes into <Code>ronne.yaml</Code>, and for a skill also into the uploaded{" "}
+          <Code>SKILL.md</Code>&apos;s frontmatter, where AI tools read it. Your files aren&apos;t
+          changed. To change it later, edit it in the web editor, or add one to your file and export
+          again.
         </p>
       </>
     ),
@@ -1125,6 +1172,8 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         <p>
           A description is one line of at most 300 characters. An agent&apos;s or command&apos;s
           longer one is cut, and the cut text is what Claude Code reads once the item is installed.
+          Rules and MCP servers never carry one of their own, so they always need one: see{" "}
+          <To href={docsHref("export", "descriptions")}>Descriptions</To>.
         </p>
         <p>
           <strong>MCP servers: names, never values.</strong> The values of a server&apos;s{" "}
@@ -1134,7 +1183,8 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           <Code>{"${GITHUB_TOKEN}"}</Code>; the preview says where. If a credential can&apos;t be
           told apart from the text around it, the server isn&apos;t exported: move it into an
           environment variable first. A server has no description on disk, so{" "}
-          <Code>rmk export</Code> asks for one, or takes <Code>--description</Code>.
+          <Code>rmk export</Code> asks for one: see{" "}
+          <To href={docsHref("export", "descriptions")}>Descriptions</To>.
         </p>
       </>
     ),
@@ -1231,8 +1281,10 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         <p>
           It exports only items found in your AI tools&apos; folders: your own, and installed ones
           you edited, as <To href={docsHref("export", "proposals")}>change proposals</To>. For an
-          MCP server it asks you for a description. A file or folder elsewhere, and{" "}
-          <Code>--force</Code>, are for <Code>rmk export</Code> in a terminal.
+          item that doesn&apos;t describe itself, the assistant writes the{" "}
+          <To href={docsHref("export", "descriptions")}>description</To> from its content and shows
+          it in the plan. A file or folder elsewhere, and <Code>--force</Code>, are for{" "}
+          <Code>rmk export</Code> in a terminal.
         </p>
       </>
     ),
@@ -1259,7 +1311,15 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
               ],
               [
                 "--description <text>",
-                "An MCP server's description, which isn't on disk; in a terminal you're asked.",
+                "The description of a single item that doesn't have one, such as an MCP server's.",
+              ],
+              [
+                "--describe <item>=<text>",
+                "A description for one of the items, by name; once per item. Without a terminal, needed for each item that has none.",
+              ],
+              [
+                "--descriptions <file.json>",
+                "Descriptions from a JSON file: an object from item to text.",
               ],
               ["--scope user", "Look in your home folder rather than the project."],
               [
