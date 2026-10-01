@@ -31,13 +31,13 @@ nothing about them changes.
 **Out** (and where it goes instead):
 - **Submitting a draft whose dependency is only a draft or in review.** 013's rule stays (owner,
   2026-10-01): a dependency must be released first, so a dependent is "not ready" until then, with
-  013's message, and `rmk` shows the order. Submitting a dependent with its dependencies can come
-  in a later feature.
+  013's message, and `rmk` shows the order. Submitting a dependent with its dependencies:
+  [056](../056-pending-dependencies/SPEC.md).
 - **Withdrawing, deleting or editing in bulk:** later, if people ask.
 - **Fixing what's missing** from `rmk` or the list. That happens in the editor, or by exporting
   again (051); [053](../053-export-descriptions/SPEC.md) closes the most common gap, a missing
   description.
-- **Reviewing in bulk** (approving many at once): 014's review is one submission at a time, on
+- **Reviewing in bulk** (approving many at once): [054](../054-bulk-approve/SPEC.md) adds approving; 014's review was one submission at a time, on
   purpose.
 
 ## Behaviour
@@ -203,7 +203,8 @@ The server's instructions say to show the check first and submit only what the p
 1. **Tokens that submit** (owner, 2026-10-01): every token may submit its user's drafts, without
    token scopes. MVP §15's "Access tokens" row and 009's note say so.
 2. **A dependent with its dependencies** (owner, 2026-10-01): 013's rule stays; a dependency is
-   released before its dependent is ready. `rmk` and the check show the order.
+   released before its dependent is ready. `rmk` and the check show the order. Changed by
+   [056](../056-pending-dependencies/SPEC.md) (owner, 2026-10-01).
 
 ## Open questions
 
