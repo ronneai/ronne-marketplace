@@ -14,7 +14,7 @@ const itemUrl = `/items/${E2E_SCOPE}/${E2E_PROPOSAL_ITEM}`;
 /** Proposes a change from the item page, and returns the editor's URL. */
 const propose = async (page: Page) => {
   await page.goto(itemUrl);
-  await page.getByRole("button", { name: "Propose a change" }).click();
+  await page.getByRole("button", { name: "Propose a change", exact: true }).click();
   await expect(page).toHaveURL(/\/submissions\/[0-9A-Z]{26}$/);
   await expect(
     page.getByText(`A change to @${E2E_SCOPE}/${E2E_PROPOSAL_ITEM} 1.0.0.`),

@@ -65,9 +65,9 @@ and ARIA handling. 0.x is its stable line (no 1.0 exists).
 
 ## Acceptance criteria
 
-- [ ] Every helper opens as a popover next to its question, without moving the page.
-- [ ] It flips and shifts to stay in the window, also inside dialogs.
-- [ ] Esc and a click outside close it; focus returns to the question; the question has
+- [x] Every helper opens as a popover next to its question, without moving the page.
+- [x] It flips and shifts to stay in the window, also inside dialogs.
+- [x] Esc and a click outside close it; focus returns to the question; the question has
       `aria-expanded` and the popover is labelled by it.
-- [ ] Without JavaScript, the answer shows inline.
-- [ ] The dependency passes the license, audit and pack checks.
+- [x] Without JavaScript, the answer shows inline.
+- [x] The dependency passes the license, audit and pack checks.
