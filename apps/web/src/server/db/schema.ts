@@ -243,6 +243,14 @@ export interface UsageDailyTable {
   count: number;
 }
 
+/** A setting root changes in the app (migration 0013); no row means the setting's default. */
+export interface InstanceSettingTable {
+  key: string;
+  value: string;
+  updated_by: string | null;
+  updated_at: Timestamp;
+}
+
 /** Kysely table types for the whole app. Each migration that adds a table adds its interface here. */
 export interface Database {
   user: UserTable;
@@ -262,4 +270,5 @@ export interface Database {
   dist_tags: DistTagTable;
   version_dependencies: VersionDependencyTable;
   usage_daily: UsageDailyTable;
+  instance_settings: InstanceSettingTable;
 }

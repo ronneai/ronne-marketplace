@@ -36,6 +36,7 @@ export const AUDIT_ACTIONS = [
   "version.unyanked",
   "dist_tag.moved",
   "dist_tag.removed",
+  "settings.usage_policy",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
@@ -49,6 +50,7 @@ export const AUDIT_ACTION_GROUPS = [
   "submission",
   "version",
   "dist_tag",
+  "settings",
   "instance",
 ] as const;
 export type AuditActionGroup = (typeof AUDIT_ACTION_GROUPS)[number];

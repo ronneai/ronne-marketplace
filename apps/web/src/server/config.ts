@@ -20,8 +20,6 @@ export type AppConfig = {
   storagePath: string;
   /** Trust X-Forwarded-* headers from a reverse proxy (TRUST_PROXY=true). */
   trustProxy: boolean;
-  /** Accept usage reports from `rmk` (feature 046); `USAGE_TELEMETRY=off` refuses them. */
-  usageTelemetry: boolean;
 };
 
 /**
@@ -45,7 +43,6 @@ export const loadConfig = (options: { appDir?: string; env?: Env } = {}): AppCon
     publicUrl: value("PUBLIC_URL"),
     storagePath: value("STORAGE_PATH") ?? "./data/storage",
     trustProxy: value("TRUST_PROXY") === "true",
-    usageTelemetry: !["off", "false", "0"].includes(value("USAGE_TELEMETRY")?.toLowerCase() ?? ""),
   };
 };
 

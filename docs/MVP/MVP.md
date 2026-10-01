@@ -58,7 +58,7 @@ Items are written once in a canonical format and delivered to the major AI codin
 | Approve own submission (override, audited) | — | — | ✅ |
 | Create scopes | — | — | ✅ |
 | Create / disable users, change roles | — | — | ✅ |
-| Instance settings | — | — | ✅ |
+| Instance settings (the usage policy, [046](../features/046-usage-telemetry/SPEC.md)) | — | — | ✅ |
 
 Users are **only created from the web app** (by root). The CLI never registers accounts.
 
@@ -566,6 +566,8 @@ IDs are ULIDs and timestamps are UTC (§9.4).
 | `submission_revision_files` | revision_id, path — PK (revision_id, path); encoding, content, size, executable (as `submission_files`) |
 | `review_events` | id, submission_id, actor_id, kind (`submit`/`resubmit`/`comment`/`request_changes`/`approve`/`reject`/`override`/`withdraw`), body, revision, created_at |
 | `audit_log` | id, actor_id, action, target_type, target_id, metadata (JSON), created_at |
+| `usage_daily` | item_id, day, version, tool, event, run_trigger, outcome, count — PK on all but count: daily usage totals from `rmk`, kept 90 days, nothing per person or project ([046](../features/046-usage-telemetry/SPEC.md)) |
+| `instance_settings` | key (PK), value, updated_by (set null), updated_at: settings root changes in the app, such as the usage policy; no row means the default (046) |
 
 ## 11. REST API sketch (`/api/v1`)
 

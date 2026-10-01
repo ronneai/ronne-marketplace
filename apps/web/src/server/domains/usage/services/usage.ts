@@ -1,5 +1,6 @@
 import { requirePermission } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
+import type { UsagePolicy } from "../../settings/models/usage-policy";
 import { InvalidUsageReportError, UsageDisabledError } from "../exceptions/errors";
 import {
   dayOf,
@@ -13,15 +14,15 @@ import {
 import type { UsageRepository, UsageRow } from "../repositories/usage-repository";
 
 /**
- * Recording usage that `rmk` reports (feature 046, MVP §14.6). Any signed-in token may report; the
- * instance can refuse every report (`USAGE_TELEMETRY=off`). An event that can't be counted (an item
+ * Recording usage that `rmk` reports (feature 046, MVP §14.6). Any signed-in token may report while
+ * root's usage policy isn't `off`; under `off` every report is refused. An event that can't be counted (an item
  * or version not published here, a stale day, an unknown value) is ignored rather than refused, so
  * one odd line never loses the rest. Only daily totals are stored: nothing about who reported.
  */
 export type UsageDeps = {
   usage: UsageRepository;
-  /** Whether this instance accepts usage. */
-  accepting: boolean;
+  /** Root's usage policy (the settings domain). */
+  policy: UsagePolicy;
   now: () => Date;
   /** Whether old totals are due for deletion today; the first report of each day prunes. */
   pruneDue: (today: string) => boolean;
@@ -29,12 +30,12 @@ export type UsageDeps = {
 
 export type UsageActor = { user: CurrentUser };
 
-export type UsageSettings = { accepting: boolean; retentionDays: number };
+export type UsageSettings = { policy: UsagePolicy; retentionDays: number };
 
-/** What `GET /api/v1/usage` says, so `rmk telemetry on` can tell the person. */
-export const usageSettings = (deps: Pick<UsageDeps, "accepting">, actor: UsageActor) => {
+/** What `GET /api/v1/usage` says, so `rmk` knows whether and how to report. */
+export const usageSettings = (deps: Pick<UsageDeps, "policy">, actor: UsageActor) => {
   requirePermission(actor.user, "account.manage_own");
-  return { accepting: deps.accepting, retentionDays: RETENTION_DAYS } satisfies UsageSettings;
+  return { policy: deps.policy, retentionDays: RETENTION_DAYS } satisfies UsageSettings;
 };
 
 export const recordUsage = async (
@@ -43,7 +44,7 @@ export const recordUsage = async (
   body: unknown,
 ): Promise<{ accepted: number; ignored: number }> => {
   requirePermission(actor.user, "account.manage_own");
-  if (!deps.accepting) throw new UsageDisabledError();
+  if (deps.policy === "off") throw new UsageDisabledError();
   const list =
     body && typeof body === "object" && !Array.isArray(body)
       ? (body as { events?: unknown }).events

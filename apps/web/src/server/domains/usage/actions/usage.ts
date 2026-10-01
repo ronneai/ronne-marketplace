@@ -1,12 +1,14 @@
 import type { CurrentUser } from "../../identity/models/user";
 import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-instance";
+import { usagePolicy } from "../../settings/actions/settings";
+import type { UsagePolicy } from "../../settings/models/usage-policy";
 import { kyselyUsageRepository } from "../repositories/kysely-usage-repository";
 import * as service from "../services/usage";
 
 /**
  * Usage reports from `rmk` (feature 046), for the API: the user comes from a bearer token. Thin:
- * the service checks everything. Whether the instance accepts usage comes from its settings, which
- * the HTTP layer reads.
+ * the service checks everything. Root's usage policy is read on every call, so a change in
+ * Admin › Settings applies at once.
  */
 
 // The day old totals were last deleted, per server process: the first report of a day prunes.
@@ -17,19 +19,18 @@ const pruneDue = (today: string) => {
   return true;
 };
 
-const deps = (app: AppAuth, accepting: boolean): service.UsageDeps => ({
+const deps = (app: AppAuth, policy: UsagePolicy): service.UsageDeps => ({
   usage: kyselyUsageRepository(app.db, app.dialect),
-  accepting,
+  policy,
   now: () => new Date(),
   pruneDue,
 });
 
-export const recordUsageAs = (
+export const recordUsageAs = async (
   user: CurrentUser,
   body: unknown,
-  accepting: boolean,
   app: AppAuth = getAppAuth(),
-) => service.recordUsage(deps(app, accepting), { user }, body);
+) => service.recordUsage(deps(app, await usagePolicy(app)), { user }, body);
 
-export const usageSettingsAs = (user: CurrentUser, accepting: boolean) =>
-  service.usageSettings({ accepting }, { user });
+export const usageSettingsAs = async (user: CurrentUser, app: AppAuth = getAppAuth()) =>
+  service.usageSettings({ policy: await usagePolicy(app) }, { user });

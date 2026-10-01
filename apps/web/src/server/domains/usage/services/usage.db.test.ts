@@ -64,7 +64,7 @@ afterEach(() => t.cleanup());
 
 const deps = (overrides: Partial<UsageDeps> = {}): UsageDeps => ({
   usage: kyselyUsageRepository(t.db, t.dialect),
-  accepting: true,
+  policy: "choice",
   now: () => now,
   pruneDue: () => false,
   ...overrides,
@@ -183,15 +183,19 @@ describe("recordUsage", () => {
     ).rejects.toThrow("at most 500 events");
   });
 
-  it("refuses every report when the instance doesn't collect usage", async () => {
+  it("refuses every report while the usage policy is off, and accepts under the others", async () => {
     await expect(
-      recordUsage(deps({ accepting: false }), { user }, { events: [run()] }),
+      recordUsage(deps({ policy: "off" }), { user }, { events: [run()] }),
     ).rejects.toBeInstanceOf(UsageDisabledError);
-    expect(usageSettings(deps({ accepting: false }), { user })).toEqual({
-      accepting: false,
+    expect(usageSettings(deps({ policy: "off" }), { user })).toEqual({
+      policy: "off",
       retentionDays: 90,
     });
     expect(await stored()).toEqual([]);
+    expect(await recordUsage(deps({ policy: "required" }), { user }, { events: [run()] })).toEqual({
+      accepted: 1,
+      ignored: 0,
+    });
   });
 
   it("needs a signed-in user", async () => {

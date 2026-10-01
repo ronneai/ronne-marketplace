@@ -25,6 +25,7 @@ const EXPECTED: Record<Role, Permission[]> = {
     "submissions.override",
     "submissions.publish",
     "versions.manage",
+    "settings.manage",
   ],
 };
 

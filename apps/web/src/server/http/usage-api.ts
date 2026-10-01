@@ -1,4 +1,3 @@
-import { loadConfig } from "../config";
 import type { AppAuth } from "../domains/identity/repositories/auth-instance";
 import { recordUsageAs, usageSettingsAs } from "../domains/usage/actions/usage";
 import { InvalidUsageReportError, UsageDisabledError } from "../domains/usage/exceptions/errors";
@@ -9,22 +8,18 @@ import { type UsageLimiter, usageLimiter } from "./usage-rate-limit";
 
 /**
  * The usage API (feature 046): `rmk` reports daily counts of installs, removals and runs of the
- * items it installed, from machines where a person turned reporting on. Any token may report; the
- * instance can refuse with `USAGE_TELEMETRY=off`. Thin, like the drafts API: the usage domain
+ * items it installed, under root's usage policy (Admin › Settings). Any token may report unless the
+ * policy is `off`. Thin, like the drafts API: the usage domain
  * decides; this parses, limits, maps errors and shapes JSON.
  */
 export type UsageApiDeps = {
   app?: AppAuth;
   guard?: TokenGuardDeps;
   limiter?: UsageLimiter;
-  /** Whether the instance accepts usage; by default its settings (`USAGE_TELEMETRY`). */
-  accepting?: boolean;
 };
 
 /** 500 events of about 200 bytes each, with room to spare. */
 export const USAGE_BODY_MAX_BYTES = 256 * 1024;
-
-const acceptingOf = (deps: UsageApiDeps) => deps.accepting ?? loadConfig().usageTelemetry;
 
 const usageErrorResponse = (error: unknown): Response => {
   if (error instanceof UsageDisabledError)
@@ -36,12 +31,12 @@ const usageErrorResponse = (error: unknown): Response => {
   throw error;
 };
 
-/** GET /api/v1/usage: whether this instance accepts usage, and how long it keeps it. */
+/** GET /api/v1/usage: root's usage policy, and how long usage is kept. */
 export const getUsage = async (request: Request, deps: UsageApiDeps = {}) => {
   const guard = await requireToken(request, deps.guard);
   if (!guard.ok) return guard.response;
   try {
-    return Response.json(usageSettingsAs(guard.auth.user, acceptingOf(deps)), {
+    return Response.json(await usageSettingsAs(guard.auth.user, deps.app), {
       headers: { "cache-control": "private, no-cache" },
     });
   } catch (error) {
@@ -50,15 +45,12 @@ export const getUsage = async (request: Request, deps: UsageApiDeps = {}) => {
 };
 
 /**
- * POST /api/v1/usage: `{ "events": [ … ] }`. In order: the token, the switch, the rate, the body's
- * size, then the usage domain. Lines that can't be counted are ignored and reported as such.
+ * POST /api/v1/usage: `{ "events": [ … ] }`. In order: the token, the rate, the body's size, then
+ * the usage domain, which refuses everything while the policy is `off`. Lines that can't be counted are ignored and reported as such.
  */
 export const postUsage = async (request: Request, deps: UsageApiDeps = {}) => {
   const guard = await requireToken(request, deps.guard);
   if (!guard.ok) return guard.response;
-  const accepting = acceptingOf(deps);
-  // Checked before the rate, so a client told to stop isn't also told to slow down.
-  if (!accepting) return usageErrorResponse(new UsageDisabledError());
   const rate = (deps.limiter ?? usageLimiter()).consume(guard.auth.user.id);
   if (!rate.allowed)
     return rateLimitedResponse(
@@ -68,7 +60,7 @@ export const postUsage = async (request: Request, deps: UsageApiDeps = {}) => {
   const read = await readJsonObjectWithin(request, USAGE_BODY_MAX_BYTES);
   if (!read.ok) return read.response;
   try {
-    const result = await recordUsageAs(guard.auth.user, read.body, accepting, deps.app);
+    const result = await recordUsageAs(guard.auth.user, read.body, deps.app);
     return Response.json(result, { status: 202, headers: { "cache-control": "no-store" } });
   } catch (error) {
     return usageErrorResponse(error);

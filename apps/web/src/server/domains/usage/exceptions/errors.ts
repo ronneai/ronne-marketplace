@@ -6,10 +6,10 @@ export class UsageError extends Error {
   }
 }
 
-/** The instance doesn't accept usage reports: `USAGE_TELEMETRY=off`. */
+/** Root's usage policy is `off`: the instance refuses usage reports. */
 export class UsageDisabledError extends UsageError {
   constructor() {
-    super("This instance doesn't collect usage. rmk stops reporting to it for a week.");
+    super("This instance doesn't collect usage: root's usage policy is off.");
   }
 }
 

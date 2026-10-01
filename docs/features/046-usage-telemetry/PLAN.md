@@ -24,14 +24,14 @@ the same change that completes it.
   *Done when:* `usage-api.db.test.ts` covers acceptance, every ignore rule, the limits, `401` and the
   switch. (The switch was replaced by the policy in task 2b.)
 
-- [ ] **2b. The usage policy.** An `instance_settings` table and a settings domain (read with a
+- [x] **2b. The usage policy.** An `instance_settings` table and a settings domain (read with a
   default, write by root only, audited as `settings.usage_policy`); the usage API reads the policy
   instead of `USAGE_TELEMETRY` (removed), and `GET /api/v1/usage` returns it; the Admin › Settings
-  page with the three choices and the `usage-policy` helper.
+  page with the three choices. (The `usage-policy` helper moved to task 6: it links to the `usage`
+  topic, which task 6 writes.)
   *Done when:* `*.db.test.ts` covers the default `off`, root changing it, another role refused, the
   audit entry and the API following the change without a restart, on all four database servers; a
-  component test covers the page; `admin.e2e.ts` (or the closest admin end-to-end test) changes the
-  policy as root.
+  component test covers the page; `settings.e2e.ts` changes the policy as root.
 
 - [ ] **3. `rmk`: the policy, the queue and sending.** Each registry's policy from `GET /usage`
   (daily, and at `rmk login`), kept in the usage state; the rules per policy (`rmk telemetry off`,
@@ -55,8 +55,8 @@ the same change that completes it.
   of the spec's table, an item `rmk` didn't install, a name matching two items, and that the hook
   always exits 0 and prints nothing; install and `off` round-trip with the conflict rule.
 
-- [ ] **6. Documentation.** The `usage` topic, the `rmk` and `roles` sections in the spec's
-  Documentation section; `docs/spec/cli-files.md` gets the config's `telemetry` field and the queue.
+- [ ] **6. Documentation.** The `usage` topic, the `rmk` and `roles` sections and the `usage-policy`
+  helper in the spec's Documentation section; `docs/spec/cli-files.md` gets the config's `telemetry` field and the queue.
   *Done when:* the docs render tests pass, and every link to the new topic lands on a real section.
 
 ## Notes
@@ -82,3 +82,7 @@ goes into `SPEC.md` instead.
 - **Task 2.** The API checks, in order: the token, the switch (so a client told to stop isn't also
   told to slow down), the rate, the body's size, then the domain. `USAGE_TELEMETRY` accepts `off`,
   `false` or `0`. MVP §11, §12 and the access tokens decision now say a token may report usage.
+- **Task 2b.** Settings are their own domain (`domains/settings`) with an `instance_settings` table
+  (migration 0013); a missing row reads as the default, so nothing is seeded. The usage domain reads
+  the policy on every request, so a change applies at once. `settings.e2e.ts` puts the policy back to
+  `off` at the end, because the end-to-end tests share one instance.

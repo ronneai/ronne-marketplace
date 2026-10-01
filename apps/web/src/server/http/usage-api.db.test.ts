@@ -6,6 +6,8 @@ import { createRoot } from "../domains/identity/actions/root-account";
 import type { AppAuth } from "../domains/identity/repositories/auth-instance";
 import { createTestUser, testAppAuth } from "../domains/identity/testing/test-auth";
 import { kyselyItemRepository } from "../domains/items/repositories/kysely-item-repository";
+import type { UsagePolicy } from "../domains/settings/models/usage-policy";
+import { kyselySettingsRepository } from "../domains/settings/repositories/kysely-settings-repository";
 import { getUsage, postUsage, type UsageApiDeps } from "./usage-api";
 import { createUsageLimiter } from "./usage-rate-limit";
 
@@ -14,6 +16,10 @@ let t: TestDb;
 let app: AppAuth;
 let deps: UsageApiDeps;
 let token: string;
+let rootId: string;
+/** Root's usage policy, as Admin › Settings stores it. */
+const setPolicy = (policy: UsagePolicy) =>
+  kyselySettingsRepository(t.db, t.dialect).set("usage_policy", policy, rootId, new Date());
 const URL_ = "http://localhost:3000/api/v1/usage";
 const password = "correct horse battery";
 const today = new Date().toISOString().slice(0, 10);
@@ -25,13 +31,13 @@ beforeEach(async () => {
     app,
     guard: { ready: async () => true, authenticate: (value) => authenticateToken(value, app) },
     limiter: createUsageLimiter(),
-    accepting: true,
   };
-  const { id: rootId } = await createRoot(t.db, t.dialect, {
+  ({ id: rootId } = await createRoot(t.db, t.dialect, {
     email: "root@example.com",
     name: "Root",
     password,
-  });
+  }));
+  await setPolicy("choice");
   await createTestUser(app, { email: "u@example.com", password });
   const result = await exchangePassword(
     { email: "u@example.com", password, name: "test" },
@@ -125,8 +131,9 @@ describe("POST /api/v1/usage", () => {
     expect(await totals()).toEqual([]);
   });
 
-  it("refuses everything with 403 usage_disabled when the instance doesn't collect usage", async () => {
-    const response = await post({ events: [event()] }, token, { ...deps, accepting: false });
+  it("refuses everything with 403 usage_disabled while the policy is off", async () => {
+    await setPolicy("off");
+    const response = await post({ events: [event()] });
     expect(response.status).toBe(403);
     expect((await response.json()).error.code).toBe("usage_disabled");
     expect(await totals()).toEqual([]);
@@ -155,12 +162,10 @@ describe("GET /api/v1/usage", () => {
   const get = (d: UsageApiDeps, auth: string | null = token) =>
     getUsage(new Request(URL_, { headers: auth ? { authorization: `Bearer ${auth}` } : {} }), d);
 
-  it("says whether the instance accepts usage and how long it keeps it", async () => {
-    expect(await (await get(deps)).json()).toEqual({ accepting: true, retentionDays: 90 });
-    expect(await (await get({ ...deps, accepting: false })).json()).toEqual({
-      accepting: false,
-      retentionDays: 90,
-    });
+  it("says root's usage policy, following a change at once, and how long usage is kept", async () => {
+    expect(await (await get(deps)).json()).toEqual({ policy: "choice", retentionDays: 90 });
+    await setPolicy("required");
+    expect(await (await get(deps)).json()).toEqual({ policy: "required", retentionDays: 90 });
     expect((await get(deps, null)).status).toBe(401);
   });
 });
