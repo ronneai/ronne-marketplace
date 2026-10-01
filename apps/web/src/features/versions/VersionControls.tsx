@@ -32,17 +32,32 @@ const TextArea = ({
   </div>
 );
 
-/** The actions on one version: deprecate or undeprecate, yank or unyank (feature 016). */
+/** Runs and installs of one version over 30 days (047). */
+export type VersionReach = { runs: number; installs: number };
+
+/** What the deprecate and yank dialogs say about who still uses the version (047). */
+export const reachLine = ({ runs, installs }: VersionReach) =>
+  `Reported in the last 30 days: ${runs.toLocaleString("en-US")} ${runs === 1 ? "run" : "runs"}, ${installs.toLocaleString("en-US")} ${installs === 1 ? "install" : "installs"}.`;
+
+const Reach = ({ reach }: { reach: VersionReach | null }) =>
+  reach ? <p className="text-sm text-fg">{reachLine(reach)}</p> : null;
+
+/**
+ * The actions on one version: deprecate or undeprecate, yank or unyank (feature 016). `reach` is the
+ * version's usage when the item has enough to show (047), so the dialogs say what still uses it.
+ */
 export const VersionControls = ({
   itemRef,
   version,
   deprecated,
   yanked,
+  reach = null,
 }: {
   itemRef: ItemRef;
   version: string;
   deprecated: boolean;
   yanked: boolean;
+  reach?: VersionReach | null;
 }) => (
   <div className="flex flex-wrap justify-end gap-1">
     {deprecated ? (
@@ -73,7 +88,9 @@ export const VersionControls = ({
             hint="Shown wherever this version is installed, such as “Use 1.2.0 or later.” It stays installable."
           />
         )}
-      />
+      >
+        <Reach reach={reach} />
+      </ChangeDialog>
     )}
     {yanked ? (
       <ChangeDialog
@@ -106,7 +123,9 @@ export const VersionControls = ({
             hint="New installs can't resolve it; projects that pin it in their lockfile still get it. If latest points to it, latest moves back."
           />
         )}
-      />
+      >
+        <Reach reach={reach} />
+      </ChangeDialog>
     )}
   </div>
 );

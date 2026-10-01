@@ -1,9 +1,16 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ForbiddenError } from "@/server/domains/identity/exceptions/errors";
-import { InvalidUsagePolicyError } from "@/server/domains/settings/exceptions/errors";
+import {
+  InvalidUsageMinimumError,
+  InvalidUsagePolicyError,
+} from "@/server/domains/settings/exceptions/errors";
 
-const settings = vi.hoisted(() => ({ instanceSettings: vi.fn(), setUsagePolicy: vi.fn() }));
+const settings = vi.hoisted(() => ({
+  instanceSettings: vi.fn(),
+  setUsagePolicy: vi.fn(),
+  setUsageMinimum: vi.fn(),
+}));
 const session = vi.hoisted(() => ({ getCurrentUser: vi.fn() }));
 const cache = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
 vi.mock("@/server/domains/settings/actions/settings", () => settings);
@@ -28,7 +35,11 @@ const form = (policy: string) => {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  settings.instanceSettings.mockResolvedValue({ usagePolicy: "off", usagePolicyChangedAt: null });
+  settings.instanceSettings.mockResolvedValue({
+    usagePolicy: "off",
+    usagePolicyChangedAt: null,
+    usageMinimum: 0,
+  });
 });
 
 describe("saveUsagePolicy", () => {
@@ -69,17 +80,33 @@ describe("Admin › Settings", () => {
     settings.instanceSettings.mockResolvedValueOnce({
       usagePolicy: "required",
       usagePolicyChangedAt: new Date(),
+      usageMinimum: 20,
     });
     const html = renderToStaticMarkup(await AdminSettings());
     for (const text of ["Settings", "Usage reporting", "Off", "People choose", "Required"])
       expect(html).toContain(text);
     expect(html).toMatch(/checked="" value="required"/);
     expect(html.match(/checked=""/g)).toHaveLength(1);
+    // The usage minimum, with its current value.
+    expect(html).toContain("Show an item&#x27;s usage from");
+    expect(html).toMatch(/name="usageMinimum"[^>]*value="20"/);
   });
 
   it("disables Save until the choice changes", () => {
     expect(renderToStaticMarkup(<UsagePolicyForm policy="off" />)).toMatch(
       /<button[^>]*disabled=""[^>]*>Save/,
     );
+  });
+});
+
+describe("saveUsageMinimum", () => {
+  it("saves the minimum, and shows a domain error", async () => {
+    const data = new FormData();
+    data.set("usageMinimum", "20");
+    settings.setUsageMinimum.mockResolvedValueOnce({ changed: true });
+    expect(await actions.saveUsageMinimum({}, data)).toEqual({ done: "Usage minimum saved." });
+    expect(settings.setUsageMinimum).toHaveBeenCalledWith(expect.any(Headers), "20");
+    settings.setUsageMinimum.mockRejectedValueOnce(new InvalidUsageMinimumError());
+    expect((await actions.saveUsageMinimum({}, data)).error).toContain("whole number");
   });
 });

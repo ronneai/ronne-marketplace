@@ -22,6 +22,12 @@
   --color-on-accent: var(--on-accent);
   --color-link: var(--link);
   --color-tint: var(--tint);
+  --color-chart: var(--chart);
+  --color-chart-neutral: var(--chart-neutral);
+  --color-chart-well: var(--chart-well);
+  --color-chart-cursor: var(--chart-cursor);
+  --color-chart-claude-code: var(--chart-claude-code);
+  --color-chart-codex: var(--chart-codex);
   --color-focus: var(--focus);
   --color-code-bg: var(--code-bg);
   --color-code-fg: var(--code-fg);

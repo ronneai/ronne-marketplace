@@ -34,12 +34,15 @@ instance, under root's usage policy (046), and the page says so.
 
 ## Behaviour
 
-**When usage is shown.** An item's usage appears only when it has **at least 20 reported events**
-(installs plus runs) in the last 30 days. Under that, the Overview looks as 045 built it, and in place
-of the Usage card there's one line: "Usage appears once this item has 20 reported installs or runs in
-30 days." When the instance's usage policy is `off` (046) and it has none stored, neither the line nor anything else about usage appears. The minimum keeps a handful of
-events from looking like a trend. It can't tell one busy person from many, and the Documentation says
-so.
+**When usage is shown.** By default, as soon as an item has **any** reported install or run in the
+last 30 days. Root can set a **minimum** on Admin › Settings ("Show an item's usage from N installs
+or runs in 30 days", 0 to 10,000, default 0, audited as `settings.usage_minimum`); under it, no
+number leaves the server. Without usage, the Overview looks as 045 built it, with one line in place
+of the Usage card: "No installs or runs reported in the last 30 days.", or, under a minimum, "Usage
+appears once this item has N reported installs or runs in 30 days." When the instance's usage policy
+is `off` (046) and it has none stored, neither line nor anything else about usage appears. A
+minimum keeps a handful of events from looking like a trend; it can't tell one busy person from
+many, and the Documentation says so.
 
 Who sees it: everyone signed in, like the rest of the item page (decision 3).
 
@@ -70,9 +73,16 @@ Versions, which the Runs card replaces, is still the Versions tab with its count
 - A help helper and the note "Counted by rmk on machines that report to this instance; see Usage data for what's sent."
 - For a type with no runs, the card shows installs and removals per day instead.
 
-**Charts** are built from the design system's tokens with plain SVG and CSS, with no chart library:
-flat, teal for the data, muted for the rest, red and amber never (they mean errors and warnings, not
-"error runs"). Each chart has a text alternative.
+**Charts** follow the owner's item overview mockup (owner, 2026-10-01), in plain CSS from the design
+system's tokens, with no chart library:
+- **Daily bars:** neutral (`chart-neutral`) on a faint well, teal on hover, the peak in teal (`chart`).
+- **By tool, and the distribution under Works in:** each tool in its own colour, fixed per tool and
+  never by rank: Cursor teal-600, Claude Code indigo-500, Codex amber-600 (the mockup's hues one
+  step deeper, so each passes 3:1 on both surfaces and the colour-blind checks). The design
+  system's second exception to a single accent (032).
+- **What started them, how they ended:** neutral rows with a dot, the count and the share, as the
+  mockup's triggers. Never red: an error run is a labelled row.
+- Each bar names itself in text or on hover, and the daily numbers are in a table.
 
 **Versions page (016):** two columns, **Runs** and **Installs** over the last 30 days per version,
 shown when the item as a whole passes the minimum; versions with none show "–". The **deprecate**
@@ -88,8 +98,8 @@ Both read `usage_daily` by `(item_id, day)`. `today` is passed in, so tests fix 
 
 ## Edge cases
 
-- **Exactly 20 events, then a day ages out:** the usage disappears again; the page never shows
-  numbers under the minimum.
+- **Exactly at root's minimum, then a day ages out:** the usage disappears again; the page never
+  shows numbers under the minimum.
 - **Plenty of installs but no runs** (installed in tools that can't report this type): Runs says "No
   runs reported" with the gap line; the Usage card shows the gaps.
 - **Runs with no outcome at all:** "success rate not reported".
@@ -109,29 +119,32 @@ Both read `usage_daily` by `(item_id, day)`. `today` is passed in, so tests fix 
 - **Topic `items`, section `contents`:** the usage cards and the Usage card replace the sentence that
   usage isn't shown (045).
 - **Topic `versions`, section `deprecate-yank`:** the runs and installs in the dialogs.
-- **Inline helpers:** a new `usage` helper on the Usage card and the minimum line: "Counted by rmk
-  where this instance collects usage (root's policy). Shown once an item has 20 reported installs or
-  runs in 30 days." It links to `usage#reading`.
+- **Inline helpers:** a new `usage` helper on the Usage card and the line without usage ("From rmk,
+  on machines that report to this instance under root's usage policy…"), and a `usage-minimum`
+  helper next to the setting; both link to `usage#reading`.
+- **Topic `roles`, section `permissions`:** root sets the usage policy and minimum.
 
 ## Acceptance criteria
 
-- [ ] Under 20 events in 30 days, the Overview matches 045 with the minimum line; at 20 and over,
-      Installs, Runs and Works in's shares appear.
-- [ ] The success rate appears only with 20 or more runs whose outcome is known.
-- [ ] The Usage card shows 14 full days with the peak, by tool, by trigger and by outcome, each with a
+- [x] With any install or run in 30 days (by default), Installs, Runs and Works in's shares appear;
+      without any, or under root's minimum, the Overview matches 045 with a line saying which.
+- [x] Root sets the minimum on Admin › Settings (0 to 10,000), audited; others can't.
+- [x] The success rate appears only with 20 or more runs whose outcome is known.
+- [x] The Usage card shows 14 full days with the peak, by tool, by trigger and by outcome, each with a
       text alternative, and the gaps for the item's type and tools.
-- [ ] Types without runs show installs instead of runs.
-- [ ] The Versions page and the deprecate and yank dialogs show runs and installs per version under
+- [x] Types without runs show installs instead of runs.
+- [x] The Versions page and the deprecate and yank dialogs show runs and installs per version under
       the same minimum.
-- [ ] With usage switched off and no data, nothing about usage appears.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] With usage switched off and no data, nothing about usage appears.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Decisions
 
 Answered by the owner on 2026-09-30:
 
-1. **When usage shows:** a minimum of activity, 20 reported installs or runs in 30 days (projects
-   aren't counted, so "5 projects" can't be the rule).
+1. **When usage shows:** first a minimum of 20 reported installs or runs in 30 days; changed the
+   next day (owner, 2026-10-01) to **no minimum by default, and a setting** root can raise on Admin ›
+   Settings. The success rate keeps its own rule: 20 runs whose outcome is known.
 2. **The home page's "Most used":** stays on downloads, which every instance has whatever its usage policy.
 3. **Who sees usage:** everyone signed in, like the rest of the item page.
 

@@ -13,8 +13,9 @@ const signIn = async (page: Page, email: string) => {
 /** Chooses a usage policy on Admin › Settings and saves it. */
 const choosePolicy = async (page: Page, label: string) => {
   await page.getByRole("radio", { name: new RegExp(`^${label}`) }).check();
-  await page.getByRole("button", { name: "Save" }).click();
-  await expect(page.getByText("Usage reporting saved.")).toBeVisible();
+  const form = page.getByRole("form", { name: "Usage reporting" });
+  await form.getByRole("button", { name: "Save" }).click();
+  await expect(form.getByText("Usage reporting saved.")).toBeVisible();
 };
 
 // Root is the only root, and sign-in allows 5 attempts a minute per email, so root's admin pages
@@ -65,6 +66,19 @@ test("root reads the audit log: setup, its own sign-in, and a settings change", 
   // Back to a new instance's default, so other tests see an instance that collects nothing.
   await admin.getByRole("link", { name: "Settings" }).click();
   await choosePolicy(page, "Off");
+  // The usage minimum (047): 0 by default; set, saved, then back to 0.
+  const minimum = page.getByLabel("Show an item's usage from");
+  await expect(minimum).toHaveValue("0");
+  const saveMinimum = async (value: string) => {
+    await minimum.fill(value);
+    const form = page.getByRole("form", { name: "Usage minimum" });
+    await form.getByRole("button", { name: "Save" }).click();
+    await expect(form.getByText("Usage minimum saved.")).toBeVisible();
+  };
+  await saveMinimum("5");
+  await page.reload();
+  await expect(minimum).toHaveValue("5");
+  await saveMinimum("0");
 
   await admin.getByRole("link", { name: "Users" }).click();
   await expect(current(admin)).toHaveText("Users");

@@ -1,5 +1,5 @@
 import { ItemPageView } from "@/features/item-page/ItemPageView";
-import { type ItemParams, loadItemPage } from "@/features/item-page/load";
+import { type ItemParams, loadItemPage, loadUsageByVersion } from "@/features/item-page/load";
 import { VersionsTab } from "@/features/versions/VersionsTab";
 
 export const metadata = { title: "Versions · Ronne AI Marketplace" };
@@ -12,7 +12,7 @@ const Versions = async ({ params }: { params: ItemParams }) => {
   const page = await loadItemPage(params);
   return (
     <ItemPageView page={page} tab="versions">
-      <VersionsTab page={page} />
+      <VersionsTab page={page} usage={await loadUsageByVersion(page.item.id)} />
     </ItemPageView>
   );
 };

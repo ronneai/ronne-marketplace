@@ -11,3 +11,9 @@ export class InvalidUsagePolicyError extends SettingsError {
     super("Choose off, people choose, or required.");
   }
 }
+
+export class InvalidUsageMinimumError extends SettingsError {
+  constructor() {
+    super("The minimum is a whole number from 0 to 10,000; 0 shows usage as soon as there's any.");
+  }
+}

@@ -8,7 +8,7 @@ import type { CurrentUser } from "../../identity/models/user";
 import { kyselyItemRepository } from "../../items/repositories/kysely-item-repository";
 import { InvalidUsageReportError, UsageDisabledError } from "../exceptions/errors";
 import { kyselyUsageRepository } from "../repositories/kysely-usage-repository";
-import { recordUsage, type UsageDeps, usageSettings } from "./usage";
+import { itemUsage, itemUsageByVersion, recordUsage, type UsageDeps, usageSettings } from "./usage";
 
 // Runs on the database in TEST_DATABASE_URL (in-memory SQLite by default; 004 runs all of them).
 let t: TestDb;
@@ -227,5 +227,80 @@ describe("usage_daily", () => {
     expect(await foreignKeys(t.db, t.dialect, ["usage_daily"])).toEqual([
       { table: "usage_daily", references: "items", onDelete: "CASCADE" },
     ]);
+  });
+});
+
+describe("the item page's usage (047)", () => {
+  const add = (rows: { day: string; version?: string; event: string; count: number }[]) =>
+    kyselyUsageRepository(t.db, t.dialect).add(
+      rows.map((r) => ({
+        itemId,
+        day: r.day,
+        version: r.version ?? "1.1.0",
+        tool: "claude-code",
+        event: r.event,
+        trigger: r.event === "run" ? "model" : "",
+        outcome: r.event === "run" ? "success" : "",
+        count: r.count,
+      })),
+    );
+  const item = () => ({ id: itemId, type: "agent" as const });
+  /** The page's deps, with root's minimum (0 by default). */
+  const page = (overrides: Partial<UsageDeps> = {}, minimum = 0) => ({
+    ...deps(overrides),
+    minimum,
+  });
+
+  it("reads the last 30 days only, and shows any usage there by default", async () => {
+    await add([{ day: "2026-08-01", event: "run", count: 500 }]);
+    expect(await itemUsage(page(), { user }, item())).toEqual({
+      shown: false,
+      collecting: true,
+      hasData: true,
+      underMinimum: null,
+    });
+    await add([
+      { day: "2026-10-04", event: "run", count: 1 },
+      { day: "2026-10-04", version: "1.0.0", event: "install", count: 1 },
+    ]);
+    expect(await itemUsage(page(), { user }, item())).toMatchObject({
+      shown: true,
+      runs: 1,
+      installs: 1,
+    });
+    expect(await itemUsageByVersion(page(), { user }, itemId)).toEqual({
+      "1.1.0": { runs: 1, installs: 0 },
+      "1.0.0": { runs: 0, installs: 1 },
+    });
+  });
+
+  it("shows nothing under root's minimum", async () => {
+    await add([{ day: "2026-10-04", event: "run", count: 4 }]);
+    expect(await itemUsage(page({}, 5), { user }, item())).toEqual({
+      shown: false,
+      collecting: true,
+      hasData: true,
+      underMinimum: 5,
+    });
+    expect(await itemUsageByVersion(page({}, 5), { user }, itemId)).toBeNull();
+    expect(await itemUsage(page({}, 4), { user }, item())).toMatchObject({ shown: true });
+  });
+
+  it("says when the instance no longer collects, and when there's nothing at all", async () => {
+    expect(await itemUsage(page({ policy: "off" }), { user }, item())).toEqual({
+      shown: false,
+      collecting: false,
+      hasData: false,
+      underMinimum: null,
+    });
+    await add([{ day: "2026-10-04", event: "run", count: 20 }]);
+    expect(await itemUsage(page({ policy: "off" }), { user }, item())).toMatchObject({
+      shown: true,
+      collecting: false,
+    });
+  });
+
+  it("needs a signed-in user", async () => {
+    await expect(itemUsage(page(), { user: null }, item())).rejects.toBeInstanceOf(ForbiddenError);
   });
 });

@@ -32,6 +32,19 @@
   --on-accent: #ffffff;
   --link: #14213d;
   --tint: #bfe9e1;
+  /* Chart marks (047): Deep teal on light, 3:1 or more against the surface. */
+  --chart: #0d7c70;
+  /* The usage charts' neutral bars and their well (the owner's mockup, 047). */
+  --chart-neutral: #e2e8f0;
+  --chart-well: #f8fafc;
+  /*
+   * One colour per AI tool in the usage charts, from the owner's mockup one step deeper so each
+   * passes 3:1 on both surfaces and the colour-blind checks (047). Chart series only: amber is
+   * still the warning colour everywhere else.
+   */
+  --chart-cursor: #0d9488;
+  --chart-claude-code: #6366f1;
+  --chart-codex: #d97706;
   --focus: #14213d;
   /* Code previews: an Ink block with Paper text, in both themes. */
   --code-bg: #0b1220;
@@ -64,6 +77,13 @@
   --on-accent: #ffffff;
   --link: #18b6a4;
   --tint: #14213d;
+  /* Chart marks (047): Teal on dark, 3:1 or more against the surface. */
+  --chart: #18b6a4;
+  --chart-neutral: rgba(191, 233, 225, 0.22);
+  --chart-well: #0b1220;
+  --chart-cursor: #0d9488;
+  --chart-claude-code: #6366f1;
+  --chart-codex: #d97706;
   --focus: #18b6a4;
   --code-bg: #0b1220;
   --code-fg: #f7f9fa;

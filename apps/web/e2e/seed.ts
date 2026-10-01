@@ -7,6 +7,8 @@ import { argon2PasswordHasher } from "../src/server/domains/identity/repositorie
 import { kyselyIdentityRepository } from "../src/server/domains/identity/repositories/kysely-identity-repository";
 import { kyselyItemRepository } from "../src/server/domains/items/repositories/kysely-item-repository";
 import { kyselyScopeRepository } from "../src/server/domains/items/repositories/kysely-scope-repository";
+import { dayOf, daysBefore } from "../src/server/domains/usage/models/usage-event";
+import { kyselyUsageRepository } from "../src/server/domains/usage/repositories/kysely-usage-repository";
 import { localStorage } from "../src/server/storage/local-storage";
 import {
   E2E_MODERATORS,
@@ -16,6 +18,7 @@ import {
   E2E_RMK_ITEMS,
   E2E_SCOPE,
   E2E_SKILL,
+  E2E_USAGE_PEAK,
   E2E_USERS,
   E2E_VERSIONED_ITEM,
 } from "./users";
@@ -74,6 +77,19 @@ for (const version of ["1.0.0", "1.1.0"])
     riskFlags: [],
   });
 await items.setTag(itemId, "latest", latest);
+// Installs of 1.0.0 yesterday (047): enough usage for the Versions page and its dialogs to show it.
+await kyselyUsageRepository(db, dialect).add([
+  {
+    itemId,
+    day: daysBefore(dayOf(new Date()), 1),
+    version: "1.0.0",
+    tool: "claude-code",
+    event: "install",
+    trigger: "",
+    outcome: "",
+    count: 25,
+  },
+]);
 
 const storagePath = process.env.STORAGE_PATH;
 if (!storagePath) throw new Error("STORAGE_PATH is required");
@@ -128,6 +144,32 @@ const skillVersion = await items.insertVersion({
   riskFlags: [],
 });
 await items.setTag(skillId, "latest", skillVersion);
+
+// Usage for the skill (047): runs over the last two weeks, the most 3 days ago, and installs, so its
+// Overview shows the usage cards and the Usage card's peak.
+const today = dayOf(new Date());
+await kyselyUsageRepository(db, dialect).add([
+  ...Array.from({ length: 14 }, (_, i) => ({
+    itemId: skillId,
+    day: daysBefore(today, i + 1),
+    version: "1.0.0",
+    tool: "claude-code",
+    event: "run",
+    trigger: i % 2 ? "user" : "model",
+    outcome: "success",
+    count: i === 2 ? E2E_USAGE_PEAK : 4,
+  })),
+  {
+    itemId: skillId,
+    day: daysBefore(today, 2),
+    version: "1.0.0",
+    tool: "cursor",
+    event: "install",
+    trigger: "",
+    outcome: "",
+    count: 6,
+  },
+]);
 
 // A skill released as 1.0.0 with a real artifact in storage, which a change proposal starts from
 // (feature 017).
@@ -230,7 +272,7 @@ const release = async (
 const mcpId = await release(E2E_RMK_ITEMS.mcp, "mcp-server", "1.0.0", {
   "ronne.yaml": `name: "@${E2E_SCOPE}/${E2E_RMK_ITEMS.mcp}"\ntype: mcp-server\ndescription: The kit-mcp item.\nmcp-server:\n  transport: stdio\n  command: npx\n  args: ["-y", "@example/mcp"]\n  env:\n    - name: KIT_TOKEN\n      required: true\n      secret: true\n`,
 });
-await release(
+const agentId = await release(
   E2E_RMK_ITEMS.agent,
   "agent",
   "1.0.0",
@@ -243,6 +285,19 @@ await release(
     { itemId: mcpId, range: "^1.0.0" },
   ],
 );
+// A few runs of the agent (047): with no minimum by default, its Overview shows them.
+await kyselyUsageRepository(db, dialect).add([
+  {
+    itemId: agentId,
+    day: daysBefore(dayOf(new Date()), 1),
+    version: "1.0.0",
+    tool: "claude-code",
+    event: "run",
+    trigger: "model",
+    outcome: "success",
+    count: 3,
+  },
+]);
 for (const version of ["1.0.0", "1.1.0"])
   await release(E2E_RMK_ITEMS.hook, "hook", version, {
     "ronne.yaml": `name: "@${E2E_SCOPE}/${E2E_RMK_ITEMS.hook}"\ntype: hook\ndescription: The kit-hook item.\nhook:\n  event: tool.after\n  matcher:\n    tool: edit\n  run:\n    command: "echo kit ${version}"\n`,
