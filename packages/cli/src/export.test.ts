@@ -775,11 +775,18 @@ describe("dependencies on export (041)", () => {
     });
     return { api: apiClient(io.fetch, REGISTRY, "rmk_test_token"), drafts: registry.drafts };
   };
-  const plan = (api: ReturnType<typeof apiClient>, dependencies?: "include" | "omit") =>
+  /** The MCP servers have no description on disk (053): the ones exported get these. */
+  const SERVERS = { github: "GitHub's issues.", jira: "Jira's tickets." };
+  const plan = (
+    api: ReturnType<typeof apiClient>,
+    dependencies?: "include" | "omit",
+    descriptions: Record<string, string> = dependencies === "include" ? SERVERS : {},
+  ) =>
     planExport(io, api, {
       items: ["reviewer"],
       to: "team",
       ...(dependencies ? { dependencies } : {}),
+      ...(Object.keys(descriptions).length > 0 ? { descriptions } : {}),
     });
 
   it("stops for a decision when the item uses items of the person's own", async () => {
@@ -821,12 +828,12 @@ describe("dependencies on export (041)", () => {
     });
     expect(reviewer?.warnings.map((w) => w.code)).toEqual(["dependency_missing"]);
     expect(reviewer?.warnings[0]?.message).toContain("plugin-thing");
-    // The manifests pass the checks; only the servers lack the description no file holds.
+    // The manifests pass the checks, the servers' with the descriptions given (053).
     for (const item of result.items)
       expect(
         item.issues.filter((i) => i.severity === "error").map((i) => i.path),
         item.name,
-      ).toEqual(item.type === "mcp-server" ? ["/description"] : []);
+      ).toEqual([]);
   });
 
   it("exports without them: only the item, the installed one still declared, and a warning", async () => {
@@ -873,7 +880,7 @@ describe("dependencies on export (041)", () => {
       ".claude/agents/reviewer.md",
       "---\nname: reviewer\ndescription: R.\nskills: [secure]\n---\nR.\n",
     );
-    const planned = await plan(api, "include");
+    const planned = await plan(api, "include", { jira: SERVERS.jira });
     expect(planned.items.map((i) => i.name)).toEqual([
       "@team/jira",
       "@team/secure",
@@ -896,7 +903,7 @@ describe("dependencies on export (041)", () => {
         }),
       },
     );
-    const result = await plan(api, "include");
+    const result = await plan(api, "include", {});
     expect(result.findings.map((f) => `${f.status}:${f.reference.name}`)).toEqual([
       "name_taken:github",
       "not_found:plugin-thing",
@@ -1085,7 +1092,13 @@ describe("Codex's and Cursor's files (043)", () => {
     const plan = await planExport(io, api, {
       items: ["planner", "frontend-style", "ship", "jira", "tracker", "auditor"],
       to: "team",
-      description: undefined,
+      // What no file says (053): a rule's, a command with only a body, and the servers'.
+      descriptions: {
+        "frontend-style": "The front end's style.",
+        ship: "Ship the release.",
+        jira: "Jira's tickets.",
+        tracker: "The tracker.",
+      },
     });
     expect(plan.refused).toEqual([]);
     const manifest = (name: string) =>
@@ -1243,22 +1256,97 @@ describe("descriptions (053)", () => {
   const descriptions = (plan: ExportPlan) =>
     Object.fromEntries(plan.items.map((item) => [item.name, item.description]));
 
-  it("says where each comes from, and which still need one, with the first line as a suggestion", async () => {
+  it("needs one for each item that doesn't describe itself, suggesting its first line", async () => {
     const api = setup();
+    const error = await planExport(io, api, {
+      items: ["described", "undescribed", "style"],
+      to: "team",
+    }).catch((e) => e);
+    expect(error).toMatchObject({ code: "descriptions_required", exitCode: 2 });
+    expect(error.details.items).toEqual([
+      {
+        local: ".claude/skills/undescribed",
+        name: "@team/undescribed",
+        type: "skill",
+        suggestion: "Undescribed",
+        file: { path: "SKILL.md", excerpt: "---\nname: undescribed\n---\n# Undescribed\n" },
+      },
+      {
+        local: ".claude/rules/style.md",
+        name: "@team/style",
+        type: "rule",
+        suggestion: "Use tabs, not spaces.",
+        file: { path: "rule.md", excerpt: "Use tabs, not spaces.\n" },
+      },
+    ]);
+    expect(io.requests.some((r) => r.method === "POST")).toBe(false);
+  });
+
+  it("takes them by full name, short name or place, writes them into what's uploaded, and changes no local file", async () => {
+    const api = setup();
+    const before = readFileSync(join(io.cwd, ".claude/skills/undescribed/SKILL.md"), "utf8");
     const plan = await planExport(io, api, {
       items: ["described", "undescribed", "style"],
       to: "team",
+      descriptions: {
+        "@team/undescribed": " Does the\nundescribed thing. ",
+        ".claude/rules/style.md": "Keeps the house style: tabs.",
+        described: "Ignored: it has its own.",
+      },
     });
     expect(descriptions(plan)).toEqual({
       "@team/described": { origin: "item", text: "Checks code.", suggestion: null },
-      "@team/undescribed": { origin: "missing", text: null, suggestion: "Undescribed" },
-      "@team/style": { origin: "missing", text: null, suggestion: "Use tabs, not spaces." },
+      "@team/undescribed": {
+        origin: "given",
+        text: "Does the undescribed thing.",
+        suggestion: null,
+      },
+      "@team/style": { origin: "given", text: "Keeps the house style: tabs.", suggestion: null },
+    });
+    const item = (name: string) => plan.items.find((i) => i.name === `@team/${name}`);
+    const text = (name: string, path: string) =>
+      new TextDecoder().decode(item(name)?.files.find((f) => f.path === path)?.bytes);
+    expect(item("undescribed")?.manifestText).toContain("description: Does the undescribed thing.");
+    expect(text("undescribed", "ronne.yaml")).toBe(item("undescribed")?.manifestText);
+    expect(text("undescribed", "SKILL.md")).toBe(
+      "---\nname: undescribed\ndescription: Does the undescribed thing.\n---\n# Undescribed\n",
+    );
+    expect(item("undescribed")?.warnings.map((w) => w.code)).toContain("description_added");
+    expect(text("style", "ronne.yaml")).toContain('description: "Keeps the house style: tabs."');
+    expect(item("described")?.warnings.map((w) => w.code)).toContain("description_ignored");
+    expect(item("described")?.manifestText).toContain("description: Checks code.");
+    expect(readFileSync(join(io.cwd, ".claude/skills/undescribed/SKILL.md"), "utf8")).toBe(before);
+  });
+
+  it("refuses one over 300 characters, and one for an item that isn't exported", async () => {
+    const api = setup();
+    const long = await planExport(io, api, {
+      items: ["style"],
+      to: "team",
+      descriptions: { style: "x".repeat(301) },
+    }).catch((e) => e);
+    expect(long).toMatchObject({ code: "description_too_long", details: { item: "@team/style" } });
+    const unknown = await planExport(io, api, {
+      items: ["style"],
+      to: "team",
+      descriptions: { style: "Tabs.", stlye: "Typo." },
+    }).catch((e) => e);
+    expect(unknown).toMatchObject({ code: "unknown_item", details: { items: ["stlye"] } });
+  });
+
+  it("takes --description for a single item of any type", async () => {
+    const api = setup();
+    const plan = await planExport(io, api, { items: ["style"], to: "team", description: "Tabs." });
+    expect(plan.items[0]?.description).toEqual({
+      origin: "given",
+      text: "Tabs.",
+      suggestion: null,
     });
   });
 
   it("takes an MCP server's given description, and needs one without it", async () => {
     let api = setup();
-    let plan = await planExport(io, api, {
+    const plan = await planExport(io, api, {
       items: ["tracker"],
       type: "mcp-server",
       to: "team",
@@ -1271,8 +1359,16 @@ describe("descriptions (053)", () => {
     });
     io.cleanup();
     api = setup();
-    plan = await planExport(io, api, { items: ["tracker"], type: "mcp-server", to: "team" });
-    expect(plan.items[0]?.description.origin).toBe("missing");
+    const error = await planExport(io, api, {
+      items: ["tracker"],
+      type: "mcp-server",
+      to: "team",
+    }).catch((e) => e);
+    expect(error.details.items[0]).toMatchObject({
+      name: "@team/tracker",
+      suggestion: null,
+      file: { path: "ronne.yaml" },
+    });
   });
 
   it("keeps the description of the draft it updates when the item has none of its own", async () => {
@@ -1290,12 +1386,16 @@ describe("descriptions (053)", () => {
     const plan = await planExport(io, api, {
       items: ["described", "undescribed", "style"],
       to: "team",
+      descriptions: { style: "Tabs." },
     });
     expect(descriptions(plan)).toEqual({
       "@team/described": { origin: "item", text: "Checks code.", suggestion: null },
       "@team/undescribed": { origin: "draft", text: "Mine.", suggestion: null },
-      "@team/style": { origin: "missing", text: null, suggestion: "Use tabs, not spaces." },
+      "@team/style": { origin: "given", text: "Tabs.", suggestion: null },
     });
+    expect(plan.items.find((i) => i.name === "@team/undescribed")?.manifestText).toContain(
+      "description: Mine.",
+    );
   });
 });
 

@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { formatBytes, type ManifestIssue } from "@ronneai/core";
 import type { ApiClient } from "./api.js";
 import type { Args } from "./cli.js";
@@ -33,7 +35,7 @@ import { itemPath } from "./registry-commands.js";
  * when a command ends, so everything a person must see before answering is in the question itself.
  */
 
-const str = (value: string | boolean | undefined) =>
+const str = (value: string | boolean | string[] | undefined) =>
   typeof value === "string" ? value : undefined;
 
 const SKIP_WORDS: Record<SkipReason, string> = {
@@ -180,6 +182,37 @@ const dependenciesOption = (args: Args): "include" | "omit" | undefined => {
   const noDeps = args.values["no-deps"] === true;
   if (withDeps && noDeps) throw usage("Use --with-deps or --no-deps, not both.");
   return withDeps ? "include" : noDeps ? "omit" : undefined;
+};
+
+/**
+ * Descriptions for items that don't describe themselves (053): `--descriptions <file.json>`, an
+ * object from item to text, then each `--describe <item>=<text>` over it.
+ */
+const descriptionsOption = (io: Io, args: Args): Record<string, string> | undefined => {
+  const out: Record<string, string> = {};
+  const file = str(args.values.descriptions);
+  if (file !== undefined) {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(readFileSync(resolve(io.cwd, file), "utf8"));
+    } catch (error) {
+      throw usage(`--descriptions ${file} can't be read as JSON: ${(error as Error).message}`);
+    }
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
+      throw usage(`--descriptions ${file} is a JSON object from item to description.`);
+    for (const [item, text] of Object.entries(parsed)) {
+      if (typeof text !== "string")
+        throw usage(`--descriptions ${file}: ${item}'s description isn't text.`);
+      out[item] = text;
+    }
+  }
+  const given = args.values.describe;
+  for (const value of Array.isArray(given) ? given : typeof given === "string" ? [given] : []) {
+    const at = value.indexOf("=");
+    if (at <= 0) throw usage(`--describe takes <item>=<text>, such as --describe style="Tabs."`);
+    out[value.slice(0, at).trim()] = value.slice(at + 1);
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
 };
 
 /** `--from`, checked: one of the tools export reads (043). */
@@ -342,6 +375,7 @@ export const exportCommand = async (io: Io, args: Args, out: Output, api: ApiCli
     force: args.values.force === true,
     new: args.values.new === true,
     newDraft: args.values["new-draft"] === true,
+    descriptions: descriptionsOption(io, args),
     dependencies: dependenciesOption(args),
     type: typeOption(args),
     from: fromOption(args),

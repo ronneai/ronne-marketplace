@@ -17,18 +17,19 @@ the same change that completes it.
   *Done when:* `export.test.ts` covers each kind of item for each tool, a proposal, and a draft with
   and without a description; the drafts API test covers the new field.
 
-- [ ] **2. Taking descriptions.** `ExportRequest.descriptions`, with trimming, the 300-character
-  refusal and unknown keys, and `descriptions_required` with suggestions and excerpts. The
-  descriptions go into `ronne.yaml`, a skill's uploaded `SKILL.md` frontmatter, and the plan's
-  fingerprint.
+- [x] **2. Taking descriptions.** `ExportRequest.descriptions` (and `description` for any single
+  item), with trimming, the 300-character refusal and unknown keys, and `descriptions_required`
+  with suggestions and excerpts; the descriptions go into `ronne.yaml`, a skill's uploaded
+  `SKILL.md` frontmatter (`withDescription` in core), and the plan's fingerprint. `rmk export`'s
+  `--describe` and `--descriptions` come here too, since without them no non-interactive export of
+  an undescribed item could work.
   *Done when:* the tests cover a plan refused, then made with descriptions; the uploaded files; and
   the local files unchanged.
 
-- [ ] **3. `rmk export`.** The terminal question with the suggestion, `--describe`,
-  `--descriptions`, `--description` for any single item, the preview's description and source, and
-  exit `2` without them.
+- [ ] **3. `rmk export`.** The terminal question with the suggestion, and the preview's description
+  and source.
   *Done when:* `cli.test.ts` covers asking, Enter for the suggestion, three empty answers, the
-  flags, and no terminal.
+  preview, and exit `2` without a terminal.
 
 - [ ] **4. MCP.** `plan_export`'s `descriptions` and its `needs` answer with the instructions; the
   plan text's "written by your AI tool"; the server instructions.

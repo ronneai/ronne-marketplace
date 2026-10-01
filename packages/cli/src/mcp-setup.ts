@@ -16,7 +16,10 @@ import { readProjectConfig } from "./project.js";
  * file under `rmk mcp-setup`, so installs leave them alone, `--remove` takes exactly them away, and
  * an entry the person made is a conflict, never overwritten.
  */
-type Args = { positionals: string[]; values: Record<string, string | boolean | undefined> };
+type Args = {
+  positionals: string[];
+  values: Record<string, string | boolean | string[] | undefined>;
+};
 
 export const SERVER_NAME = "ronne-registry";
 

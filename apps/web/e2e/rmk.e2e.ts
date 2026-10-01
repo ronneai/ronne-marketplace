@@ -681,7 +681,17 @@ test("rmk exports a Cursor rule and a Codex MCP server", async ({ browser, reque
       },
     ]);
 
-    const rule = rmk("export", "e2e-cursor-style", "--to", `@${E2E_SCOPE}`, "--yes", "--json");
+    // A rule doesn't describe itself, so it needs one (053).
+    const rule = rmk(
+      "export",
+      "e2e-cursor-style",
+      "--to",
+      `@${E2E_SCOPE}`,
+      "--description",
+      "One component per file.",
+      "--yes",
+      "--json",
+    );
     expect(rule.code, rule.out).toBe(0);
     const [ruleDraft] = JSON.parse(rule.out).exported;
     expect(ruleDraft).toMatchObject({

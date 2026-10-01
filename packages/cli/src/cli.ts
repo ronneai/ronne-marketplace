@@ -33,6 +33,7 @@ export const USAGE = `Usage: rmk <command> [options]
   mcp-setup [--target <ids>|all] [--scope project|user] [--remove] [--command <cmd>]
   export [<path|name>...] [--to <@scope>] [--type <type>] [--from <tool>] [--name <name>]
          [--description <text>] [--with-deps | --no-deps] [--scope project|user]
+         [--describe <item>=<text>]... [--descriptions <file.json>]
          [--dry-run] [--yes] [--force] [--new] [--new-draft]
   telemetry [on | off | status | preview | flush]
 
@@ -61,10 +62,15 @@ const OPTIONS = {
   from: { type: "string" },
   new: { type: "boolean" },
   "new-draft": { type: "boolean" },
+  describe: { type: "string", multiple: true },
+  descriptions: { type: "string" },
   "no-deps": { type: "boolean" },
 } as const;
 
-export type Args = { values: Record<string, string | boolean | undefined>; positionals: string[] };
+export type Args = {
+  values: Record<string, string | boolean | string[] | undefined>;
+  positionals: string[];
+};
 
 const parse = (argv: string[]): Args => {
   try {
@@ -74,7 +80,7 @@ const parse = (argv: string[]): Args => {
   }
 };
 
-const str = (value: string | boolean | undefined) =>
+const str = (value: string | boolean | string[] | undefined) =>
   typeof value === "string" ? value : undefined;
 
 const connect = (io: Io, args: Args, needToken = true) =>

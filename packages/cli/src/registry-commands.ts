@@ -45,7 +45,7 @@ type VersionInfo = ItemInfo["versions"][number] & {
   support?: Record<string, string>;
 };
 
-const str = (value: string | boolean | undefined) =>
+const str = (value: string | boolean | string[] | undefined) =>
   typeof value === "string" ? value : undefined;
 const marks = (row: {
   deprecated?: string | null;

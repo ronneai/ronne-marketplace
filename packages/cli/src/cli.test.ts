@@ -393,7 +393,7 @@ describe("rmk export", () => {
     });
     writeFileSync(
       join(io.cwd, ".claude/skills/deploy/ronne.yaml"),
-      'name: "@x/deploy"\nversion: 1.0.0\ntype: skill\n',
+      'name: "@x/deploy"\nversion: 1.0.0\ntype: skill\ndescription: Deploys.\n',
     );
     const refused = await rmk("export", "deploy", "--to", "team", "--yes", "--json");
     expect(refused.exitCode).toBe(1);
@@ -530,7 +530,7 @@ describe("rmk export for agents, commands, rules and MCP servers (040)", () => {
     for (const argv of [
       ["reviewer"],
       ["review", "--type", "command"],
-      ["style"],
+      ["style", "--description", "Keeps the house style: tabs."],
       ["github", "--description", "GitHub's issues and pull requests."],
     ]) {
       const result = await json("export", ...argv, "--to", "team", "--yes");
@@ -650,7 +650,19 @@ describe("rmk export with dependencies (041)", () => {
     expect(both.exitCode).toBe(2);
 
     const withDeps = JSON.parse(
-      (await rmk("export", "reviewer", "--to", "team", "--yes", "--with-deps", "--json")).stdout,
+      (
+        await rmk(
+          "export",
+          "reviewer",
+          "--to",
+          "team",
+          "--yes",
+          "--with-deps",
+          "--describe",
+          "github=GitHub's issues.",
+          "--json",
+        )
+      ).stdout,
     );
     expect(withDeps.exported.map((e: { name: string }) => e.name)).toEqual([
       "@team/github",

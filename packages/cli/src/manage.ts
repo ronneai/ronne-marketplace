@@ -15,9 +15,12 @@ import { itemPath } from "./registry-commands.js";
 import { addUsageHooks } from "./usage-hooks.js";
 
 /** Keeping a project's items current (feature 022): `update`, `outdated`, `remove`. */
-type Args = { positionals: string[]; values: Record<string, string | boolean | undefined> };
+type Args = {
+  positionals: string[];
+  values: Record<string, string | boolean | string[] | undefined>;
+};
 
-const str = (value: string | boolean | undefined) =>
+const str = (value: string | boolean | string[] | undefined) =>
   typeof value === "string" ? value : undefined;
 
 const request = (args: Args) => ({

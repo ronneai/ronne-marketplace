@@ -68,7 +68,7 @@ const status = (io: Io, out: Output) => {
 
 export const telemetryCommand = async (
   io: Io,
-  args: { positionals: string[]; values?: Record<string, string | boolean | undefined> },
+  args: { positionals: string[]; values?: Record<string, string | boolean | string[] | undefined> },
   out: Output,
 ): Promise<void> => {
   const [sub = "status", tool = ""] = args.positionals;
