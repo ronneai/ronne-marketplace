@@ -159,4 +159,4 @@ Work that changes every part of the web app rather than one milestone's features
 
 | ID | Feature | Depends on | Status |
 |---|---|---|---|
-| [049](./049-local-time/SPEC.md) | Local time: every timestamp in the reader's time zone, UTC on hover; storage, the API and `rmk` stay UTC | 032 | in progress |
+| [049](./049-local-time/SPEC.md) | Local time: every timestamp in the reader's time zone, UTC on hover; storage, the API and `rmk` stay UTC | 032 | done |

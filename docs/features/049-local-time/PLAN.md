@@ -18,7 +18,7 @@ the same change that completes it.
   `toISOString().slice` or `slice(0, 10)` date formatting is left in `app/`, `features/` or
   `components/`, except usage days.
 
-- [ ] **3. Documentation and an end-to-end check.** The `overview` sentence; an end-to-end test with
+- [x] **3. Documentation and an end-to-end check.** The `overview` sentence; an end-to-end test with
   a `timezoneId` other than UTC reads local times on an item page and in the audit log.
   *Done when:* the docs render tests pass, and the end-to-end test passes.
 
@@ -30,3 +30,6 @@ goes into `SPEC.md` instead.
 - **Task 2.** `components/ui/time.ts` (`utcMinute`) and the audit log's `formatUtc` are gone; the
   pages' own `day()` helpers too. Page tests that matched a whole sentence with a date in it now
   compare the page's text (tags stripped), since the date is a `<time>` element.
+- **Task 3.** The end-to-end check lives in `audit.e2e.ts`'s root test (root's sign-ins are limited,
+  `docs/knowledge/e2e-sign-in-limit.md`), with `timezoneId: "America/Sao_Paulo"` for the file. The
+  server renders UTC, so seeing `GMT-3` proves the browser converted it.

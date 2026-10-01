@@ -132,6 +132,11 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           <To href={docsHref("rmk")}>rmk</To> turns it into the files each AI tool reads, such as
           Claude Code, Codex or Cursor.
         </p>
+        <p>
+          Dates and times are shown in your browser&apos;s time zone, with its name (such as{" "}
+          <Code>GMT-3</Code>); hover one to see it in UTC, which is how they&apos;re stored and how{" "}
+          <Code>rmk</Code> and the API give them.
+        </p>
       </>
     ),
     path: (

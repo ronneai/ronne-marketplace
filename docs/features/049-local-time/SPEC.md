@@ -66,11 +66,11 @@ browser switches to local right after hydration. Without JavaScript, people keep
 
 ## Acceptance criteria
 
-- [ ] `<LocalTime>` renders UTC on the server and the reader's local time in the browser, in the three
+- [x] `<LocalTime>` renders UTC on the server and the reader's local time in the browser, in the three
       precisions, with UTC in `title` and the ISO moment in `dateTime`.
-- [ ] Every timestamp listed in Scope uses it; the API, `rmk` and usage days stay UTC.
-- [ ] An end-to-end test in a non-UTC time zone sees local times on an item page and in the audit log.
-- [ ] The Documentation says times are local, with UTC on hover.
+- [x] Every timestamp listed in Scope uses it; the API, `rmk` and usage days stay UTC.
+- [x] An end-to-end test in a non-UTC time zone sees local times on an item page and in the audit log.
+- [x] The Documentation says times are local, with UTC on hover.
 
 ## Open questions
 
