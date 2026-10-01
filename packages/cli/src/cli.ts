@@ -10,6 +10,7 @@ import { outdatedCommand, removeCommand, updateCommand } from "./manage.js";
 import { mcpSetupCommand } from "./mcp-setup.js";
 import { done, failed, output, type RunResult } from "./output.js";
 import { list, platforms, withApi } from "./registry-commands.js";
+import { submitCommand } from "./submit.js";
 import { flushAfterCommand, refreshPolicy, usageNotice } from "./telemetry.js";
 import { telemetryCommand } from "./telemetry-command.js";
 
@@ -35,6 +36,7 @@ export const USAGE = `Usage: rmk <command> [options]
          [--description <text>] [--with-deps | --no-deps] [--scope project|user]
          [--describe <item>=<text>]... [--descriptions <file.json>]
          [--dry-run] [--yes] [--force] [--new] [--new-draft]
+  submit [<@scope/name|id>...] [--all] [--dry-run] [--yes]
   telemetry [on | off | status | preview | flush]
 
 Options: --json (one JSON object per command), --registry <url>, --version, --help`;
@@ -62,6 +64,7 @@ const OPTIONS = {
   from: { type: "string" },
   new: { type: "boolean" },
   "new-draft": { type: "boolean" },
+  all: { type: "boolean" },
   describe: { type: "string", multiple: true },
   descriptions: { type: "string" },
   "no-deps": { type: "boolean" },
@@ -199,6 +202,7 @@ export const COMMANDS: Record<string, Command> = {
   remove,
   "mcp-setup": (io, args, out) => mcpSetupCommand(io, args, out),
   export: (io, args, out) => exportCommand(io, args, out, connect(io, args).api),
+  submit: (io, args, out) => submitCommand(io, args, out, connect(io, args).api),
   telemetry: (io, args, out) => telemetryCommand(io, args, out),
 };
 

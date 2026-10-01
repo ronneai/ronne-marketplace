@@ -14,7 +14,7 @@ const start = async (options: { login?: boolean } = {}) => {
 };
 
 describe("the registry MCP server", () => {
-  it("lists its tools, marking all but apply_plan and export_items read-only", async () => {
+  it("lists its tools, marking all but apply_plan, export_items and submit_drafts read-only", async () => {
     const { client } = await start();
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name)).toEqual([
@@ -29,12 +29,15 @@ describe("the registry MCP server", () => {
       "list_local_items",
       "plan_export",
       "export_items",
+      "check_drafts",
+      "submit_drafts",
     ]);
-    // Planning writes and sends nothing; apply_plan writes files and export_items uploads, so only
-    // they need the person's approval.
+    // Planning and checking write and send nothing; apply_plan writes files, export_items uploads
+    // and submit_drafts sends drafts to reviewers, so only they need the person's approval.
     expect(tools.filter((t) => t.annotations?.readOnlyHint !== true).map((t) => t.name)).toEqual([
       "apply_plan",
       "export_items",
+      "submit_drafts",
     ]);
     expect(tools.find((t) => t.name === "export_items")?.annotations).toMatchObject({
       destructiveHint: false,
@@ -47,7 +50,9 @@ describe("the registry MCP server", () => {
     expect(client.getServerVersion()?.name).toBe("ronne-registry");
     const instructions = client.getInstructions() ?? "";
     expect(instructions).toContain("Ask the person which scope to export to; never choose it.");
-    expect(instructions).toContain("Drafts are never submitted from here");
+    expect(instructions).toContain(
+      "submit_drafts submits the ready ones, only after the person has seen the check and asked for it",
+    );
     expect(instructions).toContain("ask whether to export those too, recommending it");
   });
 

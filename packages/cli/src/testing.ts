@@ -421,3 +421,96 @@ export const exportRoutes = (
   }
   return { routes, drafts, replaced };
 };
+
+/** A draft the fake registry knows for `rmk submit` (052): its check result is fixed. */
+export type FakeSubmitDraft = {
+  id: string;
+  name: string;
+  type: string;
+  status: "draft" | "changes_requested" | "submitted";
+  /** What Submit would refuse; none means ready. */
+  errors?: { code: string; message: string }[];
+  updatedAt?: string;
+};
+
+/**
+ * 052's endpoints over a fixed set of the person's drafts: `GET /drafts?name=`,
+ * `POST /drafts/check` and `POST /drafts/submit`. `taken` are ids that stop being ready between
+ * the check and the submit. Submitted ones are recorded in `submitted`.
+ */
+export const submitRoutes = (drafts: FakeSubmitDraft[], taken: string[] = []) => {
+  const submitted: string[] = [];
+  const place = (d: FakeSubmitDraft) => ({
+    path: `/submissions/${d.id}`,
+    url: `${REGISTRY}/submissions/${d.id}`,
+    name: d.name,
+    type: d.type,
+    status: d.status,
+  });
+  const issuesOf = (d: FakeSubmitDraft) =>
+    (d.errors ?? []).map((e) => ({ severity: "error", ...e }));
+  const selected = (body: unknown) => {
+    const { ids, all } = body as { ids?: string[]; all?: boolean };
+    return all ? drafts.filter((d) => d.status !== "submitted").map((d) => d.id) : (ids ?? []);
+  };
+  const routes: Record<string, Route> = {
+    "GET /drafts": ({ url }) => ({
+      json: {
+        drafts: drafts
+          .filter((d) => d.name === url.searchParams.get("name"))
+          .map((d) => ({
+            id: d.id,
+            ...place(d),
+            updatedAt: d.updatedAt ?? "2026-10-01T12:00:00.000Z",
+            proposal: null,
+            description: null,
+          })),
+      },
+    }),
+    "POST /drafts/check": ({ body }) => ({
+      json: {
+        drafts: selected(body).map((id) => {
+          const d = drafts.find((x) => x.id === id);
+          if (!d) return { id, result: "not_found", ready: false };
+          if (d.status === "submitted")
+            return { id, result: "not_submittable", ready: false, ...place(d) };
+          const issues = issuesOf(d);
+          return {
+            id,
+            result: issues.length ? "not_ready" : "ready",
+            ready: issues.length === 0,
+            ...place(d),
+            issues,
+          };
+        }),
+        more: 0,
+      },
+    }),
+    "POST /drafts/submit": ({ body }) => ({
+      json: {
+        results: selected(body).map((id) => {
+          const d = drafts.find((x) => x.id === id);
+          if (!d) return { id, result: "not_found" };
+          if (taken.includes(id))
+            return {
+              id,
+              result: "not_ready",
+              ...place(d),
+              issues: [{ severity: "error", code: "name_taken", message: `${d.name} is taken.` }],
+            };
+          submitted.push(id);
+          return {
+            id,
+            result: d.status === "changes_requested" ? "resubmitted" : "submitted",
+            ...place(d),
+            status: "submitted",
+            revision: 1,
+            issues: [],
+          };
+        }),
+        more: 0,
+      },
+    }),
+  };
+  return { routes, submitted };
+};

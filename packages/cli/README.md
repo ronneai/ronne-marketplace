@@ -14,7 +14,7 @@ rmk update
 ```
 
 Commands: `login`, `logout`, `whoami`, `search`, `info`, `list`, `platforms`, `install`,
-`update`, `outdated`, `remove` and `mcp-setup`. `rmk --help` lists them, and `--json` makes any of
+`update`, `outdated`, `remove`, `mcp-setup`, `export`, `submit` and `telemetry`. `rmk --help` lists them, and `--json` makes any of
 them answer with one JSON object.
 
 To manage items from inside your AI tool instead, install the registry MCP server,

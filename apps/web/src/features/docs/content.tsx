@@ -102,6 +102,16 @@ const MCP_TOOLS: [string, string, string][] = [
     "Uploads an export plan made in the last 10 minutes, once, as private drafts.",
     "Sends the plan's files to this marketplace",
   ],
+  [
+    "check_drafts",
+    "Says which of your drafts Submit would take now, and what's in the way of the others. Takes items (names or ids) or all.",
+    "Nothing",
+  ],
+  [
+    "submit_drafts",
+    "Submits each of those drafts that's ready, and says why the others weren't.",
+    "Sends them to reviewers",
+  ],
 ];
 
 const PERMISSIONS: [string, string, string, string][] = [
@@ -613,6 +623,57 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             it changes something, and no rebase conflict is left open.
           </li>
         </Bullets>
+        <p>
+          A draft with none of these problems is <strong>ready</strong>. My submissions marks each
+          draft Ready, or how many problems are left to fix, and{" "}
+          <To href={docsHref("review", "many")}>submitting many at once</To> takes only ready ones.
+          Warnings are shown but don&apos;t stop it.
+        </p>
+      </>
+    ),
+    many: (
+      <>
+        <p>
+          On <To href="/submissions">My submissions</To>, each draft, and each one sent back for
+          changes, has a checkbox when it&apos;s ready. Tick the ones you want, or{" "}
+          <strong>Select all ready</strong>, then <strong>Submit selected</strong>: it lists them
+          and asks first, then submits each on its own and says what happened to each. A draft that
+          stopped being ready in the meantime, because someone else submitted the same name, says
+          why, and the others still go.
+        </p>
+        <p>
+          From a terminal, with <To href={docsHref("rmk")}>rmk</To>:
+        </p>
+        <Example>
+          {
+            "rmk submit --all --dry-run          # what's ready, and what's in the way of the rest\nrmk submit @team/reviewer @team/style\nrmk submit --all                    # every ready one, after asking"
+          }
+        </Example>
+        <Bullets>
+          <li>
+            An item&apos;s name means your open draft of it; with more than one, name it by the id
+            in its address. <Code>--all</Code> means every draft of yours and every one sent back
+            for changes, the newest 100 at a time.
+          </li>
+          <li>
+            It checks first, shows <strong>Ready to submit</strong> and <strong>Not ready</strong>{" "}
+            with each problem, and asks. Without a terminal it needs <Code>--yes</Code>.
+          </li>
+          <li>
+            It exits 0 when everything you named was submitted, and 1 when anything wasn&apos;t.
+          </li>
+        </Bullets>
+        <p>
+          From your AI tool, the <To href={docsHref("mcp", "tools")}>registry MCP server</To> does
+          the same: <Code>check_drafts</Code> shows what&apos;s ready, and{" "}
+          <Code>submit_drafts</Code>, which your tool asks you about, submits it.
+        </p>
+        <p>
+          An item that depends on another draft isn&apos;t ready until that one is{" "}
+          <strong>released</strong>, so a big export goes in rounds: submit the dependencies, have
+          them reviewed and released, then submit what uses them. <Code>rmk submit</Code> says the
+          order.
+        </p>
       </>
     ),
     reviewing: (
@@ -1034,10 +1095,12 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           <To href={docsHref("review")}>the usual review</To>.
         </p>
         <p>
-          A change proposal is reviewed like any proposal and released as the item&apos;s next
-          version. A draft made this way counts towards the{" "}
-          <To href={docsHref("rmk", "tokens")}>limits for tokens</To>, and is written to the audit
-          log.
+          To submit many at once, <Code>rmk submit --all --dry-run</Code> shows which are ready, and{" "}
+          <Code>rmk submit --all</Code> submits them (see{" "}
+          <To href={docsHref("review", "many")}>Submitting many at once</To>). A change proposal is
+          reviewed like any proposal and released as the item&apos;s next version. A draft made this
+          way counts towards the <To href={docsHref("rmk", "tokens")}>limits for tokens</To>, and is
+          written to the audit log.
         </p>
       </>
     ),
@@ -1276,6 +1339,11 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             once you&apos;ve seen it, uploads it (<Code>export_items</Code>, which your tool asks
             you about) and gives you each draft&apos;s address. A draft of yours of the same item is{" "}
             <To href={docsHref("export", "again")}>updated</To>, unless you ask for a separate one.
+          </li>
+          <li>
+            when you ask, submits the ready ones for review (<Code>check_drafts</Code>, then{" "}
+            <Code>submit_drafts</Code>): see{" "}
+            <To href={docsHref("review", "many")}>Submitting many at once</To>.
           </li>
         </Steps>
         <p>
@@ -1696,11 +1764,12 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         <p>
           A draft created with a token (<Code>POST /api/v1/drafts</Code>, with its files) is like
           one you start here: only you see it, under <To href="/submissions">Submissions</To>, and
-          nothing reaches a reviewer until you open it and submit it. A token can create drafts
-          while you have fewer than 50 (submit or delete some to make room), and update your own
-          drafts (<Code>PUT /api/v1/drafts/…</Code>), at most 30 uploads in 10 minutes. Each one is
-          written to the audit log with the token&apos;s name and the draft&apos;s name, which root
-          can read; its files aren&apos;t.
+          nothing reaches a reviewer until you submit it. A token can create drafts while you have
+          fewer than 50 (submit or delete some to make room), and update your own drafts (
+          <Code>PUT /api/v1/drafts/…</Code>), at most 30 uploads in 10 minutes. It can also{" "}
+          <strong>submit your drafts for review</strong> (<Code>rmk submit</Code>), which reviewers
+          then see. Each upload and each submit is written to the audit log with the token&apos;s
+          name and the draft&apos;s name, which root can read; its files aren&apos;t.
         </p>
         <p>
           The <To href={docsHref("mcp")}>registry MCP server</To>, <Code>rmk-mcp</Code>, uses the
@@ -1874,12 +1943,12 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           </tbody>
         </Table>
         <p>
-          Two tools act, and your AI tool asks you about them: <Code>apply_plan</Code> on your
-          files, and <Code>export_items</Code> on this marketplace. Every other tool is marked as
-          read-only. <Code>list_installed</Code>, <Code>check_outdated</Code> and the plan tools
-          take <Code>scope: user</Code> for your home folder, and the plan tools take{" "}
-          <Code>targets</Code>, such as <Code>[&quot;codex&quot;]</Code>, when the folder looks like
-          several tools.
+          Three tools act, and your AI tool asks you about them: <Code>apply_plan</Code> on your
+          files, and <Code>export_items</Code> and <Code>submit_drafts</Code> on this marketplace.
+          Every other tool is marked as read-only. <Code>list_installed</Code>,{" "}
+          <Code>check_outdated</Code> and the plan tools take <Code>scope: user</Code> for your home
+          folder, and the plan tools take <Code>targets</Code>, such as{" "}
+          <Code>[&quot;codex&quot;]</Code>, when the folder looks like several tools.
         </p>
       </>
     ),
@@ -1922,8 +1991,9 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
     access: (
       <Bullets>
         <li>
-          It can do what your token can: read what&apos;s published and download it, and create
-          drafts in your name. It never shows the token, and it can&apos;t sign in to this website.
+          It can do what your token can: read what&apos;s published and download it, create drafts
+          in your name, and submit them when you ask. It never shows the token, and it can&apos;t
+          sign in to this website.
         </li>
         <li>
           It sends only items it found in your AI tools&apos; folders and that are yours, never a

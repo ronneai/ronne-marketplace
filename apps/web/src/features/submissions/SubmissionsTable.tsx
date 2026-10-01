@@ -12,6 +12,7 @@ import {
   statusLabel,
 } from "@/server/domains/submissions/models/status";
 import { itemNameOf, type Submission } from "@/server/domains/submissions/models/submission";
+import { ReadinessMark, SelectCell } from "./BulkSubmit";
 
 /** `?status=`, when it's a status; otherwise every status. */
 export const statusFilter = (value: string | string[] | undefined): SubmissionStatus | null => {
@@ -71,9 +72,15 @@ export const StatusFilters = ({
 /** My submissions (feature 012): your drafts and submissions, newest change first. */
 export const SubmissionsTable = ({
   submissions,
+  errors,
 }: {
   /** With `stale` for change proposals (017) that a newer version overtook. */
   submissions: (Submission & { stale?: string | null })[];
+  /**
+   * For bulk submitting (052): each open draft's count of what Submit would refuse now, by id (0
+   * when ready). Rows with a count get a checkbox and a Ready or n to fix mark; without it, none.
+   */
+  errors?: Readonly<Record<string, number>>;
 }) => {
   if (submissions.length === 0)
     return (
@@ -91,6 +98,11 @@ export const SubmissionsTable = ({
     <Table>
       <thead>
         <tr>
+          {errors ? (
+            <Th>
+              <span className="sr-only">Select</span>
+            </Th>
+          ) : null}
           <Th>Item</Th>
           <Th>Type</Th>
           <Th>Status</Th>
@@ -100,6 +112,17 @@ export const SubmissionsTable = ({
       <tbody>
         {submissions.map((submission) => (
           <tr key={submission.id}>
+            {errors ? (
+              <Td>
+                {errors[submission.id] !== undefined ? (
+                  <SelectCell
+                    id={submission.id}
+                    name={itemNameOf(submission)}
+                    errors={errors[submission.id] ?? 0}
+                  />
+                ) : null}
+              </Td>
+            ) : null}
             <Td>
               <Link
                 href={`/submissions/${submission.id}`}
@@ -118,6 +141,9 @@ export const SubmissionsTable = ({
             </Td>
             <Td>
               <StatusBadge status={submission.status} />
+              {errors?.[submission.id] !== undefined ? (
+                <ReadinessMark id={submission.id} errors={errors[submission.id] ?? 0} />
+              ) : null}
             </Td>
             <Td className="whitespace-nowrap font-mono text-xs text-muted">
               <time dateTime={submission.updatedAt.toISOString()}>

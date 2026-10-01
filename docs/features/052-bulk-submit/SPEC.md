@@ -176,26 +176,27 @@ The server's instructions say to show the check first and submit only what the p
 - **From inside your AI tool** (`export#mcp` and `mcp`): `check_drafts` and `submit_drafts`.
 - **Installing with rmk → Tokens and the API** (`rmk#tokens`): a token can also submit your
   drafts, which reviewers then see; it's audited with the token's name.
-- **Helpers:** on My submissions, "Submit several at once?" next to **Submit selected**, linking to
-  `review#many`. On the **n to fix** mark, "What blocks submitting?", linking to `review#checks`.
+- **Helpers:** on My submissions, next to **Submit selected**: "Submit several at once?", linking
+  to `review#many`, and "What blocks submitting?", linking to `review#checks`. (One of each for the
+  list, rather than a helper on every row's **n to fix** mark.)
 
 ## Acceptance criteria
 
-- [ ] The domain checks and submits many drafts, each in its own transaction, reporting
+- [x] The domain checks and submits many drafts, each in its own transaction, reporting
   `submitted`, `resubmitted`, `not_ready` (with issues), `not_found` and `not_submittable`. A draft
   that isn't ready doesn't stop the others, and each submit is audited as 013's.
-- [ ] `POST /api/v1/drafts/check` and `/submit` take `ids` or `all`, act only on the caller's
+- [x] `POST /api/v1/drafts/check` and `/submit` take `ids` or `all`, act only on the caller's
   drafts, return the error table's codes, and audit the token.
-- [ ] `rmk submit` by name, id and `--all` checks first, shows ready and not ready with reasons,
+- [x] `rmk submit` by name, id and `--all` checks first, shows ready and not ready with reasons,
   asks, submits only the ready ones, and exits `0` or `1` as specified; `--dry-run` sends nothing.
-- [ ] A dependent of an unreleased draft is not ready, and `rmk` shows the release order.
-- [ ] `check_drafts` sends nothing; `submit_drafts` submits only the ready ones and says which
+- [x] A dependent of an unreleased draft is not ready, and `rmk` shows the release order.
+- [x] `check_drafts` sends nothing; `submit_drafts` submits only the ready ones and says which
   weren't.
-- [ ] My submissions marks each open draft Ready or n to fix, lets only ready ones be selected,
+- [x] My submissions marks each open draft Ready or n to fix, lets only ready ones be selected,
   submits the selection after the confirmation, and shows each result.
-- [ ] The service and repository tests pass on SQLite, PostgreSQL, MySQL and MariaDB, and an
+- [x] The service and repository tests pass on SQLite, PostgreSQL, MySQL and MariaDB, and an
   end-to-end test submits three drafts from the list, one of them not ready.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Decisions
 

@@ -13,8 +13,16 @@ import { kyselyItemRepository } from "../domains/items/repositories/kysely-item-
 import { kyselyScopeRepository } from "../domains/items/repositories/kysely-scope-repository";
 import { kyselySubmissionRepository } from "../domains/submissions/repositories/kysely-submission-repository";
 import { localStorage } from "../storage/local-storage";
-import { type DraftsApiDeps, getDrafts, getScopes, postDraft, putDraft } from "./drafts-api";
-import { createUploadLimiter } from "./upload-rate-limit";
+import {
+  checkDrafts,
+  type DraftsApiDeps,
+  getDrafts,
+  getScopes,
+  postDraft,
+  putDraft,
+  submitDrafts,
+} from "./drafts-api";
+import { createSubmitLimiter, createUploadLimiter } from "./upload-rate-limit";
 
 let t: TestDb;
 let app: AppAuth;
@@ -39,6 +47,7 @@ beforeEach(async () => {
     app,
     guard: { ready: async () => true, authenticate: (value) => authenticateToken(value, app) },
     limiter: createUploadLimiter(),
+    submitLimiter: createSubmitLimiter(),
     publicUrl: "https://ronne.example/",
   };
   ({ id: rootId } = await createRoot(t.db, t.dialect, {
@@ -517,6 +526,127 @@ describe("GET and PUT /drafts (051)", () => {
       deps,
     );
     expect([anonymous.status, (await anonymous.json()).error.code]).toEqual([401, "token_missing"]);
+  });
+});
+
+describe("POST /drafts/check and /drafts/submit (052)", () => {
+  const files = (description = "Checks code.") => [
+    {
+      path: "ronne.yaml",
+      encoding: "utf8",
+      content: `name: "@team/secure-coding"\ntype: skill\n${description ? `description: ${description}\n` : ""}`,
+    },
+    {
+      path: "SKILL.md",
+      encoding: "utf8",
+      content: "---\nname: secure-coding\ndescription: Checks code.\n---\nGo.\n",
+    },
+  ];
+  const post = (path: string, payload: unknown, auth = tokens.user) =>
+    new Request(`${BASE}${path}`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${auth}` },
+      body: typeof payload === "string" ? payload : JSON.stringify(payload),
+    });
+  const create = async (description = "Checks code.", auth = tokens.user) =>
+    (
+      await body(
+        await postDraft(
+          post(
+            "/drafts",
+            { name: "@team/secure-coding", type: "skill", files: files(description) },
+            auth,
+          ),
+          deps,
+        ),
+      )
+    ).json.id as string;
+  const statusOf = async (id: string) =>
+    (await t.db.selectFrom("submissions").select("status").where("id", "=", id).executeTakeFirst())
+      ?.status;
+
+  it("checks your drafts without submitting, saying what's in the way", async () => {
+    const ready = await create();
+    const missing = await create("");
+    const theirs = await create("Checks code.", tokens.moderator);
+    const response = await checkDrafts(
+      post("/drafts/check", { ids: [ready, missing, theirs] }),
+      deps,
+    );
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    const { status, json } = await body(response);
+    expect(status).toBe(200);
+    expect(json.more).toBe(0);
+    expect(json.drafts[0]).toEqual({
+      id: ready,
+      result: "ready",
+      ready: true,
+      path: `/submissions/${ready}`,
+      url: `https://ronne.example/submissions/${ready}`,
+      name: "@team/secure-coding",
+      type: "skill",
+      status: "draft",
+      issues: [],
+    });
+    expect(json.drafts[1]).toMatchObject({ id: missing, result: "not_ready", ready: false });
+    expect(json.drafts[1].issues.length).toBeGreaterThan(0);
+    expect(json.drafts[2]).toEqual({ id: theirs, result: "not_found", ready: false });
+    expect([await statusOf(ready), await statusOf(missing)]).toEqual(["draft", "draft"]);
+    const all = await body(await checkDrafts(post("/drafts/check", { all: true }), deps));
+    expect(all.json.drafts.map((d: { id: string }) => d.id).sort()).toEqual(
+      [ready, missing].sort(),
+    );
+  });
+
+  it("submits the ready ones and answers each result, auditing the token", async () => {
+    const ready = await create();
+    const missing = await create("");
+    const { status, json } = await body(
+      await submitDrafts(post("/drafts/submit", { ids: [ready, missing] }), deps),
+    );
+    expect(status).toBe(200);
+    expect(json.results).toMatchObject([
+      { id: ready, result: "submitted", status: "submitted", revision: 1 },
+      { id: missing, result: "not_ready", status: "draft" },
+    ]);
+    expect([await statusOf(ready), await statusOf(missing)]).toEqual(["submitted", "draft"]);
+    const [event] = (await listAuditEvents(t.db, t.dialect, {})).events.filter(
+      (e) => e.action === "submission.submitted",
+    );
+    expect(event?.metadata).toMatchObject({ via: "api", tokenName: "test" });
+  });
+
+  it("answers each refusal with its code", async () => {
+    const id = await create();
+    const many = Array.from({ length: 101 }, (_, i) => `id-${i}`);
+    const refusals: [Promise<Response>, number, string][] = [
+      [checkDrafts(post("/drafts/check", {}), deps), 400, "invalid_request"],
+      [checkDrafts(post("/drafts/check", { ids: [] }), deps), 400, "invalid_request"],
+      [checkDrafts(post("/drafts/check", { ids: [1] }), deps), 400, "invalid_request"],
+      [checkDrafts(post("/drafts/check", { ids: [id, id] }), deps), 400, "invalid_request"],
+      [submitDrafts(post("/drafts/submit", "{"), deps), 400, "invalid_request"],
+      [submitDrafts(post("/drafts/submit", { ids: many }), deps), 413, "too_many"],
+    ];
+    for (const [response, status, code] of refusals) {
+      const answer = await body(await response);
+      expect([answer.status, answer.json.error.code], code).toEqual([status, code]);
+    }
+    expect(await statusOf(id)).toBe("draft");
+    const anonymous = await checkDrafts(
+      new Request(`${BASE}/drafts/check`, { method: "POST", body: "{}" }),
+      deps,
+    );
+    expect(anonymous.status).toBe(401);
+  });
+
+  it("refuses the 11th submit request in 10 minutes, with retry-after", async () => {
+    for (let i = 0; i < 10; i += 1)
+      expect((await submitDrafts(post("/drafts/submit", { ids: ["x"] }), deps)).status).toBe(200);
+    const limited = await submitDrafts(post("/drafts/submit", { ids: ["x"] }), deps);
+    expect(limited.status).toBe(429);
+    expect(limited.headers.get("retry-after")).toBeTruthy();
+    // Checking isn't limited this way.
+    expect((await checkDrafts(post("/drafts/check", { ids: ["x"] }), deps)).status).toBe(200);
   });
 });
 

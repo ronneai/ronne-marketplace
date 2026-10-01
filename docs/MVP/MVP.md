@@ -586,6 +586,8 @@ IDs are ULIDs and timestamps are UTC (§9.4).
 | `POST /drafts` | Create a draft of a new item with its files, as the token's user (M7, 037) |
 | `GET /drafts?name=` | The token's user's drafts, submissions sent back for changes, and submissions in review, of an item (M7, [051](../features/051-update-drafts-on-export/SPEC.md)) |
 | `PUT /drafts/{id}` | Replace the files of the token's user's draft, or one sent back for changes, with an upload of the same item (M7, 051) |
+| `POST /drafts/check` | Whether Submit would take each of the token's user's drafts (`ids` or `all`), and what's in the way (M7, [052](../features/052-bulk-submit/SPEC.md)) |
+| `POST /drafts/submit` | Submit each of those drafts that's ready, each on its own, and answer every result (M7, 052) |
 | `GET /usage` · `POST /usage` | Whether the instance accepts usage; report daily counts of installs, removals and runs (M9, [046](../features/046-usage-telemetry/SPEC.md)) |
 
 Editing, submitting, review, release and admin actions are only available in the web UI (as server

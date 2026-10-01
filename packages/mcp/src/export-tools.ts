@@ -295,7 +295,7 @@ export const planExportTool = async (
   const planId = plan.items.length > 0 ? store.put({ request }, plan.fingerprint) : null;
   if (planId)
     lines.push(
-      `To upload ${plan.items.length === 1 ? "it" : "them"} as private drafts, once the person has seen this plan, call export_items with planId "${planId}". It expires in 10 minutes. Nothing is submitted: the person reviews and submits each draft in the web app.`,
+      `To upload ${plan.items.length === 1 ? "it" : "them"} as private drafts, once the person has seen this plan, call export_items with planId "${planId}". It expires in 10 minutes. Nothing is submitted: the person checks each draft, then submits it in the web app or asks you to (check_drafts, then submit_drafts).`,
     );
   else lines.push("Nothing here can be exported, so there is no plan to upload.");
   return answer(lines, {
@@ -325,7 +325,7 @@ const orderLines = (order: ReturnType<typeof releaseOrder>) =>
   );
 
 const REMINDER =
-  "Nothing is submitted: the person opens each draft, checks it, and submits it in the web app.";
+  "Nothing is submitted: the person opens each draft, checks it, and submits it in the web app, or asks you to (check_drafts, then submit_drafts).";
 
 /**
  * Uploads exactly the plan the person saw, once: the folders are planned again, and a plan whose

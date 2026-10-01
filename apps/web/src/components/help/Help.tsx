@@ -110,6 +110,18 @@ export const HELP = {
       "Send it here with rmk export: it reads your skill, agent, command, rule or MCP server from Claude Code, Codex or Cursor, shows you everything it would upload, and creates a private draft here for you to check and submit. Exporting it again updates that draft.",
     href: docsHref("export", "what"),
   },
+  "submit-many": {
+    question: "Submit several at once?",
+    answer:
+      "Tick the drafts marked Ready, or Select all ready, then Submit selected: each is checked again and submitted on its own, and you see what happened to each. rmk submit --all does the same from a terminal.",
+    href: docsHref("review", "many"),
+  },
+  ready: {
+    question: "What blocks submitting?",
+    answer:
+      "The checks Submit runs: the files are valid, the name is free, every dependency is released, and a change proposal changes something. A draft with none of these left is Ready; open one marked to fix to see what's left.",
+    href: docsHref("review", "checks"),
+  },
   usage: {
     question: "Where do these numbers come from?",
     answer:

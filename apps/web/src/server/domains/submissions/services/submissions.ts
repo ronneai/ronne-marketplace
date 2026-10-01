@@ -40,7 +40,12 @@ export type SubmissionDeps = {
   now?: () => Date;
   limits?: PackageLimits;
 };
-export type SubmissionActor = { user: CurrentUser | null; ip: string | null };
+export type SubmissionActor = {
+  user: CurrentUser | null;
+  ip: string | null;
+  /** The access token, when it came through the API (052): the audit event names it. */
+  token?: { id: string; name: string };
+};
 
 const now = (deps: SubmissionDeps) => (deps.now ?? (() => new Date()))();
 
@@ -206,6 +211,9 @@ export const submitDraft = async (
           type: submission.type,
           revision: revision.number,
           dependencies: (manifest?.dependencies ?? {}) as Record<string, string>,
+          ...(actor.token
+            ? { via: "api", tokenId: actor.token.id, tokenName: actor.token.name }
+            : {}),
         },
         ipAddress: actor.ip,
       },

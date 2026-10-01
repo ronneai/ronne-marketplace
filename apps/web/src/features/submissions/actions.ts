@@ -4,9 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import { createDraft } from "@/server/domains/submissions/actions/drafts";
+import { submitManyDrafts } from "@/server/domains/submissions/actions/submissions";
 import { SubmissionsError } from "@/server/domains/submissions/exceptions/errors";
 import { requestHeaders } from "@/server/http/request-headers";
-import type { NewDraftState } from "./types";
+import type { BulkResult, NewDraftState } from "./types";
 
 const text = (form: FormData, key: string) => String(form.get(key) ?? "");
 
@@ -29,4 +30,26 @@ export const createDraftFromForm = async (
   }
   revalidatePath("/submissions");
   redirect(`/submissions/${id}`);
+};
+
+/**
+ * Submit selected (052): submits each selected draft that's ready, each on its own, and says what
+ * happened to each. A draft that stopped being ready since the page loaded says why.
+ */
+export const submitSelectedAction = async (ids: string[]): Promise<BulkResult[]> => {
+  const { results } = await submitManyDrafts(await requestHeaders(), { ids });
+  revalidatePath("/submissions");
+  return results.map((r) => ({
+    id: r.id,
+    name: "submission" in r ? `@${r.submission.scope.name}/${r.submission.name}` : r.id,
+    result: r.result,
+    reasons:
+      r.result === "not_ready"
+        ? r.issues.filter((i) => i.severity === "error").map((i) => i.message)
+        : r.result === "not_found"
+          ? ["It's no longer one of your drafts."]
+          : r.result === "not_submittable"
+            ? ["It isn't a draft any more."]
+            : [],
+  }));
 };

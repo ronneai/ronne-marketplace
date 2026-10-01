@@ -55,6 +55,7 @@ export const TOPICS = [
     sections: [
       { id: "statuses", title: "Statuses" },
       { id: "checks", title: "The checks at submit" },
+      { id: "many", title: "Submitting many at once" },
       { id: "reviewing", title: "What reviewers look at" },
       { id: "decisions", title: "Decisions" },
     ],

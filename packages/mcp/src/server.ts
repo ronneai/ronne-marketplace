@@ -9,6 +9,7 @@ import {
 } from "./export-tools.js";
 import { applyPlanTool, planStore, planTool } from "./plan-tools.js";
 import { checkOutdated, getItem, listInstalled, searchItems } from "./read-tools.js";
+import { checkDraftsTool, submitDraftsTool } from "./submit-tools.js";
 import { failure, type ToolAnswer } from "./text.js";
 
 /** Identifies this server to MCP clients, and names its entry in each tool's MCP config. */
@@ -44,7 +45,7 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
     { name: serverInfo.name, version: serverInfo.version },
     {
       instructions:
-        "Search and install items from a Ronne AI Marketplace, and send items the person wrote to it as drafts. Installing takes two steps: a plan_* tool shows what would change and writes nothing; apply_plan writes it, once the person has seen the plan. Exporting takes two steps too: plan_export shows every file that would be uploaded and sends nothing; export_items uploads it, once the person has seen the plan. Ask the person which scope to export to; never choose it. When plan_export says the items use the person's own items, show them and ask whether to export those too, recommending it. Show them the plan before calling export_items. An edited install, or an item of the person's own whose name is published, becomes a change proposal to that item. Exporting an item the person already has a draft of updates that draft instead of making another. Every item needs a description: when plan_export says some have none, write one sentence for each from its content, at most 300 characters, without inventing features, pass them as descriptions, and show them to the person in the plan. Drafts are never submitted from here: the person reviews and submits them in the web app.",
+        "Search and install items from a Ronne AI Marketplace, and send items the person wrote to it as drafts. Installing takes two steps: a plan_* tool shows what would change and writes nothing; apply_plan writes it, once the person has seen the plan. Exporting takes two steps too: plan_export shows every file that would be uploaded and sends nothing; export_items uploads it, once the person has seen the plan. Ask the person which scope to export to; never choose it. When plan_export says the items use the person's own items, show them and ask whether to export those too, recommending it. Show them the plan before calling export_items. An edited install, or an item of the person's own whose name is published, becomes a change proposal to that item. Exporting an item the person already has a draft of updates that draft instead of making another. Every item needs a description: when plan_export says some have none, write one sentence for each from its content, at most 300 characters, without inventing features, pass them as descriptions, and show them to the person in the plan. Submitting sends drafts to reviewers, so it takes two steps too: check_drafts shows what's ready and what's in the way, and sends nothing; submit_drafts submits the ready ones, only after the person has seen the check and asked for it.",
     },
   );
   const read = { readOnlyHint: true, openWorldHint: true };
@@ -256,7 +257,7 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
     {
       title: "Export as drafts",
       description:
-        "Uploads exactly what plan_export showed, one private draft per item (updating the person's draft where the plan says so), and says where each draft is. Only after the person has seen the plan. Refuses a plan that expired, was used, or whose files changed. Nothing is submitted: the person does that in the web app.",
+        "Uploads exactly what plan_export showed, one private draft per item (updating the person's draft where the plan says so), and says where each draft is. Only after the person has seen the plan. Refuses a plan that expired, was used, or whose files changed. Nothing is submitted: that's submit_drafts, or the web app.",
       inputSchema: { planId: z.string() },
       annotations: {
         readOnlyHint: false,
@@ -266,6 +267,46 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
       },
     },
     guarded((input) => exportItemsTool(io, exports, input)),
+  );
+
+  const selection = {
+    items: z
+      .array(z.string())
+      .optional()
+      .describe("Items as @scope/name (the person's open draft of each), or draft ids"),
+    all: z
+      .boolean()
+      .optional()
+      .describe("true for every one of the person's drafts and ones sent back for changes"),
+  };
+
+  server.registerTool(
+    "check_drafts",
+    {
+      title: "Check drafts before submitting",
+      description:
+        "Says which of the person's drafts Submit would take now and what's in the way of the others (missing description, a dependency not released yet, a taken name…), with the order to release in when one waits for another. Sends nothing. Show it to the person; submit with submit_drafts if they agree.",
+      inputSchema: selection,
+      annotations: planning,
+    },
+    guarded((input) => checkDraftsTool(io, input)),
+  );
+
+  server.registerTool(
+    "submit_drafts",
+    {
+      title: "Submit drafts for review",
+      description:
+        "Submits each of the person's drafts that's ready, each on its own, and says which went and why the others didn't. Reviewers then see them; the person can withdraw one in the web app until it's approved. Only after the person has seen check_drafts and asked for it.",
+      inputSchema: selection,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
+    },
+    guarded((input) => submitDraftsTool(io, input)),
   );
 
   return server;
