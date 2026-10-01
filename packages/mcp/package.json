@@ -1,6 +1,6 @@
 {
   "name": "@ronneai/mcp",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "rmk-mcp: an MCP server that lets AI coding tools search and install items from a Ronne AI Marketplace.",
   "keywords": [
     "ronne",

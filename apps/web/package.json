@@ -1,6 +1,6 @@
 {
   "name": "@ronneai/web",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
   "description": "Ronne marketplace web app: UI, server actions and the /api/v1 registry API.",
   "license": "MIT",
