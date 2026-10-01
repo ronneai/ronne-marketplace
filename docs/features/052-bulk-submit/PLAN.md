@@ -34,7 +34,7 @@ the same change that completes it.
   instructions.
   *Done when:* the MCP tests cover a check that sends nothing and a submit of a mixed batch.
 
-- [ ] **5. My submissions.** The Ready / n to fix marks from one `checkMany` on load, the
+- [x] **5. My submissions.** The Ready / n to fix marks from one `checkMany` on load, the
   checkboxes (disabled when not ready), Select all ready, Submit selected, and the dialog with its
   results. All of it uses the existing `components/ui` primitives and the design tokens.
   *Done when:* the component tests cover selection and the dialog, and an end-to-end test submits
@@ -55,3 +55,6 @@ goes into `SPEC.md` instead.
   changes, the order disappears, though the issue itself is still shown.
 - The MCP tools reuse `planSubmit`, `sendSubmit` and `submitLines` from `@ronneai/rmk/lib`, as MVP
   §15's "MCP server and `rmk`" row asks: never `rmk`'s command layer.
+- Submit selected's server action revalidates `/submissions`, so the page refreshes while the
+  dialog is open, with fewer ready drafts (maybe none). The toolbar keeps rendering while its
+  dialog is open, and the dialog lists what it snapshotted when it opened, not the live selection.

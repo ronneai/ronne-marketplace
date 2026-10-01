@@ -7,7 +7,9 @@ import type { Submission } from "@/server/domains/submissions/models/submission"
 const drafts = vi.hoisted(() => ({ createDraft: vi.fn(), listMySubmissions: vi.fn() }));
 const scopes = vi.hoisted(() => ({ listScopes: vi.fn() }));
 const cache = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
+const bulk = vi.hoisted(() => ({ checkManyDrafts: vi.fn(), submitManyDrafts: vi.fn() }));
 vi.mock("@/server/domains/submissions/actions/drafts", () => drafts);
+vi.mock("@/server/domains/submissions/actions/submissions", () => bulk);
 vi.mock("@/server/domains/items/actions/scopes", () => scopes);
 vi.mock("next/cache", () => cache);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
@@ -15,6 +17,7 @@ vi.mock("next/navigation", () => ({
   redirect: (url: string) => {
     throw new Error(`NEXT_REDIRECT ${url}`);
   },
+  useRouter: () => ({ refresh: () => undefined }),
 }));
 
 const actions = await import("./actions");
@@ -22,6 +25,7 @@ const { inListOrder, StatusFilters, SubmissionsTable, statusFilter } = await imp
   "./SubmissionsTable"
 );
 const { NewDraftForm } = await import("./NewDraftForm");
+const { BulkSubmitProvider, BulkToolbar } = await import("./BulkSubmit");
 const { default: SubmissionsPage } = await import("@/app/(app)/submissions/page");
 const { default: NewItemPage } = await import("@/app/(app)/submissions/new/page");
 
@@ -47,6 +51,7 @@ const submission = (overrides: Partial<Submission> = {}): Submission => ({
 beforeEach(() => {
   vi.clearAllMocks();
   drafts.listMySubmissions.mockResolvedValue([submission()]);
+  bulk.checkManyDrafts.mockResolvedValue({ drafts: [], more: 0 });
   scopes.listScopes.mockResolvedValue({
     scopes: [{ name: "platform", description: "Shared tools." }],
     nextCursor: null,
@@ -109,6 +114,93 @@ describe("SubmissionsTable", () => {
     const html = renderToStaticMarkup(<SubmissionsTable submissions={[]} />);
     expect(html).toContain("You have no drafts yet.");
     expect(html).toContain('href="/submissions/new"');
+  });
+});
+
+describe("submitting several at once (052)", () => {
+  const ready = submission({ id: "01J0000000000000000000000A", name: "ready-one" });
+  const blocked = submission({ id: "01J0000000000000000000000B", name: "blocked-one" });
+  const inReview = submission({ id: "01J0000000000000000000000C", status: "submitted" });
+  const issue = { severity: "error" as const, code: "schema", message: "description is required." };
+
+  it("marks each open draft Ready or n to fix, and lets only ready ones be selected", () => {
+    const html = renderToStaticMarkup(
+      <BulkSubmitProvider ready={{ [ready.id]: "@platform/ready-one" }}>
+        <SubmissionsTable
+          submissions={[ready, blocked, inReview]}
+          errors={{ [ready.id]: 0, [blocked.id]: 2 }}
+        />
+      </BulkSubmitProvider>,
+    );
+    expect(html).toContain('aria-label="Select @platform/ready-one"');
+    expect(html).toMatch(
+      /aria-label="Fix 2 issues in @platform\/blocked-one first"[^>]*disabled=""/,
+    );
+    expect(html).toContain(">Ready<");
+    expect(html).toContain(`href="/submissions/${blocked.id}">2 to fix<`);
+    // A submission in review has no checkbox and no mark.
+    expect(html.match(/type="checkbox"/g)).toHaveLength(2);
+  });
+
+  it("offers Select all ready and Submit selected only when something is ready", () => {
+    const some = renderToStaticMarkup(
+      <BulkSubmitProvider ready={{ [ready.id]: "@platform/ready-one" }}>
+        <BulkToolbar />
+      </BulkSubmitProvider>,
+    );
+    expect(some).toContain("Select all ready (1)");
+    expect(some).toMatch(/disabled=""[^>]*>Submit selected \(0\)/);
+    const none = renderToStaticMarkup(
+      <BulkSubmitProvider ready={{}}>
+        <BulkToolbar />
+      </BulkSubmitProvider>,
+    );
+    expect(none).toBe("");
+  });
+
+  it("marks the page's drafts from one check", async () => {
+    drafts.listMySubmissions.mockResolvedValue([ready, blocked]);
+    bulk.checkManyDrafts.mockResolvedValue({
+      drafts: [
+        { id: ready.id, result: "ready", submission: ready, issues: [] },
+        { id: blocked.id, result: "not_ready", submission: blocked, issues: [issue] },
+      ],
+      more: 0,
+    });
+    const html = renderToStaticMarkup(await SubmissionsPage({ searchParams: Promise.resolve({}) }));
+    expect(bulk.checkManyDrafts).toHaveBeenCalledWith(expect.any(Headers), { all: true });
+    expect(html).toContain("Select all ready (1)");
+    expect(html).toContain("1 to fix");
+  });
+
+  it("submits the selection and says what happened to each", async () => {
+    bulk.submitManyDrafts.mockResolvedValue({
+      results: [
+        { id: ready.id, result: "submitted", submission: ready, revision: 1, issues: [] },
+        { id: blocked.id, result: "not_ready", submission: blocked, issues: [issue] },
+        { id: "gone", result: "not_found" },
+      ],
+      more: 0,
+    });
+    expect(await actions.submitSelectedAction([ready.id, blocked.id, "gone"])).toEqual([
+      { id: ready.id, name: "@platform/ready-one", result: "submitted", reasons: [] },
+      {
+        id: blocked.id,
+        name: "@platform/blocked-one",
+        result: "not_ready",
+        reasons: ["description is required."],
+      },
+      {
+        id: "gone",
+        name: "gone",
+        result: "not_found",
+        reasons: ["It's no longer one of your drafts."],
+      },
+    ]);
+    expect(bulk.submitManyDrafts).toHaveBeenCalledWith(expect.any(Headers), {
+      ids: [ready.id, blocked.id, "gone"],
+    });
+    expect(cache.revalidatePath).toHaveBeenCalledWith("/submissions");
   });
 });
 

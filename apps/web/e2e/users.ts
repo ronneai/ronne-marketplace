@@ -32,6 +32,7 @@ export const E2E_USERS = {
   toolsExporter: "tools-exporter@e2e.test",
   changeExporter: "change-exporter@e2e.test",
   changeModerator: "change-moderator@e2e.test",
+  bulkSubmitter: "bulk-submitter@e2e.test",
 } as const;
 
 /** The display names, which the header shows (not the email). */
@@ -63,6 +64,7 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   toolsExporter: "Tia Exporter",
   changeExporter: "Chan Exporter",
   changeModerator: "Chan Moderator",
+  bulkSubmitter: "Bo Bulk",
 };
 
 /** Seeded with the moderator role; everyone else is a user. */
