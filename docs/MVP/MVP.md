@@ -691,13 +691,61 @@ Design points:
 
 - **More platforms.** Tier-3 community renderers via the `PlatformRenderer` interface (§3.3).
 - **Native plugin feeds.** Publish approved bundles as native marketplace feeds for Claude Code, Codex, Cursor and Copilot (§3.3).
-- **Install telemetry** (opt-in), so moderators can see which items are used. The MVP only counts artifact downloads on the server, for the home page's "Most used" (018).
+- **Install telemetry** (opt-in), so moderators can see which items are used. The MVP only counts artifact downloads on the server, for the home page's "Most used" (018). Designed in §14.6; planned as M9.
 
 ### 14.5 Decided out of scope for now
 
 - Importing items from external/public marketplaces. (Existing `.claude` folders were on this list until 2026-09-30; exporting the person's own items from them is M7. Cursor's and Codex's own formats are feature [043](../features/043-codex-cursor-readers/SPEC.md).)
 - S3-compatible storage (the StorageAdapter interface stays, so it can be added later).
 - Notifications (email / webhooks).
+
+### 14.6 Usage telemetry — post-MVP
+
+The owner's item overview mockup (2026-09-30, [045](../features/045-item-overview-dashboard/SPEC.md))
+shows usage the registry can't know today. 045 builds the page without it; this section records
+what each number needs, so M9 ([features 046, 047](../features/README.md)) starts from it.
+
+**What the mockup shows, and where each number would come from**
+
+| Number | Meaning | Source today | Needs |
+|---|---|---|---|
+| Total installs, "in N active repository projects" | Projects that have the item installed now | None: the server counts tarball downloads only (019), which include CI and reinstalls | `rmk` reporting `install` and `remove` per project (046) |
+| Harness distribution (Cursor 62% · Claude 28%) | Which AI tools the installs are for | None | The targets of each reported install (046) |
+| Invocations (30 days), average per day, success rate | How often the item actually runs, and how often that ends well | None: `rmk` isn't in the loop when a tool runs an agent or a skill | A usage hook that `rmk` installs next to the item, per tool, reporting a run and its outcome (046) |
+| Daily execution volume (14 days, with the peak) | Runs per day | None | Invocation events, aggregated per day (046, 047) |
+| Harness breakdown (runs per tool) | Runs by tool | None | The tool in each invocation event (046) |
+| Invocation triggers (PR webhook, manual `/review`, agent sub-delegation) | What started each run | None | The hook event's kind: a slash command, the model choosing it, another agent delegating, a headless or CI run (046); not every tool says which |
+
+**How it could work**
+
+- **Opt-in, always.** Off by default on every machine (`rmk telemetry on|off|status`), and an instance
+  setting can turn it off for everyone. The in-app Documentation says exactly what is sent, and
+  `rmk telemetry preview` prints it.
+- **What an event carries:** the item and version, the tool, the event (install, remove, run), for a
+  run its trigger and outcome (success, error, cancelled) when the tool reports them, the day, and a
+  project id: a salted hash of the repository's remote URL (or folder path), so projects can be
+  counted without being named. **Never** prompts, file contents, paths, branch names, user names or
+  environment values.
+- **Where it goes:** to the instance it was installed from, and nowhere else (`POST /api/v1/usage`,
+  with the person's token; batched, rate-limited, dropped silently when offline). Self-hosted data
+  stays self-hosted.
+- **What is stored:** daily aggregates per item, version, tool, event, trigger and outcome, plus
+  distinct project hashes per item for the active-projects count, kept for a set window (90 days to
+  start). Raw events aren't kept.
+- **Invocations need hooks.** Each tool's renderer would add an `rmk`-managed hook that fires when an
+  `rmk`-installed item runs (Claude Code's hooks around subagents and skills, and whatever Codex and
+  Cursor offer). Which events each tool exposes changes often: check the vendor docs before building
+  (as for renderers, §3.3). A tool without such a hook reports installs only, and the page says so.
+- **Success rate** only where the tool reports how a run ended; otherwise it isn't shown.
+
+**On the item page (047):** the mockup's stat cards (installs in active projects, invocations and
+success, harness distribution) replace or join 045's downloads card, and its Telemetry and usage
+breakdown card (daily volume, harness breakdown, triggers) appears on the Overview, each only when
+there's enough data, with "Usage is opt-in; numbers come from people who turned it on."
+
+**Decisions to make first:** the project id (remote URL vs folder), the retention window, whether
+moderators see per-project data (recommended: never), and whether the home page's "Most used" moves
+from downloads to active projects.
 
 ## 15. Decision log
 
