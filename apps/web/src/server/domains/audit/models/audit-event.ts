@@ -21,6 +21,7 @@ export const AUDIT_ACTIONS = [
   "scope.created",
   "scope.updated",
   "submission.draft_created",
+  "submission.draft_updated",
   "submission.submitted",
   "submission.resubmitted",
   "submission.withdrawn",

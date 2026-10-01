@@ -19,8 +19,16 @@ import {
   uploadExport,
   walkItemFolder,
 } from "./export.js";
+import { previewText } from "./export-command.js";
 import { places } from "./install.js";
-import { exportRoutes, type FakeIo, fakeIo, REGISTRY, type Route } from "./testing.js";
+import {
+  exportRoutes,
+  type FakeIo,
+  type FakeOpenDraft,
+  fakeIo,
+  REGISTRY,
+  type Route,
+} from "./testing.js";
 
 let io: FakeIo;
 afterEach(() => io?.cleanup());
@@ -559,7 +567,7 @@ describe("uploadExport", () => {
     expect(error).toBeInstanceOf(RmkError);
     expect(error).toMatchObject({ code: "draft_limit", exitCode: 1 });
     expect(error.message).toBe(
-      `.claude/skills/two: You already have 50 drafts. Drafts already created: @team/one (${REGISTRY}/submissions/${drafts[0]?.id}).`,
+      `.claude/skills/two: You already have 50 drafts. Drafts already uploaded: @team/one (${REGISTRY}/submissions/${drafts[0]?.id}).`,
     );
     expect(error.details.exported.map((e: { name: string }) => e.name)).toEqual(["@team/one"]);
   });
@@ -1088,6 +1096,112 @@ describe("Codex's and Cursor's files (043)", () => {
     expect(manifest("jira")).toContain("command: jira-mcp");
     expect(manifest("tracker")).toContain("transport: http");
     expect(manifest("auditor")).toContain("- read");
+  });
+});
+
+describe("updating your drafts (051)", () => {
+  const notPublished: Route = () => ({
+    status: 404,
+    json: { error: { code: "item_not_found", message: "No." } },
+  });
+  const setup = (open: FakeOpenDraft[]) => {
+    const registry = exportRoutes({ open });
+    io = fakeIo({
+      ...registry.routes,
+      "GET /items/team/one": notPublished,
+      "GET /items/team/two": notPublished,
+    });
+    write(io.cwd, ".claude/skills/one/SKILL.md", "---\nname: one\ndescription: One.\n---\n");
+    write(io.cwd, ".claude/skills/two/SKILL.md", "---\nname: two\ndescription: Two.\n---\n");
+    return { api: apiClient(io.fetch, REGISTRY, "rmk_test_token"), ...registry };
+  };
+  const draft = (id: string, status: FakeOpenDraft["status"], extra: Partial<FakeOpenDraft> = {}) =>
+    ({ id, name: "@team/one", type: "skill", status, ...extra }) as FakeOpenDraft;
+  const sent = () =>
+    io.requests.filter((r) => r.method !== "GET").map((r) => `${r.method} ${r.path}`);
+
+  it("updates your newest draft of the item, says so, and makes no new draft", async () => {
+    const { api, drafts, replaced } = setup([
+      draft("01NEWER", "draft", { updatedAt: "2026-10-01T12:30:00.000Z" }),
+      draft("01OLDER", "draft", { updatedAt: "2026-09-30T08:00:00.000Z" }),
+    ]);
+    const plan = await planExport(io, api, { items: ["one", "two"], to: "team" });
+    expect(plan.items.find((i) => i.name === "@team/one")?.updates).toEqual({
+      id: "01NEWER",
+      url: `${REGISTRY}/submissions/01NEWER`,
+      status: "draft",
+      updatedAt: "2026-10-01T12:30:00.000Z",
+    });
+    expect(plan.items.find((i) => i.name === "@team/two")?.updates).toBeUndefined();
+    expect(previewText(plan, "dev@example.com")).toContain(
+      `Updates your draft ${REGISTRY}/submissions/01NEWER (a draft, last changed 2026-10-01 12:30 UTC): its files are replaced`,
+    );
+    const exported = await uploadExport(api, plan);
+    expect(sent()).toEqual(["PUT /api/v1/drafts/01NEWER", "POST /api/v1/drafts"]);
+    expect(replaced.map((r) => [r.id, r.name])).toEqual([["01NEWER", "@team/one"]]);
+    expect(drafts.map((d) => d.name)).toEqual(["@team/two"]);
+    expect(exported.map((e) => [e.name, e.id, e.updated])).toEqual([
+      ["@team/one", "01NEWER", true],
+      ["@team/two", drafts[0]?.id, false],
+    ]);
+  });
+
+  it("updates one sent back for changes, and prefers a draft to one in review", async () => {
+    let { api } = setup([draft("01BACK", "changes_requested")]);
+    let plan = await planExport(io, api, { items: ["one"], to: "team" });
+    expect(plan.items[0]?.updates?.status).toBe("changes_requested");
+    expect(previewText(plan, "dev@example.com")).toContain("(sent back for changes, last changed");
+
+    io.cleanup();
+    ({ api } = setup([draft("01REVIEW", "submitted"), draft("01DRAFT", "draft")]));
+    plan = await planExport(io, api, { items: ["one"], to: "team" });
+    expect(plan.items[0]?.updates?.id).toBe("01DRAFT");
+  });
+
+  it("refuses an item that's only in review, and goes on with the rest", async () => {
+    const { api } = setup([draft("01REVIEW", "submitted")]);
+    const plan = await planExport(io, api, { items: ["one", "two"], to: "team" });
+    expect(plan.items.map((i) => i.name)).toEqual(["@team/two"]);
+    expect(plan.refused).toEqual([
+      {
+        local: ".claude/skills/one",
+        code: "in_review",
+        message:
+          "@team/one is in review: withdraw it in the web app to change it, or export with --new-draft for a separate draft.",
+      },
+    ]);
+  });
+
+  it("doesn't match a draft of another type, or a proposal", async () => {
+    const { api } = setup([
+      draft("01RULE", "draft", { type: "rule" }),
+      draft("01PROPOSAL", "draft", { baseVersion: "1.0.0" }),
+      draft("01INREVIEW", "submitted", { type: "rule" }),
+    ]);
+    const plan = await planExport(io, api, { items: ["one"], to: "team" });
+    expect(plan.items[0]?.updates).toBeUndefined();
+    expect(plan.refused).toEqual([]);
+    await uploadExport(api, plan);
+    expect(sent()).toEqual(["POST /api/v1/drafts"]);
+  });
+
+  it("makes a new draft with newDraft, without looking", async () => {
+    const { api } = setup([draft("01DRAFT", "draft"), draft("01REVIEW", "submitted")]);
+    const plan = await planExport(io, api, { items: ["one"], to: "team", newDraft: true });
+    expect(plan.items[0]?.updates).toBeUndefined();
+    expect(io.requests.some((r) => r.path.startsWith("/api/v1/drafts"))).toBe(false);
+    await uploadExport(api, plan);
+    expect(sent()).toEqual(["POST /api/v1/drafts"]);
+  });
+
+  it("makes new drafts against a registry older than 051", async () => {
+    const registry = exportRoutes();
+    io = fakeIo({ ...registry.routes, "GET /items/team/one": notPublished });
+    write(io.cwd, ".claude/skills/one/SKILL.md", "---\nname: one\ndescription: One.\n---\n");
+    const api = apiClient(io.fetch, REGISTRY, "rmk_test_token");
+    const plan = await planExport(io, api, { items: ["one"], to: "team" });
+    expect(plan.items[0]?.updates).toBeUndefined();
+    expect((await uploadExport(api, plan))[0]?.updated).toBe(false);
   });
 });
 

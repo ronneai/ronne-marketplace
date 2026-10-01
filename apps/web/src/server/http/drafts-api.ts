@@ -1,7 +1,15 @@
 import { loadConfig } from "../config";
+import type { Authenticated } from "../domains/identity/actions/access-tokens";
 import type { AppAuth } from "../domains/identity/repositories/auth-instance";
 import { listScopesAs } from "../domains/items/actions/scopes";
-import { createDraftFromFilesAs, type UploadFile } from "../domains/submissions/actions/drafts";
+import {
+  createDraftFromFilesAs,
+  listOpenDraftsAs,
+  replaceDraftFromFilesAs,
+  type UploadedDraft,
+  type UploadFile,
+} from "../domains/submissions/actions/drafts";
+import type { Submission } from "../domains/submissions/models/submission";
 import type { StorageAdapter } from "../storage";
 import { parseLimit, parseSearch } from "./api-query";
 import { domainErrorResponse, errorResponse, rateLimitedResponse } from "./errors";
@@ -104,62 +112,164 @@ const publicUrlOf = (deps: DraftsApiDeps): string | null => {
   return url?.replace(/\/+$/, "") || null;
 };
 
+/** An item's name as the API takes it, split; null when it isn't `@scope/name`. */
+const splitName = (value: string) => {
+  const match = /^@([^/]+)\/([^/]+)$/.exec(value.trim());
+  return match ? { scope: match[1] ?? "", name: match[2] ?? "" } : null;
+};
+
+const invalidName = (value: string) =>
+  errorResponse(400, "invalid_name", `${value || "(empty)"} isn't an item name: use @scope/name.`);
+
+type ReadUpload =
+  | {
+      ok: true;
+      auth: Authenticated;
+      input: { scope: string; name: string; type: string; files: UploadFile[]; base?: string };
+    }
+  | { ok: false; response: Response };
+
+/** An upload's request, in order: the token, the rate, the body's size, its shape, the name. */
+const readUpload = async (request: Request, deps: DraftsApiDeps): Promise<ReadUpload> => {
+  const guard = await requireToken(request, deps.guard);
+  if (!guard.ok) return { ok: false, response: guard.response };
+  const rate = (deps.limiter ?? uploadLimiter()).consume(guard.auth.user.id);
+  if (!rate.allowed)
+    return {
+      ok: false,
+      response: rateLimitedResponse(
+        "Too many uploads: at most 30 in 10 minutes. Wait, then try again.",
+        rate.retryAfterSeconds,
+      ),
+    };
+  const read = await readJsonObjectWithin(request, DRAFT_BODY_MAX_BYTES);
+  if (!read.ok) return { ok: false, response: read.response };
+  const upload = parseUpload(read.body);
+  if (!upload.ok)
+    return { ok: false, response: errorResponse(400, "invalid_request", upload.message) };
+  const itemName = splitName(upload.value.name);
+  if (!itemName) return { ok: false, response: invalidName(upload.value.name) };
+  return {
+    ok: true,
+    auth: guard.auth,
+    input: {
+      ...itemName,
+      type: upload.value.type,
+      files: upload.value.files,
+      ...(upload.value.base ? { base: upload.value.base } : {}),
+    },
+  };
+};
+
+/** Where a submission is: its page, and the full address when the instance has one. */
+const placeOf = (deps: DraftsApiDeps, id: string) => {
+  const path = `/submissions/${id}`;
+  const base = publicUrlOf(deps);
+  return { path, url: base ? `${base}${path}` : null };
+};
+
+/** 037's answer for a draft that was uploaded: created, or replaced (051). */
+const uploadedJson = (
+  deps: DraftsApiDeps,
+  { draft, issues, submitIssues, proposal }: UploadedDraft,
+) => ({
+  id: draft.id,
+  ...placeOf(deps, draft.id),
+  name: `@${draft.scope.name}/${draft.name}`,
+  type: draft.type,
+  status: draft.status,
+  files: draft.files.length,
+  bytes: draft.files.reduce((sum, file) => sum + file.size, 0),
+  issues,
+  submitIssues,
+  proposal,
+});
+
 /**
  * POST /api/v1/drafts: a draft of a new item with its files, owned by the token's user, who reviews
  * and submits it in the web app. In order: the token, the rate, the body's size, its shape, then
  * the submissions domain's checks. A draft with errors is still created; they're in `issues`.
  */
 export const postDraft = async (request: Request, deps: DraftsApiDeps = {}) => {
-  const guard = await requireToken(request, deps.guard);
-  if (!guard.ok) return guard.response;
-  const rate = (deps.limiter ?? uploadLimiter()).consume(guard.auth.user.id);
-  if (!rate.allowed)
-    return rateLimitedResponse(
-      "Too many uploads: at most 30 in 10 minutes. Wait, then try again.",
-      rate.retryAfterSeconds,
-    );
-  const read = await readJsonObjectWithin(request, DRAFT_BODY_MAX_BYTES);
-  if (!read.ok) return read.response;
-  const upload = parseUpload(read.body);
-  if (!upload.ok) return errorResponse(400, "invalid_request", upload.message);
-  const itemName = /^@([^/]+)\/([^/]+)$/.exec(upload.value.name.trim());
-  if (!itemName)
-    return errorResponse(
-      400,
-      "invalid_name",
-      `${upload.value.name || "(empty)"} isn't an item name: use @scope/name.`,
-    );
+  const upload = await readUpload(request, deps);
+  if (!upload.ok) return upload.response;
   try {
-    const { draft, issues, submitIssues, proposal } = await createDraftFromFilesAs(
-      guard.auth,
+    const created = await createDraftFromFilesAs(
+      upload.auth,
       request.headers,
-      {
-        scope: itemName[1] ?? "",
-        name: itemName[2] ?? "",
-        type: upload.value.type,
-        files: upload.value.files,
-        ...(upload.value.base ? { base: upload.value.base } : {}),
-      },
+      upload.input,
       deps.app,
       ...(deps.storage ? [deps.storage] : []),
     );
-    const path = `/submissions/${draft.id}`;
-    const base = publicUrlOf(deps);
+    return Response.json(uploadedJson(deps, created), {
+      status: 201,
+      headers: { "cache-control": "no-store" },
+    });
+  } catch (error) {
+    return orDomainError(error);
+  }
+};
+
+/**
+ * PUT /api/v1/drafts/{id}: replaces the files of the token's user's draft, or one sent back for
+ * changes, with 037's body (051), when it's the same item: `rmk export` exporting it again. Checked
+ * in POST's order, then the draft's: someone else's is `draft_not_found`, a submitted one
+ * `not_editable`, another name, type or base `draft_mismatch`.
+ */
+export const putDraft = async (
+  request: Request,
+  { id }: { id: string },
+  deps: DraftsApiDeps = {},
+) => {
+  const upload = await readUpload(request, deps);
+  if (!upload.ok) return upload.response;
+  try {
+    const replaced = await replaceDraftFromFilesAs(
+      upload.auth,
+      request.headers,
+      id,
+      upload.input,
+      deps.app,
+      ...(deps.storage ? [deps.storage] : []),
+    );
+    return Response.json(uploadedJson(deps, replaced), {
+      headers: { "cache-control": "no-store" },
+    });
+  } catch (error) {
+    return orDomainError(error);
+  }
+};
+
+const openDraftJson = (deps: DraftsApiDeps, submission: Submission) => ({
+  id: submission.id,
+  ...placeOf(deps, submission.id),
+  name: `@${submission.scope.name}/${submission.name}`,
+  type: submission.type,
+  status: submission.status,
+  updatedAt: submission.updatedAt.toISOString(),
+  proposal: submission.proposal
+    ? {
+        item: `@${submission.scope.name}/${submission.name}`,
+        baseVersion: submission.proposal.baseVersion,
+      }
+    : null,
+});
+
+/**
+ * GET /api/v1/drafts?name=@scope/name: the token's user's drafts, submissions sent back for
+ * changes, and submissions in review, of that item (or all of them), newest change first (051).
+ * What `rmk export` looks at before deciding to update a draft. Nobody else's are listed.
+ */
+export const getDrafts = async (request: Request, deps: DraftsApiDeps = {}) => {
+  const guard = await requireToken(request, deps.guard);
+  if (!guard.ok) return guard.response;
+  const name = new URL(request.url).searchParams.get("name");
+  if (name !== null && !splitName(name)) return invalidName(name);
+  try {
+    const drafts = await listOpenDraftsAs(guard.auth, name?.trim() ?? undefined, deps.app);
     return Response.json(
-      {
-        id: draft.id,
-        path,
-        url: base ? `${base}${path}` : null,
-        name: `@${draft.scope.name}/${draft.name}`,
-        type: draft.type,
-        status: draft.status,
-        files: draft.files.length,
-        bytes: draft.files.reduce((sum, file) => sum + file.size, 0),
-        issues,
-        submitIssues,
-        proposal,
-      },
-      { status: 201, headers: { "cache-control": "no-store" } },
+      { drafts: drafts.map((submission) => openDraftJson(deps, submission)) },
+      { headers: { "cache-control": "no-store" } },
     );
   } catch (error) {
     return orDomainError(error);

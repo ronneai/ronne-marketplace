@@ -40,7 +40,8 @@ export class DraftScopeNotFoundError extends SubmissionsError {
 
 /** Only drafts can be edited, renamed or deleted; a submitted one is frozen for review. */
 export class SubmissionNotEditableError extends SubmissionsError {
-  constructor() {
+  /** The status it has, for the API's `details` (051). */
+  constructor(readonly status?: string) {
     super("This submission isn't a draft any more, so it can't be changed.");
   }
 }
@@ -184,6 +185,18 @@ export class DraftLimitError extends SubmissionsError {
 export class DraftQuotaError extends SubmissionsError {
   constructor(readonly limit: number) {
     super(`You already have ${limit} drafts. Submit or delete some before uploading more.`);
+  }
+}
+
+/**
+ * An upload meant to replace a draft (051) names another item, type or base version than the
+ * draft has: it's a different draft, so it's refused rather than turning this one into it.
+ */
+export class DraftMismatchError extends SubmissionsError {
+  constructor(readonly draft: { name: string; type: string; baseVersion: string | null }) {
+    super(
+      `That draft is ${draft.name}, a ${draft.type}${draft.baseVersion ? ` proposed from ${draft.baseVersion}` : ""}; the upload is something else, so it would be a new draft.`,
+    );
   }
 }
 

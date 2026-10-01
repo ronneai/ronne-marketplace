@@ -158,6 +158,8 @@ later (a proposal from an uploaded folder). `planExport` gains `PlannedItem.prop
 1. **Replacing an open proposal.** Exporting the same edit twice makes two drafts. Recommended:
    leave it, and have the preview say when the person already has an open proposal (or draft) for
    the item, with its link; replacing a draft's files through the API can come later.
+   *Resolved by [051](../051-update-drafts-on-export/SPEC.md):* exporting again updates the
+   person's proposal draft from the same base.
 2. **Published own items as proposals by default** (recommended: the loop "export, release, edit,
    export again" is the common one, and a new-item draft with a taken name is refused anyway), or
    ask each time.

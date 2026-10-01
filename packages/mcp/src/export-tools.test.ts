@@ -5,6 +5,7 @@ import { diskHash } from "@ronneai/rmk/lib";
 import {
   exportRoutes,
   type FakeIo,
+  type FakeOpenDraft,
   fakeIo,
   identityRoutes,
   REGISTRY,
@@ -36,8 +37,9 @@ const skillMd = (name: string) =>
 const project = async (
   fail: Record<string, { status: number; json?: unknown }> = {},
   extra: Record<string, Route> = {},
+  open?: FakeOpenDraft[],
 ) => {
-  registry = exportRoutes({ fail });
+  registry = exportRoutes({ fail, ...(open ? { open } : {}) });
   const notFound = () => ({
     status: 404,
     json: { error: { code: "item_not_found", message: "No." } },
@@ -587,5 +589,41 @@ describe("proposals over MCP (042)", () => {
     expect(
       (asNew.structuredContent as { items: { proposal: unknown }[] }).items[0]?.proposal,
     ).toBeNull();
+  });
+});
+
+describe("updating the person's drafts (051)", () => {
+  const open: FakeOpenDraft[] = [
+    { id: "01MINE", name: "@team/mine", type: "skill", status: "changes_requested" },
+  ];
+  const planned = async (input: { newDraft?: boolean } = {}) => {
+    await project({}, {}, open);
+    const store = planStore<StoredExport>(() => 1_000_000);
+    const answer = await planExportTool(io, store, { items: ["mine"], to: "team", ...input });
+    return { store, answer };
+  };
+
+  it("shows the draft it updates, and updates it", async () => {
+    const { store, answer } = await planned();
+    expect(answer.content[0]?.text).toContain(
+      `Updates your draft ${REGISTRY}/submissions/01MINE (sent back for changes`,
+    );
+    const data = answer.structuredContent as { planId: string; items: { updates: unknown }[] };
+    expect(data.items[0]?.updates).toMatchObject({ id: "01MINE", status: "changes_requested" });
+    const result = await exportItemsTool(io, store, { planId: data.planId });
+    expect(result.content[0]?.text).toContain(
+      `@team/mine: draft updated at ${REGISTRY}/submissions/01MINE`,
+    );
+    expect(registry.replaced.map((r) => r.id)).toEqual(["01MINE"]);
+    expect(registry.drafts).toEqual([]);
+  });
+
+  it("makes a separate draft with newDraft", async () => {
+    const { store, answer } = await planned({ newDraft: true });
+    const data = answer.structuredContent as { planId: string; items: { updates: unknown }[] };
+    expect(data.items[0]?.updates).toBeNull();
+    await exportItemsTool(io, store, { planId: data.planId });
+    expect(registry.replaced).toEqual([]);
+    expect(registry.drafts.map((d) => d.name)).toEqual(["@team/mine"]);
   });
 });

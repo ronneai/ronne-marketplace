@@ -912,7 +912,11 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           <li>what the checks find, to fix in the web app before submitting;</li>
           <li>
             for a <To href={docsHref("export", "proposals")}>change proposal</To>, the version it
-            starts from, what it changes, and whether a newer version is out.
+            starts from, what it changes, and whether a newer version is out;
+          </li>
+          <li>
+            when you already have a draft of the item, <strong>Updates your draft</strong>, with its
+            address: see <To href={docsHref("export", "again")}>Exporting again</To>.
           </li>
         </Bullets>
         <p>
@@ -984,10 +988,40 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </p>
         <p>
           A change proposal is reviewed like any proposal and released as the item&apos;s next
-          version. Exporting the same item twice makes two drafts (or two proposals); delete the one
-          you don&apos;t need. A draft made this way counts towards the{" "}
+          version. A draft made this way counts towards the{" "}
           <To href={docsHref("rmk", "tokens")}>limits for tokens</To>, and is written to the audit
           log.
+        </p>
+      </>
+    ),
+    again: (
+      <>
+        <p>
+          Kept working on it in your AI tool? Export it again: <Code>rmk</Code> looks for a draft of
+          yours of the same item and <strong>updates it</strong> instead of making another.
+        </p>
+        <Bullets>
+          <li>
+            <strong>A draft, or one sent back for changes:</strong> its files are replaced with what
+            you export, including edits you made in the web app since. If you have several, the one
+            changed most recently. Updating doesn&apos;t count towards the 50-draft limit. A
+            submission sent back for changes stays that way: resubmit it in the web app.
+          </li>
+          <li>
+            <strong>One in review:</strong> left alone, and nothing is uploaded for it. Withdraw it
+            in the web app first to change it.
+          </li>
+          <li>
+            <strong>The same item</strong> means the same name and type, and for a{" "}
+            <To href={docsHref("export", "proposals")}>change proposal</To> the same base version. A
+            proposal from a newer version, or a draft of another type, becomes a new draft; the old
+            one stays.
+          </li>
+        </Bullets>
+        <p>
+          The preview says <strong>Updates your draft</strong> with its address before anything is
+          sent. To keep the draft as it is and make a separate one, add <Code>--new-draft</Code>, or
+          ask the assistant in your AI tool for a separate draft.
         </p>
       </>
     ),
@@ -1190,7 +1224,8 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           </li>
           <li>
             once you&apos;ve seen it, uploads it (<Code>export_items</Code>, which your tool asks
-            you about) and gives you each draft&apos;s address.
+            you about) and gives you each draft&apos;s address. A draft of yours of the same item is{" "}
+            <To href={docsHref("export", "again")}>updated</To>, unless you ask for a separate one.
           </li>
         </Steps>
         <p>
@@ -1240,6 +1275,10 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
               [
                 "--new",
                 "A new item, even when it's a change to a published one (then it's a proposal).",
+              ],
+              [
+                "--new-draft",
+                "A separate draft, even when you already have a draft of the item (then it's updated).",
               ],
               ["--json", "Answer with one JSON object, for scripts and agents; nothing is asked."],
             ] as const
@@ -1598,9 +1637,10 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           A draft created with a token (<Code>POST /api/v1/drafts</Code>, with its files) is like
           one you start here: only you see it, under <To href="/submissions">Submissions</To>, and
           nothing reaches a reviewer until you open it and submit it. A token can create drafts
-          while you have fewer than 50 (submit or delete some to make room), and at most 30 in 10
-          minutes. Each one is written to the audit log with the token&apos;s name and the
-          draft&apos;s name, which root can read; its files aren&apos;t.
+          while you have fewer than 50 (submit or delete some to make room), and update your own
+          drafts (<Code>PUT /api/v1/drafts/…</Code>), at most 30 uploads in 10 minutes. Each one is
+          written to the audit log with the token&apos;s name and the draft&apos;s name, which root
+          can read; its files aren&apos;t.
         </p>
         <p>
           The <To href={docsHref("mcp")}>registry MCP server</To>, <Code>rmk-mcp</Code>, uses the

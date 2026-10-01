@@ -180,6 +180,8 @@ instead of the session, the way the `items` domain's `…As` actions do (019). T
 1. **The same item uploaded twice makes two drafts.** Recommended for now: leave it, and have the
    client warn when the person already has a draft of that name (which needs the response, or a
    small read endpoint, to say so; decide when building 038). "Replace my draft" belongs with 042.
+   *Resolved by [051](../051-update-drafts-on-export/SPEC.md):* `GET /drafts?name=` and
+   `PUT /drafts/{id}`, and export updates the person's draft.
 2. **The limits' values:** 50 drafts and 30 uploads per 10 minutes are guesses at "far more than a
    person needs, far less than a script gone wrong". Root-configurable limits wait for instance
    settings (MVP §12).

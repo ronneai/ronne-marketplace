@@ -4,7 +4,14 @@ import { packItem } from "@ronneai/core/pack";
 import { afterEach, describe, expect, it } from "vitest";
 import { run } from "./cli.js";
 import { configPath } from "./config.js";
-import { exportRoutes, type FakeIo, fakeIo, identityRoutes, REGISTRY } from "./testing.js";
+import {
+  exportRoutes,
+  type FakeIo,
+  type FakeOpenDraft,
+  fakeIo,
+  identityRoutes,
+  REGISTRY,
+} from "./testing.js";
 
 let io: FakeIo;
 afterEach(() => io?.cleanup());
@@ -217,9 +224,10 @@ describe("rmk export", () => {
     options: {
       interactive?: boolean;
       fail?: Record<string, { status: number; json?: unknown }>;
+      open?: FakeOpenDraft[];
     } = {},
   ) => {
-    const registry = exportRoutes({ scopes: SCOPES, fail: options.fail });
+    const registry = exportRoutes({ scopes: SCOPES, fail: options.fail, open: options.open });
     io = fakeIo(
       {
         ...identityRoutes("rmk_test_token"),
@@ -246,6 +254,31 @@ describe("rmk export", () => {
     return registry;
   };
   const posts = () => io.requests.filter((r) => r.method === "POST");
+
+  it("updates your draft of the item, and --new-draft makes another (051)", async () => {
+    const { drafts, replaced } = setup({
+      open: [{ id: "01MINE", name: "@team/review", type: "skill", status: "draft" }],
+    });
+    const updated = await rmk("export", "review", "--to", "team", "--yes");
+    expect(updated.exitCode, updated.stderr).toBe(0);
+    expect(updated.stdout).toContain(
+      `@team/review: draft updated at ${REGISTRY}/submissions/01MINE`,
+    );
+    expect(replaced.map((r) => r.id)).toEqual(["01MINE"]);
+    const separate = await rmk(
+      "export",
+      "review",
+      "--to",
+      "team",
+      "--yes",
+      "--new-draft",
+      "--json",
+    );
+    expect(JSON.parse(separate.stdout).exported).toMatchObject([
+      { name: "@team/review", updated: false },
+    ]);
+    expect(drafts).toHaveLength(1);
+  });
 
   it("lists the skills found, asks which, then the scope, shows the preview in the question, and uploads", async () => {
     const { drafts } = setup();
@@ -373,7 +406,7 @@ describe("rmk export", () => {
     const partial = await rmk("export", "deploy", "review", "--to", "team", "--yes", "--force");
     expect(partial.exitCode).toBe(1);
     expect(partial.stdout).toContain("@team/deploy: draft created at");
-    expect(partial.stderr).toContain("Drafts already created: @team/deploy");
+    expect(partial.stderr).toContain("Drafts already uploaded: @team/deploy");
   });
 
   it("needs a login before reading anything", async () => {

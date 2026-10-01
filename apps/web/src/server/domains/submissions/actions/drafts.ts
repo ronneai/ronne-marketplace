@@ -61,6 +61,39 @@ export const createDraftFromFilesAs = (
     input,
   );
 
+/** For 051's API: the token's user's open submissions, of one item when `itemName` is given. */
+export const listOpenDraftsAs = (
+  auth: Authenticated,
+  itemName: string | undefined,
+  app: AppAuth = getAppAuth(),
+) => service.listOpenDrafts(deps(app), { user: auth.user }, itemName);
+
+/** For 051's API: replaces the token's user's draft's files, auditing the token and address. */
+export const replaceDraftFromFilesAs = (
+  auth: Authenticated,
+  headers: Headers,
+  id: string,
+  input: {
+    scope: string;
+    name: string;
+    type: string;
+    files: readonly service.UploadFile[];
+    base?: string;
+  },
+  app: AppAuth = getAppAuth(),
+  storage: StorageAdapter = instanceStorage,
+) =>
+  service.replaceDraftFromFiles(
+    deps(app, storage),
+    {
+      user: auth.user,
+      ip: clientIp(headers, app.trustProxy),
+      token: { id: auth.token.id, name: auth.token.name },
+    },
+    id,
+    input,
+  );
+
 export const listMySubmissions = async (headers: Headers, app: AppAuth = getAppAuth()) =>
   service.listMySubmissions(deps(app), await actor(headers, app));
 

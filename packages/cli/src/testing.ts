@@ -307,13 +307,67 @@ export type FakeDraft = {
  * The routes `rmk export` uses (037): the scopes, and a draft store that creates each upload, or
  * answers `fail` for the names in it.
  */
+/** A draft the fake registry already has of the person's (051), as `GET /drafts` lists it. */
+export type FakeOpenDraft = {
+  id: string;
+  name: string;
+  type: string;
+  status: "draft" | "changes_requested" | "submitted";
+  updatedAt?: string;
+  baseVersion?: string;
+};
+
+/**
+ * `GET /scopes` and `POST /drafts` (037). With `open`, also 051's `GET /drafts` and
+ * `PUT /drafts/{id}`: the person's open drafts, newest first, which a POST adds to; without it,
+ * the registry is older than 051 and answers neither.
+ */
 export const exportRoutes = (
   options: {
     scopes?: { name: string; description: string }[];
     fail?: Record<string, { status: number; json?: unknown }>;
+    open?: FakeOpenDraft[];
   } = {},
 ) => {
   const drafts: FakeDraft[] = [];
+  /** Each PUT, by draft id: what replaced it. */
+  const replaced: (FakeDraft & { status: string })[] = [];
+  const open = options.open ? [...options.open] : null;
+  const answer = (
+    status: number,
+    draft: { id: string; name: string; type: string; files: unknown[]; base?: string },
+    draftStatus = "draft",
+  ) => ({
+    status,
+    json: {
+      id: draft.id,
+      path: `/submissions/${draft.id}`,
+      url: `${REGISTRY}/submissions/${draft.id}`,
+      name: draft.name,
+      type: draft.type,
+      status: draftStatus,
+      files: draft.files.length,
+      bytes: 0,
+      issues: [],
+      submitIssues: [],
+      proposal: draft.base ? { item: draft.name, baseVersion: draft.base, stale: null } : null,
+    },
+  });
+  type Upload = { name: string; type: string; files: unknown[]; base?: string };
+  const putRoute =
+    (id: string): Route =>
+    ({ body }) => {
+      const upload = body as Upload;
+      const failure = options.fail?.[upload.name];
+      if (failure) return failure;
+      const draft = open?.find((d) => d.id === id);
+      if (!draft)
+        return { status: 404, json: { error: { code: "draft_not_found", message: "No." } } };
+      if (draft.status === "submitted")
+        return { status: 409, json: { error: { code: "not_editable", message: "In review." } } };
+      replaced.push({ id, ...upload, status: draft.status });
+      return answer(200, { id, ...upload }, draft.status);
+    };
   const routes: Record<string, Route> = {
     "GET /scopes": () => ({
       json: {
@@ -322,30 +376,45 @@ export const exportRoutes = (
       },
     }),
     "POST /drafts": ({ body }) => {
-      const upload = body as { name: string; type: string; files: unknown[]; base?: string };
+      const upload = body as Upload;
       const failure = options.fail?.[upload.name];
       if (failure) return failure;
       const id = `01DRAFT${String(drafts.length + 1).padStart(19, "0")}`;
       drafts.push({ id, ...upload });
-      return {
-        status: 201,
-        json: {
+      if (open) {
+        open.unshift({
           id,
-          path: `/submissions/${id}`,
-          url: `${REGISTRY}/submissions/${id}`,
           name: upload.name,
           type: upload.type,
           status: "draft",
-          files: upload.files.length,
-          bytes: 0,
-          issues: [],
-          submitIssues: [],
-          proposal: upload.base
-            ? { item: upload.name, baseVersion: upload.base, stale: null }
-            : null,
-        },
-      };
+          ...(upload.base ? { baseVersion: upload.base } : {}),
+        });
+        routes[`PUT /drafts/${id}`] = putRoute(id);
+      }
+      return answer(201, { id, ...upload });
     },
   };
-  return { routes, drafts };
+  if (open) {
+    routes["GET /drafts"] = ({ url }) => {
+      const name = url.searchParams.get("name");
+      return {
+        json: {
+          drafts: open
+            .filter((d) => !name || d.name === name)
+            .map((d) => ({
+              id: d.id,
+              path: `/submissions/${d.id}`,
+              url: `${REGISTRY}/submissions/${d.id}`,
+              name: d.name,
+              type: d.type,
+              status: d.status,
+              updatedAt: d.updatedAt ?? "2026-10-01T12:00:00.000Z",
+              proposal: d.baseVersion ? { item: d.name, baseVersion: d.baseVersion } : null,
+            })),
+        },
+      };
+    };
+    for (const draft of open) routes[`PUT /drafts/${draft.id}`] = putRoute(draft.id);
+  }
+  return { routes, drafts, replaced };
 };

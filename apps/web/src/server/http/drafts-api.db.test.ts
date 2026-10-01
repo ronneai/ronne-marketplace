@@ -13,7 +13,7 @@ import { kyselyItemRepository } from "../domains/items/repositories/kysely-item-
 import { kyselyScopeRepository } from "../domains/items/repositories/kysely-scope-repository";
 import { kyselySubmissionRepository } from "../domains/submissions/repositories/kysely-submission-repository";
 import { localStorage } from "../storage/local-storage";
-import { type DraftsApiDeps, getScopes, postDraft } from "./drafts-api";
+import { type DraftsApiDeps, getDrafts, getScopes, postDraft, putDraft } from "./drafts-api";
 import { createUploadLimiter } from "./upload-rate-limit";
 
 let t: TestDb;
@@ -348,6 +348,149 @@ describe("POST /drafts", () => {
     const invalid = await body(await postDraft(post(upload(), "rmk_nope"), deps));
     expect([invalid.status, invalid.json.error.code]).toEqual([401, "token_invalid"]);
     expect(await counts()).toEqual({ drafts: 0, files: 0, uploads: 0 });
+  });
+});
+
+describe("GET and PUT /drafts (051)", () => {
+  const files = (body = "Be careful.") => [
+    {
+      path: "ronne.yaml",
+      encoding: "utf8",
+      content: 'name: "@team/secure-coding"\ntype: skill\ndescription: Checks code.\n',
+    },
+    { path: "SKILL.md", encoding: "utf8", content: `---\nname: secure-coding\n---\n${body}\n` },
+  ];
+  const upload = (overrides: Record<string, unknown> = {}) => ({
+    name: "@team/secure-coding",
+    type: "skill",
+    files: files(),
+    ...overrides,
+  });
+  const send = (method: "POST" | "PUT", path: string, payload: unknown, auth = tokens.user) =>
+    new Request(`${BASE}${path}`, {
+      method,
+      headers: { "content-type": "application/json", authorization: `Bearer ${auth}` },
+      body: typeof payload === "string" ? payload : JSON.stringify(payload),
+    });
+  const create = async (auth = tokens.user) =>
+    (await body(await postDraft(send("POST", "/drafts", upload(), auth), deps))).json.id as string;
+  const put = (id: string, payload: unknown, auth = tokens.user) =>
+    putDraft(send("PUT", `/drafts/${id}`, payload, auth), { id }, deps);
+  const setStatus = (id: string, status: "submitted" | "changes_requested" | "published") =>
+    t.db.updateTable("submissions").set({ status }).where("id", "=", id).execute();
+  const stored = async (id: string) =>
+    (await kyselySubmissionRepository(t.db, t.dialect).files(id)).map((f) => [f.path, f.content]);
+
+  it("lists your open drafts of an item, and nobody else's", async () => {
+    const mine = await create();
+    const inReview = await create();
+    await setStatus(inReview, "submitted");
+    const done = await create();
+    await setStatus(done, "published");
+    await create(tokens.moderator);
+    const response = await getDrafts(get("/drafts?name=@team/secure-coding"), deps);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    const { status, json } = await body(response);
+    expect(status).toBe(200);
+    expect(json.drafts).toHaveLength(2);
+    expect(json.drafts).toEqual(
+      expect.arrayContaining([
+        {
+          id: mine,
+          path: `/submissions/${mine}`,
+          url: `https://ronne.example/submissions/${mine}`,
+          name: "@team/secure-coding",
+          type: "skill",
+          status: "draft",
+          updatedAt: expect.stringMatching(/^\d{4}-\d\d-\d\dT/),
+          proposal: null,
+        },
+        expect.objectContaining({ id: inReview, status: "submitted" }),
+      ]),
+    );
+    expect((await body(await getDrafts(get("/drafts?name=@team/other"), deps))).json).toEqual({
+      drafts: [],
+    });
+    expect((await body(await getDrafts(get("/drafts"), deps))).json.drafts).toHaveLength(2);
+    const bad = await body(await getDrafts(get("/drafts?name=nope"), deps));
+    expect([bad.status, bad.json.error.code]).toEqual([400, "invalid_name"]);
+    const anonymous = await body(await getDrafts(get("/drafts", null), deps));
+    expect([anonymous.status, anonymous.json.error.code]).toEqual([401, "token_missing"]);
+  });
+
+  it("replaces your draft's files, answering as POST does", async () => {
+    const id = await create();
+    const response = await put(id, upload({ files: files("Changed.").slice(0, 2) }));
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    const { status, json } = await body(response);
+    expect(status).toBe(200);
+    expect(json).toMatchObject({
+      id,
+      path: `/submissions/${id}`,
+      name: "@team/secure-coding",
+      status: "draft",
+      files: 2,
+      proposal: null,
+    });
+    expect(await stored(id)).toEqual([
+      ["SKILL.md", "---\nname: secure-coding\n---\nChanged.\n"],
+      ["ronne.yaml", files()[0]?.content],
+    ]);
+    const events = await t.db
+      .selectFrom("audit_log")
+      .select("action")
+      .where("target_id", "=", id)
+      .execute();
+    expect(events.map((e) => e.action).sort()).toEqual([
+      "submission.draft_created",
+      "submission.draft_updated",
+    ]);
+  });
+
+  it("answers each refusal with its code, and changes nothing", async () => {
+    const id = await create();
+    const before = await stored(id);
+    const refusals: [Promise<Response>, number, string][] = [
+      [put(id, upload(), tokens.moderator), 404, "draft_not_found"],
+      [put("01ARZ3NDEKTSV4RRFFQ69G5FAV", upload()), 404, "draft_not_found"],
+      [put(id, upload({ name: "@team/other" })), 409, "draft_mismatch"],
+      [put(id, upload({ type: "rule" })), 409, "draft_mismatch"],
+      [put(id, upload({ base: "1.0.0" })), 409, "draft_mismatch"],
+      [put(id, upload({ name: "nope" })), 400, "invalid_name"],
+      [put(id, upload({ files: files().slice(1) })), 400, "manifest_required"],
+      [put(id, "{"), 400, "invalid_request"],
+    ];
+    for (const [response, status, code] of refusals) {
+      const answer = await body(await response);
+      expect([answer.status, answer.json.error.code], code).toEqual([status, code]);
+    }
+    await setStatus(id, "submitted");
+    const inReview = await body(await put(id, upload({ files: files("Changed.") })));
+    expect([inReview.status, inReview.json.error]).toEqual([
+      409,
+      expect.objectContaining({ code: "not_editable", details: { status: "submitted" } }),
+    ]);
+    expect(await stored(id)).toEqual(before);
+  });
+
+  it("replaces one sent back for changes", async () => {
+    const id = await create();
+    await setStatus(id, "changes_requested");
+    const { status, json } = await body(await put(id, upload({ files: files("Fixed.") })));
+    expect([status, json.status]).toEqual([200, "changes_requested"]);
+  });
+
+  it("shares POST's rate limit, and needs a valid token first", async () => {
+    const id = await create();
+    for (let i = 1; i < 30; i += 1) await put(id, upload());
+    const limited = await put(id, upload());
+    expect(limited.status).toBe(429);
+    const anonymous = await putDraft(
+      new Request(`${BASE}/drafts/${id}`, { method: "PUT", body: "{" }),
+      { id },
+      deps,
+    );
+    expect([anonymous.status, (await anonymous.json()).error.code]).toEqual([401, "token_missing"]);
   });
 });
 

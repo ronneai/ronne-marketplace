@@ -107,7 +107,7 @@ export const HELP = {
   export: {
     question: "Already wrote it in your AI tool?",
     answer:
-      "Send it here with rmk export: it reads your skill, agent, command, rule or MCP server from Claude Code, Codex or Cursor, shows you everything it would upload, and creates a private draft here for you to check and submit.",
+      "Send it here with rmk export: it reads your skill, agent, command, rule or MCP server from Claude Code, Codex or Cursor, shows you everything it would upload, and creates a private draft here for you to check and submit. Exporting it again updates that draft.",
     href: docsHref("export", "what"),
   },
   usage: {
