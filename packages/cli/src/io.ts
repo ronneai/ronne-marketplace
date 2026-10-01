@@ -14,7 +14,12 @@ export type Io = {
   interactive: boolean;
   /** Asks a question; `secret` hides what's typed. */
   prompt(question: string, options?: { secret?: boolean }): Promise<string>;
+  /** The time; tests fix it. Defaults to the clock. */
+  now?: () => Date;
 };
+
+/** The current time, from the `Io` when it has a clock. */
+export const nowOf = (io: Io): Date => io.now?.() ?? new Date();
 
 const ask = async (question: string, secret: boolean): Promise<string> => {
   const rl = createInterface({ input: process.stdin, output: process.stdout, terminal: true });

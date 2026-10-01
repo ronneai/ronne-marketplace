@@ -33,7 +33,7 @@ the same change that completes it.
   audit entry and the API following the change without a restart, on all four database servers; a
   component test covers the page; `settings.e2e.ts` changes the policy as root.
 
-- [ ] **3. `rmk`: the policy, the queue and sending.** Each registry's policy from `GET /usage`
+- [x] **3. `rmk`: the policy, the queue and sending.** Each registry's policy from `GET /usage`
   (daily, and at `rmk login`), kept in the usage state; the rules per policy (`rmk telemetry off`,
   `RMK_TELEMETRY=0`, refused under `required`); the notice once per registry and policy; the queue
   (aggregation, size and age limits), the send at the end of a command and `rmk telemetry flush`;
@@ -86,3 +86,10 @@ goes into `SPEC.md` instead.
   (migration 0013); a missing row reads as the default, so nothing is seeded. The usage domain reads
   the policy on every request, so a change applies at once. `settings.e2e.ts` puts the policy back to
   `off` at the end, because the end-to-end tests share one instance.
+- **Task 3.** `packages/cli/src/telemetry.ts` holds the rules, the queue and sending;
+  `telemetry-command.ts` the command. The queue is append-only JSONL per registry under
+  `~/.cache/rmk/usage/`, so a hook and a command can write at once; a send moves the file aside
+  first. The policy, its last check, the notice shown and the last send live in
+  `~/.cache/rmk/usage/state.json`. A registry without `GET /api/v1/usage` (before 046) counts as
+  `off`. Every command but `rmk telemetry` sends at its end; `rmk login` learns the policy and prints
+  the notice.
