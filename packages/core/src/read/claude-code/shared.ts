@@ -5,7 +5,7 @@ import { parseItemName } from "../../names.js";
 import type { PackageFile } from "../../package-file.js";
 import { MODELS, TOOLS } from "../../render/claude-code/mappings.js";
 import { firstLine, fitDescription } from "../text.js";
-import { ReadError, type ReadResult, type ReadWarning } from "../types.js";
+import { type DescriptionSource, ReadError, type ReadResult, type ReadWarning } from "../types.js";
 
 /**
  * What the Claude Code readers share (feature 040, native-readers.md §5–8). The tool and model tables
@@ -127,12 +127,16 @@ export const checkedName = (itemName: string) => {
   return parsed;
 };
 
-/** The result: `ronne.yaml` written from the manifest, and the other files, by path. */
+/**
+ * The result: `ronne.yaml` written from the manifest, and the other files, by path. The description's
+ * source is `descriptionSource` when the reader knows better, otherwise what the warnings say.
+ */
 export const result = (
   manifest: Manifest,
   files: { path: string; text: string }[],
   warnings: ReadWarning[],
   references: ReadResult["references"],
+  descriptionSource?: DescriptionSource,
 ): ReadResult => {
   const manifestText = stringify(manifest, { lineWidth: 0 });
   return {
@@ -143,5 +147,9 @@ export const result = (
       .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0)),
     warnings,
     references,
+    descriptionSource: !manifest.description
+      ? "none"
+      : (descriptionSource ??
+        (warnings.some((w) => w.code === "description_from_body") ? "body" : "item")),
   };
 };

@@ -1131,6 +1131,7 @@ describe("updating your drafts (051)", () => {
       url: `${REGISTRY}/submissions/01NEWER`,
       status: "draft",
       updatedAt: "2026-10-01T12:30:00.000Z",
+      description: null,
     });
     expect(plan.items.find((i) => i.name === "@team/two")?.updates).toBeUndefined();
     expect(previewText(plan, "dev@example.com")).toContain(
@@ -1202,6 +1203,99 @@ describe("updating your drafts (051)", () => {
     const plan = await planExport(io, api, { items: ["one"], to: "team" });
     expect(plan.items[0]?.updates).toBeUndefined();
     expect((await uploadExport(api, plan))[0]?.updated).toBe(false);
+  });
+});
+
+describe("descriptions (053)", () => {
+  const notPublished: Route = () => ({
+    status: 404,
+    json: { error: { code: "item_not_found", message: "No." } },
+  });
+  const setup = (open?: FakeOpenDraft[]) => {
+    const registry = exportRoutes(open ? { open } : {});
+    io = fakeIo({
+      ...registry.routes,
+      ...Object.fromEntries(
+        ["described", "undescribed", "style", "tracker"].map((n) => [
+          `GET /items/team/${n}`,
+          notPublished,
+        ]),
+      ),
+    });
+    write(
+      io.cwd,
+      ".claude/skills/described/SKILL.md",
+      "---\nname: described\ndescription: Checks code.\n---\nBody.\n",
+    );
+    write(
+      io.cwd,
+      ".claude/skills/undescribed/SKILL.md",
+      "---\nname: undescribed\n---\n# Undescribed\n",
+    );
+    write(io.cwd, ".claude/rules/style.md", "Use tabs, not spaces.\n");
+    write(
+      io.cwd,
+      ".mcp.json",
+      JSON.stringify({ mcpServers: { tracker: { command: "npx", args: ["-y", "tracker"] } } }),
+    );
+    return apiClient(io.fetch, REGISTRY, "rmk_test_token");
+  };
+  const descriptions = (plan: ExportPlan) =>
+    Object.fromEntries(plan.items.map((item) => [item.name, item.description]));
+
+  it("says where each comes from, and which still need one, with the first line as a suggestion", async () => {
+    const api = setup();
+    const plan = await planExport(io, api, {
+      items: ["described", "undescribed", "style"],
+      to: "team",
+    });
+    expect(descriptions(plan)).toEqual({
+      "@team/described": { origin: "item", text: "Checks code.", suggestion: null },
+      "@team/undescribed": { origin: "missing", text: null, suggestion: "Undescribed" },
+      "@team/style": { origin: "missing", text: null, suggestion: "Use tabs, not spaces." },
+    });
+  });
+
+  it("takes an MCP server's given description, and needs one without it", async () => {
+    let api = setup();
+    let plan = await planExport(io, api, {
+      items: ["tracker"],
+      type: "mcp-server",
+      to: "team",
+      description: "Reads the tracker.",
+    });
+    expect(plan.items[0]?.description).toEqual({
+      origin: "given",
+      text: "Reads the tracker.",
+      suggestion: null,
+    });
+    io.cleanup();
+    api = setup();
+    plan = await planExport(io, api, { items: ["tracker"], type: "mcp-server", to: "team" });
+    expect(plan.items[0]?.description.origin).toBe("missing");
+  });
+
+  it("keeps the description of the draft it updates when the item has none of its own", async () => {
+    const api = setup([
+      {
+        id: "01U",
+        name: "@team/undescribed",
+        type: "skill",
+        status: "draft",
+        description: "Mine.",
+      },
+      { id: "01D", name: "@team/described", type: "skill", status: "draft", description: "Old." },
+      { id: "01S", name: "@team/style", type: "rule", status: "draft", description: null },
+    ]);
+    const plan = await planExport(io, api, {
+      items: ["described", "undescribed", "style"],
+      to: "team",
+    });
+    expect(descriptions(plan)).toEqual({
+      "@team/described": { origin: "item", text: "Checks code.", suggestion: null },
+      "@team/undescribed": { origin: "draft", text: "Mine.", suggestion: null },
+      "@team/style": { origin: "missing", text: null, suggestion: "Use tabs, not spaces." },
+    });
   });
 });
 
@@ -1315,6 +1409,12 @@ describe("change proposals (042)", () => {
       baseVersion: "1.1.0",
       stale: null,
       changes: { fields: [{ field: "description", to: "Reviews better." }] },
+    });
+    // A proposal's description is its merge's (053): never asked for.
+    expect(plan.items[0]?.description).toEqual({
+      origin: "base",
+      text: "Reviews better.",
+      suggestion: null,
     });
     const asNew = await planExport(io, api, { items: ["reviewer"], to: "team", new: true });
     expect(asNew.items[0]).toMatchObject({ name: "@team/reviewer", published: true });

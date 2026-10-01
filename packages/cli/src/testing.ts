@@ -315,6 +315,8 @@ export type FakeOpenDraft = {
   status: "draft" | "changes_requested" | "submitted";
   updatedAt?: string;
   baseVersion?: string;
+  /** What its `ronne.yaml` says (053); a registry before 053 doesn't list it. */
+  description?: string | null;
 };
 
 /**
@@ -410,6 +412,7 @@ export const exportRoutes = (
               status: d.status,
               updatedAt: d.updatedAt ?? "2026-10-01T12:00:00.000Z",
               proposal: d.baseVersion ? { item: d.name, baseVersion: d.baseVersion } : null,
+              ...(d.description !== undefined ? { description: d.description } : {}),
             })),
         },
       };

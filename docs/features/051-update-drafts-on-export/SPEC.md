@@ -80,7 +80,9 @@ that name whose status is `draft`, `changes_requested` or `submitted`, most rece
 }
 ```
 
-`proposal` is `{ "item", "baseVersion" }` for a change proposal. Without `name`, it lists all of
+`proposal` is `{ "item", "baseVersion" }` for a change proposal. Since
+[053](../053-export-descriptions/SPEC.md), each also has `description`: its `ronne.yaml`'s, or
+null. Without `name`, it lists all of
 the caller's open submissions. Nobody else's are ever listed. `400 invalid_name` for a name that
 isn't `@scope/name`.
 

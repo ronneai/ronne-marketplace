@@ -149,6 +149,11 @@ export const readSkill = (
   return {
     manifest,
     manifestText,
+    descriptionSource: !manifest.description
+      ? "none"
+      : warnings.some((w) => w.code === "description_from_body")
+        ? "body"
+        : "item",
     files: [...out.values()].sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0)),
     warnings,
     // The MCP servers behind its allowed tools (native-readers.md §4), for 041.

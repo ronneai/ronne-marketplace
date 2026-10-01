@@ -19,6 +19,7 @@ export { type FieldChange, type MergeResult, mergeChange } from "./merge.js";
 export { readSkill, skillName } from "./skill.js";
 export { DESCRIPTION_MAX_LENGTH, fitDescription, toItemName } from "./text.js";
 export {
+  type DescriptionSource,
   type ItemReference,
   ReadError,
   type ReadErrorCode,

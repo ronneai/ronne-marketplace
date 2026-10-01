@@ -11,7 +11,7 @@ the same change that completes it.
   tool or the person), and the spec is updated to match before anything is built.
   *Done when:* the spec has no open question that changes what's built.
 
-- [ ] **1. Which items need one.** In `planExport`, using the readers' warnings and types (no
+- [x] **1. Which items need one.** In `planExport`, using the readers' warnings and types (no
   reader changes beyond exposing what they already know), with the exceptions for proposals and
   drafts. `GET /api/v1/drafts` gains `description` (from the draft's `ronne.yaml`).
   *Done when:* `export.test.ts` covers each kind of item for each tool, a proposal, and a draft with
@@ -42,3 +42,7 @@ the same change that completes it.
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- Each reader reports `descriptionSource` (`item`, `body`, `given`, `none`) on its result, since
+  only it knows, for example, that a Claude Code rule's description is always its first line, or
+  that a Cursor rule had one in its frontmatter. Export turns that into `PlannedItem.description`.

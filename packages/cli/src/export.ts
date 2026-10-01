@@ -644,6 +644,32 @@ export type PlannedItem = {
   };
   /** The person's draft of this item that the upload replaces (051), instead of making another. */
   updates?: OpenDraftRef;
+  /** Where its description comes from (053), and whether one is still needed. */
+  description: PlannedDescription;
+};
+
+/**
+ * Where an item's description comes from (053): its own files (`item`), text given for this export
+ * (`given`), its base version (`base`, a proposal), or the draft it updates (`draft`). `missing`
+ * means it still needs one; `suggestion` is its body's first line, if it has one, for whoever
+ * writes it.
+ */
+export type PlannedDescription = {
+  origin: "item" | "given" | "base" | "draft" | "missing";
+  text: string | null;
+  suggestion: string | null;
+};
+
+/** What a reader found (053): only the item's own words, or text given to it, count. */
+const describedBy = (read: ReadResult): PlannedDescription => {
+  const text = typeof read.manifest.description === "string" ? read.manifest.description : null;
+  if (read.descriptionSource === "item" || read.descriptionSource === "given")
+    return { origin: read.descriptionSource, text, suggestion: null };
+  return {
+    origin: "missing",
+    text: null,
+    suggestion: read.descriptionSource === "body" ? text : null,
+  };
 };
 
 /** A draft of the person's own that an export updates (051). */
@@ -652,6 +678,8 @@ export type OpenDraftRef = {
   url: string;
   status: "draft" | "changes_requested";
   updatedAt: string;
+  /** The description in the draft's `ronne.yaml` (053), or null; a registry before 053 says none. */
+  description: string | null;
 };
 
 export type RefusedItem = { local: string; code: string; message: string };
@@ -1059,6 +1087,15 @@ export const planExport = async (
         stale: latest && latest !== base.version ? latest : null,
         changes: change.merged.changes,
       },
+      // A proposal keeps its base's description unless the local item changed it (042's merge).
+      description: {
+        origin: "base",
+        text:
+          typeof change.merged.manifest.description === "string"
+            ? change.merged.manifest.description
+            : null,
+        suggestion: null,
+      },
     });
   };
 
@@ -1276,6 +1313,7 @@ export const planExport = async (
       dependencies: {},
       dependsOn: [],
       asDependency: target.asDependency === true,
+      description: describedBy(read),
     });
   }
 
@@ -1298,7 +1336,12 @@ export const planExport = async (
         });
         continue;
       }
-      if (found) item.updates = found;
+      if (found) {
+        item.updates = found;
+        // The draft's description stays when the item still has none of its own (053).
+        if (item.description.origin === "missing" && found.description)
+          item.description = { origin: "draft", text: found.description, suggestion: null };
+      }
     }
     planned.push(item);
   }
@@ -1444,6 +1487,7 @@ type OpenDraft = {
   status: string;
   updatedAt: string;
   proposal: { item: string; baseVersion: string } | null;
+  description?: string | null;
 };
 
 /**
@@ -1478,6 +1522,7 @@ const draftToUpdate = async (
       url: editable.url ?? `${api.registry}${editable.path}`,
       status: editable.status as OpenDraftRef["status"],
       updatedAt: editable.updatedAt,
+      description: editable.description?.trim() || null,
     };
   return same.some((d) => d.status === "submitted") ? "in_review" : null;
 };

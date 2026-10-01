@@ -33,6 +33,13 @@ export type ReadWarning = { code: ReadWarningCode; message: string; file?: strin
 /** Something the item uses that could be another item; 041 turns them into dependencies. */
 export type ItemReference = { kind: "mcp-server" | "skill"; name: string; from: string };
 
+/**
+ * Where the item's `description` came from (053): the item's own files (`item`), its body's first
+ * line for want of one (`body`), text given to the reader (`given`, an MCP server's), or nowhere
+ * (`none`). Export asks for one unless it's `item` or `given`.
+ */
+export type DescriptionSource = "item" | "body" | "given" | "none";
+
 export type ReadResult = {
   manifest: Manifest;
   /** `ronne.yaml` as uploaded. */
@@ -41,6 +48,7 @@ export type ReadResult = {
   files: PackageFile[];
   warnings: ReadWarning[];
   references: ItemReference[];
+  descriptionSource: DescriptionSource;
 };
 
 export type ReadErrorCode =
