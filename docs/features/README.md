@@ -145,10 +145,10 @@ contract [`docs/spec/native-readers.md`](../spec/native-readers.md).
 ### M9 — Usage insights
 
 What the item overview mockup shows about usage needs data the registry doesn't collect yet. The
-design notes are [MVP §14.6](../MVP/MVP.md#146-usage-telemetry--post-mvp): opt-in, aggregated, kept
-on the instance.
+design notes are [MVP §14.6](../MVP/MVP.md#146-usage-telemetry--post-mvp): a policy root sets per
+instance (off by default), aggregated, kept on the instance.
 
 | ID | Feature | Depends on | Status |
 |---|---|---|---|
-| [046](./046-usage-telemetry/SPEC.md) | Opt-in usage telemetry: `rmk telemetry`, install and remove events, run events from `rmk`-managed hooks where each tool allows, `POST /api/v1/usage`, daily aggregates, an instance switch | 022, 023, 024, 025, 045 | specified |
+| [046](./046-usage-telemetry/SPEC.md) | Usage telemetry: root's usage policy (Admin › Settings), `rmk telemetry`, install and remove events, run events from `rmk`-managed hooks where each tool allows, `POST /api/v1/usage`, daily aggregates, an instance switch | 022, 023, 024, 025, 045 | specified |
 | [047](./047-usage-on-item-page/SPEC.md) | Usage on the item page: installs, harness distribution, invocations and success rate, the daily volume chart, the harness and trigger breakdowns; runs and installs per version | 046 | specified |

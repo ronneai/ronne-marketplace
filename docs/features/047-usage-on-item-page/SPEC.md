@@ -7,8 +7,8 @@
 The usage that 046 collects becomes visible where people decide about an item. Its Overview shows how
 often it's installed, in which tools, how often it runs and how those runs end, as the owner's mockup
 draws it. The Versions page shows which versions are still being run, so a moderator knows what a
-deprecation or a yank would touch. Every number comes from people who turned reporting on, and the
-page says so.
+deprecation or a yank would touch. Every number comes from `rmk` on machines that report to this
+instance, under root's usage policy (046), and the page says so.
 
 ## Scope
 
@@ -20,8 +20,8 @@ page says so.
 - **The Versions page (016):** runs and installs per version over 30 days, also in the deprecate and
   yank dialogs.
 - The summary queries in the usage domain (`domains/usage`), over 046's `usage_daily`.
-- A minimum of activity below which nothing is shown, and the "opt-in" note wherever a number
-  appears.
+- A minimum of activity below which nothing is shown, and the note on where the numbers come from
+  wherever a number appears.
 
 **Out** (and where it goes instead):
 - **Projects** ("installed in N active projects"): not collected (046's decision 1); kept for later in
@@ -37,8 +37,7 @@ page says so.
 **When usage is shown.** An item's usage appears only when it has **at least 20 reported events**
 (installs plus runs) in the last 30 days. Under that, the Overview looks as 045 built it, and in place
 of the Usage card there's one line: "Usage appears once this item has 20 reported installs or runs in
-30 days. Reporting is opt-in." When the instance doesn't accept usage (`USAGE_TELEMETRY=off`) and has
-none stored, neither the line nor anything else about usage appears. The minimum keeps a handful of
+30 days." When the instance's usage policy is `off` (046) and it has none stored, neither the line nor anything else about usage appears. The minimum keeps a handful of
 events from looking like a trend. It can't tell one busy person from many, and the Documentation says
 so.
 
@@ -68,7 +67,7 @@ Versions, which the Runs card replaces, is still the Versions tab with its count
 - **Gaps, said plainly:** under By tool, one line per tool the item installs in that can't report its
   runs ("Codex and Cursor don't report skill runs; there, only installs are counted"), from the same
   table as the `usage` Documentation topic (046).
-- A help helper and the note "Usage is opt-in; numbers come from people who turned it on."
+- A help helper and the note "Counted by rmk on machines that report to this instance; see Usage data for what's sent."
 - For a type with no runs, the card shows installs and removals per day instead.
 
 **Charts** are built from the design system's tokens with plain SVG and CSS, with no chart library:
@@ -110,9 +109,9 @@ Both read `usage_daily` by `(item_id, day)`. `today` is passed in, so tests fix 
 - **Topic `items`, section `contents`:** the usage cards and the Usage card replace the sentence that
   usage isn't shown (045).
 - **Topic `versions`, section `deprecate-yank`:** the runs and installs in the dialogs.
-- **Inline helpers:** a new `usage` helper on the Usage card and the minimum line: "Counted from
-  people who turned on usage reporting with rmk telemetry on. Shown once an item has 20 reported
-  installs or runs in 30 days." It links to `usage#reading`.
+- **Inline helpers:** a new `usage` helper on the Usage card and the minimum line: "Counted by rmk
+  where this instance collects usage (root's policy). Shown once an item has 20 reported installs or
+  runs in 30 days." It links to `usage#reading`.
 
 ## Acceptance criteria
 
@@ -133,7 +132,7 @@ Answered by the owner on 2026-09-30:
 
 1. **When usage shows:** a minimum of activity, 20 reported installs or runs in 30 days (projects
    aren't counted, so "5 projects" can't be the rule).
-2. **The home page's "Most used":** stays on downloads, which every instance has without opt-in.
+2. **The home page's "Most used":** stays on downloads, which every instance has whatever its usage policy.
 3. **Who sees usage:** everyone signed in, like the rest of the item page.
 
 ## Open questions

@@ -22,28 +22,40 @@ the same change that completes it.
   /api/v1/usage` in `server/http`, with the token guard, the body limit, the rate limiter and
   `403 usage_disabled`.
   *Done when:* `usage-api.db.test.ts` covers acceptance, every ignore rule, the limits, `401` and the
-  switch.
+  switch. (The switch was replaced by the policy in task 2b.)
 
-- [ ] **3. `rmk`: the switch, the queue and sending.** The config's `telemetry` field, the
-  environment rules, the queue (aggregation, size and age limits), the send at the
-  end of a command and `rmk telemetry flush`; `status` and `preview`; the line on `rmk login`.
-  *Done when:* CLI tests cover each rule that turns it off, the queue's limits, an offline send, `401`, `403 usage_disabled` and `preview`'s exact
-  output.
+- [ ] **2b. The usage policy.** An `instance_settings` table and a settings domain (read with a
+  default, write by root only, audited as `settings.usage_policy`); the usage API reads the policy
+  instead of `USAGE_TELEMETRY` (removed), and `GET /api/v1/usage` returns it; the Admin › Settings
+  page with the three choices and the `usage-policy` helper.
+  *Done when:* `*.db.test.ts` covers the default `off`, root changing it, another role refused, the
+  audit entry and the API following the change without a restart, on all four database servers; a
+  component test covers the page; `admin.e2e.ts` (or the closest admin end-to-end test) changes the
+  policy as root.
+
+- [ ] **3. `rmk`: the policy, the queue and sending.** Each registry's policy from `GET /usage`
+  (daily, and at `rmk login`), kept in the usage state; the rules per policy (`rmk telemetry off`,
+  `RMK_TELEMETRY=0`, refused under `required`); the notice once per registry and policy; the queue
+  (aggregation, size and age limits), the send at the end of a command and `rmk telemetry flush`;
+  `status` and `preview`.
+  *Done when:* CLI tests cover each policy and each rule, the notice, the queue's limits, an offline
+  send, `401`, `403 usage_disabled` and `preview`'s exact output.
 
 - [ ] **4. Install events.** Queue `install` and `remove` from `commitInstall` and the MCP server's
   `apply_plan`, only when reporting is on.
   *Done when:* `install.test.ts` and the MCP server's tests check the queue after install, update and
   remove, and that nothing is queued when it's off.
 
-- [ ] **5. The run hooks.** `rmk telemetry on | off` writing and removing the user-level hook per tool
-  (recorded under `rmk telemetry` in the user state); `rmk telemetry hook <tool>` mapping each tool's
+- [ ] **5. The run hooks.** `rmk install` adding the user-level hook for each tool it installs into
+  when reporting is on (with its notice), and `rmk telemetry off` removing them where the policy
+  allows (recorded under `rmk telemetry` in the user state); `rmk telemetry hook <tool>` mapping each tool's
   payload to a run of an installed item, the trigger and the outcome; Cursor's copy of Claude Code's
   hook ignored; the Codex `/hooks` note.
   *Done when:* golden payload tests per tool (from the vendors' documented examples) cover each row
   of the spec's table, an item `rmk` didn't install, a name matching two items, and that the hook
-  always exits 0 and prints nothing; `on` and `off` round-trip with the conflict rule.
+  always exits 0 and prints nothing; install and `off` round-trip with the conflict rule.
 
-- [ ] **6. Documentation.** The `usage` topic, the `rmk` and `install` sections in the spec's
+- [ ] **6. Documentation.** The `usage` topic, the `rmk` and `roles` sections in the spec's
   Documentation section; `docs/spec/cli-files.md` gets the config's `telemetry` field and the queue.
   *Done when:* the docs render tests pass, and every link to the new topic lands on a real section.
 
