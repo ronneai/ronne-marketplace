@@ -37,8 +37,9 @@ instance, under root's usage policy (046), and the page says so.
 **When usage is shown.** An item's usage appears only when it has **at least 20 reported events**
 (installs plus runs) in the last 30 days. Under that, the Overview looks as 045 built it, and in place
 of the Usage card there's one line: "Usage appears once this item has 20 reported installs or runs in
-30 days." When the instance's usage policy is `off` (046) and it has none stored, neither the line nor anything else about usage appears. The minimum keeps a handful of
-events from looking like a trend. It can't tell one busy person from many, and the Documentation says
+30 days." When the instance's usage policy is `off` (046) and it has none stored, neither the line
+nor anything else about usage appears. The minimum keeps a handful of events from looking like a
+trend. It can't tell one busy person from many, and the Documentation says
 so.
 
 Who sees it: everyone signed in, like the rest of the item page (decision 3).

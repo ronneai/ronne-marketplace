@@ -8,7 +8,7 @@ import type { CurrentUser } from "../../identity/models/user";
 import { kyselyItemRepository } from "../../items/repositories/kysely-item-repository";
 import { InvalidUsageReportError, UsageDisabledError } from "../exceptions/errors";
 import { kyselyUsageRepository } from "../repositories/kysely-usage-repository";
-import { recordUsage, type UsageDeps, usageSettings } from "./usage";
+import { itemUsage, itemUsageByVersion, recordUsage, type UsageDeps, usageSettings } from "./usage";
 
 // Runs on the database in TEST_DATABASE_URL (in-memory SQLite by default; 004 runs all of them).
 let t: TestDb;
@@ -227,5 +227,61 @@ describe("usage_daily", () => {
     expect(await foreignKeys(t.db, t.dialect, ["usage_daily"])).toEqual([
       { table: "usage_daily", references: "items", onDelete: "CASCADE" },
     ]);
+  });
+});
+
+describe("the item page's usage (047)", () => {
+  const add = (rows: { day: string; version?: string; event: string; count: number }[]) =>
+    kyselyUsageRepository(t.db, t.dialect).add(
+      rows.map((r) => ({
+        itemId,
+        day: r.day,
+        version: r.version ?? "1.1.0",
+        tool: "claude-code",
+        event: r.event,
+        trigger: r.event === "run" ? "model" : "",
+        outcome: r.event === "run" ? "success" : "",
+        count: r.count,
+      })),
+    );
+  const item = () => ({ id: itemId, type: "agent" as const });
+
+  it("reads the last 30 days only, and nothing under the minimum", async () => {
+    await add([{ day: "2026-08-01", event: "run", count: 500 }]);
+    expect(await itemUsage(deps(), { user }, item())).toEqual({
+      shown: false,
+      collecting: true,
+      hasData: true,
+    });
+    await add([
+      { day: "2026-10-04", event: "run", count: 15 },
+      { day: "2026-10-04", version: "1.0.0", event: "install", count: 5 },
+    ]);
+    expect(await itemUsage(deps(), { user }, item())).toMatchObject({
+      shown: true,
+      runs: 15,
+      installs: 5,
+    });
+    expect(await itemUsageByVersion(deps(), { user }, itemId)).toEqual({
+      "1.1.0": { runs: 15, installs: 0 },
+      "1.0.0": { runs: 0, installs: 5 },
+    });
+  });
+
+  it("says when the instance no longer collects, and when there's nothing at all", async () => {
+    expect(await itemUsage(deps({ policy: "off" }), { user }, item())).toEqual({
+      shown: false,
+      collecting: false,
+      hasData: false,
+    });
+    await add([{ day: "2026-10-04", event: "run", count: 20 }]);
+    expect(await itemUsage(deps({ policy: "off" }), { user }, item())).toMatchObject({
+      shown: true,
+      collecting: false,
+    });
+  });
+
+  it("needs a signed-in user", async () => {
+    await expect(itemUsage(deps(), { user: null }, item())).rejects.toBeInstanceOf(ForbiddenError);
   });
 });

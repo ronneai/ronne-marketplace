@@ -1,3 +1,4 @@
+import type { ItemType } from "@ronneai/core";
 import { requirePermission } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
 import type { UsagePolicy } from "../../settings/models/usage-policy";
@@ -11,6 +12,12 @@ import {
   usageEventOf,
   usageKey,
 } from "../models/usage-event";
+import {
+  usageByVersion as byVersion,
+  summarizeUsage,
+  type UsageSummary,
+  WINDOW_DAYS,
+} from "../models/usage-summary";
 import type { UsageRepository, UsageRow } from "../repositories/usage-repository";
 
 /**
@@ -28,7 +35,7 @@ export type UsageDeps = {
   pruneDue: (today: string) => boolean;
 };
 
-export type UsageActor = { user: CurrentUser };
+export type UsageActor = { user: CurrentUser | null };
 
 export type UsageSettings = { policy: UsagePolicy; retentionDays: number };
 
@@ -86,4 +93,35 @@ export const recordUsage = async (
   await deps.usage.add([...rows.values()]);
   if (deps.pruneDue(today)) await deps.usage.deleteBefore(daysBefore(today, RETENTION_DAYS - 1));
   return { accepted, ignored: list.length - accepted };
+};
+
+/** The item's usage for its page (047): everyone signed in sees it, from the minimum on. */
+export const itemUsage = async (
+  deps: Pick<UsageDeps, "usage" | "policy" | "now">,
+  actor: UsageActor,
+  item: { id: string; type: ItemType },
+): Promise<UsageSummary> => {
+  requirePermission(actor.user, "account.manage_own");
+  const today = dayOf(deps.now());
+  const rows = await deps.usage.rowsBetween(item.id, daysBefore(today, WINDOW_DAYS - 1), today);
+  return summarizeUsage(rows, {
+    today,
+    type: item.type,
+    collecting: deps.policy !== "off",
+    hasData: rows.length > 0 || (await deps.usage.hasAny(item.id)),
+  });
+};
+
+/** Runs and installs per version for the Versions page (047), or null under the minimum. */
+export const itemUsageByVersion = async (
+  deps: Pick<UsageDeps, "usage" | "now">,
+  actor: UsageActor,
+  itemId: string,
+) => {
+  requirePermission(actor.user, "account.manage_own");
+  const today = dayOf(deps.now());
+  return byVersion(
+    await deps.usage.rowsBetween(itemId, daysBefore(today, WINDOW_DAYS - 1), today),
+    today,
+  );
 };
