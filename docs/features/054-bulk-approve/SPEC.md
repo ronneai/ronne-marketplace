@@ -29,7 +29,8 @@ message applied to all of them.
 - **Approving from `rmk` or the MCP server** (by token). A token that can approve would let an AI
   tool pass review on a person's behalf, which is the boundary MVP §12 protects. Not planned.
 - **Releasing in bulk** after approving. Releasing is a separate step with a version bump and a tag
-  per item (015). It could be a later feature ("Release selected").
+  per item (015).
+  [055](../055-bulk-release/SPEC.md) adds releasing in bulk.
 - **Approving a stale proposal.** 017's rule stays: it's rebased first, so it isn't approvable in
   bulk either (see Behaviour).
 
