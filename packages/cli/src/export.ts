@@ -593,6 +593,11 @@ export type ExportRequest = {
    */
   descriptions?: Record<string, string>;
   /**
+   * Items to leave out, as shown locally, when they still have no description (053): the person
+   * didn't give one in a terminal. They're refused with `description_required`; the rest goes on.
+   */
+  leaveOut?: readonly string[];
+  /**
    * What to do with the person's own items the exported ones use (041): export them too, or
    * leave them out. Required when there are any; `planExport` stops with `dependencies_required`.
    */
@@ -959,14 +964,10 @@ const overLimitMessage = (over: OverLimit) =>
  * reader, checked (011) and scanned for secrets, and each name is looked up in the registry.
  * The scope is `to`, or the folder's own `ronne.yaml`'s; never a default.
  */
-/** What `planExport` may ask the person, in a terminal: an MCP server's description. */
-export type ExportHooks = { describe?: (local: string) => Promise<string | undefined> };
-
 export const planExport = async (
   io: Io,
   api: ApiClient,
   request: ExportRequest,
-  hooks: ExportHooks = {},
 ): Promise<ExportPlan> => {
   if (request.items.length === 0) throw usage("Say what to export: rmk export <folder|file|name>");
   if (request.name !== undefined && request.items.length > 1)
@@ -1208,7 +1209,7 @@ export const planExport = async (
           refuse("invalid_name", "Its name can't be an item name. Give one with --name.");
           continue;
         }
-        const description = request.description ?? (await hooks.describe?.(local));
+        const description = request.description;
         const reader =
           target.tool === "codex"
             ? readCodexMcpServer
@@ -1350,24 +1351,25 @@ export const planExport = async (
     }
     planned.push(item);
   }
-  // An item in review isn't uploaded; what uses it still declares it, and waits for nothing.
-  const kept = new Set(planned.map((item) => item.name));
-  for (const item of planned) item.dependsOn = item.dependsOn.filter((name) => kept.has(name));
-  describeItems(planned, refused, request);
+  const described = describeItems(planned, refused, request);
+  // An item in review, or left out, isn't uploaded; what uses it still declares it, and waits for
+  // nothing.
+  const kept = new Set(described.map((item) => item.name));
+  for (const item of described) item.dependsOn = item.dependsOn.filter((name) => kept.has(name));
   // 011's checks, on the files as they'll be uploaded: with their descriptions.
-  for (const item of planned) {
+  for (const item of described) {
     const parsed = parseManifest(item.manifestText);
     item.issues = [
       ...parsed.issues.map((issue) => ({ ...issue, file: "ronne.yaml" })),
       ...(parsed.manifest ? checkPackage(parsed.manifest, item.files) : []),
     ];
   }
-  for (const item of planned)
+  for (const item of described)
     if (item.description.text) hash.update(`\0description=${item.name}=${item.description.text}`);
   return {
     registry: api.registry,
     to,
-    items: inUploadOrder(planned),
+    items: inUploadOrder(described),
     refused,
     findings,
     fingerprint: hash.digest("hex"),
@@ -1399,13 +1401,14 @@ const EXCERPT_CHARS = 4000;
  * those still without one. Given text (`descriptions`, or `description` for a single item) is put on
  * one line and refused over 300 characters, and a key that names no item is refused; the item's own
  * description, or a proposal's base's, wins over given text. A draft's is kept when nothing else
- * says one. The description is written into what's uploaded, never into the local files.
+ * says one. The description is written into what's uploaded, never into the local files. Returns
+ * the items to upload: those in `leaveOut` that still have none are refused instead.
  */
 const describeItems = (
   items: PlannedItem[],
-  refused: readonly RefusedItem[],
+  refused: RefusedItem[],
   request: ExportRequest,
-) => {
+): PlannedItem[] => {
   const given = new Map<string, string>(Object.entries(request.descriptions ?? {}));
   const known = new Set([...items.flatMap(keysOf), ...refused.map((r) => r.local)]);
   const unknown = [...given.keys()].filter((key) => !known.has(key));
@@ -1417,6 +1420,7 @@ const describeItems = (
       { items: unknown },
     );
   const missing: PlannedItem[] = [];
+  const left = new Set<PlannedItem>();
   for (const item of items) {
     const raw =
       keysOf(item)
@@ -1447,7 +1451,14 @@ const describeItems = (
     }
     const description = text?.text ?? (origin === "draft" ? item.description.text : null);
     if (!description) {
-      missing.push(item);
+      if (request.leaveOut?.includes(item.local)) {
+        left.add(item);
+        refused.push({
+          local: item.local,
+          code: "description_required",
+          message: `${item.name} has no description, and none was given. Add one to it, or export it from your AI tool, which writes one.`,
+        });
+      } else missing.push(item);
       continue;
     }
     const described = withDescription(item, description);
@@ -1480,6 +1491,7 @@ const describeItems = (
         }),
       },
     );
+  return items.filter((item) => !left.has(item));
 };
 
 /**

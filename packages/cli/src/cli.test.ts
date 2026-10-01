@@ -557,7 +557,9 @@ describe("rmk export for agents, commands, rules and MCP servers (040)", () => {
     io.answers.push("Talks to GitHub.", "y");
     const result = await rmk("export", "github", "--to", "team");
     expect(result.exitCode).toBe(0);
-    expect(io.questions[0]).toContain(".mcp.json (mcpServers.github) has no description");
+    expect(io.questions[0]).toContain(
+      "@team/github (mcp-server, .mcp.json (mcpServers.github)) has no description.",
+    );
     expect(io.questions[1]).toContain(
       "A credential in mcpServers.github.headers.Authorization was taken out",
     );
@@ -567,6 +569,95 @@ describe("rmk export for agents, commands, rules and MCP servers (040)", () => {
       content: string;
     };
     expect(manifest.content).toContain("description: Talks to GitHub.");
+  });
+});
+
+describe("rmk export's descriptions (053)", () => {
+  const setup = (interactive: boolean) => {
+    const registry = exportRoutes({ scopes: [{ name: "team", description: "A team." }] });
+    io = fakeIo(
+      {
+        ...identityRoutes("rmk_test_token"),
+        ...registry.routes,
+        ...Object.fromEntries(
+          ["style", "notes", "review"].map((name) => [
+            `GET /items/team/${name}`,
+            () => ({ status: 404, json: { error: { code: "item_not_found", message: "No." } } }),
+          ]),
+        ),
+      },
+      { env: { RMK_TOKEN: "rmk_test_token", RMK_REGISTRY: REGISTRY }, interactive },
+    );
+    const write = (path: string, text: string) => {
+      mkdirSync(dirname(join(io.cwd, path)), { recursive: true });
+      writeFileSync(join(io.cwd, path), text);
+    };
+    write(".claude/rules/style.md", "# Style\n\nUse tabs.\n");
+    write(".claude/rules/notes.md", "");
+    write(".claude/skills/review/SKILL.md", "---\nname: review\ndescription: Reviews.\n---\nGo.\n");
+    return registry;
+  };
+  const manifestOf = (drafts: ReturnType<typeof setup>["drafts"], name: string) => {
+    const files = (drafts.find((d) => d.name === `@team/${name}`)?.files ?? []) as {
+      path: string;
+      content: string;
+    }[];
+    return files.find((f) => f.path === "ronne.yaml")?.content ?? "";
+  };
+
+  it("asks for each one, Enter takes the first line, and the preview shows where each came from", async () => {
+    const { drafts } = setup(true);
+    io.answers.push("", "y");
+    const result = await rmk("export", "style", "review", "--to", "team");
+    expect(result.exitCode, result.stderr).toBe(0);
+    expect(io.questions[0]).toBe(
+      '@team/style (rule, .claude/rules/style.md) has no description.\nIn one sentence, what does it do? [Enter for: "Style"] ',
+    );
+    expect(io.questions[1]).toContain("  Description: Style  (you gave it)");
+    expect(io.questions[1]).toContain("  Description: Reviews.  (from its files)");
+    expect(manifestOf(drafts, "style")).toContain("description: Style");
+  });
+
+  it("asks again after a description that's too long, and leaves an item out after three empty answers", async () => {
+    const { drafts } = setup(true);
+    io.answers.push("x".repeat(301), "Keeps the house style.", "", "", "", "y");
+    const result = await rmk("export", "style", "notes", "--to", "team");
+    expect(result.exitCode, result.stderr).toBe(0);
+    expect(io.questions[1]).toMatch(
+      /^That was 301 characters; a description can be at most 300\.\n/,
+    );
+    expect(io.questions.slice(2, 5).every((q) => q.startsWith("@team/notes (rule"))).toBe(true);
+    expect(io.questions[2]).not.toContain("Enter for");
+    expect(result.stdout).toContain(
+      "Not exported: .claude/rules/notes.md: @team/notes has no description, and none was given.",
+    );
+    expect(drafts.map((d) => d.name)).toEqual(["@team/style"]);
+    expect(manifestOf(drafts, "style")).toContain("description: Keeps the house style.");
+  });
+
+  it("without a terminal, stops with exit 2 and what each item needs", async () => {
+    setup(false);
+    const result = await rmk("export", "style", "review", "--to", "team", "--yes", "--json");
+    expect(result.exitCode).toBe(2);
+    expect(JSON.parse(result.stdout).error).toMatchObject({
+      code: "descriptions_required",
+      items: [{ name: "@team/style", suggestion: "Style", file: { path: "rule.md" } }],
+    });
+    const given = await rmk(
+      "export",
+      "style",
+      "review",
+      "--to",
+      "team",
+      "--yes",
+      "--describe",
+      "style=Tabs.",
+      "--json",
+    );
+    expect(JSON.parse(given.stdout).exported.map((e: { name: string }) => e.name)).toEqual([
+      "@team/style",
+      "@team/review",
+    ]);
   });
 });
 

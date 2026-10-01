@@ -26,8 +26,8 @@ the same change that completes it.
   *Done when:* the tests cover a plan refused, then made with descriptions; the uploaded files; and
   the local files unchanged.
 
-- [ ] **3. `rmk export`.** The terminal question with the suggestion, and the preview's description
-  and source.
+- [x] **3. `rmk export`.** The terminal question with the suggestion, and the preview's description
+  and source. It replaces 040's question for MCP servers only, so every item is asked the same way.
   *Done when:* `cli.test.ts` covers asking, Enter for the suggestion, three empty answers, the
   preview, and exit `2` without a terminal.
 
