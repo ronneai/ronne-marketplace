@@ -30,7 +30,9 @@ point of a curated registry (owner, 2026-09-30).
 
 ## Behaviour
 
-**Tabs**, in order: Overview, README, Versions, Dependencies, Files, What it can do. Overview is the
+**Tabs**, in order: Overview, README, Versions, Dependencies, Files, Works in, What it can do. Works in
+(026) was a panel under Install on every tab; it is a tab of its own (`?tab=tools`), so the page
+starts with the item's contents (owner, 2026-09-30). Overview is the
 page's default (`/items/@scope/name`), and README moves to `?tab=readme`. `?version=` works on every tab
 as before.
 

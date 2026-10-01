@@ -84,13 +84,18 @@ describe("the item page", () => {
     // Anyone signed in may propose a change (017).
     expect(html).toContain("Propose a change");
     expect(html).toContain("What happens when I propose a change?");
-    // Works in: every tool, from the renderers and this version's manifest (026).
-    expect(html).toContain(">Works in<");
-    expect(html).toContain("What do these mean?");
-    for (const tool of ["Claude Code", "Codex", "Cursor"]) expect(html).toContain(`>${tool}</a>`);
-    expect(html).toContain("mcpServers in .mcp.json</code>.");
-    expect(html).toContain("mcp_servers in .codex/config.toml</code>.");
     expect(html).toContain("How do I install it?");
+    // Works in is a tab of its own, before What it can do (044), not a panel on every tab.
+    expect(html).toContain('href="/items/team/github?tab=tools"');
+    expect(html).not.toContain("What do these mean?");
+    expect(html).toMatch(/>Works in<\/a><a[^>]*>What it can do</);
+    // Works in: every tool, from the renderers and this version's manifest (026).
+    const tools = await render({ tab: "tools" });
+    expect(tools).toMatch(/aria-current="page"[^>]*>Works in</);
+    expect(tools).toContain("What do these mean?");
+    for (const tool of ["Claude Code", "Codex", "Cursor"]) expect(tools).toContain(`>${tool}</a>`);
+    expect(tools).toContain("mcpServers in .mcp.json</code>.");
+    expect(tools).toContain("mcp_servers in .codex/config.toml</code>.");
   });
 
   it("shows another version by URL, with a banner saying whether it's yanked", async () => {
@@ -117,13 +122,13 @@ describe("the item page", () => {
         },
       }),
     );
-    const html = await render({ version: "1.1.0" });
+    const html = await render({ version: "1.1.0", tab: "tools" });
     expect(html).toContain(">turned off<");
     expect(html).toContain("This version&#x27;s ronne.yaml keeps it away from this tool.");
     versions.itemPage.mockResolvedValue(
       itemPageData({ item: { ...itemPageData().item, type: "output-style" } }),
     );
-    const style = await render({});
+    const style = await render({ tab: "tools" });
     expect(style).toContain("Codex has no place for output-style items");
     expect(style.match(/>skipped</g)).toHaveLength(2);
   });

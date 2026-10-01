@@ -8,9 +8,9 @@ import { Badge, type BadgeTone } from "@/components/ui/Badge";
 import { Panel } from "@/components/ui/Panel";
 
 /**
- * Which AI tools the shown version works in (feature 026): one row per built-in renderer, its level
- * from the renderer's `supports()` and the version's own `targets`, and what that means here. The
- * same answer `rmk` acts on.
+ * Which AI tools the shown version works in (feature 026), on the item page's Works in tab: one row
+ * per built-in renderer, its level from the renderer's `supports()` and the version's own
+ * `targets`, and what that means here. The same answer `rmk` acts on.
  */
 const LEVEL: Record<ToolSupport, { label: string; tone: BadgeTone }> = {
   native: { label: "supported", tone: "accent" },

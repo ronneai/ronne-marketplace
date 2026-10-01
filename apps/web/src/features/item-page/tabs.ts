@@ -6,6 +6,7 @@ export const ITEM_TABS = [
   "versions",
   "dependencies",
   "files",
+  "tools",
   "risks",
 ] as const;
 export type ItemTab = (typeof ITEM_TABS)[number];
@@ -16,12 +17,17 @@ export const TAB_LABELS: Record<ItemTab, string> = {
   versions: "Versions",
   dependencies: "Dependencies",
   files: "Files",
+  tools: "Works in",
   risks: "What it can do",
 };
 
 /** `?tab=`, Overview by default (044). Versions has its own path (016's page), so it isn't read here. */
 export const tabFrom = (value: string | undefined): ItemTab =>
-  value === "readme" || value === "dependencies" || value === "files" || value === "risks"
+  value === "readme" ||
+  value === "dependencies" ||
+  value === "files" ||
+  value === "tools" ||
+  value === "risks"
     ? value
     : "overview";
 

@@ -12,6 +12,7 @@ import {
 } from "@/features/item-page/load";
 import { bodyPathOf } from "@/features/item-page/overview/model";
 import { OverviewTab, UnavailableFiles } from "@/features/item-page/overview/OverviewTab";
+import { ToolsPanel } from "@/features/item-page/ToolsPanel";
 import { tabFrom } from "@/features/item-page/tabs";
 
 export const metadata = { title: "Item · Ronne AI Marketplace" };
@@ -32,7 +33,7 @@ const WithContentsHelp = ({ children }: { children: ReactNode }) => (
 );
 
 /**
- * An item's page (feature 018): Overview (044), README, Dependencies, Files and What it can do,
+ * An item's page (feature 018): Overview (044), README, Dependencies, Files, Works in (026) and What it can do,
  * for `latest` or `?version=`. Versions is its own path, `versions/`. Everyone signed in reads it.
  * Overview and Files read the version's files from its artifact; the other tabs never do.
  */
@@ -81,6 +82,8 @@ const Item = async ({
             <UnavailableFiles />
           )}
         </WithContentsHelp>
+      ) : tab === "tools" ? (
+        <ToolsPanel name={ref.name} type={type} manifest={shown.manifest} />
       ) : tab === "risks" ? (
         <RisksTab flags={shown.riskFlags} />
       ) : (
