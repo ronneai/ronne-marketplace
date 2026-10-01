@@ -31,7 +31,7 @@ the same change that completes it.
   *Done when:* `cli.test.ts` covers asking, Enter for the suggestion, three empty answers, the
   preview, and exit `2` without a terminal.
 
-- [ ] **4. MCP.** `plan_export`'s `descriptions` and its `needs` answer with the instructions; the
+- [x] **4. MCP.** `plan_export`'s `descriptions` and its `needs` answer with the instructions; the
   plan text's "written by your AI tool"; the server instructions.
   *Done when:* the MCP tests cover the round trip and that `export_items` uploads the shown text.
 
