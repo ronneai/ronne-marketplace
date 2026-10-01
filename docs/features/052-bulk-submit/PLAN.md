@@ -11,11 +11,11 @@ the same change that completes it.
   dependencies (013's rule stays), and the spec is updated to match before anything is built.
   *Done when:* the spec has no open question that changes what's built.
 
-- [ ] **1. Domain.** `checkMany` and `submitMany` in the `submissions` service, over 013's
+- [x] **1. Domain.** `checkMany` and `submitMany` in the `submissions` service, over 013's
   `allIssues` and `submitDraft`. Each draft gets its own transaction, and the result kinds are the
   spec's. The upload actor (token and address) is added to 013's audit metadata when there is one.
   Actions for a session and for a token.
-  *Done when:* `submissions.db.test.ts` covers ready and not ready in one batch, a draft taken
+  *Done when:* `bulk-submit.db.test.ts` covers ready and not ready in one batch, a draft taken
   between check and submit, someone else's id, a status that can't be submitted, resubmitting, and
   the audit, on every database.
 

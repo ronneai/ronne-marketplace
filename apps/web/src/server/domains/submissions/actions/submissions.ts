@@ -1,8 +1,10 @@
 import { instanceStorage, type StorageAdapter } from "../../../storage";
+import type { Authenticated } from "../../identity/actions/access-tokens";
 import { getCurrentUser } from "../../identity/actions/session";
 import { clientIp } from "../../identity/models/client-ip";
 import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-instance";
 import { kyselySubmissionRepository } from "../repositories/kysely-submission-repository";
+import * as bulk from "../services/bulk-submit";
 import * as service from "../services/submissions";
 
 /**
@@ -45,3 +47,50 @@ export const withdrawSubmission = async (
   id: string,
   app: AppAuth = getAppAuth(),
 ) => service.withdrawSubmission(deps(app), await actor(headers, app), id);
+
+export type { BulkSelection, CheckedDraft, SubmittedDraft } from "../services/bulk-submit";
+
+/** For My submissions (052): which of the selection Submit would take, without submitting. */
+export const checkManyDrafts = async (
+  headers: Headers,
+  selection: bulk.BulkSelection,
+  app: AppAuth = getAppAuth(),
+  storage?: StorageAdapter,
+) => bulk.checkMany(deps(app, storage), await actor(headers, app), selection);
+
+/** For My submissions (052): submits each draft of the selection that's ready. */
+export const submitManyDrafts = async (
+  headers: Headers,
+  selection: bulk.BulkSelection,
+  app: AppAuth = getAppAuth(),
+  storage?: StorageAdapter,
+) => bulk.submitMany(deps(app, storage), await actor(headers, app), selection);
+
+/** The token's user and address, for 052's API; the audit names the token. */
+const tokenActor = (
+  auth: Authenticated,
+  headers: Headers,
+  app: AppAuth,
+): service.SubmissionActor => ({
+  user: auth.user,
+  ip: clientIp(headers, app.trustProxy),
+  token: { id: auth.token.id, name: auth.token.name },
+});
+
+/** For `POST /api/v1/drafts/check` (052), as the token's user. */
+export const checkManyDraftsAs = (
+  auth: Authenticated,
+  headers: Headers,
+  selection: bulk.BulkSelection,
+  app: AppAuth = getAppAuth(),
+  storage?: StorageAdapter,
+) => bulk.checkMany(deps(app, storage), tokenActor(auth, headers, app), selection);
+
+/** For `POST /api/v1/drafts/submit` (052), as the token's user. */
+export const submitManyDraftsAs = (
+  auth: Authenticated,
+  headers: Headers,
+  selection: bulk.BulkSelection,
+  app: AppAuth = getAppAuth(),
+  storage?: StorageAdapter,
+) => bulk.submitMany(deps(app, storage), tokenActor(auth, headers, app), selection);
