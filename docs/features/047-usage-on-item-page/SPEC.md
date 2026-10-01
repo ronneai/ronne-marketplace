@@ -19,7 +19,7 @@ page says so.
   with the peak, runs by tool, runs by trigger, and how the runs ended.
 - **The Versions page (016):** runs and installs per version over 30 days, also in the deprecate and
   yank dialogs.
-- The summary queries in the items domain, over 046's `usage_daily`.
+- The summary queries in the usage domain (`domains/usage`), over 046's `usage_daily`.
 - A minimum of activity below which nothing is shown, and the "opt-in" note wherever a number
   appears.
 
@@ -80,7 +80,7 @@ shown when the item as a whole passes the minimum; versions with none show "–"
 and **yank** dialogs say "Reported in the last 30 days: N runs, M installs" when the item passes the
 minimum, so the moderator sees what still uses the version before confirming.
 
-**Data:** two queries in the items domain, read with the page (nothing new is stored):
+**Data:** two queries in the usage domain, read with the page (nothing new is stored):
 - `usageSummary(itemId, today)`: installs, removals and runs over 30 days, per tool and with the
   outcome split; the 14 daily totals; runs by tool, trigger and outcome over 14 days; and whether the
   minimum is met.

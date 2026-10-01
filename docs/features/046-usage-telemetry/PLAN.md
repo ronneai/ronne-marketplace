@@ -12,7 +12,7 @@ the same change that completes it.
   (The owner's decisions are already in the spec, MVP §14.6 and the decision log.)
   *Done when:* the open question is answered in the spec, and the table matches the docs.
 
-- [ ] **1. Storage and the usage domain.** The migration (`usage_daily`, cascade on `items.id`), a
+- [x] **1. Storage and the usage domain.** The migration (`usage_daily`, cascade on `items.id`), a
   repository with the upsert helper from `db/`, and services: record a batch (validate, ignore, sum
   by day) and retention. Reading it is 047's.
   *Done when:* `*.db.test.ts` covers sums, ignored events, retention and cascade; on all four
@@ -63,3 +63,7 @@ goes into `SPEC.md` instead.
   - `-p` ran the project's hooks without a trust prompt.
   - Codex's and Cursor's events were checked against their docs the same day; no change to the
     spec's table. Their payloads come from the docs' examples until someone can run those tools.
+- **Task 1.** The domain is `apps/web/src/server/domains/usage` (not the items domain): the model
+  validates one event, the service sums a report's lines before writing, and `upsertAdding` in
+  `db/upsert.ts` adds counts in the database, so concurrent reports never lose one. The trigger
+  column is `run_trigger`, because `trigger` is a reserved word in SQL.

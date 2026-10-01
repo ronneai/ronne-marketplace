@@ -8,8 +8,8 @@ the same change that completes it.
 ## Tasks
 
 - [ ] **1. The summary queries.** `usageSummary(itemId, today)` and `usageByVersion(itemId, today)`
-  in the items domain (repository interface and Kysely implementation), with the 20-event minimum
-  and the 20-run rule applied in the service, not the page.
+  in the usage domain (046's `domains/usage`; repository interface and Kysely implementation), with
+  the 20-event minimum and the 20-run rule applied in the service, not the page.
   *Done when:* `*.db.test.ts` covers the minimum either side of 20, the 30-day window, per-tool and
   per-version counts, the 14 full days without today, the outcome split and a type without runs; on
   all four database servers.

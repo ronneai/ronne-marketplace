@@ -227,6 +227,22 @@ export interface VersionDependencyTable {
   range: string;
 }
 
+/** Daily usage totals reported by `rmk` (migration 0012, feature 046). Nothing per person or project. */
+export interface UsageDailyTable {
+  item_id: string;
+  /** The UTC day, `YYYY-MM-DD`. */
+  day: string;
+  version: string;
+  tool: string;
+  /** `install`, `remove` or `run`. */
+  event: string;
+  /** A run's trigger; "" for installs and removals. */
+  run_trigger: string;
+  /** A run's outcome; "" for installs and removals. */
+  outcome: string;
+  count: number;
+}
+
 /** Kysely table types for the whole app. Each migration that adds a table adds its interface here. */
 export interface Database {
   user: UserTable;
@@ -245,4 +261,5 @@ export interface Database {
   item_versions: ItemVersionTable;
   dist_tags: DistTagTable;
   version_dependencies: VersionDependencyTable;
+  usage_daily: UsageDailyTable;
 }
