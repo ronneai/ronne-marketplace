@@ -191,9 +191,10 @@ submits that included dependencies are 052's events, one per item.
 2. **Rejecting a dependency** (owner, 2026-10-01): the reviewer is offered **Request changes on
    them too**, on by default. Nothing changes without a decision.
 3. **Release auto-includes approved dependencies** (owner, 2026-10-01), in 055.
+4. **Another author's submission as a dependency** (owner, 2026-10-01): it counts, named only by
+   item and status, as 013's "name is taken" already does; its content stays hidden from people who
+   can't see it.
 
 ## Open questions
 
-1. **Another author's submission as a dependency.** Recommended: it counts, named by item and
-   status only. The alternative counts only the person's own, which is safer for privacy but makes
-   teams wait on each other's releases again.
+None.

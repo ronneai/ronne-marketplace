@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **0. Decisions.** The owner settles whether another author's open submission counts as a
+- [x] **0. Decisions.** The owner settles whether another author's open submission counts as a
   dependency on its way, and the spec is updated before anything is built.
   *Done when:* the spec has no open question that changes what's built.
 
