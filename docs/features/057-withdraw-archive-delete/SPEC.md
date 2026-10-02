@@ -40,14 +40,13 @@ Either way, the item is no longer offered for review, and its name is free.
 - **Withdrawing in bulk** from My submissions. Later, if authors ask.
 - **Deleting a submission with review history.** The conversation is a record for reviewers too
   (014). It can only be archived.
-- **Withdrawing an approved submission.** Approval still freezes the content for release (013). A
-  reviewer can send it back first (056); then it can be withdrawn.
 - **Deleting a published item or version.** That's yanking and deprecating (016).
 
 ## Behaviour
 
 **The dialog.** **Withdraw** stays in the submission's header, for the author, on `draft`,
-`submitted` and `changes_requested`. It opens **Withdraw {name}?** with two choices, as radio
+`submitted`, `changes_requested` and, since 2026-10-02, `approved`: until it's released. An approved
+one has a reviewer's approval, so it can only be archived. It opens **Withdraw {name}?** with two choices, as radio
 cards, Archive selected:
 
 - **Archive** (default): "It leaves review and My submissions' list. Find it under Archived,
@@ -184,6 +183,10 @@ button and, when allowed, **Delete for good**.
    reviewers is kept; the audit log records every deletion.
 4. **`withdrawn` stays the stored status.** "Archived" is its label, so the API, `rmk` and
    existing rows don't change.
+5. **Withdrawing until release** (owner, 2026-10-02, built with
+   [058](../058-review-decisions-everywhere/SPEC.md)): an approved submission can be withdrawn
+   too, and archived (it has review history, so never deleted). Approval still freezes its files;
+   withdrawing doesn't change them. A released version is withdrawn by deprecating or yanking (016).
 
 ## Open questions
 

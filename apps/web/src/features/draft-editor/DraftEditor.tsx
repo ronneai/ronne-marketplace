@@ -123,10 +123,10 @@ const readOnlyTitle = (draft: EditorDraft): ReactNode => {
 const readOnlyText = (draft: EditorDraft): string => {
   if (!draft.mine) return "You can read it, but only its author can change or withdraw it.";
   if (draft.status === "approved")
-    return "It's ready to release, by you or a moderator. It can't be withdrawn; a reviewer can still send it back.";
+    return "It's ready to release, by you or a moderator. Until then you can still withdraw it, and a reviewer can send it back.";
   if (draft.status === "published")
     return "A released version never changes: View versions lists them. To change the item, propose a change from its page.";
-  return "Its files are frozen, so reviewers see exactly what you submitted. You can withdraw it until it's approved.";
+  return "Its files are frozen, so reviewers see exactly what you submitted. You can withdraw it until it's released.";
 };
 
 const FEEDBACK_TITLE = {

@@ -323,13 +323,12 @@ describe("the draft page", () => {
     const readOnly = { readOnly: true, canSubmit: false, canWithdraw: false };
     const approved = view({ status: "approved", ...readOnly });
     expect(approved).toContain("Approved.");
-    expect(approved).toContain("It can&#x27;t be withdrawn");
-    expect(approved).not.toContain("You can withdraw it");
+    expect(approved).toContain("Until then you can still withdraw it");
     const published = view({ status: "published", ...readOnly });
     expect(published).toContain("Released.");
     expect(published).not.toContain("You can withdraw it");
     expect(view({ status: "submitted", ...readOnly, canWithdraw: true })).toContain(
-      "You can withdraw it until it&#x27;s approved.",
+      "You can withdraw it until it&#x27;s released.",
     );
   });
 

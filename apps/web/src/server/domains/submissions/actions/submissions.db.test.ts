@@ -15,7 +15,7 @@ import {
 } from "../exceptions/errors";
 import type { SubmissionStatus } from "../models/status";
 import { createDraft, deleteDraft, getDraft, renameDraft, saveDraftFiles } from "./drafts";
-import { comment } from "./reviews";
+import { comment, decide } from "./reviews";
 import {
   checkSubmission,
   deleteSubmission,
@@ -198,7 +198,7 @@ describe("submitDraft", () => {
 });
 
 describe("withdrawSubmission", () => {
-  it.each(["draft", "submitted", "changes_requested"] as const)(
+  it.each(["draft", "submitted", "changes_requested", "approved"] as const)(
     "archives from %s, and records it",
     async (from) => {
       const draft = await readyDraft();
@@ -217,12 +217,25 @@ describe("withdrawSubmission", () => {
     },
   );
 
-  it("refuses once approved", async () => {
+  it("refuses once released", async () => {
     const draft = await readyDraft();
-    await setStatus(draft.id, "approved");
+    await setStatus(draft.id, "published");
     await expect(withdrawSubmission(asAuthor, draft.id, app)).rejects.toThrow(
-      "A submission that's approved can't be withdrawn.",
+      "A submission that's published can't be withdrawn.",
     );
+  });
+
+  it("archives an approved one, but never deletes it: a reviewer approved it", async () => {
+    const draft = await readyDraft();
+    await submitDraft(asAuthor, draft.id, app);
+    await decide(asModerator, draft.id, { decision: "approve" }, app);
+    await expect(withdrawSubmission(asAuthor, draft.id, app, "delete")).rejects.toThrow(
+      "A submission that's approved can't be deleted.",
+    );
+    expect(await withdrawSubmission(asAuthor, draft.id, app)).toMatchObject({
+      status: "withdrawn",
+    });
+    await expect(deleteSubmission(asAuthor, draft.id, app)).rejects.toThrow(HasReviewHistoryError);
   });
   it("hides an archived one from moderators and root (057)", async () => {
     const draft = await readyDraft();

@@ -86,7 +86,7 @@ export const SubmitDialog = ({
               {result.issues.length > 0 ? <IssueList issues={result.issues} /> : null}
               <p className="text-sm text-muted">
                 Once submitted, its files are frozen: reviewers see exactly these. You can withdraw
-                it until it's approved.
+                it until it's released.
               </p>
               <Help id="after-submit" />
             </div>

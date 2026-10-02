@@ -102,8 +102,8 @@ A decision that doesn't apply to the status, such as Reject on approved, isn't s
 
   | Status | Notice |
   |---|---|
-  | submitted | "Submitted for review on {date}." "Its files are frozen, so reviewers see exactly what you submitted. You can withdraw it until it's approved." |
-  | approved | "Approved." "It's ready to release, by you or a moderator. It can't be withdrawn; a reviewer can still send it back." |
+  | submitted | "Submitted for review on {date}." "Its files are frozen, so reviewers see exactly what you submitted. You can withdraw it until it's released." |
+  | approved | "Approved." "It's ready to release, by you or a moderator. Until then you can still withdraw it, and a reviewer can send it back." |
   | rejected | the top notice above; no second notice |
   | published | "Released." "A released version never changes: View versions lists them. To change the item, propose a change from its page." |
   | withdrawn | as [057](../057-withdraw-archive-delete/SPEC.md) says |
@@ -175,6 +175,10 @@ The audit metadata adds `via: "queue"` when decided from a queue row, as 054 add
    in both places.
 2. **Per row, not in bulk** (owner, 2026-10-02). Each reason is about one submission (054).
 3. **Shown disabled rather than hidden** on the viewer's own submission, so the reason is visible.
+
+**Withdrawing an approved submission** (owner, 2026-10-02): built on this branch, as a change to
+[057](../057-withdraw-archive-delete/SPEC.md). Withdraw is offered until release, and an approved
+one is archived (never deleted). Its notice and the submit confirmations say "until it's released".
 
 ## Open questions
 

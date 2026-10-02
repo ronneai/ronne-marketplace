@@ -33,7 +33,7 @@ import { registryIssues } from "./registry-checks";
 
 /**
  * Submitting and withdrawing (feature 013). The author submits a draft after every check a
- * reviewer would otherwise do by hand, or withdraws it until it's approved. Every status change
+ * reviewer would otherwise do by hand, or withdraws it until it's released. Every status change
  * goes through `transition` (models/status.ts).
  */
 export type SubmissionDeps = {

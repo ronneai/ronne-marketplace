@@ -55,7 +55,7 @@ export const checkDraftsTool = async (io: Io, input: SubmitInput): Promise<ToolA
       ...plan.preview,
       "",
       plan.ready.length > 0
-        ? "Show this to the person. Submitting sends the ready ones to reviewers, who see them; the person can withdraw one until it's approved. If they agree, call submit_drafts with the same items."
+        ? "Show this to the person. Submitting sends the ready ones to reviewers, who see them; the person can withdraw one until it's released. If they agree, call submit_drafts with the same items."
         : "Nothing is ready: what's in the way is fixed in the web app's editor (or by exporting the item again).",
     ],
     planData(plan),
