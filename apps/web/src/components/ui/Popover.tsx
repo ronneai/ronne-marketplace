@@ -30,7 +30,8 @@ const GAP = 8;
  *
  * Reusable (owner, 2026-10-01): the button's content and classes, the popover's tone (`tones.ts`:
  * light red for errors, amber for warnings), placement, width and extra classes are all props.
- * `children` gets `close`, for an action inside it that should close it.
+ * `children` is the content, or a function that gets `close`, for an action inside it that should
+ * close it. A server component passes plain content: a function can't cross to the client.
  */
 export const Popover = ({
   label,
@@ -51,7 +52,7 @@ export const Popover = ({
   tone?: Tone;
   placement?: Placement;
   maxWidth?: number;
-  children: (close: () => void) => ReactNode;
+  children: ReactNode | ((close: () => void) => ReactNode);
 }) => {
   const [open, setOpen] = useState(false);
   const arrowRef = useRef<SVGSVGElement>(null);
@@ -116,7 +117,7 @@ export const Popover = ({
               strokeWidth={1}
               className={TONES[tone].arrow}
             />
-            {children(() => setOpen(false))}
+            {typeof children === "function" ? children(() => setOpen(false)) : children}
           </div>
         </FloatingFocusManager>
       ) : null}

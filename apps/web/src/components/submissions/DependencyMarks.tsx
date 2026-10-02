@@ -1,8 +1,10 @@
-import { CircleX, TriangleAlert } from "lucide-react";
+import { CircleX, Link2, TriangleAlert } from "lucide-react";
 import { Help } from "@/components/help/Help";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/components/ui/cn";
 import { Notice } from "@/components/ui/Notice";
+import { Popover } from "@/components/ui/Popover";
+import { TONES } from "@/components/ui/tones";
 import type { DependencyMark } from "@/server/domains/submissions/actions/submissions";
 
 const WAITS: Record<Extract<DependencyMark, { kind: "waits" }>["status"], string> = {
@@ -56,17 +58,56 @@ export const DependencyStatusBadge = ({
   );
 };
 
-/** A row's marks, as small badges: amber when blocked. */
-export const DependencyMarkBadges = ({ marks }: { marks?: readonly DependencyMark[] }) =>
-  marks && marks.length > 0 ? (
-    <span className="inline-flex flex-wrap gap-1 align-middle">
-      {marks.map((mark) => (
-        <Badge key={mark.dependency} tone={mark.kind === "blocked" ? "warning" : "muted"}>
-          {markText(mark)}
-        </Badge>
-      ))}
-    </span>
-  ) : null;
+/**
+ * A row's dependencies that aren't released yet, as one icon (owner, 2026-10-01): a link with the
+ * count, amber while they're pending, red when one is blocked. Clicking it lists each with its
+ * status badge, in a popover of the same tone. Nothing when there are none. Reusable in any list.
+ */
+export const DependencyMarksIcon = ({
+  marks,
+  className,
+}: {
+  marks?: readonly DependencyMark[];
+  className?: string;
+}) => {
+  if (!marks || marks.length === 0) return null;
+  const tone = marks.some((mark) => mark.kind === "blocked") ? "error" : "warning";
+  const count = marks.length;
+  const label = `${count} ${count === 1 ? "dependency" : "dependencies"} ${tone === "error" ? "with a problem" : "not released yet"}`;
+  return (
+    <Popover
+      label={label}
+      tone={tone}
+      buttonClassName={cn(
+        "h-5 gap-1 rounded-full border px-1.5 font-mono text-[11px] font-semibold",
+        TONES[tone].chip,
+        TONES[tone].text,
+        className,
+      )}
+      button={
+        <>
+          <Link2 size={12} aria-hidden="true" />
+          {count}
+        </>
+      }
+    >
+      <>
+        <p className="font-semibold">
+          {tone === "error" ? "A dependency won't be released." : "It's released once these are."}
+        </p>
+        <ul className="grid gap-1.5">
+          {marks.map((mark) => (
+            <li key={mark.dependency} className="flex flex-wrap items-center gap-2">
+              <span className="font-mono">{mark.dependency}</span>
+              <DependencyStatusBadge mark={mark} />
+            </li>
+          ))}
+        </ul>
+        <Help id="waits-on" />
+      </>
+    </Popover>
+  );
+};
 
 /**
  * A page's marks, as a notice: a warning when something is blocked, information while it only

@@ -110,6 +110,17 @@ const proposalView = async (
 };
 
 /**
+ * A change proposal's suggested bump (017), from its latest revision against its base version;
+ * null for a new item, or when the base can't be read. Releasing many at once (055) uses it.
+ */
+export const suggestedBumpOf = async (deps: SubmissionDeps, submission: Submission) => {
+  if (!submission.proposal) return null;
+  const latest = (await deps.repo.revisions(submission.id)).at(-1);
+  const files = latest ? await deps.repo.revisionFiles(latest.id) : null;
+  return (await proposalView(deps, submission, files))?.suggested?.bump ?? null;
+};
+
+/**
  * A submission as a review: the author sees their own, moderators and root (`submissions.review`)
  * any that isn't a draft. Anyone else gets SubmissionNotFoundError. Everything is read from the
  * latest revision, so reviewers see exactly what was submitted.

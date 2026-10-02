@@ -128,6 +128,18 @@ export const HELP = {
       "Type part of its name and pick it from the list: published items, yours, and others' in review. It starts on latest; pick another version if you need one. In a markdown file, type @ to do the same.",
     href: docsHref("items", "dependencies"),
   },
+  "which-bump": {
+    question: "Which bump?",
+    answer:
+      "Suggested for each gives every change proposal the bump its changes suggest; or pick patch, minor or major for all. New items are released as 1.0.0 whatever you pick.",
+    href: docsHref("versions", "bump"),
+  },
+  "release-many": {
+    question: "Release several at once?",
+    answer:
+      "Tick approved ones, or Select all approved, then Release selected: choose stable or pre-release, the bump and the tag once, and see every version before anything goes out. Dependencies go first, and the approved ones they need are added.",
+    href: docsHref("versions", "release-many"),
+  },
   "waits-on": {
     question: "What does this wait on?",
     answer:

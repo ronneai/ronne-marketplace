@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { DependencyMarkBadges } from "@/components/submissions/DependencyMarks";
+import { DependencyMarksIcon } from "@/components/submissions/DependencyMarks";
 import { ProposalBadges } from "@/components/submissions/ProposalBadges";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { buttonClasses } from "@/components/ui/Button";
@@ -14,6 +14,7 @@ import {
   statusLabel,
 } from "@/server/domains/submissions/models/status";
 import { itemNameOf, type Submission } from "@/server/domains/submissions/models/submission";
+import { ReleaseSelectCell } from "../releases/BulkRelease";
 import { ReadinessMark, SelectCell } from "./BulkSubmit";
 
 /** `?status=`, when it's a status; otherwise every status. */
@@ -76,6 +77,7 @@ export const SubmissionsTable = ({
   submissions,
   errors,
   marks,
+  releasable,
 }: {
   /** With `stale` for change proposals (017) that a newer version overtook. */
   submissions: (Submission & { stale?: string | null })[];
@@ -86,7 +88,10 @@ export const SubmissionsTable = ({
   errors?: Readonly<Record<string, number>>;
   /** What each waits on (056), by id: dependencies in review, not submitted, or blocked. */
   marks?: Readonly<Record<string, readonly DependencyMark[]>>;
+  /** Approved ones that can be released at once (055), by id: a checkbox each. */
+  releasable?: Readonly<Record<string, string>>;
 }) => {
+  const selecting = errors !== undefined || Object.keys(releasable ?? {}).length > 0;
   if (submissions.length === 0)
     return (
       <Panel padding="lg" className="grid justify-items-start gap-3">
@@ -103,7 +108,7 @@ export const SubmissionsTable = ({
     <Table>
       <thead>
         <tr>
-          {errors ? (
+          {selecting ? (
             <Th>
               <span className="sr-only">Select</span>
             </Th>
@@ -117,14 +122,16 @@ export const SubmissionsTable = ({
       <tbody>
         {submissions.map((submission) => (
           <tr key={submission.id}>
-            {errors ? (
+            {selecting ? (
               <Td>
-                {errors[submission.id] !== undefined ? (
+                {errors?.[submission.id] !== undefined ? (
                   <SelectCell
                     id={submission.id}
                     name={itemNameOf(submission)}
                     errors={errors[submission.id] ?? 0}
                   />
+                ) : releasable?.[submission.id] ? (
+                  <ReleaseSelectCell id={submission.id} name={itemNameOf(submission)} />
                 ) : null}
               </Td>
             ) : null}
@@ -149,11 +156,7 @@ export const SubmissionsTable = ({
               {errors?.[submission.id] !== undefined ? (
                 <ReadinessMark id={submission.id} errors={errors[submission.id] ?? 0} />
               ) : null}
-              {marks?.[submission.id] ? (
-                <span className="mt-1 block">
-                  <DependencyMarkBadges marks={marks[submission.id]} />
-                </span>
-              ) : null}
+              <DependencyMarksIcon marks={marks?.[submission.id]} className="ml-2 align-middle" />
             </Td>
             <Td className="whitespace-nowrap font-mono text-xs text-muted">
               <time dateTime={submission.updatedAt.toISOString()}>

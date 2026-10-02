@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { DependencyMarkBadges } from "@/components/submissions/DependencyMarks";
+import { DependencyMarksIcon } from "@/components/submissions/DependencyMarks";
 import { ProposalBadges } from "@/components/submissions/ProposalBadges";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { Badge } from "@/components/ui/Badge";
@@ -11,20 +11,22 @@ import { TypeBadge } from "@/components/ui/TypeBadge";
 import type { QueueRow, QueueTab } from "@/server/domains/submissions/actions/reviews";
 import { itemNameOf } from "@/server/domains/submissions/models/submission";
 import { QUEUE_TABS } from "@/server/domains/submissions/services/queue";
+import { ReleaseSelectCell } from "../releases/BulkRelease";
 import { type ApprovableRow, ApproveSelectCell } from "./BulkApprove";
 
-const TAB_ORDER: QueueTab[] = ["needs", "waiting", "decided"];
+const TAB_ORDER: QueueTab[] = ["needs", "waiting", "release", "decided"];
 
 const EMPTY: Record<QueueTab, string> = {
   needs: "Nothing needs review. New submissions show up here.",
   waiting: "No submission is waiting on its author.",
+  release: "Nothing approved is waiting to be released.",
   decided: "Nothing has been decided yet.",
 };
 
 /** `?tab=`, when it's a tab; otherwise Needs review. */
 export const queueTab = (value: string | string[] | undefined): QueueTab => {
   const tab = Array.isArray(value) ? value[0] : value;
-  return tab === "waiting" || tab === "decided" ? tab : "needs";
+  return tab === "waiting" || tab === "release" || tab === "decided" ? tab : "needs";
 };
 
 const tabClasses =
@@ -92,6 +94,11 @@ export const QueueTable = ({
       <Table>
         <thead>
           <tr>
+            {tab === "release" ? (
+              <Th>
+                <span className="sr-only">Select</span>
+              </Th>
+            ) : null}
             {tab === "needs" ? (
               <Th>
                 <span className="sr-only">Select</span>
@@ -101,13 +108,19 @@ export const QueueTable = ({
             <Th>Type</Th>
             <Th>Author</Th>
             <Th>Revision</Th>
-            <Th>{tab === "decided" ? "Decided" : "Submitted"}</Th>
+            {tab === "release" ? <Th>Approved by</Th> : null}
+            <Th>{tab === "decided" ? "Decided" : tab === "release" ? "Approved" : "Submitted"}</Th>
             {tab === "decided" ? <Th>Status</Th> : null}
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
             <tr key={row.id}>
+              {tab === "release" ? (
+                <Td className="w-8">
+                  <ReleaseSelectCell id={row.id} name={itemNameOf(row)} />
+                </Td>
+              ) : null}
               {tab === "needs" ? (
                 <Td className="w-8">
                   <ApproveSelectCell
@@ -128,7 +141,7 @@ export const QueueTable = ({
                   <ProposalBadges proposal={row.proposal} stale={row.stale} />
                   {row.risky ? <Badge tone="warning">⚠ risk</Badge> : null}
                   {row.mine ? <Badge>yours</Badge> : null}
-                  <DependencyMarkBadges marks={row.marks} />
+                  <DependencyMarksIcon marks={row.marks} />
                 </span>
               </Td>
               <Td>
@@ -136,9 +149,16 @@ export const QueueTable = ({
               </Td>
               <Td className="text-sm">{row.authorName}</Td>
               <Td className="font-mono text-xs">{row.revision ?? "–"}</Td>
+              {tab === "release" ? <Td className="text-sm">{row.approved?.by ?? "–"}</Td> : null}
               <Td className="whitespace-nowrap font-mono text-xs text-muted">
                 <LocalTime
-                  value={tab === "decided" ? row.updatedAt : (row.submittedAt ?? row.updatedAt)}
+                  value={
+                    tab === "decided"
+                      ? row.updatedAt
+                      : tab === "release"
+                        ? (row.approved?.at ?? row.updatedAt)
+                        : (row.submittedAt ?? row.updatedAt)
+                  }
                 />
               </Td>
               {tab === "decided" ? (

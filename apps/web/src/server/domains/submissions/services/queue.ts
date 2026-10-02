@@ -9,7 +9,7 @@ import { withStale } from "./proposals";
 import type { SubmissionActor, SubmissionDeps } from "./submissions";
 
 /** The review queue (feature 014): what needs a reviewer, what waits on its author, what's decided. */
-export type QueueTab = "needs" | "waiting" | "decided";
+export type QueueTab = "needs" | "waiting" | "release" | "decided";
 
 export const QUEUE_TABS: Record<
   QueueTab,
@@ -17,7 +17,9 @@ export const QUEUE_TABS: Record<
 > = {
   needs: { label: "Needs review", statuses: ["submitted"], order: "oldest" },
   waiting: { label: "Waiting on the author", statuses: ["changes_requested"], order: "oldest" },
-  decided: { label: "Decided", statuses: ["approved", "rejected", "published"], order: "newest" },
+  // Approved ones wait here to go out, oldest first (055); Decided keeps the closed ones.
+  release: { label: "To release", statuses: ["approved"], order: "oldest" },
+  decided: { label: "Decided", statuses: ["rejected", "published"], order: "newest" },
 };
 
 /** Open tabs are small and shown whole; Decided pages. */
@@ -37,6 +39,8 @@ export type QueueRow = Submission & {
   approvable: Approvability;
   /** What it waits on (056): dependencies in review, or blocked. */
   marks: DependencyMark[];
+  /** For an approved one (055): who approved it, and when. */
+  approved: { by: string; at: Date } | null;
 };
 
 export type QueuePage = { rows: QueueRow[]; nextCursor: string | null };
@@ -57,6 +61,14 @@ export const latestRiskFlags = async (
     revision: latest.number,
     flags: manifest ? riskFlags(manifest, files.map(toPackageFile)) : [],
   };
+};
+
+/** Who approved a submission and when: its last approval, an override included. */
+const approvalOf = async (repo: SubmissionRepository, submissionId: string) => {
+  const event = (await repo.events(submissionId))
+    .filter((e) => e.kind === "approve" || e.kind === "override")
+    .at(-1);
+  return event ? { by: event.actor.name, at: event.createdAt } : null;
 };
 
 /** `updatedAt|id` of the last row, to continue the Decided tab after it. */
@@ -96,6 +108,8 @@ export const listQueue = async (
         marks: OPEN_STATUSES.includes(submission.status)
           ? await marksFor(registry, await dependenciesOf(deps.repo, submission))
           : [],
+        approved:
+          submission.status === "approved" ? await approvalOf(deps.repo, submission.id) : null,
       };
     }),
   );

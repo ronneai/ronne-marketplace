@@ -93,9 +93,8 @@ them anyway.
 
 **My submissions (web).** Each `approved` row the person may release gets a checkbox; for a user,
 those are their own. Above the table: **Select all approved (n)** and **Release selected (n)**,
-next to 052's submit buttons and shown only when at least one row is approved. Selecting drafts and
-approved rows at once isn't possible: the two selections are separate, and choosing one clears the
-other.
+next to 052's submit buttons and shown only when at least one row is approved. The two selections
+are separate: Submit selected takes only the drafts, Release selected only the approved ones.
 
 **The review queue (web).** A new tab, **To release**, lists `approved` submissions, oldest
 first, with who approved them and when; **Decided** keeps `rejected` and `published`. It has the
@@ -153,22 +152,22 @@ writes it to storage, which is heavier than submitting or approving.
 
 ## Acceptance criteria
 
-- [ ] The domain releases many submissions, each with its own pack, stored artifact and
+- [x] The domain releases many submissions, each with its own pack, stored artifact and
   transaction, reporting `published` (version, tag, sha256), `not_found`, `not_releasable` and
   `skipped`. One that fails doesn't stop the others, and each release is audited as 015's, with
   `via: "bulk"`.
-- [ ] Selecting a dependent selects its approved dependencies; selected submissions are released
+- [x] Selecting a dependent selects its approved dependencies; selected submissions are released
   dependencies first, and a dependent whose selected dependency failed is `skipped`.
-- [ ] The settings apply to each: first releases are `1.0.0` (or `1.0.0-<id>.1`), later ones use the
+- [x] The settings apply to each: first releases are `1.0.0` (or `1.0.0-<id>.1`), later ones use the
   suggested or chosen bump; the default tag or a custom tag that's valid for every version; the notes
   on every version.
-- [ ] A user releases only their own approved submissions; moderators and root release anyone's;
+- [x] A user releases only their own approved submissions; moderators and root release anyone's;
   two people releasing the same submissions at once release each one once.
-- [ ] My submissions and the To release tab select only releasable rows; the dialog previews every
+- [x] My submissions and the To release tab select only releasable rows; the dialog previews every
   version and tag in release order, and shows each result after releasing.
-- [ ] The service tests pass on SQLite, PostgreSQL, MySQL and MariaDB, and an end-to-end test
+- [x] The service tests pass on SQLite, PostgreSQL, MySQL and MariaDB, and an end-to-end test
   releases a skill and an agent that depends on it in one batch, and installs the agent with `rmk`.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Decisions
 

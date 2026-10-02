@@ -14,6 +14,8 @@ const bulk = vi.hoisted(() => ({
 }));
 vi.mock("@/server/domains/submissions/actions/drafts", () => drafts);
 vi.mock("@/server/domains/submissions/actions/submissions", () => bulk);
+const publish = vi.hoisted(() => ({ prepareRelease: vi.fn(), releaseMany: vi.fn() }));
+vi.mock("@/server/domains/submissions/actions/publish", () => publish);
 vi.mock("@/server/domains/items/actions/scopes", () => scopes);
 vi.mock("next/cache", () => cache);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
@@ -30,6 +32,8 @@ const { inListOrder, StatusFilters, SubmissionsTable, statusFilter } = await imp
 );
 const { NewDraftForm } = await import("./NewDraftForm");
 const { BulkSubmitProvider, BulkToolbar, neededBy, toggled } = await import("./BulkSubmit");
+const { BulkReleaseProvider, BulkReleaseToolbar } = await import("../releases/BulkRelease");
+const releases = await import("../releases/actions");
 const { default: SubmissionsPage } = await import("@/app/(app)/submissions/page");
 const { default: NewItemPage } = await import("@/app/(app)/submissions/new/page");
 
@@ -314,5 +318,63 @@ describe("pages", () => {
     expect(scopes.listScopes).toHaveBeenNthCalledWith(2, expect.any(Headers), { cursor: "a" });
     expect(html).toContain("@a");
     expect(html).toContain("@b");
+  });
+});
+
+describe("releasing several at once (055)", () => {
+  const approved = submission({ id: "01J0000000000000000000000D", status: "approved" });
+  const draft = submission({ id: "01J0000000000000000000000E" });
+
+  it("gives approved rows a release checkbox, and offers Release selected", () => {
+    const html = renderToStaticMarkup(
+      <BulkSubmitProvider ready={{}}>
+        <BulkReleaseProvider releasable={{ [approved.id]: "@platform/code-reviewer" }}>
+          <BulkReleaseToolbar />
+          <SubmissionsTable
+            submissions={[approved, draft]}
+            releasable={{ [approved.id]: "@platform/code-reviewer" }}
+          />
+        </BulkReleaseProvider>
+      </BulkSubmitProvider>,
+    );
+    expect(html).toContain('aria-label="Select @platform/code-reviewer to release"');
+    expect(html.match(/type="checkbox"/g)).toHaveLength(1);
+    expect(html).toContain("Select all approved (1)");
+    expect(html).toMatch(/disabled=""[^>]*>.*?Release selected \(0\)/);
+    expect(
+      renderToStaticMarkup(
+        <BulkReleaseProvider releasable={{}}>
+          <BulkReleaseToolbar />
+        </BulkReleaseProvider>,
+      ),
+    ).toBe("");
+  });
+
+  it("prepares and releases through the domain, and says what went wrong", async () => {
+    publish.prepareRelease.mockResolvedValue({ candidates: [], refused: [] });
+    expect(await releases.prepareReleaseAction(["a"])).toEqual({
+      ok: true,
+      candidates: [],
+      refused: [],
+    });
+    publish.releaseMany.mockResolvedValue([
+      { id: "a", name: "@t/a", result: "published", version: "1.0.0", tag: "latest", sha256: "x" },
+    ]);
+    const settings = { kind: "stable" as const, bump: "suggested" as const };
+    expect(await releases.releaseSelectedAction(["a"], settings, "Notes.")).toMatchObject({
+      ok: true,
+      results: [{ result: "published" }],
+    });
+    expect(publish.releaseMany).toHaveBeenCalledWith(expect.any(Headers), {
+      ids: ["a"],
+      settings,
+      notes: "Notes.",
+    });
+    const { BulkLimitError } = await import("@/server/domains/submissions/exceptions/errors");
+    publish.releaseMany.mockRejectedValue(new BulkLimitError(51, 50));
+    expect(await releases.releaseSelectedAction(["a"], settings, "")).toEqual({
+      ok: false,
+      error: "That's 51 submissions; one request takes at most 50.",
+    });
   });
 });

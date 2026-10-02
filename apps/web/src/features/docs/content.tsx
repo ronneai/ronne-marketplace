@@ -619,7 +619,10 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
                   "changes_requested",
                   "Sent back to its author, who edits it and resubmits it as the next revision.",
                 ],
-                ["approved", "Ready to release, by its author, a moderator or root."],
+                [
+                  "approved",
+                  "Ready to release, by its author, a moderator or root. Approved ones wait on the review queue's To release tab, and can be released many at once.",
+                ],
                 ["published", "Released as a version."],
                 ["rejected", "Closed by a reviewer, with the reason in the conversation."],
                 ["withdrawn", "Closed by its author, before approval. It stays, read-only."],
@@ -777,10 +780,11 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </p>
         <Bullets>
           <li>
-            <strong>Waits on:</strong> My submissions, the review queue and the review page say what
-            a submission waits on, such as <em>Waits on @team/github (in review)</em>. In the
-            editor, each dependency has an amber badge beside its name until it&apos;s released, and
-            a red one if it&apos;s blocked.
+            <strong>Waits on:</strong> in My submissions and the review queue, a link icon with a
+            count marks what a submission waits on: amber while its dependencies are pending, red
+            when one is blocked; click it to see each. The review page says it in full, such as{" "}
+            <em>Waits on @team/github (in review)</em>. In the editor, each dependency has an amber
+            badge beside its name until it&apos;s released, and a red one if it&apos;s blocked.
           </li>
           <li>
             <strong>Approving</strong> doesn&apos;t wait: each item gets its own review, and
@@ -860,6 +864,11 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           id of lowercase letters and digits, starting with a letter, and a number that goes up with
           each one.
         </p>
+        <p>
+          Nobody types a version: it follows from the choice made when releasing, one item at a time
+          or <To href={docsHref("versions", "release-many")}>many at once</To>, where one choice
+          gives each item its own next version.
+        </p>
       </>
     ),
     bump: (
@@ -899,6 +908,9 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </Table>
         <p>
           For a change proposal, the publish dialog suggests one from what changed, and says why.
+          Releasing <To href={docsHref("versions", "release-many")}>many at once</To>,{" "}
+          <strong>Suggested for each</strong> uses each proposal&apos;s own suggestion; or pick one
+          bump for all. A first release is 1.0.0 either way.
         </p>
       </>
     ),
@@ -925,6 +937,35 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           When an item is installed by tag, the tag is turned into the version it points to at that
           moment, and the lockfile keeps that version until <Code>rmk update</Code> looks again.
         </p>
+      </>
+    ),
+    "release-many": (
+      <>
+        <p>
+          Approved submissions can go out together: tick them on{" "}
+          <To href="/submissions">My submissions</To> (your own), or on the review queue&apos;s{" "}
+          <strong>To release</strong> tab (moderators and root, anyone&apos;s), then{" "}
+          <strong>Release selected</strong>.
+        </p>
+        <Bullets>
+          <li>
+            <strong>One set of settings for all:</strong> stable or pre-release, the bump (each
+            change&apos;s suggested bump, or one for all), the tag (each version&apos;s default, or
+            one for all) and optional release notes. A first release is always 1.0.0.
+          </li>
+          <li>
+            <strong>Every version is shown first</strong>, as each publish dialog would, and Release
+            stays off until the settings work for every one.
+          </li>
+          <li>
+            <strong>Dependencies go first.</strong> Selecting one adds its approved dependencies
+            that aren&apos;t released yet, marked as included; one still in review keeps it out.
+          </li>
+          <li>
+            Each is released on its own. One that fails, such as a stale proposal, stops only itself
+            and what depends on it in the batch (skipped); the rest go. At most 50 at a time.
+          </li>
+        </Bullets>
       </>
     ),
     "deprecate-yank": (
@@ -1603,7 +1644,9 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         Once approved, it&apos;s released like any other submission, as the item&apos;s next
         version. The publish dialog suggests patch, minor or major from what changed (see{" "}
         <To href={docsHref("versions", "bump")}>Patch, minor or major</To>), and the publisher can
-        pick another.
+        pick another. Several can go <To href={docsHref("versions", "release-many")}>at once</To>;
+        two proposals for the same item can&apos;t both go out, since the first makes the other
+        stale.
       </p>
     ),
   },

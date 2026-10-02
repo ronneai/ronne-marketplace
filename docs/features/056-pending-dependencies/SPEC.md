@@ -75,7 +75,9 @@ computed when it's shown (not stored):
 | **Waits on @x (approved)** | the dependency is `approved`, not released |
 | **Blocked: @x was rejected** | the dependency's newest submission is `rejected` or `withdrawn`, and no other open one or matching release exists |
 
-The marks show on My submissions, the review queue and the review page. In the editor (owner,
+The marks show on My submissions, the review queue and the review page; in the lists (owner,
+2026-10-02) as one link icon with the count, amber while pending and red when one is blocked,
+whose popover lists each dependency with its badge. In the editor (owner,
 2026-10-01) each dependency in the form has its own badge beside its name instead of a card under
 the editor: amber while it isn't released ("in review", "pending release" once approved, "not submitted"), red when it's
 blocked, with the full sentence on hover. A blocked dependent can't be submitted (it's an error again), approved stays possible (the reviewer
@@ -214,7 +216,7 @@ published items and didn't match the scope.
   whose dependency isn't released (or released in the batch first) can't be released.
 - [x] Bulk submit (web, `rmk submit`, `submit_drafts`) includes the person's own ready dependency
   drafts first; `--no-deps` leaves them out.
-- [ ] **Moved to 055** (not built yet): 055 selects a dependent's approved dependencies with it,
+- [x] **Moved to 055** (built there): 055 selects a dependent's approved dependencies with it,
   refuses a dependent waiting on a dependency in review, and releases dependencies first.
 - [x] Rejecting a submission lists its open dependents, and with the box ticked requests changes on
   each the reviewer may decide, each audited with `cause`; unticked, they show **Blocked**.
