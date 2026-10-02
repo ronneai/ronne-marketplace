@@ -137,6 +137,12 @@ describe("the topics", () => {
     expect(install).toContain("--email");
     expect(install).not.toContain("docker compose restart");
     expect(install).toContain("Nothing needs a restart");
+    // The audit log (060), for roots, linked from Roles.
+    const admin = await topic("admin");
+    expect(admin).toContain('id="audit"');
+    expect(admin).toContain("10,000+ events");
+    expect(admin).toContain("user.*");
+    expect(await topic("roles")).toContain(`href="${docsHref("admin", "audit")}"`);
     const rmk = await topic("rmk");
     expect(rmk).not.toContain("released yet");
     for (const id of ["getting", "login", "installing", "updating", "files", "edits"])
