@@ -1,7 +1,7 @@
 import { clientIp } from "../models/client-ip";
 import { argon2PasswordHasher } from "../repositories/argon2-password-hasher";
 import { type AppAuth, getAppAuth } from "../repositories/auth-instance";
-import type { UserListQuery } from "../repositories/identity-repository";
+import type { UserPageQuery } from "../repositories/identity-repository";
 import { kyselyIdentityRepository } from "../repositories/kysely-identity-repository";
 import * as service from "../services/user-admin";
 import { getCurrentUser } from "./session";
@@ -22,7 +22,7 @@ const actor = async (headers: Headers, app: AppAuth): Promise<service.Actor> => 
 
 export const adminListUsers = async (
   headers: Headers,
-  query: Omit<UserListQuery, "limit">,
+  query: Partial<UserPageQuery>,
   app: AppAuth = getAppAuth(),
 ) => {
   return service.listUsers(deps(app), await actor(headers, app), query);

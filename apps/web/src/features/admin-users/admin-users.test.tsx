@@ -46,12 +46,13 @@ describe("parseUsersQuery", () => {
       status: "disabled",
       cursor: ULID,
     });
+    // The cursor is opaque since 061: it reaches the server, which ignores one that isn't its own.
     expect(parseUsersQuery({ role: "admin", status: "gone", cursor: "x" })).toEqual({
       filters: noFilters,
       search: undefined,
       role: undefined,
       status: undefined,
-      cursor: undefined,
+      cursor: "x",
     });
     expect(parseUsersQuery({ q: "x".repeat(300) }).search).toHaveLength(100);
   });

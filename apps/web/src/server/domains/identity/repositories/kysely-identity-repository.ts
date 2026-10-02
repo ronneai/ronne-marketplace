@@ -1,13 +1,19 @@
 import type { Kysely } from "kysely";
 import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
+import { countCapped, paginate } from "../../../db/keyset";
 import { forUpdate, readCommittedTransaction } from "../../../db/locks";
 import type { Database } from "../../../db/schema";
 import { containsInsensitive } from "../../../db/search";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
 import { isRole, type RootAccount, type UserSummary } from "../models/user";
-import type { IdentityRepository, NewUserWithPassword } from "./identity-repository";
+import type {
+  IdentityRepository,
+  NewUserWithPassword,
+  UserFilters,
+  UserSort,
+} from "./identity-repository";
 
 type UserRow = {
   id: string;
@@ -33,11 +39,30 @@ const summary = (row: UserRow): UserSummary => {
 /** Better Auth's provider id for email and password accounts. */
 const CREDENTIAL_PROVIDER = "credential";
 
+const USER_SORT_COLUMNS: Record<UserSort, string> = {
+  // ULIDs sort by creation time, so the id alone orders by "created".
+  created: "id",
+  email: "email",
+  name: "name",
+};
+
 export const kyselyIdentityRepository = (
   db: Kysely<Database>,
   dialect: DatabaseDialect,
 ): IdentityRepository => {
   const at = (date: Date) => toDbDate(date, dialect);
+
+  const filteredUsers = ({ search, role, status }: UserFilters) => {
+    let query = db.selectFrom("user");
+    if (search)
+      query = query.where((eb) =>
+        eb.or([containsInsensitive("email", search), containsInsensitive("name", search)]),
+      );
+    if (role) query = query.where("role", "=", role);
+    if (status === "active") query = query.where("disabled_at", "is", null);
+    if (status === "disabled") query = query.where("disabled_at", "is not", null);
+    return query;
+  };
 
   const listRoots = async (): Promise<RootAccount[]> => {
     const rows = await db
@@ -139,22 +164,22 @@ export const kyselyIdentityRepository = (
       return row ? summary(row) : null;
     },
 
-    async listUsers({ search, role, status, cursor, limit }) {
-      let query = db
-        .selectFrom("user")
-        .select(["id", "email", "name", "role", "disabled_at", "created_at"])
-        .orderBy("id", "desc")
-        .limit(limit);
-      if (search)
-        query = query.where((eb) =>
-          eb.or([containsInsensitive("email", search), containsInsensitive("name", search)]),
-        );
-      if (role) query = query.where("role", "=", role);
-      if (status === "active") query = query.where("disabled_at", "is", null);
-      if (status === "disabled") query = query.where("disabled_at", "is not", null);
-      if (cursor) query = query.where("id", "<", cursor);
-      return (await query.execute()).map(summary);
+    async pageUsers({ sort, dir, size, cursor, ...filters }) {
+      const page = await paginate(
+        filteredUsers(filters).select(["id", "email", "name", "role", "disabled_at", "created_at"]),
+        {
+          sort: { key: sort, column: USER_SORT_COLUMNS[sort], dir },
+          idColumn: "id",
+          size,
+          cursor,
+          sortValue: (row) => (sort === "created" ? row.id : row[sort]),
+          idOf: (row) => row.id,
+        },
+      );
+      return { ...page, rows: page.rows.map(summary) };
     },
+
+    countUsers: (filters) => countCapped(db, filteredUsers(filters).select("id")),
 
     async emailTaken(email) {
       const row = await db

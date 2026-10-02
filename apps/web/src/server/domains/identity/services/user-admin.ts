@@ -18,7 +18,7 @@ import {
   type Role,
   type UserSummary,
 } from "../models/user";
-import type { IdentityRepository, UserListQuery } from "../repositories/identity-repository";
+import type { IdentityRepository, UserPageQuery } from "../repositories/identity-repository";
 
 /**
  * Root's user admin (feature 008). Every operation checks the permission first, refuses the
@@ -39,21 +39,34 @@ export const USER_SEARCH_MAX_LENGTH = 100;
 
 const now = (deps: UserAdminDeps) => (deps.now ?? (() => new Date()))();
 
-export type UsersPage = { users: UserSummary[]; nextCursor: string | null };
+export type UsersPage = {
+  users: UserSummary[];
+  next: string | null;
+  previous: string | null;
+  total: { count: number; capped: boolean };
+};
 
+/** One page of users and the capped count of all that match (keyset, 061). */
 export const listUsers = async (
   deps: UserAdminDeps,
   actor: Actor,
-  query: Omit<UserListQuery, "limit">,
+  query: Partial<UserPageQuery>,
 ): Promise<UsersPage> => {
   requirePermission(actor.user, "users.view");
   const search = query.search?.trim().slice(0, USER_SEARCH_MAX_LENGTH) || undefined;
-  const rows = await deps.repo.listUsers({ ...query, search, limit: USERS_PAGE_SIZE + 1 });
-  const users = rows.slice(0, USERS_PAGE_SIZE);
-  return {
-    users,
-    nextCursor: rows.length > USERS_PAGE_SIZE ? (users.at(-1)?.id ?? null) : null,
-  };
+  const filters = { search, role: query.role, status: query.status };
+  const sort = query.sort ?? "created";
+  const [page, total] = await Promise.all([
+    deps.repo.pageUsers({
+      ...filters,
+      sort,
+      dir: query.dir ?? (sort === "created" ? "desc" : "asc"),
+      size: query.size ?? USERS_PAGE_SIZE,
+      cursor: query.cursor,
+    }),
+    deps.repo.countUsers(filters),
+  ]);
+  return { users: page.rows, next: page.next, previous: page.previous, total };
 };
 
 /** The password root chose, or a generated one. Either way it's shown once, then only its hash exists. */

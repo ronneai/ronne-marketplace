@@ -17,7 +17,7 @@ const Users = async ({ searchParams }: { searchParams: Promise<SearchParams> }) 
   if (!me || !can(me, "users.view")) notFound();
 
   const query = parseUsersQuery(await searchParams);
-  const { users, nextCursor } = await adminListUsers(request, {
+  const { users, next: nextCursor } = await adminListUsers(request, {
     search: query.search,
     role: query.role,
     status: query.status,

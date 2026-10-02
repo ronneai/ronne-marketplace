@@ -430,6 +430,51 @@ describe("resetPassword", () => {
   });
 });
 
+describe("listUsers sorting (061)", () => {
+  it("sorts by email, name and created, both ways, with ties broken by id across pages", async () => {
+    const repo = kyselyIdentityRepository(t.db, t.dialect);
+    // More same-named users than a page holds.
+    for (let i = 0; i < 30; i++)
+      await repo.createUserWithPassword(
+        {
+          email: `same${String(i).padStart(2, "0")}@example.com`,
+          name: "Same",
+          role: "user",
+          passwordHash: "x",
+        },
+        new Date(),
+      );
+    await repo.createUserWithPassword(
+      { email: "aaa@example.com", name: "Zed", role: "user", passwordHash: "x" },
+      new Date(),
+    );
+    const all = async (query: Parameters<typeof adminListUsers>[1]) => {
+      const seen: string[] = [];
+      let page = await adminListUsers(asRoot, { ...query, size: 25 }, app);
+      seen.push(...page.users.map((u) => u.email));
+      while (page.next) {
+        page = await adminListUsers(asRoot, { ...query, size: 25, cursor: page.next }, app);
+        seen.push(...page.users.map((u) => u.email));
+      }
+      return seen;
+    };
+    const byEmail = await all({ sort: "email" });
+    expect(byEmail).toHaveLength(32);
+    expect(byEmail[0]).toBe("aaa@example.com");
+    expect(byEmail).toEqual([...byEmail].sort());
+    expect(await all({ sort: "email", dir: "desc" })).toEqual([...byEmail].reverse());
+
+    const byName = await all({ sort: "name" });
+    expect(new Set(byName).size).toBe(32);
+    expect(byName.at(0)).toBe("root@example.com"); // "Root" < "Same" < "Zed"
+    expect(byName.at(-1)).toBe("aaa@example.com");
+
+    const newest = await all({});
+    expect(newest[0]).toBe("aaa@example.com");
+    expect(newest.at(-1)).toBe("root@example.com");
+  });
+});
+
 describe("listUsers", () => {
   it("searches email and name in any case, filters by role and status, and pages", async () => {
     const repo = kyselyIdentityRepository(t.db, t.dialect);
@@ -454,10 +499,14 @@ describe("listUsers", () => {
     const first = await adminListUsers(asRoot, {}, app);
     expect(first.users).toHaveLength(50);
     expect(first.users[0]?.email).toBe("mod@example.com");
-    const second = await adminListUsers(asRoot, { cursor: first.nextCursor ?? "" }, app);
     // 52 users, the moderator and root: 54 in all.
+    expect(first.total).toEqual({ count: 54, capped: false });
+    expect(first.previous).toBeNull();
+    const second = await adminListUsers(asRoot, { cursor: first.next ?? "" }, app);
     expect(second.users).toHaveLength(4);
-    expect(second.nextCursor).toBeNull();
+    expect(second.next).toBeNull();
+    const back = await adminListUsers(asRoot, { cursor: second.previous ?? "" }, app);
+    expect(back.users.map((u) => u.id)).toEqual(first.users.map((u) => u.id));
 
     const emails = async (query: Parameters<typeof adminListUsers>[1]) =>
       (await adminListUsers(asRoot, query, app)).users.map((u) => u.email);

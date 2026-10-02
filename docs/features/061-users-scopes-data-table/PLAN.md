@@ -7,9 +7,10 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Users on the server.** `0015_user_name_index`. `pageUsers` and `countUsers` (the sorts
+- [x] **1. Users on the server.** `0015_user_name_index`. `pageUsers` and `countUsers` (the sorts
   `created`, `email` and `name`, and the existing filters) replace `listUsers`; `adminListUsers`
-  returns `{ users, next, previous, total }`.
+  returns `{ users, next, previous, total }`. The page gets the minimum to keep working (opaque
+  cursors) until task 2.
   *Done when:* `user-admin.db.test.ts` covers each sort both ways, equal names across pages, the
   filters and the count on all four databases.
 

@@ -1,4 +1,3 @@
-import { isId } from "@/server/db/ids";
 import { USER_SEARCH_MAX_LENGTH } from "@/server/domains/identity/services/user-admin";
 
 export type SearchParams = Record<string, string | string[] | undefined>;
@@ -30,7 +29,8 @@ export const parseUsersQuery = (params: SearchParams): UsersPageQuery => {
     search: q || undefined,
     role: validRole,
     status: validStatus,
-    cursor: isId(cursor) ? cursor : undefined,
+    // Opaque since 061; the server ignores one that isn't its own.
+    cursor: cursor && cursor.length <= 1024 ? cursor : undefined,
   };
 };
 
