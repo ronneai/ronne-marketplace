@@ -61,22 +61,28 @@ const submitted = async (name: string, type: "rule" | "hook" = "rule", headers =
   return draft.id;
 };
 
-const ids = async (tab: "needs" | "waiting" | "decided", headers = asModerator) =>
+const ids = async (tab: "needs" | "waiting" | "release" | "decided", headers = asModerator) =>
   (await listQueue(headers, { tab }, app)).rows.map((row) => row.name);
 
 describe("the review queue", () => {
-  it("sorts submissions into its three tabs, oldest waiting first", async () => {
+  it("sorts submissions into its four tabs, oldest waiting first", async () => {
     await submitted("first");
     await submitted("second");
     const third = await submitted("third");
     const fourth = await submitted("fourth");
+    const fifth = await submitted("fifth");
     await createDraft(asAuthor, { scope: "team", name: "draft", type: "rule" }, app);
     await decide(asModerator, third, { decision: "request_changes", message: "Please fix." }, app);
     await decide(asModerator, fourth, { decision: "approve" }, app);
+    await decide(asModerator, fifth, { decision: "reject", message: "No." }, app);
 
     expect(await ids("needs")).toEqual(["first", "second"]);
     expect(await ids("waiting")).toEqual(["third"]);
-    expect(await ids("decided")).toEqual(["fourth"]);
+    // Approved ones wait to be released (055); Decided keeps rejected and published.
+    expect(await ids("release")).toEqual(["fourth"]);
+    expect(await ids("decided")).toEqual(["fifth"]);
+    const [toRelease] = (await listQueue(asModerator, { tab: "release" }, app)).rows;
+    expect(toRelease?.approved).toEqual({ by: expect.any(String), at: expect.any(Date) });
     expect(await countNeedsReview(asModerator, app)).toBe(2);
   });
 

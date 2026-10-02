@@ -23,6 +23,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 const { approvableRows, QueueTable, QueueTabs, queueTab } = await import("./QueueTable");
 const { BulkApproveProvider, BulkApproveToolbar } = await import("./BulkApprove");
+const { BulkReleaseProvider } = await import("../releases/BulkRelease");
 const { approveSelectedAction } = await import("./actions");
 const { default: ReviewsPage } = await import("@/app/(app)/reviews/page");
 
@@ -45,6 +46,7 @@ const row = (overrides: Partial<QueueRow> = {}): QueueRow => ({
   mine: false,
   approvable: { approvable: true, override: false },
   marks: [],
+  approved: null,
   ...overrides,
 });
 
@@ -84,6 +86,7 @@ describe("the queue", () => {
     expect(queueTab(undefined)).toBe("needs");
     expect(queueTab("decided")).toBe("decided");
     expect(queueTab(["waiting"])).toBe("waiting");
+    expect(queueTab("release")).toBe("release");
     expect(queueTab("nope")).toBe("needs");
   });
 
@@ -227,6 +230,32 @@ describe("approving several at once (054)", () => {
       ids: ["a", "b", "c"],
       message: "Fine.",
     });
+  });
+});
+
+describe("the To release tab (055)", () => {
+  it("lists approved ones with a release checkbox, who approved them and when", () => {
+    const html = renderToStaticMarkup(
+      <BulkReleaseProvider releasable={{ "01J0000000000000000000000A": "@team/fmt" }}>
+        <QueueTable
+          tab="release"
+          rows={[
+            row({
+              status: "approved",
+              approved: { by: "Mo Moderator", at: new Date("2026-10-01T12:00:00Z") },
+            }),
+          ]}
+          nextCursor={null}
+        />
+      </BulkReleaseProvider>,
+    );
+    expect(html).toContain('aria-label="Select @team/fmt to release"');
+    expect(html).toContain(">Approved by<");
+    expect(html).toContain("Mo Moderator");
+    expect(html).toContain("2026-10-01 12:00 UTC");
+    expect(renderToStaticMarkup(<QueueTabs tab="release" />)).toMatch(
+      /aria-current="page"[^>]*>To release/,
+    );
   });
 });
 

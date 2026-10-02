@@ -31,7 +31,7 @@ the same change that completes it.
   release order, results).
   *Done when:* `submissions.test.tsx` covers the selection and the dialog's preview and results.
 
-- [ ] **4. The review queue.** The **To release** tab (`approved`, oldest first, who approved and
+- [x] **4. The review queue.** The **To release** tab (`approved`, oldest first, who approved and
   when), with the same selection and dialog; **Decided** without `approved`.
   *Done when:* `reviews.test.tsx` and `queue.db.test.ts` cover the tab, and a Playwright test
   releases a skill and an agent that depends on it in one batch, then installs the agent with `rmk`.
