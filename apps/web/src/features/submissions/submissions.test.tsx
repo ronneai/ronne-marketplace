@@ -11,6 +11,7 @@ const bulk = vi.hoisted(() => ({
   checkManyDrafts: vi.fn(),
   submitManyDrafts: vi.fn(),
   dependencyMarks: vi.fn(async () => ({})),
+  canDeleteSubmission: vi.fn(async () => true),
 }));
 vi.mock("@/server/domains/submissions/actions/drafts", () => drafts);
 vi.mock("@/server/domains/submissions/actions/submissions", () => bulk);
@@ -23,7 +24,7 @@ vi.mock("next/navigation", () => ({
   redirect: (url: string) => {
     throw new Error(`NEXT_REDIRECT ${url}`);
   },
-  useRouter: () => ({ refresh: () => undefined }),
+  useRouter: () => ({ refresh: () => undefined, push: () => undefined }),
 }));
 
 const actions = await import("./actions");
@@ -241,16 +242,25 @@ describe("status filters and order", () => {
     submission({ id: "c", status: "submitted", updatedAt: new Date("2026-09-27T10:00:00Z") }),
   ];
 
-  it("lists newest first, with withdrawn ones last", () => {
-    expect(inListOrder(list).map((s) => s.id)).toEqual(["c", "b", "a"]);
+  it("lists newest first", () => {
+    expect(inListOrder(list).map((s) => s.id)).toEqual(["a", "c", "b"]);
   });
 
-  it("offers All and each status you have, with counts, and marks the current one", () => {
+  it("offers All and each status you have, with counts, Archived last and out of All (057)", () => {
     const html = renderToStaticMarkup(<StatusFilters submissions={list} status="submitted" />);
-    expect(html).toContain("All (3)");
+    expect(html).toContain("All (2)");
     expect(html).toContain('href="/submissions?status=withdrawn"');
+    expect(html).toMatch(/archived \(1\)<\/a><\/nav>/);
     expect(html).not.toContain("status=approved");
     expect(html).toMatch(/aria-current="page"[^>]*>submitted \(1\)/);
+  });
+
+  it("shows the Archived filter even when everything else is one status", () => {
+    const html = renderToStaticMarkup(
+      <StatusFilters submissions={[submission({ status: "withdrawn" })]} status={null} />,
+    );
+    expect(html).toContain("All (0)");
+    expect(html).toContain("archived (1)");
   });
 
   it("reads only real statuses from the query", () => {
@@ -267,6 +277,29 @@ describe("status filters and order", () => {
     );
     expect(html).toContain('href="/submissions/b"');
     expect(html).not.toContain('href="/submissions/c"');
+  });
+
+  it("hides archived ones from All, and lists them under Archived with Restore and Delete (057)", async () => {
+    drafts.listMySubmissions.mockResolvedValue(list);
+    const all = renderToStaticMarkup(await SubmissionsPage({ searchParams: Promise.resolve({}) }));
+    expect(all).toContain('href="/submissions/b"');
+    expect(all).not.toContain('href="/submissions/a"');
+    expect(all).not.toContain(">Restore<");
+
+    bulk.canDeleteSubmission.mockResolvedValueOnce(false);
+    const archived = renderToStaticMarkup(
+      await SubmissionsPage({ searchParams: Promise.resolve({ status: "withdrawn" }) }),
+    );
+    expect(archived).toContain('href="/submissions/a"');
+    expect(archived).not.toContain('href="/submissions/b"');
+    expect(archived).toContain(">Restore<");
+    expect(archived).not.toContain(">Delete<");
+    expect(bulk.canDeleteSubmission).toHaveBeenCalledTimes(1);
+
+    const deletable = renderToStaticMarkup(
+      await SubmissionsPage({ searchParams: Promise.resolve({ status: "withdrawn" }) }),
+    );
+    expect(deletable).toContain(">Delete<");
   });
 });
 

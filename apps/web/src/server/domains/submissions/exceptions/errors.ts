@@ -121,7 +121,7 @@ export class DependencyClosedError extends SubmissionsError {
     readonly status: "rejected" | "withdrawn",
   ) {
     super(
-      `${dependency} was ${status}, so it won't be released. Remove it from dependencies, or depend on another item.`,
+      `${dependency} was ${STATUS_WORDS[status] ?? status}, so it won't be released. Remove it from dependencies, or depend on another item.`,
     );
   }
 }

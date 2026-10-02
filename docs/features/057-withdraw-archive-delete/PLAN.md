@@ -47,7 +47,7 @@ the same change that completes it.
 
   *Done when:* component tests cover both choices and the disabled reason.
 
-- [ ] **4. My submissions.**
+- [x] **4. My submissions.**
   - `app/(app)/submissions/page.tsx` and `features/submissions/SubmissionsTable.tsx`: hide
     archived by default, add the **Archived (n)** filter, Restore and Delete on archived rows (Delete
     asks first), and drop withdrawn-last ordering.

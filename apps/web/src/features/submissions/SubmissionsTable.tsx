@@ -15,6 +15,7 @@ import {
 } from "@/server/domains/submissions/models/status";
 import { itemNameOf, type Submission } from "@/server/domains/submissions/models/submission";
 import { ReleaseSelectCell } from "../releases/BulkRelease";
+import { ArchivedActions } from "./ArchivedActions";
 import { ReadinessMark, SelectCell } from "./BulkSubmit";
 
 /** `?status=`, when it's a status; otherwise every status. */
@@ -25,18 +26,32 @@ export const statusFilter = (value: string | string[] | undefined): SubmissionSt
     : null;
 };
 
-/** Newest change first, with withdrawn ones last (spec 013): they're only kept for history. */
+/** Newest change first. */
 export const inListOrder = <S extends Submission>(submissions: readonly S[]): S[] =>
-  [...submissions].sort(
-    (a, b) =>
-      Number(a.status === "withdrawn") - Number(b.status === "withdrawn") ||
-      b.updatedAt.getTime() - a.updatedAt.getTime(),
-  );
+  [...submissions].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+
+/**
+ * The rows a filter shows: one status, or, for All, every status but archived (057). Archived ones
+ * are out of the way until the Archived filter asks for them.
+ */
+export const shownFor = <S extends Submission>(
+  submissions: readonly S[],
+  status: SubmissionStatus | null,
+): S[] => submissions.filter((s) => (status ? s.status === status : s.status !== "withdrawn"));
+
+/** The filters' order: archived last, after everything still in play. */
+const FILTER_ORDER: readonly SubmissionStatus[] = [
+  ...SUBMISSION_STATUSES.filter((s) => s !== "withdrawn"),
+  "withdrawn",
+];
 
 const chipClasses =
   "rounded-full border border-hairline px-3 py-1 font-mono text-xs text-muted hover:text-fg aria-[current=page]:border-transparent aria-[current=page]:bg-fg aria-[current=page]:text-canvas outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
 
-/** Status filters (feature 013): All, then each status you have, with its count. */
+/**
+ * Status filters (feature 013): All, then each status you have, with its count; Archived last, and
+ * not counted in All (057).
+ */
 export const StatusFilters = ({
   submissions,
   status,
@@ -47,8 +62,8 @@ export const StatusFilters = ({
   const counts = new Map<SubmissionStatus, number>();
   for (const submission of submissions)
     counts.set(submission.status, (counts.get(submission.status) ?? 0) + 1);
-  const shown = SUBMISSION_STATUSES.filter((s) => counts.has(s));
-  if (shown.length < 2 && status === null) return null;
+  const shown = FILTER_ORDER.filter((s) => counts.has(s));
+  if (shown.length < 2 && status === null && !counts.has("withdrawn")) return null;
   return (
     <nav aria-label="Filter by status" className="flex flex-wrap gap-2 pb-4">
       <Link
@@ -56,7 +71,7 @@ export const StatusFilters = ({
         aria-current={status === null ? "page" : undefined}
         className={chipClasses}
       >
-        All ({submissions.length})
+        All ({submissions.length - (counts.get("withdrawn") ?? 0)})
       </Link>
       {shown.map((s) => (
         <Link
@@ -78,6 +93,7 @@ export const SubmissionsTable = ({
   errors,
   marks,
   releasable,
+  deletable,
 }: {
   /** With `stale` for change proposals (017) that a newer version overtook. */
   submissions: (Submission & { stale?: string | null })[];
@@ -90,8 +106,14 @@ export const SubmissionsTable = ({
   marks?: Readonly<Record<string, readonly DependencyMark[]>>;
   /** Approved ones that can be released at once (055), by id: a checkbox each. */
   releasable?: Readonly<Record<string, string>>;
+  /**
+   * Under the Archived filter (057): whether each can be deleted for good, by id. Archived rows get
+   * Restore, and Delete where allowed.
+   */
+  deletable?: Readonly<Record<string, boolean>>;
 }) => {
   const selecting = errors !== undefined || Object.keys(releasable ?? {}).length > 0;
+  const archived = submissions.some((s) => s.status === "withdrawn");
   if (submissions.length === 0)
     return (
       <Panel padding="lg" className="grid justify-items-start gap-3">
@@ -117,6 +139,11 @@ export const SubmissionsTable = ({
           <Th>Type</Th>
           <Th>Status</Th>
           <Th>Last change</Th>
+          {archived ? (
+            <Th>
+              <span className="sr-only">Actions</span>
+            </Th>
+          ) : null}
         </tr>
       </thead>
       <tbody>
@@ -163,6 +190,17 @@ export const SubmissionsTable = ({
                 <LocalTime value={submission.updatedAt} />
               </time>
             </Td>
+            {archived ? (
+              <Td>
+                {submission.status === "withdrawn" ? (
+                  <ArchivedActions
+                    id={submission.id}
+                    name={itemNameOf(submission)}
+                    canDelete={deletable?.[submission.id] ?? false}
+                  />
+                ) : null}
+              </Td>
+            ) : null}
           </tr>
         ))}
       </tbody>

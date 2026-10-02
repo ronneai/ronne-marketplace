@@ -222,10 +222,13 @@ export const DeleteArchivedDialog = ({
   draftId,
   itemName,
   onClose,
+  fromList = false,
 }: {
   draftId: string;
   itemName: string;
   onClose: () => void;
+  /** Opened from My submissions: stay there; from its own page, go to My submissions. */
+  fromList?: boolean;
 }) => {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -247,7 +250,8 @@ export const DeleteArchivedDialog = ({
                 const result = await deleteSubmissionAction(draftId);
                 if (!result.ok) return setError(result.error);
                 onClose();
-                router.push("/submissions");
+                if (fromList) router.refresh();
+                else router.push("/submissions");
               })
             }
           >

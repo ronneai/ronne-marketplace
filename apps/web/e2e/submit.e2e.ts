@@ -62,7 +62,10 @@ test("a user writes a skill, submits it, sees it read-only, and withdraws it", a
   await expect(page.getByText("It's out of review and doesn't hold its name.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Withdraw" })).toHaveCount(0);
 
+  // Archived ones leave the default list (057), and the Archived filter shows them.
   await page.goto("/submissions");
-  const row = page.getByRole("row", { name: new RegExp(`@${E2E_SCOPE}/secure-coding`) });
-  await expect(row.getByText("archived")).toBeVisible();
+  const name = new RegExp(`@${E2E_SCOPE}/secure-coding`);
+  await expect(page.getByRole("row", { name })).toHaveCount(0);
+  await page.getByRole("link", { name: /^archived \(/ }).click();
+  await expect(page.getByRole("row", { name }).getByText("archived")).toBeVisible();
 });
