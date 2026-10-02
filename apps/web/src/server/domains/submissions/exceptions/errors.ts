@@ -46,6 +46,13 @@ export class SubmissionNotEditableError extends SubmissionsError {
   }
 }
 
+/** Delete refused (057): someone other than the author has commented on it or decided it. */
+export class HasReviewHistoryError extends SubmissionsError {
+  constructor() {
+    super("Reviewers have commented on it or decided it. Archive it instead.");
+  }
+}
+
 const STATUS_WORDS: Record<string, string> = {
   changes_requested: "sent back for changes",
   withdrawn: "archived",

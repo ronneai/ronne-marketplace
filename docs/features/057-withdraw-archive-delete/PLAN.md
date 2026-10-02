@@ -16,7 +16,7 @@ the same change that completes it.
 
   *Done when:* `status.test.ts` covers restore and the label, and lint and typecheck pass.
 
-- [ ] **2. Services.** All in the `submissions` domain:
+- [x] **2. Services.** All in the `submissions` domain:
   - `hasReviewHistory(repo, submission)`: any event by someone other than the author.
   - `withdrawSubmission(…, mode)`:
     - `"archive"` is today's path, with `mode` in the audit metadata;

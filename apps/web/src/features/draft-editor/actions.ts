@@ -13,6 +13,8 @@ import {
 import { rebaseProposal, resolveConflict } from "@/server/domains/submissions/actions/proposals";
 import {
   checkSubmission,
+  deleteSubmission,
+  restoreSubmission,
   submitDraft,
   withdrawSubmission,
 } from "@/server/domains/submissions/actions/submissions";
@@ -130,9 +132,37 @@ export const submitDraftAction = async (id: string): Promise<SubmitResult> => {
   }
 };
 
-export const withdrawAction = async (id: string): Promise<ActionResult> => {
+/** Withdraws: archives it, or deletes it for good and goes to My submissions (057). */
+export const withdrawAction = async (
+  id: string,
+  mode: "archive" | "delete" = "archive",
+): Promise<ActionResult> => {
   try {
-    await withdrawSubmission(await requestHeaders(), id);
+    await withdrawSubmission(await requestHeaders(), id, undefined, mode);
+  } catch (error) {
+    return { ok: false, error: message(error) };
+  }
+  revalidatePath("/submissions");
+  if (mode === "delete") redirect("/submissions");
+  revalidatePath(`/submissions/${id}`);
+  return { ok: true };
+};
+
+/** Deletes an archived submission for good (057). */
+export const deleteSubmissionAction = async (id: string): Promise<ActionResult> => {
+  try {
+    await deleteSubmission(await requestHeaders(), id);
+  } catch (error) {
+    return { ok: false, error: message(error) };
+  }
+  revalidatePath("/submissions");
+  return { ok: true };
+};
+
+/** Brings an archived submission back as a draft (057). */
+export const restoreAction = async (id: string): Promise<ActionResult> => {
+  try {
+    await restoreSubmission(await requestHeaders(), id);
   } catch (error) {
     return { ok: false, error: message(error) };
   }

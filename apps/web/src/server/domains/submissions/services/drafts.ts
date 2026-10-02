@@ -52,7 +52,7 @@ import type { RegistryLookup } from "../repositories/registry-lookup";
 import type { SubmissionRepository } from "../repositories/submission-repository";
 import { staleVersion, withStale } from "./proposals";
 import { registryIssues } from "./registry-checks";
-import { noChangeIssues } from "./submissions";
+import { noChangeIssues, removeSubmission } from "./submissions";
 
 /**
  * Drafts (feature 012). Anyone signed in writes drafts of new items; a draft is visible only to its
@@ -67,7 +67,7 @@ export type DraftDeps = {
   /** Where published versions are, to tell a proposal that changes nothing (042). */
   storage?: StorageAdapter;
 };
-export type DraftActor = { user: CurrentUser | null };
+export type DraftActor = { user: CurrentUser | null; ip?: string | null };
 
 /** By code unit, as the repository returns them. */
 const sortByPath = <T extends { path: string }>(files: T[]): T[] =>
@@ -682,14 +682,19 @@ export const renameDraft = async (
   });
 };
 
-/** Removes a draft and its files for good: it was never submitted, so there's no history to keep. */
+/**
+ * Removes a draft and its files for good, from its settings (012). Since 057 it's 057's delete:
+ * refused once a reviewer has taken part (a draft restored from archived may have), and audited.
+ */
 export const deleteDraft = async (
   deps: DraftDeps,
   actor: DraftActor,
   id: string,
 ): Promise<void> => {
+  const at = now(deps);
   await deps.repo.transaction(async (repo) => {
-    const submission = await ownDraft(repo, actor, id);
-    await repo.delete(submission.id);
+    await ownDraft(repo, actor, id);
+    await repo.lockSubmission(id);
+    await removeSubmission(repo, actor, await ownDraft(repo, actor, id), at);
   });
 };
