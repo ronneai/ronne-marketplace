@@ -7,7 +7,7 @@ import { answer, failure, type ToolAnswer } from "./text.js";
  * `submit_drafts` sends the ready ones for review, which the tool asks the person about first.
  * Both use `rmk submit`'s own functions.
  */
-export type SubmitInput = { items?: string[]; all?: boolean };
+export type SubmitInput = { items?: string[]; all?: boolean; dependencies?: boolean };
 
 const selectionOf = (
   input: SubmitInput,
@@ -32,6 +32,8 @@ const selectionOf = (
 
 const planData = (plan: Awaited<ReturnType<typeof planSubmit>>) => ({
   ready: plan.ready,
+  /** The person's own dependency drafts included first (056), each with who it's for. */
+  included: plan.ready.filter((d) => d.includedFor),
   notReady: plan.notReady,
   order: plan.order,
   more: plan.more,
@@ -41,7 +43,11 @@ const planData = (plan: Awaited<ReturnType<typeof planSubmit>>) => ({
 export const checkDraftsTool = async (io: Io, input: SubmitInput): Promise<ToolAnswer> => {
   const chosen = selectionOf(input);
   if (!chosen.ok) return chosen.answer;
-  const plan = await planSubmit(connectRegistry(io).api, chosen.selection);
+  const plan = await planSubmit(
+    connectRegistry(io).api,
+    chosen.selection,
+    input.dependencies !== false,
+  );
   if (plan.checked.length === 0 && plan.notReady.length === 0)
     return answer(["The person has no drafts to submit."], planData(plan));
   return answer(
@@ -61,7 +67,7 @@ export const submitDraftsTool = async (io: Io, input: SubmitInput): Promise<Tool
   const chosen = selectionOf(input);
   if (!chosen.ok) return chosen.answer;
   const { api } = connectRegistry(io);
-  const plan = await planSubmit(api, chosen.selection);
+  const plan = await planSubmit(api, chosen.selection, input.dependencies !== false);
   if (plan.ready.length === 0)
     return {
       ...answer(["Nothing is ready to submit.", ...plan.preview], planData(plan)),

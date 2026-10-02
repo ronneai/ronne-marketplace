@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { AllFiles, FileChanges } from "@/components/files/FileViews";
 import { Help } from "@/components/help/Help";
 import { RiskSummary } from "@/components/risk-flags/RiskSummary";
+import { DependencyMarksNotice, markText } from "@/components/submissions/DependencyMarks";
 import { ProposalBadges } from "@/components/submissions/ProposalBadges";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { buttonClasses } from "@/components/ui/Button";
@@ -23,6 +24,7 @@ import {
   type ReviewDecision,
   type ReviewView,
 } from "@/server/domains/submissions/actions/reviews";
+import { dependencyMarks } from "@/server/domains/submissions/actions/submissions";
 import { SubmissionNotFoundError } from "@/server/domains/submissions/exceptions/errors";
 import { itemNameOf } from "@/server/domains/submissions/models/submission";
 import { requestHeaders } from "@/server/http/request-headers";
@@ -54,6 +56,8 @@ const Review = async ({
     throw error;
   }
   const { submission, current, previous, proposal } = review;
+  // What it waits on (056): reviewers see it before approving.
+  const marks = (await dependencyMarks(request, [submission]))[submission.id];
   // A proposal (017) opens on its changes to its base version. Otherwise, changes since the last
   // revision by default from revision 2 on; revision 1 is all files.
   const defaultView = proposal ? "base" : previous === null ? "all" : "changes";
@@ -67,6 +71,8 @@ const Review = async ({
   const decisions: ReviewDecision[] = [
     ...(review.can.decide ? (["approve", "request_changes", "reject"] as const) : []),
     ...(review.can.override ? (["override"] as const) : []),
+    // An approved one can still be sent back before it's released (056).
+    ...(review.can.sendBack ? (["request_changes"] as const) : []),
   ];
 
   return (
@@ -103,7 +109,12 @@ const Review = async ({
               View versions
             </Link>
           ) : null}
-          <DecisionBar id={submission.id} decisions={decisions} />
+          <DecisionBar
+            id={submission.id}
+            name={itemNameOf(submission)}
+            decisions={decisions}
+            dependents={review.dependents}
+          />
           {review.can.publish ? (
             <PublishDialog
               id={submission.id}
@@ -111,6 +122,7 @@ const Review = async ({
               published={review.published}
               versionsHref={versionsPath(submission)}
               suggested={proposal?.suggested ?? null}
+              blocked={marks?.[0] ? markText(marks[0]) : null}
             />
           ) : null}
         </div>
@@ -131,6 +143,8 @@ const Review = async ({
           changed. The author rebases it onto {proposal.stale} first.
         </Notice>
       ) : null}
+
+      <DependencyMarksNotice marks={marks} />
 
       <RiskSummary flags={review.flags} base={base} />
 

@@ -1,14 +1,19 @@
 import { notFound } from "next/navigation";
 import { itemPath } from "@/components/catalogue/ItemCard";
 import { RiskSummary } from "@/components/risk-flags/RiskSummary";
+import { markText } from "@/components/submissions/DependencyMarks";
 import { DraftEditor } from "@/features/draft-editor/DraftEditor";
 import type { EditorDraft, EditorProposal } from "@/features/draft-editor/types";
 import { Conversation } from "@/features/reviews/Conversation";
 import { PublishDialog } from "@/features/reviews/PublishDialog";
 import { versionsPath } from "@/features/versions/links";
 import { type ProposalPanel, proposalPanel } from "@/server/domains/submissions/actions/proposals";
-import { getReview } from "@/server/domains/submissions/actions/reviews";
-import { viewSubmission } from "@/server/domains/submissions/actions/submissions";
+import { getReview, listDependents } from "@/server/domains/submissions/actions/reviews";
+import {
+  type DependencyMark,
+  dependencyMarks,
+  viewSubmission,
+} from "@/server/domains/submissions/actions/submissions";
 import { SubmissionNotFoundError } from "@/server/domains/submissions/exceptions/errors";
 import { canTransition, isEditable } from "@/server/domains/submissions/models/status";
 import { type Draft, itemNameOf } from "@/server/domains/submissions/models/submission";
@@ -40,7 +45,11 @@ const toEditorDraft = (
   draft: Draft & { mine: boolean },
   versionsHref: string | null,
   panel: ProposalPanel | null,
+  dependents = 0,
+  dependencyMarks: DependencyMark[] = [],
 ): EditorDraft => ({
+  dependents,
+  dependencyMarks,
   id: draft.id,
   scope: draft.scope.name,
   name: draft.name,
@@ -84,12 +93,25 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
   const review = draft.status === "draft" ? null : await getReview(request, id);
   // A change proposal (017): the author sees whether it's stale, and its conflicts.
   const panel = draft.proposal && draft.mine ? await proposalPanel(request, id) : null;
+  // What it waits on (056): dependencies not released yet, or blocked.
+  const marks = (await dependencyMarks(request, [draft]))[draft.id];
+  // Who depends on it (056): the author's withdraw confirmation gives the count.
+  const dependents =
+    draft.mine && draft.status !== "draft" && canTransition(draft.status, "withdraw")
+      ? (await listDependents(request, id)).length
+      : 0;
   return (
     <div className="grid gap-6">
       {/* A new version from the server (an import, a rename, a submit) starts the editor afresh. */}
       <DraftEditor
         key={draft.updatedAt.toISOString()}
-        draft={toEditorDraft(draft, review?.published.length ? versionsPath(draft) : null, panel)}
+        draft={toEditorDraft(
+          draft,
+          review?.published.length ? versionsPath(draft) : null,
+          panel,
+          dependents,
+          marks,
+        )}
       />
       {review?.can.publish ? (
         <section
@@ -110,6 +132,7 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
             published={review.published}
             versionsHref={versionsPath(draft)}
             suggested={review.proposal?.suggested ?? null}
+            blocked={marks?.[0] ? markText(marks[0]) : null}
           />
         </section>
       ) : null}

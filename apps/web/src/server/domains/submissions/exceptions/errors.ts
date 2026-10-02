@@ -67,10 +67,16 @@ export class InvalidStatusTransitionError extends SubmissionsError {
 
 /** Submit refused: 011's checks found errors in the saved files. */
 export class SubmissionInvalidError extends SubmissionsError {
-  constructor(readonly issues: readonly ManifestIssue[]) {
-    const errors = issues.filter((issue) => issue.severity === "error").length;
+  constructor(
+    readonly issues: readonly ManifestIssue[],
+    /** At release (015), the first problem is named: usually a dependency not released yet (056). */
+    when: "submit" | "release" = "submit",
+  ) {
+    const errors = issues.filter((issue) => issue.severity === "error");
     super(
-      `The draft has ${errors} ${errors === 1 ? "problem" : "problems"} to fix before it can be submitted.`,
+      when === "release"
+        ? `It can't be released yet: ${errors[0]?.message ?? "its checks fail."}${errors.length > 1 ? ` (and ${errors.length - 1} more)` : ""}`
+        : `The draft has ${errors.length} ${errors.length === 1 ? "problem" : "problems"} to fix before it can be submitted.`,
     );
   }
 }
@@ -91,8 +97,30 @@ export class ItemNameTakenError extends SubmissionsError {
 export class DependencyNotFoundError extends SubmissionsError {
   constructor(readonly dependency: string) {
     super(
-      `${dependency} isn't a published item. A dependency has to be released before items can depend on it.`,
+      `${dependency} isn't a published item or in review. Submit it first: a dependency counts once it's in review.`,
     );
+  }
+}
+
+/** A dependency whose only submission was rejected or withdrawn (056): it won't be released. */
+export class DependencyClosedError extends SubmissionsError {
+  constructor(
+    readonly dependency: string,
+    readonly status: "rejected" | "withdrawn",
+  ) {
+    super(
+      `${dependency} was ${status}, so it won't be released. Remove it from dependencies, or depend on another item.`,
+    );
+  }
+}
+
+/** At release (056), a dependency still in review: it's released first. */
+export class DependencyUnreleasedError extends SubmissionsError {
+  constructor(
+    readonly dependency: string,
+    readonly status: string,
+  ) {
+    super(`${dependency} isn't released yet (it's ${status}). Release it first.`);
   }
 }
 
@@ -153,6 +181,18 @@ export class ManifestRequiredError extends SubmissionsError {
       reason === "deleted"
         ? "ronne.yaml can't be deleted: every item has one."
         : "The files have no ronne.yaml: every item has one.",
+    );
+  }
+}
+
+/** A file New item started the type with (owner, 2026-10-01): edited, never deleted or renamed. */
+export class StartingFileError extends SubmissionsError {
+  constructor(
+    readonly path: string,
+    readonly type: string,
+  ) {
+    super(
+      `${path} is one of the ${type}'s starting files: edit it, but it can't be deleted or renamed.`,
     );
   }
 }

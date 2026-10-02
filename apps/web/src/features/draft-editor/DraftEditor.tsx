@@ -1,6 +1,11 @@
 "use client";
 
-import { DEFAULT_LIMITS, formatBytes, type ManifestIssue } from "@ronneai/core";
+import {
+  DEFAULT_LIMITS,
+  formatBytes,
+  type ManifestIssue,
+  mayHaveDependencies,
+} from "@ronneai/core";
 import { FilePlus, FolderPlus, History, Lock, Send, Settings, Undo2, Upload } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -8,22 +13,28 @@ import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useReducer, useRef, useState, useTransition } from "react";
 import { CodeEditor } from "@/components/code/CodeEditor";
 import { FileTree } from "@/components/code/FileTree";
+import type { Mentions } from "@/components/code/mentions";
 import { LAYOUT_PATH } from "@/components/dependency-canvas/layout";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { Button, buttonClasses } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
+import { DirtyMark } from "@/components/ui/DirtyMark";
 import { LocalTime } from "@/components/ui/LocalTime";
 import { Notice } from "@/components/ui/Notice";
 import { TypeBadge } from "@/components/ui/TypeBadge";
 import { UnsavedChangesGuard } from "@/components/ui/UnsavedChangesGuard";
-import { IssueList } from "@/components/validation/IssueList";
+import { FileIssues, IssuesSummary } from "@/components/validation/IssuesPopover";
+import type { DependencyOption } from "@/server/domains/submissions/actions/composer";
 import {
   MANIFEST_PATH,
   toDraftContent,
   validateDraft,
 } from "@/server/domains/submissions/models/submission";
+import { startingFiles } from "@/server/domains/submissions/models/templates";
 import { saveDraftAction } from "./actions";
-import { hasCanvas } from "./composer-canvas/model";
+import { addDependency, hasCanvas } from "./composer-canvas/model";
+import { findDependenciesAction } from "./dependency-picker/actions";
+import { dependencyRows, rangeFor, statusText } from "./dependency-picker/model";
 import { DeleteFileDialog, DraftSettingsDialog, ImportZipDialog, PathDialog } from "./FileDialogs";
 import {
   changesOf,
@@ -35,6 +46,7 @@ import {
 } from "./files";
 import { useDebounced, useSaveShortcut } from "./hooks";
 import { ManifestForm } from "./ManifestForm";
+import { readManifest } from "./manifest-yaml";
 import { ProposalBar } from "./ProposalBar";
 import { SubmitDialog, WithdrawDialog } from "./SubmitDialogs";
 import type { EditorDraft, SaveResult } from "./types";
@@ -105,6 +117,11 @@ export const DraftEditor = ({
 
   const dirty = isDirty(state);
   const readOnly = draft.readOnly;
+  // The files New item started the type with: they stay (owner, 2026-10-01).
+  const starting = useMemo(
+    () => new Set([MANIFEST_PATH, ...startingFiles(draft.type)]),
+    [draft.type],
+  );
   const itemName = `@${draft.scope}/${draft.name}`;
   const file = state.files.find((f) => f.path === selected) ?? state.files[0];
   // Agents and bundles, whose dependencies are several kinds of item, also have a canvas (031).
@@ -125,6 +142,25 @@ export const DraftEditor = ({
     () => validateDraft(identity, settled, limits),
     [identity, settled, limits],
   );
+
+  // Each file's problems, for the icon next to it in the tree. One about a file that isn't there
+  // (a missing SKILL.md) belongs to ronne.yaml, which names it.
+  const issuesByFile = useMemo(() => {
+    const paths = new Set(state.files.map((f) => f.path));
+    const byFile = new Map<string, ManifestIssue[]>();
+    for (const issue of issues) {
+      const path = issue.file && paths.has(issue.file) ? issue.file : MANIFEST_PATH;
+      byFile.set(path, [...(byFile.get(path) ?? []), issue]);
+    }
+    return byFile;
+  }, [issues, state.files]);
+  const errorCount = issues.filter((issue) => issue.severity === "error").length;
+  // Why Submit is off (owner, 2026-10-01): the checks only see what's saved, and errors stop it.
+  const notReady = dirty
+    ? "Save your changes first: the checks, and reviewers, see what's saved."
+    : errorCount > 0
+      ? `Fix ${errorCount === 1 ? "the error" : `the ${errorCount} errors`} first.`
+      : null;
 
   /** Opens the file and line an issue is about; in ronne.yaml, that's the YAML view. */
   const openIssue = (issue: ManifestIssue) => {
@@ -170,6 +206,48 @@ export const DraftEditor = ({
   }, []);
   const showYaml = useCallback(() => setView("yaml"), []);
 
+  // `@` in markdown files (056): the list is the dependency search; a pick adds the dependency to
+  // ronne.yaml on latest, unless it's there already. Read through refs, so the list sees the
+  // manifest as it is now.
+  const manifestText =
+    state.files.find((f) => f.path === MANIFEST_PATH && f.encoding === "utf8")?.content ?? "";
+  const manifestNow = useRef(manifestText);
+  manifestNow.current = manifestText;
+  const offered = useRef(new Map<string, DependencyOption>());
+  const mentions = useMemo<Mentions | null>(
+    () =>
+      readOnly || !mayHaveDependencies(draft.type)
+        ? null
+        : {
+            find: async (q) => {
+              const result = await findDependenciesAction({
+                type: draft.type,
+                q,
+                itemName,
+                exclude: [],
+              });
+              if (!result.ok) return [];
+              for (const option of result.options) offered.current.set(option.name, option);
+              return result.options.map((option) => ({
+                name: option.name,
+                detail: `${option.type} · ${statusText(option)}`,
+              }));
+            },
+            pick: (name) => {
+              const text = manifestNow.current;
+              const listed = dependencyRows(readManifest(text)?.dependencies);
+              if (listed.some(([n]) => n === name)) return;
+              const option = offered.current.get(name);
+              dispatch({
+                type: "edit",
+                path: MANIFEST_PATH,
+                content: addDependency(text, name, option ? rangeFor(option) : "^1.0.0"),
+              });
+            },
+          },
+    [readOnly, draft.type, itemName],
+  );
+
   /** Reads chosen files in the browser; each goes into the selected file's folder. */
   const addFiles = async (list: FileList | null, target?: string) => {
     for (const chosen of Array.from(list ?? [])) {
@@ -198,10 +276,22 @@ export const DraftEditor = ({
     <div className="grid gap-4">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="grid min-w-0 gap-1">
-          <h1 className="truncate font-mono text-xl font-semibold text-fg">{itemName}</h1>
+          <div className="flex min-w-0 items-center gap-2">
+            <h1 className="truncate font-mono text-xl font-semibold text-fg">{itemName}</h1>
+            {dirty && !readOnly ? <DirtyMark /> : null}
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             <TypeBadge type={draft.type} />
             <StatusBadge status={draft.status} />
+            <IssuesSummary
+              issues={issues}
+              note={
+                readOnly
+                  ? "The same checks that ran when it was submitted."
+                  : "A draft can be saved with problems; it has to be free of errors to be submitted."
+              }
+              onSelect={openIssue}
+            />
             <span
               className={`font-mono text-xs ${overLimit ? "font-semibold text-fg" : "text-muted"}`}
             >
@@ -243,7 +333,7 @@ export const DraftEditor = ({
             </>
           )}
           {draft.canSubmit ? (
-            <Button onClick={() => setOpen({ kind: "submit" })}>
+            <Button onClick={() => setOpen({ kind: "submit" })} disabledReason={notReady}>
               <Send size={16} aria-hidden="true" />
               {draft.status === "changes_requested" ? "Resubmit for review" : "Submit for review"}
             </Button>
@@ -302,7 +392,7 @@ export const DraftEditor = ({
             <span className="mr-2 font-mono text-xs font-semibold">OK:</span>
             Saved at {status.at.toLocaleTimeString()}.
             {status.issues.some((issue) => issue.severity === "error")
-              ? " Fix the problems below before you submit it."
+              ? " Fix its errors before you submit it: the icons in the file list show where."
               : ""}
           </>
         ) : status?.kind === "error" ? (
@@ -310,8 +400,6 @@ export const DraftEditor = ({
             <span className="mr-2 font-mono text-xs font-semibold">ERR:</span>
             {status.message}
           </span>
-        ) : dirty ? (
-          <span className="text-muted">Unsaved changes. Save with Ctrl+S or ⌘S.</span>
         ) : null}
       </p>
       {status?.kind === "stale" ? (
@@ -379,7 +467,18 @@ export const DraftEditor = ({
                 }}
               />
             </div>
-            <FileTree files={state.files} selected={file?.path ?? ""} onSelect={setSelected} />
+            <FileTree
+              files={state.files}
+              selected={file?.path ?? ""}
+              onSelect={setSelected}
+              after={(f) => (
+                <FileIssues
+                  path={f.path}
+                  issues={issuesByFile.get(f.path) ?? []}
+                  onSelect={openIssue}
+                />
+              )}
+            />
           </div>
         </details>
 
@@ -422,7 +521,15 @@ export const DraftEditor = ({
                       Executable
                     </label>
                   )}
-                  {file.path !== MANIFEST_PATH && !readOnly ? (
+                  {starting.has(file.path) && file.path !== MANIFEST_PATH && !readOnly ? (
+                    <span
+                      className="px-2 text-xs text-muted"
+                      title={`One of the ${draft.type}'s starting files: edit it, but it can't be deleted or renamed.`}
+                    >
+                      Starting file
+                    </span>
+                  ) : null}
+                  {!starting.has(file.path) && !readOnly ? (
                     <>
                       <button
                         type="button"
@@ -444,16 +551,14 @@ export const DraftEditor = ({
               </div>
               <div
                 className={cn(
-                  "overflow-hidden rounded-panel border border-hairline",
-                  // The canvas and the list under it need more room than a file does.
-                  composing ? "h-[85vh] min-h-[38rem]" : "h-[60vh]",
+                  "rounded-panel border border-hairline bg-surface",
+                  // The canvas needs a frame of its own; a file or the form grows with its content,
+                  // and the page scrolls instead of the card (owner, 2026-10-01).
+                  composing ? "h-[85vh] min-h-[38rem] overflow-hidden" : "min-h-80",
                 )}
               >
                 {file.path === MANIFEST_PATH && view === "form" ? (
-                  <fieldset
-                    disabled={readOnly}
-                    className="h-full min-w-0 overflow-y-auto bg-surface"
-                  >
+                  <fieldset disabled={readOnly} className="min-w-0 rounded-panel bg-surface">
                     <legend className="sr-only">ronne.yaml</legend>
                     <ManifestForm
                       text={file.content}
@@ -465,6 +570,7 @@ export const DraftEditor = ({
                       onChange={(content) => onChange(MANIFEST_PATH, content)}
                       onShowYaml={showYaml}
                       readOnly={readOnly}
+                      dependencyMarks={draft.dependencyMarks}
                     />
                   </fieldset>
                 ) : composing ? (
@@ -485,6 +591,7 @@ export const DraftEditor = ({
                     onChange={onChange}
                     goToLine={goTo}
                     readOnly={readOnly}
+                    mentions={mentions}
                   />
                 ) : (
                   <div className="grid h-full place-content-center justify-items-center gap-3 bg-surface p-6 text-center">
@@ -512,18 +619,6 @@ export const DraftEditor = ({
               </div>
             </>
           ) : null}
-          <section
-            aria-label="Problems"
-            className="grid gap-2 rounded-panel border border-hairline bg-surface p-3"
-          >
-            <h2 className="text-sm font-semibold text-fg">Problems</h2>
-            <IssueList issues={issues} onSelect={openIssue} />
-            <p className="text-xs text-muted">
-              {readOnly
-                ? "The same checks that ran when it was submitted."
-                : "A draft can be saved with problems; it has to be free of errors to be submitted."}
-            </p>
-          </section>
         </section>
       </div>
 
@@ -591,7 +686,12 @@ export const DraftEditor = ({
         />
       ) : null}
       {open?.kind === "withdraw" ? (
-        <WithdrawDialog draftId={draft.id} itemName={itemName} onClose={() => setOpen(null)} />
+        <WithdrawDialog
+          draftId={draft.id}
+          itemName={itemName}
+          dependents={draft.dependents}
+          onClose={() => setOpen(null)}
+        />
       ) : null}
       {open?.kind === "settings" ? (
         <DraftSettingsDialog

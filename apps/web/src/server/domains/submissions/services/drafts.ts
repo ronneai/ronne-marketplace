@@ -28,6 +28,7 @@ import {
   ProposalBaseNotFoundError,
   ProposalRenameError,
   StaleFilesError,
+  StartingFileError,
   SubmissionNotEditableError,
   SubmissionNotFoundError,
   TypeChangedError,
@@ -45,7 +46,7 @@ import {
   toDraftContent,
   validateDraft,
 } from "../models/submission";
-import { draftTemplate } from "../models/templates";
+import { draftTemplate, startingFiles } from "../models/templates";
 import { readZip } from "../models/zip";
 import type { RegistryLookup } from "../repositories/registry-lookup";
 import type { SubmissionRepository } from "../repositories/submission-repository";
@@ -256,6 +257,13 @@ const checkChanges = (changes: DraftChanges, limits: PackageLimits) => {
   checkContent(changes.writes, limits);
 };
 
+/** A delete (or the old path of a rename) of one of the type's starting files is refused. */
+const checkStartingFiles = (changes: DraftChanges, type: ItemType) => {
+  const starting = new Set(startingFiles(type));
+  const removed = changes.deletes.find((file) => starting.has(file.path));
+  if (removed) throw new StartingFileError(removed.path, type);
+};
+
 const totals = (files: Iterable<{ size: number }>) => {
   let count = 0;
   let bytes = 0;
@@ -282,6 +290,7 @@ export const saveDraftFiles = async (
   const at = now(deps);
   const draft = await deps.repo.transaction(async (repo) => {
     const submission = await ownEditable(repo, actor, id);
+    checkStartingFiles(changes, submission.type);
     const current = new Map((await repo.files(submission.id)).map((file) => [file.path, file]));
 
     if (!changes.overwrite) {
@@ -613,10 +622,13 @@ export const importZip = async (
       executable: file.executable,
       loadedAt: null,
     })),
+    // Replacing keeps the type's starting files the archive doesn't have (owner, 2026-10-01).
     deletes:
       input.mode === "replace"
         ? draft.files
-            .filter((file) => !paths.has(file.path))
+            .filter(
+              (file) => !paths.has(file.path) && !startingFiles(draft.type).includes(file.path),
+            )
             .map((file) => ({ path: file.path, loadedAt: file.updatedAt }))
         : [],
     overwrite: true,

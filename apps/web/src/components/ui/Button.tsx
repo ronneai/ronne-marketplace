@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes } from "react";
+import { type ButtonHTMLAttributes, useId } from "react";
 import { cn } from "./cn";
 
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "destructive";
@@ -23,21 +23,41 @@ export const buttonClasses = (variant: ButtonVariant = "primary") =>
 export const Button = ({
   variant = "primary",
   loading = false,
+  disabledReason = null,
   className,
   children,
   disabled,
   type = "button",
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; loading?: boolean }) => {
-  return (
+}: ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: ButtonVariant;
+  loading?: boolean;
+  /**
+   * Why it can't be used now (owner, 2026-10-01): disables it, shows the reason on hover, and gives
+   * it to screen readers. A disabled button gets no hover, so the reason sits on a wrapper.
+   */
+  disabledReason?: string | null;
+}) => {
+  const reasonId = useId();
+  const button = (
     <button
       type={type}
       className={cn(buttonClasses(variant), className)}
-      disabled={disabled || loading}
+      disabled={disabled || loading || disabledReason !== null}
       aria-busy={loading || undefined}
+      aria-describedby={disabledReason ? reasonId : undefined}
       {...props}
     >
       {children}
     </button>
+  );
+  if (!disabledReason) return button;
+  return (
+    <span title={disabledReason} className="inline-flex">
+      {button}
+      <span id={reasonId} className="sr-only">
+        {disabledReason}
+      </span>
+    </span>
   );
 };

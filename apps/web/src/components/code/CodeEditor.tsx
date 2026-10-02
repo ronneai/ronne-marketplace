@@ -20,11 +20,13 @@ import {
 import { tags } from "@lezer/highlight";
 import { useEffect, useRef } from "react";
 import { languageFor } from "./languages";
+import { type Mentions, mentionExtension } from "./mentions";
 
 /** 032's tokens, so the editor follows the light and dark themes: teal is the only accent. */
 const theme = EditorView.theme({
   "&": {
-    height: "100%",
+    // As tall as the document, at least 20rem: the page scrolls, not the editor (2026-10-01).
+    minHeight: "20rem",
     backgroundColor: "var(--surface)",
     color: "var(--fg)",
     fontSize: "13px",
@@ -43,6 +45,18 @@ const theme = EditorView.theme({
     backgroundColor: "color-mix(in srgb, var(--accent) 28%, transparent)",
   },
   ".cm-matchingBracket": { outline: "1px solid var(--accent)", backgroundColor: "transparent" },
+  // The `@` list (056): a flat panel on the surface, the picked option on the tint.
+  ".cm-tooltip.cm-tooltip-autocomplete": {
+    backgroundColor: "var(--surface)",
+    border: "1px solid var(--border-strong)",
+    borderRadius: "6px",
+  },
+  ".cm-tooltip-autocomplete > ul > li": { padding: "4px 8px", color: "var(--fg)" },
+  ".cm-tooltip-autocomplete > ul > li[aria-selected]": {
+    backgroundColor: "var(--tint)",
+    color: "var(--fg)",
+  },
+  ".cm-completionDetail": { color: "var(--muted)", fontStyle: "normal", marginLeft: "8px" },
 });
 
 /**
@@ -75,11 +89,15 @@ const yamlValues = HighlightStyle.define([{ tag: tags.content, color: "var(--syn
   scope: yamlLanguage,
 });
 
+/** Markdown files, where `@` mentions an item to depend on (056). */
+const isMarkdown = (path: string) => /\.(md|mdx|markdown)$/i.test(path);
+
 const stateFor = (
   path: string,
   doc: string,
   onChange: (content: string) => void,
   readOnly: boolean,
+  mentions: { current: Mentions | null },
 ) =>
   EditorState.create({
     doc,
@@ -100,6 +118,7 @@ const stateFor = (
       languageFor(path, doc),
       theme,
       EditorView.contentAttributes.of({ "aria-label": `Contents of ${path}` }),
+      ...(isMarkdown(path) && !readOnly ? [mentionExtension(mentions)] : []),
       EditorView.updateListener.of((update) => {
         if (update.docChanged) onChange(update.state.doc.toString());
       }),
@@ -117,6 +136,7 @@ export const CodeEditor = ({
   onChange,
   goToLine,
   readOnly = false,
+  mentions = null,
 }: {
   path: string;
   value: string;
@@ -125,12 +145,17 @@ export const CodeEditor = ({
   goToLine?: { line: number; at: number } | null;
   /** Shown but not editable, such as a submitted submission (feature 013). */
   readOnly?: boolean;
+  /** `@` in markdown files: the items to mention, and what a pick does (056). */
+  mentions?: Mentions | null;
 }) => {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const states = useRef(new Map<string, EditorState>());
   const change = useRef(onChange);
   change.current = onChange;
+  // Read when the list opens, so a file's cached state keeps working as the draft changes.
+  const mentioning = useRef(mentions);
+  mentioning.current = mentions;
 
   useEffect(() => {
     if (!host.current) return;
@@ -156,7 +181,13 @@ export const CodeEditor = ({
     const saved = states.current.get(path);
     editor.setState(
       saved ??
-        stateFor(path, latest.current, (content) => change.current(path, content), locked.current),
+        stateFor(
+          path,
+          latest.current,
+          (content) => change.current(path, content),
+          locked.current,
+          mentioning,
+        ),
     );
     return () => {
       states.current.set(path, editor.state);
@@ -181,5 +212,5 @@ export const CodeEditor = ({
     editor.focus();
   }, [goToLine]);
 
-  return <div ref={host} className="h-full min-h-80 overflow-hidden" />;
+  return <div ref={host} className="min-h-80 overflow-hidden rounded-panel" />;
 };

@@ -105,7 +105,7 @@ const MCP_TOOLS: [string, string, string][] = [
   ],
   [
     "check_drafts",
-    "Says which of your drafts Submit would take now, and what's in the way of the others. Takes items (names or ids) or all.",
+    "Says which of your drafts Submit would take now, and what's in the way of the others. Takes items (names or ids) or all; your drafts they depend on are included first, unless dependencies is false.",
     "Nothing",
   ],
   [
@@ -413,9 +413,35 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </p>
         <DependencyCards />
         <p>
-          At submit, each dependency must be published, allowed for the type, and have a version in
-          its range, with no cycles.
+          At submit, each dependency must be allowed for the type and published with a version in
+          its range, or <To href={docsHref("review", "dependencies")}>in review</To>, with no
+          cycles.
         </p>
+        <h3 className="font-semibold text-fg">Adding one</h3>
+        <Bullets>
+          <li>
+            <strong>In the form:</strong> type part of its name, such as <Code>@team/gi</Code> or{" "}
+            <Code>github</Code>, in <strong>Add a dependency</strong>, and pick it from the list.
+            The list has published items, yours (drafts, in review, approved), and others&apos; in
+            review, only of the types this one may depend on.
+          </li>
+          <li>
+            <strong>The version</strong> starts on <strong>latest</strong>, written as{" "}
+            <Code>^</Code> and the version it points to now, since a range can&apos;t name a tag;
+            pick another from the list if you need one. An item that isn&apos;t released yet gets{" "}
+            <Code>^1.0.0</Code>, its first release.
+          </li>
+          <li>
+            <strong>In a markdown file</strong>, such as <Code>SKILL.md</Code> or an agent&apos;s
+            prompt: type <Code>@</Code> and part of a name, and pick one. Its name goes in the text
+            and it&apos;s added to the dependencies. Deleting the text later doesn&apos;t remove it:
+            do that in the form or on the canvas.
+          </li>
+          <li>
+            Like every edit, nothing is saved until <strong>Save</strong>. A range typed by hand is
+            written when you leave the field.
+          </li>
+        </Bullets>
         <h3 className="font-semibold text-fg">How an install picks versions</h3>
         <p>
           An install gets <strong>one version of each item</strong>: the highest one that fits every
@@ -513,6 +539,13 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             There&apos;s no <Code>version</Code>: the release sets it.
           </li>
         </Bullets>
+        <p>
+          The files <strong>New item</strong> starts with, <Code>ronne.yaml</Code> and the file it
+          names (such as <Code>SKILL.md</Code> or <Code>prompt.md</Code>), are the item&apos;s
+          <strong> starting files</strong>: edit them as you like, but they can&apos;t be renamed or
+          deleted. Importing a <Code>.zip</Code> that replaces the files keeps them. Other files
+          come and go as usual.
+        </p>
       </>
     ),
     contents: (
@@ -606,8 +639,12 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
     checks: (
       <>
         <p>
-          A draft can be saved with problems, but submitting waits until there are none. The submit
-          dialog lists them:
+          A draft can be saved with problems, but submitting waits until there are none. In the
+          editor, a red icon after a file&apos;s name means it has errors, and an amber one only
+          warnings: click it to see them, and click one to go to its line. The summary next to the
+          item&apos;s name counts them all. <strong>Submit for review</strong> stays off while there
+          are errors or unsaved changes (marked <strong>● Unsaved changes</strong> beside the name).
+          The submit dialog then checks:
         </p>
         <Bullets>
           <li>the manifest and files are valid for the type, and within the size limits;</li>
@@ -615,9 +652,10 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             the name is free: no published item, and no open submission by someone else, uses it;
           </li>
           <li>
-            each dependency exists, is allowed for the type, and has a matching version. A
-            dependency exported with an item is a draft too: release it first, and the item&apos;s
-            checks say which;
+            each dependency is allowed for the type, and is released with a matching version, or is{" "}
+            <To href={docsHref("review", "dependencies")}>in review</To>: then its version is
+            checked when this one is released. A dependency that&apos;s only a draft doesn&apos;t
+            count yet;
           </li>
           <li>
             for a <To href={docsHref("changes")}>change proposal</To>: the type is the item&apos;s,
@@ -670,10 +708,11 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           <Code>submit_drafts</Code>, which your tool asks you about, submits it.
         </p>
         <p>
-          An item that depends on another draft isn&apos;t ready until that one is{" "}
-          <strong>released</strong>, so a big export goes in rounds: submit the dependencies, have
-          them reviewed and released, then submit what uses them. <Code>rmk submit</Code> says the
-          order.
+          Your own drafts that a selected one depends on are <strong>included</strong>, and go
+          first: once they&apos;re in review, what uses them can be submitted. Ticking a draft on My
+          submissions ticks them too; <Code>rmk submit</Code> lists them under{" "}
+          <strong>Included</strong>, and <Code>--no-deps</Code> leaves them out. What happens next
+          is in <To href={docsHref("review", "dependencies")}>Dependencies in review</To>.
         </p>
         <p>
           Reviewers can approve many at once too:{" "}
@@ -709,10 +748,13 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             is enough.
           </li>
           <li>
-            <strong>Request changes:</strong> it goes back to its author, with what to fix.
+            <strong>Request changes:</strong> it goes back to its author, with what to fix. An
+            approved submission can be sent back too, until it&apos;s released.
           </li>
           <li>
-            <strong>Reject:</strong> it&apos;s closed, with the reason.
+            <strong>Reject:</strong> it&apos;s closed, with the reason. When other submissions
+            depend on it, the dialog lists them and offers to request changes on them too (see{" "}
+            <To href={docsHref("review", "dependencies")}>Dependencies in review</To>).
           </li>
           <li>
             <strong>Override:</strong> root may approve their own submission. It&apos;s marked as an
@@ -724,6 +766,44 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           need one, so the author knows what to fix, or why it was closed. Every decision is
           recorded in the conversation and the audit log.
         </p>
+      </>
+    ),
+    dependencies: (
+      <>
+        <p>
+          A submission can depend on items that aren&apos;t released yet, as long as they&apos;re in
+          review: a skill and the agent that uses it go through review together, rather than one
+          round each.
+        </p>
+        <Bullets>
+          <li>
+            <strong>Waits on:</strong> My submissions, the review queue and the review page say what
+            a submission waits on, such as <em>Waits on @team/github (in review)</em>. In the
+            editor, each dependency has an amber badge beside its name until it&apos;s released, and
+            a red one if it&apos;s blocked.
+          </li>
+          <li>
+            <strong>Approving</strong> doesn&apos;t wait: each item gets its own review, and
+            reviewers see the mark.
+          </li>
+          <li>
+            <strong>Releasing</strong> does: <strong>Publish</strong> stays off until every
+            dependency is released, and the version range is checked against the version it got.
+            Release the dependencies first.
+          </li>
+          <li>
+            <strong>Blocked:</strong> when a dependency is rejected or withdrawn, what depends on it
+            is marked blocked, also further down a chain. Remove it from dependencies, or depend on
+            another item. A new submission of the same name unblocks it.
+          </li>
+          <li>
+            <strong>Rejecting a dependency:</strong> the reject dialog lists what depends on it and
+            offers <strong>Request changes on them too</strong>, on by default, with a message of
+            their own. Each is its own decision, recorded with the rejection as its cause. A
+            moderator&apos;s own is skipped and named. Withdrawing your own says how many depend on
+            it.
+          </li>
+        </Bullets>
       </>
     ),
     "approve-many": (
@@ -1126,11 +1206,16 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           aren&apos;t sent.
         </p>
         <p>
-          <strong>The order to submit in.</strong> An item can be submitted only once its
-          dependencies are released, so <Code>rmk</Code> says the order:{" "}
-          <em>submit and release @team/github first; then @team/reviewer can be submitted.</em>{" "}
-          Until then, the item&apos;s draft says the same in its checks. To install all of them as
-          one item, make a bundle on the <To href={docsHref("items", "canvas")}>canvas</To>.
+          <strong>The order to submit in.</strong> A dependency has to be in review before what uses
+          it, so <Code>rmk</Code> says the order:{" "}
+          <em>
+            @team/github must be in review first: once it is ready, rmk submit @team/reviewer
+            submits it first.
+          </em>{" "}
+          Submitting the item takes your dependency drafts with it, and they&apos;re released before
+          it (<To href={docsHref("review", "dependencies")}>Dependencies in review</To>). To install
+          all of them as one item, make a bundle on the{" "}
+          <To href={docsHref("items", "canvas")}>canvas</To>.
         </p>
       </>
     ),
@@ -1145,7 +1230,8 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         <p>
           To submit many at once, <Code>rmk submit --all --dry-run</Code> shows which are ready, and{" "}
           <Code>rmk submit --all</Code> submits them (see{" "}
-          <To href={docsHref("review", "many")}>Submitting many at once</To>). A change proposal is
+          <To href={docsHref("review", "many")}>Submitting many at once</To>); an item and its
+          dependencies go together, so there are no rounds to wait for. A change proposal is
           reviewed like any proposal and released as the item&apos;s next version. A draft made this
           way counts towards the <To href={docsHref("rmk", "tokens")}>limits for tokens</To>, and is
           written to the audit log.

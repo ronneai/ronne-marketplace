@@ -29,6 +29,12 @@ sees what depended on it and can send those back in the same step.
 - **Request changes from `approved`** (014's transition table): so an approved dependent can be sent
   back when its dependency is rejected.
 
+- **Picking a dependency** (owner, 2026-10-01): in the settings form, the Item field searches as
+  you type, over published items and your own items (draft, in review, approved), and others' items
+  in review; picking one shows its versions, `latest` by default. In a markdown file, typing `@`
+  opens the same list in a popover, and picking one adds the dependency too. Half-typed names never
+  reach `ronne.yaml`.
+
 **Out** (and where it goes instead):
 - **Grouped submissions** (a dependent and its dependencies reviewed and released as one unit, all
   or nothing). Each item keeps its own review and release; this feature only connects them.
@@ -69,8 +75,10 @@ computed when it's shown (not stored):
 | **Waits on @x (approved)** | the dependency is `approved`, not released |
 | **Blocked: @x was rejected** | the dependency's newest submission is `rejected` or `withdrawn`, and no other open one or matching release exists |
 
-The marks show on My submissions, the review queue, the review page and the submission page. A
-blocked dependent can't be submitted (it's an error again), approved stays possible (the reviewer
+The marks show on My submissions, the review queue and the review page. In the editor (owner,
+2026-10-01) each dependency in the form has its own badge beside its name instead of a card under
+the editor: amber while it isn't released ("in review", "pending release" once approved, "not submitted"), red when it's
+blocked, with the full sentence on hover. A blocked dependent can't be submitted (it's an error again), approved stays possible (the reviewer
 sees the mark), and it can't be released.
 
 **Bulk submit** (052). Submitting a dependent whose dependency is the person's own **ready draft**
@@ -78,7 +86,7 @@ adds that draft to the batch, before the dependent, and says so: "Included for @
 @team/github". If the dependency's draft isn't ready, the dependent isn't either, with the
 dependency's issues named. In the web list, selecting the dependent selects the dependency; it
 can't be unselected while the dependent is selected. `rmk submit @team/reviewer` lists it under
-**Included** in its preview; `--no-dependencies` leaves it out, and then the dependent is not
+**Included** in its preview; `--no-deps` leaves it out, and then the dependent is not
 ready. `submit_drafts` does the same as `rmk`.
 
 **Approving** (014, 054). Unchanged rules; the review page and 054's dialog show the marks, so a
@@ -126,6 +134,36 @@ mark. (The dependency's author sees "2 submissions depend on this" in the withdr
 **Audit.** No new actions. Request changes caused by a rejection carries `cause` in its metadata;
 submits that included dependencies are 052's events, one per item.
 
+**Picking a dependency** (owner, 2026-10-01). Typing a dependency by hand gave errors while
+typing (`@engineering` isn't a full name; `^1.` isn't a range), and the canvas's search only knew
+published items and didn't match the scope.
+
+- **The list.** Typing any part of `@scope/name` filters, case aside; published items also match
+  their description and keywords.
+  `@team/re` matches scope `team` and names containing `re`. It offers only types this item may
+  depend on (manifest spec §3), never the item itself or one already listed, and at most 12:
+  - **published** items, with their newest version;
+  - **your own** items in review, approved, or still drafts;
+  - **others'** items in review or approved (they count since this feature), shown by name, type,
+    status and author only.
+  A name both published and with a proposal in review shows once, as published. Each option shows
+  its type badge and status. A draft says it's submitted with this item (bulk submit, above).
+- **The version.** Picking a published item adds a row with a version list: **latest (1.4.0)** by
+  default, then each released version, newest first; yanked ones aren't offered. The range written
+  is `^<version>` (a pre-release exactly, as the canvas does); a dist-tag can't be a range, so
+  `latest` is written as the version it points to now. An unreleased item gets `^1.0.0`, its
+  first release. The range can still be typed for anything else.
+- **The form** writes a row to `ronne.yaml` only once it has a picked name and a range, so the
+  checks never see half a name. Rows already in the file (typed in the raw editor, or invalid) show
+  as they are, with their problems, and can be changed or removed.
+- **`@` in markdown** (SKILL.md, prompts, any `.md` file of the draft): typing `@` followed by
+  text opens the same list in a popover at the cursor; ↑/↓ and Enter pick, Esc closes. Picking
+  inserts `@scope/name` in the text and adds the dependency (latest, as above) to the manifest, if
+  this type may have dependencies and it isn't there yet. Like every edit it's saved with **Save**.
+  Deleting the text later leaves the dependency: dependencies are removed in the form or the
+  canvas (owner's recommendation, 2026-10-01).
+- **The canvas** keeps its own picker (published items), now matching the scope too.
+
 ## Edge cases
 
 - **The dependency gets a different first version than the range allows** (released as a
@@ -150,38 +188,52 @@ submits that included dependencies are 052's events, one per item.
 - **Submitting and review → The checks at submit** (`review#checks`): a dependency counts once it's
   in review; the range is checked at release; a draft dependency doesn't count.
 - **Submitting and review → Submitting many at once** (`review#many`): your own ready dependency
-  drafts are included, first; `--no-dependencies`.
+  drafts are included, first; `--no-deps`.
 - **Submitting and review**, a new section **Dependencies in review** (`review#dependencies`): the
   marks (waits on, blocked), approving with a dependency in review, releasing in order, and what
   happens when a dependency is rejected or withdrawn.
 - **Submitting and review → Decisions** (`review#decisions`): rejecting lists the dependents and can
   request changes on them; request changes is possible on an approved submission too.
 - **Versions and tags → Releasing many at once** (`versions#release-many`): dependencies are
-  included when a dependent is selected.
+  included when a dependent is selected. (Written with 055, which adds that section.)
 - **Exporting your own items → What arrives, and what to do next** (`export#next`): an item and its
   dependencies can be submitted together; no more rounds.
 - **Helpers:** next to a **Waits on** or **Blocked** mark: "What does this wait on?", linking to
   `review#dependencies`; in the reject dialog, next to the dependents: "Why are these listed?",
   linking to `review#dependencies`.
 
+- **Items and types → Dependencies** (`items#dependencies`): at submit a dependency may be in
+  review; a new part, **Adding one**: picking from the list, the version and `latest`, and `@` in
+  markdown files. **Helper:** next to the dependencies field, "How do I add one?", linking there.
+
 ## Acceptance criteria
 
-- [ ] A draft submits when a dependency is an open submission, with the warning; a draft dependency,
+- [x] A draft submits when a dependency is an open submission, with the warning; a draft dependency,
   a rejected or withdrawn one, a wrong type and a cycle through open submissions are refused.
-- [ ] The range is checked at release against the dependency's released version, and a dependent
+- [x] The range is checked at release against the dependency's released version, and a dependent
   whose dependency isn't released (or released in the batch first) can't be released.
-- [ ] Bulk submit (web, `rmk submit`, `submit_drafts`) includes the person's own ready dependency
-  drafts first; `--no-dependencies` leaves them out.
-- [ ] 055 selects a dependent's approved dependencies with it, refuses a dependent waiting on a
-  dependency in review, and releases dependencies first.
-- [ ] Rejecting a submission lists its open dependents, and with the box ticked requests changes on
+- [x] Bulk submit (web, `rmk submit`, `submit_drafts`) includes the person's own ready dependency
+  drafts first; `--no-deps` leaves them out.
+- [ ] **Moved to 055** (not built yet): 055 selects a dependent's approved dependencies with it,
+  refuses a dependent waiting on a dependency in review, and releases dependencies first.
+- [x] Rejecting a submission lists its open dependents, and with the box ticked requests changes on
   each the reviewer may decide, each audited with `cause`; unticked, they show **Blocked**.
-- [ ] Request changes works from `approved`.
-- [ ] The marks show on My submissions, the review queue, the review page and the submission page.
-- [ ] The service tests pass on SQLite, PostgreSQL, MySQL and MariaDB, and an end-to-end test
-  submits a skill and an agent that uses it together, approves both, releases both in one batch, and
-  in a second run rejects the skill and sees the agent sent back.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] Request changes works from `approved`.
+- [x] The marks show on My submissions, the review queue and the review page, and as a badge beside
+  each dependency in the editor's form.
+- [x] The service tests pass on SQLite, PostgreSQL, MySQL and MariaDB, and an end-to-end test
+  submits a skill and a bundle that uses it together, approves both, releases the skill and then
+  the bundle (in one batch once 055 is built), and in a second run rejects a skill and sees its
+  bundle sent back.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
+
+- [x] The dependency search matches any part of `@scope/name`, a description or a keyword, offers
+  published items, the person's own drafts and open submissions, and others' open ones, only of
+  allowed types, and never the item itself.
+- [x] The form adds a row only from a pick, with the versions listed and `latest` by default
+  written as `^<version>`, `^1.0.0` for an unreleased item; no half-typed name reaches the file.
+- [x] Typing `@` in a markdown file opens the list; picking inserts the name and adds the
+  dependency, and nothing is saved until Save.
 
 ## Decisions
 
@@ -194,6 +246,11 @@ submits that included dependencies are 052's events, one per item.
 4. **Another author's submission as a dependency** (owner, 2026-10-01): it counts, named only by
    item and status, as 013's "name is taken" already does; its content stays hidden from people who
    can't see it.
+
+5. **Picking dependencies** (owner, 2026-10-01): an autocomplete in the form and `@` in markdown,
+   over published items and the person's own; built in this feature. Deleting an `@` mention keeps
+   the dependency; others' items in review are offered; a draft says it's submitted with the item
+   (Claude's recommendations, taken while the owner's answers were pending).
 
 ## Open questions
 

@@ -20,6 +20,7 @@ const ALLOWED: [SubmissionStatus, SubmissionAction, SubmissionStatus][] = [
   ["changes_requested", "resubmit", "submitted"],
   ["changes_requested", "withdraw", "withdrawn"],
   ["approved", "publish", "published"],
+  ["approved", "request_changes", "changes_requested"],
 ];
 
 const ACTIONS: SubmissionAction[] = [

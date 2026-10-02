@@ -7,7 +7,9 @@ import {
   SubmissionNotFoundError,
 } from "../exceptions/errors";
 import { isEditable } from "../models/status";
-import type { Submission } from "../models/submission";
+import { itemNameOf, type Submission } from "../models/submission";
+import type { NamedSubmission, RegistryLookup } from "../repositories/registry-lookup";
+import { dependenciesOf } from "./dependency-marks";
 import {
   checkSubmission,
   type SubmissionActor,
@@ -19,30 +21,112 @@ import {
  * Checking and submitting many drafts at once (feature 052): 013's `checkSubmission` and
  * `submitDraft` for each, so "ready" means exactly what Submit checks. Each draft is decided on
  * its own, in its own transaction: one that isn't ready doesn't stop the others.
+ *
+ * Since 056, a draft's dependencies that are the person's own drafts too are included, before it,
+ * unless `dependencies: false`: once submitted they're in review, which is all its own submit
+ * needs. Each included one says which drafts it was included for.
  */
 
 /** The most drafts one check or submit takes. */
 export const MAX_BULK = 100;
 
-/** Which drafts: these ids, or all of the person's drafts and submissions sent back for changes. */
-export type BulkSelection = { ids: readonly string[] } | { all: true };
+/**
+ * Which drafts: these ids, or all of the person's drafts and submissions sent back for changes;
+ * with their own dependency drafts too unless `dependencies: false` (056).
+ */
+export type BulkSelection = ({ ids: readonly string[] } | { all: true }) & {
+  dependencies?: boolean;
+};
 
-export type CheckedDraft =
-  | { id: string; result: "ready" | "not_ready"; submission: Submission; issues: ManifestIssue[] }
-  | { id: string; result: "not_found" }
-  | { id: string; result: "not_submittable"; submission: Submission };
+/**
+ * For a dependency included with its dependents (056): their names. And for a dependent, the ids
+ * of its own dependency drafts, selected or not: My submissions selects them with it.
+ */
+type Included = { includedFor?: string[]; needs?: string[] };
 
-export type SubmittedDraft =
-  | {
-      id: string;
-      result: "submitted" | "resubmitted";
-      submission: Submission;
-      revision: number;
-      issues: ManifestIssue[];
-    }
-  | { id: string; result: "not_ready"; submission: Submission; issues: ManifestIssue[] }
-  | { id: string; result: "not_found" }
-  | { id: string; result: "not_submittable"; submission: Submission };
+export type CheckedDraft = Included &
+  (
+    | { id: string; result: "ready" | "not_ready"; submission: Submission; issues: ManifestIssue[] }
+    | { id: string; result: "not_found" }
+    | { id: string; result: "not_submittable"; submission: Submission }
+  );
+
+export type SubmittedDraft = Included &
+  (
+    | {
+        id: string;
+        result: "submitted" | "resubmitted";
+        submission: Submission;
+        revision: number;
+        issues: ManifestIssue[];
+      }
+    | { id: string; result: "not_ready"; submission: Submission; issues: ManifestIssue[] }
+    | { id: string; result: "not_found" }
+    | { id: string; result: "not_submittable"; submission: Submission }
+  );
+
+/** The person's drafts (not yet submitted) by item name: the newest one of each name. */
+const ownDraftsByName = async (deps: SubmissionDeps, actor: SubmissionActor) => {
+  const byName = new Map<string, Submission>();
+  for (const submission of await deps.repo.listByAuthor(actor.user?.id ?? ""))
+    if (submission.status === "draft" && !byName.has(itemNameOf(submission)))
+      byName.set(itemNameOf(submission), submission);
+  return byName;
+};
+
+/**
+ * The selection with each draft's own dependency drafts before it, depth first, and who each
+ * included one is for. A draft already selected moves ahead of what depends on it.
+ */
+const withDependencies = async (
+  deps: SubmissionDeps,
+  actor: SubmissionActor,
+  ids: readonly string[],
+): Promise<{ ids: string[]; includedFor: Map<string, string[]>; needs: Map<string, string[]> }> => {
+  const byName = await ownDraftsByName(deps, actor);
+  const selected = new Set(ids);
+  const order: string[] = [];
+  const includedFor = new Map<string, string[]>();
+  const needs = new Map<string, string[]>();
+  const visiting = new Set<string>();
+  const visit = async (id: string) => {
+    if (order.includes(id) || visiting.has(id)) return;
+    visiting.add(id);
+    const submission = isId(id) ? await deps.repo.find(id) : null;
+    if (submission && submission.authorId === actor.user?.id && isEditable(submission.status))
+      for (const name of Object.keys(await dependenciesOf(deps.repo, submission))) {
+        const dependency = byName.get(name);
+        if (!dependency) continue;
+        needs.set(id, [...(needs.get(id) ?? []), dependency.id]);
+        if (!selected.has(dependency.id))
+          includedFor.set(dependency.id, [
+            ...(includedFor.get(dependency.id) ?? []),
+            itemNameOf(submission),
+          ]);
+        await visit(dependency.id);
+      }
+    visiting.delete(id);
+    order.push(id);
+  };
+  for (const id of ids) await visit(id);
+  return { ids: order, includedFor, needs };
+};
+
+/**
+ * A registry where the drafts about to be submitted first are already in review: what the
+ * dependents' checks will find once they are (056).
+ */
+const withIncoming = (
+  registry: RegistryLookup,
+  incoming: ReadonlyMap<string, NamedSubmission>,
+): RegistryLookup => ({
+  ...registry,
+  submissionsNamed: async (scope, name) => {
+    const coming = incoming.get(`@${scope}/${name}`);
+    const known = await registry.submissionsNamed(scope, name);
+    return coming ? [coming, ...known] : known;
+  },
+});
 
 /**
  * The ids a selection means, at most MAX_BULK: `all` is the person's open ones, newest change
@@ -76,27 +160,56 @@ export const checkMany = async (
   actor: SubmissionActor,
   selection: BulkSelection,
 ): Promise<{ drafts: CheckedDraft[]; more: number }> => {
-  const { ids, more } = await selected(deps, actor, selection);
+  const picked = await selected(deps, actor, selection);
+  const { ids, includedFor, needs } =
+    selection.dependencies === false
+      ? {
+          ids: picked.ids,
+          includedFor: new Map<string, string[]>(),
+          needs: new Map<string, string[]>(),
+        }
+      : await withDependencies(deps, actor, picked.ids);
+  const registry = deps.registry ?? deps.repo.registry();
+  // Ready drafts earlier in the order will be in review when the later ones are submitted.
+  const incoming = new Map<string, NamedSubmission>();
   const drafts: CheckedDraft[] = [];
   for (const id of ids) {
+    const included = {
+      ...(includedFor.has(id) ? { includedFor: includedFor.get(id) } : {}),
+      ...(needs.has(id) ? { needs: needs.get(id) } : {}),
+    };
     const submission = await ownOrNull(deps, actor, id);
     if (!submission) {
-      drafts.push({ id, result: "not_found" });
+      drafts.push({ id, result: "not_found", ...included });
       continue;
     }
     if (!isEditable(submission.status)) {
-      drafts.push({ id, result: "not_submittable", submission });
+      drafts.push({ id, result: "not_submittable", submission, ...included });
       continue;
     }
-    const issues = await checkSubmission(deps, actor, id);
+    const issues = await checkSubmission(
+      { ...deps, registry: withIncoming(registry, incoming) },
+      actor,
+      id,
+    );
+    const ready = !hasErrors(issues);
+    if (ready && submission.status === "draft")
+      incoming.set(itemNameOf(submission), {
+        id: submission.id,
+        status: "submitted",
+        type: submission.type,
+        proposal: submission.proposal !== null,
+        dependencies: await dependenciesOf(deps.repo, submission),
+      });
     drafts.push({
       id,
-      result: hasErrors(issues) ? "not_ready" : "ready",
+      result: ready ? "ready" : "not_ready",
       submission,
       issues,
+      ...included,
     });
   }
-  return { drafts, more };
+  return { drafts, more: picked.more };
 };
 
 /**
@@ -109,12 +222,26 @@ export const submitMany = async (
   actor: SubmissionActor,
   selection: BulkSelection,
 ): Promise<{ results: SubmittedDraft[]; more: number }> => {
-  const { ids, more } = await selected(deps, actor, selection);
+  const picked = await selected(deps, actor, selection);
+  // Dependencies first: once each is in review, what depends on it can be submitted (056).
+  const { ids, includedFor, needs } =
+    selection.dependencies === false
+      ? {
+          ids: picked.ids,
+          includedFor: new Map<string, string[]>(),
+          needs: new Map<string, string[]>(),
+        }
+      : await withDependencies(deps, actor, picked.ids);
+  const more = picked.more;
   const results: SubmittedDraft[] = [];
   for (const id of ids) {
+    const included = {
+      ...(includedFor.has(id) ? { includedFor: includedFor.get(id) } : {}),
+      ...(needs.has(id) ? { needs: needs.get(id) } : {}),
+    };
     const before = await ownOrNull(deps, actor, id);
     if (!before) {
-      results.push({ id, result: "not_found" });
+      results.push({ id, result: "not_found", ...included });
       continue;
     }
     try {
@@ -126,13 +253,21 @@ export const submitMany = async (
         submission,
         revision,
         issues,
+        ...included,
       });
     } catch (error) {
       if (error instanceof SubmissionInvalidError)
-        results.push({ id, result: "not_ready", submission: before, issues: [...error.issues] });
+        results.push({
+          id,
+          result: "not_ready",
+          submission: before,
+          issues: [...error.issues],
+          ...included,
+        });
       else if (error instanceof InvalidStatusTransitionError)
-        results.push({ id, result: "not_submittable", submission: before });
-      else if (error instanceof SubmissionNotFoundError) results.push({ id, result: "not_found" });
+        results.push({ id, result: "not_submittable", submission: before, ...included });
+      else if (error instanceof SubmissionNotFoundError)
+        results.push({ id, result: "not_found", ...included });
       else throw error;
     }
   }

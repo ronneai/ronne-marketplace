@@ -56,6 +56,7 @@ export const TOPICS = [
       { id: "statuses", title: "Statuses" },
       { id: "checks", title: "The checks at submit" },
       { id: "many", title: "Submitting many at once" },
+      { id: "dependencies", title: "Dependencies in review" },
       { id: "reviewing", title: "What reviewers look at" },
       { id: "decisions", title: "Decisions" },
       { id: "approve-many", title: "Approving many at once" },

@@ -83,7 +83,13 @@ describe("getReview", () => {
     expect(view.flags.map((f) => f.kind)).toEqual(["hook", "executable"]);
     expect(view.issues).toEqual([]);
     expect(view.events.map((e) => e.kind)).toEqual(["submit"]);
-    expect(view.can).toEqual({ decide: true, override: false, comment: true, publish: false });
+    expect(view.can).toEqual({
+      decide: true,
+      override: false,
+      comment: true,
+      publish: false,
+      sendBack: false,
+    });
   });
 
   it("diffs against the previous revision after a resubmit", async () => {
@@ -121,7 +127,13 @@ describe("getReview", () => {
     const id = await submittedHook();
     const own = await getReview(asAuthor, id, app);
     expect(own.mine).toBe(true);
-    expect(own.can).toEqual({ decide: false, override: false, comment: true, publish: false });
+    expect(own.can).toEqual({
+      decide: false,
+      override: false,
+      comment: true,
+      publish: false,
+      sendBack: false,
+    });
     await expect(getReview(asOther, id, app)).rejects.toThrow(SubmissionNotFoundError);
 
     const draft = await createDraft(asAuthor, { scope: "team", name: "wip", type: "rule" }, app);
@@ -154,6 +166,7 @@ describe("getReview", () => {
       override: true,
       comment: true,
       publish: false,
+      sendBack: false,
     });
     await decide(asModerator, draft.id, { decision: "reject", message: "No." }, app);
     expect((await getReview(asModerator, draft.id, app)).can.comment).toBe(false);

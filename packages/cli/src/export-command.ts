@@ -29,6 +29,7 @@ import { scopeOf } from "./install.js";
 import type { Io } from "./io.js";
 import type { Output } from "./output.js";
 import { itemPath } from "./registry-commands.js";
+import { orderLine } from "./submit.js";
 
 /**
  * `rmk export` (feature 038): the terminal around `planExport` and `uploadExport`. rmk prints only
@@ -294,7 +295,7 @@ const chooseItems = async (
   });
 };
 
-/** The order to submit and release in (041): an item's dependencies are released first (013). */
+/** The order to submit in (041): an item's dependencies go into review first (056). */
 export const releaseOrder = (plan: ExportPlan, exported: readonly ExportedItem[]) =>
   plan.items
     .filter((item) => exported.some((e) => e.name === item.name))
@@ -307,10 +308,7 @@ export const releaseOrder = (plan: ExportPlan, exported: readonly ExportedItem[]
 const reportOrder = (out: Output, order: ReturnType<typeof releaseOrder>) => {
   if (order.length === 0) return;
   out.set("order", order);
-  for (const step of order)
-    out.say(
-      `Submit and release ${step.after.join(" and ")} first; then ${step.item} can be submitted. Until then, its draft says so.`,
-    );
+  for (const step of order) out.say(orderLine(step));
 };
 
 /** A finding as the question lists it. */

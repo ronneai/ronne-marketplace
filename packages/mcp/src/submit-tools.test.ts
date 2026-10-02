@@ -25,8 +25,8 @@ const DRAFTS: FakeSubmitDraft[] = [
   },
 ];
 
-const setup = () => {
-  const registry = submitRoutes(DRAFTS);
+const setup = (drafts: FakeSubmitDraft[] = DRAFTS) => {
+  const registry = submitRoutes(drafts);
   io = fakeIo(
     { ...identityRoutes("rmk_test_token"), ...registry.routes },
     { interactive: false, env: { RMK_TOKEN: "rmk_test_token", RMK_REGISTRY: REGISTRY } },
@@ -71,5 +71,25 @@ describe("check_drafts and submit_drafts (052)", () => {
       error: { code: "invalid_request" },
     });
     expect((await submitDraftsTool(io, { all: true, items: [READY] })).isError).toBe(true);
+  });
+
+  it("includes the person's dependency drafts first, unless dependencies is false (056)", async () => {
+    const KIT = "01J0000000000000000000000C";
+    const { submitted } = setup([
+      ...DRAFTS,
+      { id: KIT, name: "@team/kit", type: "bundle", status: "draft", includes: [READY] },
+    ]);
+    const checked = await checkDraftsTool(io, { items: [KIT] });
+    expect(checked.content[0]?.text).toContain(
+      "Included, as dependencies, and submitted first (1):",
+    );
+    expect(checked.structuredContent).toMatchObject({
+      included: [{ id: READY, includedFor: ["@team/kit"] }],
+    });
+    await submitDraftsTool(io, { items: [KIT] });
+    expect(submitted).toEqual([READY, KIT]);
+
+    await checkDraftsTool(io, { items: [KIT], dependencies: false });
+    expect(io.requests.at(-1)?.body).toEqual({ ids: [KIT], dependencies: false });
   });
 });

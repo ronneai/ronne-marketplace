@@ -9,7 +9,8 @@ import type { Output } from "./output.js";
  * `rmk submit` (feature 052): sends the person's own drafts for review, one, several or all of
  * them. It checks first (`POST /drafts/check`), shows what's ready and what's in the way of the
  * rest, asks, then submits the ready ones (`POST /drafts/submit`). "Ready" is exactly what Submit
- * checks in the web app; nothing is fixed from here.
+ * checks in the web app; nothing is fixed from here. The person's own drafts that a named one
+ * depends on are included and go first (056), unless `--no-deps`.
  */
 
 type Place = { path: string; url: string | null; name: string; type: string; status: string };
@@ -19,6 +20,8 @@ export type CheckedDraft = {
   result: string;
   ready: boolean;
   issues?: ManifestIssue[];
+  /** A dependency draft included for these (056). */
+  includedFor?: string[];
 } & Partial<Place>;
 
 export type SubmitResult = {
@@ -72,8 +75,9 @@ const errorsOf = (issues: readonly ManifestIssue[] = []) =>
   issues.filter((issue) => issue.severity === "error");
 
 /**
- * Which ready drafts must be released before a not-ready one can go (041's order): a not-ready
- * draft whose only trouble is a dependency on another draft in this batch.
+ * Which drafts a not-ready one waits for (041's order): a not-ready draft whose trouble is a
+ * dependency on another draft in this batch that isn't ready either. Since 056 a dependency only
+ * has to be in review, so that one is submitted first, once it's fixed.
  */
 const releaseOrder = (drafts: readonly CheckedDraft[]) => {
   const names = new Set(drafts.flatMap((d) => (d.name ? [d.name] : [])));
@@ -87,14 +91,27 @@ const releaseOrder = (drafts: readonly CheckedDraft[]) => {
   });
 };
 
+/** One step of the order (056): the dependencies go into review first, with the dependent. */
+export const orderLine = (step: { item: string; after: string[] }) => {
+  const one = step.after.length === 1;
+  return `${step.after.join(" and ")} must be in review first: once ${one ? "it is" : "they are"} ready, rmk submit ${step.item} submits ${one ? "it" : "them"} first.`;
+};
+
 /** What the person reads before saying yes: ready ones, then each other one with why. */
 const previewLines = (drafts: readonly CheckedDraft[], unknown: readonly string[]) => {
-  const ready = drafts.filter((d) => d.ready);
+  const ready = drafts.filter((d) => d.ready && !d.includedFor);
+  const included = drafts.filter((d) => d.ready && d.includedFor);
   const other = drafts.filter((d) => !d.ready);
   const lines: string[] = [];
   if (ready.length > 0) {
     lines.push(`Ready to submit (${ready.length}):`);
     for (const draft of ready) lines.push(`  ${label(draft)}`);
+  }
+  if (included.length > 0) {
+    if (lines.length > 0) lines.push("");
+    lines.push(`Included, as dependencies, and submitted first (${included.length}):`);
+    for (const draft of included)
+      lines.push(`  ${label(draft)}`, `    - for ${draft.includedFor?.join(", ")}`);
   }
   if (other.length + unknown.length > 0) {
     if (lines.length > 0) lines.push("");
@@ -111,10 +128,7 @@ const previewLines = (drafts: readonly CheckedDraft[], unknown: readonly string[
   const order = releaseOrder(drafts);
   if (order.length > 0) {
     lines.push("");
-    for (const step of order)
-      lines.push(
-        `Submit and release ${step.after.join(" and ")} first; then ${step.item} can be submitted.`,
-      );
+    for (const step of order) lines.push(orderLine(step));
   }
   return lines;
 };
@@ -138,15 +152,17 @@ export type SubmitPlan = {
 export const planSubmit = async (
   api: ApiClient,
   selection: { refs: readonly string[] } | { all: true },
+  /** Include the person's own dependency drafts (056); `false` is `--no-deps`. */
+  dependencies = true,
 ): Promise<SubmitPlan> => {
   const all = "all" in selection;
   const { ids, unknown } = all ? { ids: [], unknown: [] } : await resolveNames(api, selection.refs);
   const checked =
     all || ids.length > 0
-      ? await api.post<{ drafts: CheckedDraft[]; more: number }>(
-          "/drafts/check",
-          all ? { all: true } : { ids },
-        )
+      ? await api.post<{ drafts: CheckedDraft[]; more: number }>("/drafts/check", {
+          ...(all ? { all: true } : { ids }),
+          ...(dependencies ? {} : { dependencies: false }),
+        })
       : { drafts: [], more: 0 };
   const more =
     checked.more > 0
@@ -167,8 +183,10 @@ export const planSubmit = async (
 
 /** Submits the ready drafts of a plan (`POST /drafts/submit`), and splits what went from what didn't. */
 export const sendSubmit = async (api: ApiClient, plan: SubmitPlan) => {
+  // The check's order, dependencies first; the included ones are named, so none is added again.
   const { results } = await api.post<{ results: SubmitResult[] }>("/drafts/submit", {
     ids: plan.ready.map((d) => d.id),
+    dependencies: false,
   });
   const submitted = results.filter((r) => r.result === "submitted" || r.result === "resubmitted");
   const refusedAtSubmit = results.filter((r) => !submitted.includes(r));
@@ -197,7 +215,7 @@ export const submitLines = (outcome: Awaited<ReturnType<typeof sendSubmit>>, pla
   return lines;
 };
 
-/** `rmk submit [<@scope/name|id>...] [--all] [--dry-run] [--yes]`. */
+/** `rmk submit [<@scope/name|id>...] [--all] [--no-deps] [--dry-run] [--yes]`. */
 export const submitCommand = async (io: Io, args: Args, out: Output, api: ApiClient) => {
   const all = args.values.all === true;
   const dryRun = args.values["dry-run"] === true;
@@ -209,7 +227,11 @@ export const submitCommand = async (io: Io, args: Args, out: Output, api: ApiCli
   if (!asking && !dryRun && !yes)
     throw usage("Without a terminal to ask, add --yes to submit (after checking with --dry-run).");
 
-  const plan = await planSubmit(api, all ? { all: true } : { refs: args.positionals });
+  const plan = await planSubmit(
+    api,
+    all ? { all: true } : { refs: args.positionals },
+    args.values["no-deps"] !== true,
+  );
   out.set("registry", api.registry);
   out.set("checked", plan.checked);
   if (plan.checked.length === 0 && plan.notReady.length === 0) {

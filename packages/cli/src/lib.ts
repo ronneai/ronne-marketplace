@@ -58,6 +58,7 @@ export { type Output, output } from "./output.js";
 export { itemPath } from "./registry-commands.js";
 export {
   type CheckedDraft,
+  orderLine,
   planSubmit,
   type SubmitPlan,
   type SubmitResult,

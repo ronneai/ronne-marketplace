@@ -108,7 +108,12 @@ draft's existence isn't revealed. (From 013, submitted ones are visible to moder
   to the draft's settings.
 - **Files:** the tree lists every file with its size. Actions: new file, new folder (a path prefix),
   rename, delete (`ronne.yaml` can't be deleted), mark a script executable, upload files, and
-  import a `.zip`. Text files open in **CodeMirror 6** with YAML, Markdown, shell, JSON, JavaScript
+  import a `.zip`. *2026-10-01 (owner):* the **starting files** New item creates for the type
+  (`ronne.yaml` and the file it names, such as `SKILL.md`, `prompt.md`, `rule.md`, `command.md`,
+  `hook.sh` or `style.md`) are edited but never renamed or deleted: the editor shows "Starting file"
+  instead of Rename and Delete, a save that deletes one is refused (`StartingFileError`), and a
+  `.zip` that replaces the files keeps the ones it doesn't have. An export (051) still replaces an
+  item's files with what the tool has. Text files open in **CodeMirror 6** with YAML, Markdown, shell, JSON, JavaScript
   and TypeScript highlighting, themed with 032's tokens. Binary files show their size and type, and
   can be replaced or deleted, not edited.
 - **`.zip` import:** replaces or merges (you choose) the draft's files with the archive's. A single
@@ -119,7 +124,14 @@ draft's existence isn't revealed. (From 013, submitted ones are visible to moder
 - **Validation:** a panel under the editor lists 011's issues (errors, then warnings) as you type,
   debounced; clicking one opens the file and line (ronne.yaml's in the YAML view). The same checks run on the server when you save,
   and a draft can be saved while it has errors (a draft is work in progress). 013 refuses to submit
-  one.
+  one. *2026-10-01 (owner):* the panel is replaced by **notifications where they belong**: an icon
+  right after each file's name in the tree (red for errors, amber for warnings only) opens a popover
+  with that file's issues, light red or amber to match; next to the item's name, a summary ("2
+  errors, 1 warning", or "No problems") opens all of them; and "● Unsaved changes" beside the name
+  while anything isn't saved. **Submit for review** is disabled, saying why, while there are
+  unsaved changes or errors. The file's card has no fixed height: the form and the code editor
+  grow with their content, at least 20rem, and the page scrolls instead (the canvas keeps its
+  frame).
 - **Saving:** the Save button and Ctrl/Cmd+S send the changed files in one server action. The page
   warns before leaving with unsaved changes (any changed, new, renamed or deleted file, or
   executable flag): a link opens the shared `UnsavedChangesGuard` dialog ("Stay on this page" or

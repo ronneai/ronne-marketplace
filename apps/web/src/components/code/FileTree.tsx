@@ -2,6 +2,7 @@
 
 import { formatBytes } from "@ronneai/core";
 import { FileText, Folder, Terminal } from "lucide-react";
+import type { ReactNode } from "react";
 
 /** What the tree shows of a file: an editor's file, or a released one (044). */
 export type TreeFile = { path: string; size: number; executable: boolean; dirty?: boolean };
@@ -28,14 +29,17 @@ export const treeRows = <F extends TreeFile>(files: readonly F[]): Row<F>[] => {
 };
 
 /** A list of files as a tree, with their sizes and unsaved marks: the draft editor (012), the item page (044). */
-export const FileTree = ({
+export const FileTree = <F extends TreeFile>({
   files,
   selected,
   onSelect,
+  after,
 }: {
-  files: readonly TreeFile[];
+  files: readonly F[];
   selected: string;
   onSelect: (path: string) => void;
+  /** Shown after a file's row, outside its button: such as its problems' icon (the editor). */
+  after?: (file: F) => ReactNode;
 }) => (
   <ul aria-label="Files" className="grid gap-0.5">
     {treeRows(files).map((row) =>
@@ -49,20 +53,23 @@ export const FileTree = ({
           {row.path.slice(row.path.lastIndexOf("/") + 1)}/
         </li>
       ) : (
-        <li key={row.file.path}>
+        <li
+          key={row.file.path}
+          className="flex items-center gap-1 rounded-control pr-2 font-mono text-xs hover:bg-tint has-[[aria-current=true]]:bg-tint"
+          style={{ paddingLeft: `${0.5 + row.depth * 0.875}rem` }}
+        >
           <button
             type="button"
             onClick={() => onSelect(row.file.path)}
             aria-current={row.file.path === selected ? "true" : undefined}
-            className="flex w-full items-center gap-1.5 rounded-control px-2 py-1 text-left font-mono text-xs text-fg hover:bg-tint aria-[current=true]:bg-tint aria-[current=true]:font-semibold outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
-            style={{ paddingLeft: `${0.5 + row.depth * 0.875}rem` }}
+            className="flex min-w-0 items-center gap-1.5 rounded-control py-1 text-left text-fg aria-[current=true]:font-semibold outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
           >
             {row.file.executable ? (
-              <Terminal size={14} aria-label="Executable" role="img" />
+              <Terminal size={14} aria-label="Executable" role="img" className="shrink-0" />
             ) : (
-              <FileText size={14} aria-hidden="true" />
+              <FileText size={14} aria-hidden="true" className="shrink-0" />
             )}
-            <span className="min-w-0 flex-1 truncate">
+            <span className="min-w-0 truncate">
               {row.file.path.slice(row.file.path.lastIndexOf("/") + 1)}
             </span>
             {row.file.dirty ? (
@@ -71,8 +78,10 @@ export const FileTree = ({
                 <span className="sr-only">(unsaved)</span>
               </>
             ) : null}
-            <span className="shrink-0 text-muted">{formatBytes(row.file.size)}</span>
           </button>
+          {/* Right after the name, such as its problems' icon (the editor, 2026-10-01). */}
+          {after?.(row.file)}
+          <span className="ml-auto shrink-0 pl-2 text-muted">{formatBytes(row.file.size)}</span>
         </li>
       ),
     )}

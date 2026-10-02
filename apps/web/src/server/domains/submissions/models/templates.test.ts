@@ -43,3 +43,13 @@ describe("draftTemplate", () => {
     expect(files("skill").find((f) => f.path === "SKILL.md")?.content).toContain("name: starter\n");
   });
 });
+
+describe("startingFiles", () => {
+  it("is ronne.yaml and the file the type's template names", async () => {
+    const { startingFiles } = await import("./templates");
+    expect(startingFiles("skill")).toEqual(["ronne.yaml", "SKILL.md"]);
+    expect(startingFiles("agent")).toEqual(["ronne.yaml", "prompt.md"]);
+    expect(startingFiles("hook")).toEqual(["ronne.yaml", "hook.sh"]);
+    expect(startingFiles("mcp-server")).toEqual(["ronne.yaml"]);
+  });
+});

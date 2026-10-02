@@ -62,12 +62,21 @@ export const kyselyCatalogueRepository = (
     { search, type, types, scope, tool, installable }: CatalogueFilter,
   ) => {
     let q = query;
-    if (search)
+    // An item's name as people write it (056): `@team/re` is scope `team` and a name with `re`;
+    // a single word also matches the scope.
+    const words = search?.replace(/^@/, "") ?? "";
+    const slash = words.indexOf("/");
+    if (words && slash >= 0) {
+      const [scopePart, namePart] = [words.slice(0, slash), words.slice(slash + 1)];
+      if (scopePart) q = q.where(containsInsensitive("scopes.name", scopePart));
+      if (namePart) q = q.where(containsInsensitive("items.name", namePart));
+    } else if (words)
       q = q.where((eb) =>
         eb.or([
-          containsInsensitive("items.name", search),
-          containsInsensitive("item_versions.description", search),
-          containsInsensitive("item_versions.keywords", search),
+          containsInsensitive("items.name", words),
+          containsInsensitive("scopes.name", words),
+          containsInsensitive("item_versions.description", words),
+          containsInsensitive("item_versions.keywords", words),
         ]),
       );
     if (type) q = q.where("items.type", "=", type);

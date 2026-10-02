@@ -12,12 +12,16 @@ import type { BulkResult } from "./types";
 /**
  * Submitting several drafts at once from My submissions (feature 052). The page marks each open
  * draft Ready or n to fix from one check when it loads; only ready ones can be selected. Submit
- * selected asks first, then submits each on its own and shows what happened to each.
+ * selected asks first, then submits each on its own and shows what happened to each. Selecting a
+ * draft selects the person's own drafts it depends on too, which go first (056); those can't be
+ * unselected while it is.
  */
 type Selection = {
   /** The ready drafts' ids, with their names, as the page found them. */
   ready: ReadonlyMap<string, string>;
   selected: ReadonlySet<string>;
+  /** For a selected draft's dependency: the name of a selected draft that needs it (056). */
+  neededBy: (id: string) => string | null;
   toggle: (id: string) => void;
   selectAll: () => void;
   clear: () => void;
@@ -31,13 +35,54 @@ const useSelection = () => {
   return selection;
 };
 
+type Needs = Readonly<Record<string, readonly string[]>>;
+
+/** The name of a selected draft that needs `id` (056), or null. */
+export const neededBy = (
+  id: string,
+  selected: ReadonlySet<string>,
+  needs: Needs,
+  ready: ReadonlyMap<string, string>,
+): string | null => {
+  for (const other of selected)
+    if (other !== id && (needs[other] ?? []).includes(id)) return ready.get(other) ?? other;
+  return null;
+};
+
+/**
+ * The selection after ticking or unticking `id`: ticking a ready draft adds the ready drafts it
+ * needs, depth first; unticking one that a selected draft needs does nothing (056).
+ */
+export const toggled = (
+  selected: ReadonlySet<string>,
+  id: string,
+  ready: ReadonlyMap<string, string>,
+  needs: Needs,
+): ReadonlySet<string> => {
+  const next = new Set(selected);
+  if (next.has(id)) {
+    if (!neededBy(id, selected, needs, ready)) next.delete(id);
+    return next;
+  }
+  const add = (one: string) => {
+    if (next.has(one) || !ready.has(one)) return;
+    next.add(one);
+    for (const dependency of needs[one] ?? []) add(dependency);
+  };
+  add(id);
+  return next;
+};
+
 /** Holds the selection for the table's checkboxes and the toolbar. */
 export const BulkSubmitProvider = ({
   ready,
+  needs = {},
   children,
 }: {
   /** Ready drafts: id → `@scope/name`. */
   ready: Record<string, string>;
+  /** Each draft's own dependency drafts, by id (056): selected with it. */
+  needs?: Record<string, readonly string[]>;
   children: ReactNode;
 }) => {
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
@@ -45,13 +90,8 @@ export const BulkSubmitProvider = ({
   const value: Selection = {
     ready: readyMap,
     selected,
-    toggle: (id) =>
-      setSelected((previous) => {
-        const next = new Set(previous);
-        if (next.has(id)) next.delete(id);
-        else if (readyMap.has(id)) next.add(id);
-        return next;
-      }),
+    neededBy: (id) => neededBy(id, selected, needs, readyMap),
+    toggle: (id) => setSelected((previous) => toggled(previous, id, readyMap, needs)),
     selectAll: () => setSelected(new Set(readyMap.keys())),
     clear: () => setSelected(new Set()),
   };
@@ -69,18 +109,27 @@ export const SelectCell = ({
   /** What Submit would refuse now; 0 means ready. */
   errors: number;
 }) => {
-  const { selected, toggle } = useSelection();
+  const { selected, toggle, neededBy } = useSelection();
   const ready = errors === 0;
+  const lockedFor = selected.has(id) ? neededBy(id) : null;
   return (
     <input
       type="checkbox"
       aria-label={
-        ready
-          ? `Select ${name}`
-          : `Fix ${errors} ${errors === 1 ? "issue" : "issues"} in ${name} first`
+        !ready
+          ? `Fix ${errors} ${errors === 1 ? "issue" : "issues"} in ${name} first`
+          : lockedFor
+            ? `${name}: included for ${lockedFor}`
+            : `Select ${name}`
       }
-      title={ready ? undefined : `Fix ${errors} ${errors === 1 ? "issue" : "issues"} first`}
-      disabled={!ready}
+      title={
+        !ready
+          ? `Fix ${errors} ${errors === 1 ? "issue" : "issues"} first`
+          : lockedFor
+            ? `Included for ${lockedFor}: it goes first`
+            : undefined
+      }
+      disabled={!ready || lockedFor !== null}
       checked={selected.has(id)}
       onChange={() => toggle(id)}
       className="size-4 rounded-sm border border-strong accent-(--accent) outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus disabled:opacity-40"

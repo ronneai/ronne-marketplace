@@ -7,6 +7,8 @@ import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { inputClasses, Label } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
+import type { DependencyMark } from "@/server/domains/submissions/actions/submissions";
+import { DependencyField } from "./dependency-picker/DependencyField";
 import {
   blockFields,
   DESCRIPTION_MAX_LENGTH,
@@ -352,7 +354,10 @@ export const ManifestForm = ({
   onChange,
   onShowYaml,
   readOnly = false,
+  dependencyMarks = [],
 }: {
+  /** What each saved dependency waits on (056): a badge beside its name. */
+  dependencyMarks?: readonly DependencyMark[];
   text: string;
   type: ItemType;
   itemName: string;
@@ -470,16 +475,15 @@ export const ManifestForm = ({
             {type === "bundle"
               ? "The items this bundle installs."
               : "Items installed with this one."}{" "}
-            Each is a full name, such as @platform/secure-coding, and a version range, such as
-            ^1.0.0.
+            Find one by typing part of its name: published items, yours, and others' in review. It
+            starts on latest; pick another version if you need one.
           </p>
-          <Control
-            field={{ kind: "map", keyLabel: "Item", valueLabel: "Range" }}
-            path={["dependencies"]}
+          {readOnly ? null : <Help id="add-dependency" />}
+          <DependencyField
+            marks={dependencyMarks}
             value={manifest.dependencies}
-            required={type === "bundle"}
-            label="Dependency"
-            files={files}
+            type={type}
+            itemName={itemName}
             onChange={(value) => change(["dependencies"], value, type === "bundle")}
           />
         </fieldset>

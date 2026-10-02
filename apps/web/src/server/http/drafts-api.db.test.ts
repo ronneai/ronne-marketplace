@@ -624,6 +624,11 @@ describe("POST /drafts/check and /drafts/submit (052)", () => {
       [checkDrafts(post("/drafts/check", { ids: [] }), deps), 400, "invalid_request"],
       [checkDrafts(post("/drafts/check", { ids: [1] }), deps), 400, "invalid_request"],
       [checkDrafts(post("/drafts/check", { ids: [id, id] }), deps), 400, "invalid_request"],
+      [
+        checkDrafts(post("/drafts/check", { ids: [id], dependencies: "no" }), deps),
+        400,
+        "invalid_request",
+      ],
       [submitDrafts(post("/drafts/submit", "{"), deps), 400, "invalid_request"],
       [submitDrafts(post("/drafts/submit", { ids: many }), deps), 413, "too_many"],
     ];

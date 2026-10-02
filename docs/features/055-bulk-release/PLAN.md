@@ -19,7 +19,9 @@ the same change that completes it.
 
 - [ ] **2. Domain.** `releaseMany` in the `submissions` service over 015's `publishSubmission`:
   releasable check, dependency order (a sort in `packages/core`, which `rmk`'s `releaseOrder`
-  then uses too), `skipped` for dependents of a failure, the result kinds, `via: "bulk"` in the audit metadata, and the 50 limit. An action for a session.
+  then uses too), selecting a dependent's approved dependencies with it and refusing one waiting on
+  review (056's release rule, moved here from 056's task 3), `skipped` for dependents of a failure,
+  the result kinds, `via: "bulk"` in the audit metadata, and the 50 limit. An action for a session.
   *Done when:* `bulk-release.db.test.ts` covers a dependency and its dependent in one batch, a
   failed dependency, two proposals for one item, a user releasing someone else's, two releases at
   once, a yanked dependency, and the audit, on every database.

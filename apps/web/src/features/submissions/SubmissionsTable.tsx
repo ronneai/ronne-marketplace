@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DependencyMarkBadges } from "@/components/submissions/DependencyMarks";
 import { ProposalBadges } from "@/components/submissions/ProposalBadges";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { buttonClasses } from "@/components/ui/Button";
@@ -6,6 +7,7 @@ import { LocalTime } from "@/components/ui/LocalTime";
 import { Panel } from "@/components/ui/Panel";
 import { Table, Td, Th } from "@/components/ui/Table";
 import { TypeBadge } from "@/components/ui/TypeBadge";
+import type { DependencyMark } from "@/server/domains/submissions/actions/submissions";
 import {
   SUBMISSION_STATUSES,
   type SubmissionStatus,
@@ -73,6 +75,7 @@ export const StatusFilters = ({
 export const SubmissionsTable = ({
   submissions,
   errors,
+  marks,
 }: {
   /** With `stale` for change proposals (017) that a newer version overtook. */
   submissions: (Submission & { stale?: string | null })[];
@@ -81,6 +84,8 @@ export const SubmissionsTable = ({
    * when ready). Rows with a count get a checkbox and a Ready or n to fix mark; without it, none.
    */
   errors?: Readonly<Record<string, number>>;
+  /** What each waits on (056), by id: dependencies in review, not submitted, or blocked. */
+  marks?: Readonly<Record<string, readonly DependencyMark[]>>;
 }) => {
   if (submissions.length === 0)
     return (
@@ -143,6 +148,11 @@ export const SubmissionsTable = ({
               <StatusBadge status={submission.status} />
               {errors?.[submission.id] !== undefined ? (
                 <ReadinessMark id={submission.id} errors={errors[submission.id] ?? 0} />
+              ) : null}
+              {marks?.[submission.id] ? (
+                <span className="mt-1 block">
+                  <DependencyMarkBadges marks={marks[submission.id]} />
+                </span>
               ) : null}
             </Td>
             <Td className="whitespace-nowrap font-mono text-xs text-muted">

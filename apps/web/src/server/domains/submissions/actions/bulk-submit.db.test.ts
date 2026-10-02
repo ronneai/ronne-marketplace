@@ -182,3 +182,85 @@ describe("checkManyDrafts and submitManyDrafts (052)", () => {
     });
   });
 });
+
+describe("dependency drafts go first (056)", () => {
+  /** A bundle draft that depends on `names`, ready to submit once they're in review. */
+  const bundle = async (name: string, names: string[]) => {
+    const created = await createDraft(asAuthor, { scope: "team", name, type: "bundle" }, app);
+    const manifest = created.files.find((file) => file.path === "ronne.yaml");
+    await saveDraftFiles(
+      asAuthor,
+      created.id,
+      {
+        writes: [
+          {
+            path: "ronne.yaml",
+            encoding: "utf8",
+            content: `name: "@team/${name}"\ntype: bundle\ndescription: A set.\ndependencies:\n${names.map((n) => `  "@team/${n}": "^1.0.0"\n`).join("")}`,
+            executable: false,
+            loadedAt: manifest?.updatedAt ?? null,
+          },
+        ],
+        deletes: [],
+      },
+      app,
+    );
+    return created;
+  };
+
+  it("includes the person's own dependency drafts before what needs them, and checks it ready", async () => {
+    const style = await draft("style");
+    const tabs = await draft("tabs");
+    const kit = await bundle("kit", ["style", "tabs"]);
+    const { drafts } = await checkManyDrafts(asAuthor, { ids: [kit.id] }, app);
+    expect(drafts.map((d) => [d.id, d.result, d.includedFor])).toEqual([
+      [style.id, "ready", ["@team/kit"]],
+      [tabs.id, "ready", ["@team/kit"]],
+      [kit.id, "ready", undefined],
+    ]);
+    expect(drafts[2]?.needs).toEqual([style.id, tabs.id]);
+    const kitChecked = drafts[2];
+    expect(kitChecked && "issues" in kitChecked ? kitChecked.issues : []).toEqual([
+      expect.objectContaining({ code: "dependency_pending" }),
+      expect.objectContaining({ code: "dependency_pending" }),
+    ]);
+    expect(await statusOf(style.id)).toBe("draft");
+
+    const { results } = await submitManyDrafts(asAuthor, { ids: [kit.id] }, app);
+    expect(results.map((r) => [r.id, r.result, r.includedFor])).toEqual([
+      [style.id, "submitted", ["@team/kit"]],
+      [tabs.id, "submitted", ["@team/kit"]],
+      [kit.id, "submitted", undefined],
+    ]);
+  });
+
+  it("leaves them out with dependencies: false, and holds the dependent when one isn't ready", async () => {
+    const style = await draft("style");
+    const kit = await bundle("kit", ["style"]);
+    const alone = await checkManyDrafts(asAuthor, { ids: [kit.id], dependencies: false }, app);
+    expect(alone.drafts.map((d) => [d.id, d.result])).toEqual([[kit.id, "not_ready"]]);
+
+    const notes = await draft("notes", false);
+    const other = await bundle("other", ["notes"]);
+    const { results } = await submitManyDrafts(asAuthor, { ids: [other.id] }, app);
+    expect(results.map((r) => [r.id, r.result])).toEqual([
+      [notes.id, "not_ready"],
+      [other.id, "not_ready"],
+    ]);
+    expect(await statusOf(style.id)).toBe("draft");
+  });
+
+  it("puts a selected dependency before its dependent, and never includes someone else's draft", async () => {
+    const style = await draft("style");
+    const kit = await bundle("kit", ["style"]);
+    await draft("tabs", true, asOther);
+    const both = await checkManyDrafts(asAuthor, { ids: [kit.id, style.id] }, app);
+    expect(both.drafts.map((d) => [d.id, d.includedFor])).toEqual([
+      [style.id, undefined],
+      [kit.id, undefined],
+    ]);
+    const theirs = await bundle("needs-theirs", ["tabs"]);
+    const { drafts } = await checkManyDrafts(asAuthor, { ids: [theirs.id] }, app);
+    expect(drafts.map((d) => [d.id, d.result])).toEqual([[theirs.id, "not_ready"]]);
+  });
+});

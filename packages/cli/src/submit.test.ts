@@ -82,8 +82,10 @@ describe("rmk submit (052)", () => {
       ].join("\n"),
     );
     expect(submitted).toEqual([ID.style]);
+    // The check already included any dependency drafts, so the submit doesn't add them again.
     expect(io.requests.find((r) => r.path === "/api/v1/drafts/submit")?.body).toEqual({
       ids: [ID.style],
+      dependencies: false,
     });
     expect(result.stdout).toContain(
       `@team/style: submitted for review (revision 1) at ${REGISTRY}/submissions/${ID.style}`,
@@ -107,15 +109,45 @@ describe("rmk submit (052)", () => {
     expect(all.exitCode).toBe(1);
   });
 
-  it("says the order when a draft waits for another to be released", async () => {
+  it("says the order when a draft waits for another to be in review", async () => {
     setup();
     const result = await rmk("submit", "--all", "--dry-run");
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain(
-      "Submit and release @team/checklist first; then @team/reviewer can be submitted.",
+      "@team/checklist must be in review first: once it is ready, rmk submit @team/reviewer submits it first.",
     );
     expect(result.stdout).toContain("Dry run: nothing was submitted.");
     expect(posts()).toEqual(["/api/v1/drafts/check"]);
+  });
+
+  it("includes your dependency drafts, first, and leaves them out with --no-deps (056)", async () => {
+    const kit = "01J0000000000000000000000G";
+    setup({
+      drafts: [
+        ...DRAFTS,
+        {
+          id: kit,
+          name: "@team/kit",
+          type: "bundle",
+          status: "draft",
+          includes: [ID.style],
+          errors: [{ code: "dependency_not_found", message: "@team/style isn't in review." }],
+        },
+      ],
+    });
+    const preview = await rmk("submit", kit, "--dry-run");
+    expect(preview.stdout).toContain("Included, as dependencies, and submitted first (1):");
+    expect(preview.stdout).toContain("    - for @team/kit");
+    const result = await rmk("submit", kit, "--yes");
+    expect(io.requests.find((r) => r.path === "/api/v1/drafts/submit")?.body).toEqual({
+      ids: [ID.style, kit],
+      dependencies: false,
+    });
+    expect(result.exitCode).toBe(0);
+
+    const alone = await rmk("submit", kit, "--no-deps", "--dry-run");
+    expect(io.requests.at(-1)?.body).toEqual({ ids: [kit], dependencies: false });
+    expect(alone.stdout).toContain("@team/style isn't in review.");
   });
 
   it("needs an id when a name has several drafts, and says which names have none", async () => {
