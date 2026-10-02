@@ -118,8 +118,11 @@ export const TOPICS = [
   {
     slug: "admin",
     title: "Administration",
-    summary: "For roots: reading the audit log of who did what, and when.",
-    sections: [{ id: "audit", title: "Audit log" }],
+    summary: "For roots: finding users, and reading the audit log of who did what, and when.",
+    sections: [
+      { id: "users", title: "Users" },
+      { id: "audit", title: "Audit log" },
+    ],
   },
   {
     slug: "rmk",

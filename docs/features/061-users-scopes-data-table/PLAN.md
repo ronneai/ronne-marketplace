@@ -30,7 +30,7 @@ the same change that completes it.
   *Done when:* the scopes render tests cover both pages, and `scopes.e2e.ts` passes, updated for
   the new controls.
 
-- [ ] **5. Documentation.** Scopes › "What a scope is" and Administration › Users.
+- [x] **5. Documentation.** Scopes › "Who creates and uses them" and Administration › Users.
   *Done when:* the docs render tests pass, and the index marks 061 `done`.
 
 ## Notes

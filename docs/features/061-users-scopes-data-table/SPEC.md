@@ -118,8 +118,8 @@ sorts: { name: "asc", created: "desc" }, defaultSort: "name", filters: { q: "str
 ## Documentation
 
 - **Install › Root accounts and Roles:** no change.
-- **Scopes › "What a scope is"** (`content.tsx`): one sentence saying the list can be sorted by
-  name or creation date, and searched.
+- **Scopes › "Who creates and uses them"** (`content.tsx`), where the Scopes page is described:
+  the list can be sorted by name or newest first, and searched.
 - **Administration** (060's topic) gains a short **"Users"** section:
   - finding people (search, role, status);
   - sorting;
@@ -128,18 +128,18 @@ sorts: { name: "asc", created: "desc" }, defaultSort: "name", filters: { q: "str
 
 ## Acceptance criteria
 
-- [ ] `/admin/users` and both scope pages render with `DataTable`. Their old tables, pagination
+- [x] `/admin/users` and both scope pages render with `DataTable`. Their old tables, pagination
   and query helpers are gone.
-- [ ] Users sort by email, name and created, and scopes by name and created, both ways. There's no
+- [x] Users sort by email, name and created, and scopes by name and created, both ways. There's no
   repeat and no gap across pages on SQLite, PostgreSQL, MySQL and MariaDB.
-- [ ] Filters apply on change and show as chips. Page sizes are 25, 50 and 100, and the totals
+- [x] Filters apply on change and show as chips. Page sizes are 25, 50 and 100, and the totals
   show.
-- [ ] `0015_user_name_index` runs on all four databases.
-- [ ] `GET /api/v1/scopes` answers exactly as before (its tests unchanged), and the new-draft page
+- [x] `0015_user_name_index` runs on all four databases.
+- [x] `GET /api/v1/scopes` answers exactly as before (its tests unchanged), and the new-draft page
   still lists every scope.
-- [ ] The row actions, root-only access and the own-row rule behave as before (the existing
+- [x] The row actions, root-only access and the own-row rule behave as before (the existing
   end-to-end tests, updated only for the new controls).
-- [ ] The Documentation listed above says what the feature does now.
+- [x] The Documentation listed above says what the feature does now.
 
 ## Open questions
 
