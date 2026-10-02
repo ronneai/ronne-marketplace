@@ -149,7 +149,7 @@ describe("dependencyReports", () => {
     expect(found["@team/nowhere"]).toEqual({
       facts: null,
       problems: [
-        "@team/nowhere isn't a published item. A dependency has to be released before items can depend on it.",
+        "@team/nowhere isn't a published item or in review. Submit it first: a dependency counts once it's in review.",
       ],
     });
     expect(found["not a name"]?.facts).toBeNull();

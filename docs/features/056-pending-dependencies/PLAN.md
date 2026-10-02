@@ -11,7 +11,7 @@ the same change that completes it.
   dependency on its way, and the spec is updated before anything is built.
   *Done when:* the spec has no open question that changes what's built.
 
-- [ ] **1. The submit rule.** `RegistryLookup` finds open submissions by name (type and latest
+- [x] **1. The submit rule.** `RegistryLookup` finds open submissions by name (type and latest
   revision's dependencies); `dependencyIssues` accepts one with the warning, keeps the range check
   for releases, and follows open submissions for cycles.
   *Done when:* `registry-checks.test.ts` covers released, on its way, draft-only, rejected,

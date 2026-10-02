@@ -91,8 +91,30 @@ export class ItemNameTakenError extends SubmissionsError {
 export class DependencyNotFoundError extends SubmissionsError {
   constructor(readonly dependency: string) {
     super(
-      `${dependency} isn't a published item. A dependency has to be released before items can depend on it.`,
+      `${dependency} isn't a published item or in review. Submit it first: a dependency counts once it's in review.`,
     );
+  }
+}
+
+/** A dependency whose only submission was rejected or withdrawn (056): it won't be released. */
+export class DependencyClosedError extends SubmissionsError {
+  constructor(
+    readonly dependency: string,
+    readonly status: "rejected" | "withdrawn",
+  ) {
+    super(
+      `${dependency} was ${status}, so it won't be released. Remove it from dependencies, or depend on another item.`,
+    );
+  }
+}
+
+/** At release (056), a dependency still in review: it's released first. */
+export class DependencyUnreleasedError extends SubmissionsError {
+  constructor(
+    readonly dependency: string,
+    readonly status: string,
+  ) {
+    super(`${dependency} isn't released yet (it's ${status}). Release it first.`);
   }
 }
 

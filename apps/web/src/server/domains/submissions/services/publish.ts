@@ -80,7 +80,8 @@ export const publishSubmission = async (
   // yanked, or the name taken, since the approval.
   const revision = (await deps.repo.revisions(submission.id)).at(-1);
   const files = revision ? await deps.repo.revisionFiles(revision.id) : [];
-  const issues = await allIssues(deps, deps.repo, submission, files);
+  // Every dependency has to be released by now, not only in review (056).
+  const issues = await allIssues(deps, deps.repo, submission, files, { release: true });
   if (hasErrors(issues)) throw new SubmissionInvalidError(issues);
   const manifestFile = files.find((file) => file.path === MANIFEST_PATH);
   const manifest = manifestFile

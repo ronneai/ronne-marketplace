@@ -10,10 +10,11 @@ import { signIn } from "../../identity/actions/session";
 import type { AppAuth } from "../../identity/repositories/auth-instance";
 import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testing/test-auth";
 import { createScope } from "../../items/actions/scopes";
+import { kyselyRegistryLookup } from "../repositories/kysely-registry-lookup";
 import { createDraft, saveDraftFiles } from "./drafts";
 import { publishSubmission } from "./publish";
 import { decide } from "./reviews";
-import { checkSubmission, submitDraft } from "./submissions";
+import { checkSubmission, submitDraft, withdrawSubmission } from "./submissions";
 
 // 013's registry checks, now against what 015 publishes.
 let t: TestDb;
@@ -74,6 +75,14 @@ const draftWith = async (
   await saveDraftFiles(asAuthor, draft.id, { writes, deletes: [] }, app);
   return draft.id;
 };
+
+/** An MCP server draft, not submitted. */
+const serverDraft = (name: string) =>
+  draftWith(
+    name,
+    "mcp-server",
+    `name: "@team/${name}"\ntype: mcp-server\ndescription: Something.\nmcp-server:\n  transport: stdio\n  command: npx\n`,
+  );
 
 /** Publishes an MCP server as 1.0.0. */
 const released = async (name: string) => {
@@ -154,5 +163,66 @@ describe("registry checks against published items", () => {
     const [issue] = await checkSubmission(asAuthor, id, app);
     expect(issue).toMatchObject({ code: "name_taken" });
     expect(issue?.message).toContain("already a published item");
+  });
+});
+
+describe("dependencies on their way (056)", () => {
+  const storage = () => localStorage(storageRoot);
+
+  it("lists a name's submissions that aren't drafts, newest first, with their dependencies", async () => {
+    const lookup = kyselyRegistryLookup(t.db, t.dialect);
+    const draft = await serverDraft("github");
+    expect(await lookup.submissionsNamed("team", "github")).toEqual([]);
+    await submitDraft(asAuthor, draft, app);
+    const reviewer = await skillNeeding("reviewer", '  "@team/github": "^1.0.0"\n');
+    await submitDraft(asAuthor, reviewer, app);
+    expect(await lookup.submissionsNamed("team", "github")).toEqual([
+      { id: draft, status: "submitted", type: "mcp-server", proposal: false, dependencies: {} },
+    ]);
+    expect(await lookup.submissionsNamed("team", "reviewer")).toEqual([
+      expect.objectContaining({ dependencies: { "@team/github": "^1.0.0" } }),
+    ]);
+  });
+
+  it("submits a dependent of one in review, and releases it only after its dependency", async () => {
+    const github = await serverDraft("github");
+    const reviewer = await skillNeeding("reviewer", '  "@team/github": "^1.0.0"\n');
+    expect(await codes(reviewer)).toEqual(["dependency_not_found"]);
+
+    await submitDraft(asAuthor, github, app);
+    expect(await checkSubmission(asAuthor, reviewer, app)).toEqual([
+      expect.objectContaining({ severity: "warning", code: "dependency_pending" }),
+    ]);
+    await submitDraft(asAuthor, reviewer, app);
+    await decide(asModerator, reviewer, { decision: "approve" }, app);
+    await decide(asModerator, github, { decision: "approve" }, app);
+
+    const release = (id: string) =>
+      publishSubmission(
+        asAuthor,
+        id,
+        { choice: { kind: "stable", bump: "patch" } },
+        app,
+        storage(),
+      );
+    await expect(release(reviewer)).rejects.toMatchObject({
+      issues: [
+        expect.objectContaining({
+          code: "dependency_unreleased",
+          message: "@team/github isn't released yet (it's approved). Release it first.",
+        }),
+      ],
+    });
+    await release(github);
+    await expect(release(reviewer)).resolves.toMatchObject({ version: "1.0.0" });
+  });
+
+  it("refuses a dependency whose submission was withdrawn", async () => {
+    const github = await serverDraft("github");
+    await submitDraft(asAuthor, github, app);
+    await withdrawSubmission(asAuthor, github, app);
+    expect(await codes(await skillNeeding("reviewer", '  "@team/github": "^1.0.0"\n'))).toEqual([
+      "dependency_closed",
+    ]);
   });
 });

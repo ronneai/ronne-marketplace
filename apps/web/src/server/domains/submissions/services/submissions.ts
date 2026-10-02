@@ -88,6 +88,8 @@ export const allIssues = async (
   submission: Submission,
   /** The files to check: the saved ones by default, or a revision's (the review page, 014). */
   given?: readonly Omit<DraftFile, "updatedAt">[],
+  /** At release (015), every dependency has to be released, not only on its way (056). */
+  options: { release?: boolean } = {},
 ): Promise<ManifestIssue[]> => {
   const files = given ?? (await repo.files(submission.id));
   const issues = validateDraft(submission, files, deps.limits ?? DEFAULT_LIMITS);
@@ -115,7 +117,7 @@ export const allIssues = async (
         file: path,
       }),
     ),
-    ...(await registryIssues(repo, registry, submission, files)),
+    ...(await registryIssues(repo, registry, submission, files, options)),
   ];
 };
 
