@@ -38,7 +38,7 @@ the same change that completes it.
   - `deleteDraft`'s new audit event;
   - restore and delete by someone else (not found).
 
-- [ ] **3. The dialog and the page.**
+- [x] **3. The dialog and the page.**
   - `WithdrawDialog` (`features/draft-editor/SubmitDialogs.tsx`): the two radio cards, Delete
     disabled with its reason, and 056's dependents line kept.
   - The editor needs a `canDelete` flag from the page loader.

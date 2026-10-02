@@ -57,9 +57,9 @@ test("a user writes a skill, submits it, sees it read-only, and withdraws it", a
 
   await page.getByRole("button", { name: "Withdraw" }).click();
   const withdraw = page.getByRole("dialog", { name: /Withdraw/ });
-  await expect(withdraw.getByText("It can't be undone.")).toBeVisible();
-  await withdraw.getByRole("button", { name: "Withdraw" }).click();
-  await expect(page.getByText("It stays here, read-only, for history.")).toBeVisible();
+  await expect(withdraw.getByRole("radio", { name: /Archive/ })).toBeChecked();
+  await withdraw.getByRole("button", { name: "Archive" }).click();
+  await expect(page.getByText("It's out of review and doesn't hold its name.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Withdraw" })).toHaveCount(0);
 
   await page.goto("/submissions");

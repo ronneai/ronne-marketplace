@@ -61,6 +61,13 @@ export const withdrawSubmission = async (
   mode: "archive" | "delete" = "archive",
 ) => service.withdrawSubmission(deps(app), await actor(headers, app), id, mode);
 
+/** Whether the person's own submission can be deleted for good now (057). */
+export const canDeleteSubmission = async (
+  headers: Headers,
+  id: string,
+  app: AppAuth = getAppAuth(),
+) => service.canDeleteSubmission(deps(app), await actor(headers, app), id);
+
 /** Deletes an archived submission, or a draft, for good (057). */
 export const deleteSubmission = async (headers: Headers, id: string, app: AppAuth = getAppAuth()) =>
   service.deleteSubmission(deps(app), await actor(headers, app), id);

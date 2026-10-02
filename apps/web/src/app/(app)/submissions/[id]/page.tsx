@@ -10,6 +10,7 @@ import { versionsPath } from "@/features/versions/links";
 import { type ProposalPanel, proposalPanel } from "@/server/domains/submissions/actions/proposals";
 import { getReview, listDependents } from "@/server/domains/submissions/actions/reviews";
 import {
+  canDeleteSubmission,
   type DependencyMark,
   dependencyMarks,
   viewSubmission,
@@ -47,8 +48,11 @@ const toEditorDraft = (
   panel: ProposalPanel | null,
   dependents = 0,
   dependencyMarks: DependencyMark[] = [],
+  canDelete = false,
 ): EditorDraft => ({
   dependents,
+  canDelete,
+  canRestore: draft.mine && canTransition(draft.status, "restore"),
   dependencyMarks,
   id: draft.id,
   scope: draft.scope.name,
@@ -100,6 +104,12 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
     draft.mine && draft.status !== "draft" && canTransition(draft.status, "withdraw")
       ? (await listDependents(request, id)).length
       : 0;
+  // Withdraw offers deleting for good, and an archived one can be deleted, when no reviewer took
+  // part (057).
+  const canDelete =
+    draft.mine &&
+    (canTransition(draft.status, "withdraw") || draft.status === "withdrawn") &&
+    (await canDeleteSubmission(request, id));
   return (
     <div className="grid gap-6">
       {/* A new version from the server (an import, a rename, a submit) starts the editor afresh. */}
@@ -111,6 +121,7 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
           panel,
           dependents,
           marks,
+          canDelete,
         )}
       />
       {review?.can.publish ? (

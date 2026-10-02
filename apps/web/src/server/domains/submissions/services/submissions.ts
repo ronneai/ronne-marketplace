@@ -269,6 +269,13 @@ export const isDeletable = async (
 ): Promise<boolean> =>
   DELETABLE.includes(submission.status) && !(await hasReviewHistory(repo, submission));
 
+/** Whether the actor's own submission can be deleted for good now (057), for its page. */
+export const canDeleteSubmission = async (
+  deps: SubmissionDeps,
+  actor: SubmissionActor,
+  id: string,
+): Promise<boolean> => isDeletable(deps.repo, await own(deps.repo, actor, id));
+
 /**
  * Removes the author's submission for good, with its files, revisions and conversation (the
  * foreign keys cascade), and records `submission.deleted`; the audit row stays. Call it inside a

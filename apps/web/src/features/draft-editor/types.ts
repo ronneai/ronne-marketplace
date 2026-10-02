@@ -29,6 +29,10 @@ export type EditorDraft = {
   readOnly: boolean;
   canSubmit: boolean;
   canWithdraw: boolean;
+  /** Whether the author can delete it for good (057): no reviewer has taken part. */
+  canDelete?: boolean;
+  /** Archived and the viewer's: it can come back as a draft (057). */
+  canRestore?: boolean;
   /** What each dependency waits on (056), shown beside its name in the form. */
   dependencyMarks?: DependencyMark[];
   /** How many open submissions depend on it (056): withdrawing leaves them blocked. */

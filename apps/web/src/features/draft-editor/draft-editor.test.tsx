@@ -10,6 +10,7 @@ import type { EditorFile } from "./types";
 const drafts = vi.hoisted(() => ({
   viewSubmission: vi.fn(),
   dependencyMarks: vi.fn(async () => ({})),
+  canDeleteSubmission: vi.fn(async () => true),
 }));
 vi.mock("@/server/domains/submissions/actions/submissions", () => drafts);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
@@ -22,6 +23,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("./actions", () => ({}));
 
 const { DraftEditor } = await import("./DraftEditor");
+const { WithdrawDialog } = await import("./SubmitDialogs");
 const { default: DraftPage } = await import("@/app/(app)/submissions/[id]/page");
 
 const T1 = "2026-09-27T10:00:00.000Z";
@@ -271,14 +273,31 @@ describe("the draft page", () => {
     });
     expect(theirs).toContain("Someone else&#x27;s submission.");
     expect(theirs).not.toContain("Withdraw");
-    const withdrawn = view({
+    const archived = view({
       status: "withdrawn",
       readOnly: true,
       canSubmit: false,
       canWithdraw: false,
+      canRestore: true,
     });
-    expect(withdrawn).toContain("Withdrawn.");
-    expect(withdrawn).toContain(">archived<");
+    expect(archived).toContain("Archived.");
+    expect(archived).toContain(">archived<");
+    expect(archived).toContain("Restore it to edit and submit it again.");
+    expect(archived).toContain(">Restore<");
+    expect(archived).not.toContain("Delete for good");
+    expect(archived).not.toContain("Withdraw");
+  });
+
+  it("offers deleting an archived one for good when no reviewer took part (057)", () => {
+    const archived = view({
+      status: "withdrawn",
+      readOnly: true,
+      canSubmit: false,
+      canWithdraw: false,
+      canRestore: true,
+      canDelete: true,
+    });
+    expect(archived).toContain("Delete for good");
   });
 
   it("links a released item to its Versions page, and nothing else does", () => {
@@ -293,5 +312,37 @@ describe("the draft page", () => {
       /<a [^>]*href="\/items\/platform\/reviewer\/versions"[^>]*>.*View versions<\/a>/,
     );
     expect(view({})).not.toContain("View versions");
+  });
+});
+
+describe("WithdrawDialog (057)", () => {
+  const dialog = (canDelete: boolean, dependents = 0) =>
+    renderToStaticMarkup(
+      <WithdrawDialog
+        draftId="d"
+        itemName="@platform/reviewer"
+        canDelete={canDelete}
+        dependents={dependents}
+        onClose={() => {}}
+      />,
+    );
+
+  it("offers archiving, selected, and deleting for good", () => {
+    const html = dialog(true);
+    expect(html).toContain("Withdraw @platform/reviewer?");
+    const radio = (value: string) =>
+      html.match(new RegExp(`<input[^>]*value="${value}"[^>]*>`))?.[0];
+    expect(radio("archive")).toContain('checked=""');
+    expect(html).toContain("Find it under Archived, where you can restore it as a draft.");
+    expect(html).toContain("This can&#x27;t be undone.");
+    expect(radio("delete")).not.toContain('disabled=""');
+    expect(html).toContain(">Archive</button>");
+  });
+
+  it("disables deleting, with the reason, once a reviewer took part", () => {
+    const html = dialog(false, 2);
+    expect(html.match(/<input[^>]*value="delete"[^>]*>/)?.[0]).toContain('disabled=""');
+    expect(html).toContain("Reviewers have commented on it or decided it. Archive it instead.");
+    expect(html).toContain("2 submissions depend");
   });
 });
