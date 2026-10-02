@@ -14,6 +14,8 @@ import {
   TextField,
   Th,
 } from "@/components/ui";
+import { type Column, DataTable } from "@/components/ui/data-table/DataTable";
+import { defineList, parseListQuery } from "@/components/ui/data-table/list-query";
 import { Checkbox, Label } from "@/components/ui/Field";
 import { TypeBadge } from "@/components/ui/TypeBadge";
 import { ManifestCheckDemo } from "../manifest-validation/ManifestCheckDemo";
@@ -37,6 +39,21 @@ const SIGNALS = [
   ["error-subtle", "bg-error-subtle"],
   ["warning-subtle", "bg-warning-subtle"],
 ] as const;
+
+/** A server data table with static rows (060): sorting and paging links only change the URL here. */
+const DEMO_LIST = defineList({
+  path: "/styleguide",
+  sorts: { name: "asc" },
+  defaultSort: "name",
+  sizes: [25, 50],
+  defaultSize: 25,
+  filters: {},
+});
+type DemoRow = { name: string; owner: string };
+const DEMO_COLUMNS: Column<DemoRow, "name">[] = [
+  { id: "name", header: "Name", sort: "name", mono: true, render: (row) => row.name },
+  { id: "owner", header: "Owner", truncate: true, hideOnMobile: true, render: (row) => row.owner },
+];
 
 const Section = ({ title, children }: { title: string; children: ReactNode }) => {
   return (
@@ -157,6 +174,22 @@ export const ThemeSample = ({ theme }: { theme: "light" | "dark" }) => {
             </tr>
           </tbody>
         </Table>
+      </Section>
+      <Section title="data table (server)">
+        <DataTable
+          list={DEMO_LIST}
+          state={parseListQuery(DEMO_LIST, {})}
+          columns={DEMO_COLUMNS}
+          rows={[
+            { name: "@platform/code-reviewer", owner: "alex@example.com" },
+            { name: "@platform/release-notes", owner: "sam@example.com" },
+          ]}
+          rowKey={(row) => row.name}
+          page={{ next: "demo", previous: null }}
+          total={{ count: 1234, capped: false }}
+          noun="items"
+          empty={{ none: "No items yet.", filtered: "No items match these filters." }}
+        />
       </Section>
       <Section title="tabs, command, dialog">
         <Tabs

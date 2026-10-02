@@ -86,10 +86,12 @@ const AUDIT_LIST = defineList({
 - **The empty state:** "No events yet", or "No events match these filters" with a **Clear
   filters** link. The words come from the list.
 - **The pagination bar**, under the table:
-  - the count: "1–50 of 1,234", or "of 10,000+" past the cap;
+  - the total: "1,234 events", or "10,000+ events" past the cap. It doesn't say which rows of the
+    total a page holds ("51–100"), because keyset paging doesn't know a page's position without
+    a second count;
   - **First**, **Previous** and **Next** links, disabled at the ends;
-  - the page size (a small GET form, with a Show button that's hidden when JavaScript runs and
-    submits on change).
+  - the page size (a small GET form through `next/form`, so it navigates on the client; its Show
+    button is hidden when JavaScript runs, and the select submits on change).
 
   It doesn't jump to page N: keyset paging has no page numbers, and Previous, Next and First
   cover reading a log.

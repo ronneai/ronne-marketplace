@@ -19,7 +19,7 @@ the same change that completes it.
   (defaults left out; a filter, sort or size change drops the cursor).
   *Done when:* unit tests cover every fallback and the round trip from URL to state and back.
 
-- [ ] **3. The `DataTable` component.** Sortable headers (links, `aria-sort`, a direction icon),
+- [x] **3. The `DataTable` component.** Sortable headers (links, `aria-sort`, a direction icon),
   cells from `render`, truncation, the empty state, the pagination bar (count, First, Previous,
   Next, page size) and the toolbar slot. It's a server component: links and GET forms only, with a
   small client island that submits on change.
