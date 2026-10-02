@@ -9,9 +9,11 @@ import {
   ForbiddenError,
   InvalidPasswordError,
   InvalidRoleError,
+  LastRootError,
   UserNotFoundError,
 } from "../exceptions/errors";
 import { GENERATED_PASSWORD_LENGTH } from "../models/generated-password";
+import { argon2PasswordHasher } from "../repositories/argon2-password-hasher";
 import type { AppAuth } from "../repositories/auth-instance";
 import { kyselyIdentityRepository } from "../repositories/kysely-identity-repository";
 import * as service from "../services/user-admin";
@@ -304,6 +306,87 @@ describe("disable and enable", () => {
     expect(await canSignIn("r2@example.com", rootPassword)).toBe(false);
     await adminEnableUser(asRoot, id, app);
     expect(await canSignIn("r2@example.com", rootPassword)).toBe(true);
+  });
+});
+
+describe("roots acting at once (059)", () => {
+  const noHasher = { hash: async () => "", verify: async () => false };
+  const activeRoots = async () =>
+    (
+      await t.db
+        .selectFrom("user")
+        .select(["email", "role"])
+        .where("role", "=", "root")
+        .where("disabled_at", "is", null)
+        .execute()
+    ).map((u) => u.email);
+
+  it("two roots demoting each other: one wins, the other is refused, one root remains", async () => {
+    await createTestUser(app, { email: "r2@example.com", password: rootPassword, role: "root" });
+    const second = await headersFor("r2@example.com", rootPassword);
+    const secondId = (await getCurrentUser(second, app))?.id ?? "";
+    const results = await Promise.allSettled([
+      adminChangeRole(asRoot, secondId, "user", app),
+      adminChangeRole(second, rootId, "user", app),
+    ]);
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    const [refused] = results.filter((r) => r.status === "rejected");
+    expect((refused as PromiseRejectedResult).reason).toBeInstanceOf(ForbiddenError);
+    expect(await activeRoots()).toHaveLength(1);
+    expect(await events("user.role_changed")).toHaveLength(1);
+  });
+
+  it("two roots disabling each other: the same", async () => {
+    await createTestUser(app, { email: "r2@example.com", password: rootPassword, role: "root" });
+    const second = await headersFor("r2@example.com", rootPassword);
+    const secondId = (await getCurrentUser(second, app))?.id ?? "";
+    const results = await Promise.allSettled([
+      adminDisableUser(asRoot, secondId, app),
+      adminDisableUser(second, rootId, app),
+    ]);
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    expect(await activeRoots()).toHaveLength(1);
+  });
+
+  it("a root demoted after the request began can't finish the change", async () => {
+    const root = await getCurrentUser(asRoot, app);
+    const target = await createTestUser(app, { email: "u@example.com", password: rootPassword });
+    await createTestUser(app, { email: "r2@example.com", password: rootPassword, role: "root" });
+    await t.db.updateTable("user").set({ role: "moderator" }).where("id", "=", rootId).execute();
+    const repo = kyselyIdentityRepository(t.db, t.dialect);
+    await expect(
+      service.changeRole({ repo, hasher: noHasher }, { user: root, ip: null }, target, "root"),
+    ).rejects.toThrow(ForbiddenError);
+    await expect(
+      service.createUser(
+        { repo, hasher: argon2PasswordHasher },
+        { user: root, ip: null },
+        { email: "x@example.com", name: "X", role: "user" },
+      ),
+    ).rejects.toThrow(ForbiddenError);
+    expect(await events("user.role_changed")).toEqual([]);
+  });
+
+  it("never leaves the instance without an active root", async () => {
+    // Reachable only through a race or bad data: the repository reports no root left.
+    const other = await createTestUser(app, {
+      email: "r2@example.com",
+      password: rootPassword,
+      role: "root",
+    });
+    const real = kyselyIdentityRepository(t.db, t.dialect);
+    const noRootsLeft = {
+      ...real,
+      transaction: <T>(work: (repo: typeof real) => Promise<T>) =>
+        real.transaction((repo) => work({ ...repo, countActiveRoots: async () => 0 })),
+    };
+    const actor = { user: await getCurrentUser(asRoot, app), ip: null };
+    const deps = { repo: noRootsLeft, hasher: noHasher };
+    await expect(service.changeRole(deps, actor, other, "user")).rejects.toThrow(LastRootError);
+    await expect(service.disableUser(deps, actor, other)).rejects.toThrow(LastRootError);
+    expect(await activeRoots()).toHaveLength(2);
+    expect(await events("user.role_changed")).toEqual([]);
+    expect(await events("user.disabled")).toEqual([]);
   });
 });
 

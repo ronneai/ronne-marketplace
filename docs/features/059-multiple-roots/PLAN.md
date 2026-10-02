@@ -23,7 +23,7 @@ the same change that completes it.
   transaction waiting on `lockRoots` and then seeing the first's change) passes on SQLite and
   against `pnpm test:db:up` (PostgreSQL, MySQL, MariaDB).
 
-- [ ] **3. Services: the actor and the last root.** Every `users.manage` service re-reads the
+- [x] **3. Services: the actor and the last root.** Every `users.manage` service re-reads the
   actor inside the transaction (`ForbiddenError` if they're no longer an active root). `changeRole`
   and `disableUser` lock, change, then check `countActiveRoots() > 0` (`LastRootError`).
   *Done when:* `user-admin.db.test.ts` covers a demoted actor and the last-root guard. A

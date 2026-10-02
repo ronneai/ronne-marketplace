@@ -1,7 +1,9 @@
 import {
   CannotModifySelfError,
   EmailTakenError,
+  ForbiddenError,
   InvalidRoleError,
+  LastRootError,
   UserNotFoundError,
 } from "../exceptions/errors";
 import { generatePassword } from "../models/generated-password";
@@ -66,6 +68,23 @@ const checkRole = (role: string): Role => {
   return role;
 };
 
+/**
+ * Starts every change: locks the roots' rows and the actor's, then checks again that the actor is
+ * still an active root. Two roots changing each other at once then run one after the other, and
+ * the second finds it was demoted or disabled meanwhile (059).
+ */
+const lockAndRecheckActor = async (repo: IdentityRepository, actor: Actor): Promise<void> => {
+  const id = actor.user?.id;
+  if (!id) throw new ForbiddenError("users.manage");
+  await repo.lockRoots(id);
+  requirePermission(await repo.findActiveUser(id), "users.manage");
+};
+
+/** The instance always keeps an enabled root; the transaction rolls back otherwise (059). */
+const keepAnActiveRoot = async (repo: IdentityRepository): Promise<void> => {
+  if ((await repo.countActiveRoots()) === 0) throw new LastRootError();
+};
+
 /** Loads the target and refuses the actor's own row: another root changes it (059). */
 const loadTarget = async (
   repo: IdentityRepository,
@@ -100,6 +119,7 @@ export const createUser = async (
   const at = now(deps);
 
   const id = await deps.repo.transaction(async (repo) => {
+    await lockAndRecheckActor(repo, actor);
     if (await repo.emailTaken(email)) throw new EmailTakenError(email);
     const created = await repo.createUserWithPassword({ email, name, role, passwordHash }, at);
     await repo.recordAudit(
@@ -127,9 +147,11 @@ export const changeRole = async (
   const role = checkRole(newRole);
   const at = now(deps);
   await deps.repo.transaction(async (repo) => {
+    await lockAndRecheckActor(repo, actor);
     const target = await loadTarget(repo, actor, userId);
     if (target.role === role) return;
     await repo.setRole(userId, role, at);
+    await keepAnActiveRoot(repo);
     await repo.recordAudit(
       {
         actorId: actor.user?.id ?? null,
@@ -152,9 +174,11 @@ export const disableUser = async (
   requirePermission(actor.user, "users.manage");
   const at = now(deps);
   await deps.repo.transaction(async (repo) => {
+    await lockAndRecheckActor(repo, actor);
     const target = await loadTarget(repo, actor, userId);
     if (target.disabledAt) return;
     await repo.disableUser(userId, at);
+    await keepAnActiveRoot(repo);
     const sessionsEnded = await repo.deleteSessions(userId);
     const tokensRevoked = await repo.revokeAccessTokens(userId, at);
     await repo.recordAudit(
@@ -179,6 +203,7 @@ export const enableUser = async (
   requirePermission(actor.user, "users.manage");
   const at = now(deps);
   await deps.repo.transaction(async (repo) => {
+    await lockAndRecheckActor(repo, actor);
     const target = await loadTarget(repo, actor, userId);
     if (!target.disabledAt) return;
     await repo.enableUser(userId, at);
@@ -209,6 +234,7 @@ export const resetPassword = async (
   const passwordHash = await deps.hasher.hash(password);
   const at = now(deps);
   const email = await deps.repo.transaction(async (repo) => {
+    await lockAndRecheckActor(repo, actor);
     const target = await loadTarget(repo, actor, userId);
     await repo.setPassword(userId, passwordHash, at);
     const sessionsEnded = await repo.deleteSessions(userId);
