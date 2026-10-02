@@ -1,12 +1,19 @@
-import { FileChanges } from "@/components/files/FileViews";
 import { Table, Td, Th } from "@/components/ui/Table";
 import type { ProposalView } from "@/server/domains/submissions/actions/reviews";
+import { ReviewChanges } from "./ReviewFiles";
 
 /**
  * What a change proposal changes against the version it started from (feature 017): the manifest's
  * top-level fields side by side, then each file as 014's line diffs.
  */
-export const ProposalChanges = ({ proposal }: { proposal: ProposalView }) => (
+export const ProposalChanges = ({
+  proposal,
+  selected,
+}: {
+  proposal: ProposalView;
+  /** The changed file shown (058), from `?file=`. */
+  selected?: string;
+}) => (
   <div className="grid gap-4">
     {proposal.manifest.length > 0 ? (
       <section aria-label="Manifest fields" className="grid gap-2">
@@ -36,10 +43,9 @@ export const ProposalChanges = ({ proposal }: { proposal: ProposalView }) => (
       </section>
     ) : null}
     {proposal.changes ? (
-      <FileChanges
+      <ReviewChanges
         changes={proposal.changes}
-        unreleased={proposal.unreleased}
-        since={null}
+        selected={selected}
         emptyText={`No changes to ${proposal.baseVersion}.`}
       />
     ) : (

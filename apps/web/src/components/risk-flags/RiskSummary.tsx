@@ -3,7 +3,6 @@ import { ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { Help } from "@/components/help/Help";
 import { CodeText } from "@/components/validation/IssueList";
-import { fileAnchor, lineAnchor } from "./anchors";
 
 /**
  * What the item can do on a developer's machine (MVP §12, feature 014), at the top of the review
@@ -47,7 +46,7 @@ export const RiskSummary = ({
             ) : null}
             {flag.file && base ? (
               <Link
-                href={`${base}?view=all#${flag.line ? lineAnchor(flag.file, flag.line) : fileAnchor(flag.file)}`}
+                href={`${base}?view=all&file=${encodeURIComponent(flag.file)}${flag.line ? `&line=${flag.line}` : ""}#files`}
                 className="font-mono text-xs text-muted underline underline-offset-2 hover:text-fg"
               >
                 {flag.file}

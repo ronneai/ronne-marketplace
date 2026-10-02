@@ -183,6 +183,14 @@ Withdraw is also a text-only action on each of the author's rows in My submissio
 review, sent back, approved), and on the review page of their own submission; the dialog loads
 whether it can be deleted, and its dependents, when it opens.
 
+**Files on the review page** (owner, 2026-10-02): shown as the item page shows a version's (044),
+with its components, now shared in `components/files`. All files is a tree beside the file
+selected (Markdown rendered, source highlighted, long files scrolling in their own frame); the
+changes are a tree of the changed files, each marked added, changed or removed, beside the diff of
+the one selected. The file is kept in `?file=`, and a risk flag's link opens it at `?line=`.
+Files in `.ronne/` aren't shown at all, nor named under the diff: they're the editor's, not
+released.
+
 ## Open questions
 
 None that change what's built.

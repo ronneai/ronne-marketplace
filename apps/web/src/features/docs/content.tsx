@@ -770,10 +770,12 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             reviewer decides.
           </li>
           <li>
-            <strong>The changes</strong> since the last revision, or every file on the first one.
-            Files in <Code>.ronne/</Code>, such as a{" "}
-            <To href={docsHref("items", "canvas")}>canvas</To>&apos;s layout, aren&apos;t released,
-            so the changes only say that they changed.
+            <strong>The changes</strong> since the last revision, or every file on the first one, as
+            the item page shows a version&apos;s: the files in a tree beside the one you pick, each
+            changed file marked added, changed or removed, Markdown rendered with its source a tab
+            away. A risk flag&apos;s link opens its file at its line. Files in <Code>.ronne/</Code>,
+            such as a <To href={docsHref("items", "canvas")}>canvas</To>
+            &apos;s layout, aren&apos;t released, so they aren&apos;t shown.
           </li>
           <li>The checks, and the conversation with the author.</li>
         </Bullets>

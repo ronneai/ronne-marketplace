@@ -17,11 +17,14 @@ vi.mock("next/navigation", () => ({
   notFound: () => {
     throw new Error("NEXT_NOT_FOUND");
   },
-  useRouter: () => ({ refresh: vi.fn() }),
+  useRouter: () => ({ refresh: vi.fn(), replace: vi.fn() }),
+  usePathname: () => "/reviews/s",
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 const { RiskSummary } = await import("@/components/risk-flags/RiskSummary");
-const { AllFiles, FileChanges } = await import("@/components/files/FileViews");
+const { FileChanges } = await import("@/components/files/FileViews");
+const { ReviewAllFiles, ReviewChanges } = await import("./ReviewFiles");
 const { Conversation } = await import("./Conversation");
 const { DecisionBar, DecisionDialog, DependentsChoice, dependentsMessage, RowDecisions } =
   await import("./DecisionBar");
@@ -68,7 +71,8 @@ describe("RiskSummary", () => {
     expect(html).toContain("What it can do (2)");
     expect(html).toContain("WIDENS:");
     expect(html).toContain("<code");
-    expect(html).toContain('href="/reviews/s?view=all#file-ronne.yaml-L6"');
+    // It opens the file at the line in the files view (058).
+    expect(html).toContain('href="/reviews/s?view=all&amp;file=ronne.yaml&amp;line=6#files"');
   });
 
   it("shows file and line as text without a review page, and nothing without flags", () => {
@@ -121,12 +125,47 @@ describe("file views", () => {
     );
   });
 
-  it("gives every line of every file an anchor", () => {
+  it("shows the files as a tree beside the one selected, as the item page does (058)", () => {
     const html = renderToStaticMarkup(
-      <AllFiles files={[text("ronne.yaml", "name: x\ntype: rule")]} />,
+      <ReviewAllFiles
+        files={[
+          {
+            path: "ronne.yaml",
+            size: 18,
+            executable: false,
+            kind: "text",
+            text: "name: x\ntype: rule",
+          },
+          { path: "rule.md", size: 5, executable: false, kind: "text", text: "Tabs." },
+        ]}
+        selected="ronne.yaml"
+      />,
     );
-    expect(html).toContain('id="file-ronne.yaml"');
-    expect(html).toContain('id="file-ronne.yaml-L2"');
+    expect(html).toContain('aria-label="Files of this revision"');
+    expect(html).toContain("rule.md");
+    expect(html).toContain('aria-label="ronne.yaml"');
+    expect(html).toContain("type: rule");
+    expect(html).not.toContain(">Tabs.<");
+  });
+
+  it("lists the changed files, each marked, beside the diff of the one selected (058)", () => {
+    const html = renderToStaticMarkup(
+      <ReviewChanges
+        changes={[
+          ...diffRevisions([text("a.md", "one")], [text("a.md", "two"), text("b.md", "new")]),
+        ]}
+        selected="b.md"
+        emptyText="No changes."
+      />,
+    );
+    expect(html).toContain('aria-label="Changed files"');
+    expect(html).toContain(">changed<");
+    expect(html).toContain(">added<");
+    expect(html).toContain('aria-label="b.md"');
+    expect(html).not.toContain('aria-label="a.md"');
+    expect(renderToStaticMarkup(<ReviewChanges changes={[]} emptyText="No changes." />)).toContain(
+      "No changes.",
+    );
   });
 });
 
@@ -371,7 +410,8 @@ describe("the review page", () => {
       }),
     );
     const html = await render({ view: "all" });
-    expect(html).toContain('id="file-hook.sh-L1"');
+    expect(html).toContain('aria-label="hook.sh"');
+    expect(html).toContain("echo hi");
     expect(html).toContain("This is your own submission");
     // The decisions show, disabled, with why (058).
     for (const label of ["Approve", "Request changes", "Reject"])
@@ -397,6 +437,25 @@ describe("the review page", () => {
     expect(html).toMatch(/<button(?![^>]*disabled="")[^>]*>Approve \(override\)<\/button>/);
     expect(html).toContain("This is your own submission: another moderator or root reviews it.");
     expect(html).toContain("you can approve it yourself as an override");
+  });
+
+  it("leaves .ronne/ out of the files, and opens the file a link asks for (058)", async () => {
+    reviews.getReview.mockResolvedValue(
+      view({
+        current: {
+          number: 2,
+          files: [
+            text("hook.sh", "echo hi"),
+            text("ronne.yaml", "name: x"),
+            text(".ronne/layout.json", "{}"),
+          ],
+        },
+      }),
+    );
+    const html = await render({ view: "all", file: "hook.sh", line: "1" });
+    expect(html).not.toContain("layout.json");
+    expect(html).toContain('aria-label="hook.sh"');
+    expect(html).not.toContain('aria-label="ronne.yaml"');
   });
 
   it("lets the author withdraw their own from the review page, and nobody else (058)", async () => {

@@ -1,7 +1,7 @@
 import { History } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AllFiles, FileChanges } from "@/components/files/FileViews";
+import { selectedFile, showFiles } from "@/components/files/shown";
 import { Help } from "@/components/help/Help";
 import { RiskSummary } from "@/components/risk-flags/RiskSummary";
 import { DependencyMarksNotice, markText } from "@/components/submissions/DependencyMarks";
@@ -17,12 +17,15 @@ import { Conversation } from "@/features/reviews/Conversation";
 import { DecisionBar } from "@/features/reviews/DecisionBar";
 import { ProposalChanges } from "@/features/reviews/ProposalChanges";
 import { PublishDialog } from "@/features/reviews/PublishDialog";
+import { ReviewAllFiles, ReviewChanges } from "@/features/reviews/ReviewFiles";
 import { versionsPath } from "@/features/versions/links";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { can } from "@/server/domains/identity/models/permissions";
 import { getReview, type ReviewView } from "@/server/domains/submissions/actions/reviews";
 import { dependencyMarks } from "@/server/domains/submissions/actions/submissions";
 import { SubmissionNotFoundError } from "@/server/domains/submissions/exceptions/errors";
+import { isUnreleased } from "@/server/domains/submissions/models/diff";
+import type { RevisionFile } from "@/server/domains/submissions/models/review";
 import { canTransition } from "@/server/domains/submissions/models/status";
 import { itemNameOf } from "@/server/domains/submissions/models/submission";
 import { requestHeaders } from "@/server/http/request-headers";
@@ -31,6 +34,18 @@ export const metadata = { title: "Review · Ronne AI Marketplace" };
 
 const viewTab =
   "rounded-control px-3 py-1.5 text-sm text-muted hover:text-fg aria-[current=page]:bg-tint aria-[current=page]:font-semibold aria-[current=page]:text-fg";
+
+/** A revision's file as the file viewer reads it (058): text, or binary. */
+const toContent = (file: RevisionFile) =>
+  file.encoding === "utf8"
+    ? {
+        path: file.path,
+        size: file.size,
+        executable: file.executable,
+        kind: "text" as const,
+        text: file.content,
+      }
+    : { path: file.path, size: file.size, executable: file.executable, kind: "binary" as const };
 
 /**
  * The review page (feature 014): moderators and root; anyone else gets a 404. The files, the risk
@@ -59,13 +74,21 @@ const Review = async ({
   // A proposal (017) opens on its changes to its base version. Otherwise, changes since the last
   // revision by default from revision 2 on; revision 1 is all files.
   const defaultView = proposal ? "base" : previous === null ? "all" : "changes";
-  const asked = (await searchParams).view;
+  const query = await searchParams;
+  const asked = query.view;
+  // The file shown, and the line a risk flag's link opens it at (058).
+  const fileParam = typeof query.file === "string" ? query.file : undefined;
+  const lineParam = typeof query.line === "string" ? Number.parseInt(query.line, 10) : Number.NaN;
   const view =
     asked === "all" || (asked === "changes" && previous !== null) || (asked === "base" && proposal)
       ? asked
       : defaultView;
   const base = `/reviews/${submission.id}`;
   const viewHref = (v: string) => (v === defaultView ? base : `${base}?view=${v}`);
+  // What's released: `.ronne/` (the canvas layout) is the editor's, not the reviewer's (058).
+  const files = current
+    ? showFiles(current.files.filter((f) => !isUnreleased(f.path)).map(toContent))
+    : [];
   // Every decision a reviewer may make here, disabled with the reason when it isn't theirs (058).
   const decisions = review.decisions;
 
@@ -184,11 +207,19 @@ const Review = async ({
             </nav>
           </div>
           {view === "base" && proposal ? (
-            <ProposalChanges proposal={proposal} />
+            <ProposalChanges proposal={proposal} selected={fileParam} />
           ) : view === "changes" ? (
-            <FileChanges changes={review.changes} unreleased={review.unreleased} since={previous} />
+            <ReviewChanges
+              changes={review.changes}
+              selected={fileParam}
+              emptyText={`No changes since revision ${previous}.`}
+            />
           ) : (
-            <AllFiles files={current.files} />
+            <ReviewAllFiles
+              files={files}
+              selected={selectedFile(files, fileParam, null)}
+              line={Number.isInteger(lineParam) && lineParam > 0 ? lineParam : undefined}
+            />
           )}
         </section>
       ) : null}

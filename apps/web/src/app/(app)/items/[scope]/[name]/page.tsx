@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
+import { FilesBrowser } from "@/components/files/FilesBrowser";
+import { selectedFile } from "@/components/files/shown";
 import { Help } from "@/components/help/Help";
-import { FilesBrowser } from "@/features/item-page/files/FilesBrowser";
-import { selectedFile } from "@/features/item-page/files/shown";
 import { ItemPageView } from "@/features/item-page/ItemPageView";
 import { DependenciesTab, ReadmeTab, RisksTab } from "@/features/item-page/ItemTabs";
 import {

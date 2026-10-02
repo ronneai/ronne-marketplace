@@ -1,8 +1,6 @@
 import { formatBytes } from "@ronneai/core";
-import { fileAnchor, lineAnchor } from "@/components/risk-flags/anchors";
 import { Badge } from "@/components/ui/Badge";
 import type { FileChange } from "@/server/domains/submissions/models/diff";
-import type { RevisionFile } from "@/server/domains/submissions/models/review";
 
 const STATUS_TONE = { added: "accent", removed: "error", changed: "muted" } as const;
 
@@ -132,43 +130,3 @@ export const FileChanges = ({
     </div>
   );
 };
-
-/** Every file of a revision, read-only, with line anchors the risk summary links to. */
-export const AllFiles = ({ files }: { files: RevisionFile[] }) => (
-  <div className="grid gap-4">
-    {files.map((file) => (
-      <section
-        key={file.path}
-        id={fileAnchor(file.path)}
-        aria-label={file.path}
-        className="scroll-mt-20 overflow-hidden rounded-panel border border-hairline bg-surface"
-      >
-        <FileHeader path={file.path}>
-          <span className="font-mono text-xs text-muted">{formatBytes(file.size)}</span>
-          {file.executable ? <Badge tone="warning">executable</Badge> : null}
-        </FileHeader>
-        {file.encoding === "base64" ? (
-          <p className="px-3 py-2 text-sm text-muted">A binary file.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full font-mono text-xs">
-              <tbody>
-                {file.content.split("\n").map((text, i) => (
-                  <tr
-                    // biome-ignore lint/suspicious/noArrayIndexKey: lines keep their order.
-                    key={i}
-                    id={lineAnchor(file.path, i + 1)}
-                    className="scroll-mt-20 target:bg-warning-subtle"
-                  >
-                    <td className="w-10 select-none px-2 text-right text-muted">{i + 1}</td>
-                    <td className="whitespace-pre-wrap break-all py-0.5 pr-3">{text}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-    ))}
-  </div>
-);

@@ -187,7 +187,7 @@ describe("the topics", () => {
     expect(items).toContain(".ronne/layout.json");
     expect(items).toContain("isn&#x27;t released");
     expect(items).toContain('href="/docs/items#canvas"');
-    expect(await topic("review")).toContain("the changes only say that they changed");
+    expect(await topic("review")).toContain("so they aren&#x27;t shown");
     expect(rmk).toContain('href="/account/tokens"');
     expect(rmk).toContain("Nothing about who downloaded it is stored.");
   });
