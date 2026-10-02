@@ -25,7 +25,7 @@ the same change that completes it.
   *Done when:* the scope tests cover both sorts, paging both ways and the count on all four
   databases, and the `GET /api/v1/scopes` tests pass unchanged.
 
-- [ ] **4. Both scope pages on `DataTable`.** `features/scopes/list.ts` (two definitions), the
+- [x] **4. Both scope pages on `DataTable`.** `features/scopes/list.ts` (two definitions), the
   shared columns, and Edit on the admin page. `ScopesTable` and its query helpers go.
   *Done when:* the scopes render tests cover both pages, and `scopes.e2e.ts` passes, updated for
   the new controls.

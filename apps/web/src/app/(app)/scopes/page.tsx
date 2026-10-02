@@ -1,17 +1,21 @@
 import Link from "next/link";
 import { docsHref } from "@/components/help/topics";
+import { parseListQuery, type SearchParams } from "@/components/ui/data-table/list-query";
 import { PageHeader } from "@/components/ui/Panel";
-import { parseScopesQuery, type SearchParams } from "@/features/scopes/query";
+import { SCOPES_LIST, scopesQueryOf } from "@/features/scopes/list";
 import { ScopesTable } from "@/features/scopes/ScopesTable";
-import { listScopes } from "@/server/domains/items/actions/scopes";
+import { pageScopes } from "@/server/domains/items/actions/scopes";
 import { requestHeaders } from "@/server/http/request-headers";
 
 export const metadata = { title: "Scopes · Ronne AI Marketplace" };
 
 /** Every signed-in user (the (app) layout requires a session). */
 const Scopes = async ({ searchParams }: { searchParams: Promise<SearchParams> }) => {
-  const query = parseScopesQuery(await searchParams);
-  const { scopes, nextCursor } = await listScopes(await requestHeaders(), query);
+  const state = parseListQuery(SCOPES_LIST, await searchParams);
+  const { scopes, next, previous, total } = await pageScopes(
+    await requestHeaders(),
+    scopesQueryOf(state),
+  );
   return (
     <>
       <PageHeader
@@ -27,11 +31,11 @@ const Scopes = async ({ searchParams }: { searchParams: Promise<SearchParams> })
         }
       />
       <ScopesTable
-        base="/scopes"
+        list={SCOPES_LIST}
+        state={state}
         scopes={scopes}
-        search={query.search}
-        nextCursor={nextCursor}
-        paged={Boolean(query.cursor)}
+        page={{ next, previous }}
+        total={total}
       />
     </>
   );
