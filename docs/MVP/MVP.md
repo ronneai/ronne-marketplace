@@ -276,13 +276,14 @@ stateDiagram-v2
     changes_requested --> withdrawn
     approved --> published: author or moderator releases
     rejected --> [*]
+    withdrawn --> draft: author restores
     withdrawn --> [*]
     published --> [*]
 ```
 
 - **Drafts** are private to the author. They can be edited in the form editor, the file editor or the visual composer.
 - **A draft can also arrive from the author's AI tool** (M7, owner 2026-09-30): `rmk export`, or the registry MCP server's export tools, read an item the person wrote in the tool's own files (a skill folder, an agent, a command, a rule, an MCP server), show what would be uploaded, and create the draft with the person's token ([037](../features/037-draft-upload-api/SPEC.md)–[041](../features/041-export-dependencies/SPEC.md), [native readers spec](../spec/native-readers.md)). The person picks the scope. Nothing is submitted from there: reviewing the draft and submitting it stay in the web app.
-- **Withdrawing** is allowed until approval: from `draft`, `submitted` or `changes_requested` (owner decision, 2026-09-27). It's final.
+- **Withdrawing** is allowed until approval: from `draft`, `submitted` or `changes_requested` (owner decision, 2026-09-27). It asks whether to **archive** (`withdrawn`, shown as "archived": private to the author, restorable as a draft) or **delete for good**, which only a submission nobody has reviewed allows (owner, 2026-10-02, [057](../features/057-withdraw-archive-delete/SPEC.md)).
 - **Approval** needs one moderator or root other than the author. Root can self-approve as an audited override.
 - **Approval freezes the content**, so any later edit sends the submission back to `submitted`.
 - **Change proposals** work the same way, but target an existing item. The reviewer sees a diff against the version it was based on (usually `latest`). If a newer version was published in the meantime, the submission is marked **stale** and must be rebased before it can be approved.
@@ -814,7 +815,8 @@ out (owner, 2026-09-30). The design, for when it's picked up:
 | Design system | One system from the brand and the Stitch design notes (kept locally in the git-ignored `docs/UI-Mocks-Materials/`; the rules and tokens are in 032's spec): Manrope and IBM Plex Mono self-hosted; flat (no shadows); teal as the single accent; no red, yellow or green alerts; light and dark themes, light by default, switched by a header toggle (no "follow the OS" mode, owner decision 2026-09-27) ([032](../features/032-design-system/SPEC.md)) | Consistent pages from M1 on; no font CDN for a self-hosted product |
 | Draft files | In the database (`submission_files`), not a folder on disk; published `.tgz` files still go to the `StorageAdapter` | A save is one transaction with the manifest, and one database backup covers everything; the upload limits keep rows small ([012](../features/012-submission-editor/SPEC.md)) |
 | File editor | CodeMirror 6 rather than Monaco, plus single-file upload and `.zip` import | Much smaller, easier to theme with our tokens and usable on phones; `.zip` import brings in existing skill folders ([012](../features/012-submission-editor/SPEC.md)) |
-| Withdraw | Allowed until approval, including from `submitted` | Pulling back a submission nobody has approved is harmless; approval freezes content for release ([013](../features/013-submit-withdraw/SPEC.md)) |
+| Withdraw | Allowed until approval, including from `submitted`; it asks to archive (restorable, private to the author) or delete for good (only with no review history; audited) (owner, 2026-10-02, [057](../features/057-withdraw-archive-delete/SPEC.md)) | Pulling back a submission nobody has approved is harmless; approval freezes content for release ([013](../features/013-submit-withdraw/SPEC.md)); closed submissions shouldn't pile up, but a conversation with reviewers is a record worth keeping |
+| Review decisions | Request changes and reject, each with a required reason, from each row of the review queue and on the review page, never in bulk; shown disabled with the reason on the reviewer's own submission; the author sees the latest reason at the top of their page (owner, 2026-10-02, [058](../features/058-review-decisions-everywhere/SPEC.md)) | Reviewers couldn't find them on the review page alone; each reason is about one submission (054) |
 | Web sign-in | Email and password only; tokens don't sign in to the web; "Forgot?" points to a root reset (no email) | Tokens stay machine credentials, so a leaked token can't open a browser session |
 | Login rate limit | Ronne's own in-memory limiter on the sign-in action: 5 attempts a minute per email, and per client IP only with `TRUST_PROXY=true`; Better Auth's HTTP sign-in is not served | Better Auth's limiter skips server actions, and without a trusted proxy the client IP can be forged ([006](../features/006-web-sign-in/SPEC.md)) |
 | CLI login | `rmk login` exchanges email and password for a token (`POST /api/v1/auth/token`), and `rmk login --token` accepts one made in the web app; browser-based login waits for SSO's device flow | Matches the MVP and the mock's `--token`, without new endpoints before SSO |

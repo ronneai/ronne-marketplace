@@ -144,6 +144,8 @@ draft's existence isn't revealed. (From 013, submitted ones are visible to moder
 - **Draft settings:** rename the item (scope and name; the type stays; `name` in `ronne.yaml` follows, keeping its comments and quoting), or delete the draft. Delete
   asks for confirmation and removes the draft and its files for good (it was never submitted, so
   there's nothing to keep for history).
+  Since [057](../057-withdraw-archive-delete/SPEC.md), it's recorded as `submission.deleted`, and
+  Withdraw can delete one too.
 
 **Services** (`domains/submissions/services/drafts.ts`): `createDraft`, `listMySubmissions`,
 `getDraft` (author only), `saveDraftFiles` (a set of writes and deletes), `importZip`, `renameDraft`
