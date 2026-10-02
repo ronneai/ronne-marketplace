@@ -137,6 +137,9 @@ describe("the topics", () => {
     expect(install).toContain("--email");
     expect(install).not.toContain("docker compose restart");
     expect(install).toContain("Nothing needs a restart");
+    // The review queue's table (062).
+    expect(review).toContain("Every tab pages, 25, 50 or 100 at a time");
+    expect(review).toContain("Select all covers the page you&#x27;re viewing");
     // The audit log (060), for roots, linked from Roles.
     const admin = await topic("admin");
     expect(admin).toContain('id="audit"');

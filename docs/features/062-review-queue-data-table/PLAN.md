@@ -27,7 +27,7 @@ the same change that completes it.
   `review.e2e.ts`, `bulk-approve.e2e.ts`, `bulk-release.e2e.ts` and `review-decisions.e2e.ts` pass,
   updated for the new controls.
 
-- [ ] **4. Documentation.** Review › "What reviewers look at" and "Approving many at once",
+- [x] **4. Documentation.** Review › "What reviewers look at" and "Approving many at once",
   Versions › "Releasing many at once", and the `approve-many` and `release-many` helpers.
   *Done when:* the docs render tests pass, and the index marks 062 `done`.
 

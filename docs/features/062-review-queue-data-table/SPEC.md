@@ -137,17 +137,17 @@ defineList({
 
 ## Acceptance criteria
 
-- [ ] Every tab renders on `DataTable` with paging, a total and page sizes. No tab drops rows past
+- [x] Every tab renders on `DataTable` with paging, a total and page sizes. No tab drops rows past
   200.
-- [ ] Each tab's default order is as today, and sorting by time or name works both ways, with no
+- [x] Each tab's default order is as today, and sorting by time or name works both ways, with no
   repeat or gap, on all four databases (a date-sorted keyset test included).
-- [ ] The search and type filter apply on change, as chips, and changing tab drops them.
-- [ ] Approve many, release many and the row decisions work on the visible page (the existing
+- [x] The search and type filter apply on change, as chips, and changing tab drops them.
+- [x] Approve many, release many and the row decisions work on the visible page (the existing
   end-to-end tests pass, updated for the new controls).
-- [ ] `fixed`, the date sort kind and `srHeader` are part of the shared table, with their own
+- [x] `fixed`, the date sort kind and `srHeader` are part of the shared table, with their own
   tests.
-- [ ] `0016_submissions_queue_indexes` runs on all four databases.
-- [ ] The Documentation and helpers listed above say what the feature does now.
+- [x] `0016_submissions_queue_indexes` runs on all four databases.
+- [x] The Documentation and helpers listed above say what the feature does now.
 
 ## Open questions
 
