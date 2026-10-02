@@ -26,6 +26,7 @@ const deps = ({ db, dialect }: AppAuth, storage?: StorageAdapter): service.Draft
 
 const actor = async (headers: Headers, app: AppAuth): Promise<service.DraftActor> => ({
   user: await getCurrentUser(headers, app),
+  ip: clientIp(headers, app.trustProxy),
 });
 
 export const createDraft = async (

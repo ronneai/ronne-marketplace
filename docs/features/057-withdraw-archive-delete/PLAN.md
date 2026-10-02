@@ -7,16 +7,16 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Status rules.**
+- [x] **1. Status rules.**
   - In `submissions/models/status.ts`: a `restore` action (`withdrawn → draft`), and
     `statusLabel("withdrawn")` reads "archived".
-  - A `restore` review-event kind (check `review_events.kind` and its type in `db/schema.ts`; if it's
-    constrained, add it in a migration that works on all three databases).
+  - A `restore` review-event kind. `review_events.kind` is a plain `string(24)`, so no migration is
+    needed.
   - `submission.deleted` and `submission.restored` in `audit/models/audit-event.ts`.
 
   *Done when:* `status.test.ts` covers restore and the label, and lint and typecheck pass.
 
-- [ ] **2. Services.** All in the `submissions` domain:
+- [x] **2. Services.** All in the `submissions` domain:
   - `hasReviewHistory(repo, submission)`: any event by someone other than the author.
   - `withdrawSubmission(…, mode)`:
     - `"archive"` is today's path, with `mode` in the audit metadata;
@@ -38,7 +38,7 @@ the same change that completes it.
   - `deleteDraft`'s new audit event;
   - restore and delete by someone else (not found).
 
-- [ ] **3. The dialog and the page.**
+- [x] **3. The dialog and the page.**
   - `WithdrawDialog` (`features/draft-editor/SubmitDialogs.tsx`): the two radio cards, Delete
     disabled with its reason, and 056's dependents line kept.
   - The editor needs a `canDelete` flag from the page loader.
@@ -47,7 +47,7 @@ the same change that completes it.
 
   *Done when:* component tests cover both choices and the disabled reason.
 
-- [ ] **4. My submissions.**
+- [x] **4. My submissions.**
   - `app/(app)/submissions/page.tsx` and `features/submissions/SubmissionsTable.tsx`: hide
     archived by default, add the **Archived (n)** filter, Restore and Delete on archived rows (Delete
     asks first), and drop withdrawn-last ordering.
@@ -55,7 +55,7 @@ the same change that completes it.
 
   *Done when:* table tests cover the default list, the filter and the row actions.
 
-- [ ] **5. Documentation.**
+- [x] **5. Documentation.**
   - `review#statuses` row, the new `review#withdraw` section (in `topics.ts` and `content.tsx`),
     and `review#dependencies` wording.
   - The export topic's "withdraw it" line.
@@ -63,7 +63,7 @@ the same change that completes it.
 
   *Done when:* the docs render tests pass, and both helpers' links land on `review#withdraw`.
 
-- [ ] **6. End-to-end.** Playwright:
+- [x] **6. End-to-end.** Playwright:
   - An author archives a submitted skill, finds it under Archived, restores it, and resubmits it
     as revision 2.
   - An author deletes a never-submitted draft from Withdraw.
@@ -71,10 +71,17 @@ the same change that completes it.
 
   *Done when:* `pnpm test:e2e` passes.
 
-- [ ] **7. Close.** MVP §4.1 and §15 already describe this (2026-10-02). Check they still match
+- [x] **7. Close.** MVP §4.1 and §15 already describe this (2026-10-02). Check they still match
   what was built, then set the status to `done` in the index.
 
 ## Notes
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- **"Archive" in Playwright:** the Withdraw dialog's helper is a button named "Archive or
+  delete?", so `getByRole("button", { name: "Archive" })` matches both. Pass `exact: true`.
+- **The editor's dialog kinds:** `delete` was already a file's delete, so deleting the submission
+  is `delete-submission`.
+- **The draft API quota** (`MAX_API_DRAFTS`) counts only drafts, and only the API refuses for it,
+  so restoring never fails on it.

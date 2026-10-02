@@ -7,6 +7,7 @@ import type { AppAuth } from "../../identity/repositories/auth-instance";
 import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testing/test-auth";
 import { createScope } from "../../items/actions/scopes";
 import {
+  HasReviewHistoryError,
   InvalidStatusTransitionError,
   SubmissionInvalidError,
   SubmissionNotEditableError,
@@ -14,7 +15,15 @@ import {
 } from "../exceptions/errors";
 import type { SubmissionStatus } from "../models/status";
 import { createDraft, deleteDraft, getDraft, renameDraft, saveDraftFiles } from "./drafts";
-import { checkSubmission, submitDraft, viewSubmission, withdrawSubmission } from "./submissions";
+import { comment } from "./reviews";
+import {
+  checkSubmission,
+  deleteSubmission,
+  restoreSubmission,
+  submitDraft,
+  viewSubmission,
+  withdrawSubmission,
+} from "./submissions";
 
 let t: TestDb;
 let app: AppAuth;
@@ -190,7 +199,7 @@ describe("submitDraft", () => {
 
 describe("withdrawSubmission", () => {
   it.each(["draft", "submitted", "changes_requested"] as const)(
-    "withdraws from %s, for good, and records it",
+    "archives from %s, and records it",
     async (from) => {
       const draft = await readyDraft();
       await setStatus(draft.id, from);
@@ -201,7 +210,10 @@ describe("withdrawSubmission", () => {
         InvalidStatusTransitionError,
       );
       const [event] = await events("submission.withdrawn");
-      expect(event).toMatchObject({ targetId: draft.id, metadata: { name: "@team/style", from } });
+      expect(event).toMatchObject({
+        targetId: draft.id,
+        metadata: { name: "@team/style", from, mode: "archive" },
+      });
     },
   );
 
@@ -210,6 +222,140 @@ describe("withdrawSubmission", () => {
     await setStatus(draft.id, "approved");
     await expect(withdrawSubmission(asAuthor, draft.id, app)).rejects.toThrow(
       "A submission that's approved can't be withdrawn.",
+    );
+  });
+  it("hides an archived one from moderators and root (057)", async () => {
+    const draft = await readyDraft();
+    await submitDraft(asAuthor, draft.id, app);
+    await withdrawSubmission(asAuthor, draft.id, app);
+    expect((await viewSubmission(asAuthor, draft.id, app)).status).toBe("withdrawn");
+    for (const headers of [asModerator, asRoot])
+      await expect(viewSubmission(headers, draft.id, app)).rejects.toThrow(SubmissionNotFoundError);
+  });
+});
+
+describe("deleting for good (057)", () => {
+  const exists = async (id: string) =>
+    (await t.db.selectFrom("submissions").select("id").where("id", "=", id).execute()).length > 0;
+
+  it("deletes a draft that was never submitted, and records it", async () => {
+    const draft = await readyDraft();
+    await withdrawSubmission(asAuthor, draft.id, app, "delete");
+    expect(await exists(draft.id)).toBe(false);
+    const [event] = await events("submission.deleted");
+    expect(event).toMatchObject({
+      targetId: draft.id,
+      metadata: { name: "@team/style", from: "draft" },
+    });
+    expect(await events("submission.withdrawn")).toEqual([]);
+  });
+
+  it("deletes a submitted one nobody reviewed, with its revisions and conversation", async () => {
+    const draft = await readyDraft();
+    await submitDraft(asAuthor, draft.id, app);
+    await comment(asAuthor, draft.id, { body: "A note to reviewers." }, app);
+    await withdrawSubmission(asAuthor, draft.id, app, "delete");
+    expect(await exists(draft.id)).toBe(false);
+    for (const table of ["submission_revisions", "review_events", "submission_files"] as const)
+      expect(
+        await t.db
+          .selectFrom(table)
+          .select("submission_id")
+          .where("submission_id", "=", draft.id)
+          .execute(),
+      ).toEqual([]);
+  });
+
+  it("refuses once a reviewer took part, and archives instead", async () => {
+    const draft = await readyDraft();
+    await submitDraft(asAuthor, draft.id, app);
+    await comment(asModerator, draft.id, { body: "Why this rule?" }, app);
+    await expect(withdrawSubmission(asAuthor, draft.id, app, "delete")).rejects.toThrow(
+      HasReviewHistoryError,
+    );
+    expect((await viewSubmission(asAuthor, draft.id, app)).status).toBe("submitted");
+    await withdrawSubmission(asAuthor, draft.id, app);
+    await expect(deleteSubmission(asAuthor, draft.id, app)).rejects.toThrow(
+      "Reviewers have commented on it or decided it. Archive it instead.",
+    );
+    expect(await exists(draft.id)).toBe(true);
+  });
+
+  it("deletes an archived one nobody reviewed, but never an approved or published one", async () => {
+    const draft = await readyDraft();
+    await withdrawSubmission(asAuthor, draft.id, app);
+    await deleteSubmission(asAuthor, draft.id, app);
+    expect(await exists(draft.id)).toBe(false);
+
+    const approved = await readyDraft(asAuthor, "other");
+    await setStatus(approved.id, "approved");
+    await expect(deleteSubmission(asAuthor, approved.id, app)).rejects.toThrow(
+      "A submission that's approved can't be deleted.",
+    );
+    await expect(withdrawSubmission(asAuthor, approved.id, app, "delete")).rejects.toThrow(
+      InvalidStatusTransitionError,
+    );
+  });
+
+  it("records the draft settings' delete too", async () => {
+    const draft = await readyDraft();
+    await deleteDraft(asAuthor, draft.id, app);
+    expect(await events("submission.deleted")).toHaveLength(1);
+  });
+
+  it("lets only the author delete and restore", async () => {
+    const draft = await readyDraft();
+    await withdrawSubmission(asAuthor, draft.id, app);
+    for (const headers of [asOther, asModerator, asRoot]) {
+      await expect(deleteSubmission(headers, draft.id, app)).rejects.toThrow(
+        SubmissionNotFoundError,
+      );
+      await expect(restoreSubmission(headers, draft.id, app)).rejects.toThrow(
+        SubmissionNotFoundError,
+      );
+    }
+    expect(await exists(draft.id)).toBe(true);
+  });
+});
+
+describe("restoreSubmission (057)", () => {
+  it("brings an archived one back as a draft, with its history, and submits the next revision", async () => {
+    const draft = await readyDraft();
+    await submitDraft(asAuthor, draft.id, app);
+    await comment(asModerator, draft.id, { body: "Looks close." }, app);
+    await withdrawSubmission(asAuthor, draft.id, app);
+
+    expect(await restoreSubmission(asAuthor, draft.id, app)).toMatchObject({ status: "draft" });
+    await expect(restoreSubmission(asAuthor, draft.id, app)).rejects.toThrow(
+      "A submission that's draft can't be restored.",
+    );
+    const [event] = await events("submission.restored");
+    expect(event).toMatchObject({ targetId: draft.id, metadata: { name: "@team/style" } });
+    for (const headers of [asModerator, asRoot])
+      await expect(viewSubmission(headers, draft.id, app)).rejects.toThrow(SubmissionNotFoundError);
+
+    expect(await submitDraft(asAuthor, draft.id, app)).toMatchObject({
+      status: "submitted",
+      revision: 2,
+    });
+    // Steps in one millisecond tie on created_at, so compare the kinds, not their order.
+    const kinds = (
+      await t.db
+        .selectFrom("review_events")
+        .select("kind")
+        .where("submission_id", "=", draft.id)
+        .execute()
+    )
+      .map((row) => row.kind)
+      .sort();
+    expect(kinds).toEqual(["comment", "restore", "submit", "submit", "withdraw"]);
+  });
+
+  it("refuses anything that isn't archived", async () => {
+    const draft = await readyDraft();
+    await submitDraft(asAuthor, draft.id, app);
+    await expect(restoreSubmission(asAuthor, draft.id, app)).rejects.toThrow(
+      InvalidStatusTransitionError,
     );
   });
 });

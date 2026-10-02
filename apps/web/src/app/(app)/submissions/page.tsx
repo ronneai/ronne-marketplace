@@ -8,17 +8,22 @@ import {
   inListOrder,
   StatusFilters,
   SubmissionsTable,
+  shownFor,
   statusFilter,
 } from "@/features/submissions/SubmissionsTable";
 import { listMySubmissions } from "@/server/domains/submissions/actions/drafts";
-import { checkManyDrafts, dependencyMarks } from "@/server/domains/submissions/actions/submissions";
+import {
+  canDeleteSubmission,
+  checkManyDrafts,
+  dependencyMarks,
+} from "@/server/domains/submissions/actions/submissions";
 import { requestHeaders } from "@/server/http/request-headers";
 
 export const metadata = { title: "My submissions · Ronne AI Marketplace" };
 
 /**
  * Every signed-in user sees their own drafts and submissions (012), filtered by status (013), and
- * can submit several ready drafts at once (052).
+ * can submit several ready drafts at once (052). Archived ones have their own filter (057).
  */
 const Submissions = async ({
   searchParams,
@@ -38,6 +43,15 @@ const Submissions = async ({
   );
   // What each waits on (056): dependencies in review, not submitted, or blocked.
   const marks = await dependencyMarks(headers, submissions);
+  const shown = shownFor(submissions, status);
+  // Under the Archived filter (057): which can be deleted for good.
+  const deletable = Object.fromEntries(
+    await Promise.all(
+      shown
+        .filter((s) => s.status === "withdrawn")
+        .map(async (s) => [s.id, await canDeleteSubmission(headers, s.id)] as const),
+    ),
+  );
   const errors: Record<string, number> = {};
   const ready: Record<string, string> = {};
   // Each draft's own dependency drafts (056), selected with it.
@@ -66,6 +80,7 @@ const Submissions = async ({
       <BulkSubmitProvider ready={ready} needs={needs}>
         <BulkReleaseProvider releasable={releasable}>
           <StatusFilters submissions={submissions} status={status} />
+          {status === "withdrawn" ? <Help id="archived" /> : null}
           <BulkToolbar
             help={
               <>
@@ -76,10 +91,11 @@ const Submissions = async ({
           />
           <BulkReleaseToolbar help={<Help id="release-many" />} />
           <SubmissionsTable
-            submissions={status ? submissions.filter((s) => s.status === status) : submissions}
+            submissions={shown}
             errors={checked.length > 0 ? errors : undefined}
             marks={marks}
             releasable={releasable}
+            deletable={deletable}
           />
         </BulkReleaseProvider>
       </BulkSubmitProvider>

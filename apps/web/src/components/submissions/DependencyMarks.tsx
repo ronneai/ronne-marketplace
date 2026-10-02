@@ -15,21 +15,27 @@ const WAITS: Record<Extract<DependencyMark, { kind: "waits" }>["status"], string
   not_submitted: "not submitted",
 };
 
+/** How a closed dependency reads: a withdrawn one is "archived" since 057. */
+const CLOSED: Record<Extract<DependencyMark, { kind: "blocked" }>["status"], string> = {
+  rejected: "rejected",
+  withdrawn: "archived",
+};
+
 /** One mark in words (056): "Waits on @team/github (in review)", "Blocked: @team/github was rejected". */
 export const markText = (mark: DependencyMark): string =>
   mark.kind === "waits"
     ? `Waits on ${mark.dependency} (${WAITS[mark.status]})`
     : mark.through.length === 0
-      ? `Blocked: ${mark.dependency} was ${mark.status}`
-      : `Blocked: ${mark.dependency} waits on ${mark.through.at(-1)}, which was ${mark.status}`;
+      ? `Blocked: ${mark.dependency} was ${CLOSED[mark.status]}`
+      : `Blocked: ${mark.dependency} waits on ${mark.through.at(-1)}, which was ${CLOSED[mark.status]}`;
 
 /** A dependency's own status in a word or two, for a badge beside its name. */
 export const markStatus = (mark: DependencyMark): string =>
   mark.kind === "waits"
     ? WAITS[mark.status]
     : mark.through.length === 0
-      ? mark.status
-      : `${mark.through.at(-1)} ${mark.status}`;
+      ? CLOSED[mark.status]
+      : `${mark.through.at(-1)} ${CLOSED[mark.status]}`;
 
 /**
  * Beside a dependency's name (owner, 2026-10-01): an amber badge while it isn't released yet ("in

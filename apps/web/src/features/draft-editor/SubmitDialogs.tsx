@@ -8,7 +8,13 @@ import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { FieldError } from "@/components/ui/Field";
 import { IssueList } from "@/components/validation/IssueList";
-import { checkSubmissionAction, submitDraftAction, withdrawAction } from "./actions";
+import {
+  checkSubmissionAction,
+  deleteSubmissionAction,
+  restoreAction,
+  submitDraftAction,
+  withdrawAction,
+} from "./actions";
 import type { SubmitResult } from "./types";
 
 /**
@@ -110,28 +116,72 @@ export const SubmitDialog = ({
   );
 };
 
-/** Withdraw (feature 013): final, so it asks first. */
+/** The reason Delete for good is unavailable (057), as the service words it. */
+export const REVIEW_HISTORY_REASON =
+  "Reviewers have commented on it or decided it. Archive it instead.";
+
+const CHOICES = {
+  archive: {
+    label: "Archive",
+    text: "It leaves review and My submissions' list. Find it under Archived, where you can restore it as a draft.",
+  },
+  delete: {
+    label: "Delete for good",
+    text: "It's removed with its files and history. This can't be undone.",
+  },
+} as const;
+
+/** Withdraw (013): archive it, or delete it for good when no reviewer took part (057). */
 export const WithdrawDialog = ({
   draftId,
   itemName,
   dependents = 0,
+  canDelete = false,
   onClose,
 }: {
   draftId: string;
   itemName: string;
   /** Open submissions that depend on it (056): they're blocked once it's withdrawn. */
   dependents?: number;
+  canDelete?: boolean;
   onClose: () => void;
 }) => {
   const router = useRouter();
+  const [mode, setMode] = useState<"archive" | "delete">("archive");
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   return (
     <Dialog open onClose={onClose} title={`Withdraw ${itemName}?`}>
       <div className="grid gap-4">
-        <p className="text-sm text-fg">
-          It can't be undone. It stays in My submissions, read-only, and you can start a new draft.
-        </p>
+        <fieldset className="grid gap-2">
+          <legend className="sr-only">What to do with it</legend>
+          {(["archive", "delete"] as const).map((value) => {
+            const disabled = value === "delete" && !canDelete;
+            return (
+              <label
+                key={value}
+                className={`grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 rounded-control border p-3 text-sm ${
+                  mode === value ? "border-accent" : "border-hairline"
+                } ${disabled ? "text-muted" : "cursor-pointer text-fg"}`}
+              >
+                <input
+                  type="radio"
+                  name="withdrawMode"
+                  value={value}
+                  checked={mode === value}
+                  disabled={disabled}
+                  onChange={() => setMode(value)}
+                  className="mt-0.5 size-4 accent-(--accent)"
+                />
+                <span className="font-semibold">{CHOICES[value].label}</span>
+                <span className="col-start-2 text-muted">
+                  {disabled ? REVIEW_HISTORY_REASON : CHOICES[value].text}
+                </span>
+              </label>
+            );
+          })}
+        </fieldset>
+        <Help id="withdraw" />
         {dependents > 0 ? (
           <p className="text-sm text-warning-text">
             {dependents === 1 ? "1 submission depends" : `${dependents} submissions depend`} on
@@ -145,21 +195,95 @@ export const WithdrawDialog = ({
             Keep it
           </Button>
           <Button
-            variant="destructive"
+            variant={mode === "delete" ? "destructive" : "primary"}
             loading={pending}
             onClick={() =>
               start(async () => {
-                const result = await withdrawAction(draftId);
-                if (!result.ok) return setError(result.error);
+                const result = await withdrawAction(draftId, mode);
+                if (!result.ok) {
+                  // A reviewer took part meanwhile: only archiving is left.
+                  if (result.error === REVIEW_HISTORY_REASON) setMode("archive");
+                  return setError(result.error);
+                }
                 onClose();
                 router.refresh();
               })
             }
           >
-            Withdraw
+            {CHOICES[mode].label}
           </Button>
         </div>
       </div>
     </Dialog>
+  );
+};
+
+/** Deleting an archived submission for good (057): it can't be undone, so it asks first. */
+export const DeleteArchivedDialog = ({
+  draftId,
+  itemName,
+  onClose,
+  fromList = false,
+}: {
+  draftId: string;
+  itemName: string;
+  onClose: () => void;
+  /** Opened from My submissions: stay there; from its own page, go to My submissions. */
+  fromList?: boolean;
+}) => {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  return (
+    <Dialog open onClose={onClose} title={`Delete ${itemName} for good?`}>
+      <div className="grid gap-4">
+        <p className="text-sm text-fg">{CHOICES.delete.text}</p>
+        <FieldError id="delete-error">{error}</FieldError>
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button variant="secondary" onClick={onClose}>
+            Keep it
+          </Button>
+          <Button
+            variant="destructive"
+            loading={pending}
+            onClick={() =>
+              start(async () => {
+                const result = await deleteSubmissionAction(draftId);
+                if (!result.ok) return setError(result.error);
+                onClose();
+                if (fromList) router.refresh();
+                else router.push("/submissions");
+              })
+            }
+          >
+            Delete for good
+          </Button>
+        </div>
+      </div>
+    </Dialog>
+  );
+};
+
+/** Restore (057): an archived submission comes back as a draft. Nothing is lost, so no question. */
+export const RestoreButton = ({ draftId }: { draftId: string }) => {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  return (
+    <>
+      <Button
+        loading={pending}
+        onClick={() =>
+          start(async () => {
+            const result = await restoreAction(draftId);
+            if (!result.ok) return setError(result.error);
+            router.refresh();
+          })
+        }
+      >
+        Restore
+      </Button>
+      <FieldError id={`restore-error-${draftId}`}>{error}</FieldError>
+    </>
   );
 };

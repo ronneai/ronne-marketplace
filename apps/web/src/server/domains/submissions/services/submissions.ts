@@ -9,9 +9,14 @@ import { isId } from "../../../db/ids";
 import type { StorageAdapter } from "../../../storage";
 import { can, requirePermission } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
-import { SubmissionInvalidError, SubmissionNotFoundError } from "../exceptions/errors";
+import {
+  HasReviewHistoryError,
+  InvalidStatusTransitionError,
+  SubmissionInvalidError,
+  SubmissionNotFoundError,
+} from "../exceptions/errors";
 import { isUnreleased } from "../models/diff";
-import { transition } from "../models/status";
+import { type SubmissionStatus, transition } from "../models/status";
 import {
   type Draft,
   type DraftFile,
@@ -60,10 +65,13 @@ const own = async (repo: SubmissionRepository, actor: SubmissionActor, id: strin
   return submission;
 };
 
+/** Only the author sees these: a draft, and an archived submission (057). */
+const PRIVATE_STATUSES: readonly SubmissionStatus[] = ["draft", "withdrawn"];
+
 /**
  * A submission and its files, for the editor or a read-only view. The author always sees their
- * own; moderators and root (`submissions.view_submitted`) see any that isn't a draft. Anyone else
- * gets SubmissionNotFoundError, so a draft's existence isn't revealed.
+ * own; moderators and root (`submissions.view_submitted`) see any that isn't a draft or archived
+ * (057). Anyone else gets SubmissionNotFoundError, so a draft's existence isn't revealed.
  */
 export const viewSubmission = async (
   deps: SubmissionDeps,
@@ -75,7 +83,11 @@ export const viewSubmission = async (
   const mine = submission?.authorId === actor.user?.id;
   if (
     !submission ||
-    !(mine || (submission.status !== "draft" && can(actor.user, "submissions.view_submitted")))
+    !(
+      mine ||
+      (!PRIVATE_STATUSES.includes(submission.status) &&
+        can(actor.user, "submissions.view_submitted"))
+    )
   )
     throw new SubmissionNotFoundError();
   return { ...submission, files: await deps.repo.files(submission.id), mine };
@@ -232,19 +244,86 @@ export const submitDraft = async (
   });
 };
 
+/** What deleting for good may remove (057): anything not yet approved, archived included. */
+const DELETABLE: readonly SubmissionStatus[] = [
+  "draft",
+  "submitted",
+  "changes_requested",
+  "withdrawn",
+];
+
 /**
- * Withdraws a submission that isn't approved yet (owner decision, 2026-09-27). It's final: the
- * submission stays, read-only, for history.
+ * Whether someone other than the author took part (057): a reviewer's comment or decision. Such a
+ * submission can only be archived, so the conversation is kept.
+ */
+export const hasReviewHistory = async (
+  repo: SubmissionRepository,
+  submission: Submission,
+): Promise<boolean> =>
+  (await repo.events(submission.id)).some((event) => event.actor.id !== submission.authorId);
+
+/** Whether the author may delete it for good now (057), for the pages' buttons. */
+export const isDeletable = async (
+  repo: SubmissionRepository,
+  submission: Submission,
+): Promise<boolean> =>
+  DELETABLE.includes(submission.status) && !(await hasReviewHistory(repo, submission));
+
+/** Whether the actor's own submission can be deleted for good now (057), for its page. */
+export const canDeleteSubmission = async (
+  deps: SubmissionDeps,
+  actor: SubmissionActor,
+  id: string,
+): Promise<boolean> => isDeletable(deps.repo, await own(deps.repo, actor, id));
+
+/**
+ * Removes the author's submission for good, with its files, revisions and conversation (the
+ * foreign keys cascade), and records `submission.deleted`; the audit row stays. Call it inside a
+ * transaction, with the row locked: it checks the status and the review history again.
+ */
+export const removeSubmission = async (
+  repo: SubmissionRepository,
+  actor: { user: CurrentUser | null; ip?: string | null },
+  submission: Submission,
+  at: Date,
+): Promise<void> => {
+  if (!DELETABLE.includes(submission.status))
+    throw new InvalidStatusTransitionError(submission.status, "delete");
+  if (await hasReviewHistory(repo, submission)) throw new HasReviewHistoryError();
+  await repo.delete(submission.id);
+  await repo.recordAudit(
+    {
+      actorId: actor.user?.id ?? null,
+      action: "submission.deleted",
+      target: { type: "submission", id: submission.id },
+      metadata: { name: itemNameOf(submission), from: submission.status },
+      ipAddress: actor.ip ?? null,
+    },
+    at,
+  );
+};
+
+/**
+ * Withdraws a submission that isn't approved yet (owner decision, 2026-09-27). Since 057 the
+ * author chooses: `archive` keeps it, private to them and restorable; `delete` removes it for good,
+ * when no reviewer has taken part.
  */
 export const withdrawSubmission = async (
   deps: SubmissionDeps,
   actor: SubmissionActor,
   id: string,
+  mode: "archive" | "delete" = "archive",
 ): Promise<Submission> => {
   const at = now(deps);
   return deps.repo.transaction(async (repo) => {
+    await own(repo, actor, id);
+    await repo.lockSubmission(id);
     const submission = await own(repo, actor, id);
     const status = transition(submission.status, "withdraw");
+    if (mode === "delete") {
+      await removeSubmission(repo, actor, submission, at);
+      return { ...submission, updatedAt: at };
+    }
     await repo.setStatus(submission.id, status, { updatedAt: at });
     const latest = (await repo.revisions(submission.id)).at(-1);
     await repo.addEvent({
@@ -260,7 +339,60 @@ export const withdrawSubmission = async (
         actorId: actor.user?.id ?? null,
         action: "submission.withdrawn",
         target: { type: "submission", id: submission.id },
-        metadata: { name: itemNameOf(submission), from: submission.status },
+        metadata: { name: itemNameOf(submission), from: submission.status, mode: "archive" },
+        ipAddress: actor.ip,
+      },
+      at,
+    );
+    return { ...submission, status, updatedAt: at };
+  });
+};
+
+/** Deletes the author's submission for good (057): from an archived one, or a draft. */
+export const deleteSubmission = async (
+  deps: SubmissionDeps,
+  actor: SubmissionActor,
+  id: string,
+): Promise<void> => {
+  const at = now(deps);
+  await deps.repo.transaction(async (repo) => {
+    await own(repo, actor, id);
+    await repo.lockSubmission(id);
+    await removeSubmission(repo, actor, await own(repo, actor, id), at);
+  });
+};
+
+/**
+ * Brings an archived submission back as a draft (057), with its files, revisions and
+ * conversation; the next submit is its next revision. As a draft, it doesn't hold its name.
+ */
+export const restoreSubmission = async (
+  deps: SubmissionDeps,
+  actor: SubmissionActor,
+  id: string,
+): Promise<Submission> => {
+  const at = now(deps);
+  return deps.repo.transaction(async (repo) => {
+    await own(repo, actor, id);
+    await repo.lockSubmission(id);
+    const submission = await own(repo, actor, id);
+    const status = transition(submission.status, "restore");
+    await repo.setStatus(submission.id, status, { updatedAt: at });
+    const latest = (await repo.revisions(submission.id)).at(-1);
+    await repo.addEvent({
+      submissionId: submission.id,
+      actorId: actor.user?.id ?? "",
+      kind: "restore",
+      body: null,
+      revision: latest?.number ?? null,
+      createdAt: at,
+    });
+    await repo.recordAudit(
+      {
+        actorId: actor.user?.id ?? null,
+        action: "submission.restored",
+        target: { type: "submission", id: submission.id },
+        metadata: { name: itemNameOf(submission) },
         ipAddress: actor.ip,
       },
       at,

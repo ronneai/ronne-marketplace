@@ -86,7 +86,7 @@ What changes is how it's shown and who can see it:
 
 The audit log keeps that row, since `target_id` has no foreign key. A submission with a published
 version is never in a deletable status, and `item_versions` would refuse it anyway (RESTRICT). On
-success the author lands on My submissions with "Deleted {name}."
+success the author lands on My submissions, where it no longer appears.
 
 **Restore** is a new transition: `restore: { from: ["withdrawn"], to: "draft" }`, author only.
 - It adds a `restore` review event and records `submission.restored` with `{name}`.
@@ -157,22 +157,22 @@ button and, when allowed, **Delete for good**.
 
 ## Acceptance criteria
 
-- [ ] Withdraw offers Archive and Delete for good, from `draft`, `submitted` and
+- [x] Withdraw offers Archive and Delete for good, from `draft`, `submitted` and
   `changes_requested`. Delete is disabled, with the reason, when another person has a review event
   on it.
-- [ ] Archive sets `withdrawn`, shows "archived", records `submission.withdrawn` with
+- [x] Archive sets `withdrawn`, shows "archived", records `submission.withdrawn` with
   `mode: "archive"`, and moderators and root get a 404 on it.
-- [ ] Restore moves `withdrawn` to `draft`, keeps files, revisions and conversation, records
+- [x] Restore moves `withdrawn` to `draft`, keeps files, revisions and conversation, records
   `submission.restored`, and the next submit is the next revision number.
-- [ ] Delete for good removes the submission with its files, revisions and events, records
+- [x] Delete for good removes the submission with its files, revisions and events, records
   `submission.deleted`, and is refused in the transaction if review history appeared. The draft
   Settings' delete records `submission.deleted` too.
-- [ ] My submissions hides archived by default, shows them under an Archived filter with Restore
+- [x] My submissions hides archived by default, shows them under an Archived filter with Restore
   and, where allowed, Delete.
-- [ ] Dependency marks say "archived". A deleted dependency reads "not submitted".
-- [ ] The service tests pass on SQLite, PostgreSQL, MySQL and MariaDB, and end-to-end tests
+- [x] Dependency marks say "archived". A deleted dependency reads "not submitted".
+- [x] The service tests pass on SQLite, PostgreSQL, MySQL and MariaDB, and end-to-end tests
   archive, find and restore one submission, and delete another.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Decisions
 

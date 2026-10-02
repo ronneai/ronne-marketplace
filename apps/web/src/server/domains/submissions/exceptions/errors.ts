@@ -46,8 +46,16 @@ export class SubmissionNotEditableError extends SubmissionsError {
   }
 }
 
+/** Delete refused (057): someone other than the author has commented on it or decided it. */
+export class HasReviewHistoryError extends SubmissionsError {
+  constructor() {
+    super("Reviewers have commented on it or decided it. Archive it instead.");
+  }
+}
+
 const STATUS_WORDS: Record<string, string> = {
   changes_requested: "sent back for changes",
+  withdrawn: "archived",
 };
 
 /** A move MVP §4.1 doesn't allow, such as withdrawing twice. */
@@ -58,8 +66,12 @@ export class InvalidStatusTransitionError extends SubmissionsError {
   ) {
     super(
       `A submission that's ${STATUS_WORDS[from] ?? from} can't be ${
-        { submit: "submitted", resubmit: "resubmitted", withdraw: "withdrawn" }[action] ??
-        `${action.replace("_", " ")}d`
+        {
+          submit: "submitted",
+          resubmit: "resubmitted",
+          withdraw: "withdrawn",
+          restore: "restored",
+        }[action] ?? `${action.replace("_", " ")}d`
       }.`,
     );
   }
@@ -109,7 +121,7 @@ export class DependencyClosedError extends SubmissionsError {
     readonly status: "rejected" | "withdrawn",
   ) {
     super(
-      `${dependency} was ${status}, so it won't be released. Remove it from dependencies, or depend on another item.`,
+      `${dependency} was ${STATUS_WORDS[status] ?? status}, so it won't be released. Remove it from dependencies, or depend on another item.`,
     );
   }
 }

@@ -1,6 +1,12 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { DependencyMarksIcon, DependencyStatusBadge, markStatus } from "./DependencyMarks";
+import type { DependencyMark } from "@/server/domains/submissions/actions/submissions";
+import {
+  DependencyMarksIcon,
+  DependencyStatusBadge,
+  markStatus,
+  markText,
+} from "./DependencyMarks";
 
 describe("dependency marks in a list (owner, 2026-10-01)", () => {
   it("shows one amber icon with the count while dependencies are pending", () => {
@@ -39,5 +45,19 @@ describe("dependency marks in a list (owner, 2026-10-01)", () => {
         <DependencyStatusBadge mark={{ kind: "waits", dependency: "@t/a", status: "submitted" }} />,
       ),
     ).toContain("in review");
+  });
+
+  it("says archived for a withdrawn dependency (057)", () => {
+    const mark: DependencyMark = {
+      kind: "blocked",
+      dependency: "@t/a",
+      status: "withdrawn",
+      through: [],
+    };
+    expect(markStatus(mark)).toBe("archived");
+    expect(markText(mark)).toBe("Blocked: @t/a was archived");
+    expect(markText({ ...mark, through: ["@t/b"] })).toBe(
+      "Blocked: @t/a waits on @t/b, which was archived",
+    );
   });
 });

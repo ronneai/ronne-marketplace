@@ -6,6 +6,7 @@ import {
   SUBMISSION_STATUSES,
   type SubmissionAction,
   type SubmissionStatus,
+  statusLabel,
   transition,
 } from "./status";
 
@@ -21,6 +22,7 @@ const ALLOWED: [SubmissionStatus, SubmissionAction, SubmissionStatus][] = [
   ["changes_requested", "withdraw", "withdrawn"],
   ["approved", "publish", "published"],
   ["approved", "request_changes", "changes_requested"],
+  ["withdrawn", "restore", "draft"],
 ];
 
 const ACTIONS: SubmissionAction[] = [
@@ -30,6 +32,7 @@ const ACTIONS: SubmissionAction[] = [
   "approve",
   "reject",
   "withdraw",
+  "restore",
   "publish",
 ];
 
@@ -52,19 +55,28 @@ describe("transition", () => {
     expect(ALLOWED.length + refused.length).toBe(SUBMISSION_STATUSES.length * ACTIONS.length);
   });
 
-  it("is final once withdrawn, rejected or published, and frozen once approved", () => {
-    for (const from of ["withdrawn", "rejected", "published"] as const)
+  it("is final once rejected or published, frozen once approved, and archived can be restored", () => {
+    for (const from of ["rejected", "published"] as const)
       expect(ACTIONS.filter((action) => canTransition(from, action))).toEqual([]);
+    expect(ACTIONS.filter((action) => canTransition("withdrawn", action))).toEqual(["restore"]);
     expect(canTransition("approved", "withdraw")).toBe(false);
   });
 
   it("says what went wrong in words", () => {
     expect(() => transition("withdrawn", "withdraw")).toThrow(
-      "A submission that's withdrawn can't be withdrawn.",
+      "A submission that's archived can't be withdrawn.",
+    );
+    expect(() => transition("draft", "restore")).toThrow(
+      "A submission that's draft can't be restored.",
     );
     expect(() => transition("changes_requested", "submit")).toThrow(
       "A submission that's sent back for changes can't be submitted.",
     );
+  });
+
+  it("labels withdrawn as archived (057)", () => {
+    expect(statusLabel("withdrawn")).toBe("archived");
+    expect(statusLabel("changes_requested")).toBe("changes requested");
   });
 
   it("lets drafts and submissions sent back for changes be edited", () => {

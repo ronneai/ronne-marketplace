@@ -48,7 +48,7 @@ import { useDebounced, useSaveShortcut } from "./hooks";
 import { ManifestForm } from "./ManifestForm";
 import { readManifest } from "./manifest-yaml";
 import { ProposalBar } from "./ProposalBar";
-import { SubmitDialog, WithdrawDialog } from "./SubmitDialogs";
+import { DeleteArchivedDialog, RestoreButton, SubmitDialog, WithdrawDialog } from "./SubmitDialogs";
 import type { EditorDraft, SaveResult } from "./types";
 
 type Open =
@@ -59,6 +59,7 @@ type Open =
   | { kind: "settings" }
   | { kind: "submit" }
   | { kind: "withdraw" }
+  | { kind: "delete-submission" }
   | null;
 
 type Status =
@@ -350,13 +351,28 @@ export const DraftEditor = ({
         />
       ) : null}
 
-      {readOnly ? (
+      {draft.status === "withdrawn" && draft.mine ? (
+        <Notice kind="info" title="Archived.">
+          <div className="grid gap-3">
+            <p className="flex items-start gap-2">
+              <Lock size={14} aria-hidden="true" className="mt-0.5 shrink-0" />
+              It's out of review and doesn't hold its name. Restore it to edit and submit it again.
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              {draft.canRestore ? <RestoreButton draftId={draft.id} /> : null}
+              {draft.canDelete ? (
+                <Button variant="ghost" onClick={() => setOpen({ kind: "delete-submission" })}>
+                  Delete for good
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        </Notice>
+      ) : readOnly ? (
         <Notice
           kind="info"
           title={
-            draft.status === "withdrawn" ? (
-              "Withdrawn."
-            ) : draft.mine ? (
+            draft.mine ? (
               <>
                 Submitted for review
                 {draft.submittedAt ? (
@@ -374,11 +390,9 @@ export const DraftEditor = ({
         >
           <p className="flex items-start gap-2">
             <Lock size={14} aria-hidden="true" className="mt-0.5 shrink-0" />
-            {draft.status === "withdrawn"
-              ? "It stays here, read-only, for history. To carry on, start a new draft."
-              : draft.mine
-                ? "Its files are frozen, so reviewers see exactly what you submitted. You can withdraw it until it's approved."
-                : "You can read it, but only its author can change or withdraw it."}
+            {draft.mine
+              ? "Its files are frozen, so reviewers see exactly what you submitted. You can withdraw it until it's approved."
+              : "You can read it, but only its author can change or withdraw it."}
           </p>
         </Notice>
       ) : null}
@@ -690,6 +704,14 @@ export const DraftEditor = ({
           draftId={draft.id}
           itemName={itemName}
           dependents={draft.dependents}
+          canDelete={draft.canDelete}
+          onClose={() => setOpen(null)}
+        />
+      ) : null}
+      {open?.kind === "delete-submission" ? (
+        <DeleteArchivedDialog
+          draftId={draft.id}
+          itemName={itemName}
           onClose={() => setOpen(null)}
         />
       ) : null}

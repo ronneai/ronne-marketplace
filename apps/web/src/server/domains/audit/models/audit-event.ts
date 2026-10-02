@@ -25,6 +25,8 @@ export const AUDIT_ACTIONS = [
   "submission.submitted",
   "submission.resubmitted",
   "submission.withdrawn",
+  "submission.restored",
+  "submission.deleted",
   "submission.approved",
   "submission.changes_requested",
   "submission.rejected",

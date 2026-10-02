@@ -23,9 +23,9 @@ const withdrawAsAuthor = async (browser: Browser, id: string) => {
   await page.getByRole("button", { name: "Withdraw" }).click();
   await page
     .getByRole("dialog", { name: /Withdraw/ })
-    .getByRole("button", { name: "Withdraw" })
+    .getByRole("button", { name: "Archive", exact: true })
     .click();
-  await expect(page.getByText("It stays here, read-only, for history.")).toBeVisible();
+  await expect(page.getByText("It's out of review and doesn't hold its name.")).toBeVisible();
   await context.close();
 };
 
@@ -87,7 +87,7 @@ test("approves the selected submissions with one message, and reports one withdr
   const done = page.getByRole("dialog", { name: "Approved" });
   await expect(done.getByText("Approved:", { exact: true })).toHaveCount(2);
   await expect(done.getByText("Not approved:", { exact: true })).toHaveCount(1);
-  await expect(done).toContainText("withdrawn");
+  await expect(done).toContainText("archived");
   await done.getByRole("button", { name: "Done" }).click();
 
   await page.goto(`/reviews/${ids[0]}`);

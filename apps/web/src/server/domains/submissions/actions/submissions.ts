@@ -53,11 +53,31 @@ export const submitDraft = async (
   storage?: StorageAdapter,
 ) => service.submitDraft(deps(app, storage), await actor(headers, app), id);
 
+/** Archives it (the default) or deletes it for good (057). */
 export const withdrawSubmission = async (
   headers: Headers,
   id: string,
   app: AppAuth = getAppAuth(),
-) => service.withdrawSubmission(deps(app), await actor(headers, app), id);
+  mode: "archive" | "delete" = "archive",
+) => service.withdrawSubmission(deps(app), await actor(headers, app), id, mode);
+
+/** Whether the person's own submission can be deleted for good now (057). */
+export const canDeleteSubmission = async (
+  headers: Headers,
+  id: string,
+  app: AppAuth = getAppAuth(),
+) => service.canDeleteSubmission(deps(app), await actor(headers, app), id);
+
+/** Deletes an archived submission, or a draft, for good (057). */
+export const deleteSubmission = async (headers: Headers, id: string, app: AppAuth = getAppAuth()) =>
+  service.deleteSubmission(deps(app), await actor(headers, app), id);
+
+/** Brings an archived submission back as a draft (057). */
+export const restoreSubmission = async (
+  headers: Headers,
+  id: string,
+  app: AppAuth = getAppAuth(),
+) => service.restoreSubmission(deps(app), await actor(headers, app), id);
 
 export type { BulkSelection, CheckedDraft, SubmittedDraft } from "../services/bulk-submit";
 
