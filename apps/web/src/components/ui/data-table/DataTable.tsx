@@ -32,6 +32,8 @@ export type Column<Row, S extends string> = {
   id: string;
   /** Text for the header; empty for a column of actions, which then gets a screen-reader label. */
   header: string;
+  /** The screen-reader label of a column with no header (062); "Actions" when not given. */
+  srHeader?: string;
   render: (row: Row) => ReactNode;
   /** The list's sort key this column sorts by, when it's sortable. */
   sort?: S;
@@ -183,7 +185,7 @@ export const DataTable = <Row, S extends string, F extends string>({
                         ) : column.header ? (
                           column.header
                         ) : (
-                          <span className="sr-only">Actions</span>
+                          <span className="sr-only">{column.srHeader ?? "Actions"}</span>
                         )}
                       </th>
                     );

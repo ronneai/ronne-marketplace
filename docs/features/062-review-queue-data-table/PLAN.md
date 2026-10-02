@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Shared table additions.** `KeysetSort.kind: "date"` in `paginate`,
+- [x] **1. Shared table additions.** `KeysetSort.kind: "date"` in `paginate`,
   `ListDefinition.fixed` in the list state, and `Column.srHeader` in `DataTable`.
   *Done when:* `keyset.db.test.ts` pages by a timestamp with equal and close values on all four
   databases; `list-query.test.ts` and `data-table.test.tsx` cover `fixed` (kept by Clear, sort and
