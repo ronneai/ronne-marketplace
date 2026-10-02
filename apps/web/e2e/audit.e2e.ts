@@ -48,12 +48,49 @@ test("root reads the audit log: setup, its own sign-in, and a settings change", 
     rows.filter({ hasText: "auth.signed_in" }).filter({ hasText: E2E_USERS.root }).first(),
   ).toBeVisible();
 
-  // The filter is a plain GET form.
-  await page.getByLabel("Action").selectOption("instance");
-  await page.getByRole("button", { name: "Filter" }).click();
-  await expect(page).toHaveURL(/group=instance/);
+  // One line per event, with a summary (060); the filters apply as they change.
+  await expect(rows.filter({ hasText: "Created the first root account" })).toHaveCount(1);
+  await page.getByLabel("Action").selectOption("instance.*");
+  await expect(page).toHaveURL(/action=instance\.(\*|%2A)/);
   await expect(rows.filter({ hasText: "auth.signed_in" })).toHaveCount(0);
   await expect(rows.filter({ hasText: "instance.root_created" })).toHaveCount(1);
+
+  // The details open in a dialog with a URL of its own, and closing it keeps the view.
+  await rows
+    .filter({ hasText: "instance.root_created" })
+    .getByRole("link", { name: /^Details:/ })
+    .click();
+  const details = page.getByRole("dialog", { name: "Event details" });
+  await expect(details).toBeVisible();
+  await expect(page).toHaveURL(/event=/);
+  await expect(details.getByText(E2E_USERS.root).first()).toBeVisible();
+  await expect(details.getByText("Raw JSON")).toBeVisible();
+  await details.getByRole("button", { name: "Close" }).click();
+  await expect(details).toBeHidden();
+  await expect(page).not.toHaveURL(/event=/);
+  await expect(page).toHaveURL(/action=instance/);
+
+  // A chip removes its filter; the actor search finds events with no one signed in.
+  await page.getByRole("link", { name: "Remove the action filter" }).click();
+  await expect(page).not.toHaveURL(/action=/);
+  await page.getByLabel("Actor").fill("system");
+  await expect(page).toHaveURL(/actor=system/);
+  await expect(rows.filter({ hasText: "auth.signed_in" })).toHaveCount(0);
+  await expect(rows.filter({ hasText: "instance.root_created" })).toHaveCount(1);
+  await page.getByRole("link", { name: "Clear", exact: true }).click();
+  await expect(page).toHaveURL(/\/admin\/audit$/);
+
+  // Sorting by action from its header, and the page size, stay in the URL.
+  await page.getByRole("link", { name: "Event" }).click();
+  await expect(page).toHaveURL(/sort=action/);
+  await expect(page.getByRole("columnheader", { name: "Event" })).toHaveAttribute(
+    "aria-sort",
+    "ascending",
+  );
+  await page.getByLabel("Show").selectOption("25");
+  await expect(page).toHaveURL(/size=25/);
+  await expect(page).toHaveURL(/sort=action/);
+  await expect(page.getByRole("navigation", { name: "Pages" })).toContainText(/\d+ events/);
 
   // Admin › Settings: root sets the usage policy (046); the change is audited.
   await admin.getByRole("link", { name: "Settings" }).click();
@@ -63,9 +100,12 @@ test("root reads the audit log: setup, its own sign-in, and a settings change", 
   await page.reload();
   await expect(page.getByRole("radio", { name: /^People choose/ })).toBeChecked();
   await admin.getByRole("link", { name: "Audit log" }).click();
-  await page.getByLabel("Action").selectOption("settings");
-  await page.getByRole("button", { name: "Filter" }).click();
+  await page.getByLabel("Action").selectOption("settings.*");
+  await expect(page).toHaveURL(/action=settings/);
   await expect(rows.filter({ hasText: "settings.usage_policy" })).toHaveCount(1);
+  await expect(
+    rows.filter({ hasText: "Changed the usage policy from off to people choose" }),
+  ).toHaveCount(1);
   // Back to a new instance's default, so other tests see an instance that collects nothing.
   await admin.getByRole("link", { name: "Settings" }).click();
   await choosePolicy(page, "Off");
@@ -86,7 +126,7 @@ test("root reads the audit log: setup, its own sign-in, and a settings change", 
   // Local time (049): the audit log and an item page in the reader's zone, UTC on hover.
   await admin.getByRole("link", { name: "Audit log" }).click();
   const firstTime = page.getByRole("row").nth(1).locator("time");
-  await expect(firstTime).toHaveText(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} GMT-3$/);
+  await expect(firstTime).toHaveText(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2} GMT-3$/);
   await expect(firstTime).toHaveAttribute("title", /UTC$/);
   await page.goto(`/items/${E2E_SCOPE}/${E2E_SKILL}`);
   await expect(page.locator("header time").first()).toHaveText(/ GMT-3$/);

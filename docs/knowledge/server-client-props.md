@@ -17,3 +17,17 @@ components together, with no boundary. The page crashes only in Next.js, so the 
   (`components/ui/Popover.tsx`) accepts `children` as a node or as `(close) => node`.
 - From a server component, pass the node form. Keep the function form for client components.
 - If the content really needs a callback, move the caller into a `"use client"` file.
+
+## Calling a function from a client module
+
+The same boundary applies to plain functions. Everything a `"use client"` module exports is a
+client reference on the server, even a pure helper with no hooks, so a server component can't
+**call** it:
+
+> Attempted to call utcText() from the server but utcText is on the client.
+
+060's audit dialog hit this by calling `utcText` from `LocalTime.tsx`. As above, only the built app
+shows it; unit tests render server and client code together.
+
+**How to avoid it:** keep pure helpers in a module without `"use client"` (such as
+`components/ui/time-text.ts`), and have the client component import them from there.

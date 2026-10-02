@@ -41,7 +41,7 @@ the same change that completes it.
   *Done when:* a test renders a summary for every action in `AUDIT_ACTIONS` (and fails for one
   that's missing), plus the fallback for unexpected metadata.
 
-- [ ] **6. The audit page on `DataTable`.** The columns, the filters row with chips, submit on
+- [x] **6. The audit page on `DataTable`.** The columns, the filters row with chips, submit on
   change, and the page description. The details dialog from `?event=`, with target links and raw
   JSON with copy. "That event doesn't exist" for an unknown id. The route reads the list state and
   the event.
@@ -59,3 +59,8 @@ the same change that completes it.
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- A server component can't call a function exported from a `"use client"` module, even a pure one:
+  `EventDetails` calling `utcText` from `LocalTime.tsx` failed only in the built app ("Attempted to
+  call utcText() from the server"). The time formatting now lives in `components/ui/time-text.ts`.
+  The unit tests render everything together, so only the end-to-end test caught it.

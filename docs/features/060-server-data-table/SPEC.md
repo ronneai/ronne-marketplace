@@ -123,7 +123,7 @@ const AUDIT_LIST = defineList({
 
 | Column | Shows | Sortable |
 |---|---|---|
-| **Time** | Local time to the minute (`Oct 2, 14:03`), with the full time and UTC on hover (049) | ✅ (default, newest first) |
+| **Time** | Local time to the minute, with its zone (`2026-10-02 14:03 GMT-3`), and UTC on hover (049) | ✅ (default, newest first) |
 | **Actor** | The email, or `system` / `cli`, truncated | — |
 | **Event** | The action as a small mono badge, then a **summary** in plain words, truncated | ✅ by action |
 | (no header) | An icon button, **Details**, that opens the dialog | — |
@@ -154,17 +154,19 @@ sentence built from the metadata and the target. Some examples:
   action and the target type, such as "user.created (user)". It never throws. A test renders every
   action in the catalogue, and fails when a new action has no summary.
 
-**The details dialog** (the existing `Dialog`, `large`):
+**The details dialog** (the existing `Dialog`, sized to its content):
 - **Opening:** it opens from `?event=<id>`. The page reads that one event by id and renders the
-  dialog open, so a link to one event can be shared, and it works without JavaScript. Closing it
-  goes back to the same URL without `event`. With JavaScript, opening and closing are client
-  navigations that keep the scroll position.
+  dialog open, so a link to one event can be shared. Closing it goes back to the same URL without
+  `event`. Opening and closing are client navigations that keep the scroll position. Without
+  JavaScript a native dialog can't open, so the same details show in a panel under the table,
+  with a Close link.
 - **Content, as a two-column description list:**
   - **When:** the local time with its zone, and UTC.
   - **Actor:** the email and id, or `system` / `cli`.
   - **Action:** the badge and the summary.
-  - **Target:** the type and id. Where the app has a page for it, the target is a link: a user goes
-    to Users searched by email, a submission to its page, and an item or version to the item page.
+  - **Target:** the type, a user's email, and the id. Where the app has a page for it there's a
+    link: "Open in Users" (searched by email), "Open the submission", or "Open the item" (for an
+    item or a version, from the name the event recorded).
   - **IP address.**
   - **Details:** every metadata key and value, in the order recorded.
   - **Event id.**
@@ -213,8 +215,8 @@ sentence built from the metadata and the target. Some examples:
 - **A huge total:** counting stops at 10,001 rows and shows "10,000+".
 - **An actor search with `%` or `_`:** matched literally (the escaping in `containsInsensitive`).
 - **Long emails and summaries:** truncated with an ellipsis, and complete in `title` and in the
-  dialog. The table never scrolls sideways at 1280px wide. On a phone the Actor column is hidden,
-  and the actor is still in the summary line and the dialog.
+  dialog. The table never scrolls sideways at 1280px wide. On a phone the Actor column is hidden;
+  the actor is in the dialog.
 - **Times:** the line shows local time to the minute, and the dialog shows seconds and UTC. The
   date filters stay UTC days (049).
 - **Metadata over 4 KB** can't exist (007 refuses it), so the dialog needs no truncation.
