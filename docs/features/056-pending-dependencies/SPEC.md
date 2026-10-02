@@ -214,7 +214,7 @@ published items and didn't match the scope.
   whose dependency isn't released (or released in the batch first) can't be released.
 - [x] Bulk submit (web, `rmk submit`, `submit_drafts`) includes the person's own ready dependency
   drafts first; `--no-deps` leaves them out.
-- [ ] **Moved to 055** (not built yet): 055 selects a dependent's approved dependencies with it,
+- [x] **Moved to 055** (built there): 055 selects a dependent's approved dependencies with it,
   refuses a dependent waiting on a dependency in review, and releases dependencies first.
 - [x] Rejecting a submission lists its open dependents, and with the box ticked requests changes on
   each the reviewer may decide, each audited with `cause`; unticked, they show **Blocked**.

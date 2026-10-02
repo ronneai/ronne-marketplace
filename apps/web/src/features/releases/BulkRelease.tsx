@@ -5,6 +5,7 @@ import { Rocket } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createContext, type ReactNode, useContext, useState, useTransition } from "react";
+import { Help } from "@/components/help/Help";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
@@ -136,6 +137,7 @@ const SettingsForm = ({
         <option value="minor">Minor for all</option>
         <option value="major">Major for all</option>
       </Select>
+      <Help id="which-bump" />
     </div>
     <div className="grid gap-1.5">
       <Label htmlFor="release-tag">Tag</Label>

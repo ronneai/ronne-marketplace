@@ -619,7 +619,10 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
                   "changes_requested",
                   "Sent back to its author, who edits it and resubmits it as the next revision.",
                 ],
-                ["approved", "Ready to release, by its author, a moderator or root."],
+                [
+                  "approved",
+                  "Ready to release, by its author, a moderator or root. Approved ones wait on the review queue's To release tab, and can be released many at once.",
+                ],
                 ["published", "Released as a version."],
                 ["rejected", "Closed by a reviewer, with the reason in the conversation."],
                 ["withdrawn", "Closed by its author, before approval. It stays, read-only."],
@@ -860,6 +863,11 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           id of lowercase letters and digits, starting with a letter, and a number that goes up with
           each one.
         </p>
+        <p>
+          Nobody types a version: it follows from the choice made when releasing, one item at a time
+          or <To href={docsHref("versions", "release-many")}>many at once</To>, where one choice
+          gives each item its own next version.
+        </p>
       </>
     ),
     bump: (
@@ -899,6 +907,9 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </Table>
         <p>
           For a change proposal, the publish dialog suggests one from what changed, and says why.
+          Releasing <To href={docsHref("versions", "release-many")}>many at once</To>,{" "}
+          <strong>Suggested for each</strong> uses each proposal&apos;s own suggestion; or pick one
+          bump for all. A first release is 1.0.0 either way.
         </p>
       </>
     ),
@@ -1632,7 +1643,9 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         Once approved, it&apos;s released like any other submission, as the item&apos;s next
         version. The publish dialog suggests patch, minor or major from what changed (see{" "}
         <To href={docsHref("versions", "bump")}>Patch, minor or major</To>), and the publisher can
-        pick another.
+        pick another. Several can go <To href={docsHref("versions", "release-many")}>at once</To>;
+        two proposals for the same item can&apos;t both go out, since the first makes the other
+        stale.
       </p>
     ),
   },

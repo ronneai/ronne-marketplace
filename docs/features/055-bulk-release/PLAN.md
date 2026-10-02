@@ -36,7 +36,7 @@ the same change that completes it.
   *Done when:* `reviews.test.tsx` and `queue.db.test.ts` cover the tab, and a Playwright test
   releases a skill and an agent that depends on it in one batch, then installs the agent with `rmk`.
 
-- [ ] **5. Documentation.** `versions#semver`, `versions#bump`, the new `versions#release-many`,
+- [x] **5. Documentation.** `versions#semver`, `versions#bump`, the new `versions#release-many`,
   `review#statuses`, `changes#release`, and the two helpers.
   *Done when:* the docs render tests pass, and every new helper's link lands on a real section.
 
