@@ -306,11 +306,11 @@ export const RowDecisions = ({
   if (shown.length === 0) return null;
   return (
     <div className="grid justify-items-end gap-1">
-      <div className="flex flex-wrap justify-end gap-2">
+      <div className="flex flex-wrap justify-end gap-x-4 gap-y-1">
         {shown.map((option) => (
           <Button
             key={option.decision}
-            variant={option.decision === "reject" ? "destructive" : "secondary"}
+            variant={option.decision === "reject" ? "text-destructive" : "text"}
             aria-label={`${COPY[option.decision].button}: ${name}`}
             disabledReason={option.allowed ? null : option.reason}
             loading={pending && option.decision === "reject"}
