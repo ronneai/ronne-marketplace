@@ -39,7 +39,13 @@ import { allIssues, type SubmissionActor, type SubmissionDeps } from "./submissi
  */
 export type PublishDeps = SubmissionDeps & { store: ReleaseStore; storage: StorageAdapter };
 
-export type PublishInput = { choice: ReleaseChoice; tag?: string; notes?: string };
+export type PublishInput = {
+  choice: ReleaseChoice;
+  tag?: string;
+  notes?: string;
+  /** How it was released, for the audit log: many at once (055). */
+  via?: "bulk";
+};
 
 export type Published = {
   itemId: string;
@@ -193,7 +199,13 @@ export const publishSubmission = async (
         actorId: actor.user?.id ?? null,
         action: "version.published",
         target: { type: "item_version", id: versionId },
-        metadata: { name: itemName, version, tag, sha256: packed.sha256 },
+        metadata: {
+          name: itemName,
+          version,
+          tag,
+          sha256: packed.sha256,
+          ...(input.via ? { via: input.via } : {}),
+        },
         ipAddress: actor.ip,
       },
       at,
@@ -203,7 +215,13 @@ export const publishSubmission = async (
         actorId: actor.user?.id ?? null,
         action: "dist_tag.moved",
         target: { type: "item", id: itemId },
-        metadata: { name: itemName, tag, from: previous, to: version },
+        metadata: {
+          name: itemName,
+          tag,
+          from: previous,
+          to: version,
+          ...(input.via ? { via: input.via } : {}),
+        },
         ipAddress: actor.ip,
       },
       at,

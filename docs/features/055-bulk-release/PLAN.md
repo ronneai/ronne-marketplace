@@ -17,7 +17,7 @@ the same change that completes it.
   *Done when:* unit tests cover first releases, suggested and forced bumps, pre-releases, a custom
   tag, and a pre-release tagged `latest`.
 
-- [ ] **2. Domain.** `releaseMany` in the `submissions` service over 015's `publishSubmission`:
+- [x] **2. Domain.** `releaseMany` in the `submissions` service over 015's `publishSubmission`:
   releasable check, dependency order (a sort in `packages/core`, which `rmk`'s `releaseOrder`
   then uses too), selecting a dependent's approved dependencies with it and refusing one waiting on
   review (056's release rule, moved here from 056's task 3), `skipped` for dependents of a failure,
@@ -44,3 +44,8 @@ the same change that completes it.
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- **The order** is `dependenciesFirst` in `packages/core`. `rmk`'s `releaseOrder` wasn't moved onto
+  it: it turns a check's issues into human steps ("X must be in review first"), a different job.
+- **A user and someone else's submission:** `not_found`, not `not_releasable`, as everywhere else a
+  user can't see others' submissions.
