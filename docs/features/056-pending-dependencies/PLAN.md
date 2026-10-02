@@ -50,6 +50,26 @@ the same change that completes it.
 - [x] **7. Documentation.** The sections and helpers in the spec's Documentation section.
   *Done when:* the docs render tests pass, and every new helper's link lands on a real section.
 
+- [ ] **8. Dependency search.** The catalogue search matches the scope, and `@scope/name` parts;
+  `findDependencies` over published items, the person's own submissions and others' open ones,
+  with versions and `latest`; a server action.
+  *Done when:* `dependency-search.db.test.ts` covers each source, allowed types, the item itself,
+  a name both published and in review, and the scope match, on every database.
+
+- [ ] **9. The form's picker.** The dependencies field: a search box with the list, a version list
+  per row (`latest` by default), rows written only when complete, existing rows kept.
+  *Done when:* unit tests cover the range from a pick, and the field's rendering; a Playwright test
+  picks a dependency and saves.
+
+- [ ] **10. `@` in markdown.** `@codemirror/autocomplete` (dependency policy checked) in the code
+  editor for markdown files, over the same search; picking inserts the name and adds the
+  dependency to the manifest.
+  *Done when:* unit tests cover the completion source and the manifest change; the Playwright test
+  types `@` in SKILL.md and picks one.
+
+- [ ] **11. Documentation** for picking dependencies and `@`, and the helper.
+  *Done when:* the docs render tests pass.
+
 ## Notes
 
 Things learned while building that the next person should know. Anything that changes behaviour

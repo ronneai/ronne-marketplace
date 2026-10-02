@@ -29,6 +29,12 @@ sees what depended on it and can send those back in the same step.
 - **Request changes from `approved`** (014's transition table): so an approved dependent can be sent
   back when its dependency is rejected.
 
+- **Picking a dependency** (owner, 2026-10-01): in the settings form, the Item field searches as
+  you type, over published items and your own items (draft, in review, approved), and others' items
+  in review; picking one shows its versions, `latest` by default. In a markdown file, typing `@`
+  opens the same list in a popover, and picking one adds the dependency too. Half-typed names never
+  reach `ronne.yaml`.
+
 **Out** (and where it goes instead):
 - **Grouped submissions** (a dependent and its dependencies reviewed and released as one unit, all
   or nothing). Each item keeps its own review and release; this feature only connects them.
@@ -126,6 +132,35 @@ mark. (The dependency's author sees "2 submissions depend on this" in the withdr
 **Audit.** No new actions. Request changes caused by a rejection carries `cause` in its metadata;
 submits that included dependencies are 052's events, one per item.
 
+**Picking a dependency** (owner, 2026-10-01). Typing a dependency by hand gave errors while
+typing (`@engineering` isn't a full name; `^1.` isn't a range), and the canvas's search only knew
+published items and didn't match the scope.
+
+- **The list.** Typing any part of `@scope/name`, a description or a keyword filters, case aside.
+  `@team/re` matches scope `team` and names containing `re`. It offers only types this item may
+  depend on (manifest spec §3), never the item itself or one already listed, and at most 12:
+  - **published** items, with their newest version;
+  - **your own** items in review, approved, or still drafts;
+  - **others'** items in review or approved (they count since this feature), shown by name, type,
+    status and author only.
+  A name both published and with a proposal in review shows once, as published. Each option shows
+  its type badge and status. A draft says it's submitted with this item (bulk submit, above).
+- **The version.** Picking a published item adds a row with a version list: **latest (1.4.0)** by
+  default, then each released version, newest first; yanked ones aren't offered. The range written
+  is `^<version>` (a pre-release exactly, as the canvas does); a dist-tag can't be a range, so
+  `latest` is written as the version it points to now. An unreleased item gets `^1.0.0`, its
+  first release. The range can still be typed for anything else.
+- **The form** writes a row to `ronne.yaml` only once it has a picked name and a range, so the
+  checks never see half a name. Rows already in the file (typed in the raw editor, or invalid) show
+  as they are, with their problems, and can be changed or removed.
+- **`@` in markdown** (SKILL.md, prompts, any `.md` file of the draft): typing `@` followed by
+  text opens the same list in a popover at the cursor; ↑/↓ and Enter pick, Esc closes. Picking
+  inserts `@scope/name` in the text and adds the dependency (latest, as above) to the manifest, if
+  this type may have dependencies and it isn't there yet. Like every edit it's saved with **Save**.
+  Deleting the text later leaves the dependency: dependencies are removed in the form or the
+  canvas (owner's recommendation, 2026-10-01).
+- **The canvas** keeps its own picker (published items), now matching the scope too.
+
 ## Edge cases
 
 - **The dependency gets a different first version than the range allows** (released as a
@@ -164,6 +199,10 @@ submits that included dependencies are 052's events, one per item.
   `review#dependencies`; in the reject dialog, next to the dependents: "Why are these listed?",
   linking to `review#dependencies`.
 
+- **Writing an item → The manifest form** (`items#form` or the closest section): picking a
+  dependency from the list, the version and `latest`, and `@` in markdown files. **Helper:** next
+  to the dependencies field, "How do I add one?", linking there.
+
 ## Acceptance criteria
 
 - [x] A draft submits when a dependency is an open submission, with the warning; a draft dependency,
@@ -184,6 +223,14 @@ submits that included dependencies are 052's events, one per item.
   bundle sent back.
 - [x] The Documentation and inline helpers listed above say what the feature does now.
 
+- [ ] The dependency search matches any part of `@scope/name`, a description or a keyword, offers
+  published items, the person's own drafts and open submissions, and others' open ones, only of
+  allowed types, and never the item itself.
+- [ ] The form adds a row only from a pick, with the versions listed and `latest` by default
+  written as `^<version>`, `^1.0.0` for an unreleased item; no half-typed name reaches the file.
+- [ ] Typing `@` in a markdown file opens the list; picking inserts the name and adds the
+  dependency, and nothing is saved until Save.
+
 ## Decisions
 
 1. **A dependency on its way counts at submit** (owner, 2026-10-01): released, or an open
@@ -195,6 +242,11 @@ submits that included dependencies are 052's events, one per item.
 4. **Another author's submission as a dependency** (owner, 2026-10-01): it counts, named only by
    item and status, as 013's "name is taken" already does; its content stays hidden from people who
    can't see it.
+
+5. **Picking dependencies** (owner, 2026-10-01): an autocomplete in the form and `@` in markdown,
+   over published items and the person's own; built in this feature. Deleting an `@` mention keeps
+   the dependency; others' items in review are offered; a draft says it's submitted with the item
+   (Claude's recommendations, taken while the owner's answers were pending).
 
 ## Open questions
 
