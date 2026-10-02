@@ -38,7 +38,7 @@ Items are written once in a canonical format and delivered to the major AI codin
 
 | Role | Who | Summary |
 |---|---|---|
-| **root** | Created at install time. Instance owner. | Everything a moderator can do, plus user and instance administration and overrides. |
+| **root** | The first is created at install time; any root can make others root ([059](../features/059-multiple-roots/SPEC.md)). Instance owners. | Everything a moderator can do, plus user and instance administration and overrides. |
 | **moderator** | Trusted reviewers. | Reviews, approves and releases submissions; deprecates and yanks versions. |
 | **user** | Everyone else. | Browses and installs items; proposes new items and changes. |
 
@@ -57,7 +57,7 @@ Items are written once in a canonical format and delivered to the major AI codin
 | Yank a version | — | ✅ | ✅ |
 | Approve own submission (override, audited) | — | — | ✅ |
 | Create scopes | — | — | ✅ |
-| Create / disable users, change roles | — | — | ✅ |
+| Create / disable users, change roles (root included, not their own) | — | — | ✅ |
 | Instance settings (the usage policy, [046](../features/046-usage-telemetry/SPEC.md)) | — | — | ✅ |
 
 Users are **only created from the web app** (by root). The CLI never registers accounts.
@@ -376,7 +376,7 @@ The setup, in the browser or as the `setup` script:
 6. **Create the root account**: email, password (entered twice), and display name.
 7. Send the person to sign in (the browser), or print the URL and the next steps (the script).
 
-The setup refuses to create a second root account if one already exists. A separate `pnpm run reset-root-password` command handles recovery.
+The setup refuses to create a root account if one already exists; more roots are added from the admin area ([059](../features/059-multiple-roots/SPEC.md)). A separate `pnpm run reset-root-password` command handles recovery (`--email` picks the root when there are several).
 
 `pnpm setup` (without `run`) is a pnpm built-in that configures pnpm itself, so the command is always
 written `pnpm run setup`. Full behaviour, including a non-interactive mode for Docker and CI, is in
@@ -822,7 +822,7 @@ out (owner, 2026-09-30). The design, for when it's picked up:
 | Login rate limit | Ronne's own in-memory limiter on the sign-in action: 5 attempts a minute per email, and per client IP only with `TRUST_PROXY=true`; Better Auth's HTTP sign-in is not served | Better Auth's limiter skips server actions, and without a trusted proxy the client IP can be forged ([006](../features/006-web-sign-in/SPEC.md)) |
 | CLI login | `rmk login` exchanges email and password for a token (`POST /api/v1/auth/token`), and `rmk login --token` accepts one made in the web app; browser-based login waits for SSO's device flow | Matches the MVP and the mock's `--token`, without new endpoints before SSO |
 | Which registry | `--registry`, then `RMK_REGISTRY`, then the project's (`registry` in `rmk.config.json`, then `rmk.lock`), then the user's default; `rmk install` records the registry in `rmk.config.json`, and `rmk login --registry` makes it the default (owner, 2026-10-01, [cli-files](../spec/cli-files.md)) | Tokens are personal and stay per machine, but the registry belongs to the project, so teammates and several instances on one machine each get the right one; before this the project's `registry` was documented but unused, and a second login left the old default |
-| Single root | The admin UI assigns only `user` and `moderator`, and can't modify root; root recovers through `pnpm run reset-root-password` | Keeps "one instance owner"; a transfer flow can come later |
+| Roots | Several roots, as peers: setup creates the first, and any root can give any role (root included) and disable or reset any account but their own; at least one active root always remains, enforced under row locks; `pnpm run reset-root-password` (with `--email` when there are several) recovers one. It was "Single root" (008) until the owner changed it, 2026-10-02 ([059](../features/059-multiple-roots/SPEC.md)) | One person away or locked out shouldn't stop the instance being run; no roots at all would reopen the web setup, so the last one is protected |
 | Renderer output | Renderers are pure: they return the changes to make (files, folders, JSON and TOML keys, JSON array elements, Markdown sections), and `rmk` applies them and records each in `.rmk/state.json`. There is no `remove()`: removing undoes exactly what the state file recorded ([021](../features/021-renderer-harness/SPEC.md)) | One place decides what may be written or deleted, and renderers stay testable with golden files |
 | Item contents on the item page | The item page reads the shown version's `.tgz` from the `StorageAdapter` to show its files (Overview and Files tabs), checked against its sha256 and not counted as a download; web only, no API or MCP endpoint per file yet ([044](../features/044-item-contents/SPEC.md), owner, 2026-09-30) | People should see exactly what they would install; copying every file into the database at release would duplicate the artifact |
 | Download counts | The tarball endpoint adds one to `items.download_count` per download; nothing about who downloaded is stored. The home page ranks "Most used" by it | The owner wants most used items on the home page (2026-09-28); a server-side count needs no telemetry from `rmk`, which stays opt-in and post-MVP |

@@ -44,6 +44,10 @@ themselves, and the CLI never creates users.
 
 Later features add theirs (such as `submissions.review` for moderator and root) to the same map, which follows MVP §2's table.
 
+> **Superseded by [059](../059-multiple-roots/SPEC.md)** (owner, 2026-10-02): there can be several
+> roots, root can give any role, and roots manage each other but not themselves. The rules below
+> describe 008 as built.
+
 **Root stays single** (decided here; MVP §2 describes one root "created at install time"):
 - Roles set in the UI are only `user` and `moderator`. No UI path makes someone root.
 - Root's own row can't be disabled, demoted or reset from the admin UI. Root changes its own password
