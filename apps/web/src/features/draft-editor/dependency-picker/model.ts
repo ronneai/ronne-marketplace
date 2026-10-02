@@ -31,7 +31,9 @@ export const statusText = (option: DependencyOption): string => {
         ? "in review"
         : option.status === "changes_requested"
           ? "back with its author"
-          : option.status;
+          : option.status === "approved"
+            ? "pending release"
+            : option.status;
   return whose ? `${status}, ${whose}` : status;
 };
 

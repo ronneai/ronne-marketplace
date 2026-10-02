@@ -1,12 +1,15 @@
+import { CircleX, TriangleAlert } from "lucide-react";
 import { Help } from "@/components/help/Help";
 import { Badge } from "@/components/ui/Badge";
+import { cn } from "@/components/ui/cn";
 import { Notice } from "@/components/ui/Notice";
 import type { DependencyMark } from "@/server/domains/submissions/actions/submissions";
 
 const WAITS: Record<Extract<DependencyMark, { kind: "waits" }>["status"], string> = {
   submitted: "in review",
   changes_requested: "back with its author",
-  approved: "approved",
+  // Approved, waiting for its release (owner, 2026-10-01).
+  approved: "pending release",
   not_submitted: "not submitted",
 };
 
@@ -17,6 +20,41 @@ export const markText = (mark: DependencyMark): string =>
     : mark.through.length === 0
       ? `Blocked: ${mark.dependency} was ${mark.status}`
       : `Blocked: ${mark.dependency} waits on ${mark.through.at(-1)}, which was ${mark.status}`;
+
+/** A dependency's own status in a word or two, for a badge beside its name. */
+export const markStatus = (mark: DependencyMark): string =>
+  mark.kind === "waits"
+    ? WAITS[mark.status]
+    : mark.through.length === 0
+      ? mark.status
+      : `${mark.through.at(-1)} ${mark.status}`;
+
+/**
+ * Beside a dependency's name (owner, 2026-10-01): an amber badge while it isn't released yet ("in
+ * review", "approved", "not submitted"), a red one when it's blocked. The full sentence is on
+ * hover and for screen readers. Reusable: any list of dependencies can show it, with its classes.
+ */
+export const DependencyStatusBadge = ({
+  mark,
+  className,
+}: {
+  mark: DependencyMark;
+  className?: string;
+}) => {
+  const blocked = mark.kind === "blocked";
+  const Icon = blocked ? CircleX : TriangleAlert;
+  return (
+    <Badge
+      tone={blocked ? "error" : "warning"}
+      title={markText(mark)}
+      aria-label={markText(mark)}
+      className={cn("gap-1", className)}
+    >
+      <Icon size={11} aria-hidden="true" />
+      {markStatus(mark)}
+    </Badge>
+  );
+};
 
 /** A row's marks, as small badges: amber when blocked. */
 export const DependencyMarkBadges = ({ marks }: { marks?: readonly DependencyMark[] }) =>

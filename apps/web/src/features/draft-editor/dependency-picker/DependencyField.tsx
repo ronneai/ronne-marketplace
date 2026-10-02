@@ -3,12 +3,24 @@
 import type { ItemType } from "@ronneai/core";
 import { X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
+import { DependencyStatusBadge } from "@/components/submissions/DependencyMarks";
 import { Badge } from "@/components/ui/Badge";
 import { inputClasses, Select } from "@/components/ui/Field";
 import { TypeBadge } from "@/components/ui/TypeBadge";
 import type { DependencyOption } from "@/server/domains/submissions/actions/composer";
+import type { DependencyMark } from "@/server/domains/submissions/actions/submissions";
 import { findDependenciesAction } from "./actions";
 import { dependencyRows, rangeFor, statusText, versionChoices } from "./model";
+
+/** The mark a dependency picked here gets, from what the list said of it: none once published. */
+const markOfOption = (option: DependencyOption): DependencyMark | undefined =>
+  option.status === "published"
+    ? undefined
+    : {
+        kind: "waits",
+        dependency: option.name,
+        status: option.status === "draft" ? "not_submitted" : option.status,
+      };
 
 /** How long typing settles before the list is fetched. */
 const DEBOUNCE_MS = 250;
@@ -118,7 +130,10 @@ export const DependencyField = ({
   type,
   itemName,
   onChange,
+  marks = [],
 }: {
+  /** What each saved dependency waits on (056): a badge beside its name. */
+  marks?: readonly DependencyMark[];
   value: unknown;
   type: ItemType;
   itemName: string;
@@ -149,41 +164,6 @@ export const DependencyField = ({
 
   return (
     <div className="grid gap-2">
-      {rows.length > 0 ? (
-        <ul className="grid gap-2">
-          {rows.map(([name, range]) => {
-            const option = picked[name];
-            return (
-              <li key={name} className="grid gap-1">
-                <div className="flex items-center gap-2">
-                  <span className="min-w-0 flex-1 truncate font-mono text-sm text-fg">{name}</span>
-                  <div className="w-44 shrink-0">
-                    <RangeInput
-                      name={name}
-                      range={range}
-                      option={option}
-                      onChange={(next) => write(rows.map(([n, r]) => [n, n === name ? next : r]))}
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    aria-label={`Remove ${name}`}
-                    onClick={() => write(rows.filter(([n]) => n !== name))}
-                    className="text-muted hover:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
-                  >
-                    <X size={16} aria-hidden />
-                  </button>
-                </div>
-                {option?.status === "draft" ? (
-                  <p className="text-xs text-muted">
-                    A draft: it&apos;s submitted with this item when you submit it.
-                  </p>
-                ) : null}
-              </li>
-            );
-          })}
-        </ul>
-      ) : null}
       <div className="relative">
         <input
           ref={inputRef}
@@ -253,6 +233,45 @@ export const DependencyField = ({
           </div>
         ) : null}
       </div>
+      {rows.length > 0 ? (
+        <ul className="grid gap-2">
+          {rows.map(([name, range]) => {
+            const option = picked[name];
+            const mark = option ? markOfOption(option) : marks.find((m) => m.dependency === name);
+            return (
+              <li key={name} className="grid gap-1">
+                <div className="flex items-center gap-2">
+                  <span className="flex min-w-0 flex-1 items-center gap-2">
+                    <span className="truncate font-mono text-sm text-fg">{name}</span>
+                    {mark ? <DependencyStatusBadge mark={mark} /> : null}
+                  </span>
+                  <div className="w-44 shrink-0">
+                    <RangeInput
+                      name={name}
+                      range={range}
+                      option={option}
+                      onChange={(next) => write(rows.map(([n, r]) => [n, n === name ? next : r]))}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    aria-label={`Remove ${name}`}
+                    onClick={() => write(rows.filter(([n]) => n !== name))}
+                    className="text-muted hover:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
+                  >
+                    <X size={16} aria-hidden />
+                  </button>
+                </div>
+                {option?.status === "draft" ? (
+                  <p className="text-xs text-muted">
+                    A draft: it&apos;s submitted with this item when you submit it.
+                  </p>
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
     </div>
   );
 };

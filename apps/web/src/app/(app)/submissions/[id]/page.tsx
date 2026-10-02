@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { itemPath } from "@/components/catalogue/ItemCard";
 import { RiskSummary } from "@/components/risk-flags/RiskSummary";
-import { DependencyMarksNotice, markText } from "@/components/submissions/DependencyMarks";
+import { markText } from "@/components/submissions/DependencyMarks";
 import { DraftEditor } from "@/features/draft-editor/DraftEditor";
 import type { EditorDraft, EditorProposal } from "@/features/draft-editor/types";
 import { Conversation } from "@/features/reviews/Conversation";
@@ -9,7 +9,11 @@ import { PublishDialog } from "@/features/reviews/PublishDialog";
 import { versionsPath } from "@/features/versions/links";
 import { type ProposalPanel, proposalPanel } from "@/server/domains/submissions/actions/proposals";
 import { getReview, listDependents } from "@/server/domains/submissions/actions/reviews";
-import { dependencyMarks, viewSubmission } from "@/server/domains/submissions/actions/submissions";
+import {
+  type DependencyMark,
+  dependencyMarks,
+  viewSubmission,
+} from "@/server/domains/submissions/actions/submissions";
 import { SubmissionNotFoundError } from "@/server/domains/submissions/exceptions/errors";
 import { canTransition, isEditable } from "@/server/domains/submissions/models/status";
 import { type Draft, itemNameOf } from "@/server/domains/submissions/models/submission";
@@ -42,8 +46,10 @@ const toEditorDraft = (
   versionsHref: string | null,
   panel: ProposalPanel | null,
   dependents = 0,
+  dependencyMarks: DependencyMark[] = [],
 ): EditorDraft => ({
   dependents,
+  dependencyMarks,
   id: draft.id,
   scope: draft.scope.name,
   name: draft.name,
@@ -104,9 +110,9 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
           review?.published.length ? versionsPath(draft) : null,
           panel,
           dependents,
+          marks,
         )}
       />
-      <DependencyMarksNotice marks={marks} />
       {review?.can.publish ? (
         <section
           aria-labelledby="release"

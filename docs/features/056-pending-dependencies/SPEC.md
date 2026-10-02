@@ -75,8 +75,10 @@ computed when it's shown (not stored):
 | **Waits on @x (approved)** | the dependency is `approved`, not released |
 | **Blocked: @x was rejected** | the dependency's newest submission is `rejected` or `withdrawn`, and no other open one or matching release exists |
 
-The marks show on My submissions, the review queue, the review page and the submission page. A
-blocked dependent can't be submitted (it's an error again), approved stays possible (the reviewer
+The marks show on My submissions, the review queue and the review page. In the editor (owner,
+2026-10-01) each dependency in the form has its own badge beside its name instead of a card under
+the editor: amber while it isn't released ("in review", "pending release" once approved, "not submitted"), red when it's
+blocked, with the full sentence on hover. A blocked dependent can't be submitted (it's an error again), approved stays possible (the reviewer
 sees the mark), and it can't be released.
 
 **Bulk submit** (052). Submitting a dependent whose dependency is the person's own **ready draft**
@@ -217,7 +219,8 @@ published items and didn't match the scope.
 - [x] Rejecting a submission lists its open dependents, and with the box ticked requests changes on
   each the reviewer may decide, each audited with `cause`; unticked, they show **Blocked**.
 - [x] Request changes works from `approved`.
-- [x] The marks show on My submissions, the review queue, the review page and the submission page.
+- [x] The marks show on My submissions, the review queue and the review page, and as a badge beside
+  each dependency in the editor's form.
 - [x] The service tests pass on SQLite, PostgreSQL, MySQL and MariaDB, and an end-to-end test
   submits a skill and a bundle that uses it together, approves both, releases the skill and then
   the bundle (in one batch once 055 is built), and in a second run rejects a skill and sees its

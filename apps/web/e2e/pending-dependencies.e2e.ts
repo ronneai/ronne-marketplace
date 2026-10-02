@@ -107,8 +107,14 @@ test("a bundle and its skill are reviewed together; the bundle is released after
   const author = await signedIn(browser, E2E_USERS.pendingAuthor);
   await author.goto(`/submissions/${kitId}`);
   await expect(
-    author.getByRole("button", { name: `Publish: Waits on @${E2E_SCOPE}/pd-skill (approved)` }),
+    author.getByRole("button", {
+      name: `Publish: Waits on @${E2E_SCOPE}/pd-skill (pending release)`,
+    }),
   ).toBeDisabled();
+  // In the form, the dependency carries its own badge: approved, not released yet.
+  await expect(
+    author.getByLabel(`Waits on @${E2E_SCOPE}/pd-skill (pending release)`, { exact: true }),
+  ).toBeVisible();
   await publish(author, skillId, "pd-skill");
   await publish(author, kitId, "pd-kit");
 });

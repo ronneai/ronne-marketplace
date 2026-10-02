@@ -572,6 +572,7 @@ export const DraftEditor = ({
                       onChange={(content) => onChange(MANIFEST_PATH, content)}
                       onShowYaml={showYaml}
                       readOnly={readOnly}
+                      dependencyMarks={draft.dependencyMarks}
                     />
                   </fieldset>
                 ) : composing ? (

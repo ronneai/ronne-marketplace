@@ -777,8 +777,10 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </p>
         <Bullets>
           <li>
-            <strong>Waits on:</strong> My submissions, the review queue and each page say what a
-            submission waits on, such as <em>Waits on @team/github (in review)</em>.
+            <strong>Waits on:</strong> My submissions, the review queue and the review page say what
+            a submission waits on, such as <em>Waits on @team/github (in review)</em>. In the
+            editor, each dependency has an amber badge beside its name until it&apos;s released, and
+            a red one if it&apos;s blocked.
           </li>
           <li>
             <strong>Approving</strong> doesn&apos;t wait: each item gets its own review, and

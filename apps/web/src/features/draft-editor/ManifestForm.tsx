@@ -7,6 +7,7 @@ import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { inputClasses, Label } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
+import type { DependencyMark } from "@/server/domains/submissions/actions/submissions";
 import { DependencyField } from "./dependency-picker/DependencyField";
 import {
   blockFields,
@@ -353,7 +354,10 @@ export const ManifestForm = ({
   onChange,
   onShowYaml,
   readOnly = false,
+  dependencyMarks = [],
 }: {
+  /** What each saved dependency waits on (056): a badge beside its name. */
+  dependencyMarks?: readonly DependencyMark[];
   text: string;
   type: ItemType;
   itemName: string;
@@ -476,6 +480,7 @@ export const ManifestForm = ({
           </p>
           {readOnly ? null : <Help id="add-dependency" />}
           <DependencyField
+            marks={dependencyMarks}
             value={manifest.dependencies}
             type={type}
             itemName={itemName}

@@ -43,7 +43,7 @@ describe("picking a dependency (056)", () => {
       "in review, yours",
     );
     expect(statusText(option({ status: "approved", author: "Otto", latest: null }))).toBe(
-      "approved, by Otto",
+      "pending release, by Otto",
     );
   });
 
@@ -70,5 +70,25 @@ describe("picking a dependency (056)", () => {
     expect(html).toContain('role="combobox"');
     expect(html).toContain('aria-label="Add a dependency"');
     expect(html).not.toContain('placeholder="Item"');
+  });
+
+  it("marks a dependency that isn't released yet beside its name: amber, red when blocked", () => {
+    const html = renderToStaticMarkup(
+      <DependencyField
+        value={{ "@team/github": "^1.0.0", "@team/lint": "^1.0.0", "@team/ok": "^1.0.0" }}
+        type="agent"
+        itemName="@team/reviewer"
+        onChange={() => undefined}
+        marks={[
+          { kind: "waits", dependency: "@team/github", status: "approved" },
+          { kind: "blocked", dependency: "@team/lint", status: "rejected", through: [] },
+        ]}
+      />,
+    );
+    expect(html).toContain('aria-label="Waits on @team/github (pending release)"');
+    expect(html).toMatch(/border-warning[^"]*"[^>]*>.*?pending release</);
+    expect(html).toContain('aria-label="Blocked: @team/lint was rejected"');
+    expect(html).toContain("text-error-text");
+    expect(html.match(/Waits on|Blocked:/g)).toHaveLength(4);
   });
 });

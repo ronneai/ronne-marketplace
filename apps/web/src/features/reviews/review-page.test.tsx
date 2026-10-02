@@ -256,7 +256,7 @@ describe("the review page", () => {
       ],
     });
     expect(await render()).toMatch(
-      /<button[^>]*disabled=""[^>]*aria-label="Publish: Waits on @team\/github \(approved\)"/,
+      /<button[^>]*disabled=""[^>]*aria-label="Publish: Waits on @team\/github \(pending release\)"/,
     );
   });
 
