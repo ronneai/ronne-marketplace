@@ -67,6 +67,10 @@ table-level constraint (the 002 rule for MySQL).
 A failed sign-in is recorded only as an attempt, with the typed email. That's useful for spotting
 attacks, and it doesn't say whether the account exists.
 
+> **Page redesigned by [060](../060-server-data-table/SPEC.md)**: one line per event with a details
+> dialog, sorting, page sizes and an actor search, on the shared server data table. The list below
+> describes 007 as built.
+
 **`/admin/audit`** (root only, 032's table and 008's admin area):
 - **Columns:** time (UTC, mono), actor email (or `system` / `cli`), action (mono badge), target,
   details (the metadata, as key and value pairs), and IP address.
