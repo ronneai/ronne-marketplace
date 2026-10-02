@@ -67,7 +67,7 @@ the same change that completes it.
   *Done when:* unit tests cover the completion source and the manifest change; the Playwright test
   types `@` in SKILL.md and picks one.
 
-- [ ] **11. Documentation** for picking dependencies and `@`, and the helper.
+- [x] **11. Documentation** for picking dependencies and `@`, and the helper.
   *Done when:* the docs render tests pass.
 
 ## Notes

@@ -122,6 +122,12 @@ export const HELP = {
       "Tick the submissions you can approve, or Select all, then Approve selected: the ones with risk flags are listed first, and one optional message goes on every approval. Each is approved on its own, as from its page, and you see what happened to each.",
     href: docsHref("review", "approve-many"),
   },
+  "add-dependency": {
+    question: "How do I add one?",
+    answer:
+      "Type part of its name and pick it from the list: published items, yours, and others' in review. It starts on latest; pick another version if you need one. In a markdown file, type @ to do the same.",
+    href: docsHref("items", "dependencies"),
+  },
   "waits-on": {
     question: "What does this wait on?",
     answer:

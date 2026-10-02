@@ -474,6 +474,7 @@ export const ManifestForm = ({
             Find one by typing part of its name: published items, yours, and others' in review. It
             starts on latest; pick another version if you need one.
           </p>
+          {readOnly ? null : <Help id="add-dependency" />}
           <DependencyField
             value={manifest.dependencies}
             type={type}

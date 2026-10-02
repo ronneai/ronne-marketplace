@@ -200,9 +200,9 @@ published items and didn't match the scope.
   `review#dependencies`; in the reject dialog, next to the dependents: "Why are these listed?",
   linking to `review#dependencies`.
 
-- **Writing an item → The manifest form** (`items#form` or the closest section): picking a
-  dependency from the list, the version and `latest`, and `@` in markdown files. **Helper:** next
-  to the dependencies field, "How do I add one?", linking there.
+- **Items and types → Dependencies** (`items#dependencies`): at submit a dependency may be in
+  review; a new part, **Adding one**: picking from the list, the version and `latest`, and `@` in
+  markdown files. **Helper:** next to the dependencies field, "How do I add one?", linking there.
 
 ## Acceptance criteria
 
@@ -224,12 +224,12 @@ published items and didn't match the scope.
   bundle sent back.
 - [x] The Documentation and inline helpers listed above say what the feature does now.
 
-- [ ] The dependency search matches any part of `@scope/name`, a description or a keyword, offers
+- [x] The dependency search matches any part of `@scope/name`, a description or a keyword, offers
   published items, the person's own drafts and open submissions, and others' open ones, only of
   allowed types, and never the item itself.
-- [ ] The form adds a row only from a pick, with the versions listed and `latest` by default
+- [x] The form adds a row only from a pick, with the versions listed and `latest` by default
   written as `^<version>`, `^1.0.0` for an unreleased item; no half-typed name reaches the file.
-- [ ] Typing `@` in a markdown file opens the list; picking inserts the name and adds the
+- [x] Typing `@` in a markdown file opens the list; picking inserts the name and adds the
   dependency, and nothing is saved until Save.
 
 ## Decisions

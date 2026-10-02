@@ -413,9 +413,35 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </p>
         <DependencyCards />
         <p>
-          At submit, each dependency must be published, allowed for the type, and have a version in
-          its range, with no cycles.
+          At submit, each dependency must be allowed for the type and published with a version in
+          its range, or <To href={docsHref("review", "dependencies")}>in review</To>, with no
+          cycles.
         </p>
+        <h3 className="font-semibold text-fg">Adding one</h3>
+        <Bullets>
+          <li>
+            <strong>In the form:</strong> type part of its name, such as <Code>@team/gi</Code> or{" "}
+            <Code>github</Code>, in <strong>Add a dependency</strong>, and pick it from the list.
+            The list has published items, yours (drafts, in review, approved), and others&apos; in
+            review, only of the types this one may depend on.
+          </li>
+          <li>
+            <strong>The version</strong> starts on <strong>latest</strong>, written as{" "}
+            <Code>^</Code> and the version it points to now, since a range can&apos;t name a tag;
+            pick another from the list if you need one. An item that isn&apos;t released yet gets{" "}
+            <Code>^1.0.0</Code>, its first release.
+          </li>
+          <li>
+            <strong>In a markdown file</strong>, such as <Code>SKILL.md</Code> or an agent&apos;s
+            prompt: type <Code>@</Code> and part of a name, and pick one. Its name goes in the text
+            and it&apos;s added to the dependencies. Deleting the text later doesn&apos;t remove it:
+            do that in the form or on the canvas.
+          </li>
+          <li>
+            Like every edit, nothing is saved until <strong>Save</strong>. A range typed by hand is
+            written when you leave the field.
+          </li>
+        </Bullets>
         <h3 className="font-semibold text-fg">How an install picks versions</h3>
         <p>
           An install gets <strong>one version of each item</strong>: the highest one that fits every
