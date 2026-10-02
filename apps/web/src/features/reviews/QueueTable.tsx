@@ -6,6 +6,7 @@ import { buttonClasses } from "@/components/ui/Button";
 import { LocalTime } from "@/components/ui/LocalTime";
 import { Panel } from "@/components/ui/Panel";
 import { Table, Td, Th } from "@/components/ui/Table";
+import { TypeBadge } from "@/components/ui/TypeBadge";
 import type { QueueRow, QueueTab } from "@/server/domains/submissions/actions/reviews";
 import { itemNameOf } from "@/server/domains/submissions/models/submission";
 import { QUEUE_TABS } from "@/server/domains/submissions/services/queue";
@@ -129,7 +130,7 @@ export const QueueTable = ({
                 </span>
               </Td>
               <Td>
-                <Badge>{row.type}</Badge>
+                <TypeBadge type={row.type} />
               </Td>
               <Td className="text-sm">{row.authorName}</Td>
               <Td className="font-mono text-xs">{row.revision ?? "–"}</Td>

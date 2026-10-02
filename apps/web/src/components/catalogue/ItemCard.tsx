@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { CopyableCommand } from "@/components/ui/CopyableCommand";
 import { LocalTime } from "@/components/ui/LocalTime";
+import { TypeBadge } from "@/components/ui/TypeBadge";
 import type { CatalogueEntry } from "@/server/domains/items/actions/catalogue";
 
 /** An item's page (feature 018). */
@@ -44,7 +45,7 @@ export const ItemCard = ({
           </Link>
         </Heading>
         <span className="font-mono text-xs text-muted">v{entry.version}</span>
-        <Badge>{entry.type}</Badge>
+        <TypeBadge type={entry.type} />
         {entry.risky ? <Badge tone="warning">⚠ risk</Badge> : null}
         {entry.deprecatedMessage ? <Badge tone="warning">deprecated</Badge> : null}
         {entry.installable ? null : <Badge tone="error">no installable version</Badge>}

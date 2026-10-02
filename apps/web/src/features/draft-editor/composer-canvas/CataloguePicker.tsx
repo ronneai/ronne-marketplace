@@ -4,10 +4,10 @@ import { DEPENDENCY_TYPES, type ItemType } from "@ronneai/core";
 import { Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { startDrag } from "@/components/dependency-canvas/drag";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
 import { inputClasses, selectClasses } from "@/components/ui/Field";
+import { TypeBadge } from "@/components/ui/TypeBadge";
 import { useDebounced } from "../hooks";
 import { searchDependenciesAction } from "./actions";
 import type { PickerEntry } from "./types";
@@ -41,7 +41,7 @@ export const PickerResults = ({
           <div className="grid min-w-0 gap-1">
             <p className="font-mono text-xs font-semibold break-all text-fg">{entry.name}</p>
             <div className="flex flex-wrap items-center gap-1.5">
-              <Badge>{entry.type}</Badge>
+              <TypeBadge type={entry.type} />
               <span className="font-mono text-[11px] text-muted">v{entry.version}</span>
             </div>
             {entry.description ? (

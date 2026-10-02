@@ -6,10 +6,10 @@ import { Help } from "@/components/help/Help";
 import { RiskSummary } from "@/components/risk-flags/RiskSummary";
 import { ProposalBadges } from "@/components/submissions/ProposalBadges";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
-import { Badge } from "@/components/ui/Badge";
 import { buttonClasses } from "@/components/ui/Button";
 import { LocalTime } from "@/components/ui/LocalTime";
 import { Notice } from "@/components/ui/Notice";
+import { TypeBadge } from "@/components/ui/TypeBadge";
 import { IssueList } from "@/components/validation/IssueList";
 import { Conversation } from "@/features/reviews/Conversation";
 import { DecisionBar } from "@/features/reviews/DecisionBar";
@@ -81,7 +81,7 @@ const Review = async ({
         <div className="grid gap-1.5">
           <h1 className="font-mono text-xl font-semibold text-fg">{itemNameOf(submission)}</h1>
           <p className="flex flex-wrap items-center gap-2 text-sm text-muted">
-            <Badge>{submission.type}</Badge>
+            <TypeBadge type={submission.type} />
             <StatusBadge status={submission.status} />
             <ProposalBadges proposal={submission.proposal} stale={proposal?.stale} />
             <span>

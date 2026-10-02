@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { ProposalBadges } from "@/components/submissions/ProposalBadges";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
-import { Badge } from "@/components/ui/Badge";
 import { buttonClasses } from "@/components/ui/Button";
 import { LocalTime } from "@/components/ui/LocalTime";
 import { Panel } from "@/components/ui/Panel";
 import { Table, Td, Th } from "@/components/ui/Table";
+import { TypeBadge } from "@/components/ui/TypeBadge";
 import {
   SUBMISSION_STATUSES,
   type SubmissionStatus,
@@ -137,7 +137,7 @@ export const SubmissionsTable = ({
               ) : null}
             </Td>
             <Td>
-              <Badge>{submission.type}</Badge>
+              <TypeBadge type={submission.type} />
             </Td>
             <Td>
               <StatusBadge status={submission.status} />

@@ -10,11 +10,11 @@ import { CodeEditor } from "@/components/code/CodeEditor";
 import { FileTree } from "@/components/code/FileTree";
 import { LAYOUT_PATH } from "@/components/dependency-canvas/layout";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
-import { Badge } from "@/components/ui/Badge";
 import { Button, buttonClasses } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
 import { LocalTime } from "@/components/ui/LocalTime";
 import { Notice } from "@/components/ui/Notice";
+import { TypeBadge } from "@/components/ui/TypeBadge";
 import { UnsavedChangesGuard } from "@/components/ui/UnsavedChangesGuard";
 import { IssueList } from "@/components/validation/IssueList";
 import {
@@ -200,7 +200,7 @@ export const DraftEditor = ({
         <div className="grid min-w-0 gap-1">
           <h1 className="truncate font-mono text-xl font-semibold text-fg">{itemName}</h1>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge>{draft.type}</Badge>
+            <TypeBadge type={draft.type} />
             <StatusBadge status={draft.status} />
             <span
               className={`font-mono text-xs ${overLimit ? "font-semibold text-fg" : "text-muted"}`}

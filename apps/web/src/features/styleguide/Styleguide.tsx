@@ -1,3 +1,4 @@
+import { ITEM_TYPES } from "@ronneai/core";
 import type { ReactNode } from "react";
 import {
   Badge,
@@ -14,6 +15,7 @@ import {
   Th,
 } from "@/components/ui";
 import { Checkbox, Label } from "@/components/ui/Field";
+import { TypeBadge } from "@/components/ui/TypeBadge";
 import { ManifestCheckDemo } from "../manifest-validation/ManifestCheckDemo";
 import { DialogDemo } from "./DialogDemo";
 
@@ -117,10 +119,14 @@ export const ThemeSample = ({ theme }: { theme: "light" | "dark" }) => {
         <div className="flex flex-wrap gap-2">
           <Badge tone="accent">root</Badge>
           <Badge>moderator</Badge>
-          <Badge>mcp-server</Badge>
           <Badge tone="warning">⚠ risk</Badge>
           <Badge tone="warning">changes requested</Badge>
           <Badge tone="error">rejected</Badge>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {ITEM_TYPES.map((type) => (
+            <TypeBadge key={type} type={type} />
+          ))}
         </div>
         <Notice kind="info" title="Setup finished">
           Restart the container to apply it.

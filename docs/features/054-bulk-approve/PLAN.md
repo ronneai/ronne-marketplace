@@ -38,3 +38,7 @@ the same change that completes it.
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- **Overriding a Badge's colours** (the type colours): `cn` only joins classes, so a class passed
+  to `<Badge>` doesn't beat the tone's own colours; which wins depends on the CSS order. Pass
+  `tone="plain"` and bring every colour, as `TypeBadge` does.
