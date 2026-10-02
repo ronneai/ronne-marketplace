@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { CLAUDE_CODE_PATHS, CODEX_PATHS, CURSOR_PATHS } from "@/components/tools/tool-paths";
 import { Badge } from "@/components/ui/Badge";
 import { Table, Td, Th } from "@/components/ui/Table";
+import { TypeBadge } from "@/components/ui/TypeBadge";
 import { DependencyCards } from "./DependencyCards";
 import { TypesList } from "./TypesList";
 
@@ -52,7 +53,7 @@ const PathsTable = ({ paths }: { paths: [string, string][] }) => (
       {paths.map(([type, where]) => (
         <tr key={type}>
           <Td>
-            <Badge>{type}</Badge>
+            <TypeBadge type={type} />
           </Td>
           <Td className="text-sm">{where}</Td>
         </tr>
@@ -739,6 +740,10 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             rebases first.
           </li>
           <li>
+            In the confirmation, the list scrolls on its own: filter it by name, type or author, and
+            untick any you want to leave out.
+          </li>
+          <li>
             The confirmation lists them with the ones that have{" "}
             <To href={docsHref("review", "reviewing")}>risk flags</To> first, each flag named, so
             nothing risky goes by unseen. Root&apos;s own are marked: they&apos;re approved as
@@ -1215,7 +1220,7 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             ).map(([type, kept, lost]) => (
               <tr key={type}>
                 <Td className="align-top">
-                  <Badge>{type}</Badge>
+                  <TypeBadge type={type} />
                 </Td>
                 <Td className="align-top text-sm">{kept}</Td>
                 <Td className="align-top text-sm">{lost}</Td>

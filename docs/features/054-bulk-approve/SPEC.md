@@ -77,15 +77,22 @@ on any of them.
 - On the **Needs review** tab, each approvable row gets a checkbox. Above the table: **Select all
   (n)** and **Approve selected (n)**, shown only when at least one row is approvable. Selection
   survives paging back and forth but not a reload. The other two tabs don't change.
-- **Approve selected** opens a dialog:
-  - the selected submissions, each with name, type, author and revision; **those with risk flags
-    first**, each flag kind named (`hook`, `mcp_server`, `network`…), so nothing risky goes by
-    unseen;
-  - root's own submissions, if any, marked **override**, with a line saying they'll be recorded as
-    overrides;
-  - **Message (optional)**, with the hint "Added to every approval. Once approved, the author or a
-    moderator can release each one.";
-  - **Approve n submissions** and **Cancel**.
+- **Approve selected** opens a dialog laid out as the owner's batch review mock (2026-10-01): a
+  fixed frame (640px wide, up to 720px tall) whose list scrolls on its own, so the bars above and
+  below it stay in view however many are selected:
+  - **on top:** a filter (by name, type or author), a checkbox with **n selected** that ticks or
+    unticks every row the filter shows, and **Deselect all**;
+  - **the list:** the selected submissions, each with a checkbox (ticked; unticking leaves it out),
+    name, type, author and revision; **those with risk flags first**, each flag kind named
+    (`hook`, `mcp_server`, `network`…), so nothing risky goes by unseen; root's own marked
+    **override**;
+  - **below:** "n submissions selected", with how many are root's own and recorded as overrides;
+    **Message (optional)**, with the hint "Added to every approval. Once approved, the author or a
+    moderator can release each one."; **Approve n submissions** and **Cancel**.
+- **Item types have their own colours** (owner, 2026-10-01): every type badge in the app shows the
+  type in its own hue, from the mock's scheme, as design tokens checked for contrast in both
+  themes. Red and amber stay for errors and warnings, so hook is fuchsia and permission-policy
+  lime, where the mock had rose and amber.
 - The server action approves them (the domain's approve-many, as a session). The dialog then shows
   each result; refused ones say why, with a link to their review page. The queue refreshes, and the
   nav's Needs review count drops.
@@ -153,6 +160,8 @@ on any of them.
 2. **Reviewing in bulk** (owner, 2026-10-01): 052 left it out ("one submission at a time, on
    purpose"). This feature adds approval only, on the web only, with the risk flags in the
    confirmation; request changes, reject and approving by token stay one at a time or out.
+3. **The dialog and the type colours** (owner, 2026-10-01): the batch review mock's layout, and one
+   colour per item type, as above.
 3. **Root's own submissions in bulk** (owner, 2026-10-01): selectable, marked as overrides in the
    confirmation and recorded as overrides, one by one.
 4. **Risky submissions in bulk** (owner, 2026-10-01): allowed, listed first in the confirmation with

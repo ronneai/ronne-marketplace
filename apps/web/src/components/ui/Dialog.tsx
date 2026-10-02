@@ -2,17 +2,23 @@
 
 import { X } from "lucide-react";
 import { type ReactNode, useEffect, useId, useRef } from "react";
+import { cn } from "./cn";
 
 /**
  * A modal dialog on the native <dialog> element: the browser traps focus, makes the page behind it
  * inert, and closes it on Esc. Flat 8px panel (design system 032).
+ *
+ * `large` (054) is a fixed frame, 640px wide and up to 720px tall: its content lays itself out in a
+ * column, so a long list can scroll inside while what's above and below it stays in view.
  */
 export const Dialog = ({
   open,
   onClose,
   title,
   children,
+  size = "default",
 }: {
+  size?: "default" | "large";
   open: boolean;
   onClose: () => void;
   title: ReactNode;
@@ -33,9 +39,14 @@ export const Dialog = ({
       ref={ref}
       onClose={onClose}
       aria-labelledby={titleId}
-      className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-panel border border-strong bg-surface p-0 text-left text-fg backdrop:bg-canvas/80"
+      className={cn(
+        "m-auto rounded-panel border border-strong bg-surface p-0 text-left text-fg backdrop:bg-canvas/80",
+        size === "large"
+          ? "h-[min(45rem,calc(100dvh-2rem))] w-[min(40rem,calc(100vw-2rem))] flex-col open:flex"
+          : "w-[min(32rem,calc(100vw-2rem))]",
+      )}
     >
-      <div className="flex items-center justify-between border-b border-hairline px-4 py-3">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-hairline px-4 py-3">
         <h2 id={titleId} className="text-lg font-semibold">
           {title}
         </h2>
@@ -48,7 +59,11 @@ export const Dialog = ({
           <X size={18} aria-hidden />
         </button>
       </div>
-      <div className="p-4">{children}</div>
+      {size === "large" ? (
+        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+      ) : (
+        <div className="p-4">{children}</div>
+      )}
     </dialog>
   );
 };
