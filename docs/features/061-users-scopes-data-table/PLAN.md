@@ -14,9 +14,9 @@ the same change that completes it.
   *Done when:* `user-admin.db.test.ts` covers each sort both ways, equal names across pages, the
   filters and the count on all four databases.
 
-- [ ] **2. The Users page on `DataTable`.** `features/admin-users/list.ts`, the columns, the
+- [x] **2. The Users page on `DataTable`.** `features/admin-users/list.ts`, the columns, the
   filters with chips and submit on change, and the row actions in the last column. The old query
-  helpers and table go.
+  helpers and table go. The chips move into a shared `FilterChips`, which the audit log uses too.
   *Done when:* `admin-users.test.tsx` covers the columns, sorting links, chips and the empty
   states; `user-admin.e2e.ts` passes, updated for the new controls, and sorts by email.
 

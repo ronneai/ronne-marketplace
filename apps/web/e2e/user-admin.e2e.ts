@@ -41,6 +41,15 @@ test("root creates a user, who signs in with the shown password; disabling them 
   await create.getByRole("button", { name: "Done" }).click();
   await expect(root.getByRole("cell", { name: email, exact: true })).toBeVisible();
 
+  // The list sorts on the server (061): by email from its header, the view kept in the URL.
+  await root.getByRole("link", { name: "Email" }).click();
+  await expect(root).toHaveURL(/sort=email/);
+  await expect(root.getByRole("columnheader", { name: "Email" })).toHaveAttribute(
+    "aria-sort",
+    "ascending",
+  );
+  await expect(root.getByRole("cell", { name: email, exact: true })).toBeVisible();
+
   // The new user signs in with it.
   const user = await browser.newPage();
   await signIn(user, email, password);

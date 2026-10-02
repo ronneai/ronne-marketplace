@@ -1,7 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { parseListQuery } from "@/components/ui/data-table/list-query";
 import type { UserSummary } from "@/server/domains/identity/models/user";
-import { parseUsersQuery, usersPageUrl } from "./query";
+import { checkedUsersState, USERS_LIST, usersQueryOf } from "./list";
 
 const session = vi.hoisted(() => ({ getCurrentUser: vi.fn(), PATH_HEADER: "x-ronne-path" }));
 const admin = vi.hoisted(() => ({ adminListUsers: vi.fn() }));
@@ -35,55 +36,57 @@ const user = (overrides: Partial<UserSummary> = {}): UserSummary => ({
 });
 const noFilters = { q: "", role: "", status: "" };
 
-describe("parseUsersQuery", () => {
-  it("reads valid filters and ignores the rest", () => {
+const state = (params: Record<string, string> = {}) =>
+  checkedUsersState(parseListQuery(USERS_LIST, params));
+
+describe("the users list's URL (061)", () => {
+  it("turns a view into the server query", () => {
     expect(
-      parseUsersQuery({ q: "  Alex ", role: "moderator", status: "disabled", cursor: ULID }),
+      usersQueryOf(state({ q: "Alex", role: "moderator", status: "disabled", sort: "email" })),
     ).toEqual({
-      filters: { q: "Alex", role: "moderator", status: "disabled" },
+      sort: "email",
+      dir: "asc",
+      size: 50,
+      cursor: undefined,
       search: "Alex",
       role: "moderator",
       status: "disabled",
-      cursor: ULID,
     });
-    // The cursor is opaque since 061: it reaches the server, which ignores one that isn't its own.
-    expect(parseUsersQuery({ role: "admin", status: "gone", cursor: "x" })).toEqual({
-      filters: noFilters,
-      search: undefined,
-      role: undefined,
-      status: undefined,
-      cursor: "x",
-    });
-    expect(parseUsersQuery({ q: "x".repeat(300) }).search).toHaveLength(100);
   });
 
-  it("builds page URLs that keep the filters", () => {
-    expect(usersPageUrl({ q: "a b", role: "", status: "active" }, ULID)).toBe(
-      `/admin/users?q=a+b&status=active&cursor=${ULID}`,
-    );
+  it("drops a role or status it doesn't know", () => {
+    expect(state({ role: "admin", status: "gone" }).filters).toEqual({
+      q: "",
+      role: "",
+      status: "",
+    });
   });
 });
 
-describe("UsersPage", () => {
-  it("lists users with their role and status", () => {
-    const html = renderToStaticMarkup(
-      <UsersPage
-        users={[
-          user(),
-          user({
-            id: "01K6BZ3W1D8J9Q2R4T6V8X0Y30",
-            email: "old@example.com",
-            role: "user",
-            disabledAt: new Date(),
-          }),
-          user({ id: "01K6BZ3W1D8J9Q2R4T6V8X0Y31", email: "root@example.com", role: "root" }),
-        ]}
-        nextCursor={ULID}
-        filters={noFilters}
-        paged={false}
-        actions={(u) => <span>menu for {u.email}</span>}
-      />,
-    );
+const page = (props: Partial<Parameters<typeof UsersPage>[0]> = {}) =>
+  renderToStaticMarkup(
+    <UsersPage
+      state={state()}
+      users={[
+        user(),
+        user({
+          id: "01K6BZ3W1D8J9Q2R4T6V8X0Y30",
+          email: "old@example.com",
+          role: "user",
+          disabledAt: new Date(),
+        }),
+        user({ id: "01K6BZ3W1D8J9Q2R4T6V8X0Y31", email: "root@example.com", role: "root" }),
+      ]}
+      page={{ next: "c2", previous: null }}
+      total={{ count: 3, capped: false }}
+      actions={(u) => <span>menu for {u.email}</span>}
+      {...props}
+    />,
+  );
+
+describe("UsersPage (061)", () => {
+  it("lists users with their role, status and actions, sortable by email, name and created", () => {
+    const html = page();
     for (const text of [
       "Users",
       "alex@example.com",
@@ -92,18 +95,24 @@ describe("UsersPage", () => {
       ">active<",
       "2026-09-20",
       "menu for old@example.com",
-      `href="/admin/users?cursor=${ULID}"`,
+      "3 users",
+      'href="/admin/users?cursor=c2"',
+      'href="/admin/users?sort=email"',
+      'href="/admin/users?sort=name"',
+      'href="/admin/users?dir=asc"',
+      'aria-sort="descending"',
     ]) {
       expect(html, text).toContain(text);
     }
   });
 
-  it("says when nothing matches", () => {
-    const html = renderToStaticMarkup(
-      <UsersPage users={[]} nextCursor={null} filters={{ ...noFilters, q: "zzz" }} paged />,
-    );
+  it("shows active filters as chips, and says when nothing matches", () => {
+    const html = page({ state: state({ q: "zzz", role: "moderator" }), users: [] });
     expect(html).toContain("No users match these filters.");
-    expect(html).toContain("First page");
+    expect(html).toMatch(
+      /aria-label="Remove the search filter"[^>]*href="\/admin\/users\?role=moderator"/,
+    );
+    expect(html).toMatch(/aria-label="Remove the role filter"[^>]*href="\/admin\/users\?q=zzz"/);
   });
 });
 
@@ -120,7 +129,12 @@ describe("root only", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     navigation.path = "/admin/users";
-    admin.adminListUsers.mockResolvedValue({ users: [user()], nextCursor: null });
+    admin.adminListUsers.mockResolvedValue({
+      users: [user()],
+      next: null,
+      previous: null,
+      total: { count: 1, capped: false },
+    });
   });
 
   it("the admin layout and the users page are a 404 for anyone but root", async () => {
@@ -143,11 +157,9 @@ describe("root only", () => {
       await UsersRoute({ searchParams: Promise.resolve({ q: "alex", role: "moderator" }) }),
     );
     expect(page).toContain("alex@example.com");
-    expect(admin.adminListUsers).toHaveBeenCalledWith(expect.any(Headers), {
-      search: "alex",
-      role: "moderator",
-      status: undefined,
-      cursor: undefined,
-    });
+    expect(admin.adminListUsers).toHaveBeenCalledWith(
+      expect.any(Headers),
+      expect.objectContaining({ search: "alex", role: "moderator", sort: "created", size: 50 }),
+    );
   });
 });

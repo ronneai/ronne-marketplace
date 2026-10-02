@@ -1,10 +1,11 @@
-import { Info, X } from "lucide-react";
+import { Info } from "lucide-react";
 import Form from "next/form";
 import Link from "next/link";
 import { Help } from "@/components/help/Help";
 import { Badge } from "@/components/ui/Badge";
 import { buttonClasses } from "@/components/ui/Button";
 import { type Column, DataTable, HiddenListFields } from "@/components/ui/data-table/DataTable";
+import { FilterChips } from "@/components/ui/data-table/FilterChips";
 import { listUrl } from "@/components/ui/data-table/list-query";
 import { SubmitOnChange } from "@/components/ui/data-table/SubmitOnChange";
 import { Input, Label, selectClasses } from "@/components/ui/Field";
@@ -29,7 +30,6 @@ const CHIP_LABELS: Record<Filter, string> = {
 /** The filters: one GET form that submits on change, and a chip per active filter. */
 const Filters = ({ state }: { state: AuditListState }) => {
   const { filters } = state;
-  const active = (Object.keys(filters) as Filter[]).filter((key) => filters[key]);
   return (
     <div className="grid gap-2">
       <Form
@@ -86,35 +86,7 @@ const Filters = ({ state }: { state: AuditListState }) => {
           <SubmitOnChange />
         </div>
       </Form>
-      {active.length > 0 ? (
-        <ul aria-label="Active filters" className="flex flex-wrap items-center gap-2 text-xs">
-          {active.map((key) => (
-            <li key={key}>
-              <Link
-                href={listUrl(AUDIT_LIST, state, { filters: { [key]: "" } })}
-                scroll={false}
-                aria-label={`Remove the ${CHIP_LABELS[key].toLowerCase()} filter`}
-                className="inline-flex items-center gap-1 rounded-control border border-hairline bg-surface px-2 py-1 text-fg hover:border-strong"
-              >
-                <span className="text-muted">{CHIP_LABELS[key]}:</span>
-                <span className="font-mono">{filters[key]}</span>
-                <X size={12} aria-hidden="true" className="text-muted" />
-              </Link>
-            </li>
-          ))}
-          <li>
-            <Link
-              href={listUrl(AUDIT_LIST, state, {
-                filters: { action: "", actor: "", from: "", to: "" },
-              })}
-              scroll={false}
-              className="text-link underline-offset-2 hover:underline"
-            >
-              Clear
-            </Link>
-          </li>
-        </ul>
-      ) : null}
+      <FilterChips list={AUDIT_LIST} state={state} labels={CHIP_LABELS} />
     </div>
   );
 };
