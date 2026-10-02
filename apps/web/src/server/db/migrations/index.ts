@@ -12,6 +12,7 @@ import { disabledTargets } from "./0011_disabled_targets";
 import { usage } from "./0012_usage";
 import { instanceSettings } from "./0013_instance_settings";
 import { auditLogActionIndex } from "./0014_audit_log_action_index";
+import { userNameIndex } from "./0015_user_name_index";
 import type { AppMigration } from "./types";
 
 /**
@@ -33,4 +34,5 @@ export const migrations: Record<string, AppMigration> = {
   "0012_usage": usage,
   "0013_instance_settings": instanceSettings,
   "0014_audit_log_action_index": auditLogActionIndex,
+  "0015_user_name_index": userNameIndex,
 };

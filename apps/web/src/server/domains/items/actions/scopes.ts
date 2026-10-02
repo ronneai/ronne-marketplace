@@ -3,6 +3,7 @@ import { clientIp } from "../../identity/models/client-ip";
 import type { CurrentUser } from "../../identity/models/user";
 import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-instance";
 import { kyselyScopeRepository } from "../repositories/kysely-scope-repository";
+import type { ScopePageQuery } from "../repositories/scope-repository";
 import * as service from "../services/scopes";
 
 export type { ScopesPage } from "../services/scopes";
@@ -37,6 +38,13 @@ export const listScopes = async (
   query: { search?: string; cursor?: string },
   app: AppAuth = getAppAuth(),
 ) => service.listScopes(deps(app), await actor(headers, app), query);
+
+/** The scope pages' table (061): sorted, paged with keyset cursors, and counted. */
+export const pageScopes = async (
+  headers: Headers,
+  query: Partial<ScopePageQuery>,
+  app: AppAuth = getAppAuth(),
+) => service.pageScopes(deps(app), await actor(headers, app), query);
 
 /** For 037's API, where the user comes from a bearer token rather than a session. */
 export const listScopesAs = (

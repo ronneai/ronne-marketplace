@@ -33,5 +33,12 @@ test("root creates a scope; everyone sees it, but only root can manage scopes", 
     .click();
   await expect(user.getByRole("cell", { name: "@e2e-team", exact: true })).toBeVisible();
   await expect(user.getByRole("button", { name: /Edit @/ })).toHaveCount(0);
+  // Sorted on the server (061): newest first by Created, and the view stays in the URL.
+  await user.getByRole("link", { name: "Created" }).click();
+  await expect(user).toHaveURL(/sort=created/);
+  await expect(user.getByRole("row").nth(1)).toContainText("@e2e-team");
+  await user.getByLabel("Search").fill("end-to-end");
+  await expect(user).toHaveURL(/q=end-to-end/);
+  await expect(user.getByRole("cell", { name: "@e2e-team", exact: true })).toBeVisible();
   expect((await user.goto("/admin/scopes"))?.status()).toBe(404);
 });

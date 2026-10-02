@@ -320,7 +320,8 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
       <Bullets>
         <li>
           <strong>Root creates scopes</strong>, with a description, under Admin. The{" "}
-          <To href="/scopes">Scopes</To> page lists them for everyone.
+          <To href="/scopes">Scopes</To> page lists them for everyone, by name or newest first, and
+          searches names and descriptions.
         </li>
         <li>
           <strong>Anyone may propose an item in any scope.</strong> Review is the gate, not the
@@ -1761,6 +1762,21 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
   },
 
   admin: {
+    users: (
+      <>
+        <p>
+          Admin › Users lists everyone who can use the instance. Search by part of an email or a
+          name, and narrow it by role or status; the filters apply as you change them and show as
+          chips. Sort by email, name or creation date from the column headers (newest first by
+          default), and show 25, 50 or 100 a page.
+        </p>
+        <p>
+          Each row keeps its actions: change role, reset password, and disable or enable. Your own
+          row has none: another root changes it (see{" "}
+          <To href={docsHref("install", "root")}>Root accounts</To>).
+        </p>
+      </>
+    ),
     audit: (
       <>
         <p>

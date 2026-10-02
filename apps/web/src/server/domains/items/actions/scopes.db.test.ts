@@ -13,7 +13,14 @@ import {
   ScopeNotFoundError,
 } from "../exceptions/errors";
 import { kyselyScopeRepository } from "../repositories/kysely-scope-repository";
-import { createScope, findScope, listScopes, listScopesAs, updateScopeDescription } from "./scopes";
+import {
+  createScope,
+  findScope,
+  listScopes,
+  listScopesAs,
+  pageScopes,
+  updateScopeDescription,
+} from "./scopes";
 
 let t: TestDb;
 let app: AppAuth;
@@ -151,6 +158,46 @@ describe("listScopes", () => {
     ).toEqual(["scope-07"]);
     expect((await listScopes(asUser, { search: "%" }, app)).scopes).toEqual([]);
     await expect(listScopes(new Headers(), {}, app)).rejects.toThrow(ForbiddenError);
+  });
+});
+
+describe("pageScopes (061)", () => {
+  it("sorts by name or created, both ways, pages both ways, and counts", async () => {
+    const repo = kyselyScopeRepository(t.db, t.dialect);
+    const names = ["delta", "alpha", "charlie", "bravo", "echo"];
+    for (const [i, name] of names.entries())
+      await repo.insert({
+        name,
+        description: i === 2 ? "Shared tools" : `Scope ${name}`,
+        createdBy: null,
+        createdAt: new Date(),
+      });
+    const walk = async (query: Parameters<typeof pageScopes>[1]) => {
+      const seen: string[] = [];
+      let page = await pageScopes(asUser, { ...query, size: 2 }, app);
+      expect(page.previous).toBeNull();
+      seen.push(...page.scopes.map((s) => s.name));
+      while (page.next) {
+        page = await pageScopes(asUser, { ...query, size: 2, cursor: page.next }, app);
+        seen.push(...page.scopes.map((s) => s.name));
+      }
+      const back = await pageScopes(
+        asUser,
+        { ...query, size: 2, cursor: page.previous ?? "" },
+        app,
+      );
+      expect(back.scopes).toHaveLength(2);
+      return seen;
+    };
+    expect(await walk({})).toEqual(["alpha", "bravo", "charlie", "delta", "echo"]);
+    expect(await walk({ dir: "desc" })).toEqual(["echo", "delta", "charlie", "bravo", "alpha"]);
+    expect(await walk({ sort: "created" })).toEqual([...names].reverse());
+    expect(await walk({ sort: "created", dir: "asc" })).toEqual(names);
+
+    const searched = await pageScopes(asUser, { search: "SHARED" }, app);
+    expect(searched.scopes.map((s) => s.name)).toEqual(["charlie"]);
+    expect(searched.total).toEqual({ count: 1, capped: false });
+    expect((await pageScopes(asUser, {}, app)).total).toEqual({ count: 5, capped: false });
   });
 });
 

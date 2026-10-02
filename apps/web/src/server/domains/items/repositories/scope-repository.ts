@@ -1,3 +1,4 @@
+import type { KeysetPage, SortDir } from "../../../db/keyset";
 import type { NewAuditEvent } from "../../audit/models/audit-event";
 import type { Scope } from "../models/scope";
 
@@ -7,6 +8,17 @@ export type ScopeQuery = {
   /** Only scopes after this name (the last name of the previous page). */
   cursor?: string;
   limit: number;
+};
+
+/** `name` sorts by the name (unique), `created` by the id (a ULID); then the id (061). */
+export type ScopeSort = "name" | "created";
+
+export type ScopePageQuery = {
+  search?: string;
+  sort: ScopeSort;
+  dir: SortDir;
+  size: number;
+  cursor?: string;
 };
 
 /** What the scope services need from storage. Implemented with Kysely in kysely-scope-repository.ts. */
@@ -20,7 +32,11 @@ export interface ScopeRepository {
     createdAt: Date;
   }): Promise<string>;
   updateDescription(id: string, description: string): Promise<void>;
-  /** In name order. */
+  /** In name order, with the name as cursor: 037's API and the new-draft page. */
   list(query: ScopeQuery): Promise<Scope[]>;
+  /** One page for the web tables (keyset, 061). */
+  page(query: ScopePageQuery): Promise<KeysetPage<Scope>>;
+  /** How many scopes match the search, up to the count cap. */
+  count(search?: string): Promise<{ count: number; capped: boolean }>;
   recordAudit(event: NewAuditEvent, now: Date): Promise<void>;
 }

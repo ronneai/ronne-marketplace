@@ -7,7 +7,7 @@ import type { Scope } from "@/server/domains/items/models/scope";
 const scopes = vi.hoisted(() => ({
   createScope: vi.fn(),
   updateScopeDescription: vi.fn(),
-  listScopes: vi.fn(),
+  pageScopes: vi.fn(),
 }));
 const session = vi.hoisted(() => ({ getCurrentUser: vi.fn() }));
 const cache = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
@@ -22,8 +22,9 @@ vi.mock("next/navigation", () => ({
 }));
 
 const actions = await import("./actions");
-const { ScopesTable, scopesPageUrl } = await import("../scopes/ScopesTable");
-const { parseScopesQuery } = await import("../scopes/query");
+const { ScopesTable } = await import("../scopes/ScopesTable");
+const { parseListQuery } = await import("@/components/ui/data-table/list-query");
+const { ADMIN_SCOPES_LIST, SCOPES_LIST, scopesQueryOf } = await import("../scopes/list");
 const { CreateScopeDialog } = await import("./ScopeDialogs");
 const { default: AdminScopes } = await import("@/app/(app)/admin/scopes/page");
 const { default: Scopes } = await import("@/app/(app)/scopes/page");
@@ -44,7 +45,12 @@ const scope = (overrides: Partial<Scope> = {}): Scope => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
-  scopes.listScopes.mockResolvedValue({ scopes: [scope()], nextCursor: null });
+  scopes.pageScopes.mockResolvedValue({
+    scopes: [scope()],
+    next: null,
+    previous: null,
+    total: { count: 1, capped: false },
+  });
 });
 
 describe("scope actions", () => {
@@ -75,46 +81,55 @@ describe("scope actions", () => {
   });
 });
 
-describe("ScopesTable", () => {
-  it("lists scopes with @, description, creator and date, and the page links", () => {
-    const html = renderToStaticMarkup(
+describe("ScopesTable (061)", () => {
+  const table = (params: Record<string, string>, rows: Scope[], extra = {}) =>
+    renderToStaticMarkup(
       <ScopesTable
-        base="/scopes"
-        scopes={[scope(), scope({ id: "s2", name: "team", createdBy: null })]}
-        search="plat"
-        nextCursor="team"
-        paged
+        list={SCOPES_LIST}
+        state={parseListQuery(SCOPES_LIST, params)}
+        scopes={rows}
+        page={{ next: "c2", previous: "c0" }}
+        total={{ count: rows.length, capped: false }}
+        {...extra}
       />,
     );
+
+  it("lists scopes with @, description, creator and date, sortable, with the page links", () => {
+    const html = table({ q: "plat" }, [
+      scope(),
+      scope({ id: "s2", name: "team", createdBy: null }),
+    ]);
     for (const text of [
       "@platform",
       "Shared platform tools.",
       "root@example.com",
       "2026-09-20",
       "@team",
+      "2 scopes",
+      'href="/scopes?q=plat&amp;cursor=c2"',
+      'href="/scopes?q=plat&amp;sort=created"',
+      'aria-sort="ascending"',
     ])
       expect(html, text).toContain(text);
-    expect(html).toContain('href="/scopes?q=plat&amp;cursor=team"');
-    expect(html).toContain('href="/scopes?q=plat"');
-    expect(html).not.toContain("Actions");
+    expect(html).toMatch(/aria-label="Remove the search filter"[^>]*href="\/scopes"/);
+    expect(html).not.toContain('<span class="sr-only">Actions</span>');
   });
 
   it("explains an empty list, with and without a search", () => {
-    const empty = (search: string) =>
-      renderToStaticMarkup(
-        <ScopesTable base="/scopes" scopes={[]} search={search} nextCursor={null} paged={false} />,
-      );
-    expect(empty("")).toContain("Root creates the first one");
-    expect(empty("x")).toContain("No scopes match this search.");
+    expect(table({}, [])).toContain("Root creates the first one");
+    expect(table({ q: "x" }, [])).toContain("No scopes match this search.");
   });
 
-  it("reads the query safely, and builds page URLs", () => {
-    expect(parseScopesQuery({ q: "  plat ", cursor: "team" })).toEqual({
+  it("turns a view into the server query, on either page", () => {
+    expect(
+      scopesQueryOf(parseListQuery(ADMIN_SCOPES_LIST, { q: "plat", sort: "created" })),
+    ).toEqual({
+      sort: "created",
+      dir: "desc",
+      size: 50,
+      cursor: undefined,
       search: "plat",
-      cursor: "team",
     });
-    expect(parseScopesQuery({ cursor: "../x" }).cursor).toBeUndefined();
-    expect(scopesPageUrl("/admin/scopes", "", "team")).toBe("/admin/scopes?cursor=team");
   });
 
   it("the create dialog's button renders", () => {
@@ -130,7 +145,7 @@ describe("the pages", () => {
         "NEXT_NOT_FOUND",
       );
     }
-    expect(scopes.listScopes).not.toHaveBeenCalled();
+    expect(scopes.pageScopes).not.toHaveBeenCalled();
   });
 
   it("root gets the list with edit buttons; /scopes is read-only for everyone", async () => {
@@ -143,9 +158,9 @@ describe("the pages", () => {
     );
     expect(everyone).toContain("@platform");
     expect(everyone).not.toContain("Edit @platform");
-    expect(scopes.listScopes).toHaveBeenLastCalledWith(expect.any(Headers), {
-      search: "plat",
-      cursor: undefined,
-    });
+    expect(scopes.pageScopes).toHaveBeenLastCalledWith(
+      expect.any(Headers),
+      expect.objectContaining({ search: "plat", sort: "name", dir: "asc", size: 50 }),
+    );
   });
 });

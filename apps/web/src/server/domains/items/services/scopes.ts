@@ -2,7 +2,7 @@ import { requirePermission } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
 import { ScopeNameTakenError, ScopeNotFoundError } from "../exceptions/errors";
 import { type Scope, scopeDescriptionFrom, scopeNameFrom } from "../models/scope";
-import type { ScopeRepository } from "../repositories/scope-repository";
+import type { ScopePageQuery, ScopeRepository } from "../repositories/scope-repository";
 
 /**
  * Scopes (feature 010). Root creates them and edits their descriptions; everyone signed in lists
@@ -99,6 +99,35 @@ export const listScopes = async (
     scopes,
     nextCursor: rows.length > size ? (scopes.at(-1)?.name ?? null) : null,
   };
+};
+
+export type ScopesTablePage = {
+  scopes: Scope[];
+  next: string | null;
+  previous: string | null;
+  total: { count: number; capped: boolean };
+};
+
+/** One page of scopes for the web tables, and the capped count of all that match (061). */
+export const pageScopes = async (
+  deps: ScopeDeps,
+  actor: ScopeActor,
+  query: Partial<ScopePageQuery>,
+): Promise<ScopesTablePage> => {
+  requirePermission(actor.user, "account.manage_own");
+  const search = query.search?.trim().slice(0, SCOPE_SEARCH_MAX_LENGTH) || undefined;
+  const sort = query.sort ?? "name";
+  const [page, total] = await Promise.all([
+    deps.repo.page({
+      search,
+      sort,
+      dir: query.dir ?? (sort === "name" ? "asc" : "desc"),
+      size: query.size ?? SCOPES_PAGE_SIZE,
+      cursor: query.cursor,
+    }),
+    deps.repo.count(search),
+  ]);
+  return { scopes: page.rows, next: page.next, previous: page.previous, total };
 };
 
 export const findScope = async (deps: ScopeDeps, name: string): Promise<Scope | null> =>

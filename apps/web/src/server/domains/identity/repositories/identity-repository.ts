@@ -1,3 +1,4 @@
+import type { KeysetPage, SortDir } from "../../../db/keyset";
 import type { NewAuditEvent } from "../../audit/models/audit-event";
 import type { CurrentUser, Role, RootAccount, UserSummary } from "../models/user";
 
@@ -8,14 +9,22 @@ export type NewUserWithPassword = {
   passwordHash: string;
 };
 
-export type UserListQuery = {
+/** What the admin user list filters by (008, on the data table since 061). */
+export type UserFilters = {
   /** Part of the email or name, any case. */
   search?: string;
   role?: Role;
   status?: "active" | "disabled";
-  /** Only users older than this id (the last id of the previous page). */
+};
+
+/** `created` sorts by the id (a ULID); `email` and `name` by that column, then the id. */
+export type UserSort = "created" | "email" | "name";
+
+export type UserPageQuery = UserFilters & {
+  sort: UserSort;
+  dir: SortDir;
+  size: number;
   cursor?: string;
-  limit: number;
 };
 
 /** What the identity services need from storage. Implemented with Kysely in kysely-identity-repository.ts. */
@@ -43,8 +52,10 @@ export interface IdentityRepository {
   } | null>;
   /** Any user, disabled or not. */
   findUser(userId: string): Promise<UserSummary | null>;
-  /** Newest first. */
-  listUsers(query: UserListQuery): Promise<UserSummary[]>;
+  /** One page of users in the query's order (keyset, 061). */
+  pageUsers(query: UserPageQuery): Promise<KeysetPage<UserSummary>>;
+  /** How many users match, up to the count cap. */
+  countUsers(filters: UserFilters): Promise<{ count: number; capped: boolean }>;
   emailTaken(email: string): Promise<boolean>;
   setRole(userId: string, role: Role, now: Date): Promise<void>;
   disableUser(userId: string, now: Date): Promise<void>;

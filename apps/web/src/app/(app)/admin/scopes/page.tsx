@@ -1,11 +1,12 @@
 import { notFound } from "next/navigation";
+import { parseListQuery, type SearchParams } from "@/components/ui/data-table/list-query";
 import { PageHeader } from "@/components/ui/Panel";
 import { CreateScopeDialog, EditScopeButton } from "@/features/admin-scopes/ScopeDialogs";
-import { parseScopesQuery, type SearchParams } from "@/features/scopes/query";
+import { ADMIN_SCOPES_LIST, scopesQueryOf } from "@/features/scopes/list";
 import { ScopesTable } from "@/features/scopes/ScopesTable";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { can } from "@/server/domains/identity/models/permissions";
-import { listScopes } from "@/server/domains/items/actions/scopes";
+import { pageScopes } from "@/server/domains/items/actions/scopes";
 import { requestHeaders } from "@/server/http/request-headers";
 
 export const metadata = { title: "Scopes · Admin · Ronne AI Marketplace" };
@@ -14,8 +15,8 @@ export const metadata = { title: "Scopes · Admin · Ronne AI Marketplace" };
 const AdminScopes = async ({ searchParams }: { searchParams: Promise<SearchParams> }) => {
   const request = await requestHeaders();
   if (!can(await getCurrentUser(request), "scopes.manage")) notFound();
-  const query = parseScopesQuery(await searchParams);
-  const { scopes, nextCursor } = await listScopes(request, query);
+  const state = parseListQuery(ADMIN_SCOPES_LIST, await searchParams);
+  const { scopes, next, previous, total } = await pageScopes(request, scopesQueryOf(state));
   return (
     <>
       <PageHeader
@@ -24,11 +25,11 @@ const AdminScopes = async ({ searchParams }: { searchParams: Promise<SearchParam
         actions={<CreateScopeDialog />}
       />
       <ScopesTable
-        base="/admin/scopes"
+        list={ADMIN_SCOPES_LIST}
+        state={state}
         scopes={scopes}
-        search={query.search}
-        nextCursor={nextCursor}
-        paged={Boolean(query.cursor)}
+        page={{ next, previous }}
+        total={total}
         actions={(scope) => <EditScopeButton name={scope.name} description={scope.description} />}
       />
     </>

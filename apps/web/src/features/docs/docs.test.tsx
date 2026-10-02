@@ -140,6 +140,8 @@ describe("the topics", () => {
     // The audit log (060), for roots, linked from Roles.
     const admin = await topic("admin");
     expect(admin).toContain('id="audit"');
+    expect(admin).toContain('id="users"');
+    expect(admin).toContain("Sort by email, name or creation date");
     expect(admin).toContain("10,000+ events");
     expect(admin).toContain("user.*");
     expect(await topic("roles")).toContain(`href="${docsHref("admin", "audit")}"`);
