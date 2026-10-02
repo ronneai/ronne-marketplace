@@ -14,7 +14,7 @@ the same change that completes it.
   cursor, and the 10,000 cap. It passes on SQLite and against `pnpm test:db:up` (PostgreSQL, MySQL,
   MariaDB).
 
-- [ ] **2. List state in the URL.** `components/ui/data-table/list-query.ts`: `defineList`,
+- [x] **2. List state in the URL.** `components/ui/data-table/list-query.ts`: `defineList`,
   `parseListQuery` (sort, dir, size, cursor and typed filters, with fallbacks), and `listUrl`
   (defaults left out; a filter, sort or size change drops the cursor).
   *Done when:* unit tests cover every fallback and the round trip from URL to state and back.
