@@ -93,3 +93,21 @@ describe("helpers", () => {
     expect(isFiltered(parseListQuery(LIST, { q: "a" }))).toBe(true);
   });
 });
+
+describe("fixed parameters (062)", () => {
+  const TAB = defineList({ ...LIST, path: "/reviews", fixed: { tab: "release" } });
+  const view = parseListQuery(TAB, { tab: "release", q: "alex", cursor: "c1" });
+
+  it("keeps them first in every URL, through sorting, sizes, filters and Clear", () => {
+    expect(listUrl(TAB, parseListQuery(TAB, {}))).toBe("/reviews?tab=release");
+    expect(listUrl(TAB, view)).toBe("/reviews?tab=release&q=alex&cursor=c1");
+    expect(sortUrl(TAB, view, "name")).toBe("/reviews?tab=release&q=alex&sort=name");
+    expect(listUrl(TAB, view, { size: 25 })).toBe("/reviews?tab=release&q=alex&size=25");
+    expect(listUrl(TAB, view, { filters: { q: "", from: "" } })).toBe("/reviews?tab=release");
+  });
+
+  it("never treats them as filters", () => {
+    expect(view.filters).toEqual({ q: "alex", from: "" });
+    expect(isFiltered(parseListQuery(TAB, { tab: "release" }))).toBe(false);
+  });
+});

@@ -56,12 +56,11 @@ defineList({
 });
 ```
 
-- **Time by tab:**
-  - Needs review: `submitted_at`, oldest first.
-  - Waiting on the author and To release: `updated_at`, oldest first.
-  - Decided: `updated_at`, newest first (its `sorts.time` is `desc`).
-
-  These are today's orders, now as the default sort of each tab.
+- **Time by tab**, which is also the time its column shows:
+  - Needs review and Waiting on the author: `submitted_at`, oldest first (as today).
+  - To release: `updated_at`, oldest first. That's the approval, which its Approved column shows.
+    Before, it sorted by the first submit, which its column didn't show.
+  - Decided: `updated_at`, newest first (as today; its `sorts.time` is `desc`).
 - **Name** sorts by the item's name (`submissions.name`, then `id`). The scope isn't part of the
   sort.
 - **The tabs** (links) keep the tab and drop everything else: changing tab starts that tab's own
@@ -73,8 +72,10 @@ defineList({
 **Columns:** the same as today, on `DataTable`:
 - Select (Needs review and To release). This is the existing client cell, inside the existing
   providers.
-- Item: the name link, with its badges (proposal, risk, yours, dependency marks).
-- Type, Author, Revision.
+- Item: the name link, then the type and the badges (proposal, risk, yours, dependency marks).
+  The type moved here from its own column, so the name keeps room on one line. The name gives way
+  (cut, whole on hover) and the badges don't.
+- Author, Revision.
 - Approved by (To release).
 - The tab's time (sortable).
 - Status (Decided).
@@ -91,7 +92,9 @@ defineList({
   `{ rows, next, previous, total }`.
 - `SubmissionRepository.pageForReview(…)` and `countForReview(…)` build one filtered query: the
   statuses of the tab, the search (with a join on the author) and the type.
-- `listForReview` goes, since only the queue used it.
+- `listForReview` stays for the dependency search and a rejected submission's dependents (056),
+  which scan what's in review. It loses its `after` cursor, which only the queue's old Decided
+  paging used.
 
 **Shared table additions (060):**
 - **`ListDefinition.fixed`:** parameters written first in every URL of the list, never shown as
@@ -118,8 +121,8 @@ defineList({
 - **Old links** with Decided's `updatedAt|id` cursor: not the table's cursor, so they show the
   first page.
 - **Approving or releasing the last rows of a page:** the page refreshes. If it's now empty and
-  wasn't the first, it shows the empty state with Previous and First, and the tab's message
-  ("Nothing needs review…") only on the first page.
+  wasn't the first, it says "Nothing left on this page." with a link to the first page (a shared
+  `DataTable` rule). The tab's message ("Nothing needs review…") shows only when the tab is empty.
 - **Approving many still checks each submission on the server** (054). Paging changes only which
   rows can be selected.
 
@@ -134,17 +137,17 @@ defineList({
 
 ## Acceptance criteria
 
-- [ ] Every tab renders on `DataTable` with paging, a total and page sizes. No tab drops rows past
+- [x] Every tab renders on `DataTable` with paging, a total and page sizes. No tab drops rows past
   200.
-- [ ] Each tab's default order is as today, and sorting by time or name works both ways, with no
+- [x] Each tab's default order is as today, and sorting by time or name works both ways, with no
   repeat or gap, on all four databases (a date-sorted keyset test included).
-- [ ] The search and type filter apply on change, as chips, and changing tab drops them.
-- [ ] Approve many, release many and the row decisions work on the visible page (the existing
+- [x] The search and type filter apply on change, as chips, and changing tab drops them.
+- [x] Approve many, release many and the row decisions work on the visible page (the existing
   end-to-end tests pass, updated for the new controls).
-- [ ] `fixed`, the date sort kind and `srHeader` are part of the shared table, with their own
+- [x] `fixed`, the date sort kind and `srHeader` are part of the shared table, with their own
   tests.
-- [ ] `0016_submissions_queue_indexes` runs on all four databases.
-- [ ] The Documentation and helpers listed above say what the feature does now.
+- [x] `0016_submissions_queue_indexes` runs on all four databases.
+- [x] The Documentation and helpers listed above say what the feature does now.
 
 ## Open questions
 

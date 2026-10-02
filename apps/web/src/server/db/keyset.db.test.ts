@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { toDbDate } from "./dates";
+import { fromDbDate, toDbDate } from "./dates";
 import { newId } from "./ids";
 import { COUNT_CAP, countCapped, decodeCursor, type KeysetSort, paginate } from "./keyset";
 import { createTestDb, type TestDb } from "./testing/test-db";
@@ -110,6 +110,96 @@ describe("paginate (060)", () => {
       expect(decodeCursor(bad, "time")).toBeNull();
       expect((await page(BY_TIME, 10, bad)).rows).toEqual(first.rows);
     }
+  });
+});
+
+describe("paginate by a date (062)", () => {
+  /** Rows whose created_at repeat and differ by a millisecond, out of id order. */
+  const insertAt = async (times: string[]) => {
+    const rows = times.map((at) => ({
+      id: newId(),
+      actor_id: null,
+      action: "user.created",
+      target_type: "none",
+      target_id: null,
+      metadata: "{}",
+      ip_address: null,
+      created_at: toDbDate(new Date(at), t.dialect),
+    }));
+    await t.db.insertInto("audit_log").values(rows).execute();
+    return rows;
+  };
+  const BY_DATE: KeysetSort = {
+    key: "when",
+    column: "audit_log.created_at",
+    dir: "asc",
+    kind: "date",
+  };
+  const byDate = (sort: KeysetSort, cursor?: string) =>
+    paginate(t.db.selectFrom("audit_log").select(["id", "created_at"]), {
+      sort,
+      idColumn: "audit_log.id",
+      size: 3,
+      cursor,
+      sortValue: (row) => fromDbDate(row.created_at),
+      idOf: (row) => row.id,
+      dialect: t.dialect,
+    });
+
+  it("pages by a timestamp with equal and close values, both ways, on every database", async () => {
+    const rows = await insertAt([
+      "2026-10-02T10:00:00.002Z",
+      "2026-10-02T10:00:00.000Z",
+      "2026-10-02T10:00:00.001Z",
+      "2026-10-02T10:00:00.001Z",
+      "2026-10-02T10:00:00.001Z",
+      "2026-10-01T23:59:59.999Z",
+      "2026-10-02T10:00:00.000Z",
+    ]);
+    // By the instant, then the id: what the database must return, whatever it stores dates as.
+    const expected = [...rows]
+      .sort(
+        (a, b) =>
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime() ||
+          a.id.localeCompare(b.id),
+      )
+      .map((r) => r.id);
+    for (const dir of ["asc", "desc"] as const) {
+      const sort = { ...BY_DATE, dir };
+      const seen: string[] = [];
+      let page = await byDate(sort);
+      seen.push(...page.rows.map((r) => r.id));
+      while (page.next) {
+        page = await byDate(sort, page.next);
+        seen.push(...page.rows.map((r) => r.id));
+      }
+      expect(seen).toEqual(dir === "asc" ? expected : [...expected].reverse());
+      const back = await byDate(sort, page.previous ?? "");
+      // Seven rows in pages of three: Previous from the last page is the middle one.
+      expect(back.rows.map((r) => r.id)).toEqual(seen.slice(3, 6));
+    }
+  });
+
+  it("ignores a cursor whose value isn't a date, and needs a dialect", async () => {
+    await insertAt(["2026-10-02T10:00:00.000Z"]);
+    const bad = Buffer.from(JSON.stringify({ k: "when", v: "soon", id: "x", d: "after" })).toString(
+      "base64url",
+    );
+    expect((await byDate(BY_DATE, bad)).rows).toHaveLength(1);
+    const first = await byDate(BY_DATE);
+    expect(first.next).toBeNull();
+    await expect(
+      paginate(t.db.selectFrom("audit_log").select(["id", "created_at"]), {
+        sort: BY_DATE,
+        idColumn: "audit_log.id",
+        size: 1,
+        cursor: Buffer.from(
+          JSON.stringify({ k: "when", v: "2026-10-01T00:00:00.000Z", id: "x", d: "after" }),
+        ).toString("base64url"),
+        sortValue: (row) => fromDbDate(row.created_at),
+        idOf: (row) => row.id,
+      }),
+    ).rejects.toThrow("needs a dialect");
   });
 });
 

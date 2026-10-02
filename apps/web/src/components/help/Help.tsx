@@ -119,7 +119,7 @@ export const HELP = {
   "approve-many": {
     question: "Approve several at once?",
     answer:
-      "Tick the submissions you can approve, or Select all, then Approve selected: the ones with risk flags are listed first, and one optional message goes on every approval. Each is approved on its own, as from its page, and you see what happened to each. Request changes and Reject are on each row.",
+      "Tick the submissions you can approve, or Select all (the rows on this page), then Approve selected: the ones with risk flags are listed first, and one optional message goes on every approval. Each is approved on its own, as from its page, and you see what happened to each. Request changes and Reject are on each row.",
     href: docsHref("review", "approve-many"),
   },
   withdraw: {
@@ -155,7 +155,7 @@ export const HELP = {
   "release-many": {
     question: "Release several at once?",
     answer:
-      "Tick approved ones, or Select all approved, then Release selected: choose stable or pre-release, the bump and the tag once, and see every version before anything goes out. Dependencies go first, and the approved ones they need are added.",
+      "Tick approved ones, or Select all approved (on the review queue, the rows on this page), then Release selected: choose stable or pre-release, the bump and the tag once, and see every version before anything goes out. Dependencies go first, and the approved ones they need are added.",
     href: docsHref("versions", "release-many"),
   },
   "waits-on": {

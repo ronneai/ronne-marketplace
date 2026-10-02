@@ -93,3 +93,38 @@ describe("DataTable (060)", () => {
     expect(render({}, things)).not.toMatch(/<p[\s>](?:(?!<\/p>).)*<(details|div)/);
   });
 });
+
+describe("DataTable additions (062)", () => {
+  it("labels a header-less column for screen readers, and keeps fixed parameters in its forms", () => {
+    const TAB = defineList({ ...LIST, fixed: { tab: "release" } });
+    const html = renderToStaticMarkup(
+      <DataTable
+        list={TAB}
+        state={parseListQuery(TAB, { q: "a" })}
+        columns={[
+          { id: "select", header: "", srHeader: "Select", render: () => <input type="checkbox" /> },
+          ...COLUMNS,
+        ]}
+        rows={things}
+        rowKey={(t) => t.id}
+        page={{ next: "c2", previous: null }}
+        total={{ count: 2, capped: false }}
+        noun="things"
+        empty={{ none: "None.", filtered: "None match." }}
+      />,
+    );
+    expect(html).toContain('<span class="sr-only">Select</span>');
+    expect(html).toContain('<span class="sr-only">Actions</span>');
+    expect(html).toContain('href="/things?tab=release&amp;q=a&amp;cursor=c2"');
+    expect(html).toContain('<input type="hidden" name="tab" value="release"/>');
+  });
+});
+
+describe("an emptied later page (062)", () => {
+  it("says so and links to the first page, instead of the list's empty message", () => {
+    const html = render({ q: "a", cursor: "c9" }, []);
+    expect(html).toContain("Nothing left on this page.");
+    expect(html).toContain('href="/things?q=a">First page');
+    expect(html).not.toContain("No things match these filters.");
+  });
+});

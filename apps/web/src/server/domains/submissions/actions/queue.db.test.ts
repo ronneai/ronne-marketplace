@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { toDbDate } from "../../../db/dates";
+import { newId } from "../../../db/ids";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { createRoot } from "../../identity/actions/root-account";
 import { signIn } from "../../identity/actions/session";
@@ -127,20 +129,99 @@ describe("the review queue", () => {
     expect(await countNeedsReview(asRoot, app)).toBe(1);
   });
 
-  it("pages decided submissions, newest change first", async () => {
-    const repo = kyselySubmissionRepository(t.db, t.dialect);
+  it("pages decided submissions, newest change first, both ways", async () => {
     for (const name of ["a", "b", "c"]) {
       const id = await submitted(name);
-      await decide(asModerator, id, { decision: "approve" }, app);
+      await decide(asModerator, id, { decision: "reject", message: "No." }, app);
     }
-    const query = { statuses: ["approved"] as const, order: "newest" as const, limit: 2 };
-    const first = await repo.listForReview(query);
-    expect(first.map((s) => s.name)).toEqual(["c", "b"]);
-    const last = first.at(-1);
-    const next = await repo.listForReview({
-      ...query,
-      after: last ? { updatedAt: last.updatedAt, id: last.id } : undefined,
+    const first = await listQueue(asModerator, { tab: "decided", size: 2 }, app);
+    expect(first.rows.map((s) => s.name)).toEqual(["c", "b"]);
+    expect(first.total).toEqual({ count: 3, capped: false });
+    const next = await listQueue(
+      asModerator,
+      { tab: "decided", size: 2, cursor: first.next ?? "" },
+      app,
+    );
+    expect(next.rows.map((s) => s.name)).toEqual(["a"]);
+    const back = await listQueue(
+      asModerator,
+      { tab: "decided", size: 2, cursor: next.previous ?? "" },
+      app,
+    );
+    expect(back.rows.map((s) => s.name)).toEqual(["c", "b"]);
+  });
+});
+
+describe("the review queue's table (062)", () => {
+  /** Submitted rows straight into the table: enough for paging, without files or revisions. */
+  const insertSubmitted = async (count: number, start = new Date("2026-10-01T10:00:00Z")) => {
+    const author = await t.db
+      .selectFrom("user")
+      .select("id")
+      .where("email", "=", "author@example.com")
+      .executeTakeFirstOrThrow();
+    const scope = await t.db
+      .selectFrom("scopes")
+      .select("id")
+      .where("name", "=", "team")
+      .executeTakeFirstOrThrow();
+    const rows = Array.from({ length: count }, (_, i) => {
+      const at = toDbDate(new Date(start.getTime() + i * 1000), t.dialect);
+      return {
+        id: newId(),
+        author_id: author.id,
+        scope_id: scope.id,
+        name: `bulk-${String(i).padStart(3, "0")}`,
+        type: i % 2 ? "rule" : "skill",
+        item_id: null,
+        base_version_id: null,
+        rebase_conflicts: null,
+        status: "submitted",
+        created_at: at,
+        updated_at: at,
+        submitted_at: at,
+      };
     });
-    expect(next.map((s) => s.name)).toEqual(["a"]);
+    for (let i = 0; i < rows.length; i += 100)
+      await t.db
+        .insertInto("submissions")
+        .values(rows.slice(i, i + 100))
+        .execute();
+  };
+
+  it("pages every open tab, past the old 200-row cut-off", async () => {
+    await insertSubmitted(205);
+    const names: string[] = [];
+    let page = await listQueue(asModerator, { tab: "needs", size: 100 }, app);
+    expect(page.total).toEqual({ count: 205, capped: false });
+    names.push(...page.rows.map((r) => r.name));
+    while (page.next) {
+      page = await listQueue(asModerator, { tab: "needs", size: 100, cursor: page.next }, app);
+      names.push(...page.rows.map((r) => r.name));
+    }
+    expect(names).toHaveLength(205);
+    expect(names[0]).toBe("bulk-000"); // oldest submitted first
+    expect(new Set(names).size).toBe(205);
+  });
+
+  it("sorts by name either way, and filters by name, author and type", async () => {
+    await insertSubmitted(4);
+    const names = async (query: Omit<Parameters<typeof listQueue>[1], "tab">) =>
+      (await listQueue(asModerator, { tab: "needs", ...query }, app)).rows.map((r) => r.name);
+    expect(await names({ sort: "name", dir: "desc" })).toEqual([
+      "bulk-003",
+      "bulk-002",
+      "bulk-001",
+      "bulk-000",
+    ]);
+    expect(await names({ search: "BULK-002" })).toEqual(["bulk-002"]);
+    expect(await names({ type: "rule" })).toEqual(["bulk-001", "bulk-003"]);
+    const author = await t.db
+      .selectFrom("user")
+      .select("name")
+      .where("email", "=", "author@example.com")
+      .executeTakeFirstOrThrow();
+    expect(await names({ search: author.name.toUpperCase() })).toHaveLength(4);
+    expect(await names({ search: "%" })).toEqual([]);
   });
 });

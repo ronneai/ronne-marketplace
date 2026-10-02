@@ -1,4 +1,6 @@
 import { type QueryExecutorProvider, type SelectQueryBuilder, type SqlBool, sql } from "kysely";
+import { toDbDate } from "./dates";
+import type { DatabaseDialect } from "./url";
 
 /**
  * Keyset pagination for the web app's tables (feature 060): pages are "the rows after (or before)
@@ -14,12 +16,17 @@ export type KeysetSort = {
   /** The column to order by, qualified (`audit_log.action`). Must be indexed with the id. */
   column: string;
   dir: SortDir;
+  /**
+   * `date` for a timestamp column (062): the cursor keeps the value as ISO text, and it's turned
+   * back into the column's form for each database (`toDbDate`) before comparing.
+   */
+  kind?: "date";
 };
 
 export type KeysetPage<Row> = { rows: Row[]; next: string | null; previous: string | null };
 
-type SortValue = string | number;
-type Cursor = { k: string; v: SortValue; id: string; d: "after" | "before" };
+type SortValue = string | number | Date;
+type Cursor = { k: string; v: string | number; id: string; d: "after" | "before" };
 
 const encode = (cursor: Cursor): string =>
   Buffer.from(JSON.stringify(cursor), "utf8").toString("base64url");
@@ -45,6 +52,9 @@ export const decodeCursor = (value: string | undefined, sortKey: string): Cursor
 
 const flip = (dir: SortDir): SortDir => (dir === "asc" ? "desc" : "asc");
 
+const isIsoDate = (value: string | number): boolean =>
+  typeof value === "string" && !Number.isNaN(Date.parse(value));
+
 /**
  * One page of `query` (already filtered, not yet ordered or limited). `sortValue` reads the sort
  * column's value from a row; `idColumn` is the qualified id column. Fetches `size + 1` rows to know
@@ -60,10 +70,18 @@ export const paginate = async <DB, TB extends keyof DB, Row>(
     cursor?: string;
     sortValue: (row: Row) => SortValue;
     idOf: (row: Row) => string;
+    /** Needed for a `date` sort, to compare the cursor's date as the database stores it. */
+    dialect?: DatabaseDialect;
   },
 ): Promise<KeysetPage<Row>> => {
   const { sort, idColumn, size, sortValue, idOf } = options;
-  const cursor = decodeCursor(options.cursor, sort.key);
+  // A date compares differently on each database (text on SQLite), so a date sort must say which.
+  const dialectOf = (): DatabaseDialect => {
+    if (!options.dialect) throw new Error(`paginate: the date sort "${sort.key}" needs a dialect`);
+    return options.dialect;
+  };
+  const decoded = decodeCursor(options.cursor, sort.key);
+  const cursor = sort.kind === "date" && decoded && !isIsoDate(decoded.v) ? null : decoded;
   const forward = cursor === null || cursor.d === "after";
   const order = forward ? sort.dir : flip(sort.dir);
   const sameColumn = sort.column === idColumn;
@@ -75,10 +93,11 @@ export const paginate = async <DB, TB extends keyof DB, Row>(
     const op = sql.raw(order === "asc" ? ">" : "<");
     const col = sql.ref(sort.column);
     const id = sql.ref(idColumn);
+    const value = sort.kind === "date" ? toDbDate(new Date(cursor.v), dialectOf()) : cursor.v;
     page = page.where(
       sameColumn
         ? sql<SqlBool>`${id} ${op} ${cursor.id}`
-        : sql<SqlBool>`(${col} ${op} ${cursor.v} or (${col} = ${cursor.v} and ${id} ${op} ${cursor.id}))`,
+        : sql<SqlBool>`(${col} ${op} ${value} or (${col} = ${value} and ${id} ${op} ${cursor.id}))`,
     );
   }
   if (!sameColumn) page = page.orderBy(sql.ref(sort.column), order);
@@ -89,8 +108,12 @@ export const paginate = async <DB, TB extends keyof DB, Row>(
   const rows = fetched.slice(0, size);
   if (!forward) rows.reverse();
 
+  const cursorValue = (row: Row): string | number => {
+    const v = sortValue(row);
+    return v instanceof Date ? v.toISOString() : v;
+  };
   const at = (row: Row | undefined, d: Cursor["d"]) =>
-    row === undefined ? null : encode({ k: sort.key, v: sortValue(row), id: idOf(row), d });
+    row === undefined ? null : encode({ k: sort.key, v: cursorValue(row), id: idOf(row), d });
   // Going forward, there's a page before this one whenever we came from a cursor, and one after
   // when the extra row came back; going back, the reverse.
   const hasNext = forward ? more : cursor !== null;

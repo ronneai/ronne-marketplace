@@ -13,6 +13,11 @@ export type FilterKind = "string" | "day";
 export type ListDefinition<S extends string, F extends string> = {
   /** The page's path, such as `/admin/audit`. */
   path: string;
+  /**
+   * Parameters every URL of this list keeps (062), such as a tab: written first, never a filter
+   * or a chip, and kept by Clear.
+   */
+  fixed?: Readonly<Record<string, string>>;
   /** The sort keys allowed, each with the direction it starts in. */
   sorts: Record<S, SortDir>;
   defaultSort: NoInfer<S>;
@@ -93,7 +98,7 @@ export const listParams = <S extends string, F extends string>(
   list: ListDefinition<S, F>,
   state: ListState<S, F>,
 ): URLSearchParams => {
-  const params = new URLSearchParams();
+  const params = new URLSearchParams(list.fixed);
   for (const key of keys(list.filters)) if (state.filters[key]) params.set(key, state.filters[key]);
   if (state.sort !== list.defaultSort) params.set("sort", state.sort);
   if (state.dir !== list.sorts[state.sort]) params.set("dir", state.dir);

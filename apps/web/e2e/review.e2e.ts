@@ -46,6 +46,14 @@ test("a moderator reviews a hook, the author publishes it, and another item depe
   await nav.getByRole("link", { name: /Reviews/ }).click();
   const row = moderator.getByRole("row", { name: new RegExp(`@${E2E_SCOPE}/fmt-hook`) });
   await expect(row.getByText("⚠ risk")).toBeVisible();
+  // The queue filters on the server (062): by type, then by name, kept in the URL as chips.
+  await moderator.getByLabel("Type").selectOption("hook");
+  await expect(moderator).toHaveURL(/type=hook/);
+  await expect(row).toBeVisible();
+  await moderator.getByLabel("Search").fill("fmt-hook");
+  await expect(moderator).toHaveURL(/q=fmt-hook/);
+  await expect(moderator.getByRole("link", { name: "Remove the type filter" })).toBeVisible();
+  await expect(row).toBeVisible();
   await row.getByRole("link", { name: new RegExp(`@${E2E_SCOPE}/fmt-hook`) }).click();
   const risks = moderator.getByRole("region", { name: /What it can do/ });
   await expect(risks.getByText(/The hook runs the script/)).toBeVisible();

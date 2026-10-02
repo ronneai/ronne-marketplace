@@ -771,7 +771,15 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
     ),
     reviewing: (
       <>
-        <p>Reviewers find submissions under Reviews and read, for each:</p>
+        <p>
+          Reviewers find submissions under <To href="/reviews">Reviews</To>, in four tabs:{" "}
+          <strong>Needs review</strong> and <strong>Waiting on the author</strong> (oldest submit
+          first), <strong>To release</strong> (oldest approval first) and <strong>Decided</strong>{" "}
+          (newest first). Every tab pages, 25, 50 or 100 at a time, with the total. Sort by the
+          tab&apos;s time or by item name from the column headers, and find submissions by part of
+          the item&apos;s or the author&apos;s name, or by type; filters show as chips.
+        </p>
+        <p>For each submission, reviewers read:</p>
         <Bullets>
           <li>
             <strong>What it can do</strong>: risk flags worked out from the files, such as a hook
@@ -878,7 +886,8 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         <p>
           On <To href="/reviews">Reviews</To>, in <strong>Needs review</strong>, each submission you
           can approve now has a checkbox. Tick the ones you want, or <strong>Select all</strong>,
-          then <strong>Approve selected</strong>.
+          then <strong>Approve selected</strong>. Select all covers the page you&apos;re viewing:
+          show 100 a page, or filter first, to approve more at once.
         </p>
         <Bullets>
           <li>
@@ -1008,7 +1017,8 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           Approved submissions can go out together: tick them on{" "}
           <To href="/submissions">My submissions</To> (your own), or on the review queue&apos;s{" "}
           <strong>To release</strong> tab (moderators and root, anyone&apos;s), then{" "}
-          <strong>Release selected</strong>.
+          <strong>Release selected</strong>. On the queue, Select all covers the page you&apos;re
+          viewing: show 100 a page, or filter first, to release more at once.
         </p>
         <Bullets>
           <li>

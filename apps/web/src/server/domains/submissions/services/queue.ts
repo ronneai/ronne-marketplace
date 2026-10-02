@@ -1,4 +1,11 @@
-import { parseManifest, type RiskFlag, type RiskFlagKind, riskFlags } from "@ronneai/core";
+import {
+  type ItemType,
+  parseManifest,
+  type RiskFlag,
+  type RiskFlagKind,
+  riskFlags,
+} from "@ronneai/core";
+import type { SortDir } from "../../../db/keyset";
 import { requirePermission } from "../../identity/models/permissions";
 import { OPEN_STATUSES, type SubmissionStatus } from "../models/status";
 import { fileBytes, MANIFEST_PATH, type Submission, toPackageFile } from "../models/submission";
@@ -12,20 +19,38 @@ import type { SubmissionActor, SubmissionDeps } from "./submissions";
 /** The review queue (feature 014): what needs a reviewer, what waits on its author, what's decided. */
 export type QueueTab = "needs" | "waiting" | "release" | "decided";
 
+/**
+ * Each tab's statuses, and the time it shows and sorts by (062): the first submit for what waits
+ * on a reviewer or the author, the last change (the approval, the decision) for the others.
+ * Open tabs start oldest first; Decided newest first.
+ */
 export const QUEUE_TABS: Record<
   QueueTab,
-  { label: string; statuses: readonly SubmissionStatus[]; order: "oldest" | "newest" }
+  {
+    label: string;
+    statuses: readonly SubmissionStatus[];
+    time: "submitted" | "updated";
+    timeDir: SortDir;
+  }
 > = {
-  needs: { label: "Needs review", statuses: ["submitted"], order: "oldest" },
-  waiting: { label: "Waiting on the author", statuses: ["changes_requested"], order: "oldest" },
-  // Approved ones wait here to go out, oldest first (055); Decided keeps the closed ones.
-  release: { label: "To release", statuses: ["approved"], order: "oldest" },
-  decided: { label: "Decided", statuses: ["rejected", "published"], order: "newest" },
+  needs: { label: "Needs review", statuses: ["submitted"], time: "submitted", timeDir: "asc" },
+  waiting: {
+    label: "Waiting on the author",
+    statuses: ["changes_requested"],
+    time: "submitted",
+    timeDir: "asc",
+  },
+  // Approved ones wait here to go out, oldest approval first (055); Decided keeps the closed ones.
+  release: { label: "To release", statuses: ["approved"], time: "updated", timeDir: "asc" },
+  decided: {
+    label: "Decided",
+    statuses: ["rejected", "published"],
+    time: "updated",
+    timeDir: "desc",
+  },
 };
 
-/** Open tabs are small and shown whole; Decided pages. */
-const OPEN_LIMIT = 200;
-export const DECIDED_PAGE_SIZE = 50;
+export const QUEUE_PAGE_SIZE = 50;
 
 export type QueueRow = Submission & {
   authorName: string;
@@ -46,7 +71,23 @@ export type QueueRow = Submission & {
   approved: { by: string; at: Date } | null;
 };
 
-export type QueuePage = { rows: QueueRow[]; nextCursor: string | null };
+export type QueuePage = {
+  rows: QueueRow[];
+  next: string | null;
+  previous: string | null;
+  total: { count: number; capped: boolean };
+};
+
+/** A tab's view (062): sorted by its time or the item name, searched, filtered by type. */
+export type QueueQuery = {
+  tab: QueueTab;
+  sort?: "time" | "name";
+  dir?: SortDir;
+  size?: number;
+  cursor?: string;
+  search?: string;
+  type?: ItemType;
+};
 
 /** The latest revision's risk flags: what reviewers are asked to look at (MVP §12). */
 export const latestRiskFlags = async (
@@ -74,30 +115,30 @@ const approvalOf = async (repo: SubmissionRepository, submissionId: string) => {
   return event ? { by: event.actor.name, at: event.createdAt } : null;
 };
 
-/** `updatedAt|id` of the last row, to continue the Decided tab after it. */
-const cursorOf = (row: Submission) => `${row.updatedAt.toISOString()}|${row.id}`;
-const afterCursor = (cursor: string | undefined) => {
-  const [at, id] = (cursor ?? "").split("|");
-  const updatedAt = new Date(at ?? "");
-  return id && !Number.isNaN(updatedAt.getTime()) ? { updatedAt, id } : undefined;
-};
-
 export const listQueue = async (
   deps: SubmissionDeps,
   actor: SubmissionActor,
-  query: { tab: QueueTab; cursor?: string },
+  query: QueueQuery,
 ): Promise<QueuePage> => {
   requirePermission(actor.user, "submissions.review");
   const tab = QUEUE_TABS[query.tab];
-  const paged = query.tab === "decided";
-  const limit = paged ? DECIDED_PAGE_SIZE + 1 : OPEN_LIMIT;
-  const found = await deps.repo.listForReview({
+  const sort = query.sort ?? "time";
+  const filters = {
     statuses: tab.statuses,
-    order: tab.order,
-    limit,
-    after: paged ? afterCursor(query.cursor) : undefined,
-  });
-  const shown = paged ? found.slice(0, DECIDED_PAGE_SIZE) : found;
+    search: query.search?.trim().slice(0, 100) || undefined,
+    type: query.type,
+  };
+  const [page, total] = await Promise.all([
+    deps.repo.pageForReview({
+      ...filters,
+      sort: sort === "time" ? tab.time : "name",
+      dir: query.dir ?? (sort === "time" ? tab.timeDir : "asc"),
+      size: query.size ?? QUEUE_PAGE_SIZE,
+      cursor: query.cursor,
+    }),
+    deps.repo.countForReview(filters),
+  ]);
+  const shown = page.rows;
   const registry = deps.registry ?? deps.repo.registry();
   const rows = await Promise.all(
     shown.map(async (submission) => {
@@ -116,7 +157,6 @@ export const listQueue = async (
       };
     }),
   );
-  const last = rows.at(-1);
   const stale = await withStale(registry, rows);
   return {
     rows: stale.map((row) => ({
@@ -124,7 +164,9 @@ export const listQueue = async (
       approvable: approvability(actor, row),
       decisions: decisionsFor(actor, row),
     })),
-    nextCursor: paged && found.length > DECIDED_PAGE_SIZE && last ? cursorOf(last) : null,
+    next: page.next,
+    previous: page.previous,
+    total,
   };
 };
 
