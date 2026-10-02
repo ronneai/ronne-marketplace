@@ -48,7 +48,7 @@ the same change that completes it.
   *Done when:* component tests cover each status's notice, and the repository test passes on every
   database.
 
-- [ ] **6. Documentation.** In `content.tsx`, `review#decisions`, `review#approve-many` and
+- [x] **6. Documentation.** In `content.tsx`, `review#decisions`, `review#approve-many` and
   `review#statuses`; in `Help.tsx`, the queue helper and the `decisions` and `approve-many` helpers.
   *Done when:* the docs render tests pass, and the new helper's link lands on `review#decisions`.
 

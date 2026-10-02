@@ -617,14 +617,17 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
                 ["submitted", "Waiting for a reviewer. Its files are frozen as a revision."],
                 [
                   "changes_requested",
-                  "Sent back to its author, who edits it and resubmits it as the next revision.",
+                  "Sent back to its author, who edits it and resubmits it as the next revision. The reviewer's message is at the top of its page.",
                 ],
                 [
                   "approved",
                   "Ready to release, by its author, a moderator or root. Approved ones wait on the review queue's To release tab, and can be released many at once.",
                 ],
                 ["published", "Released as a version."],
-                ["rejected", "Closed by a reviewer, with the reason in the conversation."],
+                [
+                  "rejected",
+                  "Closed by a reviewer. The reason is at the top of its page and in the conversation.",
+                ],
                 [
                   "withdrawn",
                   "Taken out of review by its author. Only they see it, under Archived in My submissions, and they can restore it as a draft.",
@@ -798,8 +801,23 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </Bullets>
         <p>
           Approving, the override included, takes an optional message. Request changes and reject
-          need one, so the author knows what to fix, or why it was closed. Every decision is
+          need one, so the author knows what to fix, or why it was closed: they see it at the top of
+          their submission&apos;s page, and under its name in My submissions. Every decision is
           recorded in the conversation and the audit log.
+        </p>
+        <p>
+          <strong>Where they are:</strong> on <To href="/reviews">Reviews</To>, each row of{" "}
+          <strong>Needs review</strong> ends with <strong>Request changes</strong> and{" "}
+          <strong>Reject</strong>, and each row of <strong>To release</strong> with{" "}
+          <strong>Request changes</strong>. All the decisions are in the header of a
+          submission&apos;s review page, which its name opens. Approving several at once is{" "}
+          <To href={docsHref("review", "approve-many")}>Approve selected</To>.
+        </p>
+        <p>
+          <strong>Your own submission:</strong> the decisions show, but greyed out: another
+          moderator or root decides. Root also gets <strong>Approve (override)</strong> on its own.
+          A proposal that needs a rebase can be sent back or rejected, but not approved until
+          it&apos;s rebased.
         </p>
       </>
     ),
@@ -877,7 +895,7 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </Bullets>
         <p>
           Request changes and reject stay one submission at a time, since each needs its own
-          message. Releasing is still done from each approved submission.
+          message: each row has them. Releasing is still done from each approved submission.
         </p>
       </>
     ),

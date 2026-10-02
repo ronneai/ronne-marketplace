@@ -111,6 +111,9 @@ describe("the topics", () => {
     const review = await topic("review");
     for (const status of ["changes requested", "archived", "published"])
       expect(review).toContain(`>${status}<`);
+    // Where the decisions are, and your own greyed out (058).
+    expect(review).toContain("each row of");
+    expect(review).toContain("greyed out");
     // Withdrawing asks to archive or delete (057).
     expect(review).toContain('id="withdraw"');
     expect(review).toContain("Delete for good");
