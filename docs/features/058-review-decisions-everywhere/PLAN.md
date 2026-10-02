@@ -25,7 +25,7 @@ the same change that completes it.
   *Done when:* `reviews.db.test.ts` covers request changes and reject with `via: "queue"`, and a
   component test opens the dialog from a row.
 
-- [ ] **3. The queue.** The row-actions cell in `features/reviews/QueueTable.tsx`:
+- [x] **3. The queue.** The row-actions cell in `features/reviews/QueueTable.tsx`:
   - Request changes and Reject on Needs review; Request changes on To release.
   - Disabled with the reason on the viewer's own rows.
   - After deciding: the status line and the refresh.

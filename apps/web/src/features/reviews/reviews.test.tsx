@@ -115,6 +115,56 @@ describe("the queue", () => {
     expect(needs([])).toContain("Nothing needs review.");
   });
 
+  it("ends Needs review and To release rows with their own decisions, not the other tabs (058)", () => {
+    const decisions: QueueRow["decisions"] = [
+      { decision: "approve", allowed: true },
+      { decision: "request_changes", allowed: true },
+      { decision: "reject", allowed: true },
+    ];
+    const html = needs([row({ decisions })]);
+    expect(html).toContain('aria-label="Request changes: @team/fmt"');
+    expect(html).toContain('aria-label="Reject: @team/fmt"');
+
+    const released = row({
+      status: "approved",
+      decisions: [{ decision: "request_changes", allowed: true }],
+    });
+    const release = renderToStaticMarkup(
+      <BulkReleaseProvider releasable={{ [released.id]: "@team/fmt" }}>
+        <QueueTable tab="release" rows={[released]} nextCursor={null} />
+      </BulkReleaseProvider>,
+    );
+    expect(release).toContain('aria-label="Request changes: @team/fmt"');
+    expect(release).not.toContain('aria-label="Reject');
+
+    for (const tab of ["waiting", "decided"] as const)
+      expect(
+        renderToStaticMarkup(
+          <QueueTable tab={tab} rows={[row({ decisions })]} nextCursor={null} />,
+        ),
+      ).not.toContain("Request changes");
+  });
+
+  it("disables a reviewer's own row's decisions, with the reason (058)", () => {
+    const reason = "Your own submission: another moderator or root decides.";
+    const html = needs([
+      row({
+        mine: true,
+        approvable: { approvable: false, reason: "Your own submission" },
+        decisions: [
+          { decision: "request_changes", allowed: false, reason },
+          { decision: "reject", allowed: false, reason },
+        ],
+      }),
+    ]);
+    expect(html).toContain(reason);
+    expect(
+      html.match(
+        /disabled=""[^>]*aria-label="(Request changes|Reject): @team\/fmt"|aria-label="(Request changes|Reject): @team\/fmt"[^>]*disabled=""/g,
+      ),
+    ).toHaveLength(2);
+  });
+
   it("marks the current tab", () => {
     const html = renderToStaticMarkup(<QueueTabs tab="waiting" />);
     expect(html).toMatch(/aria-current="page"[^>]*>Waiting on the author/);

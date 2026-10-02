@@ -9,6 +9,7 @@ import { FieldError, inputClasses, Label } from "@/components/ui/Field";
 import type { Dependent, ReviewDecision } from "@/server/domains/submissions/actions/reviews";
 import type { DecisionOption } from "@/server/domains/submissions/services/decisions";
 import { decideAction, dependentsAction, rejectAction } from "./actions";
+import { useQueueStatus } from "./QueueStatus";
 
 const COPY: Record<
   ReviewDecision,
@@ -127,6 +128,7 @@ export const DecisionDialog = ({
   dependents = [],
   via,
   onClose,
+  onDone,
 }: {
   id: string;
   /** The item's name, for the dependents' message (056). */
@@ -136,6 +138,8 @@ export const DecisionDialog = ({
   dependents?: Dependent[];
   via?: "queue";
   onClose: () => void;
+  /** After the decision went through, before the page refreshes. */
+  onDone?: () => void;
 }) => {
   const router = useRouter();
   const [text, setText] = useState("");
@@ -158,6 +162,7 @@ export const DecisionDialog = ({
               // Ones that couldn't be sent back stay in view, with why.
               if (result.skipped?.length) {
                 setSkipped(result.skipped);
+                onDone?.();
                 return router.refresh();
               }
             } else {
@@ -168,6 +173,7 @@ export const DecisionDialog = ({
                 return router.refresh();
               }
             }
+            onDone?.();
             onClose();
             router.refresh();
           });
@@ -295,6 +301,7 @@ export const RowDecisions = ({
   );
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const say = useQueueStatus();
   const shown = decisions.filter((option) => ROW_DECISIONS.includes(option.decision));
   if (shown.length === 0) return null;
   return (
@@ -331,6 +338,9 @@ export const RowDecisions = ({
           dependents={open.dependents}
           via="queue"
           onClose={() => setOpen(null)}
+          onDone={() =>
+            say(open.decision === "reject" ? `Rejected ${name}.` : `Requested changes on ${name}.`)
+          }
         />
       ) : null}
     </div>

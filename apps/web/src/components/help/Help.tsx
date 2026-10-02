@@ -134,6 +134,12 @@ export const HELP = {
       "Submissions you withdrew and kept. Only you see them. Restore one to edit and submit it again, or delete it if no reviewer took part.",
     href: docsHref("review", "withdraw"),
   },
+  "queue-decisions": {
+    question: "Approve, request changes or reject?",
+    answer:
+      "Request changes sends it back to its author to fix and resubmit; Reject closes it for good. Both need a reason, which the author sees at the top of their page. Each row has them; approving is on the item's page, or several at once with Approve selected.",
+    href: docsHref("review", "decisions"),
+  },
   "add-dependency": {
     question: "How do I add one?",
     answer:
