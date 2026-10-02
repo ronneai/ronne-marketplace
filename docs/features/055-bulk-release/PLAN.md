@@ -11,7 +11,7 @@ the same change that completes it.
   proposals, and the spec is updated to match before anything is built.
   *Done when:* the spec has no open question that changes what's built.
 
-- [ ] **1. Settings for many.** A pure function that takes the settings and each submission's
+- [x] **1. Settings for many.** A pure function that takes the settings and each submission's
   published versions and suggested bump, and returns each version and tag, or why not (`nextVersion`,
   `defaultTag`, `tagProblem`, `suggestBump`), shared by the dialog's preview and the server.
   *Done when:* unit tests cover first releases, suggested and forced bumps, pre-releases, a custom
