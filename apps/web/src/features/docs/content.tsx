@@ -625,7 +625,10 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
                 ],
                 ["published", "Released as a version."],
                 ["rejected", "Closed by a reviewer, with the reason in the conversation."],
-                ["withdrawn", "Closed by its author, before approval. It stays, read-only."],
+                [
+                  "withdrawn",
+                  "Taken out of review by its author. Only they see it, under Archived in My submissions, and they can restore it as a draft.",
+                ],
               ] as const
             ).map(([status, meaning]) => (
               <tr key={status}>
@@ -637,6 +640,35 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             ))}
           </tbody>
         </Table>
+      </>
+    ),
+    withdraw: (
+      <>
+        <p>
+          <strong>Withdraw</strong> is in the header of your own submission while it&apos;s a draft,
+          submitted or sent back for changes. Once approved it can&apos;t be withdrawn: a reviewer
+          can send it back first. Withdrawing asks what to do with it:
+        </p>
+        <Bullets>
+          <li>
+            <strong>Archive</strong> (the default): it leaves review and My submissions&apos; list.
+            Only you see it, under the <strong>Archived</strong> filter. <strong>Restore</strong>{" "}
+            brings it back as a draft, with its files, revisions and conversation; the next submit
+            is its next revision.
+          </li>
+          <li>
+            <strong>Delete for good</strong>: it&apos;s removed with its files and history, and
+            can&apos;t be undone. It&apos;s offered only while no reviewer has commented on it or
+            decided it; after that the conversation is a record for reviewers too, so it can only be
+            archived. An archived one can be deleted the same way, from its page or the Archived
+            filter.
+          </li>
+        </Bullets>
+        <p>
+          Either way, the name is free: an archived submission, like a draft, doesn&apos;t hold it.
+          What depends on it is marked blocked while it&apos;s archived, and not submitted once
+          it&apos;s deleted. The audit log keeps a record of every deletion.
+        </p>
       </>
     ),
     checks: (
@@ -796,7 +828,7 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             Release the dependencies first.
           </li>
           <li>
-            <strong>Blocked:</strong> when a dependency is rejected or withdrawn, what depends on it
+            <strong>Blocked:</strong> when a dependency is rejected or archived, what depends on it
             is marked blocked, also further down a chain. Remove it from dependencies, or depend on
             another item. A new submission of the same name unblocks it.
           </li>
@@ -1293,8 +1325,8 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             submission sent back for changes stays that way: resubmit it in the web app.
           </li>
           <li>
-            <strong>One in review:</strong> left alone, and nothing is uploaded for it. Withdraw it
-            in the web app first to change it.
+            <strong>One in review:</strong> left alone, and nothing is uploaded for it. Withdraw and
+            archive it in the web app first to change it.
           </li>
           <li>
             <strong>The same item</strong> means the same name and type, and for a{" "}

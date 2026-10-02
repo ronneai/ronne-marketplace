@@ -122,6 +122,18 @@ export const HELP = {
       "Tick the submissions you can approve, or Select all, then Approve selected: the ones with risk flags are listed first, and one optional message goes on every approval. Each is approved on its own, as from its page, and you see what happened to each.",
     href: docsHref("review", "approve-many"),
   },
+  withdraw: {
+    question: "Archive or delete?",
+    answer:
+      "Archive takes it out of review and out of your list; you can restore it as a draft later. Delete removes it with its history, and is offered only while no reviewer has commented on it or decided it.",
+    href: docsHref("review", "withdraw"),
+  },
+  archived: {
+    question: "What's archived?",
+    answer:
+      "Submissions you withdrew and kept. Only you see them. Restore one to edit and submit it again, or delete it if no reviewer took part.",
+    href: docsHref("review", "withdraw"),
+  },
   "add-dependency": {
     question: "How do I add one?",
     answer:
@@ -143,7 +155,7 @@ export const HELP = {
   "waits-on": {
     question: "What does this wait on?",
     answer:
-      "Something it depends on isn't released yet. It can be reviewed and approved meanwhile; it's released once its dependencies are. Blocked means one was rejected or withdrawn: remove it from dependencies, or depend on another item.",
+      "Something it depends on isn't released yet. It can be reviewed and approved meanwhile; it's released once its dependencies are. Blocked means one was rejected or archived: remove it from dependencies, or depend on another item.",
     href: docsHref("review", "dependencies"),
   },
   "dependents-listed": {

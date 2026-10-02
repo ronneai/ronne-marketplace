@@ -80,6 +80,7 @@ const Submissions = async ({
       <BulkSubmitProvider ready={ready} needs={needs}>
         <BulkReleaseProvider releasable={releasable}>
           <StatusFilters submissions={submissions} status={status} />
+          {status === "withdrawn" ? <Help id="archived" /> : null}
           <BulkToolbar
             help={
               <>

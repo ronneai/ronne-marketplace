@@ -54,6 +54,7 @@ export const TOPICS = [
     summary: "From draft to approved: the statuses, the checks and what reviewers look at.",
     sections: [
       { id: "statuses", title: "Statuses" },
+      { id: "withdraw", title: "Withdrawing: archive or delete" },
       { id: "checks", title: "The checks at submit" },
       { id: "many", title: "Submitting many at once" },
       { id: "dependencies", title: "Dependencies in review" },

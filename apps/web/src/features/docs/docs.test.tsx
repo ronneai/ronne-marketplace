@@ -111,6 +111,10 @@ describe("the topics", () => {
     const review = await topic("review");
     for (const status of ["changes requested", "archived", "published"])
       expect(review).toContain(`>${status}<`);
+    // Withdrawing asks to archive or delete (057).
+    expect(review).toContain('id="withdraw"');
+    expect(review).toContain("Delete for good");
+    expect(review).toContain("brings it back as a draft");
     const versions = await topic("versions");
     expect(versions).toContain("1.4.0 → 1.5.0");
     expect(versions).toContain("the lockfile keeps that version");

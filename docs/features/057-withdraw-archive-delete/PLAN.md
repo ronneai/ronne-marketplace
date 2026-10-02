@@ -55,7 +55,7 @@ the same change that completes it.
 
   *Done when:* table tests cover the default list, the filter and the row actions.
 
-- [ ] **5. Documentation.**
+- [x] **5. Documentation.**
   - `review#statuses` row, the new `review#withdraw` section (in `topics.ts` and `content.tsx`),
     and `review#dependencies` wording.
   - The export topic's "withdraw it" line.

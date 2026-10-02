@@ -181,6 +181,7 @@ export const WithdrawDialog = ({
             );
           })}
         </fieldset>
+        <Help id="withdraw" />
         {dependents > 0 ? (
           <p className="text-sm text-warning-text">
             {dependents === 1 ? "1 submission depends" : `${dependents} submissions depend`} on
