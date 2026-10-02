@@ -17,7 +17,7 @@ import {
 } from "../exceptions/errors";
 import { kyselySubmissionRepository } from "../repositories/kysely-submission-repository";
 import { createDraft, getDraft, saveDraftFiles } from "./drafts";
-import { comment, decide } from "./reviews";
+import { comment, decide, listDependents, rejectWithDependents } from "./reviews";
 import { submitDraft } from "./submissions";
 
 let t: TestDb;
@@ -243,5 +243,102 @@ describe("comments", () => {
       ConversationClosedError,
     );
     expect((await getDraft(asAuthor, draft.id, app)).status).toBe("draft");
+  });
+});
+
+describe("rejecting a dependency (056)", () => {
+  /** A bundle depending on @team/style, submitted by `headers`. */
+  const dependent = async (name: string, headers = asAuthor) => {
+    const draft = await createDraft(headers, { scope: "team", name, type: "bundle" }, app);
+    const manifest = draft.files.find((f) => f.path === "ronne.yaml");
+    await saveDraftFiles(
+      headers,
+      draft.id,
+      {
+        writes: [
+          {
+            path: "ronne.yaml",
+            encoding: "utf8",
+            content: `name: "@team/${name}"\ntype: bundle\ndescription: A set.\ndependencies:\n  "@team/style": "^1.0.0"\n`,
+            executable: false,
+            loadedAt: manifest?.updatedAt ?? null,
+          },
+        ],
+        deletes: [],
+      },
+      app,
+    );
+    await submitDraft(headers, draft.id, app);
+    return draft.id;
+  };
+
+  it("lists the open submissions that depend on it, and who may send each back", async () => {
+    const style = await submitted();
+    const kit = await dependent("kit");
+    const mods = await dependent("mods", asModerator);
+    expect(
+      (await listDependents(asModerator, style, app)).map((d) => [d.id, d.name, d.sendBack]),
+    ).toEqual([
+      [kit, "@team/kit", { ok: true }],
+      [mods, "@team/mods", { ok: false, reason: "Yours: edit or withdraw it." }],
+    ]);
+    // The author of the dependency sees them, but can't send them back.
+    expect((await listDependents(asAuthor, style, app)).every((d) => !d.sendBack.ok)).toBe(true);
+  });
+
+  it("rejects, then sends back each it may, approved ones too, with the cause in the audit", async () => {
+    const style = await submitted();
+    const kit = await dependent("kit");
+    const approved = await dependent("approved-kit");
+    await decide(asModerator2, approved, { decision: "approve" }, app);
+    const mods = await dependent("mods", asModerator);
+    const fixing = await dependent("fixing");
+    await decide(asModerator2, fixing, { decision: "request_changes", message: "Later." }, app);
+
+    const result = await rejectWithDependents(
+      asModerator,
+      style,
+      { message: "Duplicates @team/lint.", dependents: { message: "Drop @team/style." } },
+      app,
+    );
+    expect(result.rejected.status).toBe("rejected");
+    expect(result.dependents.map((d) => [d.id, d.result])).toEqual([
+      [kit, "sent_back"],
+      [approved, "sent_back"],
+      [mods, "skipped"],
+      [fixing, "skipped"],
+    ]);
+    for (const id of [kit, approved]) {
+      expect(await status(id)).toBe("changes_requested");
+      expect((await events(id)).at(-1)).toMatchObject({
+        kind: "request_changes",
+        body: "Drop @team/style.",
+      });
+    }
+    expect(await status(mods)).toBe("submitted");
+    const caused = (await audited("submission.changes_requested")).filter(
+      (e) => (e.metadata as { cause?: unknown }).cause,
+    );
+    expect(caused.map((e) => [e.targetId, (e.metadata as { cause: unknown }).cause])).toEqual(
+      expect.arrayContaining([
+        [kit, { rejected: style }],
+        [approved, { rejected: style }],
+      ]),
+    );
+  });
+
+  it("leaves the dependents as they are when not asked", async () => {
+    const style = await submitted();
+    const kit = await dependent("kit");
+    const result = await rejectWithDependents(asModerator, style, { message: "No." }, app);
+    expect(result.dependents).toEqual([]);
+    expect(await status(kit)).toBe("submitted");
+  });
+
+  it("requests changes on an approved submission", async () => {
+    const id = await submitted();
+    await decide(asModerator, id, { decision: "approve" }, app);
+    await decide(asModerator, id, { decision: "request_changes", message: "One more thing." }, app);
+    expect(await status(id)).toBe("changes_requested");
   });
 });

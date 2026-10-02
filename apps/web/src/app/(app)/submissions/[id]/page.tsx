@@ -8,7 +8,7 @@ import { Conversation } from "@/features/reviews/Conversation";
 import { PublishDialog } from "@/features/reviews/PublishDialog";
 import { versionsPath } from "@/features/versions/links";
 import { type ProposalPanel, proposalPanel } from "@/server/domains/submissions/actions/proposals";
-import { getReview } from "@/server/domains/submissions/actions/reviews";
+import { getReview, listDependents } from "@/server/domains/submissions/actions/reviews";
 import { dependencyMarks, viewSubmission } from "@/server/domains/submissions/actions/submissions";
 import { SubmissionNotFoundError } from "@/server/domains/submissions/exceptions/errors";
 import { canTransition, isEditable } from "@/server/domains/submissions/models/status";
@@ -41,7 +41,9 @@ const toEditorDraft = (
   draft: Draft & { mine: boolean },
   versionsHref: string | null,
   panel: ProposalPanel | null,
+  dependents = 0,
 ): EditorDraft => ({
+  dependents,
   id: draft.id,
   scope: draft.scope.name,
   name: draft.name,
@@ -87,12 +89,22 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
   const panel = draft.proposal && draft.mine ? await proposalPanel(request, id) : null;
   // What it waits on (056): dependencies not released yet, or blocked.
   const marks = (await dependencyMarks(request, [draft]))[draft.id];
+  // Who depends on it (056): the author's withdraw confirmation gives the count.
+  const dependents =
+    draft.mine && draft.status !== "draft" && canTransition(draft.status, "withdraw")
+      ? (await listDependents(request, id)).length
+      : 0;
   return (
     <div className="grid gap-6">
       {/* A new version from the server (an import, a rename, a submit) starts the editor afresh. */}
       <DraftEditor
         key={draft.updatedAt.toISOString()}
-        draft={toEditorDraft(draft, review?.published.length ? versionsPath(draft) : null, panel)}
+        draft={toEditorDraft(
+          draft,
+          review?.published.length ? versionsPath(draft) : null,
+          panel,
+          dependents,
+        )}
       />
       <DependencyMarksNotice marks={marks} />
       {review?.can.publish ? (

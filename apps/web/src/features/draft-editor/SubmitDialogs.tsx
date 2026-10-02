@@ -114,10 +114,13 @@ export const SubmitDialog = ({
 export const WithdrawDialog = ({
   draftId,
   itemName,
+  dependents = 0,
   onClose,
 }: {
   draftId: string;
   itemName: string;
+  /** Open submissions that depend on it (056): they're blocked once it's withdrawn. */
+  dependents?: number;
   onClose: () => void;
 }) => {
   const router = useRouter();
@@ -129,6 +132,13 @@ export const WithdrawDialog = ({
         <p className="text-sm text-fg">
           It can't be undone. It stays in My submissions, read-only, and you can start a new draft.
         </p>
+        {dependents > 0 ? (
+          <p className="text-sm text-warning-text">
+            {dependents === 1 ? "1 submission depends" : `${dependents} submissions depend`} on
+            this. {dependents === 1 ? "It's" : "They're"} blocked until another submission of{" "}
+            {itemName} comes along.
+          </p>
+        ) : null}
         <FieldError id="withdraw-error">{error}</FieldError>
         <div className="flex flex-wrap justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>

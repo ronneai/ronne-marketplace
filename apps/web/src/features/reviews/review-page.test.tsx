@@ -23,7 +23,7 @@ vi.mock("next/navigation", () => ({
 const { RiskSummary } = await import("@/components/risk-flags/RiskSummary");
 const { AllFiles, FileChanges } = await import("@/components/files/FileViews");
 const { Conversation } = await import("./Conversation");
-const { DecisionBar } = await import("./DecisionBar");
+const { DecisionBar, DependentsChoice, dependentsMessage } = await import("./DecisionBar");
 const { default: ReviewPage } = await import("@/app/(app)/reviews/[id]/page");
 const { BumpSuggestion } = await import("./PublishDialog");
 
@@ -200,8 +200,9 @@ const view = (overrides: Partial<ReviewView> = {}): ReviewView => ({
   issues: [],
   events: [event({ revision: 2, kind: "resubmit" })],
   published: [],
-  can: { decide: true, override: false, comment: true, publish: false },
+  can: { decide: true, override: false, comment: true, publish: false, sendBack: false },
   proposal: null,
+  dependents: [],
   ...overrides,
 });
 
@@ -242,7 +243,7 @@ describe("the review page", () => {
 
   it("disables Publish while a dependency isn't released (056)", async () => {
     const approved = view({
-      can: { decide: false, override: false, comment: true, publish: true },
+      can: { decide: false, override: false, comment: true, publish: true, sendBack: false },
     });
     reviews.getReview.mockResolvedValue({
       ...approved,
@@ -274,7 +275,10 @@ describe("the review page", () => {
 
   it("shows all files on request, and tells a reviewer about their own submission", async () => {
     reviews.getReview.mockResolvedValue(
-      view({ mine: true, can: { decide: false, override: false, comment: true, publish: false } }),
+      view({
+        mine: true,
+        can: { decide: false, override: false, comment: true, publish: false, sendBack: false },
+      }),
     );
     const html = await render({ view: "all" });
     expect(html).toContain('id="file-hook.sh-L1"');
@@ -285,7 +289,9 @@ describe("the review page", () => {
   it("offers Publish on an approved submission to those who may publish", async () => {
     expect(await render()).not.toContain(">Publish<");
     reviews.getReview.mockResolvedValue(
-      view({ can: { decide: false, override: false, comment: true, publish: true } }),
+      view({
+        can: { decide: false, override: false, comment: true, publish: true, sendBack: false },
+      }),
     );
     expect(await render()).toContain("Publish");
   });
@@ -380,5 +386,42 @@ describe("a change proposal's review", () => {
     );
     expect(html).toMatch(/Suggested: <span[^>]*>minor<\/span>, because/);
     expect(html).toContain("`a.md` is new; keyword `x` is new.");
+  });
+});
+
+describe("rejecting a dependency (056)", () => {
+  it("lists the dependents, with who can't be sent back, and offers to send the rest back", () => {
+    const html = renderToStaticMarkup(
+      <DependentsChoice
+        dependents={[
+          {
+            id: "a",
+            name: "@team/kit",
+            status: "approved",
+            authorName: "Ada",
+            sendBack: { ok: true },
+          },
+          {
+            id: "b",
+            name: "@team/mods",
+            status: "submitted",
+            authorName: "Mo",
+            sendBack: { ok: false, reason: "Yours: edit or withdraw it." },
+          },
+        ]}
+        sendBack
+        onSendBack={() => undefined}
+        text={dependentsMessage("@team/style")}
+        onText={() => undefined}
+      />,
+    );
+    expect(html).toContain("2 submissions depend");
+    expect(html).toContain("(approved, by Ada)");
+    expect(html).toContain("(submitted, by Mo): Yours: edit or withdraw it.");
+    expect(html).toMatch(/type="checkbox"[^>]*checked=""/);
+    expect(html).toContain("Request changes on them too");
+    expect(html).toContain(
+      "@team/style was rejected: remove it from dependencies, or depend on another item.",
+    );
   });
 });

@@ -12,7 +12,7 @@ import type { SubmissionActor, SubmissionDeps } from "../services/submissions";
 export type { ApprovedSubmission } from "../services/bulk-approve";
 export type { QueuePage, QueueRow, QueueTab } from "../services/queue";
 export type { ProposalView, ReviewView } from "../services/review-page";
-export type { ReviewDecision } from "../services/reviews";
+export type { Dependent, ReviewDecision, SentBack } from "../services/reviews";
 
 /** Entry points for review decisions and comments (feature 014). Thin: the services check. */
 const deps = ({ db, dialect }: AppAuth): SubmissionDeps => ({
@@ -37,6 +37,18 @@ export const approveMany = async (
   input: { ids: readonly string[]; message?: string },
   app: AppAuth = getAppAuth(),
 ) => bulk.approveMany(deps(app), await actor(headers, app), input);
+
+/** The open submissions that depend on this one, not yet released (056). */
+export const listDependents = async (headers: Headers, id: string, app: AppAuth = getAppAuth()) =>
+  service.dependentsOf(deps(app), await actor(headers, app), id);
+
+/** Rejects, and (056) sends back the submissions that depend on it when asked. */
+export const rejectWithDependents = async (
+  headers: Headers,
+  id: string,
+  input: { message?: string; dependents?: { message?: string } },
+  app: AppAuth = getAppAuth(),
+) => service.rejectWithDependents(deps(app), await actor(headers, app), id, input);
 
 export const comment = async (
   headers: Headers,

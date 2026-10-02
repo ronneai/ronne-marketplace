@@ -38,7 +38,8 @@ export const TRANSITIONS: Record<
 > = {
   submit: { from: ["draft"], to: "submitted" },
   resubmit: { from: ["changes_requested"], to: "submitted" },
-  request_changes: { from: ["submitted"], to: "changes_requested" },
+  // From approved too (056): a dependency of it was rejected, or anything else found before release.
+  request_changes: { from: ["submitted", "approved"], to: "changes_requested" },
   approve: { from: ["submitted"], to: "approved" },
   reject: { from: ["submitted"], to: "rejected" },
   withdraw: { from: ["draft", "submitted", "changes_requested"], to: "withdrawn" },

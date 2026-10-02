@@ -71,6 +71,8 @@ const Review = async ({
   const decisions: ReviewDecision[] = [
     ...(review.can.decide ? (["approve", "request_changes", "reject"] as const) : []),
     ...(review.can.override ? (["override"] as const) : []),
+    // An approved one can still be sent back before it's released (056).
+    ...(review.can.sendBack ? (["request_changes"] as const) : []),
   ];
 
   return (
@@ -107,7 +109,12 @@ const Review = async ({
               View versions
             </Link>
           ) : null}
-          <DecisionBar id={submission.id} decisions={decisions} />
+          <DecisionBar
+            id={submission.id}
+            name={itemNameOf(submission)}
+            decisions={decisions}
+            dependents={review.dependents}
+          />
           {review.can.publish ? (
             <PublishDialog
               id={submission.id}

@@ -35,7 +35,7 @@ the same change that completes it.
   `submit_drafts`.
   *Done when:* `bulk-submit.db.test.ts` and `submit.test.ts` cover the inclusion and the flag.
 
-- [ ] **5. Rejecting a dependency.** `request_changes` from `approved`; the dependents query; the
+- [x] **5. Rejecting a dependency.** `request_changes` from `approved`; the dependents query; the
   reject dialog with the list, the checkbox and the prefilled message; each dependent decided in its
   own transaction with `cause`; the withdraw confirmation's count.
   *Done when:* `reviews.db.test.ts` covers ticked, unticked, a moderator's own dependent, one that

@@ -591,7 +591,12 @@ export const DraftEditor = ({
         />
       ) : null}
       {open?.kind === "withdraw" ? (
-        <WithdrawDialog draftId={draft.id} itemName={itemName} onClose={() => setOpen(null)} />
+        <WithdrawDialog
+          draftId={draft.id}
+          itemName={itemName}
+          dependents={draft.dependents}
+          onClose={() => setOpen(null)}
+        />
       ) : null}
       {open?.kind === "settings" ? (
         <DraftSettingsDialog

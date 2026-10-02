@@ -28,6 +28,8 @@ export type EditorDraft = {
   readOnly: boolean;
   canSubmit: boolean;
   canWithdraw: boolean;
+  /** How many open submissions depend on it (056): withdrawing leaves them blocked. */
+  dependents?: number;
   /** The item's Versions page, once it has a published version (feature 016). */
   versionsHref: string | null;
   /** For a change proposal (feature 017); null for a new item. */

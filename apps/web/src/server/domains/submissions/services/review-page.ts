@@ -14,6 +14,7 @@ import type { ReviewEvent, Revision, RevisionFile } from "../models/review";
 import { canTransition, OPEN_STATUSES } from "../models/status";
 import { fileBytes, MANIFEST_PATH, type Submission, toPackageFile } from "../models/submission";
 import { baseFilesOf, staleVersion } from "./proposals";
+import { type Dependent, dependentsOf } from "./reviews";
 import { allIssues, type SubmissionActor, type SubmissionDeps } from "./submissions";
 
 /** Everything the review page, and the author's view of it, shows (feature 014). */
@@ -34,7 +35,16 @@ export type ReviewView = {
   /** The item's published versions, yanked ones included: the publish dialog's preview (015), and
    * whether the page links to the Versions page (016). */
   published: string[];
-  can: { decide: boolean; override: boolean; comment: boolean; publish: boolean };
+  can: {
+    decide: boolean;
+    override: boolean;
+    comment: boolean;
+    publish: boolean;
+    /** Request changes on an approved submission, before it's released (056). */
+    sendBack: boolean;
+  };
+  /** For a reviewer who may reject it: the open submissions that depend on it (056). */
+  dependents: Dependent[];
   /** For a change proposal (017): what it changes against its base version. Null for new items. */
   proposal: ProposalView | null;
 };
@@ -159,6 +169,9 @@ export const getReview = async (
       override: mine && submitted && can(actor.user, "submissions.override"),
       comment: (reviewer || mine) && OPEN_STATUSES.includes(submission.status),
       publish: approved && (mine || can(actor.user, "submissions.publish")),
+      sendBack: reviewer && !mine && approved,
     },
+    dependents:
+      reviewer && !mine && submitted ? await dependentsOf(deps, actor, submission.id) : [],
   };
 };

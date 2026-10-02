@@ -8,11 +8,19 @@ import {
   REVIEW_MESSAGE_MAX_LENGTH,
   ReviewMessageError,
   SubmissionNotFoundError,
+  SubmissionsError,
 } from "../exceptions/errors";
 import type { ReviewEventKind } from "../models/review";
-import { OPEN_STATUSES, type SubmissionAction, transition } from "../models/status";
+import {
+  canTransition,
+  OPEN_STATUSES,
+  type SubmissionAction,
+  type SubmissionStatus,
+  transition,
+} from "../models/status";
 import { itemNameOf, type Submission } from "../models/submission";
 import type { SubmissionRepository } from "../repositories/submission-repository";
+import { dependenciesOf, marksFor } from "./dependency-marks";
 import { requireCurrent } from "./proposals";
 import type { SubmissionActor, SubmissionDeps } from "./submissions";
 
@@ -108,6 +116,8 @@ export const decide = async (
     message?: string;
     /** How it was decided, for the audit log: approving many at once (054). */
     via?: "bulk";
+    /** Why, when it follows another decision: its dependency was rejected (056). */
+    cause?: { rejected: string };
   },
 ): Promise<Submission> => {
   const decision = DECISIONS[input.decision];
@@ -147,6 +157,7 @@ export const decide = async (
           revision,
           ...(message ? { message } : {}),
           ...(input.via ? { via: input.via } : {}),
+          ...(input.cause ? { cause: input.cause } : {}),
         },
         ipAddress: actor.ip,
       },
@@ -184,4 +195,115 @@ export const comment = async (
       createdAt: at,
     });
   });
+};
+
+/** An open submission that depends on another one, not yet released (056). */
+export type Dependent = {
+  id: string;
+  name: string;
+  status: SubmissionStatus;
+  authorName: string;
+  /** Whether this reviewer can request changes on it; why not otherwise. */
+  sendBack: { ok: true } | { ok: false; reason: string };
+};
+
+/** How many open submissions a page looks through for dependents: the queue's own limit. */
+const DEPENDENTS_SCAN = 500;
+
+/**
+ * The open submissions that depend on this one's item with no matching release: what rejecting or
+ * withdrawing it leaves waiting on nothing (056). Anyone who can see the submission may ask; the
+ * names are shown to reviewers, and authors get only the count.
+ */
+export const dependentsOf = async (
+  deps: SubmissionDeps,
+  actor: SubmissionActor,
+  id: string,
+): Promise<Dependent[]> => {
+  const submission = isId(id) ? await deps.repo.find(id) : null;
+  if (!submission) throw new SubmissionNotFoundError();
+  const name = itemNameOf(submission);
+  const registry = deps.registry ?? deps.repo.registry();
+  const reviewer = can(actor.user, "submissions.review");
+  const open = await deps.repo.listForReview({
+    statuses: OPEN_STATUSES,
+    order: "oldest",
+    limit: DEPENDENTS_SCAN,
+  });
+  const found: Dependent[] = [];
+  for (const other of open) {
+    if (other.id === submission.id) continue;
+    const range = (await dependenciesOf(deps.repo, other))[name];
+    if (range === undefined) continue;
+    if ((await marksFor(registry, { [name]: range })).length === 0) continue;
+    const mine = other.authorId === actor.user?.id;
+    found.push({
+      id: other.id,
+      name: itemNameOf(other),
+      status: other.status,
+      authorName: other.authorName,
+      sendBack: !reviewer
+        ? { ok: false, reason: "Only reviewers send submissions back." }
+        : mine
+          ? { ok: false, reason: "Yours: edit or withdraw it." }
+          : canTransition(other.status, "request_changes")
+            ? { ok: true }
+            : { ok: false, reason: `It's ${other.status.replace("_", " ")}.` },
+    });
+  }
+  return found;
+};
+
+export type SentBack = {
+  id: string;
+  name: string;
+  result: "sent_back" | "skipped";
+  reason?: string;
+};
+
+/**
+ * Rejects a submission, then (056), when asked, requests changes on each open submission that
+ * depends on it, each as its own decision in its own transaction, with `cause` in its audit event.
+ * One that can't be sent back (the reviewer's own, or one that moved on) is skipped and said.
+ */
+export const rejectWithDependents = async (
+  deps: SubmissionDeps,
+  actor: SubmissionActor,
+  id: string,
+  input: { message?: string; dependents?: { message?: string } },
+): Promise<{ rejected: Submission; dependents: SentBack[] }> => {
+  const waiting = input.dependents ? await dependentsOf(deps, actor, id) : [];
+  const dependentsMessage = input.dependents
+    ? messageFrom(input.dependents.message, "Sending its dependents back")
+    : null;
+  const rejected = await decide(deps, actor, id, { decision: "reject", message: input.message });
+  const results: SentBack[] = [];
+  for (const dependent of waiting) {
+    if (!dependent.sendBack.ok) {
+      results.push({
+        id: dependent.id,
+        name: dependent.name,
+        result: "skipped",
+        reason: dependent.sendBack.reason,
+      });
+      continue;
+    }
+    try {
+      await decide(deps, actor, dependent.id, {
+        decision: "request_changes",
+        message: dependentsMessage ?? undefined,
+        cause: { rejected: id },
+      });
+      results.push({ id: dependent.id, name: dependent.name, result: "sent_back" });
+    } catch (error) {
+      if (!(error instanceof SubmissionsError)) throw error;
+      results.push({
+        id: dependent.id,
+        name: dependent.name,
+        result: "skipped",
+        reason: error.message,
+      });
+    }
+  }
+  return { rejected, dependents: results };
 };
