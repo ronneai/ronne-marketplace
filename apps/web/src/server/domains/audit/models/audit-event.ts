@@ -101,6 +101,8 @@ export type AuditEvent = {
   action: string;
   targetType: string;
   targetId: string | null;
+  /** A user target's email, when the user still exists, so the log can say who (060). */
+  targetEmail: string | null;
   metadata: AuditMetadata;
   ipAddress: string | null;
   createdAt: Date;

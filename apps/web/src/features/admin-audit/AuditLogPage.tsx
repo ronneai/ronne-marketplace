@@ -19,14 +19,12 @@ export const AuditLogPage = ({
   nextCursor,
   filters,
   paged,
-  actors,
 }: {
   events: AuditEvent[];
   nextCursor: string | null;
   filters: AuditFilters;
   /** Whether this isn't the first page. */
   paged: boolean;
-  actors: { id: string; email: string | null }[];
 }) => {
   return (
     <>
@@ -52,15 +50,13 @@ export const AuditLogPage = ({
         </div>
         <div className="grid gap-1.5">
           <Label htmlFor="actor">Actor</Label>
-          <select id="actor" name="actor" defaultValue={filters.actor} className={selectClasses}>
-            <option value="">Anyone</option>
-            <option value="system">system and cli</option>
-            {actors.map((actor) => (
-              <option key={actor.id} value={actor.id}>
-                {actor.email ?? actor.id}
-              </option>
-            ))}
-          </select>
+          <Input
+            id="actor"
+            name="actor"
+            type="search"
+            placeholder="Email, or system"
+            defaultValue={filters.actor}
+          />
         </div>
         <div className="grid gap-1.5">
           <Label htmlFor="from">From (UTC)</Label>

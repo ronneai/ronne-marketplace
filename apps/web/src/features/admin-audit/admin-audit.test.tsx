@@ -45,11 +45,14 @@ describe("parseAuditQuery", () => {
       to: "2026-13-45",
       cursor: "../../etc",
     });
+    // The actor is a search term and the cursor is opaque (060): both reach the server as text,
+    // where the search is matched literally and a cursor that isn't its own is ignored.
+    const actor = "'; drop table audit_log; --";
     expect(query).toEqual({
-      filters: { group: "", actor: "", from: "", to: "" },
-      cursor: undefined,
+      filters: { group: "", actor, from: "", to: "" },
+      cursor: "../../etc",
       group: undefined,
-      actor: undefined,
+      actor,
       from: undefined,
       to: undefined,
     });
@@ -90,6 +93,7 @@ const event = (overrides: Partial<AuditEvent> = {}): AuditEvent => ({
   action: "auth.signed_in",
   targetType: "session",
   targetId: "01K6BZ3W1D8J9Q2R4T6V8X0Y30",
+  targetEmail: null,
   metadata: { remember: true },
   ipAddress: "203.0.113.9",
   createdAt: new Date("2026-09-27T19:15:03Z"),
@@ -121,7 +125,6 @@ describe("AuditLogPage", () => {
         nextCursor={ULID}
         filters={noFilters}
         paged={false}
-        actors={[{ id: ULID, email: "root@example.com" }]}
       />,
     );
     for (const text of [
@@ -151,7 +154,6 @@ describe("AuditLogPage", () => {
         nextCursor={null}
         filters={{ ...noFilters, group: "user" }}
         paged
-        actors={[]}
       />,
     );
     expect(html).toContain("No events match these filters.");
@@ -181,6 +183,9 @@ describe("/admin/audit page", () => {
     );
     expect(html).toContain("auth.signed_in");
     expect(audit.appAuditPage).toHaveBeenCalledWith({
+      sort: "time",
+      dir: "desc",
+      size: 50,
       cursor: ULID,
       group: "auth",
       actor: undefined,

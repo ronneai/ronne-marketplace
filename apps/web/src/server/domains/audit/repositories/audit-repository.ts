@@ -1,4 +1,5 @@
-import type { AuditActionGroup, AuditEvent } from "../models/audit-event";
+import type { KeysetPage, SortDir } from "../../../db/keyset";
+import type { AuditAction, AuditActionGroup, AuditEvent } from "../models/audit-event";
 
 export type NewAuditRow = {
   actorId: string | null;
@@ -11,16 +12,27 @@ export type NewAuditRow = {
   createdAt: Date;
 };
 
-export type AuditQuery = {
-  /** Only events older than this id (the last id of the previous page). */
-  cursor?: string;
-  limit: number;
+/** What the audit log can be filtered by (060). Every filter is checked before it gets here. */
+export type AuditFilters = {
+  /** One action from the catalogue. */
+  action?: AuditAction;
+  /** Every action of a group, such as `user`. */
   group?: AuditActionGroup;
-  /** A user id, or "system" for events without an actor. */
+  /** Part of the actor's email, any case; or "system" for events without an actor. */
   actor?: string;
   /** Inclusive start and exclusive end, in UTC. */
   from?: Date;
   to?: Date;
+};
+
+/** Sorting by time orders by the id (a ULID); by action, by the action then the id. */
+export type AuditSort = "time" | "action";
+
+export type AuditQuery = AuditFilters & {
+  sort: AuditSort;
+  dir: SortDir;
+  size: number;
+  cursor?: string;
 };
 
 /**
@@ -29,8 +41,9 @@ export type AuditQuery = {
  */
 export interface AuditRepository {
   insert(row: NewAuditRow): Promise<string>;
-  /** Newest first. */
-  list(query: AuditQuery): Promise<AuditEvent[]>;
-  /** The users who appear as actors, for the actor filter. */
-  actors(): Promise<{ id: string; email: string | null }[]>;
+  /** One page, in the query's order (keyset, 060). */
+  list(query: AuditQuery): Promise<KeysetPage<AuditEvent>>;
+  /** How many events match, up to the count cap. */
+  count(filters: AuditFilters): Promise<{ count: number; capped: boolean }>;
+  findById(id: string): Promise<AuditEvent | null>;
 }

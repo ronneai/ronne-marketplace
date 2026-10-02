@@ -3,7 +3,7 @@ import { toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { SecretInAuditMetadataError } from "../exceptions/errors";
-import { listAuditActors, listAuditEvents, recordAudit } from "./audit";
+import { countAuditEvents, findAuditEvent, listAuditEvents, recordAudit } from "./audit";
 
 let t: TestDb;
 beforeEach(async () => {
@@ -93,43 +93,67 @@ describe("recordAudit", () => {
   });
 });
 
-describe("listAuditEvents", () => {
-  it("lists newest first and pages with a cursor", async () => {
-    for (let i = 0; i < 7; i++) {
-      await recordAudit(t.db, t.dialect, {
-        actorId: null,
-        action: "auth.sign_in_failed",
-        target: { type: "none" },
-        metadata: { email: `u${i}@example.com`, reason: "invalid" },
-      });
-    }
-    const first = await listAuditEvents(t.db, t.dialect, { limit: 3 });
-    expect(first.events.map((e) => e.metadata.email)).toEqual([
-      "u6@example.com",
-      "u5@example.com",
-      "u4@example.com",
-    ]);
-    expect(first.nextCursor).toBe(first.events.at(-1)?.id);
+describe("listAuditEvents (keyset, 060)", () => {
+  const failed = (i: number) =>
+    recordAudit(t.db, t.dialect, {
+      actorId: null,
+      action: "auth.sign_in_failed",
+      target: { type: "none" },
+      metadata: { email: `u${i}@example.com`, reason: "invalid" },
+    });
+  const emails = (page: { events: { metadata: { email?: unknown } }[] }) =>
+    page.events.map((e) => e.metadata.email);
 
-    const second = await listAuditEvents(t.db, t.dialect, {
-      limit: 3,
-      cursor: first.nextCursor ?? "",
-    });
-    expect(second.events.map((e) => e.metadata.email)).toEqual([
-      "u3@example.com",
-      "u2@example.com",
-      "u1@example.com",
-    ]);
-    const last = await listAuditEvents(t.db, t.dialect, {
-      limit: 3,
-      cursor: second.nextCursor ?? "",
-    });
-    expect(last.events.map((e) => e.metadata.email)).toEqual(["u0@example.com"]);
-    expect(last.nextCursor).toBeNull();
+  it("lists newest first and pages both ways with cursors", async () => {
+    for (let i = 0; i < 7; i++) await failed(i);
+    const first = await listAuditEvents(t.db, t.dialect, { size: 3 });
+    expect(emails(first)).toEqual(["u6@example.com", "u5@example.com", "u4@example.com"]);
+    expect(first.previous).toBeNull();
+
+    const second = await listAuditEvents(t.db, t.dialect, { size: 3, cursor: first.next ?? "" });
+    expect(emails(second)).toEqual(["u3@example.com", "u2@example.com", "u1@example.com"]);
+    const last = await listAuditEvents(t.db, t.dialect, { size: 3, cursor: second.next ?? "" });
+    expect(emails(last)).toEqual(["u0@example.com"]);
+    expect(last.next).toBeNull();
+
+    const back = await listAuditEvents(t.db, t.dialect, { size: 3, cursor: last.previous ?? "" });
+    expect(emails(back)).toEqual(emails(second));
+    expect(await countAuditEvents(t.db, t.dialect, {})).toEqual({ count: 7, capped: false });
   });
 
-  it("filters by action group, actor (or system) and date range", async () => {
-    const root = await insertUser("root@example.com");
+  it("sorts by action, then by id, either way; oldest first when asked", async () => {
+    await recordAudit(t.db, t.dialect, {
+      actorId: null,
+      action: "user.created",
+      target: { type: "none" },
+      metadata: { email: "z@example.com", role: "user" },
+    });
+    await failed(1);
+    await failed(2);
+    const actions = async (query: Parameters<typeof listAuditEvents>[2]) =>
+      (await listAuditEvents(t.db, t.dialect, query)).events.map(
+        (e) => `${e.action}:${e.metadata.email}`,
+      );
+    expect(await actions({ sort: "action" })).toEqual([
+      "auth.sign_in_failed:u1@example.com",
+      "auth.sign_in_failed:u2@example.com",
+      "user.created:z@example.com",
+    ]);
+    expect(await actions({ sort: "action", dir: "desc" })).toEqual([
+      "user.created:z@example.com",
+      "auth.sign_in_failed:u2@example.com",
+      "auth.sign_in_failed:u1@example.com",
+    ]);
+    expect(await actions({ dir: "asc" })).toEqual([
+      "user.created:z@example.com",
+      "auth.sign_in_failed:u1@example.com",
+      "auth.sign_in_failed:u2@example.com",
+    ]);
+  });
+
+  it("filters by action, group, actor email (or system) and dates; counts the same", async () => {
+    const root = await insertUser("Root@Example.com");
+    const alex = await insertUser("alex@example.com");
     const record = (
       action: "auth.signed_in" | "access_token.created" | "user.created",
       actorId: string | null,
@@ -138,28 +162,45 @@ describe("listAuditEvents", () => {
       recordAudit(
         t.db,
         t.dialect,
-        { actorId, action, target: { type: "user", id: root } },
+        { actorId, action, target: { type: "user", id: alex } },
         new Date(at),
       );
     await record("auth.signed_in", root, "2026-09-01T10:00:00Z");
     await record("access_token.created", root, "2026-09-02T10:00:00Z");
     await record("user.created", null, "2026-09-03T10:00:00Z");
+    await record("auth.signed_in", alex, "2026-09-04T10:00:00Z");
 
-    const actions = async (query: Parameters<typeof listAuditEvents>[2]) =>
-      (await listAuditEvents(t.db, t.dialect, query)).events.map((e) => e.action);
+    const actions = async (filters: Parameters<typeof listAuditEvents>[2]) =>
+      (await listAuditEvents(t.db, t.dialect, filters)).events.map((e) => e.action);
 
-    expect(await actions({ group: "access_token" })).toEqual(["access_token.created"]);
-    expect(await actions({ group: "auth" })).toEqual(["auth.signed_in"]);
-    expect(await actions({ actor: root })).toEqual(["access_token.created", "auth.signed_in"]);
+    expect(await actions({ action: "access_token.created" })).toEqual(["access_token.created"]);
+    expect(await actions({ group: "auth" })).toEqual(["auth.signed_in", "auth.signed_in"]);
+    expect(await actions({ actor: "ROOT@" })).toEqual(["access_token.created", "auth.signed_in"]);
     expect(await actions({ actor: "system" })).toEqual(["user.created"]);
+    expect(await actions({ actor: "%" })).toEqual([]);
     expect(
       await actions({
         from: new Date("2026-09-02T00:00:00Z"),
         to: new Date("2026-09-03T00:00:00Z"),
       }),
     ).toEqual(["access_token.created"]);
-    expect(await listAuditActors(t.db, t.dialect)).toEqual([
-      { id: root, email: "root@example.com" },
-    ]);
+    expect(await countAuditEvents(t.db, t.dialect, { group: "auth" })).toEqual({
+      count: 2,
+      capped: false,
+    });
+
+    // A user target's email comes along, so the log can say who.
+    const [latest] = (await listAuditEvents(t.db, t.dialect, {})).events;
+    expect(latest).toMatchObject({
+      actorEmail: "alex@example.com",
+      targetEmail: "alex@example.com",
+    });
+  });
+
+  it("finds one event by id, with the same fields", async () => {
+    await failed(1);
+    const [event] = (await listAuditEvents(t.db, t.dialect, {})).events;
+    expect(await findAuditEvent(t.db, t.dialect, event?.id ?? "")).toEqual(event);
+    expect(await findAuditEvent(t.db, t.dialect, newId())).toBeNull();
   });
 });

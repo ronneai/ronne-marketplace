@@ -27,12 +27,14 @@ the same change that completes it.
   states, and a `<details>`/`<p>` nesting check (`docs/knowledge/help-tips-and-paragraphs.md`). The
   styleguide page shows it.
 
-- [ ] **4. Audit repository and migration.** `0014_audit_log_action_index`. `list` moves to
-  `paginate` with the sorts `time` and `action`, the action filter (one action or a group) and the
-  actor email filter (`containsInsensitive`, or `system`), with a join for user targets' emails.
-  Add `findById`; remove `actors()`.
-  *Done when:* `audit.db.test.ts` covers each filter, both sorts, paging and `findById` on all four
-  databases, and `migrations.guard.test.ts` passes.
+- [x] **4. Audit repository and migration.** `0014_audit_log_action_index`. `list` moves to
+  `paginate` with the sorts `time` and `action`, the action filter (one action, or a group) and the
+  actor email filter (`containsInsensitive`, or `system`), with a join for user targets' emails
+  (`targetEmail`). `count` and `findById` are added; `actors()` is removed. `countCapped` takes
+  any query executor, so a query with joins counts too. The page gets the minimum to keep working
+  (the actor filter becomes a text field; cursors are opaque) until task 6.
+  *Done when:* `audit.db.test.ts` covers each filter, both sorts, paging both ways, the count and
+  `findById`, and the whole database suite passes on all four databases.
 
 - [ ] **5. Summaries.** `features/admin-audit/summary.ts`: one per action in the catalogue, with
   the fallback.

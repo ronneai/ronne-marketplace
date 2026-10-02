@@ -2,7 +2,7 @@ import type { Kysely } from "kysely";
 import type { Database } from "../../../db/schema";
 import type { DatabaseDialect } from "../../../db/url";
 import { type AuditEvent, type NewAuditEvent, validateAuditEvent } from "../models/audit-event";
-import type { AuditQuery } from "../repositories/audit-repository";
+import type { AuditFilters, AuditQuery } from "../repositories/audit-repository";
 import { kyselyAuditRepository } from "../repositories/kysely-audit-repository";
 
 export const AUDIT_PAGE_SIZE = 50;
@@ -30,20 +30,33 @@ export const recordAudit = async (
   });
 };
 
-export type AuditPage = { events: AuditEvent[]; nextCursor: string | null };
+export type AuditPage = { events: AuditEvent[]; next: string | null; previous: string | null };
 
-/** One page of events, newest first, with the cursor for the next page (null on the last). */
+/**
+ * One page of events (keyset, 060): newest first unless sorted otherwise, AUDIT_PAGE_SIZE unless
+ * told, with cursors for the pages either side (null at the ends).
+ */
 export const listAuditEvents = async (
   db: Kysely<Database>,
   dialect: DatabaseDialect,
-  query: Omit<AuditQuery, "limit"> & { limit?: number },
+  query: Partial<AuditQuery>,
 ): Promise<AuditPage> => {
-  const limit = query.limit ?? AUDIT_PAGE_SIZE;
-  // One more than the page, to know whether another page exists without a count query.
-  const rows = await kyselyAuditRepository(db, dialect).list({ ...query, limit: limit + 1 });
-  const events = rows.slice(0, limit);
-  return { events, nextCursor: rows.length > limit ? (events.at(-1)?.id ?? null) : null };
+  const { rows, next, previous } = await kyselyAuditRepository(db, dialect).list({
+    ...query,
+    sort: query.sort ?? "time",
+    dir: query.dir ?? (query.sort === "action" ? "asc" : "desc"),
+    size: query.size ?? AUDIT_PAGE_SIZE,
+  });
+  return { events: rows, next, previous };
 };
 
-export const listAuditActors = (db: Kysely<Database>, dialect: DatabaseDialect) =>
-  kyselyAuditRepository(db, dialect).actors();
+/** How many events match the filters, exact up to the count cap. */
+export const countAuditEvents = (
+  db: Kysely<Database>,
+  dialect: DatabaseDialect,
+  filters: AuditFilters,
+) => kyselyAuditRepository(db, dialect).count(filters);
+
+/** One event, for the details dialog; null when there's no such event. */
+export const findAuditEvent = (db: Kysely<Database>, dialect: DatabaseDialect, id: string) =>
+  kyselyAuditRepository(db, dialect).findById(id);

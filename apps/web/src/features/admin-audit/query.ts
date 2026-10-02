@@ -1,4 +1,3 @@
-import { isId } from "@/server/db/ids";
 import {
   AUDIT_ACTION_GROUPS,
   type AuditActionGroup,
@@ -42,7 +41,8 @@ export const parseAuditQuery = (params: SearchParams): AuditPageQuery => {
   const validGroup = (AUDIT_ACTION_GROUPS as readonly string[]).includes(group)
     ? (group as AuditActionGroup)
     : undefined;
-  const validActor = actor === "system" || isId(actor) ? actor : undefined;
+  // Part of an email, or "system" (060); matched literally on the server.
+  const validActor = actor.trim().slice(0, 100) || undefined;
   return {
     filters: {
       group: validGroup ?? "",
@@ -50,7 +50,8 @@ export const parseAuditQuery = (params: SearchParams): AuditPageQuery => {
       from: utcDay(from) ? from : "",
       to: utcDay(to) ? to : "",
     },
-    cursor: isId(cursor) ? cursor : undefined,
+    // Opaque since 060; the server ignores one that isn't its own.
+    cursor: cursor && cursor.length <= 1024 ? cursor : undefined,
     group: validGroup,
     actor: validActor,
     from: utcDay(from),

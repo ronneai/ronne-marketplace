@@ -1,4 +1,4 @@
-import { type Kysely, type SelectQueryBuilder, type SqlBool, sql } from "kysely";
+import { type QueryExecutorProvider, type SelectQueryBuilder, type SqlBool, sql } from "kysely";
 
 /**
  * Keyset pagination for the web app's tables (feature 060): pages are "the rows after (or before)
@@ -110,7 +110,7 @@ export const COUNT_CAP = 10_000;
  * that many rows, so a large table never needs a full count.
  */
 export const countCapped = async <DB, TB extends keyof DB, Row>(
-  db: Kysely<DB>,
+  db: QueryExecutorProvider,
   query: SelectQueryBuilder<DB, TB, Row>,
 ): Promise<{ count: number; capped: boolean }> => {
   const limited = query

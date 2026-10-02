@@ -14,7 +14,10 @@ const AuditLog = async ({ searchParams }: { searchParams: Promise<SearchParams> 
   if (!can(user, "audit.view")) notFound();
 
   const query = parseAuditQuery(await searchParams);
-  const { events, nextCursor, actors } = await appAuditPage({
+  const { events, next } = await appAuditPage({
+    sort: "time",
+    dir: "desc",
+    size: 50,
     cursor: query.cursor,
     group: query.group,
     actor: query.actor,
@@ -24,10 +27,9 @@ const AuditLog = async ({ searchParams }: { searchParams: Promise<SearchParams> 
   return (
     <AuditLogPage
       events={events}
-      nextCursor={nextCursor}
+      nextCursor={next}
       filters={query.filters}
       paged={Boolean(query.cursor)}
-      actors={actors}
     />
   );
 };
