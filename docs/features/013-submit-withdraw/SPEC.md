@@ -40,6 +40,10 @@ to 014 and 015. One function lists the allowed moves, and every service asks it.
 the content is frozen for release, and it can't be withdrawn. MVP §4.1's diagram gains the
 `submitted → withdrawn` arrow. A withdrawn submission stays, read-only, for history.
 
+> Since [057](../057-withdraw-archive-delete/SPEC.md) (2026-10-02), withdrawing asks to archive
+> (restorable as a draft, private to the author) or delete for good (only with no review history),
+> so withdrawn is no longer final.
+
 **Submit** (a server action, author only):
 1. **Schema and package checks** from 011, on the saved files (not the browser's copy). Any error
    refuses the submit; warnings are shown and allowed.
