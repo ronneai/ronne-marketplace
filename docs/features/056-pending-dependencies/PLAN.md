@@ -23,10 +23,12 @@ the same change that completes it.
   *Done when:* unit tests cover each mark, a chain, and a replaced dependency; the pages render
   them.
 
-- [ ] **3. Release gate.** 015's publish refuses a dependent whose dependency isn't released with a
-  matching version; **Publish** is disabled with the mark. 055's selection includes approved
-  dependencies and refuses ones waiting on review.
-  *Done when:* `publish.db.test.ts` and `bulk-release.db.test.ts` cover both, on every database.
+- [x] **3. Release gate.** 015's publish refuses a dependent whose dependency isn't released with a
+  matching version, naming it; **Publish** is disabled with the mark. 055 isn't built yet, so its
+  part (selecting approved dependencies with a dependent, refusing ones waiting on review) moved to
+  055's task 2.
+  *Done when:* `registry.db.test.ts` covers the release refused, then allowed once the dependency is
+  released, on every database; `review-page.test.tsx` covers Publish disabled.
 
 - [ ] **4. Bulk submit includes dependencies.** 052's `submitMany` adds the person's own ready
   dependency drafts first; the web selection, `rmk submit` (**Included**, `--no-dependencies`) and

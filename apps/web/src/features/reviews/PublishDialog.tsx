@@ -36,7 +36,10 @@ export const PublishDialog = ({
   published,
   versionsHref,
   suggested = null,
+  blocked = null,
 }: {
+  /** Why it can't be released yet (056): a dependency not released, or blocked. */
+  blocked?: string | null;
   id: string;
   itemName: string;
   /** For a change proposal (017): the bump its changes suggest, and why. */
@@ -67,7 +70,12 @@ export const PublishDialog = ({
 
   return (
     <>
-      <Button onClick={() => setOpen(true)}>
+      <Button
+        onClick={() => setOpen(true)}
+        disabled={blocked !== null}
+        title={blocked ?? undefined}
+        aria-label={blocked ? `Publish: ${blocked}` : undefined}
+      >
         <Rocket size={16} aria-hidden="true" />
         Publish
       </Button>

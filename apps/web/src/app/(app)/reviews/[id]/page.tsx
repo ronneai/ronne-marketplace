@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { AllFiles, FileChanges } from "@/components/files/FileViews";
 import { Help } from "@/components/help/Help";
 import { RiskSummary } from "@/components/risk-flags/RiskSummary";
-import { DependencyMarksNotice } from "@/components/submissions/DependencyMarks";
+import { DependencyMarksNotice, markText } from "@/components/submissions/DependencyMarks";
 import { ProposalBadges } from "@/components/submissions/ProposalBadges";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { buttonClasses } from "@/components/ui/Button";
@@ -115,6 +115,7 @@ const Review = async ({
               published={review.published}
               versionsHref={versionsPath(submission)}
               suggested={proposal?.suggested ?? null}
+              blocked={marks?.[0] ? markText(marks[0]) : null}
             />
           ) : null}
         </div>

@@ -67,10 +67,16 @@ export class InvalidStatusTransitionError extends SubmissionsError {
 
 /** Submit refused: 011's checks found errors in the saved files. */
 export class SubmissionInvalidError extends SubmissionsError {
-  constructor(readonly issues: readonly ManifestIssue[]) {
-    const errors = issues.filter((issue) => issue.severity === "error").length;
+  constructor(
+    readonly issues: readonly ManifestIssue[],
+    /** At release (015), the first problem is named: usually a dependency not released yet (056). */
+    when: "submit" | "release" = "submit",
+  ) {
+    const errors = issues.filter((issue) => issue.severity === "error");
     super(
-      `The draft has ${errors} ${errors === 1 ? "problem" : "problems"} to fix before it can be submitted.`,
+      when === "release"
+        ? `It can't be released yet: ${errors[0]?.message ?? "its checks fail."}${errors.length > 1 ? ` (and ${errors.length - 1} more)` : ""}`
+        : `The draft has ${errors.length} ${errors.length === 1 ? "problem" : "problems"} to fix before it can be submitted.`,
     );
   }
 }

@@ -212,6 +212,8 @@ describe("dependencies on their way (056)", () => {
         storage(),
       );
     await expect(release(reviewer)).rejects.toMatchObject({
+      message:
+        "It can't be released yet: @team/github isn't released yet (it's approved). Release it first.",
       issues: [
         expect.objectContaining({
           code: "dependency_unreleased",

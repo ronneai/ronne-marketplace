@@ -240,6 +240,25 @@ describe("the review page", () => {
     expect(html).toContain("Blocked: @team/lint waits on @team/base, which was rejected");
   });
 
+  it("disables Publish while a dependency isn't released (056)", async () => {
+    const approved = view({
+      can: { decide: false, override: false, comment: true, publish: true },
+    });
+    reviews.getReview.mockResolvedValue({
+      ...approved,
+      submission: { ...approved.submission, status: "approved" },
+    });
+    expect(await render()).not.toMatch(/<button[^>]*disabled=""[^>]*>[^<]*<svg[^>]*>.*?Publish/);
+    submissions.dependencyMarks.mockResolvedValueOnce({
+      "01J0000000000000000000000A": [
+        { kind: "waits", dependency: "@team/github", status: "approved" },
+      ],
+    });
+    expect(await render()).toMatch(
+      /<button[^>]*disabled=""[^>]*aria-label="Publish: Waits on @team\/github \(approved\)"/,
+    );
+  });
+
   it("shows the header, decisions, risk summary, changes since the last revision, checks and conversation", async () => {
     const html = await render();
     expect(html).toContain("@team/fmt");

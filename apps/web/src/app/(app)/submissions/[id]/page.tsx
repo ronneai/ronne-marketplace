@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { itemPath } from "@/components/catalogue/ItemCard";
 import { RiskSummary } from "@/components/risk-flags/RiskSummary";
-import { DependencyMarksNotice } from "@/components/submissions/DependencyMarks";
+import { DependencyMarksNotice, markText } from "@/components/submissions/DependencyMarks";
 import { DraftEditor } from "@/features/draft-editor/DraftEditor";
 import type { EditorDraft, EditorProposal } from "@/features/draft-editor/types";
 import { Conversation } from "@/features/reviews/Conversation";
@@ -114,6 +114,7 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
             published={review.published}
             versionsHref={versionsPath(draft)}
             suggested={review.proposal?.suggested ?? null}
+            blocked={marks?.[0] ? markText(marks[0]) : null}
           />
         </section>
       ) : null}
