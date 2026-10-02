@@ -7,7 +7,11 @@ import type { Submission } from "@/server/domains/submissions/models/submission"
 const drafts = vi.hoisted(() => ({ createDraft: vi.fn(), listMySubmissions: vi.fn() }));
 const scopes = vi.hoisted(() => ({ listScopes: vi.fn() }));
 const cache = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
-const bulk = vi.hoisted(() => ({ checkManyDrafts: vi.fn(), submitManyDrafts: vi.fn() }));
+const bulk = vi.hoisted(() => ({
+  checkManyDrafts: vi.fn(),
+  submitManyDrafts: vi.fn(),
+  dependencyMarks: vi.fn(async () => ({})),
+}));
 vi.mock("@/server/domains/submissions/actions/drafts", () => drafts);
 vi.mock("@/server/domains/submissions/actions/submissions", () => bulk);
 vi.mock("@/server/domains/items/actions/scopes", () => scopes);

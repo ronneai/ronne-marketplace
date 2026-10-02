@@ -14,7 +14,13 @@ import { kyselyRegistryLookup } from "../repositories/kysely-registry-lookup";
 import { createDraft, saveDraftFiles } from "./drafts";
 import { publishSubmission } from "./publish";
 import { decide } from "./reviews";
-import { checkSubmission, submitDraft, withdrawSubmission } from "./submissions";
+import {
+  checkSubmission,
+  dependencyMarks,
+  submitDraft,
+  viewSubmission,
+  withdrawSubmission,
+} from "./submissions";
 
 // 013's registry checks, now against what 015 publishes.
 let t: TestDb;
@@ -215,6 +221,27 @@ describe("dependencies on their way (056)", () => {
     });
     await release(github);
     await expect(release(reviewer)).resolves.toMatchObject({ version: "1.0.0" });
+  });
+
+  it("marks what each waits on, for whoever may see it", async () => {
+    const github = await serverDraft("github");
+    await submitDraft(asAuthor, github, app);
+    const reviewer = await skillNeeding("reviewer", '  "@team/github": "^1.0.0"\n');
+    const draft = await viewSubmission(asAuthor, reviewer, app);
+    expect(await dependencyMarks(asAuthor, [draft], app)).toEqual({
+      [reviewer]: [{ kind: "waits", dependency: "@team/github", status: "submitted" }],
+    });
+    // A draft is private: a moderator gets no marks for it.
+    expect(await dependencyMarks(asModerator, [draft], app)).toEqual({});
+
+    await submitDraft(asAuthor, reviewer, app);
+    await decide(asModerator, github, { decision: "reject", message: "No." }, app);
+    const submitted = await viewSubmission(asModerator, reviewer, app);
+    expect(await dependencyMarks(asModerator, [submitted], app)).toEqual({
+      [reviewer]: [
+        { kind: "blocked", dependency: "@team/github", status: "rejected", through: [] },
+      ],
+    });
   });
 
   it("refuses a dependency whose submission was withdrawn", async () => {

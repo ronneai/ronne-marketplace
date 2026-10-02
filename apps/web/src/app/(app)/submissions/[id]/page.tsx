@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { itemPath } from "@/components/catalogue/ItemCard";
 import { RiskSummary } from "@/components/risk-flags/RiskSummary";
+import { DependencyMarksNotice } from "@/components/submissions/DependencyMarks";
 import { DraftEditor } from "@/features/draft-editor/DraftEditor";
 import type { EditorDraft, EditorProposal } from "@/features/draft-editor/types";
 import { Conversation } from "@/features/reviews/Conversation";
@@ -8,7 +9,7 @@ import { PublishDialog } from "@/features/reviews/PublishDialog";
 import { versionsPath } from "@/features/versions/links";
 import { type ProposalPanel, proposalPanel } from "@/server/domains/submissions/actions/proposals";
 import { getReview } from "@/server/domains/submissions/actions/reviews";
-import { viewSubmission } from "@/server/domains/submissions/actions/submissions";
+import { dependencyMarks, viewSubmission } from "@/server/domains/submissions/actions/submissions";
 import { SubmissionNotFoundError } from "@/server/domains/submissions/exceptions/errors";
 import { canTransition, isEditable } from "@/server/domains/submissions/models/status";
 import { type Draft, itemNameOf } from "@/server/domains/submissions/models/submission";
@@ -84,6 +85,8 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
   const review = draft.status === "draft" ? null : await getReview(request, id);
   // A change proposal (017): the author sees whether it's stale, and its conflicts.
   const panel = draft.proposal && draft.mine ? await proposalPanel(request, id) : null;
+  // What it waits on (056): dependencies not released yet, or blocked.
+  const marks = (await dependencyMarks(request, [draft]))[draft.id];
   return (
     <div className="grid gap-6">
       {/* A new version from the server (an import, a rename, a submit) starts the editor afresh. */}
@@ -91,6 +94,7 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
         key={draft.updatedAt.toISOString()}
         draft={toEditorDraft(draft, review?.published.length ? versionsPath(draft) : null, panel)}
       />
+      <DependencyMarksNotice marks={marks} />
       {review?.can.publish ? (
         <section
           aria-labelledby="release"

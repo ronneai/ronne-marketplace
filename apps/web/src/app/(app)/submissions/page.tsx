@@ -10,7 +10,7 @@ import {
   statusFilter,
 } from "@/features/submissions/SubmissionsTable";
 import { listMySubmissions } from "@/server/domains/submissions/actions/drafts";
-import { checkManyDrafts } from "@/server/domains/submissions/actions/submissions";
+import { checkManyDrafts, dependencyMarks } from "@/server/domains/submissions/actions/submissions";
 import { requestHeaders } from "@/server/http/request-headers";
 
 export const metadata = { title: "My submissions · Ronne AI Marketplace" };
@@ -29,6 +29,8 @@ const Submissions = async ({
   const submissions = inListOrder(await listMySubmissions(headers));
   // Which open drafts Submit would take now (052): one check for the newest 100 of them.
   const { drafts: checked } = await checkManyDrafts(headers, { all: true });
+  // What each waits on (056): dependencies in review, not submitted, or blocked.
+  const marks = await dependencyMarks(headers, submissions);
   const errors: Record<string, number> = {};
   const ready: Record<string, string> = {};
   for (const draft of checked) {
@@ -64,6 +66,7 @@ const Submissions = async ({
         <SubmissionsTable
           submissions={status ? submissions.filter((s) => s.status === status) : submissions}
           errors={checked.length > 0 ? errors : undefined}
+          marks={marks}
         />
       </BulkSubmitProvider>
     </>

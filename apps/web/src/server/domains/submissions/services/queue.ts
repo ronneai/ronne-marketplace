@@ -1,9 +1,10 @@
 import { parseManifest, type RiskFlag, type RiskFlagKind, riskFlags } from "@ronneai/core";
 import { requirePermission } from "../../identity/models/permissions";
-import type { SubmissionStatus } from "../models/status";
+import { OPEN_STATUSES, type SubmissionStatus } from "../models/status";
 import { fileBytes, MANIFEST_PATH, type Submission, toPackageFile } from "../models/submission";
 import type { SubmissionRepository } from "../repositories/submission-repository";
 import { type Approvability, approvability } from "./bulk-approve";
+import { type DependencyMark, dependenciesOf, marksFor } from "./dependency-marks";
 import { withStale } from "./proposals";
 import type { SubmissionActor, SubmissionDeps } from "./submissions";
 
@@ -34,6 +35,8 @@ export type QueueRow = Submission & {
   mine: boolean;
   /** Whether this reviewer can approve it now, and why not (054). */
   approvable: Approvability;
+  /** What it waits on (056): dependencies in review, or blocked. */
+  marks: DependencyMark[];
 };
 
 export type QueuePage = { rows: QueueRow[]; nextCursor: string | null };
@@ -80,6 +83,7 @@ export const listQueue = async (
     after: paged ? afterCursor(query.cursor) : undefined,
   });
   const shown = paged ? found.slice(0, DECIDED_PAGE_SIZE) : found;
+  const registry = deps.registry ?? deps.repo.registry();
   const rows = await Promise.all(
     shown.map(async (submission) => {
       const { revision, flags } = await latestRiskFlags(deps.repo, submission.id);
@@ -89,11 +93,14 @@ export const listQueue = async (
         risky: flags.length > 0,
         riskKinds: [...new Set(flags.map((flag) => flag.kind))],
         mine: submission.authorId === actor.user?.id,
+        marks: OPEN_STATUSES.includes(submission.status)
+          ? await marksFor(registry, await dependenciesOf(deps.repo, submission))
+          : [],
       };
     }),
   );
   const last = rows.at(-1);
-  const stale = await withStale(deps.registry ?? deps.repo.registry(), rows);
+  const stale = await withStale(registry, rows);
   return {
     rows: stale.map((row) => ({ ...row, approvable: approvability(actor, row) })),
     nextCursor: paged && found.length > DECIDED_PAGE_SIZE && last ? cursorOf(last) : null,

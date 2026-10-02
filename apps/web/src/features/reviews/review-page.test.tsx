@@ -8,6 +8,8 @@ import type { ReviewEvent } from "@/server/domains/submissions/models/review";
 const reviews = vi.hoisted(() => ({ getReview: vi.fn() }));
 const session = vi.hoisted(() => ({ getCurrentUser: vi.fn() }));
 vi.mock("@/server/domains/submissions/actions/reviews", () => reviews);
+const submissions = vi.hoisted(() => ({ dependencyMarks: vi.fn(async () => ({})) }));
+vi.mock("@/server/domains/submissions/actions/submissions", () => submissions);
 vi.mock("@/server/domains/identity/actions/session", () => session);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
 vi.mock("./actions", () => ({ decideAction: vi.fn(), commentFromForm: vi.fn() }));
@@ -222,6 +224,21 @@ describe("the review page", () => {
         searchParams: Promise.resolve(search),
       }),
     );
+
+  it("says what it waits on, and warns when a dependency is blocked (056)", async () => {
+    expect(await render()).not.toContain("Waits on");
+    submissions.dependencyMarks.mockResolvedValueOnce({
+      "01J0000000000000000000000A": [
+        { kind: "waits", dependency: "@team/github", status: "submitted" },
+        { kind: "blocked", dependency: "@team/lint", status: "rejected", through: ["@team/base"] },
+      ],
+    });
+    const html = await render();
+    expect(html).toContain("WARN:");
+    expect(html).toContain("A dependency won&#x27;t be released.");
+    expect(html).toContain("Waits on @team/github (in review)");
+    expect(html).toContain("Blocked: @team/lint waits on @team/base, which was rejected");
+  });
 
   it("shows the header, decisions, risk summary, changes since the last revision, checks and conversation", async () => {
     const html = await render();

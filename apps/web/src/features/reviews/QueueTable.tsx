@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DependencyMarkBadges } from "@/components/submissions/DependencyMarks";
 import { ProposalBadges } from "@/components/submissions/ProposalBadges";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { Badge } from "@/components/ui/Badge";
@@ -127,6 +128,7 @@ export const QueueTable = ({
                   <ProposalBadges proposal={row.proposal} stale={row.stale} />
                   {row.risky ? <Badge tone="warning">⚠ risk</Badge> : null}
                   {row.mine ? <Badge>yours</Badge> : null}
+                  <DependencyMarkBadges marks={row.marks} />
                 </span>
               </Td>
               <Td>

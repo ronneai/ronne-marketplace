@@ -3,8 +3,10 @@ import type { Authenticated } from "../../identity/actions/access-tokens";
 import { getCurrentUser } from "../../identity/actions/session";
 import { clientIp } from "../../identity/models/client-ip";
 import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-instance";
+import type { Submission } from "../models/submission";
 import { kyselySubmissionRepository } from "../repositories/kysely-submission-repository";
 import * as bulk from "../services/bulk-submit";
+import * as marks from "../services/dependency-marks";
 import * as service from "../services/submissions";
 
 /**
@@ -23,6 +25,15 @@ const actor = async (headers: Headers, app: AppAuth): Promise<service.Submission
   user: await getCurrentUser(headers, app),
   ip: clientIp(headers, app.trustProxy),
 });
+
+export type { DependencyMark } from "../services/dependency-marks";
+
+/** What each submission waits on (056), by id, for the ones the person may see. */
+export const dependencyMarks = async (
+  headers: Headers,
+  submissions: readonly Submission[],
+  app: AppAuth = getAppAuth(),
+) => marks.dependencyMarks(deps(app), await actor(headers, app), submissions);
 
 export const viewSubmission = async (headers: Headers, id: string, app: AppAuth = getAppAuth()) =>
   service.viewSubmission(deps(app), await actor(headers, app), id);

@@ -7,7 +7,10 @@ import type { Draft } from "@/server/domains/submissions/models/submission";
 import { changesOf, type FilesState, filesReducer, isDirty, newPathProblem } from "./files";
 import type { EditorFile } from "./types";
 
-const drafts = vi.hoisted(() => ({ viewSubmission: vi.fn() }));
+const drafts = vi.hoisted(() => ({
+  viewSubmission: vi.fn(),
+  dependencyMarks: vi.fn(async () => ({})),
+}));
 vi.mock("@/server/domains/submissions/actions/submissions", () => drafts);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
 vi.mock("next/navigation", () => ({

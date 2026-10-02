@@ -18,7 +18,7 @@ the same change that completes it.
   withdrawn, wrong type, a range a first release can't match, and a cycle through open submissions;
   `registry.db.test.ts` covers the lookup on every database.
 
-- [ ] **2. Marks.** A function that computes **Waits on** and **Blocked** for a set of submissions,
+- [x] **2. Marks.** A function that computes **Waits on** and **Blocked** for a set of submissions,
   used by My submissions, the queue, the review page and the submission page.
   *Done when:* unit tests cover each mark, a chain, and a replaced dependency; the pages render
   them.
