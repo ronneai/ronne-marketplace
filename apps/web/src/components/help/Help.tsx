@@ -206,6 +206,18 @@ export const HELP = {
       "So nobody locks themselves out by mistake. Change your password in Account; another root can change your role, disable you or reset your password.",
     href: docsHref("install", "root"),
   },
+  "audit-summary": {
+    question: "How do I read a line?",
+    answer:
+      "Each line is one event: when, who, the action and a sentence saying what happened. Open it for everything recorded: the target, the IP address, the details and the raw JSON. Its link opens the same event for anyone you share it with.",
+    href: docsHref("admin", "audit"),
+  },
+  "audit-actor": {
+    question: "Who can I search for?",
+    answer:
+      "Part of an email, in any case. system finds events with no one signed in, such as the setup and the command line.",
+    href: docsHref("admin", "audit"),
+  },
 } as const satisfies Record<string, { question: string; answer: string; href: string }>;
 
 export type HelpId = keyof typeof HELP;

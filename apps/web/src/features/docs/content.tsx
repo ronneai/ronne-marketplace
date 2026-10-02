@@ -1727,8 +1727,9 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         <li>
           <strong>root:</strong> the instance&apos;s owners. The first is created by{" "}
           <To href={docsHref("install", "setup")}>the setup</To>, and any root can make others root.
-          Everything a moderator does, plus users, scopes, the audit log and the instance&apos;s
-          settings. Roots create every account: nobody signs up.
+          Everything a moderator does, plus users, scopes,{" "}
+          <To href={docsHref("admin", "audit")}>the audit log</To> and the instance&apos;s settings.
+          Roots create every account: nobody signs up.
         </li>
       </Bullets>
     ),
@@ -1759,6 +1760,47 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
     ),
   },
 
+  admin: {
+    audit: (
+      <>
+        <p>
+          Admin › Audit log records who did what, and when: sign-ins and failed attempts, users and
+          roles, access tokens, scopes, every step of a submission, releases, versions and tags, and
+          the instance&apos;s settings. Only roots can read it, nothing can change it, and it keeps
+          every event for now.
+        </p>
+        <p>
+          Each event is one line: the time in your time zone (UTC on hover), who did it, the action,
+          and a sentence saying what happened, such as &ldquo;Changed alex@example.com from user to
+          moderator&rdquo;. <Code>system</Code> and <Code>cli</Code> mean no one was signed in, such
+          as the setup. Open a line for every detail: both times, the actor and target with their
+          ids, the IP address, everything the event recorded, and the raw JSON to copy. Each
+          event&apos;s details have their own link, so you can share one.
+        </p>
+        <Bullets>
+          <li>
+            <strong>Filter</strong> by action (one, or a whole group such as <Code>user.*</Code>),
+            by actor (part of an email, or <Code>system</Code>), and by dates, which are UTC days.
+            Filters apply as you change them, show as chips you can remove one at a time, and Clear
+            removes them all.
+          </li>
+          <li>
+            <strong>Sort</strong> by time (newest first, the default) or by action, from the column
+            headers. Click the same header again to reverse it.
+          </li>
+          <li>
+            <strong>Pages</strong> hold 25, 50 or 100 events, with First, Previous and Next. The
+            count stops at 10,000 (&ldquo;10,000+ events&rdquo;). New events don&apos;t shift the
+            pages you&apos;re reading.
+          </li>
+        </Bullets>
+        <p>
+          The whole view (filters, sort, page and an open event) is in the address, so a link shows
+          someone else exactly what you see.
+        </p>
+      </>
+    ),
+  },
   rmk: {
     what: (
       <>

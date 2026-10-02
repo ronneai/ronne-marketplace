@@ -243,26 +243,26 @@ sentence built from the metadata and the target. Some examples:
 
 ## Acceptance criteria
 
-- [ ] `DataTable`, the list state and `paginate` are shared, generic and documented in code. The
+- [x] `DataTable`, the list state and `paginate` are shared, generic and documented in code. The
   audit log uses them, and nothing in them is specific to the audit log.
-- [ ] Sorting, paging and filtering happen on the server. The page loads only `size` events and one
+- [x] Sorting, paging and filtering happen on the server. The page loads only `size` events and one
   capped count, and never the list of actors.
-- [ ] Next, Previous and First work in both directions for every sort. There's no repeat and no gap
+- [x] Next, Previous and First work in both directions for every sort. There's no repeat and no gap
   across pages, including equal sort values, on SQLite, PostgreSQL, MySQL and MariaDB.
-- [ ] A bad `sort`, `dir`, `size` or `cursor` falls back to the defaults, and a cursor from another
+- [x] A bad `sort`, `dir`, `size` or `cursor` falls back to the defaults, and a cursor from another
   sort is ignored.
-- [ ] The total shows exactly up to 10,000, and "10,000+" above it.
-- [ ] Each event is one line: time, actor, and the action badge with its summary. Every action in
+- [x] The total shows exactly up to 10,000, and "10,000+" above it.
+- [x] Each event is one line: time, actor, and the action badge with its summary. Every action in
   the catalogue has a summary, and the test fails for a new one without.
-- [ ] `?event=<id>` opens the details dialog with every field, including the raw JSON. Closing it
+- [x] `?event=<id>` opens the details dialog with every field, including the raw JSON. Closing it
   keeps the filters, sort and page. It works without JavaScript.
-- [ ] The filters are: action (an action or a group), actor email or `system`, and dates. Active
+- [x] The filters are: action (an action or a group), actor email or `system`, and dates. Active
   filters show as removable chips, and Clear resets them.
-- [ ] `0014_audit_log_action_index` runs on all four databases.
-- [ ] The page is still a 404 for anyone but root.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] `0014_audit_log_action_index` runs on all four databases.
+- [x] The page is still a 404 for anyone but root.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Open questions
 
 - **Which list moves to `DataTable` next?** The proposal is Users (008), then the review queue
-  (014). Each is a small follow-up feature, listed in the index as `planned`.
+  (014): 061 and 062 in the index, `planned`.

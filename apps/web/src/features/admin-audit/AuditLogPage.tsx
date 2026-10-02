@@ -1,6 +1,7 @@
 import { Info, X } from "lucide-react";
 import Form from "next/form";
 import Link from "next/link";
+import { Help } from "@/components/help/Help";
 import { Badge } from "@/components/ui/Badge";
 import { buttonClasses } from "@/components/ui/Button";
 import { type Column, DataTable, HiddenListFields } from "@/components/ui/data-table/DataTable";
@@ -58,7 +59,10 @@ const Filters = ({ state }: { state: AuditListState }) => {
           </select>
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor="actor">Actor</Label>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="actor">Actor</Label>
+            <Help id="audit-actor" />
+          </div>
           <Input
             id="actor"
             name="actor"
@@ -197,6 +201,7 @@ export const AuditLogPage = ({
       <PageHeader
         title="Audit log"
         description="Who did what, and when. Open an event for every detail."
+        actions={<Help id="audit-summary" />}
       />
       {selected === "missing" ? (
         <Notice kind="info" title="That event doesn't exist." className="mb-4" />

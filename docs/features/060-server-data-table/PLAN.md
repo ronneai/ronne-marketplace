@@ -49,9 +49,9 @@ the same change that completes it.
   the filters; `audit.e2e.ts` (root's existing test, so no new root sign-in) filters, sorts, pages,
   opens and closes an event, and checks that the URL keeps the view.
 
-- [ ] **7. Documentation.** The Administration topic with its Audit log section, the
-  `audit-actor` and `audit-summary` helpers, and the link from Roles. The follow-up rows (Users
-  and the review queue on `DataTable`) go in the index as `planned`.
+- [x] **7. Documentation.** The Administration topic with its Audit log section, the
+  `audit-actor` and `audit-summary` helpers, and the link from Roles. The follow-up rows (061,
+  Users, and 062, the review queue, on `DataTable`) go in the index as `planned`.
   *Done when:* the docs render tests pass, every new helper's link lands on a real section, and the
   index marks 060 `done`.
 

@@ -170,4 +170,6 @@ Work that changes every part of the web app rather than one milestone's features
 |---|---|---|---|
 | [049](./049-local-time/SPEC.md) | Local time: every timestamp in the reader's time zone, UTC on hover; storage, the API and `rmk` stay UTC | 032 | done |
 | [050](./050-help-popovers/SPEC.md) | Helpers as popovers: an inline helper's answer floats next to its question (Floating UI) instead of opening inside the page | 033, 032 | done |
-| [060](./060-server-data-table/SPEC.md) | Server data table, first on the audit log: a shared `DataTable` with sorting, keyset pagination and filters on the server, all in the URL; the audit log as one line per event, a summary per action, and the details in a dialog (`?event=`) | 007, 032, 049, 050 | specified |
+| [060](./060-server-data-table/SPEC.md) | Server data table, first on the audit log: a shared `DataTable` with sorting, keyset pagination and filters on the server, all in the URL; the audit log as one line per event, a summary per action, and the details in a dialog (`?event=`) | 007, 032, 049, 050 | done |
+| 061 | Users on the server data table: `/admin/users` moves to `DataTable` (sorting by email, name and created, page sizes, chips), from 060 | 008, 060 | planned |
+| 062 | The review queue on the server data table: Needs review and To release move to `DataTable`, from 060 | 014, 054, 058, 060 | planned |

@@ -116,6 +116,12 @@ export const TOPICS = [
     ],
   },
   {
+    slug: "admin",
+    title: "Administration",
+    summary: "For roots: reading the audit log of who did what, and when.",
+    sections: [{ id: "audit", title: "Audit log" }],
+  },
+  {
     slug: "rmk",
     title: "Installing with rmk",
     summary: "How items get into your AI tools, and how to keep them current.",
@@ -197,7 +203,7 @@ export type SectionOf<T extends TopicSlug> = Extract<Topic, { slug: T }>["sectio
 
 /** How the Documentation's menu groups the topics, in order (owner's request, 2026-09-28). */
 export const TOPIC_GROUPS: { label: string; topics: readonly TopicSlug[] }[] = [
-  { label: "Getting started", topics: ["overview", "install", "roles"] },
+  { label: "Getting started", topics: ["overview", "install", "roles", "admin"] },
   { label: "Organising", topics: ["scopes", "items"] },
   { label: "Publishing", topics: ["export", "review", "versions", "changes"] },
   { label: "Installing", topics: ["rmk", "mcp", "usage", "claude-code", "codex", "cursor"] },

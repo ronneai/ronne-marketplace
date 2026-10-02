@@ -136,6 +136,8 @@ describe("AuditLogPage (060)", () => {
       'href="/admin/audit?cursor=c2"',
       'value="user.*"',
       'value="user.role_changed"',
+      "How do I read a line?",
+      "Who can I search for?",
     ]) {
       expect(html, text).toContain(text);
     }
