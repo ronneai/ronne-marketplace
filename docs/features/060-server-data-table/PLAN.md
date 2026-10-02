@@ -36,7 +36,7 @@ the same change that completes it.
   *Done when:* `audit.db.test.ts` covers each filter, both sorts, paging both ways, the count and
   `findById`, and the whole database suite passes on all four databases.
 
-- [ ] **5. Summaries.** `features/admin-audit/summary.ts`: one per action in the catalogue, with
+- [x] **5. Summaries.** `features/admin-audit/summary.ts`: one per action in the catalogue, with
   the fallback.
   *Done when:* a test renders a summary for every action in `AUDIT_ACTIONS` (and fails for one
   that's missing), plus the fallback for unexpected metadata.
