@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  CannotModifyRootError,
+  CannotModifySelfError,
   EmailTakenError,
   ForbiddenError,
 } from "@/server/domains/identity/exceptions/errors";
@@ -112,12 +112,12 @@ describe("the row actions", () => {
     ).toEqual({ oneTime: { email: "u@example.com", password: "N3w" } });
   });
 
-  it("report root being refused", async () => {
-    admin.adminDisableUser.mockRejectedValueOnce(new CannotModifyRootError());
+  it("report acting on your own row being refused", async () => {
+    admin.adminDisableUser.mockRejectedValueOnce(new CannotModifySelfError());
     expect((await actions.disableUserFromForm({}, form({ userId: "root" }))).error).toContain(
-      "Root can't be changed",
+      "You can't change your own role",
     );
-    admin.adminDisableImpact.mockRejectedValueOnce(new CannotModifyRootError());
+    admin.adminDisableImpact.mockRejectedValueOnce(new CannotModifySelfError());
     expect(await actions.disableImpactFor("root")).toMatchObject({ error: expect.any(String) });
   });
 });

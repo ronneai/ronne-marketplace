@@ -1,5 +1,5 @@
 import {
-  CannotModifyRootError,
+  CannotModifySelfError,
   EmailTakenError,
   InvalidRoleError,
   UserNotFoundError,
@@ -9,18 +9,19 @@ import { validatePassword } from "../models/password";
 import type { PasswordHasher } from "../models/password-hasher";
 import { requirePermission } from "../models/permissions";
 import {
-  type AssignableRole,
   type CurrentUser,
-  isAssignableRole,
+  isRole,
   normalizeEmail,
   normalizeName,
+  type Role,
   type UserSummary,
 } from "../models/user";
 import type { IdentityRepository, UserListQuery } from "../repositories/identity-repository";
 
 /**
- * Root's user admin (feature 008). Every operation checks the permission first, refuses to touch
- * root, and writes its change and its 007 event in one transaction.
+ * Root's user admin (feature 008). Every operation checks the permission first, refuses the
+ * actor's own row (roots manage each other, not themselves: 059), and writes its change and its
+ * 007 event in one transaction.
  */
 export type UserAdminDeps = {
   repo: IdentityRepository;
@@ -60,16 +61,20 @@ const choosePassword = (typed: string | undefined): string => {
   return typed;
 };
 
-const checkRole = (role: string): AssignableRole => {
-  if (!isAssignableRole(role)) throw new InvalidRoleError(role);
+const checkRole = (role: string): Role => {
+  if (!isRole(role)) throw new InvalidRoleError(role);
   return role;
 };
 
-/** Loads the target and refuses root: root is never changed from the admin area. */
-const loadTarget = async (repo: IdentityRepository, userId: string): Promise<UserSummary> => {
+/** Loads the target and refuses the actor's own row: another root changes it (059). */
+const loadTarget = async (
+  repo: IdentityRepository,
+  actor: Actor,
+  userId: string,
+): Promise<UserSummary> => {
+  if (userId === actor.user?.id) throw new CannotModifySelfError();
   const target = await repo.findUser(userId);
   if (!target) throw new UserNotFoundError();
-  if (target.role === "root") throw new CannotModifyRootError();
   return target;
 };
 
@@ -122,7 +127,7 @@ export const changeRole = async (
   const role = checkRole(newRole);
   const at = now(deps);
   await deps.repo.transaction(async (repo) => {
-    const target = await loadTarget(repo, userId);
+    const target = await loadTarget(repo, actor, userId);
     if (target.role === role) return;
     await repo.setRole(userId, role, at);
     await repo.recordAudit(
@@ -147,7 +152,7 @@ export const disableUser = async (
   requirePermission(actor.user, "users.manage");
   const at = now(deps);
   await deps.repo.transaction(async (repo) => {
-    const target = await loadTarget(repo, userId);
+    const target = await loadTarget(repo, actor, userId);
     if (target.disabledAt) return;
     await repo.disableUser(userId, at);
     const sessionsEnded = await repo.deleteSessions(userId);
@@ -174,7 +179,7 @@ export const enableUser = async (
   requirePermission(actor.user, "users.manage");
   const at = now(deps);
   await deps.repo.transaction(async (repo) => {
-    const target = await loadTarget(repo, userId);
+    const target = await loadTarget(repo, actor, userId);
     if (!target.disabledAt) return;
     await repo.enableUser(userId, at);
     await repo.recordAudit(
@@ -204,7 +209,7 @@ export const resetPassword = async (
   const passwordHash = await deps.hasher.hash(password);
   const at = now(deps);
   const email = await deps.repo.transaction(async (repo) => {
-    const target = await loadTarget(repo, userId);
+    const target = await loadTarget(repo, actor, userId);
     await repo.setPassword(userId, passwordHash, at);
     const sessionsEnded = await repo.deleteSessions(userId);
     const tokensRevoked = await repo.revokeAccessTokens(userId, at);
@@ -230,7 +235,7 @@ export const disableImpact = async (
   userId: string,
 ): Promise<{ sessions: number; tokens: number }> => {
   requirePermission(actor.user, "users.manage");
-  await loadTarget(deps.repo, userId);
+  await loadTarget(deps.repo, actor, userId);
   return {
     sessions: await deps.repo.countSessions(userId),
     tokens: await deps.repo.countActiveAccessTokens(userId),

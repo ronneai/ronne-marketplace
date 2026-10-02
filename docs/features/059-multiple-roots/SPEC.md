@@ -57,8 +57,8 @@ it may give:
 | another root | ✅ | ✅ | ✅ |
 | yourself | — | — | — (use Account) |
 
-- `ASSIGNABLE_ROLES` becomes all three roles. `user.ts`'s comment and the 008 rule "root itself is
-  never given" go away.
+- Any of the three roles can be given (checked with `isRole`). `ASSIGNABLE_ROLES` and the 008 rule
+  "root itself is never given" go away.
 - `CannotModifyRootError` is replaced by **`CannotModifySelfError`**: "You can't change your own
   role or account here. Change your password in Account; another root can change the rest."
 - New **`LastRootError`**: "This would leave the instance without an active root. Make someone

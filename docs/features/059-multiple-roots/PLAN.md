@@ -7,11 +7,13 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Model and errors.** `ASSIGNABLE_ROLES` holds all three roles. Replace
-  `CannotModifyRootError` with `CannotModifySelfError`, and add `LastRootError`. Map both to
-  `ERR:` notices in `features/admin-users/actions.ts`.
-  *Done when:* `models.test.ts` and `actions.test.tsx` cover the new errors, and nothing imports
-  `CannotModifyRootError`.
+- [x] **1. Model, errors and the self rule.** Any of the three roles can be given (`isRole`;
+  `ASSIGNABLE_ROLES` goes). Replace `CannotModifyRootError` with `CannotModifySelfError`, and add
+  `LastRootError`. `loadTarget` refuses the actor's own row instead of every root, so roots manage
+  each other. The `ERR:` notices come from the existing `IdentityError` mapping.
+  *Done when:* `user-admin.db.test.ts` covers creating a root, promoting, demoting, disabling,
+  enabling and resetting another root, and every self action; `actions.test.tsx` covers the new
+  message; nothing imports `CannotModifyRootError`.
 
 - [ ] **2. Repository: roots and locks.** `IdentityRepository` gains `lockRoots()` (the root rows
   and the actor's row, via `forUpdate`), `countActiveRoots()`, `findFirstRoot()`, `hasRoot()`,
@@ -20,14 +22,12 @@ the same change that completes it.
   *Done when:* repository tests pass on SQLite and against `pnpm test:db:up` (PostgreSQL, MySQL,
   MariaDB).
 
-- [ ] **3. Services: peers, self and the last root.** `loadTarget` refuses the actor's own id
-  (`CannotModifySelfError`) instead of every root. Every `users.manage` service re-reads the actor
-  inside the transaction (`ForbiddenError` if they're no longer an active root). `changeRole` and
-  `disableUser` lock, change, then check `countActiveRoots() > 0` (`LastRootError`).
-  *Done when:* `user-admin.db.test.ts` covers promote, demote, disable, enable and reset of another
-  root, every self action, a demoted actor, and the last-root guard. A concurrency test runs two
-  mutual demotions in parallel and expects one success, one `ForbiddenError` and one active root,
-  on all four databases.
+- [ ] **3. Services: the actor and the last root.** Every `users.manage` service re-reads the
+  actor inside the transaction (`ForbiddenError` if they're no longer an active root). `changeRole`
+  and `disableUser` lock, change, then check `countActiveRoots() > 0` (`LastRootError`).
+  *Done when:* `user-admin.db.test.ts` covers a demoted actor and the last-root guard. A
+  concurrency test runs two mutual demotions in parallel and expects one success, one
+  `ForbiddenError` and one active root, on all four databases.
 
 - [ ] **4. Setup and reset-root-password.** Setup state uses `hasRoot`, and setup's message uses
   `findFirstRoot` and the count (warning only when every root is disabled). `reset-root-password`

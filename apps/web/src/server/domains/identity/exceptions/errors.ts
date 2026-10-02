@@ -69,17 +69,25 @@ export class EmailTakenError extends IdentityError {
   }
 }
 
-export class CannotModifyRootError extends IdentityError {
+/** A root acting on their own row: another root changes it (feature 059). */
+export class CannotModifySelfError extends IdentityError {
   constructor() {
     super(
-      "Root can't be changed from the admin area. Root changes its own password in Account, and recovers with `pnpm run reset-root-password`.",
+      "You can't change your own role or account here. Change your password in Account; another root can change the rest.",
     );
+  }
+}
+
+/** The change would leave no enabled root, and the instance unmanageable (feature 059). */
+export class LastRootError extends IdentityError {
+  constructor() {
+    super("This would leave the instance without an active root. Make someone else root first.");
   }
 }
 
 export class InvalidRoleError extends IdentityError {
   constructor(readonly role: string) {
-    super(`"${role}" isn't a role that can be given here. Use user or moderator.`);
+    super(`"${role}" isn't a role. Use user, moderator or root.`);
   }
 }
 
