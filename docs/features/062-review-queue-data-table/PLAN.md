@@ -13,11 +13,12 @@ the same change that completes it.
   databases; `list-query.test.ts` and `data-table.test.tsx` cover `fixed` (kept by Clear, sort and
   size; absent from chips) and `srHeader`.
 
-- [ ] **2. The queue on the server.** `0016_submissions_queue_indexes`; `pageForReview` and
+- [x] **2. The queue on the server.** `0016_submissions_queue_indexes`; `pageForReview` and
   `countForReview` (the tab's statuses, the search with the author join, the type), and
-  `listQueue` with sorts, sizes and cursors. `listForReview` goes.
-  *Done when:* `reviews.db.test.ts` (or a new queue test) covers each tab's default order, both
-  sorts, the filters, more than 200 open rows, and the count on all four databases.
+  `listQueue` with sorts, sizes and cursors. `listForReview` stays for the dependency scans,
+  without its `after` cursor. The page gets the minimum to keep working until task 3.
+  *Done when:* `queue.db.test.ts` covers each tab's default order, sorting by name, the filters,
+  more than 200 open rows, paging Decided both ways, and the count on all four databases.
 
 - [ ] **3. The queue page on `DataTable`.** `features/reviews/list.ts`, the columns with the
   selection and decisions cells, the tabs dropping the view, the filters with chips, and the bulk

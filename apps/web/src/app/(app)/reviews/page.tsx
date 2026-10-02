@@ -24,7 +24,7 @@ const Reviews = async ({
   const params = await searchParams;
   const tab = queueTab(params.tab);
   const cursor = typeof params.cursor === "string" ? params.cursor : undefined;
-  const { rows, nextCursor } = await listQueue(request, { tab, cursor });
+  const { rows, next: nextCursor } = await listQueue(request, { tab, cursor });
   return (
     <>
       <PageHeader

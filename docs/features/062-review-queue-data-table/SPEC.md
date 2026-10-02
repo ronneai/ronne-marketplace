@@ -56,12 +56,11 @@ defineList({
 });
 ```
 
-- **Time by tab:**
-  - Needs review: `submitted_at`, oldest first.
-  - Waiting on the author and To release: `updated_at`, oldest first.
-  - Decided: `updated_at`, newest first (its `sorts.time` is `desc`).
-
-  These are today's orders, now as the default sort of each tab.
+- **Time by tab**, which is also the time its column shows:
+  - Needs review and Waiting on the author: `submitted_at`, oldest first (as today).
+  - To release: `updated_at`, oldest first. That's the approval, which its Approved column shows.
+    Before, it sorted by the first submit, which its column didn't show.
+  - Decided: `updated_at`, newest first (as today; its `sorts.time` is `desc`).
 - **Name** sorts by the item's name (`submissions.name`, then `id`). The scope isn't part of the
   sort.
 - **The tabs** (links) keep the tab and drop everything else: changing tab starts that tab's own
@@ -91,7 +90,9 @@ defineList({
   `{ rows, next, previous, total }`.
 - `SubmissionRepository.pageForReview(…)` and `countForReview(…)` build one filtered query: the
   statuses of the tab, the search (with a join on the author) and the type.
-- `listForReview` goes, since only the queue used it.
+- `listForReview` stays for the dependency search and a rejected submission's dependents (056),
+  which scan what's in review. It loses its `after` cursor, which only the queue's old Decided
+  paging used.
 
 **Shared table additions (060):**
 - **`ListDefinition.fixed`:** parameters written first in every URL of the list, never shown as

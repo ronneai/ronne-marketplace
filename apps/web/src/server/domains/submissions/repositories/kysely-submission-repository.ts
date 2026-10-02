@@ -3,15 +3,17 @@ import type { Kysely } from "kysely";
 import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
 import { decodeJson, encodeJson } from "../../../db/json";
+import { countCapped, paginate } from "../../../db/keyset";
 import { forUpdate, readCommittedTransaction } from "../../../db/locks";
 import type { Database } from "../../../db/schema";
+import { containsInsensitive } from "../../../db/search";
 import { upsert } from "../../../db/upsert";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
 import type { ReviewEvent, ReviewEventKind, Revision } from "../models/review";
 import type { DraftFile, Submission, SubmissionStatus } from "../models/submission";
 import { kyselyRegistryLookup } from "./kysely-registry-lookup";
-import type { SubmissionRepository } from "./submission-repository";
+import type { ReviewFilters, ReviewSort, SubmissionRepository } from "./submission-repository";
 
 type SubmissionRow = {
   id: string;
@@ -51,6 +53,12 @@ const toSubmission = (row: SubmissionRow): Submission => ({
       : null,
 });
 
+const REVIEW_SORT_COLUMNS: Record<ReviewSort, string> = {
+  submitted: "submissions.submitted_at",
+  updated: "submissions.updated_at",
+  name: "submissions.name",
+};
+
 export const kyselySubmissionRepository = (
   db: Kysely<Database>,
   dialect: DatabaseDialect,
@@ -76,6 +84,23 @@ export const kyselySubmissionRepository = (
         "submissions.updated_at",
         "submissions.submitted_at",
       ]);
+
+  /** A queue tab's submissions, with their author's name (062). */
+  const forReview = ({ statuses, search, type }: ReviewFilters) => {
+    let query = submissions()
+      .innerJoin("user", "user.id", "submissions.author_id")
+      .select("user.name as author_name")
+      .where("submissions.status", "in", [...statuses]);
+    if (search)
+      query = query.where((eb) =>
+        eb.or([
+          containsInsensitive("submissions.name", search),
+          containsInsensitive("user.name", search),
+        ]),
+      );
+    if (type) query = query.where("submissions.type", "=", type);
+    return query;
+  };
 
   return {
     // READ COMMITTED, so the name check after `lockScope` sees a submit that committed while this
@@ -129,7 +154,7 @@ export const kyselySubmissionRepository = (
           .execute()
       ).map(toSubmission),
 
-    listForReview: async ({ statuses, order, limit, after }) => {
+    listForReview: async ({ statuses, order, limit }) => {
       if (statuses.length === 0) return [];
       let query = submissions()
         .innerJoin("user", "user.id", "submissions.author_id")
@@ -140,20 +165,39 @@ export const kyselySubmissionRepository = (
         order === "oldest"
           ? query.orderBy("submissions.submitted_at").orderBy("submissions.id")
           : query.orderBy("submissions.updated_at", "desc").orderBy("submissions.id", "desc");
-      if (after) {
-        const at = toDbDate(after.updatedAt, dialect);
-        query = query.where((eb) =>
-          eb.or([
-            eb("submissions.updated_at", "<", at),
-            eb.and([eb("submissions.updated_at", "=", at), eb("submissions.id", "<", after.id)]),
-          ]),
-        );
-      }
       return (await query.execute()).map((row) => ({
         ...toSubmission(row),
         authorName: row.author_name,
       }));
     },
+
+    pageForReview: async ({ sort, dir, size, cursor, ...filters }) => {
+      const page = await paginate(forReview(filters), {
+        sort: {
+          key: sort,
+          column: REVIEW_SORT_COLUMNS[sort],
+          dir,
+          kind: sort === "name" ? undefined : "date",
+        },
+        idColumn: "submissions.id",
+        size,
+        cursor,
+        sortValue: (row) =>
+          sort === "name"
+            ? row.name
+            : fromDbDate(
+                sort === "submitted" ? (row.submitted_at ?? row.updated_at) : row.updated_at,
+              ),
+        idOf: (row) => row.id,
+        dialect,
+      });
+      return {
+        ...page,
+        rows: page.rows.map((row) => ({ ...toSubmission(row), authorName: row.author_name })),
+      };
+    },
+
+    countForReview: (filters) => countCapped(db, forReview(filters)),
 
     userName: async (userId) =>
       (await db.selectFrom("user").select("name").where("id", "=", userId).executeTakeFirst())

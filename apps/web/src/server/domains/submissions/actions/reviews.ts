@@ -10,7 +10,7 @@ import * as service from "../services/reviews";
 import type { SubmissionActor, SubmissionDeps } from "../services/submissions";
 
 export type { ApprovedSubmission } from "../services/bulk-approve";
-export type { QueuePage, QueueRow, QueueTab } from "../services/queue";
+export type { QueuePage, QueueQuery, QueueRow, QueueTab } from "../services/queue";
 export type { ProposalView, ReviewView } from "../services/review-page";
 export type { Dependent, ReviewDecision, SentBack } from "../services/reviews";
 
@@ -59,7 +59,7 @@ export const comment = async (
 
 export const listQueue = async (
   headers: Headers,
-  query: { tab: queue.QueueTab; cursor?: string },
+  query: queue.QueueQuery,
   app: AppAuth = getAppAuth(),
 ) => queue.listQueue(deps(app), await actor(headers, app), query);
 

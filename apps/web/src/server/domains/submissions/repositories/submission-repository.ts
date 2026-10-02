@@ -1,4 +1,5 @@
 import type { ItemType } from "@ronneai/core";
+import type { KeysetPage, SortDir } from "../../../db/keyset";
 import type { NewAuditEvent } from "../../audit/models/audit-event";
 import type {
   NewReviewEvent,
@@ -21,6 +22,24 @@ export type NewSubmission = {
   proposal?: { itemId: string; baseVersionId: string };
 };
 
+/** A queue tab's rows (062): its statuses, and the reviewer's search and type. */
+export type ReviewFilters = {
+  statuses: readonly SubmissionStatus[];
+  /** Part of the item name or the author's name, any case. */
+  search?: string;
+  type?: ItemType;
+};
+
+/** `submitted` and `updated` are timestamps; `name` is the item's name. The id breaks ties. */
+export type ReviewSort = "submitted" | "updated" | "name";
+
+export type ReviewPageQuery = ReviewFilters & {
+  sort: ReviewSort;
+  dir: SortDir;
+  size: number;
+  cursor?: string;
+};
+
 /** What the submission services need from storage. Implemented with Kysely in kysely-submission-repository.ts. */
 export interface SubmissionRepository {
   transaction<T>(work: (repo: SubmissionRepository) => Promise<T>): Promise<T>;
@@ -30,16 +49,20 @@ export interface SubmissionRepository {
   /** Newest change first. */
   listByAuthor(authorId: string): Promise<Submission[]>;
   /**
-   * Submissions in `statuses`, with their author's name, for the review queue (014). `oldest`
-   * orders by the first submit, oldest first; `newest` by the last change, newest first, and pages
-   * from `after` (the last row of the previous page).
+   * Up to `limit` submissions in `statuses`, with their author's name, for scans over what's in
+   * review (the dependency search, a rejected one's dependents). `oldest` orders by the first
+   * submit, oldest first; `newest` by the last change, newest first. The queue pages with
+   * `pageForReview` (062).
    */
   listForReview(query: {
     statuses: readonly SubmissionStatus[];
     order: "oldest" | "newest";
     limit: number;
-    after?: { updatedAt: Date; id: string };
   }): Promise<(Submission & { authorName: string })[]>;
+  /** One page of a queue tab (keyset, 062), with each author's name. */
+  pageForReview(query: ReviewPageQuery): Promise<KeysetPage<Submission & { authorName: string }>>;
+  /** How many submissions a queue tab's filters match, up to the count cap. */
+  countForReview(filters: ReviewFilters): Promise<{ count: number; capped: boolean }>;
   countByStatus(status: SubmissionStatus): Promise<number>;
   /** The author's submissions that are still drafts, for the API's draft limit (037). */
   countDrafts(authorId: string): Promise<number>;
