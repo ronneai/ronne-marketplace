@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createDb } from "../src/server/db/create-db";
 import { createAuth } from "../src/server/domains/identity/repositories/better-auth";
+import { kyselyIdentityRepository } from "../src/server/domains/identity/repositories/kysely-identity-repository";
 
 // Runs the real `pnpm run setup` and `pnpm run reset-root-password` entry points.
 let dir: string;
@@ -72,6 +73,35 @@ describe("pnpm run reset-root-password --yes", () => {
     expect(await signIn("correct horse battery")).toBe(false);
     expect(await signIn("a brand new passphrase")).toBe(true);
   }, 60_000);
+
+  it("with several roots, needs --email, refuses a non-root, and resets the one named (059)", async () => {
+    expect(setUp().code).toBe(0);
+    const { db, dialect } = createDb(databaseUrl());
+    const repo = kyselyIdentityRepository(db, dialect);
+    await repo.createUserWithPassword(
+      { email: "second@example.com", name: "Second", role: "root", passwordHash: "x" },
+      new Date(Date.now() + 1000),
+    );
+    await repo.createUserWithPassword(
+      { email: "mod@example.com", name: "Mod", role: "moderator", passwordHash: "x" },
+      new Date(),
+    );
+    await db.destroy();
+    const env = { RONNE_ROOT_PASSWORD: "a brand new passphrase" };
+
+    const unnamed = run("reset-root-password", ["--yes"], env);
+    expect(unnamed.code).toBe(2);
+    expect(unnamed.stderr).toContain("there are 2 root accounts");
+    expect(run("reset-root-password", ["--yes", "--email", "mod@example.com"], env).code).toBe(2);
+
+    const named = run("reset-root-password", ["--yes"], {
+      ...env,
+      RONNE_ROOT_EMAIL: "root@example.com",
+    });
+    expect(named.code).toBe(0);
+    expect(named.stdout).toContain("Reset the password for root@example.com");
+    expect(await signIn("a brand new passphrase")).toBe(true);
+  }, 90_000);
 
   it("exits with 1 and says so when there's no root yet", () => {
     expect(run("migrate", [], { DATABASE_URL: databaseUrl() }).code).toBe(0);

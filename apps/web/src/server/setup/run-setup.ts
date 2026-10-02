@@ -17,8 +17,8 @@ import {
   checkDatabase,
   createRootAccount,
   describeServer,
-  findRootAccount,
   formatProblem,
+  listRootAccounts,
   writeSettings,
 } from "./steps";
 
@@ -133,17 +133,22 @@ export const runSetup = async (options: SetupOptions): Promise<SetupResult> => {
   }
 
   // 8. Root account.
-  const existing = await findRootAccount(databaseUrl, { appDir });
-  if (existing) {
+  const roots = await listRootAccounts(databaseUrl, { appDir });
+  const [first] = roots;
+  if (first) {
     prompts.log.info(
-      `A root account already exists (${existing.email}). Setup doesn't create another.`,
+      roots.length === 1
+        ? `A root account already exists (${first.email}). Setup doesn't create another.`
+        : `${roots.length} root accounts already exist (first: ${first.email}). Setup doesn't create another.`,
     );
-    if (existing.disabledAt) {
+    if (roots.every((root) => root.disabledAt)) {
       prompts.log.warn(
-        "That root account is disabled. Run `pnpm run reset-root-password` to enable it again.",
+        roots.length === 1
+          ? "That root account is disabled. Run `pnpm run reset-root-password` to enable it again."
+          : "Every root account is disabled. Run `pnpm run reset-root-password --email <one of them>` to enable one again.",
       );
     }
-    return { publicUrl, rootEmail: existing.email, rootCreated: false };
+    return { publicUrl, rootEmail: first.email, rootCreated: false };
   }
 
   prompts.log.step(

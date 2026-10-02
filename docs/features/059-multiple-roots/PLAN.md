@@ -30,11 +30,11 @@ the same change that completes it.
   concurrency test runs two mutual demotions in parallel and expects one success, one
   `ForbiddenError` and one active root, on all four databases.
 
-- [ ] **4. Setup and reset-root-password.** Setup state uses `hasRoot`, and setup's message uses
-  `findFirstRoot` and the count (warning only when every root is disabled). `reset-root-password`
+- [x] **4. Setup and reset-root-password.** Setup state uses `hasRoot`, and setup's message uses
+  `listRootAccounts` and the count (warning only when every root is disabled). `reset-root-password`
   takes `--email` / `RONNE_ROOT_EMAIL`: interactive choice when there are several roots, exit 2
-  without it under `--yes`, exit 2 for a non-root email. Audit metadata gains `email`. Rebuild
-  `dist-scripts`.
+  without it under `--yes`, exit 2 for a non-root email; the root is chosen before the password
+  is asked. Audit metadata gains `email`. (`dist-scripts` is rebuilt by `pnpm build`.)
   *Done when:* `cli.test`, `steps.db.test.ts`, `root-account.db.test.ts` and
   `reset-root-password.db.test.ts` cover one root, several roots, `--email`, a non-root email and
   "every root disabled".

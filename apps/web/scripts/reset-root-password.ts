@@ -1,5 +1,6 @@
-// pnpm run reset-root-password: sets a new root password, ends root's sessions, revokes its access
-// tokens and re-enables it. Interactive in a terminal; with --yes it reads RONNE_ROOT_PASSWORD.
+// pnpm run reset-root-password: sets a new root password, ends that root's sessions, revokes its
+// access tokens and re-enables it. Interactive in a terminal; with --yes it reads
+// RONNE_ROOT_PASSWORD. With several roots, --email (or RONNE_ROOT_EMAIL) says which.
 // Exit codes: 0 done, 1 failed (for example, no root yet), 2 missing or invalid input.
 import { resolve } from "node:path";
 import * as p from "@clack/prompts";
@@ -30,7 +31,7 @@ if (command.mode === "error") {
 }
 
 const interactive = command.mode === "interactive";
-if (interactive) p.intro("Reset the root password");
+if (interactive) p.intro("Reset a root password");
 try {
   await runResetRootPassword({
     appDir,
@@ -39,6 +40,7 @@ try {
       ? clackPrompts
       : nonInteractivePrompts({ rootPassword: command.rootPassword }),
     databaseUrl: interactive ? process.env.DATABASE_URL : command.databaseUrl,
+    rootEmail: command.rootEmail,
   });
   if (interactive) p.outro("Done. Sign in with the new password.");
 } catch (error) {

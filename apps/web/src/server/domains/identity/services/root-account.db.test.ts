@@ -7,10 +7,13 @@ import { createRoot, findFirstRoot, resetRootPassword } from "../actions/root-ac
 import {
   InvalidEmailError,
   InvalidPasswordError,
+  NotARootError,
   RootAlreadyExistsError,
   RootNotFoundError,
+  WhichRootError,
 } from "../exceptions/errors";
 import { createAuth } from "../repositories/better-auth";
+import { kyselyIdentityRepository } from "../repositories/kysely-identity-repository";
 
 let t: TestDb;
 beforeEach(async () => {
@@ -152,8 +155,35 @@ describe("resetRootPassword", () => {
       actorId: null,
       targetType: "user",
       targetId: id,
-      metadata: { via: "cli", sessionsEnded: 1, tokensRevoked: 1 },
+      metadata: { via: "cli", email: "root@example.com", sessionsEnded: 1, tokensRevoked: 1 },
     });
+  });
+
+  it("with several roots, resets the one named, and needs a name (059)", async () => {
+    await createRoot(t.db, t.dialect, root);
+    const repo = kyselyIdentityRepository(t.db, t.dialect);
+    const at = new Date();
+    await repo.createUserWithPassword(
+      { email: "second@example.com", name: "Second", role: "root", passwordHash: "x" },
+      at,
+    );
+    await repo.createUserWithPassword(
+      { email: "mod@example.com", name: "Mod", role: "moderator", passwordHash: "x" },
+      at,
+    );
+    await expect(resetRootPassword(t.db, t.dialect, "a brand new passphrase")).rejects.toThrowError(
+      WhichRootError,
+    );
+    await expect(
+      resetRootPassword(t.db, t.dialect, "a brand new passphrase", "mod@example.com"),
+    ).rejects.toThrowError(NotARootError);
+    expect(
+      await resetRootPassword(t.db, t.dialect, "a brand new passphrase", " Second@Example.com "),
+    ).toEqual({ email: "second@example.com" });
+    // The first root's password didn't change.
+    expect((await signIn(root.password)).user.email).toBe("root@example.com");
+    const resets = (await auditEvents()).filter((e) => e.action === "user.password_reset");
+    expect(resets.map((e) => e.metadata)).toMatchObject([{ email: "second@example.com" }]);
   });
 
   it("fails when there's no root yet", async () => {

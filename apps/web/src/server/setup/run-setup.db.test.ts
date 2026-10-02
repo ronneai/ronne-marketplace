@@ -4,8 +4,10 @@ import { join } from "node:path";
 import { parseEnv } from "node:util";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createDb } from "../db/create-db";
+import { toDbDate } from "../db/dates";
 import { createTestDb, type TestDb } from "../db/testing/test-db";
 import { createAuth } from "../domains/identity/repositories/better-auth";
+import { kyselyIdentityRepository } from "../domains/identity/repositories/kysely-identity-repository";
 import type { DatabaseAnswers } from "./database-url";
 import { runSetup, SetupFailedError } from "./run-setup";
 import { CANCEL, scriptedPrompts } from "./testing/scripted-prompts";
@@ -91,6 +93,44 @@ describe("runSetup on SQLite", () => {
     expect(second.asked).not.toContain("root.email");
     expect(second.logs.some((l) => l.message.includes("already exists"))).toBe(true);
     expect(parseEnv(readFileSync(envPath, "utf8")).AUTH_SECRET).toBe(secret);
+  });
+
+  it("with several roots, says how many, and warns only when every one is disabled (059)", async () => {
+    await runSetup({
+      appDir,
+      envPath,
+      prompts: scriptedPrompts({ ...sqliteAnswers, ...rootAnswers }).prompts,
+    });
+    const { db, dialect } = openEnvDb();
+    await kyselyIdentityRepository(db, dialect).createUserWithPassword(
+      { email: "second@example.com", name: "Second", role: "root", passwordHash: "x" },
+      new Date(Date.now() + 1000),
+    );
+    const again = async () => {
+      const scripted = scriptedPrompts({
+        "database.reuse": true,
+        public_url: "http://localhost:3000",
+      });
+      const result = await runSetup({ appDir, envPath, prompts: scripted.prompts });
+      return { result, logs: scripted.logs };
+    };
+
+    const first = await again();
+    expect(first.result).toMatchObject({ rootEmail: "root@example.com", rootCreated: false });
+    expect(first.logs.map((l) => l.message)).toContain(
+      "2 root accounts already exist (first: root@example.com). Setup doesn't create another.",
+    );
+    expect(first.logs.some((l) => l.level === "warn")).toBe(false);
+
+    await db
+      .updateTable("user")
+      .set({ disabled_at: toDbDate(new Date(), dialect) })
+      .execute();
+    const second = await again();
+    expect(second.logs.find((l) => l.level === "warn")?.message).toContain(
+      "Every root account is disabled",
+    );
+    await db.destroy();
   });
 
   it("asks again after a database that fails its check, keeping the other answers", async () => {

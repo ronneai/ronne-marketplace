@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseSetupCommand } from "./cli";
+import { parseResetCommand, parseSetupCommand } from "./cli";
 
 describe("parseSetupCommand", () => {
   it("is interactive in a terminal without --yes", () => {
@@ -42,6 +42,33 @@ describe("parseSetupCommand", () => {
 
   it("rejects unknown flags, including a password flag", () => {
     expect(parseSetupCommand(["--yes", "--root-password", "x"], {}, false)).toMatchObject({
+      mode: "error",
+      exitCode: 2,
+    });
+  });
+});
+
+describe("parseResetCommand", () => {
+  it("takes the root's email from --email, then RONNE_ROOT_EMAIL (059)", () => {
+    expect(parseResetCommand([], {}, true)).toEqual({ mode: "interactive" });
+    expect(parseResetCommand(["--email", "a@example.com"], {}, true)).toEqual({
+      mode: "interactive",
+      rootEmail: "a@example.com",
+    });
+    expect(
+      parseResetCommand(
+        ["--yes", "--email", "a@example.com"],
+        { RONNE_ROOT_EMAIL: "b@example.com", RONNE_ROOT_PASSWORD: "pw" },
+        false,
+      ),
+    ).toMatchObject({ mode: "non-interactive", rootEmail: "a@example.com", rootPassword: "pw" });
+    expect(
+      parseResetCommand(["--yes"], { RONNE_ROOT_EMAIL: "b@example.com" }, false),
+    ).toMatchObject({ rootEmail: "b@example.com" });
+  });
+
+  it("rejects unknown flags", () => {
+    expect(parseResetCommand(["--root", "x"], {}, true)).toMatchObject({
       mode: "error",
       exitCode: 2,
     });

@@ -33,13 +33,27 @@ export class InvalidPasswordError extends IdentityError {
 
 export class RootAlreadyExistsError extends IdentityError {
   constructor(readonly email: string) {
-    super(`A root account already exists (${email}). Setup never creates a second one.`);
+    super(`A root account already exists (${email}). Setup never creates another.`);
   }
 }
 
 export class RootNotFoundError extends IdentityError {
   constructor() {
     super("There's no root account yet. Run `pnpm run setup` to create one.");
+  }
+}
+
+/** reset-root-password with several roots and no `--email` (059). */
+export class WhichRootError extends IdentityError {
+  constructor(readonly count: number) {
+    super(`There are ${count} root accounts. Say which with --email.`);
+  }
+}
+
+/** reset-root-password's `--email` names someone who isn't root: it never promotes (059). */
+export class NotARootError extends IdentityError {
+  constructor(readonly email: string) {
+    super(`${email} isn't a root account.`);
   }
 }
 
