@@ -254,3 +254,11 @@ dependencies: {}
 /** The files a new draft of `type` starts with. */
 export const draftTemplate = (type: ItemType, itemName: string): TemplateFile[] =>
   TEMPLATES[type](itemName, itemName.slice(itemName.indexOf("/") + 1));
+
+/**
+ * The files New item starts a type with: ronne.yaml and the file it names, such as SKILL.md or
+ * prompt.md. They're the item, so the editor never deletes or renames them (owner, 2026-10-01);
+ * their contents are edited as usual.
+ */
+export const startingFiles = (type: ItemType): string[] =>
+  (TEMPLATES[type]?.("@scope/name", "name") ?? []).map((file) => file.path);

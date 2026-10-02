@@ -108,7 +108,12 @@ draft's existence isn't revealed. (From 013, submitted ones are visible to moder
   to the draft's settings.
 - **Files:** the tree lists every file with its size. Actions: new file, new folder (a path prefix),
   rename, delete (`ronne.yaml` can't be deleted), mark a script executable, upload files, and
-  import a `.zip`. Text files open in **CodeMirror 6** with YAML, Markdown, shell, JSON, JavaScript
+  import a `.zip`. *2026-10-01 (owner):* the **starting files** New item creates for the type
+  (`ronne.yaml` and the file it names, such as `SKILL.md`, `prompt.md`, `rule.md`, `command.md`,
+  `hook.sh` or `style.md`) are edited but never renamed or deleted: the editor shows "Starting file"
+  instead of Rename and Delete, a save that deletes one is refused (`StartingFileError`), and a
+  `.zip` that replaces the files keeps the ones it doesn't have. An export (051) still replaces an
+  item's files with what the tool has. Text files open in **CodeMirror 6** with YAML, Markdown, shell, JSON, JavaScript
   and TypeScript highlighting, themed with 032's tokens. Binary files show their size and type, and
   can be replaced or deleted, not edited.
 - **`.zip` import:** replaces or merges (you choose) the draft's files with the archive's. A single

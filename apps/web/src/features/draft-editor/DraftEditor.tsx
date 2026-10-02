@@ -29,6 +29,7 @@ import {
   toDraftContent,
   validateDraft,
 } from "@/server/domains/submissions/models/submission";
+import { startingFiles } from "@/server/domains/submissions/models/templates";
 import { saveDraftAction } from "./actions";
 import { addDependency, hasCanvas } from "./composer-canvas/model";
 import { findDependenciesAction } from "./dependency-picker/actions";
@@ -115,6 +116,11 @@ export const DraftEditor = ({
 
   const dirty = isDirty(state);
   const readOnly = draft.readOnly;
+  // The files New item started the type with: they stay (owner, 2026-10-01).
+  const starting = useMemo(
+    () => new Set([MANIFEST_PATH, ...startingFiles(draft.type)]),
+    [draft.type],
+  );
   const itemName = `@${draft.scope}/${draft.name}`;
   const file = state.files.find((f) => f.path === selected) ?? state.files[0];
   // Agents and bundles, whose dependencies are several kinds of item, also have a canvas (031).
@@ -474,7 +480,15 @@ export const DraftEditor = ({
                       Executable
                     </label>
                   )}
-                  {file.path !== MANIFEST_PATH && !readOnly ? (
+                  {starting.has(file.path) && file.path !== MANIFEST_PATH && !readOnly ? (
+                    <span
+                      className="px-2 text-xs text-muted"
+                      title={`One of the ${draft.type}'s starting files: edit it, but it can't be deleted or renamed.`}
+                    >
+                      Starting file
+                    </span>
+                  ) : null}
+                  {!starting.has(file.path) && !readOnly ? (
                     <>
                       <button
                         type="button"

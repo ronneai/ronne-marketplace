@@ -23,6 +23,7 @@ import {
   InvalidItemTypeError,
   ManifestRequiredError,
   StaleFilesError,
+  StartingFileError,
   SubmissionNotEditableError,
   SubmissionNotFoundError,
   ZipImportError,
@@ -738,6 +739,56 @@ describe("deleteDraft", () => {
       .where("submission_id", "=", draft.id)
       .execute();
     expect(left).toEqual([]);
+  });
+});
+
+describe("starting files (owner, 2026-10-01)", () => {
+  it("never deletes or renames the files New item started the type with", async () => {
+    const draft = await newAgent();
+    const prompt = draft.files.find((f) => f.path === "prompt.md");
+    const save = (changes: service.DraftChanges) => saveDraftFiles(asUser, draft.id, changes, app);
+    await expect(
+      save({ writes: [], deletes: [{ path: "prompt.md", loadedAt: prompt?.updatedAt ?? null }] }),
+    ).rejects.toThrow("prompt.md is one of the agent's starting files");
+    // A rename is a delete of the old path and a write of the new one.
+    await expect(
+      save({
+        writes: [text("system.md", prompt?.content ?? "")],
+        deletes: [{ path: "prompt.md", loadedAt: prompt?.updatedAt ?? null }],
+      }),
+    ).rejects.toThrow(StartingFileError);
+    expect((await getDraft(asUser, draft.id, app)).files.map((f) => f.path)).toEqual([
+      "prompt.md",
+      "ronne.yaml",
+    ]);
+
+    // Its other files come and go as usual, and the starting ones are edited as usual.
+    const added = await save({ writes: [text("notes.md", "Mine.")], deletes: [] });
+    const notes = added.draft.files.find((f) => f.path === "notes.md");
+    const edited = await save({
+      writes: [{ ...text("prompt.md", "New prompt."), loadedAt: prompt?.updatedAt ?? null }],
+      deletes: [{ path: "notes.md", loadedAt: notes?.updatedAt ?? null }],
+    });
+    expect(edited.draft.files.map((f) => [f.path, f.content])).toEqual([
+      ["prompt.md", "New prompt."],
+      ["ronne.yaml", expect.any(String)],
+    ]);
+  });
+
+  it("keeps them when a .zip replaces the files without them", async () => {
+    const draft = await newAgent();
+    const archive = zipSync({
+      "x/ronne.yaml": strToU8(
+        'name: "@platform/reviewer"\ntype: agent\ndescription: Hi.\nagent:\n  prompt: system.md\n',
+      ),
+      "x/system.md": strToU8("From the zip."),
+    });
+    await importZip(asUser, draft.id, { archive, mode: "replace" }, app);
+    expect((await getDraft(asUser, draft.id, app)).files.map((f) => f.path)).toEqual([
+      "prompt.md",
+      "ronne.yaml",
+      "system.md",
+    ]);
   });
 });
 

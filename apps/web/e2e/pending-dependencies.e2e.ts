@@ -171,6 +171,10 @@ test("the form finds a dependency as you type, adds it on latest, and saves it",
     .getByRole("list", { name: "Files" })
     .getByRole("button", { name: /prompt\.md/ })
     .click();
+  // The type's starting file stays: it's edited, never renamed or deleted.
+  await expect(author.getByText("Starting file", { exact: true })).toBeVisible();
+  await expect(author.getByRole("button", { name: "Rename", exact: true })).toHaveCount(0);
+  await expect(author.getByRole("button", { name: "Delete", exact: true })).toHaveCount(0);
   const prompt = author.getByLabel("Contents of prompt.md");
   await prompt.click();
   await author.keyboard.press("ControlOrMeta+End");

@@ -539,6 +539,13 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             There&apos;s no <Code>version</Code>: the release sets it.
           </li>
         </Bullets>
+        <p>
+          The files <strong>New item</strong> starts with, <Code>ronne.yaml</Code> and the file it
+          names (such as <Code>SKILL.md</Code> or <Code>prompt.md</Code>), are the item&apos;s
+          <strong> starting files</strong>: edit them as you like, but they can&apos;t be renamed or
+          deleted. Importing a <Code>.zip</Code> that replaces the files keeps them. Other files
+          come and go as usual.
+        </p>
       </>
     ),
     contents: (

@@ -185,6 +185,18 @@ export class ManifestRequiredError extends SubmissionsError {
   }
 }
 
+/** A file New item started the type with (owner, 2026-10-01): edited, never deleted or renamed. */
+export class StartingFileError extends SubmissionsError {
+  constructor(
+    readonly path: string,
+    readonly type: string,
+  ) {
+    super(
+      `${path} is one of the ${type}'s starting files: edit it, but it can't be deleted or renamed.`,
+    );
+  }
+}
+
 export class FileTooLargeError extends SubmissionsError {
   constructor(
     readonly path: string,
