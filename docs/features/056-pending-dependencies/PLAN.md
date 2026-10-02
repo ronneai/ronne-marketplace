@@ -50,7 +50,7 @@ the same change that completes it.
 - [x] **7. Documentation.** The sections and helpers in the spec's Documentation section.
   *Done when:* the docs render tests pass, and every new helper's link lands on a real section.
 
-- [ ] **8. Dependency search.** The catalogue search matches the scope, and `@scope/name` parts;
+- [x] **8. Dependency search.** The catalogue search matches the scope, and `@scope/name` parts;
   `findDependencies` over published items, the person's own submissions and others' open ones,
   with versions and `latest`; a server action.
   *Done when:* `dependency-search.db.test.ts` covers each source, allowed types, the item itself,

@@ -136,7 +136,8 @@ submits that included dependencies are 052's events, one per item.
 typing (`@engineering` isn't a full name; `^1.` isn't a range), and the canvas's search only knew
 published items and didn't match the scope.
 
-- **The list.** Typing any part of `@scope/name`, a description or a keyword filters, case aside.
+- **The list.** Typing any part of `@scope/name` filters, case aside; published items also match
+  their description and keywords.
   `@team/re` matches scope `team` and names containing `re`. It offers only types this item may
   depend on (manifest spec §3), never the item itself or one already listed, and at most 12:
   - **published** items, with their newest version;
