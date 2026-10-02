@@ -140,7 +140,7 @@ contract [`docs/spec/native-readers.md`](../spec/native-readers.md).
 | [055](./055-bulk-release/SPEC.md) | Release in bulk: My submissions and the review queue's To release tab release several approved submissions at once, dependencies first, with one set of settings (stable or pre-release, suggested bump for each, tag, notes) | 015, 017, 052, 054, 056 | done |
 | [056](./056-pending-dependencies/SPEC.md) | Dependencies on their way: a dependency in review counts at submit (range checked at release); bulk submit and release include dependencies; rejecting a dependency offers to request changes on its dependents; request changes from approved | 013, 014, 015, 041, 052, 054 | done |
 | [057](./057-withdraw-archive-delete/SPEC.md) | Withdraw: archive or delete. Withdrawing asks: archive (out of the list, private, restorable as a draft) or delete for good (only if nobody has reviewed it); `submission.deleted` and `submission.restored` | 012, 013, 014, 052, 056 | done |
-| [058](./058-review-decisions-everywhere/SPEC.md) | Reject and request changes from the queue and the page: per-row actions with a required reason, the decisions always visible on the review page (disabled with the reason on your own), and the reviewer's message at the top of the author's page | 014, 054, 055, 056 | specified |
+| [058](./058-review-decisions-everywhere/SPEC.md) | Reject and request changes from the queue and the page: per-row actions with a required reason, the decisions always visible on the review page (disabled with the reason on your own), and the reviewer's message at the top of the author's page | 014, 054, 055, 056 | in progress |
 
 ### M8 — Catalogue improvements
 

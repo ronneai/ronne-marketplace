@@ -4,6 +4,7 @@ import { OPEN_STATUSES, type SubmissionStatus } from "../models/status";
 import { fileBytes, MANIFEST_PATH, type Submission, toPackageFile } from "../models/submission";
 import type { SubmissionRepository } from "../repositories/submission-repository";
 import { type Approvability, approvability } from "./bulk-approve";
+import { type DecisionOption, decisionsFor } from "./decisions";
 import { type DependencyMark, dependenciesOf, marksFor } from "./dependency-marks";
 import { withStale } from "./proposals";
 import type { SubmissionActor, SubmissionDeps } from "./submissions";
@@ -37,6 +38,8 @@ export type QueueRow = Submission & {
   mine: boolean;
   /** Whether this reviewer can approve it now, and why not (054). */
   approvable: Approvability;
+  /** The row's own decisions (058): request changes and reject, as on its review page. */
+  decisions: DecisionOption[];
   /** What it waits on (056): dependencies in review, or blocked. */
   marks: DependencyMark[];
   /** For an approved one (055): who approved it, and when. */
@@ -116,7 +119,11 @@ export const listQueue = async (
   const last = rows.at(-1);
   const stale = await withStale(registry, rows);
   return {
-    rows: stale.map((row) => ({ ...row, approvable: approvability(actor, row) })),
+    rows: stale.map((row) => ({
+      ...row,
+      approvable: approvability(actor, row),
+      decisions: decisionsFor(actor, row),
+    })),
     nextCursor: paged && found.length > DECIDED_PAGE_SIZE && last ? cursorOf(last) : null,
   };
 };

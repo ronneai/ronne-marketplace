@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. One rule for who may decide.** Move the `can` flags of `services/review-page.ts` into
+- [x] **1. One rule for who may decide.** Move the `can` flags of `services/review-page.ts` into
   `decisionsFor(actor, submission)` in the `submissions` domain, returning each decision with
   "allowed" or its reason. Use it in `review-page.ts` and in each `QueueRow`
   (`services/queue.ts`), alongside 054's `approvable`.

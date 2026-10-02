@@ -45,6 +45,7 @@ const row = (overrides: Partial<QueueRow> = {}): QueueRow => ({
   riskKinds: ["hook"],
   mine: false,
   approvable: { approvable: true, override: false },
+  decisions: [],
   marks: [],
   approved: null,
   ...overrides,

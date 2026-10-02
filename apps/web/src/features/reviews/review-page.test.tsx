@@ -200,6 +200,7 @@ const view = (overrides: Partial<ReviewView> = {}): ReviewView => ({
   issues: [],
   events: [event({ revision: 2, kind: "resubmit" })],
   published: [],
+  decisions: [],
   can: { decide: true, override: false, comment: true, publish: false, sendBack: false },
   proposal: null,
   dependents: [],
