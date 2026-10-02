@@ -41,8 +41,10 @@ the same change that completes it.
   *Done when:* `reviews.db.test.ts` covers ticked, unticked, a moderator's own dependent, one that
   moved on, and an approved dependent; `status.test.ts` covers the new move.
 
-- [ ] **6. End to end.** A skill and an agent that uses it, submitted together, approved, released
-  in one batch; then rejecting the skill sends the agent back.
+- [x] **6. End to end.** A skill and a bundle that uses it, submitted together (naming only the
+  bundle), approved, and released skill first, with the bundle's Publish waiting until then;
+  then rejecting a skill sends its bundle back. Releasing both in one batch is 055's end-to-end
+  test.
   *Done when:* the Playwright test passes.
 
 - [ ] **7. Documentation.** The sections and helpers in the spec's Documentation section.
