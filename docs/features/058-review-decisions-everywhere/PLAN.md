@@ -56,9 +56,19 @@ the same change that completes it.
   `e2e/review.e2e.ts` or a new `e2e/review-decisions.e2e.ts`.
   *Done when:* `pnpm test:e2e` passes.
 
-- [ ] **8. Close.** Set the status to `done` in the index.
+- [x] **8. Close.** Set the status to `done` in the index.
 
 ## Notes
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- **The status line outlives the row.** A row's decision refreshes the page and the row leaves the
+  tab, unmounting its dialog. The "Rejected …" line lives in `QueueStatusProvider`, a client
+  component above the table that keeps its state across `router.refresh()`.
+- **Disabled buttons in static markup:** `Button`'s classes include `disabled:…`, so match the
+  attribute (`disabled=""`), not the word.
+- **The reviewer's message shows twice** on the author's page (the top notice and the
+  conversation): in Playwright, scope to the notice (`getByRole("status")`) or use `.first()`.
+- **Turborepo's local cache** (`.turbo/cache`) is never pruned; by this feature it had grown to
+  292 GB and filled the disk mid-commit. Deleting it is safe; the next run rebuilds what it needs.
