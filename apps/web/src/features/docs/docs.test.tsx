@@ -131,6 +131,10 @@ describe("the topics", () => {
     expect(install).toContain("Test connection");
     expect(install).not.toContain("pnpm run setup");
     expect(install).toContain("reset-root-password");
+    // Several roots (059): added from Users, and the reset command picks one.
+    expect(install).toContain("There can be several roots");
+    expect(install).toContain("at least one active root");
+    expect(install).toContain("--email");
     expect(install).not.toContain("docker compose restart");
     expect(install).toContain("Nothing needs a restart");
     const rmk = await topic("rmk");

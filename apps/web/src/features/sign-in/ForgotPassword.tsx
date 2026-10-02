@@ -9,7 +9,7 @@ export const ForgotPassword = () => {
         Forgot?
       </summary>
       <p className="mt-2 max-w-72 text-left text-xs text-muted">
-        Ask a root administrator to reset your password. If you&apos;re root, run{" "}
+        Ask a root to reset your password in Users. If you&apos;re the only root, run{" "}
         <code className="font-mono text-fg">pnpm run reset-root-password</code> where Ronne AI
         Marketplace is installed.
       </p>

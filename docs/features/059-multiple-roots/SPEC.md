@@ -100,8 +100,10 @@ demoted a moment ago can't finish an action they had already started.
   default. Choosing `root` shows a warning line under the select: "Root can do everything: manage
   users (other roots included), scopes, settings and the audit log, and approve their own
   submissions." The rest of the dialog (password shown once, and so on) is unchanged.
-- **Row actions** appear on every row except the signed-in root's own. That row shows "You" in
-  place of the menu, with a helper explaining where to change your own account.
+- **Row actions** appear on every row except the signed-in root's own. That row shows only a
+  helper's icon in place of the menu (the owner, 2026-10-02: no text there). Its question, "Why
+  can't I change my own account here?", is the icon's accessible name, and its answer explains
+  where to change your own account.
 - **Change role** offers all three roles. The confirmation depends on the change:
   - **to root:** "Make Alex root? They'll be able to do everything you can, including changing
     your role or disabling you."
@@ -195,33 +197,35 @@ targets are users, as before. Filtering the audit log by "root changes" is out o
 - **New inline helpers** (`Help.tsx`):
   - `role-root` next to the role select in Create user and Change role: what root can do, that
     every root can change every other root, and a link to Roles.
-  - `own-row` on the "You" cell of the signed-in root's row: "You can't change your own role or
-    disable yourself here. Change your password in Account; another root can change the rest." It
-    links to Install › Root accounts.
+  - `own-row` as an icon only (`<Help iconOnly>`, a new `HelpTip` option) on the signed-in root's
+    row: "You can't change your own role or disable yourself here. Change your password in Account;
+    another root can change the rest." It links to Install › Root accounts.
+- **Setup wizard's "What can root do?" tip** (`features/setup/fields.tsx`): "This is the first
+  root" in place of "There is one root".
 - **Users page description** (`UsersPage.tsx`): "Only root creates users" stays true. Nothing to
   change.
 
 ## Acceptance criteria
 
-- [ ] Root can create a user with the role `root`. That user can sign in and reach `/admin/users`
+- [x] Root can create a user with the role `root`. That user can sign in and reach `/admin/users`
   (Playwright).
-- [ ] Root can change any other account's role to any of the three, roots included, and each change
+- [x] Root can change any other account's role to any of the three, roots included, and each change
   records `user.role_changed`.
-- [ ] Root can disable, enable and reset the password of another root, with the same effects and
+- [x] Root can disable, enable and reset the password of another root, with the same effects and
   events as for other users.
-- [ ] Every admin action on your own row fails with `CannotModifySelfError`, and the UI shows no
+- [x] Every admin action on your own row fails with `CannotModifySelfError`, and the UI shows no
   menu on that row.
-- [ ] No admin action can leave zero active roots. Concurrent mutual demotion on PostgreSQL, MySQL,
+- [x] No admin action can leave zero active roots. Concurrent mutual demotion on PostgreSQL, MySQL,
   MariaDB and SQLite leaves exactly one active root, and the other request fails.
-- [ ] A root demoted while acting can't complete a `users.manage` action begun before the demotion.
-- [ ] A promotion or demotion takes effect on the person's next web request and next API call,
+- [x] A root demoted while acting can't complete a `users.manage` action begun before the demotion.
+- [x] A promotion or demotion takes effect on the person's next web request and next API call,
   without ending their sessions or tokens.
-- [ ] `reset-root-password` with several roots asks which one (interactive), or requires `--email`
+- [x] `reset-root-password` with several roots asks which one (interactive), or requires `--email`
   (non-interactive, exit 2 without it), and refuses a non-root email.
-- [ ] Setup still never creates a root when any root exists, and the setup state stays `ready` with
+- [x] Setup still never creates a root when any root exists, and the setup state stays `ready` with
   several roots or with every root disabled.
-- [ ] The permission test (008) still matches MVP §2, and MVP §2, §5 and §15 describe several roots.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] The permission test (008) still matches MVP §2, and MVP §2, §5 and §15 describe several roots.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Open questions
 

@@ -38,12 +38,15 @@ export const HelpTip = ({
   href,
   children,
   className,
+  iconOnly = false,
 }: {
   question: string;
   /** Its topic in the Documentation. */
   href?: string;
   children: ReactNode;
   className?: string;
+  /** Shows only the icon, where space is tight; the question stays its accessible name. */
+  iconOnly?: boolean;
 }) => {
   const [open, setOpen] = useState(false);
   const arrowRef = useRef<SVGSVGElement>(null);
@@ -95,7 +98,10 @@ export const HelpTip = ({
         className="inline-flex cursor-pointer items-center gap-1 rounded-control text-left text-muted outline-offset-2 hover:text-fg focus-visible:outline-2 focus-visible:outline-focus aria-expanded:text-fg"
       >
         <CircleHelp size={14} aria-hidden="true" className="shrink-0" />
-        <span id={labelId} className="underline decoration-dotted underline-offset-2">
+        <span
+          id={labelId}
+          className={iconOnly ? "sr-only" : "underline decoration-dotted underline-offset-2"}
+        >
           {question}
         </span>
       </button>

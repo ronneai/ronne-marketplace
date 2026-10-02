@@ -46,7 +46,11 @@ test("root creates a user, who signs in with the shown password; disabling them 
   await signIn(user, email, password);
 
   // Root's own row is read-only; the user isn't an admin yet.
-  await expect(rowOf(root, E2E_USERS.root)).toContainText("You");
+  await expect(
+    rowOf(root, E2E_USERS.root).getByRole("button", {
+      name: "Why can't I change my own account here?",
+    }),
+  ).toBeVisible();
   await expect(root.getByRole("group", { name: `Actions for ${E2E_USERS.root}` })).toHaveCount(0);
   expect((await user.goto("/admin/users"))?.status()).toBe(404);
 
@@ -65,7 +69,9 @@ test("root creates a user, who signs in with the shown password; disabling them 
   };
   await changeRole("root", `Make ${email} root?`);
   expect((await user.goto("/admin/users"))?.status()).toBe(200);
-  await expect(rowOf(user, email)).toContainText("You");
+  await expect(
+    rowOf(user, email).getByRole("button", { name: "Why can't I change my own account here?" }),
+  ).toBeVisible();
   await expect(user.getByRole("group", { name: `Actions for ${email}` })).toHaveCount(0);
   await expect(
     user

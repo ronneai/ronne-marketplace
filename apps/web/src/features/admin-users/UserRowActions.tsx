@@ -180,9 +180,8 @@ export const UserRowActions = ({ user }: { user: RowUser }) => {
   const [round, setRound] = useState(0);
   if (user.self)
     return (
-      <div className="flex items-center justify-end gap-2">
-        <span className="text-xs text-muted">You</span>
-        <Help id="own-row" />
+      <div className="flex justify-end">
+        <Help id="own-row" iconOnly />
       </div>
     );
 

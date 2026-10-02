@@ -59,7 +59,7 @@ New folders start from [`_template/`](./_template/).
 | [007](./007-audit-log/SPEC.md) | Audit log | 002 | done |
 | [008](./008-user-admin/SPEC.md) | User admin: create, disable, change role, reset password | 006, 007, 032 | done |
 | [009](./009-access-tokens/SPEC.md) | Personal access tokens: UI, `POST/DELETE /api/v1/auth/token`, `GET /api/v1/me`, bearer guard | 006, 007, 032 | done |
-| [059](./059-multiple-roots/SPEC.md) | More than one root: root makes other accounts root and changes any role but their own; roots manage each other; at least one active root always remains; `reset-root-password --email` | 003, 006, 007, 008 | specified |
+| [059](./059-multiple-roots/SPEC.md) | More than one root: root makes other accounts root and changes any role but their own; roots manage each other; at least one active root always remains; `reset-root-password --email` | 003, 006, 007, 008 | done |
 
 ### M2 — Items & submissions
 

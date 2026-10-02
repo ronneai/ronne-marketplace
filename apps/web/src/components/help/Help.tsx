@@ -210,10 +210,19 @@ export const HELP = {
 
 export type HelpId = keyof typeof HELP;
 
-export const Help = ({ id, className }: { id: HelpId; className?: string }): ReactNode => {
+export const Help = ({
+  id,
+  className,
+  iconOnly,
+}: {
+  id: HelpId;
+  className?: string;
+  /** Only the icon; the question is still read out (HelpTip). */
+  iconOnly?: boolean;
+}): ReactNode => {
   const help = HELP[id];
   return (
-    <HelpTip question={help.question} href={help.href} className={className}>
+    <HelpTip question={help.question} href={help.href} className={className} iconOnly={iconOnly}>
       <p>{help.answer}</p>
     </HelpTip>
   );

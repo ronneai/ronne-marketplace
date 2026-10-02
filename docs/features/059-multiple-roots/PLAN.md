@@ -42,21 +42,23 @@ the same change that completes it.
 - [x] **5. Admin UI.** The role select in Create user offers `root`, with a warning notice when
   chosen. Each row's **Change role** opens a dialog with a select of the other roles, and warns
   before making someone root or removing root (`RoleChangeNotice`). Another root's row has every
-  action, and its disable and reset dialogs say "is a root". The signed-in root's row shows "You"
-  with the `own-row` helper; the page marks it with `self`. The `role-root` and `own-row` helpers
+  action, and its disable and reset dialogs say "is a root". The signed-in root's row shows only the
+  `own-row` helper's icon (`iconOnly`, new on `HelpTip`); the page marks it with `self`. The `role-root` and `own-row` helpers
   are added here, since the UI uses them.
-  *Done when:* `actions.test.tsx` covers the "You" row, another root's full menu and the
+  *Done when:* `actions.test.tsx` covers the own row (icon only), another root's full menu and the
   confirmations; the dialogs themselves are covered end to end (task 6).
 
 - [x] **6. End to end.** In `user-admin.e2e.ts`'s root test (no new root sign-in:
   `docs/knowledge/e2e-sign-in-limit.md`): choosing root in Create user warns; root's own row shows
-  "You" with no actions; root promotes the created user through Change role (with the warning),
-  who then opens `/admin/users` on their next request, sees "You" on their row and actions on
+  only the helper's icon, with no actions; root promotes the created user through Change role (with the warning),
+  who then opens `/admin/users` on their next request, sees the helper's icon on their row and actions on
   root's; root removes root again, and `/admin/users` is a 404 for them.
   *Done when:* `pnpm test:e2e` passes.
 
-- [ ] **7. Documentation and decisions.** The topics, sections and helpers in the spec's
-  Documentation section; `ForgotPassword.tsx`; `CannotModifySelfError`'s message.
+- [x] **7. Documentation and decisions.** The topics, sections and helpers in the spec's
+  Documentation section: Install › Root accounts (renamed) and the setup section, Roles › The three
+  roles, `ForgotPassword.tsx`, and the setup wizard's root tip. `CannotModifySelfError`'s message
+  was done in task 1.
   *Done when:* the docs render tests pass (`docs.test.tsx`, `sign-in.test.tsx` updated for the new
   wording), every new helper's link lands on a real section, and the index marks 059 `done`.
 

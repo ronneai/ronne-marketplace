@@ -139,8 +139,8 @@ describe("rendering", () => {
         user={{ id: "r", email: "root@example.com", role: "root", disabled: false, self: true }}
       />,
     );
-    expect(own).toContain("You");
-    expect(own).toContain("Why can&#x27;t I change my own account here?");
+    // Only the helper's icon; its question is screen-reader text.
+    expect(own).toContain('class="sr-only">Why can&#x27;t I change my own account here?');
     expect(own).not.toContain("Reset password");
     const otherRoot = renderToStaticMarkup(
       <UserRowActions
