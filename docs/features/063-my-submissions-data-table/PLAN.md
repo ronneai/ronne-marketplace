@@ -24,7 +24,7 @@ the same change that completes it.
   `submit.e2e.ts`, `bulk-submit.e2e.ts` (now with a search), `bulk-release.e2e.ts` and
   `withdraw.e2e.ts` pass.
 
-- [ ] **3. Documentation.** The Review sections and the `release-many` helper.
+- [x] **3. Documentation.** The Review sections and the `release-many` helper.
   *Done when:* the docs render tests pass, and the index marks 063 `done`.
 
 ## Notes

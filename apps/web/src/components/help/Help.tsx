@@ -155,7 +155,7 @@ export const HELP = {
   "release-many": {
     question: "Release several at once?",
     answer:
-      "Tick approved ones, or Select all approved (on the review queue, the rows on this page), then Release selected: choose stable or pre-release, the bump and the tag once, and see every version before anything goes out. Dependencies go first, and the approved ones they need are added.",
+      "Tick approved ones, or Select all approved (the rows on this page), then Release selected: choose stable or pre-release, the bump and the tag once, and see every version before anything goes out. Dependencies go first, and the approved ones they need are added.",
     href: docsHref("versions", "release-many"),
   },
   "waits-on": {

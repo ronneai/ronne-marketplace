@@ -137,6 +137,9 @@ describe("the topics", () => {
     expect(install).toContain("--email");
     expect(install).not.toContain("docker compose restart");
     expect(install).toContain("Nothing needs a restart");
+    // My submissions' table (063).
+    expect(review).toContain("lists yours a page at a time (25, 50 or 100)");
+    expect(review).toContain("Select all ready takes every ready draft");
     // The review queue's table (062).
     expect(review).toContain("Every tab pages, 25, 50 or 100 at a time");
     expect(review).toContain("Select all covers the page you&#x27;re viewing");

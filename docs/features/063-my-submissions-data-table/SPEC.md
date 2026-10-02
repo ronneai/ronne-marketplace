@@ -105,21 +105,22 @@ it shows.
   last change or name, searched, filtered by type, and paged.
 - **Review › "Submitting many at once":** Select all ready still takes every ready draft, and
   Release selected acts on the page's approved rows.
-- **Helpers:** `release-many` gets 062's sentence. `submit-many` doesn't change.
+- **Helpers:** `release-many` now says Select all approved covers the rows on the page, on both
+  pages. `submit-many` doesn't change.
 
 ## Acceptance criteria
 
-- [ ] `/submissions` renders on `DataTable`, reading only one page and the status counts. It never
+- [x] `/submissions` renders on `DataTable`, reading only one page and the status counts. It never
   reads the person's whole list.
-- [ ] Sorting by last change or name works both ways with no repeat or gap on all four databases.
+- [x] Sorting by last change or name works both ways with no repeat or gap on all four databases.
   The status links show the right counts (Archived apart).
-- [ ] The search and type filter apply on change, as chips. The status links keep the sort and
+- [x] The search and type filter apply on change, as chips. The status links keep the sort and
   size.
-- [ ] Submitting many, releasing many, archiving, restoring and deleting work as before (the
+- [x] Submitting many, releasing many, archiving, restoring and deleting work as before (the
   existing end-to-end tests pass, updated for the new controls).
-- [ ] `0017_submissions_author_indexes` runs on all four databases.
-- [ ] Every other caller of `listByAuthor` behaves as before.
-- [ ] The Documentation and helpers listed above say what the feature does now.
+- [x] `0017_submissions_author_indexes` runs on all four databases.
+- [x] Every other caller of `listByAuthor` behaves as before.
+- [x] The Documentation and helpers listed above say what the feature does now.
 
 ## Open questions
 
