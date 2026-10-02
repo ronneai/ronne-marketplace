@@ -114,8 +114,8 @@ export const decide = async (
   input: {
     decision: ReviewDecision;
     message?: string;
-    /** How it was decided, for the audit log: approving many at once (054). */
-    via?: "bulk";
+    /** How it was decided, for the audit log: approving many at once (054), or a queue row (058). */
+    via?: "bulk" | "queue";
     /** Why, when it follows another decision: its dependency was rejected (056). */
     cause?: { rejected: string };
   },
@@ -270,13 +270,17 @@ export const rejectWithDependents = async (
   deps: SubmissionDeps,
   actor: SubmissionActor,
   id: string,
-  input: { message?: string; dependents?: { message?: string } },
+  input: { message?: string; dependents?: { message?: string }; via?: "queue" },
 ): Promise<{ rejected: Submission; dependents: SentBack[] }> => {
   const waiting = input.dependents ? await dependentsOf(deps, actor, id) : [];
   const dependentsMessage = input.dependents
     ? messageFrom(input.dependents.message, "Sending its dependents back")
     : null;
-  const rejected = await decide(deps, actor, id, { decision: "reject", message: input.message });
+  const rejected = await decide(deps, actor, id, {
+    decision: "reject",
+    message: input.message,
+    ...(input.via ? { via: input.via } : {}),
+  });
   const results: SentBack[] = [];
   for (const dependent of waiting) {
     if (!dependent.sendBack.ok) {

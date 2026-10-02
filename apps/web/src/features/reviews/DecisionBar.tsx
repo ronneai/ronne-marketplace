@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
 import type { Dependent, ReviewDecision } from "@/server/domains/submissions/actions/reviews";
-import { decideAction, rejectAction } from "./actions";
+import type { DecisionOption } from "@/server/domains/submissions/services/decisions";
+import { decideAction, dependentsAction, rejectAction } from "./actions";
 
 const COPY: Record<
   ReviewDecision,
@@ -115,6 +116,120 @@ export const DependentsChoice = ({
   </fieldset>
 );
 
+/**
+ * One decision's dialog (014): its message, and for Reject the dependents' choice (056). From a
+ * queue row (058), `via: "queue"` goes to the audit log.
+ */
+export const DecisionDialog = ({
+  id,
+  name,
+  decision,
+  dependents = [],
+  via,
+  onClose,
+}: {
+  id: string;
+  /** The item's name, for the dependents' message (056). */
+  name?: string;
+  decision: ReviewDecision;
+  /** Open submissions that depend on this one (056), listed when rejecting. */
+  dependents?: Dependent[];
+  via?: "queue";
+  onClose: () => void;
+}) => {
+  const router = useRouter();
+  const [text, setText] = useState("");
+  const [sendBack, setSendBack] = useState(true);
+  const [othersText, setOthersText] = useState(dependentsMessage(name ?? "This item"));
+  const [error, setError] = useState<string | null>(null);
+  const [skipped, setSkipped] = useState<{ name: string; reason: string }[]>([]);
+  const [pending, start] = useTransition();
+  const copy = COPY[decision];
+  return (
+    <Dialog open onClose={onClose} title={copy.title}>
+      <form
+        className="grid gap-3"
+        onSubmit={(event) => {
+          event.preventDefault();
+          start(async () => {
+            if (decision === "reject" && dependents.length > 0) {
+              const result = await rejectAction(id, text, sendBack ? othersText : null, via);
+              if (result.error) return setError(result.error);
+              // Ones that couldn't be sent back stay in view, with why.
+              if (result.skipped?.length) {
+                setSkipped(result.skipped);
+                return router.refresh();
+              }
+            } else {
+              const result = await decideAction(id, decision, text, via);
+              if (result.error) {
+                setError(result.error);
+                // Someone else decided it, or its author withdrew it: show the queue as it is now.
+                return router.refresh();
+              }
+            }
+            onClose();
+            router.refresh();
+          });
+        }}
+      >
+        <Label htmlFor="decision-message">Message</Label>
+        <textarea
+          id="decision-message"
+          rows={4}
+          maxLength={5000}
+          required={copy.required}
+          value={text}
+          onChange={(event) => setText(event.target.value)}
+          aria-describedby="decision-hint decision-error"
+          className={`${inputClasses} h-auto py-2`}
+        />
+        <p id="decision-hint" className="text-xs text-muted">
+          {copy.hint}
+        </p>
+        {decision === "reject" && dependents.length > 0 ? (
+          <DependentsChoice
+            dependents={dependents}
+            sendBack={sendBack}
+            onSendBack={setSendBack}
+            text={othersText}
+            onText={setOthersText}
+          />
+        ) : null}
+        {skipped.length > 0 ? (
+          <div className="grid gap-1 text-sm">
+            <p className="font-semibold">Rejected. Not sent back:</p>
+            <ul className="grid gap-0.5 text-muted">
+              {skipped.map((d) => (
+                <li key={d.name}>
+                  <span className="font-mono">{d.name}</span>: {d.reason}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        <FieldError id="decision-error">{error}</FieldError>
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant={copy.variant === "destructive" ? "destructive" : "primary"}
+            loading={pending}
+          >
+            {copy.button}
+          </Button>
+        </div>
+      </form>
+    </Dialog>
+  );
+};
+
+/** A decision as a button: allowed, or disabled with the reason (058). */
+const asOption = (decision: ReviewDecision | DecisionOption): DecisionOption =>
+  typeof decision === "string" ? { decision, allowed: true } : decision;
+
 /** The reviewer's decisions (feature 014): each asks for its message in a dialog, then refreshes. */
 export const DecisionBar = ({
   id,
@@ -125,115 +240,99 @@ export const DecisionBar = ({
   id: string;
   /** The item's name, for the dependents' message (056). */
   name?: string;
-  decisions: ReviewDecision[];
+  /** Each decision, or (058) each with whether it's allowed and why not. */
+  decisions: readonly (ReviewDecision | DecisionOption)[];
   /** Open submissions that depend on this one (056), listed when rejecting. */
   dependents?: Dependent[];
 }) => {
-  const router = useRouter();
   const [open, setOpen] = useState<ReviewDecision | null>(null);
-  const [text, setText] = useState("");
-  const [sendBack, setSendBack] = useState(true);
-  const [othersText, setOthersText] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [skipped, setSkipped] = useState<{ name: string; reason: string }[]>([]);
-  const [pending, start] = useTransition();
   if (decisions.length === 0) return null;
-  const copy = open ? COPY[open] : null;
   return (
     <>
       <div className="flex flex-wrap gap-2">
-        {decisions.map((decision) => (
+        {decisions.map(asOption).map((option) => (
           <Button
-            key={decision}
-            variant={COPY[decision].variant}
-            onClick={() => {
-              setText("");
-              setSendBack(true);
-              setOthersText(dependentsMessage(name ?? "This item"));
-              setError(null);
-              setSkipped([]);
-              setOpen(decision);
-            }}
+            key={option.decision}
+            variant={COPY[option.decision].variant}
+            disabledReason={option.allowed ? null : option.reason}
+            onClick={() => setOpen(option.decision)}
           >
-            {COPY[decision].button}
+            {COPY[option.decision].button}
           </Button>
         ))}
       </div>
-      {open && copy ? (
-        <Dialog open onClose={() => setOpen(null)} title={copy.title}>
-          <form
-            className="grid gap-3"
-            onSubmit={(event) => {
-              event.preventDefault();
+      {open ? (
+        <DecisionDialog
+          id={id}
+          name={name}
+          decision={open}
+          dependents={dependents}
+          onClose={() => setOpen(null)}
+        />
+      ) : null}
+    </>
+  );
+};
+
+/** The decisions a queue row offers (058): request changes and reject, one at a time. */
+const ROW_DECISIONS: readonly ReviewDecision[] = ["request_changes", "reject"];
+
+/**
+ * A review queue row's own decisions (058): Request changes and Reject, each with its required
+ * message, as on the review page. Rejecting loads the submission's dependents first (056).
+ */
+export const RowDecisions = ({
+  id,
+  name,
+  decisions,
+}: {
+  id: string;
+  name: string;
+  decisions: readonly DecisionOption[];
+}) => {
+  const [open, setOpen] = useState<{ decision: ReviewDecision; dependents: Dependent[] } | null>(
+    null,
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  const shown = decisions.filter((option) => ROW_DECISIONS.includes(option.decision));
+  if (shown.length === 0) return null;
+  return (
+    <div className="grid justify-items-end gap-1">
+      <div className="flex flex-wrap justify-end gap-2">
+        {shown.map((option) => (
+          <Button
+            key={option.decision}
+            variant={option.decision === "reject" ? "destructive" : "secondary"}
+            aria-label={`${COPY[option.decision].button}: ${name}`}
+            disabledReason={option.allowed ? null : option.reason}
+            loading={pending && option.decision === "reject"}
+            onClick={() => {
+              setError(null);
+              if (option.decision !== "reject")
+                return setOpen({ decision: option.decision, dependents: [] });
               start(async () => {
-                if (open === "reject" && dependents.length > 0) {
-                  const result = await rejectAction(id, text, sendBack ? othersText : null);
-                  if (result.error) return setError(result.error);
-                  // Ones that couldn't be sent back stay in view, with why.
-                  if (result.skipped?.length) {
-                    setSkipped(result.skipped);
-                    return router.refresh();
-                  }
-                } else {
-                  const result = await decideAction(id, open, text);
-                  if (result.error) return setError(result.error);
-                }
-                setOpen(null);
-                router.refresh();
+                const result = await dependentsAction(id);
+                if ("error" in result) return setError(result.error);
+                setOpen({ decision: "reject", dependents: result.dependents });
               });
             }}
           >
-            <Label htmlFor="decision-message">Message</Label>
-            <textarea
-              id="decision-message"
-              rows={4}
-              maxLength={5000}
-              required={copy.required}
-              value={text}
-              onChange={(event) => setText(event.target.value)}
-              aria-describedby="decision-hint decision-error"
-              className={`${inputClasses} h-auto py-2`}
-            />
-            <p id="decision-hint" className="text-xs text-muted">
-              {copy.hint}
-            </p>
-            {open === "reject" && dependents.length > 0 ? (
-              <DependentsChoice
-                dependents={dependents}
-                sendBack={sendBack}
-                onSendBack={setSendBack}
-                text={othersText}
-                onText={setOthersText}
-              />
-            ) : null}
-            {skipped.length > 0 ? (
-              <div className="grid gap-1 text-sm">
-                <p className="font-semibold">Rejected. Not sent back:</p>
-                <ul className="grid gap-0.5 text-muted">
-                  {skipped.map((d) => (
-                    <li key={d.name}>
-                      <span className="font-mono">{d.name}</span>: {d.reason}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-            <FieldError id="decision-error">{error}</FieldError>
-            <div className="flex flex-wrap justify-end gap-2">
-              <Button variant="secondary" onClick={() => setOpen(null)}>
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                variant={copy.variant === "destructive" ? "destructive" : "primary"}
-                loading={pending}
-              >
-                {copy.button}
-              </Button>
-            </div>
-          </form>
-        </Dialog>
+            {COPY[option.decision].button}
+          </Button>
+        ))}
+      </div>
+      <FieldError id={`row-decision-error-${id}`}>{error}</FieldError>
+      {open ? (
+        <DecisionDialog
+          id={id}
+          name={name}
+          decision={open.decision}
+          dependents={open.dependents}
+          via="queue"
+          onClose={() => setOpen(null)}
+        />
       ) : null}
-    </>
+    </div>
   );
 };

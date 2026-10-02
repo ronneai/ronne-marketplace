@@ -14,7 +14,7 @@ the same change that completes it.
   *Done when:* a unit test covers the spec's table for user, moderator, root, author and non-author
   on each status, including a stale proposal. The review page's existing tests still pass.
 
-- [ ] **2. Deciding from a row.**
+- [x] **2. Deciding from a row.**
   - A server action that loads a submission's open dependents when the reject dialog opens (over
     `dependentsOf`).
   - `via: "queue"` in the audit metadata of `decideAction` and `rejectAction` when called from the

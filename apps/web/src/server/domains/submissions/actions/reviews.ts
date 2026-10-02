@@ -27,7 +27,7 @@ const actor = async (headers: Headers, app: AppAuth): Promise<SubmissionActor> =
 export const decide = async (
   headers: Headers,
   id: string,
-  input: { decision: service.ReviewDecision; message?: string },
+  input: { decision: service.ReviewDecision; message?: string; via?: "queue" },
   app: AppAuth = getAppAuth(),
 ) => service.decide(deps(app), await actor(headers, app), id, input);
 
@@ -46,7 +46,7 @@ export const listDependents = async (headers: Headers, id: string, app: AppAuth 
 export const rejectWithDependents = async (
   headers: Headers,
   id: string,
-  input: { message?: string; dependents?: { message?: string } },
+  input: { message?: string; dependents?: { message?: string }; via?: "queue" },
   app: AppAuth = getAppAuth(),
 ) => service.rejectWithDependents(deps(app), await actor(headers, app), id, input);
 

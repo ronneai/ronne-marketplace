@@ -124,6 +124,24 @@ describe("decisions", () => {
     expect(await audited("submission.changes_requested")).toHaveLength(1);
   });
 
+  it("records a decision made from a queue row (058)", async () => {
+    const changes = await submitted(asAuthor, "style");
+    const rejected = await submitted(asAuthor, "lint");
+    await decide(
+      asModerator,
+      changes,
+      { decision: "request_changes", message: "Name the tabs rule.", via: "queue" },
+      app,
+    );
+    await rejectWithDependents(asModerator, rejected, { message: "Duplicate.", via: "queue" }, app);
+    expect(await status(changes)).toBe("changes_requested");
+    expect(await status(rejected)).toBe("rejected");
+    const [sentBack] = await audited("submission.changes_requested");
+    expect(sentBack).toMatchObject({ targetId: changes, metadata: { via: "queue" } });
+    const [rejection] = await audited("submission.rejected");
+    expect(rejection).toMatchObject({ targetId: rejected, metadata: { via: "queue" } });
+  });
+
   it("rejects for good", async () => {
     const id = await submitted();
     await decide(asRoot, id, { decision: "reject", message: "Duplicates @team/lint." }, app);

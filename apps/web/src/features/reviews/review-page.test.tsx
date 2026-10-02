@@ -23,7 +23,8 @@ vi.mock("next/navigation", () => ({
 const { RiskSummary } = await import("@/components/risk-flags/RiskSummary");
 const { AllFiles, FileChanges } = await import("@/components/files/FileViews");
 const { Conversation } = await import("./Conversation");
-const { DecisionBar, DependentsChoice, dependentsMessage } = await import("./DecisionBar");
+const { DecisionBar, DecisionDialog, DependentsChoice, dependentsMessage, RowDecisions } =
+  await import("./DecisionBar");
 const { default: ReviewPage } = await import("@/app/(app)/reviews/[id]/page");
 const { BumpSuggestion } = await import("./PublishDialog");
 
@@ -171,6 +172,85 @@ describe("DecisionBar", () => {
     expect(html).toContain(">Request changes<");
     expect(html).toContain("bg-error text-on-error");
     expect(renderToStaticMarkup(<DecisionBar id="s" decisions={[]} />)).toBe("");
+  });
+
+  it("shows a decision that isn't the viewer's disabled, with the reason (058)", () => {
+    const html = renderToStaticMarkup(
+      <DecisionBar
+        id="s"
+        decisions={[
+          {
+            decision: "reject",
+            allowed: false,
+            reason: "Your own submission: another moderator or root decides.",
+          },
+          { decision: "override", allowed: true },
+        ]}
+      />,
+    );
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Reject<\/button>/);
+    expect(html).toContain("Your own submission: another moderator or root decides.");
+    expect(html).toMatch(/<button(?![^>]*disabled="")[^>]*>Approve \(override\)<\/button>/);
+  });
+});
+
+describe("a queue row's decisions (058)", () => {
+  it("offers Request changes and Reject, not Approve, each named for the row", () => {
+    const html = renderToStaticMarkup(
+      <RowDecisions
+        id="s"
+        name="@team/fmt"
+        decisions={[
+          { decision: "approve", allowed: true },
+          { decision: "request_changes", allowed: true },
+          { decision: "reject", allowed: true },
+        ]}
+      />,
+    );
+    expect(html).toContain('aria-label="Request changes: @team/fmt"');
+    expect(html).toContain('aria-label="Reject: @team/fmt"');
+    expect(html).not.toContain(">Approve<");
+    expect(renderToStaticMarkup(<RowDecisions id="s" name="x" decisions={[]} />)).toBe("");
+  });
+
+  it("disables them on the reviewer's own row, with the reason", () => {
+    const reason = "Your own submission: another moderator or root decides.";
+    const html = renderToStaticMarkup(
+      <RowDecisions
+        id="s"
+        name="@team/fmt"
+        decisions={[{ decision: "reject", allowed: false, reason }]}
+      />,
+    );
+    expect(html).toMatch(
+      /<button[^>]*disabled=""[^>]*aria-label="Reject: @team\/fmt"|aria-label="Reject: @team\/fmt"[^>]*disabled=""/,
+    );
+    expect(html).toContain(reason);
+  });
+
+  it("asks for a required reason, and offers to send the dependents back when rejecting", () => {
+    const html = renderToStaticMarkup(
+      <DecisionDialog
+        id="s"
+        name="@team/style"
+        decision="reject"
+        via="queue"
+        dependents={[
+          {
+            id: "d",
+            name: "@team/kit",
+            status: "submitted",
+            authorName: "Ada",
+            sendBack: { ok: true },
+          },
+        ]}
+        onClose={() => {}}
+      />,
+    );
+    expect(html).toContain("Reject this submission?");
+    expect(html).toMatch(/<textarea[^>]*required=""/);
+    expect(html).toContain("Request changes on them too");
+    expect(html).toContain("@team/kit");
   });
 });
 
