@@ -26,6 +26,22 @@ const { BulkApproveProvider, BulkApproveToolbar } = await import("./BulkApprove"
 const { BulkReleaseProvider } = await import("../releases/BulkRelease");
 const { approveSelectedAction } = await import("./actions");
 const { default: ReviewsPage } = await import("@/app/(app)/reviews/page");
+const { checkedQueueState, queueList, queueQueryOf } = await import("./list");
+const { parseListQuery } = await import("@/components/ui/data-table/list-query");
+
+/** QueueTable's props for a tab (062): its list, the default view, the rows and the next page. */
+const tableProps = (
+  tab: "needs" | "waiting" | "release" | "decided",
+  rows: QueueRow[],
+  next: string | null = null,
+) => ({
+  tab,
+  list: queueList(tab),
+  state: parseListQuery(queueList(tab), {}),
+  rows,
+  page: { next, previous: null },
+  total: { count: rows.length, capped: false },
+});
 
 const row = (overrides: Partial<QueueRow> = {}): QueueRow => ({
   id: "01J0000000000000000000000A",
@@ -55,7 +71,7 @@ const row = (overrides: Partial<QueueRow> = {}): QueueRow => ({
 const needs = (rows: QueueRow[]) =>
   renderToStaticMarkup(
     <BulkApproveProvider approvable={approvableRows(rows)}>
-      <QueueTable tab="needs" rows={rows} nextCursor={null} />
+      <QueueTable {...tableProps("needs", rows, null)} />
     </BulkApproveProvider>,
   );
 
@@ -67,7 +83,12 @@ beforeEach(() => {
     name: "M",
     role: "moderator",
   });
-  reviews.listQueue.mockResolvedValue({ rows: [row()], nextCursor: null });
+  reviews.listQueue.mockResolvedValue({
+    rows: [row()],
+    next: null,
+    previous: null,
+    total: { count: 1, capped: false },
+  });
 });
 
 describe("the queue", () => {
@@ -104,14 +125,12 @@ describe("the queue", () => {
   it("marks the reviewer's own, shows statuses and paging on Decided, and says when a tab is empty", () => {
     const decided = renderToStaticMarkup(
       <QueueTable
-        tab="decided"
-        rows={[row({ status: "rejected", mine: true, risky: false })]}
-        nextCursor="x|y"
+        {...tableProps("decided", [row({ status: "rejected", mine: true, risky: false })], "x|y")}
       />,
     );
     expect(decided).toContain(">yours<");
     expect(decided).toContain(">rejected<");
-    expect(decided).toContain("Older decisions");
+    expect(decided).toContain('href="/reviews?tab=decided&amp;cursor=x%7Cy"');
     expect(needs([])).toContain("Nothing needs review.");
   });
 
@@ -131,7 +150,7 @@ describe("the queue", () => {
     });
     const release = renderToStaticMarkup(
       <BulkReleaseProvider releasable={{ [released.id]: "@team/fmt" }}>
-        <QueueTable tab="release" rows={[released]} nextCursor={null} />
+        <QueueTable {...tableProps("release", [released], null)} />
       </BulkReleaseProvider>,
     );
     expect(release).toContain('aria-label="Request changes: @team/fmt"');
@@ -139,9 +158,7 @@ describe("the queue", () => {
 
     for (const tab of ["waiting", "decided"] as const)
       expect(
-        renderToStaticMarkup(
-          <QueueTable tab={tab} rows={[row({ decisions })]} nextCursor={null} />,
-        ),
+        renderToStaticMarkup(<QueueTable {...tableProps(tab, [row({ decisions })], null)} />),
       ).not.toContain("Request changes");
   });
 
@@ -173,10 +190,10 @@ describe("the queue", () => {
   it("is a 404 for anyone who can't review, and lists the tab for those who can", async () => {
     const html = renderToStaticMarkup(await ReviewsPage({ searchParams: Promise.resolve({}) }));
     expect(html).toContain("Needs review");
-    expect(reviews.listQueue).toHaveBeenCalledWith(expect.any(Headers), {
-      tab: "needs",
-      cursor: undefined,
-    });
+    expect(reviews.listQueue).toHaveBeenCalledWith(
+      expect.any(Headers),
+      expect.objectContaining({ tab: "needs", sort: "time", dir: "asc", size: 50 }),
+    );
     session.getCurrentUser.mockResolvedValue({
       id: "u",
       email: "u@x.test",
@@ -206,7 +223,7 @@ describe("approving several at once (054)", () => {
 
   it("has no checkboxes on the other tabs", () => {
     const html = renderToStaticMarkup(
-      <QueueTable tab="waiting" rows={[row({ status: "changes_requested" })]} nextCursor={null} />,
+      <QueueTable {...tableProps("waiting", [row({ status: "changes_requested" })], null)} />,
     );
     expect(html).not.toContain('type="checkbox"');
   });
@@ -289,14 +306,16 @@ describe("the To release tab (055)", () => {
     const html = renderToStaticMarkup(
       <BulkReleaseProvider releasable={{ "01J0000000000000000000000A": "@team/fmt" }}>
         <QueueTable
-          tab="release"
-          rows={[
-            row({
-              status: "approved",
-              approved: { by: "Mo Moderator", at: new Date("2026-10-01T12:00:00Z") },
-            }),
-          ]}
-          nextCursor={null}
+          {...tableProps(
+            "release",
+            [
+              row({
+                status: "approved",
+                approved: { by: "Mo Moderator", at: new Date("2026-10-01T12:00:00Z") },
+              }),
+            ],
+            null,
+          )}
         />
       </BulkReleaseProvider>,
     );
@@ -319,5 +338,50 @@ describe("the nav count", () => {
     expect(
       renderToStaticMarkup(<MainNav items={items} counts={{ "/reviews": 0 }} />),
     ).not.toContain("waiting");
+  });
+});
+
+describe("the queue's table (062)", () => {
+  it("keeps the tab in every link, sorts by name, and filters by search and type as chips", () => {
+    const list = queueList("release");
+    const state = checkedQueueState(
+      parseListQuery(list, { tab: "release", q: "fmt", type: "hook" }),
+    );
+    const html = renderToStaticMarkup(
+      <BulkReleaseProvider releasable={{}}>
+        <QueueTable
+          tab="release"
+          list={list}
+          state={state}
+          rows={[row({ status: "approved" })]}
+          page={{ next: "c2", previous: null }}
+          total={{ count: 1, capped: false }}
+        />
+      </BulkReleaseProvider>,
+    );
+    expect(html).toContain('href="/reviews?tab=release&amp;q=fmt&amp;type=hook&amp;sort=name"');
+    expect(html).toContain('href="/reviews?tab=release&amp;q=fmt&amp;type=hook&amp;cursor=c2"');
+    expect(html).toContain('<input type="hidden" name="tab" value="release"/>');
+    expect(html).toMatch(
+      /aria-label="Remove the type filter"[^>]*href="\/reviews\?tab=release&amp;q=fmt"/,
+    );
+    expect(html).toContain('<span class="sr-only">Select</span>');
+    expect(html).toContain('<span class="sr-only">Decisions</span>');
+    expect(html).toContain("1 submission");
+  });
+
+  it("turns a tab's view into the server query, dropping an unknown type", () => {
+    const list = queueList("decided");
+    expect(
+      queueQueryOf("decided", checkedQueueState(parseListQuery(list, { type: "widget" }))),
+    ).toEqual({
+      tab: "decided",
+      sort: "time",
+      dir: "desc",
+      size: 50,
+      cursor: undefined,
+      search: undefined,
+      type: undefined,
+    });
   });
 });

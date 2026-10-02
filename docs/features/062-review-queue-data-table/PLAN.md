@@ -20,7 +20,7 @@ the same change that completes it.
   *Done when:* `queue.db.test.ts` covers each tab's default order, sorting by name, the filters,
   more than 200 open rows, paging Decided both ways, and the count on all four databases.
 
-- [ ] **3. The queue page on `DataTable`.** `features/reviews/list.ts`, the columns with the
+- [x] **3. The queue page on `DataTable`.** `features/reviews/list.ts`, the columns with the
   selection and decisions cells, the tabs dropping the view, the filters with chips, and the bulk
   providers fed with the page's rows. `QueueTable`'s own table and pagination go.
   *Done when:* the reviews render tests cover each tab's columns, the filters and the empty states;

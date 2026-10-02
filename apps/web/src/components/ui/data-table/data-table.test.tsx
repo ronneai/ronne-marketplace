@@ -119,3 +119,12 @@ describe("DataTable additions (062)", () => {
     expect(html).toContain('<input type="hidden" name="tab" value="release"/>');
   });
 });
+
+describe("an emptied later page (062)", () => {
+  it("says so and links to the first page, instead of the list's empty message", () => {
+    const html = render({ q: "a", cursor: "c9" }, []);
+    expect(html).toContain("Nothing left on this page.");
+    expect(html).toContain('href="/things?q=a">First page');
+    expect(html).not.toContain("No things match these filters.");
+  });
+});

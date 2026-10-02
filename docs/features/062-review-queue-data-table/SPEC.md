@@ -72,8 +72,10 @@ defineList({
 **Columns:** the same as today, on `DataTable`:
 - Select (Needs review and To release). This is the existing client cell, inside the existing
   providers.
-- Item: the name link, with its badges (proposal, risk, yours, dependency marks).
-- Type, Author, Revision.
+- Item: the name link, then the type and the badges (proposal, risk, yours, dependency marks).
+  The type moved here from its own column, so the name keeps room on one line. The name gives way
+  (cut, whole on hover) and the badges don't.
+- Author, Revision.
 - Approved by (To release).
 - The tab's time (sortable).
 - Status (Decided).
@@ -119,8 +121,8 @@ defineList({
 - **Old links** with Decided's `updatedAt|id` cursor: not the table's cursor, so they show the
   first page.
 - **Approving or releasing the last rows of a page:** the page refreshes. If it's now empty and
-  wasn't the first, it shows the empty state with Previous and First, and the tab's message
-  ("Nothing needs review…") only on the first page.
+  wasn't the first, it says "Nothing left on this page." with a link to the first page (a shared
+  `DataTable` rule). The tab's message ("Nothing needs review…") shows only when the tab is empty.
 - **Approving many still checks each submission on the server** (054). Paging changes only which
   rows can be selected.
 

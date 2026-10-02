@@ -133,13 +133,74 @@ export const DataTable = <Row, S extends string, F extends string>({
 }) => {
   const filtered = isFiltered(state);
   const hide = (column: Column<Row, S>) => column.hideOnMobile && "hidden sm:table-cell";
+  const pager = (
+    <nav
+      aria-label="Pages"
+      className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted"
+    >
+      <span>{formatCount(total, noun)}</span>
+      <div className="flex items-center gap-1">
+        <PageLink
+          href={page.previous ? listUrl(list, state, { cursor: null }) : null}
+          label="First page"
+        >
+          <ChevronsLeft size={16} aria-hidden="true" />
+        </PageLink>
+        <PageLink
+          href={page.previous ? listUrl(list, state, { cursor: page.previous }) : null}
+          label="Previous page"
+        >
+          <ChevronLeft size={16} aria-hidden="true" />
+          Previous
+        </PageLink>
+        <PageLink
+          href={page.next ? listUrl(list, state, { cursor: page.next }) : null}
+          label="Next page"
+        >
+          Next
+          <ChevronRight size={16} aria-hidden="true" />
+        </PageLink>
+      </div>
+      <Form action={list.path} scroll={false} className="flex items-center gap-2">
+        <HiddenListFields list={list} state={state} omit={["size"]} />
+        <label htmlFor="page-size">Show</label>
+        <select
+          id="page-size"
+          name="size"
+          defaultValue={state.size}
+          className={cn(selectClasses, "h-8 w-auto py-0")}
+        >
+          {list.sizes.map((size) => (
+            <option key={size} value={size}>
+              {size}
+            </option>
+          ))}
+        </select>
+        <button type="submit" data-submit className={cn(pagerLink, "border border-strong")}>
+          Show
+        </button>
+        <SubmitOnChange />
+      </Form>
+    </nav>
+  );
   return (
     <div className="grid gap-3">
       {toolbar}
       {rows.length === 0 ? (
         <div className="flex flex-wrap items-center gap-3 rounded-panel border border-hairline bg-surface p-4 text-sm text-muted">
-          <span>{filtered ? empty.filtered : empty.none}</span>
-          {filtered ? (
+          <span>
+            {/* A later page emptied by changes since (062): the list itself may not be. */}
+            {state.cursor ? "Nothing left on this page." : filtered ? empty.filtered : empty.none}
+          </span>
+          {state.cursor ? (
+            <Link
+              href={listUrl(list, state, { cursor: null })}
+              className="text-link underline-offset-2 hover:underline"
+            >
+              First page
+            </Link>
+          ) : null}
+          {filtered && !state.cursor ? (
             <Link
               href={listUrl(list, state, {
                 filters: Object.fromEntries(
@@ -152,7 +213,8 @@ export const DataTable = <Row, S extends string, F extends string>({
             </Link>
           ) : null}
         </div>
-      ) : (
+      ) : null}
+      {rows.length === 0 ? null : (
         <>
           <div className="relative min-w-0 overflow-x-auto rounded-panel border border-hairline bg-surface">
             <table className="w-full table-fixed border-collapse text-left text-sm">
@@ -218,54 +280,7 @@ export const DataTable = <Row, S extends string, F extends string>({
               </tbody>
             </table>
           </div>
-          <nav
-            aria-label="Pages"
-            className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted"
-          >
-            <span>{formatCount(total, noun)}</span>
-            <div className="flex items-center gap-1">
-              <PageLink
-                href={page.previous ? listUrl(list, state, { cursor: null }) : null}
-                label="First page"
-              >
-                <ChevronsLeft size={16} aria-hidden="true" />
-              </PageLink>
-              <PageLink
-                href={page.previous ? listUrl(list, state, { cursor: page.previous }) : null}
-                label="Previous page"
-              >
-                <ChevronLeft size={16} aria-hidden="true" />
-                Previous
-              </PageLink>
-              <PageLink
-                href={page.next ? listUrl(list, state, { cursor: page.next }) : null}
-                label="Next page"
-              >
-                Next
-                <ChevronRight size={16} aria-hidden="true" />
-              </PageLink>
-            </div>
-            <Form action={list.path} scroll={false} className="flex items-center gap-2">
-              <HiddenListFields list={list} state={state} omit={["size"]} />
-              <label htmlFor="page-size">Show</label>
-              <select
-                id="page-size"
-                name="size"
-                defaultValue={state.size}
-                className={cn(selectClasses, "h-8 w-auto py-0")}
-              >
-                {list.sizes.map((size) => (
-                  <option key={size} value={size}>
-                    {size}
-                  </option>
-                ))}
-              </select>
-              <button type="submit" data-submit className={cn(pagerLink, "border border-strong")}>
-                Show
-              </button>
-              <SubmitOnChange />
-            </Form>
-          </nav>
+          {pager}
         </>
       )}
     </div>

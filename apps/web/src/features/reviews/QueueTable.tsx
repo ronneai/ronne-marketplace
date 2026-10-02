@@ -1,12 +1,17 @@
+import { ITEM_TYPES } from "@ronneai/core";
+import Form from "next/form";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { DependencyMarksIcon } from "@/components/submissions/DependencyMarks";
 import { ProposalBadges } from "@/components/submissions/ProposalBadges";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { Badge } from "@/components/ui/Badge";
 import { buttonClasses } from "@/components/ui/Button";
+import { type Column, DataTable, HiddenListFields } from "@/components/ui/data-table/DataTable";
+import { FilterChips } from "@/components/ui/data-table/FilterChips";
+import { SubmitOnChange } from "@/components/ui/data-table/SubmitOnChange";
+import { Input, Label, selectClasses } from "@/components/ui/Field";
 import { LocalTime } from "@/components/ui/LocalTime";
-import { Panel } from "@/components/ui/Panel";
-import { Table, Td, Th } from "@/components/ui/Table";
 import { TypeBadge } from "@/components/ui/TypeBadge";
 import type { QueueRow, QueueTab } from "@/server/domains/submissions/actions/reviews";
 import { itemNameOf } from "@/server/domains/submissions/models/submission";
@@ -14,6 +19,7 @@ import { QUEUE_TABS } from "@/server/domains/submissions/services/queue";
 import { ReleaseSelectCell } from "../releases/BulkRelease";
 import { type ApprovableRow, ApproveSelectCell } from "./BulkApprove";
 import { RowDecisions } from "./DecisionBar";
+import type { QueueList, QueueListState } from "./list";
 
 const TAB_ORDER: QueueTab[] = ["needs", "waiting", "release", "decided"];
 
@@ -74,127 +80,223 @@ export const approvableRows = (rows: QueueRow[]): Record<string, ApprovableRow> 
 /** Tabs whose rows can be decided from the queue (058): Needs review, and To release (056). */
 const DECIDING: readonly QueueTab[] = ["needs", "release"];
 
+const TIME_HEADER: Record<QueueTab, string> = {
+  needs: "Submitted",
+  waiting: "Submitted",
+  release: "Approved",
+  decided: "Decided",
+};
+
+/** The search and type filter (062): one GET form that submits on change, and chips. */
+const Filters = ({ list, state }: { list: QueueList; state: QueueListState }) => (
+  <div className="grid gap-2">
+    <Form
+      action={list.path}
+      scroll={false}
+      className="grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto] sm:items-end"
+    >
+      <HiddenListFields list={list} state={state} omit={["q", "type"]} />
+      <div className="grid gap-1.5">
+        <Label htmlFor="queue-search">Search</Label>
+        <Input
+          id="queue-search"
+          name="q"
+          type="search"
+          placeholder="Item or author"
+          maxLength={100}
+          defaultValue={state.filters.q}
+        />
+      </div>
+      <div className="grid gap-1.5">
+        <Label htmlFor="queue-type">Type</Label>
+        <select
+          id="queue-type"
+          name="type"
+          defaultValue={state.filters.type}
+          className={selectClasses}
+        >
+          <option value="">Any type</option>
+          {ITEM_TYPES.map((type) => (
+            <option key={type} value={type}>
+              {type}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="flex gap-2">
+        <button type="submit" data-submit className={buttonClasses("secondary")}>
+          Filter
+        </button>
+        <SubmitOnChange />
+      </div>
+    </Form>
+    <FilterChips list={list} state={state} labels={{ q: "Search", type: "Type" }} />
+  </div>
+);
+
+/** A tab's time: the first submit, the approval, or the decision. */
+const timeOf = (tab: QueueTab, row: QueueRow): Date =>
+  tab === "decided"
+    ? row.updatedAt
+    : tab === "release"
+      ? (row.approved?.at ?? row.updatedAt)
+      : (row.submittedAt ?? row.updatedAt);
+
+const columns = (tab: QueueTab): Column<QueueRow, "time" | "name">[] => [
+  ...(tab === "release"
+    ? [
+        {
+          id: "select",
+          header: "",
+          srHeader: "Select",
+          className: "w-10",
+          render: (row: QueueRow) => <ReleaseSelectCell id={row.id} name={itemNameOf(row)} />,
+        },
+      ]
+    : []),
+  ...(tab === "needs"
+    ? [
+        {
+          id: "select",
+          header: "",
+          srHeader: "Select",
+          className: "w-10",
+          render: (row: QueueRow) => (
+            <ApproveSelectCell
+              id={row.id}
+              name={itemNameOf(row)}
+              reason={row.approvable.approvable ? null : row.approvable.reason}
+            />
+          ),
+        },
+      ]
+    : []),
+  {
+    id: "item",
+    header: "Item",
+    sort: "name",
+    render: (row) => (
+      <span className="flex min-w-0 items-center gap-2">
+        <Link
+          href={`/reviews/${row.id}`}
+          title={itemNameOf(row)}
+          className="min-w-0 truncate font-mono text-sm text-link hover:underline"
+        >
+          {itemNameOf(row)}
+        </Link>
+        {/* The type and badges keep their size; the name gives way. */}
+        <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap">
+          <TypeBadge type={row.type} />
+          <ProposalBadges proposal={row.proposal} stale={row.stale} />
+          {row.risky ? <Badge tone="warning">⚠ risk</Badge> : null}
+          {row.mine ? <Badge>yours</Badge> : null}
+          <DependencyMarksIcon marks={row.marks} />
+        </span>
+      </span>
+    ),
+  },
+  {
+    id: "author",
+    header: "Author",
+    className: "w-28",
+    truncate: true,
+    hideOnMobile: true,
+    render: (row) => <span title={row.authorName}>{row.authorName}</span>,
+  },
+  {
+    id: "revision",
+    header: "Revision",
+    className: "w-16",
+    mono: true,
+    hideOnMobile: true,
+    render: (row) => row.revision ?? "–",
+  },
+  ...(tab === "release"
+    ? [
+        {
+          id: "approver",
+          header: "Approved by",
+          className: "w-32",
+          truncate: true,
+          hideOnMobile: true,
+          render: (row: QueueRow) => row.approved?.by ?? "–",
+        },
+      ]
+    : []),
+  {
+    id: "time",
+    header: TIME_HEADER[tab],
+    sort: "time",
+    className: "w-48",
+    mono: true,
+    truncate: true,
+    render: (row) => <LocalTime value={timeOf(tab, row)} />,
+  },
+  ...(tab === "decided"
+    ? [
+        {
+          id: "status",
+          header: "Status",
+          className: "w-28",
+          render: (row: QueueRow) => <StatusBadge status={row.status} />,
+        },
+      ]
+    : []),
+  ...(DECIDING.includes(tab)
+    ? [
+        {
+          id: "decisions",
+          header: "",
+          srHeader: "Decisions",
+          className: "w-52",
+          align: "right" as const,
+          render: (row: QueueRow) => (
+            <RowDecisions id={row.id} name={itemNameOf(row)} decisions={row.decisions} />
+          ),
+        },
+      ]
+    : []),
+];
+
 /**
- * One tab of the queue: each submission, who sent it, since when, and whether it's risky. Needs
- * review has a checkbox on each row for approving many (054), inside BulkApproveProvider; it and To
- * release end each row with its own decisions (058).
+ * One tab of the queue (014, on the server data table since 062): each submission, who sent it,
+ * since when, and whether it's risky, a page at a time. Needs review has a checkbox on each row for
+ * approving many (054) and To release for releasing many (055), inside their providers; both end
+ * each row with its own decisions (058). `actions` sits between the filters and the table: the
+ * bulk toolbar.
  */
 export const QueueTable = ({
   tab,
+  list,
+  state,
   rows,
-  nextCursor,
+  page,
+  total,
+  actions,
 }: {
   tab: QueueTab;
+  list: QueueList;
+  state: QueueListState;
   rows: QueueRow[];
-  nextCursor: string | null;
-}) => {
-  if (rows.length === 0)
-    return (
-      <Panel padding="lg">
-        <p className="text-sm text-muted">{EMPTY[tab]}</p>
-      </Panel>
-    );
-  return (
-    <div className="grid gap-4">
-      <Table>
-        <thead>
-          <tr>
-            {tab === "release" ? (
-              <Th>
-                <span className="sr-only">Select</span>
-              </Th>
-            ) : null}
-            {tab === "needs" ? (
-              <Th>
-                <span className="sr-only">Select</span>
-              </Th>
-            ) : null}
-            <Th>Item</Th>
-            <Th>Type</Th>
-            <Th>Author</Th>
-            <Th>Revision</Th>
-            {tab === "release" ? <Th>Approved by</Th> : null}
-            <Th>{tab === "decided" ? "Decided" : tab === "release" ? "Approved" : "Submitted"}</Th>
-            {tab === "decided" ? <Th>Status</Th> : null}
-            {DECIDING.includes(tab) ? (
-              <Th>
-                <span className="sr-only">Decisions</span>
-              </Th>
-            ) : null}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.id}>
-              {tab === "release" ? (
-                <Td className="w-8">
-                  <ReleaseSelectCell id={row.id} name={itemNameOf(row)} />
-                </Td>
-              ) : null}
-              {tab === "needs" ? (
-                <Td className="w-8">
-                  <ApproveSelectCell
-                    id={row.id}
-                    name={itemNameOf(row)}
-                    reason={row.approvable.approvable ? null : row.approvable.reason}
-                  />
-                </Td>
-              ) : null}
-              <Td>
-                <span className="flex flex-wrap items-center gap-2">
-                  <Link
-                    href={`/reviews/${row.id}`}
-                    className="font-mono text-sm text-link hover:underline"
-                  >
-                    {itemNameOf(row)}
-                  </Link>
-                  <ProposalBadges proposal={row.proposal} stale={row.stale} />
-                  {row.risky ? <Badge tone="warning">⚠ risk</Badge> : null}
-                  {row.mine ? <Badge>yours</Badge> : null}
-                  <DependencyMarksIcon marks={row.marks} />
-                </span>
-              </Td>
-              <Td>
-                <TypeBadge type={row.type} />
-              </Td>
-              <Td className="text-sm">{row.authorName}</Td>
-              <Td className="font-mono text-xs">{row.revision ?? "–"}</Td>
-              {tab === "release" ? <Td className="text-sm">{row.approved?.by ?? "–"}</Td> : null}
-              <Td className="whitespace-nowrap font-mono text-xs text-muted">
-                <LocalTime
-                  value={
-                    tab === "decided"
-                      ? row.updatedAt
-                      : tab === "release"
-                        ? (row.approved?.at ?? row.updatedAt)
-                        : (row.submittedAt ?? row.updatedAt)
-                  }
-                />
-              </Td>
-              {tab === "decided" ? (
-                <Td>
-                  <StatusBadge status={row.status} />
-                </Td>
-              ) : null}
-              {DECIDING.includes(tab) ? (
-                <Td>
-                  <RowDecisions id={row.id} name={itemNameOf(row)} decisions={row.decisions} />
-                </Td>
-              ) : null}
-            </tr>
-          ))}
-        </tbody>
-      </Table>
-      {nextCursor ? (
-        <div>
-          <Link
-            href={`/reviews?tab=decided&cursor=${encodeURIComponent(nextCursor)}`}
-            className={buttonClasses("secondary")}
-          >
-            Older decisions
-          </Link>
-        </div>
-      ) : null}
-    </div>
-  );
-};
+  page: { next: string | null; previous: string | null };
+  total: { count: number; capped: boolean };
+  actions?: ReactNode;
+}) => (
+  <DataTable
+    list={list}
+    state={state}
+    columns={columns(tab)}
+    rows={rows}
+    rowKey={(row) => row.id}
+    page={page}
+    total={total}
+    noun={total.count === 1 && !total.capped ? "submission" : "submissions"}
+    toolbar={
+      <>
+        <Filters list={list} state={state} />
+        {actions}
+      </>
+    }
+    empty={{ none: EMPTY[tab], filtered: "No submissions match these filters." }}
+  />
+);

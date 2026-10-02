@@ -1,8 +1,11 @@
 import { notFound } from "next/navigation";
+import type { ReactNode } from "react";
 import { Help } from "@/components/help/Help";
+import { parseListQuery } from "@/components/ui/data-table/list-query";
 import { PageHeader } from "@/components/ui/Panel";
 import { BulkReleaseProvider, BulkReleaseToolbar } from "@/features/releases/BulkRelease";
 import { BulkApproveProvider, BulkApproveToolbar } from "@/features/reviews/BulkApprove";
+import { checkedQueueState, queueList, queueQueryOf } from "@/features/reviews/list";
 import { QueueStatusProvider } from "@/features/reviews/QueueStatus";
 import { approvableRows, QueueTable, QueueTabs, queueTab } from "@/features/reviews/QueueTable";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
@@ -23,8 +26,20 @@ const Reviews = async ({
   if (!can(await getCurrentUser(request), "submissions.review")) notFound();
   const params = await searchParams;
   const tab = queueTab(params.tab);
-  const cursor = typeof params.cursor === "string" ? params.cursor : undefined;
-  const { rows, next: nextCursor } = await listQueue(request, { tab, cursor });
+  const list = queueList(tab);
+  const state = checkedQueueState(parseListQuery(list, params));
+  const { rows, next, previous, total } = await listQueue(request, queueQueryOf(tab, state));
+  const table = (actions?: ReactNode) => (
+    <QueueTable
+      tab={tab}
+      list={list}
+      state={state}
+      rows={rows}
+      page={{ next, previous }}
+      total={total}
+      actions={actions}
+    />
+  );
   return (
     <>
       <PageHeader
@@ -38,16 +53,16 @@ const Reviews = async ({
           <BulkReleaseProvider
             releasable={Object.fromEntries(rows.map((row) => [row.id, itemNameOf(row)]))}
           >
-            <BulkReleaseToolbar selectAllLabel="Select all" help={<Help id="release-many" />} />
-            <QueueTable tab={tab} rows={rows} nextCursor={nextCursor} />
+            {table(
+              <BulkReleaseToolbar selectAllLabel="Select all" help={<Help id="release-many" />} />,
+            )}
           </BulkReleaseProvider>
         ) : tab === "needs" ? (
           <BulkApproveProvider approvable={approvableRows(rows)}>
-            <BulkApproveToolbar help={<Help id="approve-many" />} />
-            <QueueTable tab={tab} rows={rows} nextCursor={nextCursor} />
+            {table(<BulkApproveToolbar help={<Help id="approve-many" />} />)}
           </BulkApproveProvider>
         ) : (
-          <QueueTable tab={tab} rows={rows} nextCursor={nextCursor} />
+          table()
         )}
       </QueueStatusProvider>
     </>
