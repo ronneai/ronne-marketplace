@@ -21,7 +21,7 @@ vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => ne
 
 const actions = await import("./actions");
 const { OneTimePassword } = await import("./OneTimePassword");
-const { UserRowActions } = await import("./UserRowActions");
+const { RoleChangeNotice, UserRowActions } = await import("./UserRowActions");
 const { CreateUserDialog } = await import("./CreateUserDialog");
 
 const form = (fields: Record<string, string>) => {
@@ -133,27 +133,38 @@ describe("rendering", () => {
     expect(html).toContain("Gen3ratedPassw0rd");
   });
 
-  it("root's row has no actions; others offer the right ones", () => {
-    expect(
-      renderToStaticMarkup(
-        <UserRowActions
-          user={{ id: "r", email: "root@example.com", role: "root", disabled: false }}
-        />,
-      ),
-    ).not.toContain("Reset password");
-    const moderator = renderToStaticMarkup(
+  it("your own row has no actions; every other row, roots included, has them all (059)", () => {
+    const own = renderToStaticMarkup(
       <UserRowActions
-        user={{ id: "m", email: "m@example.com", role: "moderator", disabled: false }}
+        user={{ id: "r", email: "root@example.com", role: "root", disabled: false, self: true }}
       />,
     );
-    expect(moderator).toContain("Make user");
-    expect(moderator).toContain("Disable");
-    expect(moderator).toContain("Reset password");
+    expect(own).toContain("You");
+    expect(own).toContain("Why can&#x27;t I change my own account here?");
+    expect(own).not.toContain("Reset password");
+    const otherRoot = renderToStaticMarkup(
+      <UserRowActions
+        user={{ id: "r2", email: "r2@example.com", role: "root", disabled: false }}
+      />,
+    );
+    expect(otherRoot).toContain("Change role");
+    expect(otherRoot).toContain("Disable");
+    expect(otherRoot).toContain("Reset password");
     const disabled = renderToStaticMarkup(
       <UserRowActions user={{ id: "u", email: "u@example.com", role: "user", disabled: true }} />,
     );
-    expect(disabled).toContain("Make moderator");
+    expect(disabled).toContain("Change role");
     expect(disabled).toContain(">Enable<");
+  });
+
+  it("warns before making someone root or removing root, and not otherwise", () => {
+    const html = (from: "root" | "moderator" | "user", to: "root" | "moderator" | "user") =>
+      renderToStaticMarkup(<RoleChangeNotice email="alex@example.com" from={from} to={to} />);
+    expect(html("user", "root")).toContain("Make alex@example.com root?");
+    expect(html("user", "root")).toContain("WARN:");
+    expect(html("root", "moderator")).toContain("Remove root from alex@example.com?");
+    expect(html("user", "moderator")).not.toContain("WARN:");
+    expect(html("user", "moderator")).toContain("moderator");
   });
 
   it("the create button renders", () => {

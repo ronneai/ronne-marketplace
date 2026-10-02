@@ -1,9 +1,11 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { FieldError, Label, selectClasses, TextField } from "@/components/ui/Field";
+import { Notice } from "@/components/ui/Notice";
 import { createUserFromForm } from "./actions";
 import { OneTimePassword } from "./OneTimePassword";
 import { PasswordChoice } from "./PasswordChoice";
@@ -14,6 +16,7 @@ const CreateUserForm = ({ onDone }: { onDone: () => void }) => {
     createUserFromForm,
     {},
   );
+  const [role, setRole] = useState("user");
   if (state.oneTime)
     return (
       <div className="grid gap-4">
@@ -28,12 +31,28 @@ const CreateUserForm = ({ onDone }: { onDone: () => void }) => {
       <TextField id="new-email" name="email" type="email" label="Email" required maxLength={255} />
       <TextField id="new-name" name="name" label="Name" required maxLength={255} />
       <div className="grid gap-1.5">
-        <Label htmlFor="new-role">Role</Label>
-        <select id="new-role" name="role" defaultValue="user" className={selectClasses}>
+        <div className="flex items-center gap-2">
+          <Label htmlFor="new-role">Role</Label>
+          <Help id="role-root" />
+        </div>
+        <select
+          id="new-role"
+          name="role"
+          value={role}
+          onChange={(event) => setRole(event.target.value)}
+          className={selectClasses}
+        >
           <option value="user">user</option>
           <option value="moderator">moderator</option>
+          <option value="root">root</option>
         </select>
       </div>
+      {role === "root" ? (
+        <Notice kind="warn" title="Root can do everything.">
+          Manage users (other roots included), scopes, settings and the audit log, and approve their
+          own submissions.
+        </Notice>
+      ) : null}
       <PasswordChoice idPrefix="new" />
       <FieldError id="create-error">{state.error}</FieldError>
       <div className="flex justify-end gap-2">

@@ -30,7 +30,7 @@ the same change that completes it.
   concurrency test runs two mutual demotions in parallel and expects one success, one
   `ForbiddenError` and one active root, on all four databases.
 
-- [x] **4. Setup and reset-root-password.** Setup state uses `hasRoot`, and setup's message uses
+- [x] **4. Setup and reset-root-password.** Setup state uses `findFirstRoot`, and setup's message uses
   `listRootAccounts` and the count (warning only when every root is disabled). `reset-root-password`
   takes `--email` / `RONNE_ROOT_EMAIL`: interactive choice when there are several roots, exit 2
   without it under `--yes`, exit 2 for a non-root email; the root is chosen before the password
@@ -39,12 +39,14 @@ the same change that completes it.
   `reset-root-password.db.test.ts` cover one root, several roots, `--email`, a non-root email and
   "every root disabled".
 
-- [ ] **5. Admin UI.** The role select offers `root`, with the warning line. Change role shows the
-  to-root and from-root confirmations. Another root's row has every action, and the disable dialog
-  notes "is a root". The signed-in root's row shows "You" with the `own-row` helper. The page
-  passes the current user's id to the table.
-  *Done when:* `admin-users.test.tsx` covers the root option, both confirmations, the "You" row and
-  another root's full menu.
+- [x] **5. Admin UI.** The role select in Create user offers `root`, with a warning notice when
+  chosen. Each row's **Change role** opens a dialog with a select of the other roles, and warns
+  before making someone root or removing root (`RoleChangeNotice`). Another root's row has every
+  action, and its disable and reset dialogs say "is a root". The signed-in root's row shows "You"
+  with the `own-row` helper; the page marks it with `self`. The `role-root` and `own-row` helpers
+  are added here, since the UI uses them.
+  *Done when:* `actions.test.tsx` covers the "You" row, another root's full menu and the
+  confirmations; the dialogs themselves are covered end to end (task 6).
 
 - [ ] **6. End to end.** `user-admin.e2e.ts`: root creates a second root, who signs in and opens
   `/admin/users`. The second root demotes the first, who then gets 404 on `/admin/users` on the

@@ -194,6 +194,18 @@ export const HELP = {
       "Daily counts of installs, removals and runs of the items rmk installed from this instance, by item, version and AI tool. Never who, which project, or what was asked. Off: nothing. People choose: on unless they run rmk telemetry off. Required: always.",
     href: docsHref("usage", "policy"),
   },
+  "role-root": {
+    question: "What can root do?",
+    answer:
+      "Everything a moderator can, plus manage users, create scopes, change the instance's settings, read the audit log and approve their own submissions. There can be several roots, and each can change any other root's role or account, but not their own.",
+    href: docsHref("roles", "roles"),
+  },
+  "own-row": {
+    question: "Why can't I change my own account here?",
+    answer:
+      "So nobody locks themselves out by mistake. Change your password in Account; another root can change your role, disable you or reset your password.",
+    href: docsHref("install", "root"),
+  },
 } as const satisfies Record<string, { question: string; answer: string; href: string }>;
 
 export type HelpId = keyof typeof HELP;
