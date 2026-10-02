@@ -280,12 +280,20 @@ const view = (overrides: Partial<ReviewView> = {}): ReviewView => ({
   issues: [],
   events: [event({ revision: 2, kind: "resubmit" })],
   published: [],
-  decisions: [],
+  decisions: [
+    { decision: "approve", allowed: true },
+    { decision: "request_changes", allowed: true },
+    { decision: "reject", allowed: true },
+  ],
   can: { decide: true, override: false, comment: true, publish: false, sendBack: false },
   proposal: null,
   dependents: [],
   ...overrides,
 });
+
+const OWN = "Your own submission: another moderator or root decides.";
+const own = (decision: "approve" | "request_changes" | "reject") =>
+  ({ decision, allowed: false, reason: OWN }) as const;
 
 describe("the review page", () => {
   beforeEach(() => {
@@ -358,13 +366,50 @@ describe("the review page", () => {
     reviews.getReview.mockResolvedValue(
       view({
         mine: true,
+        decisions: [own("approve"), own("request_changes"), own("reject")],
         can: { decide: false, override: false, comment: true, publish: false, sendBack: false },
       }),
     );
     const html = await render({ view: "all" });
     expect(html).toContain('id="file-hook.sh-L1"');
     expect(html).toContain("This is your own submission");
-    expect(html).not.toContain(">Approve<");
+    // The decisions show, disabled, with why (058).
+    for (const label of ["Approve", "Request changes", "Reject"])
+      expect(html).toMatch(new RegExp(`<button[^>]*disabled=""[^>]*>${label}</button>`));
+    expect(html).toContain(OWN);
+  });
+
+  it("shows root its own submission's decisions disabled, and the override (058)", async () => {
+    reviews.getReview.mockResolvedValue(
+      view({
+        mine: true,
+        decisions: [
+          own("approve"),
+          own("request_changes"),
+          own("reject"),
+          { decision: "override", allowed: true },
+        ],
+        can: { decide: false, override: true, comment: true, publish: false, sendBack: false },
+      }),
+    );
+    const html = await render();
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Reject<\/button>/);
+    expect(html).toMatch(/<button(?![^>]*disabled="")[^>]*>Approve \(override\)<\/button>/);
+    expect(html).toContain("This is your own submission: another moderator or root reviews it.");
+    expect(html).toContain("you can approve it yourself as an override");
+  });
+
+  it("tells an author without a review role about their own submission, with no decisions", async () => {
+    reviews.getReview.mockResolvedValue(
+      view({
+        mine: true,
+        decisions: [],
+        can: { decide: false, override: false, comment: true, publish: false, sendBack: false },
+      }),
+    );
+    const html = await render();
+    expect(html).toContain("This is your own submission");
+    expect(html).not.toContain(">Reject<");
   });
 
   it("offers Publish on an approved submission to those who may publish", async () => {

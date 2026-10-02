@@ -19,11 +19,7 @@ import { PublishDialog } from "@/features/reviews/PublishDialog";
 import { versionsPath } from "@/features/versions/links";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { can } from "@/server/domains/identity/models/permissions";
-import {
-  getReview,
-  type ReviewDecision,
-  type ReviewView,
-} from "@/server/domains/submissions/actions/reviews";
+import { getReview, type ReviewView } from "@/server/domains/submissions/actions/reviews";
 import { dependencyMarks } from "@/server/domains/submissions/actions/submissions";
 import { SubmissionNotFoundError } from "@/server/domains/submissions/exceptions/errors";
 import { itemNameOf } from "@/server/domains/submissions/models/submission";
@@ -68,12 +64,8 @@ const Review = async ({
       : defaultView;
   const base = `/reviews/${submission.id}`;
   const viewHref = (v: string) => (v === defaultView ? base : `${base}?view=${v}`);
-  const decisions: ReviewDecision[] = [
-    ...(review.can.decide ? (["approve", "request_changes", "reject"] as const) : []),
-    ...(review.can.override ? (["override"] as const) : []),
-    // An approved one can still be sent back before it's released (056).
-    ...(review.can.sendBack ? (["request_changes"] as const) : []),
-  ];
+  // Every decision a reviewer may make here, disabled with the reason when it isn't theirs (058).
+  const decisions = review.decisions;
 
   return (
     <div className="grid gap-6">
@@ -128,9 +120,12 @@ const Review = async ({
         </div>
       </header>
       {decisions.length > 0 ? <Help id="decisions" /> : null}
-      {review.mine && !review.can.override && submission.status === "submitted" ? (
+      {review.mine && submission.status === "submitted" ? (
         <p className="text-sm text-muted">
           This is your own submission: another moderator or root reviews it.
+          {review.can.override
+            ? " As root, you can approve it yourself as an override, recorded as one."
+            : ""}
         </p>
       ) : null}
 

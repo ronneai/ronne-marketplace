@@ -33,7 +33,7 @@ the same change that completes it.
 
   *Done when:* `reviews.test.tsx` covers the cells per tab and the disabled reason.
 
-- [ ] **4. The review page.** `app/(app)/reviews/[id]/page.tsx`:
+- [x] **4. The review page.** `app/(app)/reviews/[id]/page.tsx`:
   - the decisions from `decisionsFor`, disabled with the reason;
   - the own-submission line for root too.
 
