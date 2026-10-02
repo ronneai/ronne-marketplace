@@ -495,7 +495,7 @@ describe("dependencies over MCP (041)", () => {
       order: [{ item: "@team/reviewer", after: ["@team/mine"] }],
     });
     expect(exported.content[0]?.text).toContain(
-      "Submit and release @team/mine first; then @team/reviewer can be submitted.",
+      "@team/mine must be in review first: once it is ready, rmk submit @team/reviewer submits it first.",
     );
   });
 

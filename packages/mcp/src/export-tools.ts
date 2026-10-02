@@ -11,6 +11,7 @@ import {
   type Io,
   type LocalItem,
   type Ownership,
+  orderLine,
   planExport,
   previewText,
   RmkError,
@@ -318,11 +319,7 @@ const draftLines = (exported: ExportedItem[]) =>
     ];
   });
 
-const orderLines = (order: ReturnType<typeof releaseOrder>) =>
-  order.map(
-    (step) =>
-      `Submit and release ${step.after.join(" and ")} first; then ${step.item} can be submitted.`,
-  );
+const orderLines = (order: ReturnType<typeof releaseOrder>) => order.map(orderLine);
 
 const REMINDER =
   "Nothing is submitted: the person opens each draft, checks it, and submits it in the web app, or asks you to (check_drafts, then submit_drafts).";

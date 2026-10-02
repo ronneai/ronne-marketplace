@@ -36,7 +36,7 @@ export const USAGE = `Usage: rmk <command> [options]
          [--description <text>] [--with-deps | --no-deps] [--scope project|user]
          [--describe <item>=<text>]... [--descriptions <file.json>]
          [--dry-run] [--yes] [--force] [--new] [--new-draft]
-  submit [<@scope/name|id>...] [--all] [--dry-run] [--yes]
+  submit [<@scope/name|id>...] [--all] [--no-deps] [--dry-run] [--yes]
   telemetry [on | off | status | preview | flush]
 
 Options: --json (one JSON object per command), --registry <url>, --version, --help`;

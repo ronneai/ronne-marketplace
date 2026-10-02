@@ -78,7 +78,7 @@ adds that draft to the batch, before the dependent, and says so: "Included for @
 @team/github". If the dependency's draft isn't ready, the dependent isn't either, with the
 dependency's issues named. In the web list, selecting the dependent selects the dependency; it
 can't be unselected while the dependent is selected. `rmk submit @team/reviewer` lists it under
-**Included** in its preview; `--no-dependencies` leaves it out, and then the dependent is not
+**Included** in its preview; `--no-deps` leaves it out, and then the dependent is not
 ready. `submit_drafts` does the same as `rmk`.
 
 **Approving** (014, 054). Unchanged rules; the review page and 054's dialog show the marks, so a
@@ -150,7 +150,7 @@ submits that included dependencies are 052's events, one per item.
 - **Submitting and review → The checks at submit** (`review#checks`): a dependency counts once it's
   in review; the range is checked at release; a draft dependency doesn't count.
 - **Submitting and review → Submitting many at once** (`review#many`): your own ready dependency
-  drafts are included, first; `--no-dependencies`.
+  drafts are included, first; `--no-deps`.
 - **Submitting and review**, a new section **Dependencies in review** (`review#dependencies`): the
   marks (waits on, blocked), approving with a dependency in review, releasing in order, and what
   happens when a dependency is rejected or withdrawn.
@@ -171,7 +171,7 @@ submits that included dependencies are 052's events, one per item.
 - [ ] The range is checked at release against the dependency's released version, and a dependent
   whose dependency isn't released (or released in the batch first) can't be released.
 - [ ] Bulk submit (web, `rmk submit`, `submit_drafts`) includes the person's own ready dependency
-  drafts first; `--no-dependencies` leaves them out.
+  drafts first; `--no-deps` leaves them out.
 - [ ] 055 selects a dependent's approved dependencies with it, refuses a dependent waiting on a
   dependency in review, and releases dependencies first.
 - [ ] Rejecting a submission lists its open dependents, and with the box ticked requests changes on

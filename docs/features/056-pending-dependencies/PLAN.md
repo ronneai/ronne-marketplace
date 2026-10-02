@@ -30,8 +30,8 @@ the same change that completes it.
   *Done when:* `registry.db.test.ts` covers the release refused, then allowed once the dependency is
   released, on every database; `review-page.test.tsx` covers Publish disabled.
 
-- [ ] **4. Bulk submit includes dependencies.** 052's `submitMany` adds the person's own ready
-  dependency drafts first; the web selection, `rmk submit` (**Included**, `--no-dependencies`) and
+- [x] **4. Bulk submit includes dependencies.** 052's `submitMany` adds the person's own ready
+  dependency drafts first; the web selection, `rmk submit` (**Included**, `--no-deps`) and
   `submit_drafts`.
   *Done when:* `bulk-submit.db.test.ts` and `submit.test.ts` cover the inclusion and the flag.
 

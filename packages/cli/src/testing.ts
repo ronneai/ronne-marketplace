@@ -431,6 +431,8 @@ export type FakeSubmitDraft = {
   /** What Submit would refuse; none means ready. */
   errors?: { code: string; message: string }[];
   updatedAt?: string;
+  /** Its dependency drafts' ids (056): the check includes them first unless `dependencies: false`. */
+  includes?: string[];
 };
 
 /**
@@ -453,6 +455,24 @@ export const submitRoutes = (drafts: FakeSubmitDraft[], taken: string[] = []) =>
     const { ids, all } = body as { ids?: string[]; all?: boolean };
     return all ? drafts.filter((d) => d.status !== "submitted").map((d) => d.id) : (ids ?? []);
   };
+  /** The selection with each one's dependency drafts first, and who they're included for (056). */
+  const expanded = (body: unknown) => {
+    const picked = selected(body);
+    const includedFor = new Map<string, string[]>();
+    if ((body as { dependencies?: boolean }).dependencies === false)
+      return { ids: picked, includedFor };
+    const ids: string[] = [];
+    for (const id of picked) {
+      const d = drafts.find((x) => x.id === id);
+      for (const dep of d?.includes ?? []) {
+        if (!picked.includes(dep))
+          includedFor.set(dep, [...(includedFor.get(dep) ?? []), d?.name ?? id]);
+        if (!ids.includes(dep)) ids.push(dep);
+      }
+      if (!ids.includes(id)) ids.push(id);
+    }
+    return { ids, includedFor };
+  };
   const routes: Record<string, Route> = {
     "GET /drafts": ({ url }) => ({
       json: {
@@ -467,25 +487,31 @@ export const submitRoutes = (drafts: FakeSubmitDraft[], taken: string[] = []) =>
           })),
       },
     }),
-    "POST /drafts/check": ({ body }) => ({
-      json: {
-        drafts: selected(body).map((id) => {
-          const d = drafts.find((x) => x.id === id);
-          if (!d) return { id, result: "not_found", ready: false };
-          if (d.status === "submitted")
-            return { id, result: "not_submittable", ready: false, ...place(d) };
-          const issues = issuesOf(d);
-          return {
-            id,
-            result: issues.length ? "not_ready" : "ready",
-            ready: issues.length === 0,
-            ...place(d),
-            issues,
-          };
-        }),
-        more: 0,
-      },
-    }),
+    "POST /drafts/check": ({ body }) => {
+      const { ids, includedFor } = expanded(body);
+      return {
+        json: {
+          drafts: ids.map((id) => {
+            const d = drafts.find((x) => x.id === id);
+            const included = includedFor.has(id) ? { includedFor: includedFor.get(id) } : {};
+            if (!d) return { id, result: "not_found", ready: false };
+            if (d.status === "submitted")
+              return { id, result: "not_submittable", ready: false, ...place(d) };
+            // A dependent whose dependency drafts are included is ready once they are.
+            const issues = d.includes?.length && ids.length > 1 ? [] : issuesOf(d);
+            return {
+              id,
+              result: issues.length ? "not_ready" : "ready",
+              ready: issues.length === 0,
+              ...place(d),
+              issues,
+              ...included,
+            };
+          }),
+          more: 0,
+        },
+      };
+    },
     "POST /drafts/submit": ({ body }) => ({
       json: {
         results: selected(body).map((id) => {

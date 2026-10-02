@@ -33,7 +33,10 @@ const Submissions = async ({
   const marks = await dependencyMarks(headers, submissions);
   const errors: Record<string, number> = {};
   const ready: Record<string, string> = {};
+  // Each draft's own dependency drafts (056), selected with it.
+  const needs: Record<string, readonly string[]> = {};
   for (const draft of checked) {
+    if (draft.needs) needs[draft.id] = draft.needs;
     if (!("issues" in draft)) continue;
     errors[draft.id] = draft.issues.filter((issue) => issue.severity === "error").length;
     if (draft.result === "ready")
@@ -53,7 +56,7 @@ const Submissions = async ({
         }
       />
       <Help id="export" />
-      <BulkSubmitProvider ready={ready}>
+      <BulkSubmitProvider ready={ready} needs={needs}>
         <StatusFilters submissions={submissions} status={status} />
         <BulkToolbar
           help={

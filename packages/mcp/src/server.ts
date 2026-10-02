@@ -278,6 +278,12 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
       .boolean()
       .optional()
       .describe("true for every one of the person's drafts and ones sent back for changes"),
+    dependencies: z
+      .boolean()
+      .optional()
+      .describe(
+        "false to leave out the person's own drafts these depend on; by default they're included and go first",
+      ),
   };
 
   server.registerTool(
@@ -285,7 +291,7 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
     {
       title: "Check drafts before submitting",
       description:
-        "Says which of the person's drafts Submit would take now and what's in the way of the others (missing description, a dependency not released yet, a taken name…), with the order to release in when one waits for another. Sends nothing. Show it to the person; submit with submit_drafts if they agree.",
+        "Says which of the person's drafts Submit would take now and what's in the way of the others (missing description, a dependency not in review yet, a taken name…). The person's own drafts that these depend on are included, and go first. Sends nothing. Show it to the person; submit with submit_drafts if they agree.",
       inputSchema: selection,
       annotations: planning,
     },

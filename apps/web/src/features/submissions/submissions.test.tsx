@@ -29,7 +29,7 @@ const { inListOrder, StatusFilters, SubmissionsTable, statusFilter } = await imp
   "./SubmissionsTable"
 );
 const { NewDraftForm } = await import("./NewDraftForm");
-const { BulkSubmitProvider, BulkToolbar } = await import("./BulkSubmit");
+const { BulkSubmitProvider, BulkToolbar, neededBy, toggled } = await import("./BulkSubmit");
 const { default: SubmissionsPage } = await import("@/app/(app)/submissions/page");
 const { default: NewItemPage } = await import("@/app/(app)/submissions/new/page");
 
@@ -118,6 +118,28 @@ describe("SubmissionsTable", () => {
     const html = renderToStaticMarkup(<SubmissionsTable submissions={[]} />);
     expect(html).toContain("You have no drafts yet.");
     expect(html).toContain('href="/submissions/new"');
+  });
+});
+
+describe("selecting dependency drafts with what needs them (056)", () => {
+  const ready = new Map([
+    ["kit", "@t/kit"],
+    ["style", "@t/style"],
+    ["tabs", "@t/tabs"],
+  ]);
+  const needs = { kit: ["style", "notes"], style: ["tabs"] };
+
+  it("selects the ready drafts a draft needs, depth first, and keeps them while it's selected", () => {
+    const withKit = toggled(new Set(), "kit", ready, needs);
+    // notes isn't ready, so it isn't selected (the check said kit waits for it).
+    expect([...withKit]).toEqual(["kit", "style", "tabs"]);
+    expect(neededBy("style", withKit, needs, ready)).toBe("@t/kit");
+    expect([...toggled(withKit, "style", ready, needs)]).toEqual(["kit", "style", "tabs"]);
+    const withoutKit = toggled(withKit, "kit", ready, needs);
+    expect([...withoutKit]).toEqual(["style", "tabs"]);
+    expect([...toggled(toggled(withoutKit, "style", ready, needs), "tabs", ready, needs)]).toEqual(
+      [],
+    );
   });
 });
 

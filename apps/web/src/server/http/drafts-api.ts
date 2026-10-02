@@ -291,19 +291,23 @@ export const getDrafts = async (request: Request, deps: DraftsApiDeps = {}) => {
 };
 
 const SELECTION =
-  'Send JSON: { "ids": ["…", …] } (at most 100, each once), or { "all": true } for every draft of yours.';
+  'Send JSON: { "ids": ["…", …] } (at most 100, each once), or { "all": true } for every draft of yours; add "dependencies": false to leave out your dependency drafts.';
 
-/** A bulk request's body (052): `ids`, or `all`. */
+/** A bulk request's body (052): `ids`, or `all`, and `dependencies` (056, true by default). */
 const parseSelection = (
   body: Record<string, unknown> | null,
 ): Parsed<BulkSelection> | { tooMany: number } => {
-  if (body?.all === true && body.ids === undefined) return { ok: true, value: { all: true } };
+  if (body?.dependencies !== undefined && typeof body.dependencies !== "boolean")
+    return { ok: false, message: SELECTION };
+  const dependencies = body?.dependencies === false ? { dependencies: false } : {};
+  if (body?.all === true && body.ids === undefined)
+    return { ok: true, value: { all: true, ...dependencies } };
   const ids = body?.ids;
   if (!Array.isArray(ids) || ids.length === 0 || ids.some((id) => typeof id !== "string"))
     return { ok: false, message: SELECTION };
   if (new Set(ids).size !== ids.length) return { ok: false, message: `Each id once. ${SELECTION}` };
   if (ids.length > MAX_BULK) return { tooMany: ids.length };
-  return { ok: true, value: { ids: ids as string[] } };
+  return { ok: true, value: { ids: ids as string[], ...dependencies } };
 };
 
 /** A bulk request, in order: the token, then (for submit) the rate, the body's size and shape. */
@@ -355,6 +359,7 @@ const draftOf = (deps: DraftsApiDeps, submission: Submission) => ({
 
 const checkedJson = (deps: DraftsApiDeps, draft: CheckedDraft) => ({
   id: draft.id,
+  ...(draft.includedFor ? { includedFor: draft.includedFor } : {}),
   result: draft.result,
   ready: draft.result === "ready",
   ...("submission" in draft ? draftOf(deps, draft.submission) : {}),
@@ -363,6 +368,7 @@ const checkedJson = (deps: DraftsApiDeps, draft: CheckedDraft) => ({
 
 const submittedJson = (deps: DraftsApiDeps, draft: SubmittedDraft) => ({
   id: draft.id,
+  ...(draft.includedFor ? { includedFor: draft.includedFor } : {}),
   result: draft.result,
   ...("submission" in draft ? draftOf(deps, draft.submission) : {}),
   ...("revision" in draft ? { revision: draft.revision } : {}),
