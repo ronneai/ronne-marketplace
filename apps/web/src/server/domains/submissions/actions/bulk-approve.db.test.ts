@@ -121,7 +121,7 @@ describe("approveMany", () => {
     ]);
     expect(results[0]).toMatchObject({ override: false, revision: 1 });
     expect(results[1]).toMatchObject({ reason: expect.stringContaining("another moderator") });
-    expect(results[2]).toMatchObject({ reason: expect.stringContaining("withdrawn") });
+    expect(results[2]).toMatchObject({ reason: expect.stringContaining("archived") });
 
     for (const id of [one, two]) {
       expect(await status(id)).toBe("approved");

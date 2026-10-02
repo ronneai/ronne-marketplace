@@ -64,5 +64,5 @@ test("a user writes a skill, submits it, sees it read-only, and withdraws it", a
 
   await page.goto("/submissions");
   const row = page.getByRole("row", { name: new RegExp(`@${E2E_SCOPE}/secure-coding`) });
-  await expect(row.getByText("withdrawn")).toBeVisible();
+  await expect(row.getByText("archived")).toBeVisible();
 });

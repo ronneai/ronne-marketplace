@@ -7,11 +7,11 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Status rules.**
+- [x] **1. Status rules.**
   - In `submissions/models/status.ts`: a `restore` action (`withdrawn → draft`), and
     `statusLabel("withdrawn")` reads "archived".
-  - A `restore` review-event kind (check `review_events.kind` and its type in `db/schema.ts`; if it's
-    constrained, add it in a migration that works on all three databases).
+  - A `restore` review-event kind. `review_events.kind` is a plain `string(24)`, so no migration is
+    needed.
   - `submission.deleted` and `submission.restored` in `audit/models/audit-event.ts`.
 
   *Done when:* `status.test.ts` covers restore and the label, and lint and typecheck pass.

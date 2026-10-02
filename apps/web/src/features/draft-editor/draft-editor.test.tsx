@@ -278,7 +278,7 @@ describe("the draft page", () => {
       canWithdraw: false,
     });
     expect(withdrawn).toContain("Withdrawn.");
-    expect(withdrawn).toContain(">withdrawn<");
+    expect(withdrawn).toContain(">archived<");
   });
 
   it("links a released item to its Versions page, and nothing else does", () => {

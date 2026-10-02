@@ -109,7 +109,7 @@ describe("the topics", () => {
     expect(scopes).toContain("@platform/code-reviewer");
     expect(scopes).toContain("up to 64");
     const review = await topic("review");
-    for (const status of ["changes requested", "withdrawn", "published"])
+    for (const status of ["changes requested", "archived", "published"])
       expect(review).toContain(`>${status}<`);
     const versions = await topic("versions");
     expect(versions).toContain("1.4.0 → 1.5.0");

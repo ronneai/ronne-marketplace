@@ -24,13 +24,14 @@ export type SubmissionAction =
   | "approve"
   | "reject"
   | "withdraw"
+  | "restore"
   | "publish"
   | "rebase";
 
 /**
  * Every allowed move, and the only place they're decided: services call `transition`. 013 uses
  * submit and withdraw; review (014) and release (015) use the rest. Withdrawing is allowed until
- * approval (owner decision, 2026-09-27).
+ * approval (owner decision, 2026-09-27); since 057 it archives, and the author can restore it.
  */
 export const TRANSITIONS: Record<
   SubmissionAction,
@@ -43,6 +44,8 @@ export const TRANSITIONS: Record<
   approve: { from: ["submitted"], to: "approved" },
   reject: { from: ["submitted"], to: "rejected" },
   withdraw: { from: ["draft", "submitted", "changes_requested"], to: "withdrawn" },
+  // An archived submission comes back as a draft, with its history (057).
+  restore: { from: ["withdrawn"], to: "draft" },
   publish: { from: ["approved"], to: "published" },
   // A stale proposal under review, or approved, goes back to its author to rebase (017). Drafts and
   // proposals sent back for changes rebase in place.
@@ -72,5 +75,9 @@ export const OPEN_STATUSES: readonly SubmissionStatus[] = [
   "approved",
 ];
 
-/** How a status reads on a page: `changes_requested` is "changes requested". */
-export const statusLabel = (status: SubmissionStatus): string => status.replace("_", " ");
+/**
+ * How a status reads on a page: `changes_requested` is "changes requested", and `withdrawn` is
+ * "archived" (057: the stored value stays, so the API and existing rows don't change).
+ */
+export const statusLabel = (status: SubmissionStatus): string =>
+  status === "withdrawn" ? "archived" : status.replace("_", " ");

@@ -11,7 +11,8 @@ const SAID: Record<ReviewEventKind, (event: ReviewEvent) => string> = {
   approve: () => "approved it",
   reject: () => "rejected it",
   override: () => "approved their own submission, as root (override)",
-  withdraw: () => "withdrew it",
+  withdraw: () => "archived it",
+  restore: () => "restored it as a draft",
   publish: (e) => `released it as ${e.body ?? "a new version"}`,
   rebase: (e) => `rebased it onto ${e.body ?? "a newer version"}`,
 };

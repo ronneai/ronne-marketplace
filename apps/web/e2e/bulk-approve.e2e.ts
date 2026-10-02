@@ -87,7 +87,7 @@ test("approves the selected submissions with one message, and reports one withdr
   const done = page.getByRole("dialog", { name: "Approved" });
   await expect(done.getByText("Approved:", { exact: true })).toHaveCount(2);
   await expect(done.getByText("Not approved:", { exact: true })).toHaveCount(1);
-  await expect(done).toContainText("withdrawn");
+  await expect(done).toContainText("archived");
   await done.getByRole("button", { name: "Done" }).click();
 
   await page.goto(`/reviews/${ids[0]}`);

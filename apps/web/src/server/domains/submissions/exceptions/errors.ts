@@ -48,6 +48,7 @@ export class SubmissionNotEditableError extends SubmissionsError {
 
 const STATUS_WORDS: Record<string, string> = {
   changes_requested: "sent back for changes",
+  withdrawn: "archived",
 };
 
 /** A move MVP §4.1 doesn't allow, such as withdrawing twice. */
@@ -58,8 +59,12 @@ export class InvalidStatusTransitionError extends SubmissionsError {
   ) {
     super(
       `A submission that's ${STATUS_WORDS[from] ?? from} can't be ${
-        { submit: "submitted", resubmit: "resubmitted", withdraw: "withdrawn" }[action] ??
-        `${action.replace("_", " ")}d`
+        {
+          submit: "submitted",
+          resubmit: "resubmitted",
+          withdraw: "withdrawn",
+          restore: "restored",
+        }[action] ?? `${action.replace("_", " ")}d`
       }.`,
     );
   }

@@ -26,6 +26,7 @@ export const REVIEW_EVENT_KINDS = [
   "reject",
   "override",
   "withdraw",
+  "restore",
   "publish",
   "rebase",
 ] as const;
