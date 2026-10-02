@@ -91,6 +91,7 @@ export const TOPICS = [
       { id: "semver", title: "Versions" },
       { id: "bump", title: "Patch, minor or major" },
       { id: "tags", title: "Tags" },
+      { id: "release-many", title: "Releasing many at once" },
       { id: "deprecate-yank", title: "Deprecate or yank" },
     ],
   },

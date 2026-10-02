@@ -26,7 +26,7 @@ the same change that completes it.
   failed dependency, two proposals for one item, a user releasing someone else's, two releases at
   once, a yanked dependency, and the audit, on every database.
 
-- [ ] **3. My submissions.** Checkboxes on releasable approved rows, **Select all approved**,
+- [x] **3. My submissions.** Checkboxes on releasable approved rows, **Select all approved**,
   **Release selected**, separate from 052's draft selection, and the dialog (settings, preview in
   release order, results).
   *Done when:* `submissions.test.tsx` covers the selection and the dialog's preview and results.

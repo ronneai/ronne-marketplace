@@ -927,6 +927,35 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </p>
       </>
     ),
+    "release-many": (
+      <>
+        <p>
+          Approved submissions can go out together: tick them on{" "}
+          <To href="/submissions">My submissions</To> (your own), or on the review queue&apos;s{" "}
+          <strong>To release</strong> tab (moderators and root, anyone&apos;s), then{" "}
+          <strong>Release selected</strong>.
+        </p>
+        <Bullets>
+          <li>
+            <strong>One set of settings for all:</strong> stable or pre-release, the bump (each
+            change&apos;s suggested bump, or one for all), the tag (each version&apos;s default, or
+            one for all) and optional release notes. A first release is always 1.0.0.
+          </li>
+          <li>
+            <strong>Every version is shown first</strong>, as each publish dialog would, and Release
+            stays off until the settings work for every one.
+          </li>
+          <li>
+            <strong>Dependencies go first.</strong> Selecting one adds its approved dependencies
+            that aren&apos;t released yet, marked as included; one still in review keeps it out.
+          </li>
+          <li>
+            Each is released on its own. One that fails, such as a stale proposal, stops only itself
+            and what depends on it in the batch (skipped); the rest go. At most 50 at a time.
+          </li>
+        </Bullets>
+      </>
+    ),
     "deprecate-yank": (
       <>
         <Table>

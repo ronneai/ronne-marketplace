@@ -93,9 +93,8 @@ them anyway.
 
 **My submissions (web).** Each `approved` row the person may release gets a checkbox; for a user,
 those are their own. Above the table: **Select all approved (n)** and **Release selected (n)**,
-next to 052's submit buttons and shown only when at least one row is approved. Selecting drafts and
-approved rows at once isn't possible: the two selections are separate, and choosing one clears the
-other.
+next to 052's submit buttons and shown only when at least one row is approved. The two selections
+are separate: Submit selected takes only the drafts, Release selected only the approved ones.
 
 **The review queue (web).** A new tab, **To release**, lists `approved` submissions, oldest
 first, with who approved them and when; **Decided** keeps `rejected` and `published`. It has the

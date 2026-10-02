@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Help } from "@/components/help/Help";
 import { buttonClasses } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/Panel";
+import { BulkReleaseProvider, BulkReleaseToolbar } from "@/features/releases/BulkRelease";
 import { BulkSubmitProvider, BulkToolbar } from "@/features/submissions/BulkSubmit";
 import {
   inListOrder,
@@ -29,6 +30,12 @@ const Submissions = async ({
   const submissions = inListOrder(await listMySubmissions(headers));
   // Which open drafts Submit would take now (052): one check for the newest 100 of them.
   const { drafts: checked } = await checkManyDrafts(headers, { all: true });
+  // Approved ones, released many at once (055).
+  const releasable = Object.fromEntries(
+    submissions
+      .filter((s) => s.status === "approved")
+      .map((s) => [s.id, `@${s.scope.name}/${s.name}`]),
+  );
   // What each waits on (056): dependencies in review, not submitted, or blocked.
   const marks = await dependencyMarks(headers, submissions);
   const errors: Record<string, number> = {};
@@ -57,20 +64,24 @@ const Submissions = async ({
       />
       <Help id="export" />
       <BulkSubmitProvider ready={ready} needs={needs}>
-        <StatusFilters submissions={submissions} status={status} />
-        <BulkToolbar
-          help={
-            <>
-              <Help id="submit-many" />
-              <Help id="ready" />
-            </>
-          }
-        />
-        <SubmissionsTable
-          submissions={status ? submissions.filter((s) => s.status === status) : submissions}
-          errors={checked.length > 0 ? errors : undefined}
-          marks={marks}
-        />
+        <BulkReleaseProvider releasable={releasable}>
+          <StatusFilters submissions={submissions} status={status} />
+          <BulkToolbar
+            help={
+              <>
+                <Help id="submit-many" />
+                <Help id="ready" />
+              </>
+            }
+          />
+          <BulkReleaseToolbar help={<Help id="release-many" />} />
+          <SubmissionsTable
+            submissions={status ? submissions.filter((s) => s.status === status) : submissions}
+            errors={checked.length > 0 ? errors : undefined}
+            marks={marks}
+            releasable={releasable}
+          />
+        </BulkReleaseProvider>
       </BulkSubmitProvider>
     </>
   );
