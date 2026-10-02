@@ -1,6 +1,11 @@
 "use client";
 
-import { DEFAULT_LIMITS, formatBytes, type ManifestIssue } from "@ronneai/core";
+import {
+  DEFAULT_LIMITS,
+  formatBytes,
+  type ManifestIssue,
+  mayHaveDependencies,
+} from "@ronneai/core";
 import { FilePlus, FolderPlus, History, Lock, Send, Settings, Undo2, Upload } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -8,6 +13,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useReducer, useRef, useState, useTransition } from "react";
 import { CodeEditor } from "@/components/code/CodeEditor";
 import { FileTree } from "@/components/code/FileTree";
+import type { Mentions } from "@/components/code/mentions";
 import { LAYOUT_PATH } from "@/components/dependency-canvas/layout";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { Button, buttonClasses } from "@/components/ui/Button";
@@ -17,13 +23,16 @@ import { Notice } from "@/components/ui/Notice";
 import { TypeBadge } from "@/components/ui/TypeBadge";
 import { UnsavedChangesGuard } from "@/components/ui/UnsavedChangesGuard";
 import { IssueList } from "@/components/validation/IssueList";
+import type { DependencyOption } from "@/server/domains/submissions/actions/composer";
 import {
   MANIFEST_PATH,
   toDraftContent,
   validateDraft,
 } from "@/server/domains/submissions/models/submission";
 import { saveDraftAction } from "./actions";
-import { hasCanvas } from "./composer-canvas/model";
+import { addDependency, hasCanvas } from "./composer-canvas/model";
+import { findDependenciesAction } from "./dependency-picker/actions";
+import { dependencyRows, rangeFor, statusText } from "./dependency-picker/model";
 import { DeleteFileDialog, DraftSettingsDialog, ImportZipDialog, PathDialog } from "./FileDialogs";
 import {
   changesOf,
@@ -35,6 +44,7 @@ import {
 } from "./files";
 import { useDebounced, useSaveShortcut } from "./hooks";
 import { ManifestForm } from "./ManifestForm";
+import { readManifest } from "./manifest-yaml";
 import { ProposalBar } from "./ProposalBar";
 import { SubmitDialog, WithdrawDialog } from "./SubmitDialogs";
 import type { EditorDraft, SaveResult } from "./types";
@@ -169,6 +179,48 @@ export const DraftEditor = ({
     for (const action of actions) dispatch(action);
   }, []);
   const showYaml = useCallback(() => setView("yaml"), []);
+
+  // `@` in markdown files (056): the list is the dependency search; a pick adds the dependency to
+  // ronne.yaml on latest, unless it's there already. Read through refs, so the list sees the
+  // manifest as it is now.
+  const manifestText =
+    state.files.find((f) => f.path === MANIFEST_PATH && f.encoding === "utf8")?.content ?? "";
+  const manifestNow = useRef(manifestText);
+  manifestNow.current = manifestText;
+  const offered = useRef(new Map<string, DependencyOption>());
+  const mentions = useMemo<Mentions | null>(
+    () =>
+      readOnly || !mayHaveDependencies(draft.type)
+        ? null
+        : {
+            find: async (q) => {
+              const result = await findDependenciesAction({
+                type: draft.type,
+                q,
+                itemName,
+                exclude: [],
+              });
+              if (!result.ok) return [];
+              for (const option of result.options) offered.current.set(option.name, option);
+              return result.options.map((option) => ({
+                name: option.name,
+                detail: `${option.type} · ${statusText(option)}`,
+              }));
+            },
+            pick: (name) => {
+              const text = manifestNow.current;
+              const listed = dependencyRows(readManifest(text)?.dependencies);
+              if (listed.some(([n]) => n === name)) return;
+              const option = offered.current.get(name);
+              dispatch({
+                type: "edit",
+                path: MANIFEST_PATH,
+                content: addDependency(text, name, option ? rangeFor(option) : "^1.0.0"),
+              });
+            },
+          },
+    [readOnly, draft.type, itemName],
+  );
 
   /** Reads chosen files in the browser; each goes into the selected file's folder. */
   const addFiles = async (list: FileList | null, target?: string) => {
@@ -485,6 +537,7 @@ export const DraftEditor = ({
                     onChange={onChange}
                     goToLine={goTo}
                     readOnly={readOnly}
+                    mentions={mentions}
                   />
                 ) : (
                   <div className="grid h-full place-content-center justify-items-center gap-3 bg-surface p-6 text-center">

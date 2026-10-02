@@ -1,5 +1,5 @@
 import { type APIRequestContext, type Browser, expect, type Page, test } from "@playwright/test";
-import { E2E_PASSWORD, E2E_PROPOSAL_ITEM, E2E_SCOPE, E2E_USERS } from "./users";
+import { E2E_PASSWORD, E2E_PROPOSAL_ITEM, E2E_RMK_ITEMS, E2E_SCOPE, E2E_USERS } from "./users";
 
 /**
  * Dependencies on their way (feature 056): a bundle and the skill it uses go through review
@@ -162,7 +162,27 @@ test("the form finds a dependency as you type, adds it on latest, and saves it",
   await expect(author.getByText(/isn't a full item name/)).toHaveCount(0);
 
   await author.getByRole("button", { name: "YAML", exact: true }).click();
-  await expect(author.getByLabel("Contents of ronne.yaml")).toContainText(`"${skill}": ^1.`);
+  const yaml = author.getByLabel("Contents of ronne.yaml");
+  await expect(yaml).toContainText(`"${skill}": ^1.`);
+
+  // `@` in the prompt: picking an item writes its name and adds it to the dependencies.
+  const mcp = `@${E2E_SCOPE}/${E2E_RMK_ITEMS.mcp}`;
+  await author
+    .getByRole("list", { name: "Files" })
+    .getByRole("button", { name: /prompt\.md/ })
+    .click();
+  const prompt = author.getByLabel("Contents of prompt.md");
+  await prompt.click();
+  await author.keyboard.press("ControlOrMeta+End");
+  await author.keyboard.type(`\nUse @${E2E_RMK_ITEMS.mcp}`);
+  await author.getByRole("option", { name: new RegExp(mcp) }).click();
+  await expect(prompt).toContainText(`Use ${mcp}`);
+  await author
+    .getByRole("list", { name: "Files" })
+    .getByRole("button", { name: /ronne\.yaml/ })
+    .click();
+  await expect(yaml).toContainText(`"${mcp}": ^`);
+
   await author.keyboard.press("ControlOrMeta+s");
   await expect(author.getByText(/Saved at/)).toBeVisible();
 });

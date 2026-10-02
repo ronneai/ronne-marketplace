@@ -61,7 +61,7 @@ the same change that completes it.
   *Done when:* unit tests cover the range from a pick, and the field's rendering; a Playwright test
   picks a dependency and saves.
 
-- [ ] **10. `@` in markdown.** `@codemirror/autocomplete` (dependency policy checked) in the code
+- [x] **10. `@` in markdown.** `@codemirror/autocomplete` (dependency policy checked) in the code
   editor for markdown files, over the same search; picking inserts the name and adds the
   dependency to the manifest.
   *Done when:* unit tests cover the completion source and the manifest change; the Playwright test
