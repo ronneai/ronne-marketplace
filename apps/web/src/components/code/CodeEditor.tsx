@@ -25,7 +25,8 @@ import { type Mentions, mentionExtension } from "./mentions";
 /** 032's tokens, so the editor follows the light and dark themes: teal is the only accent. */
 const theme = EditorView.theme({
   "&": {
-    height: "100%",
+    // As tall as the document, at least 20rem: the page scrolls, not the editor (2026-10-01).
+    minHeight: "20rem",
     backgroundColor: "var(--surface)",
     color: "var(--fg)",
     fontSize: "13px",
@@ -211,5 +212,5 @@ export const CodeEditor = ({
     editor.focus();
   }, [goToLine]);
 
-  return <div ref={host} className="h-full min-h-80 overflow-hidden" />;
+  return <div ref={host} className="min-h-80 overflow-hidden rounded-panel" />;
 };

@@ -129,7 +129,9 @@ draft's existence isn't revealed. (From 013, submitted ones are visible to moder
   with that file's issues, light red or amber to match; next to the item's name, a summary ("2
   errors, 1 warning", or "No problems") opens all of them; and "● Unsaved changes" beside the name
   while anything isn't saved. **Submit for review** is disabled, saying why, while there are
-  unsaved changes or errors.
+  unsaved changes or errors. The file's card has no fixed height: the form and the code editor
+  grow with their content, at least 20rem, and the page scrolls instead (the canvas keeps its
+  frame).
 - **Saving:** the Save button and Ctrl/Cmd+S send the changed files in one server action. The page
   warns before leaving with unsaved changes (any changed, new, renamed or deleted file, or
   executable flag): a link opens the shared `UnsavedChangesGuard` dialog ("Stay on this page" or

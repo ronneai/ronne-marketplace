@@ -551,16 +551,14 @@ export const DraftEditor = ({
               </div>
               <div
                 className={cn(
-                  "overflow-hidden rounded-panel border border-hairline",
-                  // The canvas and the list under it need more room than a file does.
-                  composing ? "h-[85vh] min-h-[38rem]" : "h-[60vh]",
+                  "rounded-panel border border-hairline bg-surface",
+                  // The canvas needs a frame of its own; a file or the form grows with its content,
+                  // and the page scrolls instead of the card (owner, 2026-10-01).
+                  composing ? "h-[85vh] min-h-[38rem] overflow-hidden" : "min-h-80",
                 )}
               >
                 {file.path === MANIFEST_PATH && view === "form" ? (
-                  <fieldset
-                    disabled={readOnly}
-                    className="h-full min-w-0 overflow-y-auto bg-surface"
-                  >
+                  <fieldset disabled={readOnly} className="min-w-0 rounded-panel bg-surface">
                     <legend className="sr-only">ronne.yaml</legend>
                     <ManifestForm
                       text={file.content}
