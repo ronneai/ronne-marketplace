@@ -648,10 +648,10 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
     withdraw: (
       <>
         <p>
-          <strong>Withdraw</strong> is in the header of your own submission until it&apos;s
-          released: as a draft, submitted, sent back for changes, or approved. A released version
-          can&apos;t be withdrawn; deprecate or yank it instead. Withdrawing asks what to do with
-          it:
+          <strong>Withdraw</strong> is on your own submission until it&apos;s released: as a draft,
+          pending review, sent back for changes, or approved. It&apos;s in the header of its page,
+          on its row in My submissions, and on its review page. A released version can&apos;t be
+          withdrawn; deprecate or yank it instead. Withdrawing asks what to do with it:
         </p>
         <Bullets>
           <li>

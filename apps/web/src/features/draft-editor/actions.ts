@@ -11,7 +11,9 @@ import {
   saveDraftFiles,
 } from "@/server/domains/submissions/actions/drafts";
 import { rebaseProposal, resolveConflict } from "@/server/domains/submissions/actions/proposals";
+import { listDependents } from "@/server/domains/submissions/actions/reviews";
 import {
+  canDeleteSubmission,
   checkSubmission,
   deleteSubmission,
   restoreSubmission,
@@ -146,6 +148,24 @@ export const withdrawAction = async (
   if (mode === "delete") redirect("/submissions");
   revalidatePath(`/submissions/${id}`);
   return { ok: true };
+};
+
+/**
+ * What the Withdraw dialog needs, loaded when it opens from a list or the review page (058):
+ * whether it can be deleted for good, and how many open submissions depend on it (056).
+ */
+export const withdrawInfoAction = async (
+  id: string,
+): Promise<{ canDelete: boolean; dependents: number } | { error: string }> => {
+  try {
+    const headers = await requestHeaders();
+    return {
+      canDelete: await canDeleteSubmission(headers, id),
+      dependents: (await listDependents(headers, id)).length,
+    };
+  } catch (error) {
+    return { error: message(error) };
+  }
 };
 
 /** Deletes an archived submission for good (057). */

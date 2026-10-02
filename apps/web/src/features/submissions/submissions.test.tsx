@@ -453,3 +453,25 @@ describe("the latest reviewer message (058)", () => {
     expect(html).toContain("Fix it.");
   });
 });
+
+describe("withdrawing from the list (058)", () => {
+  it("offers Withdraw on each row until it's released, and Restore on archived ones", () => {
+    const html = renderToStaticMarkup(
+      <SubmissionsTable
+        submissions={[
+          submission({ id: "a", name: "pending", status: "submitted" }),
+          submission({ id: "b", name: "approved", status: "approved" }),
+          submission({ id: "c", name: "released", status: "published" }),
+          submission({ id: "d", name: "closed", status: "rejected" }),
+          submission({ id: "e", name: "kept", status: "withdrawn" }),
+        ]}
+      />,
+    );
+    expect(html).toContain('aria-label="Withdraw: @platform/pending"');
+    expect(html).toContain('aria-label="Withdraw: @platform/approved"');
+    expect(html).not.toContain('aria-label="Withdraw: @platform/released"');
+    expect(html).not.toContain('aria-label="Withdraw: @platform/closed"');
+    expect(html).not.toContain('aria-label="Withdraw: @platform/kept"');
+    expect(html).toContain(">Restore<");
+  });
+});

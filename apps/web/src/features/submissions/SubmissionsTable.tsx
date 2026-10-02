@@ -9,11 +9,13 @@ import { Table, Td, Th } from "@/components/ui/Table";
 import { TypeBadge } from "@/components/ui/TypeBadge";
 import type { DependencyMark, RowFeedback } from "@/server/domains/submissions/actions/submissions";
 import {
+  canTransition,
   SUBMISSION_STATUSES,
   type SubmissionStatus,
   statusLabel,
 } from "@/server/domains/submissions/models/status";
 import { itemNameOf, type Submission } from "@/server/domains/submissions/models/submission";
+import { WithdrawButton } from "../draft-editor/SubmitDialogs";
 import { ReleaseSelectCell } from "../releases/BulkRelease";
 import { ArchivedActions } from "./ArchivedActions";
 import { ReadinessMark, SelectCell } from "./BulkSubmit";
@@ -140,7 +142,10 @@ export const SubmissionsTable = ({
   feedback?: Readonly<Record<string, RowFeedback>>;
 }) => {
   const selecting = errors !== undefined || Object.keys(releasable ?? {}).length > 0;
-  const archived = submissions.some((s) => s.status === "withdrawn");
+  // Archived rows get Restore and Delete (057); the others, Withdraw until released (058).
+  const actions = submissions.some(
+    (s) => s.status === "withdrawn" || canTransition(s.status, "withdraw"),
+  );
   if (submissions.length === 0)
     return (
       <Panel padding="lg" className="grid justify-items-start gap-3">
@@ -166,7 +171,7 @@ export const SubmissionsTable = ({
           <Th>Type</Th>
           <Th>Status</Th>
           <Th>Last change</Th>
-          {archived ? (
+          {actions ? (
             <Th>
               <span className="sr-only">Actions</span>
             </Th>
@@ -218,14 +223,16 @@ export const SubmissionsTable = ({
                 <LocalTime value={submission.updatedAt} />
               </time>
             </Td>
-            {archived ? (
-              <Td>
+            {actions ? (
+              <Td className="text-right">
                 {submission.status === "withdrawn" ? (
                   <ArchivedActions
                     id={submission.id}
                     name={itemNameOf(submission)}
                     canDelete={deletable?.[submission.id] ?? false}
                   />
+                ) : canTransition(submission.status, "withdraw") ? (
+                  <WithdrawButton draftId={submission.id} itemName={itemNameOf(submission)} />
                 ) : null}
               </Td>
             ) : null}

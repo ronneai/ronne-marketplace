@@ -179,6 +179,9 @@ The audit metadata adds `via: "queue"` when decided from a queue row, as 054 add
 **Withdrawing an approved submission** (owner, 2026-10-02): built on this branch, as a change to
 [057](../057-withdraw-archive-delete/SPEC.md). Withdraw is offered until release, and an approved
 one is archived (never deleted). Its notice and the submit confirmations say "until it's released".
+Withdraw is also a text-only action on each of the author's rows in My submissions (draft, pending
+review, sent back, approved), and on the review page of their own submission; the dialog loads
+whether it can be deleted, and its dependents, when it opens.
 
 ## Open questions
 

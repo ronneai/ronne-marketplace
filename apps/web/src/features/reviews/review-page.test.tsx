@@ -399,6 +399,12 @@ describe("the review page", () => {
     expect(html).toContain("you can approve it yourself as an override");
   });
 
+  it("lets the author withdraw their own from the review page, and nobody else (058)", async () => {
+    expect(await render()).not.toContain('aria-label="Withdraw: @team/fmt"');
+    reviews.getReview.mockResolvedValue(view({ mine: true, decisions: [] }));
+    expect(await render()).toContain('aria-label="Withdraw: @team/fmt"');
+  });
+
   it("tells an author without a review role about their own submission, with no decisions", async () => {
     reviews.getReview.mockResolvedValue(
       view({

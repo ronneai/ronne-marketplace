@@ -12,6 +12,7 @@ import { LocalTime } from "@/components/ui/LocalTime";
 import { Notice } from "@/components/ui/Notice";
 import { TypeBadge } from "@/components/ui/TypeBadge";
 import { IssueList } from "@/components/validation/IssueList";
+import { WithdrawButton } from "@/features/draft-editor/SubmitDialogs";
 import { Conversation } from "@/features/reviews/Conversation";
 import { DecisionBar } from "@/features/reviews/DecisionBar";
 import { ProposalChanges } from "@/features/reviews/ProposalChanges";
@@ -22,6 +23,7 @@ import { can } from "@/server/domains/identity/models/permissions";
 import { getReview, type ReviewView } from "@/server/domains/submissions/actions/reviews";
 import { dependencyMarks } from "@/server/domains/submissions/actions/submissions";
 import { SubmissionNotFoundError } from "@/server/domains/submissions/exceptions/errors";
+import { canTransition } from "@/server/domains/submissions/models/status";
 import { itemNameOf } from "@/server/domains/submissions/models/submission";
 import { requestHeaders } from "@/server/http/request-headers";
 
@@ -100,6 +102,10 @@ const Review = async ({
               <History size={16} aria-hidden="true" />
               View versions
             </Link>
+          ) : null}
+          {/* The author can pull it back from here too, until it's released (058). */}
+          {review.mine && canTransition(submission.status, "withdraw") ? (
+            <WithdrawButton draftId={submission.id} itemName={itemNameOf(submission)} />
           ) : null}
           <DecisionBar
             id={submission.id}
