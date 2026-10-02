@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Keyset paging on the server.** `server/db/keyset.ts`: `paginate()` (sort column plus
+- [x] **1. Keyset paging on the server.** `server/db/keyset.ts`: `paginate()` (sort column plus
   `id`, both directions, `size + 1`), the cursor encoding and checking, and the capped `count`.
   *Done when:* `keyset.db.test.ts` covers next, previous and first for ascending and descending,
   equal sort values across pages (120 rows, pages of 50), a cursor from another sort, a tampered
