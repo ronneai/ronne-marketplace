@@ -6,6 +6,8 @@ const TONES = {
   muted: "border border-hairline bg-tint text-fg",
   warning: "border border-warning/40 bg-warning-subtle text-warning-text",
   error: "border border-error/40 bg-error-subtle text-error-text",
+  // No colours: the caller brings its own, as TypeBadge does (054).
+  plain: "",
 } as const;
 
 export type BadgeTone = keyof typeof TONES;

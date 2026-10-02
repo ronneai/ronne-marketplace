@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { ITEM_TYPES } from "@ronneai/core";
 import { describe, expect, it } from "vitest";
 
 // Checks WCAG 2.2 AA contrast for every documented text/background pair, reading the real values
@@ -62,6 +63,12 @@ const PAIRS: [string, string, number][] = [
   ["warning-text", "warning-subtle", 4.5],
   ["warning", "canvas", 3],
   ["warning", "surface", 3],
+  // Item type badges (054): the label on its fill.
+  ...ITEM_TYPES.map((type): [string, string, number] => [
+    `type-${type}`,
+    `type-${type}-subtle`,
+    4.5,
+  ]),
 ];
 
 describe.each([

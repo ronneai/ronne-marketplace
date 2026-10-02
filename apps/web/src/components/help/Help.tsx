@@ -53,7 +53,7 @@ export const HELP = {
   decisions: {
     question: "What do these do?",
     answer:
-      "Approve lets it be released. Request changes sends it back to its author to fix and resubmit. Reject closes it. Each needs a message except approve, and all are recorded.",
+      "Approve lets it be released. Request changes sends it back to its author to fix and resubmit. Reject closes it. Request changes and reject need a message; approving doesn't, root's override included. All are recorded.",
     href: docsHref("review", "decisions"),
   },
   bump: {
@@ -115,6 +115,12 @@ export const HELP = {
     answer:
       "Tick the drafts marked Ready, or Select all ready, then Submit selected: each is checked again and submitted on its own, and you see what happened to each. rmk submit --all does the same from a terminal.",
     href: docsHref("review", "many"),
+  },
+  "approve-many": {
+    question: "Approve several at once?",
+    answer:
+      "Tick the submissions you can approve, or Select all, then Approve selected: the ones with risk flags are listed first, and one optional message goes on every approval. Each is approved on its own, as from its page, and you see what happened to each.",
+    href: docsHref("review", "approve-many"),
   },
   ready: {
     question: "What blocks submitting?",

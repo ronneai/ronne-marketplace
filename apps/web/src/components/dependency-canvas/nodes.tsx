@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/components/ui/cn";
+import { TypeBadge } from "@/components/ui/TypeBadge";
 import { CodeText } from "@/components/validation/IssueList";
 import { useComposer } from "./context";
 import type { DependencyNodeData, ItemNodeData } from "./types";
@@ -37,7 +38,7 @@ export const DependencyFactsLine = ({ facts }: { facts: DependencyNodeData["fact
     <Badge tone="error">not published</Badge>
   ) : (
     <>
-      <Badge>{facts.type}</Badge>
+      <TypeBadge type={facts.type} />
       <span className="font-mono text-[11px] text-muted">v{facts.version}</span>
     </>
   );

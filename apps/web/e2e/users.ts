@@ -33,6 +33,8 @@ export const E2E_USERS = {
   changeExporter: "change-exporter@e2e.test",
   changeModerator: "change-moderator@e2e.test",
   bulkSubmitter: "bulk-submitter@e2e.test",
+  approveAuthor: "approve-author@e2e.test",
+  bulkApprover: "bulk-approver@e2e.test",
 } as const;
 
 /** The display names, which the header shows (not the email). */
@@ -65,6 +67,8 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   changeExporter: "Chan Exporter",
   changeModerator: "Chan Moderator",
   bulkSubmitter: "Bo Bulk",
+  approveAuthor: "Ava Author",
+  bulkApprover: "Bea Approver",
 };
 
 /** Seeded with the moderator role; everyone else is a user. */
@@ -73,6 +77,7 @@ export const E2E_MODERATORS: readonly (keyof typeof E2E_USERS)[] = [
   "releaser",
   "depsModerator",
   "changeModerator",
+  "bulkApprover",
 ];
 
 /**

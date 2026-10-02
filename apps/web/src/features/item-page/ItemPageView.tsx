@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { LocalTime } from "@/components/ui/LocalTime";
 import { Notice } from "@/components/ui/Notice";
+import { TypeBadge } from "@/components/ui/TypeBadge";
 import type { ItemPage } from "@/server/domains/items/actions/versions";
 import { ProposeButton } from "./ProposeButton";
 import { ITEM_TABS, type ItemTab, itemTabHref, TAB_LABELS } from "./tabs";
@@ -45,7 +46,7 @@ export const ItemPageView = ({
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="font-mono text-xl font-semibold break-all text-fg">{name}</h1>
             <span className="font-mono text-sm text-muted">v{shown.version}</span>
-            <Badge>{page.item.type}</Badge>
+            <TypeBadge type={page.item.type} />
             {shown.tags.map((tag) => (
               <Badge key={tag} tone="accent">
                 {tag}

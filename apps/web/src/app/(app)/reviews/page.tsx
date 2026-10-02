@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
+import { Help } from "@/components/help/Help";
 import { PageHeader } from "@/components/ui/Panel";
-import { QueueTable, QueueTabs, queueTab } from "@/features/reviews/QueueTable";
+import { BulkApproveProvider, BulkApproveToolbar } from "@/features/reviews/BulkApprove";
+import { approvableRows, QueueTable, QueueTabs, queueTab } from "@/features/reviews/QueueTable";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { can } from "@/server/domains/identity/models/permissions";
 import { listQueue } from "@/server/domains/submissions/actions/reviews";
@@ -27,7 +29,14 @@ const Reviews = async ({
         description="What authors have sent for review. Review is the gate: nothing is installable until it's approved and released."
       />
       <QueueTabs tab={tab} />
-      <QueueTable tab={tab} rows={rows} nextCursor={nextCursor} />
+      {tab === "needs" ? (
+        <BulkApproveProvider approvable={approvableRows(rows)}>
+          <BulkApproveToolbar help={<Help id="approve-many" />} />
+          <QueueTable tab={tab} rows={rows} nextCursor={nextCursor} />
+        </BulkApproveProvider>
+      ) : (
+        <QueueTable tab={tab} rows={rows} nextCursor={nextCursor} />
+      )}
     </>
   );
 };

@@ -77,15 +77,22 @@ on any of them.
 - On the **Needs review** tab, each approvable row gets a checkbox. Above the table: **Select all
   (n)** and **Approve selected (n)**, shown only when at least one row is approvable. Selection
   survives paging back and forth but not a reload. The other two tabs don't change.
-- **Approve selected** opens a dialog:
-  - the selected submissions, each with name, type, author and revision; **those with risk flags
-    first**, each flag kind named (`hook`, `mcp_server`, `network`…), so nothing risky goes by
-    unseen;
-  - root's own submissions, if any, marked **override**, with a line saying they'll be recorded as
-    overrides;
-  - **Message (optional)**, with the hint "Added to every approval. Once approved, the author or a
-    moderator can release each one.";
-  - **Approve n submissions** and **Cancel**.
+- **Approve selected** opens a dialog laid out as the owner's batch review mock (2026-10-01): a
+  fixed frame (640px wide, up to 720px tall) whose list scrolls on its own, so the bars above and
+  below it stay in view however many are selected:
+  - **on top:** a filter (by name, type or author), a checkbox with **n selected** that ticks or
+    unticks every row the filter shows, and **Deselect all**;
+  - **the list:** the selected submissions, each with a checkbox (ticked; unticking leaves it out),
+    name, type, author and revision; **those with risk flags first**, each flag kind named
+    (`hook`, `mcp_server`, `network`…), so nothing risky goes by unseen; root's own marked
+    **override**;
+  - **below:** "n submissions selected", with how many are root's own and recorded as overrides;
+    **Message (optional)**, with the hint "Added to every approval. Once approved, the author or a
+    moderator can release each one."; **Approve n submissions** and **Cancel**.
+- **Item types have their own colours** (owner, 2026-10-01): every type badge in the app shows the
+  type in its own hue, from the mock's scheme, as design tokens checked for contrast in both
+  themes. Red and amber stay for errors and warnings, so hook is fuchsia and permission-policy
+  lime, where the mock had rose and amber.
 - The server action approves them (the domain's approve-many, as a session). The dialog then shows
   each result; refused ones say why, with a link to their review page. The queue refreshes, and the
   nav's Needs review count drops.
@@ -128,21 +135,21 @@ on any of them.
 
 ## Acceptance criteria
 
-- [ ] Root's override approves with or without a reason; with none, the event has no body and the
+- [x] Root's override approves with or without a reason; with none, the event has no body and the
   audit event has no `message`. Request changes and reject still refuse an empty message.
-- [ ] The domain approves many submissions, each in its own transaction, reporting `approved`
+- [x] The domain approves many submissions, each in its own transaction, reporting `approved`
   (with `override` for root's own), `not_found` and `not_approvable`. One that can't be approved
   doesn't stop the others, and each approval is audited as 014's, with `via: "bulk"`.
-- [ ] A moderator's own submission and a stale proposal are refused, and two reviewers approving
+- [x] A moderator's own submission and a stale proposal are refused, and two reviewers approving
   the same submissions at once approve each one once.
-- [ ] The message, when given, is the body of every approval event; when empty, none has one.
-- [ ] The Needs review tab shows a checkbox only on approvable rows, with the reason on the others;
+- [x] The message, when given, is the body of every approval event; when empty, none has one.
+- [x] The Needs review tab shows a checkbox only on approvable rows, with the reason on the others;
   the confirmation lists risky submissions first with their flags, marks overrides, and shows each
   result after approving.
-- [ ] The service tests pass on SQLite, PostgreSQL, MySQL and MariaDB, and an end-to-end test
+- [x] The service tests pass on SQLite, PostgreSQL, MySQL and MariaDB, and an end-to-end test
   approves three submissions from the queue with one message, one of them refused because it was
   withdrawn in between.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Decisions
 
@@ -153,6 +160,8 @@ on any of them.
 2. **Reviewing in bulk** (owner, 2026-10-01): 052 left it out ("one submission at a time, on
    purpose"). This feature adds approval only, on the web only, with the risk flags in the
    confirmation; request changes, reject and approving by token stay one at a time or out.
+3. **The dialog and the type colours** (owner, 2026-10-01): the batch review mock's layout, and one
+   colour per item type, as above.
 3. **Root's own submissions in bulk** (owner, 2026-10-01): selectable, marked as overrides in the
    confirmation and recorded as overrides, one by one.
 4. **Risky submissions in bulk** (owner, 2026-10-01): allowed, listed first in the confirmation with

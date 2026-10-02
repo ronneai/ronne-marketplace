@@ -15,6 +15,12 @@
  * Syntax colours (044, owner's request, 2026-09-30) follow GitHub's Primer syntax palette, the one
  * people know from reading code on GitHub: grey comments, green keys, blue strings and constants.
  * Keywords are Primer's purple rather than its red, which this system keeps for errors.
+ *
+ * Item type badges (054, owner's approval mock, 2026-10-01): each of the 11 types has its own hue,
+ * a dark text on a pale fill in the light theme and a light text on a deep fill in the dark one.
+ * The mock's colours are kept except where they'd read as an error or a warning: hook is fuchsia
+ * (the mock's rose) and permission-policy lime (the mock's amber). Bundle, a set of items, is
+ * neutral slate.
  * tokens.test.ts checks every documented pair against WCAG AA from these values.
  */
 
@@ -65,6 +71,40 @@
   --warning: #c07d18;
   --warning-text: #9a6414;
   --warning-subtle: #fffbeb;
+  /* Item type badges (054): one hue each, never red, amber or the teal accent. */
+  --type-skill: #6b21a8;
+  --type-skill-subtle: #faf5ff;
+  --type-skill-border: #e9d5ff;
+  --type-agent: #155e75;
+  --type-agent-subtle: #ecfeff;
+  --type-agent-border: #a5f3fc;
+  --type-rule: #3730a3;
+  --type-rule-subtle: #eef2ff;
+  --type-rule-border: #c7d2fe;
+  --type-command: #065f46;
+  --type-command-subtle: #ecfdf5;
+  --type-command-border: #a7f3d0;
+  --type-hook: #86198f;
+  --type-hook-subtle: #fdf4ff;
+  --type-hook-border: #f5d0fe;
+  --type-mcp-server: #1e40af;
+  --type-mcp-server-subtle: #eff6ff;
+  --type-mcp-server-border: #bfdbfe;
+  --type-permission-policy: #3f6212;
+  --type-permission-policy-subtle: #f7fee7;
+  --type-permission-policy-border: #d9f99d;
+  --type-output-style: #9d174d;
+  --type-output-style-subtle: #fdf2f8;
+  --type-output-style-border: #fbcfe8;
+  --type-statusline: #5b21b6;
+  --type-statusline-subtle: #f5f3ff;
+  --type-statusline-border: #ddd6fe;
+  --type-lsp-server: #075985;
+  --type-lsp-server-subtle: #f0f9ff;
+  --type-lsp-server-border: #bae6fd;
+  --type-bundle: #1e293b;
+  --type-bundle-subtle: #f8fafc;
+  --type-bundle-border: #e2e8f0;
 }
 
 [data-theme="dark"] {
@@ -106,4 +146,38 @@
   --warning: #f6ad55;
   --warning-text: #f6ad55;
   --warning-subtle: #33220f;
+  /* Item type badges (054): one hue each, never red, amber or the teal accent. */
+  --type-skill: #d8b4fe;
+  --type-skill-subtle: #3b0764;
+  --type-skill-border: #6b21a8;
+  --type-agent: #67e8f9;
+  --type-agent-subtle: #083344;
+  --type-agent-border: #155e75;
+  --type-rule: #a5b4fc;
+  --type-rule-subtle: #1e1b4b;
+  --type-rule-border: #3730a3;
+  --type-command: #6ee7b7;
+  --type-command-subtle: #022c22;
+  --type-command-border: #065f46;
+  --type-hook: #f0abfc;
+  --type-hook-subtle: #4a044e;
+  --type-hook-border: #86198f;
+  --type-mcp-server: #93c5fd;
+  --type-mcp-server-subtle: #172554;
+  --type-mcp-server-border: #1e40af;
+  --type-permission-policy: #bef264;
+  --type-permission-policy-subtle: #1a2e05;
+  --type-permission-policy-border: #3f6212;
+  --type-output-style: #f9a8d4;
+  --type-output-style-subtle: #500724;
+  --type-output-style-border: #9d174d;
+  --type-statusline: #c4b5fd;
+  --type-statusline-subtle: #2e1065;
+  --type-statusline-border: #5b21b6;
+  --type-lsp-server: #7dd3fc;
+  --type-lsp-server-subtle: #082f49;
+  --type-lsp-server-border: #075985;
+  --type-bundle: #cbd5e1;
+  --type-bundle-subtle: #020617;
+  --type-bundle-border: #334155;
 }
