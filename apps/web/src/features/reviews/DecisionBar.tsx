@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
@@ -74,6 +75,7 @@ export const DependentsChoice = ({
       {dependents.length === 1 ? "1 submission depends" : `${dependents.length} submissions depend`}{" "}
       on this
     </legend>
+    <Help id="dependents-listed" />
     <ul className="grid gap-1 text-sm">
       {dependents.map((d) => (
         <li key={d.id}>

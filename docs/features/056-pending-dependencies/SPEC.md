@@ -157,7 +157,7 @@ submits that included dependencies are 052's events, one per item.
 - **Submitting and review → Decisions** (`review#decisions`): rejecting lists the dependents and can
   request changes on them; request changes is possible on an approved submission too.
 - **Versions and tags → Releasing many at once** (`versions#release-many`): dependencies are
-  included when a dependent is selected.
+  included when a dependent is selected. (Written with 055, which adds that section.)
 - **Exporting your own items → What arrives, and what to do next** (`export#next`): an item and its
   dependencies can be submitted together; no more rounds.
 - **Helpers:** next to a **Waits on** or **Blocked** mark: "What does this wait on?", linking to
@@ -166,22 +166,23 @@ submits that included dependencies are 052's events, one per item.
 
 ## Acceptance criteria
 
-- [ ] A draft submits when a dependency is an open submission, with the warning; a draft dependency,
+- [x] A draft submits when a dependency is an open submission, with the warning; a draft dependency,
   a rejected or withdrawn one, a wrong type and a cycle through open submissions are refused.
-- [ ] The range is checked at release against the dependency's released version, and a dependent
+- [x] The range is checked at release against the dependency's released version, and a dependent
   whose dependency isn't released (or released in the batch first) can't be released.
-- [ ] Bulk submit (web, `rmk submit`, `submit_drafts`) includes the person's own ready dependency
+- [x] Bulk submit (web, `rmk submit`, `submit_drafts`) includes the person's own ready dependency
   drafts first; `--no-deps` leaves them out.
-- [ ] 055 selects a dependent's approved dependencies with it, refuses a dependent waiting on a
-  dependency in review, and releases dependencies first.
-- [ ] Rejecting a submission lists its open dependents, and with the box ticked requests changes on
+- [ ] **Moved to 055** (not built yet): 055 selects a dependent's approved dependencies with it,
+  refuses a dependent waiting on a dependency in review, and releases dependencies first.
+- [x] Rejecting a submission lists its open dependents, and with the box ticked requests changes on
   each the reviewer may decide, each audited with `cause`; unticked, they show **Blocked**.
-- [ ] Request changes works from `approved`.
-- [ ] The marks show on My submissions, the review queue, the review page and the submission page.
-- [ ] The service tests pass on SQLite, PostgreSQL, MySQL and MariaDB, and an end-to-end test
-  submits a skill and an agent that uses it together, approves both, releases both in one batch, and
-  in a second run rejects the skill and sees the agent sent back.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] Request changes works from `approved`.
+- [x] The marks show on My submissions, the review queue, the review page and the submission page.
+- [x] The service tests pass on SQLite, PostgreSQL, MySQL and MariaDB, and an end-to-end test
+  submits a skill and a bundle that uses it together, approves both, releases the skill and then
+  the bundle (in one batch once 055 is built), and in a second run rejects a skill and sees its
+  bundle sent back.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Decisions
 

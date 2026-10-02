@@ -1,3 +1,4 @@
+import { Help } from "@/components/help/Help";
 import { Badge } from "@/components/ui/Badge";
 import { Notice } from "@/components/ui/Notice";
 import type { DependencyMark } from "@/server/domains/submissions/actions/submissions";
@@ -55,6 +56,9 @@ export const DependencyMarksNotice = ({ marks }: { marks?: readonly DependencyMa
           Remove it from dependencies, or depend on another item, then submit again.
         </p>
       ) : null}
+      <div className="mt-2">
+        <Help id="waits-on" />
+      </div>
     </Notice>
   );
 };

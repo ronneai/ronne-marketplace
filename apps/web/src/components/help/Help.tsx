@@ -122,10 +122,22 @@ export const HELP = {
       "Tick the submissions you can approve, or Select all, then Approve selected: the ones with risk flags are listed first, and one optional message goes on every approval. Each is approved on its own, as from its page, and you see what happened to each.",
     href: docsHref("review", "approve-many"),
   },
+  "waits-on": {
+    question: "What does this wait on?",
+    answer:
+      "Something it depends on isn't released yet. It can be reviewed and approved meanwhile; it's released once its dependencies are. Blocked means one was rejected or withdrawn: remove it from dependencies, or depend on another item.",
+    href: docsHref("review", "dependencies"),
+  },
+  "dependents-listed": {
+    question: "Why are these listed?",
+    answer:
+      "They depend on this submission and wait for its release. Rejecting it leaves them waiting on nothing, so you can send them back to their authors in the same step, with a message of their own.",
+    href: docsHref("review", "dependencies"),
+  },
   ready: {
     question: "What blocks submitting?",
     answer:
-      "The checks Submit runs: the files are valid, the name is free, every dependency is released, and a change proposal changes something. A draft with none of these left is Ready; open one marked to fix to see what's left.",
+      "The checks Submit runs: the files are valid, the name is free, every dependency is released or in review, and a change proposal changes something. A draft with none of these left is Ready; open one marked to fix to see what's left.",
     href: docsHref("review", "checks"),
   },
   usage: {
