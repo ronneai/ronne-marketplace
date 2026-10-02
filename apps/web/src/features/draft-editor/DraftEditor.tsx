@@ -18,11 +18,12 @@ import { LAYOUT_PATH } from "@/components/dependency-canvas/layout";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { Button, buttonClasses } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
+import { DirtyMark } from "@/components/ui/DirtyMark";
 import { LocalTime } from "@/components/ui/LocalTime";
 import { Notice } from "@/components/ui/Notice";
 import { TypeBadge } from "@/components/ui/TypeBadge";
 import { UnsavedChangesGuard } from "@/components/ui/UnsavedChangesGuard";
-import { IssueList } from "@/components/validation/IssueList";
+import { FileIssues, IssuesSummary } from "@/components/validation/IssuesPopover";
 import type { DependencyOption } from "@/server/domains/submissions/actions/composer";
 import {
   MANIFEST_PATH,
@@ -142,6 +143,25 @@ export const DraftEditor = ({
     [identity, settled, limits],
   );
 
+  // Each file's problems, for the icon next to it in the tree. One about a file that isn't there
+  // (a missing SKILL.md) belongs to ronne.yaml, which names it.
+  const issuesByFile = useMemo(() => {
+    const paths = new Set(state.files.map((f) => f.path));
+    const byFile = new Map<string, ManifestIssue[]>();
+    for (const issue of issues) {
+      const path = issue.file && paths.has(issue.file) ? issue.file : MANIFEST_PATH;
+      byFile.set(path, [...(byFile.get(path) ?? []), issue]);
+    }
+    return byFile;
+  }, [issues, state.files]);
+  const errorCount = issues.filter((issue) => issue.severity === "error").length;
+  // Why Submit is off (owner, 2026-10-01): the checks only see what's saved, and errors stop it.
+  const notReady = dirty
+    ? "Save your changes first: the checks, and reviewers, see what's saved."
+    : errorCount > 0
+      ? `Fix ${errorCount === 1 ? "the error" : `the ${errorCount} errors`} first.`
+      : null;
+
   /** Opens the file and line an issue is about; in ronne.yaml, that's the YAML view. */
   const openIssue = (issue: ManifestIssue) => {
     const path = issue.file ?? MANIFEST_PATH;
@@ -256,10 +276,22 @@ export const DraftEditor = ({
     <div className="grid gap-4">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="grid min-w-0 gap-1">
-          <h1 className="truncate font-mono text-xl font-semibold text-fg">{itemName}</h1>
+          <div className="flex min-w-0 items-center gap-2">
+            <h1 className="truncate font-mono text-xl font-semibold text-fg">{itemName}</h1>
+            {dirty && !readOnly ? <DirtyMark /> : null}
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             <TypeBadge type={draft.type} />
             <StatusBadge status={draft.status} />
+            <IssuesSummary
+              issues={issues}
+              note={
+                readOnly
+                  ? "The same checks that ran when it was submitted."
+                  : "A draft can be saved with problems; it has to be free of errors to be submitted."
+              }
+              onSelect={openIssue}
+            />
             <span
               className={`font-mono text-xs ${overLimit ? "font-semibold text-fg" : "text-muted"}`}
             >
@@ -301,7 +333,7 @@ export const DraftEditor = ({
             </>
           )}
           {draft.canSubmit ? (
-            <Button onClick={() => setOpen({ kind: "submit" })}>
+            <Button onClick={() => setOpen({ kind: "submit" })} disabledReason={notReady}>
               <Send size={16} aria-hidden="true" />
               {draft.status === "changes_requested" ? "Resubmit for review" : "Submit for review"}
             </Button>
@@ -360,7 +392,7 @@ export const DraftEditor = ({
             <span className="mr-2 font-mono text-xs font-semibold">OK:</span>
             Saved at {status.at.toLocaleTimeString()}.
             {status.issues.some((issue) => issue.severity === "error")
-              ? " Fix the problems below before you submit it."
+              ? " Fix its errors before you submit it: the icons in the file list show where."
               : ""}
           </>
         ) : status?.kind === "error" ? (
@@ -368,8 +400,6 @@ export const DraftEditor = ({
             <span className="mr-2 font-mono text-xs font-semibold">ERR:</span>
             {status.message}
           </span>
-        ) : dirty ? (
-          <span className="text-muted">Unsaved changes. Save with Ctrl+S or ⌘S.</span>
         ) : null}
       </p>
       {status?.kind === "stale" ? (
@@ -437,7 +467,18 @@ export const DraftEditor = ({
                 }}
               />
             </div>
-            <FileTree files={state.files} selected={file?.path ?? ""} onSelect={setSelected} />
+            <FileTree
+              files={state.files}
+              selected={file?.path ?? ""}
+              onSelect={setSelected}
+              after={(f) => (
+                <FileIssues
+                  path={f.path}
+                  issues={issuesByFile.get(f.path) ?? []}
+                  onSelect={openIssue}
+                />
+              )}
+            />
           </div>
         </details>
 
@@ -579,18 +620,6 @@ export const DraftEditor = ({
               </div>
             </>
           ) : null}
-          <section
-            aria-label="Problems"
-            className="grid gap-2 rounded-panel border border-hairline bg-surface p-3"
-          >
-            <h2 className="text-sm font-semibold text-fg">Problems</h2>
-            <IssueList issues={issues} onSelect={openIssue} />
-            <p className="text-xs text-muted">
-              {readOnly
-                ? "The same checks that ran when it was submitted."
-                : "A draft can be saved with problems; it has to be free of errors to be submitted."}
-            </p>
-          </section>
         </section>
       </div>
 

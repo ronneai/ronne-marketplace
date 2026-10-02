@@ -46,18 +46,24 @@ test("a user drafts an agent in CodeMirror and the form, fixes its problem, save
   await expect(user).toHaveURL(/\/submissions\/[0-9A-Z]{26}$/);
   const url = user.url();
 
-  // The template's one problem: the empty description.
-  const problems = user.getByRole("region", { name: "Problems" });
-  await expect(problems.getByRole("listitem")).toHaveCount(1);
-  await expect(problems.getByText(/description/)).toBeVisible();
+  // The template's one problem, the empty description: summed up next to the name, and marked on
+  // ronne.yaml in the file list, whose icon explains it.
+  const problems = user.getByRole("button", { name: /^Problems: / });
+  await expect(problems).toHaveAccessibleName("Problems: 1 error");
+  const files = user.getByRole("list", { name: "Files" });
+  await files.getByRole("button", { name: "Show problems: 1 error" }).click();
+  const explained = user.getByRole("dialog", { name: "Show problems: 1 error" });
+  await expect(explained).toContainText("ronne.yaml · 1 error");
+  await expect(explained).toContainText("description");
+  await user.keyboard.press("Escape");
+  await expect(user.getByRole("button", { name: "Submit for review" })).toBeDisabled();
 
   // The prompt, in CodeMirror.
-  const files = user.getByRole("list", { name: "Files" });
   await files.getByRole("button", { name: /prompt\.md/ }).click();
   await user.getByLabel("Contents of prompt.md").click();
   await user.keyboard.press("ControlOrMeta+a");
   await user.keyboard.type("You review diffs for bugs.");
-  await expect(user.getByText("Unsaved changes.")).toBeVisible();
+  await expect(user.getByText("Unsaved changes", { exact: true })).toBeVisible();
   // Leaving with unsaved changes asks first, in the app's own dialog; staying keeps the edit.
   await user
     .getByRole("navigation", { name: "Main" })
@@ -68,13 +74,13 @@ test("a user drafts an agent in CodeMirror and the form, fixes its problem, save
   await leave.getByRole("button", { name: "Stay on this page" }).click();
   await expect(leave).toBeHidden();
   await expect(user).toHaveURL(url);
-  await expect(user.getByText("Unsaved changes.")).toBeVisible();
+  await expect(user.getByText("Unsaved changes", { exact: true })).toBeVisible();
 
   // The description, in the form: the problem goes away.
   await files.getByRole("button", { name: /ronne\.yaml/ }).click();
   await user.getByRole("button", { name: "Form", exact: true }).click();
   await user.getByLabel("description").fill("Reviews diffs for bugs before a pull request.");
-  await expect(problems.getByText("No problems found.")).toBeVisible();
+  await expect(problems).toHaveAccessibleName("Problems: No problems");
 
   // The YAML follows the form, and keeps the template's comments.
   await user.getByRole("button", { name: "YAML", exact: true }).click();
@@ -87,7 +93,7 @@ test("a user drafts an agent in CodeMirror and the form, fixes its problem, save
   await expect(user.getByText(/Saved at/)).toBeVisible();
 
   await user.reload();
-  await expect(problems.getByText("No problems found.")).toBeVisible();
+  await expect(problems).toHaveAccessibleName("Problems: No problems");
   await expect(user.getByLabel("description")).toHaveValue(
     "Reviews diffs for bugs before a pull request.",
   );

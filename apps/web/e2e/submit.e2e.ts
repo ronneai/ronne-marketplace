@@ -25,8 +25,8 @@ test("a user writes a skill, submits it, sees it read-only, and withdraws it", a
   await expect(page).toHaveURL(/\/submissions\/[0-9A-Z]{26}$/);
 
   // The skill template's two placeholders: the manifest's description and SKILL.md's.
-  const problems = page.getByRole("region", { name: "Problems" });
-  await expect(problems.getByRole("listitem")).toHaveCount(2);
+  const problems = page.getByRole("button", { name: /^Problems: / });
+  await expect(problems).toHaveAccessibleName("Problems: 2 errors");
   await page.getByLabel("description").fill("Checks code for common security mistakes.");
   const files = page.getByRole("list", { name: "Files" });
   await files.getByRole("button", { name: /SKILL\.md/ }).click();
@@ -36,16 +36,14 @@ test("a user writes a skill, submits it, sees it read-only, and withdraws it", a
   await page.keyboard.type(
     "---\nname: secure-coding\ndescription: Checks code for common security mistakes.\n---\n\nCheck input, auth and secrets.\n",
   );
-  await expect(problems.getByText("No problems found.")).toBeVisible();
+  await expect(problems).toHaveAccessibleName("Problems: No problems");
 
-  // Submitting asks to save first, then shows the checks and submits.
-  await page.getByRole("button", { name: "Submit for review" }).click();
-  const submit = page.getByRole("dialog", { name: "Submit for review" });
-  await expect(submit.getByText("Save your changes first")).toBeVisible();
-  await submit.getByRole("button", { name: "Close" }).first().click();
+  // Submit waits for the changes to be saved, then shows the checks and submits.
+  await expect(page.getByRole("button", { name: "Submit for review" })).toBeDisabled();
   await page.keyboard.press("ControlOrMeta+s");
   await expect(page.getByText(/Saved at/)).toBeVisible();
   await page.getByRole("button", { name: "Submit for review" }).click();
+  const submit = page.getByRole("dialog", { name: "Submit for review" });
   await expect(submit.getByText("All checks passed.")).toBeVisible();
   await submit.getByRole("button", { name: "Submit for review" }).click();
 

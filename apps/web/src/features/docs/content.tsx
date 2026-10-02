@@ -639,8 +639,12 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
     checks: (
       <>
         <p>
-          A draft can be saved with problems, but submitting waits until there are none. The submit
-          dialog lists them:
+          A draft can be saved with problems, but submitting waits until there are none. In the
+          editor, a red icon after a file&apos;s name means it has errors, and an amber one only
+          warnings: click it to see them, and click one to go to its line. The summary next to the
+          item&apos;s name counts them all. <strong>Submit for review</strong> stays off while there
+          are errors or unsaved changes (marked <strong>● Unsaved changes</strong> beside the name).
+          The submit dialog then checks:
         </p>
         <Bullets>
           <li>the manifest and files are valid for the type, and within the size limits;</li>

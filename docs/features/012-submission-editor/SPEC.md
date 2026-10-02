@@ -124,7 +124,12 @@ draft's existence isn't revealed. (From 013, submitted ones are visible to moder
 - **Validation:** a panel under the editor lists 011's issues (errors, then warnings) as you type,
   debounced; clicking one opens the file and line (ronne.yaml's in the YAML view). The same checks run on the server when you save,
   and a draft can be saved while it has errors (a draft is work in progress). 013 refuses to submit
-  one.
+  one. *2026-10-01 (owner):* the panel is replaced by **notifications where they belong**: an icon
+  right after each file's name in the tree (red for errors, amber for warnings only) opens a popover
+  with that file's issues, light red or amber to match; next to the item's name, a summary ("2
+  errors, 1 warning", or "No problems") opens all of them; and "● Unsaved changes" beside the name
+  while anything isn't saved. **Submit for review** is disabled, saying why, while there are
+  unsaved changes or errors.
 - **Saving:** the Save button and Ctrl/Cmd+S send the changed files in one server action. The page
   warns before leaving with unsaved changes (any changed, new, renamed or deleted file, or
   executable flag): a link opens the shared `UnsavedChangesGuard` dialog ("Stay on this page" or
