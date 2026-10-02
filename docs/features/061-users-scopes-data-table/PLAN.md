@@ -20,7 +20,7 @@ the same change that completes it.
   *Done when:* `admin-users.test.tsx` covers the columns, sorting links, chips and the empty
   states; `user-admin.e2e.ts` passes, updated for the new controls, and sorts by email.
 
-- [ ] **3. Scopes on the server.** `ScopeRepository.page` and `count` (sorts `name` and
+- [x] **3. Scopes on the server.** `ScopeRepository.page` and `count` (sorts `name` and
   `created`, the search). `list` stays for the API and the new-draft page.
   *Done when:* the scope tests cover both sorts, paging both ways and the count on all four
   databases, and the `GET /api/v1/scopes` tests pass unchanged.

@@ -1,6 +1,7 @@
 import type { Kysely } from "kysely";
 import { fromDbDate, toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
+import { countCapped, paginate } from "../../../db/keyset";
 import type { Database } from "../../../db/schema";
 import { containsInsensitive } from "../../../db/search";
 import type { DatabaseDialect } from "../../../db/url";
@@ -42,6 +43,18 @@ export const kyselyScopeRepository = (
         "scopes.created_at",
       ]);
 
+  const searched = (search: string | undefined) => {
+    const query = scopes();
+    return search
+      ? query.where((eb) =>
+          eb.or([
+            containsInsensitive("scopes.name", search),
+            containsInsensitive("scopes.description", search),
+          ]),
+        )
+      : query;
+  };
+
   return {
     transaction: (work) =>
       db.transaction().execute((trx) => work(kyselyScopeRepository(trx, dialect))),
@@ -82,6 +95,20 @@ export const kyselyScopeRepository = (
       if (cursor) query = query.where("scopes.name", ">", cursor);
       return (await query.execute()).map(toScope);
     },
+
+    page: async ({ search, sort, dir, size, cursor }) => {
+      const page = await paginate(searched(search), {
+        sort: { key: sort, column: sort === "name" ? "scopes.name" : "scopes.id", dir },
+        idColumn: "scopes.id",
+        size,
+        cursor,
+        sortValue: (row) => (sort === "name" ? row.name : row.id),
+        idOf: (row) => row.id,
+      });
+      return { ...page, rows: page.rows.map(toScope) };
+    },
+
+    count: (search) => countCapped(db, searched(search)),
 
     recordAudit: async (event, now) => {
       await recordAudit(db, dialect, event, now);
