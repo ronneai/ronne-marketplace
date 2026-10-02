@@ -4,14 +4,16 @@ import { newId } from "../../../db/ids";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { listAuditEvents } from "../../audit/actions/audit";
 import {
-  CannotModifyRootError,
+  CannotModifySelfError,
   EmailTakenError,
   ForbiddenError,
   InvalidPasswordError,
   InvalidRoleError,
+  LastRootError,
   UserNotFoundError,
 } from "../exceptions/errors";
 import { GENERATED_PASSWORD_LENGTH } from "../models/generated-password";
+import { argon2PasswordHasher } from "../repositories/argon2-password-hasher";
 import type { AppAuth } from "../repositories/auth-instance";
 import { kyselyIdentityRepository } from "../repositories/kysely-identity-repository";
 import * as service from "../services/user-admin";
@@ -156,20 +158,27 @@ describe("createUser", () => {
     expect(await canSignIn("a@example.com", "a typed passphrase")).toBe(true);
   });
 
-  it("refuses a duplicate email in any case, and root or unknown roles, recording nothing", async () => {
+  it("refuses a duplicate email in any case, and unknown roles, recording nothing", async () => {
     await adminCreateUser(asRoot, { email: "alex@example.com", name: "Alex", role: "user" }, app);
     await expect(
       adminCreateUser(asRoot, { email: "Alex@Example.com", name: "Other", role: "user" }, app),
     ).rejects.toThrow(EmailTakenError);
     await expect(
-      adminCreateUser(asRoot, { email: "r2@example.com", name: "R2", role: "root" }, app),
-    ).rejects.toThrow(InvalidRoleError);
-    await expect(
       adminCreateUser(asRoot, { email: "r3@example.com", name: "R3", role: "admin" }, app),
     ).rejects.toThrow(InvalidRoleError);
     expect(await events("user.created")).toHaveLength(1);
-    const roots = await t.db.selectFrom("user").select("id").where("role", "=", "root").execute();
-    expect(roots).toHaveLength(1);
+  });
+
+  it("creates another root, who can manage users (059)", async () => {
+    const created = await adminCreateUser(
+      asRoot,
+      { email: "r2@example.com", name: "R2", role: "root" },
+      app,
+    );
+    const [event] = await events("user.created");
+    expect(event).toMatchObject({ metadata: { email: "r2@example.com", role: "root" } });
+    const asSecond = await headersFor("r2@example.com", created.password);
+    expect((await adminListUsers(asSecond, { role: "root" }, app)).users).toHaveLength(2);
   });
 });
 
@@ -185,12 +194,25 @@ describe("changeRole", () => {
     ]);
   });
 
-  it("never sets or changes root", async () => {
+  it("promotes to root and demotes another root, audited (059)", async () => {
     const id = await createTestUser(app, { email: "u@example.com", password: rootPassword });
-    await expect(adminChangeRole(asRoot, id, "root", app)).rejects.toThrow(InvalidRoleError);
+    await adminChangeRole(asRoot, id, "root", app);
+    const asSecond = await headersFor("u@example.com", rootPassword);
+    expect((await adminListUsers(asSecond, {}, app)).users.length).toBeGreaterThan(0);
+    await adminChangeRole(asSecond, rootId, "moderator", app);
+    await expect(adminListUsers(asRoot, {}, app)).rejects.toThrow(ForbiddenError);
+    expect((await events("user.role_changed")).map((e) => e.metadata)).toEqual([
+      { from: "root", to: "moderator" },
+      { from: "user", to: "root" },
+    ]);
+  });
+
+  it("refuses your own row, unknown roles and unknown users", async () => {
+    const id = await createTestUser(app, { email: "u@example.com", password: rootPassword });
     await expect(adminChangeRole(asRoot, rootId, "user", app)).rejects.toThrow(
-      CannotModifyRootError,
+      CannotModifySelfError,
     );
+    await expect(adminChangeRole(asRoot, id, "admin", app)).rejects.toThrow(InvalidRoleError);
     await expect(adminChangeRole(asRoot, newId(), "user", app)).rejects.toThrow(UserNotFoundError);
     expect(await events("user.role_changed")).toEqual([]);
   });
@@ -267,11 +289,104 @@ describe("disable and enable", () => {
     expect(sessions).toHaveLength(1);
   });
 
-  it("refuses root", async () => {
-    await expect(adminDisableUser(asRoot, rootId, app)).rejects.toThrow(CannotModifyRootError);
-    await expect(adminEnableUser(asRoot, rootId, app)).rejects.toThrow(CannotModifyRootError);
-    await expect(adminDisableImpact(asRoot, rootId, app)).rejects.toThrow(CannotModifyRootError);
+  it("refuses your own row", async () => {
+    await expect(adminDisableUser(asRoot, rootId, app)).rejects.toThrow(CannotModifySelfError);
+    await expect(adminEnableUser(asRoot, rootId, app)).rejects.toThrow(CannotModifySelfError);
+    await expect(adminDisableImpact(asRoot, rootId, app)).rejects.toThrow(CannotModifySelfError);
     expect(await getCurrentUser(asRoot, app)).not.toBeNull();
+  });
+
+  it("disables and enables another root (059)", async () => {
+    const id = await createTestUser(app, {
+      email: "r2@example.com",
+      password: rootPassword,
+      role: "root",
+    });
+    await adminDisableUser(asRoot, id, app);
+    expect(await canSignIn("r2@example.com", rootPassword)).toBe(false);
+    await adminEnableUser(asRoot, id, app);
+    expect(await canSignIn("r2@example.com", rootPassword)).toBe(true);
+  });
+});
+
+describe("roots acting at once (059)", () => {
+  const noHasher = { hash: async () => "", verify: async () => false };
+  const activeRoots = async () =>
+    (
+      await t.db
+        .selectFrom("user")
+        .select(["email", "role"])
+        .where("role", "=", "root")
+        .where("disabled_at", "is", null)
+        .execute()
+    ).map((u) => u.email);
+
+  it("two roots demoting each other: one wins, the other is refused, one root remains", async () => {
+    await createTestUser(app, { email: "r2@example.com", password: rootPassword, role: "root" });
+    const second = await headersFor("r2@example.com", rootPassword);
+    const secondId = (await getCurrentUser(second, app))?.id ?? "";
+    const results = await Promise.allSettled([
+      adminChangeRole(asRoot, secondId, "user", app),
+      adminChangeRole(second, rootId, "user", app),
+    ]);
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    const [refused] = results.filter((r) => r.status === "rejected");
+    expect((refused as PromiseRejectedResult).reason).toBeInstanceOf(ForbiddenError);
+    expect(await activeRoots()).toHaveLength(1);
+    expect(await events("user.role_changed")).toHaveLength(1);
+  });
+
+  it("two roots disabling each other: the same", async () => {
+    await createTestUser(app, { email: "r2@example.com", password: rootPassword, role: "root" });
+    const second = await headersFor("r2@example.com", rootPassword);
+    const secondId = (await getCurrentUser(second, app))?.id ?? "";
+    const results = await Promise.allSettled([
+      adminDisableUser(asRoot, secondId, app),
+      adminDisableUser(second, rootId, app),
+    ]);
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    expect(await activeRoots()).toHaveLength(1);
+  });
+
+  it("a root demoted after the request began can't finish the change", async () => {
+    const root = await getCurrentUser(asRoot, app);
+    const target = await createTestUser(app, { email: "u@example.com", password: rootPassword });
+    await createTestUser(app, { email: "r2@example.com", password: rootPassword, role: "root" });
+    await t.db.updateTable("user").set({ role: "moderator" }).where("id", "=", rootId).execute();
+    const repo = kyselyIdentityRepository(t.db, t.dialect);
+    await expect(
+      service.changeRole({ repo, hasher: noHasher }, { user: root, ip: null }, target, "root"),
+    ).rejects.toThrow(ForbiddenError);
+    await expect(
+      service.createUser(
+        { repo, hasher: argon2PasswordHasher },
+        { user: root, ip: null },
+        { email: "x@example.com", name: "X", role: "user" },
+      ),
+    ).rejects.toThrow(ForbiddenError);
+    expect(await events("user.role_changed")).toEqual([]);
+  });
+
+  it("never leaves the instance without an active root", async () => {
+    // Reachable only through a race or bad data: the repository reports no root left.
+    const other = await createTestUser(app, {
+      email: "r2@example.com",
+      password: rootPassword,
+      role: "root",
+    });
+    const real = kyselyIdentityRepository(t.db, t.dialect);
+    const noRootsLeft = {
+      ...real,
+      transaction: <T>(work: (repo: typeof real) => Promise<T>) =>
+        real.transaction((repo) => work({ ...repo, countActiveRoots: async () => 0 })),
+    };
+    const actor = { user: await getCurrentUser(asRoot, app), ip: null };
+    const deps = { repo: noRootsLeft, hasher: noHasher };
+    await expect(service.changeRole(deps, actor, other, "user")).rejects.toThrow(LastRootError);
+    await expect(service.disableUser(deps, actor, other)).rejects.toThrow(LastRootError);
+    expect(await activeRoots()).toHaveLength(2);
+    expect(await events("user.role_changed")).toEqual([]);
+    expect(await events("user.disabled")).toEqual([]);
   });
 });
 
@@ -297,12 +412,19 @@ describe("resetPassword", () => {
     });
   });
 
-  it("takes a typed password, and refuses root", async () => {
+  it("takes a typed password, resets another root, and refuses your own", async () => {
     const id = await createTestUser(app, { email: "u@example.com", password: rootPassword });
     await adminResetPassword(asRoot, id, "a typed passphrase", app);
     expect(await canSignIn("u@example.com", "a typed passphrase")).toBe(true);
+    const other = await createTestUser(app, {
+      email: "r2@example.com",
+      password: rootPassword,
+      role: "root",
+    });
+    await adminResetPassword(asRoot, other, "another passphrase", app);
+    expect(await canSignIn("r2@example.com", "another passphrase")).toBe(true);
     await expect(adminResetPassword(asRoot, rootId, undefined, app)).rejects.toThrow(
-      CannotModifyRootError,
+      CannotModifySelfError,
     );
     expect(await canSignIn("root@example.com", rootPassword)).toBe(true);
   });

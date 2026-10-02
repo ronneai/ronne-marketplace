@@ -21,14 +21,6 @@ export type UserSummary = {
   createdAt: Date;
 };
 
-/** The roles root can give from the admin area. Root itself is never given (MVP §2, spec 008). */
-export const ASSIGNABLE_ROLES = ["user", "moderator"] as const;
-export type AssignableRole = (typeof ASSIGNABLE_ROLES)[number];
-
-export const isAssignableRole = (value: unknown): value is AssignableRole => {
-  return (ASSIGNABLE_ROLES as readonly unknown[]).includes(value);
-};
-
 export type RootAccount = { id: string; email: string; name: string; disabledAt: Date | null };
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

@@ -1,9 +1,10 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
-import { FieldError } from "@/components/ui/Field";
+import { FieldError, Label, selectClasses } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
 import {
   changeRoleFromForm,
@@ -16,12 +17,17 @@ import { OneTimePassword } from "./OneTimePassword";
 import { PasswordChoice } from "./PasswordChoice";
 import type { AdminActionState } from "./types";
 
+type Role = "root" | "moderator" | "user";
 type RowUser = {
   id: string;
   email: string;
-  role: "root" | "moderator" | "user";
+  role: Role;
   disabled: boolean;
+  /** The signed-in root's own row: read-only here (059). */
+  self?: boolean;
 };
+
+const ROLES: readonly Role[] = ["user", "moderator", "root"];
 type Kind = "role" | "disable" | "enable" | "reset";
 type FormAction = (state: AdminActionState, form: FormData) => Promise<AdminActionState>;
 
@@ -56,10 +62,62 @@ const DisableImpact = ({ userId }: { userId: string }) => {
   return <p className="text-sm text-muted">{impact}</p>;
 };
 
+/** What a role change means, said before it happens; root changes are warnings (059). */
+export const RoleChangeNotice = ({ email, from, to }: { email: string; from: Role; to: Role }) => {
+  if (to === "root")
+    return (
+      <Notice kind="warn" title={`Make ${email} root?`}>
+        They&apos;ll be able to do everything you can, including changing your role or disabling
+        you.
+      </Notice>
+    );
+  if (from === "root")
+    return (
+      <Notice kind="warn" title={`Remove root from ${email}?`}>
+        They&apos;ll lose user admin, scopes, settings and the audit log on their next request.
+      </Notice>
+    );
+  return (
+    <p className="text-sm text-muted">
+      Change their role from <strong className="text-fg">{from}</strong> to{" "}
+      <strong className="text-fg">{to}</strong>.
+    </p>
+  );
+};
+
+const RoleChoice = ({ user }: { user: RowUser }) => {
+  const others = ROLES.filter((role) => role !== user.role);
+  const [role, setRole] = useState<Role>(others[0] ?? "user");
+  const id = `role-${user.id}`;
+  return (
+    <>
+      <div className="grid gap-1.5">
+        <div className="flex items-center gap-2">
+          <Label htmlFor={id}>New role</Label>
+          <Help id="role-root" />
+        </div>
+        <select
+          id={id}
+          name="role"
+          value={role}
+          onChange={(event) => setRole(event.target.value as Role)}
+          className={selectClasses}
+        >
+          {others.map((r) => (
+            <option key={r} value={r}>
+              {r}
+            </option>
+          ))}
+        </select>
+      </div>
+      <RoleChangeNotice email={user.email} from={user.role} to={role} />
+    </>
+  );
+};
+
 /** One dialog's form. It's remounted each time the dialog opens, so no result lingers. */
 const ActionForm = ({ kind, user, onDone }: { kind: Kind; user: RowUser; onDone: () => void }) => {
   const [state, action, pending] = useActionState<AdminActionState, FormData>(ACTIONS[kind], {});
-  const nextRole = user.role === "moderator" ? "user" : "moderator";
 
   if (state.oneTime || state.done)
     return (
@@ -79,20 +137,18 @@ const ActionForm = ({ kind, user, onDone }: { kind: Kind; user: RowUser; onDone:
     <form action={action} className="grid gap-4">
       <input type="hidden" name="userId" value={user.id} />
       <p className="font-mono text-[13px] text-fg">{user.email}</p>
-      {kind === "role" ? (
-        <>
-          <input type="hidden" name="role" value={nextRole} />
-          <p className="text-sm text-muted">
-            Change their role from <strong className="text-fg">{user.role}</strong> to{" "}
-            <strong className="text-fg">{nextRole}</strong>.
-          </p>
-        </>
+      {kind === "role" ? <RoleChoice user={user} /> : null}
+      {kind === "disable" && user.role === "root" ? (
+        <Notice kind="warn" title={`${user.email} is a root.`} />
       ) : null}
       {kind === "disable" ? <DisableImpact userId={user.id} /> : null}
       {kind === "enable" ? (
         <p className="text-sm text-muted">
           They can sign in again. Their revoked access tokens stay revoked.
         </p>
+      ) : null}
+      {kind === "reset" && user.role === "root" ? (
+        <Notice kind="warn" title={`${user.email} is a root.`} />
       ) : null}
       {kind === "reset" ? (
         <>
@@ -116,13 +172,18 @@ const ActionForm = ({ kind, user, onDone }: { kind: Kind; user: RowUser; onDone:
 };
 
 /**
- * A row's actions: change role, reset password, disable or enable (spec 008). Root's row has none:
- * root isn't changed from the admin area.
+ * A row's actions: change role, reset password, disable or enable (spec 008), on every row,
+ * other roots' included, except your own: another root changes that one (059).
  */
 export const UserRowActions = ({ user }: { user: RowUser }) => {
   const [kind, setKind] = useState<Kind | null>(null);
   const [round, setRound] = useState(0);
-  if (user.role === "root") return <span className="text-xs text-muted">—</span>;
+  if (user.self)
+    return (
+      <div className="flex justify-end">
+        <Help id="own-row" iconOnly />
+      </div>
+    );
 
   const open = (next: Kind) => () => setKind(next);
   const close = () => {
@@ -138,7 +199,7 @@ export const UserRowActions = ({ user }: { user: RowUser }) => {
         className="m-0 flex min-w-0 justify-end gap-1 border-0 p-0"
       >
         <button type="button" className={rowButton} onClick={open("role")}>
-          Make {user.role === "moderator" ? "user" : "moderator"}
+          Change role
         </button>
         <button type="button" className={rowButton} onClick={open("reset")}>
           Reset password

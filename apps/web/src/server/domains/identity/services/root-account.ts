@@ -1,4 +1,9 @@
-import { RootAlreadyExistsError, RootNotFoundError } from "../exceptions/errors";
+import {
+  NotARootError,
+  RootAlreadyExistsError,
+  RootNotFoundError,
+  WhichRootError,
+} from "../exceptions/errors";
 import { validatePassword } from "../models/password";
 import type { PasswordHasher } from "../models/password-hasher";
 import { normalizeEmail, normalizeName } from "../models/user";
@@ -30,7 +35,7 @@ export const createRootUser = async (
   const now = (deps.now ?? (() => new Date()))();
 
   return deps.repo.transaction(async (repo) => {
-    const existing = await repo.findRoot();
+    const existing = await repo.findFirstRoot();
     if (existing) throw new RootAlreadyExistsError(existing.email);
     const id = await repo.createUserWithPassword({ email, name, role: "root", passwordHash }, now);
     // Nobody is signed in yet, so there's no actor; the origin says where setup ran.
@@ -49,20 +54,26 @@ export const createRootUser = async (
 };
 
 /**
- * Sets a new root password and treats the old credentials as untrusted: ends every root session,
- * revokes root's access tokens, and re-enables root if it was disabled.
+ * Sets a new password for one root and treats the old credentials as untrusted: ends that root's
+ * sessions, revokes its access tokens, and re-enables it if it was disabled. With several roots,
+ * `email` says which one (059).
  */
 export const resetRootPassword = async (
   deps: IdentityDeps,
   password: string,
+  email?: string,
 ): Promise<{ email: string }> => {
   validatePassword(password);
+  const wanted = email === undefined ? undefined : normalizeEmail(email);
   const passwordHash = await deps.hasher.hash(password);
   const now = (deps.now ?? (() => new Date()))();
 
   return deps.repo.transaction(async (repo) => {
-    const root = await repo.findRoot();
-    if (!root) throw new RootNotFoundError();
+    const roots = await repo.listRoots();
+    if (roots.length === 0) throw new RootNotFoundError();
+    if (wanted === undefined && roots.length > 1) throw new WhichRootError(roots.length);
+    const root = wanted === undefined ? roots[0] : roots.find((r) => r.email === wanted);
+    if (!root) throw new NotARootError(wanted ?? "");
     await repo.setPassword(root.id, passwordHash, now);
     const sessionsEnded = await repo.deleteSessions(root.id);
     const tokensRevoked = await repo.revokeAccessTokens(root.id, now);
@@ -72,7 +83,7 @@ export const resetRootPassword = async (
         actorId: null,
         action: "user.password_reset",
         target: { type: "user", id: root.id },
-        metadata: { via: "cli", sessionsEnded, tokensRevoked },
+        metadata: { via: "cli", email: root.email, sessionsEnded, tokensRevoked },
       },
       now,
     );
@@ -80,6 +91,11 @@ export const resetRootPassword = async (
   });
 };
 
-export const findRoot = async (deps: Pick<IdentityDeps, "repo">) => {
-  return deps.repo.findRoot();
+export const findFirstRoot = async (deps: Pick<IdentityDeps, "repo">) => {
+  return deps.repo.findFirstRoot();
+};
+
+/** Every root, disabled or not, oldest first: for setup and reset-root-password (059). */
+export const listRoots = async (deps: Pick<IdentityDeps, "repo">) => {
+  return deps.repo.listRoots();
 };

@@ -17,7 +17,7 @@ describe("SignInPage", () => {
       ">Password<",
       "Remember me (30 days)",
       "Forgot?",
-      "Ask a root administrator to reset your password",
+      "Ask a root to reset your password in Users",
       "pnpm run reset-root-password",
       "Use rmk from the terminal",
       "rmk login",

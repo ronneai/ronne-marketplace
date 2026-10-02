@@ -258,24 +258,33 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           A setup that was interrupted after the settings were written resumes at Install on the
           next visit, keeping the database. Anyone who can open the address before you can set the
           instance up, so open it right after starting it. Running the setup again never creates a
-          second root.
+          root when one exists: more roots are added from Users.
         </p>
       </>
     ),
     root: (
       <>
         <p>
-          There is one root account: the instance&apos;s owner, created by the setup. It can do
-          everything a <To href={docsHref("roles", "roles")}>moderator</To> can, plus create and
-          manage users, create scopes and read the audit log. Nobody signs up: root creates every
-          other account.
+          The setup creates the first root account. A root can do everything a{" "}
+          <To href={docsHref("roles", "roles")}>moderator</To> can, plus create and manage users,
+          create scopes, change the instance&apos;s settings and read the audit log. Nobody signs
+          up: a root creates every other account.
         </p>
         <p>
-          A forgotten root password is reset where the instance is installed:{" "}
-          <Code>pnpm run reset-root-password</Code> (in Docker,{" "}
-          <Code>docker compose exec web pnpm run reset-root-password</Code>). It sets a new
-          password, signs root out everywhere, revokes root&apos;s access tokens and re-enables the
-          account if it was disabled.
+          There can be several roots. In Admin › Users, any root can make another account root (when
+          creating it, or with Change role) and change anyone&apos;s role, roots included. Roots
+          manage each other: one can disable another or reset their password. Nobody changes their
+          own account there; you change your password in Account, and another root does the rest.
+          The instance always keeps at least one active root: a change that would leave none is
+          refused.
+        </p>
+        <p>
+          A forgotten root password can be reset by another root in Users. If there&apos;s no other
+          root, reset it where the instance is installed: <Code>pnpm run reset-root-password</Code>{" "}
+          (in Docker, <Code>docker compose exec web pnpm run reset-root-password</Code>). With
+          several roots, it asks which one, or takes <Code>--email</Code> with <Code>--yes</Code>.
+          It sets a new password, signs that root out everywhere, revokes its access tokens and
+          re-enables the account if it was disabled.
         </p>
       </>
     ),
@@ -1716,10 +1725,10 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           and look after versions.
         </li>
         <li>
-          <strong>root:</strong> the instance&apos;s owner, created by{" "}
-          <To href={docsHref("install", "setup")}>the setup</To>. Everything a moderator does, plus
-          users, scopes, the audit log and the instance&apos;s settings. Root creates every account:
-          nobody signs up.
+          <strong>root:</strong> the instance&apos;s owners. The first is created by{" "}
+          <To href={docsHref("install", "setup")}>the setup</To>, and any root can make others root.
+          Everything a moderator does, plus users, scopes, the audit log and the instance&apos;s
+          settings. Roots create every account: nobody signs up.
         </li>
       </Bullets>
     ),

@@ -10,7 +10,7 @@ import {
 import { createDb } from "../db/create-db";
 import { migrateToLatest } from "../db/migrate";
 import type { DatabaseDialect } from "../db/url";
-import { createRoot, findRoot } from "../domains/identity/actions/root-account";
+import { createRoot, listRoots } from "../domains/identity/actions/root-account";
 import type { RootAccount } from "../domains/identity/models/user";
 import type { NewRoot, RootOrigin } from "../domains/identity/services/root-account";
 import { generateAuthSecret, isWeakSecret, readEnvFile, updateEnvFile } from "./env-file";
@@ -181,21 +181,21 @@ export const applyMigrations = async (
   }
 };
 
-/** The root account, if the database has one. */
-export const findRootAccount = async (
+/** The root accounts, oldest first: none before setup, and possibly several since 059. */
+export const listRootAccounts = async (
   url: string,
   options: StepOptions,
-): Promise<RootAccount | null> => {
+): Promise<RootAccount[]> => {
   const { db, dialect } = createDb(url, { baseDir: options.appDir });
   try {
-    return await findRoot(db, dialect);
+    return await listRoots(db, dialect);
   } finally {
     await db.destroy();
   }
 };
 
 /**
- * Creates the one root account, recording where it was created from. Throws the identity
+ * Creates the first root account, recording where it was created from. Throws the identity
  * domain's errors: invalid input, or `RootAlreadyExistsError`.
  */
 export const createRootAccount = async (

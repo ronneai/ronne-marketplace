@@ -16,7 +16,14 @@ export const createRoot = (
   origin?: service.RootOrigin,
 ) => service.createRootUser(deps(db, dialect), input, origin);
 
-export const resetRootPassword = (db: Db, dialect: DatabaseDialect, password: string) =>
-  service.resetRootPassword(deps(db, dialect), password);
+export const resetRootPassword = (
+  db: Db,
+  dialect: DatabaseDialect,
+  password: string,
+  email?: string,
+) => service.resetRootPassword(deps(db, dialect), password, email);
 
-export const findRoot = (db: Db, dialect: DatabaseDialect) => service.findRoot(deps(db, dialect));
+export const listRoots = (db: Db, dialect: DatabaseDialect) => service.listRoots(deps(db, dialect));
+
+export const findFirstRoot = (db: Db, dialect: DatabaseDialect) =>
+  service.findFirstRoot(deps(db, dialect));

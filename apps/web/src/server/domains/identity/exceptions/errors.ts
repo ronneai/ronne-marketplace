@@ -33,13 +33,27 @@ export class InvalidPasswordError extends IdentityError {
 
 export class RootAlreadyExistsError extends IdentityError {
   constructor(readonly email: string) {
-    super(`A root account already exists (${email}). Setup never creates a second one.`);
+    super(`A root account already exists (${email}). Setup never creates another.`);
   }
 }
 
 export class RootNotFoundError extends IdentityError {
   constructor() {
     super("There's no root account yet. Run `pnpm run setup` to create one.");
+  }
+}
+
+/** reset-root-password with several roots and no `--email` (059). */
+export class WhichRootError extends IdentityError {
+  constructor(readonly count: number) {
+    super(`There are ${count} root accounts. Say which with --email.`);
+  }
+}
+
+/** reset-root-password's `--email` names someone who isn't root: it never promotes (059). */
+export class NotARootError extends IdentityError {
+  constructor(readonly email: string) {
+    super(`${email} isn't a root account.`);
   }
 }
 
@@ -69,17 +83,25 @@ export class EmailTakenError extends IdentityError {
   }
 }
 
-export class CannotModifyRootError extends IdentityError {
+/** A root acting on their own row: another root changes it (feature 059). */
+export class CannotModifySelfError extends IdentityError {
   constructor() {
     super(
-      "Root can't be changed from the admin area. Root changes its own password in Account, and recovers with `pnpm run reset-root-password`.",
+      "You can't change your own role or account here. Change your password in Account; another root can change the rest.",
     );
+  }
+}
+
+/** The change would leave no enabled root, and the instance unmanageable (feature 059). */
+export class LastRootError extends IdentityError {
+  constructor() {
+    super("This would leave the instance without an active root. Make someone else root first.");
   }
 }
 
 export class InvalidRoleError extends IdentityError {
   constructor(readonly role: string) {
-    super(`"${role}" isn't a role that can be given here. Use user or moderator.`);
+    super(`"${role}" isn't a role. Use user, moderator or root.`);
   }
 }
 

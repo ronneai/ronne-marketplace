@@ -1,7 +1,7 @@
 import { type AppConfig, isConfigured, loadConfig } from "../config";
 import type { CreatedDb } from "../db/create-db";
 import { getAppDb } from "../db/instance";
-import { findRoot } from "../domains/identity/actions/root-account";
+import { findFirstRoot } from "../domains/identity/actions/root-account";
 
 /**
  * How far an instance's setup has got (feature 036):
@@ -39,7 +39,7 @@ export const getSetupState = async (
     const { db, dialect } = (options.getDb ?? getAppDb)(config.databaseUrl);
     const tables = await db.introspection.getTables();
     if (!tables.some((table) => table.name === "user")) return "incomplete";
-    if (!(await findRoot(db, dialect))) return "incomplete";
+    if (!(await findFirstRoot(db, dialect))) return "incomplete";
     return "ready";
   };
   let state: SetupState;

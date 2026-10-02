@@ -13,7 +13,8 @@ export const metadata = { title: "Users · Ronne AI Marketplace" };
 /** Root only (`users.view`): anyone else gets a 404. */
 const Users = async ({ searchParams }: { searchParams: Promise<SearchParams> }) => {
   const request = await requestHeaders();
-  if (!can(await getCurrentUser(request), "users.view")) notFound();
+  const me = await getCurrentUser(request);
+  if (!me || !can(me, "users.view")) notFound();
 
   const query = parseUsersQuery(await searchParams);
   const { users, nextCursor } = await adminListUsers(request, {
@@ -36,6 +37,7 @@ const Users = async ({ searchParams }: { searchParams: Promise<SearchParams> }) 
             email: user.email,
             role: user.role,
             disabled: Boolean(user.disabledAt),
+            self: user.id === me.id,
           }}
         />
       )}

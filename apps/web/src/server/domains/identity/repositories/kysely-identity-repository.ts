@@ -1,11 +1,12 @@
 import type { Kysely } from "kysely";
 import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
+import { forUpdate, readCommittedTransaction } from "../../../db/locks";
 import type { Database } from "../../../db/schema";
 import { containsInsensitive } from "../../../db/search";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
-import { isRole, type UserSummary } from "../models/user";
+import { isRole, type RootAccount, type UserSummary } from "../models/user";
 import type { IdentityRepository, NewUserWithPassword } from "./identity-repository";
 
 type UserRow = {
@@ -38,24 +39,52 @@ export const kyselyIdentityRepository = (
 ): IdentityRepository => {
   const at = (date: Date) => toDbDate(date, dialect);
 
+  const listRoots = async (): Promise<RootAccount[]> => {
+    const rows = await db
+      .selectFrom("user")
+      .select(["id", "email", "name", "disabled_at"])
+      .where("role", "=", "root")
+      .orderBy("created_at")
+      .orderBy("id")
+      .execute();
+    return rows.map((row) => ({
+      id: row.id,
+      email: row.email,
+      name: row.name,
+      disabledAt: fromDbDate(row.disabled_at),
+    }));
+  };
+
   return {
     transaction: (work) =>
-      db.transaction().execute((trx) => work(kyselyIdentityRepository(trx, dialect))),
+      readCommittedTransaction(db, dialect).execute((trx) =>
+        work(kyselyIdentityRepository(trx, dialect)),
+      ),
 
-    async findRoot() {
+    async findFirstRoot() {
+      return (await listRoots())[0] ?? null;
+    },
+
+    listRoots,
+
+    async countActiveRoots() {
       const row = await db
         .selectFrom("user")
-        .select(["id", "email", "name", "disabled_at"])
+        .select((eb) => eb.fn.countAll<number | string | bigint>().as("n"))
         .where("role", "=", "root")
-        .orderBy("created_at")
-        .executeTakeFirst();
-      if (!row) return null;
-      return {
-        id: row.id,
-        email: row.email,
-        name: row.name,
-        disabledAt: fromDbDate(row.disabled_at),
-      };
+        .where("disabled_at", "is", null)
+        .executeTakeFirstOrThrow();
+      return Number(row.n);
+    },
+
+    async lockRoots(actorId) {
+      await forUpdate(
+        db
+          .selectFrom("user")
+          .select("id")
+          .where((eb) => eb.or([eb("role", "=", "root"), eb("id", "=", actorId)])),
+        dialect,
+      ).execute();
     },
 
     async findActiveUser(userId) {

@@ -66,23 +66,32 @@ export const parseSetupCommand = (argv: string[], env: Env, hasTerminal: boolean
 };
 
 export type ResetCommand =
-  | { mode: "interactive" }
-  | { mode: "non-interactive"; rootPassword?: string; databaseUrl?: string }
+  | { mode: "interactive"; rootEmail?: string }
+  | { mode: "non-interactive"; rootEmail?: string; rootPassword?: string; databaseUrl?: string }
   | { mode: "error"; exitCode: 2; message: string };
 
-/** reset-root-password's flags: only --yes. The new password comes from RONNE_ROOT_PASSWORD. */
+/**
+ * reset-root-password's flags: --yes, and --email (or RONNE_ROOT_EMAIL) to say which root when
+ * there are several (059). The new password comes from RONNE_ROOT_PASSWORD.
+ */
 export const parseResetCommand = (argv: string[], env: Env, hasTerminal: boolean): ResetCommand => {
   let yes = false;
+  let rootEmail: string | undefined;
   try {
-    yes =
-      parseArgs({ args: argv, strict: true, options: { yes: { type: "boolean", short: "y" } } })
-        .values.yes === true;
+    const { values } = parseArgs({
+      args: argv,
+      strict: true,
+      options: { yes: { type: "boolean", short: "y" }, email: { type: "string" } },
+    });
+    yes = values.yes === true;
+    rootEmail = values.email || env.RONNE_ROOT_EMAIL || undefined;
   } catch (error) {
     return { mode: "error", exitCode: 2, message: (error as Error).message };
   }
   if (yes || (env.CI === "true" && !hasTerminal)) {
     return {
       mode: "non-interactive",
+      rootEmail,
       rootPassword: env.RONNE_ROOT_PASSWORD,
       databaseUrl: env.DATABASE_URL,
     };
@@ -95,5 +104,5 @@ export const parseResetCommand = (argv: string[], env: Env, hasTerminal: boolean
         "There's no terminal to ask for the password. Run it with --yes and RONNE_ROOT_PASSWORD set.",
     };
   }
-  return { mode: "interactive" };
+  return { mode: "interactive", rootEmail };
 };

@@ -20,7 +20,7 @@ export const TOPICS = [
       { id: "docker", title: "With Docker" },
       { id: "node", title: "With Node" },
       { id: "setup", title: "The setup" },
-      { id: "root", title: "The root account" },
+      { id: "root", title: "Root accounts" },
       { id: "upgrade", title: "Upgrading" },
     ],
   },

@@ -214,8 +214,8 @@ export const RootFields = ({ values, error }: FieldsProps) => {
       <HelpTip question="What can root do?">
         <p>
           Everything: create scopes and users, review and release items, and override a decision
-          (which is recorded). There is one root; other people get their own accounts, created by
-          root, with the user or moderator role.
+          (which is recorded). This is the first root; other people get their own accounts, created
+          by a root, and a root can make them root too.
         </p>
       </HelpTip>
       <TextField

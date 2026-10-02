@@ -21,8 +21,8 @@ import {
   checkDatabase,
   createRootAccount,
   describeServer,
-  findRootAccount,
   formatProblem,
+  listRootAccounts,
   writeSettings,
 } from "./steps";
 
@@ -223,7 +223,7 @@ describe("writeSettings", () => {
   });
 });
 
-describe("applyMigrations, findRootAccount and createRootAccount", () => {
+describe("applyMigrations, listRootAccounts and createRootAccount", () => {
   it("migrates once, then reports the database as up to date", async () => {
     const t = await freshDatabase({ migrate: false });
     try {
@@ -253,13 +253,15 @@ describe("applyMigrations, findRootAccount and createRootAccount", () => {
   it("creates root once, from the web with the client's address, then refuses", async () => {
     const t = await freshDatabase({ migrate: true });
     try {
-      expect(await findRootAccount(t.url, { appDir })).toBeNull();
+      expect(await listRootAccounts(t.url, { appDir })).toEqual([]);
       const created = await createRootAccount(t.url, { appDir }, root, {
         via: "web",
         ipAddress: "203.0.113.9",
       });
       expect(created.email).toBe("root@example.com");
-      expect(await findRootAccount(t.url, { appDir })).toMatchObject({ email: "root@example.com" });
+      expect(await listRootAccounts(t.url, { appDir })).toMatchObject([
+        { email: "root@example.com" },
+      ]);
 
       const events = (await listAuditEvents(t.db, t.dialect, {})).events;
       expect(events).toHaveLength(1);
