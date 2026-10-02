@@ -3,7 +3,7 @@ import { toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { listAuditEvents } from "../../audit/actions/audit";
-import { createRoot, findRoot, resetRootPassword } from "../actions/root-account";
+import { createRoot, findFirstRoot, resetRootPassword } from "../actions/root-account";
 import {
   InvalidEmailError,
   InvalidPasswordError,
@@ -100,7 +100,7 @@ describe("createRoot", () => {
       createRoot(t.db, t.dialect, { ...root, email: "not-an-email" }),
     ).rejects.toThrowError(InvalidEmailError);
     expect(await t.db.selectFrom("user").select("id").execute()).toEqual([]);
-    expect(await findRoot(t.db, t.dialect)).toBeNull();
+    expect(await findFirstRoot(t.db, t.dialect)).toBeNull();
   });
 });
 

@@ -15,12 +15,13 @@ the same change that completes it.
   enabling and resetting another root, and every self action; `actions.test.tsx` covers the new
   message; nothing imports `CannotModifyRootError`.
 
-- [ ] **2. Repository: roots and locks.** `IdentityRepository` gains `lockRoots()` (the root rows
-  and the actor's row, via `forUpdate`), `countActiveRoots()`, `findFirstRoot()`, `hasRoot()`,
-  `listRoots()` and `findRootByEmail(email)`, and loses `findRoot()`. The user admin services run
-  in `readCommittedTransaction`.
-  *Done when:* repository tests pass on SQLite and against `pnpm test:db:up` (PostgreSQL, MySQL,
-  MariaDB).
+- [x] **2. Repository: roots and locks.** `IdentityRepository` gains `lockRoots(actorId)` (the
+  root rows and the actor's row, via `forUpdate`), `countActiveRoots()`, `listRoots()` and
+  `findFirstRoot()`, which replaces `findRoot()` (setup's "has a root" is `findFirstRoot() !==
+  null`). Identity transactions run in `readCommittedTransaction`.
+  *Done when:* `kysely-identity-repository.db.test.ts` (listing, counting, and a second
+  transaction waiting on `lockRoots` and then seeing the first's change) passes on SQLite and
+  against `pnpm test:db:up` (PostgreSQL, MySQL, MariaDB).
 
 - [ ] **3. Services: the actor and the last root.** Every `users.manage` service re-reads the
   actor inside the transaction (`ForbiddenError` if they're no longer an active root). `changeRole`

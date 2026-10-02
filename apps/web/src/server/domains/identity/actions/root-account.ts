@@ -19,4 +19,5 @@ export const createRoot = (
 export const resetRootPassword = (db: Db, dialect: DatabaseDialect, password: string) =>
   service.resetRootPassword(deps(db, dialect), password);
 
-export const findRoot = (db: Db, dialect: DatabaseDialect) => service.findRoot(deps(db, dialect));
+export const findFirstRoot = (db: Db, dialect: DatabaseDialect) =>
+  service.findFirstRoot(deps(db, dialect));

@@ -30,7 +30,7 @@ export const createRootUser = async (
   const now = (deps.now ?? (() => new Date()))();
 
   return deps.repo.transaction(async (repo) => {
-    const existing = await repo.findRoot();
+    const existing = await repo.findFirstRoot();
     if (existing) throw new RootAlreadyExistsError(existing.email);
     const id = await repo.createUserWithPassword({ email, name, role: "root", passwordHash }, now);
     // Nobody is signed in yet, so there's no actor; the origin says where setup ran.
@@ -61,7 +61,7 @@ export const resetRootPassword = async (
   const now = (deps.now ?? (() => new Date()))();
 
   return deps.repo.transaction(async (repo) => {
-    const root = await repo.findRoot();
+    const root = await repo.findFirstRoot();
     if (!root) throw new RootNotFoundError();
     await repo.setPassword(root.id, passwordHash, now);
     const sessionsEnded = await repo.deleteSessions(root.id);
@@ -80,6 +80,6 @@ export const resetRootPassword = async (
   });
 };
 
-export const findRoot = async (deps: Pick<IdentityDeps, "repo">) => {
-  return deps.repo.findRoot();
+export const findFirstRoot = async (deps: Pick<IdentityDeps, "repo">) => {
+  return deps.repo.findFirstRoot();
 };

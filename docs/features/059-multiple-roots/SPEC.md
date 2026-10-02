@@ -139,9 +139,9 @@ this command.
 
 ### Setup
 
-- `findRoot` becomes **`findFirstRoot`**, the oldest root, for setup's "a root account already
-  exists" message. The setup state check uses **`hasRoot`**, any root, disabled or not. The
-  behaviour is unchanged: setup still never creates a root when one exists.
+- `findRoot` becomes **`findFirstRoot`**, the oldest root, disabled or not. Setup's "a root account
+  already exists" message and the setup state check both use it. The behaviour is unchanged:
+  setup still never creates a root when one exists.
 - When there are several roots, setup's message says "N root accounts already exist (first:
   <email>)". The "disabled" warning only appears when **every** root is disabled.
 

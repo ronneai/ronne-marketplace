@@ -10,7 +10,7 @@ import {
 import { createDb } from "../db/create-db";
 import { migrateToLatest } from "../db/migrate";
 import type { DatabaseDialect } from "../db/url";
-import { createRoot, findRoot } from "../domains/identity/actions/root-account";
+import { createRoot, findFirstRoot } from "../domains/identity/actions/root-account";
 import type { RootAccount } from "../domains/identity/models/user";
 import type { NewRoot, RootOrigin } from "../domains/identity/services/root-account";
 import { generateAuthSecret, isWeakSecret, readEnvFile, updateEnvFile } from "./env-file";
@@ -188,7 +188,7 @@ export const findRootAccount = async (
 ): Promise<RootAccount | null> => {
   const { db, dialect } = createDb(url, { baseDir: options.appDir });
   try {
-    return await findRoot(db, dialect);
+    return await findFirstRoot(db, dialect);
   } finally {
     await db.destroy();
   }
