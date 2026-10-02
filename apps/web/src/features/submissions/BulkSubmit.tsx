@@ -239,7 +239,7 @@ export const BulkToolbar = ({ help }: { help?: ReactNode }) => {
             </ul>
             <p className="text-sm text-muted">
               Each goes to reviewers with its files frozen, as Submit does in the editor. You can
-              withdraw one until it's approved.
+              withdraw one until it's released.
             </p>
             <div className="flex flex-wrap justify-end gap-2">
               <Button variant="secondary" onClick={close}>

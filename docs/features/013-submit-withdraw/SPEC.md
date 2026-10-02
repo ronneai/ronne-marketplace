@@ -42,7 +42,8 @@ the content is frozen for release, and it can't be withdrawn. MVP §4.1's diagra
 
 > Since [057](../057-withdraw-archive-delete/SPEC.md) (2026-10-02), withdrawing asks to archive
 > (restorable as a draft, private to the author) or delete for good (only with no review history),
-> so withdrawn is no longer final.
+> so withdrawn is no longer final. Since 2026-10-02 an approved submission can be withdrawn
+> (archived) too, until it's released.
 
 **Submit** (a server action, author only):
 1. **Schema and package checks** from 011, on the saved files (not the browser's copy). Any error

@@ -12,6 +12,7 @@ const bulk = vi.hoisted(() => ({
   submitManyDrafts: vi.fn(),
   dependencyMarks: vi.fn(async () => ({})),
   canDeleteSubmission: vi.fn(async () => true),
+  latestFeedback: vi.fn(async () => ({})),
 }));
 vi.mock("@/server/domains/submissions/actions/drafts", () => drafts);
 vi.mock("@/server/domains/submissions/actions/submissions", () => bulk);
@@ -28,7 +29,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 const actions = await import("./actions");
-const { inListOrder, StatusFilters, SubmissionsTable, statusFilter } = await import(
+const { inListOrder, StatusFilters, SubmissionsTable, shortened, statusFilter } = await import(
   "./SubmissionsTable"
 );
 const { NewDraftForm } = await import("./NewDraftForm");
@@ -409,5 +410,68 @@ describe("releasing several at once (055)", () => {
       ok: false,
       error: "That's 51 submissions; one request takes at most 50.",
     });
+  });
+});
+
+describe("the latest reviewer message (058)", () => {
+  it("shows who sent it back or rejected it, and their message shortened, in full on hover", () => {
+    const long = `Name the tabs rule. ${"Then explain why. ".repeat(10)}`;
+    const html = renderToStaticMarkup(
+      <SubmissionsTable
+        submissions={[
+          submission({ id: "a", status: "changes_requested" }),
+          submission({ id: "b", status: "rejected", name: "other" }),
+          submission({ id: "c", status: "submitted", name: "third" }),
+        ]}
+        feedback={{
+          a: { kind: "request_changes", by: "Mo Moderator", body: long },
+          b: { kind: "reject", by: "Root", body: "Duplicates @platform/lint." },
+        }}
+      />,
+    );
+    expect(html).toContain("Changes requested by Mo Moderator: </span>Name the tabs rule.");
+    expect(html).toContain(`title="${long}"`);
+    expect(html).toContain("Rejected by Root: </span>Duplicates @platform/lint.");
+    expect(html.match(/requested by|Rejected by/g)).toHaveLength(2);
+  });
+
+  it("shortens at a word, to one line", () => {
+    expect(shortened("short")).toBe("short");
+    expect(shortened("a\nb")).toBe("a b");
+    const cut = shortened("word ".repeat(40));
+    expect(cut.length).toBeLessThanOrEqual(121);
+    expect(cut.endsWith("word…")).toBe(true);
+  });
+
+  it("reads them once for the list", async () => {
+    drafts.listMySubmissions.mockResolvedValue([submission({ status: "changes_requested" })]);
+    bulk.latestFeedback.mockResolvedValueOnce({
+      [submission().id]: { kind: "request_changes", by: "Mo", body: "Fix it." },
+    });
+    const html = renderToStaticMarkup(await SubmissionsPage({ searchParams: Promise.resolve({}) }));
+    expect(bulk.latestFeedback).toHaveBeenCalledTimes(1);
+    expect(html).toContain("Fix it.");
+  });
+});
+
+describe("withdrawing from the list (058)", () => {
+  it("offers Withdraw on each row until it's released, and Restore on archived ones", () => {
+    const html = renderToStaticMarkup(
+      <SubmissionsTable
+        submissions={[
+          submission({ id: "a", name: "pending", status: "submitted" }),
+          submission({ id: "b", name: "approved", status: "approved" }),
+          submission({ id: "c", name: "released", status: "published" }),
+          submission({ id: "d", name: "closed", status: "rejected" }),
+          submission({ id: "e", name: "kept", status: "withdrawn" }),
+        ]}
+      />,
+    );
+    expect(html).toContain('aria-label="Withdraw: @platform/pending"');
+    expect(html).toContain('aria-label="Withdraw: @platform/approved"');
+    expect(html).not.toContain('aria-label="Withdraw: @platform/released"');
+    expect(html).not.toContain('aria-label="Withdraw: @platform/closed"');
+    expect(html).not.toContain('aria-label="Withdraw: @platform/kept"');
+    expect(html).toContain(">Restore<");
   });
 });

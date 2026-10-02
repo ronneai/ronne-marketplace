@@ -1,5 +1,6 @@
 import type { ItemType } from "@ronneai/core";
 import { notFound } from "next/navigation";
+import { showFiles } from "@/components/files/shown";
 import { dependencyFacts } from "@/server/domains/items/actions/catalogue";
 import { itemPage, versionContents } from "@/server/domains/items/actions/versions";
 import {
@@ -9,7 +10,6 @@ import {
 } from "@/server/domains/items/exceptions/errors";
 import { itemUsage, itemUsageByVersion } from "@/server/domains/usage/actions/usage";
 import { requestHeaders } from "@/server/http/request-headers";
-import { showFiles } from "./files/shown";
 
 export type ItemParams = Promise<{ scope: string; name: string }>;
 

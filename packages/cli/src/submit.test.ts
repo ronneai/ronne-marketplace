@@ -78,7 +78,7 @@ describe("rmk submit (052)", () => {
         `  @team/notes  rule  ${REGISTRY}/submissions/${ID.notes}`,
         "    - description is required.",
         "",
-        "Submit 1 draft for review? Reviewers see them; you can withdraw one until it's approved. [y/N] ",
+        "Submit 1 draft for review? Reviewers see them; you can withdraw one until it's released. [y/N] ",
       ].join("\n"),
     );
     expect(submitted).toEqual([ID.style]);

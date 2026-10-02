@@ -102,3 +102,19 @@ test("an author deletes a draft for good from Withdraw", async ({ page }) => {
     0,
   );
 });
+
+test("an author withdraws a submission pending review from its row in My submissions", async ({
+  page,
+}) => {
+  await signIn(page, E2E_USERS.archiver);
+  await ruleDraft(page, "row-withdraw");
+  await submit(page, "Submit for review");
+  await page.goto("/submissions");
+  const name = `@${E2E_SCOPE}/row-withdraw`;
+  await page.getByRole("button", { name: `Withdraw: ${name}` }).click();
+  const withdraw = page.getByRole("dialog", { name: /Withdraw/ });
+  await withdraw.getByRole("button", { name: "Archive", exact: true }).click();
+  await expect(page.getByRole("row", { name: new RegExp(name) })).toHaveCount(0);
+  await page.goto("/submissions?status=withdrawn");
+  await expect(page.getByRole("row", { name: new RegExp(name) })).toBeVisible();
+});

@@ -13,6 +13,7 @@ import { type FileChange, isUnreleased, reviewDiff } from "../models/diff";
 import type { ReviewEvent, Revision, RevisionFile } from "../models/review";
 import { canTransition, OPEN_STATUSES } from "../models/status";
 import { fileBytes, MANIFEST_PATH, type Submission, toPackageFile } from "../models/submission";
+import { allows, type DecisionOption, decisionsFor } from "./decisions";
 import { baseFilesOf, staleVersion } from "./proposals";
 import { type Dependent, dependentsOf } from "./reviews";
 import { allIssues, type SubmissionActor, type SubmissionDeps } from "./submissions";
@@ -35,6 +36,8 @@ export type ReviewView = {
   /** The item's published versions, yanked ones included: the publish dialog's preview (015), and
    * whether the page links to the Versions page (016). */
   published: string[];
+  /** The decisions the viewer sees (058): allowed, or disabled with the reason. */
+  decisions: DecisionOption[];
   can: {
     decide: boolean;
     override: boolean;
@@ -159,6 +162,8 @@ export const getReview = async (
     ? (await deps.repo.registry().publishedVersions(item.id)).map((v) => v.version)
     : [];
   const diff = latest ? reviewDiff(previousFiles, files) : { changes: [], unreleased: [] };
+  const proposal = await proposalView(deps, submission, latest ? files : null);
+  const decisions = decisionsFor(actor, { ...submission, stale: proposal?.stale ?? null });
   return {
     submission: {
       ...submission,
@@ -174,13 +179,15 @@ export const getReview = async (
     issues: latest ? await allIssues(deps, deps.repo, submission, files) : [],
     events: await deps.repo.events(submission.id),
     published,
-    proposal: await proposalView(deps, submission, latest ? files : null),
+    proposal,
+    decisions,
+    // The flags come from the same rules as the decisions (058), so the two never disagree.
     can: {
-      decide: reviewer && !mine && submitted && canTransition(submission.status, "approve"),
-      override: mine && submitted && can(actor.user, "submissions.override"),
+      decide: submitted && allows(decisions, "reject"),
+      override: decisions.some((option) => option.decision === "override"),
       comment: (reviewer || mine) && OPEN_STATUSES.includes(submission.status),
       publish: approved && (mine || can(actor.user, "submissions.publish")),
-      sendBack: reviewer && !mine && approved,
+      sendBack: approved && allows(decisions, "request_changes"),
     },
     dependents:
       reviewer && !mine && submitted ? await dependentsOf(deps, actor, submission.id) : [],

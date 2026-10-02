@@ -6,7 +6,9 @@ import { type PublishInput, publishSubmission } from "@/server/domains/submissio
 import {
   approveMany,
   comment,
+  type Dependent,
   decide,
+  listDependents,
   type ReviewDecision,
   rejectWithDependents,
 } from "@/server/domains/submissions/actions/reviews";
@@ -26,14 +28,22 @@ const refresh = (id: string) => {
   revalidatePath("/submissions");
 };
 
-/** Approve, request changes, reject or override (feature 014); errors become the dialog's line. */
+/**
+ * Approve, request changes, reject or override (feature 014); errors become the dialog's line.
+ * `via: "queue"` (058) records that it was decided from a row of the review queue.
+ */
 export const decideAction = async (
   id: string,
   decision: ReviewDecision,
   text: string,
+  via?: "queue",
 ): Promise<ReviewActionState> => {
   try {
-    await decide(await requestHeaders(), id, { decision, message: text });
+    await decide(await requestHeaders(), id, {
+      decision,
+      message: text,
+      ...(via ? { via } : {}),
+    });
   } catch (error) {
     return { error: message(error) };
   }
@@ -49,12 +59,14 @@ export const rejectAction = async (
   id: string,
   text: string,
   dependentsText: string | null,
+  via?: "queue",
 ): Promise<ReviewActionState & { skipped?: { name: string; reason: string }[] }> => {
   let skipped: { name: string; reason: string }[] = [];
   try {
     const result = await rejectWithDependents(await requestHeaders(), id, {
       message: text,
       ...(dependentsText !== null ? { dependents: { message: dependentsText } } : {}),
+      ...(via ? { via } : {}),
     });
     for (const d of result.dependents) if (d.result === "sent_back") refresh(d.id);
     skipped = result.dependents.flatMap((d) =>
@@ -65,6 +77,20 @@ export const rejectAction = async (
   }
   refresh(id);
   return { done: true, skipped };
+};
+
+/**
+ * The open submissions that depend on this one (056), for a queue row's reject dialog (058): loaded
+ * when it opens, not for every row.
+ */
+export const dependentsAction = async (
+  id: string,
+): Promise<{ dependents: Dependent[] } | { error: string }> => {
+  try {
+    return { dependents: await listDependents(await requestHeaders(), id) };
+  } catch (error) {
+    return { error: message(error) };
+  }
 };
 
 /** Approves the selected submissions (054), each on its own, with one optional message. */

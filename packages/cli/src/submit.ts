@@ -257,7 +257,7 @@ export const submitCommand = async (io: Io, args: Args, out: Output, api: ApiCli
   if (!yes) {
     const count = plan.ready.length;
     const answer = await io.prompt(
-      `${plan.preview.join("\n")}\n\nSubmit ${count} draft${count === 1 ? "" : "s"} for review? Reviewers see them; you can withdraw one until it's approved. [y/N] `,
+      `${plan.preview.join("\n")}\n\nSubmit ${count} draft${count === 1 ? "" : "s"} for review? Reviewers see them; you can withdraw one until it's released. [y/N] `,
     );
     if (!/^y(es)?$/i.test(answer.trim())) {
       out.set("submitted", []);

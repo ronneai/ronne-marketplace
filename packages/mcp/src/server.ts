@@ -303,7 +303,7 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
     {
       title: "Submit drafts for review",
       description:
-        "Submits each of the person's drafts that's ready, each on its own, and says which went and why the others didn't. Reviewers then see them; the person can withdraw one in the web app until it's approved. Only after the person has seen check_drafts and asked for it.",
+        "Submits each of the person's drafts that's ready, each on its own, and says which went and why the others didn't. Reviewers then see them; the person can withdraw one in the web app until it's released. Only after the person has seen check_drafts and asked for it.",
       inputSchema: selection,
       annotations: {
         readOnlyHint: false,

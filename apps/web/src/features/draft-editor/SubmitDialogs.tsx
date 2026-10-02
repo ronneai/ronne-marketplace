@@ -14,6 +14,7 @@ import {
   restoreAction,
   submitDraftAction,
   withdrawAction,
+  withdrawInfoAction,
 } from "./actions";
 import type { SubmitResult } from "./types";
 
@@ -86,7 +87,7 @@ export const SubmitDialog = ({
               {result.issues.length > 0 ? <IssueList issues={result.issues} /> : null}
               <p className="text-sm text-muted">
                 Once submitted, its files are frozen: reviewers see exactly these. You can withdraw
-                it until it's approved.
+                it until it's released.
               </p>
               <Help id="after-submit" />
             </div>
@@ -261,6 +262,45 @@ export const DeleteArchivedDialog = ({
         </div>
       </div>
     </Dialog>
+  );
+};
+
+/**
+ * Withdraw from a list or the review page (058): a text-only button that loads what the dialog
+ * needs (whether it can be deleted, its dependents) when it's clicked, then opens it.
+ */
+export const WithdrawButton = ({ draftId, itemName }: { draftId: string; itemName: string }) => {
+  const [info, setInfo] = useState<{ canDelete: boolean; dependents: number } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  return (
+    <>
+      <Button
+        variant="text"
+        aria-label={`Withdraw: ${itemName}`}
+        loading={pending}
+        onClick={() =>
+          start(async () => {
+            setError(null);
+            const result = await withdrawInfoAction(draftId);
+            if ("error" in result) return setError(result.error);
+            setInfo(result);
+          })
+        }
+      >
+        Withdraw
+      </Button>
+      <FieldError id={`withdraw-info-error-${draftId}`}>{error}</FieldError>
+      {info ? (
+        <WithdrawDialog
+          draftId={draftId}
+          itemName={itemName}
+          canDelete={info.canDelete}
+          dependents={info.dependents}
+          onClose={() => setInfo(null)}
+        />
+      ) : null}
+    </>
   );
 };
 

@@ -13,6 +13,7 @@ import { itemNameOf } from "@/server/domains/submissions/models/submission";
 import { QUEUE_TABS } from "@/server/domains/submissions/services/queue";
 import { ReleaseSelectCell } from "../releases/BulkRelease";
 import { type ApprovableRow, ApproveSelectCell } from "./BulkApprove";
+import { RowDecisions } from "./DecisionBar";
 
 const TAB_ORDER: QueueTab[] = ["needs", "waiting", "release", "decided"];
 
@@ -70,9 +71,13 @@ export const approvableRows = (rows: QueueRow[]): Record<string, ApprovableRow> 
     ),
   );
 
+/** Tabs whose rows can be decided from the queue (058): Needs review, and To release (056). */
+const DECIDING: readonly QueueTab[] = ["needs", "release"];
+
 /**
  * One tab of the queue: each submission, who sent it, since when, and whether it's risky. Needs
- * review has a checkbox on each row for approving many (054), inside BulkApproveProvider.
+ * review has a checkbox on each row for approving many (054), inside BulkApproveProvider; it and To
+ * release end each row with its own decisions (058).
  */
 export const QueueTable = ({
   tab,
@@ -111,6 +116,11 @@ export const QueueTable = ({
             {tab === "release" ? <Th>Approved by</Th> : null}
             <Th>{tab === "decided" ? "Decided" : tab === "release" ? "Approved" : "Submitted"}</Th>
             {tab === "decided" ? <Th>Status</Th> : null}
+            {DECIDING.includes(tab) ? (
+              <Th>
+                <span className="sr-only">Decisions</span>
+              </Th>
+            ) : null}
           </tr>
         </thead>
         <tbody>
@@ -164,6 +174,11 @@ export const QueueTable = ({
               {tab === "decided" ? (
                 <Td>
                   <StatusBadge status={row.status} />
+                </Td>
+              ) : null}
+              {DECIDING.includes(tab) ? (
+                <Td>
+                  <RowDecisions id={row.id} name={itemNameOf(row)} decisions={row.decisions} />
                 </Td>
               ) : null}
             </tr>

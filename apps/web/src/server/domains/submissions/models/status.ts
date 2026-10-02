@@ -31,7 +31,8 @@ export type SubmissionAction =
 /**
  * Every allowed move, and the only place they're decided: services call `transition`. 013 uses
  * submit and withdraw; review (014) and release (015) use the rest. Withdrawing is allowed until
- * approval (owner decision, 2026-09-27); since 057 it archives, and the author can restore it.
+ * release (owner, 2026-09-27, extended from approval on 2026-10-02); since 057 it archives, and the
+ * author can restore it.
  */
 export const TRANSITIONS: Record<
   SubmissionAction,
@@ -43,7 +44,7 @@ export const TRANSITIONS: Record<
   request_changes: { from: ["submitted", "approved"], to: "changes_requested" },
   approve: { from: ["submitted"], to: "approved" },
   reject: { from: ["submitted"], to: "rejected" },
-  withdraw: { from: ["draft", "submitted", "changes_requested"], to: "withdrawn" },
+  withdraw: { from: ["draft", "submitted", "changes_requested", "approved"], to: "withdrawn" },
   // An archived submission comes back as a draft, with its history (057).
   restore: { from: ["withdrawn"], to: "draft" },
   publish: { from: ["approved"], to: "published" },

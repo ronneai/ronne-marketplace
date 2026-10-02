@@ -7,13 +7,15 @@ import { LocalTime } from "@/components/ui/LocalTime";
 import { Panel } from "@/components/ui/Panel";
 import { Table, Td, Th } from "@/components/ui/Table";
 import { TypeBadge } from "@/components/ui/TypeBadge";
-import type { DependencyMark } from "@/server/domains/submissions/actions/submissions";
+import type { DependencyMark, RowFeedback } from "@/server/domains/submissions/actions/submissions";
 import {
+  canTransition,
   SUBMISSION_STATUSES,
   type SubmissionStatus,
   statusLabel,
 } from "@/server/domains/submissions/models/status";
 import { itemNameOf, type Submission } from "@/server/domains/submissions/models/submission";
+import { WithdrawButton } from "../draft-editor/SubmitDialogs";
 import { ReleaseSelectCell } from "../releases/BulkRelease";
 import { ArchivedActions } from "./ArchivedActions";
 import { ReadinessMark, SelectCell } from "./BulkSubmit";
@@ -87,6 +89,30 @@ export const StatusFilters = ({
   );
 };
 
+/** How long a reviewer's message may be on its row before it's shortened (058). */
+const FEEDBACK_LENGTH = 120;
+
+/** Shortened to one line, at a word where it can be. */
+export const shortened = (text: string, length = FEEDBACK_LENGTH): string => {
+  const line = text.replace(/\s+/g, " ").trim();
+  if (line.length <= length) return line;
+  const cut = line.slice(0, length);
+  const space = cut.lastIndexOf(" ");
+  return `${(space > length / 2 ? cut.slice(0, space) : cut).trimEnd()}…`;
+};
+
+/** Under a row sent back or rejected (058): who, and their message, in full on hover. */
+const FeedbackLine = ({ feedback }: { feedback?: RowFeedback }) =>
+  feedback ? (
+    <p className="mt-1 max-w-prose text-xs text-muted" title={feedback.body ?? undefined}>
+      <span className="font-semibold">
+        {feedback.kind === "reject" ? "Rejected" : "Changes requested"} by {feedback.by}
+        {feedback.body ? ": " : "."}
+      </span>
+      {feedback.body ? shortened(feedback.body) : null}
+    </p>
+  ) : null;
+
 /** My submissions (feature 012): your drafts and submissions, newest change first. */
 export const SubmissionsTable = ({
   submissions,
@@ -94,6 +120,7 @@ export const SubmissionsTable = ({
   marks,
   releasable,
   deletable,
+  feedback,
 }: {
   /** With `stale` for change proposals (017) that a newer version overtook. */
   submissions: (Submission & { stale?: string | null })[];
@@ -111,9 +138,14 @@ export const SubmissionsTable = ({
    * Restore, and Delete where allowed.
    */
   deletable?: Readonly<Record<string, boolean>>;
+  /** The latest reviewer message on rows sent back or rejected (058), by id. */
+  feedback?: Readonly<Record<string, RowFeedback>>;
 }) => {
   const selecting = errors !== undefined || Object.keys(releasable ?? {}).length > 0;
-  const archived = submissions.some((s) => s.status === "withdrawn");
+  // Archived rows get Restore and Delete (057); the others, Withdraw until released (058).
+  const actions = submissions.some(
+    (s) => s.status === "withdrawn" || canTransition(s.status, "withdraw"),
+  );
   if (submissions.length === 0)
     return (
       <Panel padding="lg" className="grid justify-items-start gap-3">
@@ -139,7 +171,7 @@ export const SubmissionsTable = ({
           <Th>Type</Th>
           <Th>Status</Th>
           <Th>Last change</Th>
-          {archived ? (
+          {actions ? (
             <Th>
               <span className="sr-only">Actions</span>
             </Th>
@@ -174,6 +206,7 @@ export const SubmissionsTable = ({
                   <ProposalBadges proposal={submission.proposal} stale={submission.stale} />
                 </span>
               ) : null}
+              <FeedbackLine feedback={feedback?.[submission.id]} />
             </Td>
             <Td>
               <TypeBadge type={submission.type} />
@@ -190,14 +223,16 @@ export const SubmissionsTable = ({
                 <LocalTime value={submission.updatedAt} />
               </time>
             </Td>
-            {archived ? (
-              <Td>
+            {actions ? (
+              <Td className="text-right">
                 {submission.status === "withdrawn" ? (
                   <ArchivedActions
                     id={submission.id}
                     name={itemNameOf(submission)}
                     canDelete={deletable?.[submission.id] ?? false}
                   />
+                ) : canTransition(submission.status, "withdraw") ? (
+                  <WithdrawButton draftId={submission.id} itemName={itemNameOf(submission)} />
                 ) : null}
               </Td>
             ) : null}

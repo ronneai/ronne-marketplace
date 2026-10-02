@@ -1,7 +1,13 @@
 import { type ButtonHTMLAttributes, useId } from "react";
 import { cn } from "./cn";
 
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "destructive";
+export type ButtonVariant =
+  | "primary"
+  | "secondary"
+  | "ghost"
+  | "destructive"
+  | "text"
+  | "text-destructive";
 
 const VARIANTS: Record<ButtonVariant, string> = {
   primary: "bg-accent-strong text-on-accent hover:opacity-90",
@@ -9,14 +15,22 @@ const VARIANTS: Record<ButtonVariant, string> = {
   ghost: "text-muted hover:bg-tint hover:text-fg",
   /** For actions that lose work or can't be undone: delete, withdraw, leave without saving. */
   destructive: "bg-error text-on-error hover:opacity-90",
+  /** Text only, for actions in a dense list such as a table row (058). */
+  text: "text-link hover:underline",
+  "text-destructive": "text-error-text hover:underline",
 };
+
+/** Text-only variants have no box: no height, padding or background. */
+const TEXT_VARIANTS = new Set<ButtonVariant>(["text", "text-destructive"]);
 
 /** Flat, 36px, 6px radius; a 2px focus ring (Navy in light, Teal in dark). Design system 032. */
 export const buttonClasses = (variant: ButtonVariant = "primary") =>
   cn(
-    "inline-flex h-9 items-center justify-center gap-2 rounded-control px-3.5 text-sm font-semibold",
+    TEXT_VARIANTS.has(variant)
+      ? "inline-flex items-center gap-1 rounded-sm text-sm font-semibold underline-offset-2"
+      : "inline-flex h-9 items-center justify-center gap-2 rounded-control px-3.5 text-sm font-semibold",
     "outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus",
-    "disabled:cursor-not-allowed disabled:opacity-60",
+    "disabled:cursor-not-allowed disabled:opacity-60 disabled:no-underline",
     VARIANTS[variant],
   );
 

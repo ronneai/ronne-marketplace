@@ -20,6 +20,7 @@ const ALLOWED: [SubmissionStatus, SubmissionAction, SubmissionStatus][] = [
   ["submitted", "withdraw", "withdrawn"],
   ["changes_requested", "resubmit", "submitted"],
   ["changes_requested", "withdraw", "withdrawn"],
+  ["approved", "withdraw", "withdrawn"],
   ["approved", "publish", "published"],
   ["approved", "request_changes", "changes_requested"],
   ["withdrawn", "restore", "draft"],
@@ -55,11 +56,12 @@ describe("transition", () => {
     expect(ALLOWED.length + refused.length).toBe(SUBMISSION_STATUSES.length * ACTIONS.length);
   });
 
-  it("is final once rejected or published, frozen once approved, and archived can be restored", () => {
+  it("is final once rejected or published, withdrawable until released, and archived can be restored", () => {
     for (const from of ["rejected", "published"] as const)
       expect(ACTIONS.filter((action) => canTransition(from, action))).toEqual([]);
     expect(ACTIONS.filter((action) => canTransition("withdrawn", action))).toEqual(["restore"]);
-    expect(canTransition("approved", "withdraw")).toBe(false);
+    expect(canTransition("approved", "withdraw")).toBe(true);
+    expect(canTransition("published", "withdraw")).toBe(false);
   });
 
   it("says what went wrong in words", () => {

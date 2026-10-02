@@ -16,6 +16,7 @@ import {
   viewSubmission,
 } from "@/server/domains/submissions/actions/submissions";
 import { SubmissionNotFoundError } from "@/server/domains/submissions/exceptions/errors";
+import { latestFeedback } from "@/server/domains/submissions/models/review";
 import { canTransition, isEditable } from "@/server/domains/submissions/models/status";
 import { type Draft, itemNameOf } from "@/server/domains/submissions/models/submission";
 import { requestHeaders } from "@/server/http/request-headers";
@@ -49,9 +50,11 @@ const toEditorDraft = (
   dependents = 0,
   dependencyMarks: DependencyMark[] = [],
   canDelete = false,
+  feedback: EditorDraft["feedback"] = null,
 ): EditorDraft => ({
   dependents,
   canDelete,
+  feedback,
   canRestore: draft.mine && canTransition(draft.status, "restore"),
   dependencyMarks,
   id: draft.id,
@@ -110,6 +113,19 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
     draft.mine &&
     (canTransition(draft.status, "withdraw") || draft.status === "withdrawn") &&
     (await canDeleteSubmission(request, id));
+  // Why it was sent back or closed (058), for the notice at the top.
+  const last =
+    review && (draft.status === "changes_requested" || draft.status === "rejected")
+      ? latestFeedback(review.events)
+      : null;
+  const feedback = last
+    ? {
+        kind: last.kind as "request_changes" | "reject" | "rebase",
+        by: last.actor.name,
+        at: last.createdAt.toISOString(),
+        body: last.body,
+      }
+    : null;
   return (
     <div className="grid gap-6">
       {/* A new version from the server (an import, a rename, a submit) starts the editor afresh. */}
@@ -122,6 +138,7 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
           dependents,
           marks,
           canDelete,
+          feedback,
         )}
       />
       {review?.can.publish ? (

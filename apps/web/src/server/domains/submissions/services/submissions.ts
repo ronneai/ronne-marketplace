@@ -33,7 +33,7 @@ import { registryIssues } from "./registry-checks";
 
 /**
  * Submitting and withdrawing (feature 013). The author submits a draft after every check a
- * reviewer would otherwise do by hand, or withdraws it until it's approved. Every status change
+ * reviewer would otherwise do by hand, or withdraws it until it's released. Every status change
  * goes through `transition` (models/status.ts).
  */
 export type SubmissionDeps = {
@@ -63,6 +63,39 @@ const own = async (repo: SubmissionRepository, actor: SubmissionActor, id: strin
   const submission = await find(repo, id);
   if (!submission || submission.authorId !== actor.user?.id) throw new SubmissionNotFoundError();
   return submission;
+};
+
+/** What My submissions says under a row sent back or rejected (058). */
+export type RowFeedback = { kind: "request_changes" | "reject"; by: string; body: string | null };
+
+/**
+ * The latest reviewer message on each of the actor's own submissions that was sent back or
+ * rejected (058), by id, read in one query for the whole list.
+ */
+export const latestFeedbackFor = async (
+  deps: SubmissionDeps,
+  actor: SubmissionActor,
+  submissions: readonly Submission[],
+): Promise<Record<string, RowFeedback>> => {
+  requirePermission(actor.user, "submissions.create");
+  const ids = submissions
+    .filter(
+      (s) =>
+        s.authorId === actor.user?.id &&
+        (s.status === "changes_requested" || s.status === "rejected"),
+    )
+    .map((s) => s.id);
+  const latest = await deps.repo.latestEvents(ids, ["request_changes", "reject"]);
+  return Object.fromEntries(
+    [...latest].map(([id, event]) => [
+      id,
+      {
+        kind: event.kind as RowFeedback["kind"],
+        by: event.actor.name,
+        body: event.body,
+      },
+    ]),
+  );
 };
 
 /** Only the author sees these: a draft, and an archived submission (057). */

@@ -17,13 +17,17 @@ vi.mock("next/navigation", () => ({
   notFound: () => {
     throw new Error("NEXT_NOT_FOUND");
   },
-  useRouter: () => ({ refresh: vi.fn() }),
+  useRouter: () => ({ refresh: vi.fn(), replace: vi.fn() }),
+  usePathname: () => "/reviews/s",
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 const { RiskSummary } = await import("@/components/risk-flags/RiskSummary");
-const { AllFiles, FileChanges } = await import("@/components/files/FileViews");
+const { FileChanges } = await import("@/components/files/FileViews");
+const { ReviewAllFiles, ReviewChanges } = await import("./ReviewFiles");
 const { Conversation } = await import("./Conversation");
-const { DecisionBar, DependentsChoice, dependentsMessage } = await import("./DecisionBar");
+const { DecisionBar, DecisionDialog, DependentsChoice, dependentsMessage, RowDecisions } =
+  await import("./DecisionBar");
 const { default: ReviewPage } = await import("@/app/(app)/reviews/[id]/page");
 const { BumpSuggestion } = await import("./PublishDialog");
 
@@ -67,7 +71,8 @@ describe("RiskSummary", () => {
     expect(html).toContain("What it can do (2)");
     expect(html).toContain("WIDENS:");
     expect(html).toContain("<code");
-    expect(html).toContain('href="/reviews/s?view=all#file-ronne.yaml-L6"');
+    // It opens the file at the line in the files view (058).
+    expect(html).toContain('href="/reviews/s?view=all&amp;file=ronne.yaml&amp;line=6#files"');
   });
 
   it("shows file and line as text without a review page, and nothing without flags", () => {
@@ -120,12 +125,47 @@ describe("file views", () => {
     );
   });
 
-  it("gives every line of every file an anchor", () => {
+  it("shows the files as a tree beside the one selected, as the item page does (058)", () => {
     const html = renderToStaticMarkup(
-      <AllFiles files={[text("ronne.yaml", "name: x\ntype: rule")]} />,
+      <ReviewAllFiles
+        files={[
+          {
+            path: "ronne.yaml",
+            size: 18,
+            executable: false,
+            kind: "text",
+            text: "name: x\ntype: rule",
+          },
+          { path: "rule.md", size: 5, executable: false, kind: "text", text: "Tabs." },
+        ]}
+        selected="ronne.yaml"
+      />,
     );
-    expect(html).toContain('id="file-ronne.yaml"');
-    expect(html).toContain('id="file-ronne.yaml-L2"');
+    expect(html).toContain('aria-label="Files of this revision"');
+    expect(html).toContain("rule.md");
+    expect(html).toContain('aria-label="ronne.yaml"');
+    expect(html).toContain("type: rule");
+    expect(html).not.toContain(">Tabs.<");
+  });
+
+  it("lists the changed files, each marked, beside the diff of the one selected (058)", () => {
+    const html = renderToStaticMarkup(
+      <ReviewChanges
+        changes={[
+          ...diffRevisions([text("a.md", "one")], [text("a.md", "two"), text("b.md", "new")]),
+        ]}
+        selected="b.md"
+        emptyText="No changes."
+      />,
+    );
+    expect(html).toContain('aria-label="Changed files"');
+    expect(html).toContain(">changed<");
+    expect(html).toContain(">added<");
+    expect(html).toContain('aria-label="b.md"');
+    expect(html).not.toContain('aria-label="a.md"');
+    expect(renderToStaticMarkup(<ReviewChanges changes={[]} emptyText="No changes." />)).toContain(
+      "No changes.",
+    );
   });
 });
 
@@ -172,6 +212,85 @@ describe("DecisionBar", () => {
     expect(html).toContain("bg-error text-on-error");
     expect(renderToStaticMarkup(<DecisionBar id="s" decisions={[]} />)).toBe("");
   });
+
+  it("shows a decision that isn't the viewer's disabled, with the reason (058)", () => {
+    const html = renderToStaticMarkup(
+      <DecisionBar
+        id="s"
+        decisions={[
+          {
+            decision: "reject",
+            allowed: false,
+            reason: "Your own submission: another moderator or root decides.",
+          },
+          { decision: "override", allowed: true },
+        ]}
+      />,
+    );
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Reject<\/button>/);
+    expect(html).toContain("Your own submission: another moderator or root decides.");
+    expect(html).toMatch(/<button(?![^>]*disabled="")[^>]*>Approve \(override\)<\/button>/);
+  });
+});
+
+describe("a queue row's decisions (058)", () => {
+  it("offers Request changes and Reject, not Approve, each named for the row", () => {
+    const html = renderToStaticMarkup(
+      <RowDecisions
+        id="s"
+        name="@team/fmt"
+        decisions={[
+          { decision: "approve", allowed: true },
+          { decision: "request_changes", allowed: true },
+          { decision: "reject", allowed: true },
+        ]}
+      />,
+    );
+    expect(html).toContain('aria-label="Request changes: @team/fmt"');
+    expect(html).toContain('aria-label="Reject: @team/fmt"');
+    expect(html).not.toContain(">Approve<");
+    expect(renderToStaticMarkup(<RowDecisions id="s" name="x" decisions={[]} />)).toBe("");
+  });
+
+  it("disables them on the reviewer's own row, with the reason", () => {
+    const reason = "Your own submission: another moderator or root decides.";
+    const html = renderToStaticMarkup(
+      <RowDecisions
+        id="s"
+        name="@team/fmt"
+        decisions={[{ decision: "reject", allowed: false, reason }]}
+      />,
+    );
+    expect(html).toMatch(
+      /<button[^>]*disabled=""[^>]*aria-label="Reject: @team\/fmt"|aria-label="Reject: @team\/fmt"[^>]*disabled=""/,
+    );
+    expect(html).toContain(reason);
+  });
+
+  it("asks for a required reason, and offers to send the dependents back when rejecting", () => {
+    const html = renderToStaticMarkup(
+      <DecisionDialog
+        id="s"
+        name="@team/style"
+        decision="reject"
+        via="queue"
+        dependents={[
+          {
+            id: "d",
+            name: "@team/kit",
+            status: "submitted",
+            authorName: "Ada",
+            sendBack: { ok: true },
+          },
+        ]}
+        onClose={() => {}}
+      />,
+    );
+    expect(html).toContain("Reject this submission?");
+    expect(html).toMatch(/<textarea[^>]*required=""/);
+    expect(html).toContain("Request changes on them too");
+    expect(html).toContain("@team/kit");
+  });
 });
 
 const view = (overrides: Partial<ReviewView> = {}): ReviewView => ({
@@ -200,11 +319,20 @@ const view = (overrides: Partial<ReviewView> = {}): ReviewView => ({
   issues: [],
   events: [event({ revision: 2, kind: "resubmit" })],
   published: [],
+  decisions: [
+    { decision: "approve", allowed: true },
+    { decision: "request_changes", allowed: true },
+    { decision: "reject", allowed: true },
+  ],
   can: { decide: true, override: false, comment: true, publish: false, sendBack: false },
   proposal: null,
   dependents: [],
   ...overrides,
 });
+
+const OWN = "Your own submission: another moderator or root decides.";
+const own = (decision: "approve" | "request_changes" | "reject") =>
+  ({ decision, allowed: false, reason: OWN }) as const;
 
 describe("the review page", () => {
   beforeEach(() => {
@@ -277,13 +405,76 @@ describe("the review page", () => {
     reviews.getReview.mockResolvedValue(
       view({
         mine: true,
+        decisions: [own("approve"), own("request_changes"), own("reject")],
         can: { decide: false, override: false, comment: true, publish: false, sendBack: false },
       }),
     );
     const html = await render({ view: "all" });
-    expect(html).toContain('id="file-hook.sh-L1"');
+    expect(html).toContain('aria-label="hook.sh"');
+    expect(html).toContain("echo hi");
     expect(html).toContain("This is your own submission");
-    expect(html).not.toContain(">Approve<");
+    // The decisions show, disabled, with why (058).
+    for (const label of ["Approve", "Request changes", "Reject"])
+      expect(html).toMatch(new RegExp(`<button[^>]*disabled=""[^>]*>${label}</button>`));
+    expect(html).toContain(OWN);
+  });
+
+  it("shows root its own submission's decisions disabled, and the override (058)", async () => {
+    reviews.getReview.mockResolvedValue(
+      view({
+        mine: true,
+        decisions: [
+          own("approve"),
+          own("request_changes"),
+          own("reject"),
+          { decision: "override", allowed: true },
+        ],
+        can: { decide: false, override: true, comment: true, publish: false, sendBack: false },
+      }),
+    );
+    const html = await render();
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Reject<\/button>/);
+    expect(html).toMatch(/<button(?![^>]*disabled="")[^>]*>Approve \(override\)<\/button>/);
+    expect(html).toContain("This is your own submission: another moderator or root reviews it.");
+    expect(html).toContain("you can approve it yourself as an override");
+  });
+
+  it("leaves .ronne/ out of the files, and opens the file a link asks for (058)", async () => {
+    reviews.getReview.mockResolvedValue(
+      view({
+        current: {
+          number: 2,
+          files: [
+            text("hook.sh", "echo hi"),
+            text("ronne.yaml", "name: x"),
+            text(".ronne/layout.json", "{}"),
+          ],
+        },
+      }),
+    );
+    const html = await render({ view: "all", file: "hook.sh", line: "1" });
+    expect(html).not.toContain("layout.json");
+    expect(html).toContain('aria-label="hook.sh"');
+    expect(html).not.toContain('aria-label="ronne.yaml"');
+  });
+
+  it("lets the author withdraw their own from the review page, and nobody else (058)", async () => {
+    expect(await render()).not.toContain('aria-label="Withdraw: @team/fmt"');
+    reviews.getReview.mockResolvedValue(view({ mine: true, decisions: [] }));
+    expect(await render()).toContain('aria-label="Withdraw: @team/fmt"');
+  });
+
+  it("tells an author without a review role about their own submission, with no decisions", async () => {
+    reviews.getReview.mockResolvedValue(
+      view({
+        mine: true,
+        decisions: [],
+        can: { decide: false, override: false, comment: true, publish: false, sendBack: false },
+      }),
+    );
+    const html = await render();
+    expect(html).toContain("This is your own submission");
+    expect(html).not.toContain(">Reject<");
   });
 
   it("offers Publish on an approved submission to those who may publish", async () => {

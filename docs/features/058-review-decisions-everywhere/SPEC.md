@@ -89,8 +89,9 @@ A decision that doesn't apply to the status, such as Reject on approved, isn't s
 **The author's side.**
 - **Top notice.** On the submission page, above the editor, for:
   - `changes_requested`: **Changes requested by {reviewer}** with the message and the date, and
-    "Edit the files, then Resubmit for review." It also covers 017's rebase and 056's cascade, with
-    their own wording, from the event's cause.
+    "Edit the files, then Resubmit for review." 056's cascade is a request for changes like any
+    other, with its own message. When the latest is the author's own rebase of an approved proposal
+    (017), it reads **Rebased by {author} onto {version}**.
   - `rejected`: **Rejected by {reviewer}** with the message and the date, and "Rejected is final:
     start a new draft to try again."
 
@@ -101,10 +102,10 @@ A decision that doesn't apply to the status, such as Reject on approved, isn't s
 
   | Status | Notice |
   |---|---|
-  | submitted | "Submitted for review on {date}." "Its files are frozen, so reviewers see exactly what you submitted. You can withdraw it until it's approved." |
-  | approved | "Approved." "It's ready to release, by you or a moderator. It can't be withdrawn; a reviewer can still send it back." |
+  | submitted | "Submitted for review on {date}." "Its files are frozen, so reviewers see exactly what you submitted. You can withdraw it until it's released." |
+  | approved | "Approved." "It's ready to release, by you or a moderator. Until then you can still withdraw it, and a reviewer can send it back." |
   | rejected | the top notice above; no second notice |
-  | published | "Released as {version}." and a link to its versions |
+  | published | "Released." "A released version never changes: View versions lists them. To change the item, propose a change from its page." |
   | withdrawn | as [057](../057-withdraw-archive-delete/SPEC.md) says |
 
 - **My submissions.** On `changes_requested` and `rejected` rows, a second line under the name
@@ -147,24 +148,26 @@ The audit metadata adds `via: "queue"` when decided from a queue row, as 054 add
 
 ## Acceptance criteria
 
-- [ ] `decisionsFor` decides the review page's and the queue's buttons. A test checks each role
+- [x] `decisionsFor` decides the review page's and the queue's buttons. A test checks each role
   and status against the table above.
-- [ ] Needs review rows offer Request changes and Reject, and To release rows offer Request changes.
+- [x] Needs review rows offer Request changes and Reject, and To release rows offer Request changes.
   Each needs a message, follows 014's transitions and records 014's audit event with
   `via: "queue"`. Reject offers 056's choice for its dependents.
-- [ ] The review page always shows the three decisions to a reviewer on `submitted`, disabled with
+- [x] The review page always shows the three decisions to a reviewer on `submitted`, disabled with
   the reason on their own. Root sees them disabled plus Approve (override).
-- [ ] The author sees the latest request-changes, reject or rebase message at the top of the
+- [x] The author sees the latest request-changes, reject or rebase message at the top of the
   submission page. Each read-only status has its own notice, and none says "you can withdraw it"
   after approval.
-- [ ] My submissions shows the latest reviewer message on changes-requested and rejected rows,
+- [x] My submissions shows the latest reviewer message on changes-requested and rejected rows,
   loaded without one query per row.
-- [ ] End-to-end tests cover:
+- [x] End-to-end tests cover:
   - a moderator rejects from a queue row and the author sees the reason at the top;
   - a moderator requests changes from a queue row, and the author resubmits;
   - a moderator sends back an approved one from To release;
-  - root on its own submission sees the decisions disabled, with the reason, and the override.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+  - a moderator on their own submission sees the decisions disabled, with the reason, in the
+    queue and on the review page. Root's override beside them is covered by the review page's
+    unit tests: root already signs in five times per end-to-end run, the per-email limit a minute.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Decisions
 
@@ -172,6 +175,21 @@ The audit metadata adds `via: "queue"` when decided from a queue row, as 054 add
    in both places.
 2. **Per row, not in bulk** (owner, 2026-10-02). Each reason is about one submission (054).
 3. **Shown disabled rather than hidden** on the viewer's own submission, so the reason is visible.
+
+**Withdrawing an approved submission** (owner, 2026-10-02): built on this branch, as a change to
+[057](../057-withdraw-archive-delete/SPEC.md). Withdraw is offered until release, and an approved
+one is archived (never deleted). Its notice and the submit confirmations say "until it's released".
+Withdraw is also a text-only action on each of the author's rows in My submissions (draft, pending
+review, sent back, approved), and on the review page of their own submission; the dialog loads
+whether it can be deleted, and its dependents, when it opens.
+
+**Files on the review page** (owner, 2026-10-02): shown as the item page shows a version's (044),
+with its components, now shared in `components/files`. All files is a tree beside the file
+selected (Markdown rendered, source highlighted, long files scrolling in their own frame); the
+changes are a tree of the changed files, each marked added, changed or removed, beside the diff of
+the one selected. The file is kept in `?file=`, and a risk flag's link opens it at `?line=`.
+Files in `.ronne/` aren't shown at all, nor named under the diff: they're the editor's, not
+released.
 
 ## Open questions
 

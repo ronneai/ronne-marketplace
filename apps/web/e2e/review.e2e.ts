@@ -59,7 +59,10 @@ test("a moderator reviews a hook, the author publishes it, and another item depe
 
   // The author reads it, edits the script, and resubmits.
   await author.goto(submissionUrl);
-  await expect(author.getByText("Make the script print what it formatted.")).toBeVisible();
+  // At the top of the page (058), and in the conversation below.
+  await expect(
+    author.getByRole("status").filter({ hasText: "Changes requested by" }),
+  ).toContainText("Make the script print what it formatted.");
   await author
     .getByRole("list", { name: "Files" })
     .getByRole("button", { name: /hook\.sh/ })

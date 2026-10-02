@@ -1,6 +1,12 @@
 import type { ItemType } from "@ronneai/core";
 import type { NewAuditEvent } from "../../audit/models/audit-event";
-import type { NewReviewEvent, ReviewEvent, Revision, RevisionFile } from "../models/review";
+import type {
+  NewReviewEvent,
+  ReviewEvent,
+  ReviewEventKind,
+  Revision,
+  RevisionFile,
+} from "../models/review";
 import type { DraftFile, Submission, SubmissionStatus } from "../models/submission";
 import type { RegistryLookup } from "./registry-lookup";
 
@@ -87,6 +93,14 @@ export interface SubmissionRepository {
   addEvent(event: NewReviewEvent): Promise<string>;
   /** The conversation, oldest first, with each actor's name. */
   events(submissionId: string): Promise<ReviewEvent[]>;
+  /**
+   * For each of `submissionIds`, its latest event of `kinds`, with the actor's name, in one query
+   * (058: My submissions' latest reviewer message). Submissions with none are left out.
+   */
+  latestEvents(
+    submissionIds: readonly string[],
+    kinds: readonly ReviewEventKind[],
+  ): Promise<Map<string, ReviewEvent>>;
   /** In path order, by code unit, the same on every database. */
   files(submissionId: string): Promise<DraftFile[]>;
   /** Inserts the file, or replaces the one at its path. */

@@ -288,6 +288,50 @@ describe("the draft page", () => {
     expect(archived).not.toContain("Withdraw");
   });
 
+  it("says why it was sent back, with the reviewer's message, at the top (058)", () => {
+    const html = view({
+      status: "changes_requested",
+      feedback: {
+        kind: "request_changes",
+        by: "Mo Moderator",
+        at: T1,
+        body: "Name the tabs rule.",
+      },
+    });
+    expect(html).toContain("Changes requested by Mo Moderator");
+    expect(html).toContain("Name the tabs rule.");
+    expect(html).toContain("Edit the files, then Resubmit for review.");
+    expect(html).toContain('href="#conversation"');
+  });
+
+  it("says a rejection is final, with the reason, and not that it can be withdrawn (058)", () => {
+    const html = view({
+      status: "rejected",
+      readOnly: true,
+      canSubmit: false,
+      canWithdraw: false,
+      feedback: { kind: "reject", by: "Root", at: T1, body: "Duplicates @platform/lint." },
+    });
+    expect(html).toContain("Rejected by Root");
+    expect(html).toContain("Duplicates @platform/lint.");
+    expect(html).toContain("Rejected is final");
+    expect(html).not.toContain("You can withdraw it");
+    expect(html).not.toContain("Submitted for review");
+  });
+
+  it("gives each read-only status its own notice (058)", () => {
+    const readOnly = { readOnly: true, canSubmit: false, canWithdraw: false };
+    const approved = view({ status: "approved", ...readOnly });
+    expect(approved).toContain("Approved.");
+    expect(approved).toContain("Until then you can still withdraw it");
+    const published = view({ status: "published", ...readOnly });
+    expect(published).toContain("Released.");
+    expect(published).not.toContain("You can withdraw it");
+    expect(view({ status: "submitted", ...readOnly, canWithdraw: true })).toContain(
+      "You can withdraw it until it&#x27;s released.",
+    );
+  });
+
   it("offers deleting an archived one for good when no reviewer took part (057)", () => {
     const archived = view({
       status: "withdrawn",

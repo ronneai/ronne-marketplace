@@ -53,3 +53,11 @@ export type NewReviewEvent = {
   revision: number | null;
   createdAt: Date;
 };
+
+/** The kinds that send a submission back or close it: what the author is told at the top (058). */
+export const FEEDBACK_KINDS: readonly ReviewEventKind[] = ["request_changes", "reject", "rebase"];
+
+/** The latest event that sent it back or closed it, or null (058). */
+export const latestFeedback = <E extends { kind: ReviewEventKind }>(
+  events: readonly E[],
+): E | null => events.findLast((event) => FEEDBACK_KINDS.includes(event.kind)) ?? null;
