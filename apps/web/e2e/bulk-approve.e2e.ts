@@ -23,9 +23,9 @@ const withdrawAsAuthor = async (browser: Browser, id: string) => {
   await page.getByRole("button", { name: "Withdraw" }).click();
   await page
     .getByRole("dialog", { name: /Withdraw/ })
-    .getByRole("button", { name: "Withdraw" })
+    .getByRole("button", { name: "Archive", exact: true })
     .click();
-  await expect(page.getByText("It stays here, read-only, for history.")).toBeVisible();
+  await expect(page.getByText("It's out of review and doesn't hold its name.")).toBeVisible();
   await context.close();
 };
 

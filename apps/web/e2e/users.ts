@@ -39,6 +39,8 @@ export const E2E_USERS = {
   pendingModerator: "pending-moderator@e2e.test",
   releaseAuthor: "release-author@e2e.test",
   releaseModerator: "release-moderator@e2e.test",
+  archiver: "archiver@e2e.test",
+  archiveModerator: "archive-moderator@e2e.test",
 } as const;
 
 /** The display names, which the header shows (not the email). */
@@ -77,6 +79,8 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   pendingModerator: "Pim Moderator",
   releaseAuthor: "Rex Author",
   releaseModerator: "Rhea Moderator",
+  archiver: "Arlo Archiver",
+  archiveModerator: "Ari Moderator",
 };
 
 /** Seeded with the moderator role; everyone else is a user. */
@@ -88,6 +92,7 @@ export const E2E_MODERATORS: readonly (keyof typeof E2E_USERS)[] = [
   "bulkApprover",
   "pendingModerator",
   "releaseModerator",
+  "archiveModerator",
 ];
 
 /**

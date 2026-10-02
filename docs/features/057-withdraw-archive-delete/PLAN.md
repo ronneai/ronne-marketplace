@@ -63,7 +63,7 @@ the same change that completes it.
 
   *Done when:* the docs render tests pass, and both helpers' links land on `review#withdraw`.
 
-- [ ] **6. End-to-end.** Playwright:
+- [x] **6. End-to-end.** Playwright:
   - An author archives a submitted skill, finds it under Archived, restores it, and resubmits it
     as revision 2.
   - An author deletes a never-submitted draft from Withdraw.
