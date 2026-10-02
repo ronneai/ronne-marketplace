@@ -71,10 +71,17 @@ the same change that completes it.
 
   *Done when:* `pnpm test:e2e` passes.
 
-- [ ] **7. Close.** MVP §4.1 and §15 already describe this (2026-10-02). Check they still match
+- [x] **7. Close.** MVP §4.1 and §15 already describe this (2026-10-02). Check they still match
   what was built, then set the status to `done` in the index.
 
 ## Notes
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- **"Archive" in Playwright:** the Withdraw dialog's helper is a button named "Archive or
+  delete?", so `getByRole("button", { name: "Archive" })` matches both. Pass `exact: true`.
+- **The editor's dialog kinds:** `delete` was already a file's delete, so deleting the submission
+  is `delete-submission`.
+- **The draft API quota** (`MAX_API_DRAFTS`) counts only drafts, and only the API refuses for it,
+  so restoring never fails on it.
