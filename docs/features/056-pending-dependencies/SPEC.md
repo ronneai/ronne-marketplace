@@ -75,7 +75,9 @@ computed when it's shown (not stored):
 | **Waits on @x (approved)** | the dependency is `approved`, not released |
 | **Blocked: @x was rejected** | the dependency's newest submission is `rejected` or `withdrawn`, and no other open one or matching release exists |
 
-The marks show on My submissions, the review queue and the review page. In the editor (owner,
+The marks show on My submissions, the review queue and the review page; in the lists (owner,
+2026-10-02) as one link icon with the count, amber while pending and red when one is blocked,
+whose popover lists each dependency with its badge. In the editor (owner,
 2026-10-01) each dependency in the form has its own badge beside its name instead of a card under
 the editor: amber while it isn't released ("in review", "pending release" once approved, "not submitted"), red when it's
 blocked, with the full sentence on hover. A blocked dependent can't be submitted (it's an error again), approved stays possible (the reviewer

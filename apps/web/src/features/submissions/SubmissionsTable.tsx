@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { DependencyMarkBadges } from "@/components/submissions/DependencyMarks";
+import { DependencyMarksIcon } from "@/components/submissions/DependencyMarks";
 import { ProposalBadges } from "@/components/submissions/ProposalBadges";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { buttonClasses } from "@/components/ui/Button";
@@ -156,11 +156,7 @@ export const SubmissionsTable = ({
               {errors?.[submission.id] !== undefined ? (
                 <ReadinessMark id={submission.id} errors={errors[submission.id] ?? 0} />
               ) : null}
-              {marks?.[submission.id] ? (
-                <span className="mt-1 block">
-                  <DependencyMarkBadges marks={marks[submission.id]} />
-                </span>
-              ) : null}
+              <DependencyMarksIcon marks={marks?.[submission.id]} className="ml-2 align-middle" />
             </Td>
             <Td className="whitespace-nowrap font-mono text-xs text-muted">
               <time dateTime={submission.updatedAt.toISOString()}>
