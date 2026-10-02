@@ -39,7 +39,7 @@ the same change that completes it.
 
   *Done when:* page tests cover a moderator's own, root's own, and another's submission.
 
-- [ ] **5. The author's side.**
+- [x] **5. The author's side.**
   - The latest decision event in the submission page loader.
   - The top notice, and the per-status read-only notice in `features/draft-editor/DraftEditor.tsx`.
   - The latest reviewer message on My submissions rows: one query, in the submissions repository's

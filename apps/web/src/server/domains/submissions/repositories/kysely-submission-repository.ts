@@ -8,7 +8,7 @@ import type { Database } from "../../../db/schema";
 import { upsert } from "../../../db/upsert";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
-import type { ReviewEventKind, Revision } from "../models/review";
+import type { ReviewEvent, ReviewEventKind, Revision } from "../models/review";
 import type { DraftFile, Submission, SubmissionStatus } from "../models/submission";
 import { kyselyRegistryLookup } from "./kysely-registry-lookup";
 import type { SubmissionRepository } from "./submission-repository";
@@ -373,6 +373,42 @@ export const kyselySubmissionRepository = (
         revision: row.revision === null ? null : Number(row.revision),
         createdAt: fromDbDate(row.created_at),
       })),
+
+    latestEvents: async (submissionIds, kinds) => {
+      const latest = new Map<string, ReviewEvent>();
+      if (submissionIds.length === 0 || kinds.length === 0) return latest;
+      const rows = await db
+        .selectFrom("review_events")
+        .innerJoin("user", "user.id", "review_events.actor_id")
+        .select([
+          "review_events.id",
+          "review_events.submission_id",
+          "review_events.actor_id",
+          "user.name as actor_name",
+          "review_events.kind",
+          "review_events.body",
+          "review_events.revision",
+          "review_events.created_at",
+        ])
+        .where("review_events.submission_id", "in", [...submissionIds])
+        .where("review_events.kind", "in", [...kinds])
+        .orderBy("review_events.created_at", "desc")
+        .orderBy("review_events.id", "desc")
+        .execute();
+      // Newest first: the first row of each submission is its latest.
+      for (const row of rows)
+        if (!latest.has(row.submission_id))
+          latest.set(row.submission_id, {
+            id: row.id,
+            submissionId: row.submission_id,
+            actor: { id: row.actor_id, name: row.actor_name },
+            kind: row.kind as ReviewEventKind,
+            body: row.body,
+            revision: row.revision === null ? null : Number(row.revision),
+            createdAt: fromDbDate(row.created_at),
+          });
+      return latest;
+    },
 
     delete: async (id) => {
       await db.deleteFrom("submissions").where("id", "=", id).execute();

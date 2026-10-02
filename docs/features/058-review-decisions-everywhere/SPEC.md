@@ -89,8 +89,9 @@ A decision that doesn't apply to the status, such as Reject on approved, isn't s
 **The author's side.**
 - **Top notice.** On the submission page, above the editor, for:
   - `changes_requested`: **Changes requested by {reviewer}** with the message and the date, and
-    "Edit the files, then Resubmit for review." It also covers 017's rebase and 056's cascade, with
-    their own wording, from the event's cause.
+    "Edit the files, then Resubmit for review." 056's cascade is a request for changes like any
+    other, with its own message. When the latest is the author's own rebase of an approved proposal
+    (017), it reads **Rebased by {author} onto {version}**.
   - `rejected`: **Rejected by {reviewer}** with the message and the date, and "Rejected is final:
     start a new draft to try again."
 
@@ -104,7 +105,7 @@ A decision that doesn't apply to the status, such as Reject on approved, isn't s
   | submitted | "Submitted for review on {date}." "Its files are frozen, so reviewers see exactly what you submitted. You can withdraw it until it's approved." |
   | approved | "Approved." "It's ready to release, by you or a moderator. It can't be withdrawn; a reviewer can still send it back." |
   | rejected | the top notice above; no second notice |
-  | published | "Released as {version}." and a link to its versions |
+  | published | "Released." "A released version never changes: View versions lists them. To change the item, propose a change from its page." |
   | withdrawn | as [057](../057-withdraw-archive-delete/SPEC.md) says |
 
 - **My submissions.** On `changes_requested` and `rejected` rows, a second line under the name

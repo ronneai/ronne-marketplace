@@ -16,9 +16,9 @@ import {
   SubmissionNotFoundError,
 } from "../exceptions/errors";
 import { kyselySubmissionRepository } from "../repositories/kysely-submission-repository";
-import { createDraft, getDraft, saveDraftFiles } from "./drafts";
+import { createDraft, getDraft, listMySubmissions, saveDraftFiles } from "./drafts";
 import { comment, decide, listDependents, rejectWithDependents } from "./reviews";
-import { submitDraft } from "./submissions";
+import { latestFeedback, submitDraft } from "./submissions";
 
 let t: TestDb;
 let app: AppAuth;
@@ -140,6 +140,27 @@ describe("decisions", () => {
     expect(sentBack).toMatchObject({ targetId: changes, metadata: { via: "queue" } });
     const [rejection] = await audited("submission.rejected");
     expect(rejection).toMatchObject({ targetId: rejected, metadata: { via: "queue" } });
+  });
+
+  it("gives the author the latest reviewer message on each sent back or rejected one (058)", async () => {
+    const sentBack = await submitted(asAuthor, "style");
+    const rejected = await submitted(asAuthor, "lint");
+    const open = await submitted(asAuthor, "open");
+    await comment(asModerator, sentBack, { body: "A question first." }, app);
+    await decide(asModerator, sentBack, { decision: "request_changes", message: "First." }, app);
+    await submitDraft(asAuthor, sentBack, app);
+    await decide(asRoot, sentBack, { decision: "request_changes", message: "Second." }, app);
+    await decide(asModerator, rejected, { decision: "reject", message: "Duplicate." }, app);
+    const mine = await listMySubmissions(asAuthor, app);
+
+    const feedback = await latestFeedback(asAuthor, mine, app);
+    expect(feedback).toEqual({
+      [sentBack]: { kind: "request_changes", by: "Root", body: "Second." },
+      [rejected]: { kind: "reject", by: "Someone", body: "Duplicate." },
+    });
+    expect(feedback[open]).toBeUndefined();
+    // Someone else's list says nothing about these.
+    expect(await latestFeedback(asModerator, mine, app)).toEqual({});
   });
 
   it("rejects for good", async () => {

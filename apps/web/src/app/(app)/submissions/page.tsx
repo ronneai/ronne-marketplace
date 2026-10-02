@@ -16,6 +16,7 @@ import {
   canDeleteSubmission,
   checkManyDrafts,
   dependencyMarks,
+  latestFeedback,
 } from "@/server/domains/submissions/actions/submissions";
 import { requestHeaders } from "@/server/http/request-headers";
 
@@ -44,6 +45,8 @@ const Submissions = async ({
   // What each waits on (056): dependencies in review, not submitted, or blocked.
   const marks = await dependencyMarks(headers, submissions);
   const shown = shownFor(submissions, status);
+  // The latest reviewer message on each sent back or rejected (058), in one query.
+  const feedback = await latestFeedback(headers, shown);
   // Under the Archived filter (057): which can be deleted for good.
   const deletable = Object.fromEntries(
     await Promise.all(
@@ -96,6 +99,7 @@ const Submissions = async ({
             marks={marks}
             releasable={releasable}
             deletable={deletable}
+            feedback={feedback}
           />
         </BulkReleaseProvider>
       </BulkSubmitProvider>

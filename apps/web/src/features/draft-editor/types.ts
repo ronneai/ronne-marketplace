@@ -33,6 +33,16 @@ export type EditorDraft = {
   canDelete?: boolean;
   /** Archived and the viewer's: it can come back as a draft (057). */
   canRestore?: boolean;
+  /**
+   * Why it was sent back or closed (058): the latest request for changes, rejection or rebase, for
+   * the notice at the top. Only for `changes_requested` and `rejected`.
+   */
+  feedback?: {
+    kind: "request_changes" | "reject" | "rebase";
+    by: string;
+    at: string;
+    body: string | null;
+  } | null;
   /** What each dependency waits on (056), shown beside its name in the form. */
   dependencyMarks?: DependencyMark[];
   /** How many open submissions depend on it (056): withdrawing leaves them blocked. */

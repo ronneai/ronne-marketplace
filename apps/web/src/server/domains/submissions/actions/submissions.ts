@@ -61,6 +61,15 @@ export const withdrawSubmission = async (
   mode: "archive" | "delete" = "archive",
 ) => service.withdrawSubmission(deps(app), await actor(headers, app), id, mode);
 
+export type { RowFeedback } from "../services/submissions";
+
+/** The latest reviewer message on each of the person's own sent back or rejected ones (058). */
+export const latestFeedback = async (
+  headers: Headers,
+  submissions: readonly Submission[],
+  app: AppAuth = getAppAuth(),
+) => service.latestFeedbackFor(deps(app), await actor(headers, app), submissions);
+
 /** Whether the person's own submission can be deleted for good now (057). */
 export const canDeleteSubmission = async (
   headers: Headers,

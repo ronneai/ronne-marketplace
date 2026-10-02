@@ -10,7 +10,15 @@ import { FilePlus, FolderPlus, History, Lock, Send, Settings, Undo2, Upload } fr
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useReducer, useRef, useState, useTransition } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { CodeEditor } from "@/components/code/CodeEditor";
 import { FileTree } from "@/components/code/FileTree";
 import type { Mentions } from "@/components/code/mentions";
@@ -92,6 +100,79 @@ const folderOf = (path: string) =>
 
 const toolClasses =
   "inline-flex items-center gap-1.5 rounded-control px-2 py-1 text-xs text-muted hover:bg-tint hover:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
+
+/** The read-only notice's title, for each status the author can't edit (013, 058). */
+const readOnlyTitle = (draft: EditorDraft): ReactNode => {
+  if (!draft.mine) return "Someone else's submission.";
+  if (draft.status === "approved") return "Approved.";
+  if (draft.status === "published") return "Released.";
+  return (
+    <>
+      Submitted for review
+      {draft.submittedAt ? (
+        <>
+          {" "}
+          on <LocalTime value={draft.submittedAt} precision="day" />
+        </>
+      ) : null}
+      .
+    </>
+  );
+};
+
+const readOnlyText = (draft: EditorDraft): string => {
+  if (!draft.mine) return "You can read it, but only its author can change or withdraw it.";
+  if (draft.status === "approved")
+    return "It's ready to release, by you or a moderator. It can't be withdrawn; a reviewer can still send it back.";
+  if (draft.status === "published")
+    return "A released version never changes: View versions lists them. To change the item, propose a change from its page.";
+  return "Its files are frozen, so reviewers see exactly what you submitted. You can withdraw it until it's approved.";
+};
+
+const FEEDBACK_TITLE = {
+  request_changes: "Changes requested by",
+  reject: "Rejected by",
+  rebase: "Rebased by",
+} as const;
+
+/**
+ * Why it was sent back or closed (058), at the top of the page: who, when, and their message,
+ * with a link to the whole conversation below.
+ */
+const FeedbackNotice = ({
+  feedback,
+  mine,
+}: {
+  feedback: NonNullable<EditorDraft["feedback"]>;
+  mine: boolean;
+}) => (
+  <Notice
+    kind={feedback.kind === "reject" ? "error" : "warn"}
+    title={
+      <>
+        {FEEDBACK_TITLE[feedback.kind]} {feedback.by},{" "}
+        <LocalTime value={feedback.at} precision="day" />
+        {feedback.kind === "rebase" && feedback.body ? ` onto ${feedback.body}` : ""}.
+      </>
+    }
+  >
+    <div className="grid gap-2">
+      {feedback.body && feedback.kind !== "rebase" ? (
+        <p className="whitespace-pre-wrap break-words">{feedback.body}</p>
+      ) : null}
+      <p className="text-muted">
+        {feedback.kind === "reject"
+          ? "Rejected is final: start a new draft to try again."
+          : mine
+            ? "Edit the files, then Resubmit for review."
+            : "It's back with its author."}{" "}
+        <a href="#conversation" className="underline underline-offset-2">
+          See the conversation
+        </a>
+      </p>
+    </div>
+  </Notice>
+);
 
 /**
  * The draft editor (feature 012): a file tree on the left, CodeMirror on the right, and one Save
@@ -368,31 +449,13 @@ export const DraftEditor = ({
             </div>
           </div>
         </Notice>
+      ) : draft.feedback ? (
+        <FeedbackNotice feedback={draft.feedback} mine={draft.mine} />
       ) : readOnly ? (
-        <Notice
-          kind="info"
-          title={
-            draft.mine ? (
-              <>
-                Submitted for review
-                {draft.submittedAt ? (
-                  <>
-                    {" "}
-                    on <LocalTime value={draft.submittedAt} precision="day" />
-                  </>
-                ) : null}
-                .
-              </>
-            ) : (
-              "Someone else's submission."
-            )
-          }
-        >
+        <Notice kind="info" title={readOnlyTitle(draft)}>
           <p className="flex items-start gap-2">
             <Lock size={14} aria-hidden="true" className="mt-0.5 shrink-0" />
-            {draft.mine
-              ? "Its files are frozen, so reviewers see exactly what you submitted. You can withdraw it until it's approved."
-              : "You can read it, but only its author can change or withdraw it."}
+            {readOnlyText(draft)}
           </p>
         </Notice>
       ) : null}
