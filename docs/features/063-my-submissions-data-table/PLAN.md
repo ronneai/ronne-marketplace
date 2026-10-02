@@ -7,11 +7,11 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. My submissions on the server.** `0017_submissions_author_indexes`; `pageByAuthor`,
+- [x] **1. My submissions on the server.** `0017_submissions_author_indexes`; `pageByAuthor`,
   `countByAuthor` and `statusCountsByAuthor` (sorts `updated` and `name`; filters status, search
-  and type); `listMySubmissions` with sorts, sizes and cursors, and
-  `countMySubmissionsByStatus`.
-  *Done when:* a submissions db test covers both sorts both ways, each filter, the archived
+  and type; all but archived without a status); `pageMySubmissions` with sorts, sizes and cursors,
+  and `countMySubmissionsByStatus`. `listMySubmissions` stays for the home and new-draft pages.
+  *Done when:* `my-submissions.db.test.ts` covers both sorts both ways, each filter, the archived
   exclusion from All, and the counts on all four databases; other `listByAuthor` callers' tests
   pass unchanged.
 

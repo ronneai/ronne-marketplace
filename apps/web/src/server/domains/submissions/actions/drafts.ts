@@ -98,6 +98,16 @@ export const replaceDraftFromFilesAs = (
 export const listMySubmissions = async (headers: Headers, app: AppAuth = getAppAuth()) =>
   service.listMySubmissions(deps(app), await actor(headers, app));
 
+/** My submissions' table (063): one page, sorted and filtered, with the total. */
+export const pageMySubmissions = async (
+  headers: Headers,
+  query: service.MySubmissionsQuery,
+  app: AppAuth = getAppAuth(),
+) => service.pageMySubmissions(deps(app), await actor(headers, app), query);
+
+export const countMySubmissionsByStatus = async (headers: Headers, app: AppAuth = getAppAuth()) =>
+  service.countMySubmissionsByStatus(deps(app), await actor(headers, app));
+
 export const getDraft = async (headers: Headers, id: string, app: AppAuth = getAppAuth()) =>
   service.getDraft(deps(app), await actor(headers, app), id);
 

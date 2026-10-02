@@ -13,7 +13,12 @@ import { recordAudit } from "../../audit/actions/audit";
 import type { ReviewEvent, ReviewEventKind, Revision } from "../models/review";
 import type { DraftFile, Submission, SubmissionStatus } from "../models/submission";
 import { kyselyRegistryLookup } from "./kysely-registry-lookup";
-import type { ReviewFilters, ReviewSort, SubmissionRepository } from "./submission-repository";
+import type {
+  AuthorFilters,
+  ReviewFilters,
+  ReviewSort,
+  SubmissionRepository,
+} from "./submission-repository";
 
 type SubmissionRow = {
   id: string;
@@ -84,6 +89,17 @@ export const kyselySubmissionRepository = (
         "submissions.updated_at",
         "submissions.submitted_at",
       ]);
+
+  /** One author's submissions (063): every status but archived unless one is asked for. */
+  const byAuthor = ({ authorId, status, search, type }: AuthorFilters) => {
+    let query = submissions().where("submissions.author_id", "=", authorId);
+    query = status
+      ? query.where("submissions.status", "=", status)
+      : query.where("submissions.status", "!=", "withdrawn");
+    if (search) query = query.where(containsInsensitive("submissions.name", search));
+    if (type) query = query.where("submissions.type", "=", type);
+    return query;
+  };
 
   /** A queue tab's submissions, with their author's name (062). */
   const forReview = ({ statuses, search, type }: ReviewFilters) => {
@@ -169,6 +185,36 @@ export const kyselySubmissionRepository = (
         ...toSubmission(row),
         authorName: row.author_name,
       }));
+    },
+
+    pageByAuthor: async ({ sort, dir, size, cursor, ...filters }) => {
+      const page = await paginate(byAuthor(filters), {
+        sort: {
+          key: sort,
+          column: sort === "name" ? "submissions.name" : "submissions.updated_at",
+          dir,
+          kind: sort === "name" ? undefined : "date",
+        },
+        idColumn: "submissions.id",
+        size,
+        cursor,
+        sortValue: (row) => (sort === "name" ? row.name : fromDbDate(row.updated_at)),
+        idOf: (row) => row.id,
+        dialect,
+      });
+      return { ...page, rows: page.rows.map(toSubmission) };
+    },
+
+    countByAuthor: (filters) => countCapped(db, byAuthor(filters)),
+
+    statusCountsByAuthor: async (authorId) => {
+      const rows = await db
+        .selectFrom("submissions")
+        .select((eb) => ["status", eb.fn.countAll<number | string | bigint>().as("n")])
+        .where("author_id", "=", authorId)
+        .groupBy("status")
+        .execute();
+      return Object.fromEntries(rows.map((row) => [row.status, Number(row.n)]));
     },
 
     pageForReview: async ({ sort, dir, size, cursor, ...filters }) => {

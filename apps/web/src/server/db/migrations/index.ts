@@ -14,6 +14,7 @@ import { instanceSettings } from "./0013_instance_settings";
 import { auditLogActionIndex } from "./0014_audit_log_action_index";
 import { userNameIndex } from "./0015_user_name_index";
 import { submissionsQueueIndexes } from "./0016_submissions_queue_indexes";
+import { submissionsAuthorIndexes } from "./0017_submissions_author_indexes";
 import type { AppMigration } from "./types";
 
 /**
@@ -37,4 +38,5 @@ export const migrations: Record<string, AppMigration> = {
   "0014_audit_log_action_index": auditLogActionIndex,
   "0015_user_name_index": userNameIndex,
   "0016_submissions_queue_indexes": submissionsQueueIndexes,
+  "0017_submissions_author_indexes": submissionsAuthorIndexes,
 };

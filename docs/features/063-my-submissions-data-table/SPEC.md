@@ -73,8 +73,9 @@ still selects every ready draft, with its dependency drafts (056). The table mar
 it shows.
 
 **Server:**
-- `listMySubmissions(headers, { filters, sort, dir, size, cursor })` returns
-  `{ rows, next, previous, total }`.
+- `pageMySubmissions(headers, { status, search, type, sort, dir, size, cursor })` returns
+  `{ rows, next, previous, total }`, with stale proposals marked (017) as before.
+  `listMySubmissions` stays for the home page and the new-draft page, which use the whole list.
 - `countMySubmissionsByStatus(headers)` returns the counts for the links.
 - `SubmissionRepository.pageByAuthor(…)`, `countByAuthor(…)` and `statusCountsByAuthor(…)` replace
   `listByAuthor` for this page. Every other caller of `listByAuthor` keeps it: the home page's
