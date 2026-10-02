@@ -164,7 +164,9 @@ The audit metadata adds `via: "queue"` when decided from a queue row, as 054 add
   - a moderator rejects from a queue row and the author sees the reason at the top;
   - a moderator requests changes from a queue row, and the author resubmits;
   - a moderator sends back an approved one from To release;
-  - root on its own submission sees the decisions disabled, with the reason, and the override.
+  - a moderator on their own submission sees the decisions disabled, with the reason, in the
+    queue and on the review page. Root's override beside them is covered by the review page's
+    unit tests: root already signs in five times per end-to-end run, the per-email limit a minute.
 - [ ] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Decisions

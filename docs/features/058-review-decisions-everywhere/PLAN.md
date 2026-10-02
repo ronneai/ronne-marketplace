@@ -52,7 +52,7 @@ the same change that completes it.
   `review#statuses`; in `Help.tsx`, the queue helper and the `decisions` and `approve-many` helpers.
   *Done when:* the docs render tests pass, and the new helper's link lands on `review#decisions`.
 
-- [ ] **7. End-to-end.** The four Playwright scenarios in the spec's acceptance criteria, in
+- [x] **7. End-to-end.** The four Playwright scenarios in the spec's acceptance criteria, in
   `e2e/review.e2e.ts` or a new `e2e/review-decisions.e2e.ts`.
   *Done when:* `pnpm test:e2e` passes.
 
