@@ -134,9 +134,10 @@ test("a moderator reviews a hook, the author publishes it, and another item depe
   await author.getByRole("button", { name: "Create draft" }).click();
   await expect(author).toHaveURL(/\/submissions\/[0-9A-Z]{26}$/);
   await author.getByLabel("description").fill("Formats and reviews.");
-  await author.getByRole("button", { name: "Add dependency" }).click();
-  await author.getByLabel("Dependency 1: Item").fill(`@${E2E_SCOPE}/fmt-hook`);
-  await author.getByLabel("Dependency 1: Range").fill("^1.0.0");
+  // Picked from the list as it's typed (056): it starts on latest, 1.0.0.
+  await author.getByRole("combobox", { name: "Add a dependency" }).fill(`@${E2E_SCOPE}/fmt-hook`);
+  await author.getByRole("option", { name: new RegExp(`@${E2E_SCOPE}/fmt-hook`) }).click();
+  await expect(author.getByLabel(`Version of @${E2E_SCOPE}/fmt-hook`)).toHaveValue("^1.0.0");
   await author.keyboard.press("ControlOrMeta+s");
   await expect(author.getByText(/Saved at/)).toBeVisible();
   await author.getByRole("button", { name: "Submit for review" }).click();

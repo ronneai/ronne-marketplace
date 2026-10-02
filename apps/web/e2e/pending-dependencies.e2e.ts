@@ -1,5 +1,5 @@
 import { type APIRequestContext, type Browser, expect, type Page, test } from "@playwright/test";
-import { E2E_PASSWORD, E2E_SCOPE, E2E_USERS } from "./users";
+import { E2E_PASSWORD, E2E_PROPOSAL_ITEM, E2E_SCOPE, E2E_USERS } from "./users";
 
 /**
  * Dependencies on their way (feature 056): a bundle and the skill it uses go through review
@@ -131,4 +131,38 @@ test("rejecting a skill sends the bundle that uses it back to its author", async
   await moderator.goto(`/reviews/${kitId}`);
   await expect(moderator.getByText(`@${E2E_SCOPE}/pd-gone was rejected: remove it`)).toBeVisible();
   await expect(moderator.getByText("changes requested").first()).toBeVisible();
+});
+
+test("the form finds a dependency as you type, adds it on latest, and saves it", async ({
+  browser,
+}) => {
+  const author = await signedIn(browser, E2E_USERS.pendingAuthor);
+  await author.goto("/submissions/new");
+  await author
+    .locator("label")
+    .filter({ has: author.locator(`input[name="scope"][value="${E2E_SCOPE}"]`) })
+    .click();
+  await author.getByLabel("Name").fill("pd-picked");
+  await author
+    .locator("label")
+    .filter({ has: author.locator('input[name="type"][value="agent"]') })
+    .click();
+  await author.getByRole("button", { name: "Create draft" }).click();
+  await expect(author).toHaveURL(/\/submissions\/[0-9A-Z]{26}$/);
+
+  const skill = `@${E2E_SCOPE}/${E2E_PROPOSAL_ITEM}`;
+  const search = author.getByRole("combobox", { name: "Add a dependency" });
+  await search.fill(`@${E2E_SCOPE}/prompt`);
+  const list = author.getByRole("listbox", { name: "Items to depend on" });
+  await expect(list.getByRole("option", { name: new RegExp(skill) })).toBeVisible();
+  await search.press("Enter");
+  const version = author.getByLabel(`Version of ${skill}`);
+  await expect(version).toBeVisible();
+  await expect(version.locator("option").first()).toHaveText(/^latest \(/);
+  await expect(author.getByText(/isn't a full item name/)).toHaveCount(0);
+
+  await author.getByRole("button", { name: "YAML", exact: true }).click();
+  await expect(author.getByLabel("Contents of ronne.yaml")).toContainText(`"${skill}": ^1.`);
+  await author.keyboard.press("ControlOrMeta+s");
+  await expect(author.getByText(/Saved at/)).toBeVisible();
 });

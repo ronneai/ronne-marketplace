@@ -56,7 +56,7 @@ the same change that completes it.
   *Done when:* `dependency-search.db.test.ts` covers each source, allowed types, the item itself,
   a name both published and in review, and the scope match, on every database.
 
-- [ ] **9. The form's picker.** The dependencies field: a search box with the list, a version list
+- [x] **9. The form's picker.** The dependencies field: a search box with the list, a version list
   per row (`latest` by default), rows written only when complete, existing rows kept.
   *Done when:* unit tests cover the range from a pick, and the field's rendering; a Playwright test
   picks a dependency and saves.
