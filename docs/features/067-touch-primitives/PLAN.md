@@ -40,7 +40,7 @@ the same change that completes it.
   use it.
   *Done when:* unit tests for each path; an e2e copies on the test server's LAN address.
 
-- [ ] **7. Styleguide.** Show coarse-pointer sizes and the full-screen dialog.
+- [x] **7. Styleguide.** Show coarse-pointer sizes and the full-screen dialog.
   *Done when:* the styleguide unit test passes; the sweep's 067 entries are removed and it passes.
 
 ## Notes

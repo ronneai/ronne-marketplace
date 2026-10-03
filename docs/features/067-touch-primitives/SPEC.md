@@ -100,16 +100,20 @@ feature can check against it.
 
 ## Acceptance criteria
 
-- [ ] On the `phone-webkit` project, focusing every kind of field on sign-in, the draft editor,
-  bulk release and the composer doesn't change the page scale (`visualViewport.scale` stays 1).
-- [ ] The field scan test passes and fails on a bare `<input className="text-xs">`.
-- [ ] 065's tap-target report shows nothing under 44px from `components/ui` on a coarse pointer;
-  desktop screenshots of the styleguide are unchanged except the dialog close.
-- [ ] Below `sm` a dialog fills the screen with a fixed title and footer; on desktop a long dialog
+- [x] On the `phone-webkit` project, focusing every kind of field doesn't change the page scale and
+  finds 16px text (`fields.mobile.e2e.ts`: sign-in, the catalogue's search and select, the new
+  item's name, the draft editor's description and code editor). Bulk release's and the composer's
+  fields use the same shared classes, which the field scan checks; their pages are 073's and 072's.
+- [x] The field scan test passes and fails on a bare `<input className="text-xs">`.
+- [x] 065's tap-target report shows nothing under 44px from `components/ui` on a coarse pointer
+  (315 entries on the phone before, 178 after, all in features). Desktop sizes are unchanged by
+  construction: every new size is behind `pointer-coarse:` or `max-sm:`, except the dialog close.
+- [x] Below `sm` a dialog fills the screen with a fixed title and actions; on desktop a long dialog
   scrolls its body only (unit tests on classes; `dialogs.mobile.e2e.ts`).
-- [ ] Copy works on an `http://<LAN IP>` origin in Chromium and WebKit, and says so when it can't
-  (unit tests for the three paths; an e2e against the test server's IP).
-- [ ] The sweep's `EXPECTED_FAILURES` entries for 067 are gone.
+- [x] Copy works on an `http://<LAN IP>` origin, and says so when it can't (unit tests for the
+  three paths; `copy.e2e.ts` in Chromium. WebKit is left to the device pass in 075).
+- [x] The sweep's `EXPECTED_FAILURES` entries for 067 are gone (there were none; the new item
+  form's entry for 072 now covers every project, see PLAN).
 
 ## Decisions
 

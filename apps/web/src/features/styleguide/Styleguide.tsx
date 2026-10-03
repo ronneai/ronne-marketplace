@@ -109,6 +109,15 @@ export const ThemeSample = ({ theme }: { theme: "light" | "dark" }) => {
           <Button loading>Saving</Button>
           <Button variant="destructive">Delete</Button>
         </div>
+        <div className="flex flex-wrap items-center gap-4">
+          <Button variant="text">Approve</Button>
+          <Button variant="text-destructive">Reject</Button>
+        </div>
+        <p className="text-xs text-muted">
+          On a touch screen (067): buttons, tabs, chips and fields are 44px high and fields 16px;
+          text buttons, help questions and copy buttons keep their size with an invisible 44px tap
+          area around them.
+        </p>
       </Section>
       <Section title="fields">
         <div className="grid gap-3 sm:grid-cols-2">
