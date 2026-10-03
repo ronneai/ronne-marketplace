@@ -3,7 +3,7 @@
 > Spec: [SPEC.md](./SPEC.md)
 
 Tasks in build order. Each is small enough for one session and ends with a check. Tick a task in
-the same change that completes it. Start after the owner has chosen the command's name.
+the same change that completes it.
 
 ## Tasks
 

@@ -53,7 +53,7 @@ Why Caddy rather than TLS in the Node.js server:
 
 Alternatives looked at: Traefik (MIT, but configured through labels and more moving parts for a
 single site), nginx with certbot (two containers and a renewal cron), and a Caddy that only starts
-with a profile (see Open questions).
+with a profile (rejected by the owner, 2026-10-03: see Open questions).
 
 **The port numbers.** Published on the host by default:
 
@@ -192,8 +192,8 @@ All are read by `compose.yaml` from the environment or `.env`; none are needed f
   `trusted_proxies`. Ronne's rule (the rightmost entry, 005) then gives the real client both
   directly and behind another proxy.
 - Volumes `caddy-data` (certificates and the ACME account: losing it means asking for new ones,
-  which Let's Encrypt rate-limits) and `caddy-config`. `./certs` is mounted read-only at `/certs`
-  only for `RONNE_TLS=files` (see Open questions on how).
+  which Let's Encrypt rate-limits) and `caddy-config`. `./certs` is always mounted read-only at `/certs`
+  (see Open questions).
 - `restart: unless-stopped`; starts after `web` (`depends_on`), and answers 502 until `web` is up.
 
 ### The web service
@@ -271,14 +271,11 @@ environment, as today.
 
 ## Open questions
 
-1. **Caddy always, or only when HTTPS is wanted?** Recommended: always. One `compose.yaml`, the
-   same ports whatever the mode, and switching to HTTPS is a `.env` change. The cost is a second
-   image (about 50 MB) even for a laptop trial. The alternative, `--profile https`, keeps trials to
-   one container but needs the app's port published in one mode and not the other, which Compose
-   can only do with a second file (`ports: !reset`).
-2. **The default ports 7650/7651.** Proposed above; any unassigned pair works.
-3. **Mounting `./certs`.** A bind mount fails when the folder doesn't exist on hosts that don't use
-   `files`, unless Docker creates it (it does, owned by root, which is harmless but untidy).
-   Options: always mount `./certs` (and let Docker create it), or mount it from a second compose
-   file only for `files`. Recommended: always mount, read-only, and say in the docs that it may
-   stay empty.
+None. Decided by the owner, 2026-10-03:
+
+1. **Caddy always runs** in `compose.yaml`, not behind a profile: one file, the same ports in every
+   mode, and HTTPS is a `.env` change. The cost, a second image for a laptop trial, is accepted.
+2. **The default ports are 7650 (HTTP) and 7651 (HTTPS).**
+3. **`./certs` is always mounted, read-only.** Docker creates it empty when it's missing; the docs
+   say it may stay empty. (Proposed with the spec; not raised separately, so the owner can still
+   change it in review.)

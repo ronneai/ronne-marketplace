@@ -12,7 +12,7 @@ Docker is missing.
 
 **In:**
 - A Windows installer per architecture (x64, arm64), built from 084's Windows bundles with **Inno
-  Setup** (its own permissive licence: free use and redistribution; see Open questions), attached
+  Setup** (its own permissive licence: free use and redistribution; owner, 2026-10-03), attached
   to each release.
 - The installer copies the bundle to `C:\Program Files\RonneAI\Marketplace`, adds `rmk-server` to
   the machine `PATH`, runs `rmk-server service install` (086), and opens the address when finished.
@@ -27,7 +27,7 @@ Docker is missing.
 **Out** (and where it goes instead):
 - Microsoft Store: needs MSIX and a developer account; not planned.
 - Chocolatey and Scoop: possible later from the same installer and archives, if asked for.
-- Code signing: Open questions.
+- Code signing with a paid certificate: not used (Open questions).
 
 ## Behaviour
 
@@ -67,11 +67,11 @@ Docker is missing.
 
 ## Open questions
 
-1. **Signing.** Without a code-signing certificate, Windows warns on every download. Options: a
-   standard certificate (about USD 200–400 a year), Azure Trusted Signing (about USD 10 a month,
-   individuals and companies in some countries), or the free SignPath Foundation programme for open
-   source. The policy rules out tools that need a paid plan, so this is the owner's call.
-   Recommended: apply to SignPath Foundation (free for OSS) and ship unsigned meanwhile.
-2. **Inno Setup's licence** is its own (free use and redistribution, including commercially), not
-   an OSI licence. Confirm it fits the policy; the alternative is WiX Toolset (MS-RL, a reciprocal
-   licence, build-time only).
+None. Decided by the owner, 2026-10-03:
+
+1. **Signing:** apply to the SignPath Foundation (free code signing for open source) and ship
+   unsigned until accepted; the guide explains the SmartScreen warning meanwhile. Paid options
+   (a certificate, Azure Trusted Signing) are not used.
+2. **Inno Setup** builds the installer. Its licence isn't OSI-approved but allows free use and
+   redistribution, including commercially; it's recorded in the dependency policy as an allowed
+   exception (task 5), used only at build time.

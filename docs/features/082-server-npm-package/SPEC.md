@@ -19,7 +19,7 @@ build it.
 **In:**
 - The npm package `@ronneai/marketplace`, published by `release.yml` with the other three, at the
   same version, with provenance (034's rules).
-- Its command, **`rmk-server`** (see Open questions), with `start` (the default), `setup`,
+- Its command, **`rmk-server`** (owner, 2026-10-03), with `start` (the default), `setup`,
   `migrate`, `reset-root-password` and `--version`.
 - The standalone Next.js server and the compiled scripts inside it, as in the Docker image (005).
 - A data folder per user and system, and port 7650 by default.
@@ -103,7 +103,5 @@ another silently, because `PUBLIC_URL` and saved `rmk` logins depend on it.
 
 ## Open questions
 
-1. **The command's name.** CLAUDE.md forbids `ronne` and `ronneai` as command names. Proposed:
-   `rmk-server`, which pairs with `rmk` and is free on npm as a binary name. Alternatives:
-   `ronne-marketplace` (if the rule is only about the bare words) or a subcommand, `rmk server`
-   (but that would make `@ronneai/rmk` carry the whole web app). The guide uses `rmk-server`.
+None. Decided by the owner, 2026-10-03: the command is **`rmk-server`**. It pairs with `rmk` and
+avoids the reserved `ronne` and `ronneai`; the package stays `@ronneai/marketplace`.

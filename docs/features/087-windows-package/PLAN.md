@@ -3,7 +3,7 @@
 > Spec: [SPEC.md](./SPEC.md)
 
 Tasks in build order. Each is small enough for one session and ends with a check. Tick a task in
-the same change that completes it. Start after the owner has answered the open questions.
+the same change that completes it.
 
 ## Tasks
 
@@ -23,7 +23,8 @@ the same change that completes it. Start after the owner has answered the open q
 - [ ] **4. `install.ps1` without Docker.**
   *Done when:* by hand on Windows 11 without Docker, with and without winget.
 
-- [ ] **5. Documentation and the policy.**
+- [ ] **5. Documentation and the policy.** Inno Setup as an allowed exception (its own licence),
+  and the SignPath application noted.
   *Done when:* the docs render tests pass.
 
 ## Notes
