@@ -137,6 +137,17 @@ bearer token, like the rest of `/api/v1` (401 without one).
 The marketplace answers `cache-control: private, no-cache` and an `ETag`, because it changes with
 every release.
 
+Errors use the API's shape (MVP §11), with these codes (077):
+
+| Status | Code | When |
+|---|---|---|
+| 401 | `token_missing`, `token_invalid`, … | No valid token (`WWW-Authenticate: Bearer realm="ronne"`) |
+| 404 | `feed_not_found` | The instance doesn't serve that tool's feed (only `claude-code` until 078) |
+| 404 | `plugin_not_found` | The version doesn't exist, is yanked, or has nothing for the tool |
+| 503 | `public_url_missing` | The instance has no `PUBLIC_URL`, so it can't write absolute URLs |
+| 503 | `plugin_unavailable` | The zip can't be built: an artifact is missing, or dependencies don't resolve |
+| 507 | `feed_too_large` | The marketplace would be past the tool's limit (5 MiB for Claude Code) |
+
 ## The git mirror
 
 `rmk feed build --out <dir>` writes this tree (078):

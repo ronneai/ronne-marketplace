@@ -16,7 +16,7 @@ the same change that completes it.
   *Done when:* `plugin-feed.db.test.ts` covers listing, yanked, deprecated, an empty plugin, and a
   cache hit.
 
-- [ ] **3. The routes.** `app/api/v1/feeds/[tool]/marketplace.json/route.ts` and
+- [x] **3. The routes.** `app/api/v1/feeds/[tool]/marketplace.json/route.ts` and
   `…/plugins/[scope]/[name]/[file]/route.ts`, over `server/http/feeds-api.ts`. Only `claude-code` is
   accepted for now; the others answer 404 until 078.
   *Done when:* route tests cover 401, 503 without `PUBLIC_URL`, 304, 404, and the download count.
