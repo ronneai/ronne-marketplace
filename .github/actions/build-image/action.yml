@@ -2,11 +2,11 @@ name: Build, run and scan the image
 description: >-
   Builds the web app's Docker image for one architecture and loads it into the local Docker,
   runs it until /api/health answers setup_required, runs compose.yaml on it through the Caddy
-  proxy over HTTP and HTTPS (feature 080), and scans it and the Caddy image compose.yaml pins
-  with Trivy for fixable high and critical vulnerabilities (docs/policies/dependencies.md §3).
-  Shared by image.yml (every pull request and push to main, feature 005) and release.yml
-  (feature 035), so the image that's published is checked exactly as the one on every pull
-  request.
+  proxy over HTTP and HTTPS (feature 080) and through install.sh (081), and scans it and the
+  Caddy image compose.yaml pins with Trivy for fixable high and critical vulnerabilities
+  (docs/policies/dependencies.md §3). Shared by image.yml (every pull request and push to main,
+  feature 005) and release.yml (feature 035), so the image that's published is checked exactly as
+  the one on every pull request.
 
 inputs:
   arch:
@@ -61,6 +61,14 @@ runs:
       env:
         TAG: ${{ inputs.tag }}
       run: .github/actions/build-image/compose-probe.sh "$TAG"
+
+    # The install script (feature 081) with --yes on this image: a fresh install, a rerun, a domain
+    # with Caddy's internal CA, a busy port, and no Docker.
+    - name: Run install.sh and check what it installs
+      shell: bash
+      env:
+        TAG: ${{ inputs.tag }}
+      run: .github/actions/build-image/install-probe.sh "$TAG"
 
     # Trivy's own image, pinned by digest (a multi-arch index), instead of a third-party action.
     - name: Scan for known vulnerabilities (Trivy)

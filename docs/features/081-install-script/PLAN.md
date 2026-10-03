@@ -117,3 +117,26 @@ and under bash:
   `needs.release.outputs.version`.
 - **Still open:** a dry-run release (run by hand from `main`, after the merge) to see the
   artefact. Tick the task then.
+
+### Task 5: CI (2026-10-03)
+
+- **Unit tests:** `scripts/install/test-install.sh` (under dash and bash, `pnpm test:install`) and
+  `test-install.ps1` (Windows PowerShell 5.1 and PowerShell 7). Each loads its script without the
+  last line and checks the version comparison, the domain and email checks, `.env` editing (no BOM
+  for PowerShell), the release placeholder, and a run with no Docker on `PATH` (message, exit 1).
+  `PATH=/nonexistent` hid the shell too (exit 127), so the test runs it by its full path.
+- **`install-scripts.yml`:** shfmt `-p` and the sh tests on Ubuntu; PSScriptAnalyzer and both
+  PowerShell versions on `windows-latest`; one `Install scripts` check that passes on success or
+  on a docs-only skip.
+- **`install-probe.sh`**, in the image action after the compose probe, runs `install.sh --yes` on
+  the image just built: a fresh install under dash, a rerun under bash, a domain (`localhost`,
+  with `RONNE_TLS=internal` written first) over HTTPS with the redirect, back to this computer with
+  7650 held by a Python server (moves to 7652), and no Docker. It checks `.env` line by line. It
+  passes locally in about 12 s. With the port search broken on purpose (steps of 3), it fails at
+  the busy-port case.
+- **Bug found by the probe:** on macOS `mktemp -d` is under `/var/folders`, a symlink to
+  `/private/var/folders`. `docker compose ls` reports the path unresolved, so the rerun took its
+  own install for another one. `check_other_install` now compares real paths (`pwd -P`) on both
+  sides. `install.ps1` compares with `Resolve-Path`, which doesn't resolve symlinks. That's
+  enough on Windows, where installs don't sit behind symlinks, but not on PowerShell for macOS.
+- **Still open:** the runs on the pull request, and a broken script failing them there.

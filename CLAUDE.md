@@ -44,6 +44,7 @@ Use Node.js 24 (`.nvmrc`) and pnpm installed directly (`npm install --global pnp
 | `pnpm test` | Runs every Vitest suite; `pnpm --filter @ronneai/core test` for one package |
 | `pnpm test:db` | Only the database tests (`*.db.test.ts`, the `db` Vitest project) |
 | `pnpm test:db:up` then `pnpm test:db:postgres` / `:mysql` / `:mariadb` | Database tests against local Docker servers at the minimum versions; `pnpm test:db:down` stops them |
+| `pnpm test:install` | The install script's tests (`scripts/install/test-install.sh`) under dash and bash. `install.ps1`'s tests and lint run in CI (`install-scripts.yml`) |
 | `pnpm test:e2e` | Builds the web app and runs the Playwright tests (`apps/web/e2e`) against a throwaway SQLite instance. Desktop, phone (also in WebKit, for iOS Safari) and tablet projects. First run `pnpm --filter @ronneai/web exec playwright install chromium webkit` |
 | `pnpm licenses:check` | Checks every installed package's license against `license-policy.json` |
 | `pnpm audit --audit-level high` | Fails on known high or critical vulnerabilities |

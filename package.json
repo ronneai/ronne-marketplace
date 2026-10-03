@@ -30,7 +30,8 @@
     "test:e2e": "pnpm --filter @ronneai/web test:e2e",
     "packages:check": "node packages/repo-tools/src/check-packs.js",
     "release:version": "node packages/repo-tools/src/release-version.js",
-    "release:smoke": "node packages/repo-tools/src/release-smoke.js"
+    "release:smoke": "node packages/repo-tools/src/release-smoke.js",
+    "test:install": "dash scripts/install/test-install.sh && bash scripts/install/test-install.sh"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",

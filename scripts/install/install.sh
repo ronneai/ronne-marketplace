@@ -200,10 +200,12 @@ check_other_install() {
   other=$(docker compose ls --all --format json 2>/dev/null | tr '{' '\n' |
     grep "\"Name\":\"$PROJECT_NAME\"" | sed -n 's/.*"ConfigFiles":"\([^"]*\)".*/\1/p')
   [ -n "$other" ] || return 0
-  here=""
-  [ -d "$DIR" ] && here="$(cd "$DIR" && pwd -P)/compose.yaml"
-  [ "$other" = "$here" ] && return 0
-  die "Ronne is already installed from ${other%/compose.yaml} (Docker project $PROJECT_NAME). Run this again with --dir \"${other%/compose.yaml}\" to upgrade it, or remove it first (cd there, then docker compose down)."
+  other=${other%/compose.yaml}
+  # Compare real paths: Compose may report one through a symlink (macOS's /var is /private/var).
+  if [ -d "$DIR" ] && [ -d "$other" ] && [ "$(cd "$DIR" && pwd -P)" = "$(cd "$other" && pwd -P)" ]; then
+    return 0
+  fi
+  die "Ronne is already installed from $other (Docker project $PROJECT_NAME). Run this again with --dir \"$other\" to upgrade it, or remove it first (cd there, then docker compose down)."
 }
 
 # --- DNS --------------------------------------------------------------------------------------
