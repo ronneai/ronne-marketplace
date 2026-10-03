@@ -162,23 +162,27 @@ All are read by `compose.yaml` from the environment or `.env`; none are needed f
 
 ### The proxy service
 
-- Image: `caddy` from Docker Hub, the current 2.x release, pinned by tag and digest and kept
-  current by Dependabot, like the base image (dependency policy §2).
-- Caddyfile, inline in `compose.yaml`, in outline:
+- Image: `caddy` from Docker Hub, the current 2.x release that has passed the 3-day cooldown
+  (dependency policy §3), pinned by tag and digest and kept current by Dependabot, like the base
+  image (dependency policy §2).
+- Caddyfile, inline in `compose.yaml` (Compose `configs.content`, Docker Compose 2.23.1 or later).
+  Compose fills in the settings (`${…}`) when it creates the file, so the `proxy` container needs
+  no environment variables and `docker compose config` shows the Caddyfile Caddy will read:
 
   ```
   {
-      email {$RONNE_ACME_EMAIL:}
+      ${RONNE_ACME_EMAIL:+email ${RONNE_ACME_EMAIL}}
       servers {
-          trusted_proxies static {$RONNE_TRUSTED_PROXIES:private_ranges}
+          trusted_proxies static ${RONNE_TRUSTED_PROXIES:-private_ranges}
       }
   }
+  (tls) {}
   (tls-auto) {}
   (tls-files) { tls /certs/cert.pem /certs/key.pem }
   (tls-internal) { tls internal }
 
-  {$RONNE_SITE} {
-      import tls-{$RONNE_TLS:auto}
+  ${RONNE_DOMAIN:-:80} {
+      import tls${RONNE_DOMAIN:+-${RONNE_TLS:-auto}}
       request_body { max_size 28MB }
       reverse_proxy web:3000 {
           header_up X-Forwarded-For {client_ip}
@@ -186,8 +190,10 @@ All are read by `compose.yaml` from the environment or `.env`; none are needed f
   }
   ```
 
-  `RONNE_SITE` is `RONNE_DOMAIN` when set, otherwise `:80`, which turns HTTPS off. The exact
-  syntax, including an empty `email`, is checked against Caddy's docs when built.
+  Without a domain the site is `:80`, which turns HTTPS off, and the `import` picks the empty
+  `tls` snippet, so `RONNE_TLS` is ignored. Caddy refuses an `email` line with no address, so the
+  line exists only when `RONNE_ACME_EMAIL` is set. A `RONNE_TLS` that isn't one of the three modes
+  stops Caddy with "File to import not found: tls-…".
 - `X-Forwarded-For` is replaced by one address, the client's as Caddy sees it after
   `trusted_proxies`. Ronne's rule (the rightmost entry, 005) then gives the real client both
   directly and behind another proxy.
@@ -233,6 +239,10 @@ environment, as today.
   so the docs pair it with an explicit `PUBLIC_URL`, as case 4 does.
 - **Running two instances on one host:** set different `RONNE_PORT`/`RONNE_HTTPS_PORT` and a
   different project name (`-p`), as today.
+- **The HTTP-to-HTTPS redirect goes to the standard port.** With a domain on non-standard host
+  ports, `http://domain:7650` redirects to `https://domain/` (443): Caddy doesn't know which host
+  port Docker published. Open `PUBLIC_URL` (`https://domain:7651`) instead; with 80 and 443, as
+  case 2 uses, the redirect is right.
 - **IPv6:** Caddy listens on both; Docker publishes both when the daemon has IPv6 on.
 
 ## Documentation

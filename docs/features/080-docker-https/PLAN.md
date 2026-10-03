@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Check the vendor facts.** Against Caddy's current docs: the Caddyfile in the spec
+- [x] **1. Check the vendor facts.** Against Caddy's current docs: the Caddyfile in the spec
   (`{$VAR:default}` in a site address and in `import`, an empty `email`, `trusted_proxies`,
   `{client_ip}`, `request_body`), the current 2.x image tag and digest. Against Compose's docs:
   inline `configs.content` and nested interpolation for the `PUBLIC_URL` default (the minimum
@@ -57,3 +57,33 @@ the same change that completes it.
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+### Task 1: vendor facts (2026-10-03)
+
+Checked against the docs and by running `caddy validate` in the image and `docker compose config`
+with Docker Compose 5.5.
+
+- **Caddy image:** `caddy:2.11.4@sha256:0c994536bddb66445885237f1a5dcc1916bccea922661c76b4e9fc24061f9b52`
+  (multi-arch index; amd64 and arm64 among its platforms). 2.11.6 (2026-10-01) is inside the 3-day
+  cooldown and has regressions (an HTTP/2 proxy crash, streams cut after a minute) that 2.11.7
+  (2026-10-03) fixes. 2.11.7 is too new. Dependabot moves the pin once the cooldown has passed.
+  There is no 2.11.5.
+- **Caddy env vars vs Compose interpolation:** Caddy's `{$VAR:default}` works in site addresses and
+  `import` (substituted before parsing). But Compose also interpolates `$` in `configs.content`, so
+  `{$VAR}` would need escaping as `{$$VAR}`, and Caddy can't express "no domain → ignore
+  `RONNE_TLS`". The Caddyfile uses Compose's `${…}` instead (spec updated). 083 writes its own
+  Caddyfile with the same directives.
+- **Empty `email`:** refused ("wrong argument count … after 'email'"). Written only when set
+  (`${RONNE_ACME_EMAIL:+email …}`).
+- **`trusted_proxies static private_ranges`, `{client_ip}` in `header_up`, `request_body { max_size
+  28MB }`, `tls internal`:** valid in 2.11.4. `tls /certs/cert.pem /certs/key.pem` with no files:
+  "open /certs/cert.pem: no such file or directory". An unknown `RONNE_TLS`: "File to import not
+  found: tls-bogus".
+- **Compose:** `configs.content` needs Docker Compose 2.23.1 or later. The nested default
+  `${PUBLIC_URL:-${RONNE_DOMAIN:+https://}${RONNE_DOMAIN:-http://localhost:${RONNE_PORT:-7650}}}`
+  gives `http://localhost:7650`, `http://localhost:3000` (with `RONNE_PORT=3000`),
+  `https://ex.com` (with a domain), and an explicit `PUBLIC_URL` wins. So the app doesn't have to
+  derive `PUBLIC_URL`, and `server/config.ts` is unchanged.
+- **Ports:** the IANA registry (CSV, 2026-10-03) still lists 7649–7662 as unassigned.
+- **Redirect port:** Caddy's HTTP-to-HTTPS redirect goes to 443, not to the published HTTPS port
+  (an edge case in the spec now).
