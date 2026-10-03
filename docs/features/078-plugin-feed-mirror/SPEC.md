@@ -16,7 +16,7 @@ a Cursor team admin imports the repo. Claude Code users without instance tokens 
   their zips. These marketplaces use the same `archive` entry shape as Claude Code's. Only `rmk`
   reads them.
 - `rmk feed build --out <dir> [--tools claude-code,codex,cursor]`.
-- `rmk feed build --print-workflow [github|gitlab]`: a ready CI file that runs it on a schedule.
+- `rmk feed build --print-workflow github|gitlab`: a ready CI file that runs it on a schedule.
 - The Documentation for the mirror.
 
 **Out:**
@@ -64,14 +64,20 @@ a Cursor team admin imports the repo. Claude Code users without instance tokens 
 plugin layout isn't Codex's. So the Codex file is written to `.agents/plugins/marketplace.json`,
 which Codex reads first.
 
-**The CI workflow.** `--print-workflow github` prints a GitHub Actions workflow that:
-- runs daily, and on demand (`workflow_dispatch`);
+**The CI workflow.** `--print-workflow github` prints a GitHub Actions workflow (the host is
+required; it only prints, so it needs no registry or token) that:
+- runs daily, and on demand (`workflow_dispatch`), one run at a time;
+- uses `actions/checkout` and `actions/setup-node` pinned by commit SHA, as this repository's own
+  workflows do, with `contents: write`;
 - installs Node 24 and `rmk` from npm, pinned to the version that printed it;
 - runs `rmk feed build --out .` with the `RMK_TOKEN` and `RMK_REGISTRY` secrets;
 - commits and pushes when anything changed, as `github-actions[bot]`.
 
-The GitLab variant is the same, as a `.gitlab-ci.yml` job on a schedule. The token should belong to
-a dedicated account: the build reads what that account can read.
+The GitLab variant is a `.gitlab-ci.yml` job (`node:24`) that runs on a schedule or by hand. GitLab
+schedules are set in its UI (Build › Pipeline schedules), and its job token can't push, so it also
+needs an `RMK_PUSH_TOKEN` variable: a project access token with `write_repository`. The comments at
+the top of each file say what to set. The token should belong to a dedicated account: the build
+reads what that account can read.
 
 **Adding it in each tool:**
 - Codex: `codex plugin marketplace add <owner>/<repo>` (or a git URL); then `codex plugin` to install.

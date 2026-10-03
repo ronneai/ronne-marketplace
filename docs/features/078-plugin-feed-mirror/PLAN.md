@@ -19,7 +19,7 @@ the same change that completes it.
   *Done when:* tests cover an empty folder, a second run, an update, a removal, a foreign path, a
   sha256 mismatch, and `--tools`.
 
-- [ ] **4. CI workflows.** `--print-workflow github|gitlab`.
+- [x] **4. CI workflows.** `--print-workflow github|gitlab`.
   *Done when:* both outputs parse as YAML and match golden files (no new lint tool: any would need
   the dependency policy check first).
 
@@ -38,3 +38,6 @@ goes into `SPEC.md` instead.
 - fflate's `unzipSync` doesn't give file modes, so core's `readPluginArchive`
   (`packages/core/src/plugins/archive.ts`) reads them from the zip's central directory: a hook's
   script must stay executable in the mirror.
+- The workflows' golden files (`packages/cli/src/__golden__/feed-workflow/`) carry the version
+  `0.0.0-golden`, so `pnpm release:version` doesn't change them. `UPDATE_GOLDEN=1` rewrites them.
+  The YAML check uses `yaml`, already a dependency of core, as a dev dependency of the CLI.

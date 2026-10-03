@@ -22,6 +22,7 @@ import {
 } from "@ronneai/core/plugins";
 import type { ApiClient } from "./api.js";
 import { RmkError, usage } from "./errors.js";
+import { feedWorkflow } from "./feed-workflow.js";
 import type { Io } from "./io.js";
 import type { Output } from "./output.js";
 
@@ -344,7 +345,17 @@ export const feedBuild = async (
 export const feedCommand = async (io: Io, args: Args, out: Output, api: () => ApiClient) => {
   const [action, ...rest] = args.positionals;
   if (action !== "build" || rest.length)
-    throw usage("Usage: rmk feed build --out <dir> [--tools claude-code,codex,cursor] [--force]");
+    throw usage(
+      "Usage: rmk feed build --out <dir> [--tools claude-code,codex,cursor] [--force]\n       rmk feed build --print-workflow github|gitlab",
+    );
+  const host = args.values["print-workflow"];
+  if (typeof host === "string") {
+    // Only prints: no registry, no token, nothing written.
+    const workflow = feedWorkflow(host);
+    out.set("workflow", workflow);
+    out.say(workflow.slice(0, -1));
+    return;
+  }
   const dir = typeof args.values.out === "string" ? args.values.out : undefined;
   if (!dir) throw usage("Say where to write the mirror: rmk feed build --out <dir>.");
   const tools = toolsOf(typeof args.values.tools === "string" ? args.values.tools : undefined);

@@ -44,6 +44,7 @@ export const USAGE = `Usage: rmk <command> [options]
   submit [<@scope/name|id>...] [--all] [--no-deps] [--dry-run] [--yes]
   telemetry [on | off | status | preview | flush]
   feed build --out <dir> [--tools claude-code,codex,cursor] [--force]
+  feed build --print-workflow github|gitlab
 
 Options: --json (one JSON object per command), --registry <url>, --version, --help`;
 
@@ -77,6 +78,7 @@ const OPTIONS = {
   "static-headers": { type: "boolean" },
   out: { type: "string" },
   tools: { type: "string" },
+  "print-workflow": { type: "string" },
 } as const;
 
 export type Args = {

@@ -1,0 +1,27 @@
+# Keeps this repository a mirror of a Ronne registry's plugin feeds, for Codex, Cursor and
+# Claude Code. Printed by `rmk feed build --print-workflow gitlab` (rmk 0.0.0-golden).
+#
+# Set three CI/CD variables (Settings > CI/CD > Variables), masked:
+#   RMK_REGISTRY    the registry's address, such as https://ronne.example
+#   RMK_TOKEN       an access token of an account made for this mirror: the build reads what that
+#                   account can read. When it expires, the build fails and the mirror stays as it was.
+#   RMK_PUSH_TOKEN  a project access token with the write_repository scope, to push the changes
+# Then add a daily schedule in Build > Pipeline schedules. The job also runs when started by hand.
+ronne-plugin-feed:
+  image: node:24
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
+  script:
+    - npm install --global @ronneai/rmk@0.0.0-golden
+    - rmk feed build --out .
+    - git add --all
+    - |
+      if git diff --cached --quiet; then
+        echo "Nothing new was released."
+        exit 0
+      fi
+      git config user.name "Ronne plugin feed"
+      git config user.email "ronne-plugin-feed@noreply.$CI_SERVER_HOST"
+      git commit --message "Update the plugin feed"
+      git push "https://oauth2:$RMK_PUSH_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git" "HEAD:$CI_COMMIT_REF_NAME"
