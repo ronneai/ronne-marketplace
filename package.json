@@ -33,12 +33,12 @@
     "release:smoke": "node packages/repo-tools/src/release-smoke.js"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.14",
+    "@biomejs/biome": "2.5.15",
     "@ronneai/config": "workspace:*",
     "@ronneai/rmk": "workspace:*",
     "@types/node": "22.20.4",
-    "turbo": "2.11.4",
+    "turbo": "2.11.5",
     "typescript": "7.0.2",
-    "vitest": "5.0.1"
+    "vitest": "5.0.3"
   }
 }
