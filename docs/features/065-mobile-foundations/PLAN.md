@@ -11,8 +11,8 @@ the same change that completes it.
   `docs/knowledge/mobile-layout.md`.
   *Done when:* both read the same; the knowledge note links 032 and this spec.
 
-- [ ] **2. Viewport and theme colour.** `generateViewport` in `app/layout.tsx` (theme cookie →
-  `themeColor`, `viewport-fit=cover`); `ThemeToggle` updates the `theme-color` meta.
+- [x] **2. Viewport and theme colour.** `generateViewport` in `app/layout.tsx` (theme cookie →
+  `themeColor`, `viewport-fit=cover`); the `theme-color` meta follows the toggle.
   *Done when:* a unit test covers both themes and the missing cookie; `theme.e2e.ts` checks the
   meta changes with the toggle.
 
@@ -45,3 +45,7 @@ the same change that completes it.
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- **The theme colour needs no client code.** The toggle's server action sets the cookie and Next
+  re-renders the route, `generateViewport` included, so the `theme-color` meta changes with
+  `data-theme` (`theme.e2e.ts` checks both).

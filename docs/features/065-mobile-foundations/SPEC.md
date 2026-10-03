@@ -73,8 +73,8 @@ phone and tablet test projects, with a sweep that fails when any page scrolls si
 
 ## Edge cases
 
-- **The theme cookie changes** after the page loaded (the header toggle): the toggle also updates
-  the `theme-color` meta, so the browser bar follows without a reload.
+- **The theme cookie changes** after the page loaded (the header toggle): the toggle's server action
+  re-renders the viewport too, so the browser bar follows without a reload.
 - **The setup wizard and the "database unavailable" page** have no signed-in user: the sweep opens
   them with the blank instances, as the wizard projects do.
 - **WebKit on CI:** it's part of `@playwright/test` (Apache-2.0), already a dependency; the CI step

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
@@ -10,12 +10,17 @@ import { redactDatabaseUrl } from "@/server/db/url";
 import { PATH_HEADER, SETUP_PATH } from "@/server/domains/identity/models/route-guard";
 import { getSetupState } from "@/server/setup/state";
 import { manrope, plexMono } from "./fonts";
+import { viewportFor } from "./viewport";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Ronne AI Marketplace",
   description: "A self-hosted, curated registry of AI capabilities.",
 };
+
+/** The viewport and the browser bar's colour, from the theme cookie (feature 065). */
+export const generateViewport = async (): Promise<Viewport> =>
+  viewportFor(parseTheme((await cookies()).get(THEME_COOKIE)?.value));
 
 const RootLayout = async ({ children }: { children: ReactNode }) => {
   // Settings are read per request, not at build time, so a finished setup shows at once.
