@@ -36,7 +36,7 @@ stays the approval gate: only released versions appear.
   "metadata": { "description": "Released items from the Ronne registry at https://registry.example.com" },
   "plugins": [
     {
-      "name": "team--secure-coding",
+      "name": "team.secure-coding",
       "version": "1.4.0",
       "description": "…",
       "source": {
@@ -126,7 +126,7 @@ that the item is also installed as a plugin, and continues.
 - `claude-code` topic: a *Plugins* section linking to the new topic.
 - `rmk` topic: `plugin-setup` and `auth headers`.
 - Item page Install panel: an inline helper "Install as a Claude Code plugin", with
-  `/plugin install team--secure-coding@ronne-…`, shown when the item is in the Claude Code feed.
+  `/plugin install team.secure-coding@ronne-…`, shown when the item is in the Claude Code feed.
 
 ## Acceptance criteria
 

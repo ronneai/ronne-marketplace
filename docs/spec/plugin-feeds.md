@@ -5,8 +5,11 @@ marketplaces that Claude Code, Codex and Cursor can add as a source (M11:
 [076](../features/076-plugin-builders/SPEC.md), [077](../features/077-claude-code-marketplace/SPEC.md),
 [078](../features/078-plugin-feed-mirror/SPEC.md); design in [MVP §3.3](../MVP/MVP.md#33-platform-renderers)).
 
-Vendor formats were checked on 2026-10-03. They change often: re-check them when each feature is
-built, and record the date here.
+Vendor formats were checked on 2026-10-03, and again for 076 the same day (sources:
+code.claude.com/docs/en/plugins-reference, /en/plugins/components, /en/plugins/marketplace-reference;
+developers.openai.com/codex/plugins/build and agent-plugins.org/specification;
+cursor.com/docs/reference/plugins). They change often: re-check them when each feature is built,
+and record the date here.
 
 ## What each tool accepts
 
@@ -29,9 +32,13 @@ Ronne serves:
 - **Marketplace name:** `ronne-<host>`, from the instance's `PUBLIC_URL` host with `.` and `:`
   replaced by `-` (for example `ronne-registry-example-com`). `rmk` derives the same name from its
   registry URL.
-- **Plugin name:** `@scope/name` becomes `scope--name`. Scopes and names are lowercase letters,
-  digits and single hyphens ([manifest](./manifest.md)), so `--` appears only as the separator and
-  the mapping can be reversed. The name is valid in all three tools.
+- **Plugin name:** `@scope/name` becomes `scope.name`. Ronne names never contain a dot
+  ([manifest](./manifest.md)), so the one dot is the separator and the mapping can be reversed. All
+  three tools accept a dot (Claude Code: letters, digits, `.`, `_`, `-`; Agent Plugins:
+  `[a-z0-9.-]`, at most 64, no `--` or `..`; Cursor: `^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$`). A name a
+  tool refuses (longer than 64 characters or containing `--`, for Codex; starting with `claude-`
+  or `anthropic-`, which Claude Code reserves) leaves the item out of that tool's feed, with a
+  warning.
 - **Plugin version:** the item's released version. Each release is a new version, so Claude Code
   fetches it again. Ronne versions are immutable, so a version's plugin never changes, except when
   the builder changes (below).
@@ -56,24 +63,34 @@ plugin layout. Anything that has no place in a plugin is skipped with a warning,
 | Type | Claude Code plugin | Codex plugin | Cursor plugin |
 |---|---|---|---|
 | skill, command | `skills/<n>/` | `skills/<n>/` | `skills/<n>/` |
-| agent | `agents/<n>.md` | skipped (no plugin form documented) | `agents/<n>.md` |
-| rule | `skills/<n>/` for model and manual rules; `always`/`glob` rules skipped (plugins can't add rules) | skipped (`AGENTS.md` sections aren't part of a plugin) | `rules/<n>.mdc` |
-| hook | `hooks/hooks.json` + `hooks/<n>/…` (`${CLAUDE_PLUGIN_ROOT}`) | `hooks/hooks.json` + `hooks/<n>/…` (`${PLUGIN_ROOT}`) | `hooks/hooks.json` + `hooks/<n>/…` |
-| mcp-server | `.mcp.json` | `mcp.json` (each server has `type`) | `mcp.json` |
+| agent | `agents/<n>.md` | skipped (Codex plugins carry skills, MCP servers, hooks and apps only) | `agents/<n>.md` |
+| rule | model and manual rules as `skills/<n>/`; `always` and `glob` rules skipped (a plugin's `CLAUDE.md` isn't loaded, and there is no rules component) | model and manual rules as `skills/<n>/`; `always` and `glob` rules skipped | `rules/<n>.mdc` |
+| hook | `hooks/hooks.json` + `hooks/<n>/…`, run as `"${CLAUDE_PLUGIN_ROOT}"/hooks/<n>/…` | `hooks/hooks.json` + `hooks/<n>/…`, run as `"${PLUGIN_ROOT}"/hooks/<n>/…` | `hooks/hooks.json` + `hooks/<n>/…`, run as `./hooks/<n>/…` |
+| mcp-server | `.mcp.json` (`{"mcpServers": …}`) | `mcp.json` with the Agent Plugins `$schema`; each server has `type` (`stdio` or `streamable-http`) | `mcp.json` (`{"mcpServers": …}`) |
 | output-style | `output-styles/<n>.md` | none | none |
 | lsp-server | `.lsp.json` | none | none |
-| permission-policy, statusline | skipped | skipped | skipped |
+| permission-policy, statusline | skipped (a plugin's `settings.json` only takes `agent` and `subagentStatusLine`) | skipped | skipped |
 | bundle | its members | its members | its members |
 
-Every plugin has the manifest for its tool, with `name`, `version`, `description` and `author`
-(`{ "name": "<scope>" }`). The Codex plugin's root `plugin.json` carries the Agent Plugins
-`$schema`. Generated Markdown keeps the rmk managed marker. MCP configs keep env var references:
-secrets are never written.
+The members are rendered at project scope, the scope whose layout every renderer writes in full
+(Cursor writes rules only there), and the paths are then moved into the plugin.
+
+Every plugin has the manifest for its tool, with `name`, `description` and `author`
+(`{ "name": "<scope>" }`):
+- Claude Code: `.claude-plugin/plugin.json`, without `version`. Claude Code reads the version from
+  the marketplace entry, so it sees an update without downloading the zip, and it warns when both
+  say it.
+- Codex: a root `plugin.json` with
+  `"$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"` and `version`.
+- Cursor: `.cursor-plugin/plugin.json` with `version`.
+
+Generated Markdown keeps the rmk managed marker. MCP configs keep env var references: secrets are
+never written.
 
 ## The archive
 
-- A zip, built with `fflate`'s `zipSync`: paths sorted, fixed mtimes (`1980-01-01`), executable bits
-  kept. The same input always gives the same bytes and the same `sha256`.
+- A zip, built with `fflate`'s `zipSync`, with the plugin root at the top of the zip: paths sorted,
+  fixed mtimes (`1980-01-01`), Unix modes (0644, 0755 for executables) in the external attributes. The same input always gives the same bytes and the same `sha256`.
 - The builder has a version (`PLUGIN_BUILDER_VERSION`, an integer in `@ronneai/core/plugins`). It
   goes up whenever the output for the same input changes, and is part of the cache key
   (077).

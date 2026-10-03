@@ -16,7 +16,7 @@ Claude Code marketplace (077) and the git mirror (078) both serve.
 - `buildPlugin(tool, input)`: the plugin's files and warnings.
 - `pluginArchive(files)`: a deterministic zip and its sha256.
 - `marketplaceFor(tool, entries, options)`: the marketplace file for each tool.
-- `pluginName` / `itemNameOfPlugin`: the naming rule in the contract.
+- `pluginName` / `itemNameOfPlugin` / `pluginNameProblem`: the naming rule in the contract.
 - `PLUGIN_BUILDER_VERSION`.
 
 **Out:**
@@ -35,24 +35,26 @@ Claude Code marketplace (077) and the git mirror (078) both serve.
   doesn't.
 
 **Building.**
-1. Render each member with `rendererById(tool)` at `scope: "user"` and `targets: [tool]`, so a
-   member isn't skipped as "covered by another target".
+1. Render each member with `rendererById(tool)` at `scope: "project"` and `targets: [tool]`.
+   Project scope is the one every renderer writes in full (Cursor writes rules only there), and
+   `targets: [tool]` keeps a member from being skipped as "covered by another target".
 2. Move each `Change` into the plugin layout with the tool's adapter, as the contract's table says:
    - `dir` and `file` changes move from the tool's folders (`.claude/skills/`, `.agents/skills/`,
      `.claude/agents/`, `.cursor/agents/`, `.cursor/rules/`, `.claude/output-styles/`, the hook
      script folders) to the plugin's.
-   - Hook entries (`json-array-item` on `hooks.<Event>`, or the Codex and Cursor `hooks.json`
-     entries) collect into the plugin's `hooks/hooks.json`. Script paths are rewritten from the
-     project-relative path to `${CLAUDE_PLUGIN_ROOT}/…` (Claude Code), `${PLUGIN_ROOT}/…` (Codex)
-     or the plugin-relative path (Cursor).
-   - MCP entries (`json-key mcpServers.<n>`, `toml-key mcp_servers.<n>`) collect into `.mcp.json`
-     (Claude Code) or `mcp.json` (Codex, Cursor), keeping env var references.
+   - Hook entries (`json-array-item` on `hooks.<Event>`) collect into the plugin's
+     `hooks/hooks.json`, as `{"hooks": {…}}`. A script's command is rewritten from the project path
+     to `"${CLAUDE_PLUGIN_ROOT}"/hooks/<n>/…` (Claude Code), `"${PLUGIN_ROOT}"/hooks/<n>/…` (Codex)
+     or `./hooks/<n>/…` (Cursor). Cursor's `version` key isn't part of a plugin's hooks file.
+   - MCP entries collect into `.mcp.json` (Claude Code, `json-key mcpServers.<n>` as written) or
+     `mcp.json` (Cursor, the same; Codex, from `toml-key mcp_servers.<n>`, turned into the Agent
+     Plugins form: `type`, and secrets as `${NAME}` references in `env` and `headers`). Env var
+     references are kept; no value is ever written.
    - The Claude Code lsp-server output (the local plugin from `renderLspServer`) gives its `.lsp.json`.
    - Anything else (settings keys, `AGENTS.md` sections, permission entries) is skipped with a
      `RenderWarning` of code `not_in_plugin`, naming the member.
-3. Add the tool's manifest (`.claude-plugin/plugin.json`, the root `plugin.json` with the Agent
-   Plugins `$schema`, or `.cursor-plugin/plugin.json`). It carries the plugin name, the item's
-   version, description, and `author: { name: <scope> }`.
+3. Add the tool's manifest, as the contract says: `.claude-plugin/plugin.json` (no `version`), the
+   root `plugin.json` with the Agent Plugins `$schema`, or `.cursor-plugin/plugin.json`.
 4. Paths are sorted. Two members writing the same plugin path is an error (`plugin_conflict`); it
    can only happen with a broken dependency set, and the caller leaves that item out of the feed.
 
@@ -65,17 +67,22 @@ same files always give the same bytes.
 
 **Marketplaces.** `marketplaceFor(tool, entries, { name, owner, source })`. `source` decides how
 entries point at plugins: `archive` (a URL and the sha256, Claude Code only) or `path`
-(`./plugins/<tool>/<plugin>`, for the git mirror). Each entry has `name`, `version`, `description`,
-and the tool's extras (Codex: `policy: { installation: "AVAILABLE" }`; Cursor: none).
+(`./plugins/<tool>/<plugin>`, for the git mirror; Codex writes it as `{ source: "local", path }`).
+Each entry has `name` and `description`, plus `version` for Claude Code, and the tool's extras
+(Codex: `policy: { installation: "AVAILABLE", authentication: "ON_INSTALL" }`; Cursor: none).
 
 ## Edge cases
 
 - An item whose type the tool doesn't support (`supportFor` gives `none` or `off`) is never built for
   it. The caller checks first, and `buildPlugin` throws if called anyway.
 - A member's renderer warnings (degraded support) are passed through with the member's name.
-- A rule with `always`/`glob` activation has no plugin form in Claude Code or Codex. If that leaves
-  the plugin empty, the item isn't in that feed. The item page's support matrix doesn't change: it
-  describes `rmk install`.
+- A rule with `always`/`glob` activation has no plugin form in Claude Code or Codex (checked
+  2026-10-03: a plugin's `CLAUDE.md` isn't loaded, and neither tool has a rules component). If that
+  leaves the plugin empty, the item isn't in that feed. The item page's support matrix doesn't
+  change: it describes `rmk install`.
+- An agent has no plugin form in Codex, which carries skills, MCP servers, hooks and apps only.
+- A plugin name a tool refuses (contract, Names) leaves the item out of that tool's feed with a
+  `name_refused` warning.
 - Hook scripts keep their executable bit in the zip.
 
 ## Documentation
@@ -89,11 +96,10 @@ None in this feature: nothing is visible until 077 serves it. 077 and 078 add th
 - [ ] Building the same input twice gives byte-identical zips.
 - [ ] A bundle's plugin contains each member; an item's plugin contains its dependencies.
 - [ ] Skipped content gives a `not_in_plugin` warning; an item with nothing left is `empty`.
-- [ ] `pluginName("@team/secure-coding")` is `team--secure-coding`, and `itemNameOfPlugin` reverses it.
+- [ ] `pluginName("@team/secure-coding")` is `team.secure-coding`, `itemNameOfPlugin` reverses it, and `pluginNameProblem` refuses what each tool refuses.
 - [ ] `pnpm packages:check` allows the new `dist/plugins` files.
 
 ## Open questions
 
-- Can a Claude Code plugin carry always-on rules (re-check the plugins reference when building)? If
-  it can, `always`/`glob` rules go there instead of being skipped.
-- Does a Codex plugin carry agents? If so, `.codex/agents/<n>.toml` moves into the plugin.
+None. The two from planning were settled on 2026-10-03: Claude Code plugins can't carry always-on
+rules, and Codex plugins can't carry agents.

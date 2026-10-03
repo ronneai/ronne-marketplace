@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Re-check the vendor formats.** Read the current Claude Code, Codex and Cursor plugin and
+- [x] **1. Re-check the vendor formats.** Read the current Claude Code, Codex and Cursor plugin and
   marketplace docs. Update the tables and the date in `docs/spec/plugin-feeds.md`, and settle the
   open questions.
   *Done when:* the contract says what was checked and when.
