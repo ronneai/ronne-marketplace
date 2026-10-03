@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { mobileUser, signIn } from "./mobile";
+import { E2E_SCOPE, E2E_SKILL } from "./users";
 
 /**
  * Feature 066: below `lg` the header is the logo and Menu, and the Menu's side sheet holds the
@@ -57,6 +58,50 @@ test("the Menu opens the navigation and closes on Esc, a link, back and outside"
   else await sheet.getByRole("button", { name: "Close" }).click();
   await expect(sheet).toBeHidden();
   await expect(menu).toBeFocused();
+});
+
+/** Inside the viewport, sideways: a tab a strip scrolled to, not one off its edge. */
+const sidewaysOnScreen = async (box: { x: number; width: number } | null, width: number) => {
+  expect(box, "has a box").not.toBeNull();
+  if (!box) return;
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(width + 1);
+};
+
+// Feature 066: a tab strip that doesn't fit shows its current tab, and fades the edge with more.
+test("tab strips show the current tab; the docs sidebar scrolls on a landscape tablet", async ({
+  page,
+}, testInfo) => {
+  await signIn(page, mobileUser(testInfo, "moderator"));
+  const width = page.viewportSize()?.width ?? 0;
+
+  // The last of the item page's tabs, opened by its URL.
+  await page.goto(`/items/@${E2E_SCOPE}/${E2E_SKILL}?tab=risks`);
+  const strip = page.getByRole("navigation", { name: "Item" });
+  const risks = strip.locator('[aria-current="page"]');
+  await expect(risks).toContainText("What it can do");
+  await expect
+    .poll(async () => (await risks.boundingBox())?.x ?? -1, { message: "scrolled into view" })
+    .toBeGreaterThanOrEqual(0);
+  await sidewaysOnScreen(await risks.boundingBox(), width);
+  // On one line: the strip scrolls rather than squeezing a label (a 44px tab at most).
+  expect((await risks.boundingBox())?.height ?? 0).toBeLessThanOrEqual(48);
+  // A strip scrolled to its end fades its start, if it had to scroll at all.
+  const scrolls = await strip.evaluate((el) => el.scrollWidth > el.clientWidth);
+  if (scrolls) await expect(strip).toHaveClass(/\bfade-(start|both)\b/);
+
+  if (testInfo.project.name !== "tablet") return;
+  // A tablet in landscape: the topic list is taller than the window, so the sidebar scrolls to
+  // its last topic.
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.goto("/docs");
+  const topics = page.getByRole("navigation", { name: "Documentation" }).getByRole("link");
+  const last = topics.last();
+  await last.scrollIntoViewIfNeeded();
+  await expect(last).toBeInViewport();
+  const sidebar = page.locator("aside");
+  expect(await sidebar.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true);
+  expect(await sidebar.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
 });
 
 test.describe("without JavaScript", () => {

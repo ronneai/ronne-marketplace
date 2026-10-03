@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { ScrollStrip, stripTab } from "./ScrollStrip";
-import { fadeClass, scrollToShow } from "./scroll-strip";
+import { ScrollStrip } from "./ScrollStrip";
+import { fadeClass, scrollToShow, stripTab } from "./scroll-strip";
 import { Tabs } from "./Tabs";
 
 describe("fadeClass", () => {

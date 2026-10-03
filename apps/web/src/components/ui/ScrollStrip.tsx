@@ -7,10 +7,6 @@ import { fadeClass, scrollToShow } from "./scroll-strip";
 /** The current tab: a link's `aria-current`, or a tab's `aria-selected`. */
 const CURRENT = '[aria-current="page"], [aria-selected="true"]';
 
-/** Each tab in a strip: at least 44px tall on a coarse pointer, its label centred (066). */
-export const stripTab =
-  "inline-flex shrink-0 items-center whitespace-nowrap pointer-coarse:min-h-11";
-
 /**
  * A row of tabs that scrolls sideways when it doesn't fit (066), with its scrollbar hidden:
  *
@@ -18,7 +14,8 @@ export const stripTab =
  *   load and whenever it changes, without moving the page; smoothly, unless reduced motion is
  *   asked for;
  * - the edge with more tabs fades out, only while there's more to scroll to;
- * - tabs use `stripTab` for their 44px on a coarse pointer.
+ * - tabs use `stripTab` (`scroll-strip.ts`, so server components can read it) for their 44px on
+ *   a coarse pointer.
  *
  * It's the `<nav>` (or, with `role="tablist"`, the tab list) itself, so its children are the tabs.
  * Positioned, so it also clips screen-reader text inside it (065's lesson).

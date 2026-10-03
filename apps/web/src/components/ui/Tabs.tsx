@@ -2,7 +2,8 @@
 
 import { type ReactNode, useId, useState } from "react";
 import { cn } from "./cn";
-import { ScrollStrip, stripTab } from "./ScrollStrip";
+import { ScrollStrip } from "./ScrollStrip";
+import { stripTab } from "./scroll-strip";
 
 /** Up to this many tabs share the width in equal columns; more scroll sideways (066). */
 const EQUAL_COLUMNS = 3;

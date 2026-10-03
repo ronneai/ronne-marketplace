@@ -12,6 +12,8 @@ import { FilterChips } from "@/components/ui/data-table/FilterChips";
 import { SubmitOnChange } from "@/components/ui/data-table/SubmitOnChange";
 import { Input, Label, selectClasses } from "@/components/ui/Field";
 import { LocalTime } from "@/components/ui/LocalTime";
+import { ScrollStrip } from "@/components/ui/ScrollStrip";
+import { stripTab } from "@/components/ui/scroll-strip";
 import { TypeBadge } from "@/components/ui/TypeBadge";
 import type { QueueRow, QueueTab } from "@/server/domains/submissions/actions/reviews";
 import { itemNameOf } from "@/server/domains/submissions/models/submission";
@@ -39,20 +41,23 @@ export const queueTab = (value: string | string[] | undefined): QueueTab => {
 const tabClasses =
   "rounded-control px-3 py-1.5 text-sm text-muted hover:text-fg aria-[current=page]:bg-tint aria-[current=page]:font-semibold aria-[current=page]:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
 
-/** The review queue's tabs (feature 014), as links, so they work without JavaScript. */
+/**
+ * The review queue's tabs (feature 014), as links, so they work without JavaScript. On a phone
+ * they scroll sideways instead of wrapping (066).
+ */
 export const QueueTabs = ({ tab }: { tab: QueueTab }) => (
-  <nav aria-label="Review queue" className="flex flex-wrap gap-1 pb-4">
+  <ScrollStrip label="Review queue" className="mb-4 gap-1">
     {TAB_ORDER.map((id) => (
       <Link
         key={id}
         href={id === "needs" ? "/reviews" : `/reviews?tab=${id}`}
         aria-current={id === tab ? "page" : undefined}
-        className={tabClasses}
+        className={`${stripTab} ${tabClasses}`}
       >
         {QUEUE_TABS[id].label}
       </Link>
     ))}
-  </nav>
+  </ScrollStrip>
 );
 
 /** The rows this reviewer can approve now, for BulkApproveProvider (054). */

@@ -1,3 +1,11 @@
+/**
+ * Each tab in a `ScrollStrip`: at least 44px tall on a coarse pointer, its label centred, on one
+ * line (066). Here, not in the "use client" module: from there a server component would get a
+ * client reference instead of the string.
+ */
+export const stripTab =
+  "inline-flex shrink-0 items-center whitespace-nowrap pointer-coarse:min-h-11";
+
 /** A strip's box and scroll, as the browser measures them. */
 export type StripBox = { left: number; right: number; scrollLeft: number };
 

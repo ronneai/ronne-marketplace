@@ -26,7 +26,7 @@ the same change that completes it.
   pointer height; used by `Tabs` when its choices don't fit.
   *Done when:* unit tests cover the active tab and the fades (by class, with a mocked size).
 
-- [ ] **5. Move the strips.** Item page tabs, `DocsNav` (with group labels), `AdminNav`, the
+- [x] **5. Move the strips.** Item page tabs, `DocsNav` (with group labels), `AdminNav`, the
   queue tabs, the submissions status links; the docs sidebar max height.
   *Done when:* existing unit tests pass; a phone e2e opens `?tab=risks` and sees the tab; the
   tablet project scrolls the docs sidebar to its last topic.
@@ -38,3 +38,8 @@ the same change that completes it.
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- The submissions status links stay as they are: they wrap, so they always fit (the spec moves
+  them only if they don't).
+- `stripTab` lives in `scroll-strip.ts`, not `ScrollStrip.tsx`: server components can't read a
+  constant from a "use client" module (see `docs/knowledge/server-client-props.md`).
