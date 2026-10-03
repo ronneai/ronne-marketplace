@@ -19,6 +19,7 @@ import { defineList, parseListQuery } from "@/components/ui/data-table/list-quer
 import { Checkbox, Label } from "@/components/ui/Field";
 import { TypeBadge } from "@/components/ui/TypeBadge";
 import { ManifestCheckDemo } from "../manifest-validation/ManifestCheckDemo";
+import { BottomBarDemo } from "./BottomBarDemo";
 import { DialogDemo } from "./DialogDemo";
 
 const SWATCHES = [
@@ -229,6 +230,7 @@ export const Styleguide = () => {
         </p>
         <ManifestCheckDemo />
       </Panel>
+      <BottomBarDemo />
     </div>
   );
 };

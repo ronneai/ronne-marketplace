@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { BottomBar } from "./BottomBar";
 import { Button, buttonClasses } from "./Button";
 import { CopyableCommand } from "./CopyableCommand";
 import { Dialog, DialogActions } from "./Dialog";
@@ -84,5 +85,31 @@ describe("dialogs on a phone (067)", () => {
 
   it("opens as a full-height sheet from the right with `side`", () => {
     expect(render("side")).toContain("ml-auto h-dvh");
+  });
+});
+
+describe("BottomBar (067)", () => {
+  it("sticks to the bottom, padded for the home indicator, and hides from its breakpoint", () => {
+    const html = renderToStaticMarkup(
+      <BottomBar label="Draft actions" until="md">
+        <Button>Save</Button>
+      </BottomBar>,
+    );
+    expect(html).toContain('role="toolbar"');
+    expect(html).toContain('aria-label="Draft actions"');
+    expect(html).toContain("sticky bottom-0");
+    expect(html).toContain("pb-[max(0.5rem,env(safe-area-inset-bottom))]");
+    expect(html).toContain("md:hidden");
+    expect(html).not.toContain("lg:hidden");
+  });
+
+  it("hides from lg by default", () => {
+    expect(
+      renderToStaticMarkup(
+        <BottomBar label="Actions">
+          <Button>Save</Button>
+        </BottomBar>,
+      ),
+    ).toContain("lg:hidden");
   });
 });

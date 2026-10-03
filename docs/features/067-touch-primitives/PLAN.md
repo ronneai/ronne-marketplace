@@ -26,10 +26,11 @@ the same change that completes it.
   (Publish and bulk approve are checked by 073, which reworks them. Playwright can't open an
   on-screen keyboard, so "keyboard open" is a focused field.)
 
-- [ ] **4. `BottomBar`.** Sticky, safe-area padded, follows `visualViewport`, breakpoint and
-  hide-on-focus options; shown in the styleguide.
-  *Done when:* unit tests pass; a WebKit e2e focuses a field on the styleguide and finds the bar
-  above the keyboard.
+- [x] **4. `BottomBar`.** Sticky, safe-area padded, follows `visualViewport`, breakpoint (`until`)
+  and `hideWhileTyping` options, a `toolbar` with a label; shown last on the styleguide.
+  *Done when:* unit tests pass; `bottom-bar.mobile.e2e.ts` finds the bar at the bottom of the
+  screen at the top of the page and after scrolling, and whole on screen with a field focused, on
+  every phone and tablet project.
 
 - [ ] **5. Small primitive fixes.** `Badge` nowrap, `PageHeader` wrap, `CopyableCommand` wrapping
   below `sm`.
@@ -68,3 +69,8 @@ goes into `SPEC.md` instead.
   (a section inside the draft settings dialog, the own-row help) were left alone.
 - **The 16px fields widened the new item form** past 360px in every engine (the sweep caught it);
   its `EXPECTED_FAILURES` entry for 072 now covers every project.
+- **The keyboard lift can't be tested here.** Playwright opens no on-screen keyboard, and its
+  WebKit doesn't resize the visual viewport for one, so the bar's `visualViewport` follow is only
+  seen on a real iPhone (075's device pass).
+- **At the end of a page the bar rests on the footer,** which is how `sticky` works: it's pulled
+  to the bottom of the screen only while its place in the page is below it.

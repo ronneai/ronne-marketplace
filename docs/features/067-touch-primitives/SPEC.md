@@ -49,7 +49,9 @@ density stays as it is: the changes apply on a coarse pointer or below `sm`.
 - **`BottomBar`**, a sticky action bar for phones (used by 072's editor and 073's review page):
   sticky at the bottom of the viewport inside the page flow, safe-area padded, kept above the
   on-screen keyboard (it follows `visualViewport` on iOS), shown only below a breakpoint the caller
-  gives; the caller can hide it while a field in the page has focus.
+  gives (`until`, `lg` by default); the caller can hide it while a field in the page has focus
+  (`hideWhileTyping`). It's a `toolbar` named by the caller ("Draft actions"). At the very end of
+  a page it rests on the footer.
 - **Smaller fixes in the primitives:**
   - `Badge` gets `whitespace-nowrap` (a long label never wraps inside its fixed height).
   - `PageHeader`'s actions row wraps (`flex-wrap`).
