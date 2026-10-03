@@ -2457,6 +2457,38 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </Bullets>
       </>
     ),
+    large: (
+      <>
+        <p>
+          Claude Code reads a marketplace from an address only if it&apos;s at most{" "}
+          <strong>5 MiB</strong> and arrives within <strong>10 seconds</strong>. Each item takes
+          about half a kilobyte, so this website&apos;s Claude Code marketplace reaches 5 MiB near
+          10,000 items.
+        </p>
+        <Bullets>
+          <li>
+            The marketplace is built once, then answered from memory until something is released,
+            tagged, deprecated or yanked. The first request after a change builds it again.
+          </li>
+          <li>
+            Each plugin is built the first time anyone asks for it. When a request runs out of time,
+            it lists what&apos;s built, and the rest is built right after, so the next refresh lists
+            everything.
+          </li>
+          <li>
+            Root sees each tool&apos;s last build under{" "}
+            <strong>Admin › Settings › Plugin feeds</strong>: its size, plugins and build time, with
+            a warning once Claude Code&apos;s marketplace passes 4 MiB or a build takes 5 seconds.
+          </li>
+          <li>
+            Past 5 MiB, Claude Code&apos;s marketplace answers an error instead. Add the{" "}
+            <To href={docsHref("plugins", "mirror")}>git mirror</To> in Claude Code then: a
+            marketplace in a git repository has no such limit. Codex&apos;s and Cursor&apos;s have
+            no limit here, since only <Code>rmk feed build</Code> reads them.
+          </li>
+        </Bullets>
+      </>
+    ),
     which: (
       <>
         <Bullets>

@@ -154,6 +154,7 @@ export const TOPICS = [
       { id: "tokens", title: "Tokens" },
       { id: "mirror", title: "Codex and Cursor (git mirror)" },
       { id: "keeping", title: "Keeping the mirror current" },
+      { id: "large", title: "Large marketplaces" },
       { id: "which", title: "Plugins or rmk" },
     ],
   },

@@ -32,7 +32,7 @@ the same change that completes it.
   *Done when:* tests cover both thresholds (a fake clock and an injected size), one warning per
   revision, Codex and Cursor never answering 507, and the message.
 
-- [ ] **5. Admin › Settings › Plugin feeds.** The panel and its warning notice (amber, a token), for
+- [x] **5. Admin › Settings › Plugin feeds.** The panel and its warning notice (amber, a token), for
   root only, with the inline helper.
   *Done when:* render tests cover "Not built yet", a normal build and a warning; the Admin page tests
   still pass; the mobile sweep passes.
@@ -87,4 +87,6 @@ What it shows:
   every zip again. Items missing meanwhile can't be installed or updated from the marketplace (they
   aren't uninstalled: Ronne doesn't set `forceRemoveDeletedPlugins`). Not in 079's scope; raised
   with the owner.
+- The *Large marketplaces* section landed with task 5, not 6: the panel's helper links to it, and a
+  test checks every helper lands on a real section.
 
