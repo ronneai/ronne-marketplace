@@ -30,7 +30,8 @@ phone and tablet test projects, with a sweep that fails when any page scrolls si
     dialog's body and a menu's list.
 - **The root layout's viewport** (`app/layout.tsx`): a `generateViewport` with
   `width=device-width, initial-scale=1, viewport-fit=cover` and a `themeColor` from the theme cookie
-  (the `canvas` token of the chosen theme), so the browser bar matches light or dark. Zoom stays
+  (the `surface` token of the chosen theme, the header's colour), so the browser bar matches the
+  header in light and dark. Zoom stays
   allowed (`maximum-scale` is never set).
 - **Safe areas:** the header, the footer, a full-screen dialog and a sticky bottom bar pad
   themselves with `env(safe-area-inset-*)`. Two utilities in `globals.css` (`pt-safe`, `pb-safe`
@@ -66,8 +67,7 @@ phone and tablet test projects, with a sweep that fails when any page scrolls si
 
 ## Behaviour
 
-- Nothing a person sees changes on desktop. On a phone, the browser's bar takes the theme's canvas
-  colour, and on a phone with a notch the header and footer stay clear of it in landscape.
+- Nothing a person sees changes on desktop. On a phone, the browser's bar takes the header's colour, and on a phone with a notch the header and footer stay clear of it in landscape.
 - `pnpm test:e2e` runs the desktop, wizard, phone, phone-webkit and tablet projects.
   `pnpm test:e2e --project phone` runs one.
 

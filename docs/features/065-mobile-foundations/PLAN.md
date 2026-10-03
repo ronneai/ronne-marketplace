@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. The rules.** Add the mobile rules to 032's spec (Layout), and write
+- [x] **1. The rules.** Add the mobile rules to 032's spec (Layout), and write
   `docs/knowledge/mobile-layout.md`.
   *Done when:* both read the same; the knowledge note links 032 and this spec.
 

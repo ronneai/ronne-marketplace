@@ -123,6 +123,25 @@ instead, with no runtime CDN: `lucide-react` (ISC), if it passes the dependency 
 - **Footer:** the version and license, and GitHub.
 - **Layout:** the header and footer span the full width. The content column is 72% of the width from 1024px up (owner decision, 2026-09-27, for more room), and full width with 24px side padding below that (16px on mobile). The sign-in and setup screens keep their narrow centered card.
 
+**Phones and tablets** (M10, [065](../065-mobile-foundations/SPEC.md); owner, 2026-10-02). Every
+feature builds to these; [`docs/knowledge/mobile-layout.md`](../../knowledge/mobile-layout.md) has
+the how.
+- **Widths:** phone below 640px (`sm`), tablet 640–1023px, desktop from 1024px (`lg`), with
+  Tailwind's default breakpoints only. Supported from 360px; at 320px nothing is cut off.
+- **No sideways page scroll.** Only things wide by nature scroll sideways, inside their own frame:
+  a code line in a `pre`, a wide Markdown table, a tab strip.
+- **Touch targets:** on a coarse pointer (`pointer-coarse:`), every control's tap area is at least
+  44×44px; the drawn control may stay smaller, with the area added around it. Everywhere, nothing
+  under 24×24px (WCAG 2.2 AA, 2.5.8). Desktop density doesn't change.
+- **Form fields are 16px on a coarse pointer,** so iOS Safari doesn't zoom the page on focus.
+- **Nothing only on hover.** What a `title` or `group-hover` reveals is also reachable by a tap and
+  by the keyboard.
+- **Heights use `dvh`, not `vh`;** fixed and sticky edges pad themselves with the safe-area insets
+  (`pt-safe`, `pb-safe`, `px-safe`).
+- **The page scrolls, not boxes inside it,** on phones: no nested vertical scroll areas except a
+  dialog's body and a menu's list.
+- **The browser bar** takes the header's colour (`surface`) of the chosen theme (`theme-color`).
+
 **Not taken from the mocks, on purpose:**
 - **The `daemon: local (0.14.0)` chip.** There's no daemon.
 - **Amber "Lifecycle Hook" and "Permissions: Exec" badges** in the light catalogue mock. They break
