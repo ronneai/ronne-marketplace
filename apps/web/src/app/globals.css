@@ -4,7 +4,7 @@
 /*
  * Tailwind utilities for the design tokens (feature 032): bg-canvas, bg-surface, text-fg,
  * text-muted, border-hairline, border-strong, bg-accent, bg-accent-strong, text-on-accent, text-link, bg-tint,
- * outline-focus, rounded-control (6px) and rounded-panel (8px). `inline` keeps the var() references,
+ * bg-inline-code, outline-focus, rounded-control (6px) and rounded-panel (8px). `inline` keeps the var() references,
  * so the theme switches at runtime.
  */
 @theme inline {
@@ -22,6 +22,7 @@
   --color-on-accent: var(--on-accent);
   --color-link: var(--link);
   --color-tint: var(--tint);
+  --color-inline-code: var(--inline-code);
   --color-chart: var(--chart);
   --color-popover: var(--popover);
   --color-popover-border: var(--popover-border);
@@ -170,7 +171,8 @@ body {
 .markdown :not(pre) > code {
   font-family: var(--font-mono);
   font-size: 0.875em;
-  background: var(--tint);
+  color: var(--fg);
+  background: var(--inline-code);
   border-radius: 4px;
   padding: 0.1em 0.35em;
 }

@@ -56,6 +56,7 @@ compose parts; they don't restyle them.
 | `focus` (focus ring) | **Navy** | Teal |
 | `link` | Navy, semibold | Teal |
 | `tint` (selection, soft fill) | Mint | Navy |
+| `inline-code` (inline code chips; owner, 2026-10-03) | Grey `#ECEFF3` | Slate `#2A3446` |
 
 - **Chart colours are the second exception** (owner, 2026-10-01, [047](../047-usage-on-item-page/SPEC.md)):
   the usage charts give each AI tool its own colour, from the owner's item overview mockup one step

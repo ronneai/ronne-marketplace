@@ -64,7 +64,7 @@ export const DependencyCards = () => (
             {card.types.map((type) => (
               <code
                 key={type}
-                className="rounded-sm bg-tint px-2 py-0.5 font-mono text-xs font-semibold text-fg"
+                className="rounded-sm bg-inline-code px-2 py-0.5 font-mono text-xs font-semibold text-fg"
               >
                 {type}
               </code>

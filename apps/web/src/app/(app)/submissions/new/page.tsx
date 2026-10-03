@@ -52,7 +52,7 @@ const NewItem = async () => {
         description={
           <>
             Pick where it lives, its name and its type. The draft starts with a{" "}
-            <code className="rounded-control bg-tint px-1.5 py-0.5 font-mono text-xs text-fg">
+            <code className="rounded-control bg-inline-code px-1.5 py-0.5 font-mono text-xs text-fg">
               ronne.yaml
             </code>{" "}
             and the files it names, and only you see it until you submit it.

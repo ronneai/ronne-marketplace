@@ -38,6 +38,8 @@
   --on-accent: #ffffff;
   --link: #14213d;
   --tint: #bfe9e1;
+  /* Inline code (owner, 2026-10-03): a neutral grey chip, as on most platforms, not the teal tint. */
+  --inline-code: #eceff3;
   /* Inline helpers' popovers (050): a light teal panel with a teal hairline. */
   --popover: #e8f7f4;
   --popover-border: rgba(24, 182, 164, 0.35);
@@ -120,6 +122,7 @@
   --on-accent: #ffffff;
   --link: #18b6a4;
   --tint: #14213d;
+  --inline-code: #2a3446;
   /* Inline helpers' popovers (050): a deep teal panel, apart from the navy cards. */
   --popover: #0f2a2e;
   --popover-border: rgba(24, 182, 164, 0.45);
