@@ -107,8 +107,15 @@ on the same origin.
   `rmk plugin-setup` (`.rmk/state.json`, or `user-state.json` at user scope), so it follows the
   never-overwrite rules (an entry the person made or edited is a conflict, exit 3, unless
   `--force`) and `rmk plugin-setup claude-code --remove` takes it out again.
-- Claude Code runs the helper through `sh` from `~/.claude`, so `rmk` must be on its `PATH`.
-  `--command <rmk>` names it otherwise, such as `/opt/homebrew/bin/rmk`.
+- Claude Code runs the helper through `sh` from `~/.claude`, without the person's shell setup, so
+  a Node.js from nvm (or another version manager) isn't on its `PATH`, and `rmk`'s
+  `#!/usr/bin/env node` fails there (found in the manual test, task 8). So:
+  - at user scope, the helper names the Node.js and the `rmk` that ran `plugin-setup` by their
+    absolute paths (`/…/bin/node /…/rmk/dist/bin.js auth headers --registry …`), and rmk says to
+    run it again after switching or upgrading Node.js;
+  - at project scope, whose settings are shared through git, it stays plain `rmk`, which must be
+    on the `PATH` Claude Code starts with;
+  - `--command <rmk>` replaces either, such as `/opt/homebrew/bin/rmk`.
 - It prints the next step: `/plugin` in Claude Code, then the Marketplaces tab. At project scope it
   says Claude Code reads the marketplace once the folder is trusted. When the registry isn't an
   `https://` address on a host other than loopback, it warns that Claude Code won't download from
@@ -163,15 +170,15 @@ merges them), checks every item the install resolved, and lists them under `also
 
 ## Acceptance criteria
 
-- [ ] Without a token, both routes answer 401; with one, the marketplace lists exactly the installable items that have Claude Code content.
-- [ ] A yanked version is left out, and a deprecated one says so in its description.
-- [ ] A zip's sha256 matches the marketplace entry; `If-None-Match` answers 304; a full GET counts a download.
-- [ ] A zip is built once per version and builder version (tested with a counting storage adapter).
-- [ ] `rmk plugin-setup claude-code` writes the settings key through the applier, `--remove` takes it out, and an edited key isn't overwritten.
-- [ ] `rmk auth headers` prints only the JSON header.
-- [ ] Manual: in Claude Code, `/plugin` lists the instance's items; a skill, an MCP server and a hook install and work; `claude plugin validate` accepts the served marketplace.
-- [ ] Database tests for the feed listing pass on SQLite, PostgreSQL and MySQL.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] Without a token, both routes answer 401; with one, the marketplace lists exactly the installable items that have Claude Code content.
+- [x] A yanked version is left out, and a deprecated one says so in its description.
+- [x] A zip's sha256 matches the marketplace entry; `If-None-Match` answers 304; a full GET counts a download.
+- [x] A zip is built once per version and builder version (tested with a counting storage adapter).
+- [x] `rmk plugin-setup claude-code` writes the settings key through the applier, `--remove` takes it out, and an edited key isn't overwritten.
+- [x] `rmk auth headers` prints only the JSON header.
+- [x] Manual: in Claude Code, `/plugin` lists the instance's items; a skill, an MCP server and a hook install and work; `claude plugin validate` accepts the served marketplace. (The hook was installed and checked from the same plugin files offline, not over HTTPS: see PLAN.md's notes.)
+- [x] Database tests for the feed listing pass on SQLite, PostgreSQL and MySQL.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Open questions
 

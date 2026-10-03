@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import { marketplaceName } from "@ronneai/core/plugins";
 import { rmkVersion } from "./api.js";
 import type { Wanted } from "./apply.js";
@@ -41,6 +42,18 @@ const scopeOf = (value: string | boolean | string[] | undefined): Scope => {
   throw usage("--scope is user or project.");
 };
 
+/** A path as one `sh` word: as it is when it's plain, else in single quotes. */
+const shellWord = (path: string) =>
+  /^[A-Za-z0-9_./+-]+$/.test(path) ? path : `'${path.replaceAll("'", "'\\''")}'`;
+
+/**
+ * This rmk, run by this Node.js, by their absolute paths. Claude Code runs the helper through `sh`
+ * without the person's shell setup, so a Node.js from nvm (or another version manager) isn't on
+ * its PATH, and `rmk`'s `#!/usr/bin/env node` would fail there.
+ */
+export const thisRmk = () =>
+  `${shellWord(process.execPath)} ${shellWord(fileURLToPath(new URL("./bin.js", import.meta.url)))}`;
+
 /** Claude Code reads a URL marketplace's archives only over HTTPS, and never from loopback. */
 const reachableByClaudeCode = (registry: string) => {
   const { protocol, hostname } = new URL(registry);
@@ -62,8 +75,10 @@ export const pluginSetupCommand = async (io: Io, args: Args, out: Output) => {
     throw usage(
       "--static-headers writes your token into the settings file, so it's only allowed with --scope user: a project's .claude/settings.json usually goes into git.",
     );
-  const rmk = (typeof args.values.command === "string" ? args.values.command : "rmk").trim();
-  if (!rmk) throw usage("--command needs the command that runs rmk.");
+  // A project's settings go into git, so they name plain `rmk`; the user's name this rmk exactly.
+  const given = typeof args.values.command === "string" ? args.values.command.trim() : null;
+  if (given === "") throw usage("--command needs the command that runs rmk.");
+  const rmk = given ?? (scope === "project" ? "rmk" : thisRmk());
 
   const wanted: Wanted[] = [];
   let name: string | null = null;
@@ -126,9 +141,17 @@ export const pluginSetupCommand = async (io: Io, args: Args, out: Output) => {
     out.say(
       "Note: the token is written into the settings file. Run rmk plugin-setup claude-code --static-headers again after rmk login.",
     );
+  else if (given)
+    out.say(
+      `Note: Claude Code runs \`${rmk} auth headers\` through sh from ~/.claude, without your shell's setup: check that it works there.`,
+    );
+  else if (scope === "project")
+    out.say(
+      "Note: Claude Code runs `rmk auth headers` for everyone who uses this project, so rmk and Node.js must be on the PATH Claude Code starts with.",
+    );
   else
     out.say(
-      `Note: Claude Code runs \`${rmk} auth headers\` from ~/.claude to send your token, so ${rmk} must be on its PATH (or pass --command with its full path).`,
+      `Note: Claude Code runs this rmk with the Node.js at ${process.execPath}. Run rmk plugin-setup claude-code again after you switch or upgrade Node.js, or move rmk.`,
     );
   if (scope === "project")
     out.say(

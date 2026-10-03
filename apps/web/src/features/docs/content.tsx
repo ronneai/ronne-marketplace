@@ -2326,9 +2326,16 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </p>
         <Bullets>
           <li>
-            Claude Code runs it from <Code>~/.claude</Code>, so <Code>rmk</Code> must be on your{" "}
-            <Code>PATH</Code>. If it isn&apos;t, give its full path:{" "}
-            <Code>rmk plugin-setup claude-code --command /opt/homebrew/bin/rmk</Code>.
+            Claude Code runs it from <Code>~/.claude</Code>, without your shell&apos;s setup, so a
+            Node.js from nvm isn&apos;t on its <Code>PATH</Code>. In your own settings,{" "}
+            <Code>rmk plugin-setup</Code> names the Node.js and the <Code>rmk</Code> you ran it with
+            by their full paths: run it again after you switch or upgrade Node.js.
+          </li>
+          <li>
+            A project&apos;s settings name plain <Code>rmk</Code>, since they&apos;re shared: there,{" "}
+            <Code>rmk</Code> and Node.js must be on the <Code>PATH</Code> Claude Code starts with.{" "}
+            <Code>--command</Code> names another command, such as{" "}
+            <Code>--command /opt/homebrew/bin/rmk</Code>.
           </li>
           <li>
             When the token expires or is revoked, the marketplace stops refreshing, and Claude Code

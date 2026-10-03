@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { run } from "./cli.js";
 import { configDir } from "./config.js";
+import { thisRmk } from "./plugin-setup.js";
 import { type FakeIo, fakeIo, identityRoutes, REGISTRY } from "./testing.js";
 
 let io: FakeIo;
@@ -31,6 +32,7 @@ describe("rmk plugin-setup claude-code (077)", () => {
       `Added the plugin marketplace ${NAME} to Claude Code (~/.claude/settings.json).`,
     );
     expect(setup.stdout).toContain("run /plugin in Claude Code");
+    expect(setup.stdout).toContain(`with the Node.js at ${process.execPath}`);
     expect(json(userSettings())).toEqual({
       theme: "dark",
       extraKnownMarketplaces: {
@@ -38,7 +40,7 @@ describe("rmk plugin-setup claude-code (077)", () => {
           source: {
             source: "url",
             url: MARKETPLACE,
-            headersHelper: `rmk auth headers --registry ${REGISTRY}`,
+            headersHelper: `${thisRmk()} auth headers --registry ${REGISTRY}`,
           },
         },
       },
@@ -73,6 +75,11 @@ describe("rmk plugin-setup claude-code (077)", () => {
     expect(setup.stdout).toContain("(.claude/settings.json)");
     expect(setup.stdout).toContain("only once you trust the folder");
     expect(json(projectSettings()).extraKnownMarketplaces[NAME].source.url).toBe(MARKETPLACE);
+    // A project's settings go into git: plain rmk, not this machine's paths.
+    expect(json(projectSettings()).extraKnownMarketplaces[NAME].source.headersHelper).toBe(
+      `rmk auth headers --registry ${REGISTRY}`,
+    );
+    expect(setup.stdout).toContain("rmk and Node.js must be on the PATH");
     expect(existsSync(userSettings())).toBe(false);
     expect(
       (await rmk("plugin-setup", "claude-code", "--scope", "project", "--remove")).exitCode,
@@ -170,5 +177,13 @@ describe("rmk plugin-setup claude-code (077)", () => {
     const setup = await rmk("plugin-setup", "claude-code", "--insecure");
     expect(setup.exitCode, setup.stderr).toBe(0);
     expect(setup.stdout).toContain("isn't an HTTPS address Claude Code will download plugins from");
+  });
+});
+
+describe("the helper's command at user scope (077)", () => {
+  it("is this Node.js and this rmk, by their absolute paths, so it works without either on PATH", () => {
+    const [node, bin] = thisRmk().split(" ");
+    expect(node).toBe(process.execPath);
+    expect(bin).toMatch(/^\/.*\/bin\.js$/);
   });
 });
