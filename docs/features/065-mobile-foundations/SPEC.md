@@ -51,7 +51,7 @@ phone and tablet test projects, with a sweep that fails when any page scrolls si
   item pages and the review page aren't empty). On each page, at each project's size and at 360px
   and 320px: the document doesn't scroll sideways (`scrollWidth <= clientWidth`), and no element
   sticks out of the viewport unless it sits in a scrolling frame. Failures name the page and the
-  element. A page that still fails is listed in an `expectedFailures` map that names the feature
+  element. A page that still fails is listed in an `EXPECTED_FAILURES` map that names the feature
   fixing it; each later feature empties its entries, and 075 checks the map is empty.
 - **A tap-target check** (`e2e/touch-targets.ts`, used by the sweep in report mode): lists every
   visible link, button, input and summary under 24px (always a failure once the map is empty) and
@@ -96,7 +96,7 @@ Documentation topic about phones comes with 075.
   classes; checked by hand in the iPhone simulator, see PLAN).
 - [ ] `phone`, `phone-webkit` and `tablet` projects run in `pnpm test:e2e` and in CI.
 - [ ] The sweep visits every page in `e2e/pages.ts` for each role and fails on sideways scroll;
-  today's failures are listed in `expectedFailures` with the feature that fixes each.
+  today's failures are listed in `EXPECTED_FAILURES` with the feature that fixes each.
 - [ ] The tap-target report is attached to the e2e run.
 
 ## Decisions

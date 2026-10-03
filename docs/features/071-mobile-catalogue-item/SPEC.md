@@ -112,7 +112,7 @@ This feature fixes the home page, catalogue, item page and Documentation for pho
 - [ ] Risk flags with a 200-character URL don't widen the page (sweep, with a seeded item).
 - [ ] Long docs topics have "On this page" below `md` (docs render tests).
 - [ ] The Documentation lines above describe the phone, touch and mouse behaviour.
-- [ ] The sweep's `expectedFailures` entries for 071 are gone.
+- [ ] The sweep's `EXPECTED_FAILURES` entries for 071 are gone.
 
 ## Decisions
 

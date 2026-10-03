@@ -37,9 +37,11 @@ export const MainNav = ({
     </Link>
   );
   return (
+    // `relative`, so the strip also clips the counts' screen-reader text (absolutely positioned),
+    // which otherwise widened the whole page on a phone (065).
     <nav
       aria-label="Main"
-      className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none]"
+      className="relative flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none]"
     >
       {items.filter((item) => !item.end).map(link)}
       <span className="ml-auto" />

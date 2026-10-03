@@ -77,7 +77,7 @@ adds a check so new ones don't appear.
 - [ ] The types list, file tree names and the submissions feedback are readable in full on a phone.
 - [ ] The `title=` scan passes with a reviewed allowlist.
 - [ ] The Documentation lines above say "tap or hover".
-- [ ] The sweep's `expectedFailures` entries for 068 are gone.
+- [ ] The sweep's `EXPECTED_FAILURES` entries for 068 are gone.
 
 ## Open questions
 

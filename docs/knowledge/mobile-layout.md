@@ -43,14 +43,24 @@ follow them and how to check them. The work is planned in
   at the project's size and at 360px and 320px. It fails when the document scrolls sideways, and
   names the page and the widest element that sticks out. A unit test makes `pages.ts` list every
   `page.tsx`, so a new page can't be left out.
-- **`expectedFailures`** in the sweep lists pages that still fail, each with the feature that fixes
+- **`EXPECTED_FAILURES`** in the sweep lists pages that still fail, each with the feature that fixes
   it. Fix a page, remove its entry. An entry for a page that now passes fails the sweep too, so the
   list can't go stale.
-- **Tap targets:** the sweep writes a report of the controls under 44px (coarse pointer) and under
-  24px, attached to the run as `touch-targets.txt`. It's a report until 075 makes it a failure.
+- **Reports:** the sweep's last test writes `overflow.txt` (every failure, listed or not) and
+  `touch-targets.txt` (controls under 44px at the device's width, `(<24)` marks the ones under
+  24px) into `apps/web/test-results/mobile-sweep…-<project>/`. CI uploads them as the
+  `mobile-sweep-reports` artifact. The tap targets are a report until 075 makes them a failure.
 - **Sign-ins:** each project signs in with its own users (`mobileRoot`, `mobileModerator`,
   `mobileMember` per project in `e2e/users.ts`), because of the per-email sign-in limit
   ([e2e-sign-in-limit.md](./e2e-sign-in-limit.md)).
+
+## Absolute boxes escape a scrolling frame
+
+A frame with `overflow-x: auto` only clips an absolutely positioned child if the frame (or
+something between them) is positioned. Screen-reader text (`sr-only`) is absolute, so a count's
+"waiting" label inside the scrolling main nav widened every page by 12px on a phone until the nav
+got `relative`. When a scrolling strip holds `sr-only` text or anything absolute, make the strip
+`relative`. The sweep follows the same rule, so it names the `span.sr-only` when this happens.
 
 ## Reading a sweep failure
 

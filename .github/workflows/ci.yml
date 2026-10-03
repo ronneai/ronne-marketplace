@@ -126,3 +126,10 @@ jobs:
       # Builds the web app, sets up a throwaway SQLite instance and runs the tests (apps/web/e2e).
       - run: pnpm test:e2e
         if: needs.changes.outputs.code != 'false'
+      # The phone sweep's reports (065): pages that scroll sideways and controls under 44px.
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
+        with:
+          name: mobile-sweep-reports
+          path: apps/web/test-results/**/*.txt
+          if-no-files-found: ignore

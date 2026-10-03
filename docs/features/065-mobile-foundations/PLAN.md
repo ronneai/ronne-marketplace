@@ -36,8 +36,8 @@ the same change that completes it.
   *Done when:* a test checks `pages.ts` covers every `page.tsx` under `app/` (by walking the
   folder), so a new page can't be forgotten.
 
-- [ ] **6. The sweep and the tap-target report.** `mobile-sweep.mobile.e2e.ts` and
-  `touch-targets.ts`; record today's failures in `expectedFailures`, each with its fixing feature.
+- [x] **6. The sweep and the tap-target report.** `mobile-sweep.mobile.e2e.ts` and
+  `touch-targets.ts`; record today's failures in `EXPECTED_FAILURES`, each with its fixing feature.
   *Done when:* the sweep passes with the map filled in, fails if an entry is removed before its
   fix, and the tap-target report is attached to the run.
 
@@ -58,3 +58,8 @@ goes into `SPEC.md` instead.
   "End-to-end (Chromium)", because a required check is matched by name.
 - **Each project signs in with its own users** (`e2e/mobile.ts` maps project → user), so the
   per-email sign-in limit doesn't span projects.
+- **The first run found two things.** The main nav's count text widened every page for
+  moderators and root (fixed here: `relative` on the nav; see the knowledge note), and the new item
+  form's first sections are 5px too wide at 320px in Chromium only (listed for 072).
+- **The sweep resizes a loaded page** (device width, 360, 320) instead of loading it three times;
+  layouts here don't depend on the width at load, and it keeps the run to about 10s per project.

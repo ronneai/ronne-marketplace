@@ -129,7 +129,7 @@ The canvas is for viewing there.
   save, discard and sign-out (unit tests; an e2e reloads with unsaved changes and restores).
 - [ ] Every dialog in the flow keeps its buttons on screen with the keyboard open (WebKit e2e).
 - [ ] The Documentation lines above describe the Canvas view on phones and the recovery copy.
-- [ ] The sweep's `expectedFailures` entries for 072 are gone.
+- [ ] The sweep's `EXPECTED_FAILURES` entries for 072 are gone.
 
 ## Decisions
 

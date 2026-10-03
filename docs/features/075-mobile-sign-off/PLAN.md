@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Guards.** Remove `expectedFailures`; tap-target check fails with an allowlist; template
+- [ ] **1. Guards.** Remove `EXPECTED_FAILURES`; tap-target check fails with an allowlist; template
   acceptance line; `CLAUDE.md` line.
   *Done when:* `pnpm test:e2e` passes, and a deliberately tiny button in a scratch branch fails it.
 

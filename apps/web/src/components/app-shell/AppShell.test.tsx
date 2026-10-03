@@ -27,6 +27,11 @@ describe("navFor", () => {
 });
 
 describe("MainNav", () => {
+  it("is positioned, so its scrolling strip clips the counts' screen-reader text (065)", () => {
+    const html = renderToStaticMarkup(<MainNav items={[]} />);
+    expect(html).toMatch(/<nav aria-label="Main" class="relative /);
+  });
+
   it("puts Admin and Docs at the right, before the appearance switch", () => {
     const html = renderToStaticMarkup(
       <MainNav items={navFor({ name: "R", email: "r@example.com", role: "root" })} />,

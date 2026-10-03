@@ -69,7 +69,7 @@ diff header is clipped. This feature makes reading files and diffs work on a pho
 - [ ] Below `sm` a diff has one line-number column; the toggle restores two (unit test).
 - [ ] Long paths in file and diff headers wrap (unit test; sweep).
 - [ ] The Documentation lines above match the phone layout.
-- [ ] The sweep's `expectedFailures` entries for 070 are gone.
+- [ ] The sweep's `EXPECTED_FAILURES` entries for 070 are gone.
 
 ## Open questions
 

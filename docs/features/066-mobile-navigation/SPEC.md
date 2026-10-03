@@ -86,7 +86,7 @@ view. This feature gives phones a menu and makes every tab strip show where it i
 - [ ] The item page tabs, docs topics, Admin and queue tabs use `ScrollStrip`; opening
   `?tab=risks` on a phone shows the active tab on screen (e2e).
 - [ ] The docs sidebar scrolls on a 1024×768 landscape tablet (tablet project).
-- [ ] The sweep's `expectedFailures` entries for 066 are gone.
+- [ ] The sweep's `EXPECTED_FAILURES` entries for 066 are gone.
 - [ ] The Documentation listed above mentions the Menu.
 
 ## Decisions
