@@ -88,23 +88,36 @@ marketplace's `headers` or `headersHelper`, and sends it again for the archive d
 on the same origin.
 
 **`rmk plugin-setup claude-code [--scope user|project]`.**
-- It needs `rmk login` first; it uses the current registry.
+- It needs `rmk login` first; it uses the current registry (at project scope, the project's).
 - It writes `extraKnownMarketplaces.<marketplace name>` to `~/.claude/settings.json` (user, the
-  default) or `.claude/settings.json` (project):
+  default) or `.claude/settings.json` (project). `headers` and `headersHelper` are fields of the
+  `url` source itself (checked 2026-10-03):
 
   ```json
   {
-    "source": { "source": "url", "url": "https://registry.example.com/api/v1/feeds/claude-code/marketplace.json" },
-    "headersHelper": "rmk auth headers --registry https://registry.example.com"
+    "source": {
+      "source": "url",
+      "url": "https://registry.example.com/api/v1/feeds/claude-code/marketplace.json",
+      "headersHelper": "rmk auth headers --registry https://registry.example.com"
+    }
   }
   ```
 
-  The write goes through the applier as a `json-key` change, tracked in `.rmk/state.json`, so it
-  follows the never-overwrite rules and `rmk plugin-setup --remove` takes it out again.
-- It prints the next step: `/plugin` in Claude Code, then the marketplace tab.
-- `--static-headers` writes `headers: { "Authorization": "Bearer <token>" }` instead, for Claude
-  Code versions without `headersHelper` (before v2.1.238). It's only allowed with `--scope user`,
-  because a project file would put the token in git.
+  The write goes through the applier as a `json-key` change, tracked in the state file under
+  `rmk plugin-setup` (`.rmk/state.json`, or `user-state.json` at user scope), so it follows the
+  never-overwrite rules (an entry the person made or edited is a conflict, exit 3, unless
+  `--force`) and `rmk plugin-setup claude-code --remove` takes it out again.
+- Claude Code runs the helper through `sh` from `~/.claude`, so `rmk` must be on its `PATH`.
+  `--command <rmk>` names it otherwise, such as `/opt/homebrew/bin/rmk`.
+- It prints the next step: `/plugin` in Claude Code, then the Marketplaces tab. At project scope it
+  says Claude Code reads the marketplace once the folder is trusted. When the registry isn't an
+  `https://` address on a host other than loopback, it warns that Claude Code won't download from
+  it.
+- `--static-headers` writes `"headers": { "Authorization": "Bearer <token>" }` in the source
+  instead, for Claude Code versions without `headersHelper` (before v2.1.238). It's only allowed
+  with `--scope user`, because a project file would put the token in git. The state file keeps a
+  hash, never the token.
+- Only `claude-code` is accepted: Codex and Cursor read plugins from the git mirror (078).
 
 **`rmk auth headers [--registry <url>]`** prints `{"Authorization":"Bearer <token>"}` for the
 registry's stored token (or `RMK_TOKEN`), and nothing else on stdout. Without a token it exits 1 with

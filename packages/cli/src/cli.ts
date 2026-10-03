@@ -10,6 +10,7 @@ import type { Io } from "./io.js";
 import { outdatedCommand, removeCommand, updateCommand } from "./manage.js";
 import { mcpSetupCommand } from "./mcp-setup.js";
 import { done, failed, output, type RunResult } from "./output.js";
+import { pluginSetupCommand } from "./plugin-setup.js";
 import { list, platforms, withApi } from "./registry-commands.js";
 import { submitCommand } from "./submit.js";
 import { flushAfterCommand, refreshPolicy, usageNotice } from "./telemetry.js";
@@ -34,6 +35,7 @@ export const USAGE = `Usage: rmk <command> [options]
   outdated
   remove <item>...
   mcp-setup [--target <ids>|all] [--scope project|user] [--remove] [--command <cmd>]
+  plugin-setup claude-code [--scope user|project] [--remove] [--static-headers] [--command <rmk>]
   export [<path|name>...] [--to <@scope>] [--type <type>] [--from <tool>] [--name <name>]
          [--description <text>] [--with-deps | --no-deps] [--scope project|user]
          [--describe <item>=<text>]... [--descriptions <file.json>]
@@ -70,6 +72,7 @@ const OPTIONS = {
   describe: { type: "string", multiple: true },
   descriptions: { type: "string" },
   "no-deps": { type: "boolean" },
+  "static-headers": { type: "boolean" },
 } as const;
 
 export type Args = {
@@ -203,6 +206,7 @@ export const COMMANDS: Record<string, Command> = {
   outdated,
   remove,
   "mcp-setup": (io, args, out) => mcpSetupCommand(io, args, out),
+  "plugin-setup": (io, args, out) => pluginSetupCommand(io, args, out),
   export: (io, args, out) => exportCommand(io, args, out, connect(io, args).api),
   submit: (io, args, out) => submitCommand(io, args, out, connect(io, args).api),
   telemetry: (io, args, out) => telemetryCommand(io, args, out),

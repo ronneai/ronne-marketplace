@@ -1,12 +1,11 @@
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
 import type { Manifest } from "@ronneai/core";
 import { rmkVersion } from "./api.js";
-import { applyPlan, planChanges, readState, type Wanted, writeState } from "./apply.js";
-import { RmkError, usage } from "./errors.js";
+import type { Wanted } from "./apply.js";
+import { usage } from "./errors.js";
 import { chooseTargets, MCP_SETUP_ITEM, places, scopeOf, toolNotes } from "./install.js";
 import type { Io } from "./io.js";
 import type { Output } from "./output.js";
+import { applyOwnEntries } from "./own-entries.js";
 import { readProjectConfig } from "./project.js";
 
 /**
@@ -64,32 +63,11 @@ export const mcpSetupCommand = async (io: Io, args: Args, out: Output) => {
         wanted.push({ item: MCP_SETUP_ITEM, version, targets: [target.id], change });
     }
 
-  // Only mcp-setup's own entries are planned: every item's stay as they are.
-  const { root, state: statePath } = places(io, scope);
-  const all = readState(statePath);
-  const own = {
-    version: 1 as const,
-    entries: all.entries.filter((e) => e.item === MCP_SETUP_ITEM),
-  };
-  const others = all.entries.filter((e) => e.item !== MCP_SETUP_ITEM);
-  const plan = await planChanges(root, own, wanted, { force: args.values.force === true });
-  out.set("conflicts", plan.conflicts);
-  if (plan.conflicts.length) {
-    for (const c of plan.conflicts)
-      out.say(
-        `  ${c.path}${c.key ? ` (${Array.isArray(c.key) ? c.key.join(".") : c.key})` : ""}: ${c.reason === "unmanaged" ? "not written by rmk" : "edited since rmk wrote it"}`,
-      );
-    throw new RmkError(
-      "Nothing was written: an MCP server entry there isn't rmk's. Move it aside, or run again with --force.",
-      3,
-      "conflicts",
-      { conflicts: plan.conflicts },
-    );
-  }
-  const next = applyPlan(root, own, plan);
-  next.entries.push(...others);
-  mkdirSync(join(statePath, ".."), { recursive: true });
-  writeState(statePath, next);
+  const plan = await applyOwnEntries(scope, io, MCP_SETUP_ITEM, wanted, {
+    force: args.values.force === true,
+    out,
+    what: "an MCP server entry",
+  });
 
   const written = plan.writes.map((w) => w.entry.path);
   const removed = plan.removes.map((e) => e.path);
@@ -117,7 +95,7 @@ export const mcpSetupCommand = async (io: Io, args: Args, out: Output) => {
       out.say(
         "Note: Claude Code asks once before it uses a project's MCP servers: approve ronne-registry.",
       );
-    for (const note of toolNotes(written, scope, root)) out.say(`Note: ${note}`);
+    for (const note of toolNotes(written, scope, places(io, scope).root)) out.say(`Note: ${note}`);
     if (written.length)
       out.say(
         "Restart the AI tool, or reload its MCP servers, to start it. It uses the token from rmk login.",

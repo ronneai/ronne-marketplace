@@ -24,7 +24,7 @@ the same change that completes it.
 - [x] **4. `rmk auth headers`.** In `packages/cli`.
   *Done when:* a test checks stdout is only the JSON header, and that it exits 1 without a token.
 
-- [ ] **5. `rmk plugin-setup claude-code`.** `packages/cli/src/plugin-setup.ts`, modelled on
+- [x] **5. `rmk plugin-setup claude-code`.** `packages/cli/src/plugin-setup.ts`, modelled on
   `mcp-setup.ts`, through the applier; also `--remove` and `--static-headers`.
   *Done when:* tests cover both scopes, removal, an edited key, and `--static-headers` refused at
   project scope.
@@ -51,3 +51,8 @@ goes into `SPEC.md` instead.
   loopback (a tunnel, or a LAN name with a trusted certificate), with `PUBLIC_URL` set to it.
 - The marketplace's top-level `description` is the field Claude Code reads first; the spec's
   example used `metadata.description`, which is only the alternate, and now uses `description`.
+- `headers` and `headersHelper` belong **inside** the marketplace's `url` source object in
+  `extraKnownMarketplaces`, not beside it (settings reference, checked 2026-10-03). The spec's first
+  example had them beside it; it's fixed.
+- `rmk mcp-setup` and `rmk plugin-setup` share `applyOwnEntries` (`packages/cli/src/own-entries.ts`):
+  plan and apply only the command's own state entries, and stop on a conflict.

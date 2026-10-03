@@ -399,6 +399,7 @@ written `pnpm run setup`. Full behaviour, including a non-interactive mode for D
 | `rmk login [--registry <url>]` | Prompts for email and password, exchanges them for a **personal access token**, and stores it in `~/.config/rmk/config.json` (mode 0600). A registry named with `--registry` becomes the default. |
 | `rmk login --token <token>` | Uses a personal access token created in the web app (**Access tokens**), for example in CI or where typing a password isn't wanted. |
 | `rmk logout` / `rmk whoami` | Revoke the token locally and on the server / show the current user and registry, and where the registry came from. |
+| `rmk plugin-setup claude-code [--scope user\|project] [--remove] [--static-headers]` | Add the registry's plugin marketplace to Claude Code's settings (`extraKnownMarketplaces`, with `rmk auth headers` as its `headersHelper`), through the applier, so it's never overwritten and `--remove` takes it out ([077](../features/077-claude-code-marketplace/SPEC.md)). |
 | `rmk auth headers [--registry <url>]` | Print `{"Authorization":"Bearer <token>"}` for the registry's saved token (or `RMK_TOKEN`) and nothing else: Claude Code's `headersHelper` for the plugin marketplace ([077](../features/077-claude-code-marketplace/SPEC.md)). Exits 1 without a token. |
 | `rmk search <query>` · `rmk list [--installed]` | Browse the catalogue / show installed items. |
 | `rmk info <item>[@version]` | Show metadata, versions, dist-tags and dependencies. |
