@@ -29,7 +29,7 @@ the same change that completes it.
   *Done when:* tests cover both scopes, removal, an edited key, and `--static-headers` refused at
   project scope.
 
-- [ ] **6. Warn on both.** `rmk install` warns when the item is also enabled as a plugin from this
+- [x] **6. Warn on both.** `rmk install` warns when the item is also enabled as a plugin from this
   registry.
   *Done when:* an install test covers the warning.
 

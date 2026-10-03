@@ -194,6 +194,44 @@ describe("rmk install", () => {
     ).toEqual({ "@team/secure": "latest", "@team/gh": "latest" });
     expect(existsSync(join(io.home, ".claude/skills/secure/SKILL.md"))).toBe(true);
   });
+
+  it("warns when an item is also enabled as a Claude Code plugin from this registry, and installs it anyway (077)", async () => {
+    await start();
+    mkdirSync(join(io.home, ".claude"));
+    writeFileSync(
+      join(io.home, ".claude/settings.json"),
+      JSON.stringify({
+        enabledPlugins: {
+          "team.secure@ronne-ronne-example": true,
+          // Another registry's, and a disabled one: no warning.
+          "team.gh@ronne-elsewhere-example": true,
+        },
+      }),
+    );
+    writeFileSync(
+      join(io.cwd, ".claude/settings.local.json"),
+      JSON.stringify({ enabledPlugins: { "team.gh@ronne-ronne-example": false } }),
+    );
+    const result = await rmk("install", "@team/secure");
+    expect(result.exitCode, result.stderr).toBe(0);
+    expect(result.stdout).toContain(
+      "Warning: @team/secure is also enabled as the Claude Code plugin team.secure@ronne-ronne-example, so Claude Code loads it twice.",
+    );
+    expect(result.stdout).not.toContain("@team/gh is also enabled");
+    expect(read(".claude/skills/secure/SKILL.md")).toContain("Check inputs and secrets.");
+    const json = JSON.parse((await rmk("install", "@team/secure", "--json")).stdout);
+    expect(json.alsoPlugins).toEqual([
+      { item: "@team/secure", plugin: "team.secure@ronne-ronne-example" },
+    ]);
+  });
+
+  it("treats Claude Code settings that aren't JSON as having no plugins (077)", async () => {
+    await start();
+    writeFileSync(join(io.cwd, ".claude/settings.json"), "{ not json");
+    const result = await rmk("install", "@team/secure");
+    expect(result.exitCode, result.stderr).toBe(0);
+    expect(result.stdout).not.toContain("also enabled");
+  });
 });
 
 describe("rmk install for Codex", () => {

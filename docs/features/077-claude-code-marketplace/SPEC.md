@@ -125,7 +125,10 @@ the reason on stderr, and Claude Code shows the marketplace as failing to load.
 
 **With `rmk install`.** The two don't share state. When `rmk install` installs an item into Claude
 Code and `enabledPlugins` already has `<plugin name>@<marketplace name>` from this registry, it warns
-that the item is also installed as a plugin, and continues.
+that the item is also installed as a plugin, and continues. It reads `enabledPlugins` from
+`~/.claude/settings.json`, `.claude/settings.json` and `.claude/settings.local.json` (Claude Code
+merges them), checks every item the install resolved, and lists them under `alsoPlugins` with
+`--json`. A settings file that isn't JSON counts as empty.
 
 ## Edge cases
 
