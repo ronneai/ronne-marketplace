@@ -55,6 +55,13 @@ test("submits the ready drafts selected on My submissions, and leaves the one th
   await expect(
     page.getByLabel(new RegExp(`Fix \\d+ issues? in @${E2E_SCOPE}/bulk-blocked first`)),
   ).toBeDisabled();
+  // The list searches on the server (063); Select all ready still covers every ready draft.
+  await page.getByLabel("Search").fill("bulk-one");
+  await expect(page).toHaveURL(/q=bulk-one/);
+  await expect(page.getByRole("link", { name: /bulk-two/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Select all ready (2)" })).toBeVisible();
+  await page.getByRole("link", { name: "Remove the search filter" }).click();
+  await expect(page).not.toHaveURL(/q=/);
   await page.getByRole("button", { name: "Select all ready (2)" }).click();
   await page.getByRole("button", { name: "Submit selected (2)" }).click();
   const dialog = page.getByRole("dialog", { name: "Submit 2 for review" });

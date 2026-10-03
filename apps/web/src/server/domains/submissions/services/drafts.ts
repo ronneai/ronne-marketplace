@@ -11,6 +11,7 @@ import {
 } from "@ronneai/core";
 import { isScalar, parseDocument } from "yaml";
 import { isId } from "../../../db/ids";
+import type { SortDir } from "../../../db/keyset";
 import type { StorageAdapter } from "../../../storage";
 import { requirePermission } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
@@ -195,6 +196,64 @@ export const listMySubmissions = async (
 ): Promise<(Submission & { stale: string | null })[]> => {
   requirePermission(actor.user, "submissions.create");
   return withStale(deps.repo.registry(), await deps.repo.listByAuthor(actor.user?.id ?? ""));
+};
+
+export const MY_SUBMISSIONS_PAGE_SIZE = 50;
+
+/** My submissions' view (063): a status (or all but archived), a search and a type, sorted. */
+export type MySubmissionsQuery = {
+  status?: SubmissionStatus;
+  search?: string;
+  type?: ItemType;
+  sort?: "updated" | "name";
+  dir?: SortDir;
+  size?: number;
+  cursor?: string;
+};
+
+export type MySubmissionsPage = {
+  rows: (Submission & { stale: string | null })[];
+  next: string | null;
+  previous: string | null;
+  total: { count: number; capped: boolean };
+};
+
+/** One page of your own submissions, with the stale proposals among them (017), and the total. */
+export const pageMySubmissions = async (
+  deps: DraftDeps,
+  actor: DraftActor,
+  query: MySubmissionsQuery,
+): Promise<MySubmissionsPage> => {
+  requirePermission(actor.user, "submissions.create");
+  const filters = {
+    authorId: actor.user?.id ?? "",
+    status: query.status,
+    search: query.search?.trim().slice(0, 100) || undefined,
+    type: query.type,
+  };
+  const sort = query.sort ?? "updated";
+  const [page, total] = await Promise.all([
+    deps.repo.pageByAuthor({
+      ...filters,
+      sort,
+      dir: query.dir ?? (sort === "updated" ? "desc" : "asc"),
+      size: query.size ?? MY_SUBMISSIONS_PAGE_SIZE,
+      cursor: query.cursor,
+    }),
+    deps.repo.countByAuthor(filters),
+  ]);
+  return {
+    rows: await withStale(deps.repo.registry(), page.rows),
+    next: page.next,
+    previous: page.previous,
+    total,
+  };
+};
+
+/** How many of your submissions are in each status, for My submissions' status links (063). */
+export const countMySubmissionsByStatus = async (deps: DraftDeps, actor: DraftActor) => {
+  requirePermission(actor.user, "submissions.create");
+  return deps.repo.statusCountsByAuthor(actor.user?.id ?? "");
 };
 
 export const getDraft = async (deps: DraftDeps, actor: DraftActor, id: string): Promise<Draft> => {

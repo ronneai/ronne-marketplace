@@ -115,6 +115,7 @@ export const DataTable = <Row, S extends string, F extends string>({
   noun,
   toolbar,
   empty,
+  pinned = [],
 }: {
   list: ListDefinition<S, F>;
   state: ListState<S, F>;
@@ -130,8 +131,14 @@ export const DataTable = <Row, S extends string, F extends string>({
   /** The list's filters, above the table. */
   toolbar?: ReactNode;
   empty: { none: string; filtered: string };
+  /**
+   * Filters chosen outside the toolbar (such as status links, 063): they don't make the list
+   * "filtered", and Clear filters keeps them.
+   */
+  pinned?: readonly F[];
 }) => {
-  const filtered = isFiltered(state);
+  const loose = (Object.keys(state.filters) as F[]).filter((key) => !pinned.includes(key));
+  const filtered = loose.some((key) => state.filters[key]);
   const hide = (column: Column<Row, S>) => column.hideOnMobile && "hidden sm:table-cell";
   const pager = (
     <nav
@@ -203,9 +210,9 @@ export const DataTable = <Row, S extends string, F extends string>({
           {filtered && !state.cursor ? (
             <Link
               href={listUrl(list, state, {
-                filters: Object.fromEntries(
-                  Object.keys(state.filters).map((k) => [k, ""]),
-                ) as Partial<Record<F, string>>,
+                filters: Object.fromEntries(loose.map((k) => [k, ""])) as Partial<
+                  Record<F, string>
+                >,
               })}
               className="text-link underline-offset-2 hover:underline"
             >

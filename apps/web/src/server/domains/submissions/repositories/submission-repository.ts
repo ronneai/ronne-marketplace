@@ -22,6 +22,23 @@ export type NewSubmission = {
   proposal?: { itemId: string; baseVersionId: string };
 };
 
+/** One author's submissions (063): a status (or every status but archived), a search, a type. */
+export type AuthorFilters = {
+  authorId: string;
+  /** One status; without it, every status but `withdrawn` (archived, 057). */
+  status?: SubmissionStatus;
+  /** Part of the item name, any case. */
+  search?: string;
+  type?: ItemType;
+};
+
+export type AuthorPageQuery = AuthorFilters & {
+  sort: "updated" | "name";
+  dir: SortDir;
+  size: number;
+  cursor?: string;
+};
+
 /** A queue tab's rows (062): its statuses, and the reviewer's search and type. */
 export type ReviewFilters = {
   statuses: readonly SubmissionStatus[];
@@ -59,6 +76,12 @@ export interface SubmissionRepository {
     order: "oldest" | "newest";
     limit: number;
   }): Promise<(Submission & { authorName: string })[]>;
+  /** One page of an author's own submissions (keyset, 063). */
+  pageByAuthor(query: AuthorPageQuery): Promise<KeysetPage<Submission>>;
+  /** How many of an author's submissions the filters match, up to the count cap. */
+  countByAuthor(filters: AuthorFilters): Promise<{ count: number; capped: boolean }>;
+  /** How many submissions an author has in each status, for My submissions' status links. */
+  statusCountsByAuthor(authorId: string): Promise<Partial<Record<SubmissionStatus, number>>>;
   /** One page of a queue tab (keyset, 062), with each author's name. */
   pageForReview(query: ReviewPageQuery): Promise<KeysetPage<Submission & { authorName: string }>>;
   /** How many submissions a queue tab's filters match, up to the count cap. */

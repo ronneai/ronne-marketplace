@@ -18,7 +18,7 @@ export const FilterChips = <S extends string, F extends string>({
   state: ListState<S, F>;
   labels: Record<F, string>;
   /** Filters shown elsewhere (such as status links), never as chips, and kept by Clear. */
-  hidden?: readonly F[];
+  hidden?: readonly NoInfer<F>[];
   display?: Partial<Record<F, (value: string) => string>>;
 }) => {
   const keys = (Object.keys(state.filters) as F[]).filter((key) => !hidden.includes(key));

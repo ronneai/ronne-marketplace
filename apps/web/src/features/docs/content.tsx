@@ -653,6 +653,12 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             ))}
           </tbody>
         </Table>
+        <p>
+          <To href="/submissions">My submissions</To> lists yours a page at a time (25, 50 or 100),
+          newest change first or by name, with a link for each status you have and its count;
+          archived ones only under Archived. Search by part of the item&apos;s name, or pick a type;
+          both show as chips, and the status links keep your sort and page size.
+        </p>
       </>
     ),
     withdraw: (
@@ -727,7 +733,8 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           <strong>Select all ready</strong>, then <strong>Submit selected</strong>: it lists them
           and asks first, then submits each on its own and says what happened to each. A draft that
           stopped being ready in the meantime, because someone else submitted the same name, says
-          why, and the others still go.
+          why, and the others still go. Select all ready takes every ready draft, also those on
+          other pages or hidden by a search.
         </p>
         <p>
           From a terminal, with <To href={docsHref("rmk")}>rmk</To>:
@@ -1017,8 +1024,8 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           Approved submissions can go out together: tick them on{" "}
           <To href="/submissions">My submissions</To> (your own), or on the review queue&apos;s{" "}
           <strong>To release</strong> tab (moderators and root, anyone&apos;s), then{" "}
-          <strong>Release selected</strong>. On the queue, Select all covers the page you&apos;re
-          viewing: show 100 a page, or filter first, to release more at once.
+          <strong>Release selected</strong>. Select all covers the page you&apos;re viewing, on
+          both: show 100 a page, or filter first, to release more at once.
         </p>
         <Bullets>
           <li>

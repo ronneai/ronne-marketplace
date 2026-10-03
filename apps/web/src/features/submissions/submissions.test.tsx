@@ -4,7 +4,12 @@ import { ForbiddenError } from "@/server/domains/identity/exceptions/errors";
 import { DraftScopeNotFoundError } from "@/server/domains/submissions/exceptions/errors";
 import type { Submission } from "@/server/domains/submissions/models/submission";
 
-const drafts = vi.hoisted(() => ({ createDraft: vi.fn(), listMySubmissions: vi.fn() }));
+const drafts = vi.hoisted(() => ({
+  createDraft: vi.fn(),
+  listMySubmissions: vi.fn(),
+  pageMySubmissions: vi.fn(),
+  countMySubmissionsByStatus: vi.fn(),
+}));
 const scopes = vi.hoisted(() => ({ listScopes: vi.fn() }));
 const cache = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
 const bulk = vi.hoisted(() => ({
@@ -29,9 +34,37 @@ vi.mock("next/navigation", () => ({
 }));
 
 const actions = await import("./actions");
-const { inListOrder, StatusFilters, SubmissionsTable, shortened, statusFilter } = await import(
+const { NoSubmissions, StatusFilters, SubmissionsTable, shortened } = await import(
   "./SubmissionsTable"
 );
+const { checkedSubmissionsState, SUBMISSIONS_LIST, submissionsQueryOf } = await import("./list");
+const { parseListQuery } = await import("@/components/ui/data-table/list-query");
+
+/** A view of the list, from a query string (063). */
+const view = (params: Record<string, string> = {}) =>
+  checkedSubmissionsState(parseListQuery(SUBMISSIONS_LIST, params));
+/** SubmissionsTable's view props: the default view, one page. */
+const table = (params: Record<string, string> = {}) => ({
+  state: view(params),
+  page: { next: null, previous: null },
+  total: { count: 1, capped: false },
+});
+/** The server's answers for a person with these submissions: the page by status, the counts. */
+const mockList = (list: Submission[]) => {
+  drafts.listMySubmissions.mockResolvedValue(list);
+  drafts.pageMySubmissions.mockImplementation(async (_headers, query: { status?: string }) => {
+    const rows = list.filter((s) =>
+      query.status ? s.status === query.status : s.status !== "withdrawn",
+    );
+    return { rows, next: null, previous: null, total: { count: rows.length, capped: false } };
+  });
+  drafts.countMySubmissionsByStatus.mockResolvedValue(
+    list.reduce<Record<string, number>>((counts, s) => {
+      counts[s.status] = (counts[s.status] ?? 0) + 1;
+      return counts;
+    }, {}),
+  );
+};
 const { NewDraftForm } = await import("./NewDraftForm");
 const { BulkSubmitProvider, BulkToolbar, neededBy, toggled } = await import("./BulkSubmit");
 const { BulkReleaseProvider, BulkReleaseToolbar } = await import("../releases/BulkRelease");
@@ -60,7 +93,7 @@ const submission = (overrides: Partial<Submission> = {}): Submission => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
-  drafts.listMySubmissions.mockResolvedValue([submission()]);
+  mockList([submission()]);
   bulk.checkManyDrafts.mockResolvedValue({ drafts: [], more: 0 });
   scopes.listScopes.mockResolvedValue({
     scopes: [{ name: "platform", description: "Shared tools." }],
@@ -98,6 +131,7 @@ describe("SubmissionsTable", () => {
   it("marks change proposals, and stale ones", () => {
     const html = renderToStaticMarkup(
       <SubmissionsTable
+        {...table()}
         submissions={[
           {
             ...submission(),
@@ -112,7 +146,9 @@ describe("SubmissionsTable", () => {
   });
 
   it("links each draft to its editor, with its type, status and last change", () => {
-    const html = renderToStaticMarkup(<SubmissionsTable submissions={[submission()]} />);
+    const html = renderToStaticMarkup(
+      <SubmissionsTable {...table()} submissions={[submission()]} />,
+    );
     expect(html).toContain('href="/submissions/01J0000000000000000000000A"');
     expect(html).toContain("@platform/code-reviewer");
     expect(html).toContain(">agent<");
@@ -121,7 +157,7 @@ describe("SubmissionsTable", () => {
   });
 
   it("explains drafts when there are none, and offers a new item", () => {
-    const html = renderToStaticMarkup(<SubmissionsTable submissions={[]} />);
+    const html = renderToStaticMarkup(<NoSubmissions />);
     expect(html).toContain("You have no drafts yet.");
     expect(html).toContain('href="/submissions/new"');
   });
@@ -159,6 +195,7 @@ describe("submitting several at once (052)", () => {
     const html = renderToStaticMarkup(
       <BulkSubmitProvider ready={{ [ready.id]: "@platform/ready-one" }}>
         <SubmissionsTable
+          {...table()}
           submissions={[ready, blocked, inReview]}
           errors={{ [ready.id]: 0, [blocked.id]: 2 }}
         />
@@ -191,7 +228,7 @@ describe("submitting several at once (052)", () => {
   });
 
   it("marks the page's drafts from one check", async () => {
-    drafts.listMySubmissions.mockResolvedValue([ready, blocked]);
+    mockList([ready, blocked]);
     bulk.checkManyDrafts.mockResolvedValue({
       drafts: [
         { id: ready.id, result: "ready", submission: ready, issues: [] },
@@ -243,12 +280,12 @@ describe("status filters and order", () => {
     submission({ id: "c", status: "submitted", updatedAt: new Date("2026-09-27T10:00:00Z") }),
   ];
 
-  it("lists newest first", () => {
-    expect(inListOrder(list).map((s) => s.id)).toEqual(["a", "c", "b"]);
-  });
+  const counts = { withdrawn: 1, draft: 1, submitted: 1 };
 
   it("offers All and each status you have, with counts, Archived last and out of All (057)", () => {
-    const html = renderToStaticMarkup(<StatusFilters submissions={list} status="submitted" />);
+    const html = renderToStaticMarkup(
+      <StatusFilters counts={counts} state={view({ status: "submitted" })} />,
+    );
     expect(html).toContain("All (2)");
     expect(html).toContain('href="/submissions?status=withdrawn"');
     expect(html).toMatch(/archived \(1\)<\/a><\/nav>/);
@@ -257,22 +294,42 @@ describe("status filters and order", () => {
   });
 
   it("shows the Archived filter even when everything else is one status", () => {
-    const html = renderToStaticMarkup(
-      <StatusFilters submissions={[submission({ status: "withdrawn" })]} status={null} />,
-    );
+    const html = renderToStaticMarkup(<StatusFilters counts={{ withdrawn: 1 }} state={view()} />);
     expect(html).toContain("All (0)");
     expect(html).toContain("archived (1)");
   });
 
-  it("reads only real statuses from the query", () => {
-    expect(statusFilter("changes_requested")).toBe("changes_requested");
-    expect(statusFilter(["draft", "x"])).toBe("draft");
-    expect(statusFilter("nope")).toBeNull();
-    expect(statusFilter(undefined)).toBeNull();
+  it("reads only real statuses and types from the query, into the server query (063)", () => {
+    expect(view({ status: "changes_requested" }).filters.status).toBe("changes_requested");
+    expect(view({ status: ["draft", "x"] as unknown as string }).filters.status).toBe("draft");
+    expect(view({ status: "nope", type: "widget" }).filters).toMatchObject({
+      status: "",
+      type: "",
+    });
+    expect(submissionsQueryOf(view({ status: "draft", q: "rev", sort: "name" }))).toEqual({
+      sort: "name",
+      dir: "asc",
+      size: 50,
+      cursor: undefined,
+      status: "draft",
+      search: "rev",
+      type: undefined,
+    });
+  });
+
+  it("keeps the sort and size in the status links, dropping the search and the cursor", () => {
+    const html = renderToStaticMarkup(
+      <StatusFilters
+        counts={counts}
+        state={view({ sort: "name", size: "25", q: "x", cursor: "c1" })}
+      />,
+    );
+    expect(html).toContain('href="/submissions?status=draft&amp;sort=name&amp;size=25"');
+    expect(html).toContain('href="/submissions?sort=name&amp;size=25"');
   });
 
   it("filters the page by ?status=", async () => {
-    drafts.listMySubmissions.mockResolvedValue(list);
+    mockList(list);
     const html = renderToStaticMarkup(
       await SubmissionsPage({ searchParams: Promise.resolve({ status: "draft" }) }),
     );
@@ -281,7 +338,7 @@ describe("status filters and order", () => {
   });
 
   it("hides archived ones from All, and lists them under Archived with Restore and Delete (057)", async () => {
-    drafts.listMySubmissions.mockResolvedValue(list);
+    mockList(list);
     const all = renderToStaticMarkup(await SubmissionsPage({ searchParams: Promise.resolve({}) }));
     expect(all).toContain('href="/submissions/b"');
     expect(all).not.toContain('href="/submissions/a"');
@@ -365,6 +422,7 @@ describe("releasing several at once (055)", () => {
         <BulkReleaseProvider releasable={{ [approved.id]: "@platform/code-reviewer" }}>
           <BulkReleaseToolbar />
           <SubmissionsTable
+            {...table()}
             submissions={[approved, draft]}
             releasable={{ [approved.id]: "@platform/code-reviewer" }}
           />
@@ -418,6 +476,7 @@ describe("the latest reviewer message (058)", () => {
     const long = `Name the tabs rule. ${"Then explain why. ".repeat(10)}`;
     const html = renderToStaticMarkup(
       <SubmissionsTable
+        {...table()}
         submissions={[
           submission({ id: "a", status: "changes_requested" }),
           submission({ id: "b", status: "rejected", name: "other" }),
@@ -444,7 +503,7 @@ describe("the latest reviewer message (058)", () => {
   });
 
   it("reads them once for the list", async () => {
-    drafts.listMySubmissions.mockResolvedValue([submission({ status: "changes_requested" })]);
+    mockList([submission({ status: "changes_requested" })]);
     bulk.latestFeedback.mockResolvedValueOnce({
       [submission().id]: { kind: "request_changes", by: "Mo", body: "Fix it." },
     });
@@ -458,6 +517,7 @@ describe("withdrawing from the list (058)", () => {
   it("offers Withdraw on each row until it's released, and Restore on archived ones", () => {
     const html = renderToStaticMarkup(
       <SubmissionsTable
+        {...table()}
         submissions={[
           submission({ id: "a", name: "pending", status: "submitted" }),
           submission({ id: "b", name: "approved", status: "approved" }),
