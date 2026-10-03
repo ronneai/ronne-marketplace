@@ -1,19 +1,37 @@
+import type { ItemType } from "@ronneai/core";
 import { RENDERERS } from "@ronneai/core/render";
 import Link from "next/link";
 import { ItemCard } from "@/components/catalogue/ItemCard";
+import { TYPE_INFO } from "@/components/submissions/item-types";
 import { buttonClasses } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
 import { Input, inputClasses, Label } from "@/components/ui/Field";
+import { TYPE_CLASSES, TYPE_DOT } from "@/components/ui/TypeBadge";
 import type { CataloguePage } from "@/server/domains/items/actions/catalogue";
 import { catalogueHref } from "./query";
 
+const chipBase =
+  "inline-flex h-7 pointer-coarse:h-11 items-center gap-1.5 rounded-full border px-3 text-xs outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
+
+/** A filter or sort chip: teal when it's the current one (All, a sort). */
 const chip = (active: boolean, empty = false) =>
   cn(
-    "inline-flex h-7 pointer-coarse:h-11 items-center gap-1 rounded-control border px-2.5 font-mono text-xs outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus",
+    chipBase,
     active
       ? "border-accent-strong bg-accent-strong font-semibold text-on-accent"
-      : "border-hairline bg-surface text-fg hover:border-strong",
-    empty && !active ? "text-muted" : "",
+      : cn("border-hairline bg-surface hover:border-strong", empty ? "text-muted" : "text-fg"),
+  );
+
+/**
+ * A type's chip, in the type's own colours like its badge on the cards (054): a dot before the
+ * name, and the badge's colours when it's the current filter.
+ */
+const typeChip = (type: ItemType, active: boolean, empty: boolean) =>
+  cn(
+    chipBase,
+    active
+      ? cn(TYPE_CLASSES[type], "font-semibold")
+      : cn("border-hairline bg-surface hover:border-strong", empty ? "text-muted" : "text-fg"),
   );
 
 /**
@@ -99,9 +117,10 @@ export const CatalogueView = ({ page, paged }: { page: CataloguePage; paged: boo
               key={t.type}
               href={catalogueHref(query, { type: t.type })}
               aria-current={query.type === t.type ? "page" : undefined}
-              className={chip(query.type === t.type, t.count === 0)}
+              className={typeChip(t.type, query.type === t.type, t.count === 0)}
             >
-              {t.type} <span className="opacity-80">({t.count})</span>
+              <span aria-hidden="true" className={cn("size-2 rounded-full", TYPE_DOT[t.type])} />
+              {TYPE_INFO[t.type].label} <span className="opacity-80">({t.count})</span>
             </Link>
           ))}
         </nav>

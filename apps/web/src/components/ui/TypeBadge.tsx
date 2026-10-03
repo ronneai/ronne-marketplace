@@ -3,7 +3,7 @@ import { Badge } from "./Badge";
 import { cn } from "./cn";
 
 /** Each type's tokens (054), spelled out so Tailwind finds every class. */
-const TYPE_CLASSES: Record<ItemType, string> = {
+export const TYPE_CLASSES: Record<ItemType, string> = {
   skill: "border-(--type-skill-border) bg-(--type-skill-subtle) text-(--type-skill)",
   agent: "border-(--type-agent-border) bg-(--type-agent-subtle) text-(--type-agent)",
   rule: "border-(--type-rule-border) bg-(--type-rule-subtle) text-(--type-rule)",
@@ -20,6 +20,21 @@ const TYPE_CLASSES: Record<ItemType, string> = {
   "lsp-server":
     "border-(--type-lsp-server-border) bg-(--type-lsp-server-subtle) text-(--type-lsp-server)",
   bundle: "border-(--type-bundle-border) bg-(--type-bundle-subtle) text-(--type-bundle)",
+};
+
+/** A dot in each type's colour (054), for a type named in plain text: the catalogue's filter. */
+export const TYPE_DOT: Record<ItemType, string> = {
+  skill: "bg-(--type-skill)",
+  agent: "bg-(--type-agent)",
+  rule: "bg-(--type-rule)",
+  command: "bg-(--type-command)",
+  hook: "bg-(--type-hook)",
+  "mcp-server": "bg-(--type-mcp-server)",
+  "permission-policy": "bg-(--type-permission-policy)",
+  "output-style": "bg-(--type-output-style)",
+  statusline: "bg-(--type-statusline)",
+  "lsp-server": "bg-(--type-lsp-server)",
+  bundle: "bg-(--type-bundle)",
 };
 
 /**

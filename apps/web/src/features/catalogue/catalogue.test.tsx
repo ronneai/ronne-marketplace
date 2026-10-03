@@ -81,7 +81,10 @@ describe("the catalogue page", () => {
     expect(html).toMatch(
       /href="\/catalogue\?q=x&amp;scope=team&amp;sort=name"[^>]*>All <span[^>]*>\(1\)/,
     );
-    expect(html).toMatch(/aria-current="page"[^>]*>hook <span[^>]*>\(1\)/);
+    // The current type: its people's name, its colour dot, and its badge's colours (054).
+    expect(html).toMatch(
+      /aria-current="page" class="[^"]*bg-\(--type-hook-subtle\)[^"]*"[^>]*><span aria-hidden="true" class="[^"]*bg-\(--type-hook\)"><\/span>Hook <span[^>]*>\(1\)/,
+    );
     expect(html).toContain('href="/catalogue?q=x&amp;type=skill&amp;scope=team&amp;sort=name"');
     expect(html).toContain('<option value="tools">@tools</option>');
     expect(html).toContain('href="/catalogue?q=x&amp;type=hook&amp;scope=team"');

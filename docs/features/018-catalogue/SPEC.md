@@ -34,7 +34,10 @@ and what's used most in the registry.
 **The catalogue** (`/catalogue`, everyone signed in):
 - **Search** (`?q=`): case-insensitive `LIKE` on the name, description and keywords of each item's
   `latest` version, through the `containsInsensitive` helper in `db/` (MVP §9.4).
-- **Filters:** type (the 11, as chips with counts) and scope.
+- **Filters:** type (the 11, as chips with counts) and scope. Each type chip shows the type's name
+  for people ("MCP server") after a dot in the type's colour, and the current one takes its
+  badge's colours (054); All and the sorts stay teal. Types with no items stay, muted (owner,
+  2026-10-02).
 - **Sort:** most recently published (the default), or by name.
 - **Paging:** cursor-based, 24 items a page, as 010's scopes list.
 - **What's listed:** items with at least one published version. An item with no installable version
