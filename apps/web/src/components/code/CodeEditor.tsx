@@ -29,7 +29,8 @@ const theme = EditorView.theme({
     minHeight: "20rem",
     backgroundColor: "var(--surface)",
     color: "var(--fg)",
-    fontSize: "13px",
+    // 16px on a coarse pointer (globals.css), so iOS Safari doesn't zoom when it gets focus (067).
+    fontSize: "var(--editor-font-size, 13px)",
   },
   "&.cm-focused": { outline: "none" },
   ".cm-scroller": { fontFamily: "var(--font-mono)", lineHeight: "1.6" },

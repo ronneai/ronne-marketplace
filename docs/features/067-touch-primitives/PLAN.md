@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. 16px fields.** `pointer-coarse:` sizes in `Field.tsx`, `PasswordInput`, the pager's
+- [x] **1. 16px fields.** `pointer-coarse:` sizes in `Field.tsx`, `PasswordInput`, the pager's
   select; remove the `text-xs`/`h-8` overrides in features where the base classes now fit (keep
   the look on desktop with `pointer-fine:` if a feature needs it denser); CodeMirror theme
   compartment.
@@ -44,3 +44,14 @@ the same change that completes it.
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- **The features' `h-8 text-xs` overrides stay.** `cn` only joins classes, and Tailwind emits
+  variants after plain utilities, so `pointer-coarse:min-h-11 pointer-coarse:text-base` in the
+  shared classes wins on touch while the override keeps desktop dense. A minimum height, not a
+  height, so textareas (`h-auto`) keep growing.
+- **Two fields style themselves** (the composer's range box, the new item's name inside its
+  `@scope/` frame); they use `touchFieldClasses`. `src/touch-rules.test.ts` fails on any other.
+- **CodeMirror's size is a CSS variable,** `--editor-font-size` (13px, 16px on a coarse pointer in
+  `globals.css`), so no editor reconfiguration is needed.
+- **Playwright's WebKit doesn't zoom on focus** the way iOS Safari does, so `fields.mobile.e2e.ts`
+  checks the cause (focused text under 16px) as well as the page scale.

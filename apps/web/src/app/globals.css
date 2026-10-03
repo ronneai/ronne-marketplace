@@ -62,6 +62,13 @@
   padding-right: env(safe-area-inset-right, 0px);
 }
 
+/* The code editor's text: 16px on a coarse pointer, so iOS Safari doesn't zoom on focus (067). */
+@media (pointer: coarse) {
+  :root {
+    --editor-font-size: 16px;
+  }
+}
+
 /* The header sticks to the top (AppShell): anchor jumps land below it. */
 html {
   scroll-padding-top: 4.5rem;

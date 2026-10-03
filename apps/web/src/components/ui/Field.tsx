@@ -6,8 +6,17 @@ import type {
 } from "react";
 import { cn } from "./cn";
 
+/**
+ * On a coarse pointer (a phone, a tablet), a field is at least 44px high and its text 16px, so
+ * it's easy to tap and iOS Safari doesn't zoom the page when it gets focus (032, "Phones and
+ * tablets"). A minimum height, not a height, so textareas (`h-auto`) keep growing. Variants come
+ * after plain utilities in Tailwind's CSS, so a feature's `h-8 text-xs` still gives way on touch.
+ */
+export const touchFieldClasses = "pointer-coarse:min-h-11 pointer-coarse:text-base";
+
 export const inputClasses = cn(
   "h-9 w-full rounded-control border border-strong bg-surface px-3 text-sm text-fg",
+  touchFieldClasses,
   "placeholder:text-muted/60 outline-offset-2 focus-visible:border-fg focus-visible:outline-2 focus-visible:outline-focus",
   "aria-invalid:border-error data-warning:border-warning",
   "disabled:cursor-not-allowed disabled:border-hairline disabled:bg-canvas disabled:text-muted",
@@ -50,6 +59,7 @@ export const Input = ({ className, ...props }: InputHTMLAttributes<HTMLInputElem
 
 export const selectClasses = cn(
   "h-9 w-full rounded-control border border-strong bg-surface px-2 text-sm text-fg",
+  touchFieldClasses,
   "outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus aria-invalid:border-error",
 );
 

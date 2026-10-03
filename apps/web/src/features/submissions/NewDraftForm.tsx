@@ -15,7 +15,8 @@ import {
 } from "@/components/submissions/item-types";
 import { Badge } from "@/components/ui/Badge";
 import { Button, buttonClasses } from "@/components/ui/Button";
-import { FieldError, inputClasses } from "@/components/ui/Field";
+import { cn } from "@/components/ui/cn";
+import { FieldError, inputClasses, touchFieldClasses } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
 import { MANIFEST_PATH } from "@/server/domains/submissions/models/submission";
 import { draftTemplate } from "@/server/domains/submissions/models/templates";
@@ -176,9 +177,12 @@ export const NewDraftForm = ({ scopes, mine }: { scopes: ScopeOption[]; mine: st
               <span className="font-mono text-xs text-muted">{itemName}</span>
             </div>
             <div
-              className={`flex h-10 items-center rounded-control border bg-surface px-3 focus-within:border-fg focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus ${problem ? "border-fg" : "border-strong"}`}
+              className={`flex h-10 pointer-coarse:h-11 items-center rounded-control border bg-surface px-3 focus-within:border-fg focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus ${problem ? "border-fg" : "border-strong"}`}
             >
-              <span className="shrink-0 font-mono text-sm text-muted" aria-hidden="true">
+              <span
+                className="shrink-0 font-mono text-sm text-muted pointer-coarse:text-base"
+                aria-hidden="true"
+              >
                 @{scope || "scope"}/
               </span>
               <input
@@ -193,7 +197,10 @@ export const NewDraftForm = ({ scopes, mine }: { scopes: ScopeOption[]; mine: st
                 aria-describedby="item-name-hint"
                 aria-invalid={problem ? true : undefined}
                 placeholder="code-reviewer"
-                className="h-full min-w-0 flex-1 bg-transparent font-mono text-sm text-fg outline-none placeholder:text-muted/50"
+                className={cn(
+                  "h-full min-w-0 flex-1 bg-transparent font-mono text-sm text-fg outline-none placeholder:text-muted/50",
+                  touchFieldClasses,
+                )}
               />
               {name && !problem ? (
                 <CircleCheck
