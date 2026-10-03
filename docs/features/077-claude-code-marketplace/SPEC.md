@@ -144,7 +144,7 @@ merges them), checks every item the install resolved, and lists them under `also
 - A yanked version disappears from the marketplace at the next refresh. Its zip answers 404.
 - An item with nothing to put in a Claude Code plugin (only a status line, say) isn't listed.
 - The marketplace stays under Claude Code's 5 MiB limit for about 10,000 entries. Past that, the
-  route answers 507 `feed_too_large`. Splitting by scope is an open question.
+  route answers 507 `feed_too_large`. What happens before that is [079](../079-plugin-feeds-at-scale/SPEC.md)'s.
 
 ## Documentation
 
@@ -183,4 +183,6 @@ merges them), checks every item the install resolved, and lists them under `also
 ## Open questions
 
 - Very large instances: one marketplace per scope (`…/marketplace.json?scope=team`) if the 5 MiB
-  limit is ever close.
+  limit is ever close. Answered by [079](../079-plugin-feeds-at-scale/SPEC.md) (owner, 2026-10-03):
+  measure first, cache the marketplace and warn early. The split is built only when a measured
+  trigger is met (decision log).
