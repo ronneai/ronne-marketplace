@@ -5,10 +5,11 @@ marketplaces that Claude Code, Codex and Cursor can add as a source (M11:
 [076](../features/076-plugin-builders/SPEC.md), [077](../features/077-claude-code-marketplace/SPEC.md),
 [078](../features/078-plugin-feed-mirror/SPEC.md); design in [MVP §3.3](../MVP/MVP.md#33-platform-renderers)).
 
-Vendor formats were checked on 2026-10-03, again for 076 the same day, and Claude Code again for
-077 the same day (sources:
+Vendor formats were checked on 2026-10-03, again for 076 the same day, Claude Code again for 077,
+and Codex and Cursor again for 078, both the same day (sources:
 code.claude.com/docs/en/plugins-reference, /en/plugins/components, /en/plugins/marketplace-reference,
 /en/plugins/host-marketplace;
+cursor.com/docs/plugins, cursor.com/changelog/05-01-26 and the Cursor 2.6 release notes;
 developers.openai.com/codex/plugins/build and agent-plugins.org/specification;
 cursor.com/docs/reference/plugins). They change often: re-check them when each feature is built,
 and record the date here.
@@ -19,9 +20,10 @@ and record the date here.
 |---|---|---|---|
 | Marketplace file | `.claude-plugin/marketplace.json` | `.agents/plugins/marketplace.json` (also reads `.claude-plugin/marketplace.json`) | `.cursor-plugin/marketplace.json` |
 | Plugin manifest | `.claude-plugin/plugin.json` (optional) | root `plugin.json` ([Agent Plugins 1.0](https://agent-plugins.org/specification)); `.codex-plugin/plugin.json` as fallback | `.cursor-plugin/plugin.json` (reads Agent Plugins too) |
-| Added from | a git repo, or **an HTTPS URL to `marketplace.json`** | a git repo, or a local folder | a git repo, imported by a **team admin** in the dashboard |
+| Added from | a git repo, or **an HTTPS URL to `marketplace.json`** | a git repo (`owner/repo`, a git URL, `--ref`, `--sparse`), or a local folder: `codex plugin marketplace add` | a git repo (GitHub; GitLab, Bitbucket and Azure DevOps since Cursor 3.9), imported by a **team admin** (Teams or Enterprise) in Dashboard › Settings › Plugins › Team Marketplaces › Import |
 | Plugin sources usable from a URL marketplace | `archive` (zip + `sha256`), `github`, `git-subdir`, `npm` | none | none |
-| Auth | `headers` / `headersHelper` on a URL source; git credentials for git | the machine's git credentials (not documented) | the git host's app (GitHub App, …) |
+| Auth | `headers` / `headersHelper` on a URL source; git credentials for git | not documented (it clones with git, so presumably the machine's git credentials) | the git host's connection to Cursor |
+| Updates | `/plugin marketplace update`, or auto-update | `codex plugin marketplace upgrade` | on push, with **Enable Auto Refresh** (GitHub imports) |
 
 ### Claude Code's limits on a URL marketplace
 
@@ -49,6 +51,23 @@ Checked 2026-10-03 (077):
 - **Versions and updates:** the version comes from `plugin.json` first, then from the entry, so
   Ronne sets it only on the entry. A new version string is what makes Claude Code fetch again.
 - **Deprecation:** Claude Code has no deprecated state; the description prefix is the only signal.
+
+### Codex and Cursor, re-checked for 078
+
+Checked 2026-10-03:
+
+- **Codex** reads `.agents/plugins/marketplace.json` first, and `.claude-plugin/marketplace.json`
+  as a legacy location. An entry has `name`, `source`, `policy` (`installation`: `AVAILABLE`,
+  `INSTALLED_BY_DEFAULT` or `NOT_AVAILABLE`; `authentication`: `ON_INSTALL`) and an optional
+  `category`, and no version. Sources: `local` (a `path`), `git-subdir`, `url` and `npm`. Codex
+  caches plugins under `~/.codex/plugins/cache/<marketplace>/<plugin>/<version>/`.
+- **Agent Plugins 1.0.0** (Codex's `plugin.json`): a name is 1–64 lowercase letters, digits, `-`
+  and `.`, starting and ending with a letter or digit, with no `--` or `..`; `acme.tools` is one of
+  its own examples. Codex's guide recommends kebab-case, which a dot doesn't break.
+- **Cursor** reads `.cursor-plugin/marketplace.json` (`name`, `owner`, `plugins`, optional
+  `metadata`) and a plugin's `.cursor-plugin/plugin.json` or root `plugin.json`; names allow
+  periods. Only team admins add a marketplace: a Teams plan has one team marketplace, Enterprise
+  any number, and Team Access groups choose who sees it.
 
 Ronne serves:
 - **Claude Code live from the instance** (077): a URL marketplace whose entries are `archive` zips
@@ -131,7 +150,7 @@ bearer token, like the rest of `/api/v1` (401 without one).
 
 | Method & path | Answers |
 |---|---|
-| `GET marketplace.json` | The tool's marketplace file. For Claude Code, entries use `archive` sources pointing at the zip route below, with the zip's `sha256` |
+| `GET marketplace.json` | The tool's feed as a marketplace file, in Claude Code's shape for every tool: entries use `archive` sources pointing at the zip route below, with the zip's `sha256`. Claude Code reads its own; `rmk feed build` reads Codex's and Cursor's, and writes their real marketplace files into the mirror (078) |
 | `GET plugins/{scope}/{name}/{version}.zip` | The built plugin. `ETag` is the sha256, `If-None-Match` answers 304, `cache-control: private, max-age=31536000, immutable`. 404 when the version doesn't exist, is yanked, or has nothing for this tool |
 
 The marketplace answers `cache-control: private, no-cache` and an `ETag`, because it changes with
@@ -142,7 +161,7 @@ Errors use the API's shape (MVP §11), with these codes (077):
 | Status | Code | When |
 |---|---|---|
 | 401 | `token_missing`, `token_invalid`, … | No valid token (`WWW-Authenticate: Bearer realm="ronne"`) |
-| 404 | `feed_not_found` | The instance doesn't serve that tool's feed (only `claude-code` until 078) |
+| 404 | `feed_not_found` | The instance has no feed for that tool (`claude-code`, `codex` and `cursor` have one) |
 | 404 | `plugin_not_found` | The version doesn't exist, is yanked, or has nothing for the tool |
 | 503 | `public_url_missing` | The instance has no `PUBLIC_URL`, so it can't write absolute URLs |
 | 503 | `plugin_unavailable` | The zip can't be built: an artifact is missing, or dependencies don't resolve |

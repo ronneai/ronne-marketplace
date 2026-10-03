@@ -279,7 +279,11 @@ export const feedPlugins = async (
   return plugins;
 };
 
-/** The tool's marketplace file for the feed, its URLs on `publicUrl` (contract, Endpoints). */
+/**
+ * The tool's marketplace file for the feed, its URLs on `publicUrl` (contract, Endpoints). Every
+ * tool's has Claude Code's shape, with `archive` entries: Claude Code reads its own, and `rmk feed
+ * build` reads Codex's and Cursor's and writes their real marketplace files into the mirror (078).
+ */
 export const marketplace = async (
   deps: FeedDeps,
   actor: VersionActor,
@@ -295,7 +299,7 @@ export const marketplace = async (
     description: plugin.description,
     source: { kind: "archive", url: pluginUrl(base, tool, plugin), sha256: plugin.sha256 },
   }));
-  const file = marketplaceFor(tool, entries, {
+  const file = marketplaceFor("claude-code", entries, {
     name: marketplaceName(base),
     owner: `Ronne at ${host}`,
     description: `Released items from the Ronne registry at ${base}`,

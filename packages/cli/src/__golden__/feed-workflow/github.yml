@@ -1,0 +1,47 @@
+# Keeps this repository a mirror of a Ronne registry's plugin feeds, for Codex, Cursor and
+# Claude Code. Printed by `rmk feed build --print-workflow github` (rmk 0.0.0-golden).
+#
+# Set two repository secrets (Settings > Secrets and variables > Actions):
+#   RMK_REGISTRY  the registry's address, such as https://ronne.example
+#   RMK_TOKEN     an access token of an account made for this mirror: the build reads what that
+#                 account can read. When it expires, the build fails and the mirror stays as it was.
+name: Ronne plugin feed
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ronne-plugin-feed
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: Install rmk
+        run: npm install --global @ronneai/rmk@0.0.0-golden
+      - name: Build the feed
+        run: rmk feed build --out .
+        env:
+          RMK_REGISTRY: ${{ secrets.RMK_REGISTRY }}
+          RMK_TOKEN: ${{ secrets.RMK_TOKEN }}
+      - name: Commit and push what changed
+        run: |
+          git add --all
+          if git diff --cached --quiet; then
+            echo "Nothing new was released."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit --message "Update the plugin feed"
+          git push

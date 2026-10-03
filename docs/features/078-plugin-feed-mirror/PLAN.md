@@ -7,23 +7,23 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Re-check Codex and Cursor.** Marketplace locations, source forms, how a marketplace is
+- [x] **1. Re-check Codex and Cursor.** Marketplace locations, source forms, how a marketplace is
   added, and private-repository auth. Update the contract.
   *Done when:* `docs/spec/plugin-feeds.md` has today's date for both.
 
-- [ ] **2. Codex and Cursor routes.** Allow `codex` and `cursor` in the 077 routes.
+- [x] **2. Codex and Cursor routes.** Allow `codex` and `cursor` in the 077 routes.
   *Done when:* route tests cover both tools, including an item left out of one tool's feed.
 
-- [ ] **3. `rmk feed build`.** `packages/cli/src/feed-build.ts`: fetch, verify, unpack, write the
+- [x] **3. `rmk feed build`.** `packages/cli/src/feed-build.ts`: fetch, verify, unpack, write the
   marketplaces and `.rmk-feed.json`, remove stale plugins.
   *Done when:* tests cover an empty folder, a second run, an update, a removal, a foreign path, a
   sha256 mismatch, and `--tools`.
 
-- [ ] **4. CI workflows.** `--print-workflow github|gitlab`.
+- [x] **4. CI workflows.** `--print-workflow github|gitlab`.
   *Done when:* both outputs parse as YAML and match golden files (no new lint tool: any would need
   the dependency policy check first).
 
-- [ ] **5. Documentation.** The sections in the spec's Documentation section.
+- [x] **5. Documentation.** The sections in the spec's Documentation section.
   *Done when:* the docs render tests pass.
 
 - [ ] **6. End to end by hand.** Build a mirror into a test repository, push it, and add it in
@@ -34,3 +34,10 @@ the same change that completes it.
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- fflate's `unzipSync` doesn't give file modes, so core's `readPluginArchive`
+  (`packages/core/src/plugins/archive.ts`) reads them from the zip's central directory: a hook's
+  script must stay executable in the mirror.
+- The workflows' golden files (`packages/cli/src/__golden__/feed-workflow/`) carry the version
+  `0.0.0-golden`, so `pnpm release:version` doesn't change them. `UPDATE_GOLDEN=1` rewrites them.
+  The YAML check uses `yaml`, already a dependency of core, as a dev dependency of the CLI.

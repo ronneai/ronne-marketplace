@@ -16,7 +16,7 @@ a Cursor team admin imports the repo. Claude Code users without instance tokens 
   their zips. These marketplaces use the same `archive` entry shape as Claude Code's. Only `rmk`
   reads them.
 - `rmk feed build --out <dir> [--tools claude-code,codex,cursor]`.
-- `rmk feed build --print-workflow [github|gitlab]`: a ready CI file that runs it on a schedule.
+- `rmk feed build --print-workflow github|gitlab`: a ready CI file that runs it on a schedule.
 - The Documentation for the mirror.
 
 **Out:**
@@ -38,9 +38,24 @@ a Cursor team admin imports the repo. Claude Code users without instance tokens 
   `.claude-plugin/marketplace.json`, `.agents/plugins/marketplace.json` and
   `.cursor-plugin/marketplace.json`.
 - It deletes plugin folders that `.rmk-feed.json` says it wrote and that aren't listed any more.
-- It writes the new `.rmk-feed.json` (registry, tools, plugins with version and sha256).
-- **It touches nothing else.** A path under `plugins/` that rmk didn't write stops the build with a
-  conflict, unless `--force` is given.
+- It writes the new `.rmk-feed.json`:
+  `{ "version": 1, "registry": …, "tools": { "<tool>": { "marketplace": <name>, "file": <sha256 of
+  the marketplace file>, "plugins": { "<plugin>": { "version", "sha256", "tree" } } } } }`, with
+  sorted keys. `tree` is a hash of the plugin folder's paths and contents, so a folder changed
+  since rmk wrote it is noticed.
+- It downloads the zips from the registry it talks to, at the route built from each plugin's name
+  and version, not from the address in the marketplace, so the build works whatever `PUBLIC_URL`
+  says.
+- **It touches nothing else.** These stop the build with a conflict (exit 3, each path listed),
+  unless `--force` is given:
+  - a path under `plugins/` that rmk didn't write: anything but a tool folder directly under
+    `plugins/`, or anything in a tool folder `.rmk-feed.json` doesn't list;
+  - a plugin folder changed since rmk wrote it;
+  - a tool's marketplace file that rmk didn't write, or that changed since.
+
+  With `--force`, rmk writes over its own paths; a foreign path it doesn't need is left alone.
+- Everything is downloaded, checked and unpacked before anything is written. Executable files
+  stay executable.
 - The output is deterministic: a run with nothing new released leaves the tree unchanged, so CI
   makes no commit.
 - `--json` prints what was added, updated and removed.
@@ -49,19 +64,27 @@ a Cursor team admin imports the repo. Claude Code users without instance tokens 
 plugin layout isn't Codex's. So the Codex file is written to `.agents/plugins/marketplace.json`,
 which Codex reads first.
 
-**The CI workflow.** `--print-workflow github` prints a GitHub Actions workflow that:
-- runs daily, and on demand (`workflow_dispatch`);
+**The CI workflow.** `--print-workflow github` prints a GitHub Actions workflow (the host is
+required; it only prints, so it needs no registry or token) that:
+- runs daily, and on demand (`workflow_dispatch`), one run at a time;
+- uses `actions/checkout` and `actions/setup-node` pinned by commit SHA, as this repository's own
+  workflows do, with `contents: write`;
 - installs Node 24 and `rmk` from npm, pinned to the version that printed it;
 - runs `rmk feed build --out .` with the `RMK_TOKEN` and `RMK_REGISTRY` secrets;
 - commits and pushes when anything changed, as `github-actions[bot]`.
 
-The GitLab variant is the same, as a `.gitlab-ci.yml` job on a schedule. The token should belong to
-a dedicated account: the build reads what that account can read.
+The GitLab variant is a `.gitlab-ci.yml` job (`node:24`) that runs on a schedule or by hand. GitLab
+schedules are set in its UI (Build › Pipeline schedules), and its job token can't push, so it also
+needs an `RMK_PUSH_TOKEN` variable: a project access token with `write_repository`. The comments at
+the top of each file say what to set. The token should belong to a dedicated account: the build
+reads what that account can read.
 
 **Adding it in each tool:**
 - Codex: `codex plugin marketplace add <owner>/<repo>` (or a git URL); then `codex plugin` to install.
-- Cursor: a team admin, Dashboard › Plugins › Add Marketplace › Import from repo. On GitHub, Cursor
-  refreshes on push.
+- Cursor: a team admin (Teams or Enterprise plan), Dashboard › Settings › Plugins › Team
+  Marketplaces › Import, with the repository's URL (GitHub, GitLab, Bitbucket or Azure DevOps).
+  On a GitHub import, **Enable Auto Refresh** updates the plugins on every push.
+- Codex: `codex plugin marketplace upgrade` fetches the mirror again.
 - Claude Code: `/plugin marketplace add <owner>/<repo>`.
 
 ## Edge cases
@@ -95,5 +118,7 @@ a dedicated account: the build reads what that account can read.
 
 ## Open questions
 
-- Does Codex use the machine's git credentials for private repositories? The docs don't say yet.
-  Re-check before writing the Codex section of the Documentation.
+- Does Codex use the machine's git credentials for private repositories? The docs still don't say
+  (re-checked 2026-10-03). The Documentation says Codex clones the repository with git, so a
+  private one needs git on that machine to be able to clone it; task 6 checks it with a private
+  test repository.

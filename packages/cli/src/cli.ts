@@ -5,6 +5,7 @@ import { REGISTRY_SOURCE, readUserConfig, resolveRegistry, writeUserConfig } fro
 import { connectRegistry } from "./connect.js";
 import { RmkError, usage } from "./errors.js";
 import { exportCommand } from "./export-command.js";
+import { feedCommand } from "./feed-build.js";
 import { installCommand } from "./install.js";
 import type { Io } from "./io.js";
 import { outdatedCommand, removeCommand, updateCommand } from "./manage.js";
@@ -42,6 +43,8 @@ export const USAGE = `Usage: rmk <command> [options]
          [--dry-run] [--yes] [--force] [--new] [--new-draft]
   submit [<@scope/name|id>...] [--all] [--no-deps] [--dry-run] [--yes]
   telemetry [on | off | status | preview | flush]
+  feed build --out <dir> [--tools claude-code,codex,cursor] [--force]
+  feed build --print-workflow github|gitlab
 
 Options: --json (one JSON object per command), --registry <url>, --version, --help`;
 
@@ -73,6 +76,9 @@ const OPTIONS = {
   descriptions: { type: "string" },
   "no-deps": { type: "boolean" },
   "static-headers": { type: "boolean" },
+  out: { type: "string" },
+  tools: { type: "string" },
+  "print-workflow": { type: "string" },
 } as const;
 
 export type Args = {
@@ -211,6 +217,19 @@ export const COMMANDS: Record<string, Command> = {
   submit: (io, args, out) => submitCommand(io, args, out, connect(io, args).api),
   telemetry: (io, args, out) => telemetryCommand(io, args, out),
   auth: (io, args, out) => authCommand(io, args, out),
+  // The mirror is the registry's, wherever it's built: a project's registry doesn't apply (078).
+  feed: (io, args, out) =>
+    feedCommand(
+      io,
+      args,
+      out,
+      () =>
+        connectRegistry(io, {
+          registry: str(args.values.registry),
+          insecure: args.values.insecure === true,
+          project: false,
+        }).api,
+    ),
 };
 
 /** Runs rmk with the given arguments (without the node and script paths). */
