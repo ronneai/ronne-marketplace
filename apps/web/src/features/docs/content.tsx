@@ -20,7 +20,7 @@ import { TypesList } from "./TypesList";
  */
 
 const Code = ({ children }: { children: ReactNode }) => (
-  <code className="rounded-sm bg-tint px-1 py-0.5 font-mono text-[0.875em]">{children}</code>
+  <code className="rounded-sm bg-inline-code px-1 py-0.5 font-mono text-[0.875em]">{children}</code>
 );
 
 const Example = ({ children }: { children: string }) => (
@@ -414,7 +414,7 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           </span>
           <div className="grid gap-1">
             <p className="flex flex-wrap items-center gap-2">
-              <span className="rounded-sm bg-tint px-1.5 py-0.5 font-mono text-[11px] font-semibold tracking-[0.06em] text-fg uppercase">
+              <span className="rounded-sm bg-inline-code px-1.5 py-0.5 font-mono text-[11px] font-semibold tracking-[0.06em] text-fg uppercase">
                 One type per item
               </span>
               <Badge tone="warning">⚠ risk</Badge>

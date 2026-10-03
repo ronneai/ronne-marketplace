@@ -113,7 +113,7 @@ export const TypesExplorer = ({ groups }: { groups: TypeGroup[] }) => {
                 >
                   <div className="grid gap-1.5">
                     <span className="flex flex-wrap items-center gap-2">
-                      <code className="rounded-sm bg-tint px-2 py-0.5 font-mono text-sm font-semibold text-fg">
+                      <code className="rounded-sm bg-inline-code px-2 py-0.5 font-mono text-sm font-semibold text-fg">
                         {row.type}
                       </code>
                       {row.highRisk ? <Badge tone="warning">⚠ risk</Badge> : null}

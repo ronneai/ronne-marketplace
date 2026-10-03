@@ -266,7 +266,7 @@ export const DataTable = <Row, S extends string, F extends string>({
                   <tr
                     key={rowKey(row)}
                     aria-label={rowLabel?.(row)}
-                    className="relative hover:bg-tint"
+                    className="relative hover:bg-tint/40"
                   >
                     {columns.map((column) => (
                       <td
