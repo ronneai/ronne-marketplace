@@ -58,8 +58,11 @@ Claude Code marketplace (077) and the git mirror (078) both serve.
 4. Paths are sorted. Two members writing the same plugin path is an error (`plugin_conflict`); it
    can only happen with a broken dependency set, and the caller leaves that item out of the feed.
 
-The result is `{ files: PackageFile[]; warnings: RenderWarning[]; empty: boolean }`. `empty` is true
-when nothing but the manifest was written, and that item is left out of the tool's feed.
+The result is `{ name; files: PackageFile[]; warnings; empty: boolean }`. `empty` is true when the
+item itself put nothing in the plugin (for a bundle: none of its members did), and that item is
+left out of the tool's feed: a plugin named after an item it doesn't contain, carrying only its
+dependencies, would mislead. When everything a member wrote was left out, its renderer's warnings
+are dropped; the `not_in_plugin` warning says what happened.
 
 **Archive.** `pluginArchive(files)` zips with `fflate`'s `zipSync` (already a core dependency):
 sorted paths, fixed mtime, the executable bit as Unix mode. It returns `{ bytes, sha256 }`. The

@@ -1,0 +1,9 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "examples.review-diff",
+  "version": "1.0.0",
+  "description": "Reviews the current git diff, or a given file or folder.",
+  "author": {
+    "name": "examples"
+  }
+}

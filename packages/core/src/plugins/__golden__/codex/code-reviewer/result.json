@@ -1,0 +1,15 @@
+{
+  "name": "examples.code-reviewer",
+  "empty": true,
+  "executables": [],
+  "warnings": [
+    {
+      "code": "not_in_plugin",
+      "message": "Codex plugins can't add to AGENTS.md, so that part of @examples/house-style was left out."
+    },
+    {
+      "code": "not_in_plugin",
+      "message": "Codex plugins carry no agents, so that part of @examples/code-reviewer was left out."
+    }
+  ]
+}

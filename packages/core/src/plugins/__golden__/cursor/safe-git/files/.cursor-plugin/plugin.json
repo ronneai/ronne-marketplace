@@ -1,0 +1,8 @@
+{
+  "name": "examples.safe-git",
+  "version": "1.0.0",
+  "description": "Asks before pushing or rewriting git history, and blocks force pushes.",
+  "author": {
+    "name": "examples"
+  }
+}

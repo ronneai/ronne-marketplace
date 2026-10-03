@@ -46,6 +46,9 @@ export type BuiltPlugin = {
   /** Sorted by path, the manifest included. */
   files: PackageFile[];
   warnings: PluginWarning[];
-  /** Nothing but the manifest was written: the item stays out of the tool's feed. */
+  /**
+   * The item itself (a bundle: any member) put nothing in, so the plugin would only carry its
+   * dependencies, or nothing: the item stays out of the tool's feed.
+   */
   empty: boolean;
 };

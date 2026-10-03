@@ -1,0 +1,11 @@
+{
+  "name": "examples.review-diff",
+  "empty": false,
+  "executables": [],
+  "warnings": [
+    {
+      "code": "unsupported_field",
+      "message": "Skills don't take arguments, so @examples/review-diff's placeholders stay in its text, with a note saying what each one is."
+    }
+  ]
+}

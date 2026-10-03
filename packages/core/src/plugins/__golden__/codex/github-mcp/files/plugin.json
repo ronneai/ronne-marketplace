@@ -1,0 +1,9 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "examples.github-mcp",
+  "version": "1.0.0",
+  "description": "Connects to GitHub's MCP server for issues, pull requests and code search.",
+  "author": {
+    "name": "examples"
+  }
+}

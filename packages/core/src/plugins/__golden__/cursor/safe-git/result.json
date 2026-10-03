@@ -1,0 +1,11 @@
+{
+  "name": "examples.safe-git",
+  "empty": true,
+  "executables": [],
+  "warnings": [
+    {
+      "code": "not_in_plugin",
+      "message": "Cursor plugins can't set the CLI's permissions, so that part of @examples/safe-git was left out."
+    }
+  ]
+}

@@ -23,7 +23,7 @@ the same change that completes it.
   into the plugin layout, and writes the manifest.
   *Done when:* golden files for every example item pass.
 
-- [ ] **5. Codex and Cursor adapters.** `plugins/codex.ts`, `plugins/cursor.ts`.
+- [x] **5. Codex and Cursor adapters.** `plugins/codex.ts`, `plugins/cursor.ts`.
   *Done when:* golden files for every example item pass for both tools.
 
 - [ ] **6. `buildPlugin` and bundles.** `plugins/build.ts`: renders members, runs the adapter,

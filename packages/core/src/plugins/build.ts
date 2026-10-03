@@ -4,6 +4,8 @@ import { installsIn, supportOf } from "../render/support.js";
 import type { RenderInput } from "../render/types.js";
 import { bytesOf, jsonFile, type Part, type PluginAdapter } from "./adapter.js";
 import { claudeCodeAdapter } from "./claude-code.js";
+import { codexAdapter } from "./codex.js";
+import { cursorAdapter } from "./cursor.js";
 import { PLUGIN_NAME_PROBLEM_MESSAGES, pluginName, pluginNameProblem } from "./names.js";
 import type { BuiltPlugin, PluginInput, PluginTool, PluginWarning } from "./types.js";
 
@@ -17,8 +19,10 @@ export class PluginError extends Error {
   }
 }
 
-const ADAPTERS: Partial<Record<PluginTool, PluginAdapter>> = {
+const ADAPTERS: Record<PluginTool, PluginAdapter> = {
   "claude-code": claudeCodeAdapter,
+  codex: codexAdapter,
+  cursor: cursorAdapter,
 };
 
 const byPath = (a: PackageFile, b: PackageFile) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
@@ -101,25 +105,31 @@ export const buildPlugin = (tool: PluginTool, input: PluginInput): BuiltPlugin =
       warnings.push(warning);
   };
   const into: Collected = { files: new Map(), hooks: {}, mcp: {}, lsp: {} };
+  const bundle = type === "bundle";
+  /** Whether the item itself, or for a bundle any member, put something in the plugin. */
+  let filled = false;
   for (const member of input.members) {
     const result = renderer.render(member, { scope: "project", targets: [tool] });
-    for (const warning of result.warnings) warn(warning);
+    const leftOut: string[] = [];
+    let placed = 0;
     for (const change of result.changes) {
       const placement = adapter.place(change);
-      if ("leftOut" in placement)
-        warn({
-          code: "not_in_plugin",
-          message: `${placement.leftOut}, so that part of ${member.name} was left out.`,
-        });
-      else for (const part of placement) collect(into, part, member);
+      if ("leftOut" in placement) leftOut.push(placement.leftOut);
+      else {
+        for (const part of placement) collect(into, part, member);
+        placed += placement.length;
+      }
     }
+    if (placed && (bundle || member === item)) filled = true;
+    // A renderer's warnings only matter for what made it into the plugin.
+    if (placed || !leftOut.length) for (const warning of result.warnings) warn(warning);
+    for (const reason of leftOut)
+      warn({
+        code: "not_in_plugin",
+        message: `${reason}, so that part of ${member.name} was left out.`,
+      });
   }
-
-  const empty =
-    into.files.size === 0 &&
-    !Object.keys(into.hooks).length &&
-    !Object.keys(into.mcp).length &&
-    !Object.keys(into.lsp).length;
+  const empty = !filled;
   const generated: PackageFile[] = [adapter.manifest(item, name)];
   if (Object.keys(into.hooks).length) generated.push(adapter.hooksFile(into.hooks));
   if (Object.keys(into.mcp).length) generated.push(adapter.mcpFile(into.mcp));
