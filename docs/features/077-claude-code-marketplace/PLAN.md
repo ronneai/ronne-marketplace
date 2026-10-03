@@ -56,3 +56,16 @@ goes into `SPEC.md` instead.
   example had them beside it; it's fixed.
 - `rmk mcp-setup` and `rmk plugin-setup` share `applyOwnEntries` (`packages/cli/src/own-entries.ts`):
   plan and apply only the command's own state entries, and stop on a conflict.
+- **Task 8, the part done without an HTTPS address (2026-10-03, Claude Code 2.1.288):**
+  - `claude plugin validate` passes the Claude Code marketplace file as the instance writes it
+    (archive sources with sha256), built from `examples/items`.
+  - Each plugin passes too, with one expected warning: no `version` in `plugin.json` (the contract
+    puts it on the marketplace entry).
+  - From a local copy of the same marketplace (relative sources, in a throwaway
+    `CLAUDE_CONFIG_DIR`), `claude plugin install` installs `examples.secure-coding`,
+    `examples.github-mcp` and `examples.format-on-edit`. `claude plugin details` lists the skill,
+    the MCP server and the `PostToolUse` hook.
+  - Still to do by hand: the instance behind an HTTPS address that isn't loopback, `PUBLIC_URL`
+    set to it, `rmk plugin-setup claude-code`, then `/plugin`. That covers the URL marketplace, the
+    archive downloads and `headersHelper`.
+
