@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Tools under the dependency policy.** shfmt (BSD-3-Clause) to parse the script as POSIX
+- [x] **1. Tools under the dependency policy.** shfmt (BSD-3-Clause) to parse the script as POSIX
   `sh`, and PSScriptAnalyzer (MIT). Not ShellCheck: GPL-3.0, forbidden even in CI. Record both.
   *Done when:* the policy lists them.
 
@@ -35,3 +35,16 @@ the same change that completes it.
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+### Task 1: the tools (2026-10-03)
+
+- **shfmt:** `mvdan/sh` on GitHub, BSD-3-Clause, maintained (last push 2026-09-29). v3.14.1
+  (2026-09-06, past the cooldown). Used as the official image
+  `mvdan/shfmt:v3.14.1@sha256:8c06884a35683d8763fba6c0d9484d11a61a96da65f8d497d6f625825a6043f2`
+  (linux/amd64 and arm64 among its platforms), like Trivy, so CI downloads no loose binary.
+- **PSScriptAnalyzer:** `PowerShell/PSScriptAnalyzer`, MIT, Microsoft. 1.25.0 (2026-03-20), from
+  the PowerShell Gallery with `-RequiredVersion 1.25.0`.
+- **dash:** Ubuntu's `/bin/sh`, and also at `/bin/dash` on this macOS machine, so the tests run
+  under it in both places.
+- The policy now has a table of the tools CI runs that aren't npm packages (Trivy too, which
+  wasn't listed), and says why ShellCheck isn't used.
