@@ -54,8 +54,12 @@ stays the approval gate: only released versions appear.
 - URLs are built from `PUBLIC_URL`. Without it, the server answers 503 `public_url_missing`, because
   Claude Code needs absolute archive URLs.
 - The `sha256` of each entry comes from the cached zip. An entry whose zip isn't built yet is built
-  while the marketplace is answered. That is bounded: a build failure leaves the entry out and is
-  logged; it doesn't fail the whole marketplace.
+  while the marketplace is answered. That is bounded:
+  - a build failure (a missing artifact, dependencies that don't resolve) leaves the entry out and
+    is logged; it doesn't fail the whole marketplace, and isn't cached, so the next request tries
+    again;
+  - one request spends at most 5 seconds building (Claude Code gives the file 10). Entries not built
+    by then are left out of that answer, logged, and built by the next request.
 
 **The zip.** `GET …/plugins/{scope}/{name}/{version}.zip` answers the cached plugin zip with
 `ETag: "<sha256>"`, 304 on a matching `If-None-Match`, and the contract's cache headers. A full GET
@@ -66,10 +70,15 @@ counts a download (`countDownload`).
   internally), resolves each item's dependencies with `databaseRegistry` / `resolveRequest`
   (`domains/items/services/resolve.ts`), and reads members' files with `artifactFiles`
   (`domains/items/services/artifact-files.ts`).
+- `services/plugin-feed.ts` lists through `CatalogueRepository.list` with `tool`, `installable` and
+  `listedNotYanked` (a filter added here: the listed version itself isn't yanked).
 - Zips are stored through the `StorageAdapter` at
   `feeds/<tool>/<scope>/<name>/<version>-b<PLUGIN_BUILDER_VERSION>.zip`, with their sha256 in a
   small sidecar key (`….sha256`). A version is immutable, so a cached zip only goes stale when the
   builder version changes, and then the key changes too.
+- A version with nothing for the tool gets the sidecar `none` and no zip, so it isn't built again.
+- Two requests can build the same version at once. If a dependency was released in between, the
+  zips differ; the first one stored wins, and the sidecar follows it.
 - Dependencies are pinned when the plugin is built. A dependency's later release reaches the plugin
   when the item itself is released again, as with a lockfile.
 

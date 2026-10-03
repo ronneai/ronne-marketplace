@@ -11,7 +11,7 @@ the same change that completes it.
   `headersHelper`, and the size and time limits. Update the contract if anything moved.
   *Done when:* `docs/spec/plugin-feeds.md` has today's date for Claude Code.
 
-- [ ] **2. The feeds domain.** `server/domains/feeds/{services,actions,exceptions}`: list the feed's
+- [x] **2. The feeds domain.** `server/domains/feeds/{services,actions,exceptions}`: list the feed's
   items, resolve members, build and cache zips through `StorageAdapter`.
   *Done when:* `plugin-feed.db.test.ts` covers listing, yanked, deprecated, an empty plugin, and a
   cache hit.
