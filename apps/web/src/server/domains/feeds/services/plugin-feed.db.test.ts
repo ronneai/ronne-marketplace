@@ -17,6 +17,8 @@ import { kyselyCatalogueRepository } from "../../items/repositories/kysely-catal
 import { kyselyItemRepository } from "../../items/repositories/kysely-item-repository";
 import { FeedTooLargeError, PluginNotFoundError } from "../exceptions/errors";
 import { pluginKey, sidecarKey } from "../models/feed";
+import { kyselyFeedRepository } from "../repositories/kysely-feed-repository";
+import { createMarketplaceCache, type MarketplaceCache } from "./marketplace-cache";
 import { downloadPlugin, type FeedDeps, feedPlugins, findPlugin, marketplace } from "./plugin-feed";
 
 // Runs on the database in TEST_DATABASE_URL (in-memory SQLite by default; 004 runs all of them).
@@ -377,5 +379,130 @@ describe("the Claude Code feed (077)", () => {
     await expect(feedPlugins(deps(), { user: null, ip: null }, "claude-code")).rejects.toThrow(
       ForbiddenError,
     );
+  });
+});
+
+describe("the marketplace cache (079)", () => {
+  /** Deps with the cache, counting what a request reads from the catalogue and the storage. */
+  const cachedDeps = (cache: MarketplaceCache, overrides: Partial<FeedDeps> = {}) => {
+    const reads = { catalogue: 0, storage: 0 };
+    const catalogue = kyselyCatalogueRepository(t.db, t.dialect);
+    const base = deps(overrides);
+    return {
+      reads,
+      deps: {
+        ...base,
+        feeds: kyselyFeedRepository(t.db, t.dialect),
+        cache,
+        catalogue: {
+          ...catalogue,
+          list: (query: Parameters<typeof catalogue.list>[0]) => {
+            reads.catalogue++;
+            return catalogue.list(query);
+          },
+        },
+        storage: {
+          ...base.storage,
+          get: (key: string) => {
+            reads.storage++;
+            return base.storage.get(key);
+          },
+        },
+      } satisfies FeedDeps,
+    };
+  };
+  const names = (bytes: Uint8Array) =>
+    JSON.parse(new TextDecoder().decode(bytes)).plugins.map((p: { name: string }) => p.name);
+
+  it("answers from memory while nothing changes, reading neither the catalogue nor the storage", async () => {
+    const cache = createMarketplaceCache();
+    const first = cachedDeps(cache);
+    const one = await marketplace(first.deps, actor, "claude-code", "https://registry.example.com");
+    expect(first.reads.catalogue).toBeGreaterThan(0);
+    const second = cachedDeps(cache);
+    const two = await marketplace(
+      second.deps,
+      actor,
+      "claude-code",
+      "https://registry.example.com",
+    );
+    expect(two).toEqual(one);
+    expect(second.reads).toEqual({ catalogue: 0, storage: 0 });
+  });
+
+  it("builds again after a release, and for another PUBLIC_URL", async () => {
+    const cache = createMarketplaceCache();
+    await marketplace(cachedDeps(cache).deps, actor, "claude-code", "https://registry.example.com");
+    await release("fresh", "1.0.0", skill("fresh", "Fresh."), { "SKILL.md": SKILL_MD("fresh") });
+    const after = cachedDeps(cache);
+    const bytes = await marketplace(
+      after.deps,
+      actor,
+      "claude-code",
+      "https://registry.example.com",
+    );
+    expect(after.reads.catalogue).toBeGreaterThan(0);
+    expect(names(bytes)).toContain("team.fresh");
+    const moved = cachedDeps(cache);
+    const other = await marketplace(moved.deps, actor, "claude-code", "https://other.example.com");
+    expect(moved.reads.catalogue).toBeGreaterThan(0);
+    expect(new TextDecoder().decode(other)).toContain("https://other.example.com/api/v1/feeds/");
+  });
+
+  it("doesn't cache a marketplace with a plugin left out, and builds the rest in the background", async () => {
+    const cache = createMarketplaceCache();
+    let ms = 0;
+    const clock = () => (ms += 10);
+    const short = cachedDeps(cache, { clock, buildBudgetMs: 25 });
+    const partial = await marketplace(
+      short.deps,
+      actor,
+      "claude-code",
+      "https://registry.example.com",
+    );
+    expect(names(partial)).toEqual(["team.reviewer"]);
+    // The background build runs at once here (no `after` outside Next.js); wait for it.
+    await cache.warming("claude-code");
+    expect(logged.some((line) => /built in the background, 2 plugins/.test(line))).toBe(true);
+    const next = cachedDeps(cache);
+    const full = await marketplace(next.deps, actor, "claude-code", "https://registry.example.com");
+    expect(names(full)).toEqual(["team.reviewer", "team.style"]);
+    // Every zip was built by then: this request read the catalogue but built nothing.
+    expect(zipPuts().length).toBe(2);
+    expect(next.reads.catalogue).toBeGreaterThan(0);
+    // And now it's cached.
+    const cachedRead = cachedDeps(cache);
+    await marketplace(cachedRead.deps, actor, "claude-code", "https://registry.example.com");
+    expect(cachedRead.reads.catalogue).toBe(0);
+  });
+
+  it("runs one background build per tool at a time", async () => {
+    const cache = createMarketplaceCache();
+    let runs = 0;
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const one = cache.warm("codex", async () => {
+      runs++;
+      await gate;
+    });
+    const two = cache.warm("codex", async () => {
+      runs++;
+    });
+    expect(two).toBe(one);
+    release();
+    await one;
+    expect(runs).toBe(1);
+    expect(cache.warming("codex")).toBeNull();
+  });
+
+  it("doesn't cache a marketplace with a plugin that failed to build", async () => {
+    const cache = createMarketplaceCache();
+    await rm(join(storageRoot, "team/style/1.1.0.tgz"));
+    await marketplace(cachedDeps(cache).deps, actor, "claude-code", "https://registry.example.com");
+    const again = cachedDeps(cache);
+    await marketplace(again.deps, actor, "claude-code", "https://registry.example.com");
+    expect(again.reads.catalogue).toBeGreaterThan(0);
   });
 });

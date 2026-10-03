@@ -14,11 +14,17 @@ export const bumpCatalogueRevision = async (db: Kysely<Database>): Promise<void>
     .execute();
 };
 
-export const catalogueRevision = async (db: Kysely<Database>): Promise<number> => {
+export type CatalogueRevision = {
+  /** This database's random id, from its migration. */
+  instance: string;
+  revision: number;
+};
+
+export const catalogueRevision = async (db: Kysely<Database>): Promise<CatalogueRevision> => {
   const row = await db
     .selectFrom("catalogue_revision")
-    .select("revision")
+    .select(["instance", "revision"])
     .where("id", "=", 1)
-    .executeTakeFirst();
-  return Number(row?.revision ?? 0);
+    .executeTakeFirstOrThrow();
+  return { instance: row.instance, revision: Number(row.revision) };
 };

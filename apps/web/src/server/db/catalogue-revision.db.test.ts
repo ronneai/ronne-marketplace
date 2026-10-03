@@ -30,7 +30,7 @@ beforeEach(async () => {
 });
 afterEach(() => t.cleanup());
 
-const revision = () => kyselyFeedRepository(t.db, t.dialect).revision();
+const revision = async () => (await kyselyFeedRepository(t.db, t.dialect).revision()).revision;
 
 const version = (itemId: string, value: string) => ({
   itemId,
@@ -105,5 +105,18 @@ describe("the catalogue revision (079)", () => {
     ).rejects.toThrow("Release failed.");
     expect(await revision()).toBe(0);
     expect(await items.versions(itemId)).toEqual([]);
+  });
+
+  it("names this database with a random id, so another database's revision never matches", async () => {
+    const other = await createTestDb();
+    try {
+      const mine = await kyselyFeedRepository(t.db, t.dialect).revision();
+      const theirs = await kyselyFeedRepository(other.db, other.dialect).revision();
+      expect(mine.instance).toMatch(/^[0-9A-Z]{26}$/);
+      expect(theirs.revision).toBe(mine.revision);
+      expect(theirs.instance).not.toBe(mine.instance);
+    } finally {
+      await other.cleanup();
+    }
   });
 });

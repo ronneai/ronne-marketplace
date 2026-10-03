@@ -1,8 +1,8 @@
 // pnpm --filter @ronneai/web bench:feeds [--items 1000,5000,10000] [--tools claude-code,codex,cursor]
 //   [--db sqlite|postgres|mysql]
 // Measures the plugin feeds' marketplaces at scale (feature 079): their size, and how long a request
-// takes when no zip is built yet (cold), when the zips are built (warm), and when it's asked again
-// (repeat). It seeds skills into a throwaway database (SQLite in memory, or a new database on the
+// takes when no zip is built yet (cold), when the zips are built but the marketplace isn't cached
+// (warm), and when it's asked again and answered from the cache (repeat). It seeds skills into a throwaway database (SQLite in memory, or a new database on the
 // local test servers from `pnpm test:db:up`) and a temporary storage folder, and drops both after.
 // Not part of CI: it takes minutes.
 import { mkdtempSync, rmSync } from "node:fs";
@@ -15,6 +15,8 @@ import { toDbDate } from "../src/server/db/dates";
 import { createTestDb } from "../src/server/db/testing/test-db";
 import { FeedTooLargeError } from "../src/server/domains/feeds/exceptions/errors";
 import { MARKETPLACE_MAX_BYTES } from "../src/server/domains/feeds/models/feed";
+import { kyselyFeedRepository } from "../src/server/domains/feeds/repositories/kysely-feed-repository";
+import { createMarketplaceCache } from "../src/server/domains/feeds/services/marketplace-cache";
 import { type FeedDeps, marketplace } from "../src/server/domains/feeds/services/plugin-feed";
 import { createRoot } from "../src/server/domains/identity/actions/root-account";
 import type { CurrentUser } from "../src/server/domains/identity/models/user";
@@ -142,21 +144,24 @@ for (const count of counts) {
       // The real cost: no budget, so a cold request builds every plugin.
       buildBudgetMs: Number.POSITIVE_INFINITY,
       log: () => {},
+      feeds: kyselyFeedRepository(t.db, t.dialect),
     };
     for (const tool of tools) {
-      const timed = async () => {
+      // Cold and warm each start with an empty cache; the repeat asks the warm one's again.
+      const timed = async (cache: ReturnType<typeof createMarketplaceCache>) => {
         const started = performance.now();
         try {
-          const bytes = await marketplace(deps, { user, ip: null }, tool, PUBLIC_URL);
+          const bytes = await marketplace({ ...deps, cache }, { user, ip: null }, tool, PUBLIC_URL);
           return { ms: performance.now() - started, size: bytes.length };
         } catch (error) {
           if (!(error instanceof FeedTooLargeError)) throw error;
           return { ms: performance.now() - started, size: Number.NaN };
         }
       };
-      const cold = await timed();
-      const warm = await timed();
-      const repeat = await timed();
+      const cold = await timed(createMarketplaceCache());
+      const warmCache = createMarketplaceCache();
+      const warm = await timed(warmCache);
+      const repeat = await timed(warmCache);
       const size = Number.isNaN(cold.size)
         ? "over 5 MiB (507)"
         : `${(cold.size / 1024).toFixed(0)} KiB (${((cold.size / MARKETPLACE_MAX_BYTES) * 100).toFixed(1)}%)`;

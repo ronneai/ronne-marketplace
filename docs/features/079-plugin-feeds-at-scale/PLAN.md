@@ -20,7 +20,7 @@ the same change that completes it.
   *Done when:* database tests show each change raises it by one, and a rolled-back change doesn't,
   on SQLite, PostgreSQL and MySQL.
 
-- [ ] **3. The marketplace cache.** In `services/plugin-feed.ts`: read the revision, answer from an
+- [x] **3. The marketplace cache.** In `services/plugin-feed.ts`: read the revision, answer from an
   in-memory cache keyed by tool, revision, builder version and `PUBLIC_URL`. Cache only a complete
   marketplace, stored under the revision read before the build.
   *Done when:* tests with a counting catalogue and storage show a cache hit reads neither; a release

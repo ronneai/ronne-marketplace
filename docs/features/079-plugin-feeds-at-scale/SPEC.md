@@ -52,7 +52,7 @@ and prints a Markdown table with, per tool and item count:
 - the time of a **cold** request (no zips built yet: every plugin is built);
 - a **warm** one (the zips built, the marketplace built again);
 - a **repeat**, the same request again. It equals the warm one before the cache; with the cache
-  (task 3) it's answered from memory, and the warm column is measured with a fresh cache.
+  (task 3) it's answered from memory, and the cold and warm columns each start with an empty one.
 
 The cold numbers ignore the 5-second build budget (077), so they show the real cost. The results go
 in PLAN.md's notes and the Measured section below.
@@ -69,13 +69,22 @@ in PLAN.md's notes and the Measured section below.
   (`ItemRepository`), so no caller can forget it.
 
 **The marketplace cache.**
-- The served marketplace file is kept in the server's memory, keyed by tool, catalogue revision,
-  `PLUGIN_BUILDER_VERSION` and `PUBLIC_URL`. A request reads the revision (one query) and answers
-  from the cache when the key matches.
+- The served marketplace file is kept in the server's memory, keyed by tool, the database's id, the
+  catalogue revision, `PLUGIN_BUILDER_VERSION` and `PUBLIC_URL`. A request reads the revision (one
+  query) and answers from the cache when the key matches. One file per tool is kept: a newer key
+  replaces the older one.
+- The database's id is a random id the migration writes next to the counter. Without it, another
+  database at the same revision (a test's, or a dev instance after `reset-setup` or a new
+  `DATABASE_URL` without a restart) could be answered from this one's cache.
 - Every signed-in user reads the same feed, so one file serves them all. The token is still checked
   on every request.
 - Only a **complete** marketplace is cached: one where no plugin was left out for the build budget
   or a failed build. Otherwise the next request builds again, as in 077.
+- **Building the rest in the background** (owner, 2026-10-03, after the baseline showed the cold
+  path): when a request runs out of build budget, it answers what it has, and the server then builds
+  every missing plugin with no budget, after the response is sent (Next.js `after`). At most one
+  such build runs per tool at a time. The next request then lists everything, and is cached. A
+  failed build isn't retried in the background: the next request tries it again.
 - The `ETag` and the 304 behaviour don't change.
 
 **Feed stats.**
@@ -108,6 +117,9 @@ Until then, the open question in 077 points here.
 
 - **A restart empties the cache.** The first request after it builds the marketplace again; the zips
   are still cached, so that's a warm build.
+- **A new instance, or a new `PLUGIN_BUILDER_VERSION`**, has no zips: the first request lists what
+  it built in 5 seconds and starts the background build for the rest (about 5 ms a plugin on
+  PostgreSQL), so a 10,000-item instance is complete about a minute later.
 - **Two requests on a revision not yet cached** may both build it. Both answer correctly, and the
   cache keeps one.
 - **A change commits during a build.** The build may have read the old data, so it's stored under

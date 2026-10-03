@@ -254,6 +254,8 @@ export interface InstanceSettingTable {
 /** One row (id 1): raised with every change that can change a plugin feed (079). */
 export interface CatalogueRevisionTable {
   id: number;
+  /** A random id for this database, so a cache can tell two databases' revisions apart. */
+  instance: string;
   revision: number;
 }
 
