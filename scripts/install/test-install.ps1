@@ -51,6 +51,15 @@ Test-Case "a repository copy isn't a release" $false (Test-Release)
 $RonneVersion = '0.3.0'
 Test-Case 'a written-in version is a release' $true (Test-Release)
 Test-Case 'nothing listens on port 1' $true (Test-PortFree 1)
+$listener = New-Object System.Net.Sockets.TcpListener ([System.Net.IPAddress]::Loopback), 0
+$listener.Start()
+try {
+  $busyPort = ([System.Net.IPEndPoint] $listener.LocalEndpoint).Port
+  Test-Case 'a port with a listener is busy' $false (Test-PortFree $busyPort)
+} finally { $listener.Stop() }
+$watch = [Diagnostics.Stopwatch]::StartNew()
+$null = Test-PortFree 7659
+Test-Case 'the port check answers within a second' $true ($watch.ElapsedMilliseconds -lt 1000)
 
 # The whole script, without Docker on PATH: its message and exit 1.
 $shell = (Get-Process -Id $PID).Path

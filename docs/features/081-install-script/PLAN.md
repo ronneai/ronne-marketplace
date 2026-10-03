@@ -139,6 +139,14 @@ and under bash:
   own install for another one. `check_other_install` now compares real paths (`pwd -P`) on both
   sides. `install.ps1` compares with `Resolve-Path`, which doesn't resolve symlinks. That's
   enough on Windows, where installs don't sit behind symlinks, but not on PowerShell for macOS.
+- **First PR run (#119): the Windows job failed** on "nothing listens on port 1" under Windows
+  PowerShell 5.1. `Test-PortFree` connected with a 2-second timeout. On Windows, a connection to a
+  closed local port is retried for about 2 seconds before it's refused, so every free port looked
+  busy, and a real install would have stopped with "Ports 7650 to 7662 are all in use". It
+  passed on PowerShell 7 for Linux, where a refusal is immediate. `Test-PortFree` now reads the
+  system's list of TCP listeners (`IPGlobalProperties.GetActiveTcpListeners()`): no connection, no
+  admin rights, the same in 5.1 and 7. New tests open a real listener and expect it to be busy,
+  and expect the check to answer within a second.
 - **Still open:** the runs on the pull request, and a broken script failing them there.
 
 ### Task 6: documentation (2026-10-03)

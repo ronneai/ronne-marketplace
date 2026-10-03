@@ -115,14 +115,12 @@ function Test-Docker {
 
 # --- Ports ------------------------------------------------------------------------------------
 
-# A port is free when nothing accepts a connection on it.
+# A port is free when nothing listens on it. Read from the system's list of listeners rather than by
+# connecting: on Windows, a connection to a closed local port is retried for about 2 seconds before
+# it's refused, so a short timeout would make every free port look busy.
 function Test-PortFree([int] $Port) {
-  $client = New-Object System.Net.Sockets.TcpClient
-  try {
-    $connect = $client.BeginConnect('127.0.0.1', $Port, $null, $null)
-    if (-not $connect.AsyncWaitHandle.WaitOne(2000)) { return $false }
-    try { $client.EndConnect($connect); return $false } catch { return $true }
-  } finally { $client.Close() }
+  $listeners = [System.Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperties().GetActiveTcpListeners()
+  return -not ($listeners | Where-Object { $_.Port -eq $Port })
 }
 
 # Ports this install's containers already publish don't count as busy on a rerun.
