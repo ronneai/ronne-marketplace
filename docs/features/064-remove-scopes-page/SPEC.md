@@ -21,7 +21,8 @@ removes the page and its nav entry. Root keeps managing scopes under Admin › S
   - The new-item form's "About scopes" link (step 1, "Where it lives") goes to the Documentation
     topic, `docsHref("scopes")`.
   - The Documentation's Scopes › "Who manages scopes" no longer links the page. It says root
-    creates scopes under Admin and anyone sees them in the new-item form's scope picker.
+    creates scopes under Admin, and the new-item form's scope picker lists them and shows the
+    chosen one's description.
 - **Revalidation:** creating or editing a scope revalidates `/admin/scopes` only.
 - **The shared list code** (`features/scopes/list.ts`, `ScopesTable.tsx`) now serves only the admin
   page, so it moves into `features/admin-scopes` (the frontend is feature-first; shared code is
@@ -52,7 +53,8 @@ removes the page and its nav entry. Root keeps managing scopes under Admin › S
 ## Documentation
 
 - **Scopes › "Who manages scopes"** (`features/docs/content.tsx`): drop the link to the Scopes
-  page; say root creates them under Admin, and the new-item form's scope picker lists them.
+  page; say root creates them under Admin › Scopes, and the new-item form's scope picker lists
+  them and shows the chosen one's description.
 - **Topics** (`components/help/topics.ts`): no change; the Scopes topic stays, since it explains
   scopes, not the page.
 - **Helpers** (`components/help/Help.tsx`): `scope` and `scope-name` don't mention the page; no
@@ -60,14 +62,14 @@ removes the page and its nav entry. Root keeps managing scopes under Admin › S
 
 ## Acceptance criteria
 
-- [ ] `/scopes` answers 404 for a signed-in user; `/admin/scopes` works for root as before.
-- [ ] The main navigation shows no Scopes link to anyone (`nav` tests updated).
-- [ ] Nothing in the app links to `/scopes`; "About scopes" opens the Documentation topic.
-- [ ] Creating or editing a scope revalidates only `/admin/scopes`.
-- [ ] `features/scopes` is gone; the admin page reads its list code from `features/admin-scopes`.
-- [ ] `scopes.e2e.ts` checks root's flow and the sort and search on `/admin/scopes`, and that
+- [x] `/scopes` answers 404 for a signed-in user; `/admin/scopes` works for root as before.
+- [x] The main navigation shows no Scopes link to anyone (`nav` tests updated).
+- [x] Nothing in the app links to `/scopes`; "About scopes" opens the Documentation topic.
+- [x] Creating or editing a scope revalidates only `/admin/scopes`.
+- [x] `features/scopes` is gone; the admin page reads its list code from `features/admin-scopes`.
+- [x] `scopes.e2e.ts` checks root's flow and the sort and search on `/admin/scopes`, and that
   `/scopes` is a 404 and not in the navigation.
-- [ ] The Documentation listed above says what the app does now.
+- [x] The Documentation listed above says what the app does now.
 
 ## Open questions
 

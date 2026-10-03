@@ -21,7 +21,7 @@ the same change that completes it.
   `/admin/scopes`.
   *Done when:* `pnpm test:e2e` passes.
 
-- [ ] **3. Documentation.** Scopes › "Who manages scopes" in `features/docs/content.tsx`.
+- [x] **3. Documentation.** Scopes › "Who manages scopes" in `features/docs/content.tsx`.
   *Done when:* the docs render tests pass, and the index marks 064 `done`.
 
 ## Notes
