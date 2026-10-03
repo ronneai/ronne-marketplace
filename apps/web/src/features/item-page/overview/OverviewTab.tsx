@@ -228,8 +228,19 @@ const Stats = ({ page, item, usage }: { page: ItemPage; item: ItemRef; usage: Us
   );
 };
 
-/** How to install it: the two commands, and a quick `--target` per tool it installs in. */
-const Install = ({ page, name }: { page: ItemPage; name: string }) => {
+/**
+ * How to install it: the two commands, a quick `--target` per tool it installs in, and the
+ * `/plugin install` command when it's in the Claude Code feed (077).
+ */
+const Install = ({
+  page,
+  name,
+  plugin,
+}: {
+  page: ItemPage;
+  name: string;
+  plugin: string | null;
+}) => {
   const { shown } = page;
   const tools = toolsOf(page);
   return (
@@ -248,6 +259,17 @@ const Install = ({ page, name }: { page: ItemPage; name: string }) => {
                   command={`rmk install ${name} --target ${renderer.id}`}
                 />
               ))}
+            </div>
+          ) : null}
+          {plugin ? (
+            <div className="grid gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-mono text-xs text-muted uppercase">
+                  As a Claude Code plugin
+                </span>
+                <Help id="plugin" />
+              </div>
+              <CopyableCommand command={plugin} />
             </div>
           ) : null}
           {shown.version === page.listed && shown.deprecatedMessage ? (
@@ -595,11 +617,14 @@ export const OverviewTab = ({
   files,
   facts,
   usage,
+  plugin = null,
 }: {
   page: ItemPage;
   files: ShownFile[] | null;
   facts: Record<string, DependencyFacts>;
   usage: UsageSummary;
+  /** The `/plugin install` command, when the item is in the Claude Code feed (077). */
+  plugin?: string | null;
 }) => {
   const item = { scope: page.item.scope.name, name: page.item.name };
   const name = `@${item.scope}/${item.name}`;
@@ -614,7 +639,7 @@ export const OverviewTab = ({
       <Stats page={page} item={item} usage={usage} />
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="grid min-w-0 gap-4">
-          <Install page={page} name={name} />
+          <Install page={page} name={name} plugin={plugin} />
           {usage.shown ? (
             <Card id="usage" title="Usage, last 14 days" aside={<Help id="usage" />}>
               <UsageBody

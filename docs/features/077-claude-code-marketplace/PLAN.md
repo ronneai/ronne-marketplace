@@ -7,36 +7,36 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Re-check Claude Code.** URL marketplaces, `archive` sources, `headers` /
+- [x] **1. Re-check Claude Code.** URL marketplaces, `archive` sources, `headers` /
   `headersHelper`, and the size and time limits. Update the contract if anything moved.
   *Done when:* `docs/spec/plugin-feeds.md` has today's date for Claude Code.
 
-- [ ] **2. The feeds domain.** `server/domains/feeds/{services,actions,exceptions}`: list the feed's
+- [x] **2. The feeds domain.** `server/domains/feeds/{services,actions,exceptions}`: list the feed's
   items, resolve members, build and cache zips through `StorageAdapter`.
   *Done when:* `plugin-feed.db.test.ts` covers listing, yanked, deprecated, an empty plugin, and a
   cache hit.
 
-- [ ] **3. The routes.** `app/api/v1/feeds/[tool]/marketplace.json/route.ts` and
+- [x] **3. The routes.** `app/api/v1/feeds/[tool]/marketplace.json/route.ts` and
   `…/plugins/[scope]/[name]/[file]/route.ts`, over `server/http/feeds-api.ts`. Only `claude-code` is
   accepted for now; the others answer 404 until 078.
   *Done when:* route tests cover 401, 503 without `PUBLIC_URL`, 304, 404, and the download count.
 
-- [ ] **4. `rmk auth headers`.** In `packages/cli`.
+- [x] **4. `rmk auth headers`.** In `packages/cli`.
   *Done when:* a test checks stdout is only the JSON header, and that it exits 1 without a token.
 
-- [ ] **5. `rmk plugin-setup claude-code`.** `packages/cli/src/plugin-setup.ts`, modelled on
+- [x] **5. `rmk plugin-setup claude-code`.** `packages/cli/src/plugin-setup.ts`, modelled on
   `mcp-setup.ts`, through the applier; also `--remove` and `--static-headers`.
   *Done when:* tests cover both scopes, removal, an edited key, and `--static-headers` refused at
   project scope.
 
-- [ ] **6. Warn on both.** `rmk install` warns when the item is also enabled as a plugin from this
+- [x] **6. Warn on both.** `rmk install` warns when the item is also enabled as a plugin from this
   registry.
   *Done when:* an install test covers the warning.
 
-- [ ] **7. Documentation.** The topic, sections and helper in the spec's Documentation section.
+- [x] **7. Documentation.** The topic, sections and helper in the spec's Documentation section.
   *Done when:* the docs render tests pass, and the Install panel helper links to the new topic.
 
-- [ ] **8. End to end by hand.** `pnpm dev`, `rmk login`, `rmk plugin-setup claude-code`, then
+- [x] **8. End to end by hand.** `pnpm dev`, `rmk login`, `rmk plugin-setup claude-code`, then
   `/plugin` in Claude Code: install a skill, an MCP server and a hook.
   *Done when:* the result and the Claude Code version are written in the notes.
 
@@ -44,3 +44,40 @@ the same change that completes it.
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- **Claude Code won't fetch from `http://localhost`** (checked 2026-10-03). Archive URLs must be
+  `https://` and not a loopback host, and the `headersHelper` only runs for an `https://`
+  marketplace. The manual test (task 8) needs the dev server behind an HTTPS address that isn't
+  loopback (a tunnel, or a LAN name with a trusted certificate), with `PUBLIC_URL` set to it.
+- The marketplace's top-level `description` is the field Claude Code reads first; the spec's
+  example used `metadata.description`, which is only the alternate, and now uses `description`.
+- `headers` and `headersHelper` belong **inside** the marketplace's `url` source object in
+  `extraKnownMarketplaces`, not beside it (settings reference, checked 2026-10-03). The spec's first
+  example had them beside it; it's fixed.
+- `rmk mcp-setup` and `rmk plugin-setup` share `applyOwnEntries` (`packages/cli/src/own-entries.ts`):
+  plan and apply only the command's own state entries, and stop on a conflict.
+- **Task 8, the part done without an HTTPS address (2026-10-03, Claude Code 2.1.288):**
+  - `claude plugin validate` passes the Claude Code marketplace file as the instance writes it
+    (archive sources with sha256), built from `examples/items`.
+  - Each plugin passes too, with one expected warning: no `version` in `plugin.json` (the contract
+    puts it on the marketplace entry).
+  - From a local copy of the same marketplace (relative sources, in a throwaway
+    `CLAUDE_CONFIG_DIR`), `claude plugin install` installs `examples.secure-coding`,
+    `examples.github-mcp` and `examples.format-on-edit`. `claude plugin details` lists the skill,
+    the MCP server and the `PostToolUse` hook.
+- **Task 8 by hand, over HTTPS (2026-10-03, Claude Code 2.1.288, by the owner):**
+  - Setup: the dev instance (`pnpm build`, then `pnpm --filter @ronneai/web start` with
+    `PUBLIC_URL` set to a Cloudflare quick tunnel, `cloudflared tunnel --url
+    http://localhost:3000`), and this branch's `rmk` linked with `npm link`.
+  - `rmk login` and `rmk plugin-setup claude-code` worked. The marketplace listed the six items
+    with Claude Code content, and left out a rule.
+  - In Claude Code, `/plugin` loaded the marketplace through `headersHelper`. The skill and the
+    MCP server installed from their archives and worked, and each counted one download.
+  - The hook wasn't installed over HTTPS (its zip was built but never downloaded); it was checked
+    with the same plugin layout offline, above.
+  - Found: the helper failed with `env: node: No such file or directory` when nvm wasn't on the
+    PATH (`env -i PATH=/usr/bin:/bin sh -c …`). Fixed: at user scope, `plugin-setup` now writes
+    the absolute paths of `node` and `rmk` (SPEC, `rmk plugin-setup`).
+  - A quick tunnel's name is random (`cloudflared` prints it, and
+    `curl http://127.0.0.1:20241/quicktunnel` reads it back); `PUBLIC_URL` must be that name.
+

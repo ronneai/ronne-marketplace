@@ -114,9 +114,9 @@ export const getVersion = async (
 };
 
 /** An artifact never changes once published (MVP §3.4). */
-const IMMUTABLE = "private, max-age=31536000, immutable";
+export const IMMUTABLE = "private, max-age=31536000, immutable";
 
-const matchesEtag = (header: string | null, etag: string) =>
+export const matchesEtag = (header: string | null, etag: string) =>
   header !== null && header.split(",").some((value) => value.trim().replace(/^W\//, "") === etag);
 
 /**

@@ -31,6 +31,7 @@ import { RmkError, usage } from "./errors.js";
 import { type Io, nowOf } from "./io.js";
 import { applyOperation, planOperation } from "./operations.js";
 import type { Output } from "./output.js";
+import { alsoEnabledAsPlugins } from "./plugin-overlap.js";
 import {
   LOCK_FILE,
   type Lockfile,
@@ -377,6 +378,19 @@ export const installCommand = async (
   });
   if (operation.plan.conflicts.length === 0) applyOperation(io, operation);
   report(out, operation, io);
+  if (operation.targets.includes("claude-code")) {
+    // The plugin marketplace (077) and rmk don't share state: say so when both have an item.
+    const both = alsoEnabledAsPlugins(
+      io,
+      Object.keys(operation.resolution.items).sort(),
+      operation.registry,
+    );
+    out.set("alsoPlugins", both);
+    for (const { item, plugin } of both)
+      out.say(
+        `Warning: ${item} is also enabled as the Claude Code plugin ${plugin}, so Claude Code loads it twice. Keep one: uninstall the plugin in /plugin, or run rmk remove ${item}.`,
+      );
+  }
   for (const line of await addUsageHooks(io, operation)) out.say(`Note: ${line}`);
 };
 

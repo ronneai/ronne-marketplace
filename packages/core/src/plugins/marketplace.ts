@@ -67,11 +67,12 @@ export const marketplaceFor = (
   const path = MARKETPLACE_PATHS[tool];
   switch (tool) {
     case "claude-code":
-      // The version goes here, not in the plugin's own manifest (contract).
+      // The version goes here, not in the plugin's own manifest (contract). Claude Code reads the
+      // top-level description first (checked 2026-10-03, 077).
       return jsonFile(path, {
         name: options.name,
         owner: { name: options.owner },
-        metadata: { description: options.description },
+        description: options.description,
         plugins: sorted.map((entry) => ({
           name: entry.name,
           version: entry.version,

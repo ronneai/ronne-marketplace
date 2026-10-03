@@ -1,5 +1,6 @@
 import { parseArgs } from "node:util";
 import { ApiError, apiClient, checkRegistryUrl, rmkVersion } from "./api.js";
+import { authCommand } from "./auth.js";
 import { REGISTRY_SOURCE, readUserConfig, resolveRegistry, writeUserConfig } from "./config.js";
 import { connectRegistry } from "./connect.js";
 import { RmkError, usage } from "./errors.js";
@@ -9,6 +10,7 @@ import type { Io } from "./io.js";
 import { outdatedCommand, removeCommand, updateCommand } from "./manage.js";
 import { mcpSetupCommand } from "./mcp-setup.js";
 import { done, failed, output, type RunResult } from "./output.js";
+import { pluginSetupCommand } from "./plugin-setup.js";
 import { list, platforms, withApi } from "./registry-commands.js";
 import { submitCommand } from "./submit.js";
 import { flushAfterCommand, refreshPolicy, usageNotice } from "./telemetry.js";
@@ -23,6 +25,7 @@ export const USAGE = `Usage: rmk <command> [options]
   login [--registry <url>] [--token <token>] [--insecure]
   logout
   whoami
+  auth headers [--registry <url>]
   platforms
   search <query> [--type <type>] [--scope <scope>] [--target <tool>]
   info <item>[@version]
@@ -32,6 +35,7 @@ export const USAGE = `Usage: rmk <command> [options]
   outdated
   remove <item>...
   mcp-setup [--target <ids>|all] [--scope project|user] [--remove] [--command <cmd>]
+  plugin-setup claude-code [--scope user|project] [--remove] [--static-headers] [--command <rmk>]
   export [<path|name>...] [--to <@scope>] [--type <type>] [--from <tool>] [--name <name>]
          [--description <text>] [--with-deps | --no-deps] [--scope project|user]
          [--describe <item>=<text>]... [--descriptions <file.json>]
@@ -68,6 +72,7 @@ const OPTIONS = {
   describe: { type: "string", multiple: true },
   descriptions: { type: "string" },
   "no-deps": { type: "boolean" },
+  "static-headers": { type: "boolean" },
 } as const;
 
 export type Args = {
@@ -201,9 +206,11 @@ export const COMMANDS: Record<string, Command> = {
   outdated,
   remove,
   "mcp-setup": (io, args, out) => mcpSetupCommand(io, args, out),
+  "plugin-setup": (io, args, out) => pluginSetupCommand(io, args, out),
   export: (io, args, out) => exportCommand(io, args, out, connect(io, args).api),
   submit: (io, args, out) => submitCommand(io, args, out, connect(io, args).api),
   telemetry: (io, args, out) => telemetryCommand(io, args, out),
+  auth: (io, args, out) => authCommand(io, args, out),
 };
 
 /** Runs rmk with the given arguments (without the node and script paths). */
@@ -234,7 +241,8 @@ export const run = async (argv: string[], io: Io): Promise<RunResult> => {
   } catch (error) {
     return failed(out, error);
   } finally {
-    // Queued usage goes out at the end of a command (046); `rmk telemetry` sends only on `flush`.
-    if (name !== "telemetry") await flushAfterCommand(io);
+    // Queued usage goes out at the end of a command (046); `rmk telemetry` sends only on `flush`,
+    // and `rmk auth` never: Claude Code gives its headersHelper 10 seconds (077).
+    if (name !== "telemetry" && name !== "auth") await flushAfterCommand(io);
   }
 };

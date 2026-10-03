@@ -1,5 +1,5 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ArtifactUnavailableError,
   ItemNotFoundError,
@@ -27,6 +27,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("./actions", () => ({ proposeChangeAction: vi.fn() }));
 
 const { default: Item } = await import("@/app/(app)/items/[scope]/[name]/page");
+const { pluginCommandOf } = await import("./load");
 
 const render = async (query: { tab?: string; version?: string; file?: string } = {}) =>
   renderToStaticMarkup(
@@ -453,5 +454,74 @@ describe("usage on the Overview (047)", () => {
   it("isn't read on the other tabs", async () => {
     await render({ tab: "readme" });
     expect(usage.itemUsage).not.toHaveBeenCalled();
+  });
+});
+
+describe("the Install panel's Claude Code plugin (077)", () => {
+  const PUBLIC_URL = process.env.PUBLIC_URL;
+  beforeEach(() => {
+    process.env.PUBLIC_URL = "https://registry.example.com";
+  });
+  afterEach(() => {
+    if (PUBLIC_URL === undefined) delete process.env.PUBLIC_URL;
+    else process.env.PUBLIC_URL = PUBLIC_URL;
+  });
+
+  it("shows the /plugin install command, with its helper beside the label", async () => {
+    const html = await render();
+    expect(html).toContain("As a Claude Code plugin");
+    expect(html).toContain("/plugin install team.github@ronne-registry-example-com");
+    expect(html).toContain("Install as a Claude Code plugin?");
+    expect(html).toContain('href="/docs/plugins#claude-code"');
+  });
+
+  it("is only there when the item is in the Claude Code feed", () => {
+    const page = itemPageData();
+    expect(pluginCommandOf(page, "https://registry.example.com")).toBe(
+      "/plugin install team.github@ronne-registry-example-com",
+    );
+    // No PUBLIC_URL: no marketplace to name.
+    expect(pluginCommandOf(page, "")).toBeNull();
+    // Another version than the listed one, or a yanked one.
+    expect(
+      pluginCommandOf(
+        itemPageData({ shown: { ...page.shown, version: "1.0.0" } }),
+        "https://registry.example.com",
+      ),
+    ).toBeNull();
+    expect(
+      pluginCommandOf(
+        itemPageData({ shown: { ...page.shown, yankedAt: new Date() } }),
+        "https://registry.example.com",
+      ),
+    ).toBeNull();
+    expect(
+      pluginCommandOf(itemPageData({ installable: false }), "https://registry.example.com"),
+    ).toBeNull();
+    // A type with no place in a plugin, and one turned off for Claude Code.
+    expect(
+      pluginCommandOf(
+        itemPageData({ item: { ...page.item, type: "statusline" } }),
+        "https://registry.example.com",
+      ),
+    ).toBeNull();
+    expect(
+      pluginCommandOf(
+        itemPageData({
+          shown: { ...page.shown, manifest: { targets: { "claude-code": { enabled: false } } } },
+        }),
+        "https://registry.example.com",
+      ),
+    ).toBeNull();
+  });
+
+  it("isn't shown without PUBLIC_URL", async () => {
+    process.env.PUBLIC_URL = "";
+    vi.stubEnv("RONNE_ENV_FILE", "/nonexistent/.env");
+    try {
+      expect(await render()).not.toContain("As a Claude Code plugin");
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });

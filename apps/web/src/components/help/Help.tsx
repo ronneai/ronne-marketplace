@@ -92,6 +92,12 @@ export const HELP = {
       "Copy the command into a terminal in your project, after rmk login. rmk resolves the version, checks the download, writes the files your AI tool reads, and records them in rmk.lock so teammates get the same. With the registry MCP server set up, you can also ask your AI tool to install it: it shows you the plan first.",
     href: docsHref("rmk", "installing"),
   },
+  plugin: {
+    question: "Install as a Claude Code plugin?",
+    answer:
+      "Run this in Claude Code, or find the item under /plugin, once rmk plugin-setup claude-code has added this marketplace there. Claude Code downloads the released version as a plugin, with its dependencies, using your rmk login. Install an item one way, as a plugin or with rmk install, not both.",
+    href: docsHref("plugins", "claude-code"),
+  },
   support: {
     question: "What do these mean?",
     answer:

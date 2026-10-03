@@ -48,6 +48,8 @@ export type CatalogueFilter = {
   tool?: string;
   /** Only items with a version that can still be installed. */
   installable?: boolean;
+  /** Only items whose listed version isn't yanked (077's plugin feeds). */
+  listedNotYanked?: boolean;
 };
 
 /**
