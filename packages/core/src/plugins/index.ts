@@ -1,6 +1,12 @@
 // `@ronneai/core/plugins`: items as native plugins and plugin marketplaces (feature 076).
 
-export { type PluginArchive, pluginArchive } from "./archive.js";
+export {
+  PLUGIN_ARCHIVE_MAX_BYTES,
+  type PluginArchive,
+  PluginArchiveError,
+  pluginArchive,
+  readPluginArchive,
+} from "./archive.js";
 export { buildPlugin, PluginError } from "./build.js";
 export {
   MARKETPLACE_PATHS,

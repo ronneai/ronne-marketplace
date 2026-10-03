@@ -14,7 +14,7 @@ the same change that completes it.
 - [x] **2. Codex and Cursor routes.** Allow `codex` and `cursor` in the 077 routes.
   *Done when:* route tests cover both tools, including an item left out of one tool's feed.
 
-- [ ] **3. `rmk feed build`.** `packages/cli/src/feed-build.ts`: fetch, verify, unpack, write the
+- [x] **3. `rmk feed build`.** `packages/cli/src/feed-build.ts`: fetch, verify, unpack, write the
   marketplaces and `.rmk-feed.json`, remove stale plugins.
   *Done when:* tests cover an empty folder, a second run, an update, a removal, a foreign path, a
   sha256 mismatch, and `--tools`.
@@ -34,3 +34,7 @@ the same change that completes it.
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- fflate's `unzipSync` doesn't give file modes, so core's `readPluginArchive`
+  (`packages/core/src/plugins/archive.ts`) reads them from the zip's central directory: a hook's
+  script must stay executable in the mirror.

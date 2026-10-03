@@ -38,9 +38,24 @@ a Cursor team admin imports the repo. Claude Code users without instance tokens 
   `.claude-plugin/marketplace.json`, `.agents/plugins/marketplace.json` and
   `.cursor-plugin/marketplace.json`.
 - It deletes plugin folders that `.rmk-feed.json` says it wrote and that aren't listed any more.
-- It writes the new `.rmk-feed.json` (registry, tools, plugins with version and sha256).
-- **It touches nothing else.** A path under `plugins/` that rmk didn't write stops the build with a
-  conflict, unless `--force` is given.
+- It writes the new `.rmk-feed.json`:
+  `{ "version": 1, "registry": …, "tools": { "<tool>": { "marketplace": <name>, "file": <sha256 of
+  the marketplace file>, "plugins": { "<plugin>": { "version", "sha256", "tree" } } } } }`, with
+  sorted keys. `tree` is a hash of the plugin folder's paths and contents, so a folder changed
+  since rmk wrote it is noticed.
+- It downloads the zips from the registry it talks to, at the route built from each plugin's name
+  and version, not from the address in the marketplace, so the build works whatever `PUBLIC_URL`
+  says.
+- **It touches nothing else.** These stop the build with a conflict (exit 3, each path listed),
+  unless `--force` is given:
+  - a path under `plugins/` that rmk didn't write: anything but a tool folder directly under
+    `plugins/`, or anything in a tool folder `.rmk-feed.json` doesn't list;
+  - a plugin folder changed since rmk wrote it;
+  - a tool's marketplace file that rmk didn't write, or that changed since.
+
+  With `--force`, rmk writes over its own paths; a foreign path it doesn't need is left alone.
+- Everything is downloaded, checked and unpacked before anything is written. Executable files
+  stay executable.
 - The output is deterministic: a run with nothing new released leaves the tree unchanged, so CI
   makes no commit.
 - `--json` prints what was added, updated and removed.
