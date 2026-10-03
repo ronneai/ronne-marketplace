@@ -1,0 +1,46 @@
+# 067 — Plan
+
+> Spec: [SPEC.md](./SPEC.md)
+
+Tasks in build order. Each is small enough for one session and ends with a check. Tick a task in
+the same change that completes it.
+
+## Tasks
+
+- [ ] **1. 16px fields.** `pointer-coarse:` sizes in `Field.tsx`, `PasswordInput`, the pager's
+  select; remove the `text-xs`/`h-8` overrides in features where the base classes now fit (keep
+  the look on desktop with `pointer-fine:` if a feature needs it denser); CodeMirror theme
+  compartment.
+  *Done when:* the field scan test passes; `fields.mobile.e2e.ts` (WebKit) shows scale 1 after
+  focusing each field kind.
+
+- [ ] **2. Tap areas.** `Button` (box and text variants), `HelpTip`, checkbox wrappers, copy
+  buttons and chips, `FilterChips`, pager, `FileTree` rows, menu items.
+  *Done when:* unit tests check the classes; the tap-target report has no `components/ui` entries.
+
+- [ ] **3. Dialog.** Full screen below `sm` with sticky title bar and `footer` slot; max height and
+  sticky parts on desktop; the `side` variant; focus-into-view inside the body. Move existing
+  dialogs' buttons into `footer` (`grep -rn "<Dialog" apps/web/src`).
+  *Done when:* `Dialog` unit tests pass; `dialogs.mobile.e2e.ts` opens create token, publish and
+  bulk approve on a phone and finds the title and buttons on screen with the keyboard open.
+
+- [ ] **4. `BottomBar`.** Sticky, safe-area padded, follows `visualViewport`, breakpoint and
+  hide-on-focus options; shown in the styleguide.
+  *Done when:* unit tests pass; a WebKit e2e focuses a field on the styleguide and finds the bar
+  above the keyboard.
+
+- [ ] **5. Small primitive fixes.** `Badge` nowrap, `PageHeader` wrap, `CopyableCommand` wrapping
+  below `sm`.
+  *Done when:* unit tests pass; the styleguide shows them.
+
+- [ ] **6. Copy on http.** `copyText` helper with the three paths; `CopyableCommand` and `CopyChip`
+  use it.
+  *Done when:* unit tests for each path; an e2e copies on the test server's LAN address.
+
+- [ ] **7. Styleguide.** Show coarse-pointer sizes and the full-screen dialog.
+  *Done when:* the styleguide unit test passes; the sweep's 067 entries are removed and it passes.
+
+## Notes
+
+Things learned while building that the next person should know. Anything that changes behaviour
+goes into `SPEC.md` instead.
