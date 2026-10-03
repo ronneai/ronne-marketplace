@@ -13,7 +13,7 @@ the same change that completes it.
   PostgreSQL (`pnpm test:db:up`) at 1,000, 5,000 and 10,000 items, before any change.
   *Done when:* the baseline numbers are in the notes below.
 
-- [ ] **2. The catalogue revision.** A migration with the one-row counter and the `plugin_feeds`
+- [x] **2. The catalogue revision.** A migration with the one-row counter and the `plugin_feeds`
   stats table (one row per tool), and the MVP data model updated. `ItemRepository` raises the
   revision in the same transaction as each change in the spec's list. A `revision()` read for the
   feeds domain.

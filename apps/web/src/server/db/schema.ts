@@ -251,6 +251,24 @@ export interface InstanceSettingTable {
   updated_at: Timestamp;
 }
 
+/** One row (id 1): raised with every change that can change a plugin feed (079). */
+export interface CatalogueRevisionTable {
+  id: number;
+  revision: number;
+}
+
+/** What each tool's marketplace measured when it was last built (079). */
+export interface PluginFeedTable {
+  tool: string;
+  size_bytes: number;
+  plugins: number;
+  build_ms: number;
+  revision: number;
+  built_at: Timestamp;
+  /** The revision the last warning was logged for, so it's logged once. */
+  warned_revision: number | null;
+}
+
 /** Kysely table types for the whole app. Each migration that adds a table adds its interface here. */
 export interface Database {
   user: UserTable;
@@ -271,4 +289,6 @@ export interface Database {
   version_dependencies: VersionDependencyTable;
   usage_daily: UsageDailyTable;
   instance_settings: InstanceSettingTable;
+  catalogue_revision: CatalogueRevisionTable;
+  plugin_feeds: PluginFeedTable;
 }

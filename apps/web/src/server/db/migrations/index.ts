@@ -15,6 +15,7 @@ import { auditLogActionIndex } from "./0014_audit_log_action_index";
 import { userNameIndex } from "./0015_user_name_index";
 import { submissionsQueueIndexes } from "./0016_submissions_queue_indexes";
 import { submissionsAuthorIndexes } from "./0017_submissions_author_indexes";
+import { pluginFeeds } from "./0018_plugin_feeds";
 import type { AppMigration } from "./types";
 
 /**
@@ -39,4 +40,5 @@ export const migrations: Record<string, AppMigration> = {
   "0015_user_name_index": userNameIndex,
   "0016_submissions_queue_indexes": submissionsQueueIndexes,
   "0017_submissions_author_indexes": submissionsAuthorIndexes,
+  "0018_plugin_feeds": pluginFeeds,
 };

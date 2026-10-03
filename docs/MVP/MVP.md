@@ -582,6 +582,8 @@ IDs are ULIDs and timestamps are UTC (§9.4).
 | `audit_log` | id, actor_id, action, target_type, target_id, metadata (JSON), created_at |
 | `usage_daily` | item_id, day, version, tool, event, run_trigger, outcome, count — PK on all but count: daily usage totals from `rmk`, kept 90 days, nothing per person or project ([046](../features/046-usage-telemetry/SPEC.md)) |
 | `instance_settings` | key (PK), value, updated_by (set null), updated_at: settings root changes in the app, such as the usage policy; no row means the default (046) |
+| `catalogue_revision` | id (PK, always 1), revision: one counter, raised in the same transaction as every change that can change a plugin feed (a release, a tag, a deprecation, a yank, a description), so a cached marketplace knows it's stale ([079](../features/079-plugin-feeds-at-scale/SPEC.md)) |
+| `plugin_feeds` | tool (PK), size_bytes, plugins, build_ms, revision, built_at, warned_revision: what each tool's marketplace measured when it was last built, for the warnings and Admin › Settings (079) |
 
 ## 11. REST API sketch (`/api/v1`)
 
