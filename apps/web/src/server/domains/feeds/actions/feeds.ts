@@ -7,7 +7,12 @@ import type { PluginRef, ServedTool } from "../models/feed";
 import * as service from "../services/plugin-feed";
 
 export type { FeedPlugin, PluginRef, ServedTool } from "../models/feed";
-export { isServedTool, marketplaceUrl } from "../models/feed";
+export {
+  inClaudeCodeFeed,
+  isServedTool,
+  marketplaceUrl,
+  pluginInstallCommand,
+} from "../models/feed";
 
 /**
  * Entry points for the plugin feeds (feature 077), for `/api/v1/feeds`, where the user comes from a

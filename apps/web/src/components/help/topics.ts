@@ -139,7 +139,19 @@ export const TOPICS = [
       { id: "tokens", title: "Tokens and the API" },
       { id: "tools", title: "Your AI tools" },
       { id: "mcp", title: "From inside your AI tool" },
+      { id: "plugins", title: "As Claude Code plugins" },
       { id: "telemetry", title: "Usage reporting" },
+    ],
+  },
+  {
+    slug: "plugins",
+    title: "Plugin marketplaces",
+    summary: "Installing released items as Claude Code plugins, from /plugin, without rmk install.",
+    sections: [
+      { id: "what", title: "What it is" },
+      { id: "claude-code", title: "Claude Code" },
+      { id: "tokens", title: "Tokens" },
+      { id: "which", title: "Plugins or rmk" },
     ],
   },
   {
@@ -176,6 +188,7 @@ export const TOPICS = [
     sections: [
       { id: "paths", title: "Where each type goes" },
       { id: "notes", title: "Good to know" },
+      { id: "plugins", title: "Plugins" },
     ],
   },
   {
@@ -209,7 +222,10 @@ export const TOPIC_GROUPS: { label: string; topics: readonly TopicSlug[] }[] = [
   { label: "Getting started", topics: ["overview", "install", "roles", "admin"] },
   { label: "Organising", topics: ["scopes", "items"] },
   { label: "Publishing", topics: ["export", "review", "versions", "changes"] },
-  { label: "Installing", topics: ["rmk", "mcp", "usage", "claude-code", "codex", "cursor"] },
+  {
+    label: "Installing",
+    topics: ["rmk", "plugins", "mcp", "usage", "claude-code", "codex", "cursor"],
+  },
 ];
 
 export const topicOf = (slug: string): Topic | undefined => TOPICS.find((t) => t.slug === slug);

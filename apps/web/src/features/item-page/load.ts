@@ -1,8 +1,10 @@
 import type { ItemType } from "@ronneai/core";
 import { notFound } from "next/navigation";
 import { showFiles } from "@/components/files/shown";
+import { loadConfig } from "@/server/config";
+import { inClaudeCodeFeed, pluginInstallCommand } from "@/server/domains/feeds/actions/feeds";
 import { dependencyFacts } from "@/server/domains/items/actions/catalogue";
-import { itemPage, versionContents } from "@/server/domains/items/actions/versions";
+import { type ItemPage, itemPage, versionContents } from "@/server/domains/items/actions/versions";
 import {
   ArtifactUnavailableError,
   ItemNotFoundError,
@@ -54,3 +56,19 @@ export const loadUsage = async (item: { id: string; type: ItemType }) =>
 /** Runs and installs per version for the Versions page (047), or null when there are none. */
 export const loadUsageByVersion = async (itemId: string) =>
   itemUsageByVersion(await requestHeaders(), itemId);
+
+/**
+ * The `/plugin install` command for the Install panel (077), or null: when the page shows the
+ * listed version, it isn't yanked, the instance has a PUBLIC_URL, and the item is in the Claude
+ * Code feed.
+ */
+export const pluginCommandOf = (
+  page: ItemPage,
+  publicUrl: string | undefined = loadConfig().publicUrl,
+): string | null => {
+  const { shown } = page;
+  const item = { scope: page.item.scope.name, name: page.item.name, type: page.item.type };
+  if (!publicUrl || !page.installable || shown.version !== page.listed || shown.yankedAt)
+    return null;
+  return inClaudeCodeFeed(item, shown.manifest) ? pluginInstallCommand(item, publicUrl) : null;
+};

@@ -2,9 +2,11 @@ import { PLUGIN_BUILDER_VERSION } from "@ronneai/core/plugins";
 import { describe, expect, it } from "vitest";
 import {
   baseUrl,
+  inClaudeCodeFeed,
   isServedTool,
   marketplaceUrl,
   pluginDescription,
+  pluginInstallCommand,
   pluginKey,
   pluginUrl,
   readSidecar,
@@ -57,5 +59,32 @@ describe("plugin feeds (077)", () => {
     const started = Date.now();
     baseUrl(`https://x${"/".repeat(100_000)}a`);
     expect(Date.now() - started).toBeLessThan(500);
+  });
+
+  it("tell from the type and manifest whether an item is in the Claude Code feed", () => {
+    const item = (type: string, name = "x") => ({ scope: "team", name, type });
+    expect(inClaudeCodeFeed(item("skill"), {})).toBe(true);
+    expect(inClaudeCodeFeed(item("bundle"), {})).toBe(true);
+    expect(inClaudeCodeFeed(item("statusline"), {})).toBe(false);
+    expect(inClaudeCodeFeed(item("permission-policy"), {})).toBe(false);
+    expect(inClaudeCodeFeed(item("rule"), { rule: { activation: "model" } })).toBe(true);
+    expect(inClaudeCodeFeed(item("rule"), { rule: { activation: "manual" } })).toBe(true);
+    expect(inClaudeCodeFeed(item("rule"), { rule: { activation: "glob" } })).toBe(false);
+    expect(inClaudeCodeFeed(item("rule"), { rule: { activation: "always" } })).toBe(false);
+    // Turned off for Claude Code by its own manifest.
+    expect(
+      inClaudeCodeFeed(item("skill"), { targets: { "claude-code": { enabled: false } } }),
+    ).toBe(false);
+    // A name Claude Code reserves.
+    expect(inClaudeCodeFeed({ scope: "claude-tools", name: "x", type: "skill" }, {})).toBe(false);
+  });
+
+  it("give the /plugin install command for this instance", () => {
+    expect(
+      pluginInstallCommand(
+        { scope: "team", name: "secure-coding" },
+        "https://registry.example.com/",
+      ),
+    ).toBe("/plugin install team.secure-coding@ronne-registry-example-com");
   });
 });

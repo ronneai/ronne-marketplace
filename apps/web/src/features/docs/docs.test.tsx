@@ -184,6 +184,22 @@ describe("the topics", () => {
       expect(rmk).toContain(`href="/docs/${tool}"`);
     const claude = await topic("claude-code");
     expect(claude).toContain(">Claude Code</h1>");
+    // Plugins (077): from the Claude Code and rmk topics to their own.
+    expect(claude).toContain('id="plugins"');
+    expect(claude).toContain('href="/docs/plugins"');
+    expect(rmk).toContain("rmk plugin-setup claude-code");
+    expect(rmk).toContain("rmk auth headers");
+    expect(rmk).toContain('href="/docs/plugins"');
+    const plugins = await topic("plugins");
+    expect(plugins).toContain(">Plugin marketplaces</h1>");
+    for (const id of ["what", "claude-code", "tokens", "which"])
+      expect(plugins).toContain(`id="${id}"`);
+    expect(plugins).toContain("/api/v1/feeds/claude-code/marketplace.json");
+    expect(plugins).toMatch(/\/plugin install team\.secure-coding@ronne-/);
+    expect(plugins).toContain("rmk plugin-setup claude-code --scope project");
+    expect(plugins).toContain("--static-headers");
+    expect(plugins).toContain("The plugins you installed keep working.");
+    expect(plugins).toContain("Install an item one way, not both");
     expect(claude).toContain(".claude/rules/");
     const codex = await topic("codex");
     expect(codex).toContain('id="trust"');
@@ -213,5 +229,21 @@ describe("the topics", () => {
     expect(await topic("review")).toContain("so they aren&#x27;t shown");
     expect(rmk).toContain('href="/account/tokens"');
     expect(rmk).toContain("Nothing about who installed it is stored.");
+  });
+});
+
+describe("the Plugin marketplaces topic (077)", () => {
+  it("shows this instance's marketplace address, from PUBLIC_URL when the page renders", async () => {
+    vi.stubEnv("PUBLIC_URL", "https://registry.example.com");
+    try {
+      const html = await topic("plugins");
+      expect(html).toContain(
+        "https://registry.example.com/api/v1/feeds/claude-code/marketplace.json",
+      );
+      expect(html).toContain(">ronne-registry-example-com<");
+      expect(html).toContain("/plugin install team.secure-coding@ronne-registry-example-com");
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });

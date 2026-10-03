@@ -1,4 +1,11 @@
-import { PLUGIN_BUILDER_VERSION, type PluginTool } from "@ronneai/core/plugins";
+import {
+  marketplaceName,
+  PLUGIN_BUILDER_VERSION,
+  type PluginTool,
+  pluginName,
+  pluginNameProblem,
+} from "@ronneai/core/plugins";
+import { installsIn, supportOf } from "@ronneai/core/render";
 
 /**
  * Native plugin feeds (feature 077, contract `docs/spec/plugin-feeds.md`): the released items as a
@@ -67,3 +74,28 @@ export const pluginDescription = (description: string, deprecatedMessage: string
  * answers 507 rather than a file the tool would refuse.
  */
 export const MARKETPLACE_MAX_BYTES = 5 * 1024 * 1024;
+
+/** Types with no place in a Claude Code plugin (contract, Plugin contents per type). */
+const NO_CLAUDE_CODE_PLUGIN = new Set(["permission-policy", "statusline"]);
+
+/**
+ * Whether a version is in the Claude Code feed by its type and manifest, without building it: it
+ * installs in Claude Code, its type has a plugin form, a rule only when the model or the person
+ * turns it on (an `always` or `glob` rule has no place in a plugin), and Claude Code takes the
+ * name. The item page uses it for the Install panel's plugin command.
+ */
+export const inClaudeCodeFeed = (
+  item: { scope: string; name: string; type: string },
+  manifest: Record<string, unknown>,
+): boolean => {
+  if (!installsIn(supportOf(manifest, item.type)["claude-code"])) return false;
+  if (NO_CLAUDE_CODE_PLUGIN.has(item.type)) return false;
+  if (pluginNameProblem("claude-code", pluginName(`@${item.scope}/${item.name}`))) return false;
+  if (item.type !== "rule") return true;
+  const activation = (manifest.rule as { activation?: unknown } | undefined)?.activation;
+  return activation === "model" || activation === "manual";
+};
+
+/** What a person types in Claude Code to install the item as a plugin from this instance. */
+export const pluginInstallCommand = (item: { scope: string; name: string }, publicUrl: string) =>
+  `/plugin install ${pluginName(`@${item.scope}/${item.name}`)}@${marketplaceName(baseUrl(publicUrl))}`;

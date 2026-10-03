@@ -33,7 +33,7 @@ the same change that completes it.
   registry.
   *Done when:* an install test covers the warning.
 
-- [ ] **7. Documentation.** The topic, sections and helper in the spec's Documentation section.
+- [x] **7. Documentation.** The topic, sections and helper in the spec's Documentation section.
   *Done when:* the docs render tests pass, and the Install panel helper links to the new topic.
 
 - [ ] **8. End to end by hand.** `pnpm dev`, `rmk login`, `rmk plugin-setup claude-code`, then

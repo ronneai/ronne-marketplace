@@ -149,9 +149,17 @@ merges them), checks every item the install resolved, and lists them under `also
   - *Tokens*: how `headersHelper` uses rmk's token; what happens when it expires.
   - *Plugins or rmk*: which to use, and not both for the same item.
 - `claude-code` topic: a *Plugins* section linking to the new topic.
-- `rmk` topic: `plugin-setup` and `auth headers`.
-- Item page Install panel: an inline helper "Install as a Claude Code plugin", with
-  `/plugin install team.secure-coding@ronne-…`, shown when the item is in the Claude Code feed.
+- `claude-code` topic: the section is `plugins`.
+- `rmk` topic: `plugin-setup` and `auth headers`, in a new section *As Claude Code plugins*
+  (`plugins`).
+- Item page Install panel: an inline helper "Install as a Claude Code plugin?" (`plugin`), linking
+  to *Plugin marketplaces › Claude Code*, beside the copyable `/plugin install team.secure-coding@ronne-…`.
+  It's shown when the instance has a `PUBLIC_URL`, the page shows the listed version, that version
+  isn't yanked, and the item is in the Claude Code feed by its type and manifest
+  (`inClaudeCodeFeed`: it installs in Claude Code, its type has a plugin form, a rule is `model`
+  or `manual`, and Claude Code takes the name). The page doesn't build the plugin to decide.
+- The topic shows this instance's marketplace address and name from `PUBLIC_URL` when the page
+  renders (the example address when it isn't set).
 
 ## Acceptance criteria
 

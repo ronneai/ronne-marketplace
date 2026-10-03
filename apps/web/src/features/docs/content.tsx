@@ -1,4 +1,5 @@
 import { NAME_MAX_LENGTH } from "@ronneai/core";
+import { marketplaceName } from "@ronneai/core/plugins";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { docsHref, type TopicSlug } from "@/components/help/topics";
@@ -7,6 +8,8 @@ import { CLAUDE_CODE_PATHS, CODEX_PATHS, CURSOR_PATHS } from "@/components/tools
 import { Badge } from "@/components/ui/Badge";
 import { Table, Td, Th } from "@/components/ui/Table";
 import { TypeBadge } from "@/components/ui/TypeBadge";
+import { loadConfig } from "@/server/config";
+import { marketplaceUrl } from "@/server/domains/feeds/actions/feeds";
 import { DependencyCards } from "./DependencyCards";
 import { TypesList } from "./TypesList";
 
@@ -38,6 +41,21 @@ const To = ({ href, children }: { href: string; children: ReactNode }) => (
   <Link href={href} className="text-link underline underline-offset-2">
     {children}
   </Link>
+);
+
+/**
+ * This instance's address (077), read when the page renders: PUBLIC_URL, or the example address
+ * when it isn't set. These are components, not values, so CONTENT never reads it at import.
+ */
+const instanceUrl = () => loadConfig().publicUrl ?? "https://ronne.example";
+
+/** In a code block, which scrolls on its own: the address has no space to wrap at. */
+const MarketplaceUrl = () => <Example>{marketplaceUrl(instanceUrl(), "claude-code")}</Example>;
+
+const MarketplaceName = () => <Code>{marketplaceName(instanceUrl())}</Code>;
+
+const PluginInstallExample = () => (
+  <Example>{`/plugin install team.secure-coding@${marketplaceName(instanceUrl())}`}</Example>
 );
 
 /** A tool's paths as a table of type and place. */
@@ -2175,6 +2193,30 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         can do.
       </p>
     ),
+    plugins: (
+      <>
+        <p>
+          Claude Code can also install this marketplace&apos;s items itself, as plugins, from{" "}
+          <Code>/plugin</Code>. Two commands set that up:
+        </p>
+        <Bullets>
+          <li>
+            <Code>rmk plugin-setup claude-code</Code> adds this marketplace to Claude Code&apos;s
+            settings (<Code>--scope project</Code> for the project&apos;s, <Code>--remove</Code> to
+            take it out). Like every setting <Code>rmk</Code> writes, it never replaces an entry you
+            made or edited.
+          </li>
+          <li>
+            <Code>rmk auth headers</Code> prints your token as an <Code>Authorization</Code> header,
+            and nothing else. Claude Code runs it to read the marketplace; you don&apos;t need to.
+          </li>
+        </Bullets>
+        <p>
+          <To href={docsHref("plugins")}>Plugin marketplaces</To> explains both, and when to use
+          plugins rather than <Code>rmk install</Code>.
+        </p>
+      </>
+    ),
     telemetry: (
       <p>
         When the instance collects usage, <Code>rmk</Code> sends it daily counts of installs,
@@ -2183,6 +2225,152 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         <Code>rmk telemetry off</Code> stops it where people may choose.{" "}
         <To href={docsHref("usage")}>Usage data</To> says exactly what is sent.
       </p>
+    ),
+  },
+  plugins: {
+    what: (
+      <>
+        <p>
+          This marketplace offers its released items to Claude Code as a{" "}
+          <strong>plugin marketplace</strong>. Once it&apos;s added, you browse and install items
+          from <Code>/plugin</Code> in Claude Code like any other plugin, without{" "}
+          <Code>rmk install</Code>.
+        </p>
+        <Bullets>
+          <li>
+            Nothing about publishing changes: only released versions are offered, after review, and
+            each item at the version the catalogue lists (<Code>latest</Code>&apos;s).
+          </li>
+          <li>
+            Each plugin is the item with the dependencies it would install with, resolved when the
+            plugin is first built; a bundle is a plugin with its members. Its name is the
+            item&apos;s, with a dot: <Code>@team/secure-coding</Code> is{" "}
+            <Code>team.secure-coding</Code>.
+          </li>
+          <li>
+            A deprecated version says so at the start of its description. A yanked version
+            disappears from the marketplace the next time Claude Code refreshes it.
+          </li>
+          <li>
+            Items with no place in a plugin aren&apos;t offered: status lines, permission policies,
+            and rules that are always on or follow file patterns. Install those with{" "}
+            <Code>rmk</Code>.
+          </li>
+          <li>
+            Each plugin download counts as an install of the item, as an <Code>rmk</Code> download
+            does.
+          </li>
+        </Bullets>
+        <p>
+          Claude Code is the only tool that can read a marketplace straight from this website. Codex
+          and Cursor read plugins from git repositories only.
+        </p>
+      </>
+    ),
+    "claude-code": (
+      <>
+        <Steps>
+          <li>
+            <strong>Log in</strong> with <Code>rmk login</Code>, if you haven&apos;t:{" "}
+            <To href={docsHref("rmk", "login")}>Installing with rmk</To>.
+          </li>
+          <li>
+            <strong>Add the marketplace</strong> to Claude Code:
+          </li>
+        </Steps>
+        <Example>
+          {
+            "rmk plugin-setup claude-code                    # for you, in ~/.claude/settings.json\nrmk plugin-setup claude-code --scope project    # for a project, in .claude/settings.json\nrmk plugin-setup claude-code --remove"
+          }
+        </Example>
+        <p>
+          It adds the marketplace <MarketplaceName />, which Claude Code reads from:
+        </p>
+        <MarketplaceUrl />
+        <p>
+          With <Code>--scope project</Code>, commit <Code>.claude/settings.json</Code> to share it:
+          Claude Code reads a project&apos;s marketplaces once you trust the folder, and each person
+          still logs in with <Code>rmk</Code>.
+        </p>
+        <p>
+          <strong>Then install</strong>: run <Code>/plugin</Code> in Claude Code and pick items from
+          the marketplace, or install one by name:
+        </p>
+        <PluginInstallExample />
+        <p>
+          An item&apos;s page shows this command in its <strong>Install</strong> panel when it can
+          be installed as a plugin. A plugin&apos;s skills and commands run with its name first,
+          such as <Code>/team.secure-coding:secure-coding</Code>.
+        </p>
+        <p>
+          Claude Code fetches the marketplace again when you run{" "}
+          <Code>/plugin marketplace update</Code>, or by itself once you turn on auto-update for it
+          under <strong>Marketplaces</strong> in <Code>/plugin</Code>. A new release then shows as
+          an update.
+        </p>
+        <p>
+          It needs Claude Code 2.1.238 or later, and this website on an <Code>https://</Code>{" "}
+          address: Claude Code won&apos;t download plugins over <Code>http://</Code> or from{" "}
+          <Code>localhost</Code>.
+        </p>
+      </>
+    ),
+    tokens: (
+      <>
+        <p>
+          The marketplace needs a token, like the rest of the API. Claude Code gets yours by running{" "}
+          <Code>rmk auth headers</Code>, which <Code>rmk plugin-setup</Code> names in the settings
+          as the marketplace&apos;s <Code>headersHelper</Code>. It prints the token{" "}
+          <Code>rmk login</Code> saved (or <Code>RMK_TOKEN</Code>), and Claude Code sends it when it
+          reads the marketplace and downloads plugins from it.
+        </p>
+        <Bullets>
+          <li>
+            Claude Code runs it from <Code>~/.claude</Code>, so <Code>rmk</Code> must be on your{" "}
+            <Code>PATH</Code>. If it isn&apos;t, give its full path:{" "}
+            <Code>rmk plugin-setup claude-code --command /opt/homebrew/bin/rmk</Code>.
+          </li>
+          <li>
+            When the token expires or is revoked, the marketplace stops refreshing, and Claude Code
+            shows it as failing to load. The plugins you installed keep working. Run{" "}
+            <Code>rmk login</Code> again to fix it.
+          </li>
+          <li>
+            For a project&apos;s settings, Claude Code hides variables that look like secrets from
+            the command, so <Code>RMK_TOKEN</Code> isn&apos;t seen there: use <Code>rmk login</Code>
+            .
+          </li>
+          <li>
+            For an older Claude Code, <Code>--static-headers</Code> writes the token itself into
+            your user settings (never a project&apos;s, which usually goes into git). Run the
+            command again after you log in again.
+          </li>
+        </Bullets>
+      </>
+    ),
+    which: (
+      <>
+        <Bullets>
+          <li>
+            <strong>Plugins</strong> install from inside Claude Code, for you, and Claude Code keeps
+            them in its own folder. They suit trying items out, and people who only use Claude Code.
+          </li>
+          <li>
+            <strong>
+              <Code>rmk install</Code>
+            </strong>{" "}
+            works for every tool, writes the files into the project, and pins versions in{" "}
+            <Code>rmk.lock</Code> so teammates get the same. Usage is reported only for items{" "}
+            <Code>rmk</Code> installed.
+          </li>
+        </Bullets>
+        <p>
+          Install an item one way, not both: Claude Code would load it twice. When{" "}
+          <Code>rmk install</Code> writes an item for Claude Code that&apos;s also enabled as a
+          plugin from this marketplace, it warns, and installs it anyway. Uninstall the plugin in{" "}
+          <Code>/plugin</Code>, or run <Code>rmk remove</Code>.
+        </p>
+      </>
     ),
   },
   mcp: {
@@ -2578,6 +2766,14 @@ rmk telemetry preview   # what would be sent now`}</Example>
           are tracked, so <Code>rmk</Code> never overwrites what you wrote by hand.
         </li>
       </Bullets>
+    ),
+    plugins: (
+      <p>
+        Claude Code can also install items as plugins, from <Code>/plugin</Code>, after{" "}
+        <Code>rmk plugin-setup claude-code</Code> adds this marketplace to it. Claude Code then
+        keeps them in its own plugin folder, not in the places above.{" "}
+        <To href={docsHref("plugins")}>Plugin marketplaces</To> explains how, and when to use them.
+      </p>
     ),
   },
   codex: {
