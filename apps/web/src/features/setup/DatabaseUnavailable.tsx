@@ -9,7 +9,7 @@ import { Panel } from "@/components/ui/Panel";
  */
 export const DatabaseUnavailable = ({ database }: { database: string }) => {
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col justify-center gap-4 px-4 py-12">
+    <main className="mx-auto flex min-h-dvh max-w-xl flex-col justify-center gap-4 px-4 py-12">
       <Panel padding="lg" className="grid gap-4">
         <BrandMark size={32} className="text-fg" />
         <div className="grid gap-1">

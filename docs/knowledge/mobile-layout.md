@@ -22,9 +22,11 @@ follow them and how to check them. The work is planned in
 - **A bigger tap area around a small control:** keep the drawn size and add a transparent area,
   `relative after:absolute after:-inset-2 after:content-['']` (check it doesn't overlap a
   neighbour's area).
-- **Safe areas:** `pt-safe`, `pb-safe` and `px-safe` (in `globals.css`) add the inset to the
-  padding the element would have anyway. They only matter because the viewport has
-  `viewport-fit=cover`.
+- **Safe areas:** `pt-safe`, `pb-safe` and `px-safe` (in `globals.css`) set the padding to the
+  device's inset (0 on a screen without one). Put them on an edge's outer element with no padding
+  of its own and keep the usual padding on the element inside, as `AppShell`'s header, content and
+  footer do. They only matter because the viewport has `viewport-fit=cover`, which also means any
+  new full-width fixed or sticky element needs them.
 - **Heights:** `min-h-dvh`, `h-dvh`, `max-h-[calc(100dvh-…)]`. `100vh` on iOS Safari includes
   the area behind the toolbar.
 

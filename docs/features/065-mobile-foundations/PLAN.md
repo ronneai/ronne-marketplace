@@ -16,9 +16,10 @@ the same change that completes it.
   *Done when:* a unit test covers both themes and the missing cookie; `theme.e2e.ts` checks the
   meta changes with the toggle.
 
-- [ ] **3. Safe areas and `dvh`.** The safe-area utilities in `globals.css`; the header and footer
+- [x] **3. Safe areas and `dvh`.** The safe-area utilities in `globals.css`; the header and footer
   in `AppShell.tsx` use them; `min-h-screen` → `min-h-dvh` in `SignInPage.tsx`, `SetupPage.tsx`,
   `DatabaseUnavailable.tsx`.
+  The draft editor's composer frame and the file viewer's box use `dvh` too.
   *Done when:* unit tests pass; `grep -rn "min-h-screen\|100vh" apps/web/src` finds nothing.
 
 - [ ] **4. Phone and tablet projects.** `phone`, `phone-webkit` and `tablet` in
