@@ -30,7 +30,7 @@ the same change that completes it.
   finds conflicts, and sets `empty`.
   *Done when:* tests cover a bundle, an item with a dependency, a conflict and an empty plugin.
 
-- [ ] **7. Marketplaces.** `plugins/marketplace.ts`: `marketplaceFor` with `archive` and `path`
+- [x] **7. Marketplaces.** `plugins/marketplace.ts`: `marketplaceFor` with `archive` and `path`
   sources.
   *Done when:* golden marketplace files for the three tools pass, and `claude plugin validate`
   accepts a built mirror tree (record it in the notes).
@@ -50,4 +50,15 @@ goes into `SPEC.md` instead.
   name the tools of a server that comes from a plugin differently (with the plugin's name in
   them); if so, the Claude Code adapter has to rewrite the agent's `tools` when the server is in
   the same plugin.
+- Checked by hand on 2026-10-03 against a mirror of every example item (the 078 layout, built from
+  `dist`):
+  - `claude plugin validate .` (Claude Code 2.1.288) passes the marketplace and each plugin, with
+    two warnings per plugin. *No version specified*: by design, the version is in the marketplace
+    entry (contract). *Not kebab-case*: Claude Code accepts `scope.name`, but the claude.ai
+    marketplace sync wants lowercase letters, digits and hyphens only. Kebab-case `scope-name`
+    could collide (`@a-b/c` and `@a/b-c`) and can't be read back, and Codex refuses `--`, so the
+    dot stays unless the owner decides otherwise.
+  - Every Codex `plugin.json` and `mcp.json` validates against the Agent Plugins 1.0.0 schemas
+    (`agent-plugins.org/schemas/1.0.0/{plugin,mcp}.schema.json`, ajv 2020).
+  - The Cursor files weren't validated: Cursor publishes no schema and has no validate command.
 

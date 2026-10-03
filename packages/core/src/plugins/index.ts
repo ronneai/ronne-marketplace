@@ -3,6 +3,14 @@
 export { type PluginArchive, pluginArchive } from "./archive.js";
 export { buildPlugin, PluginError } from "./build.js";
 export {
+  MARKETPLACE_PATHS,
+  type MarketplaceEntry,
+  type MarketplaceOptions,
+  marketplaceFor,
+  marketplaceName,
+  type PluginSource,
+} from "./marketplace.js";
+export {
   itemNameOfPlugin,
   PLUGIN_NAME_PROBLEM_MESSAGES,
   type PluginNameProblem,
