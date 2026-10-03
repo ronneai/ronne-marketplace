@@ -221,18 +221,26 @@ Notes:
 - The Codex and Cursor columns were re-checked on 2026-09-28 for [024](../features/024-codex-renderer/SPEC.md) and [025](../features/025-cursor-renderer/SPEC.md): both moved commands into skills, and Cursor also reads `.claude/skills/`, `.claude/agents/` and Claude Code's hooks for compatibility, which matters when both are targets. With both targets, Cursor leaves skills, commands and hooks to Claude Code's copy (re-checked 2026-09-29 for 025).
 - When one project targets several tools, the renderer writes each shared format once. For example, a single `.agents/skills/<n>/` serves Codex, Cursor, Gemini and Devin.
 
-#### Native plugin feeds (post-MVP option)
+#### Native plugin feeds (M11)
 
 Several platforms have their own plugin marketplaces:
 - Claude Code: `.claude-plugin/marketplace.json`
 - Codex: `.agents/plugins/marketplace.json`
-- Cursor and Copilot: [Agent Plugins 1.0](https://agent-plugins.org/)
+- Cursor: `.cursor-plugin/marketplace.json` (Cursor and Copilot also read [Agent Plugins 1.0](https://agent-plugins.org/) plugins)
 - Gemini: extensions
 
-A Ronne instance could also **publish its approved bundles as a native marketplace feed** for each of
-these. Users could then subscribe from inside the tool without `rmk`, while Ronne stays the source of
-truth and the approval gate. (This was called "native plugin export" until 2026-09-30; "export" now
-means sending a local item to the registry as a draft, §4.1 and §6.)
+A Ronne instance **publishes its released items as a native marketplace feed** for each of these,
+so people can install from inside the tool without `rmk`, while Ronne stays the source of truth and
+the approval gate (owner, 2026-10-03; M11, contract in [plugin feeds](../spec/plugin-feeds.md)):
+- Every installable item is a plugin, with its dependencies; a bundle is a plugin with its members.
+  Plugins are built from the renderers' output, so the mappings above stay the single source.
+- **Claude Code** adds the instance directly: an HTTPS `marketplace.json` with `archive` (zip)
+  entries, read with a personal access token through `headersHelper` ([077](../features/077-claude-code-marketplace/SPEC.md)).
+- **Codex and Cursor** only add git repositories (Cursor: a team admin imports it), so `rmk feed
+  build` writes the feed as a repository tree that a scheduled CI job keeps current ([078](../features/078-plugin-feed-mirror/SPEC.md)).
+
+(This was called "native plugin export" until 2026-09-30; "export" now means sending a local item
+to the registry as a draft, §4.1 and §6.)
 
 Rules for renderers:
 
@@ -591,6 +599,7 @@ IDs are ULIDs and timestamps are UTC (§9.4).
 | `POST /drafts/check` | Whether Submit would take each of the token's user's drafts (`ids` or `all`), and what's in the way (M7, [052](../features/052-bulk-submit/SPEC.md)) |
 | `POST /drafts/submit` | Submit each of those drafts that's ready, each on its own, and answer every result (M7, 052) |
 | `GET /usage` · `POST /usage` | Whether the instance accepts usage; report daily counts of installs, removals and runs (M9, [046](../features/046-usage-telemetry/SPEC.md)) |
+| `GET /feeds/{tool}/marketplace.json` · `GET /feeds/{tool}/plugins/{scope}/{name}/{version}.zip` | A tool's plugin marketplace and its plugin zips, for Claude Code, Codex and Cursor (M11, [077](../features/077-claude-code-marketplace/SPEC.md), [078](../features/078-plugin-feed-mirror/SPEC.md)) |
 
 Editing, submitting, review, release and admin actions are only available in the web UI (as server
 actions). The API reads, with two exceptions (owner, 2026-09-30): a token can **create a draft**
@@ -701,7 +710,7 @@ Design points:
 ### 14.4 Other future topics
 
 - **More platforms.** Tier-3 community renderers via the `PlatformRenderer` interface (§3.3).
-- **Native plugin feeds.** Publish approved bundles as native marketplace feeds for Claude Code, Codex, Cursor and Copilot (§3.3).
+- **Native plugin feeds.** Planned as M11 for Claude Code, Codex and Cursor (§3.3). Copilot, Gemini and Devin feeds follow their renderers (028–030, on hold).
 - **Install telemetry** (a policy root sets per instance, off by default), so moderators can see which items are used. The MVP only counts artifact downloads on the server, for the home page's "Most used" (018). Designed in §14.6; planned as M9.
 
 ### 14.5 Decided out of scope for now
@@ -836,3 +845,4 @@ out (owner, 2026-09-30). The design, for when it's picked up:
 | Dependencies | Permissive licenses only (MIT, ISC, BSD, Apache-2.0 …; CC-BY-4.0 for data); no copyleft or paid tools; latest stable/LTS; CI license + audit + image scans; pnpm release-age delay, build allowlist, trust policy | Ronne must be freely redistributable and must not ship known vulnerabilities |
 | Packages | `@ronneai/{marketplace,rmk,mcp,core}`; binary `rmk`; Node 24 LTS target, 22 LTS minimum; Docker amd64 + arm64 | Unscoped `rmk` is taken on npm; the owner holds `@ronneai` on npmjs.com (as on GitHub), not `@ronne` (confirmed 2026-09-27) |
 | Package registry | Publish to npmjs.com under `@ronneai`; not GitHub Packages as the install source (a mirror there is possible later). The command stays `rmk` | GitHub Packages only takes the repository owner's scope (`@ronneai`), and installing from it needs a GitHub token with `read:packages` and an `.npmrc` registry line, even for public packages: too much friction for a CLI anyone should install with one command |
+| Native plugin feeds | Released items are offered as plugin marketplaces: every installable item is a plugin (with its dependencies; a bundle with its members), built from the renderers' output. Claude Code reads a live marketplace from the instance with a token (`headersHelper: rmk auth headers`); Codex and Cursor get a git mirror written by `rmk feed build`; the feed needs a token like the rest of `/api/v1` (owner, 2026-10-03, M11: [076](../features/076-plugin-builders/SPEC.md)–[078](../features/078-plugin-feed-mirror/SPEC.md)) | People install from inside their tool; only Claude Code can add a plain HTTPS source, and Codex and Cursor only add git repositories; serving git from the web app would mean a git implementation for no gain over a mirror. Approval and immutable versions are unchanged, since only released versions are built |

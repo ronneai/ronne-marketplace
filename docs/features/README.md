@@ -185,6 +185,19 @@ then 067, then the rest.
 | [074](./074-mobile-account-admin/SPEC.md) | Account, Admin, sign-in and setup on phones: autocomplete and input modes, the setup wizard on a phone, whole tokens, Users and Scopes as cards, the audit log's Filters disclosure | 066, 067, 068, 069, 006, 008, 009, 036, 046, 060 | specified |
 | [075](./075-mobile-sign-off/SPEC.md) | Mobile sign-off: the sweep and tap-target checks become permanent CI failures, a pass on real iPhone, Android and iPad, screen readers and text size, Lighthouse mobile, "Using Ronne on a phone" in the Documentation, the decision log | 065–074 | specified |
 
+### M11 — Native plugin feeds
+
+A Ronne instance offers its released items as plugin marketplaces that Claude Code, Codex and
+Cursor add as a source (owner, 2026-10-03). Claude Code reads one live from the instance with a
+token; Codex and Cursor only add git repositories, so `rmk` builds a mirror. The contract is
+[`docs/spec/plugin-feeds.md`](../spec/plugin-feeds.md).
+
+| ID | Feature | Depends on | Status |
+|---|---|---|---|
+| [076](./076-plugin-builders/SPEC.md) | Plugin builders in `@ronneai/core/plugins`: an item and its dependencies (a bundle and its members) as a Claude Code, Codex or Cursor plugin through the renderers; deterministic zips; each tool's marketplace file | 020, 021, 023, 024, 025, 026 | specified |
+| [077](./077-claude-code-marketplace/SPEC.md) | Claude Code marketplace from the instance: `GET /api/v1/feeds/claude-code/marketplace.json` and plugin zips behind a token, built once per version and cached; `rmk plugin-setup claude-code` with `headersHelper: rmk auth headers`; the Plugin marketplaces topic | 076, 009, 019, 022, 027 | specified |
+| [078](./078-plugin-feed-mirror/SPEC.md) | Git mirror for Codex and Cursor: the feeds for both tools, `rmk feed build --out <dir>` (deterministic, touches only what it wrote), a scheduled CI workflow to keep the repository current | 076, 077 | specified |
+
 ### Across the app
 
 Work that changes every part of the web app rather than one milestone's features.
