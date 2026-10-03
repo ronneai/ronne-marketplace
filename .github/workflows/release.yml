@@ -15,7 +15,8 @@ name: Release
 #    refuses to move a version that already points at other images. Docker Hub's credentials live in
 #    the "dockerhub" environment (DOCKERHUB_USERNAME, DOCKERHUB_TOKEN); it needs no reviewer of its
 #    own, since its jobs only run after the npm job the owner approved.
-# 3. `github-release`: the GitHub release, once every artefact of the version exists.
+# 3. `github-release`: the GitHub release, once every artefact of the version exists, with the npm
+#    tarballs and the install scripts (install.sh, install.ps1, checksums.txt; feature 081) attached.
 #
 # Run by hand with "dry run" (from main, so the current workflow runs) to check everything, build,
 # run and scan both images, and publish nothing.
@@ -116,6 +117,19 @@ jobs:
               npm publish "$tarball" --access public --provenance
             fi
           done
+      # The install scripts with this version written in, and their checksums (feature 081). Also
+      # on a dry run, so the run's log and artefacts show them.
+      - name: Install scripts
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: node packages/repo-tools/src/release-install-scripts.js "$VERSION" install-scripts
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: install-scripts
+          path: install-scripts/*
+          retention-days: 7
+          overwrite: true
+          if-no-files-found: error
       # For the GitHub release, once the image is published too.
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: env.DRY_RUN != 'true'
@@ -314,10 +328,18 @@ jobs:
         with:
           name: npm-tarballs
           path: release
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: install-scripts
+          path: release
+      - name: The install scripts match their checksums
+        working-directory: release
+        run: sha256sum -c checksums.txt
       - name: GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          VERSION: ${{ needs.release.outputs.version }}
         run: |
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "The release $TAG already exists; nothing to do."
@@ -325,4 +347,4 @@ jobs:
           fi
           gh release create "$TAG" --verify-tag --generate-notes --title "$TAG" \
             --notes "Docker image: \`docker pull ${IMAGE#docker.io/}:$VERSION\` (linux/amd64, linux/arm64). npm: \`npm install --global @ronneai/rmk@$VERSION @ronneai/mcp@$VERSION\`." \
-            release/*.tgz
+            release/*.tgz release/install.sh release/install.ps1 release/checksums.txt

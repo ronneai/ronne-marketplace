@@ -100,3 +100,20 @@ and under bash:
   5.1 and 7.
 - **Not checked:** by hand on Windows 11 with Docker Desktop (no Windows machine here). CI runs it
   on a Windows runner up to the Docker check in task 5. The rest needs the owner on Windows.
+
+### Task 4: release assets (2026-10-03)
+
+- `packages/repo-tools/src/install-scripts.js` writes the version in (`withInstallVersion`, which
+  refuses a script with no placeholder or two) and makes `checksums.txt` in `sha256sum` format. Its
+  tests also check that both scripts end by calling their entry point.
+  `release-install-scripts.js <version> <folder>` is the command `release.yml` runs.
+- `release.yml`: the `release` job writes the three files and uploads them as the
+  `install-scripts` artefact, on a dry run too, so a dry run shows them. `github-release` checks
+  them with `sha256sum -c` and attaches them next to the npm tarballs.
+- Locally: `release-install-scripts.js 0.3.0 …` writes both scripts with the version in, and
+  `shasum -a 256 -c checksums.txt` reports both OK.
+- **Fixed on the way:** `github-release` used `$VERSION` without setting it, so v0.1.0 to v0.2.0's
+  notes read "docker pull ronneai/marketplace:" with no version. It now gets
+  `needs.release.outputs.version`.
+- **Still open:** a dry-run release (run by hand from `main`, after the merge) to see the
+  artefact. Tick the task then.
