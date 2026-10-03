@@ -60,8 +60,10 @@ a dedicated account: the build reads what that account can read.
 
 **Adding it in each tool:**
 - Codex: `codex plugin marketplace add <owner>/<repo>` (or a git URL); then `codex plugin` to install.
-- Cursor: a team admin, Dashboard › Plugins › Add Marketplace › Import from repo. On GitHub, Cursor
-  refreshes on push.
+- Cursor: a team admin (Teams or Enterprise plan), Dashboard › Settings › Plugins › Team
+  Marketplaces › Import, with the repository's URL (GitHub, GitLab, Bitbucket or Azure DevOps).
+  On a GitHub import, **Enable Auto Refresh** updates the plugins on every push.
+- Codex: `codex plugin marketplace upgrade` fetches the mirror again.
 - Claude Code: `/plugin marketplace add <owner>/<repo>`.
 
 ## Edge cases
@@ -95,5 +97,7 @@ a dedicated account: the build reads what that account can read.
 
 ## Open questions
 
-- Does Codex use the machine's git credentials for private repositories? The docs don't say yet.
-  Re-check before writing the Codex section of the Documentation.
+- Does Codex use the machine's git credentials for private repositories? The docs still don't say
+  (re-checked 2026-10-03). The Documentation says Codex clones the repository with git, so a
+  private one needs git on that machine to be able to clone it; task 6 checks it with a private
+  test repository.

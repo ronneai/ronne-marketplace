@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Re-check Codex and Cursor.** Marketplace locations, source forms, how a marketplace is
+- [x] **1. Re-check Codex and Cursor.** Marketplace locations, source forms, how a marketplace is
   added, and private-repository auth. Update the contract.
   *Done when:* `docs/spec/plugin-feeds.md` has today's date for both.
 
