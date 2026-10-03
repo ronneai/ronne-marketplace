@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Account menu closes.** Close the `<details>` in `AppShell.tsx` on an outside pointer
+- [x] **1. Account menu closes.** Close the `<details>` in `AppShell.tsx` on an outside pointer
   down, Esc and route change (a small client hook in `components/app-shell`).
   *Done when:* unit tests cover the three.
 

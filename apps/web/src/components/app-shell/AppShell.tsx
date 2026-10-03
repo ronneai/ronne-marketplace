@@ -5,6 +5,7 @@ import { ThemeToggle } from "@/features/theme/ThemeToggle";
 import type { Theme } from "@/features/theme/theme";
 import { Badge } from "../ui/Badge";
 import { BrandLogo } from "../ui/BrandLogo";
+import { DismissibleDetails } from "./DismissibleDetails";
 import { MainNav } from "./MainNav";
 import { navFor, type ShellUser } from "./nav";
 
@@ -15,7 +16,8 @@ const menuItem =
  * The page frame (feature 032): a full-width header, which stays at the top as the page scrolls,
  * with the brand, role-aware navigation and the user menu; a content column at 72% of the width on
  * large screens (full width below 1024px); and a full-width footer. The theme switch sits in the header, next to the user menu. The user menu is
- * a native <details>, so it works without JavaScript. The (app) layout passes `signOutAction` (006).
+ * a native <details>, so it works without JavaScript; with it, it closes on a click outside, Esc
+ * and a change of page (066). The (app) layout passes `signOutAction` (006).
  */
 export const AppShell = ({
   user,
@@ -47,7 +49,7 @@ export const AppShell = ({
           <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
             <ThemeToggle theme={theme} />
             {user ? (
-              <details className="relative">
+              <DismissibleDetails className="relative">
                 <summary className="flex cursor-pointer list-none items-center gap-2 rounded-control px-2 py-1 pointer-coarse:min-h-11 text-sm text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus">
                   {/* The name, not the email (owner, 2026-09-27). On a phone an icon opens the menu. */}
                   <span className="hidden max-w-48 truncate text-sm sm:inline">{user.name}</span>
@@ -73,7 +75,7 @@ export const AppShell = ({
                     </form>
                   ) : null}
                 </div>
-              </details>
+              </DismissibleDetails>
             ) : null}
           </div>
         </div>
