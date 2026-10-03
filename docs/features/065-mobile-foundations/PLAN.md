@@ -22,9 +22,10 @@ the same change that completes it.
   The draft editor's composer frame and the file viewer's box use `dvh` too.
   *Done when:* unit tests pass; `grep -rn "min-h-screen\|100vh" apps/web/src` finds nothing.
 
-- [ ] **4. Phone and tablet projects.** `phone`, `phone-webkit` and `tablet` in
+- [x] **4. Phone and tablet projects.** `phone`, `phone-webkit` and `tablet` in
   `playwright.config.ts`, matching `*.mobile.e2e.ts`; the desktop project ignores them; CI and
-  `CLAUDE.md` install `chromium webkit`. Run the dependency policy checklist for WebKit.
+  `CLAUDE.md` install `chromium webkit`. WebKit is LGPL-2.1: dependency exception E-5 (owner,
+  2026-10-02).
   *Done when:* a one-page `smoke.mobile.e2e.ts` (sign in, open home) passes in all three.
 
 - [ ] **5. The page list and seed.** `e2e/pages.ts`: every route with the roles that can open it
@@ -50,3 +51,8 @@ goes into `SPEC.md` instead.
 - **The theme colour needs no client code.** The toggle's server action sets the cookie and Next
   re-renders the route, `generateViewport` included, so the `theme-color` meta changes with
   `data-theme` (`theme.e2e.ts` checks both).
+- **WebKit needed an exception.** Its WebCore and JavaScriptCore are LGPL-2.1, which the policy
+  allows only as a recorded exception: E-5, test time only, like E-4. The CI job keeps its name,
+  "End-to-end (Chromium)", because a required check is matched by name.
+- **Each project signs in with its own users** (`e2e/mobile.ts` maps project → user), so the
+  per-email sign-in limit doesn't span projects.

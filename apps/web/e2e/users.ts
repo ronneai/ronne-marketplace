@@ -43,6 +43,10 @@ export const E2E_USERS = {
   archiveModerator: "archive-moderator@e2e.test",
   decisionAuthor: "decision-author@e2e.test",
   decisionModerator: "decision-moderator@e2e.test",
+  // Phones and tablets (065): one set per project, so the projects' sign-ins don't share a limit.
+  phoneMember: "phone-member@e2e.test",
+  phoneWebkitMember: "phone-webkit-member@e2e.test",
+  tabletMember: "tablet-member@e2e.test",
 } as const;
 
 /** The display names, which the header shows (not the email). */
@@ -85,6 +89,9 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   archiveModerator: "Ari Moderator",
   decisionAuthor: "Dora Author",
   decisionModerator: "Remy Moderator",
+  phoneMember: "Pho Member",
+  phoneWebkitMember: "Ios Member",
+  tabletMember: "Tab Member",
 };
 
 /** Seeded with the moderator role; everyone else is a user. */

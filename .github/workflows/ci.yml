@@ -118,9 +118,10 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
         if: needs.changes.outputs.code != 'false'
-      # Chromium from Playwright's own download, with the system libraries it needs. This is the
-      # only step that fetches browsers: installing @playwright/test runs no scripts.
-      - run: pnpm --filter @ronneai/web exec playwright install --with-deps chromium
+      # Chromium, and WebKit for the iOS Safari phone project (065; dependency exception E-5), from
+      # Playwright's own download, with the system libraries they need. This is the only step that
+      # fetches browsers: installing @playwright/test runs no scripts.
+      - run: pnpm --filter @ronneai/web exec playwright install --with-deps chromium webkit
         if: needs.changes.outputs.code != 'false'
       # Builds the web app, sets up a throwaway SQLite instance and runs the tests (apps/web/e2e).
       - run: pnpm test:e2e
