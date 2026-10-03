@@ -45,8 +45,14 @@ export const E2E_USERS = {
   decisionModerator: "decision-moderator@e2e.test",
   // Phones and tablets (065): one set per project, so the projects' sign-ins don't share a limit.
   phoneMember: "phone-member@e2e.test",
+  phoneModerator: "phone-moderator@e2e.test",
+  phoneRoot: "phone-root@e2e.test",
   phoneWebkitMember: "phone-webkit-member@e2e.test",
+  phoneWebkitModerator: "phone-webkit-moderator@e2e.test",
+  phoneWebkitRoot: "phone-webkit-root@e2e.test",
   tabletMember: "tablet-member@e2e.test",
+  tabletModerator: "tablet-moderator@e2e.test",
+  tabletRoot: "tablet-root@e2e.test",
 } as const;
 
 /** The display names, which the header shows (not the email). */
@@ -90,8 +96,14 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   decisionAuthor: "Dora Author",
   decisionModerator: "Remy Moderator",
   phoneMember: "Pho Member",
+  phoneModerator: "Pho Moderator",
+  phoneRoot: "Pho Root",
   phoneWebkitMember: "Ios Member",
+  phoneWebkitModerator: "Ios Moderator",
+  phoneWebkitRoot: "Ios Root",
   tabletMember: "Tab Member",
+  tabletModerator: "Tab Moderator",
+  tabletRoot: "Tab Root",
 };
 
 /** Seeded with the moderator role; everyone else is a user. */
@@ -105,6 +117,16 @@ export const E2E_MODERATORS: readonly (keyof typeof E2E_USERS)[] = [
   "releaseModerator",
   "archiveModerator",
   "decisionModerator",
+  "phoneModerator",
+  "phoneWebkitModerator",
+  "tabletModerator",
+];
+
+/** Seeded as root, besides the root setup creates (more than one root since 059). */
+export const E2E_ROOTS: readonly (keyof typeof E2E_USERS)[] = [
+  "phoneRoot",
+  "phoneWebkitRoot",
+  "tabletRoot",
 ];
 
 /**

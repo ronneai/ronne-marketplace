@@ -3,9 +3,13 @@ import { E2E_PASSWORD, E2E_USERS } from "./users";
 
 /** The phone and tablet projects (feature 065), each with its own users. */
 const PROJECT_USERS = {
-  phone: { member: "phoneMember" },
-  "phone-webkit": { member: "phoneWebkitMember" },
-  tablet: { member: "tabletMember" },
+  phone: { member: "phoneMember", moderator: "phoneModerator", root: "phoneRoot" },
+  "phone-webkit": {
+    member: "phoneWebkitMember",
+    moderator: "phoneWebkitModerator",
+    root: "phoneWebkitRoot",
+  },
+  tablet: { member: "tabletMember", moderator: "tabletModerator", root: "tabletRoot" },
 } as const satisfies Record<string, Record<string, keyof typeof E2E_USERS>>;
 
 export type MobileRole = keyof (typeof PROJECT_USERS)["phone"];

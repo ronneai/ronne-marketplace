@@ -28,9 +28,11 @@ the same change that completes it.
   2026-10-02).
   *Done when:* a one-page `smoke.mobile.e2e.ts` (sign in, open home) passes in all three.
 
-- [ ] **5. The page list and seed.** `e2e/pages.ts`: every route with the roles that can open it
-  and the seeded ids it needs (an item with dependencies and files, a draft, a submission in
-  review, an approved one, an audit event, a token).
+- [x] **5. The page list and seed.** `e2e/pages.ts`: every route with the roles that can open it
+  and the URLs to open (the seeded skill with files and usage, the agent with dependencies, the
+  item with two versions, every docs topic). The seed adds a member, a moderator and a root per
+  phone and tablet project. The draft and the submission in review are made by the sweep itself
+  (task 6) through the drafts API, so each project has its own.
   *Done when:* a test checks `pages.ts` covers every `page.tsx` under `app/` (by walking the
   folder), so a new page can't be forgotten.
 
