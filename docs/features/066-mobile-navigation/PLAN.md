@@ -22,7 +22,7 @@ the same change that completes it.
   is a link that JavaScript turns into the sheet; add it to `e2e/pages.ts`.
   *Done when:* a JavaScript-off e2e signs out from `/menu`.
 
-- [ ] **4. `ScrollStrip`.** In `components/ui`, with the current-tab scroll, edge fades and coarse
+- [x] **4. `ScrollStrip`.** In `components/ui`, with the current-tab scroll, edge fades and coarse
   pointer height; used by `Tabs` when its choices don't fit.
   *Done when:* unit tests cover the active tab and the fades (by class, with a mocked size).
 

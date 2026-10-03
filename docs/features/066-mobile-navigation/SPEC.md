@@ -29,14 +29,15 @@ view. This feature gives phones a menu and makes every tab strip show where it i
 - **A shared `ScrollStrip`** for tab strips that may not fit (`components/ui`):
   - scrolls the current tab into view on load and on change (`block: "nearest"`, no smooth
     scrolling when reduced motion is asked for);
-  - a fade on the edge that has more tabs, from the `canvas` token, shown only while there's more
-    to scroll (no shadows, per 032);
+  - a fade on the edge that has more tabs, shown only while there's more to scroll: a CSS mask
+    that turns the tabs transparent at that edge, so no colour is added and it works on any
+    background (032 allows no shadows and no gradient fills; `fade-*` in `globals.css`);
   - each tab at least 44px tall on a coarse pointer.
   It replaces the hand-made strips in the item page tabs (`ItemPageView.tsx`), `DocsNav`
   (phones), `AdminNav` and the review queue tabs (`QueueTable.tsx`), and the submissions status
   links if they don't fit.
 - **`Tabs`** (`components/ui/Tabs.tsx`, the equal-column toggle): stays equal columns for two or
-  three short choices; with more, or when they don't fit, it uses `ScrollStrip`. `h-8` becomes 44px
+  three short choices; with four or more it uses `ScrollStrip`. `h-8` becomes 44px
   on a coarse pointer.
 - **Docs on phones:** the topic strip keeps its groups (each group's label as a small heading
   inside the strip). On tablets in landscape the sticky sidebar gets a max height and scrolls
