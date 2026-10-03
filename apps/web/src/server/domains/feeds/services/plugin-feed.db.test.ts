@@ -506,3 +506,107 @@ describe("the marketplace cache (079)", () => {
     expect(again.reads.catalogue).toBeGreaterThan(0);
   });
 });
+
+describe("feed stats, warnings and the cap (079)", () => {
+  const withFeeds = (overrides: Partial<FeedDeps> = {}) =>
+    deps({ feeds: kyselyFeedRepository(t.db, t.dialect), ...overrides });
+  const stats = () => kyselyFeedRepository(t.db, t.dialect).stats();
+  const BIG = { maxBytes: 10_000_000, sizeWarningBytes: 100, timeWarningMs: 60_000 };
+
+  it("records each complete build, and not a cache hit or an incomplete one", async () => {
+    const cache = createMarketplaceCache();
+    await marketplace(withFeeds({ cache }), actor, "codex", "https://registry.example.com");
+    const [first] = await stats();
+    expect(first).toMatchObject({ tool: "codex", plugins: 1, revision: expect.any(Number) });
+    expect(first?.sizeBytes).toBeGreaterThan(100);
+    // A cache hit records nothing new.
+    await marketplace(withFeeds({ cache }), actor, "codex", "https://registry.example.com");
+    expect(await stats()).toEqual([first]);
+    // Nor does a build that left a plugin out.
+    let ms = 0;
+    await marketplace(
+      withFeeds({ clock: () => (ms += 10), buildBudgetMs: 5 }),
+      actor,
+      "claude-code",
+      "https://registry.example.com",
+    );
+    expect((await stats()).map((s) => s.tool)).toEqual(["codex"]);
+  });
+
+  it("warns past the size threshold for Claude Code, once per revision", async () => {
+    const warnings = () =>
+      logged.filter((line) => line.includes("Claude Code reads from an address"));
+    await marketplace(
+      withFeeds({ feedLimits: BIG }),
+      actor,
+      "claude-code",
+      "https://r.example.com",
+    );
+    await marketplace(
+      withFeeds({ feedLimits: BIG }),
+      actor,
+      "claude-code",
+      "https://r.example.com",
+    );
+    expect(warnings()).toHaveLength(1);
+    expect(warnings()[0]).toMatch(/^claude-code feed: its marketplace is 0\.0 MiB \(2 plugins\)/);
+    expect(warnings()[0]).toContain("the git mirror (rmk feed build) has no such limit");
+    // Codex's size isn't Claude Code's business.
+    await marketplace(withFeeds({ feedLimits: BIG }), actor, "codex", "https://r.example.com");
+    expect(warnings()).toHaveLength(1);
+    // A new revision warns again.
+    await release("more", "1.0.0", skill("more", "More."), { "SKILL.md": SKILL_MD("more") });
+    await marketplace(
+      withFeeds({ feedLimits: BIG }),
+      actor,
+      "claude-code",
+      "https://r.example.com",
+    );
+    expect(warnings()).toHaveLength(2);
+  });
+
+  it("warns when a build takes past the time threshold, for any tool", async () => {
+    let ms = 0;
+    await marketplace(
+      withFeeds({
+        clock: () => (ms += 1_000),
+        buildBudgetMs: Number.POSITIVE_INFINITY,
+        feedLimits: { maxBytes: 10_000_000, sizeWarningBytes: 10_000_000, timeWarningMs: 3_000 },
+      }),
+      actor,
+      "cursor",
+      "https://r.example.com",
+    );
+    expect(
+      logged.filter((line) => /^cursor feed: building its marketplace took/.test(line)),
+    ).toHaveLength(1);
+  });
+
+  it("caps only Claude Code's marketplace, and the 507 names the git mirror", async () => {
+    const tiny = { maxBytes: 100, sizeWarningBytes: 50, timeWarningMs: 60_000 };
+    for (const tool of ["codex", "cursor"] as const)
+      await expect(
+        marketplace(withFeeds({ feedLimits: tiny }), actor, tool, "https://r.example.com"),
+      ).resolves.toBeInstanceOf(Uint8Array);
+    const refused = marketplace(
+      withFeeds({ feedLimits: tiny }),
+      actor,
+      "claude-code",
+      "https://r.example.com",
+    );
+    await expect(refused).rejects.toThrow(FeedTooLargeError);
+    await expect(refused).rejects.toThrow(/git mirror in Claude Code instead \(rmk feed build\)/);
+    // The build was still recorded, so root sees it.
+    expect((await stats()).find((s) => s.tool === "claude-code")?.sizeBytes).toBeGreaterThan(100);
+  });
+
+  it("marks a warning once across processes sharing the database", async () => {
+    await marketplace(withFeeds(), actor, "codex", "https://r.example.com");
+    const [row] = await stats();
+    const one = kyselyFeedRepository(t.db, t.dialect);
+    const two = kyselyFeedRepository(t.db, t.dialect);
+    expect(await one.markWarned("codex", row?.revision ?? 0)).toBe(true);
+    expect(await two.markWarned("codex", row?.revision ?? 0)).toBe(false);
+    expect(await two.markWarned("codex", (row?.revision ?? 0) + 1)).toBe(true);
+  });
+});

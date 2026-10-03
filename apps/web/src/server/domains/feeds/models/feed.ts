@@ -102,3 +102,62 @@ export const inClaudeCodeFeed = (
 /** What a person types in Claude Code to install the item as a plugin from this instance. */
 export const pluginInstallCommand = (item: { scope: string; name: string }, publicUrl: string) =>
   `/plugin install ${pluginName(`@${item.scope}/${item.name}`)}@${marketplaceName(baseUrl(publicUrl))}`;
+
+/** Past 80% of Claude Code's 5 MiB, root is warned (079). */
+export const SIZE_WARNING_BYTES = Math.floor(MARKETPLACE_MAX_BYTES * 0.8);
+
+/** Half of the 10 seconds Claude Code waits for a marketplace (079); any tool, as CI waits too. */
+export const TIME_WARNING_MS = 5_000;
+
+/** What a tool's marketplace measured when it was last built (079). */
+export type FeedStats = {
+  tool: PluginTool;
+  sizeBytes: number;
+  plugins: number;
+  buildMs: number;
+  revision: number;
+  builtAt: Date;
+};
+
+export type FeedWarning = "size" | "time";
+
+/** The limits a feed is checked against: Claude Code's, unless a test sets smaller ones. */
+export type FeedLimits = { maxBytes: number; sizeWarningBytes: number; timeWarningMs: number };
+
+export const FEED_LIMITS: FeedLimits = {
+  maxBytes: MARKETPLACE_MAX_BYTES,
+  sizeWarningBytes: SIZE_WARNING_BYTES,
+  timeWarningMs: TIME_WARNING_MS,
+};
+
+/** Which limits a build came near: size only matters for Claude Code, which reads it from a URL. */
+export const feedWarnings = (
+  stats: Pick<FeedStats, "tool" | "sizeBytes" | "buildMs">,
+  limits: FeedLimits = FEED_LIMITS,
+) => {
+  const warnings: FeedWarning[] = [];
+  if (stats.tool === "claude-code" && stats.sizeBytes >= limits.sizeWarningBytes)
+    warnings.push("size");
+  if (stats.buildMs >= limits.timeWarningMs) warnings.push("time");
+  return warnings;
+};
+
+const mib = (bytes: number) => `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
+
+/** The log line for a build's warnings. */
+export const feedWarningMessage = (
+  stats: Pick<FeedStats, "tool" | "sizeBytes" | "buildMs" | "plugins">,
+  warnings: readonly FeedWarning[],
+  limits: FeedLimits = FEED_LIMITS,
+) => {
+  const parts: string[] = [];
+  if (warnings.includes("size"))
+    parts.push(
+      `its marketplace is ${mib(stats.sizeBytes)} (${stats.plugins} plugins), ${Math.round((stats.sizeBytes / limits.maxBytes) * 100)}% of the ${mib(limits.maxBytes)} Claude Code reads from an address; the git mirror (rmk feed build) has no such limit`,
+    );
+  if (warnings.includes("time"))
+    parts.push(
+      `building its marketplace took ${(stats.buildMs / 1000).toFixed(1)} s, and Claude Code waits 10 s`,
+    );
+  return `${stats.tool} feed: ${parts.join("; ")}.`;
+};

@@ -35,8 +35,11 @@ import {
 } from "../exceptions/errors";
 import {
   baseUrl,
+  FEED_LIMITS,
+  type FeedLimits,
   type FeedPlugin,
-  MARKETPLACE_MAX_BYTES,
+  feedWarningMessage,
+  feedWarnings,
   NO_PLUGIN,
   type PluginRef,
   pluginDescription,
@@ -73,6 +76,8 @@ export type FeedDeps = {
   cache?: MarketplaceCache;
   /** Runs work after the response is sent: Next.js's `after` in the app; at once by default. */
   background?: (work: () => Promise<void>) => void;
+  /** Claude Code's limits by default; tests set smaller ones (079). */
+  feedLimits?: FeedLimits;
 };
 
 /**
@@ -346,13 +351,16 @@ export const marketplace = async (
 ): Promise<Uint8Array> => {
   requirePermission(actor.user, "account.manage_own");
   const base = baseUrl(publicUrl);
-  const revision = deps.feeds && deps.cache ? await deps.feeds.revision() : null;
+  const limits = deps.feedLimits ?? FEED_LIMITS;
+  const clock = deps.clock ?? Date.now;
+  const revision = deps.feeds ? await deps.feeds.revision() : null;
   const key =
-    revision === null
+    revision === null || !deps.cache
       ? null
       : `${revision.instance}\0${revision.revision}\0${PLUGIN_BUILDER_VERSION}\0${base}`;
   const hit = key ? deps.cache?.get(tool, key) : null;
   if (hit) return hit;
+  const started = clock();
   const feed = await collectFeed(deps, tool);
   const host = new URL(base).host;
   const entries: MarketplaceEntry[] = feed.plugins.map((plugin) => ({
@@ -367,8 +375,28 @@ export const marketplace = async (
     description: `Released items from the Ronne registry at ${base}`,
   });
   if (feed.unbuilt) buildRest(deps, tool);
-  if (file.bytes.length > MARKETPLACE_MAX_BYTES) throw new FeedTooLargeError(feed.plugins.length);
-  if (key && !feed.unbuilt && !feed.failed) deps.cache?.set(tool, key, file.bytes);
+  const complete = !feed.unbuilt && !feed.failed;
+  // A complete build is what the tool will see: record it, and warn once per revision (079).
+  if (complete && revision && deps.feeds) {
+    const stats = {
+      tool,
+      sizeBytes: file.bytes.length,
+      plugins: feed.plugins.length,
+      buildMs: clock() - started,
+      revision: revision.revision,
+      builtAt: new Date(),
+    };
+    await deps.feeds.recordBuild(stats);
+    const warnings = feedWarnings(stats, limits);
+    if (warnings.length && (await deps.feeds.markWarned(tool, revision.revision)))
+      (deps.log ?? ((message: string) => console.warn(message)))(
+        feedWarningMessage(stats, warnings, limits),
+      );
+  }
+  // Only Claude Code reads its marketplace from an address, with a size limit; rmk reads the others.
+  if (tool === "claude-code" && file.bytes.length > limits.maxBytes)
+    throw new FeedTooLargeError(feed.plugins.length);
+  if (key && complete) deps.cache?.set(tool, key, file.bytes);
   return file.bytes;
 };
 

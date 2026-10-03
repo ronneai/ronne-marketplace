@@ -2,6 +2,8 @@ import { PLUGIN_BUILDER_VERSION } from "@ronneai/core/plugins";
 import { describe, expect, it } from "vitest";
 import {
   baseUrl,
+  feedWarningMessage,
+  feedWarnings,
   inClaudeCodeFeed,
   isServedTool,
   marketplaceUrl,
@@ -85,5 +87,23 @@ describe("plugin feeds (077)", () => {
         "https://registry.example.com/",
       ),
     ).toBe("/plugin install team.secure-coding@ronne-registry-example-com");
+  });
+
+  it("warn past 80% of Claude Code's size, for Claude Code only, and past 5 s for any tool (079)", () => {
+    const mib = 1024 * 1024;
+    expect(feedWarnings({ tool: "claude-code", sizeBytes: 4 * mib, buildMs: 100 })).toEqual([
+      "size",
+    ]);
+    expect(feedWarnings({ tool: "claude-code", sizeBytes: 4 * mib - 1, buildMs: 100 })).toEqual([]);
+    expect(feedWarnings({ tool: "codex", sizeBytes: 6 * mib, buildMs: 100 })).toEqual([]);
+    expect(feedWarnings({ tool: "codex", sizeBytes: 1, buildMs: 5_000 })).toEqual(["time"]);
+    expect(
+      feedWarningMessage(
+        { tool: "claude-code", sizeBytes: 4.2 * mib, buildMs: 6_000, plugins: 8_600 },
+        ["size", "time"],
+      ),
+    ).toBe(
+      "claude-code feed: its marketplace is 4.2 MiB (8600 plugins), 84% of the 5.0 MiB Claude Code reads from an address; the git mirror (rmk feed build) has no such limit; building its marketplace took 6.0 s, and Claude Code waits 10 s.",
+    );
   });
 });

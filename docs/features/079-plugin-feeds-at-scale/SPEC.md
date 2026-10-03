@@ -88,9 +88,12 @@ in PLAN.md's notes and the Measured section below.
 - The `ETag` and the 304 behaviour don't change.
 
 **Feed stats.**
-- Each time a marketplace is built (not answered from the cache), the server records for that tool:
-  its size in bytes, its plugin count, how long the build took, the revision, and when.
-- Past either threshold, it logs a warning once per revision:
+- Each time a **complete** marketplace is built (not answered from the cache, and nothing left
+  out), the server records for that tool: its size in bytes, its plugin count, how long the build
+  took, the revision, and when. A build that's refused with a 507 is still recorded, so root sees
+  why. One that ran out of budget isn't: its numbers would be too small.
+- Past either threshold, it logs a warning once per revision, across every server process sharing
+  the database (the row remembers the revision it warned for):
   - **size**: at least 4 MiB, which is 80% of Claude Code's limit (Claude Code only);
   - **time**: the build took at least 5 seconds, half of Claude Code's 10 (any tool, since the CI
     job's request can time out too).

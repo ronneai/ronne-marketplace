@@ -26,7 +26,7 @@ the same change that completes it.
   *Done when:* tests with a counting catalogue and storage show a cache hit reads neither; a release
   invalidates it; an incomplete build isn't cached.
 
-- [ ] **4. Stats, warnings and the cap.** Record each build in `plugin_feeds`. Log a warning past
+- [x] **4. Stats, warnings and the cap.** Record each build in `plugin_feeds`. Log a warning past
   4 MiB (Claude Code) or 5 seconds (any tool), once per revision. Apply the 5 MiB cap only to Claude
   Code, with the new 507 message.
   *Done when:* tests cover both thresholds (a fake clock and an injected size), one warning per
