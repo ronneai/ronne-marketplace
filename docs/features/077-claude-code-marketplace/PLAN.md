@@ -36,7 +36,7 @@ the same change that completes it.
 - [x] **7. Documentation.** The topic, sections and helper in the spec's Documentation section.
   *Done when:* the docs render tests pass, and the Install panel helper links to the new topic.
 
-- [ ] **8. End to end by hand.** `pnpm dev`, `rmk login`, `rmk plugin-setup claude-code`, then
+- [x] **8. End to end by hand.** `pnpm dev`, `rmk login`, `rmk plugin-setup claude-code`, then
   `/plugin` in Claude Code: install a skill, an MCP server and a hook.
   *Done when:* the result and the Claude Code version are written in the notes.
 
@@ -65,7 +65,19 @@ goes into `SPEC.md` instead.
     `CLAUDE_CONFIG_DIR`), `claude plugin install` installs `examples.secure-coding`,
     `examples.github-mcp` and `examples.format-on-edit`. `claude plugin details` lists the skill,
     the MCP server and the `PostToolUse` hook.
-  - Still to do by hand: the instance behind an HTTPS address that isn't loopback, `PUBLIC_URL`
-    set to it, `rmk plugin-setup claude-code`, then `/plugin`. That covers the URL marketplace, the
-    archive downloads and `headersHelper`.
+- **Task 8 by hand, over HTTPS (2026-10-03, Claude Code 2.1.288, by the owner):**
+  - Setup: the dev instance (`pnpm build`, then `pnpm --filter @ronneai/web start` with
+    `PUBLIC_URL` set to a Cloudflare quick tunnel, `cloudflared tunnel --url
+    http://localhost:3000`), and this branch's `rmk` linked with `npm link`.
+  - `rmk login` and `rmk plugin-setup claude-code` worked. The marketplace listed the six items
+    with Claude Code content, and left out a rule.
+  - In Claude Code, `/plugin` loaded the marketplace through `headersHelper`. The skill and the
+    MCP server installed from their archives and worked, and each counted one download.
+  - The hook wasn't installed over HTTPS (its zip was built but never downloaded); it was checked
+    with the same plugin layout offline, above.
+  - Found: the helper failed with `env: node: No such file or directory` when nvm wasn't on the
+    PATH (`env -i PATH=/usr/bin:/bin sh -c …`). Fixed: at user scope, `plugin-setup` now writes
+    the absolute paths of `node` and `rmk` (SPEC, `rmk plugin-setup`).
+  - A quick tunnel's name is random (`cloudflared` prints it, and
+    `curl http://127.0.0.1:20241/quicktunnel` reads it back); `PUBLIC_URL` must be that name.
 
