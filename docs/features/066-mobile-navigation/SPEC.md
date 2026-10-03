@@ -29,14 +29,15 @@ view. This feature gives phones a menu and makes every tab strip show where it i
 - **A shared `ScrollStrip`** for tab strips that may not fit (`components/ui`):
   - scrolls the current tab into view on load and on change (`block: "nearest"`, no smooth
     scrolling when reduced motion is asked for);
-  - a fade on the edge that has more tabs, from the `canvas` token, shown only while there's more
-    to scroll (no shadows, per 032);
+  - a fade on the edge that has more tabs, shown only while there's more to scroll: a CSS mask
+    that turns the tabs transparent at that edge, so no colour is added and it works on any
+    background (032 allows no shadows and no gradient fills; `fade-*` in `globals.css`);
   - each tab at least 44px tall on a coarse pointer.
   It replaces the hand-made strips in the item page tabs (`ItemPageView.tsx`), `DocsNav`
   (phones), `AdminNav` and the review queue tabs (`QueueTable.tsx`), and the submissions status
   links if they don't fit.
 - **`Tabs`** (`components/ui/Tabs.tsx`, the equal-column toggle): stays equal columns for two or
-  three short choices; with more, or when they don't fit, it uses `ScrollStrip`. `h-8` becomes 44px
+  three short choices; with four or more it uses `ScrollStrip`. `h-8` becomes 44px
   on a coarse pointer.
 - **Docs on phones:** the topic strip keeps its groups (each group's label as a small heading
   inside the strip). On tablets in landscape the sticky sidebar gets a max height and scrolls
@@ -69,25 +70,27 @@ view. This feature gives phones a menu and makes every tab strip show where it i
 
 ## Documentation
 
-- **Overview › "The path of an item"** (`features/docs/content.tsx`): where it says "in the
-  navigation", add "(the Menu on a phone)". Grep for other "navigation" mentions and do the same.
+- **Overview › "The path of an item"** (`features/docs/content.tsx`): the topics never said "in the
+  navigation", so a closing paragraph says where the pages are: links at the top of every page,
+  and on a phone or tablet in the **Menu** at the top right, with the account, access tokens, the
+  appearance switch and Sign out. No other topic described the header.
 - **Topics and helpers:** no change.
 
 ## Acceptance criteria
 
-- [ ] Below `lg` the header shows the logo and Menu; the sheet holds every nav link for the role,
+- [x] Below `lg` the header shows the logo and Menu; the sheet holds every nav link for the role,
   with counts, plus the account links, the appearance switch and Sign out (`AppShell` unit tests
   per role).
-- [ ] The sheet closes on a link, Esc, an outside tap and back/forward; focus returns to Menu
+- [x] The sheet closes on a link, Esc, an outside tap and back/forward; focus returns to Menu
   (`navigation.mobile.e2e.ts`).
-- [ ] The desktop account menu closes on an outside click and on navigation (unit test and
+- [x] The desktop account menu closes on an outside click and on navigation (unit test and
   `theme.e2e.ts` or a new desktop e2e).
-- [ ] `/menu` works without JavaScript (an e2e with JavaScript off).
-- [ ] The item page tabs, docs topics, Admin and queue tabs use `ScrollStrip`; opening
+- [x] `/menu` works without JavaScript (an e2e with JavaScript off).
+- [x] The item page tabs, docs topics, Admin and queue tabs use `ScrollStrip`; opening
   `?tab=risks` on a phone shows the active tab on screen (e2e).
-- [ ] The docs sidebar scrolls on a 1024×768 landscape tablet (tablet project).
-- [ ] The sweep's `EXPECTED_FAILURES` entries for 066 are gone.
-- [ ] The Documentation listed above mentions the Menu.
+- [x] The docs sidebar scrolls on a 1024×768 landscape tablet (tablet project).
+- [x] The sweep's `EXPECTED_FAILURES` entries for 066 are gone.
+- [x] The Documentation listed above mentions the Menu.
 
 ## Decisions
 

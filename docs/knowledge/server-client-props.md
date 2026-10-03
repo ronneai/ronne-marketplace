@@ -31,3 +31,11 @@ shows it; unit tests render server and client code together.
 
 **How to avoid it:** keep pure helpers in a module without `"use client"` (such as
 `components/ui/time-text.ts`), and have the client component import them from there.
+
+## Constants from a client module
+
+Strings and other constants are no exception. 066 exported a class string, `stripTab`, from the
+"use client" `ScrollStrip.tsx`; the item page (a server component) put it in a `className` and the
+built page rendered the client reference's source as the class: no error, just tabs that lost
+their styles. Unit tests passed. Keep shared constants in a module without `"use client"` (it now
+lives in `components/ui/scroll-strip.ts`), and don't re-export them from the client module either.

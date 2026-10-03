@@ -50,6 +50,11 @@ describe("the Documentation", () => {
     expect(html).toMatch(/<h2 id="names-title"[^>]*>Naming rules<\/h2>/);
   });
 
+  it("says where the pages are on a phone: the Menu (066)", () => {
+    const html = renderToStaticMarkup(<Docs />);
+    expect(html).toContain("On a phone or tablet they&#x27;re in the <strong>Menu</strong>");
+  });
+
   it("is a 404 for an unknown topic, and for the overview's own slug", async () => {
     await expect(topic("nope")).rejects.toThrow("NEXT_NOT_FOUND");
     await expect(topic("overview")).rejects.toThrow("NEXT_NOT_FOUND");

@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { LocalTime } from "@/components/ui/LocalTime";
 import { Notice } from "@/components/ui/Notice";
+import { ScrollStrip } from "@/components/ui/ScrollStrip";
+import { stripTab } from "@/components/ui/scroll-strip";
 import { TypeBadge } from "@/components/ui/TypeBadge";
 import type { ItemPage } from "@/server/domains/items/actions/versions";
 import { ProposeButton } from "./ProposeButton";
@@ -87,22 +89,19 @@ export const ItemPageView = ({
         </Notice>
       ) : null}
 
-      <nav
-        aria-label="Item"
-        className="flex gap-1 overflow-x-auto border-b border-hairline [scrollbar-width:none]"
-      >
+      <ScrollStrip label="Item" className="gap-1 border-b border-hairline">
         {ITEM_TABS.map((t) => (
           <Link
             key={t}
             href={itemTabHref(ref, t, other ? shown.version : null)}
             aria-current={t === tab ? "page" : undefined}
-            className="-mb-px shrink-0 border-b-2 border-transparent px-3 py-2 whitespace-nowrap text-sm text-muted hover:text-fg aria-[current=page]:border-accent-strong aria-[current=page]:font-semibold aria-[current=page]:text-fg"
+            className={`${stripTab} -mb-px border-b-2 border-transparent px-3 py-2 text-sm text-muted hover:text-fg aria-[current=page]:border-accent-strong aria-[current=page]:font-semibold aria-[current=page]:text-fg`}
           >
             {TAB_LABELS[t]}
             {t === "risks" && shown.riskFlags.length ? ` (${shown.riskFlags.length})` : ""}
           </Link>
         ))}
-      </nav>
+      </ScrollStrip>
       <section aria-label={TAB_LABELS[tab]}>{children}</section>
     </div>
   );

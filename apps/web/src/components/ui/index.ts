@@ -11,6 +11,8 @@ export { Notice } from "./Notice";
 export { PageHeader, Panel } from "./Panel";
 export { PasswordInput } from "./PasswordInput";
 export { Popover } from "./Popover";
+export { ScrollStrip } from "./ScrollStrip";
+export { stripTab } from "./scroll-strip";
 export { Table, Td, Th } from "./Table";
 export { Tabs } from "./Tabs";
 export { TypeBadge } from "./TypeBadge";

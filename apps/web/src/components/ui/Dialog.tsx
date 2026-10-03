@@ -15,6 +15,9 @@ import { cn } from "./cn";
  * - `large` (054) is a fixed frame, 640px wide and up to 720px tall: its content lays itself out in
  *   a column, so a long list can scroll inside while what's above and below it stays in view.
  * - `side` (066) is a sheet from the right, full height: 20rem wide, the whole width on a phone.
+ *
+ * `closeOnBackdrop` closes it on a click or tap outside the panel (066's menu). Off by default, so
+ * a stray tap can't lose what's typed in a form.
  */
 export const Dialog = ({
   open,
@@ -22,12 +25,14 @@ export const Dialog = ({
   title,
   children,
   size = "default",
+  closeOnBackdrop = false,
 }: {
   size?: "default" | "large" | "side";
   open: boolean;
   onClose: () => void;
   title: ReactNode;
   children: ReactNode;
+  closeOnBackdrop?: boolean;
 }) => {
   const ref = useRef<HTMLDialogElement>(null);
   // Unique per dialog: a page can hold several (the editor has its leave guard and its own).
@@ -55,9 +60,14 @@ export const Dialog = ({
   }, []);
 
   return (
+    // biome-ignore lint/a11y/useKeyWithClickEvents: the keyboard closes it with Esc, natively.
     <dialog
       ref={ref}
       onClose={onClose}
+      // A click on the backdrop targets the <dialog> itself; the panel's content covers the rest.
+      onClick={
+        closeOnBackdrop ? (event) => event.target === event.currentTarget && onClose() : undefined
+      }
       aria-labelledby={titleId}
       className={cn(
         "rounded-panel border border-strong bg-surface p-0 text-left text-fg backdrop:bg-canvas/80 open:flex flex-col",

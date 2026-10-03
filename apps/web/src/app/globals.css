@@ -82,6 +82,26 @@
   }
 }
 
+/*
+ * ScrollStrip's edges (066): the side with more tabs fades out, so a strip shows it scrolls. A
+ * mask, not a colour: the tabs themselves go transparent, over whatever is behind (032: flat).
+ */
+@utility fade-start {
+  mask-image: linear-gradient(to right, transparent, black 2rem);
+}
+@utility fade-end {
+  mask-image: linear-gradient(to left, transparent, black 2rem);
+}
+@utility fade-both {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 2rem,
+    black calc(100% - 2rem),
+    transparent
+  );
+}
+
 /* The code editor's text: 16px on a coarse pointer, so iOS Safari doesn't zoom on focus (067). */
 @media (pointer: coarse) {
   :root {

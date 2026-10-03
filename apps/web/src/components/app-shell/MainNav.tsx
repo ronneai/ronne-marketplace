@@ -4,12 +4,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { isCurrent, type NavItem } from "./nav";
 
+/** A count next to a nav item or on the Menu button: how many are waiting. */
+export const NavCount = ({ count }: { count: number }) => (
+  <span className="ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-strong px-1 text-[10px] font-semibold text-on-accent">
+    {count}
+    <span className="sr-only"> waiting</span>
+  </span>
+);
+
 /**
  * The header's navigation. A client component: layouts stay mounted when you navigate, so the
  * current item has to come from the live path (`usePathname`), not from the first request. The
  * current item uses the link colour as well as the tint: in the dark theme, the tint is the same
- * navy as the header, so on its own it didn't show. On a narrow phone the items scroll sideways,
- * so the theme switch and account menu stay in view.
+ * navy as the header, so on its own it didn't show. It shows from `lg`; below, the header has the
+ * Menu instead (066).
  */
 export const MainNav = ({
   items,
@@ -25,15 +33,10 @@ export const MainNav = ({
       key={item.href}
       href={item.href}
       aria-current={isCurrent(item, path) ? "page" : undefined}
-      className={`${item.hideOnPhone ? "hidden sm:inline-block " : ""}shrink-0 whitespace-nowrap rounded-control px-2 py-1.5 pointer-coarse:py-3 text-sm text-muted sm:px-3 hover:text-fg aria-[current=page]:bg-tint aria-[current=page]:font-semibold aria-[current=page]:text-link outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus`}
+      className="shrink-0 whitespace-nowrap rounded-control px-3 py-1.5 pointer-coarse:py-3 text-sm text-muted hover:text-fg aria-[current=page]:bg-tint aria-[current=page]:font-semibold aria-[current=page]:text-link outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
     >
       {item.label}
-      {counts[item.href] ? (
-        <span className="ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-strong px-1 text-[10px] font-semibold text-on-accent">
-          {counts[item.href]}
-          <span className="sr-only"> waiting</span>
-        </span>
-      ) : null}
+      {counts[item.href] ? <NavCount count={counts[item.href] ?? 0} /> : null}
     </Link>
   );
   return (
@@ -41,7 +44,7 @@ export const MainNav = ({
     // which otherwise widened the whole page on a phone (065).
     <nav
       aria-label="Main"
-      className="relative flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none]"
+      className="relative hidden min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none] lg:flex"
     >
       {items.filter((item) => !item.end).map(link)}
       <span className="ml-auto" />
