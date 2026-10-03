@@ -18,7 +18,7 @@ the same change that completes it.
   *Done when:* `AppShell` tests per role pass; `navigation.mobile.e2e.ts` opens, follows a link,
   closes on Esc, outside tap and back.
 
-- [ ] **3. `/menu` without JavaScript.** `app/(app)/menu/page.tsx`, the same list; the Menu button
+- [x] **3. `/menu` without JavaScript.** `app/(app)/menu/page.tsx`, the same list; the Menu button
   is a link that JavaScript turns into the sheet; add it to `e2e/pages.ts`.
   *Done when:* a JavaScript-off e2e signs out from `/menu`.
 

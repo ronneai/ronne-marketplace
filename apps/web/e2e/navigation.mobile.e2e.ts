@@ -58,3 +58,26 @@ test("the Menu opens the navigation and closes on Esc, a link, back and outside"
   await expect(sheet).toBeHidden();
   await expect(menu).toBeFocused();
 });
+
+test.describe("without JavaScript", () => {
+  test.use({ javaScriptEnabled: false });
+
+  // Root here: the moderator signs in above and in the sweep, the member in the smoke test and
+  // the sweep (e2e-sign-in-limit.md).
+  test("Menu is a link to /menu, which lists the links and signs out", async ({
+    page,
+  }, testInfo) => {
+    await signIn(page, mobileUser(testInfo, "root"));
+    await page.getByRole("banner").getByRole("link", { name: /^Menu/ }).click();
+    await expect(page).toHaveURL(/\/menu$/);
+    const main = page.getByRole("main");
+    await expect(main.getByRole("heading", { name: "Menu" })).toBeVisible();
+    for (const name of ["Home", "Catalogue", "Submissions", "Reviews", "Admin", "Docs"])
+      await expect(main.getByRole("link", { name }).first()).toBeVisible();
+    await main.getByRole("link", { name: "Docs" }).click();
+    await expect(page).toHaveURL(/\/docs$/);
+    await page.goto("/menu");
+    await main.getByRole("button", { name: "Sign out" }).click();
+    await expect(page).toHaveURL(/\/sign-in/);
+  });
+});

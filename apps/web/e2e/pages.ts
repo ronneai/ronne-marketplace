@@ -54,6 +54,7 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
     urls: () => [`${item(E2E_VERSIONED_ITEM)}/versions`],
   },
   { route: "/docs", roles: EVERYONE, urls: () => ["/docs"] },
+  { route: "/menu", roles: EVERYONE, urls: () => ["/menu"] },
   {
     route: "/docs/[topic]",
     roles: ["member"],

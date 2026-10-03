@@ -144,14 +144,12 @@ describe("AppShell", () => {
         </AppShell>,
       );
 
-    it("hides the strip, the theme switch and the account menu below lg, and shows Menu there", () => {
+    it("hides the strip, the theme switch and the account menu below lg, and links Menu to /menu until the script runs", () => {
       const html = shell("user");
       expect(html).toMatch(/<nav aria-label="Main" class="[^"]*\bhidden\b[^"]*\blg:flex\b/);
-      expect(html).toMatch(
-        /<div class="ml-auto lg:hidden"><button type="button" aria-haspopup="dialog" aria-expanded="false"/,
-      );
+      expect(html).toMatch(/<div class="ml-auto lg:hidden"><a class="[^"]*" href="\/menu">/);
       expect(html).toMatch(/class="[^"]*\bhidden lg:flex"><form/);
-      expect(html).toMatch(/<\/svg>Menu<\/button>/);
+      expect(html).toMatch(/<\/svg>Menu<\/a>/);
     });
 
     it("keeps the theme switch in view signed out, with no Menu", () => {
@@ -181,9 +179,7 @@ describe("AppShell", () => {
       const html = shell("moderator", { "/reviews": 3 });
       expect(links(html)).toContain("Reviews");
       expect(sheet(html)).toMatch(/>Reviews<span[^>]*>3<span class="sr-only"> waiting/);
-      expect(html).toMatch(
-        /Menu<span[^>]*>3<span class="sr-only"> waiting<\/span><\/span><\/button>/,
-      );
+      expect(html).toMatch(/Menu<span[^>]*>3<span class="sr-only"> waiting<\/span><\/span><\/a>/);
       expect(sheet(html)).toMatch(/rounded-full[^>]*>moderator</);
     });
 
