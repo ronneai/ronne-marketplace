@@ -11,7 +11,7 @@ the same change that completes it.
   down, Esc and route change (a small client hook in `components/app-shell`).
   *Done when:* unit tests cover the three.
 
-- [ ] **2. The menu sheet.** `MobileMenu.tsx` in `components/app-shell`: Menu button with the
+- [x] **2. The menu sheet.** `MobileMenu.tsx` in `components/app-shell`: Menu button with the
   Reviews count, a side sheet built on 067's `Dialog` `side` variant (or a local one if 067 hasn't
   landed: then move it when it does), links from `nav.ts`, account part, appearance switch, Sign
   out. Header below `lg` shows logo and Menu; from `lg` as today.

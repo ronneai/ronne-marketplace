@@ -9,8 +9,6 @@ export type NavItem = {
   permission?: Permission;
   /** The item is current on every path under this one (or these), for example "/admin". */
   section?: string | string[];
-  /** Hidden on phones, to fit the header; the logo already links home. */
-  hideOnPhone?: boolean;
   /** Shown at the right of the header, next to the appearance switch: Admin and Docs. */
   end?: true;
 };
@@ -21,7 +19,7 @@ export type NavItem = {
  * the right, before the appearance switch (owner's request, 2026-09-28).
  */
 export const NAV: NavItem[] = [
-  { href: "/", label: "Home", hideOnPhone: true },
+  { href: "/", label: "Home" },
   { href: "/catalogue", label: "Catalogue", section: ["/catalogue", "/items"] },
   {
     href: "/submissions",

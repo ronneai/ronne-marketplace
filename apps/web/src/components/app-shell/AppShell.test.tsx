@@ -128,4 +128,84 @@ describe("AppShell", () => {
     expect(header).toContain('value="light"');
     expect(html.slice(html.indexOf("<details"))).not.toContain('name="theme"');
   });
+
+  describe("below lg, the Menu (066)", () => {
+    const sheet = (html: string) => html.slice(html.indexOf("<dialog"), html.indexOf("</dialog>"));
+    const links = (html: string) =>
+      [...sheet(html).matchAll(/<a [^>]*>([^<]+)/g)].map((match) => match[1]);
+    const shell = (role: "user" | "moderator" | "root", counts?: Record<string, number>) =>
+      renderToStaticMarkup(
+        <AppShell
+          user={{ name: "Ada", email: "ada@example.com", role }}
+          signOutAction={async () => {}}
+          navCounts={counts}
+        >
+          <p>content</p>
+        </AppShell>,
+      );
+
+    it("hides the strip, the theme switch and the account menu below lg, and shows Menu there", () => {
+      const html = shell("user");
+      expect(html).toMatch(/<nav aria-label="Main" class="[^"]*\bhidden\b[^"]*\blg:flex\b/);
+      expect(html).toMatch(
+        /<div class="ml-auto lg:hidden"><button type="button" aria-haspopup="dialog" aria-expanded="false"/,
+      );
+      expect(html).toMatch(/class="[^"]*\bhidden lg:flex"><form/);
+      expect(html).toMatch(/<\/svg>Menu<\/button>/);
+    });
+
+    it("keeps the theme switch in view signed out, with no Menu", () => {
+      const html = render(null);
+      expect(html).not.toContain("<dialog");
+      expect(html).toMatch(/class="ml-auto shrink-0 items-center gap-2 flex"><form/);
+    });
+
+    it("lists a member's links, then the account part, the appearance switch and Sign out", () => {
+      const html = shell("user");
+      expect(links(html)).toEqual([
+        "Home",
+        "Catalogue",
+        "Submissions",
+        "Docs",
+        "Account",
+        "Access tokens",
+      ]);
+      expect(sheet(html)).toContain("ada@example.com");
+      expect(sheet(html)).toContain("Appearance");
+      expect(sheet(html)).toContain('name="theme"');
+      expect(sheet(html)).toContain(">Sign out</button>");
+      expect(sheet(html)).not.toMatch(/>user</);
+    });
+
+    it("gives a moderator Reviews with its count, on the Menu button too, and the role", () => {
+      const html = shell("moderator", { "/reviews": 3 });
+      expect(links(html)).toContain("Reviews");
+      expect(sheet(html)).toMatch(/>Reviews<span[^>]*>3<span class="sr-only"> waiting/);
+      expect(html).toMatch(
+        /Menu<span[^>]*>3<span class="sr-only"> waiting<\/span><\/span><\/button>/,
+      );
+      expect(sheet(html)).toMatch(/rounded-full[^>]*>moderator</);
+    });
+
+    it("gives root Admin, and marks the current page", () => {
+      navigation.path = "/admin/audit";
+      const html = shell("root");
+      expect(links(html)).toEqual([
+        "Home",
+        "Catalogue",
+        "Submissions",
+        "Reviews",
+        "Admin",
+        "Docs",
+        "Account",
+        "Access tokens",
+      ]);
+      expect(sheet(html)).toMatch(/aria-current="page"[^>]*>Admin</);
+      navigation.path = "/";
+    });
+
+    it("shows no count on the Menu button when nothing waits", () => {
+      expect(shell("moderator", { "/reviews": 0 })).not.toContain("waiting");
+    });
+  });
 });

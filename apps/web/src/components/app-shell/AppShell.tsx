@@ -1,4 +1,3 @@
-import { CircleUser } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
@@ -7,6 +6,7 @@ import { Badge } from "../ui/Badge";
 import { BrandLogo } from "../ui/BrandLogo";
 import { DismissibleDetails } from "./DismissibleDetails";
 import { MainNav } from "./MainNav";
+import { MobileMenu } from "./MobileMenu";
 import { navFor, type ShellUser } from "./nav";
 
 const menuItem =
@@ -15,9 +15,11 @@ const menuItem =
 /**
  * The page frame (feature 032): a full-width header, which stays at the top as the page scrolls,
  * with the brand, role-aware navigation and the user menu; a content column at 72% of the width on
- * large screens (full width below 1024px); and a full-width footer. The theme switch sits in the header, next to the user menu. The user menu is
- * a native <details>, so it works without JavaScript; with it, it closes on a click outside, Esc
- * and a change of page (066). The (app) layout passes `signOutAction` (006).
+ * large screens (full width below 1024px); and a full-width footer. The theme switch sits in the
+ * header, next to the user menu. The user menu is a native <details>, so it works without
+ * JavaScript; with it, it closes on a click outside, Esc and a change of page (066). Below `lg` a
+ * signed-in header is the logo and the Menu, whose sheet holds all of that (066). The (app) layout
+ * passes `signOutAction` (006).
  */
 export const AppShell = ({
   user,
@@ -34,10 +36,11 @@ export const AppShell = ({
   navCounts?: Record<string, number>;
   children: ReactNode;
 }) => {
+  const items = navFor(user);
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="sticky top-0 z-30 border-b border-hairline bg-surface pt-safe px-safe">
-        <div className="flex h-14 items-center gap-1.5 px-3 sm:gap-6 sm:px-6">
+        <div className="flex h-14 items-center gap-3 px-3 sm:px-6 lg:gap-6">
           <Link
             href="/"
             className="flex shrink-0 items-center gap-2 text-fg outline-offset-4 focus-visible:outline-2 focus-visible:outline-focus"
@@ -45,15 +48,27 @@ export const AppShell = ({
             <BrandLogo height={34} className="h-6 w-auto sm:h-[34px]" />
             <span className="hidden font-mono text-xs text-muted sm:inline">/ marketplace</span>
           </Link>
-          <MainNav items={navFor(user)} counts={navCounts} />
-          <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+          <MainNav items={items} counts={navCounts} />
+          {user ? (
+            <div className="ml-auto lg:hidden">
+              <MobileMenu
+                user={user}
+                items={items}
+                counts={navCounts}
+                appearance={<ThemeToggle theme={theme} />}
+                signOutAction={signOutAction}
+              />
+            </div>
+          ) : null}
+          <div
+            className={`ml-auto shrink-0 items-center gap-2 ${user ? "hidden lg:flex" : "flex"}`}
+          >
             <ThemeToggle theme={theme} />
             {user ? (
               <DismissibleDetails className="relative">
                 <summary className="flex cursor-pointer list-none items-center gap-2 rounded-control px-2 py-1 pointer-coarse:min-h-11 text-sm text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus">
-                  {/* The name, not the email (owner, 2026-09-27). On a phone an icon opens the menu. */}
-                  <span className="hidden max-w-48 truncate text-sm sm:inline">{user.name}</span>
-                  <CircleUser size={18} aria-label="Account menu" className="sm:hidden" />
+                  {/* The name, not the email (owner, 2026-09-27). */}
+                  <span className="max-w-48 truncate text-sm">{user.name}</span>
                   {user.role !== "user" ? <Badge>{user.role}</Badge> : null}
                 </summary>
                 <div className="absolute right-0 z-10 mt-2 grid w-56 gap-0.5 rounded-panel border border-strong bg-surface p-1">

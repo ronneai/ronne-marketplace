@@ -65,6 +65,14 @@ something between them) is positioned. Screen-reader text (`sr-only`) is absolut
 got `relative`. When a scrolling strip holds `sr-only` text or anything absolute, make the strip
 `relative`. The sweep follows the same rule, so it names the `span.sr-only` when this happens.
 
+## Focus after a dialog closes, in Safari
+
+A native `<dialog>` puts focus back on what had it before `showModal()`. Safari (and the
+`phone-webkit` project) doesn't focus a button when it's clicked or tapped, so after a dialog
+opened by a tap closes, focus goes nowhere. When focus must come back to the opener (066's Menu),
+keep a ref to the button and focus it when the dialog closes; the test that catches it is
+`toBeFocused()` in a `*.mobile.e2e.ts`, which only fails in WebKit.
+
 ## Reading a sweep failure
 
 `/catalogue as member at 320px: page is 412px wide; widest: select[name=scope] (412px)` means the
