@@ -2212,7 +2212,13 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           </li>
         </Bullets>
         <p>
-          <To href={docsHref("plugins")}>Plugin marketplaces</To> explains both, and when to use
+          For Codex and Cursor, which add marketplaces only from git repositories,{" "}
+          <Code>rmk feed build --out &lt;folder&gt;</Code> writes this marketplace&apos;s plugins as
+          a repository to commit and push, and <Code>--print-workflow github</Code> or{" "}
+          <Code>gitlab</Code> prints a CI file that keeps it current.
+        </p>
+        <p>
+          <To href={docsHref("plugins")}>Plugin marketplaces</To> explains these, and when to use
           plugins rather than <Code>rmk install</Code>.
         </p>
       </>
@@ -2263,7 +2269,8 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </Bullets>
         <p>
           Claude Code is the only tool that can read a marketplace straight from this website. Codex
-          and Cursor read plugins from git repositories only.
+          and Cursor add marketplaces from git repositories only, so they read a{" "}
+          <To href={docsHref("plugins", "mirror")}>git mirror</To> of it.
         </p>
       </>
     ),
@@ -2351,6 +2358,101 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             For an older Claude Code, <Code>--static-headers</Code> writes the token itself into
             your user settings (never a project&apos;s, which usually goes into git). Run the
             command again after you log in again.
+          </li>
+        </Bullets>
+      </>
+    ),
+    mirror: (
+      <>
+        <p>
+          Codex and Cursor add plugin marketplaces only from git repositories. So <Code>rmk</Code>{" "}
+          writes this marketplace&apos;s plugins as a repository, a <strong>mirror</strong>, that
+          you push to your git host, and the tools add that.
+        </p>
+        <Example>
+          {
+            "git clone git@github.com:your-org/ronne-plugins.git && cd ronne-plugins\nrmk feed build --out .\ngit add --all && git commit -m 'Update the plugin feed' && git push"
+          }
+        </Example>
+        <Bullets>
+          <li>
+            It writes each tool&apos;s marketplace file (
+            <Code>.agents/plugins/marketplace.json</Code> for Codex,{" "}
+            <Code>.cursor-plugin/marketplace.json</Code> for Cursor,{" "}
+            <Code>.claude-plugin/marketplace.json</Code> for Claude Code), each plugin under{" "}
+            <Code>plugins/&lt;tool&gt;/</Code>, and <Code>.rmk-feed.json</Code>, its record of what
+            it wrote.
+          </li>
+          <li>
+            It holds the same plugins as the Claude Code marketplace, each in the layout of its
+            tool: Codex plugins carry no agents, and only Cursor&apos;s carry rules that are always
+            on or follow file patterns.
+          </li>
+          <li>
+            Anyone who can read the repository can install every plugin in it. Keep it private, and
+            let your git host decide who reads it.
+          </li>
+        </Bullets>
+        <p>Then add it in each tool:</p>
+        <Bullets>
+          <li>
+            <strong>Codex</strong>: <Code>codex plugin marketplace add your-org/ronne-plugins</Code>{" "}
+            (or the repository&apos;s git URL), then install plugins from it.{" "}
+            <Code>codex plugin marketplace upgrade</Code> fetches it again. Codex clones it with
+            git, so for a private repository, git on that machine must be able to clone it.
+          </li>
+          <li>
+            <strong>Cursor</strong>: a team admin (Teams or Enterprise plan) imports it in the
+            dashboard, under <strong>Settings › Plugins › Team Marketplaces › Import</strong>, from
+            GitHub, GitLab, Bitbucket or Azure DevOps, and chooses who sees it. On a GitHub import,{" "}
+            <strong>Enable Auto Refresh</strong> brings each push in.
+          </li>
+          <li>
+            <strong>Claude Code</strong> can add it too, with{" "}
+            <Code>/plugin marketplace add your-org/ronne-plugins</Code>: for people who can read the
+            repository but have no account here.
+          </li>
+        </Bullets>
+      </>
+    ),
+    keeping: (
+      <>
+        <p>
+          A new release reaches the mirror the next time <Code>rmk feed build</Code> runs. Let CI
+          run it:
+        </p>
+        <Example>
+          {
+            "rmk feed build --print-workflow github > .github/workflows/ronne-plugin-feed.yml\nrmk feed build --print-workflow gitlab > .gitlab-ci.yml"
+          }
+        </Example>
+        <Bullets>
+          <li>
+            The GitHub workflow runs daily and when you start it, installs the same <Code>rmk</Code>{" "}
+            version that printed it, builds, and commits and pushes only when something changed. The
+            comments at its top say what to set: the <Code>RMK_REGISTRY</Code> and{" "}
+            <Code>RMK_TOKEN</Code> secrets.
+          </li>
+          <li>
+            The GitLab job does the same; you add its daily schedule in{" "}
+            <strong>Build › Pipeline schedules</strong>, and it also needs{" "}
+            <Code>RMK_PUSH_TOKEN</Code>, a project access token that can push.
+          </li>
+          <li>
+            Make <Code>RMK_TOKEN</Code> on an account made for the mirror: the build reads what that
+            account can read. When the token expires or is revoked, the build fails and the mirror
+            stays as it was, so the tools keep their plugins; make a new token and update the
+            secret.
+          </li>
+          <li>
+            A run with nothing new released changes nothing, so there&apos;s no commit. A new
+            release replaces that plugin&apos;s folder whole; a yanked one&apos;s folder is removed.
+          </li>
+          <li>
+            <Code>rmk</Code> writes only the paths it records: a README or the CI file stays as you
+            wrote it. If something under <Code>plugins/</Code> isn&apos;t its own, or changed since
+            it wrote it, the build stops and lists it (<Code>--force</Code> writes over its own
+            paths). <Code>--tools codex,cursor</Code> builds only some tools.
           </li>
         </Bullets>
       </>
@@ -2839,6 +2941,14 @@ rmk telemetry preview   # what would be sent now`}</Example>
         </li>
       </Bullets>
     ),
+    plugins: (
+      <p>
+        Codex can also install this marketplace&apos;s items as plugins, from a git repository that{" "}
+        <Code>rmk feed build</Code> keeps as a mirror of it. Codex plugins carry skills, MCP servers
+        and hooks, not agents. <To href={docsHref("plugins", "mirror")}>Plugin marketplaces</To>{" "}
+        explains how.
+      </p>
+    ),
   },
   cursor: {
     paths: (
@@ -2906,6 +3016,13 @@ rmk telemetry preview   # what would be sent now`}</Example>
           with a warning.
         </li>
       </Bullets>
+    ),
+    plugins: (
+      <p>
+        A Cursor team admin can import a git mirror of this marketplace, written by{" "}
+        <Code>rmk feed build</Code>, as a team marketplace, so the team installs items as plugins.{" "}
+        <To href={docsHref("plugins", "mirror")}>Plugin marketplaces</To> explains how.
+      </p>
     ),
   },
 };

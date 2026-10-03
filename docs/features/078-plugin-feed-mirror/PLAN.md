@@ -23,7 +23,7 @@ the same change that completes it.
   *Done when:* both outputs parse as YAML and match golden files (no new lint tool: any would need
   the dependency policy check first).
 
-- [ ] **5. Documentation.** The sections in the spec's Documentation section.
+- [x] **5. Documentation.** The sections in the spec's Documentation section.
   *Done when:* the docs render tests pass.
 
 - [ ] **6. End to end by hand.** Build a mirror into a test repository, push it, and add it in

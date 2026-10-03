@@ -200,6 +200,20 @@ describe("the topics", () => {
     expect(plugins).toContain("--static-headers");
     expect(plugins).toContain("The plugins you installed keep working.");
     expect(plugins).toContain("Install an item one way, not both");
+    // The git mirror for Codex and Cursor (078).
+    for (const id of ["mirror", "keeping"]) expect(plugins).toContain(`id="${id}"`);
+    expect(plugins).toContain("rmk feed build --out .");
+    expect(plugins).toContain("codex plugin marketplace add your-org/ronne-plugins");
+    expect(plugins).toContain("Team Marketplaces › Import");
+    expect(plugins).toContain("rmk feed build --print-workflow github &gt; .github/workflows/");
+    expect(plugins).toContain("RMK_PUSH_TOKEN");
+    expect(plugins).toContain("the build fails and the mirror stays as it was");
+    expect(rmk).toContain("rmk feed build --out &lt;folder&gt;");
+    for (const tool of ["codex", "cursor"]) {
+      const html = await topic(tool);
+      expect(html, tool).toContain('id="plugins"');
+      expect(html, tool).toContain('href="/docs/plugins#mirror"');
+    }
     expect(claude).toContain(".claude/rules/");
     const codex = await topic("codex");
     expect(codex).toContain('id="trust"');

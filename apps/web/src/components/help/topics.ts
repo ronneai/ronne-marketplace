@@ -139,18 +139,21 @@ export const TOPICS = [
       { id: "tokens", title: "Tokens and the API" },
       { id: "tools", title: "Your AI tools" },
       { id: "mcp", title: "From inside your AI tool" },
-      { id: "plugins", title: "As Claude Code plugins" },
+      { id: "plugins", title: "As plugins" },
       { id: "telemetry", title: "Usage reporting" },
     ],
   },
   {
     slug: "plugins",
     title: "Plugin marketplaces",
-    summary: "Installing released items as Claude Code plugins, from /plugin, without rmk install.",
+    summary:
+      "Installing released items as plugins: in Claude Code from this website, in Codex and Cursor from a git mirror.",
     sections: [
       { id: "what", title: "What it is" },
       { id: "claude-code", title: "Claude Code" },
       { id: "tokens", title: "Tokens" },
+      { id: "mirror", title: "Codex and Cursor (git mirror)" },
+      { id: "keeping", title: "Keeping the mirror current" },
       { id: "which", title: "Plugins or rmk" },
     ],
   },
@@ -199,6 +202,7 @@ export const TOPICS = [
       { id: "paths", title: "Where each type goes" },
       { id: "trust", title: "Trust and hook review" },
       { id: "notes", title: "Good to know" },
+      { id: "plugins", title: "Plugins" },
     ],
   },
   {
@@ -209,6 +213,7 @@ export const TOPICS = [
       { id: "paths", title: "Where each type goes" },
       { id: "with-claude-code", title: "With Claude Code" },
       { id: "notes", title: "Good to know" },
+      { id: "plugins", title: "Plugins" },
     ],
   },
 ] as const;
