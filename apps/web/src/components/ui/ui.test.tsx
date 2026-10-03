@@ -84,8 +84,9 @@ describe("Checkbox and PasswordInput", () => {
 });
 
 describe("Badge, Notice, Panel, PageHeader", () => {
-  it("renders badges in mono: accent, muted, warning or error", () => {
-    expect(html(<Badge tone="accent">root</Badge>)).toMatch(/font-mono.*bg-accent-strong/);
+  it("renders badges in the default font: accent, muted, warning or error", () => {
+    expect(html(<Badge tone="accent">root</Badge>)).toContain("bg-accent-strong");
+    expect(html(<Badge tone="accent">root</Badge>)).not.toContain("font-mono");
     expect(html(<Badge>user</Badge>)).toContain("bg-tint");
     expect(html(<Badge tone="warning">risk</Badge>)).toContain(
       "bg-warning-subtle text-warning-text",

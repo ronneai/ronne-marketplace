@@ -100,7 +100,7 @@ export const TypesExplorer = ({ groups }: { groups: TypeGroup[] }) => {
               <h3 id={`types-${group.id}`} className="text-base font-semibold text-fg">
                 {i + 1}. {group.title}
               </h3>
-              <span className="rounded-full bg-tint px-2 py-0.5 font-mono text-[11px] text-muted">
+              <span className="rounded-full bg-tint px-2 py-0.5 text-[11px] text-muted">
                 {group.rows.length} {group.rows.length === 1 ? "type" : "types"}
               </span>
             </div>

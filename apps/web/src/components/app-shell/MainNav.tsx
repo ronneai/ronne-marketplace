@@ -29,7 +29,7 @@ export const MainNav = ({
     >
       {item.label}
       {counts[item.href] ? (
-        <span className="ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-strong px-1 font-mono text-[10px] font-semibold text-on-accent">
+        <span className="ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-strong px-1 text-[10px] font-semibold text-on-accent">
           {counts[item.href]}
           <span className="sr-only"> waiting</span>
         </span>

@@ -32,7 +32,7 @@ compose parts; they don't restyle them.
 
 | Rule | Both themes |
 |---|---|
-| Fonts | **Manrope** for human text (UI, titles, prose). **IBM Plex Mono** for machine values: ids, versions, commands, tokens, paths, codes, badges. |
+| Fonts | **Manrope** for human text (UI, titles, prose). **IBM Plex Mono** for machine values: ids, versions, commands, tokens, paths, codes. Badges use Manrope (owner, 2026-10-02). |
 | Weights | 500 and 600 only. No 400 or 700. |
 | Depth | **Completely flat.** No shadows, blurs, glows or gradients. Surfaces separate by tone and 1px hairlines. |
 | Radii | 6px for buttons and inputs, 8px for cards, panels and dialogs, full pill for badges. |
@@ -110,7 +110,7 @@ instead, with no runtime CDN: `lucide-react` (ISC), if it passes the dependency 
 |---|---|
 | Button | `primary` (teal fill), `secondary` (surface with a hairline), `ghost`. 36px high, 6px radius, Manrope 600 14px. A 2px teal focus ring. A `loading` state disables it and keeps its width. |
 | Input | 36px, surface, hairline border. Focus: a strong border plus a teal ring. `type=password` has a show/hide button. Errors show below, as a mono `ERR:` line, not red. |
-| Badge | A pill, IBM Plex Mono 600 11px. `accent` (teal) and `muted` (mint on light, navy on dark). |
+| Badge | A pill, Manrope 600 11px, the default font (owner, 2026-10-02; IBM Plex Mono before). `accent` (teal) and `muted` (mint on light, navy on dark). |
 | Notice | A surface with `border-strong`, a mono prefix (`INFO:`, `WARN:`, `ERR:`) and a semibold title. |
 | Table | Header on `canvas`, 12px semibold. Rows 36–40px with a hairline between them. Machine values in mono. |
 | CopyableCommand | A mono command with a `copy` button (clipboard API, "copied" for 2s). Used for `rmk` snippets and the one-time token display. |
@@ -145,7 +145,7 @@ the how.
 **Not taken from the mocks, on purpose:**
 - **The `daemon: local (0.14.0)` chip.** There's no daemon.
 - **Amber "Lifecycle Hook" and "Permissions: Exec" badges** in the light catalogue mock. They break
-  the no-yellow rule. Risk flags (MVP §12) use mono badges and notices instead.
+  the no-yellow rule. Risk flags (MVP §12) use neutral badges and notices instead.
 - **Copy claiming "cryptographically verified" packages.** Signing is post-MVP (MVP §14.2).
 - **The light sign-in `screen.png`**, which is a failed download: its content is the text
   `<FIFE Image failed to fetch>`. Its `code.html` is intact and was used instead.

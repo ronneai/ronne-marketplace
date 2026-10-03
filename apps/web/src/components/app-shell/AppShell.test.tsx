@@ -91,7 +91,7 @@ describe("AppShell", () => {
     const menu = html.slice(html.indexOf("</summary>"));
     expect(menu).toContain("Grace Hopper");
     expect(menu).toContain("root@example.com");
-    expect(html).toMatch(/font-mono[^>]*>root</);
+    expect(html).toMatch(/rounded-full[^>]*>root</);
     expect(html).toContain("Access tokens");
     expect(html).toContain("Sign out");
     expect(html).toContain('href="/admin/users"');
