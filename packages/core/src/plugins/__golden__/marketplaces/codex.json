@@ -1,0 +1,63 @@
+{
+  "name": "ronne-registry-example-com",
+  "interface": {
+    "displayName": "Ronne at registry.example.com"
+  },
+  "plugins": [
+    {
+      "name": "examples.format-on-edit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/codex/examples.format-on-edit"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      }
+    },
+    {
+      "name": "examples.github-mcp",
+      "source": {
+        "source": "local",
+        "path": "./plugins/codex/examples.github-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      }
+    },
+    {
+      "name": "examples.review-diff",
+      "source": {
+        "source": "local",
+        "path": "./plugins/codex/examples.review-diff"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      }
+    },
+    {
+      "name": "examples.secure-coding",
+      "source": {
+        "source": "local",
+        "path": "./plugins/codex/examples.secure-coding"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      }
+    },
+    {
+      "name": "examples.starter-kit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/codex/examples.starter-kit"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      }
+    }
+  ]
+}

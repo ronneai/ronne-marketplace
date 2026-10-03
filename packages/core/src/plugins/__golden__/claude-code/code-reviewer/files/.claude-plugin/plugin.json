@@ -1,0 +1,7 @@
+{
+  "name": "examples.code-reviewer",
+  "description": "Reviews diffs for correctness and security issues. Use after finishing a change and before opening a pull request.",
+  "author": {
+    "name": "examples"
+  }
+}

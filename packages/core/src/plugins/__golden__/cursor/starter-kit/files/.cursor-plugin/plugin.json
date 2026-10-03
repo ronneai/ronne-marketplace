@@ -1,0 +1,8 @@
+{
+  "name": "examples.starter-kit",
+  "version": "1.0.0",
+  "description": "A starting set for a TypeScript team, with the reviewer agent, house rules, formatting and safe git defaults.",
+  "author": {
+    "name": "examples"
+  }
+}

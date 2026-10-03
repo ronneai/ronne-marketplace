@@ -1,0 +1,11 @@
+{
+  "name": "examples.house-style",
+  "empty": true,
+  "executables": [],
+  "warnings": [
+    {
+      "code": "not_in_plugin",
+      "message": "Codex plugins can't add to AGENTS.md, so that part of @examples/house-style was left out."
+    }
+  ]
+}

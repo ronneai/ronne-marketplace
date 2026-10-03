@@ -1,0 +1,9 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "examples.safe-git",
+  "version": "1.0.0",
+  "description": "Asks before pushing or rewriting git history, and blocks force pushes.",
+  "author": {
+    "name": "examples"
+  }
+}

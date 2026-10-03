@@ -1,0 +1,59 @@
+{
+  "name": "ronne-registry-example-com",
+  "owner": {
+    "name": "Ronne at registry.example.com"
+  },
+  "metadata": {
+    "description": "Released items from the Ronne registry at https://registry.example.com"
+  },
+  "plugins": [
+    {
+      "name": "examples.code-reviewer",
+      "version": "1.0.0",
+      "description": "Reviews diffs for correctness and security issues. Use after finishing a change and before opening a pull request.",
+      "source": "./plugins/claude-code/examples.code-reviewer"
+    },
+    {
+      "name": "examples.concise",
+      "version": "1.0.0",
+      "description": "Short answers. Code first, explanation only when asked.",
+      "source": "./plugins/claude-code/examples.concise"
+    },
+    {
+      "name": "examples.format-on-edit",
+      "version": "1.0.0",
+      "description": "Formats files with Biome after the agent edits them.",
+      "source": "./plugins/claude-code/examples.format-on-edit"
+    },
+    {
+      "name": "examples.github-mcp",
+      "version": "1.0.0",
+      "description": "Connects to GitHub's MCP server for issues, pull requests and code search.",
+      "source": "./plugins/claude-code/examples.github-mcp"
+    },
+    {
+      "name": "examples.review-diff",
+      "version": "1.0.0",
+      "description": "Reviews the current git diff, or a given file or folder.",
+      "source": "./plugins/claude-code/examples.review-diff"
+    },
+    {
+      "name": "examples.secure-coding",
+      "version": "1.0.0",
+      "description": "Checks code for common security mistakes such as injection, unsafe deserialisation and leaked secrets. Use when writing or reviewing code that handles input, auth or secrets.",
+      "source": "./plugins/claude-code/examples.secure-coding"
+    },
+    {
+      "name": "examples.starter-kit",
+      "version": "1.0.0",
+      "description": "A starting set for a TypeScript team, with the reviewer agent, house rules, formatting and safe git defaults.",
+      "source": "./plugins/claude-code/examples.starter-kit"
+    },
+    {
+      "name": "examples.typescript-lsp",
+      "version": "1.0.0",
+      "description": "TypeScript and JavaScript code intelligence through typescript-language-server.",
+      "source": "./plugins/claude-code/examples.typescript-lsp"
+    }
+  ]
+}

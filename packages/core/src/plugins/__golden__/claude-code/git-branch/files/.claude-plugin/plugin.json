@@ -1,0 +1,7 @@
+{
+  "name": "examples.git-branch",
+  "description": "Shows the current folder and git branch in the status line.",
+  "author": {
+    "name": "examples"
+  }
+}

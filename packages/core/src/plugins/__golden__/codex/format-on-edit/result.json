@@ -1,0 +1,15 @@
+{
+  "name": "examples.format-on-edit",
+  "empty": false,
+  "executables": [],
+  "warnings": [
+    {
+      "code": "unsupported_field",
+      "message": "@examples/format-on-edit's command uses an $RMK_ variable; Codex passes the event as JSON on stdin instead, so the hook has to read it from there."
+    },
+    {
+      "code": "unsupported_field",
+      "message": "Codex's tool names aren't documented, so @examples/format-on-edit runs for every tool instead of only `edit`; it can check the tool in the event it reads on stdin."
+    }
+  ]
+}
