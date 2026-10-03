@@ -32,7 +32,7 @@ compose parts; they don't restyle them.
 
 | Rule | Both themes |
 |---|---|
-| Fonts | **Manrope** for human text (UI, titles, prose). **IBM Plex Mono** for machine values: ids, versions, commands, tokens, paths, codes. Badges use Manrope (owner, 2026-10-02). |
+| Fonts | **Manrope** for human text (UI, titles, prose). **IBM Plex Mono** for machine values: ids, versions, commands, tokens, paths, codes. Badges and other pills (filter chips, step numbers, initials) use Manrope (owner, 2026-10-02). |
 | Weights | 500 and 600 only. No 400 or 700. |
 | Depth | **Completely flat.** No shadows, blurs, glows or gradients. Surfaces separate by tone and 1px hairlines. |
 | Radii | 6px for buttons and inputs, 8px for cards, panels and dialogs, full pill for badges. |

@@ -43,7 +43,7 @@ const Section = ({
   >
     <div className="flex flex-wrap items-center justify-between gap-2">
       <h2 id={`step-${step}`} className="flex items-center gap-3 text-lg font-semibold text-fg">
-        <span className="grid size-6 place-content-center rounded-full border border-strong font-mono text-xs text-fg">
+        <span className="grid size-6 place-content-center rounded-full border border-strong text-xs text-fg">
           {step}
         </span>
         {title}
@@ -58,7 +58,7 @@ const chipClasses =
   "cursor-pointer rounded-control border border-transparent px-3 py-1.5 font-mono text-xs text-muted hover:text-fg has-[:checked]:border-hairline has-[:checked]:bg-surface has-[:checked]:font-semibold has-[:checked]:text-fg has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-focus";
 
 const filterClasses =
-  "rounded-full border border-hairline px-3 py-1 font-mono text-xs text-muted hover:text-fg aria-pressed:border-transparent aria-pressed:bg-fg aria-pressed:text-canvas outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
+  "rounded-full border border-hairline px-3 py-1 text-xs text-muted hover:text-fg aria-pressed:border-transparent aria-pressed:bg-fg aria-pressed:text-canvas outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
 
 /**
  * New item (feature 012, after the Stitch mock): 1, the scope and name; 2, the type. The side

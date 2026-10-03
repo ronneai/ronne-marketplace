@@ -513,7 +513,7 @@ const Maintainers = ({ page }: { page: ItemPage }) => {
       <div className="flex items-center gap-3">
         <span
           aria-hidden="true"
-          className="grid size-8 place-items-center rounded-full bg-tint font-mono text-xs font-semibold text-fg"
+          className="grid size-8 place-items-center rounded-full bg-tint text-xs font-semibold text-fg"
         >
           {initials(owner) || "?"}
         </span>

@@ -35,7 +35,7 @@ const FILTER_ORDER: readonly SubmissionStatus[] = [
 ];
 
 const chipClasses =
-  "rounded-full border border-hairline px-3 py-1 font-mono text-xs text-muted hover:text-fg aria-[current=page]:border-transparent aria-[current=page]:bg-fg aria-[current=page]:text-canvas outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
+  "rounded-full border border-hairline px-3 py-1 text-xs text-muted hover:text-fg aria-[current=page]:border-transparent aria-[current=page]:bg-fg aria-[current=page]:text-canvas outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
 
 /** A status link: that status, keeping the sort and size, without a search or type (063). */
 const statusHref = (state: SubmissionsListState, status: SubmissionStatus | "") =>
