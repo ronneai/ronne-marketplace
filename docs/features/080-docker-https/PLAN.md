@@ -14,7 +14,7 @@ the same change that completes it.
   Compose version both need). Re-check 7650/7651 in the IANA registry.
   *Done when:* the notes below record each answer, and the spec is corrected where one differs.
 
-- [ ] **2. The proxy in `compose.yaml`.** The `proxy` service, its inline Caddyfile, the
+- [x] **2. The proxy in `compose.yaml`.** The `proxy` service, its inline Caddyfile, the
   `caddy-data` and `caddy-config` volumes and the `./certs` mount; `web` loses `ports:` and gains
   `TRUST_PROXY=true` and the `PUBLIC_URL` default. If Compose can't express the three-way default,
   the app derives it instead (`server/config.ts`: `PUBLIC_URL`, else `https://RONNE_DOMAIN`), with
@@ -87,3 +87,26 @@ with Docker Compose 5.5.
 - **Ports:** the IANA registry (CSV, 2026-10-03) still lists 7649–7662 as unassigned.
 - **Redirect port:** Caddy's HTTP-to-HTTPS redirect goes to 443, not to the published HTTPS port
   (an edge case in the spec now).
+
+### Task 2: the proxy by hand (2026-10-03)
+
+Run from the checkout with `-f compose.yaml -f compose.build.yaml -p rmk080` on Docker 29.7 and
+Compose 5.5:
+
+- **Case 1:** `http://localhost:7650/api/health` answers `503 setup_required` through Caddy;
+  `docker compose ps` shows ports only for `proxy` (`web` lists `3000/tcp`, unpublished).
+- **`RONNE_DOMAIN=localhost RONNE_TLS=internal`:** `https://localhost:7651/api/health` answers over
+  HTTP/2 with a "Caddy Local Authority" certificate; `http://localhost:7650` answers 308 to
+  `https://localhost/…` (port 443, the edge case in the spec). `web` gets
+  `PUBLIC_URL=https://localhost` and `TRUST_PROXY=true`.
+- **`RONNE_TLS=files`:** with a self-signed `localhost` certificate in `./certs`, Caddy serves
+  exactly that certificate (same SHA-256 fingerprint). With the files removed, the proxy keeps
+  restarting with "open /certs/cert.pem: no such file or directory".
+- **`RONNE_PORT=3000`:** `docker compose config` publishes host 3000 to the proxy's 80 and sets
+  `PUBLIC_URL=http://localhost:3000`. Not started here, because a dev server already held 3000 on
+  this machine, which is the clash the new default avoids.
+- **`--profile postgres`:** starts, and `web` reaches `postgres:5432`.
+- **Compose doesn't recreate a container when only a config's `content` changes.** A `.env` change
+  left the old Caddyfile running. So `proxy` also gets the four settings as environment variables,
+  which Caddy ignores. A change to them recreates it.
+- `./certs` is created on `up` when it's missing, so it's in `.gitignore` and `.dockerignore`.

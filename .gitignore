@@ -26,3 +26,6 @@ docs/UI-Mocks-Materials/
 # Playwright output (feature 006)
 playwright-report/
 test-results/
+
+# Certificates for the Docker proxy with RONNE_TLS=files (feature 080)
+/certs/
