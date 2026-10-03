@@ -165,9 +165,10 @@ All are read by `compose.yaml` from the environment or `.env`; none are needed f
 
 ### The proxy service
 
-- Image: `caddy` from Docker Hub, the current 2.x release that has passed the 3-day cooldown
-  (dependency policy §3), pinned by tag and digest and kept current by Dependabot, like the base
-  image (dependency policy §2).
+- Image: `caddy` from Docker Hub, the current 2.x release, pinned by tag and digest, kept current
+  by Dependabot like the base image, and scanned with Trivy like ours (dependency policy §2, §3).
+  The first pin, 2.11.6, is one day inside the 3-day cooldown, as exception E-6 in the policy:
+  the only older release has fixable high vulnerabilities.
 - Caddyfile, inline in `compose.yaml` (Compose `configs.content`, Docker Compose 2.23.1 or later).
   Compose fills in the settings (`${…}`) when it creates the file, so the `proxy` container needs
   no environment variables and `docker compose config` shows the Caddyfile Caddy will read:

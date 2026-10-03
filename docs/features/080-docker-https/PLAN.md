@@ -37,7 +37,7 @@ the same change that completes it.
   *Done when:* the workflow passes on a pull request, and fails when the Caddyfile is broken on
   purpose.
 
-- [ ] **5. Dependency policy and Dependabot.** Add the Caddy image to the policy (licence, why,
+- [x] **5. Dependency policy and Dependabot.** Add the Caddy image to the policy (licence, why,
   pinning) and Dependabot's docker-compose ecosystem for `compose.yaml`. Trivy-scan the Caddy image
   in the same CI step as ours.
   *Done when:* Dependabot lists `compose.yaml`, and the scan runs.
@@ -152,3 +152,20 @@ certificate passes. On failure it prints the last 80 lines of the `proxy` and `w
 - `docker compose port web 3000` prints `invalid IP:0` and exits 0 when nothing is published, so
   the script reads `PublishedPort` from `docker compose ps` instead.
 - **Still open:** the run on a pull request. Tick the task when that run passes on both architectures.
+
+### Task 5: the Caddy image (2026-10-03)
+
+- **2.11.4 failed the policy.** Trivy found 17 fixable HIGH vulnerabilities in it (Go standard
+  library, `x/net`, `x/crypto`, `x/text`, `grpc`), and the scan would fail CI. 2.11.6 scans clean,
+  but it was a day inside the cooldown, and 2.11.7 wasn't on Docker Hub yet. The owner chose 2.11.6
+  as exception E-6 (policy §5), until Dependabot's 2.11.7 update is merged.
+- Pin: `caddy:2.11.6@sha256:907efba736324e43f891ccb9d760fe5abe545e313419b3d18d63d4ec670dad8d`.
+  The compose probe passes on it, and Caddy's licence is Apache-2.0 (GitHub's licence API).
+- 2.11.6's HTTP/2 crash, a reverse proxy still reading a request body after the handler returned,
+  didn't happen in nine 28–40 MiB uploads over HTTP/2 to `/api/v1/drafts` with a bad token,
+  which answers before reading the body.
+- Dependabot's `docker-compose` ecosystem already covered `/` (compose.yaml, since 035). It now
+  picks up `caddy` too; no major-version ignore, since the compose probe catches a Caddyfile that
+  stops working. Whether GitHub lists the new dependency can only be seen after the merge.
+- Trivy scans the image that `docker compose config --images` names, in its own step after ours.
+  It passed locally (exit 0).
