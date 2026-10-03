@@ -379,7 +379,7 @@ describe("NewDraftForm", () => {
     expect(html.match(/>⚠ risk</g)).toHaveLength(5);
     // No type picked yet: the side panel asks for one.
     expect(html).toContain("Pick a type to see the ronne.yaml");
-    expect(html).toContain('href="/scopes"');
+    expect(html).toContain('href="/docs/scopes"');
     // Inline help (033) on the scope, the name and the type.
     expect(html).toContain("What&#x27;s a scope?");
     expect(html).toContain("How should I name it?");

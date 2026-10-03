@@ -14,7 +14,6 @@ const attempt = async (work: () => Promise<string>): Promise<ScopeActionState> =
   try {
     const done = await work();
     revalidatePath("/admin/scopes");
-    revalidatePath("/scopes");
     return { done };
   } catch (error) {
     if (error instanceof ItemsError || error instanceof IdentityError)

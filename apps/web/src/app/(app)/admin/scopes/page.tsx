@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import { parseListQuery, type SearchParams } from "@/components/ui/data-table/list-query";
 import { PageHeader } from "@/components/ui/Panel";
+import { ADMIN_SCOPES_LIST, scopesQueryOf } from "@/features/admin-scopes/list";
 import { CreateScopeDialog, EditScopeButton } from "@/features/admin-scopes/ScopeDialogs";
-import { ADMIN_SCOPES_LIST, scopesQueryOf } from "@/features/scopes/list";
-import { ScopesTable } from "@/features/scopes/ScopesTable";
+import { ScopesTable } from "@/features/admin-scopes/ScopesTable";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { can } from "@/server/domains/identity/models/permissions";
 import { pageScopes } from "@/server/domains/items/actions/scopes";
