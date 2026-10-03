@@ -1,0 +1,11 @@
+{
+  "name": "examples.house-style",
+  "empty": true,
+  "executables": [],
+  "warnings": [
+    {
+      "code": "not_in_plugin",
+      "message": "Claude Code plugins have no rules that are always on or follow file patterns, so that part of @examples/house-style was left out."
+    }
+  ]
+}

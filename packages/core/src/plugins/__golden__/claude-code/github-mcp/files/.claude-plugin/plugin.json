@@ -1,0 +1,7 @@
+{
+  "name": "examples.github-mcp",
+  "description": "Connects to GitHub's MCP server for issues, pull requests and code search.",
+  "author": {
+    "name": "examples"
+  }
+}

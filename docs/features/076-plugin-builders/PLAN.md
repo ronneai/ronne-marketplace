@@ -19,7 +19,7 @@ the same change that completes it.
 - [x] **3. The archive.** `plugins/archive.ts`: `pluginArchive(files)` on `zipSync`.
   *Done when:* the same files zip to the same sha256, and `unzipSync` gives the files and modes back.
 
-- [ ] **4. Claude Code adapter.** `plugins/claude-code.ts`: moves the Claude Code renderer's changes
+- [x] **4. Claude Code adapter.** `plugins/claude-code.ts`: moves the Claude Code renderer's changes
   into the plugin layout, and writes the manifest.
   *Done when:* golden files for every example item pass.
 
@@ -42,3 +42,12 @@ the same change that completes it.
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- `buildPlugin` and the golden harness (`plugins/harness.ts`) landed with task 4, because the
+  goldens need them; task 6 adds the tests for bundles, dependencies, conflicts and empty plugins.
+- Skill folders carry the item's `ronne.yaml`, as the renderers' `.claude/skills/<n>/` do.
+- To check by hand in 077: an agent's tools name an MCP server as `mcp__<server>`. Claude Code may
+  name the tools of a server that comes from a plugin differently (with the plugin's name in
+  them); if so, the Claude Code adapter has to rewrite the agent's `tools` when the server is in
+  the same plugin.
+

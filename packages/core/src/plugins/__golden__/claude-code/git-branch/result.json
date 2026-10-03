@@ -1,0 +1,11 @@
+{
+  "name": "examples.git-branch",
+  "empty": true,
+  "executables": [],
+  "warnings": [
+    {
+      "code": "not_in_plugin",
+      "message": "Claude Code plugins can't set the status line, so that part of @examples/git-branch was left out."
+    }
+  ]
+}

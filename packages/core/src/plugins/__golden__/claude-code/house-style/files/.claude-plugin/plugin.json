@@ -1,0 +1,7 @@
+{
+  "name": "examples.house-style",
+  "description": "TypeScript conventions for this codebase.",
+  "author": {
+    "name": "examples"
+  }
+}

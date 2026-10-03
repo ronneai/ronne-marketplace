@@ -1,0 +1,7 @@
+{
+  "name": "examples.format-on-edit",
+  "description": "Formats files with Biome after the agent edits them.",
+  "author": {
+    "name": "examples"
+  }
+}
