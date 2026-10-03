@@ -35,7 +35,7 @@ export const FilterChips = <S extends string, F extends string>({
             })}
             scroll={false}
             aria-label={`Remove the ${labels[key].toLowerCase()} filter`}
-            className="inline-flex items-center gap-1 rounded-control border border-hairline bg-surface px-2 py-1 text-fg hover:border-strong"
+            className="inline-flex items-center gap-1 rounded-control border border-hairline bg-surface px-2 py-1 pointer-coarse:min-h-11 pointer-coarse:px-3 text-fg hover:border-strong"
           >
             <span className="text-muted">{labels[key]}:</span>
             <span className="font-mono">

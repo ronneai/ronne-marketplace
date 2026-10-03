@@ -33,7 +33,7 @@ const pageOf = (overrides: Partial<CataloguePage> = {}): CataloguePage => ({
   nextCursor: null,
   typeCounts: ITEM_TYPES.map((type) => ({ type, count: type === "hook" ? 1 : 0 })),
   scopes: ["team", "tools"],
-  query: { q: "", type: null, scope: null, tool: null, sort: "recent" },
+  query: { q: "", types: [], scope: null, tool: null, sort: "recent" },
   ...overrides,
 });
 
@@ -50,7 +50,7 @@ describe("the catalogue page", () => {
     const html = await render({ q: "fmt", type: "hook", cursor: "c" });
     expect(catalogue.browseCatalogue).toHaveBeenCalledWith(expect.any(Headers), {
       q: "fmt",
-      type: "hook",
+      type: ["hook"],
       scope: undefined,
       tool: undefined,
       sort: undefined,
@@ -70,23 +70,54 @@ describe("the catalogue page", () => {
     );
     expect(html).toContain('<option value="cursor">Cursor</option>');
     expect(html).not.toContain("⚠ risk");
-    expect(html).not.toContain("downloads");
+    // Every card shows how often it's been downloaded (owner, 2026-10-02).
+    expect(html).toMatch(/\d+ installs?</);
   });
 
-  it("shows the type chips with counts, the scopes, and the sorts, keeping the rest of the query", async () => {
+  it("puts types, scope and tool in a Filters panel, the active ones beside it, and Sort on the right", async () => {
     catalogue.browseCatalogue.mockResolvedValue(
-      pageOf({ query: { q: "x", type: "hook", scope: "team", tool: null, sort: "name" } }),
+      pageOf({
+        query: { q: "x", types: ["hook", "skill"], scope: "team", tool: null, sort: "name" },
+      }),
     );
     const html = await render();
+    // The button counts the active filters: two types and a scope (the search isn't one).
+    expect(html).toMatch(/<summary[^>]*>.*Filters<span[^>]*>3<span class="sr-only"> on<\/span>/);
+    // Types: a collapsible list, open when some are chosen, one checkbox per type with its dot,
+    // name and count; several can be checked.
     expect(html).toMatch(
-      /href="\/catalogue\?q=x&amp;scope=team&amp;sort=name"[^>]*>All <span[^>]*>\(1\)/,
+      /<details open=""[^>]*><summary[^>]*>.*Type<span[^>]*>Hook, Skill<\/span>/,
     );
-    expect(html).toMatch(/aria-current="page"[^>]*>hook <span[^>]*>\(1\)/);
-    expect(html).toContain('href="/catalogue?q=x&amp;type=skill&amp;scope=team&amp;sort=name"');
+    expect(html).toMatch(/<input type="checkbox"[^>]* name="type" checked="" value="hook"/);
+    expect(html).toMatch(/<input type="checkbox"[^>]* name="type" checked="" value="skill"/);
+    expect(html).toMatch(/<input type="checkbox"[^>]* name="type" value="agent"/);
+    expect(html).toMatch(/bg-\(--type-hook\)"><\/span>Hook<span[^>]*>1<\/span>/);
     expect(html).toContain('<option value="tools">@tools</option>');
-    expect(html).toContain('href="/catalogue?q=x&amp;type=hook&amp;scope=team"');
-    expect(html).toContain('<input type="hidden" name="type" value="hook"/>');
-    expect(html).toContain(">Clear<");
+    expect(html).toContain('<input type="hidden" name="q" value="x"/>');
+    expect(html).toContain(">Apply<");
+    // Beside the button: each active filter, a link that removes just it, in its own colours.
+    const link = (label: string) =>
+      html.match(new RegExp(`<a[^>]*aria-label="${label}"[^>]*>`))?.[0] ?? "";
+    expect(html).toContain('aria-label="Active filters"');
+    expect(link("Remove the Hook filter")).toContain(
+      'href="/catalogue?q=x&amp;type=skill&amp;scope=team&amp;sort=name"',
+    );
+    expect(link("Remove the Hook filter")).toContain("bg-(--type-hook-subtle)");
+    expect(link("Remove the scope filter")).toContain(
+      'href="/catalogue?q=x&amp;type=hook&amp;type=skill&amp;sort=name"',
+    );
+    expect(link("Remove the search")).toContain(
+      'href="/catalogue?type=hook&amp;type=skill&amp;scope=team&amp;sort=name"',
+    );
+    expect(html).toContain(">Clear all<");
+    // Sort on the right: three sorts, each saying what it puts first, keeping the rest of the query.
+    expect(html).toMatch(/Sort: <span[^>]*>Name<\/span>/);
+    expect(html).toContain("Most installs with rmk first");
+    expect(html).toMatch(
+      /<a[^>]*href="\/catalogue\?q=x&amp;type=hook&amp;type=skill&amp;scope=team&amp;sort=installs"/,
+    );
+    // The search keeps the filters.
+    expect(html).toContain('<input type="hidden" name="type" value="skill"/>');
   });
 
   it("marks risky, deprecated and uninstallable items", async () => {
@@ -114,7 +145,7 @@ describe("the catalogue page", () => {
     expect(html).toContain("Deprecated: Use @team/fmt2.");
     expect(html).toContain("no installable version");
     expect(html).not.toContain("rmk install @team/gone");
-    expect(html).toContain("works in Claude Code<");
+    expect(html).toMatch(/works in Claude Code · \d+ installs?</);
     expect(html).toContain("works in no built-in tool");
   });
 
@@ -126,7 +157,7 @@ describe("the catalogue page", () => {
     catalogue.browseCatalogue.mockResolvedValue(
       pageOf({
         entries: [],
-        query: { q: "zzz", type: null, scope: null, tool: null, sort: "recent" },
+        query: { q: "zzz", types: [], scope: null, tool: null, sort: "recent" },
       }),
     );
     expect(await render({ q: "zzz" })).toContain("No items match.");
@@ -141,10 +172,10 @@ describe("the catalogue page", () => {
 });
 
 describe("catalogue query helpers", () => {
-  it("reads the first value of each parameter", () => {
-    expect(parseCatalogueQuery({ q: ["a", "b"], sort: "name" })).toEqual({
+  it("reads the first value of each parameter, and every type", () => {
+    expect(parseCatalogueQuery({ q: ["a", "b"], type: ["hook", "skill"], sort: "name" })).toEqual({
       q: "a",
-      type: undefined,
+      type: ["hook", "skill"],
       scope: undefined,
       tool: undefined,
       sort: "name",
@@ -153,8 +184,11 @@ describe("catalogue query helpers", () => {
   });
 
   it("builds URLs without defaults or empty values", () => {
-    const query = { q: "", type: null, scope: null, tool: null, sort: "recent" as const };
+    const query = { q: "", types: [], scope: null, tool: null, sort: "recent" as const };
     expect(catalogueHref(query)).toBe("/catalogue");
+    expect(catalogueHref(query, { types: ["hook", "skill"], sort: "installs" })).toBe(
+      "/catalogue?type=hook&type=skill&sort=installs",
+    );
     expect(catalogueHref(query, { tool: "codex" })).toBe("/catalogue?tool=codex");
     expect(catalogueHref(query, { q: "a b", sort: "name" })).toBe("/catalogue?q=a+b&sort=name");
   });

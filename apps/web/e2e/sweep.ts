@@ -83,9 +83,19 @@ export const smallTargets = (page: Page): Promise<SmallTarget[]> =>
     const result: { element: string; width: number; height: number }[] = [];
     for (const el of document.querySelectorAll(selector)) {
       if (!el.checkVisibility({ visibilityProperty: true, opacityProperty: true })) continue;
-      const r = el.getBoundingClientRect();
+      const box = el.getBoundingClientRect();
       // Screen-reader-only text is 1px on purpose.
-      if (r.width <= 1 || r.height <= 1) continue;
+      if (box.width <= 1 || box.height <= 1) continue;
+      // `touch-hit` (067) adds an invisible tap area as an ::after: count the bigger of the two.
+      const hit = getComputedStyle(el, "::after");
+      const extra =
+        hit.content !== "none" && hit.position === "absolute"
+          ? { width: Number.parseFloat(hit.width) || 0, height: Number.parseFloat(hit.height) || 0 }
+          : { width: 0, height: 0 };
+      const r = {
+        width: Math.max(box.width, extra.width),
+        height: Math.max(box.height, extra.height),
+      };
       if (r.width >= 44 && r.height >= 44) continue;
       const classes = [...el.classList].slice(0, 3).join(".");
       const label =

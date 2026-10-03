@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
-import { Dialog } from "@/components/ui/Dialog";
+import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
 import type { Dependent, ReviewDecision } from "@/server/domains/submissions/actions/reviews";
 import type { DecisionOption } from "@/server/domains/submissions/services/decisions";
@@ -215,7 +215,7 @@ export const DecisionDialog = ({
           </div>
         ) : null}
         <FieldError id="decision-error">{error}</FieldError>
-        <div className="flex flex-wrap justify-end gap-2">
+        <DialogActions>
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
@@ -226,7 +226,7 @@ export const DecisionDialog = ({
           >
             {copy.button}
           </Button>
-        </div>
+        </DialogActions>
       </form>
     </Dialog>
   );

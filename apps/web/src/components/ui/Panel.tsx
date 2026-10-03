@@ -27,11 +27,13 @@ export const PageHeader = ({
 }) => {
   return (
     <header className="flex flex-wrap items-start justify-between gap-4 pb-6">
-      <div className="grid gap-1">
-        <h1 className="text-[28px] leading-9 font-semibold tracking-[-0.02em] text-fg">{title}</h1>
+      <div className="grid min-w-0 gap-1">
+        <h1 className="text-[28px] leading-9 font-semibold tracking-[-0.02em] break-words text-fg">
+          {title}
+        </h1>
         {description ? <p className="text-sm text-muted">{description}</p> : null}
       </div>
-      {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
+      {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
     </header>
   );
 };

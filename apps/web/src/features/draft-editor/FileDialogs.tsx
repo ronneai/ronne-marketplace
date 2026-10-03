@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
-import { Dialog } from "@/components/ui/Dialog";
+import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
 import { deleteDraftAction, importZipAction, renameDraftAction } from "./actions";
 
@@ -61,12 +61,12 @@ export const PathDialog = ({
           </p>
         </div>
         <FieldError id="file-path-error">{error}</FieldError>
-        <div className="flex justify-end gap-2">
+        <DialogActions>
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
           <Button type="submit">{confirm}</Button>
-        </div>
+        </DialogActions>
       </form>
     </Dialog>
   );
@@ -86,14 +86,14 @@ export const DeleteFileDialog = ({
       <p className="text-sm text-fg">
         Delete <span className="font-mono">{path}</span>? It's removed from the draft when you save.
       </p>
-      <div className="flex justify-end gap-2">
+      <DialogActions>
         <Button variant="ghost" onClick={onClose}>
           Cancel
         </Button>
         <Button variant="destructive" onClick={onDone}>
           Delete
         </Button>
-      </div>
+      </DialogActions>
     </div>
   </Dialog>
 );
@@ -118,11 +118,11 @@ export const ImportZipDialog = ({
       {dirty ? (
         <div className="grid gap-4">
           <p className="text-sm text-fg">{UNSAVED}</p>
-          <div className="flex justify-end">
+          <DialogActions>
             <Button variant="ghost" onClick={onClose}>
               Close
             </Button>
-          </div>
+          </DialogActions>
         </div>
       ) : (
         <form
@@ -176,14 +176,14 @@ export const ImportZipDialog = ({
             </label>
           </fieldset>
           <FieldError id="zip-error">{error}</FieldError>
-          <div className="flex justify-end gap-2">
+          <DialogActions>
             <Button variant="ghost" onClick={onClose}>
               Cancel
             </Button>
             <Button type="submit" loading={pending}>
               Import
             </Button>
-          </div>
+          </DialogActions>
         </form>
       )}
     </Dialog>

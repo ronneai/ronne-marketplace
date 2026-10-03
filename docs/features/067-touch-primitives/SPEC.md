@@ -35,18 +35,23 @@ density stays as it is: the changes apply on a coarse pointer or below `sm`.
     the docs `TypesExplorer` chips, the pager's links, `FileTree` rows (the whole row, not just the
     name), menu items: 44px on a coarse pointer.
 - **Dialogs on phones** (`Dialog.tsx`):
-  - Below `sm`, every dialog is **full screen** (`100dvh`, `100vw`) with a sticky title bar (title
-    and close) and a sticky footer for its actions; only the body scrolls. Safe-area padding top
-    and bottom. From `sm` as today.
+  - Below `sm`, every dialog is **full screen** (`100dvh`, `100vw`) with the title bar (title and
+    close) at the top and its actions stuck to the bottom; only the body scrolls. Safe-area padding
+    top and bottom. From `sm` as today.
   - The default size on desktop gets a max height (`calc(100dvh-2rem)`) with the same sticky title
     and footer, so long dialogs (Publish) keep their title in view.
-  - A `footer` slot so features put their buttons where the dialog keeps them.
+  - **`DialogActions`**, the row of buttons at the end of a dialog's body: sticky at the bottom of
+    the scrolling body, so it stays in view. A row, not a slot outside the body, because most
+    dialogs' buttons are inside their `<form>`; moving them out would need `form=` on every
+    button. The two large bulk dialogs keep their own footers (073 reworks them).
   - A `side` variant (a sheet from the right, full height, 20rem or full width below `sm`) for
     066's menu.
 - **`BottomBar`**, a sticky action bar for phones (used by 072's editor and 073's review page):
   sticky at the bottom of the viewport inside the page flow, safe-area padded, kept above the
   on-screen keyboard (it follows `visualViewport` on iOS), shown only below a breakpoint the caller
-  gives; the caller can hide it while a field in the page has focus.
+  gives (`until`, `lg` by default); the caller can hide it while a field in the page has focus
+  (`hideWhileTyping`). It's a `toolbar` named by the caller ("Draft actions"). At the very end of
+  a page it rests on the footer.
 - **Smaller fixes in the primitives:**
   - `Badge` gets `whitespace-nowrap` (a long label never wraps inside its fixed height).
   - `PageHeader`'s actions row wraps (`flex-wrap`).
@@ -54,9 +59,10 @@ density stays as it is: the changes apply on a coarse pointer or below `sm`.
     `sm` up; the copy button stays visible.
   - `Tabs` per 066.
 - **Copy that works on http.** `CopyableCommand` and `CopyChip` share a `copyText` helper: the
-  clipboard API when it's there, else select the text in a hidden textarea and `execCommand("copy")`,
-  else select the visible text and say "Press and hold to copy" instead of "copied". Never a silent
-  failure.
+  clipboard API when it's there (and it doesn't refuse), else select the text in a hidden textarea
+  and `execCommand("copy")`, else select the visible text and say "selected: copy it yourself"
+  (the same words for a mouse and a finger); `CopyChip` shows its whole command, selectable, in
+  its place. Never a silent failure.
 
 **Out** (and where it goes instead):
 - Hover-only information (`title`): 068.
@@ -94,16 +100,20 @@ feature can check against it.
 
 ## Acceptance criteria
 
-- [ ] On the `phone-webkit` project, focusing every kind of field on sign-in, the draft editor,
-  bulk release and the composer doesn't change the page scale (`visualViewport.scale` stays 1).
-- [ ] The field scan test passes and fails on a bare `<input className="text-xs">`.
-- [ ] 065's tap-target report shows nothing under 44px from `components/ui` on a coarse pointer;
-  desktop screenshots of the styleguide are unchanged except the dialog close.
-- [ ] Below `sm` a dialog fills the screen with a fixed title and footer; on desktop a long dialog
+- [x] On the `phone-webkit` project, focusing every kind of field doesn't change the page scale and
+  finds 16px text (`fields.mobile.e2e.ts`: sign-in, the catalogue's search and select, the new
+  item's name, the draft editor's description and code editor). Bulk release's and the composer's
+  fields use the same shared classes, which the field scan checks; their pages are 073's and 072's.
+- [x] The field scan test passes and fails on a bare `<input className="text-xs">`.
+- [x] 065's tap-target report shows nothing under 44px from `components/ui` on a coarse pointer
+  (315 entries on the phone before, 178 after, all in features). Desktop sizes are unchanged by
+  construction: every new size is behind `pointer-coarse:` or `max-sm:`, except the dialog close.
+- [x] Below `sm` a dialog fills the screen with a fixed title and actions; on desktop a long dialog
   scrolls its body only (unit tests on classes; `dialogs.mobile.e2e.ts`).
-- [ ] Copy works on an `http://<LAN IP>` origin in Chromium and WebKit, and says so when it can't
-  (unit tests for the three paths; an e2e against the test server's IP).
-- [ ] The sweep's `EXPECTED_FAILURES` entries for 067 are gone.
+- [x] Copy works on an `http://<LAN IP>` origin, and says so when it can't (unit tests for the
+  three paths; `copy.e2e.ts` in Chromium. WebKit is left to the device pass in 075).
+- [x] The sweep's `EXPECTED_FAILURES` entries for 067 are gone (there were none; the new item
+  form's entry for 072 now covers every project, see PLAN).
 
 ## Decisions
 

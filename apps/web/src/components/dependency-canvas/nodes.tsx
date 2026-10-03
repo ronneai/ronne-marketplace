@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/components/ui/cn";
+import { touchFieldClasses } from "@/components/ui/Field";
 import { TypeBadge } from "@/components/ui/TypeBadge";
 import { CodeText } from "@/components/validation/IssueList";
 import { useComposer } from "./context";
@@ -89,6 +90,7 @@ export const RangeField = ({
       }}
       className={cn(
         "nodrag nopan h-7 w-full min-w-0 rounded-control border border-strong bg-surface px-2 font-mono text-xs text-fg",
+        touchFieldClasses,
         "outline-offset-2 focus-visible:border-fg focus-visible:outline-2 focus-visible:outline-focus",
         "aria-invalid:border-error disabled:cursor-not-allowed disabled:border-hairline disabled:bg-canvas disabled:text-muted",
         className,

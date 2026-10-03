@@ -34,8 +34,20 @@ and what's used most in the registry.
 **The catalogue** (`/catalogue`, everyone signed in):
 - **Search** (`?q=`): case-insensitive `LIKE` on the name, description and keywords of each item's
   `latest` version, through the `containsInsensitive` helper in `db/` (MVP §9.4).
-- **Filters:** type (the 11, as chips with counts) and scope.
-- **Sort:** most recently published (the default), or by name.
+- **Filters** (owner, 2026-10-02): a **Filters** button, counting the active filters, opens a
+  panel with:
+  - **Type:** collapsible (open when some are chosen), all 11 types as checkboxes, each with its
+    name for people ("MCP server"), a dot in its colour (054) and its count. Several can be
+    chosen, meaning any of them (`?type=skill&type=rule`). Types with no items stay, muted.
+  - **Scope** and **Works in** (026), as selects; **Apply** and **Clear filters**.
+
+  Beside the button, each active filter (and the search) is a chip that removes just it, the
+  types in their badge's colours; then **Clear all**. It's a `<details>` with a GET form, so it
+  works without JavaScript; with it, it closes on an outside click or Esc.
+- **Sort**, on the right, a menu saying what each puts first: most recently published (the
+  default), **most installed** (the download count, which `rmk install` raises; `?sort=installs`,
+  owner 2026-10-02), or by name.
+- **Every card shows its install count** ("12 installs", owner 2026-10-02).
 - **Paging:** cursor-based, 24 items a page, as 010's scopes list.
 - **What's listed:** items with at least one published version. An item with no installable version
   (every version yanked) is listed last, marked "no installable version".

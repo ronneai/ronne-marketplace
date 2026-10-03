@@ -26,8 +26,9 @@ This feature fixes the home page, catalogue, item page and Documentation for pho
 - **Catalogue** (`CatalogueView.tsx`, `ItemCard.tsx`):
   - The Scope select is full width below `sm` and never wider than its container
     (`max-w-full min-w-0`).
-  - Below `sm` the type chips collapse into a "Type" select (All, then the types that have items
-    with their counts). The sort becomes a select next to it. From `sm` up the chips stay.
+  - The type chips and sorts are already a Filters panel and a Sort menu (018, done in 067's
+    pull request, owner 2026-10-02); check the panel on a phone (it takes the content's width and
+    lists the types in one column).
   - The card's meta line wraps (`break-words`).
   - The install command wraps (067's `CopyableCommand` default).
 - **Item page shell** (`ItemPageView.tsx`): the breadcrumb breaks long names. The tabs use 066's
@@ -73,7 +74,7 @@ This feature fixes the home page, catalogue, item page and Documentation for pho
 
 ## Behaviour
 
-- **Phone, catalogue:** search (full width), then Scope, Type and Sort selects in one wrapping row,
+- **Phone, catalogue:** search (full width), then Filters and Sort, the active filters under them,
   then results. The first result shows without scrolling on a 667px-tall phone.
 - **Phone, item Overview with 5 dependencies:** the list of the 5, each a link with its range, and
   "View as graph". The sheet shows the graph at a readable zoom, and pinch zooms it.
@@ -87,8 +88,6 @@ This feature fixes the home page, catalogue, item page and Documentation for pho
 - **An item with no dependencies:** no canvas and no button, as today.
 - **An item with 30+ dependencies** (a bundle): the list is the main view on phones. In the sheet
   the graph starts at 0.6 on the item node.
-- **A Type select with a type that has 0 items in the current scope:** not listed. Chips from `sm`
-  keep today's behaviour (all shown).
 - **Docs topic with one section:** no "On this page" select.
 
 ## Documentation
@@ -102,8 +101,8 @@ This feature fixes the home page, catalogue, item page and Documentation for pho
 
 - [ ] The catalogue with a 64-character scope doesn't scroll sideways on a phone (sweep, with a
   seeded long scope).
-- [ ] Below `sm` the catalogue shows Type and Sort selects that keep 018's URL parameters
-  (unit and e2e).
+- [ ] On a phone the Filters panel and Sort menu fit the screen and keep 018's URL parameters
+  (`catalogue.mobile.e2e.ts`).
 - [ ] On a phone, swiping over the Overview never pans a graph. The list and "View as graph" are
   there, and the sheet pans and zooms (`item.mobile.e2e.ts`).
 - [ ] On the tablet project a one-finger drag over the canvas scrolls the page. On desktop a plain

@@ -62,6 +62,33 @@
   padding-right: env(safe-area-inset-right, 0px);
 }
 
+/*
+ * A tap area of at least 44×44px around a small control on a coarse pointer (067), centred on it
+ * and invisible, so nothing moves. For controls in running text or tight rows: icons, text
+ * buttons, copy buttons. Controls with room grow for real instead (`pointer-coarse:h-11`).
+ */
+@utility touch-hit {
+  position: relative;
+  @media (pointer: coarse) {
+    &::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: max(100%, 44px);
+      height: max(100%, 44px);
+      translate: -50% -50%;
+    }
+  }
+}
+
+/* The code editor's text: 16px on a coarse pointer, so iOS Safari doesn't zoom on focus (067). */
+@media (pointer: coarse) {
+  :root {
+    --editor-font-size: 16px;
+  }
+}
+
 /* The header sticks to the top (AppShell): anchor jumps land below it. */
 html {
   scroll-padding-top: 4.5rem;

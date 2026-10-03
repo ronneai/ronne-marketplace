@@ -85,7 +85,7 @@ export const DependencyMarksIcon = ({
       label={label}
       tone={tone}
       buttonClassName={cn(
-        "h-5 gap-1 rounded-full border px-1.5 font-mono text-[11px] font-semibold",
+        "h-5 gap-1 rounded-full border px-1.5 text-[11px] font-semibold",
         TONES[tone].chip,
         TONES[tone].text,
         className,

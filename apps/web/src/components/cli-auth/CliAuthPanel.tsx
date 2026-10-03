@@ -9,7 +9,7 @@ const Step = ({ n, title, children }: { n: number; title: string; children: Reac
   <li className="grid grid-cols-[1.75rem_minmax(0,1fr)] gap-x-3 gap-y-2">
     <span
       aria-hidden="true"
-      className="mt-0.5 inline-flex size-7 items-center justify-center rounded-full bg-accent-strong font-mono text-xs font-semibold text-on-accent"
+      className="mt-0.5 inline-flex size-7 items-center justify-center rounded-full bg-accent-strong text-xs font-semibold text-on-accent"
     >
       {n}
     </span>

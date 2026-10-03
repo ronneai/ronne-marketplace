@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
-import { Dialog } from "@/components/ui/Dialog";
+import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError, Label, selectClasses, TextField } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
 import { createUserFromForm } from "./actions";
@@ -55,14 +55,14 @@ const CreateUserForm = ({ onDone }: { onDone: () => void }) => {
       ) : null}
       <PasswordChoice idPrefix="new" />
       <FieldError id="create-error">{state.error}</FieldError>
-      <div className="flex justify-end gap-2">
+      <DialogActions>
         <Button variant="ghost" onClick={onDone}>
           Cancel
         </Button>
         <Button type="submit" loading={pending}>
           Create user
         </Button>
-      </div>
+      </DialogActions>
     </form>
   );
 };

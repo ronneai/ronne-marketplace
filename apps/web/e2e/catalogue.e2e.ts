@@ -25,10 +25,24 @@ test("a user searches from the home page, filters by type, reads a skill's conte
   await page.getByLabel("Search the catalogue").fill("security");
   await page.getByRole("button", { name: "Search", exact: true }).click();
   await expect(page).toHaveURL(/\/catalogue\?q=security/);
-  await page
-    .getByRole("navigation", { name: "Types" })
-    .getByRole("link", { name: /^skill/ })
-    .click();
+  // Filters (owner, 2026-10-02): a panel with the types (collapsed until some are chosen), scope
+  // and tool; the active ones beside it. Several types can be chosen.
+  await page.locator("summary", { hasText: "Filters" }).click();
+  await page.locator("summary", { hasText: "Type" }).click();
+  await page.getByRole("checkbox", { name: /^Skill/ }).check();
+  await page.getByRole("checkbox", { name: /^Rule/ }).check();
+  await page.getByRole("button", { name: "Apply" }).click();
+  await expect(page).toHaveURL(/type=skill/);
+  await expect(page).toHaveURL(/type=rule/);
+  await expect(page).toHaveURL(/q=security/);
+  const active = page.getByRole("list", { name: "Active filters" });
+  await active.getByRole("link", { name: "Remove the Rule filter" }).click();
+  await expect(page).not.toHaveURL(/type=rule/);
+  await expect(active.getByRole("link", { name: "Remove the Skill filter" })).toBeVisible();
+  // Sort: what each puts first.
+  await page.locator("summary", { hasText: "Sort:" }).click();
+  await page.getByRole("link", { name: /Most installed/ }).click();
+  await expect(page).toHaveURL(/sort=installs/);
   await expect(page).toHaveURL(/type=skill/);
 
   const name = `@${E2E_SCOPE}/${E2E_SKILL}`;

@@ -23,12 +23,12 @@ const VARIANTS: Record<ButtonVariant, string> = {
 /** Text-only variants have no box: no height, padding or background. */
 const TEXT_VARIANTS = new Set<ButtonVariant>(["text", "text-destructive"]);
 
-/** Flat, 36px, 6px radius; a 2px focus ring (Navy in light, Teal in dark). Design system 032. */
+/** Flat, 36px (44px on a coarse pointer, 067), 6px radius; a 2px focus ring (Navy in light, Teal in dark). Design system 032. */
 export const buttonClasses = (variant: ButtonVariant = "primary") =>
   cn(
     TEXT_VARIANTS.has(variant)
-      ? "inline-flex items-center gap-1 rounded-sm text-sm font-semibold underline-offset-2"
-      : "inline-flex h-9 items-center justify-center gap-2 rounded-control px-3.5 text-sm font-semibold",
+      ? "touch-hit inline-flex items-center gap-1 rounded-sm text-sm font-semibold underline-offset-2"
+      : "inline-flex h-9 pointer-coarse:h-11 items-center justify-center gap-2 rounded-control px-3.5 text-sm font-semibold",
     "outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus",
     "disabled:cursor-not-allowed disabled:opacity-60 disabled:no-underline",
     VARIANTS[variant],

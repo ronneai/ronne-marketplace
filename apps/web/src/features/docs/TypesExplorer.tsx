@@ -71,7 +71,7 @@ export const TypesExplorer = ({ groups }: { groups: TypeGroup[] }) => {
                 aria-pressed={shown === c.id}
                 onClick={() => setShown(c.id)}
                 className={cn(
-                  "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus",
+                  "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 pointer-coarse:min-h-11 text-xs outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus",
                   shown === c.id
                     ? "bg-fg font-semibold text-canvas"
                     : "border border-hairline bg-surface text-muted hover:text-fg",
@@ -100,7 +100,7 @@ export const TypesExplorer = ({ groups }: { groups: TypeGroup[] }) => {
               <h3 id={`types-${group.id}`} className="text-base font-semibold text-fg">
                 {i + 1}. {group.title}
               </h3>
-              <span className="rounded-full bg-tint px-2 py-0.5 font-mono text-[11px] text-muted">
+              <span className="rounded-full bg-tint px-2 py-0.5 text-[11px] text-muted">
                 {group.rows.length} {group.rows.length === 1 ? "type" : "types"}
               </span>
             </div>

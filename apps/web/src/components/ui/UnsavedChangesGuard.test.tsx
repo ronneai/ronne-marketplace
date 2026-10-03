@@ -57,7 +57,7 @@ describe("UnsavedChangesGuard", () => {
   it("renders a closed dialog until someone tries to leave", () => {
     const html = renderToStaticMarkup(<UnsavedChangesGuard dirty />);
     expect(html).toContain("<dialog");
-    expect(html).not.toMatch(/<dialog[^>]* open/);
+    expect(html).not.toMatch(/<dialog[^>]*\sopen(=|>|\s)/);
     expect(html).toContain("Leave without saving");
   });
 });

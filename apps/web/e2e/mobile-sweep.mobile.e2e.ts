@@ -22,8 +22,9 @@ import { E2E_PASSWORD, E2E_SCOPE } from "./users";
 
 /** URL → the feature fixing it, and (if not every project fails it) the projects that do. */
 const EXPECTED_FAILURES: Record<string, { fixedBy: string; projects?: readonly string[] }> = {
-  // The first two sections are 5px too wide at 320px in Chromium (WebKit's fonts fit).
-  "/submissions/new": { fixedBy: "072", projects: ["phone", "tablet"] },
+  // The first two sections don't shrink below about 366px; with 16px fields on touch (067) that's
+  // wider than 360px and 320px phones in every engine.
+  "/submissions/new": { fixedBy: "072" },
 };
 
 const WIDTHS = [360, 320] as const;

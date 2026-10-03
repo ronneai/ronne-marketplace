@@ -2,7 +2,11 @@ import type { ItemType } from "@ronneai/core";
 import { installsIn, RENDERERS, type ToolSupport } from "@ronneai/core/render";
 
 /** How the catalogue sorts (feature 018): most recently published first, or by `@scope/name`. */
-export type CatalogueSort = "recent" | "name";
+/**
+ * Recently published, most installed (owner, 2026-10-02: by the download count, which `rmk install`
+ * raises), or by name.
+ */
+export type CatalogueSort = "recent" | "installs" | "name";
 
 /** One item as the catalogue and the home page list it, from its listed version. */
 export type CatalogueEntry = {
@@ -31,6 +35,7 @@ export type CatalogueEntry = {
 /** Where a page ends, by the sort's keys. Items that can't be installed come after the rest. */
 export type CatalogueCursor =
   | { sort: "recent"; installable: boolean; lastPublishedAt: string; id: string }
+  | { sort: "installs"; installable: boolean; installs: number; id: string }
   | { sort: "name"; installable: boolean; scope: string; name: string };
 
 export type CatalogueFilter = {

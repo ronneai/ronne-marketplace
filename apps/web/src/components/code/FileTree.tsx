@@ -62,7 +62,7 @@ export const FileTree = <F extends TreeFile>({
             type="button"
             onClick={() => onSelect(row.file.path)}
             aria-current={row.file.path === selected ? "true" : undefined}
-            className="flex min-w-0 items-center gap-1.5 rounded-control py-1 text-left text-fg aria-[current=true]:font-semibold outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
+            className="flex min-w-0 flex-1 items-center gap-1.5 rounded-control py-1 pointer-coarse:min-h-11 text-left text-fg aria-[current=true]:font-semibold outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
           >
             {row.file.executable ? (
               <Terminal size={14} aria-label="Executable" role="img" className="shrink-0" />

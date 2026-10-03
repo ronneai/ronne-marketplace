@@ -50,6 +50,7 @@ test("a token made in the web app reads the registry and downloads an item, whic
     .getByRole("article")
     .filter({ has: page.getByRole("link", { name, exact: true }) });
   await expect(card).toBeVisible();
-  // At least this download; other tests (such as rmk-mcp's) may have downloaded it too.
-  await expect(card.getByText(/\b[1-9]\d* downloads?\b/)).toBeVisible();
+  // At least this download, shown as an install; other tests (such as rmk-mcp's) may have
+  // downloaded it too.
+  await expect(card.getByText(/\b[1-9]\d* installs?\b/)).toBeVisible();
 });

@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { type ReactNode, useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
-import { Dialog } from "@/components/ui/Dialog";
+import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError } from "@/components/ui/Field";
 import type { ItemRef } from "@/server/domains/items/actions/versions";
 import { changeVersions, type VersionChange } from "./actions";
@@ -67,7 +67,7 @@ export const ChangeDialog = <V extends Record<string, string>>({
             {children}
             {fields?.(values, setValues)}
             <FieldError id="change-error">{error}</FieldError>
-            <div className="flex flex-wrap justify-end gap-2">
+            <DialogActions>
               <Button variant="secondary" onClick={() => setOpen(false)}>
                 Cancel
               </Button>
@@ -78,7 +78,7 @@ export const ChangeDialog = <V extends Record<string, string>>({
               >
                 {confirm}
               </Button>
-            </div>
+            </DialogActions>
           </form>
         </Dialog>
       ) : null}

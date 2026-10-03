@@ -15,7 +15,8 @@ import {
 } from "@/components/submissions/item-types";
 import { Badge } from "@/components/ui/Badge";
 import { Button, buttonClasses } from "@/components/ui/Button";
-import { FieldError, inputClasses } from "@/components/ui/Field";
+import { cn } from "@/components/ui/cn";
+import { FieldError, inputClasses, touchFieldClasses } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
 import { MANIFEST_PATH } from "@/server/domains/submissions/models/submission";
 import { draftTemplate } from "@/server/domains/submissions/models/templates";
@@ -42,7 +43,7 @@ const Section = ({
   >
     <div className="flex flex-wrap items-center justify-between gap-2">
       <h2 id={`step-${step}`} className="flex items-center gap-3 text-lg font-semibold text-fg">
-        <span className="grid size-6 place-content-center rounded-full border border-strong font-mono text-xs text-fg">
+        <span className="grid size-6 place-content-center rounded-full border border-strong text-xs text-fg">
           {step}
         </span>
         {title}
@@ -57,7 +58,7 @@ const chipClasses =
   "cursor-pointer rounded-control border border-transparent px-3 py-1.5 font-mono text-xs text-muted hover:text-fg has-[:checked]:border-hairline has-[:checked]:bg-surface has-[:checked]:font-semibold has-[:checked]:text-fg has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-focus";
 
 const filterClasses =
-  "rounded-full border border-hairline px-3 py-1 font-mono text-xs text-muted hover:text-fg aria-pressed:border-transparent aria-pressed:bg-fg aria-pressed:text-canvas outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
+  "rounded-full border border-hairline px-3 py-1 text-xs text-muted hover:text-fg aria-pressed:border-transparent aria-pressed:bg-fg aria-pressed:text-canvas outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
 
 /**
  * New item (feature 012, after the Stitch mock): 1, the scope and name; 2, the type. The side
@@ -176,9 +177,12 @@ export const NewDraftForm = ({ scopes, mine }: { scopes: ScopeOption[]; mine: st
               <span className="font-mono text-xs text-muted">{itemName}</span>
             </div>
             <div
-              className={`flex h-10 items-center rounded-control border bg-surface px-3 focus-within:border-fg focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus ${problem ? "border-fg" : "border-strong"}`}
+              className={`flex h-10 pointer-coarse:h-11 items-center rounded-control border bg-surface px-3 focus-within:border-fg focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus ${problem ? "border-fg" : "border-strong"}`}
             >
-              <span className="shrink-0 font-mono text-sm text-muted" aria-hidden="true">
+              <span
+                className="shrink-0 font-mono text-sm text-muted pointer-coarse:text-base"
+                aria-hidden="true"
+              >
                 @{scope || "scope"}/
               </span>
               <input
@@ -193,7 +197,10 @@ export const NewDraftForm = ({ scopes, mine }: { scopes: ScopeOption[]; mine: st
                 aria-describedby="item-name-hint"
                 aria-invalid={problem ? true : undefined}
                 placeholder="code-reviewer"
-                className="h-full min-w-0 flex-1 bg-transparent font-mono text-sm text-fg outline-none placeholder:text-muted/50"
+                className={cn(
+                  "h-full min-w-0 flex-1 bg-transparent font-mono text-sm text-fg outline-none placeholder:text-muted/50",
+                  touchFieldClasses,
+                )}
               />
               {name && !problem ? (
                 <CircleCheck

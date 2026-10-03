@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createContext, type ReactNode, useContext, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { Dialog } from "@/components/ui/Dialog";
+import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { submitSelectedAction } from "./actions";
 import type { BulkResult } from "./types";
 
@@ -226,9 +226,9 @@ export const BulkToolbar = ({ help }: { help?: ReactNode }) => {
                 </li>
               ))}
             </ul>
-            <div className="flex justify-end">
+            <DialogActions>
               <Button onClick={close}>Done</Button>
-            </div>
+            </DialogActions>
           </div>
         ) : (
           <div className="grid gap-4">
@@ -241,7 +241,7 @@ export const BulkToolbar = ({ help }: { help?: ReactNode }) => {
               Each goes to reviewers with its files frozen, as Submit does in the editor. You can
               withdraw one until it's released.
             </p>
-            <div className="flex flex-wrap justify-end gap-2">
+            <DialogActions>
               <Button variant="secondary" onClick={close}>
                 Cancel
               </Button>
@@ -255,7 +255,7 @@ export const BulkToolbar = ({ help }: { help?: ReactNode }) => {
               >
                 Submit {confirming.length} {confirming.length === 1 ? "draft" : "drafts"}
               </Button>
-            </div>
+            </DialogActions>
           </div>
         )}
       </Dialog>

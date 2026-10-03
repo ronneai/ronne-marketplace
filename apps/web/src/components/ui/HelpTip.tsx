@@ -95,7 +95,7 @@ export const HelpTip = ({
         type="button"
         ref={refs.setReference}
         {...getReferenceProps()}
-        className="inline-flex cursor-pointer items-center gap-1 rounded-control text-left text-muted outline-offset-2 hover:text-fg focus-visible:outline-2 focus-visible:outline-focus aria-expanded:text-fg"
+        className="touch-hit inline-flex cursor-pointer items-center gap-1 rounded-control text-left text-muted outline-offset-2 hover:text-fg focus-visible:outline-2 focus-visible:outline-focus aria-expanded:text-fg"
       >
         <CircleHelp size={14} aria-hidden="true" className="shrink-0" />
         <span

@@ -165,6 +165,16 @@ describe("the catalogue", () => {
     await release("b", { type: "hook", scope: "tools" });
     await release("c", { type: "hook" });
     expect(names(await browse({ type: "hook" }))).toEqual(["@team/c", "@tools/b"]);
+    // Several types: any of them (owner, 2026-10-02).
+    expect(names(await browse({ type: ["hook", "skill"], sort: "name" }))).toEqual([
+      "@team/a",
+      "@team/c",
+      "@tools/b",
+    ]);
+    expect((await browse({ type: ["skill", "nope", "hook"] })).query.types).toEqual([
+      "skill",
+      "hook",
+    ]);
     expect(names(await browse({ scope: "tools" }))).toEqual(["@tools/b"]);
     const page = await browse({ scope: "team", type: "hook" });
     expect(page.typeCounts.find((c) => c.type === "hook")?.count).toBe(1);
@@ -173,7 +183,7 @@ describe("the catalogue", () => {
     expect(page.scopes).toEqual(["team", "tools"]);
     // An unknown type or sort is dropped, not an error.
     expect((await browse({ type: "nope", sort: "nope" })).query).toMatchObject({
-      type: null,
+      types: [],
       sort: "recent",
     });
   });
@@ -248,7 +258,7 @@ describe("the catalogue", () => {
       { version: "1.0.0", reason: "x" },
       app,
     );
-    for (const sort of ["recent", "name"]) {
+    for (const sort of ["recent", "installs", "name"]) {
       const first = await browse({ sort });
       expect(first.entries).toHaveLength(CATALOGUE_PAGE_SIZE);
       expect(first.nextCursor).not.toBeNull();
@@ -261,6 +271,23 @@ describe("the catalogue", () => {
     }
     // A malformed cursor starts from the beginning.
     expect((await browse({ cursor: "garbage" })).entries).toHaveLength(CATALOGUE_PAGE_SIZE);
+  });
+
+  it("sorts by installs (the download count), most first, ties newest first, and pages through them", async () => {
+    const counts = { a: 3, b: 9, c: 0, d: 3 };
+    for (const [name, count] of Object.entries(counts)) {
+      const { itemId } = await release(name);
+      await t.db
+        .updateTable("items")
+        .set({ download_count: count })
+        .where("id", "=", itemId)
+        .execute();
+    }
+    const page = await browse({ sort: "installs" });
+    expect(page.query.sort).toBe("installs");
+    // Equal counts (a and d) by id, newest first, as the cursor walks them.
+    expect(names(page)).toEqual(["@team/b", "@team/d", "@team/a", "@team/c"]);
+    expect(page.entries.map((e) => e.downloadCount)).toEqual([9, 3, 3, 0]);
   });
 
   it("is for signed-in users only", async () => {

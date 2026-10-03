@@ -3,7 +3,7 @@
 import { NAME_PROBLEM_MESSAGES, nameProblem, normalizeScopeName } from "@ronneai/core";
 import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { Dialog } from "@/components/ui/Dialog";
+import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
 import { createScopeFromForm, updateScopeFromForm } from "./actions";
@@ -75,14 +75,14 @@ const CreateForm = ({ onDone }: { onDone: () => void }) => {
       </div>
       <Description />
       <FieldError id="create-scope-error">{state.error}</FieldError>
-      <div className="flex justify-end gap-2">
+      <DialogActions>
         <Button variant="ghost" onClick={onDone}>
           Cancel
         </Button>
         <Button type="submit" loading={pending}>
           Create scope
         </Button>
-      </div>
+      </DialogActions>
     </form>
   );
 };
@@ -115,14 +115,14 @@ const EditForm = ({
       <p className="font-mono text-[13px] text-fg">@{name}</p>
       <Description defaultValue={description} />
       <FieldError id={`edit-scope-${name}-error`}>{state.error}</FieldError>
-      <div className="flex justify-end gap-2">
+      <DialogActions>
         <Button variant="ghost" onClick={onDone}>
           Cancel
         </Button>
         <Button type="submit" loading={pending}>
           Save
         </Button>
-      </div>
+      </DialogActions>
     </form>
   );
 };

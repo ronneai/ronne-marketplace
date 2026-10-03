@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "./Button";
-import { Dialog } from "./Dialog";
+import { Dialog, DialogActions } from "./Dialog";
 
 /**
  * Where a click on a link would go, or null when the guard should let the browser handle it: a new
@@ -89,14 +89,14 @@ export const UnsavedChangesGuard = ({
     <Dialog open={pending !== null} onClose={() => setPending(null)} title={title}>
       <div className="grid gap-4">
         <p className="text-sm text-fg">{message}</p>
-        <div className="flex flex-wrap justify-end gap-2">
+        <DialogActions>
           <Button variant="secondary" onClick={() => setPending(null)}>
             Stay on this page
           </Button>
           <Button variant="destructive" onClick={leave}>
             Leave without saving
           </Button>
-        </div>
+        </DialogActions>
       </div>
     </Dialog>
   );
