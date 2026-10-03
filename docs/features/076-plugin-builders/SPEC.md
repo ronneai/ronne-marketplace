@@ -68,8 +68,9 @@ are dropped; the `not_in_plugin` warning says what happened.
 sorted paths, fixed mtime, the executable bit as Unix mode. It returns `{ bytes, sha256 }`. The
 same files always give the same bytes.
 
-**Marketplaces.** `marketplaceFor(tool, entries, { name, owner, source })`. `source` decides how
-entries point at plugins: `archive` (a URL and the sha256, Claude Code only) or `path`
+**Marketplaces.** `marketplaceFor(tool, entries, { name, owner, description })` gives the tool's
+marketplace file at its path (`MARKETPLACE_PATHS`), and `marketplaceName(publicUrl)` the feed's
+name (contract, Names). Each entry's `source` says how it points at its plugin: `archive` (a URL and the sha256, Claude Code only) or `path`
 (`./plugins/<tool>/<plugin>`, for the git mirror; Codex writes it as `{ source: "local", path }`).
 Each entry has `name` and `description`, plus `version` for Claude Code, and the tool's extras
 (Codex: `policy: { installation: "AVAILABLE", authentication: "ON_INSTALL" }`; Cursor: none).
@@ -94,13 +95,13 @@ None in this feature: nothing is visible until 077 serves it. 077 and 078 add th
 
 ## Acceptance criteria
 
-- [ ] Golden files for every example item in `examples/items/` × the three tools, checked like the renderer goldens (`render/harness.ts`).
-- [ ] Each generated `.claude-plugin/plugin.json` and `marketplace.json` passes `claude plugin validate`. The Codex root `plugin.json` validates against the Agent Plugins 1.0 schema. Both are run once by hand, and the results are recorded in PLAN.md's notes.
-- [ ] Building the same input twice gives byte-identical zips.
-- [ ] A bundle's plugin contains each member; an item's plugin contains its dependencies.
-- [ ] Skipped content gives a `not_in_plugin` warning; an item with nothing left is `empty`.
-- [ ] `pluginName("@team/secure-coding")` is `team.secure-coding`, `itemNameOfPlugin` reverses it, and `pluginNameProblem` refuses what each tool refuses.
-- [ ] `pnpm packages:check` allows the new `dist/plugins` files.
+- [x] Golden files for every example item in `examples/items/` × the three tools, checked like the renderer goldens (`render/harness.ts`).
+- [x] Each generated `.claude-plugin/plugin.json` and `marketplace.json` passes `claude plugin validate` (with the two warnings explained in PLAN.md's notes). The Codex root `plugin.json` validates against the Agent Plugins 1.0 schema. Both are run once by hand, and the results are recorded in PLAN.md's notes.
+- [x] Building the same input twice gives byte-identical zips.
+- [x] A bundle's plugin contains each member; an item's plugin contains its dependencies.
+- [x] Skipped content gives a `not_in_plugin` warning; an item with nothing left is `empty`.
+- [x] `pluginName("@team/secure-coding")` is `team.secure-coding`, `itemNameOfPlugin` reverses it, and `pluginNameProblem` refuses what each tool refuses.
+- [x] `pnpm packages:check` allows the new `dist/plugins` files.
 
 ## Open questions
 

@@ -35,7 +35,8 @@ the same change that completes it.
   *Done when:* golden marketplace files for the three tools pass, and `claude plugin validate`
   accepts a built mirror tree (record it in the notes).
 
-- [ ] **8. Package check.** Add the new files to the `@ronneai/core` allowlist.
+- [x] **8. Package check.** Add the new files to the `@ronneai/core` allowlist (none needed:
+  `dist/plugins/*.js` and `.d.ts` were already allowed).
   *Done when:* `pnpm build && pnpm packages:check` pass.
 
 ## Notes
