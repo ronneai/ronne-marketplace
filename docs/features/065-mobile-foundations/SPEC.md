@@ -89,15 +89,16 @@ Documentation topic about phones comes with 075.
 
 ## Acceptance criteria
 
-- [ ] 032's spec states the mobile rules above; the knowledge note exists and links to it.
-- [ ] The viewport meta has `viewport-fit=cover`, no `maximum-scale`, and a `theme-color` matching
+- [x] 032's spec states the mobile rules above; the knowledge note exists and links to it.
+- [x] The viewport meta has `viewport-fit=cover`, no `maximum-scale`, and a `theme-color` matching
   the theme, updated by the toggle (unit test on `generateViewport`, e2e on the toggle).
-- [ ] The header, footer and a full-screen dialog respect the safe-area insets (unit test on the
-  classes; checked by hand in the iPhone simulator, see PLAN).
-- [ ] `phone`, `phone-webkit` and `tablet` projects run in `pnpm test:e2e` and in CI.
-- [ ] The sweep visits every page in `e2e/pages.ts` for each role and fails on sideways scroll;
+- [x] The header, footer and a full-screen dialog respect the safe-area insets (unit test on the
+  classes; checked by hand in the iPhone simulator, see PLAN). The full-screen dialog comes with
+  067, which uses the same utilities.
+- [x] `phone`, `phone-webkit` and `tablet` projects run in `pnpm test:e2e` and in CI.
+- [x] The sweep visits every page in `e2e/pages.ts` for each role and fails on sideways scroll;
   today's failures are listed in `EXPECTED_FAILURES` with the feature that fixes each.
-- [ ] The tap-target report is attached to the e2e run.
+- [x] The tap-target report is attached to the e2e run.
 
 ## Decisions
 

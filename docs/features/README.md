@@ -173,7 +173,7 @@ then 067, then the rest.
 
 | ID | Feature | Depends on | Status |
 |---|---|---|---|
-| [065](./065-mobile-foundations/SPEC.md) | Mobile foundations and phone tests: the mobile rules, viewport and theme colour, safe areas, `dvh`; Playwright `phone` (Pixel 7), `phone-webkit` (iPhone 15) and `tablet` projects; a sweep of every page per role that fails on sideways scroll; a tap-target report | 032, 006 | in progress |
+| [065](./065-mobile-foundations/SPEC.md) | Mobile foundations and phone tests: the mobile rules, viewport and theme colour, safe areas, `dvh`; Playwright `phone` (Pixel 7), `phone-webkit` (iPhone 15) and `tablet` projects; a sweep of every page per role that fails on sideways scroll; a tap-target report | 032, 006 | done |
 | [066](./066-mobile-navigation/SPEC.md) | Navigation on phones: a Menu side sheet below `lg` (links with counts, account, appearance, sign out; `/menu` without JavaScript); the account menu closes on an outside click; a shared `ScrollStrip` for tab strips (active tab in view, edge fades) | 065, 067, 032, 033 | specified |
 | [067](./067-touch-primitives/SPEC.md) | Touch-ready primitives: 16px fields on a coarse pointer (no iOS zoom), 44px tap areas, full-screen dialogs below `sm` with fixed title and footer, a side sheet, `BottomBar`, wrapping copy commands, copy that works over plain http | 065, 032 | specified |
 | [068](./068-no-hover-only/SPEC.md) | Nothing behind hover: disabled buttons' reasons, UTC times, full hashes, truncated text and badge explanations reachable by tap and keyboard; a scan that fails on new `title=` | 065, 067, 049, 050 | specified |

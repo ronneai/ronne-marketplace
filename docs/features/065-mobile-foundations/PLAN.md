@@ -41,7 +41,7 @@ the same change that completes it.
   *Done when:* the sweep passes with the map filled in, fails if an entry is removed before its
   fix, and the tap-target report is attached to the run.
 
-- [ ] **7. A look on real engines.** Open sign-in, home and an item page in the iOS simulator
+- [x] **7. A look on real engines.** Open sign-in, home and an item page in the iOS simulator
   (Xcode) and an Android emulator, and note what the automated projects miss in the knowledge note.
   *Done when:* the note has a "Seen on devices" section.
 

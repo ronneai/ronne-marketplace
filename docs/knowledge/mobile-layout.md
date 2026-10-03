@@ -71,5 +71,22 @@ the row's child usually needs `min-w-0`.
 
 ## Seen on devices
 
-To fill in (065 task 7, 075): what the automated projects miss on a real iPhone, Android phone and
-iPad.
+**2026-10-02 (065), before the M10 fixes.** An instance from the e2e harness (`prepareInstance`,
+seeded) on port 4310; the iPhone 17 Pro simulator (iOS 26 Safari, `xcrun simctl openurl`) and the
+Pixel 7 Pro emulator (Chrome, `adb reverse tcp:4310 tcp:4310`, typing with `adb shell input`).
+
+- **iOS Safari, sign-in:** fits, no zoom on load, the cards stack. Safari's toolbar floats over
+  the bottom of the page, so a bottom bar (067's `BottomBar`) needs the bottom safe-area padding.
+  Signing in on the simulator needs typing, which `simctl` can't do; the flows behind sign-in were
+  checked on Android and in the WebKit project.
+- **Android Chrome, signed in as root:** what the projects and the audit predicted:
+  - the header shows "Catalogue  Submissio…" and nothing says Reviews, Admin and Docs are there (066);
+  - the item tabs run off the right edge (066, 071);
+  - install commands are cut off, with a thin scrollbar under them (067, 071);
+  - **a swipe that starts on the dependency canvas pans the graph, and the page doesn't scroll**
+    (071); the automated projects don't check this yet, 071 adds the test;
+  - the review queue's tabs wrap and its filters stack: fine.
+- **Keyboard order on sign-in:** Tab goes email → "Forgot?" → password, so a phone keyboard's
+  "next" key lands on "Forgot?" before the password (074 checks it with the `autocomplete` work).
+- **What the automated projects can't see:** the browser's own toolbars over the page, password
+  manager prompts, and real touch gestures on canvases. Repeat this pass in 075.
