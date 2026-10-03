@@ -64,6 +64,7 @@ describe("SetupPage", () => {
     expect(html.match(/<input[^>]*name="public_url"[^>]*>/)?.[0]).toMatch(/readonly=""/i);
     expect(html).toContain('value="https://ronne.example"');
     expect(html).toContain("wins over the settings");
+    expect(html).toContain("Set by RONNE_DOMAIN or PUBLIC_URL");
   });
 
   it("offers to keep the database when a setup didn't finish", () => {

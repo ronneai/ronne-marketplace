@@ -28,7 +28,8 @@ It works on amd64 and arm64, keeps all state on one volume, and survives upgrade
 - Based on `node:24-trixie-slim`: the current Node.js LTS on the current Debian stable (13). The plain `node:24-slim` tag is still Debian 12. It's glibc, so `better-sqlite3` can use prebuilt binaries on both architectures; the build stage also has `python3 make g++` for when it can't. The image is pinned by digest, and Dependabot updates it; the build also applies Debian's security updates (`apt-get upgrade`), since Debian often publishes a fix days before the Node image is rebuilt with it, and the scan would block every build until then (2026-09-30).
 - Next.js `output: "standalone"`.
 - Runs as a non-root user with UID 1000.
-- Exposes port 3000.
+- Exposes port 3000. Since [080](../080-docker-https/SPEC.md), `compose.yaml` doesn't publish it:
+  a Caddy proxy in front of it is published on host ports 7650 (HTTP) and 7651 (HTTPS).
 - The setup, reset and migrate commands are compiled to plain JS during the build, so the image
   needs no dev dependencies or TypeScript runner. `pnpm run setup` inside the container calls that compiled script.
 
@@ -66,7 +67,7 @@ The image is scanned with Trivy, which fails on high or critical vulnerabilities
 
 - **Volume owned by root** (created by an older setup or by hand): the start script checks it can write to `/app/data` and exits with a message showing the `chown` command.
 - **Upgrading the image:** migrations run on start. A migration from a newer image is never rolled back by an older one: the older image refuses to start (002's unknown-migration check).
-- **`PUBLIC_URL` behind a reverse proxy:** documented in the README. The app trusts `X-Forwarded-*` headers only when `TRUST_PROXY=true`.
+- **`PUBLIC_URL` behind a reverse proxy:** documented in the README. The app trusts `X-Forwarded-*` headers only when `TRUST_PROXY=true`. Since 080, `compose.yaml` sets it, because its own proxy is always in front.
 - **Running setup without a TTY** (`docker compose exec -T`): 003's non-interactive rules apply.
 
 ## Acceptance criteria

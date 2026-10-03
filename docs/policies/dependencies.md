@@ -7,7 +7,8 @@ on must be **free to use and to redistribute**, on a **current stable (LTS where
 version, and must not bring in **known vulnerabilities**.
 
 **What it covers:** npm packages (runtime and dev), the Node.js runtime, databases we support,
-Docker base images, GitHub Actions, and any tool that CI or the install process runs.
+Docker base images, the images `compose.yaml` runs, GitHub Actions, and any tool that CI or the
+install process runs.
 
 ## 1. Licenses
 
@@ -40,6 +41,7 @@ Docker base images, GitHub Actions, and any tool that CI or the install process 
   | Databases | The versions in [feature 004](../features/004-ci-db-matrix/SPEC.md), all still maintained upstream | — |
   | Docker base | `node:<target LTS>-slim` on the current Debian stable | — |
   | pnpm | Latest stable, pinned in `packageManager` | — |
+  | Proxy (`compose.yaml`) | Latest stable Caddy 2.x, the official `caddy` image (Apache-2.0), pinned by tag and digest ([080](../features/080-docker-https/SPEC.md)) | — |
 
 - **When a new Node.js LTS arrives** (every October), the target moves in its own pull request once CI passes on it.
 - **Pinning.** `apps/web` and all dev dependencies use exact versions. Packages published to npm
@@ -81,7 +83,7 @@ each tool is checked against a known-vulnerable fixture when it's added.
 **In CI** (every pull request):
 - **License check:** fails on anything not allowed by §1 and not listed in §5.
 - **`pnpm audit --audit-level high`:** fails on high or critical advisories in the install tree.
-- **Container scan (Trivy)** of the Docker image: fails on high or critical vulnerabilities that have a fix available.
+- **Container scan (Trivy)** of the Docker image, and of the Caddy image `compose.yaml` pins (080): fails on high or critical vulnerabilities that have a fix available.
 - **GitHub Actions** are pinned to full commit SHAs (Dependabot updates them), and each workflow sets the smallest `permissions:` it needs. No `pull_request_target` job checks out pull request code.
 - **CodeQL, Dependabot alerts, secret scanning and push protection** are turned on for the repository.
 
@@ -104,12 +106,13 @@ attestation (`mode=max`) and an SPDX SBOM attestation, readable with `docker bui
 | Rule | Where it's checked |
 |---|---|
 | Licenses | `pnpm licenses:check`: `pnpm licenses list --json` checked against `license-policy.json` by `packages/repo-tools`, in CI (001) |
-| Known vulnerabilities | `pnpm audit` in CI (001); Dependabot alerts; Trivy on the image (005) |
+| Known vulnerabilities | `pnpm audit` in CI (001); Dependabot alerts; Trivy on the image (005) and on the Caddy image (080) |
 | Fresh-release protection | `minimumReleaseAge` in `pnpm-workspace.yaml` (001) |
 | Install scripts | `strictDepBuilds` + `allowBuilds` (001) |
 | Trust and sources | `trustPolicy` + `blockExoticSubdeps` (001) |
 | Versions current | Dependabot weekly, with a 3-day cooldown (001) |
 | Actions pinned | Dependabot for `github-actions` (001) |
+| Images pinned | Dependabot for `docker` (the Dockerfile) and `docker-compose` (`compose.yaml`, 005, 080) |
 | Everything else in §3 | Pull request review, using the checklist |
 
 ## 5. Exceptions
@@ -125,3 +128,4 @@ places. It warns when an exception no longer matches any installed package.
 | E-3 | `undici-types@6.21.0` (pinned `~6.21.0` by `@types/node@22`) | Fails `trustPolicy: no-downgrade`: 6.13.0–6.19.2 were published with provenance, and 6.19.3–7.0.0 (July–November 2024) were published by hand, without it, by the same long-time maintainer. Later releases use trusted publishing again. | **Allowed**, for this exact version only, through `trustPolicyExclude`. Same publisher as the releases before and after it, public for nearly two years, and type definitions only (no runtime code). | When `@types/node` for our minimum Node.js moves off `~6.21.0` (pruned automatically) |
 | E-4 | `lightningcss` and its platform binaries `lightningcss-*` (through `@tailwindcss/postcss` and `vite`) | MPL-2.0 (file-level copyleft) | **Allowed.** Build and test time only: Tailwind uses it to compile CSS, and Vite uses it in tests. It doesn't ship in the built app or the Docker image. We use it unmodified; MPL-2.0 only asks for the source of modified MPL files, and it's free to redistribute. No permissive alternative exists for Tailwind CSS 4, which the requirements name. | If it ever ends up in the runtime bundle or the image |
 | E-5 | Playwright's WebKit build (downloaded by `playwright install webkit`, for the `phone-webkit` end-to-end project, 065) | WebKit's WebCore and JavaScriptCore are LGPL-2.1 (the rest BSD) | **Allowed.** Test time only: a browser binary that `playwright install` downloads into its cache, outside the repo and `node_modules`; never in the built app, the npm packages or the Docker image. Used unmodified, so LGPL's terms on modified copies don't apply. No permissive engine behaves like iOS Safari, which is what the project checks (focus zoom, `dvh`, safe areas). Not an npm package, so it isn't in `license-policy.json` (owner, 2026-10-02) | If it's ever needed outside the end-to-end tests |
+| E-6 | `caddy:2.11.6` (the proxy in `compose.yaml`, 080) | Released 2026-10-01, so one day inside the 3-day cooldown when it was pinned (2026-10-03). The only release past the cooldown, 2.11.4, has 17 high vulnerabilities with fixes available (Go standard library, `x/net`, `x/crypto`, `x/text`, `grpc`). 2.11.6 has regressions that 2.11.7 fixes: a crash when proxying a request body over HTTP/2 after the handler has returned, and streaming responses cut after a minute. 2.11.7 wasn't on Docker Hub yet. | **Allowed** (owner, 2026-10-03). An official Docker image from the Caddy project's own release, scanned clean by Trivy. Ronne doesn't stream responses through the proxy. The HTTP/2 crash didn't happen in a quick check: nine 28–40 MiB uploads over HTTP/2 to an endpoint that answers before reading the body. Dependabot moves the pin to 2.11.7 after its cooldown. | When Dependabot's update to 2.11.7 or later is merged (by 2026-10-17) |

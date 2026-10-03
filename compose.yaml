@@ -1,14 +1,35 @@
-# Ronne with Docker Compose (features 005 and 035). This file is enough on its own: it pulls the
-# published image, ronneai/marketplace on Docker Hub, so no clone is needed.
+# Ronne with Docker Compose (features 005, 035 and 080). This file is enough on its own: it pulls
+# the published image, ronneai/marketplace on Docker Hub, so no clone is needed.
 #
 #   docker compose up -d                            start Ronne (SQLite, data in the ronne-data volume)
-#   then open http://localhost:3000 (or PUBLIC_URL) and follow the setup in the browser.
+#   then open http://localhost:7650 (or PUBLIC_URL) and follow the setup in the browser.
 #   Anyone who can open that address before you can set it up, so open it right after `up`.
 #
-#   docker compose pull web && docker compose up -d       upgrade (migrations run on start)
+#   docker compose pull && docker compose up -d           upgrade (migrations run on start)
 #   RONNE_IMAGE=ronneai/marketplace:0.1.0                 pin a version (environment or .env)
 #   docker compose -f compose.yaml -f compose.build.yaml up -d --build
 #                                                         build the image from this checkout instead
+#
+# A Caddy proxy is the only way in: it serves HTTP on host port 7650 and HTTPS on 7651, and the app
+# itself (web, port 3000) isn't published. Settings go in a .env file next to this one (feature 080):
+#
+#   1. Trying it on this computer: nothing to set. http://localhost:7650
+#   2. A server with a public domain, automatic HTTPS (Let's Encrypt). Point the domain's DNS at the
+#      server and open ports 80 and 443, then:
+#        RONNE_DOMAIN=ronne.example.com
+#        RONNE_PORT=80
+#        RONNE_HTTPS_PORT=443
+#        RONNE_ACME_EMAIL=ops@example.com          optional: expiry notices from the certificate authority
+#   3. Your own certificate: as 2, plus RONNE_TLS=files, with cert.pem (full chain) and key.pem in
+#      ./certs next to this file. RONNE_TLS=internal makes Caddy issue one from its own CA instead
+#      (browsers warn until that CA is trusted).
+#   4. Behind a proxy you already run: no domain; point it at http://127.0.0.1:7650 and set
+#        RONNE_PORT=127.0.0.1:7650
+#        PUBLIC_URL=https://ronne.example.com
+#        RONNE_TRUSTED_PROXIES=private_ranges       trust its X-Forwarded-For (it must append to it)
+#
+# Certificates live in the caddy-data volume. `docker compose down -v` deletes them, and Let's
+# Encrypt limits how often it issues new ones.
 #
 # To try it with PostgreSQL or MySQL instead of SQLite, add a profile, and point the setup at it:
 #   docker compose --profile postgres up -d         then in setup: host "postgres", database and user "ronne"
@@ -24,13 +45,40 @@ services:
   web:
     image: ${RONNE_IMAGE:-ronneai/marketplace:latest}
     restart: unless-stopped
-    ports:
-      - "${RONNE_PORT:-3000}:3000"
+    # No ports: reachable only through proxy, as web:3000 on this project's network.
     environment:
-      # The address people use to open Ronne. The one setting most people change.
-      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
+      # The address people use to open Ronne: PUBLIC_URL, else https://RONNE_DOMAIN, else
+      # http://localhost:RONNE_PORT.
+      PUBLIC_URL: ${PUBLIC_URL:-${RONNE_DOMAIN:+https://}${RONNE_DOMAIN:-http://localhost:${RONNE_PORT:-7650}}}
+      # proxy is always in front and sets X-Forwarded-For to the client's address.
+      TRUST_PROXY: "true"
     volumes:
       - ronne-data:/app/data
+
+  proxy:
+    image: caddy:2.11.6@sha256:907efba736324e43f891ccb9d760fe5abe545e313419b3d18d63d4ec670dad8d
+    restart: unless-stopped
+    depends_on: [web]
+    # Caddy doesn't read these: the Caddyfile below already has them. They're here because Compose
+    # recreates a container when its environment changes but not when a config's content does.
+    environment:
+      RONNE_DOMAIN: ${RONNE_DOMAIN:-}
+      RONNE_TLS: ${RONNE_TLS:-auto}
+      RONNE_ACME_EMAIL: ${RONNE_ACME_EMAIL:-}
+      RONNE_TRUSTED_PROXIES: ${RONNE_TRUSTED_PROXIES:-}
+    ports:
+      - "${RONNE_PORT:-7650}:80"
+      - "${RONNE_HTTPS_PORT:-7651}:443"
+      - "${RONNE_HTTPS_PORT:-7651}:443/udp"
+    configs:
+      - source: caddyfile
+        target: /etc/caddy/Caddyfile
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+      # Only read with RONNE_TLS=files. Docker creates it empty when it's missing (owned by root on
+      # Linux, so create it yourself first if you'll put certificates in it).
+      - ./certs:/certs:ro
 
   postgres:
     profiles: [postgres]
@@ -63,7 +111,48 @@ services:
       interval: 5s
       retries: 30
 
+configs:
+  # Compose fills in the ${…} settings when it creates the file; `docker compose config` shows the
+  # result. Without RONNE_DOMAIN the site is :80 (HTTP only) and RONNE_TLS is ignored.
+  caddyfile:
+    content: |
+      {
+        ${RONNE_ACME_EMAIL:+email ${RONNE_ACME_EMAIL}}
+        servers {
+          # Only with RONNE_TRUSTED_PROXIES (case 4). Not trusted by default: Docker may hand
+          # connections over from its gateway, a private address, which would let anyone set
+          # X-Forwarded-For. Strict: the rightmost untrusted entry, never one the client wrote.
+          ${RONNE_TRUSTED_PROXIES:+trusted_proxies static ${RONNE_TRUSTED_PROXIES}}
+          trusted_proxies_strict
+        }
+      }
+
+      (tls) {
+      }
+      (tls-auto) {
+      }
+      (tls-files) {
+        tls /certs/cert.pem /certs/key.pem
+      }
+      (tls-internal) {
+        tls internal
+      }
+
+      ${RONNE_DOMAIN:-:80} {
+        import tls${RONNE_DOMAIN:+-${RONNE_TLS:-auto}}
+        # The app's limit for a draft upload, 28 MiB (Caddy's "MB" would be 1000 × 1000 bytes).
+        request_body {
+          max_size 28MiB
+        }
+        reverse_proxy web:3000 {
+          # One address, the client's, which Ronne reads as the rightmost entry.
+          header_up X-Forwarded-For {client_ip}
+        }
+      }
+
 volumes:
   ronne-data:
+  caddy-data:
+  caddy-config:
   postgres-data:
   mysql-data:

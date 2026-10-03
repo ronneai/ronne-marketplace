@@ -15,9 +15,11 @@ export const TOPICS = [
   {
     slug: "install",
     title: "Installing Ronne",
-    summary: "Running an instance with Docker or Node, the first-run setup, root, and upgrading.",
+    summary:
+      "Running an instance with Docker or Node, a domain with HTTPS, the first-run setup, root, and upgrading.",
     sections: [
       { id: "docker", title: "With Docker" },
+      { id: "https", title: "A domain and HTTPS" },
       { id: "node", title: "With Node" },
       { id: "setup", title: "The setup" },
       { id: "root", title: "Root accounts" },

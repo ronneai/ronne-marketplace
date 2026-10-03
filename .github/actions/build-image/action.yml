@@ -1,10 +1,12 @@
 name: Build, run and scan the image
 description: >-
   Builds the web app's Docker image for one architecture and loads it into the local Docker,
-  runs it until /api/health answers setup_required, and scans it with Trivy for fixable high and
-  critical vulnerabilities (docs/policies/dependencies.md §3). Shared by image.yml (every pull
-  request and push to main, feature 005) and release.yml (feature 035), so the image that's
-  published is checked exactly as the one on every pull request.
+  runs it until /api/health answers setup_required, runs compose.yaml on it through the Caddy
+  proxy over HTTP and HTTPS (feature 080), and scans it and the Caddy image compose.yaml pins
+  with Trivy for fixable high and critical vulnerabilities (docs/policies/dependencies.md §3).
+  Shared by image.yml (every pull request and push to main, feature 005) and release.yml
+  (feature 035), so the image that's published is checked exactly as the one on every pull
+  request.
 
 inputs:
   arch:
@@ -52,6 +54,14 @@ runs:
         docker logs ronne
         exit 1
 
+    # compose.yaml on this image, through the Caddy proxy: HTTP, then HTTPS from Caddy's internal
+    # CA and from certificate files (feature 080).
+    - name: Run compose.yaml and check the proxy
+      shell: bash
+      env:
+        TAG: ${{ inputs.tag }}
+      run: .github/actions/build-image/compose-probe.sh "$TAG"
+
     # Trivy's own image, pinned by digest (a multi-arch index), instead of a third-party action.
     - name: Scan for known vulnerabilities (Trivy)
       shell: bash
@@ -61,3 +71,12 @@ runs:
         docker run --rm -v /var/run/docker.sock:/var/run/docker.sock
         aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969
         image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 "$TAG"
+
+    # The Caddy image compose.yaml pins (feature 080), with the same rules as ours.
+    - name: Scan the proxy image (Trivy)
+      shell: bash
+      run: |
+        image=$(docker compose -f compose.yaml config --images | grep '^caddy:')
+        docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+          aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969 \
+          image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 "$image"

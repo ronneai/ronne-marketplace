@@ -84,7 +84,7 @@ port. The `.env` below sets them.
 - Four TLS modes (`RONNE_TLS`): none, automatic, own certificate files, Caddy's internal CA.
 - `TRUST_PROXY=true` and a single, correct `X-Forwarded-For` set for `web`, since `proxy` is now
   always in front of it.
-- The request body limit (28 MB) set in the proxy.
+- The request body limit (28 MiB, the app's) set in the proxy.
 - An example `.env` in the README and the Documentation for each case below.
 - CI: the compose stack started in `image.yml`, probed over HTTP and over HTTPS (internal CA).
 - The README, the *Installing* Documentation topic, MVP §5 and §15, 005's spec and the dependency
@@ -143,8 +143,11 @@ server; browsers warn until that CA is trusted, and `rmk` needs `NODE_EXTRA_CA_C
 
 **4. Behind a proxy you already run** (nginx, Apache, Traefik, a load balancer that does TLS):
 leave `RONNE_DOMAIN` empty, point your proxy at `http://127.0.0.1:7650`, and set
-`PUBLIC_URL=https://ronne.example.com`. Set `RONNE_PORT=127.0.0.1:7650` so the plain port isn't
-reachable from outside. The proxy trusts `X-Forwarded-For` from private addresses (below).
+`PUBLIC_URL=https://ronne.example.com` and `RONNE_TRUSTED_PROXIES=private_ranges`, so Caddy takes
+the client's address from your proxy's `X-Forwarded-For` (your proxy must append to it, as nginx's
+`$proxy_add_x_forwarded_for` does). Set `RONNE_PORT=127.0.0.1:7650` so the plain port isn't
+reachable from outside: with private ranges trusted, a client that reaches the port directly
+through Docker's gateway could set its own address.
 
 ### Settings
 
@@ -157,40 +160,60 @@ All are read by `compose.yaml` from the environment or `.env`; none are needed f
 | `RONNE_DOMAIN` | empty | The name Caddy serves. Empty: any name, HTTP only |
 | `RONNE_TLS` | `auto` | Only with a domain: `auto` (ACME), `files` (`./certs/cert.pem`, `./certs/key.pem`), `internal` (Caddy's CA) |
 | `RONNE_ACME_EMAIL` | empty | Optional email given to the certificate authority |
-| `RONNE_TRUSTED_PROXIES` | `private_ranges` | Who may set `X-Forwarded-For` in front of the proxy (Caddy's `trusted_proxies static …`) |
+| `RONNE_TRUSTED_PROXIES` | empty | Who may set `X-Forwarded-For` in front of the proxy (Caddy's `trusted_proxies static …`, such as `private_ranges` or a CIDR). Empty: nobody, and the client is whoever connects |
 | `PUBLIC_URL` | `https://$RONNE_DOMAIN`, or `http://localhost:$RONNE_PORT` | Unchanged meaning; wins over both defaults when set |
 
 ### The proxy service
 
-- Image: `caddy` from Docker Hub, the current 2.x release, pinned by tag and digest and kept
-  current by Dependabot, like the base image (dependency policy §2).
-- Caddyfile, inline in `compose.yaml`, in outline:
+- Image: `caddy` from Docker Hub, the current 2.x release, pinned by tag and digest, kept current
+  by Dependabot like the base image, and scanned with Trivy like ours (dependency policy §2, §3).
+  The first pin, 2.11.6, is one day inside the 3-day cooldown, as exception E-6 in the policy:
+  the only older release has fixable high vulnerabilities.
+- Caddyfile, inline in `compose.yaml` (Compose `configs.content`, Docker Compose 2.23.1 or later).
+  Compose fills in the settings (`${…}`) when it creates the file, so the `proxy` container needs
+  no environment variables and `docker compose config` shows the Caddyfile Caddy will read:
 
   ```
   {
-      email {$RONNE_ACME_EMAIL:}
+      ${RONNE_ACME_EMAIL:+email ${RONNE_ACME_EMAIL}}
       servers {
-          trusted_proxies static {$RONNE_TRUSTED_PROXIES:private_ranges}
+          ${RONNE_TRUSTED_PROXIES:+trusted_proxies static ${RONNE_TRUSTED_PROXIES}}
+          trusted_proxies_strict
       }
   }
+  (tls) {}
   (tls-auto) {}
   (tls-files) { tls /certs/cert.pem /certs/key.pem }
   (tls-internal) { tls internal }
 
-  {$RONNE_SITE} {
-      import tls-{$RONNE_TLS:auto}
-      request_body { max_size 28MB }
+  ${RONNE_DOMAIN:-:80} {
+      import tls${RONNE_DOMAIN:+-${RONNE_TLS:-auto}}
+      request_body { max_size 28MiB }
       reverse_proxy web:3000 {
           header_up X-Forwarded-For {client_ip}
       }
   }
   ```
 
-  `RONNE_SITE` is `RONNE_DOMAIN` when set, otherwise `:80`, which turns HTTPS off. The exact
-  syntax, including an empty `email`, is checked against Caddy's docs when built.
+  Without a domain the site is `:80`, which turns HTTPS off, and the `import` picks the empty
+  `tls` snippet, so `RONNE_TLS` is ignored. Caddy refuses an `email` line with no address, so the
+  line exists only when `RONNE_ACME_EMAIL` is set. A `RONNE_TLS` that isn't one of the three modes
+  stops Caddy with "File to import not found: tls-…".
 - `X-Forwarded-For` is replaced by one address, the client's as Caddy sees it after
   `trusted_proxies`. Ronne's rule (the rightmost entry, 005) then gives the real client both
   directly and behind another proxy.
+- **Nobody is trusted by default.** Docker can hand a connection to Caddy from its own gateway, a
+  private address: Docker Desktop always does, and Linux does for connections from the host and
+  through `docker-proxy`. With `private_ranges` trusted, such a client could set
+  `X-Forwarded-For: 6.6.6.6` and be recorded as 6.6.6.6 (checked, 080 task 3). So the default
+  trusts nobody, and `RONNE_TRUSTED_PROXIES` is for case 4 only, with the port bound to 127.0.0.1.
+- **`trusted_proxies_strict`:** Caddy reads `X-Forwarded-For` right to left and takes the first
+  untrusted address, which is the one the trusted proxy appended. Without it Caddy reads left to
+  right and takes the first untrusted entry, which a client can write.
+- On Docker Desktop, every request reaching the published port comes from the gateway, so the audit
+  log and the rate limits see one address for every client. On a Linux server, clients from the
+  network keep their own address.
+- `28MiB` and not `28MB`: Caddy's `MB` is 1000 × 1000 bytes, and the app's limit is 28 × 1024 × 1024.
 - Volumes `caddy-data` (certificates and the ACME account: losing it means asking for new ones,
   which Let's Encrypt rate-limits) and `caddy-config`. `./certs` is always mounted read-only at `/certs`
   (see Open questions).
@@ -222,6 +245,9 @@ environment, as today.
   docs say so; `files` and `internal` work on any port, with `PUBLIC_URL=https://domain:7651`.
 - **`RONNE_TLS=files` with missing or unreadable files:** Caddy refuses to start and says which
   file; the proxy restarts until it's fixed. The files must be readable by Caddy's user.
+- **`./certs` created by Docker:** on Linux, the first `up` creates a missing `./certs` owned by
+  root, so writing the certificate into it later needs `sudo`. The docs say to create the folder
+  first. (CI hit this: 080 task 4.)
 - **Renewed own certificates:** replace the files and `docker compose restart proxy`.
 - **`RONNE_TLS` set without `RONNE_DOMAIN`:** ignored (HTTP only); the docs say a domain is needed.
 - **HTTPS port with no domain:** nothing serves 443, so a request to 7651 is refused or reset.
@@ -233,6 +259,10 @@ environment, as today.
   so the docs pair it with an explicit `PUBLIC_URL`, as case 4 does.
 - **Running two instances on one host:** set different `RONNE_PORT`/`RONNE_HTTPS_PORT` and a
   different project name (`-p`), as today.
+- **The HTTP-to-HTTPS redirect goes to the standard port.** With a domain on non-standard host
+  ports, `http://domain:7650` redirects to `https://domain/` (443): Caddy doesn't know which host
+  port Docker published. Open `PUBLIC_URL` (`https://domain:7651`) instead; with 80 and 443, as
+  case 2 uses, the redirect is right.
 - **IPv6:** Caddy listens on both; Docker publishes both when the daemon has IPv6 on.
 
 ## Documentation
@@ -240,13 +270,19 @@ environment, as today.
 - **README**, *With Docker*: the new address (`http://localhost:7650`); a short *Your own domain
   with HTTPS* section with the three `.env` examples (public domain, own certificates, existing
   proxy); the upgrade note about the port. The *Behind a reverse proxy* paragraph becomes case 4.
-- **Documentation › Installing an instance › With Docker** (`content.tsx`, `install.docker`): the
-  new address, a paragraph per case with its `.env` example, the ports table (7650/7651 by default,
-  80/443 for a public domain), and where certificates live (`caddy-data`; never `down -v`). The
-  sentence about nginx's 28 MB body limit stays, for case 4. `topics.ts` gains search keywords:
-  HTTPS, TLS, SSL, certificate, domain, Let's Encrypt, port, Caddy.
+- **Documentation › Installing Ronne › With Docker** (`content.tsx`, `install.docker`): the new
+  address, the proxy and its two ports, `.env` as the place for settings, and `RONNE_PORT=3000` for
+  the old address. A new section, **A domain and HTTPS** (`install.https`, added to `topics.ts`),
+  has the public-domain `.env`, the settings table, own certificates and the internal CA, case 4
+  with `RONNE_TRUSTED_PROXIES` and the 28 MB body limit, the busy-port and no-certificate checks,
+  and where certificates live (`caddy-data`; never `down -v`). The Documentation has no search,
+  so there are no keywords to add; the topic's summary names "a domain with HTTPS".
 - **Setup › Public address** helper (`fields.tsx`): when `PUBLIC_URL` comes from the environment,
-  it also mentions `RONNE_DOMAIN` ("set by `RONNE_DOMAIN` or `PUBLIC_URL` in the environment").
+  it says "Set by RONNE_DOMAIN or PUBLIC_URL in the environment" and points at `.env`.
+- **The setup-mode log line** (`prepare-start.ts`) names the address to open, `PUBLIC_URL`
+  (`http://localhost:7650` from `compose.yaml`), instead of "http://localhost:3000 by default".
+- **`docs/runbooks/install.md`:** `RONNE_TRUSTED_PROXIES` for case 4, and
+  `--force-recreate proxy` after replacing certificate files.
 - No new inline helper in `Help.tsx`: nothing in the signed-in app changes.
 
 ## Acceptance criteria
@@ -263,7 +299,7 @@ environment, as today.
 - [ ] `PUBLIC_URL` follows `RONNE_DOMAIN`, and an explicit `PUBLIC_URL` wins.
 - [ ] The audit log and rate limits see the client's real address directly through Caddy and
       behind a second proxy on a private address, not Caddy's or the proxy's.
-- [ ] A 28 MB draft upload with a token works through the proxy; a larger one is refused.
+- [ ] A 28 MiB draft upload with a token works through the proxy; a larger one is refused.
 - [ ] `RONNE_PORT=3000` gives the old address.
 - [ ] The Caddy image is pinned, covered by Dependabot, and listed in the dependency policy.
 - [ ] The README, MVP §5 and §15 (the Docker row), 005's spec and the Documentation and helper

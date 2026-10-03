@@ -62,7 +62,7 @@ updates:
       - dependency-name: mariadb
         update-types: ["version-update:semver-major"]
 
-  # Images in compose.yaml and docker/test-databases.compose.yml.
+  # Images in compose.yaml (the app and the Caddy proxy, 080) and docker/test-databases.compose.yml.
   - package-ecosystem: docker-compose
     directories: ["/", "/docker"]
     schedule:
