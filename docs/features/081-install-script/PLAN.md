@@ -147,6 +147,9 @@ and under bash:
   system's list of TCP listeners (`IPGlobalProperties.GetActiveTcpListeners()`): no connection, no
   admin rights, the same in 5.1 and 7. New tests open a real listener and expect it to be busy,
   and expect the check to answer within a second.
+- **Second run:** both jobs passed, but the `Install scripts` summary failed. It passed the
+  Windows job's result in an environment variable named `PS1`, which is bash's prompt variable,
+  and a non-interactive bash clears it. Renamed to `SH_RESULT` and `PS1_RESULT`.
 - **Still open:** the runs on the pull request, and a broken script failing them there.
 
 ### Task 6: documentation (2026-10-03)

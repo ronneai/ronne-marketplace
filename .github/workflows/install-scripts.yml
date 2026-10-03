@@ -83,9 +83,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Both scripts passed
+        # Not PS1: that's bash's prompt variable, which a non-interactive bash clears.
         env:
-          SH: ${{ needs.sh.result }}
-          PS1: ${{ needs.ps1.result }}
+          SH_RESULT: ${{ needs.sh.result }}
+          PS1_RESULT: ${{ needs.ps1.result }}
         run: |
-          echo "install.sh: $SH, install.ps1: $PS1"
-          for r in "$SH" "$PS1"; do [ "$r" = success ] || [ "$r" = skipped ] || exit 1; done
+          echo "install.sh: $SH_RESULT, install.ps1: $PS1_RESULT"
+          for r in "$SH_RESULT" "$PS1_RESULT"; do [ "$r" = success ] || [ "$r" = skipped ] || exit 1; done
