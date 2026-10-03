@@ -59,9 +59,10 @@ density stays as it is: the changes apply on a coarse pointer or below `sm`.
     `sm` up; the copy button stays visible.
   - `Tabs` per 066.
 - **Copy that works on http.** `CopyableCommand` and `CopyChip` share a `copyText` helper: the
-  clipboard API when it's there, else select the text in a hidden textarea and `execCommand("copy")`,
-  else select the visible text and say "Press and hold to copy" instead of "copied". Never a silent
-  failure.
+  clipboard API when it's there (and it doesn't refuse), else select the text in a hidden textarea
+  and `execCommand("copy")`, else select the visible text and say "selected: copy it yourself"
+  (the same words for a mouse and a finger); `CopyChip` shows its whole command, selectable, in
+  its place. Never a silent failure.
 
 **Out** (and where it goes instead):
 - Hover-only information (`title`): 068.

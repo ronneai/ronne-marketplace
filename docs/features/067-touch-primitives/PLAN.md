@@ -36,7 +36,7 @@ the same change that completes it.
   below `sm`.
   *Done when:* unit tests pass; the styleguide shows them.
 
-- [ ] **6. Copy on http.** `copyText` helper with the three paths; `CopyableCommand` and `CopyChip`
+- [x] **6. Copy on http.** `copyText` helper with the three paths; `CopyableCommand` and `CopyChip`
   use it.
   *Done when:* unit tests for each path; an e2e copies on the test server's LAN address.
 
@@ -74,3 +74,7 @@ goes into `SPEC.md` instead.
   seen on a real iPhone (075's device pass).
 - **At the end of a page the bar rests on the footer,** which is how `sticky` works: it's pulled
   to the bottom of the screen only while its place in the page is below it.
+- **The copy test opens sign-in on the machine's LAN address** (`copy.e2e.ts`, desktop project):
+  not a secure context, so no `navigator.clipboard`, the case that failed silently before. It's
+  skipped on a machine with no LAN address. A locator by the button's name ("copy") re-resolves
+  to the next copy button once the first says "copied"; anchor it to its command instead.
