@@ -121,7 +121,9 @@ export const kyselyCatalogueRepository = (
       query =
         sort === "recent"
           ? query.orderBy("items.last_published_at", "desc").orderBy("items.id", "desc")
-          : query.orderBy("scopes.name").orderBy("items.name");
+          : sort === "installs"
+            ? query.orderBy("items.download_count", "desc").orderBy("items.id", "desc")
+            : query.orderBy("scopes.name").orderBy("items.name");
       if (after) {
         const installable = toDbBoolean(after.installable, dialect);
         query = query.where((eb) =>
@@ -145,13 +147,21 @@ export const kyselyCatalogueRepository = (
                       eb("items.id", "<", after.id),
                     ]),
                   ])
-                : eb.or([
-                    eb("scopes.name", ">", after.scope),
-                    eb.and([
-                      eb("scopes.name", "=", after.scope),
-                      eb("items.name", ">", after.name),
+                : after.sort === "installs"
+                  ? eb.or([
+                      eb("items.download_count", "<", after.installs),
+                      eb.and([
+                        eb("items.download_count", "=", after.installs),
+                        eb("items.id", "<", after.id),
+                      ]),
+                    ])
+                  : eb.or([
+                      eb("scopes.name", ">", after.scope),
+                      eb.and([
+                        eb("scopes.name", "=", after.scope),
+                        eb("items.name", ">", after.name),
+                      ]),
                     ]),
-                  ]),
             ]),
           ]),
         );

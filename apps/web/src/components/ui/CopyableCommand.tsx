@@ -33,7 +33,7 @@ export const CopyableCommand = ({
     setTimeout(() => setState("idle"), result === "copied" ? 2000 : 6000);
   };
   return (
-    <div className="flex min-w-0 items-start justify-between gap-2 rounded-control border border-hairline bg-canvas py-1.5 pr-1.5 pl-3">
+    <div className="flex min-w-0 items-center justify-between gap-2 rounded-control border border-hairline bg-canvas py-1.5 pr-1.5 pl-3">
       <code
         ref={text}
         className={`min-w-0 font-mono text-[13px] text-fg ${wrap ? "whitespace-pre-wrap break-words" : "whitespace-pre-wrap break-all sm:overflow-x-auto sm:whitespace-nowrap sm:break-normal"}`}

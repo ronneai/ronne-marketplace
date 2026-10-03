@@ -12,10 +12,10 @@ the same change that completes it.
   `e2e/pages.ts`.
   *Done when:* the sweep lists the failures these cause under 071.
 
-- [ ] **2. Catalogue and home.** Scope select width, the Type and Sort selects below `sm`, card
-  meta wrapping; fix what the sweep finds on home.
-  *Done when:* catalogue unit tests pass; `catalogue.mobile.e2e.ts` filters by type and sorts on a
-  phone.
+- [ ] **2. Catalogue and home.** Check the Filters panel and Sort menu (018, from 067's pull
+  request) on a phone; card meta wrapping; fix what the sweep finds on home.
+  *Done when:* catalogue unit tests pass; `catalogue.mobile.e2e.ts` filters by two types and sorts
+  on a phone.
 
 - [ ] **3. Item shell and Overview.** Breadcrumb, README padding, Install card, risk-flag code
   breaking, phone order.

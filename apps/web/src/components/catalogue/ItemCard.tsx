@@ -12,26 +12,23 @@ export const itemPath = (item: { scope: string; name: string }) =>
 
 /**
  * One published item, as the catalogue and the home page list it (feature 018): its name, listed
- * version, type, what it can do, the AI tools it works in (026) and whether it's deprecated, with
- * the command to install it.
+ * version, type, what it can do, the AI tools it works in (026), how many times it's been installed
+ * (its download count, on every card since 2026-10-02, owner) and whether it's deprecated, with the command to install
+ * it.
  */
 export const ItemCard = ({
   entry,
   heading: Heading = "h2",
-  showDownloads = false,
 }: {
   entry: CatalogueEntry;
   heading?: "h2" | "h3";
-  showDownloads?: boolean;
 }) => {
   const name = `@${entry.scope}/${entry.name}`;
   const tools = RENDERERS.filter((r) => installsIn(entry.support[r.id])).map((r) => r.name);
   const keywords = entry.keywords.map((keyword) => `#${keyword}`);
   const details = [
     tools.length ? `works in ${tools.join(", ")}` : "works in no built-in tool",
-    ...(showDownloads
-      ? [`${entry.downloadCount} download${entry.downloadCount === 1 ? "" : "s"}`]
-      : []),
+    `${entry.downloadCount.toLocaleString("en")} install${entry.downloadCount === 1 ? "" : "s"}`,
   ];
   return (
     <article className="grid grid-cols-1 gap-2 rounded-panel border border-hairline bg-surface p-4">

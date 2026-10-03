@@ -139,7 +139,7 @@ export const HomeView = ({ lists, forYou }: { lists: HomeLists; forYou: ForYou }
           <ul className="grid grid-cols-1 gap-3">
             {lists.mostUsed.map((entry) => (
               <li key={entry.id}>
-                <ItemCard entry={entry} heading="h3" showDownloads />
+                <ItemCard entry={entry} heading="h3" />
               </li>
             ))}
           </ul>

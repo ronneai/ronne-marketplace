@@ -1,51 +1,70 @@
-import type { ItemType } from "@ronneai/core";
 import { RENDERERS } from "@ronneai/core/render";
+import { ArrowUpDown, Check, ChevronRight, SlidersHorizontal, X } from "lucide-react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { ItemCard } from "@/components/catalogue/ItemCard";
 import { TYPE_INFO } from "@/components/submissions/item-types";
 import { buttonClasses } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
+import { Disclosure } from "@/components/ui/Disclosure";
 import { Input, inputClasses, Label } from "@/components/ui/Field";
 import { TYPE_CLASSES, TYPE_DOT } from "@/components/ui/TypeBadge";
 import type { CataloguePage } from "@/server/domains/items/actions/catalogue";
 import { catalogueHref } from "./query";
 
-const chipBase =
-  "inline-flex h-7 pointer-coarse:h-11 items-center gap-1.5 rounded-full border px-3 text-xs outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
+/** An active filter, shown next to the Filters button: a link that removes it. */
+const ActiveFilter = ({
+  href,
+  label,
+  className,
+  children,
+}: {
+  href: string;
+  label: string;
+  className?: string;
+  children: ReactNode;
+}) => (
+  <li>
+    <Link
+      href={href}
+      aria-label={label}
+      className={cn(
+        "inline-flex h-7 pointer-coarse:h-11 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus",
+        className ?? "border-hairline bg-surface text-fg hover:border-strong",
+      )}
+    >
+      {children}
+      <X size={12} aria-hidden="true" className="opacity-70" />
+    </Link>
+  </li>
+);
 
-/** A filter or sort chip: teal when it's the current one (All, a sort). */
-const chip = (active: boolean, empty = false) =>
-  cn(
-    chipBase,
-    active
-      ? "border-accent-strong bg-accent-strong font-semibold text-on-accent"
-      : cn("border-hairline bg-surface hover:border-strong", empty ? "text-muted" : "text-fg"),
-  );
+/** One type in the Filters panel: a checkbox with its colour dot, name and count. */
+const typeOption =
+  "flex min-h-9 pointer-coarse:min-h-11 cursor-pointer items-center gap-2 rounded-control border border-hairline px-3 text-sm text-fg hover:border-strong has-checked:border-accent has-checked:bg-tint has-checked:font-semibold";
+
+/** The sorts, each with what it puts first (owner, 2026-10-02). */
+const SORTS = [
+  { id: "recent", label: "Recently published", hint: "Newest releases first" },
+  { id: "installs", label: "Most installed", hint: "Most installs with rmk first" },
+  { id: "name", label: "Name", hint: "By scope, then name, A to Z" },
+] as const;
 
 /**
- * A type's chip, in the type's own colours like its badge on the cards (054): a dot before the
- * name, and the badge's colours when it's the current filter.
- */
-const typeChip = (type: ItemType, active: boolean, empty: boolean) =>
-  cn(
-    chipBase,
-    active
-      ? cn(TYPE_CLASSES[type], "font-semibold")
-      : cn("border-hairline bg-surface hover:border-strong", empty ? "text-muted" : "text-fg"),
-  );
-
-/**
- * The catalogue (feature 018): search, the type chips with their counts, the scope filter and sort,
- * then the items, installable ones first. Links and GET forms only, so it works without JavaScript.
+ * The catalogue (feature 018): search; a Filters button (type with counts, scope, the tool it
+ * works in) with the active filters beside it, and Sort on the right (owner, 2026-10-02); then the
+ * items, installable ones first. Links and GET forms only, so it works without JavaScript.
  */
 export const CatalogueView = ({ page, paged }: { page: CataloguePage; paged: boolean }) => {
   const { query } = page;
   const total = page.typeCounts.reduce((sum, t) => sum + t.count, 0);
-  const filtered = Boolean(query.q || query.type || query.scope || query.tool);
+  const filtered = Boolean(query.q || query.types.length || query.scope || query.tool);
+  const activeCount = query.types.length + [query.scope, query.tool].filter(Boolean).length;
+  const sort = SORTS.find((x) => x.id === query.sort) ?? SORTS[0];
   return (
     <div className="grid grid-cols-1 gap-5">
       <form method="get" action="/catalogue" className="flex flex-wrap items-end gap-2">
-        <div className="grid w-full min-w-0 gap-1.5 sm:w-auto sm:flex-1">
+        <div className="grid min-w-0 flex-1 basis-60 gap-1.5">
           <Label htmlFor="catalogue-search">Search</Label>
           <Input
             id="catalogue-search"
@@ -56,91 +75,201 @@ export const CatalogueView = ({ page, paged }: { page: CataloguePage; paged: boo
             defaultValue={query.q}
           />
         </div>
-        <div className="grid gap-1.5">
-          <Label htmlFor="catalogue-scope">Scope</Label>
-          <select
-            id="catalogue-scope"
-            name="scope"
-            defaultValue={query.scope ?? ""}
-            className={cn(inputClasses, "font-mono")}
-          >
-            <option value="">All scopes</option>
-            {page.scopes.map((scope) => (
-              <option key={scope} value={scope}>
-                @{scope}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="grid gap-1.5">
-          <Label htmlFor="catalogue-tool">Works in</Label>
-          <select
-            id="catalogue-tool"
-            name="tool"
-            defaultValue={query.tool ?? ""}
-            className={inputClasses}
-          >
-            <option value="">Any tool</option>
-            {RENDERERS.map((renderer) => (
-              <option key={renderer.id} value={renderer.id}>
-                {renderer.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        {query.type ? <input type="hidden" name="type" value={query.type} /> : null}
-        {query.sort === "name" ? <input type="hidden" name="sort" value="name" /> : null}
+        {query.types.map((type) => (
+          <input key={type} type="hidden" name="type" value={type} />
+        ))}
+        {query.scope ? <input type="hidden" name="scope" value={query.scope} /> : null}
+        {query.tool ? <input type="hidden" name="tool" value={query.tool} /> : null}
+        {query.sort !== "recent" ? <input type="hidden" name="sort" value={query.sort} /> : null}
         <button type="submit" className={buttonClasses("secondary")}>
           Search
         </button>
-        {filtered ? (
-          <Link
-            href={catalogueHref(query, { q: "", type: null, scope: null, tool: null })}
-            className={buttonClasses("ghost")}
-          >
-            Clear
-          </Link>
-        ) : null}
       </form>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <nav aria-label="Types" className="flex flex-wrap gap-1.5">
-          <Link
-            href={catalogueHref(query, { type: null })}
-            aria-current={query.type ? undefined : "page"}
-            className={chip(!query.type)}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+          <Disclosure
+            summary={
+              <>
+                <SlidersHorizontal size={16} aria-hidden="true" />
+                Filters
+                {activeCount ? (
+                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent-strong px-1.5 text-[11px] text-on-accent">
+                    {activeCount}
+                    <span className="sr-only"> on</span>
+                  </span>
+                ) : null}
+              </>
+            }
           >
-            All <span className="opacity-80">({total})</span>
-          </Link>
-          {page.typeCounts.map((t) => (
-            <Link
-              key={t.type}
-              href={catalogueHref(query, { type: t.type })}
-              aria-current={query.type === t.type ? "page" : undefined}
-              className={typeChip(t.type, query.type === t.type, t.count === 0)}
-            >
-              <span aria-hidden="true" className={cn("size-2 rounded-full", TYPE_DOT[t.type])} />
-              {TYPE_INFO[t.type].label} <span className="opacity-80">({t.count})</span>
-            </Link>
-          ))}
-        </nav>
-        <nav aria-label="Sort" className="flex items-center gap-1.5 text-xs text-muted">
-          Sort:
-          <Link
-            href={catalogueHref(query, { sort: "recent" })}
-            aria-current={query.sort === "recent" ? "page" : undefined}
-            className={chip(query.sort === "recent")}
-          >
-            Recently published
-          </Link>
-          <Link
-            href={catalogueHref(query, { sort: "name" })}
-            aria-current={query.sort === "name" ? "page" : undefined}
-            className={chip(query.sort === "name")}
-          >
-            Name
-          </Link>
-        </nav>
+            <form method="get" action="/catalogue" className="grid gap-4">
+              {query.q ? <input type="hidden" name="q" value={query.q} /> : null}
+              {query.sort !== "recent" ? (
+                <input type="hidden" name="sort" value={query.sort} />
+              ) : null}
+              <details open={query.types.length > 0} className="group/types">
+                <summary className="flex min-h-9 pointer-coarse:min-h-11 cursor-pointer list-none items-center gap-2 rounded-control text-sm font-semibold text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus [&::-webkit-details-marker]:hidden">
+                  <ChevronRight
+                    size={16}
+                    aria-hidden="true"
+                    className="transition-none group-open/types:rotate-90"
+                  />
+                  Type
+                  <span className="font-normal text-muted">
+                    {query.types.length === 0
+                      ? `all ${total}`
+                      : query.types.map((t) => TYPE_INFO[t].label).join(", ")}
+                  </span>
+                </summary>
+                <fieldset className="mt-2 grid gap-1.5 sm:grid-cols-2">
+                  <legend className="sr-only">Types to show (none: every type)</legend>
+                  {page.typeCounts.map((t) => (
+                    <label key={t.type} className={cn(typeOption, t.count === 0 && "text-muted")}>
+                      <input
+                        type="checkbox"
+                        name="type"
+                        value={t.type}
+                        defaultChecked={query.types.includes(t.type)}
+                        className="size-4 shrink-0 rounded-sm border border-strong accent-(--accent) outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
+                      />
+                      <span
+                        aria-hidden="true"
+                        className={cn("size-2 shrink-0 rounded-full", TYPE_DOT[t.type])}
+                      />
+                      {TYPE_INFO[t.type].label}
+                      <span className="ml-auto text-xs text-muted">{t.count}</span>
+                    </label>
+                  ))}
+                </fieldset>
+              </details>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid min-w-0 gap-1.5">
+                  <Label htmlFor="catalogue-scope">Scope</Label>
+                  <select
+                    id="catalogue-scope"
+                    name="scope"
+                    defaultValue={query.scope ?? ""}
+                    className={cn(inputClasses, "min-w-0")}
+                  >
+                    <option value="">All scopes</option>
+                    {page.scopes.map((scope) => (
+                      <option key={scope} value={scope}>
+                        @{scope}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="grid min-w-0 gap-1.5">
+                  <Label htmlFor="catalogue-tool">Works in</Label>
+                  <select
+                    id="catalogue-tool"
+                    name="tool"
+                    defaultValue={query.tool ?? ""}
+                    className={cn(inputClasses, "min-w-0")}
+                  >
+                    <option value="">Any tool</option>
+                    {RENDERERS.map((renderer) => (
+                      <option key={renderer.id} value={renderer.id}>
+                        {renderer.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center justify-end gap-2 border-t border-hairline pt-3">
+                {activeCount ? (
+                  <Link
+                    href={catalogueHref(query, { types: [], scope: null, tool: null })}
+                    className={buttonClasses("ghost")}
+                  >
+                    Clear filters
+                  </Link>
+                ) : null}
+                <button type="submit" className={buttonClasses("primary")}>
+                  Apply
+                </button>
+              </div>
+            </form>
+          </Disclosure>
+          {filtered ? (
+            <ul aria-label="Active filters" className="flex flex-wrap items-center gap-1.5">
+              {query.q ? (
+                <ActiveFilter href={catalogueHref(query, { q: "" })} label="Remove the search">
+                  <span className="font-normal text-muted">Search:</span> {query.q}
+                </ActiveFilter>
+              ) : null}
+              {query.types.map((type) => (
+                <ActiveFilter
+                  key={type}
+                  href={catalogueHref(query, { types: query.types.filter((t) => t !== type) })}
+                  label={`Remove the ${TYPE_INFO[type].label} filter`}
+                  className={TYPE_CLASSES[type]}
+                >
+                  <span aria-hidden="true" className={cn("size-2 rounded-full", TYPE_DOT[type])} />
+                  {TYPE_INFO[type].label}
+                </ActiveFilter>
+              ))}
+              {query.scope ? (
+                <ActiveFilter
+                  href={catalogueHref(query, { scope: null })}
+                  label="Remove the scope filter"
+                >
+                  <span className="font-normal text-muted">Scope</span> @{query.scope}
+                </ActiveFilter>
+              ) : null}
+              {query.tool ? (
+                <ActiveFilter
+                  href={catalogueHref(query, { tool: null })}
+                  label="Remove the tool filter"
+                >
+                  <span className="font-normal text-muted">Works in</span>{" "}
+                  {RENDERERS.find((r) => r.id === query.tool)?.name ?? query.tool}
+                </ActiveFilter>
+              ) : null}
+              <li>
+                <Link
+                  href={catalogueHref(query, { q: "", types: [], scope: null, tool: null })}
+                  className="touch-hit text-xs font-semibold text-link underline-offset-2 hover:underline"
+                >
+                  Clear all
+                </Link>
+              </li>
+            </ul>
+          ) : null}
+        </div>
+        <Disclosure
+          align="right"
+          panelClassName="w-72 p-1"
+          summary={
+            <>
+              <ArrowUpDown size={16} aria-hidden="true" />
+              <span>
+                Sort: <span className="font-normal">{sort.label}</span>
+              </span>
+            </>
+          }
+        >
+          <nav aria-label="Sort" className="grid gap-0.5">
+            {SORTS.map((option) => (
+              <Link
+                key={option.id}
+                href={catalogueHref(query, { sort: option.id })}
+                aria-current={query.sort === option.id ? "page" : undefined}
+                className="grid grid-cols-[1rem_1fr] items-start gap-x-2 rounded-control px-3 py-2 pointer-coarse:py-3 text-sm text-fg hover:bg-tint aria-[current=page]:bg-tint"
+              >
+                <span className="pt-0.5">
+                  {query.sort === option.id ? <Check size={14} aria-hidden="true" /> : null}
+                </span>
+                <span className="grid">
+                  <span className={query.sort === option.id ? "font-semibold" : undefined}>
+                    {option.label}
+                  </span>
+                  <span className="text-xs text-muted">{option.hint}</span>
+                </span>
+              </Link>
+            ))}
+          </nav>
+        </Disclosure>
       </div>
 
       {page.entries.length === 0 ? (

@@ -49,7 +49,7 @@ describe("the home page", () => {
     expect(html).toMatch(/href="\/catalogue"[^>]*>See all</);
   });
 
-  it("hides Most used without downloads, and shows the counts with them", async () => {
+  it("hides Most used without installs, and shows the counts with them", async () => {
     expect(await render()).not.toContain("Most used");
     catalogue.homeLists.mockResolvedValue({
       recent: [entry("fmt")],
@@ -57,8 +57,8 @@ describe("the home page", () => {
     });
     const html = await render();
     expect(html).toContain("Most used");
-    expect(html).toContain("12 downloads");
-    expect(html).toContain("1 download<");
+    expect(html).toContain("12 installs");
+    expect(html).toContain("1 install<");
   });
 
   it("shows a user their drafts and changes requested, and nothing when there are none", async () => {

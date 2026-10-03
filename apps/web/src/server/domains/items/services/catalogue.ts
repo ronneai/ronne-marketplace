@@ -1,4 +1,4 @@
-import { ITEM_TYPES, type ItemType, isItemType, parseItemName } from "@ronneai/core";
+import { ITEM_TYPES, type ItemType, parseItemName } from "@ronneai/core";
 import { rendererById } from "@ronneai/core/render";
 import { requirePermission } from "../../identity/models/permissions";
 import {
@@ -25,7 +25,8 @@ export const API_PAGE_MAX = 100;
 
 export type CatalogueQuery = {
   q?: string;
-  type?: string;
+  /** One type, or several (owner, 2026-10-02): any of them. */
+  type?: string | readonly string[];
   scope?: string;
   /** A renderer id (026). */
   tool?: string;
@@ -43,7 +44,8 @@ export type CataloguePage = {
   /** The query as it was understood: unknown types and sorts are dropped. */
   query: {
     q: string;
-    type: ItemType | null;
+    /** The types asked for, in the order of ITEM_TYPES; none means every type. */
+    types: ItemType[];
     scope: string | null;
     tool: string | null;
     sort: CatalogueSort;
@@ -65,6 +67,11 @@ const decodeCursor = (value: string | undefined, sort: CatalogueSort) => {
     )
       return undefined;
     if (
+      cursor.sort === "installs" &&
+      (typeof cursor.id !== "string" || !Number.isFinite(cursor.installs))
+    )
+      return undefined;
+    if (
       cursor.sort === "name" &&
       (typeof cursor.scope !== "string" || typeof cursor.name !== "string")
     )
@@ -83,7 +90,9 @@ const cursorOf = (entry: CatalogueEntry, sort: CatalogueSort): CatalogueCursor =
         lastPublishedAt: entry.lastPublishedAt.toISOString(),
         id: entry.id,
       }
-    : { sort, installable: entry.installable, scope: entry.scope, name: entry.name };
+    : sort === "installs"
+      ? { sort, installable: entry.installable, installs: entry.downloadCount, id: entry.id }
+      : { sort, installable: entry.installable, scope: entry.scope, name: entry.name };
 
 /** A page of published items, without the catalogue page's type counts and scopes: 019's API. */
 export type CatalogueSearch = { entries: CatalogueEntry[]; nextCursor: string | null };
@@ -94,7 +103,7 @@ export const searchCatalogue = async (
   query: {
     q?: string;
     type?: ItemType | null;
-    /** Any of these types, and only installable items: 031's picker. */
+    /** Any of these types: 031's picker and the catalogue's Filters (with `installable`, only those). */
     types?: readonly ItemType[];
     installable?: boolean;
     scope?: string | null;
@@ -132,13 +141,16 @@ export const browseCatalogue = async (
   query: CatalogueQuery,
 ): Promise<CataloguePage> => {
   const q = (query.q ?? "").trim().slice(0, CATALOGUE_SEARCH_MAX_LENGTH);
-  const type = query.type && isItemType(query.type) ? query.type : null;
+  // Several `?type=` values mean any of them; unknown ones are dropped, the order is ITEM_TYPES'.
+  const asked = new Set([query.type ?? []].flat());
+  const types = ITEM_TYPES.filter((t) => asked.has(t));
   const scope = query.scope?.trim() || null;
   const tool = query.tool && rendererById(query.tool) ? query.tool : null;
-  const sort: CatalogueSort = query.sort === "name" ? "name" : "recent";
+  const sort: CatalogueSort =
+    query.sort === "name" || query.sort === "installs" ? query.sort : "recent";
   const { entries, nextCursor } = await searchCatalogue(deps, actor, {
     q,
-    type,
+    types: types.length > 0 ? types : undefined,
     scope,
     tool,
     sort,
@@ -158,7 +170,7 @@ export const browseCatalogue = async (
     nextCursor,
     typeCounts: ITEM_TYPES.map((t) => ({ type: t, count: counts.get(t) ?? 0 })),
     scopes: await deps.catalogue.scopes(),
-    query: { q, type, scope, tool, sort },
+    query: { q, types, scope, tool, sort },
   };
 };
 

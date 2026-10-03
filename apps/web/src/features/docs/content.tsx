@@ -2072,8 +2072,10 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           }
         </Example>
         <p>
-          Each download of an item adds one to its count, which the home page uses for Most used.
-          Nothing about who downloaded it is stored.
+          Each download of an item, as <Code>rmk install</Code> makes, counts as one install. Every
+          card in the catalogue and on the home page shows the count, the home page ranks Most used
+          by it, and the catalogue&apos;s <strong>Sort</strong> can put the most installed first.
+          Nothing about who installed it is stored.
         </p>
         <p>
           A draft created with a token (<Code>POST /api/v1/drafts</Code>, with its files) is like
@@ -2151,8 +2153,8 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         <p>
           Before you install, an item&apos;s page says on its <strong>Works in</strong> tab which of
           these tools it goes to, and where: supported, partly, turned off by the item&apos;s own{" "}
-          <Code>ronne.yaml</Code>, or skipped. The catalogue&apos;s <strong>Works in</strong> filter
-          lists the items one tool takes, as does{" "}
+          <Code>ronne.yaml</Code>, or skipped. The catalogue&apos;s <strong>Filters</strong> (
+          <strong>Works in</strong>) list the items one tool takes, as does{" "}
           <Code>rmk search &lt;query&gt; --target codex</Code>, and <Code>rmk info</Code> prints
           each tool&apos;s level for a version.
         </p>
