@@ -15,6 +15,8 @@ The monorepo is scaffolded (feature 001); the product features start with 002. W
 - `docs/spec/`: detailed contracts. `manifest.md` (with the schema, `packages/core/src/schema/ronne.schema.json`) defines `ronne.yaml`; `cli-files.md` defines `rmk.config.json`, `rmk.lock` and `.rmk/state.json`.
 - `docs/features/`: the work, one folder per feature (`NNN-slug/SPEC.md` + `PLAN.md`). `docs/features/README.md` is the index and the milestone plan.
 - `docs/policies/dependencies.md`: the rules for every dependency (below).
+- `docs/runbooks/`: guides for people running Ronne, such as `install.md` (the install guide, a draft
+  for the website that the M12 features make true).
 - `docs/knowledge/`: lessons learned while building, one topic per file, such as
   `codeql-regex.md` (how to write regular expressions CodeQL won't fail). Before writing code in
   an area a note covers, read it and follow it; when a check fails for a reason the next person
