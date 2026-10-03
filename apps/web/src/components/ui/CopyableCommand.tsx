@@ -16,7 +16,10 @@ export const CopyableCommand = ({
   command: string;
   label?: string;
   prompt?: boolean;
-  /** Long commands wrap onto more lines instead of scrolling sideways. */
+  /**
+   * Long commands wrap onto more lines instead of scrolling sideways. On a phone they always wrap
+   * (067): a hidden scrollbar made a long command look cut off.
+   */
   wrap?: boolean;
 }) => {
   const [copied, setCopied] = useState(false);
@@ -28,7 +31,7 @@ export const CopyableCommand = ({
   return (
     <div className="flex min-w-0 items-start justify-between gap-2 rounded-control border border-hairline bg-canvas py-1.5 pr-1.5 pl-3">
       <code
-        className={`min-w-0 font-mono text-[13px] text-fg ${wrap ? "whitespace-pre-wrap break-words" : "overflow-x-auto whitespace-nowrap"}`}
+        className={`min-w-0 font-mono text-[13px] text-fg ${wrap ? "whitespace-pre-wrap break-words" : "whitespace-pre-wrap break-all sm:overflow-x-auto sm:whitespace-nowrap sm:break-normal"}`}
       >
         {prompt ? <span className="text-muted select-none">$ </span> : null}
         {command}

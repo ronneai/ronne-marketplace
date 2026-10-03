@@ -24,7 +24,7 @@ export const Badge = ({
   return (
     <span
       className={cn(
-        "inline-flex h-5 items-center rounded-full px-2 font-mono text-[11px] leading-none font-semibold tracking-[0.03em]",
+        "inline-flex h-5 items-center rounded-full px-2 whitespace-nowrap font-mono text-[11px] leading-none font-semibold tracking-[0.03em]",
         TONES[tone],
         className,
       )}

@@ -32,7 +32,7 @@ the same change that completes it.
   screen at the top of the page and after scrolling, and whole on screen with a field focused, on
   every phone and tablet project.
 
-- [ ] **5. Small primitive fixes.** `Badge` nowrap, `PageHeader` wrap, `CopyableCommand` wrapping
+- [x] **5. Small primitive fixes.** `Badge` nowrap, `PageHeader` wrap, `CopyableCommand` wrapping
   below `sm`.
   *Done when:* unit tests pass; the styleguide shows them.
 

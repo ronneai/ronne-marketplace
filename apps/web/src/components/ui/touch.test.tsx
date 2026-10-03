@@ -1,12 +1,14 @@
 import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { Badge } from "./Badge";
 import { BottomBar } from "./BottomBar";
 import { Button, buttonClasses } from "./Button";
 import { CopyableCommand } from "./CopyableCommand";
 import { Dialog, DialogActions } from "./Dialog";
 import { Checkbox } from "./Field";
 import { HelpTip } from "./HelpTip";
+import { PageHeader } from "./Panel";
 import { Tabs } from "./Tabs";
 
 // Feature 067: on a coarse pointer every control's tap area is at least 44px. Controls with room
@@ -111,5 +113,24 @@ describe("BottomBar (067)", () => {
         </BottomBar>,
       ),
     ).toContain("lg:hidden");
+  });
+});
+
+describe("small fixes for narrow screens (067)", () => {
+  it("never wraps a badge inside its fixed height", () => {
+    expect(renderToStaticMarkup(<Badge>moderator</Badge>)).toContain("whitespace-nowrap");
+  });
+
+  it("wraps a page header's actions and long titles", () => {
+    const html = renderToStaticMarkup(
+      <PageHeader title="@team/a-very-long-name" actions={<Button>New</Button>} />,
+    );
+    expect(html).toContain('<div class="flex flex-wrap items-center gap-2">');
+    expect(html).toContain("break-words");
+  });
+
+  it("wraps a copy command on a phone and keeps one scrolling line from sm", () => {
+    const html = renderToStaticMarkup(<CopyableCommand command="rmk install @team/x@1.2.0" />);
+    expect(html).toContain("whitespace-pre-wrap break-all sm:overflow-x-auto sm:whitespace-nowrap");
   });
 });
