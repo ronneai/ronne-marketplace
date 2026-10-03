@@ -212,3 +212,22 @@ Work that changes every part of the web app rather than one milestone's features
 | [062](./062-review-queue-data-table/SPEC.md) | The review queue on the server data table: every tab paged (no more 200-row cut-off), sorted by time or name, searched and filtered by type; bulk approve and release on the page; `fixed` list parameters, date sort keys and `srHeader` added to the shared table | 014, 054, 055, 056, 058, 060 | done |
 | [063](./063-my-submissions-data-table/SPEC.md) | My submissions on the server data table: paged instead of loading everything, status links counted by one query, sorted by last change or name, searched and filtered by type | 012, 013, 052, 055, 056, 057, 058, 060, 062 | done |
 | [064](./064-remove-scopes-page/SPEC.md) | Remove the Scopes page: `/scopes` and its nav entry go (404), links point to the Documentation; Admin › Scopes and `GET /api/v1/scopes` stay | 010, 061 | done |
+
+### M12 — Easy install
+
+Ronne installs in one command, with Docker or without it, on a laptop or on a server with a domain
+and HTTPS, on macOS, Linux and Windows (owner, 2026-10-03). The user's guide is
+[`docs/runbooks/install.md`](../runbooks/install.md), a draft for the website that each feature
+makes true. Build order: 080 → 081 (Docker path done); 082 → 083 → 084 → 085 (macOS and Linux
+without Docker); 086 → 087 (Windows without Docker).
+
+| ID | Feature | Depends on | Status |
+|---|---|---|---|
+| [080](./080-docker-https/SPEC.md) | Docker with a domain and HTTPS: a Caddy proxy in `compose.yaml` on ports 80/443 inside, published on 7650/7651 by default (80/443 for a public domain); `RONNE_DOMAIN` for automatic certificates, own certificate files or an internal CA; the app's port no longer published | 005, 035, 036 | specified |
+| [081](./081-install-script/SPEC.md) | Install script: `curl … \| sh` and `irm … \| iex` from each release; checks Docker, asks "this computer or a server with a domain", writes `~/ronne-marketplace`, starts, opens the browser; rerun to upgrade; `--yes` for scripts | 080, 035 | specified |
+| [082](./082-server-npm-package/SPEC.md) | The server as an npm package: `npx @ronneai/marketplace`, command `rmk-server` (`start`, `setup`, `migrate`, `reset-root-password`), a data folder per system, `127.0.0.1:7650` by default | 034, 035, 036 | specified |
+| [083](./083-service-unix/SPEC.md) | Service on Linux and macOS: `rmk-server service install \| status \| logs \| uninstall …` with systemd and launchd, a system user, `--domain` with Caddy from the same Caddyfile as 080 | 082, 080 | specified |
+| [084](./084-bundles/SPEC.md) | Self-contained bundles: six archives per release (Linux, macOS, Windows × x64, arm64) with Node.js inside, smoke-tested per platform | 082 | specified |
+| [085](./085-unix-packages/SPEC.md) | Homebrew tap, `.deb` and `.rpm`: `brew install ronneai/tap/rmk-server`, packages that install the service; the install script's no-Docker path on macOS and Linux | 083, 084, 081 | specified |
+| [086](./086-service-windows/SPEC.md) | Service on Windows: the same `service` subcommands through WinSW, `C:\ProgramData`, a virtual account, firewall rules, Caddy for `--domain` | 083, 084 | specified |
+| [087](./087-windows-package/SPEC.md) | Windows installer and winget: `winget install RonneAI.Marketplace`, Inno Setup installer per architecture, the install script's no-Docker path on Windows; signing is the owner's call | 086, 084, 081 | specified |
