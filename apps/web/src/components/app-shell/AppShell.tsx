@@ -8,7 +8,8 @@ import { BrandLogo } from "../ui/BrandLogo";
 import { MainNav } from "./MainNav";
 import { navFor, type ShellUser } from "./nav";
 
-const menuItem = "block w-full rounded-control px-3 py-1.5 text-left text-sm text-fg hover:bg-tint";
+const menuItem =
+  "block w-full rounded-control px-3 py-1.5 pointer-coarse:py-3 text-left text-sm text-fg hover:bg-tint";
 
 /**
  * The page frame (feature 032): a full-width header, which stays at the top as the page scrolls,
@@ -47,7 +48,7 @@ export const AppShell = ({
             <ThemeToggle theme={theme} />
             {user ? (
               <details className="relative">
-                <summary className="flex cursor-pointer list-none items-center gap-2 rounded-control px-2 py-1 text-sm text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus">
+                <summary className="flex cursor-pointer list-none items-center gap-2 rounded-control px-2 py-1 pointer-coarse:min-h-11 text-sm text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus">
                   {/* The name, not the email (owner, 2026-09-27). On a phone an icon opens the menu. */}
                   <span className="hidden max-w-48 truncate text-sm sm:inline">{user.name}</span>
                   <CircleUser size={18} aria-label="Account menu" className="sm:hidden" />
@@ -86,7 +87,10 @@ export const AppShell = ({
       <footer className="border-t border-hairline pb-safe px-safe">
         <div className="flex flex-wrap justify-between gap-2 px-4 py-4 font-mono text-xs text-muted sm:px-6">
           <span>ronne marketplace · open source (MIT)</span>
-          <a href="https://github.com/ronneai/ronne-marketplace" className="hover:text-fg">
+          <a
+            href="https://github.com/ronneai/ronne-marketplace"
+            className="touch-hit hover:text-fg"
+          >
             github
           </a>
         </div>

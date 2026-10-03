@@ -71,7 +71,7 @@ export const TypesExplorer = ({ groups }: { groups: TypeGroup[] }) => {
                 aria-pressed={shown === c.id}
                 onClick={() => setShown(c.id)}
                 className={cn(
-                  "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus",
+                  "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 pointer-coarse:min-h-11 text-xs outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus",
                   shown === c.id
                     ? "bg-fg font-semibold text-canvas"
                     : "border border-hairline bg-surface text-muted hover:text-fg",

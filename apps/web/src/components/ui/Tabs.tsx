@@ -30,7 +30,7 @@ export const Tabs = ({
             tabIndex={i === active ? 0 : -1}
             onClick={() => setActive(i)}
             className={cn(
-              "h-8 rounded-control text-sm font-semibold outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus",
+              "h-8 pointer-coarse:h-11 rounded-control text-sm font-semibold outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus",
               i === active
                 ? "border border-hairline bg-surface text-fg"
                 : "text-muted hover:text-fg",

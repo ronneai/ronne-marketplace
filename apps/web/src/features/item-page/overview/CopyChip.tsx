@@ -16,7 +16,7 @@ export const CopyChip = ({ label, command }: { label: string; command: string })
       type="button"
       onClick={copy}
       aria-label={`Copy ${command}`}
-      className="inline-flex h-7 items-center gap-1.5 rounded-control border border-hairline bg-canvas px-2 font-mono text-xs text-fg hover:border-accent outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
+      className="inline-flex h-7 pointer-coarse:h-11 items-center gap-1.5 rounded-control border border-hairline bg-canvas px-2 font-mono text-xs text-fg hover:border-accent outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
     >
       {label}
       {copied ? (

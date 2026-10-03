@@ -20,7 +20,7 @@ export const ThemeToggle = ({ theme }: { theme: Theme }) => {
         value={next}
         aria-label={`Switch to the ${next} theme`}
         title={`Switch to the ${next} theme`}
-        className="flex size-8 items-center justify-center rounded-control border border-hairline text-muted hover:border-strong hover:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
+        className="flex size-8 pointer-coarse:size-11 items-center justify-center rounded-control border border-hairline text-muted hover:border-strong hover:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
       >
         <Icon size={16} aria-hidden />
       </button>

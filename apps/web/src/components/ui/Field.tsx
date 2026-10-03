@@ -117,11 +117,11 @@ export const Checkbox = ({
   ...props
 }: InputHTMLAttributes<HTMLInputElement> & { id: string; label: ReactNode }) => {
   return (
-    <div className={cn("flex items-center gap-2", className)}>
+    <div className={cn("flex items-center gap-2 pointer-coarse:min-h-11", className)}>
       <input
         id={id}
         type="checkbox"
-        className="size-4 rounded-sm border border-strong accent-(--accent) outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
+        className="size-4 pointer-coarse:size-5 rounded-sm border border-strong accent-(--accent) outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
         {...props}
       />
       <label htmlFor={id} className="text-sm text-muted">

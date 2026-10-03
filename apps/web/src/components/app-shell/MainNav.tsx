@@ -25,7 +25,7 @@ export const MainNav = ({
       key={item.href}
       href={item.href}
       aria-current={isCurrent(item, path) ? "page" : undefined}
-      className={`${item.hideOnPhone ? "hidden sm:inline-block " : ""}shrink-0 whitespace-nowrap rounded-control px-2 py-1.5 text-sm text-muted sm:px-3 hover:text-fg aria-[current=page]:bg-tint aria-[current=page]:font-semibold aria-[current=page]:text-link outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus`}
+      className={`${item.hideOnPhone ? "hidden sm:inline-block " : ""}shrink-0 whitespace-nowrap rounded-control px-2 py-1.5 pointer-coarse:py-3 text-sm text-muted sm:px-3 hover:text-fg aria-[current=page]:bg-tint aria-[current=page]:font-semibold aria-[current=page]:text-link outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus`}
     >
       {item.label}
       {counts[item.href] ? (

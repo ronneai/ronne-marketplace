@@ -19,9 +19,12 @@ follow them and how to check them. The work is planned in
 - **Touch sizes without changing desktop:** Tailwind's `pointer-coarse:` variant, such as
   `h-9 pointer-coarse:h-11` or `text-sm pointer-coarse:text-base`. It follows the *primary*
   pointer, so a laptop with a touch screen stays dense, and an iPad is coarse.
-- **A bigger tap area around a small control:** keep the drawn size and add a transparent area,
-  `relative after:absolute after:-inset-2 after:content-['']` (check it doesn't overlap a
-  neighbour's area).
+- **A bigger tap area around a small control:** `touch-hit` (067, `globals.css`) adds an invisible
+  area of at least 44×44px, centred, on a coarse pointer only. It uses `::after` and makes the
+  control `relative`, so don't combine it with another `after:` (a stretched row link). Check the
+  area doesn't cover a neighbour's.
+- **Fields:** use `inputClasses` / `selectClasses`, or `touchFieldClasses` for a field that styles
+  itself; `src/touch-rules.test.ts` fails on any other text field.
 - **Safe areas:** `pt-safe`, `pb-safe` and `px-safe` (in `globals.css`) set the padding to the
   device's inset (0 on a screen without one). Put them on an edge's outer element with no padding
   of its own and keep the usual padding on the element inside, as `AppShell`'s header, content and

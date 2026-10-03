@@ -55,7 +55,7 @@ const SortIcon = ({ active, dir }: { active: boolean; dir: "asc" | "desc" }) => 
 };
 
 const pagerLink =
-  "inline-flex h-8 items-center gap-1 rounded-control px-2.5 text-sm outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
+  "inline-flex h-8 pointer-coarse:h-11 pointer-coarse:min-w-11 justify-center items-center gap-1 rounded-control px-2.5 text-sm outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
 
 /** A link, or the same label greyed out and inert when there's nowhere to go. */
 const PageLink = ({
@@ -246,7 +246,7 @@ export const DataTable = <Row, S extends string, F extends string>({
                         {column.sort !== undefined ? (
                           <Link
                             href={sortUrl(list, state, column.sort)}
-                            className="inline-flex items-center gap-1 rounded-sm hover:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
+                            className="touch-hit inline-flex items-center gap-1 rounded-sm hover:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
                           >
                             {column.header}
                             <SortIcon active={active} dir={state.dir} />

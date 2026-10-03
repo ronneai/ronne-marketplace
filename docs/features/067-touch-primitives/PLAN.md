@@ -14,7 +14,7 @@ the same change that completes it.
   *Done when:* the field scan test passes; `fields.mobile.e2e.ts` (WebKit) shows scale 1 after
   focusing each field kind.
 
-- [ ] **2. Tap areas.** `Button` (box and text variants), `HelpTip`, checkbox wrappers, copy
+- [x] **2. Tap areas.** `Button` (box and text variants), `HelpTip`, checkbox wrappers, copy
   buttons and chips, `FilterChips`, pager, `FileTree` rows, menu items.
   *Done when:* unit tests check the classes; the tap-target report has no `components/ui` entries.
 
@@ -55,3 +55,9 @@ goes into `SPEC.md` instead.
   `globals.css`), so no editor reconfiguration is needed.
 - **Playwright's WebKit doesn't zoom on focus** the way iOS Safari does, so `fields.mobile.e2e.ts`
   checks the cause (focused text under 16px) as well as the page scale.
+- **`touch-hit`** (`globals.css`) is the tap area for small controls: an invisible `::after`, at
+  least 44×44px and centred, only on a coarse pointer. The sweep's tap-target report counts it.
+  Controls with room grow for real (`pointer-coarse:h-11`): buttons, chips, tabs, pager, fields.
+  The phone report went from 315 to 178 entries; what's left is in features (prose links, which
+  WCAG exempts, the item and docs tabs for 066, cards for 071, row checkboxes for 069, the editor's
+  view switcher for 072), none in `components/ui`.

@@ -36,7 +36,7 @@ export const CopyableCommand = ({
       <button
         type="button"
         onClick={copy}
-        className="inline-flex h-7 shrink-0 items-center gap-1 rounded-control border border-hairline bg-surface px-2 font-mono text-xs text-muted hover:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
+        className="touch-hit inline-flex h-7 shrink-0 items-center gap-1 rounded-control border border-hairline bg-surface px-2 font-mono text-xs text-muted hover:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
       >
         {copied ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
         <span aria-live="polite">{copied ? "copied" : label.toLowerCase()}</span>

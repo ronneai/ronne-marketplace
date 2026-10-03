@@ -9,7 +9,7 @@ import { catalogueHref } from "./query";
 
 const chip = (active: boolean, empty = false) =>
   cn(
-    "inline-flex h-7 items-center gap-1 rounded-control border px-2.5 font-mono text-xs outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus",
+    "inline-flex h-7 pointer-coarse:h-11 items-center gap-1 rounded-control border px-2.5 font-mono text-xs outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus",
     active
       ? "border-accent-strong bg-accent-strong font-semibold text-on-accent"
       : "border-hairline bg-surface text-fg hover:border-strong",
