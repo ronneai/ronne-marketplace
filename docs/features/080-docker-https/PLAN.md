@@ -24,7 +24,7 @@ the same change that completes it.
   RONNE_TLS=internal` serves `https://localhost:7651` and redirects HTTP; `RONNE_PORT=3000` gives
   the old address; `--profile postgres` still works.
 
-- [ ] **3. Client address and body size through the proxy.** Check that the audit log records the
+- [x] **3. Client address and body size through the proxy.** Check that the audit log records the
   client's address directly and behind a second proxy on a private address (a throwaway nginx
   container in front), and that a 28 MB draft with a token passes and a larger one gets 413.
   *Done when:* both are recorded in the notes; if `client-ip.ts` needed a change, it has tests.
@@ -110,3 +110,30 @@ Compose 5.5:
   left the old Caddyfile running. So `proxy` also gets the four settings as environment variables,
   which Caddy ignores. A change to them recreates it.
 - `./certs` is created on `up` when it's missing, so it's in `.gitignore` and `.dockerignore`.
+
+### Task 3: client address and body size (2026-10-03)
+
+The instance was set up with `docker compose exec web pnpm run setup --yes`, SQLite, and a token
+came from `POST /api/v1/auth/token`, which writes `access_token.created` to the audit log with the
+address. Docker Desktop on macOS:
+
+| Setup | Sent `X-Forwarded-For` | Recorded |
+|---|---|---|
+| Spec's default, `trusted_proxies static private_ranges`, direct | `6.6.6.6` | **`6.6.6.6`** (spoofed) |
+| Nobody trusted (new default), `trusted_proxies_strict`, direct | `6.6.6.6` | `192.168.65.1` (Docker Desktop's gateway) |
+| `RONNE_TRUSTED_PROXIES=private_ranges`, behind nginx appending `203.0.113.7` | `6.6.6.6` | `203.0.113.7` |
+| `RONNE_TRUSTED_PROXIES=private_ranges`, direct | `6.6.6.6` | `6.6.6.6`: why case 4 binds the port to 127.0.0.1 |
+
+So the default changed to "nobody", and `trusted_proxies_strict` is always on (spec updated). Without
+strict mode Caddy reads `X-Forwarded-For` left to right, and the leftmost entry is the client's to
+write. `client-ip.ts` needs no change: Caddy sends one address.
+
+Body size: Caddy's `28MB` is 28,000,000 bytes, which refused an exact 28 MiB body with an empty
+413 before the app saw it. With `28MiB`, a 29,360,128-byte body with a token reaches the app (400:
+the padding isn't a valid draft, so it's past the limit but not a real upload), and one byte more,
+or 40 MiB, gets the app's `413 body_too_large`. The app checks `Content-Length` first, so Caddy's
+limit is the backstop for bodies sent without one.
+
+Caddy logs "Caddyfile input is not formatted" at start: the optional lines (`email`,
+`trusted_proxies`) leave blank lines when they're unset, so no indentation would satisfy
+`caddy fmt`. It does no harm.

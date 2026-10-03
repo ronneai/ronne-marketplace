@@ -84,7 +84,7 @@ port. The `.env` below sets them.
 - Four TLS modes (`RONNE_TLS`): none, automatic, own certificate files, Caddy's internal CA.
 - `TRUST_PROXY=true` and a single, correct `X-Forwarded-For` set for `web`, since `proxy` is now
   always in front of it.
-- The request body limit (28 MB) set in the proxy.
+- The request body limit (28 MiB, the app's) set in the proxy.
 - An example `.env` in the README and the Documentation for each case below.
 - CI: the compose stack started in `image.yml`, probed over HTTP and over HTTPS (internal CA).
 - The README, the *Installing* Documentation topic, MVP §5 and §15, 005's spec and the dependency
@@ -143,8 +143,11 @@ server; browsers warn until that CA is trusted, and `rmk` needs `NODE_EXTRA_CA_C
 
 **4. Behind a proxy you already run** (nginx, Apache, Traefik, a load balancer that does TLS):
 leave `RONNE_DOMAIN` empty, point your proxy at `http://127.0.0.1:7650`, and set
-`PUBLIC_URL=https://ronne.example.com`. Set `RONNE_PORT=127.0.0.1:7650` so the plain port isn't
-reachable from outside. The proxy trusts `X-Forwarded-For` from private addresses (below).
+`PUBLIC_URL=https://ronne.example.com` and `RONNE_TRUSTED_PROXIES=private_ranges`, so Caddy takes
+the client's address from your proxy's `X-Forwarded-For` (your proxy must append to it, as nginx's
+`$proxy_add_x_forwarded_for` does). Set `RONNE_PORT=127.0.0.1:7650` so the plain port isn't
+reachable from outside: with private ranges trusted, a client that reaches the port directly
+through Docker's gateway could set its own address.
 
 ### Settings
 
@@ -157,7 +160,7 @@ All are read by `compose.yaml` from the environment or `.env`; none are needed f
 | `RONNE_DOMAIN` | empty | The name Caddy serves. Empty: any name, HTTP only |
 | `RONNE_TLS` | `auto` | Only with a domain: `auto` (ACME), `files` (`./certs/cert.pem`, `./certs/key.pem`), `internal` (Caddy's CA) |
 | `RONNE_ACME_EMAIL` | empty | Optional email given to the certificate authority |
-| `RONNE_TRUSTED_PROXIES` | `private_ranges` | Who may set `X-Forwarded-For` in front of the proxy (Caddy's `trusted_proxies static …`) |
+| `RONNE_TRUSTED_PROXIES` | empty | Who may set `X-Forwarded-For` in front of the proxy (Caddy's `trusted_proxies static …`, such as `private_ranges` or a CIDR). Empty: nobody, and the client is whoever connects |
 | `PUBLIC_URL` | `https://$RONNE_DOMAIN`, or `http://localhost:$RONNE_PORT` | Unchanged meaning; wins over both defaults when set |
 
 ### The proxy service
@@ -173,7 +176,8 @@ All are read by `compose.yaml` from the environment or `.env`; none are needed f
   {
       ${RONNE_ACME_EMAIL:+email ${RONNE_ACME_EMAIL}}
       servers {
-          trusted_proxies static ${RONNE_TRUSTED_PROXIES:-private_ranges}
+          ${RONNE_TRUSTED_PROXIES:+trusted_proxies static ${RONNE_TRUSTED_PROXIES}}
+          trusted_proxies_strict
       }
   }
   (tls) {}
@@ -183,7 +187,7 @@ All are read by `compose.yaml` from the environment or `.env`; none are needed f
 
   ${RONNE_DOMAIN:-:80} {
       import tls${RONNE_DOMAIN:+-${RONNE_TLS:-auto}}
-      request_body { max_size 28MB }
+      request_body { max_size 28MiB }
       reverse_proxy web:3000 {
           header_up X-Forwarded-For {client_ip}
       }
@@ -197,6 +201,18 @@ All are read by `compose.yaml` from the environment or `.env`; none are needed f
 - `X-Forwarded-For` is replaced by one address, the client's as Caddy sees it after
   `trusted_proxies`. Ronne's rule (the rightmost entry, 005) then gives the real client both
   directly and behind another proxy.
+- **Nobody is trusted by default.** Docker can hand a connection to Caddy from its own gateway, a
+  private address: Docker Desktop always does, and Linux does for connections from the host and
+  through `docker-proxy`. With `private_ranges` trusted, such a client could set
+  `X-Forwarded-For: 6.6.6.6` and be recorded as 6.6.6.6 (checked, 080 task 3). So the default
+  trusts nobody, and `RONNE_TRUSTED_PROXIES` is for case 4 only, with the port bound to 127.0.0.1.
+- **`trusted_proxies_strict`:** Caddy reads `X-Forwarded-For` right to left and takes the first
+  untrusted address, which is the one the trusted proxy appended. Without it Caddy reads left to
+  right and takes the first untrusted entry, which a client can write.
+- On Docker Desktop, every request reaching the published port comes from the gateway, so the audit
+  log and the rate limits see one address for every client. On a Linux server, clients from the
+  network keep their own address.
+- `28MiB` and not `28MB`: Caddy's `MB` is 1000 × 1000 bytes, and the app's limit is 28 × 1024 × 1024.
 - Volumes `caddy-data` (certificates and the ACME account: losing it means asking for new ones,
   which Let's Encrypt rate-limits) and `caddy-config`. `./certs` is always mounted read-only at `/certs`
   (see Open questions).
@@ -273,7 +289,7 @@ environment, as today.
 - [ ] `PUBLIC_URL` follows `RONNE_DOMAIN`, and an explicit `PUBLIC_URL` wins.
 - [ ] The audit log and rate limits see the client's real address directly through Caddy and
       behind a second proxy on a private address, not Caddy's or the proxy's.
-- [ ] A 28 MB draft upload with a token works through the proxy; a larger one is refused.
+- [ ] A 28 MiB draft upload with a token works through the proxy; a larger one is refused.
 - [ ] `RONNE_PORT=3000` gives the old address.
 - [ ] The Caddy image is pinned, covered by Dependabot, and listed in the dependency policy.
 - [ ] The README, MVP §5 and §15 (the Docker row), 005's spec and the Documentation and helper

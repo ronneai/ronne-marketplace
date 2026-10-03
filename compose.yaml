@@ -26,6 +26,7 @@
 #   4. Behind a proxy you already run: no domain; point it at http://127.0.0.1:7650 and set
 #        RONNE_PORT=127.0.0.1:7650
 #        PUBLIC_URL=https://ronne.example.com
+#        RONNE_TRUSTED_PROXIES=private_ranges       trust its X-Forwarded-For (it must append to it)
 #
 # Certificates live in the caddy-data volume. `docker compose down -v` deletes them, and Let's
 # Encrypt limits how often it issues new ones.
@@ -64,7 +65,7 @@ services:
       RONNE_DOMAIN: ${RONNE_DOMAIN:-}
       RONNE_TLS: ${RONNE_TLS:-auto}
       RONNE_ACME_EMAIL: ${RONNE_ACME_EMAIL:-}
-      RONNE_TRUSTED_PROXIES: ${RONNE_TRUSTED_PROXIES:-private_ranges}
+      RONNE_TRUSTED_PROXIES: ${RONNE_TRUSTED_PROXIES:-}
     ports:
       - "${RONNE_PORT:-7650}:80"
       - "${RONNE_HTTPS_PORT:-7651}:443"
@@ -117,7 +118,11 @@ configs:
       {
         ${RONNE_ACME_EMAIL:+email ${RONNE_ACME_EMAIL}}
         servers {
-          trusted_proxies static ${RONNE_TRUSTED_PROXIES:-private_ranges}
+          # Only with RONNE_TRUSTED_PROXIES (case 4). Not trusted by default: Docker may hand
+          # connections over from its gateway, a private address, which would let anyone set
+          # X-Forwarded-For. Strict: the rightmost untrusted entry, never one the client wrote.
+          ${RONNE_TRUSTED_PROXIES:+trusted_proxies static ${RONNE_TRUSTED_PROXIES}}
+          trusted_proxies_strict
         }
       }
 
@@ -134,9 +139,9 @@ configs:
 
       ${RONNE_DOMAIN:-:80} {
         import tls${RONNE_DOMAIN:+-${RONNE_TLS:-auto}}
-        # The app's own limit for a draft upload (28 MB).
+        # The app's limit for a draft upload, 28 MiB (Caddy's "MB" would be 1000 × 1000 bytes).
         request_body {
-          max_size 28MB
+          max_size 28MiB
         }
         reverse_proxy web:3000 {
           # One address, the client's, which Ronne reads as the rightmost entry.
