@@ -150,7 +150,7 @@ bearer token, like the rest of `/api/v1` (401 without one).
 
 | Method & path | Answers |
 |---|---|
-| `GET marketplace.json` | The tool's marketplace file. For Claude Code, entries use `archive` sources pointing at the zip route below, with the zip's `sha256` |
+| `GET marketplace.json` | The tool's feed as a marketplace file, in Claude Code's shape for every tool: entries use `archive` sources pointing at the zip route below, with the zip's `sha256`. Claude Code reads its own; `rmk feed build` reads Codex's and Cursor's, and writes their real marketplace files into the mirror (078) |
 | `GET plugins/{scope}/{name}/{version}.zip` | The built plugin. `ETag` is the sha256, `If-None-Match` answers 304, `cache-control: private, max-age=31536000, immutable`. 404 when the version doesn't exist, is yanked, or has nothing for this tool |
 
 The marketplace answers `cache-control: private, no-cache` and an `ETag`, because it changes with
@@ -161,7 +161,7 @@ Errors use the API's shape (MVP §11), with these codes (077):
 | Status | Code | When |
 |---|---|---|
 | 401 | `token_missing`, `token_invalid`, … | No valid token (`WWW-Authenticate: Bearer realm="ronne"`) |
-| 404 | `feed_not_found` | The instance doesn't serve that tool's feed (only `claude-code` until 078) |
+| 404 | `feed_not_found` | The instance has no feed for that tool (`claude-code`, `codex` and `cursor` have one) |
 | 404 | `plugin_not_found` | The version doesn't exist, is yanked, or has nothing for the tool |
 | 503 | `public_url_missing` | The instance has no `PUBLIC_URL`, so it can't write absolute URLs |
 | 503 | `plugin_unavailable` | The zip can't be built: an artifact is missing, or dependencies don't resolve |

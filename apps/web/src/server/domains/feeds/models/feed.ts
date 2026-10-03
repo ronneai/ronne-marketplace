@@ -13,10 +13,13 @@ import { installsIn, supportOf } from "@ronneai/core/render";
  * the StorageAdapter.
  */
 
-/** The tools whose feed the instance serves itself: Claude Code reads a marketplace over HTTPS. */
-export type ServedTool = Extract<PluginTool, "claude-code">;
+/**
+ * The tools whose feed the instance serves. Claude Code reads its marketplace over HTTPS (077);
+ * Codex's and Cursor's are read only by `rmk feed build`, which writes their git mirror (078).
+ */
+export type ServedTool = PluginTool;
 
-export const SERVED_TOOLS: readonly ServedTool[] = ["claude-code"];
+export const SERVED_TOOLS: readonly ServedTool[] = ["claude-code", "codex", "cursor"];
 
 export const isServedTool = (value: string): value is ServedTool =>
   (SERVED_TOOLS as readonly string[]).includes(value);

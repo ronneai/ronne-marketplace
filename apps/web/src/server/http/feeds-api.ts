@@ -20,8 +20,8 @@ import { requireToken, type TokenGuardDeps } from "./require-token";
 
 /**
  * The plugin feeds (feature 077, contract `docs/spec/plugin-feeds.md`): a tool's marketplace file
- * and its plugin zips, with a personal access token like the rest of `/api/v1`. Only Claude Code
- * reads a marketplace over HTTPS; the other tools answer 404 until their git mirror (078).
+ * and its plugin zips, with a personal access token like the rest of `/api/v1`. Claude Code reads
+ * its marketplace over HTTPS (077); Codex's and Cursor's are for `rmk feed build` (078).
  */
 export type FeedsApiDeps = {
   app?: AppAuth;

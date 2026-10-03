@@ -11,7 +11,7 @@ the same change that completes it.
   added, and private-repository auth. Update the contract.
   *Done when:* `docs/spec/plugin-feeds.md` has today's date for both.
 
-- [ ] **2. Codex and Cursor routes.** Allow `codex` and `cursor` in the 077 routes.
+- [x] **2. Codex and Cursor routes.** Allow `codex` and `cursor` in the 077 routes.
   *Done when:* route tests cover both tools, including an item left out of one tool's feed.
 
 - [ ] **3. `rmk feed build`.** `packages/cli/src/feed-build.ts`: fetch, verify, unpack, write the
