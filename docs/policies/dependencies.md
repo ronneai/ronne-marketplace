@@ -96,6 +96,7 @@ move by hand, after the same checks as any dependency.
 | Trivy | Apache-2.0 | Scanning the Docker images (005, 080) | `aquasec/trivy` image, tag and digest |
 | shfmt | BSD-3-Clause | Parsing `install.sh` as POSIX `sh` (`shfmt -p`, 081) | `mvdan/shfmt` image, tag and digest |
 | PSScriptAnalyzer | MIT | Linting `install.ps1` (081) | PowerShell Gallery module, `-RequiredVersion` |
+| PowerShell 7 | MIT | Running PSScriptAnalyzer and `install.ps1`'s logic on macOS and Linux, by hand (081) | `mcr.microsoft.com/powershell` image, tag and digest |
 
 **Not ShellCheck:** it's GPL-3.0, which §1 forbids even in CI. `shfmt -p` catches what isn't POSIX
 `sh`, and the install script's tests run it under both `dash` and `bash`.

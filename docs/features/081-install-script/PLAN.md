@@ -75,3 +75,28 @@ and under bash:
   was already taken on this machine, so the test only showed the move to 7650. The fix found then
   (any of the install's own containers running, not only `proxy`, makes its ports count as free)
   wasn't run against a real legacy stack.
+
+### Task 3: `install.ps1` (2026-10-03)
+
+`scripts/install/install.ps1` follows `install.sh` step by step, with the same messages, flags
+(`-Yes -Mode -Domain -Email -Dir`), port pairs, version rules and test variables.
+
+- **PSScriptAnalyzer 1.25.0:** no findings at any severity, with `PSUseCompatibleSyntax` targeting
+  5.1 and 7.4. It flagged a ternary (`? :`, PowerShell 7 only), now an `if`. It also flagged
+  `$Yes` as unused, because the functions read it from the script's scope; it's now `$script:Yes`.
+  Run in `mcr.microsoft.com/powershell:7.5-ubuntu-24.04` (the only PowerShell image tag published,
+  amd64 only, so emulated on Apple silicon).
+- **ASCII only:** Windows PowerShell 5.1 reads text without a BOM as the system code page, so "→"
+  and "…" would be garbled. The script writes "->" and "...".
+- **`.env`** is written as UTF-8 without a BOM (Compose would read a BOM as part of the first key)
+  and with LF line ends: `Set-Content -Encoding utf8` adds a BOM in 5.1.
+- **Run on PowerShell 7.5 (Linux):** no Docker gives the message and exit 1; `-Mode moon` is
+  refused by `ValidateSet`. With the function definitions loaded: `Compare-RonneVersion` gives
+  the same answers as `install.sh`'s `version_cmp` (checked under dash and bash) in 9 cases, including
+  pre-releases and 0.10 > 0.9. `Test-Domain` accepts and refuses the same names. `Write-EnvValue`
+  keeps other lines, removes emptied keys, and writes no BOM.
+- **Health and downloads use `curl.exe`**, which ships with Windows 10 and 11, rather than
+  `Invoke-WebRequest`. That one throws on the expected 503, and reports the status differently in
+  5.1 and 7.
+- **Not checked:** by hand on Windows 11 with Docker Desktop (no Windows machine here). CI runs it
+  on a Windows runner up to the Docker check in task 5. The rest needs the owner on Windows.
