@@ -245,6 +245,9 @@ environment, as today.
   docs say so; `files` and `internal` work on any port, with `PUBLIC_URL=https://domain:7651`.
 - **`RONNE_TLS=files` with missing or unreadable files:** Caddy refuses to start and says which
   file; the proxy restarts until it's fixed. The files must be readable by Caddy's user.
+- **`./certs` created by Docker:** on Linux, the first `up` creates a missing `./certs` owned by
+  root, so writing the certificate into it later needs `sudo`. The docs say to create the folder
+  first. (CI hit this: 080 task 4.)
 - **Renewed own certificates:** replace the files and `docker compose restart proxy`.
 - **`RONNE_TLS` set without `RONNE_DOMAIN`:** ignored (HTTP only); the docs say a domain is needed.
 - **HTTPS port with no domain:** nothing serves 443, so a request to 7651 is refused or reset.

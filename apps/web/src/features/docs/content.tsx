@@ -313,6 +313,8 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             <strong>Your own certificate</strong> (a private network, or one from your IT team):{" "}
             <Code>RONNE_TLS=files</Code>, with <Code>cert.pem</Code> (the full chain) and{" "}
             <Code>key.pem</Code> in a <Code>certs</Code> folder next to <Code>compose.yaml</Code>.
+            Create the folder before the first <Code>docker compose up</Code>: on Linux, Docker
+            creates a missing one owned by root, and then you need <Code>sudo</Code> to write to it.
             After replacing them, run <Code>docker compose up -d --force-recreate proxy</Code>.{" "}
             <Code>RONNE_TLS=internal</Code> issues a test certificate instead; browsers warn until
             its CA is trusted, and <Code>rmk</Code> needs <Code>NODE_EXTRA_CA_CERTS</Code>.

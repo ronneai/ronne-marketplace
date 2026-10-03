@@ -62,7 +62,9 @@ follows the domain unless you set it. If no certificate comes, `docker compose l
 why: usually the DNS, a closed port, or ports other than 80 and 443.
 
 - **Your own certificate** (a private network, or one from your IT team): add `RONNE_TLS=files`
-  and put `cert.pem` (full chain) and `key.pem` in `./certs` next to `compose.yaml`. After
+  and put `cert.pem` (full chain) and `key.pem` in `./certs` next to `compose.yaml`. Create the
+  folder before the first `docker compose up`: on Linux, Docker creates a missing one owned by
+  root, and then you need `sudo` to write to it. After
   replacing them, `docker compose up -d --force-recreate proxy`. `RONNE_TLS=internal` issues a
   test certificate from Caddy's own CA instead (browsers warn; `rmk` needs `NODE_EXTRA_CA_CERTS`).
 - **Behind a proxy you already run** (nginx, Apache, Traefik, a load balancer that does TLS):

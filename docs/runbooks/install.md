@@ -105,7 +105,8 @@ address without a port.
 
 **Your company's certificate** (a private network, or a certificate from your IT team): set
 `RONNE_TLS=files` and put `cert.pem` (with the full chain) and `key.pem` in a `certs` folder next
-to `compose.yaml`. When you replace them, run `docker compose up -d --force-recreate proxy`.
+to `compose.yaml`. Create the folder before the first `docker compose up`: on Linux, Docker
+creates a missing one owned by root, and then you need `sudo` to write to it. When you replace them, run `docker compose up -d --force-recreate proxy`.
 
 **Behind your own web server** (nginx, Apache, Traefik or a load balancer that already handles
 HTTPS): leave `RONNE_DOMAIN` empty, set `RONNE_PORT=127.0.0.1:7650`,

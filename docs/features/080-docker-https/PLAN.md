@@ -151,6 +151,11 @@ certificate passes. On failure it prints the last 80 lines of the `proxy` and `w
   Caddyfile it fails at the first probe, and the log shows Caddy's "unrecognized directive".
 - `docker compose port web 3000` prints `invalid IP:0` and exits 0 when nothing is published, so
   the script reads `PublishedPort` from `docker compose ps` instead.
+- **First PR run (#117) failed on both architectures**, after the internal-CA checks passed. The
+  first `up` had made Docker create `./certs` as root (Linux; Docker Desktop makes it as the user),
+  so `openssl` couldn't write the test certificate, and its hidden error stopped the script under
+  `set -e`. The script now creates `certs/` before the first `up` and shows `openssl`'s errors.
+  The docs tell users to create the folder first (spec edge case added).
 - **Still open:** the run on a pull request. Tick the task when that run passes on both architectures.
 
 ### Task 5: the Caddy image (2026-10-03)

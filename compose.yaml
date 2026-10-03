@@ -76,7 +76,8 @@ services:
     volumes:
       - caddy-data:/data
       - caddy-config:/config
-      # Only read with RONNE_TLS=files. Docker creates it empty when it's missing.
+      # Only read with RONNE_TLS=files. Docker creates it empty when it's missing (owned by root on
+      # Linux, so create it yourself first if you'll put certificates in it).
       - ./certs:/certs:ro
 
   postgres:

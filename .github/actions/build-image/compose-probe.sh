@@ -36,6 +36,10 @@ redirects_to_https() {
     "308 https://localhost/api/health" ]
 }
 
+# Created before the first `up`: on Linux, Docker creates a missing bind-mount folder as root, and
+# this user couldn't write the certificate into it later.
+mkdir -p certs
+
 # 1. No settings: HTTP on 7650, and web isn't published.
 "${compose[@]}" up -d --quiet-pull
 retry "http://localhost:7650 answers setup_required" health_says_setup http://localhost:7650/api/health
@@ -55,10 +59,9 @@ retry "https://localhost:7651 answers setup_required (internal CA)" \
 retry "http://localhost:7650 redirects to HTTPS" redirects_to_https
 
 # 3. A domain with certificate files: Caddy must serve exactly this certificate.
-mkdir -p certs
 openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -days 1 \
   -subj /CN=localhost -addext subjectAltName=DNS:localhost \
-  -keyout certs/key.pem -out certs/cert.pem 2>/dev/null
+  -keyout certs/key.pem -out certs/cert.pem
 chmod 644 certs/key.pem # Caddy runs as root in its image, but keep the check independent of that
 export RONNE_TLS=files
 "${compose[@]}" up -d
