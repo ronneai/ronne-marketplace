@@ -16,7 +16,7 @@ the same change that completes it.
   and paths (`admin-scopes.test.tsx` checks the table's links on `/admin/scopes`), and
   `grep -rn '"/scopes' apps/web/src` finds only the API and the Documentation's link (task 3).
 
-- [ ] **2. End-to-end.** `scopes.e2e.ts`: root creates a scope and sorts and searches it on
+- [x] **2. End-to-end.** `scopes.e2e.ts`: root creates a scope and sorts and searches it on
   `/admin/scopes`; another user sees no Scopes link, gets a 404 on `/scopes` and on
   `/admin/scopes`.
   *Done when:* `pnpm test:e2e` passes.
