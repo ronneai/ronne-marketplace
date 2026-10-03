@@ -26,7 +26,7 @@ the same change that completes it.
 - [x] **5. Codex and Cursor adapters.** `plugins/codex.ts`, `plugins/cursor.ts`.
   *Done when:* golden files for every example item pass for both tools.
 
-- [ ] **6. `buildPlugin` and bundles.** `plugins/build.ts`: renders members, runs the adapter,
+- [x] **6. `buildPlugin` and bundles.** `plugins/build.ts`: renders members, runs the adapter,
   finds conflicts, and sets `empty`.
   *Done when:* tests cover a bundle, an item with a dependency, a conflict and an empty plugin.
 

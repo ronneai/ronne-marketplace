@@ -47,12 +47,14 @@ describe("Codex plugins", () => {
     ).toEqual({
       type: "streamable-http",
       url: "https://x/mcp",
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: the portable format's own references
       headers: { "X-Key": "${KEY}", Authorization: "Bearer ${TOKEN}" },
     });
     expect(portableServer({ command: "npx", args: ["srv"], env_vars: ["API_KEY"] })).toEqual({
       type: "stdio",
       command: "npx",
       args: ["srv"],
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: the portable format's own references
       env: { API_KEY: "${API_KEY}" },
     });
   });

@@ -28,6 +28,7 @@ describe("Claude Code plugins", () => {
     };
     const plugin = buildPlugin("claude-code", { item, members: [item] });
     const hooks = text(plugin.files.find((f) => f.path === "hooks/hooks.json")?.bytes);
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: Claude Code's own plugin root reference
     expect(hooks).toContain('"\\"${CLAUDE_PLUGIN_ROOT}\\"/hooks/format-on-edit/format.sh"');
     expect(plugin.files.find((f) => f.path === "hooks/format-on-edit/format.sh")?.executable).toBe(
       true,
