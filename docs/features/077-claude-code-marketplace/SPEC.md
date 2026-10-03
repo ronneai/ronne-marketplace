@@ -33,7 +33,7 @@ stays the approval gate: only released versions appear.
 {
   "name": "ronne-registry-example-com",
   "owner": { "name": "Ronne at registry.example.com" },
-  "metadata": { "description": "Released items from the Ronne registry at https://registry.example.com" },
+  "description": "Released items from the Ronne registry at https://registry.example.com",
   "plugins": [
     {
       "name": "team.secure-coding",

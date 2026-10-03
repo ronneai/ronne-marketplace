@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Re-check Claude Code.** URL marketplaces, `archive` sources, `headers` /
+- [x] **1. Re-check Claude Code.** URL marketplaces, `archive` sources, `headers` /
   `headersHelper`, and the size and time limits. Update the contract if anything moved.
   *Done when:* `docs/spec/plugin-feeds.md` has today's date for Claude Code.
 
@@ -44,3 +44,10 @@ the same change that completes it.
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- **Claude Code won't fetch from `http://localhost`** (checked 2026-10-03). Archive URLs must be
+  `https://` and not a loopback host, and the `headersHelper` only runs for an `https://`
+  marketplace. The manual test (task 8) needs the dev server behind an HTTPS address that isn't
+  loopback (a tunnel, or a LAN name with a trusted certificate), with `PUBLIC_URL` set to it.
+- The marketplace's top-level `description` is the field Claude Code reads first; the spec's
+  example used `metadata.description`, which is only the alternate, and now uses `description`.

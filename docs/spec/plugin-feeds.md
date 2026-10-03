@@ -5,8 +5,10 @@ marketplaces that Claude Code, Codex and Cursor can add as a source (M11:
 [076](../features/076-plugin-builders/SPEC.md), [077](../features/077-claude-code-marketplace/SPEC.md),
 [078](../features/078-plugin-feed-mirror/SPEC.md); design in [MVP §3.3](../MVP/MVP.md#33-platform-renderers)).
 
-Vendor formats were checked on 2026-10-03, and again for 076 the same day (sources:
-code.claude.com/docs/en/plugins-reference, /en/plugins/components, /en/plugins/marketplace-reference;
+Vendor formats were checked on 2026-10-03, again for 076 the same day, and Claude Code again for
+077 the same day (sources:
+code.claude.com/docs/en/plugins-reference, /en/plugins/components, /en/plugins/marketplace-reference,
+/en/plugins/host-marketplace;
 developers.openai.com/codex/plugins/build and agent-plugins.org/specification;
 cursor.com/docs/reference/plugins). They change often: re-check them when each feature is built,
 and record the date here.
@@ -20,6 +22,33 @@ and record the date here.
 | Added from | a git repo, or **an HTTPS URL to `marketplace.json`** | a git repo, or a local folder | a git repo, imported by a **team admin** in the dashboard |
 | Plugin sources usable from a URL marketplace | `archive` (zip + `sha256`), `github`, `git-subdir`, `npm` | none | none |
 | Auth | `headers` / `headersHelper` on a URL source; git credentials for git | the machine's git credentials (not documented) | the git host's app (GitHub App, …) |
+
+### Claude Code's limits on a URL marketplace
+
+Checked 2026-10-03 (077):
+
+- **Versions:** `archive` sources need Claude Code v2.1.224; `headersHelper` (and entry `headers`)
+  v2.1.238.
+- **`marketplace.json`:** at most 5 MiB, answered within 10 seconds. `name`, `owner` and `plugins`
+  are required; `description` is read at the top level (`metadata.description` is the alternate,
+  and `claude plugin validate` warns when there is none). One invalid entry doesn't fail the
+  marketplace. Unknown keys are ignored (validate warns).
+- **Archives:** a zip over `https://`, never a loopback, link-local or cloud-metadata host; at most
+  256 MiB, answered within 120 seconds, five redirects. The plugin root is at the top of the zip or
+  one folder down. `sha256` is 64 hex characters; a download that doesn't match is refused.
+- **Headers:** `headers` / `headersHelper` on the marketplace's `url` source are sent with the
+  `marketplace.json` fetch and with every archive download **on the same origin** (scheme, host and
+  port); a redirect to another origin carries none. The helper runs only when the marketplace URL
+  is `https://`.
+- **`headersHelper`:** a command of at most 500 printable ASCII characters, run through `sh` from
+  `~/.claude` (so `rmk` must be on `PATH`), that prints one JSON object of string values and exits 0
+  within 10 seconds. One run's output is reused for up to 60 seconds. From user settings it runs
+  without asking; from a project's `.claude/settings.json` only once the folder is trusted, and
+  with every credential-looking variable (`RMK_TOKEN`, for one) removed from its environment, so
+  it reads rmk's stored token.
+- **Versions and updates:** the version comes from `plugin.json` first, then from the entry, so
+  Ronne sets it only on the entry. A new version string is what makes Claude Code fetch again.
+- **Deprecation:** Claude Code has no deprecated state; the description prefix is the only signal.
 
 Ronne serves:
 - **Claude Code live from the instance** (077): a URL marketplace whose entries are `archive` zips
