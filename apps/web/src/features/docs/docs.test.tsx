@@ -130,9 +130,16 @@ describe("the topics", () => {
     expect(versions).toContain(">yanked<");
     const install = await topic("install");
     expect(install).toContain(">Installing Ronne</h1>");
-    for (const id of ["docker", "node", "setup", "root", "upgrade"])
+    for (const id of ["docker", "https", "node", "setup", "root", "upgrade"])
       expect(install).toContain(`id="${id}"`);
     expect(install).toContain("docker compose up -d");
+    // The proxy in compose.yaml (080).
+    expect(install).toContain("# then open http://localhost:7650");
+    expect(install).toContain(
+      "RONNE_DOMAIN=ronne.example.com\nRONNE_PORT=80\nRONNE_HTTPS_PORT=443",
+    );
+    expect(install).toContain("RONNE_TRUSTED_PROXIES=private_ranges");
+    expect(install).toContain("docker compose down -v");
     expect(install).toContain("Test connection");
     expect(install).not.toContain("pnpm run setup");
     expect(install).toContain("reset-root-password");

@@ -187,7 +187,7 @@ export const InstanceFields = ({ page, values, error }: FieldsProps) => {
         readOnly={page.publicUrlFromEnvironment}
         hint={
           page.publicUrlFromEnvironment
-            ? "Set by PUBLIC_URL in the environment (compose.yaml), which wins over the settings. Change it there, for example PUBLIC_URL=https://ronne.example docker compose up -d."
+            ? "Set by RONNE_DOMAIN or PUBLIC_URL in the environment (compose.yaml), which wins over the settings. Change it there, in the .env file next to compose.yaml, then run docker compose up -d."
             : "Where people will open Ronne AI Marketplace: the address a reverse proxy serves, or http://localhost:3000 on this machine."
         }
         error={fieldError(error, "public_url")}

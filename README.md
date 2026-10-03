@@ -22,7 +22,7 @@ needs `GRANT CREATE ON SCHEMA public TO <user>;`; the setup tells you if it's mi
 
 ### With Docker
 
-You need Docker with Compose. Nothing else: the image,
+You need Docker with Compose 2.23.1 or later. Nothing else: the image,
 [`ronneai/marketplace`](https://hub.docker.com/r/ronneai/marketplace) on Docker Hub, has Node.js,
 and SQLite needs no server. No clone is needed, only [`compose.yaml`](compose.yaml):
 
@@ -32,12 +32,70 @@ curl -fsSLO https://raw.githubusercontent.com/ronneai/ronne-marketplace/main/com
 docker compose up -d                          # pulls the image and starts Ronne
 ```
 
-Then open http://localhost:3000 (or set `RONNE_PORT` before `up`) and follow the setup. Anyone
-who can open that address before you can set the instance up, so open it right after `up`.
+Then open http://localhost:7650 and follow the setup. Anyone who can open that address before you
+can set the instance up, so open it right after `up`.
+
+A small proxy, [Caddy](https://caddyserver.com), runs next to Ronne and is the only way in: HTTP
+on port **7650** and HTTPS on **7651**, ports nothing common uses (3000 often clashes with other
+dev servers). Ronne's own port, 3000, isn't published. Settings go in a `.env` file next to
+`compose.yaml`; after changing it, run `docker compose up -d` again.
+
+**Upgrading from a `compose.yaml` before the proxy:** the address moves from
+`http://localhost:3000` to `http://localhost:7650`. Put `RONNE_PORT=3000` in `.env` to keep the old
+one. An old `compose.yaml` still works with new images.
+
+#### Your own domain with HTTPS
+
+Point the domain's DNS (`A`, and `AAAA` for IPv6) at the server, open ports 80 and 443 in its
+firewall, and write this `.env`:
+
+```sh
+RONNE_DOMAIN=ronne.example.com
+RONNE_PORT=80
+RONNE_HTTPS_PORT=443
+# RONNE_ACME_EMAIL=ops@example.com    # optional: expiry notices from the certificate authority
+```
+
+`docker compose up -d`, then open `https://ronne.example.com`. Caddy gets a Let's Encrypt
+certificate on the first visit, renews it, and redirects `http://` to `https://`. `PUBLIC_URL`
+follows the domain unless you set it. If no certificate comes, `docker compose logs proxy` says
+why: usually the DNS, a closed port, or ports other than 80 and 443.
+
+- **Your own certificate** (a private network, or one from your IT team): add `RONNE_TLS=files`
+  and put `cert.pem` (full chain) and `key.pem` in `./certs` next to `compose.yaml`. After
+  replacing them, `docker compose up -d --force-recreate proxy`. `RONNE_TLS=internal` issues a
+  test certificate from Caddy's own CA instead (browsers warn; `rmk` needs `NODE_EXTRA_CA_CERTS`).
+- **Behind a proxy you already run** (nginx, Apache, Traefik, a load balancer that does TLS):
+  leave `RONNE_DOMAIN` empty and point your proxy at `http://127.0.0.1:7650`, with:
+
+  ```sh
+  RONNE_PORT=127.0.0.1:7650              # not reachable from outside
+  PUBLIC_URL=https://ronne.example.com
+  RONNE_TRUSTED_PROXIES=private_ranges   # take the client's address from your X-Forwarded-For
+  ```
+
+  Your proxy must append to `X-Forwarded-For` (nginx: `$proxy_add_x_forwarded_for`) and allow
+  request bodies of at least 28 MB (nginx: `client_max_body_size 28m;`), for drafts sent with a
+  token. Keep the port on 127.0.0.1: with private ranges trusted, a client reaching it directly
+  could claim any address.
+- **Certificates** live in the `caddy-data` volume. `docker compose down -v` deletes them, and
+  Let's Encrypt limits how often a domain can ask for new ones.
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `RONNE_PORT` | `7650` | Host port (or `address:port`) for HTTP |
+| `RONNE_HTTPS_PORT` | `7651` | Host port (or `address:port`) for HTTPS, TCP and UDP |
+| `RONNE_DOMAIN` | empty | The name to serve over HTTPS. Empty: HTTP only |
+| `RONNE_TLS` | `auto` | With a domain: `auto` (Let's Encrypt), `files` (`./certs`), `internal` (Caddy's CA) |
+| `RONNE_ACME_EMAIL` | empty | Email for the certificate authority |
+| `RONNE_TRUSTED_PROXIES` | empty | Who may set `X-Forwarded-For` (Caddy's `trusted_proxies static`) |
+| `PUBLIC_URL` | `https://RONNE_DOMAIN`, or `http://localhost:RONNE_PORT` | The address people open |
+
+#### Running it
 
 - **Your data** (the SQLite file, stored items and the settings file) lives in the `ronne-data`
   volume (Docker names it `ronne-marketplace_ronne-data`), mounted at `/app/data`. Recreating or upgrading the container keeps it. Back up that volume.
-- **Upgrading:** `docker compose pull web && docker compose up -d`. Pending database migrations run
+- **Upgrading:** `docker compose pull && docker compose up -d`. Pending database migrations run
   when the container starts. If they fail, the container stops instead of serving a half-migrated database.
 - **Versions:** to pin one, set `RONNE_IMAGE` in the environment or in a `.env` file next to
   `compose.yaml`: `RONNE_IMAGE=ronneai/marketplace:0.1.1`. The tags:
@@ -79,11 +137,12 @@ you) and, with SQLite, the database under `apps/web/data/`. Anyone who can open 
 you can set the instance up, so open it right after starting. A forgotten root password is reset
 with `pnpm run reset-root-password`.
 
-**Behind a reverse proxy** (nginx, Caddy, Traefik): proxy HTTPS to port 3000, and set `PUBLIC_URL`
-to the public address, for example `PUBLIC_URL=https://ronne.example.com docker compose up -d`.
-Set `TRUST_PROXY=true` too, so Ronne takes the client's address from the proxy's `X-Forwarded-For`:
-sign-in is then rate-limited per address as well as per email, and sessions record it. Only set it
-when a proxy you control sits in front of Ronne and adds that header; otherwise anyone could forge it.
+**Behind a reverse proxy, from source** (nginx, Caddy, Traefik): proxy HTTPS to port 3000, and set
+`PUBLIC_URL` to the public address in `apps/web/.env`. Set `TRUST_PROXY=true` too, so Ronne takes
+the client's address from the proxy's `X-Forwarded-For`: sign-in is then rate-limited per address
+as well as per email, and sessions record it. Only set it when a proxy you control sits in front of
+Ronne and adds that header; otherwise anyone could forge it. With Docker, `compose.yaml` does all
+this already (see [Your own domain with HTTPS](#your-own-domain-with-https)).
 
 **Building the image from a checkout** (contributors):
 `docker compose -f compose.yaml -f compose.build.yaml up -d --build`. The override builds the local

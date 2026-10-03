@@ -267,13 +267,19 @@ environment, as today.
 - **README**, *With Docker*: the new address (`http://localhost:7650`); a short *Your own domain
   with HTTPS* section with the three `.env` examples (public domain, own certificates, existing
   proxy); the upgrade note about the port. The *Behind a reverse proxy* paragraph becomes case 4.
-- **Documentation › Installing an instance › With Docker** (`content.tsx`, `install.docker`): the
-  new address, a paragraph per case with its `.env` example, the ports table (7650/7651 by default,
-  80/443 for a public domain), and where certificates live (`caddy-data`; never `down -v`). The
-  sentence about nginx's 28 MB body limit stays, for case 4. `topics.ts` gains search keywords:
-  HTTPS, TLS, SSL, certificate, domain, Let's Encrypt, port, Caddy.
+- **Documentation › Installing Ronne › With Docker** (`content.tsx`, `install.docker`): the new
+  address, the proxy and its two ports, `.env` as the place for settings, and `RONNE_PORT=3000` for
+  the old address. A new section, **A domain and HTTPS** (`install.https`, added to `topics.ts`),
+  has the public-domain `.env`, the settings table, own certificates and the internal CA, case 4
+  with `RONNE_TRUSTED_PROXIES` and the 28 MB body limit, the busy-port and no-certificate checks,
+  and where certificates live (`caddy-data`; never `down -v`). The Documentation has no search,
+  so there are no keywords to add; the topic's summary names "a domain with HTTPS".
 - **Setup › Public address** helper (`fields.tsx`): when `PUBLIC_URL` comes from the environment,
-  it also mentions `RONNE_DOMAIN` ("set by `RONNE_DOMAIN` or `PUBLIC_URL` in the environment").
+  it says "Set by RONNE_DOMAIN or PUBLIC_URL in the environment" and points at `.env`.
+- **The setup-mode log line** (`prepare-start.ts`) names the address to open, `PUBLIC_URL`
+  (`http://localhost:7650` from `compose.yaml`), instead of "http://localhost:3000 by default".
+- **`docs/runbooks/install.md`:** `RONNE_TRUSTED_PROXIES` for case 4, and
+  `--force-recreate proxy` after replacing certificate files.
 - No new inline helper in `Help.tsx`: nothing in the signed-in app changes.
 
 ## Acceptance criteria

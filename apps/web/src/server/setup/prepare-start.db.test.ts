@@ -34,6 +34,17 @@ describe("prepareStart", () => {
     expect(plan).toEqual({ mode: "setup-required" });
   });
 
+  it("names the address to open in setup mode: PUBLIC_URL, as compose.yaml sets it (080)", async () => {
+    const lines: string[] = [];
+    await prepareStart({
+      appDir: dir,
+      dataDir: dir,
+      env: { RONNE_ENV_FILE: join(dir, "none.env"), PUBLIC_URL: "http://localhost:7650" },
+      log: (line) => lines.push(line),
+    });
+    expect(lines.join("\n")).toContain("Open http://localhost:7650 in a browser");
+  });
+
   it("applies pending migrations when set up, and has nothing to do next time", async () => {
     expect(
       await prepareStart({ appDir: dir, dataDir: dir, env: configured(), log: silent }),

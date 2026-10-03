@@ -210,27 +210,138 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
     docker: (
       <>
         <p>
-          You need Docker with Compose, and one file: <Code>compose.yaml</Code> from the repository.
-          It pulls the image <Code>ronneai/marketplace</Code> from Docker Hub, so no clone is
-          needed. SQLite needs no server; for PostgreSQL or MySQL, a profile starts one next to
-          Ronne.
+          You need Docker with Compose 2.23.1 or later, and one file: <Code>compose.yaml</Code> from
+          the repository. It pulls the image <Code>ronneai/marketplace</Code> from Docker Hub, so no
+          clone is needed. SQLite needs no server; for PostgreSQL or MySQL, a profile starts one
+          next to Ronne.
         </p>
         <Example>
           {
-            "mkdir ronne && cd ronne\ncurl -fsSLO https://raw.githubusercontent.com/ronneai/ronne-marketplace/main/compose.yaml\ndocker compose up -d                          # then open http://localhost:3000\ndocker compose --profile postgres up -d       # or --profile mysql, with RONNE_DB_PASSWORD set"
+            "mkdir ronne && cd ronne\ncurl -fsSLO https://raw.githubusercontent.com/ronneai/ronne-marketplace/main/compose.yaml\ndocker compose up -d                          # then open http://localhost:7650\ndocker compose --profile postgres up -d       # or --profile mysql, with RONNE_DB_PASSWORD set"
           }
         </Example>
         <p>
           Then open the address and follow <To href={docsHref("install", "setup")}>the setup</To>.
           Your data (the SQLite file, stored items and the settings) lives in the{" "}
-          <Code>ronne-data</Code> volume, mounted at <Code>/app/data</Code>; back that volume up.{" "}
-          <Code>PUBLIC_URL</Code> and <Code>RONNE_PORT</Code> are set in the environment, for
-          example <Code>PUBLIC_URL=https://ronne.example docker compose up -d</Code> behind a
-          reverse proxy (with <Code>TRUST_PROXY=true</Code> when the proxy adds{" "}
-          <Code>X-Forwarded-For</Code>). The proxy&apos;s request body limit needs to be at least 28
-          MB, for drafts sent with a <To href={docsHref("rmk", "tokens")}>token</To>; nginx&apos;s
-          default is 1 MB (<Code>client_max_body_size 28m;</Code>).
+          <Code>ronne-data</Code> volume, mounted at <Code>/app/data</Code>; back that volume up.
         </p>
+        <p>
+          A small proxy, Caddy, runs next to Ronne and is the only way in: it serves HTTP on port{" "}
+          <strong>7650</strong> and HTTPS on <strong>7651</strong>, ports nothing common uses. Ronne
+          itself listens on 3000 inside, which isn&apos;t published. Settings go in a{" "}
+          <Code>.env</Code> file next to <Code>compose.yaml</Code>; after changing it, run{" "}
+          <Code>docker compose up -d</Code> again. <Code>RONNE_PORT=3000</Code> keeps the address of
+          an install from before the proxy.
+        </p>
+      </>
+    ),
+    https: (
+      <>
+        <p>
+          Give Ronne a domain and the proxy gets and renews its HTTPS certificate from Let&apos;s
+          Encrypt, and sends <Code>http://</Code> to <Code>https://</Code>. First point the
+          domain&apos;s DNS (<Code>A</Code>, and <Code>AAAA</Code> for IPv6) at the server, and open
+          ports 80 and 443 in its firewall. Then, in <Code>.env</Code>:
+        </p>
+        <Example>
+          {
+            "RONNE_DOMAIN=ronne.example.com\nRONNE_PORT=80\nRONNE_HTTPS_PORT=443\nRONNE_ACME_EMAIL=ops@example.com   # optional: expiry notices"
+          }
+        </Example>
+        <p>
+          The first visit to <Code>https://ronne.example.com</Code> takes a few seconds while the
+          certificate is issued. <Code>PUBLIC_URL</Code> follows the domain, unless you set it.
+        </p>
+        <Table>
+          <thead>
+            <tr>
+              <Th>Setting</Th>
+              <Th>Default</Th>
+              <Th>What it does</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {(
+              [
+                ["RONNE_PORT", "7650", "The HTTP port on the host. 80 with a domain."],
+                [
+                  "RONNE_HTTPS_PORT",
+                  "7651",
+                  "The HTTPS port on the host (TCP, and UDP for HTTP/3). 443 with a domain.",
+                ],
+                [
+                  "RONNE_DOMAIN",
+                  "empty",
+                  "The name to serve over HTTPS. Empty: HTTP only, on any name.",
+                ],
+                [
+                  "RONNE_TLS",
+                  "auto",
+                  "With a domain: auto (Let's Encrypt), files (your own certificate) or internal (the proxy's own test CA).",
+                ],
+                [
+                  "RONNE_ACME_EMAIL",
+                  "empty",
+                  "Where the certificate authority sends expiry notices.",
+                ],
+                [
+                  "RONNE_TRUSTED_PROXIES",
+                  "empty",
+                  "Which addresses may set X-Forwarded-For, such as private_ranges. Only behind your own proxy.",
+                ],
+                [
+                  "PUBLIC_URL",
+                  "https://RONNE_DOMAIN, or http://localhost:RONNE_PORT",
+                  "The address people open. Set it when the defaults are wrong.",
+                ],
+              ] as const
+            ).map(([name, value, what]) => (
+              <tr key={name}>
+                <Td>
+                  <Code>{name}</Code>
+                </Td>
+                <Td>
+                  <Code>{value}</Code>
+                </Td>
+                <Td>{what}</Td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+        <Bullets>
+          <li>
+            <strong>Your own certificate</strong> (a private network, or one from your IT team):{" "}
+            <Code>RONNE_TLS=files</Code>, with <Code>cert.pem</Code> (the full chain) and{" "}
+            <Code>key.pem</Code> in a <Code>certs</Code> folder next to <Code>compose.yaml</Code>.
+            After replacing them, run <Code>docker compose up -d --force-recreate proxy</Code>.{" "}
+            <Code>RONNE_TLS=internal</Code> issues a test certificate instead; browsers warn until
+            its CA is trusted, and <Code>rmk</Code> needs <Code>NODE_EXTRA_CA_CERTS</Code>.
+          </li>
+          <li>
+            <strong>Behind your own proxy</strong> (nginx, Apache, Traefik, a load balancer): leave{" "}
+            <Code>RONNE_DOMAIN</Code> empty, point it at <Code>http://127.0.0.1:7650</Code>, and set{" "}
+            <Code>RONNE_PORT=127.0.0.1:7650</Code>, <Code>PUBLIC_URL</Code> to its https address,
+            and <Code>RONNE_TRUSTED_PROXIES=private_ranges</Code>, so the audit log and sign-in
+            limits see the client&apos;s address from its <Code>X-Forwarded-For</Code> (it must
+            append to it). Its request body limit needs to be at least 28 MB, for drafts sent with a{" "}
+            <To href={docsHref("rmk", "tokens")}>token</To>; nginx&apos;s default is 1 MB (
+            <Code>client_max_body_size 28m;</Code>).
+          </li>
+          <li>
+            <strong>Ports 80 or 443 already in use</strong> (&quot;port is already allocated&quot;):
+            another web server runs on the host. Use it as your own proxy, as above.
+          </li>
+          <li>
+            <strong>No certificate:</strong> check that the DNS points at the server, that 80 and
+            443 are open, and that <Code>RONNE_PORT</Code> and <Code>RONNE_HTTPS_PORT</Code> are 80
+            and 443. <Code>docker compose logs proxy</Code> says why.
+          </li>
+          <li>
+            <strong>Keep the certificates:</strong> they live in the <Code>caddy-data</Code> volume.
+            Never run <Code>docker compose down -v</Code>, which deletes it with your data;
+            Let&apos;s Encrypt limits how often a domain can ask for new ones.
+          </li>
+        </Bullets>
       </>
     ),
     node: (
@@ -316,7 +427,7 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
       <>
         <Example>
           {
-            "docker compose pull web && docker compose up -d     # Docker\ngit pull && pnpm install && pnpm build && pnpm start   # a clone"
+            "docker compose pull && docker compose up -d         # Docker\ngit pull && pnpm install && pnpm build && pnpm start   # a clone"
           }
         </Example>
         <p>

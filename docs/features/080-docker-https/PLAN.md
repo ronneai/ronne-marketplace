@@ -42,7 +42,7 @@ the same change that completes it.
   in the same CI step as ours.
   *Done when:* Dependabot lists `compose.yaml`, and the scan runs.
 
-- [ ] **6. Documentation.** The README's *With Docker* section and its upgrade note; the
+- [x] **6. Documentation.** The README's *With Docker* section and its upgrade note; the
   Documentation's `install.docker` section and `topics.ts` keywords; the setup's Public address
   helper; MVP §5 and the Docker row of §15; 005's spec (port, proxy). As the spec's Documentation
   section lists.
@@ -169,3 +169,16 @@ certificate passes. On failure it prints the last 80 lines of the `proxy` and `w
   stops working. Whether GitHub lists the new dependency can only be seen after the merge.
 - Trivy scans the image that `docker compose config --images` names, in its own step after ours.
   It passed locally (exit 0).
+
+### Task 6: documentation (2026-10-03)
+
+- The Documentation has no search, so the planned `topics.ts` keywords had nowhere to go. A new
+  section, *A domain and HTTPS* (`install.https`), carries the HTTPS content instead (spec updated).
+- `docs.test.tsx` forbids "docker compose restart" in the install topic (since 036 the setup needs
+  no restart). Replaced certificate files are picked up with `docker compose up -d --force-recreate
+  proxy`, in every doc, so the advice is the same everywhere.
+- The setup-mode log line printed "http://localhost:3000 by default" from inside the image. It
+  now prints `PUBLIC_URL`, which `compose.yaml` always sets, with a test.
+- Upgrading is now `docker compose pull` (both images), not `pull web`.
+- Checks: the docs, setup and help tests and the `prepare-start` database test pass;
+  `pnpm test:e2e` passes (84 tests, including the phone sweep that no page scrolls sideways).

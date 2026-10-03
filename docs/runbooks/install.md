@@ -101,15 +101,18 @@ address without a port.
 | `RONNE_HTTPS_PORT` | `7651` | The HTTPS port on your machine |
 | `RONNE_TLS` | `auto` | `auto` (Let's Encrypt), `files` (your own certificate), `internal` (a test certificate) |
 | `RONNE_ACME_EMAIL` | empty | Where the certificate authority sends expiry notices |
+| `RONNE_TRUSTED_PROXIES` | empty | Only behind your own web server: who may tell Ronne the client's address (`private_ranges`) |
 
 **Your company's certificate** (a private network, or a certificate from your IT team): set
 `RONNE_TLS=files` and put `cert.pem` (with the full chain) and `key.pem` in a `certs` folder next
-to `compose.yaml`. When you replace them, run `docker compose restart proxy`.
+to `compose.yaml`. When you replace them, run `docker compose up -d --force-recreate proxy`.
 
 **Behind your own web server** (nginx, Apache, Traefik or a load balancer that already handles
-HTTPS): leave `RONNE_DOMAIN` empty, set `RONNE_PORT=127.0.0.1:7650` and
-`PUBLIC_URL=https://ronne.example.com`, and point your web server at `http://127.0.0.1:7650`.
-Allow request bodies of at least 28 MB (nginx: `client_max_body_size 28m;`).
+HTTPS): leave `RONNE_DOMAIN` empty, set `RONNE_PORT=127.0.0.1:7650`,
+`PUBLIC_URL=https://ronne.example.com` and `RONNE_TRUSTED_PROXIES=private_ranges`, and point your
+web server at `http://127.0.0.1:7650`. It must add the client's address to `X-Forwarded-For`
+(nginx: `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`) and allow request bodies
+of at least 28 MB (nginx: `client_max_body_size 28m;`).
 
 **Keep the certificates:** they live in the `caddy-data` volume. Never run
 `docker compose down -v`, which deletes it along with your data; Let's Encrypt limits how often a
