@@ -29,7 +29,7 @@ the same change that completes it.
   container in front), and that a 28 MB draft with a token passes and a larger one gets 413.
   *Done when:* both are recorded in the notes; if `client-ip.ts` needed a change, it has tests.
 
-- [ ] **4. CI.** In `.github/actions/build-image` (shared by `image.yml` and `release.yml`), after
+- [x] **4. CI.** In `.github/actions/build-image` (shared by `image.yml` and `release.yml`), after
   the image probe: start the compose stack on the image just built, with `RONNE_DOMAIN=localhost`
   and `RONNE_TLS=internal`; probe `http://127.0.0.1:7650` (redirect) and `https://localhost:7651/api/health`
   (`-k`, expects `503 setup_required`); then once more with a self-signed certificate and
@@ -156,7 +156,7 @@ certificate passes. On failure it prints the last 80 lines of the `proxy` and `w
   so `openssl` couldn't write the test certificate, and its hidden error stopped the script under
   `set -e`. The script now creates `certs/` before the first `up` and shows `openssl`'s errors.
   The docs tell users to create the folder first (spec edge case added).
-- **Still open:** the run on a pull request. Tick the task when that run passes on both architectures.
+- The second run on #117 passed on amd64 and arm64, with every other check (2026-10-03).
 
 ### Task 5: the Caddy image (2026-10-03)
 
