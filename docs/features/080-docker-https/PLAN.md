@@ -137,3 +137,18 @@ limit is the backstop for bodies sent without one.
 Caddy logs "Caddyfile input is not formatted" at start: the optional lines (`email`,
 `trusted_proxies`) leave blank lines when they're unset, so no indentation would satisfy
 `caddy fmt`. It does no harm.
+
+### Task 4: CI (2026-10-03)
+
+`.github/actions/build-image/compose-probe.sh` runs after the single-container probe, from the
+repository root, so it can be run by hand too (`… compose-probe.sh ronne-web:local`). It runs
+case 1 (HTTP on 7650, and `web` publishes no host port), then `RONNE_DOMAIN=localhost
+RONNE_TLS=internal` (HTTPS on 7651 with `-k`, and a 308 from 7650 to `https://localhost/…`), then
+`RONNE_TLS=files` with a one-day self-signed certificate, checked with `--cacert` so only that
+certificate passes. On failure it prints the last 80 lines of the `proxy` and `web` logs.
+
+- Locally (Docker Desktop, macOS): passes in about 5 s. With `reverse_proxy` misspelt in the
+  Caddyfile it fails at the first probe, and the log shows Caddy's "unrecognized directive".
+- `docker compose port web 3000` prints `invalid IP:0` and exits 0 when nothing is published, so
+  the script reads `PublishedPort` from `docker compose ps` instead.
+- **Still open:** the run on a pull request. Tick the task when that run passes on both architectures.

@@ -1,7 +1,8 @@
 name: Build, run and scan the image
 description: >-
   Builds the web app's Docker image for one architecture and loads it into the local Docker,
-  runs it until /api/health answers setup_required, and scans it with Trivy for fixable high and
+  runs it until /api/health answers setup_required, runs compose.yaml on it through the Caddy
+  proxy over HTTP and HTTPS (feature 080), and scans it with Trivy for fixable high and
   critical vulnerabilities (docs/policies/dependencies.md §3). Shared by image.yml (every pull
   request and push to main, feature 005) and release.yml (feature 035), so the image that's
   published is checked exactly as the one on every pull request.
@@ -51,6 +52,14 @@ runs:
         echo "The container didn't answer with setup_required. Last response: $body"
         docker logs ronne
         exit 1
+
+    # compose.yaml on this image, through the Caddy proxy: HTTP, then HTTPS from Caddy's internal
+    # CA and from certificate files (feature 080).
+    - name: Run compose.yaml and check the proxy
+      shell: bash
+      env:
+        TAG: ${{ inputs.tag }}
+      run: .github/actions/build-image/compose-probe.sh "$TAG"
 
     # Trivy's own image, pinned by digest (a multi-arch index), instead of a third-party action.
     - name: Scan for known vulnerabilities (Trivy)
