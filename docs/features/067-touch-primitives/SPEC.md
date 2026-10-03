@@ -103,7 +103,7 @@ feature can check against it.
   scrolls its body only (unit tests on classes; `dialogs.mobile.e2e.ts`).
 - [ ] Copy works on an `http://<LAN IP>` origin in Chromium and WebKit, and says so when it can't
   (unit tests for the three paths; an e2e against the test server's IP).
-- [ ] The sweep's `expectedFailures` entries for 067 are gone.
+- [ ] The sweep's `EXPECTED_FAILURES` entries for 067 are gone.
 
 ## Decisions
 

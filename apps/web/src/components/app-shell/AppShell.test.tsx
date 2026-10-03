@@ -27,6 +27,11 @@ describe("navFor", () => {
 });
 
 describe("MainNav", () => {
+  it("is positioned, so its scrolling strip clips the counts' screen-reader text (065)", () => {
+    const html = renderToStaticMarkup(<MainNav items={[]} />);
+    expect(html).toMatch(/<nav aria-label="Main" class="relative /);
+  });
+
   it("puts Admin and Docs at the right, before the appearance switch", () => {
     const html = renderToStaticMarkup(
       <MainNav items={navFor({ name: "R", email: "r@example.com", role: "root" })} />,
@@ -57,6 +62,14 @@ describe("AppShell", () => {
         <p>content</p>
       </AppShell>,
     );
+
+  it("keeps the header, content and footer clear of a phone's notch and home indicator (065)", () => {
+    const html = render(null);
+    expect(html).toMatch(/<header class="[^"]*\bpt-safe px-safe\b/);
+    expect(html).toMatch(/<div class="flex flex-1 flex-col px-safe"><main /);
+    expect(html).toMatch(/<footer class="[^"]*\bpb-safe px-safe\b/);
+    expect(html).toContain("min-h-dvh");
+  });
 
   it("renders the brand, the content and the footer, with no user menu when signed out", () => {
     const html = render(null);

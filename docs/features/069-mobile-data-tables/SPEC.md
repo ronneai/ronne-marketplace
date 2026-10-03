@@ -86,7 +86,7 @@ self-explanatory and labelled.
   sweep on phone and tablet, with every row's name readable and actions on screen
   (`tables.mobile.e2e.ts`: submit, approve, revoke a token and yank a version from a phone).
 - [ ] The Sort select works below `sm` and keeps the URL parameters of 060.
-- [ ] The sweep's `expectedFailures` entries for 069 are gone.
+- [ ] The sweep's `EXPECTED_FAILURES` entries for 069 are gone.
 
 ## Decisions
 

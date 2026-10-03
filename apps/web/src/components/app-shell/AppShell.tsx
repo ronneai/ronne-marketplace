@@ -32,8 +32,8 @@ export const AppShell = ({
   children: ReactNode;
 }) => {
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-30 border-b border-hairline bg-surface">
+    <div className="flex min-h-dvh flex-col">
+      <header className="sticky top-0 z-30 border-b border-hairline bg-surface pt-safe px-safe">
         <div className="flex h-14 items-center gap-1.5 px-3 sm:gap-6 sm:px-6">
           <Link
             href="/"
@@ -77,8 +77,13 @@ export const AppShell = ({
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full flex-1 px-4 py-8 sm:px-6 lg:w-[72%] lg:px-0">{children}</main>
-      <footer className="border-t border-hairline">
+      {/* With `viewport-fit=cover`, a phone in landscape puts the notch over the sides (065). */}
+      <div className="flex flex-1 flex-col px-safe">
+        <main className="mx-auto w-full flex-1 px-4 py-8 sm:px-6 lg:w-[72%] lg:px-0">
+          {children}
+        </main>
+      </div>
+      <footer className="border-t border-hairline pb-safe px-safe">
         <div className="flex flex-wrap justify-between gap-2 px-4 py-4 font-mono text-xs text-muted sm:px-6">
           <span>ronne marketplace · open source (MIT)</span>
           <a href="https://github.com/ronneai/ronne-marketplace" className="hover:text-fg">

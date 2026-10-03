@@ -19,6 +19,8 @@ This feature finishes these pages so every page passes the sweep.
 
 **In:**
 - **Sign-in** (`SignInPage.tsx`, `SignInForm.tsx`, `ForgotPassword.tsx`, `CliAuthPanel.tsx`):
+  - The keyboard order goes email → password → Remember me → Sign in. Today "Forgot?" sits between
+    email and password (seen on Android, 065), so a phone keyboard's "next" lands on it.
   - The "Forgot?" summary gets a 44px target.
   - The email field has `autocomplete="username"`, `inputmode="email"`, `autocapitalize="none"`
     and `autocorrect="off"`. The password field has `autocomplete="current-password"`. Check what

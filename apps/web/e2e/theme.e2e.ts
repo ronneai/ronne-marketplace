@@ -10,13 +10,19 @@ test("the header's theme switch toggles light and dark, and it sticks", async ({
   await expect(headerName(page, E2E_NAMES.notRoot)).toBeVisible();
 
   const html = page.locator("html");
+  // The browser bar follows the header's colour (feature 065).
+  const themeColor = page.locator('meta[name="theme-color"]');
   const toggle = page.getByRole("banner").getByRole("button", { name: /^Switch to the/ });
   // No saved choice: light.
   await expect(html).toHaveAttribute("data-theme", "light");
+  await expect(themeColor).toHaveAttribute("content", "#ffffff");
   await toggle.click();
   await expect(html).toHaveAttribute("data-theme", "dark");
+  await expect(themeColor).toHaveAttribute("content", "#14213d");
   await page.reload();
+  await expect(themeColor).toHaveAttribute("content", "#14213d");
   await expect(html).toHaveAttribute("data-theme", "dark");
   await toggle.click();
   await expect(html).toHaveAttribute("data-theme", "light");
+  await expect(themeColor).toHaveAttribute("content", "#ffffff");
 });

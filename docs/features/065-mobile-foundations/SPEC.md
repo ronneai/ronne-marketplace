@@ -30,7 +30,8 @@ phone and tablet test projects, with a sweep that fails when any page scrolls si
     dialog's body and a menu's list.
 - **The root layout's viewport** (`app/layout.tsx`): a `generateViewport` with
   `width=device-width, initial-scale=1, viewport-fit=cover` and a `themeColor` from the theme cookie
-  (the `canvas` token of the chosen theme), so the browser bar matches light or dark. Zoom stays
+  (the `surface` token of the chosen theme, the header's colour), so the browser bar matches the
+  header in light and dark. Zoom stays
   allowed (`maximum-scale` is never set).
 - **Safe areas:** the header, the footer, a full-screen dialog and a sticky bottom bar pad
   themselves with `env(safe-area-inset-*)`. Two utilities in `globals.css` (`pt-safe`, `pb-safe`
@@ -50,7 +51,7 @@ phone and tablet test projects, with a sweep that fails when any page scrolls si
   item pages and the review page aren't empty). On each page, at each project's size and at 360px
   and 320px: the document doesn't scroll sideways (`scrollWidth <= clientWidth`), and no element
   sticks out of the viewport unless it sits in a scrolling frame. Failures name the page and the
-  element. A page that still fails is listed in an `expectedFailures` map that names the feature
+  element. A page that still fails is listed in an `EXPECTED_FAILURES` map that names the feature
   fixing it; each later feature empties its entries, and 075 checks the map is empty.
 - **A tap-target check** (`e2e/touch-targets.ts`, used by the sweep in report mode): lists every
   visible link, button, input and summary under 24px (always a failure once the map is empty) and
@@ -66,15 +67,14 @@ phone and tablet test projects, with a sweep that fails when any page scrolls si
 
 ## Behaviour
 
-- Nothing a person sees changes on desktop. On a phone, the browser's bar takes the theme's canvas
-  colour, and on a phone with a notch the header and footer stay clear of it in landscape.
+- Nothing a person sees changes on desktop. On a phone, the browser's bar takes the header's colour, and on a phone with a notch the header and footer stay clear of it in landscape.
 - `pnpm test:e2e` runs the desktop, wizard, phone, phone-webkit and tablet projects.
   `pnpm test:e2e --project phone` runs one.
 
 ## Edge cases
 
-- **The theme cookie changes** after the page loaded (the header toggle): the toggle also updates
-  the `theme-color` meta, so the browser bar follows without a reload.
+- **The theme cookie changes** after the page loaded (the header toggle): the toggle's server action
+  re-renders the viewport too, so the browser bar follows without a reload.
 - **The setup wizard and the "database unavailable" page** have no signed-in user: the sweep opens
   them with the blank instances, as the wizard projects do.
 - **WebKit on CI:** it's part of `@playwright/test` (Apache-2.0), already a dependency; the CI step
@@ -89,15 +89,16 @@ Documentation topic about phones comes with 075.
 
 ## Acceptance criteria
 
-- [ ] 032's spec states the mobile rules above; the knowledge note exists and links to it.
-- [ ] The viewport meta has `viewport-fit=cover`, no `maximum-scale`, and a `theme-color` matching
+- [x] 032's spec states the mobile rules above; the knowledge note exists and links to it.
+- [x] The viewport meta has `viewport-fit=cover`, no `maximum-scale`, and a `theme-color` matching
   the theme, updated by the toggle (unit test on `generateViewport`, e2e on the toggle).
-- [ ] The header, footer and a full-screen dialog respect the safe-area insets (unit test on the
-  classes; checked by hand in the iPhone simulator, see PLAN).
-- [ ] `phone`, `phone-webkit` and `tablet` projects run in `pnpm test:e2e` and in CI.
-- [ ] The sweep visits every page in `e2e/pages.ts` for each role and fails on sideways scroll;
-  today's failures are listed in `expectedFailures` with the feature that fixes each.
-- [ ] The tap-target report is attached to the e2e run.
+- [x] The header, footer and a full-screen dialog respect the safe-area insets (unit test on the
+  classes; checked by hand in the iPhone simulator, see PLAN). The full-screen dialog comes with
+  067, which uses the same utilities.
+- [x] `phone`, `phone-webkit` and `tablet` projects run in `pnpm test:e2e` and in CI.
+- [x] The sweep visits every page in `e2e/pages.ts` for each role and fails on sideways scroll;
+  today's failures are listed in `EXPECTED_FAILURES` with the feature that fixes each.
+- [x] The tap-target report is attached to the e2e run.
 
 ## Decisions
 

@@ -631,7 +631,7 @@ export const DraftEditor = ({
                   "rounded-panel border border-hairline bg-surface",
                   // The canvas needs a frame of its own; a file or the form grows with its content,
                   // and the page scrolls instead of the card (owner, 2026-10-01).
-                  composing ? "h-[85vh] min-h-[38rem] overflow-hidden" : "min-h-80",
+                  composing ? "h-[85dvh] min-h-[38rem] overflow-hidden" : "min-h-80",
                 )}
               >
                 {file.path === MANIFEST_PATH && view === "form" ? (

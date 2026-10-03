@@ -25,11 +25,11 @@ export const Source = ({ path, text, line }: { path: string; text: string; line?
   useEffect(() => setReady(true), []);
   if (text.trim() === "") return <p className="p-4 text-sm text-muted">This file is empty.</p>;
   return ready ? (
-    <div className="max-h-[70vh] overflow-auto">
+    <div className="max-h-[70dvh] overflow-auto">
       <CodeEditor path={path} value={text} onChange={ignore} readOnly goToLine={goToLine} />
     </div>
   ) : (
-    <pre className="max-h-[70vh] overflow-auto p-4 font-mono text-[13px] leading-relaxed whitespace-pre-wrap break-words text-fg">
+    <pre className="max-h-[70dvh] overflow-auto p-4 font-mono text-[13px] leading-relaxed whitespace-pre-wrap break-words text-fg">
       {text}
     </pre>
   );

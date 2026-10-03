@@ -87,7 +87,7 @@ sit changes, and the Documentation doesn't describe button positions. Check "Dec
 - [ ] The comment form and decision dialogs keep their buttons on screen with the keyboard open
   (WebKit e2e).
 - [ ] The review title with a 64-character name doesn't overflow (sweep).
-- [ ] The sweep's `expectedFailures` entries for 073 are gone.
+- [ ] The sweep's `EXPECTED_FAILURES` entries for 073 are gone.
 
 ## Open questions
 

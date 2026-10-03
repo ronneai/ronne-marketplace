@@ -7,7 +7,7 @@ import type { SetupPageProps } from "./types";
 /** The web setup (feature 036): the form and the warning. Nothing about the terminal here. */
 export const SetupPage = ({ page }: { page: SetupPageProps }) => {
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center gap-4 px-4 py-12">
+    <main className="mx-auto flex min-h-dvh max-w-2xl flex-col justify-center gap-4 px-4 py-12">
       <Panel padding="lg" className="grid gap-6">
         <div className="grid gap-3">
           <BrandLogo height={40} className="text-fg" />

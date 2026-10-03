@@ -27,7 +27,7 @@ const server = (instance: Instance, url: string) => ({
   timeout: 60_000,
 });
 
-/** End-to-end tests (feature 006): a production build, fresh instances, Chromium. */
+/** End-to-end tests (feature 006): a production build, fresh instances, Chromium; phones and a tablet (065). */
 export default defineConfig({
   testDir: "./e2e",
   testMatch: "**/*.e2e.ts",
@@ -40,8 +40,32 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      testIgnore: "**/setup-*.e2e.ts",
+      testIgnore: ["**/setup-*.e2e.ts", "**/*.mobile.e2e.ts"],
       use: { ...devices["Desktop Chrome"], baseURL: instances.main.baseURL },
+    },
+    // Phones and tablets (feature 065): only the `*.mobile.e2e.ts` files, at each device's size,
+    // with touch. WebKit stands in for iOS Safari (dependency exception E-5).
+    {
+      name: "phone",
+      testMatch: "**/*.mobile.e2e.ts",
+      use: { ...devices["Pixel 7"], baseURL: instances.main.baseURL },
+    },
+    {
+      name: "phone-webkit",
+      testMatch: "**/*.mobile.e2e.ts",
+      use: { ...devices["iPhone 15"], baseURL: instances.main.baseURL },
+    },
+    {
+      name: "tablet",
+      testMatch: "**/*.mobile.e2e.ts",
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 768, height: 1024 },
+        deviceScaleFactor: 2,
+        isMobile: true,
+        hasTouch: true,
+        baseURL: instances.main.baseURL,
+      },
     },
     {
       name: "wizard",

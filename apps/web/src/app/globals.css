@@ -46,6 +46,22 @@
   --radius-panel: 8px;
 }
 
+/*
+ * Safe areas (feature 065): padding equal to the device's inset (a notch, the home indicator), which
+ * only applies with `viewport-fit=cover`. Put them on an edge's outer element, whose own padding is
+ * zero, and keep the usual padding on the element inside.
+ */
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@utility px-safe {
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
 /* The header sticks to the top (AppShell): anchor jumps land below it. */
 html {
   scroll-padding-top: 4.5rem;

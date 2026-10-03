@@ -22,7 +22,7 @@ export const SignInPage = ({
   setupDone?: boolean;
 }) => {
   return (
-    <main className="mx-auto grid min-h-screen w-full max-w-5xl content-center gap-6 px-4 py-12 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-start">
+    <main className="mx-auto grid min-h-dvh w-full max-w-5xl content-center gap-6 px-4 py-12 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-start">
       <Panel padding="lg" className="grid gap-6">
         <div className="grid gap-3">
           <BrandLogo height={40} className="text-fg" />

@@ -11,7 +11,7 @@ make the mobile rules stick, so new features don't bring the problems back.
 
 **In:**
 - **Guards that stay:**
-  - The sweep's `expectedFailures` map is empty and removed. From now on any sideways scroll on
+  - The sweep's `EXPECTED_FAILURES` map is empty and removed. From now on any sideways scroll on
     any page, for any role, at 320–1024px fails CI.
   - The tap-target check turns from a report into a failure: no target under 24px anywhere, and
     none under 44px on a coarse pointer, except an allowlist with a reason for each entry (inline
@@ -67,7 +67,7 @@ stops working on a phone.
 
 ## Acceptance criteria
 
-- [ ] `expectedFailures` is gone, and the sweep passes for every role on every project.
+- [ ] `EXPECTED_FAILURES` is gone, and the sweep passes for every role on every project.
 - [ ] The tap-target check fails CI on a new small target, and its allowlist gives a reason for
   each entry.
 - [ ] The template and `CLAUDE.md` mention the mobile rules.
