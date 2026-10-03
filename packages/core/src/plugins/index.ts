@@ -1,5 +1,6 @@
 // `@ronneai/core/plugins`: items as native plugins and plugin marketplaces (feature 076).
 
+export { type PluginArchive, pluginArchive } from "./archive.js";
 export {
   itemNameOfPlugin,
   PLUGIN_NAME_PROBLEM_MESSAGES,

@@ -16,7 +16,7 @@ the same change that completes it.
   `PLUGIN_BUILDER_VERSION`, and the `./plugins` export in `packages/core/package.json`.
   *Done when:* unit tests for `pluginName` / `itemNameOfPlugin` pass, and `pnpm build` emits `dist/plugins`.
 
-- [ ] **3. The archive.** `plugins/archive.ts`: `pluginArchive(files)` on `zipSync`.
+- [x] **3. The archive.** `plugins/archive.ts`: `pluginArchive(files)` on `zipSync`.
   *Done when:* the same files zip to the same sha256, and `unzipSync` gives the files and modes back.
 
 - [ ] **4. Claude Code adapter.** `plugins/claude-code.ts`: moves the Claude Code renderer's changes
