@@ -42,13 +42,17 @@ the marketplace opts in (`allowCrossMarketplaceDependenciesOn`). So it isn't bui
 
 ## Behaviour
 
-**The benchmark.** `pnpm --filter @ronneai/web bench:feeds [--items 1000,5000,10000]` runs
-`apps/web/scripts/feed-benchmark.ts` against a throwaway database (SQLite by default, or
-`DATABASE_URL`) and a temporary storage folder. It seeds skills, each a small artifact, and prints, per
-tool and item count:
+**The benchmark.** `pnpm --filter @ronneai/web bench:feeds [--items 1000,5000,10000] [--tools …]
+[--db sqlite|postgres|mysql]` runs `apps/web/scripts/feed-benchmark.ts`. It uses a throwaway database:
+SQLite in memory by default, or a new database on the local test servers (`pnpm test:db:up`),
+created and dropped as the database tests do, so it never touches a real one. It seeds skills,
+each a small artifact with a description of about 160 characters, into a temporary storage folder,
+and prints a Markdown table with, per tool and item count:
 - the marketplace's size, and how close it is to 5 MiB;
-- the time of a **cold** request (no zips built yet: every plugin is built), a **warm** one (zips
-  built, marketplace not cached), and a **cached** one (after task 3).
+- the time of a **cold** request (no zips built yet: every plugin is built);
+- a **warm** one (the zips built, the marketplace built again);
+- a **repeat**, the same request again. It equals the warm one before the cache; with the cache
+  (task 3) it's answered from memory, and the warm column is measured with a fresh cache.
 
 The cold numbers ignore the 5-second build budget (077), so they show the real cost. The results go
 in PLAN.md's notes and the Measured section below.
