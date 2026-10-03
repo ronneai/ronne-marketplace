@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { Dialog } from "@/components/ui/Dialog";
+import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { Checkbox, FieldError, Label, selectClasses, TextField } from "@/components/ui/Field";
 import { createTokenFromForm } from "./actions";
 import { CreatedTokenPanel } from "./CreatedTokenPanel";
@@ -56,14 +56,14 @@ const CreateTokenForm = ({ onDone }: { onDone: () => void }) => {
         />
       ) : null}
       <FieldError id="token-error">{state.error}</FieldError>
-      <div className="flex justify-end gap-2">
+      <DialogActions>
         <Button variant="ghost" onClick={onDone}>
           Cancel
         </Button>
         <Button type="submit" loading={pending}>
           Create token
         </Button>
-      </div>
+      </DialogActions>
     </form>
   );
 };

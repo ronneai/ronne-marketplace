@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
-import { Dialog } from "@/components/ui/Dialog";
+import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError } from "@/components/ui/Field";
 import { IssueList } from "@/components/validation/IssueList";
 import {
@@ -57,11 +57,11 @@ export const SubmitDialog = ({
           <p className="text-sm text-fg">
             Save your changes first: the checks, and the reviewers, see what's saved.
           </p>
-          <div className="flex justify-end">
+          <DialogActions>
             <Button variant="secondary" onClick={onClose}>
               Close
             </Button>
-          </div>
+          </DialogActions>
         </div>
       ) : (
         <div className="grid gap-4">
@@ -92,7 +92,7 @@ export const SubmitDialog = ({
               <Help id="after-submit" />
             </div>
           )}
-          <div className="flex flex-wrap justify-end gap-2">
+          <DialogActions>
             <Button variant="secondary" onClick={onClose}>
               Cancel
             </Button>
@@ -110,7 +110,7 @@ export const SubmitDialog = ({
             >
               {label}
             </Button>
-          </div>
+          </DialogActions>
         </div>
       )}
     </Dialog>
@@ -191,7 +191,7 @@ export const WithdrawDialog = ({
           </p>
         ) : null}
         <FieldError id="withdraw-error">{error}</FieldError>
-        <div className="flex flex-wrap justify-end gap-2">
+        <DialogActions>
           <Button variant="secondary" onClick={onClose}>
             Keep it
           </Button>
@@ -213,7 +213,7 @@ export const WithdrawDialog = ({
           >
             {CHOICES[mode].label}
           </Button>
-        </div>
+        </DialogActions>
       </div>
     </Dialog>
   );
@@ -240,7 +240,7 @@ export const DeleteArchivedDialog = ({
       <div className="grid gap-4">
         <p className="text-sm text-fg">{CHOICES.delete.text}</p>
         <FieldError id="delete-error">{error}</FieldError>
-        <div className="flex flex-wrap justify-end gap-2">
+        <DialogActions>
           <Button variant="secondary" onClick={onClose}>
             Keep it
           </Button>
@@ -259,7 +259,7 @@ export const DeleteArchivedDialog = ({
           >
             Delete for good
           </Button>
-        </div>
+        </DialogActions>
       </div>
     </Dialog>
   );

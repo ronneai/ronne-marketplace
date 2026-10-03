@@ -18,11 +18,13 @@ the same change that completes it.
   buttons and chips, `FilterChips`, pager, `FileTree` rows, menu items.
   *Done when:* unit tests check the classes; the tap-target report has no `components/ui` entries.
 
-- [ ] **3. Dialog.** Full screen below `sm` with sticky title bar and `footer` slot; max height and
-  sticky parts on desktop; the `side` variant; focus-into-view inside the body. Move existing
-  dialogs' buttons into `footer` (`grep -rn "<Dialog" apps/web/src`).
-  *Done when:* `Dialog` unit tests pass; `dialogs.mobile.e2e.ts` opens create token, publish and
-  bulk approve on a phone and finds the title and buttons on screen with the keyboard open.
+- [x] **3. Dialog.** Full screen below `sm`, the title bar at the top and `DialogActions` stuck to
+  the bottom; max height on desktop; the `side` variant; focus-into-view inside the body. Every
+  dialog's final button row became `DialogActions` (21 rows in 12 files).
+  *Done when:* `Dialog` unit tests pass; `dialogs.mobile.e2e.ts` opens Create access token on each
+  phone and tablet project and finds the title, close and buttons on screen with a field focused.
+  (Publish and bulk approve are checked by 073, which reworks them. Playwright can't open an
+  on-screen keyboard, so "keyboard open" is a focused field.)
 
 - [ ] **4. `BottomBar`.** Sticky, safe-area padded, follows `visualViewport`, breakpoint and
   hide-on-focus options; shown in the styleguide.
@@ -61,3 +63,8 @@ goes into `SPEC.md` instead.
   The phone report went from 315 to 178 entries; what's left is in features (prose links, which
   WCAG exempts, the item and docs tabs for 066, cards for 071, row checkboxes for 069, the editor's
   view switcher for 072), none in `components/ui`.
+- **`DialogActions` instead of a footer slot:** see the spec. The conversion was scripted over
+  every `flex … justify-end` row that ends a dialog's body; three rows that aren't a dialog's last
+  (a section inside the draft settings dialog, the own-row help) were left alone.
+- **The 16px fields widened the new item form** past 360px in every engine (the sweep caught it);
+  its `EXPECTED_FAILURES` entry for 072 now covers every project.

@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
-import { Dialog } from "@/components/ui/Dialog";
+import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError, Label, selectClasses } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
 import {
@@ -159,14 +159,14 @@ const ActionForm = ({ kind, user, onDone }: { kind: Kind; user: RowUser; onDone:
         </>
       ) : null}
       <FieldError id={`${kind}-${user.id}-error`}>{state.error}</FieldError>
-      <div className="flex justify-end gap-2">
+      <DialogActions>
         <Button variant="ghost" onClick={onDone}>
           Cancel
         </Button>
         <Button type="submit" loading={pending}>
           {TITLES[kind]}
         </Button>
-      </div>
+      </DialogActions>
     </form>
   );
 };

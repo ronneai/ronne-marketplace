@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { Dialog } from "@/components/ui/Dialog";
+import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
 import { revokeTokenFromForm } from "./actions";
@@ -34,14 +34,14 @@ const RevokeForm = ({ id, name, onDone }: { id: string; name: string; onDone: ()
         machine, stops working and has to sign in again.
       </p>
       <FieldError id={`revoke-${id}-error`}>{state.error}</FieldError>
-      <div className="flex justify-end gap-2">
+      <DialogActions>
         <Button variant="ghost" onClick={onDone}>
           Cancel
         </Button>
         <Button type="submit" loading={pending}>
           Revoke token
         </Button>
-      </div>
+      </DialogActions>
     </form>
   );
 };

@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { Button, buttonClasses } from "./Button";
 import { CopyableCommand } from "./CopyableCommand";
+import { Dialog, DialogActions } from "./Dialog";
 import { Checkbox } from "./Field";
 import { HelpTip } from "./HelpTip";
 import { Tabs } from "./Tabs";
@@ -50,5 +51,38 @@ describe("tap areas on a coarse pointer", () => {
     const checkbox = renderToStaticMarkup(<Checkbox id="c" label="Remember me" />);
     expect(checkbox).toContain("pointer-coarse:min-h-11");
     expect(checkbox).toContain("pointer-coarse:size-5");
+  });
+});
+
+describe("dialogs on a phone (067)", () => {
+  const render = (size?: "default" | "large" | "side") =>
+    renderToStaticMarkup(
+      <Dialog open={false} onClose={() => {}} title="Create a token" size={size}>
+        <p>Body</p>
+        <DialogActions>
+          <Button>Create</Button>
+        </DialogActions>
+      </Dialog>,
+    );
+
+  it("fills the screen below sm, and keeps a max height on wider screens", () => {
+    const html = render();
+    expect(html).toContain("max-sm:h-dvh");
+    expect(html).toContain("max-sm:w-screen");
+    expect(html).toContain("max-h-[calc(100dvh-2rem)]");
+  });
+
+  it("scrolls only its body, with the actions stuck to the bottom", () => {
+    const html = render();
+    expect(html).toMatch(/<div class="min-h-0 flex-1 overflow-y-auto /);
+    expect(html).toMatch(/<div class="sticky bottom-0 [^"]*"><button/);
+  });
+
+  it("has a 40px close button, 44px on touch", () => {
+    expect(render()).toMatch(/aria-label="Close" class="[^"]*size-10[^"]*pointer-coarse:size-11/);
+  });
+
+  it("opens as a full-height sheet from the right with `side`", () => {
+    expect(render("side")).toContain("ml-auto h-dvh");
   });
 });

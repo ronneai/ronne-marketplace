@@ -35,12 +35,15 @@ density stays as it is: the changes apply on a coarse pointer or below `sm`.
     the docs `TypesExplorer` chips, the pager's links, `FileTree` rows (the whole row, not just the
     name), menu items: 44px on a coarse pointer.
 - **Dialogs on phones** (`Dialog.tsx`):
-  - Below `sm`, every dialog is **full screen** (`100dvh`, `100vw`) with a sticky title bar (title
-    and close) and a sticky footer for its actions; only the body scrolls. Safe-area padding top
-    and bottom. From `sm` as today.
+  - Below `sm`, every dialog is **full screen** (`100dvh`, `100vw`) with the title bar (title and
+    close) at the top and its actions stuck to the bottom; only the body scrolls. Safe-area padding
+    top and bottom. From `sm` as today.
   - The default size on desktop gets a max height (`calc(100dvh-2rem)`) with the same sticky title
     and footer, so long dialogs (Publish) keep their title in view.
-  - A `footer` slot so features put their buttons where the dialog keeps them.
+  - **`DialogActions`**, the row of buttons at the end of a dialog's body: sticky at the bottom of
+    the scrolling body, so it stays in view. A row, not a slot outside the body, because most
+    dialogs' buttons are inside their `<form>`; moving them out would need `form=` on every
+    button. The two large bulk dialogs keep their own footers (073 reworks them).
   - A `side` variant (a sheet from the right, full height, 20rem or full width below `sm`) for
     066's menu.
 - **`BottomBar`**, a sticky action bar for phones (used by 072's editor and 073's review page):

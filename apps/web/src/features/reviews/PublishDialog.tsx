@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Help } from "@/components/help/Help";
 import { Button, buttonClasses } from "@/components/ui/Button";
-import { Dialog } from "@/components/ui/Dialog";
+import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
 import type { SuggestedBump } from "@/server/domains/submissions/models/bump";
@@ -96,7 +96,7 @@ export const PublishDialog = ({
               >
                 <span className="font-mono text-xs break-all">sha256 {result.sha256}</span>
               </Notice>
-              <div className="flex flex-wrap justify-end gap-2">
+              <DialogActions>
                 <Link href={versionsHref} className={buttonClasses("secondary")}>
                   View versions
                 </Link>
@@ -108,7 +108,7 @@ export const PublishDialog = ({
                 >
                   Done
                 </Button>
-              </div>
+              </DialogActions>
             </div>
           ) : (
             <form
@@ -222,14 +222,14 @@ export const PublishDialog = ({
               <FieldError id="publish-error">
                 {result && !result.ok ? result.error : null}
               </FieldError>
-              <div className="flex flex-wrap justify-end gap-2">
+              <DialogActions>
                 <Button variant="secondary" onClick={() => setOpen(false)}>
                   Cancel
                 </Button>
                 <Button type="submit" loading={pending} disabled={Boolean(problem)}>
                   Publish {version ?? ""}
                 </Button>
-              </div>
+              </DialogActions>
             </form>
           )}
         </Dialog>
