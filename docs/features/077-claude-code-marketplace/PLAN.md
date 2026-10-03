@@ -21,7 +21,7 @@ the same change that completes it.
   accepted for now; the others answer 404 until 078.
   *Done when:* route tests cover 401, 503 without `PUBLIC_URL`, 304, 404, and the download count.
 
-- [ ] **4. `rmk auth headers`.** In `packages/cli`.
+- [x] **4. `rmk auth headers`.** In `packages/cli`.
   *Done when:* a test checks stdout is only the JSON header, and that it exits 1 without a token.
 
 - [ ] **5. `rmk plugin-setup claude-code`.** `packages/cli/src/plugin-setup.ts`, modelled on
