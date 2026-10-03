@@ -12,7 +12,7 @@ the same change that completes it.
   open questions.
   *Done when:* the contract says what was checked and when.
 
-- [ ] **2. Names, types and the export.** `packages/core/src/plugins/{types,names}.ts`,
+- [x] **2. Names, types and the export.** `packages/core/src/plugins/{types,names}.ts`,
   `PLUGIN_BUILDER_VERSION`, and the `./plugins` export in `packages/core/package.json`.
   *Done when:* unit tests for `pluginName` / `itemNameOfPlugin` pass, and `pnpm build` emits `dist/plugins`.
 
