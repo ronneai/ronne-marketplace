@@ -31,11 +31,14 @@ export class PluginUnavailableError extends FeedsError {
   }
 }
 
-/** The marketplace file is past the size the tool reads (Claude Code: 5 MiB). */
+/**
+ * Claude Code's marketplace is past the 5 MiB Claude Code reads from an address (079: only Claude
+ * Code's). The git mirror has no such limit.
+ */
 export class FeedTooLargeError extends FeedsError {
   constructor(readonly plugins: number) {
     super(
-      `The marketplace lists ${plugins} plugins, which is more than the tool can read in one file.`,
+      `This instance's Claude Code marketplace lists ${plugins} plugins, more than the 5 MiB Claude Code reads from an address. Add the instance's git mirror in Claude Code instead (rmk feed build): a marketplace in a git repository has no such limit.`,
     );
   }
 }

@@ -1,5 +1,6 @@
 import type { ItemType, RiskFlag } from "@ronneai/core";
 import type { Kysely } from "kysely";
+import { bumpCatalogueRevision } from "../../../db/catalogue-revision";
 import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
 import { decodeJson, encodeJson } from "../../../db/json";
@@ -105,6 +106,7 @@ export const kyselyItemRepository = (
 
   updateDescription: async (itemId, description) => {
     await db.updateTable("items").set({ description }).where("id", "=", itemId).execute();
+    await bumpCatalogueRevision(db);
   },
 
   versions: async (itemId) => {
@@ -204,6 +206,7 @@ export const kyselyItemRepository = (
         })
         .execute();
     await refreshListing(db, dialect, version.itemId);
+    await bumpCatalogueRevision(db);
     return id;
   },
 
@@ -227,6 +230,7 @@ export const kyselyItemRepository = (
         .values({ item_id: itemId, tag, version_id: versionId })
         .execute();
     await refreshListing(db, dialect, itemId);
+    await bumpCatalogueRevision(db);
     return current?.version_id ?? null;
   },
 
@@ -251,6 +255,7 @@ export const kyselyItemRepository = (
   removeTag: async (itemId, tag) => {
     await db.deleteFrom("dist_tags").where("item_id", "=", itemId).where("tag", "=", tag).execute();
     await refreshListing(db, dialect, itemId);
+    await bumpCatalogueRevision(db);
   },
 
   setDeprecated: async (versionId, message) => {
@@ -259,6 +264,7 @@ export const kyselyItemRepository = (
       .set({ deprecated_message: message })
       .where("id", "=", versionId)
       .execute();
+    await bumpCatalogueRevision(db);
   },
 
   setYanked: async (versionId, yanked) => {
@@ -276,6 +282,7 @@ export const kyselyItemRepository = (
       .where("id", "=", versionId)
       .executeTakeFirst();
     if (version) await refreshListing(db, dialect, version.item_id);
+    await bumpCatalogueRevision(db);
   },
 
   recordAudit: async (event, now) => {

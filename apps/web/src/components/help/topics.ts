@@ -118,9 +118,11 @@ export const TOPICS = [
   {
     slug: "admin",
     title: "Administration",
-    summary: "For roots: finding users, and reading the audit log of who did what, and when.",
+    summary:
+      "For roots: finding users, the instance's settings, and reading the audit log of who did what, and when.",
     sections: [
       { id: "users", title: "Users" },
+      { id: "settings", title: "Settings" },
       { id: "audit", title: "Audit log" },
     ],
   },
@@ -154,6 +156,7 @@ export const TOPICS = [
       { id: "tokens", title: "Tokens" },
       { id: "mirror", title: "Codex and Cursor (git mirror)" },
       { id: "keeping", title: "Keeping the mirror current" },
+      { id: "large", title: "Large marketplaces" },
       { id: "which", title: "Plugins or rmk" },
     ],
   },

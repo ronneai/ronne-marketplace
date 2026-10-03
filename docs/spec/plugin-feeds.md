@@ -165,7 +165,7 @@ Errors use the API's shape (MVP §11), with these codes (077):
 | 404 | `plugin_not_found` | The version doesn't exist, is yanked, or has nothing for the tool |
 | 503 | `public_url_missing` | The instance has no `PUBLIC_URL`, so it can't write absolute URLs |
 | 503 | `plugin_unavailable` | The zip can't be built: an artifact is missing, or dependencies don't resolve |
-| 507 | `feed_too_large` | The marketplace would be past the tool's limit (5 MiB for Claude Code) |
+| 507 | `feed_too_large` | The marketplace would be past the tool's limit (5 MiB for Claude Code). From 079, only Claude Code's route answers it, and the message names the git mirror |
 
 ## The git mirror
 

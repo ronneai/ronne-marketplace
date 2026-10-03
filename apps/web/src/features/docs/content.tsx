@@ -1818,6 +1818,23 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </p>
       </>
     ),
+    settings: (
+      <Bullets>
+        <li>
+          <strong>Usage reporting</strong> and its <strong>minimum</strong>: whether{" "}
+          <Code>rmk</Code> reports usage to this instance, and from when item pages show it (
+          <To href={docsHref("usage", "policy")}>Usage data</To>). Each change takes effect at once
+          and is in the audit log.
+        </li>
+        <li>
+          <strong>Plugin feeds</strong>: each tool&apos;s marketplace as last built in full, its
+          size, plugins and build time, with a warning when Claude Code&apos;s nears the limits it
+          reads a marketplace within (
+          <To href={docsHref("plugins", "large")}>Large marketplaces</To>). There&apos;s nothing to
+          set: it&apos;s there to read.
+        </li>
+      </Bullets>
+    ),
     audit: (
       <>
         <p>
@@ -2453,6 +2470,38 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             wrote it. If something under <Code>plugins/</Code> isn&apos;t its own, or changed since
             it wrote it, the build stops and lists it (<Code>--force</Code> writes over its own
             paths). <Code>--tools codex,cursor</Code> builds only some tools.
+          </li>
+        </Bullets>
+      </>
+    ),
+    large: (
+      <>
+        <p>
+          Claude Code reads a marketplace from an address only if it&apos;s at most{" "}
+          <strong>5 MiB</strong> and arrives within <strong>10 seconds</strong>. Each item takes
+          about half a kilobyte, so this website&apos;s Claude Code marketplace reaches 5 MiB near
+          10,000 items.
+        </p>
+        <Bullets>
+          <li>
+            The marketplace is built once, then answered from memory until something is released,
+            tagged, deprecated or yanked. The first request after a change builds it again.
+          </li>
+          <li>
+            Each plugin is built the first time anyone asks for it. When a request runs out of time,
+            it lists what&apos;s built, and the rest is built right after, so the next refresh lists
+            everything.
+          </li>
+          <li>
+            Root sees each tool&apos;s last build under{" "}
+            <strong>Admin › Settings › Plugin feeds</strong>: its size, plugins and build time, with
+            a warning once Claude Code&apos;s marketplace passes 4 MiB or a build takes 5 seconds.
+          </li>
+          <li>
+            Past 5 MiB, Claude Code&apos;s marketplace answers an error instead. Add the{" "}
+            <To href={docsHref("plugins", "mirror")}>git mirror</To> in Claude Code then: a
+            marketplace in a git repository has no such limit. Codex&apos;s and Cursor&apos;s have
+            no limit here, since only <Code>rmk feed build</Code> reads them.
           </li>
         </Bullets>
       </>

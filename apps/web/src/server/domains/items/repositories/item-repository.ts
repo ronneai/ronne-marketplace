@@ -12,7 +12,9 @@ import type {
 /**
  * What releases (015) and version management (016) need from storage. Kysely in
  * kysely-item-repository.ts. Every change to versions or tags also refreshes the item's catalogue
- * listing (018, `models/listing.ts`), so no caller can forget it.
+ * listing (018, `models/listing.ts`), and every change that can change a plugin feed (a release, a
+ * tag, a deprecation, a yank, a description) raises the catalogue revision (079), so no caller can
+ * forget either.
  */
 export interface ItemRepository {
   transaction<T>(work: (repo: ItemRepository) => Promise<T>): Promise<T>;

@@ -12,6 +12,7 @@ import {
   type MarketplaceEntry,
   marketplaceFor,
   marketplaceName,
+  PLUGIN_BUILDER_VERSION,
   PluginError,
   type PluginTool,
   pluginArchive,
@@ -34,8 +35,11 @@ import {
 } from "../exceptions/errors";
 import {
   baseUrl,
+  FEED_LIMITS,
+  type FeedLimits,
   type FeedPlugin,
-  MARKETPLACE_MAX_BYTES,
+  feedWarningMessage,
+  feedWarnings,
   NO_PLUGIN,
   type PluginRef,
   pluginDescription,
@@ -46,6 +50,8 @@ import {
   sidecarBytes,
   sidecarKey,
 } from "../models/feed";
+import type { FeedRepository } from "../repositories/feed-repository";
+import type { MarketplaceCache } from "./marketplace-cache";
 
 /**
  * The plugin feeds (feature 077, contract `docs/spec/plugin-feeds.md`). A version's plugin is
@@ -65,6 +71,13 @@ export type FeedDeps = {
   clock?: () => number;
   /** How long one marketplace request may spend building plugins that aren't cached yet. */
   buildBudgetMs?: number;
+  /** With `cache`, marketplaces are answered from memory while the catalogue doesn't change (079). */
+  feeds?: FeedRepository;
+  cache?: MarketplaceCache;
+  /** Runs work after the response is sent: Next.js's `after` in the app; at once by default. */
+  background?: (work: () => Promise<void>) => void;
+  /** Claude Code's limits by default; tests set smaller ones (079). */
+  feedLimits?: FeedLimits;
 };
 
 /**
@@ -232,22 +245,27 @@ const feedEntries = async (deps: FeedDeps, tool: PluginTool) => {
   }
 };
 
+/** A tool's feed as one pass found it: what's listed, and what's missing and why. */
+type CollectedFeed = {
+  plugins: FeedPlugin[];
+  /** Left out because the build budget ran out: built by a later request or in the background. */
+  unbuilt: number;
+  /** Left out because their build failed (logged); tried again by the next request. */
+  failed: number;
+};
+
 /**
- * The plugins of a tool's feed: every installable item that installs in the tool, at its listed
- * version, whose plugin has something in it. Plugins not built yet are built here, within the
- * budget; one that can't be built is left out and logged, and doesn't fail the rest.
+ * Every installable item that installs in the tool, at its listed version, whose plugin has
+ * something in it. Plugins not built yet are built here, within the budget; one that can't be
+ * built is left out and logged, and doesn't fail the rest.
  */
-export const feedPlugins = async (
-  deps: FeedDeps,
-  actor: VersionActor,
-  tool: PluginTool,
-): Promise<FeedPlugin[]> => {
-  requirePermission(actor.user, "account.manage_own");
+const collectFeed = async (deps: FeedDeps, tool: PluginTool): Promise<CollectedFeed> => {
   const clock = deps.clock ?? Date.now;
   const log = deps.log ?? ((message: string) => console.warn(message));
   const deadline = clock() + (deps.buildBudgetMs ?? BUILD_BUDGET_MS);
   const plugins: FeedPlugin[] = [];
   let unbuilt = 0;
+  let failed = 0;
   for (const entry of await feedEntries(deps, tool)) {
     const ref = { scope: entry.scope, name: entry.name, version: entry.version };
     let sha256 = await cached(deps, tool, ref);
@@ -262,6 +280,7 @@ export const feedPlugins = async (
       } catch (error) {
         if (!(error instanceof PluginUnavailableError)) throw error;
         log(`${TOOL_NAMES[tool]} feed: ${error.message}`);
+        failed++;
         continue;
       }
     }
@@ -274,15 +293,55 @@ export const feedPlugins = async (
   }
   if (unbuilt)
     log(
-      `${TOOL_NAMES[tool]} feed: ${unbuilt} plugins weren't built in time and are left out until the next request.`,
+      `${TOOL_NAMES[tool]} feed: ${unbuilt} plugins weren't built in time; they're being built in the background.`,
     );
-  return plugins;
+  return { plugins, unbuilt, failed };
+};
+
+/** The plugins of a tool's feed (see `collectFeed`). */
+export const feedPlugins = async (
+  deps: FeedDeps,
+  actor: VersionActor,
+  tool: PluginTool,
+): Promise<FeedPlugin[]> => {
+  requirePermission(actor.user, "account.manage_own");
+  return (await collectFeed(deps, tool)).plugins;
+};
+
+/**
+ * Finishes a feed a request ran out of time for: builds every missing plugin, with no budget, after
+ * the response is sent, at most one build per tool at a time (079). The next request then lists
+ * everything, and its marketplace can be cached.
+ */
+const buildRest = (deps: FeedDeps, tool: PluginTool) => {
+  const cache = deps.cache;
+  if (!cache) return;
+  const log = deps.log ?? ((message: string) => console.warn(message));
+  const run = deps.background ?? ((work: () => Promise<void>) => void work());
+  run(() =>
+    cache.warm(tool, async () => {
+      try {
+        const feed = await collectFeed(
+          { ...deps, buildBudgetMs: Number.POSITIVE_INFINITY, log },
+          tool,
+        );
+        log(`${TOOL_NAMES[tool]} feed: built in the background, ${feed.plugins.length} plugins.`);
+      } catch (error) {
+        log(`${TOOL_NAMES[tool]} feed: the background build failed: ${(error as Error).message}`);
+      }
+    }),
+  );
 };
 
 /**
  * The tool's marketplace file for the feed, its URLs on `publicUrl` (contract, Endpoints). Every
  * tool's has Claude Code's shape, with `archive` entries: Claude Code reads its own, and `rmk feed
  * build` reads Codex's and Cursor's and writes their real marketplace files into the mirror (078).
+ *
+ * With a cache, a complete marketplace is kept under the catalogue revision read before it was
+ * built, the builder version and `publicUrl`, and answered from memory until one of them changes
+ * (079). A request that runs out of build budget answers what it has, and the rest is built in the
+ * background.
  */
 export const marketplace = async (
   deps: FeedDeps,
@@ -290,10 +349,21 @@ export const marketplace = async (
   tool: ServedTool,
   publicUrl: string,
 ): Promise<Uint8Array> => {
-  const plugins = await feedPlugins(deps, actor, tool);
+  requirePermission(actor.user, "account.manage_own");
   const base = baseUrl(publicUrl);
+  const limits = deps.feedLimits ?? FEED_LIMITS;
+  const clock = deps.clock ?? Date.now;
+  const revision = deps.feeds ? await deps.feeds.revision() : null;
+  const key =
+    revision === null || !deps.cache
+      ? null
+      : `${revision.instance}\0${revision.revision}\0${PLUGIN_BUILDER_VERSION}\0${base}`;
+  const hit = key ? deps.cache?.get(tool, key) : null;
+  if (hit) return hit;
+  const started = clock();
+  const feed = await collectFeed(deps, tool);
   const host = new URL(base).host;
-  const entries: MarketplaceEntry[] = plugins.map((plugin) => ({
+  const entries: MarketplaceEntry[] = feed.plugins.map((plugin) => ({
     name: pluginName(itemName(plugin)),
     version: plugin.version,
     description: plugin.description,
@@ -304,7 +374,29 @@ export const marketplace = async (
     owner: `Ronne at ${host}`,
     description: `Released items from the Ronne registry at ${base}`,
   });
-  if (file.bytes.length > MARKETPLACE_MAX_BYTES) throw new FeedTooLargeError(plugins.length);
+  if (feed.unbuilt) buildRest(deps, tool);
+  const complete = !feed.unbuilt && !feed.failed;
+  // A complete build is what the tool will see: record it, and warn once per revision (079).
+  if (complete && revision && deps.feeds) {
+    const stats = {
+      tool,
+      sizeBytes: file.bytes.length,
+      plugins: feed.plugins.length,
+      buildMs: clock() - started,
+      revision: revision.revision,
+      builtAt: new Date(),
+    };
+    await deps.feeds.recordBuild(stats);
+    const warnings = feedWarnings(stats, limits);
+    if (warnings.length && (await deps.feeds.markWarned(tool, revision.revision)))
+      (deps.log ?? ((message: string) => console.warn(message)))(
+        feedWarningMessage(stats, warnings, limits),
+      );
+  }
+  // Only Claude Code reads its marketplace from an address, with a size limit; rmk reads the others.
+  if (tool === "claude-code" && file.bytes.length > limits.maxBytes)
+    throw new FeedTooLargeError(feed.plugins.length);
+  if (key && complete) deps.cache?.set(tool, key, file.bytes);
   return file.bytes;
 };
 

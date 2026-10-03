@@ -16,6 +16,7 @@
     "reset-root-password": "pnpm --filter @ronneai/core --silent build && tsx scripts/reset-root-password.ts",
     "reset-setup": "tsx scripts/reset-setup.ts",
     "test:db": "pnpm --filter @ronneai/core --silent build && vitest run --project db",
+    "bench:feeds": "pnpm --filter @ronneai/core --silent build && tsx scripts/feed-benchmark.ts",
     "build:scripts": "tsdown",
     "test:e2e": "pnpm --filter @ronneai/core build && pnpm --filter @ronneai/rmk build && pnpm --filter @ronneai/mcp build && next build && playwright test"
   },

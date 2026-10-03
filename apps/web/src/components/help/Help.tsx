@@ -98,6 +98,12 @@ export const HELP = {
       "Run this in Claude Code, or find the item under /plugin, once rmk plugin-setup claude-code has added this marketplace there. Claude Code downloads the released version as a plugin, with its dependencies, using your rmk login. Install an item one way, as a plugin or with rmk install, not both.",
     href: docsHref("plugins", "claude-code"),
   },
+  "plugin-feeds": {
+    question: "What do these numbers mean?",
+    answer:
+      "Each tool's marketplace as last built in full: its size, how many plugins it lists, and how long building it took. Claude Code reads a marketplace of at most 5 MiB, within 10 seconds; past 80% of either, a warning shows here. The git mirror has no size limit.",
+    href: docsHref("plugins", "large"),
+  },
   support: {
     question: "What do these mean?",
     answer:
