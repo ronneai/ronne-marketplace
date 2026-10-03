@@ -70,25 +70,27 @@ view. This feature gives phones a menu and makes every tab strip show where it i
 
 ## Documentation
 
-- **Overview › "The path of an item"** (`features/docs/content.tsx`): where it says "in the
-  navigation", add "(the Menu on a phone)". Grep for other "navigation" mentions and do the same.
+- **Overview › "The path of an item"** (`features/docs/content.tsx`): the topics never said "in the
+  navigation", so a closing paragraph says where the pages are: links at the top of every page,
+  and on a phone or tablet in the **Menu** at the top right, with the account, access tokens, the
+  appearance switch and Sign out. No other topic described the header.
 - **Topics and helpers:** no change.
 
 ## Acceptance criteria
 
-- [ ] Below `lg` the header shows the logo and Menu; the sheet holds every nav link for the role,
+- [x] Below `lg` the header shows the logo and Menu; the sheet holds every nav link for the role,
   with counts, plus the account links, the appearance switch and Sign out (`AppShell` unit tests
   per role).
-- [ ] The sheet closes on a link, Esc, an outside tap and back/forward; focus returns to Menu
+- [x] The sheet closes on a link, Esc, an outside tap and back/forward; focus returns to Menu
   (`navigation.mobile.e2e.ts`).
-- [ ] The desktop account menu closes on an outside click and on navigation (unit test and
+- [x] The desktop account menu closes on an outside click and on navigation (unit test and
   `theme.e2e.ts` or a new desktop e2e).
-- [ ] `/menu` works without JavaScript (an e2e with JavaScript off).
-- [ ] The item page tabs, docs topics, Admin and queue tabs use `ScrollStrip`; opening
+- [x] `/menu` works without JavaScript (an e2e with JavaScript off).
+- [x] The item page tabs, docs topics, Admin and queue tabs use `ScrollStrip`; opening
   `?tab=risks` on a phone shows the active tab on screen (e2e).
-- [ ] The docs sidebar scrolls on a 1024×768 landscape tablet (tablet project).
-- [ ] The sweep's `EXPECTED_FAILURES` entries for 066 are gone.
-- [ ] The Documentation listed above mentions the Menu.
+- [x] The docs sidebar scrolls on a 1024×768 landscape tablet (tablet project).
+- [x] The sweep's `EXPECTED_FAILURES` entries for 066 are gone.
+- [x] The Documentation listed above mentions the Menu.
 
 ## Decisions
 

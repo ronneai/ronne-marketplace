@@ -31,7 +31,7 @@ the same change that completes it.
   *Done when:* existing unit tests pass; a phone e2e opens `?tab=risks` and sees the tab; the
   tablet project scrolls the docs sidebar to its last topic.
 
-- [ ] **6. Documentation.** "(the Menu on a phone)" where the docs mention the navigation.
+- [x] **6. Documentation.** "(the Menu on a phone)" where the docs mention the navigation.
   *Done when:* the docs render tests pass; the sweep's 066 entries are removed and it passes.
 
 ## Notes
@@ -43,3 +43,5 @@ goes into `SPEC.md` instead.
   them only if they don't).
 - `stripTab` lives in `scroll-strip.ts`, not `ScrollStrip.tsx`: server components can't read a
   constant from a "use client" module (see `docs/knowledge/server-client-props.md`).
+- The sweep had no 066 entries left in `EXPECTED_FAILURES` (065's header fix already made every
+  page fit); `/menu` joined `e2e/pages.ts` and passes.

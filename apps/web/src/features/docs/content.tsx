@@ -178,6 +178,12 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           Later changes follow the same path as <To href={docsHref("changes")}>change proposals</To>
           , and release the item&apos;s next version.
         </p>
+        <p>
+          The Catalogue, Submissions, Reviews and Admin are links at the top of every page, each
+          shown to the roles that use it. On a phone or tablet they&apos;re in the{" "}
+          <strong>Menu</strong> at the top right, with your account, access tokens, the appearance
+          switch and Sign out.
+        </p>
       </>
     ),
   },
