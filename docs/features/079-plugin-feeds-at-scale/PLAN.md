@@ -37,7 +37,7 @@ the same change that completes it.
   *Done when:* render tests cover "Not built yet", a normal build and a warning; the Admin page tests
   still pass; the mobile sweep passes.
 
-- [ ] **6. Documentation, the decision, and the second measurement.** The *Large marketplaces*
+- [x] **6. Documentation, the decision, and the second measurement.** The *Large marketplaces*
   section, the Admin sentence and the helper. Run the benchmark again with the cache, and fill in
   the spec's Measured section. If the numbers meet the trigger, say so in the decision log and
   propose the per-scope feature to the owner.
@@ -89,4 +89,36 @@ What it shows:
   with the owner.
 - The *Large marketplaces* section landed with task 5, not 6: the panel's helper links to it, and a
   test checks every helper lands on a real section.
+
+### With the cache (task 6, 2026-10-03)
+
+The same runs after tasks 2–5. Cold and warm each start with an empty cache; the repeat asks the
+warm one's cache again.
+
+| Database | Items | Tool | Marketplace size | Cold (s) | Warm (s) | Repeat (s) |
+|---|---|---|---|---|---|---|
+| sqlite | 1000 | claude-code | 492 KiB (9.6%) | 2.63 | 0.10 | 0.00 |
+| sqlite | 1000 | codex | 487 KiB (9.5%) | 2.61 | 0.09 | 0.00 |
+| sqlite | 1000 | cursor | 488 KiB (9.5%) | 2.38 | 0.09 | 0.00 |
+| sqlite | 5000 | claude-code | 2461 KiB (48.1%) | 12.22 | 0.51 | 0.00 |
+| sqlite | 5000 | codex | 2432 KiB (47.5%) | 11.18 | 0.47 | 0.00 |
+| sqlite | 5000 | cursor | 2437 KiB (47.6%) | 10.86 | 0.48 | 0.00 |
+| sqlite | 10000 | claude-code | 4922 KiB (96.1%) | 23.49 | 1.19 | 0.00 |
+| sqlite | 10000 | codex | 4863 KiB (95.0%) | 21.80 | 1.29 | 0.00 |
+| sqlite | 10000 | cursor | 4873 KiB (95.2%) | 23.09 | 1.15 | 0.00 |
+| postgres | 1000 | claude-code | 492 KiB (9.6%) | 5.61 | 0.11 | 0.00 |
+| postgres | 1000 | codex | 487 KiB (9.5%) | 5.29 | 0.10 | 0.00 |
+| postgres | 1000 | cursor | 488 KiB (9.5%) | 5.20 | 0.10 | 0.00 |
+| postgres | 5000 | claude-code | 2461 KiB (48.1%) | 28.44 | 0.67 | 0.00 |
+| postgres | 5000 | codex | 2432 KiB (47.5%) | 31.37 | 0.63 | 0.00 |
+| postgres | 5000 | cursor | 2437 KiB (47.6%) | 28.20 | 0.59 | 0.00 |
+| postgres | 10000 | claude-code | 4922 KiB (96.1%) | 50.33 | 1.48 | 0.00 |
+| postgres | 10000 | codex | 4863 KiB (95.0%) | 52.76 | 1.55 | 0.00 |
+| postgres | 10000 | cursor | 4873 KiB (95.2%) | 55.87 | 1.54 | 0.00 |
+
+- Repeats are answered from memory in under 5 ms at every size.
+- Warm builds are a little slower than the baseline (by up to 0.1 s), because each complete build
+  now records its stats.
+- The trigger for per-scope marketplaces isn't met (a warm build of 5 s or more at 5,000 items or
+  fewer): 0.67 s at most. Recorded in the spec's Measured section and the decision log.
 

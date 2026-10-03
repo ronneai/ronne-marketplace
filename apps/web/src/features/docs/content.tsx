@@ -1818,6 +1818,23 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </p>
       </>
     ),
+    settings: (
+      <Bullets>
+        <li>
+          <strong>Usage reporting</strong> and its <strong>minimum</strong>: whether{" "}
+          <Code>rmk</Code> reports usage to this instance, and from when item pages show it (
+          <To href={docsHref("usage", "policy")}>Usage data</To>). Each change takes effect at once
+          and is in the audit log.
+        </li>
+        <li>
+          <strong>Plugin feeds</strong>: each tool&apos;s marketplace as last built in full, its
+          size, plugins and build time, with a warning when Claude Code&apos;s nears the limits it
+          reads a marketplace within (
+          <To href={docsHref("plugins", "large")}>Large marketplaces</To>). There&apos;s nothing to
+          set: it&apos;s there to read.
+        </li>
+      </Bullets>
+    ),
     audit: (
       <>
         <p>

@@ -142,7 +142,23 @@ Not built in 079. The design, if the trigger fires:
 
 ## Measured
 
-Filled in by tasks 1 and 6.
+`pnpm bench:feeds` on the owner's Mac (Apple silicon), Node 24, SQLite in memory and PostgreSQL 15 in
+Docker, 2026-10-03. The full tables, before and after the cache, are in PLAN.md's notes. With the
+cache, at 10,000 items:
+
+| | Marketplace size | Cold | Warm | Repeat (cached) |
+|---|---|---|---|---|
+| SQLite | 4.8 MiB (96% of Claude Code's 5 MiB) | 23 s | 1.2 s | under 5 ms |
+| PostgreSQL | 4.8 MiB (96%) | 50 s | 1.5 s | under 5 ms |
+
+- **Size is the limit that binds.** An entry is about 490 bytes: the size warning (4 MiB) fires near
+  8,300 items, and the 507 near 10,400.
+- **Time isn't.** A warm build at 5,000 items takes 0.5–0.7 s, far under the 5 s trigger, and the
+  cache answers repeats in under 5 ms. A cold build is about 2 ms per plugin on SQLite and 5 ms on
+  PostgreSQL; the background build finishes a 10,000-item feed about a minute after the first
+  request.
+- **Neither trigger is met**, so per-scope marketplaces aren't built. The size warning in Admin ›
+  Settings is the signal to watch.
 
 ## Documentation
 
@@ -158,11 +174,11 @@ Filled in by tasks 1 and 6.
 
 ## Acceptance criteria
 
-- [ ] The benchmark runs on SQLite and PostgreSQL, and its numbers before and after the cache are in PLAN.md's notes and the Measured section.
-- [ ] Each change in the revision's list raises it by one, in the same transaction; a failed change doesn't (database tests on SQLite, PostgreSQL and MySQL).
-- [ ] With nothing changed, a second marketplace request reads neither the catalogue nor the storage. After a release, the next one has the new item.
-- [ ] A marketplace with a plugin left out isn't cached.
-- [ ] Stats are recorded on each build. Past each threshold the server logs one warning per revision, and Admin › Settings shows the notice.
-- [ ] Codex's and Cursor's routes never answer 507. Claude Code's 507 names the git mirror.
-- [ ] The decision log has the trigger, and 077's open question points here.
-- [ ] The Documentation and the inline helper listed above say what the feature does now.
+- [x] The benchmark runs on SQLite and PostgreSQL, and its numbers before and after the cache are in PLAN.md's notes and the Measured section.
+- [x] Each change in the revision's list raises it by one, in the same transaction; a failed change doesn't (database tests on SQLite, PostgreSQL and MySQL).
+- [x] With nothing changed, a second marketplace request reads neither the catalogue nor the storage. After a release, the next one has the new item.
+- [x] A marketplace with a plugin left out isn't cached.
+- [x] Stats are recorded on each build. Past each threshold the server logs one warning per revision, and Admin › Settings shows the notice.
+- [x] Codex's and Cursor's routes never answer 507. Claude Code's 507 names the git mirror.
+- [x] The decision log has the trigger, and 077's open question points here.
+- [x] The Documentation and the inline helper listed above say what the feature does now.

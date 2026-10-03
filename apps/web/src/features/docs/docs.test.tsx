@@ -208,6 +208,13 @@ describe("the topics", () => {
     expect(plugins).toContain("rmk feed build --print-workflow github &gt; .github/workflows/");
     expect(plugins).toContain("RMK_PUSH_TOKEN");
     expect(plugins).toContain("the build fails and the mirror stays as it was");
+    // Large marketplaces, and the Plugin feeds panel in Admin › Settings (079).
+    expect(plugins).toContain('id="large"');
+    expect(plugins).toContain("near 10,000 items");
+    expect(plugins).toContain("Admin › Settings › Plugin feeds");
+    expect(admin).toContain('id="settings"');
+    expect(admin).toContain('href="/docs/plugins#large"');
+    expect(admin).toContain('href="/docs/usage#policy"');
     expect(rmk).toContain("rmk feed build --out &lt;folder&gt;");
     for (const tool of ["codex", "cursor"]) {
       const html = await topic(tool);
