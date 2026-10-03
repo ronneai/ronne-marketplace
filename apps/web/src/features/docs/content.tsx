@@ -210,10 +210,28 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
     docker: (
       <>
         <p>
-          You need Docker with Compose 2.23.1 or later, and one file: <Code>compose.yaml</Code> from
-          the repository. It pulls the image <Code>ronneai/marketplace</Code> from Docker Hub, so no
-          clone is needed. SQLite needs no server; for PostgreSQL or MySQL, a profile starts one
-          next to Ronne.
+          You need Docker with Compose 2.23.1 or later. The install script does the rest: on macOS
+          or Linux in a terminal, on Windows in PowerShell.
+        </p>
+        <Example>
+          {
+            "curl -fsSL https://github.com/ronneai/ronne-marketplace/releases/latest/download/install.sh | sh\nirm https://github.com/ronneai/ronne-marketplace/releases/latest/download/install.ps1 | iex   # Windows"
+          }
+        </Example>
+        <p>
+          It checks that Docker is running, asks whether Ronne runs on{" "}
+          <strong>this computer</strong> or on <strong>a server with a domain</strong> (then the
+          domain, and an optional email for certificate notices), and checks the ports: on this
+          computer it takes the next free pair after 7650 and 7651 if they&apos;re busy. It writes{" "}
+          <Code>compose.yaml</Code> and <Code>.env</Code> to a <Code>ronne-marketplace</Code> folder
+          in your home folder, starts Ronne, and opens it in the browser. It installs the release it
+          comes from and never uses <Code>sudo</Code>. Run it again to upgrade: it keeps your
+          answers, and asks before moving to a newer version.
+        </p>
+        <p>
+          By hand instead, you need one file: <Code>compose.yaml</Code> from the repository. It
+          pulls the image <Code>ronneai/marketplace</Code> from Docker Hub, so no clone is needed.
+          SQLite needs no server; for PostgreSQL or MySQL, a profile starts one next to Ronne.
         </p>
         <Example>
           {

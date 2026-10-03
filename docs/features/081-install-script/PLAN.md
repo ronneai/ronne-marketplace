@@ -28,7 +28,7 @@ the same change that completes it.
   up to the Docker check (GitHub's Windows runners can't run Linux containers), plus lint.
   *Done when:* the jobs pass, and a broken script fails them.
 
-- [ ] **6. Documentation.** README and the *With Docker* section, as the spec lists.
+- [x] **6. Documentation.** README and the *With Docker* section, as the spec lists.
   *Done when:* the docs render tests pass.
 
 ## Notes
@@ -140,3 +140,15 @@ and under bash:
   sides. `install.ps1` compares with `Resolve-Path`, which doesn't resolve symlinks. That's
   enough on Windows, where installs don't sit behind symlinks, but not on PowerShell for macOS.
 - **Still open:** the runs on the pull request, and a broken script failing them there.
+
+### Task 6: documentation (2026-10-03)
+
+- README *With Docker*: the two commands first, what the script does, `--yes` for scripts, and
+  checking the download against `checksums.txt`. `compose.yaml` by hand follows.
+- Documentation › Installing Ronne › With Docker: the commands, the questions, the port check, the
+  folder, and rerunning to upgrade, with tests. As in 080, the Documentation has no search, so
+  there were no `topics.ts` keywords to add (spec updated).
+- The runbook says how to check the download, and that rerunning upgrades.
+- The docs tests pass, and so does `pnpm test:e2e` (84 tests).
+- The commands work from the first release that includes this feature: v0.2.0 has no install
+  scripts attached.

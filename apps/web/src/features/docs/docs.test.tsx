@@ -133,6 +133,10 @@ describe("the topics", () => {
     for (const id of ["docker", "https", "node", "setup", "root", "upgrade"])
       expect(install).toContain(`id="${id}"`);
     expect(install).toContain("docker compose up -d");
+    // The install script (081).
+    expect(install).toContain("releases/latest/download/install.sh | sh");
+    expect(install).toContain("releases/latest/download/install.ps1 | iex");
+    expect(install).toContain("Run it again to upgrade");
     // The proxy in compose.yaml (080).
     expect(install).toContain("# then open http://localhost:7650");
     expect(install).toContain(

@@ -60,8 +60,10 @@ Then follow the setup in the browser: choose the database (SQLite needs nothing 
 the root account. Open the address right away: until setup is done, anyone who can reach it can
 set it up.
 
-Prefer to read a script before running it? Download it, read it, then run `sh install.sh`. Each
-release publishes the script's SHA-256 checksum next to it.
+Prefer to read a script before running it? Download it and `checksums.txt` from the
+[latest release](https://github.com/ronneai/ronne-marketplace/releases/latest), check it
+(`shasum -a 256 -c checksums.txt --ignore-missing`), read it, then run `sh install.sh`. Run the
+script again to upgrade: it keeps your answers and asks before moving to the newer version.
 
 ## Your own domain with HTTPS
 

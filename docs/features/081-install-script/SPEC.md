@@ -102,9 +102,11 @@ every question takes its default or its flag, and nothing opens a browser.
 ## Documentation
 
 - **README**, *With Docker*: the one-line command first; `compose.yaml` by hand stays as "by hand".
-- **Documentation › Installing an instance › With Docker** (`content.tsx`): the command per system,
-  what it asks, where the folder is, and rerunning to upgrade. `topics.ts` keywords: install script,
-  curl, PowerShell, upgrade.
+- **Documentation › Installing Ronne › With Docker** (`content.tsx`): the command per system,
+  what it asks, the port check, where the folder is, and rerunning to upgrade; `compose.yaml` by
+  hand follows. The Documentation has no search, so there are no `topics.ts` keywords to add.
+- **`docs/runbooks/install.md`:** how to check the download against `checksums.txt`, and rerunning
+  to upgrade.
 - The guide's *Quick start with Docker* section is published on the website when this is released.
 - No inline helper: nothing in the app changes.
 

@@ -24,7 +24,28 @@ needs `GRANT CREATE ON SCHEMA public TO <user>;`; the setup tells you if it's mi
 
 You need Docker with Compose 2.23.1 or later. Nothing else: the image,
 [`ronneai/marketplace`](https://hub.docker.com/r/ronneai/marketplace) on Docker Hub, has Node.js,
-and SQLite needs no server. No clone is needed, only [`compose.yaml`](compose.yaml):
+and SQLite needs no server.
+
+**The install script** checks Docker, asks whether Ronne runs on this computer or on a server with
+a domain, writes `~/ronne-marketplace` (`compose.yaml` and `.env`), starts Ronne and opens it in
+the browser:
+
+```sh
+curl -fsSL https://github.com/ronneai/ronne-marketplace/releases/latest/download/install.sh | sh
+```
+
+```powershell
+irm https://github.com/ronneai/ronne-marketplace/releases/latest/download/install.ps1 | iex
+```
+
+It installs the release it comes from, and never uses `sudo`. Run it again to upgrade: it keeps
+your answers and asks before moving to a newer version. For scripts:
+`curl -fsSL …/install.sh | sh -s -- --yes --mode server --domain ronne.example.com`
+(PowerShell: `& ([scriptblock]::Create((irm …/install.ps1))) -Yes -Mode server -Domain …`).
+To read it first, download `install.sh` and `checksums.txt` from the release, check them with
+`shasum -a 256 -c checksums.txt --ignore-missing`, then run `sh install.sh`.
+
+**By hand**, with only [`compose.yaml`](compose.yaml):
 
 ```sh
 mkdir ronne && cd ronne
