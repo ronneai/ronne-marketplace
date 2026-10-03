@@ -81,8 +81,8 @@ const columns = (actions?: (scope: Scope) => ReactNode): Column<Scope, "name" | 
 ];
 
 /**
- * The scope list (feature 010, on the server data table since 061), shared by /scopes
- * (read-only) and /admin/scopes (with an edit button per row).
+ * The scope list on /admin/scopes (feature 010, on the server data table since 061), with an
+ * edit button per row. The read-only /scopes page went in 064.
  */
 export const ScopesTable = ({
   list,

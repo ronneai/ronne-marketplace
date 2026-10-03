@@ -9,7 +9,7 @@ const signIn = async (page: Page, email: string) => {
   await expect(page).not.toHaveURL(/\/sign-in/);
 };
 
-test("root creates a scope; everyone sees it, but only root can manage scopes", async ({
+test("root creates, sorts and searches scopes under Admin; nobody else has a scope page (064)", async ({
   browser,
 }) => {
   const root = await browser.newPage();
@@ -24,21 +24,19 @@ test("root creates a scope; everyone sees it, but only root can manage scopes", 
   await expect(dialog.getByText("Created @e2e-team.")).toBeVisible();
   await dialog.getByRole("button", { name: "Done" }).click();
   await expect(root.getByRole("cell", { name: "@e2e-team", exact: true })).toBeVisible();
+  // Sorted on the server (061): newest first by Created, and the view stays in the URL.
+  await root.getByRole("link", { name: "Created" }).click();
+  await expect(root).toHaveURL(/\/admin\/scopes\?.*sort=created/);
+  await expect(root.getByRole("row").nth(1)).toContainText("@e2e-team");
+  await root.getByLabel("Search").fill("end-to-end");
+  await expect(root).toHaveURL(/q=end-to-end/);
+  await expect(root.getByRole("cell", { name: "@e2e-team", exact: true })).toBeVisible();
 
   const user = await browser.newPage();
   await signIn(user, E2E_USERS.notRoot);
-  await user
-    .getByRole("navigation", { name: "Main" })
-    .getByRole("link", { name: "Scopes" })
-    .click();
-  await expect(user.getByRole("cell", { name: "@e2e-team", exact: true })).toBeVisible();
-  await expect(user.getByRole("button", { name: /Edit @/ })).toHaveCount(0);
-  // Sorted on the server (061): newest first by Created, and the view stays in the URL.
-  await user.getByRole("link", { name: "Created" }).click();
-  await expect(user).toHaveURL(/sort=created/);
-  await expect(user.getByRole("row").nth(1)).toContainText("@e2e-team");
-  await user.getByLabel("Search").fill("end-to-end");
-  await expect(user).toHaveURL(/q=end-to-end/);
-  await expect(user.getByRole("cell", { name: "@e2e-team", exact: true })).toBeVisible();
+  await expect(
+    user.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Scopes" }),
+  ).toHaveCount(0);
+  expect((await user.goto("/scopes"))?.status()).toBe(404);
   expect((await user.goto("/admin/scopes"))?.status()).toBe(404);
 });

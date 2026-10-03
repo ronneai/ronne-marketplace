@@ -22,12 +22,11 @@ vi.mock("next/navigation", () => ({
 }));
 
 const actions = await import("./actions");
-const { ScopesTable } = await import("../scopes/ScopesTable");
+const { ScopesTable } = await import("./ScopesTable");
 const { parseListQuery } = await import("@/components/ui/data-table/list-query");
-const { ADMIN_SCOPES_LIST, SCOPES_LIST, scopesQueryOf } = await import("../scopes/list");
+const { ADMIN_SCOPES_LIST, scopesQueryOf } = await import("./list");
 const { CreateScopeDialog } = await import("./ScopeDialogs");
 const { default: AdminScopes } = await import("@/app/(app)/admin/scopes/page");
-const { default: Scopes } = await import("@/app/(app)/scopes/page");
 
 const form = (fields: Record<string, string>) => {
   const data = new FormData();
@@ -54,7 +53,7 @@ beforeEach(() => {
 });
 
 describe("scope actions", () => {
-  it("creates a scope and revalidates both pages", async () => {
+  it("creates a scope and revalidates the admin page", async () => {
     scopes.createScope.mockResolvedValue(scope());
     expect(
       await actions.createScopeFromForm({}, form({ name: "@Platform", description: "Tools." })),
@@ -64,7 +63,7 @@ describe("scope actions", () => {
       description: "Tools.",
     });
     expect(cache.revalidatePath).toHaveBeenCalledWith("/admin/scopes");
-    expect(cache.revalidatePath).toHaveBeenCalledWith("/scopes");
+    expect(cache.revalidatePath).toHaveBeenCalledTimes(1);
   });
 
   it("shows domain and permission errors, and rethrows anything else", async () => {
@@ -85,8 +84,8 @@ describe("ScopesTable (061)", () => {
   const table = (params: Record<string, string>, rows: Scope[], extra = {}) =>
     renderToStaticMarkup(
       <ScopesTable
-        list={SCOPES_LIST}
-        state={parseListQuery(SCOPES_LIST, params)}
+        list={ADMIN_SCOPES_LIST}
+        state={parseListQuery(ADMIN_SCOPES_LIST, params)}
         scopes={rows}
         page={{ next: "c2", previous: "c0" }}
         total={{ count: rows.length, capped: false }}
@@ -106,12 +105,12 @@ describe("ScopesTable (061)", () => {
       "2026-09-20",
       "@team",
       "2 scopes",
-      'href="/scopes?q=plat&amp;cursor=c2"',
-      'href="/scopes?q=plat&amp;sort=created"',
+      'href="/admin/scopes?q=plat&amp;cursor=c2"',
+      'href="/admin/scopes?q=plat&amp;sort=created"',
       'aria-sort="ascending"',
     ])
       expect(html, text).toContain(text);
-    expect(html).toMatch(/aria-label="Remove the search filter"[^>]*href="\/scopes"/);
+    expect(html).toMatch(/aria-label="Remove the search filter"[^>]*href="\/admin\/scopes"/);
     expect(html).not.toContain('<span class="sr-only">Actions</span>');
   });
 
@@ -120,7 +119,7 @@ describe("ScopesTable (061)", () => {
     expect(table({ q: "x" }, [])).toContain("No scopes match this search.");
   });
 
-  it("turns a view into the server query, on either page", () => {
+  it("turns a view into the server query", () => {
     expect(
       scopesQueryOf(parseListQuery(ADMIN_SCOPES_LIST, { q: "plat", sort: "created" })),
     ).toEqual({
@@ -137,7 +136,7 @@ describe("ScopesTable (061)", () => {
   });
 });
 
-describe("the pages", () => {
+describe("the page", () => {
   it("/admin/scopes is a 404 for anyone but root, without listing", async () => {
     for (const user of [null, { role: "user" }, { role: "moderator" }]) {
       session.getCurrentUser.mockResolvedValueOnce(user);
@@ -148,16 +147,14 @@ describe("the pages", () => {
     expect(scopes.pageScopes).not.toHaveBeenCalled();
   });
 
-  it("root gets the list with edit buttons; /scopes is read-only for everyone", async () => {
+  it("root gets the list with edit buttons, searched and sorted on the server", async () => {
     session.getCurrentUser.mockResolvedValueOnce({ role: "root" });
-    const admin = renderToStaticMarkup(await AdminScopes({ searchParams: Promise.resolve({}) }));
+    const admin = renderToStaticMarkup(
+      await AdminScopes({ searchParams: Promise.resolve({ q: "plat" }) }),
+    );
+    expect(admin).toContain("@platform");
     expect(admin).toContain("Edit @platform");
     expect(admin).toContain("Create scope");
-    const everyone = renderToStaticMarkup(
-      await Scopes({ searchParams: Promise.resolve({ q: "plat" }) }),
-    );
-    expect(everyone).toContain("@platform");
-    expect(everyone).not.toContain("Edit @platform");
     expect(scopes.pageScopes).toHaveBeenLastCalledWith(
       expect.any(Headers),
       expect.objectContaining({ search: "plat", sort: "name", dir: "asc", size: 50 }),

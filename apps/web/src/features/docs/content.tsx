@@ -319,9 +319,9 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
     who: (
       <Bullets>
         <li>
-          <strong>Root creates scopes</strong>, with a description, under Admin. The{" "}
-          <To href="/scopes">Scopes</To> page lists them for everyone, by name or newest first, and
-          searches names and descriptions.
+          <strong>Root creates scopes</strong>, with a description, under Admin › Scopes. When you
+          create an item, the scope picker lists every scope and shows the chosen one&apos;s
+          description.
         </li>
         <li>
           <strong>Anyone may propose an item in any scope.</strong> Review is the gate, not the

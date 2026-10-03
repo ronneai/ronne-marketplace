@@ -9,7 +9,7 @@ import * as service from "../services/scopes";
 export type { ScopesPage } from "../services/scopes";
 
 /**
- * Entry points for /scopes and /admin/scopes (feature 010), and for 012's scope picker. Thin: they
+ * Entry points for /admin/scopes (feature 010), and for 012's scope picker. Thin: they
  * find who's asking and wire the dependencies; the services check permissions.
  */
 const deps = ({ db, dialect }: AppAuth): service.ScopeDeps => ({

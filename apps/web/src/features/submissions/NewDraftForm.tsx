@@ -5,6 +5,7 @@ import { ArrowRight, CircleCheck, FileCode, Info, Search, ShieldCheck } from "lu
 import Link from "next/link";
 import { type ReactNode, useActionState, useMemo, useState } from "react";
 import { Help } from "@/components/help/Help";
+import { docsHref } from "@/components/help/topics";
 import {
   HIGH_RISK_NOTE,
   STANDARD_RISK_NOTE,
@@ -115,7 +116,7 @@ export const NewDraftForm = ({ scopes, mine }: { scopes: ScopeOption[]; mine: st
           title="Where it lives"
           aside={
             <Link
-              href="/scopes"
+              href={docsHref("scopes")}
               className="inline-flex items-center gap-1 text-sm text-link underline underline-offset-2"
             >
               About scopes

@@ -30,7 +30,6 @@ export const NAV: NavItem[] = [
     section: "/submissions",
   },
   { href: "/reviews", label: "Reviews", permission: "submissions.review", section: "/reviews" },
-  { href: "/scopes", label: "Scopes" },
   { href: "/admin/users", label: "Admin", permission: "users.view", section: "/admin", end: true },
   { href: "/docs", label: "Docs", section: "/docs", end: true },
 ];

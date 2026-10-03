@@ -82,8 +82,8 @@ export const updateScopeDescription = async (
 export type ScopesPage = { scopes: Scope[]; nextCursor: string | null };
 
 /**
- * Everyone signed in can list scopes: they need them to know where their items can go. The pages
- * use SCOPES_PAGE_SIZE; the API (037) passes its own `limit`.
+ * Everyone signed in can list scopes: they need them to know where their items can go. The admin page
+ * uses SCOPES_PAGE_SIZE; the API (037) passes its own `limit`.
  */
 export const listScopes = async (
   deps: ScopeDeps,

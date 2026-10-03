@@ -12,16 +12,16 @@ import { MainNav } from "./MainNav";
 import { isCurrent, navFor } from "./nav";
 
 describe("navFor", () => {
-  it("shows nothing signed out, Home, Catalogue, Submissions, Scopes and Docs for everyone, Reviews to reviewers, and Admin only for root", () => {
+  it("shows nothing signed out, Home, Catalogue, Submissions and Docs for everyone, Reviews to reviewers, and Admin only for root", () => {
     expect(navFor(null)).toEqual([]);
     expect(navFor({ name: "U", email: "u@example.com", role: "user" }).map((i) => i.label)).toEqual(
-      ["Home", "Catalogue", "Submissions", "Scopes", "Docs"],
+      ["Home", "Catalogue", "Submissions", "Docs"],
     );
     expect(
       navFor({ name: "M", email: "m@example.com", role: "moderator" }).map((i) => i.label),
-    ).toEqual(["Home", "Catalogue", "Submissions", "Reviews", "Scopes", "Docs"]);
+    ).toEqual(["Home", "Catalogue", "Submissions", "Reviews", "Docs"]);
     expect(navFor({ name: "R", email: "r@example.com", role: "root" }).map((i) => i.label)).toEqual(
-      ["Home", "Catalogue", "Submissions", "Reviews", "Scopes", "Admin", "Docs"],
+      ["Home", "Catalogue", "Submissions", "Reviews", "Admin", "Docs"],
     );
   });
 });
@@ -33,7 +33,7 @@ describe("MainNav", () => {
     );
     const at = (label: string) => html.indexOf(`>${label}</a>`);
     const spacer = html.indexOf('<span class="ml-auto">');
-    expect(at("Scopes")).toBeLessThan(spacer);
+    expect(at("Reviews")).toBeLessThan(spacer);
     expect(spacer).toBeLessThan(at("Admin"));
     expect(at("Admin")).toBeLessThan(at("Docs"));
   });
