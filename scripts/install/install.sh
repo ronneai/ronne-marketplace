@@ -477,7 +477,7 @@ main() {
 
   if wait_healthy; then
     say ""
-    say "Ronne is running: $url"
+    say "Ronne AI Marketplace is running: $url"
     if [ "$INSTALLED" = 0 ]; then
       say "Open it now and finish the setup: until then, anyone who can reach it can set it up."
     fi

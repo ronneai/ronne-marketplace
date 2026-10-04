@@ -368,7 +368,7 @@ function Install-Ronne {
 
   if (Wait-Healthy) {
     Write-Host ''
-    Write-Host "Ronne is running: $url" -ForegroundColor Green
+    Write-Host "Ronne AI Marketplace is running: $url" -ForegroundColor Green
     if (-not $script:Installed) { Write-Host 'Open it now and finish the setup: until then, anyone who can reach it can set it up.' }
     if (-not $script:Yes -and $env:OS -eq 'Windows_NT') { Start-Process $url }
   } else {
