@@ -98,3 +98,34 @@ goes into `SPEC.md` instead.
   - *082, not this task:* the standalone build writes the build machine's absolute path into
     `app/apps/web/server.js` and `required-server-files.json`. It's not a secret, but it's in
     every package.
+
+### Task 2: the release matrix (2026-10-04)
+
+- **`.github/workflows/bundles.yml`**, reusable (`workflow_call`), so every pull request and the
+  release build the bundles the same way. Six jobs, each on a runner of its platform:
+  `ubuntu-24.04`, `ubuntu-24.04-arm`, `macos-15-intel`, `macos-15`, `windows-2025`,
+  `windows-11-arm` (the plan's `macos-13` is retired; `macos-15-intel` is GitHub's x64 macOS
+  now). Each downloads the `server-tarball` artifact, runs `bundle.js`, then `bundle-smoke.js`, and
+  uploads `bundle-<platform>-<arch>`.
+- **`packages/repo-tools/src/bundle-smoke.js`** unpacks the archive (with System32's `tar.exe` on
+  Windows) and takes every folder holding a `node` off `PATH`, then checks `which`/`where node`
+  finds nothing. It checks `rmk-server --version` prints the package's version and "Node.js 24.x.y
+  (bundled)", and runs 082's `server-probe.js` against the launcher, with the bundle's own Node.
+  Passes here on the darwin-arm64 bundle. 2 more unit tests (the `PATH` filter, the folder name).
+- **`server-package.yml`** calls it after its pack job; the *Server package* check needs it.
+- **`release.yml`:**
+  - the release job uploads the packed server as `server-tarball` (also on a dry run);
+  - `bundles` calls the reusable workflow after it;
+  - `github-release` needs `bundles` too, downloads the six, fails unless there are six, adds
+    their SHA-256 to `checksums.txt` (with the install scripts'), checks them all, and attaches
+    them. So one failed platform means no release at all, as the spec says.
+- **Still open:** the *Done when* (a dry-run release with six checked archives) needs this branch
+  on GitHub. Its pull request runs the six jobs first; then a dry run dispatched from the branch
+  (`gh workflow run release.yml --ref feat/084-bundles -f tag=v0.2.0 -f dry_run=true`) waits for the
+  owner's approval of the "npm" environment.
+- **Fixed after the witness:** the bundle uploads replace an earlier one (`overwrite: true`), so the
+  release can be re-run, as its other uploads can; the smoke test fails, with a message, when the
+  archive unpacks to a folder other than its own name (so a version mismatch between the name and
+  the package can't pass); and its cleanup retries and only warns (a file Windows still holds
+  must not fail a good run). Known and left: a system folder that held a `node` (none on GitHub's
+  images) would leave `PATH` with it, and the launcher would fail loudly, not pass wrongly.

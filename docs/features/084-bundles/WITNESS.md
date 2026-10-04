@@ -40,3 +40,27 @@ it: 78.6 MB, owners 0/0).
 **Recorded for later (in the notes):** a service made from a bundle records its versioned
 `node/bin/node` (085, 087); 082's standalone build writes the build machine's path into two files.
 **Overall:** met.
+
+## Task 2 — Release matrix (what can be checked here)
+
+Witnessed: 2026-10-04 (about 15:05 EDT), by a fresh agent. Machine: macOS arm64; the darwin-arm64 bundle from task 1. **Not ticked:** the *Done when* (a dry-run release producing six checked archives) needs GitHub.
+
+| # | Claim | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|
+| 1 | Tests, lint | confirmed | repo-tools 86 passed (2 new); `pnpm lint` 53 warnings, 0 errors. |
+| 2 | The smoke test takes every Node off `PATH` | confirmed | With nvm's 22.23.2, 24.21.0 and 24.0.0, `/opt/homebrew/bin`, `/usr/local/bin` and `node@24` on `PATH`: "✓ no Node.js on PATH" and a pass; a launcher changed to `exec node` failed (127). |
+| 3 | It checks both `--version` lines and runs the probe with the bundled Node | confirmed | A launcher printing 0.1.9 failed with the output quoted; one exiting 3 failed; the probe logged "Node 24.21.0, darwin arm64" and passed; a launcher that can't serve failed "server-probe.js failed (exit 1)". |
+| 4 | It removes its unpacked copy | confirmed | No new `rmk-bundle-smoke-*` after passing and failing runs. |
+| 5 | A version mismatch is caught | partly → fixed | The version came from the package itself, so an archive named 0.2.0 holding 0.2.1 passed. Now the archive must unpack to a folder of its own name (the builder checked: a 0.2.0 bundle renamed 0.9.9 fails "unpacks to rmk-server-0.2.0-darwin-arm64, not …"). |
+| 6 | The scripts run from the workflow's sparse checkout | confirmed | A simulated non-cone sparse checkout (`packages/repo-tools/src`, `LICENSE`): smoke and probe pass; `bundle.js` starts. |
+| 7 | The runner labels exist | confirmed | GitHub's docs list ubuntu-24.04, ubuntu-24.04-arm, macos-15-intel, macos-15, windows-2025, windows-11-arm; macos-13 is gone. |
+| 8 | Artifacts, permissions, the dry run, the six-or-nothing release, checksums | confirmed (read) | `server-tarball` uploaded by `release` and `pack` before `bundles` needs it, also on a dry run; one `bundle-<platform>-<arch>` each; `contents: read` except `github-release`; on a dry run `bundles` runs and `github-release` is skipped; it needs `bundles`, counts six, appends their sums and re-checks the file. |
+| 9 | Windows | partly (read) | System32's bsdtar handles `-xOzf`, `-xf` on a zip, `-a -cf`; the `npm-cli.js` path matches the Windows zip; the `.cmd` launcher is started through a shell with its path quoted. |
+
+**Found, and fixed in this commit:** no `overwrite` on the bundle uploads (a re-run would fail);
+no check that the archive's name matches the package's version; a cleanup that could fail a good
+run on Windows.
+**Not checked here:** the six runners; actionlint; the dry run.
+**Noted:** npm publishes before the bundles are built, so a bundle failure leaves a version on npm
+with no GitHub release (re-runnable; as the spec intends); six more jobs on every code pull request.
+**Overall:** met as far as it can be here; the *Done when* waits for GitHub.

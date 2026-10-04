@@ -13,6 +13,7 @@ import {
   parseShasums,
   shLauncher,
 } from "./bundle.js";
+import { archiveFolder, pathWithoutNode } from "./bundle-smoke.js";
 
 const dir = mkdtempSync(join(tmpdir(), "rmk-bundle-test-"));
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
@@ -142,5 +143,31 @@ describe("the notices (084)", () => {
     expect(text.indexOf("Node.js 24.21.0")).toBeLessThan(text.indexOf("x 1.0.0 (MIT)"));
     expect(text).toContain("X licence");
     expect(text).toContain("No licence file in the package; its package.json says ISC.");
+  });
+});
+
+describe("the bundle's smoke test (084)", () => {
+  it("takes every folder with a node off PATH", () => {
+    const has = new Set([
+      "/usr/local/bin/node",
+      "/opt/n/bin/node",
+      "C:\\Program Files\\nodejs\\node.exe",
+    ]);
+    const exists = (path) => has.has(path);
+    expect(pathWithoutNode("/usr/local/bin:/usr/bin:/opt/n/bin:/bin", "linux", exists)).toBe(
+      "/usr/bin:/bin",
+    );
+    expect(
+      pathWithoutNode("C:\\Windows\\System32;C:\\Program Files\\nodejs", "win32", (p) =>
+        exists(p.replaceAll("/", "\\")),
+      ),
+    ).toBe("C:\\Windows\\System32");
+  });
+
+  it("knows the folder an archive unpacks to", () => {
+    expect(archiveFolder("out/rmk-server-0.4.0-linux-x64.tar.gz")).toBe(
+      "rmk-server-0.4.0-linux-x64",
+    );
+    expect(archiveFolder("rmk-server-0.4.0-win32-arm64.zip")).toBe("rmk-server-0.4.0-win32-arm64");
   });
 });
