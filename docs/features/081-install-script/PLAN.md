@@ -11,7 +11,7 @@ the same change that completes it.
   `sh`, and PSScriptAnalyzer (MIT). Not ShellCheck: GPL-3.0, forbidden even in CI. Record both.
   *Done when:* the policy lists them.
 
-- [ ] **2. `install.sh`.** In `scripts/install/`: checks, questions, port check, folder, start, wait,
+- [x] **2. `install.sh`.** In `scripts/install/`: checks, questions, port check, folder, start, wait,
   open; `--yes` and the flags; the function-on-the-last-line guard.
   *Done when:* `shfmt -p` passes, it runs under `dash`, and by hand on macOS and Ubuntu: a fresh install, a rerun, a
   busy port, no Docker.
@@ -23,7 +23,7 @@ the same change that completes it.
   written in, and `checksums.txt`.
   *Done when:* a dry-run release shows the assets and the checksums match.
 
-- [ ] **5. CI.** On Ubuntu: `install.sh --yes` (local, then server with `RONNE_TLS=internal`)
+- [x] **5. CI.** On Ubuntu: `install.sh --yes` (local, then server with `RONNE_TLS=internal`)
   against the image built in the same run, with health checks; on Windows: `install.ps1 -Yes`
   up to the Docker check (GitHub's Windows runners can't run Linux containers), plus lint.
   *Done when:* the jobs pass, and a broken script fails them.
@@ -184,3 +184,11 @@ and under bash:
   the proxy, its stack running and port 3000 answering, the rerun keeps `RONNE_PORT=3000` and gets
   the new `compose.yaml`. With the legacy fix removed from `install.sh`, that case fails (the
   install moves to 7650), so the test guards the fix. It passes under dash and bash.
+- **Task 2 ticked:** the one part not done by hand, Ubuntu, ran in CI on PR #119. `install-probe.sh`
+  ran `install.sh --yes` end to end on `ubuntu-latest` (amd64) and `ubuntu-24.04-arm`. The cases
+  it hadn't triggered are now in the fake-Docker tests above.
+- **Task 5 ticked:** on PR #119's last run, `Install scripts` (shfmt, dash, bash; PSScriptAnalyzer,
+  Windows PowerShell 5.1 and PowerShell 7) and both image jobs with the install probe passed. A
+  broken script fails them: the first runs failed on a real bug (the Windows port check), and the
+  probe fails locally with the port search broken on purpose.
+- **Still open:** task 3 (by hand on Windows 11) and task 4 (a dry-run release from `main`).
