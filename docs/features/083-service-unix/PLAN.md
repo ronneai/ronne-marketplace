@@ -233,6 +233,16 @@ goes into `SPEC.md` instead.
   with the account, even in the unlikely case the group existed before install. The plists set no
   `PATH`; launchd's default applies, and the service gets every path in full.
 
+- **Found by the owner's first run on a Mac (`--user`, nvm Node, macOS 27):** install waited its
+  90 seconds and failed, and launchd reported `spawn failed`, `last exit code = 78: EX_CONFIG` with
+  an empty log. `/usr/local/var` didn't exist, and `mkdirSync(…, { recursive: true, mode: 0o750 })`
+  gave that parent 750 too (`root:wheel`), so the job's account couldn't enter its working folder.
+  `System.mkdir` now makes missing parents with the default 755 and sets the mode on the folder
+  itself only (a test on a real folder). Linux never met it: `/var/lib` always exists; the macOS
+  CI job uses `/opt/homebrew/var`, which does too. Also: install now says it's waiting for the
+  server (it looked stuck), and on macOS a failed start shows launchd's state and last exit code
+  next to the log, since a job launchd can't start writes nothing there.
+
 ### Task 5: `status`, `start`, `stop`, `restart`, `logs` (2026-10-04)
 
 - **`packages/server/src/service/control.ts`:**

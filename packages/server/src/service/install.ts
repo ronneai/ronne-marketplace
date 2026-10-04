@@ -340,6 +340,9 @@ export const installService = async (
 
   // Wait until it answers: 503 before the setup, 200 after.
   const healthUrl = `http://${upstreamFor(options.host, options.port)}/api/health`;
+  sys.out(
+    `Started ${plan.app.name}; waiting for it to answer at ${healthUrl} (up to ${HEALTH_WAIT_MS / 1000} seconds)…\n`,
+  );
   let status: number | undefined;
   for (const start = Date.now(); Date.now() - start < HEALTH_WAIT_MS; await sys.sleep(1000)) {
     status = await sys.httpStatus(healthUrl);

@@ -55,7 +55,7 @@ export type System = {
    * which replaces a link rather than following it.
    */
   writeFile: (path: string, content: string, mode: number) => void;
-  /** Creates a folder (and its parents) and sets its permissions. */
+  /** Creates a folder (and any missing parents, 755) and sets the folder's own permissions. */
   mkdir: (path: string, mode: number) => void;
   remove: (path: string) => void;
   portFree: (port: number, host: string) => Promise<boolean>;
@@ -144,7 +144,9 @@ export const realSystem = (): System => ({
     renameSync(temporary, path);
   },
   mkdir: (path, mode) => {
-    mkdirSync(path, { recursive: true, mode });
+    // Parents it has to make get the usual 755 (mode would apply to them too, and a 750
+    // /usr/local/var would shut the service's account out); only the folder itself gets mode.
+    mkdirSync(path, { recursive: true });
     chmodSync(path, mode);
   },
   remove: (path) => rmSync(path, { recursive: true, force: true }),

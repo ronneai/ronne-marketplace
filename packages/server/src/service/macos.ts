@@ -159,10 +159,19 @@ export const macBackend = (sys: System): Backend => {
       launchctl("bootout", target(definition));
       sys.remove(path);
     },
-    recentLogs: (definition) =>
-      definition.logFile
+    // The log, and launchd's own word: a job it can't start (a folder its account can't enter, a
+    // missing program) writes nothing to the log, and launchd says EX_CONFIG.
+    recentLogs: (definition) => {
+      const log = definition.logFile
         ? (sys.readFile(definition.logFile) ?? "").split("\n").slice(-40).join("\n")
-        : "",
+        : "";
+      const launchd = launchctl("print", target(definition))
+        .stdout.split("\n")
+        .filter((line) => /^\t(state|job state|last exit code) = /.test(line))
+        .map((line) => `launchd: ${line.trim()}`)
+        .join("\n");
+      return `${[log, launchd].filter(Boolean).join("\n")}\n`;
+    },
     logsHint: (definition) => `tail -f ${definition.logFile ?? "/Library/Logs/rmk-server"}`,
     caddyHint: () =>
       "Install it with Homebrew: brew install caddy (and don't start brew's own caddy service, which would take ports 80 and 443).",
