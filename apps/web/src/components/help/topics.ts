@@ -20,7 +20,7 @@ export const TOPICS = [
     sections: [
       { id: "docker", title: "With Docker" },
       { id: "https", title: "A domain and HTTPS" },
-      { id: "node", title: "With Node" },
+      { id: "node", title: "With Node.js" },
       { id: "setup", title: "The setup" },
       { id: "root", title: "Root accounts" },
       { id: "upgrade", title: "Upgrading" },

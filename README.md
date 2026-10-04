@@ -146,9 +146,39 @@ why: usually the DNS, a closed port, or ports other than 80 and 443.
 - **"isn't writable" on start:** the volume is owned by root. Fix it once with
   `docker compose run --rm --user root web chown -R 1000:1000 /app/data`.
 
+### With Node.js, no clone
+
+With Node.js 22.12 or later, one command downloads and starts Ronne, with no clone, no Docker and
+no build:
+
+```sh
+npx @ronneai/marketplace                 # then open http://localhost:7650 and follow the setup
+npm install --global @ronneai/marketplace && rmk-server     # or keep it installed
+```
+
+The command is `rmk-server`: `rmk-server [start] [--port N] [--host H] [--no-open]`, `rmk-server
+setup` (the setup in the terminal, with `--yes` for scripts), `rmk-server migrate` and
+`rmk-server reset-root-password`. On a terminal, the first start opens the browser.
+
+- **Network:** it listens on `127.0.0.1:7650`, this machine only. `--host 0.0.0.0` (or `HOST`)
+  makes it reachable from the network; `--port` (or `PORT`) changes the port. If the port is busy, it
+  says so rather than picking another, since the address is saved in the settings and in `rmk login`.
+- **Data** (settings, the SQLite database, stored items) lives in `RONNE_DATA_DIR`, or by default
+  in `~/Library/Application Support/RonneAI Marketplace` (macOS), `$XDG_DATA_HOME/rmk-server` or
+  `~/.local/share/rmk-server` (Linux), and `%LOCALAPPDATA%\RonneAI\Marketplace` (Windows).
+- **Moving from a clone:** copy `apps/web/.env` and what's in `apps/web/data/` (the SQLite file and
+  `storage/`) into the data folder. Then, in the copied `.env`, change `DATABASE_URL` and
+  `STORAGE_PATH` to their new absolute paths (a clone's are relative to `apps/web`), and
+  `PUBLIC_URL` to the new address, such as `http://localhost:7650`.
+- **Upgrading:** `npx @ronneai/marketplace@latest`, or `npm install --global @ronneai/marketplace`.
+  Migrations run on start.
+- **Native modules:** `better-sqlite3` ships prebuilt binaries for macOS, Linux (glibc and musl)
+  and Windows, on x64 and arm64. Elsewhere npm compiles it, which needs Python, `make` and a C++
+  compiler.
+
 ### From source
 
-For developers, or a host without Docker. You need Node.js and pnpm (see
+For developers working on Ronne itself. You need Node.js and pnpm (see
 [Requirements](#development)).
 
 ```sh

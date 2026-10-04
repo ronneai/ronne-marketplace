@@ -26,7 +26,7 @@ the same change that completes it.
   tarball, start, wait for `/api/health` = 503, run `setup --yes` with SQLite, health = 200.
   *Done when:* the matrix passes.
 
-- [ ] **5. Documentation and decisions.** README, the Documentation section, MVP §5 and §15.
+- [x] **5. Documentation and decisions.** README, the Documentation section, MVP §5 and §15.
   *Done when:* the docs render tests pass.
 
 ## Notes
@@ -196,3 +196,25 @@ Windows wasn't run here: task 4's CI matrix covers it.
 - **Still open:** the *Done when*, the matrix passing on a pull request. Windows is new ground there:
   a SQLite path with a drive letter (`file:C:/…`), the `.cmd` shim, and stopping it with
   `taskkill`.
+
+### Task 5: documentation and decisions (2026-10-04)
+
+- **README:** *With Node.js, no clone* comes before *From source*, which is now "for developers
+  working on Ronne itself". It has the two commands, `rmk-server`'s commands, the network default
+  and `--host`/`--port`, the data folders, moving from a clone, upgrading, and the native-module note.
+- **Moving from a clone** first said "set `RONNE_DATA_DIR` to its `apps/web/data`", as the spec's edge
+  case did. The witness found it doesn't work: the clone's `.env` is in `apps/web`, and its paths are
+  relative to it. The README now says to copy `.env` and `data/`, make the two paths absolute, and
+  update `PUBLIC_URL`. The spec's edge case is corrected. The witness followed the new steps: health
+  200, and the clone's root signed in.
+- **The runbook** also said "Node.js 22 or later" (it's 22.12) and that it opens the browser on
+  every start (only the first, on a terminal). Both fixed.
+- **Documentation › Installing Ronne › With Node.js** (renamed from "With Node"): `npx` first, the
+  commands, network, data, upgrading; the clone is a last paragraph for developers. Tests assert the
+  new text.
+- **The runbook** gains `XDG_DATA_HOME` and the `127.0.0.1`/`--host` default.
+- **MVP §5:** the Node path is `npx @ronneai/marketplace`. **§15 Packages:** the three binaries,
+  the server package and how it's assembled.
+- **The setup's *Public address* helper** reflects the port: done in task 2 (`localUrl`, with a test).
+- **Checks:** the docs, setup and help tests pass (31), lint passes, and `pnpm test:e2e` passes
+  (84, including the phone sweep).

@@ -106,3 +106,24 @@ Witnessed: 2026-10-04 (23:38–23:42 EDT on 2026-10-03), by a fresh agent. Machi
 - The probe waited the full 90 s when the command exited early. Fixed: it now fails at once.
 
 **Overall:** not met yet. Every local check passes, but the *Done when* (the matrix passing on GitHub) waits for a pull request, and Windows has never been run, so task 4 stays unticked.
+
+## Task 5 — Documentation and decisions
+
+Witnessed: 2026-10-04 (23:47 EDT on 2026-10-03), by a fresh agent. Machine: macOS arm64, Node v24.0.0. The docs were checked against the code (`packages/server/src/cli.ts`, `paths.ts`, `run.ts`, `package.json`), not only the spec.
+
+| # | Claim | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|
+| 1 | The README has a "With Node.js, no clone" section before "From source", and its facts match the code | partly (fixed, see claim 7) | The section sits before *From source*. Each fact matches the code: `npx`, the global install with `rmk-server`, the commands, `127.0.0.1:7650`, `--host`/`HOST`, `--port`/`PORT`, the busy port (`run.ts` never picks another), the data folders including `XDG_DATA_HOME`, upgrading (migrations on start) and the native-module note. Not the moving-from-a-clone line (claim 7). |
+| 2 | In-app Documentation `install.node` states the same facts, the section title is "With Node.js", and the test asserts the new text | confirmed | `content.tsx` has `npx` first, the commands, network, data and upgrading, then the clone for developers. `topics.ts` → `{ id: "node", title: "With Node.js" }`. `docs.test.tsx` asserts `npx @ronneai/marketplace`, `rmk-server setup`, the macOS folder and `--host 0.0.0.0`. |
+| 3 | MVP §5 names `npx @ronneai/marketplace`; §15's Packages row names the binaries and the server package | confirmed | §5: `npx @ronneai/marketplace`, with `pnpm dlx … init` removed. §15: binaries `rmk`, `rmk-mcp`, `rmk-server`, and the server package with better-sqlite3 and argon2 as its only dependencies (as in its `package.json`). |
+| 4 | The runbook's Node section mentions `XDG_DATA_HOME` and the 127.0.0.1 / `--host` default, consistent with the code | confirmed | It matches `paths.ts` and `cli.ts`. |
+| 5 | The setup's Public address helper reflects the port | confirmed (landed in task 2, f693696) | `fields.tsx` "…or ${page.localUrl …} on this machine"; `page.tsx` `localUrl: defaultPublicUrl()`; `runtime.ts` derives it from `PORT`; `setup.test.tsx` asserts "or http://localhost:7650 on this machine". |
+| 6 | Done-when: the docs, setup and help tests pass, and `pnpm lint` passes | confirmed | 31 tests passed; `pnpm lint` exit 0. |
+| 7 | No statement in the changed docs is untrue of the code | **not met, then fixed and re-checked: confirmed** | **First pass:** "Moving from a clone: set `RONNE_DATA_DIR` to its `apps/web/data`" was untrue. A clone's settings are `apps/web/.env`, and its `DATABASE_URL=file:./data/ronne.db` is relative, so `rmk-server` started in setup mode. The spec's edge case said the same. **Re-check after the fix (the same agent):** it made a fake clone with relative paths and a set-up SQLite database, then followed the new README steps literally: copy `.env` and `data/`, then make `DATABASE_URL` and `STORAGE_PATH` absolute. `rmk-server --port 7660` with that `RONNE_DATA_DIR` → "The database is up to date", `/api/health` **200**, and the clone's root at `/api/v1/auth/token` → **201** (a wrong password 401). Control with the old wording → **503**. The changed runbook lines ("Node.js 22.12", the browser on the first start) match `engines`, `MIN_NODE` and `run.ts`. |
+
+**Not checked here:** `pnpm test:e2e` (84 passed in the notes) wasn't re-run. Browser sign-in after the move wasn't checked; the token API was. The runbook's `rmk-server service install` lines are the draft for 083, not this feature.
+**Differences from the notes:**
+- The moving-from-a-clone instruction, fixed as above.
+- The witness noted the moved `.env` keeps the clone's `PUBLIC_URL`. The README now says to update it.
+
+**Overall:** met. Every claim holds after the fix, and the Done-when tests and lint pass.

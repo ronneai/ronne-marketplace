@@ -84,7 +84,11 @@ another silently, because `PUBLIC_URL` and saved `rmk` logins depend on it.
   and PostgreSQL work regardless.
 - **`npx` with a cached older version**: `npx @ronneai/marketplace@latest` is what the docs show for
   upgrades; migrations run on start.
-- **Moving from a clone** (`apps/web/data`): set `RONNE_DATA_DIR` to that folder; documented.
+- **Moving from a clone:** a clone keeps its settings in `apps/web/.env` with paths relative to
+  `apps/web` (`file:./data/ronne.db`, `./data/storage`), so pointing `RONNE_DATA_DIR` at
+  `apps/web/data` isn't enough: `rmk-server` would find no `.env` there and start in setup mode. The
+  README says to copy `.env` and `data/` into the data folder and make `DATABASE_URL` and
+  `STORAGE_PATH` absolute (found by task 5's witness).
 - **Two versions sharing a data folder**: the older refuses to start on a newer database (002).
 
 ## Documentation

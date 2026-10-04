@@ -133,6 +133,11 @@ describe("the topics", () => {
     for (const id of ["docker", "https", "node", "setup", "root", "upgrade"])
       expect(install).toContain(`id="${id}"`);
     expect(install).toContain("docker compose up -d");
+    // The npm package and rmk-server (082).
+    expect(install).toContain("npx @ronneai/marketplace");
+    expect(install).toContain("rmk-server setup");
+    expect(install).toContain("~/Library/Application Support/RonneAI Marketplace");
+    expect(install).toContain("--host 0.0.0.0");
     // The install script (081).
     // Against the GitHub release, the scripts' own source: never the website, which only redirects.
     expect(install).toContain(
