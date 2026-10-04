@@ -18,6 +18,10 @@ macOS, Linux and Windows. The person answers two questions and never edits a fil
 - Running it again on an installed folder: upgrade, keeping the answers.
 - A non-interactive mode for scripts and CI.
 - Tests of both scripts in CI.
+- Short commands from the website: `https://www.ronne.ai/install.sh` and `/install.ps1` redirect
+  (307) to the same files in the latest GitHub release (owner, 2026-10-04). The release stays the
+  only copy, with `checksums.txt`, and its URL keeps working. This repository's tests and CI use
+  the release and local files only, never the website.
 
 **Out** (and where it goes instead):
 - Installing Docker itself: the script links to the right download and stops. Installing a
@@ -25,19 +29,22 @@ macOS, Linux and Windows. The person answers two questions and never edits a fil
 - Installing without Docker: the script offers it once the packages exist
   ([085](../085-unix-packages/SPEC.md) for macOS and Linux, [087](../087-windows-package/SPEC.md)
   for Windows).
-- A short URL on a Ronne website (`…/install.sh`): an alias the owner adds when the site exists;
-  the release URL keeps working.
+- Hosting the scripts on the website: www.ronne.ai only redirects to the release (below; site
+  feature 008 in `ronneai/ronne-web`).
 
 ## Behaviour
 
 **The commands** (shown on the website and in the README):
 
 ```sh
-curl -fsSL https://github.com/ronneai/ronne-marketplace/releases/latest/download/install.sh | sh
+curl -fsSL https://www.ronne.ai/install.sh | sh
 ```
 ```powershell
-irm https://github.com/ronneai/ronne-marketplace/releases/latest/download/install.ps1 | iex
+irm https://www.ronne.ai/install.ps1 | iex
 ```
+
+Both redirect to the latest release's assets, which also work directly:
+`https://github.com/ronneai/ronne-marketplace/releases/latest/download/install.sh` (and `.ps1`).
 
 **Steps**, the same in both scripts:
 
