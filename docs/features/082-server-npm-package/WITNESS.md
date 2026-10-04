@@ -142,3 +142,20 @@ Witnessed: 2026-10-04 00:24 EDT, by a fresh agent, read-only from GitHub's run r
 
 **Not checked here:** nothing was reproduced outside GitHub. `ronne.db`/`storage` rest on the probe's own check. darwin x64 isn't covered (macOS runners are arm64).
 **Overall:** met. The ubuntu/macos/windows × Node 22/24 matrix passed on 4a36253 from install to a freed port, so task 4 is ticked. The probe's DEP0190 notice is fixed in the next commit, and the run on that commit shows it.
+
+## Task 3 — the dry-run release (run 37178022034)
+
+Witnessed: 2026-10-04 04:54 UTC, by a fresh agent, read-only from GitHub's records (head ee209ec).
+
+| # | Claim | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|
+| 1 | workflow_dispatch on main, dry run, tag v0.2.0, main's head, success | confirmed | event `workflow_dispatch`, branch `main`, head `ee209ecc…` (= main), conclusion success. The job env shows `TAG: v0.2.0`, `DRY_RUN: true`. Check, pack and publish ✓, both Image jobs ✓, tagging and GitHub release skipped. |
+| 2 | build:server, packages:check (4 ✓) and release:smoke ran and passed | confirmed | `✓ @ronneai/core: 128 files`, `✓ @ronneai/rmk: 65`, `✓ @ronneai/mcp: 19`, `✓ @ronneai/marketplace: 1765 files, all on the allowlist`. `Packed 4: …`, `✓ rmk --version: 0.2.0`, `✓ rmk-mcp answered initialize as ronne-registry 0.2.0`, `✓ rmk-server 0.2.0 started and answered 503 setup_required`. |
+| 3 | Pack made four tarballs, including the marketplace | confirmed | `ls -l release`: core 83,558 B, **marketplace 8,520,078 B**, mcp 15,900 B, rmk 93,004 B. |
+| 4 | npm published nothing | confirmed | core, rmk and mcp 0.2.0 were "already on npm; skipping". The marketplace got `npm publish --dry-run`: 8.5 MB, 34.5 MB unpacked, 1,765 files, "(dry-run)". `npm view @ronneai/marketplace` → E404. |
+| 5 | (081) The install-scripts artefact | confirmed | `install.sh`, `install.ps1` and `checksums.txt`. `shasum -a 256 -c` → both OK. `RONNE_VERSION="0.2.0"` and `$RonneVersion = '0.2.0'`, no `@RONNE_VERSION@` left. |
+| 6 | Image jobs ran the probes and scans, and pushed nothing | confirmed | Image, compose and install probes: every `OK:`. Both Trivy scans passed (0). Login, push and labels steps skipped. |
+| 7 | Nothing published elsewhere | confirmed | The v0.2.0 GitHub release still has only its three 2026-10-01 assets. The Docker Hub tags `latest`, `0.2` and `0.2.0` were last pushed on 2026-10-01. |
+
+**Not checked here:** real publishing (npm `--provenance` and trusted publishing, the Docker Hub push and tagging, the GitHub release attaching the assets), which a dry run skips by design and the first real release will show.
+**Overall:** task 3's Done-when is met: a dry-run release packed and smoke-tested all four packages.

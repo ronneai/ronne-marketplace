@@ -18,7 +18,7 @@ the same change that completes it.
   on first start, the Node version check. Unit tests for the folder and argument logic.
   *Done when:* tests pass, and `pnpm pack` then `npm i -g ./…tgz` runs it on this machine.
 
-- [ ] **3. Checks and release.** Add it to `packages:check`, `release:smoke`, `release:version` and
+- [x] **3. Checks and release.** Add it to `packages:check`, `release:smoke`, `release:version` and
   `release.yml` (provenance, trusted publishing).
   *Done when:* a dry-run release packs and smoke-tests all four packages.
 
@@ -168,8 +168,15 @@ Windows wasn't run here: task 4's CI matrix covers it.
   set once it exists. As with core, rmk and mcp, the first publish of `@ronneai/marketplace` needs a
   short-lived token in the "npm" environment's `NPM_TOKEN`. Then link the package to this repository,
   `release.yml` and the "npm" environment on npmjs.com, and delete the token.
-- **Still open:** the *Done when*, a dry-run release (Actions › Release, "dry run", from `main`
-  after the merge), which only the owner can approve.
+- **The dry-run release passed** (run 37178022034, 2026-10-04, from `main` at ee209ec, tag v0.2.0):
+  - `packages:check` and `release:smoke` passed for all four packages ("Packed 4", `rmk-server`
+    answered 503);
+  - `@ronneai/marketplace` went through `npm publish --dry-run` (8.5 MB, 1,765 files), and core, rmk
+    and mcp 0.2.0 were skipped as already published;
+  - nothing reached npm, Docker Hub or the GitHub release.
+
+  The *Done when* is met (witnessed; see WITNESS.md). The first real publish of
+  `@ronneai/marketplace` still needs the owner's short-lived `NPM_TOKEN`, as noted above.
 
 ### Task 4: three systems (2026-10-04)
 

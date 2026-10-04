@@ -19,7 +19,7 @@ the same change that completes it.
 - [ ] **3. `install.ps1`.** The same, for PowerShell 5.1 and 7.
   *Done when:* PSScriptAnalyzer passes, and by hand on Windows 11 with Docker Desktop.
 
-- [ ] **4. Release assets.** `release.yml` attaches both scripts, with `compose.yaml`'s version
+- [x] **4. Release assets.** `release.yml` attaches both scripts, with `compose.yaml`'s version
   written in, and `checksums.txt`.
   *Done when:* a dry-run release shows the assets and the checksums match.
 
@@ -115,8 +115,11 @@ and under bash:
 - **Fixed on the way:** `github-release` used `$VERSION` without setting it, so v0.1.0 to v0.2.0's
   notes read "docker pull ronneai/marketplace:" with no version. It now gets
   `needs.release.outputs.version`.
-- **Still open:** a dry-run release (run by hand from `main`, after the merge) to see the
-  artefact. Tick the task then.
+- **The dry-run release showed it** (run 37178022034, 2026-10-04, tag v0.2.0). The
+  `install-scripts` artefact holds `install.sh`, `install.ps1` and `checksums.txt`, with
+  `RONNE_VERSION="0.2.0"` and `$RonneVersion = '0.2.0'` written in and no placeholder left, and
+  `shasum -a 256 -c checksums.txt` passed for both (witnessed; the record is in 082's WITNESS.md,
+  task 3). Attaching them to a GitHub release is skipped on a dry run: the next real release shows it.
 
 ### Task 5: CI (2026-10-03)
 
