@@ -102,8 +102,8 @@ export const macBackend = (sys: System): Backend => {
       if (dscl("-read", `/Groups/${group}`).code === 0) dscl("-delete", `/Groups/${group}`);
     },
     canRun: (user, program, args) => sys.run("sudo", ["-u", user, program, ...args]).code === 0,
-    chown: (path, user, group) => {
-      sys.run("chown", ["-R", `${user}:${group}`, path]);
+    chown: (path, user, group, recursive = true) => {
+      sys.run("chown", [...(recursive ? ["-R"] : []), `${user}:${group}`, path]);
     },
     // The proxy runs as root on macOS, so its certificates need no group.
     shareWithGroup: () => {},
@@ -124,6 +124,37 @@ export const macBackend = (sys: System): Backend => {
         return `launchctl bootstrap system ${path} failed: ${(result.stderr || result.stdout).trim()}`;
       return undefined;
     },
+    start: (definition, path) => {
+      // Loaded but stopped: start it; not loaded (after stop): load it, and RunAtLoad starts it.
+      if (launchctl("print", target(definition)).code === 0) {
+        const result = launchctl("kickstart", target(definition));
+        return result.code === 0 ? undefined : (result.stderr || result.stdout).trim();
+      }
+      launchctl("enable", target(definition));
+      const result = launchctl("bootstrap", "system", path);
+      return result.code === 0 ? undefined : (result.stderr || result.stdout).trim();
+    },
+    // KeepAlive would start it again after a kill, so stopping unloads it. The plist stays, so
+    // launchd loads it again at the next boot, as systemd starts an enabled unit.
+    stop: (definition) => {
+      launchctl("bootout", target(definition));
+    },
+    restart: (definition, path) => {
+      if (launchctl("print", target(definition)).code !== 0) {
+        launchctl("enable", target(definition));
+        const result = launchctl("bootstrap", "system", path);
+        return result.code === 0 ? undefined : (result.stderr || result.stdout).trim();
+      }
+      const result = launchctl("kickstart", "-k", target(definition));
+      return result.code === 0 ? undefined : (result.stderr || result.stdout).trim();
+    },
+    followLogs: (definitions) =>
+      sys.runAttached("tail", [
+        "-n",
+        "50",
+        "-F",
+        ...definitions.flatMap((definition) => (definition.logFile ? [definition.logFile] : [])),
+      ]),
     deactivate: (definition, path) => {
       launchctl("bootout", target(definition));
       sys.remove(path);

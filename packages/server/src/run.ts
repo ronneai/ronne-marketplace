@@ -10,7 +10,8 @@ import { HELP, parseArgs } from "./cli.js";
 import { MIN_NODE, nodeTooOld } from "./node-version.js";
 import { dataDir as defaultDataDir } from "./paths.js";
 import { isSetUp, serverEnv } from "./server-env.js";
-import { runService } from "./service/index.js";
+import { scriptForService } from "./service/control.js";
+import { runService, serviceTarget } from "./service/index.js";
 import { stableNodePath } from "./service/macos.js";
 import { realSystem } from "./service/system.js";
 
@@ -68,6 +69,13 @@ const importScript = async (name: string): Promise<void> => {
   await import(pathToFileURL(join(webDir, "dist-scripts", `${name}.mjs`)).href);
 };
 
+/** This Node and this rmk-server, as a service runs them. */
+const programPaths = () => ({
+  node: stableNodePath(process.execPath),
+  entry: realpathSync(join(here, "bin.js")),
+  version: packageVersion(),
+});
+
 export const main = async (argv: string[]): Promise<number | undefined> => {
   const command = parseArgs(argv);
   if (command.kind === "help") {
@@ -83,15 +91,25 @@ export const main = async (argv: string[]): Promise<number | undefined> => {
     return fail(`Node.js ${MIN_NODE} or later is needed; this is ${process.versions.node}.`);
   if (command.kind === "service" || command.kind === "service-help")
     // The service runs this same Node and this file, wherever npm put them.
-    return runService(realSystem(), command, {
-      node: stableNodePath(process.execPath),
-      entry: realpathSync(join(here, "bin.js")),
-      version: packageVersion(),
-    });
+    return runService(realSystem(), command, programPaths());
   if (!existsSync(join(webDir, "dist-scripts")))
     return fail(
       `the web app isn't in this package (${webDir}). From the repository, run: pnpm --filter @ronneai/marketplace assemble`,
     );
+
+  if (command.kind === "script") {
+    // With the service installed, the scripts work on its data, as its account.
+    const target = serviceTarget(realSystem(), programPaths());
+    if (!("error" in target)) {
+      const code = await scriptForService(
+        realSystem(),
+        target.context,
+        command.script,
+        command.args,
+      );
+      if (code !== undefined) return code;
+    }
+  }
 
   const dir = defaultDataDir(process.platform, process.env, homedir());
   mkdirSync(dir, { recursive: true });

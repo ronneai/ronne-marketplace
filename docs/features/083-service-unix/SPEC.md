@@ -31,7 +31,7 @@ Caddy as in 080. The packages in 085 call the same code.
 |---|---|---|
 | User | `rmk-server` system user, no login shell | `_rmkserver` system user; or the signed-in user with `--user` |
 | Data | `/var/lib/rmk-server` | `/usr/local/var/rmk-server` (Homebrew: `$(brew --prefix)/var/rmk-server`) |
-| Settings | `/etc/rmk-server/env` (mode 600, owned by the service account, which the setup writes it as) | `/usr/local/etc/rmk-server/env` |
+| Settings | `/etc/rmk-server/env` (mode 600, the service account's; its folder is root's) | `/usr/local/etc/rmk-server/env` |
 | Definition | `/etc/systemd/system/rmk-server.service` | `/Library/LaunchDaemons/ai.ronne.rmk-server.plist` |
 | Logs | journald | `/Library/Logs/rmk-server/server.log` |
 
@@ -82,8 +82,28 @@ the network over plain HTTP; install prints a warning that it should be behind H
   install stops and explains.
 - Sets `PUBLIC_URL=https://…` and `TRUST_PROXY=true` in the settings file.
 
-**`service status`** prints: installed or not, running or not, version, address, data folder,
-settings file, and the proxy's state. **`logs`** follows the log (`journalctl -fu`, `tail -f`).
+**`service status`** prints: installed or not, running or not, version, address (and whether
+it still waits for the setup), the address it listens on, its account, data folder, settings
+file, where its log is, and the proxy's state; it needs no `sudo`, and exits 0 running, 3
+stopped, 4 not installed (as `systemctl`). A version newer than the last install or restart (npm
+upgraded it) and a program that isn't there any more (moved: install again) are named. **`start`,
+`stop`, `restart`** act on both services (the proxy stops first); on macOS `stop` unloads the
+job, since KeepAlive would start it again, and the next boot loads it. **`logs`** follows the log
+(`journalctl -f` on both units, `tail -F` on the files).
+
+**`setup`, `migrate`, `reset-root-password`** with the service installed work on its data: with
+`sudo` they run as its account, with its settings (and, with a domain, its `https://` address);
+without `sudo` they say to use it, or to set `RONNE_DATA_DIR` for an instance of one's own.
+
+**The settings folder is root's; only the settings file in it is the service account's.** The
+setup rewrites that file in place when it can't add a file to the folder (not its own, or
+read-only inside the service's sandbox: the app's `writeEnvFile`), and
+the unit lets the service write the file, not the folder. So the service account can't put a
+`service.json` of its own there or swap a name for a link: what root reads there is root's, or the
+account's own settings. On top of that, the scripts run the `rmk-server` that was invoked, as the
+system account (on macOS, with `--user`, only as the person running `sudo`), never as uid 0; root
+refuses the settings file or `service.json` as a link; and every file root writes is a new file
+(its mode set on the open file) renamed into place.
 **`uninstall`** stops and removes the definitions and the accounts install created; data and
 settings stay unless `--delete-data`, which asks to type the data folder's name (read from standard
 input, so it can be piped). Installing again uses the kept data.

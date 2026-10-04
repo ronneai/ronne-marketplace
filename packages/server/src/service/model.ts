@@ -91,8 +91,8 @@ export const servicePlan = (options: ServiceOptions): ServicePlan => {
       // a restart. Loading it into the environment instead would freeze its values at start.
       RONNE_ENV_FILE: layout.envFile,
     },
-    // The setup writes the settings file through a temporary file in its folder.
-    writablePaths: [layout.dataDir, layout.settingsDir],
+    // The settings file only, not its folder (root's): the setup rewrites the file in place.
+    writablePaths: [layout.dataDir, layout.envFile],
     readsHome: inHome(node) || inHome(entry),
     bindsLowPorts: false,
     after: [],

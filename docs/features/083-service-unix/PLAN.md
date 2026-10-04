@@ -232,3 +232,92 @@ goes into `SPEC.md` instead.
 - **Known and left:** uninstall deletes the `_rmkserver` group (and on Linux the `rmk-server` group)
   with the account, even in the unlikely case the group existed before install. The plists set no
   `PATH`; launchd's default applies, and the service gets every path in full.
+
+### Task 5: `status`, `start`, `stop`, `restart`, `logs` (2026-10-04)
+
+- **`packages/server/src/service/control.ts`:**
+  - `serviceStatus`: reads `service.json` (644, so no `sudo`), asks the backend whether each
+    service runs, and `/api/health` when it does. Exit 0, 3 or 4 as `systemctl`. It names a version
+    newer than the recorded one (npm upgraded it; `restart` runs it) and a Node or rmk-server that
+    isn't there any more (moved: install again), as the spec asked.
+  - `controlService`: start, stop, restart on both services, then the health wait. `restart`
+    records the version now at the entry, so status stops saying "newer".
+  - `serviceLogs`: `journalctl --follow` on both units; on macOS `tail -F` on both files.
+  - The backends gained `start`, `stop`, `restart` and `followLogs`. On macOS `stop` is a
+    `bootout`, because KeepAlive would start a killed job again; `start` bootstraps an unloaded job
+    or kickstarts a loaded one; `restart` is `kickstart -k`.
+- **The open point from task 3 is closed:** with the service installed, `sudo rmk-server setup`,
+  `migrate` and `reset-root-password` run as its account (Node's `uid` and `gid` options), from `/`,
+  on its data and settings, and, with a domain, with `PUBLIC_URL=https://<domain>`. The setup in a
+  terminal takes the address from the environment, so without it a setup after `--domain` would
+  have written `http://localhost:7650` over the domain. Not through `sudo -u`: that drops the
+  environment, so `setup --yes` would lose `DATABASE_URL` and `RONNE_ROOT_*`, and passing them as
+  `env` arguments would show the password in the process list. Without `sudo` they say to use it,
+  or to set `RONNE_DATA_DIR` for an instance of one's own. `RONNE_DATA_DIR` or `RONNE_ENV_FILE`
+  already set means the person chose, and the script runs as before.
+- **Help:** `rmk-server service --help` lists the new commands, says `status` and `logs` need no
+  `sudo`, and that the scripts follow the service.
+- **Tests:** 82 unit tests (status text, exit codes, the systemctl and launchctl calls, the version
+  record, logs, the scripts' account, environment and refusals).
+- **The end-to-end scripts call each command.** On Linux: status before install (4) and after
+  (running, waiting for the setup), `rmk-server setup` refused without `sudo`, `sudo rmk-server setup
+  --yes` and `migrate` on the service's data (the database owned by `rmk-server`), stop (no answer,
+  status 3), start, restart, logs (the journal has "Data folder: /var/lib/rmk-server"), and status
+  showing the proxy with `--domain`. 13 steps pass on Ubuntu 24.04 and Debian 13. The macOS script
+  does the same with launchd and `perl -e 'alarm 5'` in place of `timeout`; it runs in CI.
+- **Still open:** the *Done when* says "CI calls each", which happens once the branch is pushed.
+- **Fixed after the witness: the service's account could get root.** `service.json` sits in the
+  settings folder, which `rmk-server` owns, and the script hand-off took the account, Node and
+  entry from it. The witness rewrote it as `rmk-server` (`user: root`, `node: /usr/bin/touch`), and
+  `sudo rmk-server reset-root-password` made a root-owned file. The same folder held a second hole:
+  install read and rewrote the settings file as root, so a link from it to `/etc/shadow` would have
+  been read (and copied where `rmk-server` can read it) or written. Now:
+  - the hand-off runs the Node and rmk-server that were invoked, never the recorded ones, as the
+    layout's system account or (`--user`) only `SUDO_USER`, never root or uid 0;
+  - install, start, stop, restart and the hand-off refuse when `env` or `service.json` is a link
+    (`unsafeFiles`);
+  - `System.writeFile` writes a new file (`wx`, so a planted name or link fails) and renames it
+    over the old one, which replaces a link instead of following it;
+  - uninstall already trusted only the two known accounts (task 3).
+
+  Checked in a systemd container: the witness's rewrite now ends with "isn't one it may use here"
+  and no file; `env` as a link to `/etc/shadow` is refused by install, restart and setup, and
+  `/etc/shadow` is untouched. The Linux script gained a step for both, and passes on Ubuntu 24.04
+  and Debian 13 (14 steps).
+- **Also from the witness:**
+  - `logs` and the hand-off now run their program with `spawn` and pass on SIGINT, SIGTERM and
+    SIGHUP, so `timeout` no longer leaves `journalctl --follow` behind (checked: none left);
+  - the refusal reads "To set it up / migrate its database / reset its root password, run …";
+  - `logs` needs `sudo` on Linux unless the account is in `systemd-journal` or `adm`, so the help
+    says only `status` works without it;
+  - status names the version a restart would run, rather than calling it newer (a downgrade is
+    different too).
+- **Left:** the setup's last line still says "If it isn't running, start it with `rmk-server`"
+  under the service (the app's text, task 6 looks at it). The Linux script isn't meant to run
+  twice on one machine: the first run leaves Caddy in `/usr/local/bin`.
+- **Fixed after the second re-check: the folder itself.** Checking and then reading in a folder
+  the service's account owns stays racy. The witness swapped `env` for a link to `/etc/shadow`
+  between install's check and its read (5 of 5 tries, in a window of about 0.4 s), so install
+  copied the shadow file into a file `rmk-server` owns. And `service.json` could name the admin
+  running `sudo`, so `sudo rmk-server migrate` acted as them. So `/etc/rmk-server` is now root's
+  (755), with only `env` the server's (600):
+  - install takes the folder back (`chown root:root`, not recursive) and checks for links again
+    before reading anything in it. `service.json` is written by root, so it's root's;
+  - the app's `writeEnvFile` rewrites the file in place when it can't make its temporary file there
+    (EACCES or EPERM), with a test. Elsewhere (Docker, `rmk-server start`) nothing changes;
+  - the unit's `ReadWritePaths` names `/etc/rmk-server/env`, not the folder (goldens updated);
+  - the hand-off takes `SUDO_USER` only on macOS (a `--user` install), with a test;
+  - `System.writeFile` sets the mode on the open file (`openSync(…, "wx", mode)`, `fchmodSync`),
+    not by name afterwards.
+
+  The Linux script's step now checks the folder and `service.json` are root's, and that
+  `rmk-server` can't write `service.json`, make a link there or rename `env`, but can still rewrite
+  `env`. With a fresh `pnpm build && pnpm build:server` (the app's scripts ship in the package, so
+  an app change needs both), it passes on Ubuntu 24.04 and Debian 13 (14 steps). 86 unit tests.
+- **Fixed after the third re-check: EROFS.** Inside the unit's sandbox (`ProtectSystem=strict`, only
+  `/etc/rmk-server/env` writable), making the temporary file fails with EROFS, not EACCES, so the
+  browser's setup threw instead of rewriting in place. `cannotWriteFolder` now takes EACCES, EPERM
+  and EROFS (tested). The script missed it because `sudo rmk-server setup` runs outside the
+  sandbox; its setup step now runs inside the running service's mounts as `rmk-server` (`nsenter -m`
+  into its main process, `setpriv`), as the browser's setup does, and `migrate` covers the `sudo`
+  hand-off. Passes on Ubuntu 24.04 and Debian 13.

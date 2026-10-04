@@ -65,8 +65,8 @@ export const linuxBackend = (sys: System): Backend => {
     },
     canRun: (user, program, args) =>
       sys.run("runuser", ["-u", user, "--", program, ...args]).code === 0,
-    chown: (path, user, group) => {
-      sys.run("chown", ["-R", `${user}:${group}`, path]);
+    chown: (path, user, group, recursive = true) => {
+      sys.run("chown", [...(recursive ? ["-R"] : []), `${user}:${group}`, path]);
     },
     shareWithGroup: (paths, group) => {
       sys.run("chgrp", [group, ...paths]);
@@ -88,6 +88,24 @@ export const linuxBackend = (sys: System): Backend => {
       }
       return undefined;
     },
+    start: (definition) => {
+      const result = systemctl("start", definition.name);
+      return result.code === 0 ? undefined : (result.stderr || result.stdout).trim();
+    },
+    stop: (definition) => {
+      systemctl("stop", definition.name);
+    },
+    restart: (definition) => {
+      const result = systemctl("restart", definition.name);
+      return result.code === 0 ? undefined : (result.stderr || result.stdout).trim();
+    },
+    followLogs: (definitions) =>
+      sys.runAttached("journalctl", [
+        "--follow",
+        "--lines",
+        "50",
+        ...definitions.flatMap((definition) => ["--unit", definition.name]),
+      ]),
     deactivate: (definition, path) => {
       systemctl("disable", "--now", definition.name);
       sys.remove(path);

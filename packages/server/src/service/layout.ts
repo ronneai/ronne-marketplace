@@ -11,6 +11,8 @@ export type ServiceLayout = {
   group: string;
   /** True when the account is created by install (and removed by uninstall). */
   systemUser: boolean;
+  /** root's group: root on Linux, wheel on macOS. */
+  rootGroup: string;
   dataDir: string;
   /** The settings folder, the server's own: the setup rewrites the settings file in it. */
   settingsDir: string;
@@ -54,6 +56,7 @@ export const serviceLayout = (options: {
       user: SERVICE_NAME,
       group: SERVICE_NAME,
       systemUser: true,
+      rootGroup: "root",
       dataDir: "/var/lib/rmk-server",
       settingsDir: "/etc/rmk-server",
       envFile: "/etc/rmk-server/env",
@@ -75,6 +78,7 @@ export const serviceLayout = (options: {
     user: options.user?.name ?? "_rmkserver",
     group: options.user?.group ?? "_rmkserver",
     systemUser: !options.user,
+    rootGroup: "wheel",
     dataDir: posix.join(prefix, "var", "rmk-server"),
     settingsDir,
     envFile: posix.join(settingsDir, "env"),

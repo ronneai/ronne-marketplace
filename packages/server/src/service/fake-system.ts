@@ -14,6 +14,8 @@ export type FakeSystem = System & {
   /** What httpStatus() answers, in turn (the last one repeats). */
   statuses: (number | undefined)[];
   answer: string;
+  /** The options runAttached was given (uid, gid, env, cwd). */
+  attached: NonNullable<Parameters<System["runAttached"]>[2]>[];
   /** Paths that are symbolic links. */
   links: Set<string>;
 };
@@ -34,6 +36,7 @@ export const fakeSystem = (
     statuses: [503],
     answer: "",
     links: new Set(),
+    attached: [],
     isRoot: () => options.root ?? true,
     run: (command, args) => {
       const line = [command, ...args].join(" ");
@@ -44,8 +47,9 @@ export const fakeSystem = (
         .sort(([a], [b]) => b.length - a.length)[0]?.[1];
       return { code: 0, stdout: "", stderr: "", ...found };
     },
-    runAttached: (command, args) => {
+    runAttached: async (command, args, options) => {
       sys.commands.push([command, ...args].join(" "));
+      if (options) sys.attached.push(options);
       return 0;
     },
     which: (name) => (sys.files.has(`/usr/bin/${name}`) ? `/usr/bin/${name}` : undefined),

@@ -23,7 +23,7 @@ TimeoutStopSec=30
 # Hardening that leaves Node.js and Caddy working.
 NoNewPrivileges=true
 ProtectSystem=strict
-ReadWritePaths=/var/lib/rmk-server /etc/rmk-server
+ReadWritePaths=/var/lib/rmk-server /etc/rmk-server/env
 ProtectHome=true
 PrivateTmp=true
 

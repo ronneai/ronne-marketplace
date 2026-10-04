@@ -34,6 +34,10 @@ out=$(rmk-server service install 2>&1) && fail "install without root succeeded"
 grep -q "sudo rmk-server service install" <<<"$out" || fail "no sudo hint: $out"
 step "without root: refused, naming sudo"
 
+out=$(rmk-server service status) && fail "status before install exited 0"
+grep -q "isn't installed" <<<"$out" || fail "status before install: $out"
+step "status before install: not installed"
+
 rmk service install
 [ "$(status $health)" = 503 ] || fail "not 503 before setup"
 dscl . -read /Users/_rmkserver UserShell | grep -q /usr/bin/false || fail "_rmkserver can log in"
@@ -44,16 +48,31 @@ dscl . -read /Users/_rmkserver UserShell | grep -q /usr/bin/false || fail "_rmks
 grep -q "Ronne AI Marketplace isn't set up yet" /Library/Logs/rmk-server/server.log || fail "nothing in the log"
 step "install: a LaunchDaemon running as _rmkserver, data in $data, 503 before setup, logging"
 
-sudo -u _rmkserver env "PATH=$PATH" "RONNE_DATA_DIR=$data" \
-  "RONNE_ENV_FILE=$prefix/etc/rmk-server/env" "DATABASE_URL=file:$data/ronne.db" \
-  RONNE_ROOT_EMAIL=root@example.com RONNE_ROOT_NAME=Root RONNE_ROOT_PASSWORD=Correct-horse-42! \
-  rmk-server setup --yes >/dev/null
+rmk-server service status | grep -q "not set up yet" || fail "status doesn't say it needs the setup"
+out=$(rmk-server setup --yes 2>&1) && fail "setup without root succeeded"
+grep -q "sudo rmk-server setup" <<<"$out" || fail "no sudo hint for setup: $out"
+sudo env "PATH=$PATH" "DATABASE_URL=file:$data/ronne.db" RONNE_ROOT_EMAIL=root@example.com \
+  RONNE_ROOT_NAME=Root RONNE_ROOT_PASSWORD=Correct-horse-42! rmk-server setup --yes >/dev/null
+[ "$(sudo stat -f %Su "$data/ronne.db")" = _rmkserver ] || fail "the database isn't _rmkserver's"
 wait_for $health 200
 token=$(curl -s -o /dev/null -w '%{http_code}' -H 'content-type: application/json' \
   -d '{"email":"root@example.com","password":"Correct-horse-42!","name":"ci"}' \
   http://127.0.0.1:7650/api/v1/auth/token)
 [ "$token" = 201 ] || fail "sign-in answered $token"
-step "setup: 200 without a restart, and sign-in gives a token"
+rmk migrate | grep -qi "nothing to migrate" || fail "sudo rmk-server migrate didn't reach the service's database"
+step "status; sudo rmk-server setup and migrate as _rmkserver; 200 without a restart, a token"
+
+rmk service stop
+[ "$(status $health)" = 000 ] || fail "still answering after stop"
+rmk-server service status >/dev/null && fail "status of a stopped service exited 0"
+rmk service start
+wait_for $health 200
+rmk service restart
+wait_for $health 200
+# logs follows the file; perl's alarm ends it (macOS has no timeout).
+perl -e 'alarm 5; exec @ARGV' sudo env "PATH=$PATH" rmk-server service logs >/tmp/rmk-logs.txt 2>&1 || true
+grep -q "Data folder: $data" /tmp/rmk-logs.txt || fail "logs: $(head -c 500 /tmp/rmk-logs.txt)"
+step "stop (status exit 3), start, restart, logs"
 
 old=$(pid_of ai.ronne.rmk-server)
 sudo kill -9 "$old"
@@ -70,6 +89,7 @@ rmk service install --domain localhost --tls internal
 wait_for https://localhost/api/health 200
 [ "$(owner ai.ronne.rmk-server-proxy)" = root ] || fail "the proxy isn't running as root"
 [ "$(setting PUBLIC_URL)" = https://localhost ] || fail "PUBLIC_URL is $(setting PUBLIC_URL)"
+rmk-server service status | grep -q "rmk-server-proxy, running" || fail "status doesn't show the proxy"
 step "--domain localhost --tls internal: HTTPS through ai.ronne.rmk-server-proxy"
 
 rmk service install

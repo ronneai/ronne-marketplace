@@ -171,7 +171,10 @@ describe("service install on Linux (083)", () => {
     expect(sys.dirs.get("/etc/rmk-server")).toBe(0o755);
     expect(sys.files.get("/etc/rmk-server/env")?.mode).toBe(0o600);
     expect(sys.commands).toContain("chown -R rmk-server:rmk-server /var/lib/rmk-server");
-    expect(sys.commands).toContain("chown -R rmk-server:rmk-server /etc/rmk-server");
+    // The settings folder is root's; only the settings file is the server's.
+    expect(sys.commands).toContain("chown root:root /etc/rmk-server");
+    expect(sys.commands).toContain("chown rmk-server:rmk-server /etc/rmk-server/env");
+    expect(sys.commands).not.toContain("chown -R rmk-server:rmk-server /etc/rmk-server");
     const unit = sys.files.get("/etc/systemd/system/rmk-server.service");
     expect(unit?.mode).toBe(0o644);
     expect(unit?.content).toContain(`ExecStart=${NODE} ${ENTRY} start --no-open --port 7650`);

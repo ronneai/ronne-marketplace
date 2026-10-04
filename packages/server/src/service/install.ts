@@ -18,7 +18,8 @@ export type Backend = {
   removeAccount: (user: string, group: string) => void;
   /** Whether `user` can run the program (so a program in someone's home folder is caught). */
   canRun: (user: string, program: string, args: string[]) => boolean;
-  chown: (path: string, user: string, group: string) => void;
+  /** Changes the owner of a path and, unless `recursive` is false, of everything in it. */
+  chown: (path: string, user: string, group: string, recursive?: boolean) => void;
   /** Gives `group` these files and folders, readable by it; owners and other modes stay. */
   shareWithGroup: (paths: string[], group: string) => void;
   /** After folders are made: SELinux labels, where there are any. */
@@ -27,6 +28,13 @@ export type Backend = {
   activate: (definition: ServiceDefinition, path: string) => string | undefined;
   /** Stops it, disables it and removes its definition. */
   deactivate: (definition: ServiceDefinition, path: string) => void;
+  /** Starts it if it isn't running. */
+  start: (definition: ServiceDefinition, path: string) => string | undefined;
+  /** Stops it until the next start or boot. */
+  stop: (definition: ServiceDefinition) => void;
+  restart: (definition: ServiceDefinition, path: string) => string | undefined;
+  /** Follows the logs of these services, attached to the terminal; returns the exit code. */
+  followLogs: (definitions: ServiceDefinition[]) => Promise<number>;
   /** The last lines of its log, for a failed start. */
   recentLogs: (definition: ServiceDefinition) => string;
   /** How to read the log. */
@@ -65,6 +73,17 @@ export const MIN_CADDY = [2, 7] as const;
 const HEALTH_WAIT_MS = 90_000;
 
 export const statePath = (layout: ServiceLayout): string => `${layout.settingsDir}/${STATE_FILE}`;
+
+/**
+ * The settings folder is the service account's, so root never reads or writes through a link it
+ * may have put there (to /etc/shadow, say). Undefined when both files are plain, or missing.
+ */
+export const unsafeFiles = (sys: System, layout: ServiceLayout): string | undefined => {
+  const links = [layout.envFile, statePath(layout)].filter((path) => sys.isLink(path));
+  return links.length === 0
+    ? undefined
+    : `${links.join(" and ")} ${links.length > 1 ? "are links" : "is a link"}, which this folder's files never are; something changed ${links.length > 1 ? "them" : "it"}. Look at ${links.length > 1 ? "them" : "it"}, remove ${links.length > 1 ? "them" : "it"}, and run this again.`;
+};
 
 export const readState = (sys: System, layout: ServiceLayout): ServiceState | undefined => {
   const text = sys.readFile(statePath(layout));
@@ -122,6 +141,8 @@ export const installService = async (
     );
   const unavailable = backend.unavailable();
   if (unavailable) return fail(sys, unavailable);
+  const unsafe = unsafeFiles(sys, layout);
+  if (unsafe) return fail(sys, unsafe);
 
   // Checks first: nothing is written until they pass.
   const previous = readState(sys, layout);
@@ -228,10 +249,15 @@ export const installService = async (
   }
   for (const [user] of createdNow) created.add(user);
 
-  // Folders and files. The settings folder is the server's: the setup writes the settings file
-  // there (mode 600) through a temporary file and a rename.
+  // Folders and files. The settings folder is root's and only the settings file in it the
+  // server's (the setup rewrites it in place there). So the server's account can't swap a name
+  // in it for a link between root's check and root's read, or plant files root would trust
+  // (service.json). Taken back first, then checked again, before anything in it is read.
   sys.mkdir(layout.dataDir, 0o750);
   sys.mkdir(layout.settingsDir, 0o755);
+  backend.chown(layout.settingsDir, "root", layout.rootGroup, false);
+  const relinked = unsafeFiles(sys, layout);
+  if (relinked) return fail(sys, relinked);
   const oldSettings = sys.readFile(layout.envFile) ?? "";
   // Without a domain now, drop what an earlier --domain install set.
   const remove =
@@ -245,7 +271,7 @@ export const installService = async (
       : [];
   sys.writeFile(layout.envFile, updateSettings(oldSettings, plan.settings, remove), 0o600);
   backend.chown(layout.dataDir, layout.user, layout.group);
-  backend.chown(layout.settingsDir, layout.user, layout.group);
+  backend.chown(layout.envFile, layout.user, layout.group, false);
   const folders = [layout.dataDir, layout.settingsDir];
   if (plan.proxy) {
     sys.mkdir(layout.proxyDataDir, 0o700);

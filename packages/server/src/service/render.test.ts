@@ -82,7 +82,7 @@ describe("the service model (083)", () => {
         RONNE_DATA_DIR: "/var/lib/rmk-server",
         RONNE_ENV_FILE: "/etc/rmk-server/env",
       },
-      writablePaths: ["/var/lib/rmk-server", "/etc/rmk-server"],
+      writablePaths: ["/var/lib/rmk-server", "/etc/rmk-server/env"],
       readsHome: false,
     });
     expect(app.logFile).toBeUndefined();

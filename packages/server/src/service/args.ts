@@ -138,13 +138,15 @@ export const parseServiceArgs = (argv: string[]): ServiceCommand => {
 };
 
 export const SERVICE_HELP = `rmk-server service: run Ronne in the background, started at boot and restarted if it stops
-(systemd on Linux, launchd on macOS). Each command needs sudo.
+(systemd on Linux, launchd on macOS). Each command needs sudo, except status.
 
 Usage:
   sudo rmk-server service install [--port N] [--host H] [--domain D [--tls T] [--email E]] [--user]
       Install and start the service, or update it (the data stays). Then open the address it
       prints and finish the setup.
-  sudo rmk-server service status | start | stop | restart | logs
+  rmk-server service status        Installed or not, running or not, version, address, folders
+  sudo rmk-server service start | stop | restart
+  sudo rmk-server service logs     Follow the log (journalctl, or the log files on macOS)
   sudo rmk-server service uninstall [--delete-data]
       Stop and remove the service. The data and settings stay unless --delete-data, which asks
       you to type the data folder's name.
@@ -159,6 +161,9 @@ Options for install:
                 (cert.pem and key.pem you put in the settings folder's certs/)
   --email E     Expiry notices from the certificate authority
   --user        macOS: run as you instead of a system user
+
+With the service installed, sudo rmk-server setup, migrate and reset-root-password work on its
+data, as its account.
 
 Where things are:
   Linux   data /var/lib/rmk-server, settings /etc/rmk-server/env, logs: journalctl -u rmk-server

@@ -122,3 +122,32 @@ the plists set no `PATH`.
 opens `StandardOutPath` as the job's account; Homebrew `node@24`'s global prefix on the runner.
 **Differences from the notes:** the example ids (fixed); `lsof` also prints an `f…` line (ignored).
 **Overall:** met here; the *Done when* waits for the run by hand and the CI run.
+
+## Task 5 — `status`, `start`, `stop`, `restart`, `logs`
+
+Witnessed: 2026-10-04 (02:07–02:43 EDT, in five rounds), by a fresh agent. Machine: macOS (Darwin 27.0.0) arm64, Docker; containers booted with systemd (Ubuntu 24.04), Node 24.21.0 and Caddy 2.11.6 (both checksum-verified), and the package from `pnpm build && pnpm build:server`.
+
+**Not ticked:** the *Done when* says CI calls each command, which happens once the branch is pushed.
+
+| # | Claim | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|
+| 1 | Tests, lint, typecheck | confirmed | Server 86 tests; apps/web `env-file` 23; `pnpm lint` 53 warnings, 0 errors; typecheck 7/7. |
+| 2 | `status` without root; exit 0, 3, 4; address, setup wait, listen address, account, folders, log, proxy | confirmed | As a user with no extra groups: 4 before install, 0 running, 3 stopped; "not set up yet"; with `--domain`, `https://localhost` and "rmk-server-proxy, running (Caddy, internal certificates)". |
+| 3 | Version and moved-install messages; `restart` records the version | confirmed | `package.json` set to 0.2.1 → "0.2.1 (it was 0.2.0 … restart runs …)"; `restart` printed "(0.2.1)" and recorded it. Node moved away → "isn't there any more … install again". |
+| 4 | `start`, `stop`, `restart` on both services, the proxy stopped first | confirmed | Stop → health 000, status 3; start → "Started … (0.2.0)", proxy active. macOS (code and tests): stop is `bootout`, start bootstraps or kickstarts, restart `kickstart -k`. |
+| 5 | `logs` follows both units and leaves nothing behind | confirmed | The journal held "Data folder: /var/lib/rmk-server". After `timeout 4 … logs`, `timeout -s INT`, or a HUP: no `journalctl` left. |
+| 6 | `sudo rmk-server setup`, `migrate`, `reset-root-password` work on the service's data as its account | confirmed | The database is `rmk-server`'s; `reset-root-password --yes` → old password 401, new 201; with a domain, `PUBLIC_URL=https://localhost` kept (even with another `PUBLIC_URL` passed in). Without `sudo`: the hint, exit 1; `RONNE_DATA_DIR` set: runs as before. No folder made in /root. |
+| 7 | The service's account can't steer root | confirmed (after fixes) | Round 1: a `service.json` naming root and `/usr/bin/touch` made a root-owned file. Round 2: still `user: tester` (the admin) and a swap of `env` for a link to `/etc/shadow` between check and read (5 of 5). Round 3, with `/etc/rmk-server` root's: `user: root`, `daemon` and `tester` refused; recorded programs ignored; `service.json` or `env` as a link refused by install, start, stop, restart, setup and migrate; 10 timed swaps (0.1–0.7 s), also from a folder still owned by `rmk-server`, leak nothing; `/etc/shadow`'s checksum unchanged; links planted in `/var/lib/rmk-server` not followed by `chown -R`. |
+| 8 | The browser's setup writes the settings file inside the service's sandbox | confirmed (after a fix) | Round 3 found EROFS there (`ProtectSystem=strict`). Round 4: `systemd-run` with the unit's sandbox and `nsenter` into the service both write `env` in place (600, no temporary file left, folder still root's 755). With the EROFS line removed from the installed bundle, the script's new step fails as it should. |
+| 9 | `test-linux-service.sh` | confirmed | Fresh container, as a user with passwordless sudo: exit 0, 14 steps. |
+
+**Found, and fixed in this commit:** the hand-off trusting `service.json` for the account and the
+program (root escalation); root reading and writing `env` through a link (and racing the check);
+`SUDO_USER` accepted on Linux; chmod by name after writing; an orphaned `journalctl` after a
+signal; the refusal's wording; "logs needs no sudo" (it does on Linux); the browser's setup failing
+with EROFS once the folder became root's. The settings folder is now root's, with only `env` the
+service's, and the app rewrites `env` in place when it can't add a file there.
+**Not checked here:** the browser form itself (the same code path was run in the same namespace);
+the macOS script; Debian 13 by the witness (the builder ran it: 14 steps); CI.
+**Differences from the notes:** none left; the notes were corrected each round.
+**Overall:** met here; the *Done when* waits for CI.
