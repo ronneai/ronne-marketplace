@@ -193,6 +193,10 @@ Windows wasn't run here: task 4's CI matrix covers it.
   witness also ran it on `node:24-bookworm-slim` and on emulated linux/amd64.
 - The probe fails at once when the started command exits before answering (a crash, a wrong
   command): 1.7 s instead of the full 90-second wait (found by the witness).
+- **First PR run (#121): every install job failed** before the probe ran. `npm install --global
+  tarball/x.tgz` was read as the GitHub repository `tarball/x.tgz` (`git ls-remote
+  ssh://git@github.com/tarball/…`). The path needs `./`, as `release.yml` already says. The witness
+  had only read the workflow, and the local runs always used full paths.
 - **Still open:** the *Done when*, the matrix passing on a pull request. Windows is new ground there:
   a SQLite path with a drive letter (`file:C:/…`), the `.cmd` shim, and stopping it with
   `taskkill`.

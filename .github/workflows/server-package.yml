@@ -78,9 +78,10 @@ jobs:
         with:
           name: server-tarball
           path: tarball
+      # ./ matters: npm reads "tarball/x.tgz" as a GitHub user/repo, not a file (as in release.yml).
       - name: npm install --global the tarball
         shell: bash
-        run: npm install --global --no-audit --no-fund tarball/*.tgz
+        run: npm install --global --no-audit --no-fund ./tarball/*.tgz
       - name: Start, set up, sign in, stop
         run: node packages/repo-tools/src/server-probe.js rmk-server
 
