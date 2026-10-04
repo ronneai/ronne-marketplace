@@ -8,6 +8,7 @@
 import { resolve } from "node:path";
 import * as p from "@clack/prompts";
 import { envFilePath } from "../src/server/config";
+import { runtimeOf } from "../src/server/runtime";
 import { clackPrompts } from "../src/server/setup/clack-prompts";
 import { parseSetupCommand } from "../src/server/setup/cli";
 import {
@@ -46,17 +47,24 @@ try {
   });
   // The app reads its settings on each request (feature 036), so a running server, in Docker or
   // `pnpm dev`, picks the setup up without a restart.
+  const runtime = runtimeOf();
   const done =
-    process.env.RONNE_RUNTIME === "docker"
+    runtime === "docker"
       ? [
           "Ronne AI Marketplace is set up.",
           `Open ${result.publicUrl} and sign in as ${result.rootEmail}.`,
         ]
-      : [
-          "Ronne AI Marketplace is set up.",
-          "If it isn't running, start it with `pnpm build && pnpm start` (or `pnpm dev` while developing),",
-          `then open ${result.publicUrl} and sign in as ${result.rootEmail}.`,
-        ];
+      : runtime === "npm"
+        ? [
+            "Ronne AI Marketplace is set up.",
+            "If it isn't running, start it with `rmk-server`,",
+            `then open ${result.publicUrl} and sign in as ${result.rootEmail}.`,
+          ]
+        : [
+            "Ronne AI Marketplace is set up.",
+            "If it isn't running, start it with `pnpm build && pnpm start` (or `pnpm dev` while developing),",
+            `then open ${result.publicUrl} and sign in as ${result.rootEmail}.`,
+          ];
   if (interactive) p.outro(done.join("\n"));
   else console.log(done.join("\n"));
 } catch (error) {

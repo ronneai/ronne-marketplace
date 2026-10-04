@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseEnv } from "node:util";
+import { defaultDataPath } from "./runtime";
 
 type Env = Record<string, string | undefined>;
 
@@ -41,7 +42,7 @@ export const loadConfig = (options: { appDir?: string; env?: Env } = {}): AppCon
     databaseUrl: value("DATABASE_URL"),
     authSecret: value("AUTH_SECRET"),
     publicUrl: value("PUBLIC_URL"),
-    storagePath: value("STORAGE_PATH") ?? "./data/storage",
+    storagePath: value("STORAGE_PATH") ?? defaultDataPath("storage", env),
     trustProxy: value("TRUST_PROXY") === "true",
   };
 };

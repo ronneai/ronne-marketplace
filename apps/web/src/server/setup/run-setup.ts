@@ -3,12 +3,8 @@ import { redactDatabaseUrl } from "../db/url";
 import { IdentityError } from "../domains/identity/exceptions/errors";
 import { validatePassword } from "../domains/identity/models/password";
 import { normalizeEmail, normalizeName } from "../domains/identity/models/user";
-import {
-  buildDatabaseUrl,
-  type DatabaseAnswers,
-  DEFAULT_PORTS,
-  DEFAULT_SQLITE_PATH,
-} from "./database-url";
+import { defaultDataPath, defaultPublicUrl, scriptCommand } from "../runtime";
+import { buildDatabaseUrl, type DatabaseAnswers, DEFAULT_PORTS } from "./database-url";
 import { readEnvFile } from "./env-file";
 import type { SetupPrompts } from "./prompts";
 import { normalizePublicUrl, PUBLIC_URL_RULE } from "./public-url";
@@ -99,7 +95,7 @@ export const runSetup = async (options: SetupOptions): Promise<SetupResult> => {
     await prompts.text({
       id: "public_url",
       message: "Where will people open Ronne AI Marketplace (PUBLIC_URL)?",
-      initial: env.PUBLIC_URL || "http://localhost:3000",
+      initial: env.PUBLIC_URL || defaultPublicUrl(),
       validate: (value) => (normalizePublicUrl(value) ? undefined : PUBLIC_URL_RULE),
     }),
   ) as string;
@@ -144,8 +140,8 @@ export const runSetup = async (options: SetupOptions): Promise<SetupResult> => {
     if (roots.every((root) => root.disabledAt)) {
       prompts.log.warn(
         roots.length === 1
-          ? "That root account is disabled. Run `pnpm run reset-root-password` to enable it again."
-          : "Every root account is disabled. Run `pnpm run reset-root-password --email <one of them>` to enable one again.",
+          ? `That root account is disabled. Run \`${scriptCommand("reset-root-password")}\` to enable it again.`
+          : `Every root account is disabled. Run \`${scriptCommand("reset-root-password")} --email <one of them>\` to enable one again.`,
       );
     }
     return { publicUrl, rootEmail: first.email, rootCreated: false };
@@ -224,7 +220,7 @@ const askDatabase = async (
     const path = await prompts.text({
       id: "database.path",
       message: "Where should the SQLite file go?",
-      initial: previous?.dialect === "sqlite" ? previous.path : DEFAULT_SQLITE_PATH,
+      initial: previous?.dialect === "sqlite" ? previous.path : defaultDataPath("ronne.db"),
       validate: (value) => (value.trim() ? undefined : "Enter a file path."),
     });
     return { dialect, path: path.trim() };

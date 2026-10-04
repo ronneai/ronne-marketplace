@@ -56,9 +56,16 @@ same way. It listens on `127.0.0.1` by default (a personal install isn't reachab
 | Linux | `$XDG_DATA_HOME/rmk-server`, else `~/.local/share/rmk-server` |
 | Windows | `%LOCALAPPDATA%\RonneAI\Marketplace` |
 
-`RONNE_ENV_FILE` defaults to `.env` in that folder, as in Docker. `PUBLIC_URL` defaults to
-`http://localhost:<port>`. A new `RONNE_RUNTIME=npm` value lets the setup and Documentation give the
-right commands (005 added `docker`).
+`RONNE_ENV_FILE` defaults to `.env` in that folder, as in Docker. With `RONNE_RUNTIME=npm`, the
+setup's default SQLite file and storage folder are in the data folder too (`ronne.db`, `storage/`),
+not `./data` inside the package, whose folder may be read-only. The address the setup suggests is
+`http://localhost:<port>`. `rmk-server` sets `PORT` and leaves `PUBLIC_URL` unset: set in the
+environment, `PUBLIC_URL` would make the setup's field read-only and win over its answer. A new
+`RONNE_RUNTIME=npm` value lets the setup, the messages and the Documentation give `rmk-server`'s
+commands (005 added `docker`). `apps/web/src/server/runtime.ts` holds these rules.
+
+Everything runs in `rmk-server`'s own process: the web app's compiled scripts are imported, not
+spawned, so stopping `rmk-server` stops the server.
 
 **What the package contains**: the standalone server (`server.js`, `.next/`, `public/`), the static
 files, `dist-scripts/`, and the CLI entry. Dependencies the standalone build traces are declared

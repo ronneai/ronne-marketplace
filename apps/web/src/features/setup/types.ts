@@ -104,9 +104,12 @@ export const DEFAULT_VALUES: SetupValues = {
 /** What the page knows before the form is used. */
 export type SetupPageProps = {
   state: "not_configured" | "incomplete";
-  runtime: "docker" | "node";
+  /** RONNE_RUNTIME (`server/runtime.ts`): the image, the npm package, or a clone. */
+  runtime: "docker" | "npm" | "node";
   /** The settings file the install writes. */
   envFile: string;
+  /** This machine's address on the server's port, suggested when PUBLIC_URL isn't set. */
+  localUrl?: string;
   /** PUBLIC_URL comes from the process environment (compose.yaml), so the file can't change it. */
   publicUrlFromEnvironment: boolean;
   /** The database already in the settings, without its password, when `incomplete`. */

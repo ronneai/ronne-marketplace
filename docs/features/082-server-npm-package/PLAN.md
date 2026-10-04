@@ -13,7 +13,7 @@ the same change that completes it.
   `apps/web` itself. Recommended: `packages/server`, so `apps/web` stays private.
   *Done when:* the notes record sizes, times and the choice.
 
-- [ ] **2. The package and its command.** `packages/server` with `bin: rmk-server`, the command
+- [x] **2. The package and its command.** `packages/server` with `bin: rmk-server`, the command
   table, the data folder per system, `RONNE_RUNTIME=npm`, `127.0.0.1:7650` by default, the browser
   on first start, the Node version check. Unit tests for the folder and argument logic.
   *Done when:* tests pass, and `pnpm pack` then `npm i -g ./…tgz` runs it on this machine.
@@ -101,3 +101,45 @@ Windows wasn't run here: task 4's CI matrix covers it.
 - `apps/web` stays private;
 - the published `package.json` declares only the two native modules;
 - the assembler is the one place that decides what ships, which `packages:check` can then verify.
+
+### Task 2: the package and its command (2026-10-04)
+
+- **`packages/server`** (`@ronneai/marketplace`, 0.2.0):
+  - `src/cli.ts`: the arguments. `start` is the default, with `--port`/`PORT` (7650),
+    `--host`/`HOST` (127.0.0.1) and `--no-open`. The scripts keep their own flags.
+  - `src/paths.ts`: the data folder per system.
+  - `src/server-env.ts`: what it sets for the web app.
+  - `src/node-version.ts`: needs 22.12.
+  - `src/run.ts`: runs everything in one process.
+  - `scripts/assemble.mjs`: task 1's assembler, run by `prepack`. It fails when there's no standalone
+    build, when the native modules' versions differ from `apps/web`'s, or when `app/` would hold a
+    `.env`, a symlink or a `.node` file.
+  - 14 unit tests.
+- **The app** (`apps/web/src/server/runtime.ts`):
+  - `RONNE_RUNTIME=npm`, with defaults in the data folder;
+  - the suggested address from `PORT`, without setting `PUBLIC_URL`;
+  - `rmk-server` commands in the start log, the 503 response, the setup's last message, the `migrate`
+    and `reset-root-password` errors, the no-terminal hint, and the disabled-root advice;
+  - the setup form's hints for npm. Tests for each.
+- **A standalone build made before an app change ships the old app.** The first run still said
+  "docker compose exec" until the standalone build was redone. Rebuild with
+  `NEXT_OUTPUT=standalone pnpm --filter "@ronneai/web..." build` before `assemble`; the release
+  workflow must do the same (task 3).
+- **Checked on this machine** (macOS arm64, Node 24), from `pnpm pack` → `npm install -g` into an
+  empty prefix:
+  - `--version`, `--help`, and an unknown command (exit 1);
+  - start in setup mode, with the right messages;
+  - `migrate` before setup (names `rmk-server setup`);
+  - `setup --yes` with `DATABASE_URL`, then health 200 with no restart, and the settings,
+    `ronne.db` and `storage/` in the data folder;
+  - sign-in returns a token;
+  - `migrate` ("nothing to migrate");
+  - `reset-root-password --yes` (the old password 401, the new one 201);
+  - stopping `rmk-server` frees the port;
+  - a busy port names `--port`;
+  - in a pseudo-terminal, the first start opens the browser (a fake `open`); with no terminal it
+    doesn't;
+  - without `RONNE_DATA_DIR`, data goes to `~/Library/Application Support/RonneAI Marketplace`;
+  - under Node 20 (container), npm warns `EBADENGINE` and `rmk-server` exits 1 naming 22.12.0.
+- Tarball: 8.5 MB. Next's server-page source maps (`.next/server/**/*.js.map`) ship, as in the
+  Docker image; there's no `.env` and no `.node` file.
