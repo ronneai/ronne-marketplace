@@ -11,6 +11,7 @@ import { MIN_NODE, nodeTooOld } from "./node-version.js";
 import { dataDir as defaultDataDir } from "./paths.js";
 import { isSetUp, serverEnv } from "./server-env.js";
 import { runService } from "./service/index.js";
+import { stableNodePath } from "./service/macos.js";
 import { realSystem } from "./service/system.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -83,7 +84,7 @@ export const main = async (argv: string[]): Promise<number | undefined> => {
   if (command.kind === "service" || command.kind === "service-help")
     // The service runs this same Node and this file, wherever npm put them.
     return runService(realSystem(), command, {
-      node: process.execPath,
+      node: stableNodePath(process.execPath),
       entry: realpathSync(join(here, "bin.js")),
       version: packageVersion(),
     });

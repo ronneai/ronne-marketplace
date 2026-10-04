@@ -185,3 +185,50 @@ goes into `SPEC.md` instead.
   it. The witness's first image didn't, and `systemctl is-enabled` failed with "Failed to connect to
   bus". GitHub's runners have it.
 
+### Task 4: macOS (2026-10-04)
+
+- **`packages/server/src/service/macos.ts`,** the launchd backend:
+  - accounts through `dscl` (`_rmkserver`, hidden, `/usr/bin/false`, `/var/empty`, `Password *`),
+    with the highest id from 499 down that no account or group has. Apple's own accounts fill the
+    range from 200 up (on this Mac from 200, 202, 203…; the highest below 500 is 441), so the top is least likely to meet a
+    future one;
+  - `launchctl bootout`, `enable`, then `bootstrap system <plist>` (RunAtLoad starts it). A
+    bootstrap right after a bootout can fail with "5: Input/output error" while launchd tears the
+    old job down, so it's retried for up to ten seconds;
+  - "running" is `state = running` in `launchctl print system/<label>`;
+  - `sudo -u` for the "can the account run it" check; `lsof -Fpc` for a port's holder;
+  - the proxy runs as root, so certificates get no group.
+- **`index.ts`** picks it on darwin: the prefix from where rmk-server is (`macPrefix`), and
+  `--user` from `SUDO_USER` (its group from `id -gn`). `--user` without `sudo` from an account, or
+  on Linux, is refused.
+- **Install** now makes each `logFile`'s folder (launchd doesn't) and the file, owned by its
+  service's account.
+- **Homebrew's Node** reports `…/Cellar/node@24/24.21.0/bin/node`, which `brew upgrade` deletes.
+  `stableNodePath` records `…/opt/node@24/bin/node` instead (`indexOf`, not a regex).
+- **Found by the tests: `root` as an account.** On macOS the proxy runs as `root`, and install
+  called `ensureAccount("root")`. A real Mac answers that root exists, but uninstall's list of
+  accounts it may remove then held `root`, and `service.json` (which the server's account can
+  write) could have named it. Install and uninstall now skip `root` outright, with a test.
+- **Checked on this Mac without sudo** (macOS 27.0.1, arm64): the output formats the code parses
+  (`launchctl print` gives `\tstate = running` and `\tpid = 455`; `dscl . -list` columns; `dscl .
+  -read` of a missing record exits 56; `lsof -Fpc` gives `p…` and `c…`); `plutil -lint` on the
+  goldens (task 1). 69 unit tests.
+- **CI:** `scripts/service/test-macos-service.sh` (install as `_rmkserver`, the setup, KeepAlive
+  after `kill -9`, `--domain localhost --tls internal`, removing the domain, uninstall keeping the
+  data, `--user`, `--delete-data`). `server-package.yml`'s `service-macos` job runs it on
+  `macos-15` with Homebrew's `node@24`, so the Homebrew prefix and the `opt/` path are used, and
+  Caddy 2.11.6's `mac_arm64` archive (SHA-512 checked).
+- **Still open, so the task stays unticked:**
+  - the *Done when* asks for a run by hand on macOS 15. There's no passwordless `sudo` here, and
+    this Mac runs macOS 27, so it's the owner's to do. With an nvm Node, which `_rmkserver` can't
+    read, use `--user`: `sudo env "PATH=$PATH" rmk-server service install --user`, or install
+    Node with Homebrew for the `_rmkserver` path;
+  - the `service-macos` job runs once the branch is pushed.
+- **Fixed after the witness:** `enable` came after `bootstrap`, so a job someone had disabled
+  (`launchctl disable` outlives a bootout) failed every bootstrap and was never enabled; it now
+  comes before. And only `dscl`'s exit 56 ("record not found") means the account is missing; any
+  other failure stops install rather than recreate an existing `_rmkserver`, for the account and
+  (found on the re-check) its group. Tests for each.
+- **Known and left:** uninstall deletes the `_rmkserver` group (and on Linux the `rmk-server` group)
+  with the account, even in the unlikely case the group existed before install. The plists set no
+  `PATH`; launchd's default applies, and the service gets every path in full.

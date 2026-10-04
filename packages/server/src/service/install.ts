@@ -1,6 +1,6 @@
 // `rmk-server service install` and `uninstall` (feature 083), the same on every system: a backend
 // (systemd, launchd; WinSW in 086) does what differs.
-import { basename } from "node:path";
+import { basename, dirname } from "node:path";
 import type { InstallOptions } from "./args.js";
 import { nativeCaddyfile } from "./caddyfile.js";
 import type { ServiceLayout } from "./layout.js";
@@ -201,7 +201,11 @@ export const installService = async (
   const createdNow: [string, string][] = [];
   if (layout.systemUser && backend.ensureAccount(layout.user, layout.group, layout.dataDir))
     createdNow.push([layout.user, layout.group]);
-  if (plan.proxy && backend.ensureAccount(layout.proxyUser, layout.proxyGroup, layout.proxyDataDir))
+  if (
+    plan.proxy &&
+    layout.proxyUser !== "root" &&
+    backend.ensureAccount(layout.proxyUser, layout.proxyGroup, layout.proxyDataDir)
+  )
     createdNow.push([layout.proxyUser, layout.proxyGroup]);
   const undo = (message: string): number => {
     for (const [user, group] of createdNow) backend.removeAccount(user, group);
@@ -266,6 +270,13 @@ export const installService = async (
     );
     folders.push(layout.proxyDataDir, layout.proxySettingsDir);
   }
+  // Log files (macOS): launchd doesn't create their folder, and each belongs to its service's account.
+  for (const definition of [plan.app, ...(plan.proxy ? [plan.proxy] : [])])
+    if (definition.logFile) {
+      sys.mkdir(dirname(definition.logFile), 0o755);
+      if (!sys.exists(definition.logFile)) sys.writeFile(definition.logFile, "", 0o644);
+      backend.chown(definition.logFile, definition.user, definition.group);
+    }
   backend.labelFolders(folders);
   const state: ServiceState = {
     version: context.version,
@@ -399,7 +410,7 @@ export const uninstallService = async (
     [layout.proxyUser, layout.proxyGroup],
   ];
   for (const [user, group] of accounts)
-    if (layout.systemUser || user !== layout.user)
+    if (user !== "root" && (layout.systemUser || user !== layout.user))
       if (state?.createdAccounts?.includes(user)) {
         backend.removeAccount(user, group);
         // Kept certificates go back to root's group rather than a number nobody has.

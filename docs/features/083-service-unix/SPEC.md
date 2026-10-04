@@ -47,6 +47,12 @@ Caddy as in 080. The packages in 085 call the same code.
   (a Node in someone's home folder, such as nvm's), it stops and says to install Node.js for the
   whole machine.
 - Running it again updates the files (port, domain) and restarts, keeping the data.
+- **macOS:** `_rmkserver` is a hidden account and group made with `dscl`, with the highest free id
+  below 500, no shell and no home. `--user` runs it as the account that ran `sudo` (`SUDO_USER`),
+  which uninstall never removes. The prefix is Homebrew's (`/opt/homebrew`) when rmk-server lives
+  there, else `/usr/local`. A Node from Homebrew is recorded by its `opt/` link, so `brew upgrade`
+  doesn't break the service. Install loads the plists with `launchctl bootstrap system` and makes
+  `/Library/Logs/rmk-server/` with each log owned by its service's account.
 
 **Without a domain**, Ronne listens on `127.0.0.1:7650`. `--host 0.0.0.0` makes it reachable from
 the network over plain HTTP; install prints a warning that it should be behind HTTPS.

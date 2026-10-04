@@ -20,6 +20,7 @@ export type RunResult = { code: number; stdout: string; stderr: string };
 
 export type System = {
   platform: NodeJS.Platform;
+  env: Record<string, string | undefined>;
   isRoot: () => boolean;
   /** Runs a program and waits; never throws (a missing program is code 127). */
   run: (command: string, args: string[]) => RunResult;
@@ -56,6 +57,7 @@ const portFree = (port: number, host: string): Promise<boolean> =>
 
 export const realSystem = (): System => ({
   platform: process.platform,
+  env: process.env,
   isRoot: () => process.getuid?.() === 0,
   run: (command, args) => {
     const result = spawnSync(command, args, { encoding: "utf8" });

@@ -23,6 +23,7 @@ export const fakeSystem = (
 ): FakeSystem => {
   const sys: FakeSystem = {
     platform: options.platform ?? "linux",
+    env: {},
     files: new Map(),
     dirs: new Map(),
     commands: [],

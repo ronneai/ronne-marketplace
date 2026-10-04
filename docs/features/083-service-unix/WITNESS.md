@@ -91,3 +91,34 @@ without systemd was checked by the builder, not the witness.
 uninstall a kept key is 640, readable by `root`'s group (now in the spec). The refusal for linked
 certificates names `rmk-server service restart`, which arrives in task 5.
 **Overall:** met here; the *Done when* waits for the GitHub run.
+
+## Task 4 — macOS
+
+Witnessed: 2026-10-04 (01:56–02:12 EDT, with a re-check of the fixes), by a fresh agent. Machine: macOS 27.0.1 (26A434) arm64, Node v24.0.0 (nvm). No `sudo`: nothing was installed on this Mac.
+
+**Not ticked:** the *Done when* needs a run by hand on macOS 15 (the owner's) and the `service-macos` job on GitHub.
+
+| # | Claim | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|
+| 1 | Tests, lint, typecheck | confirmed | 8 files, 69 tests; `pnpm lint` → 53 warnings, 0 errors; `pnpm typecheck` → 7/7. |
+| 2 | `_rmkserver` through `dscl`, hidden, no shell or home, highest free id below 500 in both lists | confirmed | `ensureAccount` and `freeSystemId` read `/Users UniqueID` and `/Groups PrimaryGroupID`; an existing group's gid is reused. Here 499 is free; the highest id in use below 500 is 441. |
+| 3 | bootout, enable, bootstrap with retries | confirmed (after a fix) | First `enable` came after `bootstrap`; moved before it. The test checks the order and two failed bootstraps before a success. |
+| 4 | `state = running` from `launchctl print`; `lsof -Fpc`; `dscl` formats and exit 56 | confirmed | `launchctl print system/com.apple.notifyd` → `\tstate = running`, `\tpid = 455` (nested `\t\tstate = active` not matched; unloaded label → 113). A port opened by the witness → `p90262`, `cPython`. `dscl . -read` of a missing user or group → 56. |
+| 5 | Log folder and files owned by each service's account | confirmed | `install.ts` makes `/Library/Logs/rmk-server` (755) and each file (644), then `chown` to `_rmkserver`, the `--user` account, or root. |
+| 6 | Homebrew's `Cellar/…` recorded as `opt/…` | confirmed | `stableNodePath` (`indexOf`); on this Mac `process.execPath` really is `/opt/homebrew/Cellar/node/25.5.0/bin/node`. |
+| 7 | Install and uninstall never create or remove `root` | confirmed | Install skips `ensureAccount` for a root proxy; uninstall only looks at the two layout accounts and skips `root`; `SUDO_USER` of root is refused; a `service.json` naming root has no effect (test). No other way found. |
+| 8 | `--user` from `SUDO_USER`, refused on Linux | confirmed | `index.ts` and tests. |
+| 9 | `plutil -lint` on plists rendered for this machine | confirmed | App and proxy, as `_rmkserver` and with `--user`, from the built `dist`: 4 OK. |
+| 10 | The packed `rmk-server` refuses without root | confirmed | Installed with `npm install --global --prefix <scratch>`: `service install` and `uninstall` → "needs root. Run: sudo rmk-server service …"; `--user` → "run it with sudo from your own account". |
+| 11 | The macOS CI job and script | partly (read only) | The `mac_arm64` SHA-512 matches Caddy's checksums file; the pid `awk`, `stat -f '%Su %Lp'` and `ps -o user=` work on real output; the summary job includes `service-macos`. It can't run here. |
+| 12 | The notes say what hasn't happened | confirmed | "Still open, so the task stays unticked" names the run by hand and the CI run. |
+
+**Found, and fixed in this commit:** `enable` after `bootstrap` (a disabled job would never load);
+any `dscl -read` failure taken as "missing" for the account, and then (re-check) for its group.
+The re-check confirmed the first two; the group fix followed the same pattern, with a test.
+**Known and left (in the notes):** uninstall deletes the account's group even if it existed before;
+the plists set no `PATH`.
+**Not checked here:** a real `bootstrap` or `dscl -create`; macOS 15; the CI run; whether launchd
+opens `StandardOutPath` as the job's account; Homebrew `node@24`'s global prefix on the runner.
+**Differences from the notes:** the example ids (fixed); `lsof` also prints an `f…` line (ignored).
+**Overall:** met here; the *Done when* waits for the run by hand and the CI run.
