@@ -35,10 +35,11 @@ Caddy as in 080. The packages in 085 call the same code.
 | Definition | `/etc/systemd/system/rmk-server.service` | `/Library/LaunchDaemons/ai.ronne.rmk-server.plist` |
 | Logs | journald | `/Library/Logs/rmk-server/server.log` |
 
-- The unit runs `rmk-server start --no-open` with the environment file, `Restart=on-failure`, and
-  systemd's hardening options that don't break Node.js (`NoNewPrivileges`, `ProtectSystem=strict`
-  with the data folder writable, `ProtectHome`, `PrivateTmp`); the plist uses `KeepAlive` and
-  `RunAtLoad`.
+- The unit runs `rmk-server start --no-open` with `RONNE_ENV_FILE` naming the settings file (the app
+  reads it itself rather than systemd loading it, so a setup finished in the browser applies without
+  a restart), `Restart=on-failure`, and systemd's hardening options that don't break Node.js
+  (`NoNewPrivileges`, `ProtectSystem=strict` with the data and settings folders writable,
+  `ProtectHome`, `PrivateTmp`); the plist uses `KeepAlive` and `RunAtLoad`.
 - It records the path of the `rmk-server` it was run from. After an npm upgrade, `service restart`
   picks up the new version; a moved install needs `service install` again (status says so).
 - It enables and starts the service, waits for `/api/health`, and prints the address and the next

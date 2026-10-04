@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Managed by rmk-server (feature 083). `sudo rmk-server service install` rewrites this file,
+     and `sudo rmk-server service uninstall` removes it. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>ai.ronne.rmk-server-proxy</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/homebrew/bin/caddy</string>
+    <string>run</string>
+    <string>--config</string>
+    <string>/opt/homebrew/etc/rmk-server/Caddyfile</string>
+    <string>--adapter</string>
+    <string>caddyfile</string>
+  </array>
+  <key>UserName</key>
+  <string>root</string>
+  <key>GroupName</key>
+  <string>wheel</string>
+  <key>WorkingDirectory</key>
+  <string>/opt/homebrew/var/rmk-server-proxy</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>HOME</key>
+    <string>/opt/homebrew/var/rmk-server-proxy</string>
+    <key>XDG_DATA_HOME</key>
+    <string>/opt/homebrew/var/rmk-server-proxy</string>
+    <key>XDG_CONFIG_HOME</key>
+    <string>/opt/homebrew/var/rmk-server-proxy</string>
+  </dict>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>ThrottleInterval</key>
+  <integer>5</integer>
+  <key>ExitTimeOut</key>
+  <integer>30</integer>
+  <key>StandardOutPath</key>
+  <string>/Library/Logs/rmk-server/proxy.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Library/Logs/rmk-server/proxy.log</string>
+</dict>
+</plist>

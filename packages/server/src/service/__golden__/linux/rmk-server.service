@@ -1,0 +1,30 @@
+# Managed by rmk-server (feature 083). `sudo rmk-server service install` rewrites this file,
+# and `sudo rmk-server service uninstall` removes it.
+[Unit]
+Description=Ronne AI Marketplace
+Documentation=https://github.com/ronneai/ronne-marketplace
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=rmk-server
+Group=rmk-server
+WorkingDirectory=/var/lib/rmk-server
+Environment=NODE_ENV=production
+Environment=RONNE_DATA_DIR=/var/lib/rmk-server
+Environment=RONNE_ENV_FILE=/etc/rmk-server/env
+ExecStart=/usr/bin/node /usr/lib/node_modules/@ronneai/marketplace/dist/bin.js start --no-open --port 7650 --host 127.0.0.1
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+
+# Hardening that leaves Node.js and Caddy working.
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/rmk-server /etc/rmk-server
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
