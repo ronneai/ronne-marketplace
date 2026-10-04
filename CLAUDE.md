@@ -38,7 +38,8 @@ Use Node.js 24 (`.nvmrc`) and pnpm installed directly (`npm install --global pnp
 |---|---|
 | `pnpm install` | Installs dependencies through the supply-chain checks in `pnpm-workspace.yaml` |
 | `pnpm dev` | Runs the web app at http://localhost:3000 |
-| `pnpm build` | Builds every package and the web app (Turborepo) |
+| `pnpm build` | Builds every package and the web app (Turborepo). First trims the build caches over their limits (`docs/knowledge/build-caches.md`), as `pnpm dev` does |
+| `pnpm clean:cache` / `pnpm clean` | Empties Turborepo's and Turbopack's caches / and removes every build output too. Always safe: the next run rebuilds |
 | `pnpm lint` / `pnpm format` | Biome check / Biome fix |
 | `pnpm typecheck` | Type-checks every package |
 | `pnpm test` | Runs every Vitest suite; `pnpm --filter @ronneai/core test` for one package |

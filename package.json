@@ -9,8 +9,10 @@
     "node": ">=22.12"
   },
   "scripts": {
-    "dev": "turbo run dev --filter=@ronneai/web",
-    "build": "turbo run build",
+    "dev": "node packages/repo-tools/src/trim-caches.js && turbo run dev --filter=@ronneai/web",
+    "build": "node packages/repo-tools/src/trim-caches.js && turbo run build",
+    "clean:cache": "node packages/repo-tools/src/trim-caches.js --all",
+    "clean": "node packages/repo-tools/src/trim-caches.js --all && node -e \"for (const p of ['.turbo','apps/web/.next','apps/web/dist-scripts','packages/core/dist','packages/cli/dist','packages/mcp/dist','packages/server/dist','packages/server/app']) require('node:fs').rmSync(p, { recursive: true, force: true })\"",
     "lint": "biome check .",
     "format": "biome check --write .",
     "typecheck": "turbo run typecheck",
