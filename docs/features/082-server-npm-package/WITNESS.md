@@ -127,3 +127,18 @@ Witnessed: 2026-10-04 (23:47 EDT on 2026-10-03), by a fresh agent. Machine: macO
 - The witness noted the moved `.env` keeps the clone's `PUBLIC_URL`. The README now says to update it.
 
 **Overall:** met. Every claim holds after the fix, and the Done-when tests and lint pass.
+
+## Task 4 — on GitHub (the matrix)
+
+Witnessed: 2026-10-04 00:24 EDT, by a fresh agent, read-only from GitHub's run records (run 37176594743, head 4a36253).
+
+| # | Claim | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|
+| 1 | The latest "Server package" run is for the PR head, concluded success, and every job passed | confirmed | `gh pr view 121` head `4a362532…` = the run's `headSha`, which concluded success. Every job succeeded: Detect changes, Pack, the six Install and run jobs, and the summary. The only earlier run (37176167305, on 3a87e27) failed. |
+| 2 | Each of the six install jobs printed all six ✓ lines, with the right Node major and platform | confirmed | Each job printed all six ✓ lines, with `--version` lines `0.2.0 (Node 22.23.3, linux x64)`, `(Node 24.21.0, linux x64)`, `(Node 22.23.2, darwin arm64)`, `(Node 24.20.0, darwin arm64)`, `(Node 22.23.3, win32 x64)`, `(Node 24.21.0, win32 x64)`. Every install logged `added 5 packages`. |
+| 3 | Windows: the SQLite path with a drive letter worked, the port was freed, and no leftover process or ignored warning | confirmed, with one note | `✓ Saved C:\Users\RUNNER~1\AppData\Local\Temp\rmk-server-probe-…\data\.env`, SQLite connected, 18 migrations, root created, files present. `✓ stopping rmk-server freed the port`, and no "Terminate orphan process" lines. No `##[warning]`, `##[error]` or `npm warn`. **Note:** with Node 24 the probe printed `[DEP0190]` from its own `shell: true` spawn with separate arguments. It failed nothing; fixed after this report (one command line). `[DEP0005]` in `actions/download-artifact` comes from the action. |
+| 4 | All other checks on PR #121 pass | confirmed | `gh pr checks 121` → 31 entries, all `pass`. |
+| 5 | The earlier run failed because npm read `tarball/*.tgz` as a GitHub repository, and the `./tarball/*.tgz` fix is in the head commit | confirmed | Run 37176167305: `npm error command git … ls-remote ssh://git@github.com/tarball/ronneai-marketplace-0.2.0.tgz.git`, `Permission denied (publickey)`. `git show 4a36253` changes the workflow to `./tarball/*.tgz`, with a comment. |
+
+**Not checked here:** nothing was reproduced outside GitHub. `ronne.db`/`storage` rest on the probe's own check. darwin x64 isn't covered (macOS runners are arm64).
+**Overall:** met. The ubuntu/macos/windows × Node 22/24 matrix passed on 4a36253 from install to a freed port, so task 4 is ticked. The probe's DEP0190 notice is fixed in the next commit, and the run on that commit shows it.

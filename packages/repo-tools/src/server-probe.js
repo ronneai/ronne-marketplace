@@ -4,7 +4,7 @@
 // empty data folder, waits for /api/health = 503 setup_required, runs `rmk-server setup --yes` with
 // SQLite, expects 200 with no restart and a token from sign-in, then stops it and checks the port is
 // free. Used by the server-package workflow on Ubuntu, macOS and Windows.
-import { execFileSync, spawn } from "node:child_process";
+import { execFileSync, execSync, spawn } from "node:child_process";
 import { mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
@@ -14,11 +14,14 @@ const command = process.argv[2] ?? "rmk-server";
 const windows = process.platform === "win32";
 const work = mkdtempSync(join(tmpdir(), "rmk-server-probe-"));
 const dataDir = join(work, "data");
-// npm installs a .cmd on Windows, which only a shell can start.
-const options = (env) => ({
-  env: { ...process.env, ...env, RONNE_DATA_DIR: dataDir },
-  shell: windows,
-});
+const options = (env) => ({ env: { ...process.env, ...env, RONNE_DATA_DIR: dataDir } });
+// npm installs a .cmd on Windows, which only a shell can start. The shell gets one command line:
+// passing arguments separately with `shell: true` is deprecated (DEP0190).
+const line = (args) => [`"${command}"`, ...args].join(" ");
+const runSync = (args, opts) =>
+  windows ? execSync(line(args), opts) : execFileSync(command, args, opts);
+const start = (args, opts) =>
+  windows ? spawn(line(args), { ...opts, shell: true }) : spawn(command, args, opts);
 
 const freePort = () =>
   new Promise((resolve) => {
@@ -53,7 +56,7 @@ const step = (message) => console.log(`✓ ${message}`);
 
 let server;
 try {
-  const version = execFileSync(command, ["--version"], { ...options({}), encoding: "utf8" }).trim();
+  const version = runSync(["--version"], { ...options({}), encoding: "utf8" }).trim();
   step(
     `${command} --version: ${version} (Node ${process.versions.node}, ${process.platform} ${process.arch})`,
   );
@@ -61,7 +64,7 @@ try {
   const port = await freePort();
   const url = `http://127.0.0.1:${port}`;
   let log = "";
-  server = spawn(command, ["--port", String(port), "--no-open"], options({}));
+  server = start(["--port", String(port), "--no-open"], options({}));
   server.stdout.on("data", (chunk) => (log += chunk));
   server.stderr.on("data", (chunk) => (log += chunk));
   // A server that exits (a crash, a wrong command) fails the probe at once, not after the wait.
@@ -88,7 +91,7 @@ try {
 
   const password = "Correct-horse-42!";
   const databaseFile = join(dataDir, "ronne.db").replaceAll("\\", "/");
-  execFileSync(command, ["setup", "--yes"], {
+  runSync(["setup", "--yes"], {
     ...options({
       PORT: String(port),
       DATABASE_URL: `file:${databaseFile}`,

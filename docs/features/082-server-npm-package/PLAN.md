@@ -22,7 +22,7 @@ the same change that completes it.
   `release.yml` (provenance, trusted publishing).
   *Done when:* a dry-run release packs and smoke-tests all four packages.
 
-- [ ] **4. Three systems.** CI matrix (ubuntu, macos, windows × Node 22, 24): install the packed
+- [x] **4. Three systems.** CI matrix (ubuntu, macos, windows × Node 22, 24): install the packed
   tarball, start, wait for `/api/health` = 503, run `setup --yes` with SQLite, health = 200.
   *Done when:* the matrix passes.
 
@@ -197,9 +197,15 @@ Windows wasn't run here: task 4's CI matrix covers it.
   tarball/x.tgz` was read as the GitHub repository `tarball/x.tgz` (`git ls-remote
   ssh://git@github.com/tarball/…`). The path needs `./`, as `release.yml` already says. The witness
   had only read the workflow, and the local runs always used full paths.
-- **Still open:** the *Done when*, the matrix passing on a pull request. Windows is new ground there:
-  a SQLite path with a drive letter (`file:C:/…`), the `.cmd` shim, and stopping it with
-  `taskkill`.
+- **Second PR run (#121, head 4a36253): the matrix passed.** All six jobs ran every probe step:
+  - Linux x64: Node 22.23.3 and 24.21.0;
+  - macOS arm64: Node 22.23.2 and 24.20.0;
+  - Windows x64: Node 22.23.3 and 24.21.0. The drive-letter SQLite path worked, and `taskkill /T`
+    freed the port with no orphan process.
+
+  The task's *Done when* is met (witnessed from GitHub's logs).
+- On Windows with Node 24 the probe itself printed DEP0190 (arguments passed separately with
+  `shell: true`). It now gives the shell one command line instead.
 
 ### Task 5: documentation and decisions (2026-10-04)
 
