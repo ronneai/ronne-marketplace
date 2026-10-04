@@ -41,6 +41,39 @@ describe("checkPack", () => {
     ]);
   });
 
+  it("lets the server ship the web app in app/, but never a .env or a native binary (082)", () => {
+    const app = ["app/apps/web/server.js", "app/apps/web/dist-scripts/start.mjs"];
+    const pack = (...paths) =>
+      checkPack("server", {
+        name: "@ronneai/marketplace",
+        files: files(...base, ...app, ...paths),
+      });
+    expect(
+      pack(
+        "app/node_modules/next/dist/server/next.js",
+        "app/apps/web/.next/server/app/page.js.map",
+      ),
+    ).toEqual([]);
+    expect(
+      pack(
+        "app/apps/web/.env",
+        "app/apps/web/.env.local",
+        "app/x/better_sqlite3.node",
+        "dist/run.js.map",
+      ),
+    ).toEqual([
+      "would ship app/apps/web/.env",
+      "would ship app/apps/web/.env.local",
+      "would ship app/x/better_sqlite3.node",
+      "would ship dist/run.js.map",
+    ]);
+    expect(pack("app/apps/web/.env.example")).toEqual(["would ship app/apps/web/.env.example"]);
+    expect(checkPack("server", { name: "@ronneai/marketplace", files: files(...base) })).toEqual([
+      "is missing app/apps/web/server.js",
+      "is missing app/apps/web/dist-scripts/start.mjs",
+    ]);
+  });
+
   it("wants the right name, the README, LICENSE and a build", () => {
     expect(checkPack("cli", { name: "rmk", files: files("package.json") })).toEqual([
       "packs as rmk, not @ronneai/rmk",

@@ -64,7 +64,20 @@ describe("SetupPage", () => {
     expect(html.match(/<input[^>]*name="public_url"[^>]*>/)?.[0]).toMatch(/readonly=""/i);
     expect(html).toContain('value="https://ronne.example"');
     expect(html).toContain("wins over the settings");
-    expect(html).toContain("Set by RONNE_DOMAIN or PUBLIC_URL");
+    expect(html).toContain("Set by PUBLIC_URL in the environment");
+    // In Docker, compose.yaml sets it from RONNE_DOMAIN too (080).
+    const docker = renderToStaticMarkup(
+      <SetupPage page={page({ runtime: "docker", publicUrlFromEnvironment: true })} />,
+    );
+    expect(docker).toContain("Set by RONNE_DOMAIN or PUBLIC_URL");
+  });
+
+  it("speaks of rmk-server's data folder and its port for the npm package (082)", () => {
+    const html = renderToStaticMarkup(
+      <SetupPage page={page({ runtime: "npm", localUrl: "http://localhost:7650" })} />,
+    );
+    expect(html).toContain("In rmk-server&#x27;s data folder");
+    expect(html).toContain("or http://localhost:7650 on this machine");
   });
 
   it("offers to keep the database when a setup didn't finish", () => {

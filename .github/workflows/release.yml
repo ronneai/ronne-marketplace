@@ -2,7 +2,8 @@ name: Release
 
 # Publishes a release when a tag vX.Y.Z matching the shared version is pushed:
 #
-# 1. `release` (feature 034): @ronneai/core, @ronneai/rmk and @ronneai/mcp to npm. npm's trusted
+# 1. `release` (features 034, 082): @ronneai/core, @ronneai/rmk, @ronneai/mcp and
+#    @ronneai/marketplace (the server, rmk-server) to npm. npm's trusted
 #    publishing: GitHub's OIDC token proves the package comes from this workflow, so there's no npm
 #    token to store, and every version gets provenance. Each package must be linked to this
 #    repository, this workflow and the "npm" environment once on npmjs.com, and the "npm"
@@ -83,6 +84,8 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      # The web app's standalone build, which packing @ronneai/marketplace copies in (082).
+      - run: pnpm build:server
       - run: pnpm licenses:check
       - run: pnpm audit --audit-level high
       - run: pnpm packages:check
@@ -90,7 +93,7 @@ jobs:
       - name: Pack
         run: |
           mkdir -p release
-          for folder in core cli mcp; do
+          for folder in core cli mcp server; do
             pnpm --dir "packages/$folder" pack --pack-destination "$PWD/release"
           done
           ls -l release
@@ -103,7 +106,7 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          for name in core rmk mcp; do
+          for name in core rmk mcp marketplace; do
             package="@ronneai/$name"
             # ./ matters: npm reads "release/x.tgz" as a GitHub user/repo, not a file.
             tarball="./release/ronneai-$name-$VERSION.tgz"

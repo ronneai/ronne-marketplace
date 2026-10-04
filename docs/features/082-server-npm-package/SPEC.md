@@ -56,9 +56,16 @@ same way. It listens on `127.0.0.1` by default (a personal install isn't reachab
 | Linux | `$XDG_DATA_HOME/rmk-server`, else `~/.local/share/rmk-server` |
 | Windows | `%LOCALAPPDATA%\RonneAI\Marketplace` |
 
-`RONNE_ENV_FILE` defaults to `.env` in that folder, as in Docker. `PUBLIC_URL` defaults to
-`http://localhost:<port>`. A new `RONNE_RUNTIME=npm` value lets the setup and Documentation give the
-right commands (005 added `docker`).
+`RONNE_ENV_FILE` defaults to `.env` in that folder, as in Docker. With `RONNE_RUNTIME=npm`, the
+setup's default SQLite file and storage folder are in the data folder too (`ronne.db`, `storage/`),
+not `./data` inside the package, whose folder may be read-only. The address the setup suggests is
+`http://localhost:<port>`. `rmk-server` sets `PORT` and leaves `PUBLIC_URL` unset: set in the
+environment, `PUBLIC_URL` would make the setup's field read-only and win over its answer. A new
+`RONNE_RUNTIME=npm` value lets the setup, the messages and the Documentation give `rmk-server`'s
+commands (005 added `docker`). `apps/web/src/server/runtime.ts` holds these rules.
+
+Everything runs in `rmk-server`'s own process: the web app's compiled scripts are imported, not
+spawned, so stopping `rmk-server` stops the server.
 
 **What the package contains**: the standalone server (`server.js`, `.next/`, `public/`), the static
 files, `dist-scripts/`, and the CLI entry. Dependencies the standalone build traces are declared
@@ -77,7 +84,11 @@ another silently, because `PUBLIC_URL` and saved `rmk` logins depend on it.
   and PostgreSQL work regardless.
 - **`npx` with a cached older version**: `npx @ronneai/marketplace@latest` is what the docs show for
   upgrades; migrations run on start.
-- **Moving from a clone** (`apps/web/data`): set `RONNE_DATA_DIR` to that folder; documented.
+- **Moving from a clone:** a clone keeps its settings in `apps/web/.env` with paths relative to
+  `apps/web` (`file:./data/ronne.db`, `./data/storage`), so pointing `RONNE_DATA_DIR` at
+  `apps/web/data` isn't enough: `rmk-server` would find no `.env` there and start in setup mode. The
+  README says to copy `.env` and `data/` into the data folder and make `DATABASE_URL` and
+  `STORAGE_PATH` absolute (found by task 5's witness).
 - **Two versions sharing a data folder**: the older refuses to start on a newer database (002).
 
 ## Documentation

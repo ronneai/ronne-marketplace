@@ -7,6 +7,7 @@ import { redactDatabaseUrl } from "@/server/db/url";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { SIGN_IN_PATH } from "@/server/domains/identity/models/route-guard";
 import { requestHeaders } from "@/server/http/request-headers";
+import { defaultDataPath, defaultPublicUrl, runtimeOf } from "@/server/runtime";
 import { getSetupState } from "@/server/setup/state";
 
 export const metadata = { title: "Set up · Ronne AI Marketplace" };
@@ -22,7 +23,8 @@ const Setup = async () => {
   // `unavailable` never gets here: the root layout shows the panel instead of any page.
   const page: SetupPageProps = {
     state: state === "incomplete" ? "incomplete" : "not_configured",
-    runtime: process.env.RONNE_RUNTIME === "docker" ? "docker" : "node",
+    runtime: runtimeOf(),
+    localUrl: defaultPublicUrl(),
     envFile: config.envFile,
     publicUrlFromEnvironment: Boolean(process.env.PUBLIC_URL),
     currentDatabase:
@@ -32,7 +34,8 @@ const Setup = async () => {
     initial: {
       ...DEFAULT_VALUES,
       keep: state === "incomplete",
-      publicUrl: config.publicUrl ?? DEFAULT_VALUES.publicUrl,
+      path: defaultDataPath("ronne.db"),
+      publicUrl: config.publicUrl ?? defaultPublicUrl(),
     },
   };
   return <SetupPage page={page} />;

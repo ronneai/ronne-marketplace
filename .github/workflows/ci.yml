@@ -65,10 +65,15 @@ jobs:
         if: needs.changes.outputs.code != 'false'
       - run: pnpm build
         if: needs.changes.outputs.code != 'false'
-      # What core, rmk and the MCP server would publish: only dist code, README and LICENSE (034).
+      # The web app's standalone build, which packing @ronneai/marketplace copies in (082).
+      - run: pnpm build:server
+        if: needs.changes.outputs.code != 'false'
+      # What the four packages would publish: dist code, README and LICENSE, and the server's app/
+      # without a .env or a native binary (034, 082).
       - run: pnpm packages:check
         if: needs.changes.outputs.code != 'false'
-      # Installs the packed tarballs with npm and runs rmk and rmk-mcp, as a user would (034).
+      # Installs the packed tarballs with npm and runs rmk, rmk-mcp and rmk-server, as a user would
+      # (034, 082).
       - run: pnpm release:smoke
         if: needs.changes.outputs.code != 'false'
 

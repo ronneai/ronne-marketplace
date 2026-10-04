@@ -127,14 +127,15 @@ domain can ask for new ones.
 
 ## Without Docker: try it with Node.js
 
-With Node.js 22 or later installed, one command downloads and starts Ronne, with nothing to clone
-(feature 082):
+With Node.js 22.12 or later installed, one command downloads and starts Ronne, with nothing to
+clone (feature 082):
 
 ```sh
 npx @ronneai/marketplace
 ```
 
-It opens `http://localhost:7650` in your browser and runs until you close the terminal. To keep it
+On the first start it opens `http://localhost:7650` in your browser, and it runs until you close
+the terminal. To keep it
 installed and start it later with `rmk-server`:
 
 ```sh
@@ -150,7 +151,9 @@ Your data stays in one folder, kept when you upgrade:
 | Linux | `~/.local/share/rmk-server` |
 | Windows | `%LOCALAPPDATA%\RonneAI\Marketplace` |
 
-Set `RONNE_DATA_DIR` to use another folder, and `--port` (or `PORT`) for another port. To keep
+On Linux, `XDG_DATA_HOME` moves it (to `$XDG_DATA_HOME/rmk-server`). Set `RONNE_DATA_DIR` to use
+another folder, and `--port` (or `PORT`) for another port. It listens on `127.0.0.1`, this machine
+only; `--host 0.0.0.0` (or `HOST`) makes it reachable from the network. To keep
 Ronne running in the background and starting with your computer, install it as a service (next
 section).
 

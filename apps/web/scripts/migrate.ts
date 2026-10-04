@@ -5,12 +5,13 @@ import { loadConfig } from "../src/server/config";
 import { createDb } from "../src/server/db/create-db";
 import { migrateToLatest } from "../src/server/db/migrate";
 import { redactDatabaseUrl } from "../src/server/db/url";
+import { scriptCommand } from "../src/server/runtime";
 
 const appDir = resolve(import.meta.dirname, "..");
 const url = loadConfig({ appDir }).databaseUrl;
 if (!url) {
   console.error(
-    "✗ DATABASE_URL isn't set. Run `pnpm run setup` first, or set it in the environment.",
+    `✗ DATABASE_URL isn't set. Run \`${scriptCommand("setup")}\` first, or set it in the environment.`,
   );
   process.exit(2);
 }

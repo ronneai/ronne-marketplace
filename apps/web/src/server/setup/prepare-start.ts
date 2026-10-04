@@ -5,6 +5,7 @@ import { isConfigured, loadConfig } from "../config";
 import { createDb } from "../db/create-db";
 import { migrateToLatest } from "../db/migrate";
 import { redactDatabaseUrl } from "../db/url";
+import { defaultPublicUrl, setupCommand } from "../runtime";
 
 /** Starting the server would be wrong: the container should stop (and be restarted). */
 export class StartError extends Error {
@@ -32,10 +33,11 @@ export const prepareStart = async (options: {
   const log = options.log ?? ((line) => console.log(line));
   checkWritable(options.dataDir);
 
-  const config = loadConfig({ appDir: options.appDir, env: options.env ?? process.env });
+  const env = options.env ?? process.env;
+  const config = loadConfig({ appDir: options.appDir, env });
   if (!isConfigured(config)) {
     log(
-      `Ronne AI Marketplace isn't set up yet: starting in setup mode. Open ${config.publicUrl ?? "http://localhost:3000"} in a browser and follow the setup, or run \`docker compose exec web pnpm run setup\`.`,
+      `Ronne AI Marketplace isn't set up yet: starting in setup mode. Open ${config.publicUrl ?? defaultPublicUrl(env)} in a browser and follow the setup, or run \`${setupCommand(env)}\`.`,
     );
     return { mode: "setup-required" };
   }

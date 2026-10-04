@@ -20,6 +20,7 @@ import {
   SubmissionNotFoundError,
   TypeChangedError,
 } from "../domains/submissions/exceptions/errors";
+import { setupCommand } from "../runtime";
 
 /** The one error shape for every API response (MVP §11). `code` is stable; clients may rely on it. */
 export type ApiError = {
@@ -122,6 +123,6 @@ export const setupRequiredResponse = () => {
   return errorResponse(
     503,
     "setup_required",
-    "This instance isn't set up yet. Open it in a browser and follow the setup, or run `pnpm run setup` (in Docker: `docker compose exec web pnpm run setup`).",
+    `This instance isn't set up yet. Open it in a browser and follow the setup, or run \`${setupCommand()}\`.`,
   );
 };

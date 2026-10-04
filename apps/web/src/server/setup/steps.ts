@@ -13,6 +13,7 @@ import type { DatabaseDialect } from "../db/url";
 import { createRoot, listRoots } from "../domains/identity/actions/root-account";
 import type { RootAccount } from "../domains/identity/models/user";
 import type { NewRoot, RootOrigin } from "../domains/identity/services/root-account";
+import { defaultDataPath } from "../runtime";
 import { generateAuthSecret, isWeakSecret, readEnvFile, updateEnvFile } from "./env-file";
 import { describeServer } from "./server-name";
 
@@ -144,7 +145,8 @@ export type WrittenSettings = {
 export const writeSettings = (options: WriteSettingsOptions): WrittenSettings => {
   const env = options.env ?? process.env;
   const existing = readEnvFile(options.envPath);
-  const storagePath = options.storagePath || existing.STORAGE_PATH || "./data/storage";
+  const storagePath =
+    options.storagePath || existing.STORAGE_PATH || defaultDataPath("storage", env);
   const written = updateEnvFile(options.envPath, {
     DATABASE_URL: options.databaseUrl,
     AUTH_SECRET: existing.AUTH_SECRET || generateAuthSecret(),

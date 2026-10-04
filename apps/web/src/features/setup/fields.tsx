@@ -101,7 +101,9 @@ export const DatabaseFields = ({
           hint={
             docker
               ? "Relative to the app, inside the ronne-data volume. Keep the default unless you know why."
-              : "Relative to apps/web. The folder is created if it's missing."
+              : page.runtime === "npm"
+                ? "In rmk-server's data folder. Keep the default unless you know why."
+                : "Relative to apps/web. The folder is created if it's missing."
           }
           error={fieldError(error, "database.path")}
           autoComplete="off"
@@ -187,8 +189,10 @@ export const InstanceFields = ({ page, values, error }: FieldsProps) => {
         readOnly={page.publicUrlFromEnvironment}
         hint={
           page.publicUrlFromEnvironment
-            ? "Set by RONNE_DOMAIN or PUBLIC_URL in the environment (compose.yaml), which wins over the settings. Change it there, in the .env file next to compose.yaml, then run docker compose up -d."
-            : "Where people will open Ronne AI Marketplace: the address a reverse proxy serves, or http://localhost:3000 on this machine."
+            ? page.runtime === "docker"
+              ? "Set by RONNE_DOMAIN or PUBLIC_URL in the environment (compose.yaml), which wins over the settings. Change it there, in the .env file next to compose.yaml, then run docker compose up -d."
+              : "Set by PUBLIC_URL in the environment, which wins over the settings. Change it there and restart."
+            : `Where people will open Ronne AI Marketplace: the address a reverse proxy serves, or ${page.localUrl ?? "http://localhost:3000"} on this machine.`
         }
         error={fieldError(error, "public_url")}
         autoComplete="off"

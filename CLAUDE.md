@@ -53,9 +53,10 @@ Use Node.js 24 (`.nvmrc`) and pnpm installed directly (`npm install --global pnp
 | `pnpm run reset-setup` | Development only: removes this clone's settings file, SQLite database and storage (asks first, or `--yes`), so the web setup can be run again. Refuses in production and in Docker |
 | `pnpm db:migrate` | Applies pending migrations to `DATABASE_URL` |
 | `pnpm hooks:install` | Turns on the local `pre-commit` checks and the commit-message check (once per clone) |
-| `pnpm packages:check` | After `pnpm build`: checks what `@ronneai/core`, `rmk` and `mcp` would publish against an allowlist |
-| `pnpm release:smoke` | After `pnpm build`: installs the packed packages with npm in an empty folder and runs `rmk` and `rmk-mcp` |
-| `pnpm release:version <x.y.z>` | Sets the version the three published packages share; then commit and push the tag `vX.Y.Z` to publish (`.github/workflows/release.yml`) |
+| `pnpm build:server` | The web app's standalone build and `rmk-server`, which packing `@ronneai/marketplace` copies in (082). Needed before `packages:check` and `release:smoke` |
+| `pnpm packages:check` | After `pnpm build` and `pnpm build:server`: checks what `@ronneai/core`, `rmk`, `mcp` and `marketplace` would publish against an allowlist |
+| `pnpm release:smoke` | After `pnpm build` and `pnpm build:server`: installs the packed packages with npm in an empty folder and runs `rmk`, `rmk-mcp` and `rmk-server` |
+| `pnpm release:version <x.y.z>` | Sets the version the four published packages share; then commit and push the tag `vX.Y.Z` to publish (`.github/workflows/release.yml`) |
 
 CI (`.github/workflows/`) runs lint, typecheck, test and build on Node 22 and 24, the database tests on PostgreSQL 15, MySQL 8.4 and MariaDB 10.11 (`database.yml`, plus a weekly run on the latest versions), the end-to-end tests in Chromium, the license and audit checks, CodeQL, and the PR title check.
 

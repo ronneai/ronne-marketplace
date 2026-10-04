@@ -369,6 +369,15 @@ importers:
 
   packages/repo-tools: {}
 
+  packages/server:
+    dependencies:
+      '@node-rs/argon2':
+        specifier: 2.2.1
+        version: 2.2.1
+      better-sqlite3:
+        specifier: 13.0.3
+        version: 13.0.3
+
 packages:
 
   '@alloc/quick-lru@5.3.0':
