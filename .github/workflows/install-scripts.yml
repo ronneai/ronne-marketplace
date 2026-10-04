@@ -1,0 +1,92 @@
+name: Install scripts
+
+# The install scripts (feature 081): install.sh parsed as POSIX sh by shfmt and its tests run under
+# dash and bash; install.ps1 linted by PSScriptAnalyzer and its tests run under Windows PowerShell
+# 5.1 and PowerShell 7 on Windows. GitHub's Windows runners can't run Linux containers, so the
+# Windows tests stop at the Docker check. install.sh's full run, on the image just built, is in the
+# image workflow (.github/actions/build-image/install-probe.sh).
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: install-scripts-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # Detects documentation-only pull requests (changes.yml).
+  changes:
+    uses: ./.github/workflows/changes.yml
+
+  sh:
+    name: install.sh (shfmt, dash, bash)
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # shfmt (BSD-3-Clause) instead of ShellCheck (GPL-3.0): docs/policies/dependencies.md §3.
+      - name: Parses as POSIX sh, formatted (shfmt -p)
+        run: >-
+          docker run --rm -v "$PWD/scripts/install:/w" -w /w
+          mvdan/shfmt:v3.14.1@sha256:8c06884a35683d8763fba6c0d9484d11a61a96da65f8d497d6f625825a6043f2
+          -p -i 2 -ci -d install.sh test-install.sh
+      - name: Tests under dash
+        run: dash scripts/install/test-install.sh
+      - name: Tests under bash
+        run: bash scripts/install/test-install.sh
+
+  ps1:
+    name: install.ps1 (PSScriptAnalyzer, PowerShell 5.1 and 7)
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          Install-Module PSScriptAnalyzer -RequiredVersion 1.25.0 -Scope CurrentUser -Force
+          $settings = @{ Rules = @{ PSUseCompatibleSyntax = @{ Enable = $true; TargetVersions = @('5.1', '7.4') } } }
+          $findings = Invoke-ScriptAnalyzer -Path scripts/install -Settings $settings
+          $findings | Format-Table -AutoSize ScriptName, Severity, RuleName, Line, Message | Out-String -Width 200
+          if ($findings) { exit 1 }
+      - name: Tests under Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $PSVersionTable.PSVersion.ToString()
+          powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install/test-install.ps1
+          exit $LASTEXITCODE
+      - name: Tests under PowerShell 7
+        shell: pwsh
+        run: |
+          $PSVersionTable.PSVersion.ToString()
+          pwsh -NoProfile -File scripts/install/test-install.ps1
+          exit $LASTEXITCODE
+
+  # One check to require: it passes when both jobs passed, or when they were skipped for a docs-only PR.
+  install-scripts:
+    name: Install scripts
+    needs: [changes, sh, ps1]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Both scripts passed
+        # Not PS1: that's bash's prompt variable, which a non-interactive bash clears.
+        env:
+          SH_RESULT: ${{ needs.sh.result }}
+          PS1_RESULT: ${{ needs.ps1.result }}
+        run: |
+          echo "install.sh: $SH_RESULT, install.ps1: $PS1_RESULT"
+          for r in "$SH_RESULT" "$PS1_RESULT"; do [ "$r" = success ] || [ "$r" = skipped ] || exit 1; done

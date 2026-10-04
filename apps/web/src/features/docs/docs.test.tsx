@@ -133,6 +133,14 @@ describe("the topics", () => {
     for (const id of ["docker", "https", "node", "setup", "root", "upgrade"])
       expect(install).toContain(`id="${id}"`);
     expect(install).toContain("docker compose up -d");
+    // The install script (081).
+    // Against the GitHub release, the scripts' own source: never the website, which only redirects.
+    expect(install).toContain(
+      "https://github.com/ronneai/ronne-marketplace/releases/latest/download/install.sh",
+    );
+    expect(install).toContain("install.sh | sh");
+    expect(install).toContain("install.ps1 | iex");
+    expect(install).toContain("Run it again to upgrade");
     // The proxy in compose.yaml (080).
     expect(install).toContain("# then open http://localhost:7650");
     expect(install).toContain(

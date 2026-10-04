@@ -18,6 +18,10 @@ macOS, Linux and Windows. The person answers two questions and never edits a fil
 - Running it again on an installed folder: upgrade, keeping the answers.
 - A non-interactive mode for scripts and CI.
 - Tests of both scripts in CI.
+- Short commands from the website: `https://www.ronne.ai/install.sh` and `/install.ps1` redirect
+  (307) to the same files in the latest GitHub release (owner, 2026-10-04). The release stays the
+  only copy, with `checksums.txt`, and its URL keeps working. This repository's tests and CI use
+  the release and local files only, never the website.
 
 **Out** (and where it goes instead):
 - Installing Docker itself: the script links to the right download and stops. Installing a
@@ -25,31 +29,37 @@ macOS, Linux and Windows. The person answers two questions and never edits a fil
 - Installing without Docker: the script offers it once the packages exist
   ([085](../085-unix-packages/SPEC.md) for macOS and Linux, [087](../087-windows-package/SPEC.md)
   for Windows).
-- A short URL on a Ronne website (`…/install.sh`): an alias the owner adds when the site exists;
-  the release URL keeps working.
+- Hosting the scripts on the website: www.ronne.ai only redirects to the release (below; site
+  feature 008 in `ronneai/ronne-web`).
 
 ## Behaviour
 
 **The commands** (shown on the website and in the README):
 
 ```sh
-curl -fsSL https://github.com/ronneai/ronne-marketplace/releases/latest/download/install.sh | sh
+curl -fsSL https://www.ronne.ai/install.sh | sh
 ```
 ```powershell
-irm https://github.com/ronneai/ronne-marketplace/releases/latest/download/install.ps1 | iex
+irm https://www.ronne.ai/install.ps1 | iex
 ```
+
+Both redirect to the latest release's assets, which also work directly:
+`https://github.com/ronneai/ronne-marketplace/releases/latest/download/install.sh` (and `.ps1`).
 
 **Steps**, the same in both scripts:
 
-1. **Check** that `docker` exists, that the daemon answers (`docker info`) and that Compose v2.23 or
+1. **Check** that `docker` exists, that the daemon answers (`docker info`) and that Compose 2.23.1 or
    later is there (`docker compose version`; 080 needs inline `configs`). Each failure prints one
    sentence and the link for this system (Docker Desktop, Rancher Desktop or Podman Desktop for
    macOS and Windows; Docker Engine for Linux), then exits 1.
 2. **Ask** "Where will Ronne run? 1) This computer  2) A server with a domain". For 2: the domain,
    checked against the shape of a host name; an optional email for the certificate authority; and,
-   if the domain's DNS doesn't resolve to one of this machine's public addresses, a warning
-   (not a stop: DNS may still be propagating).
-3. **Check ports**: for 1, that 7650 is free, else offer the next free port from 7650–7662; for 2,
+   if the domain's DNS doesn't resolve to one of this machine's network addresses, a warning
+   (not a stop: DNS may still be propagating, or the server is behind NAT). The script compares
+   with the machine's own interfaces and asks no outside service for its public address.
+3. **Check ports**: for 1, that 7650 and 7651 are free, else offer the next free pair from
+   7650–7662 (7652 and 7653, …). A port counts as free when nothing accepts a connection on it,
+   and ports this install already publishes count as free on a rerun. For 2,
    that 80 and 443 are free, else explain the *Behind your own web server* option and stop.
 4. **Write** `~/ronne-marketplace/` (Windows: `%USERPROFILE%\ronne-marketplace`): `compose.yaml`
    from the same release as the script (not `main`), and `.env` with only the answers given. An
@@ -81,17 +91,29 @@ every question takes its default or its flag, and nothing opens a browser.
 - **Windows without WSL 2**: Docker Desktop's own message; the script repeats its link.
 - **The folder exists but isn't ours** (no `compose.yaml` with our project name): stop and ask for
   `--dir`.
+- **Ronne already installed in another folder:** every install uses the Compose project name
+  `ronne-marketplace`, so a second folder would take over the first one's containers and volumes.
+  The script reads `docker compose ls` and stops, naming the other folder.
+- **`./certs`:** the script creates it, so it belongs to the user and not to root (080).
+- **Questions with `curl … | sh`:** stdin is the script, so questions read `/dev/tty`. With no
+  terminal and no `--yes`, the script stops and says to add `--yes`.
 - **A legacy install on port 3000** (an old `compose.yaml` there): the rerun keeps
   `RONNE_PORT=3000` in `.env` so the address doesn't change, and says so.
-- **No browser** (a server over SSH): print the address only.
+- **No browser** (a server over SSH): print the address only. On Linux, `xdg-open` runs only when
+  `DISPLAY` or `WAYLAND_DISPLAY` is set.
+- **Testing a script from the repository:** without a release version written in, it installs
+  `compose.yaml` from `main` and follows `latest`. `RONNE_INSTALL_COMPOSE_URL` (`file://` works)
+  and `RONNE_INSTALL_IMAGE` override both, for CI.
 - **arm64 Linux and Apple silicon**: the image is multi-architecture (035); nothing to choose.
 
 ## Documentation
 
 - **README**, *With Docker*: the one-line command first; `compose.yaml` by hand stays as "by hand".
-- **Documentation › Installing an instance › With Docker** (`content.tsx`): the command per system,
-  what it asks, where the folder is, and rerunning to upgrade. `topics.ts` keywords: install script,
-  curl, PowerShell, upgrade.
+- **Documentation › Installing Ronne › With Docker** (`content.tsx`): the command per system,
+  what it asks, the port check, where the folder is, and rerunning to upgrade; `compose.yaml` by
+  hand follows. The Documentation has no search, so there are no `topics.ts` keywords to add.
+- **`docs/runbooks/install.md`:** how to check the download against `checksums.txt`, and rerunning
+  to upgrade.
 - The guide's *Quick start with Docker* section is published on the website when this is released.
 - No inline helper: nothing in the app changes.
 

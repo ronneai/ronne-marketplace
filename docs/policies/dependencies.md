@@ -87,6 +87,20 @@ each tool is checked against a known-vulnerable fixture when it's added.
 - **GitHub Actions** are pinned to full commit SHAs (Dependabot updates them), and each workflow sets the smallest `permissions:` it needs. No `pull_request_target` job checks out pull request code.
 - **CodeQL, Dependabot alerts, secret scanning and push protection** are turned on for the repository.
 
+**Tools CI runs that aren't npm packages.** Each is pinned to an exact version, and to a digest
+when it's an image. Dependabot doesn't see versions written in a workflow's `run:` lines, so these
+move by hand, after the same checks as any dependency.
+
+| Tool | License | Used for | Pinned as |
+|---|---|---|---|
+| Trivy | Apache-2.0 | Scanning the Docker images (005, 080) | `aquasec/trivy` image, tag and digest |
+| shfmt | BSD-3-Clause | Parsing `install.sh` as POSIX `sh` (`shfmt -p`, 081) | `mvdan/shfmt` image, tag and digest |
+| PSScriptAnalyzer | MIT | Linting `install.ps1` (081) | PowerShell Gallery module, `-RequiredVersion` |
+| PowerShell 7 | MIT | Running PSScriptAnalyzer and `install.ps1`'s logic on macOS and Linux, by hand (081) | `mcr.microsoft.com/powershell` image, tag and digest |
+
+**Not ShellCheck:** it's GPL-3.0, which §1 forbids even in CI. `shfmt -p` catches what isn't POSIX
+`sh`, and the install script's tests run it under both `dash` and `bash`.
+
 **When a vulnerability is found:**
 - Critical or high: fixed, or the dependency replaced or removed, within 7 days.
 - Medium or low: fixed in the next weekly update.
