@@ -206,7 +206,7 @@ check_other_install() {
   if [ -d "$DIR" ] && [ -d "$other" ] && [ "$(cd "$DIR" && pwd -P)" = "$(cd "$other" && pwd -P)" ]; then
     return 0
   fi
-  die "Ronne is already installed from $other (Docker project $PROJECT_NAME). Run this again with --dir \"$other\" to upgrade it, or remove it first (cd there, then docker compose down)."
+  die "Ronne AI Marketplace is already installed from $other (Docker project $PROJECT_NAME). Run this again with --dir \"$other\" to upgrade it, or remove it first (cd there, then docker compose down)."
 }
 
 # --- DNS --------------------------------------------------------------------------------------

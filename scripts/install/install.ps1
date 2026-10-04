@@ -180,7 +180,7 @@ function Test-OtherInstall {
   if (-not $project) { return }
   $other = Split-Path -Parent $project.ConfigFiles
   if ((Test-Path $script:Dir) -and ((Resolve-Path $script:Dir).Path -eq (Resolve-Path $other -ErrorAction SilentlyContinue).Path)) { return }
-  Exit-WithError "Ronne is already installed from $other (Docker project $ProjectName). Run this again with -Dir `"$other`" to upgrade it, or remove it first (cd there, then docker compose down)."
+  Exit-WithError "Ronne AI Marketplace is already installed from $other (Docker project $ProjectName). Run this again with -Dir `"$other`" to upgrade it, or remove it first (cd there, then docker compose down)."
 }
 
 # --- DNS --------------------------------------------------------------------------------------
