@@ -59,3 +59,26 @@ Witnessed: 2026-10-04 (23:26–23:35 EDT on 2026-10-03), by a fresh agent. Machi
 
 **Differences from the notes:** none.
 **Overall:** met. The package builds, packs, installs with `npm i -g` and does everything task 2 promises on this machine.
+
+## Task 3 — Checks and release
+
+Witnessed: 2026-10-04 (23:34–23:45 EDT on 2026-10-03), by a fresh agent. Machine: macOS arm64, Node v24.0.0, npm 11.5.2, pnpm 12.6.0.
+
+| # | Claim | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|
+| 1 | packs.js lists @ronneai/marketplace with app/, forbids .env/.env.example/.node even in app/, requires server.js and start.mjs; tests; repo-tools tests pass | confirmed | `server: { name: "@ronneai/marketplace", extra: [/^app\//], forbid: [.env…, .node], require: [server.js, start.mjs] }`. `forbid` is checked before `extra`. The new test covers `.env`, `.env.local`, `.env.example`, `.node`, a dist map and the two missing files. repo-tools → 71 tests passed. |
+| 2 | `pnpm build && pnpm build:server && pnpm packages:check` passes, four packages | confirmed | All exit 0. ✓ core 128, rmk 65, mcp 19, marketplace 1,765 files, all on the allowlist. |
+| 3 | Negative check: missing standalone build gives a readable failure, not a stack trace | confirmed | With `apps/web/.next/standalone` moved aside: exit 1. The other three got ✓, then "✗ @ronneai/marketplace doesn't pack: ✗ No standalone build in ../../apps/web/.next/standalone. Run: NEXT_OUTPUT=standalone …". No stack trace. Restored afterwards. |
+| 4 | `pnpm release:smoke` passes with four tarballs, rmk-server answers 503 setup_required, and no server is left running | confirmed | Exit 0 in ~5.8 s: "Packed 4: …" and "✓ rmk-server 0.2.0 started and answered 503 setup_required". Before and after, only the owner's two pre-existing `next-server` processes were running. |
+| 5 | release:version covers the server and the 0.2.0 run changes no package.json | confirmed | `VERSIONED` includes `server: packages/server/package.json`. `pnpm release:version 0.2.0` names @ronneai/marketplace, and `git status` was unchanged, because everything is already at 0.2.0. |
+| 6 | turbo.json has NEXT_OUTPUT in build env; root build:server script | confirmed | `tasks.build.env = ["NEXT_OUTPUT"]`. `build:server` runs the standalone web build, then the server package (exit 0). |
+| 7 | release.yml and ci.yml wired up and both parse as YAML | confirmed | release.yml runs `pnpm build:server` before `packages:check`/`release:smoke`, packs `core cli mcp server`, and publishes `core rmk mcp marketplace` with `--provenance` (`--dry-run` on a dry run), with `id-token: write` and the "npm" environment. ci.yml runs `build:server` before `packages:check`. Both parse with `yaml`. |
+| 8 | Done-when (dry-run release) not done, and the notes say so honestly | confirmed | The notes end with "**Still open:** the *Done when*, a dry-run release … which only the owner can approve." Not attempted. |
+| 9 | CLAUDE.md command table updated | confirmed | A `pnpm build:server` row. packages:check names the four packages, release:smoke names `rmk-server`, and release:version says "the four published packages". |
+
+**Not checked here:** the dry-run release on GitHub; npm trusted publishing and provenance on npmjs.com; the CI workflows on GitHub; the full lint, typecheck and test run (left to the pre-commit hook).
+**Differences from the notes:** two small points, fixed in this commit:
+- The notes' "changes nothing" for `release:version 0.2.0` holds only because everything is already at 0.2.0. Now said.
+- `release-version.js`'s header comment didn't mention the server. Updated.
+
+**Overall:** met for the work: packages:check and release:smoke pass for all four packages locally. **The Done-when is not met yet:** a dry-run release on GitHub waits for the merge and the owner's approval, so task 3 stays unticked.

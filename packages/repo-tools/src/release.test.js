@@ -3,10 +3,11 @@ import { isVersion, sharedVersion, withVersion } from "./release.js";
 
 const pkg = (name, version) =>
   `{\n  "name": "${name}",\n  "version": "${version}",\n  "description": "x"\n}\n`;
-const texts = (core, cli, mcp, web = core) => ({
+const texts = (core, cli, mcp, web = core, server = core) => ({
   core: pkg("@ronneai/core", core),
   cli: pkg("@ronneai/rmk", cli),
   mcp: pkg("@ronneai/mcp", mcp),
+  server: pkg("@ronneai/marketplace", server),
   web: pkg("@ronneai/web", web),
 });
 
@@ -27,7 +28,7 @@ describe("release versions", () => {
 
   it("names the packages whose versions differ, the web app included", () => {
     expect(() => sharedVersion(texts("0.1.0", "0.1.0", "0.2.0"))).toThrow(
-      "The published packages and the web app have different versions: core 0.1.0, cli 0.1.0, mcp 0.2.0, web 0.1.0. Run pnpm release:version.",
+      "The published packages and the web app have different versions: core 0.1.0, cli 0.1.0, mcp 0.2.0, server 0.1.0, web 0.1.0. Run pnpm release:version.",
     );
     expect(() => sharedVersion(texts("0.1.0", "0.1.0", "0.1.0", "0.0.0"))).toThrow(/web 0\.0\.0/);
   });

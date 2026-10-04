@@ -143,3 +143,30 @@ Windows wasn't run here: task 4's CI matrix covers it.
   - under Node 20 (container), npm warns `EBADENGINE` and `rmk-server` exits 1 naming 22.12.0.
 - Tarball: 8.5 MB. Next's server-page source maps (`.next/server/**/*.js.map`) ship, as in the
   Docker image; there's no `.env` and no `.node` file.
+
+### Task 3: checks and release (2026-10-04)
+
+- **`packs.js`:** `@ronneai/marketplace` may ship `app/`, but never a `.env` (`.env.example`
+  included) or a `.node` file, even there. It must have `app/apps/web/server.js` and
+  `dist-scripts/start.mjs`. Packages can now declare their own `forbid` and `require`, with tests.
+  `packages:check` reports a package that fails to pack (the server's assembler needs the standalone
+  build) instead of crashing. It found 1,765 files, all allowed.
+- **`release:version`** reads the same list (`VERSIONED` from `PUBLISHED`), so it sets the server's
+  version too. `pnpm release:version 0.2.0` lists it, and changed no file only because every package
+  is already at 0.2.0: another version writes the server's `package.json` with the others. The
+  release tests' fixtures include it.
+- **`release:smoke`** installs all four tarballs with npm. It checks `rmk-server --version` against
+  the shared version, starts it on a free port with an empty data folder, and expects 503
+  `setup_required`. It passes locally in about 7 s and leaves no server running.
+- **`pnpm build:server`:** the standalone build of the web app, then `rmk-server`. CI and the
+  release run it after `pnpm build`. **`turbo.json` now lists `NEXT_OUTPUT` for builds.** Turborepo
+  didn't know the variable, so a standalone build and a normal one had the same cache key, and either
+  could replay the other's `.next`.
+- **`release.yml`** packs `packages/server` and publishes `@ronneai/marketplace` after the other
+  three, with provenance.
+- **For the owner, before the first release with it:** a package's trusted publisher can only be
+  set once it exists. As with core, rmk and mcp, the first publish of `@ronneai/marketplace` needs a
+  short-lived token in the "npm" environment's `NPM_TOKEN`. Then link the package to this repository,
+  `release.yml` and the "npm" environment on npmjs.com, and delete the token.
+- **Still open:** the *Done when*, a dry-run release (Actions › Release, "dry run", from `main`
+  after the merge), which only the owner can approve.

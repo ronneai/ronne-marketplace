@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Usage: pnpm release:version <version>   (for example 0.1.0)
-// Sets one version in core, rmk and the MCP server's package.json (feature 034), and in the web
-// app's, whose Docker image carries it (035).
+// Sets one version in core, rmk, the MCP server and the server's package.json (features 034, 082),
+// and in the web app's, whose Docker image carries it (035).
 import { readFileSync, writeFileSync } from "node:fs";
 import { PUBLISHED } from "./packs.js";
 import { VERSIONED, withVersion } from "./release.js";
