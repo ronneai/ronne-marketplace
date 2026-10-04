@@ -12,9 +12,14 @@ export type ServiceLayout = {
   /** True when the account is created by install (and removed by uninstall). */
   systemUser: boolean;
   dataDir: string;
-  /** The settings folder: the settings file, the Caddyfile and the certificates for --tls files. */
+  /** The settings folder, the server's own: the setup rewrites the settings file in it. */
   settingsDir: string;
   envFile: string;
+  /**
+   * The proxy's folder, root's: the Caddyfile and the certificates for --tls files. Apart from the
+   * settings folder, so the server's account can't change what the proxy runs or read its key.
+   */
+  proxySettingsDir: string;
   caddyfile: string;
   certsDir: string;
   /** Where the proxy's Caddy keeps its certificates and state. */
@@ -52,8 +57,9 @@ export const serviceLayout = (options: {
       dataDir: "/var/lib/rmk-server",
       settingsDir: "/etc/rmk-server",
       envFile: "/etc/rmk-server/env",
-      caddyfile: "/etc/rmk-server/Caddyfile",
-      certsDir: "/etc/rmk-server/certs",
+      proxySettingsDir: "/etc/rmk-server-proxy",
+      caddyfile: "/etc/rmk-server-proxy/Caddyfile",
+      certsDir: "/etc/rmk-server-proxy/certs",
       proxyDataDir: "/var/lib/rmk-server-proxy",
       proxyUser: "caddy",
       proxyGroup: "caddy",
@@ -63,6 +69,7 @@ export const serviceLayout = (options: {
 
   const prefix = options.prefix ?? "/usr/local";
   const settingsDir = posix.join(prefix, "etc", "rmk-server");
+  const proxySettingsDir = posix.join(prefix, "etc", "rmk-server-proxy");
   return {
     platform: "darwin",
     user: options.user?.name ?? "_rmkserver",
@@ -71,8 +78,9 @@ export const serviceLayout = (options: {
     dataDir: posix.join(prefix, "var", "rmk-server"),
     settingsDir,
     envFile: posix.join(settingsDir, "env"),
-    caddyfile: posix.join(settingsDir, "Caddyfile"),
-    certsDir: posix.join(settingsDir, "certs"),
+    proxySettingsDir,
+    caddyfile: posix.join(proxySettingsDir, "Caddyfile"),
+    certsDir: posix.join(proxySettingsDir, "certs"),
     proxyDataDir: posix.join(prefix, "var", "rmk-server-proxy"),
     // Binding 80 and 443 needs root on macOS.
     proxyUser: "root",

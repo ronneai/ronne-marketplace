@@ -97,6 +97,7 @@ move by hand, after the same checks as any dependency.
 | shfmt | BSD-3-Clause | Parsing `install.sh` as POSIX `sh` (`shfmt -p`, 081) | `mvdan/shfmt` image, tag and digest |
 | PSScriptAnalyzer | MIT | Linting `install.ps1` (081) | PowerShell Gallery module, `-RequiredVersion` |
 | PowerShell 7 | MIT | Running PSScriptAnalyzer and `install.ps1`'s logic on macOS and Linux, by hand (081) | `mcr.microsoft.com/powershell` image, tag and digest |
+| Caddy | Apache-2.0 | The HTTPS proxy of `rmk-server service install --domain`, tested on Linux (`server-package.yml`, 083). Not shipped: people install their own | The release archive from GitHub, version and SHA-512 from its checksums file |
 
 **Not ShellCheck:** it's GPL-3.0, which §1 forbids even in CI. `shfmt -p` catches what isn't POSIX
 `sh`, and the install script's tests run it under both `dash` and `bash`.

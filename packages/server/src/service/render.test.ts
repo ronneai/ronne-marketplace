@@ -97,7 +97,7 @@ describe("the service model (083)", () => {
       name: "rmk-server-proxy",
       user: "caddy",
       program: "/usr/bin/caddy",
-      args: ["run", "--config", "/etc/rmk-server/Caddyfile", "--adapter", "caddyfile"],
+      args: ["run", "--config", "/etc/rmk-server-proxy/Caddyfile", "--adapter", "caddyfile"],
       bindsLowPorts: true,
       after: ["rmk-server"],
       upstream: "127.0.0.1:7650",

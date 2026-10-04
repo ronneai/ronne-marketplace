@@ -38,6 +38,8 @@ export const renderSystemdUnit = (definition: ServiceDefinition): string => {
     `ExecStart=${[definition.program, ...definition.args].map(systemdQuote).join(" ")}`,
     "Restart=on-failure",
     "RestartSec=5",
+    // Node ends with 143 on systemd's SIGTERM: a clean stop, not a failure.
+    "SuccessExitStatus=143",
     // SQLite closes its files on SIGTERM; give it time before SIGKILL.
     "TimeoutStopSec=30",
     "",

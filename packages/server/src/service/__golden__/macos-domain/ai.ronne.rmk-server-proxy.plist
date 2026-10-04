@@ -11,7 +11,7 @@
     <string>/opt/homebrew/bin/caddy</string>
     <string>run</string>
     <string>--config</string>
-    <string>/opt/homebrew/etc/rmk-server/Caddyfile</string>
+    <string>/opt/homebrew/etc/rmk-server-proxy/Caddyfile</string>
     <string>--adapter</string>
     <string>caddyfile</string>
   </array>

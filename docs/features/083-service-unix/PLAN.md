@@ -91,3 +91,97 @@ goes into `SPEC.md` instead.
   `localhost` with `tls internal` serves HTTPS (a 502 with no server behind it).
 - Caddy warns "Caddyfile input is not formatted" (it wants tabs). 080's file has the same warning;
   left as it is, so the two stay identical.
+
+### Task 3: `service install` and `uninstall` on Linux (2026-10-04)
+
+- **The code** (`packages/server/src/service/`):
+  - `args.ts`: `rmk-server service <action>` and install's options. `--domain` is checked label by
+    label (a loop, per `docs/knowledge/codeql-regex.md`), so nothing can break out of the
+    Caddyfile.
+  - `system.ts`: everything that touches the machine, behind one `System` interface.
+    `fake-system.ts` is the in-memory one for tests, left out of the build.
+  - `install.ts`: install and uninstall, the same on every system, over a `Backend` (task 4 adds
+    launchd, 086 WinSW).
+  - `linux.ts`: the systemd backend (`useradd`, `systemctl`, `runuser`, `restorecon`, `ss`).
+  - `settings.ts`: install's edits to the settings file, keeping every other line.
+  - `service.json` in the settings folder records what was installed (Node, entry, port, host,
+    domain, the accounts install created) for a later install, uninstall and status.
+- **Order:** every check (root, npx, systemd, Caddy and its version, the certificate files, the
+  ports) comes before anything is written. Then the accounts, then a check that the service account
+  can run Node and rmk-server (`runuser -u rmk-server -- node …/bin.js --version`), then the
+  folders, the settings, the units, `systemctl enable` and `restart`, and the wait for
+  `/api/health` (503 or 200, up to 90 seconds; on a timeout it prints the journal).
+- **Permissions:**
+  - `/var/lib/rmk-server` is 750, `/etc/rmk-server` is 755 (the proxy's `caddy` reads the Caddyfile
+    there) and both are owned by `rmk-server`, recursively on every install, so data kept from an
+    earlier install with another uid works.
+  - The settings file is 600, owned by `rmk-server` (the spec's 640 is corrected).
+  - The proxy's folder `/var/lib/rmk-server-proxy` is 700, owned by `caddy`.
+  - The proxy's settings, `/etc/rmk-server-proxy/` (Caddyfile 644 and `certs/`), are root's: see
+    the witness's findings below.
+- **`SuccessExitStatus=143`:** Node ends with 143 on SIGTERM, so every `systemctl stop` or
+  `restart` was logged as "Failed with result 'exit-code'". The goldens have the line.
+- **Caddy 2.7 or later.** The Caddyfile needs `trusted_proxies_strict` and `{client_ip}` (2.7).
+  Ubuntu 24.04's and Debian 13's `caddy` package is 2.6.2, so the message points Debian and
+  Ubuntu to Caddy's own repository, and says its package starts a `caddy` service on 80 and 443
+  that has to be stopped. With 80 or 443 taken, install names the program and suggests the same.
+- **The port's holder** comes from `ss -ltnp` and `/proc/<pid>/cmdline`: `ss` names a Node process
+  "MainThread" (its thread's name), and Debian's image has no `ps`.
+- **CI:** `scripts/service/test-linux-service.sh` runs the whole life cycle (install, 503, setup as
+  `rmk-server`, 200 with no restart, a token, restart, `SIGKILL` and the automatic restart, a taken
+  port, `--domain` without and with Caddy, HTTPS and the redirect, install again without the domain,
+  uninstall keeping the data, install again, `--delete-data` refused and then accepted).
+  `server-package.yml`'s new `service-linux` job runs it on `ubuntu-24.04` with the packed tarball
+  and Caddy 2.11.6's release archive (SHA-512 checked; added to the policy's tools table).
+- **Run here** in containers booted with systemd (`--privileged`, cgroups from the host), as a normal
+  user with passwordless sudo, as on GitHub's runner, with Node 24.21.0 (arm64), the packed tarball
+  and Caddy 2.11.6:
+  - every step passes on **Ubuntu 24.04.5** and **Debian 13.7**;
+  - **a reboot** (restarting the container, so systemd boots again): the service came back on its
+    own, health 200, and sign-in worked;
+  - **without systemd** (`node:24-bookworm-slim`): install says systemd isn't running, points to
+    `rmk-server start` and Docker, and writes nothing.
+- **Still open:** the *Done when* asks for CI on GitHub's Ubuntu runner, which runs once this branch
+  is pushed. So the task stays unticked until that run passes.
+- **For task 5 or 6:** before the setup, the app's 503 and its start log say "or run
+  `rmk-server setup`". Under the service, `sudo rmk-server setup` would set up root's own folder,
+  not the service's. CI runs the setup as the service user with its two paths, which is too much to
+  ask of people. Either the docs say to finish the setup in the browser, or `rmk-server setup` run
+  as root finds the installed service and uses its account and folders.
+- **Fixed after the witness** (three findings, each with a test):
+  - *An account left behind:* when the check that the account can run Node failed, the accounts
+    just made stayed, unrecorded, so a later uninstall kept them. Install now removes the accounts
+    that run made before it stops.
+  - *`--tls files` and a private key:* install handed all of `/etc/rmk-server` to `rmk-server`
+    (`chown -R`), certificates included, so `caddy` couldn't read a 600 or `root:caddy` 640 key.
+    The Caddyfile and `certs/` now live in `/etc/rmk-server-proxy/`, root's; `certs/` is made once
+    as `root:caddy` 750 (see the re-check below for the files in it). The spec says so.
+  - *The server's account could rewrite the proxy's Caddyfile* (the folder was its own). Fixed by
+    the same move. And `service.json` stays in the server's settings folder, so uninstall removes
+    only `rmk-server` and `caddy`, and only when install recorded creating them, whatever else the
+    file lists.
+  - The test script gained a `--tls files` step. It passes on Ubuntu 24.04 and Debian 13.
+- **Fixed after the re-check:** the first fix stopped on a key `caddy` couldn't read and suggested
+  `chown root:caddy`. On a fresh machine that failed: install had just made `caddy`, and removed it
+  again when it stopped. After an uninstall, the kept key had a group number nobody had. Now
+  install gives `certs/`, `cert.pem` and `key.pem` to the `caddy` group with group read (`chgrp`,
+  `chmod g+rX`; owners and other modes stay, so a 600 key becomes 640), then checks it can read
+  them. Uninstall, when it removes `caddy`, hands kept certificates back to `root:root`. The script
+  checks both: a `root:root` 600 key is served and becomes `root:caddy` 640, and after uninstall
+  it's `root:root` 640. Passes on Ubuntu 24.04 and Debian 13.
+- **Fixed after the second re-check: links in `certs/`.** `chgrp` and `chmod` follow a link, so a
+  `key.pem` linked to a shared key (certbot's, `root:ssl-cert` 640) became `root:caddy`, other
+  services lost it, and an uninstall left a group number nobody had. Install now refuses `certs/`,
+  `cert.pem` or `key.pem` as a symbolic link, before writing anything. The message says to copy them
+  (`cp -L`) and to copy them again on renewal (certbot's `--deploy-hook`, then `rmk-server service
+  restart`, task 5). Checked on Debian 13: the linked case is refused and the shared key stays
+  `root:ssl-cert` 640, with no account or folder made; with copies, install works and the copy
+  becomes `root:caddy` 640.
+- **Fixed after the third re-check: hard links.** `lstat` doesn't show a hard link as a link, so a
+  `key.pem` hard-linked to a shared key got through and changed its group. A file with more than
+  one link (`nlink > 1`) is now refused the same way. Checked on Debian 13: refused, the shared key
+  stays `root:ssl-cert` 640.
+- **The containers here have D-Bus** (installed with systemd); as a normal user, `systemctl` needs
+  it. The witness's first image didn't, and `systemctl is-enabled` failed with "Failed to connect to
+  bus". GitHub's runners have it.
+

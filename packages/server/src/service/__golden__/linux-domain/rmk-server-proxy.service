@@ -14,9 +14,10 @@ WorkingDirectory=/var/lib/rmk-server-proxy
 Environment=HOME=/var/lib/rmk-server-proxy
 Environment=XDG_DATA_HOME=/var/lib/rmk-server-proxy
 Environment=XDG_CONFIG_HOME=/var/lib/rmk-server-proxy
-ExecStart=/usr/bin/caddy run --config /etc/rmk-server/Caddyfile --adapter caddyfile
+ExecStart=/usr/bin/caddy run --config /etc/rmk-server-proxy/Caddyfile --adapter caddyfile
 Restart=on-failure
 RestartSec=5
+SuccessExitStatus=143
 TimeoutStopSec=30
 
 # Hardening that leaves Node.js and Caddy working.

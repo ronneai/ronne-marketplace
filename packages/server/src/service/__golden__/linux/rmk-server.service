@@ -17,6 +17,7 @@ Environment=RONNE_ENV_FILE=/etc/rmk-server/env
 ExecStart=/usr/bin/node /usr/lib/node_modules/@ronneai/marketplace/dist/bin.js start --no-open --port 7650 --host 127.0.0.1
 Restart=on-failure
 RestartSec=5
+SuccessExitStatus=143
 TimeoutStopSec=30
 
 # Hardening that leaves Node.js and Caddy working.

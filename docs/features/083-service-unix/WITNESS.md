@@ -56,3 +56,38 @@ end to end in task 3's CI); Compose's interpolation of the unchanged file; the f
 notes, the spec and the code comment in this commit. Trailing blank lines at the end of compose's
 block aren't compared (harmless).
 **Overall:** met.
+
+## Task 3 — `service install` and `uninstall` on Linux
+
+Witnessed: 2026-10-04 (01:31–01:54 EDT, in five rounds), by a fresh agent. Machine: macOS (Darwin 27.0.0) arm64, Docker 29.7.2. Containers booted with systemd (Ubuntu 24.04 and Debian 13, with D-Bus and openssl), Node 24.21.0 linux-arm64 (SHA-256 checked) and Caddy 2.11.6 linux_arm64 (SHA-512 checked against its checksums file), and the tarball packed from this branch.
+
+**Not ticked:** the *Done when* is the `service-linux` job on GitHub's Ubuntu runner, which runs once the branch is pushed.
+
+| # | Claim | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|
+| 1 | Unit tests, typecheck and lint pass | confirmed | Finally 57 tests passed; `pnpm typecheck --force` → 7/7; `pnpm lint` → 53 warnings, 0 errors (as on `main`). |
+| 2 | All checks before any write; then accounts, the `runuser` check, folders, settings, units, enable and restart, the health wait | confirmed | `install.ts` runs in that order. By hand: port 80 taken → exit 1, no proxy unit; a fake Caddy saying `v2.6.2` → "needs Caddy 2.7 or later … is 2.6" with the Debian/Ubuntu hint, nothing written. |
+| 3 | Permissions | confirmed | `/var/lib/rmk-server` rmk-server 750, `/etc/rmk-server` rmk-server 755, `env` rmk-server 600, `/var/lib/rmk-server-proxy` caddy 700, `/etc/rmk-server-proxy` and its Caddyfile root 755/644, `certs/` root:caddy 750. As `rmk-server`, writing the Caddyfile, a new file in its folder or `certs/x`, or moving the Caddyfile → "Permission denied". |
+| 4 | `SuccessExitStatus=143`; Caddy ≥ 2.7; the port's holder from `ss` and `/proc/<pid>/cmdline`; `service.json` contents | confirmed | After `systemctl restart`, `Result=success`. "port 80 is in use by node (pid 237)". `service.json` lists node, entry, port, host, domain and `createdAccounts`. |
+| 5 | `scripts/service/test-linux-service.sh` passes | confirmed | Ubuntu 24.04 and Debian 13, as a non-root user with passwordless sudo → exit 0, every step; again on Ubuntu after each fix (11 steps with `--tls files`). |
+| 6 | `--domain localhost --tls internal`: HTTPS through `rmk-server-proxy`, running as `caddy` | confirmed | `https://localhost/api/health` 200; the proxy runs as caddy, the server as rmk-server; `PUBLIC_URL=https://localhost`, `TRUST_PROXY=true`. |
+| 7 | A reboot brings it back | confirmed | `docker restart` → both services active, health 200, HTTPS 200, token 201. |
+| 8 | The CI job would work on `ubuntu-24.04` | partly (read only) | Artifact name, `./tarball/*.tgz`, `sudo env "PATH=$PATH"`, the SHA-512 (matches the amd64 line of the checksums file) and the summary job's wiring are right. It can't run here. |
+| 9 | Fix: a failed check no longer leaves new accounts behind | confirmed | Debian 13, a Node `rmk-server` can't run → exit 1; afterwards neither `rmk-server` nor `caddy` exists, nor their groups, folders or units. |
+| 10 | Fix: `--tls files` with a `root:root` 600 key, on a fresh machine and after a new gid | confirmed | Exit 0; `key.pem` becomes `root:caddy` 640, `cert.pem` `root:caddy` 644, and Caddy serves that certificate. Uninstall → `root:root` 640. A new `caddy` with another gid (994, not 995) → install works again. |
+| 11 | Fix: the server's account can't change the proxy's Caddyfile or certificates | confirmed | See 3. The app unit's `ReadWritePaths` is only `/var/lib/rmk-server /etc/rmk-server`. |
+| 12 | Fix: uninstall removes only `rmk-server` and `caddy`, and only when recorded | confirmed (code and unit test) | `uninstallService` loops over those two names and checks `createdAccounts`. |
+| 13 | Fix: links in `certs/` are refused before anything changes | confirmed | Symbolic `cert.pem`, `key.pem` or `certs/` (shared key behind a 700 folder, or a readable one), and a hard-linked `key.pem` → exit 1 "is a link …"; the shared key stays `root:ssl-cert` 640; no `caddy`, no `/etc/rmk-server`. Copies install and serve HTTPS; the original key keeps its group. |
+
+**Found, and fixed in this commit** (each re-witnessed): accounts left behind after a failed check;
+`--tls files` breaking a key that wasn't world-readable, because install handed `/etc/rmk-server`,
+`certs/` included, to `rmk-server`; the server's account owning the folder of the proxy's
+Caddyfile; the suggested `chown root:caddy` failing when install had just removed `caddy`, and a key
+left with a gid nobody had; symbolic and hard links in `certs/` changing a shared key's group.
+**Not checked here:** the GitHub run; Node 22; SELinux and `restorecon`; `--tls auto` with a real
+domain; install from npx's cache and the `--host 0.0.0.0` warning (unit tests only). Install
+without systemd was checked by the builder, not the witness.
+**Differences from the notes:** the notes didn't say the containers had D-Bus (now they do). After
+uninstall a kept key is 640, readable by `root`'s group (now in the spec). The refusal for linked
+certificates names `rmk-server service restart`, which arrives in task 5.
+**Overall:** met here; the *Done when* waits for the GitHub run.
