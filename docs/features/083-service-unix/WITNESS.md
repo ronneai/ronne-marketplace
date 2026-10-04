@@ -33,3 +33,26 @@ the notes: the unit runs `node …/dist/bin.js start`, which the spec calls `rmk
 spec's settings file mode, 640, differs from the 0600 the setup writes, so the service user must own
 the file.
 **Overall:** met.
+
+## Task 2 — The shared Caddyfile
+
+Witnessed: 2026-10-04 (from 01:08 EDT), by a fresh agent. Machine: macOS 27.0.1 arm64, Node v24.0.0, Docker 29.7.2; Caddy 2.11.6 (the `caddy:2.11.6` image).
+
+| # | Claim | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|
+| 1 | A test fails when `compose.yaml`'s Caddyfile differs from the template, and passes on the real file | confirmed | `compose.yaml` and `src/service` copied to a scratch folder: the untouched copy passes 4/4. Each of these fails the compose test, naming both files: a trailing space, one more space of indent, a line added in the middle, an extra blank line, `web:3001`, and a line added at the end of the block. `29MiB` in the template → 2 failed. On the repo: 6 files, 31 tests passed. |
+| 2 | `compose.yaml` is unchanged | confirmed | `git diff main --quiet -- compose.yaml` → exit 0. |
+| 3 | `nativeCaddyfile()` fills every slot and adds only `admin off` | confirmed | Three files generated from `dist/service/caddyfile.js` (internal; auto with an email; files) have no `${` or `{{`. Against the compose output they differ only in the filled slots, the dropped email and trusted_proxies lines, and `admin off`. Without an email, no blank line is left. |
+| 4 | Caddy 2.11.6 validates the native files | confirmed | `caddy validate --adapter caddyfile` → "Valid configuration" (exit 0) for internal, auto and files (a self-signed pair mounted at `/etc/rmk-server/certs`). Without the pair, files fails with "open …/cert.pem: no such file or directory". |
+| 5 | Without `admin off`, a second Caddy shares port 2019 and a reload can reach the wrong one; `admin off` fixes it | confirmed (after a wording fix) | A on :8081, B on :8082 in one container. Without `admin off`, B also bound localhost:2019; 10 GETs to `/config/` split 4 to A and 6 to B. A's `caddy reload` landed on B, which then served A's config and dropped :8082. With it, 10/10 reached A, the reload worked and both sites kept serving. The notes first said B "took over" the port; they, the spec and the code comment now say it shares it, and the witness re-read all three. |
+| 6 | Lint has no errors and the same warnings as `main`; typecheck passes | confirmed | `pnpm lint` → 53 warnings and 3 infos, as on a `git archive main` copy; the new files are clean. `pnpm typecheck` → 7/7. The four `noTemplateCurlyInString` ignores are on Compose's `${…}` strings, which are literal text. |
+| 7 | The SPEC change matches the code | confirmed | The template is in `src/service/caddyfile.ts`, a test catches drift, the upstream is passed in (`127.0.0.1:7650` in the test), and `admin off` is the only added line. |
+
+**Not checked here:** writing `/etc/rmk-server/Caddyfile` and the proxy service (task 3); that the
+proxy is restarted, never reloaded (task 3); HTTPS through `localhost` (claimed in the notes, checked
+end to end in task 3's CI); Compose's interpolation of the unchanged file; the full `pnpm test` and
+`pnpm build` (left to the pre-commit hook).
+**Differences from the notes:** "took over" port 2019 was wrong; both Caddys share it. Fixed in the
+notes, the spec and the code comment in this commit. Trailing blank lines at the end of compose's
+block aren't compared (harmless).
+**Overall:** met.

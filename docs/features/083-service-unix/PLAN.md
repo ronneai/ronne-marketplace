@@ -11,7 +11,7 @@ the same change that completes it.
   proxy) and renderers to a systemd unit and a launchd plist, written so 086 adds a WinSW renderer.
   *Done when:* golden-file tests for both, with and without a domain.
 
-- [ ] **2. The shared Caddyfile.** Move 080's Caddyfile into one template used by `compose.yaml`'s
+- [x] **2. The shared Caddyfile.** Move 080's Caddyfile into one template used by `compose.yaml`'s
   generator check and by this feature.
   *Done when:* a test fails if `compose.yaml`'s inline Caddyfile differs from the template's output.
 
@@ -69,3 +69,25 @@ goes into `SPEC.md` instead.
 - **For task 3** (found by the witness): the setup writes the settings file with mode 0600 (owner
   only), not the spec's 640, through a rename. So install makes the service user own the settings
   folder and file; a file root created would become unreadable to the server.
+
+### Task 2: the shared Caddyfile (2026-10-04)
+
+- **`packages/server/src/service/caddyfile.ts`** holds 080's Caddyfile as one template with slots
+  (admin, email, trusted proxies, site, TLS snippet, certificate folder, upstream).
+  `composeCaddyfile()` fills them with Compose's `${…}` expressions; `nativeCaddyfile()` with the
+  domain, `--tls`, `--email`, the certificate folder and `127.0.0.1:<port>`. A line whose slot is
+  empty is left out, so the native file has no blank `email` line.
+- **`caddyfile.test.ts`** reads the `configs.caddyfile.content` block from `compose.yaml` (plain
+  text, no YAML dependency) and fails when it differs from `composeCaddyfile()`, naming both files.
+  A second test proves it notices a change (`28MiB` → `10MiB`). `compose.yaml` itself is unchanged.
+- **The native proxy says `admin off`.** In one container, a second `caddy run` next to a running
+  Caddy also bound `localhost:2019`: both listened, and admin requests split between them (4 and 6
+  of 10 in the witness's run). So the first one's `caddy reload` (what `systemctl reload caddy`
+  runs) can reach the second, which then serves the first one's config and drops its own site. With
+  `admin off` the system Caddy keeps its admin API, its reload works, and both keep serving. So the
+  proxy service is restarted, never reloaded. Compose leaves the slot empty, as before.
+- **Checked with Caddy 2.11.6** (the image 080 pins): `caddy validate` accepts the native file for
+  `--tls internal`, `auto` (with an email) and `files` (with a certificate in the folder).
+  `localhost` with `tls internal` serves HTTPS (a 502 with no server behind it).
+- Caddy warns "Caddyfile input is not formatted" (it wants tabs). 080's file has the same warning;
+  left as it is, so the two stay identical.

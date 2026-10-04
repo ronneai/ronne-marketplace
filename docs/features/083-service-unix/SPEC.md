@@ -51,9 +51,11 @@ the network over plain HTTP; install prints a warning that it should be behind H
 
 **With `--domain ronne.example.com`**:
 - Needs `caddy` on `PATH`; otherwise exits with the install command for this system.
-- Writes `/etc/rmk-server/Caddyfile` from the **same template as 080** (shared in
-  `@ronneai/core` or the server package, so Docker and native can't drift), with `reverse_proxy
-  127.0.0.1:7650`.
+- Writes `/etc/rmk-server/Caddyfile` from the **same template as 080** (in the server package,
+  `src/service/caddyfile.ts`; a test fails when `compose.yaml`'s copy differs, so Docker and native
+  can't drift), with `reverse_proxy 127.0.0.1:7650`. The only line native adds is `admin off`: a
+  second Caddy on the machine would otherwise share a system Caddy's admin port (2019), so the
+  system Caddy's `reload` could reach the proxy and replace its config.
 - Adds a second service, `rmk-server-proxy`, running that Caddy with that file as the `caddy` user
   (Linux, allowed to bind 80/443 with `AmbientCapabilities=CAP_NET_BIND_SERVICE`) or root (macOS).
   It doesn't touch an existing system Caddy's `/etc/caddy/Caddyfile`; if that service holds 80/443,
