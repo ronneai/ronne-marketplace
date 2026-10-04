@@ -386,3 +386,5 @@ goes into `SPEC.md` instead.
   macOS CI checks a restart by health only, not that launchd recorded it as clean; a real reboot
   on macOS (Linux's was checked in a container).
 - Tasks 3, 4 and 5 are ticked (witnessed from GitHub's logs; see WITNESS.md).
+- **Done (owner, 2026-10-04):** the feature is marked done with the Intel Mac criterion still open;
+  no Intel Mac has run it yet.
