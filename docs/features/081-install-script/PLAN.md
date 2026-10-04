@@ -174,3 +174,13 @@ and under bash:
 - `pnpm test:e2e`'s phone sweep failed when the release URL was inline code in a paragraph: a URL
   with no spaces can't wrap, so `/docs/install` was 366 px wide at 360 px. It's in a code block
   now, which scrolls on its own, as the docs already do for long addresses.
+
+### Follow-ups after the merge (2026-10-04)
+
+- **Fake Docker in `test-install.sh`:** a `docker` and a `curl` on `PATH` answer what each case
+  sets, so the whole script runs with no Docker and no network. It now covers what task 2 hadn't
+  triggered: a stopped daemon, no access to the socket (names the `docker` group), an old Compose
+  (2.20.3), no Compose v2, and the legacy rerun. In the legacy case, a `compose.yaml` from before
+  the proxy, its stack running and port 3000 answering, the rerun keeps `RONNE_PORT=3000` and gets
+  the new `compose.yaml`. With the legacy fix removed from `install.sh`, that case fails (the
+  install moves to 7650), so the test guards the fix. It passes under dash and bash.
