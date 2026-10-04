@@ -170,3 +170,29 @@ Windows wasn't run here: task 4's CI matrix covers it.
   `release.yml` and the "npm" environment on npmjs.com, and delete the token.
 - **Still open:** the *Done when*, a dry-run release (Actions › Release, "dry run", from `main`
   after the merge), which only the owner can approve.
+
+### Task 4: three systems (2026-10-04)
+
+- **`packages/repo-tools/src/server-probe.js`** runs an installed `rmk-server` the same way on
+  every system:
+  - `--version`;
+  - start on a free port with an empty data folder, then 503 `setup_required` naming `rmk-server
+    setup`;
+  - `rmk-server setup --yes` with SQLite, then `.env`, `ronne.db` and `storage/` in the data folder;
+  - 200 with no restart, and a token from sign-in;
+  - stopping it frees the port.
+
+  On Windows it starts npm's `.cmd` shim through a shell and stops it with `taskkill /T`, because
+  killing the shell alone would leave the server running.
+- **`.github/workflows/server-package.yml`:** one job packs the tarball as the release does
+  (`pnpm build`, `pnpm build:server`, `pnpm pack`). A matrix (ubuntu, macos, windows × Node 22, 24)
+  installs it with `npm install --global` and runs the probe. A `Server package` summary check passes
+  on success or on a docs-only skip.
+- **Locally:** the probe passes on macOS arm64 with Node 24 (the npm install from task 2) and in a
+  `node:22-bookworm-slim` container (linux arm64, Node 22.23.3) against a freshly packed tarball. The
+  witness also ran it on `node:24-bookworm-slim` and on emulated linux/amd64.
+- The probe fails at once when the started command exits before answering (a crash, a wrong
+  command): 1.7 s instead of the full 90-second wait (found by the witness).
+- **Still open:** the *Done when*, the matrix passing on a pull request. Windows is new ground there:
+  a SQLite path with a drive letter (`file:C:/…`), the `.cmd` shim, and stopping it with
+  `taskkill`.

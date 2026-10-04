@@ -82,3 +82,27 @@ Witnessed: 2026-10-04 (23:34–23:45 EDT on 2026-10-03), by a fresh agent. Machi
 - `release-version.js`'s header comment didn't mention the server. Updated.
 
 **Overall:** met for the work: packages:check and release:smoke pass for all four packages locally. **The Done-when is not met yet:** a dry-run release on GitHub waits for the merge and the owner's approval, so task 3 stays unticked.
+
+## Task 4 — Three systems
+
+Witnessed: 2026-10-04 (23:38–23:42 EDT on 2026-10-03), by a fresh agent. Machine: macOS arm64, Node v24.0.0, npm 11.5.2, Docker 29.7.2.
+
+| # | Claim | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|
+| 1 | The workflow parses, and has the pack, matrix and summary jobs, pinned actions, read-only permissions and `persist-credentials: false` | confirmed | Jobs `changes, pack, install, server-package`. Matrix ubuntu/macos/windows × 22/24, `permissions: contents: read`. pack: install, `pnpm build`, `pnpm build:server`, pack, upload (`if-no-files-found: error`). install: `npm install --global tarball/*.tgz`, then the probe. The summary needs success or skipped. Every action is pinned to the same SHA as in the other workflows, and both checkouts set `persist-credentials: false`. |
+| 2 | The probe does what the notes say | confirmed | It runs `--version`, takes a free port, uses an empty `RONNE_DATA_DIR` and `--no-open`, and waits for 503 `setup_required` naming `rmk-server setup`. It runs `setup --yes` with `file:<data>/ronne.db`, checks `.env`/`ronne.db`/`storage`, expects 200 with no restart and a 201 token starting `rmk_`, then checks the port is free. On Windows it uses `shell` and `taskkill /T /F`. |
+| 3 | Built, packed and installed here, the probe passes on this Mac | confirmed | `pnpm build && pnpm build:server`, then pack → 8.5 MB, then `npm install -g --prefix …`. The probe printed six ✓ lines (Node 24.0.0, darwin arm64) and exited 0 in 2.1 s. |
+| 4 | The probe passes in Docker on Node 22 and Node 24 (amd64 if time allows) | confirmed | `node:22-bookworm-slim` (22.23.3, arm64), `node:24-bookworm-slim` (24.21.0, arm64) and emulated `linux/amd64` Node 24.21.0 (x64): six ✓ lines each, exit 0. |
+| 5 | A broken package makes the probe fail | confirmed | A stand-in that prints a version and exits → "✗ no answer … within 90 seconds", exit 1 after 91 s. A missing command → ENOENT, exit 1 after 1 s. (After this report, the probe fails at once on an early exit: 1.7 s.) |
+| 6 | The Done-when (the matrix passing on GitHub) hasn't happened, the notes say so, and Windows hasn't been run | confirmed | The workflow is new and untracked; `gh run list --workflow server-package.yml` → not found on the default branch. The notes say it's still open, and the task is unticked. |
+
+**Not checked here:**
+- Never run, only read: Windows (the `.cmd` shim, `taskkill /T`, `file:C:/…`).
+- Seen only on GitHub's side: the hosted runners, artefacts between jobs, the sparse checkout, and the docs-only skip.
+- Not covered: macOS x64, and Node 22 on macOS.
+
+**Differences from the notes:**
+- The witness also ran the probe on Node 24 and on emulated amd64 in Docker. Now in the notes.
+- The probe waited the full 90 s when the command exited early. Fixed: it now fails at once.
+
+**Overall:** not met yet. Every local check passes, but the *Done when* (the matrix passing on GitHub) waits for a pull request, and Windows has never been run, so task 4 stays unticked.
