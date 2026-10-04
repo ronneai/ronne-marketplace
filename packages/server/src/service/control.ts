@@ -244,6 +244,8 @@ export const scriptForService = async (
       RONNE_DATA_DIR: layout.dataDir,
       RONNE_ENV_FILE: layout.envFile,
       PORT: String(state.port),
+      // The setup's last words: the service already runs it (apps/web/scripts/setup.ts).
+      RONNE_SERVICE: "1",
       // The setup in a terminal takes the address from the environment: keep the domain's.
       ...(state.domain ? { PUBLIC_URL: `https://${state.domain}` } : {}),
     },

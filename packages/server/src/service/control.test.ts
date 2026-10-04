@@ -179,6 +179,7 @@ describe("the scripts with the service installed (083)", () => {
         RONNE_ENV_FILE: "/etc/rmk-server/env",
         PORT: "7650",
         PUBLIC_URL: "https://r.example.com",
+        RONNE_SERVICE: "1",
         RONNE_ROOT_PASSWORD: "Correct-horse-42!",
       },
     });

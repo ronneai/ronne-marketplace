@@ -158,7 +158,8 @@ Options for install:
   --domain D    Serve https://D through Caddy (a second service, rmk-server-proxy, on 80 and 443).
                 Needs caddy 2.7 or later on PATH
   --tls T       auto (Let's Encrypt, the default), internal (Caddy's own authority) or files
-                (cert.pem and key.pem you put in the settings folder's certs/)
+                (copies of cert.pem and key.pem you put in
+                /etc/rmk-server-proxy/certs; on macOS, the prefix's etc/rmk-server-proxy/certs)
   --email E     Expiry notices from the certificate authority
   --user        macOS: run as you instead of a system user
 

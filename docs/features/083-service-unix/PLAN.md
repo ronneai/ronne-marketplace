@@ -27,7 +27,7 @@ the same change that completes it.
 - [ ] **5. `status`, `start`, `stop`, `restart`, `logs`.**
   *Done when:* tests for the output and CI calls each.
 
-- [ ] **6. Documentation.**
+- [x] **6. Documentation.**
   *Done when:* the docs render tests pass.
 
 ## Notes
@@ -321,3 +321,37 @@ goes into `SPEC.md` instead.
   sandbox; its setup step now runs inside the running service's mounts as `rmk-server` (`nsenter -m`
   into its main process, `setpriv`), as the browser's setup does, and `migrate` covers the `sudo`
   hand-off. Passes on Ubuntu 24.04 and Debian 13.
+
+### Task 6: documentation (2026-10-04)
+
+- **Documentation › Installing Ronne › As a service** (new section `service`, after *With
+  Node.js*): installing with a machine-wide Node.js (and `sudo env "PATH=$PATH"` when `sudo` can't
+  find it), a table of the commands (`status` the only one without `sudo`; `uninstall` and
+  `--delete-data`; `sudo rmk-server setup`), where things are on Linux and macOS (`--user`, the
+  background-item notification), `--port`/`--host`, `--domain` with Caddy 2.7+ (Debian's and
+  Ubuntu's package too old), `--tls internal|files` (copies, not links), and no systemd. The
+  topic's summary says "as a service". *Upgrading* gains the npm lines and `sudo rmk-server service
+  restart`. `docs.test.tsx` asserts the section and its facts.
+- **README:** *As a service (macOS and Linux)* under *With Node.js, no clone*: the commands, where
+  things are, options, `--domain`, upgrading, no systemd.
+- **The runbook's *Install as a service*:** the npm part is corrected and filled in (the account
+  and nvm, `--user`, `sudo env PATH`, the macOS notification; Caddy 2.7+ from Caddy's repository,
+  not `apt install caddy`, and stopping its package's service; `--tls internal|files`), every command
+  but `status` with `sudo`, the script commands, `--delete-data`, and a table of where things are.
+  The Homebrew, `.deb`/`.rpm` and winget parts stay for 085–087.
+- **The setup's last line under the service** (left from task 5): the hand-off sets
+  `RONNE_SERVICE=1`, and `apps/web/scripts/setup.ts` then says "The service runs it: open … and
+  sign in as …" rather than "If it isn't running, start it with `rmk-server`". Checked in a
+  container.
+- **Helpers:** none changed. The setup page's helpers already describe `rmk-server` (082); the
+  service changes no field.
+- **MVP.md:** unchanged; §15's *Easy install* row already names services through systemd and
+  launchd.
+- **Index:** 083 is *in progress*: tasks 3, 4 and 5 wait for CI on GitHub and task 4 for a run by
+  hand on macOS 15.
+- **Fixed after the witness:** the `--tls files` folder on macOS (the prefix's
+  `etc/rmk-server-proxy/certs`) in the Documentation, README and runbook; `rmk-server service --help`
+  said "the settings folder's certs/", which isn't where they are. `logs` isn't refused without
+  `sudo` in code; on Linux it shows nothing without it (journal access), so the docs keep saying it
+  needs `sudo`.
+- **Checks:** the docs and help tests (13) and the settings-file tests (23) pass, and `pnpm test:e2e` passes (84, including the phone sweep over the docs).

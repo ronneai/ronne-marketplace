@@ -151,3 +151,30 @@ service's, and the app rewrites `env` in place when it can't add a file there.
 the macOS script; Debian 13 by the witness (the builder ran it: 14 steps); CI.
 **Differences from the notes:** none left; the notes were corrected each round.
 **Overall:** met here; the *Done when* waits for CI.
+
+## Task 6 — Documentation
+
+Witnessed: 2026-10-04 (02:49–02:58 EDT), by a fresh agent. Machine: macOS 27.0.1 arm64; Docker container from Ubuntu 24.04 with systemd and the package built after the last app change.
+
+| # | Claim | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|
+| 1 | The docs render and help tests pass; lint, typecheck, e2e | confirmed | `vitest run src/features/docs src/components/help` → 13 passed; with `src/server/setup` and `config.test.ts` → 92 passed, 2 skipped; `pnpm lint` 0 errors (53 warnings); typecheck 7/7; `pnpm test:e2e` re-run → 84 passed. |
+| 2 | `status` without sudo; every other command with it | confirmed | Not installed → exit 4; installed → version, address ("not set up yet"), listen address, account, folders, log, proxy. install, stop and setup without sudo → "Run: sudo …". `logs` isn't refused in code, but without sudo journalctl shows no lines ("Failed to search journal ACL"). |
+| 3 | stop, start, restart, logs; `sudo rmk-server setup` and `migrate` on the service's data | confirmed | "Stopped …", "Started … (0.2.0).", "Restarted … (0.2.0)."; logs follow both units; "The rmk-server service's /var/lib/rmk-server, as rmk-server:", health 503 → 200; "Nothing to migrate". |
+| 4 | Linux locations and account | confirmed | `/var/lib/rmk-server` (rmk-server 750), `/etc/rmk-server/env` (600), `journalctl -u rmk-server`, account `rmk-server`. |
+| 5 | uninstall keeps the data; install again uses it; `--delete-data` asks for the name | confirmed | Accounts gone, `ronne.db`, `storage`, `env` kept; reinstall → "It's set up"; a wrong name → "Not confirmed: nothing was changed." (exit 1); `rmk-server` → the four folders deleted. |
+| 6 | `--domain`, Caddy 2.7+, Debian/Ubuntu's package too old; `--tls files` copies not links | confirmed (Ubuntu) | Without Caddy: the message pointing to Caddy's repository; with 2.11.6, `--domain localhost --tls internal` → proxy running, HTTPS 200, status "internal certificates". Ubuntu 24.04's candidate `caddy` is 2.6.2. A linked `cert.pem` → "Copy them there instead (sudo cp -L)". |
+| 7 | A Node in a home folder is refused; `sudo env "PATH=$PATH"`; no systemd | confirmed | Node in `~alice/n` → "can't run … in someone's home folder"; without init → "systemd isn't running here … rmk-server start …". |
+| 8 | Upgrading lines | confirmed (code) | `restart` records the new version; status names a missing Node or entry. No real upgrade run. |
+| 9 | The setup's closing line under the service | confirmed | `sudo rmk-server setup --yes` → "The service runs it: open http://localhost:7650 and sign in as root@example.com."; with `RONNE_DATA_DIR`, the old line. |
+| 10 | Index row "in progress" | confirmed | specified → in progress → done; tasks 3–5 aren't ticked. |
+
+**Found, and fixed in this commit:** the `--tls files` folder was given as `/etc/rmk-server-proxy/certs`
+without its macOS form (the prefix's `etc/rmk-server-proxy/certs`) in the Documentation, README and
+runbook; `rmk-server service --help` said "the settings folder's certs/".
+**Not checked here:** the macOS facts (checked against `layout.ts` and `macos.ts` only); Debian's
+`caddy` version; `--tls files` with valid certificates, `--tls auto`, `--email`; a real upgrade;
+`--port` and `--host` on a reinstall.
+**Differences from the notes:** the notes' "36" was the docs and help tests (13) plus the
+settings-file tests (23); now said so.
+**Overall:** met.
