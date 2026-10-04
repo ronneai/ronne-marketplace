@@ -21,7 +21,7 @@ the same change that completes it.
 - [x] **3. Allowlist and notices.** The archive content check and `THIRD_PARTY_NOTICES` with Node.js.
   *Done when:* the check fails on a stray file.
 
-- [ ] **4. Release checklist.** The Node version line in 034's checklist and the release notes
+- [x] **4. Release checklist.** The Node version line in 034's checklist and the release notes
   template.
   *Done when:* both are updated.
 
@@ -184,3 +184,37 @@ goes into `SPEC.md` instead.
   naming it and its version passed, since `app/` is matched against the notices by name and
   version. Every folder there must now be such a package (checked with a loose `index.js` and an
   empty `package.json`).
+
+### Task 4: release checklist (2026-10-04)
+
+- **There was no release checklist** (the plan's "034's checklist"), so **`docs/runbooks/release.md`**
+  is one: before the version (main green, Dependabot, **the bundles' Node.js current**: compare
+  nodejs.org's newest v24 with what the last *Bundle* jobs printed, and wait for an announced
+  security release), the version (`pnpm release:version`), a dry run from `main` and what its log
+  must show (the six *Bundle* jobs included), the tag, what the release must hold, a package's
+  first publish, and re-running.
+- **The release notes** (`release.yml`'s `github-release`): written to a file, then `gh release
+  create --notes-file` (with GitHub's generated notes after it). They name the six archives, the
+  bundled Node.js version (read by running the Linux x64 bundle's `node --version` on the runner),
+  how to start one, the glibc 2.34 requirement (Debian 12, Ubuntu 22.04, RHEL 9 and newer; Alpine
+  and older systems use Docker; first written as 2.28, see below), THIRD_PARTY_NOTICES, the npm commands and `checksums.txt`. The block renders as
+  expected here with stand-in values.
+- **The command tables:** README gains `build:server` and `pnpm bundle` and now names the four
+  packages (`packages:check`, `release:smoke` and `release:version` still said three); CLAUDE.md
+  gains `pnpm bundle`, and both point to the checklist.
+- **Fixed after the witness: glibc 2.34, not 2.28.** Node.js 24 alone needs glibc 2.28, but the
+  bundle loads better-sqlite3 13.0.3's prebuilt `linux-x64.node` and `linux-arm64.node` directly
+  (no install script, so nothing compiles it instead), and those need `GLIBC_2.34` and
+  `GLIBCXX_3.4.29`. Checked here (`strings` on the linux-arm64 bundle: node 2.28, better-sqlite3
+  2.34, argon2's gnu build 2.17), then for real: SQLite loads on Ubuntu 22.04 (glibc 2.35), not on
+  Ubuntu 20.04 or Debian 11 (2.31). The smoke tests run on Ubuntu 24.04 (2.39), so they can't
+  catch it. Corrected in the release notes, the checklist, the spec's edge case and these notes.
+  The same holds for the npm package (082): README's native-modules note said npm compiles
+  better-sqlite3 elsewhere, which it doesn't (no install script, as 082's spike recorded), and now
+  gives the glibc 2.34 floor and Docker for older systems. Building the Linux bundles against an
+  older glibc would need better-sqlite3 built from source on an old base: a design choice for
+  later, not taken here.
+- Also from the witness: the spec's Windows arm64 edge case said a missing prebuild skips that one
+  archive, but a release needs all six (the workflow counts them); reworded. The notes now write
+  each archive's full name. And 085's spec, which cited 084's floor as 2.28, says 2.34 (found by the
+  re-check).

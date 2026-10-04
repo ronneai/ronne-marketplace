@@ -73,10 +73,12 @@ prints it.
 
 ## Edge cases
 
-- **Windows on arm64**: Node.js and `better-sqlite3` both publish arm64 Windows builds; if the
-  native module's prebuilt is missing for a release, that one archive is skipped with a warning in
-  the release notes, not the whole release.
-- **musl Linux (Alpine)**: not built; Alpine users use Docker. The Linux archives need glibc 2.28+,
+- **Windows on arm64**: Node.js and `better-sqlite3` both publish arm64 Windows builds. A release
+  needs all six archives: if one platform's build or smoke test fails (a missing prebuild
+  included), there's no release, as below.
+- **musl Linux (Alpine)**: not built; Alpine users use Docker. The Linux archives need glibc 2.34+
+  (Debian 12, Ubuntu 22.04, RHEL 9): Node.js 24 needs 2.28, but better-sqlite3's prebuilt module,
+  which has no fallback to compiling, needs 2.34 and libstdc++ from GCC 11 (`GLIBCXX_3.4.29`),
   stated in the release notes.
 - **A release where one platform's smoke test fails**: no archive is uploaded for any platform, so
   the packages never point at a partial release.

@@ -87,3 +87,24 @@ builder (a loose `index.js` and an empty `package.json` both fail; the real bund
 **Not checked here:** Windows and Linux bundles (their CI jobs run the same check).
 **Differences from the notes:** 6 or 7 MIT sections without a file, not 5 (corrected).
 **Overall:** met.
+
+## Task 4 — Release checklist
+
+Witnessed: 2026-10-04 (about 15:30–15:45 EDT, with a re-check of the fixes), by a fresh agent. Machine: macOS arm64, Docker.
+
+| # | Claim | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|
+| 1 | No checklist existed, so `docs/runbooks/release.md` is new | confirmed | `docs/`, README and 034's SPEC/PLAN hold no release checklist (only the dependency policy's and 035's Docker Hub checklists). |
+| 2 | The checklist matches `release.yml` | confirmed | Job names; the dry run still asks for the "npm" environment, runs `npm publish --dry-run` for packages not on npm, builds, runs and scans the images, builds the six bundles, and skips `manifest` and `github-release`; the attachments; 082's `NPM_TOKEN` note; the re-run claims. |
+| 3 | Its Node version line can be checked | confirmed | `bundle.js` prints "Node.js 24.x.y: <archive>, SHA-256 … (matches SHASUMS256.txt)"; every pull request runs the *Bundle* jobs through `server-package.yml`. |
+| 4 | The release notes render and list the six archives | confirmed | Rendered under bash with stand-in values: valid markdown, the six full names matching `bundleName`, the Node version, the image; `--generate-notes` with `--notes-file` prepends the file. |
+| 5 | The glibc requirement | not met → confirmed | First 2.28 (Node.js 24's own floor), but better-sqlite3 13.0.3's prebuilds need `GLIBC_2.34` and `GLIBCXX_3.4.29`. After the fix: the linux-arm64 bundle's SQLite loads on ubuntu:22.04 (2.35), debian:12 (2.36) and almalinux:9-minimal (2.34), and fails on ubuntu:20.04 and debian:11 (2.31) with "GLIBC_2.33 not found". The notes, checklist, spec and README say 2.34. |
+| 6 | README and CLAUDE.md command tables | confirmed | `bundle`, `build:server`, `release:version` exist; the four packages are those `release.yml` publishes; `--out`, `--keep` exist. |
+| 7 | YAML and lint | confirmed | `release.yml` parses; `pnpm lint` 53 warnings, 0 errors. |
+
+**Found, and fixed in this commit:** the glibc floor (2.28 → 2.34) in the notes, the checklist, the
+spec and these notes, and README's claim (from 082) that npm compiles better-sqlite3 where no
+prebuild fits; the spec's Windows arm64 edge case (a release needs all six); the short archive
+names; then (re-check) 085's spec, which cited 2.28.
+**Not checked here:** a real release run and its page.
+**Overall:** met.

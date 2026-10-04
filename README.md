@@ -172,9 +172,9 @@ setup` (the setup in the terminal, with `--yes` for scripts), `rmk-server migrat
   `PUBLIC_URL` to the new address, such as `http://localhost:7650`.
 - **Upgrading:** `npx @ronneai/marketplace@latest`, or `npm install --global @ronneai/marketplace`.
   Migrations run on start.
-- **Native modules:** `better-sqlite3` ships prebuilt binaries for macOS, Linux (glibc and musl)
-  and Windows, on x64 and arm64. Elsewhere npm compiles it, which needs Python, `make` and a C++
-  compiler.
+- **Native modules:** `better-sqlite3` ships prebuilt binaries for macOS, Linux (glibc 2.34 or later,
+  so Debian 12, Ubuntu 22.04, RHEL 9 and newer, and musl) and Windows, on x64 and arm64, and has no
+  fallback that compiles it. On another system, or an older glibc, SQLite won't load: use Docker.
 
 #### As a service (macOS and Linux)
 
@@ -320,9 +320,11 @@ a second root. To start over on a development clone, `pnpm run reset-setup`.
 | `pnpm test:db:up` / `pnpm test:db:down` | Starts or stops local PostgreSQL, MySQL and MariaDB test servers (Docker) |
 | `pnpm test:db:postgres` (or `:mysql`, `:mariadb`) | Runs the database tests against one of those servers |
 | `pnpm exec rmk --version` | Runs the local `rmk` CLI (after `pnpm build`) |
-| `pnpm packages:check` | Checks what `@ronneai/core`, `@ronneai/rmk` and `@ronneai/mcp` would publish against an allowlist (after `pnpm build`) |
-| `pnpm release:smoke` | Installs the packed packages with npm in an empty folder and runs `rmk` and `rmk-mcp` (after `pnpm build`) |
-| `pnpm release:version <x.y.z>` | Sets the version the three published packages share. Commit it, then push the tag `vX.Y.Z`: the Release workflow checks, packs and publishes them to npm with provenance, and creates the GitHub release |
+| `pnpm build:server` | The web app's standalone build and `rmk-server`, which packing `@ronneai/marketplace` copies in (after `pnpm build`) |
+| `pnpm packages:check` | Checks what `@ronneai/core`, `@ronneai/rmk`, `@ronneai/mcp` and `@ronneai/marketplace` would publish against an allowlist (after `pnpm build` and `pnpm build:server`) |
+| `pnpm release:smoke` | Installs the packed packages with npm in an empty folder and runs `rmk`, `rmk-mcp` and `rmk-server` (after `pnpm build` and `pnpm build:server`) |
+| `pnpm bundle <tarball>` | Builds this machine's self-contained `rmk-server` archive, Node.js inside, from a packed `@ronneai/marketplace` (`--out DIR`, `--keep`); `node packages/repo-tools/src/bundle-smoke.js <archive>` checks and runs it with no Node.js on `PATH` |
+| `pnpm release:version <x.y.z>` | Sets the version the four published packages share. Commit it, then push the tag `vX.Y.Z`: the Release workflow publishes them to npm with provenance, the Docker image and the GitHub release with the bundles. The checklist is [`docs/runbooks/release.md`](docs/runbooks/release.md) |
 
 **Layout**
 

@@ -63,7 +63,7 @@ explain the choices and stop.
 - **Homebrew on Linux** installs the Linux archive; `brew services` uses systemd user units there.
 - **Both a package and a Docker install** on one machine: different ports are needed; 081 and the
   package's `postinst` both check 7650 first and say so.
-- **Old distributions** (glibc older than 2.28): the package refuses with the requirement (084).
+- **Old distributions** (glibc older than 2.34): the package refuses with the requirement (084).
 - **No `systemd`** at `postinst` time (a container build): skip the service, print how to start it.
 
 ## Documentation
