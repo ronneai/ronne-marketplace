@@ -11,7 +11,7 @@ the same change that completes it.
   `sh`, and PSScriptAnalyzer (MIT). Not ShellCheck: GPL-3.0, forbidden even in CI. Record both.
   *Done when:* the policy lists them.
 
-- [ ] **2. `install.sh`.** In `scripts/install/`: checks, questions, port check, folder, start, wait,
+- [x] **2. `install.sh`.** In `scripts/install/`: checks, questions, port check, folder, start, wait,
   open; `--yes` and the flags; the function-on-the-last-line guard.
   *Done when:* `shfmt -p` passes, it runs under `dash`, and by hand on macOS and Ubuntu: a fresh install, a rerun, a
   busy port, no Docker.
@@ -23,7 +23,7 @@ the same change that completes it.
   written in, and `checksums.txt`.
   *Done when:* a dry-run release shows the assets and the checksums match.
 
-- [ ] **5. CI.** On Ubuntu: `install.sh --yes` (local, then server with `RONNE_TLS=internal`)
+- [x] **5. CI.** On Ubuntu: `install.sh --yes` (local, then server with `RONNE_TLS=internal`)
   against the image built in the same run, with health checks; on Windows: `install.ps1 -Yes`
   up to the Docker check (GitHub's Windows runners can't run Linux containers), plus lint.
   *Done when:* the jobs pass, and a broken script fails them.
@@ -174,3 +174,31 @@ and under bash:
 - `pnpm test:e2e`'s phone sweep failed when the release URL was inline code in a paragraph: a URL
   with no spaces can't wrap, so `/docs/install` was 366 px wide at 360 px. It's in a code block
   now, which scrolls on its own, as the docs already do for long addresses.
+
+### Follow-ups after the merge (2026-10-04)
+
+- **Fake Docker in `test-install.sh`:** a `docker` and a `curl` on `PATH` answer what each case
+  sets, so the whole script runs with no Docker and no network. It now covers what task 2 hadn't
+  triggered: a stopped daemon, no access to the socket (names the `docker` group), an old Compose
+  (2.20.3), no Compose v2, and the legacy rerun. In the legacy case, a `compose.yaml` from before
+  the proxy, its stack running and port 3000 answering, the rerun keeps `RONNE_PORT=3000` and gets
+  the new `compose.yaml`. With the legacy fix removed from `install.sh`, that case fails (the
+  install moves to 7650), so the test guards the fix. It passes under dash and bash.
+- **Task 2 ticked:** the one part not done by hand, Ubuntu, ran in CI on PR #119. `install-probe.sh`
+  ran `install.sh --yes` end to end on `ubuntu-latest` (amd64) and `ubuntu-24.04-arm`. The cases
+  it hadn't triggered are now in the fake-Docker tests above.
+- **Task 5 ticked:** on PR #119's last run, `Install scripts` (shfmt, dash, bash; PSScriptAnalyzer,
+  Windows PowerShell 5.1 and PowerShell 7) and both image jobs with the install probe passed. A
+  broken script fails them: the first runs failed on a real bug (the Windows port check), and the
+  probe fails locally with the port search broken on purpose.
+- **Fake Docker in `test-install.ps1`:** the same idea for Windows, as `docker.cmd` and `curl.cmd`
+  on Windows (shell scripts elsewhere), so the CI job runs `install.ps1` end to end under Windows
+  PowerShell 5.1 and PowerShell 7. It covers a stopped daemon, an old Compose, no Compose v2, a
+  fresh install, a rerun, a domain and back, a busy 7650 (a real `TcpListener`), a refused
+  downgrade, an upgrade, and the legacy rerun on 3000. `install.ps1` runs `curl.exe` by name, and a
+  `.cmd` can't stand in for an `.exe` on `PATH`, so it reads one more test variable,
+  `RONNE_INSTALL_CURL`. On PowerShell 7 for Linux (with curl installed: the image has none), every
+  case runs and passes. The `.cmd` fakes themselves run only on the Windows runner.
+- `[Uri]` gives an empty `AbsoluteUri` for a Unix path in .NET, so the test builds the `file://`
+  URL by hand.
+- **Still open:** task 3 (by hand on Windows 11) and task 4 (a dry-run release from `main`).

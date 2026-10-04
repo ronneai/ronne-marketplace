@@ -65,6 +65,97 @@ check "a bad --mode exits 1" 1 "$?"
 out=$("$SHELL_UNDER_TEST" "$here/install.sh" --dir 2>&1)
 check "a flag without its value exits 1" 1 "$?"
 
+# --- The whole script with a fake docker and curl on PATH -----------------------------------------
+# Each answers what the test sets in FAKE_* (FAKE_BUSY: ports that answer, as if in use), so the Docker messages and the legacy rerun run with no
+# Docker and no network. The fake curl answers the health check and the port probes, and hands
+# everything else (the file:// download of compose.yaml) to the real curl.
+fakes="$work/fakes"
+mkdir -p "$fakes"
+real_curl=$(command -v curl)
+cat >"$fakes/docker" <<'FAKE'
+#!/bin/sh
+case "$1 ${2:-}" in
+  "info "*)
+    [ "$FAKE_INFO" = ok ] && exit 0
+    printf '%s\n' "$FAKE_INFO" >&2
+    exit 1
+    ;;
+  "compose version")
+    [ -n "$FAKE_COMPOSE" ] || exit 1
+    printf '%s\n' "$FAKE_COMPOSE"
+    ;;
+  "compose ls") printf '[]\n' ;;
+  "compose ps") printf '%s\n' "${FAKE_PS:-}" ;;
+  "compose up") exit 0 ;;
+  *) exit 1 ;;
+esac
+FAKE
+cat >"$fakes/curl" <<FAKE
+#!/bin/sh
+for arg in "\$@"; do
+  case "\$arg" in
+    */api/health) printf 503 && exit 0 ;;
+    http://127.0.0.1:*)
+      port=\${arg#http://127.0.0.1:}
+      port=\${port%%/*}
+      case " \$FAKE_BUSY " in *" \$port "*) exit 0 ;; esac
+      exit 7
+      ;;
+  esac
+done
+exec "$real_curl" "\$@"
+FAKE
+chmod +x "$fakes/docker" "$fakes/curl"
+
+# run_fake DIR: install.sh --yes --mode local into DIR with the fakes first on PATH; sets out, code.
+run_fake() {
+  out=$(PATH="$fakes:$PATH" RONNE_INSTALL_COMPOSE_URL="file://$here/../../compose.yaml" \
+    RONNE_INSTALL_IMAGE=ronne-web:test "$SHELL_UNDER_TEST" "$here/install.sh" --yes --mode local --dir "$1" 2>&1)
+  code=$?
+}
+says() { case "$out" in *"$1"*) echo yes ;; *) echo "no: $out" ;; esac }
+
+export FAKE_INFO FAKE_COMPOSE FAKE_PS FAKE_BUSY
+FAKE_INFO="Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?"
+FAKE_COMPOSE=5.5.0
+run_fake "$work/d1"
+check "a stopped daemon exits 1" 1 "$code"
+check "a stopped daemon says so" yes "$(says "it isn't running")"
+
+FAKE_INFO="permission denied while trying to connect to the Docker daemon socket"
+run_fake "$work/d2"
+check "no access to the socket exits 1" 1 "$code"
+check "no access to the socket names the docker group" yes "$(says "docker group")"
+
+FAKE_INFO=ok
+FAKE_COMPOSE=2.20.3
+run_fake "$work/d3"
+check "an old Compose exits 1" 1 "$code"
+check "an old Compose names the minimum" yes "$(says "Compose 2.20.3 is too old: Ronne needs 2.23.1")"
+
+FAKE_COMPOSE=""
+run_fake "$work/d4"
+check "no Compose v2 exits 1" 1 "$code"
+check "no Compose v2 says so" yes "$(says "Docker Compose v2 isn't available")"
+
+# A legacy install: a compose.yaml from before the proxy, its old stack running on 3000, no .env.
+# Port 3000 is the old stack's own, so the rerun keeps it instead of moving to 7650.
+FAKE_COMPOSE=5.5.0
+FAKE_PS=0123456789ab
+FAKE_BUSY=3000
+mkdir -p "$work/legacy"
+printf 'name: ronne-marketplace\nservices:\n  web:\n    ports:\n      - "${RONNE_PORT:-3000}:3000"\n' \
+  >"$work/legacy/compose.yaml"
+run_fake "$work/legacy"
+check "a legacy rerun succeeds" 0 "$code"
+check "a legacy rerun keeps port 3000" "RONNE_IMAGE=ronne-web:test RONNE_PORT=3000" \
+  "$(tr '\n' ' ' <"$work/legacy/.env" | sed 's/ $//')"
+check "a legacy rerun says so" yes "$(says "keeping http://localhost:3000")"
+check "a legacy rerun gets the proxy's compose.yaml" yes \
+  "$(grep -q '^  proxy:' "$work/legacy/compose.yaml" && echo yes || echo no)"
+FAKE_PS=""
+FAKE_BUSY=""
+
 [ "$failures" = 0 ] || {
   printf '%s failed\n' "$failures"
   exit 1

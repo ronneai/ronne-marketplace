@@ -11,8 +11,9 @@ starts Ronne and opens it in the browser. It changes nothing outside that folder
 the whole script before running it, and everything runs from Install-Ronne, called on the last line,
 so a download cut short runs nothing.
 
-For tests only: RONNE_INSTALL_COMPOSE_URL (where compose.yaml comes from; file:// works) and
-RONNE_INSTALL_IMAGE (the image written to .env).
+For tests only: RONNE_INSTALL_COMPOSE_URL (where compose.yaml comes from; file:// works),
+RONNE_INSTALL_IMAGE (the image written to .env) and RONNE_INSTALL_CURL (the curl to run: a .cmd
+can't stand in for curl.exe on PATH).
 #>
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '', Justification = 'An interactive installer talks to the console.')]
 param(
@@ -201,7 +202,11 @@ function Test-DnsRecord([string] $Name) {
 
 # --- Waiting and opening ----------------------------------------------------------------------
 
-function Get-Curl { if ($env:OS -eq 'Windows_NT') { return 'curl.exe' } return 'curl' }
+function Get-Curl {
+  if ($env:RONNE_INSTALL_CURL) { return $env:RONNE_INSTALL_CURL }
+  if ($env:OS -eq 'Windows_NT') { return 'curl.exe' }
+  return 'curl'
+}
 
 # Any answer through the proxy counts (503 setup_required is expected), except 502: web isn't up.
 function Wait-Healthy {
