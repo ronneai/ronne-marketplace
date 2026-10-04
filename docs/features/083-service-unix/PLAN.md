@@ -15,16 +15,16 @@ the same change that completes it.
   generator check and by this feature.
   *Done when:* a test fails if `compose.yaml`'s inline Caddyfile differs from the template's output.
 
-- [ ] **3. `service install` and `uninstall` on Linux.** User, folders, permissions, environment
+- [x] **3. `service install` and `uninstall` on Linux.** User, folders, permissions, environment
   file, unit, enable, start, wait; the proxy service with `--domain`.
   *Done when:* CI on Ubuntu (systemd is there on GitHub's runners) installs, checks health, restarts,
   uninstalls; with `--domain localhost --tls internal`, HTTPS answers.
 
-- [ ] **4. macOS.** The same with launchd, the `--user` variant, Homebrew prefixes.
+- [x] **4. macOS.** The same with launchd, the `--user` variant, Homebrew prefixes.
   *Done when:* by hand on macOS 15, recorded in the notes; CI on macOS runs install up to
   `launchctl bootstrap` if the runner allows it.
 
-- [ ] **5. `status`, `start`, `stop`, `restart`, `logs`.**
+- [x] **5. `status`, `start`, `stop`, `restart`, `logs`.**
   *Done when:* tests for the output and CI calls each.
 
 - [x] **6. Documentation.**
@@ -365,3 +365,24 @@ goes into `SPEC.md` instead.
   `sudo` in code; on Linux it shows nothing without it (journal access), so the docs keep saying it
   needs `sudo`.
 - **Checks:** the docs and help tests (13) and the settings-file tests (23) pass, and `pnpm test:e2e` passes (84, including the phone sweep over the docs).
+
+### CI on GitHub and the run by hand (2026-10-04)
+
+- **PR #124, head 3acba0a, run 37216357956 ("Server package"): every check passed (33).**
+  - *Service on Linux (systemd)*, ubuntu-24.04 (24.04.5), Node 24.21.0, Caddy 2.11.6 (SHA-512
+    OK): all 14 steps of `test-linux-service.sh`, so task 3's *Done when* (install, health,
+    restart, uninstall, HTTPS with `--domain localhost --tls internal`) and task 5's (each command
+    called) are met on Linux.
+  - *Service on macOS (launchd)*, macos-15-arm64 (15.7.9), Homebrew `node@24`, Caddy 2.11.6
+    (SHA-512 OK): all 11 steps of `test-macos-service.sh`, the first run of the macOS path anywhere.
+    Install bootstraps the daemon as `_rmkserver` in `/opt/homebrew`, KeepAlive brings back a killed
+    process, `--domain` serves HTTPS, `--user` runs as the runner's account, and status, start, stop,
+    restart and logs are each called.
+- **By hand on macOS (task 4):** the owner ran `sudo rmk-server service install --user` on macOS
+  27.0.1 (Apple silicon) with an nvm Node. It found the 750 `/usr/local/var` bug (fixed above);
+  once fixed, install printed the running service and its address. The owner decided this run, not
+  one on macOS 15, counts for the *Done when*; CI covered macOS 15.
+- **Not covered:** an Intel Mac (CI's runner is arm64), so that acceptance criterion stays open; on
+  macOS CI checks a restart by health only, not that launchd recorded it as clean; a real reboot
+  on macOS (Linux's was checked in a container).
+- Tasks 3, 4 and 5 are ticked (witnessed from GitHub's logs; see WITNESS.md).

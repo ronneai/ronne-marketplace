@@ -131,14 +131,16 @@ input, so it can be piped). Installing again uses the kept data.
 
 ## Acceptance criteria
 
-- [ ] On Ubuntu 24.04 and Debian 13, `sudo rmk-server service install` gives a running service
+- [x] On Ubuntu 24.04 and Debian 13, `sudo rmk-server service install` gives a running service
       that survives a reboot, owned by `rmk-server`, at `http://127.0.0.1:7650`.
-- [ ] The same on macOS 15 (Apple silicon and Intel), with and without `--user`.
-- [ ] `--domain` with `--tls internal` serves HTTPS through `rmk-server-proxy` (CI on Linux).
-- [ ] Docker (080) and native use one Caddyfile template.
-- [ ] `status`, `logs`, `restart` and `uninstall` behave as described; data survives `uninstall`.
-- [ ] The generated unit and plist match golden files in tests.
-- [ ] The README and the Documentation say what the feature does now.
+- [ ] The same on macOS 15 (Apple silicon and Intel), with and without `--user`. Apple silicon
+      only so far: CI on macOS 15 (with and without `--user`) and the owner on macOS 27 (`--user`);
+      no Intel Mac yet.
+- [x] `--domain` with `--tls internal` serves HTTPS through `rmk-server-proxy` (CI on Linux).
+- [x] Docker (080) and native use one Caddyfile template.
+- [x] `status`, `logs`, `restart` and `uninstall` behave as described; data survives `uninstall`.
+- [x] The generated unit and plist match golden files in tests.
+- [x] The README and the Documentation say what the feature does now.
 
 ## Open questions
 

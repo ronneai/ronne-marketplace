@@ -178,3 +178,22 @@ runbook; `rmk-server service --help` said "the settings folder's certs/".
 **Differences from the notes:** the notes' "36" was the docs and help tests (13) plus the
 settings-file tests (23); now said so.
 **Overall:** met.
+
+## CI on GitHub — tasks 3, 4 and 5
+
+Witnessed: 2026-10-04, from GitHub's logs (`gh`, read only), by a fresh agent. PR #124, head `3acba0aee170c1692ef6be17af9f89f027cbac70`; run https://github.com/ronneai/ronne-marketplace/actions/runs/37216357956 ("Server package", attempt 1, 16:19:46–16:22:57Z).
+
+| # | Claim | Verdict | Evidence (job → log lines) |
+|---|---|---|---|
+| 1 | Every check of PR #124 passed | confirmed | `gh pr checks 124`: 33 pass, none pending or failed. |
+| 2 | Task 3: install, health, restart, uninstall on Ubuntu | confirmed | Job 111477837446 (ubuntu-24.04, 24.04.5; Node 24.21.0; Caddy `linux_amd64` "OK"): "✓ install: running as rmk-server on 127.0.0.1:7650, enabled, 503 before setup"; "✓ setup inside the service's sandbox … 200, a token"; "✓ stop (status exit 3), start, restart (clean), logs; after SIGKILL systemd started it again" (`Result=success`, `NRestarts` ≥ 1); "✓ uninstall: …"; "✓ uninstall --delete-data: …". |
+| 3 | Task 3: HTTPS with `--domain localhost --tls internal` | confirmed | "✓ --domain localhost --tls internal: HTTPS through rmk-server-proxy as caddy, HTTP redirects" (200 on https://localhost/api/health, 308 from HTTP); `--tls files` passed too. |
+| 4 | Task 4: CI on macOS runs install up to `launchctl bootstrap` | confirmed (further) | Job 111477837398 (macos-15-arm64, 15.7.9; Homebrew `node@24`; Caddy `mac_arm64` "OK"): "✓ install: a LaunchDaemon running as _rmkserver, data in /opt/homebrew/var/rmk-server, 503 before setup, logging" (install runs `launchctl bootstrap system`, `macos.ts`); then KeepAlive, `--domain` HTTPS, `--user`, uninstall and `--delete-data`. |
+| 5 | Task 4: by hand | not judged | The owner's run on macOS 27.0.1 with `--user` counts, by the owner's decision (2026-10-04). |
+| 6 | Task 5: CI calls status, start, stop, restart, logs | confirmed (Linux); confirmed, restart partly (macOS) | Both scripts call each, checking status's text and exit codes, health 000 after stop, 200 after start and restart, and "Data folder: …" in the logs. On macOS a restart is checked by health only. |
+| 7 | Nothing skipped, retried or failed-then-passed | confirmed | One attempt each; only the `if: failure()` log steps were skipped. A run for ef8130f was cancelled by the next push (`cancel-in-progress`). |
+
+**Not covered by CI:** an Intel Mac; a reboot on macOS (a container reboot was checked for Linux);
+that launchd recorded a restart as clean; the Node version actually running on macOS (inferred from
+PATH).
+**Overall:** met. Tasks 3, 4 and 5 are ticked in this commit.
