@@ -1,0 +1,54 @@
+{
+  "name": "@ronneai/marketplace",
+  "version": "0.2.0",
+  "description": "Ronne AI Marketplace, the self-hosted registry of AI capabilities, as one command: npx @ronneai/marketplace (rmk-server).",
+  "keywords": [
+    "ronne",
+    "marketplace",
+    "self-hosted",
+    "ai",
+    "agent-skills",
+    "mcp",
+    "claude-code",
+    "codex",
+    "cursor"
+  ],
+  "license": "MIT",
+  "homepage": "https://www.ronne.ai/en/marketplace",
+  "bugs": {
+    "url": "https://github.com/ronneai/ronne-marketplace/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ronneai/ronne-marketplace.git",
+    "directory": "packages/server"
+  },
+  "type": "module",
+  "bin": {
+    "rmk-server": "./dist/bin.js"
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.map",
+    "!dist/**/*.test.*",
+    "app"
+  ],
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.build.json",
+    "assemble": "node scripts/assemble.mjs",
+    "prepack": "node scripts/assemble.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@node-rs/argon2": "2.2.1",
+    "better-sqlite3": "13.0.3"
+  },
+  "engines": {
+    "node": ">=22.12"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

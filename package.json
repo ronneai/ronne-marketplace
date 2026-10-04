@@ -33,6 +33,7 @@
     "packages:check": "node packages/repo-tools/src/check-packs.js",
     "release:version": "node packages/repo-tools/src/release-version.js",
     "release:smoke": "node packages/repo-tools/src/release-smoke.js",
+    "build:server": "NEXT_OUTPUT=standalone pnpm --filter \"@ronneai/web...\" build && pnpm --filter @ronneai/marketplace build",
     "test:install": "dash scripts/install/test-install.sh && bash scripts/install/test-install.sh"
   },
   "devDependencies": {

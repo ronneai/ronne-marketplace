@@ -1,4 +1,5 @@
 import { parseArgs } from "node:util";
+import { scriptCommand } from "../runtime";
 
 export type SetupCommand =
   | { mode: "interactive" }
@@ -45,8 +46,7 @@ export const parseSetupCommand = (argv: string[], env: Env, hasTerminal: boolean
       return {
         mode: "error",
         exitCode: 2,
-        message:
-          "There's no terminal to ask questions in. Run `pnpm run setup --yes` with the values in flags or environment variables.",
+        message: `There's no terminal to ask questions in. Run \`${scriptCommand("setup", env)} --yes\` with the values in flags or environment variables.`,
       };
     }
     return { mode: "interactive" };

@@ -45,6 +45,18 @@ describe("prepareStart", () => {
     expect(lines.join("\n")).toContain("Open http://localhost:7650 in a browser");
   });
 
+  it("from the npm package, names its port and rmk-server's setup (082)", async () => {
+    const lines: string[] = [];
+    await prepareStart({
+      appDir: dir,
+      dataDir: dir,
+      env: { RONNE_ENV_FILE: join(dir, "none.env"), RONNE_RUNTIME: "npm", PORT: "7650" },
+      log: (line) => lines.push(line),
+    });
+    expect(lines.join("\n")).toContain("Open http://localhost:7650 in a browser");
+    expect(lines.join("\n")).toContain("run `rmk-server setup`");
+  });
+
   it("applies pending migrations when set up, and has nothing to do next time", async () => {
     expect(
       await prepareStart({ appDir: dir, dataDir: dir, env: configured(), log: silent }),

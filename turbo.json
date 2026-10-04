@@ -3,6 +3,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
+      "env": ["NEXT_OUTPUT"],
       "outputs": ["dist/**", "dist-scripts/**", ".next/**", "!.next/cache/**", "!.next/dev/**"]
     },
     "typecheck": {

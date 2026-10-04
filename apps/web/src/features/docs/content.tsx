@@ -376,15 +376,45 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
     ),
     node: (
       <>
-        <p>You need Node.js 24 (22.12 or later works) and pnpm. From a clone of the repository:</p>
+        <p>
+          With Node.js 22.12 or later, one command downloads and starts Ronne, with no clone, no
+          Docker and no build. Its command is <Code>rmk-server</Code>.
+        </p>
         <Example>
-          {"pnpm install\npnpm build && pnpm start          # or pnpm dev while developing"}
+          {
+            "npx @ronneai/marketplace                    # then open http://localhost:7650\nnpm install --global @ronneai/marketplace    # or keep it installed, then: rmk-server"
+          }
         </Example>
         <p>
-          Then open http://localhost:3000 and follow{" "}
-          <To href={docsHref("install", "setup")}>the setup</To>. The settings go to{" "}
-          <Code>apps/web/.env</Code>, readable only by you, and a SQLite database to{" "}
-          <Code>apps/web/data/</Code> by default.
+          Then follow <To href={docsHref("install", "setup")}>the setup</To>; on a terminal, the
+          first start opens the browser. <Code>rmk-server setup</Code> runs the setup in the
+          terminal instead (<Code>--yes</Code> for scripts), <Code>rmk-server migrate</Code> applies
+          migrations, and <Code>rmk-server reset-root-password</Code> resets root&apos;s password.
+        </p>
+        <Bullets>
+          <li>
+            <strong>Network:</strong> it listens on <Code>127.0.0.1:7650</Code>, this machine only.{" "}
+            <Code>--host 0.0.0.0</Code> (or <Code>HOST</Code>) makes it reachable from the network,
+            and <Code>--port</Code> (or <Code>PORT</Code>) changes the port. A busy port stops it
+            rather than picking another, since the address is saved in the settings.
+          </li>
+          <li>
+            <strong>Data</strong> (settings, the SQLite database, stored items) lives in{" "}
+            <Code>RONNE_DATA_DIR</Code>, or by default in{" "}
+            <Code>~/Library/Application Support/RonneAI Marketplace</Code> on macOS,{" "}
+            <Code>~/.local/share/rmk-server</Code> on Linux (or under <Code>XDG_DATA_HOME</Code>),
+            and <Code>%LOCALAPPDATA%\RonneAI\Marketplace</Code> on Windows.
+          </li>
+          <li>
+            <strong>Upgrading:</strong> <Code>npx @ronneai/marketplace@latest</Code>, or{" "}
+            <Code>npm install --global @ronneai/marketplace</Code> again. Migrations run on start.
+          </li>
+        </Bullets>
+        <p>
+          Working on Ronne itself? From a clone, with pnpm: <Code>pnpm install</Code>, then{" "}
+          <Code>pnpm build &amp;&amp; pnpm start</Code> (or <Code>pnpm dev</Code>) on
+          http://localhost:3000. The settings go to <Code>apps/web/.env</Code> and a SQLite database
+          to <Code>apps/web/data/</Code> by default.
         </p>
       </>
     ),

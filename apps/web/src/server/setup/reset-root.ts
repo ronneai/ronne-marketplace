@@ -8,6 +8,7 @@ import {
 } from "../domains/identity/exceptions/errors";
 import { validatePassword } from "../domains/identity/models/password";
 import { normalizeEmail, type RootAccount } from "../domains/identity/models/user";
+import { scriptCommand } from "../runtime";
 import { readEnvFile } from "./env-file";
 import { InvalidInputError, MissingInputError } from "./non-interactive-prompts";
 import type { SetupPrompts } from "./prompts";
@@ -68,7 +69,9 @@ export const runResetRootPassword = async (options: {
   const { appDir, envPath, prompts } = options;
   const databaseUrl = options.databaseUrl || readEnvFile(envPath).DATABASE_URL;
   if (!databaseUrl)
-    throw new MissingInputError("DATABASE_URL (run `pnpm run setup` first, or set it)");
+    throw new MissingInputError(
+      `DATABASE_URL (run \`${scriptCommand("setup")}\` first, or set it)`,
+    );
 
   const validate = (value: string) => {
     try {
