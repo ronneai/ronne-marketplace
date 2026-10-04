@@ -6,7 +6,6 @@ import { afterAll, describe, expect, it } from "vitest";
 import {
   bundleName,
   cmdLauncher,
-  collectPackages,
   latestOf,
   nodeArchive,
   notices,
@@ -14,6 +13,7 @@ import {
   shLauncher,
 } from "./bundle.js";
 import { archiveFolder, pathWithoutNode } from "./bundle-smoke.js";
+import { collectPackages } from "./notices.js";
 
 const dir = mkdtempSync(join(tmpdir(), "rmk-bundle-test-"));
 afterAll(() => rmSync(dir, { recursive: true, force: true }));

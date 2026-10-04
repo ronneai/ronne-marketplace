@@ -18,7 +18,7 @@ the same change that completes it.
   all passed.
   *Done when:* a dry-run release produces six checked archives.
 
-- [ ] **3. Allowlist and notices.** The archive content check and `THIRD_PARTY_NOTICES` with Node.js.
+- [x] **3. Allowlist and notices.** The archive content check and `THIRD_PARTY_NOTICES` with Node.js.
   *Done when:* the check fails on a stray file.
 
 - [ ] **4. Release checklist.** The Node version line in 034's checklist and the release notes
@@ -129,3 +129,58 @@ goes into `SPEC.md` instead.
   the package can't pass); and its cleanup retries and only warns (a file Windows still holds
   must not fail a good run). Known and left: a system folder that held a `node` (none on GitHub's
   images) would leave `PATH` with it, and the launcher would fail loudly, not pass wrongly.
+
+### Task 3: allowlist and notices (2026-10-04)
+
+- **`packages/repo-tools/src/notices.js`** writes `THIRD_PARTY_NOTICES` from `pnpm licenses list
+  --prod --json` for the given workspace packages: one section per name@version, with the
+  licence files of that version's folder in the store. The licence-file pattern takes `LICENSE`,
+  `LICENCE.md`, `COPYING`, `NOTICE`, `LICENSE-MIT` and the like, never a source file such as
+  `license.js`.
+- **The npm package carries it.** `packages/server/scripts/assemble.mjs` (082's `prepack`) runs
+  it for `@ronneai/web` and `@ronneai/marketplace`; `files` and `packs.js` add it (required, and
+  allowed), and it's git-ignored like `app/`. 131 packages, 217 kB. 5 MIT packages ship no
+  licence file (`@better-auth/utils`, `@next/env`, `client-only`, `pg-types`, `pgpass`); they get
+  MIT's standard text with a note. Licences: MIT, Apache-2.0, ISC, BSD-3-Clause, 0BSD and
+  CC-BY-4.0 (caniuse-lite's data, allowed by policy exception E-2).
+- **The bundle's notices** (`bundle.js`): Node.js's licence first, then each package npm put in
+  `lib/` (not the marketplace itself) that the package's notices don't already list, then those
+  notices. For darwin-arm64: 133 sections, with `@node-rs/argon2-darwin-arm64` and
+  `node-addon-api` from npm's install.
+- **`packages/repo-tools/src/bundle-check.js`** checks an unpacked bundle: the top holds only
+  `bin`, `node`, `lib`, `THIRD_PARTY_NOTICES`, `LICENSE`; `bin/` only the launcher; `node/` has
+  Node's `LICENSE`; nothing in `lib/` outside `node_modules/`; the package's files pass
+  `packages:check`'s rules for `@ronneai/marketplace`; every other package is one the
+  marketplace's dependencies (and optional dependencies present for this platform) pull in; and no
+  `.env`, `.npmrc`, lockfile, `.bin`, `.tgz`, key or `.DS_Store` in `lib/`. `bundle.js` runs it
+  before archiving and `bundle-smoke.js` after unpacking, so every CI and release job checks it.
+- **Done when met:** the check fails on a stray file: tests put one at the top, in `bin/`, in
+  `lib/` outside `node_modules`, a package nobody depends on, and a source file in the package; and
+  settings, a key and npm's records. The real darwin-arm64 bundle passes, built from a freshly
+  packed tarball (the one packed before this task failed: "@ronneai/marketplace is missing
+  THIRD_PARTY_NOTICES"). `packages:check` passes (1,797 files). 8 new tests (4 for the check, 4
+  for the notices), and 082's pack test lists the notices as required.
+- **Fixed after the witness** (it confirmed the *Done when* on a real bundle, with 13 kinds of stray
+  file, and a repacked archive with an `app/.env` failing the smoke test):
+  - *Missing from the notices:* `@ronneai/core`'s own dependencies (ajv, ajv-formats, semver,
+    fast-uri, fast-deep-equal, json-schema-traverse, require-from-string), compiled into Next's
+    chunks, because `pnpm licenses` doesn't follow `workspace:` links; and `pg-cloudflare`, an
+    optional dependency of `pg` that `--prod` leaves out but the standalone build ships. The
+    assembler now adds `--filter @ronneai/core` and `--scan app/`, which adds every package really
+    in `app/node_modules` that the list lacks. 139 packages now. 7 sections ship no licence file
+    and get MIT's text (6 in the package: `@better-auth/utils` twice, 0.4.2 and 0.5.0, and the
+    bundle's `@node-rs/argon2-<platform>`).
+  - *Gaps in the check:* a stray package nested inside a dependency passed (only top-level folders
+    were looked at). Now every package folder at any depth must be reached by resolving the
+    dependencies as Node does (a folder's own `node_modules`, then its parents'). Every package in
+    the server's `app/` must be in its notices, which also proves the notices complete. `.git/`
+    anywhere and the web app's `src/` are refused. Source files inside dependencies stay allowed
+    (real packages ship them), and `node/` stays unread (it's the official build, compared in task 1).
+  - The package walk moved from `bundle.js` to `notices.js` (the assembler uses it too), and
+    `bundle.js`'s imports are at the top again.
+  - 3 more tests (nested resolution, `app/` against the notices, `.git` and source); 97 in
+    repo-tools. The real darwin-arm64 bundle passes the stricter check and the smoke test.
+- **Fixed after the re-check:** a folder in the server's `app/node_modules` without a `package.json`
+  naming it and its version passed, since `app/` is matched against the notices by name and
+  version. Every folder there must now be such a package (checked with a loose `index.js` and an
+  empty `package.json`).

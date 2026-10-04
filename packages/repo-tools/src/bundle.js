@@ -13,7 +13,6 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
-  readdirSync,
   readFileSync,
   renameSync,
   rmSync,
@@ -23,6 +22,8 @@ import {
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { checkBundle } from "./bundle-check.js";
+import { collectPackages, RULE, section } from "./notices.js";
 
 export const PLATFORMS = ["linux", "darwin", "win32"];
 export const ARCHS = ["x64", "arm64"];
@@ -88,75 +89,19 @@ export const cmdLauncher = () =>
     "",
   ].join("\r\n");
 
-const LICENSE_FILE = /^(licen[cs]e|copying|notice)(\.(md|txt|markdown))?$/i;
-
-/** The licence text a package ships, if any (LICENSE, LICENCE, COPYING, …). */
-const licenseText = (folder) => {
-  const files = readdirSync(folder)
-    .filter((name) => LICENSE_FILE.test(name))
-    .sort();
-  return files.map((name) => readFileSync(join(folder, name), "utf8").trim()).join("\n\n");
-};
-
 /**
- * Every package in a folder tree, once per name@version: in any node_modules folder, nested and
- * scoped ones included, and in packages that carry their own (the server's app/node_modules).
+ * THIRD_PARTY_NOTICES: Node.js first; then the packages npm installed beside @ronneai/marketplace
+ * (its native modules) that its own notices don't already list; then its own notices, which cover
+ * every production dependency of the web app (written at pack time by notices.js).
  */
-export const collectPackages = (root) => {
-  const found = new Map();
-  const isFolder = (path) => statSync(path, { throwIfNoEntry: false })?.isDirectory() ?? false;
-  const walk = (folder) => {
-    for (const entry of readdirSync(folder)) {
-      const path = join(folder, entry);
-      if (!isFolder(path)) continue;
-      if (entry === "node_modules") visitModules(path);
-      else if (!entry.startsWith(".")) walk(path);
-    }
-  };
-  const visitModules = (nodeModules) => {
-    for (const entry of readdirSync(nodeModules)) {
-      if (entry.startsWith(".")) continue;
-      const path = join(nodeModules, entry);
-      if (!isFolder(path)) continue;
-      const folders = entry.startsWith("@")
-        ? readdirSync(path)
-            .map((name) => join(path, name))
-            .filter(isFolder)
-        : [path];
-      for (const folder of folders) {
-        const manifest = join(folder, "package.json");
-        if (existsSync(manifest)) {
-          const { name, version, license } = JSON.parse(readFileSync(manifest, "utf8"));
-          // A stray package.json (no version) inside a package isn't a package of its own.
-          if (name && version && !found.has(`${name}@${version}`))
-            found.set(`${name}@${version}`, {
-              name,
-              version,
-              license: typeof license === "string" ? license : "UNKNOWN",
-              text: licenseText(folder),
-            });
-        }
-        walk(folder);
-      }
-    }
-  };
-  if (isFolder(root)) walk(root);
-  return [...found.values()].sort((a, b) =>
-    a.name === b.name ? a.version.localeCompare(b.version) : a.name.localeCompare(b.name),
-  );
-};
-
-/** THIRD_PARTY_NOTICES: Node.js first, then every package, each with its licence text. */
-export const notices = ({ nodeVersion, nodeLicense, packages }) => {
-  const rule = "-".repeat(78);
+export const notices = ({ nodeVersion, nodeLicense, packages, packageNotices = "" }) => {
+  const listed = (pkg) => packageNotices.includes(`\n${pkg.name} ${pkg.version} (`);
   const sections = [
     `Node.js ${nodeVersion}\nhttps://nodejs.org (MIT, with the licences of its bundled dependencies below)\n\n${nodeLicense.trim()}`,
-    ...packages.map(
-      (pkg) =>
-        `${pkg.name} ${pkg.version} (${pkg.license})\n\n${pkg.text || `No licence file in the package; its package.json says ${pkg.license}.`}`,
-    ),
+    ...packages.filter((pkg) => !listed(pkg)).map(section),
   ];
-  return `Third-party software in this rmk-server bundle (feature 084).\n\n${sections.join(`\n\n${rule}\n\n`)}\n`;
+  const head = `Third-party software in this rmk-server bundle (feature 084).\n\n${sections.join(`\n\n${RULE}\n\n`)}\n`;
+  return packageNotices ? `${head}\n${RULE}\n\n${packageNotices}` : head;
 };
 
 const sha256 = (path) => createHash("sha256").update(readFileSync(path)).digest("hex");
@@ -270,13 +215,23 @@ const main = async () => {
       notices({
         nodeVersion,
         nodeLicense: readFileSync(join(root, "node", "LICENSE"), "utf8"),
-        packages: collectPackages(join(root, "lib")),
+        // The package itself and its app/ are in its own notices.
+        packages: collectPackages(join(root, "lib"), ["@ronneai/marketplace"]),
+        packageNotices: readFileSync(
+          join(root, "lib", "node_modules", "@ronneai", "marketplace", "THIRD_PARTY_NOTICES"),
+          "utf8",
+        ),
       }),
     );
     copyFileSync(
       fileURLToPath(new URL("../../../LICENSE", import.meta.url)),
       join(root, "LICENSE"),
     );
+
+    // What it holds, checked before it's archived.
+    const problems = checkBundle(root);
+    if (problems.length > 0)
+      throw new Error(`the bundle holds what it shouldn't:\n  ${problems.join("\n  ")}`);
 
     // The archive: tar.gz, or zip on Windows (its tar is bsdtar, which writes zip with -a).
     const out = resolve(options.out);

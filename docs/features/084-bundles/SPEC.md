@@ -17,7 +17,7 @@ packages (085, 087) install it on a machine that has neither Docker nor Node.js.
   runs the bundled Node.
 - Built in `release.yml`, natively per platform (no cross-compiling the native module), smoke-tested
   per platform before upload.
-- `THIRD_PARTY_NOTICES` inside, with Node.js's licence.
+- `THIRD_PARTY_NOTICES` inside, with Node.js's licence, and in the npm package (082) too.
 
 **Out** (and where it goes instead):
 - Installing them as a service → 085 and 087, and `rmk-server service install` (083, 086).
@@ -49,6 +49,23 @@ rmk-server-0.4.0-linux-x64/
   Node's (the launcher sets `RONNE_BUNDLE=1`).
 - Size: about 75 MB per archive (74 MB darwin-arm64, 79 MB linux-arm64), 260 MB unpacked, measured
   in task 1. Node itself is most of it (its binary is 122 MB on macOS arm64).
+
+**`THIRD_PARTY_NOTICES`.** Most of the web app's dependencies are compiled into Next's server
+chunks, so they can't be read from any `node_modules`. When `@ronneai/marketplace` is packed, its
+assembler writes `THIRD_PARTY_NOTICES` from the repository's dependency tree: every production
+dependency of `@ronneai/web`, `@ronneai/marketplace` and `@ronneai/core` (`pnpm licenses list
+--prod`, which doesn't follow workspace links), plus every package really in its `app/node_modules`
+(optional dependencies the list leaves out), each with its licence text (MIT's standard text for the
+few MIT packages that ship none). A bundle's own notices
+are Node.js's licence, then the packages npm installed beside it that those don't list (the native
+modules for that platform), then the package's.
+
+**What an archive may hold** is checked when it's built and again when it's smoke-tested: `bin/`
+with only the launcher, `node/`, `lib/node_modules/`, the two licence files; the package's own
+files by `packages:check`'s rules for it; only the packages its dependencies reach, resolved as
+Node resolves them, at any depth; and every package in the server's `app/` listed in its notices.
+No settings, key or git files, no web app source, and none of npm's records (`.package-lock.json`,
+`.bin`).
 
 **Updating Node.js.** Each release takes the latest Node 24 patch at build time; Dependabot can't see
 it, so the release checklist (034) gains "the bundles' Node version is current", and the build

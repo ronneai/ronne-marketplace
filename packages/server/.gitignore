@@ -1,4 +1,6 @@
 # The web app, copied in by scripts/assemble.mjs at pack time
 /app/
+# Written by scripts/assemble.mjs at pack time (084)
+/THIRD_PARTY_NOTICES
 # pnpm pack output
 *.tgz

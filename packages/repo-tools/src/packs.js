@@ -14,9 +14,13 @@ export const PUBLISHED = {
   // a native binary (npm installs better-sqlite3 and argon2 for each platform).
   server: {
     name: "@ronneai/marketplace",
-    extra: [/^app\//],
+    extra: [/^app\//, /^THIRD_PARTY_NOTICES$/],
     forbid: [/(^|\/)\.env(\.[^/]*)?$/, /\.node$/],
-    require: ["app/apps/web/server.js", "app/apps/web/dist-scripts/start.mjs"],
+    require: [
+      "app/apps/web/server.js",
+      "app/apps/web/dist-scripts/start.mjs",
+      "THIRD_PARTY_NOTICES",
+    ],
   },
 };
 

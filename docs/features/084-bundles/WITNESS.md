@@ -64,3 +64,26 @@ run on Windows.
 **Noted:** npm publishes before the bundles are built, so a bundle failure leaves a version on npm
 with no GitHub release (re-runnable; as the spec intends); six more jobs on every code pull request.
 **Overall:** met as far as it can be here; the *Done when* waits for GitHub.
+
+## Task 3 — Allowlist and notices
+
+Witnessed: 2026-10-04 (about 15:15–15:25 EDT, with a re-check of the fixes), by a fresh agent. Machine: macOS arm64; bundles built from freshly packed tarballs.
+
+| # | Claim | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|
+| 1 | Tests, lint, `packages:check` | confirmed | repo-tools 97 passed; `pnpm lint` 53 warnings, 0 errors; "@ronneai/marketplace: 1797 files, all on the allowlist". |
+| 2 | The package carries `THIRD_PARTY_NOTICES`, written at pack time | confirmed | The witness's `pnpm pack` lists it; first 131 packages, then (after the fixes) 139. |
+| 3 | The bundle's notices: Node.js first, the natives npm adds, then the package's | confirmed | Starts "Node.js 24.21.0"; adds `@node-rs/argon2-darwin-arm64` and `node-addon-api`. |
+| 4 | Every runtime dependency is listed | not met → confirmed | First round: `@ronneai/core`'s 7 dependencies (compiled into `.next/server/chunks`; grep found ajv's and semver's messages there) and `pg-cloudflare` were missing. After the fixes all 8 appear once; against `pnpm list --prod` for web, marketplace and core, only things that don't ship are absent (other platforms' binaries, `@types/*`, optional peer chains, none found in `.next/server`); every package in `app/node_modules` is listed. |
+| 5 | MIT packages without a licence file get MIT's text | confirmed (count corrected) | 6 sections in the package (`@better-auth/utils` twice) and a 7th in the bundle (`@node-rs/argon2-darwin-arm64`). |
+| 6 | `bundle.js` checks before archiving, `bundle-smoke.js` after unpacking | confirmed | The rebuilt bundle passes both, and the full smoke test (setup, 200, sign-in, port freed). |
+| 7 | Done when: the check fails on a stray file | confirmed | On copies of a real unpacked bundle it failed, naming the file, for: `stray.txt` at the top, `bin/evil.sh`, `lib/foo.js`, `lib/node_modules/somepkg`, `@evil/pkg`, `.package-lock.json`, a nested `.bin`, `app/.env`, `.env.local`, `src/index.ts` in the package, `.npmrc`, `server.pem`, `.DS_Store`; after the fixes also a nested `better-sqlite3/node_modules/evil`, `app/apps/web/src/page.tsx`, `.git/config`, and an `app/node_modules/evilpkg` with a name and version. A repacked archive with a stray fails `bundle-smoke` (exit 1). |
+
+**Found, and fixed in this commit:** the notices missed `@ronneai/core`'s dependencies (`pnpm
+licenses` doesn't follow workspace links) and `pg-cloudflare` (an optional dependency `--prod` leaves
+out); the check looked at top-level packages only and passed anything in the server's `app/`; then
+(re-check) an `app/node_modules` folder that isn't a named package. The last fix was checked by the
+builder (a loose `index.js` and an empty `package.json` both fail; the real bundle passes).
+**Not checked here:** Windows and Linux bundles (their CI jobs run the same check).
+**Differences from the notes:** 6 or 7 MIT sections without a file, not 5 (corrected).
+**Overall:** met.

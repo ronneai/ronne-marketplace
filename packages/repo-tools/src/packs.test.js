@@ -42,7 +42,12 @@ describe("checkPack", () => {
   });
 
   it("lets the server ship the web app in app/, but never a .env or a native binary (082)", () => {
-    const app = ["app/apps/web/server.js", "app/apps/web/dist-scripts/start.mjs"];
+    // THIRD_PARTY_NOTICES: written at pack time by notices.js (084).
+    const app = [
+      "app/apps/web/server.js",
+      "app/apps/web/dist-scripts/start.mjs",
+      "THIRD_PARTY_NOTICES",
+    ];
     const pack = (...paths) =>
       checkPack("server", {
         name: "@ronneai/marketplace",
@@ -71,6 +76,7 @@ describe("checkPack", () => {
     expect(checkPack("server", { name: "@ronneai/marketplace", files: files(...base) })).toEqual([
       "is missing app/apps/web/server.js",
       "is missing app/apps/web/dist-scripts/start.mjs",
+      "is missing THIRD_PARTY_NOTICES",
     ]);
   });
 

@@ -10,6 +10,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { checkBundle } from "./bundle-check.js";
 
 const windows = process.platform === "win32";
 
@@ -53,6 +54,11 @@ const main = () => {
       `${basename(archive)} unpacks to ${inside.join(", ") || "nothing"}, not ${archiveFolder(archive)}/`,
     );
   const root = join(work, archiveFolder(archive));
+  const problems = checkBundle(root);
+  if (problems.length > 0) fail(`it holds what it shouldn't:\n  ${problems.join("\n  ")}`);
+  console.log(
+    "✓ it holds only Node.js, the package and its dependencies, the launcher and notices",
+  );
   const launcher = join(root, "bin", windows ? "rmk-server.cmd" : "rmk-server");
   const node = join(root, "node", ...(windows ? ["node.exe"] : ["bin", "node"]));
   const version = JSON.parse(

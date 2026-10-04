@@ -9,6 +9,8 @@
 //   3. each hashed link becomes a one-line re-export of the real package;
 //   4. the native modules are the package's dependencies, so npm installs each platform's build.
 // Never a .env: Next's standalone output copies the build machine's, with its AUTH_SECRET.
+
+import { execFileSync } from "node:child_process";
 import {
   cpSync,
   existsSync,
@@ -130,6 +132,28 @@ for (const rel of readdirSync(app, { recursive: true })) {
   else if (rel.endsWith(".node")) problems.push(`native binary ${rel}`);
 }
 if (problems.length) fail(`app/ has what must not ship:\n  ${problems.join("\n  ")}`);
+
+// 5. THIRD_PARTY_NOTICES (084): every production dependency of the web app and this package, from
+// the repository's dependency tree; most are compiled into Next's chunks, not in app/node_modules.
+execFileSync(
+  process.execPath,
+  [
+    join(packageDir, "..", "repo-tools", "src", "notices.js"),
+    "--filter",
+    "@ronneai/web",
+    "--filter",
+    "@ronneai/marketplace",
+    // pnpm doesn't follow workspace links: core's own dependencies (ajv, semver…) are compiled in.
+    "--filter",
+    "@ronneai/core",
+    // And what's really in app/node_modules, optional dependencies included (pg-cloudflare).
+    "--scan",
+    app,
+    "--out",
+    join(packageDir, "THIRD_PARTY_NOTICES"),
+  ],
+  { stdio: "inherit" },
+);
 
 console.log(
   `✓ app/: the web app, ${placed.size} packages flattened, ${linkNames.length} externals; npm installs ${NATIVE.join(" and ")}.`,
