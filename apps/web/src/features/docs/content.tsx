@@ -418,6 +418,98 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </p>
       </>
     ),
+    service: (
+      <>
+        <p>
+          On macOS and Linux, <Code>rmk-server</Code> installed with npm can run as a service: in
+          the background, started at boot and restarted if it stops (systemd on Linux, launchd on
+          macOS). Install Node.js for the whole machine first: the service runs under its own
+          account, which can&apos;t read a Node.js in your home folder (nvm). If{" "}
+          <Code>sudo rmk-server</Code> isn&apos;t found, keep your PATH:{" "}
+          <Code>sudo env &quot;PATH=$PATH&quot; rmk-server service install</Code>.
+        </p>
+        <Example>
+          {
+            "npm install --global @ronneai/marketplace\nsudo rmk-server service install      # then open http://localhost:7650 and finish the setup"
+          }
+        </Example>
+        <Table>
+          <thead>
+            <tr>
+              <Th>Command</Th>
+              <Th>Does</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {(
+              [
+                [
+                  "rmk-server service status",
+                  "Installed or not, running or not, the version, address, account, folders and proxy. The only one without sudo.",
+                ],
+                [
+                  "sudo rmk-server service stop | start | restart",
+                  "Stops, starts or restarts it. Restart after upgrading with npm.",
+                ],
+                ["sudo rmk-server service logs", "Follows its log."],
+                [
+                  "sudo rmk-server service uninstall",
+                  "Removes the service and the accounts it made. The data and settings stay, and installing again uses them; --delete-data deletes them too, after you type the data folder's name.",
+                ],
+                [
+                  "sudo rmk-server setup",
+                  "The setup in the terminal, for the service's data (migrate and reset-root-password too).",
+                ],
+              ] as const
+            ).map(([command, does]) => (
+              <tr key={command}>
+                <Td>
+                  <Code>{command}</Code>
+                </Td>
+                <Td>{does}</Td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+        <Bullets>
+          <li>
+            <strong>Where things are</strong> on Linux: data in <Code>/var/lib/rmk-server</Code>,
+            settings in <Code>/etc/rmk-server/env</Code>, the log in{" "}
+            <Code>journalctl -u rmk-server</Code>, run by the <Code>rmk-server</Code> account. On
+            macOS: data in <Code>/usr/local/var/rmk-server</Code> (with Homebrew,{" "}
+            <Code>/opt/homebrew/var/rmk-server</Code>), settings in the same prefix&apos;s{" "}
+            <Code>etc/rmk-server/env</Code>, the log in{" "}
+            <Code>/Library/Logs/rmk-server/server.log</Code>, run by <Code>_rmkserver</Code>, or by
+            you with <Code>--user</Code>. macOS may show a notification about a new background item:
+            that&apos;s the service.
+          </li>
+          <li>
+            <strong>Options:</strong> <Code>--port</Code> (7650) and <Code>--host</Code> (
+            <Code>127.0.0.1</Code>, this machine only; <Code>0.0.0.0</Code> opens it to the network
+            over plain HTTP, so put it behind HTTPS). Running install again with other options
+            updates the service and keeps the data.
+          </li>
+          <li>
+            <strong>A domain with HTTPS:</strong>{" "}
+            <Code>sudo rmk-server service install --domain ronne.example.com</Code> adds a second
+            service, <Code>rmk-server-proxy</Code>, running Caddy on ports 80 and 443 with the same
+            settings as Docker&apos;s proxy. It needs Caddy 2.7 or later on PATH (Debian&apos;s and
+            Ubuntu&apos;s own package is too old: use Caddy&apos;s repository, or{" "}
+            <Code>brew install caddy</Code>), and stops if another web server holds 80 or 443.{" "}
+            <Code>--tls internal</Code> uses Caddy&apos;s own authority; <Code>--tls files</Code>{" "}
+            reads <Code>cert.pem</Code> and <Code>key.pem</Code> from{" "}
+            <Code>/etc/rmk-server-proxy/certs</Code> (on macOS, the prefix&apos;s{" "}
+            <Code>etc/rmk-server-proxy/certs</Code>; copies, not links; copy them again after each
+            renewal and restart); <Code>--email</Code> gets expiry notices.
+          </li>
+          <li>
+            <strong>Without systemd</strong> (a container, WSL 1, another init system): there&apos;s
+            no service to install. Run <Code>rmk-server start --no-open</Code> under your own
+            supervisor, or use Docker.
+          </li>
+        </Bullets>
+      </>
+    ),
     setup: (
       <>
         <p>
@@ -487,7 +579,7 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
       <>
         <Example>
           {
-            "docker compose pull && docker compose up -d         # Docker\ngit pull && pnpm install && pnpm build && pnpm start   # a clone"
+            "docker compose pull && docker compose up -d         # Docker\nnpm install --global @ronneai/marketplace@latest     # npm\nsudo rmk-server service restart                      # npm, as a service: then this\ngit pull && pnpm install && pnpm build && pnpm start   # a clone"
           }
         </Example>
         <p>

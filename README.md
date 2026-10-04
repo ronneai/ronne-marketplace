@@ -176,6 +176,37 @@ setup` (the setup in the terminal, with `--yes` for scripts), `rmk-server migrat
   and Windows, on x64 and arm64. Elsewhere npm compiles it, which needs Python, `make` and a C++
   compiler.
 
+#### As a service (macOS and Linux)
+
+To keep it running in the background, started at boot and restarted if it stops (systemd on Linux,
+launchd on macOS), with a Node.js installed for the whole machine (the service's own account can't
+read one in your home folder, such as nvm's):
+
+```sh
+sudo rmk-server service install          # then open http://localhost:7650 and finish the setup
+rmk-server service status                # running?, version, address, folders (no sudo)
+sudo rmk-server service stop | start | restart | logs
+sudo rmk-server service uninstall        # the data stays; --delete-data deletes it too
+```
+
+- **Where:** Linux: data `/var/lib/rmk-server`, settings `/etc/rmk-server/env`, log `journalctl -u
+  rmk-server`, account `rmk-server`. macOS: data `/usr/local/var/rmk-server` (Homebrew:
+  `/opt/homebrew/var/rmk-server`), settings `…/etc/rmk-server/env`, log
+  `/Library/Logs/rmk-server/server.log`, account `_rmkserver`, or you with `--user`.
+- **Options:** `--port`, `--host` (as above); running install again updates the service and keeps
+  the data. `sudo rmk-server setup`, `migrate` and `reset-root-password` work on the service's data.
+- **A domain with HTTPS:** `--domain ronne.example.com` (with `--tls auto|internal|files` and
+  `--email`) adds `rmk-server-proxy`, Caddy on ports 80 and 443, with the same Caddyfile as Docker.
+  It needs Caddy 2.7 or later on PATH: [Caddy's own repository](https://caddyserver.com/docs/install)
+  on Debian and Ubuntu (their package is 2.6), `brew install caddy` on macOS. `--tls files` reads
+  copies of `cert.pem` and `key.pem` in `/etc/rmk-server-proxy/certs` (macOS: `…/etc/rmk-server-proxy/certs`
+  in the same prefix).
+- **Upgrading:** `npm install --global @ronneai/marketplace@latest`, then `sudo rmk-server service
+  restart`. A Node.js moved or removed since the install needs `sudo rmk-server service install`
+  again (`status` says so).
+- **No systemd** (a container, WSL 1, another init system): run `rmk-server start --no-open` under
+  your own supervisor, or use Docker.
+
 ### From source
 
 For developers working on Ronne itself. You need Node.js and pnpm (see

@@ -130,7 +130,7 @@ describe("the topics", () => {
     expect(versions).toContain(">yanked<");
     const install = await topic("install");
     expect(install).toContain(">Installing Ronne</h1>");
-    for (const id of ["docker", "https", "node", "setup", "root", "upgrade"])
+    for (const id of ["docker", "https", "node", "service", "setup", "root", "upgrade"])
       expect(install).toContain(`id="${id}"`);
     expect(install).toContain("docker compose up -d");
     // The npm package and rmk-server (082).
@@ -138,6 +138,14 @@ describe("the topics", () => {
     expect(install).toContain("rmk-server setup");
     expect(install).toContain("~/Library/Application Support/RonneAI Marketplace");
     expect(install).toContain("--host 0.0.0.0");
+    // As a service (083).
+    expect(install).toContain("sudo rmk-server service install");
+    expect(install).toContain("rmk-server service status");
+    expect(install).toContain("/var/lib/rmk-server");
+    expect(install).toContain("/Library/Logs/rmk-server/server.log");
+    expect(install).toContain("rmk-server-proxy");
+    expect(install).toContain("Caddy 2.7 or later");
+    expect(install).toContain("--delete-data");
     // The install script (081).
     // Against the GitHub release, the scripts' own source: never the website, which only redirects.
     expect(install).toContain(

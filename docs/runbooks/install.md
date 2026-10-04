@@ -184,30 +184,55 @@ sudo apt install ./rmk-server_*.deb      # starts the service
 winget install RonneAI.Marketplace
 ```
 
-**Installed with npm instead?** Register the service yourself: `sudo rmk-server service install`
-on macOS and Linux, or `rmk-server service install` in an administrator PowerShell on Windows.
+**Installed with npm instead?** Register the service yourself (feature 083 on macOS and Linux;
+086 on Windows, in an administrator PowerShell):
 
-**With a domain and HTTPS**, without Docker: install
-[Caddy](https://caddyserver.com/docs/install) (`brew install caddy`, `apt install caddy` or
-`winget install CaddyServer.Caddy`), then:
+```sh
+sudo rmk-server service install      # then open http://localhost:7650 and finish the setup
+```
+
+The service runs under its own account (`rmk-server` on Linux, `_rmkserver` on macOS), which can't
+read a Node.js installed in your home folder (nvm, for example): install Node.js for the whole
+machine first. On macOS, `--user` runs it as you instead. If `sudo rmk-server` isn't found, keep
+your PATH: `sudo env "PATH=$PATH" rmk-server service install`. macOS may show a notification about
+a new background item: that's the service.
+
+**With a domain and HTTPS**, without Docker: install Caddy 2.7 or later
+([Caddy's own repository](https://caddyserver.com/docs/install) on Debian and Ubuntu, whose own
+`caddy` package is too old; `brew install caddy` on macOS; `winget install CaddyServer.Caddy` on
+Windows), stop the `caddy` service its package may have started (`sudo systemctl disable --now
+caddy`), then:
 
 ```sh
 sudo rmk-server service install --domain ronne.example.com
 ```
 
-The same DNS and firewall steps as in *Your own domain with HTTPS* apply.
+The same DNS and firewall steps as in *Your own domain with HTTPS* apply. `--tls internal` uses
+Caddy's own authority instead of Let's Encrypt, and `--tls files` reads copies of your `cert.pem`
+and `key.pem` in `/etc/rmk-server-proxy/certs` on Linux, or the prefix's `etc/rmk-server-proxy/certs`
+on macOS (copy them again and restart after each renewal).
 
 **Managing the service:**
 
 | To | Run |
 | --- | --- |
-| See whether it runs, its address and data folder | `rmk-server service status` |
-| Stop, start or restart | `rmk-server service stop` / `start` / `restart` |
-| Read its logs | `rmk-server service logs` |
-| Remove the service (your data stays) | `rmk-server service uninstall` |
+| See whether it runs, its version, address and data folder | `rmk-server service status` |
+| Stop, start or restart | `sudo rmk-server service stop` / `start` / `restart` |
+| Read its logs | `sudo rmk-server service logs` |
+| Set it up, migrate or reset root's password in the terminal | `sudo rmk-server setup` / `migrate` / `reset-root-password` |
+| Remove the service (your data stays) | `sudo rmk-server service uninstall` |
+| Remove it and delete the data | `sudo rmk-server service uninstall --delete-data` |
 
-On macOS and Linux, commands that change the service need `sudo`; on Windows, an administrator
+On macOS and Linux every command but `status` needs `sudo`; on Windows, an administrator
 PowerShell. With Homebrew, use `brew services` instead.
+
+Where things are, for a service installed with npm:
+
+| | Linux | macOS |
+| --- | --- | --- |
+| Data | `/var/lib/rmk-server` | `/usr/local/var/rmk-server` (Homebrew: `/opt/homebrew/var/rmk-server`) |
+| Settings | `/etc/rmk-server/env` | the same prefix's `etc/rmk-server/env` |
+| Logs | `journalctl -u rmk-server` | `/Library/Logs/rmk-server/server.log` |
 
 ## After installing
 

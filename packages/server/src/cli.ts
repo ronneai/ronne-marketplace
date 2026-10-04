@@ -1,4 +1,6 @@
 // rmk-server's arguments (feature 082): what to run, and where it listens.
+import { DEFAULT_HOST, DEFAULT_PORT } from "./defaults.js";
+import { parseServiceArgs, type ServiceCommand } from "./service/args.js";
 
 type Env = Record<string, string | undefined>;
 
@@ -6,13 +8,12 @@ type Env = Record<string, string | undefined>;
 export const SCRIPTS = ["setup", "migrate", "reset-root-password"] as const;
 export type Script = (typeof SCRIPTS)[number];
 
-export const DEFAULT_PORT = 7650;
-/** A personal install isn't reachable from the network unless --host or HOST opens it. */
-export const DEFAULT_HOST = "127.0.0.1";
+export { DEFAULT_HOST, DEFAULT_PORT };
 
 export type Command =
   | { kind: "start"; port: number; host: string; open: boolean }
   | { kind: "script"; script: Script; args: string[]; port: number }
+  | Exclude<ServiceCommand, { kind: "error" }>
   | { kind: "version" }
   | { kind: "help" }
   | { kind: "error"; message: string };
@@ -32,6 +33,7 @@ export const parseArgs = (argv: string[], env: Env = process.env): Command => {
   const [first, ...rest] = argv;
   if (first === "--version" || first === "-v") return { kind: "version" };
   if (first === "--help" || first === "-h" || first === "help") return { kind: "help" };
+  if (first === "service") return parseServiceArgs(rest);
   // The scripts keep their own flags (setup's --yes, --database-url, …).
   if (first !== undefined && isScript(first))
     return { kind: "script", script: first, args: rest, port: envPort(env) };
@@ -78,6 +80,7 @@ Usage:
   rmk-server setup [--yes …]      Set the instance up in the terminal instead
   rmk-server migrate              Apply pending database migrations and exit
   rmk-server reset-root-password  Set a new password for root
+  rmk-server service …            Run it as a service, started at boot (see rmk-server service --help)
   rmk-server --version | --help
 
 Options:

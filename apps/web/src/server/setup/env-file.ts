@@ -69,12 +69,29 @@ export const mergeEnv = (existing: string, updates: Partial<SetupEnv>): string =
 };
 
 /**
+ * The folder can't take a new file: not ours (EACCES, EPERM), or read-only to us, as systemd's
+ * ProtectSystem makes /etc for the service, which may write only the file itself (EROFS).
+ */
+export const cannotWriteFolder = (error: unknown): boolean =>
+  error instanceof Error &&
+  "code" in error &&
+  (error.code === "EACCES" || error.code === "EPERM" || error.code === "EROFS");
+
+/**
  * Writes .env readable only by its owner (0600), through a temporary file and a rename, so a crash
- * never leaves half a file.
+ * never leaves half a file. In a folder it may not write but with a file it may (the service's
+ * /etc/rmk-server is root's, its settings file the server's: 083), it rewrites the file in place.
  */
 export const writeEnvFile = (path: string, content: string): void => {
   const temporary = `${path}.tmp-${process.pid}`;
-  writeFileSync(temporary, content, { mode: 0o600 });
+  try {
+    writeFileSync(temporary, content, { mode: 0o600 });
+  } catch (error) {
+    if (!cannotWriteFolder(error) || !existsSync(path)) throw error;
+    writeFileSync(path, content, { mode: 0o600 });
+    chmodSync(path, 0o600);
+    return;
+  }
   chmodSync(temporary, 0o600);
   renameSync(temporary, path);
 };

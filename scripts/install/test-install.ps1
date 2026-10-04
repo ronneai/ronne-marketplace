@@ -174,7 +174,7 @@ try {
     Test-Case 'a fresh install succeeds' 0 $r.Code
     if ($r.Code -ne 0) { Write-Host $r.Out } # Shows why in the CI log.
     Test-Case 'a fresh install writes only the image' 'RONNE_IMAGE=ronne-web:test' (Get-EnvSummary $fresh)
-    Test-Case 'a fresh install names the address' $true ($r.Out -match 'Ronne is running: http://localhost:7650')
+    Test-Case 'a fresh install names the address' $true ($r.Out -match 'Ronne AI Marketplace is running: http://localhost:7650')
     Test-Case 'a fresh install gets the proxy compose.yaml' $true ([bool] (Select-String -Path (Join-Path $fresh 'compose.yaml') -Pattern '^  proxy:' -Quiet))
     Test-Case 'a fresh install creates certs' $true (Test-Path (Join-Path $fresh 'certs'))
     $env:FAKE_PS = '0123456789ab'

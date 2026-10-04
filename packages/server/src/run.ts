@@ -1,7 +1,7 @@
 // Runs rmk-server's commands (feature 082). Everything runs in this process: the web app's
 // compiled scripts are imported, not spawned, so stopping rmk-server stops the server.
 import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, realpathSync } from "node:fs";
 import { createServer } from "node:net";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
@@ -10,6 +10,10 @@ import { HELP, parseArgs } from "./cli.js";
 import { MIN_NODE, nodeTooOld } from "./node-version.js";
 import { dataDir as defaultDataDir } from "./paths.js";
 import { isSetUp, serverEnv } from "./server-env.js";
+import { scriptForService } from "./service/control.js";
+import { runService, serviceTarget } from "./service/index.js";
+import { stableNodePath } from "./service/macos.js";
+import { realSystem } from "./service/system.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 /** The web app, copied into the package at pack time (scripts/assemble.mjs). */
@@ -65,6 +69,13 @@ const importScript = async (name: string): Promise<void> => {
   await import(pathToFileURL(join(webDir, "dist-scripts", `${name}.mjs`)).href);
 };
 
+/** This Node and this rmk-server, as a service runs them. */
+const programPaths = () => ({
+  node: stableNodePath(process.execPath),
+  entry: realpathSync(join(here, "bin.js")),
+  version: packageVersion(),
+});
+
 export const main = async (argv: string[]): Promise<number | undefined> => {
   const command = parseArgs(argv);
   if (command.kind === "help") {
@@ -78,10 +89,27 @@ export const main = async (argv: string[]): Promise<number | undefined> => {
   if (command.kind === "error") return fail(command.message);
   if (nodeTooOld(process.versions.node))
     return fail(`Node.js ${MIN_NODE} or later is needed; this is ${process.versions.node}.`);
+  if (command.kind === "service" || command.kind === "service-help")
+    // The service runs this same Node and this file, wherever npm put them.
+    return runService(realSystem(), command, programPaths());
   if (!existsSync(join(webDir, "dist-scripts")))
     return fail(
       `the web app isn't in this package (${webDir}). From the repository, run: pnpm --filter @ronneai/marketplace assemble`,
     );
+
+  if (command.kind === "script") {
+    // With the service installed, the scripts work on its data, as its account.
+    const target = serviceTarget(realSystem(), programPaths());
+    if (!("error" in target)) {
+      const code = await scriptForService(
+        realSystem(),
+        target.context,
+        command.script,
+        command.args,
+      );
+      if (code !== undefined) return code;
+    }
+  }
 
   const dir = defaultDataDir(process.platform, process.env, homedir());
   mkdirSync(dir, { recursive: true });

@@ -54,17 +54,23 @@ try {
           "Ronne AI Marketplace is set up.",
           `Open ${result.publicUrl} and sign in as ${result.rootEmail}.`,
         ]
-      : runtime === "npm"
+      : runtime === "npm" && process.env.RONNE_SERVICE === "1"
         ? [
+            // `sudo rmk-server setup` for the installed service (083): it's already running.
             "Ronne AI Marketplace is set up.",
-            "If it isn't running, start it with `rmk-server`,",
-            `then open ${result.publicUrl} and sign in as ${result.rootEmail}.`,
+            `The service runs it: open ${result.publicUrl} and sign in as ${result.rootEmail}.`,
           ]
-        : [
-            "Ronne AI Marketplace is set up.",
-            "If it isn't running, start it with `pnpm build && pnpm start` (or `pnpm dev` while developing),",
-            `then open ${result.publicUrl} and sign in as ${result.rootEmail}.`,
-          ];
+        : runtime === "npm"
+          ? [
+              "Ronne AI Marketplace is set up.",
+              "If it isn't running, start it with `rmk-server`,",
+              `then open ${result.publicUrl} and sign in as ${result.rootEmail}.`,
+            ]
+          : [
+              "Ronne AI Marketplace is set up.",
+              "If it isn't running, start it with `pnpm build && pnpm start` (or `pnpm dev` while developing),",
+              `then open ${result.publicUrl} and sign in as ${result.rootEmail}.`,
+            ];
   if (interactive) p.outro(done.join("\n"));
   else console.log(done.join("\n"));
 } catch (error) {

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Managed by rmk-server (feature 083). `sudo rmk-server service install` rewrites this file,
+     and `sudo rmk-server service uninstall` removes it. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>ai.ronne.rmk-server</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/homebrew/bin/node</string>
+    <string>/opt/homebrew/lib/node_modules/@ronneai/marketplace/dist/bin.js</string>
+    <string>start</string>
+    <string>--no-open</string>
+    <string>--port</string>
+    <string>7650</string>
+    <string>--host</string>
+    <string>127.0.0.1</string>
+  </array>
+  <key>UserName</key>
+  <string>ana</string>
+  <key>GroupName</key>
+  <string>staff</string>
+  <key>WorkingDirectory</key>
+  <string>/opt/homebrew/var/rmk-server</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>NODE_ENV</key>
+    <string>production</string>
+    <key>RONNE_DATA_DIR</key>
+    <string>/opt/homebrew/var/rmk-server</string>
+    <key>RONNE_ENV_FILE</key>
+    <string>/opt/homebrew/etc/rmk-server/env</string>
+  </dict>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>ThrottleInterval</key>
+  <integer>5</integer>
+  <key>ExitTimeOut</key>
+  <integer>30</integer>
+  <key>StandardOutPath</key>
+  <string>/Library/Logs/rmk-server/server.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Library/Logs/rmk-server/server.log</string>
+</dict>
+</plist>

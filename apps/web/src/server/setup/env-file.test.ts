@@ -1,9 +1,18 @@
-import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parseEnv } from "node:util";
 import { afterAll, describe, expect, it } from "vitest";
 import {
+  cannotWriteFolder,
   formatEnvValue,
   generateAuthSecret,
   isWeakSecret,
@@ -88,6 +97,44 @@ describe("updateEnvFile", () => {
     expect(statSync(path).mode & 0o777).toBe(0o600);
     expect(readFileSync(path, "utf8")).toBe("CUSTOM=1\nPUBLIC_URL=http://localhost:3000\n");
     expect(readEnvFile(path)).toEqual({ CUSTOM: "1", PUBLIC_URL: "http://localhost:3000" });
+  });
+
+  it("rewrites the file in place in a folder it may not write (the service's, 083)", () => {
+    const locked = mkdtempSync(join(dir, "locked-"));
+    const path = join(locked, "env");
+    writeFileSync(path, "CUSTOM=1\n", { mode: 0o600 });
+    chmodSync(locked, 0o555);
+    try {
+      updateEnvFile(path, { DATABASE_URL: "file:/var/lib/rmk-server/ronne.db" });
+      expect(readFileSync(path, "utf8")).toBe(
+        "CUSTOM=1\nDATABASE_URL=file:/var/lib/rmk-server/ronne.db\n",
+      );
+      expect(statSync(path).mode & 0o777).toBe(0o600);
+      expect(readdirSync(locked)).toEqual(["env"]);
+    } finally {
+      chmodSync(locked, 0o755);
+    }
+  });
+
+  it("knows the errors of a folder it can't add a file to, read-only included", () => {
+    const failure = (code: string) => Object.assign(new Error(code), { code });
+    for (const code of ["EACCES", "EPERM", "EROFS"])
+      expect(cannotWriteFolder(failure(code))).toBe(true);
+    for (const code of ["ENOSPC", "ENOENT", "EISDIR"])
+      expect(cannotWriteFolder(failure(code))).toBe(false);
+    expect(cannotWriteFolder("EROFS")).toBe(false);
+  });
+
+  it("still refuses a folder it may not write when there's no file to rewrite", () => {
+    const locked = mkdtempSync(join(dir, "locked-"));
+    chmodSync(locked, 0o555);
+    try {
+      // Root can write anywhere, so only an ordinary account sees the refusal.
+      if (process.getuid?.() !== 0)
+        expect(() => updateEnvFile(join(locked, "env"), { PUBLIC_URL: "http://x" })).toThrow();
+    } finally {
+      chmodSync(locked, 0o755);
+    }
   });
 
   it("reads a missing file as empty", () => {
