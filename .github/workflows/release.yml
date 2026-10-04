@@ -346,5 +346,5 @@ jobs:
             exit 0
           fi
           gh release create "$TAG" --verify-tag --generate-notes --title "$TAG" \
-            --notes "Docker image: \`docker pull ${IMAGE#docker.io/}:$VERSION\` (linux/amd64, linux/arm64). npm: \`npm install --global @ronneai/rmk@$VERSION @ronneai/mcp@$VERSION\`." \
+            --notes "Install with Docker: \`curl -fsSL https://www.ronne.ai/install.sh | sh\` (macOS, Linux) or \`irm https://www.ronne.ai/install.ps1 | iex\` (Windows); both redirect to this release's install.sh and install.ps1 below, checked by checksums.txt. Docker image: \`docker pull ${IMAGE#docker.io/}:$VERSION\` (linux/amd64, linux/arm64). npm: \`npm install --global @ronneai/rmk@$VERSION @ronneai/mcp@$VERSION\`." \
             release/*.tgz release/install.sh release/install.ps1 release/checksums.txt
