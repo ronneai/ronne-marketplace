@@ -31,17 +31,20 @@ a domain, writes `~/ronne-marketplace` (`compose.yaml` and `.env`), starts Ronne
 the browser:
 
 ```sh
-curl -fsSL https://github.com/ronneai/ronne-marketplace/releases/latest/download/install.sh | sh
+curl -fsSL https://www.ronne.ai/install.sh | sh
 ```
 
 ```powershell
-irm https://github.com/ronneai/ronne-marketplace/releases/latest/download/install.ps1 | iex
+irm https://www.ronne.ai/install.ps1 | iex
 ```
 
-It installs the release it comes from, and never uses `sudo`. Run it again to upgrade: it keeps
+Both addresses redirect to the scripts in the
+[latest release](https://github.com/ronneai/ronne-marketplace/releases/latest), which also work
+directly (`…/releases/latest/download/install.sh`). It installs the release it comes from, and
+never uses `sudo`. Run it again to upgrade: it keeps
 your answers and asks before moving to a newer version. For scripts:
-`curl -fsSL …/install.sh | sh -s -- --yes --mode server --domain ronne.example.com`
-(PowerShell: `& ([scriptblock]::Create((irm …/install.ps1))) -Yes -Mode server -Domain …`).
+`curl -fsSL https://www.ronne.ai/install.sh | sh -s -- --yes --mode server --domain ronne.example.com`
+(PowerShell: `& ([scriptblock]::Create((irm https://www.ronne.ai/install.ps1))) -Yes -Mode server -Domain …`).
 To read it first, download `install.sh` and `checksums.txt` from the release, check them with
 `shasum -a 256 -c checksums.txt --ignore-missing`, then run `sh install.sh`.
 

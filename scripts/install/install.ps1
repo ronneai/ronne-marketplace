@@ -2,8 +2,9 @@
 Installs Ronne AI Marketplace with Docker, or upgrades an install (feature 081). Windows PowerShell
 5.1 and PowerShell 7.
 
-  irm https://github.com/ronneai/ronne-marketplace/releases/latest/download/install.ps1 | iex
-  & ([scriptblock]::Create((irm .../install.ps1))) -Yes -Mode server -Domain ronne.example.com
+  irm https://www.ronne.ai/install.ps1 | iex
+  (www.ronne.ai redirects to the latest release: https://github.com/ronneai/ronne-marketplace/releases/latest/download/install.ps1)
+  & ([scriptblock]::Create((irm https://www.ronne.ai/install.ps1))) -Yes -Mode server -Domain ronne.example.com
 
 It writes one folder (%USERPROFILE%\ronne-marketplace by default) with compose.yaml and .env,
 starts Ronne and opens it in the browser. It changes nothing outside that folder. PowerShell parses
