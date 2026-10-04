@@ -163,3 +163,14 @@ and under bash:
 - The docs tests pass, and so does `pnpm test:e2e` (84 tests).
 - The commands work from the first release that includes this feature: v0.2.0 has no install
   scripts attached.
+
+### Install commands from www.ronne.ai (2026-10-04)
+
+- The commands are now `https://www.ronne.ai/install.sh` and `/install.ps1`, which the site
+  redirects (307) to the latest release's assets (site feature 008, `ronneai/ronne-web`). The
+  release links stay in the docs as the direct source. This repository's tests and CI use only
+  the release and local files, never the website (owner).
+- The release notes carry the two commands.
+- `pnpm test:e2e`'s phone sweep failed when the release URL was inline code in a paragraph: a URL
+  with no spaces can't wrap, so `/docs/install` was 366 px wide at 360 px. It's in a code block
+  now, which scrolls on its own, as the docs already do for long addresses.
