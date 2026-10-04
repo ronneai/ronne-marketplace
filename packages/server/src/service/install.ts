@@ -366,7 +366,7 @@ export const installService = async (
   const address = publicAddress(plan, options.port);
   sys.out(
     [
-      `Ronne is running as a service (${plan.app.name}), started at boot and restarted if it stops.`,
+      `Ronne AI Marketplace is running as a service (${plan.app.name}), started at boot and restarted if it stops.`,
       `  Address:   ${address}`,
       ...(plan.proxy ? [`  Proxy:     ${plan.proxy.name}, Caddy on ports 80 and 443`] : []),
       `  Data:      ${layout.dataDir}`,

@@ -137,8 +137,8 @@ export const parseServiceArgs = (argv: string[]): ServiceCommand => {
   return { kind: "service", action };
 };
 
-export const SERVICE_HELP = `rmk-server service: run Ronne in the background, started at boot and restarted if it stops
-(systemd on Linux, launchd on macOS). Each command needs sudo, except status.
+export const SERVICE_HELP = `rmk-server service: run Ronne AI Marketplace in the background, started at boot and
+restarted if it stops (systemd on Linux, launchd on macOS). Each command needs sudo, except status.
 
 Usage:
   sudo rmk-server service install [--port N] [--host H] [--domain D [--tls T] [--email E]] [--user]
