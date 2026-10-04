@@ -191,4 +191,14 @@ and under bash:
   Windows PowerShell 5.1 and PowerShell 7) and both image jobs with the install probe passed. A
   broken script fails them: the first runs failed on a real bug (the Windows port check), and the
   probe fails locally with the port search broken on purpose.
+- **Fake Docker in `test-install.ps1`:** the same idea for Windows, as `docker.cmd` and `curl.cmd`
+  on Windows (shell scripts elsewhere), so the CI job runs `install.ps1` end to end under Windows
+  PowerShell 5.1 and PowerShell 7. It covers a stopped daemon, an old Compose, no Compose v2, a
+  fresh install, a rerun, a domain and back, a busy 7650 (a real `TcpListener`), a refused
+  downgrade, an upgrade, and the legacy rerun on 3000. `install.ps1` runs `curl.exe` by name, and a
+  `.cmd` can't stand in for an `.exe` on `PATH`, so it reads one more test variable,
+  `RONNE_INSTALL_CURL`. On PowerShell 7 for Linux (with curl installed: the image has none), every
+  case runs and passes. The `.cmd` fakes themselves run only on the Windows runner.
+- `[Uri]` gives an empty `AbsoluteUri` for a Unix path in .NET, so the test builds the `file://`
+  URL by hand.
 - **Still open:** task 3 (by hand on Windows 11) and task 4 (a dry-run release from `main`).
