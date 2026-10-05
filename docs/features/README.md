@@ -214,6 +214,7 @@ Work that changes every part of the web app rather than one milestone's features
 | [063](./063-my-submissions-data-table/SPEC.md) | My submissions on the server data table: paged instead of loading everything, status links counted by one query, sorted by last change or name, searched and filtered by type | 012, 013, 052, 055, 056, 057, 058, 060, 062 | done |
 | [064](./064-remove-scopes-page/SPEC.md) | Remove the Scopes page: `/scopes` and its nav entry go (404), links point to the Documentation; Admin › Scopes and `GET /api/v1/scopes` stay | 010, 061 | done |
 | [088](./088-docs-on-website/SPEC.md) | Documentation on the website: Docs and every helper's Learn more open `www.ronne.ai/marketplace/docs` in a new tab; the app's `/docs` pages go (their addresses redirect); the install scripts move to `www.ronne.ai/marketplace/install.sh` and `.ps1` | 033, 050 | done |
+| [089](./089-dependency-picker-rule/SPEC.md) | Who can be picked as a dependency: your own items in any state (draft, in review, approved, published), others' only once published, in the form, `@` and the canvas alike; another author's unreleased item no longer counts at submit | 031, 056 | specified |
 
 ### M12 — Easy install
 
@@ -233,3 +234,20 @@ without Docker); 086 → 087 (Windows without Docker).
 | [085](./085-unix-packages/SPEC.md) | Homebrew tap, `.deb` and `.rpm`: `brew install ronneai/tap/rmk-server`, packages that install the service; the install script's no-Docker path on macOS and Linux | 083, 084, 081 | done (Homebrew tap: later work) |
 | [086](./086-service-windows/SPEC.md) | Service on Windows: the same `service` subcommands through WinSW, `C:\ProgramData`, a virtual account, firewall rules, Caddy for `--domain` | 083, 084 | done (the owner's Windows 11 test later) |
 | [087](./087-windows-package/SPEC.md) | Windows installer and winget: `winget install RonneAI.Marketplace`, Inno Setup installer per architecture, the install script's no-Docker path on Windows; unsigned until SignPath Foundation signs it | 086, 084, 081 | specified |
+
+### M13 — Workspaces
+
+A level above scopes: **workspace › scope › item** (owner, 2026-10-05). A workspace has members,
+roles per workspace (moderator, user; root stays instance-wide) and a visibility, public or private.
+Every instance has `global` (public, reserved, can't be edited or removed), and every user is in it.
+Item names stay `@scope/name`: scope names stay unique across the instance, so `rmk`, lockfiles and
+plugin feeds don't change. Build order: 090 → 091 → 092 → 093 → 094 → 095.
+
+| ID | Feature | Depends on | Status |
+|---|---|---|---|
+| [090](./090-workspaces/SPEC.md) | Workspaces and the global workspace: `workspaces`, `scopes.workspace_id` (every scope in `global`), Admin › Workspaces, the workspace when creating a scope, the catalogue's Workspace filter | 010, 059, 061 | specified |
+| [091](./091-workspace-roles/SPEC.md) | Roles per workspace: `workspace_members`; moderator and user per workspace, root instance-wide; today's moderators become `global` moderators; every check made in the item's workspace; the review queue per workspace; submitting needs membership | 090, 014, 016, 059 | specified |
+| [092](./092-workspace-members/SPEC.md) | Workspace members: workspaces and roles when creating a user (`global` / user by default), a user's Workspaces dialog, a workspace's Members; nobody leaves `global`; audited | 090, 091, 008, 061 | specified |
+| [093](./093-private-workspaces/SPEC.md) | Private workspaces: seen only by members and root everywhere (not found to others), dependable only inside their workspace, turning private refused while outside items depend on it, plugin feeds per visibility key, `rmk feed build --workspace` | 090, 091, 092, 089, 018, 019, 020, 027, 077, 079 | specified |
+| [094](./094-workspace-access-requests/SPEC.md) | Asking to join: the Workspaces page, a join link for private ones, requests answered by root or the workspace's moderators, a nav count, audited | 090, 091, 092, 093, 007 | specified |
+| [095](./095-workspaces-cli-api/SPEC.md) | Workspaces in `rmk`, MCP and the API: `GET /api/v1/workspaces`, `workspace` on items and `me`, `rmk workspaces`, `search --workspace`, export grouped by workspace, MCP `list_workspaces` | 090, 091, 093, 094, 019, 022, 027, 038 | specified |
