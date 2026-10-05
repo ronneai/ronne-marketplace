@@ -91,10 +91,12 @@ prints it.
 ## Acceptance criteria
 
 - [ ] Each release has six archives and `checksums.txt`; each archive's Node download was verified.
-- [ ] On each platform's CI runner, the extracted archive runs `bin/rmk-server --version` and
+      The dry run (run 37246827526) built and verified all six; the GitHub release with them comes
+      with the first real release after 0.2.0.
+- [x] On each platform's CI runner, the extracted archive runs `bin/rmk-server --version` and
       starts to a health answer, with no Node.js installed on `PATH` (removed in the job).
-- [ ] The archives contain no dev dependencies or sources (an allowlist like `packages:check`).
-- [ ] `THIRD_PARTY_NOTICES` includes Node.js and every runtime dependency.
+- [x] The archives contain no dev dependencies or sources (an allowlist like `packages:check`).
+- [x] `THIRD_PARTY_NOTICES` includes Node.js and every runtime dependency.
 
 ## Open questions
 

@@ -108,3 +108,26 @@ prebuild fits; the spec's Windows arm64 edge case (a release needs all six); the
 names; then (re-check) 085's spec, which cited 2.28.
 **Not checked here:** a real release run and its page.
 **Overall:** met.
+
+## Task 2 — The dry-run release
+
+Witnessed: 2026-10-05, from GitHub (`gh`, read only), by a fresh agent. Run https://github.com/ronneai/ronne-marketplace/actions/runs/37246827526 (workflow_dispatch from `main` at `bc5a6aa8b7c1f4748a202bc692306ef5b20e914a`, tag v0.2.0, dry run; 00:15:55–00:35:39Z; attempt 1; success).
+
+| # | Claim | Verdict | Evidence (job → log lines) |
+|---|---|---|---|
+| 1 | A dry run from `main`, and it passed | confirmed | `tag: v0.2.0`, `dry_run: true`; all 9 jobs that ran succeeded; the image tag and the GitHub release were skipped. |
+| 2 | Nothing was published | confirmed | core, rmk and mcp 0.2.0 skipped as already on npm; `npm publish … --dry-run` for marketplace ("(dry-run)"); `npm view @ronneai/marketplace` → E404; both images `push: false`; the v0.2.0 GitHub release (2026-10-01) unchanged. |
+| 3 | Six bundles, each on its own runner | confirmed | ubuntu-24.04, ubuntu-24.04-arm, macos-15-intel, macos-15-arm64, windows-2025, windows-11-arm; `--version` names the matching platform. |
+| 4 | Each Node.js download verified | confirmed | Each job: "Node.js 24.21.0: …, SHA-256 … (matches SHASUMS256.txt)"; all six hashes equal nodejs.org's v24.21.0 `SHASUMS256.txt`, fetched by the witness. |
+| 5 | Each archive checked and smoke-tested with no Node on `PATH` | confirmed | In all six: "it holds only Node.js, the package and its dependencies…", "no Node.js on PATH", both `--version` lines, 503 → `setup --yes` → 200 with no restart, a token, the port freed, "runs with its own Node.js, none on PATH". |
+| 6 | The six archives are artifacts | confirmed | `bundle-*` × 6 (55–79 MB, kept 7 days); `bundle-linux-x64` downloaded: SHA-256 `7457080398ad…` equals the job's. |
+| 7 | The release job's checks | confirmed | lint 0 errors; typecheck 7/7; tests 8/8; build and `build:server`; 302 licences allowed; "No known vulnerabilities found"; `packages:check` (marketplace 1,794 files); `release:smoke` (4 packed); `server-tarball` uploaded. |
+| 8 | The GitHub release would attach all six only if all passed | confirmed (read; skipped here) | `needs: [release, manifest, bundles]` with the implicit `success()`; fails unless six; adds them to `checksums.txt` and re-checks. |
+
+**Not covered by a dry run:** the real GitHub release with the archives, `checksums.txt` and the
+notes; the real npm publish and image push.
+**Found for the next release:** the v0.2.0 GitHub release already exists, so a v0.2.0 run would
+attach no bundles: the first release with them needs a new version (now in the checklist); and
+`@ronneai/marketplace` has never been published (only dry runs), so its first publish needs the
+short-lived `NPM_TOKEN`.
+**Overall:** met. Task 2 is ticked in this commit.
