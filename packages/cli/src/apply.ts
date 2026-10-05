@@ -1,19 +1,19 @@
 import { createHash } from "node:crypto";
 import {
   existsSync,
-  mkdirSync,
+  lstatSync,
   readdirSync,
   readFileSync,
-  renameSync,
+  realpathSync,
   rmSync,
   statSync,
-  writeFileSync,
 } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, sep } from "node:path";
 import { sha256Hex } from "@ronneai/core/pack";
 import {
   type Change,
   canonicalJson,
+  pathProblem,
   section,
   sectionBegin,
   sectionEnd,
@@ -21,7 +21,7 @@ import {
 } from "@ronneai/core/render";
 import { parse as parseToml, stringify as stringifyToml } from "smol-toml";
 import { RmkError } from "./errors.js";
-import { writeJsonFile } from "./project.js";
+import { writeFileAtomic, writeJsonFile } from "./project.js";
 
 /**
  * Applying renderers' changes to disk (feature 022, cli-files.md, MVP §3.3). Nothing is written
@@ -42,6 +42,71 @@ export type StateEntry = {
 export type State = { version: 1; entries: StateEntry[] };
 
 export const emptyState = (): State => ({ version: 1, entries: [] });
+
+/**
+ * Why rmk won't touch `path` under `root`, or null when it may. Every path rmk writes, edits or
+ * deletes is relative and stays in the folder (no `..`, no absolute path, `/` only), whatever a
+ * state file or a renderer says: a committed `.rmk/state.json` is anyone's to edit (security audit
+ * ITEM-1, 2026-10-05). With `contain` (project scope), the real path, through any symbolic link a
+ * repository may commit, must stay in the project too. User scope doesn't: its state file is
+ * rmk's own, and `~/.claude` may well be a link to a dotfiles folder.
+ */
+export const unsafePath = (root: string, path: string, contain = false): string | null => {
+  const problem = typeof path === "string" ? pathProblem(path) : "isn't a path";
+  if (problem) return problem;
+  if (!contain) return null;
+  // The deepest part of the path that's there, a link itself included (existsSync would look
+  // through a link to nothing and stop above it).
+  const there = (at: string) => {
+    try {
+      lstatSync(at);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  let at = join(root, path);
+  while (!there(at) && dirname(at) !== at) at = dirname(at);
+  const base = realpathSync(root);
+  let real: string;
+  try {
+    real = realpathSync(at);
+  } catch {
+    return "is a symbolic link to something that isn't there";
+  }
+  return real === base || real.startsWith(`${base}${sep}`)
+    ? null
+    : "leads outside its folder through a symbolic link";
+};
+
+/** Throws `unsafe_path` unless `path` and its real path stay inside `root` (see unsafePath). */
+export const mustStayInside = (
+  root: string,
+  path: string,
+  what: string,
+  where?: { folder: string; stateFile: string },
+) => mustBeSafe(root, path, true, what, where);
+
+/**
+ * Throws when rmk mustn't touch `path` (see unsafePath); `what` says who named it, `where` the
+ * folder and the state file that may have been edited.
+ */
+const mustBeSafe = (
+  root: string,
+  path: string,
+  contain: boolean,
+  what: string,
+  where = { folder: contain ? "the project" : "its folder", stateFile: ".rmk/state.json" },
+) => {
+  const problem = unsafePath(root, path, contain);
+  if (problem)
+    throw new RmkError(
+      `${what} ${String(path)}, which ${problem}. rmk only touches files inside ${where.folder}, so it changed nothing. If ${where.stateFile} names it, someone edited that file: remove the entry.`,
+      1,
+      "unsafe_path",
+      { path },
+    );
+};
 
 export const readState = (path: string): State => {
   if (!existsSync(path)) return emptyState();
@@ -220,6 +285,7 @@ export const diskHash = async (
   root: string,
   change: { kind: Change["kind"]; path: string; key?: string[] | string },
 ): Promise<string | null> => {
+  mustBeSafe(root, change.path, false, "It would read");
   const file = join(root, change.path);
   switch (change.kind) {
     case "file":
@@ -297,8 +363,15 @@ export const planChanges = async (
   root: string,
   state: State,
   wanted: Wanted[],
-  { force = false } = {},
+  { force = false, contain = false }: { force?: boolean; contain?: boolean } = {},
 ): Promise<Plan> => {
+  // Every place first: the state's entries and what the renderers want, a folder's files too.
+  for (const entry of state.entries) mustBeSafe(root, entry.path, contain, "The state file names");
+  for (const { item, change } of wanted)
+    for (const path of change.kind === "dir"
+      ? [change.path, ...change.files.map((file) => `${change.path}/${file.path}`)]
+      : [change.path])
+      mustBeSafe(root, path, contain, `${item} would write`);
   const plan: Plan = {
     writes: [],
     unchanged: [],
@@ -407,12 +480,8 @@ export const planChanges = async (
   return plan;
 };
 
-const writeAtomic = (file: string, content: Uint8Array | string, executable = false) => {
-  mkdirSync(dirname(file), { recursive: true });
-  const temp = `${file}.${process.pid}.tmp`;
-  writeFileSync(temp, content, { mode: executable ? 0o755 : 0o644 });
-  renameSync(temp, file);
-};
+const writeAtomic = (file: string, content: Uint8Array | string, executable = false) =>
+  writeFileAtomic(file, content, executable ? 0o755 : 0o644);
 
 const editJson = (root: string, path: string, edit: (value: JsonObject) => void) => {
   const file = join(root, path);
@@ -518,7 +587,16 @@ const remove = (root: string, entry: StateEntry) => {
 };
 
 /** Writes the plan's changes and removals, and returns the state to save. */
-export const applyPlan = (root: string, state: State, plan: Plan): State => {
+export const applyPlan = (
+  root: string,
+  state: State,
+  plan: Plan,
+  { contain = false }: { contain?: boolean } = {},
+): State => {
+  // Again just before touching the disk, with the plan as it is now.
+  for (const entry of plan.removes) mustBeSafe(root, entry.path, contain, "It would remove");
+  for (const { wanted } of plan.writes)
+    mustBeSafe(root, wanted.change.path, contain, "It would write");
   for (const entry of plan.removes) remove(root, entry);
   for (const { wanted } of plan.writes) write(root, wanted.change);
   const dropped = new Set([...plan.removes, ...plan.gone].map(identity));

@@ -126,6 +126,14 @@ What rmk wrote, so it can update or remove it without touching anything else (MV
 | `section` | A fenced `rmk:begin` / `rmk:end` block in a Markdown file | the text between the fences |
 
 - Paths are relative to the project root (or the home folder for user scope) and always use `/`.
+- **rmk only touches paths inside that folder** (2026-10-05). The file is committed, so anyone
+  with a commit can edit it: an entry (or a rendered change) whose path is absolute, has a drive
+  letter or `\`, or a `..`, `.` or empty segment stops `install`, `update` and `remove` with
+  `unsafe_path`, before anything is written, `--force` or not. In project scope the real path
+  must stay in the project too, so a committed symbolic link (`.claude` or `.rmk` pointing
+  elsewhere, or a link to nothing) stops it the same way. In user scope a linked folder (a dotfiles
+  `~/.claude`) is allowed: that state file is rmk's own. Each change and removal checks its path
+  again just before it's written.
 - One rendered file shared by several targets (for example `.agents/skills/<n>/` for Codex and
   Cursor) is one entry, and `targets` lists every renderer that uses it. The entry is removed only
   when no target needs it any more.

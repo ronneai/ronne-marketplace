@@ -20,11 +20,14 @@ import {
   type PluginTool,
   readPluginArchive,
 } from "@ronneai/core/plugins";
+import { pathProblem } from "@ronneai/core/render";
 import type { ApiClient } from "./api.js";
+import { mustStayInside } from "./apply.js";
 import { RmkError, usage } from "./errors.js";
 import { feedWorkflow } from "./feed-workflow.js";
 import type { Io } from "./io.js";
 import type { Output } from "./output.js";
+import { writeFileAtomic } from "./project.js";
 
 /**
  * `rmk feed build --out <dir> [--tools claude-code,codex,cursor] [--force]` (feature 078, contract
@@ -119,12 +122,34 @@ const stableJson = (value: unknown): string => {
   return `${JSON.stringify(sort(value), null, 2)}\n`;
 };
 
+/**
+ * A plugin's name is one folder under `plugins/<tool>/`: a single segment, no `..`, `/` or `\\`.
+ * Names come from the feed state file (anyone's to edit in a committed folder) and from the
+ * server, and rmk deletes and writes the folder they name (security audit ITEM-1, 2026-10-05).
+ */
+const pluginNameProblem = (name: unknown): string | null =>
+  typeof name !== "string" ? "isn't a name" : name.includes("/") ? "has a /" : pathProblem(name);
+
+const mustBePluginName = (name: unknown, where: string) => {
+  const problem = pluginNameProblem(name);
+  if (problem)
+    throw new RmkError(
+      `Nothing was written: ${where} names the plugin ${JSON.stringify(name)}, which ${problem}. rmk only writes plugins inside their folder.`,
+      1,
+      "unsafe_path",
+      { plugin: name },
+    );
+};
+
 const readState = (out: string): FeedState | null => {
   const path = join(out, FEED_STATE);
   if (!existsSync(path)) return null;
   try {
     const state = JSON.parse(readFileSync(path, "utf8")) as FeedState;
     if (state.version !== 1 || typeof state.tools !== "object" || !state.tools) throw new Error();
+    for (const tool of Object.values(state.tools))
+      for (const name of Object.keys(tool?.plugins ?? {}))
+        if (pluginNameProblem(name)) throw new Error();
     return state;
   } catch {
     throw new RmkError(
@@ -250,6 +275,7 @@ export const feedBuild = async (
       added: [],
       updated: [],
     };
+    for (const plugin of feed.plugins) mustBePluginName(plugin.name, `The ${tool} feed`);
     for (const plugin of [...feed.plugins].sort((a, b) => byName(a.name, b.name))) {
       const recorded = state?.plugins[plugin.name];
       const path = `plugins/${tool}/${plugin.name}`;
@@ -294,13 +320,24 @@ export const feedBuild = async (
     plans.push(plan);
   }
 
-  // 4. Write: whole plugin folders, the marketplace files, then the state.
+  // 4. Write: whole plugin folders, the marketplace files, then the state. First, every place it
+  // deletes or writes must stay in the folder, through any link a repository commits there
+  // (security audit ITEM-1, 2026-10-05).
+  const here = { folder: `the --out folder (${out})`, stateFile: FEED_STATE };
+  for (const plan of plans) {
+    for (const name of plan.remove)
+      mustStayInside(out, `plugins/${plan.tool}/${name}`, "It would remove", here);
+    for (const name of plan.write.keys())
+      mustStayInside(out, `plugins/${plan.tool}/${name}`, "It would write", here);
+    mustStayInside(out, plan.marketplace.path, "It would write", here);
+  }
+  mustStayInside(out, FEED_STATE, "It would write", here);
+  // Through a new file and a rename, which replaces a link rather than writing where it points.
   const writeIfChanged = (path: string, bytes: Uint8Array | string) => {
     const full = join(out, path);
     const next = typeof bytes === "string" ? new TextEncoder().encode(bytes) : bytes;
     if (existsSync(full) && sha256(readFileSync(full)) === sha256(next)) return;
-    mkdirSync(dirname(full), { recursive: true });
-    writeFileSync(full, next);
+    writeFileAtomic(full, next);
   };
   const next: FeedState = {
     version: 1,

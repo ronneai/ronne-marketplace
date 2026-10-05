@@ -18,6 +18,7 @@ import {
 import type { ApiClient } from "./api.js";
 import {
   applyPlan,
+  mustStayInside,
   type Plan,
   planChanges,
   readState,
@@ -284,7 +285,10 @@ export const prepareInstall = async (
   const kept = all.entries.filter((e) => e.item === MCP_SETUP_ITEM);
   // Every change carries every target the item was rendered for: a change two targets share is one entry.
   const wanted = wantedOf(rendered, (r) => r.targets);
-  const plan = await planChanges(root, state, wanted, { force: options.force });
+  const plan = await planChanges(root, state, wanted, {
+    force: options.force,
+    contain: options.scope === "project",
+  });
   return {
     resolution,
     rendered,
@@ -334,7 +338,11 @@ export const commitInstall = (io: Io, prepared: Prepared) => {
     });
   const { root, lock, state: statePath } = places(io, prepared.scope);
   const before = readLockfile(dirname(lock), basename(lock))?.items ?? {};
-  const next = applyPlan(root, prepared.state, prepared.plan);
+  // A committed `.rmk` link would take the state file elsewhere.
+  if (prepared.scope === "project") mustStayInside(root, ".rmk/state.json", "It would write");
+  const next = applyPlan(root, prepared.state, prepared.plan, {
+    contain: prepared.scope === "project",
+  });
   next.entries.push(...prepared.kept);
   mkdirSync(join(statePath, ".."), { recursive: true });
   writeState(statePath, next);

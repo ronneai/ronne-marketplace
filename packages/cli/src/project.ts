@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { RmkError } from "./errors.js";
@@ -36,12 +37,21 @@ const sortKeys = (_key: string, value: unknown) =>
     : value;
 
 /** Every rmk file: sorted keys, two spaces, a trailing newline, written whole through a rename. */
-export const writeJsonFile = (path: string, value: unknown) => {
+/**
+ * Writes a whole file through a new temporary file and a rename, which replaces a link at `path`
+ * rather than writing where it points. The temporary file has a random name and is created
+ * exclusively (`wx`), so a link a repository commits at a guessable name is never written through
+ * (security audit ITEM-1, 2026-10-05).
+ */
+export const writeFileAtomic = (path: string, content: Uint8Array | string, mode = 0o644) => {
   mkdirSync(dirname(path), { recursive: true });
-  const temp = `${path}.${process.pid}.tmp`;
-  writeFileSync(temp, `${JSON.stringify(value, sortKeys, 2)}\n`);
+  const temp = `${path}.${randomBytes(6).toString("hex")}.tmp`;
+  writeFileSync(temp, content, { mode, flag: "wx" });
   renameSync(temp, path);
 };
+
+export const writeJsonFile = (path: string, value: unknown) =>
+  writeFileAtomic(path, `${JSON.stringify(value, sortKeys, 2)}\n`);
 
 const readJson = <T>(path: string, what: string): T | null => {
   if (!existsSync(path)) return null;
