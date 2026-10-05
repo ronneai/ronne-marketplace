@@ -25,6 +25,7 @@ const registry = (
     (submissions[`@${scope}/${name}`] ?? []).map((s, i) => ({
       id: `${name}#${i}`,
       type: "skill",
+      authorId: "me",
       proposal: false,
       dependencies: {},
       ...s,

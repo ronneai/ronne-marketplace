@@ -340,8 +340,8 @@ describe("an approval is for the revision its reviewer read (security audit AUTH
 });
 
 describe("rejecting a dependency (056)", () => {
-  /** A bundle depending on @team/style, submitted by `headers`. */
-  const dependent = async (name: string, headers = asAuthor) => {
+  /** A bundle depending on @team/style (or `on`), submitted by `headers`. */
+  const dependent = async (name: string, headers = asAuthor, on = "style") => {
     const draft = await createDraft(headers, { scope: "team", name, type: "bundle" }, app);
     const manifest = draft.files.find((f) => f.path === "ronne.yaml");
     await saveDraftFiles(
@@ -352,7 +352,7 @@ describe("rejecting a dependency (056)", () => {
           {
             path: "ronne.yaml",
             encoding: "utf8",
-            content: `name: "@team/${name}"\ntype: bundle\ndescription: A set.\ndependencies:\n  "@team/style": "^1.0.0"\n`,
+            content: `name: "@team/${name}"\ntype: bundle\ndescription: A set.\ndependencies:\n  "@team/${on}": "^1.0.0"\n`,
             executable: false,
             loadedAt: manifest?.updatedAt ?? null,
           },
@@ -365,10 +365,38 @@ describe("rejecting a dependency (056)", () => {
     return draft.id;
   };
 
+  /**
+   * Another author's bundle depending on @team/style while it's in review. Since 089 that can't be
+   * submitted; it's left from before, so it's made on the author's own rule and pointed at
+   * @team/style in its revision.
+   */
+  const leftOver = async (name: string, headers: Headers) => {
+    await submitted(headers, `${name}-base`);
+    const id = await dependent(name, headers, `${name}-base`);
+    const revision = await t.db
+      .selectFrom("submission_revisions")
+      .select("id")
+      .where("submission_id", "=", id)
+      .executeTakeFirstOrThrow();
+    const file = await t.db
+      .selectFrom("submission_revision_files")
+      .select("content")
+      .where("revision_id", "=", revision.id)
+      .where("path", "=", "ronne.yaml")
+      .executeTakeFirstOrThrow();
+    await t.db
+      .updateTable("submission_revision_files")
+      .set({ content: file.content.replace(`@team/${name}-base`, "@team/style") })
+      .where("revision_id", "=", revision.id)
+      .where("path", "=", "ronne.yaml")
+      .execute();
+    return id;
+  };
+
   it("lists the open submissions that depend on it, and who may send each back", async () => {
     const style = await submitted();
     const kit = await dependent("kit");
-    const mods = await dependent("mods", asModerator);
+    const mods = await leftOver("mods", asModerator);
     expect(
       (await listDependents(asModerator, style, app)).map((d) => [d.id, d.name, d.sendBack]),
     ).toEqual([
@@ -384,7 +412,7 @@ describe("rejecting a dependency (056)", () => {
     const kit = await dependent("kit");
     const approved = await dependent("approved-kit");
     await decide(asModerator2, approved, { decision: "approve" }, app);
-    const mods = await dependent("mods", asModerator);
+    const mods = await leftOver("mods", asModerator);
     const fixing = await dependent("fixing");
     await decide(asModerator2, fixing, { decision: "request_changes", message: "Later." }, app);
 

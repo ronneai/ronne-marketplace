@@ -31,3 +31,40 @@ still required. Fixed in this commit: the scan is capped at `API_PAGE_MAX` (100)
 only, while published ones also match their description and keywords (noted in the plan for task 3).
 **Overall:** met. The repository method, the service and the db tests do what task 1 asks, on all
 four databases.
+
+## Task 2 — The check at submit
+
+Witnessed: 2026-10-05 19:23–19:27 EDT, by a fresh agent. Machine: macOS 27.0.1 (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|
+| 1 | `dependencyIssues` requires the submitter and counts only their own open submissions; another author's alone gives `dependency_not_published` with the exact message | confirmed | `input.authorId: string` required; with no item and nothing pending the order is `dependency_closed`, `dependency_not_published`, `dependency_not_found`; `DependencyNotPublishedError` says "… isn't released yet. You can depend on someone else's item once it's published."; asserted in the unit test (`@infra/deploy`, `@infra/ready`, `@team/shared`) and the db test (`submitDraft` throws). |
+| 2 | Both open: the submitter's counts (`dependency_pending`) | confirmed | Unit test `@team/both` → `["dependency_pending"]`. |
+| 3 | A published item with only another author's proposal open: the published versions decide at submit | confirmed | `@team/github` `^1.0.0` → `[]`, `^2.0.0` → `["dependency_range"]`. |
+| 4 | Rejected or withdrawn with nobody open stays `dependency_closed`; nothing gives `dependency_not_found` | confirmed | `closed` still from anyone's open; 056's tests pass. |
+| 5 | Resubmit runs the same check; release unchanged | partly | Resubmit: `submitDraft` handles both through `allIssues` → `registryIssues` (same path); no test resubmits one. Release: a left-over dependency on another author's item gave `dependency_not_published` instead of 056's `dependency_unreleased` (see the re-check). |
+| 6 | Every caller passes the right author | confirmed | `registryIssues` → `submission.authorId` (submit, resubmit, release, upload advice); composer → the actor; bulk submit's in-batch lookup → the draft's author (the actor's own), and `bulk-submit.db.test.ts` "includes the person's own dependency drafts" still passes. |
+| 7 | "Already in review" untouched: marks and a rejected dependency's dependents | confirmed | `dependency-marks.ts` and `reviews.ts` unchanged; the `leftOver` helper rewrites a submitted revision's `ronne.yaml`, which is exactly what marks and dependents read, so it fairly stands for a submission from before 089. |
+| 8 | Tests pass on the four databases | confirmed | SQLite unit + db: 314 passed; PostgreSQL, MySQL, MariaDB: 164 each. |
+| 9 | typecheck and lint | confirmed | typecheck 7/7; lint 0 errors (43 warnings, as on main). |
+
+**Not checked here:** the full `pnpm test` and `pnpm build` (the pre-commit hook runs them); an actual
+resubmit of a `changes_requested` submission; the canvas (task 3).
+**Differences from the notes:** release wasn't exactly unchanged (claim 5), and the cycle walk at
+submit stopped at another author's open submission, so a cycle through a left-over could go
+unreported. Both fixed before the commit; see the re-check.
+**Overall:** met apart from claim 5, fixed below.
+
+### Re-check after fixes
+
+Witnessed: 2026-10-05 19:30–19:33 EDT, by a fresh agent.
+
+| # | Claim | Verdict | Evidence |
+|---|---|---|---|
+| 1 | `OnItsWay` has `anyOpen` and `mine`; `pending` is `(release ? anyOpen : mine)[0]`; `dependency_not_published` only when nothing is pending and someone else's is open; the cycle walk uses `anyOpen` | confirmed | `git diff` of `registry-checks.ts` shows exactly that; `next()` gives `anyOpen[0]?.dependencies` at submit and `null` at release, as before. |
+| 2 | Tests for (a) release with another author's open → `dependency_unreleased`, (b) a cycle through another author's open → `dependency_cycle`; the earlier 089 cases hold | confirmed | Both new tests fail if the fix is undone (with `mine` at release, (a) gives not_published; with `mine` in `next()`, (b) finds no cycle). The earlier cases still pass. |
+| 3 | At release, a published item with only another author's proposal and an unmatched range | confirmed (same as before 089) | Gives `dependency_unreleased`, as at HEAD. Not tested then; an assertion pinning it (`@team/github` `^2.0.0` at release) was added in this commit. |
+| 4 | Tests, typecheck, lint | confirmed | SQLite 315 passed; PostgreSQL, MySQL, MariaDB 164 each; typecheck 7/7; lint 0 errors. |
+
+**Overall:** both gaps fixed. A release goes by anyone's open submission, as in 056; the cycle walk
+goes through any author's; 089's submit rule is unchanged.

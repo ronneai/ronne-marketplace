@@ -42,6 +42,7 @@ export const kyselyRegistryLookup = (
           "submissions.status",
           "submissions.type",
           "submissions.item_id",
+          "submissions.author_id",
           "submissions.updated_at",
         ])
         .where("scopes.name", "=", scope)
@@ -73,6 +74,7 @@ export const kyselyRegistryLookup = (
             id: row.id,
             status: row.status as NamedSubmission["status"],
             type: row.type as NamedSubmission["type"],
+            authorId: row.author_id,
             proposal: row.item_id !== null,
             dependencies: (parsed?.dependencies ?? {}) as Record<string, string>,
           };

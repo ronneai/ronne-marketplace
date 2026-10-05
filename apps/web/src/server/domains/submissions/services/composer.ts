@@ -60,6 +60,7 @@ export const dependencyReports = async (
       itemName: String(input.itemName),
       type: input.type,
       dependencies: { [name]: range },
+      authorId: actor.user?.id ?? "",
     });
     reports.push([
       name,

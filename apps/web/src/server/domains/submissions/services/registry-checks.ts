@@ -12,6 +12,7 @@ import {
   DependencyClosedError,
   DependencyCycleError,
   DependencyNotFoundError,
+  DependencyNotPublishedError,
   DependencyRangeUnmatchedError,
   DependencyTypeNotAllowedError,
   DependencyUnreleasedError,
@@ -90,8 +91,16 @@ export const wayLabel = (status: NamedSubmission["status"]): string =>
       ? "back with its author for changes"
       : status;
 
-/** A dependency on its way (056): the name's open submissions, or why there's none. */
-type OnItsWay = { open: NamedSubmission[]; closed: "rejected" | "withdrawn" | null };
+/**
+ * A dependency on its way (056): the name's open submissions (anyone's, which the cycle walk and a
+ * release go by), the submitter's own (which count at submit since 089), and why it's closed when
+ * nobody's is open.
+ */
+type OnItsWay = {
+  anyOpen: NamedSubmission[];
+  mine: NamedSubmission[];
+  closed: "rejected" | "withdrawn" | null;
+};
 
 const warning = (code: string, message: string): ManifestIssue => ({
   severity: "warning",
@@ -110,11 +119,18 @@ const warning = (code: string, message: string): ManifestIssue => ({
  * Since 056, at submit (`release: false`), a dependency that isn't released but has an open
  * submission is on its way: it passes with a warning, its type is the submission's, and the range
  * waits for the release, where it's checked (`release: true`) against the version it got. A draft
- * doesn't count; a rejected or withdrawn one says so.
+ * doesn't count; a rejected or withdrawn one says so. Since 089, only the submitter's own open
+ * submission counts: another author's item is a dependency once it's published.
  */
 export const dependencyIssues = async (
   registry: RegistryLookup,
-  input: { itemName: string; type: ItemType; dependencies: Readonly<Record<string, string>> },
+  input: {
+    itemName: string;
+    type: ItemType;
+    dependencies: Readonly<Record<string, string>>;
+    /** The submitter: their own open submissions count before release (089). */
+    authorId: string;
+  },
   options: { release?: boolean } = {},
 ): Promise<ManifestIssue[]> => {
   const cache = new Map<string, Resolved | null>();
@@ -142,12 +158,13 @@ export const dependencyIssues = async (
     if (known) return known;
     const parsed = parseItemName(dependency);
     const all = parsed ? await registry.submissionsNamed(parsed.scope, parsed.name) : [];
-    const open = all.filter((s) => OPEN_STATUSES.includes(s.status));
+    const anyOpen = all.filter((s) => OPEN_STATUSES.includes(s.status));
     const newest = all[0]?.status;
     const way: OnItsWay = {
-      open,
+      anyOpen,
+      mine: anyOpen.filter((s) => s.authorId === input.authorId),
       closed:
-        open.length === 0 && (newest === "rejected" || newest === "withdrawn") ? newest : null,
+        anyOpen.length === 0 && (newest === "rejected" || newest === "withdrawn") ? newest : null,
     };
     ways.set(dependency, way);
     return way;
@@ -158,8 +175,12 @@ export const dependencyIssues = async (
     const parsed = parseItemName(dependency);
     const item = parsed ? await registry.findItem(parsed.scope, parsed.name) : null;
     const resolved = item ? await resolve(dependency, range) : null;
-    const way = resolved ? { open: [], closed: null } : await onItsWay(dependency);
-    const pending = way.open[0];
+    const way: OnItsWay = resolved
+      ? { anyOpen: [], mine: [], closed: null }
+      : await onItsWay(dependency);
+    // At submit only the submitter's own counts (089); a release refuses anything unreleased (056).
+    const pending = (options.release ? way.anyOpen : way.mine)[0];
+    const othersOnly = !pending && way.anyOpen.length > 0;
     if (!item && !pending) {
       issues.push(
         way.closed
@@ -168,7 +189,17 @@ export const dependencyIssues = async (
               new DependencyClosedError(dependency, way.closed),
               "/dependencies",
             )
-          : issue("dependency_not_found", new DependencyNotFoundError(dependency), "/dependencies"),
+          : othersOnly
+            ? issue(
+                "dependency_not_published",
+                new DependencyNotPublishedError(dependency),
+                "/dependencies",
+              )
+            : issue(
+                "dependency_not_found",
+                new DependencyNotFoundError(dependency),
+                "/dependencies",
+              ),
       );
       continue;
     }
@@ -230,7 +261,7 @@ export const dependencyIssues = async (
   const next = async (dependency: string, range: string) => {
     const resolved = await resolve(dependency, range);
     if (resolved) return resolved.version.dependencies;
-    return options.release ? null : ((await onItsWay(dependency)).open[0]?.dependencies ?? null);
+    return options.release ? null : ((await onItsWay(dependency)).anyOpen[0]?.dependencies ?? null);
   };
   const done = new Set<string>();
   const walk = async (
@@ -292,6 +323,7 @@ export const registryIssues = async (
         itemName: itemNameOf(submission),
         type: submission.type,
         dependencies,
+        authorId: submission.authorId,
       },
       options,
     )),

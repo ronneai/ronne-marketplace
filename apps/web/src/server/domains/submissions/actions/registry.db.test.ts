@@ -57,8 +57,9 @@ const draftWith = async (
   name: string,
   type: "skill" | "agent" | "mcp-server",
   manifest: string,
+  headers = asAuthor,
 ) => {
-  const draft = await createDraft(asAuthor, { scope: "team", name, type }, app);
+  const draft = await createDraft(headers, { scope: "team", name, type }, app);
   const at = (path: string) => draft.files.find((f) => f.path === path)?.updatedAt ?? null;
   const writes = [
     {
@@ -78,16 +79,17 @@ const draftWith = async (
       executable: false,
       loadedAt: skill.updatedAt,
     });
-  await saveDraftFiles(asAuthor, draft.id, { writes, deletes: [] }, app);
+  await saveDraftFiles(headers, draft.id, { writes, deletes: [] }, app);
   return draft.id;
 };
 
 /** An MCP server draft, not submitted. */
-const serverDraft = (name: string) =>
+const serverDraft = (name: string, headers = asAuthor) =>
   draftWith(
     name,
     "mcp-server",
     `name: "@team/${name}"\ntype: mcp-server\ndescription: Something.\nmcp-server:\n  transport: stdio\n  command: npx\n`,
+    headers,
   );
 
 /** Publishes an MCP server as 1.0.0. */
@@ -172,6 +174,31 @@ describe("registry checks against published items", () => {
   });
 });
 
+describe("only your own items count before release (089)", () => {
+  it("refuses another author's item in review at submit (resubmit runs the same checks)", async () => {
+    const github = await serverDraft("github", asModerator);
+    await submitDraft(asModerator, github, app);
+    const reviewer = await skillNeeding("reviewer", '  "@team/github": "^1.0.0"\n');
+    expect(await checkSubmission(asAuthor, reviewer, app)).toEqual([
+      expect.objectContaining({
+        severity: "error",
+        code: "dependency_not_published",
+        message:
+          "@team/github isn't released yet. You can depend on someone else's item once it's published.",
+      }),
+    ]);
+    await expect(submitDraft(asAuthor, reviewer, app)).rejects.toThrow();
+    expect(await codes(reviewer)).toEqual(["dependency_not_published"]);
+  });
+
+  it("passes your own item in review, with 056's warning", async () => {
+    const github = await serverDraft("github");
+    await submitDraft(asAuthor, github, app);
+    const reviewer = await skillNeeding("reviewer", '  "@team/github": "^1.0.0"\n');
+    expect(await codes(reviewer)).toEqual(["dependency_pending"]);
+  });
+});
+
 describe("dependencies on their way (056)", () => {
   const storage = () => localStorage(storageRoot);
 
@@ -183,7 +210,14 @@ describe("dependencies on their way (056)", () => {
     const reviewer = await skillNeeding("reviewer", '  "@team/github": "^1.0.0"\n');
     await submitDraft(asAuthor, reviewer, app);
     expect(await lookup.submissionsNamed("team", "github")).toEqual([
-      { id: draft, status: "submitted", type: "mcp-server", proposal: false, dependencies: {} },
+      {
+        id: draft,
+        status: "submitted",
+        type: "mcp-server",
+        authorId: expect.any(String),
+        proposal: false,
+        dependencies: {},
+      },
     ]);
     expect(await lookup.submissionsNamed("team", "reviewer")).toEqual([
       expect.objectContaining({ dependencies: { "@team/github": "^1.0.0" } }),

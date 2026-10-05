@@ -15,7 +15,7 @@ the same change that completes it.
   *Done when:* `dependency-search` db tests cover mine in each state, others' open (not offered),
   others' published (offered) and my published item past the catalogue's top 12.
 
-- [ ] **2. The check at submit.** `dependencyIssues` (`services/registry-checks.ts`) counts an
+- [x] **2. The check at submit.** `dependencyIssues` (`services/registry-checks.ts`) counts an
   unreleased dependency only when its open submission's author is the submitter; another author's
   gives the new error code `dependency_not_published`. Resubmit runs the same check; release is
   unchanged.
@@ -46,3 +46,8 @@ goes into `SPEC.md` instead.
   items (`listOwnUnreleased`) match by `@scope/name` only, since a draft's description lives in its
   `ronne.yaml`; published ones also match description and keywords. Task 3 decides whether the
   canvas needs more.
+- **Task 2.** `dependencyIssues` takes the submitter (`authorId`). At submit, only their own open
+  submission counts; at release, and in the cycle walk, anyone's still does, as in 056, so a
+  submission left from before 089 is refused at release with "Release it first" as before.
+  `NamedSubmission` carries `authorId`. The review tests make a left-over with `leftOver`, which
+  rewrites a submitted revision's `ronne.yaml`, since 089 no longer lets one be submitted.

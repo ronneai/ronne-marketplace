@@ -126,6 +126,15 @@ export class DependencyClosedError extends SubmissionsError {
   }
 }
 
+/** At submit (089), a dependency that's only another author's open submission. */
+export class DependencyNotPublishedError extends SubmissionsError {
+  constructor(readonly dependency: string) {
+    super(
+      `${dependency} isn't released yet. You can depend on someone else's item once it's published.`,
+    );
+  }
+}
+
 /** At release (056), a dependency still in review: it's released first. */
 export class DependencyUnreleasedError extends SubmissionsError {
   constructor(
