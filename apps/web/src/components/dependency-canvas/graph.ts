@@ -50,6 +50,7 @@ export const toGraph = ({
             name,
             range: dependencies[name] ?? "",
             facts: report?.facts,
+            status: report?.status ?? null,
             problems: [...rangeProblems(name, issues), ...(report?.problems ?? [])],
           },
         };

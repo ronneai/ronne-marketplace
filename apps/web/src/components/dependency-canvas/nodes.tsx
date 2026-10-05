@@ -10,7 +10,7 @@ import { touchFieldClasses } from "@/components/ui/Field";
 import { TypeBadge } from "@/components/ui/TypeBadge";
 import { CodeText } from "@/components/validation/IssueList";
 import { useComposer } from "./context";
-import type { DependencyNodeData, ItemNodeData } from "./types";
+import type { DependencyNodeData, ItemNodeData, UnreleasedStatus } from "./types";
 
 export type ItemFlowNode = Node<ItemNodeData, "item">;
 export type DependencyFlowNode = Node<DependencyNodeData, "dependency">;
@@ -31,12 +31,35 @@ export const ItemNode = ({ data }: NodeProps<ItemFlowNode>) => (
   </div>
 );
 
-/** What the catalogue knows of a dependency, or that it doesn't know it. */
-export const DependencyFactsLine = ({ facts }: { facts: DependencyNodeData["facts"] }) =>
+/** How one of the person's own items on its way reads on a badge (089), as in 056's marks. */
+export const unreleasedLabel = (status: UnreleasedStatus): string =>
+  status === "draft"
+    ? "draft, yours"
+    : status === "submitted"
+      ? "in review, yours"
+      : status === "changes_requested"
+        ? "back for changes, yours"
+        : "pending release, yours";
+
+/**
+ * What the catalogue knows of a dependency, or that it doesn't know it. One of the person's own on
+ * its way shows its status (amber, as 056's marks) instead of "not published" (089).
+ */
+export const DependencyFactsLine = ({
+  facts,
+  status,
+}: {
+  facts: DependencyNodeData["facts"];
+  status?: DependencyNodeData["status"];
+}) =>
   facts === undefined ? (
     <span className="font-mono text-[11px] text-muted">Checking the catalogue…</span>
   ) : facts === null ? (
-    <Badge tone="error">not published</Badge>
+    status ? (
+      <Badge tone="warning">{unreleasedLabel(status)}</Badge>
+    ) : (
+      <Badge tone="error">not published</Badge>
+    )
   ) : (
     <>
       <TypeBadge type={facts.type} />
@@ -151,7 +174,7 @@ export const DependencyNode = ({ data, selected }: NodeProps<DependencyFlowNode>
       <div className="grid min-w-0 gap-1.5">
         <DependencyName name={data.name} />
         <div className="flex flex-wrap items-center gap-1.5">
-          <DependencyFactsLine facts={data.facts} />
+          <DependencyFactsLine facts={data.facts} status={data.status} />
         </div>
       </div>
       <RemoveButton name={data.name} />

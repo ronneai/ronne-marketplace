@@ -63,8 +63,17 @@ their place: the rule is checked again only when they're resubmitted or released
 nothing changes, because a dependency had to be released then anyway. Their marks (056's "Waits
 on") stay until the dependency is released.
 
-**The canvas** gets a status badge on unreleased nodes and the same search (`@scope/name`,
-description, keywords).
+**The canvas.** Its picker's first page starts with your own items, as the list above (your
+published ones, then your drafts and open submissions), then pages through others' published items,
+newest first, as before; what the first page showed as yours isn't repeated later. Published items
+match the name, description and keywords; your unreleased ones match `@scope/name` only, since a
+draft's description is still in its `ronne.yaml`. An unreleased item shows an amber badge instead of
+a version ("draft, yours", "in review, yours", "back for changes, yours", "pending release, yours"),
+and a published one of yours says "v1.4.0, yours". On the canvas, a node for one of your own
+unreleased items shows the same badge instead of the red "not published". Under an open submission of
+yours, 056's "isn't released yet; it's in review" warning isn't repeated. A draft of yours keeps its
+problem ("isn't a published item or in review. Submit it first"): the editor's Submit refuses it until
+it's submitted, or submitted together in bulk (056), and its type and cycle are checked only then.
 
 ## Edge cases
 

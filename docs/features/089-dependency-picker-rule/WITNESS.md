@@ -68,3 +68,54 @@ Witnessed: 2026-10-05 19:30–19:33 EDT, by a fresh agent.
 
 **Overall:** both gaps fixed. A release goes by anyone's open submission, as in 056; the cycle walk
 goes through any author's; 089's submit rule is unchanged.
+
+## Task 3 — The canvas
+
+Witnessed: 2026-10-05 19:40–19:45 EDT, by a fresh agent. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|
+| 1 | The picker's first page: your own items first (published whatever their rank, then drafts and open submissions), then others' published; later pages don't repeat yours; others' unreleased never | confirmed, with differences | `searchDependencies` uses the shared `ownDependencies`, puts `mine` only on the page without a cursor and drops those names from every catalogue page; the db test checks the order, no repeat across pages, and root's draft and submission absent. |
+| 2 | Unreleased entries carry status and `mine`, version `1.0.0`, no tools; adding one writes `^1.0.0` | confirmed | `ComposerView.tsx:72` → `startingRange("1.0.0")` = `^1.0.0`; asserted in the db test. |
+| 3 | `dependencyReports` gives your own unreleased one its status, drops 056's `dependency_pending` only for those; another author's gets `status: null` and the not-published problem | confirmed | Exact-name lookup through `listOwnUnreleased`, only when the catalogue doesn't list it; db test for `tone`, `house` and `theirs`. |
+| 4 | Node and panel: amber badge with the status for your own unreleased, red "not published" otherwise; picker shows "vX, yours" or the badge; the item page's canvas unchanged | confirmed | `Badge tone="warning"` (tokens) in `DependencyFactsLine`, passed `status` by the node and the panel; the item page's reports have no status, so it's red as before. |
+| 5 | Tests, typecheck, lint | confirmed | 565 passed (SQLite, unit + db); 166 each on PostgreSQL, MySQL, MariaDB; typecheck 7/7; lint 0 errors. |
+| 6 | No regressions in other users of the changed types | confirmed | `drag.ts` checks only `name` and `version`, so old and new dragged shapes behave the same; `ComposerDeps` is built only in `actions/composer.ts`. |
+
+**Not checked here:** the app in a browser and the end-to-end tests (task 4); the Documentation
+(task 5); the full `pnpm test` and `pnpm build` (the pre-commit hook runs them).
+**Differences from the notes:** the canvas's first page can hold more than 12 (12 of yours
+published, 12 unreleased, 12 others'), while the form caps the total at 12; the draft's own name is
+left out in the browser, as before. A node for your own **draft** showed the amber badge beside a
+red "isn't a published item or in review" problem. Changed, then put back (see both re-checks).
+**Overall:** met.
+
+### Re-check after fixes
+
+Witnessed: 2026-10-05 19:45 EDT, by a fresh agent. The fix under test hid "not found" for your own
+draft and labelled it "draft: submitted with this item".
+
+| # | Claim | Verdict | Evidence |
+|---|---|---|---|
+| 1 | Only those two codes dropped, only for your own unreleased items | partly | For a draft, `dependencyIssues` stops at `dependency_not_found` (no type check, no cycle walk), so hiding it left a draft of a disallowed type, or one closing a cycle, with no problem at all. |
+| 2 | Tests pin it | confirmed | db and component tests passed on all four databases. |
+| 3 | "submitted with this item" is true | not met | The editor's Submit (`submitDraftAction` → `submitDraft`) refuses a draft whose dependency is the author's draft; only bulk submit (056) includes it. |
+| 4 | SPEC matches the code | confirmed, with #3's caveat | |
+| 5 | typecheck, lint | confirmed | |
+
+**Overall:** not met; the fix was undone (below).
+
+### Re-check after the draft fix was undone
+
+Witnessed: 2026-10-05 19:50, by a fresh agent.
+
+| # | Claim | Verdict | Evidence |
+|---|---|---|---|
+| 1 | Only `dependency_pending` is dropped, only for your own unreleased item (exact name, lookup limit 100); a draft keeps "not found"; others' and published items unfiltered; own open submissions keep type, range and cycle problems | confirmed | `services/composer.ts` filter `!(own && code === "dependency_pending")`; db test: `house` keeps "…isn't a published item or in review. Submit it first…", `tone` has none, `theirs` keeps "isn't released yet…". |
+| 2 | The spec's canvas paragraph matches the code and is right about Submit | confirmed | `submitDraft` throws on `dependency_not_found`; bulk submit includes your own dependency drafts first. |
+| 3 | Tests, typecheck, lint | confirmed | 565 passed; 166 each on PostgreSQL, MySQL, MariaDB; typecheck 7/7; lint 0 errors. |
+| 4 | The rest of task 3 | confirmed | Order, paging, `^1.0.0`, badges and the item page as in the first table. |
+
+**Overall:** met. Risks noted in the plan: two of your own submissions with one name (the newest
+gives the badge); more than 100 of your unreleased items matching a name; one query per unpublished
+dependency.

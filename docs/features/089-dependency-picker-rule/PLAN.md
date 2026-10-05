@@ -22,7 +22,7 @@ the same change that completes it.
   *Done when:* registry-check tests cover mine (warning), others' (error), and released (passes),
   on the four databases (`pnpm test:db:up`).
 
-- [ ] **3. The canvas.** `searchDependencies` (`services/composer.ts`) returns the same options as
+- [x] **3. The canvas.** `searchDependencies` (`services/composer.ts`) returns the same options as
   task 1, and the canvas shows the status badge on unreleased nodes.
   *Done when:* composer tests and the canvas component test pass.
 
@@ -51,3 +51,10 @@ goes into `SPEC.md` instead.
   submission left from before 089 is refused at release with "Release it first" as before.
   `NamedSubmission` carries `authorId`. The review tests make a left-over with `leftOver`, which
   rewrites a submitted revision's `ronne.yaml`, since 089 no longer lets one be submitted.
+- **Task 3.** The canvas's first page holds your own items (up to 12 published, 12 unreleased) and
+  then a page of others', so it can be longer than the form's 12; later pages are others' only.
+  Your own published items past the first 12 come back on later pages without "yours". Each
+  unpublished dependency costs one `listOwnUnreleased` query in `dependencyReports` (at most 50 per
+  request). A node for your own draft keeps "Submit it first" beside its amber badge, because the
+  editor's Submit does refuse it; only bulk submit (056) takes both. 056's form calls such a draft
+  "submitted with this item", which is true only in bulk: not changed here.

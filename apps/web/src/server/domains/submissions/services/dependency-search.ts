@@ -4,7 +4,7 @@ import type { CurrentUser } from "../../identity/models/user";
 import type { CatalogueEntry } from "../../items/models/catalogue";
 import type { CatalogueRepository } from "../../items/repositories/catalogue-repository";
 import { API_PAGE_MAX, CATALOGUE_SEARCH_MAX_LENGTH } from "../../items/services/catalogue";
-import { itemNameOf } from "../models/submission";
+import { itemNameOf, type Submission } from "../models/submission";
 import type { RegistryLookup } from "../repositories/registry-lookup";
 import type { SubmissionRepository } from "../repositories/submission-repository";
 
@@ -34,6 +34,34 @@ export type DependencySearchDeps = {
 
 /** How many options the list shows at a time. */
 export const DEPENDENCY_OPTIONS_MAX = 12;
+
+/**
+ * The person's own items for a picker (089): the ones they first published, whatever their rank in
+ * the catalogue, and their drafts and open submissions (not proposals), newest change first.
+ */
+export const ownDependencies = async (
+  deps: Pick<DependencySearchDeps, "repo" | "catalogue">,
+  authorId: string,
+  query: { types: readonly ItemType[]; q: string; limit: number },
+): Promise<{ published: CatalogueEntry[]; unreleased: Submission[] }> => ({
+  published:
+    query.types.length === 0
+      ? []
+      : await deps.catalogue.list({
+          search: query.q || undefined,
+          types: query.types,
+          installable: true,
+          ownerId: authorId,
+          sort: "recent",
+          limit: query.limit,
+        }),
+  unreleased: await deps.repo.listOwnUnreleased({
+    authorId,
+    types: query.types,
+    search: query.q,
+    limit: query.limit,
+  }),
+});
 
 export const findDependencies = async (
   deps: DependencySearchDeps,
@@ -74,25 +102,10 @@ export const findDependencies = async (
       skip.add(name);
     }
   };
-  const published = (ownerId?: string) =>
-    deps.catalogue.list({
-      search: q || undefined,
-      types: allowed,
-      installable: true,
-      ownerId,
-      sort: "recent",
-      limit: scan,
-    });
-
   // Yours first, whatever their rank in the catalogue: published, then on their way.
-  await addPublished(await published(me), true);
-  const own = await deps.repo.listOwnUnreleased({
-    authorId: me,
-    types: allowed,
-    search: q,
-    limit: scan,
-  });
-  for (const submission of own) {
+  const own = await ownDependencies(deps, me, { types: allowed, q, limit: scan });
+  await addPublished(own.published, true);
+  for (const submission of own.unreleased) {
     const name = itemNameOf(submission);
     if (room() <= 0) break;
     if (skip.has(name)) continue;
@@ -108,6 +121,16 @@ export const findDependencies = async (
     skip.add(name);
   }
   // Then everyone's published items.
-  if (room() > 0) await addPublished(await published(), false);
+  if (room() > 0)
+    await addPublished(
+      await deps.catalogue.list({
+        search: q || undefined,
+        types: allowed,
+        installable: true,
+        sort: "recent",
+        limit: scan,
+      }),
+      false,
+    );
   return options;
 };

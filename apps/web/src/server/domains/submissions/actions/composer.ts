@@ -13,6 +13,7 @@ export type { DependencyOption } from "../services/dependency-search";
 const deps = ({ db, dialect }: AppAuth): service.ComposerDeps => ({
   registry: kyselyRegistryLookup(db, dialect),
   catalogue: kyselyCatalogueRepository(db, dialect),
+  repo: kyselySubmissionRepository(db, dialect),
 });
 
 const actor = async (headers: Headers, app: AppAuth): Promise<service.ComposerActor> => ({

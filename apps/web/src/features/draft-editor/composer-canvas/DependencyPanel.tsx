@@ -73,7 +73,7 @@ export const DependencyPanel = ({
                 <RemoveButton name={data.name} />
               </div>
               <div className="flex flex-wrap items-center gap-1.5">
-                <DependencyFactsLine facts={data.facts} />
+                <DependencyFactsLine facts={data.facts} status={data.status} />
               </div>
               <RangeField name={data.name} range={data.range} invalid={data.problems.length > 0} />
               <DependencyProblems problems={data.problems} />

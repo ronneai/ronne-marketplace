@@ -4,6 +4,8 @@ import { DEPENDENCY_TYPES, type ItemType } from "@ronneai/core";
 import { Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { startDrag } from "@/components/dependency-canvas/drag";
+import { unreleasedLabel } from "@/components/dependency-canvas/nodes";
+import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
 import { inputClasses, selectClasses } from "@/components/ui/Field";
@@ -13,8 +15,9 @@ import { searchDependenciesAction } from "./actions";
 import type { PickerEntry } from "./types";
 
 /**
- * The picker's results: published items the draft may depend on, each added with its button or by
- * dragging it onto the canvas. One that's already a dependency says so instead.
+ * The picker's results: the person's own items in any state, then others' published ones (089),
+ * each added with its button or by dragging it onto the canvas. One that's already a dependency
+ * says so instead.
  */
 export const PickerResults = ({
   entries,
@@ -42,7 +45,14 @@ export const PickerResults = ({
             <p className="font-mono text-xs font-semibold break-all text-fg">{entry.name}</p>
             <div className="flex flex-wrap items-center gap-1.5">
               <TypeBadge type={entry.type} />
-              <span className="font-mono text-[11px] text-muted">v{entry.version}</span>
+              {entry.status === "published" ? (
+                <span className="font-mono text-[11px] text-muted">
+                  v{entry.version}
+                  {entry.mine ? ", yours" : ""}
+                </span>
+              ) : (
+                <Badge tone="warning">{unreleasedLabel(entry.status)}</Badge>
+              )}
             </div>
             {entry.description ? (
               <p className="line-clamp-2 text-xs text-fg">{entry.description}</p>
@@ -73,8 +83,9 @@ type Found =
   | { state: "failed"; entries: PickerEntry[]; nextCursor: null };
 
 /**
- * The catalogue, for adding dependencies (feature 031): 018's search over the types this draft may
- * depend on, and only items with a version to install. The draft's own item is never offered.
+ * The catalogue, for adding dependencies (feature 031): the person's own items first, then 018's
+ * search over the types this draft may depend on, only items with a version to install (089). The
+ * draft's own item is never offered.
  */
 export const CataloguePicker = ({
   itemName,
@@ -169,8 +180,8 @@ export const CataloguePicker = ({
             ? "Searching…"
             : entries.length === 0
               ? search || only
-                ? "Nothing published matches."
-                : "Nothing published yet that this item may depend on."
+                ? "Nothing matches."
+                : "Nothing yet that this item may depend on."
               : "Add one, or drag it onto the canvas."}
       </p>
       <PickerResults entries={entries} added={added} onAdd={onAdd} />

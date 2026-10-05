@@ -10,11 +10,15 @@ import { createScope } from "../../items/actions/scopes";
 import { kyselyItemRepository } from "../../items/repositories/kysely-item-repository";
 import { DEPENDENCY_REPORTS_MAX, PICKER_PAGE_SIZE } from "../models/composer";
 import { dependencyReports, searchDependencies } from "./composer";
+import { createDraft, saveDraftFiles } from "./drafts";
+import { submitDraft } from "./submissions";
 
 // What the visual composer (031) reads: the catalogue's facts and 013's checks, per dependency.
 let t: TestDb;
 let app: AppAuth;
 let asUser: Headers;
+let asRoot: Headers;
+let userId: string;
 let publisher: string;
 let scopeId: string;
 const password = "correct horse battery";
@@ -27,17 +31,14 @@ beforeEach(async () => {
     name: "Root",
     password,
   }));
-  await createTestUser(app, { email: "u@example.com", password });
+  userId = await createTestUser(app, { email: "u@example.com", password });
   const signedIn = async (email: string) => {
     const result = await signIn(new Headers(), { email, password, rememberMe: false }, app);
     if (!result.ok) throw new Error(result.error);
     return cookieHeaders(result.headers.get("set-cookie"));
   };
-  await createScope(
-    await signedIn("root@example.com"),
-    { name: "team", description: "A scope." },
-    app,
-  );
+  asRoot = await signedIn("root@example.com");
+  await createScope(asRoot, { name: "team", description: "A scope." }, app);
   asUser = await signedIn("u@example.com");
   scopeId = (
     await t.db
@@ -65,6 +66,8 @@ const release = async (
     targets?: Record<string, unknown>;
     /** Item ids the versions depend on, each on `^1.0.0`. */
     dependsOn?: string[];
+    /** Who first published it: root unless said. */
+    ownerId?: string;
   } = {},
 ) => {
   const items = kyselyItemRepository(t.db, t.dialect);
@@ -75,7 +78,7 @@ const release = async (
       name,
       type: options.type ?? "skill",
       description: "",
-      ownerId: publisher,
+      ownerId: options.ownerId ?? publisher,
       createdAt: tick(),
     }));
   for (const version of options.versions ?? ["1.0.0"]) {
@@ -108,6 +111,31 @@ const release = async (
   return itemId;
 };
 
+/** A rule draft `@team/<name>` by `headers`, with its description, submitted when asked. */
+const ownRule = async (name: string, submit: boolean, headers: Headers = asUser) => {
+  const created = await createDraft(headers, { scope: "team", name, type: "rule" }, app);
+  const manifest = created.files.find((f) => f.path === "ronne.yaml");
+  await saveDraftFiles(
+    headers,
+    created.id,
+    {
+      writes: [
+        {
+          path: "ronne.yaml",
+          encoding: "utf8",
+          content: (manifest?.content ?? "").replace('description: ""', "description: A rule."),
+          executable: false,
+          loadedAt: manifest?.updatedAt ?? null,
+        },
+      ],
+      deletes: [],
+    },
+    app,
+  );
+  if (submit) await submitDraft(headers, created.id, app);
+  return created.id;
+};
+
 const reports = (
   dependencies: Record<string, string>,
   type: ItemType = "agent",
@@ -127,6 +155,7 @@ describe("dependencyReports", () => {
         description: "The secure-coding item.",
         tools: ["Claude Code", "Codex", "Cursor"],
       },
+      status: null,
       problems: [],
     });
     expect(found["@team/github"]?.facts).toMatchObject({
@@ -148,6 +177,7 @@ describe("dependencyReports", () => {
     });
     expect(found["@team/nowhere"]).toEqual({
       facts: null,
+      status: null,
       problems: [
         "@team/nowhere isn't a published item or in review. Submit it first: a dependency counts once it's in review.",
       ],
@@ -169,7 +199,34 @@ describe("dependencyReports", () => {
     // A bundle may depend on anything.
     expect(
       (await reports({ "@team/other-agent": "^1.0.0" }, "bundle"))["@team/other-agent"],
-    ).toEqual({ facts: expect.objectContaining({ type: "agent" }), problems: [] });
+    ).toEqual({ facts: expect.objectContaining({ type: "agent" }), status: null, problems: [] });
+  });
+
+  it("gives your own unreleased one its status, without 056's warning repeated (089)", async () => {
+    await ownRule("tone", true);
+    await ownRule("house", false);
+    await ownRule("theirs", true, asRoot);
+    const found = await reports({
+      "@team/tone": "^1.0.0",
+      "@team/house": "^1.0.0",
+      "@team/theirs": "^1.0.0",
+    });
+    expect(found["@team/tone"]).toEqual({ facts: null, status: "submitted", problems: [] });
+    // A draft has to be submitted first: its problem stays, beside its badge.
+    expect(found["@team/house"]).toEqual({
+      facts: null,
+      status: "draft",
+      problems: [
+        "@team/house isn't a published item or in review. Submit it first: a dependency counts once it's in review.",
+      ],
+    });
+    expect(found["@team/theirs"]).toEqual({
+      facts: null,
+      status: null,
+      problems: [
+        "@team/theirs isn't released yet. You can depend on someone else's item once it's published.",
+      ],
+    });
   });
 
   it("leaves a range that isn't a semver range to 011's checks", async () => {
@@ -239,7 +296,33 @@ describe("searchDependencies", () => {
       version: "1.4.0",
       description: "The secure-coding item.",
       tools: ["Claude Code", "Codex", "Cursor"],
+      status: "published",
+      mine: false,
     });
+  });
+
+  it("puts your own first on the first page: published whatever its rank, then drafts and open submissions (089)", async () => {
+    await release("mine", { type: "rule", ownerId: userId });
+    for (let i = 0; i < PICKER_PAGE_SIZE; i++) await release(`extra-${i}`);
+    await ownRule("house", false);
+    await ownRule("tone", true);
+    // Root's draft and submission are never offered.
+    await ownRule("secret", false, asRoot);
+    await ownRule("pending", true, asRoot);
+
+    const first = await search();
+    expect(first.entries.slice(0, 3)).toEqual([
+      expect.objectContaining({ name: "@team/mine", status: "published", mine: true }),
+      expect.objectContaining({ name: "@team/tone", status: "submitted", mine: true }),
+      expect.objectContaining({ name: "@team/house", status: "draft", mine: true }),
+    ]);
+    expect(first.entries[1]).toMatchObject({ type: "rule", version: "1.0.0", tools: [] });
+    const later = await search({ cursor: first.nextCursor ?? undefined });
+    const names = [...first.entries, ...later.entries].map((entry) => entry.name);
+    expect(names.filter((name) => name === "@team/mine")).toHaveLength(1);
+    expect(names).not.toContain("@team/secret");
+    expect(names).not.toContain("@team/pending");
+    expect(later.entries.every((entry) => !entry.mine)).toBe(true);
   });
 
   it("offers a bundle every type, and a type without dependencies nothing", async () => {
