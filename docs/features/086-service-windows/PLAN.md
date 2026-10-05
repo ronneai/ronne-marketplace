@@ -203,6 +203,10 @@ goes into `SPEC.md` instead.
     `SecurityIdentifier`, which stores the SID as it is; the `.env` from an SDDL): no `icacls` at
     all. Each script's first line says what it does (`make`, `allow M <SID> <path>`, `settings`),
     which the tests read.
+  - **CI's fourth Windows run** installed the service and passed every check up to the setup: the
+    service as `NT SERVICE\rmk-server` at boot on 127.0.0.1, 503 before setup, the folders'
+    permissions by the account's SID, `status`. The setup then needed `DATABASE_URL`, which
+    `setup --yes` takes from the environment (the Linux test gives it too): the script gives it.
 
 ### Task 4: the proxy service (2026-10-05)
 

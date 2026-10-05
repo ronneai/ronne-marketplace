@@ -101,12 +101,14 @@ Step 'status: installed, running, not set up yet'
 
 # The setup, as the administrator, on the service's data: the service still reads its settings
 # (rewritten in place) and writes its database (made by the administrator) afterwards.
+# setup --yes takes the database from the environment (the Linux test gives it too).
+$env:DATABASE_URL = "file:$root\data\ronne.db"
 $env:RONNE_ROOT_EMAIL = 'root@example.com'
 $env:RONNE_ROOT_NAME = 'Root'
 $env:RONNE_ROOT_PASSWORD = 'Correct-horse-42!'
 $out = Run $rmk setup --yes
 if ($code -ne 0) { Fail "setup failed ($code): $out" }
-Remove-Item Env:RONNE_ROOT_PASSWORD
+Remove-Item Env:RONNE_ROOT_PASSWORD, Env:DATABASE_URL
 if (-not (Select-String -Quiet -LiteralPath "$root\.env" -Pattern '^DATABASE_URL=')) { Fail 'the settings file has no DATABASE_URL' }
 if (-not ((Rules "$root\.env") -match "^$([regex]::Escape($serviceSid)):Modify")) { Fail 'the setup took the settings file from the service' }
 $out = Run $rmk service restart
