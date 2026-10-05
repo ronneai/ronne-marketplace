@@ -39,16 +39,20 @@ macOS (083).
   removes with it. It may change (Modify, never the permissions) the data folder, its logs folder
   and the settings file only; it may read its WinSW and XML.
 - **Permissions,** set by SID (names are translated on other languages' Windows; the account's SID
-  is computed from the service's name, as `sc showsid` gives it, so it's set before the service
-  exists). Anyone may make folders in ProgramData, so each of Ronne's folders is made with its
+  is the one `sc showsid` gives for the service's name, so it's set before the service exists). Anyone may make folders in ProgramData, so each of Ronne's folders is made with its
   final permissions from the start (`Directory.CreateDirectory` with a security descriptor, through
   Windows PowerShell): owned by the administrators, nothing inherited, full control for SYSTEM and
   the administrators; Users may list `RonneAI`, `Marketplace` and `service` but read none of the
-  files in them (`.env`, `service.json`, the XML); the data and log folders aren't even listable. A
-  folder that's already there must be the administrators' (or SYSTEM's), with its own permissions,
-  and not a link, or install refuses before reading or writing anything in it. An account is
-  granted rights only on a folder that doesn't have them yet, so `icacls` never walks what the
-  account itself may have put in one. The proxy has its own logs folder (`proxy\logs`).
+  files in them (`.env`, `service.json`, the XML); the data and log folders aren't even listable.
+  Each folder is checked after it's made, made now or not (a folder can appear in between): owned
+  by the administrators (one already there may also be SYSTEM's or the administrator's running
+  install), not a link, and nobody but SYSTEM, the administrators and services' accounts may write
+  in it; `RonneAI`, in ProgramData, must also have its own permissions (below it only
+  administrators can make folders). Otherwise install refuses before reading or writing anything in
+  it. Permissions are set through .NET, never `icacls` (which looks up a service's account that
+  isn't registered yet), and an account is granted rights only on a folder that doesn't have that
+  exact rule yet, so Windows never walks what the account itself may have put in one. The proxy
+  has its own logs folder (`proxy\logs`).
 - **The settings file** is rewritten in place on Windows (the app's `writeEnvFile`), so it keeps the
   account's access when an administrator runs the setup.
 - **Install** checks for an elevated shell (else explains how to open one), WinSW in the package,
@@ -98,14 +102,15 @@ macOS (083).
 
 ## Acceptance criteria
 
-- [ ] On Windows 11 and Windows Server 2022 (x64), `rmk-server service install` from an elevated
+- [ ] *(The owner's test, later: CI ran it all on Windows Server 2025, without a reboot.)* On
+      Windows 11 and Windows Server 2022 (x64), `rmk-server service install` from an elevated
       shell gives a running service that survives a reboot, running as `NT SERVICE\rmk-server`.
-- [ ] `status`, `logs`, `restart` and `uninstall` behave as described; data survives `uninstall`.
-- [ ] `--domain localhost --tls internal` serves HTTPS through `rmk-server-proxy`.
-- [ ] The WinSW XML matches golden files; CI on `windows-latest` installs, checks health and
+- [x] `status`, `logs`, `restart` and `uninstall` behave as described; data survives `uninstall`.
+- [x] `--domain localhost --tls internal` serves HTTPS through `rmk-server-proxy`.
+- [x] The WinSW XML matches golden files; CI on `windows-latest` installs, checks health and
       uninstalls.
-- [ ] WinSW is recorded in the dependency policy.
-- [ ] The README and the Documentation say what the feature does now.
+- [x] WinSW is recorded in the dependency policy.
+- [x] The README and the Documentation say what the feature does now.
 
 ## Open questions
 

@@ -14,11 +14,11 @@ the same change that completes it.
   Windows bundles (084); record it in the dependency policy.
   *Done when:* the Windows archives contain it and the content check passes.
 
-- [ ] **3. Install, uninstall and the other subcommands on Windows.** Elevation check, folders and
+- [x] **3. Install, uninstall and the other subcommands on Windows.** Elevation check, folders and
   ACLs, the virtual account, firewall rules, health wait.
   *Done when:* CI on `windows-latest` installs, checks health, restarts and uninstalls.
 
-- [ ] **4. The proxy service.** `--domain` with Caddy.
+- [x] **4. The proxy service.** `--domain` with Caddy.
   *Done when:* CI with `--tls internal` answers over HTTPS.
 
 - [x] **5. Documentation.**
@@ -103,15 +103,17 @@ goes into `SPEC.md` instead.
 
 - **`packages/server/src/service/windows.ts`,** the third backend beside 083's: WinSW services
   (`sc.exe query` for the state, `net start` and `net stop /y`, which wait and also stop what
-  depends on the service), folder permissions with `takeown` and `icacls`, the firewall with
+  depends on the service), folder permissions with `takeown` and `icacls` (*replaced below:
+  folders made locked, permissions through .NET*), the firewall with
   `netsh`, the port's holder from `netstat -ano` and `tasklist`. `index.ts` picks it on `win32`,
   with `%ProgramData%` and the package's `vendor\winsw\WinSW.NET461.exe`.
-- **SIDs, not names:** `serviceSid` computes the virtual account's SID (S-1-5-80 and the SHA-1 of the
+- **SIDs, not names** (*the computed SID was replaced below by `sc.exe showsid`*): `serviceSid`
+  computed the virtual account's SID (S-1-5-80 and the SHA-1 of the
   upper-case name in UTF-16LE), checked against Microsoft's documented SID for TrustedInstaller;
   the administrators, SYSTEM and Users by their well-known SIDs. Names are translated on other
   languages' Windows, and the account's name can't be looked up before the service exists, while
   its data folder must be locked before the first start.
-- **ProgramData is writable by anyone** (Users may make folders there), so install takes Ronne's
+- **ProgramData is writable by anyone** (*this takeover was replaced below*), so install took Ronne's
   folders over (`takeown /A`), resets them and what's under them (`icacls /reset /T`), then sets
   exactly SYSTEM, the administrators and the account (`/inheritance:r /grant:r`), and makes the
   administrators own everything under them. Before that it refuses any link in them (a symbolic
@@ -268,3 +270,9 @@ goes into `SPEC.md` instead.
   terminal and to run `rmk-server.cmd` by its full path (that folder isn't on PATH). The firewall
   wording: the port's rule only without a domain, on Private networks; the proxy's on every
   network. A Caddy in a profile is said to be refused. The guide's misplaced line break fixed.
+
+### Done (2026-10-05)
+
+All five tasks witnessed and ticked. CI on `windows-2025` runs the whole service end to end
+(`service-windows`). Left for the owner's own Windows test: Windows 11 and Server 2022, a reboot,
+and `--tls files` on a real machine (acceptance criterion 1 stays open until then).

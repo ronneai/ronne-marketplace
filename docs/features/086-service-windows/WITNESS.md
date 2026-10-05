@@ -124,3 +124,30 @@ Witnessed: 2026-10-05, by a fresh agent, against the code on this branch.
 **Fixed in this commit:** 3, 6, 7, 8, and the guide's misplaced line break.
 **Not checked here:** real Windows (CI's job); winget's machine scope for Caddy.
 **Overall:** met.
+
+## Tasks 3 and 4 — final witness (ticked)
+
+Witnessed: 2026-10-05, by a fresh agent, on 5538941 and PR #128's CI run 37265704332 (job
+111622658159, Windows Server 2025, `windows-2025-vs2026` image; the merge's tree is 5538941's).
+
+| # | Claim | Verdict | Evidence |
+|---|---|---|---|
+| 1 | T3: installs | confirmed | ✓ a service at boot (`Auto`), `StartName` `NT SERVICE\rmk-server`, `node.exe` owned by it, listening on 127.0.0.1:7650, 503 before setup; ✓ a program in a profile refused, nothing made; ✓ `status` before install exits 4. |
+| 2 | T3: folders and ACLs, the virtual account | confirmed | ✓ data, `.env`, logs: Modify for the SID `sc showsid` gives, no Full control, no Users, protected; the administrators own `RonneAI`, `Marketplace`, data, `.env`, `service`; `.env` keeps the account's Modify after an administrator's setup. |
+| 3 | T3: health wait | confirmed | 503 right after install; after setup and restart 200; a sign-in 201 (the service writes its database); `migrate` reaches it. |
+| 4 | T3: restarts | confirmed | ✓ stop (status 3), start, restart, logs; `node.exe` killed and Windows started it again. |
+| 5 | T3: firewall rules | confirmed | ✓ `--host 0.0.0.0`: Inbound, Allow, Private, 7650; removed on reinstall at 127.0.0.1 (its exit code checked); ✓ a taken port refused, the XML left alone. |
+| 6 | T3: uninstalls | confirmed | ✓ the service and XML gone, `ronne.db` kept; `--delete-data`, confirmed, removes the root. |
+| 7 | T4: `--tls internal` answers over HTTPS | confirmed | ✓ `https://localhost/api/health` 200; HTTP 308 to HTTPS; the proxy as `NT SERVICE\rmk-server-proxy`; its rule on every profile for 80,443; `PUBLIC_URL`; status shows it; refused without Caddy and with one in a profile (Caddy 2.11.6 checked by SHA-512); ✓ without a domain again, the proxy, its rule and `PUBLIC_URL` gone. |
+| 8 | The PR's other checks | confirmed | All pass: CodeQL, the database tests, e2e, Node 22 and 24, both Windows bundles, the macOS and Linux services, licences. |
+| 9 | Earlier defects stay closed | confirmed | The folder race (checked after `CreateDirectory`, a new one owned by the administrators only), no `icacls` or `takeown`, links refused, kept folders' write rules inspected, `.env`'s SDDL (0x1301bf, no WRITE_DAC), `certs` made before shared, PSModulePath reset, `sc showsid`. |
+| 10 | Tests | confirmed | 117 in the package at 5538941, in a clean worktree. |
+| 11 | Notes and spec match | partly → fixed | The first task 3 notes and the spec's Permissions bullet still described the replaced design (`takeown`, `icacls`, the SHA-1); `system.ts`' `findLinks` comment named icacls. Corrected, the notes marked as replaced. |
+
+**Found, and fixed in this commit:** a kept folder counted as granted for any rule of the account,
+so one with a weaker or Deny rule wasn't given Modify: it now needs that exact Allow rule; the
+docs drift above. **Left:** `shareWithGroup` adds the proxy's read rule to its certificates on every
+`--tls files` install (harmless: only administrators write there).
+**Not checked here:** `--tls files` on real Windows (unit tests only), Windows on arm64 for the
+service, a reboot, Windows 11 and Server 2022 (the owner's test, later).
+**Overall:** tasks 3 and 4 met.

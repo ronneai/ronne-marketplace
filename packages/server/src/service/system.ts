@@ -71,7 +71,8 @@ export type System = {
   copyFile: (from: string, to: string) => void;
   /**
    * The links at or under `path` (symbolic links, junctions, files with another hard link), without
-   * following any: Windows' icacls /T would change what they point to (086).
+   * following any: on Windows the administrator's scripts refuse to run over one in the data
+   * folder, which the service's account may write (086).
    */
   findLinks: (path: string) => string[];
   /** Prints the last lines of these files, then what's added, until interrupted (Windows' logs). */

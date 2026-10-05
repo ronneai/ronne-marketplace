@@ -218,9 +218,11 @@ if ($made) { "made\`t$p" } else { "kept\`t$p\`t$sddl" }`,
   /** Grants an account rights on a folder of Ronne's, unless it has them (an earlier install). */
   const grant = (path: string, sid: string, rights: "M" | "RX") => {
     const found = folders.get(path);
-    // Already there: granted then, and any rule of this account in its SDDL means so. Granting
+    // Already there: granted then, when its SDDL has exactly this rule. Granting
     // again would make Windows walk what the account may have put in it (inherited rules).
-    if (found && !found.made && found.sddl.includes(`;;;${sid})`)) return;
+    // The Allow rule this would add, inherited by what's in it: Modify or read & execute.
+    const mask = rights === "M" ? "0x1301bf" : "0x1200a9";
+    if (found && !found.made && found.sddl.includes(`(A;OICI;${mask};;;${sid})`)) return;
     allow(path, sid, rights, true);
   };
 
