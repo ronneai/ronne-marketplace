@@ -10,7 +10,7 @@ the same change that completes it.
 - [x] **1. WinSW renderer.** The XML from 083's service model, with and without a domain.
   *Done when:* golden-file tests pass.
 
-- [ ] **2. WinSW in the bundles.** Download the official release, check its checksum, place it in the
+- [x] **2. WinSW in the bundles.** Download the official release, check its checksum, place it in the
   Windows bundles (084); record it in the dependency policy.
   *Done when:* the Windows archives contain it and the content check passes.
 
@@ -94,5 +94,7 @@ goes into `SPEC.md` instead.
   (downloaded independently; `LICENSE.txt` byte-identical to v2.12.0's), a missing or tampered copy
   is replaced, a wrong pin fails, the notices section appears once, a `darwin-arm64` bundle passes
   and fails on a changed or missing WinSW. **Fixed after it:** a network error while downloading
-  WinSW now fails with the pack step's own message, not an unhandled rejection. **Still to
-  observe:** the `win32-x64` and `win32-arm64` archives in this PR's CI; the task is ticked then.
+  WinSW now fails with the pack step's own message, not an unhandled rejection. **Then
+  observed** in PR #128's CI (run 37259992637, on 102ffe5): the `win32-x64` and `win32-arm64`
+  archives hold `vendor/winsw/WinSW.NET461.exe` with the pinned SHA-256 and its `LICENSE.txt`,
+  both notices list WinSW, and each passed the content check and ran with its own Node.js.
