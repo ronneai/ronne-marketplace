@@ -2,6 +2,10 @@
 
 > Spec: [SPEC.md](./SPEC.md)
 
+> **Since [088](../088-docs-on-website/SPEC.md) (2026-10-05)** the Documentation is on the website, from
+> `../ronne-web` (`www/src/content/docs/`): what this plan says about `content.tsx`, the `/docs`
+> pages or their components (`DocsNav`, `TypesExplorer`, the docs render tests) is done there now.
+
 Tasks in build order. Each is small enough for one session and ends with a check. Tick a task in
 the same change that completes it.
 
@@ -38,10 +42,13 @@ the same change that completes it.
 - [ ] **7. Documentation pages.** `TypesExplorer` stacking, `Example` wrapping, "On this page"
   select.
   *Done when:* docs render tests pass, including the select's links landing on real sections.
+  *Since 088:* the Documentation pages are on the website (`../ronne-web`); this task is done
+  there, not here.
 
 - [ ] **8. Documentation text.** "Composing on a canvas" and "Reading an item before you install
   it".
   *Done when:* the docs render tests pass; the sweep's 071 entries are removed and it passes.
+  *Since 088:* the text goes in the website's Documentation (`../ronne-web`).
 
 ## Notes
 

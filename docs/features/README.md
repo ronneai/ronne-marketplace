@@ -18,10 +18,11 @@ the design in [`MVP.md`](../MVP/MVP.md). They link to them.
    image must pass the [dependency policy](../policies/dependencies.md) checklist.
 3. **Keep the docs honest.** If the work changes the behaviour, update `SPEC.md` in the same
    change. If it changes a decision, also update MVP.md and its decision log (§15).
-4. **Keep the in-app Documentation current.** Every feature that changes what people see or do
-   updates the Documentation topics and inline helpers ([033](./033-in-app-help/SPEC.md)) in the
-   same pull request, as its spec's Documentation section lists. A spec with nothing to add says
-   "None" and why.
+4. **Keep the Documentation current.** Every feature that changes what people see or do
+   updates the inline helpers ([033](./033-in-app-help/SPEC.md)) in the same pull request, and the
+   Documentation on the website ([088](./088-docs-on-website/SPEC.md): `../ronne-web`, in a branch
+   that goes live with the release), as its spec's Documentation section lists. A spec with nothing
+   to add says "None" and why.
 5. **Finish** by setting the status here to `done`.
 
 **Numbering.** IDs are three digits, given in order of creation, and never reused or renamed. The
@@ -212,7 +213,7 @@ Work that changes every part of the web app rather than one milestone's features
 | [062](./062-review-queue-data-table/SPEC.md) | The review queue on the server data table: every tab paged (no more 200-row cut-off), sorted by time or name, searched and filtered by type; bulk approve and release on the page; `fixed` list parameters, date sort keys and `srHeader` added to the shared table | 014, 054, 055, 056, 058, 060 | done |
 | [063](./063-my-submissions-data-table/SPEC.md) | My submissions on the server data table: paged instead of loading everything, status links counted by one query, sorted by last change or name, searched and filtered by type | 012, 013, 052, 055, 056, 057, 058, 060, 062 | done |
 | [064](./064-remove-scopes-page/SPEC.md) | Remove the Scopes page: `/scopes` and its nav entry go (404), links point to the Documentation; Admin › Scopes and `GET /api/v1/scopes` stay | 010, 061 | done |
-| [088](./088-docs-on-website/SPEC.md) | Documentation on the website: Docs and every helper's Learn more open `www.ronne.ai/marketplace/docs` in a new tab; the app's `/docs` pages go (their addresses redirect); the install scripts move to `www.ronne.ai/marketplace/install.sh` and `.ps1` | 033, 050 | in progress |
+| [088](./088-docs-on-website/SPEC.md) | Documentation on the website: Docs and every helper's Learn more open `www.ronne.ai/marketplace/docs` in a new tab; the app's `/docs` pages go (their addresses redirect); the install scripts move to `www.ronne.ai/marketplace/install.sh` and `.ps1` | 033, 050 | done |
 
 ### M12 — Easy install
 

@@ -2,6 +2,10 @@
 
 > Spec: [SPEC.md](./SPEC.md)
 
+> **Since [088](../088-docs-on-website/SPEC.md) (2026-10-05)** the Documentation is on the website, from
+> `../ronne-web` (`www/src/content/docs/`): what this plan says about `content.tsx`, the `/docs`
+> pages or their components (`DocsNav`, `TypesExplorer`, the docs render tests) is done there now.
+
 Tasks in build order. Each is small enough for one session and ends with a check. Tick a task in
 the same change that completes it.
 

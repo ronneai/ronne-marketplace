@@ -18,10 +18,11 @@ macOS, Linux and Windows. The person answers two questions and never edits a fil
 - Running it again on an installed folder: upgrade, keeping the answers.
 - A non-interactive mode for scripts and CI.
 - Tests of both scripts in CI.
-- Short commands from the website: `https://www.ronne.ai/install.sh` and `/install.ps1` redirect
-  (307) to the same files in the latest GitHub release (owner, 2026-10-04). The release stays the
-  only copy, with `checksums.txt`, and its URL keeps working. This repository's tests and CI use
-  the release and local files only, never the website.
+- Short commands from the website: `https://www.ronne.ai/marketplace/install.sh` and
+  `/marketplace/install.ps1` redirect (307) to the same files in the latest GitHub release (owner,
+  2026-10-04; under `/marketplace/` since 088, and the first `/install.sh` and `/install.ps1` still
+  work). The release stays the only copy, with `checksums.txt`, and its URL keeps working. This
+  repository's tests and CI use the release and local files only, never the website.
 
 **Out** (and where it goes instead):
 - Installing Docker itself: the script links to the right download and stops. Installing a
@@ -37,10 +38,10 @@ macOS, Linux and Windows. The person answers two questions and never edits a fil
 **The commands** (shown on the website and in the README):
 
 ```sh
-curl -fsSL https://www.ronne.ai/install.sh | sh
+curl -fsSL https://www.ronne.ai/marketplace/install.sh | sh
 ```
 ```powershell
-irm https://www.ronne.ai/install.ps1 | iex
+irm https://www.ronne.ai/marketplace/install.ps1 | iex
 ```
 
 Both redirect to the latest release's assets, which also work directly:

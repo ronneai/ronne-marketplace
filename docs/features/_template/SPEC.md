@@ -25,11 +25,11 @@ How it works, from the user's side first, then the parts other features rely on.
 
 ## Documentation
 
-What people will read about this in the app ([033](../033-in-app-help/SPEC.md)): which topics and
-sections of the Documentation (`apps/web/src/components/help/topics.ts`,
-`apps/web/src/features/docs/content.tsx`) change or are added, and which inline helpers
-(`apps/web/src/components/help/Help.tsx`) are added or changed, with their wording in outline. If
-people see nothing new, write "None" and why.
+What people will read about this: which topics and sections of the Documentation, on the website
+since [088](../088-docs-on-website/SPEC.md) (`../ronne-web`, `www/src/content/docs/`; a new section
+also goes in `apps/web/src/components/help/topics.ts`), change or are added, and which inline
+helpers ([033](../033-in-app-help/SPEC.md), `apps/web/src/components/help/Help.tsx`) are added or
+changed, with their wording in outline. If people see nothing new, write "None" and why.
 
 - …
 

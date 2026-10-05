@@ -393,7 +393,7 @@ jobs:
           tar -xzf release/rmk-server-*-linux-x64.tar.gz -C "$RUNNER_TEMP"
           NODE_VERSION=$("$RUNNER_TEMP"/rmk-server-*-linux-x64/node/bin/node --version)
           {
-            echo "**Install with Docker:** \`curl -fsSL https://www.ronne.ai/install.sh | sh\` (macOS, Linux) or \`irm https://www.ronne.ai/install.ps1 | iex\` (Windows); both redirect to this release's install.sh and install.ps1 below. Docker image: \`docker pull ${IMAGE#docker.io/}:$VERSION\` (linux/amd64, linux/arm64)."
+            echo "**Install with Docker:** \`curl -fsSL https://www.ronne.ai/marketplace/install.sh | sh\` (macOS, Linux) or \`irm https://www.ronne.ai/marketplace/install.ps1 | iex\` (Windows); both redirect to this release's install.sh and install.ps1 below. Docker image: \`docker pull ${IMAGE#docker.io/}:$VERSION\` (linux/amd64, linux/arm64)."
             echo
             echo "**Without Docker or Node.js:** rmk-server with Node.js ${NODE_VERSION#v} inside, one archive per system: \`rmk-server-$VERSION-linux-x64.tar.gz\`, \`rmk-server-$VERSION-linux-arm64.tar.gz\`, \`rmk-server-$VERSION-darwin-x64.tar.gz\`, \`rmk-server-$VERSION-darwin-arm64.tar.gz\`, \`rmk-server-$VERSION-win32-x64.zip\`, \`rmk-server-$VERSION-win32-arm64.zip\`. Unpack and run \`bin/rmk-server\` (\`bin\\rmk-server.cmd\` on Windows). The Linux archives need glibc 2.34 or later (Debian 12, Ubuntu 22.04, RHEL 9 and newer: SQLite's prebuilt module needs it); elsewhere, Alpine (musl) included, use Docker. Each holds THIRD_PARTY_NOTICES."
             echo

@@ -2,9 +2,9 @@
 # Installs Ronne AI Marketplace with Docker, or upgrades an install (feature 081). Without Docker,
 # on Debian, Ubuntu, Fedora or RHEL, it offers this release's .deb or .rpm instead (feature 085).
 #
-#   curl -fsSL https://www.ronne.ai/install.sh | sh
+#   curl -fsSL https://www.ronne.ai/marketplace/install.sh | sh
 #   (www.ronne.ai redirects to the latest release: https://github.com/ronneai/ronne-marketplace/releases/latest/download/install.sh)
-#   curl -fsSL https://www.ronne.ai/install.sh | sh -s -- --yes --mode server --domain ronne.example.com
+#   curl -fsSL https://www.ronne.ai/marketplace/install.sh | sh -s -- --yes --mode server --domain ronne.example.com
 #
 # It writes one folder (~/ronne-marketplace by default) with compose.yaml and .env, starts Ronne
 # and opens it in the browser. It never uses sudo and changes nothing outside that folder.

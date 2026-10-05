@@ -23,5 +23,5 @@ To manage items from inside your AI tool instead, install the registry MCP serve
 
 To install items as Claude Code plugins, from `/plugin`, run `rmk plugin-setup claude-code` once.
 
-Your marketplace's Documentation (Docs → Installing with rmk) explains the commands, the files
-`rmk` writes, and each AI tool. Needs Node.js 22.12 or later. MIT licensed.
+The Documentation ([Installing with rmk](https://www.ronne.ai/marketplace/docs/rmk)) explains the
+commands, the files `rmk` writes, and each AI tool. Needs Node.js 22.12 or later. MIT licensed.

@@ -2,6 +2,10 @@
 
 > Spec: [SPEC.md](./SPEC.md)
 
+> **Since [088](../088-docs-on-website/SPEC.md) (2026-10-05)** the Documentation is on the website, from
+> `../ronne-web` (`www/src/content/docs/`): what this plan says about `content.tsx`, the `/docs`
+> pages or their components (`DocsNav`, `TypesExplorer`, the docs render tests) is done there now.
+
 Tasks in build order. Each is small enough for one session and ends with a check. Tick a task in
 the same change that completes it.
 
@@ -20,7 +24,8 @@ the same change that completes it.
   *Done when:* unit tests pass; e2e reads a UTC time and copies a full hash on a phone.
 
 - [ ] **4. Truncation.** `Truncated` primitive; `FileTree`, `TypesExplorer`, submissions feedback;
-  `DataTable`'s truncate columns wait for 069's stacked rows (note it there).
+  `DataTable`'s truncate columns wait for 069's stacked rows (note it there). `TypesExplorer` left
+  with the Documentation pages in 088; the website has its own.
   *Done when:* unit tests pass; the scan's to-fix list loses these entries.
 
 - [ ] **5. Badges and marks.** `ProposalBadges`, `DependencyMarks`, `DirtyMark`, `UsageCard`
@@ -29,6 +34,8 @@ the same change that completes it.
 
 - [ ] **6. Documentation.** The two "on hover" lines in `content.tsx`.
   *Done when:* the docs render tests pass; the sweep's 068 entries are removed and it passes.
+  *Since 088:* `content.tsx` is gone; the lines are in the website's Documentation
+  (`../ronne-web`).
 
 ## Notes
 

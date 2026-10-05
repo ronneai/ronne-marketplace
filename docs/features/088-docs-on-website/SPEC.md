@@ -70,20 +70,21 @@ The install scripts move next to it, under `https://www.ronne.ai/marketplace/`.
   shows the new install address; that change goes with its feature 011 branch.
 - Inline helpers (`components/help/Help.tsx`): their answers stay; their links point to the
   website.
-- `CLAUDE.md`, the features index (rule 4) and 033's spec: the Documentation is updated in
-  `../ronne-web`, the helpers here.
+- `CLAUDE.md`, the features index (rule 4), the spec template and 033's spec: the Documentation is
+  updated in `../ronne-web`, the helpers here. The unfinished features that planned changes to the
+  app's Documentation pages (068–072, 075) say they're done on the website now.
 
 ## Acceptance criteria
 
-- [ ] Docs, in the header and the Menu, opens `https://www.ronne.ai/marketplace/docs` in a new tab,
+- [x] Docs, in the header and the Menu, opens `https://www.ronne.ai/marketplace/docs` in a new tab,
       with the icon and the screen-reader text.
-- [ ] Every helper's Learn more is a website address whose topic and section exist in `topics.ts`
+- [x] Every helper's Learn more is a website address whose topic and section exist in `topics.ts`
       (unit test), and opens in a new tab.
-- [ ] `/docs` and `/docs/<topic>` answer 307 to the website; the app has no Documentation pages
+- [x] `/docs` and `/docs/<topic>` answer 307 to the website; the app has no Documentation pages
       left, and nothing imports `features/docs`.
-- [ ] The install commands everywhere in this repository use the `/marketplace/` address.
-- [ ] `CLAUDE.md`, the index's rule 4 and 033's spec say where the Documentation lives now.
-- [ ] Lint, typecheck, tests, build and the end-to-end tests pass.
+- [x] The install commands everywhere in this repository use the `/marketplace/` address.
+- [x] `CLAUDE.md`, the index's rule 4 and 033's spec say where the Documentation lives now.
+- [x] Lint, typecheck, tests, build and the end-to-end tests pass.
 
 ## Open questions
 

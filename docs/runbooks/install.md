@@ -41,13 +41,13 @@ Linux, install Docker Engine from your distribution or
 **macOS and Linux**, in Terminal:
 
 ```sh
-curl -fsSL https://www.ronne.ai/install.sh | sh
+curl -fsSL https://www.ronne.ai/marketplace/install.sh | sh
 ```
 
 **Windows**, in PowerShell:
 
 ```powershell
-irm https://www.ronne.ai/install.ps1 | iex
+irm https://www.ronne.ai/marketplace/install.ps1 | iex
 ```
 
 Both addresses redirect to the scripts in the

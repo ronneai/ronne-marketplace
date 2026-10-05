@@ -15,12 +15,12 @@ the same change that completes it.
   addresses redirect (307) to the website; the end-to-end tests stop visiting them.
   *Done when:* nothing imports `features/docs`, and the redirects answer on a production build.
 
-- [ ] **3. The install address.** `https://www.ronne.ai/marketplace/install.sh` and `install.ps1`
+- [x] **3. The install address.** `https://www.ronne.ai/marketplace/install.sh` and `install.ps1`
   everywhere in this repository.
-  *Done when:* no `ronne.ai/install.` is left outside history (specs of finished features keep
-  theirs, with a note).
+  *Done when:* no `ronne.ai/install.` is left outside history (081's plan notes keep theirs: they
+  record what was done then).
 
-- [ ] **4. The rules.** `CLAUDE.md`, the features index's rule 4 and 033's spec point at the
+- [x] **4. The rules.** `CLAUDE.md`, the features index's rule 4 and 033's spec point at the
   website's repository for the Documentation.
   *Done when:* they agree with this spec.
 
