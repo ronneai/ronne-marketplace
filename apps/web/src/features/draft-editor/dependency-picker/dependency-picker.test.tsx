@@ -11,7 +11,6 @@ const option = (overrides: Partial<DependencyOption> = {}): DependencyOption => 
   type: "mcp-server",
   status: "published",
   mine: false,
-  author: null,
   description: null,
   versions: ["1.4.0", "1.3.0", "2.0.0-beta.1"],
   latest: "1.4.0",
@@ -42,9 +41,10 @@ describe("picking a dependency (056)", () => {
     expect(statusText(option({ status: "submitted", mine: true, latest: null }))).toBe(
       "in review, yours",
     );
-    expect(statusText(option({ status: "approved", author: "Otto", latest: null }))).toBe(
-      "pending release, by Otto",
+    expect(statusText(option({ status: "approved", mine: true, latest: null }))).toBe(
+      "pending release, yours",
     );
+    expect(statusText(option({ mine: true }))).toBe("published 1.4.0, yours");
   });
 
   it("reads the rows from the manifest, keeping odd ranges as text", () => {

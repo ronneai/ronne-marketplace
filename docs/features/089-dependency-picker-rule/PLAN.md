@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Your own items, by query.** A repository method for the author's submissions in
+- [x] **1. Your own items, by query.** A repository method for the author's submissions in
   `draft`, `submitted`, `changes_requested` and `approved` matching a name fragment and types;
   `findDependencies` (`services/dependency-search.ts`) uses it instead of `listForReview` and drops
   others' open submissions. Your own published items are looked up by name as well as through the
@@ -39,3 +39,10 @@ the same change that completes it.
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- **Task 1.** "Your published items" are the items whose `owner_id` is you (you published their
+  first version), found with the catalogue's new `ownerId` filter, so rank doesn't matter. The
+  service reads `catalogue.list` directly; its scan is capped at `API_PAGE_MAX`. Your unreleased
+  items (`listOwnUnreleased`) match by `@scope/name` only, since a draft's description lives in its
+  `ronne.yaml`; published ones also match description and keywords. Task 3 decides whether the
+  canvas needs more.

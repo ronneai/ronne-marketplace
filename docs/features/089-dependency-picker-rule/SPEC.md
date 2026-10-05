@@ -40,16 +40,17 @@ item is offered to everyone, so "mine" matters only for unreleased ones. An item
 first published, to which you have a change proposal open, is offered as published (as 056 does).
 
 **The list** (form, `@` and canvas), at most 12, of the types this item may depend on, never the
-item itself or one already listed:
+item itself or one already listed, in this order:
 
 | Offered | Shown as |
 |---|---|
-| Published items (anyone's) | name, type, newest version |
-| Your drafts | name, type, "draft: submitted with this item" (056) |
-| Your open submissions | name, type, status badge |
+| Your published items (those you first published), whatever their rank in the catalogue | name, type, newest version, "yours" |
+| Your drafts and open submissions, newest change first | name, type, status badge, "yours" (a draft: "submitted with this item", 056) |
+| Others' published items, newest first | name, type, newest version |
 
-Others' drafts and open submissions are never offered, nor named. A name that's published and also
-one of your open proposals shows once, as published.
+Yours come first, so they're never pushed out by others' items. Others' drafts and open
+submissions are never offered, nor named. A name that's published and also one of your open
+proposals shows once, as published.
 
 **At submit.** `dependencyIssues` keeps 056's rules for released items and for your own open
 submissions (a warning, the range checked at release). A dependency on **another author's**

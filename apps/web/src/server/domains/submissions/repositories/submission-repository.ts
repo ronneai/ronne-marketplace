@@ -76,6 +76,17 @@ export interface SubmissionRepository {
     order: "oldest" | "newest";
     limit: number;
   }): Promise<(Submission & { authorName: string })[]>;
+  /**
+   * Up to `limit` of an author's new items not released yet (drafts and open submissions, not
+   * change proposals) of these types, whose `@scope/name` matches `search` as the catalogue's
+   * does; newest change first. The dependency search's "your own" (089).
+   */
+  listOwnUnreleased(query: {
+    authorId: string;
+    types: readonly ItemType[];
+    search: string;
+    limit: number;
+  }): Promise<Submission[]>;
   /** One page of an author's own submissions (keyset, 063). */
   pageByAuthor(query: AuthorPageQuery): Promise<KeysetPage<Submission>>;
   /** How many of an author's submissions the filters match, up to the count cap. */
