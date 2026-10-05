@@ -44,3 +44,57 @@ criteria, and `install.sh`'s Homebrew path on macOS. The work goes on with task 
   which `brew upgrade` deletes (084's notes);
 - a dry run publishes no archives, so a test before a real release installs from local copies of
   the dry run's `bundle-*` artifacts in a local, unpublished tap.
+
+### Task 3: `.deb` and `.rpm` with nFPM (2026-10-05)
+
+- **`packaging/linux/nfpm.yaml`:** the bundle (084) unpacked as it is into `/opt/rmk-server`, a
+  link `/usr/bin/rmk-server`, the scripts, and the glibc 2.34 and libstdc++ 11 dependencies
+  (symbol versions in the `.rpm`, so it's the same on Fedora, RHEL and openSUSE). `Recommends:
+  caddy` (deb), `Suggests: caddy` (rpm). The maintainer is "Ronne AI Marketplace
+  <marketplace@ronne.ai>", the address the owner gave (first written as the issues page, since
+  the project had no email).
+- **The scripts** (`packaging/linux/scripts/`, POSIX `sh`, the same for both formats, which pass
+  their arguments differently):
+  - `postinstall.sh`: without systemd, say so and how to start it; with `service.json` (an upgrade or
+    a reinstall), `rmk-server service restart`; else `rmk-server service install`. Always exits 0, so
+    a busy port doesn't leave the package half-configured: it prints the command that finishes;
+  - `preremove.sh`: on removal (`remove`, rpm `0`), not on an upgrade, `rmk-server service
+    uninstall`;
+  - `postremove.sh`: on a purge (or rpm's erase), the data's folders and the command to delete them.
+- **`packages/repo-tools/src/package-linux.js`** unpacks a Linux bundle and runs nFPM for both
+  formats. **nFPM expands variables in a few fields only** (not in `contents` or `scripts`), so the
+  script fills the template's `${…}` itself into a config of the build's own, and refuses a
+  placeholder it doesn't know. `--version` builds an older version to test upgrades from.
+- **Found: 083's account check needed `runuser`,** which Fedora's container image lacks (it's in
+  util-linux, absent from minimal images). Every install there failed with "the rmk-server account
+  can't run …". The Linux backend now starts the program as the account through Node (`uid`/`gid`
+  from `id`, which is coreutils), as the setup hand-off already did. The fake system records such
+  a command as `as UID:GID …`. Also absent there and handled already: `/usr/sbin/nologin` (falls
+  back to `/bin/false`), `ss` (the port's holder isn't named).
+- **`scripts/packages/test-linux-package.sh`** (inside the machine, as root): install the older
+  package → a service running as `rmk-server` from `/opt/rmk-server`, 503 → set up → upgrade (the
+  service restarted, still 200, status shows the new version) → remove (the service, account and
+  `/usr/bin/rmk-server` gone, data and settings kept) → install again (200) → purge (data kept,
+  the delete command printed). **`scripts/packages/test-in-containers.sh`** builds Ubuntu 24.04,
+  Debian 13 and Fedora 42 images with systemd and runs it in each.
+- **Run here (arm64):** all steps pass on Ubuntu 24.04, Debian 13 and Fedora 42. And: on Ubuntu
+  20.04 (glibc 2.31) apt refuses, naming `libc6 (>= 2.34)` and `libstdc++6 (>= 11)`; in a Debian
+  13 container without systemd the package installs, `rmk-server` runs, and postinstall says no
+  service was installed and how to start it. Packages are 80 MB each (arm64).
+- **CI:** `.github/workflows/packages.yml` (reusable), after the bundles: per processor
+  (`ubuntu-24.04`, `ubuntu-24.04-arm`), nFPM 2.47.0 (SHA-256 checked), the packages and older ones
+  (0.0.1), the three distributions, then `linux-packages-<arch>`. `server-package.yml` runs it on
+  every pull request (the *Server package* check needs it); `release.yml` runs it after the bundles,
+  and the GitHub release attaches the four packages (it fails unless there are four), with their
+  SHA-256 in `checksums.txt` and an apt/dnf line in the notes. nFPM is in the policy's table of CI
+  tools.
+- **Still open:** the *Done when* says CI installs each, which runs once this branch is pushed (both
+  processors; here only arm64 ran).
+- **Fixed after the witness:** the CI's output folder was `packages/`, the repository's own (with
+  repo-tools in it), so the artifact took scripts along; it's `linux-packages/` now. And the
+  release notes named a pre-release's packages `1.0.0-rc.1-1`, where nFPM writes `1.0.0~rc.1-1`;
+  the notes now convert the version the same way (checked by rendering them for `1.0.0-rc.1`).
+- **Known:** the upgrade test installs the same bundle labelled 0.0.1, then 0.2.0, so it shows the
+  restart by the process ID, not by a different program. The new account check runs the program
+  with the account's uid and gid but root's environment, without the account's extra groups,
+  which is enough for `--version` and `test -r`.

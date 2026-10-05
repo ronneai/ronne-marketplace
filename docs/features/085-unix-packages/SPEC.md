@@ -52,11 +52,20 @@ brew services start rmk-server         # at login; `sudo brew services start` fo
 
 - Installs to `/opt/rmk-server`, links `/usr/bin/rmk-server`.
 - `postinst` runs `rmk-server service install` with the defaults (083: user, folders, unit) and
-  prints the address. An existing install's settings are kept.
+  prints the address. On an upgrade (the service already installed) it runs `rmk-server service
+  restart` instead, so the options chosen at install (port, domain) stay: the unit runs
+  `/opt/rmk-server`, which an upgrade doesn't move. A failure there doesn't fail the package: it
+  prints the command that finishes the install.
 - `Recommends: caddy` (deb) / `Suggests: caddy` (rpm), not required.
-- Removing the package stops and removes the service; `purge` (deb) also offers to delete the data,
-  which is otherwise kept.
+- Removing the package stops and removes the service (`rmk-server service uninstall`); the data and
+  settings are kept. A maintainer script can't ask a question, so `purge` (deb), like `dnf remove`,
+  doesn't delete them either: it prints where they are and the command that deletes them.
+- The packages depend on glibc 2.34 and GCC 11's libstdc++ (084's floor): `libc6 (>= 2.34)` and
+  `libstdc++6 (>= 11)` in the `.deb`; the symbol versions `libc.so.6(GLIBC_2.34)(64bit)` and
+  `libstdc++.so.6(GLIBCXX_3.4.29)(64bit)` in the `.rpm`, the same on Fedora, RHEL and openSUSE
+  whatever their packages are called. So an older system refuses to install them.
 - Upgrading installs the new package over the old one; `postinst` restarts the service.
+- The maintainer is "Ronne AI Marketplace <marketplace@ronne.ai>" (owner, 2026-10-05).
 
 **`install.sh` without Docker:** on Debian/Ubuntu or Fedora/RHEL, download the right package for
 the release and architecture, check its checksum, and install it with `sudo` after showing the

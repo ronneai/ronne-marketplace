@@ -166,7 +166,7 @@ describe("service install on Linux (083)", () => {
     expect(sys.commands).toContain(
       "useradd --system --user-group --home-dir /var/lib/rmk-server --no-create-home --shell /usr/sbin/nologin --comment Ronne AI Marketplace rmk-server",
     );
-    expect(sys.commands).toContain(`runuser -u rmk-server -- ${NODE} ${ENTRY} --version`);
+    expect(sys.commands).toContain(`as 995:995 ${NODE} ${ENTRY} --version`);
     expect(sys.dirs.get("/var/lib/rmk-server")).toBe(0o750);
     expect(sys.dirs.get("/etc/rmk-server")).toBe(0o755);
     expect(sys.files.get("/etc/rmk-server/env")?.mode).toBe(0o600);
@@ -203,7 +203,7 @@ describe("service install on Linux (083)", () => {
   it("keeps an existing account, and refuses one that can't run the program", async () => {
     const sys = machine();
     sys.answers.set("getent passwd rmk-server", { code: 0 });
-    sys.answers.set("runuser", { code: 1 });
+    sys.answers.set("as 995:995", { code: 1 });
     expect(await install(sys)).toBe(1);
     expect(sys.commands.some((c) => c.startsWith("useradd"))).toBe(false);
     expect(sys.commands.some((c) => c.startsWith("userdel"))).toBe(false);
@@ -213,7 +213,7 @@ describe("service install on Linux (083)", () => {
 
   it("removes an account it just made when that account can't run the program", async () => {
     const sys = machine();
-    sys.answers.set("runuser", { code: 1 });
+    sys.answers.set("as 995:995", { code: 1 });
     expect(await install(sys)).toBe(1);
     expect(sys.commands).toContain("userdel rmk-server");
     expect(readState(sys, layout)).toBeUndefined();
@@ -310,7 +310,7 @@ describe("service install --domain on Linux (083)", () => {
     const sys = withCaddy(machine());
     sys.files.set(`${certs}/cert.pem`, { content: "c", mode: 0o644 });
     sys.files.set(`${certs}/key.pem`, { content: "k", mode: 0o600 });
-    sys.answers.set(`runuser -u caddy -- test -r ${certs}/key.pem`, { code: 1 });
+    sys.answers.set(`as 996:996 test -r ${certs}/key.pem`, { code: 1 });
     expect(await install(sys, { domain: "r.example.com", tls: "files" } as never)).toBe(1);
     expect(sys.commands).toContain(`chgrp caddy ${certs} ${certs}/cert.pem ${certs}/key.pem`);
     expect(sys.commands).toContain(`chmod g+rX ${certs} ${certs}/cert.pem ${certs}/key.pem`);
@@ -320,7 +320,7 @@ describe("service install --domain on Linux (083)", () => {
     expect(sys.commands).toContain("userdel caddy");
     expect(sys.files.has("/etc/rmk-server/env")).toBe(false);
 
-    sys.answers.delete(`runuser -u caddy -- test -r ${certs}/key.pem`);
+    sys.answers.delete(`as 996:996 test -r ${certs}/key.pem`);
     sys.answers.set("systemctl is-active --quiet rmk-server-proxy", { code: 0 });
     sys.commands.length = 0;
     expect(await install(sys, { domain: "r.example.com", tls: "files" } as never)).toBe(0);
@@ -328,8 +328,8 @@ describe("service install --domain on Linux (083)", () => {
     expect(sys.commands.filter((c) => c.includes(certs))).toEqual([
       `chgrp caddy ${certs} ${certs}/cert.pem ${certs}/key.pem`,
       `chmod g+rX ${certs} ${certs}/cert.pem ${certs}/key.pem`,
-      `runuser -u caddy -- test -r ${certs}/cert.pem`,
-      `runuser -u caddy -- test -r ${certs}/key.pem`,
+      `as 996:996 test -r ${certs}/cert.pem`,
+      `as 996:996 test -r ${certs}/key.pem`,
     ]);
     expect(sys.files.get("/etc/rmk-server-proxy/Caddyfile")?.content).toContain(
       `tls ${certs}/cert.pem ${certs}/key.pem`,
