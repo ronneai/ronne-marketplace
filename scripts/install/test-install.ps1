@@ -31,6 +31,16 @@ foreach ($d in 'nodot', 'bad_domain!', '-x.example.com', 'example.com.', 'a b.co
 Test-Case 'Test-Email' $true (Test-Email 'ops@example.com')
 Test-Case 'invalid email' $false (Test-Email 'not an email')
 
+# This computer binds 127.0.0.1 (security audit DEP-1).
+Test-Case 'Get-LocalBind 7650' '127.0.0.1:7650' (Get-LocalBind '7650')
+Test-Case 'Get-LocalBind keeps an address set on purpose' '0.0.0.0:7650' (Get-LocalBind '0.0.0.0:7650')
+Test-Case 'Get-LocalPublicUrl empty' 'http://localhost:7650' (Get-LocalPublicUrl '' '7650')
+Test-Case 'Get-LocalPublicUrl follows the port' 'http://localhost:7652' (Get-LocalPublicUrl 'http://localhost:7650' '7652')
+Test-Case "Get-LocalPublicUrl keeps the person's own" 'https://ronne.example.com' (Get-LocalPublicUrl 'https://ronne.example.com' '7650')
+$script:Running = $true; $script:OldPort = '127.0.0.1:7650'; $script:OldHttpsPort = '127.0.0.1:7651'
+Test-Case 'Test-PortAvailable: its own port, written with an address' $true (Test-PortAvailable 7650)
+$script:Running = $false; $script:OldPort = ''; $script:OldHttpsPort = ''
+
 $script:Dir = Join-Path ([IO.Path]::GetTempPath()) "ronne-install-test-$PID"
 New-Item -ItemType Directory -Force $script:Dir | Out-Null
 try {
@@ -173,7 +183,8 @@ try {
     $r = Invoke-Fake @('-Mode', 'local', '-Dir', $fresh)
     Test-Case 'a fresh install succeeds' 0 $r.Code
     if ($r.Code -ne 0) { Write-Host $r.Out } # Shows why in the CI log.
-    Test-Case 'a fresh install writes only the image' 'RONNE_IMAGE=ronne-web:test' (Get-EnvSummary $fresh)
+    # Bound to 127.0.0.1, this computer only (security audit DEP-1), with the address that goes with it.
+    Test-Case 'a fresh install writes the image and binds 127.0.0.1' 'PUBLIC_URL=http://localhost:7650 RONNE_HTTPS_PORT=127.0.0.1:7651 RONNE_IMAGE=ronne-web:test RONNE_PORT=127.0.0.1:7650' (Get-EnvSummary $fresh)
     Test-Case 'a fresh install names the address' $true ($r.Out -match 'Ronne AI Marketplace is running: http://localhost:7650')
     Test-Case 'a fresh install gets the proxy compose.yaml' $true ([bool] (Select-String -Path (Join-Path $fresh 'compose.yaml') -Pattern '^  proxy:' -Quiet))
     Test-Case 'a fresh install creates certs' $true (Test-Path (Join-Path $fresh 'certs'))
@@ -181,7 +192,7 @@ try {
     $hold = Open-TestListener 7650 # as if its own proxy held it
     try { $r = Invoke-Fake @('-Dir', $fresh) } finally { $hold.Stop() }
     $env:FAKE_PS = ''
-    Test-Case 'a rerun keeps its own port' 'RONNE_IMAGE=ronne-web:test' (Get-EnvSummary $fresh)
+    Test-Case 'a rerun keeps its own port' 'PUBLIC_URL=http://localhost:7650 RONNE_HTTPS_PORT=127.0.0.1:7651 RONNE_IMAGE=ronne-web:test RONNE_PORT=127.0.0.1:7650' (Get-EnvSummary $fresh)
 
     # A server with a domain, on the same folder.
     if ((Test-PortFree 80) -and (Test-PortFree 443)) {
@@ -189,7 +200,7 @@ try {
       Test-Case 'a domain succeeds' 0 $r.Code
       Test-Case 'a domain writes its lines' 'RONNE_ACME_EMAIL=ops@example.com RONNE_DOMAIN=localhost RONNE_HTTPS_PORT=443 RONNE_IMAGE=ronne-web:test RONNE_PORT=80' (Get-EnvSummary $fresh)
       $r = Invoke-Fake @('-Mode', 'local', '-Dir', $fresh)
-      Test-Case 'back to this computer removes them' 'RONNE_IMAGE=ronne-web:test' (Get-EnvSummary $fresh)
+      Test-Case 'back to this computer removes them' 'PUBLIC_URL=http://localhost:7650 RONNE_HTTPS_PORT=127.0.0.1:7651 RONNE_IMAGE=ronne-web:test RONNE_PORT=127.0.0.1:7650' (Get-EnvSummary $fresh)
     } else { Write-Host 'skip a domain: ports 80 or 443 are in use here' }
   } else { Write-Host 'skip the fresh install: ports 7650 or 7651 are in use here' }
 
@@ -198,7 +209,7 @@ try {
   $hold = Open-TestListener 7650
   try { $r = Invoke-Fake @('-Mode', 'local', '-Dir', $busy) } finally { $hold.Stop() }
   Test-Case 'a busy 7650 succeeds' 0 $r.Code
-  Test-Case 'a busy 7650 moves to 7652' 'RONNE_HTTPS_PORT=7653 RONNE_IMAGE=ronne-web:test RONNE_PORT=7652' (Get-EnvSummary $busy)
+  Test-Case 'a busy 7650 moves to 7652' 'PUBLIC_URL=http://localhost:7652 RONNE_HTTPS_PORT=127.0.0.1:7653 RONNE_IMAGE=ronne-web:test RONNE_PORT=127.0.0.1:7652' (Get-EnvSummary $busy)
 
   # Versions, with a copy of the script that has 0.2.0 written in.
   $released = Join-Path $work 'install-0.2.0.ps1'
@@ -213,7 +224,7 @@ try {
   [IO.File]::WriteAllText((Join-Path $versions '.env'), "RONNE_IMAGE=ronneai/marketplace:0.1.1`n")
   $r = Invoke-Fake @('-Mode', 'local', '-Dir', $versions) -Script $released -KeepImage
   Test-Case 'an upgrade succeeds' 0 $r.Code
-  Test-Case 'an upgrade pins the new version' 'RONNE_IMAGE=ronneai/marketplace:0.2.0' (Get-EnvSummary $versions)
+  Test-Case 'an upgrade pins the new version' 'PUBLIC_URL=http://localhost:7650 RONNE_HTTPS_PORT=127.0.0.1:7651 RONNE_IMAGE=ronneai/marketplace:0.2.0 RONNE_PORT=127.0.0.1:7650' (Get-EnvSummary $versions)
 
   # A legacy install: a compose.yaml from before the proxy, its stack running on 3000, no .env.
   $legacyDir = Join-Path $work 'legacy'
@@ -223,7 +234,7 @@ try {
   $hold = Open-TestListener 3000
   try { $r = Invoke-Fake @('-Mode', 'local', '-Dir', $legacyDir) } finally { $hold.Stop(); $env:FAKE_PS = '' }
   Test-Case 'a legacy rerun succeeds' 0 $r.Code
-  Test-Case 'a legacy rerun keeps port 3000' 'RONNE_IMAGE=ronne-web:test RONNE_PORT=3000' (Get-EnvSummary $legacyDir)
+  Test-Case 'a legacy rerun keeps port 3000' 'PUBLIC_URL=http://localhost:3000 RONNE_HTTPS_PORT=127.0.0.1:7651 RONNE_IMAGE=ronne-web:test RONNE_PORT=127.0.0.1:3000' (Get-EnvSummary $legacyDir)
   Test-Case 'a legacy rerun says so' $true ($r.Out -match 'keeping http://localhost:3000')
 } finally {
   Remove-Item -Recurse -Force $work -ErrorAction SilentlyContinue

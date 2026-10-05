@@ -169,6 +169,8 @@ describe("the topics", () => {
     expect(install).toContain("install.sh | sh");
     expect(install).toContain("install.ps1 | iex");
     expect(install).toContain("Run it again to upgrade");
+    // This computer answers on 127.0.0.1 only (security audit DEP-1).
+    expect(install).toContain("RONNE_PORT=0.0.0.0:7650");
     // The proxy in compose.yaml (080).
     expect(install).toContain("# then open http://localhost:7650");
     expect(install).toContain(

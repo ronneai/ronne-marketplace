@@ -299,10 +299,27 @@ port_free() {
 # Ports this install's proxy already publishes don't count as busy on a rerun.
 port_ours() {
   [ "$RUNNING" = 1 ] || return 1
-  [ "$1" = "$OLD_PORT" ] || [ "$1" = "$OLD_HTTPS_PORT" ]
+  # An address in front (127.0.0.1:7650, as "This computer" writes it) isn't part of the port.
+  [ "$1" = "${OLD_PORT##*:}" ] || [ "$1" = "${OLD_HTTPS_PORT##*:}" ]
 }
 
 port_available() { port_ours "$1" || port_free "$1"; }
+
+# local_bind PORT: what "This computer" writes for a port, 127.0.0.1:PORT, so only this computer can
+# reach Ronne, and its setup, open to the first visitor (security audit DEP-1, 2026-10-05). A value
+# with an address already (RONNE_PORT=0.0.0.0:7650, set on purpose) is kept as it is.
+local_bind() {
+  case "$1" in *:*) printf '%s\n' "$1" ;; *) printf '127.0.0.1:%s\n' "$1" ;; esac
+}
+
+# local_public_url CURRENT PORT: the PUBLIC_URL "This computer" writes: http://localhost:PORT, unless
+# one of the person's own is set. (compose.yaml's default would read the address into the URL.)
+local_public_url() {
+  case "$1" in
+    "" | http://localhost:*) printf 'http://localhost:%s\n' "${2##*:}" ;;
+    *) printf '%s\n' "$1" ;;
+  esac
+}
 
 # --- The folder and .env ----------------------------------------------------------------------
 
@@ -544,6 +561,9 @@ main() {
     # This computer: 7650 and 7651, or the next free pair up to 7662.
     PORT="${OLD_PORT:-7650}"
     HTTPS_PORT_NUM="${OLD_HTTPS_PORT:-7651}"
+    # Written as 127.0.0.1:PORT (below): the bare port here, for the checks.
+    PORT="${PORT#127.0.0.1:}"
+    HTTPS_PORT_NUM="${HTTPS_PORT_NUM#127.0.0.1:}"
     if [ "$LEGACY" = 1 ] && [ -z "$(env_get RONNE_PORT)" ]; then
       PORT=3000
       say "This install was on port 3000 before the proxy: keeping http://localhost:3000 (RONNE_PORT=3000 in .env)."
@@ -595,11 +615,14 @@ main() {
     env_set RONNE_PORT 80
     env_set RONNE_HTTPS_PORT 443
     env_set RONNE_ACME_EMAIL "$EMAIL"
+    # The domain's address, not a "This computer" one written before.
+    case "$(env_get PUBLIC_URL)" in http://localhost:*) env_set PUBLIC_URL "" ;; esac
   else
     env_set RONNE_DOMAIN ""
     env_set RONNE_ACME_EMAIL ""
-    if [ "$PORT" = 7650 ]; then env_set RONNE_PORT ""; else env_set RONNE_PORT "$PORT"; fi
-    if [ "$HTTPS_PORT_NUM" = 7651 ]; then env_set RONNE_HTTPS_PORT ""; else env_set RONNE_HTTPS_PORT "$HTTPS_PORT_NUM"; fi
+    env_set RONNE_PORT "$(local_bind "$PORT")"
+    env_set RONNE_HTTPS_PORT "$(local_bind "$HTTPS_PORT_NUM")"
+    env_set PUBLIC_URL "$(local_public_url "$(env_get PUBLIC_URL)" "$PORT")"
   fi
   chmod 600 "$DIR/.env" 2>/dev/null || true
   say "Wrote $DIR/compose.yaml and $DIR/.env"

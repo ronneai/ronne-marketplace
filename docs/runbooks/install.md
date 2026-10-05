@@ -60,6 +60,11 @@ The script:
 2. Asks where Ronne runs: **this computer** or **a server with a domain**.
 3. For a server, asks for the domain and an optional email for certificate notices.
 4. Creates a `ronne-marketplace` folder in your home folder with `compose.yaml` and its settings (`.env`).
+   On **this computer**, Ronne answers only on this computer (`127.0.0.1`), not to your network. To
+   reach it from another device, put `RONNE_PORT=0.0.0.0:7650` and
+   `PUBLIC_URL=http://<this computer's address>:7650` in `.env` (the script keeps both) and run
+   `docker compose up -d` in that folder; do it after the setup, which is open to anyone who can
+   reach it until then. HTTPS on 7651 stays on this computer.
 5. Starts Ronne, waits until it answers, and opens it in your browser.
 
 Then follow the setup in the browser: choose the database (SQLite needs nothing else), and create

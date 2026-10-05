@@ -234,9 +234,14 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           domain, and an optional email for certificate notices), and checks the ports: on this
           computer it takes the next free pair after 7650 and 7651 if they&apos;re busy. It writes{" "}
           <Code>compose.yaml</Code> and <Code>.env</Code> to a <Code>ronne-marketplace</Code> folder
-          in your home folder, starts Ronne, and opens it in the browser. It installs the release it
-          comes from and never uses <Code>sudo</Code>. Run it again to upgrade: it keeps your
-          answers, and asks before moving to a newer version.
+          in your home folder, starts Ronne, and opens it in the browser. On this computer, Ronne
+          answers only on this computer (<Code>127.0.0.1</Code>), not to your network: to reach it
+          from other devices, after the setup put <Code>RONNE_PORT=0.0.0.0:7650</Code> and{" "}
+          <Code>PUBLIC_URL</Code> with this computer&apos;s address (
+          <Code>http://192.168.1.20:7650</Code>, say) in that <Code>.env</Code> (the script keeps
+          both), and run <Code>docker compose up -d</Code> there. It installs the release it comes
+          from and never uses <Code>sudo</Code>. Run it again to upgrade: it keeps your answers, and
+          asks before moving to a newer version.
         </p>
         <p>
           By hand instead, you need one file: <Code>compose.yaml</Code> from the repository. It

@@ -37,16 +37,24 @@ expect_env() {
 
 answers_setup() { curl -s "$@" | grep -q setup_required; }
 
-# 1. A fresh install on this computer, under dash: only the image in .env, HTTP on 7650.
+# 1. A fresh install on this computer, under dash: HTTP on 7650, bound to 127.0.0.1 (security audit
+#    DEP-1): this computer reaches it, the network doesn't.
+local_env="PUBLIC_URL=http://localhost:7650 RONNE_PORT=127.0.0.1:7650 RONNE_HTTPS_PORT=127.0.0.1:7651"
 dash scripts/install/install.sh --yes --mode local --dir "$dir"
-expect_env "RONNE_IMAGE=$image"
+expect_env "RONNE_IMAGE=$image" $local_env
 answers_setup http://localhost:7650/api/health || fail "http://localhost:7650 doesn't answer setup_required"
 ok "fresh install answers on 7650"
+address=$(hostname -I | awk '{print $1}')
+[ -n "$address" ] || fail "this runner has no network address to check 7650 on"
+if curl -s --max-time 5 -o /dev/null "http://$address:7650/api/health"; then
+  fail "7650 answers on $address: the setup is open to the network"
+fi
+ok "7650 doesn't answer on the network address ($address)"
 [ -d "$dir/certs" ] || fail "certs/ wasn't created"
 
 # 2. A rerun under bash keeps everything: its own ports don't count as busy.
 bash scripts/install/install.sh --yes --dir "$dir"
-expect_env "RONNE_IMAGE=$image"
+expect_env "RONNE_IMAGE=$image" $local_env
 answers_setup http://localhost:7650/api/health || fail "the rerun doesn't answer on 7650"
 ok "rerun keeps 7650"
 
@@ -66,7 +74,8 @@ python3 -m http.server 7650 --bind 127.0.0.1 >/dev/null 2>&1 &
 listener=$!
 sleep 1
 dash scripts/install/install.sh --yes --mode local --dir "$dir"
-expect_env "RONNE_IMAGE=$image" RONNE_TLS=internal RONNE_PORT=7652 RONNE_HTTPS_PORT=7653
+expect_env "RONNE_IMAGE=$image" RONNE_TLS=internal PUBLIC_URL=http://localhost:7652 \
+  RONNE_PORT=127.0.0.1:7652 RONNE_HTTPS_PORT=127.0.0.1:7653
 answers_setup http://localhost:7652/api/health || fail "http://localhost:7652 doesn't answer setup_required"
 ok "a busy 7650 moves the install to 7652"
 

@@ -127,8 +127,24 @@ function Test-PortFree([int] $Port) {
 
 # Ports this install's containers already publish don't count as busy on a rerun.
 function Test-PortAvailable([int] $Port) {
-  if ($script:Running -and ("$Port" -eq $script:OldPort -or "$Port" -eq $script:OldHttpsPort)) { return $true }
+  # An address in front (127.0.0.1:7650, as "This computer" writes it) isn't part of the port.
+  if ($script:Running -and ("$Port" -eq "$($script:OldPort)".Split(':')[-1] -or "$Port" -eq "$($script:OldHttpsPort)".Split(':')[-1])) { return $true }
   return Test-PortFree $Port
+}
+
+# What "This computer" writes for a port: 127.0.0.1:PORT, so only this computer can reach Ronne, and
+# its setup, open to the first visitor (security audit DEP-1, 2026-10-05). A value with an address
+# already (0.0.0.0:7650, set on purpose) is kept as it is.
+function Get-LocalBind([string] $Port) {
+  if ($Port -match ':') { return $Port }
+  return "127.0.0.1:$Port"
+}
+
+# The PUBLIC_URL "This computer" writes: http://localhost:PORT, unless one of the person's own is set.
+# (compose.yaml's default would read the address into the URL.)
+function Get-LocalPublicUrl([string] $Current, [string] $Port) {
+  if (-not $Current -or $Current -like 'http://localhost:*') { return "http://localhost:$($Port.Split(':')[-1])" }
+  return $Current
 }
 
 # --- The folder and .env ----------------------------------------------------------------------
@@ -312,6 +328,9 @@ function Install-Ronne {
     # This computer: 7650 and 7651, or the next free pair up to 7662.
     $port = if ($script:OldPort) { $script:OldPort } else { '7650' }
     $script:HttpsPort = if ($script:OldHttpsPort) { $script:OldHttpsPort } else { '7651' }
+    # Written as 127.0.0.1:PORT (below): the bare port here, for the checks.
+    $port = $port -replace '^127\.0\.0\.1:', ''
+    $script:HttpsPort = $script:HttpsPort -replace '^127\.0\.0\.1:', ''
     if ($legacy -and -not (Get-EnvValue 'RONNE_PORT')) {
       $port = '3000'
       Write-Host 'This install was on port 3000 before the proxy: keeping http://localhost:3000 (RONNE_PORT=3000 in .env).'
@@ -349,11 +368,14 @@ function Install-Ronne {
     Write-EnvValue 'RONNE_PORT' '80'
     Write-EnvValue 'RONNE_HTTPS_PORT' '443'
     Write-EnvValue 'RONNE_ACME_EMAIL' $script:Email
+    # The domain's address, not a "This computer" one written before.
+    if ((Get-EnvValue 'PUBLIC_URL') -like 'http://localhost:*') { Write-EnvValue 'PUBLIC_URL' '' }
   } else {
     Write-EnvValue 'RONNE_DOMAIN' ''
     Write-EnvValue 'RONNE_ACME_EMAIL' ''
-    Write-EnvValue 'RONNE_PORT' $(if ($port -eq '7650') { '' } else { $port })
-    Write-EnvValue 'RONNE_HTTPS_PORT' $(if ($script:HttpsPort -eq '7651') { '' } else { $script:HttpsPort })
+    Write-EnvValue 'RONNE_PORT' (Get-LocalBind $port)
+    Write-EnvValue 'RONNE_HTTPS_PORT' (Get-LocalBind $script:HttpsPort)
+    Write-EnvValue 'PUBLIC_URL' (Get-LocalPublicUrl (Get-EnvValue 'PUBLIC_URL') $port)
   }
   Write-Host "Wrote $(Join-Path $script:Dir 'compose.yaml') and $(Join-Path $script:Dir '.env')"
 
