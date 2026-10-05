@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { NewTabLink } from "../ui/NewTabLink";
 import { isCurrent, type NavItem } from "./nav";
 
 /** A count next to a nav item or on the Menu button: how many are waiting. */
@@ -28,17 +29,24 @@ export const MainNav = ({
   counts?: Record<string, number>;
 }) => {
   const path = usePathname() ?? "/";
-  const link = (item: NavItem) => (
-    <Link
-      key={item.href}
-      href={item.href}
-      aria-current={isCurrent(item, path) ? "page" : undefined}
-      className="shrink-0 whitespace-nowrap rounded-control px-3 py-1.5 pointer-coarse:py-3 text-sm text-muted hover:text-fg aria-[current=page]:bg-tint aria-[current=page]:font-semibold aria-[current=page]:text-link outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
-    >
-      {item.label}
-      {counts[item.href] ? <NavCount count={counts[item.href] ?? 0} /> : null}
-    </Link>
-  );
+  const className =
+    "shrink-0 whitespace-nowrap rounded-control px-3 py-1.5 pointer-coarse:py-3 text-sm text-muted hover:text-fg aria-[current=page]:bg-tint aria-[current=page]:font-semibold aria-[current=page]:text-link outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
+  const link = (item: NavItem) =>
+    item.external ? (
+      <NewTabLink key={item.href} href={item.href} className={className}>
+        {item.label}
+      </NewTabLink>
+    ) : (
+      <Link
+        key={item.href}
+        href={item.href}
+        aria-current={isCurrent(item, path) ? "page" : undefined}
+        className={className}
+      >
+        {item.label}
+        {counts[item.href] ? <NavCount count={counts[item.href] ?? 0} /> : null}
+      </Link>
+    );
   return (
     // `relative`, so the strip also clips the counts' screen-reader text (absolutely positioned),
     // which otherwise widened the whole page on a phone (065).

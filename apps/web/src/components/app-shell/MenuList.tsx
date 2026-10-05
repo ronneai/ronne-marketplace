@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { Badge } from "../ui/Badge";
+import { NewTabLink } from "../ui/NewTabLink";
 import { NavCount } from "./MainNav";
 import { isCurrent, type NavItem, type ShellUser } from "./nav";
 
@@ -37,18 +38,24 @@ export const MenuList = ({
   return (
     <>
       <nav aria-label="Main" className="grid gap-0.5">
-        {items.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={onNavigate}
-            aria-current={isCurrent(item, path) ? "page" : undefined}
-            className={row}
-          >
-            {item.label}
-            {counts[item.href] ? <NavCount count={counts[item.href] ?? 0} /> : null}
-          </Link>
-        ))}
+        {items.map((item) =>
+          item.external ? (
+            <NewTabLink key={item.href} href={item.href} onClick={onNavigate} className={row}>
+              {item.label}
+            </NewTabLink>
+          ) : (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={onNavigate}
+              aria-current={isCurrent(item, path) ? "page" : undefined}
+              className={row}
+            >
+              {item.label}
+              {counts[item.href] ? <NavCount count={counts[item.href] ?? 0} /> : null}
+            </Link>
+          ),
+        )}
       </nav>
       <div className="mt-3 grid gap-0.5 border-t border-hairline pt-3">
         <div className="grid gap-0.5 px-3 pb-2">

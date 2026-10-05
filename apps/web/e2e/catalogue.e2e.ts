@@ -121,7 +121,7 @@ test("an agent's Overview sums it up, shows its prompt and its dependencies on a
   await usage.getByText("Where do these numbers come from?").click();
   await expect(page.getByRole("link", { name: "Learn more" }).first()).toHaveAttribute(
     "href",
-    "/docs/usage#reading",
+    "https://www.ronne.ai/marketplace/docs/usage#reading",
   );
   await expect(page.getByText("fast", { exact: true })).toBeVisible();
   await expect(

@@ -2,6 +2,10 @@
 
 > Milestone: M10 · Depends on: 065, 067, 068, 044, 014 · Design: [044](../044-item-contents/SPEC.md), [014](../014-review-queue/SPEC.md) · Contracts: none new
 
+> **Since [088](../088-docs-on-website/SPEC.md) (2026-10-05)** the Documentation is on the website, from
+> `../ronne-web` (`www/src/content/docs/`): what this spec says about `content.tsx`, the `/docs`
+> pages or their components (`DocsNav`, `TypesExplorer`, the docs render tests) is done there now.
+
 ## Goal
 
 The Files viewer is shared by the item page (044) and the review page (014). On a phone the whole

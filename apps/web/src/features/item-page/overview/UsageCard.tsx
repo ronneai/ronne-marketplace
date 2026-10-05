@@ -1,7 +1,7 @@
 import type { ItemType } from "@ronneai/core";
 import { RENDERERS } from "@ronneai/core/render";
-import Link from "next/link";
 import { docsHref } from "@/components/help/topics";
+import { NewTabLink } from "@/components/ui/NewTabLink";
 import { Table, Td, Th } from "@/components/ui/Table";
 import type { UsageSummary } from "@/server/domains/usage/models/usage-summary";
 
@@ -239,9 +239,12 @@ export const UsageBody = ({
       ) : null}
       <p className="text-xs text-muted">
         Counted by rmk on machines that report to this instance;{" "}
-        <Link href={docsHref("usage", "sent")} className="text-link underline underline-offset-2">
+        <NewTabLink
+          href={docsHref("usage", "sent")}
+          className="text-link underline underline-offset-2"
+        >
           see what&apos;s sent
-        </Link>
+        </NewTabLink>
         .
       </p>
     </div>

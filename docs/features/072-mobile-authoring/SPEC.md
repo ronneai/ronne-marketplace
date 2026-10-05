@@ -2,6 +2,10 @@
 
 > Milestone: M10 · Depends on: 067, 068, 070, 071, 012, 031, 052, 057 · Design: [012](../012-submission-editor/SPEC.md), [031](../031-visual-composer/SPEC.md) · Contracts: none new
 
+> **Since [088](../088-docs-on-website/SPEC.md) (2026-10-05)** the Documentation is on the website, from
+> `../ronne-web` (`www/src/content/docs/`): what this spec says about `content.tsx`, the `/docs`
+> pages or their components (`DocsNav`, `TypesExplorer`, the docs render tests) is done there now.
+
 ## Goal
 
 Writing an item is mostly a desk job, but people fix a typo, answer a reviewer's "request

@@ -106,7 +106,11 @@ describe("the Usage card", () => {
     const html = render(usage({ days: quiet, peak: null, collecting: false }));
     expect(html).toContain("No runs in these days");
     expect(html).toContain("This instance no longer collects usage");
-    expect(html).toContain('href="/docs/usage#sent"');
+    expect(html).toContain('href="https://www.ronne.ai/marketplace/docs/usage#sent"');
+    // The Documentation is on the website, opened in a new tab (088).
+    expect(html).toMatch(
+      /href="https:\/\/www\.ronne\.ai\/marketplace\/docs\/usage#sent"[^>]*target="_blank"/,
+    );
   });
 
   it("names days in UTC", () => {

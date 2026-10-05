@@ -1,3 +1,4 @@
+import { DOCS_URL } from "@/components/help/topics";
 import { can, type Permission } from "@/server/domains/identity/models/permissions";
 
 export type ShellUser = { name: string; email: string; role: "root" | "moderator" | "user" };
@@ -11,12 +12,15 @@ export type NavItem = {
   section?: string | string[];
   /** Shown at the right of the header, next to the appearance switch: Admin and Docs. */
   end?: true;
+  /** Another site, opened in a new tab: Docs, the Documentation on the website (088). */
+  external?: true;
 };
 
 /**
  * Top navigation. Only pages that exist are listed (feature 032): Composer and Releases join as
  * their features land. Catalogue (018) is current on item pages too. Admin and Docs (033) sit at
- * the right, before the appearance switch (owner's request, 2026-09-28).
+ * the right, before the appearance switch (owner's request, 2026-09-28). Docs opens the
+ * Documentation on the website in a new tab (088).
  */
 export const NAV: NavItem[] = [
   { href: "/", label: "Home" },
@@ -29,7 +33,7 @@ export const NAV: NavItem[] = [
   },
   { href: "/reviews", label: "Reviews", permission: "submissions.review", section: "/reviews" },
   { href: "/admin/users", label: "Admin", permission: "users.view", section: "/admin", end: true },
-  { href: "/docs", label: "Docs", section: "/docs", end: true },
+  { href: DOCS_URL, label: "Docs", end: true, external: true },
 ];
 
 export const navFor = (user: ShellUser | null): NavItem[] => {

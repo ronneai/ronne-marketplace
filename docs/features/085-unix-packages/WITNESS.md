@@ -93,3 +93,24 @@ section still promised Homebrew; `dnf remove` prints the delete command too (now
 **Not checked here:** amd64; RHEL 9, Debian 12, Ubuntu 22.04 themselves; a real upgrade with
 migrations; `--domain` through the package; a reboot.
 **Overall:** met.
+
+## Follow-up: messages within 80 columns (2026-10-05, after the v0.3.0 release run)
+
+The v0.3.0 release's packages test failed on Fedora 42: dnf 5 (5.2.18) cuts each line a package
+script prints at 80 columns, its `>>> ` prefix included, so the purge note's `sudo rm -rf …` line and
+`rmk-server service uninstall`'s note were cut. The fix: short echoes, and `rmk-server`'s messages
+folded at spaces (`wrapped`, `fold -s -w 76`), keeping its exit status.
+
+| Check | Result | Evidence |
+|---|---|---|
+| Syntax and lint | confirmed | `sh -n` and `dash -n` (debian:13) and shellcheck clean on the three scripts and the test |
+| Behaviour unchanged | confirmed | Under dash: `wrapped` returns the command's status (7, 0); a failing `mktemp` still runs the command; the fallbacks still print; every script exits 0 |
+| `fold` keeps the text | confirmed | Present on fedora:42, debian:13, ubuntu:24.04; the joined lines match the original (`cmp`, md5), `…` and `→` included; the longest line 75 columns |
+| dnf 5 | confirmed | A throwaway rpm running the real scripts with a fake `rmk-server` printing the real messages: every line at most 80, nothing cut, the `said` checks pass. Built from the old scripts, the cut lines and the failing checks reproduce |
+| apt | found, fixed | apt's lines end in `\r\n` (dpkg in a pty): `said` now deletes `\r` too, which passes on debian:13 and ubuntu:24.04 |
+| Unit tests catch regressions | confirmed, gaps fixed | Long echoes, an unwrapped call, `wrapped` drifting, a lost status, a wider fold, stderr dropped. A single-quoted echo and a call by full path were missed; both are caught now |
+
+**Not checked here:** the full CI package test, which the pull request runs on Ubuntu, Debian and
+Fedora for both processors. dnf drops non-ASCII characters (`…`, `→`) from script output in the C
+locale, before and after this change.
+**Overall:** met.

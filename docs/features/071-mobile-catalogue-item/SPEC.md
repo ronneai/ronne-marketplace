@@ -2,6 +2,10 @@
 
 > Milestone: M10 · Depends on: 066, 067, 068, 069, 070, 018, 044, 045, 047 · Design: [018](../018-catalogue/SPEC.md), [045](../045-item-overview-dashboard/SPEC.md) · Contracts: none new
 
+> **Since [088](../088-docs-on-website/SPEC.md) (2026-10-05)** the Documentation is on the website, from
+> `../ronne-web` (`www/src/content/docs/`): what this spec says about `content.tsx`, the `/docs`
+> pages or their components (`DocsNav`, `TypesExplorer`, the docs render tests) is done there now.
+
 ## Goal
 
 Finding and reading items is what most people will do from a phone: someone sends a link to an

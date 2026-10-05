@@ -17,9 +17,9 @@ import {
   useRole,
 } from "@floating-ui/react";
 import { CircleHelp } from "lucide-react";
-import Link from "next/link";
 import { type ReactNode, useRef, useState } from "react";
 import { cn } from "./cn";
+import { NewTabLink } from "./NewTabLink";
 
 /** The popover's widest, in pixels: 20rem. */
 const MAX_WIDTH = 320;
@@ -28,10 +28,11 @@ const GAP = 8;
 
 /**
  * A short answer where the question comes up (feature 033): 1–3 sentences and "Learn more" to the
- * Documentation. Since 050 the answer floats next to the question in a popover placed by Floating
- * UI, instead of opening inside the page. It renders where the helper is, with fixed positioning:
- * our dialogs are native modal `<dialog>`s in the top layer, where a portal elsewhere would hide
- * it. Without JavaScript the answer shows inline, under the question.
+ * Documentation, on the website since 088, in a new tab. Since 050 the answer floats next to the
+ * question in a popover placed by Floating UI, instead of opening inside the page. It renders where
+ * the helper is, with fixed positioning: our dialogs are native modal `<dialog>`s in the top layer,
+ * where a portal elsewhere would hide it. Without JavaScript the answer shows inline, under the
+ * question.
  */
 export const HelpTip = ({
   question,
@@ -41,7 +42,7 @@ export const HelpTip = ({
   iconOnly = false,
 }: {
   question: string;
-  /** Its topic in the Documentation. */
+  /** Its topic in the Documentation, on the website (opened in a new tab). */
   href?: string;
   children: ReactNode;
   className?: string;
@@ -79,13 +80,13 @@ export const HelpTip = ({
     <>
       <div className="grid gap-1 leading-relaxed">{children}</div>
       {href ? (
-        <Link
+        <NewTabLink
           href={href}
           onClick={() => setOpen(false)}
           className="justify-self-start text-link underline underline-offset-2"
         >
           Learn more
-        </Link>
+        </NewTabLink>
       ) : null}
     </>
   );

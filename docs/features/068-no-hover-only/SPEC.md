@@ -2,6 +2,10 @@
 
 > Milestone: M10 · Depends on: 065, 067, 049, 050 · Design: [032](../032-design-system/SPEC.md) · Contracts: none new
 
+> **Since [088](../088-docs-on-website/SPEC.md) (2026-10-05)** the Documentation is on the website, from
+> `../ronne-web` (`www/src/content/docs/`): what this spec says about `content.tsx`, the `/docs`
+> pages or their components (`DocsNav`, `TypesExplorer`, the docs render tests) is done there now.
+
 ## Goal
 
 Some answers are only in a `title` tooltip, which a phone never shows: why a button is disabled

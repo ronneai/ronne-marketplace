@@ -138,7 +138,7 @@ describe("Admin › Settings › Plugin feeds (079)", () => {
     const html = renderToStaticMarkup(await AdminSettings());
     expect(html).toContain(">Plugin feeds</h2>");
     expect(html).toContain("What do these numbers mean?");
-    expect(html).toContain('href="/docs/plugins#large"');
+    expect(html).toContain('href="https://www.ronne.ai/marketplace/docs/plugins#large"');
     expect(html.match(/Not built yet/g)).toHaveLength(3);
     expect(html).not.toContain('role="status"');
   });

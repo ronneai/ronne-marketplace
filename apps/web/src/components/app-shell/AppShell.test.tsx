@@ -36,11 +36,24 @@ describe("MainNav", () => {
     const html = renderToStaticMarkup(
       <MainNav items={navFor({ name: "R", email: "r@example.com", role: "root" })} />,
     );
-    const at = (label: string) => html.indexOf(`>${label}</a>`);
+    const at = (label: string) => html.indexOf(`>${label}<`);
     const spacer = html.indexOf('<span class="ml-auto">');
     expect(at("Reviews")).toBeLessThan(spacer);
     expect(spacer).toBeLessThan(at("Admin"));
     expect(at("Admin")).toBeLessThan(at("Docs"));
+  });
+
+  it("opens Docs, the Documentation on the website, in a new tab (088)", () => {
+    navigation.path = "/docs";
+    const html = renderToStaticMarkup(
+      <MainNav items={navFor({ name: "U", email: "u@example.com", role: "user" })} />,
+    );
+    navigation.path = "/";
+    const docs = /<a [^>]*>Docs<[\s\S]*?<\/a>/.exec(html)?.[0] ?? "";
+    expect(docs).toMatch(/^<a href="https:\/\/www\.ronne\.ai\/marketplace\/docs" /);
+    expect(docs).toContain('target="_blank" rel="noopener noreferrer"');
+    expect(docs).toContain("(opens in a new tab)");
+    expect(docs).not.toContain("aria-current");
   });
 });
 

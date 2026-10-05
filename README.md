@@ -31,11 +31,11 @@ a domain, writes `~/ronne-marketplace` (`compose.yaml` and `.env`), starts Ronne
 the browser:
 
 ```sh
-curl -fsSL https://www.ronne.ai/install.sh | sh
+curl -fsSL https://www.ronne.ai/marketplace/install.sh | sh
 ```
 
 ```powershell
-irm https://www.ronne.ai/install.ps1 | iex
+irm https://www.ronne.ai/marketplace/install.ps1 | iex
 ```
 
 Both addresses redirect to the scripts in the
@@ -46,8 +46,8 @@ from other devices, after the setup set `RONNE_PORT=0.0.0.0:7650` and
 `PUBLIC_URL=http://<this computer's address>:7650` in its `.env` (the script keeps both), then run
 `docker compose up -d` in that folder. Run it again to upgrade: it keeps
 your answers and asks before moving to a newer version. For scripts:
-`curl -fsSL https://www.ronne.ai/install.sh | sh -s -- --yes --mode server --domain ronne.example.com`
-(PowerShell: `& ([scriptblock]::Create((irm https://www.ronne.ai/install.ps1))) -Yes -Mode server -Domain …`).
+`curl -fsSL https://www.ronne.ai/marketplace/install.sh | sh -s -- --yes --mode server --domain ronne.example.com`
+(PowerShell: `& ([scriptblock]::Create((irm https://www.ronne.ai/marketplace/install.ps1))) -Yes -Mode server -Domain …`).
 To read it first, download `install.sh` and `checksums.txt` from the release, check them with
 `shasum -a 256 -c checksums.txt --ignore-missing`, then run `sh install.sh`.
 
@@ -310,9 +310,11 @@ rmk mcp-setup                      # registers rmk-mcp with the AI tools this pr
 The package is [`@ronneai/rmk`](https://www.npmjs.com/package/@ronneai/rmk) because the unscoped
 `rmk` name is taken on npm; the command is still `rmk`. The server is
 [`@ronneai/mcp`](https://www.npmjs.com/package/@ronneai/mcp), and both build on
-[`@ronneai/core`](https://www.npmjs.com/package/@ronneai/core). The Documentation inside the app
-(Docs → Installing with rmk, Exporting your own items, and Registry MCP server) explains the
-commands and the files they write.
+[`@ronneai/core`](https://www.npmjs.com/package/@ronneai/core). The Documentation
+([Installing with rmk](https://www.ronne.ai/marketplace/docs/rmk),
+[Exporting your own items](https://www.ronne.ai/marketplace/docs/export) and
+[Registry MCP server](https://www.ronne.ai/marketplace/docs/mcp)) explains the commands and the
+files they write.
 
 If you built them from a clone before and linked them, run `npm unlink --global @ronneai/rmk
 @ronneai/mcp` first, so the npm install is what `rmk` runs. Contributors can still run the local

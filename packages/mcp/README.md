@@ -16,5 +16,5 @@ Tools: `search_items`, `get_item`, `list_installed`, `check_outdated`, `plan_ins
 `plan_update`, `plan_remove` and `apply_plan`. A plan lasts 10 minutes, is applied once, and is
 refused if anything it touches changed in between.
 
-Your marketplace's Documentation (Docs → Registry MCP server) explains setting it up and each
-tool. Needs Node.js 22.12 or later. MIT licensed.
+The Documentation ([Registry MCP server](https://www.ronne.ai/marketplace/docs/mcp)) explains
+setting it up and each tool. Needs Node.js 22.12 or later. MIT licensed.

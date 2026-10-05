@@ -2,6 +2,11 @@
 
 > Milestone: M3 · Depends on: 012, 013 (and the M3 features it explains: 014–018) · Design: [MVP §2](../../MVP/MVP.md#2-personas--roles), [§3](../../MVP/MVP.md#3-core-concepts), [§4](../../MVP/MVP.md#4-workflows), [§8](../../MVP/MVP.md#8-web-application)
 
+> **Since [088](../088-docs-on-website/SPEC.md) (2026-10-05)** the Documentation is on the website,
+> `https://www.ronne.ai/marketplace/docs`, from the `../ronne-web` repository. The app's `/docs`
+> pages are gone (their addresses redirect there); the inline helpers below stay, and their Learn
+> more opens the website in a new tab. This spec describes the pages as they were built.
+
 ## Goal
 
 People understand how the registry works and is organised without leaving it: a **Documentation**

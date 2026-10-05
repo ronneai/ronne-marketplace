@@ -2,6 +2,10 @@
 
 > Milestone: M10 · Depends on: 065–074 · Design: [MVP §8](../../MVP/MVP.md#8-web-application), [§15](../../MVP/MVP.md#15-decision-log) · Contracts: none new
 
+> **Since [088](../088-docs-on-website/SPEC.md) (2026-10-05)** the Documentation is on the website, from
+> `../ronne-web` (`www/src/content/docs/`): what this spec says about `content.tsx`, the `/docs`
+> pages or their components (`DocsNav`, `TypesExplorer`, the docs render tests) is done there now.
+
 ## Goal
 
 Close M10: check the app as a whole on real phones and tablets, tell people what to expect, and
