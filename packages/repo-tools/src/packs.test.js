@@ -42,11 +42,13 @@ describe("checkPack", () => {
   });
 
   it("lets the server ship the web app in app/, but never a .env or a native binary (082)", () => {
-    // THIRD_PARTY_NOTICES: written at pack time by notices.js (084).
+    // THIRD_PARTY_NOTICES: written at pack time by notices.js (084); WinSW and its licence (086).
     const app = [
       "app/apps/web/server.js",
       "app/apps/web/dist-scripts/start.mjs",
       "THIRD_PARTY_NOTICES",
+      "vendor/winsw/WinSW.NET461.exe",
+      "vendor/winsw/LICENSE.txt",
     ];
     const pack = (...paths) =>
       checkPack("server", {
@@ -65,18 +67,22 @@ describe("checkPack", () => {
         "app/apps/web/.env.local",
         "app/x/better_sqlite3.node",
         "dist/run.js.map",
+        "vendor/winsw/WinSW-x64.exe",
       ),
     ).toEqual([
       "would ship app/apps/web/.env",
       "would ship app/apps/web/.env.local",
       "would ship app/x/better_sqlite3.node",
       "would ship dist/run.js.map",
+      "would ship vendor/winsw/WinSW-x64.exe, which isn't on the allowlist",
     ]);
     expect(pack("app/apps/web/.env.example")).toEqual(["would ship app/apps/web/.env.example"]);
     expect(checkPack("server", { name: "@ronneai/marketplace", files: files(...base) })).toEqual([
       "is missing app/apps/web/server.js",
       "is missing app/apps/web/dist-scripts/start.mjs",
       "is missing THIRD_PARTY_NOTICES",
+      "is missing vendor/winsw/WinSW.NET461.exe",
+      "is missing vendor/winsw/LICENSE.txt",
     ]);
   });
 

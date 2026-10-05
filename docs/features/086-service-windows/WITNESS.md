@@ -6,11 +6,11 @@ Before a task is ticked, a fresh agent that didn't do the work checks it: it get
 when*, the claims in the notes and where to look, runs the commands itself, and reports each claim as
 confirmed, partly or not met (owner, 2026-10-04). A task is ticked only when every claim holds.
 Its record lands here, in the same commit as the task. Differences it finds are fixed in the notes
-in that commit. The owner tests on Windows later; that doesn't block the feature (owner, 2026-10-05).
+in that commit. The owner tests on Windows later; that doesn't block the feature (owner, 2026-10-04).
 
 ## Task 1 — WinSW renderer
 
-Witnessed: 2026-10-05, by a fresh agent, on macOS arm64, with WinSW 2.12.0's sources and docs.
+Witnessed: 2026-10-04, by a fresh agent, on macOS arm64, with WinSW 2.12.0's sources and docs.
 
 | # | Claim | Verdict | Evidence (command → what was seen) |
 |---|---|---|---|

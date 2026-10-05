@@ -29,7 +29,7 @@ the same change that completes it.
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
 
-### Task 1: the WinSW renderer (2026-10-05)
+### Task 1: the WinSW renderer (2026-10-04)
 
 - **The model (083's) gains Windows:** `serviceLayout({ platform: "win32", programData })` puts
   everything under `%ProgramData%\RonneAI\Marketplace` (data, `.env`, `logs`, `service\` with
@@ -66,3 +66,33 @@ goes into `SPEC.md` instead.
 - **For task 3** (from the witness): WinSW waits the 30 s stop timeout without asking the Service
   Control Manager for more time, so `sc stop` may report a time-out, and at shutdown Windows may
   end it sooner; WinSW expands `%VAR%` in paths and arguments (none of ours has one).
+
+### Task 2: WinSW in the bundles (2026-10-04)
+
+- **In the npm package, so in every bundle:** `rmk-server service install` on Windows needs WinSW
+  whether Ronne came from npm or a bundle, so it ships in `@ronneai/marketplace` as
+  `vendor/winsw/WinSW.NET461.exe`, beside its `LICENSE.txt` (committed). The bundles install the
+  package, so each carries it, the Windows ones and also the others (650 KB of a 70 MB archive;
+  splitting it out wasn't worth a second package layout).
+- **Pinned once,** in `packages/repo-tools/src/winsw.js`: version 2.12.0, the release URL, the
+  SHA-256 `b5066b7b…` (from the downloaded asset; GitHub publishes no digest for 2023 assets). The
+  pack step (`assemble.mjs`) downloads the file when it's missing or different, then fails unless the
+  SHA-256 matches; a tampered copy is replaced. The `.exe` is git-ignored.
+- **Notices:** `assemble.mjs` adds a *WinSW 2.12.0 (MIT)* section to the package's
+  `THIRD_PARTY_NOTICES` with `notices.js`'s own `section` and `RULE`, so it reaches the bundles'.
+- **Checks:** `packages:check` requires `vendor/winsw/WinSW.NET461.exe` and `LICENSE.txt` and
+  allows nothing else in `vendor/`; the bundle check (084) also fails when the bundled copy's
+  SHA-256 isn't the pinned one (tests pass it a stand-in's SHA-256).
+- **Policy:** a new table, programs Ronne ships that aren't npm packages: WinSW, and Node.js in the
+  bundles (084), which wasn't listed.
+- **Here (macOS arm64):** `pnpm build:server`, `packages:check` (1798 files), the packed `.tgz` holds
+  both files; a `darwin-arm64` bundle built from it passes the content check, holds the pinned
+  WinSW and its notices section. A Windows bundle can only be built on Windows (npm installs that
+  machine's native modules): the Windows archives are checked by CI's `bundles.yml` on
+  `windows-2025` and `windows-11-arm`.
+- **Witnessed (2026-10-04),** all but the Windows archives: the pin is the official release's
+  (downloaded independently; `LICENSE.txt` byte-identical to v2.12.0's), a missing or tampered copy
+  is replaced, a wrong pin fails, the notices section appears once, a `darwin-arm64` bundle passes
+  and fails on a changed or missing WinSW. **Fixed after it:** a network error while downloading
+  WinSW now fails with the pack step's own message, not an unhandled rejection. **Still to
+  observe:** the `win32-x64` and `win32-arm64` archives in this PR's CI; the task is ticked then.
