@@ -8,9 +8,11 @@ confirmed, partly or not met (owner, 2026-10-04). A task is ticked only when eve
 Its record lands here, in the same commit as the task. Differences it finds are fixed in the notes
 in that commit.
 
-## Task 3 — `.deb` and `.rpm` with nFPM (what can be checked here)
+## Task 3 — `.deb` and `.rpm` with nFPM
 
-Witnessed: 2026-10-04 (22:16–22:45 EDT), by a fresh agent. Machine: macOS (Darwin 27.0.0) arm64, Docker; nFPM 2.47.0 (checksum checked). **Not ticked:** the *Done when* is CI on both processors, which runs once the branch is pushed; only arm64 ran here.
+### Here (arm64)
+
+Witnessed: 2026-10-04 (22:16–22:45 EDT), by a fresh agent. Machine: macOS (Darwin 27.0.0) arm64, Docker; nFPM 2.47.0 (checksum checked).
 
 | # | Claim | Verdict | Evidence (command → what was seen) |
 |---|---|---|---|
@@ -31,3 +33,19 @@ runners); an upgrade with `--domain`; openSUSE and RHEL.
 and 0.2.0 (now in the notes); the account check keeps root's environment and drops the account's
 extra groups (now in the notes).
 **Overall:** met as far as arm64 here goes; the *Done when* waits for CI.
+
+### Task 3 — CI on GitHub
+
+Witnessed: 2026-10-05, from GitHub's logs (`gh`, read only), by a fresh agent. Pull request #127, head `5ecf8e7a50781423f88ee67baf7544e10a009807`, run https://github.com/ronneai/ronne-marketplace/actions/runs/37255521282 ("Server package", attempt 1, 02:28–02:35Z).
+
+| # | Claim | Verdict | Evidence (job → log lines) |
+|---|---|---|---|
+| 1 | Every check passed, on the head commit | confirmed | `gh pr checks 127`: 41 pass; the run's head SHA is the pull request's and `origin`'s. |
+| 2 | Both processors, nFPM verified | confirmed | x64 job 111592258107 on `ubuntu-24.04` 20260927.320.1, arm64 job 111592258119 on `ubuntu-24.04-arm`; `nfpm_2.47.0_Linux_x86_64.tar.gz: OK` and `…_Linux_arm64.tar.gz: OK`. |
+| 3 | Four packages per job | confirmed | `rmk-server_0.2.0-1_amd64.deb` (80,252,808 B), `rmk-server-0.2.0-1.x86_64.rpm` (80,672,224 B), the arm64 pair, and the 0.0.1 pairs. |
+| 4 | Install, health, upgrade, remove in Ubuntu 24.04, Debian 13, Fedora 42 | confirmed | In both jobs, 5 ✓ lines per system (install with 503; upgrade restarted on 0.2.0, 200; remove keeping data and settings; install again, 200; purge) and the overall ✓; no ✗. The scripts run under `set -eu`, so each ✓ follows its checks (MainPID changed, status shows the new version, unit, account and link gone, `ronne.db` kept). |
+| 5 | The artifacts hold only the packages | confirmed | `linux-packages-x64` (159,622,003 B) and `-arm64` (159,449,992 B); "2 files uploaded" each, from `linux-packages/`. |
+
+**Not covered by CI:** `release.yml` (it calls the same `packages.yml`; read only); an upgrade
+between two different builds; other distributions and real machines.
+**Overall:** met. Task 3 is ticked.

@@ -15,7 +15,7 @@ the same change that completes it.
   checksums into the formula, with a token limited to the tap.
   *Done when:* a dry run produces the expected formula diff.
 
-- [ ] **3. `.deb` and `.rpm` with nFPM.** `packaging/nfpm.yaml`, the scripts (`postinst`, `prerm`,
+- [x] **3. `.deb` and `.rpm` with nFPM.** `packaging/nfpm.yaml`, the scripts (`postinst`, `prerm`,
   `postrm`), built per architecture in `release.yml`.
   *Done when:* CI installs each in a systemd container (Ubuntu, Debian, Fedora), checks health,
   upgrades over the previous version, removes.
@@ -98,3 +98,10 @@ criteria, and `install.sh`'s Homebrew path on macOS. The work goes on with task 
   restart by the process ID, not by a different program. The new account check runs the program
   with the account's uid and gid but root's environment, without the account's extra groups,
   which is enough for `--version` and `test -r`.
+- **CI passed on both processors** (pull request #127, head 5ecf8e7, run 37255521282): x64 on
+  `ubuntu-24.04` and arm64 on `ubuntu-24.04-arm` each built the four packages with nFPM (checksum
+  OK) and passed every step in Ubuntu 24.04, Debian 13 and Fedora 42 (install, set up, upgrade,
+  remove, install again, purge); the artifacts hold only the packages. The *Done when* is met
+  (witnessed). The first amd64 run of them anywhere. Not covered: `release.yml` itself (it calls
+  the same workflow) and an upgrade between two different builds (the older one is the same bundle
+  labelled 0.0.1).
