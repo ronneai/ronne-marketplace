@@ -83,7 +83,10 @@ export const main = async (argv: string[]): Promise<number | undefined> => {
     return 0;
   }
   if (command.kind === "version") {
-    process.stdout.write(`${packageVersion()}\n`);
+    // A self-contained bundle (084) also names the Node.js it brings, which nothing else shows.
+    const bundled =
+      process.env.RONNE_BUNDLE === "1" ? `Node.js ${process.versions.node} (bundled)\n` : "";
+    process.stdout.write(`${packageVersion()}\n${bundled}`);
     return 0;
   }
   if (command.kind === "error") return fail(command.message);

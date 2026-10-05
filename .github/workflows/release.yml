@@ -16,11 +16,15 @@ name: Release
 #    refuses to move a version that already points at other images. Docker Hub's credentials live in
 #    the "dockerhub" environment (DOCKERHUB_USERNAME, DOCKERHUB_TOKEN); it needs no reviewer of its
 #    own, since its jobs only run after the npm job the owner approved.
-# 3. `github-release`: the GitHub release, once every artefact of the version exists, with the npm
-#    tarballs and the install scripts (install.sh, install.ps1, checksums.txt; feature 081) attached.
+# 3. `bundles` (feature 084, bundles.yml): rmk-server with Node.js inside, one archive per system
+#    and processor, each built and smoke-tested on a runner of its platform from the packed server.
+# 4. `github-release`: the GitHub release, once every artefact of the version exists, with the npm
+#    tarballs, the install scripts (install.sh, install.ps1; feature 081) and the six bundles
+#    attached, and checksums.txt covering the scripts and the bundles. A bundle that failed on any
+#    platform stops it, so the packages (085, 087) never point at a partial release.
 #
 # Run by hand with "dry run" (from main, so the current workflow runs) to check everything, build,
-# run and scan both images, and publish nothing.
+# run and scan both images, build and smoke-test the six bundles, and publish nothing.
 
 on:
   push:
@@ -120,6 +124,14 @@ jobs:
               npm publish "$tarball" --access public --provenance
             fi
           done
+      # The server's tarball for the bundles (084), also on a dry run.
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: server-tarball
+          path: release/ronneai-marketplace-*.tgz
+          retention-days: 7
+          overwrite: true
+          if-no-files-found: error
       # The install scripts with this version written in, and their checksums (feature 081). Also
       # on a dry run, so the run's log and artefacts show them.
       - name: Install scripts
@@ -317,10 +329,15 @@ jobs:
           docker buildx imagetools create "${args[@]}" $sources
           docker buildx imagetools inspect "$IMAGE:$VERSION"
 
+  # rmk-server with Node.js inside, on each platform's own runner (084). Also on a dry run.
+  bundles:
+    needs: release
+    uses: ./.github/workflows/bundles.yml
+
   # Last, so a release on GitHub exists only once every artefact of it does.
   github-release:
     name: GitHub release
-    needs: [release, manifest]
+    needs: [release, manifest, bundles]
     if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -335,9 +352,19 @@ jobs:
         with:
           name: install-scripts
           path: release
-      - name: The install scripts match their checksums
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: bundle-*
+          merge-multiple: true
+          path: release
+      - name: The install scripts match their checksums; the bundles' are added
         working-directory: release
-        run: sha256sum -c checksums.txt
+        run: |
+          sha256sum -c checksums.txt
+          count=$(ls rmk-server-*.tar.gz rmk-server-*.zip | wc -l)
+          [ "$count" -eq 6 ] || { echo "Expected 6 bundles, found $count."; exit 1; }
+          sha256sum rmk-server-*.tar.gz rmk-server-*.zip >> checksums.txt
+          sha256sum -c checksums.txt
       - name: GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -348,6 +375,19 @@ jobs:
             echo "The release $TAG already exists; nothing to do."
             exit 0
           fi
+          # The Node.js inside the bundles, read from the Linux x64 one (this runner's platform).
+          tar -xzf release/rmk-server-*-linux-x64.tar.gz -C "$RUNNER_TEMP"
+          NODE_VERSION=$("$RUNNER_TEMP"/rmk-server-*-linux-x64/node/bin/node --version)
+          {
+            echo "**Install with Docker:** \`curl -fsSL https://www.ronne.ai/install.sh | sh\` (macOS, Linux) or \`irm https://www.ronne.ai/install.ps1 | iex\` (Windows); both redirect to this release's install.sh and install.ps1 below. Docker image: \`docker pull ${IMAGE#docker.io/}:$VERSION\` (linux/amd64, linux/arm64)."
+            echo
+            echo "**Without Docker or Node.js:** rmk-server with Node.js ${NODE_VERSION#v} inside, one archive per system: \`rmk-server-$VERSION-linux-x64.tar.gz\`, \`rmk-server-$VERSION-linux-arm64.tar.gz\`, \`rmk-server-$VERSION-darwin-x64.tar.gz\`, \`rmk-server-$VERSION-darwin-arm64.tar.gz\`, \`rmk-server-$VERSION-win32-x64.zip\`, \`rmk-server-$VERSION-win32-arm64.zip\`. Unpack and run \`bin/rmk-server\` (\`bin\\rmk-server.cmd\` on Windows). The Linux archives need glibc 2.34 or later (Debian 12, Ubuntu 22.04, RHEL 9 and newer: SQLite's prebuilt module needs it); elsewhere, Alpine (musl) included, use Docker. Each holds THIRD_PARTY_NOTICES."
+            echo
+            echo "**With Node.js 22.12 or later:** \`npm install --global @ronneai/marketplace@$VERSION\` (rmk-server), and \`npm install --global @ronneai/rmk@$VERSION @ronneai/mcp@$VERSION\` for the CLI and the MCP server."
+            echo
+            echo "Every file below is in checksums.txt: \`sha256sum -c checksums.txt --ignore-missing\` after downloading."
+          } > "$RUNNER_TEMP/notes.md"
           gh release create "$TAG" --verify-tag --generate-notes --title "$TAG" \
-            --notes "Install with Docker: \`curl -fsSL https://www.ronne.ai/install.sh | sh\` (macOS, Linux) or \`irm https://www.ronne.ai/install.ps1 | iex\` (Windows); both redirect to this release's install.sh and install.ps1 below, checked by checksums.txt. Docker image: \`docker pull ${IMAGE#docker.io/}:$VERSION\` (linux/amd64, linux/arm64). npm: \`npm install --global @ronneai/rmk@$VERSION @ronneai/mcp@$VERSION\`." \
-            release/*.tgz release/install.sh release/install.ps1 release/checksums.txt
+            --notes-file "$RUNNER_TEMP/notes.md" \
+            release/*.tgz release/install.sh release/install.ps1 release/rmk-server-*.tar.gz \
+            release/rmk-server-*.zip release/checksums.txt

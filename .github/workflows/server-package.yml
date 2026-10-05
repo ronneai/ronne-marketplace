@@ -164,11 +164,17 @@ jobs:
         if: ${{ failure() }}
         run: sudo tail -n 200 /Library/Logs/rmk-server/server.log /Library/Logs/rmk-server/proxy.log
 
+  # The self-contained bundles (084), built and smoke-tested on each of the six platforms from the
+  # tarball the pack job made, as the release does.
+  bundles:
+    needs: pack
+    uses: ./.github/workflows/bundles.yml
+
   # One check to require: it passes when every system passed, or when they were skipped for a
   # docs-only pull request.
   server-package:
     name: Server package
-    needs: [changes, pack, install, service-linux, service-macos]
+    needs: [changes, pack, install, service-linux, service-macos, bundles]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
@@ -178,6 +184,7 @@ jobs:
           INSTALL_RESULT: ${{ needs.install.result }}
           SERVICE_RESULT: ${{ needs.service-linux.result }}
           MACOS_RESULT: ${{ needs.service-macos.result }}
+          BUNDLES_RESULT: ${{ needs.bundles.result }}
         run: |
-          echo "pack: $PACK_RESULT, install: $INSTALL_RESULT, service: $SERVICE_RESULT, macOS: $MACOS_RESULT"
-          for r in "$PACK_RESULT" "$INSTALL_RESULT" "$SERVICE_RESULT" "$MACOS_RESULT"; do [ "$r" = success ] || [ "$r" = skipped ] || exit 1; done
+          echo "pack: $PACK_RESULT, install: $INSTALL_RESULT, service: $SERVICE_RESULT, macOS: $MACOS_RESULT, bundles: $BUNDLES_RESULT"
+          for r in "$PACK_RESULT" "$INSTALL_RESULT" "$SERVICE_RESULT" "$MACOS_RESULT" "$BUNDLES_RESULT"; do [ "$r" = success ] || [ "$r" = skipped ] || exit 1; done

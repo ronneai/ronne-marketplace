@@ -16,7 +16,7 @@ The monorepo is scaffolded (feature 001); the product features start with 002. W
 - `docs/features/`: the work, one folder per feature (`NNN-slug/SPEC.md` + `PLAN.md`). `docs/features/README.md` is the index and the milestone plan.
 - `docs/policies/dependencies.md`: the rules for every dependency (below).
 - `docs/runbooks/`: guides for people running Ronne, such as `install.md` (the install guide, a draft
-  for the website that the M12 features make true).
+  for the website that the M12 features make true), and `release.md`, the owner's release checklist.
 - `docs/knowledge/`: lessons learned while building, one topic per file, such as
   `codeql-regex.md` (how to write regular expressions CodeQL won't fail). Before writing code in
   an area a note covers, read it and follow it; when a check fails for a reason the next person
@@ -57,7 +57,8 @@ Use Node.js 24 (`.nvmrc`) and pnpm installed directly (`npm install --global pnp
 | `pnpm build:server` | The web app's standalone build and `rmk-server`, which packing `@ronneai/marketplace` copies in (082). Needed before `packages:check` and `release:smoke` |
 | `pnpm packages:check` | After `pnpm build` and `pnpm build:server`: checks what `@ronneai/core`, `rmk`, `mcp` and `marketplace` would publish against an allowlist |
 | `pnpm release:smoke` | After `pnpm build` and `pnpm build:server`: installs the packed packages with npm in an empty folder and runs `rmk`, `rmk-mcp` and `rmk-server` |
-| `pnpm release:version <x.y.z>` | Sets the version the four published packages share; then commit and push the tag `vX.Y.Z` to publish (`.github/workflows/release.yml`) |
+| `pnpm bundle <tarball>` | Builds this machine's self-contained `rmk-server` archive (Node.js inside) from a packed `@ronneai/marketplace` (084); `node packages/repo-tools/src/bundle-smoke.js <archive>` checks and runs it with no Node on `PATH` |
+| `pnpm release:version <x.y.z>` | Sets the version the four published packages share; then commit and push the tag `vX.Y.Z` to publish (`.github/workflows/release.yml`), following [`docs/runbooks/release.md`](docs/runbooks/release.md) |
 
 CI (`.github/workflows/`) runs lint, typecheck, test and build on Node 22 and 24, the database tests on PostgreSQL 15, MySQL 8.4 and MariaDB 10.11 (`database.yml`, plus a weekly run on the latest versions), the end-to-end tests in Chromium, the license and audit checks, CodeQL, and the PR title check.
 
