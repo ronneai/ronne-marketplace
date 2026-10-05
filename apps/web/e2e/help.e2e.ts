@@ -1,7 +1,8 @@
 import { expect, test } from "@playwright/test";
+import { DOCS_URL } from "../src/components/help/topics";
 import { E2E_PASSWORD, E2E_USERS } from "./users";
 
-test("a user opens a helper in the New item form, follows it to the Documentation, and moves between topics", async ({
+test("a user opens a helper in the New item form, whose Learn more and Docs open the website in a new tab", async ({
   page,
 }) => {
   await page.goto("/sign-in");
@@ -36,22 +37,29 @@ test("a user opens a helper in the New item form, follows it to the Documentatio
   await expect(answer).toHaveCount(0);
   await expect(question).toBeFocused();
   await question.click();
-  await answer.getByRole("link", { name: "Learn more" }).click();
+  // The Documentation is on the website (088): Learn more opens its section in a new tab. Not
+  // followed here, so the tests don't need the internet.
+  const learnMore = answer.getByRole("link", { name: /^Learn more/ });
+  await expect(learnMore).toHaveAttribute("href", `${DOCS_URL}/scopes#what`);
+  await expect(learnMore).toHaveAttribute("target", "_blank");
+  await expect(learnMore).toHaveAccessibleName("Learn more (opens in a new tab)");
+  // So does Docs, in the main nav.
+  const docs = page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: /^Docs/ });
+  await expect(docs).toHaveAttribute("href", DOCS_URL);
+  await expect(docs).toHaveAttribute("target", "_blank");
+  await expect(docs).not.toHaveAttribute("aria-current", "page");
+});
 
-  await expect(page).toHaveURL(/\/docs\/scopes#what$/);
-  await expect(page.getByRole("heading", { level: 1, name: "Scopes" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "What a scope is" })).toBeVisible();
-  const topics = page.getByRole("navigation", { name: "Documentation" });
-  await expect(topics.getByRole("link", { name: "Scopes" })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
-
-  await topics.getByRole("link", { name: "Versions and tags" }).click();
-  await expect(page).toHaveURL(/\/docs\/versions$/);
-  await expect(page.getByRole("heading", { name: "Deprecate or yank" })).toBeVisible();
-  // Docs is in the main nav.
-  await expect(
-    page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Docs" }),
-  ).toHaveAttribute("aria-current", "page");
+test("the app's old Documentation addresses redirect to the website, signed in or not (088)", async ({
+  request,
+}) => {
+  for (const [path, location] of [
+    ["/docs", DOCS_URL],
+    ["/docs/overview", DOCS_URL],
+    ["/docs/scopes", `${DOCS_URL}/scopes`],
+  ] as const) {
+    const response = await request.get(path, { maxRedirects: 0 });
+    expect(response.status(), path).toBe(307);
+    expect(response.headers().location, path).toBe(location);
+  }
 });

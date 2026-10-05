@@ -1,4 +1,3 @@
-import { TOPICS } from "../src/components/help/topics";
 import { E2E_RMK_ITEMS, E2E_SCOPE, E2E_SKILL, E2E_VERSIONED_ITEM } from "./users";
 
 /**
@@ -53,13 +52,7 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
     roles: EVERYONE,
     urls: () => [`${item(E2E_VERSIONED_ITEM)}/versions`],
   },
-  { route: "/docs", roles: EVERYONE, urls: () => ["/docs"] },
   { route: "/menu", roles: EVERYONE, urls: () => ["/menu"] },
-  {
-    route: "/docs/[topic]",
-    roles: ["member"],
-    urls: () => TOPICS.map((topic) => `/docs/${topic.slug}`),
-  },
   { route: "/submissions", roles: EVERYONE, urls: () => ["/submissions"] },
   { route: "/submissions/new", roles: EVERYONE, urls: () => ["/submissions/new"] },
   {

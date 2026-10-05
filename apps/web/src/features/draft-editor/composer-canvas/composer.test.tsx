@@ -214,7 +214,7 @@ describe("the canvas", () => {
     // The helper says what the canvas writes, and leads to the Documentation.
     expect(html).toContain("What does the canvas change?");
     expect(html).toContain("Only dependencies in ronne.yaml.");
-    expect(html).toContain('href="/docs/items#canvas"');
+    expect(html).toContain('href="https://www.ronne.ai/marketplace/docs/items#canvas"');
     expect(html).toContain(">(3)<");
     expect(html.match(/<li/g)).toHaveLength(3);
     expect(html.match(/aria-label="Range of /g)).toHaveLength(3);

@@ -1,6 +1,7 @@
 /**
- * The Documentation's topics and their sections (feature 033). Shared: the Docs pages render them,
- * and inline helpers link into them, so a test can check every link lands on a real section.
+ * The Documentation's topics and their sections (feature 033). The Documentation is on the website
+ * since 088 (`../ronne-web`, which has the same topics and section ids); inline helpers link into
+ * it, so a test can check every link lands on a real section. Change both together.
  */
 export const TOPICS = [
   {
@@ -242,6 +243,9 @@ export const TOPIC_GROUPS: { label: string; topics: readonly TopicSlug[] }[] = [
 
 export const topicOf = (slug: string): Topic | undefined => TOPICS.find((t) => t.slug === slug);
 
-/** A topic's page, or one of its sections. The overview is `/docs` itself. */
+/** The Documentation on the website (088). With no language in it, each visitor gets their own. */
+export const DOCS_URL = "https://www.ronne.ai/marketplace/docs";
+
+/** A topic's page on the website, or one of its sections. The overview is the Documentation itself. */
 export const docsHref = <T extends TopicSlug>(topic: T, section?: SectionOf<T>) =>
-  `${topic === "overview" ? "/docs" : `/docs/${topic}`}${section ? `#${section}` : ""}`;
+  `${topic === "overview" ? DOCS_URL : `${DOCS_URL}/${topic}`}${section ? `#${section}` : ""}`;

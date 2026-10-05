@@ -46,7 +46,7 @@ test("a user composes an agent from two catalogue items on the canvas, saves, re
   await expect(list.getByText(/^Only dependencies in ronne\.yaml\./)).toBeVisible();
   await expect(list.getByRole("link", { name: "Learn more" })).toHaveAttribute(
     "href",
-    "/docs/items#canvas",
+    "https://www.ronne.ai/marketplace/docs/items#canvas",
   );
 
   // The picker offers what an agent may depend on: skills and MCP servers, not other agents.

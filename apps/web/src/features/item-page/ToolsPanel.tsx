@@ -1,10 +1,10 @@
 import { RENDERERS, supportOf, type ToolSupport } from "@ronneai/core/render";
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { Help } from "@/components/help/Help";
 import { docsHref } from "@/components/help/topics";
 import { placeFor, TOOL_PAGES } from "@/components/tools/tool-paths";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
+import { NewTabLink } from "@/components/ui/NewTabLink";
 import { Panel } from "@/components/ui/Panel";
 
 /**
@@ -76,12 +76,12 @@ export const ToolsPanel = ({
               className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 py-2 first:pt-0 last:pb-0 sm:grid-cols-[9rem_6.5rem_1fr]"
             >
               {page ? (
-                <Link
+                <NewTabLink
                   href={docsHref(page)}
                   className="text-sm font-semibold text-fg underline-offset-2 hover:underline"
                 >
                   {renderer.name}
-                </Link>
+                </NewTabLink>
               ) : (
                 <span className="text-sm font-semibold text-fg">{renderer.name}</span>
               )}

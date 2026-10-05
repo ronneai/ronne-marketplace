@@ -125,7 +125,17 @@ describe("the item page", () => {
     const tools = await render({ tab: "tools" });
     expect(tools).toMatch(/aria-current="page"[^>]*>Works in</);
     expect(tools).toContain("What do these mean?");
-    for (const tool of ["Claude Code", "Codex", "Cursor"]) expect(tools).toContain(`>${tool}</a>`);
+    // Each tool's name opens its page in the Documentation, on the website, in a new tab (088).
+    for (const [id, tool] of [
+      ["claude-code", "Claude Code"],
+      ["codex", "Codex"],
+      ["cursor", "Cursor"],
+    ])
+      expect(tools).toMatch(
+        new RegExp(
+          `<a href="https://www\\.ronne\\.ai/marketplace/docs/${id}"[^>]*target="_blank"[^>]*>${tool}<svg`,
+        ),
+      );
     expect(tools).toContain("mcpServers in .mcp.json</code>.");
     expect(tools).toContain("mcp_servers in .codex/config.toml</code>.");
   });
@@ -249,7 +259,7 @@ describe("the item page", () => {
     const html = await render();
     expect(html).toMatch(/aria-current="page"[^>]*>Overview</);
     expect(html).toContain("What am I looking at?");
-    expect(html).toContain('href="/docs/items#contents"');
+    expect(html).toContain('href="https://www.ronne.ai/marketplace/docs/items#contents"');
     // Stat cards, from real data only.
     expect(html).toContain(">1,428<");
     expect(html).toContain("all versions, through rmk and the API");
@@ -472,7 +482,7 @@ describe("the Install panel's Claude Code plugin (077)", () => {
     expect(html).toContain("As a Claude Code plugin");
     expect(html).toContain("/plugin install team.github@ronne-registry-example-com");
     expect(html).toContain("Install as a Claude Code plugin?");
-    expect(html).toContain('href="/docs/plugins#claude-code"');
+    expect(html).toContain('href="https://www.ronne.ai/marketplace/docs/plugins#claude-code"');
   });
 
   it("is only there when the item is in the Claude Code feed", () => {

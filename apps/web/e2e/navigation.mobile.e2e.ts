@@ -69,9 +69,7 @@ const sidewaysOnScreen = async (box: { x: number; width: number } | null, width:
 };
 
 // Feature 066: a tab strip that doesn't fit shows its current tab, and fades the edge with more.
-test("tab strips show the current tab; the docs sidebar scrolls on a landscape tablet", async ({
-  page,
-}, testInfo) => {
+test("tab strips show the current tab", async ({ page }, testInfo) => {
   await signIn(page, mobileUser(testInfo, "moderator"));
   const width = page.viewportSize()?.width ?? 0;
 
@@ -89,19 +87,6 @@ test("tab strips show the current tab; the docs sidebar scrolls on a landscape t
   // A strip scrolled to its end fades its start, if it had to scroll at all.
   const scrolls = await strip.evaluate((el) => el.scrollWidth > el.clientWidth);
   if (scrolls) await expect(strip).toHaveClass(/\bfade-(start|both)\b/);
-
-  if (testInfo.project.name !== "tablet") return;
-  // A tablet in landscape: the topic list is taller than the window, so the sidebar scrolls to
-  // its last topic.
-  await page.setViewportSize({ width: 1024, height: 768 });
-  await page.goto("/docs");
-  const topics = page.getByRole("navigation", { name: "Documentation" }).getByRole("link");
-  const last = topics.last();
-  await last.scrollIntoViewIfNeeded();
-  await expect(last).toBeInViewport();
-  const sidebar = page.locator("aside");
-  expect(await sidebar.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true);
-  expect(await sidebar.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
 });
 
 test.describe("without JavaScript", () => {
@@ -118,10 +103,11 @@ test.describe("without JavaScript", () => {
     const main = page.getByRole("main");
     await expect(main.getByRole("heading", { name: "Menu" })).toBeVisible();
     for (const name of ["Home", "Catalogue", "Submissions", "Reviews", "Admin", "Docs"])
-      await expect(main.getByRole("link", { name }).first()).toBeVisible();
-    await main.getByRole("link", { name: "Docs" }).click();
-    await expect(page).toHaveURL(/\/docs$/);
-    await page.goto("/menu");
+      await expect(main.getByRole("link", { name: new RegExp(`^${name}`) }).first()).toBeVisible();
+    // Docs opens the website's Documentation in a new tab (088).
+    const docs = main.getByRole("link", { name: /^Docs/ });
+    await expect(docs).toHaveAttribute("href", "https://www.ronne.ai/marketplace/docs");
+    await expect(docs).toHaveAttribute("target", "_blank");
     await main.getByRole("button", { name: "Sign out" }).click();
     await expect(page).toHaveURL(/\/sign-in/);
   });

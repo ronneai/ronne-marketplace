@@ -379,7 +379,11 @@ describe("NewDraftForm", () => {
     expect(html.match(/>⚠ risk</g)).toHaveLength(5);
     // No type picked yet: the side panel asks for one.
     expect(html).toContain("Pick a type to see the ronne.yaml");
-    expect(html).toContain('href="/docs/scopes"');
+    expect(html).toContain('href="https://www.ronne.ai/marketplace/docs/scopes"');
+    // The Documentation is on the website, opened in a new tab (088).
+    expect(html).toMatch(
+      /href="https:\/\/www\.ronne\.ai\/marketplace\/docs\/scopes"[^>]*target="_blank"/,
+    );
     // Inline help (033) on the scope, the name and the type.
     expect(html).toContain("What&#x27;s a scope?");
     expect(html).toContain("How should I name it?");

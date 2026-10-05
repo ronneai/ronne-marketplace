@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button, buttonClasses } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
 import { FieldError, inputClasses, touchFieldClasses } from "@/components/ui/Field";
+import { NewTabLink } from "@/components/ui/NewTabLink";
 import { Notice } from "@/components/ui/Notice";
 import { MANIFEST_PATH } from "@/server/domains/submissions/models/submission";
 import { draftTemplate } from "@/server/domains/submissions/models/templates";
@@ -116,13 +117,12 @@ export const NewDraftForm = ({ scopes, mine }: { scopes: ScopeOption[]; mine: st
           step={1}
           title="Where it lives"
           aside={
-            <Link
+            <NewTabLink
               href={docsHref("scopes")}
-              className="inline-flex items-center gap-1 text-sm text-link underline underline-offset-2"
+              className="text-sm text-link underline underline-offset-2"
             >
               About scopes
-              <ArrowRight size={14} aria-hidden="true" />
-            </Link>
+            </NewTabLink>
           }
         >
           <fieldset className="grid gap-2">

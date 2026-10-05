@@ -7,6 +7,7 @@ export { CopyableCommand } from "./CopyableCommand";
 export { Dialog } from "./Dialog";
 export { DirtyMark } from "./DirtyMark";
 export { Checkbox, FieldError, Input, Label, Select, TextField } from "./Field";
+export { NewTabLink } from "./NewTabLink";
 export { Notice } from "./Notice";
 export { PageHeader, Panel } from "./Panel";
 export { PasswordInput } from "./PasswordInput";
