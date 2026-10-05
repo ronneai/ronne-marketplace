@@ -16,6 +16,10 @@ import { SubmissionsError } from "@/server/domains/submissions/exceptions/errors
 import { requestHeaders } from "@/server/http/request-headers";
 import type { ApproveManyState, PublishResult, ReviewActionState } from "./types";
 
+/** A revision as the page has it: a whole number from 1, or null for a submission without one. */
+const isRevision = (value: unknown): value is number | null =>
+  value === null || (Number.isInteger(value) && (value as number) >= 1);
+
 const message = (error: unknown): string => {
   if (error instanceof SubmissionsError || error instanceof IdentityError) return error.message;
   throw error;
@@ -37,12 +41,21 @@ export const decideAction = async (
   decision: ReviewDecision,
   text: string,
   via?: "queue",
+  /** The revision on the reviewer's page: an approval goes only if it's still the latest. */
+  revision?: number | null,
 ): Promise<ReviewActionState> => {
+  // An approval from the web always says what was reviewed (security audit AUTHZ-2).
+  if (
+    (decision === "approve" || decision === "override") &&
+    (revision === undefined || !isRevision(revision))
+  )
+    return { error: "Reload the page: it doesn't say which revision you reviewed." };
   try {
     await decide(await requestHeaders(), id, {
       decision,
       message: text,
       ...(via ? { via } : {}),
+      ...(revision !== undefined ? { revision } : {}),
     });
   } catch (error) {
     return { error: message(error) };
@@ -95,12 +108,18 @@ export const dependentsAction = async (
 
 /** Approves the selected submissions (054), each on its own, with one optional message. */
 export const approveSelectedAction = async (
-  ids: string[],
+  /** Each with the revision its row showed (security audit AUTHZ-2). */
+  items: { id: string; revision: number | null }[],
   text: string,
 ): Promise<ApproveManyState> => {
+  if (
+    !Array.isArray(items) ||
+    !items.every((item) => typeof item?.id === "string" && isRevision(item.revision))
+  )
+    return { error: "Reload the page: it doesn't say which revision each one is at." };
   let approved: Awaited<ReturnType<typeof approveMany>>;
   try {
-    approved = await approveMany(await requestHeaders(), { ids, message: text });
+    approved = await approveMany(await requestHeaders(), { items, message: text });
   } catch (error) {
     return { error: message(error) };
   }

@@ -79,6 +79,8 @@ export type Registry = {
   token: string | null;
   email?: string;
   source: RegistrySource;
+  /** RMK_TOKEN is set but wasn't used: the registry is only the project's (security audit ITEM-4). */
+  withheld?: boolean;
 };
 
 /** The registry the project in `dir` uses: its `rmk.config.json`, else its `rmk.lock`. */
@@ -116,7 +118,10 @@ export const resolveRegistry = (
 
 /**
  * The registry a command talks to (`resolveRegistry`), and the token for it: `RMK_TOKEN`, else the
- * one saved for that registry.
+ * one saved for that registry. `RMK_TOKEN` goes only to a registry the person chose: `--registry`,
+ * `RMK_REGISTRY`, the config's default, or one they logged in to. A registry only the project names
+ * (`rmk.config.json`, `rmk.lock`: anyone's to edit in a repository) never gets it, so a commit can't
+ * send it elsewhere (security audit ITEM-4, 2026-10-05).
  */
 export const registryFor = (
   io: Io,
@@ -132,12 +137,35 @@ export const registryFor = (
       "no_registry",
     );
   const saved = config.registries[resolved.url];
+  const chosen =
+    resolved.source === "flag" ||
+    resolved.source === "env" ||
+    resolved.source === "default" ||
+    normalizeRegistry(config.defaultRegistry ?? "") === resolved.url ||
+    saved !== undefined;
+  const envToken = io.env.RMK_TOKEN && chosen ? io.env.RMK_TOKEN : undefined;
   return {
     url: resolved.url,
-    token: io.env.RMK_TOKEN || saved?.token || null,
+    token: envToken || saved?.token || null,
     email: saved?.email,
     source: resolved.source,
+    ...(io.env.RMK_TOKEN && !chosen ? { withheld: true } : {}),
   };
+};
+
+/**
+ * The token for a registry known only by its URL (usage policy and reports, 046): the saved one, or
+ * `RMK_TOKEN` when the person chose that registry (`RMK_REGISTRY`, the default, or a login), never
+ * one a project named (security audit ITEM-4).
+ */
+export const tokenFor = (io: Io, config: UserConfig, url: string): string | null => {
+  const key = normalizeRegistry(url);
+  const saved = config.registries[key];
+  const chosen =
+    normalizeRegistry(io.env.RMK_REGISTRY ?? "") === key ||
+    normalizeRegistry(config.defaultRegistry ?? "") === key ||
+    saved !== undefined;
+  return (chosen ? io.env.RMK_TOKEN : undefined) || saved?.token || null;
 };
 
 /** How `rmk whoami` says where the registry came from. */

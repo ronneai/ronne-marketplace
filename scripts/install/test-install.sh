@@ -37,6 +37,21 @@ done
 for d in nodot 'bad_domain!' -x.example.com example.com. "a b.com" ""; do
   check "invalid domain [$d]" no "$(valid_domain "$d" && echo yes || echo no)"
 done
+# --- This computer binds 127.0.0.1 (security audit DEP-1) ------------------------------------
+check "local_bind 7650" 127.0.0.1:7650 "$(local_bind 7650)"
+check "local_bind 7652" 127.0.0.1:7652 "$(local_bind 7652)"
+check "local_bind keeps an address set on purpose" 0.0.0.0:7650 "$(local_bind 0.0.0.0:7650)"
+check "local_bind keeps 127.0.0.1" 127.0.0.1:7650 "$(local_bind 127.0.0.1:7650)"
+check "local_public_url empty" http://localhost:7650 "$(local_public_url "" 7650)"
+check "local_public_url follows the port" http://localhost:7652 "$(local_public_url http://localhost:7650 7652)"
+check "local_public_url from an address" http://localhost:7650 "$(local_public_url "" 127.0.0.1:7650)"
+check "local_public_url keeps the person's own" https://ronne.example.com "$(local_public_url https://ronne.example.com 7650)"
+RUNNING=1 OLD_PORT=127.0.0.1:7650 OLD_HTTPS_PORT=127.0.0.1:7651
+check "port_ours: its own port, written with an address" yes "$(port_ours 7650 && echo yes || echo no)"
+check "port_ours: its own HTTPS port" yes "$(port_ours 7651 && echo yes || echo no)"
+check "port_ours: another port" no "$(port_ours 7652 && echo yes || echo no)"
+RUNNING=0 OLD_PORT='' OLD_HTTPS_PORT=
+
 # --- Without Docker (085) ----------------------------------------------------------------------
 osr="$work/os-release"
 for c in "ubuntu|debian|x86_64|deb amd64" "debian||aarch64|deb arm64" "linuxmint|ubuntu debian|x86_64|deb amd64" \
@@ -172,7 +187,9 @@ printf 'name: ronne-marketplace\nservices:\n  web:\n    ports:\n      - "${RONNE
   >"$work/legacy/compose.yaml"
 run_fake "$work/legacy"
 check "a legacy rerun succeeds" 0 "$code"
-check "a legacy rerun keeps port 3000" "RONNE_IMAGE=ronne-web:test RONNE_PORT=3000" \
+# Bound to 127.0.0.1, this computer only (security audit DEP-1), with the address that goes with it.
+check "a legacy rerun keeps port 3000, on 127.0.0.1" \
+  "RONNE_IMAGE=ronne-web:test RONNE_PORT=127.0.0.1:3000 RONNE_HTTPS_PORT=127.0.0.1:7651 PUBLIC_URL=http://localhost:3000" \
   "$(tr '\n' ' ' <"$work/legacy/.env" | sed 's/ $//')"
 check "a legacy rerun says so" yes "$(says "keeping http://localhost:3000")"
 check "a legacy rerun gets the proxy's compose.yaml" yes \

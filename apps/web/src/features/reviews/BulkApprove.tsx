@@ -298,7 +298,7 @@ export const BulkApproveToolbar = ({ help }: { help?: ReactNode }) => {
               event.preventDefault();
               startApprove(async () => {
                 const state = await approveSelectedAction(
-                  going.map((row) => row.id),
+                  going.map((row) => ({ id: row.id, revision: row.revision })),
                   text,
                 );
                 if ("error" in state) return setError(state.error);

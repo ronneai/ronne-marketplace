@@ -13,7 +13,12 @@
 # A Caddy proxy is the only way in: it serves HTTP on host port 7650 and HTTPS on 7651, and the app
 # itself (web, port 3000) isn't published. Settings go in a .env file next to this one (feature 080):
 #
-#   1. Trying it on this computer: nothing to set. http://localhost:7650
+#   1. Trying it on this computer: http://localhost:7650. With nothing set, 7650 and 7651 are open to
+#      your network too, and so is the setup until you finish it. To keep it to this computer
+#      (what install.sh's "This computer" writes):
+#        RONNE_PORT=127.0.0.1:7650
+#        RONNE_HTTPS_PORT=127.0.0.1:7651
+#        PUBLIC_URL=http://localhost:7650
 #   2. A server with a public domain, automatic HTTPS (Let's Encrypt). Point the domain's DNS at the
 #      server and open ports 80 and 443, then:
 #        RONNE_DOMAIN=ronne.example.com

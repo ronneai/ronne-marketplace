@@ -234,9 +234,14 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           domain, and an optional email for certificate notices), and checks the ports: on this
           computer it takes the next free pair after 7650 and 7651 if they&apos;re busy. It writes{" "}
           <Code>compose.yaml</Code> and <Code>.env</Code> to a <Code>ronne-marketplace</Code> folder
-          in your home folder, starts Ronne, and opens it in the browser. It installs the release it
-          comes from and never uses <Code>sudo</Code>. Run it again to upgrade: it keeps your
-          answers, and asks before moving to a newer version.
+          in your home folder, starts Ronne, and opens it in the browser. On this computer, Ronne
+          answers only on this computer (<Code>127.0.0.1</Code>), not to your network: to reach it
+          from other devices, after the setup put <Code>RONNE_PORT=0.0.0.0:7650</Code> and{" "}
+          <Code>PUBLIC_URL</Code> with this computer&apos;s address (
+          <Code>http://192.168.1.20:7650</Code>, say) in that <Code>.env</Code> (the script keeps
+          both), and run <Code>docker compose up -d</Code> there. It installs the release it comes
+          from and never uses <Code>sudo</Code>. Run it again to upgrade: it keeps your answers, and
+          asks before moving to a newer version.
         </p>
         <p>
           By hand instead, you need one file: <Code>compose.yaml</Code> from the repository. It
@@ -1185,7 +1190,9 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         <Bullets>
           <li>
             <strong>Approve:</strong> one approval by a moderator or root who isn&apos;t the author
-            is enough.
+            is enough. It&apos;s for the revision you&apos;re looking at: if the author submits a
+            new one meanwhile, the approval doesn&apos;t go through, and you look at the new
+            revision first.
           </li>
           <li>
             <strong>Request changes:</strong> it goes back to its author, with what to fix. An
@@ -2279,8 +2286,12 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           <Code>~/.config/rmk/config.json</Code>, readable by you alone. With a token made under{" "}
           <To href="/account/tokens">Access tokens</To>, or in CI, use{" "}
           <Code>rmk login --token rmk_…</Code>, or set <Code>RMK_TOKEN</Code> and{" "}
-          <Code>RMK_REGISTRY</Code>. <Code>rmk whoami</Code> says who you are, at which registry,
-          and why that one; <Code>rmk logout</Code> revokes the token.
+          <Code>RMK_REGISTRY</Code>. <Code>RMK_TOKEN</Code> only goes to a registry you chose (
+          <Code>RMK_REGISTRY</Code>, <Code>--registry</Code>, your default, or one you logged in
+          to), never to one only a project&apos;s <Code>rmk.config.json</Code> or{" "}
+          <Code>rmk.lock</Code> names: rmk stops with <Code>token_withheld</Code> instead.{" "}
+          <Code>rmk whoami</Code> says who you are, at which registry, and why that one;{" "}
+          <Code>rmk logout</Code> revokes the token.
         </p>
         <p>
           You can be logged in to several registries at once. Each command uses the first it finds:
@@ -2331,7 +2342,11 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           </li>
           <li>
             <strong>Download and check.</strong> Each package&apos;s checksum is checked before
-            anything is written; a mismatch stops the install.
+            anything is written; a mismatch stops the install. A version already in{" "}
+            <Code>rmk.lock</Code> must also have the checksum recorded there, since a released
+            version never changes: if the registry gives other bytes for it, rmk stops (
+            <Code>checksum_mismatch</Code>). To accept them anyway, remove the item from{" "}
+            <Code>rmk.lock</Code> (in user scope, <Code>~/.config/rmk/user.lock</Code>).
           </li>
           <li>
             <strong>Write.</strong> The files each tool reads, then the lockfile and the state file.

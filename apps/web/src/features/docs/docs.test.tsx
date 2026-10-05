@@ -114,6 +114,8 @@ describe("the topics", () => {
     expect(scopes).toContain("@platform/code-reviewer");
     expect(scopes).toContain("up to 64");
     const review = await topic("review");
+    // An approval is for the revision being looked at (security audit AUTHZ-2).
+    expect(review).toContain("look at the new");
     for (const status of ["changes requested", "archived", "published"])
       expect(review).toContain(`>${status}<`);
     // Where the decisions are, and your own greyed out (058).
@@ -169,6 +171,8 @@ describe("the topics", () => {
     expect(install).toContain("install.sh | sh");
     expect(install).toContain("install.ps1 | iex");
     expect(install).toContain("Run it again to upgrade");
+    // This computer answers on 127.0.0.1 only (security audit DEP-1).
+    expect(install).toContain("RONNE_PORT=0.0.0.0:7650");
     // The proxy in compose.yaml (080).
     expect(install).toContain("# then open http://localhost:7650");
     expect(install).toContain(
@@ -200,6 +204,10 @@ describe("the topics", () => {
     expect(admin).toContain("user.*");
     expect(await topic("roles")).toContain(`href="${docsHref("admin", "audit")}"`);
     const rmk = await topic("rmk");
+    // RMK_TOKEN only goes to a registry the person chose (security audit ITEM-4).
+    expect(rmk).toContain("token_withheld");
+    // A locked version must come with the bytes rmk.lock recorded (security audit ITEM-3).
+    expect(rmk).toContain("checksum_mismatch");
     expect(rmk).not.toContain("released yet");
     for (const id of ["getting", "login", "installing", "updating", "files", "edits"])
       expect(rmk).toContain(`id="${id}"`);

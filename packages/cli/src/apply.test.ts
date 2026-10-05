@@ -1,10 +1,15 @@
+import { createHash } from "node:crypto";
 import {
   chmodSync,
   existsSync,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
+  symlinkSync,
+  unlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -12,7 +17,15 @@ import { join } from "node:path";
 import type { Change } from "@ronneai/core/render";
 import { parse as parseToml } from "smol-toml";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { applyPlan, emptyState, planChanges, type State, type Wanted } from "./apply.js";
+import {
+  applyPlan,
+  emptyState,
+  mustStayInside,
+  planChanges,
+  type State,
+  type Wanted,
+} from "./apply.js";
+import { writeFileAtomic } from "./project.js";
 
 let root: string;
 beforeEach(() => {
@@ -395,5 +408,151 @@ describe("applying changes", () => {
       expect(() => applyPlan(root, emptyState(), plan)).toThrow(/rmk won't write the key/);
     }
     expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+  });
+});
+
+describe("paths outside the folder (security audit ITEM-1)", () => {
+  // A project inside a home folder, as on a developer's machine.
+  let home: string;
+  let project: string;
+  beforeEach(() => {
+    home = mkdtempSync(join(tmpdir(), "rmk-home-"));
+    project = join(home, "code", "proj");
+    mkdirSync(project, { recursive: true });
+  });
+  afterEach(() => rmSync(home, { recursive: true, force: true }));
+  const hash = (text: string) => createHash("sha256").update(text).digest("hex");
+  const stateWith = (entry: Partial<State["entries"][number]>): State => ({
+    version: 1,
+    entries: [
+      {
+        item: "@t/x",
+        version: "1.0.0",
+        targets: ["claude-code"],
+        kind: "dir",
+        path: "x",
+        sha256: "0".repeat(64),
+        ...entry,
+      },
+    ],
+  });
+
+  it("refuses a state entry outside the project, with --force too, touching nothing", async () => {
+    const victim = join(home, "code", "victim");
+    mkdirSync(victim);
+    writeFileSync(join(victim, "keep.txt"), "mine");
+    for (const force of [false, true])
+      await expect(
+        planChanges(project, stateWith({ path: "../victim" }), [], { force, contain: true }),
+      ).rejects.toMatchObject({ code: "unsafe_path" });
+    expect(readFileSync(join(victim, "keep.txt"), "utf8")).toBe("mine");
+  });
+
+  it("refuses an edit of a settings file outside the project", async () => {
+    const settings = join(home, ".claude", "settings.json");
+    mkdirSync(join(home, ".claude"));
+    const before = `${JSON.stringify({ permissions: { deny: ["Bash(rm -rf:*)"] } }, null, 2)}\n`;
+    writeFileSync(settings, before);
+    const entry = {
+      kind: "json-array-item" as const,
+      path: "../../.claude/settings.json",
+      key: ["permissions", "deny"],
+      sha256: hash(JSON.stringify("Bash(rm -rf:*)")),
+    };
+    await expect(planChanges(project, stateWith(entry), [], {})).rejects.toMatchObject({
+      code: "unsafe_path",
+    });
+    expect(readFileSync(settings, "utf8")).toBe(before);
+  });
+
+  it("refuses absolute, drive-letter, backslash and dot paths, from the state or a renderer", async () => {
+    for (const path of ["/etc/x", "C:/x", "a\\..\\..\\x", "./x", "a//b", ".."])
+      await expect(planChanges(project, stateWith({ path }), [])).rejects.toMatchObject({
+        code: "unsafe_path",
+      });
+    const change: Change = {
+      kind: "file",
+      path: ".claude/hooks/x/../../../../escaped.sh",
+      content: new Uint8Array(),
+      executable: true,
+    };
+    await expect(planChanges(project, emptyState(), [wanted(change)])).rejects.toMatchObject({
+      code: "unsafe_path",
+    });
+  });
+
+  it("in a project, refuses writes through a committed link that leads outside it", async () => {
+    const elsewhere = join(home, "elsewhere");
+    mkdirSync(elsewhere);
+    symlinkSync(elsewhere, join(project, ".claude"));
+    const change: Change = {
+      kind: "file",
+      path: ".claude/skills/x/SKILL.md",
+      content: new TextEncoder().encode("hi"),
+      executable: false,
+    };
+    await expect(
+      planChanges(project, emptyState(), [wanted(change)], { contain: true }),
+    ).rejects.toMatchObject({ code: "unsafe_path" });
+    expect(readdirSync(elsewhere)).toEqual([]);
+    // In user scope a linked ~/.claude (a dotfiles folder) is the person's own choice.
+    const plan = await planChanges(project, emptyState(), [wanted(change)], { contain: false });
+    expect(plan.writes).toHaveLength(1);
+    // A link that stays in the project is fine.
+    unlinkSync(join(project, ".claude"));
+    mkdirSync(join(project, "real"));
+    symlinkSync(join(project, "real"), join(project, ".claude"));
+    await expect(
+      planChanges(project, emptyState(), [wanted(change)], { contain: true }),
+    ).resolves.toMatchObject({ writes: [expect.anything()] });
+  });
+
+  it("refuses a link to nothing, and a state file a committed .rmk link sends elsewhere", async () => {
+    // A dangling link: writing would create its target, wherever it points.
+    symlinkSync(join(home, "elsewhere", "new"), join(project, ".claude"));
+    const change: Change = {
+      kind: "file",
+      path: ".claude/skills/x/SKILL.md",
+      content: new TextEncoder().encode("hi"),
+      executable: false,
+    };
+    await expect(
+      planChanges(project, emptyState(), [wanted(change)], { contain: true }),
+    ).rejects.toMatchObject({ code: "unsafe_path" });
+    // `.rmk` itself linked outside: the state file would land there.
+    mkdirSync(join(home, "elsewhere"));
+    symlinkSync(join(home, "elsewhere"), join(project, ".rmk"));
+    expect(() => mustStayInside(project, ".rmk/state.json", "It would write")).toThrow(
+      /outside its folder/,
+    );
+  });
+
+  it("writes a whole file over a link, never through it, and never through a temporary name", () => {
+    const victim = join(home, "victim.txt");
+    writeFileSync(victim, "mine");
+    const file = join(project, "rmk.lock");
+    symlinkSync(victim, file);
+    writeFileAtomic(file, "{}\n");
+    expect(readFileSync(victim, "utf8")).toBe("mine");
+    expect(lstatSync(file).isSymbolicLink()).toBe(false);
+    expect(readFileSync(file, "utf8")).toBe("{}\n");
+    // The temporary file's name is random, and it's created exclusively: nothing is left behind.
+    expect(readdirSync(project).filter((name) => name.endsWith(".tmp"))).toEqual([]);
+  });
+
+  it("checks again when applying, so a plan can't be made to reach outside", () => {
+    const plan = {
+      writes: [],
+      unchanged: [],
+      removes: stateWith({ path: "../victim" }).entries,
+      gone: [],
+      conflicts: [],
+      reformatted: [],
+    };
+    mkdirSync(join(home, "code", "victim"));
+    expect(() => applyPlan(project, emptyState(), plan, { contain: true })).toThrow(
+      /outside|leave the folder/,
+    );
+    expect(existsSync(join(home, "code", "victim"))).toBe(true);
   });
 });

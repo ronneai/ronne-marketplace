@@ -7,6 +7,7 @@ import {
   OwnSubmissionError,
   REVIEW_MESSAGE_MAX_LENGTH,
   ReviewMessageError,
+  RevisionChangedError,
   SubmissionNotFoundError,
   SubmissionsError,
 } from "../exceptions/errors";
@@ -118,6 +119,12 @@ export const decide = async (
     via?: "bulk" | "queue";
     /** Why, when it follows another decision: its dependency was rejected (056). */
     cause?: { rejected: string };
+    /**
+     * The revision the reviewer read. Given, an approval (or override) goes only if it's still the
+     * latest, checked under the row's lock: an author can't swap the content while the reviewer
+     * looks (security audit AUTHZ-2). The web always gives it.
+     */
+    revision?: number | null;
   },
 ): Promise<Submission> => {
   const decision = DECISIONS[input.decision];
@@ -134,11 +141,17 @@ export const decide = async (
     if (input.decision !== "override" && mine)
       throw new OwnSubmissionError(can(actor.user, "submissions.override"));
     const status = transition(submission.status, decision.action);
+    const revision = await latestRevision(repo, submission.id);
+    if (
+      decision.action === "approve" &&
+      input.revision !== undefined &&
+      input.revision !== revision
+    )
+      throw new RevisionChangedError(input.revision, revision);
     // A stale proposal (017) is rebased before anyone approves it.
     if (decision.action === "approve")
       await requireCurrent(deps.registry ?? repo.registry(), submission);
     await repo.setStatus(submission.id, status, { updatedAt: at });
-    const revision = await latestRevision(repo, submission.id);
     await repo.addEvent({
       submissionId: submission.id,
       actorId: actor.user?.id ?? "",

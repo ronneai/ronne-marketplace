@@ -7,6 +7,7 @@ const reviews = vi.hoisted(() => ({
   listQueue: vi.fn(),
   countNeedsReview: vi.fn(),
   approveMany: vi.fn(),
+  decide: vi.fn(),
 }));
 const session = vi.hoisted(() => ({ getCurrentUser: vi.fn() }));
 vi.mock("@/server/domains/submissions/actions/reviews", () => reviews);
@@ -24,7 +25,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 const { approvableRows, QueueTable, QueueTabs, queueTab } = await import("./QueueTable");
 const { BulkApproveProvider, BulkApproveToolbar } = await import("./BulkApprove");
 const { BulkReleaseProvider } = await import("../releases/BulkRelease");
-const { approveSelectedAction } = await import("./actions");
+const { approveSelectedAction, decideAction } = await import("./actions");
 const { default: ReviewsPage } = await import("@/app/(app)/reviews/page");
 const { checkedQueueState, queueList, queueQueryOf } = await import("./list");
 const { parseListQuery } = await import("@/components/ui/data-table/list-query");
@@ -266,7 +267,8 @@ describe("approving several at once (054)", () => {
       { id: "b", result: "not_approvable", submission, reason: "It's withdrawn." },
       { id: "c", result: "not_found" },
     ]);
-    expect(await approveSelectedAction(["a", "b", "c"], "Fine.")).toEqual({
+    const items = ["a", "b", "c"].map((id) => ({ id, revision: 2 }));
+    expect(await approveSelectedAction(items, "Fine.")).toEqual({
       results: [
         {
           id: "a",
@@ -295,7 +297,7 @@ describe("approving several at once (054)", () => {
       ],
     });
     expect(reviews.approveMany).toHaveBeenCalledWith(expect.any(Headers), {
-      ids: ["a", "b", "c"],
+      items,
       message: "Fine.",
     });
   });
@@ -383,5 +385,39 @@ describe("the queue's table (062)", () => {
       search: undefined,
       type: undefined,
     });
+  });
+});
+
+describe("decideAction (security audit AUTHZ-2)", () => {
+  it("refuses an approval that doesn't say which revision was reviewed, and passes the one that does", async () => {
+    reviews.decide.mockReset();
+    reviews.decide.mockResolvedValue({});
+    expect(await decideAction("s", "approve", "")).toEqual({
+      error: "Reload the page: it doesn't say which revision you reviewed.",
+    });
+    expect(await decideAction("s", "override", "")).toMatchObject({ error: expect.any(String) });
+    expect(reviews.decide).not.toHaveBeenCalled();
+    expect(await decideAction("s", "approve", "", undefined, 2)).toEqual({ done: true });
+    expect(reviews.decide).toHaveBeenCalledWith(expect.any(Headers), "s", {
+      decision: "approve",
+      message: "",
+      revision: 2,
+    });
+    // A forged revision (not a whole number) is refused before the domain.
+    reviews.decide.mockClear();
+    expect(
+      await decideAction("s", "approve", "", undefined, "2" as unknown as number),
+    ).toMatchObject({
+      error: expect.any(String),
+    });
+    expect(
+      await approveSelectedAction(
+        ["a"] as unknown as { id: string; revision: number | null }[],
+        "",
+      ),
+    ).toMatchObject({ error: expect.any(String) });
+    expect(reviews.decide).not.toHaveBeenCalled();
+    // Requesting changes needs no revision.
+    expect(await decideAction("s", "request_changes", "Why?")).toEqual({ done: true });
   });
 });

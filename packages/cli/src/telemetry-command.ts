@@ -1,4 +1,4 @@
-import { readUserConfig, registryFor, writeUserConfig } from "./config.js";
+import { readUserConfig, tokenFor, writeUserConfig } from "./config.js";
 import { usage } from "./errors.js";
 import { type Io, nowOf } from "./io.js";
 import type { Output } from "./output.js";
@@ -31,7 +31,7 @@ const POLICY_WORDS = { off: "off", choice: "people choose", required: "required"
 const refreshAll = async (io: Io) => {
   const config = readUserConfig(io);
   for (const url of Object.keys(config.registries))
-    await refreshPolicy(io, url, registryFor(io, config, url).token, { force: true });
+    await refreshPolicy(io, url, tokenFor(io, config, url), { force: true });
 };
 
 const choose = (io: Io, enabled: boolean) => {

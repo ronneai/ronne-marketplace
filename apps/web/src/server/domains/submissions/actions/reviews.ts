@@ -27,14 +27,20 @@ const actor = async (headers: Headers, app: AppAuth): Promise<SubmissionActor> =
 export const decide = async (
   headers: Headers,
   id: string,
-  input: { decision: service.ReviewDecision; message?: string; via?: "queue" },
+  input: {
+    decision: service.ReviewDecision;
+    message?: string;
+    via?: "queue";
+    /** The revision the reviewer read (AUTHZ-2). */
+    revision?: number | null;
+  },
   app: AppAuth = getAppAuth(),
 ) => service.decide(deps(app), await actor(headers, app), id, input);
 
 /** Approves several at once (054), with one optional message for all. */
 export const approveMany = async (
   headers: Headers,
-  input: { ids: readonly string[]; message?: string },
+  input: { items: readonly { id: string; revision: number | null }[]; message?: string },
   app: AppAuth = getAppAuth(),
 ) => bulk.approveMany(deps(app), await actor(headers, app), input);
 

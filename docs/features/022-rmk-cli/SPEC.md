@@ -46,7 +46,9 @@ person wrote by hand is ever overwritten.
 | `rmk platforms` | The renderers (021), and which types each supports. |
 
 Every command except `login`, `platforms` and `--help` needs a token. `RMK_TOKEN` and
-`RMK_REGISTRY` override the config file, for CI (cli-files.md).
+`RMK_REGISTRY` override the config file, for CI (cli-files.md). `RMK_TOKEN` goes only to a
+registry the person chose (`--registry`, `RMK_REGISTRY`, the default, or a login), never to one
+only a project's `rmk.config.json` or `rmk.lock` names (2026-10-05).
 
 **An install, step by step.**
 1. Read `rmk.config.json` and `rmk.lock`; decide the targets (`--target`, else `targets` in the

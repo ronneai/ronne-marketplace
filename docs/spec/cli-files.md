@@ -76,7 +76,11 @@ The resolved, flat set. `rmk install` with no arguments installs exactly this.
 
 - One entry per item (one version per item, MVP §4.3). `dependencies` maps to the pinned versions chosen.
 - The tarball URL isn't stored. It comes from the registry and the name and version, so a registry can move without changing lockfiles.
-- rmk fails if a download's sha256 doesn't match the lockfile.
+- rmk fails if a download's sha256 doesn't match the lockfile: when an item resolves to the version
+  the lockfile already holds, the registry's sha256 for it must be the lockfile's, on `install`,
+  `update` and `remove` alike, or rmk stops with `checksum_mismatch` before downloading or writing
+  anything (a released version never changes). Accepting other bytes for a version is deliberate:
+  remove the item from `rmk.lock` and run again.
 
 ## `.rmk/state.json`
 
@@ -126,6 +130,14 @@ What rmk wrote, so it can update or remove it without touching anything else (MV
 | `section` | A fenced `rmk:begin` / `rmk:end` block in a Markdown file | the text between the fences |
 
 - Paths are relative to the project root (or the home folder for user scope) and always use `/`.
+- **rmk only touches paths inside that folder** (2026-10-05). The file is committed, so anyone
+  with a commit can edit it: an entry (or a rendered change) whose path is absolute, has a drive
+  letter or `\`, or a `..`, `.` or empty segment stops `install`, `update` and `remove` with
+  `unsafe_path`, before anything is written, `--force` or not. In project scope the real path
+  must stay in the project too, so a committed symbolic link (`.claude` or `.rmk` pointing
+  elsewhere, or a link to nothing) stops it the same way. In user scope a linked folder (a dotfiles
+  `~/.claude`) is allowed: that state file is rmk's own. Each change and removal checks its path
+  again just before it's written.
 - One rendered file shared by several targets (for example `.agents/skills/<n>/` for Codex and
   Cursor) is one entry, and `targets` lists every renderer that uses it. The entry is removed only
   when no target needs it any more.
@@ -171,8 +183,13 @@ Every command, and the registry MCP server, talks to the first registry it finds
    (skipped by `install`, `update`, `outdated` and `remove` with `--scope user`);
 4. `defaultRegistry` in `~/.config/rmk/config.json`.
 
-The token is `RMK_TOKEN`, else the one saved for that registry. `rmk whoami` says which registry
-it used and where it came from. URLs are compared without trailing slashes.
+The token is `RMK_TOKEN`, else the one saved for that registry. `RMK_TOKEN` goes only to a
+registry the person chose (2026-10-05): one from `--registry`, `RMK_REGISTRY` or the default, or
+one they logged in to. A registry only the project names (3., files anyone with a commit can edit)
+never gets it: a command that needs a token stops with `token_withheld`, saying to set
+`RMK_REGISTRY` to it too, or to log in to it. A token saved for that registry is used as usual.
+`rmk whoami` says which registry it used and where it came from. URLs are compared without
+trailing slashes.
 
 ## `~/.cache/rmk/usage/`
 

@@ -41,7 +41,10 @@ irm https://www.ronne.ai/install.ps1 | iex
 Both addresses redirect to the scripts in the
 [latest release](https://github.com/ronneai/ronne-marketplace/releases/latest), which also work
 directly (`…/releases/latest/download/install.sh`). It installs the release it comes from, and
-never uses `sudo`. Run it again to upgrade: it keeps
+never uses `sudo`. On this computer, Ronne answers only on this computer (`127.0.0.1`); to reach it
+from other devices, after the setup set `RONNE_PORT=0.0.0.0:7650` and
+`PUBLIC_URL=http://<this computer's address>:7650` in its `.env` (the script keeps both), then run
+`docker compose up -d` in that folder. Run it again to upgrade: it keeps
 your answers and asks before moving to a newer version. For scripts:
 `curl -fsSL https://www.ronne.ai/install.sh | sh -s -- --yes --mode server --domain ronne.example.com`
 (PowerShell: `& ([scriptblock]::Create((irm https://www.ronne.ai/install.ps1))) -Yes -Mode server -Domain …`).

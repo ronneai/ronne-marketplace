@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parseEnv } from "node:util";
@@ -137,6 +137,44 @@ describe("the web setup's steps", () => {
       installRootWith(context, form({ ...root, "root.email": "other@example.com" })),
     ])
       expect(await again).toMatchObject({ ok: false, error: { code: "already_set_up" } });
+  });
+
+  it("never runs on a configured instance whose database doesn't answer (security audit AUTHZ-1)", async () => {
+    // A configured instance: its settings name a database that doesn't answer (a closed port), as
+    // when the server is down, restarting, or overloaded. Anyone could otherwise point it at their
+    // own database and become root.
+    const settings = [
+      "DATABASE_URL=postgres://ronne:secret@127.0.0.1:1/ronne",
+      "AUTH_SECRET=an-existing-secret-of-at-least-32-characters",
+      "PUBLIC_URL=https://ronne.example.com",
+      "",
+    ].join("\n");
+    writeFileSync(context.envPath, settings);
+    const attacker = {
+      "database.kind": "sqlite",
+      "database.path": "./attacker.db",
+      public_url: "https://ronne.example.com/",
+    };
+    const steps = (ctx: SetupContext) => [
+      testDatabaseWith(ctx, form(attacker)),
+      installSettingsWith(ctx, form(attacker)),
+      installMigrationsWith(ctx),
+      installRootWith(ctx, form({ ...root, "root.email": "attacker@example.com" })),
+    ];
+    for (const step of steps(context))
+      expect(await step).toMatchObject({ ok: false, error: { code: "database_unavailable" } });
+    // A database whose connection fails outright (MySQL or PostgreSQL refusing it) is refused too.
+    const failing: SetupContext = {
+      ...context,
+      getDb: () => {
+        throw new Error("too many clients already");
+      },
+    };
+    for (const step of steps(failing))
+      expect(await step).toMatchObject({ ok: false, error: { code: "database_unavailable" } });
+    // Nothing changed: the same settings, and no database of the attacker's.
+    expect(readFileSync(context.envPath, "utf8")).toBe(settings);
+    expect(existsSync(join(appDir, "attacker.db"))).toBe(false);
   });
 
   it("refuses the later steps before the settings exist, and a password that doesn't match", async () => {

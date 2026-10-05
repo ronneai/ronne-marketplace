@@ -1,4 +1,14 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { join, relative } from "node:path";
 import { pluginArchive } from "@ronneai/core/plugins";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -290,6 +300,69 @@ describe("rmk feed build (078)", () => {
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain("codex/team.style@1.3.0's download doesn't match the sha256");
     expect(snapshot()).toEqual(before);
+  });
+
+  it("refuses a plugin name that leaves its folder, from the state file or the feed (security audit ITEM-1)", async () => {
+    await build();
+    // Someone edits the committed state: a plugin "named" a path outside the mirror.
+    mkdirSync(join(io.cwd, "victim"));
+    writeFileSync(join(io.cwd, "victim", "keep.txt"), "mine");
+    const statePath = join(out(), FEED_STATE);
+    const state = JSON.parse(readFileSync(statePath, "utf8"));
+    state.tools.codex.plugins["../../../victim"] = state.tools.codex.plugins["team.style"];
+    writeFileSync(statePath, JSON.stringify(state));
+    const before = snapshot();
+    for (const extra of [[], ["--force"]]) {
+      const result = await build(...extra);
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain("isn't one rmk wrote");
+    }
+    expect(readFileSync(join(io.cwd, "victim", "keep.txt"), "utf8")).toBe("mine");
+    expect(snapshot()).toEqual(before);
+
+    // A registry that serves such a name.
+    writeFileSync(
+      statePath,
+      readFileSync(statePath, "utf8").replace('"../../../victim"', '"gone"'),
+    );
+    feed.codex = [
+      {
+        name: "../../../victim",
+        version: "1.0.0",
+        files: [{ path: "skills/x/SKILL.md", content: "---\nname: x\n---\n" }],
+      },
+    ];
+    const served = await build("--force");
+    expect(served.exitCode).toBe(1);
+    expect(served.stderr).toContain('names the plugin "../../../victim"');
+    expect(readFileSync(join(io.cwd, "victim", "keep.txt"), "utf8")).toBe("mine");
+  });
+
+  it("never deletes or writes through a link committed into the mirror (security audit ITEM-1)", async () => {
+    await build();
+    // plugins/codex replaced by a link to a folder outside, with --force.
+    const outside = join(io.cwd, "outside");
+    mkdirSync(join(outside, "team.style"), { recursive: true });
+    writeFileSync(join(outside, "team.style", "keep.txt"), "mine");
+    rmSync(join(out(), "plugins", "codex"), { recursive: true, force: true });
+    symlinkSync(outside, join(out(), "plugins", "codex"));
+    feed.codex = [skill("team.style", "1.1.0")];
+    const forced = await build("--force");
+    expect(forced.exitCode).toBe(1);
+    expect(forced.stderr).toContain("through a symbolic link");
+    expect(readdirSync(outside)).toEqual(["team.style"]);
+    expect(readFileSync(join(outside, "team.style", "keep.txt"), "utf8")).toBe("mine");
+
+    // A marketplace file replaced by a link to nothing (yet) outside, without --force.
+    unlinkSync(join(out(), "plugins", "codex"));
+    await build("--force");
+    const marketplace = join(out(), ".agents", "plugins", "marketplace.json");
+    rmSync(marketplace);
+    symlinkSync(join(outside, "created.json"), marketplace);
+    feed.codex = [skill("team.style", "1.2.0")];
+    const plain = await build();
+    expect(plain.exitCode).not.toBe(0);
+    expect(existsSync(join(outside, "created.json"))).toBe(false);
   });
 
   it("writes nothing when the registry can't be read", async () => {

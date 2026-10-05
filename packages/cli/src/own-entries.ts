@@ -1,6 +1,14 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { applyPlan, type Plan, planChanges, readState, type Wanted, writeState } from "./apply.js";
+import {
+  applyPlan,
+  mustStayInside,
+  type Plan,
+  planChanges,
+  readState,
+  type Wanted,
+  writeState,
+} from "./apply.js";
 import { RmkError } from "./errors.js";
 import { places, type Scope } from "./install.js";
 import type { Output } from "./output.js";
@@ -22,7 +30,7 @@ export const applyOwnEntries = async (
   const all = readState(statePath);
   const own = { version: 1 as const, entries: all.entries.filter((e) => e.item === item) };
   const others = all.entries.filter((e) => e.item !== item);
-  const plan = await planChanges(root, own, wanted, { force });
+  const plan = await planChanges(root, own, wanted, { force, contain: scope === "project" });
   out.set("conflicts", plan.conflicts);
   if (plan.conflicts.length) {
     for (const c of plan.conflicts)
@@ -36,7 +44,8 @@ export const applyOwnEntries = async (
       { conflicts: plan.conflicts },
     );
   }
-  const next = applyPlan(root, own, plan);
+  if (scope === "project") mustStayInside(root, ".rmk/state.json", "It would write");
+  const next = applyPlan(root, own, plan, { contain: scope === "project" });
   next.entries.push(...others);
   mkdirSync(join(statePath, ".."), { recursive: true });
   writeState(statePath, next);

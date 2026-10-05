@@ -11,7 +11,7 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { ApiError, apiClient } from "./api.js";
-import { readUserConfig, registryFor, type UserConfig } from "./config.js";
+import { readUserConfig, tokenFor, type UserConfig } from "./config.js";
 import { type Io, nowOf } from "./io.js";
 
 /**
@@ -301,7 +301,7 @@ export const flushUsage = async (io: Io): Promise<FlushResult[]> => {
   for (const registry of knownRegistries(io, readState(io), config)) {
     const file = queueFile(io, registry);
     if (!existsSync(file)) continue;
-    const token = registryFor(io, config, registry).token;
+    const token = tokenFor(io, config, registry);
     await refreshPolicy(io, registry, token);
     const reporting = reportingTo(io, registry, { config });
     if (!reporting.enabled) {

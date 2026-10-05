@@ -127,6 +127,7 @@ export const DecisionDialog = ({
   decision,
   dependents = [],
   via,
+  revision,
   onClose,
   onDone,
 }: {
@@ -137,6 +138,8 @@ export const DecisionDialog = ({
   /** Open submissions that depend on this one (056), listed when rejecting. */
   dependents?: Dependent[];
   via?: "queue";
+  /** The revision the page shows: an approval goes only if it's still the latest (AUTHZ-2). */
+  revision?: number | null;
   onClose: () => void;
   /** After the decision went through, before the page refreshes. */
   onDone?: () => void;
@@ -166,7 +169,7 @@ export const DecisionDialog = ({
                 return router.refresh();
               }
             } else {
-              const result = await decideAction(id, decision, text, via);
+              const result = await decideAction(id, decision, text, via, revision);
               if (result.error) {
                 setError(result.error);
                 // Someone else decided it, or its author withdrew it: show the queue as it is now.
@@ -242,8 +245,11 @@ export const DecisionBar = ({
   name,
   decisions,
   dependents = [],
+  revision,
 }: {
   id: string;
+  /** The revision the page shows, sent with an approval (security audit AUTHZ-2). */
+  revision?: number | null;
   /** The item's name, for the dependents' message (056). */
   name?: string;
   /** Each decision, or (058) each with whether it's allowed and why not. */
@@ -273,6 +279,7 @@ export const DecisionBar = ({
           name={name}
           decision={open}
           dependents={dependents}
+          revision={revision}
           onClose={() => setOpen(null)}
         />
       ) : null}

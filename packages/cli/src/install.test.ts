@@ -119,6 +119,78 @@ describe("rmk install", () => {
     expect(existsSync(join(io.cwd, ".claude/skills"))).toBe(false);
   });
 
+  it("refuses a locked version whose bytes changed, on install and update (security audit ITEM-3)", async () => {
+    await start();
+    expect((await rmk("install", "@team/secure")).exitCode).toBe(0);
+    // The registry now answers @team/gh@1.2.0 with other bytes than the lockfile recorded.
+    const lockPath = join(io.cwd, "rmk.lock");
+    const lock = JSON.parse(read("rmk.lock"));
+    lock.items["@team/gh"].sha256 = "0".repeat(64);
+    writeFileSync(lockPath, JSON.stringify(lock, null, 2));
+    const before = { lock: read("rmk.lock"), skill: read(".claude/skills/secure/SKILL.md") };
+    for (const argv of [["install"], ["update"], ["update", "@team/secure"]]) {
+      const result = await rmk(...argv, "--json");
+      expect(result.exitCode, argv.join(" ")).toBe(1);
+      expect(JSON.parse(result.stdout).error).toMatchObject({
+        code: "checksum_mismatch",
+        item: "@team/gh",
+        version: "1.2.0",
+        expected: "0".repeat(64),
+      });
+    }
+    // Nothing was written, and nothing was downloaded.
+    expect(read("rmk.lock")).toBe(before.lock);
+    expect(read(".claude/skills/secure/SKILL.md")).toBe(before.skill);
+    // Re-locking is deliberate: without the entry, the registry's bytes are accepted again.
+    delete lock.items["@team/gh"];
+    writeFileSync(lockPath, JSON.stringify(lock, null, 2));
+    expect((await rmk("install")).exitCode).toBe(0);
+    expect(JSON.parse(read("rmk.lock")).items["@team/gh"].sha256).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it("never sends RMK_TOKEN to a registry only the project names (security audit ITEM-4)", async () => {
+    const { routes } = await buildRegistry();
+    // A repository whose rmk.config.json names another server; RMK_TOKEN set in the shell or CI.
+    io = fakeIo(routes, { env: { RMK_TOKEN: "rmk_secret" } });
+    const evil = "https://evil.example";
+    writeFileSync(
+      join(io.cwd, "rmk.config.json"),
+      JSON.stringify({ version: 1, registry: evil, dependencies: { "@team/secure": "^1.0.0" } }),
+    );
+    mkdirSync(join(io.cwd, ".claude"));
+    const result = await rmk("install", "--json");
+    expect(result.exitCode).toBe(1);
+    expect(JSON.parse(result.stdout).error).toMatchObject({
+      code: "token_withheld",
+      registry: evil,
+    });
+    expect(io.requests.some((r) => JSON.stringify(r.headers).includes("rmk_secret"))).toBe(false);
+    // Opting in: RMK_REGISTRY names it too, so the person chose it.
+    io.env.RMK_REGISTRY = evil;
+    expect((await rmk("install")).exitCode).toBe(0);
+    expect(io.requests.some((r) => r.headers.authorization === "Bearer rmk_secret")).toBe(true);
+  });
+
+  it("sends RMK_TOKEN to a project's registry the person also uses: their default or a login", async () => {
+    const { routes } = await buildRegistry();
+    io = fakeIo(routes, { env: { RMK_TOKEN: "rmk_secret" } });
+    const login = await rmk("login", "--registry", REGISTRY, "--token", "rmk_test_token");
+    expect(login.exitCode, login.stderr).toBe(0);
+    writeFileSync(
+      join(io.cwd, "rmk.config.json"),
+      JSON.stringify({
+        version: 1,
+        registry: REGISTRY,
+        dependencies: { "@team/secure": "^1.0.0" },
+      }),
+    );
+    mkdirSync(join(io.cwd, ".claude"));
+    io.requests.length = 0;
+    const installed = await rmk("install");
+    expect(installed.exitCode, installed.stderr).toBe(0);
+    expect(io.requests.every((r) => r.headers.authorization === "Bearer rmk_secret")).toBe(true);
+  });
+
   it("warns about deprecated versions and unsupported types, and keeps going", async () => {
     await start();
     const result = await rmk("install", "@team/fmt", "--json");

@@ -38,6 +38,11 @@ a Cursor team admin imports the repo. Claude Code users without instance tokens 
   `.claude-plugin/marketplace.json`, `.agents/plugins/marketplace.json` and
   `.cursor-plugin/marketplace.json`.
 - It deletes plugin folders that `.rmk-feed.json` says it wrote and that aren't listed any more.
+  A plugin's name, from `.rmk-feed.json` or from the feed, must be one folder name (no `/`, `\`,
+  `..`, `.` or empty): another stops the build before it writes anything (2026-10-05). Every
+  folder and file it deletes or writes must stay inside the output folder, through any symbolic
+  link committed there, or the build stops (`unsafe_path`); the marketplace and state files are
+  written through a new file and a rename, which replaces a link rather than following it.
 - It writes the new `.rmk-feed.json`:
   `{ "version": 1, "registry": …, "tools": { "<tool>": { "marketplace": <name>, "file": <sha256 of
   the marketplace file>, "plugins": { "<plugin>": { "version", "sha256", "tree" } } } } }`, with

@@ -4,6 +4,7 @@ import {
   BulkLimitError,
   InvalidStatusTransitionError,
   OwnSubmissionError,
+  RevisionChangedError,
   SubmissionNotFoundError,
   SubmissionStaleError,
 } from "../exceptions/errors";
@@ -60,10 +61,12 @@ export type ApprovedSubmission =
 export const approveMany = async (
   deps: SubmissionDeps,
   actor: SubmissionActor,
-  input: { ids: readonly string[]; message?: string },
+  /** Each with the revision its row showed: an approval goes only if it's still the latest. */
+  input: { items: readonly { id: string; revision: number | null }[]; message?: string },
 ): Promise<ApprovedSubmission[]> => {
   requirePermission(actor.user, "submissions.review");
-  const ids = [...new Set(input.ids)];
+  const reviewed = new Map(input.items.map((item) => [item.id, item.revision]));
+  const ids = [...reviewed.keys()];
   if (ids.length > MAX_BULK_APPROVE) throw new BulkLimitError(ids.length, MAX_BULK_APPROVE);
   const message = messageFrom(input.message, null) ?? undefined;
   const results: ApprovedSubmission[] = [];
@@ -79,6 +82,7 @@ export const approveMany = async (
         decision: override ? "override" : "approve",
         message,
         via: "bulk",
+        revision: reviewed.get(id) ?? null,
       });
       const revision = (await deps.repo.revisions(id)).at(-1)?.number ?? null;
       results.push({ id, result: "approved", submission, override, revision });
@@ -87,7 +91,8 @@ export const approveMany = async (
       else if (
         error instanceof InvalidStatusTransitionError ||
         error instanceof OwnSubmissionError ||
-        error instanceof SubmissionStaleError
+        error instanceof SubmissionStaleError ||
+        error instanceof RevisionChangedError
       )
         results.push({ id, result: "not_approvable", submission: before, reason: error.message });
       else throw error;

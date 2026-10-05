@@ -13,12 +13,13 @@ import {
   OverrideNotNeededError,
   OwnSubmissionError,
   ReviewMessageError,
+  RevisionChangedError,
   SubmissionNotFoundError,
 } from "../exceptions/errors";
 import { kyselySubmissionRepository } from "../repositories/kysely-submission-repository";
 import { createDraft, getDraft, listMySubmissions, saveDraftFiles } from "./drafts";
 import { comment, decide, listDependents, rejectWithDependents } from "./reviews";
-import { latestFeedback, submitDraft } from "./submissions";
+import { latestFeedback, restoreSubmission, submitDraft, withdrawSubmission } from "./submissions";
 
 let t: TestDb;
 let app: AppAuth;
@@ -282,6 +283,59 @@ describe("comments", () => {
       ConversationClosedError,
     );
     expect((await getDraft(asAuthor, draft.id, app)).status).toBe("draft");
+  });
+});
+
+describe("an approval is for the revision its reviewer read (security audit AUTHZ-2)", () => {
+  /** The author swaps the content while a reviewer looks: archive, restore, edit, submit again. */
+  const swap = async (id: string) => {
+    await withdrawSubmission(asAuthor, id, app);
+    await restoreSubmission(asAuthor, id, app);
+    const draft = await getDraft(asAuthor, id, app);
+    const manifest = draft.files.find((f) => f.path === "ronne.yaml");
+    await saveDraftFiles(
+      asAuthor,
+      id,
+      {
+        writes: [
+          {
+            path: "ronne.yaml",
+            encoding: "utf8",
+            content: (manifest?.content ?? "").replace("House style.", "Something else."),
+            executable: false,
+            loadedAt: manifest?.updatedAt ?? null,
+          },
+        ],
+        deletes: [],
+      },
+      app,
+    );
+    await submitDraft(asAuthor, id, app);
+  };
+
+  it("refuses an approval of an older revision, and approves the one read", async () => {
+    const id = await submitted();
+    // The reviewer opens revision 1; the author resubmits as revision 2 meanwhile.
+    await swap(id);
+    await expect(
+      decide(asModerator, id, { decision: "approve", revision: 1 }, app),
+    ).rejects.toThrow(RevisionChangedError);
+    expect(await status(id)).toBe("submitted");
+    expect((await events(id)).filter((e) => e.kind === "approve")).toEqual([]);
+    await decide(asModerator, id, { decision: "approve", revision: 2 }, app);
+    expect(await status(id)).toBe("approved");
+  });
+
+  it("checks only approvals: requesting changes on an older revision still goes", async () => {
+    const id = await submitted();
+    await swap(id);
+    await decide(
+      asModerator,
+      id,
+      { decision: "request_changes", message: "Why?", revision: 1 },
+      app,
+    );
+    expect(await status(id)).toBe("changes_requested");
   });
 });
 
