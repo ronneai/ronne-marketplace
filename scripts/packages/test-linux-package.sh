@@ -39,10 +39,14 @@ case $old in
   *) fail "give two .deb or two .rpm files" ;;
 esac
 pid() { systemctl show rmk-server -p MainPID --value; }
+# Whether the last package command's output says $1 in full. The scripts fold rmk-server's messages
+# at spaces, dnf prefixes each line with ">>> " and pads it, and apt's lines end in \r\n (dpkg runs
+# in a pty): undone here, so a phrase split across lines still matches, and one dnf cut doesn't.
+said() { sed 's/^>>> //' /tmp/pkg.log | tr -d '\r\n' | tr -s ' ' | grep -qF -- "$1"; }
 
 # Install: the service, running as rmk-server, enabled, waiting for the setup.
 install "$old"
-grep -q "Ronne AI Marketplace is running as a service" /tmp/pkg.log || fail "postinstall didn't install the service: $(cat /tmp/pkg.log)"
+said "Ronne AI Marketplace is running as a service" || fail "postinstall didn't install the service: $(cat /tmp/pkg.log)"
 [ "$(readlink -f /usr/bin/rmk-server)" = /opt/rmk-server/bin/rmk-server ] || fail "/usr/bin/rmk-server isn't the package's"
 systemctl is-enabled --quiet rmk-server || fail "not enabled"
 [ "$(stat -c %U "/proc/$(pid)")" = rmk-server ] || fail "not running as rmk-server"
@@ -57,7 +61,7 @@ DATABASE_URL=file:/var/lib/rmk-server/ronne.db RONNE_ROOT_EMAIL=root@example.com
 wait_for $health 200
 before=$(pid)
 install "$new"
-grep -q "Restarted the rmk-server service" /tmp/pkg.log || fail "postinstall didn't restart the service: $(cat /tmp/pkg.log)"
+said "Restarted the rmk-server service" || fail "postinstall didn't restart the service: $(cat /tmp/pkg.log)"
 wait_for $health 200
 [ "$(pid)" != "$before" ] || fail "the service wasn't restarted"
 version=$(rmk-server --version | head -1)
@@ -72,6 +76,7 @@ remove
 [ ! -e /usr/bin/rmk-server ] || fail "/usr/bin/rmk-server stayed"
 [ -f /var/lib/rmk-server/ronne.db ] || fail "the database went"
 [ -f /etc/rmk-server/env ] || fail "the settings went"
+said "service install uses them again." || fail "the removal's note was cut: $(cat /tmp/pkg.log)"
 step "remove: service, account and program gone; data and settings kept"
 
 # Installing again uses the kept data.
@@ -81,6 +86,6 @@ step "install again: the kept data is used (200)"
 
 # A purge keeps the data too, and says how to delete it.
 purge
-grep -q "sudo rm -rf /var/lib/rmk-server" /tmp/pkg.log || fail "no word on the kept data: $(cat /tmp/pkg.log)"
+said "sudo rm -rf /var/lib/rmk-server-proxy /etc/rmk-server-proxy" || fail "no word on the kept data: $(cat /tmp/pkg.log)"
 [ -f /var/lib/rmk-server/ronne.db ] || fail "the database went"
 step "purge (or dnf remove): data kept, and how to delete it said"

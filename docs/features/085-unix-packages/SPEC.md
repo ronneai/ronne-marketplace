@@ -62,6 +62,9 @@ brew services start rmk-server         # at login; `sudo brew services start` fo
 - Removing the package stops and removes the service (`rmk-server service uninstall`); the data and
   settings are kept. A maintainer script can't ask a question, so `purge` (deb), like `dnf remove`,
   doesn't delete them either: it prints where they are and the command that deletes them.
+- What the scripts print fits in 76 columns: dnf 5 cuts each line of a script's output at 80, its
+  `>>> ` prefix included (found in the v0.3.0 release run, 2026-10-05). Their own lines are written
+  short, and `rmk-server`'s messages are folded at spaces (`fold -s -w 76`), keeping its exit status.
 - The packages depend on glibc 2.34 and GCC 11's libstdc++ (084's floor): `libc6 (>= 2.34)` and
   `libstdc++6 (>= 11)` in the `.deb`; the symbol versions `libc.so.6(GLIBC_2.34)(64bit)` and
   `libstdc++.so.6(GLIBCXX_3.4.29)(64bit)` in the `.rpm`, the same on Fedora, RHEL and openSUSE
