@@ -19,6 +19,7 @@ export type SetupSection = "database" | "instance" | "root";
 
 export type SetupErrorCode =
   | "already_set_up"
+  | "database_unavailable"
   | "not_configured"
   | "database"
   | "invalid"

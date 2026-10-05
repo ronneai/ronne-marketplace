@@ -131,6 +131,13 @@ steps, as sign-in is over the identity domain.
 
 ## Edge cases
 
+- **The steps enforce the states themselves** (2026-10-05). Each step of the setup (test the
+  connection, write the settings, migrate, create root) runs only when the instance is
+  `not_configured` or `incomplete`, and refuses `ready` ("Someone already set this instance up")
+  and `unavailable` ("The database in the settings isn't answering, so the setup won't run…"),
+  whoever calls it and however: not only the page decides. A configured instance's settings are
+  never changed from the browser; while its database doesn't answer, the fix is on the server
+  (`pnpm run setup`, `rmk-server setup`).
 - **The first visitor owns the instance** (owner's decision, 2026-09-29). Between `up` and the
   first visit, anyone who can reach the port can set the instance up and become root. On a
   laptop or a private network that's fine; on a public host, set it up before exposing the port

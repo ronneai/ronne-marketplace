@@ -1,5 +1,6 @@
 import { type AppConfig, loadConfig } from "@/server/config";
-import { type CreatedDb, createDb } from "@/server/db/create-db";
+import type { CreatedDb } from "@/server/db/create-db";
+import { getAppDb } from "@/server/db/instance";
 import { DatabaseAheadOfAppError } from "@/server/db/migrate";
 import { redactDatabaseUrl } from "@/server/db/url";
 import {
@@ -41,6 +42,8 @@ export type SetupContext = {
 };
 
 export const ALREADY_SET_UP = "Someone already set this instance up. Sign in.";
+export const DATABASE_UNAVAILABLE =
+  "The database in the settings isn't answering, so the setup won't run: it never changes a configured instance from the browser. Fix the database, or the settings on the server (pnpm run setup, or rmk-server setup), then reload.";
 const NOT_CONFIGURED = "Write the settings first.";
 
 const error = (
@@ -53,8 +56,31 @@ const error = (
 const config = (context: SetupContext): AppConfig =>
   loadConfig({ appDir: context.appDir, env: context.env });
 
-const state = (context: SetupContext): Promise<SetupState> =>
-  getSetupState(config(context), { getDb: context.getDb, remember: false });
+/**
+ * The guard every step runs first. The setup runs only on an instance that isn't set up yet:
+ * `not_configured`, or `incomplete` (its database answered, with no root). Never `ready`, and never
+ * `unavailable`: there are settings, but the database doesn't answer, which anyone can wait for
+ * (and, on a server database, cause), so the browser must never get to point a configured instance
+ * at another database (036; security audit AUTHZ-1, 2026-10-05). Production remembers `ready`, so
+ * refusing a set-up instance costs no database query.
+ */
+const refusal = async (
+  context: SetupContext,
+  section: SetupError["section"],
+): Promise<{ state: SetupState; refused?: SetupError }> => {
+  const current = await getSetupState(config(context), { getDb: context.getDb });
+  if (current === "ready")
+    return {
+      state: current,
+      refused: { code: "already_set_up", section, message: ALREADY_SET_UP },
+    };
+  if (current === "unavailable")
+    return {
+      state: current,
+      refused: { code: "database_unavailable", section, message: DATABASE_UNAVAILABLE },
+    };
+  return { state: current };
+};
 
 /** The database URL the form asks for, or the one already in the settings when asked to keep it. */
 const databaseUrlFrom = async (
@@ -87,11 +113,8 @@ export const testDatabaseWith = async (
   context: SetupContext,
   form: FormData,
 ): Promise<TestResult> => {
-  if ((await state(context)) === "ready")
-    return {
-      ok: false,
-      error: { code: "already_set_up", section: "database", message: ALREADY_SET_UP },
-    };
+  const { refused } = await refusal(context, "database");
+  if (refused) return { ok: false, error: refused };
   const url = await databaseUrlFrom(context, form);
   if (!url.ok) return url;
   return test(context, url.url);
@@ -102,8 +125,8 @@ export const installSettingsWith = async (
   context: SetupContext,
   form: FormData,
 ): Promise<StepOutcome> => {
-  if ((await state(context)) === "ready")
-    return error("already_set_up", "database", ALREADY_SET_UP);
+  const { refused } = await refusal(context, "database");
+  if (refused) return { ok: false, error: refused };
   const url = await databaseUrlFrom(context, form);
   if (!url.ok) return { ok: false, error: url.error };
   const checked = await test(context, url.url);
@@ -151,8 +174,8 @@ export const installSettingsWith = async (
 
 /** Step 2: apply the pending migrations to the database in the settings. */
 export const installMigrationsWith = async (context: SetupContext): Promise<StepOutcome> => {
-  const current = await state(context);
-  if (current === "ready") return error("already_set_up", "database", ALREADY_SET_UP);
+  const { state: current, refused } = await refusal(context, "database");
+  if (refused) return { ok: false, error: refused };
   if (current === "not_configured") return error("not_configured", "database", NOT_CONFIGURED);
   const url = config(context).databaseUrl as string;
   try {
@@ -179,8 +202,8 @@ export const installRootWith = async (
   context: SetupContext,
   form: FormData,
 ): Promise<StepOutcome> => {
-  const current = await state(context);
-  if (current === "ready") return error("already_set_up", "root", ALREADY_SET_UP);
+  const { state: current, refused } = await refusal(context, "root");
+  if (refused) return { ok: false, error: refused };
   if (current === "not_configured") return error("not_configured", "root", NOT_CONFIGURED);
   const input = readRootInput(form);
   if (input.password !== input.again)
@@ -257,7 +280,9 @@ export const appContext = (origin: RootOrigin): SetupContext => {
     appDir,
     envPath: loadConfig({ appDir, env }).envFile,
     env,
-    getDb: (url) => createDb(url, { baseDir: appDir }),
+    // The app's pool for that URL: a new pool per call would never be closed, and a burst of setup
+    // requests would hold one connection each.
+    getDb: (url) => getAppDb(url, appDir),
     origin,
   };
 };
