@@ -52,6 +52,8 @@ export const checkRegistryUrl = (url: string, insecure: boolean) => {
 
 export type ApiClient = {
   registry: string;
+  /** The token it sends: the one its connection chose for this registry (ITEM-4). */
+  token: string | null;
   login(email: string, password: string, name: string): Promise<TokenResponse>;
   logout(): Promise<void>;
   me(): Promise<MeResponse>;
@@ -101,6 +103,7 @@ export const apiClient = (
   const json = async <T>(method: string, path: string, body?: unknown): Promise<T> =>
     (await request(method, path, body)).json() as Promise<T>;
   return {
+    token,
     registry,
     login: (email: string, password: string, name: string) =>
       json<TokenResponse>("POST", "/auth/token", { email, password, name }),

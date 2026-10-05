@@ -204,6 +204,8 @@ describe("the topics", () => {
     expect(admin).toContain("user.*");
     expect(await topic("roles")).toContain(`href="${docsHref("admin", "audit")}"`);
     const rmk = await topic("rmk");
+    // RMK_TOKEN only goes to a registry the person chose (security audit ITEM-4).
+    expect(rmk).toContain("token_withheld");
     // A locked version must come with the bytes rmk.lock recorded (security audit ITEM-3).
     expect(rmk).toContain("checksum_mismatch");
     expect(rmk).not.toContain("released yet");

@@ -26,6 +26,13 @@ export const connectRegistry = (
   const config = readUserConfig(io);
   const registry = registryFor(io, config, override, project);
   checkRegistryUrl(registry.url, insecure);
+  if (needToken && !registry.token && registry.withheld)
+    throw new RmkError(
+      `RMK_TOKEN isn't sent to ${registry.url}: only this project's ${registry.source === "lockfile" ? "rmk.lock" : "rmk.config.json"} names it, and a repository's files could name any server. If you trust it, set RMK_REGISTRY=${registry.url} too (rmk also takes --registry ${registry.url}), or run \`rmk login --registry ${registry.url}\`.`,
+      1,
+      "token_withheld",
+      { registry: registry.url },
+    );
   if (needToken && !registry.token)
     throw new RmkError(
       `You're not logged in to ${registry.url}. Run \`rmk login\`.`,

@@ -2286,8 +2286,12 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           <Code>~/.config/rmk/config.json</Code>, readable by you alone. With a token made under{" "}
           <To href="/account/tokens">Access tokens</To>, or in CI, use{" "}
           <Code>rmk login --token rmk_…</Code>, or set <Code>RMK_TOKEN</Code> and{" "}
-          <Code>RMK_REGISTRY</Code>. <Code>rmk whoami</Code> says who you are, at which registry,
-          and why that one; <Code>rmk logout</Code> revokes the token.
+          <Code>RMK_REGISTRY</Code>. <Code>RMK_TOKEN</Code> only goes to a registry you chose (
+          <Code>RMK_REGISTRY</Code>, <Code>--registry</Code>, your default, or one you logged in
+          to), never to one only a project&apos;s <Code>rmk.config.json</Code> or{" "}
+          <Code>rmk.lock</Code> names: rmk stops with <Code>token_withheld</Code> instead.{" "}
+          <Code>rmk whoami</Code> says who you are, at which registry, and why that one;{" "}
+          <Code>rmk logout</Code> revokes the token.
         </p>
         <p>
           You can be logged in to several registries at once. Each command uses the first it finds:

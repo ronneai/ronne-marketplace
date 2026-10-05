@@ -148,6 +148,49 @@ describe("rmk install", () => {
     expect(JSON.parse(read("rmk.lock")).items["@team/gh"].sha256).toMatch(/^[0-9a-f]{64}$/);
   });
 
+  it("never sends RMK_TOKEN to a registry only the project names (security audit ITEM-4)", async () => {
+    const { routes } = await buildRegistry();
+    // A repository whose rmk.config.json names another server; RMK_TOKEN set in the shell or CI.
+    io = fakeIo(routes, { env: { RMK_TOKEN: "rmk_secret" } });
+    const evil = "https://evil.example";
+    writeFileSync(
+      join(io.cwd, "rmk.config.json"),
+      JSON.stringify({ version: 1, registry: evil, dependencies: { "@team/secure": "^1.0.0" } }),
+    );
+    mkdirSync(join(io.cwd, ".claude"));
+    const result = await rmk("install", "--json");
+    expect(result.exitCode).toBe(1);
+    expect(JSON.parse(result.stdout).error).toMatchObject({
+      code: "token_withheld",
+      registry: evil,
+    });
+    expect(io.requests.some((r) => JSON.stringify(r.headers).includes("rmk_secret"))).toBe(false);
+    // Opting in: RMK_REGISTRY names it too, so the person chose it.
+    io.env.RMK_REGISTRY = evil;
+    expect((await rmk("install")).exitCode).toBe(0);
+    expect(io.requests.some((r) => r.headers.authorization === "Bearer rmk_secret")).toBe(true);
+  });
+
+  it("sends RMK_TOKEN to a project's registry the person also uses: their default or a login", async () => {
+    const { routes } = await buildRegistry();
+    io = fakeIo(routes, { env: { RMK_TOKEN: "rmk_secret" } });
+    const login = await rmk("login", "--registry", REGISTRY, "--token", "rmk_test_token");
+    expect(login.exitCode, login.stderr).toBe(0);
+    writeFileSync(
+      join(io.cwd, "rmk.config.json"),
+      JSON.stringify({
+        version: 1,
+        registry: REGISTRY,
+        dependencies: { "@team/secure": "^1.0.0" },
+      }),
+    );
+    mkdirSync(join(io.cwd, ".claude"));
+    io.requests.length = 0;
+    const installed = await rmk("install");
+    expect(installed.exitCode, installed.stderr).toBe(0);
+    expect(io.requests.every((r) => r.headers.authorization === "Bearer rmk_secret")).toBe(true);
+  });
+
   it("warns about deprecated versions and unsupported types, and keeps going", async () => {
     await start();
     const result = await rmk("install", "@team/fmt", "--json");

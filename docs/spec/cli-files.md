@@ -183,8 +183,13 @@ Every command, and the registry MCP server, talks to the first registry it finds
    (skipped by `install`, `update`, `outdated` and `remove` with `--scope user`);
 4. `defaultRegistry` in `~/.config/rmk/config.json`.
 
-The token is `RMK_TOKEN`, else the one saved for that registry. `rmk whoami` says which registry
-it used and where it came from. URLs are compared without trailing slashes.
+The token is `RMK_TOKEN`, else the one saved for that registry. `RMK_TOKEN` goes only to a
+registry the person chose (2026-10-05): one from `--registry`, `RMK_REGISTRY` or the default, or
+one they logged in to. A registry only the project names (3., files anyone with a commit can edit)
+never gets it: a command that needs a token stops with `token_withheld`, saying to set
+`RMK_REGISTRY` to it too, or to log in to it. A token saved for that registry is used as usual.
+`rmk whoami` says which registry it used and where it came from. URLs are compared without
+trailing slashes.
 
 ## `~/.cache/rmk/usage/`
 

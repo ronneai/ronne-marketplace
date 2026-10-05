@@ -27,7 +27,7 @@ import {
   type Wanted,
   writeState,
 } from "./apply.js";
-import { configDir, readUserConfig, registryFor } from "./config.js";
+import { configDir } from "./config.js";
 import { RmkError, usage } from "./errors.js";
 import { type Io, nowOf } from "./io.js";
 import { applyOperation, planOperation } from "./operations.js";
@@ -280,7 +280,8 @@ export const prepareInstall = async (
   }
   // The registry's usage policy, checked daily, decides whether this install is reported (046).
   try {
-    await refreshPolicy(io, api.registry, registryFor(io, readUserConfig(io), api.registry).token);
+    // The token this install's connection chose (--registry, RMK_REGISTRY, a login), no other.
+    await refreshPolicy(io, api.registry, api.token);
   } catch {
     // Without a readable config there's nothing to report with.
   }
