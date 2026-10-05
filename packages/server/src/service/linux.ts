@@ -63,8 +63,15 @@ export const linuxBackend = (sys: System): Backend => {
       // userdel removes a same-named group it created, but not on every distribution.
       if (sys.run("getent", ["group", group]).code === 0) sys.run("groupdel", [group]);
     },
-    canRun: (user, program, args) =>
-      sys.run("runuser", ["-u", user, "--", program, ...args]).code === 0,
+    // Started as the account by Node itself: runuser isn't on minimal systems (Fedora's container
+    // image), and id is coreutils.
+    canRun: (user, program, args) => {
+      const ids = ["-u", "-g"].map((flag) => sys.run("id", [flag, user]));
+      if (ids.some((result) => result.code !== 0 || !/^\d+$/.test(result.stdout.trim())))
+        return false;
+      const [uid, gid] = ids.map((result) => Number(result.stdout.trim())) as [number, number];
+      return sys.run(program, args, { uid, gid }).code === 0;
+    },
     chown: (path, user, group, recursive = true) => {
       sys.run("chown", [...(recursive ? ["-R"] : []), `${user}:${group}`, path]);
     },

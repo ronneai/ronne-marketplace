@@ -334,10 +334,16 @@ jobs:
     needs: release
     uses: ./.github/workflows/bundles.yml
 
+  # The .deb and .rpm from the Linux bundles, tested in Ubuntu, Debian and Fedora (085). Also on a
+  # dry run.
+  linux-packages:
+    needs: bundles
+    uses: ./.github/workflows/packages.yml
+
   # Last, so a release on GitHub exists only once every artefact of it does.
   github-release:
     name: GitHub release
-    needs: [release, manifest, bundles]
+    needs: [release, manifest, bundles, linux-packages]
     if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -357,6 +363,11 @@ jobs:
           pattern: bundle-*
           merge-multiple: true
           path: release
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: linux-packages-*
+          merge-multiple: true
+          path: release
       - name: The install scripts match their checksums; the bundles' are added
         working-directory: release
         run: |
@@ -364,6 +375,9 @@ jobs:
           count=$(ls rmk-server-*.tar.gz rmk-server-*.zip | wc -l)
           [ "$count" -eq 6 ] || { echo "Expected 6 bundles, found $count."; exit 1; }
           sha256sum rmk-server-*.tar.gz rmk-server-*.zip >> checksums.txt
+          packages=$(ls rmk-server*.deb rmk-server*.rpm | wc -l)
+          [ "$packages" -eq 4 ] || { echo "Expected 4 Linux packages (.deb and .rpm, amd64 and arm64), found $packages."; exit 1; }
+          sha256sum rmk-server*.deb rmk-server*.rpm >> checksums.txt
           sha256sum -c checksums.txt
       - name: GitHub release
         env:
@@ -383,6 +397,10 @@ jobs:
             echo
             echo "**Without Docker or Node.js:** rmk-server with Node.js ${NODE_VERSION#v} inside, one archive per system: \`rmk-server-$VERSION-linux-x64.tar.gz\`, \`rmk-server-$VERSION-linux-arm64.tar.gz\`, \`rmk-server-$VERSION-darwin-x64.tar.gz\`, \`rmk-server-$VERSION-darwin-arm64.tar.gz\`, \`rmk-server-$VERSION-win32-x64.zip\`, \`rmk-server-$VERSION-win32-arm64.zip\`. Unpack and run \`bin/rmk-server\` (\`bin\\rmk-server.cmd\` on Windows). The Linux archives need glibc 2.34 or later (Debian 12, Ubuntu 22.04, RHEL 9 and newer: SQLite's prebuilt module needs it); elsewhere, Alpine (musl) included, use Docker. Each holds THIRD_PARTY_NOTICES."
             echo
+            # nFPM writes a pre-release's "-" as "~" in the packages' versions (1.0.0~rc.1).
+            PACKAGE_VERSION=${VERSION/-/\~}
+            echo "**As a Linux service, with apt or dnf:** \`sudo apt install ./rmk-server_$PACKAGE_VERSION-1_amd64.deb\` (or \`_arm64.deb\`; Debian 12, Ubuntu 22.04 and newer), or \`sudo dnf install ./rmk-server-$PACKAGE_VERSION-1.x86_64.rpm\` (or \`.aarch64.rpm\`; Fedora, RHEL 9 and newer). It installs Ronne in /opt/rmk-server and starts it as the rmk-server service; open http://localhost:7650 to set it up."
+            echo
             echo "**With Node.js 22.12 or later:** \`npm install --global @ronneai/marketplace@$VERSION\` (rmk-server), and \`npm install --global @ronneai/rmk@$VERSION @ronneai/mcp@$VERSION\` for the CLI and the MCP server."
             echo
             echo "Every file below is in checksums.txt: \`sha256sum -c checksums.txt --ignore-missing\` after downloading."
@@ -390,4 +408,4 @@ jobs:
           gh release create "$TAG" --verify-tag --generate-notes --title "$TAG" \
             --notes-file "$RUNNER_TEMP/notes.md" \
             release/*.tgz release/install.sh release/install.ps1 release/rmk-server-*.tar.gz \
-            release/rmk-server-*.zip release/checksums.txt
+            release/rmk-server-*.zip release/rmk-server*.deb release/rmk-server*.rpm release/checksums.txt

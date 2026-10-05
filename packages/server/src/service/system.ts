@@ -27,8 +27,11 @@ export type System = {
   platform: NodeJS.Platform;
   env: Record<string, string | undefined>;
   isRoot: () => boolean;
-  /** Runs a program and waits; never throws (a missing program is code 127). */
-  run: (command: string, args: string[]) => RunResult;
+  /**
+   * Runs a program and waits; never throws (a missing program is code 127). With `uid` and `gid`
+   * it runs as that account (from root), with no runuser or sudo, which minimal systems lack.
+   */
+  run: (command: string, args: string[], as?: { uid: number; gid: number }) => RunResult;
   /**
    * Runs a program attached to this terminal (logs that follow, a setup), returning its exit code.
    * A signal that ends rmk-server (timeout, kill) is passed on, so the program doesn't outlive it.
@@ -80,8 +83,11 @@ export const realSystem = (): System => ({
   platform: process.platform,
   env: process.env,
   isRoot: () => process.getuid?.() === 0,
-  run: (command, args) => {
-    const result = spawnSync(command, args, { encoding: "utf8" });
+  run: (command, args, as) => {
+    const result = spawnSync(command, args, {
+      encoding: "utf8",
+      ...(as ? { uid: as.uid, gid: as.gid, cwd: "/" } : {}),
+    });
     return {
       code: result.error ? 127 : (result.status ?? 1),
       stdout: result.stdout ?? "",

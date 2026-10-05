@@ -1,0 +1,52 @@
+# The .deb and .rpm of rmk-server (feature 085), built by nFPM from a Linux bundle (084):
+#   node packages/repo-tools/src/package-linux.js <rmk-server-X.Y.Z-linux-ARCH.tar.gz> --out DIR
+# which unpacks the bundle and sets the variables below. The bundle carries its own Node.js, so
+# the packages need nothing but glibc 2.34 and libstdc++ from GCC 11 (better-sqlite3's prebuilt
+# module needs both; 084). Installing one makes Ronne a service (083).
+name: rmk-server
+arch: ${NFPM_ARCH}
+platform: linux
+version: ${VERSION}
+release: 1
+section: web
+priority: optional
+maintainer: Ronne AI Marketplace <marketplace@ronne.ai>
+description: |-
+  Ronne AI Marketplace, a self-hosted registry of AI capabilities
+  Skills, agents, rules, commands, hooks and MCP servers, reviewed and versioned, installed into
+  Claude Code, Codex and Cursor with the rmk CLI. This package runs the server (rmk-server) as a
+  systemd service, with its own Node.js.
+vendor: Ronne AI Marketplace
+homepage: https://www.ronne.ai/en/marketplace
+license: MIT
+
+contents:
+  - src: ${BUNDLE_DIR}
+    dst: /opt/rmk-server
+    type: tree
+  - src: /opt/rmk-server/bin/rmk-server
+    dst: /usr/bin/rmk-server
+    type: symlink
+
+scripts:
+  postinstall: ${SCRIPTS_DIR}/postinstall.sh
+  preremove: ${SCRIPTS_DIR}/preremove.sh
+  postremove: ${SCRIPTS_DIR}/postremove.sh
+
+overrides:
+  deb:
+    depends:
+      - libc6 (>= 2.34)
+      - libstdc++6 (>= 11)
+    # Not Recommends: apt installs those, and Debian's and Ubuntu's caddy (2.6) is too old for
+    # --domain, while its own service would start and take ports 80 and 443.
+    suggests:
+      - caddy
+  rpm:
+    # The symbol versions themselves, as RPM provides them: the same on Fedora, RHEL and
+    # openSUSE, whatever their packages are called.
+    depends:
+      - libc.so.6(GLIBC_2.34)(64bit)
+      - libstdc++.so.6(GLIBCXX_3.4.29)(64bit)
+    suggests:
+      - caddy

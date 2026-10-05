@@ -37,6 +37,30 @@ done
 for d in nodot 'bad_domain!' -x.example.com example.com. "a b.com" ""; do
   check "invalid domain [$d]" no "$(valid_domain "$d" && echo yes || echo no)"
 done
+# --- Without Docker (085) ----------------------------------------------------------------------
+osr="$work/os-release"
+for c in "ubuntu|debian|x86_64|deb amd64" "debian||aarch64|deb arm64" "linuxmint|ubuntu debian|x86_64|deb amd64" \
+  "fedora||x86_64|rpm x86_64" "rocky|rhel centos fedora|aarch64|rpm aarch64" "almalinux|rhel|arm64|rpm aarch64"; do
+  id=${c%%|*}
+  rest=${c#*|}
+  like=${rest%%|*}
+  rest=${rest#*|}
+  machine=${rest%%|*}
+  want=${rest#*|}
+  printf 'NAME="x"\nID=%s\nID_LIKE="%s"\n' "$id" "$like" >"$osr"
+  check "native_target $id ($like) $machine" "$want" "$(native_target "$osr" "$machine")"
+done
+printf 'ID=alpine\n' >"$osr"
+check "native_target alpine: none" no "$(native_target "$osr" x86_64 >/dev/null && echo yes || echo no)"
+printf 'ID=ubuntu\n' >"$osr"
+check "native_target riscv64: none" no "$(native_target "$osr" riscv64 >/dev/null && echo yes || echo no)"
+check "native_target with no os-release: none" no "$(native_target "$work/missing" x86_64 >/dev/null && echo yes || echo no)"
+check "package_file deb" rmk-server_0.3.0-1_amd64.deb "$(package_file 0.3.0 deb amd64)"
+check "package_file rpm" rmk-server-0.3.0-1.aarch64.rpm "$(package_file 0.3.0 rpm aarch64)"
+check "package_file pre-release" "rmk-server_1.0.0~rc.1-1_arm64.deb" "$(package_file 1.0.0-rc.1 deb arm64)"
+check "glibc 2.35 is new enough" 1 "$(version_cmp 2.35 2.34)"
+check "glibc 2.31 is too old" -1 "$(version_cmp 2.31 2.34)"
+
 check "valid_email" yes "$(valid_email ops@example.com && echo yes || echo no)"
 check "invalid email" no "$(valid_email 'not an email' && echo yes || echo no)"
 

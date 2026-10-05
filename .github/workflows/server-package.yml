@@ -170,11 +170,16 @@ jobs:
     needs: pack
     uses: ./.github/workflows/bundles.yml
 
+  # The .deb and .rpm (085), from the Linux bundles, tested in Ubuntu, Debian and Fedora containers.
+  linux-packages:
+    needs: bundles
+    uses: ./.github/workflows/packages.yml
+
   # One check to require: it passes when every system passed, or when they were skipped for a
   # docs-only pull request.
   server-package:
     name: Server package
-    needs: [changes, pack, install, service-linux, service-macos, bundles]
+    needs: [changes, pack, install, service-linux, service-macos, bundles, linux-packages]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
@@ -185,6 +190,7 @@ jobs:
           SERVICE_RESULT: ${{ needs.service-linux.result }}
           MACOS_RESULT: ${{ needs.service-macos.result }}
           BUNDLES_RESULT: ${{ needs.bundles.result }}
+          PACKAGES_RESULT: ${{ needs.linux-packages.result }}
         run: |
-          echo "pack: $PACK_RESULT, install: $INSTALL_RESULT, service: $SERVICE_RESULT, macOS: $MACOS_RESULT, bundles: $BUNDLES_RESULT"
-          for r in "$PACK_RESULT" "$INSTALL_RESULT" "$SERVICE_RESULT" "$MACOS_RESULT" "$BUNDLES_RESULT"; do [ "$r" = success ] || [ "$r" = skipped ] || exit 1; done
+          echo "pack: $PACK_RESULT, install: $INSTALL_RESULT, service: $SERVICE_RESULT, macOS: $MACOS_RESULT, bundles: $BUNDLES_RESULT, packages: $PACKAGES_RESULT"
+          for r in "$PACK_RESULT" "$INSTALL_RESULT" "$SERVICE_RESULT" "$MACOS_RESULT" "$BUNDLES_RESULT" "$PACKAGES_RESULT"; do [ "$r" = success ] || [ "$r" = skipped ] || exit 1; done

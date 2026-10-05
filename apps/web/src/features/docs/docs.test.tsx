@@ -130,7 +130,7 @@ describe("the topics", () => {
     expect(versions).toContain(">yanked<");
     const install = await topic("install");
     expect(install).toContain(">Installing Ronne</h1>");
-    for (const id of ["docker", "https", "node", "service", "setup", "root", "upgrade"])
+    for (const id of ["docker", "https", "packages", "node", "service", "setup", "root", "upgrade"])
       expect(install).toContain(`id="${id}"`);
     expect(install).toContain("docker compose up -d");
     // The npm package and rmk-server (082).
@@ -138,6 +138,11 @@ describe("the topics", () => {
     expect(install).toContain("rmk-server setup");
     expect(install).toContain("~/Library/Application Support/RonneAI Marketplace");
     expect(install).toContain("--host 0.0.0.0");
+    // As a Linux package (085).
+    expect(install).toContain("sudo apt install ./rmk-server_X.Y.Z-1_amd64.deb");
+    expect(install).toContain("sudo dnf install ./rmk-server-X.Y.Z-1.x86_64.rpm");
+    expect(install).toContain("/opt/rmk-server");
+    expect(install).toContain("glibc 2.34");
     // As a service (083).
     expect(install).toContain("sudo rmk-server service install");
     expect(install).toContain("rmk-server service status");

@@ -20,6 +20,9 @@ export type FakeSystem = System & {
   links: Set<string>;
 };
 
+/** The account numbers `id` gives in the fake, by name (others: 1000). */
+export const FAKE_IDS: Record<string, number> = { "rmk-server": 995, caddy: 996, ana: 501 };
+
 export const fakeSystem = (
   options: { root?: boolean; platform?: NodeJS.Platform } = {},
 ): FakeSystem => {
@@ -38,13 +41,17 @@ export const fakeSystem = (
     links: new Set(),
     attached: [],
     isRoot: () => options.root ?? true,
-    run: (command, args) => {
-      const line = [command, ...args].join(" ");
+    run: (command, args, as) => {
+      // A command run as an account is recorded as "as UID:GID command …".
+      const line = `${as ? `as ${as.uid}:${as.gid} ` : ""}${[command, ...args].join(" ")}`;
       sys.commands.push(line);
       // The longest matching prefix wins, so a specific answer overrides a general one.
       const found = [...sys.answers]
         .filter(([prefix]) => line.startsWith(prefix))
         .sort(([a], [b]) => b.length - a.length)[0]?.[1];
+      // `id -u NAME` and `id -g NAME` answer each account's number unless a test says otherwise.
+      if (!found && command === "id" && (args[0] === "-u" || args[0] === "-g"))
+        return { code: 0, stdout: `${FAKE_IDS[args[1] ?? ""] ?? 1000}\n`, stderr: "" };
       return { code: 0, stdout: "", stderr: "", ...found };
     },
     runAttached: async (command, args, options) => {

@@ -1,5 +1,6 @@
 #!/bin/sh
-# Installs Ronne AI Marketplace with Docker, or upgrades an install (feature 081).
+# Installs Ronne AI Marketplace with Docker, or upgrades an install (feature 081). Without Docker,
+# on Debian, Ubuntu, Fedora or RHEL, it offers this release's .deb or .rpm instead (feature 085).
 #
 #   curl -fsSL https://www.ronne.ai/install.sh | sh
 #   (www.ronne.ai redirects to the latest release: https://github.com/ronneai/ronne-marketplace/releases/latest/download/install.sh)
@@ -9,8 +10,9 @@
 # and opens it in the browser. It never uses sudo and changes nothing outside that folder.
 # Everything runs from main, called on the last line, so a download cut short runs nothing.
 #
-# For tests only: RONNE_INSTALL_COMPOSE_URL (where compose.yaml comes from; file:// works) and
-# RONNE_INSTALL_IMAGE (the image written to .env).
+# For tests only: RONNE_INSTALL_COMPOSE_URL (where compose.yaml comes from; file:// works),
+# RONNE_INSTALL_IMAGE (the image written to .env), and RONNE_INSTALL_RELEASE_URL with
+# RONNE_INSTALL_VERSION (where the packages and checksums.txt come from, and their version).
 
 # The release this script belongs to. release.yml writes it in; a copy from the repository has the
 # placeholder, and then installs compose.yaml from main and the latest image.
@@ -29,7 +31,8 @@ die() {
 
 usage() {
   cat <<'EOF'
-Install or upgrade Ronne AI Marketplace with Docker.
+Install or upgrade Ronne AI Marketplace with Docker; without Docker, on Debian, Ubuntu, Fedora or
+RHEL, install its package as a service instead.
 
 Options:
   --yes             Answer every question with its default or its flag; open no browser
@@ -120,9 +123,8 @@ docker_link() {
 
 check_docker() {
   if ! command -v docker >/dev/null 2>&1; then
-    say "Docker isn't installed: Ronne runs in Docker." >&2
-    docker_link >&2
-    exit 1
+    native_install
+    exit $?
   fi
   if ! info_out=$(docker info 2>&1); then
     case "$info_out" in
@@ -145,6 +147,145 @@ check_docker() {
     docker_link >&2
     exit 1
   fi
+}
+
+# --- Without Docker (085) --------------------------------------------------------------------
+
+# native_target OS_RELEASE_FILE MACHINE: "deb amd64", "rpm x86_64" (the package's format and
+# processor, as nFPM names them), or nothing for a system with neither.
+native_target() {
+  ids=$(awk -F= '$1 == "ID" || $1 == "ID_LIKE" { gsub(/"/, "", $2); print tolower($2) }' "$1" 2>/dev/null)
+  format=""
+  for id in $ids; do
+    case "$id" in
+      debian | ubuntu) format=deb ;;
+      fedora | rhel | centos | rocky | almalinux) format=rpm ;;
+      *) continue ;;
+    esac
+    break
+  done
+  [ -n "$format" ] || return 1
+  case "$2" in
+    x86_64 | amd64) if [ "$format" = deb ]; then arch=amd64; else arch=x86_64; fi ;;
+    aarch64 | arm64) if [ "$format" = deb ]; then arch=arm64; else arch=aarch64; fi ;;
+    *) return 1 ;;
+  esac
+  printf '%s %s\n' "$format" "$arch"
+}
+
+# package_file VERSION FORMAT ARCH: the file nFPM writes (a pre-release's "-" becomes "~").
+package_file() {
+  pv=$(printf '%s' "$1" | sed 's/-/~/')
+  case "$2" in
+    deb) printf 'rmk-server_%s-1_%s.deb\n' "$pv" "$3" ;;
+    rpm) printf 'rmk-server-%s-1.%s.rpm\n' "$pv" "$3" ;;
+  esac
+}
+
+# glibc's version (2.36), or nothing (musl, or no ldd).
+glibc_version() {
+  ldd --version 2>&1 | awk 'NR == 1 && /GLIBC|GNU libc/ { print $NF }'
+}
+
+sha256_of() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | awk '{ print $1 }'
+  else
+    shasum -a 256 "$1" | awk '{ print $1 }'
+  fi
+}
+
+# The ways in when this system gets no package.
+native_choices() {
+  say "Ronne runs in Docker, or with Node.js 22.12 or later: npm install --global @ronneai/marketplace," >&2
+  say "then rmk-server (and sudo rmk-server service install to keep it running at boot)." >&2
+  docker_link >&2
+}
+
+native_install() {
+  say "Docker isn't installed." >&2
+  if [ "$(uname -s)" != Linux ]; then
+    native_choices
+    return 1
+  fi
+  if ! target=$(native_target /etc/os-release "$(uname -m)"); then
+    say "Without Docker, Ronne installs as a package on Debian, Ubuntu, Fedora and RHEL (amd64 or arm64)." >&2
+    native_choices
+    return 1
+  fi
+  glibc=$(glibc_version)
+  if [ -z "$glibc" ] || [ "$(version_cmp "$glibc" 2.34)" = -1 ]; then
+    say "Ronne's package needs glibc 2.34 or later (Debian 12, Ubuntu 22.04, RHEL 9 and newer); this system has ${glibc:-none}." >&2
+    native_choices
+    return 1
+  fi
+  version=${RONNE_INSTALL_VERSION:-$RONNE_VERSION}
+  if [ -n "${RONNE_INSTALL_RELEASE_URL:-}" ]; then
+    base=$RONNE_INSTALL_RELEASE_URL
+  elif is_release; then
+    base="https://github.com/ronneai/ronne-marketplace/releases/download/v$RONNE_VERSION"
+  else
+    say "This is a development copy of the script, with no release to take the package from." >&2
+    native_choices
+    return 1
+  fi
+  command -v curl >/dev/null 2>&1 || die "Downloading the package needs curl. Install it and run this again."
+  if [ -n "$DOMAIN" ] && ! valid_domain "$DOMAIN"; then die "$DOMAIN isn't a domain name."; fi
+  format=${target% *}
+  arch=${target#* }
+  file=$(package_file "$version" "$format" "$arch")
+  confirm "Install Ronne $version without Docker, as a service, from its package ($file)?" || die "Nothing changed."
+
+  work=$(mktemp -d) || die "Couldn't make a temporary folder."
+  # Removed when the script ends, unless the person declines to run the command: then the message
+  # names the file in it. Readable by all, so apt's own user can read the package.
+  keep_work=0
+  trap '[ "$keep_work" = 1 ] || rm -rf "$work"' EXIT
+  chmod 755 "$work"
+  curl -fsSL -o "$work/$file" "$base/$file" || die "Couldn't download $base/$file."
+  curl -fsSL -o "$work/checksums.txt" "$base/checksums.txt" || die "Couldn't download $base/checksums.txt."
+  expected=$(awk -v f="$file" '$2 == f || $2 == "*" f { print $1 }' "$work/checksums.txt")
+  actual=$(sha256_of "$work/$file")
+  [ -n "$expected" ] || die "checksums.txt has no line for $file."
+  [ "$expected" = "$actual" ] || die "$file doesn't match checksums.txt (SHA-256 $actual, expected $expected). Nothing was installed."
+  say "$file: SHA-256 matches checksums.txt"
+
+  chmod 644 "$work/$file"
+  if [ "$format" = deb ]; then manager=apt-get; else manager=dnf; fi
+  sudo=""
+  if [ "$(id -u)" != 0 ]; then
+    command -v sudo >/dev/null 2>&1 || die "Installing a package needs root, and sudo isn't here. As root, run: $manager install -y \"$work/$file\""
+    sudo=sudo
+  fi
+  shown="${sudo:+sudo }$manager install -y \"$work/$file\""
+  say "This runs: $shown"
+  if ! confirm "Run it?"; then
+    keep_work=1
+    die "Nothing changed. To install it yourself: $shown"
+  fi
+  # The package's path stays one argument, whatever the temporary folder's name.
+  if [ -n "$sudo" ]; then
+    sudo "$manager" install -y "$work/$file" || die "The package didn't install. See the messages above."
+  else
+    "$manager" install -y "$work/$file" || die "The package didn't install. See the messages above."
+  fi
+
+  MODE=local
+  PORT=7650
+  url="http://localhost:7650"
+  if wait_healthy; then
+    say ""
+    say "Ronne AI Marketplace is running: $url"
+    say "Open it now and finish the setup: until then, anyone who can reach it can set it up."
+    if [ -n "$DOMAIN" ]; then
+      say "For HTTPS on $DOMAIN: install Caddy 2.7 or later, then: sudo rmk-server service install --domain $DOMAIN"
+    fi
+    open_browser "$url"
+  else
+    say "Ronne didn't answer within 120 seconds. See: rmk-server service status, and journalctl -u rmk-server" >&2
+    return 1
+  fi
+  say "Status and logs: rmk-server service status, sudo rmk-server service logs. To upgrade, run the install command again."
 }
 
 # --- Ports ------------------------------------------------------------------------------------
@@ -319,9 +460,9 @@ main() {
   fi
 
   if is_release; then
-    say "Ronne AI Marketplace $RONNE_VERSION: install with Docker"
+    say "Ronne AI Marketplace $RONNE_VERSION: install"
   else
-    say "Ronne AI Marketplace (a development copy of the script): install with Docker"
+    say "Ronne AI Marketplace (a development copy of the script): install"
   fi
   check_docker
 

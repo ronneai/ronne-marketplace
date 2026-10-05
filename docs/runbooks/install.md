@@ -1,9 +1,10 @@
 # Installing Ronne AI Marketplace
 
 > **Draft for the website** (2026-10-03). This guide describes the install experience planned in
-> milestone M12 (features [080](../features/080-docker-https/SPEC.md)–087). Today only the Docker
-> install with `compose.yaml` on port 3000 works. Each section names the feature it needs; publish a
-> section only once that feature is released, and recheck the commands then.
+> milestone M12 (features [080](../features/080-docker-https/SPEC.md)–087). Each section names the
+> feature it needs; publish a section only once that feature is released, and recheck the commands
+> then. Built so far: Docker (080, 081), npm and its service (082, 083), the bundles (084), the
+> `.deb` and `.rpm` (085). On hold: the Homebrew tap. Still to come: Windows (086, 087).
 
 Ronne AI Marketplace installs in one command on macOS, Linux and Windows, with Docker or without it,
 on your own machine or on a server with your domain and HTTPS.
@@ -16,7 +17,7 @@ Ronne.
 | You want | You have | Use | Ronne opens at |
 | --- | --- | --- | --- |
 | Ronne on your own computer, for your projects | Docker | The install script (Docker) | `http://localhost:7650` |
-| Ronne on your own computer | No Docker | Homebrew, apt/dnf or winget, as a service | `http://localhost:7650` |
+| Ronne on your own computer | No Docker | apt/dnf or winget, as a service (Homebrew on hold) | `http://localhost:7650` |
 | Ronne for a team, on a server with a domain | Docker | The install script, answering "server" | `https://your-domain` |
 | Ronne for a team, no Docker | Linux server | The `.deb`/`.rpm` package, as a service | `https://your-domain` |
 | To try it once, without installing a service | Node.js 22+ | `npx @ronneai/marketplace` | `http://localhost:7650` |
@@ -162,21 +163,25 @@ section).
 As a service, Ronne runs in the background, starts with your computer or server, and restarts if
 it stops. The packages below include everything Ronne needs, Node.js too (features 083–087).
 
-**macOS and Linux with Homebrew:**
+**macOS and Linux with Homebrew** *(on hold: the tap isn't published yet, feature 085)*:
 
 ```sh
 brew install ronneai/tap/rmk-server
 brew services start rmk-server
 ```
 
-**Debian and Ubuntu:** download the `.deb` for your processor (amd64 or arm64) from the
-[latest release](https://github.com/ronneai/ronne-marketplace/releases/latest), then:
+**Debian 12, Ubuntu 22.04 and newer:** download the `.deb` for your processor (amd64 or arm64)
+from the [latest release](https://github.com/ronneai/ronne-marketplace/releases/latest), then:
 
 ```sh
 sudo apt install ./rmk-server_*.deb      # starts the service
 ```
 
-**Fedora, RHEL and openSUSE:** `sudo dnf install ./rmk-server-*.rpm` (or `zypper install`).
+**Fedora, RHEL 9 and newer:** `sudo dnf install ./rmk-server-*.rpm`.
+
+The install script does this by itself when Docker isn't installed: it offers the package, checks
+it against the release's `checksums.txt`, and asks before running `sudo` (feature 085). Removing the
+package (`apt remove`, `dnf remove`) keeps the data; the packages need glibc 2.34 or later.
 
 **Windows**, in PowerShell:
 
@@ -224,7 +229,7 @@ on macOS (copy them again and restart after each renewal).
 | Remove it and delete the data | `sudo rmk-server service uninstall --delete-data` |
 
 On macOS and Linux every command but `status` needs `sudo`; on Windows, an administrator
-PowerShell. With Homebrew, use `brew services` instead.
+PowerShell. (With the Homebrew tap, on hold, `brew services` would do this.)
 
 Where things are, for a service installed with npm:
 
@@ -256,7 +261,7 @@ doesn't need a copy of your projects or their git repositories.
 | Installed with | Upgrade with |
 | --- | --- |
 | The install script (Docker) | Run the install script again, or `docker compose pull && docker compose up -d` in the `ronne-marketplace` folder |
-| Homebrew | `brew upgrade rmk-server` |
+| apt, dnf (the packages) | Install the new `.deb` or `.rpm` the same way; the service restarts on it |
 | apt, dnf | Install the new `.deb` or `.rpm` the same way |
 | winget | `winget upgrade RonneAI.Marketplace` |
 | npm | `npm install --global @ronneai/marketplace@latest`, then `rmk-server service restart` |
@@ -268,7 +273,7 @@ supported, so back up first.
 folder shown by `rmk-server service status`. With MySQL or PostgreSQL, back up that database too.
 
 **Uninstall:** `docker compose down` in the `ronne-marketplace` folder (add `-v` only to delete all
-data), `brew uninstall rmk-server`, `sudo apt remove rmk-server`, or
+data), `sudo apt remove rmk-server` or `sudo dnf remove rmk-server` (the data stays), or
 `winget uninstall RonneAI.Marketplace`. Your data folder is kept unless you delete it.
 
 ## Troubleshooting
