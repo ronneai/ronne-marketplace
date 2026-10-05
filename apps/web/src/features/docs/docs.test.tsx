@@ -114,6 +114,8 @@ describe("the topics", () => {
     expect(scopes).toContain("@platform/code-reviewer");
     expect(scopes).toContain("up to 64");
     const review = await topic("review");
+    // An approval is for the revision being looked at (security audit AUTHZ-2).
+    expect(review).toContain("look at the new");
     for (const status of ["changes requested", "archived", "published"])
       expect(review).toContain(`>${status}<`);
     // Where the decisions are, and your own greyed out (058).

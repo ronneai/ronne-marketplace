@@ -81,6 +81,19 @@ const write = async (headers: Headers, id: string, files: Record<string, string>
   );
 };
 
+/** Each id with its latest revision, as the queue's row shows it (security audit AUTHZ-2). */
+const rows = (...ids: string[]) =>
+  Promise.all(
+    ids.map(async (id) => {
+      const last = await t.db
+        .selectFrom("submission_revisions")
+        .select((eb) => eb.fn.max("number").as("number"))
+        .where("submission_id", "=", id)
+        .executeTakeFirst();
+      return { id, revision: last?.number == null ? null : Number(last.number) };
+    }),
+  );
+
 /** A rule submitted for review by `headers`. */
 const submitted = async (headers: Headers, name: string) => {
   const draft = await createDraft(headers, { scope: "team", name, type: "rule" }, app);
@@ -109,7 +122,7 @@ describe("approveMany", () => {
 
     const results = await approveMany(
       asModerator,
-      { ids: [one, own, withdrawn, "nope", two, one], message: "  Looks good.  " },
+      { items: await rows(one, own, withdrawn, "nope", two, one), message: "  Looks good.  " },
       app,
     );
     expect(results.map((r) => [r.id, r.result])).toEqual([
@@ -139,7 +152,7 @@ describe("approveMany", () => {
 
   it("puts no message on any approval when it's empty", async () => {
     const one = await submitted(asAuthor, "one");
-    await approveMany(asModerator, { ids: [one], message: " " }, app);
+    await approveMany(asModerator, { items: await rows(one), message: " " }, app);
     expect((await events(one)).at(-1)).toMatchObject({ kind: "approve", body: null });
     const [event] = await audited("submission.approved");
     expect(event?.metadata).toEqual({ name: "@team/one", revision: 1, via: "bulk" });
@@ -148,7 +161,7 @@ describe("approveMany", () => {
   it("approves root's own as overrides", async () => {
     const own = await submitted(asRoot, "roots");
     const theirs = await submitted(asAuthor, "theirs");
-    const results = await approveMany(asRoot, { ids: [own, theirs] }, app);
+    const results = await approveMany(asRoot, { items: await rows(own, theirs) }, app);
     expect(results.map((r) => r.result === "approved" && r.override)).toEqual([true, false]);
     expect((await events(own)).at(-1)).toMatchObject({ kind: "override", body: null });
     expect(await audited("submission.override_approved")).toHaveLength(1);
@@ -191,17 +204,35 @@ describe("approveMany", () => {
     );
     const other = await submitted(asAuthor, "other");
 
-    const results = await approveMany(asModerator, { ids: [second.id, other] }, app);
+    const results = await approveMany(asModerator, { items: await rows(second.id, other) }, app);
     expect(results.map((r) => r.result)).toEqual(["not_approvable", "approved"]);
     expect(results[0]).toMatchObject({ reason: expect.stringContaining("1.0.1") });
     expect(await status(second.id)).toBe("submitted");
   });
 
+  it("reports a row whose revision changed since the queue showed it (security audit AUTHZ-2)", async () => {
+    const one = await submitted(asAuthor, "one");
+    const two = await submitted(asAuthor, "two");
+    const [first, second] = await rows(one, two);
+    const results = await approveMany(
+      asModerator,
+      // As if two had been resubmitted after the queue loaded: its row shows revision 0.
+      { items: [first as { id: string; revision: number | null }, { id: two, revision: 0 }] },
+      app,
+    );
+    expect(results.map((r) => r.result)).toEqual(["approved", "not_approvable"]);
+    expect(results[1]).toMatchObject({
+      reason: expect.stringContaining("changed since you opened it"),
+    });
+    expect(second?.revision).toBe(1);
+  });
+
   it("approves each once when two reviewers approve the same ones at once", async () => {
     const ids = [await submitted(asAuthor, "one"), await submitted(asAuthor, "two")];
+    const items = await rows(...ids);
     const [a, b] = await Promise.all([
-      approveMany(asModerator, { ids }, app),
-      approveMany(asModerator2, { ids }, app),
+      approveMany(asModerator, { items }, app),
+      approveMany(asModerator2, { items }, app),
     ]);
     const approved = [...a, ...b].filter((r) => r.result === "approved");
     expect(approved.map((r) => r.id).sort()).toEqual([...ids].sort());
@@ -211,16 +242,22 @@ describe("approveMany", () => {
 
   it("keeps out anyone who can't review, a message that's too long, and more than 100", async () => {
     const one = await submitted(asAuthor, "one");
-    await expect(approveMany(asAuthor, { ids: [one] }, app)).rejects.toThrow(ForbiddenError);
+    await expect(approveMany(asAuthor, { items: await rows(one) }, app)).rejects.toThrow(
+      ForbiddenError,
+    );
     await expect(
-      approveMany(asModerator, { ids: [one], message: "x".repeat(5001) }, app),
+      approveMany(asModerator, { items: await rows(one), message: "x".repeat(5001) }, app),
     ).rejects.toThrow(ReviewMessageError);
     const many = Array.from({ length: 101 }, (_, i) => `id-${i}`);
-    await expect(approveMany(asModerator, { ids: many }, app)).rejects.toThrow(BulkLimitError);
+    await expect(approveMany(asModerator, { items: await rows(...many) }, app)).rejects.toThrow(
+      BulkLimitError,
+    );
 
     // A moderator demoted while the page is open: nothing changes.
     await adminChangeRole(asRoot, moderatorId, "user", app);
-    await expect(approveMany(asModerator, { ids: [one] }, app)).rejects.toThrow(ForbiddenError);
+    await expect(approveMany(asModerator, { items: await rows(one) }, app)).rejects.toThrow(
+      ForbiddenError,
+    );
     expect(await status(one)).toBe("submitted");
   });
 });

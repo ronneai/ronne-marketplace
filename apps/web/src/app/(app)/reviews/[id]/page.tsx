@@ -135,6 +135,7 @@ const Review = async ({
             name={itemNameOf(submission)}
             decisions={decisions}
             dependents={review.dependents}
+            revision={current?.number ?? null}
           />
           {review.can.publish ? (
             <PublishDialog

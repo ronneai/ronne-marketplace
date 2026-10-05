@@ -112,6 +112,11 @@ the author's own submission page show the same flags.
 - **The author is disabled** while under review: reviewers can still decide; the author can't act.
 - **A reviewer is demoted** to user: they lose the queue and the buttons at once; past events stay.
 - **Withdrawn while a reviewer has it open:** their decision fails with a clear message.
+- **Resubmitted while a reviewer has it open** (2026-10-05): an approval names the revision the
+  reviewer read, and goes only if it's still the latest, checked under the submission's lock;
+  otherwise nothing is approved and the reviewer is told to look at the new revision. The same
+  for each row of Approve selected (054), which reports it as not approvable. Requesting changes
+  and rejecting don't need it.
 - **Resubmit with no changes:** allowed; the diff says "No changes since revision N".
 - **Huge diffs:** a file diff over 2,000 lines shows "Too large to diff here" and the file itself.
 

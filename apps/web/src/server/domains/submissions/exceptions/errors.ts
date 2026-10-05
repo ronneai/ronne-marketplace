@@ -386,6 +386,21 @@ export class ProposalArtifactError extends SubmissionsError {
   }
 }
 
+/**
+ * An approval names the revision its reviewer read; the author resubmitted since (security audit
+ * AUTHZ-2, 2026-10-05). Nothing is approved: the reviewer looks at the new revision first.
+ */
+export class RevisionChangedError extends SubmissionsError {
+  constructor(
+    readonly reviewed: number | null,
+    readonly latest: number | null,
+  ) {
+    super(
+      `It changed since you opened it: you reviewed revision ${reviewed ?? "–"}, and revision ${latest ?? "–"} is the latest. Nothing was approved: look at the new revision first.`,
+    );
+  }
+}
+
 /** A proposal whose item has a newer version (017): it has to be rebased before it's approved. */
 export class SubmissionStaleError extends SubmissionsError {
   constructor(

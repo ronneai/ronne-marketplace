@@ -1190,7 +1190,9 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         <Bullets>
           <li>
             <strong>Approve:</strong> one approval by a moderator or root who isn&apos;t the author
-            is enough.
+            is enough. It&apos;s for the revision you&apos;re looking at: if the author submits a
+            new one meanwhile, the approval doesn&apos;t go through, and you look at the new
+            revision first.
           </li>
           <li>
             <strong>Request changes:</strong> it goes back to its author, with what to fix. An
