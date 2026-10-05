@@ -3,7 +3,8 @@
 # (server-package.yml), elevated, with the Windows bundle (084) unzipped where the installer (087)
 # puts it: C:\Program Files\RonneAI\Marketplace, a path with a space. It changes the machine (a
 # service, folders in ProgramData, a firewall rule): run it on a throwaway one.
-param([Parameter(Mandatory)] [string] $Bundle)
+# -Caddy: a caddy.exe (2.7 or later) that isn't on PATH yet.
+param([Parameter(Mandatory)] [string] $Bundle, [Parameter(Mandatory)] [string] $Caddy)
 
 $ErrorActionPreference = 'Stop'
 $program = 'C:\Program Files\RonneAI\Marketplace'
@@ -163,6 +164,45 @@ $out = Run $rmk service install
 WaitFor $health 200
 if (Get-NetFirewallRule -DisplayName 'rmk-server' -ErrorAction SilentlyContinue) { Fail 'the rule stayed' }
 Step '--host 0.0.0.0: an inbound rule for 7650 on Private networks; removed with 127.0.0.1'
+
+# --domain: needs Caddy, a Caddy the proxy's account can run, then HTTPS through rmk-server-proxy.
+$out = Run $rmk service install --domain localhost --tls internal
+if ($code -eq 0 -or $out -notmatch 'needs Caddy') { Fail "--domain without Caddy ($code): $out" }
+$mine = Join-Path $env:USERPROFILE 'caddy-bin'
+New-Item -ItemType Directory -Force $mine | Out-Null
+Copy-Item $Caddy "$mine\caddy.exe"
+$path = $env:PATH
+$env:PATH = "$mine;$path"
+$out = Run $rmk service install --domain localhost --tls internal
+if ($code -eq 0 -or $out -notmatch "can't run") { Fail "a Caddy in a user's profile wasn't refused ($code): $out" }
+New-Item -ItemType Directory -Force 'C:\Program Files\Caddy' | Out-Null
+Copy-Item $Caddy 'C:\Program Files\Caddy\caddy.exe'
+$env:PATH = "C:\Program Files\Caddy;$path"
+$out = Run $rmk service install --domain localhost --tls internal
+if ($code -ne 0) { Fail "install --domain failed ($code): $out" }
+WaitFor https://localhost/api/health 200
+$redirect = Invoke-WebRequest http://localhost/api/health -MaximumRedirection 0 -SkipHttpErrorCheck -ErrorAction SilentlyContinue
+if ($redirect.StatusCode -ne 308 -or "$($redirect.Headers.Location)" -ne 'https://localhost/api/health') {
+  Fail "HTTP doesn't redirect to HTTPS: $($redirect.StatusCode) $($redirect.Headers.Location)"
+}
+$proxy = Get-CimInstance Win32_Service -Filter "Name='rmk-server-proxy'"
+if ($proxy.State -ne 'Running' -or $proxy.StartName -ne 'NT SERVICE\rmk-server-proxy') { Fail "the proxy: $($proxy.State) as $($proxy.StartName)" }
+$rule = Get-NetFirewallRule -DisplayName 'rmk-server-proxy'
+if ($rule.Profile -ne 'Any') { Fail "the proxy's rule is for $($rule.Profile) networks" }
+if (((Get-NetFirewallPortFilter -AssociatedNetFirewallRule $rule).LocalPort -join ',') -ne '80,443') { Fail "the proxy's rule is for other ports" }
+if (-not (Select-String -Quiet -LiteralPath "$root\.env" -Pattern '^PUBLIC_URL=https://localhost$')) { Fail 'PUBLIC_URL is not https://localhost' }
+$out = Run $rmk service status
+if ($out -notmatch 'rmk-server-proxy, running') { Fail "status doesn't show the proxy: $out" }
+Step '--domain localhost --tls internal: HTTPS through rmk-server-proxy as its own account, HTTP redirects, 80 and 443 open'
+
+# Again without a domain: the proxy, its rule and its settings go; the data stays.
+$out = Run $rmk service install
+if ($code -ne 0) { Fail "install without --domain failed: $out" }
+WaitFor $health 200
+if (Get-Service rmk-server-proxy -ErrorAction SilentlyContinue) { Fail 'the proxy is still there' }
+if (Get-NetFirewallRule -DisplayName 'rmk-server-proxy' -ErrorAction SilentlyContinue) { Fail "the proxy's rule stayed" }
+if (Select-String -Quiet -LiteralPath "$root\.env" -Pattern '^PUBLIC_URL=https://') { Fail 'PUBLIC_URL stayed' }
+Step 'without --domain again: the proxy and its rule removed, still set up'
 
 # Uninstall keeps the data; --delete-data asks, then deletes it.
 $out = Run $rmk service uninstall

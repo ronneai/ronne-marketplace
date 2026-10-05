@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { InstallOptions } from "./args.js";
 import { serviceStatus } from "./control.js";
 import { type FakeSystem, fakeSystem } from "./fake-system.js";
 import { serviceTarget } from "./index.js";
@@ -8,7 +9,7 @@ import {
   ADMINISTRATORS_SID,
   inUserProfile,
   listeningPid,
-  serviceSid,
+  parseServiceSid,
   windowsBackend,
 } from "./windows.js";
 
@@ -20,8 +21,10 @@ const NODE = `${PROGRAM}\\node\\node.exe`;
 const ENTRY = `${PROGRAM}\\lib\\node_modules\\@ronneai\\marketplace\\dist\\bin.js`;
 const WINSW = `${PROGRAM}\\lib\\node_modules\\@ronneai\\marketplace\\vendor\\winsw\\WinSW.NET461.exe`;
 const context = { layout, node: NODE, entry: ENTRY, version: "0.3.0" };
-const defaults = { port: 7650, host: "127.0.0.1", tls: "auto" as const, user: false };
-const APP_SID = serviceSid("rmk-server");
+const defaults: InstallOptions = { port: 7650, host: "127.0.0.1", tls: "auto", user: false };
+// What sc.exe showsid gives for the two names (the services' virtual accounts).
+const APP_SID = "S-1-5-80-592519931-4167868336-2113710152-492910867-907829221";
+const PROXY_SID = "S-1-5-80-3679413298-395819311-4094257142-1108795590-674802607";
 
 /** The folders makeFolder's PowerShell script makes or checks, from its encoded command. */
 const madeIn = (line: string): string => {
@@ -37,20 +40,29 @@ const machine = (): FakeSystem => {
   sys.env = { USERPROFILE: "C:\\Users\\ana", ProgramData: "C:\\ProgramData" };
   sys.files.set(WINSW, { content: "WinSW", mode: 0o755 });
   sys.answers.set("sc.exe query", { code: 1060, stdout: "" });
+  sys.answers.set("sc.exe showsid rmk-server", {
+    stdout: `\r\nNAME: rmk-server\r\nSERVICE SID: ${APP_SID}\r\nSTATUS: Inactive\r\n`,
+  });
+  sys.answers.set("sc.exe showsid rmk-server-proxy", {
+    stdout: `NAME: rmk-server-proxy\r\nSERVICE SID: ${PROXY_SID}\r\n`,
+  });
   return sys;
 };
 const backendOf = (sys: FakeSystem) => windowsBackend(sys, { layout, winsw: WINSW });
-const install = (sys: FakeSystem, options: Partial<typeof defaults> = {}) =>
+const install = (sys: FakeSystem, options: Partial<InstallOptions> = {}) =>
   installService(sys, backendOf(sys), context, { ...defaults, ...options });
 
 describe("the service's account (086)", () => {
-  it("has the SID Windows computes from the service's name", () => {
-    // sc showsid TrustedInstaller, as documented by Microsoft.
-    expect(serviceSid("TrustedInstaller")).toBe(
-      "S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464",
-    );
-    // Case doesn't matter: Windows upper-cases the name first.
-    expect(serviceSid("rmk-server")).toBe(serviceSid("RMK-SERVER"));
+  it("asks Windows for the account's SID (sc showsid), for a service that isn't there yet", () => {
+    // sc showsid's answer, as Microsoft documents it for TrustedInstaller.
+    expect(
+      parseServiceSid(
+        "\r\nNAME: TrustedInstaller\r\nSERVICE SID: S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464\r\nSTATUS: Active\r\n",
+      ),
+    ).toBe("S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464");
+    expect(
+      parseServiceSid("[SC] OpenSCManager FAILED 5:\r\n\r\nAccess is denied."),
+    ).toBeUndefined();
   });
 
   it("knows a user's profile, and the PID on a port", () => {
@@ -126,8 +138,9 @@ describe("service install on Windows (086)", () => {
       `icacls ${ROOT}\\service /grant *${APP_SID}:(OI)(CI)(RX) /Q`,
       `${ROOT}\\service\\rmk-server-service.exe install`,
       "net start rmk-server",
-      // Listening on 127.0.0.1: no firewall rule (an earlier one is removed).
+      // Listening on 127.0.0.1, no proxy: no firewall rules (earlier ones are removed).
       "netsh advfirewall firewall delete rule name=rmk-server",
+      "netsh advfirewall firewall delete rule name=rmk-server-proxy",
     ]);
     expect(sys.commands.some((line) => line.startsWith("takeown") || line.includes("/T"))).toBe(
       false,
@@ -173,7 +186,9 @@ describe("service install on Windows (086)", () => {
     // Anyone may make a folder in ProgramData: the check in makeFolder's script fails.
     sys.answers.set("powershell.exe", {
       code: 1,
-      stderr: `${ROOT}\\data belongs to S-1-5-21-1-2-3-1001, not the administrators\r\n`,
+      // The script's trap: one plain line (PowerShell's own errors would be CLIXML on stderr).
+      stdout: `made\tC:\\ProgramData\\RonneAI\r\nerror\t${ROOT}\\data belongs to S-1-5-21-1-2-3-1001, not the administrators\r\n`,
+      stderr: "#< CLIXML\r\n",
     });
     await expect(install(sys)).rejects.toThrow(
       `${ROOT}\\data belongs to S-1-5-21-1-2-3-1001, not the administrators. Ronne's folders are made by its install`,
@@ -221,6 +236,110 @@ describe("service install on Windows (086)", () => {
     }
     expect(sys.errors.join("")).toContain("Error: listen EACCES");
     expect(sys.errors.join("")).toContain("rmk-server-service.out.log shows more");
+  });
+});
+
+describe("--domain on Windows: the proxy service (086)", () => {
+  const CADDY = "C:\\Program Files\\Caddy\\caddy.exe";
+  const withCaddy = (sys: FakeSystem, path = CADDY): FakeSystem => {
+    sys.which = (name) => (name === "caddy" ? path : undefined);
+    sys.answers.set(`${path} version`, { stdout: "v2.11.6 h1:abc\r\n" });
+    // The fake answers the same each time: not registered (1060) for activate, and running for the
+    // check after the start.
+    sys.answers.set("sc.exe query rmk-server-proxy", {
+      code: 1060,
+      stdout: "  STATE : 4  RUNNING",
+    });
+    return sys;
+  };
+  const domain = { domain: "ronne.example.com", tls: "internal" as const };
+
+  it("needs Caddy on PATH, and says how to get it for the whole machine", async () => {
+    const sys = machine();
+    sys.which = () => undefined;
+    expect(await install(sys, domain)).toBe(1);
+    expect(sys.errors.join("")).toContain("winget install --id CaddyServer.Caddy --scope machine");
+  });
+
+  it("refuses a Caddy in a user's profile (winget for one person), before making anything", async () => {
+    const sys = withCaddy(
+      machine(),
+      "C:\\Users\\ana\\AppData\\Local\\Microsoft\\WinGet\\Links\\caddy.exe",
+    );
+    expect(await install(sys, domain)).toBe(1);
+    expect(sys.errors.join("")).toContain(
+      "the proxy's account (NT SERVICE\\rmk-server-proxy) can't run",
+    );
+    expect(sys.errors.join("")).toContain("--scope machine");
+    expect(sys.dirs.size).toBe(0);
+  });
+
+  it("adds rmk-server-proxy: its folders, its Caddyfile, after the server, and 80 and 443 open", async () => {
+    const sys = withCaddy(machine());
+    const code = await install(sys, domain);
+    expect(sys.errors.join("")).toBe("");
+    expect(code).toBe(0);
+    const made = sys.commands.filter((line) => line.startsWith("powershell")).map(madeIn);
+    expect(made).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining(`${ROOT}\\proxy\\data (private)`),
+        expect.stringContaining(`${ROOT}\\proxy\\certs (private)`),
+        expect.stringContaining(`${ROOT}\\proxy\\logs (private)`),
+      ]),
+    );
+    expect(sys.commands).toEqual(
+      expect.arrayContaining([
+        `icacls ${ROOT}\\proxy\\data /grant *${PROXY_SID}:(OI)(CI)M /Q`,
+        `icacls ${ROOT}\\proxy\\certs /grant *${PROXY_SID}:(OI)(CI)RX /Q`,
+        `icacls ${ROOT}\\proxy\\logs /grant *${PROXY_SID}:(OI)(CI)M /Q`,
+        // It reads its Caddyfile, in a folder that's otherwise the administrators'.
+        `icacls ${ROOT}\\proxy /grant *${PROXY_SID}:(OI)(CI)RX /Q`,
+        // (no net start here: the fake already answers that it runs)
+        `${ROOT}\\service\\rmk-server-proxy-service.exe install`,
+        "netsh advfirewall firewall add rule name=rmk-server-proxy dir=in action=allow protocol=TCP localport=80,443 profile=any",
+      ]),
+    );
+    const xml = sys.files.get(`${ROOT}\\service\\rmk-server-proxy-service.xml`)?.content ?? "";
+    expect(xml).toContain("<depend>rmk-server</depend>");
+    expect(xml).toContain("<user>rmk-server-proxy</user>");
+    expect(xml).toContain(`<executable>${CADDY}</executable>`);
+    expect(sys.files.get(`${ROOT}\\proxy\\Caddyfile`)?.content).toContain("ronne.example.com");
+    expect(sys.files.get(`${ROOT}\\.env`)?.content).toContain(
+      "PUBLIC_URL=https://ronne.example.com",
+    );
+    expect(sys.output.join("")).toContain("Proxy:     rmk-server-proxy, Caddy on ports 80 and 443");
+  });
+
+  it("--tls files: reads certs\\cert.pem and key.pem, with paths Caddy reads", async () => {
+    const sys = withCaddy(machine());
+    expect(await install(sys, { ...domain, tls: "files" })).toBe(1);
+    expect(sys.errors.join("")).toContain(`${ROOT}\\proxy\\certs\\cert.pem (the full chain)`);
+    for (const file of ["cert.pem", "key.pem"])
+      sys.files.set(`${ROOT}\\proxy\\certs\\${file}`, { content: "pem", mode: 0o600 });
+    expect(await install(sys, { ...domain, tls: "files" })).toBe(0);
+    expect(sys.files.get(`${ROOT}\\proxy\\Caddyfile`)?.content).toContain(
+      "tls C:/ProgramData/RonneAI/Marketplace/proxy/certs/cert.pem C:/ProgramData/RonneAI/Marketplace/proxy/certs/key.pem",
+    );
+    expect(sys.commands).toContain(
+      `icacls ${ROOT}\\proxy\\certs\\key.pem /grant *${PROXY_SID}:(RX) /Q`,
+    );
+  });
+
+  it("installed again without a domain, the proxy, its rule and its Caddyfile go", async () => {
+    const sys = withCaddy(machine());
+    expect(await install(sys, domain)).toBe(0);
+    sys.commands.length = 0;
+    expect(await install(sys)).toBe(0);
+    expect(sys.commands).toEqual(
+      expect.arrayContaining([
+        "net stop rmk-server-proxy /y",
+        "sc.exe delete rmk-server-proxy",
+        "netsh advfirewall firewall delete rule name=rmk-server-proxy",
+      ]),
+    );
+    expect(sys.files.has(`${ROOT}\\proxy\\Caddyfile`)).toBe(false);
+    expect(sys.files.has(`${ROOT}\\service\\rmk-server-proxy-service.xml`)).toBe(false);
+    expect(sys.files.get(`${ROOT}\\.env`)?.content).not.toContain("PUBLIC_URL=https://");
   });
 });
 

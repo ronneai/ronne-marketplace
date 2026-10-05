@@ -61,8 +61,14 @@ macOS (083).
   deleted service "marked for deletion" while something has it open).
 - **`--host 0.0.0.0`** adds an inbound firewall rule for the port, on Private networks only (named
   `rmk-server`, with `netsh`); removed when it's installed again on 127.0.0.1, and on uninstall.
-- **`--domain`** needs `caddy.exe` on `PATH` (`winget install CaddyServer.Caddy`), then adds
-  `rmk-server-proxy` with the shared Caddyfile (083) and firewall rules for 80 and 443.
+- **`--domain`** needs `caddy.exe` on `PATH`, installed for the whole machine (`winget install --id
+  CaddyServer.Caddy --scope machine`): a Caddy in a user's profile (winget's default for one person)
+  is refused, as the proxy's account can't run it. It adds `rmk-server-proxy` (WinSW, the virtual
+  account `NT SERVICE\rmk-server-proxy`, started after the server) with the shared Caddyfile (083),
+  whose paths use `/` (Caddy reads `C:/…`), and one firewall rule for 80 and 443 on every network
+  (a certificate authority must reach 80); installed again without `--domain`, the proxy, its rule
+  and its settings go. The proxy may read its Caddyfile and certificates (`proxy\certs`, read only)
+  and change its own data and logs folders.
 - **`status`, `start`, `stop`, `restart`, `logs`, `uninstall`** behave as in 083; `logs` follows
   WinSW's output and error files. `stop` and `restart` also stop what depends on the service (the
   proxy), as Windows requires. `status` in a terminal that isn't elevated says whether the service

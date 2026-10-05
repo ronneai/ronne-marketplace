@@ -3,7 +3,7 @@
 import { basename, dirname, posix, win32 } from "node:path";
 import type { InstallOptions } from "./args.js";
 import { nativeCaddyfile } from "./caddyfile.js";
-import type { ServiceLayout } from "./layout.js";
+import { PROXY_NAME, type ServiceLayout } from "./layout.js";
 import { type ServiceDefinition, type ServicePlan, servicePlan, upstreamFor } from "./model.js";
 import { settingValue, updateSettings } from "./settings.js";
 import type { System } from "./system.js";
@@ -48,8 +48,11 @@ export type Backend = {
   caddyHint: () => string;
   /** Which program holds a port, when the system can tell. */
   portHolder: (port: number) => string | undefined;
-  /** Lets these ports in through the system's firewall, as one rule named after `name` (Windows). */
-  allowInbound: (name: string, ports: number[]) => void;
+  /**
+   * Lets these ports in through the system's firewall, as one rule named after `name` (Windows):
+   * on Private networks only, or on every network (`everywhere`, for a public HTTPS proxy).
+   */
+  allowInbound: (name: string, ports: number[], everywhere?: boolean) => void;
   /** Removes that rule, if there is one. */
   removeInbound: (name: string) => void;
   /** Why `user` can't run the program, and what to do (when canRun said it can't). */
@@ -187,18 +190,18 @@ export const installService = async (
       );
     if (options.tls === "files")
       for (const file of ["cert.pem", "key.pem"])
-        if (!sys.exists(`${layout.certsDir}/${file}`))
+        if (!sys.exists(inLayout(layout, layout.certsDir, file)))
           return fail(
             sys,
-            `--tls files reads ${layout.certsDir}/cert.pem (the full chain) and key.pem, and ${file} isn't there. Put both there first; install lets the proxy read them.`,
+            `--tls files reads ${inLayout(layout, layout.certsDir, "cert.pem")} (the full chain) and key.pem, and ${file} isn't there. Put both there first; install lets the proxy read them.`,
           );
     // Install changes these files' group, which through a link would change a key other services
     // share (certbot's, ssl-cert's). So they must be the proxy's own copies.
     if (options.tls === "files")
       for (const file of [
         layout.certsDir,
-        `${layout.certsDir}/cert.pem`,
-        `${layout.certsDir}/key.pem`,
+        inLayout(layout, layout.certsDir, "cert.pem"),
+        inLayout(layout, layout.certsDir, "key.pem"),
       ])
         if (sys.isLink(file))
           return fail(
@@ -262,10 +265,26 @@ export const installService = async (
   };
   if (!backend.canRun(layout.user, context.node, [context.entry, "--version"]))
     return undo(backend.cantRunHint(layout.user, context.node, context.entry));
+  // Windows: Caddy from winget for one person is in their profile, which the proxy can't read.
+  if (
+    plan.proxy &&
+    caddy &&
+    layout.platform === "win32" &&
+    !backend.canRun(layout.proxyUser, caddy, ["version"])
+  )
+    return undo(
+      `the proxy's account (${layout.proxyUser}) can't run ${caddy}: it's in a user's profile, which other accounts can't read. ${backend.caddyHint()}`,
+    );
   if (plan.proxy && options.tls === "files" && layout.proxyUser !== "root") {
     // The files are there for the proxy only: its group may read them (owner and other modes
     // stay), so a key kept at 600 works, and so does one from before an uninstall.
-    const certs = [layout.certsDir, `${layout.certsDir}/cert.pem`, `${layout.certsDir}/key.pem`];
+    // Windows: the folder made and checked (Ronne's tree) before its files are shared.
+    if (layout.platform === "win32") backend.makeFolder(layout.certsDir, 0o750);
+    const certs = [
+      layout.certsDir,
+      inLayout(layout, layout.certsDir, "cert.pem"),
+      inLayout(layout, layout.certsDir, "key.pem"),
+    ];
     backend.shareWithGroup(certs, layout.proxyGroup);
     for (const file of certs.slice(1))
       if (!backend.canRun(layout.proxyUser, "test", ["-r", file]))
@@ -315,7 +334,9 @@ export const installService = async (
         domain: plan.proxy.options.domain,
         tls: plan.proxy.options.tls,
         ...(plan.proxy.options.email ? { email: plan.proxy.options.email } : {}),
-        certsDir: layout.certsDir,
+        // Caddy (Go) reads C:/… on Windows, and its Caddyfile may read a backslash as an escape.
+        certsDir:
+          layout.platform === "win32" ? layout.certsDir.replaceAll("\\", "/") : layout.certsDir,
         upstream: plan.proxy.upstream,
       }),
       0o644,
@@ -372,9 +393,12 @@ export const installService = async (
     sys.remove(layout.caddyfile);
   }
 
-  // The firewall: the port, when it listens beyond this machine and nothing proxies it.
+  // The firewall: the port, when it listens beyond this machine and nothing proxies it; the proxy's
+  // 80 and 443 on every network (a certificate authority must reach 80, people 443).
   if (isWildcard(options.host) && !plan.proxy) backend.allowInbound(plan.app.name, [options.port]);
   else backend.removeInbound(plan.app.name);
+  if (plan.proxy) backend.allowInbound(plan.proxy.name, [80, 443], true);
+  else backend.removeInbound(PROXY_NAME);
 
   // Wait until it answers: 503 before the setup, 200 after.
   const healthUrl = `http://${upstreamFor(options.host, options.port)}/api/health`;
@@ -469,6 +493,7 @@ export const uninstallService = async (
     backend.deactivate(plan.proxy, layout.proxyDefinition);
   if (sys.exists(layout.definition)) backend.deactivate(plan.app, layout.definition);
   backend.removeInbound(plan.app.name);
+  backend.removeInbound(PROXY_NAME);
   sys.remove(layout.caddyfile);
   sys.remove(statePath(layout));
   // Only the two accounts install makes: service.json sits in a folder the server's account can

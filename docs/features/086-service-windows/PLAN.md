@@ -178,3 +178,43 @@ goes into `SPEC.md` instead.
     install, and the link check before a script.
 - **The CI job** runs on `windows-2025`, as `bundles.yml` does; the plan's *Done when* said
   `windows-latest`, which is the same image today.
+- **Fixed after CI and a second witness:**
+  - **CI's first Windows run** stopped at the folders, with PowerShell's error as CLIXML
+    (`#< CLIXML`), so the reason was hidden: the script now traps its errors and prints one plain
+    line (`error<TAB>…`), and its SDDL no longer sets a group.
+  - **CodeQL** flagged the SHA-1 that computed the account's SID (`js/weak-cryptographic-algorithm`):
+    the backend now asks Windows (`sc.exe showsid <name>`, which answers for a service not yet
+    registered). `docs/knowledge/windows-service-sids.md` says why.
+  - **The second witness:** `CreateDirectory` succeeds without a word when the folder appeared in
+    between, so a user could still race `RonneAI` into being theirs. Every folder is now checked
+    after it's made, made now or not: owned by the administrators (a kept one may also be SYSTEM's
+    or this administrator's), not a link, and nobody but SYSTEM, the administrators and services'
+    accounts may write in it (a hand-made folder that lets Users write is refused). With
+    `--tls files`, `certs` is made and checked before its files are shared.
+
+### Task 4: the proxy service (2026-10-05)
+
+- **Install, for `--domain` on Windows:** the proxy's own folders (`proxy\data` and `proxy\logs`,
+  which it may change; `proxy\certs`, which it may read), its Caddyfile readable by it (a grant on
+  `proxy`, given in `activate`: the folder is otherwise the administrators'), WinSW's XML with
+  `<depend>rmk-server</depend>`, and one firewall rule, `rmk-server-proxy`, for 80 and 443 on every
+  network (`allowInbound` gained `everywhere`: the server's own rule stays Private-only). Installed
+  again without a domain, the rule goes with the proxy; uninstall removes both rules.
+- **Caddy the proxy can run:** on Windows install checks the proxy's account can run Caddy (a
+  `caddy.exe` in someone's profile, as winget installs for one person, can't be) and says to install
+  it with `--scope machine`. Linux and macOS keep 083's checks.
+- **The Caddyfile's paths** (`--tls files`) use `/` on Windows: Caddy (Go) reads `C:/…`, and its
+  Caddyfile can read a backslash as an escape. The other `--tls files` paths are joined with
+  Windows' separator (`inLayout`).
+- **A folder an administrator made in Ronne's tree** (`proxy\certs` by hand, for `--tls files`) is
+  accepted: only `RonneAI`, in ProgramData, must have its own permissions; below it only
+  administrators can make folders, so one owned by this administrator is fine too.
+- **Tests:** five for `--domain` on the fake system (Caddy missing, Caddy in a profile, the proxy's
+  folders and grants and rule, `--tls files` with the paths Caddy reads, the proxy removed). 101
+  service tests in all.
+- **CI:** the Windows job downloads Caddy 2.11.6's Windows release, checked against its SHA-512,
+  and the script: `--domain` refused without Caddy and with one in the profile; then
+  `--domain localhost --tls internal` answers 200 over HTTPS, HTTP redirects (308), the proxy runs
+  as `NT SERVICE\rmk-server-proxy`, its rule is for 80 and 443 on every network, `PUBLIC_URL`
+  and status show it; installed again without a domain, the proxy and its rule are gone. The
+  policy's Caddy row says Windows too.

@@ -98,7 +98,7 @@ move by hand, after the same checks as any dependency.
 | PSScriptAnalyzer | MIT | Linting `install.ps1` (081) | PowerShell Gallery module, `-RequiredVersion` |
 | PowerShell 7 | MIT | Running PSScriptAnalyzer and `install.ps1`'s logic on macOS and Linux, by hand (081) | `mcr.microsoft.com/powershell` image, tag and digest |
 | nFPM | MIT | Building rmk-server's `.deb` and `.rpm` from the Linux bundles (`packages.yml`, 085). Not shipped: it writes the packages | GoReleaser's release archive from GitHub, version and SHA-256 from its checksums file |
-| Caddy | Apache-2.0 | The HTTPS proxy of `rmk-server service install --domain`, tested on Linux (`server-package.yml`, 083). Not shipped: people install their own | The release archive from GitHub, version and SHA-512 from its checksums file |
+| Caddy | Apache-2.0 | The HTTPS proxy of `rmk-server service install --domain`, tested on Linux, macOS (083) and Windows (086) in `server-package.yml`. Not shipped: people install their own | The release archive from GitHub, version and SHA-512 from its checksums file |
 
 **Programs Ronne ships that aren't npm packages.** Each is an official release, shipped
 unmodified and checked against a SHA-256 before it's shipped; each one's licence is in

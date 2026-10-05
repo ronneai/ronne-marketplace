@@ -82,3 +82,25 @@ Witnessed: 2026-10-04, by a fresh agent on macOS arm64 (no Windows, no PowerShel
 once and with Modify, no recursive reset, separate proxy logs, a link check before the
 administrator's scripts, and the CI script's two points (PLAN.md has the details). 5 is task 4's.
 **Next:** CI on Windows, then a second witness of the fix; task 3 is ticked after both.
+
+### Task 3 — second witness (still not ticked)
+
+Witnessed: 2026-10-05, by a fresh agent, on d171dd4.
+
+| # | Claim | Verdict | Evidence |
+|---|---|---|---|
+| 1 | Folders made with their final permissions; the SDDL | partly | The SDDL and owner BA are right; but `CreateDirectory` succeeds without applying anything when the folder already exists (.NET's `InternalCreateDirectory` ignores ERROR_ALREADY_EXISTS), and the script recorded it as made. |
+| 2 | Nothing in the tree used before it's checked | confirmed, one exception | A planted `service.json` or `.env` is never used; `--tls files` shared `certs` before the tree was checked. |
+| 3 | A grant skipped only when the SDDL has the account | confirmed | An interrupted install still ends with the grant. |
+| 4 | No propagation risk; `.env` | confirmed | No `/T`, no `/reset`; `/inheritance:r /grant:r` then `/setowner`. |
+| 5 | The admin scripts' link check | acceptable | Exploiting the gap needs the service's account, which already holds SeImpersonatePrivilege. |
+| 6 | The CI script against the code | confirmed by reading | The zip's top folder, `Modify, Synchronize`, the owners, no Users ACE. |
+| 7 | Tests | confirmed | 110 in the package, 24 for env-file. |
+
+**Defects found, and fixed in the next commit:** A (medium-high): a race on `RonneAI` between
+`Test-Path` and `CreateDirectory` reopened defect 1, so every folder is now checked after it's
+made. B: errors as CLIXML (CI showed it too), so the script traps them and prints one line. C:
+`certs` was shared before it was checked, so it's now made first. D: a kept folder's permissions
+weren't inspected, so one that lets anyone else write is now refused.
+**Overall:** defects 2–4 of the first witness closed; 1 closed after A's fix.
+**Next:** CI on Windows with these fixes; task 3 is ticked when it passes.

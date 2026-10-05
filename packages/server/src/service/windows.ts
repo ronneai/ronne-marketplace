@@ -2,7 +2,6 @@
 // icacls, the firewall with netsh. Every account is given by its SID: names such as
 // "Administrators" are translated on other languages' Windows, and a service's virtual account
 // (NT SERVICE\<name>) has no name to look up until the service exists.
-import { createHash } from "node:crypto";
 import { win32 } from "node:path";
 import type { Backend } from "./install.js";
 import type { ServiceLayout } from "./layout.js";
@@ -14,26 +13,9 @@ export const SYSTEM_SID = "S-1-5-18";
 export const ADMINISTRATORS_SID = "S-1-5-32-544";
 export const USERS_SID = "S-1-5-32-545";
 
-/**
- * The SID Windows gives a service's virtual account (NT SERVICE\<name>), which `sc showsid` prints:
- * S-1-5-80 and the SHA-1 of the name in upper case (UTF-16LE), as five little-endian numbers.
- */
-export const serviceSid = (name: string): string => {
-  const hash = createHash("sha1").update(Buffer.from(name.toUpperCase(), "utf16le")).digest();
-  const parts = [0, 4, 8, 12, 16].map((offset) => hash.readUInt32LE(offset));
-  return `S-1-5-80-${parts.join("-")}`;
-};
-
-/** An account as the SID icacls takes (*SID): root and Administrators are the administrators. */
-export const sidFor = (account: string): string => {
-  if (account === "root" || account === "Administrators") return ADMINISTRATORS_SID;
-  const at = account.indexOf("\\");
-  if (at > 0 && account.slice(0, at).toUpperCase() === "NT SERVICE")
-    return serviceSid(account.slice(at + 1));
-  throw new Error(
-    `No SID for the account ${account} (it isn't a service's or the administrators').`,
-  );
-};
+/** The service SID in `sc.exe showsid`'s answer, if there's one. */
+export const parseServiceSid = (output: string): string | undefined =>
+  /\bS-1-5-80(?:-\d+){5}\b/.exec(output)?.[0];
 
 /** The program WinSW runs as for a service: its definition's .xml, as .exe. */
 export const wrapperPath = (definitionPath: string): string =>
@@ -85,6 +67,28 @@ export const windowsBackend = (
       );
   };
   const query = (name: string) => run("sc.exe", ["query", name]);
+  // A service's virtual account (NT SERVICE\<name>) has a SID Windows derives from the name, which
+  // `sc showsid` gives for any name, registered or not: so it's set on folders before the service
+  // exists, without looking up a name that isn't there yet.
+  const sids = new Map<string, string>();
+  const serviceSid = (name: string): string => {
+    const known = sids.get(name);
+    if (known) return known;
+    const sid = parseServiceSid(run("sc.exe", ["showsid", name]).stdout);
+    if (!sid) throw new Error(`sc.exe showsid ${name} gave no service SID.`);
+    sids.set(name, sid);
+    return sid;
+  };
+  /** An account as icacls takes it (*SID): root and Administrators are the administrators. */
+  const sidFor = (account: string): string => {
+    if (account === "root" || account === "Administrators") return ADMINISTRATORS_SID;
+    const at = account.indexOf("\\");
+    if (at > 0 && account.slice(0, at).toUpperCase() === "NT SERVICE")
+      return serviceSid(account.slice(at + 1));
+    throw new Error(
+      `No SID for the account ${account} (it isn't a service's or the administrators').`,
+    );
+  };
   // net start and stop wait until the service has started or stopped; /y also stops the services
   // that depend on it (the proxy depends on the server).
   const stopService = (name: string) => run("net", ["stop", name, "/y"]);
@@ -113,8 +117,11 @@ export const windowsBackend = (
   /**
    * Makes `path` and its missing parents in Ronne's tree, each with its final permissions from the
    * start (Directory.CreateDirectory with a security descriptor), so there's no moment another
-   * account could get in: anyone may make folders in ProgramData. A folder that's already there
-   * must be the administrators' (or SYSTEM's), with its own permissions, and not a link.
+   * account could get in: anyone may make folders in ProgramData. Each is checked after, made now
+   * or not (CreateDirectory succeeds when someone made it in between): the administrators' (or,
+   * one that was there, SYSTEM's or this administrator's), not a link, and nobody but SYSTEM, the
+   * administrators and services' accounts may write in it; RonneAI, in ProgramData, must also have
+   * its own permissions (below it only administrators make folders).
    */
   const makeFolders = (path: string) => {
     const parts: string[] = [];
@@ -125,28 +132,45 @@ export const windowsBackend = (
     const quote = (value: string) => `'${value.replaceAll("'", "''")}'`;
     const script = [
       "$ErrorActionPreference = 'Stop'",
+      "$ProgressPreference = 'SilentlyContinue'",
+      // Errors as one plain line on standard output: PowerShell's own go out as CLIXML.
+      'trap { "error`t$($_.Exception.Message)"; exit 1 }',
       // Owner the administrators; SYSTEM and the administrators full control; Users may list the
       // folders under it (CI: folders, not files). Private ones: no Users.
-      "$open = 'O:BAG:SYD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;CI;0x1200a9;;;BU)'",
-      "$private = 'O:BAG:SYD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)'",
-      ...parts.map(
-        (part) =>
-          `$p = ${quote(part)}; $sd = ${privateFolders.has(part) ? "$private" : "$open"}
-if (Test-Path -LiteralPath $p) {
+      "$open = 'O:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;CI;0x1200a9;;;BU)'",
+      "$private = 'O:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)'",
+      // The administrator running this may own a folder they made inside Ronne's (certs, say).
+      "$me = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value",
+      // Who may write in one of Ronne's folders: SYSTEM, the administrators, services' accounts.
+      "$writes = 0xD0156 -bor 0x50000000",
+      `function Check($p, $top, $made) {
   $i = Get-Item -LiteralPath $p -Force
   if ($i.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "$p is a link (a symbolic link or a junction)" }
   if (-not $i.PSIsContainer) { throw "$p isn't a folder" }
   $acl = Get-Acl -LiteralPath $p
   $owner = $acl.GetOwner([Security.Principal.SecurityIdentifier]).Value
-  if ($owner -ne 'S-1-5-32-544' -and $owner -ne 'S-1-5-18') { throw "$p belongs to $owner, not the administrators" }
-  if (-not $acl.AreAccessRulesProtected) { throw "$p takes its permissions from the folder above it" }
-  "kept\`t$p\`t$($acl.Sddl)"
-} else {
+  $owners = if ($made) { @('S-1-5-32-544') } else { @('S-1-5-32-544', 'S-1-5-18', $me) }
+  if ($owner -notin $owners) { throw "$p belongs to $owner, not the administrators" }
+  if ($top -and -not $acl.AreAccessRulesProtected) { throw "$p takes its permissions from ProgramData, where anyone may make folders" }
+  foreach ($r in $acl.GetAccessRules($true, $true, [Security.Principal.SecurityIdentifier])) {
+    $sid = $r.IdentityReference.Value
+    if ($r.AccessControlType -eq 'Allow' -and ([int64]$r.FileSystemRights -band $writes) -and $sid -ne 'S-1-5-18' -and $sid -ne 'S-1-5-32-544' -and -not $sid.StartsWith('S-1-5-80-')) { throw "$p lets $sid write in it" }
+  }
+  $acl.Sddl
+}`,
+      // Made with its final permissions; checked after, made now or not: CreateDirectory succeeds
+      // without a word when another account made the folder in between.
+      ...parts.map(
+        (part) =>
+          `$p = ${quote(part)}; $sd = ${privateFolders.has(part) ? "$private" : "$open"}
+$made = -not (Test-Path -LiteralPath $p)
+if ($made) {
   $s = New-Object System.Security.AccessControl.DirectorySecurity
   $s.SetSecurityDescriptorSddlForm($sd)
   [void][IO.Directory]::CreateDirectory($p, $s)
-  "made\`t$p"
-}`,
+}
+$sddl = Check $p ${part.toLowerCase() === top.toLowerCase() ? "$true" : "$false"} $made
+if ($made) { "made\`t$p" } else { "kept\`t$p\`t$sddl" }`,
       ),
     ].join("\n");
     const result = run("powershell.exe", [
@@ -158,7 +182,10 @@ if (Test-Path -LiteralPath $p) {
       Buffer.from(script, "utf16le").toString("base64"),
     ]);
     if (result.code !== 0) {
-      const reason = (result.stderr || result.stdout).trim().split(/\r?\n/)[0] ?? "";
+      const reason =
+        /^error\t(.*)$/m.exec(result.stdout)?.[1]?.trim() ??
+        (result.stderr || result.stdout).trim().split(/\r?\n/)[0] ??
+        "";
       throw new Error(
         `${reason}. Ronne's folders are made by its install, the administrators' only; this one was made by something else. Look at it, remove it or move it aside, and run this again.`,
       );
@@ -244,6 +271,9 @@ if (Test-Path -LiteralPath $p) {
       try {
         // Its own copy, beside its XML: npm can then replace the package's files while it runs.
         sys.copyFile(winsw, wrapper);
+        // The proxy reads its Caddyfile, in a folder that's otherwise the administrators'.
+        if (definition.user === layout.proxyUser)
+          grant(layout.proxySettingsDir, serviceSid(definition.name), "RX");
         // The service's account reads its WinSW and XML; the folder is otherwise the administrators'.
         must("icacls", [
           win32.dirname(path),
@@ -304,7 +334,7 @@ if (Test-Path -LiteralPath $p) {
       return program?.[2] === pid ? `${program[1]} (pid ${pid})` : `pid ${pid}`;
     },
     // One inbound rule per service, named after it, for Private networks only.
-    allowInbound: (name, ports) => {
+    allowInbound: (name, ports, everywhere = false) => {
       run("netsh", ["advfirewall", "firewall", "delete", "rule", `name=${name}`]);
       must("netsh", [
         "advfirewall",
@@ -316,7 +346,7 @@ if (Test-Path -LiteralPath $p) {
         "action=allow",
         "protocol=TCP",
         `localport=${ports.join(",")}`,
-        "profile=private",
+        `profile=${everywhere ? "any" : "private"}`,
       ]);
     },
     removeInbound: (name) => {

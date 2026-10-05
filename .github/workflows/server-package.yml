@@ -191,14 +191,25 @@ jobs:
         with:
           name: bundle-win32-x64
           path: bundle
-      - name: Install, set up, restart, a crash, the firewall, uninstall
+      # Caddy's own release, checked against the SHA-512 its checksums file gives (policy §3). Not
+      # put on PATH: the test first checks that --domain asks for it.
+      - name: Download Caddy 2.11.6
         shell: pwsh
-        run: ./scripts/service/test-windows-service.ps1 -Bundle (Get-ChildItem bundle/*.zip).FullName
+        env:
+          CADDY_SHA512: e2626405400f15131886a6dc03883962bdc960fdcb1cdd0882f28af8821c9b370c83fdc60cb8a4deaf27008166f0e080cc7208e699dc0ce15a534ae75cf53d93
+        run: |
+          $zip = Join-Path $env:RUNNER_TEMP 'caddy.zip'
+          Invoke-WebRequest -OutFile $zip https://github.com/caddyserver/caddy/releases/download/v2.11.6/caddy_2.11.6_windows_amd64.zip
+          if ((Get-FileHash -Algorithm SHA512 $zip).Hash -ne $env:CADDY_SHA512) { throw "caddy.zip's SHA-512 isn't the release's" }
+          Expand-Archive $zip -DestinationPath (Join-Path $env:RUNNER_TEMP 'caddy')
+      - name: Install, set up, restart, a crash, the firewall, --domain, uninstall
+        shell: pwsh
+        run: ./scripts/service/test-windows-service.ps1 -Bundle (Get-ChildItem bundle/*.zip).FullName -Caddy (Join-Path $env:RUNNER_TEMP 'caddy\caddy.exe')
       - name: The service's logs
         if: ${{ failure() }}
         shell: pwsh
         run: |
-          Get-ChildItem C:\ProgramData\RonneAI\Marketplace\logs -ErrorAction SilentlyContinue |
+          Get-ChildItem C:\ProgramData\RonneAI\Marketplace\logs, C:\ProgramData\RonneAI\Marketplace\proxy\logs -ErrorAction SilentlyContinue |
             ForEach-Object { "==> $($_.FullName)"; Get-Content -Tail 100 $_.FullName }
           Get-WinEvent -LogName System -MaxEvents 30 |
             Where-Object ProviderName -eq 'Service Control Manager' | Format-List TimeCreated, Message
