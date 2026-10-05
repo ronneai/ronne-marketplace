@@ -76,7 +76,11 @@ The resolved, flat set. `rmk install` with no arguments installs exactly this.
 
 - One entry per item (one version per item, MVP §4.3). `dependencies` maps to the pinned versions chosen.
 - The tarball URL isn't stored. It comes from the registry and the name and version, so a registry can move without changing lockfiles.
-- rmk fails if a download's sha256 doesn't match the lockfile.
+- rmk fails if a download's sha256 doesn't match the lockfile: when an item resolves to the version
+  the lockfile already holds, the registry's sha256 for it must be the lockfile's, on `install`,
+  `update` and `remove` alike, or rmk stops with `checksum_mismatch` before downloading or writing
+  anything (a released version never changes). Accepting other bytes for a version is deliberate:
+  remove the item from `rmk.lock` and run again.
 
 ## `.rmk/state.json`
 

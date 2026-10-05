@@ -119,6 +119,35 @@ describe("rmk install", () => {
     expect(existsSync(join(io.cwd, ".claude/skills"))).toBe(false);
   });
 
+  it("refuses a locked version whose bytes changed, on install and update (security audit ITEM-3)", async () => {
+    await start();
+    expect((await rmk("install", "@team/secure")).exitCode).toBe(0);
+    // The registry now answers @team/gh@1.2.0 with other bytes than the lockfile recorded.
+    const lockPath = join(io.cwd, "rmk.lock");
+    const lock = JSON.parse(read("rmk.lock"));
+    lock.items["@team/gh"].sha256 = "0".repeat(64);
+    writeFileSync(lockPath, JSON.stringify(lock, null, 2));
+    const before = { lock: read("rmk.lock"), skill: read(".claude/skills/secure/SKILL.md") };
+    for (const argv of [["install"], ["update"], ["update", "@team/secure"]]) {
+      const result = await rmk(...argv, "--json");
+      expect(result.exitCode, argv.join(" ")).toBe(1);
+      expect(JSON.parse(result.stdout).error).toMatchObject({
+        code: "checksum_mismatch",
+        item: "@team/gh",
+        version: "1.2.0",
+        expected: "0".repeat(64),
+      });
+    }
+    // Nothing was written, and nothing was downloaded.
+    expect(read("rmk.lock")).toBe(before.lock);
+    expect(read(".claude/skills/secure/SKILL.md")).toBe(before.skill);
+    // Re-locking is deliberate: without the entry, the registry's bytes are accepted again.
+    delete lock.items["@team/gh"];
+    writeFileSync(lockPath, JSON.stringify(lock, null, 2));
+    expect((await rmk("install")).exitCode).toBe(0);
+    expect(JSON.parse(read("rmk.lock")).items["@team/gh"].sha256).toMatch(/^[0-9a-f]{64}$/);
+  });
+
   it("warns about deprecated versions and unsupported types, and keeps going", async () => {
     await start();
     const result = await rmk("install", "@team/fmt", "--json");

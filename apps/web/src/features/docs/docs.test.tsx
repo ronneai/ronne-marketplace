@@ -202,6 +202,8 @@ describe("the topics", () => {
     expect(admin).toContain("user.*");
     expect(await topic("roles")).toContain(`href="${docsHref("admin", "audit")}"`);
     const rmk = await topic("rmk");
+    // A locked version must come with the bytes rmk.lock recorded (security audit ITEM-3).
+    expect(rmk).toContain("checksum_mismatch");
     expect(rmk).not.toContain("released yet");
     for (const id of ["getting", "login", "installing", "updating", "files", "edits"])
       expect(rmk).toContain(`id="${id}"`);

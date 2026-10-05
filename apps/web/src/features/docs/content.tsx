@@ -2336,7 +2336,11 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
           </li>
           <li>
             <strong>Download and check.</strong> Each package&apos;s checksum is checked before
-            anything is written; a mismatch stops the install.
+            anything is written; a mismatch stops the install. A version already in{" "}
+            <Code>rmk.lock</Code> must also have the checksum recorded there, since a released
+            version never changes: if the registry gives other bytes for it, rmk stops (
+            <Code>checksum_mismatch</Code>). To accept them anyway, remove the item from{" "}
+            <Code>rmk.lock</Code> (in user scope, <Code>~/.config/rmk/user.lock</Code>).
           </li>
           <li>
             <strong>Write.</strong> The files each tool reads, then the lockfile and the state file.

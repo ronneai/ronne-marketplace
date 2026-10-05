@@ -256,12 +256,28 @@ export const prepareInstall = async (
     targets: PlatformRenderer[];
     scope: Scope;
     force: boolean;
+    /** What the lockfile holds now: a version it names must come with the same bytes. */
+    lockfileItems?: Record<string, { version: string; sha256: string }>;
   },
 ): Promise<Prepared> => {
   const resolution = await api.post<Resolution>("/resolve", {
     dependencies: options.dependencies,
     locked: options.locked,
   });
+  // A released version never changes (MVP §15), so a version already in the lockfile must resolve
+  // to the bytes the lockfile records, whoever answers: not only what the registry says now
+  // (security audit ITEM-3, 2026-10-05). Checked before anything is downloaded or written.
+  const lockName = options.scope === "project" ? "rmk.lock" : places(io, options.scope).lock;
+  for (const [name, item] of Object.entries(resolution.items)) {
+    const recorded = options.lockfileItems?.[name];
+    if (recorded && recorded.version === item.version && recorded.sha256 !== item.sha256)
+      throw new RmkError(
+        `${name}@${item.version} isn't what ${lockName} recorded: the registry gives sha256 ${item.sha256}, the lockfile ${recorded.sha256}. A released version never changes, so nothing was written. If this registry really was rebuilt and you trust it, remove ${name} from ${lockName} and run this again.`,
+        1,
+        "checksum_mismatch",
+        { item: name, version: item.version, expected: recorded.sha256, actual: item.sha256 },
+      );
+  }
   // The registry's usage policy, checked daily, decides whether this install is reported (046).
   try {
     await refreshPolicy(io, api.registry, registryFor(io, readUserConfig(io), api.registry).token);

@@ -75,7 +75,14 @@ export const planOperation = async (
   const targets = await chooseTargets(io, request.target, config?.targets, output(false));
   const force = request.force === true;
   const prepare = (deps: Record<string, string>, keep: Record<string, string>) =>
-    prepareInstall(io, api, { dependencies: deps, locked: keep, targets, scope, force });
+    prepareInstall(io, api, {
+      dependencies: deps,
+      locked: keep,
+      targets,
+      scope,
+      force,
+      lockfileItems: lockfile?.items ?? {},
+    });
   const nextConfig = (deps: Record<string, string>, setTargets: boolean): ProjectConfig | null => {
     if (scope !== "project") return null;
     const next: ProjectConfig = config
