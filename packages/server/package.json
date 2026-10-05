@@ -1,6 +1,6 @@
 {
   "name": "@ronneai/marketplace",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Ronne AI Marketplace, the self-hosted registry of AI capabilities, as one command: npx @ronneai/marketplace (rmk-server).",
   "keywords": [
     "ronne",
