@@ -23,7 +23,7 @@
   <resetfailure>1 hour</resetfailure>
   <stopparentprocessfirst>true</stopparentprocessfirst>
   <stoptimeout>30 sec</stoptimeout>
-  <logpath>C:\ProgramData\RonneAI\Marketplace\logs</logpath>
+  <logpath>C:\ProgramData\RonneAI\Marketplace\proxy\logs</logpath>
   <log mode="roll-by-size">
     <sizeThreshold>10240</sizeThreshold>
     <keepFiles>5</keepFiles>

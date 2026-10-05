@@ -51,3 +51,34 @@ unhandled rejection; it now fails with its own message (tested with a failing `f
 dates said 2026-10-05: corrected.
 **Not checked here:** WinSW running on Windows (task 3).
 **Overall:** met.
+
+## Task 3 — Install, uninstall and the other subcommands on Windows (first witness; not ticked)
+
+Witnessed: 2026-10-04, by a fresh agent on macOS arm64 (no Windows, no PowerShell here).
+
+| # | Claim | Verdict | Evidence |
+|---|---|---|---|
+| 1 | Tests, lint, typecheck; Linux and macOS unchanged | confirmed | 108 tests in the package (15 Windows); env-file 24; lint 53 warnings; typecheck. `asAdmin` is `sudo …` off Windows, `homeFolderHint` the old text word for word, the firewall hooks no-ops there. |
+| 2 | The service SID | confirmed | Computed independently: TrustedInstaller, MSSQLSERVER and WinDefend match their published SIDs. |
+| 3 | The commands (`icacls`, `net`, `sc.exe`, `netsh`, `netstat`, `fltmc`) | confirmed (documented behaviour) | Syntax and exit codes as used; `: 4  RUNNING`; 1060 for a missing service. |
+| 4 | The account reads Program Files, not profiles | confirmed | Service tokens hold Users and Authenticated Users; profiles grant SYSTEM, the administrators and the owner only. |
+| 5 | A crash restarts it | partly | WinSW 2.x exits without reporting stopped when its child exits non-zero, so Windows' restarts run; an exit 0 isn't restarted (as systemd's `on-failure`). |
+| 6 | The folders' security | not met | See below. |
+| 7 | WinSW with the virtual account; the CI job | can't check here | Needs a push. |
+
+**Defects found:**
+1. **High:** a user who made `Marketplace\service` before the first install kept it, and install ran
+   WinSW from it as the administrator.
+2. **High/medium:** `service.json` and `.env` were read before anything was locked; a file made
+   earlier under `data`, held open, kept its access.
+3. **Medium:** a junction made between the link scan and `icacls /reset /T` would have its target's
+   permissions changed.
+4. **Low:** the CI script moved the bundle across volumes, and matched messages through error
+   records' wrapping.
+5. **Low (task 4):** the proxy's account couldn't read the Caddyfile.
+
+**Fixed in this commit:** 1–4, by making Ronne's folders with their final permissions at once
+(`makeFolder`), refusing one that's there and isn't the administrators', granting an account only
+once and with Modify, no recursive reset, separate proxy logs, a link check before the
+administrator's scripts, and the CI script's two points (PLAN.md has the details). 5 is task 4's.
+**Next:** CI on Windows, then a second witness of the fix; task 3 is ticked after both.

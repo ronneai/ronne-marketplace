@@ -98,3 +98,83 @@ goes into `SPEC.md` instead.
   observed** in PR #128's CI (run 37259992637, on 102ffe5): the `win32-x64` and `win32-arm64`
   archives hold `vendor/winsw/WinSW.NET461.exe` with the pinned SHA-256 and its `LICENSE.txt`,
   both notices list WinSW, and each passed the content check and ran with its own Node.js.
+
+### Task 3: install, uninstall and the other subcommands on Windows (2026-10-04)
+
+- **`packages/server/src/service/windows.ts`,** the third backend beside 083's: WinSW services
+  (`sc.exe query` for the state, `net start` and `net stop /y`, which wait and also stop what
+  depends on the service), folder permissions with `takeown` and `icacls`, the firewall with
+  `netsh`, the port's holder from `netstat -ano` and `tasklist`. `index.ts` picks it on `win32`,
+  with `%ProgramData%` and the package's `vendor\winsw\WinSW.NET461.exe`.
+- **SIDs, not names:** `serviceSid` computes the virtual account's SID (S-1-5-80 and the SHA-1 of the
+  upper-case name in UTF-16LE), checked against Microsoft's documented SID for TrustedInstaller;
+  the administrators, SYSTEM and Users by their well-known SIDs. Names are translated on other
+  languages' Windows, and the account's name can't be looked up before the service exists, while
+  its data folder must be locked before the first start.
+- **ProgramData is writable by anyone** (Users may make folders there), so install takes Ronne's
+  folders over (`takeown /A`), resets them and what's under them (`icacls /reset /T`), then sets
+  exactly SYSTEM, the administrators and the account (`/inheritance:r /grant:r`), and makes the
+  administrators own everything under them. Before that it refuses any link in them (a symbolic
+  link, a junction, a hard-linked file: `System.findLinks`), since `icacls` would change what one
+  points to, and refuses `RonneAI` or `Marketplace` being a link before making anything. Users may
+  list Ronne's folders (`(CI)(RX)`) but read none of the files in them.
+- **The settings file:** `writeEnvFile` (apps/web) now rewrites an existing `.env` in place on Windows:
+  a new file would take the folder's permissions (the administrators' only) and the service would
+  lose its settings after a setup run by an administrator. Tested (the same inode).
+- **Install again** doesn't register the service again: it stops it, replaces WinSW and the XML,
+  starts it. A deleted service stays "marked for deletion" while anything has it open (the
+  Services window), which would fail the next `install`; and nothing Windows keeps changes.
+- **The shared install** gains three backend hooks (`allowInbound`, `removeInbound`,
+  `cantRunHint`; no-ops and the old message on Linux and macOS), a log-folder step, the service
+  folder made when it's missing (Ronne's own on Windows), paths with Windows' separator
+  (`inLayout`), and `asAdmin`: messages say "in a terminal opened as administrator" where they
+  said `sudo`. `fromTemporaryCache` knows `\` too. `System` gains `copyFile`, `findLinks` and
+  `followFiles` (polls; starts again when WinSW rolls a file), an elevation check (`fltmc`
+  answers only an elevated process) and a `which` that tries PATHEXT.
+- **Scripts:** `setup`, `migrate` and `reset-root-password` run as the administrator on Windows (a
+  virtual account can't be started from a terminal). `status` without elevation says whether it
+  runs and that the details are for administrators.
+- **Tests here:** 15 for the backend on the fake system, among them the exact commands of a first
+  install (the folders' permissions in order, WinSW copied and registered, no firewall rule on
+  127.0.0.1), a second one, `--host 0.0.0.0`'s rule, links refused, the program in a profile
+  refused before any folder is made, a start that doesn't answer (WinSW's logs printed),
+  uninstall, logs, status with and without elevation, restart. The 79 Linux and macOS tests
+  unchanged.
+- **CI:** `scripts/service/test-windows-service.ps1`, run by a new `service-windows` job on
+  `windows-2025` with the `win32-x64` bundle unzipped into `C:\Program Files\RonneAI\Marketplace`:
+  a copy in the user's profile refused; install (the service's account, start mode, `node.exe`'s
+  owner, 127.0.0.1); the SID `sc showsid` gives in the folders' permissions, no Users, not
+  inherited, the administrators owning them; status; setup and migrate as the administrator, then
+  a restart (the settings still the service's) and a sign-in (the database writable by it); stop,
+  start, restart, logs; `node.exe` killed and started again by Windows; a taken port; the firewall
+  rule; uninstall and `--delete-data`. Its syntax wasn't checked here (no PowerShell for this
+  machine's processor): CI is the first to parse it.
+- **Fixed after the witness (a privilege escalation):** the first design took Ronne's folders over
+  (`takeown /A`, `icacls /reset /T`). Anyone may make folders in ProgramData, and a user who made
+  `Marketplace\service` before the first install kept it (the lock wasn't recursive, and
+  `mkdir` skipped a folder that was there), and install then ran WinSW from it as the
+  administrator. It also read `service.json` and `.env` before locking anything, and a recursive
+  reset could be raced with a junction. Now:
+  - **Made locked:** a new backend hook, `makeFolder` (Linux and macOS: `sys.mkdir`), makes each of
+    Ronne's folders on Windows with its final permissions at once, through Windows PowerShell's
+    `Directory.CreateDirectory(path, DirectorySecurity)` and an SDDL (owner the administrators,
+    protected, SYSTEM and the administrators full control, Users `(CI)` read on the open ones).
+  - **Refused if not ours:** a folder already there must be owned by the administrators or SYSTEM,
+    with protected permissions, and not a reparse point, or install stops before reading or
+    writing anything in it.
+  - **No takeover:** no `takeown`, no `/reset`, no `/T`. An account is granted rights on a folder
+    only when its SDDL has none of that account's yet (so after an earlier install, nothing walks
+    what the account may have put in it); Modify, not Full control, so it can't change
+    permissions. `.env` alone is set file by file, and given to the administrators.
+  - **Separate proxy logs** (`proxy\logs`), so each account is granted its own folder once; the
+    proxy's golden XML changes its `logpath` only.
+  - **Scripts:** `setup`, `migrate` and `reset-root-password`, run as the administrator on Windows,
+    refuse a link in the data folder.
+  - **The CI script:** the bundle unzips straight into Program Files; command output is turned into
+    text line by line before matching; it checks Modify, not Full control, and the administrators
+    owning `.env` and `service` too.
+  - 96 service tests, among them the folders the script makes and which are private, a folder
+    something else made refused before anything is written, no second grant after an earlier
+    install, and the link check before a script.
+- **The CI job** runs on `windows-2025`, as `bundles.yml` does; the plan's *Done when* said
+  `windows-latest`, which is the same image today.

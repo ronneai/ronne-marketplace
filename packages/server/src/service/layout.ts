@@ -35,8 +35,10 @@ export type ServiceLayout = {
   /** Log files; none on Linux, where journald keeps them. */
   logFile?: string;
   proxyLogFile?: string;
-  /** Windows: the folder WinSW writes each service's rolling logs into. */
+  /** Windows: the folder WinSW writes the server's rolling logs into. */
   logDir?: string;
+  /** Windows: the proxy's, a folder of its own (each account may write only its own logs). */
+  proxyLogDir?: string;
 };
 
 export const SERVICE_NAME = "rmk-server";
@@ -55,7 +57,8 @@ const windowsLayout = (programData: string): ServiceLayout => {
     platform: "win32",
     // Virtual accounts: Windows makes them with the service, and removes them with it.
     user: `NT SERVICE\\${SERVICE_NAME}`,
-    group: "",
+    // No groups: each account is its own (what a group may read, the account may).
+    group: `NT SERVICE\\${SERVICE_NAME}`,
     systemUser: false,
     rootGroup: "Administrators",
     dataDir: win32.join(root, "data"),
@@ -66,11 +69,12 @@ const windowsLayout = (programData: string): ServiceLayout => {
     certsDir: win32.join(proxyRoot, "certs"),
     proxyDataDir: win32.join(proxyRoot, "data"),
     proxyUser: `NT SERVICE\\${PROXY_NAME}`,
-    proxyGroup: "",
+    proxyGroup: `NT SERVICE\\${PROXY_NAME}`,
     // WinSW reads <exe name>.xml beside its renamed executable.
     definition: win32.join(service, `${SERVICE_NAME}-service.xml`),
     proxyDefinition: win32.join(service, `${PROXY_NAME}-service.xml`),
     logDir: win32.join(root, "logs"),
+    proxyLogDir: win32.join(proxyRoot, "logs"),
   };
 };
 

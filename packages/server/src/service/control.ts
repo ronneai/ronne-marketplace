@@ -2,6 +2,7 @@
 // (setup, migrate, reset-root-password) run for an installed service.
 import { dirname, join } from "node:path";
 import {
+  asAdmin,
   type Backend,
   type InstallContext,
   needsRoot,
@@ -46,7 +47,7 @@ const versionAt = (sys: System, entry: string): string | undefined => {
 
 const notInstalled = (sys: System): number => {
   sys.out(
-    "The rmk-server service isn't installed here. Install it with: sudo rmk-server service install\n",
+    `The rmk-server service isn't installed here. Install it with: ${asAdmin(sys, "rmk-server service install")}\n`,
   );
   return STATUS_NOT_INSTALLED;
 };
@@ -58,6 +59,21 @@ export const serviceStatus = async (
 ): Promise<number> => {
   const { layout } = context;
   const state = readState(sys, layout);
+  // Windows: the record is the administrators' only, so a plain terminal sees the service but not it.
+  if (!state && sys.platform === "win32" && !sys.isRoot() && sys.exists(layout.definition)) {
+    // Only the name matters to isActive, and anyone may ask Windows about a service.
+    const { app } = definitionsFor(context, {
+      node: context.node,
+      entry: context.entry,
+      port: 7650,
+      host: "127.0.0.1",
+    } as ServiceState);
+    const running = backend.isActive(app);
+    sys.out(
+      `rmk-server service: installed, ${running ? "running" : "stopped"}. Its details are for administrators: ${asAdmin(sys, "rmk-server service status")}\n`,
+    );
+    return running ? STATUS_RUNNING : STATUS_STOPPED;
+  }
   if (!state || !sys.exists(layout.definition)) return notInstalled(sys);
   const { app, proxy } = definitionsFor(context, state);
   const running = backend.isActive(app);
@@ -70,12 +86,12 @@ export const serviceStatus = async (
     `rmk-server service: installed, ${running ? "running" : "stopped"}`,
     `  Version:   ${filesVersion ?? "unknown"}${
       filesVersion && filesVersion !== state.version
-        ? ` (it was ${state.version} at the last install or restart: sudo rmk-server service restart runs ${filesVersion})`
+        ? ` (it was ${state.version} at the last install or restart: ${asAdmin(sys, "rmk-server service restart")} runs ${filesVersion})`
         : ""
     }`,
     `  Address:   ${address}${
       health === 503
-        ? " (not set up yet: open it, or run sudo rmk-server setup)"
+        ? ` (not set up yet: open it, or run ${asAdmin(sys, "rmk-server setup")})`
         : health === 200
           ? ""
           : running
@@ -98,7 +114,7 @@ export const serviceStatus = async (
   if (missing.length > 0)
     lines.push(
       "",
-      `It runs ${missing.join(" and ")}, which ${missing.length > 1 ? "aren't" : "isn't"} there any more (moved, or removed by npm). Run sudo rmk-server service install again from the rmk-server you use now.`,
+      `It runs ${missing.join(" and ")}, which ${missing.length > 1 ? "aren't" : "isn't"} there any more (moved, or removed by npm). Run ${asAdmin(sys, "rmk-server service install")} again from the rmk-server you use now.`,
     );
   sys.out(`${lines.join("\n")}\n`);
   return running ? STATUS_RUNNING : STATUS_STOPPED;
@@ -132,7 +148,7 @@ export const controlService = async (
     // The proxy first, so nothing is sent to a server that's going away.
     for (const { definition } of [...services].reverse()) backend.stop(definition);
     sys.out(
-      "Stopped the rmk-server service. It starts again at the next boot, or with: sudo rmk-server service start\n",
+      `Stopped the rmk-server service. It starts again at the next boot, or with: ${asAdmin(sys, "rmk-server service start")}\n`,
     );
     return 0;
   }
@@ -202,7 +218,7 @@ export const scriptForService = async (
   if (!state) return undefined;
   if (!sys.isRoot()) {
     sys.err(
-      `rmk-server: the rmk-server service is installed here, with its data in ${layout.dataDir}. To ${SCRIPT_VERBS[script] ?? script}, run: sudo rmk-server ${script}\nFor a separate instance of your own, set RONNE_DATA_DIR first.\n`,
+      `rmk-server: the rmk-server service is installed here, with its data in ${layout.dataDir}. To ${SCRIPT_VERBS[script] ?? script}, run: ${asAdmin(sys, `rmk-server ${script}`)}\nFor a separate instance of your own, set RONNE_DATA_DIR first.\n`,
     );
     return 1;
   }
@@ -210,6 +226,32 @@ export const scriptForService = async (
   if (refusal) {
     sys.err(`rmk-server: ${refusal}\n`);
     return 1;
+  }
+  // Windows: a virtual account can't be started from a terminal, so the script runs as the
+  // administrator running it; what it writes in the data folder inherits the folder's permissions,
+  // the service's account's included.
+  if (sys.platform === "win32") {
+    // The service's account may write the data folder, and the script runs as an administrator:
+    // a link it put there would take the administrator's writes elsewhere.
+    const links = sys.findLinks(layout.dataDir);
+    if (links.length > 0) {
+      sys.err(
+        `rmk-server: ${links.join(", ")} ${links.length > 1 ? "are links" : "is a link"} (a symbolic link, a junction, or a file with another hard link), which the data folder never holds. Look at ${links.length > 1 ? "them" : "it"} and remove ${links.length > 1 ? "them" : "it"} first.\n`,
+      );
+      return 1;
+    }
+    sys.out(`The rmk-server service's ${layout.dataDir}:\n`);
+    return sys.runAttached(context.node, [context.entry, script, ...args], {
+      cwd: layout.dataDir,
+      env: {
+        ...sys.env,
+        RONNE_DATA_DIR: layout.dataDir,
+        RONNE_ENV_FILE: layout.envFile,
+        PORT: String(state.port),
+        RONNE_SERVICE: "1",
+        ...(state.domain ? { PUBLIC_URL: `https://${state.domain}` } : {}),
+      },
+    });
   }
   // The system account; on macOS also the person running sudo, for a --user install.
   const allowed = [
@@ -227,7 +269,7 @@ export const scriptForService = async (
     sys.err(
       `rmk-server: the service's account (${state.user}) isn't one it may use here${
         layout.systemUser ? "" : " (with --user, run sudo from that account)"
-      }, or isn't there. Run sudo rmk-server service install again.\n`,
+      }, or isn't there. Run ${asAdmin(sys, "rmk-server service install")} again.\n`,
     );
     return 1;
   }

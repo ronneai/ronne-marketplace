@@ -1,6 +1,6 @@
 // `rmk-server service install` and `uninstall` (feature 083), the same on every system: a backend
 // (systemd, launchd; WinSW in 086) does what differs.
-import { basename, dirname } from "node:path";
+import { basename, dirname, posix, win32 } from "node:path";
 import type { InstallOptions } from "./args.js";
 import { nativeCaddyfile } from "./caddyfile.js";
 import type { ServiceLayout } from "./layout.js";
@@ -22,6 +22,11 @@ export type Backend = {
   chown: (path: string, user: string, group: string, recursive?: boolean) => void;
   /** Gives `group` these files and folders, readable by it; owners and other modes stay. */
   shareWithGroup: (paths: string[], group: string) => void;
+  /**
+   * Makes a folder (and its missing parents) with these permissions. Windows makes Ronne's with
+   * their final permissions at once, and refuses one that's there but isn't the administrators'.
+   */
+  makeFolder: (path: string, mode: number) => void;
   /** After folders are made: SELinux labels, where there are any. */
   labelFolders: (paths: string[]) => void;
   /** Loads the definition written at `path`, enables it at boot and (re)starts it. */
@@ -43,6 +48,12 @@ export type Backend = {
   caddyHint: () => string;
   /** Which program holds a port, when the system can tell. */
   portHolder: (port: number) => string | undefined;
+  /** Lets these ports in through the system's firewall, as one rule named after `name` (Windows). */
+  allowInbound: (name: string, ports: number[]) => void;
+  /** Removes that rule, if there is one. */
+  removeInbound: (name: string) => void;
+  /** Why `user` can't run the program, and what to do (when canRun said it can't). */
+  cantRunHint: (user: string, node: string, entry: string) => string;
 };
 
 /** What install records in the settings folder, for status, a later install and uninstall. */
@@ -72,7 +83,18 @@ export const STATE_FILE = "service.json";
 export const MIN_CADDY = [2, 7] as const;
 const HEALTH_WAIT_MS = 90_000;
 
-export const statePath = (layout: ServiceLayout): string => `${layout.settingsDir}/${STATE_FILE}`;
+/** A path in one of the layout's folders, with the system's own separator. */
+export const inLayout = (layout: ServiceLayout, ...parts: string[]): string =>
+  (layout.platform === "win32" ? win32 : posix).join(...parts);
+
+export const statePath = (layout: ServiceLayout): string =>
+  inLayout(layout, layout.settingsDir, STATE_FILE);
+
+/** A command that needs root, or on Windows an administrator, as people should type it. */
+export const asAdmin = (sys: System, command: string): string =>
+  sys.platform === "win32"
+    ? `${command} (in a terminal opened as administrator)`
+    : `sudo ${command}`;
 
 /**
  * The settings folder is the service account's, so root never reads or writes through a link it
@@ -96,7 +118,7 @@ export const readState = (sys: System, layout: ServiceLayout): ServiceState | un
 };
 
 /** npx and pnpm dlx run from a cache that can be cleaned, so a service can't point there. */
-export const fromTemporaryCache = (entry: string): boolean => /\/(_npx|dlx)\//.test(entry);
+export const fromTemporaryCache = (entry: string): boolean => /[\\/](_npx|dlx)[\\/]/.test(entry);
 
 export const caddyVersion = (output: string): [number, number] | undefined => {
   const match = /v(\d+)\.(\d+)\./.exec(output);
@@ -120,8 +142,14 @@ export const needsRoot = (sys: System, action: string): number | undefined =>
     ? undefined
     : fail(
         sys,
-        `service ${action} changes system services, so it needs root. Run: sudo rmk-server service ${action}`,
+        sys.platform === "win32"
+          ? `service ${action} changes Windows services, so it needs an administrator. Open a terminal as administrator (right-click PowerShell or Terminal, Run as administrator) and run: rmk-server service ${action}`
+          : `service ${action} changes system services, so it needs root. Run: sudo rmk-server service ${action}`,
       );
+
+/** Linux and macOS: why an account can't run the program (cantRunHint). */
+export const homeFolderHint = (user: string, node: string, entry: string): string =>
+  `the ${user} account can't run ${entry} with ${node}: a program in someone's home folder (nvm, a user prefix) isn't readable by other accounts. Install Node.js for the whole machine (your package manager or nodejs.org), then npm install --global @ronneai/marketplace with it, and run this again.`;
 
 const isWildcard = (host: string): boolean => host === "0.0.0.0" || host === "::";
 
@@ -137,7 +165,7 @@ export const installService = async (
   if (fromTemporaryCache(context.entry))
     return fail(
       sys,
-      "this rmk-server runs from npx's cache, which can be cleaned at any time, so a service can't point to it. Install it first: npm install --global @ronneai/marketplace, then: sudo rmk-server service install",
+      `this rmk-server runs from npx's cache, which can be cleaned at any time, so a service can't point to it. Install it first: npm install --global @ronneai/marketplace, then: ${asAdmin(sys, "rmk-server service install")}`,
     );
   const unavailable = backend.unavailable();
   if (unavailable) return fail(sys, unavailable);
@@ -233,9 +261,7 @@ export const installService = async (
     return fail(sys, message);
   };
   if (!backend.canRun(layout.user, context.node, [context.entry, "--version"]))
-    return undo(
-      `the ${layout.user} account can't run ${context.entry} with ${context.node}: a program in someone's home folder (nvm, a user prefix) isn't readable by other accounts. Install Node.js for the whole machine (your package manager or nodejs.org), then npm install --global @ronneai/marketplace with it, and run this again.`,
-    );
+    return undo(backend.cantRunHint(layout.user, context.node, context.entry));
   if (plan.proxy && options.tls === "files" && layout.proxyUser !== "root") {
     // The files are there for the proxy only: its group may read them (owner and other modes
     // stay), so a key kept at 600 works, and so does one from before an uninstall.
@@ -253,8 +279,8 @@ export const installService = async (
   // server's (the setup rewrites it in place there). So the server's account can't swap a name
   // in it for a link between root's check and root's read, or plant files root would trust
   // (service.json). Taken back first, then checked again, before anything in it is read.
-  sys.mkdir(layout.dataDir, 0o750);
-  sys.mkdir(layout.settingsDir, 0o755);
+  backend.makeFolder(layout.dataDir, 0o750);
+  backend.makeFolder(layout.settingsDir, 0o755);
   backend.chown(layout.settingsDir, "root", layout.rootGroup, false);
   const relinked = unsafeFiles(sys, layout);
   if (relinked) return fail(sys, relinked);
@@ -274,13 +300,13 @@ export const installService = async (
   backend.chown(layout.envFile, layout.user, layout.group, false);
   const folders = [layout.dataDir, layout.settingsDir];
   if (plan.proxy) {
-    sys.mkdir(layout.proxyDataDir, 0o700);
+    backend.makeFolder(layout.proxyDataDir, 0o700);
     backend.chown(layout.proxyDataDir, layout.proxyUser, layout.proxyGroup);
     // root's, so the server's account can't change what the proxy runs. The certificates folder
     // is made once, for the proxy's group; files people put in it are left as they are.
-    sys.mkdir(layout.proxySettingsDir, 0o755);
+    backend.makeFolder(layout.proxySettingsDir, 0o755);
     if (!sys.exists(layout.certsDir)) {
-      sys.mkdir(layout.certsDir, 0o750);
+      backend.makeFolder(layout.certsDir, 0o750);
       backend.chown(layout.certsDir, "root", layout.proxyGroup);
     }
     sys.writeFile(
@@ -299,9 +325,15 @@ export const installService = async (
   // Log files (macOS): launchd doesn't create their folder, and each belongs to its service's account.
   for (const definition of [plan.app, ...(plan.proxy ? [plan.proxy] : [])])
     if (definition.logFile) {
-      sys.mkdir(dirname(definition.logFile), 0o755);
+      backend.makeFolder(dirname(definition.logFile), 0o755);
       if (!sys.exists(definition.logFile)) sys.writeFile(definition.logFile, "", 0o644);
       backend.chown(definition.logFile, definition.user, definition.group);
+    }
+  // A log folder (Windows): WinSW writes each service's files in it, as that service's account.
+  for (const definition of [plan.app, ...(plan.proxy ? [plan.proxy] : [])])
+    if (definition.logDir) {
+      backend.makeFolder(definition.logDir, 0o750);
+      backend.chown(definition.logDir, definition.user, definition.group);
     }
   backend.labelFolders(folders);
   const state: ServiceState = {
@@ -317,7 +349,9 @@ export const installService = async (
   };
   sys.writeFile(statePath(layout), `${JSON.stringify(state, null, 2)}\n`, 0o644);
 
-  // The services.
+  // The services. Their folder is the system's on Linux and macOS, Ronne's own on Windows.
+  const definitions = (layout.platform === "win32" ? win32 : posix).dirname(layout.definition);
+  if (!sys.exists(definitions)) backend.makeFolder(definitions, 0o755);
   sys.writeFile(layout.definition, backend.render(plan.app), 0o644);
   const appError = backend.activate(plan.app, layout.definition);
   if (appError) return fail(sys, appError);
@@ -337,6 +371,10 @@ export const installService = async (
     backend.deactivate(old, layout.proxyDefinition);
     sys.remove(layout.caddyfile);
   }
+
+  // The firewall: the port, when it listens beyond this machine and nothing proxies it.
+  if (isWildcard(options.host) && !plan.proxy) backend.allowInbound(plan.app.name, [options.port]);
+  else backend.removeInbound(plan.app.name);
 
   // Wait until it answers: 503 before the setup, 200 after.
   const healthUrl = `http://${upstreamFor(options.host, options.port)}/api/health`;
@@ -430,6 +468,7 @@ export const uninstallService = async (
   if (sys.exists(layout.proxyDefinition) && plan.proxy)
     backend.deactivate(plan.proxy, layout.proxyDefinition);
   if (sys.exists(layout.definition)) backend.deactivate(plan.app, layout.definition);
+  backend.removeInbound(plan.app.name);
   sys.remove(layout.caddyfile);
   sys.remove(statePath(layout));
   // Only the two accounts install makes: service.json sits in a folder the server's account can
@@ -452,7 +491,7 @@ export const uninstallService = async (
     sys.out("Removed the rmk-server service and deleted its data and settings.\n");
   } else
     sys.out(
-      `Removed the rmk-server service. The data stays in ${layout.dataDir} and the settings in ${layout.envFile}: sudo rmk-server service install uses them again.\n`,
+      `Removed the rmk-server service. The data stays in ${layout.dataDir} and the settings in ${layout.envFile}: ${asAdmin(sys, "rmk-server service install")} uses them again.\n`,
     );
   return 0;
 };

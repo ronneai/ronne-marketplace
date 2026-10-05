@@ -1,5 +1,5 @@
 // The macOS backend (feature 083): launchd daemons in the system domain, accounts through dscl.
-import type { Backend } from "./install.js";
+import { type Backend, homeFolderHint } from "./install.js";
 import { renderLaunchdPlist } from "./launchd.js";
 import type { ServiceDefinition } from "./model.js";
 import type { System } from "./system.js";
@@ -175,6 +175,11 @@ export const macBackend = (sys: System): Backend => {
     logsHint: (definition) => `tail -f ${definition.logFile ?? "/Library/Logs/rmk-server"}`,
     caddyHint: () =>
       "Install it with Homebrew: brew install caddy (and don't start brew's own caddy service, which would take ports 80 and 443).",
+    // Their firewalls (nftables, firewalld, ufw; pf) are the owner's to configure.
+    makeFolder: (path, mode) => sys.mkdir(path, mode),
+    allowInbound: () => {},
+    removeInbound: () => {},
+    cantRunHint: homeFolderHint,
     portHolder: (port) => {
       const listing = sys.run("lsof", ["-nP", `-iTCP:${port}`, "-sTCP:LISTEN", "-Fpc"]).stdout;
       const pid = /^p(\d+)$/m.exec(listing)?.[1];

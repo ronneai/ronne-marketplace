@@ -128,7 +128,7 @@ export const servicePlan = (options: ServiceOptions): ServicePlan => {
       bindsLowPorts: layout.platform === "linux",
       after: [SERVICE_NAME],
       ...(layout.proxyLogFile ? { logFile: layout.proxyLogFile } : {}),
-      ...(layout.logDir ? { logDir: layout.logDir } : {}),
+      ...(layout.proxyLogDir ? { logDir: layout.proxyLogDir } : {}),
       upstream: upstreamFor(host, port),
       options: proxy,
     },

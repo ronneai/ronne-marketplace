@@ -7,14 +7,19 @@ import {
   chmodSync,
   closeSync,
   constants,
+  copyFileSync,
   existsSync,
   fchmodSync,
   lstatSync,
   mkdirSync,
   openSync,
+  readdirSync,
   readFileSync,
+  readSync,
   renameSync,
   rmSync,
+  type Stats,
+  statSync,
   writeFileSync,
 } from "node:fs";
 import { createServer } from "node:net";
@@ -26,6 +31,7 @@ export type RunResult = { code: number; stdout: string; stderr: string };
 export type System = {
   platform: NodeJS.Platform;
   env: Record<string, string | undefined>;
+  /** Root on Linux and macOS; on Windows, an elevated (administrator) process. */
   isRoot: () => boolean;
   /**
    * Runs a program and waits; never throws (a missing program is code 127). With `uid` and `gid`
@@ -61,6 +67,15 @@ export type System = {
   /** Creates a folder (and any missing parents, 755) and sets the folder's own permissions. */
   mkdir: (path: string, mode: number) => void;
   remove: (path: string) => void;
+  /** Copies a file over another (a program: WinSW, 086). */
+  copyFile: (from: string, to: string) => void;
+  /**
+   * The links at or under `path` (symbolic links, junctions, files with another hard link), without
+   * following any: Windows' icacls /T would change what they point to (086).
+   */
+  findLinks: (path: string) => string[];
+  /** Prints the last lines of these files, then what's added, until interrupted (Windows' logs). */
+  followFiles: (paths: string[], lines: number) => Promise<number>;
   portFree: (port: number, host: string) => Promise<boolean>;
   /** The HTTP status of a GET, or undefined when nothing answers. */
   httpStatus: (url: string) => Promise<number | undefined>;
@@ -82,7 +97,11 @@ const portFree = (port: number, host: string): Promise<boolean> =>
 export const realSystem = (): System => ({
   platform: process.platform,
   env: process.env,
-  isRoot: () => process.getuid?.() === 0,
+  isRoot: () =>
+    process.platform === "win32"
+      ? // fltmc (the filter manager) answers only an elevated process; it's on every Windows.
+        spawnSync("fltmc", [], { stdio: "ignore" }).status === 0
+      : process.getuid?.() === 0,
   run: (command, args, as) => {
     const result = spawnSync(command, args, {
       encoding: "utf8",
@@ -108,14 +127,21 @@ export const realSystem = (): System => ({
       child.once("exit", (code, signal) => done(code ?? (signal ? 128 : 1)));
     }),
   which: (name) => {
+    // Windows finds programs by their extensions (PATHEXT: .COM;.EXE;.BAT;.CMD…).
+    const extensions =
+      process.platform === "win32"
+        ? (process.env.PATHEXT ?? ".COM;.EXE;.BAT;.CMD").split(";").filter(Boolean)
+        : [""];
     for (const dir of (process.env.PATH ?? "").split(delimiter)) {
       if (!dir) continue;
-      const path = join(dir, name);
-      try {
-        accessSync(path, constants.X_OK);
-        return path;
-      } catch {
-        // not here
+      for (const extension of extensions) {
+        const path = join(dir, `${name}${extension.toLowerCase()}`);
+        try {
+          accessSync(path, constants.X_OK);
+          if (process.platform !== "win32" || statSync(path).isFile()) return path;
+        } catch {
+          // not here
+        }
       }
     }
     return undefined;
@@ -156,6 +182,68 @@ export const realSystem = (): System => ({
     chmodSync(path, mode);
   },
   remove: (path) => rmSync(path, { recursive: true, force: true }),
+  copyFile: (from, to) => copyFileSync(from, to),
+  findLinks: (root) => {
+    const found: string[] = [];
+    const visit = (path: string) => {
+      let stat: Stats;
+      try {
+        stat = lstatSync(path);
+      } catch {
+        return;
+      }
+      // On Windows a junction is a symbolic link to lstat.
+      if (stat.isSymbolicLink() || (stat.isFile() && stat.nlink > 1)) found.push(path);
+      else if (stat.isDirectory()) for (const name of readdirSync(path)) visit(join(path, name));
+    };
+    visit(root);
+    return found;
+  },
+  followFiles: (paths, lines) =>
+    new Promise((resolve) => {
+      const offsets = new Map<string, number>();
+      const many = paths.length > 1;
+      let last: string | undefined;
+      const print = (path: string, text: string) => {
+        if (!text) return;
+        if (many && last !== path) process.stdout.write(`==> ${path} <==\n`);
+        last = path;
+        process.stdout.write(text);
+      };
+      for (const path of paths) {
+        const content = existsSync(path) ? readFileSync(path, "utf8") : "";
+        const tail = content.split(/\r?\n/);
+        if (tail.at(-1) === "") tail.pop();
+        print(path, tail.length ? `${tail.slice(-lines).join("\n")}\n` : "");
+        offsets.set(path, Buffer.byteLength(content));
+      }
+      // WinSW rolls a file by renaming it and starting a new one: a smaller size starts again.
+      const timer = setInterval(() => {
+        for (const path of paths) {
+          let size: number;
+          try {
+            size = statSync(path).size;
+          } catch {
+            continue;
+          }
+          const from = (offsets.get(path) ?? 0) > size ? 0 : (offsets.get(path) ?? 0);
+          if (size === from) continue;
+          const fd = openSync(path, "r");
+          try {
+            const buffer = Buffer.alloc(size - from);
+            readSync(fd, buffer, 0, buffer.length, from);
+            print(path, buffer.toString("utf8"));
+          } finally {
+            closeSync(fd);
+          }
+          offsets.set(path, size);
+        }
+      }, 1000);
+      process.once("SIGINT", () => {
+        clearInterval(timer);
+        resolve(0);
+      });
+    }),
   portFree,
   httpStatus: async (url) => {
     try {

@@ -175,11 +175,39 @@ jobs:
     needs: bundles
     uses: ./.github/workflows/packages.yml
 
+  # The service on Windows (086): WinSW and the virtual account, from the Windows bundle unzipped
+  # into Program Files. GitHub's Windows runners run elevated, as `service install` needs.
+  service-windows:
+    name: Service on Windows (WinSW)
+    needs: bundles
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/service
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: bundle-win32-x64
+          path: bundle
+      - name: Install, set up, restart, a crash, the firewall, uninstall
+        shell: pwsh
+        run: ./scripts/service/test-windows-service.ps1 -Bundle (Get-ChildItem bundle/*.zip).FullName
+      - name: The service's logs
+        if: ${{ failure() }}
+        shell: pwsh
+        run: |
+          Get-ChildItem C:\ProgramData\RonneAI\Marketplace\logs -ErrorAction SilentlyContinue |
+            ForEach-Object { "==> $($_.FullName)"; Get-Content -Tail 100 $_.FullName }
+          Get-WinEvent -LogName System -MaxEvents 30 |
+            Where-Object ProviderName -eq 'Service Control Manager' | Format-List TimeCreated, Message
+
   # One check to require: it passes when every system passed, or when they were skipped for a
   # docs-only pull request.
   server-package:
     name: Server package
-    needs: [changes, pack, install, service-linux, service-macos, bundles, linux-packages]
+    needs: [changes, pack, install, service-linux, service-macos, service-windows, bundles, linux-packages]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
@@ -189,8 +217,9 @@ jobs:
           INSTALL_RESULT: ${{ needs.install.result }}
           SERVICE_RESULT: ${{ needs.service-linux.result }}
           MACOS_RESULT: ${{ needs.service-macos.result }}
+          WINDOWS_RESULT: ${{ needs.service-windows.result }}
           BUNDLES_RESULT: ${{ needs.bundles.result }}
           PACKAGES_RESULT: ${{ needs.linux-packages.result }}
         run: |
-          echo "pack: $PACK_RESULT, install: $INSTALL_RESULT, service: $SERVICE_RESULT, macOS: $MACOS_RESULT, bundles: $BUNDLES_RESULT, packages: $PACKAGES_RESULT"
-          for r in "$PACK_RESULT" "$INSTALL_RESULT" "$SERVICE_RESULT" "$MACOS_RESULT" "$BUNDLES_RESULT" "$PACKAGES_RESULT"; do [ "$r" = success ] || [ "$r" = skipped ] || exit 1; done
+          echo "pack: $PACK_RESULT, install: $INSTALL_RESULT, service: $SERVICE_RESULT, macOS: $MACOS_RESULT, Windows: $WINDOWS_RESULT, bundles: $BUNDLES_RESULT, packages: $PACKAGES_RESULT"
+          for r in "$PACK_RESULT" "$INSTALL_RESULT" "$SERVICE_RESULT" "$MACOS_RESULT" "$WINDOWS_RESULT" "$BUNDLES_RESULT" "$PACKAGES_RESULT"; do [ "$r" = success ] || [ "$r" = skipped ] || exit 1; done

@@ -1,5 +1,5 @@
 // The Linux backend (feature 083): systemd, useradd, SELinux labels.
-import type { Backend } from "./install.js";
+import { type Backend, homeFolderHint } from "./install.js";
 import type { ServiceDefinition } from "./model.js";
 import type { System } from "./system.js";
 import { renderSystemdUnit } from "./systemd.js";
@@ -123,6 +123,11 @@ export const linuxBackend = (sys: System): Backend => {
       sys.run("journalctl", ["--unit", definition.name, "--lines", "40", "--no-pager"]).stdout,
     logsHint: (definition) => `journalctl -u ${definition.name}`,
     caddyHint: () => caddyHintFor(osFamily(sys.readFile("/etc/os-release"))),
+    // Their firewalls (nftables, firewalld, ufw; pf) are the owner's to configure.
+    makeFolder: (path, mode) => sys.mkdir(path, mode),
+    allowInbound: () => {},
+    removeInbound: () => {},
+    cantRunHint: homeFolderHint,
     portHolder: (port) => {
       const listing = sys.run("ss", ["-Hltnp", `sport = :${port}`]).stdout;
       const match = /users:\(\("([^"]*)",pid=(\d+)/.exec(listing);
