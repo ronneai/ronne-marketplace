@@ -21,6 +21,9 @@ until you approve its "npm" environment.
 
 **The version:**
 
+- [ ] A new version: a tag whose GitHub release already exists only re-runs the npm and image steps
+      (the release itself is left as it is). The first with bundles comes after 0.2.0.
+
 - [ ] `pnpm release:version X.Y.Z` sets the version of `@ronneai/core`, `@ronneai/rmk`,
       `@ronneai/mcp`, `@ronneai/marketplace` and the web app. Merge it through a pull request.
 

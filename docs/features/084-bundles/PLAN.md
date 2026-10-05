@@ -12,7 +12,7 @@ the same change that completes it.
   notices, archive.
   *Done when:* it builds and runs the bundle for this machine; size recorded in the notes.
 
-- [ ] **2. Release matrix.** In `release.yml`, a job per platform on native runners (ubuntu, ubuntu
+- [x] **2. Release matrix.** In `release.yml`, a job per platform on native runners (ubuntu, ubuntu
   arm, macos-13 for x64, macos-latest for arm64, windows, windows arm if available): build, smoke
   test without Node on `PATH`, upload as a workflow artifact; a final job attaches all six only if
   all passed.
@@ -218,3 +218,27 @@ goes into `SPEC.md` instead.
   archive, but a release needs all six (the workflow counts them); reworded. The notes now write
   each archive's full name. And 085's spec, which cited 084's floor as 2.28, says 2.34 (found by the
   re-check).
+
+### The dry-run release (2026-10-05)
+
+- A dry run can't start from a feature branch: the "npm" environment only accepts its allowed
+  branches ("Branch "feat/084-bundles" is not allowed to deploy to npm due to environment
+  protection rules"), and the first attempt (run 37244202459) failed before any step. So the pull
+  request was merged and the dry run ran from `main`, as the release checklist says.
+- **Run 37246827526, from `main` at bc5a6aa, tag v0.2.0, dry run: success.** Every check, both
+  images built, run and scanned, and the six bundles on their own runners: each Node.js 24.21.0
+  download matching nodejs.org's `SHASUMS256.txt`, each archive passing the allowlist check and
+  the smoke test with no Node.js on `PATH` (setup, 200, a token, the port freed). Archives:
+  linux-x64 79.0 MB, linux-arm64 78.6 MB, darwin-x64 74.8 MB, darwin-arm64 73.4 MB, win32-x64 61.3
+  MB, win32-arm64 57.2 MB. The image tag and the GitHub release were skipped, as on every dry run;
+  nothing was published. Task 2's *Done when* is met (witnessed).
+- **For the first real release with bundles** (found by the witness):
+  - it needs a **new version** (v0.2.1 or v0.3.0): the v0.2.0 GitHub release exists since
+    2026-10-01, and `github-release` leaves an existing release alone, so a v0.2.0 run would attach
+    no bundles;
+  - **`@ronneai/marketplace` isn't on npm yet** (`npm view` answers E404): 0.2.0 was only ever
+    published as a dry run. Its first publish needs the short-lived `NPM_TOKEN` (082's note, and the
+    release checklist).
+- **Not covered until then:** the real `gh release create` with the six archives in
+  `checksums.txt` and the notes (including reading Node's version from the linux-x64 archive), so
+  the spec's first acceptance criterion stays open.
