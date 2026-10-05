@@ -329,6 +329,23 @@ describe("--domain on Windows: the proxy service (086)", () => {
     expect(sys.output.join("")).toContain("Proxy:     rmk-server-proxy, Caddy on ports 80 and 443");
   });
 
+  it("port 80 taken by Windows' own HTTP server: says what it is and how to stop it", async () => {
+    const sys = withCaddy(machine());
+    // A first --domain: no proxy running yet, so 80 and 443 are checked.
+    sys.answers.set("sc.exe query rmk-server-proxy", { code: 1060, stdout: "" });
+    sys.busy.add(80);
+    sys.answers.set("netstat -ano -p TCP", {
+      stdout: "  TCP    0.0.0.0:80             0.0.0.0:0              LISTENING       4\r\n",
+    });
+    sys.answers.set("tasklist", { stdout: '"System","4","Services","0","152 K"\r\n' });
+    expect(await install(sys, domain)).toBe(1);
+    const message = sys.errors.join("");
+    expect(message).toContain("port 80 is in use by System (pid 4)");
+    expect(message).toContain("netsh http show servicestate");
+    expect(message).toContain("Stop-Service W3SVC");
+    expect(message).not.toContain("systemctl");
+  });
+
   it("--tls files: reads certs\\cert.pem and key.pem, with paths Caddy reads", async () => {
     const sys = withCaddy(machine());
     expect(await install(sys, { ...domain, tls: "files" })).toBe(1);

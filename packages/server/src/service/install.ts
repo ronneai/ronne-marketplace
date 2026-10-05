@@ -244,7 +244,10 @@ export const installService = async (
         const holder = backend.portHolder(port);
         return fail(
           sys,
-          `--domain serves HTTPS on ports 80 and 443, and port ${port} is in use${holder ? ` by ${holder}` : ""}. If it's a web server you run (a system Caddy, nginx, Apache), stop it, or keep it and point it at http://127.0.0.1:${options.port} instead of using --domain. A Caddy installed from a package starts its own service: sudo systemctl disable --now caddy.`,
+          layout.platform === "win32"
+            ? // System (pid 4) is HTTP.sys, Windows' own HTTP server, which IIS and others use.
+              `--domain serves HTTPS on ports 80 and 443, and port ${port} is in use${holder ? ` by ${holder}` : ""}. System (pid 4) is Windows' own HTTP server, which IIS and some other services use: netsh http show servicestate shows which. Stop it (IIS: Stop-Service W3SVC, and Set-Service W3SVC -StartupType Disabled to keep it stopped), or keep your web server and point it at http://127.0.0.1:${options.port} instead of using --domain.`
+            : `--domain serves HTTPS on ports 80 and 443, and port ${port} is in use${holder ? ` by ${holder}` : ""}. If it's a web server you run (a system Caddy, nginx, Apache), stop it, or keep it and point it at http://127.0.0.1:${options.port} instead of using --domain. A Caddy installed from a package starts its own service: sudo systemctl disable --now caddy.`,
         );
       }
 

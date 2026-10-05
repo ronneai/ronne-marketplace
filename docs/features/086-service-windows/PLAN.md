@@ -213,6 +213,12 @@ goes into `SPEC.md` instead.
     port as the service's own only with the same host, and the service still held it on 0.0.0.0.
     Now the port is its own whenever it's the same and the service runs (a test covers it); the
     script checks that install's exit code.
+  - **CI's sixth Windows run** passed everything up to `--domain`, the firewall rule's removal
+    included, then found port 80 held by "System (pid 4)": HTTP.sys, Windows' own HTTP server
+    (IIS and some other services use it). Install was right to refuse, as Caddy couldn't bind it
+    either, but the message suggested `systemctl`. On Windows it now names HTTP.sys,
+    `netsh http show servicestate`, and how to stop IIS (a test covers it); the script stops
+    W3SVC and WAS first, and prints who holds 80 or 443 if it still can't go on.
 
 ### Task 4: the proxy service (2026-10-05)
 

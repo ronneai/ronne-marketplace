@@ -168,6 +168,16 @@ WaitFor $health 200
 if (Get-NetFirewallRule -DisplayName 'rmk-server' -ErrorAction SilentlyContinue) { Fail 'the rule stayed' }
 Step '--host 0.0.0.0: an inbound rule for 7650 on Private networks; removed with 127.0.0.1'
 
+# --domain needs 80 and 443. GitHub's runner has Windows' own HTTP server (HTTP.sys, "System",
+# pid 4) on 80: stop what uses it, as the install's message says to.
+Get-Service W3SVC, WAS -ErrorAction SilentlyContinue | Stop-Service -Force -ErrorAction SilentlyContinue
+foreach ($port in 80, 443) {
+  if (Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue) {
+    netsh http show servicestate view=requestq | Out-String | Write-Host
+    Fail "port $port is still in use: $(Get-NetTCPConnection -LocalPort $port -State Listen | ForEach-Object { "$($_.LocalAddress) pid $($_.OwningProcess)" })"
+  }
+}
+
 # --domain: needs Caddy, a Caddy the proxy's account can run, then HTTPS through rmk-server-proxy.
 $out = Run $rmk service install --domain localhost --tls internal
 if ($code -eq 0 -or $out -notmatch 'needs Caddy') { Fail "--domain without Caddy ($code): $out" }
