@@ -5,13 +5,7 @@ import { type FakeSystem, fakeSystem } from "./fake-system.js";
 import { serviceTarget } from "./index.js";
 import { installService, readState, uninstallService } from "./install.js";
 import { serviceLayout } from "./layout.js";
-import {
-  ADMINISTRATORS_SID,
-  inUserProfile,
-  listeningPid,
-  parseServiceSid,
-  windowsBackend,
-} from "./windows.js";
+import { inUserProfile, listeningPid, parseServiceSid, windowsBackend } from "./windows.js";
 
 // The feature-086 backend, on the fake system: what it runs, in order.
 const layout = serviceLayout({ platform: "win32" });
