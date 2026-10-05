@@ -26,6 +26,13 @@ const defaults: InstallOptions = { port: 7650, host: "127.0.0.1", tls: "auto", u
 const APP_SID = "S-1-5-80-592519931-4167868336-2113710152-492910867-907829221";
 const PROXY_SID = "S-1-5-80-3679413298-395819311-4094257142-1108795590-674802607";
 
+/** A PowerShell command by its script's first line (what it does); other commands as they are. */
+const shown = (line: string): string => {
+  if (!line.startsWith("powershell")) return line;
+  const script = Buffer.from(line.split(" ").pop() ?? "", "base64").toString("utf16le");
+  return `ps ${script.split("\n")[0]?.replace(/^# /, "")}`;
+};
+
 /** The folders makeFolder's PowerShell script makes or checks, from its encoded command. */
 const madeIn = (line: string): string => {
   const script = Buffer.from(line.split(" ").pop() ?? "", "base64").toString("utf16le");
@@ -116,34 +123,38 @@ describe("service install on Windows (086)", () => {
   it("makes the folders locked from the start, writes the XML, installs WinSW and starts it", async () => {
     const sys = machine();
     expect(await install(sys)).toBe(0);
-    const admins = `*${ADMINISTRATORS_SID}`;
     const lines = sys.commands
       .filter((line) => /^(powershell|icacls|takeown|copy|net |netsh|C:)/.test(line))
-      .map((line) => (line.startsWith("powershell") ? `powershell ${madeIn(line)}` : line));
+      .map((line) =>
+        shown(line).startsWith("ps make ") ? `powershell ${madeIn(line)}` : shown(line),
+      );
     expect(lines).toEqual([
       // Each folder made with its final permissions (RonneAI and Marketplace on the way to data).
       `powershell C:\\ProgramData\\RonneAI, ${ROOT}, ${ROOT}\\data (private)`,
       `powershell C:\\ProgramData\\RonneAI, ${ROOT}`,
       // The data: the service's account may change what's in it, never its permissions.
-      `icacls ${ROOT}\\data /grant *${APP_SID}:(OI)(CI)M /Q`,
+      `ps allow M ${APP_SID} ${ROOT}\\data`,
       // The settings file: the one file in the folder the service may write.
-      `icacls ${ROOT}\\.env /inheritance:r /grant:r *S-1-5-18:F ${admins}:F *${APP_SID}:M /Q`,
-      `icacls ${ROOT}\\.env /setowner ${admins} /Q`,
+      `ps settings ${APP_SID} ${ROOT}\\.env`,
       // The logs, which WinSW writes as the service's account.
       `powershell C:\\ProgramData\\RonneAI, ${ROOT}, ${ROOT}\\logs (private)`,
-      `icacls ${ROOT}\\logs /grant *${APP_SID}:(OI)(CI)M /Q`,
+      `ps allow M ${APP_SID} ${ROOT}\\logs`,
       // WinSW: its own copy, in a folder only the administrators may write.
       `powershell C:\\ProgramData\\RonneAI, ${ROOT}, ${ROOT}\\service`,
       `copy ${WINSW} ${ROOT}\\service\\rmk-server-service.exe`,
-      `icacls ${ROOT}\\service /grant *${APP_SID}:(OI)(CI)(RX) /Q`,
+      `ps allow RX ${APP_SID} ${ROOT}\\service`,
       `${ROOT}\\service\\rmk-server-service.exe install`,
       "net start rmk-server",
       // Listening on 127.0.0.1, no proxy: no firewall rules (earlier ones are removed).
       "netsh advfirewall firewall delete rule name=rmk-server",
       "netsh advfirewall firewall delete rule name=rmk-server-proxy",
     ]);
-    expect(sys.commands.some((line) => line.startsWith("takeown") || line.includes("/T"))).toBe(
-      false,
+    // No icacls or takeown: icacls looks a SID up, and the account has none before the service.
+    expect(sys.commands.some((line) => /^(icacls|takeown)/.test(line))).toBe(false);
+    // .env: exactly the administrators' (owner), SYSTEM's, and the account's Modify.
+    const settings = sys.commands.find((line) => shown(line).startsWith("ps settings")) ?? "";
+    expect(Buffer.from(settings.split(" ").pop() ?? "", "base64").toString("utf16le")).toContain(
+      `O:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;0x1301bf;;;${APP_SID})`,
     );
     const xml = sys.files.get(`${ROOT}\\service\\rmk-server-service.xml`)?.content ?? "";
     expect(xml).toContain("<user>rmk-server</user>");
@@ -194,7 +205,9 @@ describe("service install on Windows (086)", () => {
       `${ROOT}\\data belongs to S-1-5-21-1-2-3-1001, not the administrators. Ronne's folders are made by its install`,
     );
     expect(sys.files.has(`${ROOT}\\.env`)).toBe(false);
-    expect(sys.commands.some((line) => /^(icacls|copy|net )/.test(line))).toBe(false);
+    expect(
+      sys.commands.map(shown).some((line) => /^(ps allow|ps settings|copy|net )/.test(line)),
+    ).toBe(false);
   });
 
   it("doesn't grant again on a folder an earlier install granted", async () => {
@@ -203,7 +216,7 @@ describe("service install on Windows (086)", () => {
       stdout: `kept\t${ROOT}\\data\tO:BAG:SYD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;0x1301bf;;;${APP_SID})\r\n`,
     });
     expect(await install(sys)).toBe(0);
-    expect(sys.commands.some((line) => line.startsWith(`icacls ${ROOT}\\data`))).toBe(false);
+    expect(sys.commands.map(shown)).not.toContain(`ps allow M ${APP_SID} ${ROOT}\\data`);
   });
 
   it("refuses to run a script as the administrator over a link in the data folder", async () => {
@@ -287,13 +300,13 @@ describe("--domain on Windows: the proxy service (086)", () => {
         expect.stringContaining(`${ROOT}\\proxy\\logs (private)`),
       ]),
     );
-    expect(sys.commands).toEqual(
+    expect(sys.commands.map(shown)).toEqual(
       expect.arrayContaining([
-        `icacls ${ROOT}\\proxy\\data /grant *${PROXY_SID}:(OI)(CI)M /Q`,
-        `icacls ${ROOT}\\proxy\\certs /grant *${PROXY_SID}:(OI)(CI)RX /Q`,
-        `icacls ${ROOT}\\proxy\\logs /grant *${PROXY_SID}:(OI)(CI)M /Q`,
+        `ps allow M ${PROXY_SID} ${ROOT}\\proxy\\data`,
+        `ps allow RX ${PROXY_SID} ${ROOT}\\proxy\\certs`,
+        `ps allow M ${PROXY_SID} ${ROOT}\\proxy\\logs`,
         // It reads its Caddyfile, in a folder that's otherwise the administrators'.
-        `icacls ${ROOT}\\proxy /grant *${PROXY_SID}:(OI)(CI)RX /Q`,
+        `ps allow RX ${PROXY_SID} ${ROOT}\\proxy`,
         // (no net start here: the fake already answers that it runs)
         `${ROOT}\\service\\rmk-server-proxy-service.exe install`,
         "netsh advfirewall firewall add rule name=rmk-server-proxy dir=in action=allow protocol=TCP localport=80,443 profile=any",
@@ -320,8 +333,8 @@ describe("--domain on Windows: the proxy service (086)", () => {
     expect(sys.files.get(`${ROOT}\\proxy\\Caddyfile`)?.content).toContain(
       "tls C:/ProgramData/RonneAI/Marketplace/proxy/certs/cert.pem C:/ProgramData/RonneAI/Marketplace/proxy/certs/key.pem",
     );
-    expect(sys.commands).toContain(
-      `icacls ${ROOT}\\proxy\\certs\\key.pem /grant *${PROXY_SID}:(RX) /Q`,
+    expect(sys.commands.map(shown)).toContain(
+      `ps allow RX ${PROXY_SID} ${ROOT}\\proxy\\certs\\key.pem`,
     );
   });
 

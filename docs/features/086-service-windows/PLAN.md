@@ -196,6 +196,13 @@ goes into `SPEC.md` instead.
     module ("The member AuditToString is already present", from `Get-Acl`). The script resets
     the module path first and uses no command that loads a module: `[IO.DirectoryInfo]`,
     `GetAccessControl()`, `::new()`. The knowledge note says so.
+  - **CI's third Windows run** made and checked the folders, then failed on the first grant:
+    `icacls` looks up a `*SID` too ("No mapping between account names and security IDs was done"),
+    and a service's account has no name until the service is registered. Every permission change
+    now goes through .NET in the same kind of script (`FileSystemAccessRule` with a
+    `SecurityIdentifier`, which stores the SID as it is; the `.env` from an SDDL): no `icacls` at
+    all. Each script's first line says what it does (`make`, `allow M <SID> <path>`, `settings`),
+    which the tests read.
 
 ### Task 4: the proxy service (2026-10-05)
 

@@ -101,3 +101,12 @@ Pixel 7 Pro emulator (Chrome, `adb reverse tcp:4310 tcp:4310`, typing with `adb 
   "next" key lands on "Forgot?" before the password (074 checks it with the `autocomplete` work).
 - **What the automated projects can't see:** the browser's own toolbars over the page, password
   manager prompts, and real touch gestures on canvases. Repeat this pass in 075.
+
+## Code in the Documentation
+
+- **An `<Example>` in a list item widens the page.** A `<pre>` scrolls inside its own frame where it's
+  a grid item (`overflow-x-auto` lets it shrink), but inside an `<li>` its width becomes the
+  item's, and the list's. Put examples after the list (086 did, for the Windows service).
+- **A long `<Code>` with no hyphen or space can't wrap**, and a Windows path is one: at 320px,
+  `C:\ProgramData\RonneAI\Marketplace\data` stuck out 15px. Add `<wbr />` after its separators;
+  tests that look for the path drop them first (`replaceAll("<wbr/>", "")`).

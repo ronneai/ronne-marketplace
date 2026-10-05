@@ -558,20 +558,20 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             inside; attached to the{" "}
             <a href="https://github.com/ronneai/ronne-marketplace/releases">releases</a> from the
             one after 0.2.0): unzip it into <Code>C:\Program Files\RonneAI</Code>, rename its folder
-            to <Code>Marketplace</Code>, and run{" "}
+            to <Code>Marketplace</Code>, and run its <Code>bin\rmk-server.cmd</Code>. Or, in the
+            same administrator&apos;s terminal, install with npm into a folder for the whole machine
+            and run its <Code>rmk-server.cmd</Code> by its full path (that folder isn&apos;t on
+            PATH): the commands are below. Data in{" "}
             <Code>
-              {'"C:\\Program Files\\RonneAI\\Marketplace\\bin\\rmk-server.cmd" service install'}
+              {/* No hyphen or space to break at: a phone of 320px needs these. */}
+              C:\ProgramData\
+              <wbr />
+              RonneAI\
+              <wbr />
+              Marketplace\
+              <wbr />
+              data
             </Code>
-            . Or, in the same administrator&apos;s terminal, install with npm into a folder for the
-            whole machine,{" "}
-            <Code>
-              {
-                'npm install --global --prefix "C:\\Program Files\\RonneAI\\npm" @ronneai/marketplace'
-              }
-            </Code>
-            , and run{" "}
-            <Code>{'"C:\\Program Files\\RonneAI\\npm\\rmk-server.cmd" service install'}</Code> (that
-            folder isn&apos;t on PATH). Data in <Code>C:\ProgramData\RonneAI\Marketplace\data</Code>
             , settings in <Code>…\Marketplace\.env</Code>, logs in{" "}
             <Code>…\Marketplace\logs\rmk-server-service.out.log</Code> (and <Code>.err.log</Code>),
             run by <Code>NT SERVICE\rmk-server</Code>. Without a domain, <Code>--host 0.0.0.0</Code>{" "}
@@ -589,6 +589,12 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             supervisor, or use Docker.
           </li>
         </Bullets>
+        <p>On Windows, in a terminal opened as administrator:</p>
+        <Example>
+          {
+            '# The Windows bundle, unzipped and renamed:\n& "C:\\Program Files\\RonneAI\\Marketplace\\bin\\rmk-server.cmd" service install\n\n# Or npm, into a folder for the whole machine:\nnpm install --global --prefix "C:\\Program Files\\RonneAI\\npm" @ronneai/marketplace\n& "C:\\Program Files\\RonneAI\\npm\\rmk-server.cmd" service install'
+          }
+        </Example>
       </>
     ),
     setup: (

@@ -22,3 +22,7 @@ Lessons from feature 086 (`packages/server/src/service/windows.ts`).
   (`$env:PSModulePath = [Environment]::GetEnvironmentVariable('PSModulePath', 'Machine')`) and
   prefer .NET to cmdlets (`[IO.DirectoryInfo]::new($p).GetAccessControl()`, `::new()` rather than
   `New-Object`), which load no module at all.
+- **`icacls` looks up a SID even when given as `*S-1-5-80-…`**, and fails ("No mapping between
+  account names and security IDs was done") for a service that isn't registered yet. Set the rule
+  through .NET (`[Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]::new($sid), …)`,
+  then `SetAccessControl`), which stores the SID without a lookup.

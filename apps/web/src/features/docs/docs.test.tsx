@@ -154,7 +154,10 @@ describe("the topics", () => {
     // On Windows (086).
     expect(install).toContain("WinSW on Windows");
     expect(install).toContain("terminal opened as administrator");
-    expect(install).toContain("C:\\ProgramData\\RonneAI\\Marketplace\\data");
+    // With <wbr/> where a phone may break the line.
+    expect(install.replaceAll("<wbr/>", "")).toContain(
+      "C:\\ProgramData\\RonneAI\\Marketplace\\data",
+    );
     expect(install).toContain("NT SERVICE\\rmk-server");
     expect(install).toContain("rmk-server-X.Y.Z-win32-x64.zip");
     expect(install).toContain("winget install --id CaddyServer.Caddy --scope machine");

@@ -1,5 +1,5 @@
-// The Windows backend (feature 086): WinSW services as virtual accounts, folder permissions with
-// icacls, the firewall with netsh. Every account is given by its SID: names such as
+// The Windows backend (feature 086): WinSW services as virtual accounts, folder permissions through
+// .NET in Windows PowerShell, the firewall with netsh. Every account is given by its SID: names such as
 // "Administrators" are translated on other languages' Windows, and a service's virtual account
 // (NT SERVICE\<name>) has no name to look up until the service exists.
 import { win32 } from "node:path";
@@ -79,7 +79,7 @@ export const windowsBackend = (
     sids.set(name, sid);
     return sid;
   };
-  /** An account as icacls takes it (*SID): root and Administrators are the administrators. */
+  /** An account as its SID: root and Administrators are the administrators. */
   const sidFor = (account: string): string => {
     if (account === "root" || account === "Administrators") return ADMINISTRATORS_SID;
     const at = account.indexOf("\\");
@@ -123,14 +123,13 @@ export const windowsBackend = (
    * administrators and services' accounts may write in it; RonneAI, in ProgramData, must also have
    * its own permissions (below it only administrators make folders).
    */
-  const makeFolders = (path: string) => {
-    const parts: string[] = [];
-    for (let at = path; ; at = win32.dirname(at)) {
-      parts.unshift(at);
-      if (at.toLowerCase() === top.toLowerCase() || win32.dirname(at) === at) break;
-    }
-    const quote = (value: string) => `'${value.replaceAll("'", "''")}'`;
+  /**
+   * Runs a Windows PowerShell script, first line a comment saying what it does (what tests and
+   * logs show), and returns its output; a failure throws with the script's own message.
+   */
+  const powershell = (summary: string, body: string[], explain = ""): string => {
     const script = [
+      `# ${summary}`,
       // Started from PowerShell 7 (pwsh), Windows PowerShell inherits pwsh's module path and fails
       // on its first module ("AuditToString is already present"): its own path back, and no
       // command that loads a module below, only .NET.
@@ -139,43 +138,7 @@ export const windowsBackend = (
       "$ProgressPreference = 'SilentlyContinue'",
       // Errors as one plain line on standard output: PowerShell's own go out as CLIXML.
       'trap { "error`t$($_.Exception.Message)"; exit 1 }',
-      // Owner the administrators; SYSTEM and the administrators full control; Users may list the
-      // folders under it (CI: folders, not files). Private ones: no Users.
-      "$open = 'O:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;CI;0x1200a9;;;BU)'",
-      "$private = 'O:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)'",
-      // The administrator running this may own a folder they made inside Ronne's (certs, say).
-      "$me = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value",
-      // Who may write in one of Ronne's folders: SYSTEM, the administrators, services' accounts.
-      "$writes = 0xD0156 -bor 0x50000000",
-      `function Check($p, $top, $made) {
-  $i = [IO.DirectoryInfo]::new($p)
-  if (-not $i.Exists) { throw "$p isn't a folder" }
-  if ($i.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "$p is a link (a symbolic link or a junction)" }
-  $acl = $i.GetAccessControl()
-  $owner = $acl.GetOwner([Security.Principal.SecurityIdentifier]).Value
-  $owners = if ($made) { @('S-1-5-32-544') } else { @('S-1-5-32-544', 'S-1-5-18', $me) }
-  if ($owner -notin $owners) { throw "$p belongs to $owner, not the administrators" }
-  if ($top -and -not $acl.AreAccessRulesProtected) { throw "$p takes its permissions from ProgramData, where anyone may make folders" }
-  foreach ($r in $acl.GetAccessRules($true, $true, [Security.Principal.SecurityIdentifier])) {
-    $sid = $r.IdentityReference.Value
-    if ($r.AccessControlType -eq 'Allow' -and ([int64]$r.FileSystemRights -band $writes) -and $sid -ne 'S-1-5-18' -and $sid -ne 'S-1-5-32-544' -and -not $sid.StartsWith('S-1-5-80-')) { throw "$p lets $sid write in it" }
-  }
-  $acl.Sddl
-}`,
-      // Made with its final permissions; checked after, made now or not: CreateDirectory succeeds
-      // without a word when another account made the folder in between.
-      ...parts.map(
-        (part) =>
-          `$p = ${quote(part)}; $sd = ${privateFolders.has(part) ? "$private" : "$open"}
-$made = -not ([IO.Directory]::Exists($p) -or [IO.File]::Exists($p))
-if ($made) {
-  $s = [Security.AccessControl.DirectorySecurity]::new()
-  $s.SetSecurityDescriptorSddlForm($sd)
-  [void][IO.Directory]::CreateDirectory($p, $s)
-}
-$sddl = Check $p ${part.toLowerCase() === top.toLowerCase() ? "$true" : "$false"} $made
-if ($made) { "made\`t$p" } else { "kept\`t$p\`t$sddl" }`,
-      ),
+      ...body,
     ].join("\n");
     const result = run("powershell.exe", [
       "-NoProfile",
@@ -190,11 +153,62 @@ if ($made) { "made\`t$p" } else { "kept\`t$p\`t$sddl" }`,
         /^error\t(.*)$/m.exec(result.stdout)?.[1]?.trim() ??
         (result.stderr || result.stdout).trim().split(/\r?\n/)[0] ??
         "";
-      throw new Error(
-        `${reason}. Ronne's folders are made by its install, the administrators' only; this one was made by something else. Look at it, remove it or move it aside, and run this again.`,
-      );
+      throw new Error(`${reason}${explain}`);
     }
-    for (const line of result.stdout.split(/\r?\n/)) {
+    return result.stdout;
+  };
+  const quote = (value: string) => `'${value.replaceAll("'", "''")}'`;
+
+  const makeFolders = (path: string) => {
+    const parts: string[] = [];
+    for (let at = path; ; at = win32.dirname(at)) {
+      parts.unshift(at);
+      if (at.toLowerCase() === top.toLowerCase() || win32.dirname(at) === at) break;
+    }
+    const stdout = powershell(
+      `make ${path}`,
+      [
+        // Owner the administrators; SYSTEM and the administrators full control; Users may list the
+        // folders under it (CI: folders, not files). Private ones: no Users.
+        "$open = 'O:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;CI;0x1200a9;;;BU)'",
+        "$private = 'O:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)'",
+        // The administrator running this may own a folder they made inside Ronne's (certs, say).
+        "$me = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value",
+        // Who may write in one of Ronne's folders: SYSTEM, the administrators, services' accounts.
+        "$writes = 0xD0156 -bor 0x50000000",
+        `function Check($p, $top, $made) {
+  $i = [IO.DirectoryInfo]::new($p)
+  if (-not $i.Exists) { throw "$p isn't a folder" }
+  if ($i.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "$p is a link (a symbolic link or a junction)" }
+  $acl = $i.GetAccessControl()
+  $owner = $acl.GetOwner([Security.Principal.SecurityIdentifier]).Value
+  $owners = if ($made) { @('S-1-5-32-544') } else { @('S-1-5-32-544', 'S-1-5-18', $me) }
+  if ($owner -notin $owners) { throw "$p belongs to $owner, not the administrators" }
+  if ($top -and -not $acl.AreAccessRulesProtected) { throw "$p takes its permissions from ProgramData, where anyone may make folders" }
+  foreach ($r in $acl.GetAccessRules($true, $true, [Security.Principal.SecurityIdentifier])) {
+    $sid = $r.IdentityReference.Value
+    if ($r.AccessControlType -eq 'Allow' -and ([int64]$r.FileSystemRights -band $writes) -and $sid -ne 'S-1-5-18' -and $sid -ne 'S-1-5-32-544' -and -not $sid.StartsWith('S-1-5-80-')) { throw "$p lets $sid write in it" }
+  }
+  $acl.Sddl
+}`,
+        // Made with its final permissions; checked after, made now or not: CreateDirectory succeeds
+        // without a word when another account made the folder in between.
+        ...parts.map(
+          (part) =>
+            `$p = ${quote(part)}; $sd = ${privateFolders.has(part) ? "$private" : "$open"}
+$made = -not ([IO.Directory]::Exists($p) -or [IO.File]::Exists($p))
+if ($made) {
+  $s = [Security.AccessControl.DirectorySecurity]::new()
+  $s.SetSecurityDescriptorSddlForm($sd)
+  [void][IO.Directory]::CreateDirectory($p, $s)
+}
+$sddl = Check $p ${part.toLowerCase() === top.toLowerCase() ? "$true" : "$false"} $made
+if ($made) { "made\`t$p" } else { "kept\`t$p\`t$sddl" }`,
+        ),
+      ],
+      ". Ronne's folders are made by its install, the administrators' only; this one was made by something else. Look at it, remove it or move it aside, and run this again.",
+    );
+    for (const line of stdout.split(/\r?\n/)) {
       const [what, folder, sddl] = line.split("\t");
       if ((what === "made" || what === "kept") && folder)
         folders.set(folder, { made: what === "made", sddl: sddl ?? "" });
@@ -205,9 +219,25 @@ if ($made) { "made\`t$p" } else { "kept\`t$p\`t$sddl" }`,
   const grant = (path: string, sid: string, rights: "M" | "RX") => {
     const found = folders.get(path);
     // Already there: granted then, and any rule of this account in its SDDL means so. Granting
-    // again would make icacls walk what the account may have put in it.
+    // again would make Windows walk what the account may have put in it (inherited rules).
     if (found && !found.made && found.sddl.includes(`;;;${sid})`)) return;
-    must("icacls", [path, "/grant", `*${sid}:(OI)(CI)${rights === "M" ? "M" : "RX"}`, "/Q"]);
+    allow(path, sid, rights, true);
+  };
+
+  /**
+   * Adds an Allow rule for a SID to a folder (inherited by what's in it) or a file. .NET takes the
+   * SID as it is: icacls looks it up, and a service's account has no name until it's registered.
+   */
+  const allow = (path: string, sid: string, rights: "M" | "RX", folder: boolean) => {
+    const kind = folder ? "DirectoryInfo" : "FileInfo";
+    powershell(`allow ${rights} ${sid} ${path}`, [
+      `$i = [IO.${kind}]::new(${quote(path)})`,
+      'if ($i.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "$($i.FullName) is a link" }',
+      "$acl = $i.GetAccessControl()",
+      `$rule = [Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]::new('${sid}'), [Security.AccessControl.FileSystemRights]'${rights === "M" ? "Modify" : "ReadAndExecute"}', [Security.AccessControl.InheritanceFlags]'${folder ? "ContainerInherit, ObjectInherit" : "None"}', [Security.AccessControl.PropagationFlags]'None', [Security.AccessControl.AccessControlType]'Allow')`,
+      "$acl.AddAccessRule($rule)",
+      "$i.SetAccessControl($acl)",
+    ]);
   };
 
   return {
@@ -240,16 +270,15 @@ if ($made) { "made\`t$p" } else { "kept\`t$p\`t$sddl" }`,
           throw new Error(
             `${path} is a link (a symbolic link or a file with another hard link), which the settings file never is. Look at it, remove it, and run this again.`,
           );
-        must("icacls", [
-          path,
-          "/inheritance:r",
-          "/grant:r",
-          `*${SYSTEM_SID}:F`,
-          `*${ADMINISTRATORS_SID}:F`,
-          `*${sidFor(user)}:M`,
-          "/Q",
+        // Exactly: the administrators own it, SYSTEM and they have full control, the account
+        // Modify (0x1301bf), nothing inherited.
+        const sid = sidFor(user);
+        powershell(`settings ${sid} ${path}`, [
+          `$i = [IO.FileInfo]::new(${quote(path)})`,
+          "$acl = [Security.AccessControl.FileSecurity]::new()",
+          `$acl.SetSecurityDescriptorSddlForm('O:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;0x1301bf;;;${sid})')`,
+          "$i.SetAccessControl($acl)",
         ]);
-        must("icacls", [path, "/setowner", `*${ADMINISTRATORS_SID}`, "/Q"]);
         return;
       }
       if (user !== "root") grant(path, sidFor(user), "M");
@@ -257,7 +286,7 @@ if ($made) { "made\`t$p" } else { "kept\`t$p\`t$sddl" }`,
       if (group && group !== user && group !== layout.rootGroup) grant(path, sidFor(group), "RX");
     },
     shareWithGroup: (paths, group) => {
-      for (const path of paths) must("icacls", [path, "/grant", `*${sidFor(group)}:(RX)`, "/Q"]);
+      for (const path of paths) allow(path, sidFor(group), "RX", path === layout.certsDir);
     },
     makeFolder: (path, mode) => {
       if (
@@ -279,12 +308,7 @@ if ($made) { "made\`t$p" } else { "kept\`t$p\`t$sddl" }`,
         if (definition.user === layout.proxyUser)
           grant(layout.proxySettingsDir, serviceSid(definition.name), "RX");
         // The service's account reads its WinSW and XML; the folder is otherwise the administrators'.
-        must("icacls", [
-          win32.dirname(path),
-          "/grant",
-          `*${serviceSid(definition.name)}:(OI)(CI)(RX)`,
-          "/Q",
-        ]);
+        grant(win32.dirname(path), serviceSid(definition.name), "RX");
       } catch (error) {
         return error instanceof Error ? error.message : String(error);
       }
