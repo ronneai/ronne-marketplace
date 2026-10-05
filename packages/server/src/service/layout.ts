@@ -1,8 +1,8 @@
 // Where `rmk-server service install` puts things on each system (feature 083). Windows (086)
 // adds its own layout here.
-import { posix } from "node:path";
+import { posix, win32 } from "node:path";
 
-export type ServicePlatform = "linux" | "darwin";
+export type ServicePlatform = "linux" | "darwin" | "win32";
 
 export type ServiceLayout = {
   platform: ServicePlatform;
@@ -35,6 +35,8 @@ export type ServiceLayout = {
   /** Log files; none on Linux, where journald keeps them. */
   logFile?: string;
   proxyLogFile?: string;
+  /** Windows: the folder WinSW writes each service's rolling logs into. */
+  logDir?: string;
 };
 
 export const SERVICE_NAME = "rmk-server";
@@ -43,13 +45,45 @@ export const PROXY_NAME = "rmk-server-proxy";
 export const LAUNCHD_LABEL = "ai.ronne.rmk-server";
 export const PROXY_LAUNCHD_LABEL = "ai.ronne.rmk-server-proxy";
 
+/** Windows (086): everything under %ProgramData%\RonneAI\Marketplace, the services as virtual accounts. */
+const windowsLayout = (programData: string): ServiceLayout => {
+  const root = win32.join(programData, "RonneAI", "Marketplace");
+  const settingsDir = root;
+  const proxyRoot = win32.join(root, "proxy");
+  const service = win32.join(root, "service");
+  return {
+    platform: "win32",
+    // Virtual accounts: Windows makes them with the service, and removes them with it.
+    user: `NT SERVICE\\${SERVICE_NAME}`,
+    group: "",
+    systemUser: false,
+    rootGroup: "Administrators",
+    dataDir: win32.join(root, "data"),
+    settingsDir,
+    envFile: win32.join(settingsDir, ".env"),
+    proxySettingsDir: proxyRoot,
+    caddyfile: win32.join(proxyRoot, "Caddyfile"),
+    certsDir: win32.join(proxyRoot, "certs"),
+    proxyDataDir: win32.join(proxyRoot, "data"),
+    proxyUser: `NT SERVICE\\${PROXY_NAME}`,
+    proxyGroup: "",
+    // WinSW reads <exe name>.xml beside its renamed executable.
+    definition: win32.join(service, `${SERVICE_NAME}-service.xml`),
+    proxyDefinition: win32.join(service, `${PROXY_NAME}-service.xml`),
+    logDir: win32.join(root, "logs"),
+  };
+};
+
 export const serviceLayout = (options: {
   platform: ServicePlatform;
+  /** Windows: %ProgramData% (C:\ProgramData by default). */
+  programData?: string;
   /** macOS: Homebrew's prefix when rmk-server came from it, else /usr/local. */
   prefix?: string;
   /** macOS --user: the signed-in account instead of a system user. */
   user?: { name: string; group: string };
 }): ServiceLayout => {
+  if (options.platform === "win32") return windowsLayout(options.programData ?? "C:\\ProgramData");
   if (options.platform === "linux")
     return {
       platform: "linux",

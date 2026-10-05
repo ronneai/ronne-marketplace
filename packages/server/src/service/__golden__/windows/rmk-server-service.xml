@@ -1,0 +1,30 @@
+<!-- Managed by rmk-server (feature 086). `rmk-server service install` rewrites this file,
+     and `rmk-server service uninstall` removes it. -->
+<service>
+  <id>rmk-server</id>
+  <name>Ronne AI Marketplace</name>
+  <description>Ronne AI Marketplace, run by WinSW.</description>
+  <executable>C:\Program Files\RonneAI\Marketplace\node\node.exe</executable>
+  <arguments>&quot;C:\Program Files\RonneAI\Marketplace\lib\node_modules\@ronneai\marketplace\dist\bin.js&quot; start --no-open --port 7650 --host 127.0.0.1</arguments>
+  <workingdirectory>C:\ProgramData\RonneAI\Marketplace\data</workingdirectory>
+  <env name="NODE_ENV" value="production"/>
+  <env name="RONNE_DATA_DIR" value="C:\ProgramData\RonneAI\Marketplace\data"/>
+  <env name="RONNE_ENV_FILE" value="C:\ProgramData\RonneAI\Marketplace\.env"/>
+  <serviceaccount>
+    <domain>NT SERVICE</domain>
+    <user>rmk-server</user>
+  </serviceaccount>
+  <startmode>Automatic</startmode>
+  <onfailure action="restart" delay="10 sec"/>
+  <onfailure action="restart" delay="10 sec"/>
+  <onfailure action="restart" delay="10 sec"/>
+  <onfailure action="restart" delay="60 sec"/>
+  <resetfailure>1 hour</resetfailure>
+  <stopparentprocessfirst>true</stopparentprocessfirst>
+  <stoptimeout>30 sec</stoptimeout>
+  <logpath>C:\ProgramData\RonneAI\Marketplace\logs</logpath>
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>5</keepFiles>
+  </log>
+</service>

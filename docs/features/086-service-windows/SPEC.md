@@ -30,7 +30,11 @@ macOS (083).
   Node cleanly (`stopparentprocessfirst`, Ctrl+C) so SQLite closes its files.
 - **Where things are:** program `C:\Program Files\RonneAI\Marketplace` (from 087) or the npm global
   folder; data `C:\ProgramData\RonneAI\Marketplace\data`; settings `…\Marketplace\.env`; logs
-  `…\Marketplace\logs` (WinSW's rolling logs, 10 MB × 5).
+  `…\Marketplace\logs` (WinSW's rolling logs, 10 MB × 5); each service's renamed WinSW and its XML
+  in `…\Marketplace\service`; the proxy's Caddyfile, certificates and data in `…\Marketplace\proxy`.
+- **WinSW 2.12.0** (the stable release; 3.0 has been an alpha since 2023), its `WinSW.NET461.exe`
+  build: it runs on the .NET Framework Windows 10 (1607+), 11 and Server 2016+ have, natively on arm64
+  too, where 2.12 has no arm64 build of its own. One small file for both bundles.
 - **Account:** the virtual account `NT SERVICE\rmk-server`, given full control of the data folder only.
 - **Install** checks for an elevated shell (else explains how to open one), the port, writes the
   XML, installs and starts, waits for `/api/health`, prints the address.
