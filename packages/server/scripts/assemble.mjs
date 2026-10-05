@@ -12,6 +12,7 @@
 
 import { execFileSync } from "node:child_process";
 import {
+  appendFileSync,
   cpSync,
   existsSync,
   lstatSync,
@@ -23,6 +24,8 @@ import {
 } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { RULE, section } from "../../repo-tools/src/notices.js";
+import { sha256File, WINSW, WINSW_PATH } from "../../repo-tools/src/winsw.js";
 
 const packageDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const web = join(packageDir, "..", "..", "apps", "web");
@@ -133,7 +136,21 @@ for (const rel of readdirSync(app, { recursive: true })) {
 }
 if (problems.length) fail(`app/ has what must not ship:\n  ${problems.join("\n  ")}`);
 
-// 5. THIRD_PARTY_NOTICES (084): every production dependency of the web app and this package, from
+// 5. WinSW (086), which runs rmk-server as a Windows service: downloaded once, and always checked
+// against the SHA-256 pinned in repo-tools' winsw.js. Its licence is committed beside it.
+const winsw = join(packageDir, ...WINSW_PATH.split("/"));
+if (!existsSync(winsw) || sha256File(winsw) !== WINSW.sha256) {
+  const response = await fetch(WINSW.url).catch((error) =>
+    fail(`Couldn't download WinSW (${WINSW.url}: ${error.cause?.code ?? error.message}).`),
+  );
+  if (!response.ok) fail(`Couldn't download WinSW (${WINSW.url}: ${response.status}).`);
+  writeFileSync(winsw, Buffer.from(await response.arrayBuffer()));
+}
+const winswHash = sha256File(winsw);
+if (winswHash !== WINSW.sha256)
+  fail(`${WINSW.file} has SHA-256 ${winswHash}, not the pinned ${WINSW.sha256}.`);
+
+// 6. THIRD_PARTY_NOTICES (084): every production dependency of the web app and this package, from
 // the repository's dependency tree; most are compiled into Next's chunks, not in app/node_modules.
 execFileSync(
   process.execPath,
@@ -153,6 +170,17 @@ execFileSync(
     join(packageDir, "THIRD_PARTY_NOTICES"),
   ],
   { stdio: "inherit" },
+);
+
+// WinSW isn't an npm package, so its section is added here, as notices.js writes the others.
+appendFileSync(
+  join(packageDir, "THIRD_PARTY_NOTICES"),
+  `\n${RULE}\n\n${section({
+    name: "WinSW",
+    version: WINSW.version,
+    license: "MIT",
+    text: readFileSync(join(packageDir, "vendor", "winsw", "LICENSE.txt"), "utf8").trim(),
+  })}\n`,
 );
 
 console.log(

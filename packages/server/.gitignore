@@ -2,5 +2,7 @@
 /app/
 # Written by scripts/assemble.mjs at pack time (084)
 /THIRD_PARTY_NOTICES
+# Downloaded and checked at pack time (086); its LICENSE.txt is committed
+/vendor/winsw/*.exe
 # pnpm pack output
 *.tgz

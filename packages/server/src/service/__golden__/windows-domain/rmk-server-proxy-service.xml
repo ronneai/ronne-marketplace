@@ -1,0 +1,31 @@
+<!-- Managed by rmk-server (feature 086). `rmk-server service install` rewrites this file,
+     and `rmk-server service uninstall` removes it. -->
+<service>
+  <id>rmk-server-proxy</id>
+  <name>Ronne AI Marketplace's HTTPS proxy (Caddy)</name>
+  <description>Ronne AI Marketplace's HTTPS proxy (Caddy), run by WinSW.</description>
+  <executable>C:\Program Files\Caddy\caddy.exe</executable>
+  <arguments>run --config C:\ProgramData\RonneAI\Marketplace\proxy\Caddyfile --adapter caddyfile</arguments>
+  <workingdirectory>C:\ProgramData\RonneAI\Marketplace\proxy\data</workingdirectory>
+  <env name="HOME" value="C:\ProgramData\RonneAI\Marketplace\proxy\data"/>
+  <env name="XDG_DATA_HOME" value="C:\ProgramData\RonneAI\Marketplace\proxy\data"/>
+  <env name="XDG_CONFIG_HOME" value="C:\ProgramData\RonneAI\Marketplace\proxy\data"/>
+  <serviceaccount>
+    <domain>NT SERVICE</domain>
+    <user>rmk-server-proxy</user>
+  </serviceaccount>
+  <startmode>Automatic</startmode>
+  <depend>rmk-server</depend>
+  <onfailure action="restart" delay="10 sec"/>
+  <onfailure action="restart" delay="10 sec"/>
+  <onfailure action="restart" delay="10 sec"/>
+  <onfailure action="restart" delay="60 sec"/>
+  <resetfailure>1 hour</resetfailure>
+  <stopparentprocessfirst>true</stopparentprocessfirst>
+  <stoptimeout>30 sec</stoptimeout>
+  <logpath>C:\ProgramData\RonneAI\Marketplace\proxy\logs</logpath>
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>5</keepFiles>
+  </log>
+</service>

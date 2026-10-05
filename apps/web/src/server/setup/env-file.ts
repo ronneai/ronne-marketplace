@@ -81,8 +81,18 @@ export const cannotWriteFolder = (error: unknown): boolean =>
  * Writes .env readable only by its owner (0600), through a temporary file and a rename, so a crash
  * never leaves half a file. In a folder it may not write but with a file it may (the service's
  * /etc/rmk-server is root's, its settings file the server's: 083), it rewrites the file in place.
+ * So it does on Windows whenever the file exists: a new file takes its folder's permissions, and
+ * the service's own .env is the one file there its account may write (086).
  */
-export const writeEnvFile = (path: string, content: string): void => {
+export const writeEnvFile = (
+  path: string,
+  content: string,
+  platform: NodeJS.Platform = process.platform,
+): void => {
+  if (platform === "win32" && existsSync(path)) {
+    writeFileSync(path, content);
+    return;
+  }
   const temporary = `${path}.tmp-${process.pid}`;
   try {
     writeFileSync(temporary, content, { mode: 0o600 });

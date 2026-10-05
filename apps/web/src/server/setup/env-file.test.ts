@@ -19,6 +19,7 @@ import {
   mergeEnv,
   readEnvFile,
   updateEnvFile,
+  writeEnvFile,
 } from "./env-file";
 
 const dir = mkdtempSync(join(tmpdir(), "ronne-env-"));
@@ -114,6 +115,21 @@ describe("updateEnvFile", () => {
     } finally {
       chmodSync(locked, 0o755);
     }
+  });
+
+  it("rewrites an existing file in place on Windows, so it keeps the service's access (086)", () => {
+    const folder = mkdtempSync(join(dir, "windows-"));
+    const path = join(folder, ".env");
+    writeFileSync(path, "CUSTOM=1\n");
+    const before = statSync(path).ino;
+    writeEnvFile(path, "CUSTOM=2\n", "win32");
+    expect(readFileSync(path, "utf8")).toBe("CUSTOM=2\n");
+    // The same file, not a new one renamed over it; and no temporary file left.
+    expect(statSync(path).ino).toBe(before);
+    expect(readdirSync(folder)).toEqual([".env"]);
+    // A new file is still written whole and renamed into place.
+    writeEnvFile(join(folder, "other.env"), "A=1\n", "win32");
+    expect(readFileSync(join(folder, "other.env"), "utf8")).toBe("A=1\n");
   });
 
   it("knows the errors of a folder it can't add a file to, read-only included", () => {

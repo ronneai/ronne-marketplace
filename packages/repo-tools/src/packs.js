@@ -14,12 +14,18 @@ export const PUBLISHED = {
   // a native binary (npm installs better-sqlite3 and argon2 for each platform).
   server: {
     name: "@ronneai/marketplace",
-    extra: [/^app\//, /^THIRD_PARTY_NOTICES$/],
+    extra: [
+      /^app\//,
+      /^THIRD_PARTY_NOTICES$/,
+      /^vendor\/winsw\/(WinSW\.NET461\.exe|LICENSE\.txt)$/,
+    ],
     forbid: [/(^|\/)\.env(\.[^/]*)?$/, /\.node$/],
     require: [
       "app/apps/web/server.js",
       "app/apps/web/dist-scripts/start.mjs",
       "THIRD_PARTY_NOTICES",
+      "vendor/winsw/WinSW.NET461.exe",
+      "vendor/winsw/LICENSE.txt",
     ],
   },
 };

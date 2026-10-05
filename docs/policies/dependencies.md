@@ -98,7 +98,16 @@ move by hand, after the same checks as any dependency.
 | PSScriptAnalyzer | MIT | Linting `install.ps1` (081) | PowerShell Gallery module, `-RequiredVersion` |
 | PowerShell 7 | MIT | Running PSScriptAnalyzer and `install.ps1`'s logic on macOS and Linux, by hand (081) | `mcr.microsoft.com/powershell` image, tag and digest |
 | nFPM | MIT | Building rmk-server's `.deb` and `.rpm` from the Linux bundles (`packages.yml`, 085). Not shipped: it writes the packages | GoReleaser's release archive from GitHub, version and SHA-256 from its checksums file |
-| Caddy | Apache-2.0 | The HTTPS proxy of `rmk-server service install --domain`, tested on Linux (`server-package.yml`, 083). Not shipped: people install their own | The release archive from GitHub, version and SHA-512 from its checksums file |
+| Caddy | Apache-2.0 | The HTTPS proxy of `rmk-server service install --domain`, tested on Linux, macOS (083) and Windows (086) in `server-package.yml`. Not shipped: people install their own | The release archive from GitHub, version and SHA-512 from its checksums file |
+
+**Programs Ronne ships that aren't npm packages.** Each is an official release, shipped
+unmodified and checked against a SHA-256 before it's shipped; each one's licence is in
+`THIRD_PARTY_NOTICES`. Dependabot doesn't see them, so they move by hand.
+
+| Program | License | Shipped in | Pinned as |
+|---|---|---|---|
+| Node.js 24 | MIT (with its bundled dependencies' licences) | The self-contained bundles' `node/` (`bundle.js`, 084), and so the `.deb` and `.rpm` (085) | The newest 24 when the bundle is built (or `--node`), from nodejs.org, checked against that release's `SHASUMS256.txt` |
+| WinSW 2.12.0 | MIT | `@ronneai/marketplace`'s `vendor/winsw/`, and so every bundle and package: it runs rmk-server as a Windows service (086). Its `WinSW.NET461.exe` build, one file for x64 and arm64 | The release asset from GitHub, its SHA-256 pinned in `packages/repo-tools/src/winsw.js`, checked when packing and by the bundle check |
 
 **Not ShellCheck:** it's GPL-3.0, which §1 forbids even in CI. `shfmt -p` catches what isn't POSIX
 `sh`, and the install script's tests run it under both `dash` and `bash`.

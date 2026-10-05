@@ -151,6 +151,16 @@ describe("the topics", () => {
     expect(install).toContain("rmk-server-proxy");
     expect(install).toContain("Caddy 2.7 or later");
     expect(install).toContain("--delete-data");
+    // On Windows (086).
+    expect(install).toContain("WinSW on Windows");
+    expect(install).toContain("terminal opened as administrator");
+    // With <wbr/> where a phone may break the line.
+    expect(install.replaceAll("<wbr/>", "")).toContain(
+      "C:\\ProgramData\\RonneAI\\Marketplace\\data",
+    );
+    expect(install).toContain("NT SERVICE\\rmk-server");
+    expect(install).toContain("rmk-server-X.Y.Z-win32-x64.zip");
+    expect(install).toContain("winget install --id CaddyServer.Caddy --scope machine");
     // The install script (081).
     // Against the GitHub release, the scripts' own source: never the website, which only redirects.
     expect(install).toContain(

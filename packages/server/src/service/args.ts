@@ -138,7 +138,8 @@ export const parseServiceArgs = (argv: string[]): ServiceCommand => {
 };
 
 export const SERVICE_HELP = `rmk-server service: run Ronne AI Marketplace in the background, started at boot and
-restarted if it stops (systemd on Linux, launchd on macOS). Each command needs sudo, except status.
+restarted if it stops (systemd on Linux, launchd on macOS, WinSW on Windows). Each command needs
+sudo, except status; on Windows, a terminal opened as administrator instead of sudo.
 
 Usage:
   sudo rmk-server service install [--port N] [--host H] [--domain D [--tls T] [--email E]] [--user]
@@ -146,7 +147,7 @@ Usage:
       prints and finish the setup.
   rmk-server service status        Installed or not, running or not, version, address, folders
   sudo rmk-server service start | stop | restart
-  sudo rmk-server service logs     Follow the log (journalctl, or the log files on macOS)
+  sudo rmk-server service logs     Follow the log (journalctl, or the log files on macOS and Windows)
   sudo rmk-server service uninstall [--delete-data]
       Stop and remove the service. The data and settings stay unless --delete-data, which asks
       you to type the data folder's name.
@@ -154,20 +155,24 @@ Usage:
 Options for install:
   --port N      Port the server listens on. Default 7650
   --host H      Address it listens on. Default 127.0.0.1, this machine only; 0.0.0.0 opens it
-                to the network over plain HTTP, so put it behind HTTPS
+                to the network over plain HTTP, so put it behind HTTPS (on Windows it also
+                adds a firewall rule for the port, on Private networks)
   --domain D    Serve https://D through Caddy (a second service, rmk-server-proxy, on 80 and 443).
                 Needs caddy 2.7 or later on PATH
   --tls T       auto (Let's Encrypt, the default), internal (Caddy's own authority) or files
                 (copies of cert.pem and key.pem you put in
-                /etc/rmk-server-proxy/certs; on macOS, the prefix's etc/rmk-server-proxy/certs)
+                /etc/rmk-server-proxy/certs; on macOS, the prefix's etc/rmk-server-proxy/certs;
+                on Windows, C:\\ProgramData\\RonneAI\\Marketplace\\proxy\\certs)
   --email E     Expiry notices from the certificate authority
   --user        macOS: run as you instead of a system user
 
 With the service installed, sudo rmk-server setup, migrate and reset-root-password work on its
-data, as its account.
+data, as its account (on Windows, as the administrator running them).
 
 Where things are:
   Linux   data /var/lib/rmk-server, settings /etc/rmk-server/env, logs: journalctl -u rmk-server
   macOS   data /usr/local/var/rmk-server (Homebrew: $(brew --prefix)/var/rmk-server),
           settings …/etc/rmk-server/env, logs /Library/Logs/rmk-server/server.log
+  Windows data C:\\ProgramData\\RonneAI\\Marketplace\\data, settings …\\Marketplace\\.env,
+          logs …\\Marketplace\\logs\\rmk-server-service.out.log (and .err.log)
 `;

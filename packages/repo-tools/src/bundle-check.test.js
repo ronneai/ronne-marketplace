@@ -1,8 +1,14 @@
+import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { checkBundle } from "./bundle-check.js";
+import { checkBundle as checkWith } from "./bundle-check.js";
+
+// A stand-in for WinSW (086), and the check told its SHA-256 instead of the real release's.
+const WINSW_STANDIN = "WinSW";
+const STANDIN_SHA256 = createHash("sha256").update(WINSW_STANDIN).digest("hex");
+const checkBundle = (root) => checkWith(root, { winswSha256: STANDIN_SHA256 });
 
 const dir = mkdtempSync(join(tmpdir(), "rmk-bundle-check-"));
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
@@ -28,6 +34,8 @@ const bundle = (extra = {}) => {
     "lib/node_modules/@ronneai/marketplace/dist/bin.js": "",
     "lib/node_modules/@ronneai/marketplace/app/apps/web/server.js": "",
     "lib/node_modules/@ronneai/marketplace/app/apps/web/dist-scripts/start.mjs": "",
+    "lib/node_modules/@ronneai/marketplace/vendor/winsw/WinSW.NET461.exe": WINSW_STANDIN,
+    "lib/node_modules/@ronneai/marketplace/vendor/winsw/LICENSE.txt": "MIT",
     "lib/node_modules/better-sqlite3/package.json": JSON.stringify({
       name: "better-sqlite3",
       dependencies: { bindings: "1" },
@@ -170,5 +178,23 @@ describe("what a bundle may hold (084)", () => {
         "@ronneai/marketplace is missing THIRD_PARTY_NOTICES",
       ]),
     );
+  });
+
+  it("holds WinSW, the release pinned in winsw.js, unchanged (086)", () => {
+    const changed = bundle({
+      "lib/node_modules/@ronneai/marketplace/vendor/winsw/WinSW.NET461.exe": "something else",
+    });
+    expect(checkBundle(changed)).toEqual([
+      "lib/node_modules/@ronneai/marketplace/vendor/winsw/WinSW.NET461.exe isn't WinSW 2.12.0 (its SHA-256 differs)",
+    ]);
+    // The real check expects the real release, not the stand-in.
+    expect(checkWith(bundle())).toEqual([
+      "lib/node_modules/@ronneai/marketplace/vendor/winsw/WinSW.NET461.exe isn't WinSW 2.12.0 (its SHA-256 differs)",
+    ]);
+    const missing = bundle();
+    rmSync(join(missing, "lib/node_modules/@ronneai/marketplace/vendor/winsw/WinSW.NET461.exe"));
+    expect(checkBundle(missing)).toEqual([
+      "@ronneai/marketplace is missing vendor/winsw/WinSW.NET461.exe",
+    ]);
   });
 });

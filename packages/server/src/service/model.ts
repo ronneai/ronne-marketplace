@@ -36,6 +36,8 @@ export type ServiceDefinition = {
   after: string[];
   /** Where its output goes, on systems without a journal. */
   logFile?: string;
+  /** Windows: the folder of its rolling logs (WinSW names them after the service). */
+  logDir?: string;
 };
 
 export type ProxyOptions = {
@@ -97,6 +99,7 @@ export const servicePlan = (options: ServiceOptions): ServicePlan => {
     bindsLowPorts: false,
     after: [],
     ...(layout.logFile ? { logFile: layout.logFile } : {}),
+    ...(layout.logDir ? { logDir: layout.logDir } : {}),
   };
   if (!proxy) return { layout, app, settings: {} };
 
@@ -125,6 +128,7 @@ export const servicePlan = (options: ServiceOptions): ServicePlan => {
       bindsLowPorts: layout.platform === "linux",
       after: [SERVICE_NAME],
       ...(layout.proxyLogFile ? { logFile: layout.proxyLogFile } : {}),
+      ...(layout.proxyLogDir ? { logDir: layout.proxyLogDir } : {}),
       upstream: upstreamFor(host, port),
       options: proxy,
     },

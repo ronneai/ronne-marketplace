@@ -202,11 +202,11 @@ setup` (the setup in the terminal, with `--yes` for scripts), `rmk-server migrat
   so Debian 12, Ubuntu 22.04, RHEL 9 and newer, and musl) and Windows, on x64 and arm64, and has no
   fallback that compiles it. On another system, or an older glibc, SQLite won't load: use Docker.
 
-#### As a service (macOS and Linux)
+#### As a service (macOS, Linux and Windows)
 
 To keep it running in the background, started at boot and restarted if it stops (systemd on Linux,
-launchd on macOS), with a Node.js installed for the whole machine (the service's own account can't
-read one in your home folder, such as nvm's):
+launchd on macOS, WinSW on Windows), with a Node.js installed for the whole machine (the service's
+own account can't read one in your home folder, such as nvm's):
 
 ```sh
 sudo rmk-server service install          # then open http://localhost:7650 and finish the setup
@@ -230,6 +230,24 @@ sudo rmk-server service uninstall        # the data stays; --delete-data deletes
 - **Upgrading:** `npm install --global @ronneai/marketplace@latest`, then `sudo rmk-server service
   restart`. A Node.js moved or removed since the install needs `sudo rmk-server service install`
   again (`status` says so).
+- **Windows:** the same commands without `sudo`, in a terminal opened as administrator (`status`
+  works in any terminal, with the details for administrators). The service's account can't read
+  your profile, where npm's global folder is (`%APPDATA%\npm`), so install refuses an `rmk-server`
+  there. Use the Windows bundle (`rmk-server-X.Y.Z-win32-x64.zip` or `-arm64`, Node.js inside;
+  attached to the [releases](https://github.com/ronneai/ronne-marketplace/releases) from the one
+  after 0.2.0): unzip it into `C:\Program Files\RonneAI`, rename its folder to `Marketplace`, and
+  run `"C:\Program Files\RonneAI\Marketplace\bin\rmk-server.cmd" service install`. Or, in the
+  same administrator's terminal, install with npm into a folder for the whole machine,
+  `npm install --global --prefix "C:\Program Files\RonneAI\npm" @ronneai/marketplace`, and run
+  `"C:\Program Files\RonneAI\npm\rmk-server.cmd" service install` (that folder isn't on PATH).
+  Data `C:\ProgramData\RonneAI\Marketplace\data`, settings `…\Marketplace\.env`, logs
+  `…\Marketplace\logs\rmk-server-service.out.log` (and `.err.log`), account
+  `NT SERVICE\rmk-server`. Without a domain, `--host 0.0.0.0` also adds a firewall rule for the
+  port (Private networks); `--domain` needs Caddy for the whole machine (`winget install --id
+  CaddyServer.Caddy --scope machine`; one in your profile is refused) and adds a rule for 80 and
+  443 on every network; `--tls files` reads
+  `…\Marketplace\proxy\certs`. `setup`, `migrate` and `reset-root-password` run as you, on the
+  service's data.
 - **No systemd** (a container, WSL 1, another init system): run `rmk-server start --no-open` under
   your own supervisor, or use Docker.
 
