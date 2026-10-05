@@ -20,7 +20,7 @@ the same change that completes it.
   *Done when:* CI installs each in a systemd container (Ubuntu, Debian, Fedora), checks health,
   upgrades over the previous version, removes.
 
-- [ ] **4. `install.sh` without Docker.** The offer and the Linux path; on macOS, the choices
+- [x] **4. `install.sh` without Docker.** The offer and the Linux path; on macOS, the choices
   (Homebrew on hold).
   *Done when:* by hand on Ubuntu without Docker, and macOS without Docker showing the choices,
   recorded in notes.
@@ -49,8 +49,9 @@ criteria, and `install.sh`'s Homebrew path on macOS. The work goes on with task 
 
 - **`packaging/linux/nfpm.yaml`:** the bundle (084) unpacked as it is into `/opt/rmk-server`, a
   link `/usr/bin/rmk-server`, the scripts, and the glibc 2.34 and libstdc++ 11 dependencies
-  (symbol versions in the `.rpm`, so it's the same on Fedora, RHEL and openSUSE). `Recommends:
-  caddy` (deb), `Suggests: caddy` (rpm). The maintainer is "Ronne AI Marketplace
+  (symbol versions in the `.rpm`, so it's the same on Fedora, RHEL and openSUSE). `Suggests:
+  caddy` in both (first `Recommends` in the `.deb`; task 4 found apt then installs Ubuntu's own
+  Caddy 2.6 and starts its service). The maintainer is "Ronne AI Marketplace
   <marketplace@ronne.ai>", the address the owner gave (first written as the issues page, since
   the project had no email).
 - **The scripts** (`packaging/linux/scripts/`, POSIX `sh`, the same for both formats, which pass
@@ -105,3 +106,51 @@ criteria, and `install.sh`'s Homebrew path on macOS. The work goes on with task 
   (witnessed). The first amd64 run of them anywhere. Not covered: `release.yml` itself (it calls
   the same workflow) and an upgrade between two different builds (the older one is the same bundle
   labelled 0.0.1).
+
+### Task 4: `install.sh` without Docker (2026-10-05)
+
+- **`scripts/install/install.sh`:** when `docker` isn't installed, `native_install` replaces the
+  old "Docker isn't installed: Ronne runs in Docker" stop:
+  - not Linux (macOS while Homebrew is on hold), a Linux that isn't Debian, Ubuntu, Fedora or
+    RHEL-like (by `ID`/`ID_LIKE`), a processor other than amd64 or arm64, or glibc older than
+    2.34: it explains the choices (Docker, or Node.js 22.12 with `npm install --global
+    @ronneai/marketplace` and `sudo rmk-server service install`) and exits 1;
+  - a development copy (no release written in) has no packages to take: the same;
+  - otherwise it asks, downloads the package nFPM named for this release (`package_file`, `~` for a
+    pre-release) and `checksums.txt`, refuses on a mismatch ("Nothing was installed"), shows the
+    `sudo apt-get install -y …` or `sudo dnf install -y …` command, asks, runs it, waits for the
+    server and says where it is, with the `--domain` command when a domain was given.
+- The script's first line no longer says "install with Docker".
+- **Found here: `Recommends: caddy` made apt install Ubuntu's Caddy** (2.6, too old for 083's
+  `--domain`) and enable its service, which on a real machine starts at once on ports 80 and 443.
+  The `.deb` now *suggests* Caddy, as the `.rpm` did (spec updated).
+- **For tests:** `RONNE_INSTALL_RELEASE_URL` (where the package and `checksums.txt` come from,
+  `file://` works) and `RONNE_INSTALL_VERSION`, beside 081's two.
+- **Tests** (`test-install.sh`, under dash and bash): `native_target` for Ubuntu, Debian, Mint (by
+  `ID_LIKE`), Fedora, Rocky, AlmaLinux, and none for Alpine, riscv64 or no `os-release`;
+  `package_file` (deb, rpm, a pre-release); the glibc comparison. `shfmt -p -i 2 -ci` as CI runs it:
+  clean.
+- **By hand:**
+  - **Ubuntu 24.04 without Docker** (a systemd container, as a user with passwordless sudo, the
+    packages and `checksums.txt` in a local folder): a tampered checksum stops with "doesn't match
+    checksums.txt … Nothing was installed" and nothing installed; the real run checks the SHA-256,
+    shows and runs `sudo apt-get install -y …`, and Ronne answers (503, the setup next); the service
+    is active, and Caddy is only suggested.
+  - **macOS without Docker** (this Mac, `PATH=/usr/bin:/bin`): it explains the choices and exits 1.
+
+  The *Done when* is met (witnessed).
+- **Fixed after the witness** (it also confirmed a missing checksum line, the interactive answers
+  including "n", running as root, and Fedora 42 with the `.rpm`):
+  - the install command kept the package's path in one variable split by the shell, so a
+    temporary folder with a space (`TMPDIR="/tmp/a b"`) broke it; the path is one quoted argument
+    now (checked: installs from `/tmp/a b/…`);
+  - a failed run left the 80 MB download in `/tmp`; a trap removes it whatever happens, except
+    when the person declines to run the command, whose message names the file (checked: nothing
+    left after a checksum mismatch or after an install);
+  - the folder was 0700, so apt said it downloads "unsandboxed as root"; it's 755 and the package
+    644 now (checked: no notice);
+  - a missing `curl` is found before the first question, and `--domain` is checked with the
+    script's own `valid_domain`.
+- **Open, for a pre-release:** nFPM writes a pre-release's version with `~` (`0.3.0~rc.1`), and
+  GitHub may rename release assets with characters like `~`. Neither has been tried; the first
+  pre-release with packages should check its file names and the notes' and `install.sh`'s URLs.

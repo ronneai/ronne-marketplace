@@ -49,3 +49,25 @@ Witnessed: 2026-10-05, from GitHub's logs (`gh`, read only), by a fresh agent. P
 **Not covered by CI:** `release.yml` (it calls the same `packages.yml`; read only); an upgrade
 between two different builds; other distributions and real machines.
 **Overall:** met. Task 3 is ticked.
+
+## Task 4 — `install.sh` without Docker
+
+Witnessed: 2026-10-05 (22:34–22:55 EDT on 2026-10-04), by a fresh agent. Machine: macOS (Darwin 27.0.0) arm64, Docker; Ubuntu 24.04 and Fedora 42 containers booted with systemd, no Docker in them.
+
+| # | Claim | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|
+| 1 | Tests and CI's shfmt check | confirmed | `pnpm test:install` "all passed" under dash and bash (14 new checks); shfmt v3.14.1 `-p -i 2 -ci -d` → no diff; lint 53 warnings, 0 errors. |
+| 2 | Ubuntu 24.04 without Docker: a tampered checksum stops it | confirmed | "…doesn't match checksums.txt (SHA-256 7ed4…, expected 0ed4…). Nothing was installed.", exit 1; `dpkg -l` has no rmk-server. A missing line: "checksums.txt has no line for …", exit 1. |
+| 3 | The questions | confirmed | Interactive (`script -qec`): "n" at the first → "Nothing changed"; "y" then "n" → the checksum checked, the command shown, "Nothing changed. To install it yourself: …"; nothing installed. |
+| 4 | The install | confirmed | "y", "y", with `--domain ronne.example.com`: SHA-256 matches, `sudo apt-get install -y …` shown and run, the service starts, the URL and Caddy 2.7 `--domain` hint printed; `systemctl is-active` active, health 503. Again with `--yes`: "already the newest version", exit 0. As root: `apt-get` without sudo. |
+| 5 | Caddy only suggested | confirmed | `Depends: libc6 (>= 2.34), libstdc++6 (>= 11)`, `Suggests: caddy`, no Recommends; after the install `dpkg -l caddy` → not installed. |
+| 6 | macOS without Docker | confirmed | `env -i … PATH=/usr/bin:/bin sh scripts/install/install.sh --yes`: "Docker isn't installed.", the npm choice and the Docker links, exit 1; `~/ronne-marketplace` absent before and after. |
+| 7 | Fedora, the release URL, edge cases | confirmed | fedora:42 with `--yes`: `dnf install -y …aarch64.rpm`, service active, 503, no caddy. With `RONNE_VERSION=0.2.0-rc.1`: `…/releases/download/v0.2.0-rc.1/rmk-server_0.2.0~rc.1-1_arm64.deb`. No `/etc/os-release`, a development copy, no curl: each explains and exits 1. |
+
+**Found, and fixed in this commit** (checked by the builder in an Ubuntu container): a temporary
+folder with a space broke the install command; a failed run left the 80 MB download in `/tmp`;
+apt's "unsandboxed" notice (a 0700 folder); `curl` found missing only after the first question, and
+`--domain` not checked.
+**Open:** a pre-release's `~` in the packages' names, which GitHub may rename (untried; in the notes).
+**Not checked here:** amd64; Debian and RHEL themselves; a real GitHub download; `curl … | sh`.
+**Overall:** met.

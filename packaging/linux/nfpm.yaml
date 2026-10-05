@@ -38,7 +38,9 @@ overrides:
     depends:
       - libc6 (>= 2.34)
       - libstdc++6 (>= 11)
-    recommends:
+    # Not Recommends: apt installs those, and Debian's and Ubuntu's caddy (2.6) is too old for
+    # --domain, while its own service would start and take ports 80 and 443.
+    suggests:
       - caddy
   rpm:
     # The symbol versions themselves, as RPM provides them: the same on Fedora, RHEL and

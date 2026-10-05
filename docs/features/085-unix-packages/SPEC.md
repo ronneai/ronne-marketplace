@@ -56,7 +56,9 @@ brew services start rmk-server         # at login; `sudo brew services start` fo
   restart` instead, so the options chosen at install (port, domain) stay: the unit runs
   `/opt/rmk-server`, which an upgrade doesn't move. A failure there doesn't fail the package: it
   prints the command that finishes the install.
-- `Recommends: caddy` (deb) / `Suggests: caddy` (rpm), not required.
+- `Suggests: caddy` (deb and rpm), not required, and not `Recommends`: apt installs recommended
+  packages, and Debian's and Ubuntu's own `caddy` is 2.6 (too old for `--domain`, 083) while its
+  service starts at once and takes ports 80 and 443.
 - Removing the package stops and removes the service (`rmk-server service uninstall`); the data and
   settings are kept. A maintainer script can't ask a question, so `purge` (deb), like `dnf remove`,
   doesn't delete them either: it prints where they are and the command that deletes them.
@@ -67,9 +69,11 @@ brew services start rmk-server         # at login; `sudo brew services start` fo
 - Upgrading installs the new package over the old one; `postinst` restarts the service.
 - The maintainer is "Ronne AI Marketplace <marketplace@ronne.ai>" (owner, 2026-10-05).
 
-**`install.sh` without Docker:** on Debian/Ubuntu or Fedora/RHEL, download the right package for
-the release and architecture, check its checksum, and install it with `sudo` after showing the
-command and asking. Otherwise (macOS while the tap is on hold, other Linux), explain the choices
+**`install.sh` without Docker:** on Debian/Ubuntu or Fedora/RHEL (by `ID` and `ID_LIKE` in
+`/etc/os-release`), amd64 or arm64, with glibc 2.34 or later, download the right package for the
+release and architecture with `checksums.txt`, check its SHA-256, and install it with `sudo` (or as
+root) after showing the command and asking (`--yes` answers both). A `--domain` given then gets the
+command that adds HTTPS. Otherwise (macOS while the tap is on hold, other Linux), explain the choices
 (Docker, or `npm install --global @ronneai/marketplace` with Node.js) and stop. With the tap: on
 macOS with `brew`, run `brew install` and `brew services start`.
 
