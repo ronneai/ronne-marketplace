@@ -2,6 +2,11 @@
 
 > Milestone: M12 · Depends on: 083, 084, 081 · Design: [MVP §5](../../MVP/MVP.md#5-installation--bootstrap) · Guide: [`docs/runbooks/install.md`](../../runbooks/install.md)
 
+> **On hold (owner, 2026-10-05): the Homebrew tap**, its formula, the release job that updates it,
+> and `install.sh`'s Homebrew path on macOS. This feature delivers the `.deb` and `.rpm` packages
+> and `install.sh`'s Linux path; the Homebrew parts below stay as the design for when the tap
+> resumes.
+
 ## Goal
 
 On macOS and Linux, Ronne installs as a service with the package manager people already use, with
@@ -53,10 +58,11 @@ brew services start rmk-server         # at login; `sudo brew services start` fo
   which is otherwise kept.
 - Upgrading installs the new package over the old one; `postinst` restarts the service.
 
-**`install.sh` without Docker:** on macOS with `brew`, run `brew install` and `brew services start`;
-on Debian/Ubuntu or Fedora/RHEL, download the right package for the release and architecture,
-check its checksum, and install it with `sudo` after showing the command and asking. Otherwise,
-explain the choices and stop.
+**`install.sh` without Docker:** on Debian/Ubuntu or Fedora/RHEL, download the right package for
+the release and architecture, check its checksum, and install it with `sudo` after showing the
+command and asking. Otherwise (macOS while the tap is on hold, other Linux), explain the choices
+(Docker, or `npm install --global @ronneai/marketplace` with Node.js) and stop. With the tap: on
+macOS with `brew`, run `brew install` and `brew services start`.
 
 ## Edge cases
 
@@ -75,13 +81,14 @@ explain the choices and stop.
 
 ## Acceptance criteria
 
-- [ ] `brew install ronneai/tap/rmk-server` then `brew services start rmk-server` serves
+- [ ] *(On hold with the tap.)* `brew install ronneai/tap/rmk-server` then `brew services start rmk-server` serves
       `http://localhost:7650` on macOS (Apple silicon and Intel) with no Node.js installed.
 - [ ] The `.deb` installs, starts and survives a reboot on Ubuntu 24.04 and Debian 13; the `.rpm`
       on Fedora; both on amd64 and arm64 (CI in containers with systemd, and one manual check each).
 - [ ] Upgrading the package keeps the data and restarts the service; removing keeps the data.
-- [ ] The tap's formula is updated by each release.
-- [ ] `install.sh` with no Docker offers and completes the native install on macOS and Ubuntu.
+- [ ] *(On hold with the tap.)* The tap's formula is updated by each release.
+- [ ] `install.sh` with no Docker offers and completes the native install on Ubuntu (macOS: on hold
+      with the tap; until then it explains the choices).
 - [ ] nFPM is recorded in the dependency policy.
 - [ ] The README and the Documentation say what the feature does now.
 
