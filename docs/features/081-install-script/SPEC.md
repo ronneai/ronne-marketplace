@@ -26,9 +26,9 @@ macOS, Linux and Windows. The person answers two questions and never edits a fil
 **Out** (and where it goes instead):
 - Installing Docker itself: the script links to the right download and stops. Installing a
   container runtime needs admin rights and choices (Docker Desktop's licence) the person should make.
-- Installing without Docker: the script offers it once the packages exist
-  ([085](../085-unix-packages/SPEC.md) for macOS and Linux, [087](../087-windows-package/SPEC.md)
-  for Windows).
+- Installing without Docker: [085](../085-unix-packages/SPEC.md) adds it on Debian, Ubuntu,
+  Fedora and RHEL (the script offers this release's `.deb` or `.rpm`; macOS waits for the Homebrew
+  tap, on hold), [087](../087-windows-package/SPEC.md) on Windows.
 - Hosting the scripts on the website: www.ronne.ai only redirects to the release (below; site
   feature 008 in `ronneai/ronne-web`).
 

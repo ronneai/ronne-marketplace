@@ -71,3 +71,25 @@ apt's "unsandboxed" notice (a 0700 folder); `curl` found missing only after the 
 **Open:** a pre-release's `~` in the packages' names, which GitHub may rename (untried; in the notes).
 **Not checked here:** amd64; Debian and RHEL themselves; a real GitHub download; `curl … | sh`.
 **Overall:** met.
+
+## Task 5 — Documentation and the policy
+
+Witnessed: 2026-10-05, by a fresh agent. Machine: macOS arm64, Docker; an Ubuntu 24.04 systemd container and a Fedora container with the arm64 packages.
+
+| # | Claim | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|
+| 1 | The docs render and help tests pass; lint, typecheck | confirmed | 13 passed (the `packages` section and its facts asserted); `pnpm lint` 53 warnings, 0 errors; typecheck 7/7. The builder's `pnpm test:e2e`: 84 passed. |
+| 2 | `apt install ./…deb` makes Ronne a service | confirmed | Enabled and active, `Restart=on-failure`, `WantedBy=multi-user.target`; postinst "open http://localhost:7650 and finish the setup"; `curl :7650` → 307. |
+| 3 | Where things are | confirmed | `/usr/bin/rmk-server` → `/opt/rmk-server/bin/rmk-server`; `/var/lib/rmk-server` owned by `rmk-server`; `/etc/rmk-server/env` (600); `User=rmk-server`; the log in `journalctl -u rmk-server`; `rmk-server service status` → "installed, running". |
+| 4 | Upgrading keeps the options | partly | `service install --port 7700`, then `apt-get install --reinstall` → "Restarted the rmk-server service", `--port 7700` kept. A real version change with migrations wasn't run here (CI's upgrade test covers the package step). |
+| 5 | Removing and purging keep the data | confirmed | `apt remove`: unit, account and `/opt` gone, `/var/lib` and `/etc/rmk-server` kept; `apt purge`: the "sudo rm -rf …" line, folders kept. |
+| 6 | Without systemd | confirmed | "systemd isn't running here… Start it with: rmk-server start --host 0.0.0.0"; `install ok installed`. |
+| 7 | `dnf install`, the file names, glibc 2.34 | confirmed | The `.rpm` installs and removes on Fedora (no systemd there), requiring `GLIBC_2.34` and `GLIBCXX_3.4.29`; the documented names follow nFPM's patterns (amd64/x86_64); the systems listed meet the dependencies, and `install.sh` refuses below 2.34 with the same list. |
+| 8 | The install script, MVP's row, 081's spec, nFPM in the policy | confirmed | `check_docker` → `native_install` (checksum, then "Run it?" before `sudo`); the MVP row and 081's spec match what ships; `dependencies.md` has nFPM. |
+
+**Found, and fixed in this commit:** the runbook still showed Homebrew as live in its table, upgrade
+and uninstall lines, and its header said only Docker on port 3000 works; the spec's Documentation
+section still promised Homebrew; `dnf remove` prints the delete command too (now said).
+**Not checked here:** amd64; RHEL 9, Debian 12, Ubuntu 22.04 themselves; a real upgrade with
+migrations; `--domain` through the package; a reboot.
+**Overall:** met.

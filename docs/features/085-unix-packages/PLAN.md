@@ -25,7 +25,7 @@ the same change that completes it.
   *Done when:* by hand on Ubuntu without Docker, and macOS without Docker showing the choices,
   recorded in notes.
 
-- [ ] **5. Documentation and the policy.** README, the Documentation section, nFPM in the policy.
+- [x] **5. Documentation and the policy.** README, the Documentation section, nFPM in the policy.
   *Done when:* the docs render tests pass.
 
 ## Notes
@@ -154,3 +154,26 @@ criteria, and `install.sh`'s Homebrew path on macOS. The work goes on with task 
 - **Open, for a pre-release:** nFPM writes a pre-release's version with `~` (`0.3.0~rc.1`), and
   GitHub may rename release assets with characters like `~`. Neither has been tried; the first
   pre-release with packages should check its file names and the notes' and `install.sh`'s URLs.
+
+### Task 5: documentation and the policy (2026-10-05)
+
+- **README:** *As a Linux package (apt or dnf), no Docker or Node.js*, before *With Node.js*: the
+  systems (glibc 2.34+), the `apt`/`dnf` commands with the release's file names, the install
+  script doing it without Docker, where things are, upgrading, removing and purging (data kept),
+  and no systemd.
+- **Documentation › Installing Ronne › With apt or dnf** (new section `packages`): the same, with a
+  link to *As a service* for the commands and `--domain`. *Upgrading* gains the package line.
+  `docs.test.tsx` asserts the section and its facts.
+- **The runbook's *Install as a service*:** Homebrew marked on hold; Debian 12 / Ubuntu 22.04 and
+  Fedora / RHEL 9 (openSUSE left out: untested); the install script's no-Docker path; removal keeps
+  the data; glibc 2.34.
+- **081's spec** now says the script offers the package without Docker (085), macOS waiting for the
+  tap.
+- **MVP §15's *Easy install* row** records the tap on hold and what 085 ships (a decision change).
+- **nFPM in the policy:** done in task 3 (the CI tools table).
+- **Helpers:** none; the setup page doesn't change.
+- **Fixed after the witness:** the runbook still showed Homebrew as live in its table, upgrade and
+  uninstall lines, and its header said only Docker on port 3000 works (stale since 080); the
+  spec's Documentation section still promised a Homebrew section; and `dnf remove`, not only `apt
+  purge`, prints the delete command. All corrected.
+- **Checks:** the docs and help tests (13), lint, and `pnpm test:e2e` (84 passed, the phone sweep over the docs included).

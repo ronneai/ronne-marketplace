@@ -87,9 +87,11 @@ macOS with `brew`, run `brew install` and `brew services start`.
 
 ## Documentation
 
-- **README** and **Documentation › Installing an instance**: an *As a service* section with
-  Homebrew, apt and dnf.
-- The guide's *Install as a service* section (Homebrew, Debian, Fedora) is published when released.
+- **README**: *As a Linux package (apt or dnf)*; **Documentation › Installing Ronne › With apt or
+  dnf** (`packages`), and the package line in *Upgrading*. Homebrew joins both when the tap
+  resumes.
+- The guide's *Install as a service* section (Debian, Fedora; Homebrew marked on hold) is published
+  when released.
 - 081's spec and the install script's messages mention the no-Docker path.
 
 ## Acceptance criteria

@@ -374,6 +374,51 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
         </Bullets>
       </>
     ),
+    packages: (
+      <>
+        <p>
+          On Debian 12, Ubuntu 22.04, Fedora, RHEL 9 and newer (glibc 2.34 or later), Ronne installs
+          as a package with Node.js inside, no Docker and no Node.js needed. Installing it makes
+          Ronne a service, started at boot and restarted if it stops. Download the <Code>.deb</Code>{" "}
+          or <Code>.rpm</Code> for your processor (amd64 or arm64) from the latest release on
+          GitHub, then:
+        </p>
+        <Example>
+          {
+            "sudo apt install ./rmk-server_X.Y.Z-1_amd64.deb     # or _arm64.deb\nsudo dnf install ./rmk-server-X.Y.Z-1.x86_64.rpm    # or .aarch64.rpm"
+          }
+        </Example>
+        <p>
+          Then open http://localhost:7650 and follow{" "}
+          <To href={docsHref("install", "setup")}>the setup</To>. Without Docker, the install script
+          does this for you: it offers the package, checks it against the release&apos;s{" "}
+          <Code>checksums.txt</Code>, and asks before running <Code>sudo</Code>.
+        </p>
+        <Bullets>
+          <li>
+            <strong>Where things are:</strong> the program in <Code>/opt/rmk-server</Code> (and{" "}
+            <Code>/usr/bin/rmk-server</Code>), the data in <Code>/var/lib/rmk-server</Code>, the
+            settings in <Code>/etc/rmk-server/env</Code>, the log in{" "}
+            <Code>journalctl -u rmk-server</Code>. It&apos;s managed with the commands of{" "}
+            <To href={docsHref("install", "service")}>As a service</To>, including{" "}
+            <Code>--domain</Code> for HTTPS.
+          </li>
+          <li>
+            <strong>Upgrading:</strong> install the new package the same way. The service restarts
+            on it with the options it had, and migrations run on start.
+          </li>
+          <li>
+            <strong>Removing:</strong> <Code>sudo apt remove rmk-server</Code> (or{" "}
+            <Code>dnf remove</Code>) stops and removes the service and keeps the data and settings;{" "}
+            <Code>apt purge</Code> and <Code>dnf remove</Code> print the command that deletes them.
+          </li>
+          <li>
+            <strong>Without systemd</strong> (a container): the package installs, and says how to
+            start Ronne by hand.
+          </li>
+        </Bullets>
+      </>
+    ),
     node: (
       <>
         <p>
@@ -579,7 +624,7 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
       <>
         <Example>
           {
-            "docker compose pull && docker compose up -d         # Docker\nnpm install --global @ronneai/marketplace@latest     # npm\nsudo rmk-server service restart                      # npm, as a service: then this\ngit pull && pnpm install && pnpm build && pnpm start   # a clone"
+            "docker compose pull && docker compose up -d         # Docker\nnpm install --global @ronneai/marketplace@latest     # npm\nsudo rmk-server service restart                      # npm, as a service: then this\nsudo apt install ./rmk-server_X.Y.Z-1_amd64.deb      # a package: the new one (or dnf install)\ngit pull && pnpm install && pnpm build && pnpm start   # a clone"
           }
         </Example>
         <p>

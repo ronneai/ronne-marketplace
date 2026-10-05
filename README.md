@@ -146,6 +146,32 @@ why: usually the DNS, a closed port, or ports other than 80 and 443.
 - **"isn't writable" on start:** the volume is owned by root. Fix it once with
   `docker compose run --rm --user root web chown -R 1000:1000 /app/data`.
 
+### As a Linux package (apt or dnf), no Docker or Node.js
+
+Each release has a `.deb` and an `.rpm` for amd64 and arm64, with Node.js inside. Installing one
+makes Ronne a service, started at boot and restarted if it stops. On Debian 12, Ubuntu 22.04,
+Fedora, RHEL 9 and newer (glibc 2.34 or later), download it from the
+[latest release](https://github.com/ronneai/ronne-marketplace/releases/latest), then:
+
+```sh
+sudo apt install ./rmk-server_X.Y.Z-1_amd64.deb     # or _arm64.deb
+sudo dnf install ./rmk-server-X.Y.Z-1.x86_64.rpm    # or .aarch64.rpm
+```
+
+Then open http://localhost:7650 and finish the setup. The install script does all this when Docker
+isn't installed: it offers the package, checks it against the release's `checksums.txt`, and asks
+before running `sudo`.
+
+- **Where:** the program in `/opt/rmk-server` (`/usr/bin/rmk-server`), the data in
+  `/var/lib/rmk-server`, the settings in `/etc/rmk-server/env`, the log in `journalctl -u rmk-server`.
+  It runs as the `rmk-server` account. The commands are those of *As a service* below
+  (`rmk-server service status`, `sudo rmk-server service restart`, `--domain` for HTTPS…).
+- **Upgrading:** install the new package the same way; the service restarts on it with the same
+  options, and migrations run on start.
+- **Removing:** `sudo apt remove rmk-server` (or `dnf remove`) stops and removes the service and
+  keeps the data; `apt purge` and `dnf remove` print the command that deletes it.
+- **Without systemd** (a container): the package installs, and says how to start Ronne by hand.
+
 ### With Node.js, no clone
 
 With Node.js 22.12 or later, one command downloads and starts Ronne, with no clone, no Docker and
