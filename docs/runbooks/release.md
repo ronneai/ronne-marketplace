@@ -46,7 +46,7 @@ until you approve its "npm" environment.
       environment.
 - [ ] The packages are on npm with provenance, the image is tagged on Docker Hub, and the GitHub
       release has the four npm tarballs, `install.sh`, `install.ps1`, the six `rmk-server-X.Y.Z-*`
-      archives and `checksums.txt`. Its notes name the bundles' Node.js version and their glibc
+      archives, the four Linux packages (`.deb` and `.rpm`, amd64 and arm64) and `checksums.txt`. Its notes name the bundles' Node.js version and their glibc
       2.34 requirement.
 - [ ] A package's first release needs a short-lived `NPM_TOKEN` in the "npm" environment, since a
       trusted publisher can only be set on a package that exists. Link it on npmjs.com to this
