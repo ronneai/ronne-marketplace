@@ -177,3 +177,8 @@ criteria, and `install.sh`'s Homebrew path on macOS. The work goes on with task 
   spec's Documentation section still promised a Homebrew section; and `dnf remove`, not only `apt
   purge`, prints the delete command. All corrected.
 - **Checks:** the docs and help tests (13), lint, and `pnpm test:e2e` (84 passed, the phone sweep over the docs included).
+
+### Done (owner, 2026-10-05)
+
+The feature is done with tasks 1 and 2 (the Homebrew tap) left as separate later work, by the
+owner's decision; their design stays in the spec and these notes for when it resumes.

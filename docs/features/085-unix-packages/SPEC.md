@@ -2,10 +2,10 @@
 
 > Milestone: M12 · Depends on: 083, 084, 081 · Design: [MVP §5](../../MVP/MVP.md#5-installation--bootstrap) · Guide: [`docs/runbooks/install.md`](../../runbooks/install.md)
 
-> **On hold (owner, 2026-10-05): the Homebrew tap**, its formula, the release job that updates it,
-> and `install.sh`'s Homebrew path on macOS. This feature delivers the `.deb` and `.rpm` packages
-> and `install.sh`'s Linux path; the Homebrew parts below stay as the design for when the tap
-> resumes.
+> **Done without the Homebrew tap (owner, 2026-10-05):** the tap, its formula, the release job
+> that updates it, and `install.sh`'s Homebrew path on macOS are separate later work. This feature
+> delivers the `.deb` and `.rpm` packages and `install.sh`'s Linux path; the Homebrew parts below
+> stay as the design for when the tap is built.
 
 ## Goal
 
