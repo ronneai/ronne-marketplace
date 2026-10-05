@@ -169,6 +169,18 @@ describe("service install on Windows (086)", () => {
     );
   });
 
+  it("installing again on 127.0.0.1 after 0.0.0.0 keeps its own port, and removes the rule", async () => {
+    const sys = machine();
+    expect(await install(sys, { host: "0.0.0.0" })).toBe(0);
+    // Running, and holding 7650 (on 0.0.0.0): the port is the service's own.
+    sys.answers.set("sc.exe query rmk-server", { code: 0, stdout: "  STATE : 4  RUNNING" });
+    sys.busy.add(7650);
+    sys.commands.length = 0;
+    expect(await install(sys)).toBe(0);
+    expect(sys.commands).toContain("netsh advfirewall firewall delete rule name=rmk-server");
+    expect(sys.commands.some((line) => line.includes("add rule name=rmk-server "))).toBe(false);
+  });
+
   it("installing again stops it, replaces WinSW and starts it, without registering it again", async () => {
     const sys = machine();
     expect(await install(sys)).toBe(0);

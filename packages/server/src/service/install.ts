@@ -228,8 +228,9 @@ export const installService = async (
       : {}),
   });
 
-  const ownPort =
-    previous?.port === options.port && previous.host === options.host && backend.isActive(plan.app);
+  // Its own port, whatever the host: going from 0.0.0.0 back to 127.0.0.1 on the same port finds it
+  // taken by the service itself.
+  const ownPort = previous?.port === options.port && backend.isActive(plan.app);
   if (!ownPort && !(await sys.portFree(options.port, options.host))) {
     const holder = backend.portHolder(options.port);
     return fail(

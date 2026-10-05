@@ -207,6 +207,12 @@ goes into `SPEC.md` instead.
     service as `NT SERVICE\rmk-server` at boot on 127.0.0.1, 503 before setup, the folders'
     permissions by the account's SID, `status`. The setup then needed `DATABASE_URL`, which
     `setup --yes` takes from the environment (the Linux test gives it too): the script gives it.
+  - **CI's fifth Windows run** passed the setup and sign-in, stop, start, restart, logs, a crash
+    (Windows started it again) and a taken port, then found a bug Linux has too: installing again
+    on 127.0.0.1 after `--host 0.0.0.0`, on the same port, was refused, because install took the
+    port as the service's own only with the same host, and the service still held it on 0.0.0.0.
+    Now the port is its own whenever it's the same and the service runs (a test covers it); the
+    script checks that install's exit code.
 
 ### Task 4: the proxy service (2026-10-05)
 

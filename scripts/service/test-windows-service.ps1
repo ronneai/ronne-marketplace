@@ -163,6 +163,7 @@ $rule = Get-NetFirewallRule -DisplayName 'rmk-server'
 if ($rule.Profile -ne 'Private' -or $rule.Direction -ne 'Inbound' -or $rule.Action -ne 'Allow') { Fail "the rule: $($rule.Profile) $($rule.Direction) $($rule.Action)" }
 if ((Get-NetFirewallPortFilter -AssociatedNetFirewallRule $rule).LocalPort -ne '7650') { Fail 'the rule is for another port' }
 $out = Run $rmk service install
+if ($code -ne 0) { Fail "install again on 127.0.0.1 failed ($code): $out" }
 WaitFor $health 200
 if (Get-NetFirewallRule -DisplayName 'rmk-server' -ErrorAction SilentlyContinue) { Fail 'the rule stayed' }
 Step '--host 0.0.0.0: an inbound rule for 7650 on Private networks; removed with 127.0.0.1'
