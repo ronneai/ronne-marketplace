@@ -247,7 +247,8 @@ published items and didn't match the scope.
 3. **Release auto-includes approved dependencies** (owner, 2026-10-01), in 055.
 4. **Another author's submission as a dependency** (owner, 2026-10-01): it counts, named only by
    item and status, as 013's "name is taken" already does; its content stays hidden from people who
-   can't see it.
+   can't see it. *Replaced by [089](../089-dependency-picker-rule/SPEC.md) (owner, 2026-10-05):
+   another author's item counts only once published.*
 
 5. **Picking dependencies** (owner, 2026-10-01): an autocomplete in the form and `@` in markdown,
    over published items and the person's own; built in this feature. Deleting an `@` mention keeps
