@@ -466,10 +466,10 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
     service: (
       <>
         <p>
-          On macOS and Linux, <Code>rmk-server</Code> installed with npm can run as a service: in
-          the background, started at boot and restarted if it stops (systemd on Linux, launchd on
-          macOS). Install Node.js for the whole machine first: the service runs under its own
-          account, which can&apos;t read a Node.js in your home folder (nvm). If{" "}
+          On macOS, Linux and Windows, <Code>rmk-server</Code> can run as a service: in the
+          background, started at boot and restarted if it stops (systemd on Linux, launchd on macOS,
+          WinSW on Windows). Install Node.js for the whole machine first: the service runs under its
+          own account, which can&apos;t read a Node.js in your home folder (nvm). If{" "}
           <Code>sudo rmk-server</Code> isn&apos;t found, keep your PATH:{" "}
           <Code>sudo env &quot;PATH=$PATH&quot; rmk-server service install</Code>.
         </p>
@@ -546,6 +546,42 @@ export const CONTENT: Record<TopicSlug, Record<string, ReactNode>> = {
             <Code>/etc/rmk-server-proxy/certs</Code> (on macOS, the prefix&apos;s{" "}
             <Code>etc/rmk-server-proxy/certs</Code>; copies, not links; copy them again after each
             renewal and restart); <Code>--email</Code> gets expiry notices.
+          </li>
+          <li>
+            <strong>On Windows,</strong> run the same commands without <Code>sudo</Code>, in a
+            terminal opened as administrator (right-click PowerShell or Terminal, Run as
+            administrator); <Code>status</Code> works in any terminal, with the details for
+            administrators. The service&apos;s account can&apos;t read your profile, where
+            npm&apos;s global folder is (<Code>%APPDATA%\npm</Code>), so install refuses an{" "}
+            <Code>rmk-server</Code> there. Use the Windows bundle (
+            <Code>rmk-server-X.Y.Z-win32-x64.zip</Code>, or <Code>-arm64</Code>, with Node.js
+            inside; attached to the{" "}
+            <a href="https://github.com/ronneai/ronne-marketplace/releases">releases</a> from the
+            one after 0.2.0): unzip it into <Code>C:\Program Files\RonneAI</Code>, rename its folder
+            to <Code>Marketplace</Code>, and run{" "}
+            <Code>
+              {'"C:\\Program Files\\RonneAI\\Marketplace\\bin\\rmk-server.cmd" service install'}
+            </Code>
+            . Or, in the same administrator&apos;s terminal, install with npm into a folder for the
+            whole machine,{" "}
+            <Code>
+              {
+                'npm install --global --prefix "C:\\Program Files\\RonneAI\\npm" @ronneai/marketplace'
+              }
+            </Code>
+            , and run{" "}
+            <Code>{'"C:\\Program Files\\RonneAI\\npm\\rmk-server.cmd" service install'}</Code> (that
+            folder isn&apos;t on PATH). Data in <Code>C:\ProgramData\RonneAI\Marketplace\data</Code>
+            , settings in <Code>…\Marketplace\.env</Code>, logs in{" "}
+            <Code>…\Marketplace\logs\rmk-server-service.out.log</Code> (and <Code>.err.log</Code>),
+            run by <Code>NT SERVICE\rmk-server</Code>. Without a domain, <Code>--host 0.0.0.0</Code>{" "}
+            also adds a firewall rule for the port, on Private networks. <Code>--domain</Code> needs
+            Caddy for the whole machine (
+            <Code>winget install --id CaddyServer.Caddy --scope machine</Code>; one in your profile
+            is refused), adds a firewall rule for 80 and 443 on every network, and{" "}
+            <Code>--tls files</Code> reads <Code>…\Marketplace\proxy\certs</Code>.{" "}
+            <Code>setup</Code>, <Code>migrate</Code> and <Code>reset-root-password</Code> work on
+            the service&apos;s data, as you.
           </li>
           <li>
             <strong>Without systemd</strong> (a container, WSL 1, another init system): there&apos;s

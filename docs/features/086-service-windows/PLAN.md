@@ -21,7 +21,7 @@ the same change that completes it.
 - [ ] **4. The proxy service.** `--domain` with Caddy.
   *Done when:* CI with `--tls internal` answers over HTTPS.
 
-- [ ] **5. Documentation.**
+- [x] **5. Documentation.**
   *Done when:* the docs render tests pass.
 
 ## Notes
@@ -191,6 +191,11 @@ goes into `SPEC.md` instead.
     or this administrator's), not a link, and nobody but SYSTEM, the administrators and services'
     accounts may write in it (a hand-made folder that lets Users write is refused). With
     `--tls files`, `certs` is made and checked before its files are shared.
+  - **CI's second Windows run** showed the real error: Windows PowerShell started from PowerShell 7
+    (CI's `pwsh`, and anyone's terminal) inherits pwsh's `PSModulePath` and fails on its first
+    module ("The member AuditToString is already present", from `Get-Acl`). The script resets
+    the module path first and uses no command that loads a module: `[IO.DirectoryInfo]`,
+    `GetAccessControl()`, `::new()`. The knowledge note says so.
 
 ### Task 4: the proxy service (2026-10-05)
 
@@ -218,3 +223,25 @@ goes into `SPEC.md` instead.
   as `NT SERVICE\rmk-server-proxy`, its rule is for 80 and 443 on every network, `PUBLIC_URL`
   and status show it; installed again without a domain, the proxy and its rule are gone. The
   policy's Caddy row says Windows too.
+
+### Task 5: documentation (2026-10-05)
+
+- **Documentation › Installing Ronne › As a service:** Windows in the opening (WinSW), and a *On
+  Windows* bullet: an administrator's terminal instead of `sudo`, `status` in any terminal; npm's
+  global folder (`%APPDATA%\npm`) refused, so the Windows bundle unzipped into
+  `C:\Program Files\RonneAI\Marketplace`, or npm with a machine-wide `--prefix`; the folders, the
+  log files, the account; the firewall rules; Caddy with `--scope machine`; `--tls files`' folder;
+  the scripts as you. The docs test asserts these.
+- **README** *As a service (macOS, Linux and Windows)*: the same, as a Windows bullet.
+- **The install guide** (`docs/runbooks/install.md`): the header (086 built, 087 to come), the
+  Windows account and the two ways to a program the service can read, Caddy for the whole machine,
+  the certificates' folder and firewall rules, the administrator's terminal, a Windows column in
+  *Where things are*.
+- **Not changed:** inline helpers (`Help.tsx`): the service has no screen in the app.
+- **Fixed after the witness:** the README and the in-app page pointed to bundles on the releases
+  page, which v0.2.0 doesn't have: they now say from the release after 0.2.0. The zip holds a top
+  folder, so the docs say to unzip into `C:\Program Files\RonneAI` and rename it to
+  `Marketplace` (as CI does). The npm `--prefix` route now says to run it in the administrator's
+  terminal and to run `rmk-server.cmd` by its full path (that folder isn't on PATH). The firewall
+  wording: the port's rule only without a domain, on Private networks; the proxy's on every
+  network. A Caddy in a profile is said to be refused. The guide's misplaced line break fixed.

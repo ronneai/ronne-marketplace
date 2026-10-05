@@ -131,6 +131,10 @@ export const windowsBackend = (
     }
     const quote = (value: string) => `'${value.replaceAll("'", "''")}'`;
     const script = [
+      // Started from PowerShell 7 (pwsh), Windows PowerShell inherits pwsh's module path and fails
+      // on its first module ("AuditToString is already present"): its own path back, and no
+      // command that loads a module below, only .NET.
+      "$env:PSModulePath = [Environment]::GetEnvironmentVariable('PSModulePath', 'Machine')",
       "$ErrorActionPreference = 'Stop'",
       "$ProgressPreference = 'SilentlyContinue'",
       // Errors as one plain line on standard output: PowerShell's own go out as CLIXML.
@@ -144,10 +148,10 @@ export const windowsBackend = (
       // Who may write in one of Ronne's folders: SYSTEM, the administrators, services' accounts.
       "$writes = 0xD0156 -bor 0x50000000",
       `function Check($p, $top, $made) {
-  $i = Get-Item -LiteralPath $p -Force
+  $i = [IO.DirectoryInfo]::new($p)
+  if (-not $i.Exists) { throw "$p isn't a folder" }
   if ($i.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "$p is a link (a symbolic link or a junction)" }
-  if (-not $i.PSIsContainer) { throw "$p isn't a folder" }
-  $acl = Get-Acl -LiteralPath $p
+  $acl = $i.GetAccessControl()
   $owner = $acl.GetOwner([Security.Principal.SecurityIdentifier]).Value
   $owners = if ($made) { @('S-1-5-32-544') } else { @('S-1-5-32-544', 'S-1-5-18', $me) }
   if ($owner -notin $owners) { throw "$p belongs to $owner, not the administrators" }
@@ -163,9 +167,9 @@ export const windowsBackend = (
       ...parts.map(
         (part) =>
           `$p = ${quote(part)}; $sd = ${privateFolders.has(part) ? "$private" : "$open"}
-$made = -not (Test-Path -LiteralPath $p)
+$made = -not ([IO.Directory]::Exists($p) -or [IO.File]::Exists($p))
 if ($made) {
-  $s = New-Object System.Security.AccessControl.DirectorySecurity
+  $s = [Security.AccessControl.DirectorySecurity]::new()
   $s.SetSecurityDescriptorSddlForm($sd)
   [void][IO.Directory]::CreateDirectory($p, $s)
 }

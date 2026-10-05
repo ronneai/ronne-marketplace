@@ -89,8 +89,12 @@ macOS (083).
 
 ## Documentation
 
-- **Documentation › Installing an instance** and **README**: the Windows lines of *As a service*:
-  the administrator PowerShell, the folders and the logs.
+- **Documentation › Installing Ronne › As a service** and the **README**: the Windows lines of *As
+  a service*: a terminal opened as administrator, a program the service can read (the Windows
+  bundle in Program Files, or npm with a machine-wide `--prefix`), the folders, the logs, the
+  account, the firewall rules, Caddy for the whole machine.
+- **The install guide** (`docs/runbooks/install.md`): the same, and a Windows column in *Where
+  things are*. No inline helper changes: the service has no screen in the app.
 
 ## Acceptance criteria
 

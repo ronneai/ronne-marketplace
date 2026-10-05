@@ -17,3 +17,8 @@ Lessons from feature 086 (`packages/server/src/service/windows.ts`).
 - **Windows PowerShell with `-EncodedCommand` writes its errors to stderr as CLIXML**
   (`#< CLIXML`). Catch them in the script (`trap { "error`t$($_.Exception.Message)"; exit 1 }`)
   and read that line from standard output.
+- **Windows PowerShell started from PowerShell 7 inherits pwsh's `PSModulePath`** and fails on its
+  first module ("The member AuditToString is already present", from `Get-Acl`). Reset it first
+  (`$env:PSModulePath = [Environment]::GetEnvironmentVariable('PSModulePath', 'Machine')`) and
+  prefer .NET to cmdlets (`[IO.DirectoryInfo]::new($p).GetAccessControl()`, `::new()` rather than
+  `New-Object`), which load no module at all.

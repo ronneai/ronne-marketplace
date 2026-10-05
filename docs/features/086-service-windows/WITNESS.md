@@ -104,3 +104,23 @@ made. B: errors as CLIXML (CI showed it too), so the script traps them and print
 weren't inspected, so one that lets anyone else write is now refused.
 **Overall:** defects 2–4 of the first witness closed; 1 closed after A's fix.
 **Next:** CI on Windows with these fixes; task 3 is ticked when it passes.
+
+## Task 5 — Documentation
+
+Witnessed: 2026-10-05, by a fresh agent, against the code on this branch.
+
+| # | Claim | Verdict | Evidence |
+|---|---|---|---|
+| 1 | The docs render tests pass; lint, typecheck | confirmed | 13 tests (the new asserts: WinSW, the administrator's terminal, the data path, the account, the zip's name, the winget command); lint 0 errors; typecheck 7/7. |
+| 2 | Paths, account, log files | confirmed | `windowsLayout`, `logFiles`; the CI script reads the same. |
+| 3 | The firewall rules | partly → fixed | The port's rule only without a domain; the proxy's on every network (`profile=any`). The wording said otherwise: corrected. |
+| 4 | Caddy for the whole machine; one in a profile refused | confirmed | `WINDOWS_CADDY_HINT` word for word; install.ts's `canRun` for the proxy. |
+| 5 | `status` without elevation; `%APPDATA%\npm` refused | confirmed | control.ts, windows.ts `canRun`, `cantRunHint`; CI refuses a bundle in the profile. |
+| 6 | npm with `--prefix` | partly → fixed | It passes install's checks, but the docs didn't say the npm install needs the administrator's terminal or that `rmk-server.cmd` is then off PATH: both said now. |
+| 7 | The bundle's names and where to unzip it | partly → fixed | Names match `bundle.js`; the zip holds a top folder, so "unzip into …\Marketplace" nested it: now unzip into `C:\Program Files\RonneAI` and rename (as CI does). |
+| 8 | The bundles on the releases page | not met → fixed | v0.2.0 has none (`gh release view`): the README and the page now say from the release after 0.2.0. The guide keeps its "publish once released" header. |
+| 9 | Notes, spec, the guide's header | confirmed | They match; no inline helper (the service has no screen). |
+
+**Fixed in this commit:** 3, 6, 7, 8, and the guide's misplaced line break.
+**Not checked here:** real Windows (CI's job); winget's machine scope for Caddy.
+**Overall:** met.

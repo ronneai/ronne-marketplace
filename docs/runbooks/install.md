@@ -4,7 +4,8 @@
 > milestone M12 (features [080](../features/080-docker-https/SPEC.md)–087). Each section names the
 > feature it needs; publish a section only once that feature is released, and recheck the commands
 > then. Built so far: Docker (080, 081), npm and its service (082, 083), the bundles (084), the
-> `.deb` and `.rpm` (085). On hold: the Homebrew tap. Still to come: Windows (086, 087).
+> `.deb` and `.rpm` (085), the Windows service (086). On hold: the Homebrew tap. Still to come:
+> the Windows installer and winget (087).
 
 Ronne AI Marketplace installs in one command on macOS, Linux and Windows, with Docker or without it,
 on your own machine or on a server with your domain and HTTPS.
@@ -196,16 +197,22 @@ winget install RonneAI.Marketplace
 sudo rmk-server service install      # then open http://localhost:7650 and finish the setup
 ```
 
-The service runs under its own account (`rmk-server` on Linux, `_rmkserver` on macOS), which can't
-read a Node.js installed in your home folder (nvm, for example): install Node.js for the whole
-machine first. On macOS, `--user` runs it as you instead. If `sudo rmk-server` isn't found, keep
-your PATH: `sudo env "PATH=$PATH" rmk-server service install`. macOS may show a notification about
+The service runs under its own account (`rmk-server` on Linux, `_rmkserver` on macOS,
+`NT SERVICE\rmk-server` on Windows), which can't read a Node.js installed in your home folder (nvm,
+for example): install Node.js for the whole machine first. On Windows npm's global folder is in
+your profile too (`%APPDATA%\npm`): in the administrator's terminal, install with
+`--prefix "C:\Program Files\RonneAI\npm"` and run `"C:\Program Files\RonneAI\npm\rmk-server.cmd"
+service install` (that folder isn't on PATH); or unzip the Windows bundle
+(`rmk-server-X.Y.Z-win32-x64.zip`, Node.js inside) into `C:\Program Files\RonneAI`, rename its
+folder to `Marketplace`, and run its `bin\rmk-server.cmd service install`. On macOS, `--user` runs
+it as you instead. If `sudo rmk-server` isn't found, keep your PATH:
+`sudo env "PATH=$PATH" rmk-server service install`. macOS may show a notification about
 a new background item: that's the service.
 
 **With a domain and HTTPS**, without Docker: install Caddy 2.7 or later
 ([Caddy's own repository](https://caddyserver.com/docs/install) on Debian and Ubuntu, whose own
-`caddy` package is too old; `brew install caddy` on macOS; `winget install CaddyServer.Caddy` on
-Windows), stop the `caddy` service its package may have started (`sudo systemctl disable --now
+`caddy` package is too old; `brew install caddy` on macOS; `winget install --id
+CaddyServer.Caddy --scope machine` on Windows, for the whole machine), stop the `caddy` service its package may have started (`sudo systemctl disable --now
 caddy`), then:
 
 ```sh
@@ -214,8 +221,11 @@ sudo rmk-server service install --domain ronne.example.com
 
 The same DNS and firewall steps as in *Your own domain with HTTPS* apply. `--tls internal` uses
 Caddy's own authority instead of Let's Encrypt, and `--tls files` reads copies of your `cert.pem`
-and `key.pem` in `/etc/rmk-server-proxy/certs` on Linux, or the prefix's `etc/rmk-server-proxy/certs`
-on macOS (copy them again and restart after each renewal).
+and `key.pem` in `/etc/rmk-server-proxy/certs` on Linux, the prefix's `etc/rmk-server-proxy/certs`
+on macOS, or `C:\ProgramData\RonneAI\Marketplace\proxy\certs` on Windows (copy them again and
+restart after each renewal). On Windows install also adds firewall rules: one for the proxy's 80
+and 443, on every network, and, without a domain, one for the port with `--host 0.0.0.0`, on
+Private networks only.
 
 **Managing the service:**
 
@@ -228,16 +238,17 @@ on macOS (copy them again and restart after each renewal).
 | Remove the service (your data stays) | `sudo rmk-server service uninstall` |
 | Remove it and delete the data | `sudo rmk-server service uninstall --delete-data` |
 
-On macOS and Linux every command but `status` needs `sudo`; on Windows, an administrator
-PowerShell. (With the Homebrew tap, on hold, `brew services` would do this.)
+On macOS and Linux every command but `status` needs `sudo`; on Windows, a terminal opened as
+administrator, without `sudo` (`status` works in any terminal, with the details for
+administrators). (With the Homebrew tap, on hold, `brew services` would do this.)
 
 Where things are, for a service installed with npm:
 
-| | Linux | macOS |
-| --- | --- | --- |
-| Data | `/var/lib/rmk-server` | `/usr/local/var/rmk-server` (Homebrew: `/opt/homebrew/var/rmk-server`) |
-| Settings | `/etc/rmk-server/env` | the same prefix's `etc/rmk-server/env` |
-| Logs | `journalctl -u rmk-server` | `/Library/Logs/rmk-server/server.log` |
+| | Linux | macOS | Windows |
+| --- | --- | --- | --- |
+| Data | `/var/lib/rmk-server` | `/usr/local/var/rmk-server` (Homebrew: `/opt/homebrew/var/rmk-server`) | `C:\ProgramData\RonneAI\Marketplace\data` |
+| Settings | `/etc/rmk-server/env` | the same prefix's `etc/rmk-server/env` | `…\Marketplace\.env` |
+| Logs | `journalctl -u rmk-server` | `/Library/Logs/rmk-server/server.log` | `…\Marketplace\logs\rmk-server-service.out.log` |
 
 ## After installing
 
