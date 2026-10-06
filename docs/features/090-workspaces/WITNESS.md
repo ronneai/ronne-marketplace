@@ -328,3 +328,43 @@ Witnessed: 2026-10-06 17:21 EDT, by a fresh agent (blind). Commit: 70a6ce3 + unc
 | 11 | The tests cover the page's Workspace column and filter, and the dialog's select | yes | confirmed | scratch mutations each failing "root gets the list…": no `<WorkspaceSelect>` → 1 failed; no `workspaces=` → 1 failed; column off → 2 failed; filter select off → 2 failed; restored → 12 passed |
 
 **Overall:** met.
+
+## Task 6 — Catalogue and item page
+
+Witnessed: 2026-10-06 17:39 EDT, by a fresh agent (blind). Commit: 60beb03 (+ uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Catalogue entries and items carry their workspace name, joined through the scope | yes | confirmed | Catalogue and item repositories inner-join `workspaces` on `scopes.workspace_id`; the db test's `findByName("acme-infra","deploy").workspace` is `"acme"` and passes |
+| 2 | The catalogue filters entries and type counts by `?workspace=` | yes | confirmed | `vitest run --project db src/server/domains/items src/server/domains/feeds` → 61 passed; with the `workspaces.name` where-clause removed in a scratch copy, the 090 db test fails |
+| 3 | The filter works on PostgreSQL, MySQL and MariaDB | yes | confirmed | `pnpm test:db:postgres\|mysql\|mariadb -- src/server/domains/items` → 38/38 on each |
+| 4 | The card shows a quiet non-global workspace label before `@scope/name`, and none for `global` | yes | confirmed | `ItemCard.tsx:38-44` (`text-muted`, aria-hidden " · ", sr-only ", "); the card test fails once the label is removed in a scratch copy |
+| 5 | The item page `h1` shows the label the same way | yes | confirmed | `ItemPageView.tsx:50-59`; the item-page header test fails once the label is removed in a scratch copy |
+| 6 | `?workspace=` is kept by search, sort, paging, active-filter removal and Clear | yes | confirmed | `query.ts:17,33`; hidden input in the search form; every link goes through `catalogueHref`; `vitest run src/features/catalogue …` → 164 passed |
+| 7 | Workspace select and "Remove the workspace filter" chip, inside a GET form (works without JS) | yes | confirmed | `CatalogueView.tsx:112` `<form method="get" action="/catalogue">` holds `name="workspace"`; chip at :234-241 |
+| 8 | Spec: the filter offers "the ones the reader can see: all of them until 093" | no | partly | The repository listed only workspaces holding listed items, and the select was hidden unless more than one held items |
+| 9 | Names stay `@scope/name`: URLs and API unchanged | yes | confirmed | `itemPath` unchanged; `registry-json.ts:12-24` has no workspace field; the e2e clicks the link by its exact name |
+| 10 | Tokens only, no raw colours | no | confirmed | New classes are only `text-muted`, `sr-only`, `font-mono`, `inputClasses`; `vitest run src/design-rules.test.ts src/touch-rules.test.ts` → 8 passed |
+| 11 | E2E: create a workspace and a scope, release an item, filter by workspace | yes | confirmed | `.next/BUILD_ID` newer than the sources; `playwright test scopes.e2e.ts --project=chromium` → 1 passed |
+| 12 | Typecheck and lint are clean | yes | confirmed | `pnpm --filter @ronneai/web typecheck` → no errors; `pnpm lint` → 0 errors |
+
+**Overall:** not met: claim 8 (the options were only workspaces with items). Remark taken: a chosen name that isn't a workspace showed "All workspaces" in the select, so Apply dropped it.
+
+### Re-check after fixes
+
+Witnessed: 2026-10-06 17:49 EDT, by a fresh agent (blind). Commit: 60beb03 (+ uncommitted working tree, 21 files). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The Workspace options are every workspace, `global` first, read from the `workspaces` table | yes | confirmed | `workspaces()` selects from `workspaces`, ordered by `is_global desc, name`; db test expects `["global","acme","empty"]` and passes |
+| 2 | The test covers the fix | yes | confirmed | With the old "listed only" query back in a scratch copy, the db test fails |
+| 3 | The fix holds on all three servers | yes | confirmed | `pnpm test:db:postgres\|mysql\|mariadb -- src/server/domains/items` → 38/38 on each (plus SQLite, 61 passed) |
+| 4 | The select shows once the instance has a workspace besides `global`, or one is chosen | yes | confirmed | `workspaceFilter = page.workspaces.length > 1 \|\| query.workspace !== null`; no select with only `["global"]` |
+| 5 | A chosen name that isn't a workspace stays the selected option, so Apply keeps the filter | yes | confirmed | `workspaceOptions` appends it; removing that in a scratch copy fails "keeps a chosen name that isn't a workspace…" |
+| 6 | SPEC.md says what the code does | no | confirmed | `SPEC.md:79-81` now says all workspaces, `global` first, once there's one besides `global`, kept in `?workspace=` |
+| 7 | Unit, catalogue and item-page tests pass | yes | confirmed | → 170 passed; `pnpm test` → 8/8 tasks, web 1575 passed, 8 skipped |
+| 8 | Lint, typecheck and build pass | yes | confirmed | `pnpm lint` exit 0; web typecheck clean; `pnpm build` → 5/5 |
+| 9 | The full e2e suite passes on the current build | yes | confirmed | `BUILD_ID` newer than the sources; `pnpm exec playwright test` → 91 passed (1.9m) |
+| 10 | The registry API's JSON doesn't gain `workspace` yet (095) | yes | confirmed | `itemSummaryJson` builds the fields one by one, with no workspace |
+
+**Overall:** met.

@@ -6,6 +6,7 @@ import { signIn } from "../../identity/actions/session";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import type { AppAuth } from "../../identity/repositories/auth-instance";
 import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testing/test-auth";
+import { createWorkspace } from "../../workspaces/actions/workspaces";
 import { ItemNotFoundError, VersionNotFoundError } from "../exceptions/errors";
 import { kyselyItemRepository } from "../repositories/kysely-item-repository";
 import { CATALOGUE_PAGE_SIZE } from "../services/catalogue";
@@ -17,6 +18,7 @@ let t: TestDb;
 let app: AppAuth;
 let asUser: Headers;
 let asModerator: Headers;
+let asRoot: Headers;
 let publisher: string;
 const scopeIds: Record<string, string> = {};
 const password = "correct horse battery";
@@ -36,7 +38,7 @@ beforeEach(async () => {
     if (!result.ok) throw new Error(result.error);
     return cookieHeaders(result.headers.get("set-cookie"));
   };
-  const asRoot = await signedIn("root@example.com");
+  asRoot = await signedIn("root@example.com");
   asUser = await signedIn("u@example.com");
   asModerator = await signedIn("mod@example.com");
   for (const name of ["team", "tools"]) {
@@ -186,6 +188,45 @@ describe("the catalogue", () => {
       types: [],
       sort: "recent",
     });
+  });
+
+  it("filters by workspace, names each item's workspace, and lists every workspace (090)", async () => {
+    const acme = await createWorkspace(asRoot, { name: "acme", description: "Acme." }, app);
+    await createWorkspace(asRoot, { name: "empty", description: "Nothing yet." }, app);
+    await createScope(
+      asRoot,
+      { name: "acme-infra", description: "Infra.", workspaceId: acme.id },
+      app,
+    );
+    scopeIds["acme-infra"] = (
+      await t.db
+        .selectFrom("scopes")
+        .select("id")
+        .where("name", "=", "acme-infra")
+        .executeTakeFirstOrThrow()
+    ).id;
+    await release("a", { type: "skill" });
+    await release("deploy", { type: "hook", scope: "acme-infra" });
+
+    const all = await browse({ sort: "name" });
+    expect(all.entries.map((e) => [e.workspace, `@${e.scope}/${e.name}`])).toEqual([
+      ["acme", "@acme-infra/deploy"],
+      ["global", "@team/a"],
+    ]);
+    // Every workspace, global first, those without items too (all can be seen until 093).
+    expect(all.workspaces).toEqual(["global", "acme", "empty"]);
+    const inAcme = await browse({ workspace: "acme" });
+    expect(names(inAcme)).toEqual(["@acme-infra/deploy"]);
+    expect(inAcme.query.workspace).toBe("acme");
+    expect(inAcme.typeCounts.find((c) => c.type === "hook")?.count).toBe(1);
+    expect(inAcme.typeCounts.find((c) => c.type === "skill")?.count).toBe(0);
+    expect(names(await browse({ workspace: "global" }))).toEqual(["@team/a"]);
+    expect(names(await browse({ workspace: "empty" }))).toEqual([]);
+    expect(names(await browse({ workspace: "nope" }))).toEqual([]);
+    // The item page's data names it too.
+    expect(
+      (await kyselyItemRepository(t.db, t.dialect).findByName("acme-infra", "deploy"))?.workspace,
+    ).toBe("acme");
   });
 
   it("lists the items a tool supports, and says each item's support", async () => {

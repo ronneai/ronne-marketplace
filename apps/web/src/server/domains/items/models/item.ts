@@ -4,6 +4,8 @@ import type { ItemType, RiskFlag } from "@ronneai/core";
 export type Item = {
   id: string;
   scope: { id: string; name: string };
+  /** Its scope's workspace (090), by name. */
+  workspace: string;
   name: string;
   type: ItemType;
   description: string;

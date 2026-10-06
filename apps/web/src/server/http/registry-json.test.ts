@@ -7,6 +7,7 @@ describe("registry JSON", () => {
     expect(
       itemSummaryJson({
         id: "i",
+        workspace: "global",
         scope: "team",
         name: "fmt",
         type: "hook",

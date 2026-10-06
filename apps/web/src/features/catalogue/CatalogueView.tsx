@@ -51,15 +51,26 @@ const SORTS = [
 ] as const;
 
 /**
- * The catalogue (feature 018): search; a Filters button (type with counts, scope, the tool it
- * works in) with the active filters beside it, and Sort on the right (owner, 2026-10-02); then the
+ * The catalogue (feature 018): search; a Filters button (type with counts, workspace (090), scope,
+ * the tool it works in) with the active filters beside it, and Sort on the right (owner, 2026-10-02); then the
  * items, installable ones first. Links and GET forms only, so it works without JavaScript.
  */
 export const CatalogueView = ({ page, paged }: { page: CataloguePage; paged: boolean }) => {
   const { query } = page;
   const total = page.typeCounts.reduce((sum, t) => sum + t.count, 0);
-  const filtered = Boolean(query.q || query.types.length || query.scope || query.tool);
-  const activeCount = query.types.length + [query.scope, query.tool].filter(Boolean).length;
+  const filtered = Boolean(
+    query.q || query.types.length || query.scope || query.workspace || query.tool,
+  );
+  const activeCount =
+    query.types.length + [query.scope, query.workspace, query.tool].filter(Boolean).length;
+  // Only worth a choice once there's more than `global` (090), or one is chosen. A chosen name
+  // that isn't a workspace stays an option, so Apply keeps it, as its active filter says.
+  const workspaceFilter = page.workspaces.length > 1 || query.workspace !== null;
+  const workspaceOptions =
+    query.workspace && !page.workspaces.includes(query.workspace)
+      ? [...page.workspaces, query.workspace]
+      : page.workspaces;
+  const none = { types: [], scope: null, workspace: null, tool: null };
   const sort = SORTS.find((x) => x.id === query.sort) ?? SORTS[0];
   return (
     <div className="grid grid-cols-1 gap-5">
@@ -79,6 +90,7 @@ export const CatalogueView = ({ page, paged }: { page: CataloguePage; paged: boo
           <input key={type} type="hidden" name="type" value={type} />
         ))}
         {query.scope ? <input type="hidden" name="scope" value={query.scope} /> : null}
+        {query.workspace ? <input type="hidden" name="workspace" value={query.workspace} /> : null}
         {query.tool ? <input type="hidden" name="tool" value={query.tool} /> : null}
         {query.sort !== "recent" ? <input type="hidden" name="sort" value={query.sort} /> : null}
         <button type="submit" className={buttonClasses("secondary")}>
@@ -143,6 +155,24 @@ export const CatalogueView = ({ page, paged }: { page: CataloguePage; paged: boo
                 </fieldset>
               </details>
               <div className="grid gap-3 sm:grid-cols-2">
+                {workspaceFilter ? (
+                  <div className="grid min-w-0 gap-1.5">
+                    <Label htmlFor="catalogue-workspace">Workspace</Label>
+                    <select
+                      id="catalogue-workspace"
+                      name="workspace"
+                      defaultValue={query.workspace ?? ""}
+                      className={cn(inputClasses, "min-w-0")}
+                    >
+                      <option value="">All workspaces</option>
+                      {workspaceOptions.map((workspace) => (
+                        <option key={workspace} value={workspace}>
+                          {workspace}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : null}
                 <div className="grid min-w-0 gap-1.5">
                   <Label htmlFor="catalogue-scope">Scope</Label>
                   <select
@@ -178,10 +208,7 @@ export const CatalogueView = ({ page, paged }: { page: CataloguePage; paged: boo
               </div>
               <div className="flex flex-wrap items-center justify-end gap-2 border-t border-hairline pt-3">
                 {activeCount ? (
-                  <Link
-                    href={catalogueHref(query, { types: [], scope: null, tool: null })}
-                    className={buttonClasses("ghost")}
-                  >
+                  <Link href={catalogueHref(query, none)} className={buttonClasses("ghost")}>
                     Clear filters
                   </Link>
                 ) : null}
@@ -209,6 +236,14 @@ export const CatalogueView = ({ page, paged }: { page: CataloguePage; paged: boo
                   {TYPE_INFO[type].label}
                 </ActiveFilter>
               ))}
+              {query.workspace ? (
+                <ActiveFilter
+                  href={catalogueHref(query, { workspace: null })}
+                  label="Remove the workspace filter"
+                >
+                  <span className="font-normal text-muted">Workspace</span> {query.workspace}
+                </ActiveFilter>
+              ) : null}
               {query.scope ? (
                 <ActiveFilter
                   href={catalogueHref(query, { scope: null })}
@@ -228,7 +263,7 @@ export const CatalogueView = ({ page, paged }: { page: CataloguePage; paged: boo
               ) : null}
               <li>
                 <Link
-                  href={catalogueHref(query, { q: "", types: [], scope: null, tool: null })}
+                  href={catalogueHref(query, { q: "", ...none })}
                   className="touch-hit text-xs font-semibold text-link underline-offset-2 hover:underline"
                 >
                   Clear all

@@ -9,9 +9,11 @@ vi.mock("@/server/domains/items/actions/catalogue", () => catalogue);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
 
 const { default: Catalogue } = await import("@/app/(app)/catalogue/page");
+const { CatalogueView } = await import("./CatalogueView");
 
 const entry = (overrides: Partial<CatalogueEntry> = {}): CatalogueEntry => ({
   id: "i1",
+  workspace: "global",
   scope: "team",
   name: "fmt",
   type: "hook",
@@ -33,7 +35,8 @@ const pageOf = (overrides: Partial<CataloguePage> = {}): CataloguePage => ({
   nextCursor: null,
   typeCounts: ITEM_TYPES.map((type) => ({ type, count: type === "hook" ? 1 : 0 })),
   scopes: ["team", "tools"],
-  query: { q: "", types: [], scope: null, tool: null, sort: "recent" },
+  workspaces: ["global"],
+  query: { q: "", types: [], scope: null, workspace: null, tool: null, sort: "recent" },
   ...overrides,
 });
 
@@ -77,7 +80,14 @@ describe("the catalogue page", () => {
   it("puts types, scope and tool in a Filters panel, the active ones beside it, and Sort on the right", async () => {
     catalogue.browseCatalogue.mockResolvedValue(
       pageOf({
-        query: { q: "x", types: ["hook", "skill"], scope: "team", tool: null, sort: "name" },
+        query: {
+          q: "x",
+          types: ["hook", "skill"],
+          scope: "team",
+          workspace: null,
+          tool: null,
+          sort: "name",
+        },
       }),
     );
     const html = await render();
@@ -157,7 +167,7 @@ describe("the catalogue page", () => {
     catalogue.browseCatalogue.mockResolvedValue(
       pageOf({
         entries: [],
-        query: { q: "zzz", types: [], scope: null, tool: null, sort: "recent" },
+        query: { q: "zzz", types: [], scope: null, workspace: null, tool: null, sort: "recent" },
       }),
     );
     expect(await render({ q: "zzz" })).toContain("No items match.");
@@ -177,19 +187,79 @@ describe("catalogue query helpers", () => {
       q: "a",
       type: ["hook", "skill"],
       scope: undefined,
+      workspace: undefined,
       tool: undefined,
       sort: "name",
       cursor: undefined,
     });
+    expect(parseCatalogueQuery({ workspace: "acme" }).workspace).toBe("acme");
   });
 
   it("builds URLs without defaults or empty values", () => {
-    const query = { q: "", types: [], scope: null, tool: null, sort: "recent" as const };
+    const query = {
+      q: "",
+      types: [],
+      scope: null,
+      workspace: null,
+      tool: null,
+      sort: "recent" as const,
+    };
     expect(catalogueHref(query)).toBe("/catalogue");
     expect(catalogueHref(query, { types: ["hook", "skill"], sort: "installs" })).toBe(
       "/catalogue?type=hook&type=skill&sort=installs",
     );
     expect(catalogueHref(query, { tool: "codex" })).toBe("/catalogue?tool=codex");
+    expect(catalogueHref(query, { workspace: "acme", scope: "acme-infra" })).toBe(
+      "/catalogue?scope=acme-infra&workspace=acme",
+    );
     expect(catalogueHref(query, { q: "a b", sort: "name" })).toBe("/catalogue?q=a+b&sort=name");
+  });
+});
+
+describe("workspaces in the catalogue (090)", () => {
+  const view = (overrides: Partial<CataloguePage> = {}) =>
+    renderToStaticMarkup(<CatalogueView page={pageOf(overrides)} paged={false} />);
+
+  it("offers the Workspace filter, with every workspace, once there's more than global", () => {
+    expect(view()).not.toContain('name="workspace"');
+    const html = view({ workspaces: ["global", "acme"] });
+    expect(html).toContain('id="catalogue-workspace"');
+    expect(html).toContain("All workspaces");
+    expect(html.indexOf('value="global"')).toBeLessThan(html.indexOf('value="acme"'));
+  });
+
+  it("shows a chosen workspace as an active filter, kept by search and cleared with the rest", () => {
+    const html = view({
+      workspaces: ["global", "acme"],
+      query: { q: "x", types: [], scope: null, workspace: "acme", tool: null, sort: "recent" },
+    });
+    expect(html).toContain('aria-label="Remove the workspace filter"');
+    expect(html).toContain('href="/catalogue?q=x"');
+    expect(html).toContain('<input type="hidden" name="workspace" value="acme"/>');
+    expect(html).toContain('<option value="acme" selected="">acme</option>');
+    expect(html).toMatch(/>Clear all</);
+    // Even when only one workspace holds items, a chosen one stays visible and removable.
+    expect(
+      view({
+        workspaces: ["acme"],
+        query: { q: "", types: [], scope: null, workspace: "acme", tool: null, sort: "recent" },
+      }),
+    ).toContain('id="catalogue-workspace"');
+  });
+
+  it("keeps a chosen name that isn't a workspace as the selected option, so Apply keeps it", () => {
+    const html = view({
+      workspaces: ["global", "acme"],
+      query: { q: "", types: [], scope: null, workspace: "gone", tool: null, sort: "recent" },
+    });
+    expect(html).toContain('<option value="gone" selected="">gone</option>');
+    expect(html).toContain('aria-label="Remove the workspace filter"');
+  });
+
+  it("names a workspace other than global before the item, quietly", () => {
+    const acme = view({ entries: [entry({ workspace: "acme", scope: "acme-infra" })] });
+    expect(acme).toMatch(/acme<span aria-hidden="true"> · <\/span>/);
+    expect(acme).toContain("@acme-infra/fmt");
+    expect(view()).not.toContain('<span aria-hidden="true"> · </span>');
   });
 });

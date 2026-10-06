@@ -77,7 +77,8 @@ select, `global` first and selected.
 
 **The catalogue and item page.** The card and the item header show the workspace as a quiet label
 before the scope when it isn't `global` ("acme · @acme-infra/deploy"). The catalogue's filters gain
-**Workspace** (the ones the reader can see: all of them until 093).
+**Workspace** (the ones the reader can see: all of them until 093, `global` first), once the
+instance has a workspace besides `global`; a chosen one is kept in the URL (`?workspace=`).
 
 **API.** `GET /api/v1/scopes` returns `workspace` for each scope. More API comes in 095.
 

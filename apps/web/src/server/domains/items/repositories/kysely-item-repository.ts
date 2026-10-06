@@ -59,10 +59,12 @@ export const kyselyItemRepository = (
     const row = await db
       .selectFrom("items")
       .innerJoin("scopes", "scopes.id", "items.scope_id")
+      .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
       .select([
         "items.id",
         "items.scope_id",
         "scopes.name as scope_name",
+        "workspaces.name as workspace_name",
         "items.name",
         "items.type",
         "items.description",
@@ -77,6 +79,7 @@ export const kyselyItemRepository = (
       ? {
           id: row.id,
           scope: { id: row.scope_id, name: row.scope_name },
+          workspace: row.workspace_name,
           name: row.name,
           type: row.type as ItemType,
           description: row.description,

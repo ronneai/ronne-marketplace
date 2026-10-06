@@ -140,6 +140,16 @@ describe("the item page", () => {
     expect(tools).toContain("mcp_servers in .codex/config.toml</code>.");
   });
 
+  it("names a workspace other than global before the name in the header (090)", async () => {
+    versions.itemPage.mockResolvedValue(
+      itemPageData({ item: { ...itemPageData().item, workspace: "acme" } }),
+    );
+    const html = await render();
+    expect(html).toMatch(
+      /acme<span aria-hidden="true"> · <\/span><span class="sr-only">, <\/span><\/span>@team\/github<\/h1>/,
+    );
+  });
+
   it("shows another version by URL, with a banner saying whether it's yanked", async () => {
     const old = itemPageData().versions[1] ?? versionRow();
     versions.itemPage.mockResolvedValue(

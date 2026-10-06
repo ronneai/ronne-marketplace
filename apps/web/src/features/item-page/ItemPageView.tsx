@@ -7,6 +7,7 @@ import { ScrollStrip } from "@/components/ui/ScrollStrip";
 import { stripTab } from "@/components/ui/scroll-strip";
 import { TypeBadge } from "@/components/ui/TypeBadge";
 import type { ItemPage } from "@/server/domains/items/actions/versions";
+import { GLOBAL_WORKSPACE_NAME } from "@/server/domains/workspaces/models/workspace";
 import { ProposeButton } from "./ProposeButton";
 import { ITEM_TABS, type ItemTab, itemTabHref, TAB_LABELS } from "./tabs";
 
@@ -46,7 +47,16 @@ export const ItemPageView = ({
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="grid min-w-0 gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="font-mono text-xl font-semibold break-all text-fg">{name}</h1>
+            <h1 className="font-mono text-xl font-semibold break-all text-fg">
+              {page.item.workspace !== GLOBAL_WORKSPACE_NAME ? (
+                <span className="font-normal text-muted">
+                  {page.item.workspace}
+                  <span aria-hidden="true"> · </span>
+                  <span className="sr-only">, </span>
+                </span>
+              ) : null}
+              {name}
+            </h1>
             <span className="font-mono text-sm text-muted">v{shown.version}</span>
             <TypeBadge type={page.item.type} />
             {shown.tags.map((tag) => (

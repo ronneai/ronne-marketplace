@@ -31,7 +31,7 @@ the same change that completes it.
 - [x] **5. Admin › Scopes.** Workspace column, filter and select.
   *Done when:* the Admin › Scopes tests pass.
 
-- [ ] **6. Catalogue and item page.** Workspace label on the card and header; the Workspace filter
+- [x] **6. Catalogue and item page.** Workspace label on the card and header; the Workspace filter
   in the catalogue's URL and panel.
   *Done when:* catalogue tests and an end-to-end test (create a workspace and scope, release an
   item, filter by workspace) pass.
@@ -100,3 +100,14 @@ goes into `SPEC.md` instead.
   Workspace select, `global` first and chosen, posted as `workspaceId`; its message names the
   workspace when it isn't `global`, and it revalidates the workspace pages too (their scope counts
   and lists change). An empty filter result now reads "No scopes match these filters."
+- **Task 6.** Catalogue entries and items carry their workspace's name (a join through the scope).
+  The card's heading and the item page's `h1` start with it, muted, when it isn't `global`
+  ("acme · @acme-infra/deploy"; screen readers hear "acme, @acme-infra/deploy"). The catalogue
+  takes `?workspace=<name>`, filters entries and type counts by it, keeps it through search, sort,
+  paging and Clear, and shows it as an active filter. The Filters panel offers the Workspace select
+  once the instance has a workspace besides `global` (or one is already chosen); its options are
+  every workspace, `global` first, as the spec says (all can be seen until 093), and a chosen name
+  that isn't a workspace stays as the selected option, so Apply keeps the filter its chip shows.
+  The registry API's JSON is built field by field, so it doesn't gain `workspace` yet (095). The
+  end-to-end steps live in the root test in `scopes.e2e.ts` (root's sign-ins are limited), with a
+  new author and moderator for the release.

@@ -11,6 +11,7 @@ import type { CatalogueRepository } from "./catalogue-repository";
 
 type Row = {
   id: string;
+  workspace_name: string;
   scope_name: string;
   name: string;
   type: string;
@@ -28,6 +29,7 @@ type Row = {
 
 const toEntry = (row: Row): CatalogueEntry => ({
   id: row.id,
+  workspace: row.workspace_name,
   scope: row.scope_name,
   name: row.name,
   type: row.type as ItemType,
@@ -51,15 +53,26 @@ export const kyselyCatalogueRepository = (
     db
       .selectFrom("items")
       .innerJoin("scopes", "scopes.id", "items.scope_id")
+      .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
       .innerJoin("item_versions", "item_versions.id", "items.listed_version_id");
 
   const filtered = <O>(
     query: SelectQueryBuilder<
       Database & Record<string, never>,
-      "items" | "scopes" | "item_versions",
+      "items" | "scopes" | "workspaces" | "item_versions",
       O
     >,
-    { search, type, types, scope, tool, installable, listedNotYanked, ownerId }: CatalogueFilter,
+    {
+      search,
+      type,
+      types,
+      scope,
+      workspace,
+      tool,
+      installable,
+      listedNotYanked,
+      ownerId,
+    }: CatalogueFilter,
   ) => {
     let q = query;
     // An item's name as people write it (056): `@team/re` is scope `team` and a name with `re`;
@@ -85,6 +98,7 @@ export const kyselyCatalogueRepository = (
     if (installable) q = q.where("items.installable", "=", toDbBoolean(true, dialect));
     if (listedNotYanked) q = q.where("item_versions.yanked_at", "is", null);
     if (scope) q = q.where("scopes.name", "=", scope);
+    if (workspace) q = q.where("workspaces.name", "=", workspace);
     if (ownerId) q = q.where("items.owner_id", "=", ownerId);
     if (tool) {
       // The types the tool takes, and not turned off in the listed version's manifest (026).
@@ -102,6 +116,7 @@ export const kyselyCatalogueRepository = (
   const entries = () =>
     listed().select([
       "items.id",
+      "workspaces.name as workspace_name",
       "scopes.name as scope_name",
       "items.name",
       "items.type",
@@ -200,6 +215,16 @@ export const kyselyCatalogueRepository = (
       (await listed().select("scopes.name").distinct().orderBy("scopes.name").execute()).map(
         (row) => row.name,
       ),
+
+    workspaces: async () =>
+      (
+        await db
+          .selectFrom("workspaces")
+          .select("name")
+          .orderBy("is_global", "desc")
+          .orderBy("name")
+          .execute()
+      ).map((row) => row.name),
 
     mostUsed: async (limit) =>
       (

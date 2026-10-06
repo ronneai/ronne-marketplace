@@ -28,6 +28,7 @@ export const itemPageData = (overrides: Partial<ItemPage> = {}): ItemPage => {
       id: "i1",
       name: "github",
       scope: { id: "s1", name: "team" },
+      workspace: "global",
       type: "mcp-server",
       description: "GitHub tools.",
       ownerId: "u1",
