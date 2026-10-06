@@ -2,7 +2,6 @@ import type { Kysely } from "kysely";
 import { fromDbDate, toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
 import { countCapped, paginate } from "../../../db/keyset";
-import { GLOBAL_WORKSPACE_ID } from "../../../db/migrations/0019_workspaces";
 import type { Database } from "../../../db/schema";
 import { containsInsensitive } from "../../../db/search";
 import type { DatabaseDialect } from "../../../db/url";
@@ -14,6 +13,8 @@ type ScopeRow = {
   id: string;
   name: string;
   description: string;
+  workspace_id: string;
+  workspace_name: string;
   created_by: string | null;
   creator_email: string | null;
   created_at: Date | string;
@@ -23,6 +24,7 @@ const toScope = (row: ScopeRow): Scope => ({
   id: row.id,
   name: row.name,
   description: row.description,
+  workspace: { id: row.workspace_id, name: row.workspace_name },
   createdBy: row.created_by ? { id: row.created_by, email: row.creator_email } : null,
   createdAt: fromDbDate(row.created_at),
 });
@@ -34,11 +36,14 @@ export const kyselyScopeRepository = (
   const scopes = () =>
     db
       .selectFrom("scopes")
+      .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
       .leftJoin("user", "user.id", "scopes.created_by")
       .select([
         "scopes.id",
         "scopes.name",
         "scopes.description",
+        "scopes.workspace_id",
+        "workspaces.name as workspace_name",
         "scopes.created_by",
         "user.email as creator_email",
         "scopes.created_at",
@@ -65,6 +70,13 @@ export const kyselyScopeRepository = (
       return row ? toScope(row) : null;
     },
 
+    findWorkspace: async (id) =>
+      (await db
+        .selectFrom("workspaces")
+        .select(["id", "name"])
+        .where("id", "=", id)
+        .executeTakeFirst()) ?? null,
+
     insert: async (scope) => {
       const id = newId();
       await db
@@ -75,7 +87,7 @@ export const kyselyScopeRepository = (
           description: scope.description,
           created_by: scope.createdBy,
           created_at: toDbDate(scope.createdAt, dialect),
-          workspace_id: GLOBAL_WORKSPACE_ID,
+          workspace_id: scope.workspaceId,
         })
         .execute();
       return id;

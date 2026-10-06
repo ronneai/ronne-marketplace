@@ -37,6 +37,7 @@ const scope = (overrides: Partial<Scope> = {}): Scope => ({
   id: "s1",
   name: "platform",
   description: "Shared platform tools.",
+  workspace: { id: "00000000000000000000000000", name: "global" },
   createdBy: { id: "r", email: "root@example.com" },
   createdAt: new Date("2026-09-20T10:00:00Z"),
   ...overrides,

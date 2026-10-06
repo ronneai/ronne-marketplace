@@ -9,6 +9,7 @@ import { kyselyItemRepository } from "../src/server/domains/items/repositories/k
 import { kyselyScopeRepository } from "../src/server/domains/items/repositories/kysely-scope-repository";
 import { dayOf, daysBefore } from "../src/server/domains/usage/models/usage-event";
 import { kyselyUsageRepository } from "../src/server/domains/usage/repositories/kysely-usage-repository";
+import { GLOBAL_WORKSPACE_ID } from "../src/server/domains/workspaces/models/workspace";
 import { localStorage } from "../src/server/storage/local-storage";
 import {
   E2E_MODERATORS,
@@ -45,6 +46,7 @@ for (const [key, email] of Object.entries(E2E_USERS) as [keyof typeof E2E_USERS,
 const scopeId = await kyselyScopeRepository(db, dialect).insert({
   name: E2E_SCOPE,
   description: "Created by the end-to-end seed.",
+  workspaceId: GLOBAL_WORKSPACE_ID,
   createdBy: null,
   createdAt: new Date(),
 });

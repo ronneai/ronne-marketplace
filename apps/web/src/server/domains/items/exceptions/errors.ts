@@ -26,6 +26,13 @@ export class ScopeNameTakenError extends ItemsError {
   }
 }
 
+/** The workspace chosen for a new scope doesn't exist (feature 090). */
+export class ScopeWorkspaceNotFoundError extends ItemsError {
+  constructor() {
+    super("That workspace doesn't exist.");
+  }
+}
+
 export class ScopeNotFoundError extends ItemsError {
   constructor() {
     super("That scope doesn't exist.");

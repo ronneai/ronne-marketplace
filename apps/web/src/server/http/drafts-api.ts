@@ -68,7 +68,11 @@ export const getScopes = async (request: Request, deps: DraftsApiDeps = {}) => {
     );
     return Response.json(
       {
-        scopes: page.scopes.map((scope) => ({ name: scope.name, description: scope.description })),
+        scopes: page.scopes.map((scope) => ({
+          name: scope.name,
+          description: scope.description,
+          workspace: scope.workspace.name,
+        })),
         nextCursor: page.nextCursor,
       },
       { headers: { "cache-control": "private, no-cache" } },

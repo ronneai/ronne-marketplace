@@ -20,7 +20,7 @@ the same change that completes it.
   *Done when:* service db tests cover create, edit, delete empty, refuse non-empty, refuse global,
   refuse non-root.
 
-- [ ] **3. Scopes in a workspace.** `createScope` takes `workspaceId` (default global); the scopes
+- [x] **3. Scopes in a workspace.** `createScope` takes `workspaceId` (default global); the scopes
   repository returns it; `GET /api/v1/scopes` adds `workspace`.
   *Done when:* scope tests and the API test pass.
 
@@ -70,3 +70,10 @@ goes into `SPEC.md` instead.
   name rule, then compared byte for byte), so `ACME` finds `acme` and `ａｃｍｅ` finds nothing on every
   database, MySQL's collation included. A delete that loses a race with a new scope (its foreign key
   refuses) is answered `WorkspaceNotEmptyError` after a recount outside the failed transaction.
+- **Task 3.** `createScope` takes an optional `workspaceId`, `global` when empty, looked up in the
+  same transaction (`ScopeWorkspaceNotFoundError` when it's gone); `scope.created` records the
+  workspace's name. `Scope` carries `workspace: { id, name }` from a join, and the scope
+  repository's `insert` now needs `workspaceId` (tests, the e2e seed and `feed-benchmark.ts` pass
+  `GLOBAL_WORKSPACE_ID`). `GET /api/v1/scopes` adds `workspace` (the name) to each scope. `rmk export`
+  (`fetchScopes`) and the MCP server's export tools read that endpoint but use only `name` and
+  `description`, so they don't change; the MCP's structured answer now passes `workspace` through.

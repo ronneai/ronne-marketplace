@@ -188,3 +188,23 @@ Witnessed: 2026-10-06 16:29 EDT, by a fresh agent (adversarial). Commit: d024d30
 | 9 | Lint and typecheck clean | yes | confirmed | `biome check` 9 files, no fixes; `pnpm --filter @ronneai/web typecheck` clean |
 
 **Overall:** met.
+
+## Task 3 — Scopes in a workspace
+
+Witnessed: 2026-10-06 16:42 EDT, by a fresh agent (blind). Commit: e4bed45 + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `createScope` (action and service) takes an optional `workspaceId`; without one the scope goes in `global` | yes | confirmed | `services/scopes.ts:34` uses `input.workspaceId \|\| GLOBAL_WORKSPACE_ID`; the test "creates a scope from what root typed" expects global and passes |
+| 2 | A new scope is created in the chosen workspace, which then can't be deleted (FK RESTRICT) | yes | confirmed | Test "creates a scope in the workspace root chose" passes (and `deleteWorkspace` throws `WorkspaceNotEmptyError`); hard-coding global in a scratch copy → 2 tests fail |
+| 3 | A `workspaceId` that doesn't exist is refused, and no scope or event is created | yes | confirmed | `services/scopes.ts:35` throws `ScopeWorkspaceNotFoundError`; test "refuses a workspace that doesn't exist" passes, and fails under that mutation |
+| 4 | The scope repository returns each scope's workspace (`Scope.workspace {id,name}`), and `insert` stores `workspaceId` | yes | confirmed | `kysely-scope-repository.ts`: inner join on `workspaces`, `toScope` maps `workspace`, insert writes `workspace_id: scope.workspaceId`; asserted in the tests |
+| 5 | Audit `scope.created` gains `workspace` | yes | confirmed | `services/scopes.ts:49` metadata includes `workspace: workspace.name`; removing it in a scratch copy → 2 tests fail |
+| 6 | `GET /api/v1/scopes` returns `workspace` for each scope | yes | confirmed | `drafts-api.ts:71-75` adds `workspace: scope.workspace.name`; the route calls `getScopes`; deleting that line in a scratch copy → the "for every role" test fails |
+| 7 | Scope tests and the API test pass on all four databases | yes | confirmed | SQLite db project → 4 files, 62 passed; `pnpm test:db:postgres` / `:mysql` / `:mariadb` on scopes and drafts-api → 37 passed each |
+| 8 | Every caller of the repository's `insert` passes a workspace, and nothing else broke (lint, typecheck, tests) | yes | confirmed | grep: e2e seed and tests pass `GLOBAL_WORKSPACE_ID`, `feed-benchmark.ts:83` writes `workspace_id`; `pnpm lint` → 0 errors; web typecheck clean; web vitest → 1549 passed, 8 skipped |
+| 9 | `rmk` export and the MCP server's export tools read the endpoint, use only name and description, and the MCP's structured answer now carries `workspace` | yes | confirmed | `packages/cli/src/export.ts:713-722` `fetchScopes` reads only name/description; `packages/mcp/src/export-tools.ts:102-113` prints `@name description` and returns `{ needs, scopes }` unchanged |
+| 10 | The workspace is looked up in the same transaction as the insert | yes | confirmed | `services/scopes.ts:33-35`: `findWorkspace` runs inside `deps.repo.transaction(…)`, before `findByName` and `insert` |
+| 11 | `pnpm build` passes | yes | confirmed | `turbo run build --force` in a scratch copy of the working tree → 5 of 5 tasks successful, none cached |
+
+**Overall:** met. Remark taken: the first version of the notes said `rmk` and the MCP server don't read `GET /api/v1/scopes`; they do (corrected in PLAN.md before the commit).

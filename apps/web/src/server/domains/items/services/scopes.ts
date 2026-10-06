@@ -1,12 +1,17 @@
 import { requirePermission } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
-import { ScopeNameTakenError, ScopeNotFoundError } from "../exceptions/errors";
+import { GLOBAL_WORKSPACE_ID } from "../../workspaces/models/workspace";
+import {
+  ScopeNameTakenError,
+  ScopeNotFoundError,
+  ScopeWorkspaceNotFoundError,
+} from "../exceptions/errors";
 import { type Scope, scopeDescriptionFrom, scopeNameFrom } from "../models/scope";
 import type { ScopePageQuery, ScopeRepository } from "../repositories/scope-repository";
 
 /**
- * Scopes (feature 010). Root creates them and edits their descriptions; everyone signed in lists
- * them. Names can't change and scopes can't be deleted: items and installs depend on the name.
+ * Scopes (feature 010). Root creates them, each in a workspace (090, `global` unless another is
+ * chosen), and edits their descriptions; everyone signed in lists them. Names can't change and scopes can't be deleted: items and installs depend on the name.
  */
 export type ScopeDeps = { repo: ScopeRepository; now?: () => Date };
 export type ScopeActor = { user: CurrentUser | null; ip: string | null };
@@ -19,17 +24,20 @@ const now = (deps: ScopeDeps) => (deps.now ?? (() => new Date()))();
 export const createScope = async (
   deps: ScopeDeps,
   actor: ScopeActor,
-  input: { name: string; description: string },
+  input: { name: string; description: string; workspaceId?: string },
 ): Promise<Scope> => {
   requirePermission(actor.user, "scopes.manage");
   const name = scopeNameFrom(input.name);
   const description = scopeDescriptionFrom(input.description);
   const at = now(deps);
   return deps.repo.transaction(async (repo) => {
+    const workspace = await repo.findWorkspace(input.workspaceId || GLOBAL_WORKSPACE_ID);
+    if (!workspace) throw new ScopeWorkspaceNotFoundError();
     if (await repo.findByName(name)) throw new ScopeNameTakenError(name);
     const id = await repo.insert({
       name,
       description,
+      workspaceId: workspace.id,
       createdBy: actor.user?.id ?? null,
       createdAt: at,
     });
@@ -38,7 +46,7 @@ export const createScope = async (
         actorId: actor.user?.id ?? null,
         action: "scope.created",
         target: { type: "scope", id },
-        metadata: { name, description },
+        metadata: { name, description, workspace: workspace.name },
         ipAddress: actor.ip,
       },
       at,
@@ -47,6 +55,7 @@ export const createScope = async (
       id,
       name,
       description,
+      workspace,
       createdBy: actor.user ? { id: actor.user.id, email: actor.user.email } : null,
       createdAt: at,
     };

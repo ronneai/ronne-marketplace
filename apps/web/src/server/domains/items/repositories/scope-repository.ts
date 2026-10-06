@@ -25,9 +25,12 @@ export type ScopePageQuery = {
 export interface ScopeRepository {
   transaction<T>(work: (repo: ScopeRepository) => Promise<T>): Promise<T>;
   findByName(name: string): Promise<Scope | null>;
+  /** A workspace a scope can be created in, by id (feature 090), or null. */
+  findWorkspace(id: string): Promise<{ id: string; name: string } | null>;
   insert(scope: {
     name: string;
     description: string;
+    workspaceId: string;
     createdBy: string | null;
     createdAt: Date;
   }): Promise<string>;
