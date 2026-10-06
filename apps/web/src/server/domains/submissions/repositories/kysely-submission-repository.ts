@@ -11,6 +11,7 @@ import { upsert } from "../../../db/upsert";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
 import type { ReviewEvent, ReviewEventKind, Revision } from "../models/review";
+import { OPEN_STATUSES } from "../models/status";
 import type { DraftFile, Submission, SubmissionStatus } from "../models/submission";
 import { kyselyRegistryLookup } from "./kysely-registry-lookup";
 import type {
@@ -169,6 +170,36 @@ export const kyselySubmissionRepository = (
           .orderBy("submissions.id", "desc")
           .execute()
       ).map(toSubmission),
+
+    listOwnUnreleased: async ({ authorId, types, search, limit }) => {
+      if (types.length === 0) return [];
+      let query = submissions()
+        .where("submissions.author_id", "=", authorId)
+        .where("submissions.status", "in", ["draft", ...OPEN_STATUSES])
+        .where("submissions.item_id", "is", null)
+        .where("submissions.type", "in", [...types]);
+      // `@team/re` is scope `team` and a name with `re`; a single word matches either (056).
+      const words = search.replace(/^@/, "");
+      const slash = words.indexOf("/");
+      if (words && slash >= 0) {
+        const [scopePart, namePart] = [words.slice(0, slash), words.slice(slash + 1)];
+        if (scopePart) query = query.where(containsInsensitive("scopes.name", scopePart));
+        if (namePart) query = query.where(containsInsensitive("submissions.name", namePart));
+      } else if (words)
+        query = query.where((eb) =>
+          eb.or([
+            containsInsensitive("submissions.name", words),
+            containsInsensitive("scopes.name", words),
+          ]),
+        );
+      return (
+        await query
+          .orderBy("submissions.updated_at", "desc")
+          .orderBy("submissions.id", "desc")
+          .limit(limit)
+          .execute()
+      ).map(toSubmission);
+    },
 
     listForReview: async ({ statuses, order, limit }) => {
       if (statuses.length === 0) return [];

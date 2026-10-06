@@ -1,4 +1,9 @@
-export { type Frontmatter, parseFrontmatter } from "./frontmatter.js";
+export {
+  type Frontmatter,
+  normalizeFrontmatter,
+  parseFrontmatter,
+  quoteItemNames,
+} from "./frontmatter.js";
 export { fieldName, hasErrors, type ManifestIssue } from "./issues.js";
 export {
   DEPENDENCY_TYPES,

@@ -12,6 +12,7 @@ import {
   toolName,
   withHashMarker,
 } from "../helpers.js";
+import { claudeCodeSkillEntry } from "../skill-frontmatter.js";
 import type {
   Change,
   ChangeFile,
@@ -34,12 +35,17 @@ export const RENDERER_NAME = "Claude Code";
 const markdown = (item: RenderInput, front: Frontmatter, body: string) =>
   frontmatterMarkdown(item, front, body);
 
-const skillFiles = (item: RenderInput, entry: string): ChangeFile[] =>
-  item.files.map((file) => ({
-    path: file.path === entry ? "SKILL.md" : file.path,
-    content: file.bytes,
-    executable: file.executable,
-  }));
+/** The skill's files; its entry, `SKILL.md`, names its agent as installed (097). */
+const skillFiles = (item: RenderInput, entry: string, plugin?: string): ChangeFile[] =>
+  item.files.map((file) =>
+    file.path === entry
+      ? {
+          path: "SKILL.md",
+          content: claudeCodeSkillEntry(file.bytes, plugin),
+          executable: file.executable,
+        }
+      : { path: file.path, content: file.bytes, executable: file.executable },
+  );
 
 /** A skill written from a rule or a command, which Claude Code merged into skills. */
 const skillOf = (item: RenderInput, n: string, front: Frontmatter, body: string): Change => ({
@@ -50,12 +56,17 @@ const skillOf = (item: RenderInput, n: string, front: Frontmatter, body: string)
 
 type Rendered = { changes: Change[]; warnings: RenderWarning[] };
 
-const renderSkill = (item: RenderInput, n: string, block: Record<string, unknown>): Rendered => ({
+const renderSkill = (
+  item: RenderInput,
+  n: string,
+  block: Record<string, unknown>,
+  plugin?: string,
+): Rendered => ({
   changes: [
     {
       kind: "dir",
       path: `.claude/skills/${n}`,
-      files: skillFiles(item, String(block.entry ?? "SKILL.md")),
+      files: skillFiles(item, String(block.entry ?? "SKILL.md"), plugin),
     },
   ],
   warnings: [],
@@ -66,6 +77,7 @@ const renderAgent = (
   n: string,
   block: Record<string, unknown>,
   overrides: Record<string, unknown>,
+  plugin?: string,
 ): Rendered => {
   const warnings: RenderWarning[] = [];
   const tools: string[] = [];
@@ -84,6 +96,12 @@ const renderAgent = (
       ? overrides.model
       : MODELS[String(block.model ?? "default")];
   if (model) front.push(["model", model]);
+  // The skills it depends on, preloaded when it starts (097); not ones the model may not invoke.
+  const skills = (item.dependencies ?? [])
+    .filter((d) => d.type === "skill" && d.preload !== false)
+    .map((d) => `${plugin ? `${plugin}:` : ""}${shortName(d.name)}`)
+    .sort();
+  if (skills.length) front.push(["skills", skills]);
   for (const key of Object.keys(overrides))
     if (key !== "model")
       warnings.push({
@@ -414,9 +432,9 @@ export const claudeCodeRenderer: PlatformRenderer = {
     const scope: RenderScope = context.scope;
     switch (type) {
       case "skill":
-        return renderSkill(item, n, block);
+        return renderSkill(item, n, block, context.plugin);
       case "agent":
-        return renderAgent(item, n, block, targets.overrides);
+        return renderAgent(item, n, block, targets.overrides, context.plugin);
       case "rule":
         return renderRule(item, n, block);
       case "command":

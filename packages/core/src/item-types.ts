@@ -20,22 +20,22 @@ export const isItemType = (value: string): value is ItemType => {
 };
 
 /**
- * Which types each type may depend on (manifest spec §3). A bundle may depend on anything; an
- * agent on the skills, MCP servers, hooks, rules and commands it uses; a skill or command on MCP
- * servers; every other type on nothing.
+ * Which types each type may depend on (manifest spec §3): since 096, any type on any type, so
+ * people compose what works for them. Cycles and an item on itself are still refused, by the
+ * package checks and the registry. Kept as a table so callers ask one place.
  */
 export const DEPENDENCY_TYPES: Record<ItemType, readonly ItemType[]> = {
+  skill: ITEM_TYPES,
+  agent: ITEM_TYPES,
+  rule: ITEM_TYPES,
+  command: ITEM_TYPES,
+  hook: ITEM_TYPES,
+  "mcp-server": ITEM_TYPES,
+  "permission-policy": ITEM_TYPES,
+  "output-style": ITEM_TYPES,
+  statusline: ITEM_TYPES,
+  "lsp-server": ITEM_TYPES,
   bundle: ITEM_TYPES,
-  agent: ["skill", "mcp-server", "hook", "rule", "command"],
-  skill: ["mcp-server"],
-  command: ["mcp-server"],
-  rule: [],
-  hook: [],
-  "mcp-server": [],
-  "permission-policy": [],
-  "output-style": [],
-  statusline: [],
-  "lsp-server": [],
 };
 
 export const mayHaveDependencies = (type: ItemType): boolean => DEPENDENCY_TYPES[type].length > 0;

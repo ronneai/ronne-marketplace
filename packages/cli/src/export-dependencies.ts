@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { basename, join } from "node:path";
-import { type ItemType, mayDependOn, type PackageFile } from "@ronneai/core";
+import type { PackageFile } from "@ronneai/core";
 import { type ItemReference, readAgent, readCommand, readSkill } from "@ronneai/core/read";
 import {
   describeLocalItems,
@@ -34,7 +34,6 @@ export type FindingStatus =
   | "installed"
   | "selected"
   | "not_found"
-  | "not_allowed"
   /** Yours, but the scope already has a published item of that name and type: depend on it. */
   | "published"
   /** Yours, but the scope has a published item of that name and another type. */
@@ -50,7 +49,7 @@ export type Finding = {
   item?: LocalItem;
   /** The registry item and version, for `installed` and `published`. */
   registry?: { name: string; version: string };
-  /** Why it can't be declared, for `not_found` and `not_allowed`. */
+  /** Why it can't be declared, for `not_found`. */
   note?: string;
 };
 
@@ -157,14 +156,7 @@ export const findDependencies = async (
         usedBy: [using.local],
       };
 
-      if (!mayDependOn(using.type as ItemType, reference.kind as ItemType)) {
-        findings.push({
-          ...base,
-          status: "not_allowed",
-          note: `${using.type === "agent" ? "An" : "A"} ${using.type} can't depend on ${reference.kind === "mcp-server" ? "an MCP server" : `a ${reference.kind}`}.`,
-        });
-        continue;
-      }
+      // Any type may depend on any type (096): nothing found is refused for its type.
       if (!found) {
         const elsewhere = other.find(matches(reference));
         findings.push({

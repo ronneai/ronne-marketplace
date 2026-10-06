@@ -323,10 +323,7 @@ export const codexRenderer: PlatformRenderer = {
     const scope: RenderScope = context.scope;
     switch (type) {
       case "skill":
-        return {
-          changes: [skillFolder(item, n, String(block.entry ?? "SKILL.md"))],
-          warnings: [],
-        };
+        return skillFolder(item, n, String(block.entry ?? "SKILL.md"));
       case "agent":
         return renderAgent(item, n, block, targets.overrides);
       case "rule":

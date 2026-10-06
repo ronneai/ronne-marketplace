@@ -5,6 +5,7 @@ import {
   record,
   trimTrailingNewlines,
 } from "./helpers.js";
+import { agentsSkillEntry } from "./skill-frontmatter.js";
 import type { Change, RenderInput, RenderWarning } from "./types.js";
 
 /**
@@ -14,16 +15,39 @@ import type { Change, RenderInput, RenderWarning } from "./types.js";
  */
 export const AGENTS_SKILLS = ".agents/skills";
 
-/** A `skill` item's folder as it is, with its entry file renamed to `SKILL.md`. */
-export const skillFolder = (item: RenderInput, n: string, entry: string): Change => ({
-  kind: "dir",
-  path: `${AGENTS_SKILLS}/${n}`,
-  files: item.files.map((file) => ({
-    path: file.path === entry ? "SKILL.md" : file.path,
-    content: file.bytes,
-    executable: file.executable,
-  })),
-});
+/**
+ * A `skill` item's folder as it is, with its entry file renamed to `SKILL.md` and without the
+ * `agent` and `context` keys Codex and Cursor don't read (097), saying so when there were some.
+ */
+export const skillFolder = (
+  item: RenderInput,
+  n: string,
+  entry: string,
+): { changes: Change[]; warnings: RenderWarning[] } => {
+  let dropped = false;
+  const change: Change = {
+    kind: "dir",
+    path: `${AGENTS_SKILLS}/${n}`,
+    files: item.files.map((file) => {
+      if (file.path !== entry)
+        return { path: file.path, content: file.bytes, executable: file.executable };
+      const kept = agentsSkillEntry(file.bytes);
+      dropped = kept.dropped;
+      return { path: "SKILL.md", content: kept.bytes, executable: file.executable };
+    }),
+  };
+  return {
+    changes: [change],
+    warnings: dropped
+      ? [
+          {
+            code: "unsupported_field",
+            message: `${item.name} names the agent that runs it; Codex and Cursor don't choose an agent for a skill, so it runs in the current one.`,
+          },
+        ]
+      : [],
+  };
+};
 
 /** A skill written from another type, such as a rule or a command. */
 export const writtenSkill = (

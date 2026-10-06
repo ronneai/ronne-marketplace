@@ -1,7 +1,6 @@
 import { validRange } from "semver";
 import { parseFrontmatter } from "./frontmatter.js";
 import type { ManifestIssue } from "./issues.js";
-import { type ItemType, isItemType, mayHaveDependencies } from "./item-types.js";
 import { DEFAULT_LIMITS, formatBytes, type PackageLimits } from "./limits.js";
 import type { Manifest } from "./manifest.js";
 import { parseItemName } from "./names.js";
@@ -213,14 +212,49 @@ export const checkPackage = (
     const entry = String(((manifest.skill ?? {}) as Record<string, unknown>).entry ?? "SKILL.md");
     const content = text(byPath.get(entry));
     if (byPath.has(entry)) {
-      const meta = content === null ? null : parseFrontmatter(content).data;
+      const front = content === null ? null : parseFrontmatter(content);
+      const meta = front?.data ?? null;
       if (!meta)
         issues.push(
-          error("skill_frontmatter", `${entry} needs YAML frontmatter with name and description.`, {
-            file: entry,
-          }),
+          front?.yaml !== null && front?.error
+            ? // The block is there but doesn't parse: say why, and where (097).
+              error(
+                "frontmatter_yaml",
+                `${entry}'s frontmatter isn't valid YAML: ${front.error.message}${front.error.line ? ` (line ${front.error.line})` : ""}.`,
+                { file: entry, ...(front.error.line ? { line: front.error.line } : {}) },
+              )
+            : error(
+                "skill_frontmatter",
+                `${entry} needs YAML frontmatter with name and description.`,
+                {
+                  file: entry,
+                },
+              ),
         );
       else {
+        // The agent that runs it, in Claude Code (097): a name, and an item name is a dependency.
+        if (meta.agent !== undefined && typeof meta.agent !== "string")
+          issues.push(
+            error(
+              "frontmatter_agent",
+              `${entry}'s agent must be one name, such as @team/reviewer.`,
+              {
+                file: entry,
+              },
+            ),
+          );
+        else if (
+          typeof meta.agent === "string" &&
+          parseItemName(meta.agent) &&
+          !Object.hasOwn((manifest.dependencies ?? {}) as Record<string, unknown>, meta.agent)
+        )
+          issues.push(
+            error(
+              "frontmatter_dependency",
+              `${entry} runs in ${meta.agent}, which isn't under dependencies in ronne.yaml. Add it there.`,
+              { file: entry },
+            ),
+          );
         if (typeof meta.description !== "string" || meta.description.trim() === "")
           issues.push(
             error("skill_frontmatter", `${entry}'s frontmatter needs a description.`, {
@@ -276,18 +310,13 @@ export const checkPackage = (
   // Dependencies.
   const dependencies = (manifest.dependencies ?? {}) as Record<string, unknown>;
   const names = Object.keys(dependencies);
-  // Which types they may depend on needs the registry (013).
-  if (
-    names.length > 0 &&
-    isItemType(String(manifest.type)) &&
-    !mayHaveDependencies(manifest.type as ItemType)
-  )
+  // Any type may depend on any type (096); whether each exists is the registry's check (013). A
+  // bundle is nothing but its dependencies, so it lists at least one.
+  if (manifest.type === "bundle" && names.length === 0 && manifest.dependencies !== undefined)
     issues.push(
-      error(
-        "dependencies_not_allowed",
-        `A ${String(manifest.type)} can't have dependencies. Only bundles, agents, skills and commands can.`,
-        { path: "/dependencies" },
-      ),
+      error("bundle_empty", "A bundle lists at least one dependency: the items it installs.", {
+        path: "/dependencies",
+      }),
     );
   for (const name of names) {
     const range = dependencies[name];

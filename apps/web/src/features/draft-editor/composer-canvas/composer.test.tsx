@@ -7,6 +7,7 @@ import { ComposerContext } from "@/components/dependency-canvas/context";
 import { DRAG_TYPE, readDragged, startDrag } from "@/components/dependency-canvas/drag";
 import { toGraph } from "@/components/dependency-canvas/graph";
 import { LAYOUT_PATH } from "@/components/dependency-canvas/layout";
+import { DependencyFactsLine } from "@/components/dependency-canvas/nodes";
 import { draftTemplate } from "@/server/domains/submissions/models/templates";
 import { type FilesAction, type FilesState, filesReducer, isDirty } from "../files";
 import type { EditorFile } from "../types";
@@ -61,21 +62,28 @@ const editor = (type: ItemType) =>
   );
 
 describe("the view switch", () => {
-  it("offers Form, YAML and Canvas for agents and bundles, and no canvas for other types", () => {
-    for (const type of ["agent", "bundle"] as const) {
+  it("offers Form, YAML and Canvas for every type (096)", () => {
+    for (const type of [
+      "agent",
+      "bundle",
+      "skill",
+      "command",
+      "rule",
+      "mcp-server",
+      "hook",
+    ] as const) {
       expect(hasCanvas(type)).toBe(true);
       const html = editor(type);
       expect(html).toMatch(/aria-pressed="true"[^>]*>Form</);
       expect(html).toMatch(/aria-pressed="false"[^>]*>YAML</);
       expect(html).toMatch(/aria-pressed="false"[^>]*>Canvas</);
     }
-    // A skill or a command may only depend on MCP servers: the form is enough.
-    for (const type of ["skill", "command", "rule", "mcp-server"] as const) {
-      expect(hasCanvas(type)).toBe(false);
-      const html = editor(type);
-      expect(html).toContain(">YAML<");
-      expect(html).not.toContain(">Canvas<");
-    }
+  });
+
+  it("gives a rule the Dependencies field, with its search (096)", () => {
+    const html = editor("rule");
+    expect(html).toContain("Items installed with this one.");
+    expect(html).toContain('aria-label="Add a dependency"');
   });
 });
 
@@ -166,6 +174,29 @@ describe("the canvas", () => {
     for (const name of ["@platform/secure-coding", "@team/other-agent", "@tools/github"])
       expect(html).toContain(`aria-label="Remove ${name}"`);
     expect(html).not.toContain('aria-label="Remove @platform/reviewer"');
+  });
+
+  it("shows your own unreleased dependency's status, amber, instead of not published (089)", () => {
+    const html = (status: "draft" | "submitted" | "changes_requested" | "approved" | null) =>
+      renderToStaticMarkup(<DependencyFactsLine facts={null} status={status} />);
+    expect(html("submitted")).toContain(">in review, yours<");
+    expect(html("approved")).toContain(">pending release, yours<");
+    expect(html("draft")).toContain(">draft, yours<");
+    expect(html("changes_requested")).toContain(">back for changes, yours<");
+    expect(html("submitted")).not.toContain("not published");
+    expect(html(null)).toContain(">not published<");
+  });
+
+  it("carries a report's status into its node", () => {
+    const { nodes } = toGraph({
+      itemName: "@team/reviewer",
+      type: "agent",
+      dependencies: { "@team/tone": "^1.0.0" },
+      layout: {},
+      reports: { "@team/tone": { facts: null, status: "submitted", problems: [] } },
+      issues: [],
+    });
+    expect(nodes[1]?.data).toMatchObject({ name: "@team/tone", status: "submitted" });
   });
 
   it("is read-only once submitted: ranges can't be typed and nothing can be removed or moved", () => {
@@ -269,6 +300,8 @@ const github: PickerEntry = {
   version: "2.1.3",
   description: "GitHub's MCP server.",
   tools: ["Claude Code", "Codex"],
+  status: "published",
+  mine: false,
 };
 const upcoming: PickerEntry = {
   name: "@platform/upcoming",
@@ -276,6 +309,8 @@ const upcoming: PickerEntry = {
   version: "1.0.0-beta.2",
   description: "",
   tools: [],
+  status: "published",
+  mine: false,
 };
 
 describe("the picker", () => {
@@ -289,11 +324,11 @@ describe("the picker", () => {
     expect(submitted).toMatch(/<input[^>]*aria-label="Range of @tools\/github"[^>]*disabled=""/);
   });
 
-  it("offers only the types the draft may depend on", () => {
+  it("offers every type in its Type filter (096)", () => {
     const types = (html: string) =>
       [...html.matchAll(/<option value="([a-z-]+)"/g)].map((match) => match[1]);
-    expect(types(view(false))).toEqual(["skill", "mcp-server", "hook", "rule", "command"]);
-    expect(types(view(false, "bundle"))).toContain("agent");
+    expect(types(view(false))).toHaveLength(11);
+    expect(types(view(false))).toContain("agent");
     expect(types(view(false, "bundle"))).toHaveLength(11);
   });
 
@@ -312,6 +347,22 @@ describe("the picker", () => {
     expect(html).not.toContain('aria-label="Add @tools/github"');
     expect(html).toMatch(/<li draggable="true"[^>]*>.*@platform\/upcoming/s);
     expect(html).toContain('aria-label="Add @platform/upcoming"');
+  });
+
+  it("shows your own items as yours, and an unreleased one's status instead of a version (089)", () => {
+    const html = renderToStaticMarkup(
+      <PickerResults
+        entries={[
+          { ...github, mine: true },
+          { ...upcoming, version: "1.0.0", status: "submitted", mine: true },
+        ]}
+        added={new Set()}
+        onAdd={() => {}}
+      />,
+    );
+    expect(html).toContain(">v2.1.3, yours<");
+    expect(html).toContain(">in review, yours<");
+    expect(html).not.toContain(">v1.0.0");
   });
 
   it("says it's searching until the catalogue answers", () => {

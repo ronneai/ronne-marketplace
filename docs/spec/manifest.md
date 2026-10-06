@@ -19,7 +19,7 @@ time (MVP §3.3).
 | `keywords` | — | string[] | Max 10, lowercase. Used by search. |
 | `readme` | — | path | Defaults to `README.md` if present. Shown on the item page. |
 | `files` | — | path[] | Files included in the package. Defaults to every file in the folder except `.ronne/`. Paths are relative, use `/`, and can't contain `..`. |
-| `dependencies` | — | map | `"@scope/name": "<semver range>"`. Only allowed for the types listed in §3. |
+| `dependencies` | — | map | `"@scope/name": "<semver range>"`. Any type, on any type (§3); a bundle lists at least one. |
 | `targets` | — | map | Per-platform settings, see §4. |
 | `<type block>` | depends | object | Settings for the item's type, under a key named after the type (for example `agent:`). §2 lists what each type needs. |
 
@@ -39,6 +39,10 @@ skill:
 
 - `SKILL.md` frontmatter must have `name` and `description`. `name` must equal the item's name
   without the scope, because renderers name the output folder after it.
+- `agent: @scope/name` in the frontmatter names the agent that runs the skill, in Claude Code; it
+  must be listed under `dependencies` (saving a draft adds it) and be an agent. Unquoted is read as
+  quoted. A name without a scope (`agent: Explore`, `agent: reviewer`) isn't an item, so it isn't a dependency
+  ([097](../features/097-frontmatter-references/SPEC.md)).
 - Scripts and resources next to `SKILL.md` are copied as they are. Executable scripts raise a risk
   flag in review.
 
@@ -51,7 +55,7 @@ agent:
   model: default         # default | fast | strong — a hint, mapped per platform
 ```
 
-Skills, MCP servers, hooks, rules and commands the agent uses go in `dependencies`.
+The skills, MCP servers and other items the agent uses go in `dependencies`.
 
 ### `rule`
 
@@ -160,16 +164,16 @@ Always a risk flag, because it runs a command.
 
 ### `bundle`
 
-No type block. A bundle is a `name`, `description` and `dependencies`. The visual composer edits bundles and agents.
+No type block. A bundle is a `name`, `description` and `dependencies`. The visual composer edits the dependencies of every type (096).
 
 ## 3. Dependencies
 
-| Type | May depend on |
-|---|---|
-| `bundle` | any type |
-| `agent` | `skill`, `mcp-server`, `hook`, `rule`, `command` |
-| `skill`, `command` | `mcp-server` |
-| all other types | nothing (`dependencies` must be absent) |
+Any item may depend on any item, of any type ([096](../features/096-any-dependency/SPEC.md),
+owner 2026-10-05): a skill on the agent it works with, a rule on an MCP server, an agent on another
+agent. A `bundle` must list at least one dependency. An item can't depend on itself, and the
+dependencies can't go round in a circle (MVP §4.3). Until 096, the type decided: a bundle on
+anything, an agent on skills, MCP servers, hooks, rules and commands, a skill or command on MCP
+servers, and the other types on nothing.
 
 Ranges use npm's semver syntax (`^1.2.0`, `~1.1.0`, `>=2 <3`, `1.4.0`). Dist-tags aren't allowed
 in ranges. The resolver rules are in MVP §4.3.
@@ -210,7 +214,7 @@ Used in `agent.tools`, `hook.matcher.tool` and `permission-policy` rules. Render
 1. **Schema** (`packages/core/src/schema/ronne.schema.json`): shape, names, enums, required blocks per type.
 2. **Package checks** (`packages/core`): every referenced file exists; `SKILL.md` frontmatter
    matches; no path escapes the folder; the upload limits in MVP §12 hold.
-3. **Registry checks** (server): the scope exists; dependencies exist, have a type this item may depend on (§3), and each range matches at
+3. **Registry checks** (server): the scope exists; dependencies exist (any type, §3), and each range matches at
    least one published version; no cycles; the type hasn't changed since the item was created.
 
 Risk flags (MVP §12) are computed from the manifest and files. Authors can't set them.

@@ -253,7 +253,9 @@ published items and didn't match the scope.
 5. **Picking dependencies** (owner, 2026-10-01): an autocomplete in the form and `@` in markdown,
    over published items and the person's own; built in this feature. Deleting an `@` mention keeps
    the dependency; others' items in review are offered; a draft says it's submitted with the item
-   (Claude's recommendations, taken while the owner's answers were pending).
+   (Claude's recommendations, taken while the owner's answers were pending). *Since
+   [089](../089-dependency-picker-rule/SPEC.md) (owner, 2026-10-05), others' items are offered only
+   once published, and the canvas offers the person's own too.*
 
 ## Open questions
 

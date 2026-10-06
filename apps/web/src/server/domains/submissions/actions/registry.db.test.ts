@@ -11,7 +11,7 @@ import type { AppAuth } from "../../identity/repositories/auth-instance";
 import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testing/test-auth";
 import { createScope } from "../../items/actions/scopes";
 import { kyselyRegistryLookup } from "../repositories/kysely-registry-lookup";
-import { createDraft, saveDraftFiles } from "./drafts";
+import { createDraft, getDraft, saveDraftFiles } from "./drafts";
 import { publishSubmission } from "./publish";
 import { decide } from "./reviews";
 import {
@@ -57,8 +57,9 @@ const draftWith = async (
   name: string,
   type: "skill" | "agent" | "mcp-server",
   manifest: string,
+  headers = asAuthor,
 ) => {
-  const draft = await createDraft(asAuthor, { scope: "team", name, type }, app);
+  const draft = await createDraft(headers, { scope: "team", name, type }, app);
   const at = (path: string) => draft.files.find((f) => f.path === path)?.updatedAt ?? null;
   const writes = [
     {
@@ -78,16 +79,17 @@ const draftWith = async (
       executable: false,
       loadedAt: skill.updatedAt,
     });
-  await saveDraftFiles(asAuthor, draft.id, { writes, deletes: [] }, app);
+  await saveDraftFiles(headers, draft.id, { writes, deletes: [] }, app);
   return draft.id;
 };
 
 /** An MCP server draft, not submitted. */
-const serverDraft = (name: string) =>
+const serverDraft = (name: string, headers = asAuthor) =>
   draftWith(
     name,
     "mcp-server",
     `name: "@team/${name}"\ntype: mcp-server\ndescription: Something.\nmcp-server:\n  transport: stdio\n  command: npx\n`,
+    headers,
   );
 
 /** Publishes an MCP server as 1.0.0. */
@@ -117,6 +119,56 @@ const skillNeeding = (name: string, dependencies: string) =>
 
 const codes = async (id: string) => (await checkSubmission(asAuthor, id, app)).map((i) => i.code);
 
+describe("any type on any type (096)", () => {
+  const agentNeeding = (name: string, dependencies: string) =>
+    draftWith(
+      name,
+      "agent",
+      `name: "@team/${name}"\ntype: agent\ndescription: Something.\nagent:\n  prompt: prompt.md\n${dependencies ? `dependencies:\n${dependencies}` : ""}`,
+    );
+
+  it("takes a skill on an agent, and still refuses a cycle between them", async () => {
+    // A skill, then an agent that uses it, both in review.
+    const loop = await draftWith(
+      "loop",
+      "skill",
+      'name: "@team/loop"\ntype: skill\ndescription: Something.\nskill:\n  entry: SKILL.md\n',
+    );
+    await submitDraft(asAuthor, loop, app);
+    const helper = await agentNeeding("helper-agent", '  "@team/loop": "^1.0.0"\n');
+    expect(await codes(helper)).toEqual(["dependency_pending"]);
+    await submitDraft(asAuthor, helper, app);
+
+    // A new skill may depend on the agent.
+    const fan = await skillNeeding("fan", '  "@team/helper-agent": "^1.0.0"\n');
+    expect(await codes(fan)).toEqual(["dependency_pending"]);
+
+    // The first skill, sent back, can't depend on the agent that depends on it.
+    await decide(asModerator, loop, { decision: "request_changes", message: "Later." }, app);
+    const manifest = (await getDraft(asAuthor, loop, app)).files.find(
+      (f) => f.path === "ronne.yaml",
+    );
+    await saveDraftFiles(
+      asAuthor,
+      loop,
+      {
+        writes: [
+          {
+            path: "ronne.yaml",
+            encoding: "utf8",
+            content: `${manifest?.content ?? ""}dependencies:\n  "@team/helper-agent": "^1.0.0"\n`,
+            executable: false,
+            loadedAt: manifest?.updatedAt ?? null,
+          },
+        ],
+        deletes: [],
+      },
+      app,
+    );
+    expect(await codes(loop)).toEqual(["dependency_pending", "dependency_cycle"]);
+  });
+});
+
 describe("registry checks against published items", () => {
   it("accepts a dependency on a released item whose range matches", async () => {
     await released("github");
@@ -125,13 +177,13 @@ describe("registry checks against published items", () => {
     await expect(submitDraft(asAuthor, id, app)).resolves.toMatchObject({ status: "submitted" });
   });
 
-  it("refuses an unmatched range, a type this item can't depend on, and yanked versions", async () => {
+  it("refuses an unmatched range and yanked versions, and takes a dependency of any type (096)", async () => {
     await released("github");
     expect(await codes(await skillNeeding("a", '  "@team/github": "^2.0.0"\n'))).toEqual([
       "dependency_range",
     ]);
 
-    // A skill may depend on MCP servers only; publish a skill and depend on it.
+    // A skill on another skill: any type may depend on any type.
     const other = await draftWith(
       "helper",
       "skill",
@@ -146,9 +198,7 @@ describe("registry checks against published items", () => {
       app,
       localStorage(storageRoot),
     );
-    expect(await codes(await skillNeeding("b", '  "@team/helper": "^1.0.0"\n'))).toEqual([
-      "dependency_type",
-    ]);
+    expect(await codes(await skillNeeding("b", '  "@team/helper": "^1.0.0"\n'))).toEqual([]);
 
     await t.db
       .updateTable("item_versions")
@@ -172,6 +222,31 @@ describe("registry checks against published items", () => {
   });
 });
 
+describe("only your own items count before release (089)", () => {
+  it("refuses another author's item in review at submit (resubmit runs the same checks)", async () => {
+    const github = await serverDraft("github", asModerator);
+    await submitDraft(asModerator, github, app);
+    const reviewer = await skillNeeding("reviewer", '  "@team/github": "^1.0.0"\n');
+    expect(await checkSubmission(asAuthor, reviewer, app)).toEqual([
+      expect.objectContaining({
+        severity: "error",
+        code: "dependency_not_published",
+        message:
+          "@team/github isn't released yet. You can depend on someone else's item once it's published.",
+      }),
+    ]);
+    await expect(submitDraft(asAuthor, reviewer, app)).rejects.toThrow();
+    expect(await codes(reviewer)).toEqual(["dependency_not_published"]);
+  });
+
+  it("passes your own item in review, with 056's warning", async () => {
+    const github = await serverDraft("github");
+    await submitDraft(asAuthor, github, app);
+    const reviewer = await skillNeeding("reviewer", '  "@team/github": "^1.0.0"\n');
+    expect(await codes(reviewer)).toEqual(["dependency_pending"]);
+  });
+});
+
 describe("dependencies on their way (056)", () => {
   const storage = () => localStorage(storageRoot);
 
@@ -183,7 +258,14 @@ describe("dependencies on their way (056)", () => {
     const reviewer = await skillNeeding("reviewer", '  "@team/github": "^1.0.0"\n');
     await submitDraft(asAuthor, reviewer, app);
     expect(await lookup.submissionsNamed("team", "github")).toEqual([
-      { id: draft, status: "submitted", type: "mcp-server", proposal: false, dependencies: {} },
+      {
+        id: draft,
+        status: "submitted",
+        type: "mcp-server",
+        authorId: expect.any(String),
+        proposal: false,
+        dependencies: {},
+      },
     ]);
     expect(await lookup.submissionsNamed("team", "reviewer")).toEqual([
       expect.objectContaining({ dependencies: { "@team/github": "^1.0.0" } }),

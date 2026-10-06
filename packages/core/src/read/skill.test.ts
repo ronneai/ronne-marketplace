@@ -225,4 +225,16 @@ describe("readSkill's references", () => {
     expect(read("allowed-tools: Read Grep\n")).toEqual([]);
     expect(read("")).toEqual([]);
   });
+
+  it("names a local agent that runs it, not a built-in, a plugin's or an item (097)", () => {
+    const read = (front: string) =>
+      readSkill([file("SKILL.md", `---\nname: a\ndescription: A.\n${front}---\nBody.\n`)], {
+        itemName: "@team/a",
+      }).references;
+    expect(read("context: fork\nagent: reviewer\n")).toEqual([
+      { kind: "agent", name: "reviewer", from: "agent" },
+    ]);
+    for (const agent of ["Explore", "plan", "general-purpose", "tools:deploy", "@team/reviewer"])
+      expect(read(`agent: ${agent}\n`), agent).toEqual([]);
+  });
 });

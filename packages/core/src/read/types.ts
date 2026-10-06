@@ -31,7 +31,7 @@ export type ReadWarningCode =
 export type ReadWarning = { code: ReadWarningCode; message: string; file?: string };
 
 /** Something the item uses that could be another item; 041 turns them into dependencies. */
-export type ItemReference = { kind: "mcp-server" | "skill"; name: string; from: string };
+export type ItemReference = { kind: "mcp-server" | "skill" | "agent"; name: string; from: string };
 
 /**
  * Where the item's `description` came from (053): the item's own files (`item`), its body's first

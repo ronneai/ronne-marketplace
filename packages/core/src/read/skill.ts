@@ -5,7 +5,7 @@ import { isValidName, parseItemName } from "../names.js";
 import type { PackageFile } from "../package-file.js";
 import { listOf, mcpServerOf } from "./claude-code/shared.js";
 import { firstLine, fitDescription, toItemName } from "./text.js";
-import { ReadError, type ReadResult, type ReadWarning } from "./types.js";
+import { type ItemReference, ReadError, type ReadResult, type ReadWarning } from "./types.js";
 
 const MANIFEST = "ronne.yaml";
 const ENTRY = "SKILL.md";
@@ -55,6 +55,22 @@ const withName = (source: string, name: string): string => {
   doc.set("name", name);
   return `---\n${doc.toString({ lineWidth: 0 })}---\n${body}`;
 };
+
+/** Claude Code's own agents, which no item stands for (097). */
+const BUILT_IN_AGENTS = ["explore", "plan", "general-purpose"];
+
+/**
+ * The agent a Claude Code skill names (097): a local agent's name is a reference. An item name is
+ * already a dependency, a built-in or a plugin's agent (`plugin:agent`) is no item, so neither is.
+ */
+const agentReferenceOf = (agent: unknown): ItemReference[] =>
+  typeof agent === "string" &&
+  agent.trim() !== "" &&
+  !agent.startsWith("@") &&
+  !agent.includes(":") &&
+  !BUILT_IN_AGENTS.includes(agent.trim().toLowerCase())
+    ? [{ kind: "agent", name: agent.trim(), from: "agent" }]
+    : [];
 
 /**
  * A skill folder as an item (native-readers.md §4). The folder is the item, so the files are kept
@@ -156,11 +172,15 @@ export const readSkill = (
         : "item",
     files: [...out.values()].sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0)),
     warnings,
-    // The MCP servers behind its allowed tools (native-readers.md §4), for 041.
-    references: listOf(front.data?.["allowed-tools"], /[\s,]+/)
-      .map(mcpServerOf)
-      .filter((server): server is string => server !== null)
-      .filter((server, i, all) => all.indexOf(server) === i)
-      .map((name) => ({ kind: "mcp-server" as const, name, from: "allowed-tools" })),
+    // The MCP servers behind its allowed tools (native-readers.md §4), and the agent that runs it in
+    // Claude Code (097), for 041.
+    references: [
+      ...listOf(front.data?.["allowed-tools"], /[\s,]+/)
+        .map(mcpServerOf)
+        .filter((server): server is string => server !== null)
+        .filter((server, i, all) => all.indexOf(server) === i)
+        .map((name) => ({ kind: "mcp-server" as const, name, from: "allowed-tools" })),
+      ...agentReferenceOf(front.data?.agent),
+    ],
   };
 };

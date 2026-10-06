@@ -24,7 +24,15 @@ export type RenderInput = {
   manifest: Manifest;
   /** The artifact's files, unpacked (011). */
   files: readonly PackageFile[];
+  /**
+   * What `rmk` resolved for each of its dependencies (097), for tools that name them: an agent's
+   * skills, in Claude Code. `preload` is false for a skill that sets `disable-model-invocation`.
+   * Absent when the caller doesn't know.
+   */
+  dependencies?: readonly RenderDependency[];
 };
+
+export type RenderDependency = { name: string; type: ItemType; preload?: boolean };
 
 export type RenderScope = "project" | "user";
 
@@ -35,6 +43,11 @@ export type RenderContext = {
    * files, as Cursor reads Claude Code's skills and hooks, can leave out its own copy.
    */
   targets?: readonly string[];
+  /**
+   * The plugin it's written into (076), when it is: Claude Code names a plugin's own agents and
+   * skills `plugin:name` in frontmatter (097).
+   */
+  plugin?: string;
 };
 
 /** One file, in bytes or text; `executable` is the 0755 bit (011). */

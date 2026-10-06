@@ -25,6 +25,8 @@ export type NamedSubmission = {
   id: string;
   status: Exclude<SubmissionStatus, "draft">;
   type: ItemType;
+  /** Who wrote it: only the submitter's own counts before release (089). */
+  authorId: string;
   /** A change proposal to a published item (017), rather than a new item. */
   proposal: boolean;
   /** Its latest revision's dependencies: `@scope/name` → range. */

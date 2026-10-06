@@ -1,10 +1,9 @@
 import {
-  DEPENDENCY_TYPES,
   hasErrors,
   highestMatching,
   type ItemType,
   type ManifestIssue,
-  mayDependOn,
+  parseFrontmatter,
   parseItemName,
   parseManifest,
 } from "@ronneai/core";
@@ -12,8 +11,8 @@ import {
   DependencyClosedError,
   DependencyCycleError,
   DependencyNotFoundError,
+  DependencyNotPublishedError,
   DependencyRangeUnmatchedError,
-  DependencyTypeNotAllowedError,
   DependencyUnreleasedError,
   ItemNameTakenError,
   type SubmissionsError,
@@ -90,8 +89,16 @@ export const wayLabel = (status: NamedSubmission["status"]): string =>
       ? "back with its author for changes"
       : status;
 
-/** A dependency on its way (056): the name's open submissions, or why there's none. */
-type OnItsWay = { open: NamedSubmission[]; closed: "rejected" | "withdrawn" | null };
+/**
+ * A dependency on its way (056): the name's open submissions (anyone's, which the cycle walk and a
+ * release go by), the submitter's own (which count at submit since 089), and why it's closed when
+ * nobody's is open.
+ */
+type OnItsWay = {
+  anyOpen: NamedSubmission[];
+  mine: NamedSubmission[];
+  closed: "rejected" | "withdrawn" | null;
+};
 
 const warning = (code: string, message: string): ManifestIssue => ({
   severity: "warning",
@@ -102,7 +109,7 @@ const warning = (code: string, message: string): ManifestIssue => ({
 });
 
 /**
- * Each dependency exists, has a type this item may depend on (manifest spec §3), and its range
+ * Each dependency exists (of any type since 096, manifest spec §3), and its range
  * matches a published, non-yanked version. Then no cycles: following each dependency's highest
  * matching version (what the resolver installs, MVP §4.3), nothing leads back to this item or
  * round in a circle.
@@ -110,11 +117,18 @@ const warning = (code: string, message: string): ManifestIssue => ({
  * Since 056, at submit (`release: false`), a dependency that isn't released but has an open
  * submission is on its way: it passes with a warning, its type is the submission's, and the range
  * waits for the release, where it's checked (`release: true`) against the version it got. A draft
- * doesn't count; a rejected or withdrawn one says so.
+ * doesn't count; a rejected or withdrawn one says so. Since 089, only the submitter's own open
+ * submission counts: another author's item is a dependency once it's published.
  */
 export const dependencyIssues = async (
   registry: RegistryLookup,
-  input: { itemName: string; type: ItemType; dependencies: Readonly<Record<string, string>> },
+  input: {
+    itemName: string;
+    type: ItemType;
+    dependencies: Readonly<Record<string, string>>;
+    /** The submitter: their own open submissions count before release (089). */
+    authorId: string;
+  },
   options: { release?: boolean } = {},
 ): Promise<ManifestIssue[]> => {
   const cache = new Map<string, Resolved | null>();
@@ -142,12 +156,13 @@ export const dependencyIssues = async (
     if (known) return known;
     const parsed = parseItemName(dependency);
     const all = parsed ? await registry.submissionsNamed(parsed.scope, parsed.name) : [];
-    const open = all.filter((s) => OPEN_STATUSES.includes(s.status));
+    const anyOpen = all.filter((s) => OPEN_STATUSES.includes(s.status));
     const newest = all[0]?.status;
     const way: OnItsWay = {
-      open,
+      anyOpen,
+      mine: anyOpen.filter((s) => s.authorId === input.authorId),
       closed:
-        open.length === 0 && (newest === "rejected" || newest === "withdrawn") ? newest : null,
+        anyOpen.length === 0 && (newest === "rejected" || newest === "withdrawn") ? newest : null,
     };
     ways.set(dependency, way);
     return way;
@@ -158,8 +173,12 @@ export const dependencyIssues = async (
     const parsed = parseItemName(dependency);
     const item = parsed ? await registry.findItem(parsed.scope, parsed.name) : null;
     const resolved = item ? await resolve(dependency, range) : null;
-    const way = resolved ? { open: [], closed: null } : await onItsWay(dependency);
-    const pending = way.open[0];
+    const way: OnItsWay = resolved
+      ? { anyOpen: [], mine: [], closed: null }
+      : await onItsWay(dependency);
+    // At submit only the submitter's own counts (089); a release refuses anything unreleased (056).
+    const pending = (options.release ? way.anyOpen : way.mine)[0];
+    const othersOnly = !pending && way.anyOpen.length > 0;
     if (!item && !pending) {
       issues.push(
         way.closed
@@ -168,24 +187,21 @@ export const dependencyIssues = async (
               new DependencyClosedError(dependency, way.closed),
               "/dependencies",
             )
-          : issue("dependency_not_found", new DependencyNotFoundError(dependency), "/dependencies"),
+          : othersOnly
+            ? issue(
+                "dependency_not_published",
+                new DependencyNotPublishedError(dependency),
+                "/dependencies",
+              )
+            : issue(
+                "dependency_not_found",
+                new DependencyNotFoundError(dependency),
+                "/dependencies",
+              ),
       );
       continue;
     }
-    const type = item?.type ?? pending?.type;
-    if (type && !mayDependOn(input.type, type))
-      issues.push(
-        issue(
-          "dependency_type",
-          new DependencyTypeNotAllowedError(
-            dependency,
-            type,
-            input.type,
-            DEPENDENCY_TYPES[input.type],
-          ),
-          "/dependencies",
-        ),
-      );
+    // Any type may depend on any type (096): no check on the dependency's type.
     if (resolved) continue;
     if (!pending) {
       issues.push(
@@ -230,7 +246,7 @@ export const dependencyIssues = async (
   const next = async (dependency: string, range: string) => {
     const resolved = await resolve(dependency, range);
     if (resolved) return resolved.version.dependencies;
-    return options.release ? null : ((await onItsWay(dependency)).open[0]?.dependencies ?? null);
+    return options.release ? null : ((await onItsWay(dependency)).anyOpen[0]?.dependencies ?? null);
   };
   const done = new Set<string>();
   const walk = async (
@@ -292,8 +308,48 @@ export const registryIssues = async (
         itemName: itemNameOf(submission),
         type: submission.type,
         dependencies,
+        authorId: submission.authorId,
       },
       options,
     )),
+    ...(submission.type === "skill"
+      ? await frontmatterAgentIssues(registry, manifest?.skill, files, submission.authorId)
+      : []),
   ];
+};
+
+/**
+ * The agent a skill names in its frontmatter (097) is an agent: published, or the submitter's own
+ * on its way (others' unreleased items aren't dependencies, 089, so their type isn't told). Whether
+ * it exists and its range are `dependencyIssues`' checks, since it's a dependency too.
+ */
+export const frontmatterAgentIssues = async (
+  registry: RegistryLookup,
+  block: unknown,
+  files: readonly Omit<DraftFile, "updatedAt">[],
+  authorId: string,
+): Promise<ManifestIssue[]> => {
+  const entry = String(((block ?? {}) as Record<string, unknown>).entry ?? "SKILL.md");
+  const file = files.find((f) => f.path === entry);
+  if (file?.encoding !== "utf8") return [];
+  const agent = parseFrontmatter(file.content).data?.agent;
+  const parsed = typeof agent === "string" ? parseItemName(agent) : null;
+  if (!parsed) return [];
+  const item = await registry.findItem(parsed.scope, parsed.name);
+  const own = item
+    ? undefined
+    : (await registry.submissionsNamed(parsed.scope, parsed.name)).find(
+        (s) => s.authorId === authorId && OPEN_STATUSES.includes(s.status),
+      );
+  const type = item?.type ?? own?.type;
+  return type && type !== "agent"
+    ? [
+        {
+          severity: "error",
+          code: "frontmatter_agent_type",
+          message: `${entry} runs in ${String(agent)}, which is ${/^(agent|output-style|mcp-server|lsp-server)$/.test(type) ? "an" : "a"} ${type}, not an agent.`,
+          file: entry,
+        },
+      ]
+    : [];
 };

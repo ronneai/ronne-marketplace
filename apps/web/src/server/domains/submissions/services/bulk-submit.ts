@@ -198,6 +198,7 @@ export const checkMany = async (
         id: submission.id,
         status: "submitted",
         type: submission.type,
+        authorId: submission.authorId,
         proposal: submission.proposal !== null,
         dependencies: await dependenciesOf(deps.repo, submission),
       });

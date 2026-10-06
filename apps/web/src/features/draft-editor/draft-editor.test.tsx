@@ -91,6 +91,45 @@ describe("filesReducer", () => {
     expect(isDirty(state)).toBe(true);
   });
 
+  it("shows what the save rewrote itself, unless it was edited meanwhile (097)", () => {
+    let state = filesReducer(start(), { type: "edit", path: "prompt.md", content: "agent: @a/b" });
+    const sent = changesOf(state).writes;
+    const T2 = "2026-09-27T11:00:00.000Z";
+    const saved = {
+      type: "saved" as const,
+      saved: [
+        { path: "prompt.md", loadedAt: T2 },
+        { path: "ronne.yaml", loadedAt: T2 },
+      ],
+      rewritten: [
+        { path: "prompt.md", content: 'agent: "@a/b"' },
+        { path: "ronne.yaml", content: 'name: x\ndependencies:\n  "@a/b": ^1.0.0\n' },
+      ],
+      sent,
+      removed: [],
+    };
+    const after = filesReducer(state, saved);
+    expect(after.files.map((f) => [f.path, f.content, f.dirty, f.loadedAt])).toEqual([
+      ["prompt.md", 'agent: "@a/b"', false, T2],
+      ["ronne.yaml", 'name: x\ndependencies:\n  "@a/b": ^1.0.0\n', false, T2],
+    ]);
+    // The editor echoes the rewrite as an edit of the same text: still saved.
+    const echoed = filesReducer(after, {
+      type: "edit",
+      path: "prompt.md",
+      content: 'agent: "@a/b"',
+    });
+    expect(echoed.files.find((f) => f.path === "prompt.md")?.dirty).toBe(false);
+    // Edited while the save was on its way: the edit stays, unsaved.
+    state = filesReducer(state, { type: "edit", path: "ronne.yaml", content: "name: mine\n" });
+    const edited = filesReducer(state, saved);
+    expect(edited.files.find((f) => f.path === "ronne.yaml")).toMatchObject({
+      content: "name: mine\n",
+      dirty: true,
+      loadedAt: T2,
+    });
+  });
+
   it("checks new paths", () => {
     const state = start();
     expect(newPathProblem(state, "prompt.md")).toBe("There's already a file at prompt.md.");

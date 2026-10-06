@@ -43,6 +43,7 @@ import {
   withDependencies,
   withDescription,
 } from "@ronneai/core/read";
+import { withAgentName } from "@ronneai/core/render";
 import { parse as parseToml } from "smol-toml";
 import { type ApiClient, ApiError } from "./api.js";
 import { diskHash, readState } from "./apply.js";
@@ -1564,16 +1565,26 @@ const declareDependencies = (
     // A proposal starts from its base's dependencies (042); only an addition rewrites ronne.yaml.
     const declared = JSON.stringify(item.dependencies);
     const warn = (code: string, message: string) => item.warnings.push({ code, message });
+    /** A skill's `agent:` names the item it's declared as (097). */
+    const nameAgent = (finding: Finding, name: string) => {
+      if (finding.reference.kind !== "agent" || item.type !== "skill") return;
+      item.files = item.files.map((f) =>
+        f.path === "SKILL.md" ? { ...f, bytes: withAgentName(f.bytes, name) } : f,
+      );
+    };
     for (const finding of findings.filter((f) => f.usedBy.includes(item.local))) {
-      const what = `${finding.reference.kind === "mcp-server" ? "the MCP server" : "the skill"} ${finding.reference.name}`;
+      const what = `${finding.reference.kind === "mcp-server" ? "the MCP server" : `the ${finding.reference.kind}`} ${finding.reference.name}`;
       const dependency = planned(finding);
       if (dependency) {
         item.dependencies[dependency.name] = "^1.0.0";
         item.dependsOn.push(dependency.name);
-      } else if (finding.status === "installed" && finding.registry)
+        nameAgent(finding, dependency.name);
+      } else if (finding.status === "installed" && finding.registry) {
         item.dependencies[finding.registry.name] = `^${finding.registry.version}`;
-      else if (finding.status === "published" && finding.registry) {
+        nameAgent(finding, finding.registry.name);
+      } else if (finding.status === "published" && finding.registry) {
         item.dependencies[finding.registry.name] = `^${finding.registry.version}`;
+        nameAgent(finding, finding.registry.name);
         warn(
           "dependency_published",
           `It uses ${what}; ${finding.registry.name} is already published, so it depends on that at ^${finding.registry.version} and your copy isn't uploaded.`,

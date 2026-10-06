@@ -51,6 +51,7 @@ import { draftTemplate, startingFiles } from "../models/templates";
 import { readZip } from "../models/zip";
 import type { RegistryLookup } from "../repositories/registry-lookup";
 import type { SubmissionRepository } from "../repositories/submission-repository";
+import { frontmatterChanges } from "./frontmatter-dependencies";
 import { staleVersion, withStale } from "./proposals";
 import { registryIssues } from "./registry-checks";
 import { noChangeIssues, removeSubmission } from "./submissions";
@@ -279,7 +280,11 @@ export type DraftChanges = {
   /** Save even over files that changed since they were loaded. */
   overwrite?: boolean;
 };
-export type SavedDraft = { draft: Draft; issues: ManifestIssue[] };
+/**
+ * `rewritten`: the files the save changed besides what was sent (097: a skill's frontmatter quoted,
+ * its agent added to `ronne.yaml`), so the editor can show them.
+ */
+export type SavedDraft = { draft: Draft; issues: ManifestIssue[]; rewritten: string[] };
 
 /** What can be checked without the database, so a bad write touches nothing: the paths first. */
 const checkPaths = (paths: readonly string[], what: string) => {
@@ -347,6 +352,7 @@ export const saveDraftFiles = async (
   const limits = limitsOf(deps);
   checkChanges(changes, limits);
   const at = now(deps);
+  const rewritten: string[] = [];
   const draft = await deps.repo.transaction(async (repo) => {
     const submission = await ownEditable(repo, actor, id);
     checkStartingFiles(changes, submission.type);
@@ -375,6 +381,19 @@ export const saveDraftFiles = async (
     }));
     for (const file of written) next.set(file.path, file);
 
+    // A skill's frontmatter: item names quoted, and its agent listed as a dependency (097).
+    const fixed = await withFrontmatter(repo.registry(), submission.type, [...next.values()]);
+    for (const path of fixed.rewritten) {
+      const file = fixed.files.find((f) => f.path === path);
+      if (!file) continue;
+      const updated = { ...file, updatedAt: at };
+      const index = written.findIndex((w) => w.path === path);
+      if (index >= 0) written[index] = updated;
+      else written.push(updated);
+      next.set(path, updated);
+      rewritten.push(path);
+    }
+
     const before = totals(current.values());
     const after = totals(next.values());
     if (after.count > limits.maxFiles && after.count > before.count)
@@ -392,7 +411,30 @@ export const saveDraftFiles = async (
     );
     return { ...submission, updatedAt: at, files };
   });
-  return { draft, issues: validateDraft(draft, draft.files, limits) };
+  return { draft, issues: validateDraft(draft, draft.files, limits), rewritten };
+};
+
+/**
+ * `files` with a skill's frontmatter quoted and its agent listed (097), and the paths that changed.
+ * Runs inside the save's or upload's transaction, so the dependency's range is read once with it.
+ */
+const withFrontmatter = async <F extends DraftFile>(
+  registry: RegistryLookup,
+  type: ItemType,
+  files: readonly F[],
+): Promise<{ files: F[]; rewritten: string[] }> => {
+  const byPath = new Map(files.map((file) => [file.path, file]));
+  const rewrites = await frontmatterChanges(registry, type, byPath);
+  if (rewrites.size === 0) return { files: [...files], rewritten: [] };
+  return {
+    files: files.map((file) => {
+      const content = rewrites.get(file.path);
+      return content === undefined
+        ? file
+        : { ...file, content, size: byteSize({ encoding: file.encoding, content }) };
+    }),
+    rewritten: [...rewrites.keys()],
+  };
 };
 
 /** The most drafts an author may have for the API to create another (037). */
@@ -444,6 +486,7 @@ export const createDraftFromFiles = async (
   const limits = limitsOf(deps);
   const at = now(deps);
   const { files, count, bytes } = uploadedFiles(input.files, limits, at);
+  const rewritten: string[] = [];
 
   const draft = await deps.repo.transaction(async (repo) => {
     const scope = await findScope(repo, input.scope);
@@ -453,7 +496,17 @@ export const createDraftFromFiles = async (
         : await proposalBase(repo.registry(), `@${scope.name}/${name}`, type, input.base);
     if ((await repo.countDrafts(authorId)) >= MAX_API_DRAFTS)
       throw new DraftQuotaError(MAX_API_DRAFTS);
-    const draft = await insertDraft(repo, { authorId, scope, name, type, files, at, proposal });
+    const fixed = await withFrontmatter(repo.registry(), type, files);
+    rewritten.push(...fixed.rewritten);
+    const draft = await insertDraft(repo, {
+      authorId,
+      scope,
+      name,
+      type,
+      files: fixed.files,
+      at,
+      proposal,
+    });
     await repo.recordAudit(
       {
         actorId: authorId,
@@ -475,7 +528,7 @@ export const createDraftFromFiles = async (
     );
     return draft;
   });
-  return uploaded(deps, draft, limits);
+  return uploaded(deps, draft, limits, rewritten);
 };
 
 /** An upload's files (037), checked as a save checks them, before anything is written. */
@@ -506,11 +559,13 @@ const uploaded = async (
   deps: DraftDeps,
   draft: Draft,
   limits: PackageLimits,
+  rewritten: string[],
 ): Promise<UploadedDraft> => {
   const registry = deps.repo.registry();
   return {
     draft,
     issues: validateDraft(draft, draft.files, limits),
+    rewritten,
     submitIssues: [
       ...(await registryIssues(deps.repo, registry, draft, draft.files)),
       ...(draft.proposal && deps.storage
@@ -590,6 +645,7 @@ export const replaceDraftFromFiles = async (
   const limits = limitsOf(deps);
   const at = now(deps);
   const { files, count, bytes } = uploadedFiles(input.files, limits, at);
+  const rewritten: string[] = [];
 
   const draft = await deps.repo.transaction(async (repo) => {
     const submission = await ownEditable(repo, actor, id);
@@ -605,10 +661,12 @@ export const replaceDraftFromFiles = async (
         type: submission.type,
         baseVersion,
       });
-    const keep = new Set(files.map((file) => file.path));
+    const fixed = await withFrontmatter(repo.registry(), type, files);
+    rewritten.push(...fixed.rewritten);
+    const keep = new Set(fixed.files.map((file) => file.path));
     for (const file of await repo.files(submission.id))
       if (!keep.has(file.path)) await repo.deleteFile(submission.id, file.path);
-    for (const file of files) await repo.writeFile(submission.id, file);
+    for (const file of fixed.files) await repo.writeFile(submission.id, file);
     await repo.update(submission.id, { updatedAt: at });
     await repo.recordAudit(
       {
@@ -630,9 +688,9 @@ export const replaceDraftFromFiles = async (
       },
       at,
     );
-    return { ...submission, updatedAt: at, files: sortByPath(files) };
+    return { ...submission, updatedAt: at, files: sortByPath(fixed.files) };
   });
-  return uploaded(deps, draft, limits);
+  return uploaded(deps, draft, limits, rewritten);
 };
 
 /**

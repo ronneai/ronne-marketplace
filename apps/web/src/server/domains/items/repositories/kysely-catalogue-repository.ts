@@ -59,7 +59,7 @@ export const kyselyCatalogueRepository = (
       "items" | "scopes" | "item_versions",
       O
     >,
-    { search, type, types, scope, tool, installable, listedNotYanked }: CatalogueFilter,
+    { search, type, types, scope, tool, installable, listedNotYanked, ownerId }: CatalogueFilter,
   ) => {
     let q = query;
     // An item's name as people write it (056): `@team/re` is scope `team` and a name with `re`;
@@ -85,6 +85,7 @@ export const kyselyCatalogueRepository = (
     if (installable) q = q.where("items.installable", "=", toDbBoolean(true, dialect));
     if (listedNotYanked) q = q.where("item_versions.yanked_at", "is", null);
     if (scope) q = q.where("scopes.name", "=", scope);
+    if (ownerId) q = q.where("items.owner_id", "=", ownerId);
     if (tool) {
       // The types the tool takes, and not turned off in the listed version's manifest (026).
       const renderer = rendererById(tool);

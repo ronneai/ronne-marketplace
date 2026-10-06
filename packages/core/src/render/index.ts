@@ -23,6 +23,13 @@ export {
 } from "./helpers.js";
 export { RENDERERS, rendererById } from "./registry.js";
 export {
+  agentsSkillEntry,
+  claudeCodeSkillEntry,
+  renderDependencyOf,
+  withAgentName,
+  withDependencies,
+} from "./skill-frontmatter.js";
+export {
   disabledTargets,
   installsIn,
   supportFor,
@@ -36,6 +43,7 @@ export type {
   PlatformRenderer,
   ProjectProbe,
   RenderContext,
+  RenderDependency,
   RenderInput,
   RenderResult,
   RenderScope,

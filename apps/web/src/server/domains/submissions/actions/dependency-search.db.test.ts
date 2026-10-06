@@ -16,7 +16,7 @@ import { publishSubmission } from "./publish";
 import { decide } from "./reviews";
 import { submitDraft } from "./submissions";
 
-// What picking a dependency offers (056): published, the person's own, and others' in review.
+// What picking a dependency offers (056, 089): your own in any state, and others' once published.
 let t: TestDb;
 let app: AppAuth;
 let storageRoot: string;
@@ -85,6 +85,21 @@ const submitted = async (headers: Headers, scope: string, name: string, type: "r
   return id;
 };
 
+/** Publishes a new item by `headers`, as 1.0.0. */
+const published = async (
+  headers: Headers,
+  scope: string,
+  name: string,
+  type: "rule" | "mcp-server",
+) => {
+  const storage = localStorage(storageRoot);
+  const id = await draft(headers, scope, name, type);
+  await submitDraft(headers, id, app, storage);
+  await decide(asModerator, id, { decision: "approve" }, app);
+  await publishSubmission(headers, id, { choice: { kind: "stable", bump: "major" } }, app, storage);
+  return id;
+};
+
 /** Publishes an MCP server @team/github as 1.0.0, then 1.1.0. */
 const publishedServer = async () => {
   const storage = localStorage(storageRoot);
@@ -137,35 +152,58 @@ const publishedServer = async () => {
 const find = (q: string, extra: { exclude?: string[]; itemName?: string } = {}) =>
   findDependencies(asAuthor, { type: "agent", q, itemName: "@team/reviewer", ...extra }, app);
 
-describe("findDependencies (056)", () => {
-  it("offers published items with their versions, then yours and others' on their way", async () => {
+describe("findDependencies (056, 089)", () => {
+  it("offers your own items in every state first, then others' published ones", async () => {
     await publishedServer();
+    await published(asOther, "infra", "lint", "rule");
     await draft(asAuthor, "team", "house", "rule");
     await submitted(asAuthor, "team", "style", "rule");
-    await submitted(asOther, "infra", "deploy", "rule");
-    await draft(asOther, "infra", "secret", "rule");
-    await submitted(asOther, "team", "helper", "agent");
+    const back = await submitted(asAuthor, "team", "tone", "rule");
+    await decide(asModerator, back, { decision: "request_changes", message: "Fix." }, app);
+    const approved = await submitted(asAuthor, "team", "voice", "rule");
+    await decide(asModerator, approved, { decision: "approve" }, app);
 
     const options = await find("");
     expect(options.map((o) => [o.name, o.status, o.mine])).toEqual([
-      ["@team/github", "published", false],
-      ["@infra/deploy", "submitted", false],
+      ["@team/github", "published", true],
+      ["@team/voice", "approved", true],
+      ["@team/tone", "changes_requested", true],
       ["@team/style", "submitted", true],
       ["@team/house", "draft", true],
+      ["@infra/lint", "published", false],
     ]);
     expect(options[0]).toMatchObject({
       type: "mcp-server",
       versions: ["1.1.0", "1.0.0"],
       latest: "1.1.0",
     });
-    expect(options[1]).toMatchObject({ author: "Otto Other", versions: [], latest: null });
-    expect(options[2]?.author).toBeNull();
+    expect(options[1]).toMatchObject({ versions: [], latest: null });
+  });
+
+  it("never offers others' drafts or items in review, approved or sent back", async () => {
+    await draft(asOther, "infra", "secret", "rule");
+    await submitted(asOther, "infra", "deploy", "rule");
+    const approved = await submitted(asOther, "infra", "ready", "rule");
+    await decide(asModerator, approved, { decision: "approve" }, app);
+    const back = await submitted(asOther, "infra", "back", "rule");
+    await decide(asModerator, back, { decision: "request_changes", message: "Fix." }, app);
+    expect(await find("")).toEqual([]);
+    expect(await find("infra")).toEqual([]);
+  });
+
+  it("finds your own published item past the catalogue's newest 12", async () => {
+    await published(asAuthor, "team", "mine", "rule");
+    for (let i = 1; i <= 13; i++) await published(asOther, "infra", `rule-${i}`, "rule");
+    const options = await find("");
+    expect(options).toHaveLength(12);
+    expect(options[0]).toMatchObject({ name: "@team/mine", status: "published", mine: true });
+    expect(options.slice(1).every((o) => !o.mine && o.status === "published")).toBe(true);
   });
 
   it("matches any part of @scope/name, and leaves out the item itself and ones already listed", async () => {
     await publishedServer();
     await submitted(asAuthor, "team", "style", "rule");
-    await submitted(asOther, "infra", "deploy", "rule");
+    await published(asOther, "infra", "deploy", "rule");
     expect((await find("@team/gi")).map((o) => o.name)).toEqual(["@team/github"]);
     expect((await find("infra")).map((o) => o.name)).toEqual(["@infra/deploy"]);
     expect((await find("@inf/dep")).map((o) => o.name)).toEqual(["@infra/deploy"]);
@@ -175,8 +213,13 @@ describe("findDependencies (056)", () => {
     ).toEqual(["@infra/deploy"]);
   });
 
-  it("offers nothing for a type that can't have dependencies", async () => {
+  it("offers items to every type, a rule too (096)", async () => {
     await submitted(asAuthor, "team", "style", "rule");
-    expect(await findDependencies(asAuthor, { type: "rule", q: "" }, app)).toEqual([]);
+    await submitted(asAuthor, "team", "tone", "rule");
+    expect(
+      (await findDependencies(asAuthor, { type: "rule", q: "", itemName: "@team/tone" }, app)).map(
+        (o) => o.name,
+      ),
+    ).toEqual(["@team/style"]);
   });
 });

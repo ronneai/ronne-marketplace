@@ -40,16 +40,17 @@ item is offered to everyone, so "mine" matters only for unreleased ones. An item
 first published, to which you have a change proposal open, is offered as published (as 056 does).
 
 **The list** (form, `@` and canvas), at most 12, of the types this item may depend on, never the
-item itself or one already listed:
+item itself or one already listed, in this order:
 
 | Offered | Shown as |
 |---|---|
-| Published items (anyone's) | name, type, newest version |
-| Your drafts | name, type, "draft: submitted with this item" (056) |
-| Your open submissions | name, type, status badge |
+| Your published items (those you first published), whatever their rank in the catalogue | name, type, newest version, "yours" |
+| Your drafts and open submissions, newest change first | name, type, status badge, "yours" (a draft: "submitted with this item", 056) |
+| Others' published items, newest first | name, type, newest version |
 
-Others' drafts and open submissions are never offered, nor named. A name that's published and also
-one of your open proposals shows once, as published.
+Yours come first, so they're never pushed out by others' items. Others' drafts and open
+submissions are never offered, nor named. A name that's published and also one of your open
+proposals shows once, as published.
 
 **At submit.** `dependencyIssues` keeps 056's rules for released items and for your own open
 submissions (a warning, the range checked at release). A dependency on **another author's**
@@ -62,8 +63,17 @@ their place: the rule is checked again only when they're resubmitted or released
 nothing changes, because a dependency had to be released then anyway. Their marks (056's "Waits
 on") stay until the dependency is released.
 
-**The canvas** gets a status badge on unreleased nodes and the same search (`@scope/name`,
-description, keywords).
+**The canvas.** Its picker's first page starts with your own items, as the list above (your
+published ones, then your drafts and open submissions), then pages through others' published items,
+newest first, as before; what the first page showed as yours isn't repeated later. Published items
+match the name, description and keywords; your unreleased ones match `@scope/name` only, since a
+draft's description is still in its `ronne.yaml`. An unreleased item shows an amber badge instead of
+a version ("draft, yours", "in review, yours", "back for changes, yours", "pending release, yours"),
+and a published one of yours says "v1.4.0, yours". On the canvas, a node for one of your own
+unreleased items shows the same badge instead of the red "not published". Under an open submission of
+yours, 056's "isn't released yet; it's in review" warning isn't repeated. A draft of yours keeps its
+problem ("isn't a published item or in review. Submit it first"): the editor's Submit refuses it until
+it's submitted, or submitted together in bulk (056), and its type and cycle are checked only then.
 
 ## Edge cases
 

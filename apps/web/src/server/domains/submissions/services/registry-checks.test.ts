@@ -40,6 +40,7 @@ const fakeRegistry = (items: Fake, submissions: FakeSubmissions = {}): RegistryL
   submissionsNamed: async (scope, name) =>
     (submissions[`@${scope}/${name}`] ?? []).map((sub, i) => ({
       id: `${scope}/${name}#${i}`,
+      authorId: "me",
       proposal: false,
       dependencies: {},
       ...sub,
@@ -50,6 +51,7 @@ const agent = (dependencies: Record<string, string>) => ({
   itemName: "@team/reviewer",
   type: "agent" as const,
   dependencies,
+  authorId: "me",
 });
 const codes = async (registry: RegistryLookup, dependencies: Record<string, string>) =>
   (await dependencyIssues(registry, agent(dependencies))).map((i) => i.code);
@@ -71,18 +73,15 @@ describe("dependencyIssues", () => {
     ).toEqual([]);
   });
 
-  it("refuses a missing dependency, a type this item can't depend on, and an unmatched range", async () => {
+  it("refuses a missing dependency and an unmatched range, and takes any type (096)", async () => {
     expect(await codes(registry, { "@team/nowhere": "^1.0.0" })).toEqual(["dependency_not_found"]);
-    expect(await codes(registry, { "@team/other-agent": "^1.0.0" })).toEqual(["dependency_type"]);
+    // An agent on another agent: any type may depend on any type.
+    expect(await codes(registry, { "@team/other-agent": "^1.0.0" })).toEqual([]);
     expect(await codes(registry, { "@team/secure-coding": "^2.0.0" })).toEqual([
       "dependency_range",
     ]);
     // Yanked versions don't count.
     expect(await codes(registry, { "@team/old": "^1.0.0" })).toEqual(["dependency_range"]);
-    const [typeIssue] = await dependencyIssues(registry, agent({ "@team/other-agent": "^1.0.0" }));
-    expect(typeIssue?.message).toBe(
-      "@team/other-agent is an agent, which an agent can't depend on. An agent may depend on: skill, mcp-server, hook, rule, command.",
-    );
   });
 
   it("finds cycles through the versions that would be installed", async () => {
@@ -104,6 +103,7 @@ describe("dependencyIssues", () => {
       itemName: "@team/starter",
       type: "bundle",
       dependencies: { "@team/a": "^1.0.0" },
+      authorId: "me",
     });
     expect(issues).toMatchObject([
       {
@@ -131,6 +131,7 @@ describe("dependencyIssues", () => {
         itemName: "@t/top",
         type: "bundle",
         dependencies: { "@t/left": "*", "@t/right": "*" },
+        authorId: "me",
       }),
     ).toEqual([]);
   });
@@ -200,9 +201,8 @@ describe("dependencies on their way (056)", () => {
     ]);
   });
 
-  it("checks the type against the submission's", async () => {
+  it("takes a submission of any type (096)", async () => {
     expect((await issues({ "@team/other-agent": "^1.0.0" })).map((i) => i.code)).toEqual([
-      "dependency_type",
       "dependency_pending",
     ]);
   });
@@ -244,11 +244,99 @@ describe("dependencies on their way (056)", () => {
       itemName: "@team/starter",
       type: "bundle",
       dependencies: { "@team/a": "*" },
+      authorId: "me",
     });
     expect(found.map((i) => i.code)).toEqual(["dependency_pending", "dependency_cycle"]);
     expect(found.at(-1)?.message).toBe(
       "The dependencies go round in a circle: @team/starter → @team/a → @team/b → @team/starter.",
     );
+  });
+});
+
+describe("only your own items count before release (089)", () => {
+  const registry = fakeRegistry(
+    { "@team/github": { type: "mcp-server", versions: [{ version: "1.0.0" }] } },
+    {
+      "@infra/deploy": [{ status: "submitted", type: "skill", authorId: "otto" }],
+      "@infra/ready": [{ status: "approved", type: "skill", authorId: "otto" }],
+      // Someone else's resubmission after mine was rejected: theirs doesn't count for me.
+      "@team/shared": [
+        { status: "submitted", type: "skill", authorId: "otto" },
+        { status: "rejected", type: "skill", authorId: "me" },
+      ],
+      // Both of us have it open: mine counts.
+      "@team/both": [
+        { status: "submitted", type: "skill", authorId: "otto" },
+        { status: "approved", type: "skill", authorId: "me" },
+      ],
+      // Someone else's proposal for 2.0.0 of a published item.
+      "@team/github": [
+        { status: "submitted", type: "mcp-server", proposal: true, authorId: "otto" },
+      ],
+    },
+  );
+  const issues = (dependencies: Record<string, string>, release = false) =>
+    dependencyIssues(registry, agent(dependencies), { release });
+
+  it("refuses another author's open submission, saying it counts once published", async () => {
+    expect(await issues({ "@infra/deploy": "^1.0.0" })).toEqual([
+      expect.objectContaining({
+        severity: "error",
+        code: "dependency_not_published",
+        message:
+          "@infra/deploy isn't released yet. You can depend on someone else's item once it's published.",
+      }),
+    ]);
+    for (const name of ["@infra/ready", "@team/shared"])
+      expect((await issues({ [name]: "^1.0.0" })).map((i) => i.code)).toEqual([
+        "dependency_not_published",
+      ]);
+  });
+
+  it("counts your own when others have one open too", async () => {
+    expect((await issues({ "@team/both": "^1.0.0" })).map((i) => i.code)).toEqual([
+      "dependency_pending",
+    ]);
+  });
+
+  it("doesn't wait on another author's proposal: the published versions decide", async () => {
+    expect(await issues({ "@team/github": "^1.0.0" })).toEqual([]);
+    expect((await issues({ "@team/github": "^2.0.0" })).map((i) => i.code)).toEqual([
+      "dependency_range",
+    ]);
+  });
+
+  it("at release, another author's left from before 089 is unreleased, as in 056", async () => {
+    expect((await issues({ "@infra/deploy": "^1.0.0" }, true)).map((i) => i.code)).toEqual([
+      "dependency_unreleased",
+    ]);
+    expect((await issues({ "@team/github": "^2.0.0" }, true)).map((i) => i.code)).toEqual([
+      "dependency_unreleased",
+    ]);
+  });
+
+  it("still finds a cycle through another author's open submission", async () => {
+    const cyclic = fakeRegistry(
+      {},
+      {
+        "@team/a": [{ status: "submitted", type: "bundle", dependencies: { "@team/b": "*" } }],
+        "@team/b": [
+          {
+            status: "submitted",
+            type: "bundle",
+            authorId: "otto",
+            dependencies: { "@team/starter": "*" },
+          },
+        ],
+      },
+    );
+    const found = await dependencyIssues(cyclic, {
+      itemName: "@team/starter",
+      type: "bundle",
+      dependencies: { "@team/a": "*" },
+      authorId: "me",
+    });
+    expect(found.map((i) => i.code)).toEqual(["dependency_pending", "dependency_cycle"]);
   });
 });
 

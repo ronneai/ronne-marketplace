@@ -50,6 +50,8 @@ export type CatalogueFilter = {
   installable?: boolean;
   /** Only items whose listed version isn't yanked (077's plugin feeds). */
   listedNotYanked?: boolean;
+  /** Only items this user first published (089: your own, whatever their rank). */
+  ownerId?: string;
 };
 
 /**

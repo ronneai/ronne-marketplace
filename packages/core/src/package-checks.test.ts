@@ -104,6 +104,29 @@ describe("checkPackage: SKILL.md", () => {
     });
   });
 
+  it("shows a YAML error with its line, instead of asking for frontmatter (097)", () => {
+    const [issue] = checkPackage(skill, withSkill("---\nname: secure-coding\nname: x\n---\n"));
+    expect(issue).toMatchObject({ code: "frontmatter_yaml", file: "SKILL.md", line: 3 });
+    expect(issue?.message).toMatch(/^SKILL\.md's frontmatter isn't valid YAML: .*\(line 3\)\.$/);
+  });
+
+  it("takes agent: @scope/name, unquoted too, when it's a dependency (097)", () => {
+    const front = (agent: string) =>
+      withSkill(`---\nname: secure-coding\ndescription: Checks.\nagent: ${agent}\n---\nBody`);
+    const depending = { ...skill, dependencies: { "@test/agent": "^1.0.0" } };
+    expect(codes(depending, front("@test/agent"))).toEqual([]);
+    expect(codes(depending, front('"@test/agent"'))).toEqual([]);
+    // A plain name (a built-in or a local agent) isn't a dependency.
+    expect(codes(skill, front("Explore"))).toEqual([]);
+    const [missing] = checkPackage(skill, front("@test/agent"));
+    expect(missing).toMatchObject({
+      code: "frontmatter_dependency",
+      message:
+        "SKILL.md runs in @test/agent, which isn't under dependencies in ronne.yaml. Add it there.",
+    });
+    expect(codes(skill, front("[a, b]"))).toEqual(["frontmatter_agent"]);
+  });
+
   it("follows skill.entry", () => {
     const custom = { ...skill, skill: { entry: "docs/SKILL.md" } };
     expect(codes(custom, [file("ronne.yaml")])).toEqual(["file_missing"]);
@@ -250,7 +273,12 @@ describe("dependencies", () => {
     ]);
   });
 
-  it("allows dependencies only on bundles, agents, skills and commands", () => {
+  it("refuses a bundle with an empty dependencies list (096)", () => {
+    const bundle: Manifest = { name: "@a/kit", type: "bundle", description: "x", dependencies: {} };
+    expect(codes(bundle, [file("ronne.yaml")])).toEqual(["bundle_empty"]);
+  });
+
+  it("allows dependencies on every type (096)", () => {
     const rule: Manifest = {
       name: "@a/r",
       type: "rule",
@@ -258,6 +286,6 @@ describe("dependencies", () => {
       rule: { body: "r.md", activation: "always" },
       dependencies: { "@a/x": "^1.0.0" },
     };
-    expect(codes(rule, [file("ronne.yaml"), file("r.md")])).toEqual(["dependencies_not_allowed"]);
+    expect(codes(rule, [file("ronne.yaml"), file("r.md")])).toEqual([]);
   });
 });

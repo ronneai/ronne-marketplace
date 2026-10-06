@@ -539,28 +539,6 @@
       "then": {
         "required": ["dependencies"]
       }
-    },
-    {
-      "if": {
-        "properties": {
-          "type": {
-            "enum": [
-              "rule",
-              "hook",
-              "mcp-server",
-              "permission-policy",
-              "output-style",
-              "statusline",
-              "lsp-server"
-            ]
-          }
-        }
-      },
-      "then": {
-        "not": {
-          "required": ["dependencies"]
-        }
-      }
     }
   ],
   "$defs": {

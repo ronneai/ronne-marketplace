@@ -22,7 +22,7 @@ Items are written once in a canonical format and delivered to the major AI codin
 - One-command install with a choice of database and interactive root-account creation.
 - Role-based accounts (root, moderator, user) managed from the web UI.
 - Propose new items or changes to existing ones → review → approve → release with semver + dist-tags.
-- Compose agents from skills, MCP servers, tools and hooks with a visual composer.
+- Compose items from other items, of any type, with a visual composer.
 - Search, install, update and remove items from the terminal (`rmk`) and from inside AI tools (MCP).
 
 **Non-goals for the MVP**
@@ -93,14 +93,12 @@ Every item name is **scoped**, such as `@team/code-review`, and unique within th
 and names are lowercase `a-z`, `0-9` and `-`. An item's type is fixed when it is first created; a
 different type means a new item.
 
-**Which types can depend on which.** Only composite types have dependencies:
-
-| Type | May depend on |
-|---|---|
-| `bundle` | any type |
-| `agent` | `skill`, `mcp-server`, `hook`, `rule`, `command` |
-| `skill`, `command` | `mcp-server` |
-| all other types | nothing |
+**Which types can depend on which.** Any type on any type ([096](../features/096-any-dependency/SPEC.md),
+owner 2026-10-05): a skill on the agent it works with, a rule on an MCP server, an agent on another
+agent, so people compose what works for them. A bundle lists at least one dependency; an item can't
+depend on itself, and the dependencies can't go round in a circle (§4.3). Until 096, only bundles
+(any type), agents (skills, MCP servers, hooks, rules, commands), and skills and commands (MCP
+servers) could have dependencies.
 
 **Canonical hook events.** Hooks are the least standardised type. Ronne uses a neutral event vocabulary:
 
@@ -220,6 +218,7 @@ Notes:
 - Claude Code reads `AGENTS.md` only when the project has no `CLAUDE.md` (checked 2026-09-28), so rules for Claude go to `.claude/rules/`, which it always reads ([023](../features/023-claude-code-renderer/SPEC.md)).
 - The Codex and Cursor columns were re-checked on 2026-09-28 for [024](../features/024-codex-renderer/SPEC.md) and [025](../features/025-cursor-renderer/SPEC.md): both moved commands into skills, and Cursor also reads `.claude/skills/`, `.claude/agents/` and Claude Code's hooks for compatibility, which matters when both are targets. With both targets, Cursor leaves skills, commands and hooks to Claude Code's copy (re-checked 2026-09-29 for 025).
 - When one project targets several tools, the renderer writes each shared format once. For example, a single `.agents/skills/<n>/` serves Codex, Cursor, Gemini and Devin.
+- Agents and skills named in frontmatter ([097](../features/097-frontmatter-references/SPEC.md), checked 2026-10-05): a skill's `agent: @scope/name` is written for Claude Code as the installed agent's name with `context: fork`, and an agent's skill dependencies as `skills:` (preloaded; not skills with `disable-model-invocation`), both `plugin:name` inside a plugin. Codex and Cursor read neither, and the Agent Skills standard refuses unknown keys, so the `.agents/skills/` copy goes without `agent` and `context`, with a warning.
 
 #### Native plugin feeds (M11)
 
@@ -455,8 +454,8 @@ written `pnpm run setup`. Full behaviour, including a non-interactive mode for D
 | Admin (root) | Users (create, disable, reset password, change role); instance settings; audit log |
 
 **Visual composer** ([031](../features/031-visual-composer/SPEC.md)). Built with React Flow. It
-shows a canvas where an agent (or bundle) node connects to skill, MCP server, hook, rule and command
-nodes picked from the catalogue, each with a version-range selector. The canvas is a **view over
+shows a canvas where the draft's node connects to the items it depends on, picked from the catalogue,
+each with a version-range selector; every type has it since [096](../features/096-any-dependency/SPEC.md). The canvas is a **view over
 `dependencies` in `ronne.yaml`**: saving writes the manifest, so reviews always see a plain text
 diff. Canvas positions are stored in `.ronne/layout.json` in the draft. The packer leaves `.ronne/`
 out, so they are never released, and review diffs only say that they changed.
@@ -823,7 +822,9 @@ out (owner, 2026-09-30). The design, for when it's picked up:
 | Pre-releases | Real semver pre-releases (`1.1.0-beta.1`) under a non-`latest` tag (`next` by default); first stable is `1.0.0` | Matches npm behaviour users already know |
 | Secrets | rmk never stores secret values; rendered configs reference env vars and rmk reports missing ones | No secrets on disk from us; every platform reads env vars |
 | Managed content | Markers in files that allow comments; `.rmk/state.json` with hashes for JSON/TOML keys; stop on user edits unless `--force` | JSON can't hold markers; hashes detect local edits safely |
-| Resolver | One version per item per install scope; conflicts and cycles fail; dependency types restricted (§3.1) | Rendered paths are named per item, so versions can't coexist |
+| Resolver | One version per item per install scope; conflicts and cycles fail; any type may depend on any type (§3.1, 096) | Rendered paths are named per item, so versions can't coexist |
+| Agents and skills in frontmatter | A skill names the agent that runs it as Claude Code does, `agent: @scope/name` in its `SKILL.md`, and that sets the dependency: unquoted is accepted and saved quoted, and the save adds it to `ronne.yaml`. Claude Code gets the installed name and `context: fork`; an agent's skill dependencies become `skills:`, preloaded; the `.agents/skills/` copy (Codex, Cursor) drops both keys with a warning; `rmk export` reads a skill's local `agent:` as a dependency (owner, 2026-10-05, [097](../features/097-frontmatter-references/SPEC.md)) | Writing the name where the tool reads it is how people set it; only Claude Code has either key (Codex, Cursor and the Agent Skills standard don't), so they're kept out of the shared copy |
+| Dependencies between types | Any item may depend on any other item, of any type; the form, `@` in markdown and the Canvas view are on every type; a bundle still lists at least one; cycles and self-dependencies are refused. It was "dependency types restricted" (bundle on any, agent on five types, skill and command on MCP servers, the rest on nothing) until the owner changed it, 2026-10-05 ([096](../features/096-any-dependency/SPEC.md)) | People should compose what works for them. Renderers never read `dependencies` (each item is rendered by its own type), so the rule protected nothing at install; released `rmk` versions parse a manifest whatever its schema says, so they install these items too |
 | MCP writes | Two steps: `plan_*` tools return a plan, `apply_plan` writes it. Uploads too: `plan_export` returns the plan, `export_items` sends it ([039](../features/039-mcp-export-tools/SPEC.md)) | AI tools ask permission before a call, so the plan must be visible first |
 | DB portability | ULID keys, UTC timestamps, JSON as text, `LIKE` search, upserts via a helper | Keeps one migration set working on all three databases |
 | API conventions | One error shape with stable codes; cursor pagination; `/api/vN` versioning. Reads, plus creating a draft (M7); every `POST` body has a size limit ([037](../features/037-draft-upload-api/SPEC.md)) | Stable contract for `rmk` and the MCP server |
@@ -852,7 +853,7 @@ out (owner, 2026-09-30). The design, for when it's picked up:
 | Export | A person's own local items go to the registry as **drafts**, from `rmk export` and the MCP tools `plan_export` / `export_items`; the person chooses the scope; submitting stays in the web app; an item `rmk` installed and the person edited, or their own item whose name is published, becomes a change proposal merged onto its base version ([042](../features/042-export-change-proposal/SPEC.md)); skills first, then agents, commands, rules and MCP servers from Claude Code's files (owner, 2026-09-30, M7: [037](../features/037-draft-upload-api/SPEC.md)–[041](../features/041-export-dependencies/SPEC.md)). "Native plugin export" was renamed "native plugin feeds" to free the word | People write items in their tools first; rebuilding them by hand in the editor is the step that keeps them out of the registry. A draft is the safe landing: nothing is visible to others until its author submits it |
 | Exporting again | `rmk export` and the MCP export tools update the person's own draft of the same item (same name and type, and for a proposal the same base), or one sent back for changes, replacing its files; one in review is left alone; `--new-draft` makes a separate draft (owner, 2026-10-01, [051](../features/051-update-drafts-on-export/SPEC.md)) | Drafts no longer pile up or fill the 50-draft limit when a person keeps working in their tool; review stays untouched, and a different item or base stays a different draft |
 | Native readers | The reverse of a renderer, in `packages/core`: pure, read-only, and lossy only with a warning per dropped field; secrets and environment values never leave the machine ([native readers spec](../spec/native-readers.md)) | The mapping tables are the renderers' reversed, so both directions stay in step, and the web app could use the readers later |
-| Dependencies on export | Detected from what an item uses; the person is asked and exporting them too is recommended; a dependency counts at submit once it's released or an open submission of that name; its range is checked at release, where dependencies go first; rejecting a dependency offers to request changes on its dependents ([041](../features/041-export-dependencies/SPEC.md), 2026-09-30; relaxed by [056](../features/056-pending-dependencies/SPEC.md), owner 2026-10-01) | An exported item should work where it's installed; released still means installable, and an item and its dependencies no longer take one full round each |
+| Dependencies on export | Detected from what an item uses; the person is asked and exporting them too is recommended; a dependency counts at submit once it's released, or when it's the submitter's own open submission (another author's item counts once it's published, [089](../features/089-dependency-picker-rule/SPEC.md), owner 2026-10-05); its range is checked at release, where dependencies go first; rejecting a dependency offers to request changes on its dependents. The pickers (the form, `@` in markdown, the canvas) offer the person's own items in any state and others' published ones (089) ([041](../features/041-export-dependencies/SPEC.md), 2026-09-30; relaxed by [056](../features/056-pending-dependencies/SPEC.md), owner 2026-10-01) | An exported item should work where it's installed; released still means installable, and an item and its dependencies no longer take one full round each |
 | Dependencies | Permissive licenses only (MIT, ISC, BSD, Apache-2.0 …; CC-BY-4.0 for data); no copyleft or paid tools; latest stable/LTS; CI license + audit + image scans; pnpm release-age delay, build allowlist, trust policy | Ronne must be freely redistributable and must not ship known vulnerabilities |
 | Packages | `@ronneai/{marketplace,rmk,mcp,core}`, all at one version; binaries `rmk`, `rmk-mcp` and `rmk-server` (the server, `@ronneai/marketplace`: the standalone web app assembled into the package at pack time, with `better-sqlite3` and argon2 as its only dependencies so npm installs each platform's build; owner, 2026-10-03; [082](../features/082-server-npm-package/SPEC.md)); Node 24 LTS target, 22 LTS minimum; Docker amd64 + arm64 | Unscoped `rmk` is taken on npm; the owner holds `@ronneai` on npmjs.com (as on GitHub), not `@ronne` (confirmed 2026-09-27) |
 | Package registry | Publish to npmjs.com under `@ronneai`; not GitHub Packages as the install source (a mirror there is possible later). The command stays `rmk` | GitHub Packages only takes the repository owner's scope (`@ronneai`), and installing from it needs a GitHub token with `read:packages` and an `.npmrc` registry line, even for public packages: too much friction for a CLI anyone should install with one command |

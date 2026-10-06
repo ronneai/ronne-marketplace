@@ -5,7 +5,7 @@ import { packItem } from "@ronneai/core/pack";
 import { type Change, claudeCodeRenderer } from "@ronneai/core/render";
 import { afterEach, describe, expect, it } from "vitest";
 import { apiClient } from "./api.js";
-import { diskHash, writeState } from "./apply.js";
+import { diskHash, readState, writeState } from "./apply.js";
 import { RmkError } from "./errors.js";
 import {
   describeLocalItems,
@@ -834,6 +834,68 @@ describe("dependencies on export (041)", () => {
         item.issues.filter((i) => i.severity === "error").map((i) => i.path),
         item.name,
       ).toEqual([]);
+  });
+
+  it("declares the local agent a skill names, and uploads its agent: as the item (097)", async () => {
+    const { api } = await setup();
+    write(
+      io.cwd,
+      ".claude/skills/runner/SKILL.md",
+      "---\nname: runner\ndescription: Runs.\ncontext: fork\nagent: reviewer\n---\nGo.\n",
+    );
+    const result = await planExport(io, api, {
+      items: ["runner"],
+      to: "team",
+      dependencies: "include",
+      descriptions: SERVERS,
+    });
+    const runner = result.items.find((i) => i.name === "@team/runner");
+    expect(runner?.dependencies).toMatchObject({ "@team/reviewer": "^1.0.0" });
+    const skill = runner?.files.find((f) => f.path === "SKILL.md");
+    expect(new TextDecoder().decode(skill?.bytes)).toBe(
+      '---\nname: runner\ndescription: Runs.\ncontext: fork\nagent: "@team/reviewer"\n---\nGo.\n',
+    );
+    expect(result.items.some((i) => i.name === "@team/reviewer")).toBe(true);
+  });
+
+  it("names an installed agent at its version (097)", async () => {
+    const { api } = await setup();
+    write(
+      io.cwd,
+      ".claude/skills/runner/SKILL.md",
+      "---\nname: runner\ndescription: Runs.\nagent: helper\n---\nGo.\n",
+    );
+    write(
+      io.cwd,
+      ".claude/agents/helper.md",
+      "---\nname: helper\ndescription: Helps.\n---\nHelp.\n",
+    );
+    const statePath = places(io, "project").state;
+    const state = readState(statePath);
+    const path = ".claude/agents/helper.md";
+    writeState(statePath, {
+      ...state,
+      entries: [
+        ...state.entries,
+        {
+          item: "@team/helper",
+          version: "2.1.0",
+          targets: ["claude-code"],
+          kind: "file",
+          path,
+          sha256: (await diskHash(io.cwd, { kind: "file", path })) ?? "",
+        },
+      ],
+    });
+    const result = await planExport(io, api, {
+      items: ["runner"],
+      to: "team",
+      dependencies: "include",
+    });
+    const runner = result.items.find((i) => i.name === "@team/runner");
+    expect(runner?.dependencies).toEqual({ "@team/helper": "^2.1.0" });
+    const skill = runner?.files.find((f) => f.path === "SKILL.md");
+    expect(new TextDecoder().decode(skill?.bytes)).toContain('agent: "@team/helper"\n');
   });
 
   it("exports without them: only the item, the installed one still declared, and a warning", async () => {

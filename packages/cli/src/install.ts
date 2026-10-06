@@ -12,8 +12,11 @@ import {
   type Change,
   type PlatformRenderer,
   RENDERERS,
+  type RenderDependency,
   type RenderWarning,
+  renderDependencyOf,
   rendererById,
+  withDependencies,
 } from "@ronneai/core/render";
 import type { ApiClient } from "./api.js";
 import {
@@ -159,6 +162,8 @@ export const renderItem = (
   tgz: Uint8Array,
   targets: PlatformRenderer[],
   scope: Scope,
+  /** What this install resolved, by name, for the renderers that name dependencies (097). */
+  known: ReadonlyMap<string, RenderDependency> = new Map(),
 ): Rendered => {
   const files = unpackItem(tgz);
   const manifestFile = files.find((file) => file.path === "ronne.yaml");
@@ -194,10 +199,10 @@ export const renderItem = (
       });
       continue;
     }
-    const result = target.render(
-      { name, version, manifest, files },
-      { scope, targets: targets.map((t) => t.id) },
-    );
+    const result = target.render(withDependencies({ name, version, manifest, files }, known), {
+      scope,
+      targets: targets.map((t) => t.id),
+    });
     rendered.changes.push(...result.changes);
     rendered.warnings.push(
       ...result.warnings.map((w) => ({ ...w, message: `${target.name}: ${w.message}` })),
@@ -285,13 +290,27 @@ export const prepareInstall = async (
   } catch {
     // Without a readable config there's nothing to report with.
   }
-  const rendered: Rendered[] = [];
-  for (const [name, item] of Object.entries(resolution.items).sort(([a], [b]) =>
-    a < b ? -1 : 1,
-  )) {
-    const tgz = await fetchArtifact(io, api, name, item.version, item.sha256);
-    rendered.push(renderItem(name, item.version, tgz, options.targets, options.scope));
+  const fetched: { name: string; version: string; tgz: Uint8Array }[] = [];
+  for (const [name, item] of Object.entries(resolution.items).sort(([a], [b]) => (a < b ? -1 : 1)))
+    fetched.push({
+      name,
+      version: item.version,
+      tgz: await fetchArtifact(io, api, name, item.version, item.sha256),
+    });
+  // Each item's type (and a skill's preload), for renderers that name dependencies (097).
+  const known = new Map<string, RenderDependency>();
+  for (const { name, tgz } of fetched) {
+    const files = unpackItem(tgz);
+    const manifestFile = files.find((file) => file.path === "ronne.yaml");
+    const { manifest } = manifestFile
+      ? parseManifest(new TextDecoder().decode(manifestFile.bytes))
+      : { manifest: null };
+    const dependency = manifest ? renderDependencyOf({ name, manifest, files }) : null;
+    if (dependency) known.set(name, dependency);
   }
+  const rendered = fetched.map(({ name, version, tgz }) =>
+    renderItem(name, version, tgz, options.targets, options.scope, known),
+  );
   const { root, state: statePath } = places(io, options.scope);
   const all = readState(statePath);
   // mcp-setup's registration isn't an item: installs leave it alone (027).

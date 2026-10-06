@@ -23,7 +23,6 @@ export const versionChoices = (option: DependencyOption): { label: string; range
 
 /** How an option's status reads in the list. */
 export const statusText = (option: DependencyOption): string => {
-  const whose = option.mine ? "yours" : option.author ? `by ${option.author}` : "";
   const status =
     option.status === "published"
       ? `published ${option.latest ?? ""}`.trim()
@@ -34,7 +33,7 @@ export const statusText = (option: DependencyOption): string => {
           : option.status === "approved"
             ? "pending release"
             : option.status;
-  return whose ? `${status}, ${whose}` : status;
+  return option.mine ? `${status}, yours` : status;
 };
 
 /** The dependencies map from a manifest value: only string ranges, in order. */

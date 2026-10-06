@@ -336,10 +336,9 @@ export const cursorRenderer: PlatformRenderer = {
     const scope: RenderScope = context.scope;
     switch (type) {
       case "skill":
-        return skillOrCommand(item, n, context, () => ({
-          changes: [skillFolder(item, n, String(block.entry ?? "SKILL.md"))],
-          warnings: [],
-        }));
+        return skillOrCommand(item, n, context, () =>
+          skillFolder(item, n, String(block.entry ?? "SKILL.md")),
+        );
       case "agent":
         return renderAgent(item, n, block, targets.overrides);
       case "rule":
