@@ -17,45 +17,51 @@ const signedIn = async (browser: Browser, email: string): Promise<Page> => {
   return page;
 };
 
-/** A skill draft by `email`, uploaded with a token; submitted for review when asked. */
-const uploadSkill = async (
+/**
+ * Skill drafts by `email`, uploaded with one token (each token counts toward the sign-in limit);
+ * submitted for review when asked. Returns their ids, in order.
+ */
+const uploadSkills = async (
   request: APIRequestContext,
   email: string,
-  name: string,
+  names: readonly string[],
   submit: boolean,
 ) => {
   const token = await request.post("/api/v1/auth/token", {
-    data: { email, password: E2E_PASSWORD, name: `e2e ${name}` },
+    data: { email, password: E2E_PASSWORD, name: `e2e ${names[0]}` },
   });
   expect(token.status()).toBe(201);
   const headers = { authorization: `Bearer ${(await token.json()).token}` };
   const description = "description: A skill to pick.\n";
-  const upload = await request.post("/api/v1/drafts", {
-    headers,
-    data: {
-      name: `@${E2E_SCOPE}/${name}`,
-      type: "skill",
-      files: [
-        {
-          path: "ronne.yaml",
-          encoding: "utf8",
-          content: `name: "@${E2E_SCOPE}/${name}"\ntype: skill\n${description}`,
-        },
-        {
-          path: "SKILL.md",
-          encoding: "utf8",
-          content: `---\nname: ${name}\n${description}---\nDo it.\n`,
-        },
-      ],
-    },
-  });
-  expect(upload.status()).toBe(201);
-  const id = (await upload.json()).id as string;
+  const ids: string[] = [];
+  for (const name of names) {
+    const upload = await request.post("/api/v1/drafts", {
+      headers,
+      data: {
+        name: `@${E2E_SCOPE}/${name}`,
+        type: "skill",
+        files: [
+          {
+            path: "ronne.yaml",
+            encoding: "utf8",
+            content: `name: "@${E2E_SCOPE}/${name}"\ntype: skill\n${description}`,
+          },
+          {
+            path: "SKILL.md",
+            encoding: "utf8",
+            content: `---\nname: ${name}\n${description}---\nDo it.\n`,
+          },
+        ],
+      },
+    });
+    expect(upload.status()).toBe(201);
+    ids.push((await upload.json()).id as string);
+  }
   if (submit) {
-    const submitted = await request.post("/api/v1/drafts/submit", { headers, data: { ids: [id] } });
+    const submitted = await request.post("/api/v1/drafts/submit", { headers, data: { ids } });
     expect(submitted.status()).toBe(200);
   }
-  return id;
+  return ids;
 };
 
 /** A new agent draft, opened in the editor. */
@@ -90,8 +96,10 @@ test("you can pick your own draft anywhere, and someone else's skill only once i
   browser,
   request,
 }) => {
-  await uploadSkill(request, E2E_USERS.composer, "pick-mine", false);
-  const theirsId = await uploadSkill(request, E2E_USERS.outsider, "pick-theirs", true);
+  // With another draft of mine that "pick-" doesn't match: when it leaves the canvas picker, the
+  // search has settled.
+  await uploadSkills(request, E2E_USERS.composer, ["pick-mine", "settle-089"], false);
+  const [theirsId] = await uploadSkills(request, E2E_USERS.outsider, ["pick-theirs"], true);
 
   const author = await signedIn(browser, E2E_USERS.composer);
   await newAgent(author, "pick-agent");
@@ -122,9 +130,15 @@ test("you can pick your own draft anywhere, and someone else's skill only once i
     .click();
   await author.getByRole("button", { name: "Canvas", exact: true }).click();
   const picker = author.getByRole("region", { name: "Add from the catalogue" });
+  const settle = picker.getByText(`@${E2E_SCOPE}/settle-089`, { exact: true });
+  await expect(settle).toBeVisible();
   await picker.getByLabel("Search the catalogue").fill("pick-");
+  await expect(settle).toHaveCount(0);
   await expect(picker.getByText(mine, { exact: true })).toBeVisible();
-  await expect(picker.getByText("draft, yours")).toBeVisible();
+  // Other drafts of theirs may be listed too (any type, 096): the badge is checked on this row.
+  await expect(
+    picker.getByRole("listitem").filter({ hasText: mine }).getByText("draft, yours"),
+  ).toBeVisible();
   await expect(picker.getByText(theirs, { exact: true })).toHaveCount(0);
 
   // Their skill is approved and published: now it's offered, as published.

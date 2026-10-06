@@ -23,7 +23,7 @@ the same change that completes it.
   lives inside CodeMirror and isn't in a static render, so task 3's end-to-end test covers `@` on
   a rule.
 
-- [ ] **3. End-to-end.** A skill depends on an agent and a rule on a skill, from the form, `@` in
+- [x] **3. End-to-end.** A skill depends on an agent and a rule on a skill, from the form, `@` in
   the rule's markdown and the canvas, and both submit.
   *Done when:* the Playwright test passes, and the whole suite.
 
@@ -43,3 +43,7 @@ goes into `SPEC.md` instead.
   type and true, so callers keep one place to ask. Through `mayHaveDependencies`, the form's
   Dependencies field and `@` were already on every type after this task; the Canvas (`hasCanvas`)
   is task 2.
+- **Task 3.** `any-dependency.e2e.ts` borrows hookAuthor (3 uses a run). 096 made 089's canvas step
+  ambiguous: the composer user's own agent draft is now offered to an agent, so 089's test waits on
+  a draft of its own (`settle-089`) to know the canvas search has settled, and asks for one token per
+  user (each token counts toward the sign-in limit).

@@ -47,3 +47,45 @@ Witnessed: 2026-10-05 20:54 EDT, by a fresh agent. Machine: macOS 27.0.1, Node v
 **Not checked here:** the end-to-end tests (task 3), the canvas in a browser, the website (task 4).
 **Differences from the notes:** the plan's *Done when* moved `@` to task 3 in this change, for the reason above.
 **Overall:** met.
+
+## Task 3 — End-to-end
+
+Witnessed: 2026-10-05, by a fresh agent. Machine: macOS 27.0.1, Node v24.0.0, Playwright 1.63.0.
+
+| # | Claim | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|
+| 1 | A skill depends on an agent (form); a rule on the skill (Canvas, opened on a rule) and on the agent (`@` in `rule.md`); `ronne.yaml` shows both; both submit | confirmed | `any-dependency.e2e.ts`; this covers task 2's two open points (the Canvas and `@` on a non-agent type in a browser). The drafts are uploaded with a token; the dependencies are all added in the browser. The skill's `ronne.yaml` wasn't checked after the form step. |
+| 2 | 089's test needed a change | confirmed | After 096, the composer user's own agent draft `composed` (from `composer.e2e.ts`) is offered to an agent, so "draft, yours" matched two rows while the canvas search hadn't settled; the badge is now checked on `pick-mine`'s row. |
+| 2c | That canvas step's negative check runs on settled results | partly | Both checks could pass on the first, unfiltered list. |
+| 3 | hookAuthor under the sign-in limit | confirmed | 3 a run. |
+| 4 | The test, alone and in the whole suite; lint | confirmed | 1 passed; 90 passed; 0 errors. |
+| 5 | The data it leaves doesn't change other tests | confirmed (low risk) | Three submitted items, none published. |
+
+**Not checked here:** CI on Node 22.
+**Differences from the notes:** none.
+**Overall:** met. Two hardenings followed (below).
+
+### Re-check after fixes
+
+Witnessed: 2026-10-05 21:10 EDT, by a fresh agent.
+
+| # | Claim | Verdict | Evidence |
+|---|---|---|---|
+| a | Waiting for `composed` to leave the list makes the canvas checks run on settled results | partly | Still a race on the picker's initial empty list, and a no-op when the file runs alone. |
+| b | The skill's `ronne.yaml` is checked after the form step | confirmed | YAML view → `"@e2e-seeded/any-agent": ^1.0.0`. |
+| c | Runs and lint | confirmed | 3 targeted passed; full suite 90 passed; lint 0 errors. |
+
+**Overall:** partly met; replaced by a marker of the test's own (below).
+
+### Re-check after the settle marker
+
+Witnessed: 2026-10-05 21:15 EDT, by a fresh agent.
+
+| # | Claim | Verdict | Evidence |
+|---|---|---|---|
+| 1 | The test uploads its own `settle-089` draft, waits for it to be visible before typing "pick-", then for it to leave | confirmed | It can only appear once the unfiltered answer has arrived, and leaves only when the "pick-" answer replaces it (the picker keeps entries while loading; the debounce makes one search; older answers are dropped). Own items come first on the first page, so it's always there. |
+| 2 | Composer's sign-ins and tokens under the limit | confirmed (4) | A CI retry right after a failure could reach 6 in one window. |
+| 3 | Runs and lint | confirmed | Alone 1 passed; with `composer.e2e.ts` 2 passed; lint 0 errors. |
+
+**Overall:** met. After this check, the test asks for one token per user and uploads both of composer's
+drafts with it (3 uses a run, so a retry stays within 5); the two tests passed again after that change.
