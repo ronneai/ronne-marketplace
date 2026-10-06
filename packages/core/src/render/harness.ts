@@ -3,6 +3,7 @@ import { join, relative } from "node:path";
 import { parseManifest } from "../manifest.js";
 import type { PackageFile } from "../package-file.js";
 import { changePaths, pathProblem } from "./helpers.js";
+import { renderDependencyOf, withDependencies } from "./skill-frontmatter.js";
 import type { Change, PlatformRenderer, RenderInput, RenderScope } from "./types.js";
 
 /**
@@ -118,8 +119,19 @@ export const checkGolden = (
   { update = process.env.UPDATE_GOLDEN === "1" } = {},
 ): GoldenDifference[] => {
   const differences: GoldenDifference[] = [];
-  for (const item of exampleItems(examplesDir)) {
-    const input = loadItemDir(item.dir);
+  // Every example as a dependency of the others (097), as `rmk` would resolve it.
+  const examples = exampleItems(examplesDir).map((item) => ({
+    item,
+    input: loadItemDir(item.dir),
+  }));
+  const known = new Map(
+    examples.flatMap(({ input }) => {
+      const dependency = renderDependencyOf(input);
+      return dependency ? [[input.name, dependency] as const] : [];
+    }),
+  );
+  for (const { item, input: loaded } of examples) {
+    const input = withDependencies(loaded, known);
     for (const scope of SCOPES) {
       const result = renderer.render(input, { scope });
       for (const change of result.changes)

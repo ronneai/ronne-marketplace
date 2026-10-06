@@ -19,7 +19,7 @@ the same change that completes it.
   *Done when:* db tests on the four databases cover the save (quoting and the added dependency) and
   the type check.
 
-- [ ] **3. Rendering.** `RenderInput.dependencies`, filled by `rmk install` and the plugin builders;
+- [x] **3. Rendering.** `RenderInput.dependencies`, filled by `rmk install` and the plugin builders;
   Claude Code's skill (`agent`, `context: fork`) and agent (`skills:`); the `.agents/skills/` copy
   without `agent` and `context`, with the warning.
   *Done when:* the renderer golden files and the install and plugin tests pass.
@@ -48,3 +48,9 @@ goes into `SPEC.md` instead.
 - **Task 2.** One helper, `withFrontmatter` (drafts.ts) over `frontmatterChanges`, runs in the
   save's and both uploads' transactions; the save answers `rewritten`, which the editor applies. A
   `ronne.yaml` rewritten from CRLF comes back with LF (the yaml library's output).
+- **Task 3.** The Claude Code rewrite replaces the `agent:` line (and an indented value under it):
+  a comment on that line, and a leading BOM, aren't kept in a file it rewrites. It doesn't match a
+  quoted `"agent":` key, or an unquoted `@scope/name` on the line after `agent:` (that YAML doesn't
+  parse), and leaves those files as they are. `RenderInput.dependencies` and `RenderContext.plugin`
+  are filled by `rmk install`, the plugin builder and the golden harness; `rmk export`'s base render
+  (`export-proposal.ts`) doesn't fill them, which task 4 takes up.

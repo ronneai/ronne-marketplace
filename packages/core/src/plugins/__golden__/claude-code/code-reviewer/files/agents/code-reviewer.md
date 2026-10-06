@@ -3,6 +3,8 @@ name: code-reviewer
 description: Reviews diffs for correctness and security issues. Use after finishing a change and before opening a pull request.
 tools: Read, Grep, Glob, Bash, mcp__github-mcp
 model: opus
+skills:
+  - "examples.code-reviewer:secure-coding"
 ---
 <!-- managed by rmk: @examples/code-reviewer@1.0.0 -->
 

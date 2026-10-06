@@ -83,3 +83,25 @@ Witnessed: 2026-10-05 22:13, by a fresh agent.
 **Overall:** met. Afterwards the test helper throws when the item has no owner instead of falling back
 to `""` (test-only). Noted: the submitter's own *draft* of the wrong type isn't flagged by this check
 (only open submissions are), but a draft dependency is already refused at submit (056).
+
+## Task 3 — Rendering
+
+Witnessed: 2026-10-05 22:20–22:30 EDT, by a fresh agent. Machine: macOS 27.0.1 (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|
+| 1 | Claude Code's skill: `agent: <short>` (`<plugin>:<short>` in a plugin), `context: fork` only without a top-level `context`, plain names and the rest of the file untouched, CRLF kept | confirmed (two small gaps) | Probe against the built core: comments, a value on the next line, nested keys, `context: inline`, broken YAML, CRLF, a `|` block. A comment on the `agent:` line and a BOM aren't kept in a rewritten file; an unquoted name on the next line and a quoted `"agent":` key are left as they are. |
+| 2 | Claude Code's agent: `skills:` from preloadable skill dependencies, sorted, short (plugin-prefixed) names; none without dependency facts | confirmed | `renderAgent`, `renderDependencyOf`; unit test with a skipped `disable-model-invocation` skill and an MCP server. |
+| 3 | The `.agents/skills/` copy drops `agent`/`context` with `unsupported_field` | confirmed (one gap) | Both renderers return `skillFolder`'s warnings; Cursor gives none when it leaves the skill to Claude Code's copy (which keeps both keys); with both Codex and Cursor, one warning each. |
+| 4 | `dependencies` filled by `rmk install` and the plugin builder | confirmed | `prepareInstall` builds `known` from every resolved item; `buildPlugin` from its members, with `plugin` for Claude Code. `mcp-setup.ts` needs none; `export-proposal.ts`'s base render doesn't fill them (task 4). |
+| 5 | Golden diffs | confirmed | Only the code-reviewer agent gained `skills:` (renderer goldens: `secure-coding`; plugin goldens: `"examples.code-reviewer:secure-coding"`, `"examples.starter-kit:secure-coding"`, matching each `plugin.json` name; valid YAML). |
+| 6 | Suites, typecheck, lint | confirmed | Core 323, CLI 224 (with the new install test), MCP 40, web feeds 32 + 23 (db); typecheck 7/7; lint 0 errors. |
+| 7 | ReDoS | confirmed | `BLOCK` and `TOP_KEY` linear (200k-character inputs ≤ 2 ms); no adversarial test yet. |
+
+**Not checked here:** the database servers, the whole build, Playwright; Claude Code reading
+plugin-prefixed names (from the 2026-10-05 docs check); Cursor's handling of the two keys.
+**Differences from the notes:** the spec's "one warning per skill" and its warning text didn't match
+the code. After this check, the spec says what the code does, the plan's notes record the gaps in
+claim 1 and the export base render left to task 4, and a hostile-input timing test was added (test
+and documentation only; no behaviour changed).
+**Overall:** met.

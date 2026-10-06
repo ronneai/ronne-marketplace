@@ -88,8 +88,15 @@ from what they resolved.
   is kept as written.
 - Claude Code, agent: `skills: [<short names>]` from the skill dependencies that can be preloaded, in
   name order; none, no key.
-- Codex and Cursor, the `.agents/skills/` copy: `agent` and `context` are removed; one warning per
-  skill ("Codex and Cursor don't choose an agent for a skill; it runs in the current one.").
+- Claude Code plugins (076): a plugin holds the item and its dependencies, and Claude Code names a
+  plugin's own agents and skills `plugin:name`, so inside one they're written `<plugin>:<short
+  name>` (the skills docs show `skills: [my-plugin:api-conventions]`, and plugin agents as
+  `plugin:agent`; checked 2026-10-05).
+- Codex and Cursor, the `.agents/skills/` copy: `agent` and `context` are removed, with a warning
+  from each tool that writes it ("<name> names the agent that runs it; Codex and Cursor don't choose
+  an agent for a skill, so it runs in the current one."). When Cursor leaves the skill to Claude
+  Code's copy (025), it reads `.claude/skills/`, which keeps both keys; Cursor's docs list neither,
+  so it's expected to ignore them, and no warning is given there.
 - A plain-name `agent:` is written as it is for Claude Code, and removed (with the warning) from the
   `.agents/skills/` copy.
 

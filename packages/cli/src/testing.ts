@@ -152,6 +152,19 @@ export const buildRegistry = async () => {
       ],
       { version: "1.2.0" },
     ),
+    // An agent that preloads the skill in Claude Code (097).
+    "@team/reviewer@1.0.0": await packItem(
+      [
+        {
+          path: "ronne.yaml",
+          bytes: text(
+            'name: "@team/reviewer"\ntype: agent\ndescription: Reviews.\nagent:\n  prompt: prompt.md\ndependencies:\n  "@team/secure": "^1.0.0"\n',
+          ),
+        },
+        { path: "prompt.md", bytes: text("Review the change.\n") },
+      ],
+      { version: "1.0.0" },
+    ),
     "@team/fmt@1.0.0": await packItem(
       [
         {
@@ -200,7 +213,14 @@ export const buildRegistry = async () => {
           },
         };
       const items: Record<string, unknown> = {};
-      if (names.includes("@team/secure")) {
+      if (names.includes("@team/reviewer"))
+        items["@team/reviewer"] = {
+          version: "1.0.0",
+          type: "agent",
+          sha256: sha("@team/reviewer@1.0.0"),
+          dependencies: { "@team/secure": "1.1.0" },
+        };
+      if (names.includes("@team/secure") || names.includes("@team/reviewer")) {
         const version = locked?.["@team/secure"] ?? "1.1.0";
         items["@team/secure"] = {
           version,

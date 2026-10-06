@@ -68,6 +68,13 @@ describe("rmk install", () => {
     });
   });
 
+  it("writes an agent that preloads the skills it depends on, in Claude Code (097)", async () => {
+    await start();
+    const result = await rmk("install", "@team/reviewer");
+    expect(result.exitCode, result.stderr).toBe(0);
+    expect(read(".claude/agents/reviewer.md")).toContain("skills:\n  - secure\n---");
+  });
+
   it("installs exactly the lockfile with no arguments, from the cache, and says when everything is in place", async () => {
     await start();
     await rmk("install", "@team/secure");

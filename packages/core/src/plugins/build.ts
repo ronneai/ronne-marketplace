@@ -1,5 +1,6 @@
 import type { PackageFile } from "../package-file.js";
 import { rendererById } from "../render/registry.js";
+import { renderDependencyOf, withDependencies } from "../render/skill-frontmatter.js";
 import { installsIn, supportOf } from "../render/support.js";
 import type { RenderInput } from "../render/types.js";
 import { bytesOf, jsonFile, type Part, type PluginAdapter } from "./adapter.js";
@@ -108,8 +109,20 @@ export const buildPlugin = (tool: PluginTool, input: PluginInput): BuiltPlugin =
   const bundle = type === "bundle";
   /** Whether the item itself, or for a bundle any member, put something in the plugin. */
   let filled = false;
+  // Each member's type (and a skill's preload), for renderers that name dependencies (097).
+  const known = new Map(
+    input.members.flatMap((m) => {
+      const dependency = renderDependencyOf(m);
+      return dependency ? [[m.name, dependency] as const] : [];
+    }),
+  );
   for (const member of input.members) {
-    const result = renderer.render(member, { scope: "project", targets: [tool] });
+    // Claude Code names the plugin's own agents and skills `plugin:name` (097).
+    const result = renderer.render(withDependencies(member, known), {
+      scope: "project",
+      targets: [tool],
+      ...(tool === "claude-code" ? { plugin: name } : {}),
+    });
     const leftOut: string[] = [];
     let placed = 0;
     for (const change of result.changes) {
