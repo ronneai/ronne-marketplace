@@ -2,6 +2,7 @@
 
 import { NAME_PROBLEM_MESSAGES, nameProblem, normalizeScopeName } from "@ronneai/core";
 import { useActionState, useState } from "react";
+import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label, selectClasses } from "@/components/ui/Field";
@@ -34,7 +35,10 @@ export type WorkspaceChoice = { id: string; name: string };
 
 export const WorkspaceSelect = ({ workspaces }: { workspaces: WorkspaceChoice[] }) => (
   <div className="grid gap-1.5">
-    <Label htmlFor="scope-workspace-choice">Workspace</Label>
+    <div className="flex items-center gap-2">
+      <Label htmlFor="scope-workspace-choice">Workspace</Label>
+      <Help id="workspace-choice" />
+    </div>
     <select
       id="scope-workspace-choice"
       name="workspaceId"

@@ -368,3 +368,53 @@ Witnessed: 2026-10-06 17:49 EDT, by a fresh agent (blind). Commit: 60beb03 (+ un
 | 10 | The registry API's JSON doesn't gain `workspace` yet (095) | yes | confirmed | `itemSummaryJson` builds the fields one by one, with no workspace |
 
 **Overall:** met.
+
+## Task 7 — Decisions and Documentation
+
+Witnessed: 2026-10-06 18:29 EDT, by a fresh agent (blind). Commit: 08f33df (ronne-marketplace, plus its working tree) and 32e1e99 (ronne-web, branch docs/marketplace-090-workspaces, plus its working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | MVP §10 has a `workspaces` row and `scopes.workspace_id`, and they match the migration | yes | confirmed | `MVP.md:576-577` lists the columns and workspace_id not null RESTRICT; `0019_workspaces.ts` has the same, `onDelete("restrict")` |
+| 2 | MVP §15 has a new Workspaces row, and the Scopes row is updated | yes | confirmed | `git diff docs/MVP/MVP.md` → Scopes row "each in a workspace (`global` by default, 090)"; new Workspaces row |
+| 3 | App `topics.ts` has topic `workspaces` (what, global, managing) and `admin#workspaces` | yes | confirmed | `topics.ts:32-41,137-143`; first in the Organising group |
+| 4 | ronne-web `topics.ts` changed together and matches the app's | yes | confirmed | node probe importing both → 18 topics each, 0 section differences |
+| 5 | The ronne-web docs render tests pass | yes | confirmed | `pnpm test src/content/docs` → 5 passed; `src/features/docs` → 5 passed; `pnpm test` → 136 passed; typecheck and lint clean |
+| 6 | The new topic and sections render in en, pt and fr, and their cross-links resolve | no | confirmed | Scratch DocsPage probe, 9 renders → workspaces [what, global, managing], admin [users, workspaces, settings, audit]; links resolve |
+| 7 | The helper link test passes here and covers the new helpers | yes | confirmed | `vitest run src/components/help src/features/admin-scopes src/features/admin-workspaces` → 30 passed; with `what` removed in a scratch copy, it fails |
+| 8 | Admin › Workspaces shows "What is a workspace?" linking to `workspaces#what` | yes | confirmed | `admin/workspaces/page.tsx:31`; `docsHref("workspaces","what")`; the test checks text and href |
+| 9 | New scope shows "Which workspace?" beside the select, linking to `workspaces#what` | yes | confirmed | `ScopeDialogs.tsx:38-41`; `admin-scopes.test.tsx:168` checks the text |
+| 10 | Workspaces#what matches the app | no | confirmed | `ItemCard.tsx:38-41`, `ItemPageView.tsx:51`, `CatalogueView.tsx:68`, `workspaceVisibilityFrom` public only |
+| 11 | Workspaces#global matches the app | no | confirmed | `0019_workspaces.ts`; `GlobalWorkspaceError`; `names.ts:29,42`; `global` valid as a scope name |
+| 12 | Workspaces#managing and admin#workspaces match the app | no | confirmed | name rules, the disabled reason, global's page with no buttons, sorts, audit events, each at its line |
+| 13 | Scopes#what and #who: one workspace, chosen at creation, `global` by default, can't move | no | confirmed | en/pt/fr `scopes.tsx`; `services/scopes.ts:34`; the repository updates only the description |
+| 14 | Copy is in English, Portuguese and French, with the glossary and product facts updated | yes | confirmed | `{en,pt,fr}/workspaces.tsx`; `translation-guide.md:63`; `product-facts.md:77` (next release) and `:105` (091–095 planned) |
+| 15 | The helpers say only what the app does now | no | partly | "Which workspace?" said "Leave global when everyone on the instance should find them", but every workspace is public today |
+| 16 | The Administration summary mentions workspaces in both repos | yes | confirmed | app `topics.ts` and ronne-web `{en,pt,fr}/admin.tsx` summaries |
+| 17 | ronne-web builds | yes | confirmed | `pnpm build` (www) → 102/102 static pages; `en/marketplace/docs/workspaces.html` exists |
+
+**Overall:** not met: the "Which workspace?" helper text (row 15).
+
+### Re-check after fixes
+
+Witnessed: 2026-10-06 18:31 EDT, by a fresh agent (blind). Commit: 08f33df (ronne-marketplace, plus its working tree) and 32e1e99 (ronne-web, plus its working tree, unchanged). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 15 | The helpers say only what the app does now | no | partly | "Public for now" right, but "show it before their names" is false for `global`, the default |
+| 7 | The helper link test still passes with the new text | yes | confirmed | 3 files, 30 passed |
+| 5 | The ronne-web tests still pass | yes | confirmed | `pnpm test` (www) → 136 passed |
+| 17 | ronne-web builds | yes | confirmed | `pnpm build` → 102/102 static pages |
+
+**Overall:** not met: row 15.
+
+### Re-check after fixes
+
+Witnessed: 2026-10-06 18:31 EDT, by a fresh agent (blind). Commit: 08f33df (ronne-marketplace, plus its working tree: 8 changed files) and 32e1e99 (ronne-web, plus its working tree: 15 changed files, unchanged). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 15 | The helpers say only what the app does now | no | confirmed | Each sentence of "workspace-choice" matches the code: shown only when not `global` (`ItemCard.tsx:38`, `ItemPageView.tsx:51`); filter only when `workspaces.length > 1`; public only; the scope update sets only the description |
+| 7 | The helper link test still passes with the new text | yes | confirmed | `pnpm exec vitest run src/components/help src/features/admin-scopes src/features/admin-workspaces` → 30 passed |
+
+**Overall:** met.

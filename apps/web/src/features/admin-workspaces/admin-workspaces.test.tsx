@@ -242,6 +242,8 @@ describe("the pages", () => {
     const html = renderToStaticMarkup(await listPage({ q: "ac" }));
     expect(html).toContain("New workspace");
     expect(html).toContain('href="/admin/workspaces/acme"');
+    expect(html).toContain("What is a workspace?");
+    expect(html).toContain('href="https://www.ronne.ai/marketplace/docs/workspaces#what"');
     expect(workspaces.pageWorkspaces).toHaveBeenLastCalledWith(
       expect.any(Headers),
       expect.objectContaining({ search: "ac", sort: "name" }),

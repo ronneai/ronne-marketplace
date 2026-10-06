@@ -251,7 +251,7 @@ plugin feeds don't change. Build order: 090 → 091 → 092 → 093 → 094 → 
 
 | ID | Feature | Depends on | Status |
 |---|---|---|---|
-| [090](./090-workspaces/SPEC.md) | Workspaces and the global workspace: `workspaces`, `scopes.workspace_id` (every scope in `global`), Admin › Workspaces, the workspace when creating a scope, the catalogue's Workspace filter | 010, 059, 061 | in progress |
+| [090](./090-workspaces/SPEC.md) | Workspaces and the global workspace: `workspaces`, `scopes.workspace_id` (every scope in `global`), Admin › Workspaces, the workspace when creating a scope, the catalogue's Workspace filter | 010, 059, 061 | done |
 | [091](./091-workspace-roles/SPEC.md) | Roles per workspace: `workspace_members`; moderator and user per workspace, root instance-wide; today's moderators become `global` moderators; every check made in the item's workspace; the review queue per workspace; submitting needs membership | 090, 014, 016, 059 | specified |
 | [092](./092-workspace-members/SPEC.md) | Workspace members: workspaces and roles when creating a user (`global` / user by default), a user's Workspaces dialog, a workspace's Members; nobody leaves `global`; audited | 090, 091, 008, 061 | specified |
 | [093](./093-private-workspaces/SPEC.md) | Private workspaces: seen only by members and root everywhere (not found to others), dependable only inside their workspace, turning private refused while outside items depend on it, plugin feeds per visibility key, `rmk feed build --workspace` | 090, 091, 092, 089, 018, 019, 020, 027, 077, 079 | specified |

@@ -106,15 +106,15 @@ instance has a workspace besides `global`; a chosen one is kept in the URL (`?wo
 
 ## Acceptance criteria
 
-- [ ] The migration creates `global` and moves every scope into it, on SQLite, PostgreSQL, MySQL and
+- [x] The migration creates `global` and moves every scope into it, on SQLite, PostgreSQL, MySQL and
   MariaDB; a new instance's setup has `global` too.
-- [ ] Root creates a workspace, edits its description, and deletes it only while it has no scopes;
+- [x] Root creates a workspace, edits its description, and deletes it only while it has no scopes;
   each is audited.
-- [ ] `global` can't be edited or deleted, in the UI or by calling the services.
-- [ ] A new scope is created in the chosen workspace; Admin › Scopes shows and filters by it.
-- [ ] The catalogue filters by workspace, and the card and item page show a non-global workspace.
-- [ ] Nobody but root can reach Admin › Workspaces or its actions.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] `global` can't be edited or deleted, in the UI or by calling the services.
+- [x] A new scope is created in the chosen workspace; Admin › Scopes shows and filters by it.
+- [x] The catalogue filters by workspace, and the card and item page show a non-global workspace.
+- [x] Nobody but root can reach Admin › Workspaces or its actions.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Decisions
 

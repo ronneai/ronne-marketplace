@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { Help } from "@/components/help/Help";
 import { parseListQuery, type SearchParams } from "@/components/ui/data-table/list-query";
 import { PageHeader } from "@/components/ui/Panel";
 import { ADMIN_WORKSPACES_LIST, workspacesQueryOf } from "@/features/admin-workspaces/list";
@@ -27,6 +28,7 @@ const AdminWorkspaces = async ({ searchParams }: { searchParams: Promise<SearchP
         description="A workspace holds scopes, and their items, for one team or group. Item names don't include it. Every instance has global."
         actions={<CreateWorkspaceDialog />}
       />
+      <Help id="workspace" className="mb-4" />
       <WorkspacesTable
         list={ADMIN_WORKSPACES_LIST}
         state={state}

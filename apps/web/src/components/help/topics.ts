@@ -30,6 +30,16 @@ export const TOPICS = [
     ],
   },
   {
+    slug: "workspaces",
+    title: "Workspaces",
+    summary: "The level above scopes: who an instance's areas are for, and the global workspace.",
+    sections: [
+      { id: "what", title: "What a workspace is" },
+      { id: "global", title: "The global workspace" },
+      { id: "managing", title: "Creating and managing them" },
+    ],
+  },
+  {
     slug: "scopes",
     title: "Scopes",
     summary: "The first part of every item's name, and how to organise them.",
@@ -124,9 +134,10 @@ export const TOPICS = [
     slug: "admin",
     title: "Administration",
     summary:
-      "For roots: finding users, the instance's settings, and reading the audit log of who did what, and when.",
+      "For roots: finding users, the workspaces, the instance's settings, and reading the audit log of who did what, and when.",
     sections: [
       { id: "users", title: "Users" },
+      { id: "workspaces", title: "Workspaces" },
       { id: "settings", title: "Settings" },
       { id: "audit", title: "Audit log" },
     ],
@@ -233,7 +244,7 @@ export type SectionOf<T extends TopicSlug> = Extract<Topic, { slug: T }>["sectio
 /** How the Documentation's menu groups the topics, in order (owner's request, 2026-09-28). */
 export const TOPIC_GROUPS: { label: string; topics: readonly TopicSlug[] }[] = [
   { label: "Getting started", topics: ["overview", "install", "roles", "admin"] },
-  { label: "Organising", topics: ["scopes", "items"] },
+  { label: "Organising", topics: ["workspaces", "scopes", "items"] },
   { label: "Publishing", topics: ["export", "review", "versions", "changes"] },
   {
     label: "Installing",

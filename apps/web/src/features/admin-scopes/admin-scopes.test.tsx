@@ -165,6 +165,7 @@ describe("ScopesTable (061)", () => {
   it("the dialog's workspace select lists global first, chosen", () => {
     const html = renderToStaticMarkup(<WorkspaceSelect workspaces={[GLOBAL, ACME]} />);
     expect(html).toContain('name="workspaceId"');
+    expect(html).toContain("Which workspace?");
     expect(html).toMatch(/<option value="00000000000000000000000000" selected="">global<\/option>/);
     expect(html.indexOf(">global<")).toBeLessThan(html.indexOf(">acme<"));
   });

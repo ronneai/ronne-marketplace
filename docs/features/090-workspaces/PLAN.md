@@ -36,7 +36,7 @@ the same change that completes it.
   *Done when:* catalogue tests and an end-to-end test (create a workspace and scope, release an
   item, filter by workspace) pass.
 
-- [ ] **7. Decisions and Documentation.** MVP §10 (`workspaces`, `scopes.workspace_id`), §15 (a new
+- [x] **7. Decisions and Documentation.** MVP §10 (`workspaces`, `scopes.workspace_id`), §15 (a new
   "Workspaces" row, and "Scopes" updated); the topics and helpers in the spec, `topics.ts` here and
   in ronne-web together.
   *Done when:* the docs render tests pass in ronne-web, and the helper link test passes here.
@@ -111,3 +111,12 @@ goes into `SPEC.md` instead.
   The registry API's JSON is built field by field, so it doesn't gain `workspace` yet (095). The
   end-to-end steps live in the root test in `scopes.e2e.ts` (root's sign-ins are limited), with a
   new author and moderator for the release.
+- **Task 7.** MVP §10 gains `workspaces` and `scopes.workspace_id`; §15 a Workspaces row, and the
+  Scopes row says each scope is in a workspace. The app's `topics.ts` and ronne-web's have the new
+  topic (`workspaces`: `what`, `global`, `managing`, first in Organising) and `admin#workspaces`,
+  and the Administration summary mentions the workspaces in both. Helpers: "What is a workspace?"
+  under Admin › Workspaces' header, and "Which workspace?" beside New scope's Workspace select. The
+  website copy is on ronne-web's branch `docs/marketplace-090-workspaces` (English, then Portuguese
+  and French by its translator's instructions: "espaço de trabalho", « espace de travail », with
+  glossary rows added), with the facts in its `product-facts.md` marked as the next release, so it
+  goes live with the release.
