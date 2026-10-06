@@ -24,7 +24,7 @@ the same change that completes it.
   without `agent` and `context`, with the warning.
   *Done when:* the renderer golden files and the install and plugin tests pass.
 
-- [ ] **4. Export.** The Claude Code skill reader's `agent` reference; export's dependency step and
+- [x] **4. Export.** The Claude Code skill reader's `agent` reference; export's dependency step and
   the uploaded `SKILL.md` naming `@scope/name`.
   *Done when:* the reader and CLI tests cover a skill with `agent:` and `context: fork`.
 
@@ -54,3 +54,7 @@ goes into `SPEC.md` instead.
   parse), and leaves those files as they are. `RenderInput.dependencies` and `RenderContext.plugin`
   are filled by `rmk install`, the plugin builder and the golden harness; `rmk export`'s base render
   (`export-proposal.ts`) doesn't fill them, which task 4 takes up.
+- **Task 4.** The change-proposal path (`export-proposal.ts`) needs no dependencies: the agent reader
+  turns `skills:` into references only, and the skill renderer doesn't use dependencies, so an
+  unedited install reads the same as its base. An edited installed skill whose agent isn't installed
+  any more is uploaded with the bare `agent:` name and a warning, while the base's dependency stays.

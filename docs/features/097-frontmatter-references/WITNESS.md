@@ -105,3 +105,23 @@ the code. After this check, the spec says what the code does, the plan's notes r
 claim 1 and the export base render left to task 4, and a hostile-input timing test was added (test
 and documentation only; no behaviour changed).
 **Overall:** met.
+
+## Task 4 — Export
+
+Witnessed: 2026-10-05 22:28 EDT, by a fresh agent. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|
+| 1 | `readSkill`: `agent: <local>` is an `agent` reference; built-ins (any case), `plugin:agent`, item names and empty values aren't; `context: fork` isn't required | confirmed | A probe and the new reader test. |
+| 2 | Matching finds local, installed and published agents; self-references skipped; messages say "the agent X" | confirmed | `matches` by type and name; Claude Code agents named from their frontmatter; installed through the state file; published through `checkPublished`. |
+| 3 | The uploaded `SKILL.md` names the declared agent `"@scope/name"`, only that line changed; not when it isn't declared | confirmed (only the planned path tested) | `nameAgent` in all three declaring branches; CRLF kept, an inline comment on the line dropped. |
+| 4 | Other users of the reference kind | confirmed | Messages updated; `export-command.ts` already generic; no kind enum in the MCP tools; the native readers spec is task 6. |
+| 5 | Tests, typecheck, lint | confirmed | Core 325, CLI 225, MCP 40; typecheck 7/7; lint 0 errors. |
+| 6 | The proposal path doesn't misbehave | confirmed (no new test) | `readAgent` turns `skills:` into references only, and the skill renderer doesn't use dependencies, so an unedited install doesn't look changed; an edited skill's `agent:` is declared and rewritten back to `"@scope/name"`. |
+
+**Not checked here:** proposals from a plugin install; the full build, database and end-to-end tests.
+**Differences from the notes:** task 3's note left the base render open for this task; nothing needed
+changing there (claim 6). After this check: `readSkill`'s doc comment, displaced by the new code, was
+moved back; a test covers an installed agent (`^2.1.0`, `agent: "@team/helper"`); the plan's notes say
+why the proposal path needed nothing.
+**Overall:** met.

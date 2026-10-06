@@ -60,6 +60,19 @@ export const claudeCodeSkillEntry = (bytes: Uint8Array, plugin?: string): Uint8A
   return encoder.encode(rebuild(block));
 };
 
+/**
+ * A `SKILL.md` whose agent is `name`, quoted (097): what export uploads once a local agent's name
+ * is declared as an item. The same bytes when there's no top-level `agent` to change.
+ */
+export const withAgentName = (bytes: Uint8Array, name: string): Uint8Array => {
+  const text = decoder.decode(bytes);
+  const block = linesOf(text);
+  const span = block && keySpan(block.lines, "agent");
+  if (!block || !span) return bytes;
+  block.lines.splice(span[0], span[1] - span[0], `agent: ${JSON.stringify(name)}`);
+  return encoder.encode(rebuild(block));
+};
+
 /** Codex's and Cursor's `SKILL.md`: without `agent` and `context`, and whether they were there. */
 export const agentsSkillEntry = (bytes: Uint8Array): { bytes: Uint8Array; dropped: boolean } => {
   const text = decoder.decode(bytes);

@@ -114,7 +114,7 @@ const askForScope = (scopes: Scopes, reason: string): ToolAnswer =>
   );
 
 const findingText = (finding: Finding): string => {
-  const what = `${finding.reference.kind === "mcp-server" ? "the MCP server" : "the skill"} ${finding.reference.name}`;
+  const what = `${finding.reference.kind === "mcp-server" ? "the MCP server" : `the ${finding.reference.kind}`} ${finding.reference.name}`;
   switch (finding.status) {
     case "yours":
       return `  ${what} (${finding.item?.display}): the person's own, not in the registry`;

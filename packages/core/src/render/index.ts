@@ -26,6 +26,7 @@ export {
   agentsSkillEntry,
   claudeCodeSkillEntry,
   renderDependencyOf,
+  withAgentName,
   withDependencies,
 } from "./skill-frontmatter.js";
 export {
