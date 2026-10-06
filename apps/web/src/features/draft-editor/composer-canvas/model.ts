@@ -1,9 +1,9 @@
-import type { ItemType } from "@ronneai/core";
+import { type ItemType, mayHaveDependencies } from "@ronneai/core";
 import { isMap, isScalar, parseDocument } from "yaml";
 import { PRINT, readManifest, writeField } from "../manifest-yaml";
 
-/** The types with a canvas: the ones whose dependencies are several kinds of item (MVP §3.1). */
-export const hasCanvas = (type: ItemType): boolean => type === "agent" || type === "bundle";
+/** The types with a canvas: every type that may have dependencies, which is every type (096). */
+export const hasCanvas = (type: ItemType): boolean => mayHaveDependencies(type);
 
 const byName = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 

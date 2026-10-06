@@ -206,7 +206,7 @@ export const DraftEditor = ({
   );
   const itemName = `@${draft.scope}/${draft.name}`;
   const file = state.files.find((f) => f.path === selected) ?? state.files[0];
-  // Agents and bundles, whose dependencies are several kinds of item, also have a canvas (031).
+  // Every item may be composed from others, so every type has a canvas (031, 096).
   const views: readonly View[] = hasCanvas(draft.type)
     ? ["form", "yaml", "canvas"]
     : ["form", "yaml"];

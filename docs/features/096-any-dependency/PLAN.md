@@ -17,12 +17,14 @@ the same change that completes it.
   the submissions db tests (a skill on an agent, a cycle still refused) pass on the four databases;
   the CLI tests pass with a skill that uses another skill declared as a dependency.
 
-- [ ] **2. Authoring on every type.** The form's Dependencies field, `@` in markdown and the Canvas
+- [x] **2. Authoring on every type.** The form's Dependencies field, `@` in markdown and the Canvas
   view on every type.
-  *Done when:* the editor's component tests cover a rule with the field, `@` and the Canvas view.
+  *Done when:* the editor's component tests cover a rule with the field and the Canvas view; `@`
+  lives inside CodeMirror and isn't in a static render, so task 3's end-to-end test covers `@` on
+  a rule.
 
-- [ ] **3. End-to-end.** A skill depends on an agent and a rule on a skill, from the form and the
-  canvas, and both submit.
+- [ ] **3. End-to-end.** A skill depends on an agent and a rule on a skill, from the form, `@` in
+  the rule's markdown and the canvas, and both submit.
   *Done when:* the Playwright test passes, and the whole suite.
 
 - [ ] **4. Decisions and Documentation.** MVP §3.1 (the table becomes one rule) and §15 ("Resolver";

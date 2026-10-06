@@ -29,3 +29,21 @@ hook runs them); a released `rmk` binary (read from the v0.3.1 source instead).
 commit ("Nothing yet to depend on."), and the spec now says an older `rmk export` or `rmk submit`
 reports a dependency its bundled rule forbids. Task 2's witness checks these too.
 **Overall:** met.
+
+## Task 2 — Authoring on every type
+
+Witnessed: 2026-10-05 20:54 EDT, by a fresh agent. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|
+| 1 | `hasCanvas` true for every type; the editor's views, the form's Dependencies field and `@` (markdown, not read-only) on every type | confirmed | `model.ts` → `mayHaveDependencies(type)`, true for all 11; `DraftEditor.tsx:210`, `ManifestForm.tsx:390`, `DraftEditor.tsx:299-330`, `CodeEditor.tsx:122`. |
+| 2 | `@` can't be covered by a static render | confirmed (with a caveat) | CodeMirror mounts in `useEffect`; no DOM test library in the app; `mentions.test.ts` already tests the mention logic, which doesn't depend on type. Deferring the gate to task 3's end-to-end test is fair. |
+| 3 | The component tests pass | confirmed | 249 passed; "offers Form, YAML and Canvas for every type (096)" (seven types) and "gives a rule the Dependencies field, with its search (096)". |
+| 3b | They cover a rule's Canvas view | partly | The Canvas switch is rendered for a rule, not the canvas itself (the static render starts on Form); task 3 opens it in a browser. |
+| 4 | Task 1's follow-ups: the docstring, the picker's empty text and comments, the spec's older-`rmk` paragraph; no old-rule wording left | confirmed | "Nothing yet to depend on."; "(of any type since 096…)"; SPEC lines 46–52; the grep finds only new-rule comments. |
+| 5 | Nothing on the canvas assumes agent or bundle | confirmed | Only the bundle's required `dependencies` key and its own description; the item page's graph shows whenever there are dependencies. |
+| 6 | lint, typecheck | confirmed | 0 errors (43 warnings, as on main); 7/7. |
+
+**Not checked here:** the end-to-end tests (task 3), the canvas in a browser, the website (task 4).
+**Differences from the notes:** the plan's *Done when* moved `@` to task 3 in this change, for the reason above.
+**Overall:** met.

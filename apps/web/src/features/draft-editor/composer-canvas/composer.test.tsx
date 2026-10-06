@@ -62,21 +62,28 @@ const editor = (type: ItemType) =>
   );
 
 describe("the view switch", () => {
-  it("offers Form, YAML and Canvas for agents and bundles, and no canvas for other types", () => {
-    for (const type of ["agent", "bundle"] as const) {
+  it("offers Form, YAML and Canvas for every type (096)", () => {
+    for (const type of [
+      "agent",
+      "bundle",
+      "skill",
+      "command",
+      "rule",
+      "mcp-server",
+      "hook",
+    ] as const) {
       expect(hasCanvas(type)).toBe(true);
       const html = editor(type);
       expect(html).toMatch(/aria-pressed="true"[^>]*>Form</);
       expect(html).toMatch(/aria-pressed="false"[^>]*>YAML</);
       expect(html).toMatch(/aria-pressed="false"[^>]*>Canvas</);
     }
-    // A skill or a command may only depend on MCP servers: the form is enough.
-    for (const type of ["skill", "command", "rule", "mcp-server"] as const) {
-      expect(hasCanvas(type)).toBe(false);
-      const html = editor(type);
-      expect(html).toContain(">YAML<");
-      expect(html).not.toContain(">Canvas<");
-    }
+  });
+
+  it("gives a rule the Dependencies field, with its search (096)", () => {
+    const html = editor("rule");
+    expect(html).toContain("Items installed with this one.");
+    expect(html).toContain('aria-label="Add a dependency"');
   });
 });
 
