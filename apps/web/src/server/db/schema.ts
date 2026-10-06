@@ -87,13 +87,32 @@ export interface AuditLogTable {
   created_at: Timestamp;
 }
 
-/** Scopes (migration 0004_scopes). `name` is stored without the `@`. */
+/**
+ * Workspaces (migration 0019_workspaces, feature 090): the level above scopes. `global` is created by
+ * the migration, with a fixed id, and is the only row with `is_global`.
+ */
+export interface WorkspaceTable {
+  id: string;
+  name: string;
+  description: string;
+  visibility: "public" | "private";
+  is_global: DbBoolean;
+  created_by: string | null;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+}
+
+/**
+ * Scopes (migration 0004_scopes). `name` is stored without the `@`. Every scope belongs to one
+ * workspace (0019_workspaces); an item's workspace is its scope's.
+ */
 export interface ScopeTable {
   id: string;
   name: string;
   description: string;
   created_by: string | null;
   created_at: Timestamp;
+  workspace_id: string;
 }
 
 /**
@@ -279,6 +298,7 @@ export interface Database {
   verification: VerificationTable;
   access_tokens: AccessTokenTable;
   audit_log: AuditLogTable;
+  workspaces: WorkspaceTable;
   scopes: ScopeTable;
   submissions: SubmissionTable;
   submission_files: SubmissionFileTable;

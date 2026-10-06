@@ -12,6 +12,7 @@ import { parseArgs } from "node:util";
 import { packItem } from "@ronneai/core/pack";
 import { PLUGIN_TOOLS, type PluginTool } from "@ronneai/core/plugins";
 import { toDbDate } from "../src/server/db/dates";
+import { GLOBAL_WORKSPACE_ID } from "../src/server/db/migrations/0019_workspaces";
 import { createTestDb } from "../src/server/db/testing/test-db";
 import { FeedTooLargeError } from "../src/server/domains/feeds/exceptions/errors";
 import { MARKETPLACE_MAX_BYTES } from "../src/server/domains/feeds/models/feed";
@@ -80,6 +81,7 @@ const seed = async (t: Awaited<ReturnType<typeof createTestDb>>, root: string, c
       description: "",
       created_by: null,
       created_at: toDbDate(now, t.dialect),
+      workspace_id: GLOBAL_WORKSPACE_ID,
     })
     .execute();
   const storage = localStorage(root);

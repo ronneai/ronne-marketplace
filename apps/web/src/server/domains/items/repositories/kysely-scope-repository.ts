@@ -2,6 +2,7 @@ import type { Kysely } from "kysely";
 import { fromDbDate, toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
 import { countCapped, paginate } from "../../../db/keyset";
+import { GLOBAL_WORKSPACE_ID } from "../../../db/migrations/0019_workspaces";
 import type { Database } from "../../../db/schema";
 import { containsInsensitive } from "../../../db/search";
 import type { DatabaseDialect } from "../../../db/url";
@@ -74,6 +75,7 @@ export const kyselyScopeRepository = (
           description: scope.description,
           created_by: scope.createdBy,
           created_at: toDbDate(scope.createdAt, dialect),
+          workspace_id: GLOBAL_WORKSPACE_ID,
         })
         .execute();
       return id;

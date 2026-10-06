@@ -3,6 +3,7 @@ import { toDbDate } from "../dates";
 import { newId } from "../ids";
 import { foreignKeys } from "../testing/foreign-keys";
 import { createTestDb, type TestDb } from "../testing/test-db";
+import { GLOBAL_WORKSPACE_ID } from "./0019_workspaces";
 
 // Runs on the database in TEST_DATABASE_URL (in-memory SQLite by default; 004 runs all of them).
 let t: TestDb;
@@ -40,12 +41,15 @@ const insertScope = (name: string, createdBy: string | null) =>
       description: "A scope.",
       created_by: createdBy,
       created_at: now(),
+      workspace_id: GLOBAL_WORKSPACE_ID,
     })
     .execute();
 
 describe("0004_scopes", () => {
   it("creates a real foreign key to user that sets null on delete, on every database", async () => {
-    expect(await foreignKeys(t.db, t.dialect, ["scopes"])).toEqual([
+    // 0019_workspaces adds the key to workspaces; its own test checks that one.
+    const keys = await foreignKeys(t.db, t.dialect, ["scopes"]);
+    expect(keys.filter((k) => k.references === "user")).toEqual([
       { table: "scopes", references: "user", onDelete: "SET NULL" },
     ]);
   });

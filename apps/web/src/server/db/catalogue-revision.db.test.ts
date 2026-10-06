@@ -3,6 +3,7 @@ import { kyselyFeedRepository } from "../domains/feeds/repositories/kysely-feed-
 import { createRoot } from "../domains/identity/actions/root-account";
 import { kyselyItemRepository } from "../domains/items/repositories/kysely-item-repository";
 import { toDbDate } from "./dates";
+import { GLOBAL_WORKSPACE_ID } from "./migrations/0019_workspaces";
 import { createTestDb, type TestDb } from "./testing/test-db";
 
 // Runs on the database in TEST_DATABASE_URL (in-memory SQLite by default; 004 runs all of them).
@@ -25,6 +26,7 @@ beforeEach(async () => {
       description: "",
       created_by: publisher,
       created_at: toDbDate(now, t.dialect),
+      workspace_id: GLOBAL_WORKSPACE_ID,
     })
     .execute();
 });

@@ -4,6 +4,7 @@ import { toDbBoolean, toDbDate } from "../dates";
 import { newId } from "../ids";
 import { foreignKeys } from "../testing/foreign-keys";
 import { createTestDb, type TestDb } from "../testing/test-db";
+import { GLOBAL_WORKSPACE_ID } from "./0019_workspaces";
 
 // Runs on the database in TEST_DATABASE_URL (in-memory SQLite by default; 004 runs all of them).
 let t: TestDb;
@@ -36,7 +37,14 @@ const insertScope = async (name: string) => {
   const id = newId();
   await t.db
     .insertInto("scopes")
-    .values({ id, name, description: "A scope.", created_by: null, created_at: now() })
+    .values({
+      id,
+      name,
+      description: "A scope.",
+      created_by: null,
+      created_at: now(),
+      workspace_id: GLOBAL_WORKSPACE_ID,
+    })
     .execute();
   return id;
 };

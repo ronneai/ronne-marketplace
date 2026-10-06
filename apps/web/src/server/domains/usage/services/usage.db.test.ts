@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { toDbDate } from "../../../db/dates";
+import { GLOBAL_WORKSPACE_ID } from "../../../db/migrations/0019_workspaces";
 import { foreignKeys } from "../../../db/testing/foreign-keys";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { createRoot } from "../../identity/actions/root-account";
@@ -31,6 +32,7 @@ beforeEach(async () => {
       description: "",
       created_by: publisher,
       created_at: toDbDate(now, t.dialect),
+      workspace_id: GLOBAL_WORKSPACE_ID,
     })
     .execute();
   const items = kyselyItemRepository(t.db, t.dialect);
