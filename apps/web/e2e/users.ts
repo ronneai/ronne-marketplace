@@ -134,6 +134,8 @@ export const E2E_ROOTS: readonly (keyof typeof E2E_USERS)[] = [
  * signs in 5 times in a run, the per-email limit a minute.
  */
 export const E2E_SCOPE = "e2e-seeded";
+/** An empty workspace besides `global` (feature 090), so the phone sweep opens a page with Edit and Delete. */
+export const E2E_WORKSPACE = "e2e-team";
 
 /** An item the seed publishes with two versions (1.0.0 and 1.1.0 on latest), for the Versions page. */
 export const E2E_VERSIONED_ITEM = "versioned";

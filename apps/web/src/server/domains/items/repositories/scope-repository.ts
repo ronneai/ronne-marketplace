@@ -15,6 +15,8 @@ export type ScopeSort = "name" | "created";
 
 export type ScopePageQuery = {
   search?: string;
+  /** Only the scopes in this workspace (feature 090). */
+  workspaceId?: string;
   sort: ScopeSort;
   dir: SortDir;
   size: number;
@@ -39,7 +41,10 @@ export interface ScopeRepository {
   list(query: ScopeQuery): Promise<Scope[]>;
   /** One page for the web tables (keyset, 061). */
   page(query: ScopePageQuery): Promise<KeysetPage<Scope>>;
-  /** How many scopes match the search, up to the count cap. */
-  count(search?: string): Promise<{ count: number; capped: boolean }>;
+  /** How many scopes match the search (and workspace), up to the count cap. */
+  count(query: {
+    search?: string;
+    workspaceId?: string;
+  }): Promise<{ count: number; capped: boolean }>;
   recordAudit(event: NewAuditEvent, now: Date): Promise<void>;
 }

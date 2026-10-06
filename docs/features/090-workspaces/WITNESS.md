@@ -208,3 +208,87 @@ Witnessed: 2026-10-06 16:42 EDT, by a fresh agent (blind). Commit: e4bed45 + wor
 | 11 | `pnpm build` passes | yes | confirmed | `turbo run build --force` in a scratch copy of the working tree → 5 of 5 tasks successful, none cached |
 
 **Overall:** met. Remark taken: the first version of the notes said `rmk` and the MCP server don't read `GET /api/v1/scopes`; they do (corrected in PLAN.md before the commit).
+
+## Task 4 — Admin › Workspaces
+
+Witnessed: 2026-10-06 16:48 EDT, by a fresh agent (blind). Commit: daafd08 + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The component tests pass, and they cover what they claim | yes | confirmed | `vitest run src/features/admin-workspaces` → 15 passed; four mutations in a scratch copy (Delete never disabled, global shows actions, no root check on either page) each failed 1–2 tests |
+| 2 | The phone sweep passes on the new pages | yes | confirmed | `next build` then `playwright test mobile-sweep --project=phone --project=phone-webkit --project=tablet` → 15 passed; `e2e/pages.ts` adds both routes for root |
+| 3 | A non-global workspace's page and the dialog don't overflow on phones | yes | confirmed | scratch Playwright probe on phone and phone-webkit: list, New workspace dialog and `/admin/workspaces/acme-*` (with Edit and Delete) "ok" at 412/393, 360 and 320px |
+| 4 | The table is on `DataTable` with name, visibility, scopes and created, sorted by name, `global` first (members come in 092) | yes | confirmed | `WorkspacesTable.tsx:42-96` (also a Description column); probe rows: `global … Public 1 \| acme-phone … Public 0` |
+| 5 | New workspace takes name, description and visibility, and offers only Public | yes | confirmed | hidden `visibility=public`; probe: 0 select/radio in the dialog; `workspace.ts:48-51` refuses anything but public |
+| 6 | Creating works end to end and normalises the name | no | confirmed | probe typed `ACME-PHONE` → "Created acme-phone." and the row appears after reload |
+| 7 | The workspace page shows its description (editable) and only its scopes | yes | confirmed | probe: Edit description → "Description saved."; `[name]/page.tsx:51` passes `workspaceId`; "pageScopes in a workspace (090)" passes on SQLite, PG 15, MySQL 8.4, MariaDB 10.11 |
+| 8 | Delete works only when the workspace has no scopes; otherwise it's disabled with "Move or remove its scopes first." | yes | confirmed | `disabledReason`; component test checks `disabled=""` and the reason; probe: empty workspace deleted, back to the list, its page then 404 |
+| 9 | Global's page shows no edit or delete | yes | confirmed | probe on `/admin/workspaces/global`: buttons are only `["Menu","Edit @e2e-seeded"]` and the "can't be changed or deleted" text |
+| 10 | `global` can't be edited or deleted by calling the services | no | confirmed | `changeable()` throws `GlobalWorkspaceError`; workspaces db tests "refuses global…" pass on all 4 dialects |
+| 11 | Nobody but root can reach the pages, the actions or the nav entry | yes | confirmed | probe: member and moderator get 404 on both pages, no Workspaces link; `workspaces.manage: ["root"]`; services throw `ForbiddenError` for non-root |
+| 12 | UI rules: tokens only, flat, arrow functions, feature-first | no | confirmed | grep for hex/rgb/shadow/raw palette/`function` in the new files → none; `biome check` and typecheck clean |
+
+**Overall:** met. Remark taken: the sweep only opened `global`'s page, which has no buttons; fixed below.
+
+### Re-check after fixes
+
+Witnessed: 2026-10-06 16:59 EDT, by a fresh agent (blind). Commit: daafd08 + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The seed adds an empty workspace `e2e-team`, and the phone sweep opens its page | yes | confirmed | `e2e/seed.ts:56-62` inserts it; `e2e/pages.ts:77` sweeps `/admin/workspaces/${E2E_WORKSPACE}`; probe → 200, 0 scope rows |
+| 2 | That page has Edit description and Delete, both enabled | yes | confirmed | probe buttons on phone and phone-webkit → `["Menu"],["Edit description"],["Delete"]`, none disabled |
+| 3 | The Edit button's accessible name is its visible text "Edit description" | yes | confirmed | probe: `aria-label` null, `getByRole("button",{name:"Edit description",exact:true})` enabled |
+| 4 | The component tests pass | yes | confirmed | `vitest run src/features/admin-workspaces` → 15 passed |
+| 5 | The phone sweep passes, the new page included | yes | confirmed | `playwright test mobile-sweep --project=phone --project=phone-webkit --project=tablet` → 15 passed |
+| 6 | The full end-to-end suite passes | yes | confirmed | `pnpm exec playwright test` (apps/web, current build) → 91 passed (1.8m) |
+| 7 | Lint, typecheck, test and build pass | yes | confirmed | `pnpm lint` exit 0; `pnpm typecheck` 7/7; `pnpm test` 8/8 tasks; `pnpm build` 5/5 |
+| 8 | An unknown name is a 404, and a malformed `%` is a 500 from Next.js (shared, out of scope) | yes | confirmed | probe as root: `/admin/workspaces/nope` → 404, `/admin/workspaces/%` → 500 |
+| 9 | Search and both sorts are kept in the URL, and the scope table pages on the workspace page's own address | yes | confirmed | `/admin/workspaces?q=team&sort=created` → only `e2e-team`; component tests assert the hrefs |
+| 10 | The scope list has a `workspaceId` filter in the repository and `pageScopes` | yes | confirmed | `kysely-scope-repository.ts:52-54`, `services/scopes.ts:132,138`; db test on 4 dialects |
+| 11 | Admin nav has Workspaces before Scopes | yes | confirmed | `AdminNav.tsx:10`; component test "has Workspaces, before Scopes" passes |
+| 12 | Members column and help topic aren't built yet (wait for 092 and task 7) | yes | confirmed | `grep -i member` in the new files → none; no workspaces entry in `components/help/topics.ts` |
+
+**Overall:** met.
+
+Witnessed: 2026-10-06 16:56 EDT, by a fresh agent (adversarial). Commit: daafd08 + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Component tests pass and cover the claims | yes | confirmed | 15 passed; 6 mutations in a scratch copy each turned a test red (global's Edit shown, page auth removed on both pages, `workspaceId` dropped, always redirect, list path not its own) |
+| 2 | The phone sweep passes and includes both new pages | yes | confirmed | `playwright test mobile-sweep` on 3 projects → 15 passed; a probe got 200 on both as root (the sweep doesn't assert status) |
+| 3 | A non-global workspace page (with Edit and Delete) doesn't scroll sideways on phones | yes | confirmed | Probe at 412, 360 and 320px: `measureOverflow` → none |
+| 4 | The list shows name (linked), visibility, scopes and created, sorted by name, `global` first | yes | confirmed | Probe rows `["global…Public 1","busy…Public 60"]`; `?sort=created` still has global first |
+| 5 | New workspace has name, description and visibility, and offers no Private | yes | confirmed | only a hidden `visibility=public`; direct call with `private` → "Workspaces are public for now." |
+| 6 | Create validates input from hostile clients | no | confirmed | Direct calls as root: `Global` → reserved, `Ｆull` → refused, ` Busy-WS ` → `busy-ws`, duplicate → taken, 301×`é` → refused |
+| 7 | The workspace page shows its description (editable) and only its own scopes | yes | confirmed | 60 scopes in `busy2` → "60 scopes", rows 50 then 10, no `@e2e-seeded`; edit saved |
+| 8 | The scope table pages, sorts and searches on the workspace page's own address | yes | confirmed | next href `/admin/workspaces/busy2?cursor=…` → s50–s59; `?sort=created&q=s05` → `@busy2-s05` only |
+| 9 | The scope `workspaceId` filter is right on all dialects | yes | confirmed | `test-db.mjs postgres\|mysql\|mariadb …scopes.db.test.ts …workspaces` → 27 passed each; SQLite 30 |
+| 10 | Delete is disabled with "Move or remove its scopes first." while the workspace has scopes | yes | confirmed | `busy` (60 scopes): `disabled=true`, `aria-describedby` and `title` give the reason; on touch screen readers only (shared `Button`) |
+| 11 | The action refuses to delete a non-empty workspace, and an error doesn't redirect | no | confirmed | Direct call → "Move or remove its scopes first.", row kept; redirects only on `done` |
+| 12 | Deleting an empty workspace returns to the list | yes | confirmed | UI delete → `/admin/workspaces`, rows `["global"]`; again → doesn't exist |
+| 13 | `global` has no Edit or Delete in the UI | yes | confirmed | `global`, `GLOBAL`, `Global%20`, `%20global` → 200 with no Edit-description or Delete buttons |
+| 14 | `global` can't be edited or deleted through the actions or services | no | confirmed | As root with `global`, ` GLOBAL `, `Global` → "The global workspace can't be changed or deleted."; tampered posts refused |
+| 15 | Nobody but root can reach the pages | yes | confirmed | Member and moderator → 404 on the list, `/global` and `/<new>`; signed out → `/sign-in?next=…` |
+| 16 | Nobody but root can run create, update or delete through direct server-action calls | no | confirmed | `Next-Action` posts as member and moderator → "You don't have permission… (workspaces.manage)"; nothing changed |
+| 17 | Odd names in the URL give a 404 and don't crash | yes | partly | `%25`, `%2Fglobal`, `..%2Fusers`, 3000×`a`, `%00`, Cyrillic → 404; malformed `%E0%A4%A`, `%C0%AF`, `%ZZ` → 500, also on `/reviews/…`, `/submissions/…`, `/items/…` (Next.js-wide) |
+| 18 | The admin nav has Workspaces, for root only | yes | confirmed | `AdminNav.tsx:10`; the admin layout 404s without `users.view` |
+| 19 | Design rules: tokens, no raw colours, accessible names | yes | partly | No raw colours; Biome and tsc clean; the Edit button's aria-label didn't contain its visible text (WCAG 2.5.3) |
+
+**Overall:** not met: the Edit button's accessible name (row 19) and the malformed-escape 500 (row 17) were open.
+
+### Re-check after fixes
+
+Witnessed: 2026-10-06 17:00 EDT, by a fresh agent (adversarial). Commit: daafd08 + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The Edit button's accessible name is its visible text | yes | confirmed | Probe on `/admin/workspaces/e2e-team`: `getByRole("button",{name:"Edit description",exact:true})` → 1, aria-label null |
+| 2 | The seed adds an empty workspace `e2e-team` | yes | confirmed | `e2e/seed.ts` inserts it; probe list rows `["global","e2e-team"]`, page 200, Delete enabled |
+| 3 | The phone sweep opens a page with Edit and Delete as well as global's, and passes | yes | confirmed | `e2e/pages.ts` has both URLs; `playwright test mobile-sweep` on 3 projects → 15 passed |
+| 4 | The e2e-team page doesn't scroll sideways on phones | yes | confirmed | Probe `measureOverflow` at 412, 360 and 320px → none |
+| 5 | Names that reach the page (`decoded()` and the lookup) give a 404 or the canonical workspace, and never crash | yes | confirmed | `%25`, `%2Fglobal`, `..%2Fusers`, 3000×`a`, fullwidth, Cyrillic, `%00` → 404; `GLOBAL` → global with no buttons; `%20E2E-Team%20` → e2e-team. Remark: malformed escapes still 500 in Next.js before the page runs, on every dynamic route; out of this task |
+| 6 | Still root-only, and `global` still protected, after the changes | yes | confirmed | Moderator and member: page 404, actions refused; root update and delete of `global` refused |
+| 7 | Component tests, lint and typecheck still pass | yes | confirmed | 15 passed; `biome check` no errors; `tsc --noEmit` ok |
+
+**Overall:** met. Out of this task, reported to the owner: the Next.js-wide 500 on malformed `%` escapes, and the disabled reason on touch (068).

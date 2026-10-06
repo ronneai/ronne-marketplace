@@ -248,6 +248,25 @@ describe("pageScopes (061)", () => {
   });
 });
 
+describe("pageScopes in a workspace (090)", () => {
+  it("lists and counts only that workspace's scopes, searched as usual", async () => {
+    const acme = await createWorkspace(asRoot, { name: "acme", description: "Acme." }, app);
+    for (const name of ["acme-infra", "acme-web"])
+      await createScope(asRoot, { name, description: "Acme's.", workspaceId: acme.id }, app);
+    await createScope(asRoot, { name: "team", description: "Everyone's." }, app);
+
+    const inAcme = await pageScopes(asRoot, { workspaceId: acme.id }, app);
+    expect(inAcme.scopes.map((s) => s.name)).toEqual(["acme-infra", "acme-web"]);
+    expect(inAcme.total).toEqual({ count: 2, capped: false });
+    const searched = await pageScopes(asRoot, { workspaceId: acme.id, search: "web" }, app);
+    expect(searched.scopes.map((s) => s.name)).toEqual(["acme-web"]);
+    expect(searched.total.count).toBe(1);
+    const inGlobal = await pageScopes(asRoot, { workspaceId: GLOBAL_WORKSPACE_ID }, app);
+    expect(inGlobal.scopes.map((s) => s.name)).toEqual(["team"]);
+    expect((await pageScopes(asRoot, {}, app)).total.count).toBe(3);
+  });
+});
+
 describe("listScopesAs", () => {
   it("lists scopes for a token's user of every role, with the API's page size", async () => {
     for (const name of ["alpha", "beta", "gamma"])

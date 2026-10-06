@@ -49,8 +49,9 @@ export const kyselyScopeRepository = (
         "scopes.created_at",
       ]);
 
-  const searched = (search: string | undefined) => {
-    const query = scopes();
+  const searched = (search: string | undefined, workspaceId?: string) => {
+    let query = scopes();
+    if (workspaceId) query = query.where("scopes.workspace_id", "=", workspaceId);
     return search
       ? query.where((eb) =>
           eb.or([
@@ -110,8 +111,8 @@ export const kyselyScopeRepository = (
       return (await query.execute()).map(toScope);
     },
 
-    page: async ({ search, sort, dir, size, cursor }) => {
-      const page = await paginate(searched(search), {
+    page: async ({ search, workspaceId, sort, dir, size, cursor }) => {
+      const page = await paginate(searched(search, workspaceId), {
         sort: { key: sort, column: sort === "name" ? "scopes.name" : "scopes.id", dir },
         idColumn: "scopes.id",
         size,
@@ -122,7 +123,7 @@ export const kyselyScopeRepository = (
       return { ...page, rows: page.rows.map(toScope) };
     },
 
-    count: (search) => countCapped(db, searched(search)),
+    count: ({ search, workspaceId }) => countCapped(db, searched(search, workspaceId)),
 
     recordAudit: async (event, now) => {
       await recordAudit(db, dialect, event, now);

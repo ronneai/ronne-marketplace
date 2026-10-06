@@ -24,7 +24,7 @@ the same change that completes it.
   repository returns it; `GET /api/v1/scopes` adds `workspace`.
   *Done when:* scope tests and the API test pass.
 
-- [ ] **4. Admin › Workspaces.** The list on `DataTable`, New workspace dialog, the workspace page
+- [x] **4. Admin › Workspaces.** [risky] The list on `DataTable`, New workspace dialog, the workspace page
   with its scopes, delete; nav entry for root.
   *Done when:* component tests pass, and the phone sweep (065) passes on the new pages.
 
@@ -77,3 +77,18 @@ goes into `SPEC.md` instead.
   `GLOBAL_WORKSPACE_ID`). `GET /api/v1/scopes` adds `workspace` (the name) to each scope. `rmk export`
   (`fetchScopes`) and the MCP server's export tools read that endpoint but use only `name` and
   `description`, so they don't change; the MCP's structured answer now passes `workspace` through.
+- **Task 4.** `/admin/workspaces` (the table: name linking to its page, description, visibility,
+  scopes, created; `global` first; search and both sorts in the URL) and `/admin/workspaces/<name>`
+  (description, visibility, Edit description and Delete, neither for `global`; its scopes on the
+  shared scope table, paged on the workspace page's own address). Both are a 404 for anyone but
+  root, before anything is read, as is an unknown name. The scope list gained a `workspaceId`
+  filter in the repository and `pageScopes` for this; Admin › Scopes shows it in task 5. Delete is
+  disabled with "Move or remove its scopes first." while the workspace has scopes, and returns to
+  the list when it's done. New workspace shows visibility as Public, with no choice, until 093. The
+  admin nav has Workspaces before Scopes. The end-to-end seed adds an empty workspace, `e2e-team`,
+  so the phone sweep opens a page with Edit and Delete as well as `global`'s. The Edit button's
+  accessible name is its visible text, "Edit description" (one workspace per page). The Members
+  column and section wait for 092; the helper waits for task 7. Two things found here belong to
+  shared code and stay out of this task: a malformed `%` escape in any dynamic route's address is a
+  500 from Next.js before the page runs, and a disabled button's reason shows only on hover and to
+  screen readers (068 makes it reachable by tap).

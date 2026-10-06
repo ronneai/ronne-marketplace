@@ -129,12 +129,13 @@ export const pageScopes = async (
   const [page, total] = await Promise.all([
     deps.repo.page({
       search,
+      workspaceId: query.workspaceId,
       sort,
       dir: query.dir ?? (sort === "name" ? "asc" : "desc"),
       size: query.size ?? SCOPES_PAGE_SIZE,
       cursor: query.cursor,
     }),
-    deps.repo.count(search),
+    deps.repo.count({ search, workspaceId: query.workspaceId }),
   ]);
   return { scopes: page.rows, next: page.next, previous: page.previous, total };
 };
