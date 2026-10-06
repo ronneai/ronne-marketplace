@@ -26,7 +26,7 @@ the same change that completes it.
   task 1, and the canvas shows the status badge on unreleased nodes.
   *Done when:* composer tests and the canvas component test pass.
 
-- [ ] **4. End-to-end.** A user can't pick another user's skill in review, can pick it once it's
+- [x] **4. End-to-end.** A user can't pick another user's skill in review, can pick it once it's
   released, and can pick their own draft from the form, `@` and the canvas.
   *Done when:* the Playwright test passes on desktop and phone.
 
@@ -58,3 +58,9 @@ goes into `SPEC.md` instead.
   request). A node for your own draft keeps "Submit it first" beside its amber badge, because the
   editor's Submit does refuse it; only bulk submit (056) takes both. 056's form calls such a draft
   "submitted with this item", which is true only in bulk: not changed here.
+- **Task 4.** `dependency-picker-rule.e2e.ts` (desktop) and `dependency-picker.mobile.e2e.ts`
+  (phone, phone-webkit, tablet). They borrow users that sign in once or twice elsewhere: three new
+  seeded users pushed `root@e2e.test` off Admin › Users' first page and broke `user-admin.e2e.ts`.
+  Each email is used at most 4 times a run (downloader and each project's member), under the limit
+  of 5 a minute; a new test that uses them again should take other users. The phone test makes the
+  member's draft in the editor, so it needs no token for them.

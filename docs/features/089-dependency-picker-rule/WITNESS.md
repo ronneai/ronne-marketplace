@@ -119,3 +119,36 @@ Witnessed: 2026-10-05 19:50, by a fresh agent.
 **Overall:** met. Risks noted in the plan: two of your own submissions with one name (the newest
 gives the badge); more than 100 of your unreleased items matching a name; one query per unpublished
 dependency.
+
+## Task 4 — End-to-end
+
+Witnessed: 2026-10-05 20:01–20:06 EDT, by a fresh agent. Machine: macOS 27.0.1 (Darwin 27.0.0), Node v24.0.0, Playwright 1.63.0.
+
+| # | Claim | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|
+| 1a | Your own draft is offered in the form, `@` and the canvas ("draft, yours") | confirmed | The form's option only checked "yours". |
+| 1b | Another user's skill in review isn't offered in any of the three | confirmed | Each negative comes after the positive match on the same query. |
+| 1c | Offered once approved and published | confirmed (`@` not covered) | Canvas and form ("published 1.0.0"); `@` not checked after publish. |
+| 2 | Passes on desktop and phone | partly | The phone test was a Pixel 7 context inside the `chromium` project, not the `phone`, `phone-webkit` and `tablet` projects (which run only `*.mobile.e2e.ts`), and only the form. |
+| 3 | Seeded users reused, `users.ts` unchanged, sign-in limit safe | confirmed | Three new users had pushed `root@e2e.test` off Admin › Users' first page (`user-admin.e2e.ts` failed), so existing ones are borrowed; at most 3 uses per email in a run. |
+| 4 | The test and the whole suite pass | confirmed | 2 passed; full run 87 passed. |
+| 5 | lint | confirmed | 0 errors. |
+
+**Not checked here:** WebKit and tablet (not wired then); `pnpm typecheck`, `pnpm test`, `pnpm build`.
+**Differences from the notes:** none material.
+**Overall:** partly met: the phone check wasn't in the phone projects, and its negative assertion
+could pass before the list loaded. Fixed below.
+
+### Re-check after fixes
+
+Witnessed: 2026-10-05 20:07 EDT, by a fresh agent. Same machine.
+
+| # | Claim | Verdict | Evidence |
+|---|---|---|---|
+| 1 | Desktop: your draft in the form ("draft, yours"), `@` and the canvas; theirs in review in none, each negative after a positive on the same query; after approval and publish, offered in the canvas, the form ("published 1.0.0") and `@` | confirmed | `dependency-picker-rule.e2e.ts`; the canvas after publish checks the name, not its status (the form checks that). |
+| 2 | Phones and tablets: `dependency-picker.mobile.e2e.ts` runs in `phone`, `phone-webkit` and `tablet` with each project's member; form ("draft, yours") and `@`, negatives after positives | confirmed | `--list` shows it in the three projects. The canvas isn't checked on phones: the composer graph is read-only below `md` (MVP §15, "Phones and tablets"). |
+| 3 | Sign-in limit (5 a minute per email; tokens count, `token-exchange.ts:95`) | confirmed | Whole-run totals: composer 3, outsider 3, depsModerator 2, downloader 4 (one token per mobile project), each project's member 4. |
+| 4 | Runs, lint, `users.ts` unchanged | confirmed | The two files: 4 passed (chromium, phone, phone-webkit, tablet); full `npx playwright test`: 89 passed; lint 0 errors; `users.ts` no diff. |
+
+**Overall:** met. Risks noted in the plan: downloader and each phone member are at 4 of 5 uses a
+run; `@e2e-seeded/pick-theirs` stays published in the shared instance.
