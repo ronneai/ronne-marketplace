@@ -214,7 +214,7 @@ Work that changes every part of the web app rather than one milestone's features
 | [063](./063-my-submissions-data-table/SPEC.md) | My submissions on the server data table: paged instead of loading everything, status links counted by one query, sorted by last change or name, searched and filtered by type | 012, 013, 052, 055, 056, 057, 058, 060, 062 | done |
 | [064](./064-remove-scopes-page/SPEC.md) | Remove the Scopes page: `/scopes` and its nav entry go (404), links point to the Documentation; Admin › Scopes and `GET /api/v1/scopes` stay | 010, 061 | done |
 | [088](./088-docs-on-website/SPEC.md) | Documentation on the website: Docs and every helper's Learn more open `www.ronne.ai/marketplace/docs` in a new tab; the app's `/docs` pages go (their addresses redirect); the install scripts move to `www.ronne.ai/marketplace/install.sh` and `.ps1` | 033, 050 | done |
-| [089](./089-dependency-picker-rule/SPEC.md) | Who can be picked as a dependency: your own items in any state (draft, in review, approved, published), others' only once published, in the form, `@` and the canvas alike; another author's unreleased item no longer counts at submit | 031, 056 | specified |
+| [089](./089-dependency-picker-rule/SPEC.md) | Who can be picked as a dependency: your own items in any state (draft, in review, approved, published), others' only once published, in the form, `@` and the canvas alike; another author's unreleased item no longer counts at submit | 031, 056 | done |
 
 ### M12 — Easy install
 

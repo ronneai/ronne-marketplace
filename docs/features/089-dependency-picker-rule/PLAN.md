@@ -30,7 +30,7 @@ the same change that completes it.
   released, and can pick their own draft from the form, `@` and the canvas.
   *Done when:* the Playwright test passes on desktop and phone.
 
-- [ ] **5. Decisions and Documentation.** 056's decision 4 points here; MVP §15's "Dependencies on
+- [x] **5. Decisions and Documentation.** 056's decision 4 points here; MVP §15's "Dependencies on
   export" row says "your own open submission, or a release"; the ronne-web topics and the helper in
   the spec's Documentation section.
   *Done when:* the docs render tests pass in ronne-web, and the helper test passes here.

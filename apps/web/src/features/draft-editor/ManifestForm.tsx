@@ -475,8 +475,8 @@ export const ManifestForm = ({
             {type === "bundle"
               ? "The items this bundle installs."
               : "Items installed with this one."}{" "}
-            Find one by typing part of its name: published items, yours, and others' in review. It
-            starts on latest; pick another version if you need one.
+            Find one by typing part of its name: your own items in any state, and others' once
+            they're published. It starts on latest; pick another version if you need one.
           </p>
           {readOnly ? null : <Help id="add-dependency" />}
           <DependencyField

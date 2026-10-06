@@ -152,3 +152,34 @@ Witnessed: 2026-10-05 20:07 EDT, by a fresh agent. Same machine.
 
 **Overall:** met. Risks noted in the plan: downloader and each phone member are at 4 of 5 uses a
 run; `@e2e-seeded/pick-theirs` stays published in the shared instance.
+
+## Task 5 — Decisions and Documentation
+
+Witnessed: 2026-10-05 20:11 EDT, by a fresh agent. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|
+| 1 | 056's decision 4 points to 089 | confirmed | Already in the committed spec (535a0ff), so not in this task's diff. |
+| 2 | MVP §15 "Dependencies on export" states the 089 rule | confirmed | Released, or the submitter's own open submission; another author's item once published; the pickers offer your own in any state and others' published. |
+| 3 | The website's English says what the app does | confirmed | `items#dependencies` (at submit; Adding one), `items#canvas` (Add; Problems), `review#checks`, `review#dependencies`; no stale "others' in review" text left in any language. |
+| 4 | Portuguese and French say the same, keep UI labels in English, use their files' terms | confirmed | Proofread against the translator rules before the commit (two agreement errors and one ambiguous French phrase fixed then). |
+| 5 | The helper, the form's hint, no stale text in the app | confirmed | `Help.tsx` "How do I add one?" and `ManifestForm.tsx` say "your own items in any state, and others' once they're published"; the `DependencyField.tsx` comment too. |
+| 6 | Checks | confirmed | ronne-web `www`: lint, typecheck, 136 tests (the docs render tests); here: 120 help and editor tests, lint 0 errors, typecheck 7/7. |
+| 7 | The linked section ids exist in both `topics.ts` | confirmed | `items#dependencies`, `items#canvas`, `review#checks`, `review#dependencies`. |
+
+**Not checked here:** the rendered website in a browser; `help.test.tsx` doesn't assert the answer's wording.
+**Differences from the notes:** 056's decision 5 still said others' items in review are offered, and
+the canvas "Add" bullet didn't say an unreleased item of yours starts on `^1.0.0`. Both fixed (below).
+**Overall:** met.
+
+### Re-check after fixes
+
+Witnessed: 2026-10-05 20:13, by a fresh agent.
+
+| # | Claim | Verdict | Evidence |
+|---|---|---|---|
+| a | 056's decision 5 points to 089 | confirmed | It ends "*Since 089 … others' items are offered only once published, and the canvas offers the person's own too.*" |
+| b | The canvas "Add" bullet says your unreleased item starts on `^1.0.0`, and the app does that, in all three languages | confirmed | `composer.ts` gives it version `1.0.0`; `ComposerView.tsx:72` adds with `startingRange` → `^1.0.0`. |
+| c | Checks | confirmed | ronne-web lint and 136 tests; lint here 0 errors. |
+
+**Overall:** met.

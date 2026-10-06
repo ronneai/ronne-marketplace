@@ -155,7 +155,7 @@ export const HELP = {
   "add-dependency": {
     question: "How do I add one?",
     answer:
-      "Type part of its name and pick it from the list: published items, yours, and others' in review. It starts on latest; pick another version if you need one. In a markdown file, type @ to do the same.",
+      "Type part of its name and pick it from the list: your own items in any state, and others' once they're published. It starts on latest; pick another version if you need one. In a markdown file, type @ to do the same.",
     href: docsHref("items", "dependencies"),
   },
   "which-bump": {

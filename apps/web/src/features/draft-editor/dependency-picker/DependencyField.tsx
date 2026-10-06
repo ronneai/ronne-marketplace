@@ -122,7 +122,7 @@ const RangeInput = ({
 
 /**
  * The dependencies field of the manifest form (056). Items are picked from a list that searches
- * as you type (published, yours, and others' in review), never typed by hand, so no half name
+ * as you type (your own in any state, others' once published, 089), never typed by hand, so no half name
  * reaches ronne.yaml. A picked one starts on `latest`, with its versions to choose from.
  */
 export const DependencyField = ({
