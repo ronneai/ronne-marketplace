@@ -145,27 +145,6 @@ export class DependencyUnreleasedError extends SubmissionsError {
   }
 }
 
-/** "an agent", "an mcp-server", "a hook": the article as the type is read aloud. */
-const withArticle = (type: string) =>
-  `${/^(agent|output-style|mcp-server|lsp-server)$/.test(type) ? "an" : "a"} ${type}`;
-
-export class DependencyTypeNotAllowedError extends SubmissionsError {
-  constructor(
-    readonly dependency: string,
-    dependencyType: string,
-    type: string,
-    allowed: readonly string[],
-  ) {
-    super(
-      `${dependency} is ${withArticle(dependencyType)}, which ${withArticle(type)} can't depend on. ${
-        allowed.length > 0
-          ? `${withArticle(type)[0]?.toUpperCase()}${withArticle(type).slice(1)} may depend on: ${allowed.join(", ")}.`
-          : `${withArticle(type)[0]?.toUpperCase()}${withArticle(type).slice(1)} can't have dependencies.`
-      }`,
-    );
-  }
-}
-
 export class DependencyRangeUnmatchedError extends SubmissionsError {
   constructor(
     readonly dependency: string,

@@ -12,7 +12,7 @@ import type { SubmissionRepository } from "../repositories/submission-repository
  * Finding a dependency to pick (056, 089): what the manifest form's Item field, `@` in a markdown
  * file and the canvas offer. The person's own items in any state (published, approved, in review,
  * drafts) first, then others' published items. Others' unreleased items are never offered (089).
- * Only types the item may depend on, never the item itself or one already listed.
+ * Any type (096), never the item itself or one already listed.
  */
 export type DependencyOption = {
   name: string;

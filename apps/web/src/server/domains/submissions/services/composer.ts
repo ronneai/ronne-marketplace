@@ -108,9 +108,8 @@ export const dependencyReports = async (
 /**
  * The catalogue for the picker (031, 089): the person's own items first on the first page (the
  * ones they published, whatever their rank, then their drafts and open submissions), then 018's
- * search, newest first, of others' published items, page by page. Only types an item of `type`
- * may depend on (manifest spec §3), and only published items with a version that can be
- * installed. `only` narrows it to one of those types.
+ * search, newest first, of others' published items, page by page. Any type (096), and only
+ * published items with a version that can be installed. `only` narrows it to one of those types.
  */
 export const searchDependencies = async (
   deps: ComposerDeps,

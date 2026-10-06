@@ -29,7 +29,7 @@ export const dependencyReportsAction = async (input: {
 
 export type PickerResult = ({ ok: true } & PickerPage) | { ok: false; error: string };
 
-/** The catalogue for the picker: published items a draft of `type` may depend on (feature 031). */
+/** The catalogue for the picker: the person's own items and published ones, of any type (031, 089, 096). */
 export const searchDependenciesAction = async (input: {
   type: ItemType;
   q: string;

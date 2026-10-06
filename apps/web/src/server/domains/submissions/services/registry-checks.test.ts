@@ -73,18 +73,15 @@ describe("dependencyIssues", () => {
     ).toEqual([]);
   });
 
-  it("refuses a missing dependency, a type this item can't depend on, and an unmatched range", async () => {
+  it("refuses a missing dependency and an unmatched range, and takes any type (096)", async () => {
     expect(await codes(registry, { "@team/nowhere": "^1.0.0" })).toEqual(["dependency_not_found"]);
-    expect(await codes(registry, { "@team/other-agent": "^1.0.0" })).toEqual(["dependency_type"]);
+    // An agent on another agent: any type may depend on any type.
+    expect(await codes(registry, { "@team/other-agent": "^1.0.0" })).toEqual([]);
     expect(await codes(registry, { "@team/secure-coding": "^2.0.0" })).toEqual([
       "dependency_range",
     ]);
     // Yanked versions don't count.
     expect(await codes(registry, { "@team/old": "^1.0.0" })).toEqual(["dependency_range"]);
-    const [typeIssue] = await dependencyIssues(registry, agent({ "@team/other-agent": "^1.0.0" }));
-    expect(typeIssue?.message).toBe(
-      "@team/other-agent is an agent, which an agent can't depend on. An agent may depend on: skill, mcp-server, hook, rule, command.",
-    );
   });
 
   it("finds cycles through the versions that would be installed", async () => {
@@ -204,9 +201,8 @@ describe("dependencies on their way (056)", () => {
     ]);
   });
 
-  it("checks the type against the submission's", async () => {
+  it("takes a submission of any type (096)", async () => {
     expect((await issues({ "@team/other-agent": "^1.0.0" })).map((i) => i.code)).toEqual([
-      "dependency_type",
       "dependency_pending",
     ]);
   });

@@ -164,7 +164,7 @@ describe("dependencyReports", () => {
     });
   });
 
-  it("says what submitting would: not published, a type it can't depend on, no matching version", async () => {
+  it("says what submitting would: not published, no matching version; any type is fine (096)", async () => {
     await release("secure-coding");
     await release("other-agent", { type: "agent" });
     await release("withdrawn", { type: "rule", yanked: true });
@@ -185,9 +185,8 @@ describe("dependencyReports", () => {
     expect(found["not a name"]?.facts).toBeNull();
     expect(found["not a name"]?.problems[0]).toContain("isn't a published item");
     expect(found["@team/other-agent"]?.facts?.type).toBe("agent");
-    expect(found["@team/other-agent"]?.problems).toEqual([
-      "@team/other-agent is an agent, which an agent can't depend on. An agent may depend on: skill, mcp-server, hook, rule, command.",
-    ]);
+    // An agent on another agent: any type may depend on any type.
+    expect(found["@team/other-agent"]?.problems).toEqual([]);
     expect(found["@team/secure-coding"]?.problems).toEqual([
       "No published version of @team/secure-coding matches ^2.0.0.",
     ]);
@@ -196,7 +195,7 @@ describe("dependencyReports", () => {
     expect(found["@team/withdrawn"]?.problems).toEqual([
       "No published version of @team/withdrawn matches ^1.0.0.",
     ]);
-    // A bundle may depend on anything.
+    // A bundle too.
     expect(
       (await reports({ "@team/other-agent": "^1.0.0" }, "bundle"))["@team/other-agent"],
     ).toEqual({ facts: expect.objectContaining({ type: "agent" }), status: null, problems: [] });
@@ -280,9 +279,12 @@ describe("searchDependencies", () => {
     await release("quiet", { type: "output-style" });
   });
 
-  it("offers an agent the types it may depend on, newest first, with the catalogue's facts", async () => {
+  it("offers an agent items of every type, newest first, with the catalogue's facts (096)", async () => {
     const page = await search();
     expect(page.entries.map((entry) => entry.name)).toEqual([
+      "@team/quiet",
+      "@team/starter",
+      "@team/other-agent",
       "@team/review",
       "@team/style",
       "@team/on-save",
@@ -325,20 +327,18 @@ describe("searchDependencies", () => {
     expect(later.entries.every((entry) => !entry.mine)).toBe(true);
   });
 
-  it("offers a bundle every type, and a type without dependencies nothing", async () => {
-    expect(await found({ type: "bundle" })).toHaveLength(8);
-    expect(await found({ type: "skill" })).toEqual(["@team/github"]);
-    expect(await found({ type: "rule" })).toEqual([]);
+  it("offers every type to every type (096), and nothing to an unknown type", async () => {
+    for (const type of ["bundle", "skill", "rule", "output-style"] as const)
+      expect(await found({ type })).toHaveLength(8);
     expect(await found({ type: "nothing" as ItemType })).toEqual([]);
   });
 
-  it("searches names and descriptions, and narrows to one allowed type", async () => {
+  it("searches names and descriptions, and narrows to one type", async () => {
     expect(await found({ q: "  secure " })).toEqual(["@team/secure-coding"]);
     expect(await found({ q: "nothing like it" })).toEqual([]);
     expect(await found({ only: "hook" })).toEqual(["@team/on-save"]);
-    // A type the item can't depend on isn't offered, however it's asked for.
-    expect(await found({ only: "agent" })).toEqual([]);
-    expect(await found({ type: "bundle", only: "agent" })).toEqual(["@team/other-agent"]);
+    expect(await found({ only: "agent" })).toEqual(["@team/other-agent"]);
+    expect(await found({ type: "rule", only: "bundle" })).toEqual(["@team/starter"]);
   });
 
   it("leaves out items with nothing to install, and lists a pre-release-only item by its version", async () => {
@@ -355,10 +355,10 @@ describe("searchDependencies", () => {
     expect(first.entries).toHaveLength(PICKER_PAGE_SIZE);
     expect(first.nextCursor).not.toBeNull();
     const second = await search({ cursor: first.nextCursor ?? undefined });
-    expect(second.entries).toHaveLength(5);
+    expect(second.entries).toHaveLength(8);
     expect(second.nextCursor).toBeNull();
     const names = [...first.entries, ...second.entries].map((entry) => entry.name);
-    expect(new Set(names).size).toBe(PICKER_PAGE_SIZE + 5);
+    expect(new Set(names).size).toBe(PICKER_PAGE_SIZE + 8);
   });
 
   it("is for signed-in users", async () => {

@@ -44,15 +44,6 @@ describe("manifest schema", () => {
   it.each([
     ["an unscoped name", { ...base, name: "b", type: "bundle", dependencies: { "@a/c": "^1" } }],
     [
-      "a rule with dependencies",
-      {
-        ...base,
-        type: "rule",
-        rule: { body: "r.md", activation: "always" },
-        dependencies: { "@a/c": "^1" },
-      },
-    ],
-    [
       "a glob rule without globs",
       { ...base, type: "rule", rule: { body: "r.md", activation: "glob" } },
     ],
@@ -84,5 +75,20 @@ describe("manifest schema", () => {
     ["a bundle without dependencies", { ...base, type: "bundle" }],
   ])("rejects %s", (_label, manifest) => {
     expect(validate(manifest)).toBe(false);
+  });
+
+  it("accepts dependencies on every type (096): a rule, a skill on an agent, an MCP server", () => {
+    const dependencies = { "@a/c": "^1.0.0" };
+    for (const manifest of [
+      { ...base, type: "rule", rule: { body: "r.md", activation: "always" }, dependencies },
+      { ...base, type: "skill", skill: {}, dependencies: { "@a/agent": "^1.0.0" } },
+      {
+        ...base,
+        type: "mcp-server",
+        "mcp-server": { transport: "stdio", command: "x" },
+        dependencies,
+      },
+    ])
+      expect(validate(manifest), ajv.errorsText(validate.errors)).toBe(true);
   });
 });

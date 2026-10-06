@@ -84,7 +84,7 @@ type Found =
 
 /**
  * The catalogue, for adding dependencies (feature 031): the person's own items first, then 018's
- * search over the types this draft may depend on, only items with a version to install (089). The
+ * search over every type (096), only items with a version to install (089). The
  * draft's own item is never offered.
  */
 export const CataloguePicker = ({
@@ -181,7 +181,7 @@ export const CataloguePicker = ({
             : entries.length === 0
               ? search || only
                 ? "Nothing matches."
-                : "Nothing yet that this item may depend on."
+                : "Nothing yet to depend on."
               : "Add one, or drag it onto the canvas."}
       </p>
       <PickerResults entries={entries} added={added} onAdd={onAdd} />

@@ -110,11 +110,11 @@ describe("findDependencies", () => {
     ]);
   });
 
-  it("ignores an item that refers to itself, and reports a pair the manifest forbids", async () => {
+  it("ignores an item that refers to itself, and declares a skill a skill uses (096)", async () => {
     await project();
     const refs = () => [
       { kind: "skill" as const, name: "secure", from: "test" },
-      { kind: "skill" as const, name: "other", from: "test" },
+      { kind: "skill" as const, name: "installed-skill", from: "test" },
     ];
     const self = await findDependencies(
       io,
@@ -122,8 +122,9 @@ describe("findDependencies", () => {
       [{ ...selected("secure", "skill"), name: "secure" }],
       refs,
     );
-    expect(summary(self)).toEqual([["not_allowed", "skill", "other", [".claude/skills/secure"]]]);
-    expect(self[0]?.note).toBe("A skill can't depend on a skill.");
+    expect(summary(self)).toEqual([
+      ["installed", "skill", "installed-skill", [".claude/skills/secure"]],
+    ]);
   });
 
   it("finds nothing for an item that uses nothing", async () => {

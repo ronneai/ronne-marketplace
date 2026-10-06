@@ -213,8 +213,13 @@ describe("findDependencies (056, 089)", () => {
     ).toEqual(["@infra/deploy"]);
   });
 
-  it("offers nothing for a type that can't have dependencies", async () => {
+  it("offers items to every type, a rule too (096)", async () => {
     await submitted(asAuthor, "team", "style", "rule");
-    expect(await findDependencies(asAuthor, { type: "rule", q: "" }, app)).toEqual([]);
+    await submitted(asAuthor, "team", "tone", "rule");
+    expect(
+      (await findDependencies(asAuthor, { type: "rule", q: "", itemName: "@team/tone" }, app)).map(
+        (o) => o.name,
+      ),
+    ).toEqual(["@team/style"]);
   });
 });

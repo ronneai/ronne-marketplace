@@ -49,9 +49,8 @@ test("a user composes an agent from two catalogue items on the canvas, saves, re
     "https://www.ronne.ai/marketplace/docs/items#canvas",
   );
 
-  // The picker offers what an agent may depend on: skills and MCP servers, not other agents.
+  // The picker offers items of every type (096): skills, MCP servers, other agents too.
   await expect(picker.getByText(skill, { exact: true })).toBeVisible();
-  await expect(picker.getByText(`@${E2E_SCOPE}/${E2E_RMK_ITEMS.agent}`)).toHaveCount(0);
 
   // The first, searched for and added with its button: on the canvas with ^latest.
   await picker.getByLabel("Search the catalogue").fill("commit messages");

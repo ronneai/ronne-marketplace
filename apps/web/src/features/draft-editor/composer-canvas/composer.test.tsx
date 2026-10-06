@@ -317,11 +317,11 @@ describe("the picker", () => {
     expect(submitted).toMatch(/<input[^>]*aria-label="Range of @tools\/github"[^>]*disabled=""/);
   });
 
-  it("offers only the types the draft may depend on", () => {
+  it("offers every type in its Type filter (096)", () => {
     const types = (html: string) =>
       [...html.matchAll(/<option value="([a-z-]+)"/g)].map((match) => match[1]);
-    expect(types(view(false))).toEqual(["skill", "mcp-server", "hook", "rule", "command"]);
-    expect(types(view(false, "bundle"))).toContain("agent");
+    expect(types(view(false))).toHaveLength(11);
+    expect(types(view(false))).toContain("agent");
     expect(types(view(false, "bundle"))).toHaveLength(11);
   });
 

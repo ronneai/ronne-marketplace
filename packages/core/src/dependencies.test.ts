@@ -10,14 +10,10 @@ import {
 } from "./versions.js";
 
 describe("DEPENDENCY_TYPES", () => {
-  it("matches manifest spec §3", () => {
-    expect(mayDependOn("bundle", "hook")).toBe(true);
-    expect(mayDependOn("agent", "skill")).toBe(true);
-    expect(mayDependOn("agent", "agent")).toBe(false);
-    expect(mayDependOn("skill", "mcp-server")).toBe(true);
-    expect(mayDependOn("skill", "rule")).toBe(false);
-    expect(mayDependOn("command", "mcp-server")).toBe(true);
-    expect(ITEM_TYPES.filter(mayHaveDependencies)).toEqual(["skill", "agent", "command", "bundle"]);
+  it("matches manifest spec §3: any type on any type (096)", () => {
+    for (const type of ITEM_TYPES)
+      for (const other of ITEM_TYPES) expect(mayDependOn(type, other)).toBe(true);
+    expect(ITEM_TYPES.filter(mayHaveDependencies)).toEqual([...ITEM_TYPES]);
     expect(Object.keys(DEPENDENCY_TYPES).sort()).toEqual([...ITEM_TYPES].sort());
   });
 });

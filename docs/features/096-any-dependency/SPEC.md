@@ -47,7 +47,9 @@ a field the old rule forbade.
 schema it carries reports a problem (`parseManifest` returns the manifest with its issues;
 `rmk install` reads only the manifest), and its resolver never looked at types. So a rule with
 dependencies installs on an older `rmk` too. `rmk export` 0.3.x still won't propose such a
-dependency (its own type rule); that only means fewer suggestions until it's updated.
+dependency (its own type rule), and an older `rmk export` or `rmk submit` run on a local item
+whose `ronne.yaml` lists a dependency its bundled rule forbids (a rule's, say) reports it as a
+problem; an updated `rmk` doesn't. Nothing already released is affected.
 
 **Authoring.**
 - **The form:** the Dependencies field shows for every type (a bundle's says "The items this bundle

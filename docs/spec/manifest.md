@@ -164,12 +164,12 @@ No type block. A bundle is a `name`, `description` and `dependencies`. The visua
 
 ## 3. Dependencies
 
-| Type | May depend on |
-|---|---|
-| `bundle` | any type |
-| `agent` | `skill`, `mcp-server`, `hook`, `rule`, `command` |
-| `skill`, `command` | `mcp-server` |
-| all other types | nothing (`dependencies` must be absent) |
+Any item may depend on any item, of any type ([096](../features/096-any-dependency/SPEC.md),
+owner 2026-10-05): a skill on the agent it works with, a rule on an MCP server, an agent on another
+agent. A `bundle` must list at least one dependency. An item can't depend on itself, and the
+dependencies can't go round in a circle (MVP §4.3). Until 096, the type decided: a bundle on
+anything, an agent on skills, MCP servers, hooks, rules and commands, a skill or command on MCP
+servers, and the other types on nothing.
 
 Ranges use npm's semver syntax (`^1.2.0`, `~1.1.0`, `>=2 <3`, `1.4.0`). Dist-tags aren't allowed
 in ranges. The resolver rules are in MVP §4.3.
@@ -210,7 +210,7 @@ Used in `agent.tools`, `hook.matcher.tool` and `permission-policy` rules. Render
 1. **Schema** (`packages/core/src/schema/ronne.schema.json`): shape, names, enums, required blocks per type.
 2. **Package checks** (`packages/core`): every referenced file exists; `SKILL.md` frontmatter
    matches; no path escapes the folder; the upload limits in MVP §12 hold.
-3. **Registry checks** (server): the scope exists; dependencies exist, have a type this item may depend on (§3), and each range matches at
+3. **Registry checks** (server): the scope exists; dependencies exist (any type, §3), and each range matches at
    least one published version; no cycles; the type hasn't changed since the item was created.
 
 Risk flags (MVP §12) are computed from the manifest and files. Authors can't set them.

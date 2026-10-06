@@ -1,7 +1,6 @@
 import { validRange } from "semver";
 import { parseFrontmatter } from "./frontmatter.js";
 import type { ManifestIssue } from "./issues.js";
-import { type ItemType, isItemType, mayHaveDependencies } from "./item-types.js";
 import { DEFAULT_LIMITS, formatBytes, type PackageLimits } from "./limits.js";
 import type { Manifest } from "./manifest.js";
 import { parseItemName } from "./names.js";
@@ -276,19 +275,7 @@ export const checkPackage = (
   // Dependencies.
   const dependencies = (manifest.dependencies ?? {}) as Record<string, unknown>;
   const names = Object.keys(dependencies);
-  // Which types they may depend on needs the registry (013).
-  if (
-    names.length > 0 &&
-    isItemType(String(manifest.type)) &&
-    !mayHaveDependencies(manifest.type as ItemType)
-  )
-    issues.push(
-      error(
-        "dependencies_not_allowed",
-        `A ${String(manifest.type)} can't have dependencies. Only bundles, agents, skills and commands can.`,
-        { path: "/dependencies" },
-      ),
-    );
+  // Any type may depend on any type (096); whether each exists is the registry's check (013).
   for (const name of names) {
     const range = dependencies[name];
     if (typeof range !== "string" || validRange(range) === null)

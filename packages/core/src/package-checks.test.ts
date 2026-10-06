@@ -250,7 +250,7 @@ describe("dependencies", () => {
     ]);
   });
 
-  it("allows dependencies only on bundles, agents, skills and commands", () => {
+  it("allows dependencies on every type (096)", () => {
     const rule: Manifest = {
       name: "@a/r",
       type: "rule",
@@ -258,6 +258,6 @@ describe("dependencies", () => {
       rule: { body: "r.md", activation: "always" },
       dependencies: { "@a/x": "^1.0.0" },
     };
-    expect(codes(rule, [file("ronne.yaml"), file("r.md")])).toEqual(["dependencies_not_allowed"]);
+    expect(codes(rule, [file("ronne.yaml"), file("r.md")])).toEqual([]);
   });
 });

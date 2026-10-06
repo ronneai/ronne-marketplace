@@ -1,10 +1,8 @@
 import {
-  DEPENDENCY_TYPES,
   hasErrors,
   highestMatching,
   type ItemType,
   type ManifestIssue,
-  mayDependOn,
   parseItemName,
   parseManifest,
 } from "@ronneai/core";
@@ -14,7 +12,6 @@ import {
   DependencyNotFoundError,
   DependencyNotPublishedError,
   DependencyRangeUnmatchedError,
-  DependencyTypeNotAllowedError,
   DependencyUnreleasedError,
   ItemNameTakenError,
   type SubmissionsError,
@@ -111,7 +108,7 @@ const warning = (code: string, message: string): ManifestIssue => ({
 });
 
 /**
- * Each dependency exists, has a type this item may depend on (manifest spec §3), and its range
+ * Each dependency exists (of any type since 096, manifest spec §3), and its range
  * matches a published, non-yanked version. Then no cycles: following each dependency's highest
  * matching version (what the resolver installs, MVP §4.3), nothing leads back to this item or
  * round in a circle.
@@ -203,20 +200,7 @@ export const dependencyIssues = async (
       );
       continue;
     }
-    const type = item?.type ?? pending?.type;
-    if (type && !mayDependOn(input.type, type))
-      issues.push(
-        issue(
-          "dependency_type",
-          new DependencyTypeNotAllowedError(
-            dependency,
-            type,
-            input.type,
-            DEPENDENCY_TYPES[input.type],
-          ),
-          "/dependencies",
-        ),
-      );
+    // Any type may depend on any type (096): no check on the dependency's type.
     if (resolved) continue;
     if (!pending) {
       issues.push(
