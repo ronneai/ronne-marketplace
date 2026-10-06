@@ -18,6 +18,7 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "hooks:install": "git config core.hooksPath .githooks",
+    "witness:check": "node packages/repo-tools/src/check-witness.js",
     "licenses:check": "pnpm licenses list --json | node packages/repo-tools/src/check-licenses.js",
     "db:migrate": "pnpm --filter @ronneai/web db:migrate",
     "setup": "pnpm --filter @ronneai/web run setup",

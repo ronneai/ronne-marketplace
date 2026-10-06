@@ -3,7 +3,9 @@
 > Spec: [SPEC.md](./SPEC.md)
 
 Tasks in build order. Each is small enough for one session and ends with a check. Tick a task in
-the same change that completes it.
+the same change that completes it, once the [state witness](../../knowledge/state-witness.md) met
+it ([WITNESS.md](./WITNESS.md)). Put `[risky]` on a task's first line when it touches sign-in,
+tokens, roles, migrations, deleting data or security checks: it then needs an adversarial pass too.
 
 ## Tasks
 

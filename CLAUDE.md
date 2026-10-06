@@ -24,7 +24,9 @@ The monorepo is scaffolded (feature 001); the product features start with 002. W
 - `docs/UI-Mocks-Materials/` (**git-ignored, kept only on the owner's machine; never commit or publish it**): the brand files, the Manrope font, the Stitch mocks and the two `DESIGN.md` notes. Feature 032 turns them into the design system and copies only what the app serves into `apps/web`; UI work follows it (flat, no shadows, teal as the single accent, red and amber only for errors and warnings (tokens, never raw colours), Manrope and IBM Plex Mono). Three exceptions, all tokens: the syntax colours (044), the usage charts' per-tool colours (047), and the item type colours (054: the type badges and the catalogue's type filter; never red or amber).
 - `examples/items/`: one sample item per type. Each must pass the manifest schema (checked by a test in `packages/core`); they are the golden-file inputs for renderers.
 
-To work on a feature, read its `SPEC.md`, follow `PLAN.md` in order, and tick tasks as they land. If the behaviour changes, update `SPEC.md` in the same change; when the feature is finished, set its status in the index.
+To work on a feature, read its `SPEC.md`, follow `PLAN.md` in order, and tick tasks as they land.
+Before ticking a task, the `state-witness` agent checks it and its pass goes in the feature's
+`WITNESS.md` ([`docs/knowledge/state-witness.md`](docs/knowledge/state-witness.md)). If the behaviour changes, update `SPEC.md` in the same change; when the feature is finished, set its status in the index.
 
 **Every feature keeps the Documentation current (owner's rule, 2026-09-28).** The Documentation is on the website, `https://www.ronne.ai/marketplace/docs` (088, 2026-10-05), built from the sibling repository `../ronne-web` (`www/src/content/docs/`: the words in English, Portuguese and French, and `topics.ts`). When a feature changes what people see or do, it updates the Documentation there, in a ronne-web branch that goes live with the release, and adds or changes inline helpers here (`apps/web/src/components/help/Help.tsx`, which link into the website). A new or renamed topic or section changes `apps/web/src/components/help/topics.ts` and ronne-web's `topics.ts` together. Every `SPEC.md` has a Documentation section saying which topics and helpers change, or "None" and why; its acceptance criteria include them. Facts come from how the app behaves, never from plans.
 
@@ -47,6 +49,7 @@ Use Node.js 24 (`.nvmrc`) and pnpm installed directly (`npm install --global pnp
 | `pnpm test:db:up` then `pnpm test:db:postgres` / `:mysql` / `:mariadb` | Database tests against local Docker servers at the minimum versions; `pnpm test:db:down` stops them |
 | `pnpm test:install` | The install script's tests (`scripts/install/test-install.sh`) under dash and bash. `install.ps1`'s tests and lint run in CI (`install-scripts.yml`) |
 | `pnpm test:e2e` | Builds the web app and runs the Playwright tests (`apps/web/e2e`) against a throwaway SQLite instance. Desktop, phone (also in WebKit, for iOS Safari) and tablet projects. First run `pnpm --filter @ronneai/web exec playwright install chromium webkit` |
+| `pnpm witness:check` | Checks every `WITNESS.md` record and that each ticked task has a pass that met it. The pre-commit hook and CI run it on every change |
 | `pnpm licenses:check` | Checks every installed package's license against `license-policy.json` |
 | `pnpm audit --audit-level high` | Fails on known high or critical vulnerabilities |
 | `pnpm run setup` | Configures an instance (interactive, or `--yes` with env vars). Never `pnpm setup`: that's a pnpm built-in |
@@ -75,7 +78,7 @@ After adding a workspace package, run `pnpm install --frozen-lockfile` to confir
 1. **Before any commit**, run `pnpm lint`, `pnpm typecheck`, `pnpm test` and `pnpm build`. Also run
    `pnpm install --frozen-lockfile` and `pnpm licenses:check` when dependencies or workspace packages
    changed. Commit only when all pass. The `pre-commit` hook runs exactly these, and skips them when
-   every staged file is documentation (`.md`, `.mdx` or `.txt`). Never bypass it with `--no-verify`.
+   every staged file is documentation (`.md`, `.mdx` or `.txt`); it always runs `pnpm witness:check`. Never bypass it with `--no-verify`.
 2. **If a check fails**, don't fix it on your own and don't commit. Explain what failed and why, propose
    actions, and let the owner decide the next step.
 3. **Never push or open a pull request** unless the owner asks for that specific change.
@@ -136,13 +139,12 @@ Pull requests are squash-merged, so the PR title becomes the commit on `main`. C
 - **Workflow:**
   - An item or change goes from draft → submitted → approved, with one approval from a moderator or root who isn't the author (root can override, and the override is audited).
   - Releasing is a separate step: semver bump plus a dist-tag, `latest` by default.
-  - Published versions are immutable `.tgz` files with a sha256 checksum, stored through a `StorageAdapter` (local disk only for now).
+  - Published versions are immutable `.tgz` files with a sha256 checksum, stored through a `StorageAdapter` (local disk for now; S3-compatible storage is planned in M17).
 - **Dependencies** follow `docs/policies/dependencies.md`. Check it before adding any package, tool, action or image.
   - Only licenses that allow free use and redistribution (MIT, ISC, BSD, Apache-2.0, …). Never GPL, AGPL, SSPL, BUSL, non-commercial or unlicensed, even as a dev dependency. No tools that need a paid plan.
   - Use the latest stable version, and LTS where there is one (Node.js 24 LTS target, 22 minimum).
   - Don't add anything with known high or critical vulnerabilities. Keep the pnpm protections (`minimumReleaseAge`, `allowBuilds`, `trustPolicy`, `blockExoticSubdeps`) intact.
 - **Out of scope for the MVP:**
   - importing from external marketplaces;
-  - S3 storage;
   - notifications;
   - linking Ronne instances and release signing (designed in §14, not built yet).
