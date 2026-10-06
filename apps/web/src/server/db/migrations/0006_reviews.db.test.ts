@@ -4,6 +4,7 @@ import { newId } from "../ids";
 import { foreignKeys } from "../testing/foreign-keys";
 import { createTestDb, type TestDb } from "../testing/test-db";
 import { backfillRevisions } from "./0006_reviews";
+import { GLOBAL_WORKSPACE_ID } from "./0019_workspaces";
 
 // Runs on the database in TEST_DATABASE_URL (in-memory SQLite by default; 004 runs all of them).
 let t: TestDb;
@@ -34,6 +35,7 @@ beforeAll(async () => {
       description: "A team.",
       created_by: null,
       created_at: now(),
+      workspace_id: GLOBAL_WORKSPACE_ID,
     })
     .execute();
 });

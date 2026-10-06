@@ -23,7 +23,7 @@ const actor = async (headers: Headers, app: AppAuth): Promise<service.ScopeActor
 
 export const createScope = async (
   headers: Headers,
-  input: { name: string; description: string },
+  input: { name: string; description: string; workspaceId?: string },
   app: AppAuth = getAppAuth(),
 ) => service.createScope(deps(app), await actor(headers, app), input);
 

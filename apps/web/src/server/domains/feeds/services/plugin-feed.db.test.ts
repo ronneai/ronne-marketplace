@@ -7,6 +7,7 @@ import { PLUGIN_BUILDER_VERSION } from "@ronneai/core/plugins";
 import { unzipSync } from "fflate";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { toDbDate } from "../../../db/dates";
+import { GLOBAL_WORKSPACE_ID } from "../../../db/migrations/0019_workspaces";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { localStorage } from "../../../storage/local-storage";
 import type { StorageAdapter } from "../../../storage/storage-adapter";
@@ -137,6 +138,7 @@ beforeEach(async () => {
       description: "",
       created_by: publisher,
       created_at: toDbDate(now, t.dialect),
+      workspace_id: GLOBAL_WORKSPACE_ID,
     })
     .execute();
 
@@ -350,6 +352,7 @@ describe("the Claude Code feed (077)", () => {
             ? []
             : many.map((m) => ({
                 id: m.name,
+                workspace: "global",
                 scope: m.scope,
                 name: m.name,
                 type: "skill" as const,

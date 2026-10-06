@@ -11,6 +11,7 @@ import type { AppAuth } from "../domains/identity/repositories/auth-instance";
 import { createTestUser, testAppAuth } from "../domains/identity/testing/test-auth";
 import { kyselyItemRepository } from "../domains/items/repositories/kysely-item-repository";
 import { kyselyScopeRepository } from "../domains/items/repositories/kysely-scope-repository";
+import { GLOBAL_WORKSPACE_ID } from "../domains/workspaces/models/workspace";
 import { localStorage } from "../storage/local-storage";
 import type { StorageAdapter } from "../storage/storage-adapter";
 import {
@@ -59,6 +60,7 @@ beforeEach(async () => {
   scopeId = await kyselyScopeRepository(t.db, t.dialect).insert({
     name: "team",
     description: "A team.",
+    workspaceId: GLOBAL_WORKSPACE_ID,
     createdBy: null,
     createdAt: new Date(),
   });

@@ -49,6 +49,13 @@ describe("audit summaries (060)", () => {
     expect(
       line("dist_tag.moved", { name: "@team/reviewer", tag: "beta", from: "1.2.0", to: "1.3.0" }),
     ).toBe("Moved beta of @team/reviewer from 1.2.0 to 1.3.0");
+    expect(line("workspace.created", { name: "acme", description: "Acme's teams." })).toBe(
+      "Created workspace acme",
+    );
+    expect(line("workspace.updated", { name: "acme", from: "a", to: "b" })).toBe(
+      "Changed the description of workspace acme",
+    );
+    expect(line("workspace.deleted", { name: "acme" })).toBe("Deleted workspace acme");
     expect(line("scope.created", { name: "team", description: "A team." })).toBe(
       "Created scope @team",
     );

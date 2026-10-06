@@ -6,11 +6,15 @@ import { getCurrentUser, signIn } from "../../identity/actions/session";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import type { AppAuth } from "../../identity/repositories/auth-instance";
 import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testing/test-auth";
+import { createWorkspace, deleteWorkspace } from "../../workspaces/actions/workspaces";
+import { WorkspaceNotEmptyError } from "../../workspaces/exceptions/errors";
+import { GLOBAL_WORKSPACE_ID } from "../../workspaces/models/workspace";
 import {
   InvalidScopeDescriptionError,
   InvalidScopeNameError,
   ScopeNameTakenError,
   ScopeNotFoundError,
+  ScopeWorkspaceNotFoundError,
 } from "../exceptions/errors";
 import { kyselyScopeRepository } from "../repositories/kysely-scope-repository";
 import {
@@ -60,7 +64,15 @@ describe("createScope", () => {
       { name: "  @Platform ", description: " Shared tools. " },
       app,
     );
-    expect(scope).toMatchObject({ name: "platform", description: "Shared tools." });
+    expect(scope).toMatchObject({
+      name: "platform",
+      description: "Shared tools.",
+      workspace: { id: GLOBAL_WORKSPACE_ID, name: "global" },
+    });
+    expect((await findScope("platform", app))?.workspace).toEqual({
+      id: GLOBAL_WORKSPACE_ID,
+      name: "global",
+    });
     expect((await findScope("platform", app))?.createdBy).toEqual({
       id: rootId,
       email: "root@example.com",
@@ -70,8 +82,41 @@ describe("createScope", () => {
       actorId: rootId,
       targetType: "scope",
       targetId: scope.id,
-      metadata: { name: "platform", description: "Shared tools." },
+      metadata: { name: "platform", description: "Shared tools.", workspace: "global" },
     });
+  });
+
+  it("creates a scope in the workspace root chose, and records which", async () => {
+    const acme = await createWorkspace(asRoot, { name: "acme", description: "Acme." }, app);
+    const scope = await createScope(
+      asRoot,
+      { name: "acme-infra", description: "Infrastructure.", workspaceId: acme.id },
+      app,
+    );
+    expect(scope.workspace).toEqual({ id: acme.id, name: "acme" });
+    expect((await findScope("acme-infra", app))?.workspace).toEqual({ id: acme.id, name: "acme" });
+    const [event] = await events("scope.created");
+    expect(event?.metadata).toEqual({
+      name: "acme-infra",
+      description: "Infrastructure.",
+      workspace: "acme",
+    });
+    // The workspace now has a scope, so it can't be deleted.
+    await expect(deleteWorkspace(asRoot, { name: "acme" }, app)).rejects.toThrow(
+      WorkspaceNotEmptyError,
+    );
+  });
+
+  it("refuses a workspace that doesn't exist, and creates nothing", async () => {
+    await expect(
+      createScope(
+        asRoot,
+        { name: "lost", description: "Nowhere.", workspaceId: "01HZZZZZZZZZZZZZZZZZZZZZZZ" },
+        app,
+      ),
+    ).rejects.toThrow(ScopeWorkspaceNotFoundError);
+    expect(await findScope("lost", app)).toBeNull();
+    expect(await events("scope.created")).toEqual([]);
   });
 
   it("refuses a duplicate, whatever the case or @", async () => {
@@ -142,6 +187,7 @@ describe("listScopes", () => {
       await repo.insert({
         name: `scope-${String(i).padStart(2, "0")}`,
         description: i === 7 ? "The Security team" : "Another scope",
+        workspaceId: GLOBAL_WORKSPACE_ID,
         createdBy: null,
         createdAt: new Date(),
       });
@@ -169,6 +215,7 @@ describe("pageScopes (061)", () => {
       await repo.insert({
         name,
         description: i === 2 ? "Shared tools" : `Scope ${name}`,
+        workspaceId: GLOBAL_WORKSPACE_ID,
         createdBy: null,
         createdAt: new Date(),
       });
@@ -198,6 +245,25 @@ describe("pageScopes (061)", () => {
     expect(searched.scopes.map((s) => s.name)).toEqual(["charlie"]);
     expect(searched.total).toEqual({ count: 1, capped: false });
     expect((await pageScopes(asUser, {}, app)).total).toEqual({ count: 5, capped: false });
+  });
+});
+
+describe("pageScopes in a workspace (090)", () => {
+  it("lists and counts only that workspace's scopes, searched as usual", async () => {
+    const acme = await createWorkspace(asRoot, { name: "acme", description: "Acme." }, app);
+    for (const name of ["acme-infra", "acme-web"])
+      await createScope(asRoot, { name, description: "Acme's.", workspaceId: acme.id }, app);
+    await createScope(asRoot, { name: "team", description: "Everyone's." }, app);
+
+    const inAcme = await pageScopes(asRoot, { workspaceId: acme.id }, app);
+    expect(inAcme.scopes.map((s) => s.name)).toEqual(["acme-infra", "acme-web"]);
+    expect(inAcme.total).toEqual({ count: 2, capped: false });
+    const searched = await pageScopes(asRoot, { workspaceId: acme.id, search: "web" }, app);
+    expect(searched.scopes.map((s) => s.name)).toEqual(["acme-web"]);
+    expect(searched.total.count).toBe(1);
+    const inGlobal = await pageScopes(asRoot, { workspaceId: GLOBAL_WORKSPACE_ID }, app);
+    expect(inGlobal.scopes.map((s) => s.name)).toEqual(["team"]);
+    expect((await pageScopes(asRoot, {}, app)).total.count).toBe(3);
   });
 });
 

@@ -53,6 +53,8 @@ const scope = (m: Meta): SummaryPart => {
   return { name: name.startsWith("@") ? name : `@${name}` };
 };
 
+const workspace = (m: Meta): SummaryPart => ({ name: text(m.name) || "a workspace" });
+
 const VIA: Record<string, string> = { cli: "from the command line", api: "from rmk", web: "" };
 const via = (m: Meta) => (VIA[text(m.via)] ? ` ${VIA[text(m.via)]}` : "");
 
@@ -105,6 +107,9 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     { name: text(m.name) },
     m.by === "disable" ? " (account disabled)" : m.by === "root" ? " (by root)" : "",
   ],
+  "workspace.created": (m) => ["Created workspace ", workspace(m)],
+  "workspace.updated": (m) => ["Changed the description of workspace ", workspace(m)],
+  "workspace.deleted": (m) => ["Deleted workspace ", workspace(m)],
   "scope.created": (m) => ["Created scope ", scope(m)],
   "scope.updated": (m) => ["Changed the description of ", scope(m)],
   "submission.draft_created": (m) => [

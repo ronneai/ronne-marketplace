@@ -5,6 +5,7 @@ import { toDbDate } from "../dates";
 import { encodeJson } from "../json";
 import { createTestDb, type TestDb } from "../testing/test-db";
 import { backfillDisabledTargets } from "./0011_disabled_targets";
+import { GLOBAL_WORKSPACE_ID } from "./0019_workspaces";
 
 let t: TestDb;
 beforeEach(async () => {
@@ -28,6 +29,7 @@ describe("0011 disabled targets", () => {
         description: "",
         created_by: publisher,
         created_at: toDbDate(new Date(), t.dialect),
+        workspace_id: GLOBAL_WORKSPACE_ID,
       })
       .execute();
     const items = kyselyItemRepository(t.db, t.dialect);

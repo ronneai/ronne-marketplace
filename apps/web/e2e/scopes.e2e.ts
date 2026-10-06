@@ -11,6 +11,7 @@ const signIn = async (page: Page, email: string) => {
 
 test("root creates, sorts and searches scopes under Admin; nobody else has a scope page (064)", async ({
   browser,
+  request,
 }) => {
   const root = await browser.newPage();
   await signIn(root, E2E_USERS.root);
@@ -31,6 +32,109 @@ test("root creates, sorts and searches scopes under Admin; nobody else has a sco
   await root.getByLabel("Search").fill("end-to-end");
   await expect(root).toHaveURL(/q=end-to-end/);
   await expect(root.getByRole("cell", { name: "@e2e-team", exact: true })).toBeVisible();
+
+  // Workspaces (090), in this test because root's sign-ins are limited (e2e-sign-in-limit.md):
+  // root creates one and a scope in it; an item released there is filtered by it in the catalogue.
+  await root.goto("/admin/workspaces");
+  await root.getByRole("button", { name: "New workspace" }).click();
+  const create = root.getByRole("dialog", { name: "New workspace" });
+  await create.getByLabel("Name").fill("E2E-Acme");
+  await create.getByLabel("Description").fill("Acme's teams, for the end-to-end tests.");
+  await create.getByRole("button", { name: "Create workspace" }).click();
+  await expect(create.getByText("Created e2e-acme.")).toBeVisible();
+  await create.getByRole("button", { name: "Done" }).click();
+  await root.getByRole("link", { name: "e2e-acme", exact: true }).click();
+  await expect(root).toHaveURL(/\/admin\/workspaces\/e2e-acme$/);
+  await expect(root.getByText("No scopes yet.")).toBeVisible();
+
+  await root.goto("/admin/scopes");
+  await root.getByRole("button", { name: "Create scope" }).click();
+  const scopeDialog = root.getByRole("dialog");
+  await scopeDialog.getByLabel("Name").fill("e2e-acme-infra");
+  await expect(scopeDialog.getByLabel("Workspace")).toHaveValue("00000000000000000000000000");
+  await scopeDialog.getByLabel("Workspace").selectOption({ label: "e2e-acme" });
+  await scopeDialog.getByLabel("Description").fill("Acme's infrastructure.");
+  await scopeDialog.getByRole("button", { name: "Create scope" }).click();
+  await expect(scopeDialog.getByText("Created @e2e-acme-infra in e2e-acme.")).toBeVisible();
+  await scopeDialog.getByRole("button", { name: "Done" }).click();
+  await root.locator("#scope-workspace").selectOption("e2e-acme");
+  await expect(root).toHaveURL(/workspace=e2e-acme/);
+  await expect(root.getByRole("cell", { name: "@e2e-acme-infra", exact: true })).toBeVisible();
+  await expect(root.getByRole("cell", { name: "@e2e-team", exact: true })).toHaveCount(0);
+  // The workspace now has a scope, so it can't be deleted.
+  await root.goto("/admin/workspaces/e2e-acme");
+  await expect(root.getByRole("button", { name: "Delete" })).toBeDisabled();
+
+  // An author uploads and submits an item in the new scope; a moderator approves; it's released.
+  const token = await request.post("/api/v1/auth/token", {
+    data: { email: E2E_USERS.workspaceAuthor, password: E2E_PASSWORD, name: "e2e workspace" },
+  });
+  expect(token.status()).toBe(201);
+  const headers = { authorization: `Bearer ${(await token.json()).token}` };
+  const item = "@e2e-acme-infra/deploy-skill";
+  const upload = await request.post("/api/v1/drafts", {
+    headers,
+    data: {
+      name: item,
+      type: "skill",
+      files: [
+        {
+          path: "ronne.yaml",
+          encoding: "utf8",
+          content: `name: "${item}"\ntype: skill\ndescription: How Acme deploys.\n`,
+        },
+        {
+          path: "SKILL.md",
+          encoding: "utf8",
+          content:
+            "---\nname: deploy-skill\ndescription: How Acme deploys.\n---\nDeploy on Tuesdays.\n",
+        },
+      ],
+    },
+  });
+  expect(upload.status()).toBe(201);
+  const draft = await upload.json();
+  const submitted = await request.post("/api/v1/drafts/submit", {
+    headers,
+    data: { ids: [draft.id] },
+  });
+  expect(submitted.status()).toBe(200);
+  const moderator = await browser.newPage();
+  await signIn(moderator, E2E_USERS.workspaceModerator);
+  await moderator.goto(`/reviews/${draft.id}`);
+  await moderator.getByRole("button", { name: "Approve", exact: true }).click();
+  await moderator
+    .getByRole("dialog", { name: "Approve this submission?" })
+    .getByRole("button", { name: "Approve", exact: true })
+    .click();
+  await expect(moderator.getByText("approved it")).toBeVisible();
+  const author = await browser.newPage();
+  await signIn(author, E2E_USERS.workspaceAuthor);
+  await author.goto(`/submissions/${draft.id}`);
+  await author.getByRole("button", { name: "Publish", exact: true }).click();
+  const publish = author.getByRole("dialog", { name: new RegExp(`Publish ${item}`) });
+  await publish.getByRole("button", { name: "Publish 1.0.0" }).click();
+  await expect(publish.getByText(`Published ${item} 1.0.0 as latest.`)).toBeVisible();
+  await publish.getByRole("button", { name: "Done" }).click();
+
+  // The catalogue names the workspace on the card, and filters by it, kept in the URL.
+  await author.goto("/catalogue");
+  const card = author.getByRole("article").filter({ hasText: item });
+  await expect(card.getByRole("heading")).toHaveText(new RegExp(`^e2e-acme · , ${item}$`));
+  await author.locator("summary", { hasText: "Filters" }).click();
+  await author.getByLabel("Workspace").selectOption("e2e-acme");
+  await author.getByRole("button", { name: "Apply" }).click();
+  await expect(author).toHaveURL(/workspace=e2e-acme/);
+  await expect(author.getByRole("article")).toHaveCount(1);
+  await expect(
+    author.getByRole("list", { name: "Active filters" }).getByRole("link", {
+      name: "Remove the workspace filter",
+    }),
+  ).toBeVisible();
+  await author.getByRole("link", { name: item, exact: true }).click();
+  await expect(author.getByRole("heading", { level: 1 })).toHaveText(
+    new RegExp(`^e2e-acme · , ${item}$`),
+  );
 
   const user = await browser.newPage();
   await signIn(user, E2E_USERS.notRoot);

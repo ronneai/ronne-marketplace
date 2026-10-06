@@ -11,6 +11,8 @@ export type CatalogueSort = "recent" | "installs" | "name";
 /** One item as the catalogue and the home page list it, from its listed version. */
 export type CatalogueEntry = {
   id: string;
+  /** The workspace its scope belongs to (090), by name. */
+  workspace: string;
   scope: string;
   name: string;
   type: ItemType;
@@ -44,6 +46,8 @@ export type CatalogueFilter = {
   /** Any of these types (031's picker); with `type`, both apply. */
   types?: readonly ItemType[];
   scope?: string;
+  /** A workspace's name (090): only items in its scopes. */
+  workspace?: string;
   /** A renderer id: only items whose listed version installs in that tool (026). */
   tool?: string;
   /** Only items with a version that can still be installed. */

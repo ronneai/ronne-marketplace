@@ -14,6 +14,18 @@ export const HELP = {
       "The first part of an item's name, after the @, such as @platform in @platform/code-reviewer. It groups related items. Root creates scopes; anyone may propose items in any of them, because review is the gate.",
     href: docsHref("scopes", "what"),
   },
+  workspace: {
+    question: "What is a workspace?",
+    answer:
+      "The level above scopes: workspace › scope › item. Each workspace holds scopes, and their items, for one team or group. It isn't part of item names, which stay @scope/name. Every instance has global.",
+    href: docsHref("workspaces", "what"),
+  },
+  "workspace-choice": {
+    question: "Which workspace?",
+    answer:
+      "The one whose team the scope's items are for; global when they're for everyone. The catalogue and item pages show a workspace other than global before the items' names, and once there's more than global the catalogue can filter by workspace. Every workspace is public for now, so everyone signed in still sees the items. The scope can't move to another workspace later.",
+    href: docsHref("workspaces", "what"),
+  },
   name: {
     question: "How should I name it?",
     answer:

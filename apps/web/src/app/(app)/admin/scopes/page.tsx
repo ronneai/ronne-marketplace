@@ -7,6 +7,7 @@ import { ScopesTable } from "@/features/admin-scopes/ScopesTable";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { can } from "@/server/domains/identity/models/permissions";
 import { pageScopes } from "@/server/domains/items/actions/scopes";
+import { listWorkspaces } from "@/server/domains/workspaces/actions/workspaces";
 import { requestHeaders } from "@/server/http/request-headers";
 
 export const metadata = { title: "Scopes · Admin · Ronne AI Marketplace" };
@@ -16,13 +17,23 @@ const AdminScopes = async ({ searchParams }: { searchParams: Promise<SearchParam
   const request = await requestHeaders();
   if (!can(await getCurrentUser(request), "scopes.manage")) notFound();
   const state = parseListQuery(ADMIN_SCOPES_LIST, await searchParams);
-  const { scopes, next, previous, total } = await pageScopes(request, scopesQueryOf(state));
+  const workspaces = await listWorkspaces(request);
+  // A workspace that doesn't exist (a stale link) matches no scope, and its chip still shows.
+  const filtered = state.filters.workspace
+    ? (workspaces.find((w) => w.name === state.filters.workspace)?.id ?? "none")
+    : undefined;
+  const { scopes, next, previous, total } = await pageScopes(request, {
+    ...scopesQueryOf(state),
+    workspaceId: filtered,
+  });
   return (
     <>
       <PageHeader
         title="Scopes"
         description="Every item lives in a scope. Names can't be changed once created, because items and installs depend on them."
-        actions={<CreateScopeDialog />}
+        actions={
+          <CreateScopeDialog workspaces={workspaces.map(({ id, name }) => ({ id, name }))} />
+        }
       />
       <ScopesTable
         list={ADMIN_SCOPES_LIST}
@@ -31,6 +42,7 @@ const AdminScopes = async ({ searchParams }: { searchParams: Promise<SearchParam
         page={{ next, previous }}
         total={total}
         actions={(scope) => <EditScopeButton name={scope.name} description={scope.description} />}
+        workspaces={workspaces.map(({ name }) => ({ name }))}
       />
     </>
   );

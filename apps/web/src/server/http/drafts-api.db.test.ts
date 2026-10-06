@@ -12,6 +12,7 @@ import { createTestUser, testAppAuth } from "../domains/identity/testing/test-au
 import { kyselyItemRepository } from "../domains/items/repositories/kysely-item-repository";
 import { kyselyScopeRepository } from "../domains/items/repositories/kysely-scope-repository";
 import { kyselySubmissionRepository } from "../domains/submissions/repositories/kysely-submission-repository";
+import { GLOBAL_WORKSPACE_ID } from "../domains/workspaces/models/workspace";
 import { localStorage } from "../storage/local-storage";
 import {
   checkDrafts,
@@ -68,7 +69,13 @@ beforeEach(async () => {
     ["platform", "Shared tools."],
     ["security", "The security team."],
   ] as const) {
-    const id = await scopes.insert({ name, description, createdBy: null, createdAt: new Date() });
+    const id = await scopes.insert({
+      name,
+      description,
+      workspaceId: GLOBAL_WORKSPACE_ID,
+      createdBy: null,
+      createdAt: new Date(),
+    });
     if (name === "team") teamId = id;
   }
 });
@@ -85,7 +92,7 @@ const body = async (response: Response) => ({
 });
 
 describe("GET /scopes", () => {
-  it("lists scopes by name, with their descriptions, for every role", async () => {
+  it("lists scopes by name, with their descriptions and workspaces, for every role", async () => {
     for (const token of Object.values(tokens)) {
       const response = await getScopes(get("/scopes", token), deps);
       expect(response.headers.get("cache-control")).toBe("private, no-cache");
@@ -93,9 +100,9 @@ describe("GET /scopes", () => {
         status: 200,
         json: {
           scopes: [
-            { name: "platform", description: "Shared tools." },
-            { name: "security", description: "The security team." },
-            { name: "team", description: "A team." },
+            { name: "platform", description: "Shared tools.", workspace: "global" },
+            { name: "security", description: "The security team.", workspace: "global" },
+            { name: "team", description: "A team.", workspace: "global" },
           ],
           nextCursor: null,
         },

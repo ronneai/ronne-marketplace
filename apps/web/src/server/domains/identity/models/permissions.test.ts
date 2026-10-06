@@ -18,6 +18,7 @@ const EXPECTED: Record<Role, Permission[]> = {
     "users.view",
     "users.manage",
     "audit.view",
+    "workspaces.manage",
     "scopes.manage",
     "submissions.create",
     "submissions.view_submitted",

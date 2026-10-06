@@ -18,6 +18,9 @@ export const AUDIT_ACTIONS = [
   "user.enabled",
   "access_token.created",
   "access_token.revoked",
+  "workspace.created",
+  "workspace.updated",
+  "workspace.deleted",
   "scope.created",
   "scope.updated",
   "submission.draft_created",
@@ -50,6 +53,7 @@ export const AUDIT_ACTION_GROUPS = [
   "auth",
   "user",
   "access_token",
+  "workspace",
   "scope",
   "submission",
   "version",
@@ -67,6 +71,7 @@ export type AuditTargetType =
   | "user"
   | "access_token"
   | "session"
+  | "workspace"
   | "scope"
   | "submission"
   | "item"

@@ -13,6 +13,8 @@ export const PERMISSIONS = {
   /** Create users, change roles, disable, enable and reset passwords. */
   "users.manage": ["root"],
   "audit.view": ["root"],
+  /** Create workspaces, edit their descriptions and delete empty ones (feature 090). */
+  "workspaces.manage": ["root"],
   /** Create scopes and edit their descriptions (feature 010). */
   "scopes.manage": ["root"],
   /** Create, edit and delete your own drafts (feature 012). */

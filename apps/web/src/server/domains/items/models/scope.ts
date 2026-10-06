@@ -6,6 +6,8 @@ export type Scope = {
   id: string;
   name: string;
   description: string;
+  /** The workspace it belongs to (feature 090): `global` unless root chose another. */
+  workspace: { id: string; name: string };
   createdBy: { id: string; email: string | null } | null;
   createdAt: Date;
 };

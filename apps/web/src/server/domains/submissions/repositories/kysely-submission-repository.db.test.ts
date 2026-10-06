@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
+import { GLOBAL_WORKSPACE_ID } from "../../../db/migrations/0019_workspaces";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { OPEN_STATUSES, type SubmissionStatus } from "../models/status";
 import { kyselySubmissionRepository } from "./kysely-submission-repository";
@@ -30,13 +31,21 @@ beforeAll(async () => {
   await t.db
     .insertInto("scopes")
     .values([
-      { id: scopeId, name: "team", description: "A team.", created_by: null, created_at: now },
+      {
+        id: scopeId,
+        name: "team",
+        description: "A team.",
+        created_by: null,
+        created_at: now,
+        workspace_id: GLOBAL_WORKSPACE_ID,
+      },
       {
         id: otherScopeId,
         name: "other",
         description: "Another.",
         created_by: null,
         created_at: now,
+        workspace_id: GLOBAL_WORKSPACE_ID,
       },
     ])
     .execute();

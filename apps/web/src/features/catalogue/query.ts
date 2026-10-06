@@ -6,13 +6,15 @@ const first = (value: string | string[] | undefined) =>
   (Array.isArray(value) ? value[0] : value) ?? "";
 
 /**
- * Reads `?q=`, `?type=` (once per type, any of them), `?scope=`, `?tool=`, `?sort=` and `?cursor=`;
+ * Reads `?q=`, `?type=` (once per type, any of them), `?scope=`, `?workspace=` (090), `?tool=`,
+ * `?sort=` and `?cursor=`;
  * the service drops anything unknown.
  */
 export const parseCatalogueQuery = (params: SearchParams): CatalogueQuery => ({
   q: first(params.q),
   type: [params.type ?? []].flat().filter(Boolean),
   scope: first(params.scope) || undefined,
+  workspace: first(params.workspace) || undefined,
   tool: first(params.tool) || undefined,
   sort: first(params.sort) || undefined,
   cursor: first(params.cursor) || undefined,
@@ -22,6 +24,7 @@ type Shown = {
   q: string;
   types: readonly string[];
   scope: string | null;
+  workspace: string | null;
   tool: string | null;
   sort: "recent" | "installs" | "name";
 };
@@ -33,6 +36,7 @@ export const catalogueHref = (query: Shown, changes: Partial<Shown> & { cursor?:
   if (next.q) params.set("q", next.q);
   for (const type of next.types) params.append("type", type);
   if (next.scope) params.set("scope", next.scope);
+  if (next.workspace) params.set("workspace", next.workspace);
   if (next.tool) params.set("tool", next.tool);
   if (next.sort !== "recent") params.set("sort", next.sort);
   if (changes.cursor) params.set("cursor", changes.cursor);

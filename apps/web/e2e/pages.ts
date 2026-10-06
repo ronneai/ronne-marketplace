@@ -1,4 +1,4 @@
-import { E2E_RMK_ITEMS, E2E_SCOPE, E2E_SKILL, E2E_VERSIONED_ITEM } from "./users";
+import { E2E_RMK_ITEMS, E2E_SCOPE, E2E_SKILL, E2E_VERSIONED_ITEM, E2E_WORKSPACE } from "./users";
 
 /**
  * Every page of the web app, for the phone sweep (feature 065): who can open it, and the URLs to
@@ -70,6 +70,12 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
   { route: "/account/tokens", roles: EVERYONE, urls: () => ["/account/tokens"] },
   { route: "/admin", roles: ROOT, urls: () => ["/admin"] },
   { route: "/admin/users", roles: ROOT, urls: () => ["/admin/users"] },
+  { route: "/admin/workspaces", roles: ROOT, urls: () => ["/admin/workspaces"] },
+  {
+    route: "/admin/workspaces/[name]",
+    roles: ROOT,
+    urls: () => ["/admin/workspaces/global", `/admin/workspaces/${E2E_WORKSPACE}`],
+  },
   { route: "/admin/scopes", roles: ROOT, urls: () => ["/admin/scopes"] },
   { route: "/admin/audit", roles: ROOT, urls: () => ["/admin/audit"] },
   { route: "/admin/settings", roles: ROOT, urls: () => ["/admin/settings"] },

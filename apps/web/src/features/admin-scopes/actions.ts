@@ -14,6 +14,8 @@ const attempt = async (work: () => Promise<string>): Promise<ScopeActionState> =
   try {
     const done = await work();
     revalidatePath("/admin/scopes");
+    // A workspace's page lists its scopes, and its list counts them (090).
+    revalidatePath("/admin/workspaces", "layout");
     return { done };
   } catch (error) {
     if (error instanceof ItemsError || error instanceof IdentityError)
@@ -30,8 +32,11 @@ export const createScopeFromForm = async (
     const scope = await createScope(await requestHeaders(), {
       name: text(form, "name"),
       description: text(form, "description"),
+      workspaceId: text(form, "workspaceId") || undefined,
     });
-    return `Created @${scope.name}.`;
+    return scope.workspace.name === "global"
+      ? `Created @${scope.name}.`
+      : `Created @${scope.name} in ${scope.workspace.name}.`;
   });
 
 export const updateScopeFromForm = async (

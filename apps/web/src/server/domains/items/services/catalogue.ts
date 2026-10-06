@@ -28,6 +28,8 @@ export type CatalogueQuery = {
   /** One type, or several (owner, 2026-10-02): any of them. */
   type?: string | readonly string[];
   scope?: string;
+  /** A workspace's name (090). */
+  workspace?: string;
   /** A renderer id (026). */
   tool?: string;
   sort?: string;
@@ -37,16 +39,19 @@ export type CatalogueQuery = {
 export type CataloguePage = {
   entries: CatalogueEntry[];
   nextCursor: string | null;
-  /** Every type, with how many items match the search and scope. */
+  /** Every type, with how many items match the search, scope and workspace. */
   typeCounts: { type: ItemType; count: number }[];
   /** The scopes that hold items, for the scope filter. */
   scopes: string[];
+  /** Every workspace the reader can see, `global` first, for the workspace filter (090). */
+  workspaces: string[];
   /** The query as it was understood: unknown types and sorts are dropped. */
   query: {
     q: string;
     /** The types asked for, in the order of ITEM_TYPES; none means every type. */
     types: ItemType[];
     scope: string | null;
+    workspace: string | null;
     tool: string | null;
     sort: CatalogueSort;
   };
@@ -107,6 +112,7 @@ export const searchCatalogue = async (
     types?: readonly ItemType[];
     installable?: boolean;
     scope?: string | null;
+    workspace?: string | null;
     tool?: string | null;
     sort?: CatalogueSort;
     cursor?: string;
@@ -122,6 +128,7 @@ export const searchCatalogue = async (
     types: query.types,
     installable: query.installable,
     scope: query.scope ?? undefined,
+    workspace: query.workspace ?? undefined,
     tool: query.tool ?? undefined,
     sort,
     after: decodeCursor(query.cursor, sort),
@@ -145,6 +152,7 @@ export const browseCatalogue = async (
   const asked = new Set([query.type ?? []].flat());
   const types = ITEM_TYPES.filter((t) => asked.has(t));
   const scope = query.scope?.trim() || null;
+  const workspace = query.workspace?.trim() || null;
   const tool = query.tool && rendererById(query.tool) ? query.tool : null;
   const sort: CatalogueSort =
     query.sort === "name" || query.sort === "installs" ? query.sort : "recent";
@@ -152,6 +160,7 @@ export const browseCatalogue = async (
     q,
     types: types.length > 0 ? types : undefined,
     scope,
+    workspace,
     tool,
     sort,
     cursor: query.cursor,
@@ -161,6 +170,7 @@ export const browseCatalogue = async (
       await deps.catalogue.typeCounts({
         search: q || undefined,
         scope: scope ?? undefined,
+        workspace: workspace ?? undefined,
         tool: tool ?? undefined,
       })
     ).map((row) => [row.type, row.count]),
@@ -170,7 +180,8 @@ export const browseCatalogue = async (
     nextCursor,
     typeCounts: ITEM_TYPES.map((t) => ({ type: t, count: counts.get(t) ?? 0 })),
     scopes: await deps.catalogue.scopes(),
-    query: { q, types, scope, tool, sort },
+    workspaces: await deps.catalogue.workspaces(),
+    query: { q, types, scope, workspace, tool, sort },
   };
 };
 

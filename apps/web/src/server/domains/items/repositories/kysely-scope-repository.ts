@@ -13,6 +13,8 @@ type ScopeRow = {
   id: string;
   name: string;
   description: string;
+  workspace_id: string;
+  workspace_name: string;
   created_by: string | null;
   creator_email: string | null;
   created_at: Date | string;
@@ -22,6 +24,7 @@ const toScope = (row: ScopeRow): Scope => ({
   id: row.id,
   name: row.name,
   description: row.description,
+  workspace: { id: row.workspace_id, name: row.workspace_name },
   createdBy: row.created_by ? { id: row.created_by, email: row.creator_email } : null,
   createdAt: fromDbDate(row.created_at),
 });
@@ -33,18 +36,22 @@ export const kyselyScopeRepository = (
   const scopes = () =>
     db
       .selectFrom("scopes")
+      .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
       .leftJoin("user", "user.id", "scopes.created_by")
       .select([
         "scopes.id",
         "scopes.name",
         "scopes.description",
+        "scopes.workspace_id",
+        "workspaces.name as workspace_name",
         "scopes.created_by",
         "user.email as creator_email",
         "scopes.created_at",
       ]);
 
-  const searched = (search: string | undefined) => {
-    const query = scopes();
+  const searched = (search: string | undefined, workspaceId?: string) => {
+    let query = scopes();
+    if (workspaceId) query = query.where("scopes.workspace_id", "=", workspaceId);
     return search
       ? query.where((eb) =>
           eb.or([
@@ -64,6 +71,13 @@ export const kyselyScopeRepository = (
       return row ? toScope(row) : null;
     },
 
+    findWorkspace: async (id) =>
+      (await db
+        .selectFrom("workspaces")
+        .select(["id", "name"])
+        .where("id", "=", id)
+        .executeTakeFirst()) ?? null,
+
     insert: async (scope) => {
       const id = newId();
       await db
@@ -74,6 +88,7 @@ export const kyselyScopeRepository = (
           description: scope.description,
           created_by: scope.createdBy,
           created_at: toDbDate(scope.createdAt, dialect),
+          workspace_id: scope.workspaceId,
         })
         .execute();
       return id;
@@ -96,8 +111,8 @@ export const kyselyScopeRepository = (
       return (await query.execute()).map(toScope);
     },
 
-    page: async ({ search, sort, dir, size, cursor }) => {
-      const page = await paginate(searched(search), {
+    page: async ({ search, workspaceId, sort, dir, size, cursor }) => {
+      const page = await paginate(searched(search, workspaceId), {
         sort: { key: sort, column: sort === "name" ? "scopes.name" : "scopes.id", dir },
         idColumn: "scopes.id",
         size,
@@ -108,7 +123,7 @@ export const kyselyScopeRepository = (
       return { ...page, rows: page.rows.map(toScope) };
     },
 
-    count: (search) => countCapped(db, searched(search)),
+    count: ({ search, workspaceId }) => countCapped(db, searched(search, workspaceId)),
 
     recordAudit: async (event, now) => {
       await recordAudit(db, dialect, event, now);

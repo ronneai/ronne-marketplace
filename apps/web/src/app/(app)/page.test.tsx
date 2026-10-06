@@ -14,6 +14,7 @@ const { default: HomePage } = await import("./page");
 
 const entry = (name: string, downloadCount = 0): CatalogueEntry => ({
   id: name,
+  workspace: "global",
   scope: "team",
   name,
   type: "skill",
