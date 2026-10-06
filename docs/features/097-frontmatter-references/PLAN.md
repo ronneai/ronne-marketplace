@@ -13,7 +13,7 @@ the same change that completes it.
   *Done when:* core tests cover unquoted, quoted, list items, a real YAML error with its line, and
   both new checks.
 
-- [ ] **2. Saving and submitting.** The draft save quotes such values in `SKILL.md` and adds missing
+- [x] **2. Saving and submitting.** The draft save quotes such values in `SKILL.md` and adds missing
   `agent:` dependencies to `ronne.yaml`; the registry check refuses a non-agent
   (`frontmatter_agent_type`).
   *Done when:* db tests on the four databases cover the save (quoting and the added dependency) and
@@ -45,3 +45,6 @@ goes into `SPEC.md` instead.
   `- `, and skips the lines of a `|` or `>` block. It doesn't recognise a block whose key has an
   escaped quote (`'it''s': |`), whose value starts with a tag or anchor (`!!str |`, `&a |`), or a
   `? x` key; an item name inside such a block would be quoted. Both regexes are linear (tested).
+- **Task 2.** One helper, `withFrontmatter` (drafts.ts) over `frontmatterChanges`, runs in the
+  save's and both uploads' transactions; the save answers `rewritten`, which the editor applies. A
+  `ronne.yaml` rewritten from CRLF comes back with LF (the yaml library's output).

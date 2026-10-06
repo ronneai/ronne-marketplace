@@ -71,7 +71,13 @@ export type EditorProposal = {
 export type SentFile = { path: string; content: string; executable: boolean };
 
 export type SaveResult =
-  | { ok: true; saved: { path: string; loadedAt: string }[]; issues: ManifestIssue[] }
+  | {
+      ok: true;
+      saved: { path: string; loadedAt: string }[];
+      /** Files the save changed itself (097), with what it wrote. */
+      rewritten: { path: string; content: string }[];
+      issues: ManifestIssue[];
+    }
   | { ok: false; error: string; stale?: string[] };
 
 export type ActionResult = { ok: true } | { ok: false; error: string };

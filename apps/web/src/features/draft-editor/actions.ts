@@ -49,17 +49,21 @@ const toDate = (value: string | null) => (value === null ? null : new Date(value
  */
 export const saveDraftAction = async (id: string, changes: SentChanges): Promise<SaveResult> => {
   try {
-    const { draft, issues } = await saveDraftFiles(await requestHeaders(), id, {
+    const { draft, issues, rewritten } = await saveDraftFiles(await requestHeaders(), id, {
       writes: changes.writes.map((file) => ({ ...file, loadedAt: toDate(file.loadedAt) })),
       deletes: changes.deletes.map((file) => ({ ...file, loadedAt: toDate(file.loadedAt) })),
       overwrite: changes.overwrite,
     });
-    const written = new Set(changes.writes.map((file) => file.path));
+    // What was sent, and what the save changed besides (097: a skill's frontmatter, its agent).
+    const written = new Set([...changes.writes.map((file) => file.path), ...rewritten]);
     return {
       ok: true,
       saved: draft.files
         .filter((file) => written.has(file.path))
         .map((file) => ({ path: file.path, loadedAt: file.updatedAt.toISOString() })),
+      rewritten: draft.files
+        .filter((file) => rewritten.includes(file.path))
+        .map((file) => ({ path: file.path, content: file.content })),
       issues,
     };
   } catch (error) {

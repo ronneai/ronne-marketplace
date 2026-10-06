@@ -19,6 +19,8 @@ export type FilesAction =
       saved: { path: string; loadedAt: string }[];
       sent: { path: string; content: string; executable: boolean }[];
       removed: string[];
+      /** Files the save changed itself (097), with what it wrote. */
+      rewritten?: { path: string; content: string }[];
     };
 
 const byPath = (a: { path: string }, b: { path: string }) =>
@@ -104,13 +106,20 @@ export const filesReducer = (state: FilesState, action: FilesAction): FilesState
     case "saved": {
       const loadedAt = new Map(action.saved.map((file) => [file.path, file.loadedAt]));
       const sent = new Map(action.sent.map((file) => [file.path, file]));
+      const rewritten = new Map((action.rewritten ?? []).map((file) => [file.path, file.content]));
       return {
         files: state.files.map((file) => {
           const saved = loadedAt.get(file.path);
           if (!saved) return file;
           const what = sent.get(file.path);
           // Edited again while the save was on its way: still unsaved, but no longer stale.
-          const unchanged = what?.content === file.content && what.executable === file.executable;
+          const unchanged = what
+            ? what.content === file.content && what.executable === file.executable
+            : !file.dirty;
+          // The save rewrote it (097): show what was saved, unless it was edited meanwhile.
+          const content = rewritten.get(file.path);
+          if (content !== undefined && unchanged)
+            return { ...file, content, loadedAt: saved, dirty: false };
           return { ...file, loadedAt: saved, dirty: file.dirty && !unchanged };
         }),
         removed: state.removed.filter((file) => !action.removed.includes(file.path)),

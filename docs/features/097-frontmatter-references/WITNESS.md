@@ -49,3 +49,37 @@ Witnessed: 2026-10-05 21:54, by a fresh agent.
 
 **Overall:** met. Still missed, all rare in frontmatter and noted in the plan: keys with escaped quotes
 (`'it''s': |`, `"a\"b": |`), a tag or anchor before the indicator (`!!str |`, `&a |`), `? x` keys.
+
+## Task 2 — Saving and submitting
+
+Witnessed: 2026-10-05 22:02 EDT, by a fresh agent. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|
+| 1 | The save quotes the skill's entry file and adds a missing `agent:` dependency (`^<latest stable>` or `^1.0.0`), keeping `ronne.yaml`'s comments; plain names, listed agents and other types untouched; in the transaction; the stale check still works | confirmed | A script against `frontmatterChanges`: `^1.4.2` from 1.0.0, 1.4.2, a pre-release and a yanked 1.9.0; comments and flow style kept; CRLF kept in `SKILL.md`; rewritten files get the save's `updatedAt` and come back as saved. |
+| 2 | Uploads do the same; `rewritten` doesn't reach the API's JSON | confirmed | Create tested on the database; replace (051) shares the code; `uploadedJson` builds its object field by field. |
+| 3 | The editor shows what the save rewrote, unless edited meanwhile, and the next save isn't stale | confirmed | The reducer and its unit test; `CodeEditor` follows outside changes. |
+| 4 | `frontmatter_agent_type` at submit and release | confirmed, partly on the type's source | It took the newest of anyone's non-draft submissions: a rejected one of another type could give a false error, and another author's unreleased item's type was told. |
+| 5 | Tests, lint, typecheck | confirmed | 441 passed; 171 each on PostgreSQL, MySQL, MariaDB; lint 0 errors; 7/7. |
+| 6 | A YAML error, an unparsable `ronne.yaml`, a binary entry | confirmed | No crash; nothing added; nothing touched. |
+
+**Not checked here:** the editor in a browser (task 5); replace against a database.
+**Differences from the notes:** the spec said "each SKILL.md" and "`^1.0.0` for an unreleased one of
+your own"; the test of the latest release couldn't tell it from the fallback. A `dependencies` list
+would have been replaced. Fixed (below).
+**Overall:** met.
+
+### Re-check after fixes
+
+Witnessed: 2026-10-05 22:13, by a fresh agent.
+
+| # | Claim | Verdict | Evidence |
+|---|---|---|---|
+| 1 | The type is judged by the published item or the submitter's own open submission | confirmed | Others' and closed submissions are ignored; the message test passes. |
+| 2 | A `dependencies` that isn't a map is left alone | confirmed | A list is saved byte for byte. |
+| 3 | The test proves the latest release (`^1.1.0`) | confirmed | Passes on SQLite, PostgreSQL 15, MySQL 8.4, MariaDB 10.11. |
+| 4 | The spec's wording | confirmed | |
+
+**Overall:** met. Afterwards the test helper throws when the item has no owner instead of falling back
+to `""` (test-only). Noted: the submitter's own *draft* of the wrong type isn't flagged by this check
+(only open submissions are), but a draft dependency is already refused at submit (056).

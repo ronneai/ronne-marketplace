@@ -270,6 +270,7 @@ export const DraftEditor = ({
         dispatch({
           type: "saved",
           saved: result.saved,
+          rewritten: result.rewritten,
           sent: changes.writes,
           removed: changes.deletes.map((f) => f.path),
         });

@@ -3,6 +3,7 @@ import {
   highestMatching,
   type ItemType,
   type ManifestIssue,
+  parseFrontmatter,
   parseItemName,
   parseManifest,
 } from "@ronneai/core";
@@ -311,5 +312,44 @@ export const registryIssues = async (
       },
       options,
     )),
+    ...(submission.type === "skill"
+      ? await frontmatterAgentIssues(registry, manifest?.skill, files, submission.authorId)
+      : []),
   ];
+};
+
+/**
+ * The agent a skill names in its frontmatter (097) is an agent: published, or the submitter's own
+ * on its way (others' unreleased items aren't dependencies, 089, so their type isn't told). Whether
+ * it exists and its range are `dependencyIssues`' checks, since it's a dependency too.
+ */
+export const frontmatterAgentIssues = async (
+  registry: RegistryLookup,
+  block: unknown,
+  files: readonly Omit<DraftFile, "updatedAt">[],
+  authorId: string,
+): Promise<ManifestIssue[]> => {
+  const entry = String(((block ?? {}) as Record<string, unknown>).entry ?? "SKILL.md");
+  const file = files.find((f) => f.path === entry);
+  if (file?.encoding !== "utf8") return [];
+  const agent = parseFrontmatter(file.content).data?.agent;
+  const parsed = typeof agent === "string" ? parseItemName(agent) : null;
+  if (!parsed) return [];
+  const item = await registry.findItem(parsed.scope, parsed.name);
+  const own = item
+    ? undefined
+    : (await registry.submissionsNamed(parsed.scope, parsed.name)).find(
+        (s) => s.authorId === authorId && OPEN_STATUSES.includes(s.status),
+      );
+  const type = item?.type ?? own?.type;
+  return type && type !== "agent"
+    ? [
+        {
+          severity: "error",
+          code: "frontmatter_agent_type",
+          message: `${entry} runs in ${String(agent)}, which is ${/^(agent|output-style|mcp-server|lsp-server)$/.test(type) ? "an" : "a"} ${type}, not an agent.`,
+          file: entry,
+        },
+      ]
+    : [];
 };

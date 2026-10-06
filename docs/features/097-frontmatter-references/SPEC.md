@@ -31,8 +31,8 @@ Checked against the vendors' docs on 2026-10-05:
 - **A real YAML error** when frontmatter doesn't parse, with its line, instead of "needs YAML
   frontmatter with name and description".
 - **`agent:` in a skill's `SKILL.md`:** `@scope/name` names an item; it's a dependency, added to
-  `ronne.yaml` when the draft is saved if it isn't there (latest as `^<version>`, or `^1.0.0` for an
-  unreleased one of your own, as 056's picker does). It must be an agent (checked at submit). A plain
+  `ronne.yaml` when the draft is saved if it isn't there (the latest stable release as `^<version>`,
+  or `^1.0.0` when it isn't released, as 056's picker does). It must be an agent (checked at submit). A plain
   name (`agent: Explore`, a built-in or a local agent) is left alone and isn't a dependency.
 - **Claude Code's skill:** `agent: @scope/name` is written as the installed agent's name
   (`agent: agent`), and `context: fork` is added when it's missing (owner, 2026-10-05), since the
@@ -63,8 +63,10 @@ valid YAML: <the parser's message> (line N)." An empty block, or one that isn't 
 still says "needs YAML frontmatter with name and description". The same reading is used by the
 package checks, the renderers and the readers.
 
-**Saving a draft** (012). Each `SKILL.md` is saved with such values quoted, and every `agent:
-@scope/name` in it that isn't under `dependencies` in `ronne.yaml` is added there, in the same save.
+**Saving a draft** (012), and uploading one (037, 051). The skill's entry file (`SKILL.md` unless
+`skill.entry` says otherwise) is saved with such values quoted, and an `agent: @scope/name` in it
+that isn't under `dependencies` in `ronne.yaml` is added there, in the same transaction, keeping the
+manifest's comments. A `dependencies` that isn't a map is left as it is, for the checks to report.
 The editor shows both changes after the save. The `@` list in frontmatter inserts the name as it
 does in the body, and the save quotes it.
 
@@ -74,7 +76,9 @@ does in the body, and the save quotes it.
   `dependencies` (`frontmatter_dependency`; the save adds it, so this is for uploads and hand-edited
   manifests).
 - Registry checks (013): an `agent:` item name must be an agent (`frontmatter_agent_type`: "SKILL.md
-  runs in @x/y, which is a skill, not an agent.").
+  runs in @x/y, which is a skill, not an agent."), judged by its published item or the submitter's
+  own open submission; another author's unreleased item isn't a dependency anyway (089), so its type
+  isn't told.
 
 **Rendering** (021). `RenderInput` gains `dependencies`: each dependency's name and type, and for a
 skill whether it sets `disable-model-invocation`. `rmk install` and the plugin builders (076) fill it
