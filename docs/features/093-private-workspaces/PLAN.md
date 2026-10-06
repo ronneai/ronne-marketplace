@@ -7,33 +7,33 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. The viewer.** `Viewer` (user id, root, visible workspace and scope ids) built once per
-  request with the memberships (091); `visibleWorkspaces`.
+- [ ] **1. The viewer.** [risky] `Viewer` (user id, root, visible workspace and scope ids) built
+  once per request with the memberships (091); `visibleWorkspaces`.
   *Done when:* unit tests cover root, a member, a non-member, and a public-only user.
 
-- [ ] **2. Items reads.** The catalogue, item, version, dependents ("Used by") and download
+- [ ] **2. Items reads.** [risky] The catalogue, item, version, dependents ("Used by") and download
   repositories take a `Viewer`; services and pages pass it; the guard test listing read methods.
   *Done when:* items db tests pass with a private workspace on the four databases, and the guard
   test fails on a read without a `Viewer`.
 
-- [ ] **3. Submissions reads.** Name-taken check, dependency marks, review page and queue, usage
-  ingest and the item page's usage.
+- [ ] **3. Submissions reads.** [risky] Name-taken check, dependency marks, review page and queue,
+  usage ingest and the item page's usage.
   *Done when:* submissions and usage db tests pass with private cases.
 
-- [ ] **4. The dependency rule.** 089's picker filtered; `dependency_not_visible` at submit and
-  release; resolve as the caller.
+- [ ] **4. The dependency rule.** [risky] 089's picker filtered; `dependency_not_visible` at submit
+  and release; resolve as the caller.
   *Done when:* registry-check, resolve and picker tests cover own workspace, public, other private.
 
-- [ ] **5. Visibility setting.** Private in the dialogs; the turning-private check and list; the
-  confirm; the revision bump and audit.
+- [ ] **5. Visibility setting.** [risky] Private in the dialogs; the turning-private check and list;
+  the confirm; the revision bump and audit.
   *Done when:* service tests and the dialog test pass.
 
-- [ ] **6. API and MCP.** The registry API, tarball, resolve and `GET /api/v1/scopes` through the
-  viewer; the MCP read tools unchanged in code but tested against a private item.
+- [ ] **6. API and MCP.** [risky] The registry API, tarball, resolve and `GET /api/v1/scopes`
+  through the viewer; the MCP read tools unchanged in code but tested against a private item.
   *Done when:* API tests answer `not_found` for a non-member and data for a member.
 
-- [ ] **7. Plugin feeds.** The visibility key, the cache per key, the per-key stats; zips checked;
-  `rmk feed build --workspace` and its warning; `docs/spec/plugin-feeds.md` updated.
+- [ ] **7. Plugin feeds.** [risky] The visibility key, the cache per key, the per-key stats; zips
+  checked; `rmk feed build --workspace` and its warning; `docs/spec/plugin-feeds.md` updated.
   *Done when:* feed tests cover two keys sharing nothing, and the 079 benchmark still passes its
   budget with one key.
 
