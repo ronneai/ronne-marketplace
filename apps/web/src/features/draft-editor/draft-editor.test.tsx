@@ -113,6 +113,13 @@ describe("filesReducer", () => {
       ["prompt.md", 'agent: "@a/b"', false, T2],
       ["ronne.yaml", 'name: x\ndependencies:\n  "@a/b": ^1.0.0\n', false, T2],
     ]);
+    // The editor echoes the rewrite as an edit of the same text: still saved.
+    const echoed = filesReducer(after, {
+      type: "edit",
+      path: "prompt.md",
+      content: 'agent: "@a/b"',
+    });
+    expect(echoed.files.find((f) => f.path === "prompt.md")?.dirty).toBe(false);
     // Edited while the save was on its way: the edit stays, unsaved.
     state = filesReducer(state, { type: "edit", path: "ronne.yaml", content: "name: mine\n" });
     const edited = filesReducer(state, saved);

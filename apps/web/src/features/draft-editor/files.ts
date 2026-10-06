@@ -43,12 +43,18 @@ const update = (state: FilesState, path: string, change: (file: EditorFile) => E
 export const filesReducer = (state: FilesState, action: FilesAction): FilesState => {
   switch (action.type) {
     case "edit":
-      return update(state, action.path, (file) => ({
-        ...file,
-        content: action.content,
-        size: byteSize({ encoding: file.encoding, content: action.content }),
-        dirty: true,
-      }));
+      // The same text is no edit: the editor echoes a change made from outside it, such as a
+      // save's rewrite (097) or the form, and that mustn't mark the file unsaved.
+      return update(state, action.path, (file) =>
+        file.content === action.content
+          ? file
+          : {
+              ...file,
+              content: action.content,
+              size: byteSize({ encoding: file.encoding, content: action.content }),
+              dirty: true,
+            },
+      );
     case "put": {
       const size = byteSize(action);
       if (state.files.some((file) => file.path === action.path))

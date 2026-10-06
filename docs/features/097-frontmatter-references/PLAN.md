@@ -28,7 +28,7 @@ the same change that completes it.
   the uploaded `SKILL.md` naming `@scope/name`.
   *Done when:* the reader and CLI tests cover a skill with `agent:` and `context: fork`.
 
-- [ ] **5. End-to-end.** A skill's `SKILL.md` gets `agent: @…` typed in the editor; after Save the
+- [x] **5. End-to-end.** A skill's `SKILL.md` gets `agent: @…` typed in the editor; after Save the
   manifest lists it; it submits.
   *Done when:* the Playwright test passes, and the whole suite.
 
@@ -58,3 +58,7 @@ goes into `SPEC.md` instead.
   turns `skills:` into references only, and the skill renderer doesn't use dependencies, so an
   unedited install reads the same as its base. An edited installed skill whose agent isn't installed
   any more is uploaded with the bare `agent:` name and a warning, while the base's dependency stays.
+- **Task 5.** Writing it found an editor bug: the code editor echoes a change made from outside it
+  (the form, or now a save's rewrite) as an edit, which the reducer marked unsaved even with the
+  same text, so a save that rewrote the open file left it "unsaved". An edit with the same text is
+  now no edit (`files.ts`).

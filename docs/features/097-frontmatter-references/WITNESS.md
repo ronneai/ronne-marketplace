@@ -125,3 +125,21 @@ changing there (claim 6). After this check: `readSkill`'s doc comment, displaced
 moved back; a test covers an installed agent (`^2.1.0`, `agent: "@team/helper"`); the plan's notes say
 why the proposal path needed nothing.
 **Overall:** met.
+
+## Task 5 — End-to-end
+
+Witnessed: 2026-10-05 22:34 EDT, by a fresh agent. Machine: macOS 27.0.1 (Darwin 27.0.0), Node v24.0.0, Playwright 1.63.0.
+
+| # | Claim | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|
+| 1 | `agent: @e2e-seeded/fm-agent` typed unquoted in `SKILL.md`'s frontmatter; saved quoted; `ronne.yaml` lists it at `^1.0.0`; the skill submits | confirmed (one weak step) | `frontmatter-agent.e2e.ts`, 1 passed. The "no YAML problem" check ran before the save. |
+| 2 | The `files.ts` fix: an edit with the same text is no edit | confirmed | The editor echoed an outside change (the save's rewrite) as an edit, which marked the file unsaved again; every source of edits checked (editor, `@` pick, canvas, form); an undo back to the saved text is still an edit, as before; the reducer test passes. |
+| 3 | proposer under the sign-in limit | confirmed | 3 a run (chromium only, one worker). |
+| 4 | Runs | confirmed | Full suite 91 passed; editor tests 119; lint 0 errors. |
+
+**Not checked here:** typecheck, the whole unit suite and build (the pre-commit hook runs them); the
+echo in a real browser beyond the test.
+**Differences from the notes:** none. After this check, the "no YAML problem" assertion moved after
+the save, with "Problems: No problems", so it holds whether the checks run in the browser or after a
+save.
+**Overall:** met.
