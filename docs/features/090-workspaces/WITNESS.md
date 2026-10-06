@@ -102,3 +102,89 @@ Witnessed: 2026-10-06 16:04 EDT, by a fresh agent (blind). Commit: c975510 + unc
 | 15 | Every raw `insertInto("scopes")` in tests and `feed-benchmark.ts` sets `workspace_id` | yes | confirmed | grep → all 12 sites set it, except the 0019 test's insert from before the migration (column not there yet) |
 
 **Overall:** met. Remark: nothing in the schema keeps `is_global` to one row; task 2's services must never set it.
+
+## Task 2 — Names and the domain
+
+Witnessed: 2026-10-06 16:20 EDT, by a fresh agent (blind). Commit: d024d30 + uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Workspace names follow the scope rule (a-z, 0-9, inner hyphens, 1 to 64) without `@` | yes | confirmed | `names.ts:36-45` same checks for `"workspace"`; `@acme` → `characters`; `vitest run src/names.test.ts` → 7 passed |
+| 2 | `global` plus the scopes' reserved names are reserved for workspaces only | yes | confirmed | `names.ts:29` `["global", ...RESERVED_SCOPES]`; names.test covers each and `global` stays valid for scopes; db test: `global`/`admin` → `InvalidWorkspaceNameError` |
+| 3 | `@ronneai/core` exports the new name API | no | confirmed | `packages/core/src/index.ts` diff: `NameKind`, `normalizeWorkspaceName`, `RESERVED_WORKSPACES` |
+| 4 | Domain folders exist; services use the repository interface, not Kysely; arrow functions only | no | confirmed | `workspaces/{actions,services,models,repositories,exceptions}`; grep for `function`/`kysely` in services and models → none; biome on touched files → clean |
+| 5 | `workspaces.manage` is root only, in `permissions.ts` | no | confirmed | `permissions.ts:17` `["root"]`; permissions, summary and audit tests → 26 passed |
+| 6 | Create works and is audited (`workspace.created`) | yes | confirmed | db test "creates a public workspace…" → 14/14 on SQLite, PostgreSQL, MySQL and MariaDB |
+| 7 | Edit changes only the description and is audited with from/to; an unchanged save writes no event | yes | confirmed | db test passes; with the update's audit call removed (scratch copy) the test fails |
+| 8 | Delete removes an empty workspace and is audited (`workspace.deleted`) | yes | confirmed | db test "deletes an empty workspace…" passes on all 4 databases |
+| 9 | Delete refuses a workspace with scopes (`WorkspaceNotEmptyError`) | yes | confirmed | `scopes > 0` check; with it removed, "refuses a workspace that has scopes" fails |
+| 10 | `global` can't be edited or deleted (`GlobalWorkspaceError`); the repository also filters `is_global = false` | yes | confirmed | `changeable()` plus repository `.where("is_global",…false)`; with the global check removed, 2 tests fail |
+| 11 | Only root may create, edit, delete, page or open; moderator, user and signed-out are refused | yes | confirmed | db test "who may" → `ForbiddenError`; with delete's permission check dropped, or moderator granted, the test fails |
+| 12 | `listWorkspaces` is open to everyone signed in, `global` first, then by name | yes | confirmed | db test → `["global","acme","zeta"]` for user, moderator and root; signed-out → Forbidden |
+| 13 | `pageWorkspaces`: `global` first, sorted by name, paged, searches name and description | yes | confirmed | db tests "puts global first…" and "searches…" pass on all 4 databases |
+| 14 | Same-name race: the unique index decides and the second create gets `WorkspaceNameTakenError` | yes | confirmed | `0019_workspaces.ts:19` unique; with the catch removed the race test fails on MySQL and MariaDB but passes on SQLite and PostgreSQL |
+| 15 | Audit model has the 3 actions, group and target type; summaries read them | no | confirmed | `audit-event.ts` diff; summary.test → "Created workspace acme" etc. |
+| 16 | Lint and typecheck clean | yes | confirmed | `pnpm lint` → 0 errors (no warnings in touched files); `pnpm typecheck` → 7/7 |
+| 17 | Create accepts only `public` until 093 (`InvalidWorkspaceVisibilityError`) | yes | confirmed | `workspaceVisibilityFrom`; db test: `visibility: "private"` → `InvalidWorkspaceVisibilityError`, on all 4 databases |
+
+**Overall:** met. Remarks taken: the total changed between pages (counted global only on page 1), and the race test only bit on MySQL; both fixed below.
+
+### Re-check after fixes
+
+Witnessed: 2026-10-06 16:28 EDT, by a fresh agent (blind). Commit: d024d30 + working tree (fingerprint 941d273e47f4, unchanged 16:27–16:28). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pageWorkspaces`' total is the same on every page (`global` counted whenever the search matches it) | yes | confirmed | db test `second.total` equals `first.total`; making the count page-dependent again → "puts global first…" fails |
+| 2 | `global` is listed first only on a page with nothing before it, also through a previous cursor | yes | confirmed | db test "back" case; with `global` on every page that test fails |
+| 3 | The name-race fallback is tested on every database, through a unit test with a fake repository | yes | confirmed | `vitest run src/server/domains/workspaces/services` → 3 passed; with the catch removed, "answers that the name is taken…" fails |
+| 4 | Edit, delete and open trim, lowercase, check the name rule and compare byte for byte: `ACME` finds acme, `ａｃｍｅ` nothing | yes | confirmed | `byName`; db test "finds a workspace by its name as typed…" 15/15 on 4 databases; byte compare removed → fails on MySQL |
+| 5 | A delete that loses a race with a new scope answers `WorkspaceNotEmptyError` after a recount | yes | confirmed | unit test "…scope lands after the count" passes; recount removed → fails; the FK refuses the delete on all 4 databases |
+| 6 | The service db tests pass on SQLite, PostgreSQL, MySQL and MariaDB | yes | confirmed | `vitest --project db` plus `pnpm test:db:{postgres,mysql,mariadb} -- src/server/domains/workspaces` → 15/15 each |
+| 7 | Lint and typecheck are clean | yes | confirmed | `pnpm lint` exit 0; `pnpm typecheck` exit 0 |
+
+**Overall:** met. Remark taken: two stale comments above `byName` and `changeable`, fixed.
+
+Witnessed: 2026-10-06 16:20 EDT, by a fresh agent (adversarial). Commit: d024d30 + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Workspace names follow the scope rule (a–z, 0–9, `-`, 1–64), stored without `@` | yes | confirmed | `names.test.ts` 7 passed; probe on 4 dialects: `@acme`, `acme_x`, ZWSP, Cyrillic, fullwidth → InvalidWorkspaceNameError |
+| 2 | Reserved: `global` plus the scopes' list, in any case or padding; workspaces only | yes | confirmed | `names.ts:29`; probe `GLOBAL`/`Global`/` global `/`Admin` → "That name is reserved." on 4 dialects |
+| 3 | A workspace and a scope may share a name | no | confirmed | db test "allows a workspace and a scope to share a name" passes on 4 dialects |
+| 4 | The domain has the five services and `GlobalWorkspaceError` | no | confirmed | `services/workspaces.ts` exports all five; `exceptions/errors.ts:43` |
+| 5 | `workspaces.manage` is root only; moderator, user, signed out and a disabled root are refused | yes | confirmed | `permissions.ts:17`; "who may" passes; moderator mutant fails it; disabled root's cookie → ForbiddenError |
+| 6 | Create, public only, audited with name, description and visibility | yes | confirmed | probe audit metadata `{"name":"acme","description":"Old","visibility":"public"}`; `private` → InvalidWorkspaceVisibilityError |
+| 7 | Edit description audited from/to; unchanged not audited | no | confirmed | db test passes on 4 dialects; probe metadata `{"from":"Old","to":"New"}` |
+| 8 | Delete empty, audited `workspace.deleted` | no | confirmed | db test passes on 4 dialects; mutant dropping the audit fails it |
+| 9 | Delete with scopes refused (`WorkspaceNotEmptyError`), no audit | no | confirmed | `services/workspaces.ts:138`; mutant `if (false)` fails "refuses a workspace that has scopes" |
+| 10 | A scope added during a delete is refused cleanly | yes | partly | stale-count probe: workspace kept, 0 orphans, but a raw FK error on all 4 dialects |
+| 11 | `global` can't be edited or deleted by any spelling or through the repository | yes | confirmed | variants → NotFound (sqlite, pg) or GlobalWorkspaceError (mysql); repo update/delete on GLOBAL_ID no-op |
+| 12 | Name race: one wins, others get WorkspaceNameTakenError, one audit | yes | confirmed | 8 concurrent creates → 1 fulfilled, rest NameTaken, on 4 dialects; the test catches a removed catch only on MySQL |
+| 13 | Audit events registered and summarised | no | confirmed | `audit-event.ts:21-23,56,74`; `summary.ts:110-112`; 21 unit tests passed |
+| 14 | `listWorkspaces`: signed in only, `global` first, then by name | yes | confirmed | probe → `global, alpha, bravo, charlie` on 4 dialects; signed out → ForbiddenError |
+| 15 | `pageWorkspaces`: `global` first in any sort or direction, keyset, search, literal wildcards | yes | confirmed | desc `[global,charlie,bravo]`; back to page 1 shows global; `%`/`_` literal, on 4 dialects |
+| 16 | `pageWorkspaces`' total is the same on every page | yes | not met | sqlite: page 1 total 5, page 2 total 4 |
+| 17 | Update and delete look names up the same way on every dialect | yes | partly | `updateWorkspace({name:"ACME"})` edits `acme` on mysql and mariadb, NotFound on sqlite and pg |
+| 18 | *Done when* tests exist and catch regressions | yes | confirmed | 14 passed on 4 dialects; mutants in rows 5, 8, 9, 11 each turn a test red |
+| 19 | Lint and typecheck clean | yes | confirmed | `biome check` 35 files, no fixes; web and core `typecheck` clean |
+
+**Overall:** not met: the total changes between pages, a delete racing a new scope gives a raw DB error, and name lookup depends on the dialect. (Rows 10, 16 and 17 say `yes` because the notes describe the fixed state; they were written after this pass.)
+
+### Re-check after fixes
+
+Witnessed: 2026-10-06 16:29 EDT, by a fresh agent (adversarial). Commit: d024d30 + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Total is the same on every page, in any sort, direction or search | yes | confirmed | probe: every page `#7` for name, desc, created and search `e`, on all 4 dialects; page-1-only mutant fails the db test |
+| 2 | `global` is first on any page with nothing before it, also reached by a previous cursor | yes | confirmed | page 1 starts `global` in 4 orders on 4 dialects; other pages show no `global` |
+| 3 | A delete that loses a race with a new scope answers WorkspaceNotEmptyError | yes | confirmed | stale count → WorkspaceNotEmptyError, scope kept, 0 delete audits, on 4 dialects; mutant fails `services/workspaces.test.ts` |
+| 4 | Lookup is normalised and the same on every dialect | yes | confirmed | `ACME`/` acme `/`Acme\t` find `acme`, `ａｃｍｅ`/Kelvin `Kcme` don't, identically on sqlite, pg, mysql, mariadb |
+| 5 | `global` still refused by any spelling after the lookup change | yes | confirmed | `GLOBAL`/`Global`/` global ` → GlobalWorkspaceError; fullwidth/Cyrillic → NotFound; description unchanged |
+| 6 | Byte-for-byte name comparison | yes | confirmed | `services/workspaces.ts:60`; belt and braces: `isValidName` already rejects lookalikes |
+| 7 | Name race answers WorkspaceNameTakenError on every dialect, forced by a unit test | yes | confirmed | `racingRepo` test; removing the catch fails it on sqlite; real 8-way race → 1 win, rest NameTaken, on 4 dialects |
+| 8 | No regressions: the domain's tests pass on all four databases | yes | confirmed | `TEST_DATABASE_URL=… vitest run src/server/domains/workspaces` → 18 passed on each |
+| 9 | Lint and typecheck clean | yes | confirmed | `biome check` 9 files, no fixes; `pnpm --filter @ronneai/web typecheck` clean |
+
+**Overall:** met.

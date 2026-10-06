@@ -19,11 +19,14 @@ export {
   isValidName,
   NAME_MAX_LENGTH,
   NAME_PROBLEM_MESSAGES,
+  type NameKind,
   type NameProblem,
   nameProblem,
   normalizeScopeName,
+  normalizeWorkspaceName,
   parseItemName,
   RESERVED_SCOPES,
+  RESERVED_WORKSPACES,
 } from "./names.js";
 export { dependenciesFirst } from "./order.js";
 export { checkPackage, pathProblem, secretLike } from "./package-checks.js";

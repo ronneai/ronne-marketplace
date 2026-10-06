@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { isValidName, nameProblem, normalizeScopeName, parseItemName } from "./names.js";
+import {
+  isValidName,
+  nameProblem,
+  normalizeScopeName,
+  normalizeWorkspaceName,
+  parseItemName,
+} from "./names.js";
 
 describe("nameProblem", () => {
   it("accepts lowercase letters, digits and inner hyphens, up to 64 characters", () => {
@@ -33,8 +39,26 @@ describe("nameProblem", () => {
       "internal",
     ]) {
       expect(nameProblem(name, "scope"), name).toBe("reserved");
+      expect(nameProblem(name, "workspace"), name).toBe("reserved");
       expect(isValidName(name, "item"), name).toBe(true);
     }
+  });
+
+  it("reserves global for workspaces only, and checks workspace names like the others", () => {
+    expect(nameProblem("global", "workspace")).toBe("reserved");
+    expect(isValidName("global", "scope")).toBe(true);
+    expect(isValidName("global", "item")).toBe(true);
+    expect(isValidName("acme", "workspace")).toBe(true);
+    expect(nameProblem("Acme", "workspace")).toBe("characters");
+    expect(nameProblem("-acme", "workspace")).toBe("edges");
+    expect(nameProblem("a".repeat(65), "workspace")).toBe("too_long");
+  });
+});
+
+describe("normalizeWorkspaceName", () => {
+  it("trims and lowercases, and keeps an @ for the name check to refuse", () => {
+    expect(normalizeWorkspaceName("  Acme ")).toBe("acme");
+    expect(nameProblem(normalizeWorkspaceName("@acme"), "workspace")).toBe("characters");
   });
 });
 

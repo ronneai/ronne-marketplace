@@ -13,7 +13,7 @@ the same change that completes it.
   `migrations.guard.test.ts`). Setup's steps create nothing extra (the migration does).
   *Done when:* migration tests pass on the four databases, starting from an instance with scopes.
 
-- [ ] **2. Names and the domain.** Workspace name rules in `packages/core/src/names.ts` (reserved
+- [x] **2. Names and the domain.** [risky] Workspace name rules in `packages/core/src/names.ts` (reserved
   `global`); a `workspaces` domain (models, repository, services `createWorkspace`,
   `updateWorkspace`, `deleteWorkspace`, `listWorkspaces`, `pageWorkspaces`) with `workspaces.manage`
   (root); `GlobalWorkspaceError`; the audit events.
@@ -55,3 +55,18 @@ goes into `SPEC.md` instead.
   each step there checks whether it's done already, and a stopped run can be rerun; PostgreSQL runs
   it in one transaction. Every raw `insertInto("scopes")` in tests and `feed-benchmark.ts` now sets
   `workspace_id`.
+- **Task 2.** `nameProblem(name, "workspace")` reserves `RESERVED_WORKSPACES` (`global` plus the
+  scopes' list); `normalizeWorkspaceName` trims and lowercases (no `@`). The service accepts only
+  `public` until 093 (`InvalidWorkspaceVisibilityError`). When the unique index refuses a name
+  another root just took, the service looks the name up again outside the failed transaction and
+  answers `WorkspaceNameTakenError`. The repository's page leaves `global` out; `pageWorkspaces`
+  counts it whenever the search matches it, so the total is the same on every page, and lists it
+  first on any page with nothing before it (also when reached through a previous cursor). The name
+  race only shows on MySQL and MariaDB, where the two creates really overlap, so a unit test with a
+  fake repository (`services/workspaces.test.ts`) forces it. The repository's update and delete also filter on
+  `is_global = false`, so `global` stays even if a service check were skipped. `listWorkspaces` is
+  open to everyone signed in (catalogue filter, selects); paging and opening one are root's. Edit,
+  delete and open look a name up as create stores it (trimmed, lowercased, then checked against the
+  name rule, then compared byte for byte), so `ACME` finds `acme` and `ａｃｍｅ` finds nothing on every
+  database, MySQL's collation included. A delete that loses a race with a new scope (its foreign key
+  refuses) is answered `WorkspaceNotEmptyError` after a recount outside the failed transaction.
