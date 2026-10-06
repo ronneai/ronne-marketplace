@@ -253,3 +253,54 @@ plugin feeds don't change. Build order: 090 → 091 → 092 → 093 → 094 → 
 | [093](./093-private-workspaces/SPEC.md) | Private workspaces: seen only by members and root everywhere (not found to others), dependable only inside their workspace, turning private refused while outside items depend on it, plugin feeds per visibility key, `rmk feed build --workspace` | 090, 091, 092, 089, 018, 019, 020, 027, 077, 079 | specified |
 | [094](./094-workspace-access-requests/SPEC.md) | Asking to join: the Workspaces page, a join link for private ones, requests answered by root or the workspace's moderators, a nav count, audited | 090, 091, 092, 093, 007 | specified |
 | [095](./095-workspaces-cli-api/SPEC.md) | Workspaces in `rmk`, MCP and the API: `GET /api/v1/workspaces`, `workspace` on items and `me`, `rmk workspaces`, `search --workspace`, export grouped by workspace, MCP `list_workspaces` | 090, 091, 093, 094, 019, 022, 027, 038 | specified |
+
+### M14 — Run it safely
+
+What a company checks before it runs Ronne (owner, 2026-10-06, from an evaluator's feedback): how
+to back it up and restore it, what it logs, what threats it faces and what to do in an incident.
+After M13. Build order: 098 → 099 → 100 → 101.
+
+| ID | Feature | Depends on | Status |
+|---|---|---|---|
+| 098 | Threat model and incident response: the threat model (items run on developers' machines, review as the boundary, tokens, plugin feeds, export, our supply chain) and an incident runbook (yank a version, revoke tokens in bulk, rotate `AUTH_SECRET`, read the audit log, tell users); `SECURITY.md` links both | 007, 016, 009 | planned |
+| 099 | Backup and restore: `rmk-server backup` and `restore` (the database, storage and the settings file; SQLite with `VACUUM INTO`, `pg_dump` / `mysqldump` for the servers), the Docker volumes, encrypted backups, a backup runbook and a restore test in CI; encryption at rest is the disk's or the database's, documented | 082, 005 | planned |
+| 100 | Structured logs: JSON lines with a level, time and request ID, `LOG_LEVEL`, the same fields in every domain, no secrets or tokens in any line | 001 | planned |
+| 101 | Metrics and traces: OpenTelemetry, off unless `OTEL_EXPORTER_OTLP_ENDPOINT` is set (requests, database time, sign-ins, releases, feed builds); the health endpoint reports the database and storage | 100 | planned |
+
+### M15 — Privacy and data lifecycle
+
+Personal data (emails, names, IP addresses) is kept only as long as needed, and a person can see
+it and have it erased, as Quebec's Law 25, PIPEDA and the GDPR expect (owner, 2026-10-06). The
+audit log stays whole: an erased person becomes a pseudonym, never a gap. Build order: 102 → 103 →
+104.
+
+| ID | Feature | Depends on | Status |
+|---|---|---|---|
+| 102 | Retention: root sets how long IP addresses (audit log, sessions) and expired sessions are kept, 90 days by default; a scheduled purge under a database lock; the Privacy topic in the Documentation | 007, 006, 099 | planned |
+| 103 | Erase a user: root anonymises an account (email and name become `deleted-user-<id>`; sessions, accounts and tokens deleted; IPs cleared), published items and audit events kept under the pseudonym; the last root can't be erased; audited | 008, 059, 102 | planned |
+| 104 | Your data: a person downloads what the instance holds about them (account, tokens' names, submissions, comments, audit events) as JSON, and root can do it for them | 102, 103 | planned |
+
+### M16 — Company sign-in
+
+SSO, MFA and SCIM (owner, 2026-10-06; design in [MVP §14.3](../MVP/MVP.md#143-sso--planned-as-m16)).
+Through Better Auth's plugins, checked against its current docs before each spec. Email and
+password stay, at least for root, so a broken identity provider can't lock everyone out. Build
+order: 105 → 106 → 107 → 108.
+
+| ID | Feature | Depends on | Status |
+|---|---|---|---|
+| 105 | Two-factor sign-in: TOTP and backup codes on Account, root can require it for everyone or for roots and moderators; `reset-root-password` also resets it; audited | 006, 008, 059 | planned |
+| 106 | OIDC sign-in: root sets up identity providers in Admin › Settings; accounts linked by verified email, or created on first sign-in for chosen domains with the role `user`; IdP groups mapped to moderator and workspace roles | 006, 008, 091, 092, 105 | planned |
+| 107 | `rmk login` for SSO users: the OAuth device flow (a code and a URL, approved in the browser, a personal access token back); the MCP setup uses it too | 106, 009, 022, 027 | planned |
+| 108 | SCIM provisioning: `/api/v1/scim/v2` Users and Groups, a token per identity provider; deprovisioning disables the account and revokes its tokens and sessions; groups set workspace membership | 106, 092, 103 | planned |
+
+### M17 — More than one replica
+
+Ronne runs behind a load balancer on several replicas (owner, 2026-10-06). Nothing that has to be
+shared lives in one process's memory or on one machine's disk. Build order: 109 → 110 → 111.
+
+| ID | Feature | Depends on | Status |
+|---|---|---|---|
+| 109 | Shared rate limits: sign-in, draft upload and usage limits counted in the database (one table, upsert on all three dialects) instead of in memory; same limits and messages | 006, 037, 046 | planned |
+| 110 | S3-compatible storage: a `StorageAdapter` for S3 (AWS, MinIO, R2 and the like), chosen in setup or by environment; server-side encryption; tests against MinIO; a command that copies local storage into a bucket | 015, 099 | planned |
+| 111 | Replicas checked: every remaining in-memory state found and made shared or safe to repeat (the marketplace cache by catalogue revision, scheduled jobs under a lock); a compose example with two replicas, and an end-to-end run against it | 109, 110, 079, 102 | planned |

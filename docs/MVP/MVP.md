@@ -29,7 +29,7 @@ Items are written once in a canonical format and delivered to the major AI codin
 
 - Public multi-tenant SaaS, billing, or a public item catalogue.
 - SSO in the first release. It is planned as a follow-up (§14.3), and the auth library is chosen so it can be added without a rewrite.
-- Remote object storage (S3) — local disk only, behind an adapter.
+- Remote object storage (S3) — local disk only, behind an adapter. S3-compatible storage is planned as M17 (owner, 2026-10-06).
 - Federation between Ronne instances and release signing (§14.1, §14.2).
 - Importing items from external marketplaces.
 - Notifications.
@@ -498,7 +498,7 @@ apps/web/src/server/
 │  ├─ submissions/
 │  ├─ reviews/
 │  ├─ releases/
-│  └─ storage/             # StorageAdapter (local disk; S3 later)
+│  └─ storage/             # StorageAdapter (local disk; S3 in M17)
 ├─ db/                     # Kysely instance, dialect factory, migrations
 └─ http/                   # API route helpers: auth guard, error → HTTP mapping
 ```
@@ -698,7 +698,11 @@ really was published by the upstream.
 
 Recommended path: an instance key first (small effort, big gain). Publisher keys can be added later.
 
-### 14.3 SSO — wanted; options to start
+### 14.3 SSO — planned as M16
+
+Planned as M16 after M13 (owner, 2026-10-06): two-factor sign-in, OIDC, `rmk login` with the
+device flow, then SCIM ([features 105–108](../features/README.md#m16--company-sign-in)). SAML and
+LDAP stay later, if requested.
 
 Using a library instead of hand-written auth makes SSO an add-on rather than a rewrite.
 **Recommended: [Better Auth](https://www.better-auth.com/).** It supports email/password, generic OIDC
@@ -709,7 +713,7 @@ and SAML via its SSO plugin, and has a native Kysely adapter, so it works on all
 | **OIDC** (generic) | Google Workspace, Microsoft Entra ID, Okta, Keycloak, Authentik, Auth0 | **First.** One integration covers most identity providers (IdPs). |
 | SAML 2.0 | Legacy enterprise IdPs, ADFS | Second, if requested |
 | LDAP / Active Directory | On-prem directories without OIDC | Later |
-| SCIM | Automatic user provisioning and deprovisioning from the IdP | Later |
+| SCIM | Automatic user provisioning and deprovisioning from the IdP | M16, after OIDC |
 
 Design points:
 - **Root keeps control.** Root configures the IdP and either pre-creates users, as today, or allows just-in-time creation for chosen email domains with a default role of `user`. IdP groups can optionally map to `moderator`.
@@ -721,11 +725,13 @@ Design points:
 - **More platforms.** Tier-3 community renderers via the `PlatformRenderer` interface (§3.3).
 - **Native plugin feeds.** Planned as M11 for Claude Code, Codex and Cursor (§3.3). Copilot, Gemini and Devin feeds follow their renderers (028–030, on hold).
 - **Install telemetry** (a policy root sets per instance, off by default), so moderators can see which items are used. The MVP only counts artifact downloads on the server, for the home page's "Most used" (018). Designed in §14.6; planned as M9.
+- **Running it safely** (M14): a threat model and an incident runbook, `rmk-server backup` and `restore`, structured logs, and OpenTelemetry when it's configured. Encryption at rest is the disk's or the database's (and the bucket's with S3), documented rather than built into the app.
+- **Privacy and data lifecycle** (M15): retention for IP addresses and sessions, erasing a user by anonymising them (the audit log keeps a pseudonym), and a download of a person's data, for Quebec's Law 25, PIPEDA and the GDPR.
+- **More than one replica** (M17): rate limits counted in the database, S3-compatible storage, and no state that must be shared left in one process's memory.
 
 ### 14.5 Decided out of scope for now
 
 - Importing items from external/public marketplaces. (Existing `.claude` folders were on this list until 2026-09-30; exporting the person's own items from them is M7. Cursor's and Codex's own formats are feature [043](../features/043-codex-cursor-readers/SPEC.md).)
-- S3-compatible storage (the StorageAdapter interface stays, so it can be added later).
 - Notifications (email / webhooks).
 
 ### 14.6 Usage telemetry — post-MVP
@@ -806,13 +812,13 @@ out (owner, 2026-09-30). The design, for when it's picked up:
 | Delivery to AI tools | Canonical `ronne.yaml` → per-platform renderers via `rmk`, plus a registry MCP server | Single source of truth; works in the terminal and inside the agents |
 | Item types | All current customization types: skill, agent, rule, command, hook, mcp-server, permission-policy, output-style, statusline, lsp-server, bundle; canonical hook events | Cover everything the platforms support; degrade with warnings where a platform lacks a type |
 | Platforms | Goal: any. Tier 1 in MVP (Claude Code, Codex, Cursor); tier 2 (Copilot, Gemini/Antigravity, Devin Desktop) specified but on hold (owner, 2026-09-30: not implemented now; 028–030 keep their specs); tier 3 community | Pluggable `PlatformRenderer`; prefer cross-tool standards (Agent Skills, AGENTS.md, MCP) |
-| SSO | Wanted soon after MVP: OIDC first via Better Auth, then SAML; CLI uses the device flow | One OIDC integration covers most IdPs |
-| Out of scope for now | Import from external marketplaces, S3 storage, notifications. Exporting a person's own local items is no longer out: see "Export" below | Keep MVP focused |
+| SSO | OIDC first via Better Auth, then SAML if requested; CLI uses the device flow. Planned as M16 after M13, with two-factor sign-in before it and SCIM after it (owner, 2026-10-06) | One OIDC integration covers most IdPs; companies evaluating Ronne ask for SSO, MFA and deprovisioning together |
+| Out of scope for now | Import from external marketplaces, notifications. Exporting a person's own local items is no longer out: see "Export" below; S3 storage is no longer out since 2026-10-06: see "Artifacts" | Keep MVP focused |
 | Backend | Next.js monolith with a domain-first clean architecture; server actions + `/api/v1` | One deployable to self-host; the domain layer stays framework-independent |
 | DB access | Kysely; SQLite (default) / MySQL-MariaDB / PostgreSQL chosen at install | One query layer and one migration set across three dialects at runtime |
 | Approval | 1 approval from a moderator/root who isn't the author; root override is audited | Four-eyes review without slowing small teams |
 | Release | Separate step after approval: publisher picks the semver bump and dist-tag (`latest` default) | npm/apt-style control over what `latest` means |
-| Artifacts | Immutable `.tgz` + sha256 on local disk behind a StorageAdapter | Simple to self-host; S3 can be added later |
+| Artifacts | Immutable `.tgz` + sha256 on local disk behind a StorageAdapter; S3-compatible storage planned as M17 (owner, 2026-10-06, [110](../features/README.md#m17--more-than-one-replica)) | Simple to self-host; several replicas need storage they all reach |
 | Composition | React Flow visual composer over manifest `dependencies` | Visual UX, but reviews stay text diffs |
 | Monorepo | pnpm + Turborepo (`apps/web`, `packages/{core,cli,mcp,config}`) | Shared core between web, CLI and MCP |
 | MCP server and `rmk` | `packages/mcp` imports `@ronneai/rmk/lib`, `rmk`'s install pipeline as functions (plan, apply, lockfile, state, registry access), and never `rmk`'s command layer; nothing else outside core crosses packages (owner, 2026-09-29, [027](../features/027-registry-mcp-server/SPEC.md)). The export pipeline (find, plan, upload) is exported the same way ([038](../features/038-rmk-export/SPEC.md), 2026-09-30) | The server plans and applies installs exactly as `rmk` does, so one pipeline serves both and they can't drift; moving it into core would put file-system and network code into what the web app imports |
@@ -841,7 +847,7 @@ out (owner, 2026-09-30). The design, for when it's picked up:
 | Withdraw | Allowed until release, including from `submitted` and, since 2026-10-02, `approved`; it asks to archive (restorable, private to the author) or delete for good (only with no review history; audited) (owner, 2026-10-02, [057](../features/057-withdraw-archive-delete/SPEC.md)) | Pulling back a submission that isn't released is harmless: approval freezes its files for release, and withdrawing doesn't change them ([013](../features/013-submit-withdraw/SPEC.md)); closed submissions shouldn't pile up, but a conversation with reviewers is a record worth keeping |
 | Review decisions | Request changes and reject, each with a required reason, from each row of the review queue and on the review page, never in bulk; shown disabled with the reason on the reviewer's own submission; the author sees the latest reason at the top of their page (owner, 2026-10-02, [058](../features/058-review-decisions-everywhere/SPEC.md)) | Reviewers couldn't find them on the review page alone; each reason is about one submission (054) |
 | Web sign-in | Email and password only; tokens don't sign in to the web; "Forgot?" points to a root reset (no email) | Tokens stay machine credentials, so a leaked token can't open a browser session |
-| Login rate limit | Ronne's own in-memory limiter on the sign-in action: 5 attempts a minute per email, and per client IP only with `TRUST_PROXY=true`; Better Auth's HTTP sign-in is not served | Better Auth's limiter skips server actions, and without a trusted proxy the client IP can be forged ([006](../features/006-web-sign-in/SPEC.md)) |
+| Login rate limit | Ronne's own in-memory limiter on the sign-in action: 5 attempts a minute per email, and per client IP only with `TRUST_PROXY=true`; Better Auth's HTTP sign-in is not served. Counted in the database from M17 (109), so replicas share the count | Better Auth's limiter skips server actions, and without a trusted proxy the client IP can be forged ([006](../features/006-web-sign-in/SPEC.md)) |
 | CLI login | `rmk login` exchanges email and password for a token (`POST /api/v1/auth/token`), and `rmk login --token` accepts one made in the web app; browser-based login waits for SSO's device flow | Matches the MVP and the mock's `--token`, without new endpoints before SSO |
 | Which registry | `--registry`, then `RMK_REGISTRY`, then the project's (`registry` in `rmk.config.json`, then `rmk.lock`), then the user's default; `rmk install` records the registry in `rmk.config.json`, and `rmk login --registry` makes it the default (owner, 2026-10-01, [cli-files](../spec/cli-files.md)) | Tokens are personal and stay per machine, but the registry belongs to the project, so teammates and several instances on one machine each get the right one; before this the project's `registry` was documented but unused, and a second login left the old default |
 | Roots | Several roots, as peers: setup creates the first, and any root can give any role (root included) and disable or reset any account but their own; at least one active root always remains, enforced under row locks; `pnpm run reset-root-password` (with `--email` when there are several) recovers one. It was "Single root" (008) until the owner changed it, 2026-10-02 ([059](../features/059-multiple-roots/SPEC.md)) | One person away or locked out shouldn't stop the instance being run; no roots at all would reopen the web setup, so the last one is protected |
@@ -860,3 +866,5 @@ out (owner, 2026-09-30). The design, for when it's picked up:
 | Native plugin feeds | Released items are offered as plugin marketplaces: every installable item is a plugin (with its dependencies; a bundle with its members), built from the renderers' output. Claude Code reads a live marketplace from the instance with a token (`headersHelper: rmk auth headers`); Codex and Cursor get a git mirror written by `rmk feed build`; the feed needs a token like the rest of `/api/v1` (owner, 2026-10-03, M11: [076](../features/076-plugin-builders/SPEC.md)–[078](../features/078-plugin-feed-mirror/SPEC.md)) | People install from inside their tool; only Claude Code can add a plain HTTPS source, and Codex and Cursor only add git repositories; serving git from the web app would mean a git implementation for no gain over a mirror. Approval and immutable versions are unchanged, since only released versions are built |
 | Plugin feeds at scale | One Claude Code marketplace per instance, not one per scope. The marketplace is cached in memory per catalogue revision, each build records its size and time, and root is warned past 80% of Claude Code's limits (4 MiB, 5 seconds). Only Claude Code's route is capped at 5 MiB; past it, the git mirror (078), which has no such limit, is the way. Per-scope marketplaces are built only when the benchmark shows a warm build of 5 seconds or more at 5,000 items or fewer, or a real instance shows a warning (owner, 2026-10-03, [079](../features/079-plugin-feeds-at-scale/SPEC.md)). Measured the same day: at 10,000 items the marketplace is 4.8 MiB, a warm build 1.5 s on PostgreSQL, and a cached answer under 5 ms; neither trigger is met | One entry is about 400–500 bytes, so 5 MiB is near 10,000 items, far above a curated registry's expected size. Splitting costs every user (several marketplaces to add, dependencies across them), and time is likelier than size to run out first, which a cache fixes for everyone |
 | Documentation | On the website, `https://www.ronne.ai/marketplace/docs`, from the `ronne-web` repository, in English, Portuguese and French; the app keeps its inline helpers, whose Learn more (and Docs) open the website in a new tab, and its old `/docs` addresses redirect there. The install scripts live under `https://www.ronne.ai/marketplace/` (owner, 2026-10-05; 088) | One copy, readable before installing and in three languages; the app stops carrying a second one that could drift |
+| Personal data | Kept only as long as needed: root sets retention for IP addresses and sessions; an erased user is anonymised (email and name replaced, credentials deleted, IPs cleared) and their items and audit events stay under the pseudonym; a person can download their data. Planned as M15 after M13 (owner, 2026-10-06, [102–104](../features/README.md#m15--privacy-and-data-lifecycle)) | Law 25, PIPEDA and the GDPR expect retention limits, erasure and access; deleting rows would break the audit log and published items' history |
+| Operations | A threat model and an incident runbook; `rmk-server backup` and `restore` with a restore test in CI; JSON logs; OpenTelemetry only when configured; encryption at rest left to the disk, the database or the bucket. Planned as M14 after M13 (owner, 2026-10-06, [098–101](../features/README.md#m14--run-it-safely)) | Companies check these before they run Ronne; app-level encryption would add key management for little gain over the platform's |

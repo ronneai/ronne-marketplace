@@ -136,13 +136,12 @@ Pull requests are squash-merged, so the PR title becomes the commit on `main`. C
 - **Workflow:**
   - An item or change goes from draft → submitted → approved, with one approval from a moderator or root who isn't the author (root can override, and the override is audited).
   - Releasing is a separate step: semver bump plus a dist-tag, `latest` by default.
-  - Published versions are immutable `.tgz` files with a sha256 checksum, stored through a `StorageAdapter` (local disk only for now).
+  - Published versions are immutable `.tgz` files with a sha256 checksum, stored through a `StorageAdapter` (local disk for now; S3-compatible storage is planned in M17).
 - **Dependencies** follow `docs/policies/dependencies.md`. Check it before adding any package, tool, action or image.
   - Only licenses that allow free use and redistribution (MIT, ISC, BSD, Apache-2.0, …). Never GPL, AGPL, SSPL, BUSL, non-commercial or unlicensed, even as a dev dependency. No tools that need a paid plan.
   - Use the latest stable version, and LTS where there is one (Node.js 24 LTS target, 22 minimum).
   - Don't add anything with known high or critical vulnerabilities. Keep the pnpm protections (`minimumReleaseAge`, `allowBuilds`, `trustPolicy`, `blockExoticSubdeps`) intact.
 - **Out of scope for the MVP:**
   - importing from external marketplaces;
-  - S3 storage;
   - notifications;
   - linking Ronne instances and release signing (designed in §14, not built yet).
