@@ -19,7 +19,7 @@ time (MVP §3.3).
 | `keywords` | — | string[] | Max 10, lowercase. Used by search. |
 | `readme` | — | path | Defaults to `README.md` if present. Shown on the item page. |
 | `files` | — | path[] | Files included in the package. Defaults to every file in the folder except `.ronne/`. Paths are relative, use `/`, and can't contain `..`. |
-| `dependencies` | — | map | `"@scope/name": "<semver range>"`. Only allowed for the types listed in §3. |
+| `dependencies` | — | map | `"@scope/name": "<semver range>"`. Any type, on any type (§3); a bundle lists at least one. |
 | `targets` | — | map | Per-platform settings, see §4. |
 | `<type block>` | depends | object | Settings for the item's type, under a key named after the type (for example `agent:`). §2 lists what each type needs. |
 
@@ -51,7 +51,7 @@ agent:
   model: default         # default | fast | strong — a hint, mapped per platform
 ```
 
-Skills, MCP servers, hooks, rules and commands the agent uses go in `dependencies`.
+The skills, MCP servers and other items the agent uses go in `dependencies`.
 
 ### `rule`
 
@@ -160,7 +160,7 @@ Always a risk flag, because it runs a command.
 
 ### `bundle`
 
-No type block. A bundle is a `name`, `description` and `dependencies`. The visual composer edits bundles and agents.
+No type block. A bundle is a `name`, `description` and `dependencies`. The visual composer edits the dependencies of every type (096).
 
 ## 3. Dependencies
 

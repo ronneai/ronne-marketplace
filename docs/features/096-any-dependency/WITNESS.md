@@ -89,3 +89,35 @@ Witnessed: 2026-10-05 21:15 EDT, by a fresh agent.
 
 **Overall:** met. After this check, the test asks for one token per user and uploads both of composer's
 drafts with it (3 uses a run, so a retry stays within 5); the two tests passed again after that change.
+
+## Task 4 — Decisions and Documentation
+
+Witnessed: 2026-10-05 21:20 EDT, by a fresh agent. Machine: macOS 27.0.1 (Darwin), Node v24.0.0.
+
+| # | Claim | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|
+| 1 | MVP §1, §3.1, §8, §15 and the manifest spec match the code | partly | All updated and accurate, but the manifest spec's field table still said `dependencies` is "Only allowed for the types listed in §3", and its agent line read like the old list. |
+| 2 | The website's English says what the app does; no leftovers | partly | Intro, cards, canvas, item page and export done; the picker sentences in all three languages still said "of the types this one / the draft may depend on". |
+| 3 | Portuguese and French match and agree | confirmed | Terms and the bundle card's gender agreements right (proofread before). |
+| 4 | The cards and their component comment | confirmed | All 11 types on cards 1 and 3; `bundle` on card 2. |
+| 5 | Checks | confirmed | Worktree: lint, typecheck, 136 tests; here lint 0 errors. |
+| 6 | No in-app helper states the old rule | confirmed | |
+
+**Not checked here:** the website in a browser (the cards' layout with 11 type badges).
+**Differences from the notes:** "a bundle lists at least one" wasn't enforced: an empty
+`dependencies: {}` passed (on `main` too).
+**Overall:** not met, narrowly. Fixed (below).
+
+### Re-check after fixes
+
+Witnessed: 2026-10-05 21:28 EDT, by a fresh agent.
+
+| # | Claim | Verdict | Evidence |
+|---|---|---|---|
+| 1 | The manifest spec's field table and agent line | confirmed | "Any type, on any type (§3); a bundle lists at least one."; "The skills, MCP servers and other items the agent uses…". |
+| 2 | The website's picker sentences, and Portuguese card 1 | confirmed | "of any type, never this item itself" (pt, fr alike); "Qualquer tipo pode depender de qualquer tipo"; no leftovers in `www/src`. |
+| 3 | `bundle_empty` refuses an empty bundle; tests; the spec | confirmed | Core 305, submissions and editor 436 passed. Saving still works (problems are reported, not thrown); Submit stays off until an item is added; nothing else leaves a bundle stuck; a released empty bundle installs as before (`rmk` never runs the package checks). |
+
+**Overall:** met. After this check: the website's `types.ts` comment was reworded, and the spec now
+says what happens to bundles saved empty before 096. The full suite (build, unit, 90 end-to-end, and
+the submissions tests on PostgreSQL, MySQL and MariaDB) passed with these changes.

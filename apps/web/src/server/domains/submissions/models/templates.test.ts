@@ -24,7 +24,9 @@ describe("draftTemplate", () => {
     for (const issue of issues)
       expect(
         issue.path === "/description" ||
-          issue.message === "SKILL.md's frontmatter needs a description.",
+          issue.message === "SKILL.md's frontmatter needs a description." ||
+          // A bundle starts empty and needs its first item (096).
+          (type === "bundle" && issue.code === "bundle_empty"),
         `${type}: ${issue.message}`,
       ).toBe(true);
   });
@@ -32,7 +34,10 @@ describe("draftTemplate", () => {
   it.each(ITEM_TYPES)("%s passes completely once the description is written", (type) => {
     const written = files(type).map((file) => ({
       ...file,
-      content: file.content.replace('description: ""', "description: A starter."),
+      content: file.content
+        .replace('description: ""', "description: A starter.")
+        // A bundle also needs its first item (096).
+        .replace("dependencies: {}", 'dependencies:\n  "@team/one": "^1.0.0"'),
     }));
     expect(validateDraft(draft(type), written)).toEqual([]);
   });

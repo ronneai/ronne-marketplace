@@ -27,7 +27,7 @@ the same change that completes it.
   the rule's markdown and the canvas, and both submit.
   *Done when:* the Playwright test passes, and the whole suite.
 
-- [ ] **4. Decisions and Documentation.** MVP §3.1 (the table becomes one rule) and §15 ("Resolver";
+- [x] **4. Decisions and Documentation.** MVP §3.1 (the table becomes one rule) and §15 ("Resolver";
   a new "Dependencies between types" row); the ronne-web topics in the spec.
   *Done when:* the docs render tests pass in ronne-web.
 
@@ -47,3 +47,6 @@ goes into `SPEC.md` instead.
   ambiguous: the composer user's own agent draft is now offered to an agent, so 089's test waits on
   a draft of its own (`settle-089`) to know the canvas search has settled, and asks for one token per
   user (each token counts toward the sign-in limit).
+- **Task 4.** `bundle_empty` (a package check) was added while writing the Documentation: the docs
+  said a bundle lists at least one, and only a missing field was refused. The website's changes are
+  on ronne-web's `docs/096-any-dependency`, built on `docs/089-dependency-picker`.

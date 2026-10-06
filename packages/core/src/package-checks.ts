@@ -275,7 +275,14 @@ export const checkPackage = (
   // Dependencies.
   const dependencies = (manifest.dependencies ?? {}) as Record<string, unknown>;
   const names = Object.keys(dependencies);
-  // Any type may depend on any type (096); whether each exists is the registry's check (013).
+  // Any type may depend on any type (096); whether each exists is the registry's check (013). A
+  // bundle is nothing but its dependencies, so it lists at least one.
+  if (manifest.type === "bundle" && names.length === 0 && manifest.dependencies !== undefined)
+    issues.push(
+      error("bundle_empty", "A bundle lists at least one dependency: the items it installs.", {
+        path: "/dependencies",
+      }),
+    );
   for (const name of names) {
     const range = dependencies[name];
     if (typeof range !== "string" || validRange(range) === null)

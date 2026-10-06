@@ -40,7 +40,12 @@ types on nothing at all.
 always true; they stay as functions so the callers keep one place to ask.
 
 **The manifest schema.** The `if type in […] then not required dependencies` rule goes. The bundle
-rule (`required: [dependencies]`) stays. Manifests already released are untouched: none of them has
+rule (`required: [dependencies]`) stays, and a new package check, `bundle_empty`, refuses a bundle
+whose `dependencies` is empty ("A bundle lists at least one dependency: the items it installs."): it
+would install nothing. A new bundle draft starts with an empty list, so it shows that problem until
+its first item is added. A bundle draft or submission saved with an empty list before 096 shows it
+too, and can't be submitted or released until it lists an item. A released one is untouched: `rmk`
+never runs the package checks, and an empty bundle installs nothing, as before. Manifests already released are untouched: none of them has
 a field the old rule forbade.
 
 **Older `rmk` versions.** `rmk` 0.3.x parses a downloaded `ronne.yaml` and uses it even when the
@@ -104,7 +109,8 @@ goes. What's detected is declared like any other dependency.
 1. **Any item may depend on any other** (owner, 2026-10-05). Replaces MVP §3.1's table and §15
    "Resolver: dependency types restricted".
 2. **The Canvas view on every type** (owner, 2026-10-05).
-3. **A bundle still lists at least one dependency** (Claude): a bundle with none installs nothing.
+3. **A bundle lists at least one dependency** (Claude): a bundle with none installs nothing. Until
+   096 an empty `dependencies: {}` passed (only a missing field was refused); 096 refuses it too.
 
 ## Open questions
 

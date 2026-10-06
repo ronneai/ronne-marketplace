@@ -22,7 +22,7 @@ Items are written once in a canonical format and delivered to the major AI codin
 - One-command install with a choice of database and interactive root-account creation.
 - Role-based accounts (root, moderator, user) managed from the web UI.
 - Propose new items or changes to existing ones → review → approve → release with semver + dist-tags.
-- Compose agents from skills, MCP servers, tools and hooks with a visual composer.
+- Compose items from other items, of any type, with a visual composer.
 - Search, install, update and remove items from the terminal (`rmk`) and from inside AI tools (MCP).
 
 **Non-goals for the MVP**
@@ -93,14 +93,12 @@ Every item name is **scoped**, such as `@team/code-review`, and unique within th
 and names are lowercase `a-z`, `0-9` and `-`. An item's type is fixed when it is first created; a
 different type means a new item.
 
-**Which types can depend on which.** Only composite types have dependencies:
-
-| Type | May depend on |
-|---|---|
-| `bundle` | any type |
-| `agent` | `skill`, `mcp-server`, `hook`, `rule`, `command` |
-| `skill`, `command` | `mcp-server` |
-| all other types | nothing |
+**Which types can depend on which.** Any type on any type ([096](../features/096-any-dependency/SPEC.md),
+owner 2026-10-05): a skill on the agent it works with, a rule on an MCP server, an agent on another
+agent, so people compose what works for them. A bundle lists at least one dependency; an item can't
+depend on itself, and the dependencies can't go round in a circle (§4.3). Until 096, only bundles
+(any type), agents (skills, MCP servers, hooks, rules, commands), and skills and commands (MCP
+servers) could have dependencies.
 
 **Canonical hook events.** Hooks are the least standardised type. Ronne uses a neutral event vocabulary:
 
@@ -455,8 +453,8 @@ written `pnpm run setup`. Full behaviour, including a non-interactive mode for D
 | Admin (root) | Users (create, disable, reset password, change role); instance settings; audit log |
 
 **Visual composer** ([031](../features/031-visual-composer/SPEC.md)). Built with React Flow. It
-shows a canvas where an agent (or bundle) node connects to skill, MCP server, hook, rule and command
-nodes picked from the catalogue, each with a version-range selector. The canvas is a **view over
+shows a canvas where the draft's node connects to the items it depends on, picked from the catalogue,
+each with a version-range selector; every type has it since [096](../features/096-any-dependency/SPEC.md). The canvas is a **view over
 `dependencies` in `ronne.yaml`**: saving writes the manifest, so reviews always see a plain text
 diff. Canvas positions are stored in `.ronne/layout.json` in the draft. The packer leaves `.ronne/`
 out, so they are never released, and review diffs only say that they changed.
@@ -823,7 +821,8 @@ out (owner, 2026-09-30). The design, for when it's picked up:
 | Pre-releases | Real semver pre-releases (`1.1.0-beta.1`) under a non-`latest` tag (`next` by default); first stable is `1.0.0` | Matches npm behaviour users already know |
 | Secrets | rmk never stores secret values; rendered configs reference env vars and rmk reports missing ones | No secrets on disk from us; every platform reads env vars |
 | Managed content | Markers in files that allow comments; `.rmk/state.json` with hashes for JSON/TOML keys; stop on user edits unless `--force` | JSON can't hold markers; hashes detect local edits safely |
-| Resolver | One version per item per install scope; conflicts and cycles fail; dependency types restricted (§3.1) | Rendered paths are named per item, so versions can't coexist |
+| Resolver | One version per item per install scope; conflicts and cycles fail; any type may depend on any type (§3.1, 096) | Rendered paths are named per item, so versions can't coexist |
+| Dependencies between types | Any item may depend on any other item, of any type; the form, `@` in markdown and the Canvas view are on every type; a bundle still lists at least one; cycles and self-dependencies are refused. It was "dependency types restricted" (bundle on any, agent on five types, skill and command on MCP servers, the rest on nothing) until the owner changed it, 2026-10-05 ([096](../features/096-any-dependency/SPEC.md)) | People should compose what works for them. Renderers never read `dependencies` (each item is rendered by its own type), so the rule protected nothing at install; released `rmk` versions parse a manifest whatever its schema says, so they install these items too |
 | MCP writes | Two steps: `plan_*` tools return a plan, `apply_plan` writes it. Uploads too: `plan_export` returns the plan, `export_items` sends it ([039](../features/039-mcp-export-tools/SPEC.md)) | AI tools ask permission before a call, so the plan must be visible first |
 | DB portability | ULID keys, UTC timestamps, JSON as text, `LIKE` search, upserts via a helper | Keeps one migration set working on all three databases |
 | API conventions | One error shape with stable codes; cursor pagination; `/api/vN` versioning. Reads, plus creating a draft (M7); every `POST` body has a size limit ([037](../features/037-draft-upload-api/SPEC.md)) | Stable contract for `rmk` and the MCP server |

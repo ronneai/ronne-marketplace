@@ -250,6 +250,11 @@ describe("dependencies", () => {
     ]);
   });
 
+  it("refuses a bundle with an empty dependencies list (096)", () => {
+    const bundle: Manifest = { name: "@a/kit", type: "bundle", description: "x", dependencies: {} };
+    expect(codes(bundle, [file("ronne.yaml")])).toEqual(["bundle_empty"]);
+  });
+
   it("allows dependencies on every type (096)", () => {
     const rule: Manifest = {
       name: "@a/r",
