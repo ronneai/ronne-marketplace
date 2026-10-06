@@ -57,16 +57,20 @@ Checked against the vendors' docs on 2026-10-05:
 
 **Reading frontmatter** (`packages/core/src/frontmatter.ts`). Before the YAML is parsed, a value
 that is exactly an item name, `@scope/name`, unquoted, after `key:` or a list's `- `, is quoted. So
-`agent: @test/agent` reads as `agent: "@test/agent"`. Anything else that fails gives
-`frontmatter_yaml`: "SKILL.md's frontmatter isn't valid YAML: <the parser's message> (line N)." The
-same reading is used by the package checks, the renderers and the readers.
+`agent: @test/agent` reads as `agent: "@test/agent"`. The lines of a `|` or `>` block are text and
+are left alone. Anything else that fails gives `frontmatter_yaml`: "SKILL.md's frontmatter isn't
+valid YAML: <the parser's message> (line N)." An empty block, or one that isn't keys and values,
+still says "needs YAML frontmatter with name and description". The same reading is used by the
+package checks, the renderers and the readers.
 
 **Saving a draft** (012). Each `SKILL.md` is saved with such values quoted, and every `agent:
 @scope/name` in it that isn't under `dependencies` in `ronne.yaml` is added there, in the same save.
-The editor shows both changes after the save. The `@` list in frontmatter inserts the name quoted.
+The editor shows both changes after the save. The `@` list in frontmatter inserts the name as it
+does in the body, and the save quotes it.
 
 **The checks.**
-- Package checks (011): `agent` must be a string; when it's an item name, it must be listed under
+- Package checks (011): `agent` must be one name (`frontmatter_agent`: "SKILL.md's agent must be one
+  name, such as @team/reviewer."); when it's an item name, it must be listed under
   `dependencies` (`frontmatter_dependency`; the save adds it, so this is for uploads and hand-edited
   manifests).
 - Registry checks (013): an `agent:` item name must be an agent (`frontmatter_agent_type`: "SKILL.md
@@ -116,8 +120,8 @@ with no reference.
 
 ## Acceptance criteria
 
-- [ ] `agent: @test/agent` parses, is saved quoted, and adds the dependency in the same save; the `@`
-  list in frontmatter does the same.
+- [ ] `agent: @test/agent` parses, is saved quoted, and adds the dependency in the same save; a name
+  picked from the `@` list in frontmatter is saved the same way.
 - [ ] Frontmatter that isn't valid YAML shows the parser's message and line.
 - [ ] A frontmatter agent that isn't an agent is refused at submit.
 - [ ] Claude Code's skill gets `agent: <installed name>` and `context: fork`; its agent gets

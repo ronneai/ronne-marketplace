@@ -212,14 +212,49 @@ export const checkPackage = (
     const entry = String(((manifest.skill ?? {}) as Record<string, unknown>).entry ?? "SKILL.md");
     const content = text(byPath.get(entry));
     if (byPath.has(entry)) {
-      const meta = content === null ? null : parseFrontmatter(content).data;
+      const front = content === null ? null : parseFrontmatter(content);
+      const meta = front?.data ?? null;
       if (!meta)
         issues.push(
-          error("skill_frontmatter", `${entry} needs YAML frontmatter with name and description.`, {
-            file: entry,
-          }),
+          front?.yaml !== null && front?.error
+            ? // The block is there but doesn't parse: say why, and where (097).
+              error(
+                "frontmatter_yaml",
+                `${entry}'s frontmatter isn't valid YAML: ${front.error.message}${front.error.line ? ` (line ${front.error.line})` : ""}.`,
+                { file: entry, ...(front.error.line ? { line: front.error.line } : {}) },
+              )
+            : error(
+                "skill_frontmatter",
+                `${entry} needs YAML frontmatter with name and description.`,
+                {
+                  file: entry,
+                },
+              ),
         );
       else {
+        // The agent that runs it, in Claude Code (097): a name, and an item name is a dependency.
+        if (meta.agent !== undefined && typeof meta.agent !== "string")
+          issues.push(
+            error(
+              "frontmatter_agent",
+              `${entry}'s agent must be one name, such as @team/reviewer.`,
+              {
+                file: entry,
+              },
+            ),
+          );
+        else if (
+          typeof meta.agent === "string" &&
+          parseItemName(meta.agent) &&
+          !Object.hasOwn((manifest.dependencies ?? {}) as Record<string, unknown>, meta.agent)
+        )
+          issues.push(
+            error(
+              "frontmatter_dependency",
+              `${entry} runs in ${meta.agent}, which isn't under dependencies in ronne.yaml. Add it there.`,
+              { file: entry },
+            ),
+          );
         if (typeof meta.description !== "string" || meta.description.trim() === "")
           issues.push(
             error("skill_frontmatter", `${entry}'s frontmatter needs a description.`, {

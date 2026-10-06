@@ -7,17 +7,17 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Reading frontmatter.** `frontmatter.ts` quotes an unquoted `@scope/name` value before
+- [x] **1. Reading frontmatter.** `frontmatter.ts` quotes an unquoted `@scope/name` value before
   parsing and keeps the YAML error; `frontmatter_yaml` with the message and line; `agent` must be a
   string, and an item name must be in `dependencies` (`frontmatter_dependency`).
   *Done when:* core tests cover unquoted, quoted, list items, a real YAML error with its line, and
   both new checks.
 
 - [ ] **2. Saving and submitting.** The draft save quotes such values in `SKILL.md` and adds missing
-  `agent:` dependencies to `ronne.yaml`; the `@` list in frontmatter inserts the name quoted; the
-  registry check refuses a non-agent (`frontmatter_agent_type`).
+  `agent:` dependencies to `ronne.yaml`; the registry check refuses a non-agent
+  (`frontmatter_agent_type`).
   *Done when:* db tests on the four databases cover the save (quoting and the added dependency) and
-  the type check; the mention test covers frontmatter.
+  the type check.
 
 - [ ] **3. Rendering.** `RenderInput.dependencies`, filled by `rmk install` and the plugin builders;
   Claude Code's skill (`agent`, `context: fork`) and agent (`skills:`); the `.agents/skills/` copy
@@ -40,3 +40,8 @@ the same change that completes it.
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- **Task 1.** Quoting works line by line: it quotes an item name standing alone after `key:` or
+  `- `, and skips the lines of a `|` or `>` block. It doesn't recognise a block whose key has an
+  escaped quote (`'it''s': |`), whose value starts with a tag or anchor (`!!str |`, `&a |`), or a
+  `? x` key; an item name inside such a block would be quoted. Both regexes are linear (tested).
