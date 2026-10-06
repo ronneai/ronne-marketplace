@@ -77,6 +77,21 @@ jobs:
       - run: pnpm release:smoke
         if: needs.changes.outputs.code != 'false'
 
+  # The state witness records (docs/knowledge/state-witness.md). They are documentation, so this
+  # runs on every pull request; it needs only Node.
+  witness:
+    name: Witness records
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+      - run: node packages/repo-tools/src/check-witness.js
+
   dependencies:
     name: Licenses and known vulnerabilities
     needs: changes

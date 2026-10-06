@@ -16,14 +16,18 @@ the design in [`MVP.md`](../MVP/MVP.md). They link to them.
 1. **Pick** the lowest-numbered feature in the current milestone whose dependencies are `done`.
 2. **Read** its `SPEC.md`, then work through `PLAN.md` in order. Any new package, tool, action or
    image must pass the [dependency policy](../policies/dependencies.md) checklist.
-3. **Keep the docs honest.** If the work changes the behaviour, update `SPEC.md` in the same
+3. **Witness each task.** Before a task is ticked, the
+   [state witness](../knowledge/state-witness.md) checks it and its pass goes in `WITNESS.md`, in
+   the same commit; `[risky]` tasks get an adversarial pass too. `pnpm witness:check` (run by the
+   pre-commit hook and CI) fails a ticked task whose latest pass isn't met.
+4. **Keep the docs honest.** If the work changes the behaviour, update `SPEC.md` in the same
    change. If it changes a decision, also update MVP.md and its decision log (§15).
-4. **Keep the Documentation current.** Every feature that changes what people see or do
+5. **Keep the Documentation current.** Every feature that changes what people see or do
    updates the inline helpers ([033](./033-in-app-help/SPEC.md)) in the same pull request, and the
    Documentation on the website ([088](./088-docs-on-website/SPEC.md): `../ronne-web`, in a branch
    that goes live with the release), as its spec's Documentation section lists. A spec with nothing
    to add says "None" and why.
-5. **Finish** by setting the status here to `done`.
+6. **Finish** by setting the status here to `done`.
 
 **Numbering.** IDs are three digits, given in order of creation, and never reused or renamed. The
 slug is short and lowercase. The milestone and status live only in this table.
@@ -37,7 +41,7 @@ since (and, for renderers, the vendors' current docs) before work starts.
 **When to write a spec.** Only for the current milestone and the next one. Later features stay
 `planned` until then, so their specs are based on what has actually been built.
 
-New folders start from [`_template/`](./_template/).
+New folders start from [`_template/`](./_template/) (`SPEC.md`, `PLAN.md`, `WITNESS.md`).
 
 ## Index
 
