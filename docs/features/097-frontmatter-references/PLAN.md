@@ -32,7 +32,7 @@ the same change that completes it.
   manifest lists it; it submits.
   *Done when:* the Playwright test passes, and the whole suite.
 
-- [ ] **6. Decisions and Documentation.** MVP §3.3 and §15; the manifest spec §2 (skill), the
+- [x] **6. Decisions and Documentation.** MVP §3.3 and §15; the manifest spec §2 (skill), the
   native readers spec; the website topics in the spec.
   *Done when:* the docs render tests pass in ronne-web.
 

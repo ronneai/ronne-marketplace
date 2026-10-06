@@ -143,3 +143,22 @@ echo in a real browser beyond the test.
 the save, with "Problems: No problems", so it holds whether the checks run in the browser or after a
 save.
 **Overall:** met.
+
+## Task 6 — Decisions and Documentation
+
+Witnessed: 2026-10-05 22:38 EDT, by a fresh agent. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|
+| 1 | MVP §3.3 and §15, the manifest spec §2, the native readers spec §4 and the website's English match the code | confirmed | Each statement checked against `frontmatter.ts`, `package-checks.ts`, `frontmatter-dependencies.ts`, `registry-checks.ts`, `skill-frontmatter.ts`, the Claude Code renderer, `agents-skills.ts`, `read/skill.ts` and `export.ts`. |
+| 2 | Portuguese and French match, French punctuation and terms consistent | confirmed | Sentence for sentence; no space before « ; »; terms as in each file. |
+| 3 | The spec's Documentation list covered; nothing contradicts 097 | partly | `items#dependencies` didn't say an agent preloads its skills; the Claude Code text is under "Good to know", which the spec called a section on skills and agents. |
+| 4 | Checks | confirmed | ronne-web `www`: lint, typecheck, 136 tests; here lint 0 errors. |
+| 5 | Plan and index | confirmed | Task 6 ticked; 097 done. |
+
+**Not checked here:** the pages in a browser.
+**Differences from the notes:** after this check: `items#dependencies` says an agent preloads its
+skills in Claude Code (all three languages); "a name without a scope isn't an item, so it isn't a
+dependency" replaces "is Claude Code's own agent" (it can also be a local agent), on the website and
+in the manifest spec; the spec names "Good to know". Wording only; the website's tests pass.
+**Overall:** met.

@@ -122,7 +122,7 @@ with no reference.
 - **Items and types → Dependencies** (`items#dependencies`): naming the agent in a skill's
   frontmatter (`agent: @scope/name`) sets the dependency; an agent's skills are preloaded in Claude
   Code.
-- **Your AI tools → Claude Code** (`claude-code`, the section on skills and agents): `agent` and
+- **Your AI tools → Claude Code** (`claude-code`, "Good to know"): `agent` and
   `context: fork` written for skills; `skills:` for agents.
 - **Your AI tools → Codex** and **Cursor**: `agent` and `context` aren't kept for them.
 - **Exporting your own items → Dependencies** (`export#dependencies`): a skill's `agent:` is found

@@ -91,7 +91,10 @@ nothing else, except `name` in the uploaded `SKILL.md`.
   folder's name made into one (`skillName`).
 - `SKILL.md`'s `name` must equal the item's short name (manifest spec §2): the uploaded copy gets
   that line set or added (a frontmatter block with only `name` when it has none), with a warning.
-- References (for 041): MCP servers named in `allowed-tools` (`mcp__<server>__…`).
+- References (for 041): MCP servers named in `allowed-tools` (`mcp__<server>__…`), and the agent in
+  `agent:` (097), unless it's Claude Code's own (`Explore`, `Plan`, `general-purpose`), a plugin's
+  (`plugin:agent`) or already an item name; once declared, the uploaded `SKILL.md` names it
+  `@scope/name`.
 
 ## 5. Agent (040)
 

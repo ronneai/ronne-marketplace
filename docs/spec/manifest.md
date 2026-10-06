@@ -39,6 +39,10 @@ skill:
 
 - `SKILL.md` frontmatter must have `name` and `description`. `name` must equal the item's name
   without the scope, because renderers name the output folder after it.
+- `agent: @scope/name` in the frontmatter names the agent that runs the skill, in Claude Code; it
+  must be listed under `dependencies` (saving a draft adds it) and be an agent. Unquoted is read as
+  quoted. A name without a scope (`agent: Explore`, `agent: reviewer`) isn't an item, so it isn't a dependency
+  ([097](../features/097-frontmatter-references/SPEC.md)).
 - Scripts and resources next to `SKILL.md` are copied as they are. Executable scripts raise a risk
   flag in review.
 
