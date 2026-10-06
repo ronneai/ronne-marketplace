@@ -9,10 +9,12 @@ const scopes = vi.hoisted(() => ({
   updateScopeDescription: vi.fn(),
   pageScopes: vi.fn(),
 }));
+const workspaces = vi.hoisted(() => ({ listWorkspaces: vi.fn() }));
 const session = vi.hoisted(() => ({ getCurrentUser: vi.fn() }));
 const cache = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
 vi.mock("@/server/domains/items/actions/scopes", () => scopes);
 vi.mock("@/server/domains/identity/actions/session", () => session);
+vi.mock("@/server/domains/workspaces/actions/workspaces", () => workspaces);
 vi.mock("next/cache", () => cache);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
 vi.mock("next/navigation", () => ({
@@ -25,7 +27,7 @@ const actions = await import("./actions");
 const { ScopesTable } = await import("./ScopesTable");
 const { parseListQuery } = await import("@/components/ui/data-table/list-query");
 const { ADMIN_SCOPES_LIST, scopesQueryOf } = await import("./list");
-const { CreateScopeDialog } = await import("./ScopeDialogs");
+const { CreateScopeDialog, WorkspaceSelect } = await import("./ScopeDialogs");
 const { default: AdminScopes } = await import("@/app/(app)/admin/scopes/page");
 
 const form = (fields: Record<string, string>) => {
@@ -43,8 +45,12 @@ const scope = (overrides: Partial<Scope> = {}): Scope => ({
   ...overrides,
 });
 
+const GLOBAL = { id: "00000000000000000000000000", name: "global" };
+const ACME = { id: "w1", name: "acme" };
+
 beforeEach(() => {
   vi.clearAllMocks();
+  workspaces.listWorkspaces.mockResolvedValue([GLOBAL, ACME]);
   scopes.pageScopes.mockResolvedValue({
     scopes: [scope()],
     next: null,
@@ -62,9 +68,27 @@ describe("scope actions", () => {
     expect(scopes.createScope).toHaveBeenCalledWith(expect.any(Headers), {
       name: "@Platform",
       description: "Tools.",
+      workspaceId: undefined,
     });
     expect(cache.revalidatePath).toHaveBeenCalledWith("/admin/scopes");
-    expect(cache.revalidatePath).toHaveBeenCalledTimes(1);
+    expect(cache.revalidatePath).toHaveBeenCalledWith("/admin/workspaces", "layout");
+  });
+
+  it("creates a scope in the workspace chosen, and says which (090)", async () => {
+    scopes.createScope.mockResolvedValue(
+      scope({ name: "acme-infra", workspace: { id: "w1", name: "acme" } }),
+    );
+    expect(
+      await actions.createScopeFromForm(
+        {},
+        form({ name: "acme-infra", description: "Infra.", workspaceId: "w1" }),
+      ),
+    ).toEqual({ done: "Created @acme-infra in acme." });
+    expect(scopes.createScope).toHaveBeenCalledWith(expect.any(Headers), {
+      name: "acme-infra",
+      description: "Infra.",
+      workspaceId: "w1",
+    });
   });
 
   it("shows domain and permission errors, and rethrows anything else", async () => {
@@ -117,7 +141,7 @@ describe("ScopesTable (061)", () => {
 
   it("explains an empty list, with and without a search", () => {
     expect(table({}, [])).toContain("Root creates the first one");
-    expect(table({ q: "x" }, [])).toContain("No scopes match this search.");
+    expect(table({ q: "x" }, [])).toContain("No scopes match these filters.");
   });
 
   it("turns a view into the server query", () => {
@@ -133,7 +157,34 @@ describe("ScopesTable (061)", () => {
   });
 
   it("the create dialog's button renders", () => {
-    expect(renderToStaticMarkup(<CreateScopeDialog />)).toContain("Create scope");
+    expect(renderToStaticMarkup(<CreateScopeDialog workspaces={[GLOBAL, ACME]} />)).toContain(
+      "Create scope",
+    );
+  });
+
+  it("the dialog's workspace select lists global first, chosen", () => {
+    const html = renderToStaticMarkup(<WorkspaceSelect workspaces={[GLOBAL, ACME]} />);
+    expect(html).toContain('name="workspaceId"');
+    expect(html).toMatch(/<option value="00000000000000000000000000" selected="">global<\/option>/);
+    expect(html.indexOf(">global<")).toBeLessThan(html.indexOf(">acme<"));
+  });
+
+  it("shows the Workspace column and filter only when given the workspaces (090)", () => {
+    const withWorkspaces = table({ workspace: "acme" }, [scope()], {
+      workspaces: [{ name: "global" }, { name: "acme" }],
+    });
+    for (const text of [
+      ">Workspace<",
+      'href="/admin/workspaces/global"',
+      'name="workspace"',
+      '<option value="acme" selected="">acme</option>',
+      "Any workspace",
+      'aria-label="Remove the workspace filter"',
+    ])
+      expect(withWorkspaces, text).toContain(text);
+    const without = table({}, [scope()]);
+    expect(without).not.toContain('name="workspace"');
+    expect(without).not.toContain('href="/admin/workspaces/global"');
   });
 });
 
@@ -160,5 +211,28 @@ describe("the page", () => {
       expect.any(Headers),
       expect.objectContaining({ search: "plat", sort: "name", dir: "asc", size: 50 }),
     );
+    // The table's Workspace column and filter, and the dialog's select, each by their own markup.
+    expect(admin).toContain('href="/admin/workspaces/global"');
+    expect(admin).toContain('name="workspace"');
+    expect(admin).toContain('<option value="acme">acme</option>');
+    expect(admin).toContain('name="workspaceId"');
+    expect(scopes.pageScopes.mock.lastCall?.[1].workspaceId).toBeUndefined();
+  });
+
+  it("filters by the workspace's name in the URL, and a stale name matches nothing", async () => {
+    session.getCurrentUser.mockResolvedValue({ role: "root" });
+    await AdminScopes({ searchParams: Promise.resolve({ workspace: "acme" }) });
+    expect(scopes.pageScopes).toHaveBeenLastCalledWith(
+      expect.any(Headers),
+      expect.objectContaining({ workspaceId: "w1" }),
+    );
+    const stale = renderToStaticMarkup(
+      await AdminScopes({ searchParams: Promise.resolve({ workspace: "gone" }) }),
+    );
+    expect(scopes.pageScopes).toHaveBeenLastCalledWith(
+      expect.any(Headers),
+      expect.objectContaining({ workspaceId: "none" }),
+    );
+    expect(stale).toContain('aria-label="Remove the workspace filter"');
   });
 });

@@ -292,3 +292,39 @@ Witnessed: 2026-10-06 17:00 EDT, by a fresh agent (adversarial). Commit: daafd08
 | 7 | Component tests, lint and typecheck still pass | yes | confirmed | 15 passed; `biome check` no errors; `tsc --noEmit` ok |
 
 **Overall:** met. Out of this task, reported to the owner: the Next.js-wide 500 on malformed `%` escapes, and the disabled reason on touch (068).
+
+## Task 5 — Admin › Scopes
+
+Witnessed: 2026-10-06 17:09 EDT, by a fresh agent (blind). Commit: 70a6ce3 + uncommitted diff (7 files in apps/web, PLAN.md). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The Admin › Scopes tests pass | yes | confirmed | `pnpm exec vitest run src/features/admin-scopes src/features/admin-workspaces` → 2 files, 27 passed |
+| 2 | The Admin › Scopes table has a Workspace column that links to the workspace's page | yes | confirmed | e2e probe on a scratch copy of the build → headers `Scope, Description, Workspace, Created by, Created, Actions`; cell link href `/admin/workspaces/acme` |
+| 3 | Admin › Scopes filters by workspace, and the filter lives in the URL | yes | confirmed | probe: choosing `acme` → URL `?q=&workspace=acme`, rows `[@acme-infra]`; `?workspace=global` → `[@e2e-seeded, @glob-one]` |
+| 4 | The workspace filter has a removable chip, and a stale workspace name matches nothing | yes | confirmed | probe: removing the workspace chip → `?q=infra`; `?workspace=gone` → 0 rows, "No scopes match these filters.", chip still shown |
+| 5 | New scope has a workspace select with `global` first and selected | yes | confirmed | probe → options `["global","acme","e2e-team"]`, selected `global`; the repository orders by `is_global desc, name` |
+| 6 | A new scope is created in the chosen workspace, and in `global` by default | yes | confirmed | probe: acme chosen → "Created @acme-infra in acme." and cell `acme`; select untouched → "Created @glob-one.", listed under `?workspace=global` |
+| 7 | An invalid workspace id in the form is refused | no | confirmed | probe: option value changed to `nope` → "That workspace doesn't exist.", no `@bogus-ws` row |
+| 8 | A workspace's page shares the scope table without the Workspace filter, showing only its scopes | yes | confirmed | probe `/admin/workspaces/acme` → no `#scope-workspace` select, rows `[@acme-infra]`; `workspaceScopesList` (q only) |
+| 9 | Only root reaches the page; a non-root user gets a 404 with the filter too | no | confirmed | probe: notRoot user, `/admin/scopes?workspace=acme` → 404 |
+| 10 | UI rules: colour tokens only, arrow functions, feature-first, filters in the URL | yes | confirmed | `biome check` clean; diff grep for hex, rgb() and palette classes → none; `tsc --noEmit` → 0 |
+| 11 | The tests cover the page's Workspace column and the dialog's select | no | partly | scratch mutations: removing `<WorkspaceSelect>` from CreateForm → 12/12 pass; removing `workspaces=` on page.tsx → 12/12 pass |
+| 12 | Creating or editing a scope also revalidates the workspace pages | yes | confirmed | actions.ts:18 `revalidatePath("/admin/workspaces", "layout")`; the scope-actions test asserts it |
+| 13 | An empty filtered list reads "No scopes match these filters." | yes | confirmed | probe `?workspace=gone` → shown; the ScopesTable test asserts it |
+| 14 | The page turns the workspace name into its id for the query | yes | confirmed | page.tsx:22-24 (unknown name → `"none"`); the page test expects `"w1"` for `acme` and `"none"` for `gone` |
+| 15 | Lint, typecheck, test and build pass | yes | confirmed | `biome check .` exit 0; `pnpm typecheck` 7/7; `pnpm test` all pass (web 1569 passed, 8 skipped); web build = repo `.next` written after the last source edit |
+| 16 | The full e2e suite (91) passes | yes | confirmed | scratch copy of the repo's build, `pnpm exec playwright test` → 91 passed |
+
+**Overall:** not met: everything works in the built app, but the tests didn't catch losing the dialog's select or the page's Workspace column (claim 11). Remark, out of this task and reported to the owner: the Create scope dialog's Description box has the accessible name "Description Description" (pre-existing).
+
+### Re-check after fixes
+
+Witnessed: 2026-10-06 17:21 EDT, by a fresh agent (blind). Commit: 70a6ce3 + uncommitted diff (7 files in apps/web, PLAN.md). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The Admin › Scopes tests pass | yes | confirmed | `vitest run src/features/admin-scopes src/features/admin-workspaces` → 27 passed; only admin-scopes.test.tsx changed since the first pass |
+| 11 | The tests cover the page's Workspace column and filter, and the dialog's select | yes | confirmed | scratch mutations each failing "root gets the list…": no `<WorkspaceSelect>` → 1 failed; no `workspaces=` → 1 failed; column off → 2 failed; filter select off → 2 failed; restored → 12 passed |
+
+**Overall:** met.

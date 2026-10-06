@@ -28,7 +28,7 @@ the same change that completes it.
   with its scopes, delete; nav entry for root.
   *Done when:* component tests pass, and the phone sweep (065) passes on the new pages.
 
-- [ ] **5. Admin › Scopes.** Workspace column, filter and select.
+- [x] **5. Admin › Scopes.** Workspace column, filter and select.
   *Done when:* the Admin › Scopes tests pass.
 
 - [ ] **6. Catalogue and item page.** Workspace label on the card and header; the Workspace filter
@@ -92,3 +92,11 @@ goes into `SPEC.md` instead.
   shared code and stay out of this task: a malformed `%` escape in any dynamic route's address is a
   500 from Next.js before the page runs, and a disabled button's reason shows only on hover and to
   screen readers (068 makes it reachable by tap).
+- **Task 5.** Admin › Scopes has a Workspace column (a link to the workspace's page) and a Workspace
+  select in its filters, kept in the URL as `?workspace=<name>`; the page turns the name into the
+  id, and a name that no longer exists matches no scope while its chip still shows, so it can be
+  removed. The shared scope table shows the column and filter only when it's given the workspaces,
+  so a workspace's own page (`workspaceScopesList`, search only) doesn't. Create scope has a
+  Workspace select, `global` first and chosen, posted as `workspaceId`; its message names the
+  workspace when it isn't `global`, and it revalidates the workspace pages too (their scope counts
+  and lists change). An empty filter result now reads "No scopes match these filters."

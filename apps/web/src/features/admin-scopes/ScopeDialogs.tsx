@@ -4,7 +4,7 @@ import { NAME_PROBLEM_MESSAGES, nameProblem, normalizeScopeName } from "@ronneai
 import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
-import { FieldError, inputClasses, Label } from "@/components/ui/Field";
+import { FieldError, inputClasses, Label, selectClasses } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
 import { createScopeFromForm, updateScopeFromForm } from "./actions";
 import type { ScopeActionState } from "./types";
@@ -29,7 +29,38 @@ const Description = ({ defaultValue }: { defaultValue?: string }) => {
   );
 };
 
-const CreateForm = ({ onDone }: { onDone: () => void }) => {
+/** A workspace a new scope can go in (090): `global` comes first and is chosen. */
+export type WorkspaceChoice = { id: string; name: string };
+
+export const WorkspaceSelect = ({ workspaces }: { workspaces: WorkspaceChoice[] }) => (
+  <div className="grid gap-1.5">
+    <Label htmlFor="scope-workspace-choice">Workspace</Label>
+    <select
+      id="scope-workspace-choice"
+      name="workspaceId"
+      defaultValue={workspaces[0]?.id}
+      aria-describedby="scope-workspace-hint"
+      className={selectClasses}
+    >
+      {workspaces.map((workspace) => (
+        <option key={workspace.id} value={workspace.id}>
+          {workspace.name}
+        </option>
+      ))}
+    </select>
+    <p id="scope-workspace-hint" className="text-xs text-muted">
+      Its items belong to this workspace. It can't be moved later.
+    </p>
+  </div>
+);
+
+const CreateForm = ({
+  workspaces,
+  onDone,
+}: {
+  workspaces: WorkspaceChoice[];
+  onDone: () => void;
+}) => {
   const [state, action, pending] = useActionState<ScopeActionState, FormData>(
     createScopeFromForm,
     {},
@@ -73,6 +104,7 @@ const CreateForm = ({ onDone }: { onDone: () => void }) => {
           )}
         </p>
       </div>
+      <WorkspaceSelect workspaces={workspaces} />
       <Description />
       <FieldError id="create-scope-error">{state.error}</FieldError>
       <DialogActions>
@@ -138,13 +170,13 @@ const useDialog = () => {
   return { open, round, show: () => setOpen(true), close };
 };
 
-export const CreateScopeDialog = () => {
+export const CreateScopeDialog = ({ workspaces }: { workspaces: WorkspaceChoice[] }) => {
   const dialog = useDialog();
   return (
     <>
       <Button onClick={dialog.show}>Create scope</Button>
       <Dialog open={dialog.open} onClose={dialog.close} title="Create scope">
-        <CreateForm key={dialog.round} onDone={dialog.close} />
+        <CreateForm key={dialog.round} workspaces={workspaces} onDone={dialog.close} />
       </Dialog>
     </>
   );

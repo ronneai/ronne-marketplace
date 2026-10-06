@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
 import { parseListQuery, type SearchParams } from "@/components/ui/data-table/list-query";
 import { PageHeader } from "@/components/ui/Panel";
-import { ADMIN_SCOPES_LIST, scopesQueryOf } from "@/features/admin-scopes/list";
+import { scopesQueryOf, workspaceScopesList } from "@/features/admin-scopes/list";
 import { EditScopeButton } from "@/features/admin-scopes/ScopeDialogs";
 import { ScopesTable } from "@/features/admin-scopes/ScopesTable";
 import { workspacePath } from "@/features/admin-workspaces/list";
@@ -47,7 +47,7 @@ const AdminWorkspace = async ({
   if (!workspace) notFound();
 
   // The scope table, on this page's own address.
-  const list = { ...ADMIN_SCOPES_LIST, path: workspacePath(workspace.name) };
+  const list = workspaceScopesList(workspacePath(workspace.name));
   const state = parseListQuery(list, await searchParams);
   const scopes = await pageScopes(request, { ...scopesQueryOf(state), workspaceId: workspace.id });
 
