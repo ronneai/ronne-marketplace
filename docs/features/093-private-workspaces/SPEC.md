@@ -43,9 +43,10 @@ its items (091 already makes that so).
 
 **Visible.** `visibleWorkspaces(user)`: every public workspace, plus the private ones the user is
 a member of; for root, all. Every read of items, versions, submissions by others, scopes and
-workspaces filters on it, in one place per repository (a `scope_id IN (…visible scopes)` join), so
-a new query can't forget it: the repositories take a `Viewer` argument, and a test lists every
-read method and checks it filters.
+workspaces filters on it, in one place per repository (the scope's workspace among the visible
+ones: a join, or a `scope_id IN (select … where workspace_id IN (…))` subquery; the viewer lists
+workspaces, not scopes, so it stays short), so a new query can't forget it: the repositories
+take a `Viewer` argument, and a test lists every read method and checks it filters.
 
 **Not found, not forbidden.** A non-member asking for `@acme-infra/deploy` gets exactly what an
 unknown name gets: the 404 page, `not_found` in the API, "No item named @acme-infra/deploy" in

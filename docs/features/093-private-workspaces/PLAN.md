@@ -7,8 +7,9 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. The viewer.** [risky] `Viewer` (user id, root, visible workspace and scope ids) built
-  once per request with the memberships (091); `visibleWorkspaces`.
+- [x] **1. The viewer.** [risky] `Viewer` (user id, root, visible workspace ids, the private ones
+  among them) built once per request with the memberships (091); `visibleWorkspaces`. Reads
+  filter scopes by their workspace with a subquery (tasks 2–3), so no scope ids are listed.
   *Done when:* unit tests cover root, a member, a non-member, and a public-only user.
 
 - [ ] **2. Items reads.** [risky] The catalogue, item, version, dependents ("Used by") and download
@@ -50,3 +51,16 @@ the same change that completes it.
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- **Task 1: the viewer** (Claude). `Viewer` (`workspaces/models/viewer.ts`) holds the user id,
+  whether root, the visible workspace ids and the private ones among them (the plugin feeds'
+  visibility key), sorted. `visibleWorkspaces(user, workspaces)` is pure; `loadViewer` reads every
+  workspace's id and visibility once per request (anything but "public" counts as private, so an
+  odd value hides a workspace); `viewerFor(headers)` and `viewerOf(user)` are the entry points.
+  No scope ids: the repositories will filter with a subquery on the scope's workspace, so the
+  list stays as long as the number of workspaces, not of scopes. Nobody signed out sees nothing.
+  From the adversarial witness: decide membership in the viewer, never by joining
+  `workspace_members` in SQL. MySQL and MariaDB accept a membership row whose ids differ in case,
+  which the case-sensitive viewer ignores but a SQL join would count. And `viewerFor` isn't
+  memoised: build it once per request and pass it down.
+
