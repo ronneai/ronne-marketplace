@@ -128,6 +128,16 @@ export class ItemNameTakenError extends SubmissionsError {
   }
 }
 
+/**
+ * A dependency in a private workspace other than the dependent's (093): only its own items can
+ * depend on it. Said only to someone who sees it; to anyone else it's an unknown name.
+ */
+export class DependencyNotVisibleError extends SubmissionsError {
+  constructor(readonly dependency: string) {
+    super(`${dependency} is in a private workspace; only its own items can depend on it.`);
+  }
+}
+
 export class DependencyNotFoundError extends SubmissionsError {
   constructor(readonly dependency: string) {
     super(

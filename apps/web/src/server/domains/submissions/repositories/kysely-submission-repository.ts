@@ -11,7 +11,11 @@ import { upsert } from "../../../db/upsert";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
 import type { Viewer } from "../../workspaces/models/viewer";
-import { inVisibleWorkspace, isReadableSubmission } from "../../workspaces/repositories/visible";
+import {
+  inVisibleWorkspace,
+  isDependableFrom,
+  isReadableSubmission,
+} from "../../workspaces/repositories/visible";
 import type { ReviewEvent, ReviewEventKind, Revision } from "../models/review";
 import { OPEN_STATUSES } from "../models/status";
 import type { DraftFile, Submission, SubmissionStatus } from "../models/submission";
@@ -208,13 +212,18 @@ export const kyselySubmissionRepository = (
           .execute()
       ).map(toSubmission),
 
-    listOwnUnreleased: async ({ authorId, types, search, limit }) => {
+    listOwnUnreleased: async ({ authorId, types, search, limit, dependableFrom }) => {
       if (types.length === 0) return [];
       let query = submissions()
         .where("submissions.author_id", "=", authorId)
         .where("submissions.status", "in", ["draft", ...OPEN_STATUSES])
         .where("submissions.item_id", "is", null)
         .where("submissions.type", "in", [...types]);
+      // Filtered before the limit, so another workspace's drafts can't crowd out allowed ones.
+      if (dependableFrom !== undefined)
+        query = query.where(
+          isDependableFrom(dependableFrom, "workspaces.id", "workspaces.visibility", dialect),
+        );
       // `@team/re` is scope `team` and a name with `re`; a single word matches either (056).
       const words = search.replace(/^@/, "");
       const slash = words.indexOf("/");

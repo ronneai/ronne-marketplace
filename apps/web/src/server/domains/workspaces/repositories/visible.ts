@@ -1,4 +1,5 @@
 import { type Expression, type SqlBool, sql } from "kysely";
+import type { DatabaseDialect } from "../../../db/url";
 import type { Viewer } from "../models/viewer";
 
 /**
@@ -42,3 +43,27 @@ export const isReadableSubmission = (viewer: Viewer, column: string): Expression
       : sql<SqlBool>`1 = 0`;
   return sql<SqlBool>`${sql.ref(column)} in (select readable_submissions.id from submissions as readable_submissions inner join scopes as readable_scopes on readable_scopes.id = readable_submissions.scope_id where ${seen} or ${own})`;
 };
+
+/**
+ * `column` (a workspace's visibility) is exactly "public" (093): byte for byte on MySQL and MariaDB
+ * too, whose collations would also take "Public" or "public " (trailing spaces are padded even in
+ * `utf8mb4_bin`), which the viewer counts as private. Binary strings compare without padding.
+ */
+export const isPublicWorkspace = (column: string, dialect: DatabaseDialect): Expression<SqlBool> =>
+  dialect === "mysql"
+    ? sql<SqlBool>`cast(${sql.ref(column)} as binary) = cast(${"public"} as binary)`
+    : sql<SqlBool>`${sql.ref(column)} = ${"public"}`;
+
+/**
+ * An item in the workspace that owns `column` (a workspace id) may be a dependency of an item in
+ * `dependableFrom` (093): the same workspace, or a public one. Null: public ones only.
+ */
+export const isDependableFrom = (
+  dependableFrom: string | null,
+  idColumn: string,
+  visibilityColumn: string,
+  dialect: DatabaseDialect,
+): Expression<SqlBool> =>
+  dependableFrom === null
+    ? isPublicWorkspace(visibilityColumn, dialect)
+    : sql<SqlBool>`(${isPublicWorkspace(visibilityColumn, dialect)} or ${sql.ref(idColumn)} = ${dependableFrom})`;

@@ -255,7 +255,11 @@ describe("a private workspace's items, while composing and reporting usage (093)
     expect(await reports("@acme-infra/deploy")).toBe(await reports("@acme-infra/nothing-here"));
     const picked = await findDependencies(asOutsider, { type: "agent", q: "deploy" }, app);
     expect(JSON.stringify(picked)).not.toContain("deploy");
-    const members = await findDependencies(asMember, { type: "agent", q: "deploy" }, app);
+    const members = await findDependencies(
+      asMember,
+      { type: "agent", q: "deploy", itemName: "@acme-infra/new" },
+      app,
+    );
     expect(JSON.stringify(members)).toContain("deploy");
   });
 

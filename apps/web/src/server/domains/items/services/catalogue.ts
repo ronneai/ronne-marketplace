@@ -117,6 +117,8 @@ export const searchCatalogue = async (
     sort?: CatalogueSort;
     cursor?: string;
     limit?: number;
+    /** Only what an item in this workspace may depend on (093): set by the pickers, not the API. */
+    dependableFrom?: string | null;
   },
 ): Promise<CatalogueSearch> => {
   requirePermission(actor.user, "account.manage_own");
@@ -130,6 +132,7 @@ export const searchCatalogue = async (
     scope: query.scope ?? undefined,
     workspace: query.workspace ?? undefined,
     tool: query.tool ?? undefined,
+    dependableFrom: query.dependableFrom,
     sort,
     after: decodeCursor(query.cursor, sort),
     limit: limit + 1,

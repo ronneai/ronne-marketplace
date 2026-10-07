@@ -222,10 +222,14 @@ const SUBMISSION_WRITES: Partial<Record<keyof SubmissionRepository, string>> = {
   userName: "a user's display name, not a workspace's data",
 };
 
-const REGISTRY_READS: Record<keyof RegistryLookup, Probe<RegistryLookup>> = {
+const REGISTRY_READS: Partial<Record<keyof RegistryLookup, Probe<RegistryLookup>>> = {
   findItem: async (repo) => some(await repo.findItem("acme-infra", "deploy")),
   publishedVersions: async (repo) => some(await repo.publishedVersions(ids.item)),
   submissionsNamed: async (repo) => some(await repo.submissionsNamed("acme-infra", "style")),
+};
+
+const REGISTRY_EXEMPT: Partial<Record<keyof RegistryLookup, string>> = {
+  privateWorkspaces: "which of the ids the caller already holds are private: no item or name",
 };
 
 const USAGE_READS: Partial<Record<keyof UsageRepository, Probe<UsageRepository>>> = {
@@ -251,7 +255,9 @@ describe("every submissions, registry and usage read filters by the viewer (093)
     expect(Object.keys(submissions).sort()).toEqual(
       [...Object.keys(SUBMISSION_READS), ...Object.keys(SUBMISSION_WRITES)].sort(),
     );
-    expect(Object.keys(registry).sort()).toEqual(Object.keys(REGISTRY_READS).sort());
+    expect(Object.keys(registry).sort()).toEqual(
+      [...Object.keys(REGISTRY_READS), ...Object.keys(REGISTRY_EXEMPT)].sort(),
+    );
     expect(Object.keys(usage).sort()).toEqual(
       [...Object.keys(USAGE_READS), ...Object.keys(USAGE_WRITES)].sort(),
     );

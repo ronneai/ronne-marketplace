@@ -60,9 +60,12 @@ scope @acme-infra you can use" (`scope_not_found`), so it can't tell them a priv
 - **Picking** (089): candidates are filtered to the draft's workspace plus public workspaces.
 - **At submit and release:** a dependency in another, private workspace gives
   `dependency_not_visible`: "@acme-infra/deploy is in a private workspace; only its own items can
-  depend on it." Same message whether or not the submitter can see it.
+  depend on it." That's said to someone who sees it (a member of both workspaces, or root); to
+  anyone else the name is unknown (`dependency_not_found`), so it can't tell them a private item
+  exists. A public item can't depend on a private one either.
 - **The resolver** (020) runs as the caller: a dependency the caller can't see is `not_found`, so
-  `rmk install` fails cleanly with the dependent's name.
+  `rmk install` fails cleanly with the dependent's name ("@acme-infra/deploy isn't a published
+  item (asked for by @team/front@1.0.0)").
 
 **Turning a workspace private.** The edit dialog checks for released items outside the workspace
 whose listed version depends on an item in it. If there are any, Save is disabled and they're
@@ -137,6 +140,8 @@ the scope on the card and item page. The catalogue's Workspace filter lists the 
 3. **Turning private is refused while outside items depend on it** (Claude): otherwise released
    items would stop installing for people who did nothing.
 4. **One marketplace per visibility key** (Claude): per-user feeds without per-user caches.
+5. **`dependency_not_visible` only for someone who sees the dependency** (Claude, 2026-10-07):
+   naming its private workspace to a non-member would tell them it exists (decision 2).
 
 ## Open questions
 

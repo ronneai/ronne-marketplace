@@ -1,4 +1,4 @@
-import { DEPENDENCY_TYPES, type ItemType, isItemType } from "@ronneai/core";
+import { DEPENDENCY_TYPES, type ItemType, isItemType, parseItemName } from "@ronneai/core";
 import type { CurrentUser } from "../../identity/models/user";
 import type { CatalogueEntry } from "../../items/models/catalogue";
 import type { CatalogueRepository } from "../../items/repositories/catalogue-repository";
@@ -42,7 +42,13 @@ export const DEPENDENCY_OPTIONS_MAX = 12;
 export const ownDependencies = async (
   deps: Pick<DependencySearchDeps, "repo" | "catalogue">,
   authorId: string,
-  query: { types: readonly ItemType[]; q: string; limit: number },
+  query: {
+    types: readonly ItemType[];
+    q: string;
+    limit: number;
+    /** The dependent's workspace (093): only items it may depend on. Omitted: no such filter. */
+    dependableFrom?: string | null;
+  },
 ): Promise<{ published: CatalogueEntry[]; unreleased: Submission[] }> => ({
   published:
     query.types.length === 0
@@ -52,12 +58,14 @@ export const ownDependencies = async (
           types: query.types,
           installable: true,
           ownerId: authorId,
+          dependableFrom: query.dependableFrom,
           sort: "recent",
           limit: query.limit,
         }),
   unreleased: await deps.repo.listOwnUnreleased({
     authorId,
     types: query.types,
+    dependableFrom: query.dependableFrom,
     search: query.q,
     limit: query.limit,
   }),
@@ -76,6 +84,10 @@ export const findDependencies = async (
     .trim()
     .slice(0, CATALOGUE_SEARCH_MAX_LENGTH);
   const skip = new Set([input.itemName ?? "", ...(input.exclude ?? [])]);
+  // Only what the item may depend on (093): its own workspace's items and public ones. Without
+  // its name, or before its scope exists, public ones only.
+  const scope = input.itemName ? parseItemName(input.itemName)?.scope : undefined;
+  const dependableFrom = scope ? ((await deps.repo.findScope(scope))?.workspace.id ?? null) : null;
   const options: DependencyOption[] = [];
   const room = () => DEPENDENCY_OPTIONS_MAX - options.length;
   // Enough rows to fill the list past what's skipped, within the API's page limit.
@@ -103,7 +115,7 @@ export const findDependencies = async (
     }
   };
   // Yours first, whatever their rank in the catalogue: published, then on their way.
-  const own = await ownDependencies(deps, me, { types: allowed, q, limit: scan });
+  const own = await ownDependencies(deps, me, { types: allowed, q, limit: scan, dependableFrom });
   await addPublished(own.published, true);
   for (const submission of own.unreleased) {
     const name = itemNameOf(submission);
@@ -129,6 +141,7 @@ export const findDependencies = async (
         installable: true,
         sort: "recent",
         limit: scan,
+        dependableFrom,
       }),
       false,
     );

@@ -154,3 +154,78 @@ Witnessed: 2026-10-07 15:58 EDT, by a fresh agent (adversarial). Commit: f345efd
 | 18 | Types and lint hold | no | confirmed | `tsc --noEmit -p apps/web` → rc 0. `biome check` of submissions, usage and workspaces → 0 errors (2 warnings in files this change doesn't touch). `vitest run src/features/submissions` → 26 passed |
 
 **Overall:** met: no way found for a non-member to learn of or read a private workspace's submissions, scopes or usage through these domains, and members, root, removed authors and draft authors kept their access, on all four databases. Remarks: the release transaction resolves dependencies unfiltered, which task 4's `dependency_not_visible` at release closes; `countDependents`' comments said "in every workspace" (fixed: they say what it counts now).
+
+## Task 4 — The dependency rule
+
+Witnessed: 2026-10-07 16:16 EDT, by a fresh agent (blind). Commit: b9ec3ae + working tree (21 files changed, `private-dependencies.db.test.ts` untracked). Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | At submit, a dependency in another private workspace gives `dependency_not_visible` with the spec's message, even when the submitter sees it | yes | confirmed | `registry-checks.ts:210-216`. `private-dependencies.db.test.ts` passes on SQLite, PostgreSQL, MySQL and MariaDB. Mutation (`if (false)` on the check) → 2 unit and 2 db tests fail |
+| 2 | A public item can't depend on a private one | no | confirmed | `private-dependencies.db.test.ts` and `registry-checks.test.ts` pass. Probe: root drafting in @team with `@acme-infra/deploy` → `dependency_not_visible` |
+| 3 | An item may depend on its own workspace's items and on public ones (another public workspace included) | yes | confirmed | `private-dependencies.db.test.ts` → no dependency issues. Probe: `@beta-tools/onwip2` on its own pending `@beta-tools/wip` → only `dependency_pending` |
+| 4 | Decision 5: the rule is named only to someone who sees the dependency; anyone else gets `dependency_not_found`, the same as an unknown name | yes | confirmed | `private-dependencies.db.test.ts` passes. Probe: a member of beta only, in @team, depending on `@beta-tools/lint` and `@acme-infra/deploy` → `not_visible` for lint, `not_found` for deploy. Outsider's canvas report for deploy → the same text as an unknown item |
+| 5 | Refused at release too | yes | confirmed | `private-dependencies.db.test.ts` (the workspace turns private after approval → publish rejects `/private workspace/`) passes on all 4 dialects; fails under the mutation in row 1. Unit test loops over `release` false and true |
+| 6 | Bulk submit and the canvas reports apply the rule as well | yes | confirmed | `bulk-submit.ts:236-241`, `composer.ts:71-93`. Probe: `checkManyDrafts` → `[["not_ready",["dependency_not_visible"]]]`. `dependencyReports` → only `@beta-tools/lint` has the message. No repository test covered the canvas reports' workspace (since added) |
+| 7 | 089's pickers (form/`@` and canvas) offer only the draft's own workspace plus public ones; with no item name or an unknown scope, public only | yes | confirmed | `kysely-catalogue-repository.ts:113-121`, `dependency-search.ts:86-91`, `composer.ts:139-140`. `CataloguePicker.tsx`, `DraftEditor.tsx` and `DependencyField.tsx` pass `itemName`. The picker test passes, and dropping the catalogue filter makes it fail. Probe: a beta-only user with `itemName "@acme-infra/new"` → only public entries |
+| 8 | The pickers also hide the person's own unreleased submissions in another private workspace | yes | confirmed | `dependency-search.ts:125-126`, `composer.ts:160-164`. Probe: the member's `@beta-tools/wip` and `@beta-tools/wipdraft` → missing for `@acme-infra/new`, present for `@beta-tools/new`, in both pickers. No test covered it (since added) |
+| 9 | Resolve runs as the caller. A dependency the caller can't see → `item_not_found` naming the dependent | yes | confirmed | `resolve.ts:96-110,173-176`, `versions.ts:128-135`. Probe as an outsider: `resolveAs(@team/front → @acme-infra/deploy)` → `item_not_found "@acme-infra/deploy isn't a published item (asked for by @team/front@1.0.0)."`, `details.from=["@team/front@1.0.0"]`. A member resolves both. `resolve.test.ts` 14 pass |
+| 10 | Done when: registry-check, resolve and picker tests cover own workspace, public, other private | yes | partly | Registry checks: unit and db tests cover all three, and a mutation fails them. Resolve: core covers the dependent's name; no db test of an outsider resolving a public item that depends on a private one. Pickers: with the unreleased-submission filters removed from both pickers, every test still passed |
+| 11 | Lint, typecheck and the affected suites are green | no | confirmed | `pnpm typecheck` → 7/7. `pnpm lint` → no errors. draft-editor tests 120 passed. Submissions unit and db suites 360 and 206 passed |
+
+**Overall:** not met: the rule works at submit, at release, in bulk, in the canvas reports, in the pickers and in resolve, but the pickers' own-unreleased filter and the canvas reports' workspace had no test that fails when they're removed. Fixed: `private-dependencies.db.test.ts` now tests the pickers leaving out the person's own unreleased item in another private workspace, the canvas reports' rule for the item's workspace, and an outsider resolving a public item that depends on a private one. Re-check below.
+
+### Re-check — row 10
+
+Witnessed: 2026-10-07 16:31 EDT, by a fresh agent (blind). Commit: b9ec3ae + working tree (24 files changed, `private-dependencies.db.test.ts` untracked, now 12 tests). Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 10 | Done when: registry-check, resolve and picker tests cover own workspace, public, other private | yes | confirmed | private-dependencies, private-submissions, registry, visibility-guard and private-items db tests → 37 passed on SQLite, PostgreSQL, MySQL and MariaDB. Submissions and draft-editor unit tests → 487 passed. `resolve.test.ts` → 14 passed. `pnpm typecheck` → 7/7; `pnpm lint` → no errors. Mutations, each against `private-dependencies.db.test.ts`: the `listOwnUnreleased` `dependableFrom` filter off → 2 fail; `ownDependencies` not passing `dependableFrom` → the same 2 fail; composer reports `workspaceId: "nope"` or `null` → "applies the rule in the canvas's reports" fails; core's "asked for by" reverted → "names the public item that asks an outsider for a private one" fails; `resolveAs` using `UNFILTERED` → the same test fails; `collate utf8mb4_bin` removed, run on MySQL → "a visibility that's only nearly public" fails |
+
+**Overall:** met: picker, canvas-report and resolve tests now cover own workspace, public and other private, and each mutation of those paths fails at least one test.
+
+
+### Adversarial pass
+
+Witnessed: 2026-10-07 16:24 EDT, by a fresh agent (adversarial). Commit: b9ec3ae + uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0. (Before this pass it saw PLAN.md's Notes entries for tasks 1 and 2, not task 4's; it read task 4's entry only after the verdicts.)
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | At submit, a dependency in another private workspace is refused with `dependency_not_visible` and the spec's message, even when the submitter sees it (member of both, or root) | yes | confirmed | `registry-checks.ts:210-217`; `private-dependencies.db.test.ts` passes on SQLite, postgres, mysql and mariadb. Probe P3: the member's own submitted `@beta-tools/onway`, used from acme → `dependency_not_visible`. P5: root's `@team/r1` → `@acme-infra/deploy` gives the same code |
+| 2 | A public item can't depend on a private one, whatever the route: new draft, proposal (017), skill frontmatter agent (097), bulk submit in-batch | yes | confirmed | P1: a proposal on public `@team/pubagent` adding `@acme-infra/deploy` → `dependency_not_visible`. P4: a skill in team with `agent: "@beta-tools/bot"` → `dependency_not_visible`. P2: `submitManyDrafts({ids:[top], dependencies:true})` → `@team/top` `not_ready [dependency_not_visible]`. Odd case can't get through: `names.ts:8` allows only `[a-z0-9-]` |
+| 3 | The rule doesn't wrongly refuse an own workspace's items, public items, root, or a member of both depending within one workspace | yes | confirmed | The DB test "lets an item depend on its own workspace's items and public ones" passes. P2 acme → acme in one batch → both `submitted`. P5: root in acme → `[]`. Mutant `ruleRefusesOwn` → 2 fail |
+| 4 | A non-member gets `dependency_not_found`, word for word the same as for an unknown name (decision 5) | yes | confirmed | The DB test passes. P1, P4 and P7 match the unknown-name answer once the name is swapped, on all 4 databases. A bulk release by a non-member → the unknown-name wording |
+| 5 | Release refuses it too, by single publish and by bulk release (055), including a workspace that turned private after approval | yes | confirmed | The DB test passes; mutant `ruleNotAtRelease` → 2 fail. P6: `releaseMany` as root → `not_releasable`, "…is in a private workspace…". Remarks: `prepareRelease`'s preview still lists it; the check runs before the release store's UNFILTERED transaction, not inside it |
+| 6 | When the dependent's workspace isn't known (no scope yet), every private dependency is refused | yes | confirmed | The unit test passes. P7: `itemName "@nosuch/x"` → the private-workspace problem; `@team/base` → none |
+| 7 | The pickers offer only own-workspace and public items, leak nothing to outsiders, and don't wrongly exclude allowed items | yes | partly | No leaks (P9, paging 33 entries, 0 from beta). But P8: with 1 own draft in acme and 13 newer in beta, `@acme-infra/mineacme` was missing from both pickers. P10 (MySQL/MariaDB): a workspace set to `Public` was offered, and the check then refused it |
+| 8 | The tests fail when the rule or the pickers' filter is removed | yes | partly | Rule and catalogue-filter mutants caught. Survived: removing the own-unreleased filter in either picker; `dependencyReports` with its workspace null; `submissionsNamed` returning `private: false` (a submit-time bypass, P2/P3); bulk-submit's incoming `private: false` |
+| 9 | The resolver runs as the caller: a dependency the caller can't see is `item_not_found`, with "(asked for by …)"; nothing new revealed; CLI/MCP/API codes unchanged | yes | confirmed | R1: outsider → `item_not_found "@acme-infra/deploy isn't a published item (asked for by @team/front@1.0.0)."`; member resolves. `registry-api.ts:184` still maps it to 404. cli 227, mcp 40, core 328 pass |
+| 10 | *Done when*: the resolve tests cover own workspace, public, other private | yes | partly | Only `resolve.test.ts` with a fake registry; no DB test resolved a visible item that depends on a private one |
+| 11 | *Done when*: the registry-check and picker tests cover own workspace, public, other private | yes | confirmed | The `registry-checks.test.ts` 093 block and the picker DB test pass; submissions and items domains on SQLite → 421/421 |
+| 12 | Works on the three server dialects; typecheck and lint are clean | no | confirmed | `test-db.mjs` → 30/30 each; `tsc --noEmit` → 0; `biome check` → no issues |
+
+**Overall:** not met: the pickers hid allowed own drafts (P8), there was no DB resolve test, and some filters had no test that fails. Fixed: the own-unreleased filter moved into SQL before the limit; "public" matched byte for byte; tests for the pickers' own-items filters, the canvas reports' workspace, an own submission on its way at submit and in a bulk batch, a nearly-public visibility, and an outsider's resolve. Re-checks below.
+
+### Re-check — rows 7, 8 and 10
+
+Witnessed: 2026-10-07 16:34 EDT, by a fresh agent (adversarial). Commit: b9ec3ae + uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | The pickers offer only own-workspace and public items, leak nothing, and don't wrongly exclude allowed items | yes | partly | P8 on all 4 databases: both pickers include `@acme-infra/mineacme`, no beta entries. P11: own published `@beta-tools/ownedbeta` not offered for acme, offered for beta. `Public` no longer offered. Still: `public ` (trailing space) offered on MySQL and MariaDB, since `utf8mb4_bin` pads trailing spaces |
+| 8 | The tests fail when the rule or the pickers' filter is removed | yes | partly | 15 of 16 mutants caught (including the own-unreleased SQL filter, `lookupSubNeverPrivate`, `bulkIncomingNeverPrivate`, `collateOff` on MySQL/MariaDB). Survived: `ownPublishedNotPassed` (dropping `dependableFrom` from the own published items' list) |
+| 10 | *Done when*: the resolve tests cover own workspace, public, other private | yes | confirmed | The DB test "resolving as the caller (093)": outsider → "…(asked for by @team/front@1.0.0).", member → resolved; fails with the core message reverted and with `resolveAs` unfiltered. postgres, mysql, mariadb 62/62 each |
+
+**Overall:** not met: `public ` was still offered on MySQL/MariaDB, and the own-published filter had no test. Fixed: a binary cast on MySQL and MariaDB; a test for the own published item in both pickers. Second re-check below.
+
+### Re-check — rows 7 and 8 (second)
+
+Witnessed: 2026-10-07 16:40 EDT, by a fresh agent (adversarial). Commit: b9ec3ae + uncommitted working tree (`isPublicWorkspace` uses `cast(... as binary)`; new own-published picker test). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | The pickers offer only own-workspace and public items, leak nothing to outsiders, and don't wrongly exclude allowed items | yes | confirmed | 24/24 on SQLite; with `private-submissions` and `private-items`, 36/36 on postgres, mysql and mariadb; probe output identical on all 4. P10: never offered for `"Public"`, `"public "`, `"PUBLIC"`, `" public"`, `"public\t"` or `"publiс"` (Cyrillic с), offered again once set back to `"public"`. P11, P8 and P9 as before |
+| 8 | The tests fail when the rule or the pickers' filter is removed | yes | confirmed | `mutate.py` against 7 suites (81 tests): every applicable mutant fails ≥1 test, `ownPublishedNotPassed` included. `collateOff` and `collateBinOld` fail "offers nothing the check would refuse…" on MySQL and MariaDB. `tsc --noEmit` → 0; `biome check` → clean |
+
+**Overall:** met: every row of the adversarial pass is now confirmed. Remarks that stand: `prepareRelease`'s preview lists a dependent whose dependency turned private (the release refuses it); the release check runs before the store transaction; the API answers `item_not_found` where the spec says `not_found` (task 6); the pickers take `itemName` from the client, so a member can be offered their private workspace's items for a public item, though submit refuses it.

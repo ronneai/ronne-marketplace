@@ -7,7 +7,7 @@ import type { Database } from "../../../db/schema";
 import { containsInsensitive } from "../../../db/search";
 import type { DatabaseDialect } from "../../../db/url";
 import type { Viewer } from "../../workspaces/models/viewer";
-import { inVisibleWorkspace } from "../../workspaces/repositories/visible";
+import { inVisibleWorkspace, isDependableFrom } from "../../workspaces/repositories/visible";
 import type { CatalogueEntry, CatalogueFilter } from "../models/catalogue";
 import type { CatalogueRepository } from "./catalogue-repository";
 
@@ -81,6 +81,7 @@ export const kyselyCatalogueRepository = (
       installable,
       listedNotYanked,
       ownerId,
+      dependableFrom,
     }: CatalogueFilter,
   ) => {
     let q = query;
@@ -109,6 +110,10 @@ export const kyselyCatalogueRepository = (
     if (scope) q = q.where("scopes.name", "=", scope);
     if (workspace) q = q.where("workspaces.name", "=", workspace);
     if (ownerId) q = q.where("items.owner_id", "=", ownerId);
+    if (dependableFrom !== undefined)
+      q = q.where(
+        isDependableFrom(dependableFrom, "workspaces.id", "workspaces.visibility", dialect),
+      );
     if (tool) {
       // The types the tool takes, and not turned off in the listed version's manifest (026).
       const renderer = rendererById(tool);

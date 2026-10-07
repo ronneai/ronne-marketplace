@@ -239,6 +239,7 @@ describe("resolve", () => {
     });
     expect(await failure(resolve({ dependencies: { "@t/nope": "^1.0.0" } }, reg))).toMatchObject({
       code: "item_not_found",
+      message: "@t/nope isn't a published item.",
       details: { item: "@t/nope" },
     });
   });
@@ -262,5 +263,23 @@ describe("resolve", () => {
     });
     await resolve({ dependencies: { "@t/a": "^1.0.0", "@t/c": "^1.0.0" } }, reg);
     expect(reg.reads.sort()).toEqual(["@t/a", "@t/c"]);
+  });
+});
+
+describe("a missing dependency (093)", () => {
+  it("names the item that asks for it: gone, or in a workspace the caller can't see", async () => {
+    const reg = registry({
+      "@team/front": {
+        tags: { latest: "1.0.0" },
+        versions: [{ version: "1.0.0", dependencies: { "@acme/deploy": "^1.0.0" } }],
+      },
+    });
+    expect(
+      await failure(resolve({ dependencies: { "@team/front": "^1.0.0" } }, reg)),
+    ).toMatchObject({
+      code: "item_not_found",
+      message: "@acme/deploy isn't a published item (asked for by @team/front@1.0.0).",
+      details: { item: "@acme/deploy", from: ["@team/front@1.0.0"] },
+    });
   });
 });

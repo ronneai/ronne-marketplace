@@ -233,6 +233,12 @@ export const checkMany = async (
         authorId: submission.authorId,
         proposal: submission.proposal !== null,
         dependencies: await dependenciesOf(deps.repo, submission),
+        workspace: {
+          id: submission.workspace.id,
+          private: (await registry.privateWorkspaces([submission.workspace.id])).has(
+            submission.workspace.id,
+          ),
+        },
       });
     drafts.push({
       id,

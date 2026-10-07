@@ -12,6 +12,7 @@ import {
   DependencyCycleError,
   DependencyNotFoundError,
   DependencyNotPublishedError,
+  DependencyNotVisibleError,
   DependencyRangeUnmatchedError,
   DependencyUnreleasedError,
   ItemNameTakenError,
@@ -128,6 +129,11 @@ export const dependencyIssues = async (
     dependencies: Readonly<Record<string, string>>;
     /** The submitter: their own open submissions count before release (089). */
     authorId: string;
+    /**
+     * The dependent's workspace (093): a dependency in another, private workspace is refused. Null
+     * when it isn't known yet (no scope), which refuses every private one.
+     */
+    workspaceId: string | null;
   },
   options: { release?: boolean } = {},
 ): Promise<ManifestIssue[]> => {
@@ -198,6 +204,14 @@ export const dependencyIssues = async (
                 new DependencyNotFoundError(dependency),
                 "/dependencies",
               ),
+      );
+      continue;
+    }
+    // A private workspace's items are dependencies only of its own (093), at submit and release.
+    const where = item?.workspace ?? pending?.workspace;
+    if (where?.private && where.id !== input.workspaceId) {
+      issues.push(
+        issue("dependency_not_visible", new DependencyNotVisibleError(dependency), "/dependencies"),
       );
       continue;
     }
@@ -309,6 +323,7 @@ export const registryIssues = async (
         type: submission.type,
         dependencies,
         authorId: submission.authorId,
+        workspaceId: submission.workspace.id,
       },
       options,
     )),

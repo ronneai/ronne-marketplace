@@ -10,8 +10,14 @@ import { dependencyIssues, nameIssues, typeIssues } from "./registry-checks";
 
 type Fake = Record<
   string,
-  { type: ItemType; versions: (Partial<PublishedVersion> & { version: string })[] }
+  {
+    type: ItemType;
+    versions: (Partial<PublishedVersion> & { version: string })[];
+    /** Its workspace (093); global, public, unless said. */
+    workspace?: { id: string; private: boolean };
+  }
 >;
+const GLOBAL = { id: "global", private: false };
 
 type FakeSubmissions = Record<
   string,
@@ -25,7 +31,15 @@ type FakeSubmissions = Record<
 const fakeRegistry = (items: Fake, submissions: FakeSubmissions = {}): RegistryLookup => ({
   findItem: async (scope, name) => {
     const found = items[`@${scope}/${name}`];
-    return found ? { id: `@${scope}/${name}`, scope, name, type: found.type } : null;
+    return found
+      ? {
+          id: `@${scope}/${name}`,
+          scope,
+          name,
+          type: found.type,
+          workspace: found.workspace ?? GLOBAL,
+        }
+      : null;
   },
   publishedVersions: async (id) =>
     (items[id]?.versions ?? []).map((v) => ({
@@ -43,8 +57,10 @@ const fakeRegistry = (items: Fake, submissions: FakeSubmissions = {}): RegistryL
       authorId: "me",
       proposal: false,
       dependencies: {},
+      workspace: GLOBAL,
       ...sub,
     })),
+  privateWorkspaces: async () => new Set(),
 });
 
 const agent = (dependencies: Record<string, string>) => ({
@@ -52,6 +68,7 @@ const agent = (dependencies: Record<string, string>) => ({
   type: "agent" as const,
   dependencies,
   authorId: "me",
+  workspaceId: "global",
 });
 const codes = async (registry: RegistryLookup, dependencies: Record<string, string>) =>
   (await dependencyIssues(registry, agent(dependencies))).map((i) => i.code);
@@ -104,6 +121,7 @@ describe("dependencyIssues", () => {
       type: "bundle",
       dependencies: { "@team/a": "^1.0.0" },
       authorId: "me",
+      workspaceId: "global",
     });
     expect(issues).toMatchObject([
       {
@@ -132,6 +150,7 @@ describe("dependencyIssues", () => {
         type: "bundle",
         dependencies: { "@t/left": "*", "@t/right": "*" },
         authorId: "me",
+        workspaceId: "global",
       }),
     ).toEqual([]);
   });
@@ -245,6 +264,7 @@ describe("dependencies on their way (056)", () => {
       type: "bundle",
       dependencies: { "@team/a": "*" },
       authorId: "me",
+      workspaceId: "global",
     });
     expect(found.map((i) => i.code)).toEqual(["dependency_pending", "dependency_cycle"]);
     expect(found.at(-1)?.message).toBe(
@@ -335,6 +355,7 @@ describe("only your own items count before release (089)", () => {
       type: "bundle",
       dependencies: { "@team/a": "*" },
       authorId: "me",
+      workspaceId: "global",
     });
     expect(found.map((i) => i.code)).toEqual(["dependency_pending", "dependency_cycle"]);
   });
@@ -372,5 +393,65 @@ describe("typeIssues", () => {
     });
     expect(issue).toMatchObject({ code: "type_changed", path: "/type" });
     expect(issue?.message).toContain("@team/fmt is a hook; a change can't make it a rule.");
+  });
+});
+
+describe("the dependency rule of private workspaces (093)", () => {
+  const ACME = { id: "acme", private: true };
+  const BETA = { id: "beta", private: true };
+  const registry = fakeRegistry(
+    {
+      "@acme-infra/deploy": { type: "skill", versions: [{ version: "1.0.0" }], workspace: ACME },
+      "@beta-tools/lint": { type: "skill", versions: [{ version: "1.0.0" }], workspace: BETA },
+      "@team/base": { type: "skill", versions: [{ version: "1.0.0" }] },
+    },
+    { "@beta-tools/draft": [{ status: "submitted", type: "skill", workspace: BETA }] },
+  );
+  const from = (workspaceId: string | null, dependencies: Record<string, string>) => ({
+    ...agent(dependencies),
+    workspaceId,
+  });
+  const issuesOf = async (
+    workspaceId: string | null,
+    dependencies: Record<string, string>,
+    release = false,
+  ) =>
+    (await dependencyIssues(registry, from(workspaceId, dependencies), { release })).map((i) => [
+      i.code,
+      i.message,
+    ]);
+
+  it("lets an item depend on its own workspace's items and on public ones", async () => {
+    expect(
+      await issuesOf("acme", { "@acme-infra/deploy": "^1.0.0", "@team/base": "^1.0.0" }),
+    ).toEqual([]);
+    expect(await issuesOf("global", { "@team/base": "^1.0.0" })).toEqual([]);
+  });
+
+  it("refuses another private workspace's item, published or on its way, at submit and at release", async () => {
+    for (const release of [false, true]) {
+      expect(await issuesOf("acme", { "@beta-tools/lint": "^1.0.0" }, release)).toEqual([
+        [
+          "dependency_not_visible",
+          "@beta-tools/lint is in a private workspace; only its own items can depend on it.",
+        ],
+      ]);
+      expect(await issuesOf("global", { "@acme-infra/deploy": "^1.0.0" }, release)).toEqual([
+        [
+          "dependency_not_visible",
+          "@acme-infra/deploy is in a private workspace; only its own items can depend on it.",
+        ],
+      ]);
+    }
+    expect((await issuesOf("acme", { "@beta-tools/draft": "^1.0.0" }))[0]?.[0]).toBe(
+      "dependency_not_visible",
+    );
+  });
+
+  it("refuses every private one when the item's workspace isn't known yet", async () => {
+    expect((await issuesOf(null, { "@acme-infra/deploy": "^1.0.0" }))[0]?.[0]).toBe(
+      "dependency_not_visible",
+    );
+    expect(await issuesOf(null, { "@team/base": "^1.0.0" })).toEqual([]);
   });
 });

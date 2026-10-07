@@ -21,7 +21,7 @@ the same change that completes it.
   usage ingest and the item page's usage.
   *Done when:* submissions and usage db tests pass with private cases.
 
-- [ ] **4. The dependency rule.** [risky] 089's picker filtered; `dependency_not_visible` at submit
+- [x] **4. The dependency rule.** [risky] 089's picker filtered; `dependency_not_visible` at submit
   and release; resolve as the caller.
   *Done when:* registry-check, resolve and picker tests cover own workspace, public, other private.
 
@@ -97,4 +97,29 @@ goes into `SPEC.md` instead.
   repository filter there is pinned by the guard test; dependency marks have a private case in
   `private-submissions.db.test.ts`. The release transaction still resolves dependencies
   unfiltered: task 4's `dependency_not_visible` at release closes it.
+- **Task 4: the dependency rule** (Claude). The registry lookup reports each dependency's
+  workspace and whether it's private (`PublishedItem.workspace`, `NamedSubmission.workspace`, read
+  from `workspaces.visibility`, not from the viewer: an `UNFILTERED` lookup would otherwise see no
+  private workspace and let everything through), plus `privateWorkspaces(ids)`. `dependencyIssues`
+  takes the dependent's `workspaceId` (null when its scope isn't known: every private one is
+  refused) and gives `dependency_not_visible` for another private workspace's item, published or
+  on its way, at submit and at release (publish runs the checks with `release: true` before its
+  store transaction). Someone who can't see the item gets `dependency_not_found` instead (SPEC,
+  decision 5). The pickers (the form's `findDependencies`, the canvas's `searchDependencies`, which
+  now gets the item's name) and the composer's reports filter to the item's own workspace and
+  public ones (`CatalogueFilter.dependableFrom`). The resolver (core) names who asks for a missing
+  dependency: "@x isn't a published item (asked for by @y@1.0.0)".
+  From the witnesses: the pickers took the person's newest dozen unreleased items before
+  filtering by workspace, so another workspace's drafts could crowd out allowed ones; the filter
+  is now in SQL (`listOwnUnreleased({ dependableFrom })`), as the published list's is. "Public" is
+  matched byte for byte (`isPublicWorkspace`: a binary cast on MySQL and MariaDB, because their
+  collations took "Public", and even `utf8mb4_bin` pads "public "), while the viewer and the check
+  count those private. Tests now pin the
+  pickers' own-items filters (unreleased and published), the canvas reports' workspace, an own submission on its way in another
+  private workspace (at submit and in a bulk batch), and an outsider resolving a public item that
+  depends on a private one. Left as remarks: `prepareRelease`'s preview still lists a dependent
+  whose dependency turned private (the release refuses it); the release's check runs before the
+  store transaction, not inside it (task 5's turning-private refusal covers released dependents).
+  For task 6: the registry API answers a missing item `item_not_found` (404), where the spec says
+  `not_found`.
 
