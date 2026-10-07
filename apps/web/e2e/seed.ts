@@ -10,6 +10,7 @@ import { kyselyItemRepository } from "../src/server/domains/items/repositories/k
 import { kyselyScopeRepository } from "../src/server/domains/items/repositories/kysely-scope-repository";
 import { dayOf, daysBefore } from "../src/server/domains/usage/models/usage-event";
 import { kyselyUsageRepository } from "../src/server/domains/usage/repositories/kysely-usage-repository";
+import { UNFILTERED } from "../src/server/domains/workspaces/models/viewer";
 import { GLOBAL_WORKSPACE_ID } from "../src/server/domains/workspaces/models/workspace";
 import { kyselyWorkspaceRepository } from "../src/server/domains/workspaces/repositories/kysely-workspace-repository";
 import { localStorage } from "../src/server/storage/local-storage";
@@ -90,7 +91,7 @@ for (const [key, role] of Object.entries(E2E_ACME_MEMBERS) as [keyof typeof E2E_
 }
 
 // Two published versions, recorded directly: the Versions page manages them (feature 016).
-const items = kyselyItemRepository(db, dialect);
+const items = kyselyItemRepository(db, dialect, UNFILTERED);
 const itemId = await items.insertItem({
   scopeId,
   name: E2E_VERSIONED_ITEM,

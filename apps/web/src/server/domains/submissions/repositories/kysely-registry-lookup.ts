@@ -3,6 +3,7 @@ import type { Kysely } from "kysely";
 import type { Database } from "../../../db/schema";
 import type { DatabaseDialect } from "../../../db/url";
 import { kyselyItemRepository } from "../../items/repositories/kysely-item-repository";
+import { UNFILTERED } from "../../workspaces/models/viewer";
 import { fileBytes, MANIFEST_PATH } from "../models/submission";
 import type { NamedSubmission, RegistryLookup } from "./registry-lookup";
 
@@ -15,7 +16,8 @@ export const kyselyRegistryLookup = (
   db: Kysely<Database>,
   dialect: DatabaseDialect,
 ): RegistryLookup => {
-  const items = kyselyItemRepository(db, dialect);
+  // Every workspace, for now: the dependency rule (093, task 4) decides what may be depended on.
+  const items = kyselyItemRepository(db, dialect, UNFILTERED);
   return {
     findItem: async (scope, name) => {
       const item = await items.findByName(scope, name);

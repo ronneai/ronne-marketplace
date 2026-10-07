@@ -22,3 +22,10 @@ export const loadViewer = async (
     })),
   );
 };
+
+/**
+ * What anyone signed in sees, whoever they are: the public workspaces. For what's shared between
+ * users, such as the plugin feeds' cache until it's kept per visibility key (task 7).
+ */
+export const loadPublicViewer = (db: Kysely<Database>): Promise<Viewer> =>
+  loadViewer(db, { id: "", role: "user", workspaces: {} });

@@ -3,6 +3,7 @@ import { readCommittedTransaction } from "../../../db/locks";
 import type { Database } from "../../../db/schema";
 import type { DatabaseDialect } from "../../../db/url";
 import { kyselyItemRepository } from "../../items/repositories/kysely-item-repository";
+import { UNFILTERED } from "../../workspaces/models/viewer";
 import { kyselySubmissionRepository } from "./kysely-submission-repository";
 import type { ReleaseStore } from "./release-store";
 
@@ -15,7 +16,8 @@ export const kyselyReleaseStore = (
     readCommittedTransaction(db, dialect).execute((trx) =>
       work({
         submissions: kyselySubmissionRepository(trx, dialect),
-        items: kyselyItemRepository(trx, dialect),
+        // A release is authorised by the release rules (015, 091): it reads every workspace.
+        items: kyselyItemRepository(trx, dialect, UNFILTERED),
       }),
     ),
 });

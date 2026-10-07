@@ -12,7 +12,7 @@ the same change that completes it.
   filter scopes by their workspace with a subquery (tasks 2–3), so no scope ids are listed.
   *Done when:* unit tests cover root, a member, a non-member, and a public-only user.
 
-- [ ] **2. Items reads.** [risky] The catalogue, item, version, dependents ("Used by") and download
+- [x] **2. Items reads.** [risky] The catalogue, item, version, dependents ("Used by") and download
   repositories take a `Viewer`; services and pages pass it; the guard test listing read methods.
   *Done when:* items db tests pass with a private workspace on the four databases, and the guard
   test fails on a read without a `Viewer`.
@@ -63,4 +63,22 @@ goes into `SPEC.md` instead.
   `workspace_members` in SQL. MySQL and MariaDB accept a membership row whose ids differ in case,
   which the case-sensitive viewer ignores but a SQL join would count. And `viewerFor` isn't
   memoised: build it once per request and pass it down.
+- **Task 2: items reads** (Claude). `kyselyCatalogueRepository` and `kyselyItemRepository` take
+  the viewer when they're built, so every method has it: the catalogue's shared `listed()` and its
+  workspaces filter on the workspace; the item reads by name, item id, version id and submission
+  id filter with `workspaces/repositories/visible.ts` (`inVisibleWorkspace`, `isVisibleItem`,
+  `isVisibleSubmission`: subqueries on the scope's workspace, `1 = 1` for root, `1 = 0` for
+  nobody). "Used by" lists only visible dependents. The actions build the viewer once per call
+  from the session or the token's user. Writes don't filter; they're named in the guard test
+  (`items/repositories/visibility-guard.db.test.ts`), which fails on a method that's neither a
+  probed read nor a named write. For now: the plugin feeds read as a public-only viewer (one
+  shared cache, task 7), and the registry lookup and release store as `UNFILTERED` (the
+  dependency rule is task 4; a release is authorised by 015 and 091). Tests, the e2e seed and the
+  feed benchmark use `UNFILTERED`.
+  Left for later tasks, from the witnesses: the composer's dependency reports read through the
+  unfiltered registry lookup, so a non-member can tell a private name from an unknown one (tasks
+  3 and 4); a public item that depends on a private one (old data, or one made before task 4)
+  shows the private name in its versions and manifest (tasks 4 and 5 stop new ones); the scope
+  repository isn't under the guard yet (task 6); the `IN (…)` list grows with the number of
+  visible workspaces, untested in the thousands.
 

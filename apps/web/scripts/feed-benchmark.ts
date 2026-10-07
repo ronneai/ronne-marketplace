@@ -23,6 +23,7 @@ import { createRoot } from "../src/server/domains/identity/actions/root-account"
 import type { CurrentUser } from "../src/server/domains/identity/models/user";
 import { kyselyCatalogueRepository } from "../src/server/domains/items/repositories/kysely-catalogue-repository";
 import { kyselyItemRepository } from "../src/server/domains/items/repositories/kysely-item-repository";
+import { UNFILTERED } from "../src/server/domains/workspaces/models/viewer";
 import { localStorage } from "../src/server/storage/local-storage";
 
 /** The local servers from docker/test-databases.compose.yml, as scripts/test-db.mjs uses them. */
@@ -72,7 +73,7 @@ const DESCRIPTION =
 const seconds = (ms: number) => (ms / 1000).toFixed(2);
 
 const seed = async (t: Awaited<ReturnType<typeof createTestDb>>, root: string, count: number) => {
-  const items = kyselyItemRepository(t.db, t.dialect);
+  const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
   const now = new Date();
   const { id: publisher } = await createRoot(t.db, t.dialect, {
     email: "bench@example.com",
@@ -146,8 +147,8 @@ for (const count of counts) {
     const storage = await seed(t, root, count);
     console.error(`${db}: seeded ${count} items in ${seconds(performance.now() - seeded)} s`);
     const deps: FeedDeps = {
-      catalogue: kyselyCatalogueRepository(t.db, t.dialect),
-      items: kyselyItemRepository(t.db, t.dialect),
+      catalogue: kyselyCatalogueRepository(t.db, t.dialect, UNFILTERED),
+      items: kyselyItemRepository(t.db, t.dialect, UNFILTERED),
       storage,
       // The real cost: no budget, so a cold request builds every plugin.
       buildBudgetMs: Number.POSITIVE_INFINITY,

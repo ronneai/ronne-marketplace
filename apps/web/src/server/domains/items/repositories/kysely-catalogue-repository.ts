@@ -6,6 +6,8 @@ import { decodeJson } from "../../../db/json";
 import type { Database } from "../../../db/schema";
 import { containsInsensitive } from "../../../db/search";
 import type { DatabaseDialect } from "../../../db/url";
+import type { Viewer } from "../../workspaces/models/viewer";
+import { inVisibleWorkspace } from "../../workspaces/repositories/visible";
 import type { CatalogueEntry, CatalogueFilter } from "../models/catalogue";
 import type { CatalogueRepository } from "./catalogue-repository";
 
@@ -45,16 +47,23 @@ const toEntry = (row: Row): CatalogueEntry => ({
   support: supportFor(row.type, row.disabled_targets.split(" ").filter(Boolean)),
 });
 
+/**
+ * The catalogue as `viewer` sees it (093): every read starts from `listed()` or filters the
+ * workspaces, so a private workspace's items and the workspace itself are there only for its
+ * members and root.
+ */
 export const kyselyCatalogueRepository = (
   db: Kysely<Database>,
   dialect: DatabaseDialect,
+  viewer: Viewer,
 ): CatalogueRepository => {
   const listed = () =>
     db
       .selectFrom("items")
       .innerJoin("scopes", "scopes.id", "items.scope_id")
       .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
-      .innerJoin("item_versions", "item_versions.id", "items.listed_version_id");
+      .innerJoin("item_versions", "item_versions.id", "items.listed_version_id")
+      .where(inVisibleWorkspace(viewer, "workspaces.id"));
 
   const filtered = <O>(
     query: SelectQueryBuilder<
@@ -221,6 +230,7 @@ export const kyselyCatalogueRepository = (
         await db
           .selectFrom("workspaces")
           .select("name")
+          .where(inVisibleWorkspace(viewer, "workspaces.id"))
           .orderBy("is_global", "desc")
           .orderBy("name")
           .execute()

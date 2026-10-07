@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createRoot } from "../../domains/identity/actions/root-account";
 import { kyselyItemRepository } from "../../domains/items/repositories/kysely-item-repository";
+import { UNFILTERED } from "../../domains/workspaces/models/viewer";
 import { toDbDate } from "../dates";
 import { encodeJson } from "../json";
 import { createTestDb, type TestDb } from "../testing/test-db";
@@ -32,7 +33,7 @@ describe("0011 disabled targets", () => {
         workspace_id: GLOBAL_WORKSPACE_ID,
       })
       .execute();
-    const items = kyselyItemRepository(t.db, t.dialect);
+    const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
     const itemId = await items.insertItem({
       scopeId,
       name: "kit",

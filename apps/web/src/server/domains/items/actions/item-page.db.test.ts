@@ -6,6 +6,7 @@ import { createRoot } from "../../identity/actions/root-account";
 import { signIn } from "../../identity/actions/session";
 import type { AppAuth } from "../../identity/repositories/auth-instance";
 import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testing/test-auth";
+import { UNFILTERED } from "../../workspaces/models/viewer";
 import { kyselyItemRepository } from "../repositories/kysely-item-repository";
 import { createScope } from "./scopes";
 import { itemPage } from "./versions";
@@ -102,7 +103,7 @@ const release = async (
   name: string,
   versions: { version: string; dependsOn?: Record<string, string>; submissionId?: string }[],
 ) => {
-  const items = kyselyItemRepository(t.db, t.dialect);
+  const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
   const itemId =
     (await items.findByName("team", name))?.id ??
     (await items.insertItem({

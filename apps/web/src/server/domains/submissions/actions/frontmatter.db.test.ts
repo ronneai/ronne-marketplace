@@ -10,6 +10,7 @@ import type { AppAuth } from "../../identity/repositories/auth-instance";
 import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testing/test-auth";
 import { createScope } from "../../items/actions/scopes";
 import { kyselyItemRepository } from "../../items/repositories/kysely-item-repository";
+import { UNFILTERED } from "../../workspaces/models/viewer";
 import { createDraft, createDraftFromFilesAs, getDraft, saveDraftFiles } from "./drafts";
 import { publishSubmission } from "./publish";
 import { decide } from "./reviews";
@@ -121,7 +122,7 @@ const released = async (name: string, type: "agent" | "rule", again = false) => 
   );
   if (!again) return;
   // A second release straight through the repository, as 015 would write it.
-  const items = kyselyItemRepository(t.db, t.dialect);
+  const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
   const item = await items.findByName("team", name);
   if (!item?.ownerId) throw new Error("not released");
   const version = await items.insertVersion({

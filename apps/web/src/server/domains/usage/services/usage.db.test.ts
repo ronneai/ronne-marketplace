@@ -7,6 +7,7 @@ import { createRoot } from "../../identity/actions/root-account";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import type { CurrentUser } from "../../identity/models/user";
 import { kyselyItemRepository } from "../../items/repositories/kysely-item-repository";
+import { UNFILTERED } from "../../workspaces/models/viewer";
 import { InvalidUsageReportError, UsageDisabledError } from "../exceptions/errors";
 import { kyselyUsageRepository } from "../repositories/kysely-usage-repository";
 import { itemUsage, itemUsageByVersion, recordUsage, type UsageDeps, usageSettings } from "./usage";
@@ -41,7 +42,7 @@ beforeEach(async () => {
       workspace_id: GLOBAL_WORKSPACE_ID,
     })
     .execute();
-  const items = kyselyItemRepository(t.db, t.dialect);
+  const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
   itemId = await items.insertItem({
     scopeId: "s1",
     name: "reviewer",

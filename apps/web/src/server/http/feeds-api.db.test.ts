@@ -13,6 +13,7 @@ import type { AppAuth } from "../domains/identity/repositories/auth-instance";
 import { createTestUser, testAppAuth } from "../domains/identity/testing/test-auth";
 import { kyselyItemRepository } from "../domains/items/repositories/kysely-item-repository";
 import { kyselyScopeRepository } from "../domains/items/repositories/kysely-scope-repository";
+import { UNFILTERED } from "../domains/workspaces/models/viewer";
 import { GLOBAL_WORKSPACE_ID } from "../domains/workspaces/models/workspace";
 import { localStorage } from "../storage/local-storage";
 import type { StorageAdapter } from "../storage/storage-adapter";
@@ -69,7 +70,7 @@ beforeEach(async () => {
     createdBy: null,
     createdAt: new Date(),
   });
-  const items = kyselyItemRepository(t.db, t.dialect);
+  const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
   itemId = await items.insertItem({
     scopeId,
     name: "style",
@@ -118,7 +119,8 @@ const get = (path: string, headers: Record<string, string> = {}, method = "GET")
 
 const ZIP = { tool: "claude-code", scope: "team", name: "style", file: "1.0.0.zip" };
 const downloads = async () =>
-  (await kyselyItemRepository(t.db, t.dialect).findByName("team", "style"))?.downloadCount;
+  (await kyselyItemRepository(t.db, t.dialect, UNFILTERED).findByName("team", "style"))
+    ?.downloadCount;
 
 describe("GET /api/v1/feeds/claude-code/marketplace.json (077)", () => {
   it("needs a token", async () => {
@@ -246,7 +248,7 @@ describe("GET /api/v1/feeds/claude-code/plugins/{scope}/{name}/{version}.zip (07
     expect(await notFound({ ...ZIP, file: "1.0.0.tgz" })).toBe(404);
     expect(await notFound({ ...ZIP, name: "nope" })).toBe(404);
     expect(await notFound({ ...ZIP, tool: "nope" })).toBe(404);
-    const items = kyselyItemRepository(t.db, t.dialect);
+    const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
     const [version] = await items.versions(itemId);
     if (!version) throw new Error("no version");
     await items.setYanked(version.id, { at: new Date(), reason: "Broken." });
@@ -259,7 +261,7 @@ describe("GET /api/v1/feeds/claude-code/plugins/{scope}/{name}/{version}.zip (07
 
 /** Releases `@team/<name>@1.0.0` as a release leaves it, tagged `latest`. */
 const releaseMore = async (name: string, manifest: string, files: Record<string, string>) => {
-  const items = kyselyItemRepository(t.db, t.dialect);
+  const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
   const scope = await t.db.selectFrom("scopes").select("id").executeTakeFirstOrThrow();
   const style = await items.findByName("team", "style");
   const parsed = parseManifest(manifest).manifest as Record<string, unknown>;

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { kyselyFeedRepository } from "../domains/feeds/repositories/kysely-feed-repository";
 import { createRoot } from "../domains/identity/actions/root-account";
 import { kyselyItemRepository } from "../domains/items/repositories/kysely-item-repository";
+import { UNFILTERED } from "../domains/workspaces/models/viewer";
 import { toDbDate } from "./dates";
 import { GLOBAL_WORKSPACE_ID } from "./migrations/0019_workspaces";
 import { createTestDb, type TestDb } from "./testing/test-db";
@@ -53,7 +54,7 @@ const version = (itemId: string, value: string) => ({
 
 describe("the catalogue revision (079)", () => {
   it("starts at 0, and each change that can change a feed raises it by one", async () => {
-    const items = kyselyItemRepository(t.db, t.dialect);
+    const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
     expect(await revision()).toBe(0);
     const itemId = await items.insertItem({
       scopeId: "s1",
@@ -90,7 +91,7 @@ describe("the catalogue revision (079)", () => {
   });
 
   it("isn't raised by a change that rolls back", async () => {
-    const items = kyselyItemRepository(t.db, t.dialect);
+    const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
     const itemId = await items.insertItem({
       scopeId: "s1",
       name: "x",

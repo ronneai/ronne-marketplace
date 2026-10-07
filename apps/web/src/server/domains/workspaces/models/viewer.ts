@@ -53,3 +53,15 @@ export const seesWorkspace = (viewer: Viewer, workspaceId: string): boolean =>
 
 /** The plugin feeds' cache key for this viewer (093): the private workspaces they see. */
 export const visibilityKey = (viewer: Viewer): string => viewer.privateWorkspaceIds.join(",");
+
+/**
+ * Sees every workspace, as root does, for code that isn't reading on someone's behalf: a release
+ * already authorised by the release rules (015), the checks run at submit (task 4 narrows them).
+ * Never for what a person or a token reads.
+ */
+export const UNFILTERED: Viewer = {
+  userId: null,
+  root: true,
+  workspaceIds: [],
+  privateWorkspaceIds: [],
+};

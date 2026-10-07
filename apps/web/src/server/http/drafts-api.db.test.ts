@@ -16,6 +16,7 @@ import {
 import { kyselyItemRepository } from "../domains/items/repositories/kysely-item-repository";
 import { kyselyScopeRepository } from "../domains/items/repositories/kysely-scope-repository";
 import { kyselySubmissionRepository } from "../domains/submissions/repositories/kysely-submission-repository";
+import { UNFILTERED } from "../domains/workspaces/models/viewer";
 import { GLOBAL_WORKSPACE_ID } from "../domains/workspaces/models/workspace";
 import { kyselyWorkspaceRepository } from "../domains/workspaces/repositories/kysely-workspace-repository";
 import { localStorage } from "../storage/local-storage";
@@ -240,7 +241,7 @@ describe("POST /drafts", () => {
   });
 
   it("says what Submit would refuse: a taken name, an unreleased dependency", async () => {
-    await kyselyItemRepository(t.db, t.dialect).insertItem({
+    await kyselyItemRepository(t.db, t.dialect, UNFILTERED).insertItem({
       scopeId: teamId,
       name: "secure-coding",
       type: "skill",
@@ -683,7 +684,7 @@ describe("POST /drafts with a base (042)", () => {
     storageRoot = mkdtempSync(join(tmpdir(), "ronne-proposals-"));
     const storage = localStorage(storageRoot);
     deps = { ...deps, storage };
-    const items = kyselyItemRepository(t.db, t.dialect);
+    const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
     const itemId = await items.insertItem({
       scopeId: teamId,
       name: "kit",
