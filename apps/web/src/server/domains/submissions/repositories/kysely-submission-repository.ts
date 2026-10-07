@@ -10,6 +10,8 @@ import { containsInsensitive } from "../../../db/search";
 import { upsert } from "../../../db/upsert";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
+import type { Viewer } from "../../workspaces/models/viewer";
+import { inVisibleWorkspace, isReadableSubmission } from "../../workspaces/repositories/visible";
 import type { ReviewEvent, ReviewEventKind, Revision } from "../models/review";
 import { OPEN_STATUSES } from "../models/status";
 import type { DraftFile, Submission, SubmissionStatus } from "../models/submission";
@@ -68,9 +70,15 @@ const REVIEW_SORT_COLUMNS: Record<ReviewSort, string> = {
   name: "submissions.name",
 };
 
+/**
+ * Submissions as `viewer` reads them (093): those in a workspace they see, and their own, which a
+ * removed member keeps (091). Scopes only in the workspaces they see. Writes don't filter: the
+ * services authorise them, on submissions a read already found.
+ */
 export const kyselySubmissionRepository = (
   db: Kysely<Database>,
   dialect: DatabaseDialect,
+  viewer: Viewer,
 ): SubmissionRepository => {
   const submissions = () =>
     db
@@ -78,6 +86,7 @@ export const kyselySubmissionRepository = (
       .innerJoin("scopes", "scopes.id", "submissions.scope_id")
       .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
       .leftJoin("item_versions as base", "base.id", "submissions.base_version_id")
+      .where(isReadableSubmission(viewer, "submissions.id"))
       .select([
         "submissions.item_id",
         "submissions.base_version_id",
@@ -137,7 +146,7 @@ export const kyselySubmissionRepository = (
     // one waited (MySQL's default snapshot wouldn't).
     transaction: (work) =>
       readCommittedTransaction(db, dialect).execute((trx) =>
-        work(kyselySubmissionRepository(trx, dialect)),
+        work(kyselySubmissionRepository(trx, dialect, viewer)),
       ),
 
     findScope: async (name) => {
@@ -151,6 +160,7 @@ export const kyselySubmissionRepository = (
           "workspaces.name as workspace_name",
         ])
         .where("scopes.name", "=", name)
+        .where(inVisibleWorkspace(viewer, "workspaces.id"))
         .executeTakeFirst();
       return row
         ? {
@@ -270,6 +280,7 @@ export const kyselySubmissionRepository = (
         .selectFrom("submissions")
         .select((eb) => ["status", eb.fn.countAll<number | string | bigint>().as("n")])
         .where("author_id", "=", authorId)
+        .where(isReadableSubmission(viewer, "submissions.id"))
         .groupBy("status")
         .execute();
       return Object.fromEntries(rows.map((row) => [row.status, Number(row.n)]));
@@ -309,7 +320,11 @@ export const kyselySubmissionRepository = (
 
     workspacesNamed: async (ids) => {
       if (ids !== "all" && ids.length === 0) return [];
-      let query = db.selectFrom("workspaces").select(["id", "name"]).orderBy("name");
+      let query = db
+        .selectFrom("workspaces")
+        .select(["id", "name"])
+        .where(inVisibleWorkspace(viewer, "workspaces.id"))
+        .orderBy("name");
       if (ids !== "all") query = query.where("id", "in", [...ids]);
       return query.execute();
     },
@@ -319,7 +334,8 @@ export const kyselySubmissionRepository = (
         .selectFrom("submissions")
         .innerJoin("scopes", "scopes.id", "submissions.scope_id")
         .select((eb) => eb.fn.countAll().as("count"))
-        .where("submissions.status", "=", status);
+        .where("submissions.status", "=", status)
+        .where(inVisibleWorkspace(viewer, "scopes.workspace_id"));
       if (workspaceIds)
         query = query.where(
           "scopes.workspace_id",
@@ -336,6 +352,7 @@ export const kyselySubmissionRepository = (
         .select((eb) => eb.fn.countAll().as("count"))
         .where("author_id", "=", authorId)
         .where("status", "=", "draft")
+        .where(isReadableSubmission(viewer, "submissions.id"))
         .executeTakeFirst();
       return Number(row?.count ?? 0);
     },
@@ -348,6 +365,7 @@ export const kyselySubmissionRepository = (
         .where("scope_id", "=", scopeId)
         .where("name", "=", name)
         .where("status", "in", [...statuses])
+        .where(isReadableSubmission(viewer, "submissions.id"))
         .where("id", "!=", exceptId)
         // Change proposals (017) are for an existing item: they don't hold its name.
         .where("item_id", "is", null)
@@ -394,7 +412,7 @@ export const kyselySubmissionRepository = (
       ).execute();
     },
 
-    registry: () => kyselyRegistryLookup(db, dialect),
+    registry: () => kyselyRegistryLookup(db, dialect, viewer),
 
     setProposalBase: async (id, baseVersionId, conflicts) => {
       await db
@@ -463,6 +481,7 @@ export const kyselySubmissionRepository = (
           .selectFrom("submission_revisions")
           .selectAll()
           .where("submission_id", "=", submissionId)
+          .where(isReadableSubmission(viewer, "submission_revisions.submission_id"))
           .orderBy("number")
           .execute()
       ).map((row) => ({
@@ -479,6 +498,16 @@ export const kyselySubmissionRepository = (
           .selectFrom("submission_revision_files")
           .selectAll()
           .where("revision_id", "=", revisionId)
+          .where((eb) =>
+            eb(
+              "submission_revision_files.revision_id",
+              "in",
+              eb
+                .selectFrom("submission_revisions")
+                .select("submission_revisions.id")
+                .where(isReadableSubmission(viewer, "submission_revisions.submission_id")),
+            ),
+          )
           .execute()
       )
         .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
@@ -523,6 +552,7 @@ export const kyselySubmissionRepository = (
             "review_events.created_at",
           ])
           .where("review_events.submission_id", "=", submissionId)
+          .where(isReadableSubmission(viewer, "review_events.submission_id"))
           .orderBy("review_events.created_at")
           .orderBy("review_events.id")
           .execute()
@@ -553,6 +583,7 @@ export const kyselySubmissionRepository = (
           "review_events.created_at",
         ])
         .where("review_events.submission_id", "in", [...submissionIds])
+        .where(isReadableSubmission(viewer, "review_events.submission_id"))
         .where("review_events.kind", "in", [...kinds])
         .orderBy("review_events.created_at", "desc")
         .orderBy("review_events.id", "desc")
@@ -582,6 +613,7 @@ export const kyselySubmissionRepository = (
           .selectFrom("submission_files")
           .selectAll()
           .where("submission_id", "=", submissionId)
+          .where(isReadableSubmission(viewer, "submission_files.submission_id"))
           .execute()
       )
         // Sorted here: each database orders strings by its own collation.

@@ -7,6 +7,7 @@ import { ForbiddenError } from "../../identity/exceptions/errors";
 import type { AppAuth } from "../../identity/repositories/auth-instance";
 import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testing/test-auth";
 import { createScope } from "../../items/actions/scopes";
+import { UNFILTERED } from "../../workspaces/models/viewer";
 import {
   ConversationClosedError,
   InvalidStatusTransitionError,
@@ -83,7 +84,7 @@ const submitted = async (headers = asAuthor, name = "style") => {
 const status = async (id: string) =>
   (await t.db.selectFrom("submissions").select("status").where("id", "=", id).executeTakeFirst())
     ?.status;
-const events = (id: string) => kyselySubmissionRepository(t.db, t.dialect).events(id);
+const events = (id: string) => kyselySubmissionRepository(t.db, t.dialect, UNFILTERED).events(id);
 const audited = async (action: string) =>
   (await listAuditEvents(t.db, t.dialect, {})).events.filter((e) => e.action === action);
 

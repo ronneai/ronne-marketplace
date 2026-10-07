@@ -32,9 +32,15 @@ export class InvalidItemTypeError extends SubmissionsError {
   }
 }
 
+/**
+ * No scope by that name that the person may use: unknown, or in a private workspace they aren't in
+ * (093). One message for both, so it can't tell them a private scope exists.
+ */
 export class DraftScopeNotFoundError extends SubmissionsError {
   constructor(readonly scopeName: string) {
-    super(`The scope @${scopeName} doesn't exist. Root creates scopes.`);
+    super(
+      `There's no scope @${scopeName} you can use. Root and a workspace's admins create scopes.`,
+    );
   }
 }
 

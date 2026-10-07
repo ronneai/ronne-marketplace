@@ -15,31 +15,40 @@ export type {
   UploadFile,
 } from "../services/drafts";
 
+import { viewerOf } from "../../workspaces/actions/viewer";
+import type { Viewer } from "../../workspaces/models/viewer";
+
 /**
  * Entry points for /submissions (feature 012). Thin: they find who's asking and wire the
  * dependencies; the services check permissions and ownership.
  */
-const deps = ({ db, dialect }: AppAuth, storage?: StorageAdapter): service.DraftDeps => ({
-  repo: kyselySubmissionRepository(db, dialect),
+const deps = (
+  { db, dialect }: AppAuth,
+  viewer: Viewer,
+  storage?: StorageAdapter,
+): service.DraftDeps => ({
+  repo: kyselySubmissionRepository(db, dialect, viewer),
   ...(storage ? { storage } : {}),
 });
 
-const actor = async (headers: Headers, app: AppAuth): Promise<service.DraftActor> => ({
-  user: await getCurrentUser(headers, app),
-  ip: clientIp(headers, app.trustProxy),
-});
+/** The dependencies, bound to what the person sees (093), and the actor: one lookup each. */
+const bound = async (headers: Headers, app: AppAuth, storage?: StorageAdapter) => {
+  const user = await getCurrentUser(headers, app);
+  const actor: service.DraftActor = { user, ip: clientIp(headers, app.trustProxy) };
+  return [deps(app, await viewerOf(user, app), storage), actor] as const;
+};
 
 export const createDraft = async (
   headers: Headers,
   input: { scope: string; name: string; type: string },
   app: AppAuth = getAppAuth(),
-) => service.createDraft(deps(app), await actor(headers, app), input);
+) => service.createDraft(...(await bound(headers, app)), input);
 
 /**
  * For 037's API, where the user comes from a bearer token rather than a session: the draft is the
  * token's user's, and the audit event names the token and the request's address.
  */
-export const createDraftFromFilesAs = (
+export const createDraftFromFilesAs = async (
   auth: Authenticated,
   headers: Headers,
   input: {
@@ -53,7 +62,7 @@ export const createDraftFromFilesAs = (
   storage: StorageAdapter = instanceStorage,
 ) =>
   service.createDraftFromFiles(
-    deps(app, storage),
+    deps(app, await viewerOf(auth.user, app), storage),
     {
       user: auth.user,
       ip: clientIp(headers, app.trustProxy),
@@ -63,14 +72,15 @@ export const createDraftFromFilesAs = (
   );
 
 /** For 051's API: the token's user's open submissions, of one item when `itemName` is given. */
-export const listOpenDraftsAs = (
+export const listOpenDraftsAs = async (
   auth: Authenticated,
   itemName: string | undefined,
   app: AppAuth = getAppAuth(),
-) => service.listOpenDrafts(deps(app), { user: auth.user }, itemName);
+) =>
+  service.listOpenDrafts(deps(app, await viewerOf(auth.user, app)), { user: auth.user }, itemName);
 
 /** For 051's API: replaces the token's user's draft's files, auditing the token and address. */
-export const replaceDraftFromFilesAs = (
+export const replaceDraftFromFilesAs = async (
   auth: Authenticated,
   headers: Headers,
   id: string,
@@ -85,7 +95,7 @@ export const replaceDraftFromFilesAs = (
   storage: StorageAdapter = instanceStorage,
 ) =>
   service.replaceDraftFromFiles(
-    deps(app, storage),
+    deps(app, await viewerOf(auth.user, app), storage),
     {
       user: auth.user,
       ip: clientIp(headers, app.trustProxy),
@@ -96,41 +106,41 @@ export const replaceDraftFromFilesAs = (
   );
 
 export const listMySubmissions = async (headers: Headers, app: AppAuth = getAppAuth()) =>
-  service.listMySubmissions(deps(app), await actor(headers, app));
+  service.listMySubmissions(...(await bound(headers, app)));
 
 /** My submissions' table (063): one page, sorted and filtered, with the total. */
 export const pageMySubmissions = async (
   headers: Headers,
   query: service.MySubmissionsQuery,
   app: AppAuth = getAppAuth(),
-) => service.pageMySubmissions(deps(app), await actor(headers, app), query);
+) => service.pageMySubmissions(...(await bound(headers, app)), query);
 
 export const countMySubmissionsByStatus = async (headers: Headers, app: AppAuth = getAppAuth()) =>
-  service.countMySubmissionsByStatus(deps(app), await actor(headers, app));
+  service.countMySubmissionsByStatus(...(await bound(headers, app)));
 
 export const getDraft = async (headers: Headers, id: string, app: AppAuth = getAppAuth()) =>
-  service.getDraft(deps(app), await actor(headers, app), id);
+  service.getDraft(...(await bound(headers, app)), id);
 
 export const saveDraftFiles = async (
   headers: Headers,
   id: string,
   changes: service.DraftChanges,
   app: AppAuth = getAppAuth(),
-) => service.saveDraftFiles(deps(app), await actor(headers, app), id, changes);
+) => service.saveDraftFiles(...(await bound(headers, app)), id, changes);
 
 export const importZip = async (
   headers: Headers,
   id: string,
   input: { archive: Uint8Array; mode: "merge" | "replace" },
   app: AppAuth = getAppAuth(),
-) => service.importZip(deps(app), await actor(headers, app), id, input);
+) => service.importZip(...(await bound(headers, app)), id, input);
 
 export const renameDraft = async (
   headers: Headers,
   id: string,
   input: { scope: string; name: string },
   app: AppAuth = getAppAuth(),
-) => service.renameDraft(deps(app), await actor(headers, app), id, input);
+) => service.renameDraft(...(await bound(headers, app)), id, input);
 
 export const deleteDraft = async (headers: Headers, id: string, app: AppAuth = getAppAuth()) =>
-  service.deleteDraft(deps(app), await actor(headers, app), id);
+  service.deleteDraft(...(await bound(headers, app)), id);

@@ -52,8 +52,9 @@ take a `Viewer` argument, and a test lists every read method and checks it filte
 unknown name gets: the 404 page, `not_found` in the API, "No item named @acme-infra/deploy" in
 `rmk`. The download count, usage reports (046, ignored for items the reporter can't see) and the
 draft name check (013's "name is taken") don't reveal it either: a name taken in a private
-workspace is refused as "taken" only to members. To non-members it's "That scope isn't available
-to you", since they can't submit into a scope they can't see (091).
+workspace is refused as "taken" only to members. A non-member never gets that far: the scope
+itself is unknown to them, and an unknown scope and a private one get the same answer, "There's no
+scope @acme-infra you can use" (`scope_not_found`), so it can't tell them a private scope exists.
 
 **Dependencies.**
 - **Picking** (089): candidates are filtered to the draft's workspace plus public workspaces.

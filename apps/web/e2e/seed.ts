@@ -120,7 +120,7 @@ for (const version of ["1.0.0", "1.1.0"])
   });
 await items.setTag(itemId, "latest", latest);
 // Installs of 1.0.0 yesterday (047): enough usage for the Versions page and its dialogs to show it.
-await kyselyUsageRepository(db, dialect).add([
+await kyselyUsageRepository(db, dialect, UNFILTERED).add([
   {
     itemId,
     day: daysBefore(dayOf(new Date()), 1),
@@ -190,7 +190,7 @@ await items.setTag(skillId, "latest", skillVersion);
 // Usage for the skill (047): runs over the last two weeks, the most 3 days ago, and installs, so its
 // Overview shows the usage cards and the Usage card's peak.
 const today = dayOf(new Date());
-await kyselyUsageRepository(db, dialect).add([
+await kyselyUsageRepository(db, dialect, UNFILTERED).add([
   ...Array.from({ length: 14 }, (_, i) => ({
     itemId: skillId,
     day: daysBefore(today, i + 1),
@@ -328,7 +328,7 @@ const agentId = await release(
   ],
 );
 // A few runs of the agent (047): with no minimum by default, its Overview shows them.
-await kyselyUsageRepository(db, dialect).add([
+await kyselyUsageRepository(db, dialect, UNFILTERED).add([
   {
     itemId: agentId,
     day: daysBefore(dayOf(new Date()), 1),

@@ -72,7 +72,7 @@ beforeEach(async () => {
 afterEach(() => t.cleanup());
 
 const deps = (overrides: Partial<UsageDeps> = {}): UsageDeps => ({
-  usage: kyselyUsageRepository(t.db, t.dialect),
+  usage: kyselyUsageRepository(t.db, t.dialect, UNFILTERED),
   policy: "choice",
   now: () => now,
   pruneDue: () => false,
@@ -214,7 +214,7 @@ describe("recordUsage", () => {
   });
 
   it("deletes totals older than 90 days when pruning is due", async () => {
-    const usage = kyselyUsageRepository(t.db, t.dialect);
+    const usage = kyselyUsageRepository(t.db, t.dialect, UNFILTERED);
     const row = (day: string) => ({
       itemId,
       day,
@@ -241,7 +241,7 @@ describe("usage_daily", () => {
 
 describe("the item page's usage (047)", () => {
   const add = (rows: { day: string; version?: string; event: string; count: number }[]) =>
-    kyselyUsageRepository(t.db, t.dialect).add(
+    kyselyUsageRepository(t.db, t.dialect, UNFILTERED).add(
       rows.map((r) => ({
         itemId,
         day: r.day,

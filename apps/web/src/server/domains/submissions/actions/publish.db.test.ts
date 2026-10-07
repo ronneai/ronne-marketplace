@@ -19,6 +19,7 @@ import {
   testAppAuth,
 } from "../../identity/testing/test-auth";
 import { createScope } from "../../items/actions/scopes";
+import { UNFILTERED } from "../../workspaces/models/viewer";
 import {
   InvalidStatusTransitionError,
   ReleaseNotesError,
@@ -169,7 +170,7 @@ describe("publishSubmission", () => {
     // The review page still knows its versions, to link to the Versions page (016).
     expect((await getReview(asAuthor, id, app)).published).toEqual(["1.0.0"]);
 
-    const events = await kyselySubmissionRepository(t.db, t.dialect).events(id);
+    const events = await kyselySubmissionRepository(t.db, t.dialect, UNFILTERED).events(id);
     expect(events.at(-1)).toMatchObject({ kind: "publish", body: "1.0.0" });
     const audit = (await listAuditEvents(t.db, t.dialect, {})).events;
     expect(audit.find((e) => e.action === "version.published")).toMatchObject({

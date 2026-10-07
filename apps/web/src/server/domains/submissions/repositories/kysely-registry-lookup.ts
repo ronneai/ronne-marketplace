@@ -3,7 +3,8 @@ import type { Kysely } from "kysely";
 import type { Database } from "../../../db/schema";
 import type { DatabaseDialect } from "../../../db/url";
 import { kyselyItemRepository } from "../../items/repositories/kysely-item-repository";
-import { UNFILTERED } from "../../workspaces/models/viewer";
+import type { Viewer } from "../../workspaces/models/viewer";
+import { isReadableSubmission } from "../../workspaces/repositories/visible";
 import { fileBytes, MANIFEST_PATH } from "../models/submission";
 import type { NamedSubmission, RegistryLookup } from "./registry-lookup";
 
@@ -15,9 +16,10 @@ import type { NamedSubmission, RegistryLookup } from "./registry-lookup";
 export const kyselyRegistryLookup = (
   db: Kysely<Database>,
   dialect: DatabaseDialect,
+  viewer: Viewer,
 ): RegistryLookup => {
-  // Every workspace, for now: the dependency rule (093, task 4) decides what may be depended on.
-  const items = kyselyItemRepository(db, dialect, UNFILTERED);
+  // What the viewer sees (093): a dependency in a workspace they don't see is an unknown name.
+  const items = kyselyItemRepository(db, dialect, viewer);
   return {
     findItem: async (scope, name) => {
       const item = await items.findByName(scope, name);
@@ -50,6 +52,7 @@ export const kyselyRegistryLookup = (
         .where("scopes.name", "=", scope)
         .where("submissions.name", "=", name)
         .where("submissions.status", "!=", "draft")
+        .where(isReadableSubmission(viewer, "submissions.id"))
         .orderBy("submissions.updated_at", "desc")
         .orderBy("submissions.id", "desc")
         .execute();

@@ -17,7 +17,7 @@ the same change that completes it.
   *Done when:* items db tests pass with a private workspace on the four databases, and the guard
   test fails on a read without a `Viewer`.
 
-- [ ] **3. Submissions reads.** [risky] Name-taken check, dependency marks, review page and queue,
+- [x] **3. Submissions reads.** [risky] Name-taken check, dependency marks, review page and queue,
   usage ingest and the item page's usage.
   *Done when:* submissions and usage db tests pass with private cases.
 
@@ -81,4 +81,20 @@ goes into `SPEC.md` instead.
   shows the private name in its versions and manifest (tasks 4 and 5 stop new ones); the scope
   repository isn't under the guard yet (task 6); the `IN (…)` list grows with the number of
   visible workspaces, untested in the thousands.
+- **Task 3: submissions and usage reads** (Claude). `kyselySubmissionRepository`,
+  `kyselyRegistryLookup` and `kyselyUsageRepository` take the viewer like the items repositories.
+  A submission is readable when it's in a workspace the viewer sees, or it's their own
+  (`isReadableSubmission`), so a removed member keeps reading and withdrawing theirs (091); a
+  scope is found only in a visible workspace, so a non-member can't start a draft there, and an
+  unknown scope and a private one get one message ("There's no scope @… you can use",
+  `DraftScopeNotFoundError`, in SPEC.md). The queue, review page, dependency marks, the composer's
+  reports and picker, and usage (ingest and the item page) read through them, so the composer leak
+  from task 2 is closed. The submissions actions build the dependencies and the actor together
+  (`bound`), the viewer from the session or the token. The release store reads every workspace
+  (`UNFILTERED`): a release is authorised by 015 and 091. The guard
+  (`submissions/repositories/visibility-guard.db.test.ts`) covers the three repositories.
+  From the witnesses: the queue and review page were already hidden by 091's role checks, so the
+  repository filter there is pinned by the guard test; dependency marks have a private case in
+  `private-submissions.db.test.ts`. The release transaction still resolves dependencies
+  unfiltered: task 4's `dependency_not_visible` at release closes it.
 

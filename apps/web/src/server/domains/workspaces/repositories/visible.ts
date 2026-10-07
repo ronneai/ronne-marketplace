@@ -26,3 +26,19 @@ export const isVisibleSubmission = (viewer: Viewer, column: string): Expression<
   if (viewer.workspaceIds.length === 0) return sql<SqlBool>`1 = 0`;
   return sql<SqlBool>`${sql.ref(column)} in (select visible_submissions.id from submissions as visible_submissions inner join scopes as visible_scopes on visible_scopes.id = visible_submissions.scope_id where visible_scopes.workspace_id in (${sql.join(viewer.workspaceIds)}))`;
 };
+
+/**
+ * A submission the viewer may read: one in a workspace they see, or their own, which a removed
+ * member keeps reading and withdrawing (091). `column` holds the submission's id.
+ */
+export const isReadableSubmission = (viewer: Viewer, column: string): Expression<SqlBool> => {
+  if (viewer.root) return sql<SqlBool>`1 = 1`;
+  const own = viewer.userId
+    ? sql<SqlBool>`readable_submissions.author_id = ${viewer.userId}`
+    : sql<SqlBool>`1 = 0`;
+  const seen =
+    viewer.workspaceIds.length > 0
+      ? sql<SqlBool>`readable_scopes.workspace_id in (${sql.join(viewer.workspaceIds)})`
+      : sql<SqlBool>`1 = 0`;
+  return sql<SqlBool>`${sql.ref(column)} in (select readable_submissions.id from submissions as readable_submissions inner join scopes as readable_scopes on readable_scopes.id = readable_submissions.scope_id where ${seen} or ${own})`;
+};

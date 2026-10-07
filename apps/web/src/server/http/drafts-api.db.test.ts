@@ -208,7 +208,7 @@ describe("POST /drafts", () => {
       submitIssues: [],
       proposal: null,
     });
-    const repo = kyselySubmissionRepository(t.db, t.dialect);
+    const repo = kyselySubmissionRepository(t.db, t.dialect, UNFILTERED);
     const user = await t.db
       .selectFrom("user")
       .select("id")
@@ -330,7 +330,7 @@ describe("POST /drafts", () => {
   });
 
   it("refuses the 51st draft", async () => {
-    const repo = kyselySubmissionRepository(t.db, t.dialect);
+    const repo = kyselySubmissionRepository(t.db, t.dialect, UNFILTERED);
     const user = await t.db
       .selectFrom("user")
       .select("id")
@@ -401,7 +401,10 @@ describe("GET and PUT /drafts (051)", () => {
   const setStatus = (id: string, status: "submitted" | "changes_requested" | "published") =>
     t.db.updateTable("submissions").set({ status }).where("id", "=", id).execute();
   const stored = async (id: string) =>
-    (await kyselySubmissionRepository(t.db, t.dialect).files(id)).map((f) => [f.path, f.content]);
+    (await kyselySubmissionRepository(t.db, t.dialect, UNFILTERED).files(id)).map((f) => [
+      f.path,
+      f.content,
+    ]);
 
   it("lists your open drafts of an item, and nobody else's", async () => {
     const mine = await create();
@@ -741,7 +744,7 @@ describe("POST /drafts with a base (042)", () => {
       submitIssues: [],
       proposal: { item: "@team/kit", baseVersion: "1.0.0", stale: null },
     });
-    const draft = await kyselySubmissionRepository(t.db, t.dialect).find(json.id);
+    const draft = await kyselySubmissionRepository(t.db, t.dialect, UNFILTERED).find(json.id);
     expect(draft?.proposal).toMatchObject({ baseVersion: "1.0.0" });
     const [event] = (await listAuditEvents(t.db, t.dialect, {})).events.filter(
       (e) => e.action === "submission.draft_created",
@@ -774,7 +777,9 @@ describe("POST /drafts with a base (042)", () => {
       const { json, ...rest } = await body(await postDraft(post(payload), deps));
       expect([rest.status, json.error.code]).toEqual([status, code]);
     }
-    expect(await kyselySubmissionRepository(t.db, t.dialect).listByAuthor("x")).toEqual([]);
+    expect(await kyselySubmissionRepository(t.db, t.dialect, UNFILTERED).listByAuthor("x")).toEqual(
+      [],
+    );
     expect(
       Number(
         (
@@ -794,7 +799,7 @@ describe("POST /drafts with a base (042)", () => {
       .select("id")
       .where("email", "=", "u@example.com")
       .executeTakeFirstOrThrow();
-    const repo = kyselySubmissionRepository(t.db, t.dialect);
+    const repo = kyselySubmissionRepository(t.db, t.dialect, UNFILTERED);
     for (let i = 0; i < 50; i += 1)
       await repo.insert({
         authorId: user.id,

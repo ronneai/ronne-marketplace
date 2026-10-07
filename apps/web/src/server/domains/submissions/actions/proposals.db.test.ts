@@ -16,6 +16,7 @@ import {
   testAppAuth,
 } from "../../identity/testing/test-auth";
 import { createScope } from "../../items/actions/scopes";
+import { UNFILTERED } from "../../workspaces/models/viewer";
 import {
   ConflictNotFoundError,
   NotAMemberError,
@@ -370,7 +371,7 @@ describe("rebase", () => {
     const rebased = await rebaseProposal(asOther, mine.id, app, storage);
     expect(rebased).toMatchObject({ status: "changes_requested", conflicts: ["README.md"] });
     expect(text(rebased, "README.md")).toBe("# Mine\n");
-    const events = await kyselySubmissionRepository(t.db, t.dialect).events(mine.id);
+    const events = await kyselySubmissionRepository(t.db, t.dialect, UNFILTERED).events(mine.id);
     expect(events.at(-1)).toMatchObject({ kind: "rebase", body: "1.1.0" });
 
     await expect(submitDraft(asOther, mine.id, app, storage)).rejects.toThrow(

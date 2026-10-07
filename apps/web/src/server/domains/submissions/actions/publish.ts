@@ -2,6 +2,7 @@ import { getStorage, type StorageAdapter } from "../../../storage";
 import { getCurrentUser } from "../../identity/actions/session";
 import { clientIp } from "../../identity/models/client-ip";
 import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-instance";
+import { viewerOf } from "../../workspaces/actions/viewer";
 import { kyselyReleaseStore } from "../repositories/kysely-release-store";
 import { kyselySubmissionRepository } from "../repositories/kysely-submission-repository";
 import * as bulk from "../services/bulk-release";
@@ -22,31 +23,21 @@ export const publishSubmission = async (
   input: service.PublishInput,
   app: AppAuth = getAppAuth(),
   storage: StorageAdapter = getStorage(),
-) =>
-  service.publishSubmission(
-    {
-      repo: kyselySubmissionRepository(app.db, app.dialect),
-      store: kyselyReleaseStore(app.db, app.dialect),
-      storage,
-    },
-    {
-      user: await getCurrentUser(headers, app),
-      ip: clientIp(headers, app.trustProxy),
-    },
-    id,
-    input,
-  );
+) => service.publishSubmission(...(await bound(headers, app, storage)), id, input);
 
-const publishDeps = (app: AppAuth, storage: StorageAdapter) => ({
-  repo: kyselySubmissionRepository(app.db, app.dialect),
-  store: kyselyReleaseStore(app.db, app.dialect),
-  storage,
-});
-
-const sessionActor = async (headers: Headers, app: AppAuth) => ({
-  user: await getCurrentUser(headers, app),
-  ip: clientIp(headers, app.trustProxy),
-});
+/**
+ * The dependencies, the submissions read as the person sees them (093), and the actor. The release
+ * store reads every workspace: a release is authorised by the release rules (015, 091).
+ */
+const bound = async (headers: Headers, app: AppAuth, storage: StorageAdapter) => {
+  const user = await getCurrentUser(headers, app);
+  const deps = {
+    repo: kyselySubmissionRepository(app.db, app.dialect, await viewerOf(user, app)),
+    store: kyselyReleaseStore(app.db, app.dialect),
+    storage,
+  };
+  return [deps, { user, ip: clientIp(headers, app.trustProxy) }] as const;
+};
 
 /** What releasing these would do (055): the order, the dependencies added, what can't go. */
 export const prepareRelease = async (
@@ -54,7 +45,7 @@ export const prepareRelease = async (
   input: { ids: readonly string[] },
   app: AppAuth = getAppAuth(),
   storage: StorageAdapter = getStorage(),
-) => bulk.prepareRelease(publishDeps(app, storage), await sessionActor(headers, app), input);
+) => bulk.prepareRelease(...(await bound(headers, app, storage)), input);
 
 /** Releases several approved submissions at once with one set of settings (055). */
 export const releaseMany = async (
@@ -62,4 +53,4 @@ export const releaseMany = async (
   input: Parameters<typeof bulk.releaseMany>[2],
   app: AppAuth = getAppAuth(),
   storage: StorageAdapter = getStorage(),
-) => bulk.releaseMany(publishDeps(app, storage), await sessionActor(headers, app), input);
+) => bulk.releaseMany(...(await bound(headers, app, storage)), input);

@@ -15,7 +15,7 @@ export const kyselyReleaseStore = (
   transaction: (work) =>
     readCommittedTransaction(db, dialect).execute((trx) =>
       work({
-        submissions: kyselySubmissionRepository(trx, dialect),
+        submissions: kyselySubmissionRepository(trx, dialect, UNFILTERED),
         // A release is authorised by the release rules (015, 091): it reads every workspace.
         items: kyselyItemRepository(trx, dialect, UNFILTERED),
       }),

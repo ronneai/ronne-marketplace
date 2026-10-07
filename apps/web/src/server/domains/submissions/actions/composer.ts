@@ -13,9 +13,9 @@ export type { DependencyOption } from "../services/dependency-search";
 
 /** Entry points for the visual composer (feature 031). Thin: the service checks everything. */
 const deps = ({ db, dialect }: AppAuth, viewer: Viewer): service.ComposerDeps => ({
-  registry: kyselyRegistryLookup(db, dialect),
+  registry: kyselyRegistryLookup(db, dialect, viewer),
   catalogue: kyselyCatalogueRepository(db, dialect, viewer),
-  repo: kyselySubmissionRepository(db, dialect),
+  repo: kyselySubmissionRepository(db, dialect, viewer),
 });
 
 /** The actor, and what they see (093), built once for the request. */
@@ -52,8 +52,8 @@ export const findDependencies = async (
   const { actor, viewer } = await context(headers, app);
   return search.findDependencies(
     {
-      repo: kyselySubmissionRepository(app.db, app.dialect),
-      registry: kyselyRegistryLookup(app.db, app.dialect),
+      repo: kyselySubmissionRepository(app.db, app.dialect, viewer),
+      registry: kyselyRegistryLookup(app.db, app.dialect, viewer),
       catalogue: kyselyCatalogueRepository(app.db, app.dialect, viewer),
     },
     actor,

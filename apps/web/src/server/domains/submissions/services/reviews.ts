@@ -297,8 +297,9 @@ export const dependentsOf = async (
     });
 
 /**
- * How many submissions depend on it, in every workspace: the author's withdraw warning (056). Only
- * the number, so nothing else about another workspace's is revealed.
+ * How many submissions depend on it: the author's withdraw warning (056). Every workspace the
+ * person sees, and their own (093); only the number, so nothing else about them is revealed. The
+ * author's count is the whole: only their own unreleased submissions can depend on theirs (089).
  */
 export const countDependents = async (
   deps: SubmissionDeps,

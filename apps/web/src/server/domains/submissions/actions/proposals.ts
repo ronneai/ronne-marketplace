@@ -2,6 +2,7 @@ import { getStorage, type StorageAdapter } from "../../../storage";
 import { getCurrentUser } from "../../identity/actions/session";
 import { clientIp } from "../../identity/models/client-ip";
 import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-instance";
+import { viewerOf } from "../../workspaces/actions/viewer";
 import { kyselySubmissionRepository } from "../repositories/kysely-submission-repository";
 import * as service from "../services/proposals";
 
@@ -11,17 +12,21 @@ export const proposeChange = async (
   input: { item: string; version: string },
   app: AppAuth = getAppAuth(),
   storage: StorageAdapter = getStorage(),
-) =>
-  service.proposeChange(
-    { repo: kyselySubmissionRepository(app.db, app.dialect), storage },
-    { user: await getCurrentUser(headers, app) },
+) => {
+  const user = await getCurrentUser(headers, app);
+  return service.proposeChange(
+    { repo: kyselySubmissionRepository(app.db, app.dialect, await viewerOf(user, app)), storage },
+    { user },
     input,
   );
+};
 
-const proposalDeps = (app: AppAuth, storage: StorageAdapter) => ({
-  repo: kyselySubmissionRepository(app.db, app.dialect),
-  storage,
-});
+/** The proposal's dependencies, bound to what the person sees (093), and who they are. */
+const bound = async (headers: Headers, app: AppAuth, storage: StorageAdapter) => {
+  const user = await getCurrentUser(headers, app);
+  const repo = kyselySubmissionRepository(app.db, app.dialect, await viewerOf(user, app));
+  return { deps: { repo, storage }, user, ip: clientIp(headers, app.trustProxy) };
+};
 
 /** Rebases the author's stale proposal onto its item's newest version (017). */
 export const rebaseProposal = async (
@@ -29,12 +34,10 @@ export const rebaseProposal = async (
   id: string,
   app: AppAuth = getAppAuth(),
   storage: StorageAdapter = getStorage(),
-) =>
-  service.rebaseProposal(
-    proposalDeps(app, storage),
-    { user: await getCurrentUser(headers, app), ip: clientIp(headers, app.trustProxy) },
-    id,
-  );
+) => {
+  const { deps, user, ip } = await bound(headers, app, storage);
+  return service.rebaseProposal(deps, { user, ip }, id);
+};
 
 /** Marks one of the last rebase's conflicts resolved. */
 export const resolveConflict = async (
@@ -43,13 +46,10 @@ export const resolveConflict = async (
   path: string,
   app: AppAuth = getAppAuth(),
   storage: StorageAdapter = getStorage(),
-) =>
-  service.resolveConflict(
-    proposalDeps(app, storage),
-    { user: await getCurrentUser(headers, app) },
-    id,
-    path,
-  );
+) => {
+  const { deps, user } = await bound(headers, app, storage);
+  return service.resolveConflict(deps, { user }, id, path);
+};
 
 /** The author's view of a proposal in the editor: base, stale, and the conflicts with their diffs. */
 export const proposalPanel = async (
@@ -57,11 +57,9 @@ export const proposalPanel = async (
   id: string,
   app: AppAuth = getAppAuth(),
   storage: StorageAdapter = getStorage(),
-) =>
-  service.proposalPanel(
-    proposalDeps(app, storage),
-    { user: await getCurrentUser(headers, app) },
-    id,
-  );
+) => {
+  const { deps, user } = await bound(headers, app, storage);
+  return service.proposalPanel(deps, { user }, id);
+};
 
 export type { ProposalPanel } from "../services/proposals";
