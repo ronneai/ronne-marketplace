@@ -172,6 +172,8 @@ const ITEM_READS: Partial<Record<keyof ItemRepository, Probe<ItemRepository>>> =
     has(await repo.dependents(ids.publicItem)) ||
     (await repo.dependents(ids.privateItem)).length > 0,
   approval: async (repo) => (await repo.approval(ids.submission)) !== null,
+  dependencyWorkspaces: async (repo) =>
+    (await repo.dependencyWorkspaces(ids.privateVersion)).length > 0,
 };
 
 /** Methods that don't read a workspace's data, and why. */
@@ -182,6 +184,7 @@ const ITEM_EXEMPT: Partial<Record<keyof ItemRepository, string>> = {
   insertVersion: "a write",
   setTag: "a write; returns only the version id it replaced",
   lockItem: "takes a lock, reads nothing back",
+  lockWorkspaces: "takes a lock; says which of the ids the caller holds are private",
   removeTag: "a write",
   setDeprecated: "a write",
   setYanked: "a write",

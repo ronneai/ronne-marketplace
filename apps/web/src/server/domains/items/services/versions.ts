@@ -4,6 +4,7 @@ import type { CurrentUser } from "../../identity/models/user";
 import {
   ItemNotFoundError,
   TagRuleError,
+  VersionDependsOnPrivateError,
   VersionMessageError,
   VersionNotFoundError,
 } from "../exceptions/errors";
@@ -207,9 +208,17 @@ export const unyank = (
   ref: ItemRef,
   input: { version: string },
 ) =>
-  withItem(deps, actor, ref, async ({ items, versions, audit }) => {
+  withItem(deps, actor, ref, async ({ items, item, versions, audit }) => {
     const version = find(versions, ref, input.version);
     if (!version.yankedAt) return;
+    // Not if it depends on a private workspace's item other than its own (093): under the lock
+    // Make private takes, which counts only versions that aren't yanked.
+    const dependencies = await items.dependencyWorkspaces(version.id);
+    const privateOnes = await items.lockWorkspaces(dependencies.map((d) => d.workspaceId));
+    const hidden = dependencies.find(
+      (d) => privateOnes.has(d.workspaceId) && d.workspaceId !== item.workspaceId,
+    );
+    if (hidden) throw new VersionDependsOnPrivateError(version.version, hidden.name);
     await items.setYanked(version.id, null);
     await audit(
       "version.unyanked",

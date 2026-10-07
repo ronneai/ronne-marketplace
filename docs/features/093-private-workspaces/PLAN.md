@@ -25,7 +25,7 @@ the same change that completes it.
   and release; resolve as the caller.
   *Done when:* registry-check, resolve and picker tests cover own workspace, public, other private.
 
-- [ ] **5. Visibility setting.** [risky] Private in the dialogs; the turning-private check and list;
+- [x] **5. Visibility setting.** [risky] Private in the dialogs; the turning-private check and list;
   the confirm; the revision bump and audit.
   *Done when:* service tests and the dialog test pass.
 
@@ -122,4 +122,28 @@ goes into `SPEC.md` instead.
   store transaction, not inside it (task 5's turning-private refusal covers released dependents).
   For task 6: the registry API answers a missing item `item_not_found` (404), where the spec says
   `not_found`.
+- **Task 5: the visibility setting** (Claude). `workspaceVisibilityFrom` takes "private";
+  `setWorkspaceVisibility` and `visibilityImpact` (workspaces service) are root's only (SPEC,
+  decision 6); `global` refuses (GlobalWorkspaceError). Turning private is refused in the same
+  transaction while `outsideDependents` (released items outside whose listed version depends on
+  an item in it) isn't empty (`WorkspaceHasOutsideDependentsError`, listing them); open submissions
+  outside that depend on it (`openSubmissionsOutside`: their latest revision's ronne.yaml, parsed
+  in the service against the workspace's scope names) are only a warning. `setVisibility` raises
+  the catalogue revision; the event is `workspace.updated` with `{ name, visibility, from }`
+  (flat, as the audit helper takes), shown as "Made workspace acme private". The UI: New
+  workspace's Public/Private radios; the page's Make private (loads the impact; Save is disabled
+  with the list while outside items depend on it; open ones as a warning) and Make public (a
+  confirm); `revalidatePath("/", "layout")` after a change.
+  From the adversarial witness: a release checked before Make private and committed after it
+  still added an outside dependent; now Make private locks the workspace's row and reads it again
+  (`lockWorkspace`), and a release locks its dependencies' workspaces (`lockWorkspaces`, in id
+  order) inside its transaction and refuses a private one outside its own workspace
+  (`dependency_not_visible`, at release). That lock also makes two roots' Make private one change
+  on MySQL. The setter takes exactly "public" or "private" (`visibilityChoice`; an empty value had
+  meant public); `outsideDependents` counts every version that isn't yanked, not only the listed
+  one (SPEC); the invalid-visibility message is "A workspace is public or private."
+  Then, from its re-check: since a yanked version doesn't hold Make private back, unyanking one
+  that depends on a private workspace's item (not its own) is refused under the same lock
+  (`dependencyWorkspaces` + `lockWorkspaces` in `unyank`, `VersionDependsOnPrivateError`).
+  Counting yanked versions instead would block Make private forever: versions aren't deleted.
 

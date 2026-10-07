@@ -229,3 +229,71 @@ Witnessed: 2026-10-07 16:40 EDT, by a fresh agent (adversarial). Commit: b9ec3ae
 | 8 | The tests fail when the rule or the pickers' filter is removed | yes | confirmed | `mutate.py` against 7 suites (81 tests): every applicable mutant fails ≥1 test, `ownPublishedNotPassed` included. `collateOff` and `collateBinOld` fail "offers nothing the check would refuse…" on MySQL and MariaDB. `tsc --noEmit` → 0; `biome check` → clean |
 
 **Overall:** met: every row of the adversarial pass is now confirmed. Remarks that stand: `prepareRelease`'s preview lists a dependent whose dependency turned private (the release refuses it); the release check runs before the store transaction; the API answers `item_not_found` where the spec says `not_found` (task 6); the pickers take `itemName` from the client, so a member can be offered their private workspace's items for a public item, though submit refuses it.
+
+## Task 5 — Visibility setting
+
+Witnessed: 2026-10-07 17:01 EDT, by a fresh agent (blind). Commit: d996a64 + working tree (uncommitted diff, incl. untracked `visibility.db.test.ts`). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The service tests and the dialog test pass | no | confirmed | `pnpm exec vitest run src/server/domains/workspaces src/features/admin-workspaces src/features/admin-audit` → 10 files, 101 passed, including the 5 in `visibility.db.test.ts` and the 093 tests in `admin-workspaces.test.tsx` |
+| 2 | The same visibility tests pass on PostgreSQL, MySQL and MariaDB | no | confirmed | `node scripts/test-db.mjs postgres\|mysql\|mariadb visibility.db.test.ts workspaces.db.test.ts` → 21/21 passed on each |
+| 3 | New workspace asks Public or Private, with Public chosen by default; private is stored, and an unknown value is refused | yes | confirmed | `WorkspaceDialogs.tsx` radio fieldset; dialog test passes; `models/workspace.ts:53-56` accepts "private"; db test → stored as private, "secret" gives `InvalidWorkspaceVisibilityError` |
+| 4 | Root's workspace page shows Make private or Make public; a workspace admin doesn't see it, and `global` doesn't have it | yes | confirmed | `[name]/page.tsx` behind `can(me,"workspaces.manage")`, which is `["root"]`; the page test passes |
+| 5 | Only root can change visibility or read the impact; `global` stays public | yes | confirmed | Both service functions call `requirePermission(...,"workspaces.manage")`, and `changeable` refuses global; db test → admin `ForbiddenError`, global `GlobalWorkspaceError`. Removing `requirePermission` → that test fails |
+| 6 | Turning private is refused while released items outside the workspace have a listed version that depends on its items; the dependents are listed and the inside dependents are ignored | yes | confirmed | `outsideDependents` joins on `dependent.listed_version_id` with `workspace_id !=`; db test → `["@team/back","@team/front"]`, inside excluded, the error reads "2 items outside acme depend on its items: @team/back, @team/front.", visibility stays public. Disabling the check → the test fails |
+| 7 | In the dialog, when there are dependents, Save is disabled and the list is shown ("N items outside acme depend on its items") | yes | confirmed | Probe rendering `VisibilityForm` with a loaded impact → "3 items outside acme depend on its items", the items listed, `<button type="submit" disabled="">Make private`. The dialog test covered only the loading state (since added: a test renders it with dependents loaded) |
+| 8 | Open submissions outside that depend on its items are listed as a warning, and turning private is still allowed | yes | confirmed | db test → `openDependents: ["@team/waiting"]`, then setting it private succeeds. Probe → a WARN notice "They'll fail at release" with the submit button enabled |
+| 9 | Turning private bumps the catalogue revision and is audited as `workspace.updated` `{name, visibility:"private", from:"public"}` | yes | confirmed | `setVisibility` calls `bumpCatalogueRevision`; db test checks both. Removing the bump or the audit metadata → the test fails |
+| 10 | The audit log reads "Made workspace acme private" (and "… public"); a description change still reads as before | yes | confirmed | Probe through `summarize`/`summaryText` → the three lines. No test asserted them (since added in `summary.test.ts`) |
+| 11 | Turning public asks first with "Everyone on this instance will see its items and can depend on them", then bumps the revision | yes | confirmed | Dialog test "Make public asks first" passes; the db test checks the revision rises on private → public, with `from:"private"` |
+| 12 | Lint and types are clean on the changed areas | no | confirmed | `biome check` on the 4 areas → no fixes; `tsc --noEmit -p apps/web` → no output |
+
+**Overall:** met (row 6 was checked when only the listed version counted; the change to every non-yanked version is in the adversarial re-check): root-only private/public, the refusal while released items outside depend on it (with the list), the open-submission warning, the confirm, the revision bump and the audit all hold, and the tests catch each one breaking. Remarks taken: a dialog test with dependents loaded (Save disabled, the list) and one with only open ones (Save enabled, the warning); the audit lines in `summary.test.ts`; the dialog shows an error instead of staying on "Checking…" when the impact can't be read.
+
+### Adversarial pass
+
+Witnessed: 2026-10-07 17:05 EDT, by a fresh agent (adversarial). Commit: d996a64 (plus the uncommitted working tree as of 17:05). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Service and dialog tests pass on SQLite, PostgreSQL, MySQL and MariaDB | no | confirmed | `vitest run src/server/domains/workspaces src/features/admin-workspaces src/features/admin-audit` → 102 passed; `node scripts/test-db.mjs postgres\|mysql\|mariadb src/server/domains/workspaces/actions` → 46 passed on each; `tsc --noEmit` clean; biome: no errors |
+| 2 | Public → private is refused while released items outside depend on its items, and the list names them | yes | confirmed | `visibility.db.test.ts`; probe on all 4 databases: the list is distinct and sorted, covers dependents of several items, a dependent in another private workspace, deprecated and yanked-latest dependents, and leaves out a dependent inside the same workspace |
+| 3 | No released outside item ends up depending on a now-private item (the refusal holds against a concurrent release) | yes | not met | Probe: Make private during the release's `storage.put` (after its checks, before its store transaction) → on all 4 databases the release succeeded, acme private, `version_dependencies` racer→deploy. The check ran outside the transaction; nothing locked the workspace row |
+| 4 | Refused while outside released items depend on it, for every installable version | yes | partly | Only `items.listed_version_id` was checked: `@team/old` 1.0.0 (latest 2.0.0 without it) and `@team/nexty`'s `next` tag weren't listed |
+| 5 | Open submissions outside that depend on it are listed as a warning (base64 manifest, proposal, latest revision only, drafts not counted) and don't block | yes | confirmed | Probe on all 4 databases: `@team/binary` (base64), `@team/plain`, `@team/base` (a proposal) listed; a draft and a submission whose resubmitted revision dropped the dependency left out; Make private then succeeds |
+| 6 | Only root changes visibility or reads the impact (decision 6); there is no API route | yes | confirmed | A workspace admin, moderators of global and acme, a plain user and a signed-out caller all throw on both; nothing changes or is audited. `"workspaces.manage": ["root"]`; no route in `src/app` |
+| 7 | `global` stays public | yes | confirmed | `global`, `GLOBAL` and ` global ` → GlobalWorkspaceError for both set and impact; the page hides the actions on global |
+| 8 | An invalid visibility from the form is refused, with a correct message | yes | partly | `PRIVATE`, ` private`, `Private` and `1` refused, but the message was "Workspaces are public for now.", and `visibility: ""` made a private workspace public |
+| 9 | Both directions bump the catalogue revision and record `workspace.updated` `{ name, visibility, from }`; the log reads "Made workspace acme private/public" | yes | confirmed | Probe event metadata `{"name":"acme","visibility":"private","from":"public"}`, target type workspace; the db test covers both directions; `summary.test.ts` |
+| 10 | A no-op change and a refused change are neither audited nor bumped | yes | partly | In sequence, neither. Two roots at once: 1 event on SQLite and PostgreSQL, 2 events and 2 bumps on MySQL and MariaDB (no row lock). Removing the no-op guard left every test green |
+| 11 | The tests fail when the outside-dependents check, the root-only checks, the revision bump, the audit or the summary are removed | no | confirmed | Each of those mutations fails a test; the no-op guard wasn't covered (row 10) |
+| 12 | Dialog: Make private is disabled while there are released dependents, and lists them; open submissions are only a warning; Make public asks first; a load error shows | yes | confirmed | `admin-workspaces.test.tsx` "Make private lists…" passes and fails when `disabledReason` is forced to null; a render probe shows the error and warning notices and the disabled button; Make public's text |
+| 13 | New workspace offers Public and Private radios, Public checked, and private is stored | yes | confirmed | The dialog test; `createWorkspaceFromForm` passes `visibility`; the db test stores private |
+| 14 | The button shows only for root: not on global, not for a workspace admin; the page refreshes after the change | yes | confirmed | The page test; `setVisibilityFromForm` calls `revalidatePath("/", "layout")` and the workspace paths |
+
+**Overall:** not met: a release checked before Make private and committed after it still added an outside dependent; older or `next` versions weren't counted; an empty value made a private workspace public; the invalid-value message was stale; two roots at once got duplicate events on MySQL and MariaDB. Fixed: row locks and a re-check inside the release; every non-yanked version counted; `visibilityChoice` takes exactly "public" or "private", with "A workspace is public or private."; tests for each. Re-checks below.
+
+### Re-check — rows 3, 4, 8 and 10, and a new row 15
+
+Witnessed: 2026-10-07 17:15 EDT, by a fresh agent (adversarial). Commit: d996a64 (plus the uncommitted working tree as of 17:15). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3 | No released outside item ends up depending on a now-private item when a release and Make private overlap | yes | confirmed | Race probe, 3 runs each on SQLite, PostgreSQL, MySQL and MariaDB → "refused: … @acme-infra/deploy is in a private workspace…", `version_dependencies` empty. Removing the re-check fails "refuses a release whose dependency's workspace turned private while it was packing" |
+| 4 | Turning private is refused while any non-yanked outside version depends on its items, not only the listed one | yes | confirmed | The impact now includes `@team/old` and `@team/nexty`; switching back to `listed_version_id` fails "counts every version outside that isn't yanked"; SPEC updated |
+| 8 | The setter takes exactly "public" or "private", with a correct message | yes | confirmed | `""`, `PRIVATE`, ` private`, `Private`, `1` → "A workspace is public or private."; a private acme stays private given `""`. Swapping `visibilityChoice` back fails "takes only public or private…" |
+| 10 | A no-op is neither audited nor bumped, and two roots at once make one change | yes | confirmed | Concurrent probe, 3 runs each on PostgreSQL, MySQL and MariaDB → 1 event, 1 bump. Removing `lockWorkspace` fails the concurrency test on MySQL and MariaDB; removing the no-op guard fails "changes nothing, and records nothing, when it's already so" |
+| 15 | No outside version that can become installable again depends on a now-private item | no | not met | `@team/yy` 1.0.0 depends on `@acme-infra/deploy` and is yanked; Make private succeeds; un-yanking `@team/yy@1.0.0` then succeeded with acme still private |
+
+**Overall:** not met (row 15): un-yanking reopened an outside dependency. Fixed: `unyank` reads the version's dependencies' workspaces, locks them (the lock Make private takes) and refuses a private one outside its own (`VersionDependsOnPrivateError`). Second re-check below.
+
+### Re-check — row 15 (second)
+
+Witnessed: 2026-10-07 17:19 EDT, by a fresh agent (adversarial). Commit: d996a64 (plus the uncommitted working tree as of 17:19). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 15 | No outside version that can become installable again depends on a now-private item | yes | confirmed | Un-yank probe on SQLite, PostgreSQL, MySQL and MariaDB: root and a moderator of only `global` both get VersionDependsOnPrivateError "1.0.0 depends on @acme-infra/deploy, which is in a private workspace now, so it stays yanked."; once acme is public again, root's un-yank succeeds. Race: 15 rounds per database of `Promise.allSettled([unyank, Make private])` never end with acme private and 1.0.0 un-yanked. Removing the check fails "keeps yanked a version outside that depends on it, once it's private"; `visibility.db.test.ts` + `src/server/domains/items` → 61 passed on each database |
+
+**Overall:** met: every row of task 5 is now confirmed. Remarks: the release-time and un-yank refusals name the dependency's private workspace to someone who may not see it; the name was public when that version was released, so little is revealed. `openSubmissionsOutside` reads each open submission's manifest separately (N+1), only for root's dialog.

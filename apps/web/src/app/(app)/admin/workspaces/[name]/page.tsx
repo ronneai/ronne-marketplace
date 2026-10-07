@@ -12,6 +12,7 @@ import { workspacePath } from "@/features/admin-workspaces/list";
 import {
   DeleteWorkspaceButton,
   EditWorkspaceButton,
+  VisibilityButton,
 } from "@/features/admin-workspaces/WorkspaceDialogs";
 import { VISIBILITY_LABELS } from "@/features/admin-workspaces/WorkspacesTable";
 import {
@@ -126,7 +127,10 @@ const AdminWorkspace = async ({
                 <EditWorkspaceButton name={workspace.name} description={workspace.description} />
               ) : null}
               {can(me, "workspaces.manage") ? (
-                <DeleteWorkspaceButton name={workspace.name} scopes={workspace.scopes} />
+                <>
+                  <VisibilityButton name={workspace.name} visibility={workspace.visibility} />
+                  <DeleteWorkspaceButton name={workspace.name} scopes={workspace.scopes} />
+                </>
               ) : null}
             </>
           )

@@ -18,6 +18,7 @@ import {
 import { createScope } from "../../items/actions/scopes";
 import { resolveAs } from "../../items/actions/versions";
 import { kyselyItemRepository } from "../../items/repositories/kysely-item-repository";
+import { setWorkspaceVisibility } from "../../workspaces/actions/workspaces";
 import { UNFILTERED } from "../../workspaces/models/viewer";
 import { kyselyWorkspaceRepository } from "../../workspaces/repositories/kysely-workspace-repository";
 import { dependencyReports, findDependencies, searchDependencies } from "./composer";
@@ -209,6 +210,31 @@ describe("the dependency rule (093)", () => {
         storage,
       ),
     ).rejects.toThrow(/private workspace/);
+  });
+
+  it("refuses a release whose dependency's workspace turned private while it was packing", async () => {
+    const id = await agentDraft(asMember, "acme-infra", "racer", ["@pub-kit/thing"]);
+    await submitDraft(asMember, id, app, storage);
+    await decide(asAcmeModerator, id, { decision: "approve" }, app);
+    // Root turns pub2 private after the release's checks and before its transaction.
+    const racing: StorageAdapter = {
+      ...storage,
+      put: async (path, bytes) => {
+        await setWorkspaceVisibility(asRoot, { name: "pub2", visibility: "private" }, app);
+        return storage.put(path, bytes);
+      },
+    };
+    await expect(
+      publishSubmission(
+        asAcmeModerator,
+        id,
+        { choice: { kind: "stable", bump: "major" } },
+        app,
+        racing,
+      ),
+    ).rejects.toThrow(/private workspace/);
+    const linked = await t.db.selectFrom("version_dependencies").selectAll().execute();
+    expect(linked).toEqual([]);
   });
 
   it("offers in the pickers only what the item may depend on", async () => {

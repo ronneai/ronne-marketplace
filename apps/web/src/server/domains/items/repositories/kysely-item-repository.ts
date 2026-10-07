@@ -260,6 +260,33 @@ export const kyselyItemRepository = (
     ).execute();
   },
 
+  lockWorkspaces: async (ids) => {
+    const sorted = [...new Set(ids)].sort();
+    if (sorted.length === 0) return new Set();
+    const rows = await forUpdate(
+      db
+        .selectFrom("workspaces")
+        .select(["id", "visibility"])
+        .where("id", "in", sorted)
+        .orderBy("id"),
+      dialect,
+    ).execute();
+    return new Set(rows.filter((row) => row.visibility !== "public").map((row) => row.id));
+  },
+
+  dependencyWorkspaces: async (versionId) =>
+    (
+      await db
+        .selectFrom("version_dependencies")
+        .innerJoin("item_versions", "item_versions.id", "version_dependencies.version_id")
+        .innerJoin("items", "items.id", "version_dependencies.depends_on_item_id")
+        .innerJoin("scopes", "scopes.id", "items.scope_id")
+        .select(["scopes.name as scope", "items.name", "scopes.workspace_id"])
+        .where("version_dependencies.version_id", "=", versionId)
+        .where(isVisibleItem(viewer, "item_versions.item_id"))
+        .execute()
+    ).map((row) => ({ name: `@${row.scope}/${row.name}`, workspaceId: row.workspace_id })),
+
   tags: async (itemId) =>
     (
       await db

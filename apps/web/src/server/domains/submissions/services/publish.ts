@@ -17,6 +17,7 @@ import { ForbiddenError } from "../../identity/exceptions/errors";
 import { can } from "../../identity/models/permissions";
 import type { VersionFile } from "../../items/models/item";
 import {
+  DependencyNotVisibleError,
   RELEASE_NOTES_MAX_LENGTH,
   ReleaseNotesError,
   ReleasePackError,
@@ -155,6 +156,7 @@ export const publishSubmission = async (
       throw new VersionExistsError(itemName, version);
 
     const dependencies: { itemId: string; range: string }[] = [];
+    const targets: { name: string; workspaceId: string }[] = [];
     for (const [name, range] of Object.entries(
       (manifest.dependencies ?? {}) as Record<string, string>,
     )) {
@@ -163,7 +165,27 @@ export const publishSubmission = async (
       // The registry checks above refused unknown dependencies; this is a second guard.
       if (!target) throw new SubmissionInvalidError(issues);
       dependencies.push({ itemId: target.id, range });
+      targets.push({ name, workspaceId: target.workspaceId });
     }
+    // Checked again under the lock Make private takes (093): a workspace turned private since the
+    // checks above can't gain a dependent outside it.
+    const privateOnes = await items.lockWorkspaces(targets.map((t) => t.workspaceId));
+    const hidden = targets.find(
+      (t) => privateOnes.has(t.workspaceId) && t.workspaceId !== submission.workspace.id,
+    );
+    if (hidden)
+      throw new SubmissionInvalidError(
+        [
+          {
+            severity: "error",
+            code: "dependency_not_visible",
+            message: new DependencyNotVisibleError(hidden.name).message,
+            file: MANIFEST_PATH,
+            path: "/dependencies",
+          },
+        ],
+        "release",
+      );
 
     const versionFiles: VersionFile[] = files.map((file) => ({
       path: file.path,

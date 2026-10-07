@@ -1,4 +1,4 @@
-import { isValidName, normalizeWorkspaceName } from "@ronneai/core";
+import { isValidName, normalizeWorkspaceName, parseItemName, parseManifest } from "@ronneai/core";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import {
   can,
@@ -9,6 +9,7 @@ import {
 import type { CurrentUser } from "../../identity/models/user";
 import {
   GlobalWorkspaceError,
+  WorkspaceHasOutsideDependentsError,
   WorkspaceNameTakenError,
   WorkspaceNotEmptyError,
   WorkspaceNotFoundError,
@@ -16,6 +17,7 @@ import {
 } from "../exceptions/errors";
 import {
   GLOBAL_WORKSPACE_NAME,
+  visibilityChoice,
   type Workspace,
   workspaceDescriptionFrom,
   workspaceNameFrom,
@@ -136,6 +138,78 @@ export const updateWorkspace = async (
       "workspace.updated",
       workspace.id,
       { name: workspace.name, from: workspace.description, to: description },
+      at,
+    );
+  });
+};
+
+/**
+ * What turning a workspace private would meet (093): the released items outside it that depend on
+ * its items, which refuse it, and the open submissions outside it that do, which would fail at
+ * release. Both by name. Nothing for a workspace that's private already.
+ */
+export type VisibilityImpact = { dependents: string[]; openDependents: string[] };
+
+const impactOf = async (
+  repo: WorkspaceRepository,
+  workspace: Workspace,
+): Promise<VisibilityImpact> => {
+  const scopes = new Set(await repo.scopeNames(workspace.id));
+  const openDependents = (await repo.openSubmissionsOutside(workspace.id))
+    .filter(({ manifest }) => {
+      const dependencies = manifest ? (parseManifest(manifest).manifest?.dependencies ?? {}) : {};
+      return Object.keys(dependencies).some((name) => {
+        const parsed = parseItemName(name);
+        return parsed !== null && scopes.has(parsed.scope);
+      });
+    })
+    .map(({ name }) => name);
+  return { dependents: await repo.outsideDependents(workspace.id), openDependents };
+};
+
+/** Root only, like the setting itself: what Make private would meet, for its dialog. */
+export const visibilityImpact = async (
+  deps: WorkspaceDeps,
+  actor: WorkspaceActor,
+  name: string,
+): Promise<VisibilityImpact> => {
+  requirePermission(actor.user, "workspaces.manage");
+  const workspace = await changeable(deps.repo, name);
+  if (workspace.visibility === "private") return { dependents: [], openDependents: [] };
+  return impactOf(deps.repo, workspace);
+};
+
+/**
+ * Makes a workspace private or public (093), root only; `global` stays public. Turning private is
+ * refused while released items outside it depend on its items. Either way the catalogue revision
+ * rises, so plugin feeds rebuild, and the change is audited.
+ */
+export const setWorkspaceVisibility = async (
+  deps: WorkspaceDeps,
+  actor: WorkspaceActor,
+  input: { name: string; visibility: string },
+): Promise<void> => {
+  requirePermission(actor.user, "workspaces.manage");
+  const to = visibilityChoice(input.visibility);
+  const at = now(deps);
+  await deps.repo.transaction(async (repo) => {
+    // Locked, then read again: a release that checks its dependencies takes the same lock (093),
+    // and two roots changing it at once change it once.
+    await repo.lockWorkspace((await changeable(repo, input.name)).id);
+    const workspace = await changeable(repo, input.name);
+    if (workspace.visibility === to) return;
+    if (to === "private") {
+      const dependents = await repo.outsideDependents(workspace.id);
+      if (dependents.length > 0)
+        throw new WorkspaceHasOutsideDependentsError(workspace.name, dependents);
+    }
+    await repo.setVisibility(workspace.id, to, at);
+    await audit(
+      repo,
+      actor,
+      "workspace.updated",
+      workspace.id,
+      { name: workspace.name, visibility: to, from: workspace.visibility },
       at,
     );
   });

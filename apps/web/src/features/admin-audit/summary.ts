@@ -108,7 +108,12 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     m.by === "disable" ? " (account disabled)" : m.by === "root" ? " (by root)" : "",
   ],
   "workspace.created": (m) => ["Created workspace ", workspace(m)],
-  "workspace.updated": (m) => ["Changed the description of workspace ", workspace(m)],
+  "workspace.updated": (m) =>
+    m.visibility === "private"
+      ? ["Made workspace ", workspace(m), " private"]
+      : m.visibility === "public"
+        ? ["Made workspace ", workspace(m), " public"]
+        : ["Changed the description of workspace ", workspace(m)],
   "workspace.deleted": (m) => [
     "Deleted workspace ",
     workspace(m),

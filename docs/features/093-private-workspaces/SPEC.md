@@ -13,7 +13,8 @@ its items (091 already makes that so).
 ## Scope
 
 **In:**
-- **Private** in Admin › Workspaces (new and edit; `global` stays public).
+- **Private** in Admin › Workspaces (new and edit; `global` stays public): New workspace asks
+  Public or Private; a workspace's page has **Make private** or **Make public**, root's only.
 - **Who sees a private workspace's items:** its members, any role, and root. To everyone else
   they don't exist: the catalogue, search, home page, item pages, versions, the registry API,
   tarballs, resolve, the MCP tools, plugin feeds and "Used by" answer as if the name were unknown
@@ -68,10 +69,12 @@ scope @acme-infra you can use" (`scope_not_found`), so it can't tell them a priv
   item (asked for by @team/front@1.0.0)").
 
 **Turning a workspace private.** The edit dialog checks for released items outside the workspace
-whose listed version depends on an item in it. If there are any, Save is disabled and they're
+with a version that isn't yanked and depends on an item in it (not only the listed version: an
+older or `next` one would stop installing too). If there are any, Save is disabled and they're
 listed ("3 items outside acme depend on its items: …"). Open submissions outside that depend on it
 are listed as a warning: they'll fail at release. Turning private bumps the catalogue revision
-(079) and is audited (`workspace.updated`, `{ visibility: { from, to } }`).
+(079) and is audited (`workspace.updated`, `{ name, visibility: "private", from: "public" }`; the
+audit log reads "Made workspace acme private").
 
 **Turning a workspace public:** a confirm ("Everyone on this instance will see its items and can
 depend on them"), then the revision bump.
@@ -142,6 +145,8 @@ the scope on the card and item page. The catalogue's Workspace filter lists the 
 4. **One marketplace per visibility key** (Claude): per-user feeds without per-user caches.
 5. **`dependency_not_visible` only for someone who sees the dependency** (Claude, 2026-10-07):
    naming its private workspace to a non-member would tell them it exists (decision 2).
+6. **Only root changes a workspace's visibility** (Claude, 2026-10-07): not its admins (092), who
+   edit its description. Turning private changes what everyone else can see and depend on.
 
 ## Open questions
 

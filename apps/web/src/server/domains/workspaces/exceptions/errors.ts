@@ -23,7 +23,7 @@ export class InvalidWorkspaceDescriptionError extends WorkspacesError {
 /** Until private workspaces (093), every workspace is public. */
 export class InvalidWorkspaceVisibilityError extends WorkspacesError {
   constructor() {
-    super("Workspaces are public for now.");
+    super("A workspace is public or private.");
   }
 }
 
@@ -89,5 +89,20 @@ export class InvalidMemberRoleError extends WorkspacesError {
 export class OwnMembershipError extends WorkspacesError {
   constructor() {
     super("You can't change or remove your own membership: another admin or root does.");
+  }
+}
+
+/**
+ * Turning a workspace private while released items outside it depend on its items (093): they
+ * would stop installing for people who did nothing. They're listed.
+ */
+export class WorkspaceHasOutsideDependentsError extends WorkspacesError {
+  constructor(
+    readonly workspace: string,
+    readonly dependents: readonly string[],
+  ) {
+    super(
+      `${dependents.length} ${dependents.length === 1 ? "item" : "items"} outside ${workspace} ${dependents.length === 1 ? "depends" : "depend"} on its items: ${dependents.join(", ")}. A private workspace's items can only be dependencies of its own.`,
+    );
   }
 }

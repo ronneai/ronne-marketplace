@@ -37,6 +37,13 @@ export interface ItemRepository {
   setTag(itemId: string, tag: string, versionId: string): Promise<string | null>;
   /** Locks the item's row until the transaction ends. */
   lockItem(itemId: string): Promise<void>;
+  /**
+   * Locks these workspaces' rows, in id order, until the transaction ends, and says which are
+   * private (093): a release checks its dependencies under the lock Make private takes.
+   */
+  lockWorkspaces(ids: readonly string[]): Promise<ReadonlySet<string>>;
+  /** A version's dependencies with their workspaces (093), for a version the viewer sees. */
+  dependencyWorkspaces(versionId: string): Promise<{ name: string; workspaceId: string }[]>;
   /** Every tag of the item, with the version it points to. */
   tags(itemId: string): Promise<{ tag: string; versionId: string }[]>;
   removeTag(itemId: string, tag: string): Promise<void>;

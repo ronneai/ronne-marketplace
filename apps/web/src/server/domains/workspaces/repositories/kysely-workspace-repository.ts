@@ -1,4 +1,5 @@
 import type { Kysely } from "kysely";
+import { bumpCatalogueRevision } from "../../../db/catalogue-revision";
 import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
 import { countCapped, paginate } from "../../../db/keyset";
@@ -184,6 +185,94 @@ export const kyselyWorkspaceRepository = (
         .where("is_global", "=", toDbBoolean(false, dialect))
         .execute();
     },
+
+    lockWorkspace: async (id) => {
+      await forUpdate(
+        db.selectFrom("workspaces").select("id").where("id", "=", id),
+        dialect,
+      ).execute();
+    },
+
+    setVisibility: async (id, visibility, updatedAt) => {
+      await db
+        .updateTable("workspaces")
+        .set({ visibility, updated_at: toDbDate(updatedAt, dialect) })
+        .where("id", "=", id)
+        .where("is_global", "=", toDbBoolean(false, dialect))
+        .execute();
+      await bumpCatalogueRevision(db);
+    },
+
+    outsideDependents: async (workspaceId) =>
+      (
+        await db
+          .selectFrom("version_dependencies")
+          .innerJoin(
+            "items as dependency",
+            "dependency.id",
+            "version_dependencies.depends_on_item_id",
+          )
+          .innerJoin("scopes as dependency_scope", "dependency_scope.id", "dependency.scope_id")
+          .innerJoin("item_versions", "item_versions.id", "version_dependencies.version_id")
+          .innerJoin("items as dependent", "dependent.id", "item_versions.item_id")
+          .innerJoin("scopes as dependent_scope", "dependent_scope.id", "dependent.scope_id")
+          .select(["dependent_scope.name as scope", "dependent.name as name"])
+          .where("dependency_scope.workspace_id", "=", workspaceId)
+          .where("dependent_scope.workspace_id", "!=", workspaceId)
+          .where("item_versions.yanked_at", "is", null)
+          .distinct()
+          .orderBy("dependent_scope.name")
+          .orderBy("dependent.name")
+          .execute()
+      ).map((row) => `@${row.scope}/${row.name}`),
+
+    openSubmissionsOutside: async (workspaceId) => {
+      const rows = await db
+        .selectFrom("submissions")
+        .innerJoin("scopes", "scopes.id", "submissions.scope_id")
+        .select(["submissions.id", "scopes.name as scope", "submissions.name"])
+        .where("scopes.workspace_id", "!=", workspaceId)
+        .where("submissions.status", "in", ["submitted", "changes_requested", "approved"])
+        .orderBy("scopes.name")
+        .orderBy("submissions.name")
+        .execute();
+      return Promise.all(
+        rows.map(async (row) => {
+          const manifest = await db
+            .selectFrom("submission_revision_files")
+            .innerJoin(
+              "submission_revisions",
+              "submission_revisions.id",
+              "submission_revision_files.revision_id",
+            )
+            .select(["submission_revision_files.content", "submission_revision_files.encoding"])
+            .where("submission_revisions.submission_id", "=", row.id)
+            .where("submission_revision_files.path", "=", "ronne.yaml")
+            .orderBy("submission_revisions.number", "desc")
+            .limit(1)
+            .executeTakeFirst();
+          return {
+            name: `@${row.scope}/${row.name}`,
+            manifest:
+              manifest?.encoding === "utf8"
+                ? manifest.content
+                : manifest
+                  ? Buffer.from(manifest.content, "base64").toString("utf8")
+                  : null,
+          };
+        }),
+      );
+    },
+
+    scopeNames: async (workspaceId) =>
+      (
+        await db
+          .selectFrom("scopes")
+          .select("name")
+          .where("workspace_id", "=", workspaceId)
+          .orderBy("name")
+          .execute()
+      ).map((row) => row.name),
 
     delete: async (id) => {
       await db
