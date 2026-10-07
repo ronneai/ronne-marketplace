@@ -39,11 +39,15 @@ Items are written once in a canonical format and delivered to the major AI codin
 Root is a role on the whole instance (`user.role`). **Moderator and user are roles in a
 workspace** (owner, 2026-10-05, [091](../features/091-workspace-roles/SPEC.md)): someone can
 moderate their team's workspace and be a plain user in `global`. Everyone is a member of `global`;
-root works in every workspace without being a member.
+root works in every workspace without being a member. A third role in a workspace, **admin**
+(owner, 2026-10-07, [092](../features/092-workspace-members/SPEC.md)), runs it: a moderator's
+permissions there, plus its members (admins included, not their own membership), its scopes and
+its description.
 
 | Role | Where | Who | Summary |
 |---|---|---|---|
 | **root** | instance | The first is created at install time; any root can make others root ([059](../features/059-multiple-roots/SPEC.md)). Instance owners. | Everything a moderator can do, in every workspace, plus user and instance administration and overrides. |
+| **admin** | a workspace | Whoever runs it. | A moderator's permissions there, plus its members, scopes and description. |
 | **moderator** | a workspace | Trusted reviewers there. | Reviews, approves and releases the workspace's submissions; moves tags, deprecates and yanks its items' versions. |
 | **user** | a workspace | Its members. | Proposes new items and changes there, comments on and releases their own. |
 
@@ -63,7 +67,8 @@ propose or submit there (`not_a_member`).
 | Move dist-tags, deprecate a version | — | ✅ | ✅ |
 | Yank a version | — | ✅ | ✅ |
 | Approve own submission (override, audited) | — | — | ✅ |
-| Create workspaces and scopes | — | — | ✅ |
+| Manage a workspace's members, create its scopes, edit its description | — | — | ✅ (and its admins) |
+| Create and delete workspaces; create scopes anywhere | — | — | ✅ |
 | Create / disable users, change roles (root included, not their own) | — | — | ✅ |
 | Instance settings (the usage policy, [046](../features/046-usage-telemetry/SPEC.md)) | — | — | ✅ |
 
@@ -587,7 +592,7 @@ IDs are ULIDs and timestamps are UTC (§9.4).
 | `verification` *(Better Auth)* | id, identifier, value, expires_at |
 | `access_tokens` | id, user_id, name, token_hash (unique), last_used_at, expires_at, revoked_at, created_at |
 | `workspaces` | id, name (unique), description, visibility (`public`/`private`), is_global (true only on `global`, which every instance has, with a fixed id), created_by (set null), created_at, updated_at ([090](../features/090-workspaces/SPEC.md)) |
-| `workspace_members` | workspace_id + user_id (primary key; both cascade), role (`moderator`/`user`), added_by (set null), created_at, updated_at. Every user but root has a `global` row; a root's rows are ignored ([091](../features/091-workspace-roles/SPEC.md)) |
+| `workspace_members` | workspace_id + user_id (primary key; both cascade), role (`admin`/`moderator`/`user`; admin since 092), added_by (set null), created_at, updated_at. Every user but root has a `global` row; a root's rows are ignored ([091](../features/091-workspace-roles/SPEC.md)) |
 | `scopes` | id, name (unique), description, workspace_id (not null, RESTRICT: every scope is in one workspace, `global` by default, 090), created_by (set null), created_at |
 | `items` | id, scope_id, name, type, description, owner_id, download_count (counted by the tarball endpoint), listed_version_id, installable, last_published_at (the catalogue's listing, recomputed when versions or tags change, [018](../features/018-catalogue/SPEC.md)), created_at — unique (scope_id, name) |
 | `item_versions` | id, item_id, version, manifest (JSON), readme, files (JSON: paths, sizes, executable), notes, artifact_path, sha256, size, published_by, published_at, deprecated_message, yanked_at, yank_reason, submission_id, description, keywords, risk_flags (for search and the catalogue, 018). `readme` and `files` are copied at publish so pages never unpack an artifact ([015](../features/015-release/SPEC.md)) |
@@ -832,7 +837,7 @@ out (owner, 2026-09-30). The design, for when it's picked up:
 | Backend | Next.js monolith with a domain-first clean architecture; server actions + `/api/v1` | One deployable to self-host; the domain layer stays framework-independent |
 | DB access | Kysely; SQLite (default) / MySQL-MariaDB / PostgreSQL chosen at install | One query layer and one migration set across three dialects at runtime |
 | Approval | 1 approval from a moderator of the item's workspace (091), or root, who isn't the author; root override is audited | Four-eyes review without slowing small teams |
-| Roles | Root is instance-wide; moderator and user are roles per workspace, in `workspace_members` (owner, 2026-10-05, [091](../features/091-workspace-roles/SPEC.md)). Every check about an item, a submission or a scope is made in its scope's workspace; drafting, proposing and submitting need membership; reading, installing and depending stay open in public workspaces. Today's moderators became moderators of `global`. A removed member keeps read and withdraw on their own | A team moderates its own items without moderating everyone's; nobody loses access to what's public |
+| Roles | Root is instance-wide; admin (092), moderator and user are roles per workspace, in `workspace_members` (owner, 2026-10-05, [091](../features/091-workspace-roles/SPEC.md)). Every check about an item, a submission or a scope is made in its scope's workspace; drafting, proposing and submitting need membership; reading, installing and depending stay open in public workspaces. Today's moderators became moderators of `global`. A removed member keeps read and withdraw on their own. A workspace's admins manage its members, scopes and description (owner, 2026-10-07); nobody changes their own membership | A team moderates its own items without moderating everyone's; nobody loses access to what's public |
 | Release | Separate step after approval: publisher picks the semver bump and dist-tag (`latest` default) | npm/apt-style control over what `latest` means |
 | Artifacts | Immutable `.tgz` + sha256 on local disk behind a StorageAdapter; S3-compatible storage planned as M17 (owner, 2026-10-06, [110](../features/README.md#m17--more-than-one-replica)) | Simple to self-host; several replicas need storage they all reach |
 | Composition | React Flow visual composer over manifest `dependencies` | Visual UX, but reviews stay text diffs |

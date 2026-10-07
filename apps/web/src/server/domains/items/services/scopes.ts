@@ -1,4 +1,10 @@
-import { requirePermission, workspacesWith } from "../../identity/models/permissions";
+import { ForbiddenError } from "../../identity/exceptions/errors";
+import {
+  can,
+  canInSome,
+  requirePermission,
+  workspacesWith,
+} from "../../identity/models/permissions";
 import type { CurrentUser, WorkspaceRole } from "../../identity/models/user";
 import { GLOBAL_WORKSPACE_ID } from "../../workspaces/models/workspace";
 import {
@@ -21,18 +27,33 @@ export const SCOPE_SEARCH_MAX_LENGTH = 100;
 
 const now = (deps: ScopeDeps) => (deps.now ?? (() => new Date()))();
 
+/**
+ * Who creates scopes and edits their descriptions: root, anywhere (`scopes.manage`), and a
+ * workspace's admins, in it (`scopes.create`, 092). Anyone else is refused before any lookup.
+ */
+const requireScopeManagerSomewhere = (actor: ScopeActor) => {
+  if (!can(actor.user, "scopes.manage") && !canInSome(actor.user, "scopes.create"))
+    throw new ForbiddenError("scopes.manage");
+};
+
+const requireScopeManagerIn = (actor: ScopeActor, workspaceId: string) => {
+  if (!can(actor.user, "scopes.manage"))
+    requirePermission(actor.user, "scopes.create", workspaceId);
+};
+
 export const createScope = async (
   deps: ScopeDeps,
   actor: ScopeActor,
   input: { name: string; description: string; workspaceId?: string },
 ): Promise<Scope> => {
-  requirePermission(actor.user, "scopes.manage");
+  requireScopeManagerSomewhere(actor);
   const name = scopeNameFrom(input.name);
   const description = scopeDescriptionFrom(input.description);
   const at = now(deps);
   return deps.repo.transaction(async (repo) => {
     const workspace = await repo.findWorkspace(input.workspaceId || GLOBAL_WORKSPACE_ID);
     if (!workspace) throw new ScopeWorkspaceNotFoundError();
+    requireScopeManagerIn(actor, workspace.id);
     if (await repo.findByName(name)) throw new ScopeNameTakenError(name);
     const id = await repo.insert({
       name,
@@ -67,12 +88,13 @@ export const updateScopeDescription = async (
   actor: ScopeActor,
   input: { name: string; description: string },
 ): Promise<void> => {
-  requirePermission(actor.user, "scopes.manage");
+  requireScopeManagerSomewhere(actor);
   const description = scopeDescriptionFrom(input.description);
   const at = now(deps);
   await deps.repo.transaction(async (repo) => {
     const scope = await repo.findByName(input.name);
     if (!scope) throw new ScopeNotFoundError();
+    requireScopeManagerIn(actor, scope.workspace.id);
     if (scope.description === description) return;
     await repo.updateDescription(scope.id, description);
     await repo.recordAudit(

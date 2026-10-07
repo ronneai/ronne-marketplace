@@ -58,13 +58,14 @@ export const kyselyWorkspaceRepository = (
           .select((sub) => sub.fn.countAll<number | string | bigint>().as("n"))
           .whereRef("scopes.workspace_id", "=", "workspaces.id")
           .as("scope_count"),
-        // Its moderators who can act (091): not disabled, and not root (root is everywhere).
+        // Its reviewers who can act (091): not disabled, and not root (root is everywhere).
         eb
           .selectFrom("workspace_members")
           .innerJoin("user as member", "member.id", "workspace_members.user_id")
           .select((sub) => sub.fn.countAll<number | string | bigint>().as("n"))
           .whereRef("workspace_members.workspace_id", "=", "workspaces.id")
-          .where("workspace_members.role", "=", "moderator")
+          // Moderators and admins (092): both review.
+          .where("workspace_members.role", "in", ["moderator", "admin"])
           .where("member.role", "!=", "root")
           .where("member.disabled_at", "is", null)
           .as("moderator_count"),
@@ -75,8 +76,10 @@ export const kyselyWorkspaceRepository = (
       ]);
 
   /** Every workspace but `global`, matching the search on the name or description. */
-  const searched = (search: string | undefined) => {
-    const query = workspaces().where("workspaces.is_global", "=", toDbBoolean(false, dialect));
+  const searched = (search: string | undefined, ids?: readonly string[]) => {
+    let query = workspaces().where("workspaces.is_global", "=", toDbBoolean(false, dialect));
+    // An empty list matches nothing; `in ()` isn't valid SQL, so a value no id has stands in.
+    if (ids) query = query.where("workspaces.id", "in", ids.length > 0 ? [...ids] : [""]);
     return search
       ? query.where((eb) =>
           eb.or([
@@ -95,7 +98,11 @@ export const kyselyWorkspaceRepository = (
       ),
 
     lockUsers: async (userIds) => {
-      for (const id of [...new Set(userIds)].sort())
+      // In one order for everyone, by the id's canonical form (ULIDs are uppercase): MySQL finds a
+      // row by an id in another case or with a trailing space, and an order taken from ids as sent
+      // could lock two rows in opposite orders and deadlock.
+      const canonical = [...new Set(userIds.map((id) => id.trim().toUpperCase()))].sort();
+      for (const id of canonical)
         await forUpdate(db.selectFrom("user").select("id").where("id", "=", id), dialect).execute();
     },
 
@@ -148,8 +155,8 @@ export const kyselyWorkspaceRepository = (
           .execute()
       ).map(toWorkspace),
 
-    page: async ({ search, sort, dir, size, cursor }) => {
-      const page = await paginate(searched(search), {
+    page: async ({ search, sort, dir, size, cursor, ids }) => {
+      const page = await paginate(searched(search, ids), {
         sort: {
           key: sort,
           column: sort === "name" ? "workspaces.name" : "workspaces.id",
@@ -164,7 +171,7 @@ export const kyselyWorkspaceRepository = (
       return { ...page, rows: page.rows.map(toWorkspace) };
     },
 
-    count: (search) => countCapped(db, searched(search)),
+    count: (search, ids) => countCapped(db, searched(search, ids)),
 
     findById: async (id) => {
       const row = await workspaces().where("workspaces.id", "=", id).executeTakeFirst();

@@ -12,7 +12,7 @@ the same change that completes it.
   removal refused; root only; the audit events.
   *Done when:* db tests cover each, the global rule, a disabled user, and a non-root actor.
 
-- [ ] **2. The admin role.** [risky] `WorkspaceRole` gains `admin`; workspace permissions
+- [x] **2. The admin role.** [risky] `WorkspaceRole` gains `admin`; workspace permissions
   `members.manage`, `scopes.create` and `workspace.edit` (admin and root), and admin holds every
   moderator permission; the member services accept a workspace's admins for that workspace, never
   for their own membership; creating a scope in a workspace and editing its description accept its
@@ -48,4 +48,15 @@ goes into `SPEC.md` instead.
   `setUserWorkspaces` keys by the stored workspace id, since MySQL matches ids ignoring case and
   trailing spaces. A root's rows are left out of the members list. A workspace deleted mid-change
   answers WorkspaceNotFoundError.
+- **Task 2: the admin role** (Claude). `WorkspaceRole` is `admin | moderator | user`; admin holds
+  every moderator permission plus `members.manage`, `scopes.create` and `workspace.edit`. Member
+  changes, scopes (create, edit description) and the workspace's description check the workspace;
+  someone who holds the permission nowhere is refused before any lookup. `pageWorkspaces` and
+  `findWorkspace` give an admin only theirs (a workspace they don't administer is null, a 404).
+  Root's Admin › Scopes still creates anywhere. Nobody changes or removes their own membership.
+  Admin › Users names admins and moderators; Moderators counts both.
+- **Admins acting at once** (Claude, from the task 2 witnesses). A member change locks the people
+  changed and the actor, in id order, in the ids' canonical order (trimmed, uppercase), then reads the actor's role again under the lock
+  (`requireManagerNow`): two admins demoting each other at once leave one admin, and the other is
+  refused, with no deadlock on MySQL. The own-membership check compares the stored user id.
 

@@ -27,15 +27,21 @@ export const INSTANCE_PERMISSIONS = {
  */
 export const WORKSPACE_PERMISSIONS = {
   /** Create, edit, submit and withdraw your own drafts, propose changes (012, 091). */
-  "submissions.create": ["user", "moderator"],
+  "submissions.create": ["user", "moderator", "admin"],
   /** Open submitted (not draft) submissions read-only; 014's review queue builds on it. */
-  "submissions.view_submitted": ["moderator"],
+  "submissions.view_submitted": ["moderator", "admin"],
   /** Approve, request changes on or reject others' submissions, and comment on any (feature 014). */
-  "submissions.review": ["moderator"],
+  "submissions.review": ["moderator", "admin"],
   /** Release any approved submission; authors release their own without it (MVP §2, 015). */
-  "submissions.publish": ["moderator"],
+  "submissions.publish": ["moderator", "admin"],
   /** Move and remove dist-tags, deprecate and yank versions (MVP §2, feature 016). */
-  "versions.manage": ["moderator"],
+  "versions.manage": ["moderator", "admin"],
+  /** Add members, change their roles (admin included) and remove them (feature 092). */
+  "members.manage": ["admin"],
+  /** Create scopes in the workspace and edit their descriptions (092). */
+  "scopes.create": ["admin"],
+  /** Edit the workspace's description (092); creating and deleting workspaces stay root's. */
+  "workspace.edit": ["admin"],
 } as const satisfies Record<string, readonly WorkspaceRole[]>;
 
 export type InstancePermission = keyof typeof INSTANCE_PERMISSIONS;

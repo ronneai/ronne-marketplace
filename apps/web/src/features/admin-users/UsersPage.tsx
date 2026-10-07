@@ -66,19 +66,25 @@ const Filters = ({ state }: { state: UsersListState }) => (
 );
 
 /**
- * Root, or the user's roles per workspace (091): the workspaces they moderate, named; otherwise a
- * user. Read only until 092 lets root change them here.
+ * Root, or the user's roles per workspace (091, 092): the workspaces they administer and moderate,
+ * named; otherwise a user.
  */
 const RoleCell = ({ user }: { user: UserSummary }) => {
   if (user.role === "root") return <Badge tone="accent">root</Badge>;
-  const moderated = (user.workspaces ?? []).filter((w) => w.role === "moderator");
-  if (moderated.length === 0) return <Badge tone="muted">user</Badge>;
+  const named = (role: "admin" | "moderator") =>
+    (user.workspaces ?? []).filter((w) => w.role === role).map((w) => w.name);
+  const lines = (["admin", "moderator"] as const).flatMap((role) =>
+    named(role).length > 0 ? [{ role, names: named(role) }] : [],
+  );
+  if (lines.length === 0) return <Badge tone="muted">user</Badge>;
   return (
-    <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
-      <Badge>moderator</Badge>
-      <span className="min-w-0 break-words text-xs text-muted">
-        in {moderated.map((w) => w.name).join(", ")}
-      </span>
+    <span className="grid gap-1">
+      {lines.map(({ role, names }) => (
+        <span key={role} className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
+          <Badge>{role}</Badge>
+          <span className="min-w-0 break-words text-xs text-muted">in {names.join(", ")}</span>
+        </span>
+      ))}
     </span>
   );
 };

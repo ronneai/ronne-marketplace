@@ -93,6 +93,7 @@ describe("UsersPage (061)", () => {
           id: "01K6BZ3W1D8J9Q2R4T6V8X0Y22",
           email: "m@example.com",
           workspaces: [
+            { name: "ops", role: "admin" },
             { name: "acme", role: "moderator" },
             { name: "beta", role: "moderator" },
             { name: "global", role: "user" },
@@ -107,6 +108,7 @@ describe("UsersPage (061)", () => {
     });
     expect(html).toContain(">root<");
     expect(html).toMatch(/>moderator<.*in (?:<!-- -->)?acme, beta/);
+    expect(html).toMatch(/>admin<.*in (?:<!-- -->)?ops/);
     expect(html).not.toContain("acme, beta, global");
     expect(html).toContain(">user<");
   });

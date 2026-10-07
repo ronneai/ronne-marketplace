@@ -121,7 +121,7 @@ describe("adding, changing and removing members (092)", () => {
       changeMemberRole(asRoot, { workspaceId: beta, userId, role: "user" }, app),
     ).rejects.toThrow(NotAWorkspaceMemberError);
     await expect(
-      changeMemberRole(asRoot, { workspaceId: acme, userId, role: "admin" }, app),
+      changeMemberRole(asRoot, { workspaceId: acme, userId, role: "owner" }, app),
     ).rejects.toThrow(InvalidMemberRoleError);
   });
 

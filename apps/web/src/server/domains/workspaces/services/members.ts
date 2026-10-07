@@ -1,10 +1,12 @@
-import { requirePermission } from "../../identity/models/permissions";
+import { ForbiddenError } from "../../identity/exceptions/errors";
+import { canInSome, requirePermission } from "../../identity/models/permissions";
 import { isWorkspaceRole, type WorkspaceRole } from "../../identity/models/user";
 import {
   GlobalMembershipError,
   InvalidMemberRoleError,
   MemberUserNotFoundError,
   NotAWorkspaceMemberError,
+  OwnMembershipError,
   RootMembershipError,
   WorkspaceNotFoundError,
   WorkspacesError,
@@ -15,8 +17,9 @@ import type { WorkspaceRepository } from "../repositories/workspace-repository";
 import type { WorkspaceActor, WorkspaceDeps } from "./workspaces";
 
 /**
- * Workspace members (feature 092): root adds people to a workspace with a role, changes the role and
- * removes them. Nobody leaves `global`, and root's own memberships aren't managed (root works
+ * Workspace members (feature 092): root, or the workspace's admins, add people to a workspace with a
+ * role (admin included), change the role and remove them. A user's whole set of workspaces, from
+ * Admin › Users, stays root's. Nobody leaves `global`, and root's own memberships aren't managed (root works
  * everywhere, 091). Each change writes or deletes one row, so two roots at once each win on their
  * own rows; every change is audited in the same transaction.
  */
@@ -62,6 +65,44 @@ const changing = async <T>(
   }
 };
 
+/**
+ * Who manages a workspace's members (092): root, in every workspace, and the workspace's admins.
+ * Someone who manages none is refused before anything is looked up.
+ */
+const requireManagerSomewhere = (actor: WorkspaceActor) => {
+  if (!canInSome(actor.user, "members.manage")) throw new ForbiddenError("members.manage");
+};
+
+const requireManagerOf = (actor: WorkspaceActor, workspace: Workspace) =>
+  requirePermission(actor.user, "members.manage", workspace.id);
+
+/**
+ * The same, read again under the lock (092): the actor's role as stored now, not as loaded with
+ * the request, so two admins demoting each other at once leave one of them admin.
+ */
+const requireManagerNow = async (
+  repo: WorkspaceRepository,
+  actor: WorkspaceActor,
+  workspace: Workspace,
+) => {
+  requireManagerOf(actor, workspace);
+  if (actor.user?.role === "root") return;
+  if ((await repo.memberRole(workspace.id, actor.user?.id ?? "")) !== "admin")
+    throw new ForbiddenError("members.manage");
+};
+
+/** The users to lock: the people changed, and the actor, whose own role is read again. */
+const toLock = (actor: WorkspaceActor, userIds: readonly string[]) =>
+  actor.user ? [...userIds, actor.user.id] : [...userIds];
+
+/**
+ * Nobody changes or removes their own membership, so an admin can't lock themselves out (092).
+ * Compared with the stored id: MySQL finds a user by an id in another case too.
+ */
+const notOwn = (actor: WorkspaceActor, user: MemberUser) => {
+  if (actor.user?.id === user.id) throw new OwnMembershipError();
+};
+
 type MemberEvent =
   | { action: "workspace.member_added"; role: WorkspaceRole }
   | { action: "workspace.member_role_changed"; from: WorkspaceRole; to: WorkspaceRole }
@@ -95,9 +136,10 @@ export const listMembers = async (
   actor: WorkspaceActor,
   workspaceId: string,
 ): Promise<Member[]> => {
-  requirePermission(actor.user, "workspaces.manage");
-  await workspaceById(deps.repo, workspaceId);
-  return deps.repo.members(workspaceId);
+  requireManagerSomewhere(actor);
+  const workspace = await workspaceById(deps.repo, workspaceId);
+  requireManagerOf(actor, workspace);
+  return deps.repo.members(workspace.id);
 };
 
 /** A user's memberships, `global` first: their Workspaces dialog. Root's aren't managed. */
@@ -123,13 +165,14 @@ export const addMembers = async (
   actor: WorkspaceActor,
   input: { workspaceId: string; userIds: readonly string[]; role: string },
 ): Promise<AddedMember[]> => {
-  requirePermission(actor.user, "workspaces.manage");
+  requireManagerSomewhere(actor);
   const role = roleFrom(input.role);
   const at = now(deps);
   return changing(deps.repo, [input.workspaceId], () =>
     deps.repo.transaction(async (repo) => {
-      await repo.lockUsers(input.userIds);
+      await repo.lockUsers(toLock(actor, input.userIds));
       const workspace = await workspaceById(repo, input.workspaceId);
+      await requireManagerNow(repo, actor, workspace);
       const results: AddedMember[] = [];
       for (const userId of new Set(input.userIds)) {
         const user = await memberUser(repo, userId);
@@ -158,13 +201,15 @@ export const changeMemberRole = async (
   actor: WorkspaceActor,
   input: { workspaceId: string; userId: string; role: string },
 ): Promise<void> => {
-  requirePermission(actor.user, "workspaces.manage");
+  requireManagerSomewhere(actor);
   const role = roleFrom(input.role);
   const at = now(deps);
   await deps.repo.transaction(async (repo) => {
-    await repo.lockUsers([input.userId]);
+    await repo.lockUsers(toLock(actor, [input.userId]));
     const workspace = await workspaceById(repo, input.workspaceId);
+    await requireManagerNow(repo, actor, workspace);
     const user = await memberUser(repo, input.userId);
+    notOwn(actor, user);
     const from = await repo.memberRole(workspace.id, user.id);
     if (!from) throw new NotAWorkspaceMemberError(workspace.name);
     if (from === role) return;
@@ -195,13 +240,15 @@ export const removeMember = async (
   actor: WorkspaceActor,
   input: { workspaceId: string; userId: string },
 ): Promise<void> => {
-  requirePermission(actor.user, "workspaces.manage");
+  requireManagerSomewhere(actor);
   const at = now(deps);
   await deps.repo.transaction(async (repo) => {
-    await repo.lockUsers([input.userId]);
+    await repo.lockUsers(toLock(actor, [input.userId]));
     const workspace = await workspaceById(repo, input.workspaceId);
+    await requireManagerNow(repo, actor, workspace);
     if (workspace.isGlobal) throw new GlobalMembershipError();
     const user = await memberUser(repo, input.userId);
+    notOwn(actor, user);
     const role = await repo.memberRole(workspace.id, user.id);
     if (!role) return;
     await repo.removeMember(workspace.id, user.id);

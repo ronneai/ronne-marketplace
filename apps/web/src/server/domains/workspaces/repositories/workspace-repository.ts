@@ -13,6 +13,8 @@ export type WorkspacePageQuery = {
   dir: SortDir;
   size: number;
   cursor?: string;
+  /** Only these workspaces (an admin's, 092); every one when left out. */
+  ids?: readonly string[];
 };
 
 /** What the workspace services need from storage. Implemented with Kysely in kysely-workspace-repository.ts. */
@@ -33,7 +35,7 @@ export interface WorkspaceRepository {
   /** One page for Admin › Workspaces (keyset), `global` left out: the service puts it first. */
   page(query: WorkspacePageQuery): Promise<KeysetPage<Workspace>>;
   /** How many workspaces other than `global` match the search, up to the count cap. */
-  count(search?: string): Promise<{ count: number; capped: boolean }>;
+  count(search?: string, ids?: readonly string[]): Promise<{ count: number; capped: boolean }>;
   findById(id: string): Promise<Workspace | null>;
   /**
    * Locks these users' rows until the transaction ends, in id order, so two roots changing one

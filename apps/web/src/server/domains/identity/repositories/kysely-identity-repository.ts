@@ -15,6 +15,10 @@ import type {
   UserFilters,
   UserSort,
 } from "./identity-repository";
+
+/** Admins first, then moderators, then users: how the users list names someone's roles. */
+const ROLE_ORDER = { admin: 0, moderator: 1, user: 2 } as const;
+
 import { loadMemberships } from "./memberships";
 
 type UserRow = {
@@ -204,7 +208,7 @@ export const kyselyIdentityRepository = (
           workspaces: memberships
             .filter((m) => m.user_id === row.id && isWorkspaceRole(m.role))
             .map((m) => ({ name: m.name, role: m.role }))
-            .sort((a, b) => (a.role === b.role ? 0 : a.role === "moderator" ? -1 : 1)),
+            .sort((a, b) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role]),
         })),
       };
     },

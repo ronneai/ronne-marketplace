@@ -81,6 +81,13 @@ export class NotAWorkspaceMemberError extends WorkspacesError {
 
 export class InvalidMemberRoleError extends WorkspacesError {
   constructor(readonly role: string) {
-    super(`"${role}" isn't a role in a workspace. Use moderator or user.`);
+    super(`"${role}" isn't a role in a workspace. Use admin, moderator or user.`);
+  }
+}
+
+/** Nobody changes or removes their own membership (092): another admin or root does. */
+export class OwnMembershipError extends WorkspacesError {
+  constructor() {
+    super("You can't change or remove your own membership: another admin or root does.");
   }
 }

@@ -73,3 +73,97 @@ Witnessed: 2026-10-07 09:59 EDT, by a fresh agent (adversarial). Commit: 3789580
 | 15 | Tests, typecheck and lint after the fixes | yes | confirmed | `vitest --project db` on workspaces, identity, audit → 123 passed on each of the 4; `members.db.test.ts` 13 tests; `tsc --noEmit` → exit 0; `biome check` → warnings only, none in workspaces or audit |
 
 **Overall:** met: a root's kept rows stay out of the members list, `setUserWorkspaces` uses the stored ids, and the user-row lock serialises concurrent edits with 0 deadlocks in 48 rounds on MySQL and MariaDB.
+
+## Task 2 — The admin role
+
+Witnessed: 2026-10-07 10:36 EDT, by a fresh agent (blind). Commit: afa4d40 + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `WorkspaceRole` gains `admin`, and stored rows accept it | yes | confirmed | `identity/models/user.ts:13,28`; `db/schema.ts:112`; 0020 has no CHECK on `role`; admins inserted on all 4 dialects |
+| 2 | The permission-matrix test has an admin column (all workspace permissions in A, none in B, `account.manage_own` only instance-wide) | yes | confirmed | `permissions.test.ts:20,35`; `vitest run permissions.test` → 10 passed; mutants `members.manage` += moderator, `versions.manage` −admin → fail |
+| 3 | `members.manage`, `scopes.create`, `workspace.edit` are held by admin and root only; `workspaces.manage`, `users.manage`, `scopes.manage` stay root's | yes | confirmed | `permissions.ts:15,17,40-44`; the matrix and the full-list test (`permissions.test.ts:72-90`) |
+| 4 | Admin holds every moderator permission in their workspace and none elsewhere | yes | confirmed | `permissions.ts:30-38`; "reviews and releases there"; mutant (admin dropped from `versions.manage`) → db and unit tests fail |
+| 5 | An admin lists, adds, changes (to admin too) and removes members of their workspace, other admins included; audited as them | yes | confirmed | admin-role test on 4 dialects; probe: add as admin, demote and remove another admin → ok; add root → RootMembershipError |
+| 6 | Not in another workspace; a user's whole set stays root's; no session refused | yes | confirmed | `members.ts:129,249` keep `workspaces.manage`; "does nothing to another workspace's members"; mutant without `requireManagerOf` in addMembers → fails; `beta.toLowerCase()` on MySQL → Forbidden; empty headers → Forbidden |
+| 7 | An admin never changes or removes their own membership (the last admin can't remove themselves) | yes | partly | Holds on SQLite and PostgreSQL; **MySQL/MariaDB**: `changeMemberRole(asAdmin,{acme, userId: adminId.toLowerCase(), role:"user"})` → ok (self-demoted), `removeMember(… adminId.toLowerCase())` → ok, row gone; `members.ts:80-81` compared the raw input before the user was looked up |
+| 8 | An admin of `global` manages global's roles, can't remove anyone from global, and sees global listed | yes | confirmed | "an admin of global"; probe → `["global","acme"]`, count 2 |
+| 9 | Creating a scope accepts admins in their workspace, refuses another workspace or global | yes | confirmed | `scopes.ts:35-41,274`; mutant removing the in-workspace check → db test fails |
+| 10 | Editing a scope's description accepts admins in their workspace and refuses them in another | yes | partly | Probe on 4 dialects: acme's → ok; global's or beta's → Forbidden; but no test shows the refusal: mutant removing `requireScopeManagerIn(actor, scope.workspace.id)` (`scopes.ts:289`) → the suite still passes |
+| 11 | Editing the workspace description: an admin edits theirs; another → Forbidden; global → GlobalWorkspaceError | yes | confirmed | `workspaces.ts:125-130`; mutant removing the in-workspace check → fails |
+| 12 | An admin can't delete or create workspaces | yes | confirmed | probe: deleteWorkspace / createWorkspace → Forbidden (workspaces.manage) |
+| 13 | `pageWorkspaces` and `findWorkspace` give an admin only theirs (others null); a moderator is refused | yes | confirmed | "lists and opens only…"; search "beta" → 0, count 0; `findWorkspace("ACME")` on MySQL → acme; mutants → fail |
+| 14 | The Moderators count includes admins (not disabled, not root) | yes | confirmed | `kysely-workspace-repository.ts:68-70`; test expects 2; mutant back to moderator only → fails |
+| 15 | Admin › Users names a user's admin workspaces | yes | confirmed | `UsersPage.tsx:74-87`; `admin-users.test.tsx:111`; admins sorted first |
+| 16 | The db tests pass on all four dialects | yes | confirmed | SQLite `vitest run --project db workspaces/ memberships.db items/` → 83 passed; postgres, mysql, mariadb → 83 each |
+| 17 | No regressions; typecheck and lint pass | yes | confirmed | `vitest run` (web) → 1646 passed, 8 skipped; `tsc --noEmit` clean; `biome check` no errors |
+| 18 | MVP.md §2 and §15 record the decision | yes | confirmed | §2 admin paragraph, roles row, matrix rows; §15 Roles names admin (092, owner 2026-10-07); data model `admin/moderator/user` |
+
+**Overall:** not met: on MySQL/MariaDB an admin could change or remove their own membership by sending their id in another case (7), and no test covered refusing a scope-description edit in another workspace (10). Remark: `InvalidMemberRoleError` still said "Use moderator or user."
+Fixed: the own-membership check compares the stored user id after the lookup; a test refuses an admin editing beta's scope description; the message lists admin. Re-check below.
+
+### Re-check
+
+Witnessed: 2026-10-07 10:59 EDT, by a fresh agent (blind). Commit: afa4d40 + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | An admin never changes or removes their own membership, whatever case or padding the id is sent in, on all four databases | yes | confirmed | `notOwn(actor, user)` after `memberUser`, comparing the stored `user.id`; probe (own id lowercased, own id plus a space, through change and remove): SQLite and PostgreSQL → MemberUserNotFoundError ×4; MySQL → OwnMembershipError (lowercase), MemberUserNotFoundError (space); MariaDB → OwnMembershipError ×4; still admin afterwards; mutant comparing the input id → `admin-role` fails on MySQL and MariaDB |
+| 10 | Editing a scope's description: accepted for an admin in their workspace, refused in another, and a db test shows the refusal | yes | confirmed | `admin-role.db.test.ts:157-162` (`beta-tools` created by root, the admin's edit → ForbiddenError); probe on 4 databases: acme's ok, global's and beta's Forbidden; mutant removing `requireScopeManagerIn(actor, scope.workspace.id)` → `admin-role` fails |
+| 16 | The whole db suite passes on all four databases | yes | confirmed | `vitest run --project db` → 75 files, 607 passed, 8 skipped (SQLite); `scripts/test-db.mjs postgres\|mysql\|mariadb` → 615 passed each (the notes said 614) |
+
+**Overall:** met: the own-membership check holds on MySQL and MariaDB, and the refused scope-description edit is covered by a test that fails without the check.
+
+Witnessed: 2026-10-07 10:45 EDT, by a fresh agent (adversarial). Commit: afa4d40 + uncommitted working tree (feat/092-workspace-members). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `WorkspaceRole` gains `admin`, and sessions and tokens load it | yes | confirmed | `user.ts:13,28`; `schema.ts:112`; no CHECK on the role column (0020); session and token loaders use `loadMemberships`; "reviews and releases there" builds `getCurrentUser` from a real session → passes on 4 dialects |
+| 2 | `members.manage`, `scopes.create` and `workspace.edit` are held by admin and root only | yes | confirmed | `permissions.ts`; mutants giving members.manage to moderator, scopes.create to user, workspace.edit to moderator → `permissions.test.ts` 1 failed each |
+| 3 | Admin holds every moderator permission, in their own workspace only | yes | confirmed | the matrix row `"admin in A": { a: WORKSPACE, b: [] }`; removing admin from versions.manage or view_submitted → fails; probe on 4 dialects: acme's admin approved, released and deprecated in acme; beta's `decide`/`publishSubmission`/`yank` → refused |
+| 4 | Root's instance permissions don't reach admins; admins can't create or delete workspaces or use a user's whole set | yes | confirmed | probe: an admin's instance permissions = `['account.manage_own']` on 4 dialects; `deleteWorkspace`/`createWorkspace` → ForbiddenError; `userMemberships`/`setUserWorkspaces` → ForbiddenError |
+| 5 | An admin adds members, changes roles (granting admin included) and removes them in their workspace, all audited | yes | confirmed | "adds members, makes another admin…": 4 events with actorId = admin, on 4 dialects |
+| 6 | An admin does nothing to another workspace's members (nor `global` unless its admin), whatever spelling the id uses | yes | confirmed | probe ×4 dialects with beta's id lowercased or space-padded, `GLOBAL_WORKSPACE_ID.toLowerCase()`: add, list, change → WorkspaceNotFoundError or ForbiddenError, nothing changed; mutants removing the manager check from add, change, remove → fail |
+| 7 | An admin never changes or removes their own membership | yes | not met | MySQL and MariaDB: `changeMemberRole(asAdmin,{acme, userId: adminId.toLowerCase(), role:"user"})` → OK (self-demoted), `removeMember(…)` → OK; SQLite/PostgreSQL → MemberUserNotFoundError; `notOwn` compared the id as sent before the lookup |
+| 8 | An admin can't act on root | no | confirmed | probe ×4: change root's role in acme, add root to acme → RootMembershipError |
+| 9 | Admin of `global` manages its roles but can't remove anyone from it | yes | confirmed | "an admin of global" ×4 |
+| 10 | An admin creates scopes in their workspace, not in another or in `global` | yes | confirmed | admin-role ×4; probe: beta's id lowercased → not found or Forbidden; global → Forbidden; mutant without `requireScopeManagerIn` in createScope → fails |
+| 11 | An admin edits their own scopes' descriptions, and the db tests show it refused for another workspace's scope | yes | partly | The behaviour holds (probe ×4: `updateScopeDescription({name:"beta"})` → Forbidden, unchanged), but a mutant deleting `requireScopeManagerIn(actor, scope.workspace.id)` survived the whole db suite (606 passed) |
+| 12 | An admin edits their workspace's description; not another's; `global` never | yes | confirmed | admin-role ×4; probe "BETA", " beta " → Forbidden, unchanged; mutant without the in-transaction check → fails |
+| 13 | An admin lists and opens only the workspaces they administer | yes | confirmed | probe `pageWorkspaces({search:"beta"})` → 0 rows, count 0; `findWorkspace("BETA")` → null ×4; mutants → fail |
+| 14 | The Moderators count includes admins (active, not root) | yes | confirmed | `kysely-workspace-repository.ts:68`; probe ×4: an active admin, a disabled admin, root with an admin row → 1; mutant → fails |
+| 15 | The permission-matrix test has the admin column | yes | confirmed | `permissions.test.ts:20,35`; 5 matrix mutants killed |
+| 16 | Concurrent admin actions stay consistent and give a clean answer | no | partly | Two admins demoting each other at once: MySQL and MariaDB → raw `Deadlock found when trying to get lock` (6 of 6 runs); PostgreSQL 1 of 3 runs both succeeded → no admin left; two roots at once → no deadlock (5/5) |
+
+**Overall:** not met: on MySQL/MariaDB an admin changed or removed their own membership by sending their id in lowercase; no test refused an admin editing another workspace's scope description; admins changing each other at once hit a raw deadlock (MySQL/MariaDB) or left no admin (PostgreSQL). Fixed: `notOwn` compares the stored id after the lookup; member changes lock the changed users and the actor, then re-read the actor's role under the lock (`requireManagerNow`); tests for each; stale messages updated. Re-checks below.
+
+### Re-check — rows 7, 11, 16 and what the fixes touch
+
+Witnessed: 2026-10-07 11:09 EDT, by a fresh agent (adversarial). Commit: afa4d40 + uncommitted working tree (`toLock`, `requireManagerNow`, stored-id `notOwn`). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | An admin never changes or removes their own membership, whatever spelling the id uses (row 7) | yes | confirmed | probe: MySQL → OwnMembershipError; MariaDB → OwnMembershipError, also with a trailing space; PostgreSQL, SQLite → MemberUserNotFoundError; role stays admin, 2 runs each; mutant comparing the raw id → admin-role fails on MySQL and MariaDB |
+| 2 | The db tests show an admin refused when editing another workspace's scope description (row 11) | yes | confirmed | mutant deleting `requireScopeManagerIn(actor, scope.workspace.id)` → admin-role 1 failed; probe ×4 → Forbidden |
+| 3 | Two admins demoting each other at once: one succeeds, the other is refused cleanly, one admin remains (row 16) | yes | confirmed | probe, 16 runs per server, ids as stored: always `ok \| ForbiddenError`, one admin left, on all 4, no deadlock; mutants (no re-read under the lock; not locking the actor) → fail on MySQL and MariaDB (the first survived 1 PostgreSQL run, a race) |
+| 4 | The same race with one id sent in another case gives a clean answer | no | partly | one admin still remains, but **MariaDB 9 of 16 runs** → raw `Deadlock found…`; MySQL 16/16 clean; PostgreSQL, SQLite → MemberUserNotFoundError; `lockUsers` sorted the ids as sent, so the two transactions locked in opposite orders |
+| 5 | An admin removed mid-flight by another admin (root also acting) is refused afterwards | yes | confirmed | probe "MIX", 16 runs per server: every outcome matches a serial order; no raw errors |
+| 6 | The error messages are current | yes | confirmed | `errors.ts:84`; `memberships.ts` "three known ones" |
+| 7 | Admin › Users lists admins first, then moderators, then users | yes | confirmed | `user-admin.db.test.ts`; mutant dropping the `ROLE_ORDER` sort → fails |
+| 8 | Someone who holds the permission nowhere is refused before any lookup | yes | confirmed | `requireManagerSomewhere`, `requireScopeManagerSomewhere`, `canInSome` first in `workspaces.ts:125,204,244`; "a moderator" → Forbidden for list, add, scope, edit, page |
+| 9 | MVP §2 and §15 record the decision | yes | confirmed | `git diff afa4d40 -- docs/MVP/MVP.md` |
+| 10 | Checks green; db suite on each server | yes | confirmed | SQLite 607 passed / 8 skipped; postgres, mysql, mariadb 615 each (notes said 614); `tsc` exit 0; `biome check` 0 errors |
+| 11 | The fixes don't reopen the first pass's escalation paths | no | confirmed | the first pass's attack probe re-run ×4: same refusals; beta's and global's rows unchanged |
+
+**Overall:** not met: the self-change bypass, the scope-edit gap and the two-admin race are fixed, but on MariaDB the race with one id sent in lowercase still deadlocked (9 of 16). Fixed: `lockUsers` locks in the ids' canonical order (trimmed, uppercase); the race test repeats six times, with the lowercase variant. Second re-check below.
+
+### Second re-check — the cross-case race and the race test's strength
+
+Witnessed: 2026-10-07 11:17 EDT, by a fresh agent (adversarial). Commit: afa4d40 + uncommitted working tree (`lockUsers` sorting by `id.trim().toUpperCase()`). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Two admins demoting each other at once, one id sent in lowercase, get a clean answer with one admin left | yes | confirmed | Probe "XCASE", 24 runs per server: MariaDB 24/24 `ok \| ForbiddenError`, 0 deadlocks (was 9/16); MySQL 24/24 clean (one run both refused, both stayed admin); PostgreSQL 24/24 `MemberUserNotFoundError \| ok`; the same-case and mixed races 24/24 each, no raw errors, one admin left |
+| 2 | The admin-role race test catches the race (six rounds, alternating the lowercase id) | yes | confirmed | mutant dropping the re-read under the lock → `-t 'at once'` 1 failed in 3/3 runs on postgres, mysql, mariadb; mutant sorting ids as sent → fails 3/3 on mysql and mariadb; unmutated `src/server/domains/workspaces` → 39 passed on all 4 |
+
+**Overall:** met: the cross-case race locks in one order (no deadlock in 24 MariaDB or 24 MySQL runs, one admin always left), and the race test fails reliably without the re-read or the canonical order.
