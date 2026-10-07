@@ -38,7 +38,6 @@ const Filters = ({ state }: { state: UsersListState }) => (
         <select id="role" name="role" defaultValue={state.filters.role} className={selectClasses}>
           <option value="">Any role</option>
           <option value="user">user</option>
-          <option value="moderator">moderator</option>
           <option value="root">root</option>
         </select>
       </div>
@@ -66,6 +65,24 @@ const Filters = ({ state }: { state: UsersListState }) => (
   </div>
 );
 
+/**
+ * Root, or the user's roles per workspace (091): the workspaces they moderate, named; otherwise a
+ * user. Read only until 092 lets root change them here.
+ */
+const RoleCell = ({ user }: { user: UserSummary }) => {
+  if (user.role === "root") return <Badge tone="accent">root</Badge>;
+  const moderated = (user.workspaces ?? []).filter((w) => w.role === "moderator");
+  if (moderated.length === 0) return <Badge tone="muted">user</Badge>;
+  return (
+    <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
+      <Badge>moderator</Badge>
+      <span className="min-w-0 break-words text-xs text-muted">
+        in {moderated.map((w) => w.name).join(", ")}
+      </span>
+    </span>
+  );
+};
+
 const columns = (
   actions?: (user: UserSummary) => ReactNode,
 ): Column<UserSummary, "created" | "email" | "name">[] => [
@@ -89,8 +106,8 @@ const columns = (
   {
     id: "role",
     header: "Role",
-    className: "w-28",
-    render: (user) => <Badge tone={user.role === "root" ? "accent" : "muted"}>{user.role}</Badge>,
+    className: "w-56",
+    render: (user) => <RoleCell user={user} />,
   },
   {
     id: "status",

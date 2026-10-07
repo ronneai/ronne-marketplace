@@ -45,6 +45,7 @@ export const E2E_USERS = {
   decisionModerator: "decision-moderator@e2e.test",
   workspaceAuthor: "workspace-author@e2e.test",
   workspaceModerator: "workspace-moderator@e2e.test",
+  workspaceOutsider: "workspace-outsider@e2e.test",
   // Phones and tablets (065): one set per project, so the projects' sign-ins don't share a limit.
   phoneMember: "phone-member@e2e.test",
   phoneModerator: "phone-moderator@e2e.test",
@@ -99,6 +100,7 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   decisionModerator: "Remy Moderator",
   workspaceAuthor: "Wren Workspace",
   workspaceModerator: "Wes Workspace-Moderator",
+  workspaceOutsider: "Otto Outsider",
   phoneMember: "Pho Member",
   phoneModerator: "Pho Moderator",
   phoneRoot: "Pho Root",
@@ -121,7 +123,7 @@ export const E2E_MODERATORS: readonly (keyof typeof E2E_USERS)[] = [
   "releaseModerator",
   "archiveModerator",
   "decisionModerator",
-  "workspaceModerator",
+  "workspaceOutsider",
   "phoneModerator",
   "phoneWebkitModerator",
   "tabletModerator",
@@ -141,6 +143,17 @@ export const E2E_ROOTS: readonly (keyof typeof E2E_USERS)[] = [
 export const E2E_SCOPE = "e2e-seeded";
 /** An empty workspace besides `global` (feature 090), so the phone sweep opens a page with Edit and Delete. */
 export const E2E_WORKSPACE = "e2e-team";
+
+/**
+ * A workspace with members (091), until 092 lets root add them in the app: `workspaceAuthor` is a
+ * user there and `workspaceModerator` its moderator, and only a user in `global`.
+ * `workspaceOutsider` moderates `global` only.
+ */
+export const E2E_ACME = "e2e-acme";
+export const E2E_ACME_MEMBERS: Partial<Record<keyof typeof E2E_USERS, "moderator" | "user">> = {
+  workspaceAuthor: "user",
+  workspaceModerator: "moderator",
+};
 
 /** An item the seed publishes with two versions (1.0.0 and 1.1.0 on latest), for the Versions page. */
 export const E2E_VERSIONED_ITEM = "versioned";

@@ -83,7 +83,13 @@ describe("pnpm run reset-root-password --yes", () => {
       new Date(Date.now() + 1000),
     );
     await repo.createUserWithPassword(
-      { email: "mod@example.com", name: "Mod", role: "moderator", passwordHash: "x" },
+      {
+        email: "mod@example.com",
+        name: "Mod",
+        role: "user",
+        globalRole: "moderator",
+        passwordHash: "x",
+      },
       new Date(),
     );
     await db.destroy();

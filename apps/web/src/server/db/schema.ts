@@ -18,7 +18,7 @@ export interface UserTable {
   image: string | null;
   created_at: Timestamp;
   updated_at: Timestamp;
-  role: Generated<"root" | "moderator" | "user">;
+  role: Generated<"root" | "user">;
   disabled_at: Timestamp | null;
 }
 
@@ -98,6 +98,19 @@ export interface WorkspaceTable {
   visibility: "public" | "private";
   is_global: DbBoolean;
   created_by: string | null;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+}
+
+/**
+ * A user's role in a workspace (migration 0020_workspace_members, feature 091). Every user who
+ * isn't root has a `global` row; a root's rows are ignored for permissions.
+ */
+export interface WorkspaceMemberTable {
+  workspace_id: string;
+  user_id: string;
+  role: "moderator" | "user";
+  added_by: string | null;
   created_at: Timestamp;
   updated_at: Timestamp;
 }
@@ -299,6 +312,7 @@ export interface Database {
   access_tokens: AccessTokenTable;
   audit_log: AuditLogTable;
   workspaces: WorkspaceTable;
+  workspace_members: WorkspaceMemberTable;
   scopes: ScopeTable;
   submissions: SubmissionTable;
   submission_files: SubmissionFileTable;

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
+import { GLOBAL_WORKSPACE_ID } from "../../../db/migrations/0019_workspaces";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { listAuditEvents } from "../../audit/actions/audit";
 import {
@@ -123,7 +124,7 @@ describe("createUser", () => {
   it("with a generated password: shown once, works for sign-in, and audited without it", async () => {
     const created = await adminCreateUser(
       asRoot,
-      { email: "  New@Example.com ", name: " New ", role: "moderator" },
+      { email: "  New@Example.com ", name: " New ", role: "user" },
       app,
     );
     expect(created.email).toBe("new@example.com");
@@ -134,7 +135,7 @@ describe("createUser", () => {
     expect(event).toMatchObject({
       actorId: rootId,
       targetId: created.id,
-      metadata: { email: "new@example.com", role: "moderator" },
+      metadata: { email: "new@example.com", role: "user" },
     });
     expect(JSON.stringify(await t.db.selectFrom("audit_log").selectAll().execute())).not.toContain(
       created.password,
@@ -182,16 +183,80 @@ describe("createUser", () => {
   });
 });
 
+describe("global membership (091)", () => {
+  const memberships = (userId: string) =>
+    t.db
+      .selectFrom("workspace_members")
+      .select(["workspace_id", "role"])
+      .where("user_id", "=", userId)
+      .execute();
+
+  it("puts a new user in global, and a new root nowhere", async () => {
+    const user = await adminCreateUser(
+      asRoot,
+      { email: "u@example.com", name: "U", role: "user" },
+      app,
+    );
+    const root = await adminCreateUser(
+      asRoot,
+      { email: "r2@example.com", name: "R2", role: "root" },
+      app,
+    );
+    expect(await memberships(user.id)).toEqual([
+      { workspace_id: GLOBAL_WORKSPACE_ID, role: "user" },
+    ]);
+    expect(await memberships(root.id)).toEqual([]);
+    expect(await memberships(rootId)).toEqual([]);
+  });
+
+  it("lists each user's roles per workspace, moderated first (091)", async () => {
+    await createTestUser(app, {
+      email: "m@example.com",
+      password: rootPassword,
+      role: "moderator",
+    });
+    await createTestUser(app, { email: "u@example.com", password: rootPassword });
+    const listed = (await adminListUsers(asRoot, { sort: "email" }, app)).users;
+    const roles = (email: string) => listed.find((u) => u.email === email)?.workspaces;
+    expect(roles("m@example.com")).toEqual([{ name: "global", role: "moderator" }]);
+    expect(roles("u@example.com")).toEqual([{ name: "global", role: "user" }]);
+    expect(roles("root@example.com")).toEqual([]);
+  });
+
+  it("puts a root who stops being root in global, once", async () => {
+    const root = await adminCreateUser(
+      asRoot,
+      { email: "r2@example.com", name: "R2", role: "root" },
+      app,
+    );
+    await adminChangeRole(asRoot, root.id, "user", app);
+    await adminChangeRole(asRoot, root.id, "root", app);
+    await adminChangeRole(asRoot, root.id, "user", app);
+    expect(await memberships(root.id)).toEqual([
+      { workspace_id: GLOBAL_WORKSPACE_ID, role: "user" },
+    ]);
+  });
+});
+
 describe("changeRole", () => {
-  it("switches between user and moderator, audited; the same role changes nothing", async () => {
+  it("switches between user and root, audited; the same role changes nothing", async () => {
     const id = await createTestUser(app, { email: "u@example.com", password: rootPassword });
-    await adminChangeRole(asRoot, id, "moderator", app);
-    await adminChangeRole(asRoot, id, "moderator", app);
+    await adminChangeRole(asRoot, id, "root", app);
+    await adminChangeRole(asRoot, id, "root", app);
     await adminChangeRole(asRoot, id, "user", app);
     expect((await events("user.role_changed")).map((e) => e.metadata)).toEqual([
-      { from: "moderator", to: "user" },
-      { from: "user", to: "moderator" },
+      { from: "root", to: "user" },
+      { from: "user", to: "root" },
     ]);
+  });
+
+  it("refuses moderator: it's a role in a workspace now (091)", async () => {
+    const id = await createTestUser(app, { email: "u@example.com", password: rootPassword });
+    await expect(adminChangeRole(asRoot, id, "moderator", app)).rejects.toThrow(InvalidRoleError);
+    await expect(
+      adminCreateUser(asRoot, { email: "m@example.com", name: "M", role: "moderator" }, app),
+    ).rejects.toThrow(InvalidRoleError);
+    expect(await events("user.role_changed")).toEqual([]);
   });
 
   it("promotes to root and demotes another root, audited (059)", async () => {
@@ -199,10 +264,10 @@ describe("changeRole", () => {
     await adminChangeRole(asRoot, id, "root", app);
     const asSecond = await headersFor("u@example.com", rootPassword);
     expect((await adminListUsers(asSecond, {}, app)).users.length).toBeGreaterThan(0);
-    await adminChangeRole(asSecond, rootId, "moderator", app);
+    await adminChangeRole(asSecond, rootId, "user", app);
     await expect(adminListUsers(asRoot, {}, app)).rejects.toThrow(ForbiddenError);
     expect((await events("user.role_changed")).map((e) => e.metadata)).toEqual([
-      { from: "root", to: "moderator" },
+      { from: "root", to: "user" },
       { from: "user", to: "root" },
     ]);
   });
@@ -352,7 +417,7 @@ describe("roots acting at once (059)", () => {
     const root = await getCurrentUser(asRoot, app);
     const target = await createTestUser(app, { email: "u@example.com", password: rootPassword });
     await createTestUser(app, { email: "r2@example.com", password: rootPassword, role: "root" });
-    await t.db.updateTable("user").set({ role: "moderator" }).where("id", "=", rootId).execute();
+    await t.db.updateTable("user").set({ role: "user" }).where("id", "=", rootId).execute();
     const repo = kyselyIdentityRepository(t.db, t.dialect);
     await expect(
       service.changeRole({ repo, hasher: noHasher }, { user: root, ip: null }, target, "root"),
@@ -512,7 +577,6 @@ describe("listUsers", () => {
       (await adminListUsers(asRoot, query, app)).users.map((u) => u.email);
     expect(await emails({ search: "GRACE" })).toEqual(["user7@example.com"]);
     expect(await emails({ search: "  USER51@ " })).toEqual(["user51@example.com"]);
-    expect(await emails({ role: "moderator" })).toEqual(["mod@example.com"]);
     expect(await emails({ status: "disabled" })).toEqual(["mod@example.com"]);
     expect(await emails({ role: "root" })).toEqual(["root@example.com"]);
     // Wildcards in the search are matched literally.

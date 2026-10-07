@@ -453,6 +453,8 @@ export type FakeSubmitDraft = {
   updatedAt?: string;
   /** Its dependency drafts' ids (056): the check includes them first unless `dependencies: false`. */
   includes?: string[];
+  /** In a workspace the person isn't a member of (091): checked as `not_a_member`. */
+  notAMemberOf?: string;
 };
 
 /**
@@ -517,6 +519,20 @@ export const submitRoutes = (drafts: FakeSubmitDraft[], taken: string[] = []) =>
             if (!d) return { id, result: "not_found", ready: false };
             if (d.status === "submitted")
               return { id, result: "not_submittable", ready: false, ...place(d) };
+            if (d.notAMemberOf)
+              return {
+                id,
+                result: "not_a_member",
+                ready: false,
+                ...place(d),
+                issues: [
+                  {
+                    severity: "error",
+                    code: "not_a_member",
+                    message: `You aren't a member of the ${d.notAMemberOf} workspace. Ask to join ${d.notAMemberOf} to propose changes.`,
+                  },
+                ],
+              };
             // A dependent whose dependency drafts are included is ready once they are.
             const issues = d.includes?.length && ids.length > 1 ? [] : issuesOf(d);
             return {

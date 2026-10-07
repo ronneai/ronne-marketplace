@@ -1,6 +1,6 @@
 import type { NewAuditEvent } from "../../audit/models/audit-event";
 import type { AccessTokenSummary } from "../models/access-token";
-import type { Role } from "../models/user";
+import type { Memberships, Role } from "../models/user";
 
 export type NewTokenRow = {
   userId: string;
@@ -14,7 +14,14 @@ export type NewTokenRow = {
 /** A token found by its hash, with its owner, for the bearer guard. */
 export type TokenWithUser = {
   token: { id: string; name: string; expiresAt: Date | null; revokedAt: Date | null };
-  user: { id: string; email: string; name: string; role: Role; disabledAt: Date | null };
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    role: Role;
+    workspaces: Memberships;
+    disabledAt: Date | null;
+  };
 };
 
 /** What the token services need from storage. Implemented with Kysely in kysely-token-repository.ts. */

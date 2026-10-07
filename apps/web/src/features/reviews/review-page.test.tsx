@@ -301,6 +301,7 @@ const view = (overrides: Partial<ReviewView> = {}): ReviewView => ({
     authorId: "u",
     authorName: "Ada Author",
     scope: { id: "s", name: "team" },
+    workspace: { id: "00000000000000000000000000", name: "global" },
     name: "fmt",
     type: "hook",
     status: "submitted",
@@ -343,7 +344,8 @@ describe("the review page", () => {
       id: "m",
       email: "m@x.test",
       name: "M",
-      role: "moderator",
+      role: "user",
+      workspaces: { global: "moderator" },
     });
     reviews.getReview.mockResolvedValue(view());
   });
@@ -517,7 +519,8 @@ describe("a change proposal's review", () => {
       id: "m",
       email: "m@x.test",
       name: "M",
-      role: "moderator",
+      role: "user",
+      workspaces: { global: "moderator" },
     });
   });
   const proposal = (overrides: Partial<NonNullable<ReviewView["proposal"]>> = {}) => ({

@@ -4,7 +4,13 @@ import type { Workspace } from "../models/workspace";
 import type { WorkspaceRepository } from "../repositories/workspace-repository";
 import { createWorkspace, deleteWorkspace } from "./workspaces";
 
-const root = { id: "root", email: "root@example.com", name: "Root", role: "root" as const };
+const root = {
+  id: "root",
+  email: "root@example.com",
+  name: "Root",
+  role: "root" as const,
+  workspaces: {},
+};
 
 const taken: Workspace = {
   id: "other",
@@ -13,6 +19,7 @@ const taken: Workspace = {
   visibility: "public",
   isGlobal: false,
   scopes: 0,
+  moderators: 0,
   createdBy: null,
   createdAt: new Date(),
   updatedAt: new Date(),

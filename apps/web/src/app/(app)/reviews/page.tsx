@@ -9,7 +9,7 @@ import { checkedQueueState, queueList, queueQueryOf } from "@/features/reviews/l
 import { QueueStatusProvider } from "@/features/reviews/QueueStatus";
 import { approvableRows, QueueTable, QueueTabs, queueTab } from "@/features/reviews/QueueTable";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
-import { can } from "@/server/domains/identity/models/permissions";
+import { canInSome } from "@/server/domains/identity/models/permissions";
 import { listQueue } from "@/server/domains/submissions/actions/reviews";
 import { itemNameOf } from "@/server/domains/submissions/models/submission";
 import { requestHeaders } from "@/server/http/request-headers";
@@ -23,12 +23,16 @@ const Reviews = async ({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) => {
   const request = await requestHeaders();
-  if (!can(await getCurrentUser(request), "submissions.review")) notFound();
+  const user = await getCurrentUser(request);
+  if (!canInSome(user, "submissions.review")) notFound();
   const params = await searchParams;
   const tab = queueTab(params.tab);
   const list = queueList(tab);
   const state = checkedQueueState(parseListQuery(list, params));
-  const { rows, next, previous, total } = await listQueue(request, queueQueryOf(tab, state));
+  const { rows, next, previous, total, workspaces } = await listQueue(
+    request,
+    queueQueryOf(tab, state),
+  );
   const table = (actions?: ReactNode) => (
     <QueueTable
       tab={tab}
@@ -38,6 +42,8 @@ const Reviews = async ({
       page={{ next, previous }}
       total={total}
       actions={actions}
+      workspaces={workspaces.map((workspace) => workspace.name)}
+      root={user?.role === "root"}
     />
   );
   return (

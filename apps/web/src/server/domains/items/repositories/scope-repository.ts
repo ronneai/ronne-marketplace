@@ -7,6 +7,8 @@ export type ScopeQuery = {
   search?: string;
   /** Only scopes after this name (the last name of the previous page). */
   cursor?: string;
+  /** Only scopes in these workspaces (091); every workspace when left out. */
+  workspaceIds?: readonly string[];
   limit: number;
 };
 

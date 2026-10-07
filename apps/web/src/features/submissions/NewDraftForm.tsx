@@ -164,7 +164,7 @@ export const NewDraftForm = ({ scopes, mine }: { scopes: ScopeOption[]; mine: st
                   {chosenScope.description}
                 </>
               ) : (
-                "Where the item lives. Anyone can propose items in any scope; review is the gate."
+                "Where the item lives: a scope of one of your workspaces. Review is the gate."
               )}
             </p>
           </fieldset>

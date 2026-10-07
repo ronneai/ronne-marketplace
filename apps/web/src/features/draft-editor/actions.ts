@@ -11,7 +11,7 @@ import {
   saveDraftFiles,
 } from "@/server/domains/submissions/actions/drafts";
 import { rebaseProposal, resolveConflict } from "@/server/domains/submissions/actions/proposals";
-import { listDependents } from "@/server/domains/submissions/actions/reviews";
+import { countDependents } from "@/server/domains/submissions/actions/reviews";
 import {
   canDeleteSubmission,
   checkSubmission,
@@ -165,7 +165,7 @@ export const withdrawInfoAction = async (
     const headers = await requestHeaders();
     return {
       canDelete: await canDeleteSubmission(headers, id),
-      dependents: (await listDependents(headers, id)).length,
+      dependents: await countDependents(headers, id),
     };
   } catch (error) {
     return { error: message(error) };

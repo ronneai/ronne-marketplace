@@ -72,6 +72,7 @@ export const getScopes = async (request: Request, deps: DraftsApiDeps = {}) => {
           name: scope.name,
           description: scope.description,
           workspace: scope.workspace.name,
+          role: scope.role,
         })),
         nextCursor: page.nextCursor,
       },

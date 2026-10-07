@@ -7,7 +7,12 @@ import { createRoot } from "../../identity/actions/root-account";
 import { signIn } from "../../identity/actions/session";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import type { AppAuth } from "../../identity/repositories/auth-instance";
-import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testing/test-auth";
+import {
+  cookieHeaders,
+  createTestUser,
+  setWorkspaceRole,
+  testAppAuth,
+} from "../../identity/testing/test-auth";
 import {
   GlobalWorkspaceError,
   InvalidWorkspaceDescriptionError,
@@ -310,5 +315,32 @@ describe("pageWorkspaces", () => {
     const byDescription = await pageWorkspaces(asRoot, { search: "everyone" }, app);
     expect(byDescription.workspaces.map((w) => w.name)).toEqual(["global", "zeta"]);
     expect(byDescription.total.count).toBe(2);
+  });
+});
+
+describe("moderators (091)", () => {
+  it("counts a workspace's active moderators, not root or the disabled", async () => {
+    const acme = await createWorkspace(asRoot, { name: "acme", description: "Acme." }, app);
+    const moderators = async () => (await findWorkspace(asRoot, "acme", app))?.moderators;
+    expect(await moderators()).toBe(0);
+    const ids = [] as string[];
+    for (const email of ["a@example.com", "b@example.com", "c@example.com"]) {
+      const id = await createTestUser(app, { email, password });
+      await setWorkspaceRole(app, id, "moderator", acme.id);
+      ids.push(id);
+    }
+    expect(await moderators()).toBe(3);
+    await t.db
+      .updateTable("user")
+      .set({ role: "root" })
+      .where("id", "=", ids[0] ?? "")
+      .execute();
+    await t.db
+      .updateTable("user")
+      .set({ disabled_at: toDbDate(new Date(), t.dialect) })
+      .where("id", "=", ids[1] ?? "")
+      .execute();
+    expect(await moderators()).toBe(1);
+    expect((await findWorkspace(asRoot, "global", app))?.moderators).toBe(1);
   });
 });

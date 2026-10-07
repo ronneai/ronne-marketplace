@@ -81,6 +81,7 @@ const submission = (overrides: Partial<Submission> = {}): Submission => ({
   id: "01J0000000000000000000000A",
   authorId: "u1",
   scope: { id: "s1", name: "platform" },
+  workspace: { id: "00000000000000000000000000", name: "global" },
   name: "code-reviewer",
   type: "agent",
   status: "draft",

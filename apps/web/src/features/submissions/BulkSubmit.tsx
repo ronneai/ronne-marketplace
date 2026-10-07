@@ -158,6 +158,7 @@ const OUTCOME: Record<BulkResult["result"], string> = {
   not_ready: "Not submitted",
   not_found: "Not submitted",
   not_submittable: "Not submitted",
+  not_a_member: "Not submitted",
 };
 
 /** Select all ready and Submit selected, above the table; only when something is ready. */

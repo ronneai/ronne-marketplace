@@ -13,7 +13,6 @@ import { isScalar, parseDocument } from "yaml";
 import { isId } from "../../../db/ids";
 import type { SortDir } from "../../../db/keyset";
 import type { StorageAdapter } from "../../../storage";
-import { requirePermission } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
 import {
   DraftLimitError,
@@ -52,6 +51,7 @@ import { readZip } from "../models/zip";
 import type { RegistryLookup } from "../repositories/registry-lookup";
 import type { SubmissionRepository } from "../repositories/submission-repository";
 import { frontmatterChanges } from "./frontmatter-dependencies";
+import { requireMember, requireSignedIn } from "./membership";
 import { staleVersion, withStale } from "./proposals";
 import { registryIssues } from "./registry-checks";
 import { noChangeIssues, removeSubmission } from "./submissions";
@@ -78,22 +78,29 @@ const sortByPath = <T extends { path: string }>(files: T[]): T[] =>
 const now = (deps: DraftDeps) => (deps.now ?? (() => new Date()))();
 const limitsOf = (deps: DraftDeps) => deps.limits ?? DEFAULT_LIMITS;
 
-/** The actor's own submission, or SubmissionNotFoundError: someone else's looks like a missing one. */
+/**
+ * The actor's own submission, or SubmissionNotFoundError: someone else's looks like a missing one.
+ * Reading needs no membership: a removed member still reads their own (091).
+ */
 const ownSubmission = async (
   repo: SubmissionRepository,
   actor: DraftActor,
   id: string,
 ): Promise<Submission> => {
-  requirePermission(actor.user, "submissions.create");
+  requireSignedIn(actor);
   const submission = isId(id) ? await repo.find(id) : null;
   if (!submission || submission.authorId !== actor.user?.id) throw new SubmissionNotFoundError();
   return submission;
 };
 
-/** The actor's own submission, if its files can be edited: a draft, or sent back for changes. */
+/**
+ * The actor's own submission, if its files can be edited: a draft, or sent back for changes, in a
+ * workspace they're still a member of (091).
+ */
 const ownEditable = async (repo: SubmissionRepository, actor: DraftActor, id: string) => {
   const submission = await ownSubmission(repo, actor, id);
   if (!isEditable(submission.status)) throw new SubmissionNotEditableError(submission.status);
+  requireMember(actor, submission.workspace);
   return submission;
 };
 
@@ -123,7 +130,7 @@ const insertDraft = async (
   repo: SubmissionRepository,
   draft: {
     authorId: string;
-    scope: { id: string; name: string };
+    scope: { id: string; name: string; workspace: { id: string; name: string } };
     name: string;
     type: ItemType;
     files: DraftFile[];
@@ -149,7 +156,8 @@ const insertDraft = async (
   return {
     id,
     authorId,
-    scope,
+    scope: { id: scope.id, name: scope.name },
+    workspace: scope.workspace,
     name,
     type,
     status: "draft",
@@ -171,13 +179,14 @@ export const createDraft = async (
   actor: DraftActor,
   input: { scope: string; name: string; type: string },
 ): Promise<Draft> => {
-  requirePermission(actor.user, "submissions.create");
+  requireSignedIn(actor);
   const authorId = actor.user?.id ?? "";
   const name = itemNameFrom(input.name);
   const type = typeFrom(input.type);
   const at = now(deps);
   return deps.repo.transaction(async (repo) => {
     const scope = await findScope(repo, input.scope);
+    requireMember(actor, scope.workspace);
     const files = draftTemplate(type, itemNameOf({ scope, name })).map((file) => ({
       path: file.path,
       encoding: "utf8" as const,
@@ -195,7 +204,7 @@ export const listMySubmissions = async (
   deps: DraftDeps,
   actor: DraftActor,
 ): Promise<(Submission & { stale: string | null })[]> => {
-  requirePermission(actor.user, "submissions.create");
+  requireSignedIn(actor);
   return withStale(deps.repo.registry(), await deps.repo.listByAuthor(actor.user?.id ?? ""));
 };
 
@@ -225,7 +234,7 @@ export const pageMySubmissions = async (
   actor: DraftActor,
   query: MySubmissionsQuery,
 ): Promise<MySubmissionsPage> => {
-  requirePermission(actor.user, "submissions.create");
+  requireSignedIn(actor);
   const filters = {
     authorId: actor.user?.id ?? "",
     status: query.status,
@@ -253,7 +262,7 @@ export const pageMySubmissions = async (
 
 /** How many of your submissions are in each status, for My submissions' status links (063). */
 export const countMySubmissionsByStatus = async (deps: DraftDeps, actor: DraftActor) => {
-  requirePermission(actor.user, "submissions.create");
+  requireSignedIn(actor);
   return deps.repo.statusCountsByAuthor(actor.user?.id ?? "");
 };
 
@@ -479,7 +488,7 @@ export const createDraftFromFiles = async (
     base?: string;
   },
 ): Promise<UploadedDraft> => {
-  requirePermission(actor.user, "submissions.create");
+  requireSignedIn(actor);
   const authorId = actor.user?.id ?? "";
   const name = itemNameFrom(input.name);
   const type = typeFrom(input.type);
@@ -490,6 +499,7 @@ export const createDraftFromFiles = async (
 
   const draft = await deps.repo.transaction(async (repo) => {
     const scope = await findScope(repo, input.scope);
+    requireMember(actor, scope.workspace);
     const proposal =
       input.base === undefined
         ? undefined
@@ -595,7 +605,7 @@ export const listOpenDrafts = async (
   actor: DraftActor,
   itemName?: string,
 ): Promise<(Submission & { description: string | null })[]> => {
-  requirePermission(actor.user, "submissions.create");
+  requireSignedIn(actor);
   const wanted = itemName?.trim().toLowerCase();
   const open = (await deps.repo.listByAuthor(actor.user?.id ?? "")).filter(
     (submission) =>
@@ -639,7 +649,7 @@ export const replaceDraftFromFiles = async (
     base?: string;
   },
 ): Promise<UploadedDraft> => {
-  requirePermission(actor.user, "submissions.create");
+  requireSignedIn(actor);
   const name = itemNameFrom(input.name);
   const type = typeFrom(input.type);
   const limits = limitsOf(deps);
@@ -724,7 +734,7 @@ export const importZip = async (
   id: string,
   input: { archive: Uint8Array; mode: "merge" | "replace" },
 ): Promise<SavedDraft> => {
-  requirePermission(actor.user, "submissions.create");
+  requireSignedIn(actor);
   const draft = await getDraft(deps, actor, id);
   const files = readZip(input.archive, limitsOf(deps));
   const paths = new Set(files.map((file) => file.path));
@@ -777,8 +787,11 @@ export const renameDraft = async (
   return deps.repo.transaction(async (repo) => {
     const submission = await ownDraft(repo, actor, id);
     if (submission.proposal) throw new ProposalRenameError();
-    const scope = await findScope(repo, input.scope);
-    const renamed = { ...submission, scope, name, updatedAt: at };
+    requireMember(actor, submission.workspace);
+    const found = await findScope(repo, input.scope);
+    requireMember(actor, found.workspace);
+    const scope = { id: found.id, name: found.name };
+    const renamed = { ...submission, scope, workspace: found.workspace, name, updatedAt: at };
     const manifest = (await repo.files(submission.id)).find((file) => file.path === MANIFEST_PATH);
     if (manifest?.encoding === "utf8") {
       const content = renamedManifest(

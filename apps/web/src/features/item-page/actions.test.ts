@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { ProposalBaseNotFoundError } from "@/server/domains/submissions/exceptions/errors";
+import {
+  NotAMemberError,
+  ProposalBaseNotFoundError,
+} from "@/server/domains/submissions/exceptions/errors";
 
 const proposals = vi.hoisted(() => ({ proposeChange: vi.fn() }));
 vi.mock("@/server/domains/submissions/actions/proposals", () => proposals);
@@ -22,6 +25,13 @@ describe("proposeChangeAction", () => {
     expect(await proposeChangeAction("@team/fmt", "9.9.9")).toEqual({
       ok: false,
       error: "@team/fmt has no version 9.9.9 to propose a change to.",
+    });
+    // Not a member of the item's workspace (091): the page adds "How do I join?".
+    proposals.proposeChange.mockRejectedValue(new NotAMemberError("acme"));
+    expect(await proposeChangeAction("@acme/fmt", "1.0.0")).toEqual({
+      ok: false,
+      error: new NotAMemberError("acme").message,
+      notMember: true,
     });
     proposals.proposeChange.mockRejectedValue(new Error("boom"));
     await expect(proposeChangeAction("@team/fmt", "1.0.0")).rejects.toThrow("boom");

@@ -10,7 +10,13 @@ export type Readiness = { ready: boolean; errors: number };
 export type BulkResult = {
   id: string;
   name: string;
-  result: "submitted" | "resubmitted" | "not_ready" | "not_found" | "not_submittable";
+  result:
+    | "submitted"
+    | "resubmitted"
+    | "not_ready"
+    | "not_found"
+    | "not_submittable"
+    | "not_a_member";
   /** What stopped it, for one that wasn't submitted. */
   reasons: string[];
 };

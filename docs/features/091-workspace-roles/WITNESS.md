@@ -1,0 +1,399 @@
+# 091 — Witness
+
+> Plan: [PLAN.md](./PLAN.md) · Spec: [SPEC.md](./SPEC.md)
+
+Before a task is ticked, the `state-witness` agent, which didn't do the work, checks it against the
+real state, blind to the notes first. A `[risky]` task also gets an adversarial pass. A task is
+ticked only when its latest pass is met with every claim confirmed. The record lands here, in the
+same commit as the task. How it works: [state-witness.md](../../knowledge/state-witness.md).
+
+## Task 1 — Migration
+
+Witnessed: 2026-10-06 21:37 EDT, by a fresh agent (blind). Commit: 3ba4bfe + working tree (feat/091-workspace-roles: 0020_workspace_members.ts/.db.test.ts untracked; index.ts, schema.ts, kysely-identity-repository.ts, test-auth.ts, user-admin.db.test.ts, 0019_workspaces.db.test.ts modified). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The database tests pass on all four databases. The fixtures include a root, a moderator, a user and a disabled moderator | yes | confirmed | `pnpm --filter @ronneai/web exec vitest run --project db` → 70 files, 552 passed, 8 skipped (server-only); `pnpm test:db:postgres` / `:mysql` / `:mariadb` → 70 files, 560 passed each. Fixtures are at `0020_workspace_members.db.test.ts:60-64` |
+| 2 | `workspace_members` has workspace_id, user_id, role, added_by, created_at, updated_at, with PK (workspace_id, user_id). It cascades from workspaces and from users, and added_by is set null | yes | confirmed | `0020_workspace_members.ts:23-53`. Test "has the keys" checks the 3 FKs (CASCADE, CASCADE, SET NULL; exactly 3), and "enforces them" checks duplicate PK, unknown workspace and unknown user are rejected and the row goes with the user, on all four databases. Probe: deleting the user named in added_by left the row with added_by NULL on SQLite, PG, MySQL and MariaDB |
+| 3 | The migration gives every non-root user one `global` row, `moderator` for former moderators (disabled ones too) and `user` otherwise, with added_by null. Roots get no rows | yes | confirmed | Test "puts every user but roots in global" passes on all four. Probe: 1203 users (every 3rd a moderator, about 12 roots, Unicode and emoji names), more than the 500-row batch → rows = users − roots, each with the right role, no root rows, on SQLite, PG, MySQL and MariaDB. Mutants: all moderators written as `user` → the test fails; root filter removed → the test fails |
+| 4 | After the migration `user.role` holds only `root` and `user` | yes | confirmed | Test "leaves only root and user" passes on all four. Probe: `select distinct role` → `["root","user"]` on all four. Mutant without the `update … set role='user'` → that test fails |
+| 5 | The migration is safe to run again (MySQL commits DDL partway through a run); the data is copied in batches of 500 | yes | confirmed | `0020_workspace_members.ts:24` (`ifNotExists`), `:56-63` (index guarded per dialect), `:67-80` (skips users who already have a global row), `:82` (batches of 500). Test "is safe to run again" → rows unchanged, then `migrateToLatest` → `[]`, on all four. The 1203-user probe covers more than one batch |
+| 6 | New users get a `global` row in `createUser`; a new root gets none | yes | confirmed | `kysely-identity-repository.ts:295-307`, inside the `createUser` transaction (`user-admin.ts:134`); the setup root is created with role root (`root-account.ts:40`). Test "puts a new user in global, and a new root nowhere" passes on all four. Mutant with the insert disabled → that test fails (1 failed / 23) |
+| 7 | Registered in the migration list and the Kysely schema. The test helper gives test users their global row | yes | confirmed | `migrations/index.ts:47`; `schema.ts:109-116,315`; `test-auth.ts:47-60`. The full db suites pass with it |
+| 8 | There is an index on `workspace_members.user_id` | yes | confirmed | `0020_workspace_members.ts:56-63`. Probe `probe-index.db.test.ts` (pragma_index_list / information_schema.statistics / pg_indexes) → `workspace_members_user_id_idx` exists on SQLite, PG, MySQL and MariaDB (1 passed each) |
+| 9 | A root who is demoted gets a `global` `user` row in `setRole`, only once | yes | confirmed | `kysely-identity-repository.ts:200-220`. Test "puts a root who stops being root in global, once" (root → user → root → user, one row) passes on all four. Mutant with the insert disabled → that test fails; mutant that always inserts → it fails |
+| 10 | Lint, typecheck and unit tests pass | yes | confirmed | `pnpm lint` → exit 0, no errors; `pnpm typecheck` → 7/7 tasks successful; `pnpm test` → exit 0, 8/8 tasks successful |
+
+**Overall:** met: the migration creates `workspace_members` with the specified keys and gives every non-root user a `global` row (moderator for former moderators), leaves only `root`/`user` in `user.role`, can run again, and new users get their `global` row, on SQLite, PostgreSQL, MySQL and MariaDB. Rows 8–10 were added after reading the notes, each checked first. Remark for task 2: `setRole` and `createUserWithPassword` still accept `moderator` until `Role` is narrowed.
+
+Witnessed: 2026-10-06 21:55 EDT, by a fresh agent (adversarial). Commit: 3ba4bfe + uncommitted working tree (feat/091-workspace-roles). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `workspace_members` has workspace_id, user_id, role, added_by, created_at, updated_at, with PK (workspace_id, user_id) | yes | confirmed | `0020_workspace_members.ts:25-55` creates exactly these columns and `workspace_members_pk`; the 0020 test "enforces them" rejects a duplicate (global, user) on all four databases |
+| 2 | Cascade on workspace and on user; added_by is set null | yes | confirmed | "has the keys" passes on SQLite, PostgreSQL, MySQL 8.4 and MariaDB (verbose, 5/5 each): CASCADE, CASCADE, SET NULL, exactly 3; deleting a user removes their row |
+| 3 | The migration gives every non-root user a `global` row (moderator for former moderators), disabled users included | yes | confirmed | `TEST_DATABASE_URL=<each> tsx probe.mts`, 1,100 non-roots (550 mods, 550 users, every 7th disabled) and 2 roots → rows=1100 mods=550 users=550 rootRows=0 missing=0 on all 4, across the 500-row batch |
+| 4 | Roots stay root and get no rows | yes | confirmed | The same probe → rootRows=0, user.role ∈ {root,user} on all 4; the real file upgrade (row 7) too |
+| 5 | Only `root` / `user` are left in `user.role` | yes | confirmed | "leaves only root and user" passes on all 4; the probe saw only root and user. Values the app never writes aren't normalised (row 10) |
+| 6 | Rerunning after a partial failure is safe (MySQL/MariaDB commit DDL; PostgreSQL rolls back) | yes | confirmed | Probe B ran the real `up` then threw: PostgreSQL rolled back; SQLite, MySQL, MariaDB kept the table; a rerun applied 0020 → mods=2 users=1 on all 4. Probe C (table and index kept, half the rows deleted, moderators restored) → rerun 10/10 on all 4 |
+| 7 | A real 0019 SQLite file upgrades through the migrate script | no | confirmed | `DATABASE_URL=file:…/real.db pnpm db:migrate` → "applied 0020_workspace_members"; again → "Nothing to migrate"; moderator → user with a global moderator row, the root with none |
+| 8 | New users get the `global` row in `createUser` (root gets none) | yes | confirmed | `kysely-identity-repository.ts:295-307` inside the service's transaction (`user-admin.ts:134`); the test passes on all 4. Other creation paths: `root-account.ts:40` (a root), `e2e/seed.ts:38` (same method), `test-auth.ts:47-60` (adds the row); Better Auth sign-up is disabled |
+| 9 | Migration tests pass on the four databases | yes | confirmed | `pnpm test:db:postgres` / `:mysql` / `:mariadb` → 70 files / 560 passed each; SQLite `--project db` → 552 passed, 8 skipped (after the core build; a run before it failed only in `setup.db.test.ts` on the missing `@ronneai/core/dist`) |
+| 10 | Hostile `user.role` values (not written by the app) | no | confirmed | Probe D with `ROOT`, `Moderator`, `admin`, `""`: SQLite and PostgreSQL → global user rows, role kept; MySQL and MariaDB (case-insensitive collation) → `ROOT` no row, `Moderator` → user with a user row. The app can't write these values (`checkRole`, the default `user`): a remark |
+| 11 | Index on `workspace_members.user_id` | yes | confirmed | `sqlite3 real.db` → `workspace_members_user_id_idx`; on MySQL and MariaDB the `mysqlHasIndex` guard let probes B and C rerun without a duplicate-index error |
+| 12 | A demoted root gets a global `user` row in `setRole`, once | yes | confirmed | `kysely-identity-repository.ts:200-220`; "puts a root who stops being root in global, once" passes on SQLite, PostgreSQL and MySQL (verbose, 23/23) |
+| 13 | Registered in `index.ts` and `schema.ts`; `createTestUser` adds the global row | yes | confirmed | `index.ts:47`, `schema.ts:108-118,315`, `test-auth.ts:47-60`; `pnpm --filter @ronneai/web typecheck` clean |
+| 14 | Lint, typecheck and unit tests are green | yes | confirmed | `pnpm lint` → exit 0 (warnings only); web typecheck clean; `vitest run --project unit` → 106 files / 1031 passed |
+
+**Overall:** met: the migration, keys, index, reruns, the real SQLite upgrade and global rows for new and demoted users hold on SQLite, PostgreSQL, MySQL and MariaDB.
+
+## Task 2 — Roles and the check
+
+Witnessed: 2026-10-06 22:15 EDT, by a fresh agent (blind). Commit: fc25855 + working tree (62 changed paths, uncommitted). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A permission-matrix test passes for root, moderator in A, user in A and a non-member, checked in A, in B and instance-wide | yes | confirmed | `pnpm --filter @ronneai/web exec vitest run src/server/domains/identity/models` → 6 files, 49 passed; `permissions.test.ts` checks every permission of the 4 people in A, B and instance-wide. Mutants: "any membership counts" → 3 failed; "user gets `submissions.review`" → 2 failed; "root not special in workspaces" → 2 failed |
+| 2 | `Role` (`user.role`) is `root \| user`; `WorkspaceRole` is `moderator \| user` | yes | confirmed | `models/user.ts:7`, `:10`; `db/schema.ts:21` `Generated<"root" \| "user">`, `:112` `"moderator" \| "user"` |
+| 3 | `user.role` keeps only root or user: admin create and change-role refuse `moderator` | yes | confirmed | `services/user-admin.ts:79-80` (`isRole` → `InvalidRoleError`); `user-admin.db.test.ts:239` "refuses moderator" passes on SQLite, PostgreSQL, MySQL and MariaDB |
+| 4 | Instance permissions (users.manage, audit.view, scopes.manage, workspaces.manage, settings.manage, submissions.override) need root; `account.manage_own` is signed in | yes | confirmed | `permissions.ts:7-21`; in the matrix, moderator in A, user in A and non-member hold only `account.manage_own`; `can(null, …)` false for all |
+| 5 | Workspace permissions take the workspace and look up the membership; root passes everywhere; a root's rows and an unknown role are ignored | yes | confirmed | `permissions.ts:27-39`, `holdsIn` `:50-56`; tests: root with a `user` row in A still reviews in A; `user.role` `moderator` gives nothing; workspace role `admin` gives nothing |
+| 6 | A workspace permission without a workspace fails type-check (and an instance permission with one) | yes | confirmed | Scratch probe, `npx tsc --noEmit` → TS2345 on `can(u,"submissions.review")`, `requirePermission(u,"versions.manage")`, `can(u,"users.manage","ws")`, and a `"submissions.create"\|"users.manage"` union; the test's `@ts-expect-error` lines type-check (`pnpm --filter @ronneai/web typecheck` → no errors) |
+| 7 | Memberships are loaded with the session's user and with the token's user | yes | confirmed | `kysely-identity-repository.ts:131` (`findActiveUser`, `services/session.ts:31`) and `:160`; `kysely-token-repository.ts:152`; `repositories/memberships.ts`; `memberships.db.test.ts` passes on all 4. Mutants: token repo `workspaces: {}` → fails; `findActiveUser` `workspaces: {}` → 2 failed |
+| 8 | Tokens in flight keep working, and the next request reads the new memberships (session and token) | yes | confirmed | `memberships.db.test.ts`: the same session and token gain `moderator` in acme after `setWorkspaceRole`; `can(…, acme)` true, `can(…, global)` false; on all 4 |
+| 9 | "The membership is loaded once per request with the user, so a check doesn't query" | no | partly | `can`/`requirePermission`/`canInSome` don't query, but memberships are re-read on every user load, not cached per request: one `/reviews` request loads them at least 3 times (`(app)/shell.ts:16`, `submissions/actions/reviews.ts:23` via `countNeedsReview`, `(app)/reviews/page.tsx:26`); no `cache(` in `identity/` |
+
+**Overall:** not met: the role split, the typed `can()` and the permission matrix hold on all four databases, and memberships come with the session's and the token's user and refresh on the next request, but not "once per request". Fixed by rewording the spec to the behaviour (the user row was always read this way; caching would delay a disable within a request), with the stale "three roles" comments and a test for unknown membership roles: re-check below.
+
+### Re-check — row 9, the notes' other claims
+
+Witnessed: 2026-10-06 22:38 EDT, by a fresh agent (blind). Commit: fc25855 + working tree (uncommitted). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 9 | (Spec reworded) Memberships are loaded with the user every time a request reads the user, as the user row is; a check itself doesn't query | yes | confirmed | `SPEC.md:63-64` has the new wording; `findActiveUser` and `findByHash` call `loadMemberships` on each read; `can`, `requirePermission`, `canInSome`, `workspacesWith` take no database |
+| 10 | A membership role other than moderator or user (admin, MODERATOR, root) gives `{}`, by session and by token, on all four databases | yes | confirmed | `memberships.db.test.ts:59` → 4 passed on SQLite, PostgreSQL, MySQL, MariaDB; mutant without the `isWorkspaceRole` filter → that test fails (1 failed, 3 passed) |
+| 11 | The "three roles" comments say two | yes | confirmed | `kysely-identity-repository.ts:124`, `kysely-token-repository.ts:150`; `grep -n three` finds no role comment |
+| 12 | `CurrentUser` carries `workspaces` (workspace id → role) | yes | confirmed | `models/user.ts:13`, `:16-22`; typecheck → 0 `error TS` |
+| 13 | `workspacesWith()` and `canInSome()` serve lists and the nav | yes | confirmed | `permissions.ts` `workspacesWith` → `"all"` for root, matching memberships otherwise; "lists where a permission is held" passes; `nav.ts:55-60` uses `canInSome` for workspace permissions |
+| 14 | The transitional `requireInSome()`/`canInSome()` at the existing call sites keep today's behaviour until tasks 3–5 | yes | confirmed | `git diff fc25855 -- src/server/domains/submissions src/server/domains/items src/app` → one-for-one swaps with the same permissions; `submissions.override` stays `requirePermission`; everyone is in `global`, moderators are global moderators; the full db suite passes unchanged |
+| 15 | Admin › Users offers root and user only | yes | confirmed | `CreateUserDialog.tsx` drops `<option value="moderator">`; `UserRowActions.tsx` and `list.ts` `ROLES = ["user", "root"]` |
+| 16 | The e2e seed and `createTestUser` make global moderators through memberships; the `setWorkspaceRole` helper exists | yes | confirmed | `e2e/seed.ts` `globalRole: "moderator"` for `E2E_MODERATORS`; `testing/test-auth.ts:49-60`; `setWorkspaceRole` at `:81`; e2e "as moderator" passes |
+| 17 | Lint, typecheck and unit tests are green | yes | confirmed | `pnpm lint` → exit 0, no errors; web typecheck → 0 `error TS`; `vitest run --project unit` → 106 files, 1035 passed |
+| 18 | The database suite passes on four databases (notes: 71 files, 564 on each server) | yes | confirmed | `node scripts/test-db.mjs postgres\|mysql\|mariadb` → 71 files, 565 passed each (the new row-10 test included); SQLite → 557 passed, 8 skipped |
+| 19 | e2e: 91 passed | yes | confirmed | `pnpm test:e2e` in a scratch copy synced with the working tree → 91 passed (2.9m) |
+
+**Overall:** met: memberships are read with the user on each read, as the spec now says, and a check never queries; unknown membership roles give nothing on all four databases; the notes' claims hold. Remark for tasks 3–5: until the `requireInSome`/`canInSome` call sites are converted, a moderator in any workspace can review, publish and manage versions in every workspace (everyone is in `global` only until 092).
+
+Witnessed: 2026-10-06 22:26 EDT, by a fresh agent (adversarial). Commit: fc25855 + uncommitted working tree (feat/091-workspace-roles; rows 10, 13, 15–18 after the unknown-role test was added). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A permission-matrix test passes for root, moderator in A, user in A and a non-member, checked in A, in B and instance-wide | yes | confirmed | `vitest run …/models/permissions.test.ts` → 9/9 passed; `permissions.test.ts:18-48` covers the 4 people × every permission × A/B/instance. Mutants in a scratch copy each fail it: any membership counts everywhere → 3 failed; no root bypass → 2; `submissions.create` moderator only → 2; `versions.manage` to user → 1; no workspace allowed → 1 |
+| 2 | `user.role` is `root \| user`, and memberships are `moderator \| user` | yes | confirmed | `models/user.ts:7,10,13,26-34`; `db/schema.ts:21` `Generated<"root" \| "user">`, `:112` `"moderator" \| "user"`; `CurrentUser.workspaces` required (`user.ts:21`); `nav.ts:14`, `UserRowActions.tsx:20` narrowed |
+| 3 | The instance and workspace permissions are split in the type, as the spec lists them; `account.manage_own` stays "signed in" | yes | confirmed | `permissions.ts:7-39`: 7 instance permissions (the spec's 6 + `users.view`) and the 5 workspace ones; "splits the permissions" checks no overlap; `account.manage_own` true for every signed-in subject, false for `null` |
+| 4 | A workspace permission without a workspace doesn't type-check (`can` and `requirePermission`) | yes | confirmed | Scratch probe, `tsc --noEmit` → TS2345 on a literal workspace permission, a `WorkspacePermission` or `Permission` variable, `string \| undefined` as the workspace, an instance permission with a workspace, the union `"submissions.review" \| "users.manage"`. Only `any`, casts and `undefined!` compile, and fail closed at run time (`permissions.ts:65-66`). With the workspace made optional → "TS2578 Unused '@ts-expect-error'" at `permissions.test.ts:90`. Remark: the transitional `canInSome`/`requireInSome` (about 50 call sites) type-check without a workspace, allowed until tasks 3–5 |
+| 5 | Workspace permissions look up the membership and root passes; a root's rows are ignored | yes | confirmed | `permissions.ts:51-57`. Probe on all 4 databases: a root with a `user` row in w9 reviews there and manages versions in a nonexistent workspace; `workspacesWith` → `"all"`. Demoted (changeRole → user): `{global:user, w9:user}`, loses review in w9 and `users.manage`, keeps `submissions.create` in global |
+| 6 | Memberships are loaded with the session user and with the token's user | yes | confirmed | `kysely-identity-repository.ts:131,160`, `kysely-token-repository.ts:152`, `access-tokens.ts:137-141`; `memberships.db.test.ts` passes. Token path's memberships → `{}`: 21 db tests fail; session path's → `{}`: 184 fail |
+| 7 | Once loaded with the user, a check doesn't query | no | confirmed | `can`/`holdsIn` are pure (`permissions.ts:51-67`); after loading the moderator, `delete from workspace_members` leaves `can(u,"submissions.review",global)` true on all 4. Remark: memberships load on every `getCurrentUser` (`session.ts:31`), no per-request cache, as the user row always has |
+| 8 | Tokens in flight keep working, and the next request sees the new memberships (session and token) | yes | confirmed | `memberships.db.test.ts` "a token in flight sees the change" and "a change applies on the next request" pass; db suite → PG/MySQL/MariaDB 564 passed each, SQLite 556 + 8 skipped (71 files) |
+| 9 | Prototype keys as workspace ids neither grant nor break anything | no | confirmed | Probe, all 4: workspaces `__proto__`, `constructor`, `toString`; moderator in `__proto__`, user in `constructor` → own keys via `Object.fromEntries`; review only in `__proto__`; `create` in `toString`/`hasOwnProperty` false; a non-member false for `__proto__`, `constructor`, `toString`, `valueOf`, `""`; token path the same. Ids come from `newId()` |
+| 10 | Unknown roles in the database give nothing | yes | confirmed | Probe, all 4: `MODERATOR`, `admin`, `root`, global `Moderator` → `{}` on session and token. Legacy `user.role='moderator'`: session null, token `role:"user"` with its real memberships only. New test "leave out a role that isn't moderator or user, by session and by token" → 4/4 on all 4; without the `isWorkspaceRole` filter → it fails (1/4) |
+| 11 | Disabled users get nothing, whatever their memberships | no | confirmed | Probe, all 4: a disabled global moderator → `getCurrentUser` null; token → `{ok:false, failure:"user_disabled"}`; `kysely-identity-repository.ts:122` |
+| 12 | Nothing writes `moderator` into `user.role` any more | yes | confirmed | Probe, all 4: `adminCreateUser(role:"moderator")` and `adminChangeRole(…,"moderator")` → InvalidRoleError (`user-admin.ts:79-81`); then `select distinct role` → `["root","user"]`. `test-auth.ts:64` writes only root; `e2e/seed.ts:42-44` uses `globalRole`; the dialog, row actions and filter offer user/root only |
+| 13 | The user passed to client components still works | no | confirmed | `navFor` runs server-side (`AppShell.tsx:39`, `menu/page.tsx:22`); `MobileMenu` (client) gets `user` with `workspaces` (own ids only). `pnpm test:e2e` (scratch copy) → 91 passed, mobile sweep as member, moderator and root |
+| 14 | Lint, typecheck and unit tests are green | yes | confirmed | `pnpm lint` → 0 errors; `apps/web tsc --noEmit` → exit 0; `pnpm typecheck` → 7/7; web `vitest --project unit` → 106 files, 1035 passed |
+| 15 | `workspacesWith()` and `canInSome()` serve lists and the nav; the transitional `requireInSome()`/`canInSome()` keep today's behaviour | yes | confirmed | `permissions.ts:100-125`; "lists where a permission is held" passes; `nav.ts:51-60` splits by `WORKSPACE_PERMISSIONS`; AppShell and nav tests 30/30; the existing submission, review, release and version db tests pass unchanged on all 4 |
+| 16 | The `setWorkspaceRole` test helper changes or adds a membership | yes | confirmed | `test-auth.ts:79-104`; the probe added moderator and user rows in new workspaces and changed global; `getCurrentUser` returned exactly those on all 4 |
+| 17 | The db suite passes on four databases (71 files, 564 on each server) | yes | confirmed | `node scripts/test-db.mjs postgres` / `mysql` / `mariadb` → 71 files, 564 passed each; SQLite 556 + 8 skipped (before the new unknown-role test) |
+| 18 | E2E: 91 passed | yes | confirmed | `pnpm test:e2e` in the scratch copy of the current tree → "91 passed (3.0m)" |
+
+**Overall:** met: the matrix test covers all four people and catches mutants; leaving out the workspace on `can`/`requirePermission` fails type-check unless cast; memberships come with the session's and the token's user, apply on the next request, ignore unknown roles (now tested) and root rows, and hold against prototype-key ids, on all four databases. E2E green.
+
+## Task 3 — Submissions domain
+
+Witnessed: 2026-10-06 22:54 EDT, by a fresh agent (blind). Commit: 0637358 plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The submissions db tests pass on SQLite, PostgreSQL, MySQL and MariaDB | yes | confirmed | `npx vitest run --project db` (SQLite) → 72 files, 568 passed, 8 skipped; `pnpm test:db:postgres` / `:mysql` / `:mariadb` → 72 files, 576 passed each |
+| 2 | There are new db test cases for a non-member and for a removed member | yes | confirmed | `submissions/actions/membership.db.test.ts` (new, 7 cases); `drafts-api.db.test.ts` 091 block (3 cases); `proposals.db.test.ts:128` a non-member's proposal |
+| 3 | Creating a draft needs membership of the scope's workspace; a moderator elsewhere is refused; root may | yes | confirmed | `drafts.ts:189` `requireMember` after `findScope`; mutant M2 (check removed) → "lets a member draft in acme…" fails |
+| 4 | The draft upload API refuses a non-member with `not_a_member` and 403 (details `{workspace}`), creating nothing | yes | confirmed | `drafts.ts:502`, `http/errors.ts` → 403 `not_a_member`; mutants M3 (no check) and M12 (status 400) → the drafts-api 091 tests fail |
+| 5 | Proposing a change needs membership; the message says "Ask to join <ws> to propose changes" | yes | confirmed | `proposals.ts:95-98`, `NotAMemberError` in `errors.ts`; mutant M4 → `proposals.db.test.ts` "needs membership…" fails |
+| 6 | The scope list (new-draft form, `GET /api/v1/scopes`) shows only the member's workspaces; root sees all | yes | confirmed | `items/services/scopes.ts` (`workspacesWith`, `workspaceIds`), used by `new/page.tsx` and `drafts-api.ts`; mutant M7 → the membership test fails; probe paging with limit 1 and 2, cursor and search: the outsider got only `team`, a search for "acme" → [] |
+| 7 | `GET /api/v1/scopes` keeps its shape and adds `role` (root, moderator or user) | yes | confirmed | `drafts-api.ts:72`; mutant M8 → 2 tests fail; probe P2: a moderator of acme sees `acme:moderator, team:user` |
+| 8 | Saving, replacing, checking, submitting, resubmitting, restoring and renaming are refused for a removed member (`not_a_member`) | yes | confirmed | `requireMember` in `ownEditable`, `checkSubmission`, `submitDraft`, `restoreSubmission`, `renameDraft`; mutants M1, M5, M6 caught; probe P1: resubmitting a `changes_requested` one refused, status unchanged; a rebase/resolveConflict probe refused both |
+| 9 | A removed member can still read, list, withdraw and delete their own drafts and submissions | yes | confirmed | `own` / `ownSubmission` need only sign-in (`submissions.ts:66`, `drafts.ts:90`); `membership.db.test.ts` ("reads and lists", "withdraws", "can still delete"); probe P1 withdraws from `changes_requested` |
+| 10 | Bulk check and submit skip each draft outside the actor's workspaces, give the reason, and submit the rest | yes | confirmed | `bulk-submit.ts:218`, `:304`; mutant M9 → 2 tests fail; the API returns `not_a_member` with an issue; the UI maps it (`BulkSubmit.tsx`, `actions.ts`); the CLI prints the issue (`packages/cli/src/submit.ts:123`); `pnpm --filter @ronneai/rmk test` → 226 passed |
+| 11 | Moderators can still decide a removed member's open submission | no | confirmed | Probe P3: after removal, root approves → `approved`; the moderator check itself is task 4 |
+| 12 | Composer and dependency search are open to anyone signed in | yes | confirmed | `composer.ts:54,119`, `dependency-search.ts:71` call `requireSignedIn` |
+| 13 | It type-checks and lints | yes | confirmed | `pnpm --filter @ronneai/web typecheck` → exit 0; `pnpm lint` → 0 errors; UI unit tests (submissions, draft-editor, reviews) → 192 passed |
+
+**Overall:** met: drafts, uploads, proposals, edits, submits, restores and bulk submit need membership of the scope's workspace and are refused with `not_a_member` (403 in the API); scope lists are filtered and carry `role`; a removed member keeps read, withdraw and delete; on the four databases. Test gaps (the code is right, per the probes): renaming out of a workspace you were removed from, rebase and conflict resolution by a removed member, and resubmitting as a removed member had no test of their own; added after this pass. Other note claims checked after reading the notes: `Submission` carries its `workspace` (the repository joins `workspaces`; the membership test checks it) — confirmed; importing a zip needs membership (`importZip` → `saveDraftFiles` → `ownEditable` → `requireMember`) — confirmed by reading; rebase and conflict resolution need membership — confirmed by probe; the MCP server's display of `not_a_member` — not checked.
+
+Witnessed: 2026-10-06 23:10 EDT, by a fresh agent (adversarial). Commit: 0637358 + uncommitted working tree (feat/091-workspace-roles). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The submissions db tests pass on SQLite, PostgreSQL, MySQL and MariaDB | yes | confirmed | `vitest run --project db src/server/domains/submissions src/server/http/drafts-api.db.test.ts src/server/domains/items` → 24 files, 247 passed on SQLite and with `TEST_DATABASE_URL` on the postgres, mysql and mariadb servers; full db project on SQLite → 568 passed, 8 skipped; unit → 1035 passed |
+| 2 | There are new test cases for a non-member, and they catch the bug they target | no | confirmed | `actions/membership.db.test.ts` (7 tests), the 091 block in `drafts-api.db.test.ts`, a case in `proposals.db.test.ts`. Mutants removing each check — upload (M1), propose (M6), createDraft (M10), the listScopes filter (M8), checkMany (M9) — each fail a test |
+| 3 | There are new test cases for a removed member, and they catch the bug they target | no | partly | Mutants of ownEditable (M3), submitDraft (M2), restore (M4), checkSubmission (M12) fail tests. Two **survived** (150/150 passing): `requireMember` removed from `ownProposal` (rebase, resolve-conflict, M7), and the source-workspace check removed from `renameDraft` (M11) |
+| 4 | Creating a draft in the web app needs membership of the scope's workspace; root may create anywhere | yes | confirmed | `drafts.ts:189`; probe: a global moderator's `createDraft` in @acme → `NotAMemberError`; a member's and root's succeed |
+| 5 | POST /drafts from a non-member is refused (403 `not_a_member`) and creates nothing, a change proposal (`base`) included | yes | confirmed | `drafts.ts:502`; `errors.ts:71` (403, `details.workspace`); the test asserts `[403,"not_a_member",{workspace:"acme"}]` and 0 rows; probe with `scope:"@ACME"` + `base:"1.0.0"`, and `" acme "` → `NotAMemberError`, 0 drafts |
+| 6 | Proposing a change needs membership | yes | confirmed | `proposals.ts:98`; `proposals.db.test.ts:128`; probe: a global moderator's `proposeChange` on @acme/fmt → `NotAMemberError` |
+| 7 | A draft can't be renamed into or out of a workspace the person isn't a member of | yes | confirmed | `drafts.ts:790-792` checks both; probe: a removed member renaming acme → team → `NotAMemberError`, scope stays acme. Renaming out isn't tested (row 3, M11) |
+| 8 | A removed member can't save, import a zip, PUT, check, submit, resubmit after changes were requested, or restore | yes | confirmed | Probe after `request_changes` and removal: `submitDraft`, `saveDraftFiles`, `importZip` → `NotAMemberError`, status stays `changes_requested`; `restoreSubmission` → `NotAMemberError`, works once re-added; the drafts-api test covers PUT and check/submit |
+| 9 | A removed member can't rebase a proposal or resolve its conflicts | yes | confirmed | Probe: `rebaseProposal` and `resolveConflict` → `NotAMemberError` (`proposals.ts:172`); no repo test (row 3) |
+| 10 | A removed member can still read and withdraw their own drafts and open submissions | yes | partly | `getDraft`, `viewSubmission`, `listMySubmissions`, GET /drafts and withdraw work. **The change-proposal page breaks**: `page.tsx:102` → `proposalPanel` → `ownProposal` → `requireMember` → `NotAMemberError`, uncaught |
+| 11 | Bulk check and submit judge each submission on its own and skip, with a reason, those outside the person's workspaces | yes | confirmed | `bulk-submit.ts:218`, `:304`; probe with `{all:true}` → `['not_a_member']`, status unchanged; the API returns `ready:false`, `issues[0].code="not_a_member"` |
+| 12 | Scope lists for drafts are filtered: the new-draft form, `GET /api/v1/scopes`, and `rmk export` through the API | yes | confirmed | `scopes.ts:107-114`, `kysely-scope-repository.ts:101-104`; test: member acme + team, outsider team, root all; probe: no memberships → `[]`; `limit:1` → acme, `nextCursor` "acme" |
+| 13 | `GET /api/v1/scopes` keeps its shape and adds `role` (root, or the role in the scope's workspace) | yes | confirmed | `drafts-api.ts:71-76` → `{name, description, workspace, role}` + `nextCursor`; probe: `acme:moderator`, `team:user`; root with a membership row → `acme:root` |
+| 14 | `rmk submit` shows the `not_a_member` reason | yes | confirmed | CLI probe (`planSubmit`, `submitLines`, stub API): "… - You aren't a member of the acme workspace. Ask to join acme to propose changes." in the preview and after submitting. Remark: it also said "Fix them in the web app" |
+| 15 | The composer and dependency search need only a session and only read | yes | confirmed | `composer.ts:54,119`, `dependency-search.ts:71` use `requireSignedIn`; no repo writes; a user with no memberships gets published entries |
+| 16 | The MCP server's export and submit tools can't bypass the checks | yes | confirmed | `mcp/src/export-tools.ts`, `submit-tools.ts` call `planExport` / `planSubmit` → the HTTP API with the token (rows 5, 8, 11); web server actions call the domain actions |
+| 17 | Lint and typecheck are clean | yes | confirmed | `pnpm --filter @ronneai/web typecheck` → no errors; `biome check apps/web/src/server apps/web/src/features` → 0 errors |
+| 18 | `Submission` carries its `workspace`, and `findScope` returns the scope's workspace | yes | confirmed | `models/submission.ts:22`; `kysely-submission-repository.ts:76-89`, `:136-155` join `workspaces` |
+| 19 | Deleting your own needs only a session | yes | confirmed | `membership.db.test.ts` "can still delete a draft"; `deleteDraft` / `deleteSubmission` via `ownDraft` / `own`, no `requireMember` (`drafts.ts:819`, `submissions.ts:391`) |
+
+**Overall:** not met: a removed member's change proposal page can't be opened (row 10); rebase/resolve and renaming out of the workspace have no removed-member tests (row 3). Fixed: `ownProposal` checks membership only for rebase and resolve; `viewSubmission` returns `member` and the page makes the editor read-only for a removed member; tests for both gaps; `rmk submit` drops "Fix them in the web app" for `not_a_member`. Re-check below.
+
+### Re-check
+
+Witnessed: 2026-10-06 23:32 EDT, by a fresh agent (adversarial). Commit: 0637358 + uncommitted working tree (feat/091-workspace-roles). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A removed member opens their own change proposal: `proposalPanel` reads without membership | yes | confirmed | `proposals.ts:333` calls `ownProposal(deps, actor, id)` with no `editable`; the earlier probe now passes (6/6); mutant M13 (the panel with `{editable:true}`) → 1 test fails (`proposals.db.test.ts:393`) |
+| 2 | Rebase and conflict resolution still need membership, and tests catch it | yes | confirmed | `proposals.ts:197`, `:277` pass `{ editable: true }`; probe → `NotAMemberError` from both; mutants M7a (rebase), M7b (resolve) → 1 fails each |
+| 3 | Renaming a draft out of its workspace is refused for a removed member, and a test catches it | yes | confirmed | `membership.db.test.ts:159`; mutant M11 → 1 of 153 fails |
+| 4 | A removed member can't resubmit or change a submission sent back for changes, and sees it read-only | yes | confirmed | `membership.db.test.ts:168`; probe (resubmit, save, importZip → `NotAMemberError`; status stays `changes_requested`) passes |
+| 5 | `viewSubmission` returns `member` (may create in the submission's workspace; root true) | yes | confirmed | `submissions.ts:135` `can(actor.user, "submissions.create", submission.workspace.id)`; mutant M14 (`member: true`) → 1 test fails |
+| 6 | The submission page makes the editor read-only and hides Submit, Restore, Rebase and Resolve for a removed member; Withdraw and Delete stay | yes | confirmed | `page.tsx:40-41,58,68,71` add `draft.member`; `canWithdraw`, `canDelete` unchanged; withdraw from `draft` allowed (`status.ts:47`), its dialog offers delete (`DraftEditor.tsx:393`). Read only, no render test. Remark: the read-only notice's text doesn't know about membership (below) |
+| 7 | `rmk submit` no longer says "Fix them in the web app" for `not_a_member` drafts, and a test catches it | yes | confirmed | `submit.ts` filters `fixable`; mutant (filter dropped) → 1 of 9 fails in `submit.test.ts` |
+| 8 | The suites pass on the four databases, rmk's tests pass, and lint and typecheck are clean | yes | confirmed | `vitest run --project db` → 72 files: SQLite 571 + 8 skipped; postgres, mysql, mariadb 579 each; unit 1035; `packages/cli` 227; typecheck of web and rmk clean; `biome check` 0 errors |
+
+**Overall:** met: a removed member reads their own proposal and every write path still refuses them; each fix has a test that fails without it. Left for task 6: the read-only notice (`DraftEditor.tsx:105-130`) says "Submitted for review" on a removed member's draft instead of saying they're no longer a member. For task 4: a removed member can still comment on their open submission (`reviews.ts:200`) and publish their own approved one (`publish.ts:76`).
+
+## Task 4 — Reviews and releases
+
+Witnessed: 2026-10-07 00:08 EDT, by a fresh agent (blind). Commit: c0f87d2 + uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Only a moderator of the submission's workspace, or root, can approve, reject or request changes there. A moderator of A gets refused in B | yes | confirmed | `vitest run --project db …/workspace-reviews.db.test.ts` → 6/6 passed; acme's moderator on a beta submission: `decide`, `comment` → `SubmissionNotFoundError`, status stays `submitted`; mutant removing the checks in `lockedSubmission`/`decide` fails it; probe P2: a moderator removed from acme → `decide` Forbidden, queue Forbidden, count 0 |
+| 2 | Root approves and releases in every workspace | yes | confirmed | Root's queue lists `@acme/fmt, @beta/lint, @beta/fmt`; `publishSubmission(asRoot, inBeta)` → `published` |
+| 3 | A plain user (moderator nowhere) can't approve or release others' submissions | yes | confirmed | Probe P3: `approveMany`, `decide` → `ForbiddenError`, status stays `submitted`; `releaseRefusal` (bulk-release.ts) and `publish.ts:86-89` let only the author release their own |
+| 4 | Bulk approve checks each submission and skips those outside the actor's workspaces, with "Not a moderator in X" | yes | confirmed | db test `["approved","not_approvable"]`, "Not a moderator in beta"; mutant removing the per-item check (bulk-approve.ts:94) fails it |
+| 5 | Bulk release skips those outside the actor's workspaces *with the reason* | yes | partly | A removed author → `NotAMemberError("beta")`; acme's moderator releasing beta's → `{result:"not_found"}`, no reason (probe P5 `[["not_found",null]]`), unlike bulk approve |
+| 6 | A single release works for the workspace's moderator and root, and for the author while a member; not for another workspace's moderator | yes | confirmed | db test: acme's moderator on beta → `SubmissionNotFoundError`; the author → published; removed → `NotAMemberError`; a mutant of `publish.ts:86` survives but is equivalent (`view_submitted` and `publish` are both moderator-only) |
+| 7 | The four-eyes rule is unchanged; override is root only | yes | confirmed | Probe P4 (acme's moderator is the author): approve → `OwnSubmissionError`, override → `ForbiddenError`, `approveMany` → `not_approvable`, queue row `approvable:false` |
+| 8 | The queue's query is filtered to the moderated workspaces; root sees all | yes | confirmed | db test: acme's moderator `["@acme/fmt"]`, beta's 2, root 3; mutant turning off the `workspaceIds` filter (repo:118) fails it |
+| 9 | The tab counts and the nav count follow the same filter | yes | confirmed | `countNeedsReview` 1 / 2 / 3 / 0; mutant turning off the `countByStatus` filter fails it; the tab total uses the same `forReview` |
+| 10 | A Workspace filter appears when there are several; picking one narrows the queue; a workspace you don't moderate matches nothing | yes | confirmed | `vitest run src/features/reviews …/services` → 77 passed; `names(asAcmeMod,"beta")` → `[]` |
+| 11 | The db tests pass on SQLite, PostgreSQL, MySQL and MariaDB | yes | confirmed | SQLite 577 passed, 8 skipped; `pnpm test:db:postgres` / `:mysql` / `:mariadb` → 585 each (73 files) |
+| 12 | A removed author can't comment or release; the workspace's moderators still decide and release | yes | confirmed | db test: `can` `{publish:false, comment:false}`; `publishSubmission`, `comment` → `NotAMemberError`; acme's moderator then publishes |
+| 13 | A moderator of A sees nothing of B's submissions | yes | partly | Probe P1: `getReview(asAcmeMod, acme).dependents` and `listDependents` return `@beta/secret-plan` with its author's name; `dependentsOf` checked no authorization; signed out got the list too |
+| 14 | An e2e test has a moderator of A approve in A and not see B | yes | partly | `pnpm test:e2e` → 91 passed, but only `workspaceOutsider` was checked as not seeing acme's; acme's moderator was never checked against another workspace |
+
+**Overall:** not met: bulk release gave no reason, the dependents list showed B's submissions to A's moderator, and the e2e checked only one direction. Fixed as in the adversarial pass below (SPEC now says a submission the actor can't see is "not found" in bulk actions too). Re-checks below.
+
+### Re-check after the fixes
+
+Witnessed: 2026-10-07 00:36 EDT, by a fresh agent (blind). Commit: c0f87d2 + uncommitted working tree (fixes 1–5). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | Bulk approve and bulk release skip other workspaces' submissions. One the actor can't see is "not found"; one they see but can't act on says why | yes | partly | Probe Q1: acme's moderator bulk-approving beta's → `[{"id":…,"result":"not_found"}]`; mutant removing the `view_submitted` check fails "…as not found"; Q3: a removed author's `releaseMany` says why. **But** Q2: acme's moderator, a user in beta, bulk-approving *their own* beta submission → `[["not_found",null]]`, though they can see it |
+| 13 | The dependents list names only those the actor could open; signed out gets nothing; the withdraw warning counts every one | yes | confirmed | New db test: acme's moderator → `["@acme/house-style"]`, root both, `countDependents(author)` → 2, beta's moderator → NotFound, signed out → Forbidden; mutants dropping the `canSee` filter or `requireSignedIn` fail it; probe Q4 |
+| 14 | An e2e test has a moderator of A approve in A and not see B | yes | confirmed | `pnpm test:e2e` → 91 passed (3.4m); in `scopes.e2e.ts`, the global `@e2e-seeded/workspace-elsewhere` has no link in `workspaceModerator`'s `/reviews`, its address is a 404 for them, then they approve acme's item |
+| 15 | Dependency marks are shown only for the moderated workspaces' submissions | yes | confirmed | Probe R1: `dependencyMarks` keys `[]` for acme's moderator, `[id]` for beta's moderator and root |
+| 16 | A removed author's comment and release refusals say what to ask for | yes | confirmed | "Ask to join acme to comment there." / "…to release your items there." from `comment`, `publishSubmission`, `releaseMany` |
+| 17 | Nothing else regressed | yes | confirmed | SQLite 578 passed, 8 skipped; postgres / mysql / mariadb 586 each (73 files); `vitest run src/features src/app …/services` → 512 passed; typecheck exit 0; lint no errors |
+
+**Overall:** not met: bulk approve answered `not_found` with no reason for the actor's own submission in a workspace they don't moderate (5). Fixed: bulk approve treats the actor's own as visible, so it says "Not a moderator in beta"; a test covers it. Second re-check below.
+
+### Second re-check
+
+Witnessed: 2026-10-07 00:39 EDT, by a fresh agent (blind). Commit: c0f87d2 + uncommitted working tree (the own-submission fix in `approveMany`). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | Bulk approve and bulk release skip other workspaces' submissions. A submission the actor can't see answers "not found". One they see but can't act on says why, including their own in a workspace they don't moderate | yes | confirmed | `bulk-approve.ts:95-101`: only one that isn't the actor's and isn't viewable answers `not_found`; `vitest run --project db …/workspace-reviews.db.test.ts` → 8/8; "says why for your own submission in a workspace you don't moderate" → `not_approvable`, "Not a moderator in beta"; mutants removing the `authorId` clause or the `view_submitted` check each fail one test; SQLite 579 passed, 8 skipped; `pnpm test:db:postgres` 587 passed; typecheck exit 0; bulk release unchanged (not_found for another workspace's, the removed author's reason) |
+
+**Overall:** met: approving many gives a reason for the actor's own submission in a workspace they don't moderate, and answers `not_found` for ones they can't see, on SQLite and PostgreSQL.
+
+Witnessed: 2026-10-07 00:04 EDT, by a fresh agent (adversarial). Commit: c0f87d2 + working tree (feat/091-workspace-roles). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The review and release db tests pass on SQLite, PostgreSQL, MySQL and MariaDB | yes | confirmed | `vitest run --project db src/server/domains/submissions` → 19 files, 189 passed; `node scripts/test-db.mjs postgres\|mysql\|mariadb src/server/domains/submissions` → 189 passed each |
+| 2 | Those tests cover the new checks | yes | confirmed | Nine mutants each fail a test: queue `workspaceIds` off, `countByStatus` filter off, bulk approve's skip off, publish's `requireMember` off, bulk release visibility off, comment's `requireMember` off, `lockedSubmission` visibility off, the queue's default filter off, `getReview` treating anyone as reviewer |
+| 3 | A moderator of B can't approve, request changes on, reject, override, reject-with-dependents, comment on or open A's submission | yes | confirmed | Probe as beta's moderator on an acme submission: approve, request_changes, reject, comment, `getReview`, `rejectWithDependents` → `SubmissionNotFoundError`; override → `ForbiddenError (submissions.override)`; status stays `submitted` |
+| 4 | Releasing: a moderator of B can't release A's, alone, in bulk, or as an approved dependency pulled into the release | yes | confirmed | `publishSubmission` → NotFound; `prepareRelease` → `not_found`; probe: acme's `kit` depends on approved `@beta/style`, released by acme's moderator → kit refused ("@beta/style can't be released with it: Only its author, a moderator or root releases it."); both stay `approved` |
+| 5 | Bulk actions check each submission and skip, with a reason, those outside the actor's workspaces | yes | confirmed | `approveMany` on [acme, beta] → `approved`, `not_approvable` "Not a moderator in beta"; bulk release → `not_found`, a removed author → `NotAMemberError("beta")` |
+| 6 | Four-eyes is unchanged when the author moderates the workspace; root's override stays root-only and audited | yes | confirmed | Author moderating acme, own submission: approve → `OwnSubmissionError`, override → `ForbiddenError`, `approveMany` → `not_approvable` "own", `can.decide=false`. Root's own: approve → OwnSubmissionError, override → `approved`, 1 `submission.override_approved` row. Acme's moderator overriding another's → Forbidden |
+| 7 | The queue's rows and total are filtered to the workspaces the actor moderates; root sees all | yes | confirmed | acme's moderator → [@acme/fmt], total 1; root both; a global-only moderator [] and 0; searching "beta" as acme's moderator → 0 |
+| 8 | The nav count (`countNeedsReview`) follows the same filter | yes | confirmed | 1 for acme's moderator, 2 beta's, 3 root, 0 a user, 0 a global-only moderator, 0 no session; `shell.ts:18`, `app/(app)/page.tsx:14` |
+| 9 | The Workspace filter only narrows within moderated workspaces; it appears when there are several | yes | confirmed | `workspace=` "beta", "global", "ACME", "acme ", "' OR 1=1 --", "名前", "acme\r\n" → 0 rows, total 0 (matched in JS, never in SQL); root with "beta" → only beta's; `reviews.test.tsx`: a select only with two or more |
+| 10 | A removed author can't comment or release; the moderators still decide; the author can still withdraw | yes | confirmed | Probe: comment → `NotAMemberError`; `can` all false; acme's moderator request_changes → `changes_requested`, can comment; the author withdraws → `withdrawn` |
+| 11 | No leak of another workspace's submissions through dependents, bulk results or errors | yes | not met | `listDependents(asBetaMod, @beta/style)` → `@acme/kit` with id, status, author; the same in `getReview().dependents` and the reject cascade's skipped list; with no session `listDependents` returned it too; `approveMany` with a beta id showed `@beta/fmt` to acme's moderator |
+| 12 | The server actions in features/reviews and features/releases go through these domain functions with the session's user | no | confirmed | `features/reviews/actions.ts` → `decide`, `rejectWithDependents`, `listDependents`, `approveMany`, `comment`, `publishSubmission`; `features/releases/actions.ts` → `prepareRelease`, `releaseMany`; actor from `getCurrentUser(headers)` |
+| 13 | An end-to-end test has a moderator of A approve in A and not see B | yes | partly | `pnpm test:e2e` → 91 passed; acme's moderator approves in acme, but "doesn't see" was only checked with `workspaceOutsider` against acme's item |
+| 14 | UI and decision unit tests pass | yes | confirmed | `vitest run src/features/reviews .../decisions.test.ts` → 3 files, 54 passed |
+| 15 | Someone who moderates nowhere gets Forbidden on a decision | yes | confirmed | A user of acme only: approve, request_changes, reject, `approveMany` → `ForbiddenError (submissions.review)` |
+| 16 | Dependency marks are checked in the submission's workspace | yes | confirmed | `dependencyMarks(asBetaMod, [acme's kit])` → `{}`; acme's moderator → the kit's marks (`dependency-marks.ts:123`) |
+| 17 | The seed: workspaceModerator moderates only e2e-acme, workspaceOutsider only global | yes | confirmed | `e2e/users.ts` `E2E_MODERATORS`, `E2E_ACME_MEMBERS`; `e2e/seed.ts` inserts the rows |
+
+**Overall:** not met: every permission check holds, but `dependentsOf` and bulk approve's results showed another workspace's open submissions (11), and the e2e didn't check that A's moderator can't see B (13). Fixed (SPEC updated): a submission the actor can't see is "not found" in bulk approve; dependents list only those the actor could open, need a session and a visible submission, and the author's warning uses `countDependents` (a number); the e2e checks both directions. Re-check below.
+
+### Re-check
+
+Witnessed: 2026-10-07 00:34 EDT, by a fresh agent (adversarial). Commit: c0f87d2 + working tree with the fixes. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 11a | Dependents list, by name, only those the actor could open; they need a session and a submission the actor can see | yes | confirmed | Probe: acme's `kit` depends on `@beta/style`; `listDependents(asBetaMod, style)` → `[]`, `getReview(asBetaMod, style).dependents` → `[]`; acme's moderator on style → `SubmissionNotFoundError`; no session → `ForbiddenError` for a real id and "nope" alike; the author → `[@acme/kit]`; `workspace-reviews.db.test.ts:302` |
+| 11b | The reject cascade neither reveals nor touches another workspace's dependents | yes | confirmed | `rejectWithDependents(asBetaMod, style, {dependents})` → `dependents: []`, kit stays `submitted`; no session → `ForbiddenError` |
+| 11c | Bulk approve answers "not found" for a submission the reviewer can't see | yes | confirmed | `approveMany(asAcmeMod, [beta id])` → `{"id":…,"result":"not_found"}`, no name; the same for acme's moderator who is a user in beta |
+| 11d | Bulk and single release reveal nothing of another workspace's submission | yes | confirmed | `prepareRelease(asAcmeMod, [kit, style])` → style `{name:null, result:"not_found"}`; `publishSubmission(asAcmeMod, style)` → NotFound |
+| 11e | The withdraw warning's count is a number only, for the author | yes | confirmed | `countDependents(asAuthor, style)` → 1; acme's moderator → NotFound; no session → Forbidden; used only at `submissions/[id]/page.tsx` (when `draft.mine`) and `withdrawInfoAction` (author-only via `canDeleteSubmission`). Remark: the service itself isn't author-only |
+| 11f | A removed author's refusals say why | yes | confirmed | comment → "…Ask to join acme to comment there."; publish and `releaseMany` → "…to release your items there." |
+| 13 | The end-to-end test checks both directions | yes | confirmed | `playwright test --project=chromium e2e/rmk.e2e.ts e2e/scopes.e2e.ts` → 9 passed (a full run's one failure, `rmk.e2e.ts:203` `ERR_MODULE_NOT_FOUND`, came from the witness's own concurrent rebuild of `@ronneai/core`); mutant showing `global` to every moderator → `scopes.e2e.ts:142` fails; mutant removing the queue filter → line 109 fails |
+| R1 | The db tests still pass on four databases after the fixes | yes | confirmed | `src/server/domains/submissions` → 190 passed on SQLite, postgres, mysql, mariadb |
+| R2 | Root's filter label | yes | confirmed | `QueueTable.tsx:358` `everyLabel={root ? "Every workspace" : "Every workspace you moderate"}` |
+
+**Overall:** met: dependents, the reject cascade, bulk approve and release, the review page and the counts no longer show another workspace's submissions, and the e2e fails if A's moderator sees B's. Left for the owner: dependency marks (056) still show a named dependency's status (e.g. "submitted") when that dependency is another workspace's open submission; its name is already in the manifest, so only the status shows, and only for what the item names.
+
+## Task 5 — Items domain
+
+Witnessed: 2026-10-07 00:56 EDT, by a fresh agent (blind). Commit: 88767d5 + working-tree diff (7 files). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Tag, remove-tag, deprecate, undeprecate, yank and unyank are checked in the item's workspace, not "in some workspace" | yes | confirmed | `services/versions.ts:54` `requirePermission(actor.user, "versions.manage", item.workspaceId)` inside `withItem`, which all six share; `item.workspaceId` from `scopes.workspace_id` (`kysely-item-repository.ts:68,84`); mutant without line 54 → the 091 test "lets acme's moderator and root…" fails |
+| 2 | A moderator of workspace A can tag, deprecate and yank in A and not in B; root can in both; a user can't in either | yes | confirmed | `versions.db.test.ts` 091 block: the global-only moderator is refused moveTag/removeTag/deprecate/yank on acme's item; acme's moderator and root succeed. Scratch probe (10/10 on SQLite, PostgreSQL, MySQL, MariaDB): acme's moderator demoted in global is refused deprecate on a global item; the global moderator and root succeed there; acme's moderator can unyank, undeprecate, removeTag on acme's item and the global moderator can't; an acme `user` is refused yank; no session → ForbiddenError; a missing item → ItemNotFoundError |
+| 3 | The versions tests, with the workspace cases, pass on all four databases | yes | confirmed | SQLite `vitest run --project db src/server/domains/items` → 6 files / 54 passed; `node scripts/test-db.mjs <db> src/server/domains/items` → 5 files / 40 passed on postgres, mysql, mariadb; both 091 tests listed as passing |
+| 4 | The Versions page's and item page's management controls are shown only to the item's workspace moderators and root | yes | confirmed | `versions.ts:253` `canManage: can(…, item.workspaceId)`; `itemPage` gets it via `listVersions`; `VersionsTab.tsx:45,64,91,139` gate on it; the test "offers the Versions page's controls…" true for acme's moderator and root, false for the global moderator and a user; mutant back to `canInSome` fails it |
+| 5 | Reading an item's versions and page stays open to signed-in non-members of a public workspace | no | confirmed | `listVersions` needs only `account.manage_own` (`versions.ts:237`); the global moderator and the user list acme's item without an error |
+| 6 | The item page's Propose action is refused at draft creation for a non-member, with "Ask to join acme to propose changes" | yes | confirmed | `proposals.ts:98` `requireMember`; message in `NotAMemberError` (`errors.ts:52`); `proposals.db.test.ts:128` passes |
+| 7 | The transitional `requireInSome` is gone; `canInSome` remains only where "holds it in any workspace" is meant | yes | confirmed | `git grep -n requireInSome -- . ':!docs'` → none; `canInSome` in the nav, shell, reviews pages, the bulk-approve and reviews pre-checks, and `versions.ts:48`, there only a fast refusal (mutant removing it leaves 9/9 passing and access unchanged: line 54 decides) |
+| 8 | Checking a workspace permission without a workspace fails type-check | no | confirmed | Probe `requirePermission(null, "versions.manage")` and `can(null, "versions.manage")` → `tsc` TS2345 on both |
+| 9 | Typecheck, lint and the whole web suite are green | yes | confirmed | `pnpm --filter @ronneai/web typecheck` → no errors; `pnpm lint` → 0 errors; `vitest run` (web) → 179 files, 1617 passed, 8 skipped |
+
+**Overall:** met: tags, deprecation and yanks (and their reversals) are decided in the item's own workspace, on all four databases; the page offers the controls only to that workspace's moderators and root; the transitional helper is gone. Remarks taken after the pass: the test now demotes acme's moderator in global too, so it shows both directions; `ProposeButton.tsx`'s comment no longer says anyone may propose; a long comment line in `versions.ts` rewrapped. Note claims not checked in this pass (the db suite on each server in full, e2e) are covered by the adversarial pass; the notes' "both directions" was only true after the test change above.
+
+Witnessed: 2026-10-07 00:52 EDT, by a fresh agent (adversarial). Commit: 88767d5 + working tree (uncommitted diff in items/models/item.ts, kysely-item-repository.ts, services/versions.ts, identity/models/permissions.ts, versions.db.test.ts, item-page/fixtures.ts). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The versions tests pass with workspace cases, on SQLite, PostgreSQL, MySQL and MariaDB | yes | confirmed | `vitest run --project db src/server/domains/items` → 5 files, 40 passed (SQLite); `node scripts/test-db.mjs postgres\|mysql\|mariadb versions.db.test.ts item-page.db.test.ts …` → all passed on each but the probe copy's own mangled test; `describe("in the item's workspace (091)")` at versions.db.test.ts:224 |
+| 2 | A moderator of another workspace can't move or remove tags, deprecate, undeprecate, yank or unyank, and nothing changes | yes | confirmed | Probe: `@team` moved to `acme`; the global moderator's 7 calls → each ForbiddenError; tags and version rows unchanged; on all four databases |
+| 3 | The item's workspace moderator (moderator only in acme) and root can do all six actions | yes | confirmed | Probe: acme's moderator and root each succeed at all six; the audit `dist_tag.moved` records mod2's id |
+| 4 | A user can't, whether a member (role user), not a member, or signed out | yes | confirmed | Probe: an acme `user`, a global-only user, `new Headers()` → ForbiddenError for all 7 calls |
+| 5 | A removed or demoted moderator loses it at once, in the same session | no | confirmed | Probe: mod2 acts, its row is deleted → all 7 Forbidden, `canManage` false; re-added as `user` → Forbidden; memberships load with each user read |
+| 6 | Rights follow the scope when it moves workspace | no | confirmed | Probe: the scope back in global → acme's moderator Forbidden, `canManage` false; the global moderator `canManage` true and moveTag works; workspace from `scopes.workspace_id` (kysely-item-repository.ts:68,84) |
+| 7 | The check is in the item's workspace (versions.ts:54), and the tests catch it removed or pointed elsewhere | yes | confirmed | Mutants: line 54 removed → the workspace test fails; the workspace id swapped for global's → fails; all six actions go through `withItem` |
+| 8 | The Versions page's `canManage` is the same check | yes | confirmed | versions.ts:253 `can(…, item.workspaceId)`; mutant back to `canInSome` fails "offers the Versions page's controls"; VersionsTab.tsx:45,64,91,139; features/versions/actions.ts call the same domain actions |
+| 9 | `requireInSome` is gone; `canInSome` remains only where "in any workspace" is meant | yes | confirmed | `grep -rn requireInSome apps packages scripts` → none; `canInSome` at nav.ts:58, shell.ts:18, reviews pages, bulk-approve.ts:81, reviews.ts:139, versions.ts:48, each a first refusal or a nav gate followed by a per-workspace `can` |
+| 10 | A workspace permission checked without a workspace fails type-check; no call site gets around it | no | confirmed | `pnpm --filter @ronneai/web typecheck` clean; probe `can(null,"versions.manage")` / `requirePermission(null,"versions.manage")` → TS2345; only the internal cast at permissions.ts:89; no raw `role === "moderator"` outside the migration |
+| 11 | No version-management path in the API, CLI, MCP or scripts skips the check | no | confirmed | The registry API only reads (registry-api.ts:85,103, registry-json.ts); app/api/v1/items has 4 GET routes; the CLI and MCP only call the API |
+| 12 | The item page's Propose for a non-member is refused at draft creation with "Ask to join acme to propose changes", and the button shows it | yes | confirmed | Probe: a global-only user's `proposeChange` in acme → `NotAMemberError: … Ask to join acme to propose changes.`; features/item-page/actions.ts returns it as `{ok:false,error}`; proposals.db.test.ts:128 |
+| 13 | Reading the item page and downloads stay open to a signed-in non-member in a public workspace | no | confirmed | Probe: a non-member's `itemPage(...)` → the page with `canManage:false`; `findDownloadAs(user, ref, "1.1.0")` → the version; `vitest --project db src/server/http` → 94 passed |
+| 14 | Case or whitespace variants of the scope or name don't get around the check | no | confirmed | Probe: `TEAM/github`, `team/GitHub`, `" team"/github` with the global moderator → none succeed |
+
+**Overall:** met: every version action, and the Versions page's controls, check `versions.manage` in the item's scope's workspace; root passes; moderators of other workspaces, users, removed moderators and signed-out callers are refused on all four databases; `requireInSome` is gone. Note claims this pass didn't cover (the first refusal's test, the full suites, the tests changed after it) are in the re-check. Remarks: a scope moving workspace at the same moment as a version action can let the old workspace's moderator act once (`withItem` reads the workspace before `lockItem`), low impact; Forbidden for an existing item and "not found" for a missing one tell the global moderator what exists, harmless while workspaces are public, for 093.
+
+### Re-check
+
+Witnessed: 2026-10-07 00:58 EDT, by a fresh agent (adversarial). Commit: 88767d5 + working tree (uncommitted: versions.db.test.ts, versions.ts, permissions.ts, item.ts, kysely-item-repository.ts, item-page/fixtures.ts, ProposeButton.tsx). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 15 | Someone who manages versions nowhere gets Forbidden, not "not found", for a missing item, and a test catches the first refusal being removed | yes | confirmed | New test "refuses someone who manages versions nowhere before looking for the item": `asUser` → ForbiddenError, the global moderator → ItemNotFoundError; deleting the `canInSome` refusal in a scratch copy → that test fails (1 failed / 9); deleting `requirePermission(…, item.workspaceId)` → the workspace test fails |
+| 16 | The full suites pass: lint, typecheck, test, db on each server (73 files), e2e 91 | yes | confirmed | `pnpm lint` → exit 0, no errors; `pnpm typecheck` → 7/7; `pnpm test` → 8/8 (web 179 files); `pnpm test:db:postgres` / `:mysql` / `:mariadb` → 73 files, 590 passed each; SQLite 582 passed, 8 skipped; `pnpm test:e2e` → 91 passed (2.1m); tree unchanged afterwards. The notes said 589 db tests; 590 counted |
+| 17 | The updated tests cover the undo actions and moving the scope back with acme's moderator only a plain user in global; they pass on all four databases | yes | confirmed | `intoAcme` sets mod2 to `user` in global; mod2's `undeprecate`, `unyank`, `removeTag` succeed; after the scope moves back, mod2's `deprecate` → Forbidden and the global moderator's succeeds; passes in the four full db runs; ProposeButton.tsx changed only in its comment |
+
+**Overall:** met: the first refusal and the undo actions are tested (a mutant shows it), and lint, typecheck, unit, db on SQLite, PostgreSQL, MySQL and MariaDB, and e2e pass on the current working tree.
+
+## Task 6 — Shell, nav and pages
+
+Witnessed: 2026-10-07 01:27 EDT, by a fresh agent (blind). Commit: 4ef5ebb (+ uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0. The diff included PLAN.md's new Notes entry, read by accident; the verdicts rest on the code and commands.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Reviews shows in the nav when the user moderates at least one workspace, including one that isn't global | yes | confirmed | `nav.ts:53-62` filters workspace permissions with `canInSome`; a tsx probe: moderator only in a non-global workspace → `true`, user everywhere → `false`, root with no memberships → `true`. Gap: `AppShell.test.tsx:31-39` only tested a moderator of global |
+| 2 | Reviews is hidden for someone who moderates no workspace; the /reviews pages refuse them | no | confirmed | `AppShell.test.tsx:20-30`; `reviews/page.tsx:27`, `reviews/[id]/page.tsx:62` → `notFound()` without `canInSome` |
+| 3 | The nav's review count and the queue only cover the workspaces the user moderates | no | confirmed | `shell.ts:18` → `countNeedsReview` scoped with `workspacesWith` (`queue.ts:202-205`); `workspace-reviews.db.test.ts` → 8 passed (acme 1, beta 2, root 3, author 0) |
+| 4 | The shell's role badge shows only "root"; there is no moderator badge | yes | confirmed | `AppShell.tsx:72`, `MenuList.tsx:64`; `AppShell.test.tsx:213-218` checks no `>moderator<` |
+| 5 | Admin › Users' Role column shows root, or "moderator in <workspaces>", or user | yes | confirmed | `UsersPage.tsx:72-84`; `admin-users.test.tsx` "shows root, or the workspaces a user moderates…" |
+| 6 | The users list loads each user's memberships, moderated workspaces first, on all dialects | yes | confirmed | `kysely-identity-repository.ts:188-209`, one query a page; `user-admin.db.test.ts` + `workspaces.db.test.ts` → 41 passed on SQLite, PostgreSQL, MySQL, MariaDB |
+| 7 | Workspace roles are read only on Admin › Users until 092: no control changes them, and Create user still offers only user/root | no | confirmed | `UserRowActions.tsx:20,30` (user ↔ root); `CreateUserDialog.tsx:44-45`; the role filter `UsersPage.tsx:39-41` (Any, user, root) |
+| 8 | Admin › Workspaces shows "No moderators" on a workspace with no active moderators (root and disabled users don't count) | yes | partly | The count query (`kysely-workspace-repository.ts:59-67`) and its db test pass on all 4 dialects; but the column had `hideOnMobile: true` (`WorkspacesTable.tsx:84`), so below 640px "No moderators" never shows |
+| 9 | An author who is no longer a member sees their own draft read only, with a notice saying why, and can still withdraw it | yes | confirmed | `submissions/[id]/page.tsx:67-69` sets `notMemberOf`; `DraftEditor.tsx:107,126-127`; `draft-editor.test.tsx` "tells an author no longer in the workspace…" |
+| 10 | The shell and nav tests pass | yes | confirmed | `vitest run src/components/app-shell src/features/admin-users src/features/admin-workspaces src/features/draft-editor src/server/domains/workspaces/services` → 13 files, 177 passed |
+| 11 | The phone sweep passes for each role | yes | confirmed | `pnpm test:e2e` → 91 passed; `mobile-sweep` as member, moderator, root and signed out, in phone, phone-webkit and tablet; it covers /reviews, /admin/users, /admin/workspaces (`pages.ts:63,72-73`) |
+| 12 | Typecheck and lint are clean | yes | confirmed | `pnpm --filter @ronneai/web typecheck` → no errors; `biome check apps/web/src` → 0 errors |
+
+**Overall:** not met: Admin › Workspaces hid the Moderators column on phones, so "No moderators" didn't show there (8). Fixed: the column shows on every width (the phone sweep still passes, 91), and the nav test covers a moderator of a non-global workspace. Re-check below.
+
+### Re-check — rows 1 and 8, and the phone sweep
+
+Witnessed: 2026-10-07 01:32 EDT, by a fresh agent (blind). Commit: 4ef5ebb (+ uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Reviews shows in the nav when the user moderates at least one workspace, including one that isn't global, and a test covers that case | yes | confirmed | `AppShell.test.tsx:28-36`: `{ [GLOBAL]: "user", acme: "moderator" }` → Home, Catalogue, Submissions, Reviews, Docs; `vitest run src/components/app-shell src/features/admin-workspaces` → 37 passed; a `navFor` checking only global would fail it (read from the code, not run as a mutant) |
+| 8 | Admin › Workspaces shows "No moderators" on a workspace with no active moderators, at every width | yes | confirmed | `git diff WorkspacesTable.tsx` → the Moderators column (lines 80-91) has no `hideOnMobile`; only Created keeps it (line 98); the count query and its db test are unchanged from the first pass, on 4 dialects |
+| 11 | The phone sweep passes for each role with the Moderators column showing | yes | confirmed | `pnpm test:e2e` → 91 passed (2.0m); all 15 mobile-sweep tests pass (signed out, member, moderator, root, "no page scrolls sideways", in phone, phone-webkit, tablet); `/admin/workspaces` is in the root sweep (`pages.ts:73`) |
+
+**Overall:** met: Reviews shows for a moderator of any workspace and a test covers it, "No moderators" shows at every width, and the phone sweep passes for each role.
+
+## Task 7 — Decisions and Documentation
+
+Witnessed: 2026-10-07 01:38 EDT, by a fresh agent (blind). Commit: e371a25 + working tree (ronne-web bc762e4). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The docs render tests pass in ronne-web | yes | confirmed | `cd ../ronne-web/www && pnpm test` at bc762e4 → 136 passed; `pnpm typecheck` clean; `pnpm lint` → 206 files, no fixes |
+| 2 | The helper link test passes here and covers the new helpers | yes | confirmed | `vitest run src/components/help src/features/reviews/reviews.test.tsx src/features/item-page` → 6 files, 66 passed; a probe of help.test.tsx's section check without `workspaces#roles` makes `queue-workspaces` and `join` broken links |
+| 3 | The app's topics.ts and ronne-web's topics.ts agree, with the new `workspaces#roles` | yes | confirmed | `node scratchpad/witness7/cmp.mts` → 18 topics each, 0 differences; workspaces = what, global, roles, managing |
+| 4 | Roles → The three roles is rewritten: root is instance-wide, moderator and user are per workspace (en/pt/fr) | yes | partly | en/roles.tsx:28-63 right, but en:38-39, pt:38-39, fr:48-49 say "Everyone is a user in `global`"; former moderators are moderators there, and roots have no row |
+| 5 | Roles → Who can do what gives the matrix by workspace | yes | confirmed | PERMISSIONS adds "Create workspaces and scopes" and "install and depend on"; the intro matches `WORKSPACE_PERMISSIONS` (permissions.ts:28-38) and `requireMember` |
+| 6 | Workspaces has a new section Members and roles (`workspaces#roles`) in en/pt/fr that matches the app | yes | confirmed | `roles:` at en:71, pt:74, fr:79; the refusal text matches errors.ts:52; Reviews via `canInSome` (nav.ts:52-57); the Workspace filter with more than one (QueueTable.tsx:113); a removed member withdraws but doesn't submit or release (submissions.ts:242, publish.ts:89); "moderator in …" (UsersPage.tsx:72-83); "No moderators" (WorkspacesTable.tsx:89) |
+| 7 | Review → What reviewers look at says the queue shows your workspaces | yes | confirmed | review.tsx (en/pt/fr) diff; matches SPEC Behaviour and QueueTable.tsx:113 |
+| 8 | Export → Choosing the scope says only scopes of your workspaces | yes | confirmed | export.tsx (en/pt/fr) "in a workspace you're a member of"; `listScopes` filters with `workspacesWith` (scopes.ts:108-116), used by `GET /api/v1/scopes` (drafts-api.ts:64) |
+| 9 | "Why only these?" on the queue's Workspace filter links to `workspaces#roles` | yes | confirmed | QueueTable.tsx:159-162; Help.tsx `queue-workspaces`; reviews.test.tsx: present with several, absent with one |
+| 10 | "How do I join?" on the "not a member" refusal links to `workspaces#roles` | yes | confirmed | actions.ts returns `notMember: true` for `NotAMemberError` (actions.test.ts); ProposeButton.tsx shows `<Help id="join">`; read from the code, the button's rendering isn't tested |
+| 11 | MVP §2 roles table and matrix, §9.5, §10, §15 Approval and Roles rows are updated | yes | confirmed | `git diff docs/MVP/MVP.md`: §2 Where column and matrix by workspace; §9.5 lists the workspace permissions as permissions.ts:28-38; §10 `workspace_members` matches 0020_workspace_members.ts:26-51; `user.role` root/user; §15 rows changed |
+| 12 | No Documentation, in-app copy or MVP passage still says something 091 made false | yes | not met | ronne-web scopes.tsx (en/pt/fr) "Anyone may propose an item in any scope" and "the scope picker lists every scope"; MVP.md:72 (§2 Scopes and ownership) and :842 (§15 Scopes row); NewDraftForm.tsx:167 "Anyone can propose items in any scope; review is the gate."; proposals.ts:38 comment |
+| 13 | The app's code changes type-check and lint | no | confirmed | `pnpm --filter @ronneai/web typecheck` clean; `pnpm lint` → no errors |
+
+**Overall:** not met: the Scopes topic, MVP §2's Scopes and ownership and its §15 Scopes row, and the New item form's hint still said anyone may propose in any scope, and the Roles topic said everyone is a user in `global`. Fixed (ronne-web 54ff530; MVP.md, NewDraftForm.tsx, proposals.ts here). Re-check below.
+
+### Re-check — rows 4 and 12, plus note claims the first pass didn't cover
+
+Witnessed: 2026-10-07 01:41 EDT, by a fresh agent (blind). Commit: e371a25 + working tree (ronne-web 54ff530). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | Roles → The three roles is rewritten: root is instance-wide, moderator and user are per workspace (en/pt/fr) | yes | confirmed | `git show 54ff530 -- www/src/content/docs/*/roles.tsx` → "Everyone but root is a member of `global`" in en, pt, fr; matches kysely-identity-repository.ts:325-331 |
+| 12 | No Documentation, in-app copy or MVP passage still says something 091 made false | yes | partly | Fixed: scopes.tsx (en/pt/fr), MVP.md:72-76 and :843, the NewDraftForm.tsx hint, the proposals.ts:38 comment. Still false: ronne-web `changes.tsx:15` (en/pt/fr) "Anyone signed in can change a published item"; non-members are refused at proposals.ts:98 |
+| 14 | ronne-web tests, typecheck and lint pass at the fixed commit | yes | confirmed | `pnpm test` at 54ff530 → 29 files, 136 passed; `pnpm typecheck` clean; `pnpm lint` → 206 files, no fixes |
+| 15 | The app's help, submissions, item-page and reviews tests pass after the NewDraftForm change | yes | confirmed | `vitest run src/components/help src/features/submissions src/features/item-page src/features/reviews` → 8 files, 121 passed |
+| 16 | Admin docs describe the Role and Moderators columns as the app shows them | yes | confirmed | bc762e4 en/admin.tsx; matches UsersPage.tsx:72-83 and WorkspacesTable.tsx:89 |
+| 17 | MVP §15 Workspaces row is updated | yes | confirmed | `git diff docs/MVP/MVP.md` → "Roles per workspace came with 091 (see Roles); managing members and private visibility follow in 092–094" |
+| 18 | The scope, workspace-choice, after-submit and role-root helpers no longer say anyone may propose anywhere | yes | confirmed | Help.tsx:14, :26, :68, :236 |
+| 19 | The spec's acceptance criteria are ticked and 091 is `done` in the index | yes | confirmed | `git diff SPEC.md` → 8 criteria `[x]`, none left open; `docs/features/README.md` 091 → `done` |
+
+**Overall:** not met: `changes#propose` (en/pt/fr) still said anyone signed in can propose a change to a published item. Fixed in ronne-web fa26cbf. Second re-check below.
+
+### Second re-check — row 12
+
+Witnessed: 2026-10-07 01:42 EDT, by a fresh agent (blind). Commit: e371a25 + working tree (ronne-web fa26cbf). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 12 | No Documentation, in-app copy or MVP passage still says something 091 made false | yes | confirmed | `git show fa26cbf`: changes.tsx (en/pt/fr) "The members of an item's workspace can change it", linking to `workspaces#roles`, as proposals.ts:98 does; a new search of ronne-web's docs ("anyone signed in", "everyone", "qualquer pessoa", "toute personne", "tout le monde", "any scope", "anyone can") finds nothing false (the rest is about browsing and installing; the overview's "Anyone signed in starts one … in a scope" holds, everyone but root being in `global`); in `apps/web/src` and `MVP.md` only the historical note at MVP.md:74 and generic "moderator/root" lines; at fa26cbf `pnpm test` 136 passed, typecheck and lint clean |
+
+**Overall:** met: everything stale is fixed, and nothing in the Documentation, the app's copy and helpers, or MVP.md says what 091 made false.

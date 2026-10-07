@@ -1,12 +1,13 @@
 import { type Bump, dependenciesFirst, parseItemName } from "@ronneai/core";
 import { isId } from "../../../db/ids";
 import { IdentityError } from "../../identity/exceptions/errors";
-import { can, requirePermission } from "../../identity/models/permissions";
-import { BulkLimitError, SubmissionsError } from "../exceptions/errors";
+import { can } from "../../identity/models/permissions";
+import { BulkLimitError, NotAMemberError, SubmissionsError } from "../exceptions/errors";
 import { type PlannedRelease, planReleases, type ReleaseSettings } from "../models/release-plan";
 import { statusLabel } from "../models/status";
 import { itemNameOf, type Submission } from "../models/submission";
 import { dependenciesOf, marksFor } from "./dependency-marks";
+import { requireSignedIn } from "./membership";
 import { staleVersion } from "./proposals";
 import { type PublishDeps, publishSubmission } from "./publish";
 import { suggestedBumpOf } from "./review-page";
@@ -49,8 +50,18 @@ export type PreparedRelease = {
   refused: ReleasedSubmission[];
 };
 
-const releasableBy = (actor: SubmissionActor, submission: Submission) =>
-  submission.authorId === actor.user?.id || can(actor.user, "submissions.publish");
+/**
+ * Why the actor can't release it, or null: its workspace's moderators and root release any, the
+ * author their own while a member of its workspace (091).
+ */
+const releaseRefusal = (actor: SubmissionActor, submission: Submission): string | null => {
+  if (can(actor.user, "submissions.publish", submission.workspace.id)) return null;
+  if (submission.authorId === actor.user?.id)
+    return can(actor.user, "submissions.create", submission.workspace.id)
+      ? null
+      : new NotAMemberError(submission.workspace.name, "release your items there").message;
+  return "Only its author, a moderator or root releases it.";
+};
 
 /**
  * What releasing these would do: the candidates in order, with their approved dependencies added,
@@ -62,7 +73,7 @@ export const prepareRelease = async (
   actor: SubmissionActor,
   input: { ids: readonly string[] },
 ): Promise<PreparedRelease> => {
-  requirePermission(actor.user, "submissions.create");
+  requireSignedIn(actor);
   const ids = [...new Set(input.ids)];
   if (ids.length > MAX_BULK_RELEASE) throw new BulkLimitError(ids.length, MAX_BULK_RELEASE);
   const registry = deps.registry ?? deps.repo.registry();
@@ -74,8 +85,8 @@ export const prepareRelease = async (
   const problemOf = async (submission: Submission): Promise<string | null> => {
     if (submission.status !== "approved")
       return `It's ${statusLabel(submission.status)}, not approved.`;
-    if (!releasableBy(actor, submission))
-      return "Only its author, a moderator or root releases it.";
+    const refusal = releaseRefusal(actor, submission);
+    if (refusal) return refusal;
     const newer = await staleVersion(registry, submission);
     if (newer) return `Rebase needed: ${newer} has been released since it was approved.`;
     return null;
@@ -128,7 +139,8 @@ export const prepareRelease = async (
     const visible =
       submission &&
       (submission.authorId === actor.user?.id ||
-        (submission.status !== "draft" && can(actor.user, "submissions.view_submitted")));
+        (submission.status !== "draft" &&
+          can(actor.user, "submissions.view_submitted", submission.workspace.id)));
     if (!submission || !visible) {
       refused.push({ id, name: null, result: "not_found" });
       continue;

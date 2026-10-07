@@ -42,6 +42,8 @@ export type AuthorPageQuery = AuthorFilters & {
 /** A queue tab's rows (062): its statuses, and the reviewer's search and type. */
 export type ReviewFilters = {
   statuses: readonly SubmissionStatus[];
+  /** Only submissions whose scope is in these workspaces (091); all of them when left out. */
+  workspaceIds?: readonly string[];
   /** Part of the item name or the author's name, any case. */
   search?: string;
   type?: ItemType;
@@ -60,7 +62,10 @@ export type ReviewPageQuery = ReviewFilters & {
 /** What the submission services need from storage. Implemented with Kysely in kysely-submission-repository.ts. */
 export interface SubmissionRepository {
   transaction<T>(work: (repo: SubmissionRepository) => Promise<T>): Promise<T>;
-  findScope(name: string): Promise<{ id: string; name: string } | null>;
+  /** A scope by name, with its workspace (091). */
+  findScope(
+    name: string,
+  ): Promise<{ id: string; name: string; workspace: { id: string; name: string } } | null>;
   insert(submission: NewSubmission): Promise<string>;
   find(id: string): Promise<Submission | null>;
   /** Newest change first. */
@@ -97,7 +102,10 @@ export interface SubmissionRepository {
   pageForReview(query: ReviewPageQuery): Promise<KeysetPage<Submission & { authorName: string }>>;
   /** How many submissions a queue tab's filters match, up to the count cap. */
   countForReview(filters: ReviewFilters): Promise<{ count: number; capped: boolean }>;
-  countByStatus(status: SubmissionStatus): Promise<number>;
+  /** These workspaces' ids and names by name, or every workspace's: the queue's filter (091). */
+  workspacesNamed(ids: readonly string[] | "all"): Promise<{ id: string; name: string }[]>;
+  /** How many have this status, in these workspaces only when given (091). */
+  countByStatus(status: SubmissionStatus, workspaceIds?: readonly string[]): Promise<number>;
   /** The author's submissions that are still drafts, for the API's draft limit (037). */
   countDrafts(authorId: string): Promise<number>;
   /** A user's display name, or null if there's no such user. */

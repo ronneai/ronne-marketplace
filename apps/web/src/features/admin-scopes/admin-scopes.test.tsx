@@ -191,7 +191,11 @@ describe("ScopesTable (061)", () => {
 
 describe("the page", () => {
   it("/admin/scopes is a 404 for anyone but root, without listing", async () => {
-    for (const user of [null, { role: "user" }, { role: "moderator" }]) {
+    for (const user of [
+      null,
+      { role: "user" },
+      { role: "user", workspaces: { global: "moderator" } },
+    ]) {
       session.getCurrentUser.mockResolvedValueOnce(user);
       await expect(AdminScopes({ searchParams: Promise.resolve({}) })).rejects.toThrow(
         "NEXT_NOT_FOUND",

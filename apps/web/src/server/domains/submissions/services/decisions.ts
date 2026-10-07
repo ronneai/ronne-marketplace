@@ -28,9 +28,15 @@ export const rebaseReason = (stale: string) => `Rebase needed: ${stale} is out`;
  */
 export const decisionsFor = (
   actor: SubmissionActor,
-  submission: { status: SubmissionStatus; authorId: string; stale: string | null },
+  submission: {
+    status: SubmissionStatus;
+    authorId: string;
+    stale: string | null;
+    workspace: { id: string };
+  },
 ): DecisionOption[] => {
-  if (!can(actor.user, "submissions.review")) return [];
+  // A moderator of the submission's workspace, or root (091).
+  if (!can(actor.user, "submissions.review", submission.workspace.id)) return [];
   const mine = submission.authorId === actor.user?.id;
   const own = (decision: ReviewDecision): DecisionOption =>
     mine

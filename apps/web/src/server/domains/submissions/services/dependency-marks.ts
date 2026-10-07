@@ -122,7 +122,9 @@ export const dependencyMarks = async (
   for (const submission of submissions) {
     const mine = submission.authorId === actor.user?.id;
     const visible =
-      mine || (submission.status !== "draft" && can(actor.user, "submissions.view_submitted"));
+      mine ||
+      (submission.status !== "draft" &&
+        can(actor.user, "submissions.view_submitted", submission.workspace.id));
     if (!visible || !MARKED.has(submission.status)) continue;
     const marks = await marksFor(registry, await dependenciesOf(deps.repo, submission));
     if (marks.length > 0) result[submission.id] = marks;

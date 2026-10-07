@@ -49,6 +49,7 @@ const row = (overrides: Partial<QueueRow> = {}): QueueRow => ({
   authorId: "u1",
   authorName: "Ada Author",
   scope: { id: "s1", name: "team" },
+  workspace: { id: "00000000000000000000000000", name: "global" },
   name: "fmt",
   type: "hook",
   status: "submitted",
@@ -82,9 +83,11 @@ beforeEach(() => {
     id: "m",
     email: "m@x.test",
     name: "M",
-    role: "moderator",
+    role: "user",
+    workspaces: { global: "moderator" },
   });
   reviews.listQueue.mockResolvedValue({
+    workspaces: [{ id: "00000000000000000000000000", name: "global" }],
     rows: [row()],
     next: null,
     previous: null,
@@ -181,6 +184,31 @@ describe("the queue", () => {
         /disabled=""[^>]*aria-label="(Request changes|Reject): @team\/fmt"|aria-label="(Request changes|Reject): @team\/fmt"[^>]*disabled=""/g,
       ),
     ).toHaveLength(2);
+  });
+
+  it("offers a Workspace filter when the reviewer moderates several, and sends it to the query (091)", () => {
+    const one = renderToStaticMarkup(
+      <QueueTable {...tableProps("decided", [row()], null)} workspaces={["acme"]} />,
+    );
+    expect(one).not.toContain('id="queue-workspace"');
+    const several = renderToStaticMarkup(
+      <QueueTable {...tableProps("decided", [row()], null)} workspaces={["acme", "beta"]} />,
+    );
+    expect(several).toContain('id="queue-workspace"');
+    expect(several).toContain(">Every workspace you moderate</option>");
+    const forRoot = renderToStaticMarkup(
+      <QueueTable {...tableProps("decided", [row()], null)} workspaces={["acme", "beta"]} root />,
+    );
+    expect(forRoot).toContain(">Every workspace</option>");
+    expect(several).toContain('<option value="beta">beta</option>');
+    expect(several).toContain("Why only these?");
+    expect(one).not.toContain("Why only these?");
+    const list = queueList("needs");
+    const state = checkedQueueState(parseListQuery(list, { workspace: "beta" }));
+    expect(queueQueryOf("needs", state)).toMatchObject({ workspace: "beta" });
+    expect(queueQueryOf("needs", parseListQuery(list, {}))).toMatchObject({
+      workspace: undefined,
+    });
   });
 
   it("marks the current tab", () => {

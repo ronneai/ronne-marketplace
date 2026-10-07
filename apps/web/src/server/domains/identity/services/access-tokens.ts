@@ -134,11 +134,11 @@ export const authenticateToken = async (
   if (found.user.disabledAt) return { ok: false, failure: "user_disabled" };
 
   await deps.repo.touchLastUsed(found.token.id, at);
-  const { id, email, name, role } = found.user;
+  const { id, email, name, role, workspaces } = found.user;
   return {
     ok: true,
     value: {
-      user: { id, email, name, role },
+      user: { id, email, name, role, workspaces },
       token: { id: found.token.id, name: found.token.name, expiresAt: found.token.expiresAt },
     },
   };

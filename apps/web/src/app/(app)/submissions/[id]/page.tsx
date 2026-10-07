@@ -8,7 +8,7 @@ import { Conversation } from "@/features/reviews/Conversation";
 import { PublishDialog } from "@/features/reviews/PublishDialog";
 import { versionsPath } from "@/features/versions/links";
 import { type ProposalPanel, proposalPanel } from "@/server/domains/submissions/actions/proposals";
-import { getReview, listDependents } from "@/server/domains/submissions/actions/reviews";
+import { countDependents, getReview } from "@/server/domains/submissions/actions/reviews";
 import {
   canDeleteSubmission,
   type DependencyMark,
@@ -27,7 +27,7 @@ const REBASABLE = new Set(["draft", "changes_requested", "submitted", "approved"
 
 /** The editor's view of a change proposal (017): the author's panel, or the basics for anyone else. */
 const toEditorProposal = (
-  draft: Draft & { mine: boolean },
+  draft: Draft & { mine: boolean; member: boolean },
   panel: ProposalPanel | null,
 ): EditorProposal | null => {
   if (!draft.proposal) return null;
@@ -37,14 +37,14 @@ const toEditorProposal = (
     baseVersion: draft.proposal.baseVersion,
     baseHref: `${itemPath({ scope: draft.scope.name, name: draft.name })}?version=${encodeURIComponent(draft.proposal.baseVersion)}`,
     stale: panel?.stale ?? null,
-    canRebase: draft.mine && REBASABLE.has(draft.status),
-    canResolve: draft.mine && isEditable(draft.status),
+    canRebase: draft.mine && draft.member && REBASABLE.has(draft.status),
+    canResolve: draft.mine && draft.member && isEditable(draft.status),
     conflicts: panel?.conflicts ?? [],
   };
 };
 
 const toEditorDraft = (
-  draft: Draft & { mine: boolean },
+  draft: Draft & { mine: boolean; member: boolean },
   versionsHref: string | null,
   panel: ProposalPanel | null,
   dependents = 0,
@@ -55,7 +55,7 @@ const toEditorDraft = (
   dependents,
   canDelete,
   feedback,
-  canRestore: draft.mine && canTransition(draft.status, "restore"),
+  canRestore: draft.mine && draft.member && canTransition(draft.status, "restore"),
   dependencyMarks,
   id: draft.id,
   scope: draft.scope.name,
@@ -64,9 +64,12 @@ const toEditorDraft = (
   status: draft.status,
   submittedAt: draft.submittedAt?.toISOString() ?? null,
   mine: draft.mine,
-  readOnly: !(draft.mine && isEditable(draft.status)),
+  notMemberOf: draft.mine && !draft.member ? draft.workspace.name : null,
+  // A removed member reads, withdraws and deletes their own, and changes nothing (091).
+  readOnly: !(draft.mine && draft.member && isEditable(draft.status)),
   canSubmit:
     draft.mine &&
+    draft.member &&
     (canTransition(draft.status, "submit") || canTransition(draft.status, "resubmit")),
   canWithdraw: draft.mine && canTransition(draft.status, "withdraw"),
   versionsHref,
@@ -89,7 +92,7 @@ const toEditorDraft = (
 const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params;
   const request = await requestHeaders();
-  let draft: Draft & { mine: boolean };
+  let draft: Draft & { mine: boolean; member: boolean };
   try {
     draft = await viewSubmission(request, id);
   } catch (error) {
@@ -105,7 +108,7 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
   // Who depends on it (056): the author's withdraw confirmation gives the count.
   const dependents =
     draft.mine && draft.status !== "draft" && canTransition(draft.status, "withdraw")
-      ? (await listDependents(request, id)).length
+      ? await countDependents(request, id)
       : 0;
   // Withdraw offers deleting for good, and an archived one can be deleted, when no reviewer took
   // part (057).

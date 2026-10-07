@@ -1,7 +1,7 @@
 import type { ManifestIssue, RiskFlag } from "@ronneai/core";
 import { parseManifest, riskFlags } from "@ronneai/core";
 import { isId } from "../../../db/ids";
-import { can, requirePermission } from "../../identity/models/permissions";
+import { can } from "../../identity/models/permissions";
 import { SubmissionNotFoundError, SubmissionsError } from "../exceptions/errors";
 import {
   type ManifestFieldChange,
@@ -14,6 +14,7 @@ import type { ReviewEvent, Revision, RevisionFile } from "../models/review";
 import { canTransition, OPEN_STATUSES } from "../models/status";
 import { fileBytes, MANIFEST_PATH, type Submission, toPackageFile } from "../models/submission";
 import { allows, type DecisionOption, decisionsFor } from "./decisions";
+import { requireSignedIn } from "./membership";
 import { baseFilesOf, staleVersion } from "./proposals";
 import { type Dependent, dependentsOf } from "./reviews";
 import { allIssues, type SubmissionActor, type SubmissionDeps } from "./submissions";
@@ -133,13 +134,16 @@ export const getReview = async (
   actor: SubmissionActor,
   id: string,
 ): Promise<ReviewView> => {
-  requirePermission(actor.user, "submissions.create");
+  requireSignedIn(actor);
   const found = isId(id) ? await deps.repo.find(id) : null;
   const mine = found?.authorId === actor.user?.id;
-  const reviewer = can(actor.user, "submissions.review");
+  // A moderator of its workspace, or root (091).
+  const reviewer = !!found && can(actor.user, "submissions.review", found.workspace.id);
   if (!found || !(mine || (reviewer && found.status !== "draft")))
     throw new SubmissionNotFoundError();
   const submission = found;
+  // The author acts on their own while still a member of its workspace (091).
+  const member = can(actor.user, "submissions.create", submission.workspace.id);
 
   const revisions = await deps.repo.revisions(submission.id);
   const latest = revisions.at(-1);
@@ -185,8 +189,10 @@ export const getReview = async (
     can: {
       decide: submitted && allows(decisions, "reject"),
       override: decisions.some((option) => option.decision === "override"),
-      comment: (reviewer || mine) && OPEN_STATUSES.includes(submission.status),
-      publish: approved && (mine || can(actor.user, "submissions.publish")),
+      comment: (reviewer || (mine && member)) && OPEN_STATUSES.includes(submission.status),
+      publish:
+        approved &&
+        ((mine && member) || can(actor.user, "submissions.publish", submission.workspace.id)),
       sendBack: approved && allows(decisions, "request_changes"),
     },
     dependents:

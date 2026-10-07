@@ -6,7 +6,8 @@ import {
   riskFlags,
 } from "@ronneai/core";
 import type { SortDir } from "../../../db/keyset";
-import { requirePermission } from "../../identity/models/permissions";
+import { ForbiddenError } from "../../identity/exceptions/errors";
+import { workspacesWith } from "../../identity/models/permissions";
 import { OPEN_STATUSES, type SubmissionStatus } from "../models/status";
 import { fileBytes, MANIFEST_PATH, type Submission, toPackageFile } from "../models/submission";
 import type { SubmissionRepository } from "../repositories/submission-repository";
@@ -72,6 +73,8 @@ export type QueueRow = Submission & {
 };
 
 export type QueuePage = {
+  /** The workspaces the reviewer moderates (every one for root), for the Workspace filter (091). */
+  workspaces: { id: string; name: string }[];
   rows: QueueRow[];
   next: string | null;
   previous: string | null;
@@ -87,6 +90,18 @@ export type QueueQuery = {
   cursor?: string;
   search?: string;
   type?: ItemType;
+  /** A workspace's name: only its submissions, when the reviewer moderates it (091). */
+  workspace?: string;
+};
+
+/**
+ * The workspaces whose submissions the actor reviews (091): the ones they moderate, every one for
+ * root; ForbiddenError when there are none.
+ */
+const reviewedWorkspaces = (actor: SubmissionActor): "all" | string[] => {
+  const where = workspacesWith(actor.user, "submissions.review");
+  if (where !== "all" && where.length === 0) throw new ForbiddenError("submissions.review");
+  return where;
 };
 
 /** The latest revision's risk flags: what reviewers are asked to look at (MVP §12). */
@@ -120,11 +135,19 @@ export const listQueue = async (
   actor: SubmissionActor,
   query: QueueQuery,
 ): Promise<QueuePage> => {
-  requirePermission(actor.user, "submissions.review");
+  const where = reviewedWorkspaces(actor);
+  const workspaces = await deps.repo.workspacesNamed(where);
+  const picked = query.workspace ? workspaces.find((w) => w.name === query.workspace) : undefined;
   const tab = QUEUE_TABS[query.tab];
   const sort = query.sort ?? "time";
   const filters = {
     statuses: tab.statuses,
+    // One workspace when picked; a name the reviewer doesn't moderate matches nothing.
+    ...(query.workspace
+      ? { workspaceIds: picked ? [picked.id] : [] }
+      : where === "all"
+        ? {}
+        : { workspaceIds: where }),
     search: query.search?.trim().slice(0, 100) || undefined,
     type: query.type,
   };
@@ -159,6 +182,7 @@ export const listQueue = async (
   );
   const stale = await withStale(registry, rows);
   return {
+    workspaces,
     rows: stale.map((row) => ({
       ...row,
       approvable: approvability(actor, row),
@@ -175,10 +199,7 @@ export const countNeedsReview = async (
   deps: SubmissionDeps,
   actor: SubmissionActor,
 ): Promise<number> => {
-  try {
-    requirePermission(actor.user, "submissions.review");
-  } catch {
-    return 0;
-  }
-  return deps.repo.countByStatus("submitted");
+  const where = workspacesWith(actor.user, "submissions.review");
+  if (where !== "all" && where.length === 0) return 0;
+  return deps.repo.countByStatus("submitted", where === "all" ? undefined : where);
 };

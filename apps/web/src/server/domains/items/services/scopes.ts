@@ -1,5 +1,5 @@
-import { requirePermission } from "../../identity/models/permissions";
-import type { CurrentUser } from "../../identity/models/user";
+import { requirePermission, workspacesWith } from "../../identity/models/permissions";
+import type { CurrentUser, WorkspaceRole } from "../../identity/models/user";
 import { GLOBAL_WORKSPACE_ID } from "../../workspaces/models/workspace";
 import {
   ScopeNameTakenError,
@@ -88,11 +88,15 @@ export const updateScopeDescription = async (
   });
 };
 
-export type ScopesPage = { scopes: Scope[]; nextCursor: string | null };
+export type ScopesPage = { scopes: (Scope & { role: ScopeRole })[]; nextCursor: string | null };
+
+/** The actor's role where a scope is: root, or their role in its workspace (091). */
+export type ScopeRole = "root" | WorkspaceRole;
 
 /**
- * Everyone signed in can list scopes: they need them to know where their items can go. The admin page
- * uses SCOPES_PAGE_SIZE; the API (037) passes its own `limit`.
+ * The scopes the actor's items can go in: those of the workspaces they're a member of (091), every
+ * one for root, each with the actor's role there. The new draft form and `GET /api/v1/scopes`
+ * (`rmk export`) list these. The admin pages use pageScopes; the API (037) passes its own `limit`.
  */
 export const listScopes = async (
   deps: ScopeDeps,
@@ -100,10 +104,21 @@ export const listScopes = async (
   query: { search?: string; cursor?: string; limit?: number },
 ): Promise<ScopesPage> => {
   requirePermission(actor.user, "account.manage_own");
+  const user = actor.user as CurrentUser;
+  const where = workspacesWith(user, "submissions.create");
   const search = query.search?.trim().slice(0, SCOPE_SEARCH_MAX_LENGTH) || undefined;
   const size = query.limit ?? SCOPES_PAGE_SIZE;
-  const rows = await deps.repo.list({ search, cursor: query.cursor, limit: size + 1 });
-  const scopes = rows.slice(0, size);
+  const rows = await deps.repo.list({
+    search,
+    cursor: query.cursor,
+    limit: size + 1,
+    ...(where === "all" ? {} : { workspaceIds: where }),
+  });
+  const scopes = rows.slice(0, size).map((scope) => ({
+    ...scope,
+    role:
+      user.role === "root" ? ("root" as const) : (user.workspaces[scope.workspace.id] ?? "user"),
+  }));
   return {
     scopes,
     nextCursor: rows.length > size ? (scopes.at(-1)?.name ?? null) : null,

@@ -1,7 +1,19 @@
 import { DOCS_URL } from "@/components/help/topics";
-import { can, type Permission } from "@/server/domains/identity/models/permissions";
+import {
+  can,
+  canInSome,
+  type Permission,
+  WORKSPACE_PERMISSIONS,
+  type WorkspacePermission,
+} from "@/server/domains/identity/models/permissions";
+import type { Memberships } from "@/server/domains/identity/models/user";
 
-export type ShellUser = { name: string; email: string; role: "root" | "moderator" | "user" };
+export type ShellUser = {
+  name: string;
+  email: string;
+  role: "root" | "user";
+  workspaces?: Memberships;
+};
 
 /** An item shows when it needs no permission, or the user holds it (the one permission map, 008). */
 export type NavItem = {
@@ -38,7 +50,14 @@ export const NAV: NavItem[] = [
 
 export const navFor = (user: ShellUser | null): NavItem[] => {
   if (!user) return [];
-  return NAV.filter((item) => !item.permission || can(user, item.permission));
+  // A workspace permission shows the item when the user holds it in any workspace (091).
+  return NAV.filter(
+    (item) =>
+      !item.permission ||
+      (item.permission in WORKSPACE_PERMISSIONS
+        ? canInSome(user, item.permission as WorkspacePermission)
+        : can(user, item.permission as Exclude<Permission, WorkspacePermission>)),
+  );
 };
 
 export const isCurrent = (item: NavItem, path: string): boolean =>

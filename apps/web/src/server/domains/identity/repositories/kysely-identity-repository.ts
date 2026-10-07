@@ -3,17 +3,19 @@ import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
 import { countCapped, paginate } from "../../../db/keyset";
 import { forUpdate, readCommittedTransaction } from "../../../db/locks";
+import { GLOBAL_WORKSPACE_ID } from "../../../db/migrations/0019_workspaces";
 import type { Database } from "../../../db/schema";
 import { containsInsensitive } from "../../../db/search";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
-import { isRole, type RootAccount, type UserSummary } from "../models/user";
+import { isRole, isWorkspaceRole, type RootAccount, type UserSummary } from "../models/user";
 import type {
   IdentityRepository,
   NewUserWithPassword,
   UserFilters,
   UserSort,
 } from "./identity-repository";
+import { loadMemberships } from "./memberships";
 
 type UserRow = {
   id: string;
@@ -29,7 +31,7 @@ const summary = (row: UserRow): UserSummary => {
     id: row.id,
     email: row.email,
     name: row.name,
-    // A role outside the known three is shown as a plain user: it gets no permissions either way.
+    // A role outside the known two is shown as a plain user: it gets no permissions either way.
     role: isRole(row.role) ? row.role : "user",
     disabledAt: fromDbDate(row.disabled_at),
     createdAt: fromDbDate(row.created_at),
@@ -119,9 +121,15 @@ export const kyselyIdentityRepository = (
         .where("id", "=", userId)
         .where("disabled_at", "is", null)
         .executeTakeFirst();
-      // A role outside the three known ones gets no access rather than a guess.
+      // A role outside the two known ones gets no access rather than a guess.
       if (!row || !isRole(row.role)) return null;
-      return { id: row.id, email: row.email, name: row.name, role: row.role };
+      return {
+        id: row.id,
+        email: row.email,
+        name: row.name,
+        role: row.role,
+        workspaces: await loadMemberships(db, row.id),
+      };
     },
 
     async findCredentialByEmail(email) {
@@ -149,6 +157,7 @@ export const kyselyIdentityRepository = (
           email: row.email,
           name: row.name,
           role: isRole(row.role) ? row.role : "user",
+          workspaces: await loadMemberships(db, row.id),
         },
         disabledAt: fromDbDate(row.disabled_at),
         passwordHash: row.password ?? null,
@@ -176,7 +185,28 @@ export const kyselyIdentityRepository = (
           idOf: (row) => row.id,
         },
       );
-      return { ...page, rows: page.rows.map(summary) };
+      // The page's memberships, by workspace name, in one query (091).
+      const ids = page.rows.map((row) => row.id);
+      const memberships =
+        ids.length === 0
+          ? []
+          : await db
+              .selectFrom("workspace_members")
+              .innerJoin("workspaces", "workspaces.id", "workspace_members.workspace_id")
+              .select(["workspace_members.user_id", "workspace_members.role", "workspaces.name"])
+              .where("workspace_members.user_id", "in", ids)
+              .orderBy("workspaces.name")
+              .execute();
+      return {
+        ...page,
+        rows: page.rows.map((row) => ({
+          ...summary(row),
+          workspaces: memberships
+            .filter((m) => m.user_id === row.id && isWorkspaceRole(m.role))
+            .map((m) => ({ name: m.name, role: m.role }))
+            .sort((a, b) => (a.role === b.role ? 0 : a.role === "moderator" ? -1 : 1)),
+        })),
+      };
     },
 
     countUsers: (filters) => countCapped(db, filteredUsers(filters).select("id")),
@@ -196,6 +226,27 @@ export const kyselyIdentityRepository = (
         .set({ role, updated_at: at(now) })
         .where("id", "=", userId)
         .execute();
+      // Someone who stops being root keeps their rows, and is in `global` like everyone (091).
+      if (role !== "root") {
+        const inGlobal = await db
+          .selectFrom("workspace_members")
+          .select("user_id")
+          .where("workspace_id", "=", GLOBAL_WORKSPACE_ID)
+          .where("user_id", "=", userId)
+          .executeTakeFirst();
+        if (!inGlobal)
+          await db
+            .insertInto("workspace_members")
+            .values({
+              workspace_id: GLOBAL_WORKSPACE_ID,
+              user_id: userId,
+              role: "user",
+              added_by: null,
+              created_at: at(now),
+              updated_at: at(now),
+            })
+            .execute();
+      }
     },
 
     async disableUser(userId, now) {
@@ -270,6 +321,19 @@ export const kyselyIdentityRepository = (
           updated_at: at(now),
         })
         .execute();
+      // Every user is in `global` (091); a root is in every workspace without a row.
+      if (user.role !== "root")
+        await db
+          .insertInto("workspace_members")
+          .values({
+            workspace_id: GLOBAL_WORKSPACE_ID,
+            user_id: id,
+            role: user.globalRole ?? "user",
+            added_by: null,
+            created_at: at(now),
+            updated_at: at(now),
+          })
+          .execute();
       return id;
     },
 

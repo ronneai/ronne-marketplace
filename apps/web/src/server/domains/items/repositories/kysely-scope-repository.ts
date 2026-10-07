@@ -98,8 +98,10 @@ export const kyselyScopeRepository = (
       await db.updateTable("scopes").set({ description }).where("id", "=", id).execute();
     },
 
-    list: async ({ search, cursor, limit }) => {
+    list: async ({ search, cursor, workspaceIds, limit }) => {
+      if (workspaceIds?.length === 0) return [];
       let query = scopes().orderBy("scopes.name").limit(limit);
+      if (workspaceIds) query = query.where("scopes.workspace_id", "in", [...workspaceIds]);
       if (search)
         query = query.where((eb) =>
           eb.or([

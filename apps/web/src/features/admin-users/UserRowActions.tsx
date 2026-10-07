@@ -17,7 +17,7 @@ import { OneTimePassword } from "./OneTimePassword";
 import { PasswordChoice } from "./PasswordChoice";
 import type { AdminActionState } from "./types";
 
-type Role = "root" | "moderator" | "user";
+type Role = "root" | "user";
 type RowUser = {
   id: string;
   email: string;
@@ -27,7 +27,7 @@ type RowUser = {
   self?: boolean;
 };
 
-const ROLES: readonly Role[] = ["user", "moderator", "root"];
+const ROLES: readonly Role[] = ["user", "root"];
 type Kind = "role" | "disable" | "enable" | "reset";
 type FormAction = (state: AdminActionState, form: FormData) => Promise<AdminActionState>;
 

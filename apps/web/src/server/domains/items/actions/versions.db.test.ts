@@ -1,11 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { GLOBAL_WORKSPACE_ID } from "../../../db/migrations/0019_workspaces";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { listAuditEvents } from "../../audit/actions/audit";
 import { createRoot } from "../../identity/actions/root-account";
 import { signIn } from "../../identity/actions/session";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import type { AppAuth } from "../../identity/repositories/auth-instance";
-import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testing/test-auth";
+import {
+  cookieHeaders,
+  createTestUser,
+  setWorkspaceRole,
+  testAppAuth,
+} from "../../identity/testing/test-auth";
+import { kyselyWorkspaceRepository } from "../../workspaces/repositories/kysely-workspace-repository";
 import {
   ItemNotFoundError,
   TagRuleError,
@@ -14,13 +21,14 @@ import {
 } from "../exceptions/errors";
 import { kyselyItemRepository } from "../repositories/kysely-item-repository";
 import { createScope } from "./scopes";
-import { deprecate, moveTag, removeTag, undeprecate, unyank, yank } from "./versions";
+import { deprecate, listVersions, moveTag, removeTag, undeprecate, unyank, yank } from "./versions";
 
 let t: TestDb;
 let app: AppAuth;
 let asUser: Headers;
 let asModerator: Headers;
 let asModerator2: Headers;
+let asRoot: Headers;
 let publisher: string;
 const password = "correct horse battery";
 const ref = { scope: "team", name: "github" };
@@ -41,7 +49,7 @@ beforeEach(async () => {
     if (!result.ok) throw new Error(result.error);
     return cookieHeaders(result.headers.get("set-cookie"));
   };
-  const asRoot = await signedIn("root@example.com");
+  asRoot = await signedIn("root@example.com");
   asUser = await signedIn("u@example.com");
   asModerator = await signedIn("mod@example.com");
   asModerator2 = await signedIn("mod2@example.com");
@@ -211,5 +219,90 @@ describe("who and what", () => {
     // Each change saw the one before it: the audit trail ends where the tag is.
     const moves = (await audited("dist_tag.moved")).map((e) => e.metadata);
     expect(moves.some((m) => m.to === final)).toBe(true);
+  });
+});
+
+describe("in the item's workspace (091)", () => {
+  /** Moves @team into a new workspace, acme, and makes mod2 its moderator; mod stays global's. */
+  const intoAcme = async () => {
+    const acme = await kyselyWorkspaceRepository(t.db, t.dialect).insert({
+      name: "acme",
+      description: "Acme's team.",
+      visibility: "public",
+      createdBy: null,
+      createdAt: new Date(),
+    });
+    await t.db
+      .updateTable("scopes")
+      .set({ workspace_id: acme })
+      .where("name", "=", "team")
+      .execute();
+    const mod2 = await t.db
+      .selectFrom("user")
+      .select("id")
+      .where("email", "=", "mod2@example.com")
+      .executeTakeFirstOrThrow();
+    await setWorkspaceRole(app, mod2.id, "moderator", acme);
+    // Only acme's moderator: a plain user in global.
+    await setWorkspaceRole(app, mod2.id, "user");
+  };
+
+  it("lets acme's moderator and root tag, deprecate and yank; not a moderator of another", async () => {
+    await intoAcme();
+    for (const attempt of [
+      () => moveTag(asModerator, ref, { tag: "latest", version: "1.0.0" }, app),
+      () => removeTag(asModerator, ref, { tag: "next" }, app),
+      () => deprecate(asModerator, ref, { version: "1.0.0", message: "Old." }, app),
+      () => yank(asModerator, ref, { version: "1.0.0", reason: "Broken." }, app),
+      () => moveTag(asUser, ref, { tag: "latest", version: "1.0.0" }, app),
+    ])
+      await expect(attempt()).rejects.toThrow(ForbiddenError);
+    expect(await tags()).toEqual({ latest: "1.1.0", next: "2.0.0-beta.1" });
+
+    await moveTag(asModerator2, ref, { tag: "latest", version: "1.0.0" }, app);
+    await deprecate(asModerator2, ref, { version: "1.0.0", message: "Old." }, app);
+    await yank(asRoot, ref, { version: "2.0.0-beta.1", reason: "Broken." }, app);
+    expect((await tags()).latest).toBe("1.0.0");
+    expect((await version("1.0.0"))?.deprecatedMessage).toBe("Old.");
+    expect((await version("2.0.0-beta.1"))?.yankedAt).toBeInstanceOf(Date);
+
+    // The undo actions too, and nothing in another workspace for acme's moderator.
+    await undeprecate(asModerator2, ref, { version: "1.0.0" }, app);
+    await unyank(asModerator2, ref, { version: "2.0.0-beta.1" }, app);
+    await removeTag(asModerator2, ref, { tag: "next" }, app);
+    expect((await version("1.0.0"))?.deprecatedMessage).toBeNull();
+    expect((await version("2.0.0-beta.1"))?.yankedAt).toBeNull();
+    await t.db
+      .updateTable("scopes")
+      .set({ workspace_id: GLOBAL_WORKSPACE_ID })
+      .where("name", "=", "team")
+      .execute();
+    await expect(
+      deprecate(asModerator2, ref, { version: "1.0.0", message: "Old." }, app),
+    ).rejects.toThrow(ForbiddenError);
+    await deprecate(asModerator, ref, { version: "1.0.0", message: "Old." }, app);
+  });
+
+  it("refuses someone who manages versions nowhere before looking for the item", async () => {
+    await expect(
+      moveTag(asUser, { scope: "team", name: "nope" }, { tag: "latest", version: "1.0.0" }, app),
+    ).rejects.toThrow(ForbiddenError);
+    await expect(
+      moveTag(
+        asModerator,
+        { scope: "team", name: "nope" },
+        { tag: "latest", version: "1.0.0" },
+        app,
+      ),
+    ).rejects.toThrow(ItemNotFoundError);
+  });
+
+  it("offers the Versions page's controls only to who may use them", async () => {
+    await intoAcme();
+    const canManage = async (headers: Headers) => (await listVersions(headers, ref, app)).canManage;
+    expect(await canManage(asModerator2)).toBe(true);
+    expect(await canManage(asRoot)).toBe(true);
+    expect(await canManage(asModerator)).toBe(false);
+    expect(await canManage(asUser)).toBe(false);
   });
 });

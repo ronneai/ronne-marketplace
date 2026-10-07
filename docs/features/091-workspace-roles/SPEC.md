@@ -60,13 +60,16 @@ null), created_at, updated_at; PK (workspace_id, user_id); cascade on both. Ever
   passes;
 - `account.manage_own` stays "signed in".
 
-The membership is loaded once per request with the user (a map workspace → role), so a check
-doesn't query. A call site that checks a workspace permission without a workspace fails type-check.
+The memberships are loaded with the user (a map workspace → role), every time a request reads the
+user, as the user row is; a check itself doesn't query. A call site that checks a workspace permission without a workspace fails type-check.
 
 **Converting the call sites** (about 84, in ~35 files): each resolves the workspace from the
 scope of the submission, item or version it acts on. Bulk actions (054, 055, 052) check each
-submission on its own and skip, with a reason, those outside the actor's workspaces ("Not a
-moderator in acme").
+submission on its own and skip those outside the actor's workspaces: one they can't see answers
+"not found", as its page does, so a bulk request reveals nothing of another workspace's
+submissions; one they see but can't act on says why ("Not a moderator in acme", or that the author
+isn't a member of it any more). A submission's dependents (056) list, by name, only those the actor
+could open; the author's withdraw warning counts them all, as a number only.
 
 **The four-eyes rule** (014) is unchanged: a moderator never approves their own submission; root's
 override stays root only and audited.
@@ -114,18 +117,18 @@ still holds root).
 
 ## Acceptance criteria
 
-- [ ] The migration gives every user a `global` membership (moderator for former moderators) and
+- [x] The migration gives every user a `global` membership (moderator for former moderators) and
   leaves only `root` / `user` in `user.role`, on the four databases.
-- [ ] A moderator of workspace A can approve, release, tag, deprecate and yank in A and not in B;
+- [x] A moderator of workspace A can approve, release, tag, deprecate and yank in A and not in B;
   root can in both; a user can't in either.
-- [ ] Drafts, proposals, exports and submits need membership of the scope's workspace; others get
+- [x] Drafts, proposals, exports and submits need membership of the scope's workspace; others get
   `not_a_member`.
-- [ ] The review queue and its counts show only the actor's moderated workspaces; root sees all.
-- [ ] Bulk approve, release and submit skip items outside the actor's workspaces, with the reason.
-- [ ] A removed member can read and withdraw their open submissions there, but not edit or submit.
-- [ ] Every call site of a workspace permission passes a workspace (type-check), and a test walks
+- [x] The review queue and its counts show only the actor's moderated workspaces; root sees all.
+- [x] Bulk approve, release and submit skip items outside the actor's workspaces, with the reason.
+- [x] A removed member can read and withdraw their open submissions there, but not edit or submit.
+- [x] Every call site of a workspace permission passes a workspace (type-check), and a test walks
   the permission matrix.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Decisions
 

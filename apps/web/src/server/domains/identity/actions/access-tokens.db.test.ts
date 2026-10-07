@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { fromDbDate, toDbDate } from "../../../db/dates";
+import { GLOBAL_WORKSPACE_ID } from "../../../db/migrations/0019_workspaces";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { listAuditEvents } from "../../audit/actions/audit";
 import {
@@ -137,7 +138,13 @@ describe("authenticateToken", () => {
     expect(result).toEqual({
       ok: true,
       value: {
-        user: { id: userId, email: "u@example.com", name: "Someone", role: "user" },
+        user: {
+          id: userId,
+          email: "u@example.com",
+          name: "Someone",
+          role: "user",
+          workspaces: { [GLOBAL_WORKSPACE_ID]: "user" },
+        },
         token: { id: created.id, name: "cli", expiresAt: created.expiresAt },
       },
     });

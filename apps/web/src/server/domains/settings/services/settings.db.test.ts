@@ -29,7 +29,7 @@ beforeEach(async () => {
     name: "Root",
     password: "correct horse battery",
   });
-  root = { id, email: "root@example.com", name: "Root", role: "root" };
+  root = { id, email: "root@example.com", name: "Root", role: "root", workspaces: {} };
   deps = { repo: kyselySettingsRepository(t.db, t.dialect), now: () => at };
 });
 afterEach(() => t.cleanup());
@@ -72,8 +72,11 @@ describe("the usage policy", () => {
   });
 
   it("can only be read and changed by root, and only to a known policy", async () => {
-    for (const role of ["user", "moderator"] as const) {
-      const someone = { user: { ...root, id: "x", role }, ip: null };
+    for (const workspaceRole of ["user", "moderator"] as const) {
+      const someone = {
+        user: { ...root, id: "x", role: "user" as const, workspaces: { g: workspaceRole } },
+        ip: null,
+      };
       await expect(setUsagePolicy(deps, someone, "required")).rejects.toBeInstanceOf(
         ForbiddenError,
       );
@@ -112,7 +115,11 @@ describe("the usage minimum", () => {
         String(bad),
       ).rejects.toBeInstanceOf(InvalidUsageMinimumError);
     await expect(
-      setUsageMinimum(deps, { user: { ...root, role: "moderator" }, ip: null }, "5"),
+      setUsageMinimum(
+        deps,
+        { user: { ...root, role: "user", workspaces: { g: "moderator" } }, ip: null },
+        "5",
+      ),
     ).rejects.toBeInstanceOf(ForbiddenError);
     expect(await usageMinimum(deps)).toBe(0);
   });

@@ -43,7 +43,6 @@ const CreateUserForm = ({ onDone }: { onDone: () => void }) => {
           className={selectClasses}
         >
           <option value="user">user</option>
-          <option value="moderator">moderator</option>
           <option value="root">root</option>
         </select>
       </div>

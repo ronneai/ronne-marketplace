@@ -3,6 +3,7 @@
 import { packItem } from "@ronneai/core/pack";
 import { parse } from "yaml";
 import { createDb } from "../src/server/db/create-db";
+import { toDbDate } from "../src/server/db/dates";
 import { argon2PasswordHasher } from "../src/server/domains/identity/repositories/argon2-password-hasher";
 import { kyselyIdentityRepository } from "../src/server/domains/identity/repositories/kysely-identity-repository";
 import { kyselyItemRepository } from "../src/server/domains/items/repositories/kysely-item-repository";
@@ -13,6 +14,8 @@ import { GLOBAL_WORKSPACE_ID } from "../src/server/domains/workspaces/models/wor
 import { kyselyWorkspaceRepository } from "../src/server/domains/workspaces/repositories/kysely-workspace-repository";
 import { localStorage } from "../src/server/storage/local-storage";
 import {
+  E2E_ACME,
+  E2E_ACME_MEMBERS,
   E2E_MODERATORS,
   E2E_NAMES,
   E2E_PASSWORD,
@@ -39,7 +42,9 @@ for (const [key, email] of Object.entries(E2E_USERS) as [keyof typeof E2E_USERS,
     {
       email,
       name: E2E_NAMES[key],
-      role: E2E_ROOTS.includes(key) ? "root" : E2E_MODERATORS.includes(key) ? "moderator" : "user",
+      role: E2E_ROOTS.includes(key) ? "root" : "user",
+      // Moderators of global, as every moderator was before workspaces (091).
+      globalRole: E2E_MODERATORS.includes(key) ? "moderator" : "user",
       passwordHash,
     },
     new Date(),
@@ -60,6 +65,29 @@ await kyselyWorkspaceRepository(db, dialect).insert({
   createdBy: null,
   createdAt: new Date(),
 });
+
+// A workspace with members (091), written directly until 092 adds them in the app.
+const acmeId = await kyselyWorkspaceRepository(db, dialect).insert({
+  name: E2E_ACME,
+  description: "Acme's teams, for the end-to-end tests.",
+  visibility: "public",
+  createdBy: null,
+  createdAt: new Date(),
+});
+for (const [key, role] of Object.entries(E2E_ACME_MEMBERS) as [keyof typeof E2E_USERS, string][]) {
+  const now = toDbDate(new Date(), dialect);
+  await db
+    .insertInto("workspace_members")
+    .values({
+      workspace_id: acmeId,
+      user_id: ids[key] ?? "",
+      role: role as "moderator" | "user",
+      added_by: null,
+      created_at: now,
+      updated_at: now,
+    })
+    .execute();
+}
 
 // Two published versions, recorded directly: the Versions page manages them (feature 016).
 const items = kyselyItemRepository(db, dialect);

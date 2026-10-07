@@ -12,7 +12,12 @@ import { createRoot } from "../../identity/actions/root-account";
 import { signIn } from "../../identity/actions/session";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import type { AppAuth } from "../../identity/repositories/auth-instance";
-import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testing/test-auth";
+import {
+  cookieHeaders,
+  createTestUser,
+  setWorkspaceRole,
+  testAppAuth,
+} from "../../identity/testing/test-auth";
 import { createScope } from "../../items/actions/scopes";
 import {
   InvalidStatusTransitionError,
@@ -218,11 +223,12 @@ describe("publishSubmission", () => {
     const id = await approvedSkill();
     await expect(publish(asOther, id)).rejects.toThrow(SubmissionNotFoundError);
     const theirs = await approvedSkill("theirs");
-    await t.db
-      .updateTable("user")
-      .set({ role: "user" })
+    const mod = await t.db
+      .selectFrom("user")
+      .select("id")
       .where("email", "=", "mod@example.com")
-      .execute();
+      .executeTakeFirstOrThrow();
+    await setWorkspaceRole(app, mod.id, "user");
     const asDemoted = asModerator;
     await expect(publish(asDemoted, theirs)).rejects.toThrow(
       /doesn't exist|not allowed|permission/i,

@@ -36,17 +36,24 @@ Items are written once in a canonical format and delivered to the major AI codin
 
 ## 2. Personas & roles
 
-| Role | Who | Summary |
-|---|---|---|
-| **root** | The first is created at install time; any root can make others root ([059](../features/059-multiple-roots/SPEC.md)). Instance owners. | Everything a moderator can do, plus user and instance administration and overrides. |
-| **moderator** | Trusted reviewers. | Reviews, approves and releases submissions; deprecates and yanks versions. |
-| **user** | Everyone else. | Browses and installs items; proposes new items and changes. |
+Root is a role on the whole instance (`user.role`). **Moderator and user are roles in a
+workspace** (owner, 2026-10-05, [091](../features/091-workspace-roles/SPEC.md)): someone can
+moderate their team's workspace and be a plain user in `global`. Everyone is a member of `global`;
+root works in every workspace without being a member.
 
-**Permission matrix**
+| Role | Where | Who | Summary |
+|---|---|---|---|
+| **root** | instance | The first is created at install time; any root can make others root ([059](../features/059-multiple-roots/SPEC.md)). Instance owners. | Everything a moderator can do, in every workspace, plus user and instance administration and overrides. |
+| **moderator** | a workspace | Trusted reviewers there. | Reviews, approves and releases the workspace's submissions; moves tags, deprecates and yanks its items' versions. |
+| **user** | a workspace | Its members. | Proposes new items and changes there, comments on and releases their own. |
+
+**Permission matrix.** *user* and *moderator* mean that role in the item's workspace. Anyone signed
+in browses, installs and depends on what's published, member or not; a non-member can't draft,
+propose or submit there (`not_a_member`).
 
 | Action | user | moderator | root |
 |---|:-:|:-:|:-:|
-| Browse catalogue, install items (web / CLI / MCP) | ✅ | ✅ | ✅ |
+| Browse catalogue, install items, depend on them (web / CLI / MCP) | ✅ | ✅ | ✅ |
 | Create draft & submit new item | ✅ | ✅ | ✅ |
 | Propose change to an existing item | ✅ | ✅ | ✅ |
 | Comment in a review | own | ✅ | ✅ |
@@ -56,14 +63,15 @@ Items are written once in a canonical format and delivered to the major AI codin
 | Move dist-tags, deprecate a version | — | ✅ | ✅ |
 | Yank a version | — | ✅ | ✅ |
 | Approve own submission (override, audited) | — | — | ✅ |
-| Create scopes | — | — | ✅ |
+| Create workspaces and scopes | — | — | ✅ |
 | Create / disable users, change roles (root included, not their own) | — | — | ✅ |
 | Instance settings (the usage policy, [046](../features/046-usage-telemetry/SPEC.md)) | — | — | ✅ |
 
 Users are **only created from the web app** (by root). The CLI never registers accounts.
 
-**Scopes and ownership.** Scopes are open: anyone can propose a new item or a change in any scope,
-because review is the gate. Only root creates scopes. An item's `owner_id` records its original
+**Scopes and ownership.** A scope is open to its workspace: any member of the scope's workspace can
+propose a new item or a change in it, and review is the gate (091; before workspaces, anyone could
+propose in any scope). Only root creates scopes. An item's `owner_id` records its original
 author and grants no extra rights. The "own" in *Publish* means the author of that approved
 submission, so a user whose change proposal to someone else's item is approved may release it.
 
@@ -560,7 +568,12 @@ moves to `components/` (UI primitives go in `components/ui`).
   domain, not a Better Auth plugin. A token looks like `rmk_<random>`; only its sha256 hash is
   stored, with an optional expiry. Tokens are sent as `Authorization: Bearer`. A disabled user's
   tokens stop working at once.
-- **Authorization** is enforced in the `actions` layer from a single role-permission map.
+- **Authorization** is enforced in the `actions` layer from a single role-permission map
+  (`identity/models/permissions.ts`). Instance permissions read `user.role` (`root`/`user`);
+  workspace permissions (`submissions.create`, `.view_submitted`, `.review`, `.publish`,
+  `versions.manage`) take the workspace of the scope the action is about and read the user's role
+  there, from their memberships, loaded with the user on each request (091). Checking a workspace
+  permission without a workspace doesn't type-check.
 
 ## 10. Data model (MVP)
 
@@ -568,12 +581,13 @@ IDs are ULIDs and timestamps are UTC (§9.4).
 
 | Table | Key columns |
 |---|---|
-| `user` *(Better Auth)* | id, email (unique), name, email_verified, image, created_at, updated_at, **role** (`root`/`moderator`/`user`), **disabled_at** |
+| `user` *(Better Auth)* | id, email (unique), name, email_verified, image, created_at, updated_at, **role** (`root`/`user`; moderator moved to `workspace_members` in 091), **disabled_at** |
 | `session` *(Better Auth)* | id, user_id, token, expires_at, ip_address, user_agent, created_at, updated_at |
 | `account` *(Better Auth)* | id, user_id, account_id, provider_id (`credential` for passwords; OIDC providers later), password (hash), created_at, updated_at |
 | `verification` *(Better Auth)* | id, identifier, value, expires_at |
 | `access_tokens` | id, user_id, name, token_hash (unique), last_used_at, expires_at, revoked_at, created_at |
 | `workspaces` | id, name (unique), description, visibility (`public`/`private`), is_global (true only on `global`, which every instance has, with a fixed id), created_by (set null), created_at, updated_at ([090](../features/090-workspaces/SPEC.md)) |
+| `workspace_members` | workspace_id + user_id (primary key; both cascade), role (`moderator`/`user`), added_by (set null), created_at, updated_at. Every user but root has a `global` row; a root's rows are ignored ([091](../features/091-workspace-roles/SPEC.md)) |
 | `scopes` | id, name (unique), description, workspace_id (not null, RESTRICT: every scope is in one workspace, `global` by default, 090), created_by (set null), created_at |
 | `items` | id, scope_id, name, type, description, owner_id, download_count (counted by the tarball endpoint), listed_version_id, installable, last_published_at (the catalogue's listing, recomputed when versions or tags change, [018](../features/018-catalogue/SPEC.md)), created_at — unique (scope_id, name) |
 | `item_versions` | id, item_id, version, manifest (JSON), readme, files (JSON: paths, sizes, executable), notes, artifact_path, sha256, size, published_by, published_at, deprecated_message, yanked_at, yank_reason, submission_id, description, keywords, risk_flags (for search and the catalogue, 018). `readme` and `files` are copied at publish so pages never unpack an artifact ([015](../features/015-release/SPEC.md)) |
@@ -817,7 +831,8 @@ out (owner, 2026-09-30). The design, for when it's picked up:
 | Out of scope for now | Import from external marketplaces, notifications. Exporting a person's own local items is no longer out: see "Export" below; S3 storage is no longer out since 2026-10-06: see "Artifacts" | Keep MVP focused |
 | Backend | Next.js monolith with a domain-first clean architecture; server actions + `/api/v1` | One deployable to self-host; the domain layer stays framework-independent |
 | DB access | Kysely; SQLite (default) / MySQL-MariaDB / PostgreSQL chosen at install | One query layer and one migration set across three dialects at runtime |
-| Approval | 1 approval from a moderator/root who isn't the author; root override is audited | Four-eyes review without slowing small teams |
+| Approval | 1 approval from a moderator of the item's workspace (091), or root, who isn't the author; root override is audited | Four-eyes review without slowing small teams |
+| Roles | Root is instance-wide; moderator and user are roles per workspace, in `workspace_members` (owner, 2026-10-05, [091](../features/091-workspace-roles/SPEC.md)). Every check about an item, a submission or a scope is made in its scope's workspace; drafting, proposing and submitting need membership; reading, installing and depending stay open in public workspaces. Today's moderators became moderators of `global`. A removed member keeps read and withdraw on their own | A team moderates its own items without moderating everyone's; nobody loses access to what's public |
 | Release | Separate step after approval: publisher picks the semver bump and dist-tag (`latest` default) | npm/apt-style control over what `latest` means |
 | Artifacts | Immutable `.tgz` + sha256 on local disk behind a StorageAdapter; S3-compatible storage planned as M17 (owner, 2026-10-06, [110](../features/README.md#m17--more-than-one-replica)) | Simple to self-host; several replicas need storage they all reach |
 | Composition | React Flow visual composer over manifest `dependencies` | Visual UX, but reviews stay text diffs |
@@ -825,8 +840,8 @@ out (owner, 2026-09-30). The design, for when it's picked up:
 | MCP server and `rmk` | `packages/mcp` imports `@ronneai/rmk/lib`, `rmk`'s install pipeline as functions (plan, apply, lockfile, state, registry access), and never `rmk`'s command layer; nothing else outside core crosses packages (owner, 2026-09-29, [027](../features/027-registry-mcp-server/SPEC.md)). The export pipeline (find, plan, upload) is exported the same way ([038](../features/038-rmk-export/SPEC.md), 2026-09-30) | The server plans and applies installs exactly as `rmk` does, so one pipeline serves both and they can't drift; moving it into core would put file-system and network code into what the web app imports |
 | Front-end | React, Next.js, Tailwind, Biome, Vitest; feature-first folders; shared `components/ui` | From the requirements |
 | Auth schema | Better Auth owns `user`/`session`/`account`/`verification` (plus `role`, `disabled_at`); argon2id via custom hash; PATs in our own `access_tokens` table | Don't fight the library's schema; keep token format and revocation under our control |
-| Scopes | Every item is scoped; root creates scopes, each in a workspace (`global` by default, 090); anyone may propose in any scope; `owner_id` is informational | Review is the gate, so scope membership adds admin work without adding safety |
-| Workspaces | A level above scopes: workspace › scope › item (owner, 2026-10-05, [090](../features/090-workspaces/SPEC.md)). Called workspace, not namespace; not part of item names, which stay `@scope/name` with scope names unique across the instance; no `workspace_id` on items (the scope carries it). Every instance has `global`, public, which can't be changed or deleted; root creates, edits and deletes empty workspaces. Members, roles per workspace and private visibility follow in 091–094 | One instance can serve several teams whose items are kept apart, without changing `rmk`, lockfiles, the manifest, plugin feeds or URLs |
+| Scopes | Every item is scoped; root creates scopes, each in a workspace (`global` by default, 090); the members of its workspace propose in it (091); `owner_id` is informational | Review is the gate, so membership is per workspace, not per scope: per-scope membership would add admin work without adding safety |
+| Workspaces | A level above scopes: workspace › scope › item (owner, 2026-10-05, [090](../features/090-workspaces/SPEC.md)). Called workspace, not namespace; not part of item names, which stay `@scope/name` with scope names unique across the instance; no `workspace_id` on items (the scope carries it). Every instance has `global`, public, which can't be changed or deleted; root creates, edits and deletes empty workspaces. Roles per workspace came with 091 (see Roles); managing members and private visibility follow in 092–094 | One instance can serve several teams whose items are kept apart, without changing `rmk`, lockfiles, the manifest, plugin feeds or URLs |
 | Pre-releases | Real semver pre-releases (`1.1.0-beta.1`) under a non-`latest` tag (`next` by default); first stable is `1.0.0` | Matches npm behaviour users already know |
 | Secrets | rmk never stores secret values; rendered configs reference env vars and rmk reports missing ones | No secrets on disk from us; every platform reads env vars |
 | Managed content | Markers in files that allow comments; `.rmk/state.json` with hashes for JSON/TOML keys; stop on user edits unless `--force` | JSON can't hold markers; hashes detect local edits safely |

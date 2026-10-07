@@ -9,16 +9,42 @@ vi.mock("@/features/theme/actions", () => ({ setThemeFromForm: vi.fn() }));
 const { AppShell } = await import("./AppShell");
 
 import { MainNav } from "./MainNav";
+
+const GLOBAL = "00000000000000000000000000";
+
 import { isCurrent, navFor } from "./nav";
 
 describe("navFor", () => {
   it("shows nothing signed out, Home, Catalogue, Submissions and Docs for everyone, Reviews to reviewers, and Admin only for root", () => {
     expect(navFor(null)).toEqual([]);
-    expect(navFor({ name: "U", email: "u@example.com", role: "user" }).map((i) => i.label)).toEqual(
-      ["Home", "Catalogue", "Submissions", "Docs"],
+    expect(
+      navFor({
+        name: "U",
+        email: "u@example.com",
+        role: "user",
+        workspaces: { [GLOBAL]: "user" },
+      }).map((i) => i.label),
+    ).toEqual(["Home", "Catalogue", "Submissions", "Docs"]);
+    // A moderator of another workspace only, a plain user in global (091).
+    expect(
+      navFor({
+        name: "A",
+        email: "a@example.com",
+        role: "user",
+        workspaces: { [GLOBAL]: "user", acme: "moderator" },
+      }).map((i) => i.label),
+    ).toEqual(["Home", "Catalogue", "Submissions", "Reviews", "Docs"]);
+    // In no workspace at all (not reachable while everyone is in global): nothing to submit to.
+    expect(navFor({ name: "N", email: "n@example.com", role: "user" }).map((i) => i.label)).toEqual(
+      ["Home", "Catalogue", "Docs"],
     );
     expect(
-      navFor({ name: "M", email: "m@example.com", role: "moderator" }).map((i) => i.label),
+      navFor({
+        name: "M",
+        email: "m@example.com",
+        role: "user",
+        workspaces: { [GLOBAL]: "moderator" },
+      }).map((i) => i.label),
     ).toEqual(["Home", "Catalogue", "Submissions", "Reviews", "Docs"]);
     expect(navFor({ name: "R", email: "r@example.com", role: "root" }).map((i) => i.label)).toEqual(
       ["Home", "Catalogue", "Submissions", "Reviews", "Admin", "Docs"],
@@ -149,7 +175,12 @@ describe("AppShell", () => {
     const shell = (role: "user" | "moderator" | "root", counts?: Record<string, number>) =>
       renderToStaticMarkup(
         <AppShell
-          user={{ name: "Ada", email: "ada@example.com", role }}
+          user={{
+            name: "Ada",
+            email: "ada@example.com",
+            role: role === "root" ? "root" : "user",
+            workspaces: { [GLOBAL]: role === "moderator" ? "moderator" : "user" },
+          }}
           signOutAction={async () => {}}
           navCounts={counts}
         >
@@ -188,12 +219,12 @@ describe("AppShell", () => {
       expect(sheet(html)).not.toMatch(/>user</);
     });
 
-    it("gives a moderator Reviews with its count, on the Menu button too, and the role", () => {
+    it("gives a moderator Reviews with its count, on the Menu button too; the badge is root's only (091)", () => {
       const html = shell("moderator", { "/reviews": 3 });
       expect(links(html)).toContain("Reviews");
       expect(sheet(html)).toMatch(/>Reviews<span[^>]*>3<span class="sr-only"> waiting/);
       expect(html).toMatch(/Menu<span[^>]*>3<span class="sr-only"> waiting<\/span><\/span><\/a>/);
-      expect(sheet(html)).toMatch(/rounded-full[^>]*>moderator</);
+      expect(sheet(html)).not.toMatch(/>moderator</);
     });
 
     it("gives root Admin, and marks the current page", () => {

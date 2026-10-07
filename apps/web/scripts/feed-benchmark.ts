@@ -56,7 +56,13 @@ if (!counts.length || !tools.length || !(db in SERVERS)) {
 if (SERVERS[db]) process.env.TEST_DATABASE_URL = SERVERS[db];
 else delete process.env.TEST_DATABASE_URL;
 
-const user: CurrentUser = { id: "bench", email: "bench@example.com", name: "Bench", role: "user" };
+const user: CurrentUser = {
+  id: "bench",
+  email: "bench@example.com",
+  name: "Bench",
+  role: "user",
+  workspaces: {},
+};
 const PUBLIC_URL = "https://registry.example.com";
 const text = (value: string) => new TextEncoder().encode(value);
 /** About as long as a real description: entries are then about the size the spec assumes. */

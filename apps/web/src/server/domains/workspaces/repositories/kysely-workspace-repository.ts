@@ -16,6 +16,7 @@ type WorkspaceRow = {
   visibility: WorkspaceVisibility;
   is_global: boolean | number;
   scope_count: number | string | bigint | null;
+  moderator_count: number | string | bigint | null;
   created_by: string | null;
   creator_email: string | null;
   created_at: Date | string;
@@ -29,6 +30,7 @@ const toWorkspace = (row: WorkspaceRow): Workspace => ({
   visibility: row.visibility,
   isGlobal: Boolean(row.is_global),
   scopes: Number(row.scope_count ?? 0),
+  moderators: Number(row.moderator_count ?? 0),
   createdBy: row.created_by ? { id: row.created_by, email: row.creator_email } : null,
   createdAt: fromDbDate(row.created_at),
   updatedAt: fromDbDate(row.updated_at),
@@ -53,6 +55,16 @@ export const kyselyWorkspaceRepository = (
           .select((sub) => sub.fn.countAll<number | string | bigint>().as("n"))
           .whereRef("scopes.workspace_id", "=", "workspaces.id")
           .as("scope_count"),
+        // Its moderators who can act (091): not disabled, and not root (root is everywhere).
+        eb
+          .selectFrom("workspace_members")
+          .innerJoin("user as member", "member.id", "workspace_members.user_id")
+          .select((sub) => sub.fn.countAll<number | string | bigint>().as("n"))
+          .whereRef("workspace_members.workspace_id", "=", "workspaces.id")
+          .where("workspace_members.role", "=", "moderator")
+          .where("member.role", "!=", "root")
+          .where("member.disabled_at", "is", null)
+          .as("moderator_count"),
         "workspaces.created_by",
         "user.email as creator_email",
         "workspaces.created_at",

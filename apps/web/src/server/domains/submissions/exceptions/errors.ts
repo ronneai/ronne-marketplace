@@ -38,6 +38,22 @@ export class DraftScopeNotFoundError extends SubmissionsError {
   }
 }
 
+/**
+ * Drafts, proposals and submits need membership of the scope's workspace (091). A removed member
+ * still reads and withdraws their own; this is what editing, creating and submitting get.
+ */
+export class NotAMemberError extends SubmissionsError {
+  constructor(
+    readonly workspace: string,
+    /** What joining would let them do there: proposing changes, unless said. */
+    doing = "propose changes",
+  ) {
+    super(
+      `You aren't a member of the ${workspace} workspace. Ask to join ${workspace} to ${doing}.`,
+    );
+  }
+}
+
 /** Only drafts can be edited, renamed or deleted; a submitted one is frozen for review. */
 export class SubmissionNotEditableError extends SubmissionsError {
   /** The status it has, for the API's `details` (051). */

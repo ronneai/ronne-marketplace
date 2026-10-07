@@ -13,7 +13,7 @@ export const USERS_LIST = defineList({
 
 export type UsersListState = ListState<"created" | "email" | "name", "q" | "role" | "status">;
 
-const ROLES = ["user", "moderator", "root"] as const;
+const ROLES = ["user", "root"] as const;
 const STATUSES = ["active", "disabled"] as const;
 type Role = (typeof ROLES)[number];
 type Status = (typeof STATUSES)[number];

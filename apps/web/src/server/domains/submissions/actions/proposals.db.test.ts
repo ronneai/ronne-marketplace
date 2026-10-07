@@ -9,10 +9,16 @@ import { createRoot } from "../../identity/actions/root-account";
 import { signIn } from "../../identity/actions/session";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import type { AppAuth } from "../../identity/repositories/auth-instance";
-import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testing/test-auth";
+import {
+  cookieHeaders,
+  createTestUser,
+  setWorkspaceRole,
+  testAppAuth,
+} from "../../identity/testing/test-auth";
 import { createScope } from "../../items/actions/scopes";
 import {
   ConflictNotFoundError,
+  NotAMemberError,
   NotAProposalError,
   ProposalArtifactError,
   ProposalBaseNotFoundError,
@@ -23,7 +29,7 @@ import {
 } from "../exceptions/errors";
 import { kyselySubmissionRepository } from "../repositories/kysely-submission-repository";
 import { createDraft, getDraft, renameDraft, saveDraftFiles } from "./drafts";
-import { proposeChange, rebaseProposal, resolveConflict } from "./proposals";
+import { proposalPanel, proposeChange, rebaseProposal, resolveConflict } from "./proposals";
 import { publishSubmission } from "./publish";
 import { decide, getReview } from "./reviews";
 import { checkSubmission, submitDraft } from "./submissions";
@@ -119,6 +125,26 @@ const releasedSkill = async () => {
 };
 
 describe("proposeChange", () => {
+  it("needs membership of the item's workspace: a non-member reads it, but can't propose (091)", async () => {
+    await releasedSkill();
+    const other = await t.db
+      .selectFrom("user")
+      .select("id")
+      .where("email", "=", "other@example.com")
+      .executeTakeFirstOrThrow();
+    await t.db.deleteFrom("workspace_members").where("user_id", "=", other.id).execute();
+    await expect(
+      proposeChange(asOther, { item: "@team/secure-coding", version: "1.0.0" }, app, storage),
+    ).rejects.toThrow(new NotAMemberError("global"));
+    expect(
+      await t.db.selectFrom("submissions").select("id").where("status", "=", "draft").execute(),
+    ).toEqual([]);
+    await setWorkspaceRole(app, other.id, "user");
+    await expect(
+      proposeChange(asOther, { item: "@team/secure-coding", version: "1.0.0" }, app, storage),
+    ).resolves.toMatchObject({ status: "draft", workspace: { name: "global" } });
+  });
+
   it("starts a draft from a version's files, with the item's scope, name and type", async () => {
     await releasedSkill();
     const draft = await proposeChange(
@@ -362,6 +388,34 @@ describe("rebase", () => {
         status: "approved",
       },
     );
+  });
+
+  it("a removed member opens their stale proposal, but can't rebase it or resolve its conflicts (091)", async () => {
+    await releasedSkill();
+    const mine = await proposeChange(asOther, item, app, storage);
+    await write(asOther, mine.id, { "README.md": "# Mine\n" });
+    await submitDraft(asOther, mine.id, app, storage);
+    await releaseNewer({ "README.md": "# Theirs\n" });
+    await rebaseProposal(asOther, mine.id, app, storage);
+    const other = await t.db
+      .selectFrom("user")
+      .select("id")
+      .where("email", "=", "other@example.com")
+      .executeTakeFirstOrThrow();
+    await t.db.deleteFrom("workspace_members").where("user_id", "=", other.id).execute();
+
+    const panel = await proposalPanel(asOther, mine.id, app, storage);
+    expect(panel.conflicts.map((c) => c.path)).toEqual(["README.md"]);
+    await expect(resolveConflict(asOther, mine.id, "README.md", app, storage)).rejects.toThrow(
+      NotAMemberError,
+    );
+    await expect(submitDraft(asOther, mine.id, app, storage)).rejects.toThrow(NotAMemberError);
+    // Refused before anything else is looked at, current or not.
+    await expect(rebaseProposal(asOther, mine.id, app, storage)).rejects.toThrow(NotAMemberError);
+    expect((await getDraft(asOther, mine.id, app)).proposal).toMatchObject({
+      baseVersion: "1.1.0",
+      conflicts: ["README.md"],
+    });
   });
 
   it("is for the author's own proposals only", async () => {

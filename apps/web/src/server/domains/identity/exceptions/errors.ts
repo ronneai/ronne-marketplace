@@ -101,7 +101,7 @@ export class LastRootError extends IdentityError {
 
 export class InvalidRoleError extends IdentityError {
   constructor(readonly role: string) {
-    super(`"${role}" isn't a role. Use user, moderator or root.`);
+    super(`"${role}" isn't a role. Use user or root; moderator is a role in a workspace.`);
   }
 }
 

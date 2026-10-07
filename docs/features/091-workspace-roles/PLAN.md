@@ -7,35 +7,35 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Migration.** [risky] `workspace_members`; a `global` row per non-root user (moderator for
+- [x] **1. Migration.** [risky] `workspace_members`; a `global` row per non-root user (moderator for
   moderators); `user.role` `moderator` → `user`. New users get the `global` row in `createUser`.
   *Done when:* migration tests pass on the four databases with roots, moderators and users.
 
-- [ ] **2. Roles and the check.** [risky] `Role` becomes `root | user` for `user.role` and
+- [x] **2. Roles and the check.** [risky] `Role` becomes `root | user` for `user.role` and
   `moderator | user` for memberships; `can(user, perm, workspace)` with instance and workspace
   permissions split in the type, so a workspace permission without a workspace doesn't type-check;
   memberships loaded with the session and the token's user.
   *Done when:* a permission-matrix test passes for root, moderator in A, user in A, and a non-member.
 
-- [ ] **3. Submissions domain.** [risky] Drafts, submit, withdraw, proposals, composer, dependency
+- [x] **3. Submissions domain.** [risky] Drafts, submit, withdraw, proposals, composer, dependency
   search, bulk submit, the draft upload API: membership of the scope's workspace; `not_a_member`;
   scope lists filtered; `GET /api/v1/scopes` adds `role`.
   *Done when:* the submissions db tests pass, with new cases for a non-member and a removed member.
 
-- [ ] **4. Reviews and releases.** [risky] Reviews, decisions, bulk approve and release, publish:
+- [x] **4. Reviews and releases.** [risky] Reviews, decisions, bulk approve and release, publish:
   the workspace's moderator; bulk skips with reasons; the review queue's query and counts filtered,
   its Workspace filter.
   *Done when:* review and release db tests pass, and an end-to-end test has a moderator of A
   approve in A and not see B.
 
-- [ ] **5. Items domain.** [risky] Versions (tags, deprecate, yank), the item page's actions.
+- [x] **5. Items domain.** [risky] Versions (tags, deprecate, yank), the item page's actions.
   *Done when:* versions tests pass with workspace cases.
 
-- [ ] **6. Shell, nav and pages.** Reviews in the nav when moderating any workspace; role badges
+- [x] **6. Shell, nav and pages.** Reviews in the nav when moderating any workspace; role badges
   show "root", or the roles per workspace on Admin › Users (read only until 092).
   *Done when:* shell and nav tests pass, and the phone sweep passes for each role.
 
-- [ ] **7. Decisions and Documentation.** MVP §2 (roles table and matrix), §9.5, §10
+- [x] **7. Decisions and Documentation.** MVP §2 (roles table and matrix), §9.5, §10
   (`workspace_members`, `user.role`), §15 ("Approval", "Roles" rows); the topics and helpers.
   *Done when:* the docs render tests pass in ronne-web, and the helper link test passes here.
 
@@ -43,3 +43,72 @@ the same change that completes it.
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- **Task 2 keeps behaviour while the call sites move** (Claude). `can()` and `requirePermission()`
+  take the workspace for a workspace permission, and leaving it out doesn't type-check. So task 2
+  could land green, every existing workspace check became `canInSome()` / `requireInSome()`
+  ("held in some workspace"), which is what they meant while everyone was only in `global`. Tasks 3
+  to 5 replace each with the item's workspace; `requireInSome` goes in task 5, and `canInSome`
+  stays only for the nav and the shell (task 6).
+- **Admin › Users offers only root and user** from task 2: `moderator` is refused by `changeRole`
+  and `createUser` (`InvalidRoleError`), and the role filter has root and user. Making someone a
+  moderator comes back with 092's member admin.
+- **Tests:** `createTestUser(app, { role: "moderator" })` still works and means a moderator of
+  `global`; `setWorkspaceRole(app, userId, role, workspaceId?)` changes or adds a membership.
+
+- **Task 3: which actions check membership** (Claude). Creating a draft, saving, importing,
+  replacing (`rmk export`), renaming (both workspaces), checking, submitting, resubmitting,
+  restoring and proposing need membership of the scope's workspace (`requireMember`, in
+  `submissions/services/membership.ts`). Reading, listing, withdrawing and deleting your own need
+  only a session (`requireSignedIn`), as do the dependency picker and the composer's reports, which
+  read the catalogue. `Submission` carries its `workspace`.
+- **`not_a_member` in bulk results** carries the reason as its one issue (`code: "not_a_member"`),
+  so `rmk submit`, the MCP server and My submissions show it as they show a failed check, with no
+  client change.
+- **A removed member's own submission page** (Claude): `viewSubmission` returns `member`, and the
+  page makes the editor read-only and hides Submit, Restore, Rebase and Resolve; Withdraw and
+  Delete stay, and a change proposal's panel still opens. Task 6 gives the read-only notice its own
+  text ("You're no longer a member of acme …"); until then it reads as if it were submitted.
+- **Task 4: reviews and releases** (Claude). Viewing, deciding, commenting, publishing, the review
+  page's flags and dependency marks check the submission's workspace. A moderator of another
+  workspace gets "doesn't exist" (as anyone who can't see it); someone who moderates nowhere still
+  gets Forbidden on a decision. The author comments on and releases their own only while a member.
+  The queue, its counts and the nav count read only the moderated workspaces (`workspaceIds`), and
+  the queue has a Workspace filter when there are several. Approving many skips another
+  workspace's with "Not a moderator in acme"; releasing many can't see another workspace's at all
+  (it's `not_found`), and a removed author's own says `NotAMemberError`'s message.
+- **e2e:** the seed adds `e2e-acme` with members (`E2E_ACME_MEMBERS`) until 092 does it in the app;
+  `workspaceModerator` moderates only `e2e-acme`, and `workspaceOutsider` moderates only `global`.
+  `scopes.e2e.ts` now creates `e2e-labs` in the app and puts its scope in `e2e-acme`.
+- **Nothing of another workspace's submissions shows** (Claude, from the task 4 witnesses): bulk
+  approve answers "not found" for one the reviewer can't see (their own always shows, with why);
+  dependents (056) list only those the actor could open, and the author's withdraw warning counts
+  all of them with `countDependents` (a number; its callers keep it to the author). **For the owner
+  / 093:** a dependency mark still shows a named dependency's status ("in review") when that
+  dependency is another workspace's open submission; its name is already in the manifest, so only
+  the status shows. Harmless while every workspace is public; 093 decides it for private ones.
+- **Task 5: versions** (Claude). `Item` carries `workspaceId`; tags, deprecate, yank and their
+  undo check `versions.manage` in it, after a first refusal for anyone who manages versions
+  nowhere (so they get Forbidden, not "not found", for a missing item). The Versions page's
+  `canManage` is the same check. The transitional `requireInSome` is gone; `canInSome` stays for
+  the nav, the review pages' gate and those first refusals.
+- **For 093** (from the task 5 witness): a moderator of another workspace gets Forbidden on an
+  existing item's versions and "not found" on a missing one, so they learn what exists; harmless
+  while workspaces are public. And `withItem` reads the item's workspace before locking it: a scope
+  moving workspace at the same moment can let the old workspace's moderator act once.
+- **Task 6: pages** (Claude). Admin › Users' Role column shows root, "moderator in acme, beta" for
+  the workspaces someone moderates, or user (`pageUsers` loads the page's memberships in one
+  query). Admin › Workspaces has a Moderators column: its active moderators, not root or the
+  disabled, and "No moderators" when there are none. The editor tells an author no longer in the
+  workspace why it's read-only. The nav (Reviews when moderating any workspace) and root's badge
+  came with task 2; the shell shows no moderator badge, since moderator is per workspace now.
+- **Task 7: Documentation** (Claude). In ronne-web, branch `docs/marketplace-091-workspace-roles`
+  (not pushed): Roles rewritten (root on the instance, moderator and user per workspace, the
+  matrix by workspace), Workspaces › Members and roles (`workspaces#roles`, new, in `topics.ts` here
+  and there), Reviewing (the queue shows your workspaces), Export › Choosing the scope (only your
+  workspaces'), and Admin (the Role and Moderators columns), Scopes › Who creates and uses them and Changing a
+  published item › Propose a change (who may propose), in English, Portuguese and French.
+  Helpers here: "Why only these?" on the queue's Workspace filter and "How do I join?" under a
+  refused Propose, both to `workspaces#roles`; the scope, workspace-choice, after-submit and
+  role-root helpers no longer say anyone may propose anywhere.
+

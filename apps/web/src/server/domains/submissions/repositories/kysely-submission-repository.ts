@@ -26,6 +26,8 @@ type SubmissionRow = {
   author_id: string;
   scope_id: string;
   scope_name: string;
+  workspace_id: string;
+  workspace_name: string;
   name: string;
   type: string;
   status: string;
@@ -42,6 +44,7 @@ const toSubmission = (row: SubmissionRow): Submission => ({
   id: row.id,
   authorId: row.author_id,
   scope: { id: row.scope_id, name: row.scope_name },
+  workspace: { id: row.workspace_id, name: row.workspace_name },
   name: row.name,
   type: row.type as ItemType,
   status: row.status as SubmissionStatus,
@@ -73,6 +76,7 @@ export const kyselySubmissionRepository = (
     db
       .selectFrom("submissions")
       .innerJoin("scopes", "scopes.id", "submissions.scope_id")
+      .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
       .leftJoin("item_versions as base", "base.id", "submissions.base_version_id")
       .select([
         "submissions.item_id",
@@ -83,6 +87,8 @@ export const kyselySubmissionRepository = (
         "submissions.author_id",
         "submissions.scope_id",
         "scopes.name as scope_name",
+        "scopes.workspace_id",
+        "workspaces.name as workspace_name",
         "submissions.name",
         "submissions.type",
         "submissions.status",
@@ -103,11 +109,18 @@ export const kyselySubmissionRepository = (
   };
 
   /** A queue tab's submissions, with their author's name (062). */
-  const forReview = ({ statuses, search, type }: ReviewFilters) => {
+  const forReview = ({ statuses, workspaceIds, search, type }: ReviewFilters) => {
     let query = submissions()
       .innerJoin("user", "user.id", "submissions.author_id")
       .select("user.name as author_name")
       .where("submissions.status", "in", [...statuses]);
+    // An empty list matches nothing; `in ()` isn't valid SQL, so a value no id has stands in.
+    if (workspaceIds)
+      query = query.where(
+        "scopes.workspace_id",
+        "in",
+        workspaceIds.length > 0 ? [...workspaceIds] : [""],
+      );
     if (search)
       query = query.where((eb) =>
         eb.or([
@@ -127,12 +140,26 @@ export const kyselySubmissionRepository = (
         work(kyselySubmissionRepository(trx, dialect)),
       ),
 
-    findScope: async (name) =>
-      (await db
+    findScope: async (name) => {
+      const row = await db
         .selectFrom("scopes")
-        .select(["id", "name"])
-        .where("name", "=", name)
-        .executeTakeFirst()) ?? null,
+        .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
+        .select([
+          "scopes.id",
+          "scopes.name",
+          "workspaces.id as workspace_id",
+          "workspaces.name as workspace_name",
+        ])
+        .where("scopes.name", "=", name)
+        .executeTakeFirst();
+      return row
+        ? {
+            id: row.id,
+            name: row.name,
+            workspace: { id: row.workspace_id, name: row.workspace_name },
+          }
+        : null;
+    },
 
     insert: async (submission) => {
       const id = newId();
@@ -280,12 +307,26 @@ export const kyselySubmissionRepository = (
       (await db.selectFrom("user").select("name").where("id", "=", userId).executeTakeFirst())
         ?.name ?? null,
 
-    countByStatus: async (status) => {
-      const row = await db
+    workspacesNamed: async (ids) => {
+      if (ids !== "all" && ids.length === 0) return [];
+      let query = db.selectFrom("workspaces").select(["id", "name"]).orderBy("name");
+      if (ids !== "all") query = query.where("id", "in", [...ids]);
+      return query.execute();
+    },
+
+    countByStatus: async (status, workspaceIds) => {
+      let query = db
         .selectFrom("submissions")
+        .innerJoin("scopes", "scopes.id", "submissions.scope_id")
         .select((eb) => eb.fn.countAll().as("count"))
-        .where("status", "=", status)
-        .executeTakeFirst();
+        .where("submissions.status", "=", status);
+      if (workspaceIds)
+        query = query.where(
+          "scopes.workspace_id",
+          "in",
+          workspaceIds.length > 0 ? [...workspaceIds] : [""],
+        );
+      const row = await query.executeTakeFirst();
       return Number(row?.count ?? 0);
     },
 

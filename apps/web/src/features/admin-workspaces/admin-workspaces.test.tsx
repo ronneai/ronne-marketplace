@@ -55,6 +55,7 @@ const workspace = (overrides: Partial<Workspace> = {}): Workspace => ({
   visibility: "public",
   isGlobal: false,
   scopes: 0,
+  moderators: 0,
   createdBy: { id: "r", email: "root@example.com" },
   createdAt: new Date("2026-10-01T10:00:00Z"),
   updatedAt: new Date("2026-10-01T10:00:00Z"),
@@ -181,6 +182,13 @@ describe("WorkspacesTable", () => {
     expect(html.indexOf("global")).toBeLessThan(html.indexOf("acme"));
   });
 
+  it("counts each workspace's moderators, and says when it has none (091)", () => {
+    const html = table({}, [workspace({ moderators: 2 }), workspace({ name: "beta", id: "w2" })]);
+    expect(html).toContain(">Moderators<");
+    expect(html).toContain(">2<");
+    expect(html).toContain("No moderators");
+  });
+
   it("explains an empty search", () => {
     expect(table({ q: "x" }, [])).toContain("No workspaces match this search.");
   });
@@ -227,7 +235,11 @@ describe("the pages", () => {
     });
 
   it("are a 404 for anyone but root, without reading anything", async () => {
-    for (const user of [null, { role: "user" }, { role: "moderator" }]) {
+    for (const user of [
+      null,
+      { role: "user" },
+      { role: "user", workspaces: { global: "moderator" } },
+    ]) {
       session.getCurrentUser.mockResolvedValueOnce(user);
       await expect(listPage()).rejects.toThrow("NEXT_NOT_FOUND");
       session.getCurrentUser.mockResolvedValueOnce(user);

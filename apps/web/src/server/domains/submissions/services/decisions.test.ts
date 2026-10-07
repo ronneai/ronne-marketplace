@@ -1,10 +1,18 @@
 import { describe, expect, it } from "vitest";
-import type { Role } from "../../identity/models/user";
+import type { Memberships } from "../../identity/models/user";
 import type { SubmissionStatus } from "../models/status";
 import { allows, decisionsFor, OWN_SUBMISSION_REASON } from "./decisions";
 
+/** `moderator` and `user` are roles in `global` (091). */
+type Role = "root" | "moderator" | "user";
 const actor = (role: Role, id = "viewer") => ({
-  user: { id, email: `${id}@example.com`, name: id, role },
+  user: {
+    id,
+    email: `${id}@example.com`,
+    name: id,
+    role: role === "root" ? ("root" as const) : ("user" as const),
+    workspaces: (role === "root" ? {} : { global: role }) as Memberships,
+  },
   ip: null,
 });
 const submission = (
@@ -15,6 +23,7 @@ const submission = (
   status,
   authorId,
   stale,
+  workspace: { id: "global" },
 });
 /** Each decision as `name` or `name (reason)`, in order. */
 const shown = (role: Role, status: SubmissionStatus, mine = false, stale: string | null = null) =>

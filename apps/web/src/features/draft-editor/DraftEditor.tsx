@@ -104,6 +104,7 @@ const toolClasses =
 /** The read-only notice's title, for each status the author can't edit (013, 058). */
 const readOnlyTitle = (draft: EditorDraft): ReactNode => {
   if (!draft.mine) return "Someone else's submission.";
+  if (draft.notMemberOf) return `You're no longer a member of ${draft.notMemberOf}.`;
   if (draft.status === "approved") return "Approved.";
   if (draft.status === "published") return "Released.";
   return (
@@ -122,6 +123,8 @@ const readOnlyTitle = (draft: EditorDraft): ReactNode => {
 
 const readOnlyText = (draft: EditorDraft): string => {
   if (!draft.mine) return "You can read it, but only its author can change or withdraw it.";
+  if (draft.notMemberOf)
+    return `You can read it and withdraw it, but not change, submit or release it. Ask to join ${draft.notMemberOf} again to work on it; its moderators can still decide it.`;
   if (draft.status === "approved")
     return "It's ready to release, by you or a moderator. Until then you can still withdraw it, and a reviewer can send it back.";
   if (draft.status === "published")
