@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { WorkspaceLabel } from "@/components/catalogue/WorkspaceLabel";
 import { Badge } from "@/components/ui/Badge";
 import { LocalTime } from "@/components/ui/LocalTime";
 import { Notice } from "@/components/ui/Notice";
@@ -7,7 +8,6 @@ import { ScrollStrip } from "@/components/ui/ScrollStrip";
 import { stripTab } from "@/components/ui/scroll-strip";
 import { TypeBadge } from "@/components/ui/TypeBadge";
 import type { ItemPage } from "@/server/domains/items/actions/versions";
-import { GLOBAL_WORKSPACE_NAME } from "@/server/domains/workspaces/models/workspace";
 import { ProposeButton } from "./ProposeButton";
 import { ITEM_TABS, type ItemTab, itemTabHref, TAB_LABELS } from "./tabs";
 
@@ -48,13 +48,11 @@ export const ItemPageView = ({
         <div className="grid min-w-0 gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="font-mono text-xl font-semibold break-all text-fg">
-              {page.item.workspace !== GLOBAL_WORKSPACE_NAME ? (
-                <span className="font-normal text-muted">
-                  {page.item.workspace}
-                  <span aria-hidden="true"> · </span>
-                  <span className="sr-only">, </span>
-                </span>
-              ) : null}
+              <WorkspaceLabel
+                workspace={page.item.workspace}
+                privateWorkspace={page.item.privateWorkspace}
+                className="font-normal text-muted"
+              />
               {name}
             </h1>
             <span className="font-mono text-sm text-muted">v{shown.version}</span>

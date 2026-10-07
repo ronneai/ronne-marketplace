@@ -343,18 +343,25 @@ export const VisibilityButton = ({
 }) => {
   const dialog = useDialog();
   const to = visibility === "public" ? "private" : "public";
+  // The way it was opened: the change refreshes the page, which flips `to` while the dialog still
+  // shows its result, and its title and form mustn't flip with it.
+  const [asked, setAsked] = useState<"private" | "public">(to);
+  const open = () => {
+    setAsked(to);
+    dialog.show();
+  };
   return (
     <>
-      <Button variant="secondary" onClick={dialog.show}>
+      <Button variant="secondary" onClick={open}>
         {to === "private" ? "Make private" : "Make public"}
       </Button>
       <Dialog
         open={dialog.open}
         onClose={dialog.close}
-        title={to === "private" ? "Make private" : "Make public"}
+        title={asked === "private" ? "Make private" : "Make public"}
       >
         {dialog.open ? (
-          <VisibilityForm key={dialog.round} name={name} to={to} onDone={dialog.close} />
+          <VisibilityForm key={dialog.round} name={name} to={asked} onDone={dialog.close} />
         ) : null}
       </Dialog>
     </>

@@ -488,3 +488,28 @@ Witnessed: 2026-10-07 18:36 EDT, by a fresh agent (adversarial). Commit: 0e9ecf8
 | 18 | The git mirror holds only public workspaces unless `--workspace` names one, an rmk from before 093 included; Claude Code's marketplace still holds what the caller sees | yes | confirmed | `main`'s rmk sends `user-agent: rmk/${rmkVersion()}` and no query. P12 (no `?workspaces=`, root and member): `rmk/0.3.2`, `rmk/0.2.0 (node 22)`, `" rmk/0.3.2"`, `rmk/` → public only; no header, `Claude-Code/2.1.0`, `claude-cli/2.1 (external, cli)`, `curl/8.7.1`, `Mozilla/5.0 rmk/0.3.2`, `RMK/0.3.2` → the full view. With `rmk/0.3.2`, `?workspaces=acme` for root → acme + public. Either order → each its own answer. 21/21 on SQLite, PostgreSQL, MySQL, MariaDB. The `rmk/` branch returning null fails the new test |
 
 **Overall:** met. Remarks: the match is case-sensitive (no rmk sends otherwise; a header only changes the caller's own view); only `feed build` fetches `marketplace.json` in the CLI, and it always sends `?workspaces=`.
+
+## Task 8 — Labels and end-to-end
+
+Witnessed: 2026-10-07 19:11 EDT, by a fresh agent (blind). Commit: 5785bb4 + the uncommitted working tree (17 modified, 3 new files). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A private workspace's item shows a lock icon and "Private · acme" before its name on the card | yes | confirmed | `WorkspaceLabel.tsx` (lock, "Private", " · ", the workspace), used in `ItemCard.tsx`. `vitest run catalogue.test.tsx item-page.test.tsx …` → 70 passed; with the lock branch forced off, both new tests fail |
+| 2 | The item page header shows the same lock label | yes | confirmed | `ItemPageView.tsx` uses WorkspaceLabel; the test matches the whole `<h1>` and fails under the same mutation |
+| 3 | A public workspace other than global keeps its plain label, and global has none | no | confirmed | `WorkspaceLabel` returns null only for public `global`; `catalogue.test.tsx` checks a public acme entry has no `lucide-lock`; e2e test 3 checks the shelf heading loses "Private" after Make public |
+| 4 | `privateWorkspace` comes from `workspaces.visibility` in the catalogue and item repositories (anything but "public" is private) | yes | confirmed | Both repositories select `workspace_visibility`; with either forced to `false`, `private-items.db.test.ts` fails |
+| 5 | The Workspace filter lists only the workspaces the viewer sees | yes | confirmed | `inVisibleWorkspace(viewer)` on the workspaces list; the db test expects `["global","acme"]` for member and root, `["global"]` for the outsider; e2e: the member's `#catalogue-workspace` has e2e-vault, the outsider's doesn't |
+| 6 | Service tests pass on SQLite, PostgreSQL, MySQL and MariaDB | no | confirmed | `private-items` + `plugin-feed` → 30 passed on each |
+| 7 | The end-to-end test uses two users (a member of e2e-vault and an outsider) on desktop | yes | confirmed | `private-workspaces.e2e.ts` test 1: the member's card, option and h1; the outsider has none, and their 404 text equals `/items/e2e-vault-tools/nothing-here`'s, name masked |
+| 8 | The end-to-end test covers phone, phone-webkit and tablet | yes | confirmed | `private-workspaces.mobile.e2e.ts`, a pair per project; `playwright test private-workspaces` on the four projects (scratch copy) → 6 passed |
+| 9 | Playwright passes on desktop, phone and phone-webkit (the whole suite) | no | confirmed | Scratch copy: build, `npx playwright test` → 97 passed (2.3m) across chromium, phone, phone-webkit, tablet, wizard and wizard-nojs |
+| 10 | Through the MCP end-to-end test, the member sees the private item | yes | confirmed | Test 2 starts the real `packages/mcp/dist/bin.js` after `rmk login` with the member's token: `search_items` lists `@e2e-vault-tools/vault-deploy@1.0.0  skill`, `get_item` returns it |
+| 11 | Through the MCP end-to-end test, the outsider gets exactly what an unknown name gets | yes | confirmed | As the outsider: no search result; `get_item` is an error whose text, name masked, equals `@e2e-vault-tools/nothing-here`'s |
+| 12 | A non-member gets the same answers as for an unknown name (page, versions, contents, API, download, resolve) | yes | confirmed | `private-items.db.test.ts` on 4 databases; e2e 404 page text |
+| 13 | Make private / Make public is root only; its dialog keeps its title and result after the page refreshes | yes | confirmed | Gated by `can(me,"workspaces.manage")` (root only) and `requirePermission` in the services; the `asked` state in `WorkspaceDialogs.tsx`; e2e test 3 passes |
+| 14 | The changed code lints and type-checks | no | confirmed | `biome check` on the changed files → no errors; `tsc --noEmit -p apps/web` → 0 |
+| 15 | The label has a title saying who sees the item | yes | confirmed | `Only ${workspace}'s members and root see this item.`; the catalogue test expects it |
+| 16 | The seed adds e2e-vault (private, a member per project), e2e-shelf (public), users per project, and `privateRoot` as root | yes | confirmed | `users.ts` and `seed.ts` diffs; the e2e runs that depend on them pass |
+
+**Overall:** met. Remarks: the mobile test doesn't check the Workspace filter (the desktop and db tests do); a `?workspace=<any name>` is echoed back as an option, the same for a private and an unknown name.

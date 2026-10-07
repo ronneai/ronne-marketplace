@@ -150,6 +150,16 @@ describe("the item page", () => {
     );
   });
 
+  it("marks a private workspace's item with a lock and Private · acme in the header (093)", async () => {
+    versions.itemPage.mockResolvedValue(
+      itemPageData({ item: { ...itemPageData().item, workspace: "acme", privateWorkspace: true } }),
+    );
+    const html = await render();
+    expect(html).toMatch(
+      /lucide-lock[^>]*>.*<\/svg>Private<span aria-hidden="true"> · <\/span><span class="sr-only">, <\/span>acme<span aria-hidden="true"> · <\/span><span class="sr-only">, <\/span><\/span>@team\/github<\/h1>/,
+    );
+  });
+
   it("shows another version by URL, with a banner saying whether it's yanked", async () => {
     const old = itemPageData().versions[1] ?? versionRow();
     versions.itemPage.mockResolvedValue(

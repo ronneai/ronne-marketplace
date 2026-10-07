@@ -13,6 +13,8 @@ export type CatalogueEntry = {
   id: string;
   /** The workspace its scope belongs to (090), by name. */
   workspace: string;
+  /** Whether that workspace is private (093): its items carry a lock label. */
+  privateWorkspace: boolean;
   scope: string;
   name: string;
   type: ItemType;

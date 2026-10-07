@@ -40,7 +40,7 @@ the same change that completes it.
   *Done when:* feed tests cover two keys sharing nothing, and the 079 benchmark still passes its
   budget with one key.
 
-- [ ] **8. Labels and end-to-end.** Lock label on card and item page; Workspace filter shows only
+- [x] **8. Labels and end-to-end.** Lock label on card and item page; Workspace filter shows only
   visible ones; the end-to-end test with two users; the MCP read tools (`rmk-mcp`, which reads
   through the registry API) run against a private item as a member and as an outsider (task 6
   leaves this here: the web app doesn't depend on `@ronneai/mcp`, and CI runs its tests before
@@ -203,4 +203,17 @@ goes into `SPEC.md` instead.
   token's user sees, but every rmk sends `user-agent: rmk/…`, so the route answers an rmk request
   without `?workspaces=` for the public workspaces only (Claude Code's request is unaffected; a
   forged header only narrows the caller's own view).
+- **Task 8: labels and end-to-end** (Claude). `CatalogueEntry` and `Item` carry
+  `privateWorkspace` (exactly "public" or not, as the viewer counts it), and `WorkspaceLabel`
+  (components/catalogue) puts a lock and "Private · acme" before the name on the card and the item
+  page, with a title saying who sees it. The Workspace filter already listed only the viewer's
+  workspaces (task 2's catalogue repository); `private-items.db.test.ts` checks both. The seed adds
+  e2e-vault (private, `@e2e-vault-tools/vault-deploy`, with a member per project) and e2e-shelf
+  (public), and users for each project, plus `privateRoot`, since root's own sign-ins are spent.
+  `private-workspaces.e2e.ts`: the member's card, filter and page against the outsider's (the 404
+  reads as an unknown name's); the real `rmk-mcp` for a member and an outsider (`search_items`,
+  `get_item`); root's Make private and Make public on e2e-shelf, with the outsider's next request.
+  `private-workspaces.mobile.e2e.ts`: the label and the 404 on phone, phone-webkit and tablet. It
+  found a bug: Make private refreshes the page, which flipped the open dialog's title to "Make
+  public" over "It's private"; the dialog now keeps the direction it was opened with.
 

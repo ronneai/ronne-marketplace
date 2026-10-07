@@ -5,7 +5,7 @@ import { CopyableCommand } from "@/components/ui/CopyableCommand";
 import { LocalTime } from "@/components/ui/LocalTime";
 import { TypeBadge } from "@/components/ui/TypeBadge";
 import type { CatalogueEntry } from "@/server/domains/items/actions/catalogue";
-import { GLOBAL_WORKSPACE_NAME } from "@/server/domains/workspaces/models/workspace";
+import { WorkspaceLabel } from "./WorkspaceLabel";
 
 /** An item's page (feature 018). */
 export const itemPath = (item: { scope: string; name: string }) =>
@@ -15,7 +15,8 @@ export const itemPath = (item: { scope: string; name: string }) =>
  * One published item, as the catalogue and the home page list it (feature 018): its name, listed
  * version, type, what it can do, the AI tools it works in (026), how many times it's been installed
  * (its download count, on every card since 2026-10-02, owner) and whether it's deprecated, with the command to install
- * it. An item in a workspace other than `global` names it before its own name, quietly (090).
+ * it. An item in a workspace other than `global` names it before its own name, quietly (090), and
+ * a private one's says so with a lock (093).
  */
 export const ItemCard = ({
   entry,
@@ -35,13 +36,11 @@ export const ItemCard = ({
     <article className="grid grid-cols-1 gap-2 rounded-panel border border-hairline bg-surface p-4">
       <div className="flex flex-wrap items-center gap-2">
         <Heading className="min-w-0 break-all">
-          {entry.workspace !== GLOBAL_WORKSPACE_NAME ? (
-            <span className="font-mono text-[15px] text-muted">
-              {entry.workspace}
-              <span aria-hidden="true"> · </span>
-              <span className="sr-only">, </span>
-            </span>
-          ) : null}
+          <WorkspaceLabel
+            workspace={entry.workspace}
+            privateWorkspace={entry.privateWorkspace}
+            className="font-mono text-[15px] text-muted"
+          />
           <Link
             href={itemPath(entry)}
             className="font-mono text-[15px] font-semibold text-fg hover:underline"

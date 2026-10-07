@@ -14,6 +14,7 @@ import type { CatalogueRepository } from "./catalogue-repository";
 type Row = {
   id: string;
   workspace_name: string;
+  workspace_visibility: string;
   scope_name: string;
   name: string;
   type: string;
@@ -32,6 +33,8 @@ type Row = {
 const toEntry = (row: Row): CatalogueEntry => ({
   id: row.id,
   workspace: row.workspace_name,
+  // Anything but exactly "public" is private, as the viewer counts it (093).
+  privateWorkspace: row.workspace_visibility !== "public",
   scope: row.scope_name,
   name: row.name,
   type: row.type as ItemType,
@@ -131,6 +134,7 @@ export const kyselyCatalogueRepository = (
     listed().select([
       "items.id",
       "workspaces.name as workspace_name",
+      "workspaces.visibility as workspace_visibility",
       "scopes.name as scope_name",
       "items.name",
       "items.type",

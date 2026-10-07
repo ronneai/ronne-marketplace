@@ -14,6 +14,7 @@ const { CatalogueView } = await import("./CatalogueView");
 const entry = (overrides: Partial<CatalogueEntry> = {}): CatalogueEntry => ({
   id: "i1",
   workspace: "global",
+  privateWorkspace: false,
   scope: "team",
   name: "fmt",
   type: "hook",
@@ -261,5 +262,18 @@ describe("workspaces in the catalogue (090)", () => {
     expect(acme).toMatch(/acme<span aria-hidden="true"> · <\/span>/);
     expect(acme).toContain("@acme-infra/fmt");
     expect(view()).not.toContain('<span aria-hidden="true"> · </span>');
+  });
+
+  it("marks a private workspace's item with a lock and Private · acme (093)", () => {
+    const html = view({
+      entries: [entry({ workspace: "acme", privateWorkspace: true, scope: "acme-infra" })],
+    });
+    expect(html).toContain('title="Only acme&#x27;s members and root see this item."');
+    expect(html).toMatch(
+      /lucide-lock[^>]*>.*<\/svg>Private<span aria-hidden="true"> · <\/span><span class="sr-only">, <\/span>acme<span aria-hidden="true"> · <\/span>/,
+    );
+    expect(view({ entries: [entry({ workspace: "acme", scope: "acme-infra" })] })).not.toContain(
+      "lucide-lock",
+    );
   });
 });

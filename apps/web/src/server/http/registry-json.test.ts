@@ -8,6 +8,7 @@ describe("registry JSON", () => {
       itemSummaryJson({
         id: "i",
         workspace: "global",
+        privateWorkspace: false,
         scope: "team",
         name: "fmt",
         type: "hook",

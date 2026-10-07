@@ -8,6 +8,8 @@ export type Item = {
   workspace: string;
   /** The same workspace's id, where its versions are managed (091). */
   workspaceId: string;
+  /** Whether that workspace is private (093): only its members and root see the item. */
+  privateWorkspace: boolean;
   name: string;
   type: ItemType;
   description: string;

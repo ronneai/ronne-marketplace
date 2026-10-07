@@ -361,6 +361,7 @@ describe("the Claude Code feed (077)", () => {
             : many.map((m) => ({
                 id: m.name,
                 workspace: "global",
+                privateWorkspace: false,
                 scope: m.scope,
                 name: m.name,
                 type: "skill" as const,

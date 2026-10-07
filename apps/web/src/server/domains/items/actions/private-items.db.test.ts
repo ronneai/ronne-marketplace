@@ -137,6 +137,14 @@ describe("a private workspace's items (093)", () => {
       expect(names(page.entries), who).toEqual(["@acme-infra/deploy", "@team/base"]);
       expect(page.workspaces, who).toEqual(["global", "acme"]);
       expect(page.scopes, who).toContain("acme-infra");
+      // The card's lock label (task 8).
+      expect(
+        page.entries.map((e) => [e.workspace, e.privateWorkspace]),
+        who,
+      ).toEqual([
+        ["acme", true],
+        ["global", false],
+      ]);
     }
     const page = await browseCatalogue(asOutsider, {}, app);
     expect(names(page.entries)).toEqual(["@team/base"]);
@@ -174,7 +182,10 @@ describe("a private workspace's items (093)", () => {
       expect(hidden, what).toBe(await outcome(() => ask(UNKNOWN)));
     }
     // A member and root get them.
-    expect((await itemPage(asMember, DEPLOY, undefined, app)).item.name).toBe("deploy");
+    expect((await itemPage(asMember, DEPLOY, undefined, app)).item).toMatchObject({
+      name: "deploy",
+      privateWorkspace: true,
+    });
     expect((await itemPage(asRoot, DEPLOY, undefined, app)).item.name).toBe("deploy");
     expect(await outcome(() => findDownloadAs(member, DEPLOY, "1.0.0", app))).toBe("found");
   });

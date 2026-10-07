@@ -24,9 +24,11 @@ import {
   E2E_RMK_ITEMS,
   E2E_ROOTS,
   E2E_SCOPE,
+  E2E_SHELF,
   E2E_SKILL,
   E2E_USAGE_PEAK,
   E2E_USERS,
+  E2E_VAULT,
   E2E_VERSIONED_ITEM,
   E2E_WORKSPACE,
 } from "./users";
@@ -348,4 +350,81 @@ await release(E2E_RMK_ITEMS.rule, "rule", "1.0.0", {
   "ronne.yaml": `name: "@${E2E_SCOPE}/${E2E_RMK_ITEMS.rule}"\ntype: rule\ndescription: The kit-rule item.\nrule:\n  body: rule.md\n  activation: always\n`,
   "rule.md": "Keep functions small.\n",
 });
+// A private workspace with a skill its members see (093), and a public one root turns private.
+const releaseSkillIn = async (
+  where: { workspace: string; scope: string; item: string },
+  visibility: "public" | "private",
+  members: readonly (keyof typeof E2E_USERS)[],
+) => {
+  const workspaceId = await kyselyWorkspaceRepository(db, dialect).insert({
+    name: where.workspace,
+    description: `The ${where.workspace} workspace, for the end-to-end tests.`,
+    visibility,
+    createdBy: null,
+    createdAt: new Date(),
+  });
+  for (const key of members) {
+    const now = toDbDate(new Date(), dialect);
+    await db
+      .insertInto("workspace_members")
+      .values({
+        workspace_id: workspaceId,
+        user_id: ids[key] ?? "",
+        role: "user",
+        added_by: null,
+        created_at: now,
+        updated_at: now,
+      })
+      .execute();
+  }
+  const whereScopeId = await kyselyScopeRepository(db, dialect, UNFILTERED).insert({
+    name: where.scope,
+    description: `The ${where.workspace} workspace's scope.`,
+    workspaceId,
+    createdBy: null,
+    createdAt: new Date(),
+  });
+  const name = `@${where.scope}/${where.item}`;
+  const description = `The ${where.item} skill.`;
+  const files = [
+    {
+      path: "ronne.yaml",
+      text: `name: "${name}"\ntype: skill\ndescription: ${description}\nskill:\n  entry: SKILL.md\n`,
+    },
+    {
+      path: "SKILL.md",
+      text: `---\nname: ${where.item}\ndescription: ${description}\n---\n\nDo it.\n`,
+    },
+  ].map((file) => ({ path: file.path, bytes: new TextEncoder().encode(file.text) }));
+  const packed = await packItem(files, { version: "1.0.0" });
+  const artifactPath = `${where.scope}/${where.item}/1.0.0.tgz`;
+  await localStorage(storagePath).put(artifactPath, packed.tgz);
+  const itemId = await items.insertItem({
+    scopeId: whereScopeId,
+    name: where.item,
+    type: "skill",
+    description,
+    ownerId: ids.releaser ?? "",
+    createdAt: new Date(),
+  });
+  const versionId = await items.insertVersion({
+    itemId,
+    version: "1.0.0",
+    manifest: { name, type: "skill", description, skill: { entry: "SKILL.md" }, version: "1.0.0" },
+    readme: null,
+    files: files.map((f) => ({ path: f.path, size: f.bytes.length, executable: false })),
+    notes: null,
+    artifactPath,
+    sha256: packed.sha256,
+    size: packed.size,
+    publishedBy: ids.releaser ?? "",
+    publishedAt: new Date(),
+    submissionId: null,
+    dependencies: [],
+    riskFlags: [],
+  });
+  await items.setTag(itemId, "latest", versionId);
+};
+await releaseSkillIn(E2E_VAULT, "private", E2E_VAULT.members);
+await releaseSkillIn(E2E_SHELF, "public", []);
 await db.destroy();
