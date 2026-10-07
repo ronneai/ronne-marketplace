@@ -31,7 +31,7 @@ the same change that completes it.
 - [x] **5. Items domain.** [risky] Versions (tags, deprecate, yank), the item page's actions.
   *Done when:* versions tests pass with workspace cases.
 
-- [ ] **6. Shell, nav and pages.** Reviews in the nav when moderating any workspace; role badges
+- [x] **6. Shell, nav and pages.** Reviews in the nav when moderating any workspace; role badges
   show "root", or the roles per workspace on Admin › Users (read only until 092).
   *Done when:* shell and nav tests pass, and the phone sweep passes for each role.
 
@@ -96,3 +96,9 @@ goes into `SPEC.md` instead.
   existing item's versions and "not found" on a missing one, so they learn what exists; harmless
   while workspaces are public. And `withItem` reads the item's workspace before locking it: a scope
   moving workspace at the same moment can let the old workspace's moderator act once.
+- **Task 6: pages** (Claude). Admin › Users' Role column shows root, "moderator in acme, beta" for
+  the workspaces someone moderates, or user (`pageUsers` loads the page's memberships in one
+  query). Admin › Workspaces has a Moderators column: its active moderators, not root or the
+  disabled, and "No moderators" when there are none. The editor tells an author no longer in the
+  workspace why it's read-only. The nav (Reviews when moderating any workspace) and root's badge
+  came with task 2; the shell shows no moderator badge, since moderator is per workspace now.

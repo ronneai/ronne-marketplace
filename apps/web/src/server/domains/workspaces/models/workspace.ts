@@ -21,6 +21,8 @@ export type Workspace = {
   isGlobal: boolean;
   /** How many scopes it has. */
   scopes: number;
+  /** How many active moderators it has besides root (091); none means only root reviews there. */
+  moderators: number;
   createdBy: { id: string; email: string | null } | null;
   createdAt: Date;
   updatedAt: Date;

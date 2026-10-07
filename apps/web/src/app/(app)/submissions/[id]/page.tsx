@@ -64,6 +64,7 @@ const toEditorDraft = (
   status: draft.status,
   submittedAt: draft.submittedAt?.toISOString() ?? null,
   mine: draft.mine,
+  notMemberOf: draft.mine && !draft.member ? draft.workspace.name : null,
   // A removed member reads, withdraws and deletes their own, and changes nothing (091).
   readOnly: !(draft.mine && draft.member && isEditable(draft.status)),
   canSubmit:

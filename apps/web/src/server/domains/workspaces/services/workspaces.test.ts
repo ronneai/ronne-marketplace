@@ -19,6 +19,7 @@ const taken: Workspace = {
   visibility: "public",
   isGlobal: false,
   scopes: 0,
+  moderators: 0,
   createdBy: null,
   createdAt: new Date(),
   updatedAt: new Date(),

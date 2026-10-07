@@ -96,6 +96,7 @@ export const createWorkspace = async (
         visibility,
         isGlobal: false,
         scopes: 0,
+        moderators: 0,
         createdBy: actor.user ? { id: actor.user.id, email: actor.user.email } : null,
         createdAt: at,
         updatedAt: at,

@@ -209,6 +209,20 @@ describe("global membership (091)", () => {
     expect(await memberships(rootId)).toEqual([]);
   });
 
+  it("lists each user's roles per workspace, moderated first (091)", async () => {
+    await createTestUser(app, {
+      email: "m@example.com",
+      password: rootPassword,
+      role: "moderator",
+    });
+    await createTestUser(app, { email: "u@example.com", password: rootPassword });
+    const listed = (await adminListUsers(asRoot, { sort: "email" }, app)).users;
+    const roles = (email: string) => listed.find((u) => u.email === email)?.workspaces;
+    expect(roles("m@example.com")).toEqual([{ name: "global", role: "moderator" }]);
+    expect(roles("u@example.com")).toEqual([{ name: "global", role: "user" }]);
+    expect(roles("root@example.com")).toEqual([]);
+  });
+
   it("puts a root who stops being root in global, once", async () => {
     const root = await adminCreateUser(
       asRoot,

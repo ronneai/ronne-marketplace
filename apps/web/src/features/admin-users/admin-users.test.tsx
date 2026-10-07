@@ -85,6 +85,32 @@ const page = (props: Partial<Parameters<typeof UsersPage>[0]> = {}) =>
   );
 
 describe("UsersPage (061)", () => {
+  it("shows root, or the workspaces a user moderates, or user (091)", () => {
+    const html = page({
+      users: [
+        user({ id: "01K6BZ3W1D8J9Q2R4T6V8X0Y21", email: "r@example.com", role: "root" }),
+        user({
+          id: "01K6BZ3W1D8J9Q2R4T6V8X0Y22",
+          email: "m@example.com",
+          workspaces: [
+            { name: "acme", role: "moderator" },
+            { name: "beta", role: "moderator" },
+            { name: "global", role: "user" },
+          ],
+        }),
+        user({
+          id: "01K6BZ3W1D8J9Q2R4T6V8X0Y23",
+          email: "p@example.com",
+          workspaces: [{ name: "global", role: "user" }],
+        }),
+      ],
+    });
+    expect(html).toContain(">root<");
+    expect(html).toMatch(/>moderator<.*in (?:<!-- -->)?acme, beta/);
+    expect(html).not.toContain("acme, beta, global");
+    expect(html).toContain(">user<");
+  });
+
   it("lists users with their role, status and actions, sortable by email, name and created", () => {
     const html = page();
     for (const text of [

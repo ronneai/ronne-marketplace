@@ -40,6 +40,8 @@ export type UserSummary = {
   role: Role;
   disabledAt: Date | null;
   createdAt: Date;
+  /** Its roles per workspace (091), moderated ones first, for the users list; ignored for root. */
+  workspaces?: { name: string; role: WorkspaceRole }[];
 };
 
 export type RootAccount = { id: string; email: string; name: string; disabledAt: Date | null };

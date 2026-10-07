@@ -25,6 +25,15 @@ describe("navFor", () => {
         workspaces: { [GLOBAL]: "user" },
       }).map((i) => i.label),
     ).toEqual(["Home", "Catalogue", "Submissions", "Docs"]);
+    // A moderator of another workspace only, a plain user in global (091).
+    expect(
+      navFor({
+        name: "A",
+        email: "a@example.com",
+        role: "user",
+        workspaces: { [GLOBAL]: "user", acme: "moderator" },
+      }).map((i) => i.label),
+    ).toEqual(["Home", "Catalogue", "Submissions", "Reviews", "Docs"]);
     // In no workspace at all (not reachable while everyone is in global): nothing to submit to.
     expect(navFor({ name: "N", email: "n@example.com", role: "user" }).map((i) => i.label)).toEqual(
       ["Home", "Catalogue", "Docs"],

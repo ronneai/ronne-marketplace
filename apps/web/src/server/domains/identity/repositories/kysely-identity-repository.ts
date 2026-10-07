@@ -8,7 +8,7 @@ import type { Database } from "../../../db/schema";
 import { containsInsensitive } from "../../../db/search";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
-import { isRole, type RootAccount, type UserSummary } from "../models/user";
+import { isRole, isWorkspaceRole, type RootAccount, type UserSummary } from "../models/user";
 import type {
   IdentityRepository,
   NewUserWithPassword,
@@ -185,7 +185,28 @@ export const kyselyIdentityRepository = (
           idOf: (row) => row.id,
         },
       );
-      return { ...page, rows: page.rows.map(summary) };
+      // The page's memberships, by workspace name, in one query (091).
+      const ids = page.rows.map((row) => row.id);
+      const memberships =
+        ids.length === 0
+          ? []
+          : await db
+              .selectFrom("workspace_members")
+              .innerJoin("workspaces", "workspaces.id", "workspace_members.workspace_id")
+              .select(["workspace_members.user_id", "workspace_members.role", "workspaces.name"])
+              .where("workspace_members.user_id", "in", ids)
+              .orderBy("workspaces.name")
+              .execute();
+      return {
+        ...page,
+        rows: page.rows.map((row) => ({
+          ...summary(row),
+          workspaces: memberships
+            .filter((m) => m.user_id === row.id && isWorkspaceRole(m.role))
+            .map((m) => ({ name: m.name, role: m.role }))
+            .sort((a, b) => (a.role === b.role ? 0 : a.role === "moderator" ? -1 : 1)),
+        })),
+      };
     },
 
     countUsers: (filters) => countCapped(db, filteredUsers(filters).select("id")),

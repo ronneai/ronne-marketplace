@@ -285,6 +285,14 @@ describe("the draft page", () => {
     expect(html).not.toMatch(/<fieldset disabled=""/);
   });
 
+  it("tells an author no longer in the workspace why it's read-only (091)", () => {
+    const html = view({ readOnly: true, canSubmit: false, notMemberOf: "acme" });
+    expect(html).toContain("You&#x27;re no longer a member of acme.");
+    expect(html).toContain("Ask to join acme again to work on it");
+    expect(html).not.toContain("Submitted for review");
+    expect(html).not.toContain("Submit for review<");
+  });
+
   it("shows a submitted submission read-only, with only Withdraw", () => {
     const html = view({
       status: "submitted",

@@ -24,6 +24,11 @@ export type EditorDraft = {
   submittedAt: string | null;
   files: EditorFile[];
   /** Whether the viewer is the author. Moderators and root may view others' submissions (013). */
+  /**
+   * The workspace the author isn't a member of any more (091), when it's theirs: they read and
+   * withdraw it, and change nothing.
+   */
+  notMemberOf?: string | null;
   mine: boolean;
   /** Not a draft, or not the viewer's: shown, but not editable (feature 013). */
   readOnly: boolean;

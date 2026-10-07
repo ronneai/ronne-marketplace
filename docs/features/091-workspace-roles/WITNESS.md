@@ -315,3 +315,36 @@ Witnessed: 2026-10-07 00:58 EDT, by a fresh agent (adversarial). Commit: 88767d5
 | 17 | The updated tests cover the undo actions and moving the scope back with acme's moderator only a plain user in global; they pass on all four databases | yes | confirmed | `intoAcme` sets mod2 to `user` in global; mod2's `undeprecate`, `unyank`, `removeTag` succeed; after the scope moves back, mod2's `deprecate` → Forbidden and the global moderator's succeeds; passes in the four full db runs; ProposeButton.tsx changed only in its comment |
 
 **Overall:** met: the first refusal and the undo actions are tested (a mutant shows it), and lint, typecheck, unit, db on SQLite, PostgreSQL, MySQL and MariaDB, and e2e pass on the current working tree.
+
+## Task 6 — Shell, nav and pages
+
+Witnessed: 2026-10-07 01:27 EDT, by a fresh agent (blind). Commit: 4ef5ebb (+ uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0. The diff included PLAN.md's new Notes entry, read by accident; the verdicts rest on the code and commands.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Reviews shows in the nav when the user moderates at least one workspace, including one that isn't global | yes | confirmed | `nav.ts:53-62` filters workspace permissions with `canInSome`; a tsx probe: moderator only in a non-global workspace → `true`, user everywhere → `false`, root with no memberships → `true`. Gap: `AppShell.test.tsx:31-39` only tested a moderator of global |
+| 2 | Reviews is hidden for someone who moderates no workspace; the /reviews pages refuse them | no | confirmed | `AppShell.test.tsx:20-30`; `reviews/page.tsx:27`, `reviews/[id]/page.tsx:62` → `notFound()` without `canInSome` |
+| 3 | The nav's review count and the queue only cover the workspaces the user moderates | no | confirmed | `shell.ts:18` → `countNeedsReview` scoped with `workspacesWith` (`queue.ts:202-205`); `workspace-reviews.db.test.ts` → 8 passed (acme 1, beta 2, root 3, author 0) |
+| 4 | The shell's role badge shows only "root"; there is no moderator badge | yes | confirmed | `AppShell.tsx:72`, `MenuList.tsx:64`; `AppShell.test.tsx:213-218` checks no `>moderator<` |
+| 5 | Admin › Users' Role column shows root, or "moderator in <workspaces>", or user | yes | confirmed | `UsersPage.tsx:72-84`; `admin-users.test.tsx` "shows root, or the workspaces a user moderates…" |
+| 6 | The users list loads each user's memberships, moderated workspaces first, on all dialects | yes | confirmed | `kysely-identity-repository.ts:188-209`, one query a page; `user-admin.db.test.ts` + `workspaces.db.test.ts` → 41 passed on SQLite, PostgreSQL, MySQL, MariaDB |
+| 7 | Workspace roles are read only on Admin › Users until 092: no control changes them, and Create user still offers only user/root | no | confirmed | `UserRowActions.tsx:20,30` (user ↔ root); `CreateUserDialog.tsx:44-45`; the role filter `UsersPage.tsx:39-41` (Any, user, root) |
+| 8 | Admin › Workspaces shows "No moderators" on a workspace with no active moderators (root and disabled users don't count) | yes | partly | The count query (`kysely-workspace-repository.ts:59-67`) and its db test pass on all 4 dialects; but the column had `hideOnMobile: true` (`WorkspacesTable.tsx:84`), so below 640px "No moderators" never shows |
+| 9 | An author who is no longer a member sees their own draft read only, with a notice saying why, and can still withdraw it | yes | confirmed | `submissions/[id]/page.tsx:67-69` sets `notMemberOf`; `DraftEditor.tsx:107,126-127`; `draft-editor.test.tsx` "tells an author no longer in the workspace…" |
+| 10 | The shell and nav tests pass | yes | confirmed | `vitest run src/components/app-shell src/features/admin-users src/features/admin-workspaces src/features/draft-editor src/server/domains/workspaces/services` → 13 files, 177 passed |
+| 11 | The phone sweep passes for each role | yes | confirmed | `pnpm test:e2e` → 91 passed; `mobile-sweep` as member, moderator, root and signed out, in phone, phone-webkit and tablet; it covers /reviews, /admin/users, /admin/workspaces (`pages.ts:63,72-73`) |
+| 12 | Typecheck and lint are clean | yes | confirmed | `pnpm --filter @ronneai/web typecheck` → no errors; `biome check apps/web/src` → 0 errors |
+
+**Overall:** not met: Admin › Workspaces hid the Moderators column on phones, so "No moderators" didn't show there (8). Fixed: the column shows on every width (the phone sweep still passes, 91), and the nav test covers a moderator of a non-global workspace. Re-check below.
+
+### Re-check — rows 1 and 8, and the phone sweep
+
+Witnessed: 2026-10-07 01:32 EDT, by a fresh agent (blind). Commit: 4ef5ebb (+ uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Reviews shows in the nav when the user moderates at least one workspace, including one that isn't global, and a test covers that case | yes | confirmed | `AppShell.test.tsx:28-36`: `{ [GLOBAL]: "user", acme: "moderator" }` → Home, Catalogue, Submissions, Reviews, Docs; `vitest run src/components/app-shell src/features/admin-workspaces` → 37 passed; a `navFor` checking only global would fail it (read from the code, not run as a mutant) |
+| 8 | Admin › Workspaces shows "No moderators" on a workspace with no active moderators, at every width | yes | confirmed | `git diff WorkspacesTable.tsx` → the Moderators column (lines 80-91) has no `hideOnMobile`; only Created keeps it (line 98); the count query and its db test are unchanged from the first pass, on 4 dialects |
+| 11 | The phone sweep passes for each role with the Moderators column showing | yes | confirmed | `pnpm test:e2e` → 91 passed (2.0m); all 15 mobile-sweep tests pass (signed out, member, moderator, root, "no page scrolls sideways", in phone, phone-webkit, tablet); `/admin/workspaces` is in the root sweep (`pages.ts:73`) |
+
+**Overall:** met: Reviews shows for a moderator of any workspace and a test covers it, "No moderators" shows at every width, and the phone sweep passes for each role.
