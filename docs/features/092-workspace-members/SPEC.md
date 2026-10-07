@@ -125,17 +125,17 @@ missing.
 
 ## Acceptance criteria
 
-- [ ] A new user is a `user` in `global`, and Create user stays as it was.
-- [ ] Root adds, changes and removes members from the user's dialog and from the workspace's page;
+- [x] A new user is a `user` in `global`, and Create user stays as it was.
+- [x] Root adds, changes and removes members from the user's dialog and from the workspace's page;
   each change is audited.
-- [ ] Nobody can be removed from `global`, in the UI or the services.
-- [ ] An admin of a workspace reviews and releases there, manages its members (admins included,
+- [x] Nobody can be removed from `global`, in the UI or the services.
+- [x] An admin of a workspace reviews and releases there, manages its members (admins included,
   not themselves), creates its scopes and edits its description, and can't do any of it in
   another workspace; a user and a moderator can't do any of it.
-- [ ] Admins see Admin with only their workspaces; everyone else but root can't reach any of
+- [x] Admins see Admin with only their workspaces; everyone else but root can't reach any of
   these actions.
-- [ ] The pages pass the phone sweep (065).
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] The pages pass the phone sweep (065).
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Decisions
 

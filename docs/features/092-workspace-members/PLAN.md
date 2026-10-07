@@ -32,7 +32,7 @@ the same change that completes it.
   workspace, who then adds a member as moderator, creates a scope, and can't open another
   workspace or Users.
 
-- [ ] **5. Documentation.** The topics and helpers in the spec.
+- [x] **5. Documentation.** The topics and helpers in the spec.
   *Done when:* the docs render tests pass in ronne-web, and the helper link test passes here.
 
 ## Notes
@@ -81,4 +81,13 @@ goes into `SPEC.md` instead.
   not in JavaScript: on SQLite, whose `lower()` folds only ASCII, a JavaScript-lowered "ölaf" never
   matched "Ölaf" even when typed as stored. The end-to-end flow lives in root's user-admin test: a new file signing root in would be
   the sixth and trip the sign-in limit (`docs/knowledge/e2e-sign-in-limit.md`).
+- **Task 5: the Documentation** (Claude, with the witness's finding). In ronne-web (en, pt, fr):
+  Workspaces (`global` membership, Members and roles with who manages members and the rules,
+  creating and managing), Roles (the admin role, the matrix with an admin column), Administration
+  (Users: the Role cell and the Workspaces dialog; Workspaces: the Scopes and Members tabs, what an
+  admin sees), and Scopes, Export and Root accounts for who creates scopes. The witness found the
+  review, items, overview and versions pages still saying "a moderator or root": every passage
+  about who reviews, releases or moves tags now names admins too. Here: the helpers that name
+  roles, the Roles topic's summary and its section title "The roles", the Administration summary.
+  No section was added or renamed, so ronne-web's `topics.ts` (ids only) doesn't change.
 

@@ -125,9 +125,9 @@ export const TOPICS = [
   {
     slug: "roles",
     title: "Roles",
-    summary: "What users, moderators and root can do, and where.",
+    summary: "What users, moderators, admins and root can do, and where.",
     sections: [
-      { id: "roles", title: "The three roles" },
+      { id: "roles", title: "The roles" },
       { id: "permissions", title: "Who can do what" },
     ],
   },
@@ -135,7 +135,7 @@ export const TOPICS = [
     slug: "admin",
     title: "Administration",
     summary:
-      "For roots: finding users, the workspaces, the instance's settings, and reading the audit log of who did what, and when.",
+      "For roots, and a workspace's admins: finding users, the workspaces and their members, the instance's settings, and reading the audit log of who did what, and when.",
     sections: [
       { id: "users", title: "Users" },
       { id: "workspaces", title: "Workspaces" },
