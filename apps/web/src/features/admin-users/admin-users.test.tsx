@@ -8,6 +8,10 @@ const session = vi.hoisted(() => ({ getCurrentUser: vi.fn(), PATH_HEADER: "x-ron
 const admin = vi.hoisted(() => ({ adminListUsers: vi.fn() }));
 vi.mock("@/server/domains/identity/actions/session", () => session);
 vi.mock("@/server/domains/identity/actions/user-admin", () => admin);
+// The page lists every workspace for the Workspaces dialog (092).
+vi.mock("@/server/domains/workspaces/actions/workspaces", () => ({
+  listWorkspaces: vi.fn(async () => []),
+}));
 vi.mock("@/server/http/request-headers", () => ({
   requestHeaders: async () => new Headers({ "x-ronne-path": "/admin/users?q=x" }),
 }));

@@ -34,7 +34,17 @@ export default defineConfig({
   test: {
     ...shared,
     projects: [
-      { extends: true, test: { name: "unit", include, exclude: dbInclude } },
+      // Unit tests never see this clone's settings: a configured clone let an unmocked database
+      // call pass here and fail in CI (092, docs/knowledge/unit-tests-and-settings.md).
+      {
+        extends: true,
+        test: {
+          name: "unit",
+          include,
+          exclude: dbInclude,
+          env: { RONNE_ENV_FILE: ".env.unit-tests-have-none", DATABASE_URL: "", AUTH_SECRET: "" },
+        },
+      },
       {
         extends: true,
         test: {
