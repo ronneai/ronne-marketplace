@@ -18,7 +18,7 @@ its items (091 already makes that so).
 - **Who sees a private workspace's items:** its members, any role, and root. To everyone else
   they don't exist: the catalogue, search, home page, item pages, versions, the registry API,
   tarballs, resolve, the MCP tools, plugin feeds and "Used by" answer as if the name were unknown
-  (404, `not_found`).
+  (404, the API's `item_not_found`, as for any unknown name).
 - **The workspace itself** is hidden from non-members as well: not in the catalogue's Workspace
   filter, nor in any list they see (094 adds the one exception, a request link).
 - **The dependency rule:** an item may depend on items in its own workspace, or in any public
@@ -38,6 +38,11 @@ its items (091 already makes that so).
 - **Anonymous access.** Everything still needs a session or a token, as today (MVP §1).
 - **Hiding a private item's name in another member's lockfile.** A lockfile is the project's file;
   `rmk` can't hide what it already wrote.
+- **Hiding a private item's name in an outside item's yanked version.** Turning a workspace private
+  is refused while an outside version that isn't yanked depends on its items (and un-yanking such
+  a version is refused after). A yanked one doesn't hold it back, since versions are never
+  deleted; its dependency list and its own `ronne.yaml` keep naming what it depended on, as it
+  was released. Nothing in the private workspace becomes readable through it.
 - **Per-workspace tokens.** Tokens still read as their user (MVP §15, "Access tokens").
 
 ## Behaviour
@@ -50,7 +55,8 @@ workspaces, not scopes, so it stays short), so a new query can't forget it: the 
 take a `Viewer` argument, and a test lists every read method and checks it filters.
 
 **Not found, not forbidden.** A non-member asking for `@acme-infra/deploy` gets exactly what an
-unknown name gets: the 404 page, `not_found` in the API, "No item named @acme-infra/deploy" in
+unknown name gets: the 404 page, the API's `item_not_found` (or `version_not_found`,
+`scope_not_found`) with the same message, "No item named @acme-infra/deploy" in
 `rmk`. The download count, usage reports (046, ignored for items the reporter can't see) and the
 draft name check (013's "name is taken") don't reveal it either: a name taken in a private
 workspace is refused as "taken" only to members. A non-member never gets that far: the scope

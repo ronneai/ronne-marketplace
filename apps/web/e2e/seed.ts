@@ -51,7 +51,7 @@ for (const [key, email] of Object.entries(E2E_USERS) as [keyof typeof E2E_USERS,
     new Date(),
   );
 }
-const scopeId = await kyselyScopeRepository(db, dialect).insert({
+const scopeId = await kyselyScopeRepository(db, dialect, UNFILTERED).insert({
   name: E2E_SCOPE,
   description: "Created by the end-to-end seed.",
   workspaceId: GLOBAL_WORKSPACE_ID,

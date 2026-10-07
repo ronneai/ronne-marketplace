@@ -58,7 +58,7 @@ beforeEach(async () => {
   );
   if (!result.ok) throw new Error("no token");
   token = result.token.token;
-  scopeId = await kyselyScopeRepository(t.db, t.dialect).insert({
+  scopeId = await kyselyScopeRepository(t.db, t.dialect, UNFILTERED).insert({
     name: "team",
     description: "A team.",
     workspaceId: GLOBAL_WORKSPACE_ID,

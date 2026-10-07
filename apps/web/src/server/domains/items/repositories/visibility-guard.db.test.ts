@@ -9,6 +9,8 @@ import type { CatalogueRepository } from "./catalogue-repository";
 import type { ItemRepository } from "./item-repository";
 import { kyselyCatalogueRepository } from "./kysely-catalogue-repository";
 import { kyselyItemRepository } from "./kysely-item-repository";
+import { kyselyScopeRepository } from "./kysely-scope-repository";
+import type { ScopeRepository } from "./scope-repository";
 
 // The guard of 093: every read of the items repositories filters by the viewer. Each method is
 // either a read, with a probe that must find the private workspace's data for a member and not for
@@ -176,6 +178,24 @@ const ITEM_READS: Partial<Record<keyof ItemRepository, Probe<ItemRepository>>> =
     (await repo.dependencyWorkspaces(ids.privateVersion)).length > 0,
 };
 
+const SCOPE_READS: Partial<Record<keyof ScopeRepository, Probe<ScopeRepository>>> = {
+  findByName: async (repo) => (await repo.findByName("acme-infra")) !== null,
+  findWorkspace: async (repo) => (await repo.findWorkspace(acme)) !== null,
+  list: async (repo) => (await repo.list({ limit: 50 })).some((s) => s.name === "acme-infra"),
+  page: async (repo) =>
+    (await repo.page({ sort: "name", dir: "asc", size: 50 })).rows.some(
+      (s) => s.name === "acme-infra",
+    ),
+  // Two scopes in all: team, public, and acme-infra, private; an outsider sees one.
+  count: async (repo) => (await repo.count({})).count === 2,
+};
+const SCOPE_EXEMPT: Partial<Record<keyof ScopeRepository, string>> = {
+  transaction: "passes the same viewer to the repository it opens",
+  insert: "a write, authorised by the scope rules",
+  updateDescription: "a write",
+  recordAudit: "a write to the audit log",
+};
+
 /** Methods that don't read a workspace's data, and why. */
 const ITEM_EXEMPT: Partial<Record<keyof ItemRepository, string>> = {
   transaction: "passes the same viewer to the repository it opens",
@@ -201,6 +221,10 @@ describe("every items read filters by the viewer (093)", () => {
     expect(Object.keys(items).sort()).toEqual(
       [...Object.keys(ITEM_READS), ...Object.keys(ITEM_EXEMPT)].sort(),
     );
+    const scopes = kyselyScopeRepository(t.db, t.dialect, outsider());
+    expect(Object.keys(scopes).sort()).toEqual(
+      [...Object.keys(SCOPE_READS), ...Object.keys(SCOPE_EXEMPT)].sort(),
+    );
   });
 
   it("gives a member the private workspace's data in every catalogue read, and an outsider none", async () => {
@@ -214,6 +238,13 @@ describe("every items read filters by the viewer (093)", () => {
     for (const [name, probe] of Object.entries(ITEM_READS)) {
       expect(await probe(kyselyItemRepository(t.db, t.dialect, member())), name).toBe(true);
       expect(await probe(kyselyItemRepository(t.db, t.dialect, outsider())), name).toBe(false);
+    }
+  });
+
+  it("gives a member the private workspace's scope in every scope read, and an outsider none", async () => {
+    for (const [name, probe] of Object.entries(SCOPE_READS)) {
+      expect(await probe(kyselyScopeRepository(t.db, t.dialect, member())), name).toBe(true);
+      expect(await probe(kyselyScopeRepository(t.db, t.dialect, outsider())), name).toBe(false);
     }
   });
 

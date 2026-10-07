@@ -297,3 +297,102 @@ Witnessed: 2026-10-07 17:19 EDT, by a fresh agent (adversarial). Commit: d996a64
 | 15 | No outside version that can become installable again depends on a now-private item | yes | confirmed | Un-yank probe on SQLite, PostgreSQL, MySQL and MariaDB: root and a moderator of only `global` both get VersionDependsOnPrivateError "1.0.0 depends on @acme-infra/deploy, which is in a private workspace now, so it stays yanked."; once acme is public again, root's un-yank succeeds. Race: 15 rounds per database of `Promise.allSettled([unyank, Make private])` never end with acme private and 1.0.0 un-yanked. Removing the check fails "keeps yanked a version outside that depends on it, once it's private"; `visibility.db.test.ts` + `src/server/domains/items` → 61 passed on each database |
 
 **Overall:** met: every row of task 5 is now confirmed. Remarks: the release-time and un-yank refusals name the dependency's private workspace to someone who may not see it; the name was public when that version was released, so little is revealed. `openSubmissionsOutside` reads each open submission's manifest separately (N+1), only for root's dialog.
+
+## Task 6 — API and MCP
+
+Witnessed: 2026-10-07 17:40 EDT, by a fresh agent (blind). Commit: 732ee14 + working tree (11 modified files, new `apps/web/src/server/http/private-api.db.test.ts`). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A non-member asking for a private item's GET item, GET version, tarball and resolve gets 404 with the same code and message as an unknown name | yes | confirmed | `vitest run --project db private-api.db` → 4/4. Probe: hidden item → `404 item_not_found "@acme-infra/deploy isn't a published item."`, the same body as unknown `@nope/deploy` once masked; resolve the same with `details.item`. HEAD tarball and `If-None-Match: *` → 404. A plain user with no workspace role → 404 on all four. No token → 401 |
+| 2 | A member gets the data: item, version, tarball and resolve | no | confirmed | `private-api.db.test.ts` "gives a member…" → 200 on all four. Probe: root's token → 200 on all four |
+| 3 | The registry API reads through the viewer: `itemPageAs`, `findDownloadAs`, `downloadArtifactAs`, `resolveAs` and `searchCatalogueAs` | yes | confirmed | `versions.ts` `tokenContext` builds `viewerOf(user)`; `catalogue.ts:61`. Forcing `root: true` in `tokenContext` → 2 of the API tests fail |
+| 4 | Search leaves the private item out for a non-member and shows it to a member | no | confirmed | The API test passes. Probe: `GET /items` with no `q` and `?type=skill` as outsider → `{"items":[]}` |
+| 5 | `GET /api/v1/scopes` hides the private workspace's scope from a non-member and lists it for a member and for root | yes | confirmed | The API test passes. Probe: outsider `?q=acme` → `{"scopes":[]}`, member → `acme-infra` role `user`, root → role `root`. The API test still passed with the new repository filter removed, since `listScopes` limits the list to the caller's workspaces; row 6's guard test pins the filter |
+| 6 | Every scope repository read takes a Viewer, and a test fails if a read method doesn't filter | yes | confirmed | `kysely-scope-repository.ts` requires `viewer`, filters `scopes()` and `findWorkspace`; the transaction passes it on. The guard checks the method list and probes each read; removing the `scopes()` filter fails it |
+| 7 | Holds on all three server dialects | no | confirmed | `node scripts/test-db.mjs postgres\|mysql\|mariadb private-api.db registry-api.db drafts-api.db feeds-api.db visibility-guard.db actions/scopes.db` → 79 passed on each; SQLite the same |
+| 8 | SPEC states the API's codes (`item_not_found` / `version_not_found` / `scope_not_found`, same message) instead of a generic `not_found` | yes | confirmed | `git diff SPEC.md`; the answers in row 1 match |
+| 9 | The MCP read tools are unchanged in code | yes | confirmed | `git diff main --stat -- packages/mcp packages/cli` → empty. `read-tools.ts` reach the registry only through `connectRegistry(io).api` (HTTP `/items…`) |
+| 10 | The MCP read tools are tested against a private item | yes | partly | No test called an MCP tool against a private item. The behaviour holds in a probe (`getItem` and `searchItems` from `packages/mcp/src/read-tools.ts`, `io.fetch` routed to the real handlers): outsider → `item_not_found` as for `@nope/deploy`, search "Nothing matches"; member → the item. Deferring to task 8 is reasonable only if task 8's text says so; it didn't |
+| 11 | Nothing else broke: `findScope` action removed, new repository signature | yes | confirmed | `pnpm --filter @ronneai/web typecheck` → clean; `pnpm --filter @ronneai/web test` → 1733 passed, 8 skipped; `biome check` on the changed files → no issues |
+| 12 | Note: the removed `findScope` action had no caller | yes | confirmed | `grep -rn "findScope\b" apps/web/src` → only the submissions repository's own `findScope`; typecheck clean |
+| 13 | Note: SPEC's Out section records an outside item's yanked version that keeps naming its dependency | yes | confirmed | The new Out bullet in SPEC.md |
+
+**Overall:** not met (row 10): no test runs the MCP read tools against a private item, and task 8's text didn't take that on. Fixed: task 8's text and *Done when* now run `rmk-mcp` end to end against a private item as a member and an outsider (the web app's tests can't load the MCP package); the scopes API test now also checks root (sees it) and a user with no roles (doesn't). Re-check below.
+
+### Re-check — row 10
+
+Witnessed: 2026-10-07 17:50 EDT, by a fresh agent (blind). Commit: 732ee14 + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 10a | The MCP test against a private item is deferred to task 8, in writing | yes | confirmed | Task 8 runs `rmk-mcp` against a private item as a member and an outsider, and its *Done when* requires it. `e2e/mcp.e2e.ts` runs the built `packages/mcp/dist/bin.js` |
+| 10b | The stated reason: "the web app's tests can't load the MCP package" | yes | not met | A scratch db test imported `packages/mcp/src/read-tools` with `fakeIo` and passed (outsider `item_not_found`, member the item) |
+| 10c | The scopes test now fails without the repository filter | yes | not met | With the `scopes()` filter removed, `private-api.db` still passed 4/4: `listScopes` already narrows to the caller's workspaces. Only the guard test catches it |
+| 10d | The new assertions (root, a user with no roles, an unknown scope) pass on every dialect | yes | confirmed | SQLite 13 passed; PostgreSQL, MySQL, MariaDB `private-api.db` 4 each |
+
+**Overall:** not met (10b, 10c). Fixed: the reason now says the web app doesn't depend on `@ronneai/mcp` and CI runs its tests before `rmk` is built; the note says the guard test, not the scopes API test, pins the filter.
+
+### Re-check — row 10 (second)
+
+Witnessed: 2026-10-07 17:51 EDT, by a fresh agent (blind). Commit: 732ee14 + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 10a | Task 6's text gives the MCP private-item test to task 8, end to end, and task 8 takes it with a *Done when* | yes | confirmed | Task 6: "their test against a private item is task 8's, end to end"; task 8's *Done when* requires the MCP end-to-end test |
+| 10b | The stated reason holds | yes | confirmed | `apps/web/package.json` lists only `@ronneai/core`; `turbo.json` `test` dependsOn `^build`; `ci.yml` runs `pnpm test` before `pnpm build`. The scratch import worked only because `packages/cli/dist` was built locally |
+| 10c | The note no longer says the scopes API test catches a missing filter; the guard test pins it | yes | confirmed | Removing the `scopes()` filter → the guard's scope-read test failed, `private-api.db` passed; removing only `findWorkspace`'s → the same guard test failed |
+
+**Overall:** met.
+
+### Adversarial pass
+
+Witnessed: 2026-10-07 17:48 EDT, by a fresh agent (adversarial). Commit: 732ee14 + uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A non-member's `GET /items/{scope}/{name}` for a private item gives the same answer as an unknown name; a member and root get the item | yes | confirmed | Probe compares status, every header except date, and body, name masked: `acme-infra/deploy`, `nosuch/deploy` and `team/nothing` all `404 \| cache-control=no-store;content-type=application/json \| item_not_found "@X isn't a published item."`. Member and root 200 |
+| 2 | Version reads give the same answer as for an unknown name | yes | confirmed | `1.0.0`, `9.9.9`, `latest`, `next` and `%31.0.0` identical for the private item and `@nosuch/deploy` (no `version_not_found` reveals it). Member 200 for 1.0.0, 404 for 9.9.9 |
+| 3 | Tarball GET, HEAD and `If-None-Match` don't reveal the item and aren't counted | yes | confirmed | GET, HEAD, `If-None-Match` with the real ETag, `W/` + ETag and `*`: each the same 404 as an unknown name (never 304), `download_count` 0. A member with the ETag gets 304 |
+| 4 | Resolve gives the same answer for a private item as for an unknown one, direct, transitive and by dist-tag | yes | confirmed | `^1.0.0`, `latest`, `next`, `1.0.0`, `@ACME-INFRA/…`, and only in `locked`: identical to `@nosuch/deploy`. Through public `@team/front`: `404 item_not_found "…(asked for by @team/front@1.0.0)"`, the same shape as an unknown name. Member 200 |
+| 5 | The items list never shows private items to a non-member | no | confirmed | `q=deploy`, `q=acme`, `scope=acme-infra`, `%40acme-infra`, `ACME-INFRA`, `workspace=acme`, `type`, `tool`, `sort`, `limit=100`: the outsider's body never contained "acme"; a member's `nextCursor` used by the outsider returned nothing private |
+| 6 | `GET /api/v1/scopes` hides the private scope from non-members | yes | confirmed | `""`, `q=acme`, `q=Acme`, `cursor=acme`, `cursor=a`, `limit=1` gave the outsider only `team`; the member saw `acme-infra` |
+| 7 | The drafts API doesn't reveal a private scope or item | no | confirmed | POST with `@acme-infra/newone`, `@acme-infra/deploy`, `@ACME-INFRA/deploy`, and `base: "1.0.0"` → the same `404 scope_not_found` as `@nosuch`; PUT with the private name → the same `draft_mismatch`; `GET /drafts?name=` identical; a dependency on `@acme-infra/deploy` → the same `dependency_not_found` in `submitIssues` and `/drafts/check` as `@nosuch/deploy` |
+| 8 | Usage reports are ignored for items the reporter can't see | no | confirmed | The outsider got `202 {"accepted":0,"ignored":1}`, identical to an unknown item, `usage_daily` 0 rows; the member `{"accepted":1,"ignored":0}` |
+| 9 | Feeds leak nothing private (task 7's scope) | no | confirmed | marketplace.json for outsider, member and root has no "acme"; the plugin zip (GET, HEAD) answers as an unknown name, not counted. Members lose their private items in feeds until task 7 |
+| 10 | Revoked and disabled tokens reveal nothing | no | confirmed | The same `401 token_revoked` / `401 user_disabled` for the private item and an unknown one |
+| 11 | Removing a member or turning the workspace private hides the item from the next request; root keeps access | no | confirmed | After deleting the membership: item, resolve and tarball-with-ETag answer as unknown; root 200. Turning private between requests: the 304 path became the same 404. Visibility `"Public "` treated as private |
+| 12 | Odd encodings of names don't reveal anything | no | confirmed | `%40acme-infra`, `@acme-infra`, `ACME-INFRA`, `DEPLOY`, `deploy%2F`, `%2540acme-infra`, `acme-infra%20`: the outsider got the same as for `nosuch` on all four databases |
+| 13 | It holds on SQLite, PostgreSQL, MySQL and MariaDB | no | confirmed | `test-db.mjs` on the probes plus private-api, visibility-guard, scopes, drafts-api, registry-api and feeds-api → 88/88 on each; web vitest on SQLite 1733 passed; `tsc` 0; biome clean |
+| 14 | The guard test covers the scope repository and fails when a scope filter is removed | yes | confirmed | Removing the filter in `scopes()` or in `findWorkspace` fails it. Remark: the `count` probe's comment named three scopes as two (fixed) |
+| 15 | The task's API test answers `not_found` for a non-member and data for a member, and catches a missing filter | yes | confirmed | `private-api.db.test.ts` → 4 passed; with the token viewer `UNFILTERED`, 2 fail. Remark: it compared only with an unknown name in the same scope (an unknown scope is compared now too) |
+| 16 | The MCP read tools are tested against a private item | no | partly | No such test in the change. Driven by the witness through the real `createServer` with `fetch` sent to the handlers: `search_items`, `get_item` and `plan_install` gave the outsider the unknown-name answers and the member the item |
+| 17 | A non-member can't learn a private item's name through the API | no | partly | A public item's yanked version that depends on `@acme-infra/deploy` (task 5 lets the workspace turn private then) shows `"dependencies":{"@acme-infra/deploy":"^1.0.0"}` on `GET /items/team/yy` and its version; its own `ronne.yaml` names it too |
+
+**Overall:** not met: the planned MCP test was missing, and a yanked outside dependent shows a private item's name. Resolved: task 8's text and *Done when* run `rmk-mcp` end to end against a private item (task 6's text says so); SPEC's Out section records the yanked-version limit. Re-checks below.
+
+### Re-check — rows 16 and 17
+
+Witnessed: 2026-10-07 17:50 EDT, by a fresh agent (adversarial). Commit: 732ee14 + uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 16a | The MCP check against a private item has a task that owns it, with a pass condition that tests it end to end | yes | confirmed | Task 8 runs `rmk-mcp` against a private item as a member and an outsider; its *Done when* requires it. `e2e/mcp.e2e.ts` already starts the real `rmk-mcp` |
+| 16b | Task 6's own text matches the move to task 8 | no | not met | Task 6 still said the MCP read tools were "tested against a private item" |
+| 16c | The reason given for moving it | yes | partly | "Can't load the MCP package" was too strong: a scratch test loaded it with `rmk`'s `dist` built |
+| 17a | The SPEC records the limit | yes | confirmed | The new Out bullet matches `GET /items/team/yy` listing `"@acme-infra/deploy":"^1.0.0"` |
+| 17b | Nothing in the private workspace becomes readable through such a version | yes | confirmed | The outsider's `GET /items/acme-infra/deploy` is 404 after Make private; resolving through `@team/front` gives the unknown-name answer; un-yanking `yy` is refused while private |
+| 17c | The guard test's comment is fixed, and the API test compares an unknown scope | yes | confirmed | Both files → 10/10 on SQLite, PostgreSQL, MySQL and MariaDB |
+
+**Overall:** not met (16b): task 6's text still promised the MCP test. The move to task 8 and the yanked-version limit were judged acceptable resolutions (the limit narrows the Goal's "they don't exist", recorded in Out for the owner's review).
+
+### Re-check — row 16 (second)
+
+Witnessed: 2026-10-07 17:51 EDT, by a fresh agent (adversarial). Commit: 732ee14 + uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 16b | Task 6's text matches the move to task 8 | yes | confirmed | Task 6 now says "the MCP read tools unchanged in code (they read through this API); their test against a private item is task 8's, end to end"; *Done when* names the `*_not_found` codes. Task 8 holds the test |
+| 16c | The reason for the move is accurate | yes | confirmed | `apps/web/package.json` has no `@ronneai/mcp` or `@ronneai/rmk`; `turbo.json` `test` depends on `^build`, so `pnpm test` never builds rmk for the web app; `ci.yml` runs `pnpm test` before `pnpm build`. The note also says the guard test, not the scopes API test, pins the scope filter |
+
+**Overall:** met: every row of task 6 holds. The MCP check against a private item stays open until task 8's end-to-end test passes.

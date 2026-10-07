@@ -69,7 +69,7 @@ beforeEach(async () => {
     moderator: await tokenFor("m@example.com"),
     root: await tokenFor("root@example.com"),
   };
-  const scopes = kyselyScopeRepository(t.db, t.dialect);
+  const scopes = kyselyScopeRepository(t.db, t.dialect, UNFILTERED);
   for (const [name, description] of [
     ["team", "A team."],
     ["platform", "Shared tools."],
@@ -858,7 +858,7 @@ describe("workspaces: only members draft and submit there (091)", () => {
       createdBy: null,
       createdAt: new Date(),
     });
-    await kyselyScopeRepository(t.db, t.dialect).insert({
+    await kyselyScopeRepository(t.db, t.dialect, UNFILTERED).insert({
       name: "acme",
       description: "Acme's tools.",
       workspaceId: acme,

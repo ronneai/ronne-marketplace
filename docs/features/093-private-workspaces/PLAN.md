@@ -29,9 +29,11 @@ the same change that completes it.
   the confirm; the revision bump and audit.
   *Done when:* service tests and the dialog test pass.
 
-- [ ] **6. API and MCP.** [risky] The registry API, tarball, resolve and `GET /api/v1/scopes`
-  through the viewer; the MCP read tools unchanged in code but tested against a private item.
-  *Done when:* API tests answer `not_found` for a non-member and data for a member.
+- [x] **6. API and MCP.** [risky] The registry API, tarball, resolve and `GET /api/v1/scopes`
+  through the viewer; the MCP read tools unchanged in code (they read through this API); their
+  test against a private item is task 8's, end to end.
+  *Done when:* API tests answer `not_found` (the `*_not_found` codes) for a non-member and data for
+  a member.
 
 - [ ] **7. Plugin feeds.** [risky] The visibility key, the cache per key, the per-key stats; zips
   checked; `rmk feed build --workspace` and its warning; `docs/spec/plugin-feeds.md` updated.
@@ -39,8 +41,12 @@ the same change that completes it.
   budget with one key.
 
 - [ ] **8. Labels and end-to-end.** Lock label on card and item page; Workspace filter shows only
-  visible ones; the end-to-end test with two users.
-  *Done when:* Playwright passes on desktop, phone and phone-webkit.
+  visible ones; the end-to-end test with two users; the MCP read tools (`rmk-mcp`, which reads
+  through the registry API) run against a private item as a member and as an outsider (task 6
+  leaves this here: the web app doesn't depend on `@ronneai/mcp`, and CI runs its tests before
+  `rmk` is built, so the real `rmk-mcp` over stdio is the clean way to test it).
+  *Done when:* Playwright passes on desktop, phone and phone-webkit, and the MCP end-to-end test
+  shows the private item to the member and an unknown name to the outsider.
 
 - [ ] **9. Decisions and Documentation.** MVP §12 (what private means and doesn't), §15 (a
   "Private workspaces" row; "Native plugin feeds" and "Plugin feeds at scale" updated); the topics
@@ -146,4 +152,18 @@ goes into `SPEC.md` instead.
   that depends on a private workspace's item (not its own) is refused under the same lock
   (`dependencyWorkspaces` + `lockWorkspaces` in `unyank`, `VersionDependsOnPrivateError`).
   Counting yanked versions instead would block Make private forever: versions aren't deleted.
+- **Task 6: API and MCP** (Claude). The registry API, tarball and resolve already read through the
+  viewer (task 2's `…As` actions take the token's user); `kyselyScopeRepository` now takes the
+  viewer too (its base query and `findWorkspace`), so `GET /api/v1/scopes` and every scope read
+  leave out a private workspace's scopes, and it's in the items guard. The unused `findScope`
+  action and service went (it had no caller and no actor). The API's codes stay as they were:
+  `item_not_found` (404) for a private item, word for word what an unknown one gets
+  (`http/private-api.db.test.ts`); SPEC says so instead of a generic `not_found`. The MCP server
+  reads through this API, so its tools need no change; task 8's text now runs them end to end
+  against a private item (the web app doesn't depend on the MCP package, and CI runs its tests
+  before `rmk` is built). The scopes API test can't catch a missing repository filter, since
+  `listScopes` already narrows to the caller's workspaces; the guard test is what pins it.
+  From the adversarial witness: an outside item's yanked version that depended on the workspace
+  before it turned private keeps naming the dependency (its own manifest and its dependency list);
+  that's recorded in SPEC's Out section rather than refusing Make private forever.
 
