@@ -6,6 +6,8 @@ export type Item = {
   scope: { id: string; name: string };
   /** Its scope's workspace (090), by name. */
   workspace: string;
+  /** The same workspace's id, where its versions are managed (091). */
+  workspaceId: string;
   name: string;
   type: ItemType;
   description: string;

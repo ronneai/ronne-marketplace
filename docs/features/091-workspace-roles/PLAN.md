@@ -28,7 +28,7 @@ the same change that completes it.
   *Done when:* review and release db tests pass, and an end-to-end test has a moderator of A
   approve in A and not see B.
 
-- [ ] **5. Items domain.** [risky] Versions (tags, deprecate, yank), the item page's actions.
+- [x] **5. Items domain.** [risky] Versions (tags, deprecate, yank), the item page's actions.
   *Done when:* versions tests pass with workspace cases.
 
 - [ ] **6. Shell, nav and pages.** Reviews in the nav when moderating any workspace; role badges
@@ -87,3 +87,12 @@ goes into `SPEC.md` instead.
   / 093:** a dependency mark still shows a named dependency's status ("in review") when that
   dependency is another workspace's open submission; its name is already in the manifest, so only
   the status shows. Harmless while every workspace is public; 093 decides it for private ones.
+- **Task 5: versions** (Claude). `Item` carries `workspaceId`; tags, deprecate, yank and their
+  undo check `versions.manage` in it, after a first refusal for anyone who manages versions
+  nowhere (so they get Forbidden, not "not found", for a missing item). The Versions page's
+  `canManage` is the same check. The transitional `requireInSome` is gone; `canInSome` stays for
+  the nav, the review pages' gate and those first refusals.
+- **For 093** (from the task 5 witness): a moderator of another workspace gets Forbidden on an
+  existing item's versions and "not found" on a missing one, so they learn what exists; harmless
+  while workspaces are public. And `withItem` reads the item's workspace before locking it: a scope
+  moving workspace at the same moment can let the old workspace's moderator act once.

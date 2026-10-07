@@ -109,17 +109,11 @@ export const workspacesWith = (
   return Object.keys(user.workspaces ?? {}).filter((id) => holdsIn(user, permission, id));
 };
 
-/** Whether the user holds a workspace permission in at least one workspace, as for the nav (091). */
+/**
+ * Whether the user holds a workspace permission in at least one workspace (091): for the nav and
+ * the pages behind it, and to refuse someone outright before the check in the item's workspace.
+ */
 export const canInSome = (user: Subject | null, permission: WorkspacePermission): boolean => {
   const where = workspacesWith(user, permission);
   return where === "all" || where.length > 0;
-};
-
-/**
- * Transitional (091, task 2): throws unless the user holds the permission in some workspace, which
- * is what every check meant while everyone was in `global` only. Tasks 3 to 5 replace each call
- * with `requirePermission(user, permission, workspaceId)`, and then this goes.
- */
-export const requireInSome = (user: Subject | null, permission: WorkspacePermission): void => {
-  if (!canInSome(user, permission)) throw new ForbiddenError(permission);
 };

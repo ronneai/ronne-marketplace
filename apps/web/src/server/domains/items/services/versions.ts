@@ -1,4 +1,5 @@
-import { canInSome, requireInSome, requirePermission } from "../../identity/models/permissions";
+import { ForbiddenError } from "../../identity/exceptions/errors";
+import { can, canInSome, requirePermission } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
 import {
   ItemNotFoundError,
@@ -17,8 +18,8 @@ import type { ItemRepository } from "../repositories/item-repository";
 
 /**
  * Looking after published versions (feature 016, MVP §3.4): dist-tags, deprecation and yanks, for
- * moderators and root (`versions.manage`). Versions themselves never change. Every action locks the
- * item's row and is audited in the same transaction.
+ * the moderators of the item's workspace and root (`versions.manage`, 091). Versions themselves
+ * never change. Every action locks the item's row and is audited in the same transaction.
  */
 export type VersionDeps = { items: ItemRepository; now?: () => Date };
 export type VersionActor = { user: CurrentUser | null; ip: string | null };
@@ -43,11 +44,14 @@ const withItem = <T>(
     ) => Promise<void>;
   }) => Promise<T>,
 ): Promise<T> => {
-  requireInSome(actor.user, "versions.manage");
+  // Moderators somewhere get "not found" for a missing item; anyone else is refused first.
+  if (!canInSome(actor.user, "versions.manage")) throw new ForbiddenError("versions.manage");
   const at = (deps.now ?? (() => new Date()))();
   return deps.items.transaction(async (items) => {
     const item = await items.findByName(ref.scope, ref.name);
     if (!item) throw new ItemNotFoundError(nameOf(ref));
+    // In the item's workspace: its moderators, or root (091).
+    requirePermission(actor.user, "versions.manage", item.workspaceId);
     await items.lockItem(item.id);
     const versions = await items.versions(item.id);
     return work({
@@ -246,6 +250,6 @@ export const listVersions = async (
           b.publishedAt.getTime() - a.publishedAt.getTime() || (a.version < b.version ? 1 : -1),
       ),
     tags: tags.map((t) => ({ tag: t.tag, version: versionOf(t.versionId) })),
-    canManage: canInSome(actor.user, "versions.manage"),
+    canManage: can(actor.user, "versions.manage", item.workspaceId),
   };
 };
