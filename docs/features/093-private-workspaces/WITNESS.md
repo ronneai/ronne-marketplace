@@ -513,3 +513,42 @@ Witnessed: 2026-10-07 19:11 EDT, by a fresh agent (blind). Commit: 5785bb4 + the
 | 16 | The seed adds e2e-vault (private, a member per project), e2e-shelf (public), users per project, and `privateRoot` as root | yes | confirmed | `users.ts` and `seed.ts` diffs; the e2e runs that depend on them pass |
 
 **Overall:** met. Remarks: the mobile test doesn't check the Workspace filter (the desktop and db tests do); a `?workspace=<any name>` is echoed back as an option, the same for a private and an unknown name.
+
+## Task 9 — Decisions and Documentation
+
+Witnessed: 2026-10-07 19:32 EDT, by a fresh agent (blind). Commit: b93e895 + working tree (ronne-marketplace feat/093-private-workspaces; ronne-web docs/093-private-workspaces, uncommitted). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | ronne-web's docs render tests pass, and its lint, typecheck and build too | no | confirmed | `ronne-web/www`: `pnpm lint; pnpm typecheck; pnpm test; pnpm build` → 0, 0, 136 tests passed, 0. `docs.test.ts` checks every topic and section has a title and body in every locale, against `topics.ts` |
+| 2 | The helper link test passes here, and the new `#visibility` link is checked against the app's `topics.ts` | no | confirmed | `vitest run src/components/help src/features/admin-workspaces src/features/item-page` → 76 passed; `help.test.tsx` checks every `HELP` href against `TOPICS`; `topics.ts` adds `{ id: "visibility", title: "Public and private" }` |
+| 3 | The new section is in both `topics.ts` files, in the same order | yes | confirmed | Both: what, global, visibility, roles, managing |
+| 4 | "Public or private?" → `workspaces#visibility` on New workspace and in the Make private dialog | yes | confirmed | `WorkspaceDialogs.tsx` (the legend; the Make private body); the create form's test asserts it (the dialog's, added since, in the re-check) |
+| 5 | "Who can see this?" shows on the item page only for a private item, not on cards | yes | confirmed | `privateWorkspace ? <Help id="private-item" iconOnly/>` in the heading row; the item-page tests check absent when public, present with the link when private; `ItemCard` has no Help |
+| 6 | "Which workspace?" and "How do I join?" no longer say every workspace is public | yes | confirmed | `Help.tsx`: "In a public workspace… in a private one, only its members and root"; "a public workspace's items" |
+| 7 | Messages quoted in the docs match the app word for word | no | confirmed | `dependency_not_visible`'s, "isn't a published item.", "There's no workspace X you can use.", "Made workspace … private"; the scope message was quoted only in part (full since, re-check) |
+| 8 | Only root changes visibility; Make private lists outside dependents and is refused while released ones exist; open submissions warn; Make public asks first | no | confirmed | `"workspaces.manage": ["root"]`; the service throws `WorkspaceHasOutsideDependentsError`; the dialog's notices and disabled Save; db tests → 12 files, 123 passed |
+| 9 | An outsider sees a private item as unknown everywhere; the Private · acme label | no | confirmed | `inVisibleWorkspace` on catalogue reads; Used by by viewer; `WorkspaceLabel`; `private-dependencies.db.test.ts` "isn't a published item (asked for by …)" |
+| 10 | Plugin feeds as documented: per caller, per visibility key; mirror public-only unless `--workspace`; unknown name stops the build first; warning; workflow comment; old rmk gets public only; root sees the largest build | yes | confirmed | `feeds.ts`, `feeds-api.ts` (`user-agent: rmk/` without the parameter → public only), `api.ts` sends it since 022, `feed-build.ts`, `feed-workflow.ts`, `marketplace-cache.ts` (32 slots); CLI feed tests 18 passed, `summary feeds-api` 30 passed |
+| 11 | The dependency rule as documented | yes | confirmed | `isDependableFrom`; `publish.ts` re-checks under the lock; `registry-checks.test.ts`, `private-dependencies.db.test.ts` pass |
+| 12 | pt and fr say what en says: structure, links, app strings in English | yes | confirmed | Diffs side by side: the same paragraphs and bullets; the `section="…"` targets hash the same per file across locales; `<li>` counts match; app strings kept in English |
+| 13 | MVP §12 says what private means and doesn't | yes | confirmed | Not found rather than forbidden, the guard test, the dependency rule, the refusal; not encryption, root sees all, names in lockfiles and yanked versions, the audit log, a mirror's repository |
+| 14 | MVP §15: the "Private workspaces" row; "Workspaces", "Native plugin feeds" and "Plugin feeds at scale" updated | yes | confirmed | Each matches SPEC.md |
+| 15 | SPEC's Documentation section lists what changed; the changed files lint and typecheck | no | confirmed | Each listed section has its change in the ronne-web diff; `biome check` no errors; typecheck clean |
+| 16 | pt and fr translate "forbidden" and "not found", plain words here | yes | confirmed | pt "proibido", "não encontrado"; fr « interdit », « introuvable » |
+| 17 | pt and fr follow ronne-web's translator instructions | yes | confirmed | Glossary terms, fr typography, link texts from each section's own title (who did the work can't be seen in the files) |
+
+**Overall:** met. Remarks: SPEC quoted an old rmk message; "Public or private?" didn't say *released* items; the scope message was quoted in part; no test rendered the helper in the Make private dialog. All four fixed; re-check below.
+
+### Re-check — the remarks
+
+Witnessed: 2026-10-07 19:34 EDT, by a fresh agent (blind). Commit: b93e895 + working tree (both repos, uncommitted). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | SPEC's "Not found, not forbidden" quotes the app's rmk message | no | confirmed | `"@acme-infra/deploy isn't a published item." in rmk`; no "No item named" left |
+| 2 | "Public or private?" says only released items outside block Make private | no | confirmed | Matches `outsideDependents` in the service |
+| 3 | workspaces#visibility quotes the full scope message in en, pt and fr | no | confirmed | Word for word with the app's message; ronne-web lint 0, typecheck 0, 136 passed, build 0 |
+| 4 | A test renders "Public or private?" in the Make private dialog | no | confirmed | `admin-workspaces.test.tsx` asserts it on `VisibilityForm to="private"`; the string comes only from `<Help id="visibility">`; 76 passed |
+
+**Overall:** met.

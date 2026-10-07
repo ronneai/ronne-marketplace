@@ -56,7 +56,7 @@ take a `Viewer` argument, and a test lists every read method and checks it filte
 
 **Not found, not forbidden.** A non-member asking for `@acme-infra/deploy` gets exactly what an
 unknown name gets: the 404 page, the API's `item_not_found` (or `version_not_found`,
-`scope_not_found`) with the same message, "No item named @acme-infra/deploy" in
+`scope_not_found`) with the same message, "@acme-infra/deploy isn't a published item." in
 `rmk`. The download count, usage reports (046, ignored for items the reporter can't see) and the
 draft name check (013's "name is taken") don't reveal it either: a name taken in a private
 workspace is refused as "taken" only to members. A non-member never gets that far: the scope
@@ -124,27 +124,34 @@ the scope on the card and item page. The catalogue's Workspace filter lists the 
   your marketplace shows what you can see; `--workspace` for a private mirror, kept in a private
   repository.
 - **`rmk` → Installing** (`rmk#installing`): "not found" also means "not visible to you".
-- **Helpers:** on the visibility setting, "Public or private?" → `workspaces#visibility`; on the
-  lock label, "Who can see this?" → `workspaces#visibility`.
+- **Helpers:** on the visibility setting (New workspace and the Make private dialog), "Public or
+  private?" → `workspaces#visibility`; next to the lock label on the item page (not on every
+  card), "Who can see this?" → `workspaces#visibility`. "Which workspace?" and "How do I join?"
+  no longer say every workspace is public.
+- **Also changed:** **Workspaces → What a workspace is** and **Creating and managing them**,
+  **Roles → Who can do what** (root makes workspaces public or private; a private one you aren't
+  in you don't see), **Administration → Workspaces** (New workspace asks for visibility; Make
+  private and Make public), and **Plugin marketplaces → Keeping the mirror current** and **Large
+  marketplaces** (the workflow's `--workspace`; a marketplace per set of private workspaces).
 
 ## Acceptance criteria
 
-- [ ] A non-member gets the same answers for a private workspace's item as for an unknown name, in
+- [x] A non-member gets the same answers for a private workspace's item as for an unknown name, in
   the catalogue, search, item and version pages, the registry API, tarball, resolve, MCP tools,
   feeds and "Used by"; a member and root see it.
-- [ ] Every repository read takes a `Viewer`, and a test fails if a read method doesn't filter.
-- [ ] An item can depend on its own workspace's items and on public ones; any other private one is
+- [x] Every repository read takes a `Viewer`, and a test fails if a read method doesn't filter.
+- [x] An item can depend on its own workspace's items and on public ones; any other private one is
   refused at pick, submit and release.
-- [ ] Turning a workspace private is refused while outside released items depend on it, with the
+- [x] Turning a workspace private is refused while outside released items depend on it, with the
   list; turning it public asks first; both bump the catalogue revision and are audited.
-- [ ] Two users with different private workspaces get different Claude Code marketplaces, from a
+- [x] Two users with different private workspaces get different Claude Code marketplaces, from a
   cache keyed per visibility key; public-only users share one.
-- [ ] `rmk feed build` leaves private workspaces out unless `--workspace` names one the user is a
+- [x] `rmk feed build` leaves private workspaces out unless `--workspace` names one the user is a
   member of.
-- [ ] A removed member's `rmk install` of a private item fails with `not_found` from the next request.
-- [ ] Service tests pass on the four databases; an end-to-end test checks two users and a private
+- [x] A removed member's `rmk install` of a private item fails with `not_found` from the next request.
+- [x] Service tests pass on the four databases; an end-to-end test checks two users and a private
   workspace on desktop and phone.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Decisions
 

@@ -145,6 +145,7 @@ describe("the item page", () => {
       itemPageData({ item: { ...itemPageData().item, workspace: "acme" } }),
     );
     const html = await render();
+    expect(html).not.toContain("Who can see this?");
     expect(html).toMatch(
       /acme<span aria-hidden="true"> · <\/span><span class="sr-only">, <\/span><\/span>@team\/github<\/h1>/,
     );
@@ -155,6 +156,8 @@ describe("the item page", () => {
       itemPageData({ item: { ...itemPageData().item, workspace: "acme", privateWorkspace: true } }),
     );
     const html = await render();
+    expect(html).toContain("Who can see this?");
+    expect(html).toContain("/marketplace/docs/workspaces#visibility");
     expect(html).toMatch(
       /lucide-lock[^>]*>.*<\/svg>Private<span aria-hidden="true"> · <\/span><span class="sr-only">, <\/span>acme<span aria-hidden="true"> · <\/span><span class="sr-only">, <\/span><\/span>@team\/github<\/h1>/,
     );

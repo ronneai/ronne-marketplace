@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { WorkspaceLabel } from "@/components/catalogue/WorkspaceLabel";
+import { Help } from "@/components/help/Help";
 import { Badge } from "@/components/ui/Badge";
 import { LocalTime } from "@/components/ui/LocalTime";
 import { Notice } from "@/components/ui/Notice";
@@ -57,6 +58,7 @@ export const ItemPageView = ({
             </h1>
             <span className="font-mono text-sm text-muted">v{shown.version}</span>
             <TypeBadge type={page.item.type} />
+            {page.item.privateWorkspace ? <Help id="private-item" iconOnly /> : null}
             {shown.tags.map((tag) => (
               <Badge key={tag} tone="accent">
                 {tag}

@@ -2,6 +2,7 @@
 
 import { NAME_PROBLEM_MESSAGES, nameProblem, normalizeWorkspaceName } from "@ronneai/core";
 import { useActionState, useEffect, useState } from "react";
+import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
@@ -82,7 +83,9 @@ export const CreateWorkspaceForm = ({ onDone }: { onDone: () => void }) => {
       </div>
       <Description />
       <fieldset className="grid gap-1.5">
-        <legend className="mb-1 text-sm font-semibold text-fg">Visibility</legend>
+        <legend className="mb-1 flex items-center gap-2 text-sm font-semibold text-fg">
+          Visibility <Help id="visibility" />
+        </legend>
         <label className="flex items-start gap-2 text-sm">
           <input type="radio" name="visibility" value="public" defaultChecked className="mt-1" />
           <span>
@@ -225,6 +228,7 @@ export const VisibilityForm = ({
             Make <span className="font-mono">{name}</span> private? Only its members and root will
             see its items, and only its own items can depend on them.
           </p>
+          <Help id="visibility" />
           {impact.dependents.length > 0 ? (
             <Notice
               kind="error"

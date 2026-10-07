@@ -273,6 +273,7 @@ describe("the dialogs", () => {
       />,
     );
     expect(blocked).toContain("3 items outside acme depend on its items");
+    expect(blocked).toContain("Public or private?");
     for (const item of ["@team/a", "@team/b", "@team/c"]) expect(blocked).toContain(`>${item}<`);
     expect(blocked).toContain("1 open submission outside acme depends on its items");
     expect(blocked).toMatch(/<button[^>]*disabled=""[^>]*>[^<]*Make private/);
@@ -296,6 +297,8 @@ describe("the dialogs", () => {
     expect(radio("private")).toContain('type="radio"');
     expect(radio("private")).not.toContain("checked");
     expect(html).toContain("Only its members and root see its items");
+    expect(html).toContain("Public or private?");
+    expect(html).toContain("/marketplace/docs/workspaces#visibility");
   });
 
   it("Delete is disabled, with the reason, while the workspace has scopes", () => {

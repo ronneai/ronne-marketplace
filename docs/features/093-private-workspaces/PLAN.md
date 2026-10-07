@@ -48,7 +48,7 @@ the same change that completes it.
   *Done when:* Playwright passes on desktop, phone and phone-webkit, and the MCP end-to-end test
   shows the private item to the member and an unknown name to the outsider.
 
-- [ ] **9. Decisions and Documentation.** MVP §12 (what private means and doesn't), §15 (a
+- [x] **9. Decisions and Documentation.** MVP §12 (what private means and doesn't), §15 (a
   "Private workspaces" row; "Native plugin feeds" and "Plugin feeds at scale" updated); the topics
   and helpers.
   *Done when:* the docs render tests pass in ronne-web, and the helper link test passes here.
@@ -216,4 +216,17 @@ goes into `SPEC.md` instead.
   `private-workspaces.mobile.e2e.ts`: the label and the 404 on phone, phone-webkit and tablet. It
   found a bug: Make private refreshes the page, which flipped the open dialog's title to "Make
   public" over "It's private"; the dialog now keeps the direction it was opened with.
+- **Task 9: decisions and Documentation** (Claude). MVP §12 gains "Private workspaces" (what it
+  means, and what it doesn't: not encryption, root sees all, names already in lockfiles, mirrors
+  or old yanked versions stay, the audit log names them); §15 gains a "Private workspaces" row,
+  and "Workspaces", "Native plugin feeds" and "Plugin feeds at scale" say what 093 changed. In the
+  app: `workspaces#visibility` ("Public and private") in both topics.ts files; helpers "Public or
+  private?" (New workspace's Visibility, the Make private dialog) and "Who can see this?" (next to
+  the lock on the item page only: one on every card would be noise); "Which workspace?" and "How
+  do I join?" no longer say every workspace is public. In ronne-web (branch
+  `docs/093-private-workspaces`): the new section, and Items › Dependencies, Plugin marketplaces ›
+  Tokens, Codex and Cursor, Keeping the mirror current and Large marketplaces, rmk › Installing,
+  Roles › Who can do what, Administration › Workspaces, in en, then pt and fr by translation
+  agents following ronne-web's translator instructions (the French kept "forbidden" and "not
+  found" in English at first; they're plain words there, so both translate them).
 
