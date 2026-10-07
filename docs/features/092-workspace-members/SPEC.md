@@ -21,9 +21,12 @@ works in every workspace and keeps everything instance-wide.
   descriptions, and editing the workspace's description. Admin of `global` is allowed.
 - **Admins in Admin:** the Admin area opens to someone who administers at least one workspace,
   showing only Workspaces, and only theirs; each one's page is where they manage it.
-- **A user's memberships** on Admin › Users: in the Role column, the number of workspaces, with
-  the ones they administer and moderate named; the number opens a **Workspaces** dialog per user
-  to add, change the role, and remove.
+- **A user's memberships** on Admin › Users: in the Role column, on one line, a badge per role
+  they hold in their workspaces, highest first, each with how many workspaces they hold it in
+  ("admin 1", "user 1"); hovering lists each workspace and role, and the badges open a
+  **Workspaces** dialog per user to add, change the role, and remove. Root shows "root" (owner,
+  2026-10-07: "user" beside the roles held elsewhere was confusing, a line per role crowded the
+  table, and the highest role with one total count read as "admin in 2").
 - **A workspace's members** on its page (`/admin/workspaces/<name>`, 090), under a **Members** tab
   next to **Scopes**: a Members table (name, email, role, added), **Add members** (search users,
   pick a role), change role, remove.

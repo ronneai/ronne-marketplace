@@ -32,12 +32,14 @@ const Users = async ({ searchParams }: { searchParams: Promise<SearchParams> }) 
       page={{ next, previous }}
       total={total}
       toolbar={<CreateUserDialog />}
-      workspaces={(user) => (
+      workspaces={(user, content) => (
         <UserWorkspacesButton
           user={{ id: user.id, email: user.email }}
           workspaces={options}
           count={user.workspaces?.length ?? 0}
-        />
+        >
+          {content}
+        </UserWorkspacesButton>
       )}
       actions={(user) => (
         <UserRowActions

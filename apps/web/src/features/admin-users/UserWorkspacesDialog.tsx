@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { type ReactNode, useActionState, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError } from "@/components/ui/Field";
@@ -74,11 +74,14 @@ export const UserWorkspacesButton = ({
   user,
   workspaces,
   count,
+  children,
 }: {
   user: { id: string; email: string };
   workspaces: readonly WorkspaceOption[];
-  /** How many workspaces they're in: the button's text. */
+  /** How many workspaces they're in, for the button's name. */
   count: number;
+  /** What the button shows: their role badges, in the Role cell. */
+  children: ReactNode;
 }) => {
   const [open, setOpen] = useState(false);
   const [round, setRound] = useState(0);
@@ -91,10 +94,10 @@ export const UserWorkspacesButton = ({
       <button
         type="button"
         aria-label={`Workspaces of ${user.email}: ${count}`}
-        className="touch-hit rounded-sm text-xs text-link hover:underline outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
+        className="touch-hit -m-1 rounded-control p-1 text-left hover:bg-tint outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
         onClick={() => setOpen(true)}
       >
-        {count} {count === 1 ? "workspace" : "workspaces"}
+        {children}
       </button>
       <Dialog open={open} onClose={close} title={`Workspaces of ${user.email}`}>
         {open ? (

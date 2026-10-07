@@ -65,42 +65,50 @@ const Filters = ({ state }: { state: UsersListState }) => (
   </div>
 );
 
+const ROLE_RANK = ["admin", "moderator", "user"] as const;
+
 /**
- * Root, or a user with their workspaces (092): how many, which opens their Workspaces dialog when
- * `editor` gives one, and the ones they administer and moderate, named.
+ * Root, or a badge per role a user holds in their workspaces, highest first, each with how many
+ * workspaces they hold it in (092, the owner's choice): "admin 1 · user 1". `editor` wraps the
+ * badges in the button that opens their Workspaces dialog; hovering lists each workspace and role.
  */
-const RoleCell = ({ user, editor }: { user: UserSummary; editor?: ReactNode }) => {
+const RoleCell = ({
+  user,
+  editor,
+}: {
+  user: UserSummary;
+  editor?: (content: ReactNode) => ReactNode;
+}) => {
   if (user.role === "root") return <Badge tone="accent">root</Badge>;
   const all = user.workspaces ?? [];
-  const named = (role: "admin" | "moderator") =>
-    all.filter((w) => w.role === role).map((w) => w.name);
-  return (
-    <span className="grid gap-1">
-      <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-        <Badge tone="muted">user</Badge>
-        {editor ?? (
-          <span className="text-xs text-muted">
-            {all.length} {all.length === 1 ? "workspace" : "workspaces"}
-          </span>
-        )}
-      </span>
-      {(["admin", "moderator"] as const).map((role) =>
-        named(role).length > 0 ? (
-          <span key={role} className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
-            <Badge>{role}</Badge>
-            <span className="min-w-0 break-words text-xs text-muted">
-              in {named(role).join(", ")}
-            </span>
-          </span>
-        ) : null,
+  const counts = ROLE_RANK.flatMap((role) => {
+    const n = all.filter((w) => w.role === role).length;
+    return n > 0 ? [{ role, n }] : [];
+  });
+  const content = (
+    <span
+      className="flex flex-wrap items-center gap-1"
+      title={all.map((w) => `${w.name}: ${w.role}`).join(", ") || undefined}
+    >
+      {counts.length > 0 ? (
+        counts.map(({ role, n }) => (
+          // A flex badge drops the whitespace between its parts: the gap spaces them.
+          <Badge key={role} className="gap-1.5">
+            <span>{role}</span>
+            <span className="font-mono font-normal">{n}</span>
+          </Badge>
+        ))
+      ) : (
+        <span className="text-xs text-muted">none</span>
       )}
     </span>
   );
+  return editor ? editor(content) : content;
 };
 
 const columns = (
   actions?: (user: UserSummary) => ReactNode,
-  workspaces?: (user: UserSummary) => ReactNode,
+  workspaces?: (user: UserSummary, content: ReactNode) => ReactNode,
 ): Column<UserSummary, "created" | "email" | "name">[] => [
   {
     id: "email",
@@ -123,7 +131,12 @@ const columns = (
     id: "role",
     header: "Role",
     className: "w-56",
-    render: (user) => <RoleCell user={user} editor={workspaces?.(user)} />,
+    render: (user) => (
+      <RoleCell
+        user={user}
+        editor={workspaces ? (content) => workspaces(user, content) : undefined}
+      />
+    ),
   },
   {
     id: "status",
@@ -174,8 +187,8 @@ export const UsersPage = ({
   total: { count: number; capped: boolean };
   toolbar?: ReactNode;
   actions?: (user: UserSummary) => ReactNode;
-  /** The trigger for a user's Workspaces dialog, in their Role cell (092). */
-  workspaces?: (user: UserSummary) => ReactNode;
+  /** Wraps a user's role badges in the trigger for their Workspaces dialog (092). */
+  workspaces?: (user: UserSummary, content: ReactNode) => ReactNode;
   notice?: ReactNode;
 }) => (
   <>

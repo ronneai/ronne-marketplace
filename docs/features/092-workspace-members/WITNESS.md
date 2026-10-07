@@ -298,3 +298,41 @@ Witnessed: 2026-10-07 13:08 EDT, by a fresh agent (blind). Commit: ceb823c (plus
 | 15 | ronne-web's docs tests, lint and typecheck still pass, and so does the helper link test here | no | confirmed | ronne-web/www `npx vitest run` → 29 files, 136 tests passed; `biome check` exited 0; `tsc --noEmit` exited 0. Here, `vitest run src/components/help` → 3 passed |
 
 **Overall:** met: rows 1–11 hold, and row 12 is confirmed in all three languages, with tests, lint and typecheck green.
+
+## After the tasks — owner's feedback
+
+Witnessed: 2026-10-07 13:39 EDT, by a fresh agent (blind). Commit: a8adfee + working tree (MemberControls.tsx, UsersPage.tsx, admin-users.test.tsx, user-admin.e2e.ts, SPEC.md; ronne-web docs/092-workspace-members, uncommitted en/pt/fr admin.tsx). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1a | On a workspace's Members tab, changing a member's role saves, and the select keeps the new role without a reload | yes | confirmed | `MemberControls.tsx` `MemberRoleSelect` is a controlled `value={role}` that calls the action in `startTransition`, with no `<form>`. A probe e2e (root, e2e-acme) changed moderator→user, then user→admin, waiting 2.5 s after each → the select read `user`, then `admin`. Same probe against HEAD's MemberControls → `Expected "user", Received "moderator"` (the old bug) |
+| 1b | A refused change shows the reason under the select, and the select goes back to the stored role | yes | confirmed | Probe: a second tab removed the member, then the stale page picked `user` → the value went back to `admin`, `aria-describedby=member-role-…-error` was set, and the text read "They aren't a member of e2e-acme." |
+| 1c | After a reload, the stored role shows | yes | confirmed | `user-admin.e2e.ts` (`admin.reload()` then `toHaveValue("admin")`) passed in the full e2e run |
+| 2a | Root shows "root" and "All workspaces" | no | confirmed | `UsersPage.tsx` RoleCell root branch; unit test passes |
+| 2b | Other users get one line per role, highest first, each naming its workspaces, and below it the number of workspaces, which opens the Workspaces dialog | yes | confirmed | RoleCell from `["admin","moderator","user"]`; unit test regex passes; e2e passes |
+| 2c | Three names, then "+N more", with all names on hover | no | confirmed | `NAMES_SHOWN = 3`; unit test with 5 names passes |
+| 2d | SPEC.md's "A user's memberships" bullet says the same | no | confirmed | The `git diff` of SPEC.md matches 2a–2c |
+| 3 | The Documentation's Users section Role column paragraph matches the app in en, pt and fr | no | confirmed | ronne-web `git diff` en/pt/fr admin.tsx; `biome check` clean; `pnpm test` (www) → 136 passed |
+| 4a | Lint, typecheck and unit tests pass | no | confirmed | `pnpm lint` exit 0 (warnings only); `pnpm typecheck` exit 0; `pnpm test` → web 1667 passed, 8 skipped |
+| 4b | The e2e suite passes | no | confirmed | `pnpm test:e2e` → 91 passed |
+| 4c | The e2e user-admin test catches the old select bug | yes | confirmed | HEAD's MemberControls.tsx swapped in, `next build`, `playwright test e2e/user-admin.e2e.ts` → failed at `user-admin.e2e.ts:188`: `Expected: "admin" Received: "moderator"`. With HEAD's UsersPage.tsx, `admin-users.test.tsx` → 2 failed |
+
+**Overall:** met: the role select keeps the saved role, reverts and explains a refusal, and shows the stored role after a reload; the Role column, docs and checks hold. The owner then found the line-per-role column crowded and chose another design (one badge per role with its count): rows 2a–3 are superseded by the re-check below.
+
+### Re-check — the Role column, the owner's pick
+
+Witnessed: 2026-10-07 14:01 EDT, by a fresh agent (blind). Commit: a8adfee + working tree (UsersPage.tsx, UserWorkspacesDialog.tsx, admin/users/page.tsx, admin-users.test.tsx, workspaces-dialog.test.tsx, user-admin.e2e.ts, SPEC.md; ronne-web docs/092-workspace-members, uncommitted en/pt/fr admin.tsx). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Root shows only "root" | yes | confirmed | `UsersPage.tsx` RoleCell returns `<Badge tone="accent">root</Badge>`. Playwright probe on a fresh build: the root row's Role cell innerText is `"root"`. Unit test: `not.toContain("All workspaces")` passes |
+| 2 | Any other user gets one badge per role they hold, highest first (admin, moderator, user), each with how many workspaces they hold it in, and no workspace names in the cell | yes | confirmed | `ROLE_RANK` with a count per role. Probe (workspace-admin made admin of e2e-acme): cell text `admin 1 user 1`, on one line (button height 28 px). Unit test fixture lists global: user first and expects admin 1 … moderator 2 … user 1, which passes |
+| 3 | The role and count are visibly spaced | no | confirmed | The badge has `className="gap-1.5"` (Badge is `inline-flex`, `Badge.tsx:28`). The screenshot shows "admin 1" and "user 1" with a clear gap. Removing `gap-1.5` → the unit test fails |
+| 4 | Hovering lists each workspace and role | yes | confirmed | `title={all.map(w => \`${w.name}: ${w.role}\`).join(", ")}`. Probe title: `e2e-acme: admin, global: user`. Unit test expects `title="global: user, acme: moderator, ops: admin, beta: moderator"`, which passes. Dropping the names from the title → it fails |
+| 5 | Clicking the badges opens the Workspaces dialog; the button is named "Workspaces of <email>: N", where N is the total | yes | confirmed | `page.tsx` wraps the badges in `UserWorkspacesButton` with `count={user.workspaces?.length}`. Probe: button `Workspaces of workspace-admin@e2e.test: 2`; clicking it → the dialog is visible. workspaces-dialog.test passes |
+| 6 | Someone in no workspace shows "none" | no | confirmed | A scratch unit probe rendering a user with `workspaces: []` → `>none<` is present. The suite didn't assert it at this commit: changing "none" to "user" still passed 8/8 |
+| 7 | SPEC.md's "A user's memberships" bullet says the same, including that the badges open the dialog | no | confirmed | The `git diff` of SPEC.md: a badge per role highest first with counts ("admin 1", "user 1"), the hover list, "the badges open a **Workspaces** dialog", and "Root shows "root"" |
+| 8 | ronne-web en/pt/fr admin.tsx Users section says the same in each language, including that the badges open the dialog | no | confirmed | `git diff` in ronne-web: en "a badge for each role… highest first… `admin 1` `user 1`; hover it…" / "The badges open…"; pt "um selo para cada papel…" / "Os selos abrem…"; fr "un badge par rôle…" / "Les badges ouvrent…". `biome check` on the 3 files → no issues |
+| 9 | Lint, typecheck, unit tests (1666), ronne-web tests (136) and e2e (91) pass; the unit test fails on a wrong order, a wrong count or a "first workspace's role" bug | yes | confirmed | Fresh copy: `pnpm lint` exit 0; `pnpm typecheck` exit 0; `pnpm test` → web 1666 passed, 8 skipped; `pnpm test:e2e` → 91 passed. ronne-web `pnpm test` → 136 passed. Mutations to the code, each failing `admin-users.test.tsx`: order reversed, moderator above admin, count = total, count always 1, only the first workspace's role, no gap, the title without names, the line-per-role layout, and HEAD's layout |
+
+**Overall:** met: root shows "root"; everyone else gets one line of role badges, highest first, each with its count and spaced; hovering lists every workspace and role; the badges open the Workspaces dialog; "none" shows when they're in no workspace; SPEC and the three docs match; the unit test catches wrong order, counts and roles. Remarks taken: the unit test now asserts "none", and the e2e checks the counts (`/moderator\s*1\s*user\s*1/`); unit 21 and e2e 91 passed with them.

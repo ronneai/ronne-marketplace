@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
@@ -42,7 +42,11 @@ const Hidden = ({ workspace, userId }: { workspace: MembersWorkspace; userId?: s
   </>
 );
 
-/** A member's role, changed as soon as another is picked; a refusal shows under it. */
+/**
+ * A member's role, saved as soon as another is picked; a refusal shows under it, and the select
+ * goes back to the stored role. The action is called directly, not as a form's action: React
+ * resets a form after its action, which put the select back on another role until a reload.
+ */
 export const MemberRoleSelect = ({
   workspace,
   member,
@@ -50,27 +54,38 @@ export const MemberRoleSelect = ({
   workspace: MembersWorkspace;
   member: { userId: string; email: string; role: WorkspaceRole };
 }) => {
-  const [state, action, pending] = useActionState<MemberActionState, FormData>(
-    changeMemberRoleFromForm,
-    {},
-  );
+  const [role, setRole] = useState(member.role);
+  const [error, setError] = useState<string | undefined>();
+  const [pending, startTransition] = useTransition();
+  useEffect(() => setRole(member.role), [member.role]);
+  const change = (next: WorkspaceRole) => {
+    setRole(next);
+    const form = new FormData();
+    form.set("workspaceId", workspace.id);
+    form.set("workspace", workspace.name);
+    form.set("userId", member.userId);
+    form.set("role", next);
+    startTransition(async () => {
+      const result = await changeMemberRoleFromForm({}, form);
+      setError(result.error);
+      if (result.error) setRole(member.role);
+    });
+  };
   const errorId = `member-role-${member.userId}-error`;
   return (
-    <form action={action} className="grid gap-1">
-      <Hidden workspace={workspace} userId={member.userId} />
+    <div className="grid gap-1">
       <select
-        name="role"
         aria-label={`Role of ${member.email}`}
-        defaultValue={member.role}
+        value={role}
         disabled={pending}
-        aria-describedby={state.error ? errorId : undefined}
-        onChange={(event) => event.currentTarget.form?.requestSubmit()}
+        aria-describedby={error ? errorId : undefined}
+        onChange={(event) => change(event.target.value as WorkspaceRole)}
         className={`${selectClasses} w-32`}
       >
         <RoleOptions />
       </select>
-      <FieldError id={errorId}>{state.error}</FieldError>
-    </form>
+      <FieldError id={errorId}>{error}</FieldError>
+    </div>
   );
 };
 

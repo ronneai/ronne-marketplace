@@ -65,7 +65,7 @@ test("root creates a user, who signs in with the shown password; disabling them 
   await memberships.getByRole("button", { name: "Save" }).click();
   await expect(memberships.getByText("Saved: 1 workspace added.")).toBeVisible();
   await memberships.getByRole("button", { name: "Done" }).click();
-  await expect(rowOf(root, email)).toContainText(/moderator\s*in e2e-acme/);
+  await expect(rowOf(root, email)).toContainText(/moderator\s*1\s*user\s*1/);
   await rowOf(root, email)
     .getByRole("button", { name: `Workspaces of ${email}: 2` })
     .click();
@@ -74,7 +74,7 @@ test("root creates a user, who signs in with the shown password; disabling them 
   await memberships.getByRole("button", { name: "Save" }).click();
   await expect(memberships.getByText("Saved: 1 workspace removed.")).toBeVisible();
   await memberships.getByRole("button", { name: "Done" }).click();
-  await expect(rowOf(root, email)).not.toContainText(/moderator\s*in/);
+  await expect(rowOf(root, email)).not.toContainText(/moderator/);
 
   // The new user signs in with it.
   const user = await browser.newPage();
@@ -182,6 +182,12 @@ test("root creates a user, who signs in with the shown password; disabling them 
   await expect(add.getByText("Added 1 person.")).toBeVisible();
   await add.getByRole("button", { name: "Done" }).click();
   await expect(admin.getByLabel(`Role of ${E2E_USERS.memberToAdd}`)).toHaveValue("moderator");
+  // Changing it saves, and the select keeps the new role (it once went back until a reload).
+  await admin.getByLabel(`Role of ${E2E_USERS.memberToAdd}`).selectOption("admin");
+  await expect(admin.getByLabel(`Role of ${E2E_USERS.memberToAdd}`)).toBeEnabled();
+  await expect(admin.getByLabel(`Role of ${E2E_USERS.memberToAdd}`)).toHaveValue("admin");
+  await admin.reload();
+  await expect(admin.getByLabel(`Role of ${E2E_USERS.memberToAdd}`)).toHaveValue("admin");
   await admin.getByRole("button", { name: `Remove ${E2E_USERS.memberToAdd}` }).click();
   const remove = admin.getByRole("dialog", { name: "Remove member" });
   await remove.getByRole("button", { name: "Remove" }).click();

@@ -90,4 +90,15 @@ goes into `SPEC.md` instead.
   about who reviews, releases or moves tags now names admins too. Here: the helpers that name
   roles, the Roles topic's summary and its section title "The roles", the Administration summary.
   No section was added or renamed, so ronne-web's `topics.ts` (ids only) doesn't change.
+- **After the tasks** (owner's feedback, 2026-10-07). Changing a member's role saved, but the
+  select went back to the old role until a reload: React resets a form after its action, and an
+  uncontrolled select returns to its first `defaultValue` (a controlled one went to the first
+  option). The select now calls the action directly in a transition, with no form, and goes back
+  to the stored role only when the change is refused; the user-admin e2e test changes a role and
+  checks it before and after a reload. Admin › Users' Role column is now one line, the owner's
+  pick: a badge per role held, highest first, each with its count ("admin 1", "user 1"), which
+  opens the dialog, each workspace and role on hover, and "root" alone for root. Tried first and
+  dropped: "user" plus the administered and moderated ones (read as one role), a line per role
+  naming the workspaces (crowded), and the highest role with one total count (read as "admin in
+  2"). The unit test lists a lower role first, so a "first workspace's role" bug fails it.
 

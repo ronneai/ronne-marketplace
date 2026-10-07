@@ -37,10 +37,12 @@ describe("a user's Workspaces (092)", () => {
         user={{ id: "u", email: "u@example.com" }}
         workspaces={OPTIONS}
         count={3}
-      />,
+      >
+        <span>badges</span>
+      </UserWorkspacesButton>,
     );
     expect(html).toContain('aria-label="Workspaces of u@example.com: 3"');
-    expect(html).toContain(">3 workspaces</button>");
+    expect(html).toContain("><span>badges</span></button>");
   });
 
   it("lists global first, always there, with a role for each and Add workspace", () => {
