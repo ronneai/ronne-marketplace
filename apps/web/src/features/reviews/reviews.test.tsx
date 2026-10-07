@@ -49,6 +49,7 @@ const row = (overrides: Partial<QueueRow> = {}): QueueRow => ({
   authorId: "u1",
   authorName: "Ada Author",
   scope: { id: "s1", name: "team" },
+  workspace: { id: "00000000000000000000000000", name: "global" },
   name: "fmt",
   type: "hook",
   status: "submitted",

@@ -7,7 +7,7 @@ import {
 } from "@ronneai/core";
 import { isId } from "../../../db/ids";
 import type { StorageAdapter } from "../../../storage";
-import { canInSome, requireInSome } from "../../identity/models/permissions";
+import { can } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
 import {
   HasReviewHistoryError,
@@ -28,6 +28,7 @@ import {
 } from "../models/submission";
 import type { RegistryLookup } from "../repositories/registry-lookup";
 import type { SubmissionRepository } from "../repositories/submission-repository";
+import { requireMember, requireSignedIn } from "./membership";
 import { baseFilesOf } from "./proposals";
 import { registryIssues } from "./registry-checks";
 
@@ -57,9 +58,12 @@ const now = (deps: SubmissionDeps) => (deps.now ?? (() => new Date()))();
 const find = async (repo: SubmissionRepository, id: string) =>
   (isId(id) ? await repo.find(id) : null) ?? null;
 
-/** The actor's own submission, in any status, or SubmissionNotFoundError. */
+/**
+ * The actor's own submission, in any status, or SubmissionNotFoundError. Reading, withdrawing and
+ * deleting your own need no membership (091); submitting and restoring check it.
+ */
 const own = async (repo: SubmissionRepository, actor: SubmissionActor, id: string) => {
-  requireInSome(actor.user, "submissions.create");
+  requireSignedIn(actor);
   const submission = await find(repo, id);
   if (!submission || submission.authorId !== actor.user?.id) throw new SubmissionNotFoundError();
   return submission;
@@ -77,7 +81,7 @@ export const latestFeedbackFor = async (
   actor: SubmissionActor,
   submissions: readonly Submission[],
 ): Promise<Record<string, RowFeedback>> => {
-  requireInSome(actor.user, "submissions.create");
+  requireSignedIn(actor);
   const ids = submissions
     .filter(
       (s) =>
@@ -110,8 +114,8 @@ export const viewSubmission = async (
   deps: SubmissionDeps,
   actor: SubmissionActor,
   id: string,
-): Promise<Draft & { mine: boolean }> => {
-  requireInSome(actor.user, "submissions.create");
+): Promise<Draft & { mine: boolean; member: boolean }> => {
+  requireSignedIn(actor);
   const submission = await find(deps.repo, id);
   const mine = submission?.authorId === actor.user?.id;
   if (
@@ -119,11 +123,17 @@ export const viewSubmission = async (
     !(
       mine ||
       (!PRIVATE_STATUSES.includes(submission.status) &&
-        canInSome(actor.user, "submissions.view_submitted"))
+        can(actor.user, "submissions.view_submitted", submission.workspace.id))
     )
   )
     throw new SubmissionNotFoundError();
-  return { ...submission, files: await deps.repo.files(submission.id), mine };
+  return {
+    ...submission,
+    files: await deps.repo.files(submission.id),
+    mine,
+    // Whether the viewer may still change it: a removed member reads and withdraws only (091).
+    member: can(actor.user, "submissions.create", submission.workspace.id),
+  };
 };
 
 /** 011's checks on the saved files, then the registry checks. */
@@ -209,6 +219,7 @@ export const checkSubmission = async (
 ): Promise<ManifestIssue[]> => {
   const submission = await own(deps.repo, actor, id);
   transition(submission.status, sendAction(submission.status));
+  requireMember(actor, submission.workspace);
   return allIssues(deps, deps.repo, submission);
 };
 
@@ -228,6 +239,7 @@ export const submitDraft = async (
     const submission = await own(repo, actor, id);
     const action = sendAction(submission.status);
     const status = transition(submission.status, action);
+    requireMember(actor, submission.workspace);
     await repo.lockScope(submission.scope.id);
     const issues = await allIssues(deps, repo, submission);
     if (hasErrors(issues)) throw new SubmissionInvalidError(issues);
@@ -410,6 +422,7 @@ export const restoreSubmission = async (
     await repo.lockSubmission(id);
     const submission = await own(repo, actor, id);
     const status = transition(submission.status, "restore");
+    requireMember(actor, submission.workspace);
     await repo.setStatus(submission.id, status, { updatedAt: at });
     const latest = (await repo.revisions(submission.id)).at(-1);
     await repo.addEvent({

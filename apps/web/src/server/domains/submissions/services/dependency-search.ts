@@ -1,5 +1,4 @@
 import { DEPENDENCY_TYPES, type ItemType, isItemType } from "@ronneai/core";
-import { requireInSome } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
 import type { CatalogueEntry } from "../../items/models/catalogue";
 import type { CatalogueRepository } from "../../items/repositories/catalogue-repository";
@@ -7,6 +6,7 @@ import { API_PAGE_MAX, CATALOGUE_SEARCH_MAX_LENGTH } from "../../items/services/
 import { itemNameOf, type Submission } from "../models/submission";
 import type { RegistryLookup } from "../repositories/registry-lookup";
 import type { SubmissionRepository } from "../repositories/submission-repository";
+import { requireSignedIn } from "./membership";
 
 /**
  * Finding a dependency to pick (056, 089): what the manifest form's Item field, `@` in a markdown
@@ -68,7 +68,7 @@ export const findDependencies = async (
   actor: { user: CurrentUser | null; ip: string | null },
   input: { type: ItemType; q: string; itemName?: string; exclude?: readonly string[] },
 ): Promise<DependencyOption[]> => {
-  requireInSome(actor.user, "submissions.create");
+  requireSignedIn(actor);
   const allowed: readonly ItemType[] = isItemType(input.type) ? DEPENDENCY_TYPES[input.type] : [];
   if (allowed.length === 0 || !actor.user) return [];
   const me = actor.user.id;

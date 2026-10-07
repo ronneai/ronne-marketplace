@@ -60,7 +60,10 @@ export type ReviewPageQuery = ReviewFilters & {
 /** What the submission services need from storage. Implemented with Kysely in kysely-submission-repository.ts. */
 export interface SubmissionRepository {
   transaction<T>(work: (repo: SubmissionRepository) => Promise<T>): Promise<T>;
-  findScope(name: string): Promise<{ id: string; name: string } | null>;
+  /** A scope by name, with its workspace (091). */
+  findScope(
+    name: string,
+  ): Promise<{ id: string; name: string; workspace: { id: string; name: string } } | null>;
   insert(submission: NewSubmission): Promise<string>;
   find(id: string): Promise<Submission | null>;
   /** Newest change first. */

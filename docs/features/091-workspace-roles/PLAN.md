@@ -17,7 +17,7 @@ the same change that completes it.
   memberships loaded with the session and the token's user.
   *Done when:* a permission-matrix test passes for root, moderator in A, user in A, and a non-member.
 
-- [ ] **3. Submissions domain.** [risky] Drafts, submit, withdraw, proposals, composer, dependency
+- [x] **3. Submissions domain.** [risky] Drafts, submit, withdraw, proposals, composer, dependency
   search, bulk submit, the draft upload API: membership of the scope's workspace; `not_a_member`;
   scope lists filtered; `GET /api/v1/scopes` adds `role`.
   *Done when:* the submissions db tests pass, with new cases for a non-member and a removed member.
@@ -56,3 +56,16 @@ goes into `SPEC.md` instead.
 - **Tests:** `createTestUser(app, { role: "moderator" })` still works and means a moderator of
   `global`; `setWorkspaceRole(app, userId, role, workspaceId?)` changes or adds a membership.
 
+- **Task 3: which actions check membership** (Claude). Creating a draft, saving, importing,
+  replacing (`rmk export`), renaming (both workspaces), checking, submitting, resubmitting,
+  restoring and proposing need membership of the scope's workspace (`requireMember`, in
+  `submissions/services/membership.ts`). Reading, listing, withdrawing and deleting your own need
+  only a session (`requireSignedIn`), as do the dependency picker and the composer's reports, which
+  read the catalogue. `Submission` carries its `workspace`.
+- **`not_a_member` in bulk results** carries the reason as its one issue (`code: "not_a_member"`),
+  so `rmk submit`, the MCP server and My submissions show it as they show a failed check, with no
+  client change.
+- **A removed member's own submission page** (Claude): `viewSubmission` returns `member`, and the
+  page makes the editor read-only and hides Submit, Restore, Rebase and Resolve; Withdraw and
+  Delete stay, and a change proposal's panel still opens. Task 6 gives the read-only notice its own
+  text ("You're no longer a member of acme …"); until then it reads as if it were submitted.

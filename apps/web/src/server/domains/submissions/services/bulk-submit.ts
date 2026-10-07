@@ -1,8 +1,9 @@
 import { hasErrors, type ManifestIssue } from "@ronneai/core";
 import { isId } from "../../../db/ids";
-import { requireInSome } from "../../identity/models/permissions";
+import { can } from "../../identity/models/permissions";
 import {
   InvalidStatusTransitionError,
+  NotAMemberError,
   SubmissionInvalidError,
   SubmissionNotFoundError,
 } from "../exceptions/errors";
@@ -10,6 +11,7 @@ import { isEditable } from "../models/status";
 import { itemNameOf, type Submission } from "../models/submission";
 import type { NamedSubmission, RegistryLookup } from "../repositories/registry-lookup";
 import { dependenciesOf } from "./dependency-marks";
+import { requireSignedIn } from "./membership";
 import {
   checkSubmission,
   type SubmissionActor,
@@ -49,7 +51,32 @@ export type CheckedDraft = Included &
     | { id: string; result: "ready" | "not_ready"; submission: Submission; issues: ManifestIssue[] }
     | { id: string; result: "not_found" }
     | { id: string; result: "not_submittable"; submission: Submission }
+    | NotAMember
   );
+
+/**
+ * A draft in a workspace the person isn't a member of (any more): skipped, with the reason as its
+ * one issue, so every client shows it as it shows a check that failed (091).
+ */
+type NotAMember = {
+  id: string;
+  result: "not_a_member";
+  submission: Submission;
+  issues: ManifestIssue[];
+};
+
+const notAMember = (id: string, submission: Submission): NotAMember => ({
+  id,
+  result: "not_a_member",
+  submission,
+  issues: [
+    {
+      severity: "error",
+      code: "not_a_member",
+      message: new NotAMemberError(submission.workspace.name).message,
+    },
+  ],
+});
 
 export type SubmittedDraft = Included &
   (
@@ -63,6 +90,7 @@ export type SubmittedDraft = Included &
     | { id: string; result: "not_ready"; submission: Submission; issues: ManifestIssue[] }
     | { id: string; result: "not_found" }
     | { id: string; result: "not_submittable"; submission: Submission }
+    | NotAMember
   );
 
 /** The person's drafts (not yet submitted) by item name: the newest one of each name. */
@@ -137,7 +165,7 @@ const selected = async (
   actor: SubmissionActor,
   selection: BulkSelection,
 ): Promise<{ ids: string[]; more: number }> => {
-  requireInSome(actor.user, "submissions.create");
+  requireSignedIn(actor);
   if (!("all" in selection)) return { ids: selection.ids.slice(0, MAX_BULK), more: 0 };
   const open = (await deps.repo.listByAuthor(actor.user?.id ?? "")).filter((s) =>
     isEditable(s.status),
@@ -185,6 +213,10 @@ export const checkMany = async (
     }
     if (!isEditable(submission.status)) {
       drafts.push({ id, result: "not_submittable", submission, ...included });
+      continue;
+    }
+    if (!can(actor.user, "submissions.create", submission.workspace.id)) {
+      drafts.push({ ...notAMember(id, submission), ...included });
       continue;
     }
     const issues = await checkSubmission(
@@ -269,6 +301,8 @@ export const submitMany = async (
         results.push({ id, result: "not_submittable", submission: before, ...included });
       else if (error instanceof SubmissionNotFoundError)
         results.push({ id, result: "not_found", ...included });
+      else if (error instanceof NotAMemberError)
+        results.push({ ...notAMember(id, before), ...included });
       else throw error;
     }
   }

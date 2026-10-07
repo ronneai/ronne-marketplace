@@ -15,6 +15,7 @@ import {
   InvalidItemNameError,
   InvalidItemTypeError,
   ManifestRequiredError,
+  NotAMemberError,
   ProposalBaseNotFoundError,
   SubmissionNotEditableError,
   SubmissionNotFoundError,
@@ -67,6 +68,8 @@ const submissionErrorResponse = (error: unknown): Response | null => {
     return errorResponse(400, "manifest_required", error.message);
   if (error instanceof DraftScopeNotFoundError)
     return errorResponse(404, "scope_not_found", error.message, { scope: error.scopeName });
+  if (error instanceof NotAMemberError)
+    return errorResponse(403, "not_a_member", error.message, { workspace: error.workspace });
   if (error instanceof ProposalBaseNotFoundError)
     return error.version
       ? errorResponse(404, "version_not_found", error.message, {

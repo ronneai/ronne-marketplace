@@ -26,6 +26,8 @@ type SubmissionRow = {
   author_id: string;
   scope_id: string;
   scope_name: string;
+  workspace_id: string;
+  workspace_name: string;
   name: string;
   type: string;
   status: string;
@@ -42,6 +44,7 @@ const toSubmission = (row: SubmissionRow): Submission => ({
   id: row.id,
   authorId: row.author_id,
   scope: { id: row.scope_id, name: row.scope_name },
+  workspace: { id: row.workspace_id, name: row.workspace_name },
   name: row.name,
   type: row.type as ItemType,
   status: row.status as SubmissionStatus,
@@ -73,6 +76,7 @@ export const kyselySubmissionRepository = (
     db
       .selectFrom("submissions")
       .innerJoin("scopes", "scopes.id", "submissions.scope_id")
+      .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
       .leftJoin("item_versions as base", "base.id", "submissions.base_version_id")
       .select([
         "submissions.item_id",
@@ -83,6 +87,8 @@ export const kyselySubmissionRepository = (
         "submissions.author_id",
         "submissions.scope_id",
         "scopes.name as scope_name",
+        "scopes.workspace_id",
+        "workspaces.name as workspace_name",
         "submissions.name",
         "submissions.type",
         "submissions.status",
@@ -127,12 +133,26 @@ export const kyselySubmissionRepository = (
         work(kyselySubmissionRepository(trx, dialect)),
       ),
 
-    findScope: async (name) =>
-      (await db
+    findScope: async (name) => {
+      const row = await db
         .selectFrom("scopes")
-        .select(["id", "name"])
-        .where("name", "=", name)
-        .executeTakeFirst()) ?? null,
+        .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
+        .select([
+          "scopes.id",
+          "scopes.name",
+          "workspaces.id as workspace_id",
+          "workspaces.name as workspace_name",
+        ])
+        .where("scopes.name", "=", name)
+        .executeTakeFirst();
+      return row
+        ? {
+            id: row.id,
+            name: row.name,
+            workspace: { id: row.workspace_id, name: row.workspace_name },
+          }
+        : null;
+    },
 
     insert: async (submission) => {
       const id = newId();

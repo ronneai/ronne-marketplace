@@ -8,11 +8,16 @@ import { listAuditEvents } from "../domains/audit/actions/audit";
 import { authenticateToken, exchangePassword } from "../domains/identity/actions/access-tokens";
 import { createRoot } from "../domains/identity/actions/root-account";
 import type { AppAuth } from "../domains/identity/repositories/auth-instance";
-import { createTestUser, testAppAuth } from "../domains/identity/testing/test-auth";
+import {
+  createTestUser,
+  setWorkspaceRole,
+  testAppAuth,
+} from "../domains/identity/testing/test-auth";
 import { kyselyItemRepository } from "../domains/items/repositories/kysely-item-repository";
 import { kyselyScopeRepository } from "../domains/items/repositories/kysely-scope-repository";
 import { kyselySubmissionRepository } from "../domains/submissions/repositories/kysely-submission-repository";
 import { GLOBAL_WORKSPACE_ID } from "../domains/workspaces/models/workspace";
+import { kyselyWorkspaceRepository } from "../domains/workspaces/repositories/kysely-workspace-repository";
 import { localStorage } from "../storage/local-storage";
 import {
   checkDrafts,
@@ -92,17 +97,17 @@ const body = async (response: Response) => ({
 });
 
 describe("GET /scopes", () => {
-  it("lists scopes by name, with their descriptions and workspaces, for every role", async () => {
-    for (const token of Object.values(tokens)) {
+  it("lists scopes by name, with their descriptions, workspaces and your role, for every role", async () => {
+    for (const [role, token] of Object.entries(tokens)) {
       const response = await getScopes(get("/scopes", token), deps);
       expect(response.headers.get("cache-control")).toBe("private, no-cache");
       expect(await body(response)).toEqual({
         status: 200,
         json: {
           scopes: [
-            { name: "platform", description: "Shared tools.", workspace: "global" },
-            { name: "security", description: "The security team.", workspace: "global" },
-            { name: "team", description: "A team.", workspace: "global" },
+            { name: "platform", description: "Shared tools.", workspace: "global", role },
+            { name: "security", description: "The security team.", workspace: "global", role },
+            { name: "team", description: "A team.", workspace: "global", role },
           ],
           nextCursor: null,
         },
@@ -800,5 +805,139 @@ describe("POST /drafts with a base (042)", () => {
       });
     const { status, json } = await body(await postDraft(post(proposal("1.0.0")), deps));
     expect([status, json.error.code]).toEqual([409, "draft_limit"]);
+  });
+});
+
+describe("workspaces: only members draft and submit there (091)", () => {
+  let acme: string;
+  let memberId: string;
+  let memberToken: string;
+  const skill = (name: string) => ({
+    name,
+    type: "skill",
+    files: [
+      {
+        path: "ronne.yaml",
+        encoding: "utf8",
+        content: `name: "${name}"\ntype: skill\ndescription: Checks code.\n`,
+      },
+      {
+        path: "SKILL.md",
+        encoding: "utf8",
+        content: `---\nname: ${name.split("/")[1]}\ndescription: Checks code.\n---\nGo.\n`,
+      },
+    ],
+  });
+  const send = (method: "POST" | "PUT", path: string, payload: unknown, auth: string) =>
+    new Request(`${BASE}${path}`, {
+      method,
+      headers: { "content-type": "application/json", authorization: `Bearer ${auth}` },
+      body: JSON.stringify(payload),
+    });
+  const drafts = async () =>
+    Number(
+      (
+        await t.db
+          .selectFrom("submissions")
+          .select((eb) => eb.fn.countAll().as("n"))
+          .executeTakeFirstOrThrow()
+      ).n,
+    );
+
+  beforeEach(async () => {
+    acme = await kyselyWorkspaceRepository(t.db, t.dialect).insert({
+      name: "acme",
+      description: "Acme's team.",
+      visibility: "public",
+      createdBy: null,
+      createdAt: new Date(),
+    });
+    await kyselyScopeRepository(t.db, t.dialect).insert({
+      name: "acme",
+      description: "Acme's tools.",
+      workspaceId: acme,
+      createdBy: null,
+      createdAt: new Date(),
+    });
+    memberId = await createTestUser(app, { email: "a@example.com", password });
+    await setWorkspaceRole(app, memberId, "user", acme);
+    memberToken = await tokenFor("a@example.com");
+  });
+
+  it("lists acme's scope to its members, with their role, and to root; not to others", async () => {
+    const scopes = async (token: string) =>
+      (await body(await getScopes(get("/scopes", token), deps))).json.scopes.map(
+        (s: { name: string; role: string }) => `${s.name}:${s.role}`,
+      );
+    expect(await scopes(memberToken)).toEqual([
+      "acme:user",
+      "platform:user",
+      "security:user",
+      "team:user",
+    ]);
+    expect(await scopes(tokens.root)).toContain("acme:root");
+    for (const token of [tokens.user, tokens.moderator])
+      expect(await scopes(token)).not.toContain(expect.stringMatching(/^acme:/));
+  });
+
+  it("refuses a non-member's upload with not_a_member, creating nothing; a member's goes", async () => {
+    for (const token of [tokens.user, tokens.moderator]) {
+      const { status, json } = await body(
+        await postDraft(send("POST", "/drafts", skill("@acme/fmt"), token), deps),
+      );
+      expect([status, json.error.code, json.error.details]).toEqual([
+        403,
+        "not_a_member",
+        { workspace: "acme" },
+      ]);
+      expect(json.error.message).toContain("Ask to join acme");
+    }
+    expect(await drafts()).toBe(0);
+    const made = await postDraft(send("POST", "/drafts", skill("@acme/fmt"), memberToken), deps);
+    expect(made.status).toBe(201);
+    const byRoot = await postDraft(send("POST", "/drafts", skill("@acme/lint"), tokens.root), deps);
+    expect(byRoot.status).toBe(201);
+  });
+
+  it("a removed member still lists their draft, but can't replace or submit it", async () => {
+    const { json } = await body(
+      await postDraft(send("POST", "/drafts", skill("@acme/fmt"), memberToken), deps),
+    );
+    await t.db.deleteFrom("workspace_members").where("workspace_id", "=", acme).execute();
+
+    const listed = await body(await getDrafts(get("/drafts?name=@acme/fmt", memberToken), deps));
+    expect(listed.json.drafts.map((d: { id: string }) => d.id)).toEqual([json.id]);
+
+    const replaced = await body(
+      await putDraft(
+        send("PUT", `/drafts/${json.id}`, skill("@acme/fmt"), memberToken),
+        { id: json.id },
+        deps,
+      ),
+    );
+    expect([replaced.status, replaced.json.error.code]).toEqual([403, "not_a_member"]);
+
+    const submitted = await body(
+      await submitDrafts(send("POST", "/drafts/submit", { ids: [json.id] }, memberToken), deps),
+    );
+    expect(submitted.json.results).toEqual([
+      expect.objectContaining({
+        id: json.id,
+        result: "not_a_member",
+        issues: [expect.objectContaining({ code: "not_a_member", severity: "error" })],
+      }),
+    ]);
+    const checked = await body(
+      await checkDrafts(send("POST", "/drafts/check", { ids: [json.id] }, memberToken), deps),
+    );
+    expect(checked.json.drafts).toEqual([
+      expect.objectContaining({ id: json.id, result: "not_a_member", ready: false }),
+    ]);
+    const status = await t.db
+      .selectFrom("submissions")
+      .select("status")
+      .where("id", "=", json.id)
+      .executeTakeFirstOrThrow();
+    expect(status.status).toBe("draft");
   });
 });

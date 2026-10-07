@@ -19,6 +19,8 @@ export type Submission = {
   id: string;
   authorId: string;
   scope: { id: string; name: string };
+  /** The scope's workspace (090), where every check about it is made (091). */
+  workspace: { id: string; name: string };
   /** The item's name without the scope. */
   name: string;
   type: ItemType;

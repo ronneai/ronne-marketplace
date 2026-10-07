@@ -94,6 +94,23 @@ describe("rmk submit (052)", () => {
     expect(result.exitCode).toBe(1);
   });
 
+  it("shows why a draft outside your workspaces isn't submitted, without telling you to fix it (091)", async () => {
+    const outside = "01J0000000000000000000000G";
+    const { submitted } = setup({
+      drafts: [
+        ...DRAFTS,
+        { id: outside, name: "@acme/fmt", type: "rule", status: "draft", notAMemberOf: "acme" },
+      ],
+    });
+    io.answers.push("y");
+    const result = await rmk("submit", "@team/style", "@acme/fmt");
+    expect(io.questions[0]).toContain(
+      "    - You aren't a member of the acme workspace. Ask to join acme to propose changes.",
+    );
+    expect(submitted).toEqual([ID.style]);
+    expect(result.stdout).not.toContain("Fix them in the web app");
+  });
+
   it("by id, and with --all; exits 0 when everything asked for went", async () => {
     const { submitted } = setup();
     const byId = await rmk("submit", ID.style, ID.skill, "--yes");

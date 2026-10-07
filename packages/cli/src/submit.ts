@@ -208,9 +208,11 @@ export const submitLines = (outcome: Awaited<ReturnType<typeof sendSubmit>>, pla
     lines.push(`Not submitted: ${label(result)}`);
     for (const issue of errorsOf(result.issues)) lines.push(`  - ${issue.message}`);
   }
-  if (plan.notReady.length > 0)
+  // Outside your workspaces (091) is nothing to fix in the draft: its line says to ask to join.
+  const fixable = plan.notReady.filter((d) => d.result !== "not_a_member");
+  if (fixable.length > 0)
     lines.push(
-      `Not ready, so not submitted: ${plan.notReady.map((d) => d.name ?? d.id).join(", ")}. Fix them in the web app, then submit again.`,
+      `Not ready, so not submitted: ${fixable.map((d) => d.name ?? d.id).join(", ")}. Fix them in the web app, then submit again.`,
     );
   return lines;
 };

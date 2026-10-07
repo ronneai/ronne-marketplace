@@ -44,7 +44,7 @@ export const submitSelectedAction = async (ids: string[]): Promise<BulkResult[]>
     name: "submission" in r ? `@${r.submission.scope.name}/${r.submission.name}` : r.id,
     result: r.result,
     reasons:
-      r.result === "not_ready"
+      r.result === "not_ready" || r.result === "not_a_member"
         ? r.issues.filter((i) => i.severity === "error").map((i) => i.message)
         : r.result === "not_found"
           ? ["It's no longer one of your drafts."]

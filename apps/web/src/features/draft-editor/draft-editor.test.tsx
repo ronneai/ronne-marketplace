@@ -165,6 +165,7 @@ const draft = (): Draft => ({
   id: "01J0000000000000000000000A",
   authorId: "u1",
   scope: { id: "s1", name: "platform" },
+  workspace: { id: "00000000000000000000000000", name: "global" },
   name: "reviewer",
   type: "agent",
   status: "draft",

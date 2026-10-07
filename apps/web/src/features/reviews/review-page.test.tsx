@@ -301,6 +301,7 @@ const view = (overrides: Partial<ReviewView> = {}): ReviewView => ({
     authorId: "u",
     authorName: "Ada Author",
     scope: { id: "s", name: "team" },
+    workspace: { id: "00000000000000000000000000", name: "global" },
     name: "fmt",
     type: "hook",
     status: "submitted",

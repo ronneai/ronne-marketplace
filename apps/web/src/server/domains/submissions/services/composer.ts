@@ -6,7 +6,6 @@ import {
   isVersionRange,
   parseItemName,
 } from "@ronneai/core";
-import { requireInSome } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
 import { factsOf } from "../../items/models/catalogue";
 import type { CatalogueRepository } from "../../items/repositories/catalogue-repository";
@@ -27,6 +26,7 @@ import { itemNameOf } from "../models/submission";
 import type { RegistryLookup } from "../repositories/registry-lookup";
 import type { SubmissionRepository } from "../repositories/submission-repository";
 import { ownDependencies } from "./dependency-search";
+import { requireSignedIn } from "./membership";
 import { dependencyIssues } from "./registry-checks";
 
 /**
@@ -51,7 +51,7 @@ export const dependencyReports = async (
   actor: ComposerActor,
   input: { itemName: string; type: ItemType; dependencies: Readonly<Record<string, string>> },
 ): Promise<Record<string, DependencyReport>> => {
-  requireInSome(actor.user, "submissions.create");
+  requireSignedIn(actor);
   if (!isItemType(input.type) || !input.dependencies || typeof input.dependencies !== "object")
     return {};
   const entries = Object.entries(input.dependencies)
@@ -116,7 +116,7 @@ export const searchDependencies = async (
   actor: ComposerActor,
   input: { type: ItemType; q?: string; only?: ItemType | null; cursor?: string },
 ): Promise<PickerPage> => {
-  requireInSome(actor.user, "submissions.create");
+  requireSignedIn(actor);
   const allowed = isItemType(input.type) ? DEPENDENCY_TYPES[input.type] : [];
   const types = input.only ? allowed.filter((type) => type === input.only) : allowed;
   if (types.length === 0 || !actor.user) return { entries: [], nextCursor: null };

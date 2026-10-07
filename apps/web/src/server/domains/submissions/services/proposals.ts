@@ -2,7 +2,6 @@ import { parseItemName } from "@ronneai/core";
 import { parseDocument } from "yaml";
 import { isId } from "../../../db/ids";
 import type { StorageAdapter } from "../../../storage";
-import { requireInSome } from "../../identity/models/permissions";
 import { artifactFiles } from "../../items/services/artifact-files";
 import {
   ConflictNotFoundError,
@@ -30,6 +29,7 @@ import {
 } from "../models/submission";
 import type { PublishedVersion, RegistryLookup } from "../repositories/registry-lookup";
 import type { DraftActor, DraftDeps } from "./drafts";
+import { requireMember, requireSignedIn } from "./membership";
 import type { SubmissionActor } from "./submissions";
 
 /**
@@ -85,22 +85,25 @@ export const proposeChange = async (
   actor: DraftActor,
   input: { item: string; version: string },
 ): Promise<Draft> => {
-  requireInSome(actor.user, "submissions.create");
+  requireSignedIn(actor);
   const parsed = parseItemName(input.item);
   const registry = deps.registry ?? deps.repo.registry();
   const item = parsed ? await registry.findItem(parsed.scope, parsed.name) : null;
   if (!parsed || !item) throw new ProposalBaseNotFoundError(input.item);
   const itemName = `@${item.scope}/${item.name}`;
+  // Anyone signed in reads a public workspace's items; proposing needs membership (091).
+  const found = await deps.repo.findScope(item.scope);
+  // Scopes and items are never deleted; this only guards the types.
+  if (!found) throw new SubmissionNotFoundError();
+  requireMember(actor, found.workspace);
   const base = (await registry.publishedVersions(item.id)).find((v) => v.version === input.version);
   if (!base) throw new ProposalBaseNotFoundError(itemName, input.version);
   const files = await versionFiles(deps, itemName, base);
 
   const at = (deps.now ?? (() => new Date()))();
   const authorId = actor.user?.id ?? "";
+  const scope = { id: found.id, name: found.name };
   return deps.repo.transaction(async (repo) => {
-    const scope = await repo.findScope(item.scope);
-    // Scopes and items are never deleted; this only guards the types.
-    if (!scope) throw new SubmissionNotFoundError();
     const id = await repo.insert({
       authorId,
       scopeId: scope.id,
@@ -116,6 +119,7 @@ export const proposeChange = async (
       id,
       authorId,
       scope,
+      workspace: found.workspace,
       name: item.name,
       type: item.type,
       status: "draft",
@@ -156,12 +160,22 @@ export const requireCurrent = async (registry: RegistryLookup, submission: Submi
     );
 };
 
-/** The actor's own change proposal, or SubmissionNotFoundError / NotAProposalError. */
-const ownProposal = async (deps: ProposalDeps, actor: DraftActor, id: string) => {
-  requireInSome(actor.user, "submissions.create");
+/**
+ * The actor's own change proposal, or SubmissionNotFoundError / NotAProposalError. Reading it needs
+ * no membership (091), so a removed member still opens it; `editable` is for rebasing and resolving
+ * conflicts, which change its files and need membership of its workspace.
+ */
+const ownProposal = async (
+  deps: ProposalDeps,
+  actor: DraftActor,
+  id: string,
+  options: { editable?: boolean } = {},
+) => {
+  requireSignedIn(actor);
   const submission = isId(id) ? await deps.repo.find(id) : null;
   if (!submission || submission.authorId !== actor.user?.id) throw new SubmissionNotFoundError();
   if (!submission.proposal) throw new NotAProposalError();
+  if (options.editable) requireMember(actor, submission.workspace);
   return { ...submission, proposal: submission.proposal };
 };
 
@@ -180,7 +194,7 @@ export const rebaseProposal = async (
   actor: SubmissionActor,
   id: string,
 ): Promise<Rebased> => {
-  const submission = await ownProposal(deps, actor, id);
+  const submission = await ownProposal(deps, actor, id, { editable: true });
   const status = isEditable(submission.status)
     ? submission.status
     : transition(submission.status, "rebase");
@@ -260,7 +274,7 @@ export const resolveConflict = async (
 ): Promise<string[]> => {
   const at = (deps.now ?? (() => new Date()))();
   return deps.repo.transaction(async (repo) => {
-    const submission = await ownProposal({ ...deps, repo }, actor, id);
+    const submission = await ownProposal({ ...deps, repo }, actor, id, { editable: true });
     if (!isEditable(submission.status)) throw new SubmissionNotEditableError();
     if (!submission.proposal.conflicts.includes(path)) throw new ConflictNotFoundError(path);
     const conflicts = submission.proposal.conflicts.filter((p) => p !== path);
