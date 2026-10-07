@@ -145,8 +145,17 @@ export const deleteWorkspace = async (
     await deps.repo.transaction(async (repo) => {
       const workspace = await changeable(repo, input.name);
       if (workspace.scopes > 0) throw new WorkspaceNotEmptyError(workspace.scopes);
+      // Its memberships go with it (they cascade); the event says how many (092).
+      const members = await repo.countMembers(workspace.id);
       await repo.delete(workspace.id);
-      await audit(repo, actor, "workspace.deleted", workspace.id, { name: workspace.name }, at);
+      await audit(
+        repo,
+        actor,
+        "workspace.deleted",
+        workspace.id,
+        { name: workspace.name, members },
+        at,
+      );
     });
   } catch (error) {
     // A scope created in it after the count: its foreign key refuses the delete.

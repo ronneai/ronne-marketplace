@@ -3,6 +3,7 @@ import { clientIp } from "../../identity/models/client-ip";
 import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-instance";
 import { kyselyWorkspaceRepository } from "../repositories/kysely-workspace-repository";
 import type { WorkspacePageQuery } from "../repositories/workspace-repository";
+import * as members from "../services/members";
 import * as service from "../services/workspaces";
 
 export type { WorkspacesTablePage } from "../services/workspaces";
@@ -50,3 +51,40 @@ export const pageWorkspaces = async (
 
 export const findWorkspace = async (headers: Headers, name: string, app: AppAuth = getAppAuth()) =>
   service.findWorkspace(deps(app), await actor(headers, app), name);
+
+/** Workspace members (feature 092), for root: a workspace's page and a user's Workspaces dialog. */
+export const listMembers = async (
+  headers: Headers,
+  workspaceId: string,
+  app: AppAuth = getAppAuth(),
+) => members.listMembers(deps(app), await actor(headers, app), workspaceId);
+
+export const userMemberships = async (
+  headers: Headers,
+  userId: string,
+  app: AppAuth = getAppAuth(),
+) => members.userMemberships(deps(app), await actor(headers, app), userId);
+
+export const addMembers = async (
+  headers: Headers,
+  input: { workspaceId: string; userIds: readonly string[]; role: string },
+  app: AppAuth = getAppAuth(),
+) => members.addMembers(deps(app), await actor(headers, app), input);
+
+export const changeMemberRole = async (
+  headers: Headers,
+  input: { workspaceId: string; userId: string; role: string },
+  app: AppAuth = getAppAuth(),
+) => members.changeMemberRole(deps(app), await actor(headers, app), input);
+
+export const removeMember = async (
+  headers: Headers,
+  input: { workspaceId: string; userId: string },
+  app: AppAuth = getAppAuth(),
+) => members.removeMember(deps(app), await actor(headers, app), input);
+
+export const setUserWorkspaces = async (
+  headers: Headers,
+  input: { userId: string; workspaces: readonly members.WorkspaceChoice[] },
+  app: AppAuth = getAppAuth(),
+) => members.setUserWorkspaces(deps(app), await actor(headers, app), input);

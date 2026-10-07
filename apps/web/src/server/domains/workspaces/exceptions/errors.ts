@@ -52,3 +52,35 @@ export class WorkspaceNotEmptyError extends WorkspacesError {
     super("Move or remove its scopes first.");
   }
 }
+
+/** Nobody leaves `global` (092): it's the workspace everyone but root is in. */
+export class GlobalMembershipError extends WorkspacesError {
+  constructor() {
+    super("Nobody leaves global: everyone is in it.");
+  }
+}
+
+/** Root works in every workspace (091), so root's memberships aren't managed. */
+export class RootMembershipError extends WorkspacesError {
+  constructor() {
+    super("Root works in every workspace without being a member.");
+  }
+}
+
+export class MemberUserNotFoundError extends WorkspacesError {
+  constructor() {
+    super("That user doesn't exist.");
+  }
+}
+
+export class NotAWorkspaceMemberError extends WorkspacesError {
+  constructor(readonly workspace: string) {
+    super(`They aren't a member of ${workspace}.`);
+  }
+}
+
+export class InvalidMemberRoleError extends WorkspacesError {
+  constructor(readonly role: string) {
+    super(`"${role}" isn't a role in a workspace. Use moderator or user.`);
+  }
+}

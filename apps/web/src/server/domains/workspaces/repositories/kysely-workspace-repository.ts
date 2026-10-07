@@ -2,10 +2,13 @@ import type { Kysely } from "kysely";
 import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
 import { countCapped, paginate } from "../../../db/keyset";
+import { forUpdate, readCommittedTransaction } from "../../../db/locks";
 import type { Database } from "../../../db/schema";
 import { containsInsensitive } from "../../../db/search";
+import { upsert } from "../../../db/upsert";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
+import { isWorkspaceRole } from "../../identity/models/user";
 import type { Workspace, WorkspaceVisibility } from "../models/workspace";
 import type { WorkspaceRepository } from "./workspace-repository";
 
@@ -85,8 +88,16 @@ export const kyselyWorkspaceRepository = (
   };
 
   return {
+    // READ COMMITTED, so a check made after waiting for `lockUsers` sees what the other committed.
     transaction: (work) =>
-      db.transaction().execute((trx) => work(kyselyWorkspaceRepository(trx, dialect))),
+      readCommittedTransaction(db, dialect).execute((trx) =>
+        work(kyselyWorkspaceRepository(trx, dialect)),
+      ),
+
+    lockUsers: async (userIds) => {
+      for (const id of [...new Set(userIds)].sort())
+        await forUpdate(db.selectFrom("user").select("id").where("id", "=", id), dialect).execute();
+    },
 
     findByName: async (name) => {
       const row = await workspaces().where("workspaces.name", "=", name).executeTakeFirst();
@@ -154,6 +165,117 @@ export const kyselyWorkspaceRepository = (
     },
 
     count: (search) => countCapped(db, searched(search)),
+
+    findById: async (id) => {
+      const row = await workspaces().where("workspaces.id", "=", id).executeTakeFirst();
+      return row ? toWorkspace(row) : null;
+    },
+
+    memberUser: async (userId) => {
+      const row = await db
+        .selectFrom("user")
+        .select(["id", "email", "name", "role", "disabled_at"])
+        .where("id", "=", userId)
+        .executeTakeFirst();
+      return row
+        ? {
+            id: row.id,
+            email: row.email,
+            name: row.name,
+            root: row.role === "root",
+            disabled: row.disabled_at !== null,
+          }
+        : null;
+    },
+
+    membershipsOf: async (userId) =>
+      (
+        await db
+          .selectFrom("workspace_members")
+          .innerJoin("workspaces", "workspaces.id", "workspace_members.workspace_id")
+          .select(["workspaces.id", "workspaces.name", "workspace_members.role"])
+          .where("workspace_members.user_id", "=", userId)
+          .orderBy("workspaces.is_global", "desc")
+          .orderBy("workspaces.name")
+          .execute()
+      )
+        .filter((row) => isWorkspaceRole(row.role))
+        .map((row) => ({ workspaceId: row.id, workspace: row.name, role: row.role })),
+
+    members: async (workspaceId) =>
+      (
+        await db
+          .selectFrom("workspace_members")
+          .innerJoin("user", "user.id", "workspace_members.user_id")
+          .select([
+            "user.id",
+            "user.email",
+            "user.name",
+            "user.disabled_at",
+            "workspace_members.role",
+            "workspace_members.created_at",
+          ])
+          .where("workspace_members.workspace_id", "=", workspaceId)
+          .where("user.role", "!=", "root")
+          .orderBy("user.name")
+          .orderBy("user.id")
+          .execute()
+      )
+        .filter((row) => isWorkspaceRole(row.role))
+        .map((row) => ({
+          userId: row.id,
+          email: row.email,
+          name: row.name,
+          role: row.role,
+          disabled: row.disabled_at !== null,
+          addedAt: fromDbDate(row.created_at),
+        })),
+
+    memberRole: async (workspaceId, userId) => {
+      const row = await db
+        .selectFrom("workspace_members")
+        .select("role")
+        .where("workspace_id", "=", workspaceId)
+        .where("user_id", "=", userId)
+        .executeTakeFirst();
+      return row && isWorkspaceRole(row.role) ? row.role : null;
+    },
+
+    putMember: async ({ workspaceId, userId, role, addedBy, at }) => {
+      const when = toDbDate(at, dialect);
+      await upsert(
+        db,
+        dialect,
+        "workspace_members",
+        {
+          workspace_id: workspaceId,
+          user_id: userId,
+          role,
+          added_by: addedBy,
+          created_at: when,
+          updated_at: when,
+        },
+        ["workspace_id", "user_id"],
+        ["role", "updated_at"],
+      ).execute();
+    },
+
+    removeMember: async (workspaceId, userId) => {
+      await db
+        .deleteFrom("workspace_members")
+        .where("workspace_id", "=", workspaceId)
+        .where("user_id", "=", userId)
+        .execute();
+    },
+
+    countMembers: async (workspaceId) => {
+      const row = await db
+        .selectFrom("workspace_members")
+        .select((eb) => eb.fn.countAll<number | string | bigint>().as("n"))
+        .where("workspace_id", "=", workspaceId)
+        .executeTakeFirstOrThrow();
+      return Number(row.n);
+    },
 
     recordAudit: async (event, now) => {
       await recordAudit(db, dialect, event, now);
