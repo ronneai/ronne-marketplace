@@ -26,6 +26,12 @@ export const HELP = {
       "The one whose team the scope's items are for; global when they're for everyone. The catalogue and item pages show a workspace other than global before the items' names, and once there's more than global the catalogue can filter by workspace. Every workspace is public for now, so everyone signed in still sees the items; its members submit and its moderators review there. The scope can't move to another workspace later.",
     href: docsHref("workspaces", "what"),
   },
+  "global-always": {
+    question: "Why is global always there?",
+    answer:
+      "Every user but root is a member of global, the workspace everyone on the instance shares, and nobody leaves it. You can change their role there, and add the other workspaces they work in.",
+    href: docsHref("workspaces", "global"),
+  },
   "queue-workspaces": {
     question: "Why only these?",
     answer:

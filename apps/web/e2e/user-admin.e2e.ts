@@ -50,6 +50,32 @@ test("root creates a user, who signs in with the shown password; disabling them 
   );
   await expect(root.getByRole("cell", { name: email, exact: true })).toBeVisible();
 
+  // Their workspaces (092): they start as a user in global; root adds one, as a user by default,
+  // makes them moderator there, then takes it away again.
+  await rowOf(root, email)
+    .getByRole("button", { name: `Workspaces of ${email}: 1` })
+    .click();
+  const memberships = root.getByRole("dialog", { name: `Workspaces of ${email}` });
+  await expect(memberships.getByLabel("Role in global")).toHaveValue("user");
+  await expect(memberships.getByRole("button", { name: "Remove global" })).toHaveCount(0);
+  await memberships.getByRole("button", { name: "Add workspace" }).click();
+  await memberships.getByLabel("Workspace 2").selectOption({ label: "e2e-acme" });
+  await expect(memberships.getByLabel("Role in e2e-acme")).toHaveValue("user");
+  await memberships.getByLabel("Role in e2e-acme").selectOption("moderator");
+  await memberships.getByRole("button", { name: "Save" }).click();
+  await expect(memberships.getByText("Saved: 1 workspace added.")).toBeVisible();
+  await memberships.getByRole("button", { name: "Done" }).click();
+  await expect(rowOf(root, email)).toContainText(/moderator\s*in e2e-acme/);
+  await rowOf(root, email)
+    .getByRole("button", { name: `Workspaces of ${email}: 2` })
+    .click();
+  await expect(memberships.getByLabel("Role in e2e-acme")).toHaveValue("moderator");
+  await memberships.getByRole("button", { name: "Remove e2e-acme" }).click();
+  await memberships.getByRole("button", { name: "Save" }).click();
+  await expect(memberships.getByText("Saved: 1 workspace removed.")).toBeVisible();
+  await memberships.getByRole("button", { name: "Done" }).click();
+  await expect(rowOf(root, email)).not.toContainText(/moderator\s*in/);
+
   // The new user signs in with it.
   const user = await browser.newPage();
   await signIn(user, email, password);

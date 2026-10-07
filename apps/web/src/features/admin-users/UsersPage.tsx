@@ -66,31 +66,41 @@ const Filters = ({ state }: { state: UsersListState }) => (
 );
 
 /**
- * Root, or the user's roles per workspace (091, 092): the workspaces they administer and moderate,
- * named; otherwise a user.
+ * Root, or a user with their workspaces (092): how many, which opens their Workspaces dialog when
+ * `editor` gives one, and the ones they administer and moderate, named.
  */
-const RoleCell = ({ user }: { user: UserSummary }) => {
+const RoleCell = ({ user, editor }: { user: UserSummary; editor?: ReactNode }) => {
   if (user.role === "root") return <Badge tone="accent">root</Badge>;
+  const all = user.workspaces ?? [];
   const named = (role: "admin" | "moderator") =>
-    (user.workspaces ?? []).filter((w) => w.role === role).map((w) => w.name);
-  const lines = (["admin", "moderator"] as const).flatMap((role) =>
-    named(role).length > 0 ? [{ role, names: named(role) }] : [],
-  );
-  if (lines.length === 0) return <Badge tone="muted">user</Badge>;
+    all.filter((w) => w.role === role).map((w) => w.name);
   return (
     <span className="grid gap-1">
-      {lines.map(({ role, names }) => (
-        <span key={role} className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
-          <Badge>{role}</Badge>
-          <span className="min-w-0 break-words text-xs text-muted">in {names.join(", ")}</span>
-        </span>
-      ))}
+      <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+        <Badge tone="muted">user</Badge>
+        {editor ?? (
+          <span className="text-xs text-muted">
+            {all.length} {all.length === 1 ? "workspace" : "workspaces"}
+          </span>
+        )}
+      </span>
+      {(["admin", "moderator"] as const).map((role) =>
+        named(role).length > 0 ? (
+          <span key={role} className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
+            <Badge>{role}</Badge>
+            <span className="min-w-0 break-words text-xs text-muted">
+              in {named(role).join(", ")}
+            </span>
+          </span>
+        ) : null,
+      )}
     </span>
   );
 };
 
 const columns = (
   actions?: (user: UserSummary) => ReactNode,
+  workspaces?: (user: UserSummary) => ReactNode,
 ): Column<UserSummary, "created" | "email" | "name">[] => [
   {
     id: "email",
@@ -113,7 +123,7 @@ const columns = (
     id: "role",
     header: "Role",
     className: "w-56",
-    render: (user) => <RoleCell user={user} />,
+    render: (user) => <RoleCell user={user} editor={workspaces?.(user)} />,
   },
   {
     id: "status",
@@ -155,6 +165,7 @@ export const UsersPage = ({
   total,
   toolbar,
   actions,
+  workspaces,
   notice,
 }: {
   state: UsersListState;
@@ -163,6 +174,8 @@ export const UsersPage = ({
   total: { count: number; capped: boolean };
   toolbar?: ReactNode;
   actions?: (user: UserSummary) => ReactNode;
+  /** The trigger for a user's Workspaces dialog, in their Role cell (092). */
+  workspaces?: (user: UserSummary) => ReactNode;
   notice?: ReactNode;
 }) => (
   <>
@@ -175,7 +188,7 @@ export const UsersPage = ({
     <DataTable
       list={USERS_LIST}
       state={state}
-      columns={columns(actions)}
+      columns={columns(actions, workspaces)}
       rows={users}
       rowKey={(user) => user.id}
       page={page}

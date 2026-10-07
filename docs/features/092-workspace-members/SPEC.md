@@ -4,9 +4,9 @@
 
 ## Goal
 
-Root decides who is in each workspace and with which role (owner, 2026-10-05): when creating a
-user (every new user is a `user` in `global` by default, and root can change that role and add
-more workspaces), on the user's page, and on the workspace's page.
+Root decides who is in each workspace and with which role (owner, 2026-10-05): on the user's row in
+Admin › Users and on the workspace's page. Creating a user stays as it is (owner, 2026-10-07):
+every new user is a `user` in `global`, and their other roles are set afterwards.
 
 A third role in a workspace, **admin** (owner, 2026-10-07), runs one workspace without being root:
 everything a moderator does there, plus its members (admins included), its scopes and its
@@ -21,10 +21,9 @@ works in every workspace and keeps everything instance-wide.
   descriptions, and editing the workspace's description. Admin of `global` is allowed.
 - **Admins in Admin:** the Admin area opens to someone who administers at least one workspace,
   showing only Workspaces, and only theirs; each one's page is where they manage it.
-- **Create user** (008): a Workspaces part with `global` (role `user` by default, changeable to
-  `moderator` or `admin`) and **Add workspace** rows (workspace, role).
-- **A user's memberships** on Admin › Users: a Workspaces column (count, with the moderated ones
-  named), and a **Workspaces** dialog per user to add, change the role, and remove.
+- **A user's memberships** on Admin › Users: in the Role column, the number of workspaces, with
+  the ones they administer and moderate named; the number opens a **Workspaces** dialog per user
+  to add, change the role, and remove.
 - **A workspace's members** on its page (`/admin/workspaces/<name>`, 090): a Members table (name,
   email, role, added), **Add members** (search users, pick a role), change role, remove.
 - **Rules:** nobody is removed from `global`; root's own memberships aren't needed (root is
@@ -62,22 +61,22 @@ workspace. For an admin it has only Workspaces, listing the workspaces they admi
 its page, with its scopes (Create scope there) and its members. Users, Scopes, Settings and the
 audit log stay 404 for them, and so does a workspace they don't administer.
 
-**Create user.** Below Role (now **root or not**, a checkbox "Instance root", 059's rules), a
-**Workspaces** list:
+**Create user** is unchanged (008, 059): email, name, role (user or root) and password. A new user
+is a `user` in `global` (091); a new root has no memberships. Their other workspaces and roles are
+set from their row or a workspace's page.
+
+**A user's workspaces** (Admin › Users, the number of workspaces in their Role cell): a dialog
+with their workspaces and roles:
 
 | Workspace | Role | |
 |---|---|---|
 | global | User ▾ | (can't remove) |
+| acme | Admin ▾ | Remove |
 | *Add workspace* | | |
 
-Adding picks a workspace not yet listed and a role (`user` by default). With "Instance root"
-ticked, the list is hidden with "Root works in every workspace". Creating writes the user and the
-memberships in one transaction, with `user.created` (`{ email, root, workspaces: [{name, role}] }`)
-and one `workspace.member_added` per row.
-
-**A user's workspaces** (Admin › Users, row action **Workspaces**): the same list, editable; Save
-applies the difference in one transaction, an event per change. A root's row shows "All
-workspaces" and no action.
+`global` is always there; adding picks a workspace not yet listed and a role (`user` by default).
+Save applies the difference in one transaction, an event per change. A root's row shows "root"
+and no dialog.
 
 **A workspace's members.** The Members table on the workspace page (`DataTable`, sorted by name;
 filter by role). **Add members**: search by name or email (users not yet members, not disabled,
@@ -115,15 +114,14 @@ missing.
   the admin column.
 - **Administration → Workspaces** (`admin#workspaces`): what an admin sees, the Members table,
   Create scope on a workspace's page.
-- **Administration → Users** (`admin#users`): the workspaces when creating a user, and the
-  Workspaces dialog.
-- **Helpers:** in Create user, next to Workspaces, "Why is global always there?" →
+- **Administration → Users** (`admin#users`): the Workspaces column and dialog; a new user starts
+  in `global`.
+- **Helpers:** in a user's Workspaces dialog, "Why is global always there?" →
   `workspaces#global`; on Add members, "What can each role do?" → `roles#permissions`.
 
 ## Acceptance criteria
 
-- [ ] Creating a user gives `global` / `user` by default; root can make it moderator and add other
-  workspaces with roles; everything is written in one transaction and audited.
+- [ ] A new user is a `user` in `global`, and Create user stays as it was.
 - [ ] Root adds, changes and removes members from the user's dialog and from the workspace's page;
   each change is audited.
 - [ ] Nobody can be removed from `global`, in the UI or the services.
@@ -137,8 +135,9 @@ missing.
 
 ## Decisions
 
-1. **Every new user is a `user` in `global`; root picks other roles and workspaces at creation**
-   (owner, 2026-10-05).
+1. **Every new user is a `user` in `global`; their other roles are set afterwards, on their row or
+   a workspace's page, not at creation** (owner, 2026-10-07; it was "root picks other roles and
+   workspaces at creation", 2026-10-05).
 2. **Root and the workspace's admins manage members** (owner, 2026-10-07; it was "only root",
    from the owner's "assigned by root").
 3. **Admin is a role in a workspace: a moderator's permissions plus members, scopes and the

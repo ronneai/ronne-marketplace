@@ -107,6 +107,8 @@ describe("UsersPage (061)", () => {
       ],
     });
     expect(html).toContain(">root<");
+    expect(html).toContain("4 workspaces");
+    expect(html).toContain("1 workspace<");
     expect(html).toMatch(/>moderator<.*in (?:<!-- -->)?acme, beta/);
     expect(html).toMatch(/>admin<.*in (?:<!-- -->)?ops/);
     expect(html).not.toContain("acme, beta, global");

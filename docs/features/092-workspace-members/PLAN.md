@@ -20,21 +20,19 @@ the same change that completes it.
   *Done when:* the permission-matrix test has the admin column, and db tests show an admin
   managing members, scopes and the description in their workspace and not in another.
 
-- [ ] **3. Create user.** `createUser` takes workspaces and roles (admin included); the "Instance
-  root" checkbox replaces the role select; `user.created` carries the workspaces.
-  *Done when:* user-admin tests and the Create user dialog test pass.
-
-- [ ] **4. The user's Workspaces dialog** on Admin › Users, and the Workspaces column.
+- [x] **3. The user's Workspaces dialog** on Admin › Users, opened from the number of workspaces in
+  their Role cell, which also names the workspaces they administer and moderate. Create user stays
+  as it was (owner, 2026-10-07): new users are users in `global`.
   *Done when:* component tests pass.
 
-- [ ] **5. The workspace's page for admins, and its Members.** Admin in the nav and the layout for
+- [ ] **4. The workspace's page for admins, and its Members.** Admin in the nav and the layout for
   admins (Workspaces only, theirs); the page's Members table, Add members, role, remove with its
   confirm; Create scope and Edit description for admins.
   *Done when:* component tests pass, and an end-to-end test has root make someone admin of a
   workspace, who then adds a member as moderator, creates a scope, and can't open another
   workspace or Users.
 
-- [ ] **6. Documentation.** The topics and helpers in the spec.
+- [ ] **5. Documentation.** The topics and helpers in the spec.
   *Done when:* the docs render tests pass in ronne-web, and the helper link test passes here.
 
 ## Notes
@@ -56,7 +54,16 @@ goes into `SPEC.md` instead.
   Root's Admin › Scopes still creates anywhere. Nobody changes or removes their own membership.
   Admin › Users names admins and moderators; Moderators counts both.
 - **Admins acting at once** (Claude, from the task 2 witnesses). A member change locks the people
-  changed and the actor, in id order, in the ids' canonical order (trimmed, uppercase), then reads the actor's role again under the lock
-  (`requireManagerNow`): two admins demoting each other at once leave one admin, and the other is
+  changed and the actor, in the ids' canonical order (trimmed, uppercase), then reads the
+  actor's role again under the lock (`requireManagerNow`): two admins demoting each other at once leave one admin, and the other is
   refused, with no deadlock on MySQL. The own-membership check compares the stored user id.
-
+- **Create user at creation, dropped** (owner, 2026-10-07): a version of Create user with a
+  Workspaces list (and an "Instance root" checkbox) was built and witnessed, then dropped before
+  committing: roles are set afterwards, on the user's row or a workspace's page.
+- **Task 3: a user's Workspaces** (Claude). In Admin › Users' Role column, root, or "user" with
+  the number of workspaces, which opens the user's Workspaces dialog, and the workspaces they
+  administer and moderate named: a separate column or another row button made the table too wide
+  for the Email column. The dialog loads the memberships, edits them with `WorkspaceRows`
+  (`global` always there; Add workspace; User, Moderator or Admin; Remove), saves the difference
+  (`setUserWorkspaces`) and says what changed. The user-admin end-to-end test goes through it
+  (from the witness: nothing clicked Add workspace or checked its default role before).

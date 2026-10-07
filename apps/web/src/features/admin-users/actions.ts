@@ -10,6 +10,8 @@ import {
   adminResetPassword,
 } from "@/server/domains/identity/actions/user-admin";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
+import { setUserWorkspaces, userMemberships } from "@/server/domains/workspaces/actions/workspaces";
+import { WorkspacesError } from "@/server/domains/workspaces/exceptions/errors";
 import { requestHeaders } from "@/server/http/request-headers";
 import type { AdminActionState } from "./types";
 
@@ -31,10 +33,62 @@ const attempt = async (
     revalidatePath("/admin/users");
     return result;
   } catch (error) {
-    if (error instanceof IdentityError) return { error: error.message };
+    if (error instanceof IdentityError || error instanceof WorkspacesError)
+      return { error: error.message };
     throw error;
   }
 };
+
+/** A user's memberships, for their Workspaces dialog (092): `global` first. */
+export const userWorkspacesFor = async (
+  userId: string,
+): Promise<
+  { rows: { workspaceId: string; role: "admin" | "moderator" | "user" }[] } | { error: string }
+> => {
+  try {
+    const memberships = await userMemberships(await requestHeaders(), userId);
+    return { rows: memberships.map(({ workspaceId, role }) => ({ workspaceId, role })) };
+  } catch (error) {
+    if (error instanceof IdentityError || error instanceof WorkspacesError)
+      return { error: error.message };
+    throw error;
+  }
+};
+
+/** The dialog's rows, sent as JSON: each `{ workspaceId, role }`; anything else is dropped. */
+const workspacesFrom = (form: FormData) => {
+  try {
+    const value: unknown = JSON.parse(text(form, "workspaces") || "[]");
+    if (!Array.isArray(value)) return [];
+    return value.flatMap((row) =>
+      row && typeof row.workspaceId === "string" && typeof row.role === "string"
+        ? [{ workspaceId: row.workspaceId, role: row.role }]
+        : [],
+    );
+  } catch {
+    return [];
+  }
+};
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+/** Saves a user's Workspaces dialog (092): the difference, in one go, and says what changed. */
+export const saveUserWorkspacesFromForm = async (
+  _previous: AdminActionState,
+  form: FormData,
+): Promise<AdminActionState> =>
+  attempt(async () => {
+    const { added, changed, removed } = await setUserWorkspaces(await requestHeaders(), {
+      userId: text(form, "userId"),
+      workspaces: workspacesFrom(form),
+    });
+    const parts = [
+      added ? `${plural(added, "workspace")} added` : "",
+      changed ? `${plural(changed, "role")} changed` : "",
+      removed ? `${plural(removed, "workspace")} removed` : "",
+    ].filter(Boolean);
+    return { done: parts.length ? `Saved: ${parts.join(", ")}.` : "Nothing changed." };
+  });
 
 export const createUserFromForm = async (
   _previous: AdminActionState,

@@ -167,3 +167,36 @@ Witnessed: 2026-10-07 11:17 EDT, by a fresh agent (adversarial). Commit: afa4d40
 | 2 | The admin-role race test catches the race (six rounds, alternating the lowercase id) | yes | confirmed | mutant dropping the re-read under the lock → `-t 'at once'` 1 failed in 3/3 runs on postgres, mysql, mariadb; mutant sorting ids as sent → fails 3/3 on mysql and mariadb; unmutated `src/server/domains/workspaces` → 39 passed on all 4 |
 
 **Overall:** met: the cross-case race locks in one order (no deadlock in 24 MariaDB or 24 MySQL runs, one admin always left), and the race test fails reliably without the re-read or the canonical order.
+
+## Task 3 — The user's Workspaces dialog
+
+Witnessed: 2026-10-07 11:54 EDT, by a fresh agent (blind). Commit: 67b995c + working tree (feat/092-workspace-members). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The component tests pass | no | confirmed | `npx vitest run src/features/admin-users src/components/help` (apps/web) → 4 files, 24 passed. `tsc --noEmit` → exit 0. `biome check` on the changed paths → 0 errors, 1 warning (`noFilters` unused in admin-users.test.tsx:37, already there at HEAD) |
+| 2 | The tests cover the dialog: global has no Remove, it shows "Always", and the help is there | no | confirmed | In a scratch copy, making line 88 of WorkspaceRows.tsx `false ?` (Remove shown for global) → 1 test failed (`to contain '>Always<'`). Removing `<Help id="global-always" />` → 1 failed. Both files restored and diffed equal to the repo afterwards |
+| 3 | In the Role column, a user's cell shows how many workspaces they're in, and names the ones they administer and moderate | yes | confirmed | UsersPage.tsx RoleCell: `{all.length} workspace(s)` plus `admin`/`moderator in …` lines. admin-users.test.tsx checks "4 workspaces", "1 workspace<" and the named lines. In a scratch copy, setting the count to 0 → 1 failed. Probe e2e after a save: row text "user 2 workspaces moderator in e2e-acme" |
+| 4 | The number opens that user's Workspaces dialog, where root can add a workspace, change a role and remove one | yes | confirmed | Probe `e2e/zz-probe.mobile.e2e.ts` (scratch, on the phone, phone-webkit and tablet projects) → 3 passed. Clicking "1 workspace" opened dialog "Workspaces of <email>". Add workspace, role set to moderator, Save → "Saved: 1 workspace added."; button became "2 workspaces". Remove, Save → "Saved: 1 workspace removed." |
+| 5 | `global` is always listed and can't be removed; adding picks a workspace not yet listed, as `user` by default | yes | confirmed | WorkspaceRows.tsx: global row shows a name and "Always" with no Remove button. `unused` holds the workspaces not listed; Add uses `unused[0]` with `role: "user"`. Probe screenshot shows `global \| User ▾ \| Always`. Gap: changing the default role to "moderator" in a scratch copy left every test passing, so no test checked the default (fixed; see the re-check) |
+| 6 | Save applies the difference in one transaction, with an event per change | yes | confirmed | actions.ts `saveUserWorkspacesFromForm` → `setUserWorkspaces`. members.ts:266-316 works inside `deps.repo.transaction` and writes an audit event per add, change and remove. `vitest --project db members.db.test.ts` → 13 passed (SQLite only; this service was witnessed in task 1) |
+| 7 | A root's row shows "root" and no dialog | yes | confirmed | RoleCell returns `<Badge>root</Badge>` before the editor. Probe → root's row had 0 "Workspaces of" buttons in all 3 projects |
+| 8 | Only root reaches the page and the actions | no | confirmed | page.tsx: `notFound()` unless `can(me,"users.view")`, and permissions.ts:10 gives that to `["root"]` only. `userMemberships` and `setUserWorkspaces` require `workspaces.manage` (root) |
+| 9 | The helper "Why is global always there?" is in the dialog and links to `workspaces#global` | no | confirmed | Help.tsx `global-always` → `docsHref("workspaces","global")`. Probe → link `https://www.ronne.ai/marketplace/docs/workspaces#global`. ronne-web topics.ts:11 has the `global` section. Its wording is left for task 5 |
+| 10 | Create user is unchanged, and a new user is a `user` in `global` (a new root has no memberships) | yes | confirmed | `git log -- CreateUserDialog.tsx` → last change 3789580 (091); not in the diff. `vitest --project db user-admin.db.test.ts` → 25 passed, including "puts a new user in global, and a new root nowhere" (`[{global, user}]`, `[]`) |
+| 11 | The pages pass the phone sweep (065) | no | confirmed | `pnpm test:e2e` in a scratch copy → 91 passed. The only failures were my own first probe's selector errors, fixed and then 3/3 passed. The sweep loads /admin/users but doesn't open the dialog; the probe's phone screenshot of the dialog shows everything fits at 412px |
+| 12 | After saving, the dialog says what changed | yes | confirmed | workspaces-dialog.test.tsx checks "Saved: 1 workspace added, 2 roles changed." and "Nothing changed.". Probe → "Saved: 1 workspace added." and "Saved: 1 workspace removed." |
+| 13 | The full e2e run passes (91) | yes | confirmed | `pnpm test:e2e` (scratch copy, before the new user-admin step) → 91 passed, apart from my own probe |
+
+**Overall:** met: the Role cell's workspace count, the user's Workspaces dialog (add, change role, remove, global fixed, root excluded), its helper and the unchanged Create user all hold. The component tests pass and catch the main breakages. Remark taken: no test clicked Add or checked its default role; the user-admin e2e test now goes through the dialog (re-check below).
+
+### Re-check — the dialog in the user-admin e2e test
+
+Witnessed: 2026-10-07 12:00 EDT, by a fresh agent (blind). Commit: 67b995c + working tree (adds the step in apps/web/e2e/user-admin.e2e.ts). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The new user-admin e2e step passes: root opens the new user's count, global is "user" with no Remove, adds e2e-acme (default "user"), sets moderator, saves, sees "moderator in e2e-acme", then removes it and saves | yes | confirmed | Synced the working tree's src and e2e to the scratch copy (`diff -r` clean), then `next build && playwright test user-admin --project chromium` → 1 passed (2.9s). user-admin.e2e.ts:53-77 has these steps. `biome check` on the file → clean |
+| 2 | The step catches a wrong default role when a workspace is added | yes | confirmed | Scratch copy, WorkspaceRows.tsx:108 changed to `role: "moderator"`, rebuilt → 1 failed: `getByLabel('Role in e2e-acme')` expected "user", received "moderator". File restored, `diff` against the repo shows no difference |
+
+**Overall:** met: the e2e step covers adding, the default role, changing the role and removing, and it fails when the default is wrong. Still open, not a failure: the phone sweep doesn't open this dialog; the first pass's probe checked it on phones and the tablet.
