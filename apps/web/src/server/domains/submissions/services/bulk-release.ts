@@ -1,7 +1,7 @@
 import { type Bump, dependenciesFirst, parseItemName } from "@ronneai/core";
 import { isId } from "../../../db/ids";
 import { IdentityError } from "../../identity/exceptions/errors";
-import { can, requirePermission } from "../../identity/models/permissions";
+import { canInSome, requireInSome } from "../../identity/models/permissions";
 import { BulkLimitError, SubmissionsError } from "../exceptions/errors";
 import { type PlannedRelease, planReleases, type ReleaseSettings } from "../models/release-plan";
 import { statusLabel } from "../models/status";
@@ -50,7 +50,7 @@ export type PreparedRelease = {
 };
 
 const releasableBy = (actor: SubmissionActor, submission: Submission) =>
-  submission.authorId === actor.user?.id || can(actor.user, "submissions.publish");
+  submission.authorId === actor.user?.id || canInSome(actor.user, "submissions.publish");
 
 /**
  * What releasing these would do: the candidates in order, with their approved dependencies added,
@@ -62,7 +62,7 @@ export const prepareRelease = async (
   actor: SubmissionActor,
   input: { ids: readonly string[] },
 ): Promise<PreparedRelease> => {
-  requirePermission(actor.user, "submissions.create");
+  requireInSome(actor.user, "submissions.create");
   const ids = [...new Set(input.ids)];
   if (ids.length > MAX_BULK_RELEASE) throw new BulkLimitError(ids.length, MAX_BULK_RELEASE);
   const registry = deps.registry ?? deps.repo.registry();
@@ -128,7 +128,7 @@ export const prepareRelease = async (
     const visible =
       submission &&
       (submission.authorId === actor.user?.id ||
-        (submission.status !== "draft" && can(actor.user, "submissions.view_submitted")));
+        (submission.status !== "draft" && canInSome(actor.user, "submissions.view_submitted")));
     if (!submission || !visible) {
       refused.push({ id, name: null, result: "not_found" });
       continue;

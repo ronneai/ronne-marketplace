@@ -94,12 +94,10 @@ describe("createUserFromForm", () => {
 describe("the row actions", () => {
   it("change role, disable, enable and reset call their identity action with the user id", async () => {
     admin.adminResetPassword.mockResolvedValue({ email: "u@example.com", password: "N3w" });
-    expect(await actions.changeRoleFromForm({}, form({ userId: "u1", role: "moderator" }))).toEqual(
-      {
-        done: "Role changed to moderator.",
-      },
-    );
-    expect(admin.adminChangeRole).toHaveBeenCalledWith(expect.any(Headers), "u1", "moderator");
+    expect(await actions.changeRoleFromForm({}, form({ userId: "u1", role: "root" }))).toEqual({
+      done: "Role changed to root.",
+    });
+    expect(admin.adminChangeRole).toHaveBeenCalledWith(expect.any(Headers), "u1", "root");
     expect((await actions.disableUserFromForm({}, form({ userId: "u1" }))).done).toContain(
       "Disabled",
     );
@@ -158,13 +156,12 @@ describe("rendering", () => {
   });
 
   it("warns before making someone root or removing root, and not otherwise", () => {
-    const html = (from: "root" | "moderator" | "user", to: "root" | "moderator" | "user") =>
+    const html = (from: "root" | "user", to: "root" | "user") =>
       renderToStaticMarkup(<RoleChangeNotice email="alex@example.com" from={from} to={to} />);
     expect(html("user", "root")).toContain("Make alex@example.com root?");
     expect(html("user", "root")).toContain("WARN:");
-    expect(html("root", "moderator")).toContain("Remove root from alex@example.com?");
-    expect(html("user", "moderator")).not.toContain("WARN:");
-    expect(html("user", "moderator")).toContain("moderator");
+    expect(html("root", "user")).toContain("Remove root from alex@example.com?");
+    expect(html("user", "user")).not.toContain("WARN:");
   });
 
   it("the create button renders", () => {

@@ -1,4 +1,4 @@
-import { can } from "../../identity/models/permissions";
+import { can, canInSome } from "../../identity/models/permissions";
 import type { SubmissionStatus } from "../models/status";
 import type { ReviewDecision } from "./reviews";
 import type { SubmissionActor } from "./submissions";
@@ -30,7 +30,7 @@ export const decisionsFor = (
   actor: SubmissionActor,
   submission: { status: SubmissionStatus; authorId: string; stale: string | null },
 ): DecisionOption[] => {
-  if (!can(actor.user, "submissions.review")) return [];
+  if (!canInSome(actor.user, "submissions.review")) return [];
   const mine = submission.authorId === actor.user?.id;
   const own = (decision: ReviewDecision): DecisionOption =>
     mine

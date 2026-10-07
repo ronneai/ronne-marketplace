@@ -15,6 +15,7 @@ import type {
   UserFilters,
   UserSort,
 } from "./identity-repository";
+import { loadMemberships } from "./memberships";
 
 type UserRow = {
   id: string;
@@ -30,7 +31,7 @@ const summary = (row: UserRow): UserSummary => {
     id: row.id,
     email: row.email,
     name: row.name,
-    // A role outside the known three is shown as a plain user: it gets no permissions either way.
+    // A role outside the known two is shown as a plain user: it gets no permissions either way.
     role: isRole(row.role) ? row.role : "user",
     disabledAt: fromDbDate(row.disabled_at),
     createdAt: fromDbDate(row.created_at),
@@ -120,9 +121,15 @@ export const kyselyIdentityRepository = (
         .where("id", "=", userId)
         .where("disabled_at", "is", null)
         .executeTakeFirst();
-      // A role outside the three known ones gets no access rather than a guess.
+      // A role outside the two known ones gets no access rather than a guess.
       if (!row || !isRole(row.role)) return null;
-      return { id: row.id, email: row.email, name: row.name, role: row.role };
+      return {
+        id: row.id,
+        email: row.email,
+        name: row.name,
+        role: row.role,
+        workspaces: await loadMemberships(db, row.id),
+      };
     },
 
     async findCredentialByEmail(email) {
@@ -150,6 +157,7 @@ export const kyselyIdentityRepository = (
           email: row.email,
           name: row.name,
           role: isRole(row.role) ? row.role : "user",
+          workspaces: await loadMemberships(db, row.id),
         },
         disabledAt: fromDbDate(row.disabled_at),
         passwordHash: row.password ?? null,
@@ -299,7 +307,7 @@ export const kyselyIdentityRepository = (
           .values({
             workspace_id: GLOBAL_WORKSPACE_ID,
             user_id: id,
-            role: user.role === "moderator" ? "moderator" : "user",
+            role: user.globalRole ?? "user",
             added_by: null,
             created_at: at(now),
             updated_at: at(now),

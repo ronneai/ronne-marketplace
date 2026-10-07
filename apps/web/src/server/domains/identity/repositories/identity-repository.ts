@@ -1,12 +1,14 @@
 import type { KeysetPage, SortDir } from "../../../db/keyset";
 import type { NewAuditEvent } from "../../audit/models/audit-event";
-import type { CurrentUser, Role, RootAccount, UserSummary } from "../models/user";
+import type { CurrentUser, Role, RootAccount, UserSummary, WorkspaceRole } from "../models/user";
 
 export type NewUserWithPassword = {
   email: string;
   name: string;
-  role: "root" | "moderator" | "user";
+  role: Role;
   passwordHash: string;
+  /** The role in `global` for someone who isn't root (091); `user` when left out. */
+  globalRole?: WorkspaceRole;
 };
 
 /** What the admin user list filters by (008, on the data table since 061). */

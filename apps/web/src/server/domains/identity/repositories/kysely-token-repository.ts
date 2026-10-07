@@ -6,6 +6,7 @@ import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
 import type { AccessTokenSummary } from "../models/access-token";
 import { isRole } from "../models/user";
+import { loadMemberships } from "./memberships";
 import type { TokenRepository } from "./token-repository";
 
 /** `last_used_at` is written at most this often per token, so busy clients don't write on every request. */
@@ -146,8 +147,9 @@ export const kyselyTokenRepository = (
           id: row.user_id,
           email: row.email,
           name: row.user_name,
-          // A role outside the three gets no permissions; the guard refuses it as a plain user would be.
+          // A role outside the two gets no permissions; the guard refuses it as a plain user would be.
           role: isRole(row.role) ? row.role : "user",
+          workspaces: await loadMemberships(db, row.user_id),
           disabledAt: fromDbDate(row.disabled_at),
         },
       };

@@ -29,7 +29,7 @@ const user = (overrides: Partial<UserSummary> = {}): UserSummary => ({
   id: ULID,
   email: "alex@example.com",
   name: "Alex",
-  role: "moderator",
+  role: "user",
   disabledAt: null,
   createdAt: new Date("2026-09-20T10:00:00Z"),
   ...overrides,
@@ -42,14 +42,14 @@ const state = (params: Record<string, string> = {}) =>
 describe("the users list's URL (061)", () => {
   it("turns a view into the server query", () => {
     expect(
-      usersQueryOf(state({ q: "Alex", role: "moderator", status: "disabled", sort: "email" })),
+      usersQueryOf(state({ q: "Alex", role: "user", status: "disabled", sort: "email" })),
     ).toEqual({
       sort: "email",
       dir: "asc",
       size: 50,
       cursor: undefined,
       search: "Alex",
-      role: "moderator",
+      role: "user",
       status: "disabled",
     });
   });
@@ -90,7 +90,7 @@ describe("UsersPage (061)", () => {
     for (const text of [
       "Users",
       "alex@example.com",
-      ">moderator<",
+      ">user<",
       ">disabled<",
       ">active<",
       "2026-09-20",
@@ -107,10 +107,10 @@ describe("UsersPage (061)", () => {
   });
 
   it("shows active filters as chips, and says when nothing matches", () => {
-    const html = page({ state: state({ q: "zzz", role: "moderator" }), users: [] });
+    const html = page({ state: state({ q: "zzz", role: "root" }), users: [] });
     expect(html).toContain("No users match these filters.");
     expect(html).toMatch(
-      /aria-label="Remove the search filter"[^>]*href="\/admin\/users\?role=moderator"/,
+      /aria-label="Remove the search filter"[^>]*href="\/admin\/users\?role=root"/,
     );
     expect(html).toMatch(/aria-label="Remove the role filter"[^>]*href="\/admin\/users\?q=zzz"/);
   });
@@ -138,7 +138,11 @@ describe("root only", () => {
   });
 
   it("the admin layout and the users page are a 404 for anyone but root", async () => {
-    for (const current of [null, { role: "user" }, { role: "moderator" }]) {
+    for (const current of [
+      null,
+      { role: "user" },
+      { role: "user", workspaces: { global: "moderator" } },
+    ]) {
       session.getCurrentUser.mockResolvedValue(current);
       await expect(AdminLayout({ children: null })).rejects.toThrow("NEXT_NOT_FOUND");
       await expect(UsersRoute({ searchParams: Promise.resolve({}) })).rejects.toThrow(
@@ -154,12 +158,12 @@ describe("root only", () => {
     expect(layout).toMatch(/aria-current="page"[^>]*>Users</);
     expect(layout).toContain("inside");
     const page = renderToStaticMarkup(
-      await UsersRoute({ searchParams: Promise.resolve({ q: "alex", role: "moderator" }) }),
+      await UsersRoute({ searchParams: Promise.resolve({ q: "alex", role: "root" }) }),
     );
     expect(page).toContain("alex@example.com");
     expect(admin.adminListUsers).toHaveBeenCalledWith(
       expect.any(Headers),
-      expect.objectContaining({ search: "alex", role: "moderator", sort: "created", size: 50 }),
+      expect.objectContaining({ search: "alex", role: "root", sort: "created", size: 50 }),
     );
   });
 });

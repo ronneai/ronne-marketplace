@@ -29,7 +29,13 @@ let storage: StorageAdapter;
 let puts: string[];
 let logged: string[];
 let publisher: string;
-const user: CurrentUser = { id: "u1", email: "a@example.com", name: "A", role: "user" };
+const user: CurrentUser = {
+  id: "u1",
+  email: "a@example.com",
+  name: "A",
+  role: "user",
+  workspaces: {},
+};
 const actor = { user, ip: null };
 const now = new Date("2026-10-03T12:00:00.000Z");
 const text = (value: string) => new TextEncoder().encode(value);

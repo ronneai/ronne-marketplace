@@ -14,7 +14,13 @@ import { itemUsage, itemUsageByVersion, recordUsage, type UsageDeps, usageSettin
 // Runs on the database in TEST_DATABASE_URL (in-memory SQLite by default; 004 runs all of them).
 let t: TestDb;
 let itemId: string;
-const user: CurrentUser = { id: "u1", email: "a@example.com", name: "A", role: "user" };
+const user: CurrentUser = {
+  id: "u1",
+  email: "a@example.com",
+  name: "A",
+  role: "user",
+  workspaces: {},
+};
 const now = new Date("2026-10-05T12:00:00.000Z");
 
 beforeEach(async () => {

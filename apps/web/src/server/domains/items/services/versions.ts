@@ -1,4 +1,4 @@
-import { can, requirePermission } from "../../identity/models/permissions";
+import { canInSome, requireInSome, requirePermission } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
 import {
   ItemNotFoundError,
@@ -43,7 +43,7 @@ const withItem = <T>(
     ) => Promise<void>;
   }) => Promise<T>,
 ): Promise<T> => {
-  requirePermission(actor.user, "versions.manage");
+  requireInSome(actor.user, "versions.manage");
   const at = (deps.now ?? (() => new Date()))();
   return deps.items.transaction(async (items) => {
     const item = await items.findByName(ref.scope, ref.name);
@@ -246,6 +246,6 @@ export const listVersions = async (
           b.publishedAt.getTime() - a.publishedAt.getTime() || (a.version < b.version ? 1 : -1),
       ),
     tags: tags.map((t) => ({ tag: t.tag, version: versionOf(t.versionId) })),
-    canManage: can(actor.user, "versions.manage"),
+    canManage: canInSome(actor.user, "versions.manage"),
   };
 };

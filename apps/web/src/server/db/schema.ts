@@ -18,7 +18,7 @@ export interface UserTable {
   image: string | null;
   created_at: Timestamp;
   updated_at: Timestamp;
-  role: Generated<"root" | "moderator" | "user">;
+  role: Generated<"root" | "user">;
   disabled_at: Timestamp | null;
 }
 

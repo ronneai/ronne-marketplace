@@ -1,5 +1,5 @@
 import { DEPENDENCY_TYPES, type ItemType, isItemType } from "@ronneai/core";
-import { requirePermission } from "../../identity/models/permissions";
+import { requireInSome } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
 import type { CatalogueEntry } from "../../items/models/catalogue";
 import type { CatalogueRepository } from "../../items/repositories/catalogue-repository";
@@ -68,7 +68,7 @@ export const findDependencies = async (
   actor: { user: CurrentUser | null; ip: string | null },
   input: { type: ItemType; q: string; itemName?: string; exclude?: readonly string[] },
 ): Promise<DependencyOption[]> => {
-  requirePermission(actor.user, "submissions.create");
+  requireInSome(actor.user, "submissions.create");
   const allowed: readonly ItemType[] = isItemType(input.type) ? DEPENDENCY_TYPES[input.type] : [];
   if (allowed.length === 0 || !actor.user) return [];
   const me = actor.user.id;

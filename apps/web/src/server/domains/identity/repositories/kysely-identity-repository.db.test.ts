@@ -12,7 +12,16 @@ beforeEach(async () => {
 afterEach(() => t.cleanup());
 
 const add = (email: string, role: "root" | "moderator" | "user", at: string) =>
-  repo.createUserWithPassword({ email, name: email, role, passwordHash: "x" }, new Date(at));
+  repo.createUserWithPassword(
+    {
+      email,
+      name: email,
+      role: role === "root" ? "root" : "user",
+      globalRole: role === "moderator" ? "moderator" : "user",
+      passwordHash: "x",
+    },
+    new Date(at),
+  );
 
 describe("roots (059)", () => {
   it("lists every root oldest first, and finds the first", async () => {
@@ -55,7 +64,7 @@ describe("roots (059)", () => {
       await trx.lockRoots(a);
       locked();
       await held;
-      await trx.setRole(b, "moderator", new Date());
+      await trx.setRole(b, "user", new Date());
       order.push("first");
     });
     await isLocked;

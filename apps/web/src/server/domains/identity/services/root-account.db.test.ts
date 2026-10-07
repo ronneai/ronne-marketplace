@@ -168,7 +168,13 @@ describe("resetRootPassword", () => {
       at,
     );
     await repo.createUserWithPassword(
-      { email: "mod@example.com", name: "Mod", role: "moderator", passwordHash: "x" },
+      {
+        email: "mod@example.com",
+        name: "Mod",
+        role: "user",
+        globalRole: "moderator",
+        passwordHash: "x",
+      },
       at,
     );
     await expect(resetRootPassword(t.db, t.dialect, "a brand new passphrase")).rejects.toThrowError(

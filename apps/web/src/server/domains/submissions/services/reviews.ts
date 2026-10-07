@@ -1,6 +1,11 @@
 import { isId } from "../../../db/ids";
 import type { AuditAction } from "../../audit/models/audit-event";
-import { can, requirePermission } from "../../identity/models/permissions";
+import {
+  can,
+  canInSome,
+  requireInSome,
+  requirePermission,
+} from "../../identity/models/permissions";
 import {
   ConversationClosedError,
   OverrideNotNeededError,
@@ -57,7 +62,10 @@ const lockedSubmission = async (
   const mine = submission?.authorId === actor.user?.id;
   if (
     !submission ||
-    !(mine || (submission.status !== "draft" && can(actor.user, "submissions.view_submitted")))
+    !(
+      mine ||
+      (submission.status !== "draft" && canInSome(actor.user, "submissions.view_submitted"))
+    )
   )
     throw new SubmissionNotFoundError();
   return submission;
@@ -128,10 +136,8 @@ export const decide = async (
   },
 ): Promise<Submission> => {
   const decision = DECISIONS[input.decision];
-  requirePermission(
-    actor.user,
-    input.decision === "override" ? "submissions.override" : "submissions.review",
-  );
+  if (input.decision === "override") requirePermission(actor.user, "submissions.override");
+  else requireInSome(actor.user, "submissions.review");
   const message = messageFrom(input.message, decision.requires);
   const at = now(deps);
   return deps.repo.transaction(async (repo) => {
@@ -191,13 +197,13 @@ export const comment = async (
   id: string,
   input: { body: string },
 ): Promise<string> => {
-  requirePermission(actor.user, "submissions.create");
+  requireInSome(actor.user, "submissions.create");
   const body = messageFrom(input.body, "A comment") ?? "";
   const at = now(deps);
   return deps.repo.transaction(async (repo) => {
     const submission = await lockedSubmission(repo, actor, id);
     const mine = submission.authorId === actor.user?.id;
-    if (!mine && !can(actor.user, "submissions.review")) throw new SubmissionNotFoundError();
+    if (!mine && !canInSome(actor.user, "submissions.review")) throw new SubmissionNotFoundError();
     if (!OPEN_STATUSES.includes(submission.status)) throw new ConversationClosedError();
     return repo.addEvent({
       submissionId: submission.id,
@@ -237,7 +243,7 @@ export const dependentsOf = async (
   if (!submission) throw new SubmissionNotFoundError();
   const name = itemNameOf(submission);
   const registry = deps.registry ?? deps.repo.registry();
-  const reviewer = can(actor.user, "submissions.review");
+  const reviewer = canInSome(actor.user, "submissions.review");
   const open = await deps.repo.listForReview({
     statuses: OPEN_STATUSES,
     order: "oldest",

@@ -2,7 +2,7 @@ import { parseItemName } from "@ronneai/core";
 import { parseDocument } from "yaml";
 import { isId } from "../../../db/ids";
 import type { StorageAdapter } from "../../../storage";
-import { requirePermission } from "../../identity/models/permissions";
+import { requireInSome } from "../../identity/models/permissions";
 import { artifactFiles } from "../../items/services/artifact-files";
 import {
   ConflictNotFoundError,
@@ -85,7 +85,7 @@ export const proposeChange = async (
   actor: DraftActor,
   input: { item: string; version: string },
 ): Promise<Draft> => {
-  requirePermission(actor.user, "submissions.create");
+  requireInSome(actor.user, "submissions.create");
   const parsed = parseItemName(input.item);
   const registry = deps.registry ?? deps.repo.registry();
   const item = parsed ? await registry.findItem(parsed.scope, parsed.name) : null;
@@ -158,7 +158,7 @@ export const requireCurrent = async (registry: RegistryLookup, submission: Submi
 
 /** The actor's own change proposal, or SubmissionNotFoundError / NotAProposalError. */
 const ownProposal = async (deps: ProposalDeps, actor: DraftActor, id: string) => {
-  requirePermission(actor.user, "submissions.create");
+  requireInSome(actor.user, "submissions.create");
   const submission = isId(id) ? await deps.repo.find(id) : null;
   if (!submission || submission.authorId !== actor.user?.id) throw new SubmissionNotFoundError();
   if (!submission.proposal) throw new NotAProposalError();

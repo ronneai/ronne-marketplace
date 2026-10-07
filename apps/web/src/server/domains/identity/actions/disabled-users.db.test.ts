@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { toDbDate } from "../../../db/dates";
+import { GLOBAL_WORKSPACE_ID } from "../../../db/migrations/0019_workspaces";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import type { AppAuth } from "../repositories/auth-instance";
 import { cookieHeaders, createTestUser, testAppAuth } from "../testing/test-auth";
@@ -45,7 +46,8 @@ describe("getCurrentUser", () => {
       id: userId,
       email: credentials.email,
       name: "Someone",
-      role: "moderator",
+      role: "user",
+      workspaces: { [GLOBAL_WORKSPACE_ID]: "moderator" },
     });
     expect(await getCurrentUser(new Headers(), app)).toBeNull();
     expect(

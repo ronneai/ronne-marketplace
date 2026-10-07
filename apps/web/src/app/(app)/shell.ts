@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { parseTheme, THEME_COOKIE } from "@/features/theme/theme";
 import { requireUser } from "@/server/domains/identity/actions/session";
-import { can } from "@/server/domains/identity/models/permissions";
+import { canInSome } from "@/server/domains/identity/models/permissions";
 import { countNeedsReview } from "@/server/domains/submissions/actions/reviews";
 import { requestHeaders } from "@/server/http/request-headers";
 
@@ -15,6 +15,6 @@ export const loadShell = async () => {
   const user = await requireUser(request);
   const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
   // Reviewers see how many submissions wait for them next to Reviews (feature 014).
-  const needsReview = can(user, "submissions.review") ? await countNeedsReview(request) : 0;
+  const needsReview = canInSome(user, "submissions.review") ? await countNeedsReview(request) : 0;
   return { user, theme, navCounts: { "/reviews": needsReview } };
 };

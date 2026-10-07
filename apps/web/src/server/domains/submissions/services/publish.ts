@@ -13,7 +13,7 @@ import {
 import { PackError, packItem } from "@ronneai/core/pack";
 import { isId } from "../../../db/ids";
 import type { StorageAdapter } from "../../../storage";
-import { can, requirePermission } from "../../identity/models/permissions";
+import { canInSome, requireInSome } from "../../identity/models/permissions";
 import type { VersionFile } from "../../items/models/item";
 import {
   RELEASE_NOTES_MAX_LENGTH,
@@ -73,12 +73,12 @@ export const publishSubmission = async (
   id: string,
   input: PublishInput,
 ): Promise<Published> => {
-  requirePermission(actor.user, "submissions.create");
+  requireInSome(actor.user, "submissions.create");
   const submission = isId(id) ? await deps.repo.find(id) : null;
   const mine = submission?.authorId === actor.user?.id;
-  if (!submission || !(mine || can(actor.user, "submissions.view_submitted")))
+  if (!submission || !(mine || canInSome(actor.user, "submissions.view_submitted")))
     throw new SubmissionNotFoundError();
-  if (!mine) requirePermission(actor.user, "submissions.publish");
+  if (!mine) requireInSome(actor.user, "submissions.publish");
   transition(submission.status, "publish");
   const itemName = itemNameOf(submission);
 

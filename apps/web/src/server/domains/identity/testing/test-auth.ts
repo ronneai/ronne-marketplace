@@ -28,7 +28,10 @@ export const testAppAuth = (
   };
 };
 
-/** Creates a user with a password, the way root will in 008. Returns the user id. */
+/**
+ * Creates a user with a password, the way root will in 008. Returns the user id. `moderator`
+ * means a moderator in `global`, as every moderator was before workspaces (091).
+ */
 export const createTestUser = async (
   app: AppAuth,
   user: { email: string; password: string; name?: string; role?: "root" | "moderator" | "user" },
@@ -58,12 +61,8 @@ export const createTestUser = async (
       })
       .execute();
   }
-  if (user.role && user.role !== "user") {
-    await app.db
-      .updateTable("user")
-      .set({ role: user.role })
-      .where("id", "=", created.id)
-      .execute();
+  if (user.role === "root") {
+    await app.db.updateTable("user").set({ role: "root" }).where("id", "=", created.id).execute();
   }
   return created.id;
 };
@@ -75,4 +74,32 @@ export const cookieHeaders = (setCookie: string | null): Headers => {
     .map((c) => c.split(";")[0]?.trim())
     .filter(Boolean);
   return new Headers({ cookie: cookies.join("; ") });
+};
+
+/** Gives a user a role in a workspace, or changes it, as 092's member admin will (091). */
+export const setWorkspaceRole = async (
+  app: AppAuth,
+  userId: string,
+  role: "moderator" | "user",
+  workspaceId: string = GLOBAL_WORKSPACE_ID,
+): Promise<void> => {
+  const now = toDbDate(new Date(), app.dialect);
+  const updated = await app.db
+    .updateTable("workspace_members")
+    .set({ role, updated_at: now })
+    .where("workspace_id", "=", workspaceId)
+    .where("user_id", "=", userId)
+    .executeTakeFirst();
+  if (Number(updated.numUpdatedRows) > 0) return;
+  await app.db
+    .insertInto("workspace_members")
+    .values({
+      workspace_id: workspaceId,
+      user_id: userId,
+      role,
+      added_by: null,
+      created_at: now,
+      updated_at: now,
+    })
+    .execute();
 };

@@ -9,7 +9,7 @@ import { checkedQueueState, queueList, queueQueryOf } from "@/features/reviews/l
 import { QueueStatusProvider } from "@/features/reviews/QueueStatus";
 import { approvableRows, QueueTable, QueueTabs, queueTab } from "@/features/reviews/QueueTable";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
-import { can } from "@/server/domains/identity/models/permissions";
+import { canInSome } from "@/server/domains/identity/models/permissions";
 import { listQueue } from "@/server/domains/submissions/actions/reviews";
 import { itemNameOf } from "@/server/domains/submissions/models/submission";
 import { requestHeaders } from "@/server/http/request-headers";
@@ -23,7 +23,7 @@ const Reviews = async ({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) => {
   const request = await requestHeaders();
-  if (!can(await getCurrentUser(request), "submissions.review")) notFound();
+  if (!canInSome(await getCurrentUser(request), "submissions.review")) notFound();
   const params = await searchParams;
   const tab = queueTab(params.tab);
   const list = queueList(tab);

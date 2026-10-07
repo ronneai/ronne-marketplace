@@ -1,6 +1,6 @@
 import { hasErrors, type ManifestIssue } from "@ronneai/core";
 import { isId } from "../../../db/ids";
-import { requirePermission } from "../../identity/models/permissions";
+import { requireInSome } from "../../identity/models/permissions";
 import {
   InvalidStatusTransitionError,
   SubmissionInvalidError,
@@ -137,7 +137,7 @@ const selected = async (
   actor: SubmissionActor,
   selection: BulkSelection,
 ): Promise<{ ids: string[]; more: number }> => {
-  requirePermission(actor.user, "submissions.create");
+  requireInSome(actor.user, "submissions.create");
   if (!("all" in selection)) return { ids: selection.ids.slice(0, MAX_BULK), more: 0 };
   const open = (await deps.repo.listByAuthor(actor.user?.id ?? "")).filter((s) =>
     isEditable(s.status),

@@ -1,14 +1,35 @@
 import { InvalidEmailError, InvalidNameError } from "../exceptions/errors";
 
-export type Role = "root" | "moderator" | "user";
+/**
+ * A user's instance-wide role (`user.role`): root does everything in every workspace; anyone else
+ * is a user, whose roles are per workspace (feature 091).
+ */
+export type Role = "root" | "user";
 
-/** The signed-in person, as the rest of the app sees them. */
-export type CurrentUser = { id: string; email: string; name: string; role: Role };
+/** A role in a workspace (`workspace_members.role`, feature 091). */
+export type WorkspaceRole = "moderator" | "user";
 
-const ROLES: readonly Role[] = ["root", "moderator", "user"];
+/** Workspace id → the user's role there. A root's rows are kept but ignored for permissions. */
+export type Memberships = Readonly<Record<string, WorkspaceRole>>;
+
+/** The signed-in person, as the rest of the app sees them, with their memberships (091). */
+export type CurrentUser = {
+  id: string;
+  email: string;
+  name: string;
+  role: Role;
+  workspaces: Memberships;
+};
+
+const ROLES: readonly Role[] = ["root", "user"];
+const WORKSPACE_ROLES: readonly WorkspaceRole[] = ["moderator", "user"];
 
 export const isRole = (value: unknown): value is Role => {
   return ROLES.includes(value as Role);
+};
+
+export const isWorkspaceRole = (value: unknown): value is WorkspaceRole => {
+  return WORKSPACE_ROLES.includes(value as WorkspaceRole);
 };
 
 /** A user as root's admin list shows them. */

@@ -82,7 +82,8 @@ beforeEach(() => {
     id: "m",
     email: "m@x.test",
     name: "M",
-    role: "moderator",
+    role: "user",
+    workspaces: { global: "moderator" },
   });
   reviews.listQueue.mockResolvedValue({
     rows: [row()],

@@ -7,7 +7,7 @@ import {
 } from "@ronneai/core";
 import { isId } from "../../../db/ids";
 import type { StorageAdapter } from "../../../storage";
-import { can, requirePermission } from "../../identity/models/permissions";
+import { canInSome, requireInSome } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
 import {
   HasReviewHistoryError,
@@ -59,7 +59,7 @@ const find = async (repo: SubmissionRepository, id: string) =>
 
 /** The actor's own submission, in any status, or SubmissionNotFoundError. */
 const own = async (repo: SubmissionRepository, actor: SubmissionActor, id: string) => {
-  requirePermission(actor.user, "submissions.create");
+  requireInSome(actor.user, "submissions.create");
   const submission = await find(repo, id);
   if (!submission || submission.authorId !== actor.user?.id) throw new SubmissionNotFoundError();
   return submission;
@@ -77,7 +77,7 @@ export const latestFeedbackFor = async (
   actor: SubmissionActor,
   submissions: readonly Submission[],
 ): Promise<Record<string, RowFeedback>> => {
-  requirePermission(actor.user, "submissions.create");
+  requireInSome(actor.user, "submissions.create");
   const ids = submissions
     .filter(
       (s) =>
@@ -111,7 +111,7 @@ export const viewSubmission = async (
   actor: SubmissionActor,
   id: string,
 ): Promise<Draft & { mine: boolean }> => {
-  requirePermission(actor.user, "submissions.create");
+  requireInSome(actor.user, "submissions.create");
   const submission = await find(deps.repo, id);
   const mine = submission?.authorId === actor.user?.id;
   if (
@@ -119,7 +119,7 @@ export const viewSubmission = async (
     !(
       mine ||
       (!PRIVATE_STATUSES.includes(submission.status) &&
-        can(actor.user, "submissions.view_submitted"))
+        canInSome(actor.user, "submissions.view_submitted"))
     )
   )
     throw new SubmissionNotFoundError();

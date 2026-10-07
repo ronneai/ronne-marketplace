@@ -210,7 +210,11 @@ describe("/admin/audit page", () => {
   });
 
   it("is a 404 for anyone but root, without reading the log", async () => {
-    for (const user of [null, { role: "user" }, { role: "moderator" }]) {
+    for (const user of [
+      null,
+      { role: "user" },
+      { role: "user", workspaces: { global: "moderator" } },
+    ]) {
       session.getCurrentUser.mockResolvedValueOnce(user);
       await expect(Page({ searchParams: Promise.resolve({}) })).rejects.toThrow("NEXT_NOT_FOUND");
     }

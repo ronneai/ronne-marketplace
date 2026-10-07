@@ -8,10 +8,14 @@ import type { StorageAdapter } from "../../../storage/storage-adapter";
 import { listAuditEvents } from "../../audit/actions/audit";
 import { createRoot } from "../../identity/actions/root-account";
 import { signIn } from "../../identity/actions/session";
-import { adminChangeRole } from "../../identity/actions/user-admin";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import type { AppAuth } from "../../identity/repositories/auth-instance";
-import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testing/test-auth";
+import {
+  cookieHeaders,
+  createTestUser,
+  setWorkspaceRole,
+  testAppAuth,
+} from "../../identity/testing/test-auth";
 import { createScope } from "../../items/actions/scopes";
 import { BulkLimitError, ReviewMessageError } from "../exceptions/errors";
 import { kyselySubmissionRepository } from "../repositories/kysely-submission-repository";
@@ -254,7 +258,7 @@ describe("approveMany", () => {
     );
 
     // A moderator demoted while the page is open: nothing changes.
-    await adminChangeRole(asRoot, moderatorId, "user", app);
+    await setWorkspaceRole(app, moderatorId, "user");
     await expect(approveMany(asModerator, { items: await rows(one) }, app)).rejects.toThrow(
       ForbiddenError,
     );

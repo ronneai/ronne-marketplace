@@ -1,7 +1,7 @@
 import type { ManifestIssue, RiskFlag } from "@ronneai/core";
 import { parseManifest, riskFlags } from "@ronneai/core";
 import { isId } from "../../../db/ids";
-import { can, requirePermission } from "../../identity/models/permissions";
+import { canInSome, requireInSome } from "../../identity/models/permissions";
 import { SubmissionNotFoundError, SubmissionsError } from "../exceptions/errors";
 import {
   type ManifestFieldChange,
@@ -133,10 +133,10 @@ export const getReview = async (
   actor: SubmissionActor,
   id: string,
 ): Promise<ReviewView> => {
-  requirePermission(actor.user, "submissions.create");
+  requireInSome(actor.user, "submissions.create");
   const found = isId(id) ? await deps.repo.find(id) : null;
   const mine = found?.authorId === actor.user?.id;
-  const reviewer = can(actor.user, "submissions.review");
+  const reviewer = canInSome(actor.user, "submissions.review");
   if (!found || !(mine || (reviewer && found.status !== "draft")))
     throw new SubmissionNotFoundError();
   const submission = found;
@@ -186,7 +186,7 @@ export const getReview = async (
       decide: submitted && allows(decisions, "reject"),
       override: decisions.some((option) => option.decision === "override"),
       comment: (reviewer || mine) && OPEN_STATUSES.includes(submission.status),
-      publish: approved && (mine || can(actor.user, "submissions.publish")),
+      publish: approved && (mine || canInSome(actor.user, "submissions.publish")),
       sendBack: approved && allows(decisions, "request_changes"),
     },
     dependents:

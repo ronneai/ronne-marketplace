@@ -11,7 +11,7 @@ the same change that completes it.
   moderators); `user.role` `moderator` → `user`. New users get the `global` row in `createUser`.
   *Done when:* migration tests pass on the four databases with roots, moderators and users.
 
-- [ ] **2. Roles and the check.** [risky] `Role` becomes `root | user` for `user.role` and
+- [x] **2. Roles and the check.** [risky] `Role` becomes `root | user` for `user.role` and
   `moderator | user` for memberships; `can(user, perm, workspace)` with instance and workspace
   permissions split in the type, so a workspace permission without a workspace doesn't type-check;
   memberships loaded with the session and the token's user.
@@ -43,3 +43,16 @@ the same change that completes it.
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- **Task 2 keeps behaviour while the call sites move** (Claude). `can()` and `requirePermission()`
+  take the workspace for a workspace permission, and leaving it out doesn't type-check. So task 2
+  could land green, every existing workspace check became `canInSome()` / `requireInSome()`
+  ("held in some workspace"), which is what they meant while everyone was only in `global`. Tasks 3
+  to 5 replace each with the item's workspace; `requireInSome` goes in task 5, and `canInSome`
+  stays only for the nav and the shell (task 6).
+- **Admin › Users offers only root and user** from task 2: `moderator` is refused by `changeRole`
+  and `createUser` (`InvalidRoleError`), and the role filter has root and user. Making someone a
+  moderator comes back with 092's member admin.
+- **Tests:** `createTestUser(app, { role: "moderator" })` still works and means a moderator of
+  `global`; `setWorkspaceRole(app, userId, role, workspaceId?)` changes or adds a membership.
+

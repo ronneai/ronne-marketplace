@@ -60,8 +60,8 @@ null), created_at, updated_at; PK (workspace_id, user_id); cascade on both. Ever
   passes;
 - `account.manage_own` stays "signed in".
 
-The membership is loaded once per request with the user (a map workspace → role), so a check
-doesn't query. A call site that checks a workspace permission without a workspace fails type-check.
+The memberships are loaded with the user (a map workspace → role), every time a request reads the
+user, as the user row is; a check itself doesn't query. A call site that checks a workspace permission without a workspace fails type-check.
 
 **Converting the call sites** (about 84, in ~35 files): each resolves the workspace from the
 scope of the submission, item or version it acts on. Bulk actions (054, 055, 052) check each

@@ -13,7 +13,7 @@ import { isScalar, parseDocument } from "yaml";
 import { isId } from "../../../db/ids";
 import type { SortDir } from "../../../db/keyset";
 import type { StorageAdapter } from "../../../storage";
-import { requirePermission } from "../../identity/models/permissions";
+import { requireInSome } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
 import {
   DraftLimitError,
@@ -84,7 +84,7 @@ const ownSubmission = async (
   actor: DraftActor,
   id: string,
 ): Promise<Submission> => {
-  requirePermission(actor.user, "submissions.create");
+  requireInSome(actor.user, "submissions.create");
   const submission = isId(id) ? await repo.find(id) : null;
   if (!submission || submission.authorId !== actor.user?.id) throw new SubmissionNotFoundError();
   return submission;
@@ -171,7 +171,7 @@ export const createDraft = async (
   actor: DraftActor,
   input: { scope: string; name: string; type: string },
 ): Promise<Draft> => {
-  requirePermission(actor.user, "submissions.create");
+  requireInSome(actor.user, "submissions.create");
   const authorId = actor.user?.id ?? "";
   const name = itemNameFrom(input.name);
   const type = typeFrom(input.type);
@@ -195,7 +195,7 @@ export const listMySubmissions = async (
   deps: DraftDeps,
   actor: DraftActor,
 ): Promise<(Submission & { stale: string | null })[]> => {
-  requirePermission(actor.user, "submissions.create");
+  requireInSome(actor.user, "submissions.create");
   return withStale(deps.repo.registry(), await deps.repo.listByAuthor(actor.user?.id ?? ""));
 };
 
@@ -225,7 +225,7 @@ export const pageMySubmissions = async (
   actor: DraftActor,
   query: MySubmissionsQuery,
 ): Promise<MySubmissionsPage> => {
-  requirePermission(actor.user, "submissions.create");
+  requireInSome(actor.user, "submissions.create");
   const filters = {
     authorId: actor.user?.id ?? "",
     status: query.status,
@@ -253,7 +253,7 @@ export const pageMySubmissions = async (
 
 /** How many of your submissions are in each status, for My submissions' status links (063). */
 export const countMySubmissionsByStatus = async (deps: DraftDeps, actor: DraftActor) => {
-  requirePermission(actor.user, "submissions.create");
+  requireInSome(actor.user, "submissions.create");
   return deps.repo.statusCountsByAuthor(actor.user?.id ?? "");
 };
 
@@ -479,7 +479,7 @@ export const createDraftFromFiles = async (
     base?: string;
   },
 ): Promise<UploadedDraft> => {
-  requirePermission(actor.user, "submissions.create");
+  requireInSome(actor.user, "submissions.create");
   const authorId = actor.user?.id ?? "";
   const name = itemNameFrom(input.name);
   const type = typeFrom(input.type);
@@ -595,7 +595,7 @@ export const listOpenDrafts = async (
   actor: DraftActor,
   itemName?: string,
 ): Promise<(Submission & { description: string | null })[]> => {
-  requirePermission(actor.user, "submissions.create");
+  requireInSome(actor.user, "submissions.create");
   const wanted = itemName?.trim().toLowerCase();
   const open = (await deps.repo.listByAuthor(actor.user?.id ?? "")).filter(
     (submission) =>
@@ -639,7 +639,7 @@ export const replaceDraftFromFiles = async (
     base?: string;
   },
 ): Promise<UploadedDraft> => {
-  requirePermission(actor.user, "submissions.create");
+  requireInSome(actor.user, "submissions.create");
   const name = itemNameFrom(input.name);
   const type = typeFrom(input.type);
   const limits = limitsOf(deps);
@@ -724,7 +724,7 @@ export const importZip = async (
   id: string,
   input: { archive: Uint8Array; mode: "merge" | "replace" },
 ): Promise<SavedDraft> => {
-  requirePermission(actor.user, "submissions.create");
+  requireInSome(actor.user, "submissions.create");
   const draft = await getDraft(deps, actor, id);
   const files = readZip(input.archive, limitsOf(deps));
   const paths = new Set(files.map((file) => file.path));

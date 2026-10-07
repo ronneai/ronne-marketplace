@@ -1,5 +1,5 @@
 import { isId } from "../../../db/ids";
-import { can, requirePermission } from "../../identity/models/permissions";
+import { can, requireInSome } from "../../identity/models/permissions";
 import {
   BulkLimitError,
   InvalidStatusTransitionError,
@@ -64,7 +64,7 @@ export const approveMany = async (
   /** Each with the revision its row showed: an approval goes only if it's still the latest. */
   input: { items: readonly { id: string; revision: number | null }[]; message?: string },
 ): Promise<ApprovedSubmission[]> => {
-  requirePermission(actor.user, "submissions.review");
+  requireInSome(actor.user, "submissions.review");
   const reviewed = new Map(input.items.map((item) => [item.id, item.revision]));
   const ids = [...reviewed.keys()];
   if (ids.length > MAX_BULK_APPROVE) throw new BulkLimitError(ids.length, MAX_BULK_APPROVE);

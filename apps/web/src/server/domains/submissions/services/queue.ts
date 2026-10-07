@@ -6,7 +6,7 @@ import {
   riskFlags,
 } from "@ronneai/core";
 import type { SortDir } from "../../../db/keyset";
-import { requirePermission } from "../../identity/models/permissions";
+import { requireInSome } from "../../identity/models/permissions";
 import { OPEN_STATUSES, type SubmissionStatus } from "../models/status";
 import { fileBytes, MANIFEST_PATH, type Submission, toPackageFile } from "../models/submission";
 import type { SubmissionRepository } from "../repositories/submission-repository";
@@ -120,7 +120,7 @@ export const listQueue = async (
   actor: SubmissionActor,
   query: QueueQuery,
 ): Promise<QueuePage> => {
-  requirePermission(actor.user, "submissions.review");
+  requireInSome(actor.user, "submissions.review");
   const tab = QUEUE_TABS[query.tab];
   const sort = query.sort ?? "time";
   const filters = {
@@ -176,7 +176,7 @@ export const countNeedsReview = async (
   actor: SubmissionActor,
 ): Promise<number> => {
   try {
-    requirePermission(actor.user, "submissions.review");
+    requireInSome(actor.user, "submissions.review");
   } catch {
     return 0;
   }
