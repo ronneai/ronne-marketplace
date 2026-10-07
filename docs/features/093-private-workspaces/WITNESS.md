@@ -396,3 +396,95 @@ Witnessed: 2026-10-07 17:51 EDT, by a fresh agent (adversarial). Commit: 732ee14
 | 16c | The reason for the move is accurate | yes | confirmed | `apps/web/package.json` has no `@ronneai/mcp` or `@ronneai/rmk`; `turbo.json` `test` depends on `^build`, so `pnpm test` never builds rmk for the web app; `ci.yml` runs `pnpm test` before `pnpm build`. The note also says the guard test, not the scopes API test, pins the scope filter |
 
 **Overall:** met: every row of task 6 holds. The MCP check against a private item stays open until task 8's end-to-end test passes.
+
+## Task 7 — Plugin feeds
+
+Witnessed: 2026-10-07 18:12 EDT, by a fresh agent (blind). Commit: 0e9ecf8 + the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Each tool's marketplace is cached per visibility key, and public-only callers share one entry | yes | confirmed | `visibilityKey` joins the sorted `privateWorkspaceIds`; `marketplaceSlot` is `tool/key`, or `tool` for the empty key; `marketplace` and `buildRest` both use it. Making `marketplaceSlot` return `tool` → 4 tests fail |
+| 2 | Two users with different private workspaces get different marketplaces; neither sees the other's, public-only users see neither | yes | confirmed | Probe (acme and beta, a member each, an outsider, root), all three tools, interleaved so later callers hit the cache: acme member `[acme-infra.deploy, team.style]`, beta member `[beta-tools.lint, team.style]`, outsider `[team.style]`, root all 3. SQLite, PostgreSQL, MySQL, MariaDB (43/43) |
+| 3 | Done when: the feed tests cover two keys sharing nothing | yes | partly | The tests used only the keys `""` and `"acme"`: no two different private keys. The behaviour held only in the probe (row 2) |
+| 4 | At most 32 keys are kept, least recently used dropped first | yes | confirmed | `MARKETPLACE_CACHE_SLOTS = 32`; `get`/`set` move an entry to the end, `set` drops the oldest; the unit test with max 2 passes |
+| 5 | A plugin zip is served only if the caller sees its item; otherwise as for an unknown item, uncounted | yes | confirmed | Test: member 200; outsider 404, body as for an unknown name; count stays 1. Probe: acme's member 404 for beta's zip, beta's 200 |
+| 6 | Admin › Settings keeps each tool's largest marketplace of the current revision across keys | yes | confirmed | `recordBuild`: conditional update (older revision, or same revision no larger), then an upsert that leaves a row unchanged. The test passes on all four dialects |
+| 7 | `rmk feed build` asks for public workspaces only (`?workspaces=`), or adds the `--workspace` ones (repeated or comma-separated, lower-cased) | yes | confirmed | `feed-build.test.ts` + `feed-workflow.test.ts` → 18 passed; the test records `["", "acme,beta"]`. Server probe: `ACME`, `,acme,`, `%20` behave |
+| 8 | A name the caller doesn't see gets `workspace_not_found`, as an unknown name, and nothing is written | yes | confirmed | Test: identical 404 bodies for hidden `acme` and unknown `nosuch`. CLI probe: exit 1, `code: workspace_not_found` in `--json`, no files written |
+| 9 | Root may name any private workspace; a mirror never gets root's full view | yes | confirmed | `narrowedViewer` sets `root: false`. Test: root `?workspaces=` → `[team.style]`, `=acme` → acme + team; probe `=beta` → beta + team |
+| 10 | With `--workspace`, rmk warns that the mirror repository must stay private | yes | confirmed | Test: stdout has "(acme): keep the repository you push it to private". `--print-workflow … --workspace acme` printed no such warning |
+| 11 | Losing access: a removed member, or a workspace turned private, drops those items from the next request | yes | partly | Removed member: test passes. Turned private: a request that loaded its viewer before the change and read the revision after it cached the stale feed under the new revision; the outsider then still saw `open-tools.secret` (its zip 404) |
+| 12 | `docs/spec/plugin-feeds.md` is updated | no | confirmed | Visibility in what appears, the zip 404, `?workspaces=`, the cache per key (32, LRU), largest-build stats, `workspace_not_found`, the mirror's `--workspace` |
+| 13 | Done when: the 079 benchmark still passes its budget (warm under 5 s at up to 5,000 items) with one key | yes | confirmed | `pnpm bench:feeds --items 1000,5000` → warm at 5,000: 0.72 / 0.58 / 0.57 s; with a real public-only viewer (key `""`) 0.63 / 0.58 / 0.57 s |
+| 14 | Changed code lints and type-checks | no | confirmed | `biome check` → no errors (warnings not on changed lines); `tsc --noEmit` for apps/web and packages/cli clean |
+| 15 | An older server ignores the `?workspaces=` that rmk now always sends | yes | confirmed | `git show 0e9ecf8:apps/web/src/server/http/feeds-api.ts \| grep -c searchParams` → 0 |
+| 16 | The benchmark at 10,000 items: warm about 1.1 s, about 4.8 MiB | yes | confirmed | `pnpm bench:feeds --items 10000 --tools claude-code` → 4922 KiB (96.1%), warm 1.13 s, repeat 0.00 s (cold 32.3 s on a loaded machine; cold isn't in the budget) |
+| 17 | `--print-workflow --workspace` adds a keep-private comment; the contract notes an rmk from before 093 sends no `?workspaces=` | yes | confirmed | `feedWorkflow("github"\|"gitlab","0.0.0",["acme"])` line 3 → the comment; none without workspaces. `plugin-feeds.md` says so |
+
+**Overall:** not met (rows 3 and 11). Fixed: `marketplaceAs` reads the revision before the viewer, with a test that turns the workspace private mid-request (fails with the old order); the tests have a second private workspace, beta; `--print-workflow --workspace` adds a keep-it-private comment; the contract notes an older rmk sends no `?workspaces=`. Re-check below.
+
+### Re-check — rows 3 and 11
+
+Witnessed: 2026-10-07 18:17 EDT, by a fresh agent (blind). Commit: 0e9ecf8 + the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3 | Done when: the feed tests cover two keys sharing nothing | yes | confirmed | `private-feeds-api.db.test.ts`: a second private workspace `beta` with its own member; acme's and beta's members each get only their own item on all three tools, and the zips (acme's member 404 for `beta-tools/lint`, beta's 200). Mutation `marketplaceSlot` → `${tool}/private` (acme and beta share a slot) → that test fails; → `tool` → 3 fail. Restored: 42 passed |
+| 11 | A workspace turned private drops out of public-only callers' marketplaces from the next request, even when Make private lands mid-request | yes | confirmed | `marketplaceAs` reads `feeds.revision()` before `feedViewer` and pins it. Probe with a Kysely plugin calling `setVisibility(open,"private")` at 3 moments (after the revision read, after the viewer read, on the build's first query after a cache-missing bump), on claude-code and codex: the outsider's next marketplace `["team.style"]`, the member's unchanged. 9/9 on SQLite; 15/15 on PostgreSQL, MySQL, MariaDB. With the old order the probe and the new test both fail. `buildRest` never writes the marketplace cache |
+
+**Overall:** met.
+
+### Adversarial pass
+
+Witnessed: 2026-10-07 18:20 EDT, by a fresh agent (adversarial). Commit: 0e9ecf8 + working tree as of 18:17 EDT (`git diff | shasum` = fa65c0572aaa); a first copy from 18:04 is noted where it differed. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Each caller's marketplace (three tools) holds exactly what they see, in any order and concurrently | yes | confirmed | Probe P1: 3 rounds × 3 tools × {outsider, member, root, member of both, each also with `?workspaces=`} under `Promise.all` → each its own set, on SQLite, PostgreSQL, MySQL, MariaDB |
+| 2 | The cache is kept per visibility key; two private keys share nothing | yes | confirmed | acme's and beta's members each get only their own on all three tools; `marketplaceSlot` → `tool` fails 4 tests; P8: 40 private workspaces and members, concurrent, 2 rounds → each only its own |
+| 3 | A visibility change, or a new private workspace, during a request never leaves one key's build under another key | yes | confirmed | P5 (turn `open` private after the viewer's read) and P5b (a new private workspace gets an item then, while root builds): the 18:17 tree passes on all four databases. The 18:04 copy failed both |
+| 4 | The background build after the budget runs out stays in its own key | yes | confirmed | P7: the member's first answer empty, `buildRest` in the member's slot → the outsider gets no acme item; the member's next request is complete |
+| 5 | LRU eviction keeps at most 32 and never answers another key's build | yes | confirmed | P8 (40 keys) → no mix-up; the unit test passes. Remark: the limit is 32 slots (tool × key), not 32 keys as the docs said |
+| 6 | A member removed, or a workspace made private or public between requests, takes effect on the next request | no | confirmed | P4: private → the outsider's marketplace and zip drop it, the member keeps it; public again → back. P6: a removed member's `If-None-Match` → 404 |
+| 7 | `?workspaces=` gives the same answer for a hidden name and an unknown one | yes | confirmed | P3: 9 forms (`ACME`, `%20acme%20`, `acme,`, `%61cme`, `global,acme`, …) → the same 404 `workspace_not_found` body, 4 databases. On MySQL/MariaDB `acm%C3%A9`, `%E2%80%8Bacme`, `acme%00` matched `acme` for the member (collation), still 404 for the outsider |
+| 8 | `?workspaces=` answers 200 or 404 for any input | yes | partly | PostgreSQL: `?workspaces=acme%00` → unhandled `invalid byte sequence for encoding "UTF8": 0x00` from `findByName`, a 500 (the same for every name) |
+| 9 | Root's and a member's narrowed view holds exactly the workspaces named | yes | confirmed | P2: root `=acme` → acme + public; `=beta` → beta; member `acme,global,open` → acme + public; member `acme,beta` → 404; root unnarrowed → all |
+| 10 | A plugin zip (GET, HEAD, If-None-Match), even one in storage, isn't served to someone who can't see its item, and the 404 matches an unknown name's | yes | confirmed | P6: after the member's download, the outsider's GET, HEAD, `If-None-Match` and HEAD with it → 404, no ETag, unknown-name body, count stays 1. Remark: with `findPluginAs` unfiltered, the API test still passed |
+| 11 | A private item that depends on a public one builds as a plugin for a member | no | confirmed | P6: `@acme-infra/deploy` → `@team/style ^1.0.0`: the member gets 200, both in the zip |
+| 12 | Stats keep the revision's largest; an older revision never replaces a newer | yes | confirmed | The test passes on 4 databases; P11: with a row, concurrent 100/900/500/300 at a newer revision → 900 in 10/10 rounds |
+| 13 | Concurrent first builds of a tool keep the largest | yes | not met | P9: empty `plugin_feeds`, `Promise.all` of 100/900/500/300 → SQLite 100 every time; the others any size: every UPDATE matches 0 rows, the first INSERT wins |
+| 14 | Warnings are logged once per revision across keys, on all 4 databases | yes | partly | P10: 4 keys at once → 1 log; concurrent `markWarned(8)` → one true. But `markWarned(9)`, `markWarned(8)`, `markWarned(9)` → true, true, true: a request on an older revision re-arms the newer one (079's `<>`) |
+| 15 | `rmk feed build --workspace` checks names, sends `?workspaces=`, and warns | yes | confirmed | 18 CLI tests pass; `workspacesOf`: `ACME, Beta` → `[acme,beta]`; `acme\nrun: evil`, `$(id)`, `acme;rm`, `--force`, `acme${{ secrets.RMK_TOKEN }}`, `""`, 65 characters → usage error |
+| 16 | `--print-workflow` can't be injected and carries `--workspace` | yes | confirmed | Only `[a-z0-9-]` reaches the template; GitHub and GitLab build lines carry `--workspace acme,beta`; the keep-private comment at line 3 |
+| 17 | Against an older server, `--workspace` does no harm | yes | confirmed | `main`'s `feeds-api.ts` reads no query string; a pre-093 server has no private workspaces (from code) |
+| 18 | The git mirror holds only public workspaces unless `--workspace` names one | yes | partly | Only for rmk ≥ 093: a pre-093 rmk sends no query and gets the full viewer (member → `acme-infra.deploy` included). `plugin-feeds.md` documented it; SPEC.md didn't |
+| 19 | The 079 benchmark still passes its budget with one key | yes | confirmed | `pnpm bench:feeds --items 1000,5000 --tools claude-code` → warm 0.73 s at 5,000; with a real public-only viewer 0.53 s SQLite, 1.73 s PostgreSQL |
+| 20 | `docs/spec/plugin-feeds.md` updated | no | confirmed | Visibility in content, `?workspaces=`, the zip rule, `workspace_not_found`, per-key cache, the mirror paragraph |
+
+**Overall:** not met (rows 8, 13, 14, 18). Fixed: `recordBuild` retries its conditional update after inserting; `markWarned` only moves forward; an invalid `?workspaces=` name is never looked up (`workspace_not_found`); SPEC says an rmk from before 093 mirrors what its token sees, for the release notes; "32 marketplaces", not keys; the zip test asks HEAD and `If-None-Match` as an outsider (fails with `findPluginAs` unfiltered). Re-check below.
+
+### Re-check — rows 8, 13, 14 and 18
+
+Witnessed: 2026-10-07 18:31 EDT, by a fresh agent (adversarial). Commit: 0e9ecf8 + working tree as of 18:22 EDT (`git diff | shasum` = 06bf44524c72). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 8 | `?workspaces=` answers 200 or 404 for any input, the same for hidden and unknown | yes | confirmed | P3b (`acme%00`, 5,000 `a`s, `%F0%9F%98%80`, `acm%C3%A9`, `%E2%80%8Bacme`; outsider and member both 404) → `workspace_not_found` on all 4 databases; MySQL no longer matches `acmé` to `acme`. Removing the `nameProblem` check fails the API test on PostgreSQL and MySQL |
+| 13 | Concurrent first builds of a tool keep the largest | yes | confirmed | P9, 30 rounds of 100/900/500/300 on an empty table → 900 × 30 on 4 databases. Removing the second `replace()` fails the new test |
+| 14 | A warning is logged once per revision; an older revision can't re-arm it | yes | confirmed | `markWarned(9)`, `(8)` → false, `(9)` → false on 4 databases; three concurrent marks → one true. Reverting to `<>` fails the new test |
+| 18 | The git mirror holds only public workspaces unless `--workspace` names one | yes | partly | Documented only, on a wrong premise: every rmk sends `user-agent: rmk/<version>` (`main:packages/cli/src/api.ts:73`), so the server can tell an old rmk's mirror request from Claude Code's |
+| 5 | The docs give the limit as 32 marketplaces (a tool's for a key) | yes | confirmed | SPEC.md and plugin-feeds.md |
+| 10 | The zip test catches an unfiltered `findPlugin` | yes | confirmed | `findPluginAs` with `UNFILTERED` → the zip test fails |
+
+**Overall:** not met (row 18). Fixed: a request from any rmk without `?workspaces=` is answered for the public workspaces only (Claude Code's unchanged); SPEC, the contract and the note say so, with a test. Re-check below.
+
+
+### Re-check — row 18 (second)
+
+Witnessed: 2026-10-07 18:36 EDT, by a fresh agent (adversarial). Commit: 0e9ecf8 + working tree as of 18:29 EDT (`git diff | shasum` = f3382d82b6e6). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 18 | The git mirror holds only public workspaces unless `--workspace` names one, an rmk from before 093 included; Claude Code's marketplace still holds what the caller sees | yes | confirmed | `main`'s rmk sends `user-agent: rmk/${rmkVersion()}` and no query. P12 (no `?workspaces=`, root and member): `rmk/0.3.2`, `rmk/0.2.0 (node 22)`, `" rmk/0.3.2"`, `rmk/` → public only; no header, `Claude-Code/2.1.0`, `claude-cli/2.1 (external, cli)`, `curl/8.7.1`, `Mozilla/5.0 rmk/0.3.2`, `RMK/0.3.2` → the full view. With `rmk/0.3.2`, `?workspaces=acme` for root → acme + public. Either order → each its own answer. 21/21 on SQLite, PostgreSQL, MySQL, MariaDB. The `rmk/` branch returning null fails the new test |
+
+**Overall:** met. Remarks: the match is case-sensitive (no rmk sends otherwise; a header only changes the caller's own view); only `feed build` fetches `marketplace.json` in the CLI, and it always sends `?workspaces=`.

@@ -12,6 +12,7 @@ export type WorkflowHost = (typeof WORKFLOW_HOSTS)[number];
 
 const github = (
   version: string,
+  build: string,
 ) => `# Keeps this repository a mirror of a Ronne registry's plugin feeds, for Codex, Cursor and
 # Claude Code. Printed by \`rmk feed build --print-workflow github\` (rmk ${version}).
 #
@@ -44,7 +45,7 @@ jobs:
       - name: Install rmk
         run: npm install --global @ronneai/rmk@${version}
       - name: Build the feed
-        run: rmk feed build --out .
+        run: ${build}
         env:
           RMK_REGISTRY: \${{ secrets.RMK_REGISTRY }}
           RMK_TOKEN: \${{ secrets.RMK_TOKEN }}
@@ -63,6 +64,7 @@ jobs:
 
 const gitlab = (
   version: string,
+  build: string,
 ) => `# Keeps this repository a mirror of a Ronne registry's plugin feeds, for Codex, Cursor and
 # Claude Code. Printed by \`rmk feed build --print-workflow gitlab\` (rmk ${version}).
 #
@@ -79,7 +81,7 @@ ronne-plugin-feed:
     - if: $CI_PIPELINE_SOURCE == "web"
   script:
     - npm install --global @ronneai/rmk@${version}
-    - rmk feed build --out .
+    - ${build}
     - git add --all
     - |
       if git diff --cached --quiet; then
@@ -92,8 +94,26 @@ ronne-plugin-feed:
       git push "https://oauth2:$RMK_PUSH_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git" "HEAD:$CI_COMMIT_REF_NAME"
 `;
 
-export const feedWorkflow = (host: string, version = rmkVersion()): string => {
-  if (host === "github") return github(version);
-  if (host === "gitlab") return gitlab(version);
-  throw usage(`--print-workflow takes ${WORKFLOW_HOSTS.join(" or ")}.`);
+/**
+ * The CI file for `host`. With `workspaces` (093), its build names them, as `rmk feed build
+ * --workspace` does: the names are checked first, so nothing else reaches the file.
+ */
+export const feedWorkflow = (
+  host: string,
+  version = rmkVersion(),
+  workspaces: readonly string[] = [],
+): string => {
+  const build = `rmk feed build --out .${workspaces.length ? ` --workspace ${workspaces.join(",")}` : ""}`;
+  const workflow =
+    host === "github" ? github(version, build) : host === "gitlab" ? gitlab(version, build) : null;
+  if (workflow === null) throw usage(`--print-workflow takes ${WORKFLOW_HOSTS.join(" or ")}.`);
+  if (!workspaces.length) return workflow;
+  // Under the two header lines: the mirror then holds what only those workspaces' members see.
+  const lines = workflow.split("\n");
+  lines.splice(
+    2,
+    0,
+    `# It includes the workspace${workspaces.length === 1 ? "" : "s"} named with --workspace (${workspaces.join(", ")}): keep this repository private.`,
+  );
+  return lines.join("\n");
 };

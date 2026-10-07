@@ -42,3 +42,13 @@ export class FeedTooLargeError extends FeedsError {
     );
   }
 }
+
+/**
+ * A mirror asked for a workspace the token's user doesn't see (093): unknown, or private and they
+ * aren't a member. One message for both, so it doesn't tell a private name from an unknown one.
+ */
+export class FeedWorkspaceNotFoundError extends FeedsError {
+  constructor(readonly workspace: string) {
+    super(`There's no workspace ${workspace} you can use.`);
+  }
+}

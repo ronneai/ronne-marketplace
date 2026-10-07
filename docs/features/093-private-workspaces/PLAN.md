@@ -35,7 +35,7 @@ the same change that completes it.
   *Done when:* API tests answer `not_found` (the `*_not_found` codes) for a non-member and data for
   a member.
 
-- [ ] **7. Plugin feeds.** [risky] The visibility key, the cache per key, the per-key stats; zips
+- [x] **7. Plugin feeds.** [risky] The visibility key, the cache per key, the per-key stats; zips
   checked; `rmk feed build --workspace` and its warning; `docs/spec/plugin-feeds.md` updated.
   *Done when:* feed tests cover two keys sharing nothing, and the 079 benchmark still passes its
   budget with one key.
@@ -166,4 +166,41 @@ goes into `SPEC.md` instead.
   From the adversarial witness: an outside item's yanked version that depended on the workspace
   before it turned private keeps naming the dependency (its own manifest and its dependency list);
   that's recorded in SPEC's Out section rather than refusing Make private forever.
+- **Task 7: plugin feeds** (Claude). The feeds read as the caller again (`viewerOf`, no more
+  `loadPublicViewer`), and `FeedDeps.visibility` carries `visibilityKey(viewer)`. The marketplace
+  cache keeps one entry per slot (`marketplaceSlot(tool, key)`: the tool's name alone for the
+  empty key), at most 32 slots, least recently used first out; background builds run once per
+  slot. Plugin zips are shared in storage across keys: a version's plugin is the same whoever
+  asks, and a zip is served only when `findPlugin` (through the caller's repositories) finds the
+  item. `plugin_feeds` keeps one row per tool, so `recordBuild` replaces only an older revision or
+  a smaller build of the same one, in one conditional update (no migration); the warning stays
+  once per revision. The mirror: `?workspaces=<names>` narrows the caller's viewer to the public
+  workspaces and the named private ones (`narrowedViewer`, never root, so its key matches a
+  member's); a name the caller doesn't see is `workspace_not_found`, one message for unknown and
+  hidden. `rmk feed build` always sends it (empty by default), so an older server simply ignores
+  it; `--workspace` (repeated or comma-separated, lower-cased, checked as a name) adds names, says
+  to keep the repository private, and goes into `--print-workflow`'s build line.
+  The 079 benchmark with one key (`pnpm bench:feeds`, SQLite in memory, 2026-10-07): warm 0.09 /
+  0.50 / 1.13 s and repeat under 5 ms at 1,000 / 5,000 / 10,000 items (Claude Code; Codex and
+  Cursor the same), cold 2.5 / 12.0 / 22.7 s, 4.8 MiB at 10,000: as 079 measured, far under its
+  5-second warm trigger.
+  From the blind witness: a request that loaded its viewer before Make private and read the
+  revision after it cached the old marketplace under the new revision, so public-only callers kept
+  seeing the newly private names. `marketplaceAs` now reads the revision first and builds with it
+  (`private-feeds-api.db.test.ts` turns the workspace private in the middle of a request with a
+  Kysely plugin, and fails with the old order). The tests now have two private workspaces (acme
+  and beta) whose members share nothing, on all three tools. `--print-workflow --workspace` adds a
+  comment to keep the repository private. An rmk from before 093 sends no `?workspaces=`, so its
+  mirror gets everything the token's user sees: worth a line in the release notes.
+  From the adversarial witness: concurrent first builds of a tool kept whichever inserted first;
+  `recordBuild` now tries its conditional update again after inserting. `markWarned` only moves
+  forward (`<`), so a request still on an older revision can't re-arm a newer one's warning. A
+  `?workspaces=` name that isn't a valid name is never looked up (a NUL failed on PostgreSQL, and
+  MySQL's collation matched "acmé" to "acme"): it's `workspace_not_found`. The cache holds 32
+  marketplaces (a tool's for a key), not 32 keys. The zip test now asks HEAD and a matching
+  `If-None-Match` as an outsider: those never reach the filtered download, so only `findPlugin`'s
+  viewer guards them. Then, from its re-check: an rmk from before 093 would have mirrored what its
+  token's user sees, but every rmk sends `user-agent: rmk/…`, so the route answers an rmk request
+  without `?workspaces=` for the public workspaces only (Claude Code's request is unaffected; a
+  forged header only narrows the caller's own view).
 

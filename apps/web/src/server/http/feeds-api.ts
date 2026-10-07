@@ -9,6 +9,7 @@ import {
 } from "../domains/feeds/actions/feeds";
 import {
   FeedTooLargeError,
+  FeedWorkspaceNotFoundError,
   PluginNotFoundError,
   PluginUnavailableError,
 } from "../domains/feeds/exceptions/errors";
@@ -45,11 +46,35 @@ const feedErrorResponse = (error: unknown): Response => {
       item: error.itemName,
       version: error.version,
     });
+  if (error instanceof FeedWorkspaceNotFoundError)
+    return errorResponse(404, "workspace_not_found", error.message, {
+      workspace: error.workspace,
+    });
   if (error instanceof FeedTooLargeError)
     return errorResponse(507, "feed_too_large", error.message, { plugins: error.plugins });
   const response = domainErrorResponse(error);
   if (response) return response;
   throw error;
+};
+
+/**
+ * `?workspaces=` for a git mirror (093): only the public workspaces, plus the private ones it names,
+ * separated by commas. Absent, everything the caller sees, as Claude Code asks; but an rmk from
+ * before 093 builds mirrors without it, so a request from any rmk (`user-agent: rmk/…`) without it
+ * gets the public workspaces only. A forged header can only narrow the caller's own view.
+ */
+const workspacesOf = (request: Request): string[] | null => {
+  const value = new URL(request.url).searchParams.get("workspaces");
+  if (value === null)
+    return (request.headers.get("user-agent") ?? "").startsWith("rmk/") ? [] : null;
+  return [
+    ...new Set(
+      value
+        .split(",")
+        .map((name) => name.trim())
+        .filter(Boolean),
+    ),
+  ];
 };
 
 /** GET /api/v1/feeds/{tool}/marketplace.json: the tool's marketplace, built from the feed. */
@@ -70,7 +95,14 @@ export const getMarketplace = async (
       "This instance has no PUBLIC_URL, and a plugin marketplace needs absolute URLs. Ask root to set it.",
     );
   try {
-    const bytes = await marketplaceAs(guard.auth.user, tool, publicUrl, deps.app, deps.storage);
+    const bytes = await marketplaceAs(
+      guard.auth.user,
+      tool,
+      publicUrl,
+      workspacesOf(request),
+      deps.app,
+      deps.storage,
+    );
     // It changes with every release, so it's checked each time (contract, Endpoints).
     const etag = `"${createHash("sha256").update(bytes).digest("hex")}"`;
     const cache = { etag, "cache-control": "private, no-cache" };

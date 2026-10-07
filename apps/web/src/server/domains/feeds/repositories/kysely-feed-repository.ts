@@ -15,21 +15,47 @@ export const kyselyFeedRepository = (
   revision: () => catalogueRevision(db),
 
   recordBuild: async (stats) => {
+    const row = {
+      size_bytes: stats.sizeBytes,
+      plugins: stats.plugins,
+      build_ms: Math.round(stats.buildMs),
+      revision: stats.revision,
+      built_at: toDbDate(stats.builtAt, dialect),
+    };
+    // Replace an older revision's build, or a smaller one of this revision, in one statement, so
+    // two keys' builds at once can't swap the larger for the smaller.
+    const replace = async () =>
+      Number(
+        (
+          await db
+            .updateTable("plugin_feeds")
+            .set(row)
+            .where("tool", "=", stats.tool)
+            .where((eb) =>
+              eb.or([
+                eb("revision", "<", stats.revision),
+                eb.and([
+                  eb("revision", "=", stats.revision),
+                  eb("size_bytes", "<=", stats.sizeBytes),
+                ]),
+              ]),
+            )
+            .executeTakeFirst()
+        ).numUpdatedRows,
+      ) > 0;
+    if (await replace()) return;
+    // No row to replace: the tool's first build, or a newer or larger one is already there. Insert
+    // it if there's none (an update of `tool` to itself changes nothing), then try again: another
+    // first build may have inserted a smaller one in between.
     await upsert(
       db,
       dialect,
       "plugin_feeds",
-      {
-        tool: stats.tool,
-        size_bytes: stats.sizeBytes,
-        plugins: stats.plugins,
-        build_ms: Math.round(stats.buildMs),
-        revision: stats.revision,
-        built_at: toDbDate(stats.builtAt, dialect),
-      },
+      { tool: stats.tool, ...row },
       ["tool"],
-      ["size_bytes", "plugins", "build_ms", "revision", "built_at"],
+      ["tool"],
     ).execute();
+    await replace();
   },
 
   markWarned: async (tool, revision) => {
@@ -38,7 +64,8 @@ export const kyselyFeedRepository = (
       .set({ warned_revision: revision })
       .where("tool", "=", tool)
       .where((eb) =>
-        eb.or([eb("warned_revision", "is", null), eb("warned_revision", "<>", revision)]),
+        // Only forward: a request still on an older revision mustn't re-arm the newer one's warning.
+        eb.or([eb("warned_revision", "is", null), eb("warned_revision", "<", revision)]),
       )
       .executeTakeFirst();
     return Number(result.numUpdatedRows) > 0;

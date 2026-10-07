@@ -544,6 +544,52 @@ describe("feed stats, warnings and the cap (079)", () => {
     expect((await stats()).map((s) => s.tool)).toEqual(["codex"]);
   });
 
+  it("keeps each tool's largest build of the revision, across visibility keys (093)", async () => {
+    const feeds = kyselyFeedRepository(t.db, t.dialect);
+    const build = (revision: number, sizeBytes: number) =>
+      feeds.recordBuild({
+        tool: "claude-code",
+        sizeBytes,
+        plugins: 1,
+        buildMs: 5,
+        revision,
+        builtAt: new Date(),
+      });
+    const size = async () => (await stats())[0]?.sizeBytes;
+    await build(3, 500);
+    await build(3, 200);
+    expect(await size()).toBe(500);
+    await build(3, 800);
+    expect(await size()).toBe(800);
+    // An older revision's build never replaces a newer one; a newer one always does.
+    await build(2, 9_000);
+    expect(await size()).toBe(800);
+    await build(4, 100);
+    expect(await size()).toBe(100);
+    expect((await stats())[0]?.revision).toBe(4);
+  });
+
+  it("keeps the largest of a tool's first builds made at once, and warns forward only", async () => {
+    const feeds = kyselyFeedRepository(t.db, t.dialect);
+    await Promise.all(
+      [100, 900, 500, 300].map((sizeBytes) =>
+        feeds.recordBuild({
+          tool: "codex",
+          sizeBytes,
+          plugins: 1,
+          buildMs: 5,
+          revision: 7,
+          builtAt: new Date(),
+        }),
+      ),
+    );
+    expect((await stats())[0]?.sizeBytes).toBe(900);
+    // A request still on revision 8 that finishes after 9 warned doesn't make 9 warn again.
+    expect(await feeds.markWarned("codex", 9)).toBe(true);
+    expect(await feeds.markWarned("codex", 8)).toBe(false);
+    expect(await feeds.markWarned("codex", 9)).toBe(false);
+  });
+
   it("warns past the size threshold for Claude Code, once per revision", async () => {
     const warnings = () =>
       logged.filter((line) => line.includes("Claude Code reads from an address"));

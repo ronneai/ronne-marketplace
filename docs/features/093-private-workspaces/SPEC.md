@@ -85,13 +85,18 @@ audit log reads "Made workspace acme private").
 **Turning a workspace public:** a confirm ("Everyone on this instance will see its items and can
 depend on them"), then the revision bump.
 
-**Plugin feeds.** Claude Code's marketplace (077) is built per **visibility key**: the sorted ids
+**Plugin feeds.** Each tool's marketplace (077) is built per **visibility key**: the sorted ids
 of the private workspaces the caller sees (empty for most callers). The in-memory cache (079) holds
-one entry per key in use, with the same revision rule; the size and time warnings are per key, and
-Admin › Settings shows the largest. A plugin zip is served only if its item is visible to the
-caller. The git mirror (`rmk feed build`, 078) includes only public workspaces unless
-`--workspace <name>` names a private one the token's user is a member of. It warns that the mirror
-repository must then be private too.
+one entry per tool and key in use (at most 32 entries, the least recently used going first), with
+the same revision rule. Admin › Settings shows each tool's largest marketplace of the revision, and the
+size and time warnings are logged once per revision, for whichever key comes near a limit first. A
+plugin zip is served only if its item is visible to the caller. The git mirror (`rmk feed build`,
+078) includes only public workspaces (it asks with `?workspaces=`) unless `--workspace <name>`
+names a private one the token's user is a member of (root may name any); a name they don't see
+gets `workspace_not_found`, the same for an unknown one. It warns that the mirror repository must
+then be private too. An `rmk` from before 093 doesn't send `?workspaces=`, so a request from any
+`rmk` (its `user-agent: rmk/…`) without it gets the public workspaces only; Claude Code's, without
+it, gets what the caller sees. A forged header can only narrow the caller's own view.
 
 **What members see.** A private workspace's items carry a lock icon and "Private · acme" next to
 the scope on the card and item page. The catalogue's Workspace filter lists the visible ones.

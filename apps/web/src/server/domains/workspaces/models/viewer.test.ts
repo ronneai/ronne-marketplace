@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { seesWorkspace, visibilityKey, visibleWorkspaces } from "./viewer";
+import { narrowedViewer, seesWorkspace, visibilityKey, visibleWorkspaces } from "./viewer";
 
 // Who sees which workspaces (093): the public ones for everyone signed in, a private one for its
 // members (any role) and root, nothing signed out.
@@ -74,5 +74,30 @@ describe("visibleWorkspaces (093)", () => {
   it("ignores a membership of a workspace that no longer exists", () => {
     const viewer = visibleWorkspaces(user("user", { gone: "admin" }), WORKSPACES);
     expect(viewer.workspaceIds).toEqual(["g", "pub"]);
+  });
+});
+
+describe("narrowedViewer (093, a git mirror)", () => {
+  it("keeps the public workspaces and only the chosen private ones the viewer sees", () => {
+    const member = visibleWorkspaces(user("user", { acme: "user", beta: "user" }), WORKSPACES);
+    const narrowed = narrowedViewer(member, ["acme", "gone"]);
+    expect(narrowed.workspaceIds).toEqual(["acme", "g", "pub"]);
+    expect(narrowed.privateWorkspaceIds).toEqual(["acme"]);
+    expect(visibilityKey(narrowedViewer(member, []))).toBe("");
+  });
+
+  it("never adds a private workspace the viewer doesn't see", () => {
+    const outsider = visibleWorkspaces(user("user", {}), WORKSPACES);
+    expect(narrowedViewer(outsider, ["acme"]).workspaceIds).toEqual(["g", "pub"]);
+  });
+
+  it("isn't root any more: root sees the chosen ones only, as a member would", () => {
+    const root = visibleWorkspaces(user("root", {}), WORKSPACES);
+    const narrowed = narrowedViewer(root, ["beta"]);
+    expect(narrowed.root).toBe(false);
+    expect(narrowed).toEqual({
+      ...narrowedViewer(visibleWorkspaces(user("user", { beta: "user" }), WORKSPACES), ["beta"]),
+      userId: "u1",
+    });
   });
 });

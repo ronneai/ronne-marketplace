@@ -55,6 +55,23 @@ export const seesWorkspace = (viewer: Viewer, workspaceId: string): boolean =>
 export const visibilityKey = (viewer: Viewer): string => viewer.privateWorkspaceIds.join(",");
 
 /**
+ * The viewer cut down to the public workspaces and the private ones in `chosen` that it sees (093:
+ * a git mirror, `rmk feed build --workspace`). Never root: it then sees exactly those, so two
+ * viewers left with the same private workspaces share a visibility key and see the same items.
+ */
+export const narrowedViewer = (viewer: Viewer, chosen: readonly string[]): Viewer => {
+  const kept = viewer.privateWorkspaceIds.filter((id) => chosen.includes(id));
+  return {
+    userId: viewer.userId,
+    root: false,
+    workspaceIds: viewer.workspaceIds.filter(
+      (id) => !viewer.privateWorkspaceIds.includes(id) || kept.includes(id),
+    ),
+    privateWorkspaceIds: kept,
+  };
+};
+
+/**
  * Sees every workspace, as root does, for code that isn't reading on someone's behalf: a release
  * already authorised by the release rules (015), the checks run at submit (task 4 narrows them).
  * Never for what a person or a token reads.
