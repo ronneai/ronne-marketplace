@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
+import { GLOBAL_WORKSPACE_ID } from "../../../db/migrations/0019_workspaces";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { listAuditEvents } from "../../audit/actions/audit";
 import {
@@ -179,6 +180,47 @@ describe("createUser", () => {
     expect(event).toMatchObject({ metadata: { email: "r2@example.com", role: "root" } });
     const asSecond = await headersFor("r2@example.com", created.password);
     expect((await adminListUsers(asSecond, { role: "root" }, app)).users).toHaveLength(2);
+  });
+});
+
+describe("global membership (091)", () => {
+  const memberships = (userId: string) =>
+    t.db
+      .selectFrom("workspace_members")
+      .select(["workspace_id", "role"])
+      .where("user_id", "=", userId)
+      .execute();
+
+  it("puts a new user in global, and a new root nowhere", async () => {
+    const user = await adminCreateUser(
+      asRoot,
+      { email: "u@example.com", name: "U", role: "user" },
+      app,
+    );
+    const root = await adminCreateUser(
+      asRoot,
+      { email: "r2@example.com", name: "R2", role: "root" },
+      app,
+    );
+    expect(await memberships(user.id)).toEqual([
+      { workspace_id: GLOBAL_WORKSPACE_ID, role: "user" },
+    ]);
+    expect(await memberships(root.id)).toEqual([]);
+    expect(await memberships(rootId)).toEqual([]);
+  });
+
+  it("puts a root who stops being root in global, once", async () => {
+    const root = await adminCreateUser(
+      asRoot,
+      { email: "r2@example.com", name: "R2", role: "root" },
+      app,
+    );
+    await adminChangeRole(asRoot, root.id, "user", app);
+    await adminChangeRole(asRoot, root.id, "root", app);
+    await adminChangeRole(asRoot, root.id, "user", app);
+    expect(await memberships(root.id)).toEqual([
+      { workspace_id: GLOBAL_WORKSPACE_ID, role: "user" },
+    ]);
   });
 });
 

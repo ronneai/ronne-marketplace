@@ -3,6 +3,7 @@ import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
 import { countCapped, paginate } from "../../../db/keyset";
 import { forUpdate, readCommittedTransaction } from "../../../db/locks";
+import { GLOBAL_WORKSPACE_ID } from "../../../db/migrations/0019_workspaces";
 import type { Database } from "../../../db/schema";
 import { containsInsensitive } from "../../../db/search";
 import type { DatabaseDialect } from "../../../db/url";
@@ -196,6 +197,27 @@ export const kyselyIdentityRepository = (
         .set({ role, updated_at: at(now) })
         .where("id", "=", userId)
         .execute();
+      // Someone who stops being root keeps their rows, and is in `global` like everyone (091).
+      if (role !== "root") {
+        const inGlobal = await db
+          .selectFrom("workspace_members")
+          .select("user_id")
+          .where("workspace_id", "=", GLOBAL_WORKSPACE_ID)
+          .where("user_id", "=", userId)
+          .executeTakeFirst();
+        if (!inGlobal)
+          await db
+            .insertInto("workspace_members")
+            .values({
+              workspace_id: GLOBAL_WORKSPACE_ID,
+              user_id: userId,
+              role: "user",
+              added_by: null,
+              created_at: at(now),
+              updated_at: at(now),
+            })
+            .execute();
+      }
     },
 
     async disableUser(userId, now) {
@@ -270,6 +292,19 @@ export const kyselyIdentityRepository = (
           updated_at: at(now),
         })
         .execute();
+      // Every user is in `global` (091); a root is in every workspace without a row.
+      if (user.role !== "root")
+        await db
+          .insertInto("workspace_members")
+          .values({
+            workspace_id: GLOBAL_WORKSPACE_ID,
+            user_id: id,
+            role: user.role === "moderator" ? "moderator" : "user",
+            added_by: null,
+            created_at: at(now),
+            updated_at: at(now),
+          })
+          .execute();
       return id;
     },
 

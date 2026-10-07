@@ -1,3 +1,5 @@
+import { toDbDate } from "../../../db/dates";
+import { GLOBAL_WORKSPACE_ID } from "../../../db/migrations/0019_workspaces";
 import type { TestDb } from "../../../db/testing/test-db";
 import { LoginRateLimiter } from "../models/login-rate-limiter";
 import type { AppAuth } from "../repositories/auth-instance";
@@ -42,6 +44,20 @@ export const createTestUser = async (
     accountId: created.id,
     password: await ctx.password.hash(user.password),
   });
+  if (user.role !== "root") {
+    const now = toDbDate(new Date(), app.dialect);
+    await app.db
+      .insertInto("workspace_members")
+      .values({
+        workspace_id: GLOBAL_WORKSPACE_ID,
+        user_id: created.id,
+        role: user.role === "moderator" ? "moderator" : "user",
+        added_by: null,
+        created_at: now,
+        updated_at: now,
+      })
+      .execute();
+  }
   if (user.role && user.role !== "user") {
     await app.db
       .updateTable("user")

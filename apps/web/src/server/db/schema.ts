@@ -103,6 +103,19 @@ export interface WorkspaceTable {
 }
 
 /**
+ * A user's role in a workspace (migration 0020_workspace_members, feature 091). Every user who
+ * isn't root has a `global` row; a root's rows are ignored for permissions.
+ */
+export interface WorkspaceMemberTable {
+  workspace_id: string;
+  user_id: string;
+  role: "moderator" | "user";
+  added_by: string | null;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+}
+
+/**
  * Scopes (migration 0004_scopes). `name` is stored without the `@`. Every scope belongs to one
  * workspace (0019_workspaces); an item's workspace is its scope's.
  */
@@ -299,6 +312,7 @@ export interface Database {
   access_tokens: AccessTokenTable;
   audit_log: AuditLogTable;
   workspaces: WorkspaceTable;
+  workspace_members: WorkspaceMemberTable;
   scopes: ScopeTable;
   submissions: SubmissionTable;
   submission_files: SubmissionFileTable;

@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Migration.** [risky] `workspace_members`; a `global` row per non-root user (moderator for
+- [x] **1. Migration.** [risky] `workspace_members`; a `global` row per non-root user (moderator for
   moderators); `user.role` `moderator` → `user`. New users get the `global` row in `createUser`.
   *Done when:* migration tests pass on the four databases with roots, moderators and users.
 

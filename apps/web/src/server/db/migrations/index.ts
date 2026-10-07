@@ -17,6 +17,7 @@ import { submissionsQueueIndexes } from "./0016_submissions_queue_indexes";
 import { submissionsAuthorIndexes } from "./0017_submissions_author_indexes";
 import { pluginFeeds } from "./0018_plugin_feeds";
 import { workspaces } from "./0019_workspaces";
+import { workspaceMembers } from "./0020_workspace_members";
 import type { AppMigration } from "./types";
 
 /**
@@ -43,4 +44,5 @@ export const migrations: Record<string, AppMigration> = {
   "0017_submissions_author_indexes": submissionsAuthorIndexes,
   "0018_plugin_feeds": pluginFeeds,
   "0019_workspaces": workspaces,
+  "0020_workspace_members": workspaceMembers,
 };
