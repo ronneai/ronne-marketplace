@@ -36,6 +36,7 @@ export const TOPICS = [
     sections: [
       { id: "what", title: "What a workspace is" },
       { id: "global", title: "The global workspace" },
+      { id: "roles", title: "Members and roles" },
       { id: "managing", title: "Creating and managing them" },
     ],
   },
@@ -124,7 +125,7 @@ export const TOPICS = [
   {
     slug: "roles",
     title: "Roles",
-    summary: "What users, moderators and root can do.",
+    summary: "What users, moderators and root can do, and where.",
     sections: [
       { id: "roles", title: "The three roles" },
       { id: "permissions", title: "Who can do what" },

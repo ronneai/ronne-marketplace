@@ -2,6 +2,7 @@ import { ITEM_TYPES } from "@ronneai/core";
 import Form from "next/form";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { Help } from "@/components/help/Help";
 import { DependencyMarksIcon } from "@/components/submissions/DependencyMarks";
 import { ProposalBadges } from "@/components/submissions/ProposalBadges";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
@@ -155,7 +156,10 @@ const Filters = ({
         </div>
         {byWorkspace ? (
           <div className="grid gap-1.5">
-            <Label htmlFor="queue-workspace">Workspace</Label>
+            <div className="flex items-center gap-1.5">
+              <Label htmlFor="queue-workspace">Workspace</Label>
+              <Help id="queue-workspaces" />
+            </div>
             <select
               id="queue-workspace"
               name="workspace"

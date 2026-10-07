@@ -11,7 +11,7 @@ export const HELP = {
   scope: {
     question: "What's a scope?",
     answer:
-      "The first part of an item's name, after the @, such as @platform in @platform/code-reviewer. It groups related items. Root creates scopes; anyone may propose items in any of them, because review is the gate.",
+      "The first part of an item's name, after the @, such as @platform in @platform/code-reviewer. It groups related items. Root creates scopes, each in a workspace; its workspace's members propose items in it, and review is the gate.",
     href: docsHref("scopes", "what"),
   },
   workspace: {
@@ -23,8 +23,20 @@ export const HELP = {
   "workspace-choice": {
     question: "Which workspace?",
     answer:
-      "The one whose team the scope's items are for; global when they're for everyone. The catalogue and item pages show a workspace other than global before the items' names, and once there's more than global the catalogue can filter by workspace. Every workspace is public for now, so everyone signed in still sees the items. The scope can't move to another workspace later.",
+      "The one whose team the scope's items are for; global when they're for everyone. The catalogue and item pages show a workspace other than global before the items' names, and once there's more than global the catalogue can filter by workspace. Every workspace is public for now, so everyone signed in still sees the items; its members submit and its moderators review there. The scope can't move to another workspace later.",
     href: docsHref("workspaces", "what"),
+  },
+  "queue-workspaces": {
+    question: "Why only these?",
+    answer:
+      "Reviews shows the submissions of the workspaces you moderate; root's shows every workspace's. Moderator is a role in a workspace, so you can moderate one and be a plain user in another.",
+    href: docsHref("workspaces", "roles"),
+  },
+  join: {
+    question: "How do I join?",
+    answer:
+      "Anyone signed in reads and installs a workspace's items, but only its members propose and submit there. For now, root adds members: ask root to add you to the workspace.",
+    href: docsHref("workspaces", "roles"),
   },
   name: {
     question: "How should I name it?",
@@ -53,7 +65,7 @@ export const HELP = {
   "after-submit": {
     question: "What happens next?",
     answer:
-      "A moderator or root who isn't you reviews it. They approve it, ask for changes, or reject it, and you'll see it in the conversation. Once approved, you can release it.",
+      "A moderator of its workspace, or root, who isn't you reviews it. They approve it, ask for changes, or reject it, and you'll see it in the conversation. Once approved, you can release it.",
     href: docsHref("review", "reviewing"),
   },
   risk: {
@@ -221,7 +233,7 @@ export const HELP = {
   "role-root": {
     question: "What can root do?",
     answer:
-      "Everything a moderator can, plus manage users, create scopes, change the instance's settings, read the audit log and approve their own submissions. There can be several roots, and each can change any other root's role or account, but not their own.",
+      "Everything a moderator can, in every workspace, plus manage users, create workspaces and scopes, change the instance's settings, read the audit log and approve their own submissions. There can be several roots, and each can change any other root's role or account, but not their own.",
     href: docsHref("roles", "roles"),
   },
   "own-row": {

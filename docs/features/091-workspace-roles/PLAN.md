@@ -35,7 +35,7 @@ the same change that completes it.
   show "root", or the roles per workspace on Admin › Users (read only until 092).
   *Done when:* shell and nav tests pass, and the phone sweep passes for each role.
 
-- [ ] **7. Decisions and Documentation.** MVP §2 (roles table and matrix), §9.5, §10
+- [x] **7. Decisions and Documentation.** MVP §2 (roles table and matrix), §9.5, §10
   (`workspace_members`, `user.role`), §15 ("Approval", "Roles" rows); the topics and helpers.
   *Done when:* the docs render tests pass in ronne-web, and the helper link test passes here.
 
@@ -102,3 +102,13 @@ goes into `SPEC.md` instead.
   disabled, and "No moderators" when there are none. The editor tells an author no longer in the
   workspace why it's read-only. The nav (Reviews when moderating any workspace) and root's badge
   came with task 2; the shell shows no moderator badge, since moderator is per workspace now.
+- **Task 7: Documentation** (Claude). In ronne-web, branch `docs/marketplace-091-workspace-roles`
+  (not pushed): Roles rewritten (root on the instance, moderator and user per workspace, the
+  matrix by workspace), Workspaces › Members and roles (`workspaces#roles`, new, in `topics.ts` here
+  and there), Reviewing (the queue shows your workspaces), Export › Choosing the scope (only your
+  workspaces'), and Admin (the Role and Moderators columns), Scopes › Who creates and uses them and Changing a
+  published item › Propose a change (who may propose), in English, Portuguese and French.
+  Helpers here: "Why only these?" on the queue's Workspace filter and "How do I join?" under a
+  refused Propose, both to `workspaces#roles`; the scope, workspace-choice, after-submit and
+  role-root helpers no longer say anyone may propose anywhere.
+

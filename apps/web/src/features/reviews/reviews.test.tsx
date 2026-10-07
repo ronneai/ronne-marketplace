@@ -201,6 +201,8 @@ describe("the queue", () => {
     );
     expect(forRoot).toContain(">Every workspace</option>");
     expect(several).toContain('<option value="beta">beta</option>');
+    expect(several).toContain("Why only these?");
+    expect(one).not.toContain("Why only these?");
     const list = queueList("needs");
     const state = checkedQueueState(parseListQuery(list, { workspace: "beta" }));
     expect(queueQueryOf("needs", state)).toMatchObject({ workspace: "beta" });

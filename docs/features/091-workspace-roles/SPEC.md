@@ -117,18 +117,18 @@ still holds root).
 
 ## Acceptance criteria
 
-- [ ] The migration gives every user a `global` membership (moderator for former moderators) and
+- [x] The migration gives every user a `global` membership (moderator for former moderators) and
   leaves only `root` / `user` in `user.role`, on the four databases.
-- [ ] A moderator of workspace A can approve, release, tag, deprecate and yank in A and not in B;
+- [x] A moderator of workspace A can approve, release, tag, deprecate and yank in A and not in B;
   root can in both; a user can't in either.
-- [ ] Drafts, proposals, exports and submits need membership of the scope's workspace; others get
+- [x] Drafts, proposals, exports and submits need membership of the scope's workspace; others get
   `not_a_member`.
-- [ ] The review queue and its counts show only the actor's moderated workspaces; root sees all.
-- [ ] Bulk approve, release and submit skip items outside the actor's workspaces, with the reason.
-- [ ] A removed member can read and withdraw their open submissions there, but not edit or submit.
-- [ ] Every call site of a workspace permission passes a workspace (type-check), and a test walks
+- [x] The review queue and its counts show only the actor's moderated workspaces; root sees all.
+- [x] Bulk approve, release and submit skip items outside the actor's workspaces, with the reason.
+- [x] A removed member can read and withdraw their open submissions there, but not edit or submit.
+- [x] Every call site of a workspace permission passes a workspace (type-check), and a test walks
   the permission matrix.
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Decisions
 

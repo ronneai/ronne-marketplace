@@ -35,7 +35,7 @@ import type { SubmissionActor } from "./submissions";
 /**
  * Change proposals (feature 017, MVP §4.1): a draft of a published item's next version, started from
  * one of its versions. It keeps the item's scope, name and type; everything else works as a new
- * item's draft does. Anyone signed in may propose, in any scope (MVP §2).
+ * item's draft does. The members of the item's workspace may propose (MVP §2, 091).
  */
 export type ProposalDeps = DraftDeps & { storage: StorageAdapter; registry?: RegistryLookup };
 

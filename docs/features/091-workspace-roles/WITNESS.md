@@ -348,3 +348,52 @@ Witnessed: 2026-10-07 01:32 EDT, by a fresh agent (blind). Commit: 4ef5ebb (+ un
 | 11 | The phone sweep passes for each role with the Moderators column showing | yes | confirmed | `pnpm test:e2e` → 91 passed (2.0m); all 15 mobile-sweep tests pass (signed out, member, moderator, root, "no page scrolls sideways", in phone, phone-webkit, tablet); `/admin/workspaces` is in the root sweep (`pages.ts:73`) |
 
 **Overall:** met: Reviews shows for a moderator of any workspace and a test covers it, "No moderators" shows at every width, and the phone sweep passes for each role.
+
+## Task 7 — Decisions and Documentation
+
+Witnessed: 2026-10-07 01:38 EDT, by a fresh agent (blind). Commit: e371a25 + working tree (ronne-web bc762e4). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The docs render tests pass in ronne-web | yes | confirmed | `cd ../ronne-web/www && pnpm test` at bc762e4 → 136 passed; `pnpm typecheck` clean; `pnpm lint` → 206 files, no fixes |
+| 2 | The helper link test passes here and covers the new helpers | yes | confirmed | `vitest run src/components/help src/features/reviews/reviews.test.tsx src/features/item-page` → 6 files, 66 passed; a probe of help.test.tsx's section check without `workspaces#roles` makes `queue-workspaces` and `join` broken links |
+| 3 | The app's topics.ts and ronne-web's topics.ts agree, with the new `workspaces#roles` | yes | confirmed | `node scratchpad/witness7/cmp.mts` → 18 topics each, 0 differences; workspaces = what, global, roles, managing |
+| 4 | Roles → The three roles is rewritten: root is instance-wide, moderator and user are per workspace (en/pt/fr) | yes | partly | en/roles.tsx:28-63 right, but en:38-39, pt:38-39, fr:48-49 say "Everyone is a user in `global`"; former moderators are moderators there, and roots have no row |
+| 5 | Roles → Who can do what gives the matrix by workspace | yes | confirmed | PERMISSIONS adds "Create workspaces and scopes" and "install and depend on"; the intro matches `WORKSPACE_PERMISSIONS` (permissions.ts:28-38) and `requireMember` |
+| 6 | Workspaces has a new section Members and roles (`workspaces#roles`) in en/pt/fr that matches the app | yes | confirmed | `roles:` at en:71, pt:74, fr:79; the refusal text matches errors.ts:52; Reviews via `canInSome` (nav.ts:52-57); the Workspace filter with more than one (QueueTable.tsx:113); a removed member withdraws but doesn't submit or release (submissions.ts:242, publish.ts:89); "moderator in …" (UsersPage.tsx:72-83); "No moderators" (WorkspacesTable.tsx:89) |
+| 7 | Review → What reviewers look at says the queue shows your workspaces | yes | confirmed | review.tsx (en/pt/fr) diff; matches SPEC Behaviour and QueueTable.tsx:113 |
+| 8 | Export → Choosing the scope says only scopes of your workspaces | yes | confirmed | export.tsx (en/pt/fr) "in a workspace you're a member of"; `listScopes` filters with `workspacesWith` (scopes.ts:108-116), used by `GET /api/v1/scopes` (drafts-api.ts:64) |
+| 9 | "Why only these?" on the queue's Workspace filter links to `workspaces#roles` | yes | confirmed | QueueTable.tsx:159-162; Help.tsx `queue-workspaces`; reviews.test.tsx: present with several, absent with one |
+| 10 | "How do I join?" on the "not a member" refusal links to `workspaces#roles` | yes | confirmed | actions.ts returns `notMember: true` for `NotAMemberError` (actions.test.ts); ProposeButton.tsx shows `<Help id="join">`; read from the code, the button's rendering isn't tested |
+| 11 | MVP §2 roles table and matrix, §9.5, §10, §15 Approval and Roles rows are updated | yes | confirmed | `git diff docs/MVP/MVP.md`: §2 Where column and matrix by workspace; §9.5 lists the workspace permissions as permissions.ts:28-38; §10 `workspace_members` matches 0020_workspace_members.ts:26-51; `user.role` root/user; §15 rows changed |
+| 12 | No Documentation, in-app copy or MVP passage still says something 091 made false | yes | not met | ronne-web scopes.tsx (en/pt/fr) "Anyone may propose an item in any scope" and "the scope picker lists every scope"; MVP.md:72 (§2 Scopes and ownership) and :842 (§15 Scopes row); NewDraftForm.tsx:167 "Anyone can propose items in any scope; review is the gate."; proposals.ts:38 comment |
+| 13 | The app's code changes type-check and lint | no | confirmed | `pnpm --filter @ronneai/web typecheck` clean; `pnpm lint` → no errors |
+
+**Overall:** not met: the Scopes topic, MVP §2's Scopes and ownership and its §15 Scopes row, and the New item form's hint still said anyone may propose in any scope, and the Roles topic said everyone is a user in `global`. Fixed (ronne-web 54ff530; MVP.md, NewDraftForm.tsx, proposals.ts here). Re-check below.
+
+### Re-check — rows 4 and 12, plus note claims the first pass didn't cover
+
+Witnessed: 2026-10-07 01:41 EDT, by a fresh agent (blind). Commit: e371a25 + working tree (ronne-web 54ff530). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | Roles → The three roles is rewritten: root is instance-wide, moderator and user are per workspace (en/pt/fr) | yes | confirmed | `git show 54ff530 -- www/src/content/docs/*/roles.tsx` → "Everyone but root is a member of `global`" in en, pt, fr; matches kysely-identity-repository.ts:325-331 |
+| 12 | No Documentation, in-app copy or MVP passage still says something 091 made false | yes | partly | Fixed: scopes.tsx (en/pt/fr), MVP.md:72-76 and :843, the NewDraftForm.tsx hint, the proposals.ts:38 comment. Still false: ronne-web `changes.tsx:15` (en/pt/fr) "Anyone signed in can change a published item"; non-members are refused at proposals.ts:98 |
+| 14 | ronne-web tests, typecheck and lint pass at the fixed commit | yes | confirmed | `pnpm test` at 54ff530 → 29 files, 136 passed; `pnpm typecheck` clean; `pnpm lint` → 206 files, no fixes |
+| 15 | The app's help, submissions, item-page and reviews tests pass after the NewDraftForm change | yes | confirmed | `vitest run src/components/help src/features/submissions src/features/item-page src/features/reviews` → 8 files, 121 passed |
+| 16 | Admin docs describe the Role and Moderators columns as the app shows them | yes | confirmed | bc762e4 en/admin.tsx; matches UsersPage.tsx:72-83 and WorkspacesTable.tsx:89 |
+| 17 | MVP §15 Workspaces row is updated | yes | confirmed | `git diff docs/MVP/MVP.md` → "Roles per workspace came with 091 (see Roles); managing members and private visibility follow in 092–094" |
+| 18 | The scope, workspace-choice, after-submit and role-root helpers no longer say anyone may propose anywhere | yes | confirmed | Help.tsx:14, :26, :68, :236 |
+| 19 | The spec's acceptance criteria are ticked and 091 is `done` in the index | yes | confirmed | `git diff SPEC.md` → 8 criteria `[x]`, none left open; `docs/features/README.md` 091 → `done` |
+
+**Overall:** not met: `changes#propose` (en/pt/fr) still said anyone signed in can propose a change to a published item. Fixed in ronne-web fa26cbf. Second re-check below.
+
+### Second re-check — row 12
+
+Witnessed: 2026-10-07 01:42 EDT, by a fresh agent (blind). Commit: e371a25 + working tree (ronne-web fa26cbf). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 12 | No Documentation, in-app copy or MVP passage still says something 091 made false | yes | confirmed | `git show fa26cbf`: changes.tsx (en/pt/fr) "The members of an item's workspace can change it", linking to `workspaces#roles`, as proposals.ts:98 does; a new search of ronne-web's docs ("anyone signed in", "everyone", "qualquer pessoa", "toute personne", "tout le monde", "any scope", "anyone can") finds nothing false (the rest is about browsing and installing; the overview's "Anyone signed in starts one … in a scope" holds, everyone but root being in `global`); in `apps/web/src` and `MVP.md` only the historical note at MVP.md:74 and generic "moderator/root" lines; at fa26cbf `pnpm test` 136 passed, typecheck and lint clean |
+
+**Overall:** met: everything stale is fixed, and nothing in the Documentation, the app's copy and helpers, or MVP.md says what 091 made false.
