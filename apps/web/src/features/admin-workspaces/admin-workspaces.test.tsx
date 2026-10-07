@@ -14,6 +14,12 @@ const workspaces = vi.hoisted(() => ({
   deleteWorkspace: vi.fn(),
   pageWorkspaces: vi.fn(),
   findWorkspace: vi.fn(),
+  pageMembers: vi.fn(async () => ({
+    rows: [],
+    next: null,
+    previous: null,
+    total: { count: 0, capped: false },
+  })),
 }));
 const scopes = vi.hoisted(() => ({ pageScopes: vi.fn() }));
 const session = vi.hoisted(() => ({ getCurrentUser: vi.fn() }));
@@ -215,6 +221,13 @@ describe("the dialogs", () => {
 });
 
 describe("the admin nav", () => {
+  it("shows a workspace's admin only Workspaces (092)", () => {
+    const html = renderToStaticMarkup(<AdminNav root={false} />);
+    expect(html).toContain(">Workspaces<");
+    for (const label of ["Users", "Scopes", "Audit log", "Settings"])
+      expect(html, label).not.toContain(`>${label}<`);
+  });
+
   it("has Workspaces, before Scopes", () => {
     const html = renderToStaticMarkup(<AdminNav />);
     expect(html).toContain('href="/admin/workspaces"');
@@ -225,6 +238,9 @@ describe("the admin nav", () => {
   });
 });
 
+const page = (rows: unknown[]) =>
+  ({ rows, next: null, previous: null, total: { count: rows.length, capped: false } }) as never;
+
 describe("the pages", () => {
   const listPage = (params: Record<string, string> = {}) =>
     AdminWorkspaces({ searchParams: Promise.resolve(params) });
@@ -234,7 +250,7 @@ describe("the pages", () => {
       searchParams: Promise.resolve(params),
     });
 
-  it("are a 404 for anyone but root, without reading anything", async () => {
+  it("are a 404 for anyone but root and workspace admins, without reading anything", async () => {
     for (const user of [
       null,
       { role: "user" },
@@ -291,6 +307,108 @@ describe("the pages", () => {
     expect(html).toContain("It can&#x27;t be changed or deleted.");
     expect(html).not.toContain("Edit description");
     expect(html).not.toContain("Delete");
+  });
+
+  it("a workspace's admin gets their list, without New workspace (092)", async () => {
+    session.getCurrentUser.mockResolvedValueOnce({ role: "user", workspaces: { w1: "admin" } });
+    const html = renderToStaticMarkup(await listPage());
+    expect(html).not.toContain("New workspace");
+    expect(html).toContain("The workspaces you administer");
+    expect(html).toContain('href="/admin/workspaces/acme"');
+  });
+
+  it("an admin's workspace page has Members, Edit description and Create scope, not Delete (092)", async () => {
+    session.getCurrentUser.mockResolvedValueOnce({
+      id: "a",
+      role: "user",
+      workspaces: { w1: "admin" },
+    });
+    workspaces.findWorkspace.mockResolvedValueOnce(workspace());
+    workspaces.pageMembers.mockResolvedValueOnce(
+      page([
+        {
+          userId: "a",
+          email: "a@example.com",
+          name: "Ada",
+          role: "admin",
+          disabled: false,
+          addedAt: new Date("2026-10-02T10:00:00Z"),
+        },
+        {
+          userId: "m",
+          email: "m@example.com",
+          name: "Mo",
+          role: "moderator",
+          disabled: false,
+          addedAt: new Date("2026-10-03T10:00:00Z"),
+        },
+      ]),
+    );
+    const html = renderToStaticMarkup(await workspacePage("acme", { tab: "members", q: "o" }));
+    for (const text of [
+      "Members",
+      "Add members",
+      "Ada",
+      "(you)",
+      'aria-label="Role of m@example.com"',
+      'aria-label="Remove m@example.com"',
+      "Edit description",
+      // The members tab, on the page's own address, searched and filterable by role.
+      'href="/admin/workspaces/acme?tab=members&amp;q=o&amp;sort=added"',
+      '<option value="admin">admin</option>',
+    ])
+      expect(html, text).toContain(text);
+    expect(html).toMatch(/aria-current="page"[^>]*>Members</);
+    // Their own row is read-only; delete is root's.
+    expect(html).not.toContain('aria-label="Role of a@example.com"');
+    expect(html).not.toContain('aria-label="Remove a@example.com"');
+    expect(html).not.toContain(">Delete<");
+    expect(workspaces.pageMembers).toHaveBeenLastCalledWith(
+      expect.any(Headers),
+      expect.objectContaining({ workspaceId: "w1", search: "o", sort: "name" }),
+    );
+    expect(scopes.pageScopes).not.toHaveBeenCalled();
+  });
+
+  it("an admin's Scopes tab, the default, has Create scope in this workspace (092)", async () => {
+    session.getCurrentUser.mockResolvedValueOnce({
+      id: "a",
+      role: "user",
+      workspaces: { w1: "admin" },
+    });
+    workspaces.findWorkspace.mockResolvedValueOnce(workspace());
+    const html = renderToStaticMarkup(await workspacePage("acme"));
+    expect(html).toMatch(/aria-current="page"[^>]*>Scopes</);
+    expect(html).toContain("Create scope");
+    expect(html).toContain('href="/admin/workspaces/acme?tab=members"');
+    expect(workspaces.pageMembers).not.toHaveBeenCalled();
+  });
+
+  it("an admin of another workspace gets a 404 here: they can't find it (092)", async () => {
+    session.getCurrentUser.mockResolvedValueOnce({ role: "user", workspaces: { w2: "admin" } });
+    workspaces.findWorkspace.mockResolvedValueOnce(null);
+    await expect(workspacePage("acme")).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(workspaces.pageMembers).not.toHaveBeenCalled();
+  });
+
+  it("global's page has members' roles but no Remove (092)", async () => {
+    session.getCurrentUser.mockResolvedValueOnce({ id: "r", role: "root" });
+    workspaces.findWorkspace.mockResolvedValueOnce(global);
+    workspaces.pageMembers.mockResolvedValueOnce(
+      page([
+        {
+          userId: "u",
+          email: "u@example.com",
+          name: "Uma",
+          role: "user",
+          disabled: false,
+          addedAt: new Date("2026-10-02T10:00:00Z"),
+        },
+      ]),
+    );
+    const html = renderToStaticMarkup(await workspacePage("global", { tab: "members" }));
+    expect(html).toContain('aria-label="Role of u@example.com"');
+    expect(html).not.toContain('aria-label="Remove u@example.com"');
   });
 
   it("an unknown or malformed name is a 404", async () => {

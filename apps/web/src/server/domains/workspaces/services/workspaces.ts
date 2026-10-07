@@ -1,5 +1,11 @@
 import { isValidName, normalizeWorkspaceName } from "@ronneai/core";
-import { requirePermission } from "../../identity/models/permissions";
+import { ForbiddenError } from "../../identity/exceptions/errors";
+import {
+  can,
+  canInSome,
+  requirePermission,
+  workspacesWith,
+} from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
 import {
   GlobalWorkspaceError,
@@ -115,11 +121,13 @@ export const updateWorkspace = async (
   actor: WorkspaceActor,
   input: { name: string; description: string },
 ): Promise<void> => {
-  requirePermission(actor.user, "workspaces.manage");
+  // Root, or the workspace's admins (092); someone who edits none is refused first.
+  if (!canInSome(actor.user, "workspace.edit")) throw new ForbiddenError("workspace.edit");
   const description = workspaceDescriptionFrom(input.description);
   const at = now(deps);
   await deps.repo.transaction(async (repo) => {
     const workspace = await changeable(repo, input.name);
+    requirePermission(actor.user, "workspace.edit", workspace.id);
     if (workspace.description === description) return;
     await repo.updateDescription(workspace.id, description, at);
     await audit(
@@ -145,8 +153,17 @@ export const deleteWorkspace = async (
     await deps.repo.transaction(async (repo) => {
       const workspace = await changeable(repo, input.name);
       if (workspace.scopes > 0) throw new WorkspaceNotEmptyError(workspace.scopes);
+      // Its memberships go with it (they cascade); the event says how many (092).
+      const members = await repo.countMembers(workspace.id);
       await repo.delete(workspace.id);
-      await audit(repo, actor, "workspace.deleted", workspace.id, { name: workspace.name }, at);
+      await audit(
+        repo,
+        actor,
+        "workspace.deleted",
+        workspace.id,
+        { name: workspace.name, members },
+        at,
+      );
     });
   } catch (error) {
     // A scope created in it after the count: its foreign key refuses the delete.
@@ -175,7 +192,8 @@ export type WorkspacesTablePage = {
 };
 
 /**
- * One page of Admin › Workspaces, and the capped count of all that match. `global` comes first, on
+ * One page of Admin › Workspaces, and the capped count of all that match. Root sees every
+ * workspace; an admin only those they administer (092). `global` comes first, on
  * the first page, whatever the sort, when the search matches it.
  */
 export const pageWorkspaces = async (
@@ -183,7 +201,9 @@ export const pageWorkspaces = async (
   actor: WorkspaceActor,
   query: Partial<WorkspacePageQuery>,
 ): Promise<WorkspacesTablePage> => {
-  requirePermission(actor.user, "workspaces.manage");
+  if (!canInSome(actor.user, "members.manage")) throw new ForbiddenError("members.manage");
+  const where = workspacesWith(actor.user, "members.manage");
+  const ids = where === "all" ? undefined : where;
   const search = query.search?.trim().slice(0, WORKSPACE_SEARCH_MAX_LENGTH) || undefined;
   const sort = query.sort ?? "name";
   const [page, total] = await Promise.all([
@@ -193,15 +213,18 @@ export const pageWorkspaces = async (
       dir: query.dir ?? (sort === "name" ? "asc" : "desc"),
       size: query.size ?? WORKSPACES_PAGE_SIZE,
       cursor: query.cursor,
+      ids,
     }),
-    deps.repo.count(search),
+    deps.repo.count(search, ids),
   ]);
   // `global` counts whenever the search matches it, on every page, and is listed first on the first
   // page (no page before it, however it was reached).
   const found = await deps.repo.findByName(GLOBAL_WORKSPACE_NAME);
   const term = search?.toLowerCase();
   const global =
-    found && (!term || found.name.includes(term) || found.description.toLowerCase().includes(term))
+    found &&
+    (!ids || ids.includes(found.id)) &&
+    (!term || found.name.includes(term) || found.description.toLowerCase().includes(term))
       ? found
       : null;
   return {
@@ -212,12 +235,13 @@ export const pageWorkspaces = async (
   };
 };
 
-/** One workspace, for its page in Admin › Workspaces. */
+/** One workspace, for its page in Admin › Workspaces: root, or one of its admins (092); null otherwise. */
 export const findWorkspace = async (
   deps: WorkspaceDeps,
   actor: WorkspaceActor,
   name: string,
 ): Promise<Workspace | null> => {
-  requirePermission(actor.user, "workspaces.manage");
-  return byName(deps.repo, name);
+  if (!canInSome(actor.user, "members.manage")) throw new ForbiddenError("members.manage");
+  const workspace = await byName(deps.repo, name);
+  return workspace && can(actor.user, "members.manage", workspace.id) ? workspace : null;
 };

@@ -109,7 +109,31 @@ export const SUMMARIES: Record<AuditAction, Build> = {
   ],
   "workspace.created": (m) => ["Created workspace ", workspace(m)],
   "workspace.updated": (m) => ["Changed the description of workspace ", workspace(m)],
-  "workspace.deleted": (m) => ["Deleted workspace ", workspace(m)],
+  "workspace.deleted": (m) => [
+    "Deleted workspace ",
+    workspace(m),
+    m.members === undefined ? "" : ` (${plural(num(m.members), "member")})`,
+  ],
+  "workspace.member_added": (m) => [
+    "Added ",
+    { name: text(m.email) },
+    " to ",
+    { name: text(m.workspace) },
+    ` as ${text(m.role)}`,
+  ],
+  "workspace.member_role_changed": (m) => [
+    "Changed ",
+    { name: text(m.email) },
+    ` in `,
+    { name: text(m.workspace) },
+    ` from ${text(m.from)} to ${text(m.to)}`,
+  ],
+  "workspace.member_removed": (m) => [
+    "Removed ",
+    { name: text(m.email) },
+    " from ",
+    { name: text(m.workspace) },
+  ],
   "scope.created": (m) => ["Created scope ", scope(m)],
   "scope.updated": (m) => ["Changed the description of ", scope(m)],
   "submission.draft_created": (m) => [

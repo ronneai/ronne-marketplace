@@ -80,7 +80,7 @@ export const cookieHeaders = (setCookie: string | null): Headers => {
 export const setWorkspaceRole = async (
   app: AppAuth,
   userId: string,
-  role: "moderator" | "user",
+  role: "admin" | "moderator" | "user",
   workspaceId: string = GLOBAL_WORKSPACE_ID,
 ): Promise<void> => {
   const now = toDbDate(new Date(), app.dialect);

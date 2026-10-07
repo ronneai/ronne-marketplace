@@ -4,7 +4,7 @@ import { isWorkspaceRole, type Memberships } from "../models/user";
 
 /**
  * A user's roles per workspace (091), read with the user on every request, so a check doesn't
- * query and a changed role applies on the next request. A role outside the two known ones gives
+ * query and a changed role applies on the next request. A role outside the three known ones gives
  * nothing rather than a guess.
  */
 export const loadMemberships = async (

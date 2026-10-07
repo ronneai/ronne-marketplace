@@ -109,7 +109,7 @@ export interface WorkspaceTable {
 export interface WorkspaceMemberTable {
   workspace_id: string;
   user_id: string;
-  role: "moderator" | "user";
+  role: "admin" | "moderator" | "user";
   added_by: string | null;
   created_at: Timestamp;
   updated_at: Timestamp;

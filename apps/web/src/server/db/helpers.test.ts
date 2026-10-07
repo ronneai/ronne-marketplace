@@ -128,8 +128,8 @@ describe("containsInsensitive", () => {
       .select("id")
       .where(containsInsensitive("name", "Code_R"))
       .compile();
-    expect(sql).toMatch(/lower\(["`]name["`]\) like (\?|\$1) escape '!'/);
-    expect(parameters).toEqual(["%code!_r%"]);
+    expect(sql).toMatch(/lower\(["`]name["`]\) like lower\((\?|\$1)\) escape '!'/);
+    expect(parameters).toEqual(["%Code!_R%"]);
   });
 });
 

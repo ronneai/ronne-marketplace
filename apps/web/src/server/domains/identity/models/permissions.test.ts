@@ -17,6 +17,7 @@ const B = "workspace-b";
 
 const PEOPLE: Record<string, Subject> = {
   root: { role: "root", workspaces: {} },
+  "admin in A": { role: "user", workspaces: { [A]: "admin" } },
   "moderator in A": { role: "user", workspaces: { [A]: "moderator" } },
   "user in A": { role: "user", workspaces: { [A]: "user" } },
   "non-member": { role: "user", workspaces: {} },
@@ -31,6 +32,7 @@ const EXPECTED: Record<
   { a: WorkspacePermission[]; b: WorkspacePermission[]; instance: InstancePermission[] }
 > = {
   root: { a: WORKSPACE, b: WORKSPACE, instance: INSTANCE },
+  "admin in A": { a: WORKSPACE, b: [], instance: ["account.manage_own"] },
   "moderator in A": {
     a: [
       "submissions.create",
@@ -71,6 +73,8 @@ describe("permissions (091)", () => {
       [
         "account.manage_own",
         "audit.view",
+        "members.manage",
+        "scopes.create",
         "scopes.manage",
         "settings.manage",
         "submissions.create",
@@ -81,6 +85,7 @@ describe("permissions (091)", () => {
         "users.manage",
         "users.view",
         "versions.manage",
+        "workspace.edit",
         "workspaces.manage",
       ].sort(),
     );
@@ -105,7 +110,7 @@ describe("permissions (091)", () => {
     for (const permission of INSTANCE) expect(can(null, permission)).toBe(false);
     for (const permission of WORKSPACE) expect(can(null, permission, A)).toBe(false);
     expect(
-      can({ role: "user", workspaces: { [A]: "admin" as never } }, "submissions.create", A),
+      can({ role: "user", workspaces: { [A]: "owner" as never } }, "submissions.create", A),
     ).toBe(false);
   });
 

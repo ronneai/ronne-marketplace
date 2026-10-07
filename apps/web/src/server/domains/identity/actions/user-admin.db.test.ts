@@ -18,7 +18,7 @@ import { argon2PasswordHasher } from "../repositories/argon2-password-hasher";
 import type { AppAuth } from "../repositories/auth-instance";
 import { kyselyIdentityRepository } from "../repositories/kysely-identity-repository";
 import * as service from "../services/user-admin";
-import { cookieHeaders, createTestUser, testAppAuth } from "../testing/test-auth";
+import { cookieHeaders, createTestUser, setWorkspaceRole, testAppAuth } from "../testing/test-auth";
 import { createRoot } from "./root-account";
 import { getCurrentUser, signIn } from "./session";
 import {
@@ -219,6 +219,35 @@ describe("global membership (091)", () => {
     const listed = (await adminListUsers(asRoot, { sort: "email" }, app)).users;
     const roles = (email: string) => listed.find((u) => u.email === email)?.workspaces;
     expect(roles("m@example.com")).toEqual([{ name: "global", role: "moderator" }]);
+    // Admins first, then moderators, then users (092).
+    const ops = newId();
+    const beta = newId();
+    for (const [id, name] of [
+      [ops, "ops"],
+      [beta, "beta"],
+    ] as const)
+      await t.db
+        .insertInto("workspaces")
+        .values({
+          id,
+          name,
+          description: name,
+          visibility: "public",
+          is_global: 0,
+          created_by: null,
+          created_at: toDbDate(new Date(), t.dialect),
+          updated_at: toDbDate(new Date(), t.dialect),
+        })
+        .execute();
+    const mId = listed.find((u) => u.email === "m@example.com")?.id ?? "";
+    await setWorkspaceRole(app, mId, "user", beta);
+    await setWorkspaceRole(app, mId, "admin", ops);
+    const again = (await adminListUsers(asRoot, { sort: "email" }, app)).users;
+    expect(again.find((u) => u.id === mId)?.workspaces).toEqual([
+      { name: "ops", role: "admin" },
+      { name: "global", role: "moderator" },
+      { name: "beta", role: "user" },
+    ]);
     expect(roles("u@example.com")).toEqual([{ name: "global", role: "user" }]);
     expect(roles("root@example.com")).toEqual([]);
   });

@@ -6,8 +6,11 @@ import { InvalidEmailError, InvalidNameError } from "../exceptions/errors";
  */
 export type Role = "root" | "user";
 
-/** A role in a workspace (`workspace_members.role`, feature 091). */
-export type WorkspaceRole = "moderator" | "user";
+/**
+ * A role in a workspace (`workspace_members.role`, feature 091): user, moderator, or admin (092), a
+ * moderator who also runs the workspace: its members, scopes and description.
+ */
+export type WorkspaceRole = "admin" | "moderator" | "user";
 
 /** Workspace id → the user's role there. A root's rows are kept but ignored for permissions. */
 export type Memberships = Readonly<Record<string, WorkspaceRole>>;
@@ -22,7 +25,7 @@ export type CurrentUser = {
 };
 
 const ROLES: readonly Role[] = ["root", "user"];
-const WORKSPACE_ROLES: readonly WorkspaceRole[] = ["moderator", "user"];
+const WORKSPACE_ROLES: readonly WorkspaceRole[] = ["admin", "moderator", "user"];
 
 export const isRole = (value: unknown): value is Role => {
   return ROLES.includes(value as Role);

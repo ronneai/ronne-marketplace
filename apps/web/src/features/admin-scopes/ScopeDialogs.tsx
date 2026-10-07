@@ -33,30 +33,37 @@ const Description = ({ defaultValue }: { defaultValue?: string }) => {
 /** A workspace a new scope can go in (090): `global` comes first and is chosen. */
 export type WorkspaceChoice = { id: string; name: string };
 
-export const WorkspaceSelect = ({ workspaces }: { workspaces: WorkspaceChoice[] }) => (
-  <div className="grid gap-1.5">
-    <div className="flex items-center gap-2">
-      <Label htmlFor="scope-workspace-choice">Workspace</Label>
-      <Help id="workspace-choice" />
-    </div>
-    <select
-      id="scope-workspace-choice"
-      name="workspaceId"
-      defaultValue={workspaces[0]?.id}
-      aria-describedby="scope-workspace-hint"
-      className={selectClasses}
-    >
-      {workspaces.map((workspace) => (
-        <option key={workspace.id} value={workspace.id}>
-          {workspace.name}
-        </option>
-      ))}
-    </select>
-    <p id="scope-workspace-hint" className="text-xs text-muted">
-      Its items belong to this workspace. It can't be moved later.
+export const WorkspaceSelect = ({ workspaces }: { workspaces: WorkspaceChoice[] }) =>
+  workspaces.length === 1 ? (
+    // On a workspace's own page (092): the scope goes in that one.
+    <p className="text-sm text-muted">
+      In <span className="font-mono text-fg">{workspaces[0]?.name}</span>
+      <input type="hidden" name="workspaceId" value={workspaces[0]?.id} />. It can't be moved later.
     </p>
-  </div>
-);
+  ) : (
+    <div className="grid gap-1.5">
+      <div className="flex items-center gap-2">
+        <Label htmlFor="scope-workspace-choice">Workspace</Label>
+        <Help id="workspace-choice" />
+      </div>
+      <select
+        id="scope-workspace-choice"
+        name="workspaceId"
+        defaultValue={workspaces[0]?.id}
+        aria-describedby="scope-workspace-hint"
+        className={selectClasses}
+      >
+        {workspaces.map((workspace) => (
+          <option key={workspace.id} value={workspace.id}>
+            {workspace.name}
+          </option>
+        ))}
+      </select>
+      <p id="scope-workspace-hint" className="text-xs text-muted">
+        Its items belong to this workspace. It can't be moved later.
+      </p>
+    </div>
+  );
 
 const CreateForm = ({
   workspaces,

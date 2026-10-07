@@ -6,16 +6,21 @@ import { ADMIN_WORKSPACES_LIST, workspacesQueryOf } from "@/features/admin-works
 import { CreateWorkspaceDialog } from "@/features/admin-workspaces/WorkspaceDialogs";
 import { WorkspacesTable } from "@/features/admin-workspaces/WorkspacesTable";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
-import { can } from "@/server/domains/identity/models/permissions";
+import { can, canInSome } from "@/server/domains/identity/models/permissions";
 import { pageWorkspaces } from "@/server/domains/workspaces/actions/workspaces";
 import { requestHeaders } from "@/server/http/request-headers";
 
 export const metadata = { title: "Workspaces · Admin · Ronne AI Marketplace" };
 
-/** Root only (`workspaces.manage`): anyone else gets a 404. */
+/**
+ * Root's workspaces, every one, with New workspace; a workspace admin's, only theirs (092). Anyone
+ * else gets a 404.
+ */
 const AdminWorkspaces = async ({ searchParams }: { searchParams: Promise<SearchParams> }) => {
   const request = await requestHeaders();
-  if (!can(await getCurrentUser(request), "workspaces.manage")) notFound();
+  const me = await getCurrentUser(request);
+  const root = can(me, "workspaces.manage");
+  if (!root && !canInSome(me, "members.manage")) notFound();
   const state = parseListQuery(ADMIN_WORKSPACES_LIST, await searchParams);
   const { workspaces, next, previous, total } = await pageWorkspaces(
     request,
@@ -25,8 +30,12 @@ const AdminWorkspaces = async ({ searchParams }: { searchParams: Promise<SearchP
     <>
       <PageHeader
         title="Workspaces"
-        description="A workspace holds scopes, and their items, for one team or group. Item names don't include it. Every instance has global."
-        actions={<CreateWorkspaceDialog />}
+        description={
+          root
+            ? "A workspace holds scopes, and their items, for one team or group. Item names don't include it. Every instance has global."
+            : "The workspaces you administer: their members, scopes and description."
+        }
+        actions={root ? <CreateWorkspaceDialog /> : null}
       />
       <Help id="workspace" className="mb-4" />
       <WorkspacesTable

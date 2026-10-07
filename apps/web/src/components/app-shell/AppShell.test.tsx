@@ -49,6 +49,27 @@ describe("navFor", () => {
     expect(navFor({ name: "R", email: "r@example.com", role: "root" }).map((i) => i.label)).toEqual(
       ["Home", "Catalogue", "Submissions", "Reviews", "Admin", "Docs"],
     );
+    expect(navFor({ name: "R", email: "r@example.com", role: "root" })[4]?.href).toBe(
+      "/admin/users",
+    );
+  });
+
+  it("gives a workspace's admin Admin, opening their workspaces (092)", () => {
+    const admin = navFor({
+      name: "A",
+      email: "a@example.com",
+      role: "user",
+      workspaces: { [GLOBAL]: "user", acme: "admin" },
+    });
+    expect(admin.map((i) => i.label)).toEqual([
+      "Home",
+      "Catalogue",
+      "Submissions",
+      "Reviews",
+      "Admin",
+      "Docs",
+    ]);
+    expect(admin.find((i) => i.label === "Admin")?.href).toBe("/admin/workspaces");
   });
 });
 

@@ -59,7 +59,7 @@ describe("memberships with the current user (091)", () => {
   it("leave out a role that isn't moderator or user, by session and by token", async () => {
     const { token } = await createMyToken(asUser, { name: "cli" }, app);
     // MODERATOR also checks MySQL's case-insensitive comparison doesn't let it through.
-    for (const role of ["admin", "MODERATOR", "root"]) {
+    for (const role of ["owner", "MODERATOR", "root"]) {
       await t.db
         .updateTable("workspace_members")
         .set({ role: role as never })

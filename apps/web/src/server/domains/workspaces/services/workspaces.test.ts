@@ -43,6 +43,18 @@ const racingRepo = (): WorkspaceRepository => {
     list: async () => [],
     page: async () => ({ rows: [], next: null, previous: null }),
     count: async () => ({ count: 0, capped: false }),
+    findById: async () => null,
+    lockUsers: async () => {},
+    memberUser: async () => null,
+    membershipsOf: async () => [],
+    members: async () => [],
+    candidates: async () => [],
+    memberPage: async () => ({ rows: [], next: null, previous: null }),
+    memberCount: async () => ({ count: 0, capped: false }),
+    memberRole: async () => null,
+    putMember: async () => {},
+    removeMember: async () => {},
+    countMembers: async () => 0,
     recordAudit: async () => {},
   };
   return repo;

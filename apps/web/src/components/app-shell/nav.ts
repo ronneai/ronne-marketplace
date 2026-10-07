@@ -26,6 +26,8 @@ export type NavItem = {
   end?: true;
   /** Another site, opened in a new tab: Docs, the Documentation on the website (088). */
   external?: true;
+  /** Hidden from someone who holds this one: root's Admin replaces a workspace admin's (092). */
+  unless?: Exclude<Permission, WorkspacePermission>;
 };
 
 /**
@@ -45,6 +47,15 @@ export const NAV: NavItem[] = [
   },
   { href: "/reviews", label: "Reviews", permission: "submissions.review", section: "/reviews" },
   { href: "/admin/users", label: "Admin", permission: "users.view", section: "/admin", end: true },
+  // A workspace's admin: Admin opens their workspaces (092).
+  {
+    href: "/admin/workspaces",
+    label: "Admin",
+    permission: "members.manage",
+    section: "/admin",
+    end: true,
+    unless: "users.view",
+  },
   { href: DOCS_URL, label: "Docs", end: true, external: true },
 ];
 
@@ -53,10 +64,11 @@ export const navFor = (user: ShellUser | null): NavItem[] => {
   // A workspace permission shows the item when the user holds it in any workspace (091).
   return NAV.filter(
     (item) =>
-      !item.permission ||
-      (item.permission in WORKSPACE_PERMISSIONS
-        ? canInSome(user, item.permission as WorkspacePermission)
-        : can(user, item.permission as Exclude<Permission, WorkspacePermission>)),
+      (!item.unless || !can(user, item.unless)) &&
+      (!item.permission ||
+        (item.permission in WORKSPACE_PERMISSIONS
+          ? canInSome(user, item.permission as WorkspacePermission)
+          : can(user, item.permission as Exclude<Permission, WorkspacePermission>))),
   );
 };
 

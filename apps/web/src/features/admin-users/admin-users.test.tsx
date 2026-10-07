@@ -8,6 +8,10 @@ const session = vi.hoisted(() => ({ getCurrentUser: vi.fn(), PATH_HEADER: "x-ron
 const admin = vi.hoisted(() => ({ adminListUsers: vi.fn() }));
 vi.mock("@/server/domains/identity/actions/session", () => session);
 vi.mock("@/server/domains/identity/actions/user-admin", () => admin);
+// The page lists every workspace for the Workspaces dialog (092).
+vi.mock("@/server/domains/workspaces/actions/workspaces", () => ({
+  listWorkspaces: vi.fn(async () => []),
+}));
 vi.mock("@/server/http/request-headers", () => ({
   requestHeaders: async () => new Headers({ "x-ronne-path": "/admin/users?q=x" }),
 }));
@@ -85,7 +89,7 @@ const page = (props: Partial<Parameters<typeof UsersPage>[0]> = {}) =>
   );
 
 describe("UsersPage (061)", () => {
-  it("shows root, or the workspaces a user moderates, or user (091)", () => {
+  it("shows root, or a badge per workspace role with how many workspaces (091, 092)", () => {
     const html = page({
       users: [
         user({ id: "01K6BZ3W1D8J9Q2R4T6V8X0Y21", email: "r@example.com", role: "root" }),
@@ -93,9 +97,11 @@ describe("UsersPage (061)", () => {
           id: "01K6BZ3W1D8J9Q2R4T6V8X0Y22",
           email: "m@example.com",
           workspaces: [
-            { name: "acme", role: "moderator" },
-            { name: "beta", role: "moderator" },
+            // A lower role first, so taking the first workspace's role would fail.
             { name: "global", role: "user" },
+            { name: "acme", role: "moderator" },
+            { name: "ops", role: "admin" },
+            { name: "beta", role: "moderator" },
           ],
         }),
         user({
@@ -106,9 +112,14 @@ describe("UsersPage (061)", () => {
       ],
     });
     expect(html).toContain(">root<");
-    expect(html).toMatch(/>moderator<.*in (?:<!-- -->)?acme, beta/);
-    expect(html).not.toContain("acme, beta, global");
-    expect(html).toContain(">user<");
+    expect(html).not.toContain("All workspaces");
+    // A badge per role, highest first, each with its count; names only on hover (092).
+    expect(html).toMatch(
+      /gap-1\.5"><span>admin<\/span><span class="font-mono font-normal">1<\/span>.*<span>moderator<\/span><span[^>]*>2<.*<span>user<\/span><span[^>]*>1</,
+    );
+    expect(html).toContain('title="global: user, acme: moderator, ops: admin, beta: moderator"');
+    // In no workspace (not reachable while everyone is in global): "none".
+    expect(page({ users: [user({ workspaces: [] })] })).toContain(">none<");
   });
 
   it("lists users with their role, status and actions, sortable by email, name and created", () => {
