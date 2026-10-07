@@ -1,5 +1,6 @@
 import { isId } from "../../../db/ids";
-import { can, requireInSome } from "../../identity/models/permissions";
+import { ForbiddenError } from "../../identity/exceptions/errors";
+import { can, canInSome } from "../../identity/models/permissions";
 import {
   BulkLimitError,
   InvalidStatusTransitionError,
@@ -28,11 +29,24 @@ export type Approvability =
   | { approvable: true; override: boolean }
   | { approvable: false; reason: string };
 
-/** What the queue and approving many agree on: submitted, not stale, and not a moderator's own. */
+/** Why a reviewer skips a submission outside the workspaces they moderate (091). */
+export const notAModeratorIn = (workspace: string) => `Not a moderator in ${workspace}`;
+
+/**
+ * What the queue and approving many agree on: in a workspace the reviewer moderates (091),
+ * submitted, not stale, and not a moderator's own.
+ */
 export const approvability = (
   actor: SubmissionActor,
-  submission: { status: SubmissionStatus; authorId: string; stale: string | null },
+  submission: {
+    status: SubmissionStatus;
+    authorId: string;
+    stale: string | null;
+    workspace: { id: string; name: string };
+  },
 ): Approvability => {
+  if (!can(actor.user, "submissions.review", submission.workspace.id))
+    return { approvable: false, reason: notAModeratorIn(submission.workspace.name) };
   if (submission.status !== "submitted")
     return { approvable: false, reason: `It's ${statusLabel(submission.status)}` };
   if (submission.stale)
@@ -64,7 +78,7 @@ export const approveMany = async (
   /** Each with the revision its row showed: an approval goes only if it's still the latest. */
   input: { items: readonly { id: string; revision: number | null }[]; message?: string },
 ): Promise<ApprovedSubmission[]> => {
-  requireInSome(actor.user, "submissions.review");
+  if (!canInSome(actor.user, "submissions.review")) throw new ForbiddenError("submissions.review");
   const reviewed = new Map(input.items.map((item) => [item.id, item.revision]));
   const ids = [...reviewed.keys()];
   if (ids.length > MAX_BULK_APPROVE) throw new BulkLimitError(ids.length, MAX_BULK_APPROVE);
@@ -74,6 +88,24 @@ export const approveMany = async (
     const before = isId(id) ? await deps.repo.find(id) : null;
     if (!before) {
       results.push({ id, result: "not_found" });
+      continue;
+    }
+    // Each is checked in its own workspace (091). One the reviewer can't see is "not found", as
+    // everywhere, so a bulk request doesn't reveal another workspace's submissions.
+    if (
+      before.authorId !== actor.user?.id &&
+      !can(actor.user, "submissions.view_submitted", before.workspace.id)
+    ) {
+      results.push({ id, result: "not_found" });
+      continue;
+    }
+    if (!can(actor.user, "submissions.review", before.workspace.id)) {
+      results.push({
+        id,
+        result: "not_approvable",
+        submission: before,
+        reason: notAModeratorIn(before.workspace.name),
+      });
       continue;
     }
     const override = before.authorId === actor.user?.id && can(actor.user, "submissions.override");

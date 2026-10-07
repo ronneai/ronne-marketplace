@@ -82,6 +82,8 @@ test("root creates a user, who signs in with the shown password; disabling them 
     rowOf(user, email).getByRole("button", { name: "Why can't I change my own account here?" }),
   ).toBeVisible();
   await expect(user.getByRole("group", { name: `Actions for ${email}` })).toHaveCount(0);
+  // Searched for: with more than a page of e2e users, root's row may not be on the first.
+  await user.goto(`/admin/users?q=${encodeURIComponent(E2E_USERS.root)}`);
   await expect(
     user
       .getByRole("group", { name: `Actions for ${E2E_USERS.root}` })

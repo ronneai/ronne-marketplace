@@ -1,11 +1,7 @@
 import { isId } from "../../../db/ids";
 import type { AuditAction } from "../../audit/models/audit-event";
-import {
-  can,
-  canInSome,
-  requireInSome,
-  requirePermission,
-} from "../../identity/models/permissions";
+import { ForbiddenError } from "../../identity/exceptions/errors";
+import { can, canInSome, requirePermission } from "../../identity/models/permissions";
 import {
   ConversationClosedError,
   OverrideNotNeededError,
@@ -27,6 +23,7 @@ import {
 import { itemNameOf, type Submission } from "../models/submission";
 import type { SubmissionRepository } from "../repositories/submission-repository";
 import { dependenciesOf, marksFor } from "./dependency-marks";
+import { requireMember, requireSignedIn } from "./membership";
 import { requireCurrent } from "./proposals";
 import type { SubmissionActor, SubmissionDeps } from "./submissions";
 
@@ -50,6 +47,15 @@ export const messageFrom = (value: string | undefined, required: string | null):
   return message;
 };
 
+/**
+ * Whether the actor may see a submission: their own, or one that isn't a draft in a workspace
+ * where they review (root: every one).
+ */
+const canSee = (actor: SubmissionActor, submission: Submission): boolean =>
+  submission.authorId === actor.user?.id ||
+  (submission.status !== "draft" &&
+    can(actor.user, "submissions.view_submitted", submission.workspace.id));
+
 /** A submission this actor may see, found after locking its row. */
 const lockedSubmission = async (
   repo: SubmissionRepository,
@@ -59,15 +65,7 @@ const lockedSubmission = async (
   if (!isId(id)) throw new SubmissionNotFoundError();
   await repo.lockSubmission(id);
   const submission = await repo.find(id);
-  const mine = submission?.authorId === actor.user?.id;
-  if (
-    !submission ||
-    !(
-      mine ||
-      (submission.status !== "draft" && canInSome(actor.user, "submissions.view_submitted"))
-    )
-  )
-    throw new SubmissionNotFoundError();
+  if (!submission || !canSee(actor, submission)) throw new SubmissionNotFoundError();
   return submission;
 };
 
@@ -137,12 +135,20 @@ export const decide = async (
 ): Promise<Submission> => {
   const decision = DECISIONS[input.decision];
   if (input.decision === "override") requirePermission(actor.user, "submissions.override");
-  else requireInSome(actor.user, "submissions.review");
+  // Someone who moderates nowhere is refused outright; a moderator, in the submission's workspace.
+  else if (!canInSome(actor.user, "submissions.review"))
+    throw new ForbiddenError("submissions.review");
   const message = messageFrom(input.message, decision.requires);
   const at = now(deps);
   return deps.repo.transaction(async (repo) => {
     const submission = await lockedSubmission(repo, actor, id);
     const mine = submission.authorId === actor.user?.id;
+    // A moderator of the submission's workspace, or root (091); others only see their own here.
+    if (
+      input.decision !== "override" &&
+      !can(actor.user, "submissions.review", submission.workspace.id)
+    )
+      throw new ForbiddenError("submissions.review");
     if (input.decision === "override" && !mine) throw new OverrideNotNeededError();
     if (input.decision !== "override" && mine)
       throw new OwnSubmissionError(can(actor.user, "submissions.override"));
@@ -197,13 +203,17 @@ export const comment = async (
   id: string,
   input: { body: string },
 ): Promise<string> => {
-  requireInSome(actor.user, "submissions.create");
+  requireSignedIn(actor);
   const body = messageFrom(input.body, "A comment") ?? "";
   const at = now(deps);
   return deps.repo.transaction(async (repo) => {
     const submission = await lockedSubmission(repo, actor, id);
     const mine = submission.authorId === actor.user?.id;
-    if (!mine && !canInSome(actor.user, "submissions.review")) throw new SubmissionNotFoundError();
+    // The workspace's moderators comment on any; the author on their own while a member (091).
+    if (!mine && !can(actor.user, "submissions.review", submission.workspace.id))
+      throw new SubmissionNotFoundError();
+    if (mine && !can(actor.user, "submissions.review", submission.workspace.id))
+      requireMember(actor, submission.workspace, "comment there");
     if (!OPEN_STATUSES.includes(submission.status)) throw new ConversationClosedError();
     return repo.addEvent({
       submissionId: submission.id,
@@ -230,48 +240,71 @@ export type Dependent = {
 const DEPENDENTS_SCAN = 500;
 
 /**
- * The open submissions that depend on this one's item with no matching release: what rejecting or
- * withdrawing it leaves waiting on nothing (056). Anyone who can see the submission may ask; the
- * names are shown to reviewers, and authors get only the count.
+ * The open submissions, in every workspace, that depend on this one's item with no matching
+ * release: what rejecting or withdrawing it leaves waiting on nothing (056). The actor must see it.
  */
-export const dependentsOf = async (
-  deps: SubmissionDeps,
-  actor: SubmissionActor,
-  id: string,
-): Promise<Dependent[]> => {
+const waitingOn = async (deps: SubmissionDeps, actor: SubmissionActor, id: string) => {
+  requireSignedIn(actor);
   const submission = isId(id) ? await deps.repo.find(id) : null;
-  if (!submission) throw new SubmissionNotFoundError();
+  if (!submission || !canSee(actor, submission)) throw new SubmissionNotFoundError();
   const name = itemNameOf(submission);
   const registry = deps.registry ?? deps.repo.registry();
-  const reviewer = canInSome(actor.user, "submissions.review");
   const open = await deps.repo.listForReview({
     statuses: OPEN_STATUSES,
     order: "oldest",
     limit: DEPENDENTS_SCAN,
   });
-  const found: Dependent[] = [];
+  const waiting: typeof open = [];
   for (const other of open) {
     if (other.id === submission.id) continue;
     const range = (await dependenciesOf(deps.repo, other))[name];
     if (range === undefined) continue;
     if ((await marksFor(registry, { [name]: range })).length === 0) continue;
-    const mine = other.authorId === actor.user?.id;
-    found.push({
-      id: other.id,
-      name: itemNameOf(other),
-      status: other.status,
-      authorName: other.authorName,
-      sendBack: !reviewer
-        ? { ok: false, reason: "Only reviewers send submissions back." }
-        : mine
-          ? { ok: false, reason: "Yours: edit or withdraw it." }
-          : canTransition(other.status, "request_changes")
-            ? { ok: true }
-            : { ok: false, reason: `It's ${other.status.replace("_", " ")}.` },
-    });
+    waiting.push(other);
   }
-  return found;
+  return waiting;
 };
+
+/**
+ * The dependents (056) the actor could open, by name: their own, and those of the workspaces they
+ * review (091), so another workspace's submissions aren't revealed. Anyone who can see the
+ * submission may ask.
+ */
+export const dependentsOf = async (
+  deps: SubmissionDeps,
+  actor: SubmissionActor,
+  id: string,
+): Promise<Dependent[]> =>
+  (await waitingOn(deps, actor, id))
+    .filter((other) => canSee(actor, other))
+    .map((other) => {
+      const mine = other.authorId === actor.user?.id;
+      // Sent back by its own workspace's moderators, or root (091).
+      const reviewer = can(actor.user, "submissions.review", other.workspace.id);
+      return {
+        id: other.id,
+        name: itemNameOf(other),
+        status: other.status,
+        authorName: other.authorName,
+        sendBack: !reviewer
+          ? { ok: false, reason: "Only reviewers send submissions back." }
+          : mine
+            ? { ok: false, reason: "Yours: edit or withdraw it." }
+            : canTransition(other.status, "request_changes")
+              ? { ok: true }
+              : { ok: false, reason: `It's ${other.status.replace("_", " ")}.` },
+      };
+    });
+
+/**
+ * How many submissions depend on it, in every workspace: the author's withdraw warning (056). Only
+ * the number, so nothing else about another workspace's is revealed.
+ */
+export const countDependents = async (
+  deps: SubmissionDeps,
+  actor: SubmissionActor,
+  id: string,
+): Promise<number> => (await waitingOn(deps, actor, id)).length;
 
 export type SentBack = {
   id: string;

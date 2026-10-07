@@ -34,17 +34,18 @@ test("root creates, sorts and searches scopes under Admin; nobody else has a sco
   await expect(root.getByRole("cell", { name: "@e2e-team", exact: true })).toBeVisible();
 
   // Workspaces (090), in this test because root's sign-ins are limited (e2e-sign-in-limit.md):
-  // root creates one and a scope in it; an item released there is filtered by it in the catalogue.
+  // root creates one; a scope goes in the seeded e2e-acme, whose members (091) the seed adds, and
+  // an item released there is filtered by it in the catalogue.
   await root.goto("/admin/workspaces");
   await root.getByRole("button", { name: "New workspace" }).click();
   const create = root.getByRole("dialog", { name: "New workspace" });
-  await create.getByLabel("Name").fill("E2E-Acme");
-  await create.getByLabel("Description").fill("Acme's teams, for the end-to-end tests.");
+  await create.getByLabel("Name").fill("E2E-Labs");
+  await create.getByLabel("Description").fill("Labs, for the end-to-end tests.");
   await create.getByRole("button", { name: "Create workspace" }).click();
-  await expect(create.getByText("Created e2e-acme.")).toBeVisible();
+  await expect(create.getByText("Created e2e-labs.")).toBeVisible();
   await create.getByRole("button", { name: "Done" }).click();
-  await root.getByRole("link", { name: "e2e-acme", exact: true }).click();
-  await expect(root).toHaveURL(/\/admin\/workspaces\/e2e-acme$/);
+  await root.getByRole("link", { name: "e2e-labs", exact: true }).click();
+  await expect(root).toHaveURL(/\/admin\/workspaces\/e2e-labs$/);
   await expect(root.getByText("No scopes yet.")).toBeVisible();
 
   await root.goto("/admin/scopes");
@@ -99,9 +100,50 @@ test("root creates, sorts and searches scopes under Admin; nobody else has a sco
     data: { ids: [draft.id] },
   });
   expect(submitted.status()).toBe(200);
+  // Roles per workspace (091): a moderator of global only doesn't see acme's submission, in the
+  // queue or by its address; e2e-acme's moderator, a plain user in global, finds it and approves.
+  const outsider = await browser.newPage();
+  await signIn(outsider, E2E_USERS.workspaceOutsider);
+  await outsider.goto("/reviews");
+  await expect(outsider.getByRole("heading", { name: "Reviews" })).toBeVisible();
+  await expect(outsider.getByRole("link", { name: item })).toHaveCount(0);
+  expect((await outsider.goto(`/reviews/${draft.id}`))?.status()).toBe(404);
+  // And the other way: global's submission isn't in e2e-acme's moderator's queue, nor at its address.
+  const elsewhere = "@e2e-seeded/workspace-elsewhere";
+  const uploadElsewhere = await request.post("/api/v1/drafts", {
+    headers,
+    data: {
+      name: elsewhere,
+      type: "skill",
+      files: [
+        {
+          path: "ronne.yaml",
+          encoding: "utf8",
+          content: `name: "${elsewhere}"\ntype: skill\ndescription: In global.\n`,
+        },
+        {
+          path: "SKILL.md",
+          encoding: "utf8",
+          content: "---\nname: workspace-elsewhere\ndescription: In global.\n---\nBe kind.\n",
+        },
+      ],
+    },
+  });
+  expect(uploadElsewhere.status()).toBe(201);
+  const elsewhereDraft = await uploadElsewhere.json();
+  const elsewhereSubmit = await request.post("/api/v1/drafts/submit", {
+    headers,
+    data: { ids: [elsewhereDraft.id] },
+  });
+  expect((await elsewhereSubmit.json()).results[0].result).toBe("submitted");
   const moderator = await browser.newPage();
   await signIn(moderator, E2E_USERS.workspaceModerator);
-  await moderator.goto(`/reviews/${draft.id}`);
+  await moderator.goto("/reviews");
+  await expect(moderator.getByRole("link", { name: elsewhere })).toHaveCount(0);
+  expect((await moderator.goto(`/reviews/${elsewhereDraft.id}`))?.status()).toBe(404);
+  await moderator.goto("/reviews");
+  await moderator.getByRole("link", { name: item }).click();
+  await expect(moderator).toHaveURL(new RegExp(`/reviews/${draft.id}$`));
   await moderator.getByRole("button", { name: "Approve", exact: true }).click();
   await moderator
     .getByRole("dialog", { name: "Approve this submission?" })

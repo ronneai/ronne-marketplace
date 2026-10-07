@@ -19,8 +19,10 @@ export const requireSignedIn = (actor: { user: CurrentUser | null }): CurrentUse
 export const requireMember = (
   actor: { user: CurrentUser | null },
   workspace: { id: string; name: string },
+  doing?: string,
 ): CurrentUser => {
   const user = requireSignedIn(actor);
-  if (!can(user, "submissions.create", workspace.id)) throw new NotAMemberError(workspace.name);
+  if (!can(user, "submissions.create", workspace.id))
+    throw new NotAMemberError(workspace.name, doing);
   return user;
 };

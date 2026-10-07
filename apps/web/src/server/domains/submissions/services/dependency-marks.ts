@@ -1,5 +1,5 @@
 import { highestMatching, parseItemName, parseManifest } from "@ronneai/core";
-import { canInSome } from "../../identity/models/permissions";
+import { can } from "../../identity/models/permissions";
 import { OPEN_STATUSES } from "../models/status";
 import { fileBytes, MANIFEST_PATH, type Submission } from "../models/submission";
 import type { RegistryLookup } from "../repositories/registry-lookup";
@@ -123,7 +123,8 @@ export const dependencyMarks = async (
     const mine = submission.authorId === actor.user?.id;
     const visible =
       mine ||
-      (submission.status !== "draft" && canInSome(actor.user, "submissions.view_submitted"));
+      (submission.status !== "draft" &&
+        can(actor.user, "submissions.view_submitted", submission.workspace.id));
     if (!visible || !MARKED.has(submission.status)) continue;
     const marks = await marksFor(registry, await dependenciesOf(deps.repo, submission));
     if (marks.length > 0) result[submission.id] = marks;

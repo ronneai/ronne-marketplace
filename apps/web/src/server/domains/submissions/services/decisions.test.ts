@@ -23,6 +23,7 @@ const submission = (
   status,
   authorId,
   stale,
+  workspace: { id: "global" },
 });
 /** Each decision as `name` or `name (reason)`, in order. */
 const shown = (role: Role, status: SubmissionStatus, mine = false, stale: string | null = null) =>

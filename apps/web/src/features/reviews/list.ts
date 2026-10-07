@@ -12,8 +12,8 @@ import { QUEUE_TABS } from "@/server/domains/submissions/services/queue";
  * the tab is a fixed parameter (none for Needs review, so `/reviews` stays its address), and its
  * time starts in the tab's own direction.
  */
-export type QueueList = ListDefinition<"time" | "name", "q" | "type">;
-export type QueueListState = ListState<"time" | "name", "q" | "type">;
+export type QueueList = ListDefinition<"time" | "name", "q" | "type" | "workspace">;
+export type QueueListState = ListState<"time" | "name", "q" | "type" | "workspace">;
 
 export const queueList = (tab: QueueTab): QueueList =>
   defineList({
@@ -23,7 +23,7 @@ export const queueList = (tab: QueueTab): QueueList =>
     defaultSort: "time",
     sizes: [25, 50, 100],
     defaultSize: 50,
-    filters: { q: "string", type: "string" },
+    filters: { q: "string", type: "string", workspace: "string" },
   });
 
 const isItemType = (value: string): value is ItemType =>
@@ -44,4 +44,5 @@ export const queueQueryOf = (tab: QueueTab, state: QueueListState): QueueQuery =
   cursor: state.cursor,
   search: state.filters.q || undefined,
   type: isItemType(state.filters.type) ? state.filters.type : undefined,
+  workspace: state.filters.workspace || undefined,
 });

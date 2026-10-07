@@ -48,6 +48,10 @@ export const approveMany = async (
 export const listDependents = async (headers: Headers, id: string, app: AppAuth = getAppAuth()) =>
   service.dependentsOf(deps(app), await actor(headers, app), id);
 
+/** How many open submissions depend on it, in every workspace: the withdraw warning (056, 091). */
+export const countDependents = async (headers: Headers, id: string, app: AppAuth = getAppAuth()) =>
+  service.countDependents(deps(app), await actor(headers, app), id);
+
 /** Rejects, and (056) sends back the submissions that depend on it when asked. */
 export const rejectWithDependents = async (
   headers: Headers,

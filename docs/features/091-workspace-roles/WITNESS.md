@@ -174,3 +174,93 @@ Witnessed: 2026-10-06 23:32 EDT, by a fresh agent (adversarial). Commit: 0637358
 | 8 | The suites pass on the four databases, rmk's tests pass, and lint and typecheck are clean | yes | confirmed | `vitest run --project db` → 72 files: SQLite 571 + 8 skipped; postgres, mysql, mariadb 579 each; unit 1035; `packages/cli` 227; typecheck of web and rmk clean; `biome check` 0 errors |
 
 **Overall:** met: a removed member reads their own proposal and every write path still refuses them; each fix has a test that fails without it. Left for task 6: the read-only notice (`DraftEditor.tsx:105-130`) says "Submitted for review" on a removed member's draft instead of saying they're no longer a member. For task 4: a removed member can still comment on their open submission (`reviews.ts:200`) and publish their own approved one (`publish.ts:76`).
+
+## Task 4 — Reviews and releases
+
+Witnessed: 2026-10-07 00:08 EDT, by a fresh agent (blind). Commit: c0f87d2 + uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Only a moderator of the submission's workspace, or root, can approve, reject or request changes there. A moderator of A gets refused in B | yes | confirmed | `vitest run --project db …/workspace-reviews.db.test.ts` → 6/6 passed; acme's moderator on a beta submission: `decide`, `comment` → `SubmissionNotFoundError`, status stays `submitted`; mutant removing the checks in `lockedSubmission`/`decide` fails it; probe P2: a moderator removed from acme → `decide` Forbidden, queue Forbidden, count 0 |
+| 2 | Root approves and releases in every workspace | yes | confirmed | Root's queue lists `@acme/fmt, @beta/lint, @beta/fmt`; `publishSubmission(asRoot, inBeta)` → `published` |
+| 3 | A plain user (moderator nowhere) can't approve or release others' submissions | yes | confirmed | Probe P3: `approveMany`, `decide` → `ForbiddenError`, status stays `submitted`; `releaseRefusal` (bulk-release.ts) and `publish.ts:86-89` let only the author release their own |
+| 4 | Bulk approve checks each submission and skips those outside the actor's workspaces, with "Not a moderator in X" | yes | confirmed | db test `["approved","not_approvable"]`, "Not a moderator in beta"; mutant removing the per-item check (bulk-approve.ts:94) fails it |
+| 5 | Bulk release skips those outside the actor's workspaces *with the reason* | yes | partly | A removed author → `NotAMemberError("beta")`; acme's moderator releasing beta's → `{result:"not_found"}`, no reason (probe P5 `[["not_found",null]]`), unlike bulk approve |
+| 6 | A single release works for the workspace's moderator and root, and for the author while a member; not for another workspace's moderator | yes | confirmed | db test: acme's moderator on beta → `SubmissionNotFoundError`; the author → published; removed → `NotAMemberError`; a mutant of `publish.ts:86` survives but is equivalent (`view_submitted` and `publish` are both moderator-only) |
+| 7 | The four-eyes rule is unchanged; override is root only | yes | confirmed | Probe P4 (acme's moderator is the author): approve → `OwnSubmissionError`, override → `ForbiddenError`, `approveMany` → `not_approvable`, queue row `approvable:false` |
+| 8 | The queue's query is filtered to the moderated workspaces; root sees all | yes | confirmed | db test: acme's moderator `["@acme/fmt"]`, beta's 2, root 3; mutant turning off the `workspaceIds` filter (repo:118) fails it |
+| 9 | The tab counts and the nav count follow the same filter | yes | confirmed | `countNeedsReview` 1 / 2 / 3 / 0; mutant turning off the `countByStatus` filter fails it; the tab total uses the same `forReview` |
+| 10 | A Workspace filter appears when there are several; picking one narrows the queue; a workspace you don't moderate matches nothing | yes | confirmed | `vitest run src/features/reviews …/services` → 77 passed; `names(asAcmeMod,"beta")` → `[]` |
+| 11 | The db tests pass on SQLite, PostgreSQL, MySQL and MariaDB | yes | confirmed | SQLite 577 passed, 8 skipped; `pnpm test:db:postgres` / `:mysql` / `:mariadb` → 585 each (73 files) |
+| 12 | A removed author can't comment or release; the workspace's moderators still decide and release | yes | confirmed | db test: `can` `{publish:false, comment:false}`; `publishSubmission`, `comment` → `NotAMemberError`; acme's moderator then publishes |
+| 13 | A moderator of A sees nothing of B's submissions | yes | partly | Probe P1: `getReview(asAcmeMod, acme).dependents` and `listDependents` return `@beta/secret-plan` with its author's name; `dependentsOf` checked no authorization; signed out got the list too |
+| 14 | An e2e test has a moderator of A approve in A and not see B | yes | partly | `pnpm test:e2e` → 91 passed, but only `workspaceOutsider` was checked as not seeing acme's; acme's moderator was never checked against another workspace |
+
+**Overall:** not met: bulk release gave no reason, the dependents list showed B's submissions to A's moderator, and the e2e checked only one direction. Fixed as in the adversarial pass below (SPEC now says a submission the actor can't see is "not found" in bulk actions too). Re-checks below.
+
+### Re-check after the fixes
+
+Witnessed: 2026-10-07 00:36 EDT, by a fresh agent (blind). Commit: c0f87d2 + uncommitted working tree (fixes 1–5). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | Bulk approve and bulk release skip other workspaces' submissions. One the actor can't see is "not found"; one they see but can't act on says why | yes | partly | Probe Q1: acme's moderator bulk-approving beta's → `[{"id":…,"result":"not_found"}]`; mutant removing the `view_submitted` check fails "…as not found"; Q3: a removed author's `releaseMany` says why. **But** Q2: acme's moderator, a user in beta, bulk-approving *their own* beta submission → `[["not_found",null]]`, though they can see it |
+| 13 | The dependents list names only those the actor could open; signed out gets nothing; the withdraw warning counts every one | yes | confirmed | New db test: acme's moderator → `["@acme/house-style"]`, root both, `countDependents(author)` → 2, beta's moderator → NotFound, signed out → Forbidden; mutants dropping the `canSee` filter or `requireSignedIn` fail it; probe Q4 |
+| 14 | An e2e test has a moderator of A approve in A and not see B | yes | confirmed | `pnpm test:e2e` → 91 passed (3.4m); in `scopes.e2e.ts`, the global `@e2e-seeded/workspace-elsewhere` has no link in `workspaceModerator`'s `/reviews`, its address is a 404 for them, then they approve acme's item |
+| 15 | Dependency marks are shown only for the moderated workspaces' submissions | yes | confirmed | Probe R1: `dependencyMarks` keys `[]` for acme's moderator, `[id]` for beta's moderator and root |
+| 16 | A removed author's comment and release refusals say what to ask for | yes | confirmed | "Ask to join acme to comment there." / "…to release your items there." from `comment`, `publishSubmission`, `releaseMany` |
+| 17 | Nothing else regressed | yes | confirmed | SQLite 578 passed, 8 skipped; postgres / mysql / mariadb 586 each (73 files); `vitest run src/features src/app …/services` → 512 passed; typecheck exit 0; lint no errors |
+
+**Overall:** not met: bulk approve answered `not_found` with no reason for the actor's own submission in a workspace they don't moderate (5). Fixed: bulk approve treats the actor's own as visible, so it says "Not a moderator in beta"; a test covers it. Second re-check below.
+
+### Second re-check
+
+Witnessed: 2026-10-07 00:39 EDT, by a fresh agent (blind). Commit: c0f87d2 + uncommitted working tree (the own-submission fix in `approveMany`). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | Bulk approve and bulk release skip other workspaces' submissions. A submission the actor can't see answers "not found". One they see but can't act on says why, including their own in a workspace they don't moderate | yes | confirmed | `bulk-approve.ts:95-101`: only one that isn't the actor's and isn't viewable answers `not_found`; `vitest run --project db …/workspace-reviews.db.test.ts` → 8/8; "says why for your own submission in a workspace you don't moderate" → `not_approvable`, "Not a moderator in beta"; mutants removing the `authorId` clause or the `view_submitted` check each fail one test; SQLite 579 passed, 8 skipped; `pnpm test:db:postgres` 587 passed; typecheck exit 0; bulk release unchanged (not_found for another workspace's, the removed author's reason) |
+
+**Overall:** met: approving many gives a reason for the actor's own submission in a workspace they don't moderate, and answers `not_found` for ones they can't see, on SQLite and PostgreSQL.
+
+Witnessed: 2026-10-07 00:04 EDT, by a fresh agent (adversarial). Commit: c0f87d2 + working tree (feat/091-workspace-roles). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The review and release db tests pass on SQLite, PostgreSQL, MySQL and MariaDB | yes | confirmed | `vitest run --project db src/server/domains/submissions` → 19 files, 189 passed; `node scripts/test-db.mjs postgres\|mysql\|mariadb src/server/domains/submissions` → 189 passed each |
+| 2 | Those tests cover the new checks | yes | confirmed | Nine mutants each fail a test: queue `workspaceIds` off, `countByStatus` filter off, bulk approve's skip off, publish's `requireMember` off, bulk release visibility off, comment's `requireMember` off, `lockedSubmission` visibility off, the queue's default filter off, `getReview` treating anyone as reviewer |
+| 3 | A moderator of B can't approve, request changes on, reject, override, reject-with-dependents, comment on or open A's submission | yes | confirmed | Probe as beta's moderator on an acme submission: approve, request_changes, reject, comment, `getReview`, `rejectWithDependents` → `SubmissionNotFoundError`; override → `ForbiddenError (submissions.override)`; status stays `submitted` |
+| 4 | Releasing: a moderator of B can't release A's, alone, in bulk, or as an approved dependency pulled into the release | yes | confirmed | `publishSubmission` → NotFound; `prepareRelease` → `not_found`; probe: acme's `kit` depends on approved `@beta/style`, released by acme's moderator → kit refused ("@beta/style can't be released with it: Only its author, a moderator or root releases it."); both stay `approved` |
+| 5 | Bulk actions check each submission and skip, with a reason, those outside the actor's workspaces | yes | confirmed | `approveMany` on [acme, beta] → `approved`, `not_approvable` "Not a moderator in beta"; bulk release → `not_found`, a removed author → `NotAMemberError("beta")` |
+| 6 | Four-eyes is unchanged when the author moderates the workspace; root's override stays root-only and audited | yes | confirmed | Author moderating acme, own submission: approve → `OwnSubmissionError`, override → `ForbiddenError`, `approveMany` → `not_approvable` "own", `can.decide=false`. Root's own: approve → OwnSubmissionError, override → `approved`, 1 `submission.override_approved` row. Acme's moderator overriding another's → Forbidden |
+| 7 | The queue's rows and total are filtered to the workspaces the actor moderates; root sees all | yes | confirmed | acme's moderator → [@acme/fmt], total 1; root both; a global-only moderator [] and 0; searching "beta" as acme's moderator → 0 |
+| 8 | The nav count (`countNeedsReview`) follows the same filter | yes | confirmed | 1 for acme's moderator, 2 beta's, 3 root, 0 a user, 0 a global-only moderator, 0 no session; `shell.ts:18`, `app/(app)/page.tsx:14` |
+| 9 | The Workspace filter only narrows within moderated workspaces; it appears when there are several | yes | confirmed | `workspace=` "beta", "global", "ACME", "acme ", "' OR 1=1 --", "名前", "acme\r\n" → 0 rows, total 0 (matched in JS, never in SQL); root with "beta" → only beta's; `reviews.test.tsx`: a select only with two or more |
+| 10 | A removed author can't comment or release; the moderators still decide; the author can still withdraw | yes | confirmed | Probe: comment → `NotAMemberError`; `can` all false; acme's moderator request_changes → `changes_requested`, can comment; the author withdraws → `withdrawn` |
+| 11 | No leak of another workspace's submissions through dependents, bulk results or errors | yes | not met | `listDependents(asBetaMod, @beta/style)` → `@acme/kit` with id, status, author; the same in `getReview().dependents` and the reject cascade's skipped list; with no session `listDependents` returned it too; `approveMany` with a beta id showed `@beta/fmt` to acme's moderator |
+| 12 | The server actions in features/reviews and features/releases go through these domain functions with the session's user | no | confirmed | `features/reviews/actions.ts` → `decide`, `rejectWithDependents`, `listDependents`, `approveMany`, `comment`, `publishSubmission`; `features/releases/actions.ts` → `prepareRelease`, `releaseMany`; actor from `getCurrentUser(headers)` |
+| 13 | An end-to-end test has a moderator of A approve in A and not see B | yes | partly | `pnpm test:e2e` → 91 passed; acme's moderator approves in acme, but "doesn't see" was only checked with `workspaceOutsider` against acme's item |
+| 14 | UI and decision unit tests pass | yes | confirmed | `vitest run src/features/reviews .../decisions.test.ts` → 3 files, 54 passed |
+| 15 | Someone who moderates nowhere gets Forbidden on a decision | yes | confirmed | A user of acme only: approve, request_changes, reject, `approveMany` → `ForbiddenError (submissions.review)` |
+| 16 | Dependency marks are checked in the submission's workspace | yes | confirmed | `dependencyMarks(asBetaMod, [acme's kit])` → `{}`; acme's moderator → the kit's marks (`dependency-marks.ts:123`) |
+| 17 | The seed: workspaceModerator moderates only e2e-acme, workspaceOutsider only global | yes | confirmed | `e2e/users.ts` `E2E_MODERATORS`, `E2E_ACME_MEMBERS`; `e2e/seed.ts` inserts the rows |
+
+**Overall:** not met: every permission check holds, but `dependentsOf` and bulk approve's results showed another workspace's open submissions (11), and the e2e didn't check that A's moderator can't see B (13). Fixed (SPEC updated): a submission the actor can't see is "not found" in bulk approve; dependents list only those the actor could open, need a session and a visible submission, and the author's warning uses `countDependents` (a number); the e2e checks both directions. Re-check below.
+
+### Re-check
+
+Witnessed: 2026-10-07 00:34 EDT, by a fresh agent (adversarial). Commit: c0f87d2 + working tree with the fixes. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 11a | Dependents list, by name, only those the actor could open; they need a session and a submission the actor can see | yes | confirmed | Probe: acme's `kit` depends on `@beta/style`; `listDependents(asBetaMod, style)` → `[]`, `getReview(asBetaMod, style).dependents` → `[]`; acme's moderator on style → `SubmissionNotFoundError`; no session → `ForbiddenError` for a real id and "nope" alike; the author → `[@acme/kit]`; `workspace-reviews.db.test.ts:302` |
+| 11b | The reject cascade neither reveals nor touches another workspace's dependents | yes | confirmed | `rejectWithDependents(asBetaMod, style, {dependents})` → `dependents: []`, kit stays `submitted`; no session → `ForbiddenError` |
+| 11c | Bulk approve answers "not found" for a submission the reviewer can't see | yes | confirmed | `approveMany(asAcmeMod, [beta id])` → `{"id":…,"result":"not_found"}`, no name; the same for acme's moderator who is a user in beta |
+| 11d | Bulk and single release reveal nothing of another workspace's submission | yes | confirmed | `prepareRelease(asAcmeMod, [kit, style])` → style `{name:null, result:"not_found"}`; `publishSubmission(asAcmeMod, style)` → NotFound |
+| 11e | The withdraw warning's count is a number only, for the author | yes | confirmed | `countDependents(asAuthor, style)` → 1; acme's moderator → NotFound; no session → Forbidden; used only at `submissions/[id]/page.tsx` (when `draft.mine`) and `withdrawInfoAction` (author-only via `canDeleteSubmission`). Remark: the service itself isn't author-only |
+| 11f | A removed author's refusals say why | yes | confirmed | comment → "…Ask to join acme to comment there."; publish and `releaseMany` → "…to release your items there." |
+| 13 | The end-to-end test checks both directions | yes | confirmed | `playwright test --project=chromium e2e/rmk.e2e.ts e2e/scopes.e2e.ts` → 9 passed (a full run's one failure, `rmk.e2e.ts:203` `ERR_MODULE_NOT_FOUND`, came from the witness's own concurrent rebuild of `@ronneai/core`); mutant showing `global` to every moderator → `scopes.e2e.ts:142` fails; mutant removing the queue filter → line 109 fails |
+| R1 | The db tests still pass on four databases after the fixes | yes | confirmed | `src/server/domains/submissions` → 190 passed on SQLite, postgres, mysql, mariadb |
+| R2 | Root's filter label | yes | confirmed | `QueueTable.tsx:358` `everyLabel={root ? "Every workspace" : "Every workspace you moderate"}` |
+
+**Overall:** met: dependents, the reject cascade, bulk approve and release, the review page and the counts no longer show another workspace's submissions, and the e2e fails if A's moderator sees B's. Left for the owner: dependency marks (056) still show a named dependency's status (e.g. "submitted") when that dependency is another workspace's open submission; its name is already in the manifest, so only the status shows, and only for what the item names.

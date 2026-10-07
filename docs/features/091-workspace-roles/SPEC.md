@@ -65,8 +65,11 @@ user, as the user row is; a check itself doesn't query. A call site that checks 
 
 **Converting the call sites** (about 84, in ~35 files): each resolves the workspace from the
 scope of the submission, item or version it acts on. Bulk actions (054, 055, 052) check each
-submission on its own and skip, with a reason, those outside the actor's workspaces ("Not a
-moderator in acme").
+submission on its own and skip those outside the actor's workspaces: one they can't see answers
+"not found", as its page does, so a bulk request reveals nothing of another workspace's
+submissions; one they see but can't act on says why ("Not a moderator in acme", or that the author
+isn't a member of it any more). A submission's dependents (056) list, by name, only those the actor
+could open; the author's withdraw warning counts them all, as a number only.
 
 **The four-eyes rule** (014) is unchanged: a moderator never approves their own submission; root's
 override stays root only and audited.

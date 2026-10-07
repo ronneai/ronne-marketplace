@@ -109,11 +109,18 @@ export const kyselySubmissionRepository = (
   };
 
   /** A queue tab's submissions, with their author's name (062). */
-  const forReview = ({ statuses, search, type }: ReviewFilters) => {
+  const forReview = ({ statuses, workspaceIds, search, type }: ReviewFilters) => {
     let query = submissions()
       .innerJoin("user", "user.id", "submissions.author_id")
       .select("user.name as author_name")
       .where("submissions.status", "in", [...statuses]);
+    // An empty list matches nothing; `in ()` isn't valid SQL, so a value no id has stands in.
+    if (workspaceIds)
+      query = query.where(
+        "scopes.workspace_id",
+        "in",
+        workspaceIds.length > 0 ? [...workspaceIds] : [""],
+      );
     if (search)
       query = query.where((eb) =>
         eb.or([
@@ -300,12 +307,26 @@ export const kyselySubmissionRepository = (
       (await db.selectFrom("user").select("name").where("id", "=", userId).executeTakeFirst())
         ?.name ?? null,
 
-    countByStatus: async (status) => {
-      const row = await db
+    workspacesNamed: async (ids) => {
+      if (ids !== "all" && ids.length === 0) return [];
+      let query = db.selectFrom("workspaces").select(["id", "name"]).orderBy("name");
+      if (ids !== "all") query = query.where("id", "in", [...ids]);
+      return query.execute();
+    },
+
+    countByStatus: async (status, workspaceIds) => {
+      let query = db
         .selectFrom("submissions")
+        .innerJoin("scopes", "scopes.id", "submissions.scope_id")
         .select((eb) => eb.fn.countAll().as("count"))
-        .where("status", "=", status)
-        .executeTakeFirst();
+        .where("submissions.status", "=", status);
+      if (workspaceIds)
+        query = query.where(
+          "scopes.workspace_id",
+          "in",
+          workspaceIds.length > 0 ? [...workspaceIds] : [""],
+        );
+      const row = await query.executeTakeFirst();
       return Number(row?.count ?? 0);
     },
 

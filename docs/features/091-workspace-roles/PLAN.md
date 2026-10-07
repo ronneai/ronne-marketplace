@@ -22,7 +22,7 @@ the same change that completes it.
   scope lists filtered; `GET /api/v1/scopes` adds `role`.
   *Done when:* the submissions db tests pass, with new cases for a non-member and a removed member.
 
-- [ ] **4. Reviews and releases.** [risky] Reviews, decisions, bulk approve and release, publish:
+- [x] **4. Reviews and releases.** [risky] Reviews, decisions, bulk approve and release, publish:
   the workspace's moderator; bulk skips with reasons; the review queue's query and counts filtered,
   its Workspace filter.
   *Done when:* review and release db tests pass, and an end-to-end test has a moderator of A
@@ -69,3 +69,21 @@ goes into `SPEC.md` instead.
   page makes the editor read-only and hides Submit, Restore, Rebase and Resolve; Withdraw and
   Delete stay, and a change proposal's panel still opens. Task 6 gives the read-only notice its own
   text ("You're no longer a member of acme …"); until then it reads as if it were submitted.
+- **Task 4: reviews and releases** (Claude). Viewing, deciding, commenting, publishing, the review
+  page's flags and dependency marks check the submission's workspace. A moderator of another
+  workspace gets "doesn't exist" (as anyone who can't see it); someone who moderates nowhere still
+  gets Forbidden on a decision. The author comments on and releases their own only while a member.
+  The queue, its counts and the nav count read only the moderated workspaces (`workspaceIds`), and
+  the queue has a Workspace filter when there are several. Approving many skips another
+  workspace's with "Not a moderator in acme"; releasing many can't see another workspace's at all
+  (it's `not_found`), and a removed author's own says `NotAMemberError`'s message.
+- **e2e:** the seed adds `e2e-acme` with members (`E2E_ACME_MEMBERS`) until 092 does it in the app;
+  `workspaceModerator` moderates only `e2e-acme`, and `workspaceOutsider` moderates only `global`.
+  `scopes.e2e.ts` now creates `e2e-labs` in the app and puts its scope in `e2e-acme`.
+- **Nothing of another workspace's submissions shows** (Claude, from the task 4 witnesses): bulk
+  approve answers "not found" for one the reviewer can't see (their own always shows, with why);
+  dependents (056) list only those the actor could open, and the author's withdraw warning counts
+  all of them with `countDependents` (a number; its callers keep it to the author). **For the owner
+  / 093:** a dependency mark still shows a named dependency's status ("in review") when that
+  dependency is another workspace's open submission; its name is already in the manifest, so only
+  the status shows. Harmless while every workspace is public; 093 decides it for private ones.

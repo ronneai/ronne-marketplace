@@ -43,9 +43,13 @@ export class DraftScopeNotFoundError extends SubmissionsError {
  * still reads and withdraws their own; this is what editing, creating and submitting get.
  */
 export class NotAMemberError extends SubmissionsError {
-  constructor(readonly workspace: string) {
+  constructor(
+    readonly workspace: string,
+    /** What joining would let them do there: proposing changes, unless said. */
+    doing = "propose changes",
+  ) {
     super(
-      `You aren't a member of the ${workspace} workspace. Ask to join ${workspace} to propose changes.`,
+      `You aren't a member of the ${workspace} workspace. Ask to join ${workspace} to ${doing}.`,
     );
   }
 }

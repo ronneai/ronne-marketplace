@@ -13,7 +13,8 @@ import {
 import { PackError, packItem } from "@ronneai/core/pack";
 import { isId } from "../../../db/ids";
 import type { StorageAdapter } from "../../../storage";
-import { canInSome, requireInSome } from "../../identity/models/permissions";
+import { ForbiddenError } from "../../identity/exceptions/errors";
+import { can } from "../../identity/models/permissions";
 import type { VersionFile } from "../../items/models/item";
 import {
   RELEASE_NOTES_MAX_LENGTH,
@@ -29,6 +30,7 @@ import type { RevisionFile } from "../models/review";
 import { transition } from "../models/status";
 import { fileBytes, itemNameOf, MANIFEST_PATH, toPackageFile } from "../models/submission";
 import type { ReleaseStore } from "../repositories/release-store";
+import { requireMember, requireSignedIn } from "./membership";
 import { requireCurrent } from "./proposals";
 import { allIssues, type SubmissionActor, type SubmissionDeps } from "./submissions";
 
@@ -73,12 +75,19 @@ export const publishSubmission = async (
   id: string,
   input: PublishInput,
 ): Promise<Published> => {
-  requireInSome(actor.user, "submissions.create");
+  requireSignedIn(actor);
   const submission = isId(id) ? await deps.repo.find(id) : null;
   const mine = submission?.authorId === actor.user?.id;
-  if (!submission || !(mine || canInSome(actor.user, "submissions.view_submitted")))
+  if (
+    !submission ||
+    !(mine || can(actor.user, "submissions.view_submitted", submission.workspace.id))
+  )
     throw new SubmissionNotFoundError();
-  if (!mine) requireInSome(actor.user, "submissions.publish");
+  // Its workspace's moderators and root release any; the author their own, while a member (091).
+  if (!can(actor.user, "submissions.publish", submission.workspace.id)) {
+    if (!mine) throw new ForbiddenError("submissions.publish");
+    requireMember(actor, submission.workspace, "release your items there");
+  }
   transition(submission.status, "publish");
   const itemName = itemNameOf(submission);
 

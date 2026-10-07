@@ -92,52 +92,100 @@ const TIME_HEADER: Record<QueueTab, string> = {
   decided: "Decided",
 };
 
-/** The search and type filter (062): one GET form that submits on change, and chips. */
-const Filters = ({ list, state }: { list: QueueList; state: QueueListState }) => (
-  <div className="grid gap-2">
-    <Form
-      action={list.path}
-      scroll={false}
-      className="grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto] sm:items-end"
-    >
-      <HiddenListFields list={list} state={state} omit={["q", "type"]} />
-      <div className="grid gap-1.5">
-        <Label htmlFor="queue-search">Search</Label>
-        <Input
-          id="queue-search"
-          name="q"
-          type="search"
-          placeholder="Item or author"
-          maxLength={100}
-          defaultValue={state.filters.q}
+/**
+ * The search, type and workspace filters (062, 091): one GET form that submits on change, and
+ * chips. Workspace shows when the reviewer moderates several (root: when there are several).
+ */
+const Filters = ({
+  list,
+  state,
+  workspaces,
+  everyLabel,
+}: {
+  list: QueueList;
+  state: QueueListState;
+  workspaces: readonly string[];
+  everyLabel: string;
+}) => {
+  const picked = state.filters.workspace;
+  const options = picked && !workspaces.includes(picked) ? [...workspaces, picked] : workspaces;
+  const byWorkspace = options.length > 1;
+  return (
+    <div className="grid gap-2">
+      <Form
+        action={list.path}
+        scroll={false}
+        className={
+          byWorkspace
+            ? "grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end"
+            : "grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto] sm:items-end"
+        }
+      >
+        <HiddenListFields
+          list={list}
+          state={state}
+          omit={byWorkspace ? ["q", "type", "workspace"] : ["q", "type"]}
         />
-      </div>
-      <div className="grid gap-1.5">
-        <Label htmlFor="queue-type">Type</Label>
-        <select
-          id="queue-type"
-          name="type"
-          defaultValue={state.filters.type}
-          className={selectClasses}
-        >
-          <option value="">Any type</option>
-          {ITEM_TYPES.map((type) => (
-            <option key={type} value={type}>
-              {type}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="flex gap-2">
-        <button type="submit" data-submit className={buttonClasses("secondary")}>
-          Filter
-        </button>
-        <SubmitOnChange />
-      </div>
-    </Form>
-    <FilterChips list={list} state={state} labels={{ q: "Search", type: "Type" }} />
-  </div>
-);
+        <div className="grid gap-1.5">
+          <Label htmlFor="queue-search">Search</Label>
+          <Input
+            id="queue-search"
+            name="q"
+            type="search"
+            placeholder="Item or author"
+            maxLength={100}
+            defaultValue={state.filters.q}
+          />
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="queue-type">Type</Label>
+          <select
+            id="queue-type"
+            name="type"
+            defaultValue={state.filters.type}
+            className={selectClasses}
+          >
+            <option value="">Any type</option>
+            {ITEM_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
+          </select>
+        </div>
+        {byWorkspace ? (
+          <div className="grid gap-1.5">
+            <Label htmlFor="queue-workspace">Workspace</Label>
+            <select
+              id="queue-workspace"
+              name="workspace"
+              defaultValue={picked}
+              className={selectClasses}
+            >
+              <option value="">{everyLabel}</option>
+              {options.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
+        <div className="flex gap-2">
+          <button type="submit" data-submit className={buttonClasses("secondary")}>
+            Filter
+          </button>
+          <SubmitOnChange />
+        </div>
+      </Form>
+      <FilterChips
+        list={list}
+        state={state}
+        labels={{ q: "Search", type: "Type", workspace: "Workspace" }}
+      />
+    </div>
+  );
+};
 
 /** A tab's time: the first submit, the approval, or the decision. */
 const timeOf = (tab: QueueTab, row: QueueRow): Date =>
@@ -278,11 +326,16 @@ export const QueueTable = ({
   page,
   total,
   actions,
+  workspaces = [],
+  root = false,
 }: {
   tab: QueueTab;
   list: QueueList;
   state: QueueListState;
   rows: QueueRow[];
+  /** The workspaces the reviewer moderates, by name (091); every one for root. */
+  workspaces?: readonly string[];
+  root?: boolean;
   page: { next: string | null; previous: string | null };
   total: { count: number; capped: boolean };
   actions?: ReactNode;
@@ -298,7 +351,12 @@ export const QueueTable = ({
     noun={total.count === 1 && !total.capped ? "submission" : "submissions"}
     toolbar={
       <>
-        <Filters list={list} state={state} />
+        <Filters
+          list={list}
+          state={state}
+          workspaces={workspaces}
+          everyLabel={root ? "Every workspace" : "Every workspace you moderate"}
+        />
         {actions}
       </>
     }

@@ -8,7 +8,7 @@ import { Conversation } from "@/features/reviews/Conversation";
 import { PublishDialog } from "@/features/reviews/PublishDialog";
 import { versionsPath } from "@/features/versions/links";
 import { type ProposalPanel, proposalPanel } from "@/server/domains/submissions/actions/proposals";
-import { getReview, listDependents } from "@/server/domains/submissions/actions/reviews";
+import { countDependents, getReview } from "@/server/domains/submissions/actions/reviews";
 import {
   canDeleteSubmission,
   type DependencyMark,
@@ -107,7 +107,7 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
   // Who depends on it (056): the author's withdraw confirmation gives the count.
   const dependents =
     draft.mine && draft.status !== "draft" && canTransition(draft.status, "withdraw")
-      ? (await listDependents(request, id)).length
+      ? await countDependents(request, id)
       : 0;
   // Withdraw offers deleting for good, and an archived one can be deleted, when no reviewer took
   // part (057).
