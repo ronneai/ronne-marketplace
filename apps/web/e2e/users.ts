@@ -46,6 +46,9 @@ export const E2E_USERS = {
   workspaceAuthor: "workspace-author@e2e.test",
   workspaceModerator: "workspace-moderator@e2e.test",
   workspaceOutsider: "workspace-outsider@e2e.test",
+  // 092: root makes them admin of e2e-acme, and they add the other.
+  workspaceAdmin: "workspace-admin@e2e.test",
+  memberToAdd: "member-to-add@e2e.test",
   // Phones and tablets (065): one set per project, so the projects' sign-ins don't share a limit.
   phoneMember: "phone-member@e2e.test",
   phoneModerator: "phone-moderator@e2e.test",
@@ -101,6 +104,8 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   workspaceAuthor: "Wren Workspace",
   workspaceModerator: "Wes Workspace-Moderator",
   workspaceOutsider: "Otto Outsider",
+  workspaceAdmin: "Wade Admin",
+  memberToAdd: "Mem Toadd",
   phoneMember: "Pho Member",
   phoneModerator: "Pho Moderator",
   phoneRoot: "Pho Root",

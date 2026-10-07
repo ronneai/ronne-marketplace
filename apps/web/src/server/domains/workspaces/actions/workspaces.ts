@@ -52,12 +52,27 @@ export const pageWorkspaces = async (
 export const findWorkspace = async (headers: Headers, name: string, app: AppAuth = getAppAuth()) =>
   service.findWorkspace(deps(app), await actor(headers, app), name);
 
-/** Workspace members (feature 092), for root: a workspace's page and a user's Workspaces dialog. */
+/**
+ * Workspace members (feature 092): a workspace's page, for root and its admins, and a user's
+ * Workspaces dialog, for root.
+ */
 export const listMembers = async (
   headers: Headers,
   workspaceId: string,
   app: AppAuth = getAppAuth(),
 ) => members.listMembers(deps(app), await actor(headers, app), workspaceId);
+
+export const pageMembers = async (
+  headers: Headers,
+  query: Parameters<typeof members.pageMembers>[2],
+  app: AppAuth = getAppAuth(),
+) => members.pageMembers(deps(app), await actor(headers, app), query);
+
+export const memberCandidates = async (
+  headers: Headers,
+  input: { workspaceId: string; query: string },
+  app: AppAuth = getAppAuth(),
+) => members.memberCandidates(deps(app), await actor(headers, app), input);
 
 export const userMemberships = async (
   headers: Headers,

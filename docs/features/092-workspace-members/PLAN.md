@@ -25,7 +25,7 @@ the same change that completes it.
   as it was (owner, 2026-10-07): new users are users in `global`.
   *Done when:* component tests pass.
 
-- [ ] **4. The workspace's page for admins, and its Members.** Admin in the nav and the layout for
+- [x] **4. The workspace's page for admins, and its Members.** Admin in the nav and the layout for
   admins (Workspaces only, theirs); the page's Members table, Add members, role, remove with its
   confirm; Create scope and Edit description for admins.
   *Done when:* component tests pass, and an end-to-end test has root make someone admin of a
@@ -67,3 +67,18 @@ goes into `SPEC.md` instead.
   (`global` always there; Add workspace; User, Moderator or Admin; Remove), saves the difference
   (`setUserWorkspaces`) and says what changed. The user-admin end-to-end test goes through it
   (from the witness: nothing clicked Add workspace or checked its default role before).
+- **Task 4: a workspace's page for its admins** (Claude, with the adversarial witness's fixes). Admin opens to anyone who holds
+  `members.manage` somewhere: root's nav item goes to Users, an admin's to Workspaces, and the
+  admin tabs show an admin only Workspaces; every other admin page still checks its own root
+  permission. The workspace page lists the members (`listMembers`), with Add members (search by
+  email or name, `memberCandidates`: not in it, not root, not disabled; pick several; one role),
+  a role select that saves on change, and Remove after a confirm; the removed row going is the
+  confirmation, since the page refreshes without it. Own row read-only; no Remove in `global`.
+  Create scope on the page creates in that workspace; Edit description for its admins; Delete is
+  root's. The members are a server data table under a Members tab (`?tab=members`, the list's
+  `fixed` parameter): the list query's parameters (`q`, `sort`, `cursor`) are the page's, so two
+  tables at once would share them. The shared `containsInsensitive` now lowers the term in SQL,
+  not in JavaScript: on SQLite, whose `lower()` folds only ASCII, a JavaScript-lowered "ölaf" never
+  matched "Ölaf" even when typed as stored. The end-to-end flow lives in root's user-admin test: a new file signing root in would be
+  the sixth and trip the sign-in limit (`docs/knowledge/e2e-sign-in-limit.md`).
+

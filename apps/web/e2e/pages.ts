@@ -74,7 +74,12 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
   {
     route: "/admin/workspaces/[name]",
     roles: ROOT,
-    urls: () => ["/admin/workspaces/global", `/admin/workspaces/${E2E_WORKSPACE}`],
+    // Its two tabs (092): the scopes, and global's members, which is everyone.
+    urls: () => [
+      "/admin/workspaces/global",
+      "/admin/workspaces/global?tab=members",
+      `/admin/workspaces/${E2E_WORKSPACE}`,
+    ],
   },
   { route: "/admin/scopes", roles: ROOT, urls: () => ["/admin/scopes"] },
   { route: "/admin/audit", roles: ROOT, urls: () => ["/admin/audit"] },

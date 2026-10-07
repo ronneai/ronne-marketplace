@@ -3,6 +3,7 @@ import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { listAuditEvents } from "../../audit/actions/audit";
 import { createRoot } from "../../identity/actions/root-account";
 import { getCurrentUser, signIn } from "../../identity/actions/session";
+import { adminDisableUser } from "../../identity/actions/user-admin";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import { can } from "../../identity/models/permissions";
 import type { AppAuth } from "../../identity/repositories/auth-instance";
@@ -21,6 +22,8 @@ import {
   createWorkspace,
   findWorkspace,
   listMembers,
+  memberCandidates,
+  pageMembers,
   pageWorkspaces,
   removeMember,
   setUserWorkspaces,
@@ -187,6 +190,54 @@ describe("an admin of acme (092)", () => {
     await expect(
       updateWorkspace(asAdmin, { name: "global", description: "Mine." }, app),
     ).rejects.toThrow(GlobalWorkspaceError);
+  });
+
+  it("finds people to add: not members yet, not root, not disabled; matched by email or name", async () => {
+    const find = (query: string) =>
+      memberCandidates(asAdmin, { workspaceId: acme, query }, app).then((found) =>
+        found.map((u) => u.email),
+      );
+    const goneId = await createTestUser(app, { email: "gone@example.com", password, name: "G" });
+    await adminDisableUser(asRoot, goneId, app);
+    // Everyone matches "example.com": Uma alone isn't in acme, root and the disabled user aside.
+    expect(await find("EXAMPLE.com")).toEqual(["u@example.com"]);
+    expect(await find("uma")).toEqual(["u@example.com"]);
+    expect(await find("  ")).toEqual([]);
+    expect(await find("%")).toEqual([]);
+    await expect(
+      memberCandidates(asAdmin, { workspaceId: beta, query: "example" }, app),
+    ).rejects.toThrow(ForbiddenError);
+    await expect(
+      memberCandidates(asModerator, { workspaceId: acme, query: "example" }, app),
+    ).rejects.toThrow(ForbiddenError);
+  });
+
+  it("pages acme's members: by name, searched, filtered by role, counted; not beta's (092)", async () => {
+    await addMembers(asRoot, { workspaceId: acme, userIds: [userId], role: "user" }, app);
+    const names = async (query: Partial<Parameters<typeof pageMembers>[1]> = {}) => {
+      const page = await pageMembers(asAdmin, { workspaceId: acme, ...query }, app);
+      return { names: page.rows.map((m) => m.name), total: page.total.count, next: page.next };
+    };
+    expect(await names()).toEqual({ names: ["Ada", "Mo", "Uma"], total: 3, next: null });
+    expect(await names({ search: "M@EXAMPLE" })).toEqual({ names: ["Mo"], total: 1, next: null });
+    expect((await names({ role: "moderator" })).names).toEqual(["Mo"]);
+    expect((await names({ role: "nobody" })).total).toBe(3);
+    expect((await names({ sort: "name", dir: "desc" })).names).toEqual(["Uma", "Mo", "Ada"]);
+    // Two a page: the next page has the rest, in the same order.
+    const first = await pageMembers(asAdmin, { workspaceId: acme, size: 2 }, app);
+    expect(first.rows.map((m) => m.name)).toEqual(["Ada", "Mo"]);
+    const second = await pageMembers(
+      asAdmin,
+      { workspaceId: acme, size: 2, cursor: first.next ?? "" },
+      app,
+    );
+    expect(second.rows.map((m) => m.name)).toEqual(["Uma"]);
+    // Newest first by when they were added.
+    expect((await names({ sort: "added", dir: "desc" })).names[0]).toBe("Uma");
+    await expect(pageMembers(asAdmin, { workspaceId: beta }, app)).rejects.toThrow(ForbiddenError);
+    await expect(pageMembers(asModerator, { workspaceId: acme }, app)).rejects.toThrow(
+      ForbiddenError,
+    );
   });
 
   it("lists and opens only the workspaces they administer", async () => {

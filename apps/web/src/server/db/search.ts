@@ -10,10 +10,11 @@ export const escapeLike = (term: string): string => {
 };
 
 /**
- * `column` contains `term`, ignoring case, with the same result on every dialect (MVP §9.4).
- * Case folding is ASCII-only in SQLite; MySQL and PostgreSQL also fold other letters.
+ * `column` contains `term`, ignoring case, with the same result on every dialect (MVP §9.4). The
+ * database lowers both sides, so they're folded alike: case folding is ASCII-only in SQLite, where
+ * "Ölaf" finds "Ölaf" but not "ölaf" (092); MySQL and PostgreSQL also fold other letters.
  */
 export const containsInsensitive = (column: string, term: string): Expression<SqlBool> => {
-  const pattern = `%${escapeLike(term.toLowerCase())}%`;
-  return sql<SqlBool>`lower(${sql.ref(column)}) like ${pattern} escape ${sql.lit(ESCAPE)}`;
+  const pattern = `%${escapeLike(term)}%`;
+  return sql<SqlBool>`lower(${sql.ref(column)}) like lower(${pattern}) escape ${sql.lit(ESCAPE)}`;
 };

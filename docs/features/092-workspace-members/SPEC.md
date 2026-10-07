@@ -24,8 +24,9 @@ works in every workspace and keeps everything instance-wide.
 - **A user's memberships** on Admin › Users: in the Role column, the number of workspaces, with
   the ones they administer and moderate named; the number opens a **Workspaces** dialog per user
   to add, change the role, and remove.
-- **A workspace's members** on its page (`/admin/workspaces/<name>`, 090): a Members table (name,
-  email, role, added), **Add members** (search users, pick a role), change role, remove.
+- **A workspace's members** on its page (`/admin/workspaces/<name>`, 090), under a **Members** tab
+  next to **Scopes**: a Members table (name, email, role, added), **Add members** (search users,
+  pick a role), change role, remove.
 - **Rules:** nobody is removed from `global`; root's own memberships aren't needed (root is
   everywhere) and aren't offered. Root manages every workspace's members; an admin, their
   workspace's.
@@ -78,8 +79,11 @@ with their workspaces and roles:
 Save applies the difference in one transaction, an event per change. A root's row shows "root"
 and no dialog.
 
-**A workspace's members.** The Members table on the workspace page (`DataTable`, sorted by name;
-filter by role). **Add members**: search by name or email (users not yet members, not disabled,
+**A workspace's members.** The workspace page has two tabs, **Scopes** (the default) and
+**Members** (`?tab=members`), so each server data table keeps its own address. The Members table
+(`DataTable`, sorted by name or by when they were added; searched by email or name; filtered by
+role; 50 a page). Searches match a name as typed on every database; folding the case of letters
+beyond ASCII ("ölaf" finding "Ölaf") is the database's, and SQLite doesn't. **Add members**: search by name or email (users not yet members, not disabled,
 not root), pick several, one role for all. Each row: role select, **Remove** (with a confirm that
 says what happens to their open submissions, per 091). `global`'s page lists everyone and offers
 only role changes.

@@ -10,7 +10,7 @@ import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
 import { isWorkspaceRole } from "../../identity/models/user";
 import type { Workspace, WorkspaceVisibility } from "../models/workspace";
-import type { WorkspaceRepository } from "./workspace-repository";
+import type { MemberFilters, WorkspaceRepository } from "./workspace-repository";
 
 type WorkspaceRow = {
   id: string;
@@ -43,6 +43,52 @@ export const kyselyWorkspaceRepository = (
   db: Kysely<Database>,
   dialect: DatabaseDialect,
 ): WorkspaceRepository => {
+  /** A workspace's members, roots left out (091), searched and filtered (092). */
+  const memberRows = ({ workspaceId, search, role }: MemberFilters) => {
+    let query = db
+      .selectFrom("workspace_members")
+      .innerJoin("user", "user.id", "workspace_members.user_id")
+      .select([
+        "user.id",
+        "user.email",
+        "user.name",
+        "user.disabled_at",
+        "workspace_members.role",
+        "workspace_members.created_at",
+      ])
+      .where("workspace_members.workspace_id", "=", workspaceId)
+      .where("user.role", "!=", "root");
+    if (search)
+      query = query.where((eb) =>
+        eb.or([
+          containsInsensitive("user.email", search),
+          containsInsensitive("user.name", search),
+        ]),
+      );
+    if (role) query = query.where("workspace_members.role", "=", role);
+    return query;
+  };
+  const toMember = (row: {
+    id: string;
+    email: string;
+    name: string;
+    disabled_at: unknown;
+    role: string;
+    created_at: string | Date;
+  }) =>
+    isWorkspaceRole(row.role)
+      ? [
+          {
+            userId: row.id,
+            email: row.email,
+            name: row.name,
+            role: row.role,
+            disabled: row.disabled_at !== null,
+            addedAt: fromDbDate(row.created_at),
+          },
+        ]
+      : [];
+
   const workspaces = () =>
     db
       .selectFrom("workspaces")
@@ -209,34 +255,53 @@ export const kyselyWorkspaceRepository = (
         .filter((row) => isWorkspaceRole(row.role))
         .map((row) => ({ workspaceId: row.id, workspace: row.name, role: row.role })),
 
+    candidates: async (workspaceId, term, limit) =>
+      db
+        .selectFrom("user")
+        .select(["user.id", "user.email", "user.name"])
+        .where("user.role", "!=", "root")
+        .where("user.disabled_at", "is", null)
+        .where((eb) =>
+          eb.or([containsInsensitive("user.email", term), containsInsensitive("user.name", term)]),
+        )
+        .where((eb) =>
+          eb.not(
+            eb.exists(
+              eb
+                .selectFrom("workspace_members")
+                .select("workspace_members.user_id")
+                .whereRef("workspace_members.user_id", "=", "user.id")
+                .where("workspace_members.workspace_id", "=", workspaceId),
+            ),
+          ),
+        )
+        .orderBy("user.email")
+        .orderBy("user.id")
+        .limit(limit)
+        .execute(),
+
     members: async (workspaceId) =>
-      (
-        await db
-          .selectFrom("workspace_members")
-          .innerJoin("user", "user.id", "workspace_members.user_id")
-          .select([
-            "user.id",
-            "user.email",
-            "user.name",
-            "user.disabled_at",
-            "workspace_members.role",
-            "workspace_members.created_at",
-          ])
-          .where("workspace_members.workspace_id", "=", workspaceId)
-          .where("user.role", "!=", "root")
-          .orderBy("user.name")
-          .orderBy("user.id")
-          .execute()
-      )
-        .filter((row) => isWorkspaceRole(row.role))
-        .map((row) => ({
-          userId: row.id,
-          email: row.email,
-          name: row.name,
-          role: row.role,
-          disabled: row.disabled_at !== null,
-          addedAt: fromDbDate(row.created_at),
-        })),
+      (await memberRows({ workspaceId }).orderBy("user.name").orderBy("user.id").execute()).flatMap(
+        toMember,
+      ),
+
+    memberPage: async ({ sort, dir, size, cursor, ...filters }) => {
+      const page = await paginate(memberRows(filters), {
+        sort:
+          sort === "name"
+            ? { key: sort, column: "user.name", dir }
+            : { key: sort, column: "workspace_members.created_at", dir, kind: "date" },
+        idColumn: "user.id",
+        size,
+        cursor,
+        sortValue: (row) => (sort === "name" ? row.name : fromDbDate(row.created_at)),
+        idOf: (row) => row.id,
+        dialect,
+      });
+      return { ...page, rows: page.rows.flatMap(toMember) };
+    },
+
+    memberCount: (filters) => countCapped(db, memberRows(filters)),
 
     memberRole: async (workspaceId, userId) => {
       const row = await db

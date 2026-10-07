@@ -32,6 +32,12 @@ export const HELP = {
       "Every user but root is a member of global, the workspace everyone on the instance shares, and nobody leaves it. You can change their role there, and add the other workspaces they work in.",
     href: docsHref("workspaces", "global"),
   },
+  "member-roles": {
+    question: "What can each role do?",
+    answer:
+      "A user proposes and submits items in the workspace. A moderator also reviews and releases them. An admin also adds and removes members, changes their roles, creates the workspace's scopes and edits its description. Root can do all of it in every workspace.",
+    href: docsHref("roles", "permissions"),
+  },
   "queue-workspaces": {
     question: "Why only these?",
     answer:

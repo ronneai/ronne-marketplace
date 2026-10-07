@@ -4,6 +4,16 @@ import type { WorkspaceRole } from "../../identity/models/user";
 import type { Member, Membership, MemberUser } from "../models/member";
 import type { Workspace, WorkspaceVisibility } from "../models/workspace";
 
+/** A workspace's Members table (092): part of an email or name, and a role. */
+export type MemberFilters = { workspaceId: string; search?: string; role?: WorkspaceRole };
+export type MemberSort = "name" | "added";
+export type MemberPageQuery = MemberFilters & {
+  sort: MemberSort;
+  dir: SortDir;
+  size: number;
+  cursor?: string;
+};
+
 /** `name` sorts by the name (unique), `created` by the id (a ULID); then the id. */
 export type WorkspaceSort = "name" | "created";
 
@@ -48,6 +58,19 @@ export interface WorkspaceRepository {
   membershipsOf(userId: string): Promise<Membership[]>;
   /** A workspace's members, by name; roots left out, since a root's rows are ignored (091). */
   members(workspaceId: string): Promise<Member[]>;
+  /** One page of a workspace's members, searched and filtered by role (092); roots left out. */
+  memberPage(query: MemberPageQuery): Promise<KeysetPage<Member>>;
+  /** How many members match, up to the count cap. */
+  memberCount(filters: MemberFilters): Promise<{ count: number; capped: boolean }>;
+  /**
+   * Who could be added to the workspace (092): users not in it, not root and not disabled, whose
+   * email or name contains `term`, by email; at most `limit`.
+   */
+  candidates(
+    workspaceId: string,
+    term: string,
+    limit: number,
+  ): Promise<{ id: string; email: string; name: string }[]>;
   /** The user's role in the workspace, or null. */
   memberRole(workspaceId: string, userId: string): Promise<WorkspaceRole | null>;
   /** Adds the membership, or sets its role when it exists (the later write wins). */

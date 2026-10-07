@@ -1,3 +1,4 @@
+import type { KeysetPage } from "../../../db/keyset";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import { canInSome, requirePermission } from "../../identity/models/permissions";
 import { isWorkspaceRole, type WorkspaceRole } from "../../identity/models/user";
@@ -13,7 +14,7 @@ import {
 } from "../exceptions/errors";
 import type { Member, Membership, MemberUser } from "../models/member";
 import type { Workspace } from "../models/workspace";
-import type { WorkspaceRepository } from "../repositories/workspace-repository";
+import type { MemberPageQuery, WorkspaceRepository } from "../repositories/workspace-repository";
 import type { WorkspaceActor, WorkspaceDeps } from "./workspaces";
 
 /**
@@ -142,6 +143,38 @@ export const listMembers = async (
   return deps.repo.members(workspace.id);
 };
 
+/** One page of a workspace's Members table (092): searched, filtered by role, with the count. */
+export const pageMembers = async (
+  deps: WorkspaceDeps,
+  actor: WorkspaceActor,
+  query: Omit<MemberPageQuery, "workspaceId" | "sort" | "dir" | "size" | "role"> &
+    Partial<Pick<MemberPageQuery, "sort" | "dir" | "size">> & {
+      workspaceId: string;
+      /** Anything but a workspace role is no filter. */
+      role?: string;
+    },
+): Promise<KeysetPage<Member> & { total: { count: number; capped: boolean } }> => {
+  requireManagerSomewhere(actor);
+  const workspace = await workspaceById(deps.repo, query.workspaceId);
+  requireManagerOf(actor, workspace);
+  const search = query.search?.trim().slice(0, 100) || undefined;
+  const role = query.role && isWorkspaceRole(query.role) ? query.role : undefined;
+  const filters = { workspaceId: workspace.id, search, role };
+  const sort = query.sort === "added" ? "added" : "name";
+  const [page, total] = await Promise.all([
+    deps.repo.memberPage({
+      ...filters,
+      sort,
+      dir:
+        query.dir === "desc" || query.dir === "asc" ? query.dir : sort === "name" ? "asc" : "desc",
+      size: query.size && query.size > 0 && query.size <= 100 ? query.size : 50,
+      cursor: query.cursor,
+    }),
+    deps.repo.memberCount(filters),
+  ]);
+  return { ...page, total };
+};
+
 /** A user's memberships, `global` first: their Workspaces dialog. Root's aren't managed. */
 export const userMemberships = async (
   deps: WorkspaceDeps,
@@ -151,6 +184,26 @@ export const userMemberships = async (
   requirePermission(actor.user, "workspaces.manage");
   await memberUser(deps.repo, userId);
   return deps.repo.membershipsOf(userId);
+};
+
+/** How many people Add members suggests at once. */
+const CANDIDATES = 10;
+
+/**
+ * People to add to a workspace (092), for its Add members search: not in it yet, not root (who
+ * works everywhere) and not disabled, whose email or name contains the search; by email.
+ */
+export const memberCandidates = async (
+  deps: WorkspaceDeps,
+  actor: WorkspaceActor,
+  input: { workspaceId: string; query: string },
+): Promise<{ id: string; email: string; name: string }[]> => {
+  requireManagerSomewhere(actor);
+  const workspace = await workspaceById(deps.repo, input.workspaceId);
+  requireManagerOf(actor, workspace);
+  const term = input.query.trim().slice(0, 100);
+  if (!term) return [];
+  return deps.repo.candidates(workspace.id, term, CANDIDATES);
 };
 
 export type AddedMember = { userId: string; result: "added" | "already_member" };

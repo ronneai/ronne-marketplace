@@ -35,7 +35,7 @@ beforeAll(async () => {
   await db
     .insertInto("item")
     .values(
-      ["Code-Review", "code_review", "Secure coding", "100% coverage"].map((name) => ({
+      ["Code-Review", "code_review", "Secure coding", "100% coverage", "Ölaf Ünal"].map((name) => ({
         id: newId(),
         name,
         data: encodeJson({ name }),
@@ -60,6 +60,13 @@ describe("containsInsensitive on a real database", () => {
   it("ignores case", async () => {
     expect(await namesMatching("code-r")).toEqual(["Code-Review"]);
     expect(await namesMatching("CODING")).toEqual(["Secure coding"]);
+  });
+
+  it("finds a name with letters beyond ASCII as typed, on every dialect (092)", async () => {
+    expect(await namesMatching("Ölaf")).toEqual(["Ölaf Ünal"]);
+    expect(await namesMatching("af Ün")).toEqual(["Ölaf Ünal"]);
+    // Folding them is the database's: SQLite's lower() is ASCII-only.
+    expect(await namesMatching("ölaf")).toEqual(dialect === "sqlite" ? [] : ["Ölaf Ünal"]);
   });
 
   it("treats _ and % in the term as plain characters", async () => {
