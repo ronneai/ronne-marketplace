@@ -27,7 +27,7 @@ export const checkSubject = (message, { checkLength = true } = {}) => {
 
   if (!match?.groups) {
     errors.push(
-      'Use "[type] NNN: Description", or "[type]: Description" when there is no feature.',
+      'Use "[type] NNN: Description", "[type] #NNN: Description" for an issue in docs/issues, or "[type]: Description" when there is neither.',
     );
     return { valid: false, errors };
   }
@@ -36,9 +36,10 @@ export const checkSubject = (message, { checkLength = true } = {}) => {
   if (!TYPES.includes(type)) {
     errors.push(`Unknown type "[${type}]". Use one of: ${TYPES.map((t) => `[${t}]`).join(", ")}.`);
   }
-  if (id !== undefined && !/^\d{3}$/.test(id)) {
+  // A feature's 3-digit ID (docs/features), or an issue's GitHub number with `#` (docs/issues).
+  if (id !== undefined && !/^(?:\d{3}|#\d+)$/.test(id)) {
     errors.push(
-      `"${id}" isn't a feature ID. Use the 3-digit number from docs/features, or leave it out.`,
+      `"${id}" isn't a feature or issue ID. Use the 3-digit number from docs/features, # and the number from docs/issues, or leave it out.`,
     );
   }
   if (!description?.trim()) {

@@ -192,21 +192,31 @@ export const checkFeature = ({ dir, plan, witness }) => {
   return errors;
 };
 
-/** Checks every feature folder under `docs/features` in scope (see `isChecked`). */
-export const checkAll = (root) => {
-  const featuresDir = join(root, "docs", "features");
-  return readdirSync(featuresDir, { withFileTypes: true }).flatMap((entry) => {
-    const match = /^(\d{3})-/.exec(entry.name);
-    if (!entry.isDirectory() || !match || !isChecked(Number(match[1]))) return [];
-    const dir = `docs/features/${entry.name}`;
-    const planPath = join(root, dir, "PLAN.md");
-    const witnessPath = join(root, dir, "WITNESS.md");
+/** The folders under `dir` named `<ID>-slug` (`pattern` matches the ID), with `inScope(ID)`. */
+const checkFolders = (root, dir, pattern, inScope) => {
+  const parent = join(root, ...dir.split("/"));
+  if (!existsSync(parent)) return [];
+  return readdirSync(parent, { withFileTypes: true }).flatMap((entry) => {
+    const match = pattern.exec(entry.name);
+    if (!entry.isDirectory() || !match || !inScope(Number(match[1]))) return [];
+    const folder = `${dir}/${entry.name}`;
+    const planPath = join(root, folder, "PLAN.md");
+    const witnessPath = join(root, folder, "WITNESS.md");
     if (!existsSync(planPath)) return [];
     return checkFeature({
       id: Number(match[1]),
-      dir,
+      dir: folder,
       plan: readFileSync(planPath, "utf8"),
       witness: existsSync(witnessPath) ? readFileSync(witnessPath, "utf8") : null,
     });
   });
 };
+
+/**
+ * Checks every feature folder under `docs/features` in scope (see `isChecked`), and every issue
+ * folder under `docs/issues` (named by GitHub issue number, all checked).
+ */
+export const checkAll = (root) => [
+  ...checkFolders(root, "docs/features", /^(\d{3})-/, isChecked),
+  ...checkFolders(root, "docs/issues", /^(\d+)-/, () => true),
+];

@@ -185,4 +185,26 @@ describe("checkAll", () => {
       "docs/features/098-new/PLAN.md:5: task 1 is ticked but there's no WITNESS.md",
     ]);
   });
+
+  it("checks every issue folder too, whatever its number", () => {
+    const root = mkdtempSync(join(tmpdir(), "witness-"));
+    mkdirSync(join(root, "docs", "features"), { recursive: true });
+    for (const name of ["7-small", "141-resolver"]) {
+      mkdirSync(join(root, "docs", "issues", name), { recursive: true });
+      writeFileSync(join(root, "docs", "issues", name, "PLAN.md"), plan("- [x] **1. One.**"));
+    }
+    writeFileSync(
+      join(root, "docs", "issues", "7-small", "WITNESS.md"),
+      witness(`## Task 1 — One\n\n${pass()}`),
+    );
+    expect(checkAll(root)).toEqual([
+      "docs/issues/141-resolver/PLAN.md:5: task 1 is ticked but there's no WITNESS.md",
+    ]);
+  });
+
+  it("works without a docs/issues folder", () => {
+    const root = mkdtempSync(join(tmpdir(), "witness-"));
+    mkdirSync(join(root, "docs", "features"), { recursive: true });
+    expect(checkAll(root)).toEqual([]);
+  });
 });
