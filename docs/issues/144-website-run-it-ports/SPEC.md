@@ -78,9 +78,11 @@ reaches the setup page.
 
 - **7650 is in use.** The page says nothing. The install guide covers `--port` and `RONNE_PORT`,
   and the panels link to it.
-- **Upgrading from a 0.2 container started with `-p 3000:3000`.** The data is in the volume, so
-  re-running with the new command keeps it. The address changes, and the Docker panel's data note
-  says so in one line.
+- **Upgrading a container started with `-p 3000:3000`** (the page's command before this fix). Its
+  setup saved `http://localhost:3000` as the public address, so a new host port would leave the
+  instance pointing at an address it no longer answers on. The Docker panel's data note says, in
+  one line, to keep `-p 3000:3000` when recreating that container. This is the advice the README
+  gives for an older `compose.yaml` (`RONNE_PORT=3000` keeps the old address).
 
 ## Documentation
 
@@ -89,7 +91,8 @@ pages (`install#docker`, `install#node`) are already right and don't change. **H
 
 ## Acceptance criteria
 
-- [ ] The product page shows no `localhost:3000` except for the clone, and no `-p 3000:3000`.
+- [ ] The product page shows no `localhost:3000` except for the clone. `-p 3000:3000` appears only
+  in the Docker panel's upgrade note, for containers started with it.
 - [ ] `npx @ronneai/marketplace` and http://localhost:7650 are on the page, in en, pt and fr.
 - [ ] The Docker command, run against `ronneai/marketplace:0.3.2`, serves the setup at
   http://localhost:7650. `npx @ronneai/marketplace@0.3.2` does too. Both are recorded in
@@ -103,6 +106,9 @@ pages (`install#docker`, `install#node`) are already right and don't change. **H
    the product page"). It's the same port as Compose and `npx`, so every non-clone start opens
    the same address.
 2. **The clone keeps 3000** (Claude). It's `pnpm start`'s port, and the README says so.
+3. **An existing `-p 3000:3000` container keeps its port** (Claude, 2026-10-08, after the UI
+   review). Its saved public address would otherwise be wrong. This replaces the first draft's
+   "the address changes".
 
 ## Open questions
 

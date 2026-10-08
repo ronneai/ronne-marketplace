@@ -22,4 +22,4 @@ that need more than a one-line fix get a folder here, worked like a feature in
 | [141](./141-resolver-backtracking/SPEC.md) ([#141](https://github.com/ronneai/ronne-marketplace/issues/141)) | The resolver tries an older version when the newest one in range conflicts | 020 | open |
 | [142](./142-submit-problems-on-save/SPEC.md) ([#142](https://github.com/ronneai/ronne-marketplace/issues/142)) | Saving shows the problems Submit would refuse | 013 | open |
 | [143](./143-dependency-menu-range/SPEC.md) ([#143](https://github.com/ronneai/ronne-marketplace/issues/143)) | The dependency menu shows the range it writes, and offers an exact pin | 089 | open |
-| [144](./144-website-run-it-ports/SPEC.md) ([#144](https://github.com/ronneai/ronne-marketplace/issues/144)) | The website's "Run it" uses port 7650 and gives the `npx` start | 088 | open |
+| [144](./144-website-run-it-ports/SPEC.md) ([#144](https://github.com/ronneai/ronne-marketplace/issues/144)) | The website's "Run it" uses port 7650 and gives the `npx` start | 088 | in progress (tasks 1–3 done in ronne-web `bugfix/marketplace-144-run-it`; task 4, the release, is the owner's) |
