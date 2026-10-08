@@ -125,3 +125,41 @@ Witnessed: 2026-10-08 17:50 EDT, by a fresh agent (adversarial). Commit: 088fe0a
 | 12 | `dependenciesFirst` returns every item exactly once, however large, with no stack overflow, and the same order and groups as before | yes | confirmed | Chain of 5000 → 33 ms; ring of 8000 → 1 group, 21 ms; chain of 100,000 → 311 ms. Deep mixes (10,000 chained pairs, a 20,000 ring with cross-links, one item needing 20,000, a 20,001-member cycle) pass a checker. 30,000 random batches (duplicates, outside names, self-dependencies) vs the recursive version → identical. The recursive `order.ts` put back → the 20,000 test fails. Core 335; typecheck 7/7; web plugin-feed and submissions → 402 passed |
 
 **Overall:** met: every claim of task 2, blind and adversarial, is confirmed in its latest pass.
+
+## Task 3 — The checks
+
+Witnessed: 2026-10-08 18:00 EDT, by a fresh agent (blind). Commit: f02ba3d. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: 11 files.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Submit's checks no longer give an error for a cycle | yes | confirmed | `registry-checks.ts:324-331` returns `warning("dependency_cycle", …)`; `DependencyCycleError` gone; grep "go round in a circle" in `apps/web/src` → none. The warning turned back into an error → 5 tests fail |
+| 2 | The cycle warning uses the spec's words, with severity warning | yes | confirmed | `registry-checks.test.ts` `toEqual` on severity, code and message for 2- and 3-item cycles; `registry.db.test.ts:239-240` |
+| 3 | The owner's report: two of the author's drafts naming each other show `dependency_draft` plus `dependency_cycle` as warnings on save | yes | confirmed | `registry.db.test.ts:244-262` on the four databases; unit "finds a cycle through your own drafts" |
+| 4 | An own-draft dependency is a warning on save (`together`), an error when submitted alone | yes | confirmed | `drafts.ts:343-346` `{ together: true }`; `submissions.ts:175` doesn't; `codes(skillDraft)` → `["dependency_draft"]`; `submitDraft` probe → "The draft has 1 problem to fix…"; `together: false` mutation → the owner's-report test fails |
+| 5 | Another author's draft stays an error (089); a draft is private to its author | yes | confirmed | `kysely-registry-lookup.ts:110-127` filters `author_id`, `draft`, `isReadableSubmission`; db test → `["dependency_not_found"]`; without the `author_id` filter it fails; `visibility-guard.db.test.ts` probes `ownDraftNamed` |
+| 6 | An own draft in another private workspace is still refused (093) | yes | confirmed | `registry-checks.ts:207-215`; probe, draft in private `w2` → `dependency_not_visible` |
+| 7 | Unit and submissions db tests pass on SQLite | yes | confirmed | Unit 28; db (3 files) 33; `vitest run src/server src/features src/components` → 1637 passed |
+| 8 | The same db tests pass on PostgreSQL, MySQL and MariaDB | yes | confirmed | `pnpm test:db:{postgres,mysql,mariadb} -- <3 db files>` → 33 passed each |
+| 9 | Save (#142) shows the same warnings, with their severities | yes | confirmed | `DraftEditor.tsx:199,287`; `errorCount` counts errors only |
+| 10 | The canvas shows the same: the cycle warning and "your draft" as warnings on a node | yes | not met | `composer.ts:105-108` keeps only `issue.message`; `nodes.tsx:71-76` prints red "ERR:" for every problem, `:166` `border-error`, `:189` `invalid`; no test checks severity on the canvas |
+| 11 | The dependency marks agree | yes | confirmed | Own draft → `{kind:"waits",status:"not_submitted"}`; `seen` stops at a cycle. Comment at `dependency-marks.ts:34` out of date |
+| 12 | An item on itself is still refused, and the checks don't contradict that | yes | partly | `self_dependency` error, but `submitIssues` also "@team/selfy is your draft: …" and "@team/selfy need each other: …" |
+| 13 | Typecheck and lint are clean | yes | confirmed | `pnpm --filter @ronneai/web typecheck` → no errors; `biome check` → no fixes |
+
+**Overall:** not met: the canvas shows the warnings as red errors, and a self-dependency gets contradicting advice. Also: at release, an own draft's error reads "submit it with this item" (task 6's).
+
+### Re-check (claims 2, 3, 10, 11, 12, and the wording rule)
+
+Witnessed: 2026-10-08 18:34 EDT, by a fresh agent (blind). Commit: f02ba3d. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: 20 files, SPEC.md included.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 2 | The cycle warning uses the spec's words, worded by what comes next | yes | confirmed | `registry-checks.ts:333-350`; SPEC.md:84-90; unit "words a cycle by what comes next" (`editable` true/false); mutation (`withAuthor` always true) → it fails |
+| 3 | The owner's report on save | yes | confirmed | "…they're submitted for review together."; `pnpm test:db:{postgres,mysql,mariadb}` → 33 passed each; SQLite passes |
+| 10 | The canvas shows warnings as amber `WARN:`, no red border, range not invalid; errors still red | yes | confirmed | `composer.ts` splits `problems` and `warnings`; `nodes.tsx` `WARN:` in `text-warning-text`; `composer.db.test.ts` → own draft in `warnings`, cycle in `warnings`, on the four databases; component test with an error control; mutation (border red on warnings) → it fails |
+| 11 | The dependency marks agree, and the comment is fixed | yes | confirmed | `dependency-marks.ts:32` "stops at a cycle (allowed since 112)"; tests pass |
+| 12 | An item on itself is left to the package checks | yes | confirmed | `registry-checks.ts:200-203`; probe on the four databases → `issues` `self_dependency`, `submitIssues` `[]`; unit test; mutation → it fails |
+| 14 | Wording: "submitted for review together" while a member is a draft or sent back, "released together" once all are in review or approved | yes | confirmed | Probes on the four databases via save and `getReview`: sent back → review wording; both in review → "released together"; approved → "released together"; `isEditable` = draft or `changes_requested`; the canvas passes `editable: true` |
+| 15 | Typecheck and lint stay clean | yes | confirmed | Typecheck → no errors; `biome check` on the 19 changed files → no fixes |
+
+**Overall:** met. Remarks: the doc comment at `registry-checks.ts:135` still said "released together" (fixed in this commit); "released together" is pinned by the unit test only; the release wording is task 6's.

@@ -2,6 +2,7 @@ import type { ItemType } from "@ronneai/core";
 import { describe, expect, it } from "vitest";
 import {
   type NamedSubmission,
+  type OwnDraft,
   type PublishedVersion,
   type RegistryLookup,
   unreleasedRegistry,
@@ -25,10 +26,14 @@ type FakeSubmissions = Record<
 >;
 
 /**
- * An in-memory registry: `@scope/name` → type and published versions, and the name's submissions
- * that aren't drafts, newest first (056).
+ * An in-memory registry: `@scope/name` → type and published versions, the name's submissions that
+ * aren't drafts, newest first (056), and drafts by their author (112).
  */
-const fakeRegistry = (items: Fake, submissions: FakeSubmissions = {}): RegistryLookup => ({
+const fakeRegistry = (
+  items: Fake,
+  submissions: FakeSubmissions = {},
+  drafts: Record<string, Partial<OwnDraft> & { authorId: string }> = {},
+): RegistryLookup => ({
   findItem: async (scope, name) => {
     const found = items[`@${scope}/${name}`];
     return found
@@ -60,6 +65,18 @@ const fakeRegistry = (items: Fake, submissions: FakeSubmissions = {}): RegistryL
       workspace: GLOBAL,
       ...sub,
     })),
+  ownDraftNamed: async (scope, name, authorId) => {
+    const draft = drafts[`@${scope}/${name}`];
+    return draft && draft.authorId === authorId
+      ? {
+          id: `${scope}/${name}#draft`,
+          type: "skill",
+          dependencies: {},
+          workspace: GLOBAL,
+          ...draft,
+        }
+      : null;
+  },
   privateWorkspaces: async () => new Set(),
 });
 
@@ -101,7 +118,7 @@ describe("dependencyIssues", () => {
     expect(await codes(registry, { "@team/old": "^1.0.0" })).toEqual(["dependency_range"]);
   });
 
-  it("finds cycles through the versions that would be installed", async () => {
+  it("says items that need each other are released together, through the versions installed (112)", async () => {
     const cyclic = fakeRegistry({
       "@team/a": {
         type: "bundle",
@@ -123,11 +140,13 @@ describe("dependencyIssues", () => {
       authorId: "me",
       workspaceId: "global",
     });
-    expect(issues).toMatchObject([
+    expect(issues).toEqual([
       {
+        severity: "warning",
         code: "dependency_cycle",
-        message:
-          "The dependencies go round in a circle: @team/starter → @team/a → @team/b → @team/starter.",
+        message: "@team/starter, @team/a and @team/b need each other: they're released together.",
+        file: "ronne.yaml",
+        path: "/dependencies",
       },
     ]);
   });
@@ -251,7 +270,7 @@ describe("dependencies on their way (056)", () => {
     expect(await issues({ "@team/github": "^1.0.0" }, true)).toEqual([]);
   });
 
-  it("finds a cycle through submissions in review", async () => {
+  it("says so for a cycle through submissions in review (112)", async () => {
     const cyclic = fakeRegistry(
       {},
       {
@@ -267,9 +286,112 @@ describe("dependencies on their way (056)", () => {
       workspaceId: "global",
     });
     expect(found.map((i) => i.code)).toEqual(["dependency_pending", "dependency_cycle"]);
-    expect(found.at(-1)?.message).toBe(
-      "The dependencies go round in a circle: @team/starter → @team/a → @team/b → @team/starter.",
+    expect(found.at(-1)).toMatchObject({
+      severity: "warning",
+      message: "@team/starter, @team/a and @team/b need each other: they're released together.",
+    });
+  });
+
+  it("words a cycle by what comes next: review while one is with its author, then release (112)", async () => {
+    const cyclic = fakeRegistry(
+      {},
+      {
+        "@team/a": [
+          { status: "submitted", type: "bundle", dependencies: { "@team/starter": "*" } },
+        ],
+      },
     );
+    const message = async (editable: boolean) =>
+      (
+        await dependencyIssues(cyclic, {
+          itemName: "@team/starter",
+          type: "bundle",
+          dependencies: { "@team/a": "*" },
+          authorId: "me",
+          workspaceId: "global",
+          editable,
+        })
+      ).at(-1)?.message;
+    expect(await message(true)).toBe(
+      "@team/starter and @team/a need each other: they're submitted for review together.",
+    );
+    expect(await message(false)).toBe(
+      "@team/starter and @team/a need each other: they're released together.",
+    );
+  });
+
+  it("takes your own draft with the item, and not someone else's (112)", async () => {
+    const registry = fakeRegistry(
+      {},
+      {},
+      {
+        "@team/mine": { authorId: "me" },
+        "@team/theirs": { authorId: "otto" },
+      },
+    );
+    const check = (dependencies: Record<string, string>, together: boolean) =>
+      dependencyIssues(registry, agent(dependencies), { together });
+    expect(await check({ "@team/mine": "^1.0.0" }, true)).toEqual([
+      {
+        severity: "warning",
+        code: "dependency_draft",
+        message: "@team/mine is your draft: it's submitted with this item.",
+        file: "ronne.yaml",
+        path: "/dependencies",
+      },
+    ]);
+    // Submitted alone, it can't go.
+    expect(await check({ "@team/mine": "^1.0.0" }, false)).toEqual([
+      expect.objectContaining({
+        severity: "error",
+        code: "dependency_draft",
+        message: "@team/mine is your draft: submit it with this item.",
+      }),
+    ]);
+    // Another author's draft is private to them: an unknown name, as before (089).
+    expect((await check({ "@team/theirs": "^1.0.0" }, true)).map((i) => i.code)).toEqual([
+      "dependency_not_found",
+    ]);
+    // At release, a draft can't go.
+    expect(
+      (
+        await dependencyIssues(registry, agent({ "@team/mine": "^1.0.0" }), {
+          together: true,
+          release: true,
+        })
+      ).map((i) => [i.severity, i.code]),
+    ).toEqual([["error", "dependency_draft"]]);
+  });
+
+  it("leaves an item on itself to the package checks: no draft, no cycle (112)", async () => {
+    const registry = fakeRegistry({}, {}, { "@team/reviewer": { authorId: "me", type: "agent" } });
+    expect(
+      await dependencyIssues(registry, agent({ "@team/reviewer": "^1.0.0" }), { together: true }),
+    ).toEqual([]);
+  });
+
+  it("finds a cycle through your own drafts, the owner's report (112)", async () => {
+    // @test/skill (this one) names @test/agent, your draft, which names the skill back.
+    const registry = fakeRegistry(
+      {},
+      {},
+      {
+        "@test/agent": { authorId: "me", type: "agent", dependencies: { "@test/skill": "^1.0.0" } },
+      },
+    );
+    const found = await dependencyIssues(
+      registry,
+      { ...agent({ "@test/agent": "^1.0.0" }), itemName: "@test/skill", type: "skill" },
+      { together: true },
+    );
+    expect(found.map((i) => [i.severity, i.code, i.message])).toEqual([
+      ["warning", "dependency_draft", "@test/agent is your draft: it's submitted with this item."],
+      [
+        "warning",
+        "dependency_cycle",
+        "@test/skill and @test/agent need each other: they're submitted for review together.",
+      ],
+    ]);
   });
 });
 

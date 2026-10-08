@@ -9,7 +9,7 @@ import {
 } from "@ronneai/core";
 import {
   DependencyClosedError,
-  DependencyCycleError,
+  DependencyDraftError,
   DependencyNotFoundError,
   DependencyNotPublishedError,
   DependencyNotVisibleError,
@@ -19,7 +19,7 @@ import {
   type SubmissionsError,
   TypeChangedError,
 } from "../exceptions/errors";
-import { OPEN_STATUSES } from "../models/status";
+import { isEditable, OPEN_STATUSES } from "../models/status";
 import {
   type DraftFile,
   fileBytes,
@@ -29,6 +29,7 @@ import {
 } from "../models/submission";
 import type {
   NamedSubmission,
+  OwnDraft,
   PublishedItem,
   PublishedVersion,
   RegistryLookup,
@@ -99,7 +100,15 @@ type OnItsWay = {
   anyOpen: NamedSubmission[];
   mine: NamedSubmission[];
   closed: "rejected" | "withdrawn" | null;
+  /** The submitter's own draft of it (112): it goes with what depends on it. */
+  draft: OwnDraft | null;
 };
+
+/** The names of a cycle's items, each once: "@t/a and @t/b", "@t/a, @t/b and @t/c". */
+const listed = (names: readonly string[]) =>
+  names.length < 2
+    ? (names[0] ?? "")
+    : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 
 const warning = (code: string, message: string): ManifestIssue => ({
   severity: "warning",
@@ -111,15 +120,20 @@ const warning = (code: string, message: string): ManifestIssue => ({
 
 /**
  * Each dependency exists (of any type since 096, manifest spec §3), and its range
- * matches a published, non-yanked version. Then no cycles: following each dependency's highest
- * matching version (what the resolver installs, MVP §4.3), nothing leads back to this item or
- * round in a circle.
+ * matches a published, non-yanked version.
  *
  * Since 056, at submit (`release: false`), a dependency that isn't released but has an open
  * submission is on its way: it passes with a warning, its type is the submission's, and the range
- * waits for the release, where it's checked (`release: true`) against the version it got. A draft
- * doesn't count; a rejected or withdrawn one says so. Since 089, only the submitter's own open
- * submission counts: another author's item is a dependency once it's published.
+ * waits for the release, where it's checked (`release: true`) against the version it got. A
+ * rejected or withdrawn one says so. Since 089, only the submitter's own open submission counts:
+ * another author's item is a dependency once it's published.
+ *
+ * Since 112, the submitter's own draft goes with the item: with `together` (the save's advice, the
+ * canvas, Submit's group) it's a warning, `dependency_draft`; without it (the item alone) an error.
+ * Items that need each other are allowed: following each dependency's highest matching version,
+ * its submission's latest revision, or the submitter's own draft, a way back to this item or round
+ * in a circle is a warning, `dependency_cycle`, that they go together: submitted for review while
+ * one of them is still with its author, released once all are in review or approved.
  */
 export const dependencyIssues = async (
   registry: RegistryLookup,
@@ -134,8 +148,13 @@ export const dependencyIssues = async (
      * when it isn't known yet (no scope), which refuses every private one.
      */
     workspaceId: string | null;
+    /**
+     * The item is still with its author (a draft, or sent back for changes): a cycle it's in goes
+     * for review next, not release (112).
+     */
+    editable?: boolean;
   },
-  options: { release?: boolean } = {},
+  options: { release?: boolean; together?: boolean } = {},
 ): Promise<ManifestIssue[]> => {
   const cache = new Map<string, Resolved | null>();
   const resolve = async (dependency: string, range: string): Promise<Resolved | null> => {
@@ -164,27 +183,59 @@ export const dependencyIssues = async (
     const all = parsed ? await registry.submissionsNamed(parsed.scope, parsed.name) : [];
     const anyOpen = all.filter((s) => OPEN_STATUSES.includes(s.status));
     const newest = all[0]?.status;
+    const draft = parsed
+      ? await registry.ownDraftNamed(parsed.scope, parsed.name, input.authorId)
+      : null;
     const way: OnItsWay = {
       anyOpen,
       mine: anyOpen.filter((s) => s.authorId === input.authorId),
       closed:
-        anyOpen.length === 0 && (newest === "rejected" || newest === "withdrawn") ? newest : null,
+        !draft && anyOpen.length === 0 && (newest === "rejected" || newest === "withdrawn")
+          ? newest
+          : null,
+      draft,
     };
     ways.set(dependency, way);
     return way;
   };
 
+  // An item on itself is the package checks' `self_dependency` (011): nothing more to say here.
+  const dependencies = Object.fromEntries(
+    Object.entries(input.dependencies).filter(([dependency]) => dependency !== input.itemName),
+  );
   const issues: ManifestIssue[] = [];
-  for (const [dependency, range] of Object.entries(input.dependencies)) {
+  for (const [dependency, range] of Object.entries(dependencies)) {
     const parsed = parseItemName(dependency);
     const item = parsed ? await registry.findItem(parsed.scope, parsed.name) : null;
     const resolved = item ? await resolve(dependency, range) : null;
     const way: OnItsWay = resolved
-      ? { anyOpen: [], mine: [], closed: null }
+      ? { anyOpen: [], mine: [], closed: null, draft: null }
       : await onItsWay(dependency);
     // At submit only the submitter's own counts (089); a release refuses anything unreleased (056).
     const pending = (options.release ? way.anyOpen : way.mine)[0];
     const othersOnly = !pending && way.anyOpen.length > 0;
+    // The submitter's own draft (112): it goes with this item, or this item can't go alone.
+    if (!item && !pending && way.draft) {
+      const where = way.draft.workspace;
+      if (where.private && where.id !== input.workspaceId)
+        issues.push(
+          issue(
+            "dependency_not_visible",
+            new DependencyNotVisibleError(dependency),
+            "/dependencies",
+          ),
+        );
+      else
+        issues.push(
+          options.together && !options.release
+            ? warning(
+                "dependency_draft",
+                `${dependency} is your draft: it's submitted with this item.`,
+              )
+            : issue("dependency_draft", new DependencyDraftError(dependency), "/dependencies"),
+        );
+      continue;
+    }
     if (!item && !pending) {
       issues.push(
         way.closed
@@ -260,7 +311,9 @@ export const dependencyIssues = async (
   const next = async (dependency: string, range: string) => {
     const resolved = await resolve(dependency, range);
     if (resolved) return resolved.version.dependencies;
-    return options.release ? null : ((await onItsWay(dependency)).anyOpen[0]?.dependencies ?? null);
+    if (options.release) return null;
+    const way = await onItsWay(dependency);
+    return way.anyOpen[0]?.dependencies ?? way.draft?.dependencies ?? null;
   };
   const done = new Set<string>();
   const walk = async (
@@ -278,10 +331,24 @@ export const dependencyIssues = async (
     }
     return null;
   };
-  const cycle = await walk(input.dependencies, [input.itemName]);
-  return cycle
-    ? [...issues, issue("dependency_cycle", new DependencyCycleError(cycle), "/dependencies")]
-    : issues;
+  const cycle = await walk(dependencies, [input.itemName]);
+  if (!cycle) return issues;
+  // Allowed since 112: said, for the author and the reviewer, since they go together. While any of
+  // them is still with its author, review comes next; once all are in review or approved, release.
+  const names = [...new Set(cycle)];
+  let withAuthor = input.editable === true;
+  for (const name of names) {
+    if (withAuthor || name === input.itemName) continue;
+    const way = await onItsWay(name);
+    withAuthor = way.draft !== null || way.anyOpen[0]?.status === "changes_requested";
+  }
+  return [
+    ...issues,
+    warning(
+      "dependency_cycle",
+      `${listed(names)} need each other: they're ${withAuthor ? "submitted for review" : "released"} together.`,
+    ),
+  ];
 };
 
 /**
@@ -295,7 +362,8 @@ export const registryIssues = async (
   registry: RegistryLookup,
   submission: Submission,
   files: readonly Omit<DraftFile, "updatedAt">[],
-  options: { release?: boolean } = {},
+  /** `together`: the submitter's own drafts go with it (112), as Submit's group takes them. */
+  options: { release?: boolean; together?: boolean } = {},
 ): Promise<ManifestIssue[]> => {
   const manifestFile = files.find((file) => file.path === MANIFEST_PATH);
   const manifest = manifestFile
@@ -324,6 +392,7 @@ export const registryIssues = async (
         dependencies,
         authorId: submission.authorId,
         workspaceId: submission.workspace.id,
+        editable: isEditable(submission.status),
       },
       options,
     )),

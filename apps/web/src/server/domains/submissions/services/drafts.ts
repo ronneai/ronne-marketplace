@@ -340,7 +340,10 @@ export const submitIssuesOf = async (
     }
   };
   const issues = [
-    ...(await guarded(() => registryIssues(deps.repo, deps.repo.registry(), draft, draft.files))),
+    // The author's own drafts go with it at Submit (112): they're advice here, not errors.
+    ...(await guarded(() =>
+      registryIssues(deps.repo, deps.repo.registry(), draft, draft.files, { together: true }),
+    )),
     ...(draft.proposal && deps.storage
       ? await guarded(() =>
           noChangeIssues(

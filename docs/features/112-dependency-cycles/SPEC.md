@@ -83,8 +83,11 @@ action, become one group.
 
 - **A cycle isn't an error.** `dependency_cycle` stops being reported as an error at submit, at
   release, on save (#142) and on the canvas. A **warning** takes its place, for the author and the
-  reviewer: "`@team/a` and `@team/b` need each other: they're released together."
-  (`dependency_cycle`, severity warning).
+  reviewer (`dependency_cycle`, severity warning), worded by what comes next (owner, 2026-10-08):
+  - while any of them is still with its author (a draft, or sent back for changes): "`@team/a` and
+    `@team/b` need each other: they're submitted for review together.";
+  - once they're all in review or approved: "`@team/a` and `@team/b` need each other: they're
+    released together."
 - **A dependency that's your own draft** gets its own message: "`@team/b` is your draft: it's
   submitted with this item." (`dependency_draft`). It's a **warning** on save and in the problems
   list, since Submit takes care of it; it's an error only where the item is submitted alone (an

@@ -52,6 +52,7 @@ export const toGraph = ({
             facts: report?.facts,
             status: report?.status ?? null,
             problems: [...rangeProblems(name, issues), ...(report?.problems ?? [])],
+            warnings: report?.warnings ?? [],
           },
         };
       }),

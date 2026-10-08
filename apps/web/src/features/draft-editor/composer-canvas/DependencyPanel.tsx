@@ -76,7 +76,7 @@ export const DependencyPanel = ({
                 <DependencyFactsLine facts={data.facts} status={data.status} />
               </div>
               <RangeField name={data.name} range={data.range} invalid={data.problems.length > 0} />
-              <DependencyProblems problems={data.problems} />
+              <DependencyProblems problems={data.problems} warnings={data.warnings} />
             </li>
           ))}
         </ul>

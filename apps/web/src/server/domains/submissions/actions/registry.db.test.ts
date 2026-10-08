@@ -222,7 +222,7 @@ describe("a save returns what Submit would refuse (#142)", () => {
     expect(fixed.submitIssues).toEqual([]);
   });
 
-  it("shows a cycle the save closes", async () => {
+  it("says so when the save closes a cycle (112: allowed, they go together)", async () => {
     const loop = await skillNeeding("loop", "");
     await saveManifest(loop, skill("loop"));
     await submitDraft(asAuthor, loop, app);
@@ -236,9 +236,43 @@ describe("a save returns what Submit would refuse (#142)", () => {
       "dependency_cycle",
     ]);
     expect(saved.submitIssues[1]).toMatchObject({
-      severity: "error",
-      message: "The dependencies go round in a circle: @team/loop → @team/helper → @team/loop.",
+      severity: "warning",
+      // @team/loop was sent back for changes: it goes for review again, with the other.
+      message:
+        "@team/loop and @team/helper need each other: they're submitted for review together.",
     });
+  });
+
+  it("shows two of your drafts that need each other as going together, the owner's report (112)", async () => {
+    // The skill names the agent, and the agent names the skill: both are the author's drafts.
+    const agentDraft = await draftWith(
+      "agent",
+      "agent",
+      'name: "@team/agent"\ntype: agent\ndescription: Something.\nagent:\n  prompt: prompt.md\ndependencies:\n  "@team/skill": "^1.0.0"\n',
+    );
+    const skillDraft = await skillNeeding("skill", "");
+    const saved = await saveManifest(skillDraft, skill("skill", '  "@team/agent": "^1.0.0"\n'));
+    expect(saved.submitIssues.map((i) => [i.severity, i.code, i.message])).toEqual([
+      ["warning", "dependency_draft", "@team/agent is your draft: it's submitted with this item."],
+      [
+        "warning",
+        "dependency_cycle",
+        "@team/skill and @team/agent need each other: they're submitted for review together.",
+      ],
+    ]);
+    // Submitted alone, it still can't go without the agent (until Submit takes its group).
+    expect(await codes(skillDraft)).toEqual(["dependency_draft"]);
+    expect(await codes(agentDraft)).toEqual(["dependency_draft"]);
+
+    // Someone else's draft of a name stays unknown to this author (089).
+    await draftWith(
+      "theirs",
+      "agent",
+      'name: "@team/theirs"\ntype: agent\ndescription: Something.\nagent:\n  prompt: prompt.md\n',
+      asModerator,
+    );
+    const other = await saveManifest(skillDraft, skill("skill", '  "@team/theirs": "^1.0.0"\n'));
+    expect(other.submitIssues.map((i) => i.code)).toEqual(["dependency_not_found"]);
   });
 
   it("returns nothing for a clean draft", async () => {
@@ -406,7 +440,8 @@ describe("dependencies on their way (056)", () => {
   it("submits a dependent of one in review, and releases it only after its dependency", async () => {
     const github = await serverDraft("github");
     const reviewer = await skillNeeding("reviewer", '  "@team/github": "^1.0.0"\n');
-    expect(await codes(reviewer)).toEqual(["dependency_not_found"]);
+    // Your own draft: submitted alone, the reviewer can't go without it (112).
+    expect(await codes(reviewer)).toEqual(["dependency_draft"]);
 
     await submitDraft(asAuthor, github, app);
     expect(await checkSubmission(asAuthor, reviewer, app)).toEqual([

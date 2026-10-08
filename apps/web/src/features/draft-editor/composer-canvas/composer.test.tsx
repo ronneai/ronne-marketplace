@@ -176,6 +176,44 @@ describe("the canvas", () => {
     expect(html).not.toContain('aria-label="Remove @platform/reviewer"');
   });
 
+  it("shows a warning in amber, and leaves the node and its range as they are (112)", () => {
+    const warned = toGraph({
+      itemName: "@team/skill",
+      type: "skill",
+      dependencies: { "@team/agent": "^1.0.0" },
+      layout: {},
+      reports: {
+        "@team/agent": {
+          facts: null,
+          status: "draft",
+          problems: [],
+          warnings: [
+            "@team/agent is your draft: it's submitted with this item.",
+            "@team/skill and @team/agent need each other: they're released together.",
+          ],
+        },
+      },
+    });
+    const html = within(
+      false,
+      <ComposerCanvas
+        nodes={warned.nodes}
+        edges={warned.edges}
+        readOnly={false}
+        settled
+        onMove={() => {}}
+        onRemove={() => {}}
+      />,
+    );
+    expect(html.match(/text-warning-text">WARN:/g)).toHaveLength(2);
+    expect(html).not.toContain("ERR:");
+    expect(html).not.toMatch(/p-3 border-error/);
+    expect(html).not.toMatch(/aria-label="Range of @team\/agent"[^>]*aria-invalid="true"/);
+    expect(html).toContain("need each other: they&#x27;re released together.");
+    // The same node with an error does turn red.
+    expect(canvas(false)).toMatch(/p-3 border-error/);
+  });
+
   it("shows your own unreleased dependency's status, amber, instead of not published (089)", () => {
     const html = (status: "draft" | "submitted" | "changes_requested" | "approved" | null) =>
       renderToStaticMarkup(<DependencyFactsLine facts={null} status={status} />);

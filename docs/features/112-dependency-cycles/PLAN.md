@@ -24,7 +24,7 @@ the same change that completes it.
   nothing reaches it any more; the tests that asserted refusal assert the new rule; the API and
   plugin-feed tests pass with a cycle.
 
-- [ ] **3. The checks.** In `registry-checks.ts`: no cycle error, the `dependency_cycle` warning, and
+- [x] **3. The checks.** In `registry-checks.ts`: no cycle error, the `dependency_cycle` warning, and
   `dependency_draft` for the author's own draft (a warning; an error where the item goes alone).
   Save (#142), the canvas and the dependency marks show the same.
   *Done when:* the registry-checks tests and the submissions db tests cover a cycle, the warning's

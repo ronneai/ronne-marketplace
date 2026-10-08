@@ -67,14 +67,29 @@ export const DependencyFactsLine = ({
     </>
   );
 
-/** A problem with a dependency, as the Problems list words it. */
-export const DependencyProblems = ({ problems }: { problems: readonly string[] }) =>
-  problems.map((problem) => (
-    <p key={problem} className="text-xs text-fg">
-      <span className="mr-1.5 font-mono text-[11px] font-semibold text-error-text">ERR:</span>
-      <CodeText text={problem} />
-    </p>
-  ));
+/** A dependency's problems, then its warnings (112), as the Problems list words them. */
+export const DependencyProblems = ({
+  problems,
+  warnings = [],
+}: {
+  problems: readonly string[];
+  warnings?: readonly string[];
+}) => (
+  <>
+    {problems.map((problem) => (
+      <p key={problem} className="text-xs text-fg">
+        <span className="mr-1.5 font-mono text-[11px] font-semibold text-error-text">ERR:</span>
+        <CodeText text={problem} />
+      </p>
+    ))}
+    {warnings.map((warning) => (
+      <p key={warning} className="text-xs text-fg">
+        <span className="mr-1.5 font-mono text-[11px] font-semibold text-warning-text">WARN:</span>
+        <CodeText text={warning} />
+      </p>
+    ))}
+  </>
+);
 
 /**
  * The range field, in a node or in the panel. `nodrag` keeps a drag from starting in it. It shows
@@ -195,7 +210,7 @@ export const DependencyNode = ({ data, selected }: NodeProps<DependencyFlowNode>
           : "works in no built-in tool"}
       </p>
     ) : null}
-    <DependencyProblems problems={data.problems} />
+    <DependencyProblems problems={data.problems} warnings={data.warnings} />
     <Handle type="target" position={Position.Top} isConnectable={false} className={centre} />
   </div>
 );

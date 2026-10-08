@@ -186,9 +186,10 @@ export class DependencyRangeUnmatchedError extends SubmissionsError {
   }
 }
 
-export class DependencyCycleError extends SubmissionsError {
-  constructor(readonly cycle: readonly string[]) {
-    super(`The dependencies go round in a circle: ${cycle.join(" → ")}.`);
+/** A dependency that's the submitter's own draft (112), where the item would be submitted alone. */
+export class DependencyDraftError extends SubmissionsError {
+  constructor(readonly dependency: string) {
+    super(`${dependency} is your draft: submit it with this item.`);
   }
 }
 

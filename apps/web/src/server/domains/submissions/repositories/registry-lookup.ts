@@ -55,14 +55,28 @@ export interface RegistryLookup {
   publishedVersions(itemId: string): Promise<PublishedVersion[]>;
   /** The name's submissions that aren't drafts, newest change first (056). */
   submissionsNamed(scope: string, name: string): Promise<NamedSubmission[]>;
+  /**
+   * The author's own draft of the name, newest first, with what its saved `ronne.yaml` depends on:
+   * it goes with what depends on it (112). Nobody else's: a draft is private to its author.
+   */
+  ownDraftNamed(scope: string, name: string, authorId: string): Promise<OwnDraft | null>;
   /** Which of these workspaces are private (093): for ids the caller already holds. */
   privateWorkspaces(ids: readonly string[]): Promise<ReadonlySet<string>>;
 }
+
+/** An author's own draft of a dependency (112), as the checks see it. */
+export type OwnDraft = {
+  id: string;
+  type: ItemType;
+  dependencies: Readonly<Record<string, string>>;
+  workspace: DependencyWorkspace;
+};
 
 /** A registry with nothing published: for tests. The app uses `kyselyRegistryLookup` (015). */
 export const unreleasedRegistry: RegistryLookup = {
   findItem: async () => null,
   publishedVersions: async () => [],
   submissionsNamed: async () => [],
+  ownDraftNamed: async () => null,
   privateWorkspaces: async () => new Set(),
 };

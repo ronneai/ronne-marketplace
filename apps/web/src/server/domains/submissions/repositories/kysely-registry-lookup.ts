@@ -6,7 +6,7 @@ import { kyselyItemRepository } from "../../items/repositories/kysely-item-repos
 import type { Viewer } from "../../workspaces/models/viewer";
 import { isReadableSubmission } from "../../workspaces/repositories/visible";
 import { fileBytes, MANIFEST_PATH } from "../models/submission";
-import type { NamedSubmission, RegistryLookup } from "./registry-lookup";
+import type { NamedSubmission, OwnDraft, RegistryLookup } from "./registry-lookup";
 
 /**
  * The registry as releases (015) fill it: published items and their versions, yanked ones marked,
@@ -106,6 +106,44 @@ export const kyselyRegistryLookup = (
           };
         }),
       );
+    },
+    ownDraftNamed: async (scope, name, authorId) => {
+      const row = await db
+        .selectFrom("submissions")
+        .innerJoin("scopes", "scopes.id", "submissions.scope_id")
+        .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
+        .select([
+          "scopes.workspace_id",
+          "workspaces.visibility",
+          "submissions.id",
+          "submissions.type",
+        ])
+        .where("scopes.name", "=", scope)
+        .where("submissions.name", "=", name)
+        .where("submissions.status", "=", "draft")
+        .where("submissions.author_id", "=", authorId)
+        .where(isReadableSubmission(viewer, "submissions.id"))
+        .orderBy("submissions.updated_at", "desc")
+        .orderBy("submissions.id", "desc")
+        .limit(1)
+        .executeTakeFirst();
+      if (!row) return null;
+      // A draft has no revision yet: its saved files are what would be submitted.
+      const manifest = await db
+        .selectFrom("submission_files")
+        .select(["encoding", "content"])
+        .where("submission_id", "=", row.id)
+        .where("path", "=", MANIFEST_PATH)
+        .executeTakeFirst();
+      const parsed = manifest
+        ? parseManifest(new TextDecoder().decode(fileBytes(manifest))).manifest
+        : null;
+      return {
+        id: row.id,
+        type: row.type as OwnDraft["type"],
+        dependencies: (parsed?.dependencies ?? {}) as Record<string, string>,
+        workspace: { id: row.workspace_id, private: row.visibility !== "public" },
+      };
     },
   };
 };

@@ -226,6 +226,8 @@ const REGISTRY_READS: Partial<Record<keyof RegistryLookup, Probe<RegistryLookup>
   findItem: async (repo) => some(await repo.findItem("acme-infra", "deploy")),
   publishedVersions: async (repo) => some(await repo.publishedVersions(ids.item)),
   submissionsNamed: async (repo) => some(await repo.submissionsNamed("acme-infra", "style")),
+  ownDraftNamed: async (repo) =>
+    (await repo.ownDraftNamed("acme-infra", "later", ids.author)) !== null,
 };
 
 const REGISTRY_EXEMPT: Partial<Record<keyof RegistryLookup, string>> = {
