@@ -88,3 +88,23 @@ Witnessed: 2026-10-08 14:29 EDT, by a fresh agent (blind). Commit: 51d8918. Mach
 | 10 | Typecheck and lint still clean | no | confirmed | `pnpm --filter @ronneai/web typecheck` → no errors; `biome check` on both folders → no fixes |
 
 **Overall:** met: the merge, the marking (badge and tree) and the clean case are each covered by a test that fails when broken. The JSX props passing the label, and the save round trip, are left to task 4's Playwright test, which opens the badge while dirty.
+
+## Task 4 — End to end
+
+Witnessed: 2026-10-08 14:47 EDT, by a fresh agent (blind). Commit: 8531243. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: e2e (frontmatter-agent, users, new submit-problems*.ts), draft-editor (DraftEditor, issues, test), SPEC.md. Mutations ran in a scratchpad copy built with `next build --webpack` (Turbopack couldn't resolve modules there); an unmutated control build passed on chromium and phone.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Done when: `pnpm test:e2e` passes on desktop and phone | yes | confirmed | `pnpm test:e2e` → 101 passed, exit 0; the #142 test passed in `[chromium]`, `[phone]`, `[phone-webkit]` and `[tablet]` (`playwright.config.ts`: desktop is `chromium`, phones `phone`/`phone-webkit`) |
+| 2 | Saving a draft with `^9.0.0` shows Submit's error in the badge and the list | yes | confirmed | `submit-problems.ts`: "No problems" before the save, "Problems: 1 error" after, and the popover shows "No published version of @…/… matches ^9.0.0." Without `setChecked(result.submitIssues)` → fails at `submit-problems.ts:45` ("No problems"), chromium and phone |
+| 3 | Opening a blocked draft shows the problem before any save | yes | confirmed | The test reloads and expects "Problems: 1 error". Page passing `submitIssues.slice(0, 0)` → fails at `submit-problems.ts:58` |
+| 4 | While editing, the registry problems stay, marked "As of your last save", and the next save re-checks them | yes | confirmed | Edited to `^1.0.0`: still "1 error", `^As of your last save` and the error in the badge popover; saved → "No problems". `savedLabel={undefined}` on `IssuesSummary` (`DraftEditor.tsx:383`) → fails at `submit-problems.ts:64`, chromium and phone |
+| 5 | Task 3's open wiring: the editor passes the label to the badge's popover | yes | confirmed | The mutation in row 4. Only the badge's popover is opened; the tree's `FileIssues` label (`DraftEditor.tsx:570`) isn't exercised in a browser |
+| 6 | Task 3's open wiring: the action's `submitIssues` reaches the editor | yes | confirmed | The mutation in row 2: the badge after the save can only come from the server, since the same text showed "No problems" before it |
+| 7 | Submit's dialog doesn't change: it checks again and refuses in the same words | yes | confirmed | The test opens Submit: the same `^9.0.0` message, its Submit button disabled. `git diff --stat` → no change to `SubmitDialogs` |
+| 8 | Only 011's errors hold the Submit button (Behaviour, Decision 3) | yes | confirmed | `DraftEditor.tsx:246` counts `issues` (011's), not `problems.all`. Restoring `problems.all` → the e2e test times out clicking "Submit for review" (`submit-problems.ts:50`). The unit test expects `not.toContain("Fix the error first.")`; SPEC.md has the bullet and Decision 3 |
+| 9 | The `frontmatter-agent.e2e.ts` edit is right against the spec | yes | confirmed | The agent dependency is submitted, not released, so the save shows Submit's pending warning, "Problems: 1 warning", and Submit still succeeds ("Warnings stay warnings"). Passed in the full run. It checks the count, not the warning's text |
+| 10 | The new e2e user is seeded, and each project uses its own user and item | no | confirmed | `users.ts` adds `problemsAuthor`, seeded from `E2E_USERS` (`seed.ts:42`); mobile uses `mobileUser(testInfo, "member")` and `submit-problems-${project}`; `^1.0.0` matches the seeded `E2E_SKILL` 1.0.0 (`seed.ts:176`) |
+| 11 | Unit tests and lint for the change | no | confirmed | `vitest run src/features/draft-editor` → 127 passed; `biome check` on the changed files → 36 files, no fixes |
+
+**Overall:** met: the e2e test covers the `^9.0.0` save, the reload, the "as of your last save" marking, the re-check and Submit's dialog, on desktop and phone; removing the save round trip, the page-load issues, the badge label or the new Submit rule each makes it fail. Remarks, not blocking: the tree popover's label isn't exercised in a browser; the frontmatter-agent assertion checks the count only.

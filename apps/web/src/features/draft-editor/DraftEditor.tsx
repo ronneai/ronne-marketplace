@@ -241,9 +241,9 @@ export const DraftEditor = ({
       }),
     [issues, checked, state.files, dirty, readOnly],
   );
-  const allIssues = problems.all;
-  const errorCount = allIssues.filter((issue) => issue.severity === "error").length;
   // Why Submit is off (owner, 2026-10-01): the checks only see what's saved, and errors stop it.
+  // Only 011's: the registry's may be out of date, so Submit's dialog checks them again (#142).
+  const errorCount = issues.filter((issue) => issue.severity === "error").length;
   const notReady = dirty
     ? "Save your changes first: the checks, and reviewers, see what's saved."
     : errorCount > 0

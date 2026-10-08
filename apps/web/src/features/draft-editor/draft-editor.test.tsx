@@ -314,7 +314,7 @@ describe("the draft page", () => {
       />,
     );
 
-  it("counts what Submit would refuse with 011's problems, each once, and holds Submit (#142)", () => {
+  it("counts what Submit would refuse with 011's problems, each once, and leaves Submit to check (#142)", () => {
     const manifest =
       'name: "@platform/reviewer"\ntype: agent\ndescription: Reviews.\nagent:\n  prompt: prompt.md\n';
     const files = [saved("prompt.md", "Hi"), saved("ronne.yaml", manifest)];
@@ -333,7 +333,8 @@ describe("the draft page", () => {
     expect(blocked).toContain('aria-label="Problems: 1 error"');
     // In the file tree, beside ronne.yaml.
     expect(blocked).toContain('aria-label="Show problems: 1 error"');
-    expect(blocked).toContain("Fix the error first.");
+    // Only 011's errors hold Submit: the registry may have changed, and Submit's dialog checks it.
+    expect(blocked).not.toContain("Fix the error first.");
   });
 
   it("offers Submit for review and Withdraw on your own draft", () => {

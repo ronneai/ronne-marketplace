@@ -30,7 +30,7 @@ export type FileProblems = { live: ManifestIssue[]; saved: ManifestIssue[] };
 
 /**
  * Everything the editor shows (#142): the registry's issues next to 011's, each once; all of them,
- * for the count and for holding Submit; each file's, for the tree, where one about a file that
+ * for the count; each file's, for the tree, where one about a file that
  * isn't there (a missing SKILL.md) belongs to ronne.yaml, which names it; and the label that sets
  * the registry's apart while the files differ from what they checked.
  */

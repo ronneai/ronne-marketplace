@@ -90,9 +90,12 @@ test("agent: @scope/name in a skill's frontmatter is saved quoted, as a dependen
 
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByText(/Saved at/)).toBeVisible();
-  // It parses (no YAML problem, no problem at all), is saved quoted, and is listed as a dependency.
+  // It parses (no YAML problem), is saved quoted, and is listed as a dependency. The one problem
+  // is Submit's warning that the agent is still in review (#142), which doesn't stop it.
   await expect(page.getByText(/frontmatter isn't valid YAML/)).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Problems: No problems" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Problems: 1 warning", exact: true }),
+  ).toBeVisible();
   await expect(editor).toContainText(`agent: "${agent}"`);
   await files.getByRole("button", { name: /ronne\.yaml/ }).click();
   await page.getByRole("button", { name: "YAML", exact: true }).click();

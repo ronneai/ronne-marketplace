@@ -27,7 +27,7 @@ the same change that completes it.
 
   *Done when:* the component tests cover the merge, the marking and the clean case.
 
-- [ ] **4. End to end.** A Playwright test saves a draft with `^9.0.0` and sees the error in the
+- [x] **4. End to end.** A Playwright test saves a draft with `^9.0.0` and sees the error in the
   badge, then fixes the range, saves, and sees **No problems**. *Done when:*
   `pnpm test:e2e` passes on desktop and phone.
 
