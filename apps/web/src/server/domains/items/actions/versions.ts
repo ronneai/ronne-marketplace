@@ -4,6 +4,8 @@ import { getCurrentUser } from "../../identity/actions/session";
 import { clientIp } from "../../identity/models/client-ip";
 import type { CurrentUser } from "../../identity/models/user";
 import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-instance";
+import { viewerOf } from "../../workspaces/actions/viewer";
+import type { Viewer } from "../../workspaces/models/viewer";
 import { kyselyItemRepository } from "../repositories/kysely-item-repository";
 import * as downloads from "../services/downloads";
 import * as page from "../services/item-page";
@@ -16,13 +18,21 @@ export type { ItemPage } from "../services/item-page";
 export type { ItemRef, VersionRow, VersionsPage } from "../services/versions";
 
 /** Entry points for version management (feature 016). Thin: the service checks everything. */
-const deps = ({ db, dialect }: AppAuth): service.VersionDeps => ({
-  items: kyselyItemRepository(db, dialect),
+const deps = ({ db, dialect }: AppAuth, viewer: Viewer): service.VersionDeps => ({
+  items: kyselyItemRepository(db, dialect, viewer),
 });
 
-const actor = async (headers: Headers, app: AppAuth): Promise<service.VersionActor> => ({
-  user: await getCurrentUser(headers, app),
-  ip: clientIp(headers, app.trustProxy),
+/** The actor, and what they see (093), built once for the request. */
+const context = async (headers: Headers, app: AppAuth) => {
+  const user = await getCurrentUser(headers, app);
+  const actor: service.VersionActor = { user, ip: clientIp(headers, app.trustProxy) };
+  return { actor, viewer: await viewerOf(user, app) };
+};
+
+/** A token's user (019's API), and what they see. */
+const tokenContext = async (user: CurrentUser, app: AppAuth) => ({
+  actor: { user, ip: null } as service.VersionActor,
+  viewer: await viewerOf(user, app),
 });
 
 type Action<I> = (headers: Headers, ref: service.ItemRef, input: I, app?: AppAuth) => Promise<void>;
@@ -36,8 +46,10 @@ const wrap =
       input: I,
     ) => Promise<void>,
   ): Action<I> =>
-  async (headers, ref, input, app = getAppAuth()) =>
-    run(deps(app), await actor(headers, app), ref, input);
+  async (headers, ref, input, app = getAppAuth()) => {
+    const { actor, viewer } = await context(headers, app);
+    return run(deps(app, viewer), actor, ref, input);
+  };
 
 export const moveTag = wrap(service.moveTag);
 export const removeTag = wrap(service.removeTag);
@@ -50,7 +62,10 @@ export const listVersions = async (
   headers: Headers,
   ref: service.ItemRef,
   app: AppAuth = getAppAuth(),
-) => service.listVersions(deps(app), await actor(headers, app), ref);
+) => {
+  const { actor, viewer } = await context(headers, app);
+  return service.listVersions(deps(app, viewer), actor, ref);
+};
 
 /** An item's page (feature 018): `version` from `?version=`, else the listed one. */
 export const itemPage = async (
@@ -58,7 +73,10 @@ export const itemPage = async (
   ref: service.ItemRef,
   version?: string,
   app: AppAuth = getAppAuth(),
-) => page.itemPage(deps(app), await actor(headers, app), ref, version);
+) => {
+  const { actor, viewer } = await context(headers, app);
+  return page.itemPage(deps(app, viewer), actor, ref, version);
+};
 
 /** A version's files with their contents, checked and not counted (044): its page's Overview and Files. */
 export const versionContents = async (
@@ -67,36 +85,51 @@ export const versionContents = async (
   version: string,
   app: AppAuth = getAppAuth(),
   storage: StorageAdapter = getStorage(),
-) => contents.versionContents({ ...deps(app), storage }, await actor(headers, app), ref, version);
+) => {
+  const { actor, viewer } = await context(headers, app);
+  return contents.versionContents({ ...deps(app, viewer), storage }, actor, ref, version);
+};
 
 /** For 019's API, where the user comes from a bearer token rather than a session. */
-export const itemPageAs = (
+export const itemPageAs = async (
   user: CurrentUser,
   ref: service.ItemRef,
   version?: string,
   app: AppAuth = getAppAuth(),
-) => page.itemPage(deps(app), { user, ip: null }, ref, version);
+) => {
+  const { actor, viewer } = await tokenContext(user, app);
+  return page.itemPage(deps(app, viewer), actor, ref, version);
+};
 
 /** The version a download is for (019), without reading or counting it: HEAD and 304s. */
-export const findDownloadAs = (
+export const findDownloadAs = async (
   user: CurrentUser,
   ref: service.ItemRef,
   version: string,
   app: AppAuth = getAppAuth(),
-) => downloads.findDownload(deps(app), { user, ip: null }, ref, version);
+) => {
+  const { actor, viewer } = await tokenContext(user, app);
+  return downloads.findDownload(deps(app, viewer), actor, ref, version);
+};
 
 /** A version's artifact, checked and counted (019). */
-export const downloadArtifactAs = (
+export const downloadArtifactAs = async (
   user: CurrentUser,
   ref: service.ItemRef,
   version: string,
   app: AppAuth = getAppAuth(),
   storage: StorageAdapter = getStorage(),
-) => downloads.downloadArtifact({ ...deps(app), storage }, { user, ip: null }, ref, version);
+) => {
+  const { actor, viewer } = await tokenContext(user, app);
+  return downloads.downloadArtifact({ ...deps(app, viewer), storage }, actor, ref, version);
+};
 
 /** Resolves a set of items to one version each (020), as the token's user. */
-export const resolveAs = (
+export const resolveAs = async (
   user: CurrentUser,
   request: ResolveRequest,
   app: AppAuth = getAppAuth(),
-) => resolving.resolveRequest(deps(app), { user, ip: null }, request);
+) => {
+  const { actor, viewer } = await tokenContext(user, app);
+  return resolving.resolveRequest(deps(app, viewer), actor, request);
+};

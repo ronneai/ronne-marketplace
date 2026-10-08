@@ -109,7 +109,7 @@ export const CataloguePicker = ({
   useEffect(() => {
     const request = ++asked.current;
     setFound((current) => ({ state: "loading", entries: current.entries, nextCursor: null }));
-    searchDependenciesAction({ type, q: search, only: only || null })
+    searchDependenciesAction({ type, q: search, only: only || null, itemName })
       .then((result) => {
         if (request !== asked.current) return;
         setFound(
@@ -121,7 +121,7 @@ export const CataloguePicker = ({
       .catch(() => {
         if (request === asked.current) setFound({ state: "failed", entries: [], nextCursor: null });
       });
-  }, [type, search, only]);
+  }, [type, search, only, itemName]);
 
   const more = async () => {
     if (found.state !== "ready" || !found.nextCursor) return;
@@ -133,6 +133,7 @@ export const CataloguePicker = ({
         q: search,
         only: only || null,
         cursor: found.nextCursor,
+        itemName,
       });
       if (request === asked.current && result.ok)
         setFound({

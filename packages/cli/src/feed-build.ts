@@ -10,7 +10,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import type { PackageFile } from "@ronneai/core";
+import { nameProblem, normalizeWorkspaceName, type PackageFile } from "@ronneai/core";
 import {
   itemNameOfPlugin,
   MARKETPLACE_PATHS,
@@ -30,9 +30,10 @@ import type { Output } from "./output.js";
 import { writeFileAtomic } from "./project.js";
 
 /**
- * `rmk feed build --out <dir> [--tools claude-code,codex,cursor] [--force]` (feature 078, contract
- * `docs/spec/plugin-feeds.md`, The git mirror): writes the registry's plugin feeds as a repository
- * tree that Codex, Cursor and Claude Code add as a marketplace. For each tool it reads the
+ * `rmk feed build --out <dir> [--tools claude-code,codex,cursor] [--workspace <name>]... [--force]`
+ * (feature 078, contract `docs/spec/plugin-feeds.md`, The git mirror): writes the registry's plugin
+ * feeds as a repository tree that Codex, Cursor and Claude Code add as a marketplace. It holds the
+ * public workspaces' items, and a private workspace's only when `--workspace` names it (093). For each tool it reads the
  * instance's marketplace, downloads the zips it doesn't have yet, checks each sha256, unpacks them
  * to `plugins/<tool>/<plugin>/`, and writes the tool's marketplace file with folder sources.
  *
@@ -175,6 +176,23 @@ const toolsOf = (value: string | undefined): PluginTool[] => {
   return [...new Set(tools)].sort(byName) as PluginTool[];
 };
 
+/**
+ * The workspaces `--workspace` names (093), repeated or separated by commas, lower-cased, each
+ * checked as a name: they also go into the printed workflow.
+ */
+export const workspacesOf = (value: string | boolean | string[] | undefined): string[] => {
+  const given = Array.isArray(value) ? value : typeof value === "string" ? [value] : [];
+  const names = given.flatMap((v) => v.split(",")).map(normalizeWorkspaceName);
+  for (const name of names)
+    if (nameProblem(name, "item"))
+      throw usage(`--workspace takes workspace names, such as acme; "${name}" isn't one.`);
+  return [...new Set(names)].sort(byName);
+};
+
+/** The marketplace route, for the public workspaces and the private ones named (093). */
+const marketplacePath = (tool: PluginTool, workspaces: readonly string[]) =>
+  `/feeds/${tool}/marketplace.json?workspaces=${encodeURIComponent(workspaces.join(","))}`;
+
 /** The zip route for a plugin, from its name and version (contract, Endpoints). */
 const zipPath = (tool: PluginTool, plugin: string, version: string) => {
   const item = itemNameOfPlugin(plugin);
@@ -198,7 +216,7 @@ type Planned = {
 
 export const feedBuild = async (
   api: ApiClient,
-  options: { out: string; tools: PluginTool[]; force: boolean },
+  options: { out: string; tools: PluginTool[]; force: boolean; workspaces?: readonly string[] },
 ) => {
   const out = options.out;
   const previous = readState(out);
@@ -207,7 +225,10 @@ export const feedBuild = async (
   // 1. The feeds, all of them, before looking at the disk.
   const served = new Map<PluginTool, ServedMarketplace>();
   for (const tool of options.tools)
-    served.set(tool, await api.get<ServedMarketplace>(`/feeds/${tool}/marketplace.json`));
+    served.set(
+      tool,
+      await api.get<ServedMarketplace>(marketplacePath(tool, options.workspaces ?? [])),
+    );
 
   // 2. What's on disk that rmk didn't write, or that changed since.
   const conflicts: FeedConflict[] = [];
@@ -383,12 +404,13 @@ export const feedCommand = async (io: Io, args: Args, out: Output, api: () => Ap
   const [action, ...rest] = args.positionals;
   if (action !== "build" || rest.length)
     throw usage(
-      "Usage: rmk feed build --out <dir> [--tools claude-code,codex,cursor] [--force]\n       rmk feed build --print-workflow github|gitlab",
+      "Usage: rmk feed build --out <dir> [--tools claude-code,codex,cursor] [--workspace <name>]... [--force]\n       rmk feed build --print-workflow github|gitlab [--workspace <name>]...",
     );
+  const workspaces = workspacesOf(args.values.workspace);
   const host = args.values["print-workflow"];
   if (typeof host === "string") {
     // Only prints: no registry, no token, nothing written.
-    const workflow = feedWorkflow(host);
+    const workflow = feedWorkflow(host, undefined, workspaces);
     out.set("workflow", workflow);
     out.say(workflow.slice(0, -1));
     return;
@@ -402,7 +424,12 @@ export const feedCommand = async (io: Io, args: Args, out: Output, api: () => Ap
   let results: Awaited<ReturnType<typeof feedBuild>>;
   try {
     mkdirSync(target, { recursive: true });
-    results = await feedBuild(client, { out: target, tools, force: args.values.force === true });
+    results = await feedBuild(client, {
+      out: target,
+      tools,
+      force: args.values.force === true,
+      workspaces,
+    });
   } catch (error) {
     if (error instanceof RmkError && error.code === "conflicts")
       for (const c of (error.details?.conflicts ?? []) as FeedConflict[])
@@ -416,6 +443,7 @@ export const feedCommand = async (io: Io, args: Args, out: Output, api: () => Ap
   out.set("out", dir);
   out.set("changed", changed);
   out.set("tools", results);
+  out.set("workspaces", workspaces);
   out.say(`Built ${client.registry}'s plugin feed into ${dir}:`);
   for (const r of results) {
     out.say(
@@ -426,4 +454,8 @@ export const feedCommand = async (io: Io, args: Args, out: Output, api: () => Ap
     for (const name of r.removed) out.say(`    - ${name}`);
   }
   if (!changed) out.say("Nothing changed.");
+  if (workspaces.length)
+    out.say(
+      `It includes the workspace${workspaces.length === 1 ? "" : "s"} named with --workspace (${workspaces.join(", ")}): keep the repository you push it to private, since anyone who can read it can install what's in it.`,
+    );
 };

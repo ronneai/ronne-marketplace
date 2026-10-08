@@ -32,9 +32,15 @@ export class InvalidItemTypeError extends SubmissionsError {
   }
 }
 
+/**
+ * No scope by that name that the person may use: unknown, or in a private workspace they aren't in
+ * (093). One message for both, so it can't tell them a private scope exists.
+ */
 export class DraftScopeNotFoundError extends SubmissionsError {
   constructor(readonly scopeName: string) {
-    super(`The scope @${scopeName} doesn't exist. Root creates scopes.`);
+    super(
+      `There's no scope @${scopeName} you can use. Root and a workspace's admins create scopes.`,
+    );
   }
 }
 
@@ -119,6 +125,16 @@ export class ItemNameTakenError extends SubmissionsError {
         ? `${itemName} is already a published item. Pick another name, or propose a change to it.`
         : `${itemName} is already proposed by another submission under review. Pick another name.`,
     );
+  }
+}
+
+/**
+ * A dependency in a private workspace other than the dependent's (093): only its own items can
+ * depend on it. Said only to someone who sees it; to anyone else it's an unknown name.
+ */
+export class DependencyNotVisibleError extends SubmissionsError {
+  constructor(readonly dependency: string) {
+    super(`${dependency} is in a private workspace; only its own items can depend on it.`);
   }
 }
 

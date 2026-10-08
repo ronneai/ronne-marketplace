@@ -56,6 +56,16 @@ describe("audit summaries (060)", () => {
       "Changed the description of workspace acme",
     );
     expect(line("workspace.deleted", { name: "acme" })).toBe("Deleted workspace acme");
+    // Its visibility (093), and its description as before.
+    expect(line("workspace.updated", { name: "acme", visibility: "private", from: "public" })).toBe(
+      "Made workspace acme private",
+    );
+    expect(line("workspace.updated", { name: "acme", visibility: "public", from: "private" })).toBe(
+      "Made workspace acme public",
+    );
+    expect(line("workspace.updated", { name: "acme", from: "Old.", to: "New." })).toBe(
+      "Changed the description of workspace acme",
+    );
     expect(line("scope.created", { name: "team", description: "A team." })).toBe(
       "Created scope @team",
     );

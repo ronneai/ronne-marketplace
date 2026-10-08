@@ -49,6 +49,20 @@ export const pageWorkspaces = async (
   app: AppAuth = getAppAuth(),
 ) => service.pageWorkspaces(deps(app), await actor(headers, app), query);
 
+/** Root makes a workspace private or public (093). */
+export const setWorkspaceVisibility = async (
+  headers: Headers,
+  input: { name: string; visibility: string },
+  app: AppAuth = getAppAuth(),
+) => service.setWorkspaceVisibility(deps(app), await actor(headers, app), input);
+
+/** What turning a workspace private would meet (093): for root's dialog. */
+export const visibilityImpact = async (
+  headers: Headers,
+  name: string,
+  app: AppAuth = getAppAuth(),
+) => service.visibilityImpact(deps(app), await actor(headers, app), name);
+
 export const findWorkspace = async (headers: Headers, name: string, app: AppAuth = getAppAuth()) =>
   service.findWorkspace(deps(app), await actor(headers, app), name);
 

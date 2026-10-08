@@ -3,6 +3,8 @@ import type { Authenticated } from "../../identity/actions/access-tokens";
 import { getCurrentUser } from "../../identity/actions/session";
 import { clientIp } from "../../identity/models/client-ip";
 import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-instance";
+import { viewerOf } from "../../workspaces/actions/viewer";
+import type { Viewer } from "../../workspaces/models/viewer";
 import type { Submission } from "../models/submission";
 import { kyselySubmissionRepository } from "../repositories/kysely-submission-repository";
 import * as bulk from "../services/bulk-submit";
@@ -15,16 +17,19 @@ import * as service from "../services/submissions";
  */
 const deps = (
   { db, dialect }: AppAuth,
+  viewer: Viewer,
   storage: StorageAdapter = instanceStorage,
 ): service.SubmissionDeps => ({
-  repo: kyselySubmissionRepository(db, dialect),
+  repo: kyselySubmissionRepository(db, dialect, viewer),
   storage,
 });
 
-const actor = async (headers: Headers, app: AppAuth): Promise<service.SubmissionActor> => ({
-  user: await getCurrentUser(headers, app),
-  ip: clientIp(headers, app.trustProxy),
-});
+/** The dependencies, bound to what the person sees (093), and the actor: one lookup each. */
+const bound = async (headers: Headers, app: AppAuth, storage?: StorageAdapter) => {
+  const user = await getCurrentUser(headers, app);
+  const actor: service.SubmissionActor = { user, ip: clientIp(headers, app.trustProxy) };
+  return [deps(app, await viewerOf(user, app), storage), actor] as const;
+};
 
 export type { DependencyMark } from "../services/dependency-marks";
 
@@ -33,10 +38,10 @@ export const dependencyMarks = async (
   headers: Headers,
   submissions: readonly Submission[],
   app: AppAuth = getAppAuth(),
-) => marks.dependencyMarks(deps(app), await actor(headers, app), submissions);
+) => marks.dependencyMarks(...(await bound(headers, app)), submissions);
 
 export const viewSubmission = async (headers: Headers, id: string, app: AppAuth = getAppAuth()) =>
-  service.viewSubmission(deps(app), await actor(headers, app), id);
+  service.viewSubmission(...(await bound(headers, app)), id);
 
 /** `storage` holds a change proposal's base version (017); the instance's by default. */
 export const checkSubmission = async (
@@ -44,14 +49,14 @@ export const checkSubmission = async (
   id: string,
   app: AppAuth = getAppAuth(),
   storage?: StorageAdapter,
-) => service.checkSubmission(deps(app, storage), await actor(headers, app), id);
+) => service.checkSubmission(...(await bound(headers, app, storage)), id);
 
 export const submitDraft = async (
   headers: Headers,
   id: string,
   app: AppAuth = getAppAuth(),
   storage?: StorageAdapter,
-) => service.submitDraft(deps(app, storage), await actor(headers, app), id);
+) => service.submitDraft(...(await bound(headers, app, storage)), id);
 
 /** Archives it (the default) or deletes it for good (057). */
 export const withdrawSubmission = async (
@@ -59,7 +64,7 @@ export const withdrawSubmission = async (
   id: string,
   app: AppAuth = getAppAuth(),
   mode: "archive" | "delete" = "archive",
-) => service.withdrawSubmission(deps(app), await actor(headers, app), id, mode);
+) => service.withdrawSubmission(...(await bound(headers, app)), id, mode);
 
 export type { RowFeedback } from "../services/submissions";
 
@@ -68,25 +73,25 @@ export const latestFeedback = async (
   headers: Headers,
   submissions: readonly Submission[],
   app: AppAuth = getAppAuth(),
-) => service.latestFeedbackFor(deps(app), await actor(headers, app), submissions);
+) => service.latestFeedbackFor(...(await bound(headers, app)), submissions);
 
 /** Whether the person's own submission can be deleted for good now (057). */
 export const canDeleteSubmission = async (
   headers: Headers,
   id: string,
   app: AppAuth = getAppAuth(),
-) => service.canDeleteSubmission(deps(app), await actor(headers, app), id);
+) => service.canDeleteSubmission(...(await bound(headers, app)), id);
 
 /** Deletes an archived submission, or a draft, for good (057). */
 export const deleteSubmission = async (headers: Headers, id: string, app: AppAuth = getAppAuth()) =>
-  service.deleteSubmission(deps(app), await actor(headers, app), id);
+  service.deleteSubmission(...(await bound(headers, app)), id);
 
 /** Brings an archived submission back as a draft (057). */
 export const restoreSubmission = async (
   headers: Headers,
   id: string,
   app: AppAuth = getAppAuth(),
-) => service.restoreSubmission(deps(app), await actor(headers, app), id);
+) => service.restoreSubmission(...(await bound(headers, app)), id);
 
 export type { BulkSelection, CheckedDraft, SubmittedDraft } from "../services/bulk-submit";
 
@@ -96,7 +101,7 @@ export const checkManyDrafts = async (
   selection: bulk.BulkSelection,
   app: AppAuth = getAppAuth(),
   storage?: StorageAdapter,
-) => bulk.checkMany(deps(app, storage), await actor(headers, app), selection);
+) => bulk.checkMany(...(await bound(headers, app, storage)), selection);
 
 /** For My submissions (052): submits each draft of the selection that's ready. */
 export const submitManyDrafts = async (
@@ -104,7 +109,7 @@ export const submitManyDrafts = async (
   selection: bulk.BulkSelection,
   app: AppAuth = getAppAuth(),
   storage?: StorageAdapter,
-) => bulk.submitMany(deps(app, storage), await actor(headers, app), selection);
+) => bulk.submitMany(...(await bound(headers, app, storage)), selection);
 
 /** The token's user and address, for 052's API; the audit names the token. */
 const tokenActor = (
@@ -118,19 +123,29 @@ const tokenActor = (
 });
 
 /** For `POST /api/v1/drafts/check` (052), as the token's user. */
-export const checkManyDraftsAs = (
+export const checkManyDraftsAs = async (
   auth: Authenticated,
   headers: Headers,
   selection: bulk.BulkSelection,
   app: AppAuth = getAppAuth(),
   storage?: StorageAdapter,
-) => bulk.checkMany(deps(app, storage), tokenActor(auth, headers, app), selection);
+) =>
+  bulk.checkMany(
+    deps(app, await viewerOf(auth.user, app), storage),
+    tokenActor(auth, headers, app),
+    selection,
+  );
 
 /** For `POST /api/v1/drafts/submit` (052), as the token's user. */
-export const submitManyDraftsAs = (
+export const submitManyDraftsAs = async (
   auth: Authenticated,
   headers: Headers,
   selection: bulk.BulkSelection,
   app: AppAuth = getAppAuth(),
   storage?: StorageAdapter,
-) => bulk.submitMany(deps(app, storage), tokenActor(auth, headers, app), selection);
+) =>
+  bulk.submitMany(
+    deps(app, await viewerOf(auth.user, app), storage),
+    tokenActor(auth, headers, app),
+    selection,
+  );

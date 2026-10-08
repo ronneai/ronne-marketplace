@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ForbiddenError } from "@/server/domains/identity/exceptions/errors";
 import type { Scope } from "@/server/domains/items/models/scope";
 import {
+  WorkspaceHasOutsideDependentsError,
   WorkspaceNameTakenError,
   WorkspaceNotEmptyError,
 } from "@/server/domains/workspaces/exceptions/errors";
@@ -14,6 +15,8 @@ const workspaces = vi.hoisted(() => ({
   deleteWorkspace: vi.fn(),
   pageWorkspaces: vi.fn(),
   findWorkspace: vi.fn(),
+  setWorkspaceVisibility: vi.fn(),
+  visibilityImpact: vi.fn(),
   pageMembers: vi.fn(async () => ({
     rows: [],
     next: null,
@@ -44,7 +47,8 @@ const actions = await import("./actions");
 const { WorkspacesTable } = await import("./WorkspacesTable");
 const { parseListQuery } = await import("@/components/ui/data-table/list-query");
 const { ADMIN_WORKSPACES_LIST, workspacesQueryOf } = await import("./list");
-const { CreateWorkspaceDialog, DeleteWorkspaceButton } = await import("./WorkspaceDialogs");
+const { CreateWorkspaceDialog, CreateWorkspaceForm, DeleteWorkspaceButton, VisibilityForm } =
+  await import("./WorkspaceDialogs");
 const { AdminNav } = await import("@/features/admin/AdminNav");
 const { default: AdminWorkspaces } = await import("@/app/(app)/admin/workspaces/page");
 const { default: AdminWorkspace } = await import("@/app/(app)/admin/workspaces/[name]/page");
@@ -102,6 +106,41 @@ beforeEach(() => {
 });
 
 describe("workspace actions", () => {
+  it("makes a workspace private or public, says so, and refreshes every page (093)", async () => {
+    workspaces.setWorkspaceVisibility.mockResolvedValue(undefined);
+    expect(
+      await actions.setVisibilityFromForm({}, form({ name: "acme", visibility: "private" })),
+    ).toEqual({ done: "It's private: only its members and root see its items." });
+    expect(workspaces.setWorkspaceVisibility).toHaveBeenCalledWith(expect.any(Headers), {
+      name: "acme",
+      visibility: "private",
+    });
+    expect(cache.revalidatePath).toHaveBeenCalledWith("/", "layout");
+    expect(
+      await actions.setVisibilityFromForm({}, form({ name: "acme", visibility: "public" })),
+    ).toEqual({ done: "It's public: everyone signed in sees its items." });
+    workspaces.setWorkspaceVisibility.mockRejectedValueOnce(
+      new WorkspaceHasOutsideDependentsError("acme", ["@team/front"]),
+    );
+    expect(
+      (await actions.setVisibilityFromForm({}, form({ name: "acme", visibility: "private" })))
+        .error,
+    ).toContain("@team/front");
+  });
+
+  it("reads what Make private would meet, or why it can't (093)", async () => {
+    workspaces.visibilityImpact.mockResolvedValueOnce({
+      dependents: ["@team/front"],
+      openDependents: [],
+    });
+    expect(await actions.visibilityImpactFor("acme")).toEqual({
+      dependents: ["@team/front"],
+      openDependents: [],
+    });
+    workspaces.visibilityImpact.mockRejectedValueOnce(new ForbiddenError("workspaces.manage"));
+    expect("error" in (await actions.visibilityImpactFor("acme"))).toBe(true);
+  });
+
   it("creates a public workspace and revalidates the list", async () => {
     workspaces.createWorkspace.mockResolvedValue(workspace());
     expect(
@@ -192,7 +231,8 @@ describe("WorkspacesTable", () => {
     const html = table({}, [workspace({ moderators: 2 }), workspace({ name: "beta", id: "w2" })]);
     expect(html).toContain(">Moderators<");
     expect(html).toContain(">2<");
-    expect(html).toContain("No moderators");
+    expect(html).toContain('<span class="text-muted">None</span>');
+    expect(html).not.toContain("No moderators");
   });
 
   it("explains an empty search", () => {
@@ -209,6 +249,57 @@ describe("WorkspacesTable", () => {
 describe("the dialogs", () => {
   it("New workspace renders its button", () => {
     expect(renderToStaticMarkup(<CreateWorkspaceDialog />)).toContain("New workspace");
+  });
+
+  it("Make public asks first; Make private checks what depends on it before it can go (093)", () => {
+    const toPublic = renderToStaticMarkup(
+      <VisibilityForm name="acme" to="public" onDone={() => {}} />,
+    );
+    expect(toPublic).toContain("Everyone on this instance will see");
+    expect(toPublic).toContain(">Make public<");
+    const toPrivate = renderToStaticMarkup(
+      <VisibilityForm name="acme" to="private" onDone={() => {}} />,
+    );
+    expect(toPrivate).toContain("Checking what depends on its items");
+    expect(toPrivate).toMatch(/<button[^>]*disabled=""[^>]*>[^<]*Make private/);
+  });
+
+  it("Make private lists the outside items that depend on it, and can't go while there are any (093)", () => {
+    const blocked = renderToStaticMarkup(
+      <VisibilityForm
+        name="acme"
+        to="private"
+        onDone={() => {}}
+        loaded={{ dependents: ["@team/a", "@team/b", "@team/c"], openDependents: ["@team/d"] }}
+      />,
+    );
+    expect(blocked).toContain("3 items outside acme depend on its items");
+    expect(blocked).toContain("Public or private?");
+    for (const item of ["@team/a", "@team/b", "@team/c"]) expect(blocked).toContain(`>${item}<`);
+    expect(blocked).toContain("1 open submission outside acme depends on its items");
+    expect(blocked).toMatch(/<button[^>]*disabled=""[^>]*>[^<]*Make private/);
+    const clear = renderToStaticMarkup(
+      <VisibilityForm
+        name="acme"
+        to="private"
+        onDone={() => {}}
+        loaded={{ dependents: [], openDependents: ["@team/d"] }}
+      />,
+    );
+    expect(clear).toContain("fail at release");
+    expect(clear).not.toMatch(/<button[^>]*disabled=""[^>]*>[^<]*Make private/);
+  });
+
+  it("New workspace asks public or private, public chosen (093)", () => {
+    const html = renderToStaticMarkup(<CreateWorkspaceForm onDone={() => {}} />);
+    const radio = (value: string) =>
+      html.match(new RegExp(`<input[^>]*name="visibility"[^>]*value="${value}"[^>]*>`))?.[0] ?? "";
+    expect(radio("public")).toContain('checked=""');
+    expect(radio("private")).toContain('type="radio"');
+    expect(radio("private")).not.toContain("checked");
+    expect(html).toContain("Only its members and root see its items");
+    expect(html).toContain("Public or private?");
+    expect(html).toContain("/marketplace/docs/workspaces#visibility");
   });
 
   it("Delete is disabled, with the reason, while the workspace has scopes", () => {
@@ -409,6 +500,25 @@ describe("the pages", () => {
     const html = renderToStaticMarkup(await workspacePage("global", { tab: "members" }));
     expect(html).toContain('aria-label="Role of u@example.com"');
     expect(html).not.toContain('aria-label="Remove u@example.com"');
+  });
+
+  it("root can make a workspace private or public; its admin can't, nor anyone on global (093)", async () => {
+    session.getCurrentUser.mockResolvedValueOnce({ id: "r", role: "root" });
+    workspaces.findWorkspace.mockResolvedValueOnce(workspace());
+    expect(renderToStaticMarkup(await workspacePage("acme"))).toContain(">Make private<");
+    session.getCurrentUser.mockResolvedValueOnce({ id: "r", role: "root" });
+    workspaces.findWorkspace.mockResolvedValueOnce(workspace({ visibility: "private" }));
+    expect(renderToStaticMarkup(await workspacePage("acme"))).toContain(">Make public<");
+    session.getCurrentUser.mockResolvedValueOnce({
+      id: "a",
+      role: "user",
+      workspaces: { w1: "admin" },
+    });
+    workspaces.findWorkspace.mockResolvedValueOnce(workspace());
+    expect(renderToStaticMarkup(await workspacePage("acme"))).not.toContain("Make private");
+    session.getCurrentUser.mockResolvedValueOnce({ id: "r", role: "root" });
+    workspaces.findWorkspace.mockResolvedValueOnce(global);
+    expect(renderToStaticMarkup(await workspacePage("global"))).not.toContain("Make private");
   });
 
   it("an unknown or malformed name is a 404", async () => {

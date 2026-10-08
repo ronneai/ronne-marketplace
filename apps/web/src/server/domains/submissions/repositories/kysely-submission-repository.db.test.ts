@@ -3,6 +3,7 @@ import { toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
 import { GLOBAL_WORKSPACE_ID } from "../../../db/migrations/0019_workspaces";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
+import { UNFILTERED } from "../../workspaces/models/viewer";
 import { OPEN_STATUSES, type SubmissionStatus } from "../models/status";
 import { kyselySubmissionRepository } from "./kysely-submission-repository";
 
@@ -53,7 +54,7 @@ beforeAll(async () => {
 afterAll(() => t.cleanup());
 
 const submissionIn = async (scope: string, name: string, status: SubmissionStatus) => {
-  const repo = kyselySubmissionRepository(t.db, t.dialect);
+  const repo = kyselySubmissionRepository(t.db, t.dialect, UNFILTERED);
   const id = await repo.insert({
     authorId,
     scopeId: scope,
@@ -68,7 +69,7 @@ const submissionIn = async (scope: string, name: string, status: SubmissionStatu
 
 describe("isNameProposed", () => {
   it("finds open submissions of the same scope and name, never drafts, closed ones or itself", async () => {
-    const repo = kyselySubmissionRepository(t.db, t.dialect);
+    const repo = kyselySubmissionRepository(t.db, t.dialect, UNFILTERED);
     const mine = await submissionIn(scopeId, "style", "draft");
     const proposed = (except = mine) =>
       repo.isNameProposed(scopeId, "style", OPEN_STATUSES, except);
@@ -98,7 +99,7 @@ describe("isNameProposed", () => {
 
 describe("countDrafts", () => {
   it("counts only the author's drafts", async () => {
-    const repo = kyselySubmissionRepository(t.db, t.dialect);
+    const repo = kyselySubmissionRepository(t.db, t.dialect, UNFILTERED);
     const before = await repo.countDrafts(authorId);
     await submissionIn(scopeId, "counted", "draft");
     await submissionIn(otherScopeId, "counted", "draft");

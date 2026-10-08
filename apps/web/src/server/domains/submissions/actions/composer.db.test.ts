@@ -8,6 +8,7 @@ import type { AppAuth } from "../../identity/repositories/auth-instance";
 import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testing/test-auth";
 import { createScope } from "../../items/actions/scopes";
 import { kyselyItemRepository } from "../../items/repositories/kysely-item-repository";
+import { UNFILTERED } from "../../workspaces/models/viewer";
 import { DEPENDENCY_REPORTS_MAX, PICKER_PAGE_SIZE } from "../models/composer";
 import { dependencyReports, searchDependencies } from "./composer";
 import { createDraft, saveDraftFiles } from "./drafts";
@@ -70,7 +71,7 @@ const release = async (
     ownerId?: string;
   } = {},
 ) => {
-  const items = kyselyItemRepository(t.db, t.dialect);
+  const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
   const itemId =
     (await items.findByName("team", name))?.id ??
     (await items.insertItem({

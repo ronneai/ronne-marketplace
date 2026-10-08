@@ -75,3 +75,18 @@ export class ArtifactUnavailableError extends ItemsError {
     );
   }
 }
+
+/**
+ * Unyanking a version that depends on an item in a private workspace other than its own (093):
+ * it would be installable again with a dependency people outside that workspace can't get.
+ */
+export class VersionDependsOnPrivateError extends ItemsError {
+  constructor(
+    readonly version: string,
+    readonly dependency: string,
+  ) {
+    super(
+      `${version} depends on ${dependency}, which is in a private workspace now, so it stays yanked.`,
+    );
+  }
+}

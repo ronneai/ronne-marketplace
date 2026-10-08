@@ -16,6 +16,7 @@ import {
 import { kyselyItemRepository } from "../domains/items/repositories/kysely-item-repository";
 import { kyselyScopeRepository } from "../domains/items/repositories/kysely-scope-repository";
 import { kyselySubmissionRepository } from "../domains/submissions/repositories/kysely-submission-repository";
+import { UNFILTERED } from "../domains/workspaces/models/viewer";
 import { GLOBAL_WORKSPACE_ID } from "../domains/workspaces/models/workspace";
 import { kyselyWorkspaceRepository } from "../domains/workspaces/repositories/kysely-workspace-repository";
 import { localStorage } from "../storage/local-storage";
@@ -68,7 +69,7 @@ beforeEach(async () => {
     moderator: await tokenFor("m@example.com"),
     root: await tokenFor("root@example.com"),
   };
-  const scopes = kyselyScopeRepository(t.db, t.dialect);
+  const scopes = kyselyScopeRepository(t.db, t.dialect, UNFILTERED);
   for (const [name, description] of [
     ["team", "A team."],
     ["platform", "Shared tools."],
@@ -207,7 +208,7 @@ describe("POST /drafts", () => {
       submitIssues: [],
       proposal: null,
     });
-    const repo = kyselySubmissionRepository(t.db, t.dialect);
+    const repo = kyselySubmissionRepository(t.db, t.dialect, UNFILTERED);
     const user = await t.db
       .selectFrom("user")
       .select("id")
@@ -240,7 +241,7 @@ describe("POST /drafts", () => {
   });
 
   it("says what Submit would refuse: a taken name, an unreleased dependency", async () => {
-    await kyselyItemRepository(t.db, t.dialect).insertItem({
+    await kyselyItemRepository(t.db, t.dialect, UNFILTERED).insertItem({
       scopeId: teamId,
       name: "secure-coding",
       type: "skill",
@@ -329,7 +330,7 @@ describe("POST /drafts", () => {
   });
 
   it("refuses the 51st draft", async () => {
-    const repo = kyselySubmissionRepository(t.db, t.dialect);
+    const repo = kyselySubmissionRepository(t.db, t.dialect, UNFILTERED);
     const user = await t.db
       .selectFrom("user")
       .select("id")
@@ -400,7 +401,10 @@ describe("GET and PUT /drafts (051)", () => {
   const setStatus = (id: string, status: "submitted" | "changes_requested" | "published") =>
     t.db.updateTable("submissions").set({ status }).where("id", "=", id).execute();
   const stored = async (id: string) =>
-    (await kyselySubmissionRepository(t.db, t.dialect).files(id)).map((f) => [f.path, f.content]);
+    (await kyselySubmissionRepository(t.db, t.dialect, UNFILTERED).files(id)).map((f) => [
+      f.path,
+      f.content,
+    ]);
 
   it("lists your open drafts of an item, and nobody else's", async () => {
     const mine = await create();
@@ -683,7 +687,7 @@ describe("POST /drafts with a base (042)", () => {
     storageRoot = mkdtempSync(join(tmpdir(), "ronne-proposals-"));
     const storage = localStorage(storageRoot);
     deps = { ...deps, storage };
-    const items = kyselyItemRepository(t.db, t.dialect);
+    const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
     const itemId = await items.insertItem({
       scopeId: teamId,
       name: "kit",
@@ -740,7 +744,7 @@ describe("POST /drafts with a base (042)", () => {
       submitIssues: [],
       proposal: { item: "@team/kit", baseVersion: "1.0.0", stale: null },
     });
-    const draft = await kyselySubmissionRepository(t.db, t.dialect).find(json.id);
+    const draft = await kyselySubmissionRepository(t.db, t.dialect, UNFILTERED).find(json.id);
     expect(draft?.proposal).toMatchObject({ baseVersion: "1.0.0" });
     const [event] = (await listAuditEvents(t.db, t.dialect, {})).events.filter(
       (e) => e.action === "submission.draft_created",
@@ -773,7 +777,9 @@ describe("POST /drafts with a base (042)", () => {
       const { json, ...rest } = await body(await postDraft(post(payload), deps));
       expect([rest.status, json.error.code]).toEqual([status, code]);
     }
-    expect(await kyselySubmissionRepository(t.db, t.dialect).listByAuthor("x")).toEqual([]);
+    expect(await kyselySubmissionRepository(t.db, t.dialect, UNFILTERED).listByAuthor("x")).toEqual(
+      [],
+    );
     expect(
       Number(
         (
@@ -793,7 +799,7 @@ describe("POST /drafts with a base (042)", () => {
       .select("id")
       .where("email", "=", "u@example.com")
       .executeTakeFirstOrThrow();
-    const repo = kyselySubmissionRepository(t.db, t.dialect);
+    const repo = kyselySubmissionRepository(t.db, t.dialect, UNFILTERED);
     for (let i = 0; i < 50; i += 1)
       await repo.insert({
         authorId: user.id,
@@ -852,7 +858,7 @@ describe("workspaces: only members draft and submit there (091)", () => {
       createdBy: null,
       createdAt: new Date(),
     });
-    await kyselyScopeRepository(t.db, t.dialect).insert({
+    await kyselyScopeRepository(t.db, t.dialect, UNFILTERED).insert({
       name: "acme",
       description: "Acme's tools.",
       workspaceId: acme,

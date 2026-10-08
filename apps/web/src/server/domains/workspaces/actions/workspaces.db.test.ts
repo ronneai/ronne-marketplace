@@ -129,7 +129,7 @@ describe("createWorkspace", () => {
     expect(await events("workspace.created")).toHaveLength(1);
   });
 
-  it("refuses bad names, reserved names, empty or long descriptions, and private", async () => {
+  it("refuses bad names, reserved names, empty or long descriptions, and an unknown visibility", async () => {
     for (const name of ["", "-acme", "a b", "@acme", "admin", "x".repeat(65)])
       await expect(
         createWorkspace(asRoot, { name, description: "Fine." }, app),
@@ -140,7 +140,7 @@ describe("createWorkspace", () => {
         InvalidWorkspaceDescriptionError,
       );
     await expect(
-      createWorkspace(asRoot, { name: "acme", description: "Fine.", visibility: "private" }, app),
+      createWorkspace(asRoot, { name: "acme", description: "Fine.", visibility: "secret" }, app),
     ).rejects.toThrow(InvalidWorkspaceVisibilityError);
     expect(await events("workspace.created")).toEqual([]);
   });

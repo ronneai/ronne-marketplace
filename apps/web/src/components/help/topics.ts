@@ -36,6 +36,7 @@ export const TOPICS = [
     sections: [
       { id: "what", title: "What a workspace is" },
       { id: "global", title: "The global workspace" },
+      { id: "visibility", title: "Public and private" },
       { id: "roles", title: "Members and roles" },
       { id: "managing", title: "Creating and managing them" },
     ],

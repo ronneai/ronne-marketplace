@@ -35,6 +35,8 @@ export const searchDependenciesAction = async (input: {
   q: string;
   only: ItemType | null;
   cursor?: string;
+  /** The item being composed, so only what it may depend on is offered (093). */
+  itemName?: string;
 }): Promise<PickerResult> => {
   try {
     return { ok: true, ...(await searchDependencies(await requestHeaders(), input)) };

@@ -9,6 +9,7 @@ import { createTestUser, testAppAuth } from "../domains/identity/testing/test-au
 import { kyselyItemRepository } from "../domains/items/repositories/kysely-item-repository";
 import type { UsagePolicy } from "../domains/settings/models/usage-policy";
 import { kyselySettingsRepository } from "../domains/settings/repositories/kysely-settings-repository";
+import { UNFILTERED } from "../domains/workspaces/models/viewer";
 import { getUsage, postUsage, type UsageApiDeps } from "./usage-api";
 import { createUsageLimiter } from "./usage-rate-limit";
 
@@ -58,7 +59,7 @@ beforeEach(async () => {
       workspace_id: GLOBAL_WORKSPACE_ID,
     })
     .execute();
-  const items = kyselyItemRepository(t.db, t.dialect);
+  const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
   const itemId = await items.insertItem({
     scopeId: "s1",
     name: "reviewer",

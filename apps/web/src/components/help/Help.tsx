@@ -23,7 +23,7 @@ export const HELP = {
   "workspace-choice": {
     question: "Which workspace?",
     answer:
-      "The one whose team the scope's items are for; global when they're for everyone. The catalogue and item pages show a workspace other than global before the items' names, and once there's more than global the catalogue can filter by workspace. Every workspace is public for now, so everyone signed in still sees the items; its members submit and its moderators and admins review there. The scope can't move to another workspace later.",
+      "The one whose team the scope's items are for; global when they're for everyone. The catalogue and item pages show a workspace other than global before the items' names, and once there's more than global the catalogue can filter by workspace. In a public workspace everyone signed in sees the scope's items; in a private one, only its members and root. Its members submit and its moderators and admins review there. The scope can't move to another workspace later.",
     href: docsHref("workspaces", "what"),
   },
   "global-always": {
@@ -47,8 +47,20 @@ export const HELP = {
   join: {
     question: "How do I join?",
     answer:
-      "Anyone signed in reads and installs a workspace's items, but only its members propose and submit there. Its admins and root add members: ask one of them to add you to the workspace.",
+      "Anyone signed in reads and installs a public workspace's items, but only its members propose and submit there. Its admins and root add members: ask one of them to add you to the workspace.",
     href: docsHref("workspaces", "roles"),
+  },
+  visibility: {
+    question: "Public or private?",
+    answer:
+      "Everyone signed in sees a public workspace's scopes and items, and can depend on them. A private one's are seen only by its members, in any role, and root; to anyone else they don't exist, and only its own items can depend on them. Root can change it later: turning a workspace private is refused while released items outside depend on its items.",
+    href: docsHref("workspaces", "visibility"),
+  },
+  "private-item": {
+    question: "Who can see this?",
+    answer:
+      "Only the members of its workspace, in any role, and root: the workspace is private. To anyone else this item doesn't exist, in the catalogue, rmk, the MCP tools and the plugin marketplaces. Only items in the same workspace can depend on it.",
+    href: docsHref("workspaces", "visibility"),
   },
   name: {
     question: "How should I name it?",

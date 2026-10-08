@@ -6,6 +6,8 @@ import type { Database } from "../../../db/schema";
 import { containsInsensitive } from "../../../db/search";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
+import type { Viewer } from "../../workspaces/models/viewer";
+import { inVisibleWorkspace } from "../../workspaces/repositories/visible";
 import type { Scope } from "../models/scope";
 import type { ScopeRepository } from "./scope-repository";
 
@@ -29,15 +31,21 @@ const toScope = (row: ScopeRow): Scope => ({
   createdAt: fromDbDate(row.created_at),
 });
 
+/**
+ * Scopes as `viewer` sees them (093): only those in a workspace they see, and only those
+ * workspaces. Writes don't filter: the services authorise them.
+ */
 export const kyselyScopeRepository = (
   db: Kysely<Database>,
   dialect: DatabaseDialect,
+  viewer: Viewer,
 ): ScopeRepository => {
   const scopes = () =>
     db
       .selectFrom("scopes")
       .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
       .leftJoin("user", "user.id", "scopes.created_by")
+      .where(inVisibleWorkspace(viewer, "workspaces.id"))
       .select([
         "scopes.id",
         "scopes.name",
@@ -64,7 +72,7 @@ export const kyselyScopeRepository = (
 
   return {
     transaction: (work) =>
-      db.transaction().execute((trx) => work(kyselyScopeRepository(trx, dialect))),
+      db.transaction().execute((trx) => work(kyselyScopeRepository(trx, dialect, viewer))),
 
     findByName: async (name) => {
       const row = await scopes().where("scopes.name", "=", name).executeTakeFirst();
@@ -76,6 +84,7 @@ export const kyselyScopeRepository = (
         .selectFrom("workspaces")
         .select(["id", "name"])
         .where("id", "=", id)
+        .where(inVisibleWorkspace(viewer, "workspaces.id"))
         .executeTakeFirst()) ?? null,
 
     insert: async (scope) => {

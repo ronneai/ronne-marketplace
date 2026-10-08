@@ -3,6 +3,8 @@ import type { Kysely } from "kysely";
 import type { Database } from "../../../db/schema";
 import type { DatabaseDialect } from "../../../db/url";
 import { kyselyItemRepository } from "../../items/repositories/kysely-item-repository";
+import type { Viewer } from "../../workspaces/models/viewer";
+import { isReadableSubmission } from "../../workspaces/repositories/visible";
 import { fileBytes, MANIFEST_PATH } from "../models/submission";
 import type { NamedSubmission, RegistryLookup } from "./registry-lookup";
 
@@ -14,15 +16,34 @@ import type { NamedSubmission, RegistryLookup } from "./registry-lookup";
 export const kyselyRegistryLookup = (
   db: Kysely<Database>,
   dialect: DatabaseDialect,
+  viewer: Viewer,
 ): RegistryLookup => {
-  const items = kyselyItemRepository(db, dialect);
+  // What the viewer sees (093): a dependency in a workspace they don't see is an unknown name.
+  const items = kyselyItemRepository(db, dialect, viewer);
+  // Anything but "public" is private, as the viewer reads it (093).
+  const privateWorkspaces = async (ids: readonly string[]): Promise<ReadonlySet<string>> => {
+    if (ids.length === 0) return new Set();
+    const rows = await db
+      .selectFrom("workspaces")
+      .select(["id", "visibility"])
+      .where("id", "in", [...new Set(ids)])
+      .execute();
+    return new Set(rows.filter((row) => row.visibility !== "public").map((row) => row.id));
+  };
   return {
     findItem: async (scope, name) => {
       const item = await items.findByName(scope, name);
-      return item
-        ? { id: item.id, scope: item.scope.name, name: item.name, type: item.type }
-        : null;
+      if (!item) return null;
+      const isPrivate = (await privateWorkspaces([item.workspaceId])).has(item.workspaceId);
+      return {
+        id: item.id,
+        scope: item.scope.name,
+        name: item.name,
+        type: item.type,
+        workspace: { id: item.workspaceId, private: isPrivate },
+      };
     },
+    privateWorkspaces,
     publishedVersions: async (itemId) =>
       (await items.versions(itemId)).map((version) => ({
         id: version.id,
@@ -37,7 +58,10 @@ export const kyselyRegistryLookup = (
       const rows = await db
         .selectFrom("submissions")
         .innerJoin("scopes", "scopes.id", "submissions.scope_id")
+        .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
         .select([
+          "scopes.workspace_id",
+          "workspaces.visibility",
           "submissions.id",
           "submissions.status",
           "submissions.type",
@@ -48,6 +72,7 @@ export const kyselyRegistryLookup = (
         .where("scopes.name", "=", scope)
         .where("submissions.name", "=", name)
         .where("submissions.status", "!=", "draft")
+        .where(isReadableSubmission(viewer, "submissions.id"))
         .orderBy("submissions.updated_at", "desc")
         .orderBy("submissions.id", "desc")
         .execute();
@@ -77,6 +102,7 @@ export const kyselyRegistryLookup = (
             authorId: row.author_id,
             proposal: row.item_id !== null,
             dependencies: (parsed?.dependencies ?? {}) as Record<string, string>,
+            workspace: { id: row.workspace_id, private: row.visibility !== "public" },
           };
         }),
       );

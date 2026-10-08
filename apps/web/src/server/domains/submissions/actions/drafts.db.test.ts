@@ -11,6 +11,7 @@ import { ForbiddenError } from "../../identity/exceptions/errors";
 import type { AppAuth } from "../../identity/repositories/auth-instance";
 import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testing/test-auth";
 import { createScope } from "../../items/actions/scopes";
+import { UNFILTERED } from "../../workspaces/models/viewer";
 import {
   DraftLimitError,
   DraftMismatchError,
@@ -144,7 +145,7 @@ describe("createDraftFromFiles", () => {
   const upload = (files: service.UploadFile[], input = { scope: "team", name: "secure-coding" }) =>
     getCurrentUser(asUser, app).then((user) =>
       service.createDraftFromFiles(
-        { repo: kyselySubmissionRepository(t.db, t.dialect) },
+        { repo: kyselySubmissionRepository(t.db, t.dialect, UNFILTERED) },
         { user, ip: "203.0.113.7", token: { id: "tok-1", name: "laptop" } },
         { ...input, type: "skill", files },
       ),
@@ -268,7 +269,7 @@ describe("createDraftFromFiles", () => {
     await expect(
       getCurrentUser(asUser, app).then((user) =>
         service.createDraftFromFiles(
-          { repo: kyselySubmissionRepository(t.db, t.dialect) },
+          { repo: kyselySubmissionRepository(t.db, t.dialect, UNFILTERED) },
           { user, ip: "203.0.113.7", token: { id: "tok-1", name: "laptop" } },
           { scope: "team", name: "ok", type: "skil", files: skill() },
         ),
@@ -276,7 +277,7 @@ describe("createDraftFromFiles", () => {
     ).rejects.toThrow(InvalidItemTypeError);
     await expect(
       service.createDraftFromFiles(
-        { repo: kyselySubmissionRepository(t.db, t.dialect) },
+        { repo: kyselySubmissionRepository(t.db, t.dialect, UNFILTERED) },
         { user: null, ip: null, token: { id: "tok-1", name: "laptop" } },
         { scope: "team", name: "ok", type: "skill", files: skill() },
       ),
@@ -289,7 +290,7 @@ describe("createDraftFromFiles", () => {
     const tight = (limits: { maxFiles: number; maxTotalBytes: number }) =>
       service.createDraftFromFiles(
         {
-          repo: kyselySubmissionRepository(t.db, t.dialect),
+          repo: kyselySubmissionRepository(t.db, t.dialect, UNFILTERED),
           limits: { ...limits, maxFileBytes: 1024, maxPackedBytes: 1024 },
         },
         { user, ip: "203.0.113.7", token: { id: "tok-1", name: "laptop" } },
@@ -322,7 +323,7 @@ describe("createDraftFromFiles", () => {
 describe("listOpenDrafts and replaceDraftFromFiles", () => {
   const manifest = 'name: "@team/secure-coding"\ntype: skill\ndescription: Checks code.\n';
   const token = { id: "tok-1", name: "laptop" };
-  const repo = () => kyselySubmissionRepository(t.db, t.dialect);
+  const repo = () => kyselySubmissionRepository(t.db, t.dialect, UNFILTERED);
   const skill = (body = "Hi."): service.UploadFile[] => [
     { path: "ronne.yaml", encoding: "utf8", content: manifest },
     { path: "SKILL.md", encoding: "utf8", content: `---\nname: secure-coding\n---\n${body}\n` },
@@ -636,7 +637,7 @@ describe("saveDraftFiles", () => {
   it("holds the file count and total size, but lets a draft over them shrink", async () => {
     const user = await getCurrentUser(asUser, app);
     const deps = (limits: { maxFiles: number; maxTotalBytes: number }) => ({
-      repo: kyselySubmissionRepository(t.db, t.dialect),
+      repo: kyselySubmissionRepository(t.db, t.dialect, UNFILTERED),
       limits: {
         maxFiles: limits.maxFiles,
         maxFileBytes: 1024,
@@ -672,7 +673,7 @@ describe("saveDraftFiles", () => {
     const loadedAt = manifestOf(draft)?.updatedAt ?? null;
     const later = { now: () => new Date(Date.now() + 1000) };
     const user = await getCurrentUser(asUser, app);
-    const repo = kyselySubmissionRepository(t.db, t.dialect);
+    const repo = kyselySubmissionRepository(t.db, t.dialect, UNFILTERED);
     // Another tab saves ronne.yaml and creates notes.md.
     await service.saveDraftFiles({ repo, ...later }, { user }, draft.id, {
       writes: [text("ronne.yaml", "name: one\n", loadedAt), text("notes.md", "theirs")],

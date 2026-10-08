@@ -7,6 +7,7 @@ import { createRoot } from "../../identity/actions/root-account";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import type { CurrentUser } from "../../identity/models/user";
 import { kyselyItemRepository } from "../../items/repositories/kysely-item-repository";
+import { UNFILTERED } from "../../workspaces/models/viewer";
 import { InvalidUsageReportError, UsageDisabledError } from "../exceptions/errors";
 import { kyselyUsageRepository } from "../repositories/kysely-usage-repository";
 import { itemUsage, itemUsageByVersion, recordUsage, type UsageDeps, usageSettings } from "./usage";
@@ -41,7 +42,7 @@ beforeEach(async () => {
       workspace_id: GLOBAL_WORKSPACE_ID,
     })
     .execute();
-  const items = kyselyItemRepository(t.db, t.dialect);
+  const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
   itemId = await items.insertItem({
     scopeId: "s1",
     name: "reviewer",
@@ -71,7 +72,7 @@ beforeEach(async () => {
 afterEach(() => t.cleanup());
 
 const deps = (overrides: Partial<UsageDeps> = {}): UsageDeps => ({
-  usage: kyselyUsageRepository(t.db, t.dialect),
+  usage: kyselyUsageRepository(t.db, t.dialect, UNFILTERED),
   policy: "choice",
   now: () => now,
   pruneDue: () => false,
@@ -213,7 +214,7 @@ describe("recordUsage", () => {
   });
 
   it("deletes totals older than 90 days when pruning is due", async () => {
-    const usage = kyselyUsageRepository(t.db, t.dialect);
+    const usage = kyselyUsageRepository(t.db, t.dialect, UNFILTERED);
     const row = (day: string) => ({
       itemId,
       day,
@@ -240,7 +241,7 @@ describe("usage_daily", () => {
 
 describe("the item page's usage (047)", () => {
   const add = (rows: { day: string; version?: string; event: string; count: number }[]) =>
-    kyselyUsageRepository(t.db, t.dialect).add(
+    kyselyUsageRepository(t.db, t.dialect, UNFILTERED).add(
       rows.map((r) => ({
         itemId,
         day: r.day,

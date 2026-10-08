@@ -176,6 +176,3 @@ export const pageScopes = async (
   ]);
   return { scopes: page.rows, next: page.next, previous: page.previous, total };
 };
-
-export const findScope = async (deps: ScopeDeps, name: string): Promise<Scope | null> =>
-  deps.repo.findByName(name);

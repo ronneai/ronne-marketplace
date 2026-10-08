@@ -6,6 +6,7 @@ import { signIn } from "../../identity/actions/session";
 import type { AppAuth } from "../../identity/repositories/auth-instance";
 import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testing/test-auth";
 import { createScope } from "../../items/actions/scopes";
+import { UNFILTERED } from "../../workspaces/models/viewer";
 import {
   InvalidStatusTransitionError,
   SubmissionInvalidError,
@@ -36,7 +37,7 @@ beforeEach(async () => {
 });
 afterEach(() => t.cleanup());
 
-const repo = () => kyselySubmissionRepository(t.db, t.dialect);
+const repo = () => kyselySubmissionRepository(t.db, t.dialect, UNFILTERED);
 
 /** Writes one file of the author's submission, from what's saved now. */
 const write = async (id: string, path: string, content: string) => {

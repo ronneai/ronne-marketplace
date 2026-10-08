@@ -119,7 +119,7 @@ describe("createDraftFromForm", () => {
   it("turns domain and permission errors into the form's message", async () => {
     drafts.createDraft.mockRejectedValueOnce(new DraftScopeNotFoundError("gone"));
     expect(await actions.createDraftFromForm({}, form({ scope: "gone" }))).toEqual({
-      error: "The scope @gone doesn't exist. Root creates scopes.",
+      error: "There's no scope @gone you can use. Root and a workspace's admins create scopes.",
     });
     drafts.createDraft.mockRejectedValueOnce(new ForbiddenError("submissions.create"));
     expect((await actions.createDraftFromForm({}, form({}))).error).toBeTruthy();

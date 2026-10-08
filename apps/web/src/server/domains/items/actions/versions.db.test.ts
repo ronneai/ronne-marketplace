@@ -12,6 +12,7 @@ import {
   setWorkspaceRole,
   testAppAuth,
 } from "../../identity/testing/test-auth";
+import { UNFILTERED } from "../../workspaces/models/viewer";
 import { kyselyWorkspaceRepository } from "../../workspaces/repositories/kysely-workspace-repository";
 import {
   ItemNotFoundError,
@@ -56,7 +57,7 @@ beforeEach(async () => {
   await createScope(asRoot, { name: "team", description: "A team." }, app);
 
   // @team/github with 1.0.0, 1.1.0 (latest) and 2.0.0-beta.1 (next), as releases would leave it.
-  const items = kyselyItemRepository(t.db, t.dialect);
+  const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
   const scope = await t.db.selectFrom("scopes").select("id").executeTakeFirstOrThrow();
   const itemId = await items.insertItem({
     scopeId: scope.id,
@@ -90,7 +91,7 @@ beforeEach(async () => {
 afterEach(() => t.cleanup());
 
 const tags = async () => {
-  const items = kyselyItemRepository(t.db, t.dialect);
+  const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
   const item = await items.findByName("team", "github");
   const versions = await items.versions(item?.id ?? "");
   return Object.fromEntries(
@@ -102,8 +103,9 @@ const tags = async () => {
 };
 const version = async (v: string) =>
   (
-    await kyselyItemRepository(t.db, t.dialect).versions(
-      (await kyselyItemRepository(t.db, t.dialect).findByName("team", "github"))?.id ?? "",
+    await kyselyItemRepository(t.db, t.dialect, UNFILTERED).versions(
+      (await kyselyItemRepository(t.db, t.dialect, UNFILTERED).findByName("team", "github"))?.id ??
+        "",
     )
   ).find((row) => row.version === v);
 const audited = async (action: string) =>

@@ -7,6 +7,7 @@ import { ForbiddenError } from "../../identity/exceptions/errors";
 import type { AppAuth } from "../../identity/repositories/auth-instance";
 import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testing/test-auth";
 import { createWorkspace } from "../../workspaces/actions/workspaces";
+import { UNFILTERED } from "../../workspaces/models/viewer";
 import { ItemNotFoundError, VersionNotFoundError } from "../exceptions/errors";
 import { kyselyItemRepository } from "../repositories/kysely-item-repository";
 import { CATALOGUE_PAGE_SIZE } from "../services/catalogue";
@@ -73,7 +74,7 @@ const release = async (
     targets?: Record<string, unknown>;
   } = {},
 ) => {
-  const items = kyselyItemRepository(t.db, t.dialect);
+  const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
   const scope = options.scope ?? "team";
   const existing = await items.findByName(scope, name);
   const itemId =
@@ -127,7 +128,7 @@ describe("the catalogue", () => {
       keywords: ["security", "lint"],
     });
     // An item without versions (never released) isn't listed.
-    await kyselyItemRepository(t.db, t.dialect).insertItem({
+    await kyselyItemRepository(t.db, t.dialect, UNFILTERED).insertItem({
       scopeId: scopeIds.team ?? "",
       name: "empty",
       type: "rule",
@@ -225,7 +226,8 @@ describe("the catalogue", () => {
     expect(names(await browse({ workspace: "nope" }))).toEqual([]);
     // The item page's data names it too.
     expect(
-      (await kyselyItemRepository(t.db, t.dialect).findByName("acme-infra", "deploy"))?.workspace,
+      (await kyselyItemRepository(t.db, t.dialect, UNFILTERED).findByName("acme-infra", "deploy"))
+        ?.workspace,
     ).toBe("acme");
   });
 
@@ -399,7 +401,7 @@ describe("the item page's data", () => {
     await expect(itemPage(asUser, { scope: "team", name: "nope" }, undefined, app)).rejects.toThrow(
       ItemNotFoundError,
     );
-    await kyselyItemRepository(t.db, t.dialect).insertItem({
+    await kyselyItemRepository(t.db, t.dialect, UNFILTERED).insertItem({
       scopeId: scopeIds.team ?? "",
       name: "empty",
       type: "rule",

@@ -215,11 +215,11 @@ describe("rmk feed build (078)", () => {
     expect(again.exitCode, again.stderr).toBe(0);
     expect(again.stdout).toContain("Nothing changed.");
     expect(snapshot()).toEqual(before);
-    // Only the three marketplaces were read.
+    // Only the three marketplaces were read, for the public workspaces (093).
     expect(io.requests.slice(requests).map((r) => r.path)).toEqual([
-      "/api/v1/feeds/claude-code/marketplace.json",
-      "/api/v1/feeds/codex/marketplace.json",
-      "/api/v1/feeds/cursor/marketplace.json",
+      "/api/v1/feeds/claude-code/marketplace.json?workspaces=",
+      "/api/v1/feeds/codex/marketplace.json?workspaces=",
+      "/api/v1/feeds/cursor/marketplace.json?workspaces=",
     ]);
   });
 
@@ -373,7 +373,7 @@ describe("rmk feed build (078)", () => {
     let calls = 0;
     const real = io.fetch;
     io.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
-      if (String(input).endsWith("/cursor/marketplace.json")) revoked = true;
+      if (String(input).includes("/cursor/marketplace.json")) revoked = true;
       calls++;
       return real(input, init);
     }) as typeof fetch;
@@ -421,5 +421,57 @@ describe("rmk feed build (078)", () => {
       exitCode: 1,
       stderr: expect.stringContaining("rmk login"),
     });
+  });
+
+  it("asks for the public workspaces only, or the ones --workspace names, and warns about those (093)", async () => {
+    const asked: string[] = [];
+    const base = routes();
+    io = fakeIo(
+      withZips(
+        Object.fromEntries(
+          Object.entries(base).map(([key, route]) => [
+            key,
+            key.endsWith("/marketplace.json")
+              ? (request: Parameters<Route>[0]) => {
+                  asked.push(request.url.searchParams.get("workspaces") ?? "(absent)");
+                  return route(request);
+                }
+              : route,
+          ]),
+        ),
+      ),
+    );
+    await rmk("login", "--registry", REGISTRY, "--token", "rmk_feed");
+    const plain = await build("--tools", "codex");
+    expect(plain.exitCode, plain.stderr).toBe(0);
+    expect(plain.stdout).not.toContain("--workspace");
+    const named = await build(
+      "--tools",
+      "codex",
+      "--workspace",
+      "Beta",
+      "--workspace",
+      "acme,beta",
+      "--json",
+    );
+    expect(named.exitCode, named.stderr).toBe(0);
+    expect(asked).toEqual(["", "acme,beta"]);
+    expect(JSON.parse(named.stdout).workspaces).toEqual(["acme", "beta"]);
+    const said = await build("--tools", "codex", "--workspace", "acme");
+    expect(said.stdout).toContain("(acme): keep the repository you push it to private");
+    expect(await build("--workspace", "acme/x")).toMatchObject({
+      exitCode: 2,
+      stderr: expect.stringContaining("--workspace takes workspace names"),
+    });
+  });
+
+  it("prints a workflow whose build names the --workspace ones (093)", async () => {
+    const printed = await rmk("feed", "build", "--print-workflow", "github", "--workspace", "acme");
+    expect(printed.stdout).toContain("run: rmk feed build --out . --workspace acme\n");
+    expect(printed.stdout.split("\n")[2]).toBe(
+      "# It includes the workspace named with --workspace (acme): keep this repository private.",
+    );
+    const gitlab = await rmk("feed", "build", "--print-workflow", "gitlab");
+    expect(gitlab.stdout).toContain("- rmk feed build --out .\n");
   });
 });

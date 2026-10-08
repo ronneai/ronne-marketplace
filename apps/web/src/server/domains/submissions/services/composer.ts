@@ -68,6 +68,9 @@ export const dependencyReports = async (
     ).map((entry) => [`@${entry.scope}/${entry.name}`, entry]),
   );
   const me = actor.user?.id ?? "";
+  // The item's own workspace, from its scope (093): private dependencies elsewhere are refused.
+  const scope = parseItemName(String(input.itemName))?.scope;
+  const workspaceId = scope ? ((await deps.repo.findScope(scope))?.workspace.id ?? null) : null;
   const reports: [string, DependencyReport][] = [];
   for (const [name, range] of entries) {
     const entry = listed.get(name);
@@ -87,6 +90,7 @@ export const dependencyReports = async (
       type: input.type,
       dependencies: { [name]: range },
       authorId: me,
+      workspaceId,
     });
     reports.push([
       name,
@@ -114,7 +118,14 @@ export const dependencyReports = async (
 export const searchDependencies = async (
   deps: ComposerDeps,
   actor: ComposerActor,
-  input: { type: ItemType; q?: string; only?: ItemType | null; cursor?: string },
+  input: {
+    type: ItemType;
+    q?: string;
+    only?: ItemType | null;
+    cursor?: string;
+    /** The item being composed: only what it may depend on is offered (093). */
+    itemName?: string;
+  },
 ): Promise<PickerPage> => {
   requireSignedIn(actor);
   const allowed = isItemType(input.type) ? DEPENDENCY_TYPES[input.type] : [];
@@ -125,7 +136,15 @@ export const searchDependencies = async (
     .slice(0, CATALOGUE_SEARCH_MAX_LENGTH);
   const cursor = typeof input.cursor === "string" ? input.cursor : undefined;
   // Worked out on every page, so a later page leaves out what the first one showed as yours.
-  const own = await ownDependencies(deps, actor.user.id, { types, q, limit: PICKER_PAGE_SIZE });
+  // Its own workspace's items and public ones (093); public ones only before its scope exists.
+  const scope = input.itemName ? parseItemName(String(input.itemName))?.scope : undefined;
+  const dependableFrom = scope ? ((await deps.repo.findScope(scope))?.workspace.id ?? null) : null;
+  const own = await ownDependencies(deps, actor.user.id, {
+    types,
+    q,
+    limit: PICKER_PAGE_SIZE,
+    dependableFrom,
+  });
   const mine: PickerEntry[] = [
     ...own.published.map(
       (entry): PickerEntry => ({
@@ -155,6 +174,7 @@ export const searchDependencies = async (
     sort: "recent",
     cursor,
     limit: PICKER_PAGE_SIZE,
+    dependableFrom,
   });
   const others = entries
     .map(

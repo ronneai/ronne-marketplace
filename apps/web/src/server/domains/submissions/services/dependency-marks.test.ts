@@ -3,6 +3,7 @@ import type { NamedSubmission, RegistryLookup } from "../repositories/registry-l
 import { marksFor } from "./dependency-marks";
 
 type Named = Partial<NamedSubmission> & Pick<NamedSubmission, "status">;
+const PUBLIC = { id: "global", private: false };
 
 /** Published items (`@scope/name` → versions) and each name's submissions, newest first. */
 const registry = (
@@ -10,7 +11,9 @@ const registry = (
   submissions: Record<string, Named[]>,
 ): RegistryLookup => ({
   findItem: async (scope, name) =>
-    published[`@${scope}/${name}`] ? { id: `@${scope}/${name}`, scope, name, type: "skill" } : null,
+    published[`@${scope}/${name}`]
+      ? { id: `@${scope}/${name}`, scope, name, type: "skill", workspace: PUBLIC }
+      : null,
   publishedVersions: async (id) =>
     (published[id] ?? []).map((version) => ({
       id: `${id}@${version}`,
@@ -28,8 +31,10 @@ const registry = (
       authorId: "me",
       proposal: false,
       dependencies: {},
+      workspace: PUBLIC,
       ...s,
     })),
+  privateWorkspaces: async () => new Set(),
 });
 
 describe("marksFor (056)", () => {

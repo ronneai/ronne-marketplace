@@ -100,6 +100,9 @@ Ronne serves:
   built. Types that have no plugin form for that tool (table below) leave the item out of that
   tool's feed.
 - A deprecated version appears, with `Deprecated: <message>` at the start of its description.
+- Only items the caller can see appear ([093](../features/093-private-workspaces/SPEC.md)): the
+  public workspaces' items, and a private workspace's for its members and root. Everyone else gets
+  the feed as if those items didn't exist.
 - A **bundle** is a plugin that contains its resolved members. Any other item's plugin contains the
   item and its resolved dependencies, like `rmk install` would install them (the resolver, 020).
 
@@ -150,11 +153,19 @@ bearer token, like the rest of `/api/v1` (401 without one).
 
 | Method & path | Answers |
 |---|---|
-| `GET marketplace.json` | The tool's feed as a marketplace file, in Claude Code's shape for every tool: entries use `archive` sources pointing at the zip route below, with the zip's `sha256`. Claude Code reads its own; `rmk feed build` reads Codex's and Cursor's, and writes their real marketplace files into the mirror (078) |
-| `GET plugins/{scope}/{name}/{version}.zip` | The built plugin. `ETag` is the sha256, `If-None-Match` answers 304, `cache-control: private, max-age=31536000, immutable`. 404 when the version doesn't exist, is yanked, or has nothing for this tool |
+| `GET marketplace.json` | The tool's feed as a marketplace file, in Claude Code's shape for every tool: entries use `archive` sources pointing at the zip route below, with the zip's `sha256`. Claude Code reads its own; `rmk feed build` reads Codex's and Cursor's, and writes their real marketplace files into the mirror (078). It holds what the token's user sees; with `?workspaces=<names>` (093, comma-separated, may be empty), only the public workspaces' items and those of the private workspaces it names |
+| `GET plugins/{scope}/{name}/{version}.zip` | The built plugin. `ETag` is the sha256, `If-None-Match` answers 304, `cache-control: private, max-age=31536000, immutable`. 404 when the version doesn't exist, is yanked, has nothing for this tool, or its item isn't one the token's user sees (093), the same answer for each |
 
 The marketplace answers `cache-control: private, no-cache` and an `ETag`, because it changes with
 every release.
+
+Each server process keeps the last complete marketplace in memory (079) per tool and **visibility
+key** (093): the sorted ids of the private workspaces the caller sees, empty for everyone who sees
+only public ones, so they share one. An entry is used until the catalogue revision, the builder
+version or `PUBLIC_URL` changes. At most 32 marketplaces are kept (a tool's for a key; about ten
+keys when all three tools are asked), the least recently used going first.
+Admin › Settings shows each tool's largest marketplace of the current revision, and the size and
+time warnings are logged once per revision, for whichever key comes near a limit first.
 
 Errors use the API's shape (MVP §11), with these codes (077):
 
@@ -162,7 +173,8 @@ Errors use the API's shape (MVP §11), with these codes (077):
 |---|---|---|
 | 401 | `token_missing`, `token_invalid`, … | No valid token (`WWW-Authenticate: Bearer realm="ronne"`) |
 | 404 | `feed_not_found` | The instance has no feed for that tool (`claude-code`, `codex` and `cursor` have one) |
-| 404 | `plugin_not_found` | The version doesn't exist, is yanked, or has nothing for the tool |
+| 404 | `plugin_not_found` | The version doesn't exist, is yanked, has nothing for the tool, or the caller doesn't see its item (093) |
+| 404 | `workspace_not_found` | `?workspaces=` names a workspace the caller doesn't see: unknown, or private and they aren't a member (093). One message for both: "There's no workspace acme you can use." |
 | 503 | `public_url_missing` | The instance has no `PUBLIC_URL`, so it can't write absolute URLs |
 | 503 | `plugin_unavailable` | The zip can't be built: an artifact is missing, or dependencies don't resolve |
 | 507 | `feed_too_large` | The marketplace would be past the tool's limit (5 MiB for Claude Code). From 079, only Claude Code's route answers it, and the message names the git mirror |
@@ -183,3 +195,12 @@ plugins/cursor/<plugin>/…
 
 rmk only writes or deletes these paths; any other file in the folder (a README, a CI workflow) stays
 as it is.
+
+The mirror holds the **public workspaces' items** (093): rmk asks for `?workspaces=`. `--workspace
+<name>` (repeated, or separated by commas) adds a private workspace the token's user is a member
+of (root may name any); naming one they don't see stops the build with `workspace_not_found`, and
+nothing is written. With `--workspace`, rmk says to keep the repository it's pushed to private:
+anyone who can read it can install what's in it. `--print-workflow` takes `--workspace` too: it
+goes in the workflow's build, and a comment at the top says to keep the repository private. An rmk
+from before 093 doesn't send `?workspaces=`: a request from any rmk (`user-agent: rmk/…`) without it
+is answered for the public workspaces only, so its mirror stays public too.

@@ -10,6 +10,7 @@ import { kyselyItemRepository } from "../src/server/domains/items/repositories/k
 import { kyselyScopeRepository } from "../src/server/domains/items/repositories/kysely-scope-repository";
 import { dayOf, daysBefore } from "../src/server/domains/usage/models/usage-event";
 import { kyselyUsageRepository } from "../src/server/domains/usage/repositories/kysely-usage-repository";
+import { UNFILTERED } from "../src/server/domains/workspaces/models/viewer";
 import { GLOBAL_WORKSPACE_ID } from "../src/server/domains/workspaces/models/workspace";
 import { kyselyWorkspaceRepository } from "../src/server/domains/workspaces/repositories/kysely-workspace-repository";
 import { localStorage } from "../src/server/storage/local-storage";
@@ -23,9 +24,11 @@ import {
   E2E_RMK_ITEMS,
   E2E_ROOTS,
   E2E_SCOPE,
+  E2E_SHELF,
   E2E_SKILL,
   E2E_USAGE_PEAK,
   E2E_USERS,
+  E2E_VAULT,
   E2E_VERSIONED_ITEM,
   E2E_WORKSPACE,
 } from "./users";
@@ -50,7 +53,7 @@ for (const [key, email] of Object.entries(E2E_USERS) as [keyof typeof E2E_USERS,
     new Date(),
   );
 }
-const scopeId = await kyselyScopeRepository(db, dialect).insert({
+const scopeId = await kyselyScopeRepository(db, dialect, UNFILTERED).insert({
   name: E2E_SCOPE,
   description: "Created by the end-to-end seed.",
   workspaceId: GLOBAL_WORKSPACE_ID,
@@ -90,7 +93,7 @@ for (const [key, role] of Object.entries(E2E_ACME_MEMBERS) as [keyof typeof E2E_
 }
 
 // Two published versions, recorded directly: the Versions page manages them (feature 016).
-const items = kyselyItemRepository(db, dialect);
+const items = kyselyItemRepository(db, dialect, UNFILTERED);
 const itemId = await items.insertItem({
   scopeId,
   name: E2E_VERSIONED_ITEM,
@@ -119,7 +122,7 @@ for (const version of ["1.0.0", "1.1.0"])
   });
 await items.setTag(itemId, "latest", latest);
 // Installs of 1.0.0 yesterday (047): enough usage for the Versions page and its dialogs to show it.
-await kyselyUsageRepository(db, dialect).add([
+await kyselyUsageRepository(db, dialect, UNFILTERED).add([
   {
     itemId,
     day: daysBefore(dayOf(new Date()), 1),
@@ -189,7 +192,7 @@ await items.setTag(skillId, "latest", skillVersion);
 // Usage for the skill (047): runs over the last two weeks, the most 3 days ago, and installs, so its
 // Overview shows the usage cards and the Usage card's peak.
 const today = dayOf(new Date());
-await kyselyUsageRepository(db, dialect).add([
+await kyselyUsageRepository(db, dialect, UNFILTERED).add([
   ...Array.from({ length: 14 }, (_, i) => ({
     itemId: skillId,
     day: daysBefore(today, i + 1),
@@ -327,7 +330,7 @@ const agentId = await release(
   ],
 );
 // A few runs of the agent (047): with no minimum by default, its Overview shows them.
-await kyselyUsageRepository(db, dialect).add([
+await kyselyUsageRepository(db, dialect, UNFILTERED).add([
   {
     itemId: agentId,
     day: daysBefore(dayOf(new Date()), 1),
@@ -347,4 +350,81 @@ await release(E2E_RMK_ITEMS.rule, "rule", "1.0.0", {
   "ronne.yaml": `name: "@${E2E_SCOPE}/${E2E_RMK_ITEMS.rule}"\ntype: rule\ndescription: The kit-rule item.\nrule:\n  body: rule.md\n  activation: always\n`,
   "rule.md": "Keep functions small.\n",
 });
+// A private workspace with a skill its members see (093), and a public one root turns private.
+const releaseSkillIn = async (
+  where: { workspace: string; scope: string; item: string },
+  visibility: "public" | "private",
+  members: readonly (keyof typeof E2E_USERS)[],
+) => {
+  const workspaceId = await kyselyWorkspaceRepository(db, dialect).insert({
+    name: where.workspace,
+    description: `The ${where.workspace} workspace, for the end-to-end tests.`,
+    visibility,
+    createdBy: null,
+    createdAt: new Date(),
+  });
+  for (const key of members) {
+    const now = toDbDate(new Date(), dialect);
+    await db
+      .insertInto("workspace_members")
+      .values({
+        workspace_id: workspaceId,
+        user_id: ids[key] ?? "",
+        role: "user",
+        added_by: null,
+        created_at: now,
+        updated_at: now,
+      })
+      .execute();
+  }
+  const whereScopeId = await kyselyScopeRepository(db, dialect, UNFILTERED).insert({
+    name: where.scope,
+    description: `The ${where.workspace} workspace's scope.`,
+    workspaceId,
+    createdBy: null,
+    createdAt: new Date(),
+  });
+  const name = `@${where.scope}/${where.item}`;
+  const description = `The ${where.item} skill.`;
+  const files = [
+    {
+      path: "ronne.yaml",
+      text: `name: "${name}"\ntype: skill\ndescription: ${description}\nskill:\n  entry: SKILL.md\n`,
+    },
+    {
+      path: "SKILL.md",
+      text: `---\nname: ${where.item}\ndescription: ${description}\n---\n\nDo it.\n`,
+    },
+  ].map((file) => ({ path: file.path, bytes: new TextEncoder().encode(file.text) }));
+  const packed = await packItem(files, { version: "1.0.0" });
+  const artifactPath = `${where.scope}/${where.item}/1.0.0.tgz`;
+  await localStorage(storagePath).put(artifactPath, packed.tgz);
+  const itemId = await items.insertItem({
+    scopeId: whereScopeId,
+    name: where.item,
+    type: "skill",
+    description,
+    ownerId: ids.releaser ?? "",
+    createdAt: new Date(),
+  });
+  const versionId = await items.insertVersion({
+    itemId,
+    version: "1.0.0",
+    manifest: { name, type: "skill", description, skill: { entry: "SKILL.md" }, version: "1.0.0" },
+    readme: null,
+    files: files.map((f) => ({ path: f.path, size: f.bytes.length, executable: false })),
+    notes: null,
+    artifactPath,
+    sha256: packed.sha256,
+    size: packed.size,
+    publishedBy: ids.releaser ?? "",
+    publishedAt: new Date(),
+    submissionId: null,
+    dependencies: [],
+    riskFlags: [],
+  });
+  await items.setTag(itemId, "latest", versionId);
+};
+await releaseSkillIn(E2E_VAULT, "private", E2E_VAULT.members);
+await releaseSkillIn(E2E_SHELF, "public", []);
 await db.destroy();

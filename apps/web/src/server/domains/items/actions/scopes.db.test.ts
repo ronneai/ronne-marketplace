@@ -8,6 +8,7 @@ import type { AppAuth } from "../../identity/repositories/auth-instance";
 import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testing/test-auth";
 import { createWorkspace, deleteWorkspace } from "../../workspaces/actions/workspaces";
 import { WorkspaceNotEmptyError } from "../../workspaces/exceptions/errors";
+import { UNFILTERED } from "../../workspaces/models/viewer";
 import { GLOBAL_WORKSPACE_ID } from "../../workspaces/models/workspace";
 import {
   InvalidScopeDescriptionError,
@@ -19,7 +20,6 @@ import {
 import { kyselyScopeRepository } from "../repositories/kysely-scope-repository";
 import {
   createScope,
-  findScope,
   listScopes,
   listScopesAs,
   pageScopes,
@@ -52,6 +52,10 @@ beforeEach(async () => {
   asRoot = await headersFor("root@example.com");
   asUser = await headersFor("u@example.com");
 });
+/** A scope as stored, whoever asks. */
+const findScope = (name: string, _app?: AppAuth) =>
+  kyselyScopeRepository(t.db, t.dialect, UNFILTERED).findByName(name);
+
 afterEach(() => t.cleanup());
 
 const events = async (action: string) =>
@@ -182,7 +186,7 @@ describe("updateScopeDescription", () => {
 
 describe("listScopes", () => {
   it("lets everyone signed in list and search scopes in name order, 50 a page", async () => {
-    const repo = kyselyScopeRepository(t.db, t.dialect);
+    const repo = kyselyScopeRepository(t.db, t.dialect, UNFILTERED);
     for (let i = 0; i < 52; i++) {
       await repo.insert({
         name: `scope-${String(i).padStart(2, "0")}`,
@@ -209,7 +213,7 @@ describe("listScopes", () => {
 
 describe("pageScopes (061)", () => {
   it("sorts by name or created, both ways, pages both ways, and counts", async () => {
-    const repo = kyselyScopeRepository(t.db, t.dialect);
+    const repo = kyselyScopeRepository(t.db, t.dialect, UNFILTERED);
     const names = ["delta", "alpha", "charlie", "bravo", "echo"];
     for (const [i, name] of names.entries())
       await repo.insert({

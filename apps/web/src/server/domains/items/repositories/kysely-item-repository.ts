@@ -8,6 +8,12 @@ import { forUpdate, readCommittedTransaction } from "../../../db/locks";
 import type { Database } from "../../../db/schema";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
+import type { Viewer } from "../../workspaces/models/viewer";
+import {
+  inVisibleWorkspace,
+  isVisibleItem,
+  isVisibleSubmission,
+} from "../../workspaces/repositories/visible";
 import type { VersionFile } from "../models/item";
 import { disabledTargetsField, listingOf, searchFieldsOf } from "../models/listing";
 import type { ItemRepository } from "./item-repository";
@@ -46,13 +52,19 @@ const refreshListing = async (db: Kysely<Database>, dialect: DatabaseDialect, it
     .execute();
 };
 
+/**
+ * Items and versions as `viewer` sees them (093): every read filters on the item's workspace, so a
+ * private workspace's items answer as unknown to anyone but its members and root. Writes don't
+ * filter: the services authorise them, and they act on items a read already found.
+ */
 export const kyselyItemRepository = (
   db: Kysely<Database>,
   dialect: DatabaseDialect,
+  viewer: Viewer,
 ): ItemRepository => ({
   transaction: (work) =>
     readCommittedTransaction(db, dialect).execute((trx) =>
-      work(kyselyItemRepository(trx, dialect)),
+      work(kyselyItemRepository(trx, dialect, viewer)),
     ),
 
   findByName: async (scope, name) => {
@@ -60,11 +72,13 @@ export const kyselyItemRepository = (
       .selectFrom("items")
       .innerJoin("scopes", "scopes.id", "items.scope_id")
       .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
+      .where(inVisibleWorkspace(viewer, "scopes.workspace_id"))
       .select([
         "items.id",
         "items.scope_id",
         "scopes.name as scope_name",
         "workspaces.name as workspace_name",
+        "workspaces.visibility as workspace_visibility",
         "scopes.workspace_id",
         "items.name",
         "items.type",
@@ -82,6 +96,7 @@ export const kyselyItemRepository = (
           scope: { id: row.scope_id, name: row.scope_name },
           workspace: row.workspace_name,
           workspaceId: row.workspace_id,
+          privateWorkspace: row.workspace_visibility !== "public",
           name: row.name,
           type: row.type as ItemType,
           description: row.description,
@@ -134,6 +149,7 @@ export const kyselyItemRepository = (
         "item_versions.disabled_targets",
       ])
       .where("item_versions.item_id", "=", itemId)
+      .where(isVisibleItem(viewer, "item_versions.item_id"))
       .execute();
     const dependencies = rows.length
       ? await db
@@ -246,12 +262,40 @@ export const kyselyItemRepository = (
     ).execute();
   },
 
+  lockWorkspaces: async (ids) => {
+    const sorted = [...new Set(ids)].sort();
+    if (sorted.length === 0) return new Set();
+    const rows = await forUpdate(
+      db
+        .selectFrom("workspaces")
+        .select(["id", "visibility"])
+        .where("id", "in", sorted)
+        .orderBy("id"),
+      dialect,
+    ).execute();
+    return new Set(rows.filter((row) => row.visibility !== "public").map((row) => row.id));
+  },
+
+  dependencyWorkspaces: async (versionId) =>
+    (
+      await db
+        .selectFrom("version_dependencies")
+        .innerJoin("item_versions", "item_versions.id", "version_dependencies.version_id")
+        .innerJoin("items", "items.id", "version_dependencies.depends_on_item_id")
+        .innerJoin("scopes", "scopes.id", "items.scope_id")
+        .select(["scopes.name as scope", "items.name", "scopes.workspace_id"])
+        .where("version_dependencies.version_id", "=", versionId)
+        .where(isVisibleItem(viewer, "item_versions.item_id"))
+        .execute()
+    ).map((row) => ({ name: `@${row.scope}/${row.name}`, workspaceId: row.workspace_id })),
+
   tags: async (itemId) =>
     (
       await db
         .selectFrom("dist_tags")
         .select(["tag", "version_id"])
         .where("item_id", "=", itemId)
+        .where(isVisibleItem(viewer, "dist_tags.item_id"))
         .execute()
     )
       .map((row) => ({ tag: row.tag, versionId: row.version_id }))
@@ -299,6 +343,7 @@ export const kyselyItemRepository = (
       .selectFrom("item_versions")
       .select(["manifest", "readme", "files", "notes", "risk_flags", "submission_id"])
       .where("id", "=", versionId)
+      .where(isVisibleItem(viewer, "item_versions.item_id"))
       .executeTakeFirst();
     return row
       ? {
@@ -326,6 +371,9 @@ export const kyselyItemRepository = (
         "version_dependencies.range",
       ])
       .where("version_dependencies.depends_on_item_id", "=", itemId)
+      // "Used by" lists only the dependents the viewer sees, of an item they see.
+      .where(inVisibleWorkspace(viewer, "scopes.workspace_id"))
+      .where(isVisibleItem(viewer, "version_dependencies.depends_on_item_id"))
       .orderBy("scopes.name")
       .orderBy("items.name")
       .execute();
@@ -344,6 +392,7 @@ export const kyselyItemRepository = (
       .leftJoin("user", "user.id", "review_events.actor_id")
       .select(["review_events.kind", "review_events.created_at", "user.name"])
       .where("review_events.submission_id", "=", submissionId)
+      .where(isVisibleSubmission(viewer, "review_events.submission_id"))
       .where("review_events.kind", "in", ["approve", "override"])
       .orderBy("review_events.created_at", "desc")
       .executeTakeFirst();

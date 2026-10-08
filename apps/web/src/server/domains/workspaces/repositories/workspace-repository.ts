@@ -39,6 +39,23 @@ export interface WorkspaceRepository {
     createdAt: Date;
   }): Promise<string>;
   updateDescription(id: string, description: string, updatedAt: Date): Promise<void>;
+  /** Locks its row until the transaction ends (093): releases checking a dependency take it too. */
+  lockWorkspace(id: string): Promise<void>;
+  /** Sets its visibility (093) and raises the catalogue revision, so plugin feeds rebuild. */
+  setVisibility(id: string, visibility: WorkspaceVisibility, updatedAt: Date): Promise<void>;
+  /**
+   * The released items outside the workspace with a version that isn't yanked and depends on an
+   * item in it (093), as `@scope/name`, by name: turning it private is refused while there are any,
+   * since those versions would stop installing for people outside it.
+   */
+  outsideDependents(workspaceId: string): Promise<string[]>;
+  /**
+   * The open submissions outside the workspace (submitted, changes requested, approved), with
+   * their latest revision's ronne.yaml: the ones that depend on its items are listed as a warning.
+   */
+  openSubmissionsOutside(workspaceId: string): Promise<{ name: string; manifest: string | null }[]>;
+  /** The names of the workspace's scopes. */
+  scopeNames(workspaceId: string): Promise<string[]>;
   delete(id: string): Promise<void>;
   /** Every workspace, `global` first, then by name: for the selects and filters. */
   list(): Promise<Workspace[]>;

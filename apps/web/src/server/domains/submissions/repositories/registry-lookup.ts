@@ -1,7 +1,17 @@
 import type { ItemType } from "@ronneai/core";
 import type { SubmissionStatus } from "../models/status";
 
-export type PublishedItem = { id: string; scope: string; name: string; type: ItemType };
+/** A workspace as the dependency rule needs it (093): which one, and whether it's private. */
+export type DependencyWorkspace = { id: string; private: boolean };
+
+export type PublishedItem = {
+  id: string;
+  scope: string;
+  name: string;
+  type: ItemType;
+  /** Its scope's workspace (093): a private one's items are dependencies only inside it. */
+  workspace: DependencyWorkspace;
+};
 
 export type PublishedVersion = {
   id: string;
@@ -31,6 +41,8 @@ export type NamedSubmission = {
   proposal: boolean;
   /** Its latest revision's dependencies: `@scope/name` → range. */
   dependencies: Readonly<Record<string, string>>;
+  /** Its scope's workspace (093). */
+  workspace: DependencyWorkspace;
 };
 
 /**
@@ -43,6 +55,8 @@ export interface RegistryLookup {
   publishedVersions(itemId: string): Promise<PublishedVersion[]>;
   /** The name's submissions that aren't drafts, newest change first (056). */
   submissionsNamed(scope: string, name: string): Promise<NamedSubmission[]>;
+  /** Which of these workspaces are private (093): for ids the caller already holds. */
+  privateWorkspaces(ids: readonly string[]): Promise<ReadonlySet<string>>;
 }
 
 /** A registry with nothing published: for tests. The app uses `kyselyRegistryLookup` (015). */
@@ -50,4 +64,5 @@ export const unreleasedRegistry: RegistryLookup = {
   findItem: async () => null,
   publishedVersions: async () => [],
   submissionsNamed: async () => [],
+  privateWorkspaces: async () => new Set(),
 };

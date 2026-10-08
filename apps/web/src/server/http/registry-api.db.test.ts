@@ -11,6 +11,7 @@ import type { AppAuth } from "../domains/identity/repositories/auth-instance";
 import { createTestUser, testAppAuth } from "../domains/identity/testing/test-auth";
 import { kyselyItemRepository } from "../domains/items/repositories/kysely-item-repository";
 import { kyselyScopeRepository } from "../domains/items/repositories/kysely-scope-repository";
+import { UNFILTERED } from "../domains/workspaces/models/viewer";
 import { GLOBAL_WORKSPACE_ID } from "../domains/workspaces/models/workspace";
 import { localStorage } from "../storage/local-storage";
 import type { StorageAdapter } from "../storage/storage-adapter";
@@ -57,7 +58,7 @@ beforeEach(async () => {
   );
   if (!result.ok) throw new Error("no token");
   token = result.token.token;
-  scopeId = await kyselyScopeRepository(t.db, t.dialect).insert({
+  scopeId = await kyselyScopeRepository(t.db, t.dialect, UNFILTERED).insert({
     name: "team",
     description: "A team.",
     workspaceId: GLOBAL_WORKSPACE_ID,
@@ -86,7 +87,7 @@ const release = async (
     dependsOn = {} as Record<string, string>,
   } = {},
 ) => {
-  const items = kyselyItemRepository(t.db, t.dialect);
+  const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
   const itemId = await items.insertItem({
     scopeId,
     name,
@@ -195,7 +196,7 @@ describe("GET /items", () => {
 describe("GET /items/{scope}/{name}", () => {
   it("answers the item, its tags and every version, yanked and deprecated ones marked", async () => {
     const { ids } = await release("tool", { versions: ["1.0.0", "1.1.0", "2.0.0-beta.1"] });
-    const items = kyselyItemRepository(t.db, t.dialect);
+    const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
     await items.setDeprecated(ids["1.0.0"] ?? "", "Use 1.1.0.");
     await items.setYanked(ids["2.0.0-beta.1"] ?? "", { at: new Date(), reason: "Broken." });
     const response = await getItem(get("/items/team/tool"), { scope: "team", name: "tool" }, deps);
@@ -236,7 +237,7 @@ describe("GET /items/{scope}/{name}", () => {
       await getItem(get("/items/team/nope"), { scope: "team", name: "nope" }, deps),
     );
     expect([unknown.status, unknown.json.error.code]).toEqual([404, "item_not_found"]);
-    await kyselyItemRepository(t.db, t.dialect).insertItem({
+    await kyselyItemRepository(t.db, t.dialect, UNFILTERED).insertItem({
       scopeId,
       name: "empty",
       type: "rule",
@@ -264,7 +265,7 @@ const releaseWithArtifact = async () => {
   ];
   const packed = await packItem(files, { version: "1.0.0" });
   await storage.put("team/kit/1.0.0.tgz", packed.tgz);
-  const items = kyselyItemRepository(t.db, t.dialect);
+  const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
   const itemId = await items.insertItem({
     scopeId,
     name: "kit",
@@ -356,7 +357,7 @@ describe("GET /items/{scope}/{name}/{version}/tarball", () => {
     const cached = await getTarball(tarball({ "if-none-match": `"${packed.sha256}"` }), kit, deps);
     expect(cached.status).toBe(304);
     expect(await downloads()).toBe(0);
-    await kyselyItemRepository(t.db, t.dialect).setYanked(versionId, {
+    await kyselyItemRepository(t.db, t.dialect, UNFILTERED).setYanked(versionId, {
       at: new Date(),
       reason: "x",
     });
@@ -407,7 +408,10 @@ describe("POST /resolve", () => {
 
   it("resolves tags and ranges to one version each, with dependencies pinned and warnings", async () => {
     const { ids } = await release("mcp", { type: "mcp-server", versions: ["1.0.0", "1.2.0"] });
-    await kyselyItemRepository(t.db, t.dialect).setDeprecated(ids["1.2.0"] ?? "", "Use 2.x.");
+    await kyselyItemRepository(t.db, t.dialect, UNFILTERED).setDeprecated(
+      ids["1.2.0"] ?? "",
+      "Use 2.x.",
+    );
     await release("skill", { dependsOn: { "@team/mcp": "^1.0.0" } });
     const { status, json } = await body(
       await postResolve(post({ dependencies: { "@team/skill": "latest" } }), deps),

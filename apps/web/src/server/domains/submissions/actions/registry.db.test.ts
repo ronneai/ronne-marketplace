@@ -10,6 +10,8 @@ import { signIn } from "../../identity/actions/session";
 import type { AppAuth } from "../../identity/repositories/auth-instance";
 import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testing/test-auth";
 import { createScope } from "../../items/actions/scopes";
+import { UNFILTERED } from "../../workspaces/models/viewer";
+import { GLOBAL_WORKSPACE_ID } from "../../workspaces/models/workspace";
 import { kyselyRegistryLookup } from "../repositories/kysely-registry-lookup";
 import { createDraft, getDraft, saveDraftFiles } from "./drafts";
 import { publishSubmission } from "./publish";
@@ -251,7 +253,7 @@ describe("dependencies on their way (056)", () => {
   const storage = () => localStorage(storageRoot);
 
   it("lists a name's submissions that aren't drafts, newest first, with their dependencies", async () => {
-    const lookup = kyselyRegistryLookup(t.db, t.dialect);
+    const lookup = kyselyRegistryLookup(t.db, t.dialect, UNFILTERED);
     const draft = await serverDraft("github");
     expect(await lookup.submissionsNamed("team", "github")).toEqual([]);
     await submitDraft(asAuthor, draft, app);
@@ -265,6 +267,7 @@ describe("dependencies on their way (056)", () => {
         authorId: expect.any(String),
         proposal: false,
         dependencies: {},
+        workspace: { id: GLOBAL_WORKSPACE_ID, private: false },
       },
     ]);
     expect(await lookup.submissionsNamed("team", "reviewer")).toEqual([

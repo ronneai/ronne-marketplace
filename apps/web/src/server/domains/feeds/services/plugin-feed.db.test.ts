@@ -16,6 +16,7 @@ import { ForbiddenError } from "../../identity/exceptions/errors";
 import type { CurrentUser } from "../../identity/models/user";
 import { kyselyCatalogueRepository } from "../../items/repositories/kysely-catalogue-repository";
 import { kyselyItemRepository } from "../../items/repositories/kysely-item-repository";
+import { UNFILTERED } from "../../workspaces/models/viewer";
 import { FeedTooLargeError, PluginNotFoundError } from "../exceptions/errors";
 import { pluginKey, sidecarKey } from "../models/feed";
 import { kyselyFeedRepository } from "../repositories/kysely-feed-repository";
@@ -41,8 +42,8 @@ const now = new Date("2026-10-03T12:00:00.000Z");
 const text = (value: string) => new TextEncoder().encode(value);
 
 const deps = (overrides: Partial<FeedDeps> = {}): FeedDeps => ({
-  catalogue: kyselyCatalogueRepository(t.db, t.dialect),
-  items: kyselyItemRepository(t.db, t.dialect),
+  catalogue: kyselyCatalogueRepository(t.db, t.dialect, UNFILTERED),
+  items: kyselyItemRepository(t.db, t.dialect, UNFILTERED),
   storage,
   log: (message) => logged.push(message),
   ...overrides,
@@ -58,7 +59,7 @@ const release = async (
   files: Record<string, string> = {},
   { latest = true } = {},
 ) => {
-  const items = kyselyItemRepository(t.db, t.dialect);
+  const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
   const parsed = parseManifest(manifest).manifest as Record<string, unknown>;
   let itemId = itemIds.get(name);
   if (!itemId) {
@@ -221,7 +222,7 @@ describe("the Claude Code feed (077)", () => {
   });
 
   it("leaves out a yanked version, and answers 404 for its zip", async () => {
-    const items = kyselyItemRepository(t.db, t.dialect);
+    const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
     const yanked = await release("beta", "1.0.0", skill("beta", "Beta."), {
       "SKILL.md": SKILL_MD("beta"),
     });
@@ -248,7 +249,7 @@ describe("the Claude Code feed (077)", () => {
     const id = await release("old", "1.0.0", skill("old", "Old tricks."), {
       "SKILL.md": SKILL_MD("old"),
     });
-    await kyselyItemRepository(t.db, t.dialect).setDeprecated(id, "Use @team/style.");
+    await kyselyItemRepository(t.db, t.dialect, UNFILTERED).setDeprecated(id, "Use @team/style.");
     const old = (await feedPlugins(deps(), actor, "claude-code")).find((p) => p.name === "old");
     expect(old?.description).toBe("Deprecated: Use @team/style. Old tricks.");
   });
@@ -285,7 +286,8 @@ describe("the Claude Code feed (077)", () => {
   it("counts a zip download, and not a lookup", async () => {
     const ref = { scope: "team", name: "style", version: "1.1.0" };
     const count = async () =>
-      (await kyselyItemRepository(t.db, t.dialect).findByName("team", "style"))?.downloadCount;
+      (await kyselyItemRepository(t.db, t.dialect, UNFILTERED).findByName("team", "style"))
+        ?.downloadCount;
     await findPlugin(deps(), actor, "claude-code", ref);
     expect(await count()).toBe(0);
     await downloadPlugin(deps(), actor, "claude-code", ref);
@@ -352,13 +354,14 @@ describe("the Claude Code feed (077)", () => {
     }));
     const huge = deps({
       catalogue: {
-        ...kyselyCatalogueRepository(t.db, t.dialect),
+        ...kyselyCatalogueRepository(t.db, t.dialect, UNFILTERED),
         list: async ({ after }) =>
           after
             ? []
             : many.map((m) => ({
                 id: m.name,
                 workspace: "global",
+                privateWorkspace: false,
                 scope: m.scope,
                 name: m.name,
                 type: "skill" as const,
@@ -395,7 +398,7 @@ describe("the marketplace cache (079)", () => {
   /** Deps with the cache, counting what a request reads from the catalogue and the storage. */
   const cachedDeps = (cache: MarketplaceCache, overrides: Partial<FeedDeps> = {}) => {
     const reads = { catalogue: 0, storage: 0 };
-    const catalogue = kyselyCatalogueRepository(t.db, t.dialect);
+    const catalogue = kyselyCatalogueRepository(t.db, t.dialect, UNFILTERED);
     const base = deps(overrides);
     return {
       reads,
@@ -540,6 +543,52 @@ describe("feed stats, warnings and the cap (079)", () => {
       "https://registry.example.com",
     );
     expect((await stats()).map((s) => s.tool)).toEqual(["codex"]);
+  });
+
+  it("keeps each tool's largest build of the revision, across visibility keys (093)", async () => {
+    const feeds = kyselyFeedRepository(t.db, t.dialect);
+    const build = (revision: number, sizeBytes: number) =>
+      feeds.recordBuild({
+        tool: "claude-code",
+        sizeBytes,
+        plugins: 1,
+        buildMs: 5,
+        revision,
+        builtAt: new Date(),
+      });
+    const size = async () => (await stats())[0]?.sizeBytes;
+    await build(3, 500);
+    await build(3, 200);
+    expect(await size()).toBe(500);
+    await build(3, 800);
+    expect(await size()).toBe(800);
+    // An older revision's build never replaces a newer one; a newer one always does.
+    await build(2, 9_000);
+    expect(await size()).toBe(800);
+    await build(4, 100);
+    expect(await size()).toBe(100);
+    expect((await stats())[0]?.revision).toBe(4);
+  });
+
+  it("keeps the largest of a tool's first builds made at once, and warns forward only", async () => {
+    const feeds = kyselyFeedRepository(t.db, t.dialect);
+    await Promise.all(
+      [100, 900, 500, 300].map((sizeBytes) =>
+        feeds.recordBuild({
+          tool: "codex",
+          sizeBytes,
+          plugins: 1,
+          buildMs: 5,
+          revision: 7,
+          builtAt: new Date(),
+        }),
+      ),
+    );
+    expect((await stats())[0]?.sizeBytes).toBe(900);
+    // A request still on revision 8 that finishes after 9 warned doesn't make 9 warn again.
+    expect(await feeds.markWarned("codex", 9)).toBe(true);
+    expect(await feeds.markWarned("codex", 8)).toBe(false);
+    expect(await feeds.markWarned("codex", 9)).toBe(false);
   });
 
   it("warns past the size threshold for Claude Code, once per revision", async () => {

@@ -91,6 +91,11 @@ export interface SubmissionRepository {
     types: readonly ItemType[];
     search: string;
     limit: number;
+    /**
+     * Only what an item in this workspace may depend on (093): its own workspace's and public
+     * ones'. Null: public ones only. Omitted: no such filter.
+     */
+    dependableFrom?: string | null;
   }): Promise<Submission[]>;
   /** One page of an author's own submissions (keyset, 063). */
   pageByAuthor(query: AuthorPageQuery): Promise<KeysetPage<Submission>>;

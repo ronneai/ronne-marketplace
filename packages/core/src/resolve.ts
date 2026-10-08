@@ -89,12 +89,23 @@ export const resolve = async (
   registry: RegistryReader,
 ): Promise<Resolution> => {
   const items = new Map<string, RegistryItem>();
-  const load = async (name: string): Promise<RegistryItem> => {
+  /**
+   * The item, or item_not_found. When other items ask for it, the message names them, so a missing
+   * dependency (one gone, or one the caller can't see, 093) says whose dependency it is.
+   */
+  const load = async (name: string, askedBy: readonly string[] = []): Promise<RegistryItem> => {
     const cached = items.get(name);
     if (cached) return cached;
     const item = await registry.item(name);
+    const from = askedBy.filter((source) => source !== REQUESTED);
     if (!item)
-      throw new ResolveError("item_not_found", `${name} isn't a published item.`, { item: name });
+      throw new ResolveError(
+        "item_not_found",
+        from.length > 0
+          ? `${name} isn't a published item (asked for by ${from.join(", ")}).`
+          : `${name} isn't a published item.`,
+        from.length > 0 ? { item: name, from } : { item: name },
+      );
     items.set(name, item);
     return item;
   };
@@ -102,7 +113,7 @@ export const resolve = async (
   /** A range stays a range; a dist-tag becomes the exact version it points to. */
   const rangeOf = async (name: string, value: string, from: string): Promise<string> => {
     if (validRange(value) !== null) return value;
-    const version = (await load(name)).tags[value];
+    const version = (await load(name, [from])).tags[value];
     if (!version)
       throw new ResolveError(
         "tag_not_found",
@@ -159,7 +170,10 @@ export const resolve = async (
       continue;
     }
 
-    const item = await load(name);
+    const item = await load(
+      name,
+      asking.map((c) => c.from),
+    );
     const fitsAll = (v: RegistryVersion) => asking.every((c) => fits(v.version, c.range));
     const locked = item.versions.find((v) => v.version === request.locked?.[name]);
     const best =

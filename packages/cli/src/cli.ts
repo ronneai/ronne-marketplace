@@ -43,8 +43,8 @@ export const USAGE = `Usage: rmk <command> [options]
          [--dry-run] [--yes] [--force] [--new] [--new-draft]
   submit [<@scope/name|id>...] [--all] [--no-deps] [--dry-run] [--yes]
   telemetry [on | off | status | preview | flush]
-  feed build --out <dir> [--tools claude-code,codex,cursor] [--force]
-  feed build --print-workflow github|gitlab
+  feed build --out <dir> [--tools claude-code,codex,cursor] [--workspace <name>]... [--force]
+  feed build --print-workflow github|gitlab [--workspace <name>]...
 
 Options: --json (one JSON object per command), --registry <url>, --version, --help`;
 
@@ -79,6 +79,7 @@ const OPTIONS = {
   out: { type: "string" },
   tools: { type: "string" },
   "print-workflow": { type: "string" },
+  workspace: { type: "string", multiple: true },
 } as const;
 
 export type Args = {

@@ -11,6 +11,7 @@ import { signIn } from "../../identity/actions/session";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import type { AppAuth } from "../../identity/repositories/auth-instance";
 import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testing/test-auth";
+import { UNFILTERED } from "../../workspaces/models/viewer";
 import { ArtifactUnavailableError, VersionNotFoundError } from "../exceptions/errors";
 import { SHOWN_TEXT_MAX } from "../models/contents";
 import { kyselyItemRepository } from "../repositories/kysely-item-repository";
@@ -60,7 +61,7 @@ beforeEach(async () => {
   await createScope(asRoot, { name: "team", description: "A team." }, app);
 
   // @team/reviewer 1.0.0 and 1.1.0 (latest), packed and stored as a release leaves them.
-  const items = kyselyItemRepository(t.db, t.dialect);
+  const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
   const scope = await t.db.selectFrom("scopes").select("id").executeTakeFirstOrThrow();
   itemId = await items.insertItem({
     scopeId: scope.id,
@@ -105,7 +106,8 @@ afterEach(async () => {
 });
 
 const downloads = async () =>
-  (await kyselyItemRepository(t.db, t.dialect).findByName("team", "reviewer"))?.downloadCount;
+  (await kyselyItemRepository(t.db, t.dialect, UNFILTERED).findByName("team", "reviewer"))
+    ?.downloadCount;
 
 describe("a version's contents (044)", () => {
   it("are the released files, sorted, ronne.yaml as released, and not counted as a download", async () => {

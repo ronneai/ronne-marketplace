@@ -3,13 +3,20 @@ import type { Kysely } from "kysely";
 import type { Database } from "../../../db/schema";
 import { upsertAdding } from "../../../db/upsert";
 import type { DatabaseDialect } from "../../../db/url";
+import type { Viewer } from "../../workspaces/models/viewer";
+import { inVisibleWorkspace, isVisibleItem } from "../../workspaces/repositories/visible";
 import type { UsageRepository } from "./usage-repository";
 
 const KEY = ["item_id", "day", "version", "tool", "event", "run_trigger", "outcome"] as const;
 
+/**
+ * Usage as `viewer` reads and reports it (093): a report counts only for items the reporter sees,
+ * and an item's usage is read only when the reader sees the item. Writing and pruning don't filter.
+ */
 export const kyselyUsageRepository = (
   db: Kysely<Database>,
   dialect: DatabaseDialect,
+  viewer: Viewer,
 ): UsageRepository => ({
   async publishedVersions(names) {
     const found = new Map<string, { itemId: string; versions: Set<string> }>();
@@ -20,6 +27,7 @@ export const kyselyUsageRepository = (
       .innerJoin("scopes", "scopes.id", "items.scope_id")
       .innerJoin("item_versions", "item_versions.item_id", "items.id")
       .select(["items.id", "scopes.name as scope", "items.name", "item_versions.version"])
+      .where(inVisibleWorkspace(viewer, "scopes.workspace_id"))
       .where((eb) =>
         eb.or(
           pairs.map(({ scope, name }) =>
@@ -71,6 +79,7 @@ export const kyselyUsageRepository = (
       .selectFrom("usage_daily")
       .select(["day", "version", "tool", "event", "run_trigger", "outcome", "count"])
       .where("item_id", "=", itemId)
+      .where(isVisibleItem(viewer, "usage_daily.item_id"))
       .where("day", ">=", from)
       .where("day", "<=", to)
       .execute();
@@ -91,6 +100,7 @@ export const kyselyUsageRepository = (
       .selectFrom("usage_daily")
       .select("item_id")
       .where("item_id", "=", itemId)
+      .where(isVisibleItem(viewer, "usage_daily.item_id"))
       .limit(1)
       .executeTakeFirst();
     return row !== undefined;

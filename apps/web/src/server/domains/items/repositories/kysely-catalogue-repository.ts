@@ -6,12 +6,15 @@ import { decodeJson } from "../../../db/json";
 import type { Database } from "../../../db/schema";
 import { containsInsensitive } from "../../../db/search";
 import type { DatabaseDialect } from "../../../db/url";
+import type { Viewer } from "../../workspaces/models/viewer";
+import { inVisibleWorkspace, isDependableFrom } from "../../workspaces/repositories/visible";
 import type { CatalogueEntry, CatalogueFilter } from "../models/catalogue";
 import type { CatalogueRepository } from "./catalogue-repository";
 
 type Row = {
   id: string;
   workspace_name: string;
+  workspace_visibility: string;
   scope_name: string;
   name: string;
   type: string;
@@ -30,6 +33,8 @@ type Row = {
 const toEntry = (row: Row): CatalogueEntry => ({
   id: row.id,
   workspace: row.workspace_name,
+  // Anything but exactly "public" is private, as the viewer counts it (093).
+  privateWorkspace: row.workspace_visibility !== "public",
   scope: row.scope_name,
   name: row.name,
   type: row.type as ItemType,
@@ -45,16 +50,23 @@ const toEntry = (row: Row): CatalogueEntry => ({
   support: supportFor(row.type, row.disabled_targets.split(" ").filter(Boolean)),
 });
 
+/**
+ * The catalogue as `viewer` sees it (093): every read starts from `listed()` or filters the
+ * workspaces, so a private workspace's items and the workspace itself are there only for its
+ * members and root.
+ */
 export const kyselyCatalogueRepository = (
   db: Kysely<Database>,
   dialect: DatabaseDialect,
+  viewer: Viewer,
 ): CatalogueRepository => {
   const listed = () =>
     db
       .selectFrom("items")
       .innerJoin("scopes", "scopes.id", "items.scope_id")
       .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
-      .innerJoin("item_versions", "item_versions.id", "items.listed_version_id");
+      .innerJoin("item_versions", "item_versions.id", "items.listed_version_id")
+      .where(inVisibleWorkspace(viewer, "workspaces.id"));
 
   const filtered = <O>(
     query: SelectQueryBuilder<
@@ -72,6 +84,7 @@ export const kyselyCatalogueRepository = (
       installable,
       listedNotYanked,
       ownerId,
+      dependableFrom,
     }: CatalogueFilter,
   ) => {
     let q = query;
@@ -100,6 +113,10 @@ export const kyselyCatalogueRepository = (
     if (scope) q = q.where("scopes.name", "=", scope);
     if (workspace) q = q.where("workspaces.name", "=", workspace);
     if (ownerId) q = q.where("items.owner_id", "=", ownerId);
+    if (dependableFrom !== undefined)
+      q = q.where(
+        isDependableFrom(dependableFrom, "workspaces.id", "workspaces.visibility", dialect),
+      );
     if (tool) {
       // The types the tool takes, and not turned off in the listed version's manifest (026).
       const renderer = rendererById(tool);
@@ -117,6 +134,7 @@ export const kyselyCatalogueRepository = (
     listed().select([
       "items.id",
       "workspaces.name as workspace_name",
+      "workspaces.visibility as workspace_visibility",
       "scopes.name as scope_name",
       "items.name",
       "items.type",
@@ -221,6 +239,7 @@ export const kyselyCatalogueRepository = (
         await db
           .selectFrom("workspaces")
           .select("name")
+          .where(inVisibleWorkspace(viewer, "workspaces.id"))
           .orderBy("is_global", "desc")
           .orderBy("name")
           .execute()

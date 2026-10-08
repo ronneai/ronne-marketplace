@@ -49,8 +49,15 @@ export const workspaceDescriptionFrom = (value: string): string => {
   return description;
 };
 
-/** Public only until private workspaces (093). */
+/** Exactly "public" or "private" (093): what Make private and Make public send. */
+export const visibilityChoice = (value: string | undefined): WorkspaceVisibility => {
+  if (value === "public" || value === "private") return value;
+  throw new InvalidWorkspaceVisibilityError();
+};
+
+/** Public, unless private is asked for (093); public when nothing is said, as when creating. */
 export const workspaceVisibilityFrom = (value: string | undefined): WorkspaceVisibility => {
   if (value === undefined || value === "" || value === "public") return "public";
+  if (value === "private") return "private";
   throw new InvalidWorkspaceVisibilityError();
 };

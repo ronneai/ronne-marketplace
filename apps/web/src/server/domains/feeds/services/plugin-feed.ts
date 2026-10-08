@@ -51,7 +51,7 @@ import {
   sidecarKey,
 } from "../models/feed";
 import type { FeedRepository } from "../repositories/feed-repository";
-import type { MarketplaceCache } from "./marketplace-cache";
+import { type MarketplaceCache, marketplaceSlot } from "./marketplace-cache";
 
 /**
  * The plugin feeds (feature 077, contract `docs/spec/plugin-feeds.md`). A version's plugin is
@@ -74,6 +74,11 @@ export type FeedDeps = {
   /** With `cache`, marketplaces are answered from memory while the catalogue doesn't change (079). */
   feeds?: FeedRepository;
   cache?: MarketplaceCache;
+  /**
+   * The callers' visibility key (093, `visibilityKey`): the private workspaces the repositories
+   * above see, empty for public-only ones. Marketplaces are cached per key.
+   */
+  visibility?: string;
   /** Runs work after the response is sent: Next.js's `after` in the app; at once by default. */
   background?: (work: () => Promise<void>) => void;
   /** Claude Code's limits by default; tests set smaller ones (079). */
@@ -310,7 +315,7 @@ export const feedPlugins = async (
 
 /**
  * Finishes a feed a request ran out of time for: builds every missing plugin, with no budget, after
- * the response is sent, at most one build per tool at a time (079). The next request then lists
+ * the response is sent, at most one build per tool and visibility key at a time (079, 093). The next request then lists
  * everything, and its marketplace can be cached.
  */
 const buildRest = (deps: FeedDeps, tool: PluginTool) => {
@@ -319,7 +324,7 @@ const buildRest = (deps: FeedDeps, tool: PluginTool) => {
   const log = deps.log ?? ((message: string) => console.warn(message));
   const run = deps.background ?? ((work: () => Promise<void>) => void work());
   run(() =>
-    cache.warm(tool, async () => {
+    cache.warm(marketplaceSlot(tool, deps.visibility ?? ""), async () => {
       try {
         const feed = await collectFeed(
           { ...deps, buildBudgetMs: Number.POSITIVE_INFINITY, log },
@@ -338,9 +343,9 @@ const buildRest = (deps: FeedDeps, tool: PluginTool) => {
  * tool's has Claude Code's shape, with `archive` entries: Claude Code reads its own, and `rmk feed
  * build` reads Codex's and Cursor's and writes their real marketplace files into the mirror (078).
  *
- * With a cache, a complete marketplace is kept under the catalogue revision read before it was
- * built, the builder version and `publicUrl`, and answered from memory until one of them changes
- * (079). A request that runs out of build budget answers what it has, and the rest is built in the
+ * With a cache, a complete marketplace is kept per visibility key (093) under the catalogue
+ * revision read before it was built, the builder version and `publicUrl`, and answered from memory
+ * until one of them changes (079). A request that runs out of build budget answers what it has, and the rest is built in the
  * background.
  */
 export const marketplace = async (
@@ -358,7 +363,8 @@ export const marketplace = async (
     revision === null || !deps.cache
       ? null
       : `${revision.instance}\0${revision.revision}\0${PLUGIN_BUILDER_VERSION}\0${base}`;
-  const hit = key ? deps.cache?.get(tool, key) : null;
+  const slot = marketplaceSlot(tool, deps.visibility ?? "");
+  const hit = key ? deps.cache?.get(slot, key) : null;
   if (hit) return hit;
   const started = clock();
   const feed = await collectFeed(deps, tool);
@@ -376,7 +382,8 @@ export const marketplace = async (
   });
   if (feed.unbuilt) buildRest(deps, tool);
   const complete = !feed.unbuilt && !feed.failed;
-  // A complete build is what the tool will see: record it, and warn once per revision (079).
+  // A complete build is what the tool will see: record it (the revision's largest is kept), and
+  // warn once per revision, whichever visibility key comes near a limit first (079, 093).
   if (complete && revision && deps.feeds) {
     const stats = {
       tool,
@@ -396,7 +403,7 @@ export const marketplace = async (
   // Only Claude Code reads its marketplace from an address, with a size limit; rmk reads the others.
   if (tool === "claude-code" && file.bytes.length > limits.maxBytes)
     throw new FeedTooLargeError(feed.plugins.length);
-  if (key && complete) deps.cache?.set(tool, key, file.bytes);
+  if (key && complete) deps.cache?.set(slot, key, file.bytes);
   return file.bytes;
 };
 

@@ -13,6 +13,8 @@ export type CatalogueEntry = {
   id: string;
   /** The workspace its scope belongs to (090), by name. */
   workspace: string;
+  /** Whether that workspace is private (093): its items carry a lock label. */
+  privateWorkspace: boolean;
   scope: string;
   name: string;
   type: ItemType;
@@ -56,6 +58,11 @@ export type CatalogueFilter = {
   listedNotYanked?: boolean;
   /** Only items this user first published (089: your own, whatever their rank). */
   ownerId?: string;
+  /**
+   * Only items an item in this workspace may depend on (093): its own and public workspaces'.
+   * Null for an item whose workspace isn't known yet: public ones only.
+   */
+  dependableFrom?: string | null;
 };
 
 /**

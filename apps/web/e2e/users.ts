@@ -59,6 +59,17 @@ export const E2E_USERS = {
   tabletMember: "tablet-member@e2e.test",
   tabletModerator: "tablet-moderator@e2e.test",
   tabletRoot: "tablet-root@e2e.test",
+  // 093: members of the private e2e-vault and people who aren't, one pair per project, and a root
+  // who turns e2e-shelf private and back (root's own sign-ins are spent).
+  privateMember: "private-member@e2e.test",
+  privateOutsider: "private-outsider@e2e.test",
+  privateRoot: "private-root@e2e.test",
+  phonePrivateMember: "phone-private-member@e2e.test",
+  phonePrivateOutsider: "phone-private-outsider@e2e.test",
+  phoneWebkitPrivateMember: "phone-webkit-private-member@e2e.test",
+  phoneWebkitPrivateOutsider: "phone-webkit-private-outsider@e2e.test",
+  tabletPrivateMember: "tablet-private-member@e2e.test",
+  tabletPrivateOutsider: "tablet-private-outsider@e2e.test",
 } as const;
 
 /** The display names, which the header shows (not the email). */
@@ -115,6 +126,15 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   tabletMember: "Tab Member",
   tabletModerator: "Tab Moderator",
   tabletRoot: "Tab Root",
+  privateMember: "Vera Vault",
+  privateOutsider: "Olive Outside",
+  privateRoot: "Ruth Root",
+  phonePrivateMember: "Pho Vault",
+  phonePrivateOutsider: "Pho Outside",
+  phoneWebkitPrivateMember: "Ios Vault",
+  phoneWebkitPrivateOutsider: "Ios Outside",
+  tabletPrivateMember: "Tab Vault",
+  tabletPrivateOutsider: "Tab Outside",
 };
 
 /** Seeded with the moderator role; everyone else is a user. */
@@ -136,6 +156,7 @@ export const E2E_MODERATORS: readonly (keyof typeof E2E_USERS)[] = [
 
 /** Seeded as root, besides the root setup creates (more than one root since 059). */
 export const E2E_ROOTS: readonly (keyof typeof E2E_USERS)[] = [
+  "privateRoot",
   "phoneRoot",
   "phoneWebkitRoot",
   "tabletRoot",
@@ -159,6 +180,25 @@ export const E2E_ACME_MEMBERS: Partial<Record<keyof typeof E2E_USERS, "moderator
   workspaceAuthor: "user",
   workspaceModerator: "moderator",
 };
+
+/**
+ * A private workspace (093) with a released skill, `@e2e-vault-tools/vault-deploy`: its members
+ * see it with a lock label; to everyone else it doesn't exist.
+ */
+export const E2E_VAULT = {
+  workspace: "e2e-vault",
+  scope: "e2e-vault-tools",
+  item: "vault-deploy",
+  members: [
+    "privateMember",
+    "phonePrivateMember",
+    "phoneWebkitPrivateMember",
+    "tabletPrivateMember",
+  ] as const satisfies readonly (keyof typeof E2E_USERS)[],
+};
+
+/** A public workspace with a released skill, which `privateRoot` makes private and public again. */
+export const E2E_SHELF = { workspace: "e2e-shelf", scope: "e2e-shelf-tools", item: "shelf-notes" };
 
 /** An item the seed publishes with two versions (1.0.0 and 1.1.0 on latest), for the Versions page. */
 export const E2E_VERSIONED_ITEM = "versioned";
