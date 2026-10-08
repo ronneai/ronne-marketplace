@@ -12,10 +12,11 @@ import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testi
 import { createScope } from "../../items/actions/scopes";
 import { UNFILTERED } from "../../workspaces/models/viewer";
 import { GLOBAL_WORKSPACE_ID } from "../../workspaces/models/workspace";
+import { SubmissionNotFoundError } from "../exceptions/errors";
 import { kyselyRegistryLookup } from "../repositories/kysely-registry-lookup";
 import { kyselySubmissionRepository } from "../repositories/kysely-submission-repository";
 import * as draftsService from "../services/drafts";
-import { createDraft, getDraft, saveDraftFiles } from "./drafts";
+import { createDraft, draftSubmitIssues, getDraft, saveDraftFiles } from "./drafts";
 import { publishSubmission } from "./publish";
 import { decide } from "./reviews";
 import {
@@ -246,6 +247,22 @@ describe("a save returns what Submit would refuse (#142)", () => {
     const saved = await saveManifest(id, skill("reader", '  "@team/db": "^1.0.0"\n'));
     expect(saved.issues).toEqual([]);
     expect(saved.submitIssues).toEqual([]);
+  });
+
+  it("tells a draft opened later what Submit would refuse, without a save, to its author only", async () => {
+    await released("db");
+    const blocked = await skillNeeding("reader", '  "@team/db": "^9.0.0"\n');
+    expect(await draftSubmitIssues(asAuthor, blocked, app)).toEqual(
+      await checkSubmission(asAuthor, blocked, app),
+    );
+    expect((await draftSubmitIssues(asAuthor, blocked, app)).map((i) => i.message)).toEqual([
+      "No published version of @team/db matches ^9.0.0.",
+    ]);
+    const clean = await skillNeeding("writer", '  "@team/db": "^1.0.0"\n');
+    expect(await draftSubmitIssues(asAuthor, clean, app)).toEqual([]);
+    await expect(draftSubmitIssues(asModerator, blocked, app)).rejects.toThrow(
+      SubmissionNotFoundError,
+    );
   });
 
   it("still saves when the registry checks fail, and says they couldn't run", async () => {

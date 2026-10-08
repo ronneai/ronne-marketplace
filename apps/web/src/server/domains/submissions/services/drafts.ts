@@ -272,6 +272,16 @@ export const getDraft = async (deps: DraftDeps, actor: DraftActor, id: string): 
 };
 
 /**
+ * What Submit would refuse for your own draft as it's saved (#142), for the editor when the page
+ * opens, before any save. Someone else's draft is not found, as for getDraft.
+ */
+export const draftSubmitIssues = async (
+  deps: DraftDeps,
+  actor: DraftActor,
+  id: string,
+): Promise<ManifestIssue[]> => submitIssuesOf(deps, await getDraft(deps, actor, id));
+
+/**
  * A file the editor saves. `loadedAt` is the `updatedAt` it had when the editor loaded it, or null
  * for a file the editor created; a mismatch means it changed elsewhere since.
  */

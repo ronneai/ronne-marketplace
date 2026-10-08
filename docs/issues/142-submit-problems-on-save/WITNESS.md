@@ -41,3 +41,18 @@ Witnessed: 2026-10-08 14:17 EDT, by a fresh agent (blind). Commit: 7338c2f. Mach
 | 17 | The change type-checks and lints | no | confirmed | `pnpm --filter @ronneai/web typecheck` → clean; `biome check $(git diff --name-only)` → 4 files, no fixes, no warnings |
 
 **Overall:** met: a failed check keeps the other check's issues and adds one accurate warning, both new #142 tests fail when the fix is removed, and the submissions db tests pass on SQLite, PostgreSQL, MySQL and MariaDB.
+
+## Task 2 — The draft page's first load
+
+Witnessed: 2026-10-08 14:22 EDT, by a fresh agent (blind). Commit: 577d252. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: page.tsx, draft-editor types and test, submissions actions/services drafts.ts, registry.db.test.ts.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The page load uses the same helper that a save and an upload use | yes | confirmed | `services/drafts.ts:278-282`: `draftSubmitIssues` = `submitIssuesOf(deps, await getDraft(...))`; save (`:486`) and upload (`:643`) call the same `submitIssuesOf`. `actions/drafts.ts:124-130` binds it with `instanceStorage`, so the proposal no-change check runs too |
+| 2 | The draft page calls it on first load for the author's own editable draft | yes | confirmed | `page.tsx:124-127` gates it on `mine && member && isEditable(status)` (`status.ts:69`). Page test "checks what Submit would refuse on load…" passes; with the gate replaced by `false` in a scratch copy it fails (1 failed / 22 passed) |
+| 3 | The page passes the issues into the editor | yes | confirmed | `page.tsx:55,58,154` passes `submitIssues` through `toEditorDraft` to `DraftEditor`; `types.ts:51-55` adds `submitIssues?: ManifestIssue[]`. A scratch probe mocking one `dependency_range` issue found it on `draft.submitIssues`. No repo test covers the passing yet (note 1) |
+| 4 | A db test shows a blocked draft's issues with no save | yes | confirmed | `registry.db.test.ts` "tells a draft opened later…": `draftSubmitIssues` on a `^9.0.0` draft → `["No published version of @team/db matches ^9.0.0."]`, equal to `checkSubmission`; a clean draft → `[]`. SQLite 38/38 (with the page test); `pnpm test:db:postgres` / `:mysql` / `:mariadb -- registry.db.test.ts` → 15/15 each. Service returning `[]` in a scratch copy → the test fails |
+| 5 | The draft stays private to its author | yes | confirmed | The db test expects `draftSubmitIssues(asModerator, blocked)` → `SubmissionNotFoundError` (`ownSubmission`, `drafts.ts:92`). The page test checks no call for `mine:false` or `member:false`; dropping `draft.mine` from the gate fails it |
+| 6 | Types and lint are clean for the change | no | confirmed | `pnpm --filter @ronneai/web typecheck` → no errors; `biome check` on the changed dirs → 2 warnings, both in unchanged files |
+
+**Overall:** met: the page load runs the save's own `submitIssuesOf` for the author's editable draft and passes the result to the editor; a db test on all four databases shows a blocked draft's issues with no save. Notes, not bugs: (1) no test yet checks the page passes the issues to the editor (task 3's page test covers it); (2) the `isEditable` part of the gate is checked by reading only; (3) no test has a draft that becomes blocked after its last save; the helper recomputes on every load.

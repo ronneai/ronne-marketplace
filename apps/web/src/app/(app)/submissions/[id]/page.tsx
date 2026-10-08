@@ -7,6 +7,7 @@ import type { EditorDraft, EditorProposal } from "@/features/draft-editor/types"
 import { Conversation } from "@/features/reviews/Conversation";
 import { PublishDialog } from "@/features/reviews/PublishDialog";
 import { versionsPath } from "@/features/versions/links";
+import { draftSubmitIssues } from "@/server/domains/submissions/actions/drafts";
 import { type ProposalPanel, proposalPanel } from "@/server/domains/submissions/actions/proposals";
 import { countDependents, getReview } from "@/server/domains/submissions/actions/reviews";
 import {
@@ -51,8 +52,10 @@ const toEditorDraft = (
   dependencyMarks: DependencyMark[] = [],
   canDelete = false,
   feedback: EditorDraft["feedback"] = null,
+  submitIssues: EditorDraft["submitIssues"] = [],
 ): EditorDraft => ({
   dependents,
+  submitIssues,
   canDelete,
   feedback,
   canRestore: draft.mine && draft.member && canTransition(draft.status, "restore"),
@@ -116,6 +119,12 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
     draft.mine &&
     (canTransition(draft.status, "withdraw") || draft.status === "withdrawn") &&
     (await canDeleteSubmission(request, id));
+  // What Submit would refuse (#142), so a blocked draft says so before any save: the author's own,
+  // while it can still be changed.
+  const submitIssues =
+    draft.mine && draft.member && isEditable(draft.status)
+      ? await draftSubmitIssues(request, id)
+      : [];
   // Why it was sent back or closed (058), for the notice at the top.
   const last =
     review && (draft.status === "changes_requested" || draft.status === "rejected")
@@ -142,6 +151,7 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
           marks,
           canDelete,
           feedback,
+          submitIssues,
         )}
       />
       {review?.can.publish ? (

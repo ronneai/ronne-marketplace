@@ -1,3 +1,4 @@
+import type { ManifestIssue } from "@ronneai/core";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { treeRows } from "@/components/code/FileTree";
@@ -13,6 +14,10 @@ const drafts = vi.hoisted(() => ({
   canDeleteSubmission: vi.fn(async () => true),
 }));
 vi.mock("@/server/domains/submissions/actions/submissions", () => drafts);
+const saving = vi.hoisted(() => ({
+  draftSubmitIssues: vi.fn(async (): Promise<ManifestIssue[]> => []),
+}));
+vi.mock("@/server/domains/submissions/actions/drafts", () => saving);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
 vi.mock("next/navigation", () => ({
   notFound: () => {
@@ -215,6 +220,23 @@ describe("the draft page", () => {
     for (const path of ["logo.png", "prompt.md", "ronne.yaml"]) expect(html).toContain(path);
     expect(html).toContain('aria-current="true"');
     expect(html).toMatch(/aria-current="true"[^>]*>.*ronne\.yaml/s);
+  });
+
+  it("checks what Submit would refuse on load, for your own editable draft only (#142)", async () => {
+    const id = "01J0000000000000000000000A";
+    drafts.viewSubmission.mockResolvedValue({ ...draft(), mine: true, member: true });
+    await DraftPage({ params: Promise.resolve({ id }) });
+    expect(saving.draftSubmitIssues).toHaveBeenCalledWith(expect.any(Headers), id);
+
+    saving.draftSubmitIssues.mockClear();
+    for (const shown of [
+      { ...draft(), mine: false, member: true },
+      { ...draft(), mine: true, member: false },
+    ]) {
+      drafts.viewSubmission.mockResolvedValue(shown);
+      await DraftPage({ params: Promise.resolve({ id }) });
+    }
+    expect(saving.draftSubmitIssues).not.toHaveBeenCalled();
   });
 
   it("answers 404 for someone else's draft", async () => {

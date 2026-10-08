@@ -15,7 +15,7 @@ the same change that completes it.
   *Done when:* the drafts db tests cover `^9.0.0`, a cycle, a clean draft and a failing registry
   read, on the four databases.
 
-- [ ] **2. The draft page's first load.** The page that opens the editor runs the same helper,
+- [x] **2. The draft page's first load.** The page that opens the editor runs the same helper,
   and passes the issues in. *Done when:* a db or page test shows a blocked draft's issues
   without a save.
 
