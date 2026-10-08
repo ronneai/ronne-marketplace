@@ -260,9 +260,9 @@ describe("a save returns what Submit would refuse (#142)", () => {
         "@team/skill and @team/agent need each other: they're submitted for review together.",
       ],
     ]);
-    // Submitted alone, it still can't go without the agent (until Submit takes its group).
-    expect(await codes(skillDraft)).toEqual(["dependency_draft"]);
-    expect(await codes(agentDraft)).toEqual(["dependency_draft"]);
+    // Submit takes the other with it (112): each sees the other on its way, and the cycle.
+    expect(await codes(skillDraft)).toEqual(["dependency_pending", "dependency_cycle"]);
+    expect(await codes(agentDraft)).toEqual(["dependency_pending", "dependency_cycle"]);
 
     // Someone else's draft of a name stays unknown to this author (089).
     await draftWith(
@@ -440,8 +440,8 @@ describe("dependencies on their way (056)", () => {
   it("submits a dependent of one in review, and releases it only after its dependency", async () => {
     const github = await serverDraft("github");
     const reviewer = await skillNeeding("reviewer", '  "@team/github": "^1.0.0"\n');
-    // Your own draft: submitted alone, the reviewer can't go without it (112).
-    expect(await codes(reviewer)).toEqual(["dependency_draft"]);
+    // Your own draft goes with it (112): on its way, as if already submitted.
+    expect(await codes(reviewer)).toEqual(["dependency_pending"]);
 
     await submitDraft(asAuthor, github, app);
     expect(await checkSubmission(asAuthor, reviewer, app)).toEqual([

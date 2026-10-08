@@ -57,9 +57,9 @@ gone together.
 ### The group
 
 What goes together is the **group** of an item:
-- **at submit:** the item and every one of the author's own **drafts** (or submissions sent back for
-  changes) that it needs, directly or through others, cycles included. Dependencies already in
-  review, approved or released aren't in it: they're on their way already.
+- **at submit:** the item and every one of the author's own **drafts** that it needs, directly or
+  through others, cycles included. Dependencies already in review, approved, released or sent back
+  for changes aren't in it: they're on their way already (056).
 - **at release:** the item and every dependency, direct or through others, that has **no released
   version** matching its range yet, cycles included. They must all be **approved**: one still in
   review or sent back makes the release wait, with why.
@@ -111,7 +111,9 @@ action, become one group.
   is submitted as it was last saved.
 - **My submissions' bulk submit** (052, 056) works in groups: a selected draft brings its group, as
   056 already includes dependency drafts; each group is checked together and submitted all or none;
-  the outcome is shown per draft, a group's failure on each of its members.
+  the outcome is shown per draft, a group's failure on each of its members. An unexpected error
+  (the database going away) stops the run, as before 112: the groups already sent stay sent, and
+  running it again picks up the rest.
 
 ### Release
 
@@ -156,7 +158,12 @@ action, become one group.
 - **A change proposal** (017) in a group: released as its item's next version, like any member.
 - **A pre-release** in a group: each member's range has to accept the versions going out (a range
   picks a pre-release only when it names one).
-- **A group over the bulk limits** (50 to submit, 50 to release): refused with why, rather than cut.
+- **A group over the bulk limits** (100 to submit, as bulk submit's `MAX_BULK`; 50 to release, as
+  bulk release's): refused with why, rather than cut.
+- **Two drafts of one new item's name in a group:** refused, with why: only one of them can go for
+  review. Change proposals of one item can go together (017).
+- **A dependency with a draft and a change proposal of its name:** the group takes the proposal
+  (a new item's draft of a published name can never go); of two proposals, the newest.
 - **An install that asks for A only:** A and what it needs are installed, cycles included.
 - **`rmk remove A`:** B stays only if something still asks for it (the reachability rule).
 

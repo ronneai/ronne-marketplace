@@ -33,7 +33,7 @@ import { createDraft, getDraft, renameDraft, saveDraftFiles } from "./drafts";
 import { proposalPanel, proposeChange, rebaseProposal, resolveConflict } from "./proposals";
 import { publishSubmission } from "./publish";
 import { decide, getReview } from "./reviews";
-import { checkSubmission, submitDraft } from "./submissions";
+import { checkSubmission, submitDraft, submitManyDrafts } from "./submissions";
 
 let t: TestDb;
 let app: AppAuth;
@@ -244,6 +244,52 @@ describe("proposeChange", () => {
     await expect(
       proposeChange(new Headers(), { item: "@team/secure-coding", version: "1.0.0" }, app, storage),
     ).rejects.toThrow(ForbiddenError);
+  });
+});
+
+describe("proposals submitted together (112)", () => {
+  it("lets two proposals of one item go in one group with the draft they both need", async () => {
+    await releasedSkill();
+    const item = { item: "@team/secure-coding", version: "1.0.0" };
+    const helper = await createDraft(asOther, { scope: "team", name: "helper", type: "rule" }, app);
+    await write(asOther, helper.id, {
+      "ronne.yaml": text(helper, "ronne.yaml").replace('description: ""', "description: Helps."),
+    });
+    const ids: string[] = [];
+    for (const readme of ["One.", "Two."]) {
+      const proposal = await proposeChange(asOther, item, app, storage);
+      await write(asOther, proposal.id, {
+        "README.md": readme,
+        "ronne.yaml": `${text(proposal, "ronne.yaml")}dependencies:\n  "@team/helper": "^1.0.0"\n`,
+      });
+      ids.push(proposal.id);
+    }
+    const { results } = await submitManyDrafts(asOther, { ids }, app, storage);
+    expect(Object.fromEntries(results.map((r) => [r.id, r.result]))).toEqual({
+      [helper.id]: "submitted",
+      [ids[0] ?? ""]: "submitted",
+      [ids[1] ?? ""]: "submitted",
+    });
+  });
+
+  it("takes the proposal of a published dependency, not a newer new-item draft of its name", async () => {
+    await releasedSkill();
+    const proposal = await proposeChange(
+      asOther,
+      { item: "@team/secure-coding", version: "1.0.0" },
+      app,
+      storage,
+    );
+    await write(asOther, proposal.id, { "README.md": "Two." });
+    // A new item's draft of the published name: it can never be submitted.
+    await createDraft(asOther, { scope: "team", name: "secure-coding", type: "skill" }, app);
+    const user = await createDraft(asOther, { scope: "team", name: "user", type: "bundle" }, app);
+    await write(asOther, user.id, {
+      "ronne.yaml":
+        'name: "@team/user"\ntype: bundle\ndescription: Uses it.\ndependencies:\n  "@team/secure-coding": "^2.0.0"\n',
+    });
+    const sent = await submitDraft(asOther, user.id, app, storage);
+    expect(sent.with.map((m) => m.id)).toEqual([proposal.id]);
   });
 });
 

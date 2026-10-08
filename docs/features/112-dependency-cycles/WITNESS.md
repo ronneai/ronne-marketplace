@@ -163,3 +163,173 @@ Witnessed: 2026-10-08 18:34 EDT, by a fresh agent (blind). Commit: f02ba3d. Mach
 | 15 | Typecheck and lint stay clean | yes | confirmed | Typecheck → no errors; `biome check` on the 19 changed files → no fixes |
 
 **Overall:** met. Remarks: the doc comment at `registry-checks.ts:135` still said "released together" (fixed in this commit); "released together" is pinned by the unit test only; the release wording is task 6's.
+
+## Task 4 — Submit together
+
+Witnessed: 2026-10-08 18:57 EDT, by a fresh agent (blind). Commit: 9f1b304. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: submit-group.ts (new), submissions.ts, bulk-submit.ts, actions, tests.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Submit on A submits a chain A → B → C (→ D), dependencies first, in one go | yes | confirmed | `submit-together.db.test.ts` chain test: order `[d,c,b,a]`, 4 submitted, 4 audit events; the four databases |
+| 2 | A cycle A ↔ B is submitted together from either item | yes | confirmed | Test passes; probe A→B→C→A from A → `with` 2, all `submitted` on the four databases |
+| 3 | Each member is checked as if the group were in review | yes | confirmed | `withIncoming` in `checkGroup`; dropping it → 6 tests fail |
+| 4 | A group with one member not ready submits none, and says which | yes | confirmed | `group_member_not_ready` "@team/c isn't ready…", all `draft`, 0 events; mutation → 6 tests fail |
+| 5 | A failure inside the transaction submits none | yes | confirmed | 2nd `createRevision` throws → both `draft`, 0 events; outside a transaction → the test fails |
+| 6 | Bulk submit works in groups, and groups sharing a draft merge | yes | confirmed | "joins groups that share a draft" passes; groups per selected id → it fails |
+| 7 | Bulk submit is all or none per group, the failure on each member | yes | confirmed | `bulk-submit.ts` `sendGroup` in one transaction; lonely and broken both `not_ready` |
+| 8 | Another author's items are never submitted by someone else | yes | confirmed | Probe: the other's draft → group of 1, `dependency_not_found`, both stay `draft`; the other user bulk-submitting A → `not_found` (four databases) |
+| 9 | Db tests pass on the four databases | yes | confirmed | `pnpm test:db:{postgres,mysql,mariadb} -- domains/submissions/` → 228 passed each |
+| 10 | A dependency already in review isn't in the group | yes | confirmed | Probe A→C, B→C: A sends C; B then goes alone with `dependency_pending` |
+| 11 | `rmk submit`/MCP, the UI and the drafts API still work | yes | confirmed | Typecheck clean; drafts-api, features → 229 passed; `rmk` 183, mcp 40 |
+| 12 | Concurrent submits of two groups sharing a draft: one goes whole, the other none | yes | confirmed | `Promise.allSettled` ×3 on PostgreSQL, MySQL, MariaDB → C never twice; the loser's wording wrong ("@team/c isn't ready") |
+| 13 | A group over the bulk limit is refused with why, not cut | yes | not met | A 105-draft chain → all 105 submitted; no size check; the spec's "50 to submit" didn't match MAX_BULK (100) |
+
+**Overall:** not met: no group limit. Also: a stale group after a concurrent submit gave a wrong reason; a doc comment above `DELETABLE` was deleted.
+
+### Re-check
+
+Witnessed: 2026-10-08 19:18 EDT, by a fresh agent (blind). Commit: 9f1b304. Machine: macOS 27.0.1, Node v24.0.0. With `MAX_GROUP`, the drop-after-lock, real reasons, `stillNeeded`, duplicate names, `sentDependencies`.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Chain | yes | confirmed | Passes on the four databases; dropping `withIncoming` → fails |
+| 2 | Cycle (and A→B→C→A) | yes | confirmed | Test and probe on the four databases |
+| 3 | Checked as if all in review | yes | confirmed | Mutation `together = deps` → 6 tests fail |
+| 4 | One not ready → none | yes | confirmed | Mutation on the blocker check → fails |
+| 5 | Failure in the transaction → none | yes | confirmed | Without a transaction → "promise resolved instead of rejecting" |
+| 6 | Groups merge | yes | confirmed | Groups per id → 2 tests fail |
+| 7 | All or none per group in bulk | yes | confirmed | As before |
+| 8 | Another author's never | yes | confirmed | Probe P3 on the four databases |
+| 9 | Db tests on the four databases | yes | confirmed | 232 passed each |
+| 10 | A dependency in review isn't in the group | yes | confirmed | Probe P2; "leaves out a draft of a dependency already released or on its way" passes; dropping `stillNeeded` → it fails |
+| 11 | Callers still work | yes | confirmed | Typecheck; 229 / 183 / 40 passed |
+| 12 | Concurrent groups sharing a draft: no double submit, the second goes on | yes | confirmed | Probes P6, P7 on PostgreSQL, MySQL, MariaDB → both ok, C once |
+| 13 | A group over `MAX_GROUP = 100` is refused with why, not cut | yes | confirmed | 101 refused, 0 sent; 100 sent; bulk 101 all `not_ready` `group_too_large`; SPEC says 100 |
+| 14 | Two drafts of one name in a group are refused | yes | confirmed | `name_taken` "…in this group twice…"; mutation → fails |
+| 15 | A resubmit reads the saved files | yes | confirmed | Test passes; `sentDependencies` → `dependenciesOf` → fails |
+| 16 | The `DELETABLE` comment is back | yes | confirmed | `submissions.ts:368` |
+
+**Overall:** met. Notes: the drop-after-lock had no repository test; the limit test's parts weren't ready anyway.
+
+### Re-check 2
+
+Witnessed: 2026-10-08 19:48 EDT, by a fresh agent (blind). Commit: 9f1b304. Machine: macOS 27.0.1, Node v24.0.0. After the adversarial round 2 fixes.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | Groups merge | yes | confirmed | Probe a2, b2 → c2 (four databases); mutation → 2 tests fail |
+| 10 | A met dependency isn't in the group, brought in or selected | yes | confirmed | Both tests pass; removing `stillNeeded` → both fail |
+| 10a | A name resolves to the selected draft, then a proposal before a new item's draft | yes | confirmed | "resolves a name to the selected draft…" and "takes the proposal of a published dependency…" pass; each mutation fails its test |
+| 12 | Concurrent groups sharing a draft | yes | confirmed | "sends the rest when a draft brought in was submitted meanwhile" passes; removing `live` → it fails; probes P6, P7 |
+| 13 | Group limit, each member saying so once | yes | confirmed | Probe: 101 refused, ≤2 issues per member; 100 sent; bulk 101 refused |
+| 14 | Two new-item drafts of one name refused; proposals of one item go together | yes | confirmed | Tests pass; mutation applying `name_taken` to proposals → fails |
+| 17 | SPEC.md states the duplicate-name rule as built | yes | partly | SPEC.md:163 had no exception for proposals |
+| 9 | Db tests on the four databases | yes | confirmed | 237 passed each |
+
+**Overall:** not met: SPEC.md behind on the proposals exception.
+
+### Re-check 3
+
+Witnessed: 2026-10-08 19:50 EDT, by a fresh agent (blind). Commit: 9f1b304. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 13 | Group limit refused with why, each member saying so once | yes | confirmed | Limit test asserts one `group_too_large` and no `group_member_not_ready` per member; `pnpm test:db:{postgres,mysql,mariadb} -- submit-together proposals` → 30 passed each; mutation → fails |
+| 17 | SPEC.md states the duplicate-name and name-resolution rules as built | yes | confirmed | `SPEC.md:163-166` match `checkGroup` and `ownDraftsByName` (ordered `updated_at desc, id desc`) |
+
+**Overall:** met. Correction: the per-member noise it had remarked on never happened (`group_too_large` already makes every member `not_ready`); the guard added for it was dead code and was removed.
+
+### Adversarial — Task 4
+
+Witnessed: 2026-10-08 18:58 EDT, by a fresh agent (adversarial). Commit: 9f1b304. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Sends the item with every one of the author's own drafts it needs | yes | confirmed | 5 passed (SQLite); 53 passed each on PostgreSQL, MySQL, MariaDB; P3 group [y, x2, x1] |
+| 2 | Never another author's draft | yes | confirmed | P4 on the four databases |
+| 3 | Never a draft it doesn't need | yes | not met | P1: an unchanged proposal of a released dependency pulled in, blocking the item; P2: a second draft of a name in review, `name_taken`, blocking it |
+| 4 | Never a draft in a workspace it can't submit to | yes | confirmed | P5 |
+| 5 | All or none when a member isn't ready | yes | confirmed | Mutation → 2 tests fail |
+| 6 | All or none on a failure in the transaction | yes | confirmed | The four databases; P9 |
+| 7 | A name another author takes meanwhile is caught | yes | confirmed | C3, 6 runs × 3 servers |
+| 8 | A name taken inside the group is caught | yes | not met | P3/P3b: two drafts of `@team/x` both submitted |
+| 9 | Members don't block each other | yes | confirmed | Removing `withIncoming` → 5 tests fail |
+| 10 | A needed draft outside the group stops it | yes | confirmed | P7 `dependencies: false` → `dependency_draft` |
+| 11 | A resubmit takes what it needs now | yes | not met | P6: a dependency draft added after changes were requested → refused (`dependenciesOf` read the revision) |
+| 12 | A resubmit with nothing new works | yes | confirmed | P6b |
+| 13 | The check agrees with submit | yes | confirmed | P1–P6, P10 |
+| 14 | Bulk in groups, per-draft results | yes | confirmed | Tests on the four databases |
+| 15 | One group's thrown failure doesn't stop another | yes | partly | P9: rejects after group 1 committed (as before 112) |
+| 16 | MAX_BULK holds | yes | confirmed | P11 |
+| 17 | A group over the limits is refused | yes | not met | P8, P11: 105 and 103 submitted |
+| 18 | No deadlock between groups sharing scopes | yes | confirmed | C2, 5 runs × 3 servers |
+| 19 | The same group submitted twice at once | yes | partly | C1: integrity holds; the loser got "0 problems" with `[]` |
+| 20 | A member submitted elsewhere meanwhile | yes | partly | C4: no double submit, but "isn't ready" for a member in review |
+
+**Overall:** not met: drafts it doesn't need pulled in, two same-name drafts sent together, a resubmit missing a new draft, no group limit, poor errors on a concurrent loser; a deleted doc comment.
+
+### Adversarial re-check — Task 4
+
+Witnessed: 2026-10-08 19:12 EDT, by a fresh agent (adversarial). Commit: 9f1b304. Machine: macOS 27.0.1, Node v24.0.0. With the first round of fixes.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Tests pass on the four databases | yes | confirmed | 86 passed, 2 failing probes (R1, R2) |
+| 2 | Single submit leaves out a met dependency's draft | yes | confirmed | P1, P2 on the four databases; mutation → fails |
+| 3 | `stillNeeded` doesn't leave out a needed draft | yes | confirmed | R4: `^2.0.0` with a changed proposal → both sent |
+| 4 | Bulk never links a draft the item doesn't need | yes | not met | R1, R2 (`{all:true}`, or `dependencies:false`): a selected met draft blocks the item |
+| 5 | Two drafts of one name can't both go | yes | confirmed | P3, P3b, R5 |
+| 6 | The duplicate refusal refuses nothing allowed before | yes | partly | R6: two proposals of one item refused; R3: a name resolved to a newer draft than the selected one |
+| 7 | A resubmit takes a new dependency draft | yes | confirmed | P6, P6b |
+| 8 | Group over 100 refused; 100 goes | yes | confirmed | R7, P8 |
+| 9 | MAX_BULK cuts a selection | yes | confirmed | P11 |
+| 10 | Concurrent double submit: the loser gets a status error | yes | confirmed | C1, R12 |
+| 11 | A member sent just before the lock is dropped, the rest goes | yes | confirmed | R9, R14, C4; no repository test then |
+| 12 | Dropping after the lock loses nothing | yes | confirmed | R10, R11, R13 |
+| 13 | No deadlock | yes | confirmed | C2 |
+| 14 | Another author's name taken concurrently caught | yes | confirmed | C3 |
+| 15 | Not-member drafts never go, nor count as on their way | yes | confirmed | P4, P5 |
+| 16 | Each blocker says its real reason | yes | confirmed | `blockedBy` |
+| 17 | The checks agree with submit | yes | confirmed | P1–P7, P10, R1–R7 |
+| 18 | A thrown error in one bulk group | yes | partly | R8, as before 112 |
+| 19 | The `DELETABLE` comment is back | yes | confirmed | `submissions.ts:368` |
+
+**Overall:** not met: R1, R2, R3, R6.
+
+### Adversarial re-check 2 — Task 4
+
+Witnessed: 2026-10-08 19:31 EDT, by a fresh agent (adversarial). Commit: 9f1b304. Machine: macOS 27.0.1, Node v24.0.0. With `stillNeeded` on selected drafts, `chosen`, the proposals exception, and the drop-after-lock test.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Tests and probes on the four databases | yes | confirmed | 112 passed on each |
+| 2 | R1 fixed | yes | confirmed | a goes alone |
+| 3 | R2 fixed | yes | confirmed | a submitted, b2 `not_ready` |
+| 4 | R3 fixed | yes | confirmed | [x1, y]; x2 stays draft |
+| 5 | R6 fixed | yes | confirmed | d, p1, p2 submitted |
+| 6 | Two new-item drafts of one name never both go | yes | confirmed | R18, R5 |
+| 7 | Selected cycle members stay together | yes | confirmed | R15 |
+| 8 | A selected draft needed by one item and met for another | yes | confirmed | R16 |
+| 9 | A proposal and a new-item draft of one name: the group takes the one that can go | yes | partly | R17: single Submit took the newer new-item draft over the proposal |
+| 10 | The drop-after-lock has a test | yes | confirmed | Mutation → "sends the rest…" fails |
+| 11 | The races still hold | yes | confirmed | R9, R14, R10, C1, C3, C4 |
+| 12 | Earlier fixes hold | yes | confirmed | P6, P8, P11, P1, P2 |
+| 13 | A thrown error in one bulk group | yes | partly | R8, as before 112 |
+
+**Overall:** not met: R17; row 13 by choice.
+
+### Adversarial re-check 3 — Task 4
+
+Witnessed: 2026-10-08 19:43 EDT, by a fresh agent (adversarial). Commit: 9f1b304. Machine: macOS 27.0.1, Node v24.0.0. With a proposal preferred over a new-item draft, and SPEC.md on unexpected errors.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Tests and probes pass on the four databases | yes | confirmed | 117 passed on each |
+| 2 | R17: a single Submit takes the proposal, not a newer new-item draft | yes | confirmed | Group [p, a] on the four databases; removing the preference → "takes the proposal of a published dependency…" fails |
+| 3 | Two proposals plus a new-item draft stay deterministic | yes | confirmed | R19: the newest proposal is taken (refused with its own reason if it isn't ready; bulk can pick the older); R6 still goes |
+| 4 | A proposal of an all-yanked item still goes with its dependent | yes | confirmed | R20 on the four databases |
+| 5 | A group too large says so once per member | yes | confirmed | R21: ≤2 errors per member, refused |
+| 6 | Row 13 against SPEC.md: an unexpected error stops the run, groups sent stay sent, running again picks up the rest | yes | confirmed | R22: rejects, a submitted, b draft; again → b submitted |
+| 7 | Earlier fixes hold | yes | confirmed | R1, R2, R3, R6, R18, P1, P2, P6, races |
+
+**Overall:** met: every claim of task 4, blind and adversarial, is confirmed in its latest pass. Remark R19 (the newest of two proposals is taken) stays as built.

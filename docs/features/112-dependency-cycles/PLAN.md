@@ -30,7 +30,7 @@ the same change that completes it.
   *Done when:* the registry-checks tests and the submissions db tests cover a cycle, the warning's
   words, and an own draft versus another author's, on the four databases.
 
-- [ ] **4. Submit together.** [risky] The service: the submit group (the item and the author's own
+- [x] **4. Submit together.** [risky] The service: the submit group (the item and the author's own
   drafts it needs, through the chain, cycles included), each member checked as if the group were in
   review, all submitted in one transaction or none; `submitDraft` and 056's bulk submit (`rmk
   submit` and the MCP tool through it) work in groups, and two groups sharing a draft merge.
