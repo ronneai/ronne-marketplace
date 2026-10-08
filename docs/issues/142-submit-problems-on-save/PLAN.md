@@ -19,7 +19,7 @@ the same change that completes it.
   and passes the issues in. *Done when:* a db or page test shows a blocked draft's issues
   without a save.
 
-- [ ] **3. The editor.**
+- [x] **3. The editor.**
   - `saveDraftAction` returns `submitIssues`.
   - `DraftEditor.tsx` keeps them from the last save, or the page load, and merges them with the
     live `validateDraft` issues for the badge, the list and the file tree, without duplicates.

@@ -87,6 +87,8 @@ export type SaveResult =
       /** Files the save changed itself (097), with what it wrote. */
       rewritten: { path: string; content: string }[];
       issues: ManifestIssue[];
+      /** What Submit would refuse for what was saved (#142): the registry's checks. */
+      submitIssues: ManifestIssue[];
     }
   | { ok: false; error: string; stale?: string[] };
 

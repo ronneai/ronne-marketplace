@@ -50,36 +50,50 @@ export const IssuesIcon = ({
   );
 };
 
-/** The popover's list: an optional heading, the issues, each one going to its place, a note. */
-const IssuesPanel = ({
+/**
+ * The popover's list: an optional heading, the issues, each one going to its place, a note. With
+ * `savedLabel`, the `saved` issues are listed apart under it (the editor's registry checks while
+ * there are unsaved changes, #142); without it, they're listed with the rest.
+ */
+export const IssuesPanel = ({
   heading,
   issues,
+  saved = [],
+  savedLabel,
   note,
   onSelect,
   close,
 }: {
   heading?: string;
   issues: readonly ManifestIssue[];
+  saved?: readonly ManifestIssue[];
+  savedLabel?: string;
   note?: string;
   onSelect?: (issue: ManifestIssue) => void;
   close: () => void;
-}) => (
-  <>
-    {heading ? <p className="font-mono font-semibold">{heading}</p> : null}
-    <IssueList
-      issues={issues}
-      onSelect={
-        onSelect
-          ? (issue) => {
-              close();
-              onSelect(issue);
-            }
-          : undefined
+}) => {
+  const select = onSelect
+    ? (issue: ManifestIssue) => {
+        close();
+        onSelect(issue);
       }
-    />
-    {note ? <p className="text-muted">{note}</p> : null}
-  </>
-);
+    : undefined;
+  return (
+    <>
+      {heading ? <p className="font-mono font-semibold">{heading}</p> : null}
+      {savedLabel && saved.length > 0 ? (
+        <>
+          {issues.length > 0 ? <IssueList issues={issues} onSelect={select} /> : null}
+          <p className="text-muted">{savedLabel}</p>
+          <IssueList issues={saved} onSelect={select} />
+        </>
+      ) : (
+        <IssueList issues={[...issues, ...saved]} onSelect={select} />
+      )}
+      {note ? <p className="text-muted">{note}</p> : null}
+    </>
+  );
+};
 
 /**
  * A file's problems behind an icon right after its name: clicking it lists them in a popover in
@@ -88,34 +102,43 @@ const IssuesPanel = ({
 export const FileIssues = ({
   path,
   issues,
+  saved = [],
+  savedLabel,
   onSelect,
   className,
   placement,
 }: {
   path: string;
   issues: readonly ManifestIssue[];
+  /** As for IssuesSummary: counted with the rest, listed apart under `savedLabel` (#142). */
+  saved?: readonly ManifestIssue[];
+  savedLabel?: string;
   onSelect?: (issue: ManifestIssue) => void;
   className?: string;
   placement?: Placement;
-}) =>
-  issues.length === 0 ? null : (
+}) => {
+  const all = [...issues, ...saved];
+  return all.length === 0 ? null : (
     <Popover
-      label={`Show problems: ${issueCount(issues).toLowerCase()}`}
-      button={<IssuesIcon issues={issues} />}
+      label={`Show problems: ${issueCount(all).toLowerCase()}`}
+      button={<IssuesIcon issues={all} />}
       buttonClassName={cn("p-0.5", className)}
-      tone={issuesTone(issues)}
+      tone={issuesTone(all)}
       placement={placement}
     >
       {(close) => (
         <IssuesPanel
-          heading={`${path} · ${issueCount(issues)}`}
+          heading={`${path} · ${issueCount(all)}`}
           issues={issues}
+          saved={saved}
+          savedLabel={savedLabel}
           onSelect={onSelect}
           close={close}
         />
       )}
     </Popover>
   );
+};
 
 /**
  * Every problem summed up in a chip: "2 errors, 1 warning", or "No problems", in its tone (a red
@@ -123,22 +146,28 @@ export const FileIssues = ({
  */
 export const IssuesSummary = ({
   issues,
+  saved = [],
+  savedLabel,
   note,
   onSelect,
   className,
   placement,
 }: {
   issues: readonly ManifestIssue[];
+  /** Issues from elsewhere, counted with the rest; listed apart under `savedLabel` when it's given. */
+  saved?: readonly ManifestIssue[];
+  savedLabel?: string;
   /** What the problems mean here, such as that errors stop a submit. */
   note?: string;
   onSelect?: (issue: ManifestIssue) => void;
   className?: string;
   placement?: Placement;
 }) => {
-  const tone = issuesTone(issues);
+  const all = [...issues, ...saved];
+  const tone = issuesTone(all);
   return (
     <Popover
-      label={`Problems: ${issueCount(issues)}`}
+      label={`Problems: ${issueCount(all)}`}
       maxWidth={520}
       tone={tone === "ok" ? "default" : tone}
       placement={placement}
@@ -149,12 +178,21 @@ export const IssuesSummary = ({
       )}
       button={
         <>
-          <IssuesIcon issues={issues} />
-          {issueCount(issues)}
+          <IssuesIcon issues={all} />
+          {issueCount(all)}
         </>
       }
     >
-      {(close) => <IssuesPanel issues={issues} note={note} onSelect={onSelect} close={close} />}
+      {(close) => (
+        <IssuesPanel
+          issues={issues}
+          saved={saved}
+          savedLabel={savedLabel}
+          note={note}
+          onSelect={onSelect}
+          close={close}
+        />
+      )}
     </Popover>
   );
 };

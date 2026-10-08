@@ -56,3 +56,35 @@ Witnessed: 2026-10-08 14:22 EDT, by a fresh agent (blind). Commit: 577d252. Mach
 | 6 | Types and lint are clean for the change | no | confirmed | `pnpm --filter @ronneai/web typecheck` → no errors; `biome check` on the changed dirs → 2 warnings, both in unchanged files |
 
 **Overall:** met: the page load runs the save's own `submitIssuesOf` for the author's editable draft and passes the result to the editor; a db test on all four databases shows a blocked draft's issues with no save. Notes, not bugs: (1) no test yet checks the page passes the issues to the editor (task 3's page test covers it); (2) the `isEditable` part of the gate is checked by reading only; (3) no test has a draft that becomes blocked after its last save; the helper recomputes on every load.
+
+## Task 3 — The editor
+
+Witnessed: 2026-10-08 14:27 EDT, by a fresh agent (blind). Commit: 51d8918. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: draft-editor (DraftEditor, actions, types, issues, tests), validation (IssuesPopover and its test).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `saveDraftAction` returns `submitIssues` from `saveDraftFiles` | yes | confirmed | `actions.ts:52` destructures it, `:72` returns it; `types.ts:91` adds it to `SaveResult`; typecheck clean. No test covers it: `submitIssues: []` in a scratch copy → 130 passed |
+| 2 | Kept from the page load, replaced on each successful save; typing doesn't re-query | yes | confirmed | `DraftEditor.tsx:199` `useState(draft.submitIssues ?? [])`; `setChecked` only in the save's success path (`:287`); the page remounts the editor on a new `updatedAt`. Not covered by a test: removing `setChecked` → 130 passed |
+| 3 | The badge counts live and registry issues together | yes | confirmed | Probe: valid manifest plus registry `[warning, error]` → `Problems: 1 error, 1 warning`; the #142 test → `Problems: 1 error` |
+| 4 | The file tree shows registry issues under ronne.yaml, including a missing file's or one with no file | yes | confirmed | Probe: an error about `SKILL.md` (not in the tree) and a warning with no file → `Show problems: 1 error, 1 warning` on ronne.yaml. Tree from live issues only → the #142 test fails |
+| 5 | Each problem appears once, even when a check is on both sides | yes | confirmed | `issues.ts` `savedOnly` dedupes on severity, code, message, file and path. Probe: 4 live errors passed back as `submitIssues` → badge stays `4 errors`. `issues.test.ts` covers the overlap |
+| 6 | While dirty, the registry issues are listed apart, marked "as of your last save", in `IssuesPopover` | yes | confirmed | `DraftEditor.tsx:387` `savedLabel={dirty && !readOnly ? AS_OF_SAVE : undefined}`; `IssuesPanel` puts the label between the lists (test checks the order). By reading only: the popover body doesn't render in static markup. Only the badge's popover marks them, not the tree's `FileIssues` |
+| 7 | A clean draft still shows "No problems" | yes | confirmed | `draft-editor.test.tsx` #142 test: `submitIssues: []` → `Problems: No problems`, no tree icon |
+| 8 | Submit's dialog doesn't change | no | confirmed | `git diff --stat` → `SubmitDialogs.tsx` untouched. The Submit button is now also held by registry errors ("Fix the error first.") |
+| 9 | Done when: the component tests cover the merge, the marking and the clean case | yes | partly | 130 passed. Merge and clean case covered. Marking: only `IssuesPanel` with a made-up label; `savedLabel={undefined}` in the editor → 130 still passed |
+| 10 | Typecheck and lint clean for the change | no | confirmed | `pnpm --filter @ronneai/web typecheck` → no errors; `biome check` on both folders → no fixes |
+
+**Overall:** not met: the merge, the dedupe, the clean case and the save wiring work, but no test covers the editor marking registry issues while dirty (claim 9). Also: the save path (`setChecked`, the action's `submitIssues`) has no test; the tree's popover doesn't mark them.
+
+### Re-check — claims 6, 9 and the tree marking
+
+Witnessed: 2026-10-08 14:29 EDT, by a fresh agent (blind). Commit: 51d8918. Machine: macOS 27.0.1, Node v24.0.0. The editor's decisions moved into `editorProblems` (`issues.ts`); `FileIssues` takes `saved` and `savedLabel`.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | While dirty, the registry issues are listed apart in `IssuesPopover`, marked "as of your last save" | yes | confirmed | `editorProblems` → `savedLabel: dirty && !readOnly && saved.length > 0 ? AS_OF_SAVE : undefined`, passed to `IssuesSummary` (`DraftEditor.tsx:383`). Scratch copy: dropping `dirty` → 1 test fails (`issues.test.ts`); dropping `!readOnly` → 1 fails; `IssuesPanel` ignoring the label → 1 fails (`issues-popover.test.tsx`) |
+| 11 | The file tree's popover lists the registry issues apart under the same label | yes | confirmed | `DraftEditor.tsx:568-570` passes `byFile.get(path).live`, `.saved` and `problems.savedLabel` to `FileIssues`, which counts both (test: `Show problems: 1 error` with `saved` only). Dropping `saved` from the tree → the #142 editor test fails. `FileIssues` passing the label to `IssuesPanel` is untested |
+| 9 | Done when: the component tests cover the merge, the marking and the clean case | yes | confirmed | 133 passed. Merge: dropping the dedupe → 2 fail; a missing file's issue sent elsewhere → 1 fails. Marking: as in claim 6. Clean case: `issues.test.ts` and the editor test. `savedLabel={undefined}` at both editor call sites still passes: that needs a DOM, left to task 4's Playwright test |
+| 10 | Typecheck and lint still clean | no | confirmed | `pnpm --filter @ronneai/web typecheck` → no errors; `biome check` on both folders → no fixes |
+
+**Overall:** met: the merge, the marking (badge and tree) and the clean case are each covered by a test that fails when broken. The JSX props passing the label, and the save round trip, are left to task 4's Playwright test, which opens the badge while dirty.
