@@ -109,7 +109,8 @@ different type means a new item.
 **Which types can depend on which.** Any type on any type ([096](../features/096-any-dependency/SPEC.md),
 owner 2026-10-05): a skill on the agent it works with, a rule on an MCP server, an agent on another
 agent, so people compose what works for them. A bundle lists at least one dependency; an item can't
-depend on itself, and the dependencies can't go round in a circle (§4.3). Until 096, only bundles
+depend on itself. Items may need each other (a cycle, allowed since [112](../features/112-dependency-cycles/SPEC.md), owner 2026-10-08): they're
+submitted, released and installed together (§4.1, §4.3). Until 096, only bundles
 (any type), agents (skills, MCP servers, hooks, rules, commands), and skills and commands (MCP
 servers) could have dependencies.
 
@@ -307,6 +308,18 @@ stateDiagram-v2
 - **Withdrawing** is allowed until release: from `draft`, `submitted`, `changes_requested` (owner decision, 2026-09-27) or `approved` (owner, 2026-10-02). It asks whether to **archive** (`withdrawn`, shown as "archived": private to the author, restorable as a draft) or **delete for good**, which only a submission nobody has reviewed allows (owner, 2026-10-02, [057](../features/057-withdraw-archive-delete/SPEC.md)). An approved one can therefore only be archived.
 - **Approval** needs one moderator or root other than the author. Root can self-approve as an audited override.
 - **Approval freezes the content**, so any later edit sends the submission back to `submitted`.
+- **Submitted and released together** (owner, 2026-10-08, [112](../features/112-dependency-cycles/SPEC.md)). An item goes through review
+  with what it needs, all or none:
+  - **Submit** on an item submits it with every one of the author's own drafts it depends on,
+    directly or through others, cycles included, in one transaction. Dependencies already in review,
+    approved or released aren't part of it.
+  - **Release** on an approved item releases it with every dependency, direct or through others,
+    that has no released version matching its range yet. They must all be approved; the versions
+    are recorded in one transaction, so a failure leaves nothing half released.
+  - Bulk submit and bulk release work in the same groups; two groups sharing an item are one.
+  - Another author's item is never submitted or released by someone else: it counts as a
+    dependency once it's published (089).
+  - Each member is still reviewed and approved on its own.
 - **Change proposals** work the same way, but target an existing item. The reviewer sees a diff against the version it was based on (usually `latest`). If a newer version was published in the meantime, the submission is marked **stale** and must be rebased before it can be approved.
 
 ### 4.2 Release
@@ -325,6 +338,8 @@ flowchart LR
 - The publisher chooses the bump (the default is suggested from the diff) and the dist-tag.
 - A first stable release is `1.0.0`. A first pre-release is `1.0.0-<id>.1`, such as `1.0.0-beta.1`.
   Later pre-releases increase the number, and releasing the stable version drops the suffix.
+- An item released with its dependencies (§4.1, [112](../features/112-dependency-cycles/SPEC.md)) is one group: every artifact is packed
+  and stored first, then all the versions are recorded in one transaction.
 - Artifacts are stored as `storage/<scope>/<name>/<version>.tgz` behind a `StorageAdapter` interface. Local disk is used for the MVP.
 
 ### 4.3 Install / update
@@ -341,7 +356,10 @@ flowchart LR
   highest version that satisfies every range that asks for the item.
 - **Conflicts fail the install.** If no version satisfies all the ranges, the resolver stops and
   names the items that asked for each range. Nothing is written.
-- **Cycles are rejected** at submission time, and again by the resolver.
+- **Cycles are allowed** (owner, 2026-10-08, [112](../features/112-dependency-cycles/SPEC.md)). Items that need each other resolve to one
+  version each and are installed together. An item can't depend on itself.
+- **Only what the requests reach is installed.** An item that nothing asks for any more, directly
+  or through others, leaves the resolution, even when it and another still ask for each other.
 - **Yanked versions** are skipped when resolving a range, but a version pinned in `rmk.lock` is
   still downloaded.
 - **Deprecated versions** resolve normally and print their message.
@@ -625,8 +643,8 @@ IDs are ULIDs and timestamps are UTC (§9.4).
 | `POST /drafts` | Create a draft of a new item with its files, as the token's user (M7, 037) |
 | `GET /drafts?name=` | The token's user's drafts, submissions sent back for changes, and submissions in review, of an item (M7, [051](../features/051-update-drafts-on-export/SPEC.md)) |
 | `PUT /drafts/{id}` | Replace the files of the token's user's draft, or one sent back for changes, with an upload of the same item (M7, 051) |
-| `POST /drafts/check` | Whether Submit would take each of the token's user's drafts (`ids` or `all`), and what's in the way (M7, [052](../features/052-bulk-submit/SPEC.md)) |
-| `POST /drafts/submit` | Submit each of those drafts that's ready, each on its own, and answer every result (M7, 052) |
+| `POST /drafts/check` | Whether Submit would take each of the token's user's drafts (`ids` or `all`), with the group it goes with, and what's in the way (M7, [052](../features/052-bulk-submit/SPEC.md), [112](../features/112-dependency-cycles/SPEC.md)) |
+| `POST /drafts/submit` | Submit those drafts in their groups (each with the author's own drafts it needs), each group all or none, and answer every result (M7, 052, 112) |
 | `GET /usage` · `POST /usage` | Whether the instance accepts usage; report daily counts of installs, removals and runs (M9, [046](../features/046-usage-telemetry/SPEC.md)) |
 | `GET /feeds/{tool}/marketplace.json` · `GET /feeds/{tool}/plugins/{scope}/{name}/{version}.zip` | A tool's plugin marketplace and its plugin zips, for Claude Code, Codex and Cursor (M11, [077](../features/077-claude-code-marketplace/SPEC.md), [078](../features/078-plugin-feed-mirror/SPEC.md)) |
 
@@ -864,9 +882,10 @@ out (owner, 2026-09-30). The design, for when it's picked up:
 | Pre-releases | Real semver pre-releases (`1.1.0-beta.1`) under a non-`latest` tag (`next` by default); first stable is `1.0.0` | Matches npm behaviour users already know |
 | Secrets | rmk never stores secret values; rendered configs reference env vars and rmk reports missing ones | No secrets on disk from us; every platform reads env vars |
 | Managed content | Markers in files that allow comments; `.rmk/state.json` with hashes for JSON/TOML keys; stop on user edits unless `--force` | JSON can't hold markers; hashes detect local edits safely |
-| Resolver | One version per item per install scope; conflicts and cycles fail; any type may depend on any type (§3.1, 096) | Rendered paths are named per item, so versions can't coexist |
+| Resolver | One version per item per install scope; conflicts fail; cycles resolve, one version each, since [112](../features/112-dependency-cycles/SPEC.md) (they failed until 2026-10-08); only what the requests reach is installed; any type may depend on any type (§3.1, 096) | Rendered paths are named per item, so versions can't coexist |
 | Agents and skills in frontmatter | A skill names the agent that runs it as Claude Code does, `agent: @scope/name` in its `SKILL.md`, and that sets the dependency: unquoted is accepted and saved quoted, and the save adds it to `ronne.yaml`. Claude Code gets the installed name and `context: fork`; an agent's skill dependencies become `skills:`, preloaded; the `.agents/skills/` copy (Codex, Cursor) drops both keys with a warning; `rmk export` reads a skill's local `agent:` as a dependency (owner, 2026-10-05, [097](../features/097-frontmatter-references/SPEC.md)) | Writing the name where the tool reads it is how people set it; only Claude Code has either key (Codex, Cursor and the Agent Skills standard don't), so they're kept out of the shared copy |
-| Dependencies between types | Any item may depend on any other item, of any type; the form, `@` in markdown and the Canvas view are on every type; a bundle still lists at least one; cycles and self-dependencies are refused. It was "dependency types restricted" (bundle on any, agent on five types, skill and command on MCP servers, the rest on nothing) until the owner changed it, 2026-10-05 ([096](../features/096-any-dependency/SPEC.md)) | People should compose what works for them. Renderers never read `dependencies` (each item is rendered by its own type), so the rule protected nothing at install; released `rmk` versions parse a manifest whatever its schema says, so they install these items too |
+| Dependencies between types | Any item may depend on any other item, of any type; the form, `@` in markdown and the Canvas view are on every type; a bundle still lists at least one; self-dependencies are refused, and cycles are allowed since [112](../features/112-dependency-cycles/SPEC.md) (refused until 2026-10-08). It was "dependency types restricted" (bundle on any, agent on five types, skill and command on MCP servers, the rest on nothing) until the owner changed it, 2026-10-05 ([096](../features/096-any-dependency/SPEC.md)) | People should compose what works for them. Renderers never read `dependencies` (each item is rendered by its own type), so the rule protected nothing at install; released `rmk` versions parse a manifest whatever its schema says, so they install these items too |
+| Submitted and released together | Submit on an item submits it with the author's own drafts it depends on, through the chain; Release releases it with every dependency not yet released, all approved; one transaction each, all or none; bulk submit and release in the same groups; items that need each other allowed (owner, 2026-10-08, [112](../features/112-dependency-cycles/SPEC.md)). Until then a dependency went first: in review before its dependent was submitted, released before it (056), and cycles were refused | Half a group in review or released leaves the rest unable to follow: a released item whose dependency never comes can't be installed |
 | MCP writes | Two steps: `plan_*` tools return a plan, `apply_plan` writes it. Uploads too: `plan_export` returns the plan, `export_items` sends it ([039](../features/039-mcp-export-tools/SPEC.md)) | AI tools ask permission before a call, so the plan must be visible first |
 | DB portability | ULID keys, UTC timestamps, JSON as text, `LIKE` search, upserts via a helper | Keeps one migration set working on all three databases |
 | API conventions | One error shape with stable codes; cursor pagination; `/api/vN` versioning. Reads, plus creating a draft (M7); every `POST` body has a size limit ([037](../features/037-draft-upload-api/SPEC.md)) | Stable contract for `rmk` and the MCP server |
@@ -895,7 +914,7 @@ out (owner, 2026-09-30). The design, for when it's picked up:
 | Export | A person's own local items go to the registry as **drafts**, from `rmk export` and the MCP tools `plan_export` / `export_items`; the person chooses the scope; submitting stays in the web app; an item `rmk` installed and the person edited, or their own item whose name is published, becomes a change proposal merged onto its base version ([042](../features/042-export-change-proposal/SPEC.md)); skills first, then agents, commands, rules and MCP servers from Claude Code's files (owner, 2026-09-30, M7: [037](../features/037-draft-upload-api/SPEC.md)–[041](../features/041-export-dependencies/SPEC.md)). "Native plugin export" was renamed "native plugin feeds" to free the word | People write items in their tools first; rebuilding them by hand in the editor is the step that keeps them out of the registry. A draft is the safe landing: nothing is visible to others until its author submits it |
 | Exporting again | `rmk export` and the MCP export tools update the person's own draft of the same item (same name and type, and for a proposal the same base), or one sent back for changes, replacing its files; one in review is left alone; `--new-draft` makes a separate draft (owner, 2026-10-01, [051](../features/051-update-drafts-on-export/SPEC.md)) | Drafts no longer pile up or fill the 50-draft limit when a person keeps working in their tool; review stays untouched, and a different item or base stays a different draft |
 | Native readers | The reverse of a renderer, in `packages/core`: pure, read-only, and lossy only with a warning per dropped field; secrets and environment values never leave the machine ([native readers spec](../spec/native-readers.md)) | The mapping tables are the renderers' reversed, so both directions stay in step, and the web app could use the readers later |
-| Dependencies on export | Detected from what an item uses; the person is asked and exporting them too is recommended; a dependency counts at submit once it's released, or when it's the submitter's own open submission (another author's item counts once it's published, [089](../features/089-dependency-picker-rule/SPEC.md), owner 2026-10-05); its range is checked at release, where dependencies go first; rejecting a dependency offers to request changes on its dependents. The pickers (the form, `@` in markdown, the canvas) offer the person's own items in any state and others' published ones (089) ([041](../features/041-export-dependencies/SPEC.md), 2026-09-30; relaxed by [056](../features/056-pending-dependencies/SPEC.md), owner 2026-10-01) | An exported item should work where it's installed; released still means installable, and an item and its dependencies no longer take one full round each |
+| Dependencies on export | Detected from what an item uses; the person is asked and exporting them too is recommended; a dependency counts at submit once it's released, or when it's the submitter's own open submission, and the submitter's own drafts are submitted with it (another author's item counts once it's published, [089](../features/089-dependency-picker-rule/SPEC.md), owner 2026-10-05); its range is checked at release, where the unreleased dependencies are released with it ([112](../features/112-dependency-cycles/SPEC.md), owner 2026-10-08); rejecting a dependency offers to request changes on its dependents. The pickers (the form, `@` in markdown, the canvas) offer the person's own items in any state and others' published ones (089) ([041](../features/041-export-dependencies/SPEC.md), 2026-09-30; relaxed by [056](../features/056-pending-dependencies/SPEC.md), owner 2026-10-01) | An exported item should work where it's installed; released still means installable, and an item and its dependencies no longer take one full round each |
 | Dependencies | Permissive licenses only (MIT, ISC, BSD, Apache-2.0 …; CC-BY-4.0 for data); no copyleft or paid tools; latest stable/LTS; CI license + audit + image scans; pnpm release-age delay, build allowlist, trust policy | Ronne must be freely redistributable and must not ship known vulnerabilities |
 | Packages | `@ronneai/{marketplace,rmk,mcp,core}`, all at one version; binaries `rmk`, `rmk-mcp` and `rmk-server` (the server, `@ronneai/marketplace`: the standalone web app assembled into the package at pack time, with `better-sqlite3` and argon2 as its only dependencies so npm installs each platform's build; owner, 2026-10-03; [082](../features/082-server-npm-package/SPEC.md)); Node 24 LTS target, 22 LTS minimum; Docker amd64 + arm64 | Unscoped `rmk` is taken on npm; the owner holds `@ronneai` on npmjs.com (as on GitHub), not `@ronne` (confirmed 2026-09-27) |
 | Package registry | Publish to npmjs.com under `@ronneai`; not GitHub Packages as the install source (a mirror there is possible later). The command stays `rmk` | GitHub Packages only takes the repository owner's scope (`@ronneai`), and installing from it needs a GitHub token with `read:packages` and an `.npmrc` registry line, even for public packages: too much friction for a CLI anyone should install with one command |

@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. The decisions.** MVP §3.1, §4.1, §4.3 and §15 (the "Resolver" and "Dependencies between
+- [x] **1. The decisions.** MVP §3.1, §4.1, §4.3 and §15 (the "Resolver" and "Dependencies between
   types" rows, and new rows for decisions 1 and 2); the manifest spec §3; `item-types.ts`'s comment;
   056's spec gets a note that 112 replaces "first" with "together" for the author's own items.
   *Done when:* no doc in `docs/MVP` or `docs/spec` says cycles are refused or that an author's own
