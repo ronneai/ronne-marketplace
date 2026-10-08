@@ -31,6 +31,6 @@ the same change that completes it.
   badge, then fixes the range, saves, and sees **No problems**. *Done when:*
   `pnpm test:e2e` passes on desktop and phone.
 
-- [ ] **5. Documentation.** `items#canvas` and `review#checks` on the website (en, pt, fr), in a
+- [x] **5. Documentation.** `items#canvas` and `review#checks` on the website (en, pt, fr), in a
   ronne-web branch that goes live with the release. *Done when:* the pages say what tasks 1–3
   do.
