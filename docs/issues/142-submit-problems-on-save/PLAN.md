@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. The service.** `saveDraftFiles` (`services/drafts.ts`) returns `submitIssues`:
+- [x] **1. The service.** `saveDraftFiles` (`services/drafts.ts`) returns `submitIssues`:
   - `registryIssues` on the saved draft, plus `noChangeIssues` for a proposal;
   - it's shared with `uploaded()` through one helper;
   - a failure in the checks is caught and reported as a single warning, not thrown.

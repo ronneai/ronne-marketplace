@@ -121,19 +121,22 @@ export const countMySubmissionsByStatus = async (headers: Headers, app: AppAuth 
 export const getDraft = async (headers: Headers, id: string, app: AppAuth = getAppAuth()) =>
   service.getDraft(...(await bound(headers, app)), id);
 
+/** With storage, so a change proposal that changes nothing is told so on save (#142). */
 export const saveDraftFiles = async (
   headers: Headers,
   id: string,
   changes: service.DraftChanges,
   app: AppAuth = getAppAuth(),
-) => service.saveDraftFiles(...(await bound(headers, app)), id, changes);
+  storage: StorageAdapter = instanceStorage,
+) => service.saveDraftFiles(...(await bound(headers, app, storage)), id, changes);
 
 export const importZip = async (
   headers: Headers,
   id: string,
   input: { archive: Uint8Array; mode: "merge" | "replace" },
   app: AppAuth = getAppAuth(),
-) => service.importZip(...(await bound(headers, app)), id, input);
+  storage: StorageAdapter = instanceStorage,
+) => service.importZip(...(await bound(headers, app, storage)), id, input);
 
 export const renameDraft = async (
   headers: Headers,
