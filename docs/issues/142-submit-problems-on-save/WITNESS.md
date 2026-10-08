@@ -127,3 +127,34 @@ Witnessed: 2026-10-08 14:49 EDT, by a fresh agent (blind). Commit: dc12c50. Mach
 | 10 | The website's checks pass | no | confirmed | `cd ronne-web/www && pnpm lint && pnpm typecheck && pnpm test src/content/docs` → Biome 206 files, no fixes; tsc clean; 5 passed |
 
 **Overall:** met: in en, pt and fr, review#checks and items#canvas describe what tasks 1–3 do, and task 4's rule that only 011's errors hold Submit; every fact matches the code at dc12c50. Not run here: the Playwright tests (claims 4–7 rest on reading them and the code, plus the unit tests).
+
+## Follow-up — phone-webkit in CI
+
+CI on PR #149 failed in `phone-webkit` (WebKit on Linux): the test's Ctrl+A didn't select ronne.yaml, so the new manifest was added to the template ("Problems: 4 errors"), and the retry then hit the 5-a-minute sign-in limit of the shared phone user.
+
+Witnessed: 2026-10-08 15:46 EDT, by a fresh agent (blind). Commit: dc12c50. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: e2e (submit-problems.ts, submit-problems.mobile.e2e.ts, mobile.ts, users.ts); HEAD was 2bf15c5, docs only after dc12c50.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | ronne.yaml is replaced without a platform select-all key | yes | confirmed | `submit-problems.ts:31-34`: `editor.click()`, `editor.selectText()`, `keyboard.insertText(text)`; grep finds no `ControlOrMeta+a` left |
+| 2 | The replacement works where Ctrl+A means "start of line" (WebKit on macOS behaves as on Linux) | yes | confirmed | `pnpm test:e2e` → `[phone-webkit] submit-problems.mobile.e2e.ts` passed. Scratchpad copy with `keyboard.press("Control+a")` instead of `selectText()` → the new manifest lands inside the template: CI's failure reproduced on macOS WebKit |
+| 3 | The flow fails clearly if the old text stays | yes | partly | First write: the `Control+a` swap fails at `submit-problems.ts:36` (`not.toContainText('description: ""')`). Second write only with `Control+a`: both manifests kept, and the test passed; both checks only look for the template's text |
+| 4 | Each of phone, phone-webkit and tablet signs in as its own user, used by no other test | yes | confirmed | `mobile.ts:6-24` adds the role `problems` → `phoneProblems` / `phoneWebkitProblems` / `tabletProblems`; `users.ts:76-78` distinct emails; `submit-problems.mobile.e2e.ts:8`; `mobile-sweep` keeps `ROLES = ["member","moderator","root"]` |
+| 5 | The new users exist in the e2e instance | no | confirmed | `seed.ts:42-55` creates every `E2E_USERS` entry with its `E2E_NAMES` (`users.ts:145-147`); the test passed on the three projects |
+| 6 | A retry can still sign in (5 a minute per email) | yes | confirmed | `login-rate-limiter.ts:19-20,61`. Copy with a forced first failure, `playwright test --project phone-webkit --retries=1` → retry #1 passed ("1 flaky, 14 passed"); the same probe with the old `"member"` role → retry fails at `signIn`, as in CI |
+| 7 | `pnpm test:e2e` passes on every project | yes | confirmed | "101 passed (2.4m)", the 4 `submit-problems` runs included, nothing flaky; `biome check` clean; typecheck passed |
+| 8 | phone-webkit passes in CI (WebKit on Linux) | yes | can't check here | Needs the GitHub run after the push |
+
+**Overall:** not met: the select-all fix and the separate users hold and the suite passes (101), but the old-text check covers only the first write (claim 3), and claim 8 waits for CI. Aside, outside this follow-up: a ronne.yaml with duplicate top-level keys showed "No problems".
+
+### Re-check — claim 3 and the submit-problems runs
+
+Witnessed: 2026-10-08 15:55 EDT, by a fresh agent (blind). Commit: dc12c50. Machine: macOS 27.0.1, Node v24.0.0. `write()` now polls for exactly one `type: agent` after each write.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3 | The flow fails clearly if the old text stays, on either write | yes | confirmed | `submit-problems.ts:35-40`: one `type: agent`, no `description: ""`, the new text's last line present. Second-write `Control+a` probe → fails at the poll, "Expected: 1, Received: 2"; first-write probe → same; second write inserting nothing → fails at `toContainText('  "@e2e-seeded/secret-scanner": ^1.0.0')`, `^9.0.0` received |
+| 7 | The four submit-problems runs, and the whole suite, still pass | yes | confirmed | `pnpm test:e2e` → exit 0, "101 passed (2.5m)", chromium, phone, phone-webkit and tablet included, nothing flaky; `biome check` clean; typecheck exit 0 |
+| 8 | phone-webkit passes in CI (WebKit on Linux) | yes | can't check here | Still needs the GitHub run after the push |
+
+**Overall:** not met: claim 3 holds on both writes and the suite passes here (101); claim 8 waits for phone-webkit on Linux in CI.

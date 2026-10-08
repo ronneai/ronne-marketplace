@@ -70,8 +70,12 @@ export const E2E_USERS = {
   phoneWebkitPrivateOutsider: "phone-webkit-private-outsider@e2e.test",
   tabletPrivateMember: "tablet-private-member@e2e.test",
   tabletPrivateOutsider: "tablet-private-outsider@e2e.test",
-  // #142: saves a draft that Submit would refuse, and sees why.
+  // #142: saves a draft that Submit would refuse, and sees why; one per project, so their sign-ins
+  // don't share a limit with the projects' members.
   problemsAuthor: "problems-author@e2e.test",
+  phoneProblems: "phone-problems@e2e.test",
+  phoneWebkitProblems: "phone-webkit-problems@e2e.test",
+  tabletProblems: "tablet-problems@e2e.test",
 } as const;
 
 /** The display names, which the header shows (not the email). */
@@ -138,6 +142,9 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   tabletPrivateMember: "Tab Vault",
   tabletPrivateOutsider: "Tab Outside",
   problemsAuthor: "Pia Problems",
+  phoneProblems: "Phone Problems",
+  phoneWebkitProblems: "Ios Problems",
+  tabletProblems: "Tab Problems",
 };
 
 /** Seeded with the moderator role; everyone else is a user. */

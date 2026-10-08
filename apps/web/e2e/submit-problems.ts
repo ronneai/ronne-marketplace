@@ -24,12 +24,20 @@ export const saveAndSeeSubmitProblems = async (page: Page, item: string) => {
   const dependency = `@${E2E_SCOPE}/${E2E_SKILL}`;
   const manifest = (range: string) =>
     `name: "@${E2E_SCOPE}/${item}"\ntype: agent\ndescription: Shows what Submit would refuse.\nagent:\n  prompt: prompt.md\ndependencies:\n  "${dependency}": ${range}\n`;
-  // The whole file at once, so the editor's indenting doesn't move the YAML around.
+  // The whole file at once, so the editor's indenting doesn't move the YAML around. Selected
+  // without a shortcut: WebKit on Linux takes Ctrl+A as "start of line", as macOS does.
   const write = async (text: string) => {
     await page.getByRole("button", { name: "YAML", exact: true }).click();
-    await page.getByLabel("Contents of ronne.yaml").click();
-    await page.keyboard.press("ControlOrMeta+a");
+    const editor = page.getByLabel("Contents of ronne.yaml");
+    await editor.click();
+    await editor.selectText();
     await page.keyboard.insertText(text);
+    // Replaced, not added to: one manifest, the new range, and none of the template's text.
+    await expect
+      .poll(async () => ((await editor.textContent()) ?? "").split("type: agent").length - 1)
+      .toBe(1);
+    await expect(editor).not.toContainText('description: ""');
+    await expect(editor).toContainText(text.trimEnd().split("\n").at(-1) ?? "");
   };
   const save = async () => {
     await page.getByRole("button", { name: "Save", exact: true }).click();
