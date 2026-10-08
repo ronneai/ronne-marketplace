@@ -56,8 +56,7 @@ export type ResolveErrorCode =
   | "item_not_found"
   | "tag_not_found"
   | "no_matching_version"
-  | "resolve_conflict"
-  | "dependency_cycle";
+  | "resolve_conflict";
 
 /** A resolution that can't succeed, with a stable code and the facts behind it. */
 export class ResolveError extends Error {
@@ -149,97 +148,162 @@ export const resolve = async (
     addConstraint(name, { range: await rangeOf(name, value, REQUESTED), from: REQUESTED });
   }
 
-  let steps = 0;
-  while (queue.size > 0) {
-    if (++steps > MAX_STEPS)
-      throw new ResolveError(
-        "resolve_conflict",
-        "The dependencies keep changing each other's versions.",
-      );
-    const name = [...queue].sort(byName)[0] ?? "";
-    queue.delete(name);
-    const asking = constraints.get(name) ?? [];
-    const previous = chosen.get(name);
-
-    // Nothing asks for it any more: it leaves, with the ranges it put on others.
-    if (asking.length === 0) {
-      if (previous) {
-        chosen.delete(name);
-        dropConstraintsFrom(`${name}@${previous.version}`);
-      }
-      continue;
+  /**
+   * The sources whose ranges still count: the request, and each chosen version the requests reach.
+   * With `through`, that item's own dependencies aren't followed: what's left is what would still
+   * ask for things if it changed version.
+   */
+  const liveSources = (through?: string): Set<string> => {
+    const sources = new Set<string>([REQUESTED]);
+    const seen = new Set<string>();
+    const pending = Object.keys(request.dependencies);
+    for (let name = pending.pop(); name !== undefined; name = pending.pop()) {
+      if (seen.has(name)) continue;
+      seen.add(name);
+      const version = chosen.get(name);
+      if (!version || name === through) continue;
+      sources.add(`${name}@${version.version}`);
+      pending.push(...Object.keys(version.dependencies));
     }
+    return sources;
+  };
 
-    const item = await load(
-      name,
-      asking.map((c) => c.from),
-    );
-    const fitsAll = (v: RegistryVersion) => asking.every((c) => fits(v.version, c.range));
+  /** The highest version that fits every range (the locked one first), or undefined. */
+  const bestOf = (item: RegistryItem, name: string, ranges: readonly Constraint[]) => {
+    const fitsAll = (v: RegistryVersion) => ranges.every((c) => fits(v.version, c.range));
     const locked = item.versions.find((v) => v.version === request.locked?.[name]);
-    const best =
-      locked && fitsAll(locked)
-        ? locked
-        : rsort(
-            item.versions
-              .filter((v) => !v.yanked && valid(v.version) !== null && fitsAll(v))
-              .map((v) => v.version),
-          )
-            .map((version) => item.versions.find((v) => v.version === version))
-            .find((v) => v !== undefined);
-    if (!best) {
-      const each = asking.map((c) => ({ range: c.range, from: c.from }));
-      const anyFits = asking.every((c) =>
-        item.versions.some((v) => (!v.yanked || v === locked) && fits(v.version, c.range)),
-      );
-      if (asking.length > 1 && anyFits)
+    if (locked && fitsAll(locked)) return locked;
+    return rsort(
+      item.versions
+        .filter((v) => !v.yanked && valid(v.version) !== null && fitsAll(v))
+        .map((v) => v.version),
+    )
+      .map((version) => item.versions.find((v) => v.version === version))
+      .find((v) => v !== undefined);
+  };
+
+  /** How many times each item has changed version: past two, it stays where it fits (112). */
+  const switches = new Map<string, number>();
+
+  let steps = 0;
+  const settle = async () => {
+    while (queue.size > 0) {
+      if (++steps > MAX_STEPS)
         throw new ResolveError(
           "resolve_conflict",
-          `No version of ${name} fits every range asking for it: ${each
-            .map((c) => `${c.range} (${c.from})`)
-            .join(", ")}.`,
+          "The dependencies keep changing each other's versions.",
+        );
+      const name = [...queue].sort(byName)[0] ?? "";
+      queue.delete(name);
+      let asking = constraints.get(name) ?? [];
+      const previous = chosen.get(name);
+
+      // Nothing asks for it any more: it leaves, with the ranges it put on others.
+      if (asking.length === 0) {
+        if (previous) {
+          chosen.delete(name);
+          dropConstraintsFrom(`${name}@${previous.version}`);
+        }
+        continue;
+      }
+
+      const item = await load(
+        name,
+        asking.map((c) => c.from),
+      );
+      let best = bestOf(item, name, asking);
+      // No version fits. Items that need each other (112) can still be asking after nothing reaches
+      // them, or only because of this item's own version: without their ranges, it may fit, and
+      // what they asked for then leaves with them.
+      if (!best) {
+        const live = liveSources();
+        asking = asking.filter((c) => live.has(c.from));
+        best = bestOf(item, name, asking);
+        if (!best) {
+          const without = liveSources(name);
+          const others = asking.filter((c) => without.has(c.from));
+          best = bestOf(item, name, others);
+          // Still nothing: the ranges that don't come from this item's own version are to blame.
+          if (!best && others.length > 0) asking = others;
+        }
+      }
+      if (!best) {
+        const each = asking.map((c) => ({ range: c.range, from: c.from }));
+        const locked = item.versions.find((v) => v.version === request.locked?.[name]);
+        const anyFits = asking.every((c) =>
+          item.versions.some((v) => (!v.yanked || v === locked) && fits(v.version, c.range)),
+        );
+        if (asking.length > 1 && anyFits)
+          throw new ResolveError(
+            "resolve_conflict",
+            `No version of ${name} fits every range asking for it: ${each
+              .map((c) => `${c.range} (${c.from})`)
+              .join(", ")}.`,
+            { item: name, ranges: each },
+          );
+        throw new ResolveError(
+          "no_matching_version",
+          `${name} has no published version that fits ${each.map((c) => `${c.range} (${c.from})`).join(", ")}.`,
           { item: name, ranges: each },
         );
-      throw new ResolveError(
-        "no_matching_version",
-        `${name} has no published version that fits ${each.map((c) => `${c.range} (${c.from})`).join(", ")}.`,
-        { item: name, ranges: each },
-      );
-    }
-    if (previous?.version === best.version) continue;
+      }
+      if (previous?.version === best.version) continue;
+      // Back and forth (a cycle that brings in a range on the item that brought it): once it has
+      // changed twice, it keeps a version that still fits.
+      if (
+        previous &&
+        (switches.get(name) ?? 0) >= 2 &&
+        asking.every((c) => fits(previous.version, c.range))
+      )
+        continue;
 
-    if (previous) dropConstraintsFrom(`${name}@${previous.version}`);
-    chosen.set(name, best);
-    const from = `${name}@${best.version}`;
-    for (const dependency of Object.keys(best.dependencies).sort(byName))
-      addConstraint(dependency, {
-        range: await rangeOf(dependency, best.dependencies[dependency] ?? "", from),
-        from,
-      });
+      if (previous) {
+        switches.set(name, (switches.get(name) ?? 0) + 1);
+        dropConstraintsFrom(`${name}@${previous.version}`);
+      }
+      chosen.set(name, best);
+      const from = `${name}@${best.version}`;
+      for (const dependency of Object.keys(best.dependencies).sort(byName))
+        addConstraint(dependency, {
+          range: await rangeOf(dependency, best.dependencies[dependency] ?? "", from),
+          from,
+        });
+    }
+  };
+
+  // Items may need each other (112). A pair that nothing else asks for any more keeps asking for
+  // each other, so the settled choice is pruned to what the requests reach, and settled again
+  // without the ranges the pruned ones put on others, until nothing more goes.
+  for (;;) {
+    await settle();
+    const live = liveSources();
+    const unreached = [...chosen.keys()]
+      .filter((name) => !live.has(`${name}@${chosen.get(name)?.version}`))
+      .sort(byName);
+    if (unreached.length === 0) break;
+    for (const name of unreached) {
+      const version = chosen.get(name);
+      chosen.delete(name);
+      if (version) dropConstraintsFrom(`${name}@${version.version}`);
+    }
   }
 
-  // Submission refuses cycles (013); a registry edited by hand could still have one.
-  const visiting: string[] = [];
-  const done = new Set<string>();
-  const walk = (name: string) => {
-    if (done.has(name)) return;
-    const at = visiting.indexOf(name);
-    if (at !== -1) {
-      const cycle = [...visiting.slice(at), name];
-      throw new ResolveError(
-        "dependency_cycle",
-        `The dependencies go round in a circle: ${cycle.join(" → ")}.`,
-        {
-          cycle,
-        },
-      );
-    }
-    visiting.push(name);
-    for (const dependency of Object.keys(chosen.get(name)?.dependencies ?? {}).sort(byName))
-      walk(dependency);
-    visiting.pop();
-    done.add(name);
-  };
-  for (const name of [...chosen.keys()].sort(byName)) walk(name);
+  // Every range still asking has to fit: a version chosen without a range only its own version
+  // brought (above) is a conflict if that range is still there.
+  const live = liveSources();
+  for (const name of [...chosen.keys()].sort(byName)) {
+    const version = chosen.get(name)?.version ?? "";
+    const asking = (constraints.get(name) ?? []).filter((c) => live.has(c.from));
+    if (asking.every((c) => fits(version, c.range))) continue;
+    const each = asking.map((c) => ({ range: c.range, from: c.from }));
+    throw new ResolveError(
+      "resolve_conflict",
+      `No version of ${name} fits every range asking for it: ${each
+        .map((c) => `${c.range} (${c.from})`)
+        .join(", ")}.`,
+      { item: name, ranges: each },
+    );
+  }
 
   const resolved: Record<string, ResolvedItem> = {};
   const warnings: ResolveWarning[] = [];

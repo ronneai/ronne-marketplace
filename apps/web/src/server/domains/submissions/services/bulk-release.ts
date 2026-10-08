@@ -172,20 +172,9 @@ export const prepareRelease = async (
       } satisfies ReleaseCandidate;
     }),
   );
-  const { order, cycle } = dependenciesFirst(facts);
-  if (cycle)
-    return {
-      candidates: [],
-      refused: [
-        ...refused,
-        ...facts.map((f) => ({
-          id: f.id,
-          name: f.name,
-          result: "not_releasable" as const,
-          reason: `The dependencies go round in a circle: ${cycle.join(" → ")}.`,
-        })),
-      ],
-    };
+  // Items that need each other come next to each other; releasing them together is 112's task 6,
+  // until then each one's own checks at release refuse it.
+  const { order } = dependenciesFirst(facts);
   return {
     candidates: order.flatMap((name) => facts.filter((f) => f.name === name)),
     refused,

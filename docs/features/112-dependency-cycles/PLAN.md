@@ -13,7 +13,7 @@ the same change that completes it.
   *Done when:* no doc in `docs/MVP` or `docs/spec` says cycles are refused or that an author's own
   dependency must be submitted or released first, and each place says they go together.
 
-- [ ] **2. Core: the resolver and the order.** [risky] In `packages/core`:
+- [x] **2. Core: the resolver and the order.** [risky] In `packages/core`:
   - `resolve.ts`: the final cycle walk goes, with `dependency_cycle` in `ResolveErrorCode`; the
     resolution keeps only what the requests reach through the chosen versions;
   - `order.ts`: `dependenciesFirst` returns every item, with `groups` for cycles;
