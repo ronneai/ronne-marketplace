@@ -20,6 +20,8 @@ const result = checkSubject(message, { checkLength: !noLength });
 if (!result.valid) {
   console.error(`✗ ${message.split("\n")[0]}\n`);
   for (const error of result.errors) console.error(`  - ${error}`);
-  console.error("\nExamples:\n  [feat] 001: Add CI workflow\n  [docs]: Add dependency policy");
+  console.error(
+    "\nExamples:\n  [feat] 001: Add CI workflow\n  [bugfix] #141: Try older versions\n  [docs]: Add dependency policy",
+  );
   process.exitCode = 1;
 }

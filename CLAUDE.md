@@ -14,6 +14,9 @@ The monorepo is scaffolded (feature 001); the product features start with 002. W
 - `docs/MVP/MVP.md`: the MVP design. It is the source of truth for scope, architecture, the data model, the API, milestones (M0–M6) and the decision log (§15).
 - `docs/spec/`: detailed contracts. `manifest.md` (with the schema, `packages/core/src/schema/ronne.schema.json`) defines `ronne.yaml`; `cli-files.md` defines `rmk.config.json`, `rmk.lock` and `.rmk/state.json`.
 - `docs/features/`: the work, one folder per feature (`NNN-slug/SPEC.md` + `PLAN.md`). `docs/features/README.md` is the index and the milestone plan.
+- `docs/issues/`: bugs reported on GitHub, worked like features, one folder per issue
+  (`NNN-slug/SPEC.md` + `PLAN.md` + `WITNESS.md`, `NNN` the GitHub issue number).
+  `docs/issues/README.md` is the index.
 - `docs/policies/dependencies.md`: the rules for every dependency (below).
 - `docs/runbooks/`: guides for people running Ronne, such as `install.md` (the install guide, a draft
   for the website that the M12 features make true), and `release.md`, the owner's release checklist.
@@ -87,11 +90,13 @@ Commit messages and pull request titles use the same format:
 
 ```
 [type] NNN: Description      when the change belongs to a feature in docs/features
+[type] #NNN: Description     when it fixes an issue in docs/issues
 [type]: Description          otherwise
 ```
 
 - `type` is one of `docs`, `feat`, `chore` or `bugfix`.
-- `NNN` is the 3-digit feature ID, such as `001`.
+- `NNN` is the 3-digit feature ID, such as `001`; `#NNN` is the GitHub issue number of a folder in
+  `docs/issues`, such as `#141`.
 - The description is imperative, starts with a capital letter, has no full stop at the end, and the whole line is at most 72 characters.
 - Examples: `[feat] 001: Add CI workflow on Node 22 and 24`, `[bugfix] 003: Keep AUTH_SECRET when setup reruns`, `[docs]: Add dependency policy`.
 

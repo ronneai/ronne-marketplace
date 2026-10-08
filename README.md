@@ -34,20 +34,18 @@ the browser:
 curl -fsSL https://www.ronne.ai/marketplace/install.sh | sh
 ```
 
-```powershell
-irm https://www.ronne.ai/marketplace/install.ps1 | iex
-```
+<!-- Each release also has install.ps1 for Windows; it's held back here, as on the website, until
+it's tested on Windows (feature 081, task 3). -->
 
-Both addresses redirect to the scripts in the
-[latest release](https://github.com/ronneai/ronne-marketplace/releases/latest), which also work
+That address redirects to the script in the
+[latest release](https://github.com/ronneai/ronne-marketplace/releases/latest), which also works
 directly (`…/releases/latest/download/install.sh`). It installs the release it comes from, and
 never uses `sudo`. On this computer, Ronne answers only on this computer (`127.0.0.1`); to reach it
 from other devices, after the setup set `RONNE_PORT=0.0.0.0:7650` and
 `PUBLIC_URL=http://<this computer's address>:7650` in its `.env` (the script keeps both), then run
 `docker compose up -d` in that folder. Run it again to upgrade: it keeps
 your answers and asks before moving to a newer version. For scripts:
-`curl -fsSL https://www.ronne.ai/marketplace/install.sh | sh -s -- --yes --mode server --domain ronne.example.com`
-(PowerShell: `& ([scriptblock]::Create((irm https://www.ronne.ai/marketplace/install.ps1))) -Yes -Mode server -Domain …`).
+`curl -fsSL https://www.ronne.ai/marketplace/install.sh | sh -s -- --yes --mode server --domain ronne.example.com`.
 To read it first, download `install.sh` and `checksums.txt` from the release, check them with
 `shasum -a 256 -c checksums.txt --ignore-missing`, then run `sh install.sh`.
 
@@ -385,14 +383,15 @@ a second root. To start over on a development clone, `pnpm run reset-setup`.
 | `packages/mcp` | The registry MCP server |
 | `packages/config` | Shared TypeScript, Biome and Vitest presets |
 | `packages/repo-tools` | Checks for this repository, such as the commit message format |
-| `docs/` | The MVP design, specs, feature plans and policies |
+| `docs/` | The MVP design, specs, feature and issue plans, and policies |
 | `examples/items/` | One sample item of each type |
 
 ## Contributing
 
 Commits and pull request titles use `[type] NNN: Description`, where `type` is `docs`, `feat`,
-`chore` or `bugfix` and `NNN` is the feature ID (left out, as `[type]: Description`, when the change
-isn't part of a feature). Run `pnpm hooks:install` once: before each commit it runs lint, typecheck, test and build (skipped when
+`chore` or `bugfix` and `NNN` is the feature ID; `[type] #NNN: Description` for a fix of a GitHub
+issue worked in [`docs/issues/`](docs/issues/README.md), where `#NNN` is the issue number; or
+`[type]: Description` when the change is neither. Run `pnpm hooks:install` once: before each commit it runs lint, typecheck, test and build (skipped when
 the commit only changes Markdown or text files), and it checks the commit message. CI checks
 pull request titles.
 

@@ -76,7 +76,8 @@ Witnessed: 2026-10-07 14:02 EDT, by a fresh agent (blind). Commit: 3f9c2e1. Mach
 - `**Overall:**` starts with `met` or `not met`.
 
 The checker covers features from 087 on, except 088, 089, 096 and 097, which were witnessed in the
-first format and keep it. Its rules are in `packages/repo-tools/src/witness.js`.
+first format and keep it, and every issue folder in `docs/issues`. Its rules are in
+`packages/repo-tools/src/witness.js`.
 
 ## Testing the witness
 
