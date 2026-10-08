@@ -1,3 +1,4 @@
+import type { ManifestIssue } from "@ronneai/core";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { treeRows } from "@/components/code/FileTree";
@@ -13,6 +14,10 @@ const drafts = vi.hoisted(() => ({
   canDeleteSubmission: vi.fn(async () => true),
 }));
 vi.mock("@/server/domains/submissions/actions/submissions", () => drafts);
+const saving = vi.hoisted(() => ({
+  draftSubmitIssues: vi.fn(async (): Promise<ManifestIssue[]> => []),
+}));
+vi.mock("@/server/domains/submissions/actions/drafts", () => saving);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
 vi.mock("next/navigation", () => ({
   notFound: () => {
@@ -217,6 +222,45 @@ describe("the draft page", () => {
     expect(html).toMatch(/aria-current="true"[^>]*>.*ronne\.yaml/s);
   });
 
+  it("checks what Submit would refuse on load, for your own editable draft only (#142)", async () => {
+    const id = "01J0000000000000000000000A";
+    drafts.viewSubmission.mockResolvedValue({ ...draft(), mine: true, member: true });
+    await DraftPage({ params: Promise.resolve({ id }) });
+    expect(saving.draftSubmitIssues).toHaveBeenCalledWith(expect.any(Headers), id);
+
+    saving.draftSubmitIssues.mockClear();
+    for (const shown of [
+      { ...draft(), mine: false, member: true },
+      { ...draft(), mine: true, member: false },
+    ]) {
+      drafts.viewSubmission.mockResolvedValue(shown);
+      await DraftPage({ params: Promise.resolve({ id }) });
+    }
+    expect(saving.draftSubmitIssues).not.toHaveBeenCalled();
+  });
+
+  it("shows a blocked draft's problem when it opens, before any save (#142)", async () => {
+    drafts.viewSubmission.mockResolvedValue({ ...draft(), mine: true, member: true });
+    const before = renderToStaticMarkup(
+      await DraftPage({ params: Promise.resolve({ id: "01J0000000000000000000000A" }) }),
+    );
+    saving.draftSubmitIssues.mockResolvedValueOnce([
+      {
+        severity: "error",
+        code: "dependency_range",
+        message: "No published version of @team/db matches ^9.0.0.",
+        path: "/dependencies",
+        file: "ronne.yaml",
+      },
+    ]);
+    const after = renderToStaticMarkup(
+      await DraftPage({ params: Promise.resolve({ id: "01J0000000000000000000000A" }) }),
+    );
+    const errors = (html: string) =>
+      Number(/aria-label="Problems: (\d+) error/.exec(html)?.[1] ?? 0);
+    expect(errors(after)).toBe(errors(before) + 1);
+  });
+
   it("answers 404 for someone else's draft", async () => {
     drafts.viewSubmission.mockRejectedValue(new SubmissionNotFoundError());
     await expect(DraftPage({ params: Promise.resolve({ id: "x" }) })).rejects.toThrow(
@@ -269,6 +313,29 @@ describe("the draft page", () => {
         }}
       />,
     );
+
+  it("counts what Submit would refuse with 011's problems, each once, and leaves Submit to check (#142)", () => {
+    const manifest =
+      'name: "@platform/reviewer"\ntype: agent\ndescription: Reviews.\nagent:\n  prompt: prompt.md\n';
+    const files = [saved("prompt.md", "Hi"), saved("ronne.yaml", manifest)];
+    const clean = view({ files, submitIssues: [] });
+    expect(clean).toContain('aria-label="Problems: No problems"');
+    expect(clean).not.toContain("Show problems:");
+
+    const range: ManifestIssue = {
+      severity: "error",
+      code: "dependency_range",
+      message: "No published version of @team/db matches ^9.0.0.",
+      path: "/dependencies",
+      file: "ronne.yaml",
+    };
+    const blocked = view({ files, submitIssues: [range, { ...range }] });
+    expect(blocked).toContain('aria-label="Problems: 1 error"');
+    // In the file tree, beside ronne.yaml.
+    expect(blocked).toContain('aria-label="Show problems: 1 error"');
+    // Only 011's errors hold Submit: the registry may have changed, and Submit's dialog checks it.
+    expect(blocked).not.toContain("Fix the error first.");
+  });
 
   it("offers Submit for review and Withdraw on your own draft", () => {
     const html = view({});

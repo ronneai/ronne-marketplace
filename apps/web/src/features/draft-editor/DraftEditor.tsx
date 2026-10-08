@@ -53,6 +53,7 @@ import {
   totalsOf,
 } from "./files";
 import { useDebounced, useSaveShortcut } from "./hooks";
+import { editorProblems } from "./issues";
 import { ManifestForm } from "./ManifestForm";
 import { readManifest } from "./manifest-yaml";
 import { ProposalBar } from "./ProposalBar";
@@ -194,6 +195,8 @@ export const DraftEditor = ({
   const [selected, setSelected] = useState(MANIFEST_PATH);
   const [open, setOpen] = useState<Open>(null);
   const [status, setStatus] = useState<Status>(null);
+  // What Submit would refuse (#142): the registry's checks, from the page load, then each save.
+  const [checked, setChecked] = useState<ManifestIssue[]>(draft.submitIssues ?? []);
   const [saving, startSave] = useTransition();
   const [view, setView] = useState<View>("form");
   const [goTo, setGoTo] = useState<{ line: number; at: number } | null>(null);
@@ -228,19 +231,19 @@ export const DraftEditor = ({
     [identity, settled, limits],
   );
 
-  // Each file's problems, for the icon next to it in the tree. One about a file that isn't there
-  // (a missing SKILL.md) belongs to ronne.yaml, which names it.
-  const issuesByFile = useMemo(() => {
-    const paths = new Set(state.files.map((f) => f.path));
-    const byFile = new Map<string, ManifestIssue[]>();
-    for (const issue of issues) {
-      const path = issue.file && paths.has(issue.file) ? issue.file : MANIFEST_PATH;
-      byFile.set(path, [...(byFile.get(path) ?? []), issue]);
-    }
-    return byFile;
-  }, [issues, state.files]);
-  const errorCount = issues.filter((issue) => issue.severity === "error").length;
+  // The registry's next to 011's, each once; set apart while there are unsaved changes (#142).
+  const problems = useMemo(
+    () =>
+      editorProblems(issues, checked, {
+        paths: state.files.map((f) => f.path),
+        dirty,
+        readOnly,
+      }),
+    [issues, checked, state.files, dirty, readOnly],
+  );
   // Why Submit is off (owner, 2026-10-01): the checks only see what's saved, and errors stop it.
+  // Only 011's: the registry's may be out of date, so Submit's dialog checks them again (#142).
+  const errorCount = issues.filter((issue) => issue.severity === "error").length;
   const notReady = dirty
     ? "Save your changes first: the checks, and reviewers, see what's saved."
     : errorCount > 0
@@ -277,7 +280,12 @@ export const DraftEditor = ({
           sent: changes.writes,
           removed: changes.deletes.map((f) => f.path),
         });
-        setStatus({ kind: "saved", at: new Date(), issues: result.issues });
+        setChecked(result.submitIssues);
+        setStatus({
+          kind: "saved",
+          at: new Date(),
+          issues: [...result.issues, ...result.submitIssues],
+        });
       });
     },
     [state, saving, draft.id],
@@ -371,6 +379,8 @@ export const DraftEditor = ({
             <StatusBadge status={draft.status} />
             <IssuesSummary
               issues={issues}
+              saved={problems.saved}
+              savedLabel={problems.savedLabel}
               note={
                 readOnly
                   ? "The same checks that ran when it was submitted."
@@ -555,7 +565,9 @@ export const DraftEditor = ({
               after={(f) => (
                 <FileIssues
                   path={f.path}
-                  issues={issuesByFile.get(f.path) ?? []}
+                  issues={problems.byFile.get(f.path)?.live ?? []}
+                  saved={problems.byFile.get(f.path)?.saved}
+                  savedLabel={problems.savedLabel}
                   onSelect={openIssue}
                 />
               )}

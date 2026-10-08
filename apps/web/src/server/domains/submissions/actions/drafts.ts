@@ -121,19 +121,30 @@ export const countMySubmissionsByStatus = async (headers: Headers, app: AppAuth 
 export const getDraft = async (headers: Headers, id: string, app: AppAuth = getAppAuth()) =>
   service.getDraft(...(await bound(headers, app)), id);
 
+/** What Submit would refuse for your own draft as it's saved (#142), for the editor's first load. */
+export const draftSubmitIssues = async (
+  headers: Headers,
+  id: string,
+  app: AppAuth = getAppAuth(),
+  storage: StorageAdapter = instanceStorage,
+) => service.draftSubmitIssues(...(await bound(headers, app, storage)), id);
+
+/** With storage, so a change proposal that changes nothing is told so on save (#142). */
 export const saveDraftFiles = async (
   headers: Headers,
   id: string,
   changes: service.DraftChanges,
   app: AppAuth = getAppAuth(),
-) => service.saveDraftFiles(...(await bound(headers, app)), id, changes);
+  storage: StorageAdapter = instanceStorage,
+) => service.saveDraftFiles(...(await bound(headers, app, storage)), id, changes);
 
 export const importZip = async (
   headers: Headers,
   id: string,
   input: { archive: Uint8Array; mode: "merge" | "replace" },
   app: AppAuth = getAppAuth(),
-) => service.importZip(...(await bound(headers, app)), id, input);
+  storage: StorageAdapter = instanceStorage,
+) => service.importZip(...(await bound(headers, app, storage)), id, input);
 
 export const renameDraft = async (
   headers: Headers,

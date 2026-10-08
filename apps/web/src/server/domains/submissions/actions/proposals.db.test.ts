@@ -453,6 +453,60 @@ describe("the review of a proposal", () => {
     ]);
   });
 
+  /** Saves `files` over the proposal with `using` as storage, and returns what the save answers. */
+  const saveWith = async (id: string, files: Record<string, string>, using: StorageAdapter) => {
+    const draft = await getDraft(asOther, id, app);
+    return saveDraftFiles(
+      asOther,
+      id,
+      {
+        writes: Object.entries(files).map(([path, content]) => ({
+          path,
+          encoding: "utf8" as const,
+          content,
+          executable: false,
+          loadedAt: draft.files.find((f) => f.path === path)?.updatedAt ?? null,
+        })),
+        deletes: [],
+      },
+      app,
+      using,
+    );
+  };
+
+  it("says on save that it changes nothing, as Submit would (#142)", async () => {
+    await releasedSkill();
+    const draft = await proposeChange(asOther, item, app, storage);
+    const readme = text(draft, "README.md");
+    const same = await saveWith(draft.id, { "README.md": readme }, storage);
+    expect(same.submitIssues).toEqual(await checkSubmission(asOther, draft.id, app, storage));
+    expect(same.submitIssues.map((i) => i.code)).toEqual(["no_changes"]);
+    const changed = await saveWith(draft.id, { "README.md": `${readme}More.\n` }, storage);
+    expect(changed.submitIssues).toEqual([]);
+  });
+
+  it("keeps the registry's issues when the base version can't be read on save (#142)", async () => {
+    await releasedSkill();
+    const draft = await proposeChange(asOther, item, app, storage);
+    const unreadable: StorageAdapter = {
+      ...storage,
+      get: async () => {
+        throw new Error("The disk went away.");
+      },
+    };
+    const saved = await saveWith(
+      draft.id,
+      {
+        "ronne.yaml": `${text(draft, "ronne.yaml")}dependencies:\n  "@team/secure-coding-x": "^9.0.0"\n`,
+      },
+      unreadable,
+    );
+    expect(saved.submitIssues.map((i) => i.code)).toEqual([
+      "dependency_not_found",
+      "registry_checks_failed",
+    ]);
+  });
+
   it("keeps the canvas layout out of a proposal's changes and its suggested bump", async () => {
     await releasedSkill();
     const draft = await proposeChange(asOther, item, app, storage);

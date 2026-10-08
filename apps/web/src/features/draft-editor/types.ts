@@ -48,6 +48,11 @@ export type EditorDraft = {
     at: string;
     body: string | null;
   } | null;
+  /**
+   * What Submit would refuse for the draft as it's saved (#142): the registry's checks, from the
+   * page load. Only for the author's own editable draft; a save replaces them.
+   */
+  submitIssues?: ManifestIssue[];
   /** What each dependency waits on (056), shown beside its name in the form. */
   dependencyMarks?: DependencyMark[];
   /** How many open submissions depend on it (056): withdrawing leaves them blocked. */
@@ -82,6 +87,8 @@ export type SaveResult =
       /** Files the save changed itself (097), with what it wrote. */
       rewritten: { path: string; content: string }[];
       issues: ManifestIssue[];
+      /** What Submit would refuse for what was saved (#142): the registry's checks. */
+      submitIssues: ManifestIssue[];
     }
   | { ok: false; error: string; stale?: string[] };
 

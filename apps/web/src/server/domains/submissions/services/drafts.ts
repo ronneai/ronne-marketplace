@@ -272,6 +272,16 @@ export const getDraft = async (deps: DraftDeps, actor: DraftActor, id: string): 
 };
 
 /**
+ * What Submit would refuse for your own draft as it's saved (#142), for the editor when the page
+ * opens, before any save. Someone else's draft is not found, as for getDraft.
+ */
+export const draftSubmitIssues = async (
+  deps: DraftDeps,
+  actor: DraftActor,
+  id: string,
+): Promise<ManifestIssue[]> => submitIssuesOf(deps, await getDraft(deps, actor, id));
+
+/**
  * A file the editor saves. `loadedAt` is the `updatedAt` it had when the editor loaded it, or null
  * for a file the editor created; a mismatch means it changed elsewhere since.
  */
@@ -291,9 +301,59 @@ export type DraftChanges = {
 };
 /**
  * `rewritten`: the files the save changed besides what was sent (097: a skill's frontmatter quoted,
- * its agent added to `ronne.yaml`), so the editor can show them.
+ * its agent added to `ronne.yaml`), so the editor can show them. `submitIssues`: what Submit would
+ * refuse right now (#142), as advice.
  */
-export type SavedDraft = { draft: Draft; issues: ManifestIssue[]; rewritten: string[] };
+export type SavedDraft = {
+  draft: Draft;
+  issues: ManifestIssue[];
+  submitIssues: ManifestIssue[];
+  rewritten: string[];
+};
+
+/** Said when one of Submit's checks couldn't run on a save (#142): the save still stands. */
+export const REGISTRY_CHECKS_FAILED: ManifestIssue = {
+  severity: "warning",
+  code: "registry_checks_failed",
+  message: "Some of Submit's checks couldn't run. Save again, or Submit will run them.",
+};
+
+/**
+ * What Submit (013) would refuse right now: the registry's checks (name, dependencies, cycles) and,
+ * for a change proposal, whether it changes nothing (042). A save (#142) and an upload (037) both
+ * return it, as advice. A check that fails is one warning, never thrown, and the other's issues
+ * stay: the files are already saved.
+ */
+export const submitIssuesOf = async (
+  deps: DraftDeps,
+  draft: Draft,
+  limits: PackageLimits = limitsOf(deps),
+): Promise<ManifestIssue[]> => {
+  let failed = false;
+  const guarded = async (check: () => Promise<ManifestIssue[]>) => {
+    try {
+      return await check();
+    } catch (error) {
+      console.warn(`Submit's checks failed for submission ${draft.id}:`, error);
+      failed = true;
+      return [];
+    }
+  };
+  const issues = [
+    ...(await guarded(() => registryIssues(deps.repo, deps.repo.registry(), draft, draft.files))),
+    ...(draft.proposal && deps.storage
+      ? await guarded(() =>
+          noChangeIssues(
+            { storage: deps.storage as StorageAdapter, limits },
+            deps.repo.registry(),
+            draft,
+            draft.files,
+          ),
+        )
+      : []),
+  ];
+  return failed ? [...issues, REGISTRY_CHECKS_FAILED] : issues;
+};
 
 /** What can be checked without the database, so a bad write touches nothing: the paths first. */
 const checkPaths = (paths: readonly string[], what: string) => {
@@ -420,7 +480,12 @@ export const saveDraftFiles = async (
     );
     return { ...submission, updatedAt: at, files };
   });
-  return { draft, issues: validateDraft(draft, draft.files, limits), rewritten };
+  return {
+    draft,
+    issues: validateDraft(draft, draft.files, limits),
+    submitIssues: await submitIssuesOf(deps, draft, limits),
+    rewritten,
+  };
 };
 
 /**
@@ -457,7 +522,6 @@ export type UploadActor = DraftActor & { ip: string | null; token: { id: string;
  * change proposal (042), the version it's based on and whether a newer one is out.
  */
 export type UploadedDraft = SavedDraft & {
-  submitIssues: ManifestIssue[];
   proposal: { item: string; baseVersion: string; stale: string | null } | null;
 };
 
@@ -576,12 +640,7 @@ const uploaded = async (
     draft,
     issues: validateDraft(draft, draft.files, limits),
     rewritten,
-    submitIssues: [
-      ...(await registryIssues(deps.repo, registry, draft, draft.files)),
-      ...(draft.proposal && deps.storage
-        ? await noChangeIssues({ storage: deps.storage, limits }, registry, draft, draft.files)
-        : []),
-    ],
+    submitIssues: await submitIssuesOf(deps, draft, limits),
     proposal: draft.proposal
       ? {
           item: itemNameOf(draft),

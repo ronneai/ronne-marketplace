@@ -49,11 +49,15 @@ const toDate = (value: string | null) => (value === null ? null : new Date(value
  */
 export const saveDraftAction = async (id: string, changes: SentChanges): Promise<SaveResult> => {
   try {
-    const { draft, issues, rewritten } = await saveDraftFiles(await requestHeaders(), id, {
-      writes: changes.writes.map((file) => ({ ...file, loadedAt: toDate(file.loadedAt) })),
-      deletes: changes.deletes.map((file) => ({ ...file, loadedAt: toDate(file.loadedAt) })),
-      overwrite: changes.overwrite,
-    });
+    const { draft, issues, submitIssues, rewritten } = await saveDraftFiles(
+      await requestHeaders(),
+      id,
+      {
+        writes: changes.writes.map((file) => ({ ...file, loadedAt: toDate(file.loadedAt) })),
+        deletes: changes.deletes.map((file) => ({ ...file, loadedAt: toDate(file.loadedAt) })),
+        overwrite: changes.overwrite,
+      },
+    );
     // What was sent, and what the save changed besides (097: a skill's frontmatter, its agent).
     const written = new Set([...changes.writes.map((file) => file.path), ...rewritten]);
     return {
@@ -65,6 +69,7 @@ export const saveDraftAction = async (id: string, changes: SentChanges): Promise
         .filter((file) => rewritten.includes(file.path))
         .map((file) => ({ path: file.path, content: file.content })),
       issues,
+      submitIssues,
     };
   } catch (error) {
     if (error instanceof StaleFilesError)

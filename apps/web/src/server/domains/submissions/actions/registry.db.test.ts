@@ -6,14 +6,17 @@ import { toDbDate } from "../../../db/dates";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { localStorage } from "../../../storage/local-storage";
 import { createRoot } from "../../identity/actions/root-account";
-import { signIn } from "../../identity/actions/session";
+import { getCurrentUser, signIn } from "../../identity/actions/session";
 import type { AppAuth } from "../../identity/repositories/auth-instance";
 import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testing/test-auth";
 import { createScope } from "../../items/actions/scopes";
 import { UNFILTERED } from "../../workspaces/models/viewer";
 import { GLOBAL_WORKSPACE_ID } from "../../workspaces/models/workspace";
+import { SubmissionNotFoundError } from "../exceptions/errors";
 import { kyselyRegistryLookup } from "../repositories/kysely-registry-lookup";
-import { createDraft, getDraft, saveDraftFiles } from "./drafts";
+import { kyselySubmissionRepository } from "../repositories/kysely-submission-repository";
+import * as draftsService from "../services/drafts";
+import { createDraft, draftSubmitIssues, getDraft, saveDraftFiles } from "./drafts";
 import { publishSubmission } from "./publish";
 import { decide } from "./reviews";
 import {
@@ -168,6 +171,131 @@ describe("any type on any type (096)", () => {
       app,
     );
     expect(await codes(loop)).toEqual(["dependency_pending", "dependency_cycle"]);
+  });
+});
+
+/** Saves `manifest` as the draft's ronne.yaml, and returns what the save answers. */
+const saveManifest = async (id: string, manifest: string) => {
+  const current = (await getDraft(asAuthor, id, app)).files.find((f) => f.path === "ronne.yaml");
+  return saveDraftFiles(
+    asAuthor,
+    id,
+    {
+      writes: [
+        {
+          path: "ronne.yaml",
+          encoding: "utf8",
+          content: manifest,
+          executable: false,
+          loadedAt: current?.updatedAt ?? null,
+        },
+      ],
+      deletes: [],
+    },
+    app,
+  );
+};
+
+describe("a save returns what Submit would refuse (#142)", () => {
+  const skill = (name: string, dependencies = "") =>
+    `name: "@team/${name}"\ntype: skill\ndescription: Something.\nskill:\n  entry: SKILL.md\n${dependencies ? `dependencies:\n${dependencies}` : ""}`;
+
+  it("shows a range no published version matches, in Submit's words", async () => {
+    await released("db");
+    const id = await skillNeeding("reader", '  "@team/db": "^1.0.0"\n');
+    const saved = await saveManifest(id, skill("reader", '  "@team/db": "^9.0.0"\n'));
+    expect(saved.issues).toEqual([]);
+    expect(saved.submitIssues).toEqual([
+      {
+        severity: "error",
+        code: "dependency_range",
+        message: "No published version of @team/db matches ^9.0.0.",
+        path: "/dependencies",
+        file: "ronne.yaml",
+      },
+    ]);
+    // The same issue Submit refuses with.
+    expect(await checkSubmission(asAuthor, id, app)).toEqual(saved.submitIssues);
+
+    // Fixed and saved again: nothing left.
+    const fixed = await saveManifest(id, skill("reader", '  "@team/db": "^1.0.0"\n'));
+    expect(fixed.submitIssues).toEqual([]);
+  });
+
+  it("shows a cycle the save closes", async () => {
+    const loop = await skillNeeding("loop", "");
+    await saveManifest(loop, skill("loop"));
+    await submitDraft(asAuthor, loop, app);
+    const helper = await skillNeeding("helper", '  "@team/loop": "^1.0.0"\n');
+    await submitDraft(asAuthor, helper, app);
+    await decide(asModerator, loop, { decision: "request_changes", message: "Later." }, app);
+
+    const saved = await saveManifest(loop, skill("loop", '  "@team/helper": "^1.0.0"\n'));
+    expect(saved.submitIssues.map((i) => i.code)).toEqual([
+      "dependency_pending",
+      "dependency_cycle",
+    ]);
+    expect(saved.submitIssues[1]).toMatchObject({
+      severity: "error",
+      message: "The dependencies go round in a circle: @team/loop → @team/helper → @team/loop.",
+    });
+  });
+
+  it("returns nothing for a clean draft", async () => {
+    await released("db");
+    const id = await skillNeeding("reader", "");
+    const saved = await saveManifest(id, skill("reader", '  "@team/db": "^1.0.0"\n'));
+    expect(saved.issues).toEqual([]);
+    expect(saved.submitIssues).toEqual([]);
+  });
+
+  it("tells a draft opened later what Submit would refuse, without a save, to its author only", async () => {
+    await released("db");
+    const blocked = await skillNeeding("reader", '  "@team/db": "^9.0.0"\n');
+    expect(await draftSubmitIssues(asAuthor, blocked, app)).toEqual(
+      await checkSubmission(asAuthor, blocked, app),
+    );
+    expect((await draftSubmitIssues(asAuthor, blocked, app)).map((i) => i.message)).toEqual([
+      "No published version of @team/db matches ^9.0.0.",
+    ]);
+    const clean = await skillNeeding("writer", '  "@team/db": "^1.0.0"\n');
+    expect(await draftSubmitIssues(asAuthor, clean, app)).toEqual([]);
+    await expect(draftSubmitIssues(asModerator, blocked, app)).rejects.toThrow(
+      SubmissionNotFoundError,
+    );
+  });
+
+  it("still saves when the registry checks fail, and says they couldn't run", async () => {
+    const id = await skillNeeding("reader", "");
+    const repo = kyselySubmissionRepository(t.db, t.dialect, UNFILTERED);
+    const broken = {
+      ...repo,
+      registry: () => {
+        throw new Error("The database went away.");
+      },
+    };
+    const current = (await getDraft(asAuthor, id, app)).files.find((f) => f.path === "ronne.yaml");
+    const saved = await draftsService.saveDraftFiles(
+      { repo: broken },
+      { user: await getCurrentUser(asAuthor, app) },
+      id,
+      {
+        writes: [
+          {
+            path: "ronne.yaml",
+            encoding: "utf8",
+            content: skill("reader", '  "@team/db": "^9.0.0"\n'),
+            executable: false,
+            loadedAt: current?.updatedAt ?? null,
+          },
+        ],
+        deletes: [],
+      },
+    );
+    expect(saved.submitIssues).toEqual([draftsService.REGISTRY_CHECKS_FAILED]);
+    expect(
+      (await getDraft(asAuthor, id, app)).files.find((f) => f.path === "ronne.yaml")?.content,
+    ).toContain("^9.0.0");
   });
 });
 

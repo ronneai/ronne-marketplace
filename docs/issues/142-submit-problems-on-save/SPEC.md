@@ -59,6 +59,9 @@ Submit. The author can fix a blocked draft while editing.
   warnings and don't block Submit, as today.
 - **Submit's dialog doesn't change.** It still runs the checks itself, since the registry may have
   changed since the save.
+- **Only 011's errors hold the Submit button**, as today. The registry's are advice from the last
+  save: Submit opens its dialog, checks again, and refuses there in the same words. A dependency
+  released since the save doesn't need another save to submit.
 - **When the registry checks fail to run** (a database error), the save still succeeds. The
   editor shows 011's problems and says the registry checks couldn't run.
 
@@ -99,6 +102,8 @@ Submit. The author can fix a blocked draft while editing.
    expects a check, and keeps the registry queries to one round per save.
 2. **The same function as Submit** (Claude). `registryIssues` is reused, so the editor and Submit
    can't drift apart.
+3. **The registry's problems don't hold the Submit button** (Claude, 2026-10-08, found by the
+   end-to-end run in task 4). They may be out of date, and Submit's dialog checks them again.
 
 ## Open questions
 
