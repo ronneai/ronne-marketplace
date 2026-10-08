@@ -158,3 +158,13 @@ Witnessed: 2026-10-08 15:55 EDT, by a fresh agent (blind). Commit: dc12c50. Mach
 | 8 | phone-webkit passes in CI (WebKit on Linux) | yes | can't check here | Still needs the GitHub run after the push |
 
 **Overall:** not met: claim 3 holds on both writes and the suite passes here (101); claim 8 waits for phone-webkit on Linux in CI.
+
+### Re-check — claim 8, CI
+
+Witnessed: 2026-10-08 16:09 EDT, by a fresh agent (blind). Commit: 24d8de3. Machine: macOS 27.0.1, Node v24.0.0 (read from GitHub's CI logs).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 8 | phone-webkit passes in CI (WebKit on Linux) | yes | confirmed | `gh pr checks 149` → every check passes, "End-to-end (Chromium) pass 5m44s" (run 37836013168, job 113513272112). `gh run list --branch bugfix/142-submit-problems-on-save` → that run's headSha is `24d8de32dd36…`, success; the run for 2bf15c5 failed. The job log: ubuntu-24.04, the PR's merge ref `4519449` (24d8de3 into 7338c2f), `playwright install --with-deps chromium webkit`; `✓ [chromium]`, `✓ [phone]`, `✓ [phone-webkit]` (4.1s), `✓ [tablet]` submit-problems; "101 passed (3.8m)"; `grep -cE "retry #\|flaky\|✘"` → 0 |
+
+**Overall:** met: phone-webkit passed on Linux in CI for 24d8de3, 101 passed with nothing retried or flaky; with claim 3's re-check, every claim of the follow-up is confirmed.
