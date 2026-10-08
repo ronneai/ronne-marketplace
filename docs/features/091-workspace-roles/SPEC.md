@@ -99,7 +99,8 @@ still holds root).
 - **A change proposal** to an item in a public workspace by a non-member: refused at draft creation
   ("Ask to join acme to propose changes", linking to 094's request once it exists).
 - **The last moderator of a workspace is demoted:** allowed; root can still review there. Admin ›
-  Workspaces shows "No moderators" on it.
+  Workspaces shows "None" in its Moderators column (the owner, 2026-10-08: "No moderators" repeated the
+  header).
 - **Tokens in flight** keep working; the next request reads the new memberships.
 
 ## Documentation

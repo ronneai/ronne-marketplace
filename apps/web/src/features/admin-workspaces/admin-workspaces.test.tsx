@@ -231,7 +231,8 @@ describe("WorkspacesTable", () => {
     const html = table({}, [workspace({ moderators: 2 }), workspace({ name: "beta", id: "w2" })]);
     expect(html).toContain(">Moderators<");
     expect(html).toContain(">2<");
-    expect(html).toContain("No moderators");
+    expect(html).toContain('<span class="text-muted">None</span>');
+    expect(html).not.toContain("No moderators");
   });
 
   it("explains an empty search", () => {

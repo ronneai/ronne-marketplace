@@ -81,12 +81,12 @@ const columns: Column<Workspace, "name" | "created">[] = [
     id: "moderators",
     header: "Moderators",
     className: "w-32",
-    // With none, only root reviews its submissions (091).
+    // With none, only root reviews its submissions (091). "None": the header already says what.
     render: (workspace) =>
       workspace.moderators > 0 ? (
         <span className="font-mono">{workspace.moderators}</span>
       ) : (
-        <span className="text-muted">No moderators</span>
+        <span className="text-muted">None</span>
       ),
   },
   {
