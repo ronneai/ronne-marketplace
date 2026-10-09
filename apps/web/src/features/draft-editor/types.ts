@@ -94,7 +94,27 @@ export type SaveResult =
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
-/** Submit and its preview: the checks' issues, and whether it went through. */
+/**
+ * Submit and its preview: the checks' issues, and whether it went through. `sent`: the person's
+ * own drafts that went with it (112), by name.
+ */
 export type SubmitResult =
-  | { ok: true; issues: ManifestIssue[] }
+  | { ok: true; issues: ManifestIssue[]; sent?: string[] }
+  | { ok: false; error: string; issues: ManifestIssue[] };
+
+/** One of the person's drafts that goes with the item (112), as the Submit dialog lists it. */
+export type GroupMember = {
+  id: string;
+  name: string;
+  /** The items in the group that need it. */
+  neededBy: string[];
+  /** It and something else in the group need each other. */
+  inCycle: boolean;
+  ready: boolean;
+  issues: ManifestIssue[];
+};
+
+/** What Submit would send (112): the item's own checks, and the drafts that go with it. */
+export type SubmitPreview =
+  | { ok: true; issues: ManifestIssue[]; members: GroupMember[]; inCycle: boolean }
   | { ok: false; error: string; issues: ManifestIssue[] };

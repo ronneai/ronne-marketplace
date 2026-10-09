@@ -86,6 +86,12 @@ export const HELP = {
       "Only dependencies in ronne.yaml. Positions are kept with your draft and aren't released.",
     href: docsHref("items", "canvas"),
   },
+  "submit-together": {
+    question: "Why do these go together?",
+    answer:
+      "The item needs them, directly or through each other, and they're your drafts: an item can't be reviewed or released without what it needs. So they're submitted together, all or none, and released together once each is approved.",
+    href: docsHref("review", "dependencies"),
+  },
   "after-submit": {
     question: "What happens next?",
     answer:

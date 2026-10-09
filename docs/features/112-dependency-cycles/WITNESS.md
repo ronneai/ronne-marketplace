@@ -333,3 +333,49 @@ Witnessed: 2026-10-08 19:43 EDT, by a fresh agent (adversarial). Commit: 9f1b304
 | 7 | Earlier fixes hold | yes | confirmed | R1, R2, R3, R6, R18, P1, P2, P6, races |
 
 **Overall:** met: every claim of task 4, blind and adversarial, is confirmed in its latest pass. Remark R19 (the newest of two proposals is taken) stays as built.
+
+## Task 5 — The Submit dialog
+
+Witnessed: 2026-10-08 20:01 EDT, by a fresh agent (blind). Commit: 3386401. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: SubmitDialogs.tsx, actions.ts, types.ts, the test, Help.tsx, submissions.ts (`checkSubmitGroup`), rmk.e2e.ts.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The dialog lists each draft that goes with the item, with what brings it in | yes | confirmed | `GroupList`; test asserts "Needed by @team/agent and @team/skill"; probe `checkSubmitGroup` (SQLite) → neededBy right |
+| 2 | A cycle's members are marked as needing each other | yes | confirmed | "needs each other" badge; removing it → the test fails; probe `cycles` [[a,b]], a 3-cycle one group. The action's mapping untested then |
+| 3 | Each member's checks are shown | yes | confirmed | ready / not ready badge and `IssueList` |
+| 4 | Submit is off while a member has an error, saying why | yes | confirmed | `submitBlocked` → `disabledReason`; exact strings tested |
+| 5 | Each member links to its draft | yes | confirmed | `href="/submissions/id-@team/skill"`; problems sit under the link |
+| 6 | The dialog shows the outcome | yes | partly | Success shown; on a refusal the group list disappeared, only the item's issues left |
+| 7 | Component tests cover the list, a cycle, a member not ready and the outcome | yes | not met | Outcome untested: changing its text failed nothing |
+| 8 | One button, worded as the spec says | yes | partly | "Submit with N draft(s)", but SPEC.md:102 still said "Submit for review" |
+| 9 | Inline helper "Why do these go together?" → `review#dependencies` | yes | confirmed | `Help.tsx` `submit-together`; the section exists in `topics.ts` and ronne-web |
+| 10 | The changed e2e step passes | yes | confirmed | `playwright test e2e/rmk.e2e.ts -g "exports an agent with its skill"` → 1 passed |
+| 11 | Tests, lint and typecheck green | yes | confirmed | 131 passed; lint 0 errors; typecheck clean |
+
+**Overall:** not met: the outcome untested, the refused outcome losing the group, SPEC.md behind on the button; the action's mapping untested.
+
+### Re-check of claims 6, 7, 8 and the mapping
+
+Witnessed: 2026-10-08 20:07 EDT, by a fresh agent (blind). Commit: 3386401. Machine: macOS 27.0.1, Node v24.0.0. With `SubmitOutcome`, the re-check on refusal, "Submit with N more draft(s)", `toPreview`.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | The outcome: what went, or on a refusal why and each draft as it stands | yes | confirmed | `SubmitOutcome`; the refusal branch re-checks (by reading) |
+| 7 | Component tests cover the list, a cycle, a member not ready and the outcome | yes | partly | Success outcome covered (mutation fails it); the refused path wasn't |
+| 8 | The button's words match the spec | yes | confirmed | `submitLabel`; SPEC.md says it; removing " more" → fails; e2e passes |
+| 12 | `toPreview` gives neededBy, inCycle, ready, issues and the item's own, tested | yes | confirmed | Four mutations each fail "shapes the service's group…" |
+| 13 | Lint and typecheck green | yes | confirmed | Lint 0 errors; typecheck clean; `next build` exit 0 |
+
+**Overall:** not met: the refused path untested. Also: the refusal message stayed stale after a clean re-check.
+
+### Re-check 2 of claim 7 and the refused path
+
+Witnessed: 2026-10-08 20:09 EDT, by a fresh agent (blind). Commit: 3386401. Machine: macOS 27.0.1, Node v24.0.0. With `afterSubmit` and `CHANGED_SINCE_CHECK`.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | Refused: "Something changed since the check…", a new check, each draft as it stands; sent along: what went; else close | yes | confirmed | `SubmitDialogs.tsx:55-64` `afterSubmit`; the handler wiring by reading; SPEC.md:108-111 |
+| 7 | Component tests cover the list, a cycle, a member not ready and the outcome, refusal included | yes | confirmed | 134 passed; three mutations of `afterSubmit` each fail its test; the three-line handler wiring is read only (no DOM environment) |
+| 13 | Lint, typecheck and tests green | yes | confirmed | Lint 0 errors; typecheck exit 0; 134 passed |
+
+**Overall:** met: every claim of task 5 confirmed in its latest pass.

@@ -1,5 +1,6 @@
 import {
   DEFAULT_LIMITS,
+  dependenciesFirst,
   hasErrors,
   type ManifestIssue,
   type PackageLimits,
@@ -231,13 +232,23 @@ export const checkSubmitGroup = async (
   deps: SubmissionDeps,
   actor: SubmissionActor,
   id: string,
-): Promise<{ ready: boolean; members: CheckedMember[]; neededBy: Map<string, string[]> }> => {
+): Promise<{
+  ready: boolean;
+  members: CheckedMember[];
+  neededBy: Map<string, string[]>;
+  /** The members that need each other, by id: each cycle once (112). */
+  cycles: string[][];
+}> => {
   const submission = await own(deps.repo, actor, id);
   transition(submission.status, sendAction(submission.status));
   requireMember(actor, submission.workspace);
   const [group] = await submitGroups(deps.repo, actor, [id]);
-  const checked = await checkGroup(deps, deps.repo, actor, group?.ids ?? [id], groupCheck);
-  return { ...checked, neededBy: group?.neededBy ?? new Map() };
+  const ids = group?.ids ?? [id];
+  const checked = await checkGroup(deps, deps.repo, actor, ids, groupCheck);
+  const { groups: cycles } = dependenciesFirst(
+    ids.map((member) => ({ name: member, dependsOn: group?.needs.get(member) ?? [] })),
+  );
+  return { ...checked, neededBy: group?.neededBy ?? new Map(), cycles };
 };
 
 /**

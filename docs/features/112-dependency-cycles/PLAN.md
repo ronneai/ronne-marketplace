@@ -38,7 +38,7 @@ the same change that completes it.
   (none submitted), a failure inside the transaction (none submitted), and a bulk submit whose
   groups share a draft, on the four databases.
 
-- [ ] **5. The Submit dialog.** `SubmitDialogs.tsx`: the group's list with what brings each member
+- [x] **5. The Submit dialog.** `SubmitDialogs.tsx`: the group's list with what brings each member
   in, each one's checks and links, the cycle marked, the button's reason when a member isn't ready,
   the outcome; an inline helper.
   *Done when:* component tests cover the list, a cycle, a member not ready and the outcome.

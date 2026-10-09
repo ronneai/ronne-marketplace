@@ -99,14 +99,16 @@ action, become one group.
 - **The item's Submit dialog** lists the group before it submits: each draft, with what brings it
   in ("needed by `@team/a`"), a cycle's members marked as needing each other, and each one's checks,
   as it shows the item's today.
-- **One button, Submit for review**, submits the whole group. It's off while any member has an
-  error, with why ("`@team/b` isn't ready: fix its errors first."), and each member's problems link
-  to that draft.
+- **One button** submits the whole group: **Submit with 2 more drafts** (or **Resubmit with…**),
+  and **Submit for review** when nothing goes with it; the dialog's title stays **Submit for
+  review**. It's off while any member has an error, with why ("`@team/b` isn't ready: fix its
+  errors first."), and each member's name links to that draft, above its problems.
 - **Checked together:** each member is checked as if the whole group were in review, so members,
   and a cycle's especially, don't block each other.
 - **All or none:** the group's members are submitted in one database transaction. If one fails at
-  that moment (someone else just took its name, say), none is submitted, and the dialog says which
-  one and why.
+  that moment (someone else just took its name, say), none is submitted: the dialog says "Something
+  changed since the check: here's where each draft stands now.", checks again, and shows each.
+  Once submitted, it says what went: "Submitted `@team/a` for review, with `@team/b`."
 - **Unsaved changes:** Submit stays off while the open item has unsaved changes, as today. A member
   is submitted as it was last saved.
 - **My submissions' bulk submit** (052, 056) works in groups: a selected draft brings its group, as
