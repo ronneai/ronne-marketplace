@@ -6,3 +6,8 @@
 # with it yet (2.11.7 also uses Go 1.26.8).
 CVE-2026-78667 exp:2026-10-23
 CVE-2026-97031 exp:2026-10-23
+
+# Go standard library and golang.org/x/net v0.59.0 in caddy:2.11.6: a denial of service through
+# HTTP/2 SETTINGS frames, first seen on 2026-10-09. Fixed in Go 1.26.9 and x/net 0.60.0, in no
+# Caddy image yet. Our Caddyfile (compose.yaml and rmk-server's) serves HTTP/1.1 only until then.
+CVE-2026-78669 exp:2026-10-23
