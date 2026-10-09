@@ -255,7 +255,8 @@ const columns = (tab: QueueTab): Column<QueueRow, "time" | "name">[] => [
   {
     id: "author",
     header: "Author",
-    className: "w-28",
+    // Half as wide again (owner, 2026-10-09), so a full name fits before it's cut.
+    className: "w-42",
     truncate: true,
     hideOnMobile: true,
     render: (row) => <span title={row.authorName}>{row.authorName}</span>,
