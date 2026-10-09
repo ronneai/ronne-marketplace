@@ -10,6 +10,11 @@ name: Linux packages
 
 on:
   workflow_call:
+    # A called workflow gets no secrets unless its caller passes them: without this, the sign-in
+    # below always skipped and the package tests pulled anonymously.
+    secrets:
+      DOCKERHUB_READ_TOKEN:
+        required: false
 
 permissions:
   contents: read

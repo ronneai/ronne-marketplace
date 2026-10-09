@@ -339,6 +339,9 @@ jobs:
   linux-packages:
     needs: bundles
     uses: ./.github/workflows/packages.yml
+    # Only the read-only Docker Hub token, by name: not `inherit`, which would hand over every secret.
+    secrets:
+      DOCKERHUB_READ_TOKEN: ${{ secrets.DOCKERHUB_READ_TOKEN }}
 
   # Last, so a release on GitHub exists only once every artefact of it does.
   github-release:
