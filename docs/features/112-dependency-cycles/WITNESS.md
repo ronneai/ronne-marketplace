@@ -737,6 +737,19 @@ Durations: shard 1/2 3m02s, shard 2/2 3m53s, End-to-end (Chromium) 3 s (3m59s fr
 
 **Overall:** not met: everything holds on GitHub but the documentation-only case, which waits for a documentation-only pull request.
 
+### Re-check 3 — claim 6d
+
+Witnessed: 2026-10-08 23:47 EDT, by a fresh agent (blind). Commit: 390f180 (PR #151 head, branch docs/112-finish; CI run 37880807698, event pull_request). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6d-1 | The PR changes only documentation, and `changes` detected it as docs-only | yes | confirmed | `gh pr view 151 --json files` → only `docs/features/README.md`; the detect job's log → "Needs the full checks: false" |
+| 6d-2 | Both halves ran, skipped their steps and ran no Playwright | yes | confirmed | shard 1/2 03:46:40–03:46:43Z, shard 2/2 03:46:40–03:46:44Z, both SUCCESS; each log → "This pull request only changes documentation, so the end-to-end tests are skipped.", no Playwright line |
+| 6d-3 | "End-to-end (Chromium)" reported after them and passed | yes | confirmed | 03:46:47–03:46:50Z SUCCESS; log → "End-to-end halves: success" |
+| 6d-4 | Branch protection requires that name, and the PR is mergeable | yes | confirmed | Required contexts include "End-to-end (Chromium)"; MERGEABLE, CLEAN; the run's conclusion success |
+
+**Overall:** met: on a documentation-only pull request the halves pass in seconds without Playwright and the required check follows and passes; with Re-check 2, claim 6 holds for pull requests with code and documentation-only ones.
+
 ## Task 13 — Which runs where
 
 Witnessed: 2026-10-08 23:14 EDT, by a fresh agent (blind). Commit: 5d485ee + working-tree diff (CLAUDE.md, new docs/knowledge/test-runs.md). Machine: macOS 27.0.1, Node v24.0.0.
