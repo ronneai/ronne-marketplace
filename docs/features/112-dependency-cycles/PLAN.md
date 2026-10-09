@@ -82,7 +82,7 @@ the same change that completes it.
 - [ ] **12. End-to-end in two jobs.** Playwright's `--shard` in `ci.yml`, two jobs, every project.
   *Done when:* each shard's tests are disjoint and together are the whole suite.
 
-- [ ] **13. Which runs where.** A note in `docs/knowledge/` and CLAUDE.md's Commands and rules:
+- [x] **13. Which runs where.** A note in `docs/knowledge/` and CLAUDE.md's Commands and rules:
   what runs on SQLite, on the servers and end to end, locally and in CI, and why database tests
   stay. *Done when:* the note and CLAUDE.md say what tasks 10–12 do.
 

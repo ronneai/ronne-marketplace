@@ -721,3 +721,38 @@ Witnessed: 2026-10-08 23:11 EDT, by a fresh agent (blind). Commit: a05f9ab + wor
 | 7 | Each shard passes on its own instance | yes | confirmed | The existing build, unchanged across both runs: `--shard=1/2` → 55 passed (1.6m); `--shard=2/2` → 50 passed (1.1m); no flaky or retried tests. The task 8 tests have users of their own |
 
 **Overall:** not met: claims 1, 2 and 7 hold; claim 6 needs a real GitHub Actions run, so the task stays unticked until a pull request's run confirms it.
+
+## Task 13 — Which runs where
+
+Witnessed: 2026-10-08 23:14 EDT, by a fresh agent (blind). Commit: 5d485ee + working-tree diff (CLAUDE.md, new docs/knowledge/test-runs.md). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A note in `docs/knowledge/` says what runs on SQLite, on the servers and end to end, locally and in CI | yes | confirmed | `test-runs.md` has the three-kinds table, "On a pull request (CI)" and "While working" |
+| 2 | It says why the database tests stay | yes | confirmed | Matches the SPEC "Database tests stay" bullet; the e2e webServer is a SQLite instance |
+| 3 | The note describes task 10 correctly | yes | confirmed | `test-db.ts` `reset()`, `schemaOf`, `STALE_MS = 2h`, `drop()` to stderr when `stuck`; `db-setup.ts`; `db-global-setup.ts` |
+| 4 | The note describes task 11 correctly | yes | confirmed | `database.yml` only narrows on `SCOPE=core`; `changes.yml` non-PR → `all`; `db-scope.js` as the note lists it |
+| 5 | "33 of the 86 files" | yes | confirmed | `vitest list` → 86, with the core filters → 33; `pnpm test:db:core` → 33 files, 155 passed, 8 skipped |
+| 6 | "about 36 s on MySQL instead of 2–3 min" | yes | partly | Recorded: 43.7 s for core (29 files); 36 s is neither recorded nor reproduced |
+| 7 | "On MySQL that took the full run from about 400 s to about 100 s" | yes | partly | Recorded: 454.6 s and 467 s before, 105–106.5 s after |
+| 8 | The note describes task 12 correctly | yes | confirmed | `ci.yml` matrix `shard: [1, 2]`, `--shard=${{ matrix.shard }}/2`, `e2e-result` named "End-to-end (Chromium)" |
+| 9 | "Locally each half took about 1.3 min, against 2.9 min for the whole" | yes | partly | Recorded: 1.6 and 1.1 min; 2.9 min isn't recorded |
+| 10 | CI facts (Node 22 and 24, db on SQLite, docs-only skips, everything on main, weekly and manual runs) | yes | confirmed | `ci.yml`, `database.yml`, `changes.yml` |
+| 11 | `pnpm test:db:mysql -- <path>` runs only that path | yes | confirmed | One file → 1 file, 6 passed |
+| 12 | CLAUDE.md's Commands | yes | confirmed | The `test:db:core` row, `-- <paths>`, `--shard=1/2`, the CI paragraph |
+| 13 | CLAUDE.md's rules, with a link to the note | yes | confirmed | The `createTestDb()` paragraph; the link resolves |
+| 14 | The CI starting times in the note match the spec | yes | confirmed | "about 9 minutes, end-to-end about 6" vs SPEC "8.6 min, 5.6 min" |
+
+**Overall:** not met: three numbers in the note aren't backed by a recorded or reproduced measurement (rows 6, 7 and 9).
+
+### Re-check — claims 6, 7 and 9
+
+Witnessed: 2026-10-08 23:14 EDT, by a fresh agent (blind). Commit: 5d485ee + working-tree diff (CLAUDE.md, docs/knowledge/test-runs.md as revised). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | "29 of them took 44 s on MySQL, against about 105 s for all 86 after task 10" | yes | confirmed | WITNESS task 11 row 7 (43.7 s, 29 files); task 10 (105 s, 106.5 s) |
+| 7 | "from about 450 s to about 105 s" on MySQL | yes | confirmed | WITNESS task 10: 454.6 s and 467 s before, 105 s and 106.5 s after |
+| 9 | "Locally the halves took 1.6 and 1.1 min." | yes | confirmed | WITNESS task 12 re-check row 7; no unbacked figure left in the note or CLAUDE.md |
+
+**Overall:** met: the three figures are the ones recorded, and every other claim held in the first pass.

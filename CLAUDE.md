@@ -49,9 +49,10 @@ Use Node.js 24 (`.nvmrc`) and pnpm installed directly (`npm install --global pnp
 | `pnpm typecheck` | Type-checks every package |
 | `pnpm test` | Runs every Vitest suite; `pnpm --filter @ronneai/core test` for one package |
 | `pnpm test:db` | Only the database tests (`*.db.test.ts`, the `db` Vitest project) |
-| `pnpm test:db:up` then `pnpm test:db:postgres` / `:mysql` / `:mariadb` | Database tests against local Docker servers at the minimum versions; `pnpm test:db:down` stops them |
+| `pnpm test:db:core` | Only the database code's own tests (`db/`, migrations, repositories, setup, scripts): what the servers run on a pull request that changes no database code |
+| `pnpm test:db:up` then `pnpm test:db:postgres` / `:mysql` / `:mariadb` | Database tests against local Docker servers at the minimum versions (`-- <paths>` for some files); `pnpm test:db:down` stops them |
 | `pnpm test:install` | The install script's tests (`scripts/install/test-install.sh`) under dash and bash. `install.ps1`'s tests and lint run in CI (`install-scripts.yml`) |
-| `pnpm test:e2e` | Builds the web app and runs the Playwright tests (`apps/web/e2e`) against a throwaway SQLite instance. Desktop, phone (also in WebKit, for iOS Safari) and tablet projects. First run `pnpm --filter @ronneai/web exec playwright install chromium webkit` |
+| `pnpm test:e2e` | Builds the web app and runs the Playwright tests (`apps/web/e2e`) against a throwaway SQLite instance. Desktop, phone (also in WebKit, for iOS Safari) and tablet projects. First run `pnpm --filter @ronneai/web exec playwright install chromium webkit`. `--shard=1/2` runs half, as CI does |
 | `pnpm witness:check` | Checks every `WITNESS.md` record and that each ticked task has a pass that met it. The pre-commit hook and CI run it on every change |
 | `pnpm licenses:check` | Checks every installed package's license against `license-policy.json` |
 | `pnpm audit --audit-level high` | Fails on known high or critical vulnerabilities |
@@ -66,11 +67,11 @@ Use Node.js 24 (`.nvmrc`) and pnpm installed directly (`npm install --global pnp
 | `pnpm bundle <tarball>` | Builds this machine's self-contained `rmk-server` archive (Node.js inside) from a packed `@ronneai/marketplace` (084); `node packages/repo-tools/src/bundle-smoke.js <archive>` checks and runs it with no Node on `PATH` |
 | `pnpm release:version <x.y.z>` | Sets the version the four published packages share; then commit and push the tag `vX.Y.Z` to publish (`.github/workflows/release.yml`), following [`docs/runbooks/release.md`](docs/runbooks/release.md) |
 
-CI (`.github/workflows/`) runs lint, typecheck, test and build on Node 22 and 24, the database tests on PostgreSQL 15, MySQL 8.4 and MariaDB 10.11 (`database.yml`, plus a weekly run on the latest versions), the end-to-end tests in Chromium, the license and audit checks, CodeQL, and the PR title check.
+CI (`.github/workflows/`) runs lint, typecheck, test and build on Node 22 and 24, the database tests on PostgreSQL 15, MySQL 8.4 and MariaDB 10.11 (`database.yml`, plus a weekly run on the latest versions; on a pull request that changes no database code, only `test:db:core`), the end-to-end tests in two parallel halves, the license and audit checks, CodeQL, and the PR title check.
 
 Pull requests that only change documentation (`.md`, `.mdx`, `.txt`, the pre-commit hook's rule) skip the heavy CI steps: the reusable `changes.yml` workflow detects them, and the required checks still report success. Pushes to `main`, and the scheduled and manual runs, always run everything.
 
-A test that needs a database is named `*.db.test.ts` and gets one from `createTestDb()`. Before committing database code, run it against the servers too (`pnpm test:db:up`): SQLite is lenient where PostgreSQL and MySQL aren't.
+A test that needs a database is named `*.db.test.ts` and gets one from `createTestDb()`: one database per test file, put back to just migrated before each test, so a test ends every transaction it starts. Before committing database code, run it against the servers too (`pnpm test:db:up`): SQLite is lenient where PostgreSQL and MySQL aren't. Run the servers only for database code, and only the files it touches; [`docs/knowledge/test-runs.md`](docs/knowledge/test-runs.md) says which tests run where, and why the database tests stay.
 
 After adding a workspace package, run `pnpm install --frozen-lockfile` to confirm the lockfile has it; if not, `pnpm install --fix-lockfile`.
 
