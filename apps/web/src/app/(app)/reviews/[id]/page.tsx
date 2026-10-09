@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { selectedFile, showFiles } from "@/components/files/shown";
 import { Help } from "@/components/help/Help";
 import { RiskSummary } from "@/components/risk-flags/RiskSummary";
-import { DependencyMarksNotice, markText } from "@/components/submissions/DependencyMarks";
+import { DependencyMarksNotice } from "@/components/submissions/DependencyMarks";
 import { ProposalBadges } from "@/components/submissions/ProposalBadges";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { buttonClasses } from "@/components/ui/Button";
@@ -18,6 +18,7 @@ import { DecisionBar } from "@/features/reviews/DecisionBar";
 import { ProposalChanges } from "@/features/reviews/ProposalChanges";
 import { PublishDialog } from "@/features/reviews/PublishDialog";
 import { ReviewAllFiles, ReviewChanges } from "@/features/reviews/ReviewFiles";
+import { releaseGroupFor } from "@/features/reviews/release-group";
 import { versionsPath } from "@/features/versions/links";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { canInSome } from "@/server/domains/identity/models/permissions";
@@ -71,6 +72,8 @@ const Review = async ({
   const { submission, current, previous, proposal } = review;
   // What it waits on (056): reviewers see it before approving.
   const marks = (await dependencyMarks(request, [submission]))[submission.id];
+  // What goes out with it, or why it can't go yet (112).
+  const release = review.can.publish ? await releaseGroupFor(request, id) : null;
   // A proposal (017) opens on its changes to its base version. Otherwise, changes since the last
   // revision by default from revision 2 on; revision 1 is all files.
   const defaultView = proposal ? "base" : previous === null ? "all" : "changes";
@@ -144,7 +147,8 @@ const Review = async ({
               published={review.published}
               versionsHref={versionsPath(submission)}
               suggested={proposal?.suggested ?? null}
-              blocked={marks?.[0] ? markText(marks[0]) : null}
+              blocked={release?.blocked ?? null}
+              goesWith={release?.goesWith ?? []}
             />
           ) : null}
         </div>

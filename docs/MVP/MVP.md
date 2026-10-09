@@ -340,7 +340,7 @@ flowchart LR
   Later pre-releases increase the number, and releasing the stable version drops the suffix.
 - An item released with its dependencies (§4.1, [112](../features/112-dependency-cycles/SPEC.md)) is one group: every artifact is packed
   and stored first, then all the versions are recorded in one transaction.
-- Artifacts are stored as `storage/<scope>/<name>/<version>.tgz` behind a `StorageAdapter` interface. Local disk is used for the MVP.
+- Artifacts are stored as `storage/<scope>/<name>/<version>.tgz` behind a `StorageAdapter` interface. Local disk is used for the MVP. Artifacts never change: when a failed release left other bytes at that path (no version points to them), the new ones go to `<version>-<first 12 of their sha256>.tgz`, and the version records its path ([112](../features/112-dependency-cycles/SPEC.md)).
 
 ### 4.3 Install / update
 

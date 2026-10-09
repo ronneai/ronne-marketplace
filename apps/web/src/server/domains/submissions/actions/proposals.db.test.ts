@@ -325,15 +325,16 @@ describe("stale proposals", () => {
     await expect(decide(asModerator, second.id, { decision: "approve" }, app)).rejects.toThrow(
       SubmissionStaleError,
     );
-    await expect(
-      publishSubmission(
-        asAuthor,
-        third.id,
-        { choice: { kind: "stable", bump: "patch" } },
-        app,
-        storage,
-      ),
-    ).rejects.toThrow(/1\.0\.1 has been released since/);
+    // 017's own error, also now that a release takes its group (112).
+    const stale = await publishSubmission(
+      asAuthor,
+      third.id,
+      { choice: { kind: "stable", bump: "patch" } },
+      app,
+      storage,
+    ).catch((error) => error);
+    expect(stale).toBeInstanceOf(SubmissionStaleError);
+    expect(stale.message).toMatch(/1\.0\.1 has been released since/);
     // Other decisions still work on a stale proposal.
     await decide(
       asModerator,

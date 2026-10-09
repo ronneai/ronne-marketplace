@@ -121,16 +121,29 @@ action, become one group.
 
 - **The Release dialog** of an approved item lists its group: each member with the version it will
   get. One set of settings (055: stable or pre-release), and each member's own suggested bump.
+  Publish is off, with why, when a member gets no version from those settings; anything else the
+  server refuses (a range a member's version misses, say) is said when Publish is pressed, in
+  words that name it: "`@team/b` goes out as 1.0.0-beta.1, which `@team/a`'s range ^1.0.0 doesn't
+  match."
 - **Release** releases the whole group: the artifacts are packed and stored first, then all the
   versions are recorded in **one database transaction**, each range checked against the versions
-  going out. If any one fails, none is released. An artifact stored for a release that then fails
-  isn't referenced, and is harmless.
-- **Refused, with why**, when a member isn't approved yet ("`@team/b` is still in review: it's
-  released with this item once approved."), or the person may not release a member (055's rule: a
-  workspace's moderators and root release any, an author their own).
+  going out. If any one fails, none is released.
+  - **Under the transaction's locks,** each dependency outside the group is locked as a yank locks
+    it, and must still have a version in its range: one yanked meanwhile refuses the release.
+  - **Artifacts never change.** An artifact stored for a release that then failed isn't referenced
+    by any version; when a later release of that version has other bytes, they're stored next to
+    it as `<version>-<first 12 of their sha256>.tgz`, and the version records that path.
+  - **A change proposal that's stale** is refused with 017's own error, as before.
+- **Refused, with why**, when a member isn't approved yet ("It can't be released yet: it waits on
+  `@team/b`, which is submitted."; Publish is off with the same reason), or the person may not
+  release a member (055's rule: a workspace's moderators and root release any, an author their own;
+  "`@team/b` can't be released with it: only its author, a moderator or root releases it.").
 - **Bulk release** (055) works in groups the same way: a selected item brings its group (056 already
-  includes approved dependencies); each group is released in one transaction, all or none; what
-  depends on a group that failed is `skipped`, as today.
+  includes approved dependencies); everything joined by a dependency in the batch is one group,
+  released in one transaction, all or none, each member `not_releasable` with why when it fails
+  (what depends on a group is in it, so `skipped` no longer happens). An item that can't go takes
+  back what it brought. Two proposals of one item can't go in one batch: the second is refused
+  ("Another change to `@team/b` is in this batch: release them one at a time.").
 
 ### What reads an order
 
@@ -169,6 +182,29 @@ action, become one group.
 - **An install that asks for A only:** A and what it needs are installed, cycles included.
 - **`rmk remove A`:** B stays only if something still asks for it (the reachability rule).
 
+## Faster checks (owner, 2026-10-08)
+
+Added to this feature by the owner while building it: the checks had grown slow, both in CI and
+for whoever runs them while working, and should run what each change needs without losing what
+each kind of test catches. Measured on `main` before this work: database tests on MySQL 8.6 min,
+end-to-end 5.6 min, MariaDB 3.8, PostgreSQL 2.9, lint/typecheck/test/build 2.4–2.9 (jobs run in
+parallel, so a pull request waited about 9 min).
+
+- **Database tests stay.** End-to-end tests run on SQLite only and cover the main paths; the
+  database tests on PostgreSQL, MySQL and MariaDB are what catch dialect differences (SQLite
+  accepts what the servers refuse), and they hold the edge cases a browser test never reaches.
+- **Set up once, emptied between tests.** On a server, `createTestDb()` migrated a new database
+  for every test, and DDL is slow on MySQL. Each test worker now migrates one database once and
+  empties its tables before each test. SQLite in memory stays as it is. Migration tests keep a
+  database of their own (`migrate: false`).
+- **The servers where they matter.** On a pull request, the database servers run the tests of
+  database code (the `db/` layer, migrations, repositories) always, and every database test only
+  when the pull request changes database code. Every other test runs on SQLite in the CI job.
+  Pushes to `main`, the weekly run and manual runs run everything on every server, as today.
+- **End-to-end in two parallel jobs.**
+- **When working:** run the servers for changes to database code; the rest runs on SQLite, and CI
+  runs the full set on `main`. CLAUDE.md and a note in `docs/knowledge/` say which runs where.
+
 ## Documentation
 
 - **Items and types → Dependencies** (`items#dependencies`): items may need each other; an item is
@@ -204,6 +240,9 @@ action, become one group.
   approved, released together from one Release dialog, and installed with `rmk`, on desktop and
   phone.
 - [ ] The Documentation listed above says so, in English, Portuguese and French.
+- [ ] Faster checks: database tests set up once per worker; a pull request runs the servers on
+  database code (everything when database code changes); end-to-end in two jobs; the same tests
+  still pass; CI times measured before and after.
 
 ## Decisions
 
@@ -219,6 +258,9 @@ action, become one group.
    together, since approving one isn't enough to release it.
 5. **Your own draft as a dependency is a warning, not an error** (Claude): Submit takes it with the
    item, so it doesn't block anything. It's still an error where the item would go alone.
+
+6. **Faster checks in this feature** (owner, 2026-10-08): the CI and local test time work is
+   done on this branch, as tasks 10–13, rather than as a separate change.
 
 ## Open questions
 

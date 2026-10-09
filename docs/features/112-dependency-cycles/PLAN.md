@@ -43,7 +43,7 @@ the same change that completes it.
   the outcome; an inline helper.
   *Done when:* component tests cover the list, a cycle, a member not ready and the outcome.
 
-- [ ] **6. Release together.** [risky] `publish.ts` splits into preparing (pack and store each
+- [x] **6. Release together.** [risky] `publish.ts` splits into preparing (pack and store each
   artifact) and recording (the database rows), so a group's versions are recorded in one
   transaction, each range checked against the versions going out. The release group (the item and
   every dependency with no matching released version, all approved). The Release dialog lists the
@@ -64,6 +64,27 @@ the same change that completes it.
 - [ ] **9. Documentation.** The topics in the spec (en, pt, fr) in a ronne-web branch that goes live
   with the release, and the two dialogs' helpers.
   *Done when:* the pages say what tasks 2–7 do, and the docs tests pass in ronne-web.
+
+### Faster checks (owner, 2026-10-08)
+
+- [ ] **10. Database tests set up once.** [risky] `createTestDb()` (`db/testing/test-db.ts`): on
+  PostgreSQL, MySQL and MariaDB, one migrated database per test worker, its tables emptied before
+  each test; SQLite in memory unchanged; `migrate: false` keeps a fresh database.
+  *Done when:* every database test passes on the four databases, alone and in parallel, and the
+  MySQL run's time is measured before and after.
+
+- [ ] **11. The servers where they matter.** `database.yml`: on a pull request, the servers run the
+  tests of database code (the `db/` layer, migrations, repositories), and every database test when
+  the pull request changes database code; `main`, the weekly run and manual runs run everything.
+  *Done when:* the selection is in the workflow and in `changes.yml`'s outputs, and a dry run of
+  each case lists the tests it would run.
+
+- [ ] **12. End-to-end in two jobs.** Playwright's `--shard` in `ci.yml`, two jobs, every project.
+  *Done when:* each shard's tests are disjoint and together are the whole suite.
+
+- [ ] **13. Which runs where.** A note in `docs/knowledge/` and CLAUDE.md's Commands and rules:
+  what runs on SQLite, on the servers and end to end, locally and in CI, and why database tests
+  stay. *Done when:* the note and CLAUDE.md say what tasks 10–12 do.
 
 ## Notes
 

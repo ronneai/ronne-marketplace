@@ -437,7 +437,7 @@ describe("dependencies on their way (056)", () => {
     ]);
   });
 
-  it("submits a dependent of one in review, and releases it only after its dependency", async () => {
+  it("submits a dependent of one in review, and releases it with its approved dependency (112)", async () => {
     const github = await serverDraft("github");
     const reviewer = await skillNeeding("reviewer", '  "@team/github": "^1.0.0"\n');
     // Your own draft goes with it (112): on its way, as if already submitted.
@@ -459,18 +459,10 @@ describe("dependencies on their way (056)", () => {
         app,
         storage(),
       );
-    await expect(release(reviewer)).rejects.toMatchObject({
-      message:
-        "It can't be released yet: @team/github isn't released yet (it's approved). Release it first.",
-      issues: [
-        expect.objectContaining({
-          code: "dependency_unreleased",
-          message: "@team/github isn't released yet (it's approved). Release it first.",
-        }),
-      ],
-    });
-    await release(github);
-    await expect(release(reviewer)).resolves.toMatchObject({ version: "1.0.0" });
+    // The reviewer takes the approved server with it: one release, both at 1.0.0.
+    const released = await release(reviewer);
+    expect(released).toMatchObject({ version: "1.0.0" });
+    expect(released.with).toMatchObject([{ name: "@team/github", version: "1.0.0" }]);
   });
 
   it("marks what each waits on, for whoever may see it", async () => {

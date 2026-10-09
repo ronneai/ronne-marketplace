@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
 import { itemPath } from "@/components/catalogue/ItemCard";
 import { RiskSummary } from "@/components/risk-flags/RiskSummary";
-import { markText } from "@/components/submissions/DependencyMarks";
 import { DraftEditor } from "@/features/draft-editor/DraftEditor";
 import type { EditorDraft, EditorProposal } from "@/features/draft-editor/types";
 import { Conversation } from "@/features/reviews/Conversation";
 import { PublishDialog } from "@/features/reviews/PublishDialog";
+import { releaseGroupFor } from "@/features/reviews/release-group";
 import { versionsPath } from "@/features/versions/links";
 import { draftSubmitIssues } from "@/server/domains/submissions/actions/drafts";
 import { type ProposalPanel, proposalPanel } from "@/server/domains/submissions/actions/proposals";
@@ -108,6 +108,8 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
   const panel = draft.proposal && draft.mine ? await proposalPanel(request, id) : null;
   // What it waits on (056): dependencies not released yet, or blocked.
   const marks = (await dependencyMarks(request, [draft]))[draft.id];
+  // What goes out with it, or why it can't go yet (112).
+  const release = review?.can.publish ? await releaseGroupFor(request, id) : null;
   // Who depends on it (056): the author's withdraw confirmation gives the count.
   const dependents =
     draft.mine && draft.status !== "draft" && canTransition(draft.status, "withdraw")
@@ -173,7 +175,8 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
             published={review.published}
             versionsHref={versionsPath(draft)}
             suggested={review.proposal?.suggested ?? null}
-            blocked={marks?.[0] ? markText(marks[0]) : null}
+            blocked={release?.blocked ?? null}
+            goesWith={release?.goesWith ?? []}
           />
         </section>
       ) : null}

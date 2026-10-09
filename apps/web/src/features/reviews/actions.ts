@@ -164,7 +164,13 @@ export const commentFromForm = async (
 export const publishAction = async (id: string, input: PublishInput): Promise<PublishResult> => {
   try {
     const published = await publishSubmission(await requestHeaders(), id, input);
-    return { ok: true, version: published.version, tag: published.tag, sha256: published.sha256 };
+    return {
+      ok: true,
+      version: published.version,
+      tag: published.tag,
+      sha256: published.sha256,
+      with: published.with.map((member) => ({ name: member.name, version: member.version })),
+    };
   } catch (error) {
     return { ok: false, error: message(error) };
   }

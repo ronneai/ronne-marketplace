@@ -12,7 +12,55 @@ import { FieldError, inputClasses, Label } from "@/components/ui/Field";
 import { Notice } from "@/components/ui/Notice";
 import type { SuggestedBump } from "@/server/domains/submissions/models/bump";
 import { publishAction } from "./actions";
-import type { PublishResult } from "./types";
+import type { PublishResult, ReleaseMember } from "./types";
+
+/**
+ * Each of what goes out with the item (112) and the version it gets: the same kind (stable or
+ * pre-release) and its own suggested bump, as the server plans it (`planReleases`).
+ */
+export const groupVersions = (
+  members: readonly ReleaseMember[],
+  kind: "stable" | "prerelease",
+  preId: string,
+): { name: string; version: string | null }[] =>
+  members.map((member) => {
+    const bump: Bump = member.suggested ?? "minor";
+    const choice: ReleaseChoice =
+      kind === "stable" ? { kind, bump } : { kind, id: preId.trim(), bump };
+    return { name: member.name, version: nextVersion(member.published, choice) };
+  });
+
+/** Why Publish is off for the group (112): one that gets no version, as the server would refuse. */
+export const groupBlockedBy = (group: readonly { name: string; version: string | null }[]) => {
+  const stuck = group.find((member) => member.version === null);
+  return stuck
+    ? `${stuck.name} gets no version from that: it can't be released with it this way.`
+    : null;
+};
+
+/** What's released with the item (112), each with its version. */
+export const ReleaseGroupList = ({
+  members,
+}: {
+  members: readonly { name: string; version: string | null }[];
+}) => (
+  <section aria-labelledby="release-group" className="grid gap-2">
+    <div className="flex flex-wrap items-center gap-2">
+      <h3 id="release-group" className="text-sm font-semibold text-fg">
+        Released with {members.length === 1 ? "it" : `these ${members.length}`}:
+      </h3>
+      <Help id="submit-together" />
+    </div>
+    <ul className="grid gap-1" aria-label="Released with it">
+      {members.map((member) => (
+        <li key={member.name} className="text-sm text-fg">
+          <span className="font-mono">{member.name}</span>{" "}
+          <span className="font-mono font-semibold">{member.version ?? "—"}</span>
+        </li>
+      ))}
+    </ul>
+  </section>
+);
 
 const radio = "flex items-start gap-2 text-sm text-fg";
 
@@ -37,7 +85,10 @@ export const PublishDialog = ({
   versionsHref,
   suggested = null,
   blocked = null,
+  goesWith = [],
 }: {
+  /** Its approved dependencies not released yet (112): released with it. */
+  goesWith?: ReleaseMember[];
   /** Why it can't be released yet (056): a dependency not released, or blocked. */
   blocked?: string | null;
   id: string;
@@ -67,6 +118,9 @@ export const PublishDialog = ({
     ? "That doesn't give a new version: a pre-release id is lowercase letters and digits, starting with a letter."
     : tagProblem(shownTag, version);
   const first = published.length === 0;
+  // What goes with it gets its versions by the same rule (112): one that gets none stops it.
+  const group = groupVersions(goesWith, kind, preId);
+  const blockedBy = groupBlockedBy(group);
 
   return (
     <>
@@ -92,7 +146,11 @@ export const PublishDialog = ({
             <div className="grid gap-4">
               <Notice
                 kind="info"
-                title={`Published ${itemName} ${result.version} as ${result.tag}.`}
+                title={`Published ${itemName} ${result.version} as ${result.tag}${
+                  result.with && result.with.length > 0
+                    ? `, with ${result.with.map((m) => `${m.name} ${m.version}`).join(", ")}`
+                    : ""
+                }.`}
               >
                 <span className="font-mono text-xs break-all">sha256 {result.sha256}</span>
               </Notice>
@@ -207,8 +265,9 @@ export const PublishDialog = ({
                   className={`${inputClasses} h-auto py-2`}
                 />
               </div>
+              {goesWith.length > 0 ? <ReleaseGroupList members={group} /> : null}
               <p className="rounded-control bg-canvas p-3 text-sm text-fg" role="status">
-                {version && !problem ? (
+                {version && !problem && !blockedBy ? (
                   <>
                     Publishes <span className="font-mono">{itemName}</span>{" "}
                     <span className="font-mono font-semibold">{version}</span> as{" "}
@@ -216,7 +275,7 @@ export const PublishDialog = ({
                     published.
                   </>
                 ) : (
-                  <span className="text-error-text">{problem}</span>
+                  <span className="text-error-text">{problem ?? blockedBy}</span>
                 )}
               </p>
               <FieldError id="publish-error">
@@ -226,7 +285,7 @@ export const PublishDialog = ({
                 <Button variant="secondary" onClick={() => setOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" loading={pending} disabled={Boolean(problem)}>
+                <Button type="submit" loading={pending} disabled={Boolean(problem || blockedBy)}>
                   Publish {version ?? ""}
                 </Button>
               </DialogActions>

@@ -13,6 +13,10 @@ vi.mock("@/server/domains/submissions/actions/submissions", () => submissions);
 vi.mock("@/server/domains/identity/actions/session", () => session);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
 vi.mock("./actions", () => ({ decideAction: vi.fn(), commentFromForm: vi.fn() }));
+const releaseGroup = vi.hoisted(() => ({
+  releaseGroupFor: vi.fn(async () => ({ blocked: null as string | null, goesWith: [] })),
+}));
+vi.mock("./release-group", () => releaseGroup);
 vi.mock("next/navigation", () => ({
   notFound: () => {
     throw new Error("NEXT_NOT_FOUND");
@@ -29,7 +33,9 @@ const { Conversation } = await import("./Conversation");
 const { DecisionBar, DecisionDialog, DependentsChoice, dependentsMessage, RowDecisions } =
   await import("./DecisionBar");
 const { default: ReviewPage } = await import("@/app/(app)/reviews/[id]/page");
-const { BumpSuggestion } = await import("./PublishDialog");
+const { BumpSuggestion, groupBlockedBy, groupVersions, ReleaseGroupList } = await import(
+  "./PublishDialog"
+);
 
 const text = (path: string, content: string) => ({
   path,
@@ -373,7 +379,7 @@ describe("the review page", () => {
     expect(html).toContain("Blocked: @team/lint waits on @team/base, which was rejected");
   });
 
-  it("disables Publish while a dependency isn't released (056)", async () => {
+  it("disables Publish while its group can't go, and not for an approved dependency (056, 112)", async () => {
     const approved = view({
       can: { decide: false, override: false, comment: true, publish: true, sendBack: false },
     });
@@ -382,13 +388,20 @@ describe("the review page", () => {
       submission: { ...approved.submission, status: "approved" },
     });
     expect(await render()).not.toMatch(/<button[^>]*disabled=""[^>]*>[^<]*<svg[^>]*>.*?Publish/);
+    // An approved dependency goes with it (112): Publish stays on.
     submissions.dependencyMarks.mockResolvedValueOnce({
       "01J0000000000000000000000A": [
         { kind: "waits", dependency: "@team/github", status: "approved" },
       ],
     });
+    expect(await render()).not.toMatch(/<button[^>]*disabled=""[^>]*>[^<]*<svg[^>]*>.*?Publish/);
+    // One still in review holds the group.
+    releaseGroup.releaseGroupFor.mockResolvedValueOnce({
+      blocked: "It waits on @team/github, which is submitted.",
+      goesWith: [],
+    });
     expect(await render()).toMatch(
-      /<button[^>]*disabled=""[^>]*aria-label="Publish: Waits on @team\/github \(pending release\)"/,
+      /<button[^>]*disabled=""[^>]*aria-label="Publish: It waits on @team\/github, which is submitted."/,
     );
   });
 
@@ -619,5 +632,41 @@ describe("rejecting a dependency (056)", () => {
     expect(html).toContain(
       "@team/style was rejected: remove it from dependencies, or depend on another item.",
     );
+  });
+
+  it("previews what's released with it, each at the version it gets (112)", () => {
+    const members = [
+      { name: "@team/new", published: [], suggested: null },
+      { name: "@team/old", published: ["1.2.0"], suggested: "patch" as const },
+      { name: "@team/plain", published: ["2.0.0"], suggested: null },
+    ];
+    expect(groupVersions(members, "stable", "beta")).toEqual([
+      { name: "@team/new", version: "1.0.0" },
+      { name: "@team/old", version: "1.2.1" },
+      { name: "@team/plain", version: "2.1.0" },
+    ]);
+    expect(groupVersions(members.slice(0, 1), "prerelease", "beta")).toEqual([
+      { name: "@team/new", version: "1.0.0-beta.1" },
+    ]);
+    const html = renderToStaticMarkup(
+      <ReleaseGroupList members={groupVersions(members.slice(0, 2), "stable", "")} />,
+    );
+    expect(html).toContain("Released with these 2:");
+    expect(html).toContain('aria-label="Released with it"');
+    expect(html).toMatch(/@team\/new<\/span> <span[^>]*>1\.0\.0</);
+    expect(html).toMatch(/@team\/old<\/span> <span[^>]*>1\.2\.1</);
+    expect(html).toContain("Why do these go together?");
+  });
+
+  it("turns Publish off when one of the group gets no version (112)", () => {
+    const rc = [
+      { name: "@team/x", published: ["1.0.0", "1.1.0-rc.1"], suggested: "minor" as const },
+    ];
+    const group = groupVersions(rc, "prerelease", "beta");
+    expect(group).toEqual([{ name: "@team/x", version: null }]);
+    expect(groupBlockedBy(group)).toBe(
+      "@team/x gets no version from that: it can't be released with it this way.",
+    );
+    expect(groupBlockedBy(groupVersions(rc, "stable", ""))).toBeNull();
   });
 });

@@ -379,3 +379,124 @@ Witnessed: 2026-10-08 20:09 EDT, by a fresh agent (blind). Commit: 3386401. Mach
 | 13 | Lint, typecheck and tests green | yes | confirmed | Lint 0 errors; typecheck exit 0; 134 passed |
 
 **Overall:** met: every claim of task 5 confirmed in its latest pass.
+
+## Task 6 — Release together
+
+Witnessed: 2026-10-08 20:30 EDT, by a fresh agent (blind). Commit: 0deeea4. Machine: macOS (Darwin 27.0.0), Node v24.0.0. Working-tree diff: publish.ts, release-group.ts (new), bulk-release.ts, actions, the Release dialog and pages, tests.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Preparing (pack, store) apart from recording, a group's versions in one transaction | yes | confirmed | `releaseTogether`; one transaction per member (mutation) → 3 tests fail |
+| 2 | Each range checked against the versions going out | yes | confirmed | `withReleasing`; plain registry (mutation) → 8 tests fail |
+| 3 | The group: the item plus every dependency with no matching release, all approved, through chains and cycles | yes | confirmed | `release-group.ts:108-128`; chain and cycle tests |
+| 4 | db test: a chain from one item | yes | confirmed | a, b, c 1.0.0 and `published` |
+| 5 | db test: a cycle, each version pointing at the other | yes | confirmed | `version_dependencies` a→b, b→a |
+| 6 | db test: a member not approved, refused with why | yes | confirmed | "It can't be released yet: it waits on @team/b, which is submitted."; mutation → fails |
+| 7 | db test: a member the person may not release, refused with why | yes | confirmed | Moderator of global vs `@acme/b`; mutation → fails |
+| 8 | db test: a failure while recording releases nothing | yes | confirmed | Second `insertVersion` throws → both `approved`, no versions |
+| 9 | db test: bulk with a group and something depending on it | yes | confirmed | ping↔pong + user published, held `not_releasable`; mutation → fails |
+| 10 | Bulk in groups, all or none; what depends on a failed group `skipped` (SPEC then) | yes | partly | Probe A→B approved, A→C submitted, bulk [A] → B published alone; `skipped` no longer produced; a stale message in a failed cycle |
+| 11 | Release db tests on the four databases | yes | confirmed | 66 passed (SQLite); 36 passed each on PostgreSQL, MySQL, MariaDB |
+| 12 | The Release dialog lists the group with versions; component tests | yes | confirmed | `groupVersions`, `ReleaseGroupList`; "previews what's released with it…" |
+| 13 | The pages pass the group and its block reason | yes | confirmed | `releaseGroupFor`; "Publish: It waits on @team/github, which is submitted." |
+
+**Overall:** not met: bulk could release part of a group; SPEC behind on `skipped`.
+
+### Re-check: claim 10 and the fixes after the adversarial pass
+
+Witnessed: 2026-10-08 20:47 EDT, by a fresh agent (blind). Commit: 0deeea4. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 10 | Bulk in groups, all or none; a refused item takes back what it brought; dependents are in the group, `not_releasable` with why (SPEC updated) | yes | confirmed | Probes: [A] → only A refused, B stays approved; A↔B likewise; [D,A] → D refused, A and B together; mutation → "in bulk, takes back…" fails; SPEC.md:141-146 |
+| 14 | An outside dependency locked and re-checked; a yank meanwhile refuses | yes | confirmed | "No published version of @team/x matches ^1.0.0."; mutation → fails |
+| 15 | A leftover artifact doesn't block the version (`<version>-<sha12>.tgz`) | yes | confirmed | `artifact_path` matches; mutation → fails |
+| 16 | A member's range against another's planned version, in plain words | yes | confirmed | "@team/b goes out as 1.0.0-beta.1, which @team/a's range ^1.0.0 doesn't match."; mutation → fails |
+| 17 | A stale proposal keeps 017's error | yes | confirmed | `SubmissionStaleError` on the four databases |
+| 18 | Two proposals of one item in one batch: the second refused | yes | confirmed | "Another change to @team/github is in this batch…"; mutation → fails |
+| 19 | Publish off when a member gets no version | yes | confirmed | `groupBlockedBy`; mutation → fails |
+| 20 | The "publishd" typo fixed | yes | confirmed | `publish: "published"` |
+| 11 | Release tests on the four databases after the fixes | yes | confirmed | 89 passed (SQLite); 58 each on the servers |
+
+**Overall:** met. Remarks (fixed after): a stale comment in `release-group.ts`; capitals inside nested reasons.
+
+### Adversarial — Task 6
+
+Witnessed: 2026-10-08 20:39 EDT, by a fresh agent (adversarial). Commit: 0deeea4. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Releases every approved, unmet dependency through chains and cycles | yes | confirmed | S10 3-cycle; 68/68 on the four databases; dropping `withReleasing` → 5 of 6 fail |
+| 2 | …and nothing else | yes | partly | S1 bulk: an unselected dependency of a refused item published |
+| 3 | All or none at every step | yes | confirmed | S7, S4, S5, S12b on the four databases |
+| 4 | All or none when an outside dependency is yanked concurrently | yes | not met | S3: released against a yanked-only dependency |
+| 5 | A failed release's artifact is harmless | yes | not met | S7: `StorageConflictError` for a later, different b 1.0.0 |
+| 6 | Ranges against the versions going out, readably | yes | partly | A pre-release missing `^1.0.0` refused with "isn't released yet… Release it first." |
+| 7 | Refused readably when not approved or not allowed | yes | confirmed | Tests |
+| 8 | A single release keeps 015's errors | yes | partly | S2: stale proposal → `SubmissionInvalidError` instead of `SubmissionStaleError` |
+| 9 | Bulk groups, a failing group doesn't stop another | yes | partly | S1; S18 two proposals of one item grouped wrongly |
+| 10 | MAX_BULK_RELEASE holds | yes | confirmed | S13 |
+| 11 | The dialog's preview uses the server's rule | yes | confirmed | `groupVersions` = `planReleases` |
+| 12 | Publish blocked exactly when the server refuses | yes | not met | S12b, S6; SPEC since revised: Publish off when a member gets no version, other refusals said when pressed |
+| 13 | A proposal in a group gets its item's next version and tag | yes | confirmed | S9 |
+| 14 | Concurrent overlapping releases: one wins, nothing doubles | yes | confirmed | S11; the loser read "publishd" |
+
+**Overall:** not met: 3 not met, 4 partly.
+
+### Adversarial re-check — Task 6
+
+Witnessed: 2026-10-08 20:50 EDT, by a fresh agent (adversarial). Commit: 0deeea4. Machine: macOS 27.0.1, Node v24.0.0. Fixes 1–8.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Chains and cycles | yes | confirmed | S10; 72/72 on the four databases |
+| 2 | Nothing else, in bulk too | yes | confirmed | S1, S23; mutation → fails |
+| 3 | All or none at every step | yes | confirmed | S7, S4, S5, S12b |
+| 4 | A concurrent yank refuses | yes | confirmed | S3, S20 |
+| 5 | A leftover artifact doesn't block; artifacts never change | yes | confirmed | S7 `team/b/1.0.0-24cc712b77d7.tgz`; S21, S22 |
+| 6 | Ranges among members, readably | yes | confirmed | S6 |
+| 7 | Refused readably | yes | confirmed | S1, permission test |
+| 8 | 017's stale error | yes | confirmed | S2 |
+| 9 | Bulk groups; one proposal per item per batch | yes | confirmed | S18 |
+| 10 | MAX_BULK_RELEASE | yes | confirmed | S13 |
+| 11 | The dialog's preview | yes | confirmed | 50/50 |
+| 12 | Publish off when a member gets no version (revised SPEC) | yes | confirmed | S12b |
+| 13 | Proposals, versions, tags | yes | confirmed | S9 |
+| 14 | Concurrent overlapping releases | yes | confirmed | S11, S21 |
+| 15 | The outside-dependency lock adds no deadlock | yes | not met | S19 (px of x needs y, py of y needs x, at once): raw deadlock on PostgreSQL, MySQL, MariaDB; all or none held |
+
+**Overall:** not met: row 15.
+
+### Adversarial re-check 2 — Task 6
+
+Witnessed: 2026-10-08 20:57 EDT, by a fresh agent (adversarial). Commit: 0deeea4. Machine: macOS 27.0.1, Node v24.0.0. Item locks taken first in one sorted order.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Items depending on each other's: no deadlock, either order | yes | confirmed | R2a, R2b slowed 400 ms; S19; the four databases |
+| 2 | Overlapping groups | yes | confirmed | S11, R2e |
+| 3 | A concurrent yank serialised | yes | confirmed | S3, S20, R2f |
+| 4 | A member that's another group's outside dependency | yes | confirmed | R2d |
+| 5 | Two groups creating new items at once | yes | confirmed | R2e |
+| 6 | The take-back clears `includedFor` | yes | confirmed | S23 |
+| 7 | Nested reasons lower-cased | yes | partly | Only a leading "It " |
+| 8 | No deadlock between concurrent releases | yes | not met | R2c: workspace locks per member in opposite orders → raw deadlock on the three servers |
+| 9 | Release tests pass | yes | confirmed | 72/72 on the four databases |
+
+**Overall:** not met: row 8.
+
+### Adversarial re-check 3 — Task 6
+
+Witnessed: 2026-10-08 21:05 EDT, by a fresh agent (adversarial). Commit: 0deeea4. Machine: macOS 27.0.1, Node v24.0.0. One sorted `lockWorkspaces` after the sorted item locks; nested reasons lower-cased.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Groups needing workspaces in opposite orders don't deadlock | yes | confirmed | R2c and its mirror R3a, slowed 400 ms, on the four databases |
+| 2 | Items depending on each other's, either order | yes | confirmed | R2a, R2b, S19 |
+| 3 | Overlapping groups: one wins, the losers read well | yes | confirmed | S11 |
+| 4 | A concurrent yank serialised | yes | confirmed | S20, R2f |
+| 5 | A workspace turned private meanwhile can't gain an outside dependent | yes | confirmed | S5, R3b, R3c |
+| 6 | Nested reasons lower-cased | yes | confirmed | S18 "…with it: another change to @team/x is in this batch…" |
+| 7 | Release tests pass | yes | confirmed | 72/72 on the four databases; probes 29/29 each |
+
+**Overall:** met: every claim of task 6, blind and adversarial, is confirmed in its latest pass.

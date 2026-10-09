@@ -93,6 +93,7 @@ export class InvalidStatusTransitionError extends SubmissionsError {
           resubmit: "resubmitted",
           withdraw: "withdrawn",
           restore: "restored",
+          publish: "published",
         }[action] ?? `${action.replace("_", " ")}d`
       }.`,
     );
