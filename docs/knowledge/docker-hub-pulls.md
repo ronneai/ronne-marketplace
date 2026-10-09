@@ -29,6 +29,16 @@ skipped itself on every run and the package tests kept pulling anonymously. So i
 `secrets: inherit`, which would hand over every secret, the release token included). A skipped step
 leaves no line in the log: check the job's steps (`gh api …/actions/jobs/<id> --jq '.steps'`).
 
+## Checking the limits
+
+`pnpm docker:limits` asks Docker Hub how many pulls are left: anonymously, counted for this
+machine's address, and signed in, counted for the account, when you give it a token
+(`DOCKERHUB_TOKEN`, or typed at its hidden prompt; Enter skips). It looks up
+`ratelimitpreview/test`, which doesn't use a pull, and reads `ratelimit-limit`,
+`ratelimit-remaining` and `docker-ratelimit-source`. A reached limit is HTTP 429; a 5xx or no answer
+is Docker Hub failing, not a limit; a 401 is a wrong or revoked token. A runner's anonymous limit
+is its own address's, which this machine can't see.
+
 ## Retries in the package tests
 
 Signing in doesn't stop Docker Hub failing on its own side: on 2026-10-09 it also answered
