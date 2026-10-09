@@ -59,9 +59,12 @@ range. An install fails only when no choice of versions within the ranges works.
 - **Deterministic.** The same registry and request always give the same result. Item names are
   taken in sorted order and versions newest first, so the search prefers newer versions, item by
   item, in name order.
-- **Bounded.** The existing `MAX_STEPS` counts steps across every attempt. A separate limit on
-  attempts stops a registry with many versions from running for long. Reaching either limit
-  reports the original conflict.
+- **Bounded.** The existing `MAX_STEPS` counts steps across every attempt, so it bounds the
+  attempts too: each takes at least one step. Once versions are being set aside, a budget on range
+  checks (a version against one range) applies as well, so an item with thousands of versions, or
+  one that many items ask for, can't keep a resolution going for long. Reaching either limit
+  reports the original conflict. Each item's versions are sorted once,
+  and each item, missing ones too, is read from the registry once.
 - **When nothing works,** the error is the conflict (or `no_matching_version`) from the first
   try, with the same code, message and details as today. That is what the user can act on: the
   ranges as the newest versions asked for them.
@@ -83,6 +86,13 @@ range. An install fails only when no choice of versions within the ranges works.
 - **An older version brings in a new dependency.** Its ranges are added and resolved like any
   others, and a conflict there can backtrack again.
 - **A pre-release** is tried only when a range names one (semver's rule, as today).
+- **A first try that keeps changing versions** ("The dependencies keep changing each other's
+  versions.") blames no version, so nothing older is tried, as today, even where a choice of
+  older versions would work. Random registries showed it only with items that need each other
+  across three or more items (allowed since 112). Making that first try search too is left for
+  later.
+- **A registry read that fails** while versions are set aside fails the install with that error,
+  never hidden behind the first conflict.
 
 ## Documentation
 
@@ -102,7 +112,8 @@ range. An install fails only when no choice of versions within the ranges works.
 - [ ] A conflict with no solution still fails with `resolve_conflict` and the same message and
   details as before.
 - [ ] A conflict that needs two exclusions resolves. A registry built to explode stops at the
-  limit with the first conflict, within a test timeout.
+  limit with the first conflict, within a test timeout, and one with 20,000 versions per item
+  only stays quick because of the budget on version checks.
 - [ ] `POST /api/v1/resolve` returns the backtracked resolution (API test).
 - [ ] MVP §4.3 says the resolver falls back to older versions, and §15 records the decision.
 - [ ] The Documentation listed above says so, in English, Portuguese and French.

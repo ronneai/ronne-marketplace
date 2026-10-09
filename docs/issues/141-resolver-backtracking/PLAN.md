@@ -18,12 +18,13 @@ the same change that completes it.
   checks; task 2 makes them `it`. *Done when:* those fail on `main` with the conflict the spec
   describes, and every other test, old and new, passes.
 
-- [ ] **2. Backtracking.** [risky] In `resolve.ts`:
+- [x] **2. Backtracking.** [risky] In `resolve.ts`:
   - Wrap the loop in attempts, with an excluded set of `name@version`.
   - On a conflict, or on `no_matching_version` from a dependency's range, take the candidates
     (the chosen versions that added a losing range, never the request) in name order. Exclude
     each in turn, and resolve again.
-  - Keep `MAX_STEPS` across attempts, plus a limit on attempts.
+  - Keep `MAX_STEPS` across attempts (each attempt takes a step, so it bounds them), plus a
+    budget on range checks while versions are set aside.
   - When nothing works, throw the first try's error.
   - A locked version that's excluded falls back to the newest version below it in range.
 
