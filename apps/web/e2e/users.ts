@@ -104,6 +104,8 @@ export const E2E_USERS = {
   phoneWebkitJoinModerator: "workspace-join-ios-moderator@e2e.test",
   tabletJoinAsker: "workspace-join-tablet-asker@e2e.test",
   tabletJoinModerator: "workspace-join-tablet-moderator@e2e.test",
+  // 094: not in e2e-door, so Propose a change on its item offers Ask to join.
+  proposeOutsider: "workspace-propose-outsider@e2e.test",
 } as const;
 
 /** The display names, which the header shows (not the email). */
@@ -194,6 +196,7 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   phoneWebkitJoinModerator: "Ios Join Mod",
   tabletJoinAsker: "Tab Asker",
   tabletJoinModerator: "Tab Join Mod",
+  proposeOutsider: "Pro Outsider",
 };
 
 /** Seeded with the moderator role; everyone else is a user. */
@@ -273,6 +276,8 @@ export const E2E_VAULT = {
 
 /** A public workspace with a released skill, which `privateRoot` makes private and public again. */
 export const E2E_SHELF = { workspace: "e2e-shelf", scope: "e2e-shelf-tools", item: "shelf-notes" };
+/** A public workspace with a released skill nobody seeded is in (094): Propose a change refuses. */
+export const E2E_DOOR = { workspace: "e2e-door", scope: "e2e-door-tools", item: "door-notes" };
 
 /** An item the seed publishes with two versions (1.0.0 and 1.1.0 on latest), for the Versions page. */
 export const E2E_VERSIONED_ITEM = "versioned";

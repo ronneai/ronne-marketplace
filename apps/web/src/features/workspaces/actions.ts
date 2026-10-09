@@ -1,11 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { joinPath } from "@/components/workspaces/join";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import { cancelAccessRequest, requestAccess } from "@/server/domains/workspaces/actions/workspaces";
 import { WorkspacesError } from "@/server/domains/workspaces/exceptions/errors";
 import { requestHeaders } from "@/server/http/request-headers";
-import { joinPath } from "./paths";
 import type { RequestActionState } from "./types";
 
 const text = (form: FormData, key: string) => String(form.get(key) ?? "");

@@ -25,7 +25,10 @@ moderators answer. It replaces "ask root" with a request that's tracked and audi
 - Audit events `workspace.access_requested`, `workspace.access_approved`
   (`workspace.member_added` too), `workspace.access_declined`, `workspace.access_cancelled`, on the
   requester, naming the workspace. The message and the reason stay out of the audit log.
-- The "not a member" refusals (091) link to Ask to join.
+- The "not a member" refusals (091) link to Ask to join (the workspace's join page): under Propose a
+  change on an item page, in a draft's read-only notice once its author left the workspace, and in
+  Submit selected's results. The API's message (for `rmk` and MCP) keeps saying "Ask to join <name>"
+  in words; 095 adds the address.
 
 **Out** (and where it goes instead):
 - **Email or other notifications:** out of scope for the MVP (MVP §15). The requester sees the

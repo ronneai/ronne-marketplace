@@ -47,7 +47,7 @@ export const HELP = {
   join: {
     question: "How do I join?",
     answer:
-      "Anyone signed in reads and installs a public workspace's items, but only its members propose and submit there. Its admins and root add members: ask one of them to add you to the workspace.",
+      "Anyone signed in reads and installs a public workspace's items, but only its members propose and submit there. Ask to join it from the Workspaces page, or from the join link its moderators send for a private one; root or its moderators answer, and you see the answer there.",
     href: docsHref("workspaces", "roles"),
   },
   visibility: {

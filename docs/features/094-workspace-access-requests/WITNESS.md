@@ -178,3 +178,47 @@ Witnessed: 2026-10-09 15:56 EDT, by a fresh agent (blind). Commit: 7a08464 (plus
 | 12 | Someone who answers nowhere has no way in; a moderator of a quiet workspace sees no item | no | confirmed | Probe: member → 404, no item; `global`-only moderator → page 200, 0 rows, no item; server actions refuse others |
 
 **Overall:** met: the Requests page, the Admin tab and the nav count work as the spec says; unit, db (four databases) and end-to-end tests (chromium, phone, phone-webkit, tablet, and the sweep) pass. Gaps, not failures: no unit test renders the Admin `?tab=requests` branch; the sweep sees the Requests page empty; the phone test doesn't check the nav count.
+
+## Task 4 — Links from refusals
+
+Witnessed: 2026-10-09 16:01 EDT, by a fresh agent (blind). Commit: d2549a2 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | One shared "Ask to join <workspace>" link opens `/workspaces/<name>/join` | no | confirmed | `components/workspaces/join.ts:2`, `AskToJoinLink.tsx:8-15`; `features/workspaces/paths.ts` deleted, no imports left |
+| 2 | Propose a change: the action returns the item's workspace on NotAMemberError | no | confirmed | `item-page/actions.ts:22-23`; `actions.test.ts` expects `joinWorkspace: "acme"`; mutant fails it |
+| 3 | Propose a change: the refusal shows the message, the link and "How do I join?" | no | confirmed | `ProposeButton.tsx:15-27,48,56`; probe clicking the real button → link to `/workspaces/e2e-acme/join` and the help |
+| 4 | The item page's refusal test checks the link | no | partly | `item-page.test.tsx:90-105` checks `ProposeRefusal` alone; mutant `joinWorkspace: undefined` in `ProposeButton.tsx` leaves 46/46 green |
+| 5 | Read-only draft notice links to the join page | no | confirmed | `DraftEditor.tsx:126-134`; `draft-editor.test.tsx:364-373`; mutant fails it |
+| 6 | Submit selected's results link a `not_a_member` draft's workspace | no | confirmed | `submissions/actions.ts:54`, `BulkSubmit.tsx:169-192`; `submissions.test.tsx:279-308`; mutants fail it |
+| 7 | The "How do I join?" helper's text points to Ask to join; its docs link waits for task 5 | no | confirmed | `Help.tsx:47-52` |
+| 8 | The API message keeps "Ask to join <name>" in words | no | confirmed | no server changes; `errors.ts:58`, `http/errors.ts:72` unchanged |
+| 9 | The spec's Scope bullet names the three places | no | confirmed | `SPEC.md:28-31` |
+| 10 | Checks pass on the touched code | no | confirmed | 34 files, 363 passed; `tsc` 0 errors; biome no errors |
+
+**Overall:** not met: `ProposeButton` passing `joinWorkspace` to `ProposeRefusal` has no test (row 4). Also noted: `ProposeRefusal` nests `<Help>` (a `div`) in a `<p>`.
+
+### Re-check — row 4
+
+Witnessed: 2026-10-09 16:04 EDT, by a fresh agent (blind). Commit: d2549a2 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | The item page's refusal test checks the link | no | partly | `item-page.test.tsx:90-111` renders only `ProposeRefusal`; mutants in it fail the test. But `ProposeButton.tsx:51` `setRefused({ ok: false, error: result.error })`, or the render at `:60` replaced with `{null}`, leave 46/46 green; no e2e drives the not-member path |
+| 4a | The refusal no longer nests `<Help>` inside `<p>` | no | confirmed | `ProposeButton.tsx:19-29`; probe render → `<p role="alert">…</p><div …><a href="/workspaces/a%2Fb%20c/join">…` |
+| 4b | Nothing else broke | no | confirmed | 34 files, 363 passed; `tsc` 0; biome no errors |
+
+**Overall:** not met: no test covers `ProposeButton` passing the action's result to `ProposeRefusal` (row 4).
+
+### Re-check — row 4 (second)
+
+Witnessed: 2026-10-09 16:13 EDT, by a fresh agent (blind). Commit: d2549a2 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | A test covers Propose a change's wiring: the action's refusal reaches the Ask to join link under the button | no | confirmed | `e2e/propose-join.e2e.ts:9-20` clicks the real button on `e2e-door-tools/door-notes`, follows "Ask to join e2e-door" to `/workspaces/e2e-door/join`; `next build` + `playwright test propose-join --project chromium` → 1 passed. Mutants `setRefused({ ok: false, error: result.error })` and render `{null}` → each 1 failed; restored (same shasum), rebuilt → passed |
+| 4a | The e2e seed sets up the not-member case | no | confirmed | `seed.ts:480` `releaseSkillIn(E2E_DOOR, "public", [])`; `users.ts:107` `proposeOutsider` |
+| 4b | The component test still checks the link and the plain refusal | no | confirmed | `item-page.test.tsx:90-112` |
+| 4c | Nothing else broke | no | confirmed | 34 files, 363 passed; `tsc` 0; biome no errors in touched files |
+
+**Overall:** met: the end-to-end test drives the real button through the action to the Ask to join link and the join page, and both wiring mutants fail it. (The witness also noted `E2E_DOOR` placed between `E2E_SHELF` and its comment; moved below it before the commit.)

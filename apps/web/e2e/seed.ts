@@ -17,6 +17,7 @@ import { localStorage } from "../src/server/storage/local-storage";
 import {
   E2E_ACME,
   E2E_ACME_MEMBERS,
+  E2E_DOOR,
   E2E_FALLBACK_ITEMS,
   E2E_JOIN,
   E2E_JOIN_MODERATORS,
@@ -476,4 +477,5 @@ const releaseSkillIn = async (
 };
 await releaseSkillIn(E2E_VAULT, "private", E2E_VAULT.members);
 await releaseSkillIn(E2E_SHELF, "public", []);
+await releaseSkillIn(E2E_DOOR, "public", []);
 await db.destroy();

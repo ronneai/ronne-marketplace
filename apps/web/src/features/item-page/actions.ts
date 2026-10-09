@@ -7,8 +7,8 @@ import { requestHeaders } from "@/server/http/request-headers";
 
 export type ProposeResult =
   | { ok: true; id: string }
-  /** `notMember`: the item's workspace isn't one of the person's (091). */
-  | { ok: false; error: string; notMember?: boolean };
+  /** `joinWorkspace`: the item's workspace, which isn't one of the person's (091, 094). */
+  | { ok: false; error: string; joinWorkspace?: string };
 
 /** Starts a change proposal from the version the item page shows (feature 017). */
 export const proposeChangeAction = async (
@@ -20,7 +20,7 @@ export const proposeChangeAction = async (
     return { ok: true, id: draft.id };
   } catch (error) {
     if (error instanceof NotAMemberError)
-      return { ok: false, error: error.message, notMember: true };
+      return { ok: false, error: error.message, joinWorkspace: error.workspace };
     if (error instanceof SubmissionsError || error instanceof IdentityError)
       return { ok: false, error: error.message };
     throw error;

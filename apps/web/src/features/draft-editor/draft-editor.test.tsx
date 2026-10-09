@@ -364,7 +364,10 @@ describe("the draft page", () => {
   it("tells an author no longer in the workspace why it's read-only (091)", () => {
     const html = view({ readOnly: true, canSubmit: false, notMemberOf: "acme" });
     expect(html).toContain("You&#x27;re no longer a member of acme.");
-    expect(html).toContain("Ask to join acme again to work on it");
+    // Ask to join opens the workspace's join page (094).
+    expect(html).toMatch(
+      /To work on it again, <a [^>]*href="\/workspaces\/acme\/join"[^>]*>Ask to join acme<\/a>/,
+    );
     expect(html).not.toContain("Submitted for review");
     expect(html).not.toContain("Submit for review<");
   });

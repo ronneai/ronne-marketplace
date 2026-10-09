@@ -21,7 +21,7 @@ the same change that completes it.
   *Done when:* component and nav tests pass, and an end-to-end test has a user ask and a
   moderator approve, on desktop and phone.
 
-- [ ] **4. Links from refusals.** 091's `not_a_member` message and helper point to Ask to join.
+- [x] **4. Links from refusals.** 091's `not_a_member` message and helper point to Ask to join.
   *Done when:* the refusal's test checks the link.
 
 - [ ] **5. Documentation.** The topics and helpers in the spec.
