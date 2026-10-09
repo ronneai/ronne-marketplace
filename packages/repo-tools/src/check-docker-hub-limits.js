@@ -94,5 +94,8 @@ if (!token && process.stdin.isTTY)
   token = await askHidden(`Docker Hub token for ${username} (Enter to check anonymously only): `);
 
 const results = [await check("anonymous", null)];
-if (token) results.push(await check(`signed in as ${username}`, `${username}:${token}`));
+// "signed in", not the account's name: nothing read from the environment is printed (CodeQL's
+// js/clear-text-logging; docs/knowledge/codeql-logging.md). Docker Hub names the account itself, in
+// docker-ratelimit-source, which the line shows.
+if (token) results.push(await check("signed in", `${username}:${token}`));
 if (results.includes(false)) process.exitCode = 1;
