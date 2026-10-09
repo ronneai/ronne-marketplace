@@ -192,7 +192,10 @@ Added to this feature by the owner while building it: the checks had grown slow,
 for whoever runs them while working, and should run what each change needs without losing what
 each kind of test catches. Measured on `main` before this work: database tests on MySQL 8.6 min,
 end-to-end 5.6 min, MariaDB 3.8, PostgreSQL 2.9, lint/typecheck/test/build 2.4–2.9 (jobs run in
-parallel, so a pull request waited about 9 min).
+parallel, so a pull request waited about 9 min). After, on #150 (a pull request that changes
+database code, so every database test ran): MySQL 4.8 min, end-to-end 4.0 (halves 3.0 and 3.9,
+in parallel), MariaDB 2.4, PostgreSQL 2.4, lint/typecheck/test/build 2.5–2.8; the required checks
+were all done in 4.8 min.
 
 - **Database tests stay.** End-to-end tests run on SQLite only and cover the main paths; the
   database tests on PostgreSQL, MySQL and MariaDB are what catch dialect differences (SQLite
@@ -254,7 +257,7 @@ parallel, so a pull request waited about 9 min).
   approved, released together from one Release dialog, and installed with `rmk`, on desktop and
   phone.
 - [x] The Documentation listed above says so, in English, Portuguese and French.
-- [ ] Faster checks: database tests set up once per test file; a pull request runs the servers on
+- [x] Faster checks: database tests set up once per test file; a pull request runs the servers on
   database code (everything when database code changes); end-to-end in two jobs; the same tests
   still pass; CI times measured before and after.
 

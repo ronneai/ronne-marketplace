@@ -722,6 +722,21 @@ Witnessed: 2026-10-08 23:11 EDT, by a fresh agent (blind). Commit: a05f9ab + wor
 
 **Overall:** not met: claims 1, 2 and 7 hold; claim 6 needs a real GitHub Actions run, so the task stays unticked until a pull request's run confirms it.
 
+### Re-check 2 — claim 6
+
+Witnessed: 2026-10-08 23:34 EDT, by a fresh agent (blind). Commit: 818509b (PR #150 head; CI run 37878969016, event pull_request). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6a | The two halves ran in parallel on GitHub and both passed | yes | confirmed | `gh pr view 150 --json statusCheckRollup`: shard 1/2 03:22:34–03:25:36Z, shard 2/2 03:22:34–03:26:27Z, both SUCCESS; job logs → "55 passed (1.7m)" (shard 1 of 2), "50 passed (1.9m)" (shard 2 of 2) |
+| 6b | "End-to-end (Chromium)" reported after both halves and passed on their result | yes | confirmed | 03:26:30–03:26:33Z SUCCESS, 3 s after shard 2 ended; log → "End-to-end halves: success" |
+| 6c | Branch protection requires that exact name, and the PR is mergeable | yes | confirmed | Required contexts include "End-to-end (Chromium)" and neither shard name; `mergeStateStatus` CLEAN, MERGEABLE |
+| 6d | On a documentation-only PR the check still reports and passes | yes | can't check here | #150 changes code; seen only in the YAML (first pass, claim 5) |
+
+Durations: shard 1/2 3m02s, shard 2/2 3m53s, End-to-end (Chromium) 3 s (3m59s from the halves' start); database tests postgres 2m21s, mysql 4m49s, mariadb 2m24s.
+
+**Overall:** not met: everything holds on GitHub but the documentation-only case, which waits for a documentation-only pull request.
+
 ## Task 13 — Which runs where
 
 Witnessed: 2026-10-08 23:14 EDT, by a fresh agent (blind). Commit: 5d485ee + working-tree diff (CLAUDE.md, new docs/knowledge/test-runs.md). Machine: macOS 27.0.1, Node v24.0.0.

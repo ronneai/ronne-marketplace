@@ -2,7 +2,8 @@
 
 The checks had grown slow: on a pull request the MySQL job took about 9 minutes and the
 end-to-end job about 6. The owner asked for checks that run what a change needs, without
-redundancy (2026-10-08). Feature 112 did that (tasks 10–13). Read this before adding a database
+redundancy (2026-10-08). Feature 112 did that (tasks 10–13): on its own pull request (#150), with
+every database test running, MySQL took 4.8 minutes and the end-to-end check 4.0. Read this before adding a database
 test, an end-to-end test, or a CI job.
 
 ## The three kinds of test
