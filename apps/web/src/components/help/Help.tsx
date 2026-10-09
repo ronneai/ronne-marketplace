@@ -209,7 +209,13 @@ export const HELP = {
   "add-dependency": {
     question: "How do I add one?",
     answer:
-      "Type part of its name and pick it from the list: your own items in any state, and others' once they're published. It starts on latest; pick another version if you need one. In a markdown file, type @ to do the same.",
+      "Type part of its name and pick it from the list: your own items in any state, and others' once they're published. It starts on latest's compatible range; pick another, or an exact version, if you need one. In a markdown file, type @ to do the same.",
+    href: docsHref("items", "dependencies"),
+  },
+  "version-range": {
+    question: "Compatible or exact?",
+    answer:
+      "Compatible writes a range, such as ^1.4.0: installs get the newest 1.x from 1.4.0 on, so the dependency's fixes arrive without a new release of this item. Exactly writes one version, such as 1.4.0, which installs keep after newer releases: pick it when a later version could break this item. Below 1.0 a range is narrower: ^0.2.3 accepts 0.2.3 or a later 0.2.x, never 0.3.",
     href: docsHref("items", "dependencies"),
   },
   "which-bump": {

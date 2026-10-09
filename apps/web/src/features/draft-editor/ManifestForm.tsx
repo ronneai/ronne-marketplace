@@ -476,9 +476,15 @@ export const ManifestForm = ({
               ? "The items this bundle installs."
               : "Items installed with this one."}{" "}
             Find one by typing part of its name: your own items in any state, and others' once
-            they're published. It starts on latest; pick another version if you need one.
+            they're published. It starts on latest's compatible range; pick another, or an exact
+            version, if you need one.
           </p>
-          {readOnly ? null : <Help id="add-dependency" />}
+          {readOnly ? null : (
+            <div className="flex flex-wrap gap-x-6 gap-y-2">
+              <Help id="add-dependency" />
+              <Help id="version-range" />
+            </div>
+          )}
           <DependencyField
             marks={dependencyMarks}
             value={manifest.dependencies}

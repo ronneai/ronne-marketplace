@@ -111,3 +111,38 @@ Witnessed: 2026-10-09 10:08 EDT, by a fresh agent (blind). Commit: 03be8ad. Mach
 | 7 | The full end-to-end suite passes | yes | confirmed | `npx playwright test` → 114 passed (2.9m), on a build newer than every source (`find src -newer .next/BUILD_ID` → none); Biome on the 5 e2e files clean; `tsc --noEmit` clean |
 
 **Overall:** met: the exact-pin test passes on desktop, phone, phone-webkit and tablet, the full suite is green, and the test fails when the Exactly row writes a caret.
+
+## Task 4 — Documentation and helper
+
+Witnessed: 2026-10-09 10:12 EDT, by a fresh agent (blind). Commit: 6d70a4f; the website at ronne-web b3f6042, branch `bugfix/marketplace-143-dependency-range`. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: Help.tsx, ManifestForm.tsx.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `items#dependencies` (en, pt, fr) says the version starts on latest's caret range | yes | confirmed | `git show b3f6042`, "The version" bullet; `rangeFor` → `startingRange(option.latest)`; `DependencyField.tsx:181` writes `rangeFor(option)` on a pick |
+| 2 | The docs say each row starts with what it writes and says what it accepts, in Compatible (caret) and Exactly (each released version) | yes | confirmed | `choice()` label `${range} · ${accepts}`; groups "Compatible" and "Exactly" as `<optgroup label>` (`DependencyField.tsx:103`); pt/fr keep the English group names, as the app shows them |
+| 3 | `^1.4.0` accepts 1.4.0 or a later 1.x (docs and helper) | yes | confirmed | `semver.satisfies` → 1.9.0 true, 2.0.0 false; the resolver uses plain `satisfies`/`maxSatisfying` (`resolve.ts:81`, `versions.ts:19`) |
+| 4 | Below 1.0: `^0.2.3` accepts only 0.2.x, `^0.0.3` only 0.0.3 | yes | confirmed | semver → 0.2.9 true, 0.3.0 false, 0.0.4 false, 0.0.3 true. "Only 0.2.x" is looser than the menu (0.2.0–0.2.2 are refused too) but not false |
+| 5 | A pre-release is offered only exactly | yes | confirmed | `versionChoices` drops carets without `acceptsText`; a pre-release latest gets the bare version (`composer-canvas/model.ts:70`); `1.5.0-beta.1` vs `^1.4.0` → false |
+| 6 | An unreleased item offers `^1.0.0` or exactly `1.0.0` | yes | confirmed | `versionChoices`, `!option.latest` → Compatible `^1.0.0`, Exactly `1.0.0`; the docs say both in en, pt, fr |
+| 7 | One sentence on why a pin matters: an exact version never moves | yes | confirmed | en "An exact version never moves: installs keep that one after newer releases…", pt "nunca muda", fr "ne bouge jamais"; `1.4.1` vs `1.4.0` → false. If that version is yanked and not locked, an install finds nothing (`resolve.ts:178`); the docs don't claim otherwise |
+| 8 | The helper "Compatible or exact?" → `items#dependencies` exists and says what tasks 1–2 do | yes | confirmed | `"version-range"` with `docsHref("items","dependencies")`; `add-dependency` now says "starts on latest's compatible range; pick another, or an exact version"; `vitest run src/components/help src/features/draft-editor` → 147 passed |
+| 9 | The helper renders beside the existing one, only when the form is editable | no | confirmed | Probe rendering ManifestForm: editable → both helpers in one `div.flex.flex-wrap.gap-x-6`; `readOnly` → neither |
+| 10 | The marketplace change passes the repo checks (lint, typecheck) | no | not met | `biome check ManifestForm.tsx` → 1 format error (lines 479–480); Help.tsx clean; typecheck clean |
+| 11 | ronne-web's lint and tests pass | no | confirmed | `cd www && pnpm lint` → no fixes; `pnpm test` → 138 passed |
+| 12 | The section is in en, pt and fr, in a ronne-web branch | yes | confirmed | `git show --stat b3f6042` → en/fr/pt items.tsx, on `bugfix/marketplace-143-dependency-range`; `topics.ts:13` has `items` › `dependencies` |
+
+**Overall:** not met: the docs and the helper match tasks 1–2 and render where they should, but `ManifestForm.tsx` fails Biome's format check (10).
+
+### Re-check — after the format and 0.x fixes
+
+Witnessed: 2026-10-09 10:14 EDT, by a fresh agent (blind). Commit: 6d70a4f; the website at ronne-web aced3ac, same branch. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: Help.tsx, ManifestForm.tsx.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 13 | ManifestForm.tsx and Help.tsx pass Biome (row 10) | no | confirmed | `biome check` on both → "No fixes applied", no errors |
+| 14 | The web app typechecks; the help and draft-editor tests pass | no | confirmed | `typecheck` → no errors; `vitest run src/components/help src/features/draft-editor` → 147 passed |
+| 15 | The helper and the en/pt/fr docs say `^0.2.3` accepts 0.2.3 or a later 0.2.x, never 0.3, as semver does | yes | confirmed | `semver.satisfies(v, "^0.2.3")` → 0.2.2 false, 0.2.3 true, 0.2.9 true, 0.3.0 false; Help.tsx and `git show aced3ac` (en, pt "aceita a 0.2.3 ou uma 0.2.x posterior", fr "accepte 0.2.3 ou une version 0.2.x plus récente") |
+| 16 | The helper still renders beside "How do I add one?" only when editable | yes | confirmed | The probe again: editable → both in one row; `readOnly` → neither |
+| 17 | ronne-web's lint and tests pass at aced3ac | no | confirmed | HEAD aced3ac, clean; `pnpm lint` → no fixes; `pnpm test` → 138 passed |
+
+**Overall:** met: the formatting passes, the 0.x wording matches semver in the helper and in en, pt and fr, and both repositories' checks pass.

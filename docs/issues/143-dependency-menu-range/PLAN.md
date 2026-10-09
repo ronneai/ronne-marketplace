@@ -27,7 +27,7 @@ the same change that completes it.
 - [x] **3. End to end.** A Playwright test picks a dependency, chooses **Exactly → 1.0.0**, saves,
   and sees `1.0.0` in the YAML. *Done when:* `pnpm test:e2e` passes on desktop and phone.
 
-- [ ] **4. Documentation and helper.**
+- [x] **4. Documentation and helper.**
   - `items#dependencies` on the website (en, pt, fr), in a ronne-web branch that goes live with
     the release.
   - The "Compatible or exact?" helper in `components/help/Help.tsx`.
