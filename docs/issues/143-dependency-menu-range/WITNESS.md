@@ -95,3 +95,19 @@ Witnessed: 2026-10-09 09:51 EDT, by a fresh agent (blind). Commit: 4ae3d1b. Mach
 | 20 | `playwright test e2e/pending-dependencies.e2e.ts e2e/dependency-picker.mobile.e2e.ts` passes | no | confirmed | Build newer than the sources → 6 passed (chromium ×3, phone, phone-webkit, tablet) |
 
 **Overall:** met: choosing a version is tested to write exactly its value, and on phones the version list takes the row's width, so a long pre-release range shows whole at 320px.
+
+## Task 3 — End to end
+
+Witnessed: 2026-10-09 10:08 EDT, by a fresh agent (blind). Commit: 03be8ad. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: e2e/mobile.ts, e2e/users.ts, new e2e/version-pin.ts, version-pin.e2e.ts, version-pin.mobile.e2e.ts.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A Playwright test picks the seeded dependency, chooses Exactly → 1.0.0, saves, and sees bare `1.0.0` in the YAML | yes | confirmed | `e2e/version-pin.ts:25-51`: searches `@e2e-seeded/versioned`, picks it, `selectOption("1.0.0")`; the YAML matches `"<dep>": "?1\.0\.0"?(?!\.)` and doesn't contain `^1.0.0`; Save → `Saved` |
+| 2 | The test fails if the Exactly row writes the caret | no | confirmed | Scratch copy against the real build with `selectOption("^1.0.0")` → fails at `version-pin.ts:42`; with that line removed too → fails at `:46`, the YAML showing `"@e2e-seeded/versioned": ^1.0.0` |
+| 3 | The form and YAML agree, and the saved value persists | no | confirmed | `version-pin.ts:54-56`: after reload, the Form's `Range of <dep>` has value `1.0.0`; passed in every project |
+| 4 | The selected row shows its range and words (latest's caret by default, then the exact row) | yes | confirmed | `version-pin.ts:33-42`: checked option `^${latest} · ${latest} or later 1.x, latest`, then `1.0.0 · exactly 1.0.0`; accepts latest 1.0.0 or 1.1.0, so versions.e2e.ts's yank doesn't matter |
+| 5 | A row opened again later, with no version list, says what its range accepts | yes | confirmed | `version-pin.ts:53-57`: after reload `1.0.0 · exactly 1.0.0` is visible and nothing scrolls sideways, in all 4 projects (a page-wide text match) |
+| 6 | It runs on desktop and phone, with its own users, clear of the sign-in limit | yes | confirmed | `playwright test e2e/version-pin.e2e.ts e2e/version-pin.mobile.e2e.ts` → 4 passed (chromium, phone, phone-webkit, tablet); users `version-pin-*@e2e.test` in `users.ts`, per project in `mobile.ts`, seeded by the `E2E_USERS` loop (`seed.ts:42`) |
+| 7 | The full end-to-end suite passes | yes | confirmed | `npx playwright test` → 114 passed (2.9m), on a build newer than every source (`find src -newer .next/BUILD_ID` → none); Biome on the 5 e2e files clean; `tsc --noEmit` clean |
+
+**Overall:** met: the exact-pin test passes on desktop, phone, phone-webkit and tablet, the full suite is green, and the test fails when the Exactly row writes a caret.

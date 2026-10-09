@@ -88,6 +88,11 @@ export const E2E_USERS = {
   phoneWebkitTogetherModerator: "together-ios-moderator@e2e.test",
   tabletTogether: "together-tablet@e2e.test",
   tabletTogetherModerator: "together-tablet-moderator@e2e.test",
+  // #143: picks an exact version in the dependency menu, one per project. After root's email too.
+  versionPinAuthor: "version-pin-author@e2e.test",
+  phoneVersionPin: "version-pin-phone@e2e.test",
+  phoneWebkitVersionPin: "version-pin-ios@e2e.test",
+  tabletVersionPin: "version-pin-tablet@e2e.test",
 } as const;
 
 /** The display names, which the header shows (not the email). */
@@ -165,6 +170,10 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   phoneWebkitTogetherModerator: "Ios Together Mod",
   tabletTogether: "Tab Together",
   tabletTogetherModerator: "Tab Together Mod",
+  versionPinAuthor: "Pin Author",
+  phoneVersionPin: "Phone Pin",
+  phoneWebkitVersionPin: "Ios Pin",
+  tabletVersionPin: "Tab Pin",
 };
 
 /** Seeded with the moderator role; everyone else is a user. */

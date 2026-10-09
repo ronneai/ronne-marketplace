@@ -24,7 +24,7 @@ the same change that completes it.
   *Done when:* the component tests cover choosing an exact version, which writes the bare
   version, and the frozen form's label.
 
-- [ ] **3. End to end.** A Playwright test picks a dependency, chooses **Exactly → 1.0.0**, saves,
+- [x] **3. End to end.** A Playwright test picks a dependency, chooses **Exactly → 1.0.0**, saves,
   and sees `1.0.0` in the YAML. *Done when:* `pnpm test:e2e` passes on desktop and phone.
 
 - [ ] **4. Documentation and helper.**
