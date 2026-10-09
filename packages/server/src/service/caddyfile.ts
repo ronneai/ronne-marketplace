@@ -29,6 +29,10 @@ const TEMPLATE = `{
     # X-Forwarded-For. Strict: the rightmost untrusted entry, never one the client wrote.
     {{trustedProxies}}
     trusted_proxies_strict
+    # HTTP/1.1 only, until Caddy is built with Go 1.26.9 and golang.org/x/net 0.60.0:
+    # CVE-2026-78669 is a denial of service through HTTP/2 (exception E-7 in
+    # docs/policies/dependencies.md). Turn h2 and h3 back on then.
+    protocols h1
   }
 }
 
