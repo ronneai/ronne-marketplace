@@ -238,22 +238,22 @@ parallel, so a pull request waited about 9 min).
 
 ## Acceptance criteria
 
-- [ ] MVP §3.1, §4.1, §4.3 and §15, and the manifest spec §3, say cycles are allowed and an item goes
+- [x] MVP §3.1, §4.1, §4.3 and §15, and the manifest spec §3, say cycles are allowed and an item goes
   through submit and release with its dependencies; a self-dependency is still refused.
-- [ ] Core: the resolver installs A ↔ B and keeps only what the requests reach; `dependenciesFirst`
+- [x] Core: the resolver installs A ↔ B and keeps only what the requests reach; `dependenciesFirst`
   groups a cycle; the tests that asserted refusal assert the new rule.
-- [ ] Checks: no cycle error, the cycle warning, `dependency_draft` for your own draft.
-- [ ] Submit on an item submits its group (a chain, a cycle) in one transaction, all or none, and the
+- [x] Checks: no cycle error, the cycle warning, `dependency_draft` for your own draft.
+- [x] Submit on an item submits its group (a chain, a cycle) in one transaction, all or none, and the
   dialog lists it.
-- [ ] Release on an item releases its group in one transaction, all or none, and refuses with why
+- [x] Release on an item releases its group in one transaction, all or none, and refuses with why
   when a member isn't approved or the person may not release it.
-- [ ] Bulk submit and bulk release work in groups, all or none.
-- [ ] Plugin feeds and the `rmk`/MCP release-order hints handle a cycle.
-- [ ] Service db tests pass on SQLite, PostgreSQL, MySQL and MariaDB.
-- [ ] An end-to-end test: two drafts that need each other submitted together from one item's page,
+- [x] Bulk submit and bulk release work in groups, all or none.
+- [x] Plugin feeds and the `rmk`/MCP release-order hints handle a cycle.
+- [x] Service db tests pass on SQLite, PostgreSQL, MySQL and MariaDB.
+- [x] An end-to-end test: two drafts that need each other submitted together from one item's page,
   approved, released together from one Release dialog, and installed with `rmk`, on desktop and
   phone.
-- [ ] The Documentation listed above says so, in English, Portuguese and French.
+- [x] The Documentation listed above says so, in English, Portuguese and French.
 - [ ] Faster checks: database tests set up once per test file; a pull request runs the servers on
   database code (everything when database code changes); end-to-end in two jobs; the same tests
   still pass; CI times measured before and after.
