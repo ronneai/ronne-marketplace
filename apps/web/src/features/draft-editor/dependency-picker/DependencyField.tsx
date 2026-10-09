@@ -85,7 +85,7 @@ const RangeInput = ({
   const [typed, setTyped] = useState(range);
   useEffect(() => setTyped(range), [range]);
   if (option) {
-    const choices = versionChoices(option);
+    const choices = versionChoices(option).flatMap((group) => group.choices);
     const known = choices.some((choice) => choice.range === range);
     return (
       <Select

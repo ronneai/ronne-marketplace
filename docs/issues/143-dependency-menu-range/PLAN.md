@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. The model.** In `dependency-picker/model.ts`:
+- [x] **1. The model.** In `dependency-picker/model.ts`:
   - `acceptsText(range)`;
   - `versionChoices` returns the **Compatible** and **Exactly** groups, with labels that start
     with the range;

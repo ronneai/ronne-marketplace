@@ -25,7 +25,8 @@ author can choose between "this version or a compatible later one" and "exactly 
 ## Scope
 
 **In:**
-- **The labels.** Each row shows the range it writes, in mono, then what it accepts in words:
+- **The labels.** Each row shows the range it writes, then what it accepts in words (the menu is a
+  native `<select>`, so a row is one font: mono, as today):
   - `^1.1.0` · 1.1.0 or later 1.x, latest
   - `^1.0.0` · 1.0.0 or later 1.x
   - `1.0.0` · exactly 1.0.0
@@ -35,7 +36,9 @@ author can choose between "this version or a compatible later one" and "exactly 
 - **What caret means for 0.x and pre-releases:**
   - `^0.2.3` reads "0.2.3 or later 0.2.x";
   - `^0.0.3` reads "only 0.0.3";
-  - a pre-release, which `startingRange` already writes exactly, appears only under **Exactly**.
+  - a pre-release, which `startingRange` already writes exactly, appears only under **Exactly**,
+    even when it's the version the list names (an item whose only releases are pre-releases).
+    **Compatible** is then left out, having nothing to offer.
 - **An unreleased item** (056) offers `^1.0.0` (its first release, or a later 1.x) and `1.0.0`
   (exactly its first release).
 - **A range typed in the YAML** that's in neither group stays at the top as today, labelled with
@@ -50,9 +53,11 @@ author can choose between "this version or a compatible later one" and "exactly 
 
 ## Behaviour
 
-- **`versionChoices(option)`** returns groups of `{ label, range, accepts }`.
+- **`versionChoices(option)`** returns groups of `{ label, range, accepts }`, where `label` is
+  `` `${range} · ${accepts}` ``.
   - The words come from one function, `acceptsText(range)`, unit-tested on `^1.2.3`, `^0.2.3`,
-    `^0.0.3`, `1.2.3` and `1.2.3-beta.1`.
+    `^0.0.3`, `1.2.3` and `1.2.3-beta.1`. It has no words (`null`) for anything else: a tilde, a
+    caret on a pre-release, or a string that isn't a semver version.
 - **The selected row** shows its range, so the closed select reads `^1.0.0 · 1.0.0 or later 1.x`
   and never a bare `1.0.0` for a caret.
 - **The frozen (read-only) form** shows the same label as the open menu.
