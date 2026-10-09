@@ -40,7 +40,14 @@ const SECTION_PAGE: Record<SetupSection, number> = { database: 0, instance: 1, r
  * runs, the same form becomes a wizard: one group of questions at a time, "Test connection", and
  * an install that calls the three steps one by one and shows each as it happens.
  */
-export const SetupForm = ({ page }: { page: SetupPageProps }) => {
+export const SetupForm = ({
+  page,
+  onDone,
+}: {
+  page: SetupPageProps;
+  /** Called when the wizard's install has finished (#148). */
+  onDone?: () => void;
+}) => {
   const initial: InstallState = { steps: { ...PENDING_STEPS }, notices: [], values: page.initial };
   const [state, action, pending] = useActionState(installAll, initial);
 
@@ -49,7 +56,7 @@ export const SetupForm = ({ page }: { page: SetupPageProps }) => {
   useEffect(() => setEnhanced(true), []);
 
   if (!enhanced) return <SingleForm page={page} state={state} action={action} pending={pending} />;
-  return <Wizard page={page} initial={state} />;
+  return <Wizard page={page} initial={state} onDone={onDone} />;
 };
 
 const SingleForm = ({
@@ -97,7 +104,15 @@ const AlreadySetUp = ({ error }: { error?: SetupError }) => {
   );
 };
 
-const Wizard = ({ page, initial }: { page: SetupPageProps; initial: InstallState }) => {
+const Wizard = ({
+  page,
+  initial,
+  onDone,
+}: {
+  page: SetupPageProps;
+  initial: InstallState;
+  onDone?: () => void;
+}) => {
   const form = useRef<HTMLFormElement>(null);
   const [current, setCurrent] = useState(0);
   const [kind, setKind] = useState<SetupValues["kind"]>(initial.values.kind);
@@ -144,7 +159,10 @@ const Wizard = ({ page, initial }: { page: SetupPageProps; initial: InstallState
         if (outcome.ok) {
           show({ ...progress, [name]: { status: "done", detail: outcome.detail } });
           if (outcome.notices.length > 0) setNotices((all) => [...all, ...outcome.notices]);
-          if (name === "root" && outcome.email) setDone({ email: outcome.email });
+          if (name === "root" && outcome.email) {
+            setDone({ email: outcome.email });
+            onDone?.();
+          }
           continue;
         }
         show({ ...progress, [name]: { status: "failed", detail: outcome.error.message } });
