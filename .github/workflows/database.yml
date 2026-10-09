@@ -3,7 +3,9 @@ name: Database
 # The database tests (the `db` Vitest project) against each supported server (feature 004).
 # Pull requests and pushes test the minimum versions Ronne supports. A weekly run (and a manual one)
 # tests the latest versions instead, to hear about breaking releases early; it never blocks a pull
-# request. SQLite runs in ci.yml with the other tests.
+# request. SQLite runs in ci.yml with the other tests, all of them on every pull request.
+# On a pull request that changes no database code (changes.yml's `database`, 112), the servers run
+# only the database code's own tests (`pnpm test:db:core`); main, weekly and manual runs run all.
 on:
   push:
     branches: [main]
@@ -105,6 +107,13 @@ jobs:
       # Includes the setup smoke test: `pnpm run setup --yes` against an empty database (task 4).
       - name: Database tests
         if: needs.changes.outputs.code != 'false'
-        run: pnpm test:db
+        run: |
+          if [ "$SCOPE" = core ]; then
+            echo "No database code changed: the database code's own tests."
+            pnpm test:db:core
+          else
+            pnpm test:db
+          fi
         env:
           TEST_DATABASE_URL: ${{ matrix.url }}
+          SCOPE: ${{ needs.changes.outputs.database }}

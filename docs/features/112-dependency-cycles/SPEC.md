@@ -204,9 +204,15 @@ parallel, so a pull request waited about 9 min).
   databases from interrupted runs are dropped when a run starts. SQLite in memory stays as it is. Migration tests keep a
   database of their own (`migrate: false`).
 - **The servers where they matter.** On a pull request, the database servers run the tests of
-  database code (the `db/` layer, migrations, repositories) always, and every database test only
-  when the pull request changes database code. Every other test runs on SQLite in the CI job.
-  Pushes to `main`, the weekly run and manual runs run everything on every server, as today.
+  database code (the `db/` layer, migrations, repositories, setup and the scripts that run
+  against the database: `pnpm test:db:core`) always, and every database test only when the pull
+  request changes database code. Database code is those paths, any database test, any changed
+  file that queries the database (Kysely or raw SQL, wherever it is) or a deleted code file (what
+  it held can't be read), the dependencies (the drivers come through them) and what runs the
+  database tests; the rule is
+  `packages/repo-tools/src/db-scope.js`, and `changes.yml`'s `database` output carries it. Every
+  database test still runs on SQLite in the CI job. Pushes to `main`, the weekly run and manual
+  runs run everything on every server, as today.
 - **End-to-end in two parallel jobs.**
 - **When working:** run the servers for changes to database code; the rest runs on SQLite, and CI
   runs the full set on `main`. CLAUDE.md and a note in `docs/knowledge/` say which runs where.

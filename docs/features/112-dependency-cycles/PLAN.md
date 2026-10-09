@@ -73,7 +73,7 @@ the same change that completes it.
   *Done when:* every database test passes on the four databases, alone and in parallel, and the
   MySQL run's time is measured before and after.
 
-- [ ] **11. The servers where they matter.** `database.yml`: on a pull request, the servers run the
+- [x] **11. The servers where they matter.** `database.yml`: on a pull request, the servers run the
   tests of database code (the `db/` layer, migrations, repositories), and every database test when
   the pull request changes database code; `main`, the weekly run and manual runs run everything.
   *Done when:* the selection is in the workflow and in `changes.yml`'s outputs, and a dry run of

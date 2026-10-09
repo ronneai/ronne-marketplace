@@ -25,6 +25,7 @@
     "reset-root-password": "pnpm --filter @ronneai/web run reset-root-password",
     "reset-setup": "pnpm --filter @ronneai/web run reset-setup",
     "test:db": "pnpm --filter @ronneai/web test:db",
+    "test:db:core": "pnpm --filter @ronneai/web test:db src/server/db/ /repositories/ src/server/setup/ scripts/",
     "test:db:up": "docker compose -f docker/test-databases.compose.yml up -d --wait",
     "test:db:down": "docker compose -f docker/test-databases.compose.yml down -v",
     "test:db:postgres": "pnpm --filter @ronneai/web exec node scripts/test-db.mjs postgres",

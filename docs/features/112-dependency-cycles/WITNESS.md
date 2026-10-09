@@ -662,3 +662,33 @@ Witnessed: 2026-10-08 22:50 EDT, by a fresh agent (adversarial). Commit: c1aebf8
 | 4 | A transaction a test leaves open doesn't break the next test, and the run reports no unhandled errors; on PostgreSQL the held database is left, named in a warning, for the next run to drop | yes | confirmed | PG piped and with `CI=true` → exit 0, 2 passed, no unhandled errors, the warning names the held database; the PG count rose by exactly the two named; MySQL guard → 2 passed, no warning; the next run's global setup dropped both once renamed to old ULIDs |
 
 **Overall:** met: in a default run the next test starts clean, nothing is unhandled, and the warning names the held PostgreSQL database; a later run drops it.
+
+## Task 11 — The servers where they matter
+
+Witnessed: 2026-10-08 22:54 EDT, by a fresh agent (blind). Commit: f5b1c38 + working tree (changes.yml, database.yml, package.json, db-scope.js, db-scope.test.js; ci.yml ignored). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `changes.yml` exposes a `database` output, set by `db-scope.js` on pull requests | yes | confirmed | `workflow_call.outputs.database` ← `jobs.detect.outputs.database` ← `steps.detect.outputs.database`; the detect step pipes `git diff --name-only HEAD^1 HEAD` into `node packages/repo-tools/src/db-scope.js` |
+| 2 | A non-pull-request event (push to main, weekly, manual) runs everything | yes | confirmed | `EVENT != pull_request` → `database=all`; database.yml runs `pnpm test:db` for anything but `core` |
+| 3 | A failed or empty detection runs everything | yes | confirmed | Only `SCOPE=core` narrows (simulated `core`/`all`/empty/`garbage`); `printf '' \| node db-scope.js` → `all`; the test job keeps `if: !cancelled()` |
+| 4 | On a pull request without database code, the servers run only the database code's tests | yes | confirmed | `test:db:core` filters → `vitest list --project db --filesOnly` → 29 files |
+| 5 | A pull request that changes database code runs every database test | yes | confirmed | 86 files; 18 of 40 recent commits' real file lists → `all`, docs-only ones → `core` |
+| 6 | The rule matches the spec's definition of database code | yes | partly | `packages/config/vitest.js` → `core`; 11 of the 57 non-core `*.db.test.ts` → `core`; a deleted file that queried → `core`; `apps/web/scripts/migrate.ts` → `core` and its server test isn't in the core set |
+| 7 | Dry run of each case lists the tests it would run, and the core set runs on a server | yes | confirmed | Core on MySQL → 29 files, 149 passed (43.7 s); on SQLite → 29 files, 142 passed, 7 skipped |
+| 8 | The required check names stay the same | yes | confirmed | `Database tests (${{ matrix.database }}…)` and the matrix are unchanged |
+| 9 | `db-scope.js` has tests that catch a broken rule | yes | confirmed | 5 passed; an empty list made `core` in a scratch copy → 1 failed |
+
+**Overall:** not met: the rule misses some of what the spec counts as database code (claim 6).
+
+### Re-check — claims 4, 6 and 7
+
+Witnessed: 2026-10-08 22:57 EDT, by a fresh agent (blind). Commit: f5b1c38 + working tree (db-scope.js, db-scope.test.js, package.json, SPEC.md, database.yml). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | On a pull request without database code, the servers run only the database code's tests (db layer, migrations, repositories, setup, the scripts that run against the database) | yes | confirmed | `test:db:core` has the same filters as `CORE_TESTS`; `vitest list` → 33 files, the setup smoke test included, so database.yml's comment holds in both modes |
+| 6 | The rule matches the updated spec | yes | confirmed | → `all`: `packages/config/vitest.js`, `apps/web/scripts/migrate.ts`, `scripts/migrate.db.test.ts`, `http/health.db.test.ts`, a deleted `.ts`, a `.mts` with `from "kysely"`, `from 'kysely'`; all 86 db test paths → `all`. → `core`: `Help.tsx`, `packages/cli/src/{cli,apply}.ts`, a deleted `docs/gone.md`, 0deeea4's diff, `ci.yml`. Reverting the deleted-file rule fails a test. Remark: `*.db.test.tsx` isn't matched; none exist |
+| 7 | Dry run of each case lists the tests it would run, and the core set runs on a server | yes | confirmed | `vitest list` → core 33, all 86; `pnpm test:db:core` → 33 files, 155 passed, 8 skipped; the 4 new core files on MariaDB → 14 passed |
+
+**Overall:** met: core is 33 files including the scripts and the setup smoke test, the rule covers everything the updated spec lists, and the dry runs and the server run pass.
