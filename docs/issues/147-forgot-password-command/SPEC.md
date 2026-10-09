@@ -55,13 +55,18 @@ the machine that runs it.
 - **A clone:** "… run `pnpm run reset-root-password` where …", as today.
 - After the sentence, a link, **Root accounts**, opens `install#root` on the website, as the
   inline helpers do.
-- Still a native `<details>`, so it works without JavaScript.
+- **A popover** (owner, 2026-10-09). With JavaScript, **Forgot?** is a button that opens the note
+  in the shared `Popover` (`components/ui/Popover.tsx`, as the helpers' and the issues'), below
+  the button and aligned to its end, closed by Esc or a click outside. Without JavaScript, it
+  stays a native `<details>` that opens in place, as before, so a root without JavaScript can
+  still read it.
 
 ## Edge cases
 
 - **An unknown or missing `RONNE_RUNTIME`** is a clone (`runtimeOf`'s rule), so the note keeps
   today's text.
-- **A long Docker command on a phone** wraps inside the note instead of widening the page.
+- **A long Docker command on a phone** wraps inside the note instead of widening the page; the
+  popover keeps inside the window (the `Popover`'s own sizing).
 - **A service install** (`rmk-server service install`, and the apt and dnf packages) is the npm
   runtime. Run without administrator rights there, `rmk-server reset-root-password` stops and says
   how to run it as one (`sudo rmk-server reset-root-password`, or a terminal opened as
@@ -84,6 +89,8 @@ the machine that runs it.
   `docker compose exec web pnpm run reset-root-password` for `docker`, and
   `pnpm run reset-root-password` otherwise (component tests), with the **Root accounts** link.
 - [ ] The end-to-end sign-in test opens **Forgot?** and sees the clone's command and the link.
+- [ ] With JavaScript, the note opens in a popover that Esc closes; without it, in the `<details>`
+  (end-to-end, desktop; the popover on phone too).
 - [ ] The website's `install#root` gives all three forms, in English, Portuguese and French.
 
 ## Decisions
@@ -92,6 +99,9 @@ the machine that runs it.
    would make every reader pick, and the Documentation already has the full picture.
 2. **Docker's form is the one typed on the host** (Claude), as `setupCommand` already does: the
    person reading the note is outside the container.
+
+3. **The note opens as a popover** (owner, 2026-10-09), with the `<details>` kept for a browser
+   without JavaScript (Claude), as the setup form keeps its single form before the wizard (036).
 
 ## Open questions
 

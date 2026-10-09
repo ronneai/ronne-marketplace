@@ -20,3 +20,8 @@ the same change that completes it.
 - [x] **3. Documentation.** `install#root` on the website (en, pt, fr), in a ronne-web branch that
   goes live with the release. *Done when:* the paragraph names the npm form beside the clone and
   Docker ones, in all three languages.
+
+- [ ] **4. The popover** (owner, 2026-10-09). `ForgotPassword` renders the `<details>` until it
+  hydrates, then **Forgot?** opens the note in the shared `Popover` (`placement="bottom-end"`).
+  *Done when:* `auth.e2e.ts` opens the note as a dialog, closes it with Esc, and, with JavaScript
+  off, opens the `<details>`; the phone test opens the popover and nothing scrolls sideways.
