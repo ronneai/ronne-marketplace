@@ -160,7 +160,8 @@ test("the form finds a dependency as you type, adds it on latest, and saves it",
   await search.press("Enter");
   const version = author.getByLabel(`Version of ${skill}`);
   await expect(version).toBeVisible();
-  await expect(version.locator("option").first()).toHaveText(/^latest \(/);
+  // Latest's caret range, labelled with what it writes and accepts (#143).
+  await expect(version.locator("option").first()).toHaveText(/^\^1\.\d+\.\d+ · .*, latest$/);
   await expect(author.getByText(/isn't a full item name/)).toHaveCount(0);
 
   await author.getByRole("button", { name: "YAML", exact: true }).click();

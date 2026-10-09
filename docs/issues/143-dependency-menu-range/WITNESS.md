@@ -57,3 +57,41 @@ Witnessed: 2026-10-09 09:44 EDT, by a fresh agent (blind). Commit: 767362b. Mach
 | 24 | No regressions; lint and typecheck pass | no | confirmed | `vitest run …/dependency-picker` → 11 passed; `biome check` → no fixes; `typecheck` → exit 0 |
 
 **Overall:** met: `acceptsText` agrees with `semver.valid` on every listed and fuzzed string, the test fails when the part is reverted, and the pattern is linear on adversarial input.
+
+## Task 2 — The menu
+
+Witnessed: 2026-10-09 09:47 EDT, by a fresh agent (blind). Commit: 4ae3d1b. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: DependencyField.tsx, dependency-picker.test.tsx, SPEC.md.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The `<Select>` renders the groups as `<optgroup>` (Compatible, then Exactly) | yes | confirmed | `DependencyField.tsx:102-110`; `vitest run …/dependency-picker` → 15 passed; swapping `<optgroup>` for a Fragment → 2 failed |
+| 2 | Every option's label starts with the exact string it writes; no caret row shows a bare version | no | confirmed | Probe HTML: `<option value="^1.4.0" selected="">^1.4.0 · 1.4.0 or later 1.x, latest</option>`, `<option value="1.3.0">1.3.0 · exactly 1.3.0</option>`; `{choice.label}`→`{choice.range}` → 2 failed |
+| 3 | The selected (closed) select shows the range and its words; one selected row | yes | confirmed | `dependency-picker.test.tsx:186` matches `selected=""` on `^1.4.0 · …`; `:201` asserts one `selected=""` |
+| 4 | An Exactly row's value is the bare version, shown as chosen with its label | yes | confirmed | `:200` → `<option value="1.3.0" selected="">1.3.0 · exactly 1.3.0</option>`; `value={rangeFor(option, choice.range)}` → 2 failed |
+| 5 | Choosing an option writes its value unchanged | yes | confirmed | `DependencyField.tsx:98` `onChange(event.target.value)`; a probe calling the mocked `Select`'s `onChange({target:{value:"1.3.0"}})` → `["1.3.0"]`; `:278` writes it to the row |
+| 6 | The component tests cover choosing an exact version, which writes the bare version | yes | partly | They check the option's value, not the write: `onChange(rangeFor(option, event.target.value))` → all 15 still pass |
+| 7 | A typed range in neither group stays at the top, labelled as itself | yes | confirmed | `:213` matches `^<select…><option value="~1.3.0" selected="">~1.3.0</option><optgroup`; dropping it → 1 failed; moving it below → 1 failed |
+| 8 | A row with no version list says under it what its range accepts; nothing for a tilde | yes | confirmed | `DependencyField.tsx:135-143,287`; `:227-229` sees `^1.0.0</span> · 1.0.0 or later 1.x` and `2.1.0</span> · exactly 2.1.0`, nothing for `~1.2.0`; `{null}` → 1 failed |
+| 9 | The frozen form shows that label (the same `DependencyField` in `<fieldset disabled>`) | yes | confirmed | `DraftEditor.tsx:654-668`; `ManifestForm.tsx:482-488` renders `DependencyField` the same in both states, so claim 8's test covers it (from the code) |
+| 10 | No duplicates in the menu | no | confirmed | The top row only when `!known`; probe: each version once per group; one selected |
+| 11 | Phone: the range always shows first and whole | no | partly | The select was `w-44` (about 140px of text); at 16px mono `1.0.0-rc.12345678` is 163px and gets cut |
+| 12 | A screen reader gets the group name, then the range and its words | no | confirmed | Native `<optgroup label>` around `<option>` text that starts with the range (markup; no screen reader run) |
+| 13 | The default pick is unchanged (`rangeFor`, latest's caret) | no | confirmed | `rangeFor` untouched; `DependencyField.tsx:181` and `DraftEditor.tsx:338` call `rangeFor(option)`; test `:24` → `^1.4.0` |
+| 14 | The change lints and type-checks | no | confirmed | `biome check` → no fixes; `typecheck` → no errors |
+
+**Overall:** not met: no component test covers the write of the bare version (6), and a long pre-release range was cut on a phone (11).
+
+### Re-check — after the fixes for gaps 1–2
+
+Witnessed: 2026-10-09 09:51 EDT, by a fresh agent (blind). Commit: 4ae3d1b. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: as above, plus range-input.test.tsx, e2e/pending-dependencies.e2e.ts, the SPEC.md phone edge case.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 15 | A component test captures the Select's onChange: choosing `1.3.0` writes `"1.3.0"`, `^1.3.0` writes `"^1.3.0"` | yes | confirmed | `range-input.test.tsx:10-16,46-49`; `vitest run …/dependency-picker` → 2 files, 16 passed |
+| 16 | That test fails when the write is wrong | yes | confirmed | `onChange(rangeFor(option, event.target.value))` → 1 failed; `.replace("^","")` → 1 failed; unmutated → passed |
+| 17 | On a phone the name takes its own line and the select the row's width; `sm:` restores one line | no | confirmed | Row `flex flex-wrap … sm:flex-nowrap`, name `basis-full … sm:basis-0`, select `min-w-0 flex-1 sm:w-64 sm:flex-none`. Real row markup with the built CSS (Plex Mono), Chromium and WebKit, touch: the select on its own line at 390 and 320px; at 768px one line, select 256px |
+| 18 | `1.0.0-rc.12345678` fits whole at 390px and 320px | no | confirmed | 163px at 16px mono; text room 264–312px at 390px and 194–242px at 320px; fits in all 8 cases (2 engines × 2 widths × 16 or 32px padding, the padding estimated) |
+| 19 | `pending-dependencies.e2e.ts`'s first option expects latest's caret with its words | no | confirmed | `toHaveText(/^latest \(/)` → `toHaveText(/^\^1\.\d+\.\d+ · .*, latest$/)` |
+| 20 | `playwright test e2e/pending-dependencies.e2e.ts e2e/dependency-picker.mobile.e2e.ts` passes | no | confirmed | Build newer than the sources → 6 passed (chromium ×3, phone, phone-webkit, tablet) |
+
+**Overall:** met: choosing a version is tested to write exactly its value, and on phones the version list takes the row's width, so a long pre-release range shows whole at 320px.

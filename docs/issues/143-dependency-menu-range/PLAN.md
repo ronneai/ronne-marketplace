@@ -16,7 +16,7 @@ the same change that completes it.
   `rangeFor` is unchanged. *Done when:* the model tests cover caret, 0.x, 0.0.x, pre-release,
   unreleased, a single release, and no duplicates.
 
-- [ ] **2. The menu.** In `DependencyField.tsx`:
+- [x] **2. The menu.** In `DependencyField.tsx`:
   - the `<Select>` renders the groups as `<optgroup>`;
   - the selected and frozen labels;
   - a typed range kept at the top.

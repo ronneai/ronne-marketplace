@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { DependencyOption } from "@/server/domains/submissions/actions/composer";
 
 vi.mock("./actions", () => ({ findDependenciesAction: vi.fn() }));
-const { DependencyField } = await import("./DependencyField");
+const { DependencyField, RangeInput } = await import("./DependencyField");
 const { acceptsText, dependencyRows, rangeFor, statusText, versionChoices } = await import(
   "./model"
 );
@@ -172,6 +172,61 @@ describe("picking a dependency (056)", () => {
     expect(html).toContain('role="combobox"');
     expect(html).toContain('aria-label="Add a dependency"');
     expect(html).not.toContain('placeholder="Item"');
+  });
+
+  it("offers the versions in Compatible and Exactly groups, each row starting with what it writes (#143)", () => {
+    const html = renderToStaticMarkup(
+      <RangeInput
+        name="@team/github"
+        range="^1.4.0"
+        option={option()}
+        onChange={() => undefined}
+      />,
+    );
+    expect(html).toMatch(
+      /<optgroup label="Compatible"><option value="\^1\.4\.0" selected="">\^1\.4\.0 · 1\.4\.0 or later 1\.x, latest<\/option><option value="\^1\.3\.0">/,
+    );
+    expect(html).toContain(
+      '<optgroup label="Exactly"><option value="1.4.0">1.4.0 · exactly 1.4.0</option><option value="1.3.0">1.3.0 · exactly 1.3.0</option>',
+    );
+    // No bare version stands for a caret range.
+    expect(html).not.toMatch(/<option value="\^[^"]*">[^^]/);
+  });
+
+  it("shows an exact pin as chosen, with its label; its value is the bare version (#143)", () => {
+    const html = renderToStaticMarkup(
+      <RangeInput name="@team/github" range="1.3.0" option={option()} onChange={() => undefined} />,
+    );
+    expect(html).toContain('<option value="1.3.0" selected="">1.3.0 · exactly 1.3.0</option>');
+    expect(html.match(/selected=""/g)).toHaveLength(1);
+  });
+
+  it("keeps a typed range the groups don't offer at the top, as itself (#143)", () => {
+    const html = renderToStaticMarkup(
+      <RangeInput
+        name="@team/github"
+        range="~1.3.0"
+        option={option()}
+        onChange={() => undefined}
+      />,
+    );
+    expect(html).toMatch(
+      /^<select[^>]*><option value="~1\.3\.0" selected="">~1\.3\.0<\/option><optgroup/,
+    );
+  });
+
+  it("says what a row's range accepts when it has no version list, as in the read-only form (#143)", () => {
+    const html = renderToStaticMarkup(
+      <DependencyField
+        value={{ "@team/github": "^1.0.0", "@team/db": "2.1.0", "@team/lint": "~1.2.0" }}
+        type="agent"
+        itemName="@team/reviewer"
+        onChange={() => undefined}
+      />,
+    );
+    expect(html).toContain('<span class="font-mono">^1.0.0</span> · 1.0.0 or later 1.x');
+    expect(html).toContain('<span class="font-mono">2.1.0</span> · exactly 2.1.0');
+    expect(html).not.toContain("~1.2.0</span>");
   });
 
   it("marks a dependency that isn't released yet beside its name: amber, red when blocked", () => {

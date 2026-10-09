@@ -60,15 +60,18 @@ author can choose between "this version or a compatible later one" and "exactly 
     caret on a pre-release, or a string that isn't a semver version.
 - **The selected row** shows its range, so the closed select reads `^1.0.0 · 1.0.0 or later 1.x`
   and never a bare `1.0.0` for a caret.
-- **The frozen (read-only) form** shows the same label as the open menu.
+- **A row with no version list** (saved before this visit, so the form has no versions for it;
+  or the frozen, read-only form) keeps its range field and says under it what the range accepts,
+  in the menu's label: `^1.0.0 · 1.0.0 or later 1.x`. Nothing for a range with no words, such
+  as a tilde.
 - **No duplicates.** When `latest` is the only released version, **Compatible** has one row,
   `^1.0.0 · …, latest`. Every released version appears once in each group.
 
 ## Edge cases
 
 - **A yanked version** isn't offered, as today (`option.versions`), in either group.
-- **A narrow phone screen.** The label may wrap or be cut after the range. The range always
-  shows first and whole.
+- **A narrow phone screen.** The dependency's name takes its own line, so the version list gets
+  the row's width. The label may be cut after the range; the range always shows first and whole.
 - **A screen reader** reads the group name, then the range and its words.
 
 ## Documentation
