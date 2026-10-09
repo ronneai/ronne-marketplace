@@ -61,6 +61,18 @@ const racingRepo = (): WorkspaceRepository => {
     removeMember: async () => {},
     countMembers: async () => 0,
     recordAudit: async () => {},
+    lockAccessRequest: async () => {},
+    accessRequest: async () => null,
+    latestRequest: async () => null,
+    countOpenRequestsBy: async () => 0,
+    insertAccessRequest: async () => "",
+    decideAccessRequest: async () => false,
+    approveOpenRequest: async () => null,
+    pendingRequests: async () => [],
+    countPendingRequests: async () => 0,
+    requestsOf: async () => [],
+    membershipChangedSince: async () => false,
+    attachRequests: async () => {},
   };
   return repo;
 };

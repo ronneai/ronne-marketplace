@@ -17,11 +17,12 @@ moderators answer. It replaces "ask root" with a request that's tracked and audi
   moderators copy and send; it works for any signed-in user and shows only the name and description.
 - **The request:** an optional message (500 characters); one open request per user and workspace;
   the requester can cancel it.
-- **Answering:** root, or a moderator of that workspace, approves (as `user`; root may pick
-  `moderator`) or declines, with an optional reason. A **Requests** tab on the workspace's page
-  (090) and a count in the nav for those who can answer.
+- **Answering:** root, or a moderator or admin (092) of that workspace, approves (as `user`; root
+  and the workspace's admins may pick `moderator`) or declines, with an optional reason. A
+  **Requests** tab on the workspace's page (090) and a count in the nav for those who can answer.
 - Audit events `workspace.access_requested`, `workspace.access_approved`
-  (`workspace.member_added` too), `workspace.access_declined`, `workspace.access_cancelled`.
+  (`workspace.member_added` too), `workspace.access_declined`, `workspace.access_cancelled`, on the
+  requester, naming the workspace. The message and the reason stay out of the audit log.
 - The "not a member" refusals (091) link to Ask to join.
 
 **Out** (and where it goes instead):
@@ -41,18 +42,31 @@ a private one, the page shows its name and description and the request form. The
 secret: knowing a private name only lets you ask, and the answer is a person's decision (decision 2). An unknown name and a private name show the same page until the request is sent; the
 answer after sending is "Request sent", so the page doesn't confirm that a name exists.
 
-**Answering.** The workspace page's **Requests** tab (root and that workspace's moderators): who,
-when, message; **Approve** (role select only for root, default `user`) and **Decline** (optional
-reason, shown to the requester). Approving writes the membership as 092 does. The nav shows a
+**Answering.** The workspace page's **Requests** tab (root and that workspace's moderators and
+admins): who, when, message; **Approve** (role select, `user` or `moderator`, only for root and the
+workspace's admins, who manage its members; default `user`) and **Decline** (optional reason,
+shown to the requester). Approving writes the membership as 092 does. The nav shows a
 count, "Requests 2", next to Reviews, for anyone who can answer at least one.
 
-**Limits.** At most 10 open requests per user; a declined request can be sent again after 7 days.
-Requests by a disabled user are cancelled with them.
+**A name no workspace has.** Asking for it is kept as a request too, by name, so it answers, counts
+against the limit, answers "Requested" when asked again and shows to its requester exactly as a
+request to a private workspace does: asking can't tell whether a name exists. Nobody answers it; if a
+workspace is created with that name, its open requests become that workspace's. The requester sees a
+workspace's description and visibility only when they see the workspace (public, or theirs). A name
+that can't be a workspace's (it breaks the name rule) answers "Request sent" and isn't kept.
+
+**Limits.** At most 10 open requests per user; a declined request can be sent again 7 days after the
+decline, or at once if they've been added to or removed from the workspace since. Asking again while
+a request is open changes nothing. Members and root are told they're in already. A message or a
+reason has at most 500 characters and no NUL character.
+Requests by a disabled user are cancelled with them (`user.disabled` counts them as
+`requestsCancelled`).
 
 ## Edge cases
 
-- **Root adds the requester directly** (092) while the request is open: the request is closed as
-  approved by that root.
+- **Root or an admin adds the requester directly** (092) while the request is open: the request is
+  closed as approved by whoever added them, audited as `workspace.access_approved` with
+  `direct: true`.
 - **The requester is removed from the workspace later:** they can ask again at once.
 - **The workspace is deleted or turns private** with open requests: deleting removes them; turning
   private keeps them (the people asked while it was public).
@@ -83,7 +97,8 @@ Requests by a disabled user are cancelled with them.
 ## Decisions
 
 1. **Requests are answered by root or the workspace's moderators** (Claude, taken while the owner's
-   answer was pending): those who know the workspace best.
+   answer was pending): those who know the workspace best. Its admins too, since 092 gave admins a
+   moderator's permissions (permission `access_requests.answer`, 2026-10-09).
 2. **A plain join link for private workspaces** (owner, 2026-10-05): no secret to revoke; it only
    lets people ask, and a person decides.
 

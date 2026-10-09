@@ -67,6 +67,8 @@ propose or submit there (`not_a_member`).
 | Move dist-tags, deprecate a version | — | ✅ | ✅ |
 | Yank a version | — | ✅ | ✅ |
 | Approve own submission (override, audited) | — | — | ✅ |
+| Ask to join a workspace ([094](../features/094-workspace-access-requests/SPEC.md)) | ✅ | ✅ | — |
+| Approve or decline requests to join the workspace (094) | — | ✅ | ✅ |
 | Manage a workspace's members, create its scopes, edit its description | — | — | ✅ (and its admins) |
 | Create and delete workspaces; create scopes anywhere | — | — | ✅ |
 | Create / disable users, change roles (root included, not their own) | — | — | ✅ |
@@ -623,6 +625,7 @@ IDs are ULIDs and timestamps are UTC (§9.4).
 | `access_tokens` | id, user_id, name, token_hash (unique), last_used_at, expires_at, revoked_at, created_at |
 | `workspaces` | id, name (unique), description, visibility (`public`/`private`), is_global (true only on `global`, which every instance has, with a fixed id), created_by (set null), created_at, updated_at ([090](../features/090-workspaces/SPEC.md)) |
 | `workspace_members` | workspace_id + user_id (primary key; both cascade), role (`admin`/`moderator`/`user`; admin since 092), added_by (set null), created_at, updated_at. Every user but root has a `global` row; a root's rows are ignored ([091](../features/091-workspace-roles/SPEC.md)) |
+| `workspace_access_requests` | id, workspace_id (null for a name no workspace has, so asking can't tell names apart), workspace_name, user_id (both cascade), message, status (`open`/`approved`/`declined`/`cancelled`), decided_by (set null), reason, created_at, decided_at. At most one open per user and workspace, checked by the service under the requester's row lock (MySQL has no partial indexes) ([094](../features/094-workspace-access-requests/SPEC.md)) |
 | `scopes` | id, name (unique), description, workspace_id (not null, RESTRICT: every scope is in one workspace, `global` by default, 090), created_by (set null), created_at |
 | `items` | id, scope_id, name, type, description, owner_id, download_count (counted by the tarball endpoint), listed_version_id, installable, last_published_at (the catalogue's listing, recomputed when versions or tags change, [018](../features/018-catalogue/SPEC.md)), created_at — unique (scope_id, name) |
 | `item_versions` | id, item_id, version, manifest (JSON), readme, files (JSON: paths, sizes, executable), notes, artifact_path, sha256, size, published_by, published_at, deprecated_message, yanked_at, yank_reason, submission_id, description, keywords, risk_flags (for search and the catalogue, 018). `readme` and `files` are copied at publish so pages never unpack an artifact ([015](../features/015-release/SPEC.md)) |

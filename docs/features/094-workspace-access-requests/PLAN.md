@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. Migration and services.** `workspace_access_requests` (id, workspace_id, user_id,
+- [x] **1. Migration and services.** [risky] `workspace_access_requests` (id, workspace_id, user_id,
   message, status `open/approved/declined/cancelled`, decided_by, reason, created_at, decided_at;
   unique open per user and workspace through a partial check in the service under a lock, since
   MySQL has no partial indexes); `requestAccess`, `cancelRequest`, `approveRequest`,

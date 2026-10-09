@@ -1,6 +1,7 @@
 import type { KeysetPage, SortDir } from "../../../db/keyset";
 import type { NewAuditEvent } from "../../audit/models/audit-event";
 import type { WorkspaceRole } from "../../identity/models/user";
+import type { AccessRequest, PendingRequest, RequestWithWorkspace } from "../models/access-request";
 import type { Member, Membership, MemberUser } from "../models/member";
 import type { Workspace, WorkspaceVisibility } from "../models/workspace";
 
@@ -101,4 +102,48 @@ export interface WorkspaceRepository {
   removeMember(workspaceId: string, userId: string): Promise<void>;
   countMembers(workspaceId: string): Promise<number>;
   recordAudit(event: NewAuditEvent, now: Date): Promise<void>;
+  // Requests to join (094), implemented in kysely-access-requests.ts.
+  /** Locks the request's row until the transaction ends: the first answer wins. */
+  lockAccessRequest(id: string): Promise<void>;
+  accessRequest(id: string): Promise<AccessRequest | null>;
+  /** The user's latest request to a workspace name, open or not, with or without a workspace. */
+  latestRequest(workspaceName: string, userId: string): Promise<AccessRequest | null>;
+  /**
+   * Whether the user was added to or removed from the workspace after `since` (from the audit log):
+   * someone who was a member since a decline asks again at once.
+   */
+  membershipChangedSince(workspaceName: string, userId: string, since: Date): Promise<boolean>;
+  countOpenRequestsBy(userId: string): Promise<number>;
+  insertAccessRequest(request: {
+    workspaceId: string | null;
+    workspaceName: string;
+    userId: string;
+    message: string | null;
+    at: Date;
+  }): Promise<string>;
+  /** Closes an open request; false when it wasn't open any more. */
+  decideAccessRequest(
+    id: string,
+    decision: {
+      status: "approved" | "declined" | "cancelled";
+      decidedBy: string | null;
+      reason: string | null;
+      at: Date;
+    },
+  ): Promise<boolean>;
+  /** The user's open request to the workspace, approved by `decidedBy`: they were added directly. */
+  approveOpenRequest(
+    workspaceId: string,
+    userId: string,
+    decidedBy: string | null,
+    at: Date,
+  ): Promise<AccessRequest | null>;
+  /** A workspace's open requests, oldest first, at most `limit`; disabled users' left out. */
+  pendingRequests(workspaceId: string, limit: number): Promise<PendingRequest[]>;
+  /** How many open requests there are in these workspaces (every one for `"all"`). */
+  countPendingRequests(workspaceIds: "all" | readonly string[]): Promise<number>;
+  /** The user's requests, newest first, with their workspaces: at most `limit`. */
+  requestsOf(userId: string, limit: number): Promise<RequestWithWorkspace[]>;
+  /** Gives the open requests to a name no workspace had to the workspace just created with it. */
+  attachRequests(workspaceName: string, workspaceId: string): Promise<void>;
 }

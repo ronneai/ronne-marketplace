@@ -194,12 +194,18 @@ export const disableUser = async (
     await keepAnActiveRoot(repo);
     const sessionsEnded = await repo.deleteSessions(userId);
     const tokensRevoked = await repo.revokeAccessTokens(userId, at);
+    // Their requests to join go with them (094); the event counts them when there were any.
+    const requestsCancelled = await repo.cancelAccessRequests(userId, at);
     await repo.recordAudit(
       {
         actorId: actor.user?.id ?? null,
         action: "user.disabled",
         target: { type: "user", id: userId },
-        metadata: { sessionsEnded, tokensRevoked },
+        metadata: {
+          sessionsEnded,
+          tokensRevoked,
+          ...(requestsCancelled > 0 ? { requestsCancelled } : {}),
+        },
         ipAddress: actor.ip,
       },
       at,

@@ -11,6 +11,7 @@ import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
 import { isWorkspaceRole } from "../../identity/models/user";
 import type { Workspace, WorkspaceVisibility } from "../models/workspace";
+import { accessRequestMethods } from "./kysely-access-requests";
 import type { MemberFilters, WorkspaceRepository } from "./workspace-repository";
 
 type WorkspaceRow = {
@@ -441,5 +442,7 @@ export const kyselyWorkspaceRepository = (
     recordAudit: async (event, now) => {
       await recordAudit(db, dialect, event, now);
     },
+
+    ...accessRequestMethods(db, dialect),
   };
 };

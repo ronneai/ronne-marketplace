@@ -36,6 +36,8 @@ export const WORKSPACE_PERMISSIONS = {
   "submissions.publish": ["moderator", "admin"],
   /** Move and remove dist-tags, deprecate and yank versions (MVP §2, feature 016). */
   "versions.manage": ["moderator", "admin"],
+  /** Approve or decline requests to join the workspace (feature 094). */
+  "access_requests.answer": ["moderator", "admin"],
   /** Add members, change their roles (admin included) and remove them (feature 092). */
   "members.manage": ["admin"],
   /** Create scopes in the workspace and edit their descriptions (092). */

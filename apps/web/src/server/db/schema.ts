@@ -116,6 +116,25 @@ export interface WorkspaceMemberTable {
 }
 
 /**
+ * A request to join a workspace (migration 0021_workspace_access_requests, feature 094). At most
+ * one `open` request per user and workspace, checked by the service. `workspace_id` is null for a
+ * name no workspace has (yet).
+ */
+export interface WorkspaceAccessRequestTable {
+  id: string;
+  workspace_id: string | null;
+  workspace_name: string;
+  user_id: string;
+  message: string | null;
+  status: "open" | "approved" | "declined" | "cancelled";
+  decided_by: string | null;
+  /** Why it was declined, shown to the requester. */
+  reason: string | null;
+  created_at: Timestamp;
+  decided_at: Timestamp | null;
+}
+
+/**
  * Scopes (migration 0004_scopes). `name` is stored without the `@`. Every scope belongs to one
  * workspace (0019_workspaces); an item's workspace is its scope's.
  */
@@ -313,6 +332,7 @@ export interface Database {
   audit_log: AuditLogTable;
   workspaces: WorkspaceTable;
   workspace_members: WorkspaceMemberTable;
+  workspace_access_requests: WorkspaceAccessRequestTable;
   scopes: ScopeTable;
   submissions: SubmissionTable;
   submission_files: SubmissionFileTable;
