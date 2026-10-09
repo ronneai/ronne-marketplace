@@ -207,6 +207,66 @@ Witnessed: 2026-10-09 11:28 EDT, by a fresh agent (adversarial). Commit: d42fedc
 
 **Overall:** met: the budget line passes Biome, the suite and typecheck are green, and the many-askers test still catches a budget that counts versions.
 
+### Re-check — missing items before a fallback
+
+Witnessed: 2026-10-09 11:48 EDT, by a fresh agent (blind). Commit: 3c6955f. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: resolve.ts, resolve.test.ts, SPEC.md.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 39 | Before anything is set aside, every item the first try was asked for is read, and a missing one is the error, naming who asked | no | confirmed | resolve.ts:432-434: in `search`, only when `excluded.size === 0`, each of `found.asked` is loaded before the loop; `asked` is built in `blame` from the attempt's `constraints`, sorted, non-empty lists only; all three `blame` calls pass `constraints`; `load` caches the missing item |
+| 40 | The new test "reports a missing item the first try asked for…" passes, and fails without the fix | no | confirmed | As is → 35/35; read-ahead deleted → 1 failed; it pins `item_not_found`, "@t/z isn't a published item (asked for by @t/a@2.0.0)." |
+| 41 | The error differs from today's only when a first try hit a conflict and also asked for a missing item | no | confirmed | Fuzz with `@t/gone` in 8% of versions, d5dcebf vs working tree, seeds 1–3 × 4000 → 0 different successes; every changed error is a conflict or `no_matching_version` becoming `item_not_found` for `@t/gone` |
+| 42 | `pnpm --filter @ronneai/core test` passes; lint and typecheck clean | no | confirmed | 351 passed; `tsc --noEmit` clean; biome no fixes |
+| 43 | SPEC Behaviour and decision 4 read as the code behaves | no | confirmed | Both match rows 39-41 |
+
+**Overall:** met. Remarks: "asked for" means still asked for when the first try stopped; a missing item on a fallback path ends that path, as decision 4 says (both now in the spec).
+
+### Re-check — the read-ahead's gate
+
+Witnessed: 2026-10-09 11:53 EDT, by a fresh agent (blind). Commit: 3c6955f. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: resolve.ts, resolve.test.ts, SPEC.md.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 44 | The read-ahead runs only on the first try, and only when there is a version to set aside | no | confirmed | resolve.ts:434-435 `if (excluded.size === 0 && found.versions.length > 0)` before the loop |
+| 45 | "keeps today's error when only the request's range fails" passes, and fails without the gate | no | confirmed | As is → 36/36; gate removed → 1 failed; read-ahead removed → only "reports a missing item…" fails |
+| 46 | Outside the gated case, results and errors are unchanged | no | confirmed | Fuzz, seeds 1–2 × 4000, with and without missing items → 0 different successes; every changed error becomes `item_not_found` for `@t/gone`; without missing items nothing changes |
+| 47 | Core suite, lint and typecheck pass | no | confirmed | 352 passed; clean |
+| 48 | SPEC Behaviour, decision 4 and Scope → Out read as the code behaves | no | confirmed | All match; nit: decision 4's last sentence left out "had a version to set aside" (reworded since) |
+
+**Overall:** met: the read-ahead is gated, pinned by a test, and the spec matches the code.
+
+### Re-check — adversarial, missing items before a fallback
+
+Witnessed: 2026-10-09 11:51 EDT, by a fresh agent (adversarial). Commit: 3c6955f. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: resolve.ts, resolve.test.ts, SPEC.md.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 41 | The base holds the last-checked resolver; suite and checks pass | no | confirmed | `git show 3c6955f:…/resolve.ts` equals the row-40 copy; 351 passed; clean |
+| 42 | Every request that resolved under d5dcebf resolves identically | no | confirmed | 60k registries → 12,648 successes, 0 different; 60k with missing items possible → 12,408, 0 different |
+| 43 | Errors differ only when a first try hit a conflict and also asked for a missing item | no | partly | 347 differences, all `item_not_found`; 108 were a `no_matching_version` blamed only on the request, so nothing could be set aside, yet the read-ahead ran (probe D) |
+| 44 | Rescues lost to the new rule are exactly the missing-item cases | no | confirmed | 20 of 2,599 (92 of 2,333 with missing items everywhere), all among the classified differences |
+| 45 | The new test fails without the read-ahead | no | confirmed | → 1 failed, 34 passed |
+| 46 | The SPEC says honestly what happens to a missing item reached only after a fallback | no | partly | Scope → Out said it "stays an error, as today"; probes A, B and B2 show such a path just ends: another way resolves, or the first error doesn't name it, and older versions past it aren't tried |
+| 47 | Each item, missing ones too, is still read once | no | confirmed | `[["@t/gone",1]]`; the read-once test passes |
+| 48 | The timings still hold | no | confirmed | wide30×30 143 ms, deep300 43 ms, many1000/5000/20000 582/700/811 ms; many askers N=100/300/500 → 410/1030/4018 ms |
+
+**Overall:** not met: the read-ahead ran when nothing could be set aside (43), and the spec overstated what happens after a fallback (46).
+
+### Re-check — adversarial, the read-ahead's gate and the spec
+
+Witnessed: 2026-10-09 11:54 EDT, by a fresh agent (adversarial). Commit: 3c6955f. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: resolve.ts, resolve.test.ts, SPEC.md.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 49 | The suite, typecheck and lint pass | no | confirmed | 352 passed; clean |
+| 50 | The read-ahead runs only when the first try has a version to set aside | no | confirmed | resolve.ts:434-435; probe D → today's "@t/b has no published version that fits ^2 (the request)" |
+| 51 | The new test pins the gate | no | confirmed | Gate removed → "keeps today's error…" fails |
+| 52 | Every changed error is a first try that had a version to set aside and asked for a missing item | no | confirmed | 60k registries → 0 different successes; 239 changed errors, all `item_not_found` (208 from `no_matching_version`, 31 from `resolve_conflict`), 0 request-only; with missing items everywhere: 754 changed, 0 request-only, 0 unexpected |
+| 53 | Scope → Out describes a missing item reached only on a fallback path | no | confirmed | Probes A (resolves through q), B (first error, not naming it), B2 (an older working version not tried) match the text |
+| 54 | Decision 4 and Behaviour say "still asked for when it stopped" and "nothing read ahead when nothing can be set aside" | no | confirmed | Both match rows 50 and 52; nit: decision 4's last sentence said "hit a conflict" where most changes are a version-blamed `no_matching_version` (reworded since) |
+
+**Overall:** met: the read-ahead is gated and pinned, every changed error is the case decision 4 describes, successes are unchanged against d5dcebf, and the spec describes missing items after a fallback as the probes show.
+
 ## Task 3 — The callers
 
 Witnessed: 2026-10-09 11:41 EDT, by a fresh agent (blind). Commit: 811e178. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: apps/web/e2e/seed.ts, users.ts, rmk-fallback.e2e.ts, registry-api.db.test.ts.

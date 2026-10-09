@@ -713,3 +713,41 @@ describe("the budget on range checks (#141)", () => {
     expect(Date.now() - started).toBeLessThan(4_000);
   });
 });
+
+describe("a missing item while falling back (#141, decision 4)", () => {
+  it("reports a missing item the first try asked for, instead of stepping around it", async () => {
+    // @t/a 2.0.0 conflicts on @t/b and also asks for @t/z, which doesn't exist; @t/a 1.0.0 asks
+    // for neither. The conflict comes first in name order, but nothing is set aside past @t/z.
+    const reg = registry({
+      "@t/a": {
+        versions: [
+          { version: "1.0.0" },
+          { version: "2.0.0", dependencies: { "@t/b": "1.0.0", "@t/z": "^1.0.0" } },
+        ],
+      },
+      "@t/b": { versions: [{ version: "1.0.0" }, { version: "2.0.0" }] },
+    });
+    expect(
+      await failure(
+        resolve({ dependencies: { "@t/a": "^1.0.0 || ^2.0.0", "@t/b": "^2.0.0" } }, reg),
+      ),
+    ).toEqual({
+      code: "item_not_found",
+      message: "@t/z isn't a published item (asked for by @t/a@2.0.0).",
+      details: { item: "@t/z", from: ["@t/a@2.0.0"] },
+    });
+  });
+});
+
+describe("a missing item when nothing can be set aside (#141, decision 4)", () => {
+  it("keeps today's error when only the request's range fails", async () => {
+    // @t/b ^2 comes from the request alone, so nothing is set aside, and nothing is read ahead.
+    const reg = registry({
+      "@t/a": { versions: [{ version: "1.0.0", dependencies: { "@t/zz": "^1" } }] },
+      "@t/b": { versions: [{ version: "1.0.0" }] },
+    });
+    expect(
+      await failure(resolve({ dependencies: { "@t/a": "^1", "@t/b": "^2" } }, reg)),
+    ).toMatchObject({ code: "no_matching_version", details: { item: "@t/b" } });
+  });
+});

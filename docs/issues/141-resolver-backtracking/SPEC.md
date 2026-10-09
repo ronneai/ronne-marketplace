@@ -40,7 +40,10 @@ range. An install fails only when no choice of versions within the ranges works.
 - **Choosing which versions get published.** The registry still accepts B `1.2.0`. Submit-time
   checks (013, `registry-checks.ts`) don't predict conflicts with other items.
 - **A missing item or tag** (`item_not_found`, `tag_not_found`) asked for by a dependency. It
-  stays an error, as today (decision 4).
+  never starts a fallback, and one the first try asked for is the error (decision 4). One that
+  only a version tried while falling back asks for ends that path: the install resolves another
+  way that doesn't use it, or reports the first try's error, which doesn't name it. Older
+  versions of the item that asked for it aren't tried past it.
 - **How cycles resolve.** Items that need each other (112) resolve as before: the rules that keep
   one version each and drop a pair nothing reaches run unchanged in every attempt. Submit warns
   about a cycle (`dependency_cycle`) and doesn't refuse it.
@@ -67,7 +70,8 @@ range. An install fails only when no choice of versions within the ranges works.
   reports the original conflict. Each item's versions are sorted once,
   and each item, missing ones too, is read from the registry once.
 - **When nothing works,** the error is the conflict (or `no_matching_version`) from the first
-  try, with the same code, message and details as today. That is what the user can act on: the
+  try, with the same code, message and details as today, unless that try had a version to set
+  aside and also asked for a missing item (decision 4). That is what the user can act on: the
   ranges as the newest versions asked for them.
 - **Warnings** (deprecated) come from the versions finally chosen, as today.
 
@@ -130,7 +134,13 @@ range. An install fails only when no choice of versions within the ranges works.
 
 4. **A missing item stays an error** (owner, 2026-10-09). A dependency's `item_not_found` or
    `tag_not_found` doesn't backtrack: an item that's gone, or in a private workspace the caller
-   can't see (093), is rare and better reported than silently avoided with older versions.
+   can't see (093), is rare and better reported than silently avoided with older versions. And it's
+   never stepped around (owner, 2026-10-09): before anything is set aside, every item the first
+   try was still asked for when it stopped is read, and a missing one is the error, naming who
+   asked. When nothing can be set aside (only the request's ranges lose), nothing is read ahead
+   and the error is today's. So the error differs from today's only when a first try's conflict, or
+   range nothing matches, was blamed on a version and that try also asked for a missing item: it's
+   then `item_not_found`.
 
 ## Open questions
 

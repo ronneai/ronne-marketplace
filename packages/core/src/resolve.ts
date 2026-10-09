@@ -159,12 +159,24 @@ export const resolve = async (
   /**
    * The versions a conflict, or a range nothing matches, can be blamed on (#141): the chosen ones
    * whose dependencies asked for a losing range, in name order. Never the request. A missing item
-   * or tag has none, so it's reported rather than avoided (decision 4).
+   * or tag has none, so it's reported rather than avoided (decision 4). With them, every item the
+   * attempt was asked for and who asked, so a missing one can be found before anything is set aside.
    */
-  const blamed = new WeakMap<ResolveError, string[]>();
-  const blame = (error: ResolveError, ranges: readonly Constraint[]): ResolveError => {
+  type Blamed = { versions: string[]; asked: [name: string, from: string[]][] };
+  const blamed = new WeakMap<ResolveError, Blamed>();
+  const blame = (
+    error: ResolveError,
+    ranges: readonly Constraint[],
+    asked: ReadonlyMap<string, readonly Constraint[]>,
+  ): ResolveError => {
     const sources = new Set(ranges.map((c) => c.from).filter((from) => from !== REQUESTED));
-    blamed.set(error, [...sources].sort(byName));
+    blamed.set(error, {
+      versions: [...sources].sort(byName),
+      asked: [...asked.keys()]
+        .sort(byName)
+        .map((name): [string, string[]] => [name, (asked.get(name) ?? []).map((c) => c.from)])
+        .filter(([, from]) => from.length > 0),
+    });
     return error;
   };
 
@@ -301,6 +313,7 @@ export const resolve = async (
                 { item: name, ranges: each },
               ),
               asking,
+              constraints,
             );
           throw blame(
             new ResolveError(
@@ -309,6 +322,7 @@ export const resolve = async (
               { item: name, ranges: each },
             ),
             asking,
+            constraints,
           );
         }
         if (previous?.version === best.version) continue;
@@ -369,6 +383,7 @@ export const resolve = async (
           { item: name, ranges: each },
         ),
         asking,
+        constraints,
       );
     }
 
@@ -412,9 +427,13 @@ export const resolve = async (
       return await attempt(excluded);
     } catch (error) {
       if (excluded.size === 0) first = error;
-      const versions = error instanceof ResolveError ? blamed.get(error) : undefined;
-      if (!versions) throw error;
-      for (const version of versions) {
+      const found = error instanceof ResolveError ? blamed.get(error) : undefined;
+      if (!found) throw error;
+      // A missing item is reported, never stepped around (decision 4): before anything is set
+      // aside, every item the first try was asked for is read, and a missing one is the error.
+      if (excluded.size === 0 && found.versions.length > 0)
+        for (const [name, from] of found.asked) await load(name, from);
+      for (const version of found.versions) {
         const next = new Set(excluded).add(version);
         const key = [...next].sort(byName).join(" ");
         if (tried.has(key)) continue;
