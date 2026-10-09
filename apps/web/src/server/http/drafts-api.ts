@@ -365,6 +365,8 @@ const draftOf = (deps: DraftsApiDeps, submission: Submission) => ({
 const checkedJson = (deps: DraftsApiDeps, draft: CheckedDraft) => ({
   id: draft.id,
   ...(draft.includedFor ? { includedFor: draft.includedFor } : {}),
+  // The ids of its own dependency drafts in the batch (056): rmk names a cycle from them (112).
+  ...(draft.needs ? { needs: draft.needs } : {}),
   result: draft.result,
   ready: draft.result === "ready",
   ...("submission" in draft ? draftOf(deps, draft.submission) : {}),
@@ -374,6 +376,7 @@ const checkedJson = (deps: DraftsApiDeps, draft: CheckedDraft) => ({
 const submittedJson = (deps: DraftsApiDeps, draft: SubmittedDraft) => ({
   id: draft.id,
   ...(draft.includedFor ? { includedFor: draft.includedFor } : {}),
+  ...(draft.needs ? { needs: draft.needs } : {}),
   result: draft.result,
   ...("submission" in draft ? draftOf(deps, draft.submission) : {}),
   ...("revision" in draft ? { revision: draft.revision } : {}),

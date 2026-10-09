@@ -53,7 +53,7 @@ the same change that completes it.
   released), and bulk release with a group and something depending on it, on the four databases;
   component tests cover the Release dialog's list.
 
-- [ ] **7. The order hints.** `rmk submit`, `rmk export` and the MCP tools say "released together"
+- [x] **7. The order hints.** `rmk submit`, `rmk export` and the MCP tools say "released together"
   for a cycle.
   *Done when:* the CLI and MCP tests cover a cycle's hint.
 

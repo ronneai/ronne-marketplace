@@ -1,4 +1,4 @@
-import type { ManifestIssue } from "@ronneai/core";
+import { dependenciesFirst, type ManifestIssue } from "@ronneai/core";
 import type { ApiClient } from "./api.js";
 import type { Args } from "./cli.js";
 import { RmkError, usage } from "./errors.js";
@@ -22,6 +22,8 @@ export type CheckedDraft = {
   issues?: ManifestIssue[];
   /** A dependency draft included for these (056). */
   includedFor?: string[];
+  /** The ids of its own dependency drafts in the batch (056): they go with it (112). */
+  needs?: string[];
 } & Partial<Place>;
 
 export type SubmitResult = {
@@ -74,28 +76,61 @@ const label = (draft: Partial<Place> & { id: string }) =>
 const errorsOf = (issues: readonly ManifestIssue[] = []) =>
   issues.filter((issue) => issue.severity === "error");
 
+/** "@a", "@a and @b", "@a, @b and @c". */
+const listed = (names: readonly string[]) =>
+  names.length < 2 ? (names[0] ?? "") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+
 /**
- * Which drafts a not-ready one waits for (041's order): a not-ready draft whose trouble is a
- * dependency on another draft in this batch that isn't ready either. Since 056 a dependency only
- * has to be in review, so that one is submitted first, once it's fixed.
+ * Which drafts a not-ready one waits for: a draft of this batch it goes with (112) that isn't
+ * ready, or one it needs that isn't in the batch. Once they're fixed, Submit takes them with it.
  */
 const releaseOrder = (drafts: readonly CheckedDraft[]) => {
   const names = new Set(drafts.flatMap((d) => (d.name ? [d.name] : [])));
   return drafts.flatMap((draft) => {
     if (draft.ready || !draft.name) return [];
     const after = errorsOf(draft.issues)
-      .filter((issue) => issue.code === "dependency_not_found")
+      .filter((issue) =>
+        ["dependency_not_found", "dependency_draft", "group_member_not_ready"].includes(issue.code),
+      )
       .map((issue) => [...names].find((name) => issue.message.startsWith(`${name} `)))
-      .filter((name): name is string => name !== undefined);
-    return after.length > 0 ? [{ item: draft.name, after }] : [];
+      .filter((name): name is string => name !== undefined && name !== draft.name);
+    return after.length > 0 ? [{ item: draft.name, after: [...new Set(after)] }] : [];
   });
 };
 
-/** One step of the order (056): the dependencies go into review first, with the dependent. */
-export const orderLine = (step: { item: string; after: string[] }) => {
-  const one = step.after.length === 1;
-  return `${step.after.join(" and ")} must be in review first: once ${one ? "it is" : "they are"} ready, rmk submit ${step.item} submits ${one ? "it" : "them"} first.`;
+/** The drafts of a batch that need each other (112), by name: each cycle once. */
+const togetherIn = (drafts: readonly CheckedDraft[]) => {
+  const named = new Map(drafts.flatMap((d) => (d.name ? [[d.id, d.name] as const] : [])));
+  return dependenciesFirst(
+    drafts.flatMap((d) =>
+      d.name
+        ? [
+            {
+              name: d.name,
+              dependsOn: (d.needs ?? []).flatMap((id) => {
+                const name = named.get(id);
+                return name ? [name] : [];
+              }),
+            },
+          ]
+        : [],
+    ),
+  ).groups;
 };
+
+/** A not-ready draft and what it waits on (112): fixed, they go in together. */
+const waitLine = (step: { item: string; after: string[] }) => {
+  const one = step.after.length === 1;
+  return `${step.item} waits on ${listed(step.after)}: once ${one ? "it is" : "they are"} ready, rmk submit ${step.item} takes ${one ? "it" : "them"} with it.`;
+};
+
+/** One step of an export's order (056, 112): Submit takes the item's own drafts with it. */
+export const orderLine = (step: { item: string; after: string[] }) =>
+  `rmk submit ${step.item} takes ${listed(step.after)} with it, all or none.`;
+
+/** Items that need each other (112): one line for each cycle. */
+export const togetherLine = (names: readonly string[]) =>
+  `${listed(names)} need each other: they're submitted and released together.`;
 
 /** What the person reads before saying yes: ready ones, then each other one with why. */
 const previewLines = (drafts: readonly CheckedDraft[], unknown: readonly string[]) => {
@@ -109,7 +144,7 @@ const previewLines = (drafts: readonly CheckedDraft[], unknown: readonly string[
   }
   if (included.length > 0) {
     if (lines.length > 0) lines.push("");
-    lines.push(`Included, as dependencies, and submitted first (${included.length}):`);
+    lines.push(`Included, as dependencies, and submitted with them (${included.length}):`);
     for (const draft of included)
       lines.push(`  ${label(draft)}`, `    - for ${draft.includedFor?.join(", ")}`);
   }
@@ -126,9 +161,11 @@ const previewLines = (drafts: readonly CheckedDraft[], unknown: readonly string[
     for (const name of unknown) lines.push(`  ${name}`, "    - You have no draft of this item.");
   }
   const order = releaseOrder(drafts);
-  if (order.length > 0) {
+  const together = togetherIn(drafts);
+  if (order.length + together.length > 0) {
     lines.push("");
-    for (const step of order) lines.push(orderLine(step));
+    for (const step of order) lines.push(waitLine(step));
+    for (const names of together) lines.push(togetherLine(names));
   }
   return lines;
 };
@@ -143,6 +180,8 @@ export type SubmitPlan = {
   more: number;
   preview: string[];
   order: { item: string; after: string[] }[];
+  /** The drafts that need each other (112), by name: submitted and released together. */
+  together: string[][];
 };
 
 /**
@@ -178,6 +217,7 @@ export const planSubmit = async (
     more: checked.more,
     preview: [...previewLines(checked.drafts, unknown), ...more],
     order: releaseOrder(checked.drafts),
+    together: togetherIn(checked.drafts),
   };
 };
 
@@ -236,6 +276,8 @@ export const submitCommand = async (io: Io, args: Args, out: Output, api: ApiCli
   );
   out.set("registry", api.registry);
   out.set("checked", plan.checked);
+  // Drafts that need each other (112): they go in together.
+  if (plan.together.length > 0) out.set("together", plan.together);
   if (plan.checked.length === 0 && plan.notReady.length === 0) {
     out.set("submitted", []);
     out.set("notSubmitted", []);

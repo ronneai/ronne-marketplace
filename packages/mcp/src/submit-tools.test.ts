@@ -81,7 +81,7 @@ describe("check_drafts and submit_drafts (052)", () => {
     ]);
     const checked = await checkDraftsTool(io, { items: [KIT] });
     expect(checked.content[0]?.text).toContain(
-      "Included, as dependencies, and submitted first (1):",
+      "Included, as dependencies, and submitted with them (1):",
     );
     expect(checked.structuredContent).toMatchObject({
       included: [{ id: READY, includedFor: ["@team/kit"] }],
@@ -91,5 +91,19 @@ describe("check_drafts and submit_drafts (052)", () => {
 
     await checkDraftsTool(io, { items: [KIT], dependencies: false });
     expect(io.requests.at(-1)?.body).toEqual({ ids: [KIT], dependencies: false });
+  });
+
+  it("says when drafts need each other, in the text and the data (112)", async () => {
+    const a = "01J0000000000000000000000H";
+    const b = "01J0000000000000000000000J";
+    setup([
+      { id: a, name: "@team/agent", type: "agent", status: "draft", includes: [b] },
+      { id: b, name: "@team/skill", type: "skill", status: "draft", includes: [a] },
+    ]);
+    const checked = await checkDraftsTool(io, { items: [a] });
+    expect(checked.content[0]?.text).toContain(
+      "@team/skill and @team/agent need each other: they're submitted and released together.",
+    );
+    expect(checked.structuredContent).toMatchObject({ together: [["@team/skill", "@team/agent"]] });
   });
 });

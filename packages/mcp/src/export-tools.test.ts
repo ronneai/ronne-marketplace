@@ -495,7 +495,7 @@ describe("dependencies over MCP (041)", () => {
       order: [{ item: "@team/reviewer", after: ["@team/mine"] }],
     });
     expect(exported.content[0]?.text).toContain(
-      "@team/mine must be in review first: once it is ready, rmk submit @team/reviewer submits it first.",
+      "rmk submit @team/reviewer takes @team/mine with it, all or none.",
     );
   });
 
@@ -701,5 +701,44 @@ describe("descriptions (053)", () => {
       descriptions: { house: "Tabs.", hose: "Typo." },
     });
     expect(unknown.structuredContent).toMatchObject({ error: { code: "unknown_item" } });
+  });
+});
+
+describe("export_items' answer (112)", () => {
+  it("says what Submit takes along and which items need each other, in the text and the data", async () => {
+    const { exportedAnswer } = await import("./export-tools.js");
+    const plan = {
+      items: [
+        { name: "@team/a", dependsOn: ["@team/b"] },
+        { name: "@team/b", dependsOn: ["@team/a"] },
+      ],
+    } as never;
+    const exported = ["@team/a", "@team/b"].map((name) => ({
+      local: name,
+      name,
+      type: "skill",
+      id: "01J0000000000000000000000A",
+      url: "https://x",
+      issues: [],
+      submitIssues: [],
+      updated: false,
+    })) as never;
+    const reply = exportedAnswer(plan, exported);
+    expect(reply.content[0]?.text).toContain(
+      "@team/a and @team/b need each other: they're submitted and released together.",
+    );
+    expect(reply.structuredContent).toMatchObject({ together: [["@team/a", "@team/b"]] });
+  });
+});
+
+describe("export_items' order lines (112)", () => {
+  it("says what Submit takes along, and names items that need each other", async () => {
+    const { orderLines } = await import("./export-tools.js");
+    expect(
+      orderLines([{ item: "@team/agent", after: ["@team/skill"] }], [["@team/a", "@team/b"]]),
+    ).toEqual([
+      "rmk submit @team/agent takes @team/skill with it, all or none.",
+      "@team/a and @team/b need each other: they're submitted and released together.",
+    ]);
   });
 });

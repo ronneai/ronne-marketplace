@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { formatBytes, type ManifestIssue } from "@ronneai/core";
+import { dependenciesFirst, formatBytes, type ManifestIssue } from "@ronneai/core";
 import { givenDescription } from "@ronneai/core/read";
 import type { ApiClient } from "./api.js";
 import type { Args } from "./cli.js";
@@ -29,7 +29,7 @@ import { scopeOf } from "./install.js";
 import type { Io } from "./io.js";
 import type { Output } from "./output.js";
 import { itemPath } from "./registry-commands.js";
-import { orderLine } from "./submit.js";
+import { orderLine, togetherLine } from "./submit.js";
 
 /**
  * `rmk export` (feature 038): the terminal around `planExport` and `uploadExport`. rmk prints only
@@ -305,11 +305,32 @@ export const releaseOrder = (plan: ExportPlan, exported: readonly ExportedItem[]
     }))
     .filter((step) => step.after.length > 0);
 
-const reportOrder = (out: Output, order: ReturnType<typeof releaseOrder>) => {
-  if (order.length === 0) return;
-  out.set("order", order);
+/** The exported items that need each other (112), by name: each cycle once. */
+export const togetherOf = (plan: ExportPlan, exported: readonly ExportedItem[]) =>
+  dependenciesFirst(
+    plan.items
+      .filter((item) => exported.some((e) => e.name === item.name))
+      .map((item) => ({ name: item.name, dependsOn: item.dependsOn })),
+  ).groups;
+
+/** What `rmk export` says about the order once it's uploaded (056, 112). */
+export const reportOrder = (
+  out: Output,
+  order: ReturnType<typeof releaseOrder>,
+  together: readonly string[][],
+) => {
+  if (order.length > 0) out.set("order", order);
+  if (together.length > 0) out.set("together", together);
   for (const step of order) out.say(orderLine(step));
+  for (const names of together) out.say(togetherLine(names));
 };
+
+/** The order for what was exported: what Submit takes along, and each cycle (112). */
+export const reportExportOrder = (
+  out: Output,
+  plan: ExportPlan,
+  exported: readonly ExportedItem[],
+) => reportOrder(out, releaseOrder(plan, exported), togetherOf(plan, exported));
 
 /** A finding as the question lists it. */
 const findingLine = (finding: Finding): string => {
@@ -484,13 +505,13 @@ export const exportCommand = async (io: Io, args: Args, out: Output, api: ApiCli
     const exported = await uploadExport(api, plan);
     out.set("exported", exported);
     reportExported(out, exported);
-    reportOrder(out, releaseOrder(plan, exported));
+    reportExportOrder(out, plan, exported);
   } catch (error) {
     if (error instanceof RmkError && Array.isArray(error.details.exported)) {
       const exported = error.details.exported as ExportedItem[];
       out.set("exported", exported);
       reportExported(out, exported);
-      reportOrder(out, releaseOrder(plan, exported));
+      reportExportOrder(out, plan, exported);
     }
     throw error;
   }

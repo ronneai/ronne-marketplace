@@ -126,12 +126,12 @@ describe("rmk submit (052)", () => {
     expect(all.exitCode).toBe(1);
   });
 
-  it("says the order when a draft waits for another to be in review", async () => {
+  it("says what a draft waits on: fixed, Submit takes it along (112)", async () => {
     setup();
     const result = await rmk("submit", "--all", "--dry-run");
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain(
-      "@team/checklist must be in review first: once it is ready, rmk submit @team/reviewer submits it first.",
+      "@team/reviewer waits on @team/checklist: once it is ready, rmk submit @team/reviewer takes it with it.",
     );
     expect(result.stdout).toContain("Dry run: nothing was submitted.");
     expect(posts()).toEqual(["/api/v1/drafts/check"]);
@@ -153,7 +153,7 @@ describe("rmk submit (052)", () => {
       ],
     });
     const preview = await rmk("submit", kit, "--dry-run");
-    expect(preview.stdout).toContain("Included, as dependencies, and submitted first (1):");
+    expect(preview.stdout).toContain("Included, as dependencies, and submitted with them (1):");
     expect(preview.stdout).toContain("    - for @team/kit");
     const result = await rmk("submit", kit, "--yes");
     expect(io.requests.find((r) => r.path === "/api/v1/drafts/submit")?.body).toEqual({
@@ -165,6 +165,23 @@ describe("rmk submit (052)", () => {
     const alone = await rmk("submit", kit, "--no-deps", "--dry-run");
     expect(io.requests.at(-1)?.body).toEqual({ ids: [kit], dependencies: false });
     expect(alone.stdout).toContain("@team/style isn't in review.");
+  });
+
+  it("says when drafts need each other: submitted and released together (112)", async () => {
+    const a = "01J0000000000000000000000H";
+    const b = "01J0000000000000000000000J";
+    setup({
+      drafts: [
+        { id: a, name: "@team/agent", type: "agent", status: "draft", includes: [b] },
+        { id: b, name: "@team/skill", type: "skill", status: "draft", includes: [a] },
+      ],
+    });
+    const preview = await rmk("submit", a, "--dry-run");
+    expect(preview.stdout).toContain(
+      "@team/skill and @team/agent need each other: they're submitted and released together.",
+    );
+    const json = JSON.parse((await rmk("submit", a, "--dry-run", "--json")).stdout);
+    expect(json.together).toEqual([["@team/skill", "@team/agent"]]);
   });
 
   it("needs an id when a name has several drafts, and says which names have none", async () => {

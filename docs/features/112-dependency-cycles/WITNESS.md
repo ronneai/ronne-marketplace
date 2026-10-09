@@ -500,3 +500,48 @@ Witnessed: 2026-10-08 21:05 EDT, by a fresh agent (adversarial). Commit: 0deeea4
 | 7 | Release tests pass | yes | confirmed | 72/72 on the four databases; probes 29/29 each |
 
 **Overall:** met: every claim of task 6, blind and adversarial, is confirmed in its latest pass.
+
+## Task 7 — The order hints
+
+Witnessed: 2026-10-08 22:21 EDT, by a fresh agent (blind). Commit: b280885 + working-tree diff. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `rmk export` prints a line saying a cycle's items are released together | yes | confirmed | `togetherOf` + `reportOrder` say `togetherLine` per cycle and set `together` in JSON; probe of the built lib with a↔b → "@team/a and @team/b need each other: they're submitted and released together." |
+| 2 | The export hint no longer contradicts itself for a cycle, and fits how Submit works now (groups, all or none) | yes | confirmed | Same probe → "rmk submit @team/a takes @team/b with it, all or none." and the reverse, plus the together line; matches `bulk-submit.ts` groups and `submit-group.ts`; the old "must be in review first" text is gone from packages/ |
+| 3 | The MCP export tool (`export_items`) says the cycle hint | yes | confirmed | `orderLines(order, together)` in the text, `together` in structuredContent |
+| 4 | `rmk submit` says "released together" for a cycle | yes | not met | Probe `planSubmit` with a↔b: no cycle line, under "Included, as dependencies, and submitted first"; `submit.ts` never calls `togetherLine` |
+| 5 | The MCP submit tools (`check_drafts`, `submit_drafts`) say it for a cycle | yes | not met | They use `planSubmit`'s preview (row 4); `planData` has no `together` |
+| 6 | The CLI tests cover a cycle's hint | yes | partly | 231 passed; only the helpers tested; removing `out.say(togetherLine(...))` from `export-command.ts` still passes |
+| 7 | The MCP tests cover a cycle's hint | yes | partly | 41 passed; `exportItemsTool` given `together = []` still passes |
+| 8 | Updated old-hint tests match the built text | yes | confirmed | `cli.test.ts`, `submit.test.ts`, `export-tools.test.ts` expect the new words and pass |
+| 9 | SPEC.md's wording follows the built text | no | not met | SPEC.md still said "`@team/a` and `@team/b` are released together" |
+
+**Overall:** not met: `rmk submit` and the MCP submit tools say nothing about a cycle, the export hint isn't tested at command or tool level, and SPEC.md's quoted words don't match the built line.
+
+### Re-check — claims 4–7 and 9
+
+Witnessed: 2026-10-08 22:32 EDT, by a fresh agent (blind). Commit: b280885 + working-tree diff. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | `rmk submit` says "released together" for a cycle | yes | not met | The fix reads each draft's `needs`, but `checkedJson` in `drafts-api.ts` doesn't send it: the real `checkDrafts` response (a↔b bundles, SQLite) fed to `planSubmit` → no line, `together: []`; only the fake sends `needs` |
+| 5 | The MCP submit tools say it for a cycle | yes | not met | Same `planSubmit` (row 4) |
+| 6 | The CLI tests cover a cycle's hint | yes | partly | 233 passed; mutations of the export line, the preview line and `out.set("together")` fail tests; the submit test runs on a fake the server didn't match (row 4) |
+| 7 | The MCP tests cover a cycle's hint | yes | partly | 43 passed; mutations fail tests; `check_drafts` only against the fake's `needs` |
+| 9 | SPEC.md's wording follows the built text | no | confirmed | SPEC.md quotes `orderLine`, `waitLine` and `togetherLine` as built |
+
+**Overall:** not met: `/api/v1/drafts/check` doesn't return the `needs` the fix reads.
+
+### Re-check 2 — claims 4–7
+
+Witnessed: 2026-10-08 22:44 EDT, by a fresh agent (blind). Commit: b280885 + working-tree diff. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | `rmk submit` says "released together" for a cycle | yes | confirmed | `drafts-api.ts` sends `needs`; the real `checkDrafts` response (a↔b bundles, SQLite) fed to the current `planSubmit` → "@team/a and @team/b need each other: they're submitted and released together.", `together: [["@team/a","@team/b"]]`; header "Included, as dependencies, and submitted with them (1):" |
+| 5 | The MCP submit tools say it for a cycle | yes | confirmed | `check_drafts` returns the preview and `together`; mcp 43 passed; mutations fail `submit-tools.test.ts` |
+| 6 | The CLI tests cover a cycle's hint | yes | confirmed | cli 233 passed; `drafts-api.db.test.ts` "says which of your drafts each one needs…" passes and fails without `needs`, so the fake matches the real contract; `order-hints.test.ts` covers `reportExportOrder`. Remark: `exportCommand`'s call site is checked by reading it |
+| 7 | The MCP tests cover a cycle's hint | yes | confirmed | `exportedAnswer` with `together = []` fails "export_items' answer (112)"; `exportItemsTool` returns `exportedAnswer` |
+
+**Overall:** met: `rmk submit`, `check_drafts`/`submit_drafts`, `rmk export` and `export_items` all name a cycle, and the tests cover it on a fake that matches what `/api/v1/drafts/check` returns.

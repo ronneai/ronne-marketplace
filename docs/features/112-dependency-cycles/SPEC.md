@@ -149,8 +149,12 @@ action, become one group.
 
 - **Plugin feeds** (076): a plugin whose members form a cycle lists them all. Today an unresolvable
   cycle made the plugin unavailable, and a cycle the resolver let through would have left it empty.
-- **`rmk submit`, `rmk export` and the MCP export and submit tools:** the release-order hint says
-  "`@team/a` and `@team/b` are released together" for a cycle, instead of contradicting itself.
+- **`rmk submit`, `rmk export` and the MCP export and submit tools:** the order hints follow
+  how Submit works now. After an export: "rmk submit `@team/a` takes `@team/b` with it, all or
+  none."; for a draft that isn't ready: "`@team/a` waits on `@team/b`: once it is ready, rmk
+  submit `@team/a` takes it with it."; and for a cycle, one line each: "`@team/a` and `@team/b`
+  need each other: they're submitted and released together." (`together` in the JSON and in the
+  MCP tools' data).
 
 ## Edge cases
 
