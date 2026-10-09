@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. The command.** `hostCommand(name, env)` in `apps/web/src/server/runtime.ts`;
+- [x] **1. The command.** `hostCommand(name, env)` in `apps/web/src/server/runtime.ts`;
   `setupCommand` returns `hostCommand("setup", env)`. *Done when:* `runtime.test.ts` covers the
   three runtimes for `hostCommand`, and `setupCommand`'s tests still pass unchanged.
 

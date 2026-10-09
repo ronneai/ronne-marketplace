@@ -32,10 +32,17 @@ export const defaultPublicUrl = (env: Env = process.env): string =>
 export const scriptCommand = (name: string, env: Env = process.env): string =>
   runtimeOf(env) === "npm" ? `rmk-server ${name}` : `pnpm run ${name}`;
 
-/** The terminal command for the setup, as this runtime runs it, from outside a container. */
-export const setupCommand = (env: Env = process.env): string => {
+/**
+ * A script's command as typed in a terminal on the machine that runs this instance, from outside a
+ * container (#147): `rmk-server <name>` for the npm package, `docker compose exec web pnpm run
+ * <name>` for Docker, `pnpm run <name>` in a clone.
+ */
+export const hostCommand = (name: string, env: Env = process.env): string => {
   const runtime = runtimeOf(env);
-  if (runtime === "docker") return "docker compose exec web pnpm run setup";
-  if (runtime === "npm") return "rmk-server setup";
-  return "pnpm run setup";
+  if (runtime === "docker") return `docker compose exec web pnpm run ${name}`;
+  if (runtime === "npm") return `rmk-server ${name}`;
+  return `pnpm run ${name}`;
 };
+
+/** The terminal command for the setup, as this runtime runs it, from outside a container. */
+export const setupCommand = (env: Env = process.env): string => hostCommand("setup", env);

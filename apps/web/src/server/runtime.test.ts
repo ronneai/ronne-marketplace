@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   defaultDataPath,
   defaultPublicUrl,
+  hostCommand,
   runtimeOf,
   scriptCommand,
   setupCommand,
@@ -37,6 +38,19 @@ describe("runtime (082)", () => {
     expect(scriptCommand("migrate", { RONNE_RUNTIME: "npm" })).toBe("rmk-server migrate");
     expect(scriptCommand("migrate", { RONNE_RUNTIME: "docker" })).toBe("pnpm run migrate");
     expect(scriptCommand("reset-root-password", {})).toBe("pnpm run reset-root-password");
+  });
+
+  it("names a command typed on the host for each runtime (#147)", () => {
+    expect(hostCommand("reset-root-password", { RONNE_RUNTIME: "npm" })).toBe(
+      "rmk-server reset-root-password",
+    );
+    expect(hostCommand("reset-root-password", { RONNE_RUNTIME: "docker" })).toBe(
+      "docker compose exec web pnpm run reset-root-password",
+    );
+    expect(hostCommand("reset-root-password", {})).toBe("pnpm run reset-root-password");
+    expect(hostCommand("reset-root-password", { RONNE_RUNTIME: "other" })).toBe(
+      "pnpm run reset-root-password",
+    );
   });
 
   it("names the setup command for each runtime", () => {
