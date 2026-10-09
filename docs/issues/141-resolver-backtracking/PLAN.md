@@ -34,7 +34,7 @@ the same change that completes it.
   *Done when:* every test in `packages/core` passes, including task 1's, and the module comment
   and MVP-facing rule ("the highest version that fits") are updated in the code.
 
-- [ ] **3. The callers.** Check the CLI (`rmk install` and `update`), the MCP server and
+- [x] **3. The callers.** Check the CLI (`rmk install` and `update`), the MCP server and
   `POST /api/v1/resolve`:
   - they need no change;
   - an `rmk` command test and an API test cover the issue's scenario.

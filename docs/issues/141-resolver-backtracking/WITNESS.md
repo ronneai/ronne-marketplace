@@ -206,3 +206,33 @@ Witnessed: 2026-10-09 11:28 EDT, by a fresh agent (adversarial). Commit: d42fedc
 | 40 | The +1-per-version mutation still fails the many-askers test | no | confirmed | → 11,351 ms, fails |
 
 **Overall:** met: the budget line passes Biome, the suite and typecheck are green, and the many-askers test still catches a budget that counts versions.
+
+## Task 3 — The callers
+
+Witnessed: 2026-10-09 11:41 EDT, by a fresh agent (blind). Commit: 811e178. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: apps/web/e2e/seed.ts, users.ts, rmk-fallback.e2e.ts, registry-api.db.test.ts.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | No caller changed: the CLI, the MCP server, the resolve service and the route are untouched | yes | confirmed | `git diff --stat d5dcebf HEAD -- apps/web/src/server packages/cli packages/mcp` → empty; the working-tree diff touches only tests and the e2e seed |
+| 2 | `rmk install` and `rmk update` get backtracking through `resolve()` with no change | yes | confirmed | `packages/cli/src/install.ts:268` posts to `/resolve`; `operations.ts:78,112,135` use `prepareInstall`; the route → `postResolve` → `services/resolve.ts:46` calls core `resolve()` |
+| 3 | The MCP server gets it with no change | yes | confirmed | `packages/mcp/src/plan-tools.ts:1-16` imports `planOperation` from `@ronneai/rmk/lib` (the same `prepareInstall`); `pnpm --filter @ronneai/mcp test` → 43 passed |
+| 4 | `POST /api/v1/resolve` returns the backtracked resolution, for an install and an update from a lock with B 1.2.0 | yes | confirmed | `vitest run --project db src/server/http/registry-api.db.test.ts` → 16 passed; also on PostgreSQL 15, MySQL 8.4 and MariaDB 10.11 → 16 passed each |
+| 5 | The API test catches the issue | no | confirmed | With d5dcebf's `resolve.ts` in a scratch copy → `× falls back … (#141)`, `expected 409 to be 200`; with the current one → 16 passed |
+| 6 | An `rmk` command test covers the issue: install gives A 1.1.0 + B 1.1.0, and `rmk update` keeps both | yes | confirmed | `npx playwright test e2e/rmk-fallback.e2e.ts` → 1 passed, running `packages/cli/dist/bin.js` against the seeded instance and reading `rmk.lock`; the old resolver on this seed's registry gives `resolve_conflict … 1.1.0 (the request), 1.0.0 (@s/fallback-b@1.2.0)` (a probe; the old server wasn't rebuilt) |
+| 7 | The new seed data and user break no other e2e test | no | confirmed | Full `npx playwright test` → 115 passed; the new test uses its own user, `versionFallback` |
+| 8 | The CLI, web and core tests for install, update and resolve pass | yes | confirmed | `pnpm --filter @ronneai/rmk test` → 233 passed; the db project on `private-api` and `registry-api` → 20 passed; `pnpm --filter @ronneai/core test` → 350 passed |
+| 9 | `dependencyIssues`' cycle walk still matches the resolver for what Submit refuses; Submit doesn't predict conflicts | yes | confirmed | `registry-checks.ts` unchanged since 112; its errors (a missing item, a range with no non-yanked version, a private workspace) are ones the resolver can't backtrack past at the request level; the walk follows each range's highest match, the resolver's first try, and only feeds the `dependency_cycle` warning, which Submit doesn't refuse |
+
+**Overall:** met: every caller goes through core `resolve()` unchanged; the API test and the `rmk` end-to-end test cover the issue's install and update; the API test fails against d5dcebf's resolver; the CLI, MCP, database (all three servers) and full e2e suites pass. The `rmk` scenario is an e2e test: the CLI's own unit tests use a canned `POST /resolve`, so only `pnpm test:e2e` covers it through `rmk`. Remarks fixed before ticking: a misplaced comment in `users.ts`, and a stale SPEC line about cycles.
+
+### Re-check — the comment and the spec's cycles line
+
+Witnessed: 2026-10-09 11:41 EDT, by a fresh agent (blind). Commit: 811e178. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: as above, plus SPEC.md.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 10 | `users.ts`: `E2E_FALLBACK_ITEMS` has its own comment; `E2E_RMK_ITEMS` has its comment back | no | confirmed | `users.ts:261-267`; `biome check` on the e2e files → no issues |
+| 11 | SPEC "How cycles resolve": the 112 rules run unchanged in every attempt | no | confirmed | `attempt` holds `switches`, `settle`, the back-and-forth rule and the prune loop, reset per attempt; only `steps` is shared; vs d5dcebf only the `blame(...)` wrapping changed; `-t "112"` → 6 passed |
+| 12 | Submit warns about a cycle (`dependency_cycle`) and doesn't refuse it | no | confirmed | `registry-checks.ts:334-350` returns `warning("dependency_cycle", …)`; its comment at 131-135 says the same |
+
+**Overall:** met: the comments sit on their own constants, and the spec's cycles line matches `resolve.ts` and `registry-checks.ts`.

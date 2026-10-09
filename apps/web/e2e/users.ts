@@ -93,6 +93,8 @@ export const E2E_USERS = {
   phoneVersionPin: "version-pin-phone@e2e.test",
   phoneWebkitVersionPin: "version-pin-ios@e2e.test",
   tabletVersionPin: "version-pin-tablet@e2e.test",
+  // #141: installs an item whose newest dependency conflicts, with rmk. After root's email too.
+  versionFallback: "version-fallback@e2e.test",
 } as const;
 
 /** The display names, which the header shows (not the email). */
@@ -174,6 +176,7 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   phoneVersionPin: "Phone Pin",
   phoneWebkitVersionPin: "Ios Pin",
   tabletVersionPin: "Tab Pin",
+  versionFallback: "Val Fallback",
 };
 
 /** Seeded with the moderator role; everyone else is a user. */
@@ -254,6 +257,12 @@ export const E2E_USAGE_PEAK = 42;
 
 /** A skill the seed releases as 1.0.0 with a real artifact, for change proposals (017). */
 export const E2E_PROPOSAL_ITEM = "prompt-kit";
+
+/**
+ * Issue #141's registry, released with real artifacts: fallback-a 1.1.0 needs fallback-b ^1.0.0,
+ * and fallback-b 1.2.0, released later, pins fallback-a to 1.0.0. Only fallback-b 1.1.0 works.
+ */
+export const E2E_FALLBACK_ITEMS = { a: "fallback-a", b: "fallback-b" } as const;
 
 /** Items the seed releases with real artifacts for `rmk` (022, 023): an MCP server, an agent that needs it and the skill, and a hook with two versions. */
 export const E2E_RMK_ITEMS = {

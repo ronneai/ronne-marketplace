@@ -41,8 +41,9 @@ range. An install fails only when no choice of versions within the ranges works.
   checks (013, `registry-checks.ts`) don't predict conflicts with other items.
 - **A missing item or tag** (`item_not_found`, `tag_not_found`) asked for by a dependency. It
   stays an error, as today (decision 4).
-- **Cycles found after resolving.** The final cycle check is unchanged. Submission already
-  refuses cycles.
+- **How cycles resolve.** Items that need each other (112) resolve as before: the rules that keep
+  one version each and drop a pair nothing reaches run unchanged in every attempt. Submit warns
+  about a cycle (`dependency_cycle`) and doesn't refuse it.
 - **Several versions of one item side by side.** It's still one version per item (MVP §4.3).
 
 ## Behaviour

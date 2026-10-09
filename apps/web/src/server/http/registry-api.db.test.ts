@@ -464,6 +464,40 @@ describe("POST /resolve", () => {
     expect(json.items["@team/pong"]).toMatchObject({ dependencies: { "@team/ping": "1.0.0" } });
   });
 
+  it("falls back to an older version when a newer release conflicts (#141)", async () => {
+    // @team/a 1.1.0 needs @team/b ^1.0.0; @team/b 1.2.0, released later, pins @team/a to 1.0.0.
+    const a = await release("a", { versions: ["1.0.0", "1.1.0"] });
+    const b = await release("b", { versions: ["1.1.0", "1.2.0"] });
+    await t.db
+      .insertInto("version_dependencies")
+      .values([
+        { version_id: a.ids["1.1.0"] ?? "", depends_on_item_id: b.itemId, range: "^1.0.0" },
+        { version_id: b.ids["1.2.0"] ?? "", depends_on_item_id: a.itemId, range: "1.0.0" },
+      ])
+      .execute();
+    const install = await body(
+      await postResolve(post({ dependencies: { "@team/a": "^1.1.0" } }), deps),
+    );
+    expect(install.status).toBe(200);
+    expect(install.json.items["@team/a"]).toMatchObject({
+      version: "1.1.0",
+      dependencies: { "@team/b": "1.1.0" },
+    });
+    expect(install.json.items["@team/b"].version).toBe("1.1.0");
+    // An update from a lock that has the conflicting @team/b 1.2.0 moves it back.
+    const update = await body(
+      await postResolve(
+        post({
+          dependencies: { "@team/a": "^1.1.0" },
+          locked: { "@team/a": "1.1.0", "@team/b": "1.2.0" },
+        }),
+        deps,
+      ),
+    );
+    expect(update.status).toBe(200);
+    expect(update.json.items["@team/b"].version).toBe("1.1.0");
+  });
+
   it("answers conflicts with who asked, and missing items, tags and versions", async () => {
     await release("mcp", { type: "mcp-server", versions: ["1.0.0", "2.0.0"] });
     await release("skill", { dependsOn: { "@team/mcp": "^2.0.0" } });
