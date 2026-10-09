@@ -57,7 +57,7 @@ the same change that completes it.
   for a cycle.
   *Done when:* the CLI and MCP tests cover a cycle's hint.
 
-- [ ] **8. End to end.** Two drafts that need each other: submitted together from one item's page,
+- [x] **8. End to end.** Two drafts that need each other: submitted together from one item's page,
   approved, released together from one Release dialog, then installed with `rmk`.
   *Done when:* `pnpm test:e2e` passes on desktop and phone.
 

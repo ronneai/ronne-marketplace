@@ -155,9 +155,14 @@ export const SubmitDialog = ({
   }, [dirty, draftId]);
 
   const blocked = submitBlocked(result);
+  // Once something went for review, closing in any way shows the page as it is now.
+  const closeSent = () => {
+    onClose();
+    router.refresh();
+  };
 
   return (
-    <Dialog open onClose={onClose} title={submitLabel(resubmit, [])}>
+    <Dialog open onClose={sent ? closeSent : onClose} title={submitLabel(resubmit, [])}>
       {dirty ? (
         <div className="grid gap-4">
           <p className="text-sm text-fg">
@@ -173,14 +178,7 @@ export const SubmitDialog = ({
         <div className="grid gap-4">
           <SubmitOutcome itemName={itemName} sent={sent} />
           <DialogActions>
-            <Button
-              onClick={() => {
-                onClose();
-                router.refresh();
-              }}
-            >
-              Close
-            </Button>
+            <Button onClick={closeSent}>Close</Button>
           </DialogActions>
         </div>
       ) : (

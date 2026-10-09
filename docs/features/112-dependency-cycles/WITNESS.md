@@ -787,3 +787,26 @@ Witnessed: 2026-10-08 23:13 EDT, by a fresh agent (blind). Commit: 5d485ee + wor
 | 10 | The helper's words match how the app behaves in both dialogs, and the website's `review#dependencies` doesn't contradict them | yes | confirmed | Submit: "the drafts of yours it needs go with it", all or none, as the submit group (`submit-group.ts`, `bulk-submit.ts`). Publish: "the approved ones it needs that aren't released yet", all or none, no author named, as `release-group.ts:115-130` and `releaseTogether`. The site's `en/review.tsx:265-320` says the same. 3 test files, 53 passed |
 
 **Overall:** met: the helper holds in both dialogs and agrees with the website, and every other claim was confirmed in the first pass.
+
+## Task 8 — End to end
+
+Witnessed: 2026-10-08 23:12 EDT, by a fresh agent (blind). Commit: 5d485ee + working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm test:e2e` passes on desktop and phone | yes | confirmed | `pnpm test:e2e` → `105 passed (2.5m)`, exit 0, including submit-together on chromium, phone, phone-webkit and tablet |
+| 2 | The new tests are stable when run on their own | yes | confirmed | `playwright test submit-together` → 4 passed (11.7s) |
+| 3 | Two drafts that need each other: each skill's `ronne.yaml` names the other, and both are still drafts | yes | confirmed | `uploadCycle`: ping needs `^1.0.0` of pong and pong of ping, uploaded through `POST /api/v1/drafts`, never submitted |
+| 4 | Submitted together from one item's page, with the group listed, one button and the outcome | yes | confirmed | `submitTogether` asserts "Goes with 1 of your drafts:", the link, "needs each other", "ready", "Submit with 1 more draft" and "Submitted A for review, with B." (`SubmitDialogs.tsx`); B's approval works only if B was submitted too |
+| 5 | Approved by a moderator who isn't the author | yes | confirmed | A seeded moderator per project (`together*Moderator`); "approved it" for both ids |
+| 6 | Released together from one Release dialog | yes | confirmed | B in "Released with it", "Publish 1.0.0", `Published A 1.0.0 as latest, with B 1.0.0.`. Remark: the version next to each member wasn't checked |
+| 7 | Installed with `rmk`: one `rmk install A` installs both, once each, and the lock records A → B 1.0.0 | yes | confirmed | The built `bin.js` in a temporary HOME and project; both `SKILL.md` files and `rmk.lock` checked |
+| 8 | The test fails if the behaviour breaks (the SubmitDialogs/actions fix reverted) | yes | confirmed | Reverted in a scratch copy and rebuilt: chromium, phone and tablet fail at the outcome line; phone-webkit still passed (timing) |
+| 9 | The submitted state shows after a group submit when the dialog is closed with Escape, Close or × | yes | confirmed | Scratch probe against the built app: each way, the page shows "Submitted for review on" with Withdraw; B's page and My submissions show B submitted |
+| 10 | Other submit flows aren't broken by removing `revalidatePath` from `submitDraftAction` | yes | confirmed | A lone submit still refreshes on close; `submit.e2e.ts` and `bulk-submit.e2e.ts` pass; `submitDraftAction` has one caller |
+| 11 | The new seeded users don't disturb other tests | yes | confirmed | Full suite passed, `user-admin.e2e.ts` included |
+| 12 | The changed files pass lint, typecheck and unit tests | yes | confirmed | `biome check` clean; web typecheck exit 0; `vitest run src/features/draft-editor` → 134 passed |
+
+**Overall:** met: the end-to-end test covers a two-draft cycle submitted together from one page, approved, released together from one dialog and installed with `rmk`, on desktop, phone, iOS WebKit and tablet, and it fails on 3 of 4 projects when the dialog fix is reverted.
+
+Afterwards, from the remarks: the test also closes the Submit dialog with Escape and checks the page shows it submitted (rows 8 and 9), and checks "Released with it" reads "B 1.0.0" (row 6); `playwright test submit-together` → 4 passed.
