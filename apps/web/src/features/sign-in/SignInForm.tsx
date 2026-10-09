@@ -13,7 +13,16 @@ import { SIGN_IN_ERRORS, type SignInFormState } from "./types";
  * Email, password and "Remember me". With JavaScript, errors show without a page load; without it,
  * the form still posts to the server action and the page comes back with the error.
  */
-export const SignInForm = ({ next, initial = {} }: { next: string; initial?: SignInFormState }) => {
+export const SignInForm = ({
+  next,
+  resetCommand,
+  initial = {},
+}: {
+  next: string;
+  /** For the Forgot? note (#147). */
+  resetCommand: string;
+  initial?: SignInFormState;
+}) => {
   const [state, action, pending] = useActionState(signInFromForm, initial);
   return (
     <form action={action} className="grid gap-4" noValidate>
@@ -35,7 +44,7 @@ export const SignInForm = ({ next, initial = {} }: { next: string; initial?: Sig
       <div className="grid gap-1.5">
         <div className="flex items-baseline justify-between gap-2">
           <Label htmlFor="password">Password</Label>
-          <ForgotPassword />
+          <ForgotPassword resetCommand={resetCommand} />
         </div>
         <PasswordInput
           id="password"

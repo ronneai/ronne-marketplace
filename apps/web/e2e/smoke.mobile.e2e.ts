@@ -14,3 +14,15 @@ test("signs in and opens the home page on a touch screen", async ({ page }, test
     true,
   );
 });
+
+/** #147: the Forgot? note, with its command, fits a touch screen without scrolling sideways. */
+test("opens the Forgot? note on a touch screen", async ({ page }) => {
+  await page.goto("/sign-in");
+  await page.getByRole("button", { name: "Forgot your password?" }).tap();
+  const note = page.getByRole("dialog", { name: "Forgot your password?" });
+  await expect(note.getByText("pnpm run reset-root-password", { exact: true })).toBeVisible();
+  await expect(note.getByRole("link", { name: "Root accounts" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
+});

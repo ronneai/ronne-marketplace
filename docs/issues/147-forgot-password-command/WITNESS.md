@@ -1,0 +1,118 @@
+# #147 — Witness
+
+> Plan: [PLAN.md](./PLAN.md) · Spec: [SPEC.md](./SPEC.md)
+
+Before a task is ticked, the `state-witness` agent, which didn't do the work, checks it against the
+real state, blind to the notes first. A `[risky]` task also gets an adversarial pass. A task is
+ticked only when its latest pass is met with every claim confirmed. The record lands here, in the
+same commit as the task. How it works: [state-witness.md](../../knowledge/state-witness.md).
+
+## Task 1 — The command
+
+Witnessed: 2026-10-09 00:11 EDT, by a fresh agent (blind). Commit: d86fbc4. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: runtime.ts, runtime.test.ts.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `hostCommand(name, env)` exists in `server/runtime.ts` and is exported | yes | confirmed | `apps/web/src/server/runtime.ts:40` `export const hostCommand = (name: string, env: Env = process.env)` |
+| 2 | npm → `rmk-server <name>` | yes | confirmed | `runtime.ts:43`; test asserts `"rmk-server reset-root-password"`; mutating it to `` `rmk-server` `` in a scratchpad copy → 2 failed / 4 passed |
+| 3 | docker → `docker compose exec web pnpm run <name>` | yes | confirmed | `runtime.ts:42`; hardcoding `setup` instead of `${name}` in a scratchpad copy → the #147 test fails (1 failed / 5 passed) |
+| 4 | node (a clone) → `pnpm run <name>` | yes | confirmed | `runtime.ts:44`; mutating the clone string in a scratchpad copy → 2 failed |
+| 5 | An unknown or missing RONNE_RUNTIME counts as a clone | no | confirmed | `runtimeOf` at `runtime.ts:11-12` (anything other than docker or npm is `node`); the test covers `{}` and `RONNE_RUNTIME: "other"` → `pnpm run reset-root-password` |
+| 6 | `runtime.test.ts` covers all three runtimes for `hostCommand` | yes | confirmed | `runtime.test.ts:43-54` asserts npm, docker, missing and unknown; `npx vitest run src/server/runtime.test.ts` → 6 passed |
+| 7 | `setupCommand` becomes `hostCommand("setup")` | yes | confirmed | `runtime.ts:48` `setupCommand = (env…) => hostCommand("setup", env)` |
+| 8 | `setupCommand`'s tests still pass, unchanged | yes | confirmed | `git diff HEAD -- runtime.test.ts` → only additions, no lines removed; the "names the setup command for each runtime" test passes (6/6) |
+| 9 | `scriptCommand` is unchanged | no | confirmed | `git diff HEAD -- runtime.ts` shows `scriptCommand` only as a context line; `runtime.ts:32-33` still maps npm to `rmk-server`, otherwise `pnpm run` |
+| 10 | The changed files lint and type-check | no | confirmed | `npx biome check` on both files → "Checked 2 files… No fixes applied"; `tsc --noEmit -p apps/web` → exit 0 |
+
+**Overall:** met: `hostCommand` gives the right command for npm, Docker and a clone (an unknown or missing runtime counts as a clone), `setupCommand` now calls it, `scriptCommand` and the setup tests are unchanged, and mutation probes show the new test catches wrong output.
+
+## Task 2 — The note
+
+Witnessed: 2026-10-09 00:19 EDT, by a fresh agent (blind). Commit: ffb67ab. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: page.tsx, ForgotPassword.tsx, SignInForm.tsx, SignInPage.tsx, sign-in.test.tsx, auth.e2e.ts, smoke.mobile.e2e.ts.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The sign-in route works out the command on the server and passes it as a plain string through `SignInPage` and `SignInForm` to `ForgotPassword` | yes | confirmed | `app/sign-in/page.tsx` (server component) passes `resetCommand={hostCommand("reset-root-password")}`; `SignInPage.tsx` and `SignInForm.tsx` pass the `resetCommand: string` prop to `<ForgotPassword resetCommand={resetCommand} />`. `pnpm --filter @ronneai/web build` succeeded; typecheck and `biome check` clean |
+| 2 | npm runtime: the note says `rmk-server reset-root-password` | yes | confirmed | Unit test "ForgotPassword (#147)" covers `npm`. Scratch Playwright probe on the built server with `RONNE_RUNTIME=npm` → `details code` reads `rmk-server reset-root-password` on Pixel 7, iPhone 15, iPhone SE and desktop without JavaScript |
+| 3 | Docker runtime: the note says `docker compose exec web pnpm run reset-root-password` | yes | confirmed | The unit test covers `docker`. The same probe with `RONNE_RUNTIME=docker` → exact text on all 4 projects, read at request time |
+| 4 | Clone, or an unknown or missing `RONNE_RUNTIME`: the note says `pnpm run reset-root-password` | yes | confirmed | The unit test covers `undefined`. Probe with `RONNE_RUNTIME=bogus` → `pnpm run reset-root-password`; the e2e run had it unset → clone text; `runtimeOf` (`runtime.ts:11-12`) falls back to `node` |
+| 5 | Only one command is shown, never another install's | yes | confirmed | The unit test checks `reset-root-password` appears exactly once in the static HTML per runtime; the e2e checks 0 `rmk-server` text on the clone |
+| 6 | The note links to Root accounts, `install#root` on the website | yes | confirmed | `ForgotPassword.tsx`: `NewTabLink` with `href={docsHref("install","root")}`; the probe saw `https://www.ronne.ai/marketplace/docs/install#root` on every runtime and project; `topics.ts:28` has `{ id: "root", title: "Root accounts" }` |
+| 7 | `sign-in.test.tsx` covers the three commands and the link | yes | confirmed | `vitest run src/features/sign-in src/server/runtime` → 15 passed. Scratch mutations: hardcoded clone command → 2 failed; link text renamed → 3 failed; `#root` dropped → 3 failed |
+| 8 | `auth.e2e.ts` opens Forgot? and sees `pnpm run reset-root-password` and the link on desktop | yes | confirmed | `playwright test e2e/auth.e2e.ts e2e/smoke.mobile.e2e.ts` on a fresh `next build` → `[chromium] auth.e2e.ts:31` passed (command, 0 `rmk-server`, the link's href) |
+| 9 | The same on phone (the phone projects only run `*.mobile.e2e.ts`) | yes | confirmed | Same run: `smoke.mobile.e2e.ts:19` passed on phone, phone-webkit and tablet; second run 12/12. A first-run ENOENT on a Playwright trace file in an existing test (`:5`, phone-webkit) didn't recur |
+| 10 | Still a native `<details>`, works without JavaScript | no | confirmed | `ForgotPassword.tsx` is still `<details>`/`<summary>`; the probe's no-JS project clicked Forgot? and saw the command and the link, for all three runtimes |
+| 11 | The note, with its command, fits a phone without scrolling sideways; a long Docker command wraps | yes | confirmed | Probe with `RONNE_RUNTIME=docker`: the `code` box is two lines and `scrollWidth == innerWidth` on Pixel 7 (412), iPhone 15 (393) and iPhone SE (320); the `code` has `break-words`. The committed phone test exercises only the clone command |
+
+**Overall:** met: every claim is confirmed. Test gaps, not bugs: no committed test runs the route with `RONNE_RUNTIME` set (a hardcoded command in `page.tsx` would pass every test), and none covers the Docker command wrapping on a phone; the probe covers both.
+
+Witnessed: 2026-10-09 00:26 EDT, by a fresh agent (adversarial). Commit: ffb67ab. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: page.tsx, ForgotPassword.tsx, SignInForm.tsx, SignInPage.tsx, sign-in.test.tsx, auth.e2e.ts, smoke.mobile.e2e.ts.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The sign-in route works out the command on the server (`hostCommand("reset-root-password")`) and passes a plain string through SignInPage and SignInForm to ForgotPassword | yes | confirmed | `app/sign-in/page.tsx:31` `resetCommand={hostCommand("reset-root-password")}`; `SignInPage.tsx` → `SignInForm` → `<ForgotPassword resetCommand={resetCommand} />` (`SignInForm.tsx:47`); typed `string` at each level |
+| 2 | Nothing server-only (runtime.ts, `node:path`, RONNE_RUNTIME) leaks into the client bundle | no | confirmed | `grep -rlE 'docker compose exec web\|RONNE_RUNTIME\|node:path' apps/web/.next/static` → 0 files (build newer than the sources); `hostCommand` is imported only by the server page |
+| 3 | The real built page shows the right command per runtime, chosen at request time and not frozen at build | no | confirmed | Probe: `next start` on the build with a fresh instance, restarted per RONNE_RUNTIME: `npm` → `rmk-server reset-root-password`, `docker` → `docker compose exec web pnpm run reset-root-password`. `/sign-in` isn't in the prerender manifest; `cache-control: private, no-cache, no-store` |
+| 4 | An unknown or missing RONNE_RUNTIME shows the clone text | no | confirmed | The same probe with `RONNE_RUNTIME=bogus` and `""` → `pnpm run reset-root-password`; the unit test covers `undefined` |
+| 5 | The note links "Root accounts" to `install#root` on the website and opens it as the inline helpers do | yes | confirmed | `NewTabLink href={docsHref("install","root")}`; built page → `href="https://www.ronne.ai/marketplace/docs/install#root"`, `target="_blank"` |
+| 6 | Still a native `<details>`, which works without JavaScript | no | confirmed | Chromium with `javaScriptEnabled:false` (docker runtime): the code is hidden before the click and visible after clicking Forgot?, with the link. No test pins `<details>`: a `<div>` in a scratch copy keeps 9/9 green |
+| 7 | A long Docker command wraps on a phone instead of widening the page | yes | confirmed | Probe at 280, 320 and 360 px in Chromium (mobile) and WebKit, docker runtime: `scrollWidth == innerWidth` every time; the code spans 4, 3 and 2 lines (`docker-chromium-280.png`) |
+| 8 | `sign-in.test.tsx` covers the three commands and the link | yes | confirmed | `vitest run src/features/sign-in` → 9 passed. Scratch mutations: hardcoded clone command → 2 failed; link removed → 3 failed; no `#root` → 3 failed; SignInForm passing a fixed string → 2 failed |
+| 9 | `auth.e2e.ts` opens Forgot? and sees `pnpm run reset-root-password` and the link on desktop; the same on phone | yes | confirmed | `playwright test e2e/auth.e2e.ts e2e/smoke.mobile.e2e.ts` → 12 passed, including `[chromium] auth.e2e.ts:31` and `opens the Forgot? note on a touch screen` on phone, phone-webkit and tablet |
+| 10 | The changed files lint and type-check | no | confirmed | `biome check` on the 9 files → no fixes; `tsc --noEmit -p apps/web` → exit 0 |
+| 11 | The note names one command, never another install's | yes | confirmed | The unit test asserts one `reset-root-password` per runtime; the built-page probe found exactly one `<code>` with it per runtime; the e2e asserts no `rmk-server` on the clone |
+| 12 | On a touch screen, the Forgot? note and its command fit without scrolling sideways | yes | confirmed | `smoke.mobile.e2e.ts:19` asserts `scrollWidth <= innerWidth` after tapping Forgot? → passed on phone, phone-webkit and tablet; row 7's probe shows the same for the Docker command |
+
+**Overall:** met: the built page names the right command for npm, Docker and a clone (and an unknown or missing runtime) per request, the link goes to `install#root`, the `<details>` works without JavaScript, the Docker command wraps at 280–360 px, nothing server-only reaches the client bundle, and every claim in the notes holds. Coverage gaps, not bugs: nothing pins `<details>`, and nothing tests the route's wiring for non-clone runtimes or the Docker command on a phone.
+
+### Re-check — the route and <details> tests
+
+Witnessed: 2026-10-09 00:26 EDT, by a fresh agent (blind). Commit: ffb67ab. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: as above, plus the new `app/sign-in/page.test.tsx`.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 12 | A test renders the real `/sign-in` route with RONNE_RUNTIME set to `npm`, `docker` and `""`, and expects `rmk-server reset-root-password`, `docker compose exec web pnpm run reset-root-password` and `pnpm run reset-root-password` | no | confirmed | `page.test.tsx:9` imports `./page`; only config, session, headers and actions are mocked, not `runtime`; `vi.stubEnv("RONNE_RUNTIME", …)` per row. `vitest run src/app/sign-in/page.test.tsx src/features/sign-in/sign-in.test.tsx` → 2 files, 13 passed |
+| 13 | That test fails if the route hardcodes `"pnpm run reset-root-password"` | no | confirmed | Scratch copy with the hardcoded string → 2 failed (npm, docker), 1 passed; baseline 3 passed |
+| 14 | That test fails if the route uses `scriptCommand` instead of `hostCommand` | no | confirmed | Copy with `scriptCommand("reset-root-password")` → 1 failed (docker), 2 passed |
+| 15 | That test fails if the route stops reading the runtime in other ways | no | confirmed | Copy with `hostCommand("reset-root-password", {})` → 2 failed; copy computing it once at module load → 2 failed |
+| 16 | A test pins the Forgot? note as a native `<details>` with `<summary>Forgot?</summary>` | no | confirmed | `sign-in.test.tsx` "is a native <details>, so it opens without JavaScript": `toMatch(/<details[^>]*><summary[^>]*>Forgot\?<\/summary>/)`; `ForgotPassword.tsx:11-26` |
+| 17 | That test fails if the note becomes a `<div>` | no | confirmed | Copy with `<details>` → `<div>` → 1 failed, 9 passed; with `<summary>` → `<span>` too → the same test fails |
+
+**Overall:** met: the route test reads RONNE_RUNTIME through the real page and catches a hardcoded command, `scriptCommand` and a fixed env; the `<details>` test catches a switch to `<div>`. The Docker command on a phone stays covered by the probes only (rows 11 and 7 above).
+
+## Task 3 — Documentation
+
+Witnessed: 2026-10-09 00:30 EDT, by a fresh agent (blind). Commit: 1a20a70 (the app's facts); the website at ronne-web 3b7ee34, branch `bugfix/marketplace-147-reset-command`. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | en `install#root`: the forgotten-password paragraph names `rmk-server reset-root-password` for the npm package and the apt/dnf packages, next to the Docker and clone forms | yes | confirmed | `git show 3b7ee34` → en/install.tsx:504-507, inside `root:` (481), before `upgrade:` (515) |
+| 2 | pt: the same paragraph gives the same three forms | yes | confirmed | pt/install.tsx:521-525: "`rmk-server reset-root-password` no pacote npm ou num pacote apt ou dnf, `docker compose exec web …` no Docker, ou `pnpm run reset-root-password` num clone"; inside `root:` |
+| 3 | fr: the same paragraph gives the same three forms | yes | confirmed | fr/install.tsx:539-543: "… pour le paquet npm ou un paquet apt ou dnf, … avec Docker, ou … dans un clone"; inside `root:` |
+| 4 | The three forms match the app (`hostCommand`) | no | confirmed | `apps/web/src/server/runtime.ts:40-45`: docker → `docker compose exec web pnpm run <name>`, npm → `rmk-server <name>`, otherwise `pnpm run <name>`; the same strings as the docs |
+| 5 | rmk-server sets `RONNE_RUNTIME=npm`, and the apt/dnf packages run rmk-server | no | confirmed | `packages/server/src/server-env.ts:19`; `run.ts:119-122` applies it for scripts and `start`. `packaging/linux/nfpm.yaml` links `/usr/bin/rmk-server` → the bundle launcher (`bundle.js:79`), which runs the package's `rmk-server` bin (`packages/server/package.json:28`) |
+| 6 | `rmk-server reset-root-password` exists, and `--email`/`--yes` are real | no | confirmed | `packages/server/src/cli.ts:8` SCRIPTS includes `reset-root-password`; `apps/web/scripts/reset-root-password.ts:2-3` documents `--yes` and `--email` |
+| 7 | The paragraph's mention of the sign-in page's Forgot? note matches the app | yes | confirmed | `ForgotPassword.tsx:13` has "Forgot?" and shows the `resetCommand` it's given, from `hostCommand` |
+| 8 | The change is on a ronne-web branch, not on main | yes | confirmed | `git branch --contains 3b7ee34` → only `bugfix/marketplace-147-reset-command`; working tree clean. Going live with the release is a later step, not part of *Done when* |
+| 9 | ronne-web's checks pass on that commit | no | confirmed | In `www`: `pnpm lint` → "Checked 206 files … No fixes applied."; `pnpm test` → 138 passed |
+
+**Overall:** met: in en, pt and fr, the `install#root` paragraph names `rmk-server reset-root-password` for the npm, apt and dnf installs beside the Docker and clone forms, all three match `hostCommand`, and the change is on a ronne-web branch. Observation: on a service install the command needs administrator rights; run without them, it says how (`service/control.ts:218-222`). The spec's edge case now says so.
+
+## Task 4 — The popover
+
+Witnessed: 2026-10-09 08:52 EDT, by a fresh agent (blind). Commit: 89b049b. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: ForgotPassword.tsx, auth.e2e.ts, smoke.mobile.e2e.ts.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | With JavaScript, **Forgot?** is a button that opens the note in the shared `Popover`, with `placement="bottom-end"` | yes | confirmed | `ForgotPassword.tsx:36-45` renders `<Popover label="Forgot your password?" button="Forgot?" placement="bottom-end" maxWidth={288}>`. Probe (Chromium, JS on): `details` count 0 after hydration; `getByRole("dialog", { name: "Forgot your password?" })` visible after the click |
+| 2 | The popover opens below the button, aligned to its end | yes | confirmed | Probe at 1280px: button and popover right edges both 535; button bottom 340.5, popover top 349 (8px gap). At 390px (Chromium and WebKit): both right edges at 349 |
+| 3 | Esc closes it | yes | confirmed | `auth.e2e.ts` presses Escape and expects 0 dialogs → passes; probe: 0 after Esc, light and dark |
+| 4 | A click outside closes it | no | confirmed | Probe `page.mouse.click(20,20)` at 1280px → 0 dialogs; a tap outside at 390 and 320px in Chromium and WebKit → 0. Only the probe covers it |
+| 5 | Without JavaScript it stays a native `<details>` that opens in place | yes | confirmed | `ForgotPassword.tsx:22-34`; `auth.e2e.ts` "without JavaScript › Forgot? opens the note in place" → passed. Probe with JS off (Chromium and WebKit): 1 `details`, 0 dialog buttons, command hidden before the click and visible after, `open=""` |
+| 6 | `auth.e2e.ts` opens the note as a dialog, closes it with Esc, and with JavaScript off opens the `<details>` | yes | confirmed | `npx playwright test e2e/auth.e2e.ts e2e/smoke.mobile.e2e.ts` → 13 passed; the build (`.next/BUILD_ID` 08:51:34) is newer than `ForgotPassword.tsx` (08:51:25). By reading: role lookups and the count-0 check after Esc would fail a `<details>`-only version or a popover without dismiss |
+| 7 | The phone test opens the popover and nothing scrolls sideways | yes | confirmed | `smoke.mobile.e2e.ts:19` taps the button, finds the `dialog`, asserts `scrollWidth <= innerWidth` → passed on phone, phone-webkit and tablet |
+| 8 | A long Docker command wraps on a phone and the popover stays inside the window | no | confirmed | Probe server with `RONNE_RUNTIME=docker`: at 390px the popover spans x 61–349, the `code` wraps over 3 lines, scroll 390/390; at 320px `shift` moves it to x 8–296, scroll 320/320; same in WebKit |
+| 9 | Earlier behaviour holds: the per-install command and **Root accounts** → `install#root` | no | confirmed | e2e sees `pnpm run reset-root-password` and `https://www.ronne.ai/marketplace/docs/install#root` inside the dialog; probe with `RONNE_RUNTIME=docker`: `curl /sign-in` has `docker compose exec web pnpm run reset-root-password`; `vitest run src/features/sign-in` → 10 passed |
+| 10 | Changed files pass lint | no | confirmed | `biome check` on the 3 changed files → "No fixes applied" |
+
+**Overall:** met: the popover opens below Forgot?, aligned to its end; Esc or a click outside closes it; without JavaScript the `<details>` still opens in place; the Docker command wraps inside a 390px or 320px window, in Chromium and WebKit. Only the probe covers a click outside and the Docker command on a phone. Screenshots (light and dark, desktop and 390px phones) were shown to the owner.

@@ -28,6 +28,36 @@ test("signs in and comes back to the page that was asked for", async ({ page }) 
   await expect(page.getByRole("link", { name: "Admin" })).toBeVisible();
 });
 
+test("Forgot? names this install's reset command and links to Root accounts (#147)", async ({
+  page,
+}) => {
+  await page.goto("/sign-in");
+  await page.getByRole("button", { name: "Forgot your password?" }).click();
+  // A popover (owner, 2026-10-09). The end-to-end server is a clone.
+  const note = page.getByRole("dialog", { name: "Forgot your password?" });
+  await expect(note.getByText("pnpm run reset-root-password", { exact: true })).toBeVisible();
+  await expect(page.getByText("rmk-server", { exact: false })).toHaveCount(0);
+  await expect(note.getByRole("link", { name: "Root accounts" })).toHaveAttribute(
+    "href",
+    "https://www.ronne.ai/marketplace/docs/install#root",
+  );
+  await page.keyboard.press("Escape");
+  await expect(note).toHaveCount(0);
+});
+
+test.describe("without JavaScript", () => {
+  test.use({ javaScriptEnabled: false });
+
+  test("Forgot? opens the note in place (#147)", async ({ page }) => {
+    await page.goto("/sign-in");
+    const command = page.getByText("pnpm run reset-root-password", { exact: true });
+    await expect(command).toBeHidden();
+    await page.getByText("Forgot?").click();
+    await expect(command).toBeVisible();
+    await expect(page.getByRole("link", { name: "Root accounts" })).toBeVisible();
+  });
+});
+
 test("a wrong password and an unknown email get the same error", async ({ page }) => {
   await page.goto("/sign-in");
   await signIn(page, E2E_USERS.wrongPassword, "not the password at all");

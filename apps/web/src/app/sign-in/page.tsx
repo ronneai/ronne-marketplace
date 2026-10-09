@@ -4,6 +4,7 @@ import { loadConfig } from "@/server/config";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { safeNextPath } from "@/server/domains/identity/models/route-guard";
 import { requestHeaders } from "@/server/http/request-headers";
+import { hostCommand } from "@/server/runtime";
 
 export const metadata = { title: "Sign in · Ronne AI Marketplace" };
 
@@ -27,6 +28,7 @@ const SignIn = async ({
   return (
     <SignInPage
       next={next}
+      resetCommand={hostCommand("reset-root-password")}
       registry={loadConfig().publicUrl}
       email={email}
       setupDone={one(params.setup) === "done"}
