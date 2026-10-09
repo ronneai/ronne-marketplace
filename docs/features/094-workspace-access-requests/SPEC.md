@@ -103,15 +103,15 @@ Requests by a disabled user are cancelled with them (`user.disabled` counts them
 
 ## Acceptance criteria
 
-- [ ] A user asks to join a public workspace from the Workspaces page and a private one from its
+- [x] A user asks to join a public workspace from the Workspaces page and a private one from its
   link; one open request each; they can cancel it.
-- [ ] Root and the workspace's moderators approve or decline; others can't; approving adds the
+- [x] Root and the workspace's moderators approve or decline; others can't; approving adds the
   membership; every step is audited.
-- [ ] The join page doesn't tell an unknown name from a private one.
-- [ ] The limits hold (10 open, 7 days after a decline).
-- [ ] The nav count shows only to people who can answer.
-- [ ] The pages pass the phone sweep (065).
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] The join page doesn't tell an unknown name from a private one.
+- [x] The limits hold (10 open, 7 days after a decline).
+- [x] The nav count shows only to people who can answer.
+- [x] The pages pass the phone sweep (065).
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Decisions
 

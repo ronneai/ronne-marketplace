@@ -47,8 +47,14 @@ export const HELP = {
   join: {
     question: "How do I join?",
     answer:
-      "Anyone signed in reads and installs a public workspace's items, but only its members propose and submit there. Ask to join it from the Workspaces page, or from the join link its moderators send for a private one; root or its moderators answer, and you see the answer there.",
-    href: docsHref("workspaces", "roles"),
+      "Anyone signed in reads and installs a public workspace's items, but only its members propose and submit there. Ask to join it from the Workspaces page, or from the join link its moderators or admins send for a private one; root or its moderators and admins answer, and you see the answer there.",
+    href: docsHref("workspaces", "joining"),
+  },
+  "requests-who": {
+    question: "Who can answer?",
+    answer:
+      "Root, in every workspace, and each workspace's moderators and admins, in theirs. Approve adds the person as a user; root and the workspace's admins can pick moderator instead. Decline can give a reason, which the person sees; they can ask again 7 days later. The first answer counts.",
+    href: docsHref("workspaces", "joining"),
   },
   visibility: {
     question: "Public or private?",

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Help } from "@/components/help/Help";
 import { Badge } from "@/components/ui/Badge";
 import { parseListQuery, type SearchParams } from "@/components/ui/data-table/list-query";
 import { PageHeader } from "@/components/ui/Panel";
@@ -72,13 +73,16 @@ const AdminWorkspace = async ({
     if (tab === "requests") {
       const { requests, total } = await pendingRequests(request, workspace.id);
       return (
-        <RequestsTable
-          requests={requests.map((r) => ({
-            ...r,
-            canPickRole: can(me, "members.manage", workspace.id),
-          }))}
-          total={total}
-        />
+        <div className="grid gap-3">
+          <Help id="requests-who" />
+          <RequestsTable
+            requests={requests.map((r) => ({
+              ...r,
+              canPickRole: can(me, "members.manage", workspace.id),
+            }))}
+            total={total}
+          />
+        </div>
       );
     }
     if (tab === "members") {

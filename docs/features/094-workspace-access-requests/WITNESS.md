@@ -222,3 +222,35 @@ Witnessed: 2026-10-09 16:13 EDT, by a fresh agent (blind). Commit: d2549a2 (plus
 | 4c | Nothing else broke | no | confirmed | 34 files, 363 passed; `tsc` 0; biome no errors in touched files |
 
 **Overall:** met: the end-to-end test drives the real button through the action to the Ask to join link and the join page, and both wiring mutants fail it. (The witness also noted `E2E_DOOR` placed between `E2E_SHELF` and its comment; moved below it before the commit.)
+
+## Task 5 — Documentation
+
+Witnessed: 2026-10-09 16:17 EDT, by a fresh agent (blind). Commit: 0b40d7f (plus the uncommitted working tree; ronne-web a41896f on `marketplace-094-joining` plus its uncommitted diff). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The helper link test passes here | no | confirmed | `vitest run src/components/help` → 3 passed; `help.test.tsx:18-20` fails a helper whose section isn't in topics.ts |
+| 2 | The docs render tests pass in ronne-web | no | confirmed | `pnpm test src/content/docs` → 5 passed; lint, typecheck clean; build finished |
+| 3 | `workspaces#joining` has the same id in both topics.ts files | no | confirmed | Script over 18 topics → 0 mismatches |
+| 4 | "Joining a workspace" in en, pt, fr covers the Workspaces page, the join link and who answers, as the app does | no | confirmed | `{en,pt,fr}/workspaces.tsx` `joining`; each claim checked against `AppShell.tsx:85`, `WorkspacesPage.tsx:95,121`, `access-request.ts:53-57`, `join.ts`, `joinTarget`, `errors.ts:120`, `members.ts:136-148`, `user-admin.ts:197`, `auditRequest`, `nav.ts:51-57`, `[name]/page.tsx` |
+| 5 | `workspaces#roles` covers answering requests | no | partly | Only the "Anyone else" bullet changed; the Moderators and Admins bullets and "Who manages members" don't say they answer requests to join (en, pt, fr) |
+| 6 | The "How do I join?" helper leads to Ask to join | no | confirmed | `Help.tsx:47-51`, href `workspaces#joining`. Remark: "root or its moderators answer" leaves out admins |
+| 7 | "Who can answer?" on the Requests page and Admin tab → `workspaces#joining` | no | confirmed | `workspaces/requests/page.tsx:27`, `admin/workspaces/[name]/page.tsx:77`; text matches `requireAnswererNow` and `approveAccessRequest` |
+| 8 | The Admin topic describes the Requests tab | no | confirmed | `{en,pt,fr}/admin.tsx`; matches `[name]/page.tsx:172`, `AnswerControls.tsx` |
+| 9 | Translations follow ronne-web's rules | no | confirmed | `translation-guide.md:39` holds in fr; UI labels in English per the glossary; product-facts 094 row as 093's |
+
+**Overall:** not met: `workspaces#roles` doesn't say moderators and admins answer requests to join (row 5). Also noted: the helper and `#joining` name only root and moderators as sending the link and answering; nothing in the app shows the join link to copy; for a reserved name the join page shows the form again after asking (it can't be a workspace, so nothing is revealed).
+
+### Re-check — row 5
+
+Witnessed: 2026-10-09 16:20 EDT, by a fresh agent (blind). Commit: 0b40d7f (plus the uncommitted working tree; ronne-web a41896f on `marketplace-094-joining` plus its uncommitted diff). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | `workspaces#roles` covers answering requests | no | confirmed | en/pt/fr `roles`: Moderators "approve or decline requests to join it" (→ `#joining`); Admins can make the person a moderator. Matches `permissions.ts:40`, `access-requests.ts:198-206`, `:254-258`. Remark: "Who manages members" names root and admins, which holds for the Members tab |
+| 5a | The helper and `#joining` name admins as sending the link and answering | no | confirmed | `Help.tsx:47-58`; `#joining` in en/pt/fr |
+| 5b | The join link's address is stated as the app serves it | no | confirmed | `#joining`: the instance's address followed by `/workspaces/<name>/join`; route `src/app/(app)/workspaces/[name]/join/page.tsx` |
+| 5c | The `roles` topic's table includes answering | no | confirmed | en/pt/fr `roles.tsx` row "Approve or decline requests to join the workspace" `–, ✓, ✓, ✓` |
+| 5d | Nothing else broke | no | confirmed | ronne-web `pnpm test src/content/docs` → 5 passed, lint and typecheck clean; here `vitest run src/components/help` → 3 passed, `tsc` 0, biome no fixes |
+
+**Overall:** met: the roles section says moderators and admins answer requests to join, the helper and `#joining` name admins, the link's address is stated; tests, lint and typecheck pass in both repos.

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { Help } from "@/components/help/Help";
 import { PageHeader } from "@/components/ui/Panel";
 import { RequestsTable } from "@/features/workspace-requests/RequestsTable";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
@@ -23,6 +24,7 @@ const WorkspaceRequests = async () => {
       <PageHeader
         title="Requests to join"
         description="People asking to join the workspaces you moderate. Approving adds them as users."
+        actions={<Help id="requests-who" />}
       />
       <RequestsTable requests={requests} total={total} showWorkspace />
     </>

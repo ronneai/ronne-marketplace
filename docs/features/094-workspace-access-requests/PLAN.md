@@ -24,7 +24,7 @@ the same change that completes it.
 - [x] **4. Links from refusals.** 091's `not_a_member` message and helper point to Ask to join.
   *Done when:* the refusal's test checks the link.
 
-- [ ] **5. Documentation.** The topics and helpers in the spec.
+- [x] **5. Documentation.** The topics and helpers in the spec.
   *Done when:* the docs render tests pass in ronne-web, and the helper link test passes here.
 
 ## Notes
