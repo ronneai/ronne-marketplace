@@ -27,11 +27,23 @@ jobs:
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: ubuntu-latest
+    env:
+      # Only whether the secret exists, so the token itself isn't in every step's environment.
+      HAS_DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_READ_TOKEN != '' }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # Signed in, Docker Hub allows far more pulls than the runners' shared anonymous limit, which
+      # failed jobs with 429 Too Many Requests. A read-only token (DOCKERHUB_READ_TOKEN); pull
+      # requests from forks get no secrets, so they skip this and pull anonymously, as before.
+      - name: Sign in to Docker Hub (read-only)
+        if: env.HAS_DOCKERHUB_TOKEN == 'true'
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_READ_TOKEN }}
       # shfmt (BSD-3-Clause) instead of ShellCheck (GPL-3.0): docs/policies/dependencies.md §3.
       - name: Parses as POSIX sh, formatted (shfmt -p)
         run: >-

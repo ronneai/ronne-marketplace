@@ -37,6 +37,9 @@ jobs:
     # Runs even if detection failed: its steps skip only on an explicit "false".
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
+    env:
+      # Only whether the secret exists, so the token itself isn't in every step's environment.
+      HAS_DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_READ_TOKEN != '' }}
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -65,6 +68,15 @@ jobs:
       - name: Documentation only, nothing to check
         if: needs.changes.outputs.code == 'false'
         run: echo "This pull request only changes documentation, so the checks are skipped."
+      # Signed in, Docker Hub allows far more pulls than the runners' shared anonymous limit, which
+      # failed jobs with 429 Too Many Requests. A read-only token (DOCKERHUB_READ_TOKEN); pull
+      # requests from forks get no secrets, so they skip this and pull anonymously, as before.
+      - name: Sign in to Docker Hub (read-only)
+        if: env.HAS_DOCKERHUB_TOKEN == 'true' && needs.changes.outputs.code != 'false'
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_READ_TOKEN }}
       # Started in a step, not as a service container: GitHub starts service containers before any
       # step, even when every step skips, which cost each documentation-only pull request 10–40
       # seconds. It boots while dependencies install; the tests wait for it to be healthy.
