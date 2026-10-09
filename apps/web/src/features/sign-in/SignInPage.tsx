@@ -10,11 +10,14 @@ import { SignInForm } from "./SignInForm";
  */
 export const SignInPage = ({
   next,
+  resetCommand,
   registry,
   email,
   setupDone = false,
 }: {
   next: string;
+  /** reset-root-password as typed for this install (`hostCommand`, #147). */
+  resetCommand: string;
   registry?: string;
   /** Filled in beforehand, by the web setup (036). */
   email?: string;
@@ -38,7 +41,11 @@ export const SignInPage = ({
             Sign in with the root account you just created.
           </Notice>
         ) : null}
-        <SignInForm next={next} initial={email ? { email } : undefined} />
+        <SignInForm
+          next={next}
+          resetCommand={resetCommand}
+          initial={email ? { email } : undefined}
+        />
       </Panel>
       <CliAuthPanel registry={registry} />
     </main>

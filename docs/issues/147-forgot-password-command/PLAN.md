@@ -11,7 +11,7 @@ the same change that completes it.
   `setupCommand` returns `hostCommand("setup", env)`. *Done when:* `runtime.test.ts` covers the
   three runtimes for `hostCommand`, and `setupCommand`'s tests still pass unchanged.
 
-- [ ] **2. The note.** [risky] The sign-in route (`app/sign-in/page.tsx`) passes
+- [x] **2. The note.** [risky] The sign-in route (`app/sign-in/page.tsx`) passes
   `hostCommand("reset-root-password")` through `SignInPage` and `SignInForm` to `ForgotPassword`,
   which shows it and links to `docsHref("install", "root")`. *Done when:* `sign-in.test.tsx` covers
   the three commands and the link, and `auth.e2e.ts` opens **Forgot?** and sees
