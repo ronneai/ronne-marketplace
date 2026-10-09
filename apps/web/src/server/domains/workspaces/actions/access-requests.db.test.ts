@@ -28,6 +28,8 @@ import {
   createWorkspace,
   declineAccessRequest,
   deleteWorkspace,
+  joinTarget,
+  myWorkspaces,
   ownRequests,
   pendingRequests,
   removeMember,
@@ -254,11 +256,24 @@ describe("asking to join (094)", () => {
     await ask();
   });
 
-  it("doesn't make someone added and removed since a decline wait", async () => {
+  it("doesn't make someone added and removed since a decline wait, and the pages agree", async () => {
     const id = await ask();
     await declineAccessRequest(asModerator, { requestId: id }, app);
+    // The pages show when to ask again: 7 days after the decline.
+    const [declined] = await ownRequests(asUser, app);
+    const decidedAt = declined?.decidedAt?.getTime() ?? 0;
+    expect(declined?.askAgainFrom?.getTime()).toBe(decidedAt + 7 * DAY);
     await addMembers(asRoot, { workspaceId: acme, userIds: [userId], role: "user" }, app);
     await removeMember(asRoot, { workspaceId: acme, userId }, app);
+    // Now they can ask at once: the Workspaces page and the join page offer it, as the service does.
+    expect((await ownRequests(asUser, app))[0]).toMatchObject({
+      status: "declined",
+      askAgainFrom: null,
+    });
+    expect(await joinTarget(asUser, "acme", app)).toMatchObject({
+      kind: "open",
+      request: { status: "declined", askAgainFrom: null },
+    });
     await ask();
   });
 
@@ -469,5 +484,67 @@ describe("what else closes a request (094)", () => {
     expect((await pendingRequests(asModerator, acme, app)).total).toBe(1);
     await deleteWorkspace(asRoot, { name: "acme" }, app);
     expect(await rows()).toEqual([]);
+  });
+});
+
+describe("the Workspaces page and the join page (094)", () => {
+  it("lists the workspaces the reader sees, global first, with their role", async () => {
+    await makePrivate("beta");
+    const rows = (await myWorkspaces(asModerator, app)).map((w) => [w.name, w.visibility, w.role]);
+    expect(rows).toEqual([
+      ["global", "public", "user"],
+      ["acme", "public", "moderator"],
+    ]);
+    expect((await myWorkspaces(asBetaModerator, app)).map((w) => [w.name, w.role])).toEqual([
+      ["global", "user"],
+      ["acme", null],
+      ["beta", "moderator"],
+    ]);
+    // Root sees every workspace, private ones too, with no role.
+    expect((await myWorkspaces(asRoot, app)).map((w) => [w.name, w.role])).toEqual([
+      ["global", null],
+      ["acme", null],
+      ["beta", null],
+    ]);
+  });
+
+  it("shows a public workspace's description on its join page, and tells members they're in", async () => {
+    expect(await joinTarget(asUser, "ACME", app)).toEqual({
+      kind: "open",
+      name: "acme",
+      description: "Acme.",
+      request: null,
+    });
+    expect(await joinTarget(asModerator, "acme", app)).toEqual({ kind: "member", name: "acme" });
+    expect(await joinTarget(asUser, "global", app)).toEqual({ kind: "member", name: "global" });
+    expect(await joinTarget(asRoot, "beta", app)).toEqual({ kind: "member", name: "beta" });
+    await ask("acme", "Hello.");
+    expect(await joinTarget(asUser, "acme", app)).toMatchObject({
+      kind: "open",
+      request: { workspace: "acme", status: "open", message: "Hello." },
+    });
+  });
+
+  it("can't tell a private workspace from a name no workspace has, before or after asking", async () => {
+    await makePrivate("beta");
+    const strip = (target: Awaited<ReturnType<typeof joinTarget>>) => {
+      const { name: _name, ...rest } = target;
+      if (!("request" in rest) || !rest.request) return rest;
+      const { id: _id, workspace: _w, createdAt: _c, ...request } = rest.request;
+      return { ...rest, request };
+    };
+    const before = [
+      await joinTarget(asUser, "beta", app),
+      await joinTarget(asUser, "nowhere", app),
+    ];
+    expect(before[0]).toEqual({ kind: "unseen", name: "beta", request: null });
+    expect(strip(before[0] as never)).toEqual(strip(before[1] as never));
+    await ask("beta");
+    await ask("nowhere");
+    const after = [await joinTarget(asUser, "beta", app), await joinTarget(asUser, "nowhere", app)];
+    expect(after[0]).toMatchObject({ kind: "unseen", request: { status: "open" } });
+    expect(strip(after[0] as never)).toEqual(strip(after[1] as never));
+    // Neither shows on the Workspaces page's list.
+    expect((await myWorkspaces(asUser, app)).map((w) => w.name)).toEqual(["global", "acme"]);
   });
 });

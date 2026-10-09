@@ -232,6 +232,7 @@ describe("AppShell", () => {
         "Docs",
         "Account",
         "Access tokens",
+        "Workspaces",
       ]);
       expect(sheet(html)).toContain("ada@example.com");
       expect(sheet(html)).toContain("Appearance");
@@ -260,6 +261,7 @@ describe("AppShell", () => {
         "Docs",
         "Account",
         "Access tokens",
+        "Workspaces",
       ]);
       expect(sheet(html)).toMatch(/aria-current="page"[^>]*>Admin</);
       navigation.path = "/";

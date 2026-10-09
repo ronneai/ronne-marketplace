@@ -82,6 +82,9 @@ export const AppShell = ({
                   <Link href="/account/tokens" className={menuItem}>
                     Access tokens
                   </Link>
+                  <Link href="/workspaces" className={menuItem}>
+                    Workspaces
+                  </Link>
                   {signOutAction ? (
                     <form action={signOutAction} className="border-t border-hairline pt-0.5">
                       <button type="submit" className={menuItem}>

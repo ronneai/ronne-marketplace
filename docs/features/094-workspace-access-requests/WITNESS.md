@@ -110,3 +110,50 @@ Witnessed: 2026-10-09 15:15 EDT, by a fresh agent (adversarial). Commit: bfe0eb9
 | 22f | Nothing else broke | no | confirmed | `access-requests.db.test.ts` + `0021_*.db.test.ts` + probe → 37/37 on sqlite, postgres, mysql, mariadb |
 
 **Overall:** met: reserved names answer "Request sent" and are neither stored nor counted on any of the four databases; members and root, `global` included, are told they're in; private and unknown names can't be told apart.
+
+## Task 2 — Workspaces page and join link
+
+Witnessed: 2026-10-09 15:24 EDT, by a fresh agent (blind). Commit: bf445ed (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `/workspaces` and `/workspaces/<name>/join` exist for every signed-in user, behind a session | no | confirmed | `next build` → `ƒ /workspaces`, `ƒ /workspaces/[name]/join`; `(app)/layout.tsx:10` `loadShell`; `proxy.ts:30` |
+| 2 | The page lists public workspaces and private ones the user is in (all for root), `global` first, with the role | no | confirmed | `access-requests.db.test.ts` → 27 passed; "lists the workspaces the reader sees" |
+| 3 | Rows show name, visibility, description; `global` reads Everyone; root reads Root | no | confirmed | `vitest run src/features/workspaces` → passed; `WorkspacesPage.tsx:668,672` |
+| 4 | Ask to join, Requested (cancel), Declined on a date with reason and ask-again date | no | partly | Unit test covers the three states. Decline → `addMembers` → `removeMember`: `askAgainFrom` → Oct 16, no Ask to join, `joinTarget` → declined with no form, yet `requestAccess` → `sent`. `askAgainFrom` (`WorkspacesPage.tsx:565`) ignores `membershipChangedSince` |
+| 5 | "Your other requests" lists requests to names not on the list, by name only, private and unknown alike | no | confirmed | `workspaces.test.tsx` "lists requests to names not on the list"; `ownRequests` (`access-requests.ts:366-369`) |
+| 6 | The page is in the account menu under Access tokens (desktop and phone) | no | confirmed | `AppShell.tsx:85`, `MenuList.tsx:74`; app-shell tests passed |
+| 7 | The public join page shows the description and form; members and root are told they're in | no | confirmed | db test `joinTarget(asUser,"ACME")` → open with description; moderator, `global`, root → member; unit test |
+| 8 | The join page doesn't tell a private name from an unknown one, before or after asking | no | confirmed | db test "can't tell a private workspace…" on all four databases (27/27 each); unit test renders equal; mocking private as `open` fails it |
+| 9 | Odd names on the join page neither crash nor reveal anything | no | confirmed | Probe `joinTarget`: `admin`, `" Beta "`, `BETA`, `a/b`, 300 × `x`, `beta\u0000` → `unseen`, `request: null`; route test passes `%E0` as typed |
+| 10 | Once asked, the join page shows the request instead of the form until it can be sent again | no | partly | Open request hides the form (unit test); the decline-then-membership case of row 4 hides it too (`JoinPage.tsx:183`) |
+| 11 | Asking answers "Request sent" for new, open, private or unknown; Cancel works; refusals show | no | confirmed | `workspaces.test.tsx` "request actions" |
+| 12 | Both pages are in the phone sweep and pass it | no | confirmed | `e2e/pages.ts`; `pages-coverage.test.ts` → 2 passed; `playwright test mobile-sweep --project phone` → 5 passed |
+| 13 | Page tests pass; the code typechecks and lints | no | confirmed | 4 files, 33 passed; typecheck clean; biome on changed paths → no issues |
+
+**Overall:** not met: after a decline followed by being added and removed, both pages still hide Ask to join and show an ask-again date while the service accepts the request (rows 4 and 10).
+
+### Re-check — rows 4 and 10
+
+Witnessed: 2026-10-09 15:31 EDT, by a fresh agent (blind). Commit: bf445ed (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | After a decline the page shows the date, reason and ask-again date with no Ask to join; after add → remove, or 7 days, it offers Ask to join, as the service does | no | confirmed | `access-requests.ts:50-60` `askAgainFrom` shared by `requestAccess` (`:136`) and `ownRequests` (`:382`); `WorkspacesPage.tsx:51`. Probe rendering from real `myWorkspaces`/`ownRequests` on all four (31/31 each): declined → date, no button; add → remove → button, `sent`; −1 minute hidden and TooSoon, +1 minute button and `sent`; `beta` change doesn't lift `acme` |
+| 4a | A test covers row 4 | no | confirmed | db test "…and the pages agree" fails when `ownRequests` ignores `membershipChangedSince`; unit test "offers Ask to join…" fails when `canAsk` ignores `askAgainFrom` |
+| 10 | Once asked, the join page shows the request until a new one can be sent; after decline → add → remove it offers the form at once | no | confirmed | `JoinPage.tsx:38`; probe rendering from `joinTarget` on all four: declined → no form; add → remove → form, `sent`; 7 days + 1 minute → form; member → `member` |
+| 10a | A test covers the join page's handling of a declined request | no | partly | `joinTarget` data is covered; the component isn't: hiding the form on any decline leaves the page tests 11/11 green. `workspaces.test.tsx` never renders `JoinPage` with a declined request |
+| 13 | Nothing else broke | no | confirmed | 4 files, 33 passed; db tests 27 files, 209 passed on each database; `pages-coverage` 2 passed; typecheck clean; biome no issues |
+
+**Overall:** not met: both pages follow the service's rule on all four databases (rows 4, 10), but no page test renders the join page with a declined request (10a).
+
+### Re-check — row 10a
+
+Witnessed: 2026-10-09 15:32 EDT, by a fresh agent (blind). Commit: bf445ed (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 10a | A test covers the join page's handling of a declined request | no | confirmed | `workspaces.test.tsx:201` renders `JoinPage` declined with `askAgainFrom` set and null; in a scratch copy four mutations each fail it (form hidden on any decline; `askAgainFrom` ignored; `RequestState` not rendered; reason dropped), 1 failed / 9 passed each; restored → 10/10 |
+| 13 | Nothing else broke | no | confirmed | `vitest run src/features/workspaces "src/app/(app)/workspaces" src/components/app-shell e2e/pages-coverage` → 4 files, 34 passed; `tsc --noEmit -p apps/web` → 0; biome on the changed paths → no issues |
+
+**Overall:** met: the join page's handling of a declined request is tested and fails when the form or the decline shows at the wrong time; related tests, typecheck and lint are green.

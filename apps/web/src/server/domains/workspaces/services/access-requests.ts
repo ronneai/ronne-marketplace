@@ -6,6 +6,7 @@ import {
   requirePermission,
   workspacesWith,
 } from "../../identity/models/permissions";
+import type { WorkspaceRole } from "../../identity/models/user";
 import {
   AccessRequestAnsweredError,
   AccessRequestNotFoundError,
@@ -25,7 +26,8 @@ import {
   type OwnRequest,
   type PendingRequest,
 } from "../models/access-request";
-import type { Workspace } from "../models/workspace";
+import { seesWorkspace, visibleWorkspaces } from "../models/viewer";
+import type { Workspace, WorkspaceVisibility } from "../models/workspace";
 import type { WorkspaceRepository } from "../repositories/workspace-repository";
 import type { WorkspaceActor, WorkspaceDeps } from "./workspaces";
 
@@ -39,6 +41,24 @@ import type { WorkspaceActor, WorkspaceDeps } from "./workspaces";
 const now = (deps: WorkspaceDeps) => (deps.now ?? (() => new Date()))();
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * When the user can ask again after their latest request to a name, or null when they can now: 7
+ * days after a decline, unless they've been added to or removed from the workspace since (094).
+ * The service and the pages read it from here, so they agree.
+ */
+const askAgainFrom = async (
+  repo: WorkspaceRepository,
+  latest: AccessRequest | null,
+  at: Date,
+): Promise<Date | null> => {
+  if (latest?.status !== "declined" || !latest.decidedAt) return null;
+  const after = new Date(latest.decidedAt.getTime() + DECLINED_WAIT_DAYS * DAY_MS);
+  if (after <= at) return null;
+  return (await repo.membershipChangedSince(latest.workspace, latest.userId, latest.decidedAt))
+    ? null
+    : after;
+};
 
 /**
  * A message or a reason: trimmed, at most 500 characters, null when empty. A NUL character is
@@ -113,12 +133,8 @@ export const requestAccess = async (
     if (latest?.status === "open") return "already_requested";
     if ((await repo.countOpenRequestsBy(user.id)) >= OPEN_REQUESTS_LIMIT)
       throw new TooManyAccessRequestsError(OPEN_REQUESTS_LIMIT);
-    // A decline waits 7 days, unless they've been added or removed since: then they ask at once.
-    if (latest?.status === "declined" && latest.decidedAt) {
-      const after = new Date(latest.decidedAt.getTime() + DECLINED_WAIT_DAYS * DAY_MS);
-      if (after > at && !(await repo.membershipChangedSince(name, user.id, latest.decidedAt)))
-        throw new AccessRequestTooSoonError(after);
-    }
+    const after = await askAgainFrom(repo, latest, at);
+    if (after) throw new AccessRequestTooSoonError(after);
     await repo.insertAccessRequest({
       workspaceId: workspace?.id ?? null,
       workspaceName: name,
@@ -355,16 +371,79 @@ export const ownRequests = async (
   if (!user) return [];
   const seen = new Set<string>();
   const latest: OwnRequest[] = [];
-  for (const { workspaceId, userId: _userId, ...request } of await deps.repo.requestsOf(
-    user.id,
-    OWN_REQUESTS_READ,
-  )) {
-    if (seen.has(request.workspace)) continue;
-    seen.add(request.workspace);
+  const at = now(deps);
+  for (const row of await deps.repo.requestsOf(user.id, OWN_REQUESTS_READ)) {
+    if (seen.has(row.workspace)) continue;
+    seen.add(row.workspace);
+    const { workspaceId, userId: _userId, ...request } = row;
     const sees =
       workspaceId !== null &&
       (request.visibility === "public" || Object.hasOwn(user.workspaces, workspaceId));
-    latest.push(sees ? request : { ...request, description: null, visibility: null });
+    const shown = { ...request, askAgainFrom: await askAgainFrom(deps.repo, row, at) };
+    latest.push(sees ? shown : { ...shown, description: null, visibility: null });
   }
   return latest;
+};
+
+/** A workspace on the Workspaces page: what it is, and the reader's role there (null if none). */
+export type MyWorkspace = {
+  name: string;
+  description: string;
+  visibility: WorkspaceVisibility;
+  isGlobal: boolean;
+  role: WorkspaceRole | null;
+};
+
+/**
+ * The workspaces the actor sees, `global` first, then by name: every public one and the private
+ * ones they're in (093); every one for root, who works in all of them without a role.
+ */
+export const myWorkspaces = async (
+  deps: WorkspaceDeps,
+  actor: WorkspaceActor,
+): Promise<MyWorkspace[]> => {
+  requirePermission(actor.user, "account.manage_own");
+  const user = actor.user;
+  if (!user) return [];
+  const all = await deps.repo.list();
+  const viewer = visibleWorkspaces(user, all);
+  return all
+    .filter((w) => seesWorkspace(viewer, w.id))
+    .map((w) => ({
+      name: w.name,
+      description: w.description,
+      visibility: w.visibility,
+      isGlobal: w.isGlobal,
+      role: user.workspaces[w.id] ?? null,
+    }));
+};
+
+/**
+ * What the join page (`/workspaces/<name>/join`) shows for a name. `member` when the actor is in
+ * it (or root); `open` for a public workspace they aren't in, with its description; `unseen` for a
+ * private one they aren't in and for a name no workspace has, alike: the name only. With the
+ * actor's latest request to that name, if any.
+ */
+export type JoinTarget =
+  | { kind: "member"; name: string }
+  | { kind: "open"; name: string; description: string; request: OwnRequest | null }
+  | { kind: "unseen"; name: string; request: OwnRequest | null };
+
+export const joinTarget = async (
+  deps: WorkspaceDeps,
+  actor: WorkspaceActor,
+  value: string,
+): Promise<JoinTarget> => {
+  requirePermission(actor.user, "account.manage_own");
+  const user = actor.user;
+  const name = normalizeWorkspaceName(value);
+  if (!user) return { kind: "unseen", name, request: null };
+  const found = isValidName(name, "item") ? await deps.repo.findByName(name) : null;
+  const workspace = found?.name === name ? found : null;
+  if (workspace && (user.role === "root" || Object.hasOwn(user.workspaces, workspace.id)))
+    return { kind: "member", name };
+  const request = (await ownRequests(deps, actor)).find((r) => r.workspace === name) ?? null;
+  if (workspace?.visibility === "public")
+    return { kind: "open", name, description: workspace.description, request };
+  return { kind: "unseen", name, request };
 };

@@ -14,7 +14,8 @@ moderators answer. It replaces "ask root" with a request that's tracked and audi
   ones, and private ones they're in), their role in each, and **Ask to join** on the public ones
   they aren't in.
 - **A request link** for a private workspace, `/workspaces/<name>/join`, which root or its
-  moderators copy and send; it works for any signed-in user and shows only the name and description.
+  moderators copy and send; it works for any signed-in user and shows only the name (a public
+  workspace's shows its description too).
 - **The request:** an optional message (500 characters); one open request per user and workspace;
   the requester can cancel it.
 - **Answering:** root, or a moderator or admin (092) of that workspace, approves (as `user`; root
@@ -34,11 +35,16 @@ moderators answer. It replaces "ask root" with a request that's tracked and audi
 ## Behaviour
 
 **Workspaces page.** A list: name, visibility, description, your role or **Ask to join** /
-**Requested (cancel)** / **Declined on <date>**. `global` shows "Everyone". Private workspaces
-appear only to their members (093).
+**Requested (cancel)** / **Declined on <date>** (with the reason, and the date to ask again from).
+`global` shows "Everyone"; root shows "Root" everywhere. Private workspaces appear only to their
+members and root (093). Below, **Your other requests**: open and declined requests to names not in
+the list (a private workspace asked from its link, or a name no workspace has), by name only, with
+Cancel. The page is in the account menu, under Access tokens.
 
-**The join link.** `/workspaces/<name>/join`: for a public workspace, the same as Ask to join. For
-a private one, the page shows its name and description and the request form. The link needs no
+**The join link.** `/workspaces/<name>/join`: for a public workspace, its description and the Ask
+to join form. For a private one the reader isn't in, the name and the form only, exactly as for a
+name no workspace has. Members and root are told they're in already. Once asked, the page shows
+the request (Requested, or Declined with the reason) instead of the form until it can be sent again. The link needs no
 secret: knowing a private name only lets you ask, and the answer is a person's decision (decision 2). An unknown name and a private name show the same page until the request is sent; the
 answer after sending is "Request sent", so the page doesn't confirm that a name exists.
 

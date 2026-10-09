@@ -43,7 +43,10 @@ export type RequestWithWorkspace = AccessRequest & {
  * The description and visibility only when the requester sees the workspace: a private one they
  * aren't in looks like a name no workspace has.
  */
-export type OwnRequest = Omit<RequestWithWorkspace, "workspaceId" | "userId">;
+export type OwnRequest = Omit<RequestWithWorkspace, "workspaceId" | "userId"> & {
+  /** When a declined request can be sent again; null when it can be now (or isn't declined). */
+  askAgainFrom: Date | null;
+};
 
 export const ACCESS_REQUEST_TEXT_MAX_LENGTH = 500;
 /** How many open requests a user may have at once. */

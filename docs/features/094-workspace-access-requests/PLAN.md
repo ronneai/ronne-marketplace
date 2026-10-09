@@ -14,7 +14,7 @@ the same change that completes it.
   `declineRequest`; limits; audit.
   *Done when:* db tests cover each, the race, the limits and who may answer, on the four databases.
 
-- [ ] **2. Workspaces page and join link.** `/workspaces` and `/workspaces/<name>/join`.
+- [x] **2. Workspaces page and join link.** `/workspaces` and `/workspaces/<name>/join`.
   *Done when:* page tests pass, including the unknown-or-private case.
 
 - [ ] **3. Requests tab and nav count.**
