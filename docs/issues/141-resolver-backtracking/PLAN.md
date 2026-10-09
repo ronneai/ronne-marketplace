@@ -7,14 +7,16 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. The failing tests.** In `packages/core/src/resolve.test.ts`, add:
+- [x] **1. The failing tests.** In `packages/core/src/resolve.test.ts`, add:
   - the issue's scenario, both install and update with a lock;
   - a conflict that needs two exclusions;
   - an unsolvable conflict, asserting today's code, message and details;
-  - a registry with many versions that hits the limit.
+  - a registry with many versions that hits the limit;
+  - a missing item that an older version would avoid, still reported (decision 4).
 
-  *Done when:* the new tests fail on `main` for the reasons in the spec, and the existing ones
-  pass.
+  The tests that need backtracking are `it.fails` for now, so the commit passes the pre-commit
+  checks; task 2 makes them `it`. *Done when:* those fail on `main` with the conflict the spec
+  describes, and every other test, old and new, passes.
 
 - [ ] **2. Backtracking.** [risky] In `resolve.ts`:
   - Wrap the loop in attempts, with an excluded set of `name@version`.
@@ -24,6 +26,9 @@ the same change that completes it.
   - Keep `MAX_STEPS` across attempts, plus a limit on attempts.
   - When nothing works, throw the first try's error.
   - A locked version that's excluded falls back to the newest version below it in range.
+
+  Task 1's `it.fails` become `it`, and the old test "doesn't search older versions to escape a
+  conflict" turns around: the same registry now resolves to the older version.
 
   *Done when:* every test in `packages/core` passes, including task 1's, and the module comment
   and MVP-facing rule ("the highest version that fits") are updated in the code.

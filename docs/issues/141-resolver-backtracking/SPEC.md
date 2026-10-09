@@ -40,7 +40,7 @@ range. An install fails only when no choice of versions within the ranges works.
 - **Choosing which versions get published.** The registry still accepts B `1.2.0`. Submit-time
   checks (013, `registry-checks.ts`) don't predict conflicts with other items.
 - **A missing item or tag** (`item_not_found`, `tag_not_found`) asked for by a dependency. It
-  stays an error, as today (see Open questions).
+  stays an error, as today (decision 4).
 - **Cycles found after resolving.** The final cycle check is unchanged. Submission already
   refuses cycles.
 - **Several versions of one item side by side.** It's still one version per item (MVP §4.3).
@@ -96,8 +96,9 @@ range. An install fails only when no choice of versions within the ranges works.
 
 - [ ] The issue's scenario installs A `1.1.0` with B `1.1.0`, through `resolve()` and through
   `rmk install`. `rmk update` on its lock succeeds.
-- [ ] Every existing resolver test passes unchanged. A request that resolved before resolves to
-  the same versions.
+- [ ] Every existing resolver test passes unchanged, except the one that asserts the old rule
+  ("doesn't search older versions to escape a conflict"), which now resolves to the older
+  version. A request that resolved before resolves to the same versions.
 - [ ] A conflict with no solution still fails with `resolve_conflict` and the same message and
   details as before.
 - [ ] A conflict that needs two exclusions resolves. A registry built to explode stops at the
@@ -115,9 +116,10 @@ range. An install fails only when no choice of versions within the ranges works.
 3. **Today's result whenever today's works** (Claude). Backtracking runs only after a conflict,
    so nobody's lockfile changes.
 
+4. **A missing item stays an error** (owner, 2026-10-09). A dependency's `item_not_found` or
+   `tag_not_found` doesn't backtrack: an item that's gone, or in a private workspace the caller
+   can't see (093), is rare and better reported than silently avoided with older versions.
+
 ## Open questions
 
-- Should a dependency's **missing item** (`item_not_found` from a range a version added) also
-  backtrack to an older version that didn't ask for it? It's the same idea, but an item that's
-  gone, or one in a private workspace the caller can't see (093), is rarer and is better
-  reported. Proposed: not now.
+None.

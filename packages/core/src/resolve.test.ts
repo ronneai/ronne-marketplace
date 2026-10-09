@@ -381,3 +381,149 @@ describe("a missing dependency (093)", () => {
     });
   });
 });
+
+describe("falling back to older versions on a conflict (#141)", () => {
+  // `it.fails` until the resolver backtracks (task 2), then `it`.
+
+  /** The issue's registry: B 1.2.0, published later, pins A to 1.0.0; B 1.1.0 asks for nothing. */
+  const issue = () =>
+    registry({
+      "@t/a": {
+        versions: [{ version: "1.0.0" }, { version: "1.1.0", dependencies: { "@t/b": "^1.0.0" } }],
+      },
+      "@t/b": {
+        versions: [{ version: "1.1.0" }, { version: "1.2.0", dependencies: { "@t/a": "1.0.0" } }],
+      },
+    });
+
+  it.fails("installs A 1.1.0 with B 1.1.0 when B 1.2.0 conflicts", async () => {
+    expect(versions(await resolve({ dependencies: { "@t/a": "^1.1.0" } }, issue()))).toEqual({
+      "@t/a": "1.1.0",
+      "@t/b": "1.1.0",
+    });
+  });
+
+  it("keeps a lock of A 1.1.0 and B 1.1.0 as it is", async () => {
+    const locked = { "@t/a": "1.1.0", "@t/b": "1.1.0" };
+    expect(
+      versions(await resolve({ dependencies: { "@t/a": "^1.1.0" }, locked }, issue())),
+    ).toEqual(locked);
+  });
+
+  it.fails("moves a locked B 1.2.0 that conflicts back to B 1.1.0", async () => {
+    const locked = { "@t/a": "1.1.0", "@t/b": "1.2.0" };
+    expect(
+      versions(await resolve({ dependencies: { "@t/a": "^1.1.0" }, locked }, issue())),
+    ).toEqual({ "@t/a": "1.1.0", "@t/b": "1.1.0" });
+  });
+
+  it.fails("resolves a conflict that needs two versions set aside", async () => {
+    // @t/p 1.1.0 and @t/q 1.1.0 both want @t/z ^2, the request wants ^1: only both older ones fit.
+    const reg = registry({
+      "@t/x": { versions: [{ version: "1.0.0", dependencies: { "@t/p": "^1", "@t/q": "^1" } }] },
+      "@t/p": {
+        versions: [{ version: "1.0.0" }, { version: "1.1.0", dependencies: { "@t/z": "^2" } }],
+      },
+      "@t/q": {
+        versions: [{ version: "1.0.0" }, { version: "1.1.0", dependencies: { "@t/z": "^2" } }],
+      },
+      "@t/z": { versions: [{ version: "1.0.0" }, { version: "2.0.0" }] },
+    });
+    expect(versions(await resolve({ dependencies: { "@t/x": "^1", "@t/z": "^1" } }, reg))).toEqual({
+      "@t/p": "1.0.0",
+      "@t/q": "1.0.0",
+      "@t/x": "1.0.0",
+      "@t/z": "1.0.0",
+    });
+  });
+
+  it.fails("resolves when setting either of two clashing versions aside is enough", async () => {
+    // @t/p 1.1.0 wants @t/z ^1.5 and @t/q 1.1.0 wants ~1.2: setting either aside works. Names go
+    // in order, so @t/p falls back first, and @t/q keeps its newest version.
+    const reg = registry({
+      "@t/x": { versions: [{ version: "1.0.0", dependencies: { "@t/p": "^1", "@t/q": "^1" } }] },
+      "@t/p": {
+        versions: [{ version: "1.0.0" }, { version: "1.1.0", dependencies: { "@t/z": "^1.5" } }],
+      },
+      "@t/q": {
+        versions: [{ version: "1.0.0" }, { version: "1.1.0", dependencies: { "@t/z": "~1.2" } }],
+      },
+      "@t/z": { versions: [{ version: "1.2.0" }, { version: "1.6.0" }] },
+    });
+    expect(versions(await resolve({ dependencies: { "@t/x": "^1" } }, reg))).toEqual({
+      "@t/p": "1.0.0",
+      "@t/q": "1.1.0",
+      "@t/x": "1.0.0",
+      "@t/z": "1.2.0",
+    });
+  });
+
+  it("reports the first conflict, as before, when no older version helps", async () => {
+    // @t/b's only version pins @t/a to 1.0.0; the request asks for ^1.1.0.
+    const reg = registry({
+      "@t/a": {
+        versions: [{ version: "1.0.0" }, { version: "1.1.0", dependencies: { "@t/b": "^1.0.0" } }],
+      },
+      "@t/b": { versions: [{ version: "1.0.0", dependencies: { "@t/a": "1.0.0" } }] },
+    });
+    expect(await failure(resolve({ dependencies: { "@t/a": "^1.1.0" } }, reg))).toEqual({
+      code: "resolve_conflict",
+      message:
+        "No version of @t/a fits every range asking for it: ^1.1.0 (the request), 1.0.0 (@t/b@1.0.0).",
+      details: {
+        item: "@t/a",
+        ranges: [
+          { range: "^1.1.0", from: REQUESTED },
+          { range: "1.0.0", from: "@t/b@1.0.0" },
+        ],
+      },
+    });
+  });
+
+  it("stops at its limit with the first conflict on a registry built to explode", async () => {
+    // Forty versions each of @t/p and @t/q, every one wanting @t/z ^2 against the request's ^1:
+    // nothing works, and trying every pair of exclusions would take forever.
+    const many = () =>
+      Array.from({ length: 40 }, (_, i) => ({
+        version: `1.${i}.0`,
+        dependencies: { "@t/z": "^2" },
+      }));
+    const reg = registry({
+      "@t/x": { versions: [{ version: "1.0.0", dependencies: { "@t/p": "^1", "@t/q": "^1" } }] },
+      "@t/p": { versions: many() },
+      "@t/q": { versions: many() },
+      "@t/z": { versions: [{ version: "1.0.0" }, { version: "2.0.0" }] },
+    });
+    const started = Date.now();
+    expect(await failure(resolve({ dependencies: { "@t/x": "^1", "@t/z": "^1" } }, reg))).toEqual({
+      code: "resolve_conflict",
+      message:
+        "No version of @t/z fits every range asking for it: ^1 (the request), ^2 (@t/p@1.39.0), ^2 (@t/q@1.39.0).",
+      details: {
+        item: "@t/z",
+        ranges: [
+          { range: "^1", from: REQUESTED },
+          { range: "^2", from: "@t/p@1.39.0" },
+          { range: "^2", from: "@t/q@1.39.0" },
+        ],
+      },
+    });
+    expect(Date.now() - started).toBeLessThan(5_000);
+  });
+
+  it("still reports a missing item instead of avoiding it with an older version", async () => {
+    // @t/a 1.1.0 asks for an item that isn't there; 1.0.0 wouldn't, but a missing item stays an error.
+    const reg = registry({
+      "@t/a": {
+        versions: [
+          { version: "1.0.0" },
+          { version: "1.1.0", dependencies: { "@t/gone": "^1.0.0" } },
+        ],
+      },
+    });
+    expect(await failure(resolve({ dependencies: { "@t/a": "^1.0.0" } }, reg))).toMatchObject({
+      code: "item_not_found",
+      details: { item: "@t/gone", from: ["@t/a@1.1.0"] },
+    });
+  });
+});
