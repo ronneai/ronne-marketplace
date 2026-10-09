@@ -24,17 +24,20 @@ export const ApproveForm = ({ request }: { request: RequestRow }) => {
     <form action={action} className="grid gap-1">
       <input type="hidden" name="requestId" value={request.id} />
       <input type="hidden" name="workspace" value={request.workspace} />
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-nowrap items-center gap-2">
         {request.canPickRole ? (
-          <select
-            name="role"
-            defaultValue="user"
-            aria-label={`Role for ${request.email}`}
-            className={`${selectClasses} w-32`}
-          >
-            <option value="user">User</option>
-            <option value="moderator">Moderator</option>
-          </select>
+          // The select fills its box (`selectClasses` has `w-full`): the box sets its width.
+          <div className="w-32 shrink-0">
+            <select
+              name="role"
+              defaultValue="user"
+              aria-label={`Role for ${request.email}`}
+              className={selectClasses}
+            >
+              <option value="user">User</option>
+              <option value="moderator">Moderator</option>
+            </select>
+          </div>
         ) : null}
         <Button
           type="submit"

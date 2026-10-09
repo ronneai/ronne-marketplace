@@ -52,7 +52,8 @@ export const RequestsTable = ({
                 {r.message ?? <span className="text-muted">None</span>}
               </Td>
               <Td className="py-2">
-                <div className="flex flex-wrap items-start gap-2">
+                {/* The role, Approve and Decline on one line; on a phone the table scrolls. */}
+                <div className="flex flex-nowrap items-start gap-2">
                   <ApproveForm request={r} />
                   <DeclineButton request={r} />
                 </div>
