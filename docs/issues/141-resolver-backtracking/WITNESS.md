@@ -267,6 +267,37 @@ Witnessed: 2026-10-09 11:54 EDT, by a fresh agent (adversarial). Commit: 3c6955f
 
 **Overall:** met: the read-ahead is gated and pinned, every changed error is the case decision 4 describes, successes are unchanged against d5dcebf, and the spec describes missing items after a fallback as the probes show.
 
+### Re-check — counting range checks instead of time
+
+Witnessed: 2026-10-09 13:27 EDT, by a fresh agent (blind). Commit: f675eae. Machine: macOS 27.0.1, Node v24.0.0 (and v22.23.2 for row 56). Working-tree diff: resolve.test.ts. CI's Node 22 job had failed "stays quick when many items ask for the same item": 4,283 ms against a 4 s limit.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 49 | No timing assertions remain in resolve.test.ts | no | confirmed | `grep -cE "Date\.now\|performance\.now\|process\.hrtime\|setTimeout"` → 0; the three `Date.now() - started` checks are now counts of range checks |
+| 50 | The mock delegates to the real semver, so results are unchanged | no | confirmed | `importOriginal`, `...semver`, `satisfies` wrapped to count and return the real result; `fits` is the resolver's only `satisfies` call; all 36 resolver tests pass |
+| 51 | Counts as stated: about 27,000 / 240,000 / 810,000 | no | confirmed | Limits set to 1 → 27,480 / 240,001 / 810,499 |
+| 52 | The 20,000-version test fails without the budget | no | confirmed | `MAX_CHECKS` throw deleted → `expected 71227480 to be less than 1000000` |
+| 53 | The many-askers test fails without the budget, and when counting +1 per version | no | confirmed | → `expected 20219596 …` and `expected 20132875 to be less than 2000000` |
+| 54 | The explode test's count shows the search is bounded | no | partly | 27,480 with or without any limit: the search ends on its own, so the count bounds nothing and its comment was wrong |
+| 55 | Core suite, lint and typecheck pass | no | confirmed | 352 passed; clean |
+| 56 | The budget tests pass on Node 22, where CI failed | no | confirmed | Node v22.23.2 → 36 passed in 988 ms; the CI run itself is GitHub's |
+
+**Overall:** not met: the explode test's count bounds nothing, and its comment says otherwise (54).
+
+### Re-check — the explode test's wording
+
+Witnessed: 2026-10-09 13:38 EDT, by a fresh agent (blind). Commit: f675eae. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: resolve.test.ts.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 57 | The name "ends with the first conflict when no older version helps, however many there are" holds | no | confirmed | The test pins the full first-try `resolve_conflict`; 200, 1000 and 5000 versions each give the same first conflict |
+| 58 | "Each set of versions set aside is tried once, so the search ends on its own" | no | confirmed | `tried` check; with every limit removed the search ends at 27,480 range checks; with the tried-once check also removed it ran over 5 minutes |
+| 59 | "About 27,000 range checks, with or without the limits" | no | confirmed | As is → 27,480; no budget and no step limit → 27,480 |
+| 60 | "The two tests below are the ones a missing budget fails" | no | confirmed | Without the `MAX_CHECKS` throw → 71,227,480 and 20,219,596 against their limits; this test passes |
+| 61 | Core suite, lint and typecheck pass | no | confirmed | 352 passed; clean |
+
+**Overall:** met: the explode test's name and comments match the code, and the two budget tests fail without the budget, by count rather than time.
+
 ## Task 3 — The callers
 
 Witnessed: 2026-10-09 11:41 EDT, by a fresh agent (blind). Commit: 811e178. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: apps/web/e2e/seed.ts, users.ts, rmk-fallback.e2e.ts, registry-api.db.test.ts.

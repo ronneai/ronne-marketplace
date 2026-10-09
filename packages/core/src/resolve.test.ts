@@ -1,5 +1,20 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { ItemType } from "./item-types.js";
+
+// How many ranges a resolve checks versions against (#141). The budget's tests count this work
+// rather than time it, so a slow machine can't fail them and a missing budget can't pass them.
+const semverCalls = vi.hoisted(() => ({ satisfies: 0 }));
+vi.mock("semver", async (importOriginal) => {
+  const semver = await importOriginal<typeof import("semver")>();
+  return {
+    ...semver,
+    satisfies: (...args: Parameters<typeof semver.satisfies>) => {
+      semverCalls.satisfies++;
+      return semver.satisfies(...args);
+    },
+  };
+});
+
 import {
   REQUESTED,
   type RegistryItem,
@@ -478,9 +493,9 @@ describe("falling back to older versions on a conflict (#141)", () => {
     });
   });
 
-  it("stops at its limit with the first conflict on a registry built to explode", async () => {
+  it("ends with the first conflict when no older version helps, however many there are", async () => {
     // Forty versions each of @t/p and @t/q, every one wanting @t/z ^2 against the request's ^1:
-    // nothing works, and trying every pair of exclusions would take forever.
+    // nothing works. Each set of versions set aside is tried once, so the search ends on its own.
     const many = () =>
       Array.from({ length: 40 }, (_, i) => ({
         version: `1.${i}.0`,
@@ -492,7 +507,7 @@ describe("falling back to older versions on a conflict (#141)", () => {
       "@t/q": { versions: many() },
       "@t/z": { versions: [{ version: "1.0.0" }, { version: "2.0.0" }] },
     });
-    const started = Date.now();
+    semverCalls.satisfies = 0;
     expect(await failure(resolve({ dependencies: { "@t/x": "^1", "@t/z": "^1" } }, reg))).toEqual({
       code: "resolve_conflict",
       message:
@@ -506,7 +521,9 @@ describe("falling back to older versions on a conflict (#141)", () => {
         ],
       },
     });
-    expect(Date.now() - started).toBeLessThan(5_000);
+    // About 27,000 range checks, with or without the limits: it never needs them. The two tests
+    // below are the ones a missing budget fails.
+    expect(semverCalls.satisfies).toBeLessThan(500_000);
   });
 
   it("still reports a missing item instead of avoiding it with an older version", async () => {
@@ -644,7 +661,7 @@ describe("what falling back may and may not do (#141)", () => {
       "@t/q": { versions: many() },
       "@t/z": { versions: [{ version: "1.0.0" }, { version: "2.0.0" }] },
     });
-    const started = Date.now();
+    semverCalls.satisfies = 0;
     expect(await failure(resolve({ dependencies: { "@t/x": "^1", "@t/z": "^1" } }, reg))).toEqual({
       code: "resolve_conflict",
       message:
@@ -658,7 +675,9 @@ describe("what falling back may and may not do (#141)", () => {
         ],
       },
     });
-    expect(Date.now() - started).toBeLessThan(4_000);
+
+    // With the budget, about 240,000 range checks; without it, about 71 million.
+    expect(semverCalls.satisfies).toBeLessThan(1_000_000);
   });
 });
 
@@ -706,11 +725,14 @@ describe("the budget on range checks (#141)", () => {
           { version: "1.1.0", dependencies: { "@t/z": ">=0" } },
         ],
       };
-    const started = Date.now();
+    semverCalls.satisfies = 0;
     expect(
       await failure(resolve({ dependencies: { "@t/x": "^1", "@t/z": "*" } }, registry(spec))),
     ).toMatchObject({ code: "resolve_conflict", details: { item: "@t/z" } });
-    expect(Date.now() - started).toBeLessThan(4_000);
+
+    // With the budget, about 810,000 range checks; counting versions instead of ranges, or with no
+    // budget, about 20 million.
+    expect(semverCalls.satisfies).toBeLessThan(2_000_000);
   });
 });
 
