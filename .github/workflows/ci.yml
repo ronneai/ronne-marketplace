@@ -115,12 +115,18 @@ jobs:
       - run: pnpm audit --audit-level high
 
   e2e:
-    name: End-to-end (Chromium)
+    # Two halves in parallel (112): each builds the app and runs half the tests (Playwright's
+    # --shard). The required check is `e2e-result` below, which keeps the old name.
+    name: End-to-end (shard ${{ matrix.shard }}/2)
     needs: changes
     # Like `checks`: the steps skip on documentation-only pull requests, so the check still reports.
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     steps:
       - name: Documentation only, nothing to check
         if: needs.changes.outputs.code == 'false'
@@ -143,13 +149,30 @@ jobs:
       # fetches browsers: installing @playwright/test runs no scripts.
       - run: pnpm --filter @ronneai/web exec playwright install --with-deps chromium webkit
         if: needs.changes.outputs.code != 'false'
-      # Builds the web app, sets up a throwaway SQLite instance and runs the tests (apps/web/e2e).
-      - run: pnpm test:e2e
+      # Builds the web app, sets up a throwaway SQLite instance and runs this half of the tests
+      # (apps/web/e2e). Each half has its own instance: no test relies on another's data.
+      - run: pnpm test:e2e --shard=${{ matrix.shard }}/2
         if: needs.changes.outputs.code != 'false'
       # The phone sweep's reports (065): pages that scroll sideways and controls under 44px.
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
         with:
-          name: mobile-sweep-reports
+          name: mobile-sweep-reports-${{ matrix.shard }}
           path: apps/web/test-results/**/*.txt
           if-no-files-found: ignore
+
+  e2e-result:
+    # The required check (branch protection names it): passes when both halves passed. On a
+    # documentation-only pull request they pass too, with their steps skipped.
+    name: End-to-end (Chromium)
+    needs: e2e
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Both halves passed
+        env:
+          RESULT: ${{ needs.e2e.result }}
+        run: |
+          echo "End-to-end halves: $RESULT"
+          test "$RESULT" = "success"

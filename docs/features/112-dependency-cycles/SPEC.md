@@ -213,7 +213,9 @@ parallel, so a pull request waited about 9 min).
   `packages/repo-tools/src/db-scope.js`, and `changes.yml`'s `database` output carries it. Every
   database test still runs on SQLite in the CI job. Pushes to `main`, the weekly run and manual
   runs run everything on every server, as today.
-- **End-to-end in two parallel jobs.**
+- **End-to-end in two parallel jobs.** Playwright's `--shard`, each half with its own build and
+  instance; a small job keeps the required check's name, "End-to-end (Chromium)", and passes when
+  both halves did.
 - **When working:** run the servers for changes to database code; the rest runs on SQLite, and CI
   runs the full set on `main`. CLAUDE.md and a note in `docs/knowledge/` say which runs where.
 

@@ -692,3 +692,32 @@ Witnessed: 2026-10-08 22:57 EDT, by a fresh agent (blind). Commit: f5b1c38 + wor
 | 7 | Dry run of each case lists the tests it would run, and the core set runs on a server | yes | confirmed | `vitest list` → core 33, all 86; `pnpm test:db:core` → 33 files, 155 passed, 8 skipped; the 4 new core files on MariaDB → 14 passed |
 
 **Overall:** met: core is 33 files including the scripts and the setup smoke test, the rule covers everything the updated spec lists, and the dry runs and the server run pass.
+
+## Task 12 — End-to-end in two jobs
+
+Witnessed: 2026-10-08 23:02 EDT, by a fresh agent (blind). Commit: f5b1c38 + working-tree diff (.github/workflows/ci.yml). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The two shards share no test | yes | confirmed | `playwright test --list --shard=1/2` → 51 tests in 29 files; `--shard=2/2` → 50 in 12 files; 0 shared tests or files |
+| 2 | Together the shards are the whole suite, every project | yes | confirmed | `--list` → 101 tests in 41 files; both shards sorted and diffed against it → identical; shard 1 chromium only, shard 2 the rest of chromium and every other project |
+| 3 | `pnpm test:e2e --shard=N/2` gets to Playwright | yes | confirmed | A scratch workspace with the same two-level scripts: pnpm adds the flag to the last command of the `&&` chain, so the build runs without it and `playwright test` gets it |
+| 4 | CI runs two parallel e2e jobs, each with its own build and instance, and every step runs per shard | yes | confirmed | `e2e` has `matrix.shard: [1,2]`, `fail-fast: false`; each runs `pnpm test:e2e --shard=${{ matrix.shard }}/2`; artifact names differ per shard |
+| 5 | A job named exactly "End-to-end (Chromium)" reports on every PR, documentation-only ones too, and passes only when both halves pass | yes | confirmed | `e2e-result`: that name, `needs: e2e`, `if: always()`, `test "$RESULT" = "success"`; docs-only legs succeed with skipped steps; nothing else refers to the old job |
+| 6 | The same, seen on GitHub (branch protection accepts the renamed matrix plus `e2e-result`) | no | can't check here | Needs a real Actions run on a PR |
+| 7 | Each shard passes on its own instance | yes | can't check here | Shard 1 → 51 passed. Shard 2 → 10 failed while another process rebuilt `.next` mid-run; one failure, the new task 8 phone test at sign-in, came first |
+
+**Overall:** not met: shard 2 has no clean run here and the GitHub behaviour is unchecked.
+
+### Re-check — claim 7
+
+Witnessed: 2026-10-08 23:11 EDT, by a fresh agent (blind). Commit: a05f9ab + working-tree diff (ci.yml, e2e/mobile.ts, e2e/users.ts, the new e2e/submit-together*.ts, SubmitDialogs.tsx, actions.ts). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The two shards share no test | yes | confirmed | `--list --shard=1/2` → 55 tests in 31 files; `--shard=2/2` → 50 in 12 files; 0 shared |
+| 2 | Together the shards are the whole suite, every project | yes | confirmed | `--list` → 105 tests in 43 files; the two shards together are identical to it |
+| 6 | The same, seen on GitHub | no | can't check here | Needs a real Actions run on a PR |
+| 7 | Each shard passes on its own instance | yes | confirmed | The existing build, unchanged across both runs: `--shard=1/2` → 55 passed (1.6m); `--shard=2/2` → 50 passed (1.1m); no flaky or retried tests. The task 8 tests have users of their own |
+
+**Overall:** not met: claims 1, 2 and 7 hold; claim 6 needs a real GitHub Actions run, so the task stays unticked until a pull request's run confirms it.
