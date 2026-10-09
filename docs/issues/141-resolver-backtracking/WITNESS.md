@@ -296,3 +296,52 @@ Witnessed: 2026-10-09 11:41 EDT, by a fresh agent (blind). Commit: 811e178. Mach
 | 12 | Submit warns about a cycle (`dependency_cycle`) and doesn't refuse it | no | confirmed | `registry-checks.ts:334-350` returns `warning("dependency_cycle", …)`; its comment at 131-135 says the same |
 
 **Overall:** met: the comments sit on their own constants, and the spec's cycles line matches `resolve.ts` and `registry-checks.ts`.
+
+## Task 4 — MVP and decision log
+
+Witnessed: 2026-10-09 11:44 EDT, by a fresh agent (blind). Commit: 3c6955f. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: docs/MVP/MVP.md, PLAN.md.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | §4.3 has a rule that it falls back to older versions in range when the newest conflict, dated 2026-10-08, citing #141 | yes | confirmed | `MVP.md:357-363`; matches SPEC decision 1 |
+| 2 | §15's Resolver row says so, dated 2026-10-08, citing #141 | yes | confirmed | `MVP.md:893`; the rationale adds "a later release must not break" |
+| 3 | What is set aside, and in what order, matches the code | yes | confirmed | `blame` drops `REQUESTED`, sorts by name; one at a time, exclusions add up; probes: name order, a dependency's `no_matching_version`, a locked version set aside, a yanked one skipped |
+| 4 | A request that resolved before resolves to the same versions | yes | confirmed | Checks counted only once versions are set aside; LIMIT only after the first try; 34 resolver tests pass |
+| 5 | A missing item or tag is reported, never avoided | yes | not met | Only when reached before the conflict: request `{@s/a: "^1.0.0 \|\| ^2.0.0", @s/b: "^2.0.0"}`, a 2.0.0 asking `@s/b 1.0.0` and missing `@s/z` → resolved to a 1.0.0, b 2.0.0, `@s/z` never reported |
+| 6 | The search is bounded, and at the bound the first conflict is reported | yes | confirmed | `MAX_STEPS`, `MAX_CHECKS`, LIMIT → `first`; the explode and 20,000-version tests pass |
+| 7 | When nothing works, the error is the first try's, as the newest versions asked | yes | confirmed | No-solution probe names `@s/b@1.2.0`, the newest B |
+| 8 | §15's "fails only when no choice works or its bound is reached" | yes | partly | A first try that keeps changing versions isn't searched (no blame) |
+| 9 | §4.3 has no sentence that contradicts the code | yes | partly | "picks the highest version that satisfies every range" was left unqualified |
+| 10 | The links resolve | yes | confirmed | Both targets exist from `docs/MVP` |
+| 11 | The issue's scenario behaves as described | no | confirmed | Probe: request a `1.1.0` → a 1.1.0, b 1.1.0 |
+
+**Overall:** not met: "never avoided" is false when a conflict comes first (5), and two statements claim too much (8, 9). Row 5 led to the owner's decision (2026-10-09) and the code fix in 92cfd53.
+
+### Re-check — after the fixes
+
+Witnessed: 2026-10-09 11:56 EDT, by a fresh agent (blind). Commit: 92cfd53. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: docs/MVP/MVP.md, PLAN.md.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 12 | §4.3 "picks the highest version … and works with the others; a version the lockfile pins comes first while it still fits" | no | confirmed | `resolve.ts:244`; probes: the issue's case, a locked b 1.2.0 set aside → 1.1.0 |
+| 13 | A missing item the first try asked for is no longer stepped around | no | confirmed | Row 5's probe now → `item_not_found @s/z … (asked for by @s/a@2.0.0)`; 36 resolver tests pass |
+| 14 | A missing item or tag never starts the search | no | confirmed | No blame entry, thrown as is |
+| 15 | "one the first try asked for is reported" | no | partly | Only when a version could be set aside: request `{@s/b: "^9.0.0", @s/z: "*"}` → `no_matching_version` for `@s/b`, `@s/z` not named |
+| 16 | A first try that keeps changing versions isn't searched | no | confirmed | `resolve.ts:259-263`, no blame (from the code) |
+| 17 | §15's list of reasons to fail | no | partly | Leaves out a fallback cut short by a missing item: a 0.1.0 would work but isn't tried |
+| 18 | The other statements hold at 92cfd53 | no | confirmed | Same probes as rows 3, 7, 11; links resolve |
+
+**Overall:** not met: rows 15 and 17 overstate.
+
+### Re-check — the missing-item wording
+
+Witnessed: 2026-10-09 11:58 EDT, by a fresh agent (blind). Commit: 92cfd53. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: docs/MVP/MVP.md, PLAN.md.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 19 | §4.3 "Before the search, every item the first try asked for is read, so a missing one is reported rather than stepped around", including when no search happens | no | confirmed | `resolve.ts:434-435` reads ahead only when a search starts; the request-only probe → `no_matching_version`, nothing stepped around; the conflict probe → `item_not_found` before anything is set aside |
+| 20 | §4.3 "one that only a version tried along the way asks for ends that path, and older versions past it aren't tried" | no | confirmed | a 0.1.0 / 1.0.0 (missing `@s/z`) / 2.0.0 probe → the first try's `resolve_conflict`; a 0.1.0 never tried |
+| 21 | §15 "fails when no choice it reaches works, its bound is reached or the first try keeps changing versions, with the first try's error" | no | confirmed | `MVP.md:897`; covers row 20's case; keep-changing has no blame |
+| 22 | §15's missing-item clause | no | confirmed | Same probes; missing tag → `tag_not_found`; `resolve.test.ts:718` and `:742` cover both cases |
+
+**Overall:** met: §4.3 and §15 read as `resolve.ts` behaves, including the case with no search and a fallback cut short by a missing item.

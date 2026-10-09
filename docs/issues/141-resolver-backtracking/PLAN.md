@@ -45,8 +45,9 @@ the same change that completes it.
   *Done when:* the CLI and web tests for install, update and resolve pass, with the new
   scenario.
 
-- [ ] **4. MVP and decision log.** In MVP §4.3, the resolver rule says it falls back to older
-  versions in range when the newest conflict. Add a §15 entry dated 2026-10-08, citing #141.
+- [x] **4. MVP and decision log.** In MVP §4.3, the resolver rule says it falls back to older
+  versions in range when the newest conflict. In §15, the Resolver row says so, dated 2026-10-08,
+  citing #141.
   *Done when:* both read as the code behaves.
 
 - [ ] **5. Documentation.** If `rmk#installing` and `rmk#updating` on the website describe the

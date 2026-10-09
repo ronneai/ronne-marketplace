@@ -353,9 +353,21 @@ flowchart LR
 
 - **One version of each item per install scope.** Rendered files are named after the item (for
   example `.claude/skills/<name>/`), so two versions can't sit side by side. The resolver picks the
-  highest version that satisfies every range that asks for the item.
-- **Conflicts fail the install.** If no version satisfies all the ranges, the resolver stops and
-  names the items that asked for each range. Nothing is written.
+  highest version that satisfies every range that asks for the item and works with the others
+  (below); a version the lockfile pins comes first while it still fits.
+- **Older versions when the newest conflict** (owner, 2026-10-08, [#141](../issues/141-resolver-backtracking/SPEC.md)).
+  When the newest versions in range ask for ranges that can't all be met, the resolver sets aside
+  a version whose dependencies asked for a losing range and tries the next older one, item by item
+  in name order, so a later release of a dependency doesn't break an item that installed before.
+  A request that resolved without this resolves to the same versions. A dependency on an item or
+  tag that doesn't exist never starts this search. Before the search, every item the first try
+  asked for is read, so a missing one is reported rather than stepped around; one that only a
+  version tried along the way asks for ends that path, and older versions past it aren't tried.
+  The search is bounded, and at the bound the first conflict is reported. A first try that keeps
+  changing versions without settling isn't searched: it fails as before.
+- **Conflicts fail the install** when no choice of versions within the ranges works. The resolver
+  stops and names the items that asked for each range, as the newest versions asked for them.
+  Nothing is written.
 - **Cycles are allowed** (owner, 2026-10-08, [112](../features/112-dependency-cycles/SPEC.md)). Items that need each other resolve to one
   version each and are installed together. An item can't depend on itself.
 - **Only what the requests reach is installed.** An item that nothing asks for any more, directly
@@ -882,7 +894,7 @@ out (owner, 2026-09-30). The design, for when it's picked up:
 | Pre-releases | Real semver pre-releases (`1.1.0-beta.1`) under a non-`latest` tag (`next` by default); first stable is `1.0.0` | Matches npm behaviour users already know |
 | Secrets | rmk never stores secret values; rendered configs reference env vars and rmk reports missing ones | No secrets on disk from us; every platform reads env vars |
 | Managed content | Markers in files that allow comments; `.rmk/state.json` with hashes for JSON/TOML keys; stop on user edits unless `--force` | JSON can't hold markers; hashes detect local edits safely |
-| Resolver | One version per item per install scope; conflicts fail; cycles resolve, one version each, since [112](../features/112-dependency-cycles/SPEC.md) (they failed until 2026-10-08); only what the requests reach is installed; any type may depend on any type (§3.1, 096) | Rendered paths are named per item, so versions can't coexist |
+| Resolver | One version per item per install scope; when the newest versions in range conflict, it falls back to older ones, setting aside a version whose dependencies asked for a losing range, item by item in name order, and fails when no choice it reaches works, its bound is reached or the first try keeps changing versions, with the first try's error; a request that resolved before resolves to the same versions; a missing item or tag never starts the search, one the first try asked for is reported before any version is set aside, and one met along the way ends that path, older versions past it untried (owner, 2026-10-08 and 2026-10-09, [#141](../issues/141-resolver-backtracking/SPEC.md)); cycles resolve, one version each, since [112](../features/112-dependency-cycles/SPEC.md) (they failed until 2026-10-08); only what the requests reach is installed; any type may depend on any type (§3.1, 096) | Rendered paths are named per item, so versions can't coexist; a later release of a dependency must not break an item that installed before, and the first conflict names the newest versions' ranges, which is what an author can change |
 | Agents and skills in frontmatter | A skill names the agent that runs it as Claude Code does, `agent: @scope/name` in its `SKILL.md`, and that sets the dependency: unquoted is accepted and saved quoted, and the save adds it to `ronne.yaml`. Claude Code gets the installed name and `context: fork`; an agent's skill dependencies become `skills:`, preloaded; the `.agents/skills/` copy (Codex, Cursor) drops both keys with a warning; `rmk export` reads a skill's local `agent:` as a dependency (owner, 2026-10-05, [097](../features/097-frontmatter-references/SPEC.md)) | Writing the name where the tool reads it is how people set it; only Claude Code has either key (Codex, Cursor and the Agent Skills standard don't), so they're kept out of the shared copy |
 | Dependencies between types | Any item may depend on any other item, of any type; the form, `@` in markdown and the Canvas view are on every type; a bundle still lists at least one; self-dependencies are refused, and cycles are allowed since [112](../features/112-dependency-cycles/SPEC.md) (refused until 2026-10-08). It was "dependency types restricted" (bundle on any, agent on five types, skill and command on MCP servers, the rest on nothing) until the owner changed it, 2026-10-05 ([096](../features/096-any-dependency/SPEC.md)) | People should compose what works for them. Renderers never read `dependencies` (each item is rendered by its own type), so the rule protected nothing at install; released `rmk` versions parse a manifest whatever its schema says, so they install these items too |
 | Submitted and released together | Submit on an item submits it with the author's own drafts it depends on, through the chain; Release releases it with every dependency not yet released, all approved; one transaction each, all or none; bulk submit and release in the same groups; items that need each other allowed (owner, 2026-10-08, [112](../features/112-dependency-cycles/SPEC.md)). Until then a dependency went first: in review before its dependent was submitted, released before it (056), and cycles were refused | Half a group in review or released leaves the rest unable to follow: a released item whose dependency never comes can't be installed |
