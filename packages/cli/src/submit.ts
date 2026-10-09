@@ -10,7 +10,7 @@ import type { Output } from "./output.js";
  * them. It checks first (`POST /drafts/check`), shows what's ready and what's in the way of the
  * rest, asks, then submits the ready ones (`POST /drafts/submit`). "Ready" is exactly what Submit
  * checks in the web app; nothing is fixed from here. The person's own drafts that a named one
- * depends on are included and go first (056), unless `--no-deps`.
+ * depends on are included and go with it, all or none (056, 112), unless `--no-deps`.
  */
 
 type Place = { path: string; url: string | null; name: string; type: string; status: string };

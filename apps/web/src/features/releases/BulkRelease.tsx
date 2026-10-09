@@ -347,8 +347,8 @@ export const BulkReleaseToolbar = ({
             </section>
             <div className="grid shrink-0 gap-3 border-t border-hairline px-4 py-4">
               <p className="text-sm text-muted">
-                Dependencies go first. Each is released on its own: one that fails stops only what
-                depends on it. Versions never change once published.
+                What's joined by a dependency is released together, all or none; a group that fails
+                stops only itself. Versions never change once published.
               </p>
               <FieldError id="release-error">{error}</FieldError>
               <div className="flex flex-wrap justify-end gap-2">

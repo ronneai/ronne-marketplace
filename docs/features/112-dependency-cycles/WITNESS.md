@@ -756,3 +756,34 @@ Witnessed: 2026-10-08 23:14 EDT, by a fresh agent (blind). Commit: 5d485ee + wor
 | 9 | "Locally the halves took 1.6 and 1.1 min." | yes | confirmed | WITNESS task 12 re-check row 7; no unbacked figure left in the note or CLAUDE.md |
 
 **Overall:** met: the three figures are the ones recorded, and every other claim held in the first pass.
+
+## Task 9 — Documentation
+
+Witnessed: 2026-10-08 23:12 EDT, by a fresh agent (blind). Commit: a05f9ab + working tree (marketplace); ronne-web 622723a (branch `docs/112-dependency-cycles`). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The ronne-web branch has the 112 Documentation in en, pt and fr | yes | confirmed | `git diff --stat main...622723a` → 17 files: export/items/review/rmk/versions in en, pt and fr, `product-facts.md`, `DependencyCards.tsx`; pt and fr match en paragraph by paragraph; the branch is unmerged until the release |
+| 2 | `items#dependencies` says items may need each other, go through submit and release together, and never depend on themselves | yes | confirmed | `en/items.tsx:113-115` card "Each other, never itself"; the install line matches `resolve.ts:274` and `registry-api.db.test.ts:447` |
+| 3 | `items#canvas` shows the cycle warning and "your draft" on a node, in the app's words | yes | confirmed | The quotes match `registry-checks.ts:233,349`; the canvas sends warnings with `together: true` and `composer.test.tsx` renders them |
+| 4 | `review#checks` has no cycle refusal, and covers "your draft" and the group in the Submit dialog | yes | confirmed | Every quoted string matches `SubmitDialogs.tsx`; `e2e/submit-together.ts` uses the same strings |
+| 5 | `review#dependencies` says items are submitted and released together, all or none, with the Publish dialog's words | yes | confirmed | The quotes match `PublishDialog.tsx`, `publish.ts:230` and `release-group.ts`; "Publish stays off" holds through `blocked` |
+| 6 | `review#many` covers groups (all or none) and `rmk submit --no-deps` | yes | confirmed | `bulk-submit.ts:126-160`; `--no-deps` gives "is your draft: submit it with this item."; `submit.ts` matches the quotes |
+| 7 | `versions#release-many` says groups are released in one transaction each, and that an item's own Publish releases its group | yes | confirmed | `en/versions.tsx:133-151` matches `bulk-release.ts:123` and `release-group.ts:104-106` |
+| 8 | `rmk#installing` says items that need each other are installed together | yes | confirmed | `en/rmk.tsx:132-133`; the `export.tsx` hints match `orderLine`/`togetherLine` |
+| 9 | The Submit and Release dialogs' group lists have the "Why do these go together?" helper, linking to `review#dependencies` | yes | confirmed | `Help.tsx:89-94`, used in `SubmitDialogs.tsx` and `PublishDialog.tsx`; 3 test files, 53 passed |
+| 10 | The helper's words match how the app behaves in both dialogs | yes | partly | It said "they're your drafts", but the Publish dialog lists approved submissions, which can be another author's when a moderator releases them |
+| 11 | Every help link points to a section that exists on the website | yes | confirmed | Each `docsHref` in `Help.tsx` against ronne-web `topics.ts` → 46 links, 0 missing |
+| 12 | The docs tests pass in ronne-web | yes | confirmed | `pnpm test` → 29 files, 138 passed; lint and typecheck clean |
+
+**Overall:** not met: the shared "submit-together" helper calls the Release dialog's members "your drafts".
+
+### Re-check — claim 10
+
+Witnessed: 2026-10-08 23:13 EDT, by a fresh agent (blind). Commit: 5d485ee + working tree (marketplace); ronne-web 622723a. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 10 | The helper's words match how the app behaves in both dialogs, and the website's `review#dependencies` doesn't contradict them | yes | confirmed | Submit: "the drafts of yours it needs go with it", all or none, as the submit group (`submit-group.ts`, `bulk-submit.ts`). Publish: "the approved ones it needs that aren't released yet", all or none, no author named, as `release-group.ts:115-130` and `releaseTogether`. The site's `en/review.tsx:265-320` says the same. 3 test files, 53 passed |
+
+**Overall:** met: the helper holds in both dialogs and agrees with the website, and every other claim was confirmed in the first pass.

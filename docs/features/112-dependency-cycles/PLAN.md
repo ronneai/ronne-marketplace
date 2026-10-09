@@ -61,7 +61,7 @@ the same change that completes it.
   approved, released together from one Release dialog, then installed with `rmk`.
   *Done when:* `pnpm test:e2e` passes on desktop and phone.
 
-- [ ] **9. Documentation.** The topics in the spec (en, pt, fr) in a ronne-web branch that goes live
+- [x] **9. Documentation.** The topics in the spec (en, pt, fr) in a ronne-web branch that goes live
   with the release, and the two dialogs' helpers.
   *Done when:* the pages say what tasks 2–7 do, and the docs tests pass in ronne-web.
 
