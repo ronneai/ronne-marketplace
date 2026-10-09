@@ -79,7 +79,7 @@ the same change that completes it.
   *Done when:* the selection is in the workflow and in `changes.yml`'s outputs, and a dry run of
   each case lists the tests it would run.
 
-- [ ] **12. End-to-end in two jobs.** Playwright's `--shard` in `ci.yml`, two jobs, every project.
+- [x] **12. End-to-end in two jobs.** Playwright's `--shard` in `ci.yml`, two jobs, every project.
   *Done when:* each shard's tests are disjoint and together are the whole suite.
 
 - [x] **13. Which runs where.** A note in `docs/knowledge/` and CLAUDE.md's Commands and rules:
