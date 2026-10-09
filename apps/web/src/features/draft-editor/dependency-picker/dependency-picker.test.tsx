@@ -3,8 +3,10 @@ import { describe, expect, it, vi } from "vitest";
 import type { DependencyOption } from "@/server/domains/submissions/actions/composer";
 
 vi.mock("./actions", () => ({ findDependenciesAction: vi.fn() }));
-const { DependencyField } = await import("./DependencyField");
-const { dependencyRows, rangeFor, statusText, versionChoices } = await import("./model");
+const { DependencyField, RangeInput } = await import("./DependencyField");
+const { acceptsText, dependencyRows, rangeFor, statusText, versionChoices } = await import(
+  "./model"
+);
 
 const option = (overrides: Partial<DependencyOption> = {}): DependencyOption => ({
   name: "@team/github",
@@ -25,15 +27,115 @@ describe("picking a dependency (056)", () => {
     expect(rangeFor(option({ status: "draft", versions: [], latest: null }))).toBe("^1.0.0");
   });
 
-  it("lists latest first, then each other version", () => {
+  it("says what a range accepts (#143)", () => {
+    expect(acceptsText("^1.2.3")).toBe("1.2.3 or later 1.x");
+    expect(acceptsText("^0.2.3")).toBe("0.2.3 or later 0.2.x");
+    expect(acceptsText("^0.0.3")).toBe("only 0.0.3");
+    expect(acceptsText("1.2.3")).toBe("exactly 1.2.3");
+    expect(acceptsText("1.2.3-beta.1")).toBe("exactly 1.2.3-beta.1");
+    for (const range of [
+      "~1.2.3",
+      ">=1.0.0",
+      "^1.2.3-beta.1",
+      "^1.2",
+      "",
+      "latest",
+      "01.2.3",
+      "1.2.3-.",
+      "1.2.3-01",
+      "1.2.3-beta.007",
+    ])
+      expect(acceptsText(range), range).toBeNull();
+  });
+
+  it("offers compatible ranges, latest first, then exact versions, each label starting with what it writes (#143)", () => {
     expect(versionChoices(option())).toEqual([
-      { label: "latest (1.4.0)", range: "^1.4.0" },
-      { label: "1.3.0", range: "^1.3.0" },
-      { label: "2.0.0-beta.1", range: "2.0.0-beta.1" },
+      {
+        label: "Compatible",
+        choices: [
+          {
+            label: "^1.4.0 · 1.4.0 or later 1.x, latest",
+            range: "^1.4.0",
+            accepts: "1.4.0 or later 1.x, latest",
+          },
+          { label: "^1.3.0 · 1.3.0 or later 1.x", range: "^1.3.0", accepts: "1.3.0 or later 1.x" },
+        ],
+      },
+      {
+        label: "Exactly",
+        choices: [
+          { label: "1.4.0 · exactly 1.4.0", range: "1.4.0", accepts: "exactly 1.4.0" },
+          { label: "1.3.0 · exactly 1.3.0", range: "1.3.0", accepts: "exactly 1.3.0" },
+          {
+            label: "2.0.0-beta.1 · exactly 2.0.0-beta.1",
+            range: "2.0.0-beta.1",
+            accepts: "exactly 2.0.0-beta.1",
+          },
+        ],
+      },
     ]);
-    expect(versionChoices(option({ versions: [], latest: null }))).toEqual([
-      { label: "1.0.0, its first release", range: "^1.0.0" },
+  });
+
+  it("reads 0.x ranges as caret means them (#143)", () => {
+    const [compatible] = versionChoices(option({ versions: ["0.2.3", "0.0.3"], latest: "0.2.3" }));
+    expect(compatible?.choices.map((c) => c.label)).toEqual([
+      "^0.2.3 · 0.2.3 or later 0.2.x, latest",
+      "^0.0.3 · only 0.0.3",
     ]);
+  });
+
+  it("offers an unreleased item its first release, compatible or exact (#143)", () => {
+    expect(versionChoices(option({ status: "draft", versions: [], latest: null }))).toEqual([
+      {
+        label: "Compatible",
+        choices: [
+          {
+            label: "^1.0.0 · its first release, or a later 1.x",
+            range: "^1.0.0",
+            accepts: "its first release, or a later 1.x",
+          },
+        ],
+      },
+      {
+        label: "Exactly",
+        choices: [
+          {
+            label: "1.0.0 · exactly its first release",
+            range: "1.0.0",
+            accepts: "exactly its first release",
+          },
+        ],
+      },
+    ]);
+  });
+
+  it("keeps a pre-release out of Compatible, even when it's the listed version (#143)", () => {
+    const groups = versionChoices(option({ versions: ["1.0.0-beta.1"], latest: "1.0.0-beta.1" }));
+    expect(groups).toEqual([
+      {
+        label: "Exactly",
+        choices: [
+          {
+            label: "1.0.0-beta.1 · exactly 1.0.0-beta.1",
+            range: "1.0.0-beta.1",
+            accepts: "exactly 1.0.0-beta.1",
+          },
+        ],
+      },
+    ]);
+    // The default pick is still offered.
+    expect(groups.flatMap((g) => g.choices.map((c) => c.range))).toContain(
+      rangeFor(option({ versions: ["1.0.0-beta.1"], latest: "1.0.0-beta.1" })),
+    );
+  });
+
+  it("lists a single release once in each group (#143)", () => {
+    const groups = versionChoices(option({ versions: ["1.0.0"], latest: "1.0.0" }));
+    expect(groups.map((g) => g.choices.map((c) => c.range))).toEqual([["^1.0.0"], ["1.0.0"]]);
+    for (const group of versionChoices(option())) {
+      const ranges = group.choices.map((c) => c.range);
+      expect(new Set(ranges).size).toBe(ranges.length);
+    }
   });
 
   it("says each option's status and whose it is", () => {
@@ -70,6 +172,61 @@ describe("picking a dependency (056)", () => {
     expect(html).toContain('role="combobox"');
     expect(html).toContain('aria-label="Add a dependency"');
     expect(html).not.toContain('placeholder="Item"');
+  });
+
+  it("offers the versions in Compatible and Exactly groups, each row starting with what it writes (#143)", () => {
+    const html = renderToStaticMarkup(
+      <RangeInput
+        name="@team/github"
+        range="^1.4.0"
+        option={option()}
+        onChange={() => undefined}
+      />,
+    );
+    expect(html).toMatch(
+      /<optgroup label="Compatible"><option value="\^1\.4\.0" selected="">\^1\.4\.0 · 1\.4\.0 or later 1\.x, latest<\/option><option value="\^1\.3\.0">/,
+    );
+    expect(html).toContain(
+      '<optgroup label="Exactly"><option value="1.4.0">1.4.0 · exactly 1.4.0</option><option value="1.3.0">1.3.0 · exactly 1.3.0</option>',
+    );
+    // No bare version stands for a caret range.
+    expect(html).not.toMatch(/<option value="\^[^"]*">[^^]/);
+  });
+
+  it("shows an exact pin as chosen, with its label; its value is the bare version (#143)", () => {
+    const html = renderToStaticMarkup(
+      <RangeInput name="@team/github" range="1.3.0" option={option()} onChange={() => undefined} />,
+    );
+    expect(html).toContain('<option value="1.3.0" selected="">1.3.0 · exactly 1.3.0</option>');
+    expect(html.match(/selected=""/g)).toHaveLength(1);
+  });
+
+  it("keeps a typed range the groups don't offer at the top, as itself (#143)", () => {
+    const html = renderToStaticMarkup(
+      <RangeInput
+        name="@team/github"
+        range="~1.3.0"
+        option={option()}
+        onChange={() => undefined}
+      />,
+    );
+    expect(html).toMatch(
+      /^<select[^>]*><option value="~1\.3\.0" selected="">~1\.3\.0<\/option><optgroup/,
+    );
+  });
+
+  it("says what a row's range accepts when it has no version list, as in the read-only form (#143)", () => {
+    const html = renderToStaticMarkup(
+      <DependencyField
+        value={{ "@team/github": "^1.0.0", "@team/db": "2.1.0", "@team/lint": "~1.2.0" }}
+        type="agent"
+        itemName="@team/reviewer"
+        onChange={() => undefined}
+      />,
+    );
+    expect(html).toContain('<span class="font-mono">^1.0.0</span> · 1.0.0 or later 1.x');
+    expect(html).toContain('<span class="font-mono">2.1.0</span> · exactly 2.1.0');
+    expect(html).not.toContain("~1.2.0</span>");
   });
 
   it("marks a dependency that isn't released yet beside its name: amber, red when blocked", () => {

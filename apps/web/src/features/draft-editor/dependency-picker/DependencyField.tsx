@@ -10,7 +10,7 @@ import { TypeBadge } from "@/components/ui/TypeBadge";
 import type { DependencyOption } from "@/server/domains/submissions/actions/composer";
 import type { DependencyMark } from "@/server/domains/submissions/actions/submissions";
 import { findDependenciesAction } from "./actions";
-import { dependencyRows, rangeFor, statusText, versionChoices } from "./model";
+import { acceptsText, dependencyRows, rangeFor, statusText, versionChoices } from "./model";
 
 /** The mark a dependency picked here gets, from what the list said of it: none once published. */
 const markOfOption = (option: DependencyOption): DependencyMark | undefined =>
@@ -69,8 +69,12 @@ export const OptionLine = ({ option }: { option: DependencyOption }) => (
   </span>
 );
 
-/** A row's range: the versions when the item was picked here, otherwise a range to type. */
-const RangeInput = ({
+/**
+ * A row's range: the versions when the item was picked here, otherwise a range to type. The
+ * versions come in two groups (#143), Compatible and Exactly, each row saying what it writes and
+ * what that accepts; a range typed in the YAML that neither offers stays at the top, as itself.
+ */
+export const RangeInput = ({
   name,
   range,
   option,
@@ -85,8 +89,8 @@ const RangeInput = ({
   const [typed, setTyped] = useState(range);
   useEffect(() => setTyped(range), [range]);
   if (option) {
-    const choices = versionChoices(option);
-    const known = choices.some((choice) => choice.range === range);
+    const groups = versionChoices(option);
+    const known = groups.some((group) => group.choices.some((choice) => choice.range === range));
     return (
       <Select
         aria-label={`Version of ${name}`}
@@ -95,10 +99,14 @@ const RangeInput = ({
         className="h-8 font-mono text-xs"
       >
         {known ? null : <option value={range}>{range}</option>}
-        {choices.map((choice) => (
-          <option key={choice.range} value={choice.range}>
-            {choice.label}
-          </option>
+        {groups.map((group) => (
+          <optgroup key={group.label} label={group.label}>
+            {group.choices.map((choice) => (
+              <option key={choice.range} value={choice.range}>
+                {choice.label}
+              </option>
+            ))}
+          </optgroup>
         ))}
       </Select>
     );
@@ -117,6 +125,20 @@ const RangeInput = ({
       }}
       className={`${inputClasses} h-8 font-mono text-xs`}
     />
+  );
+};
+
+/**
+ * What a row's range accepts, under a row with no version list (one saved before, typed, or in
+ * the read-only form), in the list's words (#143). Nothing for a range it has no words for.
+ */
+const RangeWords = ({ range }: { range: string }) => {
+  const accepts = acceptsText(range);
+  if (!accepts) return null;
+  return (
+    <p className="text-xs text-muted">
+      <span className="font-mono">{range}</span> · {accepts}
+    </p>
   );
 };
 
@@ -240,12 +262,13 @@ export const DependencyField = ({
             const mark = option ? markOfOption(option) : marks.find((m) => m.dependency === name);
             return (
               <li key={name} className="grid gap-1">
-                <div className="flex items-center gap-2">
-                  <span className="flex min-w-0 flex-1 items-center gap-2">
+                {/* On a phone the name takes its own line, so the versions get the width (#143). */}
+                <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+                  <span className="flex min-w-0 flex-1 basis-full items-center gap-2 sm:basis-0">
                     <span className="truncate font-mono text-sm text-fg">{name}</span>
                     {mark ? <DependencyStatusBadge mark={mark} /> : null}
                   </span>
-                  <div className="w-44 shrink-0">
+                  <div className="min-w-0 flex-1 sm:w-64 sm:flex-none">
                     <RangeInput
                       name={name}
                       range={range}
@@ -262,6 +285,7 @@ export const DependencyField = ({
                     <X size={16} aria-hidden />
                   </button>
                 </div>
+                {option ? null : <RangeWords range={range} />}
                 {option?.status === "draft" ? (
                   <p className="text-xs text-muted">
                     A draft: it&apos;s submitted with this item when you submit it.
