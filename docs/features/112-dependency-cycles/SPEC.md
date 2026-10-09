@@ -198,8 +198,10 @@ parallel, so a pull request waited about 9 min).
   database tests on PostgreSQL, MySQL and MariaDB are what catch dialect differences (SQLite
   accepts what the servers refuse), and they hold the edge cases a browser test never reaches.
 - **Set up once, emptied between tests.** On a server, `createTestDb()` migrated a new database
-  for every test, and DDL is slow on MySQL. Each test worker now migrates one database once and
-  empties its tables before each test. SQLite in memory stays as it is. Migration tests keep a
+  for every test, and DDL is slow on MySQL. Each test file now migrates one database once and
+  puts it back to just migrated before each test (tables emptied, the migrations' rows put back,
+  migrated afresh if a test changed the schema), each test on new connections. Leftover
+  databases from interrupted runs are dropped when a run starts. SQLite in memory stays as it is. Migration tests keep a
   database of their own (`migrate: false`).
 - **The servers where they matter.** On a pull request, the database servers run the tests of
   database code (the `db/` layer, migrations, repositories) always, and every database test only
@@ -244,7 +246,7 @@ parallel, so a pull request waited about 9 min).
   approved, released together from one Release dialog, and installed with `rmk`, on desktop and
   phone.
 - [ ] The Documentation listed above says so, in English, Portuguese and French.
-- [ ] Faster checks: database tests set up once per worker; a pull request runs the servers on
+- [ ] Faster checks: database tests set up once per test file; a pull request runs the servers on
   database code (everything when database code changes); end-to-end in two jobs; the same tests
   still pass; CI times measured before and after.
 

@@ -140,7 +140,8 @@ const seed = async (t: Awaited<ReturnType<typeof createTestDb>>, root: string, c
 
 const rows: string[] = [];
 for (const count of counts) {
-  const t = await createTestDb();
+  // Its own database, which cleanup() drops (a shared one is only for test files, 112).
+  const t = await createTestDb({ fresh: true });
   const root = mkdtempSync(join(tmpdir(), "ronne-bench-"));
   try {
     const seeded = performance.now();

@@ -50,6 +50,9 @@ export default defineConfig({
         test: {
           name: "db",
           include: dbInclude,
+          // On a server, each test file migrates one database and empties it between tests (112).
+          setupFiles: ["./src/server/db/testing/db-setup.ts"],
+          globalSetup: ["./src/server/db/testing/db-global-setup.ts"],
           // Real schema changes on MySQL, MariaDB and PostgreSQL can take longer than Vitest's 5s
           // default on a shared CI machine (a MySQL migration test timed out there in PR #11).
           testTimeout: 30_000,

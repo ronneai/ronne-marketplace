@@ -67,9 +67,9 @@ the same change that completes it.
 
 ### Faster checks (owner, 2026-10-08)
 
-- [ ] **10. Database tests set up once.** [risky] `createTestDb()` (`db/testing/test-db.ts`): on
-  PostgreSQL, MySQL and MariaDB, one migrated database per test worker, its tables emptied before
-  each test; SQLite in memory unchanged; `migrate: false` keeps a fresh database.
+- [x] **10. Database tests set up once.** [risky] `createTestDb()` (`db/testing/test-db.ts`): on
+  PostgreSQL, MySQL and MariaDB, one migrated database per test file, put back to just migrated before
+  each test (on new connections; migrated afresh if a test changed the schema); SQLite in memory unchanged; `migrate: false` keeps a fresh database.
   *Done when:* every database test passes on the four databases, alone and in parallel, and the
   MySQL run's time is measured before and after.
 

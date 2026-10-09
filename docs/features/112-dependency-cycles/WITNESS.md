@@ -545,3 +545,120 @@ Witnessed: 2026-10-08 22:44 EDT, by a fresh agent (blind). Commit: b280885 + wor
 | 7 | The MCP tests cover a cycle's hint | yes | confirmed | `exportedAnswer` with `together = []` fails "export_items' answer (112)"; `exportItemsTool` returns `exportedAnswer` |
 
 **Overall:** met: `rmk submit`, `check_drafts`/`submit_drafts`, `rmk export` and `export_items` all name a cycle, and the tests cover it on a fake that matches what `/api/v1/drafts/check` returns.
+
+## Task 10 — Database tests set up once
+
+Witnessed: 2026-10-08 22:02 EDT, by a fresh agent (blind). Commit: b280885 + working-tree diff (test-db.ts, test-db.db.test.ts, catalogue-revision.db.test.ts, vitest.config.ts, new db-setup.ts). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | On a server, the database is migrated once and reused, not migrated per test | yes | partly | `createTestDb()` migrates once and later calls run `reset(shared)`; it's one database per test **file** (dropped by `db-setup.ts`'s `afterAll`), but PLAN.md and SPEC.md said "per test worker" |
+| 2 | Tables are emptied before each test, and the migrations' own rows come back | yes | confirmed | `reset` made a no-op in a scratch copy → "gives each test a database just migrated" fails on PG and MySQL; dropping the baseline re-insert → the full PG suite fails 487 tests |
+| 3 | SQLite in memory is unchanged | yes | confirmed | The SQLite branch is as at HEAD; `vitest run --project db` → 86 files, 706 passed, 8 skipped |
+| 4 | `migrate: false` (and `fresh: true`) still give a database of their own | yes | confirmed | Always using the shared database → 3 failures |
+| 5 | Every db test passes on all four databases in parallel | yes | confirmed | PG 714/714 (71.7 s), MySQL 714/714 (twice), MariaDB 714/714 (54.4 s), SQLite as in row 3 |
+| 6 | Every db test passes alone | yes | confirmed | `--no-file-parallelism`: MariaDB, PG and MySQL (416 s) 714/714 each |
+| 7 | MySQL time measured before and after, and faster | yes | confirmed | HEAD's code in a scratch copy → 454.6 s; after: 188.8 s, then 113.9 s (load average 8–27) |
+| 8 | Shared databases are dropped after each file, with nothing left on the servers | yes | confirmed | MySQL and MariaDB had 0 `ronne_test_%` after normal runs; the PG leftovers came from mutation runs, a killed run and the benchmark |
+| 9 | `createTestDb` outside Vitest (`scripts/feed-benchmark.ts`) still cleans up | yes | not met | `pnpm bench:feeds --items 5 --tools codex --db postgres` → one more `ronne_test_%` each run: the shared path's `cleanup` was a no-op |
+
+**Overall:** not met: the benchmark leaves a database behind (row 9), and the docs said "per test worker" (row 1).
+
+### Re-check — claims 1, 7, 8 and 9, plus the full suites on the changed code
+
+Witnessed: 2026-10-08 22:45 EDT, by a fresh agent (blind). Commit: b280885 + working-tree diff frozen at 22:34 (`test-db.ts` with the schema check, pool tracking and `db-global-setup.ts`). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | One migrated database per test file, put back to just migrated before each test, and the docs say so | yes | confirmed | `createTestDb` runs `reset(shared)` or `prepare()`; a schema mismatch drops and migrates again; PLAN.md and SPEC.md say "per test file" |
+| 7 | MySQL time measured before and after | yes | confirmed | Before (HEAD's code): 454.6 s, and 717.8 s under load 24. After: 106.5 s (717/717) and 169.5 s (720/720, load about 30). Every after-run at least 2.7x faster |
+| 8 | Nothing is left on the servers, and stale databases are dropped | yes | confirmed | MariaDB 0; MySQL's 13 all from the HEAD-code timing run whose timed-out tests skipped cleanup; a database with an old ULID name is dropped by the next run's global setup; the `dropStaleTestDbs` test passes on the three servers |
+| 9 | The benchmark cleans up after itself | yes | confirmed | `feed-benchmark.ts` uses `createTestDb({ fresh: true })`; runs on MySQL and PG leave no `ronne_test_%` |
+| 10 | Every db test still passes on the four databases after the fixes | yes | confirmed | PG 720/720 (86 s), MariaDB 720/720 (97 s), MySQL 720/720 (169 s), SQLite 712 passed + 8 skipped |
+
+**Overall:** met: one database per file with a reset (or a fresh migration after a schema change) before each test, the docs match, the benchmark and interrupted runs leave nothing behind, all 720 tests pass on the four databases, and MySQL is at least 2.7x faster.
+
+### Adversarial — Task 10
+
+Witnessed: 2026-10-08 22:05 EDT, by a fresh agent (adversarial). Commit: b280885 + working-tree diff (test-db.ts, db-setup.ts, vitest.config.ts, test-db.db.test.ts, catalogue-revision.db.test.ts). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | On each server, a test starts with the migrations' rows put back exactly (values, types, dates, booleans, instance id) | yes | confirmed | Probe p1 (a test changes `workspaces.name`/`is_global` and `catalogue_revision.revision`/`instance`, then two resets) → 4/4 passed on PostgreSQL, MySQL and MariaDB. The typed rows and the raw text match: PG `(…,t,,"2026-10-09 01:39:11.826+00",…)`, MySQL `…\|1\|NULL\|2026-10-09 01:39:10.779\|…`, `is_global` boolean on PG and 1 on MySQL, the same instance ULID |
+| 2 | Rows a previous test wrote are gone | yes | confirmed | Shipped `test-db.db.test.ts` passes. With `reset()` turned into a no-op in a scratch copy, the test "gives each test a database just migrated…" fails (1 failed, 3 passed) |
+| 3 | Session settings left on pooled connections don't leak into the next test | yes | not met | Probe p2 sets settings on all 10 pooled connections. PG, next test: 9 of 10 connections still `session_replication_role=replica`, all 10 `TimeZone=Asia/Tokyo`, and orphan `workspace_members` inserts were refused 0 of 10 (foreign keys off). MySQL and MariaDB: 9 of 10 `@@foreign_key_checks=0`, all `sql_mode=''`, `@leak=42`, refused 0 of 10 |
+| 4 | An open transaction or lock from a failed or timed-out test doesn't break the next test | yes | not met | Probe p5 (a transaction updates `workspaces` and never ends). PG: next test "Test timed out in 15000ms" (the `truncate` in `reset()` waits on the lock), then the setup file's `afterAll` "Hook timed out in 30000ms". MySQL and MariaDB: next test timed out after 15s |
+| 5 | A test that drops a table can't break the next one | yes | not met | Probe p4 (`drop table plugin_feeds`) → every later test in the file fails. PG: `relation "plugin_feeds" does not exist` at test-db.ts:79. MySQL/MariaDB: `Table 'ronne_test_….plugin_feeds' doesn't exist` |
+| 6 | Extra tables, views, columns or sequences a test creates don't leak | yes | not met | Probe p3 (`create table probe_extra`, `create view probe_view`, `alter table scopes add column probe_col`, PG `create sequence`) → next test sees `{"extra":true,"view":true,"col":true}` on all three servers |
+| 7 | A test that closes the db it was given doesn't break the next one | yes | not met | Probe p10 (`t.db.destroy()`) on PG → next test: `Error: driver has already been destroyed` |
+| 8 | `{ migrate: false }` and `{ fresh: true }` give a separate database that `cleanup()` drops; the shared one survives its no-op `cleanup()` | yes | confirmed | Probe p7 on PG, MySQL and MariaDB → passed: 3 distinct URLs, the `migrate:false` database has 0 tables, the fresh one has the `global` workspace, both are gone from `pg_database`/`information_schema.schemata` after `cleanup()`; also `{fresh:true, migrate:false}` |
+| 9 | SQLite (in memory and file) behaves exactly as before | yes | confirmed | `git diff test-db.ts`: the SQLite branch is unchanged. In the repo, `vitest run --project db` with no URL → 86 files, 706 passed, 8 skipped. With `TEST_DATABASE_URL=file:…` → the same counts |
+| 10 | The shared database is dropped after its file, also when a test fails; full runs leave nothing | yes | confirmed | Probe p6 (a failing assertion) on all three servers → count of `ronne_test_%` unchanged. Full repo runs on PG, MySQL and MariaDB → count unchanged before and after each run |
+| 11 | Nothing piles up after an interrupted run or a hook timeout | yes | not met | Probe p9 (3 files, each marks its database and waits 60s), SIGINT to vitest and its workers after 15s → 3 `ronne_test_%` databases with the markers `adv-marker-a/b/c` left after the processes exited. p5 on PG left one database per run (2 runs → 2 left). The old per-test design also leaked on interrupt; the claim as stated doesn't hold |
+| 12 | Test files running in parallel never share a database | yes | confirmed | Probes p8a/b/c (3 files × 3 tests, each logs `t.url`) run together on PG, MySQL and MariaDB → 3 distinct URLs per server, one per file, each file's 3 tests on the same URL |
+| 13 | `scripts/feed-benchmark.ts` still works with `createTestDb` | yes | partly | `tsx scripts/feed-benchmark.ts --db postgres --items 3,4 --tools codex` → exit 0, the expected table. It then leaves its database: `ronne_test_01m4f52gcf…` with `bench@example.com` and 4 items. Outside Vitest nothing calls `dropSharedTestDb()` and `cleanup()` is a no-op. The header comment ("drops both after") is now false. Two more bench databases from other runs (`…zwyr…`, `…50fy…`) are on the PG server |
+| 14 | The whole db suite passes on all four databases | yes | confirmed | In the repo: PG 86 files / 714 passed (51s), MySQL 714 passed (90s), MariaDB 714 passed (51s), SQLite 706 passed + 8 skipped |
+| 15 | The speed-up is real | yes | confirmed | Same scratch copy, HEAD versions vs the working tree, same runs: MySQL 467s → 105s, MariaDB 249s → 63s, PG 105s → 53s. Timings are noisy: other agents were running database tests at the same time. The 4 `scripts/*` files fail in both copies alike for a copy-only `pnpm exec` reason |
+
+**Overall:** not met: rows, baseline rows, `fresh`/`migrate:false`, parallel files and normal runs hold. Isolation between tests doesn't: settings left on pooled connections, open transactions or locks, dropped, added or altered schema, and a destroyed pool all leak into the next test. Interrupted runs and the feed benchmark leave databases behind.
+
+### Adversarial re-check — Task 10
+
+Witnessed: 2026-10-08 22:30 EDT, by a fresh agent (adversarial). Commit: b280885 + working-tree diff (test-db.ts, db-setup.ts, db-global-setup.ts, vitest.config.ts, feed-benchmark.ts, test-db.db.test.ts, catalogue-revision.db.test.ts). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Each test starts with the migrations' rows put back exactly | yes | confirmed | p1 on PG, MySQL and MariaDB → 4/4; typed rows and raw text identical after two resets |
+| 2 | Rows a previous test wrote are gone | yes | confirmed | Shipped test passes; `reset()` as a no-op makes it fail |
+| 3 | Session settings left on pooled connections don't leak into the next test | yes | partly | p2: the test's own pools are clean on the three servers. But p13 sets `session_replication_role = replica` (PG) or `foreign_key_checks = 0` on `getAppDb(t.url)`, which `closePools` doesn't track: the next test reads it, and on PG the drop fails "being accessed by other users" |
+| 4 | A transaction a test leaves open doesn't break the next test | yes | not met | p5 on PG: next test times out at 15 s and the database is left; MySQL and MariaDB pass |
+| 5 | A test that drops a table doesn't break the next one | yes | confirmed | p4 → the next two tests pass on the three servers; the "migrates afresh…" test fails with the schema check removed |
+| 6 | Extra tables, views and columns don't leak | yes | confirmed | p3 → `{"extra":false,"view":false,"col":false}` on the three servers |
+| 7 | Other schema or database changes a test makes don't leak | yes | not met | p11 (a dropped foreign key, a unique index, a trigger) → kept for the next test on the three servers; p12 `alter database … character set latin1` → kept on MySQL and MariaDB |
+| 8 | A test that closes its own handle doesn't break the next one | yes | confirmed | p10 → the next test passes on the three servers |
+| 9 | `fresh: true` and `migrate: false` give separate databases that `cleanup()` drops | yes | confirmed | p7 on PG, MariaDB and MySQL |
+| 10 | SQLite, in memory and file, is unchanged | yes | confirmed | 86 files, 709 passed and 8 skipped, both ways |
+| 11 | Shared databases are dropped after their file, even when a test fails | yes | confirmed | p6 → counts unchanged; exceptions on PG are rows 3 and 4 (the drop isn't forced) |
+| 12 | Nothing piles up across runs, interrupted runs included | yes | confirmed | SIGINT leaves 3 databases until two hours pass; the global setup drops old ones (one held open by `psql` too) and keeps a 90-minute-old one and a non-ULID name |
+| 13 | Test files running in parallel never share a database | yes | confirmed | p8a/b/c → one URL per file on each server |
+| 14 | `feed-benchmark.ts` works and leaves nothing | yes | confirmed | `--db postgres` and `--db mysql` → exit 0, no database left |
+| 15 | The whole db suite passes on all four databases | yes | confirmed | PG, MySQL and MariaDB 717/717; SQLite 709 passed and 8 skipped |
+| 16 | The speed-up is real | yes | confirmed | MySQL 467→105 s, MariaDB 249→63 s, PG 105→53 s (paired runs) |
+| 17 | The shipped tests catch regressions | no | confirmed | Schema check removed → "migrates afresh…" fails; `STALE_MS = Infinity` → the stale-cleanup test fails |
+| 18 | A file keeps working when one test asks for a database in `beforeAll` and a later test calls `createTestDb()` | no | not met | p14 → the `beforeAll` handle fails with `driver has already been destroyed`; the doc comment didn't say so |
+
+**Overall:** not met: rows 3, 4, 7 and 18.
+
+### Adversarial re-check 2 — Task 10
+
+Witnessed: 2026-10-08 22:45 EDT, by a fresh agent (adversarial). Commit: b280885 + working-tree diff (test-db.ts, db-setup.ts, db-global-setup.ts, vitest.config.ts, test-db.db.test.ts). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3 | Session settings left on pooled connections, the app pool `getAppDb(shared.url)` included, don't reach the next test | yes | confirmed | p2 clean on the three servers; p13 → next test reads `APPDB origin` on PG and `APPDB 1` on MySQL and MariaDB; no drop failure, nothing left |
+| 4 | A transaction a test leaves open doesn't break the next test | yes | not met | p5 on PG: the next test times out at 15 s; the forced drop then raises 2 unhandled `57P01` errors, failing the run. MySQL and MariaDB pass |
+| 7 | Changes to schema or database settings don't reach the next test | yes | confirmed | p11 → no index, no trigger, the dropped foreign key back, on the three servers; p12 → `utf8mb4` on MySQL and MariaDB, `UTC` on PG |
+| 11 | Shared databases are dropped after their file, even with a connection left open | yes | confirmed | No database from p5 or p13 left on PG; no `55006` failure |
+| 18 | A later `createTestDb()` closing a `beforeAll` handle is documented, and `fresh: true` gives one handle per file | yes | confirmed | The doc comment says so; p14 shows it as documented; p15 (`beforeAll` with `fresh: true`) → 3/3 on PG and MariaDB |
+
+**Overall:** not met: row 4 on PostgreSQL.
+
+### Adversarial re-check 3 — Task 10
+
+Witnessed: 2026-10-08 22:49 EDT, by a fresh agent (adversarial). Commit: b280885 + working-tree diff (test-db.ts, db-setup.ts, db-global-setup.ts, vitest.config.ts, test-db.db.test.ts). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | A transaction a test leaves open doesn't break the next test, and the run reports no unhandled errors; on PostgreSQL the held database is left, named in a warning, for the next run to drop | yes | partly | p5 → exit 0, 2 passed, no unhandled errors on the three servers; PG left one database, which a later run's global setup dropped; p13 guard passes. But the `console.warn` shows only with `--silent=false`: Vitest hides a passing file's console output, piped, under a terminal and with `CI=true` |
+
+**Overall:** not met: the warning naming the held database isn't seen in a normal run.
+
+### Adversarial re-check 4 — Task 10
+
+Witnessed: 2026-10-08 22:50 EDT, by a fresh agent (adversarial). Commit: c1aebf8 + working-tree diff (test-db.ts, db-setup.ts, db-global-setup.ts, vitest.config.ts, test-db.db.test.ts). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | A transaction a test leaves open doesn't break the next test, and the run reports no unhandled errors; on PostgreSQL the held database is left, named in a warning, for the next run to drop | yes | confirmed | PG piped and with `CI=true` → exit 0, 2 passed, no unhandled errors, the warning names the held database; the PG count rose by exactly the two named; MySQL guard → 2 passed, no warning; the next run's global setup dropped both once renamed to old ULIDs |
+
+**Overall:** met: in a default run the next test starts clean, nothing is unhandled, and the warning names the held PostgreSQL database; a later run drops it.
