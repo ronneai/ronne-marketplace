@@ -581,6 +581,35 @@ describe("POST /drafts/check and /drafts/submit (052)", () => {
     (await t.db.selectFrom("submissions").select("status").where("id", "=", id).executeTakeFirst())
       ?.status;
 
+  it("says which of your drafts each one needs, so a cycle can be named (112)", async () => {
+    const bundle = async (name: string, needs: string) =>
+      (
+        await body(
+          await postDraft(
+            post("/drafts", {
+              name: `@team/${name}`,
+              type: "bundle",
+              files: [
+                {
+                  path: "ronne.yaml",
+                  encoding: "utf8",
+                  content: `name: "@team/${name}"\ntype: bundle\ndescription: A set.\ndependencies:\n  "@team/${needs}": "^1.0.0"\n`,
+                },
+              ],
+            }),
+            deps,
+          ),
+        )
+      ).json.id as string;
+    const a = await bundle("ping", "pong");
+    const b = await bundle("pong", "ping");
+    const { json } = await body(await checkDrafts(post("/drafts/check", { ids: [a] }), deps));
+    const byId = Object.fromEntries(
+      (json.drafts as { id: string; needs?: string[] }[]).map((d) => [d.id, d.needs]),
+    );
+    expect(byId).toEqual({ [a]: [b], [b]: [a] });
+  });
+
   it("checks your drafts without submitting, saying what's in the way", async () => {
     const ready = await create();
     const missing = await create("");

@@ -1,5 +1,6 @@
 import {
   DEFAULT_LIMITS,
+  dependenciesFirst,
   hasErrors,
   type ManifestIssue,
   type PackageLimits,
@@ -31,6 +32,7 @@ import type { SubmissionRepository } from "../repositories/submission-repository
 import { requireMember, requireSignedIn } from "./membership";
 import { baseFilesOf } from "./proposals";
 import { registryIssues } from "./registry-checks";
+import { type CheckedMember, checkGroup, submitGroups } from "./submit-group";
 
 /**
  * Submitting and withdrawing (feature 013). The author submits a draft after every check a
@@ -217,75 +219,160 @@ export const checkSubmission = async (
   actor: SubmissionActor,
   id: string,
 ): Promise<ManifestIssue[]> => {
-  const submission = await own(deps.repo, actor, id);
-  transition(submission.status, sendAction(submission.status));
-  requireMember(actor, submission.workspace);
-  return allIssues(deps, deps.repo, submission);
+  const { members } = await checkSubmitGroup(deps, actor, id);
+  const member = members.find((m) => m.id === id);
+  return member && "issues" in member ? member.issues : [];
 };
 
 /**
- * Sends a draft for review, or a submission sent back for changes for another look (014). The
- * checks run on the saved files, inside the transaction that changes the status, after locking the
- * scope: two submissions of one name can't both pass. The files are snapshotted as the next
- * revision, which reviewers read and a release packs, and the conversation records it.
+ * What submitting the item would send (112): the item and the person's own drafts it needs, each
+ * with its checks as if they were all in review, dependencies first, and what brings each in.
+ */
+export const checkSubmitGroup = async (
+  deps: SubmissionDeps,
+  actor: SubmissionActor,
+  id: string,
+): Promise<{
+  ready: boolean;
+  members: CheckedMember[];
+  neededBy: Map<string, string[]>;
+  /** The members that need each other, by id: each cycle once (112). */
+  cycles: string[][];
+}> => {
+  const submission = await own(deps.repo, actor, id);
+  transition(submission.status, sendAction(submission.status));
+  requireMember(actor, submission.workspace);
+  const [group] = await submitGroups(deps.repo, actor, [id]);
+  const ids = group?.ids ?? [id];
+  const checked = await checkGroup(deps, deps.repo, actor, ids, groupCheck);
+  const { groups: cycles } = dependenciesFirst(
+    ids.map((member) => ({ name: member, dependsOn: group?.needs.get(member) ?? [] })),
+  );
+  return { ...checked, neededBy: group?.neededBy ?? new Map(), cycles };
+};
+
+/**
+ * A group member's checks: 013's. The group's drafts count as in review (`checkGroup`); a draft
+ * of the person's that isn't in the group stops it (112).
+ */
+const groupCheck = (deps: SubmissionDeps, repo: SubmissionRepository, submission: Submission) =>
+  allIssues(deps, repo, submission);
+
+/** One member sent for review: its status, a revision, the event and the audit record. */
+const send = async (
+  repo: SubmissionRepository,
+  actor: SubmissionActor,
+  submission: Submission,
+  at: Date,
+) => {
+  const action = sendAction(submission.status);
+  const status = transition(submission.status, action);
+  const files = await repo.files(submission.id);
+  const submittedAt = submission.submittedAt ?? at;
+  await repo.setStatus(submission.id, status, { updatedAt: at, submittedAt });
+  const revision = await repo.createRevision(submission.id, actor.user?.id ?? "", files, at);
+  await repo.addEvent({
+    submissionId: submission.id,
+    actorId: actor.user?.id ?? "",
+    kind: action,
+    body: null,
+    revision: revision.number,
+    createdAt: at,
+  });
+  const manifestFile = files.find((f) => f.path === MANIFEST_PATH);
+  const manifest = manifestFile
+    ? parseManifest(new TextDecoder().decode(fileBytes(manifestFile))).manifest
+    : null;
+  await repo.recordAudit(
+    {
+      actorId: actor.user?.id ?? null,
+      action: action === "submit" ? "submission.submitted" : "submission.resubmitted",
+      target: { type: "submission", id: submission.id },
+      metadata: {
+        name: itemNameOf(submission),
+        type: submission.type,
+        revision: revision.number,
+        dependencies: (manifest?.dependencies ?? {}) as Record<string, string>,
+        ...(actor.token
+          ? { via: "api", tokenId: actor.token.id, tokenName: actor.token.name }
+          : {}),
+      },
+      ipAddress: actor.ip,
+    },
+    at,
+  );
+  return { ...submission, status, updatedAt: at, submittedAt, revision: revision.number };
+};
+
+/** A member as a group's submit leaves it (112). */
+export type SentMember = Submission & { issues: ManifestIssue[]; revision: number };
+
+/**
+ * Sends a group for review in the caller's transaction (112): every member checked as if all were
+ * in review, then all of them sent, or, if one can't go, none, with each member's outcome.
+ */
+export const sendGroup = async (
+  deps: SubmissionDeps,
+  repo: SubmissionRepository,
+  actor: SubmissionActor,
+  ids: readonly string[],
+  at: Date,
+  /** What was asked for; the rest was brought in, and leaves the group if it's on its way now. */
+  requested: ReadonlySet<string> = new Set(ids),
+): Promise<{ ok: true; sent: SentMember[] } | { ok: false; members: CheckedMember[] }> => {
+  // The scopes, locked in one order, so two groups sharing a scope don't wait on each other.
+  const scopes = new Set<string>();
+  for (const id of ids) {
+    const found = isId(id) ? await repo.find(id) : null;
+    if (found) scopes.add(found.scope.id);
+  }
+  for (const scope of [...scopes].sort()) await repo.lockScope(scope);
+  // Locked now: a draft brought in that someone (another tab) sent meanwhile is on its way, and
+  // what needs it counts it so; it isn't sent twice.
+  const live: string[] = [];
+  for (const id of ids) {
+    const found = isId(id) ? await repo.find(id) : null;
+    if (requested.has(id) || found?.status === "draft") live.push(id);
+  }
+  const checked = await checkGroup(deps, repo, actor, live, groupCheck);
+  if (!checked.ready) return { ok: false, members: checked.members };
+  const sent: SentMember[] = [];
+  for (const member of checked.members)
+    if (member.result === "ready")
+      sent.push({ ...(await send(repo, actor, member.submission, at)), issues: member.issues });
+  return { ok: true, sent };
+};
+
+/**
+ * Submits the draft (or resubmits one sent back), with the person's own drafts it needs (112), in
+ * one transaction: all of them, or, when one isn't ready, none. `with` lists the others it sent.
  */
 export const submitDraft = async (
   deps: SubmissionDeps,
   actor: SubmissionActor,
   id: string,
-): Promise<Submission & { issues: ManifestIssue[]; revision: number }> => {
+): Promise<SentMember & { with: SentMember[] }> => {
   const at = now(deps);
   return deps.repo.transaction(async (repo) => {
     const submission = await own(repo, actor, id);
-    const action = sendAction(submission.status);
-    const status = transition(submission.status, action);
+    transition(submission.status, sendAction(submission.status));
     requireMember(actor, submission.workspace);
-    await repo.lockScope(submission.scope.id);
-    const issues = await allIssues(deps, repo, submission);
-    if (hasErrors(issues)) throw new SubmissionInvalidError(issues);
-
-    const files = await repo.files(submission.id);
-    const submittedAt = submission.submittedAt ?? at;
-    await repo.setStatus(submission.id, status, { updatedAt: at, submittedAt });
-    const revision = await repo.createRevision(submission.id, actor.user?.id ?? "", files, at);
-    await repo.addEvent({
-      submissionId: submission.id,
-      actorId: actor.user?.id ?? "",
-      kind: action,
-      body: null,
-      revision: revision.number,
-      createdAt: at,
-    });
-    const manifestFile = files.find((f) => f.path === MANIFEST_PATH);
-    const manifest = manifestFile
-      ? parseManifest(new TextDecoder().decode(fileBytes(manifestFile))).manifest
-      : null;
-    await repo.recordAudit(
-      {
-        actorId: actor.user?.id ?? null,
-        action: action === "submit" ? "submission.submitted" : "submission.resubmitted",
-        target: { type: "submission", id: submission.id },
-        metadata: {
-          name: itemNameOf(submission),
-          type: submission.type,
-          revision: revision.number,
-          dependencies: (manifest?.dependencies ?? {}) as Record<string, string>,
-          ...(actor.token
-            ? { via: "api", tokenId: actor.token.id, tokenName: actor.token.name }
-            : {}),
-        },
-        ipAddress: actor.ip,
-      },
-      at,
-    );
-    return {
-      ...submission,
-      status,
-      updatedAt: at,
-      submittedAt,
-      issues,
-      revision: revision.number,
-    };
+    const [group] = await submitGroups(repo, actor, [id]);
+    const result = await sendGroup(deps, repo, actor, group?.ids ?? [id], at, new Set([id]));
+    if (!result.ok) {
+      // The item itself: gone or sent meanwhile (another tab), or its group isn't ready.
+      const member = result.members.find((m) => m.id === id);
+      if (!member || member.result === "not_found") throw new SubmissionNotFoundError();
+      if (member.result === "not_submittable")
+        throw new InvalidStatusTransitionError(
+          member.submission.status,
+          sendAction(member.submission.status),
+        );
+      throw new SubmissionInvalidError(member.issues);
+    }
+    const item = result.sent.find((m) => m.id === id);
+    if (!item) throw new SubmissionNotFoundError();
+    return { ...item, with: result.sent.filter((m) => m.id !== id) };
   });
 };
 

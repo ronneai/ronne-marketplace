@@ -36,6 +36,8 @@ const planData = (plan: Awaited<ReturnType<typeof planSubmit>>) => ({
   included: plan.ready.filter((d) => d.includedFor),
   notReady: plan.notReady,
   order: plan.order,
+  /** Drafts that need each other (112): submitted and released together. */
+  together: plan.together,
   more: plan.more,
 });
 

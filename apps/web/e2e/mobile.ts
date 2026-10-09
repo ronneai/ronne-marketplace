@@ -8,18 +8,24 @@ const PROJECT_USERS = {
     moderator: "phoneModerator",
     root: "phoneRoot",
     problems: "phoneProblems",
+    together: "phoneTogether",
+    togetherModerator: "phoneTogetherModerator",
   },
   "phone-webkit": {
     member: "phoneWebkitMember",
     moderator: "phoneWebkitModerator",
     root: "phoneWebkitRoot",
     problems: "phoneWebkitProblems",
+    together: "phoneWebkitTogether",
+    togetherModerator: "phoneWebkitTogetherModerator",
   },
   tablet: {
     member: "tabletMember",
     moderator: "tabletModerator",
     root: "tabletRoot",
     problems: "tabletProblems",
+    together: "tabletTogether",
+    togetherModerator: "tabletTogetherModerator",
   },
 } as const satisfies Record<string, Record<string, keyof typeof E2E_USERS>>;
 

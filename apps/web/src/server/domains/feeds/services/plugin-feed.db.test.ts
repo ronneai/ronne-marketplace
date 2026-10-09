@@ -269,6 +269,36 @@ describe("the Claude Code feed (077)", () => {
     expect(listed?.sha256).toBe(sha256);
   });
 
+  it("builds a plugin with items that need each other, every one of them (112)", async () => {
+    // The skill names the agent back: what releasing them together records (112).
+    const style = await kyselyItemRepository(t.db, t.dialect, UNFILTERED).findByName(
+      "team",
+      "style",
+    );
+    const latest = await t.db
+      .selectFrom("item_versions")
+      .select("id")
+      .where("item_id", "=", style?.id ?? "")
+      .where("version", "=", "1.1.0")
+      .executeTakeFirstOrThrow();
+    await t.db
+      .insertInto("version_dependencies")
+      .values({
+        version_id: latest.id,
+        depends_on_item_id: itemIds.get("reviewer") ?? "",
+        range: "^2.0.0",
+      })
+      .execute();
+    const ref = { scope: "team", name: "reviewer", version: "2.0.0" };
+    const { bytes } = await downloadPlugin(deps(), actor, "claude-code", ref);
+    expect(Object.keys(unzipSync(bytes)).sort()).toEqual([
+      ".claude-plugin/plugin.json",
+      "agents/reviewer.md",
+      "skills/style/SKILL.md",
+      "skills/style/ronne.yaml",
+    ]);
+  });
+
   it("builds each version's plugin once, and again only for a new builder version", async () => {
     await feedPlugins(deps(), actor, "claude-code");
     await feedPlugins(deps(), actor, "claude-code");

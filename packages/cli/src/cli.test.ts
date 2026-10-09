@@ -700,7 +700,7 @@ describe("rmk export with dependencies (041)", () => {
     );
     expect(drafts.map((d) => d.name)).toEqual(["@team/github", "@team/secure", "@team/reviewer"]);
     expect(result.stdout).toContain(
-      "@team/github and @team/secure must be in review first: once they are ready, rmk submit @team/reviewer submits them first.",
+      "rmk submit @team/reviewer takes @team/github and @team/secure with it, all or none.",
     );
   });
 

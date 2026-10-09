@@ -76,6 +76,18 @@ export const E2E_USERS = {
   phoneProblems: "phone-problems@e2e.test",
   phoneWebkitProblems: "phone-webkit-problems@e2e.test",
   tabletProblems: "tablet-problems@e2e.test",
+  // 112: two drafts that need each other, submitted, approved, released and installed together;
+  // an author and a moderator per project, so their sign-ins have the limit to themselves. Their
+  // emails sort after root's: Admin › Users lists 50 by email, and user-admin finds root's row on
+  // the first page.
+  togetherAuthor: "together-author@e2e.test",
+  togetherModerator: "together-moderator@e2e.test",
+  phoneTogether: "together-phone@e2e.test",
+  phoneTogetherModerator: "together-phone-moderator@e2e.test",
+  phoneWebkitTogether: "together-ios@e2e.test",
+  phoneWebkitTogetherModerator: "together-ios-moderator@e2e.test",
+  tabletTogether: "together-tablet@e2e.test",
+  tabletTogetherModerator: "together-tablet-moderator@e2e.test",
 } as const;
 
 /** The display names, which the header shows (not the email). */
@@ -145,6 +157,14 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   phoneProblems: "Phone Problems",
   phoneWebkitProblems: "Ios Problems",
   tabletProblems: "Tab Problems",
+  togetherAuthor: "Tog Author",
+  togetherModerator: "Tog Moderator",
+  phoneTogether: "Phone Together",
+  phoneTogetherModerator: "Phone Together Mod",
+  phoneWebkitTogether: "Ios Together",
+  phoneWebkitTogetherModerator: "Ios Together Mod",
+  tabletTogether: "Tab Together",
+  tabletTogetherModerator: "Tab Together Mod",
 };
 
 /** Seeded with the moderator role; everyone else is a user. */
@@ -162,6 +182,10 @@ export const E2E_MODERATORS: readonly (keyof typeof E2E_USERS)[] = [
   "phoneModerator",
   "phoneWebkitModerator",
   "tabletModerator",
+  "togetherModerator",
+  "phoneTogetherModerator",
+  "phoneWebkitTogetherModerator",
+  "tabletTogetherModerator",
 ];
 
 /** Seeded as root, besides the root setup creates (more than one root since 059). */

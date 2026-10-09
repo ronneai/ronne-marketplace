@@ -131,7 +131,7 @@ describe("releaseMany (055)", () => {
     expect(published.map((e) => (e.metadata as { via?: string }).via)).toEqual(["bulk", "bulk"]);
   });
 
-  it("skips a dependent when its dependency in the batch fails, and releases the rest", async () => {
+  it("releases none of a group whose member fails, and the rest of the batch (112)", async () => {
     await approved(await server("github"));
     const kit = await approved(await bundle("kit", ["github"]));
     const other = await approved(await server("other"));
@@ -143,12 +143,14 @@ describe("releaseMany (055)", () => {
       },
     };
     const results = await release(asAuthor, [kit, other], failing);
+    // The kit and the server it needs go together: neither goes; the other one does.
     expect(results.map((r) => [r.result, r.name])).toEqual([
       ["not_releasable", "@team/github"],
-      ["skipped", "@team/kit"],
+      ["not_releasable", "@team/kit"],
       ["published", "@team/other"],
     ]);
     expect(results[0]).toMatchObject({ reason: expect.stringContaining("The disk is full.") });
+    expect(results[1]).toMatchObject({ reason: expect.stringContaining("none went") });
   });
 
   it("refuses a dependent whose dependency is still in review, or yanked", async () => {
@@ -192,7 +194,7 @@ describe("releaseMany (055)", () => {
     expect((await release(asModerator, [theirs]))[0]).toMatchObject({ result: "published" });
   });
 
-  it("refuses the second of two proposals for one item once the first is out", async () => {
+  it("takes one of two proposals for one item at a time (112)", async () => {
     const github = await approved(await server("github"));
     await publishSubmission(
       asAuthor,
@@ -226,8 +228,14 @@ describe("releaseMany (055)", () => {
       proposals.push(await approved(proposal.id));
     }
     const results = await release(asAuthor, proposals);
-    expect(results.map((r) => r.result)).toEqual(["published", "not_releasable"]);
-    expect(results[1]).toMatchObject({ reason: expect.stringContaining("1.1.0") });
+    // The second waits for the first: it would be stale once the first is out.
+    expect(results.map((r) => [r.id, r.result])).toEqual([
+      [proposals[1], "not_releasable"],
+      [proposals[0], "published"],
+    ]);
+    expect(results[0]).toMatchObject({
+      reason: "Another change to @team/github is in this batch: release them one at a time.",
+    });
   });
 
   it("releases each once when two people release the same ones at once", async () => {

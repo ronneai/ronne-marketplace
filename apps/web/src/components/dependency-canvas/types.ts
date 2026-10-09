@@ -12,6 +12,8 @@ export type { DependencyFacts, PickerEntry, UnreleasedStatus };
 export type NodeReport = {
   facts: DependencyFacts | null;
   problems: string[];
+  /** Warnings from the same checks (112), which don't stop it. */
+  warnings?: string[];
   /** One of the person's own on its way (089), shown instead of "not published". */
   status?: UnreleasedStatus | null;
 };
@@ -29,6 +31,8 @@ export type DependencyNodeData = {
   /** From the catalogue: null if it isn't published, undefined until the registry has answered. */
   facts: DependencyFacts | null | undefined;
   problems: string[];
+  /** Warnings (112): shown in amber, and the node stays as it is. */
+  warnings?: string[];
   /** One of the person's own on its way (089). */
   status?: UnreleasedStatus | null;
 };

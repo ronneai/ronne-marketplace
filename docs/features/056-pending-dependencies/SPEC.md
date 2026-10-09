@@ -1,5 +1,7 @@
 # 056 — Dependencies on their way
 
+> **Since [112](../112-dependency-cycles/SPEC.md)** (owner, 2026-10-08): an author's own dependency drafts are submitted *with* the item, and its unreleased dependencies released *with* it, all or none, instead of first; cycles are allowed. The rest of this spec stands.
+>
 > Milestone: M7 · Depends on: 013, 014, 015, 041, 052, 054 · Design: [MVP §4.1](../../MVP/MVP.md#41-submission-lifecycle-new-item-or-change-proposal), [§4.2](../../MVP/MVP.md#42-release), [§15](../../MVP/MVP.md) · Contracts: none new
 
 ## Goal

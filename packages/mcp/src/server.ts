@@ -282,7 +282,7 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
       .boolean()
       .optional()
       .describe(
-        "false to leave out the person's own drafts these depend on; by default they're included and go first",
+        "false to leave out the person's own drafts these depend on; by default they're included and go with them, all or none",
       ),
   };
 
@@ -291,7 +291,7 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
     {
       title: "Check drafts before submitting",
       description:
-        "Says which of the person's drafts Submit would take now and what's in the way of the others (missing description, a dependency not in review yet, a taken name…). The person's own drafts that these depend on are included, and go first. Sends nothing. Show it to the person; submit with submit_drafts if they agree.",
+        "Says which of the person's drafts Submit would take now and what's in the way of the others (missing description, a dependency not in review yet, a taken name…). The person's own drafts that these depend on are included, and go with them, all or none; drafts that need each other are named. Sends nothing. Show it to the person; submit with submit_drafts if they agree.",
       inputSchema: selection,
       annotations: planning,
     },

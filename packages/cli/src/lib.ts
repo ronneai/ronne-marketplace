@@ -30,7 +30,7 @@ export {
   type SourceTool,
   uploadExport,
 } from "./export.js";
-export { previewText, releaseOrder } from "./export-command.js";
+export { previewText, releaseOrder, togetherOf } from "./export-command.js";
 export type { Finding, FindingStatus } from "./export-dependencies.js";
 export {
   chooseTargets,
@@ -64,6 +64,7 @@ export {
   type SubmitResult,
   sendSubmit,
   submitLines,
+  togetherLine,
 } from "./submit.js";
 export { flushAfterCommand } from "./telemetry.js";
 export { addUsageHooks } from "./usage-hooks.js";

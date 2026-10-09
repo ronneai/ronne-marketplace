@@ -6,7 +6,7 @@ import { languageFor } from "@/components/code/languages";
 import { SubmissionNotFoundError } from "@/server/domains/submissions/exceptions/errors";
 import type { Draft } from "@/server/domains/submissions/models/submission";
 import { changesOf, type FilesState, filesReducer, isDirty, newPathProblem } from "./files";
-import type { EditorFile } from "./types";
+import type { EditorFile, GroupMember } from "./types";
 
 const drafts = vi.hoisted(() => ({
   viewSubmission: vi.fn(),
@@ -28,7 +28,16 @@ vi.mock("next/navigation", () => ({
 vi.mock("./actions", () => ({}));
 
 const { DraftEditor } = await import("./DraftEditor");
-const { WithdrawDialog } = await import("./SubmitDialogs");
+const {
+  afterSubmit,
+  CHANGED_SINCE_CHECK,
+  GroupList,
+  SubmitOutcome,
+  submitBlocked,
+  submitLabel,
+  WithdrawDialog,
+} = await import("./SubmitDialogs");
+const { toPreview } = await import("./submit-preview");
 const { default: DraftPage } = await import("@/app/(app)/submissions/[id]/page");
 
 const T1 = "2026-09-27T10:00:00.000Z";
@@ -503,5 +512,129 @@ describe("WithdrawDialog (057)", () => {
     expect(html.match(/<input[^>]*value="delete"[^>]*>/)?.[0]).toContain('disabled=""');
     expect(html).toContain("Reviewers have commented on it or decided it. Archive it instead.");
     expect(html).toContain("2 submissions depend");
+  });
+});
+
+describe("the Submit dialog's group (112)", () => {
+  const member = (name: string, ready = true, extra: Partial<GroupMember> = {}): GroupMember => ({
+    id: `id-${name}`,
+    name,
+    neededBy: ["@team/agent"],
+    inCycle: false,
+    ready,
+    issues: [],
+    ...extra,
+  });
+
+  it("names the button by how many drafts go with it", () => {
+    expect(submitLabel(false, [])).toBe("Submit for review");
+    expect(submitLabel(true, [])).toBe("Resubmit for review");
+    expect(submitLabel(false, [member("@team/skill")])).toBe("Submit with 1 more draft");
+    expect(submitLabel(true, [member("@team/a"), member("@team/b")])).toBe(
+      "Resubmit with 2 more drafts",
+    );
+  });
+
+  it("says why Submit is off: a draft that isn't ready, or the item's own errors", () => {
+    const error = { severity: "error" as const, code: "x", message: "Broken." };
+    expect(submitBlocked(null)).toBeNull();
+    expect(
+      submitBlocked({ ok: true, issues: [], members: [member("@team/a")], inCycle: false }),
+    ).toBeNull();
+    expect(
+      submitBlocked({
+        ok: true,
+        issues: [],
+        members: [member("@team/a"), member("@team/b", false)],
+        inCycle: false,
+      }),
+    ).toBe("@team/b isn't ready: fix its errors first.");
+    expect(submitBlocked({ ok: true, issues: [error], members: [], inCycle: false })).toBe(
+      "Fix its errors first.",
+    );
+    expect(submitBlocked({ ok: false, error: "Not found.", issues: [] })).toBe("Not found.");
+  });
+
+  it("lists each draft with what needs it, a cycle, whether it's ready, and its problems", () => {
+    const html = renderToStaticMarkup(
+      <GroupList
+        itemName="@team/agent"
+        members={[
+          member("@team/skill", true, { inCycle: true }),
+          member("@team/rule", false, {
+            neededBy: ["@team/agent", "@team/skill"],
+            issues: [{ severity: "error", code: "schema", message: "The description is empty." }],
+          }),
+        ]}
+      />,
+    );
+    expect(html).toContain("Goes with 2 of your drafts:");
+    expect(html).toContain('aria-label="Drafts submitted with @team/agent"');
+    expect(html).toContain('href="/submissions/id-@team/skill"');
+    expect(html).toContain("needs each other");
+    expect(html).toContain("Needed by @team/agent and @team/skill");
+    expect(html.match(/>ready</g)).toHaveLength(1);
+    expect(html).toContain(">not ready<");
+    expect(html).toContain("The description is empty.");
+    expect(html).toContain("Why do these go together?");
+  });
+
+  it("says what went for review: the item and the drafts with it", () => {
+    const html = renderToStaticMarkup(
+      <SubmitOutcome itemName="@team/agent" sent={["@team/skill", "@team/rule"]} />,
+    );
+    expect(html).toContain('role="status"');
+    expect(html).toContain("Submitted @team/agent for review, with @team/skill and @team/rule.");
+  });
+
+  it("shapes the service's group for the dialog: the others, what needs them, the cycle", () => {
+    const of = (name: string): Draft => ({ ...draft(), id: `id-${name}`, name });
+    const warning = { severity: "warning" as const, code: "w", message: "Heads up." };
+    const preview = toPreview("id-agent", {
+      members: [
+        { id: "id-skill", result: "ready", submission: of("skill"), issues: [warning] },
+        { id: "id-rule", result: "not_ready", submission: of("rule"), issues: [] },
+        { id: "id-gone", result: "not_found" },
+        { id: "id-agent", result: "ready", submission: of("agent"), issues: [warning] },
+      ],
+      neededBy: new Map([["id-rule", ["@platform/skill"]]]),
+      cycles: [["id-skill", "id-agent"]],
+    });
+    expect(preview).toEqual({
+      ok: true,
+      issues: [warning],
+      inCycle: true,
+      members: [
+        {
+          id: "id-skill",
+          name: "@platform/skill",
+          neededBy: [],
+          inCycle: true,
+          ready: true,
+          issues: [warning],
+        },
+        {
+          id: "id-rule",
+          name: "@platform/rule",
+          neededBy: ["@platform/skill"],
+          inCycle: false,
+          ready: false,
+          issues: [],
+        },
+      ],
+    });
+  });
+
+  it("after Submit: refused, says so and checks again; sent along, says what; else closes", () => {
+    expect(afterSubmit({ ok: false, error: "The draft has 1 problem…", issues: [] })).toEqual({
+      next: "recheck",
+      message: CHANGED_SINCE_CHECK,
+    });
+    expect(afterSubmit({ ok: true, issues: [], sent: ["@team/skill"] })).toEqual({
+      next: "outcome",
+      sent: ["@team/skill"],
+    });
+    expect(afterSubmit({ ok: true, issues: [], sent: [] })).toEqual({ next: "close" });
+    expect(afterSubmit({ ok: true, issues: [] })).toEqual({ next: "close" });
   });
 });

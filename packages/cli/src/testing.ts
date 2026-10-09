@@ -542,6 +542,7 @@ export const submitRoutes = (drafts: FakeSubmitDraft[], taken: string[] = []) =>
               ...place(d),
               issues,
               ...included,
+              ...(d.includes?.length ? { needs: d.includes } : {}),
             };
           }),
           more: 0,

@@ -84,16 +84,7 @@ const approve = async (moderator: Page, id: string) => {
   await expect(moderator.getByText("approved it")).toBeVisible();
 };
 
-const publish = async (author: Page, id: string, name: string) => {
-  await author.goto(`/submissions/${id}`);
-  await author.getByRole("button", { name: "Publish", exact: true }).click();
-  const dialog = author.getByRole("dialog", { name: new RegExp(`Publish @${E2E_SCOPE}/${name}`) });
-  await dialog.getByRole("button", { name: "Publish 1.0.0" }).click();
-  await expect(dialog.getByText(`Published @${E2E_SCOPE}/${name} 1.0.0 as latest.`)).toBeVisible();
-  await dialog.getByRole("button", { name: "Done" }).click();
-};
-
-test("a bundle and its skill are reviewed together; the bundle is released after the skill", async ({
+test("a bundle and its skill are reviewed together, and released together (112)", async ({
   browser,
   request,
 }) => {
@@ -106,17 +97,22 @@ test("a bundle and its skill are reviewed together; the bundle is released after
 
   const author = await signedIn(browser, E2E_USERS.pendingAuthor);
   await author.goto(`/submissions/${kitId}`);
-  await expect(
-    author.getByRole("button", {
-      name: `Publish: Waits on @${E2E_SCOPE}/pd-skill (pending release)`,
-    }),
-  ).toBeDisabled();
   // In the form, the dependency carries its own badge: approved, not released yet.
   await expect(
     author.getByLabel(`Waits on @${E2E_SCOPE}/pd-skill (pending release)`, { exact: true }),
   ).toBeVisible();
-  await publish(author, skillId, "pd-skill");
-  await publish(author, kitId, "pd-kit");
+  // Publish takes the approved skill with it.
+  await author.getByRole("button", { name: "Publish", exact: true }).click();
+  const dialog = author.getByRole("dialog", { name: new RegExp(`Publish @${E2E_SCOPE}/pd-kit`) });
+  await expect(
+    dialog.getByRole("list", { name: "Released with it" }).getByText(`@${E2E_SCOPE}/pd-skill`),
+  ).toBeVisible();
+  await dialog.getByRole("button", { name: "Publish 1.0.0" }).click();
+  await expect(
+    dialog.getByText(
+      `Published @${E2E_SCOPE}/pd-kit 1.0.0 as latest, with @${E2E_SCOPE}/pd-skill 1.0.0.`,
+    ),
+  ).toBeVisible();
 });
 
 test("rejecting a skill sends the bundle that uses it back to its author", async ({

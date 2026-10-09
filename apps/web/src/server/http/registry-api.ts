@@ -177,10 +177,9 @@ const stringMap = (value: unknown): Record<string, string> | null => {
     : null;
 };
 
-/** The status for each resolver failure: conflicts and cycles are 409, missing things 404. */
+/** The status for each resolver failure: conflicts are 409, missing things 404. */
 const RESOLVE_STATUS = {
   resolve_conflict: 409,
-  dependency_cycle: 409,
   item_not_found: 404,
   tag_not_found: 404,
   no_matching_version: 404,

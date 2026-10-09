@@ -8,7 +8,10 @@ export type { DependencyFacts };
  */
 export type DependencyReport = {
   facts: DependencyFacts | null;
+  /** What would stop it: errors. */
   problems: string[];
+  /** What to know, which doesn't stop it (112): it goes with this item, they need each other. */
+  warnings?: string[];
   /** For one that isn't published: the person's own submission's status, if it's theirs (089). */
   status?: UnreleasedStatus | null;
 };

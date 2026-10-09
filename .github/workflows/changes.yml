@@ -3,12 +3,17 @@ name: Changes
 # Reusable: tells the other workflows whether a pull request only changes documentation (.md, .mdx,
 # .txt; the same rule as the pre-commit hook). Pushes, scheduled and manual runs always need checks.
 # Callers skip their heavy steps only when `code` is exactly "false", so a failure here runs everything.
+# `database` (112) says which database tests a pull request runs on the servers: "core" (the
+# database code's own tests) unless it changes database code; anything but "core" runs them all.
 on:
   workflow_call:
     outputs:
       code:
         description: '"false" when the pull request only changes documentation; "true" otherwise'
         value: ${{ jobs.detect.outputs.code }}
+      database:
+        description: '"core" when a pull request changes no database code; "all" otherwise (db-scope.js)'
+        value: ${{ jobs.detect.outputs.database }}
 
 permissions:
   contents: read
@@ -20,6 +25,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       code: ${{ steps.detect.outputs.code }}
+      database: ${{ steps.detect.outputs.database }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -32,6 +38,7 @@ jobs:
         run: |
           if [ "$EVENT" != "pull_request" ]; then
             echo "code=true" >> "$GITHUB_OUTPUT"
+            echo "database=all" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           files=$(git diff --name-only HEAD^1 HEAD)
@@ -39,3 +46,6 @@ jobs:
           code=$(printf '%s\n' "$files" | node packages/repo-tools/src/docs-only.js)
           echo "Needs the full checks: $code"
           echo "code=$code" >> "$GITHUB_OUTPUT"
+          database=$(printf '%s\n' "$files" | node packages/repo-tools/src/db-scope.js)
+          echo "Database tests on the servers: $database"
+          echo "database=$database" >> "$GITHUB_OUTPUT"

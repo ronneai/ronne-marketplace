@@ -170,8 +170,9 @@ No type block. A bundle is a `name`, `description` and `dependencies`. The visua
 
 Any item may depend on any item, of any type ([096](../features/096-any-dependency/SPEC.md),
 owner 2026-10-05): a skill on the agent it works with, a rule on an MCP server, an agent on another
-agent. A `bundle` must list at least one dependency. An item can't depend on itself, and the
-dependencies can't go round in a circle (MVP §4.3). Until 096, the type decided: a bundle on
+agent. A `bundle` must list at least one dependency. An item can't depend on itself. Items may
+need each other (a cycle): they're submitted, released and installed together (MVP §4.1, §4.3,
+[112](../features/112-dependency-cycles/SPEC.md)). Until 096, the type decided: a bundle on
 anything, an agent on skills, MCP servers, hooks, rules and commands, a skill or command on MCP
 servers, and the other types on nothing.
 
@@ -215,6 +216,7 @@ Used in `agent.tools`, `hook.matcher.tool` and `permission-policy` rules. Render
 2. **Package checks** (`packages/core`): every referenced file exists; `SKILL.md` frontmatter
    matches; no path escapes the folder; the upload limits in MVP §12 hold.
 3. **Registry checks** (server): the scope exists; dependencies exist (any type, §3), and each range matches at
-   least one published version; no cycles; the type hasn't changed since the item was created.
+   least one published version, or goes with this item (MVP §4.1); a cycle is a warning, not an
+   error (112); the type hasn't changed since the item was created.
 
 Risk flags (MVP §12) are computed from the manifest and files. Authors can't set them.

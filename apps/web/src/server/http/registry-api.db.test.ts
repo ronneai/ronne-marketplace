@@ -444,6 +444,26 @@ describe("POST /resolve", () => {
     expect(locked.json.items["@team/mcp"].version).toBe("1.0.0");
   });
 
+  it("resolves items that need each other, one version each (112)", async () => {
+    const pong = await release("pong");
+    const ping = await release("ping", { dependsOn: { "@team/pong": "^1.0.0" } });
+    // And back: what releasing them together records (112).
+    await t.db
+      .insertInto("version_dependencies")
+      .values({
+        version_id: pong.ids["1.0.0"] ?? "",
+        depends_on_item_id: ping.itemId,
+        range: "^1.0.0",
+      })
+      .execute();
+    const { status, json } = await body(
+      await postResolve(post({ dependencies: { "@team/ping": "^1.0.0" } }), deps),
+    );
+    expect(status).toBe(200);
+    expect(json.items["@team/ping"]).toMatchObject({ dependencies: { "@team/pong": "1.0.0" } });
+    expect(json.items["@team/pong"]).toMatchObject({ dependencies: { "@team/ping": "1.0.0" } });
+  });
+
   it("answers conflicts with who asked, and missing items, tags and versions", async () => {
     await release("mcp", { type: "mcp-server", versions: ["1.0.0", "2.0.0"] });
     await release("skill", { dependsOn: { "@team/mcp": "^2.0.0" } });

@@ -21,8 +21,8 @@ export const isItemType = (value: string): value is ItemType => {
 
 /**
  * Which types each type may depend on (manifest spec §3): since 096, any type on any type, so
- * people compose what works for them. Cycles and an item on itself are still refused, by the
- * package checks and the registry. Kept as a table so callers ask one place.
+ * people compose what works for them. An item on itself is still refused (the package checks);
+ * items that need each other are allowed since 112. Kept as a table so callers ask one place.
  */
 export const DEPENDENCY_TYPES: Record<ItemType, readonly ItemType[]> = {
   skill: ITEM_TYPES,

@@ -17,6 +17,8 @@ import {
   RmkError,
   releaseOrder,
   type Scopes,
+  togetherLine,
+  togetherOf,
   uploadExport,
 } from "@ronneai/rmk/lib";
 import type { PlanStore } from "./plan-tools.js";
@@ -319,10 +321,25 @@ const draftLines = (exported: ExportedItem[]) =>
     ];
   });
 
-const orderLines = (order: ReturnType<typeof releaseOrder>) => order.map(orderLine);
+/** What export_items says about the order (056, 112): what Submit takes along, and each cycle. */
+export const orderLines = (
+  order: ReturnType<typeof releaseOrder>,
+  together: readonly string[][],
+) => [...order.map(orderLine), ...together.map(togetherLine)];
 
 const REMINDER =
   "Nothing is submitted: the person opens each draft, checks it, and submits it in the web app, or asks you to (check_drafts, then submit_drafts).";
+
+/** What export_items answers once it's uploaded: the drafts, the order and each cycle (112). */
+export const exportedAnswer = (plan: ExportPlan, exported: ExportedItem[]): ToolAnswer => {
+  const order = releaseOrder(plan, exported);
+  const together = togetherOf(plan, exported);
+  return answer([...draftLines(exported), ...orderLines(order, together), REMINDER], {
+    exported,
+    ...(order.length > 0 ? { order } : {}),
+    ...(together.length > 0 ? { together } : {}),
+  });
+};
 
 /**
  * Uploads exactly the plan the person saw, once: the folders are planned again, and a plan whose
@@ -349,11 +366,7 @@ export const exportItemsTool = async (
     );
   try {
     const exported = await uploadExport(api, plan);
-    const order = releaseOrder(plan, exported);
-    return answer([...draftLines(exported), ...orderLines(order), REMINDER], {
-      exported,
-      ...(order.length > 0 ? { order } : {}),
-    });
+    return exportedAnswer(plan, exported);
   } catch (error) {
     if (!(error instanceof RmkError) || !Array.isArray(error.details.exported)) throw error;
     const exported = error.details.exported as ExportedItem[];

@@ -228,19 +228,117 @@ describe("resolve", () => {
     ).toMatchObject({ code: "resolve_conflict", details: { item: "@t/b" } });
   });
 
-  it("refuses a dependency cycle, and unknown items", async () => {
+  it("installs items that need each other, one version each, and refuses unknown items (112)", async () => {
     const reg = registry({
       "@t/a": { versions: [{ version: "1.0.0", dependencies: { "@t/b": "^1.0.0" } }] },
-      "@t/b": { versions: [{ version: "1.0.0", dependencies: { "@t/a": "^1.0.0" } }] },
+      "@t/b": {
+        versions: [
+          { version: "1.0.0", dependencies: { "@t/a": "^1.0.0" } },
+          { version: "1.1.0", dependencies: { "@t/a": "^1.0.0" } },
+        ],
+      },
     });
-    expect(await failure(resolve({ dependencies: { "@t/a": "^1.0.0" } }, reg))).toMatchObject({
-      code: "dependency_cycle",
-      details: { cycle: ["@t/a", "@t/b", "@t/a"] },
-    });
+    const pair = await resolve({ dependencies: { "@t/a": "^1.0.0" } }, reg);
+    expect(versions(pair)).toEqual({ "@t/a": "1.0.0", "@t/b": "1.1.0" });
+    expect(pair.items["@t/b"]?.dependencies).toEqual({ "@t/a": "1.0.0" });
+    // Asked for from either side, the same answer.
+    expect(versions(await resolve({ dependencies: { "@t/b": "^1.0.0" } }, reg))).toEqual(
+      versions(pair),
+    );
     expect(await failure(resolve({ dependencies: { "@t/nope": "^1.0.0" } }, reg))).toMatchObject({
       code: "item_not_found",
       message: "@t/nope isn't a published item.",
       details: { item: "@t/nope" },
+    });
+  });
+
+  it("resolves a cycle of three, and two cycles joined by a plain dependency (112)", async () => {
+    const reg = registry({
+      "@t/a": { versions: [{ version: "1.0.0", dependencies: { "@t/b": "^1.0.0" } }] },
+      "@t/b": { versions: [{ version: "1.0.0", dependencies: { "@t/c": "^1.0.0" } }] },
+      "@t/c": {
+        versions: [{ version: "1.0.0", dependencies: { "@t/a": "^1.0.0", "@t/d": "^1.0.0" } }],
+      },
+      "@t/d": { versions: [{ version: "1.0.0", dependencies: { "@t/e": "^1.0.0" } }] },
+      "@t/e": { versions: [{ version: "1.0.0", dependencies: { "@t/d": "^1.0.0" } }] },
+    });
+    expect(versions(await resolve({ dependencies: { "@t/b": "^1.0.0" } }, reg))).toEqual({
+      "@t/a": "1.0.0",
+      "@t/b": "1.0.0",
+      "@t/c": "1.0.0",
+      "@t/d": "1.0.0",
+      "@t/e": "1.0.0",
+    });
+  });
+
+  it("drops a pair that needs each other once nothing else reaches it (112)", async () => {
+    // @t/x 1.1.0 brings @t/a, which needs @t/b and back. @t/y then pins @t/x to 1.0.0, which needs
+    // nothing: @t/a and @t/b still ask for each other, but no request reaches them any more.
+    const reg = registry({
+      "@t/x": {
+        versions: [{ version: "1.0.0" }, { version: "1.1.0", dependencies: { "@t/a": "^1.0.0" } }],
+      },
+      "@t/y": { versions: [{ version: "1.0.0", dependencies: { "@t/x": "~1.0.0" } }] },
+      "@t/a": { versions: [{ version: "1.0.0", dependencies: { "@t/b": "^1.0.0" } }] },
+      "@t/b": { versions: [{ version: "1.0.0", dependencies: { "@t/a": "^1.0.0" } }] },
+    });
+    const result = await resolve({ dependencies: { "@t/x": "^1.0.0", "@t/y": "^1.0.0" } }, reg);
+    expect(versions(result)).toEqual({ "@t/x": "1.0.0", "@t/y": "1.0.0" });
+    expect(reg.reads).toContain("@t/a");
+  });
+
+  it("doesn't let a pair nothing reaches cause a conflict, nor blame it (112)", async () => {
+    // @t/a 2.0.0 brings @t/p ↔ @t/q at 1.0.0; @t/z then wants @t/a <2 and @t/q ^2. @t/p only asks
+    // for @t/q ^1 because @t/q 1.0.0 brings it: once @t/q is 2.0.0, @t/p goes.
+    const spec = (q: V[]) =>
+      registry({
+        "@t/a": {
+          versions: [{ version: "1.0.0" }, { version: "2.0.0", dependencies: { "@t/p": "^1" } }],
+        },
+        "@t/p": { versions: [{ version: "1.0.0", dependencies: { "@t/q": "^1" } }] },
+        "@t/q": { versions: q },
+        "@t/z": { versions: [{ version: "1.0.0", dependencies: { "@t/a": "<2", "@t/q": "^2" } }] },
+      });
+    const request = { dependencies: { "@t/a": "*", "@t/z": "*" } };
+    const both = spec([{ version: "1.0.0", dependencies: { "@t/p": "^1" } }, { version: "2.0.0" }]);
+    expect(versions(await resolve(request, both))).toEqual({
+      "@t/a": "1.0.0",
+      "@t/q": "2.0.0",
+      "@t/z": "1.0.0",
+    });
+    // With no @t/q 2.0.0, the error names only what still asks: @t/z.
+    const only = spec([{ version: "1.0.0", dependencies: { "@t/p": "^1" } }]);
+    expect(await failure(resolve(request, only))).toMatchObject({
+      code: "no_matching_version",
+      message: "@t/q has no published version that fits ^2 (@t/z@1.0.0).",
+    });
+  });
+
+  it("stops going back and forth when a cycle asks the item that brought it to change (112)", async () => {
+    // @t/root 2.0.0 brings @t/x ↔ @t/y, and @t/y wants @t/root ^1: only @t/root 1.0.0, alone, fits.
+    const reg = registry({
+      "@t/root": {
+        versions: [{ version: "1.0.0" }, { version: "2.0.0", dependencies: { "@t/x": "^1" } }],
+      },
+      "@t/x": { versions: [{ version: "1.0.0", dependencies: { "@t/y": "^1" } }] },
+      "@t/y": {
+        versions: [{ version: "1.0.0", dependencies: { "@t/x": "^1", "@t/root": "^1" } }],
+      },
+    });
+    expect(versions(await resolve({ dependencies: { "@t/root": "*" } }, reg))).toEqual({
+      "@t/root": "1.0.0",
+    });
+  });
+
+  it("still reports a conflict a cycle really causes (112)", async () => {
+    // @t/a needs @t/b, and @t/b needs @t/a ^2, which doesn't exist: no answer.
+    const reg = registry({
+      "@t/a": { versions: [{ version: "1.0.0", dependencies: { "@t/b": "^1" } }] },
+      "@t/b": { versions: [{ version: "1.0.0", dependencies: { "@t/a": "^2" } }] },
+    });
+    expect(await failure(resolve({ dependencies: { "@t/a": "^1" } }, reg))).toMatchObject({
+      code: "resolve_conflict",
+      details: { item: "@t/a" },
     });
   });
 

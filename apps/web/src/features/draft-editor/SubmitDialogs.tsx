@@ -1,9 +1,11 @@
 "use client";
 
 import { hasErrors } from "@ronneai/core";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { Help } from "@/components/help/Help";
+import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError } from "@/components/ui/Field";
@@ -16,7 +18,108 @@ import {
   withdrawAction,
   withdrawInfoAction,
 } from "./actions";
-import type { SubmitResult } from "./types";
+import type { GroupMember, SubmitPreview, SubmitResult } from "./types";
+
+/** "@a", "@a and @b", "@a, @b and @c". */
+const names = (list: readonly string[]) =>
+  list.length < 2 ? (list[0] ?? "") : `${list.slice(0, -1).join(", ")} and ${list.at(-1)}`;
+
+/**
+ * Why Submit is off (112), or null: the item's own errors, or the first of its drafts that isn't
+ * ready. Nothing while it's checking.
+ */
+export const submitBlocked = (result: SubmitPreview | SubmitResult | null): string | null => {
+  if (!result) return null;
+  if (!result.ok) return result.error;
+  const waiting = "members" in result ? result.members.find((m) => !m.ready) : undefined;
+  if (waiting) return `${waiting.name} isn't ready: fix its errors first.`;
+  return hasErrors(result.issues) ? "Fix its errors first." : null;
+};
+
+/** The button's words: Submit alone, or with how many more of the person's drafts (112). */
+export const submitLabel = (resubmit: boolean, members: readonly GroupMember[]) => {
+  const verb = resubmit ? "Resubmit" : "Submit";
+  return members.length === 0
+    ? `${verb} for review`
+    : `${verb} with ${members.length} more ${members.length === 1 ? "draft" : "drafts"}`;
+};
+
+/** Said when Submit is refused after the check (112): the dialog then checks again. */
+export const CHANGED_SINCE_CHECK =
+  "Something changed since the check: here's where each draft stands now.";
+
+/**
+ * What the dialog does after Submit (112): refused, it says so and checks again; with drafts sent
+ * along, it says what went; otherwise it closes, as before.
+ */
+export const afterSubmit = (
+  submitted: SubmitResult,
+):
+  | { next: "recheck"; message: string }
+  | { next: "outcome"; sent: string[] }
+  | { next: "close" } =>
+  !submitted.ok
+    ? { next: "recheck", message: CHANGED_SINCE_CHECK }
+    : submitted.sent && submitted.sent.length > 0
+      ? { next: "outcome", sent: submitted.sent }
+      : { next: "close" };
+
+/** What went for review (112): the item, and the drafts that went with it. */
+export const SubmitOutcome = ({
+  itemName,
+  sent,
+}: {
+  itemName: string;
+  sent: readonly string[];
+}) => (
+  <p role="status" className="text-sm text-fg">
+    <span className="mr-2 font-mono text-xs font-semibold">OK:</span>
+    Submitted {itemName} for review, with {names(sent)}.
+  </p>
+);
+
+/**
+ * The person's own drafts that go with the item (112), dependencies first: each with what brings
+ * it in, whether it and another need each other, and its checks, linking to the draft.
+ */
+export const GroupList = ({
+  itemName,
+  members,
+}: {
+  itemName: string;
+  members: readonly GroupMember[];
+}) => (
+  <section aria-labelledby="submit-group" className="grid gap-2">
+    <div className="flex flex-wrap items-center gap-2">
+      <h3 id="submit-group" className="text-sm font-semibold text-fg">
+        Goes with {members.length} of your drafts:
+      </h3>
+      <Help id="submit-together" />
+    </div>
+    <ul className="grid gap-3" aria-label={`Drafts submitted with ${itemName}`}>
+      {members.map((member) => (
+        <li key={member.id} className="grid gap-1 rounded-control border border-hairline p-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href={`/submissions/${member.id}`}
+              className="font-mono text-sm text-fg underline"
+            >
+              {member.name}
+            </Link>
+            {member.inCycle ? <Badge tone="warning">needs each other</Badge> : null}
+            <Badge tone={member.ready ? "accent" : "error"}>
+              {member.ready ? "ready" : "not ready"}
+            </Badge>
+          </div>
+          {member.neededBy.length > 0 ? (
+            <p className="text-xs text-muted">Needed by {names(member.neededBy)}</p>
+          ) : null}
+          {member.issues.length > 0 ? <IssueList issues={member.issues} /> : null}
+        </li>
+      ))}
+    </ul>
+  </section>
+);
 
 /**
  * Submit for review (feature 013). It first runs every check on the saved files, 011's and the
@@ -38,8 +141,11 @@ export const SubmitDialog = ({
   onClose: () => void;
 }) => {
   const router = useRouter();
-  const [result, setResult] = useState<SubmitResult | null>(null);
-  const label = resubmit ? "Resubmit for review" : "Submit for review";
+  const [result, setResult] = useState<SubmitPreview | SubmitResult | null>(null);
+  const [sent, setSent] = useState<string[] | null>(null);
+  const [refused, setRefused] = useState<string | null>(null);
+  const members = result?.ok && "members" in result ? result.members : [];
+  const label = submitLabel(resubmit, members);
   const [checking, startCheck] = useTransition();
   const [submitting, startSubmit] = useTransition();
 
@@ -48,10 +154,15 @@ export const SubmitDialog = ({
     startCheck(async () => setResult(await checkSubmissionAction(draftId)));
   }, [dirty, draftId]);
 
-  const blocked = !result?.ok || hasErrors(result.issues);
+  const blocked = submitBlocked(result);
+  // Once something went for review, closing in any way shows the page as it is now.
+  const closeSent = () => {
+    onClose();
+    router.refresh();
+  };
 
   return (
-    <Dialog open onClose={onClose} title={label}>
+    <Dialog open onClose={sent ? closeSent : onClose} title={submitLabel(resubmit, [])}>
       {dirty ? (
         <div className="grid gap-4">
           <p className="text-sm text-fg">
@@ -61,6 +172,13 @@ export const SubmitDialog = ({
             <Button variant="secondary" onClick={onClose}>
               Close
             </Button>
+          </DialogActions>
+        </div>
+      ) : sent ? (
+        <div className="grid gap-4">
+          <SubmitOutcome itemName={itemName} sent={sent} />
+          <DialogActions>
+            <Button onClick={closeSent}>Close</Button>
           </DialogActions>
         </div>
       ) : (
@@ -92,17 +210,26 @@ export const SubmitDialog = ({
               <Help id="after-submit" />
             </div>
           )}
+          {refused ? <FieldError id="submit-refused">{refused}</FieldError> : null}
+          {members.length > 0 && !checking ? (
+            <GroupList itemName={itemName} members={members} />
+          ) : null}
           <DialogActions>
             <Button variant="secondary" onClick={onClose}>
               Cancel
             </Button>
             <Button
-              disabled={blocked || checking}
+              disabled={checking || !result}
+              disabledReason={blocked}
               loading={submitting}
               onClick={() =>
                 startSubmit(async () => {
-                  const submitted = await submitDraftAction(draftId);
-                  if (!submitted.ok) return setResult(submitted);
+                  const then = afterSubmit(await submitDraftAction(draftId));
+                  if (then.next === "recheck") {
+                    setRefused(then.message);
+                    return setResult(await checkSubmissionAction(draftId));
+                  }
+                  if (then.next === "outcome") return setSent(then.sent);
                   onClose();
                   router.refresh();
                 })

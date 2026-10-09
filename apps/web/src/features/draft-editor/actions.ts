@@ -14,7 +14,7 @@ import { rebaseProposal, resolveConflict } from "@/server/domains/submissions/ac
 import { countDependents } from "@/server/domains/submissions/actions/reviews";
 import {
   canDeleteSubmission,
-  checkSubmission,
+  checkSubmitGroup,
   deleteSubmission,
   restoreSubmission,
   submitDraft,
@@ -25,8 +25,10 @@ import {
   SubmissionInvalidError,
   SubmissionsError,
 } from "@/server/domains/submissions/exceptions/errors";
+import { itemNameOf } from "@/server/domains/submissions/models/submission";
 import { requestHeaders } from "@/server/http/request-headers";
-import type { ActionResult, SaveResult, SubmitResult } from "./types";
+import { toPreview } from "./submit-preview";
+import type { ActionResult, SaveResult, SubmitPreview, SubmitResult } from "./types";
 
 /** Domain and permission errors become a message; anything else is a real failure. */
 const message = (error: unknown): string => {
@@ -121,21 +123,23 @@ export const deleteDraftAction = async (id: string): Promise<ActionResult> => {
 };
 
 /** What submitting would say, for the confirmation dialog (feature 013). */
-export const checkSubmissionAction = async (id: string): Promise<SubmitResult> => {
+export const checkSubmissionAction = async (id: string): Promise<SubmitPreview> => {
   try {
-    return { ok: true, issues: await checkSubmission(await requestHeaders(), id) };
+    return toPreview(id, await checkSubmitGroup(await requestHeaders(), id));
   } catch (error) {
     return { ok: false, error: message(error), issues: [] };
   }
 };
 
-/** Submits the saved draft for review. The page then reloads it, read-only. */
+/**
+ * Submits the saved draft for review. The dialog then reloads the page, read-only, as it closes:
+ * revalidating here would remount the editor (it's keyed by `updatedAt`) and take the dialog,
+ * with what went along (112), with it.
+ */
 export const submitDraftAction = async (id: string): Promise<SubmitResult> => {
   try {
-    const { issues } = await submitDraft(await requestHeaders(), id);
-    revalidatePath(`/submissions/${id}`);
-    revalidatePath("/submissions");
-    return { ok: true, issues };
+    const { issues, with: sent } = await submitDraft(await requestHeaders(), id);
+    return { ok: true, issues, sent: sent.map(itemNameOf) };
   } catch (error) {
     if (error instanceof SubmissionInvalidError)
       return { ok: false, error: error.message, issues: [...error.issues] };

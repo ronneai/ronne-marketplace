@@ -24,6 +24,7 @@ const registry = (
       yanked: false,
       dependencies: {},
     })),
+  ownDraftNamed: async () => null,
   submissionsNamed: async (scope, name) =>
     (submissions[`@${scope}/${name}`] ?? []).map((s, i) => ({
       id: `${name}#${i}`,

@@ -573,16 +573,18 @@ test("rmk exports an agent with its skill, and the agent is submitted once the s
     expect(result.order).toEqual([{ item: agentName, after: [skillName] }]);
     const [skillDraft, agentDraft] = result.exported as { id: string; url: string }[];
 
-    // The agent can't be submitted before the skill is released.
+    // The agent's Submit offers to take the skill, the author's draft, with it (112).
     const author = await signIn(E2E_USERS.depsExporter);
     await author.goto(agentDraft?.url ?? "");
     await author.getByRole("button", { name: "Submit for review" }).click();
-    const refused = author.getByRole("dialog", { name: "Submit for review" });
-    await expect(refused.getByText("Fix these before submitting:")).toBeVisible();
+    const offer = author.getByRole("dialog", { name: "Submit for review" });
+    await expect(offer.getByText("Goes with 1 of your drafts:")).toBeVisible();
     await expect(
-      refused.getByText(new RegExp(`${skillName} isn't a published item`)),
+      offer.getByRole("list", { name: `Drafts submitted with ${agentName}` }).getByText(skillName),
     ).toBeVisible();
-    await refused.getByRole("button", { name: "Close" }).first().click();
+    await expect(offer.getByRole("button", { name: "Submit with 1 more draft" })).toBeEnabled();
+    // Here the skill goes first, on its own, and the agent after its release.
+    await offer.getByRole("button", { name: "Cancel" }).click();
 
     // The skill: submitted, approved by a moderator, and published as 1.0.0.
     await author.goto(skillDraft?.url ?? "");

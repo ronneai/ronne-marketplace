@@ -51,6 +51,14 @@ export const checkSubmission = async (
   storage?: StorageAdapter,
 ) => service.checkSubmission(...(await bound(headers, app, storage)), id);
 
+/** What submitting would send (112): the item and the person's own drafts it needs, checked. */
+export const checkSubmitGroup = async (
+  headers: Headers,
+  id: string,
+  app: AppAuth = getAppAuth(),
+  storage?: StorageAdapter,
+) => service.checkSubmitGroup(...(await bound(headers, app, storage)), id);
+
 export const submitDraft = async (
   headers: Headers,
   id: string,

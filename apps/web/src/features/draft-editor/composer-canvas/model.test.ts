@@ -285,6 +285,7 @@ describe("toGraph", () => {
       range: "^1.0.0",
       facts: undefined,
       problems: [],
+      warnings: [],
       status: null,
     });
     const empty = toGraph({ itemName: "@a/b", type: "bundle", dependencies: {}, layout: {} });

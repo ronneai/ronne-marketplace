@@ -158,6 +158,7 @@ describe("dependencyReports", () => {
       },
       status: null,
       problems: [],
+      warnings: [],
     });
     expect(found["@team/github"]?.facts).toMatchObject({
       type: "mcp-server",
@@ -182,6 +183,7 @@ describe("dependencyReports", () => {
       problems: [
         "@team/nowhere isn't a published item or in review. Submit it first: a dependency counts once it's in review.",
       ],
+      warnings: [],
     });
     expect(found["not a name"]?.facts).toBeNull();
     expect(found["not a name"]?.problems[0]).toContain("isn't a published item");
@@ -199,7 +201,12 @@ describe("dependencyReports", () => {
     // A bundle too.
     expect(
       (await reports({ "@team/other-agent": "^1.0.0" }, "bundle"))["@team/other-agent"],
-    ).toEqual({ facts: expect.objectContaining({ type: "agent" }), status: null, problems: [] });
+    ).toEqual({
+      facts: expect.objectContaining({ type: "agent" }),
+      status: null,
+      problems: [],
+      warnings: [],
+    });
   });
 
   it("gives your own unreleased one its status, without 056's warning repeated (089)", async () => {
@@ -211,14 +218,18 @@ describe("dependencyReports", () => {
       "@team/house": "^1.0.0",
       "@team/theirs": "^1.0.0",
     });
-    expect(found["@team/tone"]).toEqual({ facts: null, status: "submitted", problems: [] });
-    // A draft has to be submitted first: its problem stays, beside its badge.
+    expect(found["@team/tone"]).toEqual({
+      facts: null,
+      status: "submitted",
+      problems: [],
+      warnings: [],
+    });
+    // A draft goes with this item (112): a warning beside its badge, not a problem.
     expect(found["@team/house"]).toEqual({
       facts: null,
       status: "draft",
-      problems: [
-        "@team/house isn't a published item or in review. Submit it first: a dependency counts once it's in review.",
-      ],
+      problems: [],
+      warnings: ["@team/house is your draft: it's submitted with this item."],
     });
     expect(found["@team/theirs"]).toEqual({
       facts: null,
@@ -226,6 +237,7 @@ describe("dependencyReports", () => {
       problems: [
         "@team/theirs isn't released yet. You can depend on someone else's item once it's published.",
       ],
+      warnings: [],
     });
   });
 
@@ -236,11 +248,13 @@ describe("dependencyReports", () => {
     expect(found["@team/nowhere"]?.problems).toHaveLength(1);
   });
 
-  it("finds a circle through one dependency", async () => {
+  it("says items that need each other go together: the draft for review first (112)", async () => {
     const reviewer = await release("reviewer", { type: "agent" });
     await release("looping", { dependsOn: [reviewer] });
-    expect((await reports({ "@team/looping": "^1.0.0" }))["@team/looping"]?.problems).toEqual([
-      "The dependencies go round in a circle: @team/reviewer → @team/looping → @team/reviewer.",
+    const looping = (await reports({ "@team/looping": "^1.0.0" }))["@team/looping"];
+    expect(looping?.problems).toEqual([]);
+    expect(looping?.warnings).toEqual([
+      "@team/reviewer and @team/looping need each other: they're submitted for review together.",
     ]);
   });
 

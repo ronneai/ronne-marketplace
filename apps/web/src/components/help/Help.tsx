@@ -86,6 +86,12 @@ export const HELP = {
       "Only dependencies in ronne.yaml. Positions are kept with your draft and aren't released.",
     href: docsHref("items", "canvas"),
   },
+  "submit-together": {
+    question: "Why do these go together?",
+    answer:
+      "The item needs them, directly or through each other, and an item can't be reviewed or released without what it needs. At submit, the drafts of yours it needs go with it; at release, the approved ones it needs that aren't released yet. Either way, all or none.",
+    href: docsHref("review", "dependencies"),
+  },
   "after-submit": {
     question: "What happens next?",
     answer:
@@ -215,7 +221,7 @@ export const HELP = {
   "release-many": {
     question: "Release several at once?",
     answer:
-      "Tick approved ones, or Select all approved (the rows on this page), then Release selected: choose stable or pre-release, the bump and the tag once, and see every version before anything goes out. Dependencies go first, and the approved ones they need are added.",
+      "Tick approved ones, or Select all approved (the rows on this page), then Release selected: choose stable or pre-release, the bump and the tag once, and see every version before anything goes out. What's joined by a dependency is released together, all or none, and the approved ones they need are added.",
     href: docsHref("versions", "release-many"),
   },
   "waits-on": {

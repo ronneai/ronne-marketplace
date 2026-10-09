@@ -85,24 +85,36 @@ export const dependencyReports = async (
             limit: API_PAGE_MAX,
           })
         ).find((submission) => itemNameOf(submission) === name);
-    const issues = await dependencyIssues(deps.registry, {
-      itemName: String(input.itemName),
-      type: input.type,
-      dependencies: { [name]: range },
-      authorId: me,
-      workspaceId,
-    });
+    const issues = await dependencyIssues(
+      deps.registry,
+      {
+        itemName: String(input.itemName),
+        type: input.type,
+        dependencies: { [name]: range },
+        authorId: me,
+        workspaceId,
+        // The canvas edits a draft.
+        editable: true,
+      },
+      // The person's own drafts go with it at Submit (112).
+      { together: true },
+    );
     reports.push([
       name,
       {
         facts: entry ? factsOf(entry) : null,
         status: own ? (own.status as UnreleasedStatus) : null,
-        // Its status badge says it's on its way, so 056's warning isn't repeated as a problem. A
-        // draft keeps its problem: it has to be submitted first (or with this item, in bulk).
-        problems: issues
-          .filter((issue) => issue.code !== "dependency_range" || isVersionRange(range))
-          .filter((issue) => !(own && issue.code === "dependency_pending"))
-          .map((issue) => issue.message),
+        // Errors stop the submit; warnings don't (112: a draft goes with this item, items need
+        // each other). Its status badge says it's on its way, so 056's warning isn't repeated.
+        ...(() => {
+          const shown = issues
+            .filter((issue) => issue.code !== "dependency_range" || isVersionRange(range))
+            .filter((issue) => !(own && issue.code === "dependency_pending"));
+          return {
+            problems: shown.filter((i) => i.severity === "error").map((i) => i.message),
+            warnings: shown.filter((i) => i.severity === "warning").map((i) => i.message),
+          };
+        })(),
       },
     ]);
   }

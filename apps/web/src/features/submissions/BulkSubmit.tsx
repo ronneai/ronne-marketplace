@@ -12,9 +12,9 @@ import type { BulkResult } from "./types";
 /**
  * Submitting several drafts at once from My submissions (feature 052). The page marks each open
  * draft Ready or n to fix from one check when it loads; only ready ones can be selected. Submit
- * selected asks first, then submits each on its own and shows what happened to each. Selecting a
- * draft selects the person's own drafts it depends on too, which go first (056); those can't be
- * unselected while it is.
+ * selected asks first, then submits them, in groups that go all or none (112), and shows what
+ * happened to each. Selecting a draft selects the person's own drafts it depends on too, which go
+ * with it (056); those can't be unselected while it is.
  */
 type Selection = {
   /** The ready drafts' ids, with their names, as the page found them. */
@@ -126,7 +126,7 @@ export const SelectCell = ({
         !ready
           ? `Fix ${errors} ${errors === 1 ? "issue" : "issues"} first`
           : lockedFor
-            ? `Included for ${lockedFor}: it goes first`
+            ? `Included for ${lockedFor}: it goes with it`
             : undefined
       }
       disabled={!ready || lockedFor !== null}

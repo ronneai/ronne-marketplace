@@ -111,7 +111,7 @@ describe("the catalogue revision (079)", () => {
   });
 
   it("names this database with a random id, so another database's revision never matches", async () => {
-    const other = await createTestDb();
+    const other = await createTestDb({ fresh: true });
     try {
       const mine = await kyselyFeedRepository(t.db, t.dialect).revision();
       const theirs = await kyselyFeedRepository(other.db, other.dialect).revision();

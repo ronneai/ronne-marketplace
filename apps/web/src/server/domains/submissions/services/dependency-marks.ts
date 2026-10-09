@@ -29,7 +29,7 @@ export type DependencyMark =
 /** How deep a chain is followed: further than any real item's dependencies go. */
 const MAX_DEPTH = 8;
 
-/** The marks for one set of dependencies; `seen` stops a cycle (013 refuses those anyway). */
+/** The marks for one set of dependencies; `seen` stops at a cycle (allowed since 112). */
 export const marksFor = async (
   registry: RegistryLookup,
   dependencies: Readonly<Record<string, string>>,
