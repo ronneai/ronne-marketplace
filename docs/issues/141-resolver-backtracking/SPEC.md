@@ -101,10 +101,13 @@ range. An install fails only when no choice of versions within the ranges works.
 
 ## Documentation
 
-- **`rmk` → Installing** (`rmk#installing`) and **Updating** (`rmk#updating`), on the website
-  (`../ronne-web`, en/pt/fr): "the newest version that works with every other item", and a
-  conflict means no combination fits. Changed only if those sections describe the version choice
-  today. The witness checks.
+- **Items and types → Dependencies** (`items#dependencies`), "How an install picks versions", on
+  the website (`../ronne-web`, en/pt/fr): when the newest versions conflict, an install tries older
+  ones within the ranges and takes the newest that work together; a missing item is still an
+  error; a conflict means no choice of versions fits. That's where the website describes the
+  version choice: `rmk#installing` doesn't.
+- **`rmk` → Updating** (`rmk#updating`): `rmk update` moves items to the newest versions their
+  ranges allow that work together.
 - **Helpers:** none. The CLI has no inline help that names the rule.
 
 ## Acceptance criteria

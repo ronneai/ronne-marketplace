@@ -345,3 +345,40 @@ Witnessed: 2026-10-09 11:58 EDT, by a fresh agent (blind). Commit: 92cfd53. Mach
 | 22 | §15's missing-item clause | no | confirmed | Same probes; missing tag → `tag_not_found`; `resolve.test.ts:718` and `:742` cover both cases |
 
 **Overall:** met: §4.3 and §15 read as `resolve.ts` behaves, including the case with no search and a fallback cut short by a missing item.
+
+## Task 5 — Documentation
+
+Witnessed: 2026-10-09 12:00 EDT, by a fresh agent (blind). Commit: b91407b; the website at ronne-web 5a957a6, branch `bugfix/marketplace-141-older-versions`. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: SPEC.md, PLAN.md.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `items#dependencies` says that when the newest versions conflict, an install tries older versions within the ranges | yes | confirmed | en `items.tsx:239-243`; probe of `resolve.ts`, the issue's scenario → A 1.1.0, B 1.1.0 |
+| 2 | "takes the newest ones that work together" | yes | partly | An older version that names a missing item ends that path: A 1.1.0 + B 1.0.0 works, yet the install fails with the conflict; the keep-changing case and the limits also stop early |
+| 3 | "An item a dependency names that doesn't exist … is still an error" | yes | partly | True when the first try asks for it; when only a fallback version names it, the error is the conflict and the item isn't named |
+| 4 | "If no choice of versions fits every range, the install stops" | yes | partly | True, but as the only failure described, it implies no choice exists; probe 3 is a conflict where one does |
+| 5 | The error names the ranges as the newest versions asked for them | yes | confirmed | Probe 4 → `… ^1.0.0 (the request), ^2.0.0 (@platform/code-reviewer@1.4.0).` |
+| 6 | `rmk#updating` describes the move to the newest versions that work together | yes | confirmed | Probe 1b: a locked B 1.2.0 → 1.1.0 |
+| 7 | pt and fr say the same as en | yes | confirmed | `git show 5a957a6` |
+| 8 | `rmk#installing` doesn't describe the rule | yes | confirmed | It links `items#dependencies` and states no rule |
+| 9 | On a ronne-web branch, not main | yes | confirmed | Only `bugfix/marketplace-141-older-versions` contains 5a957a6 |
+| 10 | ronne-web lint and tests pass | no | confirmed | `pnpm lint` → no fixes; `pnpm test` → 138 passed |
+| 11 | SPEC's Documentation section and PLAN task 5 name these sections | no | confirmed | `git diff`; resolver tests → 36 passed |
+
+**Overall:** not met: the pages overstate the missing-item rule and imply a full search (2–4).
+
+### Re-check — the reworded pages
+
+Witnessed: 2026-10-09 12:05 EDT, by a fresh agent (blind). Commit: b91407b; the website at ronne-web cb19fd7, same branch. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: SPEC.md, PLAN.md.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 12 | "takes the first ones it finds that work together … an older version that names an item that doesn't exist, or that you can't see, isn't used, and nothing older than it is tried" | yes | confirmed | The B 1.0.0 probe → the conflict; B 1.1.0 not used and B 1.0.0 not tried, as written; the issue's scenario still resolves |
+| 13 | "An item the newest versions name that doesn't exist, or that you can't see, is an error" | yes | confirmed | Probes 2 and 6 → `item_not_found` naming who asked; probe 7 (a request range nothing matches plus a missing item) still stops, with `no_matching_version`, decision 4's "nothing can be set aside" case |
+| 14 | "If it finds no versions that fit every range, the install stops and says which ranges disagree … as the newest versions asked for them" | yes | confirmed | Probes 3, 3b and 4 → the first try's ranges in the example's format |
+| 15 | "doesn't try every combination … the search stops after a set number of tries" is honest about the limits and the keep-changing case | yes | confirmed | `MAX_STEPS` and `MAX_CHECKS`, then the first error; the keep-changing first try is the step limit reached before any fallback |
+| 16 | `rmk#updating`: "falling back to older ones when the newest conflict" | yes | confirmed | `git show cb19fd7`; probe 1b → B 1.1.0 |
+| 17 | pt and fr match en in both sections | yes | confirmed | `git show cb19fd7`, sentence by sentence |
+| 18 | ronne-web lint and tests pass at cb19fd7 | no | confirmed | `pnpm lint` → no fixes; `pnpm test` → 138 passed |
+| 19 | Still on the non-main branch | yes | confirmed | `bugfix/marketplace-141-older-versions`, cb19fd7 on 5a957a6; going live with the release can't be checked here |
+
+**Overall:** met: the en, pt and fr pages say what `resolve()` does, including where the fallback stops, and lint and tests pass.

@@ -50,7 +50,7 @@ the same change that completes it.
   citing #141.
   *Done when:* both read as the code behaves.
 
-- [ ] **5. Documentation.** If `rmk#installing` and `rmk#updating` on the website describe the
-  version choice, update them in en, pt and fr, in a ronne-web branch that goes live with the
-  release. *Done when:* the pages say what task 2 does, or the witness confirms they don't
-  describe the rule.
+- [x] **5. Documentation.** `items#dependencies` ("How an install picks versions") and
+  `rmk#updating` on the website, in en, pt and fr, in a ronne-web branch that goes live with the
+  release. *Done when:* the pages say what task 2 does, and `rmk#installing` doesn't describe the
+  rule.
