@@ -74,16 +74,19 @@ export const MemberRoleSelect = ({
   const errorId = `member-role-${member.userId}-error`;
   return (
     <div className="grid gap-1">
-      <select
-        aria-label={`Role of ${member.email}`}
-        value={role}
-        disabled={pending}
-        aria-describedby={error ? errorId : undefined}
-        onChange={(event) => change(event.target.value as WorkspaceRole)}
-        className={`${selectClasses} w-32`}
-      >
-        <RoleOptions />
-      </select>
+      {/* The select fills its box (`selectClasses` has `w-full`): the box sets its width. */}
+      <div className="w-32">
+        <select
+          aria-label={`Role of ${member.email}`}
+          value={role}
+          disabled={pending}
+          aria-describedby={error ? errorId : undefined}
+          onChange={(event) => change(event.target.value as WorkspaceRole)}
+          className={selectClasses}
+        >
+          <RoleOptions />
+        </select>
+      </div>
       <FieldError id={errorId}>{error}</FieldError>
     </div>
   );
