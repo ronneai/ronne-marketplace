@@ -80,11 +80,14 @@ runs:
         aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969
         image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 "$TAG"
 
-    # The Caddy image compose.yaml pins (feature 080), with the same rules as ours.
+    # The Caddy image compose.yaml pins (feature 080), with the same rules as ours, except the
+    # vulnerabilities caddy.trivyignore lists until their dates (exception E-7).
     - name: Scan the proxy image (Trivy)
       shell: bash
       run: |
         image=$(docker compose -f compose.yaml config --images | grep '^caddy:')
         docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+          -v "$PWD/.github/actions/build-image/caddy.trivyignore:/caddy.trivyignore:ro" \
           aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969 \
-          image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 "$image"
+          image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 \
+          --ignorefile /caddy.trivyignore "$image"

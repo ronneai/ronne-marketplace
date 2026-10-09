@@ -1,0 +1,8 @@
+# Vulnerabilities the proxy-image scan accepts for now: exception E-7 in
+# docs/policies/dependencies.md. Only the Caddy image's scan reads this file; ours stays strict.
+# Each line expires on its date, after which the scan fails on it again.
+
+# Go standard library in caddy:2.11.6 (Go 1.26.8). Fixed in Go 1.26.9; no Caddy image is built
+# with it yet (2.11.7 also uses Go 1.26.8).
+CVE-2026-78667 exp:2026-10-23
+CVE-2026-97031 exp:2026-10-23
