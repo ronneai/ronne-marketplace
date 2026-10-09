@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import type { ItemType } from "./item-types.js";
 
 // How many ranges a resolve checks versions against (#141). The budget's tests count this work
-// rather than time it, so a slow machine can't fail them and a missing budget can't pass them.
+// rather than time it, so a slow machine can't fail them and a missing budget can't pass them;
+// their timeout is generous for the same reason.
 const semverCalls = vi.hoisted(() => ({ satisfies: 0 }));
 vi.mock("semver", async (importOriginal) => {
   const semver = await importOriginal<typeof import("semver")>();
@@ -678,15 +679,15 @@ describe("what falling back may and may not do (#141)", () => {
 
     // With the budget, about 240,000 range checks; without it, about 71 million.
     expect(semverCalls.satisfies).toBeLessThan(1_000_000);
-  });
+  }, 30_000);
 });
 
 describe("the budget on range checks (#141)", () => {
   it("stays quick when many items ask for the same item", async () => {
-    // A hundred items each ask @t/z for >=0, so each version of @t/z is checked against a hundred
-    // ranges. Every @t/q wants @t/z ^1 and every @t/r ^2: nothing works, and the budget, counting
-    // each range checked, has to stop it soon.
-    const many = Array.from({ length: 100 }, (_, i) => `@t/p${String(i).padStart(3, "0")}`);
+    // Fifty items each ask @t/z for >=0, so each version of @t/z is checked against fifty ranges.
+    // Every @t/q wants @t/z ^1 and every @t/r ^2: nothing works, and the budget, counting each
+    // range checked, has to stop it soon.
+    const many = Array.from({ length: 50 }, (_, i) => `@t/p${String(i).padStart(3, "0")}`);
     const spec: Record<
       string,
       { versions: { version: string; dependencies?: Record<string, string> }[] }
@@ -714,7 +715,7 @@ describe("the budget on range checks (#141)", () => {
       "@t/z": {
         versions: [
           { version: "1.0.0" },
-          ...Array.from({ length: 2_000 }, (_, i) => ({ version: `2.${i}.0` })),
+          ...Array.from({ length: 500 }, (_, i) => ({ version: `2.${i}.0` })),
         ],
       },
     };
@@ -730,10 +731,10 @@ describe("the budget on range checks (#141)", () => {
       await failure(resolve({ dependencies: { "@t/x": "^1", "@t/z": "*" } }, registry(spec))),
     ).toMatchObject({ code: "resolve_conflict", details: { item: "@t/z" } });
 
-    // With the budget, about 810,000 range checks; counting versions instead of ranges, or with no
-    // budget, about 20 million.
-    expect(semverCalls.satisfies).toBeLessThan(2_000_000);
-  });
+    // With the budget, about 275,000 range checks; counting versions instead of ranges, or with no
+    // budget, about 2.7 million.
+    expect(semverCalls.satisfies).toBeLessThan(1_000_000);
+  }, 30_000);
 });
 
 describe("a missing item while falling back (#141, decision 4)", () => {

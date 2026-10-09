@@ -298,6 +298,21 @@ Witnessed: 2026-10-09 13:38 EDT, by a fresh agent (blind). Commit: f675eae. Mach
 
 **Overall:** met: the explode test's name and comments match the code, and the two budget tests fail without the budget, by count rather than time.
 
+### Re-check — a lighter many-askers test
+
+Witnessed: 2026-10-09 13:50 EDT, by a fresh agent (blind). Commit: 6a2399e. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: resolve.test.ts. CI's Node 24 job had then failed the many-askers test on Vitest's default 5 s timeout (5,460 ms).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 62 | The many-askers test is lighter, and its comment describes it | no | confirmed | 50 items asking `@t/z >=0`, 20 `@t/q` at `^1`, 20 `@t/r` at `^2`, `@t/z` with 1.0.0 and 500 2.x versions; limit `< 1_000_000` |
+| 63 | Counts as stated: about 27,000 / 240,000 / 275,000 | no | confirmed | Limits set to 1 → 27,480 / 240,001 / 274,590 (71 / 248 / 177 ms) |
+| 64 | Each mutation fails the tests it should, by count | no | confirmed | No `MAX_CHECKS` throw → 71,227,480 (20,000 versions) and 2,747,420 (many askers); `checks += 1` → only many askers fails, 2,747,420. The 20,000-version run took 58 s, past its 30 s timeout, but Vitest reported the count failure |
+| 65 | Both budget tests have a 30 s timeout | no | confirmed | `}, 30_000);` on both |
+| 66 | The comments are true | no | confirmed | The header, and each test's counts, match rows 63-64; as is, both run under 0.25 s |
+| 67 | Core suite, lint and typecheck pass | no | confirmed | 352 passed; clean |
+
+**Overall:** met: both budget tests fail by count under their mutations, with a generous timeout, and the comments match the measured counts.
+
 ## Task 3 — The callers
 
 Witnessed: 2026-10-09 11:41 EDT, by a fresh agent (blind). Commit: 811e178. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: apps/web/e2e/seed.ts, users.ts, rmk-fallback.e2e.ts, registry-api.db.test.ts.
