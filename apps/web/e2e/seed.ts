@@ -17,6 +17,7 @@ import { localStorage } from "../src/server/storage/local-storage";
 import {
   E2E_ACME,
   E2E_ACME_MEMBERS,
+  E2E_FALLBACK_ITEMS,
   E2E_MODERATORS,
   E2E_NAMES,
   E2E_PASSWORD,
@@ -350,6 +351,29 @@ await release(E2E_RMK_ITEMS.rule, "rule", "1.0.0", {
   "ronne.yaml": `name: "@${E2E_SCOPE}/${E2E_RMK_ITEMS.rule}"\ntype: rule\ndescription: The kit-rule item.\nrule:\n  body: rule.md\n  activation: always\n`,
   "rule.md": "Keep functions small.\n",
 });
+// #141: a later fallback-b pins fallback-a to the version before the one that needs it.
+const fallbackRule = (name: string) => ({
+  "ronne.yaml": `name: "@${E2E_SCOPE}/${name}"\ntype: rule\ndescription: The ${name} item.\nrule:\n  body: rule.md\n  activation: always\n`,
+  "rule.md": `The ${name} rule.\n`,
+});
+const fallbackA = await release(
+  E2E_FALLBACK_ITEMS.a,
+  "rule",
+  "1.0.0",
+  fallbackRule(E2E_FALLBACK_ITEMS.a),
+);
+const fallbackB = await release(
+  E2E_FALLBACK_ITEMS.b,
+  "rule",
+  "1.1.0",
+  fallbackRule(E2E_FALLBACK_ITEMS.b),
+);
+await release(E2E_FALLBACK_ITEMS.a, "rule", "1.1.0", fallbackRule(E2E_FALLBACK_ITEMS.a), [
+  { itemId: fallbackB, range: "^1.0.0" },
+]);
+await release(E2E_FALLBACK_ITEMS.b, "rule", "1.2.0", fallbackRule(E2E_FALLBACK_ITEMS.b), [
+  { itemId: fallbackA, range: "1.0.0" },
+]);
 // A private workspace with a skill its members see (093), and a public one root turns private.
 const releaseSkillIn = async (
   where: { workspace: string; scope: string; item: string },

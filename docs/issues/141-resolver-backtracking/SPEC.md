@@ -40,9 +40,13 @@ range. An install fails only when no choice of versions within the ranges works.
 - **Choosing which versions get published.** The registry still accepts B `1.2.0`. Submit-time
   checks (013, `registry-checks.ts`) don't predict conflicts with other items.
 - **A missing item or tag** (`item_not_found`, `tag_not_found`) asked for by a dependency. It
-  stays an error, as today (see Open questions).
-- **Cycles found after resolving.** The final cycle check is unchanged. Submission already
-  refuses cycles.
+  never starts a fallback, and one the first try asked for is the error (decision 4). One that
+  only a version tried while falling back asks for ends that path: the install resolves another
+  way that doesn't use it, or reports the first try's error, which doesn't name it. Older
+  versions of the item that asked for it aren't tried past it.
+- **How cycles resolve.** Items that need each other (112) resolve as before: the rules that keep
+  one version each and drop a pair nothing reaches run unchanged in every attempt. Submit warns
+  about a cycle (`dependency_cycle`) and doesn't refuse it.
 - **Several versions of one item side by side.** It's still one version per item (MVP §4.3).
 
 ## Behaviour
@@ -59,11 +63,15 @@ range. An install fails only when no choice of versions within the ranges works.
 - **Deterministic.** The same registry and request always give the same result. Item names are
   taken in sorted order and versions newest first, so the search prefers newer versions, item by
   item, in name order.
-- **Bounded.** The existing `MAX_STEPS` counts steps across every attempt. A separate limit on
-  attempts stops a registry with many versions from running for long. Reaching either limit
-  reports the original conflict.
+- **Bounded.** The existing `MAX_STEPS` counts steps across every attempt, so it bounds the
+  attempts too: each takes at least one step. Once versions are being set aside, a budget on range
+  checks (a version against one range) applies as well, so an item with thousands of versions, or
+  one that many items ask for, can't keep a resolution going for long. Reaching either limit
+  reports the original conflict. Each item's versions are sorted once,
+  and each item, missing ones too, is read from the registry once.
 - **When nothing works,** the error is the conflict (or `no_matching_version`) from the first
-  try, with the same code, message and details as today. That is what the user can act on: the
+  try, with the same code, message and details as today, unless that try had a version to set
+  aside and also asked for a missing item (decision 4). That is what the user can act on: the
   ranges as the newest versions asked for them.
 - **Warnings** (deprecated) come from the versions finally chosen, as today.
 
@@ -83,25 +91,37 @@ range. An install fails only when no choice of versions within the ranges works.
 - **An older version brings in a new dependency.** Its ranges are added and resolved like any
   others, and a conflict there can backtrack again.
 - **A pre-release** is tried only when a range names one (semver's rule, as today).
+- **A first try that keeps changing versions** ("The dependencies keep changing each other's
+  versions.") blames no version, so nothing older is tried, as today, even where a choice of
+  older versions would work. Random registries showed it only with items that need each other
+  across three or more items (allowed since 112). Making that first try search too is left for
+  later.
+- **A registry read that fails** while versions are set aside fails the install with that error,
+  never hidden behind the first conflict.
 
 ## Documentation
 
-- **`rmk` → Installing** (`rmk#installing`) and **Updating** (`rmk#updating`), on the website
-  (`../ronne-web`, en/pt/fr): "the newest version that works with every other item", and a
-  conflict means no combination fits. Changed only if those sections describe the version choice
-  today. The witness checks.
+- **Items and types → Dependencies** (`items#dependencies`), "How an install picks versions", on
+  the website (`../ronne-web`, en/pt/fr): when the newest versions conflict, an install tries older
+  ones within the ranges and takes the newest that work together; a missing item is still an
+  error; a conflict means no choice of versions fits. That's where the website describes the
+  version choice: `rmk#installing` doesn't.
+- **`rmk` → Updating** (`rmk#updating`): `rmk update` moves items to the newest versions their
+  ranges allow that work together.
 - **Helpers:** none. The CLI has no inline help that names the rule.
 
 ## Acceptance criteria
 
 - [ ] The issue's scenario installs A `1.1.0` with B `1.1.0`, through `resolve()` and through
   `rmk install`. `rmk update` on its lock succeeds.
-- [ ] Every existing resolver test passes unchanged. A request that resolved before resolves to
-  the same versions.
+- [ ] Every existing resolver test passes unchanged, except the one that asserts the old rule
+  ("doesn't search older versions to escape a conflict"), which now resolves to the older
+  version. A request that resolved before resolves to the same versions.
 - [ ] A conflict with no solution still fails with `resolve_conflict` and the same message and
   details as before.
 - [ ] A conflict that needs two exclusions resolves. A registry built to explode stops at the
-  limit with the first conflict, within a test timeout.
+  limit with the first conflict, within a test timeout, and one with 20,000 versions per item
+  only stays quick because of the budget on version checks.
 - [ ] `POST /api/v1/resolve` returns the backtracked resolution (API test).
 - [ ] MVP §4.3 says the resolver falls back to older versions, and §15 records the decision.
 - [ ] The Documentation listed above says so, in English, Portuguese and French.
@@ -115,9 +135,16 @@ range. An install fails only when no choice of versions within the ranges works.
 3. **Today's result whenever today's works** (Claude). Backtracking runs only after a conflict,
    so nobody's lockfile changes.
 
+4. **A missing item stays an error** (owner, 2026-10-09). A dependency's `item_not_found` or
+   `tag_not_found` doesn't backtrack: an item that's gone, or in a private workspace the caller
+   can't see (093), is rare and better reported than silently avoided with older versions. And it's
+   never stepped around (owner, 2026-10-09): before anything is set aside, every item the first
+   try was still asked for when it stopped is read, and a missing one is the error, naming who
+   asked. When nothing can be set aside (only the request's ranges lose), nothing is read ahead
+   and the error is today's. So the error differs from today's only when a first try's conflict, or
+   range nothing matches, was blamed on a version and that try also asked for a missing item: it's
+   then `item_not_found`.
+
 ## Open questions
 
-- Should a dependency's **missing item** (`item_not_found` from a range a version added) also
-  backtrack to an older version that didn't ask for it? It's the same idea, but an item that's
-  gone, or one in a private workspace the caller can't see (093), is rarer and is better
-  reported. Proposed: not now.
+None.
