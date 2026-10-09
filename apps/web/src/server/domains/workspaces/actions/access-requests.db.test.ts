@@ -35,6 +35,7 @@ import {
   removeMember,
   requestAccess,
   requestsToAnswer,
+  requestsToAnswerList,
   setUserWorkspaces,
   setWorkspaceVisibility,
   userMemberships,
@@ -427,6 +428,24 @@ describe("the Requests tab and the nav count (094)", () => {
       [otherId, "o@example.com", null],
     ]);
     expect((await pendingRequests(asRoot, acme, app)).total).toBe(2);
+  });
+
+  it("lists every request a person can answer, with its workspace and whether they pick the role", async () => {
+    await ask("acme", "For acme.");
+    await ask("beta");
+    await ask("nowhere");
+    const list = async (who: Headers) =>
+      (await requestsToAnswerList(who, app)).requests.map((r) => [r.workspace, r.canPickRole]);
+    // Root: both workspaces, and the role to pick; a name no workspace has isn't anyone's to answer.
+    expect(await list(asRoot)).toEqual([
+      ["acme", true],
+      ["beta", true],
+    ]);
+    expect((await requestsToAnswerList(asRoot, app)).total).toBe(2);
+    expect(await list(asModerator)).toEqual([["acme", false]]);
+    expect(await list(asAdmin)).toEqual([["acme", true]]);
+    expect(await list(asBetaModerator)).toEqual([["beta", false]]);
+    await expect(requestsToAnswerList(asUser, app)).rejects.toBeInstanceOf(ForbiddenError);
   });
 
   it("counts what each person can answer: root all, a moderator their workspace, others none", async () => {

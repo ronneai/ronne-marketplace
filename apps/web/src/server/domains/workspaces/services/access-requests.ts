@@ -337,10 +337,34 @@ export const pendingRequests = async (
   if (!workspace) throw new WorkspaceNotFoundError();
   requirePermission(actor.user, "access_requests.answer", workspace.id);
   const [requests, total] = await Promise.all([
-    deps.repo.pendingRequests(workspace.id, PENDING_REQUESTS_SHOWN),
+    deps.repo.pendingRequests([workspace.id], PENDING_REQUESTS_SHOWN),
     deps.repo.countPendingRequests([workspace.id]),
   ]);
   return { requests, total };
+};
+
+/**
+ * Every open request the actor can answer, oldest first, with its workspace, and how many there
+ * are: the Requests page (`/workspaces/requests`), for root and every moderator and admin. Each says
+ * whether the actor may pick the role (root, and the workspace's admins, who manage its members).
+ */
+export const requestsToAnswerList = async (
+  deps: WorkspaceDeps,
+  actor: WorkspaceActor,
+): Promise<{ requests: (PendingRequest & { canPickRole: boolean })[]; total: number }> => {
+  requireAnswererSomewhere(actor);
+  const where = workspacesWith(actor.user, "access_requests.answer");
+  const [requests, total] = await Promise.all([
+    deps.repo.pendingRequests(where, PENDING_REQUESTS_SHOWN),
+    deps.repo.countPendingRequests(where),
+  ]);
+  return {
+    requests: requests.map((r) => ({
+      ...r,
+      canPickRole: can(actor.user, "members.manage", r.workspaceId),
+    })),
+    total,
+  };
 };
 
 /** The nav count: open requests in every workspace the actor can answer in; 0 for anyone else. */

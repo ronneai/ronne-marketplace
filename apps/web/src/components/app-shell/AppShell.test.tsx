@@ -73,6 +73,52 @@ describe("navFor", () => {
   });
 });
 
+describe("Requests in the nav (094)", () => {
+  const moderator = {
+    name: "M",
+    email: "m@example.com",
+    role: "user" as const,
+    workspaces: { [GLOBAL]: "user" as const, acme: "moderator" as const },
+  };
+  const user = { ...moderator, workspaces: { [GLOBAL]: "user" as const } };
+  const labels = (items: ReturnType<typeof navFor>) => items.map((i) => i.label);
+
+  it("shows Requests next to Reviews only while some wait for someone who can answer", () => {
+    expect(labels(navFor(moderator))).not.toContain("Requests");
+    expect(labels(navFor(moderator, { "/workspaces/requests": 0 }))).not.toContain("Requests");
+    expect(labels(navFor(moderator, { "/workspaces/requests": 2 }))).toEqual([
+      "Home",
+      "Catalogue",
+      "Submissions",
+      "Reviews",
+      "Requests",
+      "Docs",
+    ]);
+    expect(navFor(moderator, { "/workspaces/requests": 2 })[4]?.href).toBe("/workspaces/requests");
+    expect(
+      labels(
+        navFor({ name: "R", email: "r@example.com", role: "root" }, { "/workspaces/requests": 1 }),
+      ),
+    ).toContain("Requests");
+  });
+
+  it("never shows it to someone who answers nowhere, whatever the count", () => {
+    expect(labels(navFor(user, { "/workspaces/requests": 3 }))).not.toContain("Requests");
+  });
+
+  it("shows the count next to Requests", () => {
+    const html = renderToStaticMarkup(
+      <MainNav
+        items={navFor(moderator, { "/workspaces/requests": 2 })}
+        counts={{ "/workspaces/requests": 2 }}
+      />,
+    );
+    expect(html).toMatch(
+      /href="\/workspaces\/requests"[^>]*>Requests<span[^>]*>2<span class="sr-only"> waiting/,
+    );
+  });
+});
+
 describe("MainNav", () => {
   it("is positioned, so its scrolling strip clips the counts' screen-reader text (065)", () => {
     const html = renderToStaticMarkup(<MainNav items={[]} />);

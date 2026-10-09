@@ -95,6 +95,15 @@ export const E2E_USERS = {
   tabletVersionPin: "version-pin-tablet@e2e.test",
   // #141: installs an item whose newest dependency conflicts, with rmk. After root's email too.
   versionFallback: "version-fallback@e2e.test",
+  // 094: asks to join e2e-join, and its moderator approves; a pair per project. After root's email.
+  joinAsker: "workspace-join-asker@e2e.test",
+  joinModerator: "workspace-join-moderator@e2e.test",
+  phoneJoinAsker: "workspace-join-phone-asker@e2e.test",
+  phoneJoinModerator: "workspace-join-phone-moderator@e2e.test",
+  phoneWebkitJoinAsker: "workspace-join-ios-asker@e2e.test",
+  phoneWebkitJoinModerator: "workspace-join-ios-moderator@e2e.test",
+  tabletJoinAsker: "workspace-join-tablet-asker@e2e.test",
+  tabletJoinModerator: "workspace-join-tablet-moderator@e2e.test",
 } as const;
 
 /** The display names, which the header shows (not the email). */
@@ -177,6 +186,14 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   phoneWebkitVersionPin: "Ios Pin",
   tabletVersionPin: "Tab Pin",
   versionFallback: "Val Fallback",
+  joinAsker: "Jo Asker",
+  joinModerator: "Jo Moderator",
+  phoneJoinAsker: "Phone Asker",
+  phoneJoinModerator: "Phone Join Mod",
+  phoneWebkitJoinAsker: "Ios Asker",
+  phoneWebkitJoinModerator: "Ios Join Mod",
+  tabletJoinAsker: "Tab Asker",
+  tabletJoinModerator: "Tab Join Mod",
 };
 
 /** Seeded with the moderator role; everyone else is a user. */
@@ -213,6 +230,17 @@ export const E2E_ROOTS: readonly (keyof typeof E2E_USERS)[] = [
  * signs in 5 times in a run, the per-email limit a minute.
  */
 export const E2E_SCOPE = "e2e-seeded";
+/**
+ * A public workspace people ask to join (094): each project's join moderator moderates it, and its
+ * asker isn't in it until the moderator approves.
+ */
+export const E2E_JOIN = "e2e-join";
+export const E2E_JOIN_MODERATORS: readonly (keyof typeof E2E_USERS)[] = [
+  "joinModerator",
+  "phoneJoinModerator",
+  "phoneWebkitJoinModerator",
+  "tabletJoinModerator",
+];
 /** An empty workspace besides `global` (feature 090), so the phone sweep opens a page with Edit and Delete. */
 export const E2E_WORKSPACE = "e2e-team";
 

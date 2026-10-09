@@ -138,8 +138,14 @@ export interface WorkspaceRepository {
     decidedBy: string | null,
     at: Date,
   ): Promise<AccessRequest | null>;
-  /** A workspace's open requests, oldest first, at most `limit`; disabled users' left out. */
-  pendingRequests(workspaceId: string, limit: number): Promise<PendingRequest[]>;
+  /**
+   * The open requests in these workspaces (every one for `"all"`), oldest first, at most `limit`;
+   * disabled users' and those to names no workspace has left out.
+   */
+  pendingRequests(
+    workspaceIds: "all" | readonly string[],
+    limit: number,
+  ): Promise<PendingRequest[]>;
   /** How many open requests there are in these workspaces (every one for `"all"`). */
   countPendingRequests(workspaceIds: "all" | readonly string[]): Promise<number>;
   /** The user's requests, newest first, with their workspaces: at most `limit`. */

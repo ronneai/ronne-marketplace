@@ -157,3 +157,24 @@ Witnessed: 2026-10-09 15:32 EDT, by a fresh agent (blind). Commit: bf445ed (plus
 | 13 | Nothing else broke | no | confirmed | `vitest run src/features/workspaces "src/app/(app)/workspaces" src/components/app-shell e2e/pages-coverage` → 4 files, 34 passed; `tsc --noEmit -p apps/web` → 0; biome on the changed paths → no issues |
 
 **Overall:** met: the join page's handling of a declined request is tested and fails when the form or the decline shows at the wrong time; related tests, typecheck and lint are green.
+
+## Task 3 — Requests tab and nav count
+
+Witnessed: 2026-10-09 15:56 EDT, by a fresh agent (blind). Commit: 7a08464 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The component, nav and page unit tests pass | no | confirmed | `vitest run src/app/(app)/shell.test.ts src/app/(app)/workspaces/requests src/features/workspace-requests src/components/app-shell src/features/workspaces` → 6 files, 44 passed |
+| 2 | The nav shows Requests (to `/workspaces/requests`, after Reviews) only to someone who can answer and only while the count is above 0 | no | confirmed | `nav.ts:51-58`, filter `nav.ts:78`; `AppShell.test.tsx` "Requests in the nav (094)"; phone probe: `/menu` shows "Requests1 waiting", none after the answer |
+| 3 | The count is worked out only for root and moderators or admins | no | confirmed | `shell.ts:21` gated on `canInSome(user, "access_requests.answer")`; `shell.test.ts`; probe: member and `global`-only moderator see no Requests link |
+| 4 | The Requests page lists what the reader can answer, with the workspace; a 404 for anyone who answers nowhere | no | confirmed | `workspaces/requests/page.tsx:19` `notFound()`; `page.test.tsx`; probe: member → 404 on phone, phone-webkit, tablet |
+| 5 | The list is scoped per answerer; a name no workspace has is nobody's; only root and admins pick the role | no | confirmed | db test "lists every request a person can answer…"; `vitest run --project db src/server/domains/workspaces` → 82 passed; `pnpm test:db:postgres/mysql/mariadb -- …access-requests.db.test.ts` → 28 each |
+| 6 | The Admin Requests tab shows the same table for root and the workspace's admins, with the role select | no | confirmed | `admin/workspaces/[name]/page.tsx:59`, `:71-82`; service re-checks (`services/access-requests.ts:338`); probe: root on `?tab=requests` saw the role select. No unit test renders this tab |
+| 7 | Approve and Decline call the domain, refresh the layout, and show "Already answered" when someone was first | no | confirmed | `workspace-requests.test.tsx` "answer actions (094)"; probe: decline, then a stale Approve → "Already answered."; the asker sees the decline and reason |
+| 8 | The table: who, when, message; role select only when allowed; Workspace column only on the page; empty and "N oldest of M" texts | no | confirmed | `workspace-requests.test.tsx` "the Requests table (094)"; `RequestsTable.tsx` |
+| 9 | Desktop end-to-end: a user asks, the moderator sees the count and approves | no | confirmed | `playwright test e2e/join-requests.e2e.ts --project chromium` → passed |
+| 10 | The same flow on phone, iOS Safari (WebKit) and tablet | no | confirmed | `playwright test e2e/join-requests.mobile.e2e.ts --project phone --project phone-webkit --project tablet` → 3 passed |
+| 11 | The Requests page and Admin tab pass the phone sweep | no | confirmed | `mobile-sweep.mobile.e2e.ts` on phone, phone-webkit, tablet → 15 passed; probe with a waiting 400-character request at 412/393/768, 360 and 320 px → no overflow |
+| 12 | Someone who answers nowhere has no way in; a moderator of a quiet workspace sees no item | no | confirmed | Probe: member → 404, no item; `global`-only moderator → page 200, 0 rows, no item; server actions refuse others |
+
+**Overall:** met: the Requests page, the Admin tab and the nav count work as the spec says; unit, db (four databases) and end-to-end tests (chromium, phone, phone-webkit, tablet, and the sweep) pass. Gaps, not failures: no unit test renders the Admin `?tab=requests` branch; the sweep sees the Requests page empty; the phone test doesn't check the nav count.

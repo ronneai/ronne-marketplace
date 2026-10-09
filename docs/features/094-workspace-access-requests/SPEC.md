@@ -20,7 +20,8 @@ moderators answer. It replaces "ask root" with a request that's tracked and audi
   the requester can cancel it.
 - **Answering:** root, or a moderator or admin (092) of that workspace, approves (as `user`; root
   and the workspace's admins may pick `moderator`) or declines, with an optional reason. A
-  **Requests** tab on the workspace's page (090) and a count in the nav for those who can answer.
+  **Requests to join** page for everyone who answers, the same table as a **Requests** tab on the
+  workspace's page in Admin (090), and a count in the nav for those who can answer.
 - Audit events `workspace.access_requested`, `workspace.access_approved`
   (`workspace.member_added` too), `workspace.access_declined`, `workspace.access_cancelled`, on the
   requester, naming the workspace. The message and the reason stay out of the audit log.
@@ -44,15 +45,24 @@ Cancel. The page is in the account menu, under Access tokens.
 **The join link.** `/workspaces/<name>/join`: for a public workspace, its description and the Ask
 to join form. For a private one the reader isn't in, the name and the form only, exactly as for a
 name no workspace has. Members and root are told they're in already. Once asked, the page shows
-the request (Requested, or Declined with the reason) instead of the form until it can be sent again. The link needs no
-secret: knowing a private name only lets you ask, and the answer is a person's decision (decision 2). An unknown name and a private name show the same page until the request is sent; the
-answer after sending is "Request sent", so the page doesn't confirm that a name exists.
+the request (Requested, or Declined with the reason) instead of the form until it can be sent
+again. The link needs no secret: knowing a private name only lets you ask, and the answer is a
+person's decision (decision 2). An unknown name and a private name show the same page, before and
+after the request is sent, so the page doesn't confirm that a name exists. Sending refreshes the
+page, which then shows the request as Requested with Cancel: that's the confirmation, on the
+Workspaces page as on the join page.
 
-**Answering.** The workspace page's **Requests** tab (root and that workspace's moderators and
-admins): who, when, message; **Approve** (role select, `user` or `moderator`, only for root and the
-workspace's admins, who manage its members; default `user`) and **Decline** (optional reason,
-shown to the requester). Approving writes the membership as 092 does. The nav shows a
-count, "Requests 2", next to Reviews, for anyone who can answer at least one.
+**Answering.** **Requests to join** (`/workspaces/requests`, root and every moderator and admin):
+every open request they can answer, oldest first (the 100 oldest, with the total), with its
+workspace; anyone who answers nowhere gets a 404. The same table is the **Requests** tab of a
+workspace's page in Admin, for root and its admins (moderators don't open Admin, so the Requests
+page is theirs). Each row: who, when, message; **Approve** (role select, `user` or `moderator`, only
+for root and the workspace's admins, who manage its members; default `user`) and **Decline**
+(optional reason, shown to the requester). Approving writes the membership as 092 does. Once
+answered, the row is gone: the refreshed table is the confirmation, and a second answer is told
+"Already answered". The nav shows **Requests** with its count, "Requests 2", next to Reviews, only
+while at least one request waits for the reader, so a moderator of a quiet workspace doesn't carry
+an empty item; it opens the Requests page.
 
 **A name no workspace has.** Asking for it is kept as a request too, by name, so it answers, counts
 against the limit, answers "Requested" when asked again and shows to its requester exactly as a
@@ -85,8 +95,8 @@ Requests by a disabled user are cancelled with them (`user.disabled` counts them
 - **Workspaces**, a new section **Joining a workspace** (`workspaces#joining`): the Workspaces
   page, the join link for private ones, who answers.
 - **Workspaces → Members and roles** (`workspaces#roles`): answering requests.
-- **Helpers:** the 091 "How do I join?" helper now opens Ask to join; on the Requests tab, "Who can
-  answer?" → `workspaces#joining`.
+- **Helpers:** the 091 "How do I join?" helper now opens Ask to join; on the Requests page and
+  tab, "Who can answer?" → `workspaces#joining`.
 
 ## Acceptance criteria
 

@@ -164,3 +164,6 @@ export const myWorkspaces = async (headers: Headers, app: AppAuth = getAppAuth()
 
 export const joinTarget = async (headers: Headers, name: string, app: AppAuth = getAppAuth()) =>
   requests.joinTarget(deps(app), await actor(headers, app), name);
+
+export const requestsToAnswerList = async (headers: Headers, app: AppAuth = getAppAuth()) =>
+  requests.requestsToAnswerList(deps(app), await actor(headers, app));

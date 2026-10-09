@@ -18,6 +18,8 @@ import {
   E2E_ACME,
   E2E_ACME_MEMBERS,
   E2E_FALLBACK_ITEMS,
+  E2E_JOIN,
+  E2E_JOIN_MODERATORS,
   E2E_MODERATORS,
   E2E_NAMES,
   E2E_PASSWORD,
@@ -86,6 +88,29 @@ for (const [key, role] of Object.entries(E2E_ACME_MEMBERS) as [keyof typeof E2E_
       workspace_id: acmeId,
       user_id: ids[key] ?? "",
       role: role as "moderator" | "user",
+      added_by: null,
+      created_at: now,
+      updated_at: now,
+    })
+    .execute();
+}
+
+// A workspace people ask to join (094), with each project's join moderator.
+const joinId = await kyselyWorkspaceRepository(db, dialect).insert({
+  name: E2E_JOIN,
+  description: "Ask to join it, for the end-to-end tests.",
+  visibility: "public",
+  createdBy: null,
+  createdAt: new Date(),
+});
+for (const key of E2E_JOIN_MODERATORS) {
+  const now = toDbDate(new Date(), dialect);
+  await db
+    .insertInto("workspace_members")
+    .values({
+      workspace_id: joinId,
+      user_id: ids[key] ?? "",
+      role: "moderator",
       added_by: null,
       created_at: now,
       updated_at: now,

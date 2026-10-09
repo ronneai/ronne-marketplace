@@ -172,27 +172,39 @@ export const accessRequestMethods = (
       return { ...toRequest(row), status: "approved", decidedAt: at };
     },
 
-    pendingRequests: async (workspaceId, limit) =>
-      (
-        await db
-          .selectFrom("workspace_access_requests as r")
-          .innerJoin("user", "user.id", "r.user_id")
-          .select(["r.id", "r.user_id", "user.email", "user.name", "r.message", "r.created_at"])
-          .where("r.workspace_id", "=", workspaceId)
-          .where("r.status", "=", "open")
-          .where("user.disabled_at", "is", null)
-          .orderBy("r.created_at")
-          .orderBy("r.id")
-          .limit(limit)
-          .execute()
-      ).map((row) => ({
-        id: row.id,
-        userId: row.user_id,
-        email: row.email,
-        name: row.name,
-        message: row.message,
-        createdAt: fromDbDate(row.created_at),
-      })),
+    pendingRequests: async (workspaceIds, limit) => {
+      if (workspaceIds !== "all" && workspaceIds.length === 0) return [];
+      let query = db
+        .selectFrom("workspace_access_requests as r")
+        .innerJoin("user", "user.id", "r.user_id")
+        // Only requests with a workspace: nobody answers one to a name no workspace has.
+        .innerJoin("workspaces", "workspaces.id", "r.workspace_id")
+        .select([
+          "r.id",
+          "workspaces.id as workspace_id",
+          "workspaces.name as workspace",
+          "r.user_id",
+          "user.email",
+          "user.name",
+          "r.message",
+          "r.created_at",
+        ])
+        .where("r.status", "=", "open")
+        .where("user.disabled_at", "is", null);
+      if (workspaceIds !== "all") query = query.where("r.workspace_id", "in", [...workspaceIds]);
+      return (await query.orderBy("r.created_at").orderBy("r.id").limit(limit).execute()).map(
+        (row) => ({
+          id: row.id,
+          workspaceId: row.workspace_id,
+          workspace: row.workspace,
+          userId: row.user_id,
+          email: row.email,
+          name: row.name,
+          message: row.message,
+          createdAt: fromDbDate(row.created_at),
+        }),
+      );
+    },
 
     countPendingRequests: async (workspaceIds) => {
       if (workspaceIds !== "all" && workspaceIds.length === 0) return 0;

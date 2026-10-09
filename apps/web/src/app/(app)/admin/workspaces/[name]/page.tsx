@@ -21,10 +21,15 @@ import {
   workspaceMembersList,
 } from "@/features/workspace-members/list";
 import { MembersTable } from "@/features/workspace-members/MembersTable";
+import { RequestsTable } from "@/features/workspace-requests/RequestsTable";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { can, canInSome } from "@/server/domains/identity/models/permissions";
 import { pageScopes } from "@/server/domains/items/actions/scopes";
-import { findWorkspace, pageMembers } from "@/server/domains/workspaces/actions/workspaces";
+import {
+  findWorkspace,
+  pageMembers,
+  pendingRequests,
+} from "@/server/domains/workspaces/actions/workspaces";
 import { requestHeaders } from "@/server/http/request-headers";
 
 export const metadata = { title: "Workspace · Admin · Ronne AI Marketplace" };
@@ -59,10 +64,23 @@ const AdminWorkspace = async ({
   if (!workspace) notFound();
   const path = workspacePath(workspace.name);
   const query = await searchParams;
-  // Two tabs on this page's own address (092): its scopes, and with `tab=members` its members.
-  const tab = query.tab === "members" ? "members" : "scopes";
+  // Tabs on this page's own address: its scopes, `tab=members` its members (092), and
+  // `tab=requests` the requests to join it (094), for root and its admins, who answer them.
+  const tab = query.tab === "members" || query.tab === "requests" ? query.tab : "scopes";
 
   const content = async () => {
+    if (tab === "requests") {
+      const { requests, total } = await pendingRequests(request, workspace.id);
+      return (
+        <RequestsTable
+          requests={requests.map((r) => ({
+            ...r,
+            canPickRole: can(me, "members.manage", workspace.id),
+          }))}
+          total={total}
+        />
+      );
+    }
     if (tab === "members") {
       const list = workspaceMembersList(path);
       const state = checkedMembersState(parseListQuery(list, query));
@@ -147,6 +165,7 @@ const AdminWorkspace = async ({
           [
             ["scopes", "Scopes", path],
             ["members", "Members", `${path}?tab=members`],
+            ["requests", "Requests", `${path}?tab=requests`],
           ] as const
         ).map(([id, label, href]) => (
           <Link

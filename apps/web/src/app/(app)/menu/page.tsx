@@ -19,7 +19,7 @@ const MenuPage = async () => {
       <Panel padding="sm">
         <MenuList
           user={user}
-          items={navFor(user)}
+          items={navFor(user, navCounts)}
           counts={navCounts}
           appearance={<ThemeToggle theme={theme} />}
           signOutAction={signOutFromMenu}

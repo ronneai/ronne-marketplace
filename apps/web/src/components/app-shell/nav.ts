@@ -28,6 +28,8 @@ export type NavItem = {
   external?: true;
   /** Hidden from someone who holds this one: root's Admin replaces a workspace admin's (092). */
   unless?: Exclude<Permission, WorkspacePermission>;
+  /** Shown only while its count is above 0: Requests (094), for moderators of a quiet workspace. */
+  onlyWithCount?: true;
 };
 
 /**
@@ -46,6 +48,14 @@ export const NAV: NavItem[] = [
     section: "/submissions",
   },
   { href: "/reviews", label: "Reviews", permission: "submissions.review", section: "/reviews" },
+  // Requests to join the workspaces they moderate (094), only while some wait.
+  {
+    href: "/workspaces/requests",
+    label: "Requests",
+    permission: "access_requests.answer",
+    section: "/workspaces/requests",
+    onlyWithCount: true,
+  },
   { href: "/admin/users", label: "Admin", permission: "users.view", section: "/admin", end: true },
   // A workspace's admin: Admin opens their workspaces (092).
   {
@@ -59,12 +69,13 @@ export const NAV: NavItem[] = [
   { href: DOCS_URL, label: "Docs", end: true, external: true },
 ];
 
-export const navFor = (user: ShellUser | null): NavItem[] => {
+export const navFor = (user: ShellUser | null, counts: Record<string, number> = {}): NavItem[] => {
   if (!user) return [];
   // A workspace permission shows the item when the user holds it in any workspace (091).
   return NAV.filter(
     (item) =>
       (!item.unless || !can(user, item.unless)) &&
+      (!item.onlyWithCount || (counts[item.href] ?? 0) > 0) &&
       (!item.permission ||
         (item.permission in WORKSPACE_PERMISSIONS
           ? canInSome(user, item.permission as WorkspacePermission)

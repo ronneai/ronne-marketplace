@@ -4,7 +4,6 @@ import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
-import { Notice } from "@/components/ui/Notice";
 import { cancelRequestFromForm, requestAccessFromForm } from "./actions";
 import type { RequestActionState } from "./types";
 
@@ -12,7 +11,8 @@ const MESSAGE_MAX_LENGTH = 500;
 
 /**
  * Ask to join (094): an optional message, then the request. Inline on the join page; in a dialog
- * on the Workspaces page, where `onCancel` closes it.
+ * on the Workspaces page, where `onCancel` closes it. On success the page refreshes and shows the
+ * request as Requested, with Cancel, in place of this form: that's the confirmation.
  */
 export const AskToJoinForm = ({
   workspace,
@@ -26,21 +26,6 @@ export const AskToJoinForm = ({
     {},
   );
   const [message, setMessage] = useState("");
-  if (state.done)
-    return (
-      <div className="grid gap-4">
-        <Notice kind="info" title={state.done}>
-          <p className="mt-1 text-muted">
-            The answer shows on the Workspaces page. You can cancel the request there.
-          </p>
-        </Notice>
-        {onCancel ? (
-          <div>
-            <Button onClick={onCancel}>Done</Button>
-          </div>
-        ) : null}
-      </div>
-    );
   const messageId = `join-${workspace}-message`;
   return (
     <form action={action} className="grid gap-4">

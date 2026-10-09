@@ -17,7 +17,7 @@ the same change that completes it.
 - [x] **2. Workspaces page and join link.** `/workspaces` and `/workspaces/<name>/join`.
   *Done when:* page tests pass, including the unknown-or-private case.
 
-- [ ] **3. Requests tab and nav count.**
+- [x] **3. Requests tab and nav count.**
   *Done when:* component and nav tests pass, and an end-to-end test has a user ask and a
   moderator approve, on desktop and phone.
 

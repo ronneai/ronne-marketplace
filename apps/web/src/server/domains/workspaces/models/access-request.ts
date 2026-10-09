@@ -25,6 +25,8 @@ export type AccessRequest = {
 /** An open request as the Requests tab shows it: who, when and what they said. */
 export type PendingRequest = {
   id: string;
+  workspaceId: string;
+  workspace: string;
   userId: string;
   email: string;
   name: string;
