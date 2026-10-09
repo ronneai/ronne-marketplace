@@ -58,3 +58,16 @@ describe("startingFiles", () => {
     expect(startingFiles("mcp-server")).toEqual(["ronne.yaml"]);
   });
 });
+
+describe("a name that isn't a type", () => {
+  // What a bad row in the database would hand them: nothing, rather than an inherited method.
+  it.each(["constructor", "toString", "__proto__", "hasOwnProperty", "nope"])(
+    "%s has no files",
+    async (name) => {
+      const { startingFiles } = await import("./templates");
+      const type = name as (typeof ITEM_TYPES)[number];
+      expect(startingFiles(type)).toEqual([]);
+      expect(draftTemplate(type, "@platform/starter")).toEqual([]);
+    },
+  );
+});

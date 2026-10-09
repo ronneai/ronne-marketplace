@@ -251,9 +251,20 @@ dependencies: {}
   ],
 };
 
-/** The files a new draft of `type` starts with. */
+/**
+ * The type's template, or undefined for a name that isn't one: only TEMPLATES' own keys, never what
+ * it inherits, such as `constructor` or `toString`. A type read back from the database is trusted
+ * no further than this.
+ */
+const templateOf = (type: string): Template | undefined => {
+  if (!Object.hasOwn(TEMPLATES, type)) return undefined;
+  const template = TEMPLATES[type as ItemType];
+  return typeof template === "function" ? template : undefined;
+};
+
+/** The files a new draft of `type` starts with; none for a name that isn't a type. */
 export const draftTemplate = (type: ItemType, itemName: string): TemplateFile[] =>
-  TEMPLATES[type](itemName, itemName.slice(itemName.indexOf("/") + 1));
+  templateOf(type)?.(itemName, itemName.slice(itemName.indexOf("/") + 1)) ?? [];
 
 /**
  * The files New item starts a type with: ronne.yaml and the file it names, such as SKILL.md or
@@ -261,4 +272,4 @@ export const draftTemplate = (type: ItemType, itemName: string): TemplateFile[] 
  * their contents are edited as usual.
  */
 export const startingFiles = (type: ItemType): string[] =>
-  (TEMPLATES[type]?.("@scope/name", "name") ?? []).map((file) => file.path);
+  (templateOf(type)?.("@scope/name", "name") ?? []).map((file) => file.path);
