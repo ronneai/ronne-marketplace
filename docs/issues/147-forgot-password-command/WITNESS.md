@@ -79,3 +79,21 @@ Witnessed: 2026-10-09 00:26 EDT, by a fresh agent (blind). Commit: ffb67ab. Mach
 | 17 | That test fails if the note becomes a `<div>` | no | confirmed | Copy with `<details>` → `<div>` → 1 failed, 9 passed; with `<summary>` → `<span>` too → the same test fails |
 
 **Overall:** met: the route test reads RONNE_RUNTIME through the real page and catches a hardcoded command, `scriptCommand` and a fixed env; the `<details>` test catches a switch to `<div>`. The Docker command on a phone stays covered by the probes only (rows 11 and 7 above).
+
+## Task 3 — Documentation
+
+Witnessed: 2026-10-09 00:30 EDT, by a fresh agent (blind). Commit: 1a20a70 (the app's facts); the website at ronne-web 3b7ee34, branch `bugfix/marketplace-147-reset-command`. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | en `install#root`: the forgotten-password paragraph names `rmk-server reset-root-password` for the npm package and the apt/dnf packages, next to the Docker and clone forms | yes | confirmed | `git show 3b7ee34` → en/install.tsx:504-507, inside `root:` (481), before `upgrade:` (515) |
+| 2 | pt: the same paragraph gives the same three forms | yes | confirmed | pt/install.tsx:521-525: "`rmk-server reset-root-password` no pacote npm ou num pacote apt ou dnf, `docker compose exec web …` no Docker, ou `pnpm run reset-root-password` num clone"; inside `root:` |
+| 3 | fr: the same paragraph gives the same three forms | yes | confirmed | fr/install.tsx:539-543: "… pour le paquet npm ou un paquet apt ou dnf, … avec Docker, ou … dans un clone"; inside `root:` |
+| 4 | The three forms match the app (`hostCommand`) | no | confirmed | `apps/web/src/server/runtime.ts:40-45`: docker → `docker compose exec web pnpm run <name>`, npm → `rmk-server <name>`, otherwise `pnpm run <name>`; the same strings as the docs |
+| 5 | rmk-server sets `RONNE_RUNTIME=npm`, and the apt/dnf packages run rmk-server | no | confirmed | `packages/server/src/server-env.ts:19`; `run.ts:119-122` applies it for scripts and `start`. `packaging/linux/nfpm.yaml` links `/usr/bin/rmk-server` → the bundle launcher (`bundle.js:79`), which runs the package's `rmk-server` bin (`packages/server/package.json:28`) |
+| 6 | `rmk-server reset-root-password` exists, and `--email`/`--yes` are real | no | confirmed | `packages/server/src/cli.ts:8` SCRIPTS includes `reset-root-password`; `apps/web/scripts/reset-root-password.ts:2-3` documents `--yes` and `--email` |
+| 7 | The paragraph's mention of the sign-in page's Forgot? note matches the app | yes | confirmed | `ForgotPassword.tsx:13` has "Forgot?" and shows the `resetCommand` it's given, from `hostCommand` |
+| 8 | The change is on a ronne-web branch, not on main | yes | confirmed | `git branch --contains 3b7ee34` → only `bugfix/marketplace-147-reset-command`; working tree clean. Going live with the release is a later step, not part of *Done when* |
+| 9 | ronne-web's checks pass on that commit | no | confirmed | In `www`: `pnpm lint` → "Checked 206 files … No fixes applied."; `pnpm test` → 138 passed |
+
+**Overall:** met: in en, pt and fr, the `install#root` paragraph names `rmk-server reset-root-password` for the npm, apt and dnf installs beside the Docker and clone forms, all three match `hostCommand`, and the change is on a ronne-web branch. Observation: on a service install the command needs administrator rights; run without them, it says how (`service/control.ts:218-222`). The spec's edge case now says so.

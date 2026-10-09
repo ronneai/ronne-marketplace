@@ -17,6 +17,6 @@ the same change that completes it.
   the three commands and the link, and `auth.e2e.ts` opens **Forgot?** and sees
   `pnpm run reset-root-password` and the link, on desktop and phone.
 
-- [ ] **3. Documentation.** `install#root` on the website (en, pt, fr), in a ronne-web branch that
+- [x] **3. Documentation.** `install#root` on the website (en, pt, fr), in a ronne-web branch that
   goes live with the release. *Done when:* the paragraph names the npm form beside the clone and
   Docker ones, in all three languages.

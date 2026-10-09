@@ -62,8 +62,11 @@ the machine that runs it.
 - **An unknown or missing `RONNE_RUNTIME`** is a clone (`runtimeOf`'s rule), so the note keeps
   today's text.
 - **A long Docker command on a phone** wraps inside the note instead of widening the page.
-- **A service install** (`rmk-server service install`) is the npm runtime: `rmk-server
-  reset-root-password` already works on the service's data (082).
+- **A service install** (`rmk-server service install`, and the apt and dnf packages) is the npm
+  runtime. Run without administrator rights there, `rmk-server reset-root-password` stops and says
+  how to run it as one (`sudo rmk-server reset-root-password`, or a terminal opened as
+  administrator on Windows; `service/control.ts`), so the note's command leads to the right one
+  and doesn't name `sudo` itself.
 
 ## Documentation
 
