@@ -97,3 +97,22 @@ Witnessed: 2026-10-09 00:30 EDT, by a fresh agent (blind). Commit: 1a20a70 (the 
 | 9 | ronne-web's checks pass on that commit | no | confirmed | In `www`: `pnpm lint` → "Checked 206 files … No fixes applied."; `pnpm test` → 138 passed |
 
 **Overall:** met: in en, pt and fr, the `install#root` paragraph names `rmk-server reset-root-password` for the npm, apt and dnf installs beside the Docker and clone forms, all three match `hostCommand`, and the change is on a ronne-web branch. Observation: on a service install the command needs administrator rights; run without them, it says how (`service/control.ts:218-222`). The spec's edge case now says so.
+
+## Task 4 — The popover
+
+Witnessed: 2026-10-09 08:52 EDT, by a fresh agent (blind). Commit: 89b049b. Machine: macOS 27.0.1, Node v24.0.0. Working-tree diff: ForgotPassword.tsx, auth.e2e.ts, smoke.mobile.e2e.ts.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | With JavaScript, **Forgot?** is a button that opens the note in the shared `Popover`, with `placement="bottom-end"` | yes | confirmed | `ForgotPassword.tsx:36-45` renders `<Popover label="Forgot your password?" button="Forgot?" placement="bottom-end" maxWidth={288}>`. Probe (Chromium, JS on): `details` count 0 after hydration; `getByRole("dialog", { name: "Forgot your password?" })` visible after the click |
+| 2 | The popover opens below the button, aligned to its end | yes | confirmed | Probe at 1280px: button and popover right edges both 535; button bottom 340.5, popover top 349 (8px gap). At 390px (Chromium and WebKit): both right edges at 349 |
+| 3 | Esc closes it | yes | confirmed | `auth.e2e.ts` presses Escape and expects 0 dialogs → passes; probe: 0 after Esc, light and dark |
+| 4 | A click outside closes it | no | confirmed | Probe `page.mouse.click(20,20)` at 1280px → 0 dialogs; a tap outside at 390 and 320px in Chromium and WebKit → 0. Only the probe covers it |
+| 5 | Without JavaScript it stays a native `<details>` that opens in place | yes | confirmed | `ForgotPassword.tsx:22-34`; `auth.e2e.ts` "without JavaScript › Forgot? opens the note in place" → passed. Probe with JS off (Chromium and WebKit): 1 `details`, 0 dialog buttons, command hidden before the click and visible after, `open=""` |
+| 6 | `auth.e2e.ts` opens the note as a dialog, closes it with Esc, and with JavaScript off opens the `<details>` | yes | confirmed | `npx playwright test e2e/auth.e2e.ts e2e/smoke.mobile.e2e.ts` → 13 passed; the build (`.next/BUILD_ID` 08:51:34) is newer than `ForgotPassword.tsx` (08:51:25). By reading: role lookups and the count-0 check after Esc would fail a `<details>`-only version or a popover without dismiss |
+| 7 | The phone test opens the popover and nothing scrolls sideways | yes | confirmed | `smoke.mobile.e2e.ts:19` taps the button, finds the `dialog`, asserts `scrollWidth <= innerWidth` → passed on phone, phone-webkit and tablet |
+| 8 | A long Docker command wraps on a phone and the popover stays inside the window | no | confirmed | Probe server with `RONNE_RUNTIME=docker`: at 390px the popover spans x 61–349, the `code` wraps over 3 lines, scroll 390/390; at 320px `shift` moves it to x 8–296, scroll 320/320; same in WebKit |
+| 9 | Earlier behaviour holds: the per-install command and **Root accounts** → `install#root` | no | confirmed | e2e sees `pnpm run reset-root-password` and `https://www.ronne.ai/marketplace/docs/install#root` inside the dialog; probe with `RONNE_RUNTIME=docker`: `curl /sign-in` has `docker compose exec web pnpm run reset-root-password`; `vitest run src/features/sign-in` → 10 passed |
+| 10 | Changed files pass lint | no | confirmed | `biome check` on the 3 changed files → "No fixes applied" |
+
+**Overall:** met: the popover opens below Forgot?, aligned to its end; Esc or a click outside closes it; without JavaScript the `<details>` still opens in place; the Docker command wraps inside a 390px or 320px window, in Chromium and WebKit. Only the probe covers a click outside and the Docker command on a phone. Screenshots (light and dark, desktop and 390px phones) were shown to the owner.
