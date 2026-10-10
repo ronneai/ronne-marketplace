@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { Button } from "@/components/ui/Button";
 import { DirtyMark } from "@/components/ui/DirtyMark";
+import { IssueList } from "./IssueList";
 import { FileIssues, IssuesPanel, IssuesSummary, issueCount, issuesTone } from "./IssuesPopover";
 
 const error: ManifestIssue = { severity: "error", code: "x", message: "Broken.", file: "a.md" };
@@ -88,6 +89,25 @@ describe("the editor's notifications (owner, 2026-10-01)", () => {
     expect(renderToStaticMarkup(<DirtyMark />)).toContain("<span>Unsaved changes</span>");
     expect(renderToStaticMarkup(<DirtyMark label="Not saved" className="ml-1" />)).toMatch(
       /class="[^"]*ml-1[^"]*".*Not saved/,
+    );
+  });
+});
+
+describe("Use the new name (118)", () => {
+  const renamed: ManifestIssue = {
+    severity: "warning",
+    code: "dependency_renamed",
+    message: "@team/base is now @acme/team/base.",
+    path: "/dependencies",
+    rename: { from: "@team/base", to: "@acme/team/base" },
+  };
+
+  it("offers the fix where the list has somewhere to send it, and only then", () => {
+    expect(renderToStaticMarkup(<IssueList issues={[renamed]} onRename={() => {}} />)).toContain(
+      ">Use the new name</button>",
+    );
+    expect(renderToStaticMarkup(<IssueList issues={[renamed]} />)).not.toContain(
+      "Use the new name",
     );
   });
 });

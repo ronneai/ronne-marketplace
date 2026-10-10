@@ -29,7 +29,11 @@ const allScopes = async (headers: Headers): Promise<ScopeOption[]> => {
     if (!nextCursor) break;
     cursor = nextCursor;
   }
-  return found;
+  // By workspace, `global` first, so each workspace's scopes sit together (118).
+  return found.sort((a, b) => {
+    const [aw, bw] = [a.name.includes("/") ? 1 : 0, b.name.includes("/") ? 1 : 0];
+    return aw - bw || a.name.localeCompare(b.name);
+  });
 };
 
 const NewItem = async () => {

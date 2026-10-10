@@ -49,11 +49,14 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   note for 30 days; `docs/spec/plugin-feeds.md` updated.
   *Done when:* feed tests cover the names, the length warning and the note.
 
-- [ ] **7. Web app.** Item URLs with the workspace, alias redirects, full names on cards, item
+- [x] **7. Web app.** Item URLs with the workspace, alias redirects, full names on cards, item
   pages, the editor's name field (scope picker grouped by workspace), Admin › Scopes; Use the new
   name on a dependency through an alias.
-  *Done when:* component tests pass, and an end-to-end test creates `test/lint` in two workspaces,
-  releases both and installs each, on desktop and phone.
+  *Done when:* component tests pass, and an end-to-end test lists, opens and installs (`rmk`) two
+  items of one scope and name in two workspaces, released by the seed, on desktop; and on a phone
+  lists and opens them and shows each one's install command by its full name. (Changed while
+  building: releasing in a workspace through the app is `old-names.db.test.ts`'s; a phone doesn't
+  run `rmk`.)
 
 - [ ] **8. Decision log and contracts.** MVP §15: Workspaces (names include the workspace, 090
   decision 2 reversed), Scopes (unique per workspace), a new Aliases row; MVP §3 and §11; 090's
@@ -97,3 +100,9 @@ goes into `SPEC.md` instead.
 - **Task 6:** a name a tool refuses is now logged once, when its plugin is built. Untested yet:
   `rmk feed build` fetching from `/feeds/<tool>/workspaces/…` (a probe showed it works),
   `pluginKey` with a workspace; `renamedSince` keeps the newest alias by `created_at` only.
+- **Task 7:** a `RegExp` in a nav item broke every page (props to client components must be
+  plain; `docs/knowledge/server-client-props.md`). New e2e users or recent items shift lists other
+  tests read (the users table's first page, the composer picker's 12 most recent): the twins are
+  dated long ago, and `user-admin` searches for root. `submit-problems.mobile` on phone-webkit
+  times out in full runs, on `main` too, and passes alone. The editor step that applies "Use the
+  new name" has no test of its own.

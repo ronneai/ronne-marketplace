@@ -276,6 +276,7 @@ describe("the workspace in item names (118)", () => {
         code: "dependency_renamed",
         message:
           "@team/base is now @acme/team/base. It still works under its old name; use the new one.",
+        rename: { from: "@team/base", to: "@acme/team/base" },
       }),
     );
     await submitDraft(asAuthor, id, app, storage);

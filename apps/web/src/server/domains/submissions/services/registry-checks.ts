@@ -229,12 +229,13 @@ export const dependencyIssues = async (
     const item = parsed ? await registry.findItem(parsed) : null;
     // Found by an old name (118): it still works, but the new name is the one to keep.
     if (item && item.fullName !== canonicalItemName(dependency))
-      issues.push(
-        warning(
+      issues.push({
+        ...warning(
           "dependency_renamed",
           `${dependency} is now ${item.fullName}. It still works under its old name; use the new one.`,
         ),
-      );
+        rename: { from: dependency, to: item.fullName },
+      });
     const resolved = item ? await resolve(dependency, range) : null;
     const way: OnItsWay = resolved
       ? { anyOpen: [], mine: [], closed: null, draft: null }

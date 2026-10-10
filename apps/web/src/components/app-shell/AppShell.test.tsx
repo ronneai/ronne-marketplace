@@ -158,6 +158,9 @@ describe("isCurrent", () => {
     expect(catalogue && isCurrent(catalogue, "/catalogue")).toBe(true);
     expect(catalogue && isCurrent(catalogue, "/items/team/fmt/versions")).toBe(true);
     expect(catalogue && isCurrent(catalogue, "/itemsx")).toBe(false);
+    // A workspace's item pages are the catalogue's too; its join page isn't (118).
+    expect(catalogue && isCurrent(catalogue, "/workspaces/acme/items/team/fmt")).toBe(true);
+    expect(catalogue && isCurrent(catalogue, "/workspaces/acme/join")).toBe(false);
     expect(home && isCurrent(home, "/")).toBe(true);
     expect(home && isCurrent(home, "/catalogue")).toBe(false);
   });

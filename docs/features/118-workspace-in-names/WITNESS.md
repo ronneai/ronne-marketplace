@@ -329,3 +329,52 @@ Witnessed: 2026-10-10 02:13 EDT, by a fresh agent (blind). Commit: d443cff6 (plu
 | 13 | Lint and typecheck clean on the changed code | no | confirmed | biome on 36 files; web `tsc --noEmit`; core typecheck; CLI `feed-build.test.ts` 13 passed |
 
 **Overall:** met.
+
+## Task 7 — Web app
+
+Witnessed: 2026-10-10 02:59 EDT, by a fresh agent (blind). Commit: 80d0929b (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Component tests pass | no | confirmed | web 1940 passed, 8 skipped; core 363 passed; lint and typecheck pass |
+| 2 | A workspace's item page at `/workspaces/<ws>/items/<scope>/<name>`; global's unchanged | no | confirmed | the pages; `item-page.test.tsx:120-160`; the e2e reaches `/workspaces/e2e-twin/items/e2e-seeded/twin-notes` |
+| 3 | An alias's address redirects, `/versions` and `?version=` kept; `/workspaces/global/…` → `/items/…` | no | confirmed | `load.ts:43-48`; tests |
+| 4 | Every link to an item page carries the workspace | no | partly | `versionsPath` (`features/versions/links.ts`) and `actions.ts:60` drop it |
+| 5 | Cards show full names; global keeps `@scope/name` | no | confirmed | `ItemCard.tsx`; `catalogue.test.tsx:264`; the e2e on chromium, phone, phone-webkit, tablet |
+| 6 | Catalogue is current on a workspace's item pages | no | confirmed | `nav.ts` pattern; `AppShell.test.tsx` |
+| 7 | The scope picker names and groups by workspace | no | partly | named and sorted, but one flat list with no headings; no test of the order |
+| 8 | Admin › Scopes shows workspaces, allows same-named rows, edits the right scope | no | confirmed | Workspace column; `acme/infra` to `scopeRefFrom`; paging by `name:id` |
+| 9 | A dependency through an alias passes with a warning carrying "Use the new name" | no | partly | the `rename` field isn't asserted |
+| 10 | "Use the new name" rewrites the dependency | no | partly | `renameDependency` tested; duplicate key when both names are listed; CRLF lost; the editor step untested |
+| 11 | The e2e creates `test/lint` in two workspaces and releases both | no | not met | the seed inserts both releases directly |
+| 12 | The e2e installs each, on desktop | no | confirmed | `[chromium] workspace-names.e2e.ts` passed: `rmk install` of each full name |
+| 13 | The e2e installs each, on phone | no | not met | the phone test lists and opens only |
+| 14 | The full e2e suite is green | no | partly | 123 passed, 1 failed: `[phone-webkit] submit-problems.mobile.e2e.ts`, passes alone |
+
+**Overall:** not met.
+
+### Re-check 1
+
+Witnessed: 2026-10-10 03:16 EDT, by a fresh agent (blind). Commit: 80d0929b (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | Every link to an item page carries the workspace | no | confirmed | `versionsPath` through `itemPath`; `versions-page.test.tsx`; `actions.ts:61`; `tsc --noEmit` exit 0 |
+| 7 | The scope picker names and groups by workspace | no | confirmed | headings per workspace in `NewDraftForm.tsx`; `submissions.test.tsx:457-460` checks the order |
+| 9 | A dependency through an alias carries "Use the new name" | no | confirmed | `old-names.db.test.ts:279` asserts `rename`; 90 passed |
+| 10 | "Use the new name" rewrites the dependency | no | confirmed | duplicate and CRLF handled; `manifest-yaml.test.ts`; probe `errors: []`; the click step read, both sides tested |
+| 11 | (Done when as changed) desktop e2e lists, opens and installs two same-named items | no | confirmed | `[chromium] workspace-names.e2e.ts:18` passed: each `rmk.lock` has exactly its name |
+| 13 | (Done when as changed) phone lists, opens and shows each install command | no | confirmed | phone, phone-webkit and tablet passed |
+| 14 | The full e2e suite is green apart from failures that predate this work | no | partly | 122 passed, 2 failed: `submit-problems.mobile` (fails on `main` too) and `[phone] dependency-picker.mobile.e2e.ts:25` once (passes alone, 5/5 repeated) |
+
+**Overall:** not met: claim 14.
+
+### Re-check 2
+
+Witnessed: 2026-10-10 03:24 EDT, by a fresh agent (blind). Commit: 80d0929b (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 14 | The full e2e suite is green apart from failures that predate this work | no | confirmed | own `pnpm test:e2e` → 123 passed, 1 failed: `[phone-webkit] submit-problems.mobile.e2e.ts:5:1`, which fails on `main` too (`e2e-main.txt` line 219) and passes alone; `dependency-picker.mobile` passed on phone, phone-webkit and tablet |
+
+**Overall:** met.

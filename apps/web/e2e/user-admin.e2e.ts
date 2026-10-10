@@ -80,13 +80,16 @@ test("root creates a user, who signs in with the shown password; disabling them 
   const user = await browser.newPage();
   await signIn(user, email, password);
 
-  // Root's own row is read-only; the user isn't an admin yet.
+  // Root's own row is read-only; the user isn't an admin yet. Searched for: with more than a page
+  // of e2e users, root's row may not be on the first.
+  await root.goto(`/admin/users?q=${encodeURIComponent(E2E_USERS.root)}`);
   await expect(
     rowOf(root, E2E_USERS.root).getByRole("button", {
       name: "Why can't I change my own account here?",
     }),
   ).toBeVisible();
   await expect(root.getByRole("group", { name: `Actions for ${E2E_USERS.root}` })).toHaveCount(0);
+  await root.goto("/admin/users");
   expect((await user.goto("/admin/users"))?.status()).toBe(404);
 
   // Root makes them root, with a warning; it takes effect on their next request (059).

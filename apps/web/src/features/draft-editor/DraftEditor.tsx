@@ -58,7 +58,7 @@ import {
 import { useDebounced, useSaveShortcut } from "./hooks";
 import { editorProblems } from "./issues";
 import { ManifestForm } from "./ManifestForm";
-import { readManifest } from "./manifest-yaml";
+import { readManifest, renameDependency } from "./manifest-yaml";
 import { ProposalBar } from "./ProposalBar";
 import { DeleteArchivedDialog, RestoreButton, SubmitDialog, WithdrawDialog } from "./SubmitDialogs";
 import type { EditorDraft, SaveResult } from "./types";
@@ -316,6 +316,15 @@ export const DraftEditor = ({
     for (const action of actions) dispatch(action);
   }, []);
   const showYaml = useCallback(() => setView("yaml"), []);
+  // Use the new name (118): a dependency named by an old name, written under its name now.
+  const writeNewName = useCallback(
+    ({ from, to }: { from: string; to: string }) => {
+      const manifest = state.files.find((f) => f.path === MANIFEST_PATH);
+      if (manifest?.encoding === "utf8")
+        onChange(MANIFEST_PATH, renameDependency(manifest.content, from, to));
+    },
+    [state.files, onChange],
+  );
 
   // `@` in markdown files (056): the list is the dependency search; a pick adds the dependency to
   // ronne.yaml on latest, unless it's there already. Read through refs, so the list sees the
@@ -404,6 +413,7 @@ export const DraftEditor = ({
                   : "A draft can be saved with problems; it has to be free of errors to be submitted."
               }
               onSelect={openIssue}
+              onRename={readOnly ? undefined : writeNewName}
             />
             <span
               className={`font-mono text-xs ${overLimit ? "font-semibold text-fg" : "text-muted"}`}
@@ -586,6 +596,7 @@ export const DraftEditor = ({
                   saved={problems.byFile.get(f.path)?.saved}
                   savedLabel={problems.savedLabel}
                   onSelect={openIssue}
+                  onRename={readOnly ? undefined : writeNewName}
                 />
               )}
             />

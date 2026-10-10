@@ -454,6 +454,10 @@ describe("pages", () => {
     expect(scopes.listScopes).toHaveBeenNthCalledWith(2, expect.any(Headers), { cursor: "a" });
     expect(html).toContain("@a");
     expect(html).toContain("@acme/b");
+    // In groups by workspace, global first, each under a heading (118).
+    expect(html.indexOf(">global</span>")).toBeLessThan(html.indexOf("@a<"));
+    expect(html.indexOf("@a<")).toBeLessThan(html.indexOf(">acme</span>"));
+    expect(html.indexOf(">acme</span>")).toBeLessThan(html.indexOf("@acme/b<"));
   });
 });
 

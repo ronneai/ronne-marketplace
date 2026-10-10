@@ -1,4 +1,4 @@
-import { isCollection, isScalar, parseDocument } from "yaml";
+import { isCollection, isMap, isScalar, parseDocument } from "yaml";
 
 export type FieldPath = readonly (string | number)[];
 
@@ -58,4 +58,24 @@ export const writeField = (
   }
   doc.setIn(path, node);
   return doc.toString(PRINT);
+};
+
+/**
+ * ronne.yaml with one dependency under another name (118: Use the new name), its range, comments
+ * and place kept. When the new name is listed already, the old one's entry goes: one item, listed
+ * once. Line endings stay as they were. Unchanged if it doesn't parse or doesn't have that
+ * dependency.
+ */
+export const renameDependency = (text: string, from: string, to: string): string => {
+  const doc = parseDocument(text);
+  if (doc.errors.length > 0) return text;
+  const needs = doc.get("dependencies", true);
+  if (!isMap(needs)) return text;
+  const named = (name: string) => needs.items.find((p) => isScalar(p.key) && p.key.value === name);
+  const pair = named(from);
+  if (!pair || !isScalar(pair.key)) return text;
+  if (named(to)) needs.items.splice(needs.items.indexOf(pair), 1);
+  else pair.key.value = to;
+  const written = doc.toString(PRINT);
+  return text.includes("\r\n") ? written.replace(/\r?\n/g, "\r\n") : written;
 };
