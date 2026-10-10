@@ -33,7 +33,8 @@ moderators answer. It replaces "ask root" with a request that's tracked and audi
 **Out** (and where it goes instead):
 - **Email or other notifications:** out of scope for the MVP (MVP §15). The requester sees the
   answer on the Workspaces page; answerers see the nav count.
-- **Asking for moderator.** A request is to join; root changes roles (092).
+- **Asking for moderator.** A request is to join; root and the workspace's admins change roles
+  (092). Planned as [117](../README.md#m13--workspaces).
 - **Requests from `rmk` or the MCP server.** `rmk` prints the web address to ask from (095).
 
 ## Behaviour

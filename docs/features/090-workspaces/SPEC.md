@@ -37,9 +37,9 @@ part of item names (below) and it's mainly about who has access.
 - **The workspace in item names.** Names stay `@scope/name` everywhere (owner, 2026-10-05): scope
   names stay unique across the instance, so `rmk`, lockfiles, the manifest, plugin feeds and URLs
   don't change.
-- **Moving a scope to another workspace.** Later: it changes who can see and use every item in it,
-  so it needs its own spec (what happens to dependents and installs).
-- **Renaming a workspace.** Later: nothing outside depends on the name yet, but nothing needs it.
+- **Moving a scope to another workspace:** [115](../115-move-scopes/SPEC.md). It changes who can
+  see and use every item in it, so it has its own spec (what happens to dependents and installs).
+- **Renaming a workspace:** [113](../113-rename-workspaces/SPEC.md).
 
 ## Behaviour
 
