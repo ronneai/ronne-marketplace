@@ -6,6 +6,7 @@ import { createContext, type ReactNode, useContext, useState, useTransition } fr
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
+import { AskToJoinLink } from "@/components/workspaces/AskToJoinLink";
 import { submitSelectedAction } from "./actions";
 import type { BulkResult } from "./types";
 
@@ -161,6 +162,35 @@ const OUTCOME: Record<BulkResult["result"], string> = {
   not_a_member: "Not submitted",
 };
 
+/**
+ * What Submit selected did to each draft, with why one wasn't submitted, and Ask to join for one in
+ * a workspace the person isn't in (094).
+ */
+export const BulkResults = ({ results }: { results: BulkResult[] }) => (
+  <ul className="grid gap-2 text-sm">
+    {results.map((r) => (
+      <li key={r.id}>
+        <span className="mr-2 font-mono text-xs font-semibold">{OUTCOME[r.result]}:</span>
+        <Link href={`/submissions/${r.id}`} className="font-mono text-link hover:underline">
+          {r.name}
+        </Link>
+        {r.reasons.length > 0 ? (
+          <ul className="ml-4 list-disc text-muted">
+            {r.reasons.map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+            {r.joinWorkspace ? (
+              <li>
+                <AskToJoinLink workspace={r.joinWorkspace} />
+              </li>
+            ) : null}
+          </ul>
+        ) : null}
+      </li>
+    ))}
+  </ul>
+);
+
 /** Select all ready and Submit selected, above the table; only when something is ready. */
 export const BulkToolbar = ({ help }: { help?: ReactNode }) => {
   const router = useRouter();
@@ -207,26 +237,7 @@ export const BulkToolbar = ({ help }: { help?: ReactNode }) => {
       >
         {results ? (
           <div className="grid gap-4">
-            <ul className="grid gap-2 text-sm">
-              {results.map((r) => (
-                <li key={r.id}>
-                  <span className="mr-2 font-mono text-xs font-semibold">{OUTCOME[r.result]}:</span>
-                  <Link
-                    href={`/submissions/${r.id}`}
-                    className="font-mono text-link hover:underline"
-                  >
-                    {r.name}
-                  </Link>
-                  {r.reasons.length > 0 ? (
-                    <ul className="ml-4 list-disc text-muted">
-                      {r.reasons.map((reason) => (
-                        <li key={reason}>{reason}</li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
+            <BulkResults results={results} />
             <DialogActions>
               <Button onClick={close}>Done</Button>
             </DialogActions>

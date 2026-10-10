@@ -376,6 +376,16 @@ export const kyselyIdentityRepository = (
       return Number(result.numUpdatedRows);
     },
 
+    async cancelAccessRequests(userId, now) {
+      const result = await db
+        .updateTable("workspace_access_requests")
+        .set({ status: "cancelled", decided_at: at(now) })
+        .where("user_id", "=", userId)
+        .where("status", "=", "open")
+        .executeTakeFirst();
+      return Number(result.numUpdatedRows);
+    },
+
     async recordAudit(event, now) {
       await recordAudit(db, dialect, event, now);
     },

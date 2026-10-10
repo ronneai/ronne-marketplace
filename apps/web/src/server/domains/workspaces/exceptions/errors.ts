@@ -106,3 +106,46 @@ export class WorkspaceHasOutsideDependentsError extends WorkspacesError {
     );
   }
 }
+
+/** A request to join (094) that doesn't exist, or isn't the asker's to see. */
+export class AccessRequestNotFoundError extends WorkspacesError {
+  constructor() {
+    super("That request doesn't exist.");
+  }
+}
+
+/** Someone else answered or cancelled it first (094): the first decision wins. */
+export class AccessRequestAnsweredError extends WorkspacesError {
+  constructor() {
+    super("Already answered.");
+  }
+}
+
+export class InvalidAccessRequestTextError extends WorkspacesError {
+  constructor(readonly field: "message" | "reason") {
+    super(`A request's ${field} has at most 500 characters.`);
+  }
+}
+
+/** At most 10 open requests per user (094). */
+export class TooManyAccessRequestsError extends WorkspacesError {
+  constructor(readonly limit: number) {
+    super(`You have ${limit} open requests already. Cancel one, or wait for an answer.`);
+  }
+}
+
+/** A declined request can be sent again 7 days after the decline (094). */
+export class AccessRequestTooSoonError extends WorkspacesError {
+  constructor(readonly after: Date) {
+    super(
+      `Your last request was declined. You can ask again from ${after.toISOString().slice(0, 10)}.`,
+    );
+  }
+}
+
+/** Approving with a role other than user or moderator (094); admin is set from Members (092). */
+export class InvalidRequestRoleError extends WorkspacesError {
+  constructor(readonly role: string) {
+    super(`"${role}" can't be given by approving a request. Use user or moderator.`);
+  }
+}

@@ -218,10 +218,10 @@ describe("0019_workspaces", () => {
     expect(on.rows[0]?.foreign_keys).toBe(1);
 
     await t.db.deleteFrom("items").where("id", "=", "orphan").execute();
-    expect(await migrateToLatest(t.db, t.dialect)).toEqual([
-      "0019_workspaces",
-      "0020_workspace_members",
-    ]);
+    // 0019 and every migration after it, which waited for it.
+    expect(await migrateToLatest(t.db, t.dialect)).toEqual(
+      Object.keys(migrations).filter((name) => name >= "0019_workspaces"),
+    );
   });
 
   it("on MySQL and MariaDB, where DDL commits as it goes, every step is safe to run again", async () => {

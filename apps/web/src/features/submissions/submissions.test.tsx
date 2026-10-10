@@ -66,7 +66,9 @@ const mockList = (list: Submission[]) => {
   );
 };
 const { NewDraftForm } = await import("./NewDraftForm");
-const { BulkSubmitProvider, BulkToolbar, neededBy, toggled } = await import("./BulkSubmit");
+const { BulkResults, BulkSubmitProvider, BulkToolbar, neededBy, toggled } = await import(
+  "./BulkSubmit"
+);
 const { BulkReleaseProvider, BulkReleaseToolbar } = await import("../releases/BulkRelease");
 const releases = await import("../releases/actions");
 const { default: SubmissionsPage } = await import("@/app/(app)/submissions/page");
@@ -271,6 +273,37 @@ describe("submitting several at once (052)", () => {
       ids: [ready.id, blocked.id, "gone"],
     });
     expect(cache.revalidatePath).toHaveBeenCalledWith("/submissions");
+  });
+});
+
+describe("a draft in a workspace they aren't in (091, 094)", () => {
+  it("says why it wasn't submitted, and links to Ask to join the workspace", async () => {
+    const base = submission({ id: "01J0000000000000000000000C", name: "away-one" });
+    const away = { ...base, workspace: { ...base.workspace, name: "acme" } };
+    bulk.submitManyDrafts.mockResolvedValue({
+      results: [
+        {
+          id: away.id,
+          result: "not_a_member",
+          submission: away,
+          issues: [{ severity: "error", code: "not_a_member", message: "You aren't a member." }],
+        },
+      ],
+      more: 0,
+    });
+    const results = await actions.submitSelectedAction([away.id]);
+    expect(results).toEqual([
+      {
+        id: away.id,
+        name: "@platform/away-one",
+        result: "not_a_member",
+        reasons: ["You aren't a member."],
+        joinWorkspace: "acme",
+      },
+    ]);
+    const html = renderToStaticMarkup(<BulkResults results={results} />);
+    expect(html).toContain("You aren&#x27;t a member.");
+    expect(html).toMatch(/<a [^>]*href="\/workspaces\/acme\/join"[^>]*>Ask to join acme<\/a>/);
   });
 });
 

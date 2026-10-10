@@ -19,4 +19,6 @@ export type BulkResult = {
     | "not_a_member";
   /** What stopped it, for one that wasn't submitted. */
   reasons: string[];
+  /** The workspace to ask to join, for one in a workspace they aren't in (091, 094). */
+  joinWorkspace?: string;
 };

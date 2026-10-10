@@ -73,6 +73,8 @@ export interface IdentityRepository {
   deleteSessions(userId: string): Promise<number>;
   /** Returns how many active tokens were revoked. */
   revokeAccessTokens(userId: string, now: Date): Promise<number>;
+  /** Cancels the user's open requests to join workspaces (094); returns how many. */
+  cancelAccessRequests(userId: string, now: Date): Promise<number>;
   /** Records an audit event in this repository's transaction (feature 007). */
   recordAudit(event: NewAuditEvent, now: Date): Promise<void>;
 }

@@ -26,12 +26,12 @@ describe("proposeChangeAction", () => {
       ok: false,
       error: "@team/fmt has no version 9.9.9 to propose a change to.",
     });
-    // Not a member of the item's workspace (091): the page adds "How do I join?".
+    // Not a member of the item's workspace (091): the page adds Ask to join it (094).
     proposals.proposeChange.mockRejectedValue(new NotAMemberError("acme"));
     expect(await proposeChangeAction("@acme/fmt", "1.0.0")).toEqual({
       ok: false,
       error: new NotAMemberError("acme").message,
-      notMember: true,
+      joinWorkspace: "acme",
     });
     proposals.proposeChange.mockRejectedValue(new Error("boom"));
     await expect(proposeChangeAction("@team/fmt", "1.0.0")).rejects.toThrow("boom");

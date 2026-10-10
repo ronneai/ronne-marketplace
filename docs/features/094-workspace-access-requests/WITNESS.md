@@ -1,0 +1,256 @@
+# 094 — Witness
+
+> Plan: [PLAN.md](./PLAN.md) · Spec: [SPEC.md](./SPEC.md)
+
+Before a task is ticked, the `state-witness` agent, which didn't do the work, checks it against the
+real state, blind to the notes first. A `[risky]` task also gets an adversarial pass. A task is
+ticked only when its latest pass is met with every claim confirmed. The record lands here, in the
+same commit as the task. How it works: [state-witness.md](../../knowledge/state-witness.md).
+
+## Task 1 — Migration and services
+
+Witnessed: 2026-10-09 14:52 EDT, by a fresh agent (blind). Commit: bfe0eb9 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Migration 0021 creates `workspace_access_requests` with the listed columns; its keys cascade from workspaces and users, `decided_by` sets null; it can run twice | no | confirmed | `pnpm test:db:{postgres,mysql,mariadb} -- src/server/domains/workspaces src/server/db/migrations` → 17 files, 120 passed on each; `0021_*.db.test.ts` checks 3 keys, cascade, 500 characters in any script, running again |
+| 2 | One open request per user and workspace, checked in the service under a lock | no | partly | Probe: 5 identical `requestAccess` at once ×3 → 1 open row on all four. No db test covers it: removing `lockUsers` at `access-requests.ts:103` leaves the 19 tests green on postgres |
+| 3 | `requestAccess` returns `sent`, trims the message, answers `already_requested` and `already_member`; audits `workspace.access_requested` on the requester | no | confirmed | Tests "asks once…" (exact metadata `{workspace,email}`) and "asks nothing of members and root"; 4 DBs |
+| 4 | An unknown name and a private name answer the same (`sent`); only the private one is stored | no | confirmed | Test "answers a private name and an unknown one alike" → `sent` ×3, 1 row; 4 DBs |
+| 5 | Message and reason at most 500 characters, not bytes | no | confirmed | `textFrom` uses `[...text].length`; 501 × `x` refused, 500 × `日` accepted, 501-character reason refused |
+| 6 | `cancelAccessRequest` cancels only your own open request, once, audited | no | confirmed | Test "cancels only your own…": NotFound ×2, Answered, 1 event; no session → Forbidden (probe P10) |
+| 7 | Approving adds as `user`; only root and admins pick `moderator`; `admin` refused; audits `access_approved` and `member_added` | no | confirmed | Three approve tests; check at `access-requests.ts:233`; 4 DBs |
+| 8 | Declining stores the reason, the requester sees it, audited | no | confirmed | Test "declines with a reason…": `ownRequests` → `reason: "Ask Ana first."`, 1 `access_declined` |
+| 9 | Only root and the workspace's moderators and admins answer | no | confirmed | Test: moderator elsewhere, member, requester → Forbidden, `pendingRequests` too; probes: no session → Forbidden (P10), demoted moderator → Forbidden (P9); 4 DBs |
+| 10 | Two answers at once: the first wins, the second gets "Already answered" | no | confirmed | Test passes on 4 DBs; removing the status check at `:212` fails it (sqlite), removing the locks at `:205-206` fails it (pg, mysql); approve vs direct add and approve vs cancel probes → one winner |
+| 11 | At most 10 open per user; the limit can't tell names apart | no | confirmed | Test "refuses the 11th"; probe: 14 asks at once → 10 open on 4 DBs. Remark: the count is checked after the name lookup (`:105` before `:109`), not before as the spec says |
+| 12 | A declined request can be sent again 7 days after the decline | no | confirmed | Test "waits 7 days…"; boundary probe (mysql): −1 minute TooSoon, +1 minute `sent`. Remark: the test would pass with any wait from 1 to 8 days |
+| 13 | Disabling a user cancels their open requests; `user.disabled` has `requestsCancelled` | no | confirmed | Test "cancels a disabled user's open requests" → both cancelled, `{requestsCancelled: 2}` |
+| 14 | Adding directly approves the open request, by whoever added, `direct: true` | no | confirmed | Test covers `addMembers` and `setUserWorkspaces` (`members.ts:268,399`) |
+| 15 | Someone removed later can ask again at once | no | partly | Approve → remove → ask works (test). Decline → direct add → remove → ask → `AccessRequestTooSoonError` on all four (probe P2) |
+| 16 | Deleting the workspace removes its requests; making it private keeps them | no | confirmed | Test "keeps requests when the workspace turns private, and removes them with it"; 4 DBs |
+| 17 | The message and the reason never reach the audit log | no | confirmed | Probe P4: `SECRETMESSAGE`, `SECRETREASON` absent from `listAuditEvents` (4 DBs). The decline test doesn't check it |
+| 18 | The four audit actions are registered and summarised; `access_requests.answer` for moderator and admin | no | confirmed | `vitest run summary.test.ts permissions.test.ts services` → 17 passed |
+| 19 | The db tests run on the four databases | no | confirmed | 13 files / 112 tests on each of sqlite, postgres, mysql, mariadb; typecheck clean; biome no errors |
+
+**Overall:** not met: no db test covers two asks to one workspace at once (row 2), and a declined user who was added and then removed waits 7 days (row 15).
+
+### Adversarial pass
+
+Witnessed: 2026-10-09 14:56 EDT, by a fresh agent (adversarial). Commit: bfe0eb9 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Migration 0021: planned columns, keys, two indexes, runs again, four databases | no | confirmed | `access-requests`, `0021`, `0019` db tests → 32/32 on each of the four; `0021_workspace_access_requests.ts:22-70` |
+| 2 | Each of request, cancel, approve, decline has db tests passing on four databases | no | confirmed | `access-requests.db.test.ts` "asking", "cancelling", "answering" → passed on all four |
+| 3 | At most one open request per user and workspace, even with concurrent asks | no | confirmed | Probe: 6 concurrent asks ×5 → 1 `sent`, 5 `already_requested`, 1 open on all four; with `forUpdate` stubbed on PG → 2 open |
+| 4 | The db tests cover the race | no | partly | The answering race is covered (fails with `forUpdate` stubbed). Concurrent asks and the limit race have no test: with the stub, the other 18 tests pass |
+| 5 | Two answers at once: first wins; no deadlock with approve, cancel, decline and `addMembers` at once | no | confirmed | Probe P3, 4 rounds per DB → one outcome, consistent membership, others Answered or `already_member`; no deadlock |
+| 6 | At most 10 open per user, also concurrently | no | confirmed | Test on 4 DBs; probe P2: 14 concurrent → 10 open, 4 TooMany (stubbed: 14) |
+| 7 | The limit is checked before the name is looked up, so it doesn't tell names apart | no | not met | Probe P6: unknown names add no row and private ones do, so with 9 open, asking `secret` then a public one → TooMany, while `nowhere` then the public one → `sent`; `access-requests.ts:99-105` |
+| 8 | An unknown and a private name answer the same; a private name isn't confirmed to a non-member | no | partly | First ask matches. Asking again: `secret` → `already_requested`, `nowhere` → `sent`; `ownRequests` returns `secret`'s visibility and description (`access-requests.ts:336-349`) |
+| 9 | 7 days after a decline, not before; other workspaces not held up | no | confirmed | Test passes on 4 DBs; `access-requests.ts:107-110` |
+| 10 | Someone removed later can ask again at once | no | partly | Probe P7: decline → direct add → remove → ask → `AccessRequestTooSoonError` |
+| 11 | Members and root are told they're in; nothing recorded | no | confirmed | Test "asks nothing of members and root"; `rows()` → `[]` |
+| 12 | Message and reason: optional, trimmed, ≤500 characters, stored the same on every database | no | partly | 501 refused, 500 × `日`/`😀` round-trip on all four; a U+0000 is stored on SQLite and MySQL but PG throws a raw `invalid byte sequence for encoding "UTF8": 0x00` |
+| 13 | Only root and the workspace's moderators and admins answer | no | confirmed | Test plus probe P5 → Forbidden for the requester who moderates beta, a `global` moderator, no session; request stays open |
+| 14 | A moderator demoted after the session was read is refused | no | confirmed | Probe P4: stale actor → approve and decline Forbidden; `access-requests.ts:175-182` |
+| 15 | Approving adds as `user`; only root and admins pick `moderator`; `admin` refused | no | confirmed | Approve tests pass on 4 DBs |
+| 16 | Audit: four events on the requester, naming the workspace, no message or reason | no | confirmed | P8 metadata on all four = `{"workspace":"acme","email":"u@example.com"}` only |
+| 17 | Adding directly approves the open request, `direct: true` | no | confirmed | Test on 4 DBs; `members.ts:139-156` |
+| 18 | Disabling cancels open requests; `requestsCancelled` | no | confirmed | Test on 4 DBs; `user-admin.ts:197-208`; identity and members db tests 38/38 on PG, MySQL, MariaDB |
+| 19 | Deleting removes requests; private keeps them | no | confirmed | Test on 4 DBs |
+| 20 | Only the requester cancels, only an open request | no | confirmed | Test "cancels only your own open request, once" |
+| 21 | Permission, audit catalogue and summaries updated | no | confirmed | `summary.test.ts permissions.test.ts workspaces.test.ts` → 17 passed; typecheck clean |
+
+**Overall:** not met: the open-request count and asking twice tell a private name from an unknown one (7, 8), `ownRequests` shows a private workspace to a non-member (8), a decline outlives a later membership (10), a NUL byte breaks only PostgreSQL (12), and no test covers concurrent asks (4). Also noted: `decideAccessRequest`'s result is ignored by its callers.
+
+### Re-check — rows 2 and 15
+
+Witnessed: 2026-10-09 15:04 EDT, by a fresh agent (blind). Commit: bfe0eb9 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 2 | One open request per user and workspace, under a lock, and a db test covers concurrent asks | no | confirmed | Test "keeps one open request when the same user asks several times at once" (5 at once, 3 rounds) passes on all four; with `lockUsers` removed at `access-requests.ts:99` in a scratch copy it fails on postgres and mysql (1 failed, 23 passed) |
+| 2b | The limit holds under concurrent asks, and a db test covers it | no | confirmed | Test "holds the limit when 14 requests are sent at once" passes on all four; with the lock removed it fails 3/3 on postgres (`expected [] to have a length of 4`), still passes on mariadb, so only PostgreSQL catches it |
+| 15 | Someone removed later can ask again at once, even after a decline | no | confirmed | `access-requests.ts:115-118` skips the wait when `membershipChangedSince` (`kysely-access-requests.ts:114-130`, the `member_added`/`member_removed` audit rows for that name) finds a change; test "doesn't make someone added and removed since a decline wait" passes on all four; forcing the check to false fails it (sqlite) |
+| 16 | Nothing else broke | no | confirmed | `vitest run --project db src/server/domains/workspaces src/server/db/migrations src/server/domains/identity` → 27 files, 206 passed on sqlite, postgres, mysql and mariadb; unit tests 17 passed; typecheck clean; biome: 3 warnings in untouched files |
+
+**Overall:** met: concurrent asks are covered by a db test that fails without the lock, and someone added or removed after a decline asks again at once, on all four databases. Remarks: the "since" check reads the audit log by workspace name (audit rows aren't pruned and workspaces aren't renamed today), with a strict `>` on `created_at`.
+
+### Re-check — adversarial, rows 4, 7, 8, 10 and 12
+
+Witnessed: 2026-10-09 15:11 EDT, by a fresh agent (adversarial). Commit: bfe0eb9 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | The db tests cover the race: concurrent asks and the limit under concurrency, besides two answers at once | no | confirmed | `access-requests.db.test.ts 0021_*.db.test.ts` → 29/29 on sqlite, postgres, mysql, mariadb; "at once" tests ×3 more each → passed. With `lockUsers` removed (`access-requests.ts:99`), "keeps one open request…" fails on PG, MySQL, MariaDB (2–5 `sent`); "holds the limit… 14 at once" fails on PG only |
+| 7 | The open-request limit can't tell a private name from an unknown one | no | confirmed | Probe P2 on all four, with 9 open: `acme` (private) then `t9` → `sent, TooMany, already_requested`; `nowhere` then `t9` → the same. Not storing unknown names (mutation) fails 3 tests |
+| 8 | Asking twice and `ownRequests` don't tell a private name from an unknown one | no | confirmed | Probe P1 on all four: both `sent`, then `already_requested`; `ownRequests` identical apart from id, name, date, `description`/`visibility` null for both (`access-requests.ts:368-370`); cancel and ask again alike. A decline shows to the requester, as the spec says |
+| 10 | Someone added or removed after a decline can ask again at once | no | confirmed | Test passes on 4 DBs, fails without the exemption (`:117`); probe P6: member → `already_member`, removed → `sent`, declined again → TooSoon, a change in `beta` doesn't lift `acme`'s wait |
+| 12 | Message and reason: trimmed, ≤500 characters, no NUL, stored the same on every database | no | confirmed | `textFrom` refuses NUL (`:49`); test passes on 4 DBs and fails without the check; probe P4 identical on all four (lone surrogate, NBSP, 500 × 😀, CRLF, U+2028, DEL) |
+| 12b | The 7-day wait is exactly 7 days | no | confirmed | Changing it to 6 or 8 days fails "waits 7 days…" (boundaries ±1 minute) |
+| 21 | `decideAccessRequest`'s result is checked by every caller | no | confirmed | `access-requests.ts:154`, `:245`, `:290` throw Answered on false; `members.ts:147` audits only when approved; race probes P5 and R1 on 4 DBs → one winner, no deadlock |
+| 22 | A name that can't be a workspace's isn't kept | no | partly | Probe P3 on 4 DBs: `-x`, `ａｃｍｅ`, 65 characters, `x\0y` → not stored; but `admin`, `root`, `ronne`, `api` → stored with `workspace_id` null and count against the limit. Cause: `isValidName(name, "item")` at `access-requests.ts:105` |
+
+**Overall:** not met: rows 4, 7, 8, 10, 12 and the `decideAccessRequest` note hold on all four databases; reserved workspace names are stored as requests and count against the limit (row 22).
+
+### Re-check — adversarial, row 22
+
+Witnessed: 2026-10-09 15:15 EDT, by a fresh agent (adversarial). Commit: bfe0eb9 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 22 | A name that can't be a workspace's isn't kept | no | confirmed | `access-requests.ts:111` checks `!workspace && !isValidName(name, "workspace")` after the member check. Probes on all four: the 9 reserved names, ` ADMIN `, `Root`, `\tapi\n`, `WWW\r\n` asked twice → `sent`, 0 rows, 0 events, `ownRequests` empty; lookalikes (`ADMİN`, `ａｄｍｉｎ`, `admin\0`, `-admin`) → 0 rows; near-misses (`admins`, `root1`, `my-api`) → kept, then `already_requested`; 6 asks at once → 2 rows, no deadlock |
+| 22a | Reserved names don't count against the limit | no | confirmed | Probe P5 on all four: with 9 open, the reserved names leave 9 rows; at 10, `beta` and `nowhere` → TooMany, `admin` → `sent`, which tells nothing since creation refuses reserved names (`models/workspace.ts:40`) |
+| 22b | The existing test covers the fix | no | confirmed | Without line 111, "treats a private name and an unknown one alike" fails (`admin`, `root`, `api` stored); with the reserved check before the lookup, "asks nothing of members and root" fails (`global` → `sent`) |
+| 22c | Members and root are still told they're in, `global` included | no | confirmed | Probe P4 on all four: `global`, `GLOBAL`, ` Global ` → `already_member` for user, moderator, root; root → `already_member` for any name; 0 rows |
+| 22d | Private and unknown names still can't be told apart | no | confirmed | Probe P6 on all four: private `beta` and `nowhere` → `sent`, then `already_requested`; `ownRequests` alike; cancel and ask again alike; at the limit both TooMany |
+| 22e | A workspace that has a reserved name (inserted directly) is still handled as a workspace | no | confirmed | Probe P7 on all four: non-member → stored with its `workspace_id`, then `already_requested`; member → `already_member` |
+| 22f | Nothing else broke | no | confirmed | `access-requests.db.test.ts` + `0021_*.db.test.ts` + probe → 37/37 on sqlite, postgres, mysql, mariadb |
+
+**Overall:** met: reserved names answer "Request sent" and are neither stored nor counted on any of the four databases; members and root, `global` included, are told they're in; private and unknown names can't be told apart.
+
+## Task 2 — Workspaces page and join link
+
+Witnessed: 2026-10-09 15:24 EDT, by a fresh agent (blind). Commit: bf445ed (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `/workspaces` and `/workspaces/<name>/join` exist for every signed-in user, behind a session | no | confirmed | `next build` → `ƒ /workspaces`, `ƒ /workspaces/[name]/join`; `(app)/layout.tsx:10` `loadShell`; `proxy.ts:30` |
+| 2 | The page lists public workspaces and private ones the user is in (all for root), `global` first, with the role | no | confirmed | `access-requests.db.test.ts` → 27 passed; "lists the workspaces the reader sees" |
+| 3 | Rows show name, visibility, description; `global` reads Everyone; root reads Root | no | confirmed | `vitest run src/features/workspaces` → passed; `WorkspacesPage.tsx:668,672` |
+| 4 | Ask to join, Requested (cancel), Declined on a date with reason and ask-again date | no | partly | Unit test covers the three states. Decline → `addMembers` → `removeMember`: `askAgainFrom` → Oct 16, no Ask to join, `joinTarget` → declined with no form, yet `requestAccess` → `sent`. `askAgainFrom` (`WorkspacesPage.tsx:565`) ignores `membershipChangedSince` |
+| 5 | "Your other requests" lists requests to names not on the list, by name only, private and unknown alike | no | confirmed | `workspaces.test.tsx` "lists requests to names not on the list"; `ownRequests` (`access-requests.ts:366-369`) |
+| 6 | The page is in the account menu under Access tokens (desktop and phone) | no | confirmed | `AppShell.tsx:85`, `MenuList.tsx:74`; app-shell tests passed |
+| 7 | The public join page shows the description and form; members and root are told they're in | no | confirmed | db test `joinTarget(asUser,"ACME")` → open with description; moderator, `global`, root → member; unit test |
+| 8 | The join page doesn't tell a private name from an unknown one, before or after asking | no | confirmed | db test "can't tell a private workspace…" on all four databases (27/27 each); unit test renders equal; mocking private as `open` fails it |
+| 9 | Odd names on the join page neither crash nor reveal anything | no | confirmed | Probe `joinTarget`: `admin`, `" Beta "`, `BETA`, `a/b`, 300 × `x`, `beta\u0000` → `unseen`, `request: null`; route test passes `%E0` as typed |
+| 10 | Once asked, the join page shows the request instead of the form until it can be sent again | no | partly | Open request hides the form (unit test); the decline-then-membership case of row 4 hides it too (`JoinPage.tsx:183`) |
+| 11 | Asking answers "Request sent" for new, open, private or unknown; Cancel works; refusals show | no | confirmed | `workspaces.test.tsx` "request actions" |
+| 12 | Both pages are in the phone sweep and pass it | no | confirmed | `e2e/pages.ts`; `pages-coverage.test.ts` → 2 passed; `playwright test mobile-sweep --project phone` → 5 passed |
+| 13 | Page tests pass; the code typechecks and lints | no | confirmed | 4 files, 33 passed; typecheck clean; biome on changed paths → no issues |
+
+**Overall:** not met: after a decline followed by being added and removed, both pages still hide Ask to join and show an ask-again date while the service accepts the request (rows 4 and 10).
+
+### Re-check — rows 4 and 10
+
+Witnessed: 2026-10-09 15:31 EDT, by a fresh agent (blind). Commit: bf445ed (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | After a decline the page shows the date, reason and ask-again date with no Ask to join; after add → remove, or 7 days, it offers Ask to join, as the service does | no | confirmed | `access-requests.ts:50-60` `askAgainFrom` shared by `requestAccess` (`:136`) and `ownRequests` (`:382`); `WorkspacesPage.tsx:51`. Probe rendering from real `myWorkspaces`/`ownRequests` on all four (31/31 each): declined → date, no button; add → remove → button, `sent`; −1 minute hidden and TooSoon, +1 minute button and `sent`; `beta` change doesn't lift `acme` |
+| 4a | A test covers row 4 | no | confirmed | db test "…and the pages agree" fails when `ownRequests` ignores `membershipChangedSince`; unit test "offers Ask to join…" fails when `canAsk` ignores `askAgainFrom` |
+| 10 | Once asked, the join page shows the request until a new one can be sent; after decline → add → remove it offers the form at once | no | confirmed | `JoinPage.tsx:38`; probe rendering from `joinTarget` on all four: declined → no form; add → remove → form, `sent`; 7 days + 1 minute → form; member → `member` |
+| 10a | A test covers the join page's handling of a declined request | no | partly | `joinTarget` data is covered; the component isn't: hiding the form on any decline leaves the page tests 11/11 green. `workspaces.test.tsx` never renders `JoinPage` with a declined request |
+| 13 | Nothing else broke | no | confirmed | 4 files, 33 passed; db tests 27 files, 209 passed on each database; `pages-coverage` 2 passed; typecheck clean; biome no issues |
+
+**Overall:** not met: both pages follow the service's rule on all four databases (rows 4, 10), but no page test renders the join page with a declined request (10a).
+
+### Re-check — row 10a
+
+Witnessed: 2026-10-09 15:32 EDT, by a fresh agent (blind). Commit: bf445ed (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 10a | A test covers the join page's handling of a declined request | no | confirmed | `workspaces.test.tsx:201` renders `JoinPage` declined with `askAgainFrom` set and null; in a scratch copy four mutations each fail it (form hidden on any decline; `askAgainFrom` ignored; `RequestState` not rendered; reason dropped), 1 failed / 9 passed each; restored → 10/10 |
+| 13 | Nothing else broke | no | confirmed | `vitest run src/features/workspaces "src/app/(app)/workspaces" src/components/app-shell e2e/pages-coverage` → 4 files, 34 passed; `tsc --noEmit -p apps/web` → 0; biome on the changed paths → no issues |
+
+**Overall:** met: the join page's handling of a declined request is tested and fails when the form or the decline shows at the wrong time; related tests, typecheck and lint are green.
+
+## Task 3 — Requests tab and nav count
+
+Witnessed: 2026-10-09 15:56 EDT, by a fresh agent (blind). Commit: 7a08464 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The component, nav and page unit tests pass | no | confirmed | `vitest run src/app/(app)/shell.test.ts src/app/(app)/workspaces/requests src/features/workspace-requests src/components/app-shell src/features/workspaces` → 6 files, 44 passed |
+| 2 | The nav shows Requests (to `/workspaces/requests`, after Reviews) only to someone who can answer and only while the count is above 0 | no | confirmed | `nav.ts:51-58`, filter `nav.ts:78`; `AppShell.test.tsx` "Requests in the nav (094)"; phone probe: `/menu` shows "Requests1 waiting", none after the answer |
+| 3 | The count is worked out only for root and moderators or admins | no | confirmed | `shell.ts:21` gated on `canInSome(user, "access_requests.answer")`; `shell.test.ts`; probe: member and `global`-only moderator see no Requests link |
+| 4 | The Requests page lists what the reader can answer, with the workspace; a 404 for anyone who answers nowhere | no | confirmed | `workspaces/requests/page.tsx:19` `notFound()`; `page.test.tsx`; probe: member → 404 on phone, phone-webkit, tablet |
+| 5 | The list is scoped per answerer; a name no workspace has is nobody's; only root and admins pick the role | no | confirmed | db test "lists every request a person can answer…"; `vitest run --project db src/server/domains/workspaces` → 82 passed; `pnpm test:db:postgres/mysql/mariadb -- …access-requests.db.test.ts` → 28 each |
+| 6 | The Admin Requests tab shows the same table for root and the workspace's admins, with the role select | no | confirmed | `admin/workspaces/[name]/page.tsx:59`, `:71-82`; service re-checks (`services/access-requests.ts:338`); probe: root on `?tab=requests` saw the role select. No unit test renders this tab |
+| 7 | Approve and Decline call the domain, refresh the layout, and show "Already answered" when someone was first | no | confirmed | `workspace-requests.test.tsx` "answer actions (094)"; probe: decline, then a stale Approve → "Already answered."; the asker sees the decline and reason |
+| 8 | The table: who, when, message; role select only when allowed; Workspace column only on the page; empty and "N oldest of M" texts | no | confirmed | `workspace-requests.test.tsx` "the Requests table (094)"; `RequestsTable.tsx` |
+| 9 | Desktop end-to-end: a user asks, the moderator sees the count and approves | no | confirmed | `playwright test e2e/join-requests.e2e.ts --project chromium` → passed |
+| 10 | The same flow on phone, iOS Safari (WebKit) and tablet | no | confirmed | `playwright test e2e/join-requests.mobile.e2e.ts --project phone --project phone-webkit --project tablet` → 3 passed |
+| 11 | The Requests page and Admin tab pass the phone sweep | no | confirmed | `mobile-sweep.mobile.e2e.ts` on phone, phone-webkit, tablet → 15 passed; probe with a waiting 400-character request at 412/393/768, 360 and 320 px → no overflow |
+| 12 | Someone who answers nowhere has no way in; a moderator of a quiet workspace sees no item | no | confirmed | Probe: member → 404, no item; `global`-only moderator → page 200, 0 rows, no item; server actions refuse others |
+
+**Overall:** met: the Requests page, the Admin tab and the nav count work as the spec says; unit, db (four databases) and end-to-end tests (chromium, phone, phone-webkit, tablet, and the sweep) pass. Gaps, not failures: no unit test renders the Admin `?tab=requests` branch; the sweep sees the Requests page empty; the phone test doesn't check the nav count.
+
+## Task 4 — Links from refusals
+
+Witnessed: 2026-10-09 16:01 EDT, by a fresh agent (blind). Commit: d2549a2 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | One shared "Ask to join <workspace>" link opens `/workspaces/<name>/join` | no | confirmed | `components/workspaces/join.ts:2`, `AskToJoinLink.tsx:8-15`; `features/workspaces/paths.ts` deleted, no imports left |
+| 2 | Propose a change: the action returns the item's workspace on NotAMemberError | no | confirmed | `item-page/actions.ts:22-23`; `actions.test.ts` expects `joinWorkspace: "acme"`; mutant fails it |
+| 3 | Propose a change: the refusal shows the message, the link and "How do I join?" | no | confirmed | `ProposeButton.tsx:15-27,48,56`; probe clicking the real button → link to `/workspaces/e2e-acme/join` and the help |
+| 4 | The item page's refusal test checks the link | no | partly | `item-page.test.tsx:90-105` checks `ProposeRefusal` alone; mutant `joinWorkspace: undefined` in `ProposeButton.tsx` leaves 46/46 green |
+| 5 | Read-only draft notice links to the join page | no | confirmed | `DraftEditor.tsx:126-134`; `draft-editor.test.tsx:364-373`; mutant fails it |
+| 6 | Submit selected's results link a `not_a_member` draft's workspace | no | confirmed | `submissions/actions.ts:54`, `BulkSubmit.tsx:169-192`; `submissions.test.tsx:279-308`; mutants fail it |
+| 7 | The "How do I join?" helper's text points to Ask to join; its docs link waits for task 5 | no | confirmed | `Help.tsx:47-52` |
+| 8 | The API message keeps "Ask to join <name>" in words | no | confirmed | no server changes; `errors.ts:58`, `http/errors.ts:72` unchanged |
+| 9 | The spec's Scope bullet names the three places | no | confirmed | `SPEC.md:28-31` |
+| 10 | Checks pass on the touched code | no | confirmed | 34 files, 363 passed; `tsc` 0 errors; biome no errors |
+
+**Overall:** not met: `ProposeButton` passing `joinWorkspace` to `ProposeRefusal` has no test (row 4). Also noted: `ProposeRefusal` nests `<Help>` (a `div`) in a `<p>`.
+
+### Re-check — row 4
+
+Witnessed: 2026-10-09 16:04 EDT, by a fresh agent (blind). Commit: d2549a2 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | The item page's refusal test checks the link | no | partly | `item-page.test.tsx:90-111` renders only `ProposeRefusal`; mutants in it fail the test. But `ProposeButton.tsx:51` `setRefused({ ok: false, error: result.error })`, or the render at `:60` replaced with `{null}`, leave 46/46 green; no e2e drives the not-member path |
+| 4a | The refusal no longer nests `<Help>` inside `<p>` | no | confirmed | `ProposeButton.tsx:19-29`; probe render → `<p role="alert">…</p><div …><a href="/workspaces/a%2Fb%20c/join">…` |
+| 4b | Nothing else broke | no | confirmed | 34 files, 363 passed; `tsc` 0; biome no errors |
+
+**Overall:** not met: no test covers `ProposeButton` passing the action's result to `ProposeRefusal` (row 4).
+
+### Re-check — row 4 (second)
+
+Witnessed: 2026-10-09 16:13 EDT, by a fresh agent (blind). Commit: d2549a2 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | A test covers Propose a change's wiring: the action's refusal reaches the Ask to join link under the button | no | confirmed | `e2e/propose-join.e2e.ts:9-20` clicks the real button on `e2e-door-tools/door-notes`, follows "Ask to join e2e-door" to `/workspaces/e2e-door/join`; `next build` + `playwright test propose-join --project chromium` → 1 passed. Mutants `setRefused({ ok: false, error: result.error })` and render `{null}` → each 1 failed; restored (same shasum), rebuilt → passed |
+| 4a | The e2e seed sets up the not-member case | no | confirmed | `seed.ts:480` `releaseSkillIn(E2E_DOOR, "public", [])`; `users.ts:107` `proposeOutsider` |
+| 4b | The component test still checks the link and the plain refusal | no | confirmed | `item-page.test.tsx:90-112` |
+| 4c | Nothing else broke | no | confirmed | 34 files, 363 passed; `tsc` 0; biome no errors in touched files |
+
+**Overall:** met: the end-to-end test drives the real button through the action to the Ask to join link and the join page, and both wiring mutants fail it. (The witness also noted `E2E_DOOR` placed between `E2E_SHELF` and its comment; moved below it before the commit.)
+
+## Task 5 — Documentation
+
+Witnessed: 2026-10-09 16:17 EDT, by a fresh agent (blind). Commit: 0b40d7f (plus the uncommitted working tree; ronne-web a41896f on `marketplace-094-joining` plus its uncommitted diff). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The helper link test passes here | no | confirmed | `vitest run src/components/help` → 3 passed; `help.test.tsx:18-20` fails a helper whose section isn't in topics.ts |
+| 2 | The docs render tests pass in ronne-web | no | confirmed | `pnpm test src/content/docs` → 5 passed; lint, typecheck clean; build finished |
+| 3 | `workspaces#joining` has the same id in both topics.ts files | no | confirmed | Script over 18 topics → 0 mismatches |
+| 4 | "Joining a workspace" in en, pt, fr covers the Workspaces page, the join link and who answers, as the app does | no | confirmed | `{en,pt,fr}/workspaces.tsx` `joining`; each claim checked against `AppShell.tsx:85`, `WorkspacesPage.tsx:95,121`, `access-request.ts:53-57`, `join.ts`, `joinTarget`, `errors.ts:120`, `members.ts:136-148`, `user-admin.ts:197`, `auditRequest`, `nav.ts:51-57`, `[name]/page.tsx` |
+| 5 | `workspaces#roles` covers answering requests | no | partly | Only the "Anyone else" bullet changed; the Moderators and Admins bullets and "Who manages members" don't say they answer requests to join (en, pt, fr) |
+| 6 | The "How do I join?" helper leads to Ask to join | no | confirmed | `Help.tsx:47-51`, href `workspaces#joining`. Remark: "root or its moderators answer" leaves out admins |
+| 7 | "Who can answer?" on the Requests page and Admin tab → `workspaces#joining` | no | confirmed | `workspaces/requests/page.tsx:27`, `admin/workspaces/[name]/page.tsx:77`; text matches `requireAnswererNow` and `approveAccessRequest` |
+| 8 | The Admin topic describes the Requests tab | no | confirmed | `{en,pt,fr}/admin.tsx`; matches `[name]/page.tsx:172`, `AnswerControls.tsx` |
+| 9 | Translations follow ronne-web's rules | no | confirmed | `translation-guide.md:39` holds in fr; UI labels in English per the glossary; product-facts 094 row as 093's |
+
+**Overall:** not met: `workspaces#roles` doesn't say moderators and admins answer requests to join (row 5). Also noted: the helper and `#joining` name only root and moderators as sending the link and answering; nothing in the app shows the join link to copy; for a reserved name the join page shows the form again after asking (it can't be a workspace, so nothing is revealed).
+
+### Re-check — row 5
+
+Witnessed: 2026-10-09 16:20 EDT, by a fresh agent (blind). Commit: 0b40d7f (plus the uncommitted working tree; ronne-web a41896f on `marketplace-094-joining` plus its uncommitted diff). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | `workspaces#roles` covers answering requests | no | confirmed | en/pt/fr `roles`: Moderators "approve or decline requests to join it" (→ `#joining`); Admins can make the person a moderator. Matches `permissions.ts:40`, `access-requests.ts:198-206`, `:254-258`. Remark: "Who manages members" names root and admins, which holds for the Members tab |
+| 5a | The helper and `#joining` name admins as sending the link and answering | no | confirmed | `Help.tsx:47-58`; `#joining` in en/pt/fr |
+| 5b | The join link's address is stated as the app serves it | no | confirmed | `#joining`: the instance's address followed by `/workspaces/<name>/join`; route `src/app/(app)/workspaces/[name]/join/page.tsx` |
+| 5c | The `roles` topic's table includes answering | no | confirmed | en/pt/fr `roles.tsx` row "Approve or decline requests to join the workspace" `–, ✓, ✓, ✓` |
+| 5d | Nothing else broke | no | confirmed | ronne-web `pnpm test src/content/docs` → 5 passed, lint and typecheck clean; here `vitest run src/components/help` → 3 passed, `tsc` 0, biome no fixes |
+
+**Overall:** met: the roles section says moderators and admins answer requests to join, the helper and `#joining` name admins, the link's address is stated; tests, lint and typecheck pass in both repos.

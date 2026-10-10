@@ -87,6 +87,30 @@ const usageShown = (extra: Record<string, unknown> = {}) => ({
   ...extra,
 });
 
+describe("Propose a change refused (091, 094)", () => {
+  it("links someone not in the item's workspace to Ask to join it", async () => {
+    // The refusal is rendered from the action's result as it came back (`ProposeButton` keeps it).
+    const { ProposeRefusal } = await import("./ProposeButton");
+    const html = renderToStaticMarkup(
+      <ProposeRefusal
+        refused={{
+          ok: false,
+          error: "You aren't a member of the acme workspace.",
+          joinWorkspace: "acme",
+        }}
+      />,
+    );
+    expect(html).toContain('role="alert"');
+    expect(html).toMatch(/<a [^>]*href="\/workspaces\/acme\/join"[^>]*>Ask to join acme<\/a>/);
+    expect(html).toContain("How do I join?");
+    // Any other refusal: the message only.
+    const other = renderToStaticMarkup(
+      <ProposeRefusal refused={{ ok: false, error: "No such version." }} />,
+    );
+    expect(other).not.toContain("Ask to join");
+  });
+});
+
 describe("the item page", () => {
   it("shows the header, both install commands, and the README rendered safely", async () => {
     const html = await render({ tab: "readme" });

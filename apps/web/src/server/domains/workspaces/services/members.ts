@@ -15,6 +15,7 @@ import {
 import type { Member, Membership, MemberUser } from "../models/member";
 import type { Workspace } from "../models/workspace";
 import type { MemberPageQuery, WorkspaceRepository } from "../repositories/workspace-repository";
+import { auditRequest } from "./access-requests";
 import type { WorkspaceActor, WorkspaceDeps } from "./workspaces";
 
 /**
@@ -131,6 +132,29 @@ const audit = (
   );
 };
 
+/**
+ * Someone added to a workspace directly while asking to join it (094): their open request is
+ * approved by whoever added them, and audited as approved.
+ */
+const approveOpenRequest = async (
+  repo: WorkspaceRepository,
+  actor: WorkspaceActor,
+  workspace: Workspace,
+  user: MemberUser,
+  role: WorkspaceRole,
+  at: Date,
+) => {
+  if (await repo.approveOpenRequest(workspace.id, user.id, actor.user?.id ?? null, at))
+    await auditRequest(
+      repo,
+      actor,
+      "workspace.access_approved",
+      { workspace: workspace.name, userId: user.id, email: user.email },
+      at,
+      { role, direct: true },
+    );
+};
+
 /** A workspace's members, by name: its page's Members table. */
 export const listMembers = async (
   deps: WorkspaceDeps,
@@ -241,6 +265,7 @@ export const addMembers = async (
           at,
         });
         await audit(repo, actor, workspace, user, { action: "workspace.member_added", role }, at);
+        await approveOpenRequest(repo, actor, workspace, user, role, at);
         results.push({ userId, result: "added" });
       }
       return results;
@@ -371,6 +396,7 @@ export const setUserWorkspaces = async (
               { action: "workspace.member_added", role },
               at,
             );
+            await approveOpenRequest(repo, actor, workspace, user, role, at);
             counts.added += 1;
           }
         }

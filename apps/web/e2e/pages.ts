@@ -66,6 +66,20 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
     roles: REVIEWERS,
     urls: (data) => [`/reviews/${data.submissionId}`],
   },
+  // Workspaces and their join links (094): a public one, global (where everyone is in), and a
+  // name no workspace has, which shows as a private one does.
+  { route: "/workspaces", roles: EVERYONE, urls: () => ["/workspaces"] },
+  {
+    route: "/workspaces/[name]/join",
+    roles: EVERYONE,
+    urls: () => [
+      `/workspaces/${E2E_WORKSPACE}/join`,
+      "/workspaces/global/join",
+      "/workspaces/no-such-team/join",
+    ],
+  },
+  // Requests to join (094): every moderator opens it, with or without requests waiting.
+  { route: "/workspaces/requests", roles: REVIEWERS, urls: () => ["/workspaces/requests"] },
   { route: "/account/password", roles: EVERYONE, urls: () => ["/account/password"] },
   { route: "/account/tokens", roles: EVERYONE, urls: () => ["/account/tokens"] },
   { route: "/admin", roles: ROOT, urls: () => ["/admin"] },
@@ -78,6 +92,7 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
     urls: () => [
       "/admin/workspaces/global",
       "/admin/workspaces/global?tab=members",
+      `/admin/workspaces/${E2E_WORKSPACE}?tab=requests`,
       `/admin/workspaces/${E2E_WORKSPACE}`,
     ],
   },

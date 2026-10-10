@@ -56,6 +56,22 @@ describe("audit summaries (060)", () => {
       "Changed the description of workspace acme",
     );
     expect(line("workspace.deleted", { name: "acme" })).toBe("Deleted workspace acme");
+    // Requests to join (094).
+    const asker = { email: "uma@x.com", workspace: "acme" };
+    expect(line("workspace.access_requested", asker)).toBe("uma@x.com asked to join acme");
+    expect(line("workspace.access_approved", { ...asker, role: "user" })).toBe(
+      "Approved uma@x.com joining acme as user",
+    );
+    expect(line("workspace.access_approved", { ...asker, role: "user", direct: true })).toBe(
+      "Approved the request of uma@x.com by adding them to acme as user",
+    );
+    expect(line("workspace.access_declined", asker)).toBe("Declined uma@x.com joining acme");
+    expect(line("workspace.access_cancelled", asker)).toBe(
+      "uma@x.com cancelled their request to join acme",
+    );
+    expect(
+      line("user.disabled", { sessionsEnded: 0, tokensRevoked: 0, requestsCancelled: 2 }),
+    ).toBe("Disabled a user (2 requests to join cancelled)");
     // Its visibility (093), and its description as before.
     expect(line("workspace.updated", { name: "acme", visibility: "private", from: "public" })).toBe(
       "Made workspace acme private",

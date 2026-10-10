@@ -3,6 +3,7 @@ import { clientIp } from "../../identity/models/client-ip";
 import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-instance";
 import { kyselyWorkspaceRepository } from "../repositories/kysely-workspace-repository";
 import type { WorkspacePageQuery } from "../repositories/workspace-repository";
+import * as requests from "../services/access-requests";
 import * as members from "../services/members";
 import * as service from "../services/workspaces";
 
@@ -117,3 +118,52 @@ export const setUserWorkspaces = async (
   input: { userId: string; workspaces: readonly members.WorkspaceChoice[] },
   app: AppAuth = getAppAuth(),
 ) => members.setUserWorkspaces(deps(app), await actor(headers, app), input);
+
+/**
+ * Asking to join a workspace (feature 094): the Workspaces page and the join link for anyone signed
+ * in, the Requests tab and the nav count for root and the workspace's moderators and admins.
+ */
+export const requestAccess = async (
+  headers: Headers,
+  input: { workspace: string; message?: string },
+  app: AppAuth = getAppAuth(),
+) => requests.requestAccess(deps(app), await actor(headers, app), input);
+
+export const cancelAccessRequest = async (
+  headers: Headers,
+  requestId: string,
+  app: AppAuth = getAppAuth(),
+) => requests.cancelAccessRequest(deps(app), await actor(headers, app), requestId);
+
+export const approveAccessRequest = async (
+  headers: Headers,
+  input: { requestId: string; role?: string },
+  app: AppAuth = getAppAuth(),
+) => requests.approveAccessRequest(deps(app), await actor(headers, app), input);
+
+export const declineAccessRequest = async (
+  headers: Headers,
+  input: { requestId: string; reason?: string },
+  app: AppAuth = getAppAuth(),
+) => requests.declineAccessRequest(deps(app), await actor(headers, app), input);
+
+export const pendingRequests = async (
+  headers: Headers,
+  workspaceId: string,
+  app: AppAuth = getAppAuth(),
+) => requests.pendingRequests(deps(app), await actor(headers, app), workspaceId);
+
+export const requestsToAnswer = async (headers: Headers, app: AppAuth = getAppAuth()) =>
+  requests.requestsToAnswer(deps(app), await actor(headers, app));
+
+export const ownRequests = async (headers: Headers, app: AppAuth = getAppAuth()) =>
+  requests.ownRequests(deps(app), await actor(headers, app));
+
+export const myWorkspaces = async (headers: Headers, app: AppAuth = getAppAuth()) =>
+  requests.myWorkspaces(deps(app), await actor(headers, app));
+
+export const joinTarget = async (headers: Headers, name: string, app: AppAuth = getAppAuth()) =>
+  requests.joinTarget(deps(app), await actor(headers, app), name);
+
+export const requestsToAnswerList = async (headers: Headers, app: AppAuth = getAppAuth()) =>
+  requests.requestsToAnswerList(deps(app), await actor(headers, app));

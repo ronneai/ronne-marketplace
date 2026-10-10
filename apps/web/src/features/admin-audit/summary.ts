@@ -36,6 +36,10 @@ const ended = (m: Meta): string => {
   const parts = [
     num(m.sessionsEnded) ? `${plural(num(m.sessionsEnded), "session")} ended` : "",
     num(m.tokensRevoked) ? `${plural(num(m.tokensRevoked), "token")} revoked` : "",
+    // Their requests to join (094).
+    num(m.requestsCancelled)
+      ? `${plural(num(m.requestsCancelled), "request")} to join cancelled`
+      : "",
   ].filter(Boolean);
   return parts.length ? ` (${parts.join(", ")})` : "";
 };
@@ -137,6 +141,30 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     "Removed ",
     { name: text(m.email) },
     " from ",
+    { name: text(m.workspace) },
+  ],
+  // Requests to join (094): the event is on the requester.
+  "workspace.access_requested": (m, e) => [
+    who(m, e),
+    " asked to join ",
+    { name: text(m.workspace) },
+  ],
+  "workspace.access_approved": (m, e) => [
+    m.direct ? "Approved the request of " : "Approved ",
+    who(m, e),
+    m.direct ? " by adding them to " : " joining ",
+    { name: text(m.workspace) },
+    m.role ? ` as ${text(m.role)}` : "",
+  ],
+  "workspace.access_declined": (m, e) => [
+    "Declined ",
+    who(m, e),
+    " joining ",
+    { name: text(m.workspace) },
+  ],
+  "workspace.access_cancelled": (m, e) => [
+    who(m, e),
+    " cancelled their request to join ",
     { name: text(m.workspace) },
   ],
   "scope.created": (m) => ["Created scope ", scope(m)],

@@ -40,6 +40,7 @@ const EXPECTED: Record<
       "submissions.review",
       "submissions.publish",
       "versions.manage",
+      "access_requests.answer",
     ],
     b: [],
     instance: ["account.manage_own"],
@@ -71,6 +72,7 @@ describe("permissions (091)", () => {
     expect(INSTANCE.filter((p) => (WORKSPACE as string[]).includes(p))).toEqual([]);
     expect([...INSTANCE, ...WORKSPACE].sort()).toEqual(
       [
+        "access_requests.answer",
         "account.manage_own",
         "audit.view",
         "members.manage",

@@ -51,5 +51,6 @@ export const submitSelectedAction = async (ids: string[]): Promise<BulkResult[]>
           : r.result === "not_submittable"
             ? ["It isn't a draft any more."]
             : [],
+    ...(r.result === "not_a_member" ? { joinWorkspace: r.submission.workspace.name } : {}),
   }));
 };

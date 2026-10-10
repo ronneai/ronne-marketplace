@@ -32,6 +32,7 @@ import { Notice } from "@/components/ui/Notice";
 import { TypeBadge } from "@/components/ui/TypeBadge";
 import { UnsavedChangesGuard } from "@/components/ui/UnsavedChangesGuard";
 import { FileIssues, IssuesSummary } from "@/components/validation/IssuesPopover";
+import { AskToJoinLink } from "@/components/workspaces/AskToJoinLink";
 import type { DependencyOption } from "@/server/domains/submissions/actions/composer";
 import {
   MANIFEST_PATH,
@@ -122,10 +123,15 @@ const readOnlyTitle = (draft: EditorDraft): ReactNode => {
   );
 };
 
-const readOnlyText = (draft: EditorDraft): string => {
+const readOnlyText = (draft: EditorDraft): ReactNode => {
   if (!draft.mine) return "You can read it, but only its author can change or withdraw it.";
   if (draft.notMemberOf)
-    return `You can read it and withdraw it, but not change, submit or release it. Ask to join ${draft.notMemberOf} again to work on it; its moderators can still decide it.`;
+    return (
+      <span>
+        You can read it and withdraw it, but not change, submit or release it. To work on it again,{" "}
+        <AskToJoinLink workspace={draft.notMemberOf} />; its moderators can still decide it.
+      </span>
+    );
   if (draft.status === "approved")
     return "It's ready to release, by you or a moderator. Until then you can still withdraw it, and a reviewer can send it back.";
   if (draft.status === "published")

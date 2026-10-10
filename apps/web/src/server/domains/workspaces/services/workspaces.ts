@@ -97,6 +97,8 @@ export const createWorkspace = async (
         createdAt: at,
       });
       await audit(repo, actor, "workspace.created", id, { name, description, visibility }, at);
+      // Open requests to the name, made before it existed, are now this workspace's (094).
+      await repo.attachRequests(name, id);
       return {
         id,
         name,

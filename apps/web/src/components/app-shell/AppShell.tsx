@@ -36,7 +36,7 @@ export const AppShell = ({
   navCounts?: Record<string, number>;
   children: ReactNode;
 }) => {
-  const items = navFor(user);
+  const items = navFor(user, navCounts);
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="sticky top-0 z-30 border-b border-hairline bg-surface pt-safe px-safe">
@@ -81,6 +81,9 @@ export const AppShell = ({
                   </Link>
                   <Link href="/account/tokens" className={menuItem}>
                     Access tokens
+                  </Link>
+                  <Link href="/workspaces" className={menuItem}>
+                    Workspaces
                   </Link>
                   {signOutAction ? (
                     <form action={signOutAction} className="border-t border-hairline pt-0.5">
