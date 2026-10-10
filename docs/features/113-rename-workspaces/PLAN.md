@@ -31,7 +31,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   the items install by their old names and `rmk` rewrites the lockfile.
   *Done when:* those tests pass.
 
-- [ ] **4. Decision log.** MVP §15's Workspaces row: renaming by root and the workspace's admins,
+- [x] **4. Decision log.** MVP §15's Workspaces row: renaming by root and the workspace's admins,
   its items renamed with aliases, no redirect for the workspace's own name. 090's Out list points
   here.
   *Done when:* the row and the pointer are in.

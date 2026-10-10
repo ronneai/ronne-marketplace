@@ -214,3 +214,25 @@ Witnessed: 2026-10-10 16:00 EDT, by a fresh agent (blind). Commit: a72d319a (plu
 | 10 | Lint and types | no | confirmed | biome; tsc |
 
 **Overall:** met.
+
+## Task 4 — Decision log
+
+Witnessed: 2026-10-10 16:03 EDT, by a fresh agent (blind). Commit: 70f0032e (plus the uncommitted docs). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | §15 Workspaces: root and its admins rename, `global` excepted | no | confirmed | MVP.md:906 |
+| 2 | Items take the new name, old ones aliases | no | confirmed | `setAliases(…, "rename")`; `rename.db.test.ts:399`; 72 passed |
+| 3 | No redirect for the workspace's own name; it can be taken again | no | confirmed | `private-api.db.test.ts:350,363`; probe: `createWorkspace("acme")` after the rename |
+| 4 | 090's Out list points to 113 | no | confirmed | `090-workspaces/SPEC.md:42` |
+| 5 | Who renames | no | confirmed | `permissions.ts:48`; probes |
+| 6 | `global` never | no | confirmed | `changeable`; probe |
+| 7 | Unreleased work takes the new names | no | confirmed | `OPEN_STATUSES`; tests (the row undersold it: drafts and submissions; reworded) |
+| 8 | A private workspace's new name isn't told to outsiders | no | confirmed | probe: outsider's resolve and item page unknown; member's `renamed` |
+| 9 | §2 permission row | no | confirmed | MVP.md:72 |
+| 10 | Roles row | no | confirmed | MVP.md:897 |
+| 11 | Old names row | no | confirmed | MVP.md:907; `load.ts:47-49` |
+| 12 | `cli-files.md` | no | confirmed | `renamed` from all aliases; `private-api.db.test.ts:381` |
+| 13 | `plugin-feeds.md` "Moved from" after a rename | no | confirmed | `renamedSince` reads aliases by date; read in the code only |
+
+**Overall:** met.
