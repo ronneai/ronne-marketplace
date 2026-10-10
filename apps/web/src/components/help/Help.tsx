@@ -26,6 +26,12 @@ export const HELP = {
       "The level above scopes: workspace › scope › item. Each workspace holds scopes, and their items, for one team or group. Outside global it's the first part of an item's name, @workspace/scope/name. Every instance has global.",
     href: docsHref("workspaces", "what"),
   },
+  "rename-workspace": {
+    question: "What changes when I rename?",
+    answer:
+      "Its items take the new name: @acme/team/x becomes @new/team/x. Their old names keep working for installs, lockfiles and dependencies, and rmk moves projects to the new ones; Claude Code shows them as new plugins. Links to the workspace (its page, its join link) and the old name in rmk --workspace or a CI workflow stop working. Its members, scopes and requests stay.",
+    href: docsHref("workspaces", "managing"),
+  },
   "workspace-choice": {
     question: "Which workspace?",
     answer:

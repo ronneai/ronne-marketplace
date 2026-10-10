@@ -35,6 +35,17 @@ export const updateWorkspace = async (
   app: AppAuth = getAppAuth(),
 ) => service.updateWorkspace(deps(app), await actor(headers, app), input);
 
+/** Root or the workspace's admins rename it (113); its items take the new name. */
+export const renameWorkspace = async (
+  headers: Headers,
+  input: { name: string; to: string },
+  app: AppAuth = getAppAuth(),
+) => service.renameWorkspace(deps(app), await actor(headers, app), input);
+
+/** How many items a rename would give the new name (113), for its dialog. */
+export const renameImpact = async (headers: Headers, name: string, app: AppAuth = getAppAuth()) =>
+  service.renameImpact(deps(app), await actor(headers, app), name);
+
 export const deleteWorkspace = async (
   headers: Headers,
   input: { name: string },

@@ -14,6 +14,7 @@ import { workspacePath } from "@/features/admin-workspaces/list";
 import {
   DeleteWorkspaceButton,
   EditWorkspaceButton,
+  RenameWorkspaceButton,
   VisibilityButton,
 } from "@/features/admin-workspaces/WorkspaceDialogs";
 import { VISIBILITY_LABELS } from "@/features/admin-workspaces/WorkspacesTable";
@@ -47,7 +48,7 @@ const decoded = (value: string) => {
 
 /**
  * One workspace (feature 090): its description, its members (092) and its scopes. Root and the
- * workspace's admins edit the description, manage the members and create scopes; only root deletes
+ * workspace's admins edit the description, rename it (113), manage the members and create scopes; only root deletes
  * it, while it has no scopes. `global`'s description can't be edited, and it can't be deleted. A
  * workspace the admin doesn't administer is a 404, as for anyone else.
  */
@@ -156,6 +157,9 @@ const AdminWorkspace = async ({
             <>
               {can(me, "workspace.edit", workspace.id) ? (
                 <EditWorkspaceButton name={workspace.name} description={workspace.description} />
+              ) : null}
+              {can(me, "workspace.rename", workspace.id) ? (
+                <RenameWorkspaceButton name={workspace.name} />
               ) : null}
               {can(me, "workspaces.manage") ? (
                 <>

@@ -52,6 +52,14 @@ describe("audit summaries (060)", () => {
     expect(line("workspace.created", { name: "acme", description: "Acme's teams." })).toBe(
       "Created workspace acme",
     );
+    expect(
+      line("workspace.renamed", {
+        from: "acme",
+        to: "acme-platform",
+        items: 12,
+        requestsJoined: 0,
+      }),
+    ).toBe("Renamed workspace acme to acme-platform");
     expect(line("workspace.updated", { name: "acme", from: "a", to: "b" })).toBe(
       "Changed the description of workspace acme",
     );

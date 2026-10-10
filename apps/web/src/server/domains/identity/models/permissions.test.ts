@@ -88,6 +88,7 @@ describe("permissions (091)", () => {
         "users.view",
         "versions.manage",
         "workspace.edit",
+        "workspace.rename",
         "workspaces.manage",
       ].sort(),
     );

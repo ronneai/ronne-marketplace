@@ -17,6 +17,7 @@ import { kyselyScopeRepository } from "../domains/items/repositories/kysely-scop
 import { UNFILTERED } from "../domains/workspaces/models/viewer";
 import { GLOBAL_WORKSPACE_ID } from "../domains/workspaces/models/workspace";
 import { kyselyWorkspaceRepository } from "../domains/workspaces/repositories/kysely-workspace-repository";
+import { renameWorkspace } from "../domains/workspaces/services/workspaces";
 import { localStorage } from "../storage/local-storage";
 import { type FeedsApiDeps, getMarketplace, getPluginZip } from "./feeds-api";
 
@@ -148,6 +149,16 @@ afterEach(async () => {
   await t.cleanup();
   await rm(storageRoot, { recursive: true, force: true });
 });
+
+/** The root user's id: the audit log names who renamed. */
+const rootIdOf = async () =>
+  (
+    await t.db
+      .selectFrom("user")
+      .select("id")
+      .where("email", "=", "root@example.com")
+      .executeTakeFirstOrThrow()
+  ).id;
 
 const get = (path: string, token: string) =>
   new Request(`${BASE}${path}`, { headers: { authorization: `Bearer ${token}` } });
@@ -288,6 +299,37 @@ describe("the plugin feeds and a private workspace (093)", () => {
     expect(await asRmk("")).toEqual(["team.style"]);
     expect(await asRmk("?workspaces=acme")).toEqual(["acme.acme-infra.deploy", "team.style"]);
     expect(await plugins("member")).toEqual(["acme.acme-infra.deploy", "team.style"]);
+  });
+
+  it("mirrors a renamed workspace by its new name, and the old one as unknown (113)", async () => {
+    const asRoot = {
+      user: {
+        id: await rootIdOf(),
+        email: "root@example.com",
+        name: "Root",
+        role: "root" as const,
+        workspaces: {},
+      },
+      ip: null,
+    };
+    await renameWorkspace({ repo: kyselyWorkspaceRepository(t.db, t.dialect) }, asRoot, {
+      name: "acme",
+      to: "acme-x",
+    });
+    expect(await plugins("member", "?workspaces=acme-x")).toEqual([
+      "acme-x.acme-infra.deploy",
+      "team.style",
+    ]);
+    const ask = async (name: string) => {
+      const response = await getMarketplace(
+        get(`/claude-code/marketplace.json?workspaces=${name}`, tokens.member),
+        { tool: "claude-code" },
+        deps,
+      );
+      return `${response.status} ${(await response.text()).replaceAll(name, "X")}`;
+    };
+    expect(await ask("acme")).toMatch(/^404 .*"workspace_not_found"/);
+    expect(await ask("acme")).toBe(await ask("nosuch"));
   });
 
   it("refuses a mirror of a workspace the caller doesn't see exactly as an unknown one", async () => {

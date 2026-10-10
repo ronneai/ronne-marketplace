@@ -4,3 +4,6 @@ export type WorkspaceActionState = { error?: string; done?: string };
 export type VisibilityImpactResult =
   | { dependents: string[]; openDependents: string[] }
   | { error: string };
+
+/** How many items a rename gives the new name (113), or why it couldn't be read. */
+export type RenameImpactResult = { items: number } | { error: string };

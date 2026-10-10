@@ -57,6 +57,8 @@ export interface ItemRepository {
    * private (093): a release checks its dependencies under the lock Make private takes.
    */
   lockWorkspaces(ids: readonly string[]): Promise<ReadonlySet<string>>;
+  /** These workspaces' names now, by id (113: a release checks its own wasn't renamed meanwhile). */
+  workspaceNames(ids: readonly string[]): Promise<ReadonlyMap<string, string>>;
   /** A version's dependencies with their workspaces (093), for a version the viewer sees. */
   dependencyWorkspaces(versionId: string): Promise<{ name: string; workspaceId: string }[]>;
   /** Every tag of the item, with the version it points to. */

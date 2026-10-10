@@ -44,6 +44,8 @@ export const WORKSPACE_PERMISSIONS = {
   "scopes.create": ["admin"],
   /** Edit the workspace's description (092); creating and deleting workspaces stay root's. */
   "workspace.edit": ["admin"],
+  /** Rename the workspace (113): its items take the new name, their old ones kept as aliases. */
+  "workspace.rename": ["admin"],
 } as const satisfies Record<string, readonly WorkspaceRole[]>;
 
 export type InstancePermission = keyof typeof INSTANCE_PERMISSIONS;

@@ -4,7 +4,7 @@ import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
 import { decodeJson, encodeJson } from "../../../db/json";
 import { countCapped, paginate } from "../../../db/keyset";
-import { forUpdate, readCommittedTransaction } from "../../../db/locks";
+import { forUpdate, readCommittedTransaction, retryOnDeadlock } from "../../../db/locks";
 import type { Database } from "../../../db/schema";
 import { containsInsensitive } from "../../../db/search";
 import { upsert } from "../../../db/upsert";
@@ -148,9 +148,12 @@ export const kyselySubmissionRepository = (
   return {
     // READ COMMITTED, so the name check after `lockScope` sees a submit that committed while this
     // one waited (MySQL's default snapshot wouldn't).
+    // Run again when the database ends a deadlock with it (113): the work only touches the database.
     transaction: (work) =>
-      readCommittedTransaction(db, dialect).execute((trx) =>
-        work(kyselySubmissionRepository(trx, dialect, viewer)),
+      retryOnDeadlock(() =>
+        readCommittedTransaction(db, dialect).execute((trx) =>
+          work(kyselySubmissionRepository(trx, dialect, viewer)),
+        ),
       ),
 
     findScope: async (ref) => {

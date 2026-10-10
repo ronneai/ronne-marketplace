@@ -17,6 +17,8 @@ const workspaces = vi.hoisted(() => ({
   findWorkspace: vi.fn(),
   setWorkspaceVisibility: vi.fn(),
   visibilityImpact: vi.fn(),
+  renameWorkspace: vi.fn(),
+  renameImpact: vi.fn(),
   pageMembers: vi.fn(async () => ({
     rows: [],
     next: null,
@@ -47,8 +49,13 @@ const actions = await import("./actions");
 const { WorkspacesTable } = await import("./WorkspacesTable");
 const { parseListQuery } = await import("@/components/ui/data-table/list-query");
 const { ADMIN_WORKSPACES_LIST, workspacesQueryOf } = await import("./list");
-const { CreateWorkspaceDialog, CreateWorkspaceForm, DeleteWorkspaceButton, VisibilityForm } =
-  await import("./WorkspaceDialogs");
+const {
+  CreateWorkspaceDialog,
+  CreateWorkspaceForm,
+  DeleteWorkspaceButton,
+  RenameForm,
+  VisibilityForm,
+} = await import("./WorkspaceDialogs");
 const { AdminNav } = await import("@/features/admin/AdminNav");
 const { default: AdminWorkspaces } = await import("@/app/(app)/admin/workspaces/page");
 const { default: AdminWorkspace } = await import("@/app/(app)/admin/workspaces/[name]/page");
@@ -167,6 +174,33 @@ describe("workspace actions", () => {
     });
     expect(cache.revalidatePath).toHaveBeenCalledWith("/admin/workspaces");
     expect(cache.revalidatePath).toHaveBeenCalledWith("/admin/workspaces/acme");
+  });
+
+  it("renames, refreshes every page and goes to the new address (113)", async () => {
+    workspaces.renameWorkspace.mockResolvedValueOnce(workspace({ name: "acme-platform" }));
+    await expect(
+      actions.renameWorkspaceFromForm({}, form({ name: "acme", to: "ACME-Platform " })),
+    ).rejects.toThrow("NEXT_REDIRECT /admin/workspaces/acme-platform");
+    expect(workspaces.renameWorkspace).toHaveBeenCalledWith(expect.any(Headers), {
+      name: "acme",
+      to: "ACME-Platform ",
+    });
+    expect(cache.revalidatePath).toHaveBeenCalledWith("/", "layout");
+    // Refused: it says why and stays put.
+    workspaces.renameWorkspace.mockRejectedValueOnce(new WorkspaceNameTakenError("other"));
+    expect(
+      (await actions.renameWorkspaceFromForm({}, form({ name: "acme", to: "other" }))).error,
+    ).toContain("That name is taken");
+    expect(navigation.redirect).toHaveBeenCalledTimes(1);
+  });
+
+  it("reads how many items a rename would change, or why it can't (113)", async () => {
+    workspaces.renameImpact.mockResolvedValueOnce({ items: 12 });
+    expect(await actions.renameImpactFor("acme")).toEqual({ items: 12 });
+    workspaces.renameImpact.mockRejectedValueOnce(new ForbiddenError("workspace.rename"));
+    expect(await actions.renameImpactFor("acme")).toEqual({
+      error: expect.stringContaining("permission"),
+    });
   });
 
   it("deletes, then goes back to the list", async () => {
@@ -302,6 +336,33 @@ describe("the dialogs", () => {
     expect(html).toContain("/marketplace/docs/workspaces#visibility");
   });
 
+  it("Rename shows the name, what changes for its items and links, and waits for a new name (113)", () => {
+    const html = renderToStaticMarkup(
+      <RenameForm name="acme" onDone={() => {}} loaded={{ items: 12 }} />,
+    );
+    for (const text of [
+      'value="acme"',
+      "Its 12 items will be renamed from",
+      "@acme/…",
+      "Their old names keep working for installs, lockfiles and dependencies",
+      "Links to this workspace (its page and its join link) will stop working",
+      "rmk feed build --workspace",
+      "What changes when I rename?",
+      "/marketplace/docs/workspaces#managing",
+      "Type the new name.",
+    ])
+      expect(html, text).toContain(text);
+    expect(html).toMatch(/<button[^>]*disabled[^>]*>.*Rename/s);
+    expect(
+      renderToStaticMarkup(<RenameForm name="acme" onDone={() => {}} loaded={{ items: 1 }} />),
+    ).toContain("Its 1 item will be renamed");
+    expect(
+      renderToStaticMarkup(
+        <RenameForm name="acme" onDone={() => {}} loaded={{ error: "Couldn't count." }} />,
+      ),
+    ).toContain("Couldn&#x27;t count.");
+  });
+
   it("Delete is disabled, with the reason, while the workspace has scopes", () => {
     const busy = renderToStaticMarkup(<DeleteWorkspaceButton name="acme" scopes={2} />);
     expect(busy).toMatch(/\sdisabled=""/);
@@ -391,11 +452,32 @@ describe("the pages", () => {
     );
   });
 
+  it("root and the workspace's admin can rename it; an admin of global can't rename global (113)", async () => {
+    session.getCurrentUser.mockResolvedValueOnce({ role: "root" });
+    workspaces.findWorkspace.mockResolvedValueOnce(workspace());
+    expect(renderToStaticMarkup(await workspacePage("acme"))).toContain(">Rename<");
+    session.getCurrentUser.mockResolvedValueOnce({
+      id: "a",
+      role: "user",
+      workspaces: { w1: "admin" },
+    });
+    workspaces.findWorkspace.mockResolvedValueOnce(workspace());
+    expect(renderToStaticMarkup(await workspacePage("acme"))).toContain(">Rename<");
+    session.getCurrentUser.mockResolvedValueOnce({
+      id: "a",
+      role: "user",
+      workspaces: { [global.id]: "admin" },
+    });
+    workspaces.findWorkspace.mockResolvedValueOnce(global);
+    expect(renderToStaticMarkup(await workspacePage("global"))).not.toContain(">Rename<");
+  });
+
   it("global's page has no edit or delete", async () => {
     session.getCurrentUser.mockResolvedValueOnce({ role: "root" });
     workspaces.findWorkspace.mockResolvedValueOnce(global);
     const html = renderToStaticMarkup(await workspacePage("global"));
     expect(html).toContain("It can&#x27;t be changed or deleted.");
+    expect(html).not.toContain(">Rename<");
     expect(html).not.toContain("Edit description");
     expect(html).not.toContain("Delete");
   });

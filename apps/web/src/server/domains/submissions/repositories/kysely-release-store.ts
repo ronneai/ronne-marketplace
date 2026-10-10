@@ -1,5 +1,5 @@
 import type { Kysely } from "kysely";
-import { readCommittedTransaction } from "../../../db/locks";
+import { readCommittedTransaction, retryOnDeadlock } from "../../../db/locks";
 import type { Database } from "../../../db/schema";
 import type { DatabaseDialect } from "../../../db/url";
 import { kyselyItemRepository } from "../../items/repositories/kysely-item-repository";
@@ -12,12 +12,15 @@ export const kyselyReleaseStore = (
   dialect: DatabaseDialect,
 ): ReleaseStore => ({
   // READ COMMITTED, as submissions' own transactions: checks after a lock see what just committed.
+  // Run again when the database ends a deadlock with it (113): the artifacts are stored before it.
   transaction: (work) =>
-    readCommittedTransaction(db, dialect).execute((trx) =>
-      work({
-        submissions: kyselySubmissionRepository(trx, dialect, UNFILTERED),
-        // A release is authorised by the release rules (015, 091): it reads every workspace.
-        items: kyselyItemRepository(trx, dialect, UNFILTERED),
-      }),
+    retryOnDeadlock(() =>
+      readCommittedTransaction(db, dialect).execute((trx) =>
+        work({
+          submissions: kyselySubmissionRepository(trx, dialect, UNFILTERED),
+          // A release is authorised by the release rules (015, 091): it reads every workspace.
+          items: kyselyItemRepository(trx, dialect, UNFILTERED),
+        }),
+      ),
     ),
 });

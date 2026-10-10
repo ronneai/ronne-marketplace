@@ -59,7 +59,9 @@ workspace takes a name another workspace had before.
 **Requests to a name no workspace had** (094). 094 keeps a request to an unknown name and gives it
 to a workspace created with that name later. A rename does the same: open requests kept for the new
 name become the workspace's, so the name answers exactly as it would have for a created workspace.
-The audit event counts them (`requestsJoined`).
+A requester who is a member already, or who has an open request there already, isn't asked
+twice: that request is cancelled. The workspace's own requests take its new name, so asking again
+under it answers "already requested". The audit event counts the ones joined (`requestsJoined`).
 
 **The old name.** Answers as a name no workspace has, everywhere: the join page, the API's
 `?workspace=` (no results), `workspace_not_found` in the feeds and `rmk feed build`. Requests
@@ -83,8 +85,26 @@ naming `@old/scope/x` still installs through the alias, and `rmk` rewrites it to
 - **An admin loses the role while the dialog is open:** the save is refused (`not_permitted`), as
   for any admin action (092).
 - **A private workspace's new name** is seen only by those who saw the old one (093); renaming
-  can't reveal it to anyone else. Asking for a name that's taken by a private workspace answers
-  "That name is taken" only to root and its admins, who are the only ones who can rename.
+  can't reveal it to anyone else.
+- **A name taken by a private workspace** the renamer can't see still answers "That name is
+  taken": names are unique, so any refusal says the name is in use. It says nothing more (not whose
+  it is, nor what's in it), and only root and admins can rename.
+- **Drafts and submissions not released yet** (drafts, in review, sent back, approved, withdrawn)
+  name the workspace's items by their old names: their own `name`, their dependencies, a skill's
+  `agent:`. The rename writes the new names there, in the working copy and the latest revision,
+  each value where it stands (comments, quotes, line endings and layout kept), so they submit and
+  release as before, with no new review. A submit or a save at the same moment runs before or
+  after it, never halfway. An editor open on a draft then finds the file changed and says so on
+  save. Names of other workspaces' items are left as they are, and so is a file whose bytes aren't
+  UTF-8 text. A draft or a change started at the same moment as the rename waits for it: a new
+  draft gets the new name, or "no such scope" when it asked for the old one; a change gets
+  "renamed meanwhile, propose it again".
+- **Two renames of one workspace at once:** the second asked for a name that's gone; it gets
+  "That workspace doesn't exist". So does a delete or a description edit that comes second.
+- **A release under way when its workspace is renamed:** it was packed under the old name, so it's
+  refused ("Its workspace was renamed … release it again") and nothing is stored; releasing again
+  packs it under the new name. A release takes its own workspace's lock, after its items' (the
+  order a rename takes them), so one waits for the other.
 - **A personal workspace** (114) is renamed by its owner or root; the same rules apply.
 
 ## Documentation
@@ -96,18 +116,18 @@ naming `@old/scope/x` still installs through the alias, and `rmk` rewrites it to
 
 ## Acceptance criteria
 
-- [ ] Root and the workspace's admins rename it; moderators, users and admins of other workspaces
+- [x] Root and the workspace's admins rename it; moderators, users and admins of other workspaces
   can't, in the UI or the services.
-- [ ] `global` can't be renamed.
-- [ ] The name rule, reserved names and uniqueness hold, including two renames at once.
-- [ ] After a rename the new name works everywhere (Admin page, join link, catalogue filter, API,
+- [x] `global` can't be renamed.
+- [x] The name rule, reserved names and uniqueness hold, including two renames at once.
+- [x] After a rename the new name works everywhere (Admin page, join link, catalogue filter, API,
   `rmk workspaces`, `rmk feed build --workspace`), and the old one answers as unknown.
-- [ ] Its items take the new name, and their old names install, resolve and redirect as aliases.
-- [ ] A rename that would give an item another item's alias is refused.
-- [ ] Open requests kept for the new name join the workspace.
-- [ ] The rename is audited with the old and new names.
-- [ ] The dialog passes the phone sweep (065).
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] Its items take the new name, and their old names install, resolve and redirect as aliases.
+- [x] A rename that would give an item another item's alias is refused.
+- [x] Open requests kept for the new name join the workspace.
+- [x] The rename is audited with the old and new names.
+- [x] The dialog passes the phone sweep (065).
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Decisions
 

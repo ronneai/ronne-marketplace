@@ -17,6 +17,8 @@ import { kyselyScopeRepository } from "../domains/items/repositories/kysely-scop
 import { UNFILTERED } from "../domains/workspaces/models/viewer";
 import { GLOBAL_WORKSPACE_ID } from "../domains/workspaces/models/workspace";
 import { kyselyWorkspaceRepository } from "../domains/workspaces/repositories/kysely-workspace-repository";
+import { joinTarget } from "../domains/workspaces/services/access-requests";
+import { renameWorkspace } from "../domains/workspaces/services/workspaces";
 import { localStorage } from "../storage/local-storage";
 import type { StorageAdapter } from "../storage/storage-adapter";
 import { getMe, getWorkspaces } from "./api-v1";
@@ -136,6 +138,16 @@ afterEach(async () => {
   await t.cleanup();
   await rm(storageRoot, { recursive: true, force: true });
 });
+
+/** The root user's id: the audit log names who renamed. */
+const rootIdOf = async () =>
+  (
+    await t.db
+      .selectFrom("user")
+      .select("id")
+      .where("email", "=", "root@example.com")
+      .executeTakeFirstOrThrow()
+  ).id;
 
 const get = (path: string, token: string) =>
   new Request(`${BASE}${path}`, { headers: { authorization: `Bearer ${token}` } });
@@ -314,6 +326,75 @@ describe("workspaces in the API (095)", () => {
     expect(await hidden.text()).toBe(await unknown.text());
     const tooLong = await listItems(get(`/items?workspace=${"x".repeat(65)}`, member), deps);
     expect(tooLong.status).toBe(400);
+  });
+});
+
+describe("after a rename (113)", () => {
+  const repo = () => kyselyWorkspaceRepository(t.db, t.dialect);
+
+  beforeEach(async () => {
+    await repo().setVisibility((await repo().findByName("acme"))?.id ?? "", "public", new Date());
+    const asRoot = {
+      user: {
+        id: await rootIdOf(),
+        email: "root@example.com",
+        name: "Root",
+        role: "root" as const,
+        workspaces: {},
+      },
+      ip: null,
+    };
+    await renameWorkspace({ repo: repo() }, asRoot, { name: "acme", to: "acme-x" });
+  });
+
+  it("finds the workspace by its new name, and the old one as no workspace's", async () => {
+    const names = async (query: string) =>
+      (await (await listItems(get(`/items?${query}`, member), deps)).json()).items.map(
+        (i: { name: string }) => i.name,
+      );
+    expect(await names("workspace=acme-x")).toEqual(["@acme-x/acme-infra/deploy"]);
+    const old = await listItems(get("/items?workspace=acme", plain), deps);
+    const nowhere = await listItems(get("/items?workspace=nowhere", plain), deps);
+    expect(await old.text()).toBe(await nowhere.text());
+    const listed = await (await getWorkspaces(get("/workspaces", member), deps.guard, app)).json();
+    expect(listed.workspaces.map((w: { name: string }) => w.name)).toEqual(["global", "acme-x"]);
+  });
+
+  it("answers the join page by the new name, and the old one as unknown", async () => {
+    const plainUser = {
+      id: "p",
+      email: "p@example.com",
+      name: "P",
+      role: "user" as const,
+      workspaces: {},
+    };
+    const asPlain = { user: plainUser, ip: null };
+    const deps = { repo: repo() };
+    expect((await joinTarget(deps, asPlain, "acme-x")).kind).toBe("open");
+    expect(await joinTarget(deps, asPlain, "acme")).toEqual({
+      kind: "unseen",
+      name: "acme",
+      request: null,
+    });
+  });
+
+  it("installs its item by its old name, saying the new one", async () => {
+    const old = { workspace: "acme", scope: "acme-infra", name: "deploy" };
+    const item = await getItem(get("/workspaces/acme/items/acme-infra/deploy", member), old, deps);
+    expect((await item.json()).name).toBe("@acme-x/acme-infra/deploy");
+    const tarball = await getTarball(
+      get("/workspaces/acme/items/acme-infra/deploy/1.0.0/tarball", member),
+      { ...old, version: "1.0.0" },
+      deps,
+    );
+    expect(tarball.status).toBe(200);
+    const resolved = await (
+      await postResolve(
+        post("/resolve", member, { dependencies: { "@acme/acme-infra/deploy": "^1.0.0" } }),
+        deps,
+      )
+    ).json();
+    expect(resolved.renamed).toEqual({ "@acme/acme-infra/deploy": "@acme-x/acme-infra/deploy" });
   });
 });
 

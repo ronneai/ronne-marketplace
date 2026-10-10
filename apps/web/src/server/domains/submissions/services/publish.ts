@@ -34,6 +34,7 @@ import {
   SubmissionInvalidError,
   SubmissionNotFoundError,
   VersionExistsError,
+  WorkspaceRenamedError,
 } from "../exceptions/errors";
 import { manifestNamed } from "../models/manifest-names";
 import { planReleases } from "../models/release-plan";
@@ -370,10 +371,24 @@ export const releaseTogether = async (
     // other in opposite orders.
     // Then every workspace a dependency is in, in one sorted call: the lock Make private takes
     // (093), so a workspace turned private since the checks can't gain a dependent outside it.
+    // Packed under its workspace's name: renamed since (113), it would be stored under the old one.
+    // Checked here, so the old name isn't taken for another item's below, and again under the lock.
+    const renamedSince = async () => {
+      const names = await items.workspaceNames(packed.map((m) => m.submission.workspace.id));
+      for (const { submission } of packed) {
+        const now = names.get(submission.workspace.id);
+        if (now !== undefined && now !== submission.workspace.name)
+          throw new WorkspaceRenamedError(submission.workspace.name, now);
+      }
+    };
+    await renamedSince();
     const groupNames = new Map(packed.map((m) => [itemNameOf(m.submission), m.submission]));
     const toLock = new Set<string>();
     const workspaces = new Set<string>();
     for (const member of packed) {
+      // Its own workspace too: a rename (113) takes it after its items, as here, so a release
+      // packed under the old name is refused below instead of storing an item nobody aliased.
+      workspaces.add(member.submission.workspace.id);
       const own = await ownItem(items, member.submission);
       if (own) toLock.add(own.id);
       for (const name of Object.keys(
@@ -394,6 +409,7 @@ export const releaseTogether = async (
     }
     for (const id of [...toLock].sort()) await items.lockItem(id);
     const privateOnes = await items.lockWorkspaces([...workspaces]);
+    await renamedSince();
 
     // Every member's item first, so items that need each other can point at each other.
     const itemIds = new Map<string, string>();

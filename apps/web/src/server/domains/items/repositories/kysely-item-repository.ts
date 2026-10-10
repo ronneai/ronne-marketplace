@@ -330,6 +330,17 @@ export const kyselyItemRepository = (
     ).execute();
   },
 
+  workspaceNames: async (ids) => {
+    const wanted = [...new Set(ids)];
+    if (wanted.length === 0) return new Map();
+    const rows = await db
+      .selectFrom("workspaces")
+      .select(["id", "name"])
+      .where("id", "in", wanted)
+      .execute();
+    return new Map(rows.map((row) => [row.id, row.name]));
+  },
+
   lockWorkspaces: async (ids) => {
     const sorted = [...new Set(ids)].sort();
     if (sorted.length === 0) return new Set();

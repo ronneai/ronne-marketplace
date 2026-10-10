@@ -23,6 +23,10 @@ export const E2E_USERS = {
   installer: "installer@e2e.test",
   // Two same-named items in two workspaces (118), on desktop and on a phone.
   twinReader: "twin-reader@e2e.test",
+  renamer: "renamer@e2e.test",
+  phoneRenamer: "phone-renamer@e2e.test",
+  phoneWebkitRenamer: "phone-webkit-renamer@e2e.test",
+  tabletRenamer: "tablet-renamer@e2e.test",
   phoneTwinReader: "phone-twin-reader@e2e.test",
   composer: "composer@e2e.test",
   exporter: "exporter@e2e.test",
@@ -130,6 +134,10 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   downloader: "Dan Downloader",
   installer: "Ines Installer",
   twinReader: "Tia Twin",
+  renamer: "Ren Amer",
+  phoneRenamer: "Phone Renamer",
+  phoneWebkitRenamer: "Phone WebKit Renamer",
+  tabletRenamer: "Tablet Renamer",
   phoneTwinReader: "Pip Twin",
   composer: "Cam Composer",
   exporter: "Exa Exporter",
@@ -317,3 +325,21 @@ export const E2E_RMK_ITEMS = {
   hook: "kit-hook",
   rule: "kit-rule",
 } as const;
+
+/**
+ * One workspace per project for renaming (113), each with a released skill and its admin, who
+ * renames it to `e2e-renamed-<project>`: a rename changes what other tests would find, so no other
+ * test uses these.
+ */
+export const E2E_RENAME = {
+  scope: "e2e-rename-tools",
+  item: "rename-notes",
+  projects: {
+    chromium: "renamer",
+    phone: "phoneRenamer",
+    "phone-webkit": "phoneWebkitRenamer",
+    tablet: "tabletRenamer",
+  } as const satisfies Record<string, keyof typeof E2E_USERS>,
+  workspace: (project: string) => `e2e-rename-${project}`,
+  renamed: (project: string) => `e2e-renamed-${project}`,
+};
