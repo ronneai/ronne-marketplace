@@ -106,12 +106,55 @@ export const notices = ({ nodeVersion, nodeLicense, packages, packageNotices = "
 
 const sha256 = (path) => createHash("sha256").update(readFileSync(path)).digest("hex");
 
-/** A GET that must succeed. */
-const get = async (url) => {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`${url} answered ${response.status}.`);
-  return response;
+/** How many times a download from nodejs.org is tried, and how long to wait before each retry. */
+export const FETCH_ATTEMPTS = 3;
+const pauseBefore = (attempt) => new Promise((done) => setTimeout(done, 2000 * attempt));
+
+/**
+ * A GET that must succeed, read with `read` (the body counts: a download can break halfway). A
+ * network error, a 5xx or a 429 is tried again, up to FETCH_ATTEMPTS times in all; another answer
+ * isn't, since it would say the same again. A nightly once failed on one runner that couldn't reach
+ * nodejs.org for a moment (docs/knowledge/bundle-downloads.md).
+ */
+export const getRetrying = async (
+  url,
+  read,
+  { fetch: request = fetch, pause = pauseBefore, attempts = FETCH_ATTEMPTS } = {},
+) => {
+  for (let attempt = 1; ; attempt++) {
+    let again = true;
+    try {
+      const response = await request(url);
+      if (!response.ok) {
+        again = response.status >= 500 || response.status === 429;
+        throw new Error(`${url} answered ${response.status}.`);
+      }
+      return await read(response);
+    } catch (error) {
+      if (!again || attempt >= attempts) throw error;
+      console.error(
+        `bundle: ${url}: ${errorText(error)}; trying again (${attempt + 1} of ${attempts}).`,
+      );
+      await pause(attempt);
+    }
+  }
 };
+
+/**
+ * An error's message with its causes, which is where fetch says what went wrong: "fetch failed
+ * (UND_ERR_CONNECT_TIMEOUT: Connect Timeout Error)" rather than only "fetch failed".
+ */
+export const errorText = (error) => {
+  const parts = [error?.message ?? String(error)];
+  for (let cause = error?.cause, depth = 0; cause && depth < 5; cause = cause.cause, depth++)
+    parts.push(
+      cause.code ? `${cause.code}: ${cause.message ?? ""}`.trim() : String(cause.message ?? cause),
+    );
+  return parts.length === 1 ? parts[0] : `${parts[0]} (${parts.slice(1).join("; ")})`;
+};
+
+const getJson = (url) => getRetrying(url, (response) => response.json());
+const getText = (url) => getRetrying(url, (response) => response.text());
 
 /**
  * Windows' own tar (bsdtar, in System32) reads and writes zip; a GNU tar from Git for Windows
@@ -123,8 +166,10 @@ const tarProgram = () =>
     : "tar";
 
 const download = async (url, path) => {
-  const response = await get(url);
-  writeFileSync(path, Buffer.from(await response.arrayBuffer()));
+  writeFileSync(
+    path,
+    await getRetrying(url, async (response) => Buffer.from(await response.arrayBuffer())),
+  );
 };
 
 const parseArgs = (argv) => {
@@ -163,10 +208,9 @@ const main = async () => {
   const work = mkdtempSync(join(tmpdir(), "rmk-bundle-"));
   // Removed afterwards, whether the build worked or not, unless --keep.
   try {
-    const nodeVersion =
-      options.node ?? latestOf(await (await get(`${DIST}/index.json`)).json(), NODE_MAJOR);
+    const nodeVersion = options.node ?? latestOf(await getJson(`${DIST}/index.json`), NODE_MAJOR);
     const archive = nodeArchive(options.platform, options.arch, nodeVersion);
-    const shasums = await (await get(`${DIST}/v${nodeVersion}/SHASUMS256.txt`)).text();
+    const shasums = await getText(`${DIST}/v${nodeVersion}/SHASUMS256.txt`);
     const expected = parseShasums(shasums).get(archive);
     if (!expected) throw new Error(`SHASUMS256.txt for ${nodeVersion} has no ${archive}.`);
     await download(`${DIST}/v${nodeVersion}/${archive}`, join(work, archive));
@@ -261,6 +305,6 @@ const main = async () => {
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url))
   main().catch((error) => {
-    console.error(`bundle: ${error.message}`);
+    console.error(`bundle: ${errorText(error)}`);
     process.exit(1);
   });
