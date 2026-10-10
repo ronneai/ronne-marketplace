@@ -58,7 +58,8 @@ export const renamedManifest = (text: string, rename: (name: string) => string |
 };
 
 const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/;
-const AGENT_LINE = /^(agent:[ \t]*)(["']?)(@[a-z0-9/-]+)\2([ \t]*(?:#.*)?\r?)$/;
+/** A top-level `agent:` line: its value, quoted or not; whether it's an item name is `rename`'s call. */
+const AGENT_LINE = /^(agent:[ \t]*)(["']?)([^\s"'#]+)\2([ \t]*(?:#.*)?\r?)$/;
 
 /**
  * A skill's entry file with its frontmatter's `agent:` renamed where `rename` gives a new name

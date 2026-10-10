@@ -109,3 +109,11 @@ that took the full run from about 450 s to about 105 s. What follows from it:
 - Shared databases are dropped after their file. An interrupted run leaves its databases behind:
   the next run's global setup (`db-global-setup.ts`) drops the `ronne_test_*` ones older than two
   hours.
+
+## repo-tools' tests aren't cached
+
+`packages/repo-tools` holds guards that read the whole repository (item names split by hand,
+witness records, dependency rules). Turborepo caches a package's test result by that package's own
+files, so a guard broken by a change elsewhere passed from the cache: 118's guard missed a pattern
+113 added in `apps/web`, locally and in CI, until a cold run. `packages/repo-tools/turbo.json` turns
+the cache off for its tests; they take a few seconds.
