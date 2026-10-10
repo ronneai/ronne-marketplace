@@ -7,7 +7,7 @@ the same change that completes it.
 
 ## Tasks
 
-- [ ] **1. API.** `GET /api/v1/workspaces`; `workspace` on item and search responses and `me`;
+- [x] **1. API.** `GET /api/v1/workspaces`; `workspace` on item and search responses and `me`;
   `?workspace=`; MVP §11 updated.
   *Done when:* API tests pass with a member, a non-member and root.
 

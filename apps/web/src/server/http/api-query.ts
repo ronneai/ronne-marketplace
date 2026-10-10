@@ -1,4 +1,4 @@
-import { type ItemType, isItemType } from "@ronneai/core";
+import { type ItemType, isItemType, NAME_MAX_LENGTH, normalizeWorkspaceName } from "@ronneai/core";
 import { RENDERERS, rendererById } from "@ronneai/core/render";
 
 /**
@@ -47,4 +47,16 @@ export const parseSort = (value: string | null): Parsed<"recent" | "name"> => {
 export const parseSearch = (value: string | null): Parsed<string> => {
   const q = (value ?? "").trim();
   return q.length > 100 ? fail("`q` must be at most 100 characters.") : ok(q);
+};
+
+/**
+ * `?workspace=`: a workspace's name (095), or none. Trimmed and lowercased; a name no workspace has,
+ * or a private one the caller isn't in, matches nothing, as in the catalogue (093).
+ */
+export const parseWorkspace = (value: string | null): Parsed<string | null> => {
+  const name = normalizeWorkspaceName(value ?? "");
+  if (name === "") return ok(null);
+  return name.length > NAME_MAX_LENGTH
+    ? fail(`\`workspace\` must be at most ${NAME_MAX_LENGTH} characters.`)
+    : ok(name);
 };

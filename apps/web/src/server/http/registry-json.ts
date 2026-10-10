@@ -9,8 +9,15 @@ import type { ItemPage, VersionRow } from "../domains/items/actions/versions";
 const nameOf = (item: { scope: string | { name: string }; name: string }) =>
   `@${typeof item.scope === "string" ? item.scope : item.scope.name}/${item.name}`;
 
+/** The workspace an item is in (095), and whether only its members see it (093). */
+const workspaceOf = (item: { workspace: string; privateWorkspace: boolean }) => ({
+  name: item.workspace,
+  visibility: item.privateWorkspace ? "private" : "public",
+});
+
 export const itemSummaryJson = (entry: CatalogueEntry) => ({
   name: nameOf(entry),
+  workspace: workspaceOf(entry),
   type: entry.type,
   description: entry.description,
   keywords: entry.keywords,
@@ -37,6 +44,7 @@ const versionRowJson = (type: string, v: VersionRow) => ({
 /** An item, its tags and its versions, newest first, yanked ones included. */
 export const itemJson = (page: ItemPage) => ({
   name: nameOf(page.item),
+  workspace: workspaceOf(page.item),
   type: page.item.type,
   description: page.item.description,
   owner: page.ownerName,
@@ -50,6 +58,7 @@ export const versionJson = (page: ItemPage) => {
   const v = page.shown;
   return {
     name: nameOf(page.item),
+    workspace: workspaceOf(page.item),
     type: page.item.type,
     ...versionRowJson(page.item.type, v),
     tags: v.tags,

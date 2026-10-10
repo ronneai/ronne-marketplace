@@ -1,6 +1,7 @@
 import { exchangePassword, revokeCallingToken } from "../domains/identity/actions/access-tokens";
 import { IdentityError, TokenLimitError } from "../domains/identity/exceptions/errors";
 import { type AppAuth, getAppAuth } from "../domains/identity/repositories/auth-instance";
+import { myWorkspacesAs } from "../domains/workspaces/actions/workspaces";
 import { errorResponse, rateLimitedResponse } from "./errors";
 import { readJsonObjectWithin, SMALL_JSON_MAX_BYTES } from "./read-json";
 import { requireToken, type TokenGuardDeps } from "./require-token";
@@ -45,16 +46,48 @@ export const deleteToken = async (request: Request, app?: AppAuth, guardDeps?: T
   return new Response(null, { status: 204, headers: { "cache-control": "no-store" } });
 };
 
-/** GET /api/v1/me: the calling user and token, for `rmk whoami` and `rmk login --token`. */
-export const getMe = async (request: Request, guardDeps?: TokenGuardDeps) => {
+/**
+ * GET /api/v1/me: the calling user and token, for `rmk whoami` and `rmk login --token`, with the
+ * workspaces they're a member of and their role in each (095).
+ */
+export const getMe = async (request: Request, guardDeps?: TokenGuardDeps, app?: AppAuth) => {
   const guard = await requireToken(request, guardDeps);
   if (!guard.ok) return guard.response;
   const { user, token } = guard.auth;
+  const workspaces = await myWorkspacesAs(user, app ?? getAppAuth());
   return json({
     id: user.id,
     email: user.email,
     name: user.name,
     role: user.role,
+    workspaces: workspaces.flatMap((w) => (w.role ? [{ name: w.name, role: w.role }] : [])),
     token: { id: token.id, name: token.name, expiresAt: token.expiresAt?.toISOString() ?? null },
   });
+};
+
+/**
+ * GET /api/v1/workspaces: the workspaces the caller sees (093), `global` first, with their role in
+ * each: null where they aren't a member (they can ask to join, 094), `root` for root everywhere.
+ */
+export const getWorkspaces = async (
+  request: Request,
+  guardDeps?: TokenGuardDeps,
+  app?: AppAuth,
+) => {
+  const guard = await requireToken(request, guardDeps);
+  if (!guard.ok) return guard.response;
+  const { user } = guard.auth;
+  const workspaces = await myWorkspacesAs(user, app ?? getAppAuth());
+  return Response.json(
+    {
+      workspaces: workspaces.map((w) => ({
+        name: w.name,
+        description: w.description,
+        visibility: w.visibility,
+        global: w.isGlobal,
+        role: user.role === "root" ? "root" : w.role,
+      })),
+    },
+    { headers: { "cache-control": "private, no-cache" } },
+  );
 };

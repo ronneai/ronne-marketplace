@@ -24,6 +24,15 @@ changes (owner, 2026-10-05: names stay `@scope/name`).
 
 ## Behaviour
 
+The API: `GET /api/v1/workspaces` answers `{ "workspaces": [{ "name", "description",
+"visibility", "global", "role" }] }`, `global` first, then by name: every public workspace and the
+private ones the caller is in (093). `role` is the caller's role there, null where they aren't a
+member, and `root` on every one for root. `GET /api/v1/me` adds `workspaces: [{ "name", "role" }]`,
+the caller's memberships. Search results, items and versions carry
+`"workspace": { "name": "acme", "visibility": "private" }`. `?workspace=` on `GET /api/v1/items` is
+trimmed and lowercased; a name no workspace has and a private one the caller isn't in both find
+nothing, with the same answer; more than 64 characters is a `400 invalid_request`.
+
 `rmk workspaces`:
 
 ```

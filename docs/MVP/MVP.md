@@ -648,8 +648,9 @@ IDs are ULIDs and timestamps are UTC (§9.4).
 |---|---|
 | `POST /auth/token` | Email + password → PAT (used by `rmk login`) |
 | `DELETE /auth/token` | Revoke the current token |
-| `GET /me` | Current user |
-| `GET /items?q=&type=&page=` | Search |
+| `GET /me` | Current user, with the workspaces they're a member of and their role in each (M13, [095](../features/095-workspaces-cli-api/SPEC.md)) |
+| `GET /workspaces` | The workspaces the caller sees, `global` first, with their role in each (null where they aren't a member, `root` for root) (M13, 095) |
+| `GET /items?q=&type=&workspace=&page=` | Search; `workspace` narrows it to one workspace (M13, 095) |
 | `GET /items/{scope}/{name}` | Item metadata, dist-tags, versions |
 | `GET /items/{scope}/{name}/{version}` | Version manifest + dependencies |
 | `GET /items/{scope}/{name}/{version}/tarball` | Download the artifact (with an `X-Checksum-Sha256` header) |
@@ -674,6 +675,8 @@ actions). The API reads, with two exceptions (owner, 2026-09-30): a token can **
   `{ "error": { "code": "item_not_found", "message": "…", "details": { … } } }`. `code` is a stable
   snake_case string that clients can rely on. The HTTP status carries the category (400, 401, 403,
   404, 409, 413, 422, 429).
+- **Items carry their workspace** (M13, 095): search results, items and versions have
+  `"workspace": { "name": "acme", "visibility": "private" }`. Names stay `@scope/name`.
 - **Pagination** is cursor-based: `?limit=` (default 20, max 100) and `?cursor=`. Responses include
   `nextCursor`, or `null` on the last page.
 - **Versioning:** breaking changes go to `/api/v2`. `rmk` sends its version in `User-Agent`, and the

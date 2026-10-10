@@ -8,7 +8,14 @@ import {
   resolveAs,
 } from "../domains/items/actions/versions";
 import type { StorageAdapter } from "../storage";
-import { parseLimit, parseSearch, parseSort, parseTool, parseType } from "./api-query";
+import {
+  parseLimit,
+  parseSearch,
+  parseSort,
+  parseTool,
+  parseType,
+  parseWorkspace,
+} from "./api-query";
 import { domainErrorResponse, errorResponse } from "./errors";
 import { readJsonObjectWithin, SMALL_JSON_MAX_BYTES } from "./read-json";
 import { itemJson, itemSummaryJson, versionJson } from "./registry-json";
@@ -46,12 +53,14 @@ export const listItems = async (request: Request, deps: RegistryApiDeps = {}) =>
   const tool = parseTool(params.get("tool"));
   const sort = parseSort(params.get("sort"));
   const limit = parseLimit(params.get("limit"));
+  const workspace = parseWorkspace(params.get("workspace"));
   const invalid = (message: string) => errorResponse(400, "invalid_request", message);
   if (!q.ok) return invalid(q.message);
   if (!type.ok) return invalid(type.message);
   if (!tool.ok) return invalid(tool.message);
   if (!sort.ok) return invalid(sort.message);
   if (!limit.ok) return invalid(limit.message);
+  if (!workspace.ok) return invalid(workspace.message);
   try {
     const page = await searchCatalogueAs(
       guard.auth.user,
@@ -60,6 +69,7 @@ export const listItems = async (request: Request, deps: RegistryApiDeps = {}) =>
         type: type.value,
         tool: tool.value,
         scope: params.get("scope")?.replace(/^@/, "") || null,
+        workspace: workspace.value,
         sort: sort.value,
         cursor: params.get("cursor") ?? undefined,
         limit: limit.value,
