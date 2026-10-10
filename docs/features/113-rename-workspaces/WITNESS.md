@@ -176,3 +176,22 @@ Witnessed: 2026-10-10 15:40 EDT, by a fresh agent (adversarial). Commit: 6d81099
 | 14e | No other state outside a retried transaction changes inside it | no | confirmed | every mutation in the 15 retried call sites is local to its callback; storage writes only before the release transaction |
 
 **Overall:** met.
+
+## Task 2 — The Rename dialog
+
+Witnessed: 2026-10-10 15:50 EDT, by a fresh agent (blind). Commit: dbe21a84 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Rename on the workspace's page for root and its admins, not on `global`'s | no | confirmed | `page.tsx:161`; component test; probe: 1 button on a workspace, 0 on `global` |
+| 2 | Moderators and members don't see it | no | confirmed | the page is a 404 without `members.manage`; probe |
+| 3 | Current name, the spec's warning with the item count, the helper to `workspaces#managing` | no | confirmed | 51 tests passed; HELP hrefs resolve |
+| 4 | The field is checked as typed; Save waits for a valid, different name | no | confirmed | probe at 360 and 320 px (rule, hyphen, length, reserved, same name); no repo test types into the field |
+| 5 | "That name is taken" once sent, page stays put | no | confirmed | action test; probe |
+| 6 | Saving goes to `/admin/workspaces/<new>`, input normalized | no | confirmed | action test; probe `E2E-Probe-Renamed` → `/admin/workspaces/e2e-probe-renamed` |
+| 7 | Audit line "Renamed workspace acme to acme-platform" | no | confirmed | `summary.ts:122`; test; probe on `/admin/audit` |
+| 8 | e2e renames as admin, opens the new address, old one 404, desktop and phone | no | confirmed | 4 passed: chromium, phone, phone-webkit, tablet |
+| 9 | The dialog passes the phone sweep (065) | no | confirmed | e2e in-view and no sideways scroll; probe with `e2e/sweep.ts` at 360 and 320 px |
+| 10 | Lint and types | no | confirmed | biome (warnings only in untouched files); tsc |
+
+**Overall:** met.

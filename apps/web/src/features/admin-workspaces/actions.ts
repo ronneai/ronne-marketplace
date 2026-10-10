@@ -6,6 +6,8 @@ import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import {
   createWorkspace,
   deleteWorkspace,
+  renameImpact,
+  renameWorkspace,
   setWorkspaceVisibility,
   updateWorkspace,
   visibilityImpact,
@@ -13,7 +15,7 @@ import {
 import { WorkspacesError } from "@/server/domains/workspaces/exceptions/errors";
 import { requestHeaders } from "@/server/http/request-headers";
 import { workspacePath } from "./list";
-import type { VisibilityImpactResult, WorkspaceActionState } from "./types";
+import type { RenameImpactResult, VisibilityImpactResult, WorkspaceActionState } from "./types";
 
 const text = (form: FormData, key: string) => String(form.get(key) ?? "");
 
@@ -90,6 +92,39 @@ export const setVisibilityFromForm = async (
 export const visibilityImpactFor = async (name: string): Promise<VisibilityImpactResult> => {
   try {
     return await visibilityImpact(await requestHeaders(), name);
+  } catch (error) {
+    if (error instanceof WorkspacesError || error instanceof IdentityError)
+      return { error: error.message };
+    throw error;
+  }
+};
+
+/**
+ * Renames a workspace (113), then goes to its new address: the old one answers as unknown. Every
+ * page that names its items changes with it.
+ */
+export const renameWorkspaceFromForm = async (
+  _previous: WorkspaceActionState,
+  form: FormData,
+): Promise<WorkspaceActionState> => {
+  let to = "";
+  const state = await attempt(async () => {
+    const workspace = await renameWorkspace(await requestHeaders(), {
+      name: text(form, "name"),
+      to: text(form, "to"),
+    });
+    to = workspace.name;
+    revalidatePath("/", "layout");
+    return `Renamed to ${workspace.name}.`;
+  }, ["/admin/workspaces"]);
+  if (state.done) redirect(workspacePath(to));
+  return state;
+};
+
+/** How many items a rename would give the new name (113), for its dialog. */
+export const renameImpactFor = async (name: string): Promise<RenameImpactResult> => {
+  try {
+    return await renameImpact(await requestHeaders(), name);
   } catch (error) {
     if (error instanceof WorkspacesError || error instanceof IdentityError)
       return { error: error.message };

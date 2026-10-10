@@ -10,11 +10,13 @@ import { Notice } from "@/components/ui/Notice";
 import {
   createWorkspaceFromForm,
   deleteWorkspaceFromForm,
+  renameImpactFor,
+  renameWorkspaceFromForm,
   setVisibilityFromForm,
   updateWorkspaceFromForm,
   visibilityImpactFor,
 } from "./actions";
-import type { VisibilityImpactResult, WorkspaceActionState } from "./types";
+import type { RenameImpactResult, VisibilityImpactResult, WorkspaceActionState } from "./types";
 
 const Description = ({ defaultValue }: { defaultValue?: string }) => {
   const [value, setValue] = useState(defaultValue ?? "");
@@ -78,7 +80,7 @@ export const CreateWorkspaceForm = ({ onDone }: { onDone: () => void }) => {
         <p id="workspace-name-hint" className="text-xs text-muted">
           {problem
             ? NAME_PROBLEM_MESSAGES[problem]
-            : "Lowercase letters, digits and hyphens. It can't be changed later, and it isn't part of item names."}
+            : "Lowercase letters, digits and hyphens. Its items' names start with it: @name/scope/item."}
         </p>
       </div>
       <Description />
@@ -275,6 +277,99 @@ export const VisibilityForm = ({
   );
 };
 
+/**
+ * Rename (113), for root and the workspace's admins: the new name, checked as typed, and what
+ * changes. Saving goes to the new address; the old one answers as unknown.
+ */
+export const RenameForm = ({
+  name,
+  onDone,
+  loaded,
+}: {
+  name: string;
+  onDone: () => void;
+  /** How many items it has, when it's already known (its test); else it's read on open. */
+  loaded?: RenameImpactResult;
+}) => {
+  const [state, action, pending] = useActionState<WorkspaceActionState, FormData>(
+    renameWorkspaceFromForm,
+    {},
+  );
+  const [impact, setImpact] = useState<RenameImpactResult | null>(loaded ?? null);
+  const [typed, setTyped] = useState(name);
+  useEffect(() => {
+    if (loaded) return;
+    renameImpactFor(name)
+      .then(setImpact)
+      .catch(() => setImpact({ error: "Couldn't count its items. Try again in a moment." }));
+  }, [name, loaded]);
+  const to = normalizeWorkspaceName(typed);
+  const problem = typed ? nameProblem(to, "workspace") : null;
+  const same = to === name;
+  const shown = problem || same || !to ? "…" : to;
+  const items = impact && "items" in impact ? impact.items : null;
+  return (
+    <form action={action} className="grid gap-4">
+      <input type="hidden" name="name" value={name} />
+      <div className="grid gap-1.5">
+        <Label htmlFor={`rename-${name}`}>New name</Label>
+        <input
+          id={`rename-${name}`}
+          name="to"
+          required
+          maxLength={65}
+          autoComplete="off"
+          autoCapitalize="none"
+          spellCheck={false}
+          value={typed}
+          onChange={(event) => setTyped(event.target.value)}
+          aria-describedby={`rename-${name}-hint`}
+          aria-invalid={problem ? true : undefined}
+          className={inputClasses}
+        />
+        <p id={`rename-${name}-hint`} className="text-xs text-muted">
+          {problem
+            ? NAME_PROBLEM_MESSAGES[problem]
+            : "Lowercase letters, digits and hyphens, and not another workspace's name."}
+        </p>
+      </div>
+      {impact && "error" in impact ? (
+        <FieldError id={`rename-${name}-load`}>{impact.error}</FieldError>
+      ) : (
+        <Notice kind="warn" title="What changes">
+          <p>
+            {items === null ? "Its items" : `Its ${items} ${items === 1 ? "item" : "items"}`} will
+            be renamed from <span className="font-mono">@{name}/…</span> to{" "}
+            <span className="font-mono">@{shown}/…</span>. Their old names keep working for
+            installs, lockfiles and dependencies, and <span className="font-mono">rmk</span> moves
+            projects to the new names as they update; in Claude Code they show as new plugins.
+          </p>
+          <p className="mt-2">
+            Links to this workspace (its page and its join link) will stop working, and so will the
+            old name in <span className="font-mono">rmk search --workspace</span>,{" "}
+            <span className="font-mono">rmk feed build --workspace</span> and any CI workflow that
+            names it.
+          </p>
+        </Notice>
+      )}
+      <Help id="rename-workspace" />
+      <FieldError id={`rename-${name}-error`}>{state.error}</FieldError>
+      <DialogActions>
+        <Button variant="ghost" onClick={onDone}>
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          loading={pending}
+          disabledReason={problem ? "Fix the name first." : same ? "Type the new name." : null}
+        >
+          Rename
+        </Button>
+      </DialogActions>
+    </form>
+  );
+};
+
 /** A dialog whose form remounts each time it opens, so no earlier result lingers. */
 const useDialog = () => {
   const [open, setOpen] = useState(false);
@@ -313,6 +408,21 @@ export const EditWorkspaceButton = ({
       </Button>
       <Dialog open={dialog.open} onClose={dialog.close} title="Edit workspace">
         <EditForm key={dialog.round} name={name} description={description} onDone={dialog.close} />
+      </Dialog>
+    </>
+  );
+};
+
+/** Rename (113) on a workspace's page, for root and its admins; not for `global`. */
+export const RenameWorkspaceButton = ({ name }: { name: string }) => {
+  const dialog = useDialog();
+  return (
+    <>
+      <Button variant="secondary" onClick={dialog.show}>
+        Rename
+      </Button>
+      <Dialog open={dialog.open} onClose={dialog.close} title="Rename workspace">
+        {dialog.open ? <RenameForm key={dialog.round} name={name} onDone={dialog.close} /> : null}
       </Dialog>
     </>
   );

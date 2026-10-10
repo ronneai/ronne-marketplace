@@ -19,7 +19,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   once, the aliases, the alias refusal, the joined requests and the audit event, on the four
   databases.
 
-- [ ] **2. The Rename dialog.** On the workspace's page for root and its admins: the field, the
+- [x] **2. The Rename dialog.** On the workspace's page for root and its admins: the field, the
   warning, Save, then the new address. The audit log's summary line for `workspace.renamed`.
   *Done when:* component tests cover the dialog and who sees it, and an end-to-end test renames a
   workspace as its admin and opens the new address (and the old one answers not found), on desktop
@@ -62,3 +62,7 @@ goes into `SPEC.md` instead.
   empty it at each attempt now (a test forces one retry). After three deadlocks in a row the
   database's error still reaches the caller. The creation-race test is probabilistic: it caught a
   missing scope lock in 1 of 4 server runs.
+- **Task 2:** the dialog reads the item count when it opens (`renameImpact`), as Make private
+  reads its impact. The e2e renames a seeded workspace per project (`E2E_RENAME`), since a rename
+  changes what other tests would find. No repo test types an invalid name into the field (the
+  witness checked it by hand); the New workspace hint no longer says names can't change.

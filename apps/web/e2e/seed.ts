@@ -25,6 +25,7 @@ import {
   E2E_NAMES,
   E2E_PASSWORD,
   E2E_PROPOSAL_ITEM,
+  E2E_RENAME,
   E2E_RMK_ITEMS,
   E2E_ROOTS,
   E2E_SCOPE,
@@ -502,6 +503,34 @@ await db
   .updateTable("item_versions")
   .set({ published_at: longAgo })
   .where("item_id", "in", twins)
+  .execute();
+// A workspace per project for its admin to rename (113), each with a released skill.
+for (const [project, admin] of Object.entries(E2E_RENAME.projects)) {
+  const workspace = E2E_RENAME.workspace(project);
+  await releaseSkillIn({ workspace, scope: E2E_RENAME.scope, item: E2E_RENAME.item }, "public", [
+    admin,
+  ]);
+  await db
+    .updateTable("workspace_members")
+    .set({ role: "admin" })
+    .where("user_id", "=", ids[admin] ?? "")
+    .where("workspace_id", "in", (eb) =>
+      eb.selectFrom("workspaces").select("id").where("name", "=", workspace),
+    )
+    .execute();
+}
+const renameItems = (
+  await db.selectFrom("items").select("id").where("name", "=", E2E_RENAME.item).execute()
+).map((row) => row.id);
+await db
+  .updateTable("items")
+  .set({ last_published_at: longAgo })
+  .where("id", "in", renameItems)
+  .execute();
+await db
+  .updateTable("item_versions")
+  .set({ published_at: longAgo })
+  .where("item_id", "in", renameItems)
   .execute();
 // The workspace twin's old name, for "Use the new name" (118).
 const workspaceTwin = await db

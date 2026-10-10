@@ -256,6 +256,18 @@ export const renameWorkspace = async (
   }
 };
 
+/** What a rename would change (113), for its dialog: how many items take the new name. */
+export const renameImpact = async (
+  deps: WorkspaceDeps,
+  actor: WorkspaceActor,
+  name: string,
+): Promise<{ items: number }> => {
+  if (!canInSome(actor.user, "workspace.rename")) throw new ForbiddenError("workspace.rename");
+  const workspace = await changeable(deps.repo, name);
+  requirePermission(actor.user, "workspace.rename", workspace.id);
+  return { items: (await deps.repo.itemsIn(workspace.id)).length };
+};
+
 /**
  * What turning a workspace private would meet (093): the released items outside it that depend on
  * its items, which refuse it, and the open submissions outside it that do, which would fail at
