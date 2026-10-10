@@ -11,13 +11,39 @@ here=$(cd "$(dirname "$0")" && pwd)
 work=$(mktemp -d)
 trap 'rm -rf "$work"; docker container rm --force rmk-package-test >/dev/null 2>&1 || true' EXIT
 
+# Docker Hub fails now and then, on the token or on the image's manifest: a rate limit (429) or a
+# server error (5xx), or the network to it. Only those are tried again, at most ATTEMPTS times in
+# all, waiting WAIT seconds and then twice as long each time. Anything else, such as a package that
+# won't install, fails at once with the build's output.
+attempts=${RMK_BUILD_ATTEMPTS:-4}
+wait_s=${RMK_BUILD_WAIT:-10}
+transient='429 Too Many Requests|toomanyrequests|50[0234] (Internal Server Error|Bad Gateway|Service Unavailable|Gateway Timeout)|i/o timeout|TLS handshake timeout|connection reset by peer'
+
 image() { # name base install-command
   cat >"$work/Dockerfile" <<EOF
 FROM $2
 RUN $3
 CMD ["/sbin/init"]
 EOF
-  docker build -q -t "$1" "$work" >/dev/null
+  local attempt=1 delay=$wait_s log="$work/build.log" reason found
+  until docker build -t "$1" "$work" >"$log" 2>&1; do
+    # The first registry or network error in the output; none means it isn't one.
+    reason=""
+    if found=$(grep -Eo -m 1 "$transient" "$log"); then reason=${found%%$'\n'*}; fi
+    if [ -z "$reason" ] || [ "$attempt" -ge "$attempts" ]; then
+      cat "$log" >&2
+      if [ -z "$reason" ]; then
+        echo "✗ building $1 from $2 failed (not a registry or network error, so not tried again)" >&2
+      else
+        echo "✗ building $1 from $2 failed $attempt times: $reason" >&2
+      fi
+      return 1
+    fi
+    echo "… building $1 from $2: $reason; attempt $((attempt + 1)) of $attempts in ${delay}s" >&2
+    sleep "$delay"
+    attempt=$((attempt + 1))
+    delay=$((delay * 2))
+  done
 }
 image rmk-pkg-ubuntu ubuntu:24.04 "apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq systemd systemd-sysv dbus curl ca-certificates >/dev/null"
 image rmk-pkg-debian debian:13 "apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq systemd systemd-sysv dbus curl ca-certificates >/dev/null"

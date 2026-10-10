@@ -174,6 +174,9 @@ jobs:
   linux-packages:
     needs: bundles
     uses: ./.github/workflows/packages.yml
+    # Only the read-only Docker Hub token, by name: not `inherit`, which would hand over every secret.
+    secrets:
+      DOCKERHUB_READ_TOKEN: ${{ secrets.DOCKERHUB_READ_TOKEN }}
 
   # The service on Windows (086): WinSW and the virtual account, from the Windows bundle unzipped
   # into Program Files. GitHub's Windows runners run elevated, as `service install` needs.
