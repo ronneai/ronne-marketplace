@@ -223,3 +223,34 @@ Witnessed: 2026-10-10 01:28 EDT, by a fresh agent (adversarial). Commit: f66a1b0
 | 17 | Nothing else pages or looks up by scope name alone | no | confirmed | P13 on four databases; `pnpm test:db:{postgres,mysql,mariadb}` on scopes, old-names, both guards and the probe → 38/38 each; SQLite probe 3/3 |
 
 **Overall:** met.
+
+## Task 4 — Release and storage
+
+Witnessed: 2026-10-10 01:38 EDT, by a fresh agent (blind). Commit: 5e2ad136 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A team item's packed `ronne.yaml` carries its full name | no | confirmed | old-names test (15 passed) unpacks and expects `name: "@acme/team/kit"`; `manifestNamed` as a no-op → the test fails |
+| 2 | A `global` item's packed `ronne.yaml` carries `@scope/name` | no | partly | probe: `@team/lint`; `@global/team/gx # c` → `@team/gx # c`; no repository test checks the packed name |
+| 3 | Dependencies are written under the dependency's current name | no | confirmed | test expects `"@acme/team/base": "^1.0.0"` and no `"@team/base"`; the no-op mutation fails it |
+| 4 | New non-global versions are stored at `@<workspace>/<scope>/<name>/<version>.tgz` | no | confirmed | test expects `@acme/team/kit/1.0.0.tgz`; dropping the workspace fails it |
+| 5 | `global`'s versions keep `<scope>/<name>/…` | no | confirmed | test expects `team/lint/1.0.0.tgz`; always prefixing fails it |
+| 6 | Each version keeps its own path; nothing stored moves | no | confirmed | probe after a move: 1.0.0 at `team/base/1.0.0.tgz`, 1.1.0 at `@acme/team/base/1.1.0.tgz` |
+| 7 | The resolver reads an old tarball's dependency names through aliases | no | confirmed | probe: `@team/kit` → `@acme/team/base` 1.0.0; dependencies read by item id |
+| 8 | Release tests cover a `global` and a team item | no | partly | the global test checks only the path |
+| 9 | A test shows an old tarball with an old name still installs | no | not met | no such test; the probe shows it works |
+| 10 | Four databases; lint and typecheck clean | no | confirmed | 15/15 on each; 427 passed in submissions; biome and typecheck clean |
+
+**Overall:** not met: claims 2, 8 and 9 need tests.
+
+### Re-check 1
+
+Witnessed: 2026-10-10 01:52 EDT, by a fresh agent (blind). Commit: 5e2ad136 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 2 | A `global` item's packed `ronne.yaml` carries `@scope/name` | no | confirmed | old-names.db.test.ts:306-315 expects `name: "@team/lint"`; 317-346 `@global/team/gx # mine` → `@team/gx # mine`; `manifestNamed` as a no-op → 3 fail |
+| 8 | Release tests cover a `global` and a team item | no | confirmed | global: path and packed name; team: path, name and dependency; 18 passed on SQLite and on `pnpm test:db:postgres` / `:mysql` / `:mariadb` |
+| 9 | An old tarball with an old name still installs | no | confirmed | lines 348-374: resolve `@team/kit` → `@acme/team/base` 1.0.0; download by both names; the bytes still say `@team/base`; four databases |
+
+**Overall:** met.

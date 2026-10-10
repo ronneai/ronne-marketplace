@@ -2,6 +2,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { formatItemName } from "@ronneai/core";
+import { unpackItem } from "@ronneai/core/pack";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { toDbDate } from "../../../db/dates";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
@@ -19,11 +20,12 @@ import {
 } from "../../identity/testing/test-auth";
 import { browseCatalogue, searchCatalogueAs } from "../../items/actions/catalogue";
 import { createScope, listScopesAs } from "../../items/actions/scopes";
-import { itemPage, resolveAs } from "../../items/actions/versions";
+import { downloadArtifactAs, itemPage, resolveAs } from "../../items/actions/versions";
 import { ItemNotFoundError } from "../../items/exceptions/errors";
 import { kyselyWorkspaceRepository } from "../../workspaces/repositories/kysely-workspace-repository";
 import { SubmissionInvalidError } from "../exceptions/errors";
 import { createDraft, saveDraftFiles } from "./drafts";
+import { proposeChange } from "./proposals";
 import { publishSubmission } from "./publish";
 import { decide } from "./reviews";
 import { checkSubmission, submitDraft } from "./submissions";
@@ -153,6 +155,13 @@ const itemId = async (workspace: string, name: string) =>
       .executeTakeFirstOrThrow()
   ).id;
 
+/** A stored artifact's `ronne.yaml`, as released. */
+const packedYaml = async (path: string) =>
+  new TextDecoder().decode(
+    unpackItem((await storage.get(path)) ?? new Uint8Array()).find((f) => f.path === "ronne.yaml")
+      ?.bytes,
+  );
+
 /** An old name for an item, as a move or a rename leaves it. */
 const alias = async (name: string, item: string) =>
   t.db
@@ -277,6 +286,113 @@ describe("the workspace in item names (118)", () => {
       .select("depends_on_item_id")
       .execute();
     expect(recorded.map((r) => r.depends_on_item_id)).toEqual([base]);
+    // Released under the names they have now, and stored under the workspace.
+    const version = await t.db
+      .selectFrom("item_versions")
+      .select(["artifact_path"])
+      .where("item_id", "=", await itemId("acme", "kit"))
+      .executeTakeFirstOrThrow();
+    expect(version.artifact_path).toBe("@acme/team/kit/1.0.0.tgz");
+    const bytes = await storage.get(version.artifact_path);
+    const packed = unpackItem(bytes ?? new Uint8Array());
+    const yaml = new TextDecoder().decode(
+      packed.find((f) => f.path === "ronne.yaml")?.bytes ?? new Uint8Array(),
+    );
+    expect(yaml).toContain('name: "@acme/team/kit"');
+    expect(yaml).toContain('"@acme/team/base": "^1.0.0"');
+    expect(yaml).not.toContain('"@team/base"');
+  });
+
+  it("stores global's artifacts where they always were, named short", async () => {
+    await published("global", "lint");
+    const version = await t.db
+      .selectFrom("item_versions")
+      .select("artifact_path")
+      .where("item_id", "=", await itemId("global", "lint"))
+      .executeTakeFirstOrThrow();
+    expect(version.artifact_path).toBe("team/lint/1.0.0.tgz");
+    expect(await packedYaml(version.artifact_path)).toContain('name: "@team/lint"');
+  });
+
+  it("releases a name written with @global/ under its short form", async () => {
+    const id = await draftOf("global", "gx", "mcp-server");
+    const draft = await t.db
+      .selectFrom("submission_files")
+      .select(["content", "updated_at"])
+      .where("submission_id", "=", id)
+      .where("path", "=", "ronne.yaml")
+      .executeTakeFirstOrThrow();
+    await saveDraftFiles(
+      asAuthor,
+      id,
+      {
+        writes: [
+          {
+            path: "ronne.yaml",
+            encoding: "utf8",
+            content: draft.content.replace('name: "@team/gx"', 'name: "@global/team/gx" # mine'),
+            executable: false,
+            loadedAt: new Date(draft.updated_at),
+          },
+        ],
+        deletes: [],
+      },
+      app,
+    );
+    await submitDraft(asAuthor, id, app, storage);
+    await approve(id, asRoot);
+    await release(id);
+    expect(await packedYaml("team/gx/1.0.0.tgz")).toContain('name: "@team/gx" # mine');
+  });
+
+  it("still installs an old tarball under its new name, and its dependency by its old one", async () => {
+    // Released in global, `kit` naming `@team/base`; then base moves to acme, as 115 will move it.
+    await published("global", "base");
+    await published("global", "kit", "bundle", { "@team/base": "^1.0.0" });
+    const base = await itemId("global", "base");
+    const acmeTeam = await t.db
+      .selectFrom("scopes")
+      .select("id")
+      .where("workspace_id", "=", acme)
+      .executeTakeFirstOrThrow();
+    await t.db.updateTable("items").set({ scope_id: acmeTeam.id }).where("id", "=", base).execute();
+    await alias("@team/base", base);
+    const resolution = await resolveAs(author, { dependencies: { "@team/kit": "^1.0.0" } }, app);
+    expect(Object.keys(resolution.items).sort()).toEqual(["@acme/team/base", "@team/kit"]);
+    expect(resolution.items["@team/kit"]?.dependencies).toEqual({ "@acme/team/base": "1.0.0" });
+    for (const ref of [
+      { workspace: "acme", scope: "team", name: "base" },
+      { scope: "team", name: "base" },
+    ]) {
+      const artifact = await downloadArtifactAs(author, ref, "1.0.0", app, storage);
+      const yaml = new TextDecoder().decode(
+        unpackItem(artifact.bytes).find((f) => f.path === "ronne.yaml")?.bytes,
+      );
+      // The tarball never changes: it keeps the name it was released with.
+      expect(yaml).toContain('name: "@team/base"');
+    }
+  });
+
+  it("starts a change to a moved item under its name now", async () => {
+    await published("global", "base");
+    const base = await itemId("global", "base");
+    const acmeTeam = await t.db
+      .selectFrom("scopes")
+      .select("id")
+      .where("workspace_id", "=", acme)
+      .executeTakeFirstOrThrow();
+    await t.db.updateTable("items").set({ scope_id: acmeTeam.id }).where("id", "=", base).execute();
+    await alias("@team/base", base);
+    for (const item of ["@team/base", "@acme/team/base"]) {
+      const draft = await proposeChange(asAuthor, { item, version: "1.0.0" }, app, storage);
+      const yaml = draft.files.find((f) => f.path === "ronne.yaml")?.content ?? "";
+      expect(yaml).toContain('name: "@acme/team/base"');
+      expect(
+        (await checkSubmission(asAuthor, draft.id, app, storage)).filter(
+          (i) => i.code === "name_mismatch",
+        ),
+      ).toEqual([]);
+    }
   });
   it("refuses an old name to someone who doesn't see its item, as taken, saying nothing of it", async () => {
     await published("acme", "deploy");

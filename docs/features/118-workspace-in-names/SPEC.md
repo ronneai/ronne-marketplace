@@ -96,8 +96,8 @@ item: `POST /api/v1/resolve` reads every name as the item's name now before reso
 it twice asks for both ranges (`^1.0.0` and `^1.2.0` must both hold); a tag and anything else for
 one item, or two ranges with more than 64 `||` alternatives between them, is a `resolve_conflict`, and two different lockfile pins for it keep neither.
 
-**Storage.** New versions are stored at `storage/<workspace>/<scope>/<name>/<version>.tgz`
-(`global`'s keep `storage/<scope>/<name>/…`); each version already records its path (112), so
+**Storage.** New versions are stored at `storage/@<workspace>/<scope>/<name>/<version>.tgz`
+(`global`'s keep `storage/<scope>/<name>/…`; the `@` keeps a workspace apart from a scope); each version already records its path (112), so
 nothing stored moves.
 
 **`rmk`.** Accepts both forms wherever it takes a name. The lockfile (`rmk.lock`) and the state
@@ -141,6 +141,9 @@ outside `global` gets its `@scope/name` as an alias. Nothing else is renamed and
 - **The same item twice in one install** (by an old name in one dependency, the new name in
   another): one node, one version, resolved by item id; the lockfile has the new name.
 - **A yanked or deprecated version** keeps its packed old name; nothing changes about yanking.
+- **A change proposed to a moved item** starts with `ronne.yaml` under its name now. Unedited, it
+  differs from the base only in that name, so it may be released as a version whose only change is
+  the name inside the tarball (Claude, 2026-10-10).
 - **Usage and download counts** are kept per item id, so a rename doesn't split them; check the
   usage tables in task 1 and move any name key to the item id.
 - **Audit events** keep the names they were written with; the audit log shows them as written.

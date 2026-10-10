@@ -15,6 +15,7 @@ import {
   SubmissionsError,
 } from "../exceptions/errors";
 import { diffRevisions, type FileChange } from "../models/diff";
+import { manifestNamed } from "../models/manifest-names";
 import { staleAgainst } from "../models/proposal";
 import { mergeFiles } from "../models/rebase";
 import { isEditable, transition } from "../models/status";
@@ -99,7 +100,13 @@ export const proposeChange = async (
   requireMember(actor, found.workspace);
   const base = (await registry.publishedVersions(item.id)).find((v) => v.version === input.version);
   if (!base) throw new ProposalBaseNotFoundError(itemName, input.version);
-  const files = await versionFiles(deps, itemName, base);
+  // The base's `ronne.yaml` may still say an old name, if the item moved since (118): the draft
+  // starts under its name now, which is the one Submit checks.
+  const files = (await versionFiles(deps, itemName, base)).map((file) =>
+    file.path === MANIFEST_PATH && file.encoding === "utf8"
+      ? { ...file, content: manifestNamed(file.content, itemName, new Map()) }
+      : file,
+  );
 
   const at = (deps.now ?? (() => new Date()))();
   const authorId = actor.user?.id ?? "";

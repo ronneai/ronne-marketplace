@@ -4,6 +4,7 @@ import {
   DEFAULT_LIMITS,
   defaultTag,
   formatItemName,
+  GLOBAL_WORKSPACE,
   hasErrors,
   highestMatching,
   type Manifest,
@@ -34,6 +35,7 @@ import {
   SubmissionNotFoundError,
   VersionExistsError,
 } from "../exceptions/errors";
+import { manifestNamed } from "../models/manifest-names";
 import { planReleases } from "../models/release-plan";
 import type { RevisionFile } from "../models/review";
 import { transition } from "../models/status";
@@ -179,11 +181,16 @@ const withReleasing = (
 };
 
 /**
- * Releases a group in one go (112): each member's approved revision checked with the group's
- * versions counted as released, packed and stored, then every version recorded in one
- * transaction. If one can't go, none does: an artifact stored for a release that then fails isn't
- * referenced, and is harmless. With one member, it's 015's release as it always was.
+ * Where a version's artifact goes, without `.tgz`: `scope/name/version` in `global`, as before, and
+ * `@workspace/scope/name/version` elsewhere (118), so two workspaces' same-named items never meet.
+ * Each version records its own path, so nothing stored before moves.
  */
+export const artifactBase = (
+  submission: Pick<Submission, "workspace" | "scope" | "name">,
+  version: string,
+) =>
+  `${submission.workspace.name === GLOBAL_WORKSPACE ? "" : `@${submission.workspace.name}/`}${submission.scope.name}/${submission.name}/${version}`;
+
 /**
  * The item a submission releases into: the one with its name now, or none yet. An old name (118)
  * belongs to the item that had it, so a submission named like one is refused, never released into
@@ -202,6 +209,12 @@ export const ownItem = async (
   return found;
 };
 
+/**
+ * Releases a group in one go (112): each member's approved revision checked with the group's
+ * versions counted as released, packed and stored, then every version recorded in one
+ * transaction. If one can't go, none does: an artifact stored for a release that then fails isn't
+ * referenced, and is harmless. With one member, it's 015's release as it always was.
+ */
 export const releaseTogether = async (
   deps: PublishDeps,
   actor: SubmissionActor,
@@ -299,9 +312,26 @@ export const releaseTogether = async (
     artifactPath: string;
   })[] = [];
   for (const member of members) {
+    // The full names as they are now (118): the item's own, and each dependency's, whatever name
+    // the author wrote for it (an old one, or `@global/…`).
+    const names = new Map<string, string>();
+    for (const dependency of Object.keys(
+      (member.manifest?.dependencies ?? {}) as Record<string, string>,
+    )) {
+      const written = canonicalItemName(dependency);
+      const ref = parseItemName(dependency);
+      const found =
+        written && releasing.has(written) ? null : ref ? await base.findItem(ref) : null;
+      names.set(dependency, found?.fullName ?? written ?? dependency);
+    }
+    const files = member.files.map((file) =>
+      file.path === MANIFEST_PATH && file.encoding === "utf8"
+        ? { ...file, content: manifestNamed(file.content, itemNameOf(member.submission), names) }
+        : file,
+    );
     let pack: Awaited<ReturnType<typeof packItem>>;
     try {
-      pack = await packItem(member.files.map(toPackageFile), {
+      pack = await packItem(files.map(toPackageFile), {
         version: member.version,
         limits: deps.limits ?? DEFAULT_LIMITS,
       });
@@ -311,14 +341,19 @@ export const releaseTogether = async (
     }
     // Artifacts never change. Bytes a failed release left at the version's path, which no version
     // points to, would block it for good: the new ones go next to them, named by their checksum.
-    const base = `${member.submission.scope.name}/${member.submission.name}/${member.version}`;
-    const stored = await deps.storage.get(`${base}.tgz`);
+    const at = artifactBase(member.submission, member.version);
+    const stored = await deps.storage.get(`${at}.tgz`);
     const artifactPath =
       stored && createHash("sha256").update(stored).digest("hex") !== pack.sha256
-        ? `${base}-${pack.sha256.slice(0, 12)}.tgz`
-        : `${base}.tgz`;
+        ? `${at}-${pack.sha256.slice(0, 12)}.tgz`
+        : `${at}.tgz`;
     await deps.storage.put(artifactPath, pack.tgz);
-    packed.push({ ...member, manifest: member.manifest as Manifest, pack, artifactPath });
+    // What's stored is what was packed: the manifest with its names now, and those files.
+    const renamed = files.find((file) => file.path === MANIFEST_PATH);
+    const manifest =
+      (renamed?.encoding === "utf8" ? parseManifest(renamed.content).manifest : null) ??
+      (member.manifest as Manifest);
+    packed.push({ ...member, files, manifest, pack, artifactPath });
   }
 
   return deps.store.transaction(async ({ submissions, items }) => {

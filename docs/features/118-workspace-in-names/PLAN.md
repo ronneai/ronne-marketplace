@@ -32,7 +32,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* db tests cover alias lookup, visibility (a non-member gets not found), one item
   reached by two names in one resolve, and every refusal; the 093 guard test still passes.
 
-- [ ] **4. Release and storage.** The packed `ronne.yaml` carries the full name and current
+- [x] **4. Release and storage.** The packed `ronne.yaml` carries the full name and current
   dependency names; new versions stored under the workspace for non-`global` items.
   *Done when:* release tests cover a `global` and a team item, and an old tarball with an old name
   still installs.
@@ -85,3 +85,8 @@ goes into `SPEC.md` instead.
   at `/feeds/<tool>/workspaces/<workspace>/plugins/…` (done here, ahead of task 6, because the
   feeds broke without it). e2e: `submit-problems.mobile` on phone-webkit failed once and passed
   alone.
+- **Task 4:** a change proposed to a moved item starts with its name now (`manifestNamed`, in
+  `models/manifest-names.ts`, used at release too). For task 5: `rmk install` keys what it knows
+  by the resolved (new) name, while `withDependencies` (097, `skill-frontmatter.ts`) looks a
+  dependency up by the name an old tarball wrote, so it would drop it; map old names through the
+  resolution's `renamed` and the item's aliases.
