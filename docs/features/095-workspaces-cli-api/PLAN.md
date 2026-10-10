@@ -21,7 +21,7 @@ the same change that completes it.
 - [x] **4. Compatibility.** The last released `rmk` against the new server.
   *Done when:* `pnpm release:smoke` passes, plus a manual run of the old `rmk search` and `install`.
 
-- [ ] **5. Documentation.** The topics in the spec.
+- [x] **5. Documentation.** The topics in the spec.
   *Done when:* the docs render tests pass in ronne-web.
 
 ## Notes

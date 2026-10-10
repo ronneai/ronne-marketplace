@@ -257,7 +257,7 @@ plugin feeds don't change. Build order: 090 → 091 → 092 → 093 → 094 → 
 | [092](./092-workspace-members/SPEC.md) | Workspace members and the admin role: admin per workspace (a moderator's permissions plus its members, scopes and description), new users in `global` as users, a user's Workspaces dialog, a workspace's Members tab (for root and its admins); nobody leaves `global`; audited | 090, 091, 008, 061 | done |
 | [093](./093-private-workspaces/SPEC.md) | Private workspaces: seen only by members and root everywhere (not found to others), dependable only inside their workspace, turning private refused while outside items depend on it, plugin feeds per visibility key, `rmk feed build --workspace` | 090, 091, 092, 089, 018, 019, 020, 027, 077, 079 | done |
 | [094](./094-workspace-access-requests/SPEC.md) | Asking to join: the Workspaces page, a join link for private ones, requests answered by root or the workspace's moderators and admins, a Requests page and a nav count, audited | 090, 091, 092, 093, 007 | done |
-| [095](./095-workspaces-cli-api/SPEC.md) | Workspaces in `rmk`, MCP and the API: `GET /api/v1/workspaces`, `workspace` on items and `me`, `rmk workspaces`, `search --workspace`, export grouped by workspace, MCP `list_workspaces` | 090, 091, 093, 094, 019, 022, 027, 038 | in progress |
+| [095](./095-workspaces-cli-api/SPEC.md) | Workspaces in `rmk`, MCP and the API: `GET /api/v1/workspaces`, `workspace` on items and `me`, `rmk workspaces`, `search --workspace`, export grouped by workspace, MCP `list_workspaces` | 090, 091, 093, 094, 019, 022, 027, 038 | done |
 
 ### M14 — Run it safely
 

@@ -117,3 +117,31 @@ Witnessed: 2026-10-09 20:53 EDT, by a fresh agent (blind). Commit: bacd856 (plus
 | 1 | `pnpm release:smoke` passes, and the last released `rmk`, installed from npm, searches and installs against the new server | no | confirmed | `pnpm release:smoke` → exit 0, every check ✓ (packs this branch, as the criterion says); `oldrmk/package-lock.json` resolves `registry.npmjs.org/@ronneai/rmk/-/rmk-0.3.2.tgz`, `rmk --version` → 0.3.2; fresh run as remember@e2e.test: `search kit-rule` → `@e2e-seeded/kit-rule@1.0.0`, `install @e2e-seeded/kit-rule --target claude-code` → wrote `.claude/rules/kit-rule.md`, exit 0 |
 
 **Overall:** met: `release:smoke` passes, and the released `rmk` 0.3.2 from npm searches and installs against this branch's server.
+
+## Task 5 — Documentation
+
+Witnessed: 2026-10-09 20:56 EDT, by a fresh agent (blind). Commit: c464872 (marketplace), with ronne-web's uncommitted changes on branch `marketplace-095-workspaces-cli`. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The docs render tests and the other ronne-web checks pass | no | confirmed | In `www/`: `pnpm lint` clean; `pnpm typecheck` exit 0; `pnpm test` → 29 files, 138 passed (`docs.test.ts` covers every locale); `pnpm build` exit 0, docs pages prerendered |
+| 2 | `rmk#installing` covers `rmk workspaces`, `--workspace` and `rmk info`; the example is what the CLI prints | no | confirmed | en/rmk.tsx `installing`; probe with the built `workspaceLines` printed the example's rows exactly; `registry-commands.ts:91-92`, `:120-122` |
+| 3 | The older-registry sentence is true | no | confirmed | Probe: `fetchWorkspaces` on a 404 → "This registry doesn't have workspaces (it's older than 0.4.0).", `no_workspaces` |
+| 4 | Workspaces don't change `rmk.config.json` or `rmk.lock` | no | confirmed | `git diff --stat main...c464872 -- packages/cli/src/config.ts packages/core/src docs/spec/cli-files.md` → empty |
+| 5 | `rmk#mcp` names `list_workspaces`; the MCP tools table is right | no | confirmed | `server.ts:64-101`, `read-tools.ts:124-127`; `vitest run src/workspaces.test.ts` (mcp) → 7 passed |
+| 6 | `export#scope` describes the scope list and the `not_a_member` join address | no | confirmed | Probe `byWorkspace` + `scopeLabel` matches the example; server filters scopes (`items/services/scopes.ts:130`); `api.ts:39-40`, `submit.ts`. Remark: for a scope outside your workspaces, `--to` may meet the scope check before any upload, not checked live |
+| 7 | No topic or section id added or renamed | no | confirmed | `apps/web/src/components/help/` and ronne-web `topics.ts` unchanged |
+| 8 | pt and fr say the same as en | no | confirmed | Diffs read side by side: same paragraphs, examples, rows |
+| 9 | `docs/product-facts.md` is up to date | no | confirmed | A 095 row under "in the next release"; the "Specified, not built" 094–095 row removed |
+
+**Overall:** met: the listed topics describe what the code at c464872 does, in all three languages; ronne-web's checks pass; no topic ids changed. Row 6's remark: `rmk export --to` checks the scope against the registry's list first (`export.ts`, `scope_not_found`), so the paragraph was corrected and re-checked below.
+
+### Re-check
+
+Witnessed: 2026-10-09 20:58 EDT, by a fresh agent (blind). Commit: c464872 (marketplace), with ronne-web's uncommitted changes on branch `marketplace-095-workspaces-cli`. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | `export#scope`: only your workspaces' scopes, grouped, `global` first; a scope outside them isn't listed and `--to` with one says the registry has no such scope; a `not_a_member` upload refusal gets the join address; `rmk submit` too | no | confirmed | Server filter `items/services/scopes.ts:130-137`; `--to` check `export.ts:977-987` (`scope_not_found`); upload `drafts.ts:569` `requireMember` → 403 `not_a_member` with `details.workspace` (`http/errors.ts:72`), `api.ts:39-40,126-127` adds "Ask here" and `joinUrl`; `submit.ts:170,219-220,247-248,281`; pt and fr say the same; ronne-web `pnpm lint`, `typecheck`, `test` (138 passed), `build` → exit 0 |
+
+**Overall:** met: the rewritten paragraph matches the code at c464872 in all three languages, and ronne-web's checks pass. Committed in ronne-web on `marketplace-095-workspaces-cli`.

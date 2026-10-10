@@ -77,15 +77,15 @@ first release with workspaces.
 
 ## Acceptance criteria
 
-- [ ] `GET /api/v1/workspaces`, `workspace` on items and `me`, and `?workspace=` work and respect
+- [x] `GET /api/v1/workspaces`, `workspace` on items and `me`, and `?workspace=` work and respect
   093's visibility.
-- [ ] `rmk workspaces`, `rmk search --workspace`, `rmk info` and `rmk export` behave as above,
+- [x] `rmk workspaces`, `rmk search --workspace`, `rmk info` and `rmk export` behave as above,
   with CLI tests.
-- [ ] The MCP tools take and return the workspace.
-- [ ] `pnpm release:smoke` passes, and the last released `rmk`, installed from npm, searches and
+- [x] The MCP tools take and return the workspace.
+- [x] `pnpm release:smoke` passes, and the last released `rmk`, installed from npm, searches and
   installs against the new server (`release:smoke` packs this branch's packages, so the released
   `rmk` is run by hand).
-- [ ] The Documentation listed above says what the feature does now.
+- [x] The Documentation listed above says what the feature does now.
 
 ## Open questions
 
