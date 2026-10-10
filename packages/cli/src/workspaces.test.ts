@@ -126,7 +126,8 @@ describe("rmk export and workspaces", () => {
     const registry = exportRoutes({
       scopes,
       fail: {
-        "@acme-infra/review": {
+        // Its full name names its workspace (118).
+        "@acme/acme-infra/review": {
           status: 403,
           json: {
             error: {
@@ -143,7 +144,7 @@ describe("rmk export and workspaces", () => {
       {
         ...identityRoutes(),
         ...registry.routes,
-        "GET /items/acme-infra/review": () => ({
+        "GET /workspaces/acme/items/acme-infra/review": () => ({
           status: 404,
           json: { error: { code: "item_not_found", message: "No." } },
         }),
@@ -177,6 +178,21 @@ describe("rmk export and workspaces", () => {
     expect(drafts).toEqual([]);
   });
 
+  it("reads a scope's name as global's, and @workspace/scope as that workspace's (118)", async () => {
+    for (const [answer, name] of [
+      ["infra", "@infra/review"],
+      ["@acme/infra", "@acme/infra/review"],
+    ]) {
+      const { drafts } = setup([
+        { name: "infra", description: "", workspace: "global" },
+        { name: "infra", description: "", workspace: "acme" },
+      ]);
+      io.answers.push(answer ?? "", "y");
+      await rmk("export", "review");
+      expect(drafts.map((d) => d.name)).toEqual([name]);
+    }
+  });
+
   it("lists the scopes as they come from a registry older than workspaces", () => {
     const scopes = [
       { name: "team", description: "A team." },
@@ -187,7 +203,7 @@ describe("rmk export and workspaces", () => {
 
   it("puts the join address in --json's error", async () => {
     setup([{ name: "acme-infra", description: "Acme's.", workspace: "acme" }]);
-    const result = await rmk("export", "review", "--to", "acme-infra", "--yes", "--json");
+    const result = await rmk("export", "review", "--to", "@acme/acme-infra", "--yes", "--json");
     expect(JSON.parse(result.stdout)).toMatchObject({
       ok: false,
       error: {

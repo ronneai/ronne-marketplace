@@ -61,7 +61,7 @@ export {
   removedItems,
 } from "./operations.js";
 export { type Output, output } from "./output.js";
-export { itemPath } from "./registry-commands.js";
+export { itemPath, setScopeFilter } from "./registry-commands.js";
 export {
   type CheckedDraft,
   orderLine,

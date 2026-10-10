@@ -254,3 +254,56 @@ Witnessed: 2026-10-10 01:52 EDT, by a fresh agent (blind). Commit: 5e2ad136 (plu
 | 9 | An old tarball with an old name still installs | no | confirmed | lines 348-374: resolve `@team/kit` → `@acme/team/base` 1.0.0; download by both names; the bytes still say `@team/base`; four databases |
 
 **Overall:** met.
+
+## Task 5 — `rmk` and MCP
+
+Witnessed: 2026-10-10 01:56 EDT, by a fresh agent (blind). Commit: 4b9e6a02 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `rmk` and the MCP tools take both name forms wherever they take a name | no | partly | `update`/`remove @global/team/sk` → exit 2; `install @global/team/sk` adds a second key; `search --scope @acme/team` → `scope=acme/team`, nothing found; MCP descriptions say only "@scope/name" |
+| 2 | `install` following an alias rewrites rmk.lock, state and rmk.config.json, and says so | no | confirmed | `pnpm --filter @ronneai/rmk test` → 248 passed, `install-renamed.test.ts` |
+| 3 | Managed markers rewritten in the same apply, no file renamed | no | confirmed | probe: a command's marker `@team/sk@1.0.0` → `@acme/team/sk@1.0.0`, same path; no repository test |
+| 4 | `update` following an alias rewrites | no | confirmed | probes `rmk update` and `rmk update @team/sk`; no repository test |
+| 5 | `remove` works across a rename | no | partly | `rmk remove @acme/team/sk` before the rewrite → exit 2 (also `update`) |
+| 6 | `outdated` reaching an item by an alias rewrites and says so | no | not met | `manage.ts:54-79` ignores `renamed`; `wanted: null`, no note, files unchanged |
+| 7 | A version whose packed name is an old name is accepted | no | confirmed | `install-renamed.test.ts` installs a tarball saying `@team/fmt` as `@acme/team/fmt` |
+| 8 | An old version's dependency by its old name still renders | no | confirmed | `resolve.ts:94-104`, `install.ts:336-339`, `skill-frontmatter.ts:117`; test passes |
+| 9 | `POST /api/v1/resolve` answers `renamed` | no | confirmed | `pnpm test:db:{postgres,mysql,mariadb}` → 63/63; SQLite 17/17 |
+| 10 | `rmk export --to @workspace/scope`, and the answer too | no | confirmed | `workspaces.test.ts` tests pass |
+| 11 | `search` and `info` show full names | no | confirmed | they print the API's `name`, built with `formatItemName` |
+| 12 | MCP plans and applies the rewrite end to end | no | confirmed | `pnpm --filter @ronneai/mcp test` → 51 passed |
+| 13 | Current `rmk` and `rmk-mcp` send `x-rmk-names: workspace` | no | confirmed | `api.ts:93-98`; test passes |
+| 14 | An old `rmk` gets 426 `client_too_old` for non-global items | no | confirmed | db test: getItem by old name, tarball, resolve → 426; with the header → 200; four databases; no getVersion test |
+| 15 | An old `rmk` still works for global's items | no | partly | only an empty resolve and an unknown name tested |
+| 16 | `docs/spec/cli-files.md` updated | no | confirmed | new bullet; no mention of markers |
+
+**Overall:** not met: `outdated`, name forms in update/remove/install/search, and tests for markers, update and global items.
+
+### Re-check 1
+
+Witnessed: 2026-10-10 02:01 EDT, by a fresh agent (blind). Commit: 4b9e6a02 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Both name forms wherever a name is taken | no | confirmed | probes: `install @global/team/sk` → one key `@team/sk`; `update`/`remove @global/team/sk` → exit 0; `search --scope @acme/team` → `scope=team&workspace=acme`; MCP descriptions name both forms |
+| 3 | Markers rewritten in the same apply, no file renamed | no | confirmed | probe; `install-renamed.test.ts:184` checks an agent's marker; rmk 253 passed |
+| 4 | `update` following an alias rewrites | no | confirmed | probes `update`, `update @team/sk`, `update @acme/team/sk` → note, lock/config/state `@acme/team/sk`; test `:251` |
+| 5 | `remove` works across a rename, by any name | no | confirmed | probes `remove @team/sk`, `@acme/team/sk`, `@global/team/sk` → exit 0; `operations.ts:138-150`; tests `:251,261` |
+| 6 | `outdated` reports the new name and writes nothing | no | partly | probe `rmk outdated --json` → `now`, `wanted: "1.0.0"`, note, files unchanged; MCP the same; but `SPEC.md:187` still says `outdated` rewrites |
+| 14 | An old `rmk` gets 426 on item, version, tarball and resolve | no | confirmed | `private-api.db.test.ts` with `getVersion` → 12 passed on four databases |
+| 15 | An old `rmk` still works for global's items | no | confirmed | "installs global's items as before": item, tarball, resolve → 200 on four databases |
+| 16 | `docs/spec/cli-files.md` updated | no | confirmed | bullet at line 78: keys, rewrites with markers, `outdated` writes nothing |
+
+**Overall:** not met: `SPEC.md:187`.
+
+### Re-check 2
+
+Witnessed: 2026-10-10 02:02 EDT, by a fresh agent (blind). Commit: 4b9e6a02 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Both name forms wherever a name is taken | no | confirmed | probes after rebuilding: `@global/…` in install/update/remove; `--scope @acme/team` → `scope=team&workspace=acme`; `--workspace tools --scope @acme/team` → usage error, no request (`registry-commands.ts:77-84`, test `install-renamed.test.ts:275-290`); rmk 253, MCP 51 passed |
+| 6 | `outdated` reports the new name, writes nothing, and the spec agrees | no | confirmed | probe `rmk outdated --json` → `now`, `wanted: "1.0.0"`, note, files unchanged; `SPEC.md:187-189` matches `:35-39` and `cli-files.md` |
+
+**Overall:** met.

@@ -6,6 +6,7 @@ import {
   itemPath,
   outdatedItems,
   projectState,
+  setScopeFilter,
   workspaceLines,
 } from "@ronneai/rmk/lib";
 import { answer, marks, type ToolAnswer } from "./text.js";
@@ -60,8 +61,8 @@ export const searchItems = async (
   const { api } = connectRegistry(io);
   const params = new URLSearchParams({ q: input.query });
   if (input.type) params.set("type", input.type);
-  if (input.scope) params.set("scope", input.scope.replace(/^@/, ""));
   if (input.workspace?.trim()) params.set("workspace", input.workspace.trim());
+  if (input.scope) setScopeFilter(params, input.scope);
   if (input.tool) params.set("tool", input.tool);
   if (input.limit) params.set("limit", String(input.limit));
   const page = await api.get<{ items: Summary[]; nextCursor: string | null }>(`/items?${params}`);
@@ -157,5 +158,8 @@ export const checkOutdated = async (io: Io, input: { scope?: string }): Promise<
         "wanted: the newest version the range allows (plan_update); latest: the newest published.",
       ]
     : ["Everything is up to date."];
+  // An old name the project still uses (118): plan_update moves it.
+  for (const r of rows)
+    if (r.now) lines.push(`Note: ${r.item} is now ${r.now}; plan_update moves the project to it.`);
   return answer(lines, { items: rows });
 };

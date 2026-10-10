@@ -138,6 +138,20 @@ export const kyselyItemRepository = (
       .where("name", "=", canonicalItemName(name) ?? name)
       .executeTakeFirst()) !== undefined,
 
+  oldNames: async (itemIds) =>
+    itemIds.length === 0
+      ? new Map()
+      : new Map(
+          (
+            await db
+              .selectFrom("item_aliases")
+              .select(["name", "item_id"])
+              .where("item_id", "in", [...itemIds])
+              .where(isVisibleItem(viewer, "item_aliases.item_id"))
+              .execute()
+          ).map((row) => [row.name, row.item_id]),
+        ),
+
   insertItem: async (item) => {
     const id = newId();
     await db

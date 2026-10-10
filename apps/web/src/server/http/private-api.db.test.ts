@@ -15,6 +15,7 @@ import {
 import { kyselyItemRepository } from "../domains/items/repositories/kysely-item-repository";
 import { kyselyScopeRepository } from "../domains/items/repositories/kysely-scope-repository";
 import { UNFILTERED } from "../domains/workspaces/models/viewer";
+import { GLOBAL_WORKSPACE_ID } from "../domains/workspaces/models/workspace";
 import { kyselyWorkspaceRepository } from "../domains/workspaces/repositories/kysely-workspace-repository";
 import { localStorage } from "../storage/local-storage";
 import type { StorageAdapter } from "../storage/storage-adapter";
@@ -313,5 +314,88 @@ describe("workspaces in the API (095)", () => {
     expect(await hidden.text()).toBe(await unknown.text());
     const tooLong = await listItems(get(`/items?workspace=${"x".repeat(65)}`, member), deps);
     expect(tooLong.status).toBe(400);
+  });
+});
+
+describe("an rmk from before 118", () => {
+  /** A request as an older rmk sends it: its user agent, without `x-rmk-names`. */
+  const asOld = (request: Request, current = false) => {
+    const headers = new Headers(request.headers);
+    headers.set("user-agent", "rmk/0.3.2");
+    if (current) headers.set("x-rmk-names", "workspace");
+    return new Request(request, { headers });
+  };
+
+  it("gets client_too_old for an item outside global, by any of its paths; a current rmk doesn't", async () => {
+    const answers = [
+      await getItem(
+        asOld(get("/items/acme-infra/deploy", member)),
+        { workspace: "acme", scope: "acme-infra", name: "deploy" },
+        deps,
+      ),
+      await getVersion(
+        asOld(get("/workspaces/acme/items/acme-infra/deploy/1.0.0", member)),
+        { workspace: "acme", scope: "acme-infra", name: "deploy", version: "1.0.0" },
+        deps,
+      ),
+      await getTarball(
+        asOld(get("/workspaces/acme/items/acme-infra/deploy/1.0.0/tarball", member)),
+        { workspace: "acme", scope: "acme-infra", name: "deploy", version: "1.0.0" },
+        deps,
+      ),
+      await postResolve(
+        asOld(post("/resolve", member, { dependencies: { "@acme/acme-infra/deploy": "^1.0.0" } })),
+        deps,
+      ),
+    ];
+    for (const response of answers) {
+      expect(response.status).toBe(426);
+      expect((await response.json()).error).toMatchObject({
+        code: "client_too_old",
+        message:
+          "Update rmk to install @acme/acme-infra/deploy: this one can't write a name that includes its workspace. Run npm install --global @ronneai/rmk.",
+      });
+    }
+    const current = await getItem(
+      asOld(get("/workspaces/acme/items/acme-infra/deploy", member), true),
+      { workspace: "acme", scope: "acme-infra", name: "deploy" },
+      deps,
+    );
+    expect(current.status).toBe(200);
+  });
+
+  it("installs global's items as before", async () => {
+    // The same item, in global: `@acme-infra/deploy` to everyone.
+    await t.db
+      .updateTable("scopes")
+      .set({ workspace_id: GLOBAL_WORKSPACE_ID })
+      .where("name", "=", "acme-infra")
+      .execute();
+    const ref = { scope: "acme-infra", name: "deploy" };
+    expect((await getItem(asOld(get("/items/acme-infra/deploy", member)), ref, deps)).status).toBe(
+      200,
+    );
+    const tarball = await getTarball(
+      asOld(get("/items/acme-infra/deploy/1.0.0/tarball", member)),
+      { ...ref, version: "1.0.0" },
+      deps,
+    );
+    expect(tarball.status).toBe(200);
+    const resolved = await postResolve(
+      asOld(post("/resolve", member, { dependencies: { "@acme-infra/deploy": "^1.0.0" } })),
+      deps,
+    );
+    expect(resolved.status).toBe(200);
+    expect(Object.keys((await resolved.json()).items)).toEqual(["@acme-infra/deploy"]);
+  });
+
+  it("is answered as before about global's names", async () => {
+    const empty = await postResolve(asOld(post("/resolve", member, { dependencies: {} })), deps);
+    expect(empty.status).toBe(200);
+    const unknown = await postResolve(
+      asOld(post("/resolve", member, { dependencies: { "@team/nothing-here": "^1.0.0" } })),
+      deps,
+    );
+    expect([unknown.status, (await unknown.json()).error.code]).toEqual([404, "item_not_found"]);
   });
 });

@@ -41,8 +41,9 @@ export const databaseRegistry = (items: ItemRepository): RegistryReader => ({
 });
 
 /**
- * A resolution, and the names the request used that the items don't have any more (118): old name
- * → name now, so `rmk` moves its lockfile to the new names. Empty when every name was current.
+ * A resolution, and the old names of what it resolved (118): old name → name now, so `rmk` moves
+ * its lockfile to the new names, and reads an old version's dependencies by them. Empty when no
+ * resolved item ever had another name.
  */
 export type ServerResolution = Resolution & { renamed: Record<string, string> };
 
@@ -90,5 +91,17 @@ export const resolveRequest = async (
   }
   for (const key of unpinned) delete locked[key];
   const resolution = await resolve({ dependencies, locked }, databaseRegistry(deps.items));
+  // Every old name of what was resolved (118), not only the ones asked for: an old version's own
+  // `ronne.yaml` may still name its dependencies by them, and `rmk` matches those to the new names.
+  const ids = new Map<string, string>();
+  for (const name of Object.keys(resolution.items)) {
+    const ref = parseItemName(name);
+    const item = ref ? await deps.items.findByName(ref) : null;
+    if (item) ids.set(item.id, item.fullName);
+  }
+  for (const [old, id] of await deps.items.oldNames([...ids.keys()])) {
+    const now = ids.get(id);
+    if (now) renamed[old] = now;
+  }
   return { ...resolution, renamed };
 };

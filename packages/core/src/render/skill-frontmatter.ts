@@ -1,6 +1,6 @@
 import { parseFrontmatter } from "../frontmatter.js";
 import { isItemType } from "../item-types.js";
-import { parseItemName } from "../names.js";
+import { canonicalItemName, parseItemName } from "../names.js";
 import { shortName } from "./helpers.js";
 import type { RenderDependency, RenderInput } from "./types.js";
 
@@ -114,6 +114,7 @@ export const withDependencies = <T extends RenderInput>(
 ): T => ({
   ...input,
   dependencies: Object.keys((input.manifest.dependencies ?? {}) as Record<string, unknown>)
-    .map((name) => known.get(name))
+    // As written, or `@global/team/x` as `@team/x` (118).
+    .map((name) => known.get(name) ?? known.get(canonicalItemName(name) ?? name))
     .filter((d): d is RenderDependency => d !== undefined),
 });

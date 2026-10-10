@@ -39,7 +39,7 @@ export const USAGE = `Usage: rmk <command> [options]
   remove <item>...
   mcp-setup [--target <ids>|all] [--scope project|user] [--remove] [--command <cmd>]
   plugin-setup claude-code [--scope user|project] [--remove] [--static-headers] [--command <rmk>]
-  export [<path|name>...] [--to <@scope>] [--type <type>] [--from <tool>] [--name <name>]
+  export [<path|name>...] [--to <@scope|@workspace/scope>] [--type <type>] [--from <tool>] [--name <name>]
          [--description <text>] [--with-deps | --no-deps] [--scope project|user]
          [--describe <item>=<text>]... [--descriptions <file.json>]
          [--dry-run] [--yes] [--force] [--new] [--new-draft]

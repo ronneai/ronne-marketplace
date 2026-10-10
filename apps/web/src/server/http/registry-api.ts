@@ -1,4 +1,4 @@
-import { GLOBAL_WORKSPACE, ResolveError, type ResolveRequest } from "@ronneai/core";
+import { GLOBAL_WORKSPACE, parseItemName, ResolveError, type ResolveRequest } from "@ronneai/core";
 import type { AppAuth } from "../domains/identity/repositories/auth-instance";
 import { searchCatalogueAs } from "../domains/items/actions/catalogue";
 import {
@@ -40,6 +40,29 @@ export const itemRefOf = (params: { workspace?: string; scope: string; name: str
   scope: decodeURIComponent(params.scope).replace(/^@/, ""),
   name: decodeURIComponent(params.name),
 });
+
+/**
+ * An `rmk` from before 118: it says `rmk/…` and doesn't send `x-rmk-names`. It can't write a
+ * three-part name into a lockfile, so it gets `client_too_old` for an item outside `global`.
+ */
+const isOldRmk = (request: Request) =>
+  (request.headers.get("user-agent") ?? "").startsWith("rmk/") &&
+  request.headers.get("x-rmk-names") === null;
+
+const inWorkspace = (name: string) =>
+  (parseItemName(name)?.workspace ?? GLOBAL_WORKSPACE) !== GLOBAL_WORKSPACE;
+
+/** 426 for an old `rmk` asked about an item outside `global` (118), or null. */
+export const tooOldFor = (request: Request, names: readonly string[]) => {
+  const name = isOldRmk(request) ? names.find(inWorkspace) : undefined;
+  return name
+    ? errorResponse(
+        426,
+        "client_too_old",
+        `Update rmk to install ${name}: this one can't write a name that includes its workspace. Run npm install --global @ronneai/rmk.`,
+      )
+    : null;
+};
 
 const orDomainError = (error: unknown) => {
   const response = domainErrorResponse(error);
@@ -95,9 +118,8 @@ export const getItem = async (
   const guard = await requireToken(request, deps.guard);
   if (!guard.ok) return guard.response;
   try {
-    return fresh(
-      itemJson(await itemPageAs(guard.auth.user, itemRefOf(params), undefined, deps.app)),
-    );
+    const page = await itemPageAs(guard.auth.user, itemRefOf(params), undefined, deps.app);
+    return tooOldFor(request, [page.item.fullName]) ?? fresh(itemJson(page));
   } catch (error) {
     return orDomainError(error);
   }
@@ -121,7 +143,7 @@ export const getVersion = async (
       deps.app,
     );
     // A version's files never change, but it can still be deprecated, yanked or re-tagged.
-    return fresh(versionJson(page));
+    return tooOldFor(request, [page.item.fullName]) ?? fresh(versionJson(page));
   } catch (error) {
     return orDomainError(error);
   }
@@ -149,6 +171,8 @@ export const getTarball = async (
   const version = decodeURIComponent(params.version);
   try {
     const found = await findDownloadAs(guard.auth.user, ref, version, deps.app);
+    const tooOld = tooOldFor(request, [found.name]);
+    if (tooOld) return tooOld;
     const etag = `"${found.version.sha256}"`;
     const cache = { etag, "cache-control": IMMUTABLE };
     if (matchesEtag(request.headers.get("if-none-match"), etag))
@@ -225,9 +249,11 @@ export const postResolve = async (request: Request, deps: RegistryApiDeps = {}) 
     );
   const resolveRequest: ResolveRequest = { dependencies, locked };
   try {
-    return Response.json(await resolveAs(guard.auth.user, resolveRequest, deps.app), {
-      headers: { "cache-control": "no-store" },
-    });
+    const resolution = await resolveAs(guard.auth.user, resolveRequest, deps.app);
+    return (
+      tooOldFor(request, Object.keys(resolution.items)) ??
+      Response.json(resolution, { headers: { "cache-control": "no-store" } })
+    );
   } catch (error) {
     if (error instanceof ResolveError)
       return errorResponse(RESOLVE_STATUS[error.code], error.code, error.message, error.details);

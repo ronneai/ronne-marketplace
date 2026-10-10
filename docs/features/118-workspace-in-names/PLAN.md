@@ -37,7 +37,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* release tests cover a `global` and a team item, and an old tarball with an old name
   still installs.
 
-- [ ] **5. `rmk` and MCP.** Both forms in every command and tool; the lockfile, state file and
+- [x] **5. `rmk` and MCP.** Both forms in every command and tool; the lockfile, state file and
   markers rewritten when an alias is followed, with the message; a version whose packed name is
   its item's name or an old one is accepted; `export --to @workspace/scope`;
   full names in `search` and `info`; `client_too_old` from the API for an `rmk` before 118 (its
@@ -90,3 +90,7 @@ goes into `SPEC.md` instead.
   by the resolved (new) name, while `withDependencies` (097, `skill-frontmatter.ts`) looks a
   dependency up by the name an old tarball wrote, so it would drop it; map old names through the
   resolution's `renamed` and the item's aliases.
+- **Task 5:** the registry's `renamed` lists every old name of what it resolved, so `rmk` finds an
+  old version's dependencies by them. A current `rmk` says `x-rmk-names: workspace`; an `rmk/…`
+  without it gets 426 `client_too_old` for names outside `global`. `outdated` only reports a new
+  name; `install` and `update` move the project.

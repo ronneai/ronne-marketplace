@@ -32,14 +32,18 @@ answer to it.
 - **Releasing writes the full name** into the packed `ronne.yaml`; a version keeps the name it was
   released with, and the registry and `rmk` accept a version whose packed name is its item's name or
   one of its aliases.
-- **`rmk` moves on to the new name:** an install, update or `outdated` that reaches an item by an
-  alias rewrites the lockfile and state file to its name and says so ("@acme/deploy is now
-  @platform/acme/deploy").
+- **`rmk` moves on to the new name:** an install or update that reaches an item by an alias
+  rewrites the lockfile, the state file, its markers and `rmk.config.json` to its name and says so
+  ("@acme/deploy is now @platform/acme/deploy"); `outdated` only reads, so it says the new name
+  and leaves the files to the next update. `update` and `remove` also take the new name before
+  that, and `@global/…` names are written short everywhere.
 - **Submit nudges dependencies:** a draft that depends on an item through an alias passes, with a
   warning and **Use the new name**, which rewrites the dependency.
 - **Old `rmk`** (from before 118): `global`'s items work as before; anything else answers
-  `client_too_old` ("Update rmk to x.y.z to install @acme/infra/deploy"), its old names included,
-  since an old `rmk` can't write a three-part name to its lockfile.
+  `client_too_old` (426, "Update rmk to install @acme/infra/deploy: this one can't write a name that
+  includes its workspace."), its old names included, since an old `rmk` can't write a three-part
+  name to its lockfile. A current `rmk` (and `rmk-mcp`) sends `x-rmk-names: workspace`; a request
+  that says `rmk/…` without it is an old one.
 
 **Out** (and where it goes instead):
 - **Renaming a scope or an item on its own.** Only as part of a move (115, when the target has the
@@ -180,8 +184,9 @@ outside `global` gets its `@scope/name` as an alias. Nothing else is renamed and
 - [ ] After the migration, every item outside `global` answers to its old `@scope/name` for those
   who see it, and an old lockfile installs it; nobody else learns it exists.
 - [ ] An alias can't become another item's name, by a draft, a move or a rename.
-- [ ] `rmk install`, `update` and `outdated` rewrite an alias entry to the new name in the lockfile
-  and state file, and keep the rendered files.
+- [ ] `rmk install` and `update` rewrite an alias entry to the new name in the lockfile, the state
+  file, the markers and `rmk.config.json`, and keep the rendered files; `outdated` says the new name
+  and writes nothing.
 - [ ] A dependency through an alias passes submit and release with a warning and Use the new name.
 - [ ] An `rmk` from before 118 installs `global`'s items and gets `client_too_old` for the others.
 - [ ] Released versions carry the full name; tarballs released before keep theirs and still install.

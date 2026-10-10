@@ -5,13 +5,15 @@ import {
   checkPackage,
   DEFAULT_LIMITS,
   formatBytes,
+  formatScopeName,
+  GLOBAL_WORKSPACE,
   isValidName,
   type ManifestIssue,
-  normalizeScopeName,
   type PackageFile,
   type PackageLimits,
   parseItemName,
   parseManifest,
+  scopeRefFrom,
   secretLike,
   shortItemName,
 } from "@ronneai/core";
@@ -728,6 +730,19 @@ export type ExportPlan = {
 /** The scopes you may export to (037, 091), with their workspace (095; missing when older). */
 export type Scopes = { name: string; description: string; workspace?: string }[];
 
+/**
+ * A scope as export names it (118): `infra` in `global`, `acme/infra` in acme, without the `@`, so
+ * `@${scope}/${name}` is the item's full name. A registry before workspaces gives no workspace.
+ */
+export const scopeKey = (scope: Scopes[number]) =>
+  formatScopeName({ workspace: scope.workspace ?? GLOBAL_WORKSPACE, scope: scope.name }).slice(1);
+
+/** What `--to` or an answer says, as a scope key, or null when it can't be a scope. */
+export const scopeKeyOf = (value: string): string | null => {
+  const ref = scopeRefFrom(value);
+  return ref ? formatScopeName(ref).slice(1) : null;
+};
+
 /** The registry's scopes (037), every page. */
 export const fetchScopes = async (api: ApiClient): Promise<Scopes> => {
   const scopes: Scopes = [];
@@ -892,11 +907,12 @@ const textOrNull = (file: PackageFile): string | null => {
 
 const sha256 = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 
-/** The scope the folder's own `ronne.yaml` names, or null. */
+/** The scope the folder's own `ronne.yaml` names, as a scope key (118), or null. */
 const manifestScope = (files: readonly PackageFile[]): string | null => {
   const file = files.find((f) => f.path === "ronne.yaml");
   const name = file ? parseManifest(new TextDecoder().decode(file.bytes)).manifest?.name : null;
-  return typeof name === "string" ? (parseItemName(name)?.scope ?? null) : null;
+  const ref = typeof name === "string" ? parseItemName(name) : null;
+  return ref ? formatScopeName(ref).slice(1) : null;
 };
 
 const isPublished = async (api: ApiClient, name: string): Promise<boolean> => {
@@ -995,8 +1011,8 @@ export const planExport = async (
       1,
       "no_scopes",
     );
-  const to = request.to === undefined ? null : normalizeScopeName(request.to);
-  const known = new Set(scopes.map((s) => s.name));
+  const to = request.to === undefined ? null : (scopeKeyOf(request.to) ?? request.to);
+  const known = new Set(scopes.map(scopeKey));
   if (to !== null && !known.has(to))
     throw new RmkError(`${api.registry} has no scope @${to}.`, 2, "scope_not_found", { scopes });
 
@@ -1148,7 +1164,7 @@ export const planExport = async (
       const scope = to ?? (type === "skill" ? manifestScope(files) : null);
       if (scope === null)
         throw new RmkError(
-          `Say which scope ${local} goes in, with --to @scope.`,
+          `Say which scope ${local} goes in, with --to @scope (or @workspace/scope outside global).`,
           2,
           "scope_required",
           { scopes },
