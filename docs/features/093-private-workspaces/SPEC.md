@@ -43,7 +43,8 @@ its items (091 already makes that so).
   a version is refused after). A yanked one doesn't hold it back, since versions are never
   deleted; its dependency list and its own `ronne.yaml` keep naming what it depended on, as it
   was released. Nothing in the private workspace becomes readable through it.
-- **Per-workspace tokens.** Tokens still read as their user (MVP §15, "Access tokens").
+- **Per-workspace tokens.** Tokens still read as their user (MVP §15, "Access tokens"); planned as
+  [116](../README.md#m13--workspaces).
 
 ## Behaviour
 

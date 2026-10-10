@@ -41,8 +41,8 @@ works in every workspace and keeps everything instance-wide.
 - **Moderators managing members.** Admins and root, here; moderators approve requests (094).
 - **Admins beyond their workspace:** creating or deleting workspaces, creating users, instance
   settings and the audit log stay root's.
-- **Inviting people by email.** Notifications are out of scope for the MVP; users are still created
-  only in the web app by root.
+- **Inviting people by email.** Not planned (owner, 2026-10-09). Users are still created only in
+  the web app by root.
 
 ## Behaviour
 
