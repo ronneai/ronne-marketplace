@@ -22,12 +22,32 @@ export class ApiError extends RmkError {
   }
 }
 
+/** A workspace's join page in the web app (094): where to ask to join it (095). */
+export const joinUrl = (registry: string, workspace: string) =>
+  `${registry}/workspaces/${encodeURIComponent(workspace)}/join`;
+
+/**
+ * An answer's message, with where to ask to join when the registry says you aren't a member of the
+ * item's workspace (091, 095): asking is done in the web app.
+ */
+const messageOf = (
+  registry: string,
+  code: string,
+  message: string,
+  details: Record<string, unknown> | undefined,
+) =>
+  code === "not_a_member" && typeof details?.workspace === "string"
+    ? `${message} Ask here: ${joinUrl(registry, details.workspace)}`
+    : message;
+
 export type TokenResponse = { token: string; id: string; name: string; expiresAt: string | null };
 export type MeResponse = {
   id: string;
   email: string;
   name: string;
   role: string;
+  /** The workspaces you're a member of (095); missing from a registry older than them. */
+  workspaces?: { name: string; role: string }[];
   token: { id: string; name: string; expiresAt: string | null };
 };
 
@@ -93,11 +113,19 @@ export const apiClient = (
       // Not JSON: a proxy's page, say.
     }
     const code = payload.error?.code ?? `http_${response.status}`;
+    const details = payload.error?.details;
     throw new ApiError(
       response.status,
       code,
-      payload.error?.message ?? `${registry} answered ${response.status}.`,
-      payload.error?.details,
+      messageOf(
+        registry,
+        code,
+        payload.error?.message ?? `${registry} answered ${response.status}.`,
+        details,
+      ),
+      code === "not_a_member" && typeof details?.workspace === "string"
+        ? { ...details, joinUrl: joinUrl(registry, details.workspace) }
+        : details,
     );
   };
   const json = async <T>(method: string, path: string, body?: unknown): Promise<T> =>

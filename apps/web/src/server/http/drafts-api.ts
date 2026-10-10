@@ -358,6 +358,8 @@ const readSelection = async (
 const draftOf = (deps: DraftsApiDeps, submission: Submission) => ({
   ...placeOf(deps, submission.id),
   name: `@${submission.scope.name}/${submission.name}`,
+  // Its scope's workspace (095): rmk says where to ask to join on `not_a_member`.
+  workspace: submission.workspace.name,
   type: submission.type,
   status: submission.status,
 });

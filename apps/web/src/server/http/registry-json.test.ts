@@ -7,8 +7,8 @@ describe("registry JSON", () => {
     expect(
       itemSummaryJson({
         id: "i",
-        workspace: "global",
-        privateWorkspace: false,
+        workspace: "acme",
+        privateWorkspace: true,
         scope: "team",
         name: "fmt",
         type: "hook",
@@ -25,6 +25,7 @@ describe("registry JSON", () => {
       }),
     ).toEqual({
       name: "@team/fmt",
+      workspace: { name: "acme", visibility: "private" },
       type: "hook",
       description: "Formats.",
       keywords: ["format"],
@@ -39,9 +40,11 @@ describe("registry JSON", () => {
   });
 
   it("gives an item's tags as a map, and every version with its yank and deprecation", () => {
-    const json = itemJson(itemPageData());
+    const data = itemPageData();
+    const json = itemJson(data);
     expect(json).toMatchObject({
       name: "@team/github",
+      workspace: { name: data.item.workspace, visibility: "public" },
       owner: "Rae Releaser",
       downloads: 0,
       tags: { latest: "1.1.0" },

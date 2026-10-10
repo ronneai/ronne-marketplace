@@ -16,6 +16,7 @@ import { list, platforms, withApi } from "./registry-commands.js";
 import { submitCommand } from "./submit.js";
 import { flushAfterCommand, refreshPolicy, usageNotice } from "./telemetry.js";
 import { telemetryCommand } from "./telemetry-command.js";
+import { workspacesCommand } from "./workspaces.js";
 
 /**
  * `rmk` (feature 022, MVP §6): the commands, their arguments, and the exit codes. Each command is
@@ -28,7 +29,8 @@ export const USAGE = `Usage: rmk <command> [options]
   whoami
   auth headers [--registry <url>]
   platforms
-  search <query> [--type <type>] [--scope <scope>] [--target <tool>]
+  workspaces
+  search <query> [--type <type>] [--scope <scope>] [--workspace <name>] [--target <tool>]
   info <item>[@version]
   list [--installed]
   install [<item>[@tag|range]...] [--target <ids>|all] [--scope project|user] [--force]
@@ -204,6 +206,7 @@ export const COMMANDS: Record<string, Command> = {
   login,
   logout,
   whoami,
+  workspaces: (io, args, out) => workspacesCommand(io, args, out, connect(io, args).api),
   search,
   info,
   list,

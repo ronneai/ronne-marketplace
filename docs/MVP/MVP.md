@@ -451,12 +451,13 @@ written `pnpm run setup`. Full behaviour, including a non-interactive mode for D
 | `rmk plugin-setup claude-code [--scope user\|project] [--remove] [--static-headers]` | Add the registry's plugin marketplace to Claude Code's settings (`extraKnownMarketplaces`, with `rmk auth headers` as its `headersHelper`), through the applier, so it's never overwritten and `--remove` takes it out ([077](../features/077-claude-code-marketplace/SPEC.md)). |
 | `rmk auth headers [--registry <url>]` | Print `{"Authorization":"Bearer <token>"}` for the registry's saved token (or `RMK_TOKEN`) and nothing else: Claude Code's `headersHelper` for the plugin marketplace ([077](../features/077-claude-code-marketplace/SPEC.md)). Exits 1 without a token. |
 | `rmk feed build --out <dir> [--tools claude-code,codex,cursor] [--force]` | Write the registry's plugin feeds as a git repository tree that Codex, Cursor and Claude Code add as a marketplace: the plugins, each tool's marketplace file and `.rmk-feed.json`. Touches only what it wrote, and a second run with nothing new changes nothing ([078](../features/078-plugin-feed-mirror/SPEC.md)). |
-| `rmk search <query>` · `rmk list [--installed]` | Browse the catalogue / show installed items. |
-| `rmk info <item>[@version]` | Show metadata, versions, dist-tags and dependencies. |
+| `rmk search <query> [--workspace <name>]` · `rmk list [--installed]` | Browse the catalogue, or one workspace's items ([095](../features/095-workspaces-cli-api/SPEC.md)) / show installed items. |
+| `rmk info <item>[@version]` | Show metadata, the item's workspace (and whether it's private), versions, dist-tags and dependencies. |
+| `rmk workspaces` | The workspaces you see, with your role in each, and the address to ask to join where you aren't a member (M13, 095). Asking is done in the web app. |
 | `rmk install <item>[@tag\|range]... [--target <platform>[,<platform>]\|all] [--scope project\|user]` | Install items. The default target comes from `rmk.config.json`, or is detected from the project. `rmk platforms` lists the available renderers and which item types each supports. |
 | `rmk update [item]` · `rmk outdated` | Update within ranges / list available updates. |
 | `rmk remove <item>` | Remove the item and its managed files. Dependencies are removed too if nothing else needs them. |
-| `rmk export [<path\|name>...] [--to <@scope>]` | Send items you wrote in your AI tool's folders to the registry as **drafts** (M7, [038](../features/038-rmk-export/SPEC.md)): shows what would be uploaded, asks, uploads, and prints each draft's address. It never submits, and refuses items `rmk` installed. |
+| `rmk export [<path\|name>...] [--to <@scope>]` | Send items you wrote in your AI tool's folders to the registry as **drafts** (M7, [038](../features/038-rmk-export/SPEC.md)): shows what would be uploaded, asks, uploads, and prints each draft's address. It never submits, and refuses items `rmk` installed. The scope prompt lists only scopes in your workspaces, grouped by workspace (095). |
 | `rmk telemetry [on\|off\|status\|preview\|flush]` | Usage reporting under each registry's policy ([046](../features/046-usage-telemetry/SPEC.md)): `status` shows the policy and whether rmk reports; `off` and `on` are the person's choice where the policy lets them choose; `preview` prints what would be sent. `rmk telemetry hook <tool>` is what the AI tools' usage hooks run. |
 
 - There is no `register` command.
@@ -468,7 +469,7 @@ written `pnpm run setup`. Full behaviour, including a non-interactive mode for D
 
 `packages/mcp` exposes the registry to AI tools, so users can manage items without leaving Claude Code, Codex or Cursor.
 
-- **Read tools:** `search_items`, `get_item`, `list_installed`, `check_outdated`.
+- **Read tools:** `search_items` (by workspace too, each result naming its workspace), `list_workspaces` (the workspaces you see, your role, and where to ask to join: [095](../features/095-workspaces-cli-api/SPEC.md)), `get_item`, `list_installed`, `check_outdated`.
 - **Plan tools:** `plan_install`, `plan_update`, `plan_remove`. They write nothing. Each returns a
   `planId` and a readable list of the files and keys it would change, plus any warnings (skipped
   types, missing env vars, risk flags).
@@ -648,8 +649,9 @@ IDs are ULIDs and timestamps are UTC (§9.4).
 |---|---|
 | `POST /auth/token` | Email + password → PAT (used by `rmk login`) |
 | `DELETE /auth/token` | Revoke the current token |
-| `GET /me` | Current user |
-| `GET /items?q=&type=&page=` | Search |
+| `GET /me` | Current user, with the workspaces they're a member of and their role in each (M13, [095](../features/095-workspaces-cli-api/SPEC.md)) |
+| `GET /workspaces` | The workspaces the caller sees, `global` first, with their role in each (null where they aren't a member, `root` for root) (M13, 095) |
+| `GET /items?q=&type=&workspace=&page=` | Search; `workspace` narrows it to one workspace (M13, 095) |
 | `GET /items/{scope}/{name}` | Item metadata, dist-tags, versions |
 | `GET /items/{scope}/{name}/{version}` | Version manifest + dependencies |
 | `GET /items/{scope}/{name}/{version}/tarball` | Download the artifact (with an `X-Checksum-Sha256` header) |
@@ -674,6 +676,8 @@ actions). The API reads, with two exceptions (owner, 2026-09-30): a token can **
   `{ "error": { "code": "item_not_found", "message": "…", "details": { … } } }`. `code` is a stable
   snake_case string that clients can rely on. The HTTP status carries the category (400, 401, 403,
   404, 409, 413, 422, 429).
+- **Items carry their workspace** (M13, 095): search results, items and versions have
+  `"workspace": { "name": "acme", "visibility": "private" }`. Names stay `@scope/name`.
 - **Pagination** is cursor-based: `?limit=` (default 20, max 100) and `?cursor=`. Responses include
   `nextCursor`, or `null` on the last page.
 - **Versioning:** breaking changes go to `/api/v2`. `rmk` sends its version in `User-Agent`, and the

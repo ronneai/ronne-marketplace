@@ -10,10 +10,17 @@ export const answer = (lines: string[], data?: Record<string, unknown>): ToolAns
   ...(data ? { structuredContent: data } : {}),
 });
 
-/** An error the assistant can act on: its code, and the message rmk would print. */
-export const failure = (code: string, message: string): ToolAnswer => ({
+/**
+ * An error the assistant can act on: its code, the message rmk would print, and anything that
+ * helps, such as where to ask to join a workspace (`joinUrl`, 095).
+ */
+export const failure = (
+  code: string,
+  message: string,
+  extra: Record<string, unknown> = {},
+): ToolAnswer => ({
   content: [{ type: "text", text: `${message} (${code})` }],
-  structuredContent: { error: { code, message } },
+  structuredContent: { error: { code, message, ...extra } },
   isError: true,
 });
 

@@ -711,7 +711,8 @@ export type ExportPlan = {
   fingerprint: string;
 };
 
-export type Scopes = { name: string; description: string }[];
+/** The scopes you may export to (037, 091), with their workspace (095; missing when older). */
+export type Scopes = { name: string; description: string; workspace?: string }[];
 
 /** The registry's scopes (037), every page. */
 export const fetchScopes = async (api: ApiClient): Promise<Scopes> => {

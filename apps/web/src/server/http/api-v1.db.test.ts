@@ -135,7 +135,7 @@ describe("GET /api/v1/me and DELETE /api/v1/auth/token", () => {
       token: string;
       id: string;
     };
-    const me = await getMe(withToken(created.token), guard);
+    const me = await getMe(withToken(created.token), guard, app);
     expect(me.status).toBe(200);
     expect(await me.json()).toMatchObject({
       id: userId,
@@ -150,7 +150,7 @@ describe("GET /api/v1/me and DELETE /api/v1/auth/token", () => {
       guard,
     );
     expect(revoked.status).toBe(204);
-    const after = await getMe(withToken(created.token), guard);
+    const after = await getMe(withToken(created.token), guard, app);
     expect(after.status).toBe(401);
     expect(await code(after)).toBe("token_revoked");
     const actions = (await listAuditEvents(t.db, t.dialect, {})).events.map((e) => e.action);
@@ -158,7 +158,7 @@ describe("GET /api/v1/me and DELETE /api/v1/auth/token", () => {
   });
 
   it("need a bearer token", async () => {
-    const me = await getMe(new Request(`${BASE}/me`), guard);
+    const me = await getMe(new Request(`${BASE}/me`), guard, app);
     expect([me.status, await code(me)]).toEqual([401, "token_missing"]);
     const del = await deleteToken(
       new Request(`${BASE}/auth/token`, { method: "DELETE" }),
@@ -173,7 +173,7 @@ describe("secrets", () => {
   it("no response, audit row or error body holds a password or a plain token", async () => {
     const good = (await (await login({ email, password })).json()) as { token: string };
     const bad = await (await login({ email, password: "wrong horse battery" })).text();
-    const me = await (await getMe(withToken(good.token), guard)).text();
+    const me = await (await getMe(withToken(good.token), guard, app)).text();
     const audit = JSON.stringify(await t.db.selectFrom("audit_log").selectAll().execute());
     const tokens = JSON.stringify(await t.db.selectFrom("access_tokens").selectAll().execute());
     for (const [where, text] of Object.entries({ bad, me, audit, tokens })) {

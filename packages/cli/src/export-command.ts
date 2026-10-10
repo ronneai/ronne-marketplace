@@ -177,11 +177,31 @@ const plannedJson = (item: PlannedItem) => ({
 const refusedJson = (plan: ExportPlan) =>
   plan.refused.map((r) => ({ path: r.local, code: r.code, message: r.message }));
 
-const scopeList = (scopes: Scopes) =>
-  scopes.map((s, i) => `  ${i + 1}. @${s.name}${s.description ? `  ${s.description}` : ""}`);
+/**
+ * The scopes grouped by workspace (095), `global` first, then by name, each group in the
+ * registry's order. A registry older than workspaces gives none: the list stays as it came.
+ */
+export const byWorkspace = (scopes: Scopes): Scopes => {
+  const rank = (s: Scopes[number]) =>
+    s.workspace === undefined ? "" : s.workspace === "global" ? "0" : `1${s.workspace}`;
+  return scopes
+    .map((scope, i) => ({ scope, i }))
+    .sort((a, b) => rank(a.scope).localeCompare(rank(b.scope)) || a.i - b.i)
+    .map(({ scope }) => scope);
+};
 
-/** Asks which scope, by number or name, listing them; never picks one itself. */
-const askScope = async (io: Io, scopes: Scopes): Promise<string> => {
+/** A scope as the choices show it: `acme › @acme-infra  Acme's.` (095). */
+export const scopeLabel = (s: Scopes[number]) =>
+  `${s.workspace ? `${s.workspace} › ` : ""}@${s.name}${s.description ? `  ${s.description}` : ""}`;
+
+const scopeList = (scopes: Scopes) => scopes.map((s, i) => `  ${i + 1}. ${scopeLabel(s)}`);
+
+/**
+ * Asks which scope, by number or name, listing them by workspace; never picks one itself. The
+ * registry lists only scopes in your workspaces (091).
+ */
+const askScope = async (io: Io, given: Scopes): Promise<string> => {
+  const scopes = byWorkspace(given);
   const answer = (
     await io.prompt(
       `${["Which scope should the drafts go in?", ...scopeList(scopes)].join("\n")}\nScope (number or name): `,

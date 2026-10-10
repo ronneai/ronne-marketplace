@@ -1,16 +1,22 @@
 import {
   connectRegistry,
+  fetchWorkspaces,
   type Io,
   isBehind,
   itemPath,
   outdatedItems,
   projectState,
+  workspaceLines,
 } from "@ronneai/rmk/lib";
 import { answer, marks, type ToolAnswer } from "./text.js";
 
 /** The read tools (MVP §7): the registry as `rmk search` and `rmk info` see it, and the project. */
+/** An item's workspace (095); missing from a registry older than workspaces. */
+type ItemWorkspace = { name: string; visibility: string };
+
 type Summary = {
   name: string;
+  workspace?: ItemWorkspace;
   type: string;
   description: string;
   version: string;
@@ -22,6 +28,7 @@ type Summary = {
 
 type ItemInfo = {
   name: string;
+  workspace?: ItemWorkspace;
   type: string;
   description: string;
   owner: string | null;
@@ -41,12 +48,20 @@ type VersionInfo = {
 
 export const searchItems = async (
   io: Io,
-  input: { query: string; type?: string; scope?: string; tool?: string; limit?: number },
+  input: {
+    query: string;
+    type?: string;
+    scope?: string;
+    workspace?: string;
+    tool?: string;
+    limit?: number;
+  },
 ): Promise<ToolAnswer> => {
   const { api } = connectRegistry(io);
   const params = new URLSearchParams({ q: input.query });
   if (input.type) params.set("type", input.type);
   if (input.scope) params.set("scope", input.scope.replace(/^@/, ""));
+  if (input.workspace?.trim()) params.set("workspace", input.workspace.trim());
   if (input.tool) params.set("tool", input.tool);
   if (input.limit) params.set("limit", String(input.limit));
   const page = await api.get<{ items: Summary[]; nextCursor: string | null }>(`/items?${params}`);
@@ -71,6 +86,11 @@ export const getItem = async (
     : null;
   const lines = [
     `${item.name}  ${item.type}  ${item.description}`,
+    ...(item.workspace
+      ? [
+          `workspace: ${item.workspace.name}${item.workspace.visibility === "private" ? " (private)" : ""}`,
+        ]
+      : []),
     `owner: ${item.owner ?? "a former user"}  downloads: ${item.downloads}`,
     `tags: ${
       Object.entries(item.tags)
@@ -98,6 +118,13 @@ export const getItem = async (
     if (detail.readme) lines.push("", "README:", detail.readme);
   }
   return answer(lines, { item, version: detail });
+};
+
+/** The workspaces the person sees (095), with their role and where to ask to join: `rmk workspaces`. */
+export const listWorkspaces = async (io: Io): Promise<ToolAnswer> => {
+  const { api } = connectRegistry(io);
+  const workspaces = await fetchWorkspaces(api);
+  return answer(workspaceLines(workspaces), { workspaces });
 };
 
 /** What the lockfile holds: no network, so it works when the registry can't be reached. */

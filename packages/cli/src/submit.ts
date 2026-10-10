@@ -1,5 +1,5 @@
 import { dependenciesFirst, type ManifestIssue } from "@ronneai/core";
-import type { ApiClient } from "./api.js";
+import { type ApiClient, joinUrl } from "./api.js";
 import type { Args } from "./cli.js";
 import { RmkError, usage } from "./errors.js";
 import type { Io } from "./io.js";
@@ -13,7 +13,17 @@ import type { Output } from "./output.js";
  * depends on are included and go with it, all or none (056, 112), unless `--no-deps`.
  */
 
-type Place = { path: string; url: string | null; name: string; type: string; status: string };
+type Place = {
+  path: string;
+  url: string | null;
+  name: string;
+  type: string;
+  status: string;
+  /** Its scope's workspace (095); missing from a registry older than workspaces. */
+  workspace?: string;
+  /** Where to ask to join that workspace, on a `not_a_member` result (095). */
+  joinUrl?: string;
+};
 
 export type CheckedDraft = {
   id: string;
@@ -157,6 +167,7 @@ const previewLines = (drafts: readonly CheckedDraft[], unknown: readonly string[
       else if (draft.result === "not_submittable")
         lines.push(`    - It's ${draft.status?.replace("_", " ")}, so it can't be submitted.`);
       else for (const issue of errorsOf(draft.issues)) lines.push(`    - ${issue.message}`);
+      if (draft.joinUrl) lines.push(`    - Ask here: ${draft.joinUrl}`);
     }
     for (const name of unknown) lines.push(`  ${name}`, "    - You have no draft of this item.");
   }
@@ -203,6 +214,10 @@ export const planSubmit = async (
           ...(dependencies ? {} : { dependencies: false }),
         })
       : { drafts: [], more: 0 };
+  // Outside your workspaces (091): where to ask to join, in the web app (094, 095).
+  for (const draft of checked.drafts)
+    if (draft.result === "not_a_member" && draft.workspace)
+      draft.joinUrl = joinUrl(api.registry, draft.workspace);
   const more =
     checked.more > 0
       ? [`${checked.more} more of your drafts weren't looked at: run it again for those.`]
@@ -228,6 +243,9 @@ export const sendSubmit = async (api: ApiClient, plan: SubmitPlan) => {
     ids: plan.ready.map((d) => d.id),
     dependencies: false,
   });
+  for (const result of results)
+    if (result.result === "not_a_member" && result.workspace)
+      result.joinUrl = joinUrl(api.registry, result.workspace);
   const submitted = results.filter((r) => r.result === "submitted" || r.result === "resubmitted");
   const refusedAtSubmit = results.filter((r) => !submitted.includes(r));
   return {
@@ -247,6 +265,7 @@ export const submitLines = (outcome: Awaited<ReturnType<typeof sendSubmit>>, pla
   for (const result of outcome.refusedAtSubmit) {
     lines.push(`Not submitted: ${label(result)}`);
     for (const issue of errorsOf(result.issues)) lines.push(`  - ${issue.message}`);
+    if (result.joinUrl) lines.push(`  - Ask here: ${result.joinUrl}`);
   }
   // Outside your workspaces (091) is nothing to fix in the draft: its line says to ask to join.
   const fixable = plan.notReady.filter((d) => d.result !== "not_a_member");

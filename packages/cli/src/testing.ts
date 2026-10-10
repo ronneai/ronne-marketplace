@@ -346,7 +346,7 @@ export type FakeOpenDraft = {
  */
 export const exportRoutes = (
   options: {
-    scopes?: { name: string; description: string }[];
+    scopes?: { name: string; description: string; workspace?: string }[];
     fail?: Record<string, { status: number; json?: unknown }>;
     open?: FakeOpenDraft[];
   } = {},
@@ -455,6 +455,8 @@ export type FakeSubmitDraft = {
   includes?: string[];
   /** In a workspace the person isn't a member of (091): checked as `not_a_member`. */
   notAMemberOf?: string;
+  /** Removed from this workspace between the check and the submit: submitted as `not_a_member`. */
+  removedFrom?: string;
 };
 
 /**
@@ -470,6 +472,7 @@ export const submitRoutes = (drafts: FakeSubmitDraft[], taken: string[] = []) =>
     name: d.name,
     type: d.type,
     status: d.status,
+    ...(d.notAMemberOf ? { workspace: d.notAMemberOf } : {}),
   });
   const issuesOf = (d: FakeSubmitDraft) =>
     (d.errors ?? []).map((e) => ({ severity: "error", ...e }));
@@ -560,6 +563,20 @@ export const submitRoutes = (drafts: FakeSubmitDraft[], taken: string[] = []) =>
               result: "not_ready",
               ...place(d),
               issues: [{ severity: "error", code: "name_taken", message: `${d.name} is taken.` }],
+            };
+          if (d.removedFrom)
+            return {
+              id,
+              result: "not_a_member",
+              ...place(d),
+              workspace: d.removedFrom,
+              issues: [
+                {
+                  severity: "error",
+                  code: "not_a_member",
+                  message: `You aren't a member of the ${d.removedFrom} workspace.`,
+                },
+              ],
             };
           submitted.push(id);
           return {

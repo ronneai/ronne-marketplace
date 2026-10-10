@@ -8,7 +8,13 @@ import {
   type StoredExport,
 } from "./export-tools.js";
 import { applyPlanTool, planStore, planTool } from "./plan-tools.js";
-import { checkOutdated, getItem, listInstalled, searchItems } from "./read-tools.js";
+import {
+  checkOutdated,
+  getItem,
+  listInstalled,
+  listWorkspaces,
+  searchItems,
+} from "./read-tools.js";
 import { checkDraftsTool, submitDraftsTool } from "./submit-tools.js";
 import { failure, type ToolAnswer } from "./text.js";
 
@@ -27,7 +33,12 @@ const guarded =
     try {
       return await run(input);
     } catch (error) {
-      if (error instanceof RmkError) return failure(error.code, error.message);
+      if (error instanceof RmkError)
+        return failure(
+          error.code,
+          error.message,
+          typeof error.details.joinUrl === "string" ? { joinUrl: error.details.joinUrl } : {},
+        );
       return failure("error", error instanceof Error ? error.message : String(error));
     }
   };
@@ -55,11 +66,18 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
     {
       title: "Search the marketplace",
       description:
-        "Finds published items by name, description or keyword, optionally of one type, in one scope, or installable in one AI tool.",
+        "Finds published items by name, description or keyword, optionally of one type, in one scope or workspace, or installable in one AI tool. Each result names its workspace.",
       inputSchema: {
         query: z.string().min(1).max(100),
         type: z.string().optional().describe("An item type, such as skill or mcp-server"),
         scope: z.string().optional().describe("A scope, such as @platform"),
+        workspace: z
+          .string()
+          .trim()
+          .min(1)
+          .max(64)
+          .optional()
+          .describe("A workspace's name, such as global (list_workspaces lists them)"),
         tool: z
           .string()
           .optional()
@@ -69,6 +87,18 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
       annotations: read,
     },
     guarded((input) => searchItems(io, input)),
+  );
+
+  server.registerTool(
+    "list_workspaces",
+    {
+      title: "List workspaces",
+      description:
+        "The workspaces the person sees, with their role in each (none where they aren't a member) and, there, the web address to ask to join. Asking is done in the web app.",
+      inputSchema: {},
+      annotations: read,
+    },
+    guarded(() => listWorkspaces(io)),
   );
 
   server.registerTool(

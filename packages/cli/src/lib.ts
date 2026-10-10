@@ -3,7 +3,7 @@
  * terminal in them, for the registry MCP server. The `rmk` commands are built on the same code, so
  * the two can't drift.
  */
-export { type ApiClient, ApiError, apiClient, rmkVersion } from "./api.js";
+export { type ApiClient, ApiError, apiClient, joinUrl, rmkVersion } from "./api.js";
 export { diskHash, type Plan, type State } from "./apply.js";
 export { configDir, readUserConfig } from "./config.js";
 export { connectRegistry } from "./connect.js";
@@ -30,7 +30,13 @@ export {
   type SourceTool,
   uploadExport,
 } from "./export.js";
-export { previewText, releaseOrder, togetherOf } from "./export-command.js";
+export {
+  byWorkspace,
+  previewText,
+  releaseOrder,
+  scopeLabel,
+  togetherOf,
+} from "./export-command.js";
 export type { Finding, FindingStatus } from "./export-dependencies.js";
 export {
   chooseTargets,
@@ -68,3 +74,9 @@ export {
 } from "./submit.js";
 export { flushAfterCommand } from "./telemetry.js";
 export { addUsageHooks } from "./usage-hooks.js";
+export {
+  fetchWorkspaces,
+  WORKSPACES_SINCE,
+  type Workspace,
+  workspaceLines,
+} from "./workspaces.js";

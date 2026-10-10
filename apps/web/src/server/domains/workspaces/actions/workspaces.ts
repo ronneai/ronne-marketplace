@@ -1,5 +1,6 @@
 import { getCurrentUser } from "../../identity/actions/session";
 import { clientIp } from "../../identity/models/client-ip";
+import type { CurrentUser } from "../../identity/models/user";
 import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-instance";
 import { kyselyWorkspaceRepository } from "../repositories/kysely-workspace-repository";
 import type { WorkspacePageQuery } from "../repositories/workspace-repository";
@@ -161,6 +162,10 @@ export const ownRequests = async (headers: Headers, app: AppAuth = getAppAuth())
 
 export const myWorkspaces = async (headers: Headers, app: AppAuth = getAppAuth()) =>
   requests.myWorkspaces(deps(app), await actor(headers, app));
+
+/** For 095's API, where the user comes from a bearer token rather than a session. */
+export const myWorkspacesAs = async (user: CurrentUser, app: AppAuth = getAppAuth()) =>
+  requests.myWorkspaces(deps(app), { user, ip: null });
 
 export const joinTarget = async (headers: Headers, name: string, app: AppAuth = getAppAuth()) =>
   requests.joinTarget(deps(app), await actor(headers, app), name);

@@ -4,11 +4,16 @@ import type { Args, Command } from "./cli.js";
 import { RmkError, usage } from "./errors.js";
 import type { Io } from "./io.js";
 import { readLockfile, readProjectConfig, splitItemRef } from "./project.js";
+import { oneWorkspace } from "./workspaces.js";
 
 /** Reading the registry and the project (feature 022): `search`, `info`, `list`, `platforms`. */
 
+/** An item's workspace (095); missing from a registry older than workspaces. */
+type ItemWorkspace = { name: string; visibility: string };
+
 type Summary = {
   name: string;
+  workspace?: ItemWorkspace;
   type: string;
   description: string;
   version: string;
@@ -21,6 +26,7 @@ type Summary = {
 
 type ItemInfo = {
   name: string;
+  workspace?: ItemWorkspace;
   type: string;
   description: string;
   owner: string | null;
@@ -81,6 +87,9 @@ export const withApi = (
     if (type) params.set("type", type);
     const scope = str(args.values.scope);
     if (scope) params.set("scope", scope.replace(/^@/, ""));
+    // One workspace's items (095), as the catalogue's filter.
+    const workspace = oneWorkspace(args.values.workspace);
+    if (workspace) params.set("workspace", workspace);
     // An AI tool: only items that install in it (026).
     const target = str(args.values.target);
     if (target) params.set("tool", target);
@@ -108,6 +117,10 @@ export const withApi = (
     out.set("item", item);
     if (detail) out.set("version", detail);
     out.say(`${item.name}  ${item.type}  ${item.description}`);
+    if (item.workspace)
+      out.say(
+        `workspace: ${item.workspace.name}${item.workspace.visibility === "private" ? " (private)" : ""}`,
+      );
     out.say(`owner: ${item.owner ?? "a former user"}  downloads: ${item.downloads}`);
     out.say(
       `tags: ${

@@ -18,6 +18,7 @@ import { UNFILTERED } from "../domains/workspaces/models/viewer";
 import { kyselyWorkspaceRepository } from "../domains/workspaces/repositories/kysely-workspace-repository";
 import { localStorage } from "../storage/local-storage";
 import type { StorageAdapter } from "../storage/storage-adapter";
+import { getMe, getWorkspaces } from "./api-v1";
 import { getScopes } from "./drafts-api";
 import {
   getItem,
@@ -39,6 +40,7 @@ let member: string;
 let outsider: string;
 let root: string;
 let plain: string;
+let app: AppAuth;
 const BASE = "http://localhost:3000/api/v1";
 const password = "correct horse battery";
 
@@ -50,7 +52,7 @@ const tokenFor = async (app: AppAuth, email: string) => {
 
 beforeEach(async () => {
   t = await createTestDb();
-  const app = testAppAuth(t);
+  app = testAppAuth(t);
   storageRoot = await mkdtemp(join(tmpdir(), "ronne-private-api-"));
   storage = localStorage(storageRoot);
   deps = {
@@ -217,5 +219,85 @@ describe("the registry API and a private workspace (093)", () => {
     await asks.tarball("deploy", member);
     const after = await t.db.selectFrom("items").select("download_count").executeTakeFirstOrThrow();
     expect(Number(after.download_count)).toBe(1);
+  });
+});
+
+describe("workspaces in the API (095)", () => {
+  beforeEach(async () => {
+    await kyselyWorkspaceRepository(t.db, t.dialect).insert({
+      name: "tools",
+      description: "Tools.",
+      visibility: "public",
+      createdBy: null,
+      createdAt: new Date(),
+    });
+  });
+
+  const workspaces = async (token: string) => {
+    const response = await getWorkspaces(get("/workspaces", token), deps.guard, app);
+    expect(response.status).toBe(200);
+    return (await response.json()).workspaces;
+  };
+  const roles = async (token: string) =>
+    Object.fromEntries(
+      (await workspaces(token)).map((w: { name: string; role: string | null }) => [w.name, w.role]),
+    );
+
+  it("lists the workspaces the caller sees, global first, with their role or null", async () => {
+    expect(await workspaces(member)).toEqual([
+      {
+        name: "global",
+        description: expect.any(String),
+        visibility: "public",
+        global: true,
+        role: "user",
+      },
+      { name: "acme", description: "Acme.", visibility: "private", global: false, role: "user" },
+      { name: "tools", description: "Tools.", visibility: "public", global: false, role: null },
+    ]);
+    // A non-member doesn't see the private one at all; root sees every one, as root.
+    expect(await roles(outsider)).toEqual({ global: "moderator", tools: null });
+    expect(await roles(root)).toEqual({ global: "root", acme: "root", tools: "root" });
+  });
+
+  it("needs a token", async () => {
+    const response = await getWorkspaces(new Request(`${BASE}/workspaces`), deps.guard, app);
+    expect(response.status).toBe(401);
+  });
+
+  it("puts the caller's memberships in me", async () => {
+    const me = async (token: string) =>
+      (await (await getMe(get("/me", token), deps.guard, app)).json()).workspaces;
+    expect(await me(member)).toEqual([
+      { name: "global", role: "user" },
+      { name: "acme", role: "user" },
+    ]);
+    expect(await me(outsider)).toEqual([{ name: "global", role: "moderator" }]);
+  });
+
+  it("puts the workspace on search results, items and versions", async () => {
+    const acme = { name: "acme", visibility: "private" };
+    const search = await (await listItems(get("/items?q=deploy", member), deps)).json();
+    expect(search.items[0].workspace).toEqual(acme);
+    expect((await (await asks.item("deploy", member)).json()).workspace).toEqual(acme);
+    expect((await (await asks.version("deploy", member)).json()).workspace).toEqual(acme);
+  });
+
+  it("filters search by ?workspace=, a private one finding nothing for a non-member", async () => {
+    const names = async (query: string, token: string) => {
+      const response = await listItems(get(`/items?${query}`, token), deps);
+      expect(response.status).toBe(200);
+      return (await response.json()).items.map((i: { name: string }) => i.name);
+    };
+    expect(await names("workspace=acme", member)).toEqual(["@acme-infra/deploy"]);
+    expect(await names("workspace=%20ACME%20", member)).toEqual(["@acme-infra/deploy"]);
+    expect(await names("workspace=acme", root)).toEqual(["@acme-infra/deploy"]);
+    expect(await names("workspace=tools", member)).toEqual([]);
+    // To a non-member, a private workspace answers as a name no workspace has.
+    const hidden = await listItems(get("/items?workspace=acme", outsider), deps);
+    const unknown = await listItems(get("/items?workspace=nowhere", outsider), deps);
+    expect(await hidden.text()).toBe(await unknown.text());
+    const tooLong = await listItems(get(`/items?workspace=${"x".repeat(65)}`, member), deps);
+    expect(tooLong.status).toBe(400);
   });
 });
