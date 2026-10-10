@@ -80,9 +80,26 @@ export const pluginUrl = (publicUrl: string, tool: ServedTool, ref: PluginRef) =
 export const marketplaceUrl = (publicUrl: string, tool: ServedTool) =>
   `${baseUrl(publicUrl)}/api/v1/feeds/${tool}/marketplace.json`;
 
-/** A plugin's description: a deprecated version says so first (contract, Which items appear). */
-export const pluginDescription = (description: string, deprecatedMessage: string | null) =>
-  deprecatedMessage ? `Deprecated: ${deprecatedMessage} ${description}`.trim() : description;
+/** How long a plugin says the name it had before (118): a moved item is a new plugin. */
+export const MOVED_NOTE_DAYS = 30;
+
+/**
+ * A plugin's description: a deprecated version says so first (contract, Which items appear), and
+ * an item renamed in the last 30 days says what it was called (118).
+ */
+export const pluginDescription = (
+  description: string,
+  deprecatedMessage: string | null,
+  movedFrom: string | null = null,
+) =>
+  [
+    deprecatedMessage ? `Deprecated: ${deprecatedMessage}` : "",
+    movedFrom ? `Moved from ${movedFrom}.` : "",
+    description,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
 
 /**
  * The largest marketplace file Claude Code reads (5 MiB, checked 2026-10-03). Past it, the route

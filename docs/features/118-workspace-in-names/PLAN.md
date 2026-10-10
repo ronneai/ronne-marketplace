@@ -45,7 +45,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* CLI and MCP tests cover an alias rewrite end to end in a temporary project, and an
   old user-agent gets `client_too_old`.
 
-- [ ] **6. Plugin feeds.** Plugin names `workspace.scope.name` outside `global`; the "Moved from"
+- [x] **6. Plugin feeds.** Plugin names `workspace.scope.name` outside `global`; the "Moved from"
   note for 30 days; `docs/spec/plugin-feeds.md` updated.
   *Done when:* feed tests cover the names, the length warning and the note.
 
@@ -94,3 +94,6 @@ goes into `SPEC.md` instead.
   old version's dependencies by them. A current `rmk` says `x-rmk-names: workspace`; an `rmk/…`
   without it gets 426 `client_too_old` for names outside `global`. `outdated` only reports a new
   name; `install` and `update` move the project.
+- **Task 6:** a name a tool refuses is now logged once, when its plugin is built. Untested yet:
+  `rmk feed build` fetching from `/feeds/<tool>/workspaces/…` (a probe showed it works),
+  `pluginKey` with a workspace; `renamedSince` keeps the newest alias by `created_at` only.

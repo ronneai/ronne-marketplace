@@ -191,6 +191,7 @@ const ITEM_READS: Partial<Record<keyof ItemRepository, Probe<ItemRepository>>> =
   dependencyWorkspaces: async (repo) =>
     (await repo.dependencyWorkspaces(ids.privateVersion)).length > 0,
   oldNames: async (repo) => (await repo.oldNames([ids.privateItem])).size > 0,
+  renamedSince: async (repo) => (await repo.renamedSince([ids.privateItem], new Date(0))).size > 0,
 };
 
 const SCOPE_READS: Partial<Record<keyof ScopeRepository, Probe<ScopeRepository>>> = {

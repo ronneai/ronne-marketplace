@@ -33,6 +33,8 @@ export interface ItemRepository {
   isOldName(name: string): Promise<boolean>;
   /** The old names of these items (118), of those the viewer sees: old name → item id. */
   oldNames(itemIds: readonly string[]): Promise<Map<string, string>>;
+  /** For these items, the newest old name each got since `since` (118), for who sees them. */
+  renamedSince(itemIds: readonly string[], since: Date): Promise<Map<string, string>>;
   insertItem(item: {
     scopeId: string;
     name: string;

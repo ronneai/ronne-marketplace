@@ -152,6 +152,20 @@ export const kyselyItemRepository = (
           ).map((row) => [row.name, row.item_id]),
         ),
 
+  renamedSince: async (itemIds, since) => {
+    if (itemIds.length === 0) return new Map();
+    const rows = await db
+      .selectFrom("item_aliases")
+      .select(["name", "item_id", "created_at"])
+      .where("item_id", "in", [...itemIds])
+      .where("created_at", ">=", toDbDate(since, dialect))
+      .where(isVisibleItem(viewer, "item_aliases.item_id"))
+      .orderBy("created_at")
+      .execute();
+    // The newest last, so it's the one kept.
+    return new Map(rows.map((row) => [row.item_id, row.name]));
+  },
+
   insertItem: async (item) => {
     const id = newId();
     await db

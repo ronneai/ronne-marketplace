@@ -17,6 +17,7 @@ import type { CurrentUser } from "../../identity/models/user";
 import { kyselyCatalogueRepository } from "../../items/repositories/kysely-catalogue-repository";
 import { kyselyItemRepository } from "../../items/repositories/kysely-item-repository";
 import { UNFILTERED } from "../../workspaces/models/viewer";
+import { kyselyWorkspaceRepository } from "../../workspaces/repositories/kysely-workspace-repository";
 import { FeedTooLargeError, PluginNotFoundError } from "../exceptions/errors";
 import { pluginKey, sidecarKey } from "../models/feed";
 import { kyselyFeedRepository } from "../repositories/kysely-feed-repository";
@@ -252,6 +253,74 @@ describe("the Claude Code feed (077)", () => {
     await kyselyItemRepository(t.db, t.dialect, UNFILTERED).setDeprecated(id, "Use @team/style.");
     const old = (await feedPlugins(deps(), actor, "claude-code")).find((p) => p.name === "old");
     expect(old?.description).toBe("Deprecated: Use @team/style. Old tricks.");
+  });
+
+  it("names a workspace's items workspace.scope.name, says where they moved from, and builds old versions (118)", async () => {
+    // @team moves to acme, as 115 will move it: its items get new names, the old ones aliases.
+    const acme = await kyselyWorkspaceRepository(t.db, t.dialect).insert({
+      name: "acme",
+      description: "Acme.",
+      visibility: "public",
+      createdBy: null,
+      createdAt: now,
+    });
+    await t.db.updateTable("scopes").set({ workspace_id: acme }).where("id", "=", "s1").execute();
+    for (const name of ["reviewer", "style"])
+      await t.db
+        .insertInto("item_aliases")
+        .values({
+          name: `@team/${name}`,
+          item_id: itemIds.get(name) ?? "",
+          reason: "move",
+          created_at: toDbDate(now, t.dialect),
+        })
+        .execute();
+    const soon = deps({ clock: () => now.getTime() + 24 * 60 * 60 * 1000 });
+    const plugins = await feedPlugins(soon, actor, "claude-code");
+    expect(plugins.map((p) => `${p.workspace}/${p.scope}/${p.name}`)).toEqual([
+      "acme/team/reviewer",
+      "acme/team/style",
+    ]);
+    expect(plugins.find((p) => p.name === "style")?.description).toBe(
+      "Moved from @team/style. House style.",
+    );
+    const file = new TextDecoder().decode(
+      await marketplace(soon, actor, "claude-code", "https://ronne.example.com"),
+    );
+    expect(JSON.parse(file).plugins.map((p: { name: string }) => p.name)).toContain(
+      "acme.team.reviewer",
+    );
+    expect(file).toContain(
+      "/api/v1/feeds/claude-code/workspaces/acme/plugins/team/reviewer/2.0.0.zip",
+    );
+    // reviewer 2.0.0 still names `@team/style`: its plugin finds the skill by that old name.
+    const { bytes } = await downloadPlugin(soon, actor, "claude-code", {
+      workspace: "acme",
+      scope: "team",
+      name: "reviewer",
+      version: "2.0.0",
+    });
+    expect(new TextDecoder().decode(unzipSync(bytes)["agents/reviewer.md"])).toContain("style");
+    // After 30 days, no note.
+    const later = deps({ clock: () => now.getTime() + 31 * 24 * 60 * 60 * 1000 });
+    expect(
+      (await feedPlugins(later, actor, "claude-code")).find((p) => p.name === "style")?.description,
+    ).toBe("House style.");
+  });
+
+  it("leaves out of Codex's feed a name its 64 characters can't hold, with a warning (118)", async () => {
+    const long = await kyselyWorkspaceRepository(t.db, t.dialect).insert({
+      name: "a-workspace-with-a-name-long-enough-to-pass-codex-limit",
+      description: "Long.",
+      visibility: "public",
+      createdBy: null,
+      createdAt: now,
+    });
+    await t.db.updateTable("scopes").set({ workspace_id: long }).where("id", "=", "s1").execute();
+    const names = (await feedPlugins(deps(), actor, "codex")).map((p) => p.name);
+    expect(names).not.toContain("style");
+    expect(logged.join("\n")).toMatch(/longer than the tool allows/);
+    expect((await feedPlugins(deps(), actor, "claude-code")).map((p) => p.name)).toContain("style");
   });
 
   it("builds a plugin with the item and its resolved dependencies", async () => {

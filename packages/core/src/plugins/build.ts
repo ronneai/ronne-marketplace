@@ -116,6 +116,11 @@ export const buildPlugin = (tool: PluginTool, input: PluginInput): BuiltPlugin =
       return dependency ? [[m.name, dependency] as const] : [];
     }),
   );
+  // An old version may name a dependency by its old name (118).
+  for (const [old, now] of input.oldNames ?? []) {
+    const dependency = known.get(now);
+    if (dependency && !known.has(old)) known.set(old, dependency);
+  }
   for (const member of input.members) {
     // Claude Code names the plugin's own agents and skills `plugin:name` (097).
     const result = renderer.render(withDependencies(member, known), {

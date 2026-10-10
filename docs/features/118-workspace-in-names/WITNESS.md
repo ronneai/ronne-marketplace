@@ -307,3 +307,25 @@ Witnessed: 2026-10-10 02:02 EDT, by a fresh agent (blind). Commit: 4b9e6a02 (plu
 | 6 | `outdated` reports the new name, writes nothing, and the spec agrees | no | confirmed | probe `rmk outdated --json` → `now`, `wanted: "1.0.0"`, note, files unchanged; `SPEC.md:187-189` matches `:35-39` and `cli-files.md` |
 
 **Overall:** met.
+
+## Task 6 — Plugin feeds
+
+Witnessed: 2026-10-10 02:13 EDT, by a fresh agent (blind). Commit: d443cff6 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Plugin names `scope.name` in global, `workspace.scope.name` elsewhere; reversible; never `global.…` | no | confirmed | `plugins/names.ts:9-28`; `names.test.ts:10-16`; core plugins 33 passed |
+| 2 | The feed lists a workspace item under the 3-part name with the workspace zip URL | no | confirmed | `plugin-feed.db.test.ts:289-295`; probe `pluginUrl` for acme and global |
+| 3 | The server serves the workspace zip route; a non-member gets the unknown item's 404 | no | confirmed | the route file; `itemRefOf`; `private-feeds-api.db.test.ts:210-248` |
+| 4 | Workspace zips stored under `feeds/<tool>/@<workspace>/…` | no | confirmed | `feed.ts:31-50`; probe keys; no repository test |
+| 5 | `rmk feed build` fetches a workspace item's zip from the served path | no | confirmed | `feed-build.ts:203-214`; scratchpad probe; no repository test |
+| 6 | A name over Codex's 64 characters is left out of Codex's feed with the warning | no | confirmed | `plugin-feed.ts:219-226`; test `:311-324`; breaking the warning fails it |
+| 7 | An item renamed in the last 30 days says "Moved from <old>." | no | confirmed | `feed.ts:83-102`, `plugin-feed.ts:301-336`, `renamedSince`; setting it to null fails the test |
+| 8 | The note goes after 30 days | no | confirmed | test at +31 days; a 3650-day window fails it |
+| 9 | An old version naming a dependency by its old name still builds with it | no | confirmed | `build.ts:119-123`, `plugin-feed.ts:168-178`; without `oldNames` the test fails |
+| 10 | `renamedSince` respects visibility | no | confirmed | guard test probe on four databases |
+| 11 | The feed tests pass on the databases | no | confirmed | SQLite 52 passed; `pnpm test:db:postgres` / `:mysql` / `:mariadb` 41 each |
+| 12 | `docs/spec/plugin-feeds.md` updated | no | confirmed | `:83-86`, `:105-109`, `:164` |
+| 13 | Lint and typecheck clean on the changed code | no | confirmed | biome on 36 files; web `tsc --noEmit`; core typecheck; CLI `feed-build.test.ts` 13 passed |
+
+**Overall:** met.
