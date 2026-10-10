@@ -89,3 +89,31 @@ Witnessed: 2026-10-09 20:47 EDT, by a fresh agent (blind). Commit: bde7afb (plus
 | 14 | "The MCP tools take and return the workspace" | no | confirmed | Rows 3 to 12 |
 
 **Overall:** met: `search_items` takes and validates `workspace`, results and `get_item` carry it, `list_workspaces` matches `rmk workspaces`, export scopes are grouped by workspace, `not_a_member` carries `joinUrl`, old registries work. After the pass, the test the witness suggested for `guarded`'s `joinUrl` was added to `workspaces.test.ts` ("puts where to ask to join in any tool's not_a_member error"); replacing the `joinUrl` with `{}` in `server.ts` fails it (50 tests otherwise pass).
+
+## Task 4 — Compatibility
+
+Witnessed: 2026-10-09 20:53 EDT, by a fresh agent (blind). Commit: bacd856. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | An older `rmk` (the last release) passes `release:smoke` against the new server (acceptance criterion) | no | partly | `pnpm release:smoke` → exit 0, but `release-smoke.js:86` packs this branch's packages; it never runs the released `rmk` or any `rmk` against a server, so it can't check the criterion as worded; old-client compatibility is shown by rows 3–9 |
+| 2 | `pnpm release:smoke` passes | no | confirmed | exit 0: 4 packages packed at 0.3.2, ✓ `rmk --version`, `--help`, `rmk-mcp` initialize, `rmk-server` 503 setup_required |
+| 3 | Old `rmk search` works against the new server | no | confirmed | npm `@ronneai/rmk` 0.3.2 against the seeded instance (`next start`, this branch): plain user `search e2e` → 11 items incl. `@e2e-seeded/kit-rule`; member → 12 incl. `@e2e-vault-tools/vault-deploy` |
+| 4 | Old `rmk install` works against the new server | no | confirmed | Plain user installs `@e2e-seeded/kit-rule` → `.claude/rules/kit-rule.md`, `rmk.lock` with sha256; member installs `vault-deploy` and `kit-rule` for claude-code,codex → skills, `AGENTS.md`, both in the lock |
+| 5 | Visibility holds for the old client | no | confirmed | Plain user: `search vault --json` → `[]`; `install`/`info` of `vault-deploy` → "isn't a published item.", exit 1 |
+| 6 | Old `rmk` doesn't show workspaces; new fields are ignored | no | confirmed | `search --json` carries `workspace`; text output unchanged; `info` exit 0 |
+| 7 | `?workspace=` is optional | no | confirmed | Old `rmk` sends none; `search`, `info`, `install`, `outdated`, `update` succeed |
+| 8 | Export's scope list is filtered by the server for an old `rmk` | no | confirmed | `GET /api/v1/scopes?limit=100`: plain → `e2e-seeded`; member → also `e2e-vault-tools`; old `rmk export --to @e2e-vault-tools --dry-run`: plain → "has no scope", member passes the scope check |
+| 9 | Other old-client commands keep working | no | confirmed | `list --installed`, `outdated`, `update`, `whoami` → exit 0 |
+
+**Overall:** not met: the old `rmk` 0.3.2 searches, installs, exports and updates against the new server and private items stay hidden, but `release:smoke` doesn't run the last release against a server, so the criterion isn't true as written (row 1).
+
+### Re-check
+
+Witnessed: 2026-10-09 20:53 EDT, by a fresh agent (blind). Commit: bacd856 (plus the uncommitted SPEC.md wording). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `pnpm release:smoke` passes, and the last released `rmk`, installed from npm, searches and installs against the new server | no | confirmed | `pnpm release:smoke` → exit 0, every check ✓ (packs this branch, as the criterion says); `oldrmk/package-lock.json` resolves `registry.npmjs.org/@ronneai/rmk/-/rmk-0.3.2.tgz`, `rmk --version` → 0.3.2; fresh run as remember@e2e.test: `search kit-rule` → `@e2e-seeded/kit-rule@1.0.0`, `install @e2e-seeded/kit-rule --target claude-code` → wrote `.claude/rules/kit-rule.md`, exit 0 |
+
+**Overall:** met: `release:smoke` passes, and the released `rmk` 0.3.2 from npm searches and installs against this branch's server.

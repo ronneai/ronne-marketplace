@@ -18,7 +18,7 @@ the same change that completes it.
 - [x] **3. MCP.** `search_items` with `workspace`, `list_workspaces`.
   *Done when:* MCP tests pass.
 
-- [ ] **4. Compatibility.** The last released `rmk` against the new server.
+- [x] **4. Compatibility.** The last released `rmk` against the new server.
   *Done when:* `pnpm release:smoke` passes, plus a manual run of the old `rmk search` and `install`.
 
 - [ ] **5. Documentation.** The topics in the spec.

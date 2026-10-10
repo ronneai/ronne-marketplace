@@ -82,7 +82,9 @@ first release with workspaces.
 - [ ] `rmk workspaces`, `rmk search --workspace`, `rmk info` and `rmk export` behave as above,
   with CLI tests.
 - [ ] The MCP tools take and return the workspace.
-- [ ] An older `rmk` (the last release) passes `release:smoke` against the new server.
+- [ ] `pnpm release:smoke` passes, and the last released `rmk`, installed from npm, searches and
+  installs against the new server (`release:smoke` packs this branch's packages, so the released
+  `rmk` is run by hand).
 - [ ] The Documentation listed above says what the feature does now.
 
 ## Open questions
