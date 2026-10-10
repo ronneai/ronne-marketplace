@@ -3,7 +3,7 @@ import { isId } from "../../../db/ids";
 import { can } from "../../identity/models/permissions";
 import { BulkLimitError, NotAMemberError } from "../exceptions/errors";
 import { statusLabel } from "../models/status";
-import { itemNameOf, type Submission } from "../models/submission";
+import { itemNameOf, itemRefOf, type Submission } from "../models/submission";
 import { dependenciesOf, marksFor } from "./dependency-marks";
 import { requireSignedIn } from "./membership";
 import { staleVersion } from "./proposals";
@@ -114,7 +114,7 @@ export const prepareRelease = async (
     for (const [dependency, range] of Object.entries(await dependenciesOf(deps.repo, submission))) {
       if ((await marksFor(registry, { [dependency]: range })).length === 0) continue;
       const parsed = parseItemName(dependency);
-      const open = parsed ? await registry.submissionsNamed(parsed.scope, parsed.name) : [];
+      const open = parsed ? await registry.submissionsNamed(parsed) : [];
       const approved = open.find((s) => s.status === "approved");
       const waiting = open.find(
         (s) => s.status === "submitted" || s.status === "changes_requested",
@@ -176,7 +176,7 @@ export const prepareRelease = async (
   // Each candidate's facts, then the order: what it depends on in the batch goes first.
   const facts = await Promise.all(
     [...chosen.values()].map(async ({ submission, includedFor }) => {
-      const item = await registry.findItem(submission.scope.name, submission.name);
+      const item = await registry.findItem(itemRefOf(submission));
       const dependencies = Object.keys(await dependenciesOf(deps.repo, submission));
       return {
         id: submission.id,

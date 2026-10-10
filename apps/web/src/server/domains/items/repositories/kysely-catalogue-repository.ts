@@ -1,4 +1,10 @@
-import { ITEM_TYPES, type ItemType } from "@ronneai/core";
+import {
+  canonicalItemName,
+  GLOBAL_WORKSPACE,
+  ITEM_TYPES,
+  type ItemType,
+  typedNameParts,
+} from "@ronneai/core";
 import { installsIn, rendererById, supportFor } from "@ronneai/core/render";
 import type { Kysely, SelectQueryBuilder } from "kysely";
 import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
@@ -88,14 +94,33 @@ export const kyselyCatalogueRepository = (
     }: CatalogueFilter,
   ) => {
     let q = query;
-    // An item's name as people write it (056): `@team/re` is scope `team` and a name with `re`;
-    // a single word also matches the scope.
+    // An item's name as people write it (056, 118): `@team/re` is scope `team` and a name with
+    // `re`, `@acme/team/re` names the workspace too; a single word also matches the scope.
     const words = search?.replace(/^@/, "") ?? "";
-    const slash = words.indexOf("/");
-    if (words && slash >= 0) {
-      const [scopePart, namePart] = [words.slice(0, slash), words.slice(slash + 1)];
-      if (scopePart) q = q.where(containsInsensitive("scopes.name", scopePart));
-      if (namePart) q = q.where(containsInsensitive("items.name", namePart));
+    const typed = typedNameParts(words);
+    if (typed) {
+      const parts = [
+        ...(typed.workspace ? [containsInsensitive("workspaces.name", typed.workspace)] : []),
+        ...(typed.scope ? [containsInsensitive("scopes.name", typed.scope)] : []),
+        ...(typed.name ? [containsInsensitive("items.name", typed.name)] : []),
+      ];
+      // A whole old name (118) finds its item too, under the name it has now.
+      const old = canonicalItemName(`@${words.trim().toLowerCase()}`);
+      q = q.where((eb) =>
+        old
+          ? eb.or([
+              eb.and(parts),
+              eb(
+                "items.id",
+                "in",
+                eb
+                  .selectFrom("item_aliases")
+                  .select("item_aliases.item_id")
+                  .where("name", "=", old),
+              ),
+            ])
+          : eb.and(parts),
+      );
     } else if (words)
       q = q.where((eb) =>
         eb.or([
@@ -158,7 +183,7 @@ export const kyselyCatalogueRepository = (
           ? query.orderBy("items.last_published_at", "desc").orderBy("items.id", "desc")
           : sort === "installs"
             ? query.orderBy("items.download_count", "desc").orderBy("items.id", "desc")
-            : query.orderBy("scopes.name").orderBy("items.name");
+            : query.orderBy("scopes.name").orderBy("items.name").orderBy("items.id");
       if (after) {
         const installable = toDbBoolean(after.installable, dialect);
         query = query.where((eb) =>
@@ -196,6 +221,11 @@ export const kyselyCatalogueRepository = (
                         eb("scopes.name", "=", after.scope),
                         eb("items.name", ">", after.name),
                       ]),
+                      eb.and([
+                        eb("scopes.name", "=", after.scope),
+                        eb("items.name", "=", after.name),
+                        eb("items.id", ">", after.id),
+                      ]),
                     ]),
             ]),
           ]),
@@ -211,8 +241,12 @@ export const kyselyCatalogueRepository = (
             await entries()
               .where((eb) =>
                 eb.or(
-                  names.map(({ scope, name }) =>
-                    eb.and([eb("scopes.name", "=", scope), eb("items.name", "=", name)]),
+                  names.map(({ workspace, scope, name }) =>
+                    eb.and([
+                      eb("workspaces.name", "=", workspace || GLOBAL_WORKSPACE),
+                      eb("scopes.name", "=", scope),
+                      eb("items.name", "=", name),
+                    ]),
                   ),
                 ),
               )

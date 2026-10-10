@@ -39,7 +39,7 @@ export const marksFor = async (
   for (const [dependency, range] of Object.entries(dependencies)) {
     const parsed = parseItemName(dependency);
     if (!parsed || seen.has(dependency)) continue;
-    const item = await registry.findItem(parsed.scope, parsed.name);
+    const item = await registry.findItem(parsed);
     if (item) {
       const versions = (await registry.publishedVersions(item.id)).filter((v) => !v.yanked);
       if (
@@ -50,7 +50,7 @@ export const marksFor = async (
       )
         continue;
     }
-    const all = await registry.submissionsNamed(parsed.scope, parsed.name);
+    const all = await registry.submissionsNamed(parsed);
     const open = all.find((s) => OPEN_STATUSES.includes(s.status));
     if (open) {
       // On its way, unless something it waits on is blocked: then this is blocked too.

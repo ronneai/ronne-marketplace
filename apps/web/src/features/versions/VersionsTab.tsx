@@ -24,7 +24,11 @@ export const VersionsTab = ({
   /** Runs and installs per version over 30 days, when the item has enough usage to show (047). */
   usage?: Record<string, VersionReach> | null;
 }) => {
-  const itemRef = { scope: page.item.scope.name, name: page.item.name };
+  const itemRef = {
+    workspace: page.item.workspace,
+    scope: page.item.scope.name,
+    name: page.item.name,
+  };
   const choices = page.versions.map((v) => ({ version: v.version, yanked: v.yankedAt !== null }));
   const yanked = new Set(choices.filter((v) => v.yanked).map((v) => v.version));
   const hasLatest = page.tags.some((tag) => tag.tag === "latest");

@@ -80,8 +80,10 @@ Ronne serves:
 - **Marketplace name:** `ronne-<host>`, from the instance's `PUBLIC_URL` host with `.` and `:`
   replaced by `-` (for example `ronne-registry-example-com`). `rmk` derives the same name from its
   registry URL.
-- **Plugin name:** `@scope/name` becomes `scope.name`. Ronne names never contain a dot
-  ([manifest](./manifest.md)), so the one dot is the separator and the mapping can be reversed. All
+- **Plugin name:** `@scope/name` becomes `scope.name`, and `@workspace/scope/name` (an item outside
+  `global`, 118) becomes `workspace.scope.name`; `global.…` is never made. Ronne names never
+  contain a dot ([manifest](./manifest.md)), so the dots are the separators and the mapping can be
+  reversed. All
   three tools accept a dot (Claude Code: letters, digits, `.`, `_`, `-`; Agent Plugins:
   `[a-z0-9.-]`, at most 64, no `--` or `..`; Cursor: `^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$`). A name a
   tool refuses (longer than 64 characters or containing `--`, for Codex; starting with `claude-`
@@ -100,6 +102,11 @@ Ronne serves:
   built. Types that have no plugin form for that tool (table below) leave the item out of that
   tool's feed.
 - A deprecated version appears, with `Deprecated: <message>` at the start of its description.
+- An item whose name changed in the last 30 days (118's migration today; a scope moved or a
+  workspace renamed once 115 and 113 are built) says `Moved from <old name>.` before its description: to the tool it's a new plugin, and
+  the old one is gone from the marketplace.
+- A tool that refuses a plugin's name (above) leaves it out of that tool's feed; the instance logs
+  it once, when the plugin is first built.
 - Only items the caller can see appear ([093](../features/093-private-workspaces/SPEC.md)): the
   public workspaces' items, and a private workspace's for its members and root. Everyone else gets
   the feed as if those items didn't exist.
@@ -154,7 +161,7 @@ bearer token, like the rest of `/api/v1` (401 without one).
 | Method & path | Answers |
 |---|---|
 | `GET marketplace.json` | The tool's feed as a marketplace file, in Claude Code's shape for every tool: entries use `archive` sources pointing at the zip route below, with the zip's `sha256`. Claude Code reads its own; `rmk feed build` reads Codex's and Cursor's, and writes their real marketplace files into the mirror (078). It holds what the token's user sees; with `?workspaces=<names>` (093, comma-separated, may be empty), only the public workspaces' items and those of the private workspaces it names |
-| `GET plugins/{scope}/{name}/{version}.zip` | The built plugin. `ETag` is the sha256, `If-None-Match` answers 304, `cache-control: private, max-age=31536000, immutable`. 404 when the version doesn't exist, is yanked, has nothing for this tool, or its item isn't one the token's user sees (093), the same answer for each |
+| `GET plugins/{scope}/{name}/{version}.zip`, `GET workspaces/{workspace}/plugins/{scope}/{name}/{version}.zip` | The built plugin: `global`'s items at the first, every other workspace's at the second (118). `ETag` is the sha256, `If-None-Match` answers 304, `cache-control: private, max-age=31536000, immutable`. 404 when the version doesn't exist, is yanked, has nothing for this tool, or its item isn't one the token's user sees (093), the same answer for each |
 
 The marketplace answers `cache-control: private, no-cache` and an `ETag`, because it changes with
 every release.

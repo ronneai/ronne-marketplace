@@ -1,3 +1,4 @@
+import { formatScopeName } from "@ronneai/core";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Help } from "@/components/help/Help";
@@ -123,7 +124,15 @@ const AdminWorkspace = async ({
           scopes={scopes.scopes}
           page={{ next: scopes.next, previous: scopes.previous }}
           total={scopes.total}
-          actions={(scope) => <EditScopeButton name={scope.name} description={scope.description} />}
+          actions={(scope) => (
+            // Scope names are unique per workspace (118): `acme/infra` says which one.
+            <EditScopeButton
+              name={formatScopeName({ workspace: scope.workspace.name, scope: scope.name }).slice(
+                1,
+              )}
+              description={scope.description}
+            />
+          )}
         />
       </>
     );

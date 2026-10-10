@@ -75,6 +75,12 @@ The resolved, flat set. `rmk install` with no arguments installs exactly this.
 ```
 
 - One entry per item (one version per item, MVP §4.3). `dependencies` maps to the pinned versions chosen.
+- Items are keyed by their full name: `@scope/name` in `global`, `@workspace/scope/name` in any
+  other workspace (118). When the registry answers that an item has a new name (118's migration
+  today; a scope moved or a workspace renamed once 115 and 113 are built), `rmk install` and `update` rewrite the entry, the project's
+  `dependencies`, the state file's entries and the managed markers to the new name in the same
+  apply, and say so; `rmk outdated` says the new name and writes nothing. An old name keeps
+  working until then: the registry reads it as the item's name now.
 - The tarball URL isn't stored. It comes from the registry and the name and version, so a registry can move without changing lockfiles.
 - rmk fails if a download's sha256 doesn't match the lockfile: when an item resolves to the version
   the lockfile already holds, the registry's sha256 for it must be the lockfile's, on `install`,

@@ -100,7 +100,8 @@ then be private too. An `rmk` from before 093 doesn't send `?workspaces=`, so a 
 it, gets what the caller sees. A forged header can only narrow the caller's own view.
 
 **What members see.** A private workspace's items carry a lock icon and "Private · acme" next to
-the scope on the card and item page. The catalogue's Workspace filter lists the visible ones.
+the scope on the card and item page ("Private · @acme/scope/name" since 118, whose full name says
+the workspace). The catalogue's Workspace filter lists the visible ones.
 
 ## Edge cases
 

@@ -1,4 +1,4 @@
-import type { ItemType } from "@ronneai/core";
+import type { ItemType, ScopeRef } from "@ronneai/core";
 import type { KeysetPage, SortDir } from "../../../db/keyset";
 import type { NewAuditEvent } from "../../audit/models/audit-event";
 import type {
@@ -62,9 +62,9 @@ export type ReviewPageQuery = ReviewFilters & {
 /** What the submission services need from storage. Implemented with Kysely in kysely-submission-repository.ts. */
 export interface SubmissionRepository {
   transaction<T>(work: (repo: SubmissionRepository) => Promise<T>): Promise<T>;
-  /** A scope by name, with its workspace (091). */
+  /** A scope by its name in its workspace (091, 118), with the workspace. */
   findScope(
-    name: string,
+    ref: ScopeRef,
   ): Promise<{ id: string; name: string; workspace: { id: string; name: string } } | null>;
   insert(submission: NewSubmission): Promise<string>;
   find(id: string): Promise<Submission | null>;

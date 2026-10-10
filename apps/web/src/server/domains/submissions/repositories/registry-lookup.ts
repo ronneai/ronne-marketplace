@@ -1,4 +1,5 @@
 import type { ItemType } from "@ronneai/core";
+import type { ItemRef } from "../../items/models/item";
 import type { SubmissionStatus } from "../models/status";
 
 /** A workspace as the dependency rule needs it (093): which one, and whether it's private. */
@@ -6,6 +7,11 @@ export type DependencyWorkspace = { id: string; private: boolean };
 
 export type PublishedItem = {
   id: string;
+  /**
+   * Its full name now (118). Differs from the name it was asked by when that was an old name, an
+   * alias kept for it.
+   */
+  fullName: string;
   scope: string;
   name: string;
   type: ItemType;
@@ -51,15 +57,18 @@ export type NamedSubmission = {
  * checks don't change.
  */
 export interface RegistryLookup {
-  findItem(scope: string, name: string): Promise<PublishedItem | null>;
+  /** By its name now, or an old name it had (118), as the viewer sees it. */
+  findItem(ref: ItemRef): Promise<PublishedItem | null>;
+  /** Whether a full name is any item's old name (118), seen or not: it's reserved for everyone. */
+  isOldName(name: string): Promise<boolean>;
   publishedVersions(itemId: string): Promise<PublishedVersion[]>;
   /** The name's submissions that aren't drafts, newest change first (056). */
-  submissionsNamed(scope: string, name: string): Promise<NamedSubmission[]>;
+  submissionsNamed(ref: ItemRef): Promise<NamedSubmission[]>;
   /**
    * The author's own draft of the name, newest first, with what its saved `ronne.yaml` depends on:
    * it goes with what depends on it (112). Nobody else's: a draft is private to its author.
    */
-  ownDraftNamed(scope: string, name: string, authorId: string): Promise<OwnDraft | null>;
+  ownDraftNamed(ref: ItemRef, authorId: string): Promise<OwnDraft | null>;
   /** Which of these workspaces are private (093): for ids the caller already holds. */
   privateWorkspaces(ids: readonly string[]): Promise<ReadonlySet<string>>;
 }
@@ -75,6 +84,7 @@ export type OwnDraft = {
 /** A registry with nothing published: for tests. The app uses `kyselyRegistryLookup` (015). */
 export const unreleasedRegistry: RegistryLookup = {
   findItem: async () => null,
+  isOldName: async () => false,
   publishedVersions: async () => [],
   submissionsNamed: async () => [],
   ownDraftNamed: async () => null,

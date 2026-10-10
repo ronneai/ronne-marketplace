@@ -15,6 +15,7 @@ import {
 import { kyselyItemRepository } from "../domains/items/repositories/kysely-item-repository";
 import { kyselyScopeRepository } from "../domains/items/repositories/kysely-scope-repository";
 import { UNFILTERED } from "../domains/workspaces/models/viewer";
+import { GLOBAL_WORKSPACE_ID } from "../domains/workspaces/models/workspace";
 import { kyselyWorkspaceRepository } from "../domains/workspaces/repositories/kysely-workspace-repository";
 import { localStorage } from "../storage/local-storage";
 import type { StorageAdapter } from "../storage/storage-adapter";
@@ -149,23 +150,28 @@ const answer = async (response: Response, name: string) =>
   `${response.status} ${(await response.text()).replaceAll(name, "X")}`;
 
 const asks = {
+  // Outside global, an item's paths name its workspace (118).
   item: (name: string, token: string) =>
-    getItem(get(`/items/acme-infra/${name}`, token), { scope: "acme-infra", name }, deps),
+    getItem(
+      get(`/workspaces/acme/items/acme-infra/${name}`, token),
+      { workspace: "acme", scope: "acme-infra", name },
+      deps,
+    ),
   version: (name: string, token: string) =>
     getVersion(
-      get(`/items/acme-infra/${name}/1.0.0`, token),
-      { scope: "acme-infra", name, version: "1.0.0" },
+      get(`/workspaces/acme/items/acme-infra/${name}/1.0.0`, token),
+      { workspace: "acme", scope: "acme-infra", name, version: "1.0.0" },
       deps,
     ),
   tarball: (name: string, token: string) =>
     getTarball(
-      get(`/items/acme-infra/${name}/1.0.0/tarball`, token),
-      { scope: "acme-infra", name, version: "1.0.0" },
+      get(`/workspaces/acme/items/acme-infra/${name}/1.0.0/tarball`, token),
+      { workspace: "acme", scope: "acme-infra", name, version: "1.0.0" },
       deps,
     ),
   resolve: (name: string, token: string) =>
     postResolve(
-      post("/resolve", token, { dependencies: { [`@acme-infra/${name}`]: "^1.0.0" } }),
+      post("/resolve", token, { dependencies: { [`@acme/acme-infra/${name}`]: "^1.0.0" } }),
       deps,
     ),
 };
@@ -184,7 +190,16 @@ describe("the registry API and a private workspace (093)", () => {
       deps,
     );
     expect(await answer(unknownScope, "nosuch")).toBe(
-      await answer(await asks.item("deploy", outsider), "acme-infra"),
+      await answer(await asks.item("deploy", outsider), "acme/acme-infra"),
+    );
+    // And an unknown workspace (118).
+    const unknownWorkspace = await getItem(
+      get("/workspaces/nosuch/items/acme-infra/deploy", outsider),
+      { workspace: "nosuch", scope: "acme-infra", name: "deploy" },
+      deps,
+    );
+    expect(await answer(unknownWorkspace, "nosuch/acme-infra")).toBe(
+      await answer(await asks.item("deploy", outsider), "acme/acme-infra"),
     );
   });
 
@@ -199,7 +214,7 @@ describe("the registry API and a private workspace (093)", () => {
         (i: { name: string }) => i.name,
       );
     expect(await names(outsider)).toEqual([]);
-    expect(await names(member)).toEqual(["@acme-infra/deploy"]);
+    expect(await names(member)).toEqual(["@acme/acme-infra/deploy"]);
     const scopes = async (token: string) =>
       (await (await getScopes(get("/scopes", token), deps)).json()).scopes.map(
         (s: { name: string }) => s.name,
@@ -209,7 +224,7 @@ describe("the registry API and a private workspace (093)", () => {
     expect(await scopes(member)).toContain("acme-infra");
     expect(await scopes(root)).toContain("acme-infra");
     expect(await names(plain)).toEqual([]);
-    expect(await names(root)).toEqual(["@acme-infra/deploy"]);
+    expect(await names(root)).toEqual(["@acme/acme-infra/deploy"]);
   });
 
   it("doesn't count a non-member's download of it", async () => {
@@ -289,9 +304,9 @@ describe("workspaces in the API (095)", () => {
       expect(response.status).toBe(200);
       return (await response.json()).items.map((i: { name: string }) => i.name);
     };
-    expect(await names("workspace=acme", member)).toEqual(["@acme-infra/deploy"]);
-    expect(await names("workspace=%20ACME%20", member)).toEqual(["@acme-infra/deploy"]);
-    expect(await names("workspace=acme", root)).toEqual(["@acme-infra/deploy"]);
+    expect(await names("workspace=acme", member)).toEqual(["@acme/acme-infra/deploy"]);
+    expect(await names("workspace=%20ACME%20", member)).toEqual(["@acme/acme-infra/deploy"]);
+    expect(await names("workspace=acme", root)).toEqual(["@acme/acme-infra/deploy"]);
     expect(await names("workspace=tools", member)).toEqual([]);
     // To a non-member, a private workspace answers as a name no workspace has.
     const hidden = await listItems(get("/items?workspace=acme", outsider), deps);
@@ -299,5 +314,88 @@ describe("workspaces in the API (095)", () => {
     expect(await hidden.text()).toBe(await unknown.text());
     const tooLong = await listItems(get(`/items?workspace=${"x".repeat(65)}`, member), deps);
     expect(tooLong.status).toBe(400);
+  });
+});
+
+describe("an rmk from before 118", () => {
+  /** A request as an older rmk sends it: its user agent, without `x-rmk-names`. */
+  const asOld = (request: Request, current = false) => {
+    const headers = new Headers(request.headers);
+    headers.set("user-agent", "rmk/0.3.2");
+    if (current) headers.set("x-rmk-names", "workspace");
+    return new Request(request, { headers });
+  };
+
+  it("gets client_too_old for an item outside global, by any of its paths; a current rmk doesn't", async () => {
+    const answers = [
+      await getItem(
+        asOld(get("/items/acme-infra/deploy", member)),
+        { workspace: "acme", scope: "acme-infra", name: "deploy" },
+        deps,
+      ),
+      await getVersion(
+        asOld(get("/workspaces/acme/items/acme-infra/deploy/1.0.0", member)),
+        { workspace: "acme", scope: "acme-infra", name: "deploy", version: "1.0.0" },
+        deps,
+      ),
+      await getTarball(
+        asOld(get("/workspaces/acme/items/acme-infra/deploy/1.0.0/tarball", member)),
+        { workspace: "acme", scope: "acme-infra", name: "deploy", version: "1.0.0" },
+        deps,
+      ),
+      await postResolve(
+        asOld(post("/resolve", member, { dependencies: { "@acme/acme-infra/deploy": "^1.0.0" } })),
+        deps,
+      ),
+    ];
+    for (const response of answers) {
+      expect(response.status).toBe(426);
+      expect((await response.json()).error).toMatchObject({
+        code: "client_too_old",
+        message:
+          "Update rmk to install @acme/acme-infra/deploy: this one can't write a name that includes its workspace. Run npm install --global @ronneai/rmk.",
+      });
+    }
+    const current = await getItem(
+      asOld(get("/workspaces/acme/items/acme-infra/deploy", member), true),
+      { workspace: "acme", scope: "acme-infra", name: "deploy" },
+      deps,
+    );
+    expect(current.status).toBe(200);
+  });
+
+  it("installs global's items as before", async () => {
+    // The same item, in global: `@acme-infra/deploy` to everyone.
+    await t.db
+      .updateTable("scopes")
+      .set({ workspace_id: GLOBAL_WORKSPACE_ID })
+      .where("name", "=", "acme-infra")
+      .execute();
+    const ref = { scope: "acme-infra", name: "deploy" };
+    expect((await getItem(asOld(get("/items/acme-infra/deploy", member)), ref, deps)).status).toBe(
+      200,
+    );
+    const tarball = await getTarball(
+      asOld(get("/items/acme-infra/deploy/1.0.0/tarball", member)),
+      { ...ref, version: "1.0.0" },
+      deps,
+    );
+    expect(tarball.status).toBe(200);
+    const resolved = await postResolve(
+      asOld(post("/resolve", member, { dependencies: { "@acme-infra/deploy": "^1.0.0" } })),
+      deps,
+    );
+    expect(resolved.status).toBe(200);
+    expect(Object.keys((await resolved.json()).items)).toEqual(["@acme-infra/deploy"]);
+  });
+
+  it("is answered as before about global's names", async () => {
+    const empty = await postResolve(asOld(post("/resolve", member, { dependencies: {} })), deps);
+    expect(empty.status).toBe(200);
+    const unknown = await postResolve(
+      asOld(post("/resolve", member, { dependencies: { "@team/nothing-here": "^1.0.0" } })),
+      deps,
+    );
+    expect([unknown.status, (await unknown.json()).error.code]).toEqual([404, "item_not_found"]);
   });
 });

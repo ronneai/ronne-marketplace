@@ -45,7 +45,7 @@ export const TOPICS = [
   {
     slug: "scopes",
     title: "Scopes",
-    summary: "The first part of every item's name, and how to organise them.",
+    summary: "The part of every item's name that groups it, and how to organise them.",
     sections: [
       { id: "what", title: "What a scope is" },
       { id: "who", title: "Who creates and uses them" },

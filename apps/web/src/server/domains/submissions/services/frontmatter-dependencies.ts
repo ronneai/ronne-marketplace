@@ -22,7 +22,7 @@ type TextFile = { path: string; encoding: "utf8" | "base64"; content: string };
 /** The range a new dependency starts on. */
 const startingRange = async (registry: RegistryLookup, name: string): Promise<string> => {
   const parsed = parseItemName(name);
-  const item = parsed ? await registry.findItem(parsed.scope, parsed.name) : null;
+  const item = parsed ? await registry.findItem(parsed) : null;
   if (!item) return "^1.0.0";
   const versions = (await registry.publishedVersions(item.id))
     .filter((v) => !v.yanked)

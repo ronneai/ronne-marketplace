@@ -21,6 +21,9 @@ export const E2E_USERS = {
   reader: "reader@e2e.test",
   downloader: "downloader@e2e.test",
   installer: "installer@e2e.test",
+  // Two same-named items in two workspaces (118), on desktop and on a phone.
+  twinReader: "twin-reader@e2e.test",
+  phoneTwinReader: "phone-twin-reader@e2e.test",
   composer: "composer@e2e.test",
   exporter: "exporter@e2e.test",
   outsider: "outsider@e2e.test",
@@ -126,6 +129,8 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   reader: "Rea Reader",
   downloader: "Dan Downloader",
   installer: "Ines Installer",
+  twinReader: "Tia Twin",
+  phoneTwinReader: "Pip Twin",
   composer: "Cam Composer",
   exporter: "Exa Exporter",
   outsider: "Otto Outsider",
@@ -278,6 +283,14 @@ export const E2E_VAULT = {
 export const E2E_SHELF = { workspace: "e2e-shelf", scope: "e2e-shelf-tools", item: "shelf-notes" };
 /** A public workspace with a released skill nobody seeded is in (094): Propose a change refuses. */
 export const E2E_DOOR = { workspace: "e2e-door", scope: "e2e-door-tools", item: "door-notes" };
+/**
+ * Two items of one scope and name (118): global's rule `@e2e-seeded/twin-notes`, and a public
+ * workspace's skill under the same scope and name, `@e2e-twin/e2e-seeded/twin-notes`.
+ */
+export const E2E_TWIN = { workspace: "e2e-twin", scope: "e2e-seeded", item: "twin-notes" };
+
+/** An old name of the workspace's twin skill (118), as if it had been renamed: it still answers. */
+export const E2E_TWIN_OLD_NAME = "@e2e-seeded/twin-skill";
 
 /** An item the seed publishes with two versions (1.0.0 and 1.1.0 on latest), for the Versions page. */
 export const E2E_VERSIONED_ITEM = "versioned";

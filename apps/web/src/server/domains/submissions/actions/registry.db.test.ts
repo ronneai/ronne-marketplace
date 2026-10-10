@@ -417,11 +417,11 @@ describe("dependencies on their way (056)", () => {
   it("lists a name's submissions that aren't drafts, newest first, with their dependencies", async () => {
     const lookup = kyselyRegistryLookup(t.db, t.dialect, UNFILTERED);
     const draft = await serverDraft("github");
-    expect(await lookup.submissionsNamed("team", "github")).toEqual([]);
+    expect(await lookup.submissionsNamed({ scope: "team", name: "github" })).toEqual([]);
     await submitDraft(asAuthor, draft, app);
     const reviewer = await skillNeeding("reviewer", '  "@team/github": "^1.0.0"\n');
     await submitDraft(asAuthor, reviewer, app);
-    expect(await lookup.submissionsNamed("team", "github")).toEqual([
+    expect(await lookup.submissionsNamed({ scope: "team", name: "github" })).toEqual([
       {
         id: draft,
         status: "submitted",
@@ -432,7 +432,7 @@ describe("dependencies on their way (056)", () => {
         workspace: { id: GLOBAL_WORKSPACE_ID, private: false },
       },
     ]);
-    expect(await lookup.submissionsNamed("team", "reviewer")).toEqual([
+    expect(await lookup.submissionsNamed({ scope: "team", name: "reviewer" })).toEqual([
       expect.objectContaining({ dependencies: { "@team/github": "^1.0.0" } }),
     ]);
   });

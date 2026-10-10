@@ -1,3 +1,4 @@
+import { formatScopeName } from "@ronneai/core";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/Panel";
@@ -18,11 +19,21 @@ const allScopes = async (headers: Headers): Promise<ScopeOption[]> => {
   let cursor: string | undefined;
   for (let page = 0; page < MAX_SCOPE_PAGES; page++) {
     const { scopes, nextCursor } = await listScopes(headers, { cursor });
-    found.push(...scopes.map(({ name, description }) => ({ name, description })));
+    // Scope names are unique per workspace (118): `acme/infra` outside global, `infra` in it.
+    found.push(
+      ...scopes.map(({ name, description, workspace }) => ({
+        name: formatScopeName({ workspace: workspace.name, scope: name }).slice(1),
+        description,
+      })),
+    );
     if (!nextCursor) break;
     cursor = nextCursor;
   }
-  return found;
+  // By workspace, `global` first, so each workspace's scopes sit together (118).
+  return found.sort((a, b) => {
+    const [aw, bw] = [a.name.includes("/") ? 1 : 0, b.name.includes("/") ? 1 : 0];
+    return aw - bw || a.name.localeCompare(b.name);
+  });
 };
 
 const NewItem = async () => {

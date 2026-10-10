@@ -3,7 +3,7 @@ import { ITEM_TYPES } from "@ronneai/core";
 import { describe, expect, it } from "vitest";
 import { parseDocument } from "yaml";
 import { draftTemplate } from "@/server/domains/submissions/models/templates";
-import { readManifest, writeField } from "./manifest-yaml";
+import { readManifest, renameDependency, writeField } from "./manifest-yaml";
 
 const examples = new URL("../../../../../examples/items/", import.meta.url);
 const manifests = [
@@ -62,5 +62,34 @@ describe("writeField", () => {
     expect(readManifest("- a list")).toBeNull();
     expect(readManifest("name: [")).toBeNull();
     expect(parseDocument(text).errors).toEqual([]);
+  });
+});
+
+describe("renameDependency (118)", () => {
+  it("writes a dependency under its new name, keeping its range, comments and place", () => {
+    const text =
+      'name: "@acme/team/kit"\ntype: bundle\ndescription: A set.\ndependencies:\n  "@team/base": "^1.0.0" # the base\n  "@team/x": "^2.0.0"\n';
+    expect(renameDependency(text, "@team/base", "@acme/team/base")).toBe(
+      'name: "@acme/team/kit"\ntype: bundle\ndescription: A set.\ndependencies:\n  "@acme/team/base": "^1.0.0" # the base\n  "@team/x": "^2.0.0"\n',
+    );
+  });
+
+  it("lists the item once when its new name is there already, and keeps CRLF", () => {
+    const both = 'dependencies:\n  "@team/base": "^1.0.0"\n  "@acme/team/base": "^1.2.0"\n';
+    expect(renameDependency(both, "@team/base", "@acme/team/base")).toBe(
+      'dependencies:\n  "@acme/team/base": "^1.2.0"\n',
+    );
+    expect(
+      renameDependency(
+        'dependencies:\r\n  "@team/base": "^1.0.0"\r\n',
+        "@team/base",
+        "@acme/team/base",
+      ),
+    ).toBe('dependencies:\r\n  "@acme/team/base": "^1.0.0"\r\n');
+  });
+
+  it("leaves the text as it was when it can't", () => {
+    expect(renameDependency("name: [\n", "@a/b", "@c/a/b")).toBe("name: [\n");
+    expect(renameDependency("name: x\n", "@a/b", "@c/a/b")).toBe("name: x\n");
   });
 });

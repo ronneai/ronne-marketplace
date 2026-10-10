@@ -1,8 +1,16 @@
 import type { ItemType, RiskFlag } from "@ronneai/core";
 
+/**
+ * An item by its name's parts (118): its workspace (`global` when left out), scope and own name, as
+ * `@scope/name` or `@workspace/scope/name` reads.
+ */
+export type ItemRef = { workspace?: string | null; scope: string; name: string };
+
 /** A published item (feature 015): created by its first release. */
 export type Item = {
   id: string;
+  /** Its full name now (118): `@scope/name` in `global`, `@workspace/scope/name` elsewhere. */
+  fullName: string;
   scope: { id: string; name: string };
   /** Its scope's workspace (090), by name. */
   workspace: string;
@@ -77,6 +85,8 @@ export type VersionDetail = {
 
 /** A published item whose listed version depends on another, with the range it asks for (045). */
 export type Dependent = {
+  /** Its workspace's name (118), which its full name includes outside `global`. */
+  workspace: string;
   scope: string;
   name: string;
   type: ItemType;

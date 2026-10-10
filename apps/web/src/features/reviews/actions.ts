@@ -13,6 +13,7 @@ import {
   rejectWithDependents,
 } from "@/server/domains/submissions/actions/reviews";
 import { SubmissionsError } from "@/server/domains/submissions/exceptions/errors";
+import { itemNameOf } from "@/server/domains/submissions/models/submission";
 import { requestHeaders } from "@/server/http/request-headers";
 import type { ApproveManyState, PublishResult, ReviewActionState } from "./types";
 
@@ -127,7 +128,7 @@ export const approveSelectedAction = async (
   return {
     results: approved.map((r) => ({
       id: r.id,
-      name: "submission" in r ? `@${r.submission.scope.name}/${r.submission.name}` : r.id,
+      name: "submission" in r ? itemNameOf(r.submission) : r.id,
       result: r.result,
       override: r.result === "approved" && r.override,
       revision: r.result === "approved" ? r.revision : null,

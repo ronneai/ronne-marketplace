@@ -90,7 +90,12 @@ export const apiClient = (
   token: string | null,
 ): ApiClient => {
   const request = async (method: string, path: string, body?: unknown): Promise<Response> => {
-    const headers: Record<string, string> = { "user-agent": `rmk/${rmkVersion()}` };
+    // `x-rmk-names`: this rmk reads names with a workspace (118); an older one gets
+    // `client_too_old` for those instead of a lockfile it can't write.
+    const headers: Record<string, string> = {
+      "user-agent": `rmk/${rmkVersion()}`,
+      "x-rmk-names": "workspace",
+    };
     if (token) headers.authorization = `Bearer ${token}`;
     if (body !== undefined) headers["content-type"] = "application/json";
     let response: Response;

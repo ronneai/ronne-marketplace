@@ -1,3 +1,4 @@
+import { formatItemName } from "@ronneai/core";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { WorkspaceLabel } from "@/components/catalogue/WorkspaceLabel";
@@ -27,8 +28,8 @@ export const ItemPageView = ({
   tab: ItemTab;
   children: ReactNode;
 }) => {
-  const ref = { scope: page.item.scope.name, name: page.item.name };
-  const name = `@${ref.scope}/${ref.name}`;
+  const ref = { workspace: page.item.workspace, scope: page.item.scope.name, name: page.item.name };
+  const name = formatItemName(ref);
   const { shown } = page;
   const other = shown.version !== page.listed;
   const keywords = Array.isArray(shown.manifest.keywords)

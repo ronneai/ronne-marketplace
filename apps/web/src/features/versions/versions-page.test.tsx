@@ -35,7 +35,7 @@ describe("the Versions page", () => {
     const html = await render("%40team");
     expect(versions.itemPage).toHaveBeenCalledWith(
       expect.any(Headers),
-      { scope: "team", name: "github" },
+      { workspace: "global", scope: "team", name: "github" },
       undefined,
     );
     expect(html).toContain("@team/github");
@@ -101,6 +101,13 @@ describe("versionsPath", () => {
     expect(versionsPath({ scope: { name: "a b" }, name: "c/d" })).toBe(
       "/items/a%20b/c%2Fd/versions",
     );
+    // Under its workspace outside global (118).
+    expect(
+      versionsPath({ workspace: { name: "acme" }, scope: { name: "team" }, name: "github" }),
+    ).toBe("/workspaces/acme/items/team/github/versions");
+    expect(
+      versionsPath({ workspace: { name: "global" }, scope: { name: "team" }, name: "github" }),
+    ).toBe("/items/team/github/versions");
   });
 });
 

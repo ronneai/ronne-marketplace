@@ -44,6 +44,8 @@ export const updateCommand = async (io: Io, args: Args, out: Output, api: ApiCli
 
 export type Outdated = {
   item: string;
+  /** The item's name now, when the project still uses an old one (118); `rmk update` moves it. */
+  now?: string;
   range: string;
   locked: string | null;
   wanted: string | null;
@@ -59,19 +61,25 @@ export const outdatedItems = async (
   const { dependencies, locked } = projectState(io, scope);
   const names = Object.keys(dependencies).sort();
   if (names.length === 0) throw usage("This project asks for nothing yet.");
-  const fresh = await api.post<Resolution>("/resolve", { dependencies, locked: {} });
+  const fresh = await api.post<Resolution & { renamed?: Record<string, string> }>("/resolve", {
+    dependencies,
+    locked: {},
+  });
   const rows: Outdated[] = [];
   for (const name of names) {
+    // Under its name now (118), if the project still uses an old one.
+    const now = fresh.renamed?.[name] ?? name;
     const info = await api.get<{
       tags: Record<string, string>;
       versions: { version: string; yanked: boolean }[];
-    }>(itemPath(name));
+    }>(itemPath(now));
     const latest = info.tags.latest ?? info.versions.find((v) => !v.yanked)?.version ?? null;
     rows.push({
       item: name,
+      ...(now !== name ? { now } : {}),
       range: dependencies[name] ?? "",
       locked: locked[name] ?? null,
-      wanted: fresh.items[name]?.version ?? null,
+      wanted: fresh.items[now]?.version ?? null,
       latest,
     });
   }
@@ -94,6 +102,9 @@ export const outdatedCommand = async (io: Io, args: Args, out: Output, api: ApiC
       "wanted: the newest version the range allows (rmk update); latest: the newest published.",
     );
   }
+  for (const r of rows)
+    if (r.now)
+      out.say(`Note: ${r.item} is now ${r.now}; rmk update moves this project to the new name.`);
 };
 
 /** `rmk remove <item>...`: drops the items, and whatever nothing else needs any more. */

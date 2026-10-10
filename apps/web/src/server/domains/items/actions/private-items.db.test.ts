@@ -1,3 +1,4 @@
+import { formatItemName } from "@ronneai/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { createRoot } from "../../identity/actions/root-account";
@@ -113,9 +114,9 @@ beforeEach(async () => {
 afterEach(() => t.cleanup());
 
 const names = (entries: { scope: string; name: string }[]) =>
-  entries.map((e) => `@${e.scope}/${e.name}`).sort();
-const DEPLOY = { scope: "acme-infra", name: "deploy" };
-const UNKNOWN = { scope: "acme-infra", name: "nothing-here" };
+  entries.map((e) => formatItemName(e)).sort();
+const DEPLOY = { workspace: "acme", scope: "acme-infra", name: "deploy" };
+const UNKNOWN = { workspace: "acme", scope: "acme-infra", name: "nothing-here" };
 
 /** What an outsider gets for `ref`, error or value, comparable with an unknown name's. */
 const outcome = async (run: () => Promise<unknown>) => {
@@ -134,7 +135,7 @@ describe("a private workspace's items (093)", () => {
       ["root", asRoot],
     ] as const) {
       const page = await browseCatalogue(headers, {}, app);
-      expect(names(page.entries), who).toEqual(["@acme-infra/deploy", "@team/base"]);
+      expect(names(page.entries), who).toEqual(["@acme/acme-infra/deploy", "@team/base"]);
       expect(page.workspaces, who).toEqual(["global", "acme"]);
       expect(page.scopes, who).toContain("acme-infra");
       // The card's lock label (task 8).
@@ -157,15 +158,17 @@ describe("a private workspace's items (093)", () => {
     );
     expect(names((await searchCatalogueAs(outsider, { q: "deploy" }, app)).entries)).toEqual([]);
     expect(names((await searchCatalogueAs(member, { q: "deploy" }, app)).entries)).toEqual([
-      "@acme-infra/deploy",
+      "@acme/acme-infra/deploy",
     ]);
   });
 
   it("aren't on an outsider's home page", async () => {
     const outsiders = await homeLists(asOutsider, app);
-    expect(names([...outsiders.recent, ...outsiders.mostUsed])).not.toContain("@acme-infra/deploy");
+    expect(names([...outsiders.recent, ...outsiders.mostUsed])).not.toContain(
+      "@acme/acme-infra/deploy",
+    );
     const members = await homeLists(asMember, app);
-    expect(names(members.mostUsed)).toContain("@acme-infra/deploy");
+    expect(names(members.mostUsed)).toContain("@acme/acme-infra/deploy");
   });
 
   it("answer an outsider exactly as an unknown name does: page, versions, contents, API, download", async () => {
@@ -192,7 +195,7 @@ describe("a private workspace's items (093)", () => {
 
   it("resolve as unknown for an outsider, and resolve for a member", async () => {
     const ask = (user: CurrentUser, name: string) => () =>
-      resolveAs(user, { dependencies: { [`@acme-infra/${name}`]: "^1" } }, app);
+      resolveAs(user, { dependencies: { [`@acme/acme-infra/${name}`]: "^1" } }, app);
     const hidden = await outcome(ask(outsider, "deploy"));
     expect(hidden).toMatch(/^ResolveError: /);
     expect(hidden).toBe(await outcome(ask(outsider, "nothing-here")));
@@ -203,11 +206,11 @@ describe("a private workspace's items (093)", () => {
     const outsiders = await itemPage(asOutsider, { scope: "team", name: "base" }, undefined, app);
     expect(outsiders.usedBy).toEqual([]);
     const members = await itemPage(asMember, { scope: "team", name: "base" }, undefined, app);
-    expect(members.usedBy.map((d) => `@${d.scope}/${d.name}`)).toEqual(["@acme-infra/deploy"]);
-    const facts = await dependencyFacts(asOutsider, ["@acme-infra/deploy", "@team/base"], app);
+    expect(members.usedBy.map((d) => formatItemName(d))).toEqual(["@acme/acme-infra/deploy"]);
+    const facts = await dependencyFacts(asOutsider, ["@acme/acme-infra/deploy", "@team/base"], app);
     expect(JSON.stringify(facts)).not.toContain("deploy");
-    expect(JSON.stringify(await dependencyFacts(asMember, ["@acme-infra/deploy"], app))).toContain(
-      "deploy",
-    );
+    expect(
+      JSON.stringify(await dependencyFacts(asMember, ["@acme/acme-infra/deploy"], app)),
+    ).toContain("deploy");
   });
 });

@@ -22,6 +22,11 @@ export type NavItem = {
   permission?: Permission;
   /** The item is current on every path under this one (or these), for example "/admin". */
   section?: string | string[];
+  /**
+   * Also current under paths like this, `*` standing for one segment: a workspace's item pages are
+   * the catalogue's (118). A string, since nav items are passed to client components.
+   */
+  pattern?: string;
   /** Shown at the right of the header, next to the appearance switch: Admin and Docs. */
   end?: true;
   /** Another site, opened in a new tab: Docs, the Documentation on the website (088). */
@@ -34,13 +39,22 @@ export type NavItem = {
 
 /**
  * Top navigation. Only pages that exist are listed (feature 032): Composer and Releases join as
- * their features land. Catalogue (018) is current on item pages too. Admin and Docs (033) sit at
+ * their features land. Catalogue (018) is current on item pages too. Workspaces (094) moved here
+ * from the account menu (owner, 2026-10-10). Admin and Docs (033) sit at
  * the right, before the appearance switch (owner's request, 2026-09-28). Docs opens the
  * Documentation on the website in a new tab (088).
  */
 export const NAV: NavItem[] = [
   { href: "/", label: "Home" },
-  { href: "/catalogue", label: "Catalogue", section: ["/catalogue", "/items"] },
+  {
+    href: "/catalogue",
+    label: "Catalogue",
+    section: ["/catalogue", "/items"],
+    pattern: "/workspaces/*/items",
+  },
+  // Every signed-in user's workspaces and joining (094); after Catalogue (owner, 2026-10-10). Exact:
+  // Requests, under /workspaces/requests, is its own item.
+  { href: "/workspaces", label: "Workspaces" },
   {
     href: "/submissions",
     label: "Submissions",
@@ -83,7 +97,15 @@ export const navFor = (user: ShellUser | null, counts: Record<string, number> = 
   );
 };
 
+/** Whether `path` is `pattern` or under it, each `*` matching one segment. */
+const under = (pattern: string, path: string) => {
+  const want = pattern.split("/");
+  const have = path.split("/");
+  return have.length >= want.length && want.every((part, i) => part === "*" || part === have[i]);
+};
+
 export const isCurrent = (item: NavItem, path: string): boolean =>
-  item.section
+  (item.pattern !== undefined && under(item.pattern, path)) ||
+  (item.section
     ? [item.section].flat().some((section) => path === section || path.startsWith(`${section}/`))
-    : item.href === path;
+    : item.href === path);

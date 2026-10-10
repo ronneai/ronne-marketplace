@@ -77,7 +77,7 @@ const describe = (error: ErrorObject): { pointer: string; message: string } | nu
       if (at === "/name" || error.schemaPath.includes("itemName"))
         return {
           pointer: at,
-          message: `${field(at)} must be a full item name like @scope/name, in lowercase letters, digits and hyphens.`,
+          message: `${field(at)} must be a full item name like @scope/name or @workspace/scope/name, in lowercase letters, digits and hyphens.`,
         };
       if (error.schemaPath.includes("relPath"))
         return {
@@ -90,7 +90,7 @@ const describe = (error: ErrorObject): { pointer: string; message: string } | nu
     case "propertyNames":
       return {
         pointer: at,
-        message: `${quote(params.propertyName)} in ${field(at)} isn't a full item name. Use @scope/name.`,
+        message: `${quote(params.propertyName)} in ${field(at)} isn't a full item name. Use @scope/name, or @workspace/scope/name outside the global workspace.`,
       };
     case "minLength":
       return { pointer: at, message: `${field(at)} can't be empty.` };

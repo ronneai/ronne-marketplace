@@ -62,6 +62,7 @@ export const IssuesPanel = ({
   savedLabel,
   note,
   onSelect,
+  onRename,
   close,
 }: {
   heading?: string;
@@ -70,8 +71,15 @@ export const IssuesPanel = ({
   savedLabel?: string;
   note?: string;
   onSelect?: (issue: ManifestIssue) => void;
+  onRename?: (rename: { from: string; to: string }) => void;
   close: () => void;
 }) => {
+  const rename = onRename
+    ? (value: { from: string; to: string }) => {
+        close();
+        onRename(value);
+      }
+    : undefined;
   const select = onSelect
     ? (issue: ManifestIssue) => {
         close();
@@ -83,12 +91,14 @@ export const IssuesPanel = ({
       {heading ? <p className="font-mono font-semibold">{heading}</p> : null}
       {savedLabel && saved.length > 0 ? (
         <>
-          {issues.length > 0 ? <IssueList issues={issues} onSelect={select} /> : null}
+          {issues.length > 0 ? (
+            <IssueList issues={issues} onSelect={select} onRename={rename} />
+          ) : null}
           <p className="text-muted">{savedLabel}</p>
-          <IssueList issues={saved} onSelect={select} />
+          <IssueList issues={saved} onSelect={select} onRename={rename} />
         </>
       ) : (
-        <IssueList issues={[...issues, ...saved]} onSelect={select} />
+        <IssueList issues={[...issues, ...saved]} onSelect={select} onRename={rename} />
       )}
       {note ? <p className="text-muted">{note}</p> : null}
     </>
@@ -105,6 +115,7 @@ export const FileIssues = ({
   saved = [],
   savedLabel,
   onSelect,
+  onRename,
   className,
   placement,
 }: {
@@ -114,6 +125,7 @@ export const FileIssues = ({
   saved?: readonly ManifestIssue[];
   savedLabel?: string;
   onSelect?: (issue: ManifestIssue) => void;
+  onRename?: (rename: { from: string; to: string }) => void;
   className?: string;
   placement?: Placement;
 }) => {
@@ -133,6 +145,7 @@ export const FileIssues = ({
           saved={saved}
           savedLabel={savedLabel}
           onSelect={onSelect}
+          onRename={onRename}
           close={close}
         />
       )}
@@ -150,6 +163,7 @@ export const IssuesSummary = ({
   savedLabel,
   note,
   onSelect,
+  onRename,
   className,
   placement,
 }: {
@@ -160,6 +174,7 @@ export const IssuesSummary = ({
   /** What the problems mean here, such as that errors stop a submit. */
   note?: string;
   onSelect?: (issue: ManifestIssue) => void;
+  onRename?: (rename: { from: string; to: string }) => void;
   className?: string;
   placement?: Placement;
 }) => {
@@ -190,6 +205,7 @@ export const IssuesSummary = ({
           savedLabel={savedLabel}
           note={note}
           onSelect={onSelect}
+          onRename={onRename}
           close={close}
         />
       )}

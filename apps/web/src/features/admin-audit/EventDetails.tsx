@@ -1,3 +1,4 @@
+import { parseItemName } from "@ronneai/core";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { itemPath } from "@/components/catalogue/ItemCard";
@@ -43,7 +44,7 @@ const OPEN_LABELS: Record<string, string> = {
 /** Where the app shows the target, when it has a page for it. */
 const targetHref = (event: AuditEvent): string | null => {
   const name = typeof event.metadata.name === "string" ? event.metadata.name : "";
-  const [scope, item] = name.startsWith("@") ? name.slice(1).split("/") : [];
+  const ref = parseItemName(name);
   switch (event.targetType) {
     case "user":
       return event.targetEmail ? `/admin/users?q=${encodeURIComponent(event.targetEmail)}` : null;
@@ -51,7 +52,7 @@ const targetHref = (event: AuditEvent): string | null => {
       return event.targetId ? `/submissions/${event.targetId}` : null;
     case "item":
     case "item_version":
-      return scope && item ? itemPath({ scope, name: item }) : null;
+      return ref ? itemPath(ref) : null;
     default:
       return null;
   }

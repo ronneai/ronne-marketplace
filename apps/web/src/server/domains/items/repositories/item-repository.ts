@@ -4,6 +4,7 @@ import type {
   Approval,
   Dependent,
   Item,
+  ItemRef,
   ItemVersion,
   NewItemVersion,
   VersionDetail,
@@ -18,8 +19,22 @@ import type {
  */
 export interface ItemRepository {
   transaction<T>(work: (repo: ItemRepository) => Promise<T>): Promise<T>;
-  /** By scope name and item name, as `@scope/name` reads. */
-  findByName(scope: string, name: string): Promise<Item | null>;
+  /**
+   * By its full name (118): the workspace, scope and name it has now, or else one of its old names
+   * (`item_aliases`). Either way only an item the viewer sees (093), so an old name tells nobody
+   * else where it went.
+   */
+  findByName(ref: ItemRef): Promise<Item | null>;
+  /**
+   * Whether a full name is an old name of an item (118), whoever sees it: an old name is reserved
+   * for everyone, so drafts, releases, moves (115) and renames (113) can refuse it. Says nothing
+   * about which item had it.
+   */
+  isOldName(name: string): Promise<boolean>;
+  /** The old names of these items (118), of those the viewer sees: old name → item id. */
+  oldNames(itemIds: readonly string[]): Promise<Map<string, string>>;
+  /** For these items, the newest old name each got since `since` (118), for who sees them. */
+  renamedSince(itemIds: readonly string[], since: Date): Promise<Map<string, string>>;
   insertItem(item: {
     scopeId: string;
     name: string;

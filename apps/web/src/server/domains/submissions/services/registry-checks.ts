@@ -1,4 +1,6 @@
 import {
+  canonicalItemName,
+  formatItemName,
   hasErrors,
   highestMatching,
   type ItemType,
@@ -6,6 +8,7 @@ import {
   parseFrontmatter,
   parseItemName,
   parseManifest,
+  sameItemName,
 } from "@ronneai/core";
 import {
   DependencyClosedError,
@@ -24,6 +27,7 @@ import {
   type DraftFile,
   fileBytes,
   itemNameOf,
+  itemRefOf,
   MANIFEST_PATH,
   type Submission,
 } from "../models/submission";
@@ -46,16 +50,27 @@ const issue = (code: string, error: SubmissionsError, path?: string): ManifestIs
 });
 
 /**
- * The name is free (manifest spec §6, layer 3): no published item has it, and no open submission
- * (submitted, changes requested or approved) by anyone else proposes it. Drafts don't hold names.
+ * The name is free (manifest spec §6, layer 3): no published item has it, none had it before a move
+ * or a rename (118: an old name stays its item's), and no open submission (submitted, changes
+ * requested or approved) by anyone else proposes it. Drafts don't hold names.
  */
 export const nameIssues = async (
   registry: RegistryLookup,
-  input: { scope: string; name: string; proposedElsewhere: boolean },
+  input: { workspace?: string; scope: string; name: string; proposedElsewhere: boolean },
 ): Promise<ManifestIssue[]> => {
-  const itemName = `@${input.scope}/${input.name}`;
-  if (await registry.findItem(input.scope, input.name))
-    return [issue("name_taken", new ItemNameTakenError(itemName, "published"), "/name")];
+  const itemName = formatItemName(input);
+  const taken = await registry.findItem(input);
+  if (taken)
+    return [
+      issue(
+        "name_taken",
+        new ItemNameTakenError(itemName, taken.fullName === itemName ? "published" : "alias"),
+        "/name",
+      ),
+    ];
+  // An old name of an item the submitter doesn't see is reserved too, said without naming it.
+  if (await registry.isOldName(itemName))
+    return [issue("name_taken", new ItemNameTakenError(itemName, "taken"), "/name")];
   if (input.proposedElsewhere)
     return [issue("name_taken", new ItemNameTakenError(itemName, "submission"), "/name")];
   return [];
@@ -67,14 +82,19 @@ export const nameIssues = async (
  */
 export const typeIssues = async (
   registry: RegistryLookup,
-  submission: { scope: { name: string }; name: string; type: ItemType },
+  submission: {
+    workspace: { name: string };
+    scope: { name: string };
+    name: string;
+    type: ItemType;
+  },
 ): Promise<ManifestIssue[]> => {
-  const item = await registry.findItem(submission.scope.name, submission.name);
+  const item = await registry.findItem(itemRefOf(submission));
   return item && item.type !== submission.type
     ? [
         issue(
           "type_changed",
-          new TypeChangedError(`@${item.scope}/${item.name}`, item.type, submission.type),
+          new TypeChangedError(item.fullName, item.type, submission.type),
           "/type",
         ),
       ]
@@ -161,7 +181,7 @@ export const dependencyIssues = async (
     const key = `${dependency}@${range}`;
     if (cache.has(key)) return cache.get(key) ?? null;
     const parsed = parseItemName(dependency);
-    const item = parsed ? await registry.findItem(parsed.scope, parsed.name) : null;
+    const item = parsed ? await registry.findItem(parsed) : null;
     let resolved: Resolved | null = null;
     if (item) {
       const versions = (await registry.publishedVersions(item.id)).filter((v) => !v.yanked);
@@ -180,12 +200,10 @@ export const dependencyIssues = async (
     const known = ways.get(dependency);
     if (known) return known;
     const parsed = parseItemName(dependency);
-    const all = parsed ? await registry.submissionsNamed(parsed.scope, parsed.name) : [];
+    const all = parsed ? await registry.submissionsNamed(parsed) : [];
     const anyOpen = all.filter((s) => OPEN_STATUSES.includes(s.status));
     const newest = all[0]?.status;
-    const draft = parsed
-      ? await registry.ownDraftNamed(parsed.scope, parsed.name, input.authorId)
-      : null;
+    const draft = parsed ? await registry.ownDraftNamed(parsed, input.authorId) : null;
     const way: OnItsWay = {
       anyOpen,
       mine: anyOpen.filter((s) => s.authorId === input.authorId),
@@ -201,12 +219,23 @@ export const dependencyIssues = async (
 
   // An item on itself is the package checks' `self_dependency` (011): nothing more to say here.
   const dependencies = Object.fromEntries(
-    Object.entries(input.dependencies).filter(([dependency]) => dependency !== input.itemName),
+    Object.entries(input.dependencies).filter(
+      ([dependency]) => !sameItemName(dependency, input.itemName),
+    ),
   );
   const issues: ManifestIssue[] = [];
   for (const [dependency, range] of Object.entries(dependencies)) {
     const parsed = parseItemName(dependency);
-    const item = parsed ? await registry.findItem(parsed.scope, parsed.name) : null;
+    const item = parsed ? await registry.findItem(parsed) : null;
+    // Found by an old name (118): it still works, but the new name is the one to keep.
+    if (item && item.fullName !== canonicalItemName(dependency))
+      issues.push({
+        ...warning(
+          "dependency_renamed",
+          `${dependency} is now ${item.fullName}. It still works under its old name; use the new one.`,
+        ),
+        rename: { from: dependency, to: item.fullName },
+      });
     const resolved = item ? await resolve(dependency, range) : null;
     const way: OnItsWay = resolved
       ? { anyOpen: [], mine: [], closed: null, draft: null }
@@ -375,6 +404,7 @@ export const registryIssues = async (
     ...(submission.proposal
       ? await typeIssues(registry, submission)
       : await nameIssues(registry, {
+          workspace: submission.workspace.name,
           scope: submission.scope.name,
           name: submission.name,
           proposedElsewhere: await repo.isNameProposed(
@@ -419,10 +449,10 @@ export const frontmatterAgentIssues = async (
   const agent = parseFrontmatter(file.content).data?.agent;
   const parsed = typeof agent === "string" ? parseItemName(agent) : null;
   if (!parsed) return [];
-  const item = await registry.findItem(parsed.scope, parsed.name);
+  const item = await registry.findItem(parsed);
   const own = item
     ? undefined
-    : (await registry.submissionsNamed(parsed.scope, parsed.name)).find(
+    : (await registry.submissionsNamed(parsed)).find(
         (s) => s.authorId === authorId && OPEN_STATUSES.includes(s.status),
       );
   const type = item?.type ?? own?.type;

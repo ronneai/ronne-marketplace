@@ -6,6 +6,7 @@ import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import { createDraft } from "@/server/domains/submissions/actions/drafts";
 import { submitManyDrafts } from "@/server/domains/submissions/actions/submissions";
 import { SubmissionsError } from "@/server/domains/submissions/exceptions/errors";
+import { itemNameOf } from "@/server/domains/submissions/models/submission";
 import { requestHeaders } from "@/server/http/request-headers";
 import type { BulkResult, NewDraftState } from "./types";
 
@@ -41,7 +42,7 @@ export const submitSelectedAction = async (ids: string[]): Promise<BulkResult[]>
   revalidatePath("/submissions");
   return results.map((r) => ({
     id: r.id,
-    name: "submission" in r ? `@${r.submission.scope.name}/${r.submission.name}` : r.id,
+    name: "submission" in r ? itemNameOf(r.submission) : r.id,
     result: r.result,
     reasons:
       r.result === "not_ready" || r.result === "not_a_member"

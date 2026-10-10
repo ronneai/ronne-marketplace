@@ -148,7 +148,7 @@ beforeEach(async () => {
     app,
   );
   deployId = await released("acme-infra", "deploy");
-  submissionId = await submitted(asMember, "acme-infra", "style");
+  submissionId = await submitted(asMember, "@acme/acme-infra", "style");
   outsider = (await getCurrentUser(asOutsider, app)) as CurrentUser;
   member = (await getCurrentUser(asMember, app)) as CurrentUser;
 });
@@ -158,13 +158,15 @@ describe("a private workspace's submissions (093)", () => {
   it("refuse an outsider's draft in its scope exactly as an unknown scope does", async () => {
     const draft = (scope: string) => () =>
       createDraft(asOutsider, { scope, name: "mine", type: "rule" }, app);
-    const hidden = await outcome(draft("acme-infra"), "acme-infra");
+    const hidden = await outcome(draft("@acme/acme-infra"), "acme/acme-infra");
     expect(hidden).toMatch(/^DraftScopeNotFoundError: There's no scope @X you can use/);
-    expect(hidden).toBe(await outcome(draft("nowhere-here"), "nowhere-here"));
-    expect(await outcome(draft("acme-infra"))).toMatch(/no scope @acme-infra/);
+    expect(hidden).toBe(await outcome(draft("@acme/nowhere-here"), "acme/nowhere-here"));
+    // An unknown workspace answers the same (118).
+    expect(hidden).toBe(await outcome(draft("@nowhere/acme-infra"), "nowhere/acme-infra"));
+    expect(await outcome(draft("@acme/acme-infra"))).toMatch(/no scope @acme\/acme-infra/);
     expect(
       await outcome(() =>
-        createDraft(asMember, { scope: "acme-infra", name: "x", type: "rule" }, app),
+        createDraft(asMember, { scope: "@acme/acme-infra", name: "x", type: "rule" }, app),
       ),
     ).toBe("found");
   });
@@ -225,7 +227,7 @@ describe("a private workspace's items, while composing and reporting usage (093)
           {
             path: "ronne.yaml",
             encoding: "utf8",
-            content: `${manifest?.content ?? ""}\ndependencies:\n  "@acme-infra/style": "^1.0.0"\n  "@acme-infra/deploy": "^1.0.0"\n  "@acme-infra/zzz": "^1.0.0"\n  "@acme-infra/yyy": "^1.0.0"\n`,
+            content: `${manifest?.content ?? ""}\ndependencies:\n  "@acme/acme-infra/style": "^1.0.0"\n  "@acme/acme-infra/deploy": "^1.0.0"\n  "@acme/acme-infra/zzz": "^1.0.0"\n  "@acme/acme-infra/yyy": "^1.0.0"\n`,
             executable: false,
             loadedAt: manifest?.updatedAt ?? null,
           },
@@ -239,8 +241,8 @@ describe("a private workspace's items, while composing and reporting usage (093)
     const of = (name: string) =>
       JSON.stringify(marks.find((m) => m.dependency === name) ?? null).replaceAll(name, "X");
     // style is submitted and deploy released in acme; zzz and yyy don't exist.
-    expect(of("@acme-infra/style")).toBe(of("@acme-infra/zzz"));
-    expect(of("@acme-infra/deploy")).toBe(of("@acme-infra/yyy"));
+    expect(of("@acme/acme-infra/style")).toBe(of("@acme/acme-infra/zzz"));
+    expect(of("@acme/acme-infra/deploy")).toBe(of("@acme/acme-infra/yyy"));
   });
 
   it("are an unknown name in an outsider's dependency reports, and not offered to pick", async () => {
@@ -252,12 +254,14 @@ describe("a private workspace's items, while composing and reporting usage (093)
           app,
         ),
       ).replaceAll(name, "X");
-    expect(await reports("@acme-infra/deploy")).toBe(await reports("@acme-infra/nothing-here"));
+    expect(await reports("@acme/acme-infra/deploy")).toBe(
+      await reports("@acme/acme-infra/nothing-here"),
+    );
     const picked = await findDependencies(asOutsider, { type: "agent", q: "deploy" }, app);
     expect(JSON.stringify(picked)).not.toContain("deploy");
     const members = await findDependencies(
       asMember,
-      { type: "agent", q: "deploy", itemName: "@acme-infra/new" },
+      { type: "agent", q: "deploy", itemName: "@acme/acme-infra/new" },
       app,
     );
     expect(JSON.stringify(members)).toContain("deploy");
@@ -277,7 +281,7 @@ describe("a private workspace's items, while composing and reporting usage (093)
           events: [
             {
               day: new Date().toISOString().slice(0, 10),
-              item: "@acme-infra/deploy",
+              item: "@acme/acme-infra/deploy",
               version: "1.0.0",
               tool: "claude-code",
               event: "run",

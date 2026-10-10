@@ -1,3 +1,4 @@
+import { formatItemName, GLOBAL_WORKSPACE } from "@ronneai/core";
 import {
   marketplaceName,
   PLUGIN_BUILDER_VERSION,
@@ -24,7 +25,14 @@ export const SERVED_TOOLS: readonly ServedTool[] = ["claude-code", "codex", "cur
 export const isServedTool = (value: string): value is ServedTool =>
   (SERVED_TOOLS as readonly string[]).includes(value);
 
-export type PluginRef = { scope: string; name: string; version: string };
+/** A plugin by its item's name and version; `workspace` left out or `global` for global's (118). */
+export type PluginRef = { workspace?: string; scope: string; name: string; version: string };
+
+/** The workspace segments of a plugin's key and URL: none in `global` (118). */
+const inWorkspace = (ref: PluginRef, before: string) =>
+  ref.workspace && ref.workspace !== GLOBAL_WORKSPACE
+    ? `${before}${encodeURIComponent(ref.workspace)}/`
+    : "";
 
 /** One plugin in a marketplace. */
 export type FeedPlugin = PluginRef & {
@@ -34,11 +42,12 @@ export type FeedPlugin = PluginRef & {
 
 /**
  * Where a built plugin's zip is kept. Artifacts are `scope/name/version.tgz`, three segments, so
- * these five-segment keys never meet them. The builder version is in the key: a new builder builds
- * every plugin again, and the old zips stay as artifacts do.
+ * these five-segment keys never meet them; a workspace's (118) add `@workspace/` before the scope,
+ * so they never meet `global`'s. The builder version is in the key: a new builder builds every
+ * plugin again, and the old zips stay as artifacts do.
  */
 export const pluginKey = (tool: PluginTool, ref: PluginRef) =>
-  `feeds/${tool}/${ref.scope}/${ref.name}/${ref.version}-b${PLUGIN_BUILDER_VERSION}.zip`;
+  `feeds/${tool}/${inWorkspace(ref, "@")}${ref.scope}/${ref.name}/${ref.version}-b${PLUGIN_BUILDER_VERSION}.zip`;
 
 /** The sidecar next to the zip: its sha256, or `none` when the version has nothing for the tool. */
 export const sidecarKey = (tool: PluginTool, ref: PluginRef) => `${pluginKey(tool, ref)}.sha256`;
@@ -60,17 +69,37 @@ export const baseUrl = (publicUrl: string) => {
   return publicUrl.slice(0, end);
 };
 
-/** The zip route's URL for a plugin, each segment encoded (a version may contain `+`). */
+/**
+ * The zip route's URL for a plugin, each segment encoded (a version may contain `+`); a workspace's
+ * (118) are under `/feeds/{tool}/workspaces/{workspace}/plugins/…`.
+ */
 export const pluginUrl = (publicUrl: string, tool: ServedTool, ref: PluginRef) =>
-  `${baseUrl(publicUrl)}/api/v1/feeds/${tool}/plugins/${encodeURIComponent(ref.scope)}/${encodeURIComponent(ref.name)}/${encodeURIComponent(ref.version)}.zip`;
+  `${baseUrl(publicUrl)}/api/v1/feeds/${tool}/${inWorkspace(ref, "workspaces/")}plugins/${encodeURIComponent(ref.scope)}/${encodeURIComponent(ref.name)}/${encodeURIComponent(ref.version)}.zip`;
 
 /** The marketplace route's URL, which `rmk plugin-setup` writes into Claude Code's settings. */
 export const marketplaceUrl = (publicUrl: string, tool: ServedTool) =>
   `${baseUrl(publicUrl)}/api/v1/feeds/${tool}/marketplace.json`;
 
-/** A plugin's description: a deprecated version says so first (contract, Which items appear). */
-export const pluginDescription = (description: string, deprecatedMessage: string | null) =>
-  deprecatedMessage ? `Deprecated: ${deprecatedMessage} ${description}`.trim() : description;
+/** How long a plugin says the name it had before (118): a moved item is a new plugin. */
+export const MOVED_NOTE_DAYS = 30;
+
+/**
+ * A plugin's description: a deprecated version says so first (contract, Which items appear), and
+ * an item renamed in the last 30 days says what it was called (118).
+ */
+export const pluginDescription = (
+  description: string,
+  deprecatedMessage: string | null,
+  movedFrom: string | null = null,
+) =>
+  [
+    deprecatedMessage ? `Deprecated: ${deprecatedMessage}` : "",
+    movedFrom ? `Moved from ${movedFrom}.` : "",
+    description,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
 
 /**
  * The largest marketplace file Claude Code reads (5 MiB, checked 2026-10-03). Past it, the route
@@ -88,20 +117,22 @@ const NO_CLAUDE_CODE_PLUGIN = new Set(["permission-policy", "statusline"]);
  * name. The item page uses it for the Install panel's plugin command.
  */
 export const inClaudeCodeFeed = (
-  item: { scope: string; name: string; type: string },
+  item: { workspace?: string; scope: string; name: string; type: string },
   manifest: Record<string, unknown>,
 ): boolean => {
   if (!installsIn(supportOf(manifest, item.type)["claude-code"])) return false;
   if (NO_CLAUDE_CODE_PLUGIN.has(item.type)) return false;
-  if (pluginNameProblem("claude-code", pluginName(`@${item.scope}/${item.name}`))) return false;
+  if (pluginNameProblem("claude-code", pluginName(formatItemName(item)))) return false;
   if (item.type !== "rule") return true;
   const activation = (manifest.rule as { activation?: unknown } | undefined)?.activation;
   return activation === "model" || activation === "manual";
 };
 
 /** What a person types in Claude Code to install the item as a plugin from this instance. */
-export const pluginInstallCommand = (item: { scope: string; name: string }, publicUrl: string) =>
-  `/plugin install ${pluginName(`@${item.scope}/${item.name}`)}@${marketplaceName(baseUrl(publicUrl))}`;
+export const pluginInstallCommand = (
+  item: { workspace?: string; scope: string; name: string },
+  publicUrl: string,
+) => `/plugin install ${pluginName(formatItemName(item))}@${marketplaceName(baseUrl(publicUrl))}`;
 
 /** Past 80% of Claude Code's 5 MiB, root is warned (079). */
 export const SIZE_WARNING_BYTES = Math.floor(MARKETPLACE_MAX_BYTES * 0.8);

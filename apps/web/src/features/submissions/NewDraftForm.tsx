@@ -3,7 +3,7 @@
 import { ITEM_TYPES, type ItemType, NAME_PROBLEM_MESSAGES, nameProblem } from "@ronneai/core";
 import { ArrowRight, CircleCheck, FileCode, Info, Search, ShieldCheck } from "lucide-react";
 import Link from "next/link";
-import { type ReactNode, useActionState, useMemo, useState } from "react";
+import { Fragment, type ReactNode, useActionState, useMemo, useState } from "react";
 import { Help } from "@/components/help/Help";
 import { docsHref } from "@/components/help/topics";
 import {
@@ -67,6 +67,10 @@ const filterClasses =
  * will see a risk flag, and creates the draft. `mine` are the item names of your drafts, to warn
  * (not block) about a repeat.
  */
+/** A scope option's workspace: `acme` for `acme/infra`, `global` for `infra` (118). */
+const workspaceOf = (name: string) =>
+  name.includes("/") ? (name.split("/", 1)[0] ?? "") : "global";
+
 export const NewDraftForm = ({ scopes, mine }: { scopes: ScopeOption[]; mine: string[] }) => {
   const [state, action, pending] = useActionState<NewDraftState, FormData>(createDraftFromForm, {});
   const [scope, setScope] = useState(scopes.length === 1 ? (scopes[0]?.name ?? "") : "");
@@ -82,6 +86,7 @@ export const NewDraftForm = ({ scopes, mine }: { scopes: ScopeOption[]; mine: st
   const chosenScope = scopes.find((option) => option.name === scope);
 
   const query = scopeSearch.trim().toLowerCase().replace(/^@/, "");
+  const grouped = new Set(scopes.map((option) => workspaceOf(option.name))).size > 1;
   const shownScopes = scopes.filter(
     (option) =>
       option.name === scope ||
@@ -139,20 +144,34 @@ export const NewDraftForm = ({ scopes, mine }: { scopes: ScopeOption[]; mine: st
               />
             ) : null}
             <div className="flex flex-wrap gap-1 rounded-control border border-hairline bg-canvas p-1">
-              {shownScopes.map((option) => (
-                <label key={option.name} className={chipClasses}>
-                  <input
-                    type="radio"
-                    name="scope"
-                    value={option.name}
-                    required
-                    checked={scope === option.name}
-                    onChange={() => setScope(option.name)}
-                    className="sr-only"
-                  />
-                  @{option.name}
-                </label>
-              ))}
+              {shownScopes.map((option, i) => {
+                // Grouped by workspace (118): `acme/infra` is acme's; a heading starts each group
+                // once there's more than one.
+                const workspace = workspaceOf(option.name);
+                const heading =
+                  grouped && (i === 0 || workspaceOf(shownScopes[i - 1]?.name ?? "") !== workspace);
+                return (
+                  <Fragment key={option.name}>
+                    {heading ? (
+                      <span className="w-full px-2 pt-1 font-mono text-xs text-muted">
+                        {workspace}
+                      </span>
+                    ) : null}
+                    <label className={chipClasses}>
+                      <input
+                        type="radio"
+                        name="scope"
+                        value={option.name}
+                        required
+                        checked={scope === option.name}
+                        onChange={() => setScope(option.name)}
+                        className="sr-only"
+                      />
+                      @{option.name}
+                    </label>
+                  </Fragment>
+                );
+              })}
               {shownScopes.length === 0 ? (
                 <p className="px-3 py-1.5 text-xs text-muted">No scope matches.</p>
               ) : null}
@@ -171,9 +190,12 @@ export const NewDraftForm = ({ scopes, mine }: { scopes: ScopeOption[]; mine: st
 
           <div className="grid gap-1.5">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <label htmlFor="item-name" className="text-sm font-semibold text-fg">
-                Name
-              </label>
+              <span className="flex items-center gap-1">
+                <label htmlFor="item-name" className="text-sm font-semibold text-fg">
+                  Name
+                </label>
+                <Help id="item-name" />
+              </span>
               <span className="font-mono text-xs text-muted">{itemName}</span>
             </div>
             <div

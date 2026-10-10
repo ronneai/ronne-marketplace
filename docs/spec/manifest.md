@@ -11,7 +11,7 @@ time (MVP §3.3).
 
 | Field | Required | Type | Notes |
 |---|:-:|---|---|
-| `name` | ✅ | string | `@scope/name`. Scope and name are lowercase `a-z`, `0-9` and `-`, 1–64 characters each, and can't start or end with `-`. |
+| `name` | ✅ | string | `@scope/name` in the `global` workspace, `@workspace/scope/name` in any other (118); `@global/scope/name` is accepted and released as `@scope/name`. Workspace, scope and name are lowercase `a-z`, `0-9` and `-`, 1–64 characters each, and can't start or end with `-`. Releasing writes the item's full name. |
 | `type` | ✅ | enum | One of the types in §2. Fixed when the item is first created. |
 | `version` | — | semver | **Set by the release process.** Authors leave it out; it is ignored in drafts and filled in when the tarball is packed. |
 | `description` | ✅ | string | One or two sentences, max 300 characters. Shown in search results and used by AI tools to decide when to load the item. |
@@ -19,7 +19,7 @@ time (MVP §3.3).
 | `keywords` | — | string[] | Max 10, lowercase. Used by search. |
 | `readme` | — | path | Defaults to `README.md` if present. Shown on the item page. |
 | `files` | — | path[] | Files included in the package. Defaults to every file in the folder except `.ronne/`. Paths are relative, use `/`, and can't contain `..`. |
-| `dependencies` | — | map | `"@scope/name": "<semver range>"`. Any type, on any type (§3); a bundle lists at least one. |
+| `dependencies` | — | map | `"@scope/name": "<semver range>"`, or `"@workspace/scope/name"` outside `global` (118). Any type, on any type (§3); a bundle lists at least one. Releasing writes each under the dependency's name now. |
 | `targets` | — | map | Per-platform settings, see §4. |
 | `<type block>` | depends | object | Settings for the item's type, under a key named after the type (for example `agent:`). §2 lists what each type needs. |
 
@@ -39,7 +39,7 @@ skill:
 
 - `SKILL.md` frontmatter must have `name` and `description`. `name` must equal the item's name
   without the scope, because renderers name the output folder after it.
-- `agent: @scope/name` in the frontmatter names the agent that runs the skill, in Claude Code; it
+- `agent: @scope/name` (or `@workspace/scope/name`, 118) in the frontmatter names the agent that runs the skill, in Claude Code; it
   must be listed under `dependencies` (saving a draft adds it) and be an agent. Unquoted is read as
   quoted. A name without a scope (`agent: Explore`, `agent: reviewer`) isn't an item, so it isn't a dependency
   ([097](../features/097-frontmatter-references/SPEC.md)).

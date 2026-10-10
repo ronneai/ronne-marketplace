@@ -1,5 +1,6 @@
-import type { ItemType } from "@ronneai/core";
-import { notFound } from "next/navigation";
+import { formatItemName, GLOBAL_WORKSPACE, type ItemType } from "@ronneai/core";
+import { notFound, redirect } from "next/navigation";
+import { itemPath } from "@/components/catalogue/ItemCard";
 import { showFiles } from "@/components/files/shown";
 import { loadConfig } from "@/server/config";
 import { inClaudeCodeFeed, pluginInstallCommand } from "@/server/domains/feeds/actions/feeds";
@@ -13,21 +14,41 @@ import {
 import { itemUsage, itemUsageByVersion } from "@/server/domains/usage/actions/usage";
 import { requestHeaders } from "@/server/http/request-headers";
 
-export type ItemParams = Promise<{ scope: string; name: string }>;
+export type ItemParams = Promise<{ workspace?: string; scope: string; name: string }>;
 
-const refOf = ({ scope, name }: { scope: string; name: string }) => ({
+const refOf = ({
+  workspace,
+  scope,
+  name,
+}: {
+  workspace?: string;
+  scope: string;
+  name: string;
+}) => ({
+  workspace: workspace ? decodeURIComponent(workspace) : GLOBAL_WORKSPACE,
   scope: decodeURIComponent(scope).replace(/^@/, ""),
   name: decodeURIComponent(name),
 });
 
-/** The item page's data for a route; a missing item or version is a 404. */
-export const loadItemPage = async (params: ItemParams, version?: string) => {
+/**
+ * The item page's data for a route; a missing item or version is a 404. An old name (118) goes to
+ * the item's page under its name now, `rest` (such as `/versions`) and `?version=` kept.
+ */
+export const loadItemPage = async (params: ItemParams, version?: string, rest = "") => {
+  const ref = refOf(await params);
+  let page: ItemPage;
   try {
-    return await itemPage(await requestHeaders(), refOf(await params), version || undefined);
+    page = await itemPage(await requestHeaders(), ref, version || undefined);
   } catch (error) {
     if (error instanceof ItemNotFoundError || error instanceof VersionNotFoundError) notFound();
     throw error;
   }
+  // An old name, or `global` written out (`/workspaces/global/items/…`): one address per item.
+  if (page.item.fullName !== formatItemName(ref) || (await params).workspace === GLOBAL_WORKSPACE)
+    redirect(
+      `${itemPath({ workspace: page.item.workspace, scope: page.item.scope.name, name: page.item.name })}${rest}${version ? `?version=${encodeURIComponent(version)}` : ""}`,
+    );
+  return page;
 };
 
 /**
@@ -67,7 +88,12 @@ export const pluginCommandOf = (
   publicUrl: string | undefined = loadConfig().publicUrl,
 ): string | null => {
   const { shown } = page;
-  const item = { scope: page.item.scope.name, name: page.item.name, type: page.item.type };
+  const item = {
+    workspace: page.item.workspace,
+    scope: page.item.scope.name,
+    name: page.item.name,
+    type: page.item.type,
+  };
   if (!publicUrl || !page.installable || shown.version !== page.listed || shown.yankedAt)
     return null;
   return inClaudeCodeFeed(item, shown.manifest) ? pluginInstallCommand(item, publicUrl) : null;

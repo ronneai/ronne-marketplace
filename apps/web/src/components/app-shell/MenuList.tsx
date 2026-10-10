@@ -71,9 +71,6 @@ export const MenuList = ({
         <Link href="/account/tokens" onClick={onNavigate} className={row}>
           Access tokens
         </Link>
-        <Link href="/workspaces" onClick={onNavigate} className={row}>
-          Workspaces
-        </Link>
         <div className="flex min-h-11 items-center justify-between gap-3 px-3 text-sm text-fg">
           Appearance
           {appearance}

@@ -9,7 +9,7 @@ export const metadata = { title: "Versions · Ronne AI Marketplace" };
  * root manage tags, deprecations and yanks.
  */
 const Versions = async ({ params }: { params: ItemParams }) => {
-  const page = await loadItemPage(params);
+  const page = await loadItemPage(params, undefined, "/versions");
   return (
     <ItemPageView page={page} tab="versions">
       <VersionsTab page={page} usage={await loadUsageByVersion(page.item.id)} />

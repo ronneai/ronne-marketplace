@@ -1,22 +1,30 @@
-import { parseItemName } from "../names.js";
+import { formatItemName, GLOBAL_WORKSPACE, parseItemName } from "../names.js";
 import type { PluginTool } from "./types.js";
 
 /**
- * Plugin names (contract, Names): `@scope/name` is `scope.name`. Item and scope names never contain
- * a dot, so the one dot is the separator and the name can be read back.
+ * Plugin names (contract, Names): `@scope/name` is `scope.name`, and `@workspace/scope/name` is
+ * `workspace.scope.name` (118). Workspace, scope and item names never contain a dot, so the dots
+ * are the separators and the name can be read back.
  */
 export const pluginName = (itemName: string): string => {
   const parts = parseItemName(itemName);
   if (!parts) throw new Error(`${itemName} isn't a full item name (@scope/name).`);
-  return `${parts.scope}.${parts.name}`;
+  return parts.workspace === GLOBAL_WORKSPACE
+    ? `${parts.scope}.${parts.name}`
+    : `${parts.workspace}.${parts.scope}.${parts.name}`;
 };
 
-/** `scope.name` → `@scope/name`, or null when it isn't a plugin name Ronne makes. */
+/**
+ * `scope.name` → `@scope/name`, `workspace.scope.name` → `@workspace/scope/name`, or null when it
+ * isn't a plugin name Ronne makes.
+ */
 export const itemNameOfPlugin = (plugin: string): string | null => {
-  const [scope, name, ...rest] = plugin.split(".");
-  if (scope === undefined || name === undefined || rest.length) return null;
-  const itemName = `@${scope}/${name}`;
-  return parseItemName(itemName) ? itemName : null;
+  const parts = plugin.split(".");
+  if (parts.length !== 2 && parts.length !== 3) return null;
+  const ref = parseItemName(`@${parts.join("/")}`);
+  // `global.scope.name` isn't one Ronne makes: `global`'s plugins leave the workspace out.
+  if (!ref || (parts.length === 3 && ref.workspace === GLOBAL_WORKSPACE)) return null;
+  return formatItemName(ref);
 };
 
 export type PluginNameProblem = "too_long" | "double_hyphen" | "reserved";

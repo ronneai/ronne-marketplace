@@ -80,7 +80,7 @@ const removeMember = () =>
 
 /** A draft of a valid skill in @acme, ready to submit. */
 const readyDraft = async (name = "fmt") => {
-  const draft = await createDraft(asMember, { scope: "acme", name, type: "skill" }, app);
+  const draft = await createDraft(asMember, { scope: "@acme/acme", name, type: "skill" }, app);
   await saveDraftFiles(
     asMember,
     draft.id,
@@ -119,20 +119,20 @@ describe("drafting in a workspace (091)", () => {
 
   it("lets a member draft in acme and refuses everyone else, a moderator elsewhere too", async () => {
     await expect(
-      createDraft(asOutsider, { scope: "acme", name: "fmt", type: "skill" }, app),
+      createDraft(asOutsider, { scope: "@acme/acme", name: "fmt", type: "skill" }, app),
     ).rejects.toThrow(new NotAMemberError("acme"));
     await expect(
-      createDraft(asMember, { scope: "acme", name: "fmt", type: "skill" }, app),
+      createDraft(asMember, { scope: "@acme/acme", name: "fmt", type: "skill" }, app),
     ).resolves.toMatchObject({ workspace: { id: acme, name: "acme" } });
     await expect(
-      createDraft(asRoot, { scope: "acme", name: "lint", type: "skill" }, app),
+      createDraft(asRoot, { scope: "@acme/acme", name: "lint", type: "skill" }, app),
     ).resolves.toMatchObject({ status: "draft" });
   });
 
   it("refuses moving a draft into a workspace you aren't in", async () => {
     const draft = await createDraft(asOutsider, { scope: "team", name: "fmt", type: "skill" }, app);
     await expect(
-      renameDraft(asOutsider, draft.id, { scope: "acme", name: "fmt" }, app),
+      renameDraft(asOutsider, draft.id, { scope: "@acme/acme", name: "fmt" }, app),
     ).rejects.toThrow(NotAMemberError);
     expect((await getDraft(asOutsider, draft.id, app)).scope.name).toBe("team");
   });
@@ -151,7 +151,7 @@ describe("a removed member's drafts and submissions (091)", () => {
     await expect(checkSubmission(asMember, draft.id, app)).rejects.toThrow(NotAMemberError);
     await expect(submitDraft(asMember, draft.id, app)).rejects.toThrow(NotAMemberError);
     await expect(
-      renameDraft(asMember, draft.id, { scope: "acme", name: "other" }, app),
+      renameDraft(asMember, draft.id, { scope: "@acme/acme", name: "other" }, app),
     ).rejects.toThrow(NotAMemberError);
     expect(await status(draft.id)).toBe("draft");
   });

@@ -1,4 +1,5 @@
 import type { Manifest } from "../manifest.js";
+import { shortItemName } from "../names.js";
 import { sha256Hex } from "../pack/pack.js";
 import type { PackageFile } from "../package-file.js";
 import type { Change, ChangeFile, RenderWarning } from "./types.js";
@@ -170,8 +171,11 @@ export const record = (value: unknown): Record<string, unknown> =>
 export const strings = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
 
-/** `name` from `@scope/name`: what renderers call files and folders. */
-export const shortName = (name: string) => name.slice(name.indexOf("/") + 1);
+/**
+ * `name` from `@scope/name` or `@workspace/scope/name` (118): what renderers call files and folders,
+ * so a scope's move to another workspace renames nothing on disk.
+ */
+export const shortName = shortItemName;
 
 const decoder = new TextDecoder();
 

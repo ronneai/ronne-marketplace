@@ -36,7 +36,7 @@ const toEditorProposal = (
   return {
     itemName,
     baseVersion: draft.proposal.baseVersion,
-    baseHref: `${itemPath({ scope: draft.scope.name, name: draft.name })}?version=${encodeURIComponent(draft.proposal.baseVersion)}`,
+    baseHref: `${itemPath({ workspace: draft.workspace.name, scope: draft.scope.name, name: draft.name })}?version=${encodeURIComponent(draft.proposal.baseVersion)}`,
     stale: panel?.stale ?? null,
     canRebase: draft.mine && draft.member && REBASABLE.has(draft.status),
     canResolve: draft.mine && draft.member && isEditable(draft.status),
@@ -61,6 +61,7 @@ const toEditorDraft = (
   canRestore: draft.mine && draft.member && canTransition(draft.status, "restore"),
   dependencyMarks,
   id: draft.id,
+  workspace: draft.workspace.name,
   scope: draft.scope.name,
   name: draft.name,
   type: draft.type,

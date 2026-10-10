@@ -108,7 +108,7 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
       description:
         "An item's tags and versions, and one version's dependencies, risk flags, the AI tools it works in and README (latest unless a version or tag is given).",
       inputSchema: {
-        name: z.string().describe("@scope/name"),
+        name: z.string().describe("@scope/name, or @workspace/scope/name outside global"),
         version: z.string().optional().describe("A version or a tag; latest when left out"),
       },
       annotations: read,
@@ -155,7 +155,11 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
       description:
         "Works out what installing items would write, remove and warn about, with their risk flags, and writes nothing. Show the plan to the person; apply it with apply_plan.",
       inputSchema: {
-        items: z.array(z.string()).describe("@scope/name, with @tag or @range after it if wanted"),
+        items: z
+          .array(z.string())
+          .describe(
+            "@scope/name (or @workspace/scope/name outside global), with @tag or @range after it if wanted",
+          ),
         targets,
         scope,
       },
@@ -237,7 +241,12 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
           .array(z.string())
           .min(1)
           .describe("Names or folders exactly as list_local_items shows them"),
-        to: z.string().optional().describe("The marketplace scope the person chose, such as @team"),
+        to: z
+          .string()
+          .optional()
+          .describe(
+            "The marketplace scope the person chose: @team in the global workspace, @acme/team in the acme workspace",
+          ),
         name: z.string().optional().describe("The item's name, for a single item"),
         type: exportType.describe(
           "skill, agent, command, rule or mcp-server: needed when a name is more than one item",
@@ -303,7 +312,9 @@ export const createServer = (io: Io, options: ServerOptions = {}) => {
     items: z
       .array(z.string())
       .optional()
-      .describe("Items as @scope/name (the person's open draft of each), or draft ids"),
+      .describe(
+        "Items as @scope/name or @workspace/scope/name (the person's open draft of each), or draft ids",
+      ),
     all: z
       .boolean()
       .optional()

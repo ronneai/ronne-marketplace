@@ -1,8 +1,10 @@
 import { createHash } from "node:crypto";
 import {
   dependenciesFirst,
+  formatItemName,
   type Manifest,
   type PackageLimits,
+  parseItemName,
   parseManifest,
   ResolveError,
   resolve,
@@ -40,6 +42,7 @@ import {
   type FeedPlugin,
   feedWarningMessage,
   feedWarnings,
+  MOVED_NOTE_DAYS,
   NO_PLUGIN,
   type PluginRef,
   pluginDescription,
@@ -99,7 +102,7 @@ const TOOL_NAMES: Record<PluginTool, string> = {
   cursor: "Cursor",
 };
 
-const itemName = (ref: { scope: string; name: string }) => `@${ref.scope}/${ref.name}`;
+const itemName = (ref: { workspace?: string; scope: string; name: string }) => formatItemName(ref);
 
 /** A released version as a renderer takes it, from its artifact's own ronne.yaml (as `rmk install`). */
 const renderInput = async (
@@ -125,8 +128,8 @@ const renderInput = async (
 
 /** A published version by item name and version, for a dependency the resolver chose. */
 const publishedVersion = async (deps: FeedDeps, name: string, version: string) => {
-  const [scope, short] = name.slice(1).split("/");
-  const item = scope && short ? await deps.items.findByName(scope, short) : null;
+  const ref = parseItemName(name);
+  const item = ref ? await deps.items.findByName(ref) : null;
   const found = item
     ? (await deps.items.versions(item.id)).find((v) => v.version === version)
     : null;
@@ -162,7 +165,17 @@ const membersOf = async (deps: FeedDeps, item: RenderInput, type: string) => {
     const version = resolution.items[name]?.version ?? "";
     members.push(await renderInput(deps, name, await publishedVersion(deps, name, version)));
   }
-  return members;
+  // The members' old names (118), for an old version that names a dependency by one.
+  const ids = new Map<string, string>();
+  for (const name of Object.keys(resolution.items)) {
+    const ref = parseItemName(name);
+    const found = ref ? await deps.items.findByName(ref) : null;
+    if (found) ids.set(found.id, found.fullName);
+  }
+  const oldNames = new Map<string, string>();
+  for (const [old, id] of await deps.items.oldNames([...ids.keys()]))
+    oldNames.set(old, ids.get(id) ?? old);
+  return { members, oldNames };
 };
 
 const sha256Of = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
@@ -194,16 +207,23 @@ const build = async (
   type: string,
 ): Promise<{ bytes: Uint8Array; sha256: string } | null> => {
   const item = await renderInput(deps, itemName(ref), version);
-  const members = await membersOf(deps, item, type);
+  const { members, oldNames } = await membersOf(deps, item, type);
   let plugin: ReturnType<typeof buildPlugin>;
   try {
-    plugin = buildPlugin(tool, { item, members });
+    plugin = buildPlugin(tool, { item, members, oldNames });
   } catch (error) {
     if (error instanceof PluginError)
       throw new PluginUnavailableError(item.name, item.version, error.message);
     throw error;
   }
   if (plugin.empty) {
+    // A name the tool refuses (longer than Codex allows, say: 118's names are longer) is said
+    // once, when it's found; the sidecar keeps it out after that.
+    for (const warning of plugin.warnings)
+      if (warning.code === "name_refused")
+        (deps.log ?? ((message: string) => console.warn(message)))(
+          `${TOOL_NAMES[tool]} feed: ${warning.message}`,
+        );
     await deps.storage.put(sidecarKey(tool, ref), sidecarBytes(NO_PLUGIN));
     return null;
   }
@@ -246,7 +266,13 @@ const feedEntries = async (deps: FeedDeps, tool: PluginTool) => {
     out.push(...page);
     const last = page.at(-1);
     if (page.length < FEED_PAGE || !last) return out;
-    after = { sort: "name", installable: last.installable, scope: last.scope, name: last.name };
+    after = {
+      sort: "name",
+      installable: last.installable,
+      scope: last.scope,
+      name: last.name,
+      id: last.id,
+    };
   }
 };
 
@@ -267,12 +293,23 @@ type CollectedFeed = {
 const collectFeed = async (deps: FeedDeps, tool: PluginTool): Promise<CollectedFeed> => {
   const clock = deps.clock ?? Date.now;
   const log = deps.log ?? ((message: string) => console.warn(message));
-  const deadline = clock() + (deps.buildBudgetMs ?? BUILD_BUDGET_MS);
+  const started = clock();
+  const deadline = started + (deps.buildBudgetMs ?? BUILD_BUDGET_MS);
   const plugins: FeedPlugin[] = [];
   let unbuilt = 0;
   let failed = 0;
-  for (const entry of await feedEntries(deps, tool)) {
-    const ref = { scope: entry.scope, name: entry.name, version: entry.version };
+  const entries = await feedEntries(deps, tool);
+  const movedFrom = await deps.items.renamedSince(
+    entries.map((entry) => entry.id),
+    new Date(started - MOVED_NOTE_DAYS * 24 * 60 * 60 * 1000),
+  );
+  for (const entry of entries) {
+    const ref = {
+      workspace: entry.workspace,
+      scope: entry.scope,
+      name: entry.name,
+      version: entry.version,
+    };
     let sha256 = await cached(deps, tool, ref);
     if (sha256 === undefined) {
       if (clock() > deadline) {
@@ -292,7 +329,11 @@ const collectFeed = async (deps: FeedDeps, tool: PluginTool): Promise<CollectedF
     if (sha256 === NO_PLUGIN) continue;
     plugins.push({
       ...ref,
-      description: pluginDescription(entry.description, entry.deprecatedMessage),
+      description: pluginDescription(
+        entry.description,
+        entry.deprecatedMessage,
+        movedFrom.get(entry.id) ?? null,
+      ),
       sha256,
     });
   }
@@ -419,7 +460,7 @@ export const findPlugin = async (
 ): Promise<{ item: Item; sha256: string }> => {
   requirePermission(actor.user, "account.manage_own");
   const notFound = () => new PluginNotFoundError(itemName(ref), ref.version, TOOL_NAMES[tool]);
-  const item = await deps.items.findByName(ref.scope, ref.name);
+  const item = await deps.items.findByName(ref);
   if (!item) throw notFound();
   const version = (await deps.items.versions(item.id)).find((v) => v.version === ref.version);
   if (!version || version.yankedAt) throw notFound();

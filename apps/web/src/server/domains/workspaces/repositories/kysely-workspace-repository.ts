@@ -1,3 +1,4 @@
+import { formatItemName } from "@ronneai/core";
 import type { Kysely } from "kysely";
 import { bumpCatalogueRevision } from "../../../db/catalogue-revision";
 import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
@@ -217,7 +218,16 @@ export const kyselyWorkspaceRepository = (
           .innerJoin("item_versions", "item_versions.id", "version_dependencies.version_id")
           .innerJoin("items as dependent", "dependent.id", "item_versions.item_id")
           .innerJoin("scopes as dependent_scope", "dependent_scope.id", "dependent.scope_id")
-          .select(["dependent_scope.name as scope", "dependent.name as name"])
+          .innerJoin(
+            "workspaces as dependent_workspace",
+            "dependent_workspace.id",
+            "dependent_scope.workspace_id",
+          )
+          .select([
+            "dependent_workspace.name as workspace",
+            "dependent_scope.name as scope",
+            "dependent.name as name",
+          ])
           .where("dependency_scope.workspace_id", "=", workspaceId)
           .where("dependent_scope.workspace_id", "!=", workspaceId)
           .where("item_versions.yanked_at", "is", null)
@@ -225,13 +235,19 @@ export const kyselyWorkspaceRepository = (
           .orderBy("dependent_scope.name")
           .orderBy("dependent.name")
           .execute()
-      ).map((row) => `@${row.scope}/${row.name}`),
+      ).map((row) => formatItemName(row)),
 
     openSubmissionsOutside: async (workspaceId) => {
       const rows = await db
         .selectFrom("submissions")
         .innerJoin("scopes", "scopes.id", "submissions.scope_id")
-        .select(["submissions.id", "scopes.name as scope", "submissions.name"])
+        .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
+        .select([
+          "submissions.id",
+          "workspaces.name as workspace",
+          "scopes.name as scope",
+          "submissions.name",
+        ])
         .where("scopes.workspace_id", "!=", workspaceId)
         .where("submissions.status", "in", ["submitted", "changes_requested", "approved"])
         .orderBy("scopes.name")
@@ -253,7 +269,7 @@ export const kyselyWorkspaceRepository = (
             .limit(1)
             .executeTakeFirst();
           return {
-            name: `@${row.scope}/${row.name}`,
+            name: formatItemName(row),
             manifest:
               manifest?.encoding === "utf8"
                 ? manifest.content

@@ -50,7 +50,7 @@ const Item = async ({
   const tab = tabFrom(first(query.tab));
   const page = await loadItemPage(params, first(query.version));
   const { shown } = page;
-  const ref = { scope: page.item.scope.name, name: page.item.name };
+  const ref = { workspace: page.item.workspace, scope: page.item.scope.name, name: page.item.name };
   const type = page.item.type;
   const files =
     tab === "overview" || tab === "files" ? await loadContents(ref, shown.version) : null;

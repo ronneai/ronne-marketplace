@@ -63,6 +63,7 @@ test("the form and @ offer your own draft, and not someone else's in review", as
     data: { ids: [(await upload.json()).id] },
   });
   expect(submitted.status()).toBe(200);
+  await api.dispose();
 
   await signIn(page, mobileUser(testInfo, "member"));
   await newDraft(page, `pick-mine-${project}`, "skill");

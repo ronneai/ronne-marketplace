@@ -1,4 +1,5 @@
 import type { PackageLimits } from "@ronneai/core";
+import { formatItemName } from "@ronneai/core";
 import type { StorageAdapter } from "../../../storage";
 import { ArtifactUnavailableError } from "../exceptions/errors";
 import { type ContentFile, toContentFile } from "../models/contents";
@@ -21,6 +22,6 @@ export const versionContents = async (
 ): Promise<ContentFile[]> => {
   const found = await findDownload(deps, actor, ref, version);
   const files = await artifactFiles(deps, found.version);
-  if (!files) throw new ArtifactUnavailableError(`@${ref.scope}/${ref.name}`, version);
+  if (!files) throw new ArtifactUnavailableError(formatItemName(ref), version);
   return files.map(toContentFile);
 };

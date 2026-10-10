@@ -1,3 +1,4 @@
+import { formatItemName, GLOBAL_WORKSPACE } from "@ronneai/core";
 import { installsIn, RENDERERS } from "@ronneai/core/render";
 import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
@@ -8,15 +9,23 @@ import type { CatalogueEntry } from "@/server/domains/items/actions/catalogue";
 import { WorkspaceLabel } from "./WorkspaceLabel";
 
 /** An item's page (feature 018). */
-export const itemPath = (item: { scope: string; name: string }) =>
-  `/items/${encodeURIComponent(item.scope)}/${encodeURIComponent(item.name)}`;
+/**
+ * An item's page: `/items/<scope>/<name>` in `global`, `/workspaces/<workspace>/items/<scope>/<name>`
+ * elsewhere (118), like its API path.
+ */
+export const itemPath = (item: { workspace?: string | null; scope: string; name: string }) => {
+  const path = `/items/${encodeURIComponent(item.scope)}/${encodeURIComponent(item.name)}`;
+  return !item.workspace || item.workspace === GLOBAL_WORKSPACE
+    ? path
+    : `/workspaces/${encodeURIComponent(item.workspace)}${path}`;
+};
 
 /**
  * One published item, as the catalogue and the home page list it (feature 018): its name, listed
  * version, type, what it can do, the AI tools it works in (026), how many times it's been installed
  * (its download count, on every card since 2026-10-02, owner) and whether it's deprecated, with the command to install
- * it. An item in a workspace other than `global` names it before its own name, quietly (090), and
- * a private one's says so with a lock (093).
+ * it. An item in a workspace other than `global` names it in its full name (118), and a private
+ * one's says so with a lock (093).
  */
 export const ItemCard = ({
   entry,
@@ -25,7 +34,7 @@ export const ItemCard = ({
   entry: CatalogueEntry;
   heading?: "h2" | "h3";
 }) => {
-  const name = `@${entry.scope}/${entry.name}`;
+  const name = formatItemName(entry);
   const tools = RENDERERS.filter((r) => installsIn(entry.support[r.id])).map((r) => r.name);
   const keywords = entry.keywords.map((keyword) => `#${keyword}`);
   const details = [

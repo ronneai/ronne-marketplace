@@ -14,6 +14,11 @@ export type ManifestIssue = {
   file?: string;
   /** 1-based line in ronne.yaml, when the path can be located. */
   line?: number;
+  /**
+   * A dependency named by an old name (118): the editor offers to write `to` instead of `from`
+   * under `dependencies`.
+   */
+  rename?: { from: string; to: string };
 };
 
 export const hasErrors = (issues: readonly ManifestIssue[]): boolean =>

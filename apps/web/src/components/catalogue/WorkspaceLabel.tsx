@@ -1,9 +1,8 @@
 import { Lock } from "lucide-react";
-import { GLOBAL_WORKSPACE_NAME } from "@/server/domains/workspaces/models/workspace";
 
 /**
- * The workspace before an item's name, quietly, when it isn't `global` (090). A private one's
- * (093) carries a lock and "Private · acme": only its members and root see the item.
+ * "Private" with a lock before the name of an item in a private workspace (093): only its members
+ * and root see it. The workspace itself is in the name since 118, so a public one's item has none.
  */
 export const WorkspaceLabel = ({
   workspace,
@@ -14,21 +13,11 @@ export const WorkspaceLabel = ({
   privateWorkspace: boolean;
   className: string;
 }) => {
-  if (!privateWorkspace && workspace === GLOBAL_WORKSPACE_NAME) return null;
+  if (!privateWorkspace) return null;
   return (
-    <span
-      className={className}
-      title={privateWorkspace ? `Only ${workspace}'s members and root see this item.` : undefined}
-    >
-      {privateWorkspace ? (
-        <>
-          <Lock aria-hidden="true" className="mr-1 inline size-3.5 align-[-2px]" />
-          Private
-          <span aria-hidden="true"> · </span>
-          <span className="sr-only">, </span>
-        </>
-      ) : null}
-      {workspace}
+    <span className={className} title={`Only ${workspace}'s members and root see this item.`}>
+      <Lock aria-hidden="true" className="mr-1 inline size-3.5 align-[-2px]" />
+      Private
       <span aria-hidden="true"> · </span>
       <span className="sr-only">, </span>
     </span>

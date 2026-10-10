@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, statSync } from "node:fs";
 import { delimiter, dirname, join, resolve } from "node:path";
+import { shortItemName } from "@ronneai/core";
 import type { Change } from "@ronneai/core/render";
 import { applyPlan, planChanges, readState, type Wanted, writeState } from "./apply.js";
 import { configDir } from "./config.js";
@@ -334,7 +335,7 @@ const installedItem = (io: Io, folder: string | null, run: Run) => {
   for (const lock of locks) {
     if (!lock) continue;
     for (const [item, entry] of Object.entries(lock.items)) {
-      const name = item.slice(item.indexOf("/") + 1);
+      const name = shortItemName(item);
       if (run.names.includes(name) && run.types.includes(entry.type))
         found.push({ item, version: entry.version, registry: lock.registry });
     }

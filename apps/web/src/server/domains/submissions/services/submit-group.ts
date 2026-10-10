@@ -1,5 +1,6 @@
 import {
   dependenciesFirst,
+  formatItemName,
   hasErrors,
   highestMatching,
   type ManifestIssue,
@@ -59,7 +60,7 @@ const stillNeeded = async (
 ) => {
   const parsed = parseItemName(name);
   if (!parsed) return false;
-  const item = await registry.findItem(parsed.scope, parsed.name);
+  const item = await registry.findItem(parsed);
   if (item) {
     const versions = (await registry.publishedVersions(item.id)).filter((v) => !v.yanked);
     if (
@@ -70,7 +71,7 @@ const stillNeeded = async (
     )
       return false;
   }
-  return !(await registry.submissionsNamed(parsed.scope, parsed.name)).some(
+  return !(await registry.submissionsNamed(parsed)).some(
     (s) => s.authorId === actor.user?.id && OPEN_STATUSES.includes(s.status),
   );
 };
@@ -171,9 +172,9 @@ export const withIncoming = (
   incoming: ReadonlyMap<string, NamedSubmission>,
 ): RegistryLookup => ({
   ...registry,
-  submissionsNamed: async (scope, name) => {
-    const coming = incoming.get(`@${scope}/${name}`);
-    const known = await registry.submissionsNamed(scope, name);
+  submissionsNamed: async (ref) => {
+    const coming = incoming.get(formatItemName(ref));
+    const known = await registry.submissionsNamed(ref);
     return coming ? [coming, ...known] : known;
   },
 });

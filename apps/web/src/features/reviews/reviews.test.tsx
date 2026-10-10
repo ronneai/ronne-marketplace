@@ -289,7 +289,7 @@ describe("approving several at once (054)", () => {
   });
 
   it("approves through the domain and reports each result, or the error", async () => {
-    const submission = { scope: { name: "team" }, name: "fmt" };
+    const submission = { workspace: { name: "global" }, scope: { name: "team" }, name: "fmt" };
     reviews.approveMany.mockResolvedValue([
       { id: "a", result: "approved", submission, override: true, revision: 2 },
       { id: "b", result: "not_approvable", submission, reason: "It's withdrawn." },

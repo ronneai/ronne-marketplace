@@ -20,6 +20,9 @@ vi.mock("next/navigation", () => ({
   notFound: () => {
     throw new Error("NEXT_NOT_FOUND");
   },
+  redirect: (to: string) => {
+    throw new Error(`NEXT_REDIRECT ${to}`);
+  },
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }),
   usePathname: () => "/items/team/github",
   useSearchParams: () => new URLSearchParams(),
@@ -27,6 +30,9 @@ vi.mock("next/navigation", () => ({
 vi.mock("./actions", () => ({ proposeChangeAction: vi.fn() }));
 
 const { default: Item } = await import("@/app/(app)/items/[scope]/[name]/page");
+const { default: WorkspaceItem } = await import(
+  "@/app/(app)/workspaces/[name]/items/[scope]/[item]/page"
+);
 const { pluginCommandOf } = await import("./load");
 
 const render = async (query: { tab?: string; version?: string; file?: string } = {}) =>
@@ -111,12 +117,58 @@ describe("Propose a change refused (091, 094)", () => {
   });
 });
 
+describe("the item page under its full name (118)", () => {
+  it("serves a workspace's item at /workspaces/<workspace>/items/<scope>/<name>", async () => {
+    versions.itemPage.mockResolvedValue(
+      itemPageData({
+        item: { ...itemPageData().item, workspace: "acme", fullName: "@acme/team/github" },
+      }),
+    );
+    const html = renderToStaticMarkup(
+      await WorkspaceItem({
+        params: Promise.resolve({ name: "acme", scope: "team", item: "github" }),
+        searchParams: Promise.resolve({}),
+      }),
+    );
+    expect(versions.itemPage).toHaveBeenCalledWith(
+      expect.any(Headers),
+      { workspace: "acme", scope: "team", name: "github" },
+      undefined,
+    );
+    expect(html).toContain("@acme/team/github");
+  });
+
+  it("sends /workspaces/global/items/… to global's own address", async () => {
+    versions.itemPage.mockResolvedValue(itemPageData());
+    await expect(
+      WorkspaceItem({
+        params: Promise.resolve({ name: "global", scope: "team", item: "github" }),
+        searchParams: Promise.resolve({}),
+      }),
+    ).rejects.toThrow("NEXT_REDIRECT /items/team/github");
+  });
+
+  it("sends an old name's address to the item's address now, keeping the version", async () => {
+    versions.itemPage.mockResolvedValue(
+      itemPageData({
+        item: { ...itemPageData().item, workspace: "acme", fullName: "@acme/team/github" },
+      }),
+    );
+    await expect(
+      Item({
+        params: Promise.resolve({ scope: "team", name: "github" }),
+        searchParams: Promise.resolve({ version: "1.0.0" }),
+      }),
+    ).rejects.toThrow("NEXT_REDIRECT /workspaces/acme/items/team/github?version=1.0.0");
+  });
+});
+
 describe("the item page", () => {
   it("shows the header, both install commands, and the README rendered safely", async () => {
     const html = await render({ tab: "readme" });
     expect(versions.itemPage).toHaveBeenCalledWith(
       expect.any(Headers),
-      { scope: "team", name: "github" },
+      { workspace: "global", scope: "team", name: "github" },
       undefined,
     );
     expect(html).toContain(">@team/github</h1>");
@@ -164,18 +216,16 @@ describe("the item page", () => {
     expect(tools).toContain("mcp_servers in .codex/config.toml</code>.");
   });
 
-  it("names a workspace other than global before the name in the header (090)", async () => {
+  it("names a workspace other than global in the header, once: in the full name (090, 118)", async () => {
     versions.itemPage.mockResolvedValue(
       itemPageData({ item: { ...itemPageData().item, workspace: "acme" } }),
     );
     const html = await render();
     expect(html).not.toContain("Who can see this?");
-    expect(html).toMatch(
-      /acme<span aria-hidden="true"> · <\/span><span class="sr-only">, <\/span><\/span>@team\/github<\/h1>/,
-    );
+    expect(html).toMatch(/<h1[^>]*>@acme\/team\/github<\/h1>/);
   });
 
-  it("marks a private workspace's item with a lock and Private · acme in the header (093)", async () => {
+  it("marks a private workspace's item with a lock and Private in the header (093, 118)", async () => {
     versions.itemPage.mockResolvedValue(
       itemPageData({ item: { ...itemPageData().item, workspace: "acme", privateWorkspace: true } }),
     );
@@ -183,7 +233,7 @@ describe("the item page", () => {
     expect(html).toContain("Who can see this?");
     expect(html).toContain("/marketplace/docs/workspaces#visibility");
     expect(html).toMatch(
-      /lucide-lock[^>]*>.*<\/svg>Private<span aria-hidden="true"> · <\/span><span class="sr-only">, <\/span>acme<span aria-hidden="true"> · <\/span><span class="sr-only">, <\/span><\/span>@team\/github<\/h1>/,
+      /lucide-lock[^>]*>.*<\/svg>Private<span aria-hidden="true"> · <\/span><span class="sr-only">, <\/span><\/span>@acme\/team\/github<\/h1>/,
     );
   });
 
@@ -238,7 +288,7 @@ describe("the item page", () => {
     const files = await render({ tab: "files" });
     expect(versions.versionContents).toHaveBeenCalledWith(
       expect.any(Headers),
-      { scope: "team", name: "github" },
+      { workspace: "global", scope: "team", name: "github" },
       "1.1.0",
     );
     expect(files).toContain('aria-label="Files of this version"');
@@ -283,7 +333,14 @@ describe("the item page", () => {
       itemPageData({
         item: { ...itemPageData().item, downloadCount: 1428 },
         usedBy: [
-          { scope: "team", name: "starter-kit", type: "bundle", version: "1.0.0", range: "^1.0.0" },
+          {
+            workspace: "global",
+            scope: "team",
+            name: "starter-kit",
+            type: "bundle",
+            version: "1.0.0",
+            range: "^1.0.0",
+          },
         ],
         shown: {
           ...itemPageData().shown,

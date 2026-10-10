@@ -1,4 +1,4 @@
-import { parseManifest } from "@ronneai/core";
+import { GLOBAL_WORKSPACE, parseManifest } from "@ronneai/core";
 import type { Kysely } from "kysely";
 import type { Database } from "../../../db/schema";
 import type { DatabaseDialect } from "../../../db/url";
@@ -31,12 +31,13 @@ export const kyselyRegistryLookup = (
     return new Set(rows.filter((row) => row.visibility !== "public").map((row) => row.id));
   };
   return {
-    findItem: async (scope, name) => {
-      const item = await items.findByName(scope, name);
+    findItem: async (ref) => {
+      const item = await items.findByName(ref);
       if (!item) return null;
       const isPrivate = (await privateWorkspaces([item.workspaceId])).has(item.workspaceId);
       return {
         id: item.id,
+        fullName: item.fullName,
         scope: item.scope.name,
         name: item.name,
         type: item.type,
@@ -44,6 +45,7 @@ export const kyselyRegistryLookup = (
       };
     },
     privateWorkspaces,
+    isOldName: (name) => items.isOldName(name),
     publishedVersions: async (itemId) =>
       (await items.versions(itemId)).map((version) => ({
         id: version.id,
@@ -54,7 +56,7 @@ export const kyselyRegistryLookup = (
         yanked: version.yankedAt !== null,
         dependencies: version.dependencies,
       })),
-    submissionsNamed: async (scope, name) => {
+    submissionsNamed: async (ref) => {
       const rows = await db
         .selectFrom("submissions")
         .innerJoin("scopes", "scopes.id", "submissions.scope_id")
@@ -69,8 +71,9 @@ export const kyselyRegistryLookup = (
           "submissions.author_id",
           "submissions.updated_at",
         ])
-        .where("scopes.name", "=", scope)
-        .where("submissions.name", "=", name)
+        .where("workspaces.name", "=", ref.workspace || GLOBAL_WORKSPACE)
+        .where("scopes.name", "=", ref.scope)
+        .where("submissions.name", "=", ref.name)
         .where("submissions.status", "!=", "draft")
         .where(isReadableSubmission(viewer, "submissions.id"))
         .orderBy("submissions.updated_at", "desc")
@@ -107,7 +110,7 @@ export const kyselyRegistryLookup = (
         }),
       );
     },
-    ownDraftNamed: async (scope, name, authorId) => {
+    ownDraftNamed: async (ref, authorId) => {
       const row = await db
         .selectFrom("submissions")
         .innerJoin("scopes", "scopes.id", "submissions.scope_id")
@@ -118,8 +121,9 @@ export const kyselyRegistryLookup = (
           "submissions.id",
           "submissions.type",
         ])
-        .where("scopes.name", "=", scope)
-        .where("submissions.name", "=", name)
+        .where("workspaces.name", "=", ref.workspace || GLOBAL_WORKSPACE)
+        .where("scopes.name", "=", ref.scope)
+        .where("submissions.name", "=", ref.name)
         .where("submissions.status", "=", "draft")
         .where("submissions.author_id", "=", authorId)
         .where(isReadableSubmission(viewer, "submissions.id"))

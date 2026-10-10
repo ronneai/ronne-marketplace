@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { formatItemName } from "@ronneai/core";
 import type { StorageAdapter } from "../../../storage";
 import { requirePermission } from "../../identity/models/permissions";
 import {
@@ -16,7 +17,7 @@ import type { ItemRef, VersionActor, VersionDeps } from "./versions";
  */
 export type DownloadDeps = VersionDeps & { storage: StorageAdapter };
 
-const nameOf = (ref: ItemRef) => `@${ref.scope}/${ref.name}`;
+const nameOf = (ref: ItemRef) => formatItemName(ref);
 
 /** The version a download is for, without reading the artifact: for HEAD and `If-None-Match`. */
 export const findDownload = async (
@@ -24,13 +25,13 @@ export const findDownload = async (
   actor: VersionActor,
   ref: ItemRef,
   version: string,
-): Promise<{ itemId: string; version: ItemVersion }> => {
+): Promise<{ itemId: string; name: string; version: ItemVersion }> => {
   requirePermission(actor.user, "account.manage_own");
-  const item = await deps.items.findByName(ref.scope, ref.name);
+  const item = await deps.items.findByName(ref);
   if (!item) throw new ItemNotFoundError(nameOf(ref));
   const found = (await deps.items.versions(item.id)).find((v) => v.version === version);
   if (!found) throw new VersionNotFoundError(nameOf(ref), version);
-  return { itemId: item.id, version: found };
+  return { itemId: item.id, name: item.fullName, version: found };
 };
 
 /** The artifact's bytes, checked against the version's sha256, and counted. */

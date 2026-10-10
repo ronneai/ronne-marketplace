@@ -22,6 +22,8 @@ import {
   planExport,
   type Scopes,
   type SkipReason,
+  scopeKey,
+  scopeKeyOf,
   uploadExport,
 } from "./export.js";
 import type { Finding } from "./export-dependencies.js";
@@ -208,10 +210,12 @@ const askScope = async (io: Io, given: Scopes): Promise<string> => {
     )
   ).trim();
   const byNumber = /^\d+$/.test(answer) ? scopes[Number(answer) - 1] : undefined;
-  const chosen = byNumber?.name ?? answer.replace(/^@/, "");
-  if (!chosen || !scopes.some((s) => s.name === chosen))
+  // By number, or by name: `infra` is global's, `@acme/infra` acme's (118).
+  const typed = scopeKeyOf(answer);
+  const chosen = byNumber ?? scopes.find((s) => scopeKey(s) === typed);
+  if (!chosen)
     throw usage(`${answer || "Nothing"} isn't one of the scopes. Run it again, or use --to.`);
-  return chosen;
+  return scopeKey(chosen);
 };
 
 /** `--with-deps` or `--no-deps`: what to do with the person's own items an export uses (041). */

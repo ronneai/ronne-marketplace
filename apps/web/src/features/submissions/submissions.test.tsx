@@ -295,7 +295,7 @@ describe("a draft in a workspace they aren't in (091, 094)", () => {
     expect(results).toEqual([
       {
         id: away.id,
-        name: "@platform/away-one",
+        name: "@acme/platform/away-one",
         result: "not_a_member",
         reasons: ["You aren't a member."],
         joinWorkspace: "acme",
@@ -420,6 +420,9 @@ describe("NewDraftForm", () => {
     );
     // Inline help (033) on the scope, the name and the type.
     expect(html).toContain("What&#x27;s a scope?");
+    // Next to the name, why it includes the workspace (118).
+    expect(html).toContain("Why does the name include the workspace?");
+    expect(html).toContain("/marketplace/docs/scopes#names");
     expect(html).toContain("How should I name it?");
     expect(html).toContain("Which type?");
   });
@@ -441,12 +444,23 @@ describe("pages", () => {
 
   it("collects every page of scopes for the picker", async () => {
     scopes.listScopes
-      .mockResolvedValueOnce({ scopes: [{ name: "a", description: "A." }], nextCursor: "a" })
-      .mockResolvedValueOnce({ scopes: [{ name: "b", description: "B." }], nextCursor: null });
+      .mockResolvedValueOnce({
+        scopes: [{ name: "a", description: "A.", workspace: { name: "global" } }],
+        nextCursor: "a",
+      })
+      .mockResolvedValueOnce({
+        // Outside global, the picker names the workspace (118).
+        scopes: [{ name: "b", description: "B.", workspace: { name: "acme" } }],
+        nextCursor: null,
+      });
     const html = renderToStaticMarkup(await NewItemPage());
     expect(scopes.listScopes).toHaveBeenNthCalledWith(2, expect.any(Headers), { cursor: "a" });
     expect(html).toContain("@a");
-    expect(html).toContain("@b");
+    expect(html).toContain("@acme/b");
+    // In groups by workspace, global first, each under a heading (118).
+    expect(html.indexOf(">global</span>")).toBeLessThan(html.indexOf("@a<"));
+    expect(html.indexOf("@a<")).toBeLessThan(html.indexOf(">acme</span>"));
+    expect(html.indexOf(">acme</span>")).toBeLessThan(html.indexOf("@acme/b<"));
   });
 });
 

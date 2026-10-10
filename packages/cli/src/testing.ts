@@ -1,6 +1,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { shortItemName } from "@ronneai/core";
 import { packItem } from "@ronneai/core/pack";
 import type { Io } from "./io.js";
 
@@ -306,7 +307,7 @@ export const buildRegistry = async () => {
   });
   for (const [key, item] of Object.entries(packed)) {
     const [name, version] = key.split("@").slice(1);
-    routes[`GET /items/team/${name?.split("/")[1]}/${version}/tarball`] = () => ({
+    routes[`GET /items/team/${shortItemName(`@${name}`)}/${version}/tarball`] = () => ({
       bytes: item.tgz,
       headers: { "x-checksum-sha256": item.sha256, "content-type": "application/gzip" },
     });

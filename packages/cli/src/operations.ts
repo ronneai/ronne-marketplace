@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
-import { isVersionRange } from "@ronneai/core";
+import { canonicalItemName, isVersionRange, parseItemName } from "@ronneai/core";
 import type { ApiClient } from "./api.js";
 import { diskHash } from "./apply.js";
 import { RmkError, usage } from "./errors.js";
@@ -66,6 +66,10 @@ export const projectState = (io: Io, scopeValue?: string) => {
   return { scope, lock, config, lockfile, dependencies, locked };
 };
 
+/** A map's keys under the names items have now (118). */
+const renamedKeys = <T>(map: Record<string, T>, renamed: Record<string, string>) =>
+  Object.fromEntries(Object.entries(map).map(([name, value]) => [renamed[name] ?? name, value]));
+
 export const planOperation = async (
   io: Io,
   api: ApiClient,
@@ -102,16 +106,20 @@ export const planOperation = async (
     const next = { ...dependencies };
     for (const ref of request.items) {
       const { name, at } = splitItemRef(ref);
-      if (!/^@[^/]+\/[^/@]+$/.test(name))
-        throw usage(`${ref} isn't an item: use @scope/name, with @tag or @range after it.`);
+      if (!parseItemName(name))
+        throw usage(
+          `${ref} isn't an item: use @scope/name or @workspace/scope/name, with @tag or @range after it.`,
+        );
       if (at && !isVersionRange(at) && !/^[a-z][a-z0-9-]{0,31}$/.test(at))
         throw usage(`${at} is neither a version range nor a tag.`);
-      next[name] = at ?? "latest";
+      // One way to write it: `@global/team/x` is `@team/x` (118).
+      next[canonicalItemName(name) ?? name] = at ?? "latest";
     }
     // With nothing asked for, a lockfile installs exactly what it holds.
     const prepared = await prepare(next, locked);
     const setTargets = Boolean(request.target && request.target !== "all");
-    const nextProject = nextConfig(next, setTargets);
+    // Under the names the items have now (118).
+    const nextProject = nextConfig(prepared.dependencies, setTargets);
     // The project remembers its registry, so teammates and later commands use the same one.
     if (nextProject && (!nextProject.registry || request.registryGiven))
       nextProject.registry = api.registry;
@@ -119,37 +127,68 @@ export const planOperation = async (
       ...prepared,
       kind: "install",
       config: nextProject,
-      lockedBefore: locked,
+      lockedBefore: renamedKeys(locked, prepared.renamed),
     };
   }
+
+  /**
+   * The project's own key for a name asked for (118): as written, as `@global/…` written short, or
+   * the old name the project still uses for an item that now has this one. Null when it has none.
+   */
+  let renames: Record<string, string> | null = null;
+  const keyOf = async (asked: string): Promise<string | null> => {
+    const name = canonicalItemName(asked) ?? asked;
+    if (name in dependencies) return name;
+    renames ??=
+      (
+        await api.post<{ renamed?: Record<string, string> }>("/resolve", {
+          dependencies,
+          locked: {},
+        })
+      ).renamed ?? {};
+    return Object.keys(dependencies).find((key) => renames?.[key] === name) ?? null;
+  };
 
   if (request.kind === "update") {
     if (Object.keys(dependencies).length === 0)
       throw usage("Nothing to update: this project asks for nothing yet.");
-    const names = request.items.map((ref) => splitItemRef(ref).name);
-    for (const name of names)
-      if (!(name in dependencies)) throw usage(`${name} isn't in this project's dependencies.`);
+    const names: string[] = [];
+    for (const ref of request.items) {
+      const { name } = splitItemRef(ref);
+      const key = await keyOf(name);
+      if (key === null) throw usage(`${name} isn't in this project's dependencies.`);
+      names.push(key);
+    }
     const kept = names.length
       ? Object.fromEntries(Object.entries(locked).filter(([name]) => !names.includes(name)))
       : {};
     const prepared = await prepare(dependencies, kept);
-    return { ...prepared, kind: "update", config: null, lockedBefore: locked };
+    return {
+      ...prepared,
+      kind: "update",
+      // An item asked for by an old name is asked for by its new one from now on (118).
+      config: Object.keys(prepared.dependencies).some((name) => !(name in dependencies))
+        ? nextConfig(prepared.dependencies, false)
+        : null,
+      lockedBefore: renamedKeys(locked, prepared.renamed),
+    };
   }
 
   if (request.items.length === 0) throw usage("Say what to remove: rmk remove @scope/name");
   const remaining = { ...dependencies };
   for (const ref of request.items) {
     const { name } = splitItemRef(ref);
-    if (!(name in remaining))
+    const key = await keyOf(name);
+    if (key === null)
       throw usage(`${name} isn't in this project's dependencies; rmk list shows them.`);
-    delete remaining[name];
+    delete remaining[key];
   }
   const prepared = await prepare(remaining, locked);
   return {
     ...prepared,
     kind: "remove",
-    config: config ? nextConfig(remaining, false) : null,
-    lockedBefore: locked,
+    config: config ? nextConfig(prepared.dependencies, false) : null,
+    lockedBefore: renamedKeys(locked, prepared.renamed),
   };
 };
 

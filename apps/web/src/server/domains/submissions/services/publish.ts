@@ -1,7 +1,10 @@
 import { createHash } from "node:crypto";
 import {
+  canonicalItemName,
   DEFAULT_LIMITS,
   defaultTag,
+  formatItemName,
+  GLOBAL_WORKSPACE,
   hasErrors,
   highestMatching,
   type Manifest,
@@ -18,9 +21,11 @@ import type { StorageAdapter } from "../../../storage";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import { can } from "../../identity/models/permissions";
 import type { VersionFile } from "../../items/models/item";
+import type { ItemRepository } from "../../items/repositories/item-repository";
 import {
   BulkLimitError,
   DependencyNotVisibleError,
+  ItemNameTakenError,
   RELEASE_NOTES_MAX_LENGTH,
   ReleaseNotesError,
   ReleasePackError,
@@ -30,12 +35,14 @@ import {
   SubmissionNotFoundError,
   VersionExistsError,
 } from "../exceptions/errors";
+import { manifestNamed } from "../models/manifest-names";
 import { planReleases } from "../models/release-plan";
 import type { RevisionFile } from "../models/review";
 import { transition } from "../models/status";
 import {
   fileBytes,
   itemNameOf,
+  itemRefOf,
   MANIFEST_PATH,
   type Submission,
   toPackageFile,
@@ -140,11 +147,11 @@ const withReleasing = (
   };
   return {
     ...registry,
-    findItem: async (scope, name) => {
-      const full = `@${scope}/${name}`;
-      const found = await registry.findItem(scope, name);
+    findItem: async (ref) => {
+      const full = formatItemName(ref);
+      const found = await registry.findItem(ref);
       if (found) {
-        byItemId.set(found.id, full);
+        byItemId.set(found.id, found.fullName);
         return found;
       }
       const member = releasing.get(full)?.submission;
@@ -152,8 +159,9 @@ const withReleasing = (
       byItemId.set(`releasing:${full}`, full);
       return {
         id: `releasing:${full}`,
-        scope,
-        name,
+        fullName: full,
+        scope: ref.scope,
+        name: ref.name,
         type: member.type,
         workspace: {
           id: member.workspace.id,
@@ -170,6 +178,35 @@ const withReleasing = (
       return extra ? [...known, extra] : known;
     },
   };
+};
+
+/**
+ * Where a version's artifact goes, without `.tgz`: `scope/name/version` in `global`, as before, and
+ * `@workspace/scope/name/version` elsewhere (118), so two workspaces' same-named items never meet.
+ * Each version records its own path, so nothing stored before moves.
+ */
+export const artifactBase = (
+  submission: Pick<Submission, "workspace" | "scope" | "name">,
+  version: string,
+) =>
+  `${submission.workspace.name === GLOBAL_WORKSPACE ? "" : `@${submission.workspace.name}/`}${submission.scope.name}/${submission.name}/${version}`;
+
+/**
+ * The item a submission releases into: the one with its name now, or none yet. An old name (118)
+ * belongs to the item that had it, so a submission named like one is refused, never released into
+ * that item.
+ */
+export const ownItem = async (
+  items: Pick<ItemRepository, "findByName" | "isOldName">,
+  submission: Pick<Submission, "workspace" | "scope" | "name">,
+) => {
+  const name = itemNameOf(submission);
+  const found = await items.findByName(itemRefOf(submission));
+  // Said as "taken" to everyone: the release store reads every workspace (015), so it can't tell
+  // whether the releaser sees the item that had the name; the checks before said more to members.
+  if ((found && found.fullName !== name) || (!found && (await items.isOldName(name))))
+    throw new ItemNameTakenError(name, "taken");
+  return found;
 };
 
 /**
@@ -202,7 +239,7 @@ export const releaseTogether = async (
       ? parseManifest(decoder.decode(fileBytes(manifestFile))).manifest
       : null;
     const planned = await deps.store.transaction(async ({ items }) => {
-      const existing = await items.findByName(submission.scope.name, submission.name);
+      const existing = await ownItem(items, submission);
       return existing ? (await items.versions(existing.id)).map((v) => v.version) : [];
     });
     const version = nextVersion(planned, plan.choice);
@@ -275,9 +312,26 @@ export const releaseTogether = async (
     artifactPath: string;
   })[] = [];
   for (const member of members) {
+    // The full names as they are now (118): the item's own, and each dependency's, whatever name
+    // the author wrote for it (an old one, or `@global/…`).
+    const names = new Map<string, string>();
+    for (const dependency of Object.keys(
+      (member.manifest?.dependencies ?? {}) as Record<string, string>,
+    )) {
+      const written = canonicalItemName(dependency);
+      const ref = parseItemName(dependency);
+      const found =
+        written && releasing.has(written) ? null : ref ? await base.findItem(ref) : null;
+      names.set(dependency, found?.fullName ?? written ?? dependency);
+    }
+    const files = member.files.map((file) =>
+      file.path === MANIFEST_PATH && file.encoding === "utf8"
+        ? { ...file, content: manifestNamed(file.content, itemNameOf(member.submission), names) }
+        : file,
+    );
     let pack: Awaited<ReturnType<typeof packItem>>;
     try {
-      pack = await packItem(member.files.map(toPackageFile), {
+      pack = await packItem(files.map(toPackageFile), {
         version: member.version,
         limits: deps.limits ?? DEFAULT_LIMITS,
       });
@@ -287,14 +341,19 @@ export const releaseTogether = async (
     }
     // Artifacts never change. Bytes a failed release left at the version's path, which no version
     // points to, would block it for good: the new ones go next to them, named by their checksum.
-    const base = `${member.submission.scope.name}/${member.submission.name}/${member.version}`;
-    const stored = await deps.storage.get(`${base}.tgz`);
+    const at = artifactBase(member.submission, member.version);
+    const stored = await deps.storage.get(`${at}.tgz`);
     const artifactPath =
       stored && createHash("sha256").update(stored).digest("hex") !== pack.sha256
-        ? `${base}-${pack.sha256.slice(0, 12)}.tgz`
-        : `${base}.tgz`;
+        ? `${at}-${pack.sha256.slice(0, 12)}.tgz`
+        : `${at}.tgz`;
     await deps.storage.put(artifactPath, pack.tgz);
-    packed.push({ ...member, manifest: member.manifest as Manifest, pack, artifactPath });
+    // What's stored is what was packed: the manifest with its names now, and those files.
+    const renamed = files.find((file) => file.path === MANIFEST_PATH);
+    const manifest =
+      (renamed?.encoding === "utf8" ? parseManifest(renamed.content).manifest : null) ??
+      (member.manifest as Manifest);
+    packed.push({ ...member, files, manifest, pack, artifactPath });
   }
 
   return deps.store.transaction(async ({ submissions, items }) => {
@@ -315,18 +374,18 @@ export const releaseTogether = async (
     const toLock = new Set<string>();
     const workspaces = new Set<string>();
     for (const member of packed) {
-      const own = await items.findByName(member.submission.scope.name, member.submission.name);
+      const own = await ownItem(items, member.submission);
       if (own) toLock.add(own.id);
       for (const name of Object.keys(
         (member.manifest.dependencies ?? {}) as Record<string, string>,
       )) {
-        const inGroup = groupNames.get(name);
+        const inGroup = groupNames.get(canonicalItemName(name) ?? name);
         if (inGroup) {
           workspaces.add(inGroup.workspace.id);
           continue;
         }
         const parsed = parseItemName(name);
-        const target = parsed ? await items.findByName(parsed.scope, parsed.name) : null;
+        const target = parsed ? await items.findByName(parsed) : null;
         if (target) {
           toLock.add(target.id);
           workspaces.add(target.workspaceId);
@@ -340,7 +399,7 @@ export const releaseTogether = async (
     const itemIds = new Map<string, string>();
     for (const member of packed) {
       const { submission, manifest } = member;
-      const existing = await items.findByName(submission.scope.name, submission.name);
+      const existing = await ownItem(items, submission);
       const itemId =
         existing?.id ??
         (await items.insertItem({
@@ -367,7 +426,7 @@ export const releaseTogether = async (
         (manifest.dependencies ?? {}) as Record<string, string>,
       )) {
         const parsed = parseItemName(name);
-        const target = parsed ? await items.findByName(parsed.scope, parsed.name) : null;
+        const target = parsed ? await items.findByName(parsed) : null;
         // The registry checks above refused unknown dependencies; this is a second guard.
         if (!target)
           throw new SubmissionInvalidError([

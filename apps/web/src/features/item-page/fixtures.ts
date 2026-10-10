@@ -26,6 +26,7 @@ export const itemPageData = (overrides: Partial<ItemPage> = {}): ItemPage => {
   return {
     item: {
       id: "i1",
+      fullName: "@team/github",
       name: "github",
       scope: { id: "s1", name: "team" },
       workspace: "global",

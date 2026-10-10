@@ -1,4 +1,4 @@
-import { ITEM_TYPES, parseItemName } from "@ronneai/core";
+import { GLOBAL_WORKSPACE, ITEM_TYPES, parseItemName, scopeRefFrom } from "@ronneai/core";
 import { RENDERERS } from "@ronneai/core/render";
 import type { Args, Command } from "./cli.js";
 import { RmkError, usage } from "./errors.js";
@@ -69,11 +69,31 @@ const marks = (row: {
     .map((m) => `[${m}]`)
     .join(" ");
 
-/** `@scope/name` as the API's path, without the `@`. */
+/**
+ * A search's scope filter (118): `team` or `@team` is any workspace's `team` scope, as before;
+ * `@acme/team` is acme's only, so it adds the workspace filter too; another workspace given with it
+ * is a usage error.
+ */
+export const setScopeFilter = (params: URLSearchParams, value: string) => {
+  const ref = value.includes("/") ? scopeRefFrom(value) : null;
+  const given = params.get("workspace");
+  if (ref && given !== null && given !== ref.workspace)
+    throw usage(`--scope @${ref.workspace}/${ref.scope} is in ${ref.workspace}, not ${given}.`);
+  params.set("scope", ref ? ref.scope : value.trim().replace(/^@/, ""));
+  if (ref) params.set("workspace", ref.workspace);
+};
+
+/**
+ * An item's API path, without the `@`: `/items/<scope>/<name>` in `global`, and
+ * `/workspaces/<workspace>/items/<scope>/<name>` elsewhere (118). A version's path is under it.
+ */
 export const itemPath = (name: string) => {
   const parsed = parseItemName(name);
-  if (!parsed) throw usage(`${name} isn't an item name; use @scope/name.`);
-  return `/items/${encodeURIComponent(parsed.scope)}/${encodeURIComponent(parsed.name)}`;
+  if (!parsed) throw usage(`${name} isn't an item name; use @scope/name or @workspace/scope/name.`);
+  const path = `/items/${encodeURIComponent(parsed.scope)}/${encodeURIComponent(parsed.name)}`;
+  return parsed.workspace === GLOBAL_WORKSPACE
+    ? path
+    : `/workspaces/${encodeURIComponent(parsed.workspace)}${path}`;
 };
 
 export const withApi = (
@@ -85,11 +105,11 @@ export const withApi = (
     const params = new URLSearchParams({ q: query });
     const type = str(args.values.type);
     if (type) params.set("type", type);
-    const scope = str(args.values.scope);
-    if (scope) params.set("scope", scope.replace(/^@/, ""));
     // One workspace's items (095), as the catalogue's filter.
     const workspace = oneWorkspace(args.values.workspace);
     if (workspace) params.set("workspace", workspace);
+    const scope = str(args.values.scope);
+    if (scope) setScopeFilter(params, scope);
     // An AI tool: only items that install in it (026).
     const target = str(args.values.target);
     if (target) params.set("tool", target);

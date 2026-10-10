@@ -227,6 +227,13 @@ const wantedOf = (
 
 export type InstallResult = {
   resolution: Resolution;
+  /**
+   * Old names of what was resolved (118), old name → name now: the lockfile, the state file and
+   * the project's dependencies moved to the new names. Empty from a registry before 118.
+   */
+  renamed: Record<string, string>;
+  /** The names this project used that changed (118), to say so: what it asked for, locked or had. */
+  moved: { from: string; to: string }[];
   rendered: Rendered[];
   plan: Plan;
   targets: string[];
@@ -265,16 +272,29 @@ export const prepareInstall = async (
     lockfileItems?: Record<string, { version: string; sha256: string }>;
   },
 ): Promise<Prepared> => {
-  const resolution = await api.post<Resolution>("/resolve", {
+  const answered = await api.post<Resolution & { renamed?: Record<string, string> }>("/resolve", {
     dependencies: options.dependencies,
     locked: options.locked,
   });
+  const { renamed = {}, ...resolution } = answered;
+  // An item reached by an old name is kept under its name now (118), everywhere rmk writes it.
+  const now = (name: string) => renamed[name] ?? name;
+  const dependencies = Object.fromEntries(
+    Object.entries(options.dependencies).map(([name, range]) => [now(name), range]),
+  );
+  const lockfileItems = Object.fromEntries(
+    Object.entries(options.lockfileItems ?? {}).map(([name, item]) => [now(name), item]),
+  );
+  const used = new Set([
+    ...Object.keys(options.dependencies),
+    ...Object.keys(options.lockfileItems ?? {}),
+  ]);
   // A released version never changes (MVP §15), so a version already in the lockfile must resolve
   // to the bytes the lockfile records, whoever answers: not only what the registry says now
   // (security audit ITEM-3, 2026-10-05). Checked before anything is downloaded or written.
   const lockName = options.scope === "project" ? "rmk.lock" : places(io, options.scope).lock;
   for (const [name, item] of Object.entries(resolution.items)) {
-    const recorded = options.lockfileItems?.[name];
+    const recorded = lockfileItems[name];
     if (recorded && recorded.version === item.version && recorded.sha256 !== item.sha256)
       throw new RmkError(
         `${name}@${item.version} isn't what ${lockName} recorded: the registry gives sha256 ${item.sha256}, the lockfile ${recorded.sha256}. A released version never changes, so nothing was written. If this registry really was rebuilt and you trust it, remove ${name} from ${lockName} and run this again.`,
@@ -308,6 +328,11 @@ export const prepareInstall = async (
     const dependency = manifest ? renderDependencyOf({ name, manifest, files }) : null;
     if (dependency) known.set(name, dependency);
   }
+  // An old version may name its dependencies by their old names (118): those find them too.
+  for (const [old, name] of Object.entries(renamed)) {
+    const dependency = known.get(name);
+    if (dependency && !known.has(old)) known.set(old, dependency);
+  }
   const rendered = fetched.map(({ name, version, tgz }) =>
     renderItem(name, version, tgz, options.targets, options.scope, known),
   );
@@ -316,9 +341,16 @@ export const prepareInstall = async (
   // mcp-setup's registration isn't an item: installs leave it alone (027).
   const state: State = {
     version: 1,
-    entries: all.entries.filter((e) => e.item !== MCP_SETUP_ITEM),
+    entries: all.entries
+      .filter((e) => e.item !== MCP_SETUP_ITEM)
+      .map((e) => (renamed[e.item] ? { ...e, item: now(e.item) } : e)),
   };
   const kept = all.entries.filter((e) => e.item === MCP_SETUP_ITEM);
+  for (const entry of all.entries) used.add(entry.item);
+  const moved = [...used]
+    .filter((name) => renamed[name])
+    .sort()
+    .map((from) => ({ from, to: now(from) }));
   // Every change carries every target the item was rendered for: a change two targets share is one entry.
   const wanted = wantedOf(rendered, (r) => r.targets);
   const plan = await planChanges(root, state, wanted, {
@@ -327,11 +359,13 @@ export const prepareInstall = async (
   });
   return {
     resolution,
+    renamed,
+    moved,
     rendered,
     plan,
     targets: options.targets.map((t) => t.id),
     scope: options.scope,
-    dependencies: options.dependencies,
+    dependencies,
     registry: api.registry,
     state,
     kept,
@@ -373,7 +407,13 @@ export const commitInstall = (io: Io, prepared: Prepared) => {
       conflicts: prepared.plan.conflicts,
     });
   const { root, lock, state: statePath } = places(io, prepared.scope);
-  const before = readLockfile(dirname(lock), basename(lock))?.items ?? {};
+  // What the lockfile held, under the names items have now (118), so a rename isn't a reinstall.
+  const before = Object.fromEntries(
+    Object.entries(readLockfile(dirname(lock), basename(lock))?.items ?? {}).map(([name, item]) => [
+      prepared.renamed[name] ?? name,
+      item,
+    ]),
+  );
   // A committed `.rmk` link would take the state file elsewhere.
   if (prepared.scope === "project") mustStayInside(root, ".rmk/state.json", "It would write");
   const next = applyPlan(root, prepared.state, prepared.plan, {
@@ -507,6 +547,7 @@ export const report = (out: Output, result: InstallResult, io: Io) => {
     warnings.map((w) => ({ item: w.item, code: w.code, message: w.message })),
   );
   out.set("deprecated", resolution.warnings);
+  out.set("renamed", result.moved);
   out.set("missingEnv", missingEnv);
   if (plan.conflicts.length) {
     out.say(
@@ -541,6 +582,8 @@ export const report = (out: Output, result: InstallResult, io: Io) => {
       `Note: rmk rewrote ${path} in its own layout; its comments and formatting weren't kept.`,
     );
   for (const r of removed) out.say(`  removed ${r.path}`);
+  for (const { from, to } of result.moved)
+    out.say(`Note: ${from} is now ${to}; this project uses the new name from now on.`);
   for (const d of resolution.warnings) out.say(`Deprecated: ${d.item}@${d.version}: ${d.message}`);
   for (const w of warnings) out.say(`Warning: ${w.message}`);
   for (const note of toolNotes(

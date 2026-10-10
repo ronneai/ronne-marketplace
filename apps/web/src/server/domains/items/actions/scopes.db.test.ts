@@ -1,3 +1,4 @@
+import { scopeRefFrom } from "@ronneai/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { listAuditEvents } from "../../audit/actions/audit";
@@ -54,7 +55,9 @@ beforeEach(async () => {
 });
 /** A scope as stored, whoever asks. */
 const findScope = (name: string, _app?: AppAuth) =>
-  kyselyScopeRepository(t.db, t.dialect, UNFILTERED).findByName(name);
+  kyselyScopeRepository(t.db, t.dialect, UNFILTERED).findByName(
+    scopeRefFrom(name) ?? { workspace: "global", scope: name },
+  );
 
 afterEach(() => t.cleanup());
 
@@ -98,7 +101,10 @@ describe("createScope", () => {
       app,
     );
     expect(scope.workspace).toEqual({ id: acme.id, name: "acme" });
-    expect((await findScope("acme-infra", app))?.workspace).toEqual({ id: acme.id, name: "acme" });
+    expect((await findScope("@acme/acme-infra", app))?.workspace).toEqual({
+      id: acme.id,
+      name: "acme",
+    });
     const [event] = await events("scope.created");
     expect(event?.metadata).toEqual({
       name: "acme-infra",
@@ -281,12 +287,15 @@ describe("listScopesAs", () => {
       if (!user) throw new Error("not signed in");
       const first = await listScopesAs(user, { limit: 2 }, app);
       expect(first.scopes.map((s) => s.name)).toEqual(["alpha", "beta"]);
-      expect(first.nextCursor).toBe("beta");
-      const rest = await listScopesAs(user, { limit: 2, cursor: "beta" }, app);
-      expect(rest).toEqual({
-        scopes: [expect.objectContaining({ name: "gamma" })],
-        nextCursor: null,
-      });
+      // `name:id` (118); a name alone, from before, still goes on after that name.
+      expect(first.nextCursor).toMatch(/^beta:[0-9A-Z]{26}$/);
+      for (const cursor of [first.nextCursor ?? "", "beta"]) {
+        const rest = await listScopesAs(user, { limit: 2, cursor }, app);
+        expect(rest).toEqual({
+          scopes: [expect.objectContaining({ name: "gamma" })],
+          nextCursor: null,
+        });
+      }
       expect((await listScopesAs(user, { search: "gam" }, app)).scopes).toHaveLength(1);
     }
   });

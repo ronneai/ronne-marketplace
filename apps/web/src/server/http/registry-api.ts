@@ -1,4 +1,4 @@
-import { ResolveError, type ResolveRequest } from "@ronneai/core";
+import { GLOBAL_WORKSPACE, parseItemName, ResolveError, type ResolveRequest } from "@ronneai/core";
 import type { AppAuth } from "../domains/identity/repositories/auth-instance";
 import { searchCatalogueAs } from "../domains/items/actions/catalogue";
 import {
@@ -31,11 +31,38 @@ export type RegistryApiDeps = { app?: AppAuth; guard?: TokenGuardDeps; storage?:
 const fresh = (body: unknown) =>
   Response.json(body, { headers: { "cache-control": "private, no-cache" } });
 
-/** An item's name from the path: `platform/code-reviewer`, with an optional `@`. */
-export const itemRefOf = (params: { scope: string; name: string }) => ({
+/**
+ * An item's name from the path: `platform/code-reviewer`, with an optional `@`, under
+ * `/workspaces/<workspace>` outside `global` (118).
+ */
+export const itemRefOf = (params: { workspace?: string; scope: string; name: string }) => ({
+  workspace: params.workspace ? decodeURIComponent(params.workspace) : GLOBAL_WORKSPACE,
   scope: decodeURIComponent(params.scope).replace(/^@/, ""),
   name: decodeURIComponent(params.name),
 });
+
+/**
+ * An `rmk` from before 118: it says `rmk/…` and doesn't send `x-rmk-names`. It can't write a
+ * three-part name into a lockfile, so it gets `client_too_old` for an item outside `global`.
+ */
+const isOldRmk = (request: Request) =>
+  (request.headers.get("user-agent") ?? "").startsWith("rmk/") &&
+  request.headers.get("x-rmk-names") === null;
+
+const inWorkspace = (name: string) =>
+  (parseItemName(name)?.workspace ?? GLOBAL_WORKSPACE) !== GLOBAL_WORKSPACE;
+
+/** 426 for an old `rmk` asked about an item outside `global` (118), or null. */
+export const tooOldFor = (request: Request, names: readonly string[]) => {
+  const name = isOldRmk(request) ? names.find(inWorkspace) : undefined;
+  return name
+    ? errorResponse(
+        426,
+        "client_too_old",
+        `Update rmk to install ${name}: this one can't write a name that includes its workspace. Run npm install --global @ronneai/rmk.`,
+      )
+    : null;
+};
 
 const orDomainError = (error: unknown) => {
   const response = domainErrorResponse(error);
@@ -85,21 +112,20 @@ export const listItems = async (request: Request, deps: RegistryApiDeps = {}) =>
 /** GET /api/v1/items/{scope}/{name}: an item, its dist-tags and its versions. */
 export const getItem = async (
   request: Request,
-  params: { scope: string; name: string },
+  params: { workspace?: string; scope: string; name: string },
   deps: RegistryApiDeps = {},
 ) => {
   const guard = await requireToken(request, deps.guard);
   if (!guard.ok) return guard.response;
   try {
-    return fresh(
-      itemJson(await itemPageAs(guard.auth.user, itemRefOf(params), undefined, deps.app)),
-    );
+    const page = await itemPageAs(guard.auth.user, itemRefOf(params), undefined, deps.app);
+    return tooOldFor(request, [page.item.fullName]) ?? fresh(itemJson(page));
   } catch (error) {
     return orDomainError(error);
   }
 };
 
-type VersionParams = { scope: string; name: string; version: string };
+type VersionParams = { workspace?: string; scope: string; name: string; version: string };
 
 /** GET /api/v1/items/{scope}/{name}/{version}: one version's manifest, files and risk flags. */
 export const getVersion = async (
@@ -117,7 +143,7 @@ export const getVersion = async (
       deps.app,
     );
     // A version's files never change, but it can still be deprecated, yanked or re-tagged.
-    return fresh(versionJson(page));
+    return tooOldFor(request, [page.item.fullName]) ?? fresh(versionJson(page));
   } catch (error) {
     return orDomainError(error);
   }
@@ -145,6 +171,8 @@ export const getTarball = async (
   const version = decodeURIComponent(params.version);
   try {
     const found = await findDownloadAs(guard.auth.user, ref, version, deps.app);
+    const tooOld = tooOldFor(request, [found.name]);
+    if (tooOld) return tooOld;
     const etag = `"${found.version.sha256}"`;
     const cache = { etag, "cache-control": IMMUTABLE };
     if (matchesEtag(request.headers.get("if-none-match"), etag))
@@ -152,7 +180,7 @@ export const getTarball = async (
     const headers = {
       ...cache,
       "content-type": "application/gzip",
-      "content-disposition": `attachment; filename="${ref.scope}-${ref.name}-${version}.tgz"`,
+      "content-disposition": `attachment; filename="${ref.workspace === GLOBAL_WORKSPACE ? "" : `${ref.workspace}-`}${ref.scope}-${ref.name}-${version}.tgz"`,
       "x-checksum-sha256": found.version.sha256,
     };
     if (request.method === "HEAD")
@@ -221,9 +249,11 @@ export const postResolve = async (request: Request, deps: RegistryApiDeps = {}) 
     );
   const resolveRequest: ResolveRequest = { dependencies, locked };
   try {
-    return Response.json(await resolveAs(guard.auth.user, resolveRequest, deps.app), {
-      headers: { "cache-control": "no-store" },
-    });
+    const resolution = await resolveAs(guard.auth.user, resolveRequest, deps.app);
+    return (
+      tooOldFor(request, Object.keys(resolution.items)) ??
+      Response.json(resolution, { headers: { "cache-control": "no-store" } })
+    );
   } catch (error) {
     if (error instanceof ResolveError)
       return errorResponse(RESOLVE_STATUS[error.code], error.code, error.message, error.details);

@@ -30,6 +30,8 @@ import {
   E2E_SCOPE,
   E2E_SHELF,
   E2E_SKILL,
+  E2E_TWIN,
+  E2E_TWIN_OLD_NAME,
   E2E_USAGE_PEAK,
   E2E_USERS,
   E2E_VAULT,
@@ -305,7 +307,7 @@ const release = async (
   );
   const path = `${E2E_SCOPE}/${name}/${version}.tgz`;
   await localStorage(storagePath).put(path, packed.tgz);
-  const existing = await items.findByName(E2E_SCOPE, name);
+  const existing = await items.findByName({ scope: E2E_SCOPE, name: name });
   const itemId =
     existing?.id ??
     (await items.insertItem({
@@ -434,7 +436,8 @@ const releaseSkillIn = async (
     createdBy: null,
     createdAt: new Date(),
   });
-  const name = `@${where.scope}/${where.item}`;
+  // Outside global, the full name names the workspace (118).
+  const name = `@${where.workspace}/${where.scope}/${where.item}`;
   const description = `The ${where.item} skill.`;
   const files = [
     {
@@ -447,7 +450,8 @@ const releaseSkillIn = async (
     },
   ].map((file) => ({ path: file.path, bytes: new TextEncoder().encode(file.text) }));
   const packed = await packItem(files, { version: "1.0.0" });
-  const artifactPath = `${where.scope}/${where.item}/1.0.0.tgz`;
+  // Under the workspace, as releases store them (118), so a same-named global item's stays apart.
+  const artifactPath = `@${where.workspace}/${where.scope}/${where.item}/1.0.0.tgz`;
   await localStorage(storagePath).put(artifactPath, packed.tgz);
   const itemId = await items.insertItem({
     scopeId: whereScopeId,
@@ -478,4 +482,43 @@ const releaseSkillIn = async (
 await releaseSkillIn(E2E_VAULT, "private", E2E_VAULT.members);
 await releaseSkillIn(E2E_SHELF, "public", []);
 await releaseSkillIn(E2E_DOOR, "public", []);
+await releaseSkillIn(E2E_TWIN, "public", []);
+await release(E2E_TWIN.item, "rule", "1.0.0", {
+  "ronne.yaml": `name: "@${E2E_SCOPE}/${E2E_TWIN.item}"\ntype: rule\ndescription: Global's ${E2E_TWIN.item}.\nrule:\n  body: rule.md\n  activation: always\n`,
+  "rule.md": "Global's twin notes.\n",
+});
+// Released long ago, so they don't crowd the most recent items other tests look for, such as the
+// composer's picker's first page.
+const longAgo = toDbDate(new Date("2026-01-01T00:00:00.000Z"), dialect);
+const twins = (
+  await db.selectFrom("items").select("id").where("name", "=", E2E_TWIN.item).execute()
+).map((row) => row.id);
+await db
+  .updateTable("items")
+  .set({ last_published_at: longAgo })
+  .where("id", "in", twins)
+  .execute();
+await db
+  .updateTable("item_versions")
+  .set({ published_at: longAgo })
+  .where("item_id", "in", twins)
+  .execute();
+// The workspace twin's old name, for "Use the new name" (118).
+const workspaceTwin = await db
+  .selectFrom("items")
+  .innerJoin("scopes", "scopes.id", "items.scope_id")
+  .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
+  .select("items.id")
+  .where("items.name", "=", E2E_TWIN.item)
+  .where("workspaces.name", "=", E2E_TWIN.workspace)
+  .executeTakeFirstOrThrow();
+await db
+  .insertInto("item_aliases")
+  .values({
+    name: E2E_TWIN_OLD_NAME,
+    item_id: workspaceTwin.id,
+    reason: "rename",
+    created_at: toDbDate(new Date(), dialect),
+  })
+  .execute();
 await db.destroy();

@@ -1,6 +1,7 @@
 import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { exampleItems, loadItemDir } from "../render/harness.js";
+import { shortName } from "../render/helpers.js";
 import { installsIn, supportOf } from "../render/support.js";
 import type { RenderInput } from "../render/types.js";
 import { buildPlugin } from "./build.js";
@@ -54,7 +55,7 @@ export const checkPluginGolden = (
   const differences: PluginGoldenDifference[] = [];
   if (update) rmSync(goldenDir, { recursive: true, force: true });
   for (const item of examples.values()) {
-    const short = item.name.slice(item.name.indexOf("/") + 1);
+    const short = shortName(item.name);
     if (!installsIn(supportOf(item.manifest, String(item.manifest.type))[tool])) continue;
     const plugin = buildPlugin(tool, { item, members: exampleMembers(examples, item) });
     const expected = new Map<string, Uint8Array | string>(

@@ -1,3 +1,4 @@
+import { formatScopeName } from "@ronneai/core";
 import { notFound } from "next/navigation";
 import { parseListQuery, type SearchParams } from "@/components/ui/data-table/list-query";
 import { PageHeader } from "@/components/ui/Panel";
@@ -41,7 +42,13 @@ const AdminScopes = async ({ searchParams }: { searchParams: Promise<SearchParam
         scopes={scopes}
         page={{ next, previous }}
         total={total}
-        actions={(scope) => <EditScopeButton name={scope.name} description={scope.description} />}
+        actions={(scope) => (
+          // Scope names are unique per workspace (118): `acme/infra` says which one.
+          <EditScopeButton
+            name={formatScopeName({ workspace: scope.workspace.name, scope: scope.name }).slice(1)}
+            description={scope.description}
+          />
+        )}
         workspaces={workspaces.map(({ name }) => ({ name }))}
       />
     </>

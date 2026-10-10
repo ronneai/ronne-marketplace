@@ -123,7 +123,7 @@ const released = async (name: string, type: "agent" | "rule", again = false) => 
   if (!again) return;
   // A second release straight through the repository, as 015 would write it.
   const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
-  const item = await items.findByName("team", name);
+  const item = await items.findByName({ scope: "team", name: name });
   if (!item?.ownerId) throw new Error("not released");
   const version = await items.insertVersion({
     itemId: item.id,

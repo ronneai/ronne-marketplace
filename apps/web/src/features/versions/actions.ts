@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { itemPath } from "@/components/catalogue/ItemCard";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import {
   deprecate,
@@ -57,6 +58,6 @@ export const changeVersions = async (
       return { ok: false, error: error.message };
     throw error;
   }
-  revalidatePath(`/items/${ref.scope}/${ref.name}/versions`);
+  revalidatePath(`${itemPath(ref)}/versions`);
   return { ok: true };
 };

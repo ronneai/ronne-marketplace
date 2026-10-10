@@ -106,8 +106,12 @@ afterEach(async () => {
 });
 
 const downloads = async () =>
-  (await kyselyItemRepository(t.db, t.dialect, UNFILTERED).findByName("team", "reviewer"))
-    ?.downloadCount;
+  (
+    await kyselyItemRepository(t.db, t.dialect, UNFILTERED).findByName({
+      scope: "team",
+      name: "reviewer",
+    })
+  )?.downloadCount;
 
 describe("a version's contents (044)", () => {
   it("are the released files, sorted, ronne.yaml as released, and not counted as a download", async () => {

@@ -32,14 +32,18 @@ answer to it.
 - **Releasing writes the full name** into the packed `ronne.yaml`; a version keeps the name it was
   released with, and the registry and `rmk` accept a version whose packed name is its item's name or
   one of its aliases.
-- **`rmk` moves on to the new name:** an install, update or `outdated` that reaches an item by an
-  alias rewrites the lockfile and state file to its name and says so ("@acme/deploy is now
-  @platform/acme/deploy").
+- **`rmk` moves on to the new name:** an install or update that reaches an item by an alias
+  rewrites the lockfile, the state file, its markers and `rmk.config.json` to its name and says so
+  ("@acme/deploy is now @platform/acme/deploy"); `outdated` only reads, so it says the new name
+  and leaves the files to the next update. `update` and `remove` also take the new name before
+  that, and `@global/…` names are written short everywhere.
 - **Submit nudges dependencies:** a draft that depends on an item through an alias passes, with a
   warning and **Use the new name**, which rewrites the dependency.
 - **Old `rmk`** (from before 118): `global`'s items work as before; anything else answers
-  `client_too_old` ("Update rmk to x.y.z to install @acme/infra/deploy"), its old names included,
-  since an old `rmk` can't write a three-part name to its lockfile.
+  `client_too_old` (426, "Update rmk to install @acme/infra/deploy: this one can't write a name that
+  includes its workspace."), its old names included, since an old `rmk` can't write a three-part
+  name to its lockfile. A current `rmk` (and `rmk-mcp`) sends `x-rmk-names: workspace`; a request
+  that says `rmk/…` without it is an old one.
 
 **Out** (and where it goes instead):
 - **Renaming a scope or an item on its own.** Only as part of a move (115, when the target has the
@@ -53,7 +57,15 @@ answer to it.
 **Grammar.** `@<scope>/<name>` or `@<workspace>/<scope>/<name>`, each segment the name rule
 (`names.ts`: lowercase letters, digits and hyphens, 1–64, no leading or trailing hyphen). A
 three-part name whose workspace is `global` is accepted and shown in the short form. Parsing lives
-in `@ronneai/core` (`parseItemName`, `formatItemName`), the one place every package uses.
+in `@ronneai/core` (`parseItemName`, `formatItemName`, `canonicalItemName`, `shortItemName`,
+`parseScopeName`), the one place every package uses; a repository test fails on a name split by
+hand anywhere else. A full name has at most 195 characters.
+
+**Paths.** An item's API path is `/items/<scope>/<name>` in `global` and
+`/workspaces/<workspace>/items/<scope>/<name>` elsewhere, with its versions and tarballs under it
+as today (`…/<version>`, `…/<version>/tarball`). A prefix, not a third segment, so
+`/items/a/b/c` never has to be guessed between a workspace's item and a version. The web app's item
+pages follow the same shape.
 
 **Where the short form shows.** `global`'s items are shown as `@scope/name` everywhere (pages, API
 answers, `rmk` output, lockfiles, packed manifests). Every other item is shown in full. So an
@@ -71,8 +83,10 @@ instance that never makes a second workspace sees no change at all.
   Anyone else gets what an unknown name gets, so an alias can't tell them where a private item went.
 - **An alias reserves its name.** Creating a scope is allowed even if aliases start with it, but
   creating a draft whose full name is an alias is refused ("@acme/deploy was the name of another
-  item; pick another name"), to members who see the item, and as "taken" to others. A workspace
-  rename or a move that would give an item a name that's another item's alias is refused.
+  item; pick another name"), to members who see the item, and as "taken" to others ("@acme/deploy
+  is taken; pick another name."), at check, submit and release. A workspace rename or a move that
+  would give an item a name that's another item's alias is refused: they call the same check,
+  `isOldName`, which answers for everyone and says nothing about which item had the name.
 - A chain (renamed, then moved) keeps every old name, each pointing straight at the item.
 - An item that gets one of its own old names back (a scope moved back where it came from, a
   workspace renamed back) drops that alias: the name is its name again.
@@ -80,32 +94,41 @@ instance that never makes a second workspace sees no change at all.
 **Released versions.** At release (015) the packed `ronne.yaml` gets the item's full name
 (`@scope/name` in `global`), and dependencies are written as the dependency's current name. A
 version's tarball never changes, so after a move its `name` and its dependencies may be old names;
-the registry checks a tarball's name against the item's name and aliases, and the resolver reads
-dependency names through aliases. Two names for one item in one install are one item: the resolver
-keys on item ids.
+`rmk` accepts a version whose packed name is its item's name or one of its old names (task 5), and
+the resolver reads dependency names through aliases. Two names for one item in one install are one
+item: `POST /api/v1/resolve` reads every name as the item's name now before resolving, so asking for
+it twice asks for both ranges (`^1.0.0` and `^1.2.0` must both hold); a tag and anything else for
+one item, or two ranges with more than 64 `||` alternatives between them, is a `resolve_conflict`, and two different lockfile pins for it keep neither.
 
-**Storage.** New versions are stored at `storage/<workspace>/<scope>/<name>/<version>.tgz`
-(`global`'s keep `storage/<scope>/<name>/…`); each version already records its path (112), so
+**Storage.** New versions are stored at `storage/@<workspace>/<scope>/<name>/<version>.tgz`
+(`global`'s keep `storage/<scope>/<name>/…`; the `@` keeps a workspace apart from a scope); each version already records its path (112), so
 nothing stored moves.
 
 **`rmk`.** Accepts both forms wherever it takes a name. The lockfile (`rmk.lock`) and the state
 file key items by their name as the registry answers it; when it answers a different name for an
 entry (an alias was followed), `rmk` rewrites the entry and the state file's keys and markers in the
-same apply, and prints the change. A managed marker (`<!-- managed by rmk: @scope/name@1.4.0 -->`)
+same apply, and prints the change. `POST /api/v1/resolve` reads the request's old names as the items'
+names now and answers `renamed` (old name → name now) beside `items`, so `rmk` knows what to
+rewrite. A managed marker (`<!-- managed by rmk: @scope/name@1.4.0 -->`)
 with an old name is still `rmk`'s: the state file maps it. Rendered files are named after the
 item's last segment, as today, so a move doesn't rename anything on disk. `rmk export --to` takes
 `@workspace/scope` (or `@scope` for `global`). `rmk search` shows full names.
 
 **Plugin feeds.** A plugin's name is `scope.name` in `global` and `workspace.scope.name`
-elsewhere (one dot more; still reversible, since names have no dots). Longer names reach Codex's
-64-character limit sooner; such an item is left out of that tool's feed with the existing warning.
+elsewhere (one dot more; still reversible, since names have no dots; `global.…` is never made, so
+each plugin name reads back to one item). Their zips are at
+`/api/v1/feeds/<tool>/workspaces/<workspace>/plugins/<scope>/<name>/<version>.zip`, and stored
+under `feeds/<tool>/@<workspace>/…`, so they never meet `global`'s.
+Longer names reach Codex's 64-character limit sooner; such an item is left out of that tool's feed with the existing warning.
 When an item's name changes, its plugin's name does too: Claude Code sees a new plugin and the old
 one gone from the marketplace (decision 4); the feed's description says "Moved from <old>" for 30
 days so people know to install it again.
 
-**Web app.** Item pages are `/items/@workspace/scope/name` (`/items/@scope/name` for `global`); an
-alias's address redirects to the item's for those who see it. Admin › Scopes shows each scope with
-its workspace, and the same name may appear in several rows.
+**Web app.** Item pages are `/workspaces/<workspace>/items/<scope>/<name>` (`/items/<scope>/<name>`
+for `global`); an alias's address redirects to the item's for those who see it. Admin › Scopes shows each scope with
+its workspace, and the same name may appear in several rows. Cards and item headers show the full
+name, so 090's quiet workspace label goes: a private workspace's item keeps its lock and "Private"
+(093).
 
 **The migration.** `scopes.name` loses its unique index for `(workspace_id, name)`; every item
 outside `global` gets its `@scope/name` as an alias. Nothing else is renamed and no tarball changes.
@@ -124,12 +147,18 @@ outside `global` gets its `@scope/name` as an alias. Nothing else is renamed and
 - **The same item twice in one install** (by an old name in one dependency, the new name in
   another): one node, one version, resolved by item id; the lockfile has the new name.
 - **A yanked or deprecated version** keeps its packed old name; nothing changes about yanking.
+- **A change proposed to a moved item** starts with `ronne.yaml` under its name now. Unedited, it
+  differs from the base only in that name, so it may be released as a version whose only change is
+  the name inside the tarball (Claude, 2026-10-10).
 - **Usage and download counts** are kept per item id, so a rename doesn't split them; check the
   usage tables in task 1 and move any name key to the item id.
 - **Audit events** keep the names they were written with; the audit log shows them as written.
-- **Long names:** up to 194 characters; URLs and the API take them; Windows paths don't, since
+- **Long names:** up to 195 characters; URLs and the API take them; Windows paths don't, since
   rendered files use the last segment only.
-- **Search for `test/lint`** finds every visible `@*/test/lint`; results always show full names.
+- **Search for `test/lint`** finds every visible `@*/test/lint`; results always show full names. A
+  whole old name (`@old/deploy`) finds its item too, for who sees it.
+- **Sorting by name** pages on scope, name and the item's id, so two workspaces' `@team/lint` are
+  both listed.
 - **Export of an item `rmk` installed under an old name:** export still refuses `rmk`'s items; a
   change proposal (042) finds its base through the alias.
 
@@ -144,27 +173,30 @@ outside `global` gets its `@scope/name` as an alias. Nothing else is renamed and
   (`items#dependencies`): writing three-part names; two parts mean `global`.
 - **`rmk` → Installing** and **Keeping items up to date** (`rmk#installing`, `rmk#updating`): old
   names keep working and the lockfile moves to the new one; update `rmk`.
-- **Plugin marketplaces → Names**: the workspace in plugin names; a moved item is a new plugin.
+- **Plugin marketplaces → What it is** (`plugins#what`): the workspace in plugin names; a moved
+  item is a new plugin.
 - **Helpers:** next to the name on New draft, "Why does the name include the workspace?" →
   `scopes#names`.
 - **The manifest, `cli-files` and `plugin-feeds` contracts** in `docs/spec/`.
 
 ## Acceptance criteria
 
-- [ ] Two workspaces each have a scope `test` with an item `lint`; both install by full name, in
+- [x] Two workspaces each have a scope `test` with an item `lint`; both install by full name, in
   `rmk`, MCP and the feeds, and the catalogue shows both.
-- [ ] `global`'s items keep `@scope/name` in every page, answer, lockfile and packed manifest.
-- [ ] After the migration, every item outside `global` answers to its old `@scope/name` for those
+- [x] `global`'s items keep `@scope/name` in every page, answer, lockfile and packed manifest.
+- [x] After the migration, every item outside `global` answers to its old `@scope/name` for those
   who see it, and an old lockfile installs it; nobody else learns it exists.
-- [ ] An alias can't become another item's name, by a draft, a move or a rename.
-- [ ] `rmk install`, `update` and `outdated` rewrite an alias entry to the new name in the lockfile
-  and state file, and keep the rendered files.
-- [ ] A dependency through an alias passes submit and release with a warning and Use the new name.
-- [ ] An `rmk` from before 118 installs `global`'s items and gets `client_too_old` for the others.
-- [ ] Released versions carry the full name; tarballs released before keep theirs and still install.
-- [ ] Service tests pass on the four databases; an end-to-end test installs two same-named items
+- [x] An alias can't become another item's name, by a draft, a move or a rename (by a draft
+  here; moves and renames come with 115 and 113, which must keep to it).
+- [x] `rmk install` and `update` rewrite an alias entry to the new name in the lockfile, the state
+  file, the markers and `rmk.config.json`, and keep the rendered files; `outdated` says the new name
+  and writes nothing.
+- [x] A dependency through an alias passes submit and release with a warning and Use the new name.
+- [x] An `rmk` from before 118 installs `global`'s items and gets `client_too_old` for the others.
+- [x] Released versions carry the full name; tarballs released before keep theirs and still install.
+- [x] Service tests pass on the four databases; an end-to-end test installs two same-named items
   from two workspaces.
-- [ ] The Documentation, the contracts and the inline helper listed above say what the feature does
+- [x] The Documentation, the contracts and the inline helper listed above say what the feature does
   now.
 
 ## Decisions

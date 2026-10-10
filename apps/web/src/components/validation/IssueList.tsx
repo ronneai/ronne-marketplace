@@ -23,9 +23,12 @@ export const CodeText = ({ text }: { text: string }) =>
 export const IssueList = ({
   issues,
   onSelect,
+  onRename,
 }: {
   issues: readonly ManifestIssue[];
   onSelect?: (issue: ManifestIssue) => void;
+  /** Writes a dependency under its name now (118), for an issue that offers it. */
+  onRename?: (rename: { from: string; to: string }) => void;
 }) => {
   if (issues.length === 0)
     return (
@@ -68,6 +71,15 @@ export const IssueList = ({
             ) : (
               content
             )}
+            {issue.rename && onRename ? (
+              <button
+                type="button"
+                onClick={() => issue.rename && onRename(issue.rename)}
+                className="ml-2 rounded-control border border-strong px-1.5 py-0.5 text-xs font-semibold text-fg hover:border-accent outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus pointer-coarse:min-h-11"
+              >
+                Use the new name
+              </button>
+            ) : null}
           </li>
         );
       })}

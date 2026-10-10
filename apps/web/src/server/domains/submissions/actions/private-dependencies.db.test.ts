@@ -110,7 +110,7 @@ const agentDraft = async (
         {
           path: "ronne.yaml",
           encoding: "utf8",
-          content: `name: "@${scope}/${name}"\ntype: agent\ndescription: Something.\nagent:\n  prompt: prompt.md\n${deps ? `dependencies:\n${deps}\n` : ""}`,
+          content: `name: "${scope.startsWith("@") ? scope : `@${scope}`}/${name}"\ntype: agent\ndescription: Something.\nagent:\n  prompt: prompt.md\n${deps ? `dependencies:\n${deps}\n` : ""}`,
           executable: false,
           loadedAt: at("ronne.yaml"),
         },
@@ -167,23 +167,26 @@ afterEach(async () => {
 
 describe("the dependency rule (093)", () => {
   it("lets an item depend on its own workspace's items and public ones", async () => {
-    const id = await agentDraft(asMember, "acme-infra", "ok", ["@acme-infra/deploy", "@team/base"]);
+    const id = await agentDraft(asMember, "@acme/acme-infra", "ok", [
+      "@acme/acme-infra/deploy",
+      "@team/base",
+    ]);
     expect(await issuesOf(asMember, id)).toEqual([]);
   });
 
   it("refuses another private workspace's item at submit, though the submitter sees it", async () => {
-    const id = await agentDraft(asMember, "acme-infra", "across", ["@beta-tools/lint"]);
+    const id = await agentDraft(asMember, "@acme/acme-infra", "across", ["@beta/beta-tools/lint"]);
     expect(await issuesOf(asMember, id)).toEqual([
-      "dependency_not_visible: @beta-tools/lint is in a private workspace; only its own items can depend on it.",
+      "dependency_not_visible: @beta/beta-tools/lint is in a private workspace; only its own items can depend on it.",
     ]);
     // A public item can't depend on a private one either.
-    const publicOne = await agentDraft(asMember, "team", "leaky", ["@acme-infra/deploy"]);
+    const publicOne = await agentDraft(asMember, "team", "leaky", ["@acme/acme-infra/deploy"]);
     expect((await issuesOf(asMember, publicOne))[0]).toMatch(/^dependency_not_visible: /);
   });
 
   it("gives an outsider an unknown name for a private item, not the rule", async () => {
-    const hidden = await agentDraft(asOutsider, "team", "a", ["@acme-infra/deploy"]);
-    const unknown = await agentDraft(asOutsider, "team", "b", ["@acme-infra/nothing-here"]);
+    const hidden = await agentDraft(asOutsider, "team", "a", ["@acme/acme-infra/deploy"]);
+    const unknown = await agentDraft(asOutsider, "team", "b", ["@acme/acme-infra/nothing-here"]);
     const [onHidden] = await issuesOf(asOutsider, hidden);
     const [onUnknown] = await issuesOf(asOutsider, unknown);
     expect(onHidden?.replace("deploy", "X")).toBe(onUnknown?.replace("nothing-here", "X"));
@@ -191,7 +194,7 @@ describe("the dependency rule (093)", () => {
   });
 
   it("refuses at release a dependency whose workspace turned private after the review", async () => {
-    const id = await agentDraft(asMember, "acme-infra", "later", ["@pub-kit/thing"]);
+    const id = await agentDraft(asMember, "@acme/acme-infra", "later", ["@pub2/pub-kit/thing"]);
     await submitDraft(asMember, id, app, storage);
     await decide(asAcmeModerator, id, { decision: "approve" }, app);
     // pub2 turns private (by hand: 093's own check refuses it while released items depend on it).
@@ -213,7 +216,7 @@ describe("the dependency rule (093)", () => {
   });
 
   it("refuses a release whose dependency's workspace turned private while it was packing", async () => {
-    const id = await agentDraft(asMember, "acme-infra", "racer", ["@pub-kit/thing"]);
+    const id = await agentDraft(asMember, "@acme/acme-infra", "racer", ["@pub2/pub-kit/thing"]);
     await submitDraft(asMember, id, app, storage);
     await decide(asAcmeModerator, id, { decision: "approve" }, app);
     // Root turns pub2 private after the release's checks and before its transaction.
@@ -241,32 +244,32 @@ describe("the dependency rule (093)", () => {
     const names = (options: { name: string }[]) => options.map((o) => o.name).sort();
     const form = (itemName?: string) =>
       findDependencies(asMember, { type: "agent", q: "", itemName }, app).then(names);
-    expect(await form("@acme-infra/new")).toEqual([
-      "@acme-infra/deploy",
-      "@pub-kit/thing",
+    expect(await form("@acme/acme-infra/new")).toEqual([
+      "@acme/acme-infra/deploy",
+      "@pub2/pub-kit/thing",
       "@team/base",
     ]);
-    expect(await form("@beta-tools/new")).toEqual([
-      "@beta-tools/lint",
-      "@pub-kit/thing",
+    expect(await form("@beta/beta-tools/new")).toEqual([
+      "@beta/beta-tools/lint",
+      "@pub2/pub-kit/thing",
       "@team/base",
     ]);
-    expect(await form("@team/new")).toEqual(["@pub-kit/thing", "@team/base"]);
-    expect(await form()).toEqual(["@pub-kit/thing", "@team/base"]);
+    expect(await form("@team/new")).toEqual(["@pub2/pub-kit/thing", "@team/base"]);
+    expect(await form()).toEqual(["@pub2/pub-kit/thing", "@team/base"]);
     const canvas = (itemName?: string) =>
       searchDependencies(asMember, { type: "agent", q: "", itemName }, app).then((page) =>
         names(page.entries),
       );
-    expect(await canvas("@acme-infra/new")).toEqual([
-      "@acme-infra/deploy",
-      "@pub-kit/thing",
+    expect(await canvas("@acme/acme-infra/new")).toEqual([
+      "@acme/acme-infra/deploy",
+      "@pub2/pub-kit/thing",
       "@team/base",
     ]);
-    expect(await canvas("@team/new")).toEqual(["@pub-kit/thing", "@team/base"]);
+    expect(await canvas("@team/new")).toEqual(["@pub2/pub-kit/thing", "@team/base"]);
   });
 
   it("leaves the person's own unreleased item in another private workspace out of both pickers", async () => {
-    await createDraft(asMember, { scope: "beta-tools", name: "wip", type: "skill" }, app);
+    await createDraft(asMember, { scope: "@beta/beta-tools", name: "wip", type: "skill" }, app);
     const form = (itemName: string) =>
       findDependencies(asMember, { type: "agent", q: "wip", itemName }, app).then((o) =>
         o.map((x) => x.name),
@@ -275,10 +278,10 @@ describe("the dependency rule (093)", () => {
       searchDependencies(asMember, { type: "agent", q: "wip", itemName }, app).then((p) =>
         p.entries.map((x) => x.name),
       );
-    expect(await form("@acme-infra/new")).not.toContain("@beta-tools/wip");
-    expect(await canvas("@acme-infra/new")).not.toContain("@beta-tools/wip");
-    expect(await form("@beta-tools/new")).toContain("@beta-tools/wip");
-    expect(await canvas("@beta-tools/new")).toContain("@beta-tools/wip");
+    expect(await form("@acme/acme-infra/new")).not.toContain("@beta/beta-tools/wip");
+    expect(await canvas("@acme/acme-infra/new")).not.toContain("@beta/beta-tools/wip");
+    expect(await form("@beta/beta-tools/new")).toContain("@beta/beta-tools/wip");
+    expect(await canvas("@beta/beta-tools/new")).toContain("@beta/beta-tools/wip");
   });
 
   it("applies the rule in the canvas's reports, for the item's own workspace", async () => {
@@ -286,47 +289,49 @@ describe("the dependency rule (093)", () => {
       JSON.stringify(
         await dependencyReports(
           asMember,
-          { itemName, type: "agent", dependencies: { "@beta-tools/lint": "^1.0.0" } },
+          { itemName, type: "agent", dependencies: { "@beta/beta-tools/lint": "^1.0.0" } },
           app,
         ),
       );
-    expect(await report("@acme-infra/x")).toContain("is in a private workspace");
-    expect(await report("@beta-tools/x")).not.toContain("is in a private workspace");
+    expect(await report("@acme/acme-infra/x")).toContain("is in a private workspace");
+    expect(await report("@beta/beta-tools/x")).not.toContain("is in a private workspace");
   });
 });
 
 describe("the dependency rule, on the edges the witnesses found (093)", () => {
   it("keeps an allowed draft in the pickers, however many newer ones another workspace has", async () => {
-    await agentDraft(asMember, "acme-infra", "mineacme", []);
-    for (let i = 0; i < 13; i += 1) await agentDraft(asMember, "beta-tools", `crowd${i}`, []);
+    await agentDraft(asMember, "@acme/acme-infra", "mineacme", []);
+    for (let i = 0; i < 13; i += 1) await agentDraft(asMember, "@beta/beta-tools", `crowd${i}`, []);
     const form = await findDependencies(
       asMember,
-      { type: "agent", q: "", itemName: "@acme-infra/new" },
+      { type: "agent", q: "", itemName: "@acme/acme-infra/new" },
       app,
     );
     const canvas = await searchDependencies(
       asMember,
-      { type: "agent", q: "", itemName: "@acme-infra/new" },
+      { type: "agent", q: "", itemName: "@acme/acme-infra/new" },
       app,
     );
     for (const names of [form.map((o) => o.name), canvas.entries.map((e) => e.name)]) {
-      expect(names).toContain("@acme-infra/mineacme");
-      expect(names.some((n) => n.startsWith("@beta-tools/"))).toBe(false);
+      expect(names).toContain("@acme/acme-infra/mineacme");
+      expect(names.some((n) => n.startsWith("@beta/beta-tools/"))).toBe(false);
     }
   });
 
   it("refuses the person's own submission on its way in another private workspace", async () => {
-    const onWay = await agentDraft(asMember, "beta-tools", "onway", []);
+    const onWay = await agentDraft(asMember, "@beta/beta-tools", "onway", []);
     await submitDraft(asMember, onWay, app, storage);
-    const id = await agentDraft(asMember, "acme-infra", "uses", ["@beta-tools/onway"]);
+    const id = await agentDraft(asMember, "@acme/acme-infra", "uses", ["@beta/beta-tools/onway"]);
     expect((await issuesOf(asMember, id))[0]).toMatch(
-      /^dependency_not_visible: @beta-tools\/onway/,
+      /^dependency_not_visible: @beta\/beta-tools\/onway/,
     );
   });
 
   it("refuses it in a bulk submit, where the dependency is in the same batch", async () => {
-    const onWay = await agentDraft(asMember, "beta-tools", "batched", []);
-    const id = await agentDraft(asMember, "acme-infra", "batch", ["@beta-tools/batched"]);
+    const onWay = await agentDraft(asMember, "@beta/beta-tools", "batched", []);
+    const id = await agentDraft(asMember, "@acme/acme-infra", "batch", [
+      "@beta/beta-tools/batched",
+    ]);
     const { drafts } = await checkManyDrafts(
       asMember,
       { ids: [id, onWay], dependencies: true },
@@ -346,9 +351,13 @@ describe("the dependency rule, on the edges the witnesses found (093)", () => {
         .where("id", "=", pub2)
         .execute();
       const names = (
-        await findDependencies(asRoot, { type: "agent", q: "", itemName: "@acme-infra/new" }, app)
+        await findDependencies(
+          asRoot,
+          { type: "agent", q: "", itemName: "@acme/acme-infra/new" },
+          app,
+        )
       ).map((o) => o.name);
-      expect(names, nearly).not.toContain("@pub-kit/thing");
+      expect(names, nearly).not.toContain("@pub2/pub-kit/thing");
       expect(names, nearly).toContain("@team/base");
     }
   });
@@ -372,10 +381,13 @@ describe("the dependency rule, on the edges the witnesses found (093)", () => {
       const canvas = (
         await searchDependencies(asMember, { type: "agent", q: "ownedbeta", itemName }, app)
       ).entries.map((e) => e.name);
-      return [form.includes("@beta-tools/ownedbeta"), canvas.includes("@beta-tools/ownedbeta")];
+      return [
+        form.includes("@beta/beta-tools/ownedbeta"),
+        canvas.includes("@beta/beta-tools/ownedbeta"),
+      ];
     };
-    expect(await offered("@acme-infra/new")).toEqual([false, false]);
-    expect(await offered("@beta-tools/new")).toEqual([true, true]);
+    expect(await offered("@acme/acme-infra/new")).toEqual([false, false]);
+    expect(await offered("@beta/beta-tools/new")).toEqual([true, true]);
   });
 });
 
@@ -392,7 +404,13 @@ describe("resolving as the caller (093)", () => {
       await Promise.all(
         ["deploy", "lint"].map(async (name) => [
           name,
-          (await items.findByName(name === "deploy" ? "acme-infra" : "beta-tools", name))?.id ?? "",
+          (
+            await items.findByName({
+              workspace: name === "deploy" ? "acme" : "beta",
+              scope: name === "deploy" ? "acme-infra" : "beta-tools",
+              name: name,
+            })
+          )?.id ?? "",
         ]),
       ),
     );
@@ -435,7 +453,7 @@ describe("resolving as the caller (093)", () => {
       }
     };
     expect(await failure(outsider)).toBe(
-      "@acme-infra/deploy isn't a published item (asked for by @team/front@1.0.0).",
+      "@acme/acme-infra/deploy isn't a published item (asked for by @team/front@1.0.0).",
     );
     expect(await failure(member)).toBe("resolved");
   });

@@ -45,6 +45,7 @@ const editor = (type: ItemType) =>
     <DraftEditor
       draft={{
         id: "d",
+        workspace: "global",
         scope: "platform",
         name: "reviewer",
         type,

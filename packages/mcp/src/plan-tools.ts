@@ -151,6 +151,8 @@ export const planTool = async (
     lines.push("Would remove:", ...removes.map((r) => `  ${r.path}${keyOf(r.key)} (${r.item})`));
   if (!writes.length && !removes.length && !conflicts.length)
     lines.push("Nothing would change on disk.");
+  for (const { from, to } of operation.moved)
+    lines.push(`Note: ${from} is now ${to}; the project would use the new name from now on.`);
   for (const d of resolution.warnings)
     lines.push(`Deprecated: ${d.item}@${d.version}: ${d.message}`);
   for (const w of warnings) lines.push(`Warning: ${w.message}`);
@@ -183,6 +185,7 @@ export const planTool = async (
     removes,
     warnings: warnings.map((w) => ({ item: w.item, code: w.code, message: w.message })),
     deprecated: resolution.warnings,
+    renamed: operation.moved,
     risks,
     missingEnv,
     conflicts,

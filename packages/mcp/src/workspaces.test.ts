@@ -144,7 +144,8 @@ describe("plan_export and export_items", () => {
     const registry = exportRoutes({
       scopes: SCOPES,
       fail: {
-        "@acme-infra/mine": {
+        // Its full name names its workspace (118).
+        "@acme/acme-infra/mine": {
           status: 403,
           json: {
             error: {
@@ -160,7 +161,7 @@ describe("plan_export and export_items", () => {
       {
         ...identityRoutes("rmk_test_token"),
         ...registry.routes,
-        "GET /items/acme-infra/mine": () => ({
+        "GET /workspaces/acme/items/acme-infra/mine": () => ({
           status: 404,
           json: { error: { code: "item_not_found", message: "No." } },
         }),
@@ -185,7 +186,7 @@ describe("plan_export and export_items", () => {
 
   it("says where to ask to join when the scope's workspace isn't yours", async () => {
     const { call } = await project();
-    const planned = await call("plan_export", { items: ["mine"], to: "acme-infra" });
+    const planned = await call("plan_export", { items: ["mine"], to: "@acme/acme-infra" });
     const result = await call("export_items", { planId: planned.data.planId });
     expect(result.isError).toBe(true);
     expect(result.data).toMatchObject({

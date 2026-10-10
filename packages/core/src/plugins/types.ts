@@ -29,6 +29,11 @@ export type PluginInput = {
    * resolved dependencies. The caller resolves (020); the builder doesn't.
    */
   members: readonly RenderInput[];
+  /**
+   * Old names of the members (118), old name → name now: an old version's `ronne.yaml` may name
+   * its dependencies by them.
+   */
+  oldNames?: ReadonlyMap<string, string>;
 };
 
 export type PluginWarningCode =

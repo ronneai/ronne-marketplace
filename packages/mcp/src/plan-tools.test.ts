@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { type FakeIo, run } from "@ronneai/rmk/testing";
+import { buildRegistry, type FakeIo, run } from "@ronneai/rmk/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { startServer } from "./testing.js";
 
@@ -137,5 +137,47 @@ describe("plans", () => {
     const both = await call("plan_install", { items: ["@team/secure"], targets: ["codex"] });
     expect(both.text).toContain("for codex:");
     expect(both.text).toContain(".codex/config.toml (mcp_servers.gh)");
+  });
+});
+
+describe("an item whose name changed (118)", () => {
+  it("plans the move to the new name, and applying it rewrites the project", async () => {
+    const { packed } = await buildRegistry();
+    const fmt = packed["@team/fmt@1.0.0"];
+    let moved = false;
+    const item = { version: "1.0.0", type: "hook", sha256: fmt.sha256, dependencies: {} };
+    const started = await startServer({
+      routes: {
+        "POST /resolve": () => ({
+          json: moved
+            ? {
+                items: { "@acme/team/fmt": item },
+                warnings: [],
+                renamed: { "@team/fmt": "@acme/team/fmt" },
+              }
+            : { items: { "@team/fmt": item }, warnings: [], renamed: {} },
+        }),
+        "GET /items/team/fmt/1.0.0": () => ({ json: { version: "1.0.0", riskFlags: [] } }),
+        "GET /workspaces/acme/items/team/fmt/1.0.0/tarball": () => ({
+          bytes: fmt.tgz,
+          headers: { "x-checksum-sha256": fmt.sha256 },
+        }),
+      },
+    });
+    io = started.io;
+    mkdirSync(join(io.cwd, ".claude"));
+    const first = await started.call("plan_install", { items: ["@team/fmt"] });
+    await started.call("apply_plan", { planId: planIdOf(first.data) });
+    moved = true;
+    const plan = await started.call("plan_install", { items: [] });
+    expect(plan.text).toContain(
+      "Note: @team/fmt is now @acme/team/fmt; the project would use the new name from now on.",
+    );
+    expect(plan.data).toMatchObject({ renamed: [{ from: "@team/fmt", to: "@acme/team/fmt" }] });
+    await started.call("apply_plan", { planId: planIdOf(plan.data) });
+    expect(Object.keys(JSON.parse(read("rmk.lock")).items)).toEqual(["@acme/team/fmt"]);
+    expect(JSON.parse(read("rmk.config.json")).dependencies).toEqual({
+      "@acme/team/fmt": "latest",
+    });
   });
 });

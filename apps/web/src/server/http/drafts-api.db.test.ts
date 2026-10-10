@@ -1,6 +1,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { shortItemName } from "@ronneai/core";
 import { packItem } from "@ronneai/core/pack";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createTestDb, type TestDb } from "../db/testing/test-db";
@@ -860,7 +861,7 @@ describe("workspaces: only members draft and submit there (091)", () => {
       {
         path: "SKILL.md",
         encoding: "utf8",
-        content: `---\nname: ${name.split("/")[1]}\ndescription: Checks code.\n---\nGo.\n`,
+        content: `---\nname: ${shortItemName(name)}\ndescription: Checks code.\n---\nGo.\n`,
       },
     ],
   });
@@ -919,7 +920,7 @@ describe("workspaces: only members draft and submit there (091)", () => {
   it("refuses a non-member's upload with not_a_member, creating nothing; a member's goes", async () => {
     for (const token of [tokens.user, tokens.moderator]) {
       const { status, json } = await body(
-        await postDraft(send("POST", "/drafts", skill("@acme/fmt"), token), deps),
+        await postDraft(send("POST", "/drafts", skill("@acme/acme/fmt"), token), deps),
       );
       expect([status, json.error.code, json.error.details]).toEqual([
         403,
@@ -929,24 +930,32 @@ describe("workspaces: only members draft and submit there (091)", () => {
       expect(json.error.message).toContain("Ask to join acme");
     }
     expect(await drafts()).toBe(0);
-    const made = await postDraft(send("POST", "/drafts", skill("@acme/fmt"), memberToken), deps);
+    const made = await postDraft(
+      send("POST", "/drafts", skill("@acme/acme/fmt"), memberToken),
+      deps,
+    );
     expect(made.status).toBe(201);
-    const byRoot = await postDraft(send("POST", "/drafts", skill("@acme/lint"), tokens.root), deps);
+    const byRoot = await postDraft(
+      send("POST", "/drafts", skill("@acme/acme/lint"), tokens.root),
+      deps,
+    );
     expect(byRoot.status).toBe(201);
   });
 
   it("a removed member still lists their draft, but can't replace or submit it", async () => {
     const { json } = await body(
-      await postDraft(send("POST", "/drafts", skill("@acme/fmt"), memberToken), deps),
+      await postDraft(send("POST", "/drafts", skill("@acme/acme/fmt"), memberToken), deps),
     );
     await t.db.deleteFrom("workspace_members").where("workspace_id", "=", acme).execute();
 
-    const listed = await body(await getDrafts(get("/drafts?name=@acme/fmt", memberToken), deps));
+    const listed = await body(
+      await getDrafts(get("/drafts?name=@acme/acme/fmt", memberToken), deps),
+    );
     expect(listed.json.drafts.map((d: { id: string }) => d.id)).toEqual([json.id]);
 
     const replaced = await body(
       await putDraft(
-        send("PUT", `/drafts/${json.id}`, skill("@acme/fmt"), memberToken),
+        send("PUT", `/drafts/${json.id}`, skill("@acme/acme/fmt"), memberToken),
         { id: json.id },
         deps,
       ),

@@ -1,5 +1,8 @@
 import {
+  canonicalItemName,
   DEFAULT_LIMITS,
+  formatItemName,
+  formatScopeName,
   type ItemType,
   isItemType,
   type ManifestIssue,
@@ -8,6 +11,7 @@ import {
   type PackageLimits,
   parseItemName,
   pathProblem,
+  scopeRefFrom,
 } from "@ronneai/core";
 import { isScalar, parseDocument } from "yaml";
 import { isId } from "../../../db/ids";
@@ -118,10 +122,23 @@ const itemNameFrom = (value: string): string => {
   return name;
 };
 
+/** Whether what was sent names the submission's scope, in its workspace (118). */
+const sameScope = (
+  value: string,
+  submission: { workspace: { name: string }; scope: { name: string } },
+) => {
+  const ref = scopeRefFrom(value);
+  return ref?.workspace === submission.workspace.name && ref.scope === submission.scope.name;
+};
+
+/** A scope by what a form or the API sent: `team` or `@team` in `global`, `@acme/team` (118). */
 const findScope = async (repo: SubmissionRepository, value: string) => {
-  const name = normalizeScopeName(value);
-  const scope = name ? await repo.findScope(name) : null;
-  if (!scope) throw new DraftScopeNotFoundError(name);
+  const ref = scopeRefFrom(value);
+  const scope = ref ? await repo.findScope(ref) : null;
+  if (!scope)
+    throw new DraftScopeNotFoundError(
+      ref ? formatScopeName(ref).slice(1) : normalizeScopeName(value),
+    );
   return scope;
 };
 
@@ -187,14 +204,16 @@ export const createDraft = async (
   return deps.repo.transaction(async (repo) => {
     const scope = await findScope(repo, input.scope);
     requireMember(actor, scope.workspace);
-    const files = draftTemplate(type, itemNameOf({ scope, name })).map((file) => ({
-      path: file.path,
-      encoding: "utf8" as const,
-      content: file.content,
-      size: byteSize({ encoding: "utf8", content: file.content }),
-      executable: file.executable ?? false,
-      updatedAt: at,
-    }));
+    const files = draftTemplate(type, itemNameOf({ workspace: scope.workspace, scope, name })).map(
+      (file) => ({
+        path: file.path,
+        encoding: "utf8" as const,
+        content: file.content,
+        size: byteSize({ encoding: "utf8", content: file.content }),
+        executable: file.executable ?? false,
+        updatedAt: at,
+      }),
+    );
     return insertDraft(repo, { authorId, scope, name, type, files, at });
   });
 };
@@ -570,7 +589,12 @@ export const createDraftFromFiles = async (
     const proposal =
       input.base === undefined
         ? undefined
-        : await proposalBase(repo.registry(), `@${scope.name}/${name}`, type, input.base);
+        : await proposalBase(
+            repo.registry(),
+            formatItemName({ workspace: scope.workspace.name, scope: scope.name, name }),
+            type,
+            input.base,
+          );
     if ((await repo.countDrafts(authorId)) >= MAX_API_DRAFTS)
       throw new DraftQuotaError(MAX_API_DRAFTS);
     const fixed = await withFrontmatter(repo.registry(), type, files);
@@ -668,7 +692,8 @@ export const listOpenDrafts = async (
   itemName?: string,
 ): Promise<(Submission & { description: string | null })[]> => {
   requireSignedIn(actor);
-  const wanted = itemName?.trim().toLowerCase();
+  const typed = itemName?.trim().toLowerCase();
+  const wanted = typed === undefined ? undefined : (canonicalItemName(typed) ?? typed);
   const open = (await deps.repo.listByAuthor(actor.user?.id ?? "")).filter(
     (submission) =>
       OPEN_STATUSES.includes(submission.status) &&
@@ -723,7 +748,8 @@ export const replaceDraftFromFiles = async (
     const submission = await ownEditable(repo, actor, id);
     const baseVersion = submission.proposal?.baseVersion ?? null;
     if (
-      normalizeScopeName(input.scope) !== submission.scope.name ||
+      // The same scope in the same workspace (118).
+      !sameScope(input.scope, submission) ||
       name !== submission.name ||
       type !== submission.type ||
       (input.base ?? null) !== baseVersion
@@ -777,7 +803,7 @@ const proposalBase = async (
   version: string,
 ) => {
   const parsed = parseItemName(itemName);
-  const item = parsed ? await registry.findItem(parsed.scope, parsed.name) : null;
+  const item = parsed ? await registry.findItem(parsed) : null;
   if (!item) throw new ProposalBaseNotFoundError(itemName);
   if (item.type !== type) throw new TypeChangedError(itemName, item.type, type);
   const base = (await registry.publishedVersions(item.id)).find((v) => v.version === version);

@@ -12,6 +12,7 @@ const files = (type: (typeof ITEM_TYPES)[number]) =>
   }));
 
 const draft = (type: (typeof ITEM_TYPES)[number]) => ({
+  workspace: { name: "global" },
   scope: { name: "platform" },
   name: "starter",
   type,

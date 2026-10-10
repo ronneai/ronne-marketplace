@@ -251,7 +251,7 @@ describe("a workspace's visibility (093)", () => {
           {
             path: "ronne.yaml",
             encoding: "utf8",
-            content: `name: "@team/waiting"\ntype: agent\ndescription: Waits.\nagent:\n  prompt: prompt.md\ndependencies:\n  "@acme-infra/deploy": "^1.0.0"\n`,
+            content: `name: "@team/waiting"\ntype: agent\ndescription: Waits.\nagent:\n  prompt: prompt.md\ndependencies:\n  "@acme/acme-infra/deploy": "^1.0.0"\n`,
             executable: false,
             loadedAt: manifest?.updatedAt ?? null,
           },

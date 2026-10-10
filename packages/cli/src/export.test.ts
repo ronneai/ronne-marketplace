@@ -245,6 +245,27 @@ describe("ownershipOf", () => {
       version: "1.0.0",
     });
   });
+
+  it("reads a workspace's item in rmk's marker (118)", async () => {
+    io = fakeIo({});
+    const dir = join(io.cwd, ".claude/skills/house-style");
+    write(
+      dir,
+      "SKILL.md",
+      "---\nname: house-style\n---\n<!-- managed by rmk: @acme/examples/house-style@1.0.0-beta.1 -->\n",
+    );
+    expect(await ownership(dir)).toEqual({
+      owner: "rendered",
+      item: "@acme/examples/house-style",
+      version: "1.0.0-beta.1",
+    });
+    write(
+      dir,
+      "SKILL.md",
+      "---\nname: house-style\n---\n<!-- managed by rmk: house-style@1.0.0 -->\n",
+    );
+    expect(await ownership(dir)).toEqual({ owner: "local" });
+  });
 });
 
 describe("planExport", () => {

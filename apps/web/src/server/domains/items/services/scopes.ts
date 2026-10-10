@@ -1,3 +1,4 @@
+import { scopeRefFrom } from "@ronneai/core";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import {
   can,
@@ -54,7 +55,9 @@ export const createScope = async (
     const workspace = await repo.findWorkspace(input.workspaceId || GLOBAL_WORKSPACE_ID);
     if (!workspace) throw new ScopeWorkspaceNotFoundError();
     requireScopeManagerIn(actor, workspace.id);
-    if (await repo.findByName(name)) throw new ScopeNameTakenError(name);
+    // Unique in its workspace (118): another workspace may have a scope of the same name.
+    if (await repo.findByName({ workspace: workspace.name, scope: name }))
+      throw new ScopeNameTakenError(name);
     const id = await repo.insert({
       name,
       description,
@@ -92,7 +95,8 @@ export const updateScopeDescription = async (
   const description = scopeDescriptionFrom(input.description);
   const at = now(deps);
   await deps.repo.transaction(async (repo) => {
-    const scope = await repo.findByName(input.name);
+    const ref = scopeRefFrom(input.name);
+    const scope = ref ? await repo.findByName(ref) : null;
     if (!scope) throw new ScopeNotFoundError();
     requireScopeManagerIn(actor, scope.workspace.id);
     if (scope.description === description) return;
@@ -143,7 +147,10 @@ export const listScopes = async (
   }));
   return {
     scopes,
-    nextCursor: rows.length > size ? (scopes.at(-1)?.name ?? null) : null,
+    nextCursor: (() => {
+      const last = scopes.at(-1);
+      return rows.length > size && last ? `${last.name}:${last.id}` : null;
+    })(),
   };
 };
 

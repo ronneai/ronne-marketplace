@@ -73,6 +73,34 @@ export const tagProblem = (tag: string, version: string): string | null => {
   return null;
 };
 
+/** The most `||` alternatives `bothRanges` builds: its cost is the product of both ranges'. */
+export const BOTH_RANGES_MAX_SETS = 64;
+/** The longest range `bothRanges` builds, so one long alternative can't be repeated 64 times. */
+export const BOTH_RANGES_MAX_LENGTH = 4096;
+
+/**
+ * A range both ranges hold in (118: one item asked for under two names), or null when either isn't
+ * a range, or the two would make more than `BOTH_RANGES_MAX_SETS` alternatives or a range longer
+ * than `BOTH_RANGES_MAX_LENGTH` characters. Each range is read
+ * as semver's sets (`||`, hyphens expanded), and each pair of sets becomes one set that needs
+ * both: `(a || b) and c` is `a c || b c`.
+ */
+export const bothRanges = (a: string, b: string): string | null => {
+  const left = validRange(a);
+  const right = validRange(b);
+  if (left === null || right === null) return null;
+  const sets = (range: string) => range.split("||").map((set) => set.trim() || "*");
+  if (sets(left).length * sets(right).length > BOTH_RANGES_MAX_SETS) return null;
+  // Each alternative of one is repeated for every alternative of the other: bound the product.
+  const leftLength = sets(left).reduce((sum, set) => sum + set.length, 0);
+  const rightLength = sets(right).reduce((sum, set) => sum + set.length, 0);
+  if (leftLength * sets(right).length + rightLength * sets(left).length > BOTH_RANGES_MAX_LENGTH)
+    return null;
+  return sets(left)
+    .flatMap((x) => sets(right).map((y) => `${x} ${y}`))
+    .join(" || ");
+};
+
 /** Whether `value` reads as a semver range (`^1.2.0`, `>=1 <2`, `1.0.0`), as `rmk install` takes it. */
 export const isVersionRange = (value: string): boolean => validRange(value) !== null;
 
