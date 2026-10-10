@@ -83,7 +83,7 @@ each tool is checked against a known-vulnerable fixture when it's added.
 **In CI** (every pull request):
 - **License check:** fails on anything not allowed by §1 and not listed in §5.
 - **`pnpm audit --audit-level high`:** fails on high or critical advisories in the install tree.
-- **Container scan (Trivy)** of the Docker image, and of the Caddy image `compose.yaml` pins (080): fails on high or critical vulnerabilities that have a fix available. The Caddy scan skips the ones `.github/actions/build-image/caddy.trivyignore` lists, each until its date (§5).
+- **Container scan (Trivy)** of the Docker image, and of the Caddy image `compose.yaml` pins (080): fails on high or critical vulnerabilities that have a fix available. The Caddy scan skips the ones `.github/actions/build-image/caddy.trivyignore` lists, each until its date (§5). It runs on every pull request that changes the image or the dependencies, on every push to `main`, every night and in every release ([test-runs.md](../knowledge/test-runs.md)), so a new CVE in a base image shows up within a day.
 - **GitHub Actions** are pinned to full commit SHAs (Dependabot updates them), and each workflow sets the smallest `permissions:` it needs. No `pull_request_target` job checks out pull request code.
 - **CodeQL, Dependabot alerts, secret scanning and push protection** are turned on for the repository.
 

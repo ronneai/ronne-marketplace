@@ -5,6 +5,10 @@ name: Changes
 # Callers skip their heavy steps only when `code` is exactly "false", so a failure here runs everything.
 # `database` (112) says which database tests a pull request runs on the servers: "core" (the
 # database code's own tests) unless it changes database code; anything but "core" runs them all.
+# `image`, `server` and `install` (ci-scope.js) say whether a pull request runs those slow suites:
+# only when it changes what they build or test. `full` is "false" on a draft pull request, which
+# runs only the light checks until it's ready for review. Every suite runs on main, nightly and in
+# releases (docs/knowledge/test-runs.md). As with `code`, callers skip only on an exact "false".
 on:
   workflow_call:
     outputs:
@@ -14,6 +18,18 @@ on:
       database:
         description: '"core" when a pull request changes no database code; "all" otherwise (db-scope.js)'
         value: ${{ jobs.detect.outputs.database }}
+      image:
+        description: '"false" when a pull request changes nothing the Docker image adds (ci-scope.js)'
+        value: ${{ jobs.detect.outputs.image }}
+      server:
+        description: '"false" when a pull request changes nothing the server package tests check (ci-scope.js)'
+        value: ${{ jobs.detect.outputs.server }}
+      install:
+        description: '"false" when a pull request changes neither install script (ci-scope.js)'
+        value: ${{ jobs.detect.outputs.install }}
+      full:
+        description: '"false" on a draft pull request: only the light checks run'
+        value: ${{ jobs.detect.outputs.full }}
 
 permissions:
   contents: read
@@ -26,6 +42,10 @@ jobs:
     outputs:
       code: ${{ steps.detect.outputs.code }}
       database: ${{ steps.detect.outputs.database }}
+      image: ${{ steps.detect.outputs.image }}
+      server: ${{ steps.detect.outputs.server }}
+      install: ${{ steps.detect.outputs.install }}
+      full: ${{ steps.detect.outputs.full }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -35,17 +55,30 @@ jobs:
       - id: detect
         env:
           EVENT: ${{ github.event_name }}
+          DRAFT: ${{ github.event.pull_request.draft }}
         run: |
           if [ "$EVENT" != "pull_request" ]; then
-            echo "code=true" >> "$GITHUB_OUTPUT"
-            echo "database=all" >> "$GITHUB_OUTPUT"
+            {
+              echo "code=true"
+              echo "database=all"
+              echo "image=true"
+              echo "server=true"
+              echo "install=true"
+              echo "full=true"
+            } >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          if [ "$DRAFT" = true ]; then full=false; else full=true; fi
+          echo "Draft: ${DRAFT:-false}, so the full checks: $full"
+          echo "full=$full" >> "$GITHUB_OUTPUT"
           files=$(git diff --name-only HEAD^1 HEAD)
           printf 'Changed files:\n%s\n' "$files"
           code=$(printf '%s\n' "$files" | node packages/repo-tools/src/docs-only.js)
-          echo "Needs the full checks: $code"
+          echo "More than documentation: $code"
           echo "code=$code" >> "$GITHUB_OUTPUT"
           database=$(printf '%s\n' "$files" | node packages/repo-tools/src/db-scope.js)
           echo "Database tests on the servers: $database"
           echo "database=$database" >> "$GITHUB_OUTPUT"
+          scope=$(printf '%s\n' "$files" | node packages/repo-tools/src/ci-scope.js)
+          printf 'Slow suites:\n%s\n' "$scope"
+          echo "$scope" >> "$GITHUB_OUTPUT"

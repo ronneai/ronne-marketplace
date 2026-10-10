@@ -1,0 +1,69 @@
+name: Nightly
+
+# Everything a pull request may have skipped, on main, once a night (docs/knowledge/test-runs.md):
+# the end-to-end tests, every database test on the minimum server versions, the Docker image for
+# both architectures with its scans, the server package on every system with its bundles and
+# Linux packages, and the install scripts. Also the license and vulnerability checks, so a new
+# advisory or a new CVE in the image shows up within a day without holding up unrelated pull
+# requests. About 18 Docker Hub pulls a run (docs/knowledge/docker-hub-pulls.md). The release
+# checklist asks for last night's run to be green (docs/runbooks/release.md). The weekly run of
+# the latest database versions stays in database.yml.
+on:
+  schedule:
+    - cron: "23 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NEXT_TELEMETRY_DISABLED: "1"
+  TURBO_TELEMETRY_DISABLED: "1"
+
+jobs:
+  dependencies:
+    name: Licenses and known vulnerabilities
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm licenses:check
+      - run: pnpm audit --audit-level high
+
+  e2e:
+    uses: ./.github/workflows/e2e.yml
+
+  # Only the read-only Docker Hub token, by name: not `inherit`, which would hand over every secret.
+  database:
+    uses: ./.github/workflows/database.yml
+    with:
+      versions: minimum
+    secrets:
+      DOCKERHUB_READ_TOKEN: ${{ secrets.DOCKERHUB_READ_TOKEN }}
+
+  image:
+    uses: ./.github/workflows/image.yml
+    secrets:
+      DOCKERHUB_READ_TOKEN: ${{ secrets.DOCKERHUB_READ_TOKEN }}
+
+  server-package:
+    uses: ./.github/workflows/server-package.yml
+    secrets:
+      DOCKERHUB_READ_TOKEN: ${{ secrets.DOCKERHUB_READ_TOKEN }}
+
+  install-scripts:
+    uses: ./.github/workflows/install-scripts.yml
+    secrets:
+      DOCKERHUB_READ_TOKEN: ${{ secrets.DOCKERHUB_READ_TOKEN }}

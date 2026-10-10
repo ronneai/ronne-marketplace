@@ -18,10 +18,13 @@ name: Release
 #    own, since its jobs only run after the npm job the owner approved.
 # 3. `bundles` (feature 084, bundles.yml): rmk-server with Node.js inside, one archive per system
 #    and processor, each built and smoke-tested on a runner of its platform from the packed server.
-# 4. `github-release`: the GitHub release, once every artefact of the version exists, with the npm
-#    tarballs, the install scripts (install.sh, install.ps1; feature 081) and the six bundles
-#    attached, and checksums.txt covering the scripts and the bundles. A bundle that failed on any
-#    platform stops it, so the packages (085, 087) never point at a partial release.
+# 4. `server-checks`, `install-scripts`, `database` and `e2e`: the suites a pull request may skip
+#    (docs/knowledge/test-runs.md), run on what this release publishes, on a dry run too.
+# 5. `github-release`: the GitHub release, once every artefact of the version exists and every
+#    check above passed, with the npm tarballs, the install scripts (install.sh, install.ps1;
+#    feature 081) and the six bundles attached, and checksums.txt covering the scripts and the
+#    bundles. A bundle that failed on any platform stops it, so the packages (085, 087) never
+#    point at a partial release.
 #
 # Run by hand with "dry run" (from main, so the current workflow runs) to check everything, build,
 # run and scan both images, build and smoke-test the six bundles, and publish nothing.
@@ -343,10 +346,39 @@ jobs:
     secrets:
       DOCKERHUB_READ_TOKEN: ${{ secrets.DOCKERHUB_READ_TOKEN }}
 
-  # Last, so a release on GitHub exists only once every artefact of it does.
+  # What a pull request may have skipped (docs/knowledge/test-runs.md), on what this run publishes.
+  # Also on a dry run, which the checklist makes the gate before any tag (docs/runbooks/release.md).
+  # The install matrix and the services on Linux, macOS and Windows, from this run's server tarball
+  # and Windows bundle (server-checks.yml).
+  server-checks:
+    needs: bundles
+    uses: ./.github/workflows/server-checks.yml
+
+  # install.sh and install.ps1 (081).
+  install-scripts:
+    needs: release
+    uses: ./.github/workflows/install-scripts.yml
+    secrets:
+      DOCKERHUB_READ_TOKEN: ${{ secrets.DOCKERHUB_READ_TOKEN }}
+
+  # Every database test on the minimum server versions (004).
+  database:
+    needs: release
+    uses: ./.github/workflows/database.yml
+    with:
+      versions: minimum
+    secrets:
+      DOCKERHUB_READ_TOKEN: ${{ secrets.DOCKERHUB_READ_TOKEN }}
+
+  # The end-to-end tests (112).
+  e2e:
+    needs: release
+    uses: ./.github/workflows/e2e.yml
+
+  # Last, so a release on GitHub exists only once every artefact of it does, and every check passed.
   github-release:
     name: GitHub release
-    needs: [release, manifest, bundles, linux-packages]
+    needs: [release, manifest, bundles, linux-packages, server-checks, install-scripts, database, e2e]
     if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
     runs-on: ubuntu-latest
     timeout-minutes: 10

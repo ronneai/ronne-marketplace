@@ -5,16 +5,29 @@ name: Server package
 # would, and runs packages/repo-tools/src/server-probe.js: start with an empty data folder, 503
 # setup_required, `rmk-server setup --yes` with SQLite, 200 with no restart, a token from sign-in,
 # and the port free after stopping it. service-linux runs `rmk-server service` on systemd (083).
+#
+# About 20 jobs on six systems, two of them pulling Linux images from Docker Hub, so a pull request
+# runs it only when it changes the server, its bundles, packages or services (changes.yml's
+# `server`, ci-scope.js), and not while it's a draft. nightly.yml runs it on main every night;
+# release.yml runs the same checks on what it publishes (server-checks.yml, bundles.yml,
+# packages.yml).
 on:
-  push:
-    branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+  workflow_call:
+    # A called workflow gets no secrets unless its caller passes them (docs/knowledge/docker-hub-pulls.md).
+    secrets:
+      DOCKERHUB_READ_TOKEN:
+        required: false
 
 permissions:
   contents: read
 
+# github.workflow is the caller's name when another workflow calls this one, so a call never shares
+# a group with its caller or with this workflow's own runs.
 concurrency:
-  group: server-package-${{ github.ref }}
+  group: server-package-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
@@ -29,7 +42,9 @@ jobs:
   pack:
     name: Pack @ronneai/marketplace
     needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
+    if: >-
+      ${{ !cancelled() && needs.changes.outputs.code != 'false'
+      && needs.changes.outputs.full != 'false' && needs.changes.outputs.server != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -54,116 +69,6 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
-  install:
-    name: Install and run (${{ matrix.os }}, Node ${{ matrix.node }})
-    needs: pack
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        # The minimum supported LTS and the target LTS (docs/policies/dependencies.md §2).
-        node: [22, 24]
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
-    steps:
-      # Only for the probe script; the package comes from the tarball.
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-          sparse-checkout: packages/repo-tools/src
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: ${{ matrix.node }}
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: server-tarball
-          path: tarball
-      # ./ matters: npm reads "tarball/x.tgz" as a GitHub user/repo, not a file (as in release.yml).
-      - name: npm install --global the tarball
-        shell: bash
-        run: npm install --global --no-audit --no-fund ./tarball/*.tgz
-      - name: Start, set up, sign in, stop
-        run: node packages/repo-tools/src/server-probe.js rmk-server
-
-  # `rmk-server service` on a real systemd (feature 083): GitHub's Ubuntu runners boot with it and
-  # give passwordless sudo. scripts/service/test-linux-service.sh installs, sets up, restarts,
-  # crashes, adds --domain localhost --tls internal through Caddy, removes it, uninstalls and
-  # deletes the data.
-  service-linux:
-    name: Service on Linux (systemd)
-    needs: pack
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-          sparse-checkout: scripts/service
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 24
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: server-tarball
-          path: tarball
-      - name: npm install --global the tarball
-        run: npm install --global --no-audit --no-fund ./tarball/*.tgz
-      # Caddy's own release, checked against the SHA-512 its checksums file gives (policy §3). Not
-      # put on PATH: the test first checks that --domain asks for it.
-      - name: Download Caddy 2.11.6
-        env:
-          CADDY_SHA512: 422771007d505ea97efd1177a4905b2c1a471cd426668f2ace3bcda3d8e30b11f9b1610bfb02c6ad60f2a795f56124f2f5eec6409c17d5a0dd4c21a11375fb94
-        run: |
-          curl -fsSL -o "$RUNNER_TEMP/caddy.tar.gz" \
-            https://github.com/caddyserver/caddy/releases/download/v2.11.6/caddy_2.11.6_linux_amd64.tar.gz
-          echo "$CADDY_SHA512  $RUNNER_TEMP/caddy.tar.gz" | sha512sum -c -
-          tar -xzf "$RUNNER_TEMP/caddy.tar.gz" -C "$RUNNER_TEMP" caddy
-      - name: Install, set up, restart, --domain, uninstall
-        env:
-          CADDY_BIN: ${{ runner.temp }}/caddy
-        run: bash scripts/service/test-linux-service.sh
-      - name: The services' logs
-        if: ${{ failure() }}
-        run: sudo journalctl -u rmk-server -u rmk-server-proxy --no-pager | tail -n 200
-
-  # The same on macOS with launchd (083): GitHub's macOS runners give passwordless sudo and let
-  # `launchctl bootstrap system` load daemons. Homebrew's Node, so the Homebrew prefix is used and
-  # _rmkserver can read the program (a Node under /Users wouldn't be readable to it).
-  service-macos:
-    name: Service on macOS (launchd)
-    needs: pack
-    runs-on: macos-15
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-          sparse-checkout: scripts/service
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: server-tarball
-          path: tarball
-      - name: Node 24 from Homebrew, and the tarball
-        run: |
-          brew install node@24
-          echo "$(brew --prefix node@24)/bin" >> "$GITHUB_PATH"
-          "$(brew --prefix node@24)/bin/npm" install --global --no-audit --no-fund ./tarball/*.tgz
-      - name: Download Caddy 2.11.6
-        env:
-          CADDY_SHA512: 8b08d5a25ab612946b18b82c78fc32b194e69e576dd120cdca44f467ded2d6cb6fcfe899f05a71774f04b454e5cc9adcf08f8545c8d560bd92079ce015c8bf2e
-        run: |
-          curl -fsSL -o "$RUNNER_TEMP/caddy.tar.gz" \
-            https://github.com/caddyserver/caddy/releases/download/v2.11.6/caddy_2.11.6_mac_arm64.tar.gz
-          echo "$CADDY_SHA512  $RUNNER_TEMP/caddy.tar.gz" | shasum -a 512 -c -
-          tar -xzf "$RUNNER_TEMP/caddy.tar.gz" -C "$RUNNER_TEMP" caddy
-      - name: Install, set up, KeepAlive, --domain, --user, uninstall
-        env:
-          CADDY_BIN: ${{ runner.temp }}/caddy
-        run: bash scripts/service/test-macos-service.sh
-      - name: The services' logs
-        if: ${{ failure() }}
-        run: sudo tail -n 200 /Library/Logs/rmk-server/server.log /Library/Logs/rmk-server/proxy.log
-
   # The self-contained bundles (084), built and smoke-tested on each of the six platforms from the
   # tarball the pack job made, as the release does.
   bundles:
@@ -178,62 +83,26 @@ jobs:
     secrets:
       DOCKERHUB_READ_TOKEN: ${{ secrets.DOCKERHUB_READ_TOKEN }}
 
-  # The service on Windows (086): WinSW and the virtual account, from the Windows bundle unzipped
-  # into Program Files. GitHub's Windows runners run elevated, as `service install` needs.
-  service-windows:
-    name: Service on Windows (WinSW)
+  # The install matrix and the services on Linux, macOS and Windows (server-checks.yml), once the
+  # Windows bundle exists.
+  checks:
     needs: bundles
-    runs-on: windows-2025
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-          sparse-checkout: scripts/service
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: bundle-win32-x64
-          path: bundle
-      # Caddy's own release, checked against the SHA-512 its checksums file gives (policy §3). Not
-      # put on PATH: the test first checks that --domain asks for it.
-      - name: Download Caddy 2.11.6
-        shell: pwsh
-        env:
-          CADDY_SHA512: e2626405400f15131886a6dc03883962bdc960fdcb1cdd0882f28af8821c9b370c83fdc60cb8a4deaf27008166f0e080cc7208e699dc0ce15a534ae75cf53d93
-        run: |
-          $zip = Join-Path $env:RUNNER_TEMP 'caddy.zip'
-          Invoke-WebRequest -OutFile $zip https://github.com/caddyserver/caddy/releases/download/v2.11.6/caddy_2.11.6_windows_amd64.zip
-          if ((Get-FileHash -Algorithm SHA512 $zip).Hash -ne $env:CADDY_SHA512) { throw "caddy.zip's SHA-512 isn't the release's" }
-          Expand-Archive $zip -DestinationPath (Join-Path $env:RUNNER_TEMP 'caddy')
-      - name: Install, set up, restart, a crash, the firewall, --domain, uninstall
-        shell: pwsh
-        run: ./scripts/service/test-windows-service.ps1 -Bundle (Get-ChildItem bundle/*.zip).FullName -Caddy (Join-Path $env:RUNNER_TEMP 'caddy\caddy.exe')
-      - name: The service's logs
-        if: ${{ failure() }}
-        shell: pwsh
-        run: |
-          Get-ChildItem C:\ProgramData\RonneAI\Marketplace\logs, C:\ProgramData\RonneAI\Marketplace\proxy\logs -ErrorAction SilentlyContinue |
-            ForEach-Object { "==> $($_.FullName)"; Get-Content -Tail 100 $_.FullName }
-          Get-WinEvent -LogName System -MaxEvents 30 |
-            Where-Object ProviderName -eq 'Service Control Manager' | Format-List TimeCreated, Message
+    uses: ./.github/workflows/server-checks.yml
 
-  # One check to require: it passes when every system passed, or when they were skipped for a
-  # docs-only pull request.
+  # One check to require: it passes when every system passed, or when the pull request didn't
+  # need them.
   server-package:
     name: Server package
-    needs: [changes, pack, install, service-linux, service-macos, service-windows, bundles, linux-packages]
+    needs: [changes, pack, bundles, checks, linux-packages]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
       - name: Packed, installed and ran everywhere
         env:
           PACK_RESULT: ${{ needs.pack.result }}
-          INSTALL_RESULT: ${{ needs.install.result }}
-          SERVICE_RESULT: ${{ needs.service-linux.result }}
-          MACOS_RESULT: ${{ needs.service-macos.result }}
-          WINDOWS_RESULT: ${{ needs.service-windows.result }}
           BUNDLES_RESULT: ${{ needs.bundles.result }}
+          CHECKS_RESULT: ${{ needs.checks.result }}
           PACKAGES_RESULT: ${{ needs.linux-packages.result }}
         run: |
-          echo "pack: $PACK_RESULT, install: $INSTALL_RESULT, service: $SERVICE_RESULT, macOS: $MACOS_RESULT, Windows: $WINDOWS_RESULT, bundles: $BUNDLES_RESULT, packages: $PACKAGES_RESULT"
-          for r in "$PACK_RESULT" "$INSTALL_RESULT" "$SERVICE_RESULT" "$MACOS_RESULT" "$WINDOWS_RESULT" "$BUNDLES_RESULT" "$PACKAGES_RESULT"; do [ "$r" = success ] || [ "$r" = skipped ] || exit 1; done
+          echo "pack: $PACK_RESULT, bundles: $BUNDLES_RESULT, install and services: $CHECKS_RESULT, packages: $PACKAGES_RESULT"
+          for r in "$PACK_RESULT" "$BUNDLES_RESULT" "$CHECKS_RESULT" "$PACKAGES_RESULT"; do [ "$r" = success ] || [ "$r" = skipped ] || exit 1; done
