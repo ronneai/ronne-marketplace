@@ -44,6 +44,7 @@ const setUp = () =>
 const signIn = async (password: string) => {
   const { db, dialect } = createDb(databaseUrl());
   const auth = createAuth({
+    validateSchema: false, // no background query left when the pool closes
     db,
     dialect,
     secret: "test-secret-test-secret-test-secret-00",

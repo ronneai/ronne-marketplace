@@ -62,6 +62,7 @@ describe("runSetup on SQLite", () => {
 
     const { db, dialect } = openEnvDb();
     const auth = createAuth({
+      validateSchema: false, // no background query left when the pool closes
       db,
       dialect,
       secret: env.AUTH_SECRET as string,
