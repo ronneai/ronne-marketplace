@@ -104,5 +104,6 @@ goes into `SPEC.md` instead.
   plain; `docs/knowledge/server-client-props.md`). New e2e users or recent items shift lists other
   tests read (the users table's first page, the composer picker's 12 most recent): the twins are
   dated long ago, and `user-admin` searches for root. `submit-problems.mobile` on phone-webkit
-  times out in full runs, on `main` too, and passes alone. The editor step that applies "Use the
-  new name" has no test of its own.
+  timed out in full runs, on `main` too: contexts other phone tests left open
+  (`docs/knowledge/e2e-open-contexts.md`). The editor step that applies "Use the new name" is
+  tested end to end (`use-new-name.e2e.ts`), with an old name the seed adds.

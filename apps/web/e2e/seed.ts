@@ -31,6 +31,7 @@ import {
   E2E_SHELF,
   E2E_SKILL,
   E2E_TWIN,
+  E2E_TWIN_OLD_NAME,
   E2E_USAGE_PEAK,
   E2E_USERS,
   E2E_VAULT,
@@ -501,5 +502,23 @@ await db
   .updateTable("item_versions")
   .set({ published_at: longAgo })
   .where("item_id", "in", twins)
+  .execute();
+// The workspace twin's old name, for "Use the new name" (118).
+const workspaceTwin = await db
+  .selectFrom("items")
+  .innerJoin("scopes", "scopes.id", "items.scope_id")
+  .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
+  .select("items.id")
+  .where("items.name", "=", E2E_TWIN.item)
+  .where("workspaces.name", "=", E2E_TWIN.workspace)
+  .executeTakeFirstOrThrow();
+await db
+  .insertInto("item_aliases")
+  .values({
+    name: E2E_TWIN_OLD_NAME,
+    item_id: workspaceTwin.id,
+    reason: "rename",
+    created_at: toDbDate(new Date(), dialect),
+  })
   .execute();
 await db.destroy();

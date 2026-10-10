@@ -20,7 +20,7 @@ test("a user opens a helper in the New item form, whose Learn more and Docs open
   await expect(answer).toHaveCount(0);
   const before = await below.boundingBox();
   await question.click();
-  await expect(answer.getByText(/The first part of an item's name/)).toBeVisible();
+  await expect(answer.getByText(/The part of an item's name before the item/)).toBeVisible();
   await expect(question).toHaveAttribute("aria-expanded", "true");
   expect(await below.boundingBox()).toEqual(before);
   // Inside the window, with its margin.

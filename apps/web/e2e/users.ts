@@ -289,6 +289,9 @@ export const E2E_DOOR = { workspace: "e2e-door", scope: "e2e-door-tools", item: 
  */
 export const E2E_TWIN = { workspace: "e2e-twin", scope: "e2e-seeded", item: "twin-notes" };
 
+/** An old name of the workspace's twin skill (118), as if it had been renamed: it still answers. */
+export const E2E_TWIN_OLD_NAME = "@e2e-seeded/twin-skill";
+
 /** An item the seed publishes with two versions (1.0.0 and 1.1.0 on latest), for the Versions page. */
 export const E2E_VERSIONED_ITEM = "versioned";
 

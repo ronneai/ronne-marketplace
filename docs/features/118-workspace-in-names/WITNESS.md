@@ -389,6 +389,16 @@ Witnessed: 2026-10-10 03:36 EDT, by a fresh agent (blind). Commit: 1faf899d (plu
 
 **Overall:** met.
 
+### Re-check 4
+
+Witnessed: 2026-10-10 12:19 EDT, by a fresh agent (blind). Commit: bedec880 (plus the uncommitted e2e work). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 16 | "Use the new name" rewrites an old-name dependency in ronne.yaml, range kept, and a save clears the problem; the editor step has an end-to-end test | no | confirmed | `npx playwright test e2e/use-new-name.e2e.ts` → 1 passed (warning, "… is now …", rewritten `"@e2e-twin/e2e-seeded/twin-notes": ^1.0.0`, old name gone, then "No problems"); with `writeNewName` made a no-op in a copy, the test failed at line 51 |
+
+**Overall:** met.
+
 ## Task 8 — Decision log and contracts
 
 Witnessed: 2026-10-10 03:27 EDT, by a fresh agent (blind). Commit: 33a977fd (plus the uncommitted docs). Machine: macOS 27.0.1, Node v24.0.0.
