@@ -24,7 +24,7 @@ describe("navFor", () => {
         role: "user",
         workspaces: { [GLOBAL]: "user" },
       }).map((i) => i.label),
-    ).toEqual(["Home", "Catalogue", "Submissions", "Docs"]);
+    ).toEqual(["Home", "Catalogue", "Workspaces", "Submissions", "Docs"]);
     // A moderator of another workspace only, a plain user in global (091).
     expect(
       navFor({
@@ -33,10 +33,10 @@ describe("navFor", () => {
         role: "user",
         workspaces: { [GLOBAL]: "user", acme: "moderator" },
       }).map((i) => i.label),
-    ).toEqual(["Home", "Catalogue", "Submissions", "Reviews", "Docs"]);
+    ).toEqual(["Home", "Catalogue", "Workspaces", "Submissions", "Reviews", "Docs"]);
     // In no workspace at all (not reachable while everyone is in global): nothing to submit to.
     expect(navFor({ name: "N", email: "n@example.com", role: "user" }).map((i) => i.label)).toEqual(
-      ["Home", "Catalogue", "Docs"],
+      ["Home", "Catalogue", "Workspaces", "Docs"],
     );
     expect(
       navFor({
@@ -45,11 +45,11 @@ describe("navFor", () => {
         role: "user",
         workspaces: { [GLOBAL]: "moderator" },
       }).map((i) => i.label),
-    ).toEqual(["Home", "Catalogue", "Submissions", "Reviews", "Docs"]);
+    ).toEqual(["Home", "Catalogue", "Workspaces", "Submissions", "Reviews", "Docs"]);
     expect(navFor({ name: "R", email: "r@example.com", role: "root" }).map((i) => i.label)).toEqual(
-      ["Home", "Catalogue", "Submissions", "Reviews", "Admin", "Docs"],
+      ["Home", "Catalogue", "Workspaces", "Submissions", "Reviews", "Admin", "Docs"],
     );
-    expect(navFor({ name: "R", email: "r@example.com", role: "root" })[4]?.href).toBe(
+    expect(navFor({ name: "R", email: "r@example.com", role: "root" })[5]?.href).toBe(
       "/admin/users",
     );
   });
@@ -64,6 +64,7 @@ describe("navFor", () => {
     expect(admin.map((i) => i.label)).toEqual([
       "Home",
       "Catalogue",
+      "Workspaces",
       "Submissions",
       "Reviews",
       "Admin",
@@ -89,12 +90,13 @@ describe("Requests in the nav (094)", () => {
     expect(labels(navFor(moderator, { "/workspaces/requests": 2 }))).toEqual([
       "Home",
       "Catalogue",
+      "Workspaces",
       "Submissions",
       "Reviews",
       "Requests",
       "Docs",
     ]);
-    expect(navFor(moderator, { "/workspaces/requests": 2 })[4]?.href).toBe("/workspaces/requests");
+    expect(navFor(moderator, { "/workspaces/requests": 2 })[5]?.href).toBe("/workspaces/requests");
     expect(
       labels(
         navFor({ name: "R", email: "r@example.com", role: "root" }, { "/workspaces/requests": 1 }),
@@ -274,11 +276,11 @@ describe("AppShell", () => {
       expect(links(html)).toEqual([
         "Home",
         "Catalogue",
+        "Workspaces",
         "Submissions",
         "Docs",
         "Account",
         "Access tokens",
-        "Workspaces",
       ]);
       expect(sheet(html)).toContain("ada@example.com");
       expect(sheet(html)).toContain("Appearance");
@@ -301,13 +303,13 @@ describe("AppShell", () => {
       expect(links(html)).toEqual([
         "Home",
         "Catalogue",
+        "Workspaces",
         "Submissions",
         "Reviews",
         "Admin",
         "Docs",
         "Account",
         "Access tokens",
-        "Workspaces",
       ]);
       expect(sheet(html)).toMatch(/aria-current="page"[^>]*>Admin</);
       navigation.path = "/";

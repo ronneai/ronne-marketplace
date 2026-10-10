@@ -44,7 +44,8 @@ moderators answer. It replaces "ask root" with a request that's tracked and audi
 `global` shows "Everyone"; root shows "Root" everywhere. Private workspaces appear only to their
 members and root (093). Below, **Your other requests**: open and declined requests to names not in
 the list (a private workspace asked from its link, or a name no workspace has), by name only, with
-Cancel. The page is in the account menu, under Access tokens.
+Cancel. The page is in the top menu, after Catalogue (owner, 2026-10-10; it was in the account
+menu, under Access tokens).
 
 **The join link.** `/workspaces/<name>/join`: for a public workspace, its description and the Ask
 to join form. For a private one the reader isn't in, the name and the form only, exactly as for a

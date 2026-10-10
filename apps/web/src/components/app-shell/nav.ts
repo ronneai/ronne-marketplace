@@ -34,13 +34,17 @@ export type NavItem = {
 
 /**
  * Top navigation. Only pages that exist are listed (feature 032): Composer and Releases join as
- * their features land. Catalogue (018) is current on item pages too. Admin and Docs (033) sit at
+ * their features land. Catalogue (018) is current on item pages too. Workspaces (094) moved here
+ * from the account menu (owner, 2026-10-10). Admin and Docs (033) sit at
  * the right, before the appearance switch (owner's request, 2026-09-28). Docs opens the
  * Documentation on the website in a new tab (088).
  */
 export const NAV: NavItem[] = [
   { href: "/", label: "Home" },
   { href: "/catalogue", label: "Catalogue", section: ["/catalogue", "/items"] },
+  // Every signed-in user's workspaces and joining (094); after Catalogue (owner, 2026-10-10). Exact:
+  // Requests, under /workspaces/requests, is its own item.
+  { href: "/workspaces", label: "Workspaces" },
   {
     href: "/submissions",
     label: "Submissions",
