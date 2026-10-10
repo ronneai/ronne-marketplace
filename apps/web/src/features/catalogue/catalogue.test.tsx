@@ -257,24 +257,25 @@ describe("workspaces in the catalogue (090)", () => {
     expect(html).toContain('aria-label="Remove the workspace filter"');
   });
 
-  it("names a workspace other than global before the item, quietly", () => {
+  it("names a workspace other than global once, in the item's full name (118)", () => {
     const acme = view({ entries: [entry({ workspace: "acme", scope: "acme-infra" })] });
-    expect(acme).toMatch(/acme<span aria-hidden="true"> · <\/span>/);
+    expect(acme).not.toMatch(/acme<span aria-hidden="true"> · <\/span>/);
     expect(acme).toContain("@acme/acme-infra/fmt");
     expect(acme).toContain('href="/workspaces/acme/items/acme-infra/fmt"');
     expect(view()).not.toContain('<span aria-hidden="true"> · </span>');
   });
 
-  it("marks a private workspace's item with a lock and Private · acme (093)", () => {
+  it("marks a private workspace's item with a lock and Private, its full name naming acme (093, 118)", () => {
     const html = view({
       entries: [entry({ workspace: "acme", privateWorkspace: true, scope: "acme-infra" })],
     });
     expect(html).toContain('title="Only acme&#x27;s members and root see this item."');
     expect(html).toMatch(
-      /lucide-lock[^>]*>.*<\/svg>Private<span aria-hidden="true"> · <\/span><span class="sr-only">, <\/span>acme<span aria-hidden="true"> · <\/span>/,
+      /lucide-lock[^>]*>.*<\/svg>Private<span aria-hidden="true"> · <\/span><span class="sr-only">, <\/span><\/span><a[^>]*>@acme\/acme-infra\//,
     );
-    expect(view({ entries: [entry({ workspace: "acme", scope: "acme-infra" })] })).not.toContain(
-      "lucide-lock",
-    );
+    const open = view({ entries: [entry({ workspace: "acme", scope: "acme-infra" })] });
+    expect(open).not.toContain("lucide-lock");
+    // Public: the name alone says the workspace, once.
+    expect(open).not.toMatch(/>acme<span aria-hidden="true"> · /);
   });
 });

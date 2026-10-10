@@ -126,7 +126,9 @@ days so people know to install it again.
 
 **Web app.** Item pages are `/workspaces/<workspace>/items/<scope>/<name>` (`/items/<scope>/<name>`
 for `global`); an alias's address redirects to the item's for those who see it. Admin › Scopes shows each scope with
-its workspace, and the same name may appear in several rows.
+its workspace, and the same name may appear in several rows. Cards and item headers show the full
+name, so 090's quiet workspace label goes: a private workspace's item keeps its lock and "Private"
+(093).
 
 **The migration.** `scopes.name` loses its unique index for `(workspace_id, name)`; every item
 outside `global` gets its `@scope/name` as an alias. Nothing else is renamed and no tarball changes.

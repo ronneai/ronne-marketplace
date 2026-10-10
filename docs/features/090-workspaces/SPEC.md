@@ -76,7 +76,8 @@ deleted: the edit and delete actions aren't shown, and the services refuse them
 select, `global` first and selected.
 
 **The catalogue and item page.** The card and the item header show the workspace as a quiet label
-before the scope when it isn't `global` ("acme · @acme-infra/deploy"). The catalogue's filters gain
+before the scope when it isn't `global` ("acme · @acme-infra/deploy"; since 118 the full name
+says it, `@acme/acme-infra/deploy`, and the label is gone). The catalogue's filters gain
 **Workspace** (the ones the reader can see: all of them until 093, `global` first), once the
 instance has a workspace besides `global`; a chosen one is kept in the URL (`?workspace=`).
 

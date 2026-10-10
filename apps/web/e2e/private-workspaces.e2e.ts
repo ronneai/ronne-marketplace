@@ -11,9 +11,8 @@ const RMK = fileURLToPath(new URL("../../../packages/cli/dist/bin.js", import.me
 const MCP = fileURLToPath(new URL("../../../packages/mcp/dist/bin.js", import.meta.url));
 const baseURL: string = JSON.parse(process.env.RONNE_E2E_INSTANCE ?? "{}").main.baseURL;
 
-/** "Private · acme · @scope/name", with the commas only a screen reader hears (093). */
-const lockLabel = (workspace: string, item: string) =>
-  new RegExp(`Private · (, )?${workspace} · (, )?${item.replaceAll("/", "\\/")}`);
+/** "Private · @acme/scope/name", with the comma only a screen reader hears (093, 118). */
+const lockLabel = (item: string) => new RegExp(`Private · (, )?${item.replaceAll("/", "\\/")}`);
 // Its full name names its workspace (118).
 const VAULT_ITEM = `@${E2E_VAULT.workspace}/${E2E_VAULT.scope}/${E2E_VAULT.item}`;
 const vaultPage = `/workspaces/${E2E_VAULT.workspace}/items/${E2E_VAULT.scope}/${E2E_VAULT.item}`;
@@ -48,13 +47,11 @@ test("a member sees a private workspace's item with its lock; an outsider gets a
   const member = await signedIn(browser, E2E_USERS.privateMember);
   await member.goto(`/catalogue?q=${E2E_VAULT.item}`);
   const card = member.getByRole("article").filter({ hasText: VAULT_ITEM });
-  await expect(card).toContainText(lockLabel(E2E_VAULT.workspace, VAULT_ITEM));
+  await expect(card).toContainText(lockLabel(VAULT_ITEM));
   await expect(card.locator("svg.lucide-lock")).toBeVisible();
   await expect(member.locator("#catalogue-workspace option")).toContainText([E2E_VAULT.workspace]);
   await member.goto(vaultPage);
-  await expect(member.getByRole("heading", { level: 1 })).toHaveText(
-    lockLabel(E2E_VAULT.workspace, VAULT_ITEM),
-  );
+  await expect(member.getByRole("heading", { level: 1 })).toHaveText(lockLabel(VAULT_ITEM));
 
   const outsider = await signedIn(browser, E2E_USERS.privateOutsider);
   await outsider.goto(`/catalogue?q=${E2E_VAULT.item}`);
@@ -184,7 +181,7 @@ test("root makes a workspace private and public again, and an outsider sees it g
   expect((await outsider.goto(shelfPage))?.status()).toBe(404);
   await root.goto(shelfPage);
   await expect(root.getByRole("heading", { level: 1 })).toContainText(
-    lockLabel(E2E_SHELF.workspace, `@${E2E_SHELF.workspace}/${E2E_SHELF.scope}/${E2E_SHELF.item}`),
+    lockLabel(`@${E2E_SHELF.workspace}/${E2E_SHELF.scope}/${E2E_SHELF.item}`),
   );
 
   await root.goto(`/admin/workspaces/${E2E_SHELF.workspace}`);

@@ -160,10 +160,10 @@ test("root creates, sorts and searches scopes under Admin; nobody else has a sco
   await expect(publish.getByText(`Published ${item} 1.0.0 as latest.`)).toBeVisible();
   await publish.getByRole("button", { name: "Done" }).click();
 
-  // The catalogue names the workspace on the card, and filters by it, kept in the URL.
+  // The catalogue names the workspace in the card's name (118), and filters by it, kept in the URL.
   await author.goto("/catalogue");
   const card = author.getByRole("article").filter({ hasText: item });
-  await expect(card.getByRole("heading")).toHaveText(new RegExp(`^e2e-acme · , ${item}$`));
+  await expect(card.getByRole("heading")).toHaveText(new RegExp(`^${item}$`));
   await author.locator("summary", { hasText: "Filters" }).click();
   await author.getByLabel("Workspace").selectOption("e2e-acme");
   await author.getByRole("button", { name: "Apply" }).click();
@@ -175,9 +175,7 @@ test("root creates, sorts and searches scopes under Admin; nobody else has a sco
     }),
   ).toBeVisible();
   await author.getByRole("link", { name: item, exact: true }).click();
-  await expect(author.getByRole("heading", { level: 1 })).toHaveText(
-    new RegExp(`^e2e-acme · , ${item}$`),
-  );
+  await expect(author.getByRole("heading", { level: 1 })).toHaveText(new RegExp(`^${item}$`));
 
   const user = await browser.newPage();
   await signIn(user, E2E_USERS.notRoot);

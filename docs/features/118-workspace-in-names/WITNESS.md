@@ -379,6 +379,16 @@ Witnessed: 2026-10-10 03:24 EDT, by a fresh agent (blind). Commit: 80d0929b (plu
 
 **Overall:** met.
 
+### Re-check 3
+
+Witnessed: 2026-10-10 03:36 EDT, by a fresh agent (blind). Commit: 1faf899d (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 15 | A workspace's item shows its workspace once, in its full name; a private one's keeps Private with a lock | no | confirmed | `WorkspaceLabel.tsx:16` renders only for a private workspace; catalogue and item-page tests (61 passed) assert `<h1>@acme/team/github</h1>` and no `acme · `; e2e private-workspaces, scopes and workspace-names → 11 passed on all projects; full suite 123 passed, 1 failed (`submit-problems.mobile`, fails on `main` too) |
+
+**Overall:** met.
+
 ## Task 8 — Decision log and contracts
 
 Witnessed: 2026-10-10 03:27 EDT, by a fresh agent (blind). Commit: 33a977fd (plus the uncommitted docs). Machine: macOS 27.0.1, Node v24.0.0.

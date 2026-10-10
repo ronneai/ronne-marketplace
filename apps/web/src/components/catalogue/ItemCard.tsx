@@ -24,8 +24,8 @@ export const itemPath = (item: { workspace?: string | null; scope: string; name:
  * One published item, as the catalogue and the home page list it (feature 018): its name, listed
  * version, type, what it can do, the AI tools it works in (026), how many times it's been installed
  * (its download count, on every card since 2026-10-02, owner) and whether it's deprecated, with the command to install
- * it. An item in a workspace other than `global` names it before its own name, quietly (090), and
- * a private one's says so with a lock (093).
+ * it. An item in a workspace other than `global` names it in its full name (118), and a private
+ * one's says so with a lock (093).
  */
 export const ItemCard = ({
   entry,

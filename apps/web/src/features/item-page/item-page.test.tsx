@@ -216,18 +216,16 @@ describe("the item page", () => {
     expect(tools).toContain("mcp_servers in .codex/config.toml</code>.");
   });
 
-  it("names a workspace other than global before the name in the header (090)", async () => {
+  it("names a workspace other than global in the header, once: in the full name (090, 118)", async () => {
     versions.itemPage.mockResolvedValue(
       itemPageData({ item: { ...itemPageData().item, workspace: "acme" } }),
     );
     const html = await render();
     expect(html).not.toContain("Who can see this?");
-    expect(html).toMatch(
-      /acme<span aria-hidden="true"> · <\/span><span class="sr-only">, <\/span><\/span>@acme\/team\/github<\/h1>/,
-    );
+    expect(html).toMatch(/<h1[^>]*>@acme\/team\/github<\/h1>/);
   });
 
-  it("marks a private workspace's item with a lock and Private · acme in the header (093)", async () => {
+  it("marks a private workspace's item with a lock and Private in the header (093, 118)", async () => {
     versions.itemPage.mockResolvedValue(
       itemPageData({ item: { ...itemPageData().item, workspace: "acme", privateWorkspace: true } }),
     );
@@ -235,7 +233,7 @@ describe("the item page", () => {
     expect(html).toContain("Who can see this?");
     expect(html).toContain("/marketplace/docs/workspaces#visibility");
     expect(html).toMatch(
-      /lucide-lock[^>]*>.*<\/svg>Private<span aria-hidden="true"> · <\/span><span class="sr-only">, <\/span>acme<span aria-hidden="true"> · <\/span><span class="sr-only">, <\/span><\/span>@acme\/team\/github<\/h1>/,
+      /lucide-lock[^>]*>.*<\/svg>Private<span aria-hidden="true"> · <\/span><span class="sr-only">, <\/span><\/span>@acme\/team\/github<\/h1>/,
     );
   });
 
