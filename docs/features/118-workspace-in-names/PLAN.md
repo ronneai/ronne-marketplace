@@ -58,7 +58,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   building: releasing in a workspace through the app is `old-names.db.test.ts`'s; a phone doesn't
   run `rmk`.)
 
-- [ ] **8. Decision log and contracts.** MVP §15: Workspaces (names include the workspace, 090
+- [x] **8. Decision log and contracts.** MVP §15: Workspaces (names include the workspace, 090
   decision 2 reversed), Scopes (unique per workspace), a new Aliases row; MVP §3 and §11; 090's
   decision 2 marked as reversed by 118; `docs/spec/manifest.md`.
   *Done when:* the rows and contracts are in.

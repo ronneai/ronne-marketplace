@@ -102,8 +102,8 @@ Ronne serves:
   built. Types that have no plugin form for that tool (table below) leave the item out of that
   tool's feed.
 - A deprecated version appears, with `Deprecated: <message>` at the start of its description.
-- An item whose name changed in the last 30 days (its scope moved, or its workspace was renamed,
-  118) says `Moved from <old name>.` before its description: to the tool it's a new plugin, and
+- An item whose name changed in the last 30 days (118's migration today; a scope moved or a
+  workspace renamed once 115 and 113 are built) says `Moved from <old name>.` before its description: to the tool it's a new plugin, and
   the old one is gone from the marketplace.
 - A tool that refuses a plugin's name (above) leaves it out of that tool's feed; the instance logs
   it once, when the plugin is first built.

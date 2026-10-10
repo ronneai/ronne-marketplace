@@ -378,3 +378,41 @@ Witnessed: 2026-10-10 03:24 EDT, by a fresh agent (blind). Commit: 80d0929b (plu
 | 14 | The full e2e suite is green apart from failures that predate this work | no | confirmed | own `pnpm test:e2e` → 123 passed, 1 failed: `[phone-webkit] submit-problems.mobile.e2e.ts:5:1`, which fails on `main` too (`e2e-main.txt` line 219) and passes alone; `dependency-picker.mobile` passed on phone, phone-webkit and tablet |
 
 **Overall:** met.
+
+## Task 8 — Decision log and contracts
+
+Witnessed: 2026-10-10 03:27 EDT, by a fresh agent (blind). Commit: 33a977fd (plus the uncommitted docs). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | MVP §3: full names, two segments mean `global` | no | confirmed | probe of `parseItemName`; `names.ts:87-99`; 13 passed |
+| 2 | manifest.md `name`: `@global/…` released short; segment rules | no | confirmed | `canonicalItemName` probe; `ronne.schema.json:11`; `old-names.db.test.ts:318` |
+| 3 | Releasing writes full names, dependencies under their name now | no | confirmed | `publish.ts:314-330`; `old-names.db.test.ts:266,349` |
+| 4 | `agent:` may be a full name | no | confirmed | `package-checks.ts:247-250` |
+| 5 | Scope names unique per workspace | no | confirmed | 0022 unique `(workspace_id, name)`; its db test |
+| 6 | §15 Workspaces row | no | confirmed | `MVP.md:906`, `formatItemName` |
+| 7 | 090 decision 2 marked reversed | no | confirmed | remark: the non-goal and Documentation lines still say names stay `@scope/name` |
+| 8 | §15 Old names: install, resolve, redirect, find for who sees it; reserved; "taken" | no | confirmed | viewer-filtered alias lookup; redirect; errors; 18 passed |
+| 9 | Old names kept when a scope moves or a workspace is renamed | no | partly | neither is built (113, 115 specified); only migration 0022 writes aliases |
+| 10 | `/resolve` reads old names, `renamed` lists them | no | confirmed | `resolve.ts:56-64,95-106`; tests |
+| 11 | Workspace item API paths | no | confirmed | routes under `api/v1/workspaces/[workspace]/items` |
+| 12 | Workspace feed paths | no | confirmed | route; `private-feeds-api.db.test.ts:216` |
+| 13 | `x-rmk-names` and `426 client_too_old` | no | confirmed | `cli/src/api.ts:97`; `registry-api.ts:49-66`; `private-api.db.test.ts:329` |
+| 14 | API names are full names | no | confirmed | `registry-json.ts`; `private-api.db.test.ts:293` |
+| 15 | Old rmk gets `client_too_old`; "Moved from" for 30 days | no | confirmed | `feed.ts:84,97`; `plugin-feed.ts:302-305` |
+| 16 | `cli-files.md` and `plugin-feeds.md` agree | no | partly | both give moves and renames as current causes |
+| 17 | Web tests behind the contracts pass | no | confirmed | 158 + 18 passed (SQLite) |
+
+**Overall:** not met: claims 9 and 16.
+
+### Re-check 1
+
+Witnessed: 2026-10-10 03:28 EDT, by a fresh agent (blind). Commit: 33a977fd (plus the uncommitted docs). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | 090 SPEC: decision 2, its non-goal and its Documentation line point to 118 | no | confirmed | `090-workspaces/SPEC.md:37-39`, `:99`, `:122-124` |
+| 9 | §15 Old names gives only today's cause, moves and renames once built | no | confirmed | `MVP.md:907`; only migration 0022 writes aliases |
+| 16 | `cli-files.md` and `plugin-feeds.md` agree with the MVP text | no | confirmed | `cli-files.md:79-80`; `plugin-feeds.md:105-106` |
+
+**Overall:** met.

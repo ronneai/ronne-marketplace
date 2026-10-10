@@ -139,6 +139,10 @@ An event with no equivalent on a target makes the renderer warn and skip that ho
 Each item version is a directory with a `ronne.yaml` manifest plus its files. The manifest is the
 single source of truth; platform-specific files are **generated** from it at install time.
 
+An item's full name is `@scope/name` in the `global` workspace and `@workspace/scope/name` in any
+other ([118](../features/118-workspace-in-names/SPEC.md)): scope names are unique per workspace.
+Two segments always mean `global`.
+
 ```yaml
 name: "@platform/code-reviewer"
 type: agent
@@ -652,10 +656,10 @@ IDs are ULIDs and timestamps are UTC (§9.4).
 | `GET /me` | Current user, with the workspaces they're a member of and their role in each (M13, [095](../features/095-workspaces-cli-api/SPEC.md)) |
 | `GET /workspaces` | The workspaces the caller sees, `global` first, with their role in each (null where they aren't a member, `root` for root) (M13, 095) |
 | `GET /items?q=&type=&workspace=&page=` | Search; `workspace` narrows it to one workspace (M13, 095) |
-| `GET /items/{scope}/{name}` | Item metadata, dist-tags, versions |
+| `GET /items/{scope}/{name}` | Item metadata, dist-tags, versions; `GET /workspaces/{workspace}/items/{scope}/{name}` for an item outside `global` (118), with the same paths under it |
 | `GET /items/{scope}/{name}/{version}` | Version manifest + dependencies |
 | `GET /items/{scope}/{name}/{version}/tarball` | Download the artifact (with an `X-Checksum-Sha256` header) |
-| `POST /resolve` | Resolve a set of `{name, range}` to a flat, pinned dependency set |
+| `POST /resolve` | Resolve a set of `{name, range}` to a flat, pinned dependency set; old names are read as the items' names now, and `renamed` lists every old name of what was resolved (118) |
 | `GET /scopes` | The scopes a draft can be created in (M7, [037](../features/037-draft-upload-api/SPEC.md)) |
 | `POST /drafts` | Create a draft of a new item with its files, as the token's user (M7, 037) |
 | `GET /drafts?name=` | The token's user's drafts, submissions sent back for changes, and submissions in review, of an item (M7, [051](../features/051-update-drafts-on-export/SPEC.md)) |
@@ -663,7 +667,7 @@ IDs are ULIDs and timestamps are UTC (§9.4).
 | `POST /drafts/check` | Whether Submit would take each of the token's user's drafts (`ids` or `all`), with the group it goes with, and what's in the way (M7, [052](../features/052-bulk-submit/SPEC.md), [112](../features/112-dependency-cycles/SPEC.md)) |
 | `POST /drafts/submit` | Submit those drafts in their groups (each with the author's own drafts it needs), each group all or none, and answer every result (M7, 052, 112) |
 | `GET /usage` · `POST /usage` | Whether the instance accepts usage; report daily counts of installs, removals and runs (M9, [046](../features/046-usage-telemetry/SPEC.md)) |
-| `GET /feeds/{tool}/marketplace.json` · `GET /feeds/{tool}/plugins/{scope}/{name}/{version}.zip` | A tool's plugin marketplace and its plugin zips, for Claude Code, Codex and Cursor (M11, [077](../features/077-claude-code-marketplace/SPEC.md), [078](../features/078-plugin-feed-mirror/SPEC.md)) |
+| `GET /feeds/{tool}/marketplace.json` · `GET /feeds/{tool}/plugins/{scope}/{name}/{version}.zip` (`/feeds/{tool}/workspaces/{workspace}/plugins/…` outside `global`, 118) | A tool's plugin marketplace and its plugin zips, for Claude Code, Codex and Cursor (M11, [077](../features/077-claude-code-marketplace/SPEC.md), [078](../features/078-plugin-feed-mirror/SPEC.md)) |
 
 Editing, submitting, review, release and admin actions are only available in the web UI (as server
 actions). The API reads, with two exceptions (owner, 2026-09-30): a token can **create a draft**
@@ -677,11 +681,14 @@ actions). The API reads, with two exceptions (owner, 2026-09-30): a token can **
   snake_case string that clients can rely on. The HTTP status carries the category (400, 401, 403,
   404, 409, 413, 422, 429).
 - **Items carry their workspace** (M13, 095): search results, items and versions have
-  `"workspace": { "name": "acme", "visibility": "private" }`. Names stay `@scope/name`.
+  `"workspace": { "name": "acme", "visibility": "private" }`, and names are full names:
+  `@scope/name` in `global`, `@workspace/scope/name` elsewhere (118).
 - **Pagination** is cursor-based: `?limit=` (default 20, max 100) and `?cursor=`. Responses include
   `nextCursor`, or `null` on the last page.
 - **Versioning:** breaking changes go to `/api/v2`. `rmk` sends its version in `User-Agent`, and the
-  server can reply `426` with a message when the CLI is too old.
+  server can reply `426` with a message when the CLI is too old. Since 118 `rmk` also sends
+  `x-rmk-names: workspace`; an `rmk/…` without it gets `426 client_too_old` for an item outside
+  `global`.
 
 ## 12. Security considerations
 
@@ -895,8 +902,9 @@ out (owner, 2026-09-30). The design, for when it's picked up:
 | MCP server and `rmk` | `packages/mcp` imports `@ronneai/rmk/lib`, `rmk`'s install pipeline as functions (plan, apply, lockfile, state, registry access), and never `rmk`'s command layer; nothing else outside core crosses packages (owner, 2026-09-29, [027](../features/027-registry-mcp-server/SPEC.md)). The export pipeline (find, plan, upload) is exported the same way ([038](../features/038-rmk-export/SPEC.md), 2026-09-30) | The server plans and applies installs exactly as `rmk` does, so one pipeline serves both and they can't drift; moving it into core would put file-system and network code into what the web app imports |
 | Front-end | React, Next.js, Tailwind, Biome, Vitest; feature-first folders; shared `components/ui` | From the requirements |
 | Auth schema | Better Auth owns `user`/`session`/`account`/`verification` (plus `role`, `disabled_at`); argon2id via custom hash; PATs in our own `access_tokens` table | Don't fight the library's schema; keep token format and revocation under our control |
-| Scopes | Every item is scoped; root creates scopes, each in a workspace (`global` by default, 090); the members of its workspace propose in it (091); `owner_id` is informational | Review is the gate, so membership is per workspace, not per scope: per-scope membership would add admin work without adding safety |
-| Workspaces | A level above scopes: workspace › scope › item (owner, 2026-10-05, [090](../features/090-workspaces/SPEC.md)). Called workspace, not namespace; not part of item names, which stay `@scope/name` with scope names unique across the instance; no `workspace_id` on items (the scope carries it). Every instance has `global`, public, which can't be changed or deleted; root creates, edits and deletes empty workspaces. Roles per workspace came with 091 (see Roles), managing members with 092, and private visibility with 093 (see Private workspaces) | One instance can serve several teams whose items are kept apart, without changing `rmk`, lockfiles, the manifest, plugin feeds or URLs |
+| Scopes | Every item is scoped; root creates scopes, each in a workspace (`global` by default, 090); the members of its workspace propose in it (091); `owner_id` is informational. Scope names are unique per workspace, not across the instance (owner, 2026-10-09, [118](../features/118-workspace-in-names/SPEC.md)) | Review is the gate, so membership is per workspace, not per scope: per-scope membership would add admin work without adding safety |
+| Workspaces | A level above scopes: workspace › scope › item (owner, 2026-10-05, [090](../features/090-workspaces/SPEC.md)). Called workspace, not namespace; no `workspace_id` on items (the scope carries it). It was not part of item names until 118 (owner, 2026-10-09): items are named `@workspace/scope/name`, `@scope/name` in `global`, and scope names are unique per workspace, since several teams each want a `test` or `devops` scope. Every instance has `global`, public, which can't be changed or deleted; root creates, edits and deletes empty workspaces. Roles per workspace came with 091 (see Roles), managing members with 092, and private visibility with 093 (see Private workspaces) | One instance can serve several teams whose items are kept apart. Since 118 a team names its scopes as it likes, at the cost of longer names outside `global`; old names stay (see Old names), so nothing installed breaks |
+| Old names | When an item's name changes, every old name is kept as an alias of the item: it installs, resolves, redirects and finds the item for those who see it, and nobody else learns where it went. An old name is reserved for good: no other item can take it, and refusals say only "taken" to who can't see the item. `rmk install` and `update` move a project to the new names; an old `rmk` gets `client_too_old` for names outside `global`; a moved item is a new plugin, with "Moved from" for 30 days (owner, 2026-10-09, [118](../features/118-workspace-in-names/SPEC.md)). Today only 118's migration changes names, giving items outside `global` their workspace; moving a scope ([115](../features/115-move-scopes/SPEC.md)) and renaming a workspace ([113](../features/113-rename-workspaces/SPEC.md)) will, once built | Names change without breaking lockfiles, dependencies or links, and a name nobody can see can't be taken over to serve something else under it |
 | Private workspaces | A workspace is public or private (owner, 2026-10-05, [093](../features/093-private-workspaces/SPEC.md)). A private one's items are seen only by its members, in any role, and root, and to anyone else answer as an unknown name (not found, never forbidden). Its items can be dependencies only of its own items; an item may depend on its own workspace's and on public ones (`dependency_not_visible` otherwise, only for someone who sees the dependency). Only root changes visibility: turning private is refused while released items outside depend on its items, and turning public asks first; both are audited and change the catalogue revision. Every repository read takes a viewer, and a guard test enumerates the read methods | Teams can keep internal items on a shared instance without a second instance. Not found rather than forbidden, so a name can't be probed; depending only inward, so a public item never stops installing for people who can't see what it needs. Visibility isn't encryption: see §12 |
 | Pre-releases | Real semver pre-releases (`1.1.0-beta.1`) under a non-`latest` tag (`next` by default); first stable is `1.0.0` | Matches npm behaviour users already know |
 | Secrets | rmk never stores secret values; rendered configs reference env vars and rmk reports missing ones | No secrets on disk from us; every platform reads env vars |

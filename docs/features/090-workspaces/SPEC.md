@@ -36,7 +36,7 @@ part of item names (below) and it's mainly about who has access.
 - **Access requests:** [094](../094-workspace-access-requests/SPEC.md).
 - **The workspace in item names.** Names stay `@scope/name` everywhere (owner, 2026-10-05): scope
   names stay unique across the instance, so `rmk`, lockfiles, the manifest, plugin feeds and URLs
-  don't change.
+  don't change. Reversed by [118](../118-workspace-in-names/SPEC.md) (2026-10-09).
 - **Moving a scope to another workspace:** [115](../115-move-scopes/SPEC.md). It changes who can
   see and use every item in it, so it has its own spec (what happens to dependents and installs).
 - **Renaming a workspace:** [113](../113-rename-workspaces/SPEC.md).
@@ -96,7 +96,7 @@ instance has a workspace besides `global`; a chosen one is kept in the URL (`?wo
 ## Documentation
 
 - **A new topic, Workspaces** (`workspaces`, ronne-web and `topics.ts`): **What a workspace is**
-  (`what`: workspace › scope › item, names stay `@scope/name`), **The global workspace** (`global`),
+  (`what`: workspace › scope › item, names stay `@scope/name`; 118 changes this), **The global workspace** (`global`),
   **Creating and managing them** (`managing`). Later features add to it.
 - **Scopes → What a scope is** (`scopes#what`) and **Who creates and uses them** (`scopes#who`): a
   scope belongs to one workspace, chosen when it's created.
@@ -120,6 +120,8 @@ instance has a workspace besides `global`; a chosen one is kept in the URL (`?wo
 
 1. **Called workspace, not namespace** (owner, 2026-10-05).
 2. **Not part of item names** (owner, 2026-10-05): scope names stay unique across the instance.
+   Reversed by [118](../118-workspace-in-names/SPEC.md) (owner, 2026-10-09): items are named
+   `@workspace/scope/name` (`@scope/name` in `global`), and scope names are unique per workspace.
 3. **No `workspace_id` on items** (Claude): the scope carries it, so moving a scope later moves its
    items in one update.
 

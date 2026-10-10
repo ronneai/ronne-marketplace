@@ -76,8 +76,8 @@ The resolved, flat set. `rmk install` with no arguments installs exactly this.
 
 - One entry per item (one version per item, MVP §4.3). `dependencies` maps to the pinned versions chosen.
 - Items are keyed by their full name: `@scope/name` in `global`, `@workspace/scope/name` in any
-  other workspace (118). When the registry answers that an item has a new name (its scope moved, or
-  its workspace was renamed), `rmk install` and `update` rewrite the entry, the project's
+  other workspace (118). When the registry answers that an item has a new name (118's migration
+  today; a scope moved or a workspace renamed once 115 and 113 are built), `rmk install` and `update` rewrite the entry, the project's
   `dependencies`, the state file's entries and the managed markers to the new name in the same
   apply, and say so; `rmk outdated` says the new name and writes nothing. An old name keeps
   working until then: the registry reads it as the item's name now.
