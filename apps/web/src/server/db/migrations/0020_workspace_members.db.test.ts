@@ -8,6 +8,11 @@ import { GLOBAL_WORKSPACE_ID } from "./0019_workspaces";
 import { workspaceMembers } from "./0020_workspace_members";
 import { migrations } from "./index";
 
+/** Up to this migration, not later ones: a later one (0023's personal workspaces) changes the data. */
+const through = Object.fromEntries(
+  Object.entries(migrations).filter(([name]) => name <= "0020_workspace_members"),
+);
+
 // Runs on the database in TEST_DATABASE_URL (in-memory SQLite by default; 004 runs all of them).
 // Each test starts from an instance migrated up to 0019, with a root, a moderator, a user and a
 // disabled moderator, as an instance upgrading to this version would be.
@@ -67,7 +72,7 @@ afterEach(() => t.cleanup());
 
 describe("0020_workspace_members", () => {
   it("puts every user but roots in global, moderators as moderators", async () => {
-    await migrateToLatest(t.db, t.dialect);
+    await migrateToLatest(t.db, t.dialect, through);
     const row = (key: keyof typeof ids, role: string) => ({
       workspace_id: GLOBAL_WORKSPACE_ID,
       user_id: ids[key],
@@ -82,7 +87,7 @@ describe("0020_workspace_members", () => {
   });
 
   it("leaves only root and user in user.role", async () => {
-    await migrateToLatest(t.db, t.dialect);
+    await migrateToLatest(t.db, t.dialect, through);
     expect(await roles()).toEqual({
       [ids.root]: "root",
       [ids.moderator]: "user",
@@ -92,7 +97,7 @@ describe("0020_workspace_members", () => {
   });
 
   it("has the keys: cascade from workspaces and users, added_by sets null", async () => {
-    await migrateToLatest(t.db, t.dialect);
+    await migrateToLatest(t.db, t.dialect, through);
     const keys = await foreignKeys(t.db, t.dialect, ["workspace_members"]);
     expect(keys).toEqual(
       expect.arrayContaining([
@@ -105,7 +110,7 @@ describe("0020_workspace_members", () => {
   });
 
   it("enforces them: one row per user and workspace, a real workspace, gone with the user", async () => {
-    await migrateToLatest(t.db, t.dialect);
+    await migrateToLatest(t.db, t.dialect, through);
     const insert = (workspaceId: string, userId: string) =>
       t.db
         .insertInto("workspace_members")
@@ -126,10 +131,10 @@ describe("0020_workspace_members", () => {
   });
 
   it("is safe to run again: no duplicates, nothing changed", async () => {
-    await migrateToLatest(t.db, t.dialect);
+    await migrateToLatest(t.db, t.dialect, through);
     const first = await members();
     await workspaceMembers(t.dialect).up(t.db as never);
     expect(await members()).toEqual(first);
-    expect(await migrateToLatest(t.db, t.dialect)).toEqual([]);
+    expect(await migrateToLatest(t.db, t.dialect, through)).toEqual([]);
   });
 });

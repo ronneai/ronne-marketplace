@@ -49,9 +49,11 @@ are disabled, never deleted). The owner has a `workspace_members` row with the r
 every permission check (091, 092) works unchanged; the services refuse any other row for a personal
 workspace, and any change to the owner's.
 
-**Its name.** The local part of the owner's email, made into a valid name (lowercased, anything
-other than letters and digits becomes a hyphen, repeated and outer hyphens dropped, cut to 60);
-if that's reserved, empty or taken, `-2`, `-3`… is added. `ana.silva@acme.com` gets `ana-silva`.
+**Its name.** The local part of the owner's email (before the last `@`), made into a valid name:
+accents removed (`josé` → `jose`), lowercased, anything other than `a-z` and `0-9` becomes a
+hyphen, repeated and outer hyphens dropped, cut to 60; `personal` when nothing is left (`日本@…`).
+If that's reserved or taken, `-2`, `-3`… is added, the base cut further when the number needs the
+room, so the name never passes 64 characters. `ana.silva@acme.com` gets `ana-silva`.
 The owner or root renames it (113). Its description starts as "<name>'s personal workspace".
 Only the owner and root ever see the name (093).
 

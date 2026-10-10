@@ -46,6 +46,42 @@ export const nameProblem = (name: string, kind: NameKind = "item"): NameProblem 
 export const isValidName = (name: string, kind: NameKind = "item"): boolean =>
   nameProblem(name, kind) === null;
 
+/** How long a personal workspace's name may be before its `-2`, `-3`… (114): room for the number. */
+export const PERSONAL_NAME_BASE_LENGTH = 60;
+
+/**
+ * A personal workspace's name from its owner's email (114): the part before the last `@`, without
+ * accents (`José` is `jose`), lowercased, each run of anything but `a-z` and `0-9` a hyphen, no
+ * hyphen at either end, cut to PERSONAL_NAME_BASE_LENGTH. `Ana.Silva@acme.com` is `ana-silva`;
+ * `personal` when nothing is left (`日本@x.jp`).
+ */
+export const personalWorkspaceBase = (email: string): string => {
+  const at = email.lastIndexOf("@");
+  const local = (at < 0 ? email : email.slice(0, at))
+    .normalize("NFD")
+    .replace(/\p{M}+/gu, "")
+    .toLowerCase();
+  const base = local
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, PERSONAL_NAME_BASE_LENGTH)
+    .replace(/-+$/, "");
+  return base || "personal";
+};
+
+/**
+ * The name a personal workspace tries at `attempt` (0, 1, 2…, 114): its base when that's a workspace
+ * name anyone may have, then `-2`, `-3`… The caller takes the first one no workspace has.
+ */
+export const personalWorkspaceName = (email: string, attempt: number): string => {
+  const base = personalWorkspaceBase(email);
+  const n = (nameProblem(base, "workspace") === null ? 1 : 2) + attempt;
+  if (n === 1) return base;
+  // The number always fits: the base gives up what it needs, past `-999` too.
+  const suffix = `-${n}`;
+  return `${base.slice(0, NAME_MAX_LENGTH - suffix.length).replace(/-+$/, "")}${suffix}`;
+};
+
 /** What a person typed, as a scope name: trimmed, lowercased, without a leading `@`. */
 export const normalizeScopeName = (value: string): string =>
   value.trim().replace(/^@/, "").toLowerCase();

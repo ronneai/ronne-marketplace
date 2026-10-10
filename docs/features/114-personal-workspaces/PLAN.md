@@ -9,7 +9,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. Migration.** [risky] `workspaces.owner_id` (nullable, unique, FK `user`, RESTRICT); for
+- [x] **1. Migration.** [risky] `workspaces.owner_id` (nullable, unique, FK `user`, RESTRICT); for
   every user without one, a private workspace named by the spec's rule and an `admin` membership,
   in batches; `versions.reviewed` (boolean, not null, default true) for decision 3.
   *Done when:* the migration's db test covers existing users and roots, name clashes and reserved
@@ -66,3 +66,11 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- **Task 1:** SQLite adds `owner_id` with its foreign key in one `alter table … references`
+  (allowed for a column defaulting to null); the servers add the constraint after. A run that
+  stops between a batch's two inserts (SQLite and MySQL commit each) leaves owners without their
+  admin row: every run gives them one (`ownersAsAdmins`). The older migration tests (0019–0022)
+  now migrate only up to their own, since 0023 changes the data they check. The name rule lives
+  in core (`personalWorkspaceBase`, `personalWorkspaceName`) for task 2 to reuse; it doesn't
+  transliterate `ß`, `ø` or `Æ` (they become hyphens).

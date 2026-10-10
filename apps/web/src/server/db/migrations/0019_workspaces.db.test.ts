@@ -8,6 +8,11 @@ import { createTestDb, type TestDb } from "../testing/test-db";
 import { GLOBAL_WORKSPACE_ID, workspaces } from "./0019_workspaces";
 import { migrations } from "./index";
 
+/** Up to this migration, not later ones: a later one (0023's personal workspaces) changes the data. */
+const through = Object.fromEntries(
+  Object.entries(migrations).filter(([name]) => name <= "0019_workspaces"),
+);
+
 // Runs on the database in TEST_DATABASE_URL (in-memory SQLite by default; 004 runs all of them).
 // Each test starts from an instance migrated up to 0018, with scopes and items in it, as an
 // instance upgrading to this version would be.
@@ -71,7 +76,7 @@ afterEach(() => t.cleanup());
 
 describe("0019_workspaces", () => {
   it("creates the global workspace, public, with a fixed id", async () => {
-    await migrateToLatest(t.db, t.dialect);
+    await migrateToLatest(t.db, t.dialect, through);
     const rows = await t.db.selectFrom("workspaces").selectAll().execute();
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
@@ -86,7 +91,7 @@ describe("0019_workspaces", () => {
 
   it("moves every existing scope into global and keeps its columns and items", async () => {
     const scopesBefore = await t.db.selectFrom("scopes").selectAll().orderBy("id").execute();
-    await migrateToLatest(t.db, t.dialect);
+    await migrateToLatest(t.db, t.dialect, through);
     const scopesAfter = await t.db.selectFrom("scopes").selectAll().orderBy("id").execute();
     expect(scopesAfter).toEqual(
       scopesBefore.map((s) => ({ ...s, workspace_id: GLOBAL_WORKSPACE_ID })),
@@ -96,7 +101,7 @@ describe("0019_workspaces", () => {
   });
 
   it("has the foreign keys on every database: to workspaces RESTRICT, to user SET NULL", async () => {
-    await migrateToLatest(t.db, t.dialect);
+    await migrateToLatest(t.db, t.dialect, through);
     const keys = await foreignKeys(t.db, t.dialect, ["scopes", "workspaces", "items"]);
     expect(keys.filter((k) => k.table === "scopes")).toEqual(
       expect.arrayContaining([
@@ -115,7 +120,7 @@ describe("0019_workspaces", () => {
   });
 
   it("enforces the keys afterwards: a scope needs a real workspace, global can't go", async () => {
-    await migrateToLatest(t.db, t.dialect);
+    await migrateToLatest(t.db, t.dialect, through);
     const insertScope = (workspaceId: string | null) =>
       t.db
         .insertInto("scopes")
@@ -144,7 +149,7 @@ describe("0019_workspaces", () => {
   });
 
   it("refuses a second workspace with the same name", async () => {
-    await migrateToLatest(t.db, t.dialect);
+    await migrateToLatest(t.db, t.dialect, through);
     await expect(
       t.db
         .insertInto("workspaces")
@@ -163,7 +168,7 @@ describe("0019_workspaces", () => {
   });
 
   it("keeps the scope names unique", async () => {
-    await migrateToLatest(t.db, t.dialect);
+    await migrateToLatest(t.db, t.dialect, through);
     await expect(
       t.db
         .insertInto("scopes")
@@ -180,7 +185,7 @@ describe("0019_workspaces", () => {
   });
 
   it("leaves SQLite's foreign keys on, with no violations", async () => {
-    await migrateToLatest(t.db, t.dialect);
+    await migrateToLatest(t.db, t.dialect, through);
     if (t.dialect !== "sqlite") return;
     const on = await sql<{ foreign_keys: number }>`pragma foreign_keys`.execute(t.db);
     expect(on.rows[0]?.foreign_keys).toBe(1);
@@ -207,7 +212,9 @@ describe("0019_workspaces", () => {
     await sql`pragma foreign_keys = on`.execute(t.db);
     const scopesBefore = await t.db.selectFrom("scopes").selectAll().orderBy("id").execute();
 
-    await expect(migrateToLatest(t.db, t.dialect)).rejects.toThrow(/rows of items point at/);
+    await expect(migrateToLatest(t.db, t.dialect, through)).rejects.toThrow(
+      /rows of items point at/,
+    );
     const tables = (await t.db.introspection.getTables()).map((table) => table.name);
     expect(tables).not.toContain("workspaces");
     expect(tables).not.toContain("scopes_new");
@@ -218,15 +225,15 @@ describe("0019_workspaces", () => {
     expect(on.rows[0]?.foreign_keys).toBe(1);
 
     await t.db.deleteFrom("items").where("id", "=", "orphan").execute();
-    // 0019 and every migration after it, which waited for it.
-    expect(await migrateToLatest(t.db, t.dialect)).toEqual(
-      Object.keys(migrations).filter((name) => name >= "0019_workspaces"),
+    // 0019, which ran up to here and then waited for the data.
+    expect(await migrateToLatest(t.db, t.dialect, through)).toEqual(
+      Object.keys(through).filter((name) => name >= "0019_workspaces"),
     );
   });
 
   it("on MySQL and MariaDB, where DDL commits as it goes, every step is safe to run again", async () => {
     if (t.dialect !== "mysql") return;
-    await migrateToLatest(t.db, t.dialect);
+    await migrateToLatest(t.db, t.dialect, through);
     await workspaces(t.dialect).up(t.db as never);
     expect(await t.db.selectFrom("workspaces").select("id").execute()).toEqual([
       { id: GLOBAL_WORKSPACE_ID },
