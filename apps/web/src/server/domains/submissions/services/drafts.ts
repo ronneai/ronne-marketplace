@@ -142,6 +142,15 @@ const findScope = async (repo: SubmissionRepository, value: string) => {
   return scope;
 };
 
+/**
+ * The scope, locked, then found again (113): a workspace rename holds its scopes' locks while it
+ * rewrites drafts, so a draft made at the same moment waits for it, and the old name is gone after.
+ */
+const lockedScope = async (repo: SubmissionRepository, value: string) => {
+  await repo.lockScope((await findScope(repo, value)).id);
+  return findScope(repo, value);
+};
+
 /** Inserts a draft with its files; the caller runs it inside a transaction. */
 const insertDraft = async (
   repo: SubmissionRepository,
@@ -202,7 +211,7 @@ export const createDraft = async (
   const type = typeFrom(input.type);
   const at = now(deps);
   return deps.repo.transaction(async (repo) => {
-    const scope = await findScope(repo, input.scope);
+    const scope = await lockedScope(repo, input.scope);
     requireMember(actor, scope.workspace);
     const files = draftTemplate(type, itemNameOf({ workspace: scope.workspace, scope, name })).map(
       (file) => ({
@@ -445,6 +454,11 @@ export const saveDraftFiles = async (
   const at = now(deps);
   const rewritten: string[] = [];
   const draft = await deps.repo.transaction(async (repo) => {
+    // Empty at each attempt: the transaction runs again after a deadlock (113).
+    rewritten.length = 0;
+    // Its row first: a workspace rename (113) rewrites ronne.yaml under the same lock, so this
+    // sees its change (and says the file changed) instead of writing the old name back.
+    await repo.lockSubmission(id);
     const submission = await ownEditable(repo, actor, id);
     checkStartingFiles(changes, submission.type);
     const current = new Map((await repo.files(submission.id)).map((file) => [file.path, file]));
@@ -584,7 +598,9 @@ export const createDraftFromFiles = async (
   const rewritten: string[] = [];
 
   const draft = await deps.repo.transaction(async (repo) => {
-    const scope = await findScope(repo, input.scope);
+    // Empty at each attempt: the transaction runs again after a deadlock (113).
+    rewritten.length = 0;
+    const scope = await lockedScope(repo, input.scope);
     requireMember(actor, scope.workspace);
     const proposal =
       input.base === undefined
@@ -745,6 +761,11 @@ export const replaceDraftFromFiles = async (
   const rewritten: string[] = [];
 
   const draft = await deps.repo.transaction(async (repo) => {
+    // Empty at each attempt: the transaction runs again after a deadlock (113).
+    rewritten.length = 0;
+    // Its row first: a workspace rename (113) rewrites ronne.yaml under the same lock, so this
+    // sees its change (and says the file changed) instead of writing the old name back.
+    await repo.lockSubmission(id);
     const submission = await ownEditable(repo, actor, id);
     const baseVersion = submission.proposal?.baseVersion ?? null;
     if (
@@ -873,6 +894,13 @@ export const renameDraft = async (
   const name = itemNameFrom(input.name);
   const at = now(deps);
   return deps.repo.transaction(async (repo) => {
+    // Its scope and the new one, then its row, the order a workspace rename (113) takes them in,
+    // then read again: a rename meanwhile is seen, and the two never wait on each other.
+    const before = await ownDraft(repo, actor, id);
+    const target = await findScope(repo, input.scope);
+    for (const scopeId of [...new Set([before.scope.id, target.id])].sort())
+      await repo.lockScope(scopeId);
+    await repo.lockSubmission(id);
     const submission = await ownDraft(repo, actor, id);
     if (submission.proposal) throw new ProposalRenameError();
     requireMember(actor, submission.workspace);

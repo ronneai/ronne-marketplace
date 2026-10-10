@@ -118,6 +118,13 @@ export const SUMMARIES: Record<AuditAction, Build> = {
       : m.visibility === "public"
         ? ["Made workspace ", workspace(m), " public"]
         : ["Changed the description of workspace ", workspace(m)],
+  // 113: "Renamed workspace acme to acme-platform".
+  "workspace.renamed": (m) => [
+    "Renamed workspace ",
+    { name: text(m.from) || "a workspace" },
+    " to ",
+    { name: text(m.to) || "another name" },
+  ],
   "workspace.deleted": (m) => [
     "Deleted workspace ",
     workspace(m),

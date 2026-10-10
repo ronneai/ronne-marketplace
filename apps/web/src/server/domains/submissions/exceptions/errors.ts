@@ -429,6 +429,31 @@ export class RevisionChangedError extends SubmissionsError {
   }
 }
 
+/**
+ * Its workspace was renamed (113) between packing the release, under the old name, and storing it.
+ * Nothing was released; releasing again packs it under the new name.
+ */
+export class WorkspaceRenamedError extends SubmissionsError {
+  constructor(
+    readonly from: string,
+    readonly to: string,
+  ) {
+    super(
+      `Its workspace was renamed from ${from} to ${to} while it was being released. Nothing was released: release it again.`,
+    );
+  }
+}
+
+/** The item was renamed (113) while a change to it was being started: nothing was started. */
+export class ItemRenamedMeanwhileError extends SubmissionsError {
+  constructor(
+    readonly from: string,
+    readonly to: string,
+  ) {
+    super(`${from} was renamed to ${to} meanwhile. Nothing was started: propose the change again.`);
+  }
+}
+
 /** A proposal whose item has a newer version (017): it has to be rebased before it's approved. */
 export class SubmissionStaleError extends SubmissionsError {
   constructor(

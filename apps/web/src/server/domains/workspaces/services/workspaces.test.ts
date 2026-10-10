@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { WorkspaceNameTakenError, WorkspaceNotEmptyError } from "../exceptions/errors";
 import type { Workspace } from "../models/workspace";
 import type { WorkspaceRepository } from "../repositories/workspace-repository";
-import { createWorkspace, deleteWorkspace } from "./workspaces";
+import { createWorkspace, deleteWorkspace, renameWorkspace } from "./workspaces";
 
 const root = {
   id: "root",
@@ -73,6 +73,16 @@ const racingRepo = (): WorkspaceRepository => {
     requestsOf: async () => [],
     membershipChangedSince: async () => false,
     attachRequests: async () => {},
+    joinRequestsOnRename: async () => 0,
+    lockItemsIn: async () => {},
+    itemsIn: async () => [],
+    aliasesNamed: async () => [],
+    rename: async () => {},
+    setAliases: async () => {},
+    lockOpenWorkIn: async () => {},
+    openManifestsIn: async () => [],
+    openFiles: async () => [],
+    writeFiles: async () => {},
   };
   return repo;
 };
@@ -109,5 +119,43 @@ describe("deleteWorkspace", () => {
     await expect(
       deleteWorkspace({ repo }, { user: root, ip: null }, { name: "race" }),
     ).rejects.toThrow(WorkspaceNotEmptyError);
+  });
+});
+
+describe("renameWorkspace (113)", () => {
+  const mine: Workspace = { ...taken, id: "mine", name: "acme" };
+
+  /** Another workspace takes `race` after the check: the unique index refuses this rename. */
+  const renamingRepo = () => {
+    const repo = racingRepo();
+    let committed = false;
+    repo.findByName = async (name) =>
+      name === "acme" ? mine : committed && name === "race" ? taken : null;
+    repo.findById = async () => mine;
+    repo.rename = async () => {
+      committed = true;
+      throw new Error("UNIQUE constraint failed: workspaces.name");
+    };
+    return repo;
+  };
+
+  it("answers that the name is taken when the unique index refuses it", async () => {
+    await expect(
+      renameWorkspace(
+        { repo: renamingRepo() },
+        { user: root, ip: null },
+        { name: "acme", to: "race" },
+      ),
+    ).rejects.toThrow(new WorkspaceNameTakenError("race"));
+  });
+
+  it("passes any other failure on", async () => {
+    const repo = renamingRepo();
+    repo.rename = async () => {
+      throw new Error("disk full");
+    };
+    await expect(
+      renameWorkspace({ repo }, { user: root, ip: null }, { name: "acme", to: "race" }),
+    ).rejects.toThrow("disk full");
   });
 });

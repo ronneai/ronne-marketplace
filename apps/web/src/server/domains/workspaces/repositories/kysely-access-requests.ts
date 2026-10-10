@@ -45,6 +45,7 @@ type AccessRequestMethods = Pick<
   | "countPendingRequests"
   | "requestsOf"
   | "attachRequests"
+  | "joinRequestsOnRename"
 >;
 
 /** Requests to join a workspace (feature 094), for the workspace repository. */
@@ -244,6 +245,60 @@ export const accessRequestMethods = (
         .where("workspace_name", "=", workspaceName)
         .where("status", "=", "open")
         .execute();
+    },
+
+    joinRequestsOnRename: async (workspaceId, name, at) => {
+      await db
+        .updateTable("workspace_access_requests")
+        .set({ workspace_name: name })
+        .where("workspace_id", "=", workspaceId)
+        .execute();
+      const waiting = await db
+        .selectFrom("workspace_access_requests")
+        .select(["id", "user_id"])
+        .where("workspace_id", "is", null)
+        .where("workspace_name", "=", name)
+        .where("status", "=", "open")
+        .orderBy("created_at")
+        .orderBy("id")
+        .execute();
+      if (waiting.length === 0) return 0;
+      // Members, and people with an open request there already, needn't ask twice.
+      const members = new Set(
+        (
+          await db
+            .selectFrom("workspace_members")
+            .select("user_id")
+            .where("workspace_id", "=", workspaceId)
+            .execute()
+        ).map((row) => row.user_id),
+      );
+      const asked = new Set(
+        (
+          await db
+            .selectFrom("workspace_access_requests")
+            .select("user_id")
+            .where("workspace_id", "=", workspaceId)
+            .where("status", "=", "open")
+            .execute()
+        ).map((row) => row.user_id),
+      );
+      let joined = 0;
+      for (const request of waiting) {
+        if (members.has(request.user_id) || asked.has(request.user_id)) {
+          await decide(request.id, { status: "cancelled", decidedBy: null, reason: null, at });
+          continue;
+        }
+        await db
+          .updateTable("workspace_access_requests")
+          .set({ workspace_id: workspaceId })
+          .where("id", "=", request.id)
+          .where("status", "=", "open")
+          .execute();
+        asked.add(request.user_id);
+        joined++;
+      }
+      return joined;
     },
   };
 };

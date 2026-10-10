@@ -19,3 +19,32 @@ export const forUpdate = <DB, TB extends keyof DB, O>(
  */
 export const readCommittedTransaction = <DB>(db: Kysely<DB>, dialect: DatabaseDialect) =>
   dialect === "sqlite" ? db.transaction() : db.transaction().setIsolationLevel("read committed");
+
+/**
+ * Whether the database chose this transaction to end a deadlock: PostgreSQL's `40P01`, MySQL's and
+ * MariaDB's 1213. Foreign-key checks take shared locks on the parent row, so transactions that lock
+ * rows in one order can still meet in a cycle; the database rolls one back, which can simply run
+ * again (113).
+ */
+export const isDeadlock = (error: unknown): boolean => {
+  const e = error as { code?: unknown; errno?: unknown } | null;
+  return e?.code === "40P01" || e?.errno === 1213 || e?.code === "ER_LOCK_DEADLOCK";
+};
+
+/** How many times a transaction the database rolled back to end a deadlock is run in all. */
+export const DEADLOCK_ATTEMPTS = 3;
+
+/**
+ * Runs a transaction again when the database rolled it back to end a deadlock (113), up to
+ * DEADLOCK_ATTEMPTS times in all. Only for work that does nothing outside the database: the
+ * rolled-back attempt left nothing behind.
+ */
+export const retryOnDeadlock = async <T>(run: () => Promise<T>): Promise<T> => {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await run();
+    } catch (error) {
+      if (!isDeadlock(error) || attempt >= DEADLOCK_ATTEMPTS) throw error;
+    }
+  }
+};

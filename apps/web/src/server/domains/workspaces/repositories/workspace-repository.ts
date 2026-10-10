@@ -28,6 +28,20 @@ export type WorkspacePageQuery = {
   ids?: readonly string[];
 };
 
+/**
+ * One file of a submission not yet released or rejected (113): in its working copy
+ * (`revisionId` null), or in its latest revision (what a release packs).
+ */
+export type OpenFile = {
+  submissionId: string;
+  scope: string;
+  name: string;
+  revisionId: string | null;
+  path: string;
+  /** The file's text, decoded when it was stored as base64; written back as utf8. */
+  content: string;
+};
+
 /** What the workspace services need from storage. Implemented with Kysely in kysely-workspace-repository.ts. */
 export interface WorkspaceRepository {
   transaction<T>(work: (repo: WorkspaceRepository) => Promise<T>): Promise<T>;
@@ -57,6 +71,47 @@ export interface WorkspaceRepository {
   openSubmissionsOutside(workspaceId: string): Promise<{ name: string; manifest: string | null }[]>;
   /** The names of the workspace's scopes. */
   scopeNames(workspaceId: string): Promise<string[]>;
+  /**
+   * Locks the rows of the workspace's items until the transaction ends (113), in one statement by
+   * id. A rename takes it before the workspace's row, in the order a release takes its locks (its
+   * items, then workspaces), so the two wait for each other instead of deadlocking.
+   */
+  lockItemsIn(workspaceId: string): Promise<void>;
+  /**
+   * Locks the workspace's scopes, then its submissions not released yet, each in id order (113): a
+   * submit takes its scopes' locks, and a draft's save and a release their submission's, so they
+   * run before or after a rename, never halfway through its rewrite of ronne.yaml.
+   */
+  lockOpenWorkIn(workspaceId: string): Promise<void>;
+  /** The workspace's items, with their scopes' names (113). */
+  itemsIn(workspaceId: string): Promise<{ id: string; scope: string; name: string }[]>;
+  /**
+   * The `ronne.yaml` files of the workspace's submissions that can still be released, now or
+   * after a restore: drafts, in review, sent back, approved and withdrawn (113). Working copies,
+   * and each one's latest revision.
+   */
+  openManifestsIn(workspaceId: string): Promise<OpenFile[]>;
+  /** Other files of those, by path in the same copy (113: a skill's entry file); missing ones left out. */
+  openFiles(files: readonly Omit<OpenFile, "content">[]): Promise<OpenFile[]>;
+  /** Writes those files again with new text, as utf8 (113); a working copy's `updated_at` moves on. */
+  writeFiles(files: readonly OpenFile[], at: Date): Promise<void>;
+  /** Which of these names are old names of items (118's aliases), and whose. */
+  aliasesNamed(names: readonly string[]): Promise<{ name: string; itemId: string }[]>;
+  /**
+   * Gives the workspace a new name (113) and raises the catalogue revision: its items' names and
+   * plugin names change with it.
+   */
+  rename(id: string, name: string, updatedAt: Date): Promise<void>;
+  /**
+   * Old names for items (118): removes `drop` (an item's name again after a rename back, so not an
+   * old name any more) and adds `add`.
+   */
+  setAliases(
+    add: readonly { name: string; itemId: string }[],
+    drop: readonly string[],
+    reason: "rename",
+    at: Date,
+  ): Promise<void>;
   delete(id: string): Promise<void>;
   /** Every workspace, `global` first, then by name: for the selects and filters. */
   list(): Promise<Workspace[]>;
@@ -152,4 +207,10 @@ export interface WorkspaceRepository {
   requestsOf(userId: string, limit: number): Promise<RequestWithWorkspace[]>;
   /** Gives the open requests to a name no workspace had to the workspace just created with it. */
   attachRequests(workspaceName: string, workspaceId: string): Promise<void>;
+  /**
+   * After a rename (113): the workspace's requests take its new name, and the open requests kept
+   * for that name join it, except a member's or one from someone with an open request there
+   * already, which are cancelled. How many joined.
+   */
+  joinRequestsOnRename(workspaceId: string, name: string, at: Date): Promise<number>;
 }

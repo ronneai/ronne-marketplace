@@ -5,6 +5,7 @@ import type { StorageAdapter } from "../../../storage";
 import { artifactFiles } from "../../items/services/artifact-files";
 import {
   ConflictNotFoundError,
+  ItemRenamedMeanwhileError,
   NotAProposalError,
   ProposalArtifactError,
   ProposalBaseNotFoundError,
@@ -112,6 +113,12 @@ export const proposeChange = async (
   const authorId = actor.user?.id ?? "";
   const scope = { id: found.id, name: found.name };
   return deps.repo.transaction(async (repo) => {
+    // Under its scope's lock, the name read again: a workspace rename (113) holds it while it
+    // rewrites drafts, and this one, made from the name before, would keep the old one.
+    await repo.lockScope(scope.id);
+    const now = await repo.registry().findItem(parsed);
+    if (now && now.fullName !== itemName)
+      throw new ItemRenamedMeanwhileError(itemName, now.fullName);
     const id = await repo.insert({
       authorId,
       scopeId: scope.id,

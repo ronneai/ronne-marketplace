@@ -11,6 +11,8 @@ import { cookieHeaders, createTestUser, testAppAuth } from "../../identity/testi
 import { createScope } from "../../items/actions/scopes";
 import { kyselyItemRepository } from "../../items/repositories/kysely-item-repository";
 import { UNFILTERED } from "../../workspaces/models/viewer";
+import { kyselySubmissionRepository } from "../repositories/kysely-submission-repository";
+import * as draftService from "../services/drafts";
 import { createDraft, createDraftFromFilesAs, getDraft, saveDraftFiles } from "./drafts";
 import { publishSubmission } from "./publish";
 import { decide } from "./reviews";
@@ -145,6 +147,57 @@ const released = async (name: string, type: "agent" | "rule", again = false) => 
 };
 
 describe("a skill's agent in its frontmatter (097)", () => {
+  it("lists each rewritten file once when its save runs again after a deadlock (113)", async () => {
+    await released("reviewer", "agent", true);
+    const created = await createDraft(
+      asAuthor,
+      { scope: "team", name: "helper", type: "skill" },
+      app,
+    );
+    const real = kyselySubmissionRepository(t.db, t.dialect, UNFILTERED);
+    let ended = false;
+    // The first attempt does its work, then the database ends it to break a deadlock.
+    const repo = {
+      ...real,
+      transaction: <T>(work: (r: typeof real) => Promise<T>) =>
+        real.transaction(async (r) => {
+          const result = await work(r);
+          if (!ended) {
+            ended = true;
+            throw Object.assign(new Error("deadlock detected"), { code: "40P01" });
+          }
+          return result;
+        }),
+    };
+    const at = (path: string) => created.files.find((f) => f.path === path)?.updatedAt ?? null;
+    const saved = await draftService.saveDraftFiles(
+      { repo },
+      { user: await getCurrentUser(asAuthor, app), ip: null },
+      created.id,
+      {
+        writes: [
+          {
+            path: "SKILL.md",
+            encoding: "utf8",
+            content: skillMd("@team/reviewer"),
+            executable: false,
+            loadedAt: at("SKILL.md"),
+          },
+          {
+            path: "ronne.yaml",
+            encoding: "utf8",
+            content: manifest,
+            executable: false,
+            loadedAt: at("ronne.yaml"),
+          },
+        ],
+        deletes: [],
+      },
+    );
+    expect(ended).toBe(true);
+    expect(saved.rewritten.sort()).toEqual(["SKILL.md", "ronne.yaml"]);
+  });
+
   it("is saved quoted, and added to the dependencies on its latest release", async () => {
     await released("reviewer", "agent", true);
     const { id, saved } = await saveSkill("@team/reviewer");

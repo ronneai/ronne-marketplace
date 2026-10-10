@@ -1,4 +1,10 @@
-import { isValidName, normalizeWorkspaceName, parseItemName, parseManifest } from "@ronneai/core";
+import {
+  formatItemName,
+  isValidName,
+  normalizeWorkspaceName,
+  parseItemName,
+  parseManifest,
+} from "@ronneai/core";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import {
   can,
@@ -7,12 +13,14 @@ import {
   workspacesWith,
 } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
+import { renamedFrontmatterAgent, renamedManifest } from "../../submissions/models/manifest-names";
 import {
   GlobalWorkspaceError,
   WorkspaceHasOutsideDependentsError,
   WorkspaceNameTakenError,
   WorkspaceNotEmptyError,
   WorkspaceNotFoundError,
+  WorkspaceRenameAliasError,
   WorkspacesError,
 } from "../exceptions/errors";
 import {
@@ -27,7 +35,8 @@ import type { WorkspacePageQuery, WorkspaceRepository } from "../repositories/wo
 
 /**
  * Workspaces (feature 090). Root creates them, edits their descriptions and deletes empty ones;
- * everyone signed in lists them. `global` can't be edited or deleted. Names can't change yet.
+ * everyone signed in lists them. `global` can't be edited or deleted. Root and a workspace's admins
+ * rename it (113).
  */
 export type WorkspaceDeps = { repo: WorkspaceRepository; now?: () => Date };
 export type WorkspaceActor = { user: CurrentUser | null; ip: string | null };
@@ -40,7 +49,7 @@ const now = (deps: WorkspaceDeps) => (deps.now ?? (() => new Date()))();
 const audit = (
   repo: WorkspaceRepository,
   actor: WorkspaceActor,
-  action: "workspace.created" | "workspace.updated" | "workspace.deleted",
+  action: "workspace.created" | "workspace.updated" | "workspace.renamed" | "workspace.deleted",
   id: string,
   metadata: Record<string, string | number>,
   at: Date,
@@ -130,6 +139,8 @@ export const updateWorkspace = async (
   const description = workspaceDescriptionFrom(input.description);
   const at = now(deps);
   await deps.repo.transaction(async (repo) => {
+    // Locked, then read again by name, as delete does: renamed meanwhile (113), it's gone.
+    await repo.lockWorkspace((await changeable(repo, input.name)).id);
     const workspace = await changeable(repo, input.name);
     requirePermission(actor.user, "workspace.edit", workspace.id);
     if (workspace.description === description) return;
@@ -143,6 +154,106 @@ export const updateWorkspace = async (
       at,
     );
   });
+};
+
+/**
+ * Renames a workspace (113): root, or its admins; never `global`. The name follows create's rule
+ * and must be free; its items take the new name, every old one an alias (118), so installs,
+ * lockfiles and dependencies keep working. Open requests kept for the new name join it, as when a
+ * workspace is created with it (094). No redirect from the old name: it answers as unknown.
+ */
+export const renameWorkspace = async (
+  deps: WorkspaceDeps,
+  actor: WorkspaceActor,
+  input: { name: string; to: string },
+): Promise<Workspace> => {
+  // Root, or the workspace's admins; someone who renames none is refused first.
+  if (!canInSome(actor.user, "workspace.rename")) throw new ForbiddenError("workspace.rename");
+  const to = workspaceNameFrom(input.to);
+  const at = now(deps);
+  try {
+    return await deps.repo.transaction(async (repo) => {
+      const found = await changeable(repo, input.name);
+      requirePermission(actor.user, "workspace.rename", found.id);
+      // Its scopes and open submissions (a submit's and a save's locks), its items, then its row (a
+      // release's order), then read again: a release that made an item under the old name has
+      // committed, and two renames at once run one after the other.
+      await repo.lockOpenWorkIn(found.id);
+      await repo.lockItemsIn(found.id);
+      await repo.lockWorkspace(found.id);
+      const workspace = await repo.findById(found.id);
+      // Gone, or renamed by someone else meanwhile: the name asked for answers as unknown now.
+      if (!workspace || workspace.name !== found.name) throw new WorkspaceNotFoundError();
+      if (workspace.name === to) return workspace;
+      // Taken by another workspace: the unique index decides too, when two renames race.
+      if (await repo.findByName(to)) throw new WorkspaceNameTakenError(to);
+
+      const items = await repo.itemsIn(workspace.id);
+      const named = (workspaceName: string, item: { scope: string; name: string }) =>
+        formatItemName({ workspace: workspaceName, scope: item.scope, name: item.name });
+      const ids = new Set(items.map((item) => item.id));
+      const newNames = items.map((item) => named(to, item));
+      // A new name that's another item's old name stays that item's (118).
+      const aliases = await repo.aliasesNamed(newNames);
+      const others = aliases.filter((alias) => !ids.has(alias.itemId)).map((alias) => alias.name);
+      if (others.length > 0) throw new WorkspaceRenameAliasError([...others].sort());
+
+      await repo.rename(workspace.id, to, at);
+      // Drafts and submissions not released yet name the workspace's items by their old names:
+      // their own `name`, their dependencies, a skill's agent. Written under the new ones, they
+      // submit and release as before (`@acme/…` becomes `@acme-platform/…`, nothing else).
+      const renamed = (name: string) => {
+        const parts = parseItemName(name);
+        return parts && parts.workspace === workspace.name ? named(to, parts) : null;
+      };
+      const manifests = await repo.openManifestsIn(workspace.id);
+      const entries = await repo.openFiles(
+        manifests.flatMap((file) => {
+          const manifest = parseManifest(file.content).manifest;
+          if (manifest?.type !== "skill") return [];
+          const skill = (manifest.skill ?? {}) as Record<string, unknown>;
+          const { content: _, ...where } = file;
+          return [{ ...where, path: String(skill.entry ?? "SKILL.md") }];
+        }),
+      );
+      const changed = [
+        ...manifests.map((file) => ({ ...file, after: renamedManifest(file.content, renamed) })),
+        ...entries.map((file) => ({
+          ...file,
+          after: renamedFrontmatterAgent(file.content, renamed),
+        })),
+      ].flatMap(({ after, ...file }) =>
+        after === file.content ? [] : [{ ...file, content: after }],
+      );
+      await repo.writeFiles(changed, at);
+      // Its items' names now: old names of their own no more (a rename back); the ones they had,
+      // old names from now on.
+      await repo.setAliases(
+        items.map((item) => ({ name: named(workspace.name, item), itemId: item.id })),
+        aliases.map((alias) => alias.name),
+        "rename",
+        at,
+      );
+      const requestsJoined = await repo.joinRequestsOnRename(workspace.id, to, at);
+      await audit(
+        repo,
+        actor,
+        "workspace.renamed",
+        workspace.id,
+        { from: workspace.name, to, items: items.length, requestsJoined },
+        at,
+      );
+      return { ...workspace, name: to, updatedAt: at };
+    });
+  } catch (error) {
+    // Another workspace took the name between the check and the update: the unique index refused it.
+    if (!(error instanceof WorkspacesError) && !(error instanceof ForbiddenError)) {
+      const holder = await deps.repo.findByName(to);
+      const renamed = await byName(deps.repo, input.name);
+      if (holder && holder.id !== renamed?.id) throw new WorkspaceNameTakenError(to);
+    }
+    throw error;
+  }
 };
 
 /**
@@ -227,6 +338,8 @@ export const deleteWorkspace = async (
   const at = now(deps);
   try {
     await deps.repo.transaction(async (repo) => {
+      // Locked, then read again by name: renamed meanwhile (113), the name asked for is gone.
+      await repo.lockWorkspace((await changeable(repo, input.name)).id);
       const workspace = await changeable(repo, input.name);
       if (workspace.scopes > 0) throw new WorkspaceNotEmptyError(workspace.scopes);
       // Its memberships go with it (they cascade); the event says how many (092).

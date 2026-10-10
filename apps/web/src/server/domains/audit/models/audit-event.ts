@@ -20,6 +20,7 @@ export const AUDIT_ACTIONS = [
   "access_token.revoked",
   "workspace.created",
   "workspace.updated",
+  "workspace.renamed",
   "workspace.deleted",
   "workspace.member_added",
   "workspace.member_role_changed",

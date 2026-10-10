@@ -222,6 +222,8 @@ const ITEM_EXEMPT: Partial<Record<keyof ItemRepository, string>> = {
   setTag: "a write; returns only the version id it replaced",
   lockItem: "takes a lock, reads nothing back",
   lockWorkspaces: "takes a lock; says which of the ids the caller holds are private",
+  workspaceNames:
+    "the names of workspaces whose ids the caller holds already (a release's own, 113): never ids from input",
   removeTag: "a write",
   setDeprecated: "a write",
   setYanked: "a write",

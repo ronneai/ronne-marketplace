@@ -4,7 +4,7 @@ import { bumpCatalogueRevision } from "../../../db/catalogue-revision";
 import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
 import { countCapped, paginate } from "../../../db/keyset";
-import { forUpdate, readCommittedTransaction } from "../../../db/locks";
+import { forUpdate, readCommittedTransaction, retryOnDeadlock } from "../../../db/locks";
 import type { Database } from "../../../db/schema";
 import { containsInsensitive } from "../../../db/search";
 import { upsert } from "../../../db/upsert";
@@ -13,7 +13,26 @@ import { recordAudit } from "../../audit/actions/audit";
 import { isWorkspaceRole } from "../../identity/models/user";
 import type { Workspace, WorkspaceVisibility } from "../models/workspace";
 import { accessRequestMethods } from "./kysely-access-requests";
-import type { MemberFilters, WorkspaceRepository } from "./workspace-repository";
+import type { MemberFilters, OpenFile, WorkspaceRepository } from "./workspace-repository";
+
+/** A submission that can still be released, now or after a restore (113). */
+const OPEN_STATUSES = ["draft", "submitted", "changes_requested", "approved", "withdrawn"];
+
+/**
+ * A stored file's text: base64 decoded (ronne.yaml may be stored either way), or null when its bytes
+ * aren't UTF-8 text, which a rename leaves as they are rather than lose a byte.
+ */
+const textOf = (file: { content: string; encoding: "utf8" | "base64" }): string | null => {
+  if (file.encoding === "utf8") return file.content;
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(Buffer.from(file.content, "base64"));
+  } catch {
+    return null;
+  }
+};
+
+/** How many names go in one `in (…)` list or one insert: well under every database's limits. */
+const IN_LIST_SIZE = 500;
 
 type WorkspaceRow = {
   id: string;
@@ -141,9 +160,12 @@ export const kyselyWorkspaceRepository = (
 
   return {
     // READ COMMITTED, so a check made after waiting for `lockUsers` sees what the other committed.
+    // Run again when the database ends a deadlock with it (113): the work only touches the database.
     transaction: (work) =>
-      readCommittedTransaction(db, dialect).execute((trx) =>
-        work(kyselyWorkspaceRepository(trx, dialect)),
+      retryOnDeadlock(() =>
+        readCommittedTransaction(db, dialect).execute((trx) =>
+          work(kyselyWorkspaceRepository(trx, dialect)),
+        ),
       ),
 
     lockUsers: async (userIds) => {
@@ -186,6 +208,214 @@ export const kyselyWorkspaceRepository = (
         .where("id", "=", id)
         .where("is_global", "=", toDbBoolean(false, dialect))
         .execute();
+    },
+
+    lockItemsIn: async (workspaceId) => {
+      await forUpdate(
+        db
+          .selectFrom("items")
+          .select("items.id")
+          .where("items.scope_id", "in", (eb) =>
+            eb
+              .selectFrom("scopes")
+              .select("scopes.id")
+              .where("scopes.workspace_id", "=", workspaceId),
+          )
+          .orderBy("items.id"),
+        dialect,
+      ).execute();
+    },
+
+    itemsIn: async (workspaceId) =>
+      db
+        .selectFrom("items")
+        .innerJoin("scopes", "scopes.id", "items.scope_id")
+        .select(["items.id as id", "scopes.name as scope", "items.name as name"])
+        .where("scopes.workspace_id", "=", workspaceId)
+        .orderBy("items.id")
+        .execute(),
+
+    lockOpenWorkIn: async (workspaceId) => {
+      await forUpdate(
+        db.selectFrom("scopes").select("id").where("workspace_id", "=", workspaceId).orderBy("id"),
+        dialect,
+      ).execute();
+      await forUpdate(
+        db
+          .selectFrom("submissions")
+          .select("submissions.id")
+          .where("submissions.scope_id", "in", (eb) =>
+            eb
+              .selectFrom("scopes")
+              .select("scopes.id")
+              .where("scopes.workspace_id", "=", workspaceId),
+          )
+          .where("submissions.status", "in", OPEN_STATUSES)
+          .orderBy("submissions.id"),
+        dialect,
+      ).execute();
+    },
+
+    openManifestsIn: async (workspaceId) => {
+      const open = await db
+        .selectFrom("submissions")
+        .innerJoin("scopes", "scopes.id", "submissions.scope_id")
+        .select(["submissions.id as id", "scopes.name as scope", "submissions.name as name"])
+        .where("scopes.workspace_id", "=", workspaceId)
+        .where("submissions.status", "in", OPEN_STATUSES)
+        .orderBy("submissions.id")
+        .execute();
+      const found: OpenFile[] = [];
+      for (let i = 0; i < open.length; i += IN_LIST_SIZE) {
+        const batch = open.slice(i, i + IN_LIST_SIZE);
+        const byId = new Map(batch.map((s) => [s.id, s]));
+        const ids = [...byId.keys()];
+        const working = await db
+          .selectFrom("submission_files")
+          .select(["submission_id", "content", "encoding"])
+          .where("submission_id", "in", ids)
+          .where("path", "=", "ronne.yaml")
+          .execute();
+        for (const file of working) {
+          const s = byId.get(file.submission_id);
+          const content = textOf(file);
+          if (s && content !== null)
+            found.push({
+              submissionId: s.id,
+              scope: s.scope,
+              name: s.name,
+              revisionId: null,
+              path: "ronne.yaml",
+              content,
+            });
+        }
+        // Each one's latest revision: the one a release packs.
+        const revisions = await db
+          .selectFrom("submission_revisions")
+          .select(["id", "submission_id", "number"])
+          .where("submission_id", "in", ids)
+          .execute();
+        const latest = new Map<string, { id: string; number: number }>();
+        for (const r of revisions) {
+          const seen = latest.get(r.submission_id);
+          if (!seen || r.number > seen.number)
+            latest.set(r.submission_id, { id: r.id, number: r.number });
+        }
+        const latestIds = [...latest.values()].map((r) => r.id);
+        if (latestIds.length === 0) continue;
+        const bySubmission = new Map([...latest].map(([submissionId, r]) => [r.id, submissionId]));
+        const files = await db
+          .selectFrom("submission_revision_files")
+          .select(["revision_id", "content", "encoding"])
+          .where("revision_id", "in", latestIds)
+          .where("path", "=", "ronne.yaml")
+          .execute();
+        for (const file of files) {
+          const s = byId.get(bySubmission.get(file.revision_id) ?? "");
+          const content = textOf(file);
+          if (s && content !== null)
+            found.push({
+              submissionId: s.id,
+              scope: s.scope,
+              name: s.name,
+              revisionId: file.revision_id,
+              path: "ronne.yaml",
+              content,
+            });
+        }
+      }
+      return found;
+    },
+
+    openFiles: async (files) => {
+      const found: OpenFile[] = [];
+      for (const file of files) {
+        const row =
+          file.revisionId === null
+            ? await db
+                .selectFrom("submission_files")
+                .select(["content", "encoding"])
+                .where("submission_id", "=", file.submissionId)
+                .where("path", "=", file.path)
+                .executeTakeFirst()
+            : await db
+                .selectFrom("submission_revision_files")
+                .select(["content", "encoding"])
+                .where("revision_id", "=", file.revisionId)
+                .where("path", "=", file.path)
+                .executeTakeFirst();
+        const content = row ? textOf(row) : null;
+        if (content !== null) found.push({ ...file, content });
+      }
+      return found;
+    },
+
+    writeFiles: async (files, at) => {
+      const updatedAt = toDbDate(at, dialect);
+      for (const file of files) {
+        const size = new TextEncoder().encode(file.content).length;
+        if (file.revisionId === null)
+          await db
+            .updateTable("submission_files")
+            .set({ content: file.content, encoding: "utf8", size, updated_at: updatedAt })
+            .where("submission_id", "=", file.submissionId)
+            .where("path", "=", file.path)
+            .execute();
+        else
+          await db
+            .updateTable("submission_revision_files")
+            .set({ content: file.content, encoding: "utf8", size })
+            .where("revision_id", "=", file.revisionId)
+            .where("path", "=", file.path)
+            .execute();
+      }
+    },
+
+    aliasesNamed: async (names) => {
+      const found: { name: string; itemId: string }[] = [];
+      for (let i = 0; i < names.length; i += IN_LIST_SIZE) {
+        const rows = await db
+          .selectFrom("item_aliases")
+          .select(["name", "item_id"])
+          .where("name", "in", names.slice(i, i + IN_LIST_SIZE))
+          .execute();
+        // Byte for byte: MySQL's collation would match a name in another case.
+        const wanted = new Set(names.slice(i, i + IN_LIST_SIZE));
+        for (const row of rows)
+          if (wanted.has(row.name)) found.push({ name: row.name, itemId: row.item_id });
+      }
+      return found;
+    },
+
+    rename: async (id, name, updatedAt) => {
+      await db
+        .updateTable("workspaces")
+        .set({ name, updated_at: toDbDate(updatedAt, dialect) })
+        .where("id", "=", id)
+        .where("is_global", "=", toDbBoolean(false, dialect))
+        .execute();
+      await bumpCatalogueRevision(db);
+    },
+
+    setAliases: async (add, drop, reason, at) => {
+      for (let i = 0; i < drop.length; i += IN_LIST_SIZE)
+        await db
+          .deleteFrom("item_aliases")
+          .where("name", "in", drop.slice(i, i + IN_LIST_SIZE))
+          .execute();
+      const createdAt = toDbDate(at, dialect);
+      for (let i = 0; i < add.length; i += IN_LIST_SIZE)
+        await db
+          .insertInto("item_aliases")
+          .values(
+            add.slice(i, i + IN_LIST_SIZE).map((alias) => ({
+              name: alias.name,
+              item_id: alias.itemId,
+              reason,
+              created_at: createdAt,
+            })),
+          )
+          .execute();
     },
 
     lockWorkspace: async (id) => {

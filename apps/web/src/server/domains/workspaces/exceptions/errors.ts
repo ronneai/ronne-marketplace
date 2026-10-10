@@ -149,3 +149,15 @@ export class InvalidRequestRoleError extends WorkspacesError {
     super(`"${role}" can't be given by approving a request. Use user or moderator.`);
   }
 }
+
+/**
+ * A rename that would give items names other items had (113): an old name stays that item's for
+ * good (118). Only when the workspace takes a name another workspace had before.
+ */
+export class WorkspaceRenameAliasError extends WorkspacesError {
+  constructor(readonly names: readonly string[]) {
+    super(
+      `Other items had ${names.length === 1 ? "this name" : "these names"} before, and keep ${names.length === 1 ? "it" : "them"}: ${names.join(", ")}. Choose another name for the workspace.`,
+    );
+  }
+}
