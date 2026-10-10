@@ -469,7 +469,7 @@ written `pnpm run setup`. Full behaviour, including a non-interactive mode for D
 
 `packages/mcp` exposes the registry to AI tools, so users can manage items without leaving Claude Code, Codex or Cursor.
 
-- **Read tools:** `search_items`, `get_item`, `list_installed`, `check_outdated`.
+- **Read tools:** `search_items` (by workspace too, each result naming its workspace), `list_workspaces` (the workspaces you see, your role, and where to ask to join: [095](../features/095-workspaces-cli-api/SPEC.md)), `get_item`, `list_installed`, `check_outdated`.
 - **Plan tools:** `plan_install`, `plan_update`, `plan_remove`. They write nothing. Each returns a
   `planId` and a readable list of the files and keys it would change, plus any warnings (skipped
   types, missing env vars, risk flags).

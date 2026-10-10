@@ -190,11 +190,11 @@ export const byWorkspace = (scopes: Scopes): Scopes => {
     .map(({ scope }) => scope);
 };
 
-const scopeList = (scopes: Scopes) =>
-  scopes.map(
-    (s, i) =>
-      `  ${i + 1}. ${s.workspace ? `${s.workspace} › ` : ""}@${s.name}${s.description ? `  ${s.description}` : ""}`,
-  );
+/** A scope as the choices show it: `acme › @acme-infra  Acme's.` (095). */
+export const scopeLabel = (s: Scopes[number]) =>
+  `${s.workspace ? `${s.workspace} › ` : ""}@${s.name}${s.description ? `  ${s.description}` : ""}`;
+
+const scopeList = (scopes: Scopes) => scopes.map((s, i) => `  ${i + 1}. ${scopeLabel(s)}`);
 
 /**
  * Asks which scope, by number or name, listing them by workspace; never picks one itself. The

@@ -1,4 +1,5 @@
 import {
+  byWorkspace,
   connectRegistry,
   describeLocalItems,
   type ExportedItem,
@@ -17,6 +18,7 @@ import {
   RmkError,
   releaseOrder,
   type Scopes,
+  scopeLabel,
   togetherLine,
   togetherOf,
   uploadExport,
@@ -101,8 +103,8 @@ export const listLocalItems = async (
 /** What an export plan keeps until `export_items`: the request, to plan again and compare. */
 export type StoredExport = { request: ExportRequest };
 
-const scopesLines = (scopes: Scopes) =>
-  scopes.map((s) => `  @${s.name}${s.description ? `  ${s.description}` : ""}`);
+/** The scopes the person may export to, by workspace (095), as rmk export lists them. */
+const scopesLines = (scopes: Scopes) => byWorkspace(scopes).map((s) => `  ${scopeLabel(s)}`);
 
 /** The answer when the person hasn't chosen a scope: the choices, and no plan to apply. */
 const askForScope = (scopes: Scopes, reason: string): ToolAnswer =>
@@ -379,7 +381,18 @@ export const exportItemsTool = async (
           "This plan is used up; plan_export again for what's left.",
           ...(exported.length > 0 ? [REMINDER] : []),
         ],
-        { exported, error: { code: error.code, message: error.message }, notUploaded: failed },
+        {
+          exported,
+          error: {
+            code: error.code,
+            message: error.message,
+            // Where to ask to join, when the scope's workspace isn't yours (095).
+            ...(typeof error.details.joinUrl === "string"
+              ? { joinUrl: error.details.joinUrl }
+              : {}),
+          },
+          notUploaded: failed,
+        },
       ),
       isError: true,
     };

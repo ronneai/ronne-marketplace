@@ -66,3 +66,26 @@ Witnessed: 2026-10-09 20:43 EDT, by a fresh agent (blind). Commit: 6d9c32e (plus
 | 5 | CLI and MCP tests pass, rmk typecheck clean | no | confirmed | `pnpm --filter @ronneai/rmk test` → 21 files, 242 passed; `pnpm --filter @ronneai/mcp test` → 43 passed; `tsc --noEmit` exit 0 |
 
 **Overall:** met: the older-registry message, `joinUrl` in `--json`, the "Ask here" line at submit and the blank `--workspace` error hold, each with a test that fails without it.
+
+## Task 3 — MCP
+
+Witnessed: 2026-10-09 20:47 EDT, by a fresh agent (blind). Commit: bde7afb (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | MCP tests pass | no | confirmed | Scratch copy: `pnpm --filter @ronneai/rmk build`, then `pnpm --filter @ronneai/mcp test` → 5 files, 49 passed; `pnpm --filter @ronneai/mcp typecheck` clean |
+| 2 | rmk stays green with the new `lib.ts` exports | no | confirmed | `pnpm --filter @ronneai/rmk test` → 21 files, 242 passed; build clean |
+| 3 | `search_items` takes an optional `workspace` and sends `?workspace=` | no | confirmed | `server.ts` zod field, `read-tools.ts:64`; test `" acme "` → `workspace=acme`; removing `params.set` → 1 test fails |
+| 4 | A blank `workspace` is refused | no | confirmed | `.trim().min(1).max(64)`; probes `"  "`, `"\r\n"` → -32602, no request; removing trim/min → 1 test fails |
+| 5 | Hostile and edge values are handled safely | no | confirmed | `a&b=c` → `a%26b%3Dc`; `éé` encoded; 64 sent; 65 and a number refused |
+| 6 | `search_items` results carry the workspace | no | confirmed | Items passed through to `structuredContent.items` (`read-tools.ts:74`); test checks `{name:"acme",visibility:"private"}` |
+| 7 | `get_item` shows the workspace as `rmk info` does | no | confirmed | `read-tools.ts:89-93`; text identical to `rmk info`; disabling the line → 1 test fails |
+| 8 | `list_workspaces` is read-only and returns what `rmk workspaces` prints, as data too | no | confirmed | `annotations: read`; text = `rmk workspaces`, data = `--json` with `joinUrl`; removing readOnly → 2 tests fail; empty list → header only, not an error |
+| 9 | Against an older registry, `list_workspaces` reports `no_workspaces` | no | confirmed | Test: isError, `no_workspaces`, "older than 0.4.0" |
+| 10 | Old clients and registries keep working | no | confirmed | Probe: items without `workspace` → `search_items` and `get_item` not errors, no workspace line; `workspace` optional |
+| 11 | `plan_export` lists scopes by workspace | no | confirmed | `byWorkspace` + `scopeLabel`; test checks global › acme › tools; unsorted → 1 test fails |
+| 12 | A `not_a_member` error carries `joinUrl` | no | confirmed | `export_items` test checks it; removing → 1 test fails; `guarded` path works by probe but no test covers it |
+| 13 | MVP §7's read-tools line updated | no | confirmed | `docs/MVP/MVP.md:472` |
+| 14 | "The MCP tools take and return the workspace" | no | confirmed | Rows 3 to 12 |
+
+**Overall:** met: `search_items` takes and validates `workspace`, results and `get_item` carry it, `list_workspaces` matches `rmk workspaces`, export scopes are grouped by workspace, `not_a_member` carries `joinUrl`, old registries work. After the pass, the test the witness suggested for `guarded`'s `joinUrl` was added to `workspaces.test.ts` ("puts where to ask to join in any tool's not_a_member error"); replacing the `joinUrl` with `{}` in `server.ts` fails it (50 tests otherwise pass).

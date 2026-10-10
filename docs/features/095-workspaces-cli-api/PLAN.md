@@ -15,7 +15,7 @@ the same change that completes it.
   join address on `not_a_member`, and the older-registry message.
   *Done when:* CLI tests pass.
 
-- [ ] **3. MCP.** `search_items` with `workspace`, `list_workspaces`.
+- [x] **3. MCP.** `search_items` with `workspace`, `list_workspaces`.
   *Done when:* MCP tests pass.
 
 - [ ] **4. Compatibility.** The last released `rmk` against the new server.

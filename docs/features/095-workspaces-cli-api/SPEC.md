@@ -54,8 +54,10 @@ after the message ("Ask here: …"), in `--json`'s error as `joinUrl`, and under
 `rmk submit`'s preview. For that, `POST /drafts/check` and `/drafts/submit` name each draft's
 `workspace`. Asking is done in the web app (094).
 
-The MCP `search_items` input gains an optional `workspace`; `list_workspaces` returns what `rmk
-workspaces` prints, as data. Old `rmk` versions keep working: new fields are additive, and the
+The MCP `search_items` input gains an optional `workspace` (a blank one is refused); its results,
+like `get_item`'s, carry the workspace, and `get_item` prints it as `rmk info` does.
+`list_workspaces` (read-only) returns what `rmk workspaces` prints, as data. `plan_export` lists the
+scopes by workspace as `rmk export` does, and a `not_a_member` error carries `joinUrl`. Old `rmk` versions keep working: new fields are additive, and the
 `?workspace=` parameter is optional.
 
 ## Edge cases

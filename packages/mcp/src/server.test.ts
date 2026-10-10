@@ -19,6 +19,7 @@ describe("the registry MCP server", () => {
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name)).toEqual([
       "search_items",
+      "list_workspaces",
       "get_item",
       "list_installed",
       "check_outdated",
