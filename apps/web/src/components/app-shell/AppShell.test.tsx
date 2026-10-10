@@ -16,6 +16,22 @@ import { isCurrent, navFor } from "./nav";
 
 describe("navFor", () => {
   it("shows nothing signed out, Home, Catalogue, Submissions and Docs for everyone, Reviews to reviewers, and Admin only for root", () => {
+    // Their own personal workspace (114) puts no Reviews, Requests or Admin in the nav.
+    const owner = {
+      name: "Ana",
+      email: "ana@example.com",
+      role: "user" as const,
+      workspaces: { mine: "admin", g: "user" } as Record<string, "admin" | "moderator" | "user">,
+      personal: "mine",
+    };
+    const labels = (user: typeof owner) =>
+      navFor(user, { "/reviews": 1, "/workspaces/requests": 1 }).map((item) => item.label);
+    expect(labels(owner)).not.toContain("Admin");
+    expect(labels(owner)).not.toContain("Reviews");
+    expect(labels(owner)).not.toContain("Requests");
+    expect(labels({ ...owner, workspaces: { ...owner.workspaces, team: "admin" } })).toEqual(
+      expect.arrayContaining(["Admin", "Reviews", "Requests"]),
+    );
     expect(navFor(null)).toEqual([]);
     expect(
       navFor({

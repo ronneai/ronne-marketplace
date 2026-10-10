@@ -584,6 +584,11 @@ export const kyselyWorkspaceRepository = (
           .innerJoin("workspaces", "workspaces.id", "workspace_members.workspace_id")
           .select(["workspaces.id", "workspaces.name", "workspace_members.role"])
           .where("workspace_members.user_id", "=", userId)
+          // Not their own personal workspace (114): the user's workspaces dialog and its save are
+          // about shared ones, and its owner's row is never changed or removed.
+          .where((eb) =>
+            eb.or([eb("workspaces.owner_id", "is", null), eb("workspaces.owner_id", "!=", userId)]),
+          )
           .orderBy("workspaces.is_global", "desc")
           .orderBy("workspaces.name")
           .execute()

@@ -127,7 +127,7 @@ export interface WorkspaceRepository {
   lockUsers(userIds: readonly string[]): Promise<void>;
   /** A user, for the member services (092): their email, name, whether root, whether disabled. */
   memberUser(userId: string): Promise<MemberUser | null>;
-  /** A user's memberships, `global` first, then by workspace name. */
+  /** A user's memberships but their own personal workspace's (114), `global` first. */
   membershipsOf(userId: string): Promise<Membership[]>;
   /** A workspace's members, by name; roots left out, since a root's rows are ignored (091). */
   members(workspaceId: string): Promise<Member[]>;

@@ -264,18 +264,33 @@ describe("who may", () => {
   it("lets everyone signed in list them, global first, but nobody signed out", async () => {
     await createWorkspace(asRoot, { name: "zeta", description: "Z." }, app);
     await createWorkspace(asRoot, { name: "acme", description: "A." }, app);
-    for (const headers of [asUser, asModerator, asRoot])
+    for (const headers of [asUser, asModerator])
       expect((await listWorkspaces(headers, app)).map((w) => w.name)).toEqual([
         "global",
         "acme",
         "zeta",
       ]);
+    // Root's own personal workspace too (114).
+    expect((await listWorkspaces(asRoot, app)).map((w) => w.name)).toEqual([
+      "global",
+      "acme",
+      "root-2",
+      "zeta",
+    ]);
     await expect(listWorkspaces(new Headers(), app)).rejects.toThrow(ForbiddenError);
   });
 });
 
 describe("pageWorkspaces", () => {
   it("puts global first on the first page, then sorts and pages the rest", async () => {
+    // Shared workspaces only: root's personal one (114) stays out until the Kind filter (task 6).
+    await t.db
+      .deleteFrom("workspace_members")
+      .where("workspace_id", "in", (eb) =>
+        eb.selectFrom("workspaces").select("id").where("owner_id", "is not", null),
+      )
+      .execute();
+    await t.db.deleteFrom("workspaces").where("owner_id", "is not", null).execute();
     for (const name of ["delta", "alpha", "charlie", "bravo"])
       await createWorkspace(asRoot, { name, description: `The ${name} team.` }, app);
     await addScope(GLOBAL_WORKSPACE_ID, "team");

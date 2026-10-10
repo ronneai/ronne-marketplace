@@ -6,7 +6,7 @@ import { ADMIN_WORKSPACES_LIST, workspacesQueryOf } from "@/features/admin-works
 import { CreateWorkspaceDialog } from "@/features/admin-workspaces/WorkspaceDialogs";
 import { WorkspacesTable } from "@/features/admin-workspaces/WorkspacesTable";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
-import { can, canInSome } from "@/server/domains/identity/models/permissions";
+import { can, canInSomeShared } from "@/server/domains/identity/models/permissions";
 import { pageWorkspaces } from "@/server/domains/workspaces/actions/workspaces";
 import { requestHeaders } from "@/server/http/request-headers";
 
@@ -20,7 +20,8 @@ const AdminWorkspaces = async ({ searchParams }: { searchParams: Promise<SearchP
   const request = await requestHeaders();
   const me = await getCurrentUser(request);
   const root = can(me, "workspaces.manage");
-  if (!root && !canInSome(me, "members.manage")) notFound();
+  // Owning a personal workspace (114) doesn't open the list: its owner reaches its page directly.
+  if (!root && !canInSomeShared(me, "members.manage")) notFound();
   const state = parseListQuery(ADMIN_WORKSPACES_LIST, await searchParams);
   const { workspaces, next, previous, total } = await pageWorkspaces(
     request,

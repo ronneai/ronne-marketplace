@@ -184,11 +184,27 @@ describe("createUser", () => {
 });
 
 describe("global membership (091)", () => {
+  /** A user's memberships but their own personal workspace's (114), checked on its own. */
   const memberships = (userId: string) =>
     t.db
       .selectFrom("workspace_members")
       .select(["workspace_id", "role"])
       .where("user_id", "=", userId)
+      .where("workspace_id", "not in", (eb) =>
+        eb.selectFrom("workspaces").select("id").where("owner_id", "=", userId),
+      )
+      .execute();
+  const personal = (userId: string) =>
+    t.db
+      .selectFrom("workspaces")
+      .innerJoin("workspace_members", "workspace_members.workspace_id", "workspaces.id")
+      .select([
+        "workspaces.name as name",
+        "workspaces.visibility as visibility",
+        "workspace_members.role as role",
+      ])
+      .where("workspaces.owner_id", "=", userId)
+      .where("workspace_members.user_id", "=", userId)
       .execute();
 
   it("puts a new user in global, and a new root nowhere", async () => {
@@ -207,6 +223,12 @@ describe("global membership (091)", () => {
     ]);
     expect(await memberships(root.id)).toEqual([]);
     expect(await memberships(rootId)).toEqual([]);
+    // Each has a personal workspace of their own, roots too, as its admin (114).
+    expect(await personal(user.id)).toEqual([{ name: "u", visibility: "private", role: "admin" }]);
+    expect(await personal(root.id)).toEqual([{ name: "r2", visibility: "private", role: "admin" }]);
+    expect(await personal(rootId)).toEqual([
+      { name: "root-2", visibility: "private", role: "admin" },
+    ]);
   });
 
   it("lists each user's roles per workspace, moderated first (091)", async () => {
@@ -249,6 +271,7 @@ describe("global membership (091)", () => {
       { name: "beta", role: "user" },
     ]);
     expect(roles("u@example.com")).toEqual([{ name: "global", role: "user" }]);
+    // Root's own personal workspace (114) isn't listed: everyone has one.
     expect(roles("root@example.com")).toEqual([]);
   });
 

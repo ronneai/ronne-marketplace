@@ -73,6 +73,12 @@ Only the owner and root ever see the name (093).
 - **Installing:** the owner installs their personal items as any item they can see: `rmk`, MCP,
   their plugin marketplace (077).
 
+**Lists of memberships.** Root's Users table and a user's Workspaces dialog (092) list a user's
+shared workspaces only: everyone has a personal one, so it says nothing, and saving the dialog
+never changes or removes its owner's row. The nav's Reviews, Requests and Admin count shared
+workspaces only. Listing workspaces for the selects gives the public ones and the private ones the
+reader is in (root: every one), so nobody learns another user's personal workspace's name.
+
 **Everyone else.** A personal workspace and its items don't exist for anyone but its owner and
 root (093's not found, not forbidden). Its join link answers as a name no workspace has (094):
 the request is kept, by name, and nobody answers it, so asking can't tell a personal workspace

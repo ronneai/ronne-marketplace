@@ -22,6 +22,8 @@ export type CurrentUser = {
   name: string;
   role: Role;
   workspaces: Memberships;
+  /** Their personal workspace's id (114), whose admin they are; null or absent when there's none. */
+  personal?: string | null;
 };
 
 const ROLES: readonly Role[] = ["root", "user"];

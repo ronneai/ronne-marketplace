@@ -524,6 +524,8 @@ describe("the Workspaces page and the join page (094)", () => {
       ["global", null],
       ["acme", null],
       ["beta", null],
+      // Root's own personal workspace (114), where root is its admin.
+      ["root-2", "admin"],
     ]);
   });
 

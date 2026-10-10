@@ -79,3 +79,86 @@ Witnessed: 2026-10-10 18:38 EDT, by a fresh agent (adversarial). Commit: 65f87e0
 | 11 | The guard passes | no | confirmed | 24 passed; typecheck clean |
 
 **Overall:** met.
+
+## Task 2 — Created with every user
+
+Witnessed: 2026-10-10 19:10 EDT, by a fresh agent (blind). Commit: b61a04b0 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Create user makes a private personal workspace, the user its admin, roots too | no | confirmed | `createUserWithPassword`; 5/5 on four databases; fails without the call |
+| 2 | Setup's root and the next setup after `reset-setup` | no | confirmed | `createRoot` → `createUserWithPassword`; sign-up disabled |
+| 3 | Same transaction as the user | no | confirmed | probe: a throw after it leaves nothing, on four databases |
+| 4 | Name rule, `-2`…, ≤64, description | no | confirmed | test and probe |
+| 5 | A lost race takes the next name | no | confirmed | probe with two overlapping transactions on the servers; fails without the fallback |
+| 6 | The db test covers two users made at once | no | partly | Create user locks the acting root: the test never races |
+| 7 | db tests cover Create user and setup | no | confirmed | 105 passed on each database |
+| 8 | No Admin, Reviews or Requests in the nav for owning one | no | confirmed | `canInSomeShared`; probe; no test |
+| 9 | Owning one doesn't open the Admin area | no | not met | page gates use `canInSome`: `/admin`, `/reviews`, `/workspaces/requests` open to every user |
+| 10 | Users table and Workspaces dialog list shared workspaces only; a save keeps the owner's row | no | confirmed | probe |
+| 11 | `listWorkspaces`: public plus private ones the reader is in; root all | no | confirmed | probe; test |
+| 12 | Types and lint | no | confirmed | typecheck; biome |
+
+**Overall:** not met: rows 6 and 9. Also found: on MySQL, INSERT IGNORE can loop for ever on a non-name error.
+
+### Adversarial pass
+
+Witnessed: 2026-10-10 19:20 EDT, by a fresh agent (adversarial). Commit: b61a04b0 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Create user, in the transaction, roots too | no | confirmed | 67/67 on each database |
+| 2 | Setup's root | no | confirmed | real CLI setup |
+| 3 | After `reset-setup` | no | confirmed | by reading |
+| 4 | No path skips it | no | confirmed | one production insert; sign-up disabled |
+| 5 | A failure rolls everything back | no | confirmed | probe on four databases |
+| 6 | Name rule and LIKE read | no | confirmed | probe |
+| 7 | A lost race takes the next name | no | confirmed | overlapping transactions; 10 concurrent |
+| 8 | The test covers a race | no | partly | never reaches the lost-race branch |
+| 9 | db tests cover Create user and setup | no | confirmed | 1990 web tests |
+| 10 | Only name conflicts are skipped | no | partly | MySQL/MariaDB INSERT IGNORE loops for ever for an owner with one or an unknown owner |
+| 11 | `personal` on the session user, stable after a rename | no | confirmed | probe |
+| 12 | `personal` on the token user | no | partly | `authenticateToken` drops it |
+| 13 | Nav counts shared workspaces | no | confirmed | probe; no test |
+| 14 | Owning one doesn't open the Admin area | no | not met | page gates use `canInSome` |
+| 15 | Users table and dialog hide the owner's row | no | confirmed | probe |
+| 16 | Root can't change the owner's row or add someone by its id | no | not met | `setUserWorkspaces` demotes the owner or adds others (task 3's refusal) |
+| 17 | `listWorkspaces` | no | confirmed | probe |
+| 18 | Nothing else shows a personal workspace to others | no | confirmed | probe |
+| 19 | Lint, types, tests | no | confirmed | clean |
+
+**Overall:** not met: rows 8, 10, 12, 14 (and 16, task 3).
+
+### Re-check 1
+
+Witnessed: 2026-10-10 19:26 EDT, by a fresh agent (blind). Commit: b61a04b0 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | The db tests cover two users at once, the lost race included | no | confirmed | overlapping transactions on PG, MySQL, MariaDB; fails without the fallback |
+| 9 | Owning one doesn't open the Admin area | no | confirmed | layout probe: owner without AdminNav; `/admin/workspaces` 404; component test |
+| 10 | `/reviews`, `/reviews/[id]`, requests, shell counts ignore it | no | confirmed | `canInSomeShared` at all four |
+| 11 | Nav and `canInSomeShared` tested | no | confirmed | 181 passed; fails with `canInSome` back |
+| 12 | The helper fails instead of looping | no | confirmed | test on four databases; times out on MySQL without the throw |
+| 13 | `personal` reaches the token user | no | confirmed | test (null case) |
+| 14 | Earlier rows still hold | no | confirmed | 116–117 passed on each database |
+| 15 | Types and lint | no | confirmed | clean |
+
+**Overall:** met.
+
+### Adversarial re-check 1
+
+Witnessed: 2026-10-10 19:28 EDT, by a fresh agent (adversarial). Commit: b61a04b0 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 8 | A db test covers the race the unique index decides | no | confirmed | 57/57 on each server; fails when a 0-row insert throws |
+| 10 | Hidden INSERT IGNORE errors fail instead of looping | no | confirmed | test; fails on MySQL and MariaDB with the old `continue` |
+| 10a | The holder check works under the isolation Create user uses | no | confirmed | READ COMMITTED; under REPEATABLE READ it would throw (now documented) |
+| 12 | `personal` on the token user | no | confirmed | probe on four databases; `/api/v1/me` doesn't send it |
+| 14 | Owning one opens no Admin, Reviews or Requests | no | confirmed | pages rendered with mocked sessions |
+| 13 | The nav counts shared workspaces only | no | confirmed | unit tests; 1994 web tests |
+| 1–7, 9, 11, 15, 17–18 | Earlier rows | no | confirmed | same tests green |
+| 19 | Lint, types, tests | no | confirmed | clean |
+
+**Overall:** met. Row 16 (root changing an owner's row) is task 3's.

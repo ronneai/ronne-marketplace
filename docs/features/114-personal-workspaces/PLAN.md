@@ -16,7 +16,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   names, and a second run that changes nothing, on the four databases; the migration guard test
   passes.
 
-- [ ] **2. Created with every user.** [risky] Create user (008), setup's root (003, 036) and
+- [x] **2. Created with every user.** [risky] Create user (008), setup's root (003, 036) and
   `reset-setup` make the workspace and membership in the same transaction as the user; the name
   rule with `-2`, `-3`… under the unique index.
   *Done when:* db tests cover Create user, setup, two users with the same local part at once.
@@ -74,3 +74,11 @@ goes into `SPEC.md` instead.
   now migrate only up to their own, since 0023 changes the data they check. The name rule lives
   in core (`personalWorkspaceBase`, `personalWorkspaceName`) for task 2 to reuse; it doesn't
   transliterate `ß`, `ø` or `Æ` (they become hyphens).
+- **Task 2:** every user is the admin of their own workspace, so `canInSome` is true for every
+  admin permission: the nav, `/admin`, `/reviews`, `/workspaces/requests` and the shell's counts use
+  `canInSomeShared`, which leaves the personal workspace out; services keep `canInSome`. The
+  current user carries `personal` (session and token). `createPersonalWorkspace` inserts with ON
+  CONFLICT DO NOTHING / INSERT IGNORE, so a lost race doesn't abort the transaction; it needs READ
+  COMMITTED. Create user locks the acting root, so a race test needs two raw transactions. Root can
+  still demote an owner or add someone to a personal workspace through the user's Workspaces
+  dialog until task 3. `listWorkspaces` now lists private workspaces only to their members and root.

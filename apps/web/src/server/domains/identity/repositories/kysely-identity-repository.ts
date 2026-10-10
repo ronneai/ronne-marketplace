@@ -4,6 +4,7 @@ import { newId } from "../../../db/ids";
 import { countCapped, paginate } from "../../../db/keyset";
 import { forUpdate, readCommittedTransaction } from "../../../db/locks";
 import { GLOBAL_WORKSPACE_ID } from "../../../db/migrations/0019_workspaces";
+import { createPersonalWorkspace } from "../../../db/personal-workspaces";
 import type { Database } from "../../../db/schema";
 import { containsInsensitive } from "../../../db/search";
 import type { DatabaseDialect } from "../../../db/url";
@@ -19,7 +20,7 @@ import type {
 /** Admins first, then moderators, then users: how the users list names someone's roles. */
 const ROLE_ORDER = { admin: 0, moderator: 1, user: 2 } as const;
 
-import { loadMemberships } from "./memberships";
+import { loadMemberships, loadPersonal } from "./memberships";
 
 type UserRow = {
   id: string;
@@ -133,6 +134,7 @@ export const kyselyIdentityRepository = (
         name: row.name,
         role: row.role,
         workspaces: await loadMemberships(db, row.id),
+        personal: await loadPersonal(db, row.id),
       };
     },
 
@@ -162,6 +164,7 @@ export const kyselyIdentityRepository = (
           name: row.name,
           role: isRole(row.role) ? row.role : "user",
           workspaces: await loadMemberships(db, row.id),
+          personal: await loadPersonal(db, row.id),
         },
         disabledAt: fromDbDate(row.disabled_at),
         passwordHash: row.password ?? null,
@@ -199,6 +202,13 @@ export const kyselyIdentityRepository = (
               .innerJoin("workspaces", "workspaces.id", "workspace_members.workspace_id")
               .select(["workspace_members.user_id", "workspace_members.role", "workspaces.name"])
               .where("workspace_members.user_id", "in", ids)
+              // Not their own personal workspace (114): everyone has one, and it's no shared role.
+              .where((eb) =>
+                eb.or([
+                  eb("workspaces.owner_id", "is", null),
+                  eb("workspaces.owner_id", "!=", eb.ref("workspace_members.user_id")),
+                ]),
+              )
               .orderBy("workspaces.name")
               .execute();
       return {
@@ -338,6 +348,8 @@ export const kyselyIdentityRepository = (
             updated_at: at(now),
           })
           .execute();
+      // A personal workspace of their own (114), roots too, in the same transaction.
+      await createPersonalWorkspace(db, dialect, { id, email: user.email }, now);
       return id;
     },
 

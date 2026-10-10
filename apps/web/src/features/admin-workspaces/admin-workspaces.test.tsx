@@ -417,6 +417,16 @@ describe("the pages", () => {
     expect(workspaces.findWorkspace).not.toHaveBeenCalled();
   });
 
+  it("doesn't list workspaces for someone who only owns a personal one (114)", async () => {
+    session.getCurrentUser.mockResolvedValueOnce({
+      role: "user",
+      workspaces: { mine: "admin" },
+      personal: "mine",
+    });
+    await expect(listPage()).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(workspaces.pageWorkspaces).not.toHaveBeenCalled();
+  });
+
   it("root gets the list, searched and sorted on the server, with New workspace", async () => {
     session.getCurrentUser.mockResolvedValueOnce({ role: "root" });
     const html = renderToStaticMarkup(await listPage({ q: "ac" }));

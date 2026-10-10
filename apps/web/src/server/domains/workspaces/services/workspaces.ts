@@ -376,13 +376,23 @@ export const deleteWorkspace = async (
   }
 };
 
-/** Every workspace, `global` first: everyone signed in, for the catalogue's filter and the selects. */
+/**
+ * The workspaces the caller sees, `global` first, for the selects: public ones, and private ones
+ * they're a member of (093); root sees every one. With a personal workspace per user (114), listing
+ * private ones to everyone would name every user's.
+ */
 export const listWorkspaces = async (
   deps: WorkspaceDeps,
   actor: WorkspaceActor,
 ): Promise<Workspace[]> => {
   requirePermission(actor.user, "account.manage_own");
-  return deps.repo.list();
+  const user = actor.user;
+  return (await deps.repo.list()).filter(
+    (w) =>
+      w.visibility === "public" ||
+      user?.role === "root" ||
+      Object.hasOwn(user?.workspaces ?? {}, w.id),
+  );
 };
 
 export type WorkspacesTablePage = {

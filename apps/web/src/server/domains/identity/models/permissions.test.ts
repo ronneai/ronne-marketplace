@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   can,
   canInSome,
+  canInSomeShared,
   INSTANCE_PERMISSIONS,
   type InstancePermission,
   requirePermission,
@@ -126,5 +127,26 @@ describe("permissions (091)", () => {
     expect(canInSome(both, "submissions.review")).toBe(true);
     expect(canInSome(PEOPLE["user in A"] as Subject, "submissions.review")).toBe(false);
     expect(canInSome(PEOPLE["non-member"] as Subject, "submissions.create")).toBe(false);
+  });
+});
+
+describe("canInSomeShared (114)", () => {
+  const owner = {
+    role: "user" as const,
+    workspaces: { mine: "admin" as const, g: "user" as const },
+    personal: "mine",
+  };
+  it("leaves out the user's own personal workspace, which canInSome counts", () => {
+    expect(canInSome(owner, "members.manage")).toBe(true);
+    expect(canInSomeShared(owner, "members.manage")).toBe(false);
+    expect(canInSomeShared(owner, "submissions.review")).toBe(false);
+    expect(canInSomeShared(owner, "submissions.create")).toBe(true);
+  });
+
+  it("counts a shared workspace they administer, and everything for root", () => {
+    const both = { ...owner, workspaces: { ...owner.workspaces, team: "admin" as const } };
+    expect(canInSomeShared(both, "members.manage")).toBe(true);
+    expect(canInSomeShared({ role: "root", personal: "r" }, "members.manage")).toBe(true);
+    expect(canInSomeShared(null, "members.manage")).toBe(false);
   });
 });

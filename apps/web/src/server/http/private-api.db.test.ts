@@ -284,7 +284,13 @@ describe("workspaces in the API (095)", () => {
     ]);
     // A non-member doesn't see the private one at all; root sees every one, as root.
     expect(await roles(outsider)).toEqual({ global: "moderator", tools: null });
-    expect(await roles(root)).toEqual({ global: "root", acme: "root", tools: "root" });
+    // Root's own personal workspace too (114).
+    expect(await roles(root)).toEqual({
+      global: "root",
+      acme: "root",
+      tools: "root",
+      "root-2": "root",
+    });
   });
 
   it("needs a token", async () => {

@@ -48,6 +48,8 @@ describe("getCurrentUser", () => {
       name: "Someone",
       role: "user",
       workspaces: { [GLOBAL_WORKSPACE_ID]: "moderator" },
+      // Made by the test helper, not Create user: no personal workspace (114).
+      personal: null,
     });
     expect(await getCurrentUser(new Headers(), app)).toBeNull();
     expect(

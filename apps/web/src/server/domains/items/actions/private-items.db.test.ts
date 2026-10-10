@@ -136,7 +136,10 @@ describe("a private workspace's items (093)", () => {
     ] as const) {
       const page = await browseCatalogue(headers, {}, app);
       expect(names(page.entries), who).toEqual(["@acme/acme-infra/deploy", "@team/base"]);
-      expect(page.workspaces, who).toEqual(["global", "acme"]);
+      // Root's own personal workspace is in root's filter too (114).
+      expect(page.workspaces, who).toEqual(
+        who === "root" ? ["global", "acme", "root-2"] : ["global", "acme"],
+      );
       expect(page.scopes, who).toContain("acme-infra");
       // The card's lock label (task 8).
       expect(
