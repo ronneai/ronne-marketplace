@@ -410,6 +410,11 @@ describe("renaming a workspace (113)", () => {
     expect(page.item.fullName).toBe("@acme-platform/team/deploy");
     const catalogue = await browseCatalogue(asUser, {}, app);
     expect(catalogue.entries.map((e) => e.workspace)).toEqual(["acme-platform"]);
+    // The catalogue's filter by the new name; the old one is a name no workspace has.
+    const inNew = await browseCatalogue(asUser, { workspace: "acme-platform" }, app);
+    expect(inNew.entries.map((e) => e.name)).toEqual(["deploy"]);
+    const inOld = await browseCatalogue(asUser, { workspace: "acme" }, app);
+    expect(inOld.entries).toEqual([]);
     // A lockfile's old name still resolves and downloads, and says the name it has now.
     const resolution = await resolveAs(
       author,

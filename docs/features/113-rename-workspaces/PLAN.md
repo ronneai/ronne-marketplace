@@ -25,7 +25,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   workspace as its admin and opens the new address (and the old one answers not found), on desktop
   and phone.
 
-- [ ] **3. The old name everywhere.** Tests that the old name answers as unknown and the new one
+- [x] **3. The old name everywhere.** Tests that the old name answers as unknown and the new one
   works in the join page, `?workspace=` on the catalogue and `GET /api/v1/items`,
   `GET /api/v1/workspaces`, and the feeds' `?workspaces=` (`workspace_not_found` for the old);
   the items install by their old names and `rmk` rewrites the lockfile.

@@ -195,3 +195,22 @@ Witnessed: 2026-10-10 15:50 EDT, by a fresh agent (blind). Commit: dbe21a84 (plu
 | 10 | Lint and types | no | confirmed | biome (warnings only in untouched files); tsc |
 
 **Overall:** met.
+
+## Task 3 — The old name everywhere
+
+Witnessed: 2026-10-10 16:00 EDT, by a fresh agent (blind). Commit: a72d319a (plus the uncommitted working tree, tests only). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Join page: new name answers, old one unknown | no | confirmed | `joinTarget` open vs `unseen` (workspace made public first); fails when the name guard goes |
+| 2 | Catalogue `?workspace=` | no | confirmed | `rename.db.test.ts`; fails with a prefix match |
+| 3 | `GET /api/v1/items?workspace=` | no | confirmed | old name's body equals an unknown name's; fails with a prefix match |
+| 4 | `GET /api/v1/workspaces` | no | confirmed | names exactly `["global","acme-x"]` |
+| 5 | Feeds `?workspaces=` | no | confirmed | new plugin names; old → 404 `workspace_not_found`, same as an unknown name; fails with a prefix match in `findByName` |
+| 6 | Items install by their old names (API) | no | confirmed | item, tarball 200, `renamed` exactly |
+| 7 | `rmk` installs by the old name and rewrites the lockfile | no | confirmed | e2e 4 passed; lock `[oldName]` then exactly `[newName]` with the note |
+| 8 | No redirect from the old workspace name | no | confirmed | rows 1–5; `/admin/workspaces/<old>` 404 |
+| 9 | Those tests pass on the four databases | no | confirmed | 41 passed on each |
+| 10 | Lint and types | no | confirmed | biome; tsc |
+
+**Overall:** met.
