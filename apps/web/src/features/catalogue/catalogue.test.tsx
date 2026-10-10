@@ -260,7 +260,8 @@ describe("workspaces in the catalogue (090)", () => {
   it("names a workspace other than global before the item, quietly", () => {
     const acme = view({ entries: [entry({ workspace: "acme", scope: "acme-infra" })] });
     expect(acme).toMatch(/acme<span aria-hidden="true"> · <\/span>/);
-    expect(acme).toContain("@acme-infra/fmt");
+    expect(acme).toContain("@acme/acme-infra/fmt");
+    expect(acme).toContain('href="/workspaces/acme/items/acme-infra/fmt"');
     expect(view()).not.toContain('<span aria-hidden="true"> · </span>');
   });
 

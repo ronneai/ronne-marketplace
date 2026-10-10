@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { byteSize, fileBytes, isBase64, itemNameOf, validateDraft } from "./submission";
 
-const draft = { scope: { name: "platform" }, name: "reviewer", type: "agent" as const };
+const draft = {
+  workspace: { name: "global" },
+  scope: { name: "platform" },
+  name: "reviewer",
+  type: "agent" as const,
+};
 const text = (path: string, content: string) => ({
   path,
   encoding: "utf8" as const,

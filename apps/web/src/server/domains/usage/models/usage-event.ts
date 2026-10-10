@@ -1,4 +1,4 @@
-import { parseItemName } from "@ronneai/core";
+import { canonicalItemName } from "@ronneai/core";
 import { RENDERERS } from "@ronneai/core/render";
 
 /**
@@ -55,12 +55,14 @@ const isOneOf = <T extends string>(list: readonly T[], value: unknown): value is
 export const usageEventOf = (value: unknown, today: string): UsageEvent | null => {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const raw = value as Record<string, unknown>;
-  const { day, item, version, tool, event, count } = raw;
+  const { day, version, tool, event, count } = raw;
+  // One way to write each name (118), so `@global/team/x` counts as `@team/x`.
+  const item = typeof raw.item === "string" ? canonicalItemName(raw.item) : null;
   if (typeof day !== "string" || !DAY.test(day) || dayOf(new Date(`${day}T00:00:00.000Z`)) !== day)
     return null;
   // The machine's clock may be a day ahead; anything older than rmk keeps is stale.
   if (day > daysBefore(today, -1) || day < daysBefore(today, DAYS_BACK)) return null;
-  if (typeof item !== "string" || !parseItemName(item)) return null;
+  if (item === null) return null;
   if (typeof version !== "string" || version.length > 64 || !SEMVER.test(version)) return null;
   if (typeof tool !== "string" || !RENDERERS.some((renderer) => renderer.id === tool)) return null;
   if (!isOneOf(USAGE_EVENTS, event)) return null;

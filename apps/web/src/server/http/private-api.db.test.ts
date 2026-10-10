@@ -149,23 +149,28 @@ const answer = async (response: Response, name: string) =>
   `${response.status} ${(await response.text()).replaceAll(name, "X")}`;
 
 const asks = {
+  // Outside global, an item's paths name its workspace (118).
   item: (name: string, token: string) =>
-    getItem(get(`/items/acme-infra/${name}`, token), { scope: "acme-infra", name }, deps),
+    getItem(
+      get(`/workspaces/acme/items/acme-infra/${name}`, token),
+      { workspace: "acme", scope: "acme-infra", name },
+      deps,
+    ),
   version: (name: string, token: string) =>
     getVersion(
-      get(`/items/acme-infra/${name}/1.0.0`, token),
-      { scope: "acme-infra", name, version: "1.0.0" },
+      get(`/workspaces/acme/items/acme-infra/${name}/1.0.0`, token),
+      { workspace: "acme", scope: "acme-infra", name, version: "1.0.0" },
       deps,
     ),
   tarball: (name: string, token: string) =>
     getTarball(
-      get(`/items/acme-infra/${name}/1.0.0/tarball`, token),
-      { scope: "acme-infra", name, version: "1.0.0" },
+      get(`/workspaces/acme/items/acme-infra/${name}/1.0.0/tarball`, token),
+      { workspace: "acme", scope: "acme-infra", name, version: "1.0.0" },
       deps,
     ),
   resolve: (name: string, token: string) =>
     postResolve(
-      post("/resolve", token, { dependencies: { [`@acme-infra/${name}`]: "^1.0.0" } }),
+      post("/resolve", token, { dependencies: { [`@acme/acme-infra/${name}`]: "^1.0.0" } }),
       deps,
     ),
 };
@@ -184,7 +189,16 @@ describe("the registry API and a private workspace (093)", () => {
       deps,
     );
     expect(await answer(unknownScope, "nosuch")).toBe(
-      await answer(await asks.item("deploy", outsider), "acme-infra"),
+      await answer(await asks.item("deploy", outsider), "acme/acme-infra"),
+    );
+    // And an unknown workspace (118).
+    const unknownWorkspace = await getItem(
+      get("/workspaces/nosuch/items/acme-infra/deploy", outsider),
+      { workspace: "nosuch", scope: "acme-infra", name: "deploy" },
+      deps,
+    );
+    expect(await answer(unknownWorkspace, "nosuch/acme-infra")).toBe(
+      await answer(await asks.item("deploy", outsider), "acme/acme-infra"),
     );
   });
 
@@ -199,7 +213,7 @@ describe("the registry API and a private workspace (093)", () => {
         (i: { name: string }) => i.name,
       );
     expect(await names(outsider)).toEqual([]);
-    expect(await names(member)).toEqual(["@acme-infra/deploy"]);
+    expect(await names(member)).toEqual(["@acme/acme-infra/deploy"]);
     const scopes = async (token: string) =>
       (await (await getScopes(get("/scopes", token), deps)).json()).scopes.map(
         (s: { name: string }) => s.name,
@@ -209,7 +223,7 @@ describe("the registry API and a private workspace (093)", () => {
     expect(await scopes(member)).toContain("acme-infra");
     expect(await scopes(root)).toContain("acme-infra");
     expect(await names(plain)).toEqual([]);
-    expect(await names(root)).toEqual(["@acme-infra/deploy"]);
+    expect(await names(root)).toEqual(["@acme/acme-infra/deploy"]);
   });
 
   it("doesn't count a non-member's download of it", async () => {
@@ -289,9 +303,9 @@ describe("workspaces in the API (095)", () => {
       expect(response.status).toBe(200);
       return (await response.json()).items.map((i: { name: string }) => i.name);
     };
-    expect(await names("workspace=acme", member)).toEqual(["@acme-infra/deploy"]);
-    expect(await names("workspace=%20ACME%20", member)).toEqual(["@acme-infra/deploy"]);
-    expect(await names("workspace=acme", root)).toEqual(["@acme-infra/deploy"]);
+    expect(await names("workspace=acme", member)).toEqual(["@acme/acme-infra/deploy"]);
+    expect(await names("workspace=%20ACME%20", member)).toEqual(["@acme/acme-infra/deploy"]);
+    expect(await names("workspace=acme", root)).toEqual(["@acme/acme-infra/deploy"]);
     expect(await names("workspace=tools", member)).toEqual([]);
     // To a non-member, a private workspace answers as a name no workspace has.
     const hidden = await listItems(get("/items?workspace=acme", outsider), deps);

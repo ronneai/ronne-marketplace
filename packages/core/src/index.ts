@@ -36,6 +36,7 @@ export {
   RESERVED_WORKSPACES,
   type ScopeRef,
   sameItemName,
+  scopeRefFrom,
   shortItemName,
   typedNameParts,
 } from "./names.js";
@@ -59,6 +60,7 @@ export { type RiskFlag, type RiskFlagKind, riskFlags } from "./risk-flags.js";
 export { manifestSchema } from "./schema/index.js";
 export {
   type Bump,
+  bothRanges,
   defaultTag,
   highestMatching,
   highestStable,

@@ -305,7 +305,7 @@ const release = async (
   );
   const path = `${E2E_SCOPE}/${name}/${version}.tgz`;
   await localStorage(storagePath).put(path, packed.tgz);
-  const existing = await items.findByName(E2E_SCOPE, name);
+  const existing = await items.findByName({ scope: E2E_SCOPE, name: name });
   const itemId =
     existing?.id ??
     (await items.insertItem({
@@ -434,7 +434,8 @@ const releaseSkillIn = async (
     createdBy: null,
     createdAt: new Date(),
   });
-  const name = `@${where.scope}/${where.item}`;
+  // Outside global, the full name names the workspace (118).
+  const name = `@${where.workspace}/${where.scope}/${where.item}`;
   const description = `The ${where.item} skill.`;
   const files = [
     {

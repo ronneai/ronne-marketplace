@@ -119,8 +119,12 @@ const get = (path: string, headers: Record<string, string> = {}, method = "GET")
 
 const ZIP = { tool: "claude-code", scope: "team", name: "style", file: "1.0.0.zip" };
 const downloads = async () =>
-  (await kyselyItemRepository(t.db, t.dialect, UNFILTERED).findByName("team", "style"))
-    ?.downloadCount;
+  (
+    await kyselyItemRepository(t.db, t.dialect, UNFILTERED).findByName({
+      scope: "team",
+      name: "style",
+    })
+  )?.downloadCount;
 
 describe("GET /api/v1/feeds/claude-code/marketplace.json (077)", () => {
   it("needs a token", async () => {
@@ -263,7 +267,7 @@ describe("GET /api/v1/feeds/claude-code/plugins/{scope}/{name}/{version}.zip (07
 const releaseMore = async (name: string, manifest: string, files: Record<string, string>) => {
   const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
   const scope = await t.db.selectFrom("scopes").select("id").executeTakeFirstOrThrow();
-  const style = await items.findByName("team", "style");
+  const style = await items.findByName({ scope: "team", name: "style" });
   const parsed = parseManifest(manifest).manifest as Record<string, unknown>;
   const id = await items.insertItem({
     scopeId: scope.id,

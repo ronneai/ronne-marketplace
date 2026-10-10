@@ -74,8 +74,11 @@ export const kyselyScopeRepository = (
     transaction: (work) =>
       db.transaction().execute((trx) => work(kyselyScopeRepository(trx, dialect, viewer))),
 
-    findByName: async (name) => {
-      const row = await scopes().where("scopes.name", "=", name).executeTakeFirst();
+    findByName: async (ref) => {
+      const row = await scopes()
+        .where("workspaces.name", "=", ref.workspace)
+        .where("scopes.name", "=", ref.scope)
+        .executeTakeFirst();
       return row ? toScope(row) : null;
     },
 
@@ -109,7 +112,7 @@ export const kyselyScopeRepository = (
 
     list: async ({ search, cursor, workspaceIds, limit }) => {
       if (workspaceIds?.length === 0) return [];
-      let query = scopes().orderBy("scopes.name").limit(limit);
+      let query = scopes().orderBy("scopes.name").orderBy("scopes.id").limit(limit);
       if (workspaceIds) query = query.where("scopes.workspace_id", "in", [...workspaceIds]);
       if (search)
         query = query.where((eb) =>
@@ -118,7 +121,17 @@ export const kyselyScopeRepository = (
             containsInsensitive("scopes.description", search),
           ]),
         );
-      if (cursor) query = query.where("scopes.name", ">", cursor);
+      // `name:id` (118): two workspaces may each have a scope of the same name. A cursor from
+      // before is a name alone, and goes on after every scope of that name, as it did.
+      if (cursor?.includes(":")) {
+        const [name = "", id = ""] = cursor.split(":");
+        query = query.where((eb) =>
+          eb.or([
+            eb("scopes.name", ">", name),
+            eb.and([eb("scopes.name", "=", name), eb("scopes.id", ">", id)]),
+          ]),
+        );
+      } else if (cursor) query = query.where("scopes.name", ">", cursor);
       return (await query.execute()).map(toScope);
     },
 

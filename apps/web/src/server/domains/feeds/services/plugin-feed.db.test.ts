@@ -271,10 +271,10 @@ describe("the Claude Code feed (077)", () => {
 
   it("builds a plugin with items that need each other, every one of them (112)", async () => {
     // The skill names the agent back: what releasing them together records (112).
-    const style = await kyselyItemRepository(t.db, t.dialect, UNFILTERED).findByName(
-      "team",
-      "style",
-    );
+    const style = await kyselyItemRepository(t.db, t.dialect, UNFILTERED).findByName({
+      scope: "team",
+      name: "style",
+    });
     const latest = await t.db
       .selectFrom("item_versions")
       .select("id")
@@ -316,8 +316,12 @@ describe("the Claude Code feed (077)", () => {
   it("counts a zip download, and not a lookup", async () => {
     const ref = { scope: "team", name: "style", version: "1.1.0" };
     const count = async () =>
-      (await kyselyItemRepository(t.db, t.dialect, UNFILTERED).findByName("team", "style"))
-        ?.downloadCount;
+      (
+        await kyselyItemRepository(t.db, t.dialect, UNFILTERED).findByName({
+          scope: "team",
+          name: "style",
+        })
+      )?.downloadCount;
     await findPlugin(deps(), actor, "claude-code", ref);
     expect(await count()).toBe(0);
     await downloadPlugin(deps(), actor, "claude-code", ref);

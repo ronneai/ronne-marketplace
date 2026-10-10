@@ -3,7 +3,7 @@ import { parseFrontmatter } from "./frontmatter.js";
 import type { ManifestIssue } from "./issues.js";
 import { DEFAULT_LIMITS, formatBytes, type PackageLimits } from "./limits.js";
 import type { Manifest } from "./manifest.js";
-import { parseItemName, sameItemName } from "./names.js";
+import { formatItemName, parseItemName, sameItemName } from "./names.js";
 import type { PackageFile } from "./package-file.js";
 
 const PATH_MAX_LENGTH = 255;
@@ -332,7 +332,7 @@ export const checkPackage = (
           },
         ),
       );
-    else if (item && name === `@${item.scope}/${item.name}`)
+    else if (item && sameItemName(name, formatItemName(item)))
       issues.push(
         error("self_dependency", "An item can't depend on itself.", { path: "/dependencies" }),
       );

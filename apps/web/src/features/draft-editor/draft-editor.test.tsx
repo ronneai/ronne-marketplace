@@ -282,6 +282,7 @@ describe("the draft page", () => {
       <DraftEditor
         draft={{
           id: "d",
+          workspace: "global",
           scope: "platform",
           name: "reviewer",
           type: "agent",
@@ -306,6 +307,7 @@ describe("the draft page", () => {
       <DraftEditor
         draft={{
           id: "d",
+          workspace: "global",
           scope: "platform",
           name: "reviewer",
           type: "agent",

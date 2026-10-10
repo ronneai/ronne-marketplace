@@ -1,4 +1,4 @@
-import { ResolveError, type ResolveRequest } from "@ronneai/core";
+import { GLOBAL_WORKSPACE, ResolveError, type ResolveRequest } from "@ronneai/core";
 import type { AppAuth } from "../domains/identity/repositories/auth-instance";
 import { searchCatalogueAs } from "../domains/items/actions/catalogue";
 import {
@@ -31,8 +31,12 @@ export type RegistryApiDeps = { app?: AppAuth; guard?: TokenGuardDeps; storage?:
 const fresh = (body: unknown) =>
   Response.json(body, { headers: { "cache-control": "private, no-cache" } });
 
-/** An item's name from the path: `platform/code-reviewer`, with an optional `@`. */
-export const itemRefOf = (params: { scope: string; name: string }) => ({
+/**
+ * An item's name from the path: `platform/code-reviewer`, with an optional `@`, under
+ * `/workspaces/<workspace>` outside `global` (118).
+ */
+export const itemRefOf = (params: { workspace?: string; scope: string; name: string }) => ({
+  workspace: params.workspace ? decodeURIComponent(params.workspace) : GLOBAL_WORKSPACE,
   scope: decodeURIComponent(params.scope).replace(/^@/, ""),
   name: decodeURIComponent(params.name),
 });
@@ -85,7 +89,7 @@ export const listItems = async (request: Request, deps: RegistryApiDeps = {}) =>
 /** GET /api/v1/items/{scope}/{name}: an item, its dist-tags and its versions. */
 export const getItem = async (
   request: Request,
-  params: { scope: string; name: string },
+  params: { workspace?: string; scope: string; name: string },
   deps: RegistryApiDeps = {},
 ) => {
   const guard = await requireToken(request, deps.guard);
@@ -99,7 +103,7 @@ export const getItem = async (
   }
 };
 
-type VersionParams = { scope: string; name: string; version: string };
+type VersionParams = { workspace?: string; scope: string; name: string; version: string };
 
 /** GET /api/v1/items/{scope}/{name}/{version}: one version's manifest, files and risk flags. */
 export const getVersion = async (
@@ -152,7 +156,7 @@ export const getTarball = async (
     const headers = {
       ...cache,
       "content-type": "application/gzip",
-      "content-disposition": `attachment; filename="${ref.scope}-${ref.name}-${version}.tgz"`,
+      "content-disposition": `attachment; filename="${ref.workspace === GLOBAL_WORKSPACE ? "" : `${ref.workspace}-`}${ref.scope}-${ref.name}-${version}.tgz"`,
       "x-checksum-sha256": found.version.sha256,
     };
     if (request.method === "HEAD")

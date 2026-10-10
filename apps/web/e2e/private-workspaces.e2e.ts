@@ -14,10 +14,11 @@ const baseURL: string = JSON.parse(process.env.RONNE_E2E_INSTANCE ?? "{}").main.
 /** "Private · acme · @scope/name", with the commas only a screen reader hears (093). */
 const lockLabel = (workspace: string, item: string) =>
   new RegExp(`Private · (, )?${workspace} · (, )?${item.replaceAll("/", "\\/")}`);
-const VAULT_ITEM = `@${E2E_VAULT.scope}/${E2E_VAULT.item}`;
-const vaultPage = `/items/${E2E_VAULT.scope}/${E2E_VAULT.item}`;
+// Its full name names its workspace (118).
+const VAULT_ITEM = `@${E2E_VAULT.workspace}/${E2E_VAULT.scope}/${E2E_VAULT.item}`;
+const vaultPage = `/workspaces/${E2E_VAULT.workspace}/items/${E2E_VAULT.scope}/${E2E_VAULT.item}`;
 const unknownPage = `/items/${E2E_VAULT.scope}/nothing-here`;
-const shelfPage = `/items/${E2E_SHELF.scope}/${E2E_SHELF.item}`;
+const shelfPage = `/workspaces/${E2E_SHELF.workspace}/items/${E2E_SHELF.scope}/${E2E_SHELF.item}`;
 
 const signedIn = async (browser: Browser, email: string): Promise<Page> => {
   const page = await browser.newPage();
@@ -149,7 +150,9 @@ test("rmk-mcp shows a private item to a member and an unknown name to an outside
     const found = await client.call("search_items", { query: E2E_VAULT.item });
     expect(found.text).not.toContain(VAULT_ITEM);
     const hidden = await client.call("get_item", { name: VAULT_ITEM });
-    const unknown = await client.call("get_item", { name: `@${E2E_VAULT.scope}/nothing-here` });
+    const unknown = await client.call("get_item", {
+      name: `@${E2E_VAULT.workspace}/${E2E_VAULT.scope}/nothing-here`,
+    });
     expect(hidden.isError).toBe(true);
     expect(hidden.text.replaceAll(E2E_VAULT.item, "X")).toBe(
       unknown.text.replaceAll("nothing-here", "X"),
@@ -181,7 +184,7 @@ test("root makes a workspace private and public again, and an outsider sees it g
   expect((await outsider.goto(shelfPage))?.status()).toBe(404);
   await root.goto(shelfPage);
   await expect(root.getByRole("heading", { level: 1 })).toContainText(
-    lockLabel(E2E_SHELF.workspace, `@${E2E_SHELF.scope}/${E2E_SHELF.item}`),
+    lockLabel(E2E_SHELF.workspace, `@${E2E_SHELF.workspace}/${E2E_SHELF.scope}/${E2E_SHELF.item}`),
   );
 
   await root.goto(`/admin/workspaces/${E2E_SHELF.workspace}`);

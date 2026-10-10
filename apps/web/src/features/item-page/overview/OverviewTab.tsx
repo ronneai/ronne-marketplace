@@ -1,4 +1,4 @@
-import { formatBytes, type ItemType } from "@ronneai/core";
+import { formatBytes, formatItemName, type ItemType } from "@ronneai/core";
 import { installsIn, RENDERERS, supportOf } from "@ronneai/core/render";
 import { Ban, Check, FileText, ShieldCheck } from "lucide-react";
 import Link from "next/link";
@@ -626,8 +626,12 @@ export const OverviewTab = ({
   /** The `/plugin install` command, when the item is in the Claude Code feed (077). */
   plugin?: string | null;
 }) => {
-  const item = { scope: page.item.scope.name, name: page.item.name };
-  const name = `@${item.scope}/${item.name}`;
+  const item = {
+    workspace: page.item.workspace,
+    scope: page.item.scope.name,
+    name: page.item.name,
+  };
+  const name = formatItemName(item);
   const type = page.item.type;
   const { shown } = page;
   const version = shown.version !== page.listed ? shown.version : null;

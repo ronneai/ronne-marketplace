@@ -1,3 +1,4 @@
+import { formatItemName } from "@ronneai/core";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import { can, canInSome, requirePermission } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
@@ -8,7 +9,7 @@ import {
   VersionMessageError,
   VersionNotFoundError,
 } from "../exceptions/errors";
-import type { Item, ItemVersion } from "../models/item";
+import type { Item, ItemRef, ItemVersion } from "../models/item";
 import {
   latestAfterYank,
   messageFrom,
@@ -24,9 +25,9 @@ import type { ItemRepository } from "../repositories/item-repository";
  */
 export type VersionDeps = { items: ItemRepository; now?: () => Date };
 export type VersionActor = { user: CurrentUser | null; ip: string | null };
-export type ItemRef = { scope: string; name: string };
+export type { ItemRef } from "../models/item";
 
-const nameOf = (ref: ItemRef) => `@${ref.scope}/${ref.name}`;
+const nameOf = (ref: ItemRef) => formatItemName(ref);
 
 /** Runs `work` on the locked item, with its versions, as `versions.manage`. */
 const withItem = <T>(
@@ -49,7 +50,7 @@ const withItem = <T>(
   if (!canInSome(actor.user, "versions.manage")) throw new ForbiddenError("versions.manage");
   const at = (deps.now ?? (() => new Date()))();
   return deps.items.transaction(async (items) => {
-    const item = await items.findByName(ref.scope, ref.name);
+    const item = await items.findByName(ref);
     if (!item) throw new ItemNotFoundError(nameOf(ref));
     // In the item's workspace: its moderators, or root (091).
     requirePermission(actor.user, "versions.manage", item.workspaceId);
@@ -245,7 +246,7 @@ export const listVersions = async (
   ref: ItemRef,
 ): Promise<VersionsPage> => {
   requirePermission(actor.user, "account.manage_own");
-  const item = await deps.items.findByName(ref.scope, ref.name);
+  const item = await deps.items.findByName(ref);
   if (!item) throw new ItemNotFoundError(nameOf(ref));
   const versions = await deps.items.versions(item.id);
   const tags = await deps.items.tags(item.id);

@@ -24,7 +24,8 @@ describe("registry JSON", () => {
         support: { "claude-code": "native", codex: "native", cursor: "off" },
       }),
     ).toEqual({
-      name: "@team/fmt",
+      // Outside global, the workspace is part of the name (118).
+      name: "@acme/team/fmt",
       workspace: { name: "acme", visibility: "private" },
       type: "hook",
       description: "Formats.",

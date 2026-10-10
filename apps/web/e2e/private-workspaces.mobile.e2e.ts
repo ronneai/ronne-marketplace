@@ -12,8 +12,9 @@ const PRIVATE_USERS = {
 /** "Private · acme · @scope/name", with the commas only a screen reader hears (093). */
 const lockLabel = (workspace: string, item: string) =>
   new RegExp(`Private · (, )?${workspace} · (, )?${item.replaceAll("/", "\\/")}`);
-const VAULT_ITEM = `@${E2E_VAULT.scope}/${E2E_VAULT.item}`;
-const vaultPage = `/items/${E2E_VAULT.scope}/${E2E_VAULT.item}`;
+// Its full name names its workspace (118).
+const VAULT_ITEM = `@${E2E_VAULT.workspace}/${E2E_VAULT.scope}/${E2E_VAULT.item}`;
+const vaultPage = `/workspaces/${E2E_VAULT.workspace}/items/${E2E_VAULT.scope}/${E2E_VAULT.item}`;
 
 /**
  * Private workspaces on phones and tablets (093): the member sees the lock label on the card and

@@ -1,4 +1,4 @@
-import { parseItemName } from "@ronneai/core";
+import { formatItemName, parseItemName } from "@ronneai/core";
 import type { Kysely } from "kysely";
 import type { Database } from "../../../db/schema";
 import { upsertAdding } from "../../../db/upsert";
@@ -20,27 +20,49 @@ export const kyselyUsageRepository = (
 ): UsageRepository => ({
   async publishedVersions(names) {
     const found = new Map<string, { itemId: string; versions: Set<string> }>();
-    const pairs = names.map((name) => parseItemName(name)).filter((parsed) => parsed !== null);
-    if (pairs.length === 0) return found;
-    const rows = await db
-      .selectFrom("items")
-      .innerJoin("scopes", "scopes.id", "items.scope_id")
-      .innerJoin("item_versions", "item_versions.item_id", "items.id")
-      .select(["items.id", "scopes.name as scope", "items.name", "item_versions.version"])
-      .where(inVisibleWorkspace(viewer, "scopes.workspace_id"))
+    const refs = names.map((name) => parseItemName(name)).filter((parsed) => parsed !== null);
+    if (refs.length === 0) return found;
+    const versions = () =>
+      db
+        .selectFrom("items")
+        .innerJoin("scopes", "scopes.id", "items.scope_id")
+        .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
+        .innerJoin("item_versions", "item_versions.item_id", "items.id")
+        .where(inVisibleWorkspace(viewer, "scopes.workspace_id"));
+    // By the names items have now, and by old ones (118): a lockfile may still say either.
+    const current = await versions()
+      .select([
+        "items.id",
+        "workspaces.name as workspace",
+        "scopes.name as scope",
+        "items.name",
+        "item_versions.version",
+      ])
       .where((eb) =>
         eb.or(
-          pairs.map(({ scope, name }) =>
-            eb.and([eb("scopes.name", "=", scope), eb("items.name", "=", name)]),
+          refs.map(({ workspace, scope, name }) =>
+            eb.and([
+              eb("workspaces.name", "=", workspace),
+              eb("scopes.name", "=", scope),
+              eb("items.name", "=", name),
+            ]),
           ),
         ),
       )
       .execute();
+    const old = await versions()
+      .innerJoin("item_aliases", "item_aliases.item_id", "items.id")
+      .select(["items.id", "item_aliases.name as alias", "item_versions.version"])
+      .where("item_aliases.name", "in", refs.map(formatItemName))
+      .execute();
+    const rows = [
+      ...current.map((row) => ({ ...row, key: formatItemName(row) })),
+      ...old.map((row) => ({ ...row, key: row.alias })),
+    ];
     for (const row of rows) {
-      const key = `@${row.scope}/${row.name}`;
-      const entry = found.get(key) ?? { itemId: row.id, versions: new Set<string>() };
+      const entry = found.get(row.key) ?? { itemId: row.id, versions: new Set<string>() };
       entry.versions.add(row.version);
-      found.set(key, entry);
+      found.set(row.key, entry);
     }
     return found;
   },

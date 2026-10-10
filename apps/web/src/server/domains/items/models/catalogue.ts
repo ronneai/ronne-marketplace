@@ -40,7 +40,8 @@ export type CatalogueEntry = {
 export type CatalogueCursor =
   | { sort: "recent"; installable: boolean; lastPublishedAt: string; id: string }
   | { sort: "installs"; installable: boolean; installs: number; id: string }
-  | { sort: "name"; installable: boolean; scope: string; name: string };
+  // `id` breaks ties: two workspaces may each have `@team/lint` (118).
+  | { sort: "name"; installable: boolean; scope: string; name: string; id: string };
 
 export type CatalogueFilter = {
   search?: string;

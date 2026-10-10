@@ -1,3 +1,4 @@
+import { formatItemName } from "@ronneai/core";
 import { describe, expect, it } from "vitest";
 import type { NamedSubmission, RegistryLookup } from "../repositories/registry-lookup";
 import { marksFor } from "./dependency-marks";
@@ -10,10 +11,18 @@ const registry = (
   published: Record<string, string[]>,
   submissions: Record<string, Named[]>,
 ): RegistryLookup => ({
-  findItem: async (scope, name) =>
-    published[`@${scope}/${name}`]
-      ? { id: `@${scope}/${name}`, scope, name, type: "skill", workspace: PUBLIC }
+  findItem: async (ref) =>
+    published[formatItemName(ref)]
+      ? {
+          id: formatItemName(ref),
+          fullName: formatItemName(ref),
+          scope: ref.scope,
+          name: ref.name,
+          type: "skill",
+          workspace: PUBLIC,
+        }
       : null,
+  isOldName: async () => false,
   publishedVersions: async (id) =>
     (published[id] ?? []).map((version) => ({
       id: `${id}@${version}`,
@@ -25,9 +34,9 @@ const registry = (
       dependencies: {},
     })),
   ownDraftNamed: async () => null,
-  submissionsNamed: async (scope, name) =>
-    (submissions[`@${scope}/${name}`] ?? []).map((s, i) => ({
-      id: `${name}#${i}`,
+  submissionsNamed: async (ref) =>
+    (submissions[formatItemName(ref)] ?? []).map((s, i) => ({
+      id: `${ref.name}#${i}`,
       type: "skill",
       authorId: "me",
       proposal: false,

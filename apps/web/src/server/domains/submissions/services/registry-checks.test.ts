@@ -1,4 +1,5 @@
 import type { ItemType } from "@ronneai/core";
+import { formatItemName } from "@ronneai/core";
 import { describe, expect, it } from "vitest";
 import {
   type NamedSubmission,
@@ -34,11 +35,13 @@ const fakeRegistry = (
   submissions: FakeSubmissions = {},
   drafts: Record<string, Partial<OwnDraft> & { authorId: string }> = {},
 ): RegistryLookup => ({
-  findItem: async (scope, name) => {
-    const found = items[`@${scope}/${name}`];
+  findItem: async (ref) => {
+    const { scope, name } = ref;
+    const found = items[formatItemName(ref)];
     return found
       ? {
-          id: `@${scope}/${name}`,
+          id: formatItemName(ref),
+          fullName: formatItemName(ref),
           scope,
           name,
           type: found.type,
@@ -46,6 +49,7 @@ const fakeRegistry = (
         }
       : null;
   },
+  isOldName: async () => false,
   publishedVersions: async (id) =>
     (items[id]?.versions ?? []).map((v) => ({
       id: `${id}@${v.version}`,
@@ -56,20 +60,20 @@ const fakeRegistry = (
       dependencies: {},
       ...v,
     })),
-  submissionsNamed: async (scope, name) =>
-    (submissions[`@${scope}/${name}`] ?? []).map((sub, i) => ({
-      id: `${scope}/${name}#${i}`,
+  submissionsNamed: async (ref) =>
+    (submissions[formatItemName(ref)] ?? []).map((sub, i) => ({
+      id: `${ref.scope}/${ref.name}#${i}`,
       authorId: "me",
       proposal: false,
       dependencies: {},
       workspace: GLOBAL,
       ...sub,
     })),
-  ownDraftNamed: async (scope, name, authorId) => {
-    const draft = drafts[`@${scope}/${name}`];
+  ownDraftNamed: async (ref, authorId) => {
+    const draft = drafts[formatItemName(ref)];
     return draft && draft.authorId === authorId
       ? {
-          id: `${scope}/${name}#draft`,
+          id: `${ref.scope}/${ref.name}#draft`,
           type: "skill",
           dependencies: {},
           workspace: GLOBAL,
@@ -506,9 +510,15 @@ describe("typeIssues", () => {
   });
   it("refuses a proposal whose type isn't its item's", async () => {
     expect(
-      await typeIssues(registry, { scope: { name: "team" }, name: "fmt", type: "hook" }),
+      await typeIssues(registry, {
+        workspace: { name: "global" },
+        scope: { name: "team" },
+        name: "fmt",
+        type: "hook",
+      }),
     ).toEqual([]);
     const [issue] = await typeIssues(registry, {
+      workspace: { name: "global" },
       scope: { name: "team" },
       name: "fmt",
       type: "rule",

@@ -11,6 +11,7 @@ import {
   parseItemName,
   parseScopeName,
   sameItemName,
+  scopeRefFrom,
   shortItemName,
   typedNameParts,
 } from "./names.js";
@@ -147,5 +148,8 @@ describe("formatItemName and the global short form (118)", () => {
     for (const bad of ["team", "@a/b/c", "@A", "@"]) expect(parseScopeName(bad), bad).toBeNull();
     expect(formatScopeName({ workspace: "global", scope: "team" })).toBe("@team");
     expect(formatScopeName({ workspace: "acme", scope: "team" })).toBe("@acme/team");
+    expect(scopeRefFrom(" Team ")).toEqual({ workspace: "global", scope: "team" });
+    expect(scopeRefFrom("@Acme/Team")).toEqual({ workspace: "acme", scope: "team" });
+    expect(scopeRefFrom("")).toBeNull();
   });
 });

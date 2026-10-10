@@ -1,4 +1,4 @@
-import { GLOBAL_WORKSPACE } from "@ronneai/core";
+import { formatItemName, GLOBAL_WORKSPACE } from "@ronneai/core";
 import { installsIn, RENDERERS } from "@ronneai/core/render";
 import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
@@ -34,7 +34,7 @@ export const ItemCard = ({
   entry: CatalogueEntry;
   heading?: "h2" | "h3";
 }) => {
-  const name = `@${entry.scope}/${entry.name}`;
+  const name = formatItemName(entry);
   const tools = RENDERERS.filter((r) => installsIn(entry.support[r.id])).map((r) => r.name);
   const keywords = entry.keywords.map((keyword) => `#${keyword}`);
   const details = [

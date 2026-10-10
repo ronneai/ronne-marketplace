@@ -17,6 +17,8 @@ export type EditorFile = {
 /** A draft as the page hands it to the editor: plain data, dates as ISO strings. */
 export type EditorDraft = {
   id: string;
+  /** Its scope's workspace (118): part of the item's full name outside `global`. */
+  workspace: string;
   scope: string;
   name: string;
   type: ItemType;

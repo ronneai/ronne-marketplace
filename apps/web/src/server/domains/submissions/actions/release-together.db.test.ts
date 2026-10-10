@@ -105,7 +105,7 @@ const server = (name: string, scope = "team") =>
     scope,
     name,
     "mcp-server",
-    `name: "@${scope}/${name}"\ntype: mcp-server\ndescription: A server.\nmcp-server:\n  transport: stdio\n  command: npx\n`,
+    `name: "${scope.startsWith("@") ? scope : `@${scope}`}/${name}"\ntype: mcp-server\ndescription: A server.\nmcp-server:\n  transport: stdio\n  command: npx\n`,
   );
 const bundle = (name: string, needs: string[]) =>
   draftWith(
@@ -185,19 +185,19 @@ describe("Release takes an item's unreleased dependencies with it (112)", () => 
 
   it("refuses, with why, a member the person may not release", async () => {
     // The moderator moderates global, where the bundle is, but not acme, where its server is.
-    const b = await server("b", "acme");
-    const a = await bundle("a", ["@acme/b"]);
+    const b = await server("b", "@acme/acme");
+    const a = await bundle("a", ["@acme/acme/b"]);
     await submitDraft(asAuthor, a, app, storage);
     await approve(a);
     await approve(b, asRoot);
     const refused = await release(a, asModerator).catch((error) => error);
     expect(refused).toBeInstanceOf(SubmissionInvalidError);
     expect(refused.message).toBe(
-      "It can't be released yet: @acme/b can't be released with it: only its author, a moderator or root releases it.",
+      "It can't be released yet: @acme/acme/b can't be released with it: only its author, a moderator or root releases it.",
     );
     expect([await statusOf(a), await statusOf(b)]).toEqual(["approved", "approved"]);
     // The author may release both.
-    expect((await release(a)).with.map((m) => m.name)).toEqual(["@acme/b"]);
+    expect((await release(a)).with.map((m) => m.name)).toEqual(["@acme/acme/b"]);
   });
 
   it("releases nothing when recording one of them fails", async () => {

@@ -119,12 +119,18 @@ export class SubmissionInvalidError extends SubmissionsError {
 export class ItemNameTakenError extends SubmissionsError {
   constructor(
     readonly itemName: string,
-    readonly by: "published" | "submission",
+    readonly by: "published" | "submission" | "alias" | "taken",
   ) {
     super(
       by === "published"
         ? `${itemName} is already a published item. Pick another name, or propose a change to it.`
-        : `${itemName} is already proposed by another submission under review. Pick another name.`,
+        : by === "alias"
+          ? // An old name (118): kept for the item that had it, so nobody else can answer to it.
+            `${itemName} was the name of another item; pick another name.`
+          : by === "taken"
+            ? // The same, said to someone who doesn't see that item (093): nothing about it.
+              `${itemName} is taken; pick another name.`
+            : `${itemName} is already proposed by another submission under review. Pick another name.`,
     );
   }
 }

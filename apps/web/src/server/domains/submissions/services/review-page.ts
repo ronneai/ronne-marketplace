@@ -12,7 +12,13 @@ import {
 import { type FileChange, isUnreleased, reviewDiff } from "../models/diff";
 import type { ReviewEvent, Revision, RevisionFile } from "../models/review";
 import { canTransition, OPEN_STATUSES } from "../models/status";
-import { fileBytes, MANIFEST_PATH, type Submission, toPackageFile } from "../models/submission";
+import {
+  fileBytes,
+  itemRefOf,
+  MANIFEST_PATH,
+  type Submission,
+  toPackageFile,
+} from "../models/submission";
 import { allows, type DecisionOption, decisionsFor } from "./decisions";
 import { requireSignedIn } from "./membership";
 import { baseFilesOf, staleVersion } from "./proposals";
@@ -160,7 +166,7 @@ export const getReview = async (
   // Approved: the publish dialog's preview. Published: the link to the Versions page.
   const item =
     approved || submission.status === "published"
-      ? await deps.repo.registry().findItem(submission.scope.name, submission.name)
+      ? await deps.repo.registry().findItem(itemRefOf(submission))
       : null;
   const published = item
     ? (await deps.repo.registry().publishedVersions(item.id)).map((v) => v.version)

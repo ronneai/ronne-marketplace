@@ -88,11 +88,12 @@ export const proposeChange = async (
   requireSignedIn(actor);
   const parsed = parseItemName(input.item);
   const registry = deps.registry ?? deps.repo.registry();
-  const item = parsed ? await registry.findItem(parsed.scope, parsed.name) : null;
+  const item = parsed ? await registry.findItem(parsed) : null;
   if (!parsed || !item) throw new ProposalBaseNotFoundError(input.item);
-  const itemName = `@${item.scope}/${item.name}`;
+  const itemName = item.fullName;
   // Anyone signed in reads a public workspace's items; proposing needs membership (091).
-  const found = await deps.repo.findScope(item.scope);
+  const where = parseItemName(item.fullName);
+  const found = where ? await deps.repo.findScope(where) : null;
   // Scopes and items are never deleted; this only guards the types.
   if (!found) throw new SubmissionNotFoundError();
   requireMember(actor, found.workspace);
@@ -153,11 +154,7 @@ export const staleVersion = async (
 export const requireCurrent = async (registry: RegistryLookup, submission: Submission) => {
   const newer = await staleVersion(registry, submission);
   if (newer && submission.proposal)
-    throw new SubmissionStaleError(
-      `@${submission.scope.name}/${submission.name}`,
-      submission.proposal.baseVersion,
-      newer,
-    );
+    throw new SubmissionStaleError(itemNameOf(submission), submission.proposal.baseVersion, newer);
 };
 
 /**
@@ -288,7 +285,7 @@ export const resolveConflict = async (
 export const baseFilesOf = async (
   deps: Pick<ProposalDeps, "storage" | "limits">,
   registry: RegistryLookup,
-  submission: Pick<Submission, "proposal" | "scope" | "name">,
+  submission: Pick<Submission, "proposal" | "workspace" | "scope" | "name">,
 ): Promise<BaseFile[] | null> => {
   if (!submission.proposal) return null;
   const { baseVersionId, baseVersion, itemId } = submission.proposal;

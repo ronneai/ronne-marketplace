@@ -79,8 +79,10 @@ instance that never makes a second workspace sees no change at all.
   Anyone else gets what an unknown name gets, so an alias can't tell them where a private item went.
 - **An alias reserves its name.** Creating a scope is allowed even if aliases start with it, but
   creating a draft whose full name is an alias is refused ("@acme/deploy was the name of another
-  item; pick another name"), to members who see the item, and as "taken" to others. A workspace
-  rename or a move that would give an item a name that's another item's alias is refused.
+  item; pick another name"), to members who see the item, and as "taken" to others ("@acme/deploy
+  is taken; pick another name."), at check, submit and release. A workspace rename or a move that
+  would give an item a name that's another item's alias is refused: they call the same check,
+  `isOldName`, which answers for everyone and says nothing about which item had the name.
 - A chain (renamed, then moved) keeps every old name, each pointing straight at the item.
 - An item that gets one of its own old names back (a scope moved back where it came from, a
   workspace renamed back) drops that alias: the name is its name again.
@@ -88,9 +90,11 @@ instance that never makes a second workspace sees no change at all.
 **Released versions.** At release (015) the packed `ronne.yaml` gets the item's full name
 (`@scope/name` in `global`), and dependencies are written as the dependency's current name. A
 version's tarball never changes, so after a move its `name` and its dependencies may be old names;
-the registry checks a tarball's name against the item's name and aliases, and the resolver reads
-dependency names through aliases. Two names for one item in one install are one item: the resolver
-keys on item ids.
+`rmk` accepts a version whose packed name is its item's name or one of its old names (task 5), and
+the resolver reads dependency names through aliases. Two names for one item in one install are one
+item: `POST /api/v1/resolve` reads every name as the item's name now before resolving, so asking for
+it twice asks for both ranges (`^1.0.0` and `^1.2.0` must both hold); a tag and anything else for
+one item, or two ranges with more than 64 `||` alternatives between them, is a `resolve_conflict`, and two different lockfile pins for it keep neither.
 
 **Storage.** New versions are stored at `storage/<workspace>/<scope>/<name>/<version>.tgz`
 (`global`'s keep `storage/<scope>/<name>/…`); each version already records its path (112), so
@@ -99,14 +103,18 @@ nothing stored moves.
 **`rmk`.** Accepts both forms wherever it takes a name. The lockfile (`rmk.lock`) and the state
 file key items by their name as the registry answers it; when it answers a different name for an
 entry (an alias was followed), `rmk` rewrites the entry and the state file's keys and markers in the
-same apply, and prints the change. A managed marker (`<!-- managed by rmk: @scope/name@1.4.0 -->`)
+same apply, and prints the change. `POST /api/v1/resolve` reads the request's old names as the items'
+names now and answers `renamed` (old name → name now) beside `items`, so `rmk` knows what to
+rewrite. A managed marker (`<!-- managed by rmk: @scope/name@1.4.0 -->`)
 with an old name is still `rmk`'s: the state file maps it. Rendered files are named after the
 item's last segment, as today, so a move doesn't rename anything on disk. `rmk export --to` takes
 `@workspace/scope` (or `@scope` for `global`). `rmk search` shows full names.
 
 **Plugin feeds.** A plugin's name is `scope.name` in `global` and `workspace.scope.name`
 elsewhere (one dot more; still reversible, since names have no dots; `global.…` is never made, so
-each plugin name reads back to one item). Their zip routes add the workspace before the scope.
+each plugin name reads back to one item). Their zips are at
+`/api/v1/feeds/<tool>/workspaces/<workspace>/plugins/<scope>/<name>/<version>.zip`, and stored
+under `feeds/<tool>/@<workspace>/…`, so they never meet `global`'s.
 Longer names reach Codex's 64-character limit sooner; such an item is left out of that tool's feed with the existing warning.
 When an item's name changes, its plugin's name does too: Claude Code sees a new plugin and the old
 one gone from the marketplace (decision 4); the feed's description says "Moved from <old>" for 30
@@ -138,7 +146,10 @@ outside `global` gets its `@scope/name` as an alias. Nothing else is renamed and
 - **Audit events** keep the names they were written with; the audit log shows them as written.
 - **Long names:** up to 195 characters; URLs and the API take them; Windows paths don't, since
   rendered files use the last segment only.
-- **Search for `test/lint`** finds every visible `@*/test/lint`; results always show full names.
+- **Search for `test/lint`** finds every visible `@*/test/lint`; results always show full names. A
+  whole old name (`@old/deploy`) finds its item too, for who sees it.
+- **Sorting by name** pages on scope, name and the item's id, so two workspaces' `@team/lint` are
+  both listed.
 - **Export of an item `rmk` installed under an old name:** export still refuses `rmk`'s items; a
   change proposal (042) finds its base through the alias.
 

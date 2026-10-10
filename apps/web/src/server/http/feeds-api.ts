@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import { formatItemName } from "@ronneai/core";
+import { pluginName } from "@ronneai/core/plugins";
 import { loadConfig } from "../config";
 import {
   downloadPluginAs,
@@ -129,13 +131,14 @@ const versionOfFile = (file: string) => {
 };
 
 /**
- * GET and HEAD /api/v1/feeds/{tool}/plugins/{scope}/{name}/{version}.zip: a version's plugin.
+ * GET and HEAD /api/v1/feeds/{tool}/plugins/{scope}/{name}/{version}.zip: a version's plugin; a
+ * workspace's (118) at /api/v1/feeds/{tool}/workspaces/{workspace}/plugins/{scope}/{name}/….
  * `ETag` is its sha256. Only a full GET is counted as a download; HEAD and a matching
  * `If-None-Match` (304) count nothing.
  */
 export const getPluginZip = async (
   request: Request,
-  params: { tool: string; scope: string; name: string; file: string },
+  params: { tool: string; workspace?: string; scope: string; name: string; file: string },
   deps: FeedsApiDeps = {},
 ) => {
   const guard = await requireToken(request, deps.guard);
@@ -156,7 +159,7 @@ export const getPluginZip = async (
     const headers = {
       ...cache,
       "content-type": "application/zip",
-      "content-disposition": `attachment; filename="${ref.scope}.${ref.name}-${version}.zip"`,
+      "content-disposition": `attachment; filename="${pluginName(formatItemName(ref))}-${version}.zip"`,
       "x-checksum-sha256": found.sha256,
     };
     if (request.method === "HEAD") return new Response(null, { headers });

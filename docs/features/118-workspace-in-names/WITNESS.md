@@ -85,3 +85,141 @@ Witnessed: 2026-10-10 00:25 EDT, by a fresh agent (adversarial). Commit: aa61e53
 | 17 | `migrations/index.ts` registers 0022 and `schema.ts` has `ItemAliasTable` | no | confirmed | diff; `npx biome check` on the 4 files → no issues |
 
 **Overall:** met.
+
+## Task 3 — Lookup by name and alias
+
+Witnessed: 2026-10-10 00:56 EDT, by a fresh agent (blind). Commit: b0aefd1d (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | One repository method finds an item by its full name or an alias, with 093's viewer filter on both lookups | no | confirmed | `kysely-item-repository.ts:112-143`; alias branch made to return nothing → 5 of 7 `old-names.db.test.ts` tests fail |
+| 2 | Alias lookup works (item page and API answer with the current name) | no | confirmed | old-names test passes; `itemJson(itemPageAs(…@old/deploy))` → `@acme/team/deploy`; `findDownloadAs` → 1.0.0 |
+| 3 | A non-member gets not found by an alias | no | confirmed | test passes; probes: `findDownloadAs`, `itemPageAs` as an outsider → `ItemNotFoundError` |
+| 4 | One item reached by two names in one resolve is one item, with `renamed` | no | partly | test passes; `??=` drops the second name's range: the answer depends on key order |
+| 5 | `POST /api/v1/resolve` answers `renamed` | no | confirmed | `registry-api.ts:228`; `ServerResolution` carries `renamed` |
+| 6 | Registry API paths for global and for a workspace's items | no | confirmed | 3 route files under `app/api/v1/workspaces/[workspace]/items/…`; `itemRefOf` defaults to global; `private-api.db.test.ts` uses them; db suite → 764 passed |
+| 7 | Tarball reads go through alias lookup | no | confirmed | `downloads.ts:30` → `findByName(ref)`; probe download through an alias → 1.0.0; no packed-name check exists |
+| 8 | Search by exact name uses aliases | no | not met | `searchCatalogueAs(author, {q:"@old/deploy"})` → no entries |
+| 9 | A dependency through an alias passes with `dependency_renamed` | no | confirmed | `registry-checks.ts:226-234`; test passes |
+| 10 | Release records a dependency through an alias as the item's id | no | confirmed | test: `depends_on_item_id` → `[base]` |
+| 11 | The item page redirects an alias URL | no | partly | `load.ts:39-50` redirects; no test; the workspace item page route doesn't exist (404) |
+| 12 | An alias is refused as a new draft's name to members who see the item | no | confirmed | test: `name_taken` with the exact message; `submitDraft` throws |
+| 13 | An alias is refused as "taken" to others | no | not met | probe: an outsider's global `team/deploy` draft → `checkSubmission` `[]`, `submitDraft` ok |
+| 14 | Release never writes into the alias's item | no | confirmed | test passes; with `ownItem`'s throw disabled it still passes (the guard has no test) |
+| 15 | Aliases refused as names a move or rename would give | no | not met | no move or rename code and no shared guard |
+| 16 | Scope lookups take the workspace | no | confirmed | `kysely-scope-repository.ts:77-81`; the two-`team` setup passes |
+| 17 | The 093 guard tests and the new tests pass on four databases | no | confirmed | SQLite 32 passed; `pnpm test:db:postgres` / `:mysql` / `:mariadb` → 32 each |
+
+**Overall:** not met: exact-name search ignores aliases, a non-member can take an alias's name, no move/rename refusal, the redirect leads to a missing page, resolve drops a range.
+
+### Adversarial pass
+
+Witnessed: 2026-10-10 00:51 EDT, by a fresh agent (adversarial). Commit: b0aefd1d (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `findByName(ref)` finds by current name or alias, both filtered | no | confirmed | `kysely-item-repository.ts:70-103`; probes P3/P5 on four databases: an outsider gets nothing |
+| 2 | Tests cover alias lookup | no | confirmed | M1 (alias query matches "nope") → 5 failed |
+| 3 | Tests cover visibility by alias | no | partly | M2 (filter removed from the alias query only) → all tests pass; the guard test probes only the current name |
+| 4 | Tests cover one item by two names in one resolve | no | confirmed | passes on four databases; M1 breaks it |
+| 5 | Two names for one item give one node, one version | no | partly | `{"@team/base":"^1.0.0","@acme/team/base":"^2.0.0"}` → 1.0.0; swapped → error |
+| 6 | Resolve reads old names as current and answers `renamed` | no | confirmed | P2/P4 |
+| 7 | `@scope/name` always means global | no | confirmed | `parseItemName`; P7 |
+| 8 | An alias never reveals its item to a non-member | no | partly | release by an outsider says "was the name of another item" |
+| 9 | A draft named like an alias is refused ("taken" to others) | no | not met | outsider: check `[]`, submit ok, approved, release fails |
+| 10 | A release never writes into the alias's item | no | confirmed | P1; M3 (no `ownItem` throw) → tests still pass |
+| 11 | Names a move or rename would give are refused | no | not met | no code, no shared helper |
+| 12 | API, tarball, checks and proposals use `findByName` | no | confirmed | `downloads.ts:30`, `registry-checks.ts:181,226`, `publish.ts:350,391`, `proposals.ts:91` |
+| 13 | Search by exact name uses aliases | no | not met | P8: `browseCatalogue {q:"@old/deploy"}` → `[]` |
+| 14 | Tarball name checks | no | not met | none exist |
+| 15 | The item page redirects an old name | no | partly | redirect to a route that doesn't exist; no test |
+| 16 | Scope lookups take the workspace | no | confirmed | P6, P7 |
+| 17 | Nothing else looks up by scope name alone | no | partly | name-sort keyset pages on `scopes.name, items.name` only: P9 skips `@acme/team/lint` |
+| 18 | MySQL/MariaDB collation on names | no | partly | `ACME` and a trailing-space name match there, not on SQLite or PostgreSQL |
+| 19 | The 093 guard tests still pass | no | confirmed | four databases, 16/16 each |
+
+**Overall:** not met.
+
+### Re-check 1
+
+Witnessed: 2026-10-10 01:11 EDT, by a fresh agent (blind). Commit: f66a1b02 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | One item reached by two names is one item, both ranges applied whatever the order | no | confirmed | `resolve.ts:66-81`; test passes; probes in both orders → ResolveError; a tag plus a range → `resolve_conflict`; two pins dropped |
+| 8 | A whole old name finds its item in search, only for who sees it | no | confirmed | `kysely-catalogue-repository.ts:107-122`; test passes; `@old/deploy`, `@OLD/Deploy`, `old/deploy`, `@global/old/deploy` → the item, `@old/dep` → none; alias part disabled → the test fails |
+| 11 | The item page redirects an old name, and the workspace item pages exist | no | confirmed | new `app/(app)/workspaces/[name]/items/[scope]/[item]/` pages; `item-page.test.tsx:141` → `NEXT_REDIRECT /workspaces/acme/items/team/github?version=1.0.0`; 53 passed |
+| 13 | A draft named as an alias is refused as "taken" to someone who can't see the item | no | confirmed | `registry-checks.ts:71-73`; test passes; outsider's submit → `name_taken` "is taken"; `isOldName` disabled → the test fails |
+| 14 | Release never goes into an old name's item, and says "taken" to who can't see it | no | partly | refusal holds, but the outsider gets "was the name of another item": the release store is unfiltered, so `ownItem` reaches the members' branch |
+| 15 | A shared `isOldName` exists, answers for everyone, and is tested | no | confirmed | `item-repository.ts:33`, `kysely-item-repository.ts:134-139`, `registry-lookup.ts:63`; exempt in the guard test with a reason; covered by claim 13 and the `ownItem` unit test |
+| 16 | The new and guard tests pass on all four databases | no | confirmed | SQLite 46 passed; `pnpm test:db:postgres` / `:mysql` / `:mariadb` → 37 each |
+| 17 | The tarball packed-name check is task 5's | no | confirmed | PLAN.md task 3's text |
+
+**Overall:** not met: claim 14.
+
+### Adversarial re-check 1
+
+Witnessed: 2026-10-10 01:10 EDT, by a fresh agent (adversarial). Commit: f66a1b02 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3 | Tests cover visibility by alias | no | confirmed | M2 (filter removed from the alias query) → 3 of 48 fail, the guard test among them |
+| 5 | Two names for one item give one node, one version | no | partly | `^1.0.0 \|\| ^2.0.0` + `^2.0.0` → 1.0.0 (swapped: error); `1.0.0 - 1.5.0` + `>=1.0.0` read as a tag |
+| 8 | An alias never reveals a hidden item to a non-member | no | partly | release by an outsider says "was the name of another item" (unfiltered release store) |
+| 9 | A draft named like an alias is refused, "taken" to others | no | confirmed | P1: `name_taken "@team/deploy is taken…"`; M5 → the test fails |
+| 10 | A release never writes into the alias's item | no | confirmed | P12; M3a/M3b → `publish.test.ts` fails |
+| 11 | A shared `isOldName` check exists | no | confirmed | `kysely-item-repository.ts:134`, `registry-lookup.ts:63`; used by `registry-checks.ts:72`, `publish.ts:200`; M5 breaks a test |
+| 13 | Search by exact name finds an old name, visibility kept | no | confirmed | P8 on four databases; P11: outsider → `[]` |
+| 14 | Tarball packed-name check | no | confirmed | moved to task 5 (PLAN, SPEC:93) |
+| 15 | The redirect lands on the workspace's item page | no | confirmed | pages exist; `item-page.test.tsx:141`; `tsc --noEmit` exit 0 |
+| 17 | Nothing else pages or looks up by scope name alone | no | partly | scope `list` pages on the name only: `listScopesAs(limit:1)` skips acme's `team` |
+| 18 | MySQL/MariaDB collation on names | no | confirmed | `ACME/team/deploy`, `"deploy "` → not found on all four |
+
+**Overall:** not met: claims 5, 8, 17.
+
+### Re-check 3 (claims 4 and 14)
+
+Witnessed: 2026-10-10 01:16 EDT, by a fresh agent (blind). Commit: f66a1b02 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | One item reached by two names gets both ranges, whatever the order or form; a tag plus anything else conflicts | no | confirmed | `resolve.ts:66-82` → `bothRanges` (`versions.ts:81-89`); the db test passes on SQLite and `pnpm test:db:postgres` / `:mysql` / `:mariadb` (30 each); core 362 passed; probes `^1\|\|^2` + `^2` → 2.1.0, `~1.2` + `1.2.0 - 2.0.0` → 1.2.0, `latest` + a range → null; joining with a space instead → `versions.test.ts` and the db test fail |
+| 14 | Release never goes into an old name's item, and tells everyone only "taken" | no | confirmed | `publish.ts:199-201`; `old-names.db.test.ts` 14 passed on four databases; `publish.test.ts` 2 passed; members getting "alias" again → the new test fails; guard tests pass |
+
+**Overall:** met.
+
+### Adversarial re-check 2
+
+Witnessed: 2026-10-10 01:15 EDT, by a fresh agent (adversarial). Commit: f66a1b02 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | Two names for one item give one node, one version | no | partly | answers right on four databases (P10), but `bothRanges` pairs every alternative: two ranges of 3000 alternatives (70 KB) → heap out of memory |
+| 8 | An alias never reveals a hidden item to a non-member | no | confirmed | P12 on four databases: the outsider's release → "@team/fmt is taken; pick another name.", one item named `fmt` |
+| 17 | Nothing else pages or looks up by scope name alone | no | partly | paging fixed (P13, four databases), but `scopes.db.test.ts:290` still expects the old cursor `beta`, red on four databases |
+
+**Overall:** not met: claims 5 and 17.
+
+### Adversarial re-check 3
+
+Witnessed: 2026-10-10 01:24 EDT, by a fresh agent (adversarial). Commit: f66a1b02 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | Two names for one item give one node, one version | no | partly | right answers on four databases (P10); 3000×3000 → null; but one 40,000-condition alternative with 64 short ones (590 KB, through core directly) builds a 37.7 MB range: resolve 6.1 s (20 versions) to 93 s (200) |
+| 8 | An alias never reveals a hidden item to a non-member | no | confirmed | P12 on four databases: "@team/fmt is taken; pick another name.", one item named `fmt` |
+| 17 | Nothing else pages or looks up by scope name alone | no | confirmed | P13 on four databases: sizes 1, 2, 3 page through all four scopes; old cursor `team` goes on past every `team`; odd cursors behave; 38/38 on the servers, 29/29 on SQLite |
+
+**Overall:** not met: claim 5.
+
+### Adversarial re-check 4
+
+Witnessed: 2026-10-10 01:28 EDT, by a fresh agent (adversarial). Commit: f66a1b02 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | Two names for one item give one node, one version | no | confirmed | P10 on four databases: `^1.0.0 \|\| ^2.0.0` + `^2.0.0` → `no_matching_version`; `1.0.0 - 1.5.0` + `>=1.0.0` → 1.0.0; three spellings → 1.0.0; 9×8 alternatives → `resolve_conflict` (409); re-check 3's input → null; near-worst allowed range with 200 versions → 10 ms; the API's 256-character limit per range was already in HEAD |
+| 8 | An alias never reveals a hidden item to a non-member | no | confirmed | P12 on four databases: "@team/fmt is taken; pick another name.", one item named `fmt` |
+| 17 | Nothing else pages or looks up by scope name alone | no | confirmed | P13 on four databases; `pnpm test:db:{postgres,mysql,mariadb}` on scopes, old-names, both guards and the probe → 38/38 each; SQLite probe 3/3 |
+
+**Overall:** met.

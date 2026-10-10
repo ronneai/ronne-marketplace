@@ -35,7 +35,7 @@ describe("the Versions page", () => {
     const html = await render("%40team");
     expect(versions.itemPage).toHaveBeenCalledWith(
       expect.any(Headers),
-      { scope: "team", name: "github" },
+      { workspace: "global", scope: "team", name: "github" },
       undefined,
     );
     expect(html).toContain("@team/github");

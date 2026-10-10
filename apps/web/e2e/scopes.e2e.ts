@@ -72,7 +72,8 @@ test("root creates, sorts and searches scopes under Admin; nobody else has a sco
   });
   expect(token.status()).toBe(201);
   const headers = { authorization: `Bearer ${(await token.json()).token}` };
-  const item = "@e2e-acme-infra/deploy-skill";
+  // Its full name names the workspace (118).
+  const item = "@e2e-acme/e2e-acme-infra/deploy-skill";
   const upload = await request.post("/api/v1/drafts", {
     headers,
     data: {

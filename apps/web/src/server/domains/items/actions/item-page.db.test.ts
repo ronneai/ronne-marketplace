@@ -105,7 +105,7 @@ const release = async (
 ) => {
   const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
   const itemId =
-    (await items.findByName("team", name))?.id ??
+    (await items.findByName({ scope: "team", name: name }))?.id ??
     (await items.insertItem({
       scopeId,
       name,
@@ -130,7 +130,7 @@ const release = async (
       submissionId: v.submissionId ?? null,
       dependencies: await Promise.all(
         Object.entries(v.dependsOn ?? {}).map(async ([dependency, range]) => ({
-          itemId: (await items.findByName("team", dependency))?.id ?? "",
+          itemId: (await items.findByName({ scope: "team", name: dependency }))?.id ?? "",
           range,
         })),
       ),
@@ -154,8 +154,22 @@ describe("used by (045)", () => {
       { version: "2.0.0" },
     ]);
     expect((await page("lint")).usedBy).toEqual([
-      { scope: "team", name: "alpha-kit", type: "bundle", version: "2.0.0", range: "~1.0.0" },
-      { scope: "team", name: "starter-kit", type: "bundle", version: "1.0.0", range: "^1.0.0" },
+      {
+        workspace: "global",
+        scope: "team",
+        name: "alpha-kit",
+        type: "bundle",
+        version: "2.0.0",
+        range: "~1.0.0",
+      },
+      {
+        workspace: "global",
+        scope: "team",
+        name: "starter-kit",
+        type: "bundle",
+        version: "1.0.0",
+        range: "^1.0.0",
+      },
     ]);
     expect((await page("starter-kit")).usedBy).toEqual([]);
   });

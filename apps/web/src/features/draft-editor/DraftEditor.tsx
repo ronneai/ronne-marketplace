@@ -3,6 +3,8 @@
 import {
   DEFAULT_LIMITS,
   formatBytes,
+  formatItemName,
+  formatScopeName,
   type ManifestIssue,
   mayHaveDependencies,
 } from "@ronneai/core";
@@ -216,7 +218,11 @@ export const DraftEditor = ({
     () => new Set([MANIFEST_PATH, ...startingFiles(draft.type)]),
     [draft.type],
   );
-  const itemName = `@${draft.scope}/${draft.name}`;
+  const itemName = formatItemName({
+    workspace: draft.workspace,
+    scope: draft.scope,
+    name: draft.name,
+  });
   const file = state.files.find((f) => f.path === selected) ?? state.files[0];
   // Every item may be composed from others, so every type has a canvas (031, 096).
   const views: readonly View[] = hasCanvas(draft.type)
@@ -229,8 +235,13 @@ export const DraftEditor = ({
   // 011's checks, in the browser, once typing pauses: the same function the server runs on save.
   const settled = useDebounced(state.files, 300);
   const identity = useMemo(
-    () => ({ scope: { name: draft.scope }, name: draft.name, type: draft.type }),
-    [draft.scope, draft.name, draft.type],
+    () => ({
+      workspace: { name: draft.workspace },
+      scope: { name: draft.scope },
+      name: draft.name,
+      type: draft.type,
+    }),
+    [draft.workspace, draft.scope, draft.name, draft.type],
   );
   const issues = useMemo(
     () => validateDraft(identity, settled, limits),
@@ -662,7 +673,7 @@ export const DraftEditor = ({
                     <ManifestForm
                       text={file.content}
                       type={draft.type}
-                      itemName={`@${draft.scope}/${draft.name}`}
+                      itemName={itemName}
                       files={state.files
                         .map((f) => f.path)
                         .filter((path) => path !== MANIFEST_PATH)}
@@ -803,7 +814,8 @@ export const DraftEditor = ({
       {open?.kind === "settings" ? (
         <DraftSettingsDialog
           draftId={draft.id}
-          scope={draft.scope}
+          // With its workspace outside global (118), so saving keeps it there.
+          scope={formatScopeName({ workspace: draft.workspace, scope: draft.scope }).slice(1)}
           name={draft.name}
           dirty={dirty}
           proposal={draft.proposal !== null}

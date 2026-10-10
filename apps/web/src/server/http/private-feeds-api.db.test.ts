@@ -163,30 +163,45 @@ const plugins = async (who: keyof typeof tokens, query = "", tool = "claude-code
   return (await response.json()).plugins.map((p: { name: string }) => p.name);
 };
 
-const zip = (who: keyof typeof tokens, scope: string, name: string) =>
-  getPluginZip(
-    get(`/claude-code/plugins/${scope}/${name}/1.0.0.zip`, tokens[who]),
-    { tool: "claude-code", scope, name, file: "1.0.0.zip" },
+/** The workspace each scope here is in: names and zip paths include it (118). */
+const WORKSPACE_OF: Record<string, string> = { "acme-infra": "acme", "beta-tools": "beta" };
+
+const zip = (who: keyof typeof tokens, scope: string, name: string) => {
+  const workspace = WORKSPACE_OF[scope] ?? "global";
+  const under = workspace === "global" ? "" : `/workspaces/${workspace}`;
+  return getPluginZip(
+    get(`/claude-code${under}/plugins/${scope}/${name}/1.0.0.zip`, tokens[who]),
+    { tool: "claude-code", workspace, scope, name, file: "1.0.0.zip" },
     deps,
   );
+};
 
 const downloads = async () =>
-  (await kyselyItemRepository(t.db, t.dialect, UNFILTERED).findByName("acme-infra", "deploy"))
-    ?.downloadCount;
+  (
+    await kyselyItemRepository(t.db, t.dialect, UNFILTERED).findByName({
+      workspace: "acme",
+      scope: "acme-infra",
+      name: "deploy",
+    })
+  )?.downloadCount;
 
 describe("the plugin feeds and a private workspace (093)", () => {
   it("gives each caller a marketplace of what they see, from a cache that keeps them apart", async () => {
     // The member's marketplace is built and cached first; the outsider's must not be it.
-    expect(await plugins("member")).toEqual(["acme-infra.deploy", "team.style"]);
+    expect(await plugins("member")).toEqual(["acme.acme-infra.deploy", "team.style"]);
     expect(await plugins("outsider")).toEqual(["team.style"]);
-    expect(await plugins("member")).toEqual(["acme-infra.deploy", "team.style"]);
-    expect(await plugins("root")).toEqual(["acme-infra.deploy", "beta-tools.lint", "team.style"]);
+    expect(await plugins("member")).toEqual(["acme.acme-infra.deploy", "team.style"]);
+    expect(await plugins("root")).toEqual([
+      "acme.acme-infra.deploy",
+      "beta.beta-tools.lint",
+      "team.style",
+    ]);
     // Two private keys share nothing: acme's member and beta's each get only their own.
     for (const tool of ["claude-code", "codex", "cursor"]) {
-      expect(await plugins("member", "", tool)).toEqual(["acme-infra.deploy", "team.style"]);
-      expect(await plugins("betaMember", "", tool)).toEqual(["beta-tools.lint", "team.style"]);
+      expect(await plugins("member", "", tool)).toEqual(["acme.acme-infra.deploy", "team.style"]);
+      expect(await plugins("betaMember", "", tool)).toEqual(["beta.beta-tools.lint", "team.style"]);
       expect(await plugins("outsider", "", tool)).toEqual(["team.style"]);
-      expect(await plugins("member", "", tool)).toEqual(["acme-infra.deploy", "team.style"]);
+      expect(await plugins("member", "", tool)).toEqual(["acme.acme-infra.deploy", "team.style"]);
     }
     expect((await zip("member", "beta-tools", "lint")).status).toBe(404);
     expect((await zip("betaMember", "beta-tools", "lint")).status).toBe(200);
@@ -198,8 +213,14 @@ describe("the plugin feeds and a private workspace (093)", () => {
     // HEAD and a matching If-None-Match never reach the download: they mustn't answer either.
     const stored = await zip("member", "acme-infra", "deploy");
     const etag = stored.headers.get("etag") ?? "";
-    const path = "/claude-code/plugins/acme-infra/deploy/1.0.0.zip";
-    const params = { tool: "claude-code", scope: "acme-infra", name: "deploy", file: "1.0.0.zip" };
+    const path = "/claude-code/workspaces/acme/plugins/acme-infra/deploy/1.0.0.zip";
+    const params = {
+      tool: "claude-code",
+      workspace: "acme",
+      scope: "acme-infra",
+      name: "deploy",
+      file: "1.0.0.zip",
+    };
     const head = await getPluginZip(
       new Request(`${BASE}${path}`, {
         method: "HEAD",
@@ -227,7 +248,7 @@ describe("the plugin feeds and a private workspace (093)", () => {
   });
 
   it("leaves a removed member's private items out from the next request", async () => {
-    expect(await plugins("member")).toEqual(["acme-infra.deploy", "team.style"]);
+    expect(await plugins("member")).toEqual(["acme.acme-infra.deploy", "team.style"]);
     await t.db
       .deleteFrom("workspace_members")
       .where("workspace_id", "=", acme)
@@ -240,14 +261,17 @@ describe("the plugin feeds and a private workspace (093)", () => {
   it("gives a mirror the public workspaces, and the private ones it names that the caller sees", async () => {
     expect(await plugins("member", "?workspaces=")).toEqual(["team.style"]);
     expect(await plugins("member", "?workspaces=acme")).toEqual([
-      "acme-infra.deploy",
+      "acme.acme-infra.deploy",
       "team.style",
     ]);
     expect(await plugins("member", "?workspaces=global")).toEqual(["team.style"]);
     expect(await plugins("root", "?workspaces=")).toEqual(["team.style"]);
-    expect(await plugins("root", "?workspaces=acme")).toEqual(["acme-infra.deploy", "team.style"]);
+    expect(await plugins("root", "?workspaces=acme")).toEqual([
+      "acme.acme-infra.deploy",
+      "team.style",
+    ]);
     // Asked first by the member, the public-only marketplace isn't the member's full one.
-    expect(await plugins("member")).toEqual(["acme-infra.deploy", "team.style"]);
+    expect(await plugins("member")).toEqual(["acme.acme-infra.deploy", "team.style"]);
   });
 
   it("gives an rmk that doesn't name workspaces (one from before 093) the public ones only", async () => {
@@ -262,8 +286,8 @@ describe("the plugin feeds and a private workspace (093)", () => {
       return (await response.json()).plugins.map((p: { name: string }) => p.name);
     };
     expect(await asRmk("")).toEqual(["team.style"]);
-    expect(await asRmk("?workspaces=acme")).toEqual(["acme-infra.deploy", "team.style"]);
-    expect(await plugins("member")).toEqual(["acme-infra.deploy", "team.style"]);
+    expect(await asRmk("?workspaces=acme")).toEqual(["acme.acme-infra.deploy", "team.style"]);
+    expect(await plugins("member")).toEqual(["acme.acme-infra.deploy", "team.style"]);
   });
 
   it("refuses a mirror of a workspace the caller doesn't see exactly as an unknown one", async () => {
@@ -300,7 +324,7 @@ describe("the plugin feeds and a private workspace (093)", () => {
       createdAt: new Date(),
     });
     await release("open-tools", open, "secret");
-    expect(await plugins("outsider")).toEqual(["open-tools.secret", "team.style"]);
+    expect(await plugins("outsider")).toEqual(["open.open-tools.secret", "team.style"]);
     // Root makes `open` private just after this request has read who it is (every workspace's
     // visibility), before it builds: the worst moment for the cache.
     let turned = false;

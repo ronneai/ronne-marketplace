@@ -1,3 +1,4 @@
+import type { ScopeRef } from "@ronneai/core";
 import type { KeysetPage, SortDir } from "../../../db/keyset";
 import type { NewAuditEvent } from "../../audit/models/audit-event";
 import type { Scope } from "../models/scope";
@@ -28,7 +29,8 @@ export type ScopePageQuery = {
 /** What the scope services need from storage. Implemented with Kysely in kysely-scope-repository.ts. */
 export interface ScopeRepository {
   transaction<T>(work: (repo: ScopeRepository) => Promise<T>): Promise<T>;
-  findByName(name: string): Promise<Scope | null>;
+  /** By its name in its workspace (118): scope names are unique per workspace. */
+  findByName(ref: ScopeRef): Promise<Scope | null>;
   /** A workspace a scope can be created in, by id (feature 090), or null. */
   findWorkspace(id: string): Promise<{ id: string; name: string } | null>;
   insert(scope: {

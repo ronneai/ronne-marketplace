@@ -205,12 +205,12 @@ const zipPath = (tool: PluginTool, plugin: string, version: string) => {
   if (!item)
     throw new RmkError(`The feed lists ${plugin}, which isn't a Ronne plugin name.`, 1, "bad_feed");
   const ref = parseItemName(item);
-  const where = [
-    ...(ref && ref.workspace !== GLOBAL_WORKSPACE ? [ref.workspace] : []),
-    ref?.scope ?? "",
-    ref?.name ?? "",
-  ];
-  return `/feeds/${tool}/plugins/${where.map(encodeURIComponent).join("/")}/${encodeURIComponent(version)}.zip`;
+  // A workspace's plugins are under /workspaces/<workspace> (118); global's where they were.
+  const under =
+    ref && ref.workspace !== GLOBAL_WORKSPACE
+      ? `/workspaces/${encodeURIComponent(ref.workspace)}`
+      : "";
+  return `/feeds/${tool}${under}/plugins/${encodeURIComponent(ref?.scope ?? "")}/${encodeURIComponent(ref?.name ?? "")}/${encodeURIComponent(version)}.zip`;
 };
 
 type Planned = {

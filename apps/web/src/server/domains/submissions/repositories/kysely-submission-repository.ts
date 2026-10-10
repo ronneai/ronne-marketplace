@@ -153,7 +153,7 @@ export const kyselySubmissionRepository = (
         work(kyselySubmissionRepository(trx, dialect, viewer)),
       ),
 
-    findScope: async (name) => {
+    findScope: async (ref) => {
       const row = await db
         .selectFrom("scopes")
         .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
@@ -163,7 +163,8 @@ export const kyselySubmissionRepository = (
           "workspaces.id as workspace_id",
           "workspaces.name as workspace_name",
         ])
-        .where("scopes.name", "=", name)
+        .where("workspaces.name", "=", ref.workspace)
+        .where("scopes.name", "=", ref.scope)
         .where(inVisibleWorkspace(viewer, "workspaces.id"))
         .executeTakeFirst();
       return row

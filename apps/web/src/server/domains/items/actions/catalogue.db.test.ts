@@ -76,7 +76,7 @@ const release = async (
 ) => {
   const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
   const scope = options.scope ?? "team";
-  const existing = await items.findByName(scope, name);
+  const existing = await items.findByName({ scope: scope, name: name });
   const itemId =
     existing?.id ??
     (await items.insertItem({
@@ -226,8 +226,13 @@ describe("the catalogue", () => {
     expect(names(await browse({ workspace: "nope" }))).toEqual([]);
     // The item page's data names it too.
     expect(
-      (await kyselyItemRepository(t.db, t.dialect, UNFILTERED).findByName("acme-infra", "deploy"))
-        ?.workspace,
+      (
+        await kyselyItemRepository(t.db, t.dialect, UNFILTERED).findByName({
+          workspace: "acme",
+          scope: "acme-infra",
+          name: "deploy",
+        })
+      )?.workspace,
     ).toBe("acme");
   });
 

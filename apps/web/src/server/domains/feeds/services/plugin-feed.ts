@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import {
   dependenciesFirst,
+  formatItemName,
   type Manifest,
   type PackageLimits,
   parseItemName,
@@ -100,7 +101,7 @@ const TOOL_NAMES: Record<PluginTool, string> = {
   cursor: "Cursor",
 };
 
-const itemName = (ref: { scope: string; name: string }) => `@${ref.scope}/${ref.name}`;
+const itemName = (ref: { workspace?: string; scope: string; name: string }) => formatItemName(ref);
 
 /** A released version as a renderer takes it, from its artifact's own ronne.yaml (as `rmk install`). */
 const renderInput = async (
@@ -127,7 +128,7 @@ const renderInput = async (
 /** A published version by item name and version, for a dependency the resolver chose. */
 const publishedVersion = async (deps: FeedDeps, name: string, version: string) => {
   const ref = parseItemName(name);
-  const item = ref ? await deps.items.findByName(ref.scope, ref.name) : null;
+  const item = ref ? await deps.items.findByName(ref) : null;
   const found = item
     ? (await deps.items.versions(item.id)).find((v) => v.version === version)
     : null;
@@ -247,7 +248,13 @@ const feedEntries = async (deps: FeedDeps, tool: PluginTool) => {
     out.push(...page);
     const last = page.at(-1);
     if (page.length < FEED_PAGE || !last) return out;
-    after = { sort: "name", installable: last.installable, scope: last.scope, name: last.name };
+    after = {
+      sort: "name",
+      installable: last.installable,
+      scope: last.scope,
+      name: last.name,
+      id: last.id,
+    };
   }
 };
 
@@ -273,7 +280,12 @@ const collectFeed = async (deps: FeedDeps, tool: PluginTool): Promise<CollectedF
   let unbuilt = 0;
   let failed = 0;
   for (const entry of await feedEntries(deps, tool)) {
-    const ref = { scope: entry.scope, name: entry.name, version: entry.version };
+    const ref = {
+      workspace: entry.workspace,
+      scope: entry.scope,
+      name: entry.name,
+      version: entry.version,
+    };
     let sha256 = await cached(deps, tool, ref);
     if (sha256 === undefined) {
       if (clock() > deadline) {
@@ -420,7 +432,7 @@ export const findPlugin = async (
 ): Promise<{ item: Item; sha256: string }> => {
   requirePermission(actor.user, "account.manage_own");
   const notFound = () => new PluginNotFoundError(itemName(ref), ref.version, TOOL_NAMES[tool]);
-  const item = await deps.items.findByName(ref.scope, ref.name);
+  const item = await deps.items.findByName(ref);
   if (!item) throw notFound();
   const version = (await deps.items.versions(item.id)).find((v) => v.version === ref.version);
   if (!version || version.yankedAt) throw notFound();

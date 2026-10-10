@@ -295,7 +295,7 @@ describe("a draft in a workspace they aren't in (091, 094)", () => {
     expect(results).toEqual([
       {
         id: away.id,
-        name: "@platform/away-one",
+        name: "@acme/platform/away-one",
         result: "not_a_member",
         reasons: ["You aren't a member."],
         joinWorkspace: "acme",
@@ -441,12 +441,19 @@ describe("pages", () => {
 
   it("collects every page of scopes for the picker", async () => {
     scopes.listScopes
-      .mockResolvedValueOnce({ scopes: [{ name: "a", description: "A." }], nextCursor: "a" })
-      .mockResolvedValueOnce({ scopes: [{ name: "b", description: "B." }], nextCursor: null });
+      .mockResolvedValueOnce({
+        scopes: [{ name: "a", description: "A.", workspace: { name: "global" } }],
+        nextCursor: "a",
+      })
+      .mockResolvedValueOnce({
+        // Outside global, the picker names the workspace (118).
+        scopes: [{ name: "b", description: "B.", workspace: { name: "acme" } }],
+        nextCursor: null,
+      });
     const html = renderToStaticMarkup(await NewItemPage());
     expect(scopes.listScopes).toHaveBeenNthCalledWith(2, expect.any(Headers), { cursor: "a" });
     expect(html).toContain("@a");
-    expect(html).toContain("@b");
+    expect(html).toContain("@acme/b");
   });
 });
 

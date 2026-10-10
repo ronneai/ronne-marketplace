@@ -166,7 +166,7 @@ describe("an admin of acme (092)", () => {
     expect(scope.workspace.name).toBe("acme");
     await updateScopeDescription(
       asAdmin,
-      { name: "acme-infra", description: "Infrastructure." },
+      { name: "@acme/acme-infra", description: "Infrastructure." },
       app,
     );
     await createScope(
@@ -175,7 +175,7 @@ describe("an admin of acme (092)", () => {
       app,
     );
     await expect(
-      updateScopeDescription(asAdmin, { name: "beta-tools", description: "Mine." }, app),
+      updateScopeDescription(asAdmin, { name: "@beta/beta-tools", description: "Mine." }, app),
     ).rejects.toThrow(ForbiddenError);
     await expect(
       createScope(asAdmin, { name: "beta-x", description: "X.", workspaceId: beta }, app),

@@ -152,6 +152,15 @@ export const parseScopeName = (value: string): ScopeRef | null => {
   return null;
 };
 
+/**
+ * What a person typed or a form sent, as a scope (118): trimmed and lowercased, with or without its
+ * `@`; `team` and `@team` are `global`'s, `@acme/team` is acme's. Null when it isn't a scope name.
+ */
+export const scopeRefFrom = (value: string): ScopeRef | null => {
+  const typed = value.trim().toLowerCase();
+  return parseScopeName(typed.startsWith("@") ? typed : `@${typed}`);
+};
+
 /** A scope's parts → `@scope` in `global`, `@workspace/scope` elsewhere (118). */
 export const formatScopeName = (ref: { workspace?: string | null; scope: string }): string =>
   !ref.workspace || ref.workspace === GLOBAL_WORKSPACE

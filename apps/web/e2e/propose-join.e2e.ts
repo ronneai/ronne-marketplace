@@ -8,7 +8,7 @@ import { E2E_DOOR, E2E_USERS } from "./users";
  */
 test("Propose a change outside your workspaces links to Ask to join it (094)", async ({ page }) => {
   await signIn(page, E2E_USERS.proposeOutsider);
-  await page.goto(`/items/${E2E_DOOR.scope}/${E2E_DOOR.item}`);
+  await page.goto(`/workspaces/${E2E_DOOR.workspace}/items/${E2E_DOOR.scope}/${E2E_DOOR.item}`);
   await page.getByRole("button", { name: "Propose a change", exact: true }).click();
   await expect(
     page.getByRole("alert").filter({ hasText: `You aren't a member of the ${E2E_DOOR.workspace}` }),

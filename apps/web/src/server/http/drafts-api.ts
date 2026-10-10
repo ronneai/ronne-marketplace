@@ -1,4 +1,4 @@
-import { parseItemName } from "@ronneai/core";
+import { formatScopeName, parseItemName } from "@ronneai/core";
 import { loadConfig } from "../config";
 import type { Authenticated } from "../domains/identity/actions/access-tokens";
 import type { AppAuth } from "../domains/identity/repositories/auth-instance";
@@ -18,6 +18,7 @@ import {
   submitManyDraftsAs,
 } from "../domains/submissions/actions/submissions";
 import type { Submission } from "../domains/submissions/models/submission";
+import { itemNameOf } from "../domains/submissions/models/submission";
 import { MAX_BULK } from "../domains/submissions/services/bulk-submit";
 import type { StorageAdapter } from "../storage";
 import { parseLimit, parseSearch } from "./api-query";
@@ -170,7 +171,9 @@ const readUpload = async (request: Request, deps: DraftsApiDeps): Promise<ReadUp
     ok: true,
     auth: guard.auth,
     input: {
-      ...itemName,
+      // The scope with its workspace (118): `@acme/infra`, or `@infra` in global.
+      scope: formatScopeName(itemName),
+      name: itemName.name,
       type: upload.value.type,
       files: upload.value.files,
       ...(upload.value.base ? { base: upload.value.base } : {}),
@@ -192,7 +195,7 @@ const uploadedJson = (
 ) => ({
   id: draft.id,
   ...placeOf(deps, draft.id),
-  name: `@${draft.scope.name}/${draft.name}`,
+  name: itemNameOf(draft),
   type: draft.type,
   status: draft.status,
   files: draft.files.length,
@@ -263,14 +266,14 @@ const openDraftJson = (
 ) => ({
   id: submission.id,
   ...placeOf(deps, submission.id),
-  name: `@${submission.scope.name}/${submission.name}`,
+  name: itemNameOf(submission),
   type: submission.type,
   status: submission.status,
   updatedAt: submission.updatedAt.toISOString(),
   description: submission.description,
   proposal: submission.proposal
     ? {
-        item: `@${submission.scope.name}/${submission.name}`,
+        item: itemNameOf(submission),
         baseVersion: submission.proposal.baseVersion,
       }
     : null,
@@ -359,7 +362,7 @@ const readSelection = async (
 /** A draft as a bulk answer names it: where it is, its item, and its status. */
 const draftOf = (deps: DraftsApiDeps, submission: Submission) => ({
   ...placeOf(deps, submission.id),
-  name: `@${submission.scope.name}/${submission.name}`,
+  name: itemNameOf(submission),
   // Its scope's workspace (095): rmk says where to ask to join on `not_a_member`.
   workspace: submission.workspace.name,
   type: submission.type,

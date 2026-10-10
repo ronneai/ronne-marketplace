@@ -73,7 +73,7 @@ const release = async (
 ) => {
   const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
   const itemId =
-    (await items.findByName("team", name))?.id ??
+    (await items.findByName({ scope: "team", name: name }))?.id ??
     (await items.insertItem({
       scopeId,
       name,

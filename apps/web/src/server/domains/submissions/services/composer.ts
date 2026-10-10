@@ -1,5 +1,6 @@
 import {
   DEPENDENCY_TYPES,
+  formatItemName,
   ITEM_TYPES,
   type ItemType,
   isItemType,
@@ -65,11 +66,11 @@ export const dependencyReports = async (
           return parsed ? [parsed] : [];
         }),
       )
-    ).map((entry) => [`@${entry.scope}/${entry.name}`, entry]),
+    ).map((entry) => [formatItemName(entry), entry]),
   );
   const me = actor.user?.id ?? "";
   // The item's own workspace, from its scope (093): private dependencies elsewhere are refused.
-  const scope = parseItemName(String(input.itemName))?.scope;
+  const scope = parseItemName(String(input.itemName));
   const workspaceId = scope ? ((await deps.repo.findScope(scope))?.workspace.id ?? null) : null;
   const reports: [string, DependencyReport][] = [];
   for (const [name, range] of entries) {
@@ -149,7 +150,7 @@ export const searchDependencies = async (
   const cursor = typeof input.cursor === "string" ? input.cursor : undefined;
   // Worked out on every page, so a later page leaves out what the first one showed as yours.
   // Its own workspace's items and public ones (093); public ones only before its scope exists.
-  const scope = input.itemName ? parseItemName(String(input.itemName))?.scope : undefined;
+  const scope = input.itemName ? parseItemName(String(input.itemName)) : null;
   const dependableFrom = scope ? ((await deps.repo.findScope(scope))?.workspace.id ?? null) : null;
   const own = await ownDependencies(deps, actor.user.id, {
     types,
@@ -160,7 +161,7 @@ export const searchDependencies = async (
   const mine: PickerEntry[] = [
     ...own.published.map(
       (entry): PickerEntry => ({
-        name: `@${entry.scope}/${entry.name}`,
+        name: formatItemName(entry),
         ...factsOf(entry),
         status: "published",
         mine: true,
@@ -191,7 +192,7 @@ export const searchDependencies = async (
   const others = entries
     .map(
       (entry): PickerEntry => ({
-        name: `@${entry.scope}/${entry.name}`,
+        name: formatItemName(entry),
         ...factsOf(entry),
         status: "published",
         mine: false,

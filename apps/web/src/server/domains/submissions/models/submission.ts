@@ -1,5 +1,7 @@
 import {
+  canonicalItemName,
   checkPackage,
+  formatItemName,
   type ItemType,
   type ManifestIssue,
   type PackageFile,
@@ -56,9 +58,23 @@ export type Draft = Submission & { files: DraftFile[] };
 
 export const MANIFEST_PATH = "ronne.yaml";
 
-/** `@scope/name`. */
-export const itemNameOf = (submission: { scope: { name: string }; name: string }): string =>
-  `@${submission.scope.name}/${submission.name}`;
+/** Where a submission's item is, by name (118): its workspace, scope and own name. */
+export const itemRefOf = (submission: {
+  workspace: { name: string };
+  scope: { name: string };
+  name: string;
+}) => ({
+  workspace: submission.workspace.name,
+  scope: submission.scope.name,
+  name: submission.name,
+});
+
+/** Its item's full name (118): `@scope/name` in `global`, `@workspace/scope/name` elsewhere. */
+export const itemNameOf = (submission: {
+  workspace: { name: string };
+  scope: { name: string };
+  name: string;
+}): string => formatItemName(itemRefOf(submission));
 
 const BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 
@@ -114,7 +130,7 @@ const lineOfKey = (text: string, key: string): number | undefined => {
  * 013 refuses to submit one.
  */
 export const validateDraft = (
-  draft: { scope: { name: string }; name: string; type: ItemType },
+  draft: { workspace: { name: string }; scope: { name: string }; name: string; type: ItemType },
   files: readonly Omit<DraftFile, "updatedAt" | "size">[],
   limits?: PackageLimits,
 ): ManifestIssue[] => {
@@ -131,7 +147,8 @@ export const validateDraft = (
     return found;
   }
   const itemName = itemNameOf(draft);
-  if (typeof manifest.name === "string" && manifest.name !== itemName)
+  // `@global/team/x` is `@team/x` written out (118): the same name.
+  if (typeof manifest.name === "string" && canonicalItemName(manifest.name) !== itemName)
     found.push({
       severity: "error",
       code: "name_mismatch",

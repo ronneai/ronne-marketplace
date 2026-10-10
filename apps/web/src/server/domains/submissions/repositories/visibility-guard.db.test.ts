@@ -71,7 +71,7 @@ beforeEach(async () => {
   // A submitted rule, a draft, and a released skill in acme; usage for the skill.
   const draft = await createDraft(
     asAuthor,
-    { scope: "acme-infra", name: "style", type: "rule" },
+    { scope: "@acme/acme-infra", name: "style", type: "rule" },
     app,
   );
   const manifest = draft.files.find((f) => f.path === "ronne.yaml");
@@ -93,7 +93,7 @@ beforeEach(async () => {
     app,
   );
   await submitDraft(asAuthor, draft.id, app);
-  await createDraft(asAuthor, { scope: "acme-infra", name: "later", type: "rule" }, app);
+  await createDraft(asAuthor, { scope: "@acme/acme-infra", name: "later", type: "rule" }, app);
   const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
   const scope = await t.db
     .selectFrom("scopes")
@@ -111,7 +111,7 @@ beforeEach(async () => {
   const version = await items.insertVersion({
     itemId: item,
     version: "1.0.0",
-    manifest: { name: "@acme-infra/deploy", description: "Deploy." },
+    manifest: { name: "@acme/acme-infra/deploy", description: "Deploy." },
     readme: null,
     files: [],
     notes: null,
@@ -156,7 +156,7 @@ const some = (value: unknown) =>
 const REVIEW = { statuses: ["submitted" as const], workspaceIds: undefined };
 
 const SUBMISSION_READS: Partial<Record<keyof SubmissionRepository, Probe<SubmissionRepository>>> = {
-  findScope: async (repo) => some(await repo.findScope("acme-infra")),
+  findScope: async (repo) => some(await repo.findScope({ workspace: "acme", scope: "acme-infra" })),
   find: async (repo) => some(await repo.find(ids.submission)),
   listByAuthor: async (repo) => some(await repo.listByAuthor(ids.author)),
   listOwnUnreleased: async (repo) =>
@@ -195,7 +195,10 @@ const SUBMISSION_READS: Partial<Record<keyof SubmissionRepository, Probe<Submiss
   countByStatus: async (repo) => (await repo.countByStatus("submitted")) > 0,
   countDrafts: async (repo) => (await repo.countDrafts(ids.author)) > 0,
   isNameProposed: async (repo) => repo.isNameProposed(ids.scope, "style", ["submitted"], "none"),
-  registry: async (repo) => some(await repo.registry().findItem("acme-infra", "deploy")),
+  registry: async (repo) =>
+    some(
+      await repo.registry().findItem({ workspace: "acme", scope: "acme-infra", name: "deploy" }),
+    ),
   revisions: async (repo) => some(await repo.revisions(ids.submission)),
   revisionFiles: async (repo) => some(await repo.revisionFiles(ids.revision)),
   events: async (repo) => some(await repo.events(ids.submission)),
@@ -223,20 +226,27 @@ const SUBMISSION_WRITES: Partial<Record<keyof SubmissionRepository, string>> = {
 };
 
 const REGISTRY_READS: Partial<Record<keyof RegistryLookup, Probe<RegistryLookup>>> = {
-  findItem: async (repo) => some(await repo.findItem("acme-infra", "deploy")),
+  findItem: async (repo) =>
+    some(await repo.findItem({ workspace: "acme", scope: "acme-infra", name: "deploy" })),
   publishedVersions: async (repo) => some(await repo.publishedVersions(ids.item)),
-  submissionsNamed: async (repo) => some(await repo.submissionsNamed("acme-infra", "style")),
+  submissionsNamed: async (repo) =>
+    some(await repo.submissionsNamed({ workspace: "acme", scope: "acme-infra", name: "style" })),
   ownDraftNamed: async (repo) =>
-    (await repo.ownDraftNamed("acme-infra", "later", ids.author)) !== null,
+    (await repo.ownDraftNamed(
+      { workspace: "acme", scope: "acme-infra", name: "later" },
+      ids.author,
+    )) !== null,
 };
 
 const REGISTRY_EXEMPT: Partial<Record<keyof RegistryLookup, string>> = {
   privateWorkspaces: "which of the ids the caller already holds are private: no item or name",
+  isOldName:
+    "whether a name is reserved, for everyone (118): never which item had it, or anything of it",
 };
 
 const USAGE_READS: Partial<Record<keyof UsageRepository, Probe<UsageRepository>>> = {
   publishedVersions: async (repo) =>
-    (await repo.publishedVersions(["@acme-infra/deploy"])).size > 0,
+    (await repo.publishedVersions(["@acme/acme-infra/deploy"])).size > 0,
   rowsBetween: async (repo) => some(await repo.rowsBetween(ids.item, "2026-09-01", "2026-10-31")),
   hasAny: async (repo) => repo.hasAny(ids.item),
 };

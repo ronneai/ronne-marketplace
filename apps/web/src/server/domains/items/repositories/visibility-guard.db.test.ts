@@ -127,6 +127,16 @@ beforeEach(async () => {
   // Old data the dependency rule (task 4) refuses now: a public item that depends on a private one.
   // Its "Used by" is the private item's, which an outsider mustn't get either.
   await release(team, "team", "leaky", deploy.itemId);
+  // An old name of the private item (118): found by it only by who sees it.
+  await t.db
+    .insertInto("item_aliases")
+    .values({
+      name: "@old-infra/deploy",
+      item_id: deploy.itemId,
+      reason: "move",
+      created_at: now(),
+    })
+    .execute();
   ids = {
     publicItem: base.itemId,
     privateItem: deploy.itemId,
@@ -155,7 +165,8 @@ const has = (value: unknown) => JSON.stringify(value ?? null).includes("deploy")
 
 const CATALOGUE_READS: Record<keyof CatalogueRepository, Probe<CatalogueRepository>> = {
   list: async (repo) => has(await repo.list({ sort: "name", limit: 50 })),
-  byNames: async (repo) => has(await repo.byNames([{ scope: "acme-infra", name: "deploy" }])),
+  byNames: async (repo) =>
+    has(await repo.byNames([{ workspace: "acme", scope: "acme-infra", name: "deploy" }])),
   typeCounts: async (repo) =>
     // Three skills in all, two of them public.
     ((await repo.typeCounts({})).find((c) => c.type === "skill")?.count ?? 0) === 3,
@@ -165,7 +176,10 @@ const CATALOGUE_READS: Record<keyof CatalogueRepository, Probe<CatalogueReposito
 };
 
 const ITEM_READS: Partial<Record<keyof ItemRepository, Probe<ItemRepository>>> = {
-  findByName: async (repo) => (await repo.findByName("acme-infra", "deploy")) !== null,
+  // By its name now, and by an old one (118): either filters.
+  findByName: async (repo) =>
+    (await repo.findByName({ workspace: "acme", scope: "acme-infra", name: "deploy" })) !== null ||
+    (await repo.findByName({ scope: "old-infra", name: "deploy" })) !== null,
   versions: async (repo) => (await repo.versions(ids.privateItem)).length > 0,
   tags: async (repo) => (await repo.tags(ids.privateItem)).length > 0,
   versionDetail: async (repo) => (await repo.versionDetail(ids.privateVersion)) !== null,
@@ -179,7 +193,8 @@ const ITEM_READS: Partial<Record<keyof ItemRepository, Probe<ItemRepository>>> =
 };
 
 const SCOPE_READS: Partial<Record<keyof ScopeRepository, Probe<ScopeRepository>>> = {
-  findByName: async (repo) => (await repo.findByName("acme-infra")) !== null,
+  findByName: async (repo) =>
+    (await repo.findByName({ workspace: "acme", scope: "acme-infra" })) !== null,
   findWorkspace: async (repo) => (await repo.findWorkspace(acme)) !== null,
   list: async (repo) => (await repo.list({ limit: 50 })).some((s) => s.name === "acme-infra"),
   page: async (repo) =>
@@ -210,6 +225,8 @@ const ITEM_EXEMPT: Partial<Record<keyof ItemRepository, string>> = {
   setYanked: "a write",
   recordAudit: "a write to the audit log",
   countDownload: "a write, after a read found the item",
+  isOldName:
+    "whether a name is reserved, for everyone (118): never which item had it, or anything of it",
   userName: "a user's display name, not a workspace's data",
 };
 
@@ -250,7 +267,7 @@ describe("every items read filters by the viewer (093)", () => {
 
   it("filters inside a transaction too", async () => {
     const found = await kyselyItemRepository(t.db, t.dialect, outsider()).transaction((repo) =>
-      repo.findByName("acme-infra", "deploy"),
+      repo.findByName({ workspace: "acme", scope: "acme-infra", name: "deploy" }),
     );
     expect(found).toBeNull();
   });

@@ -1,4 +1,11 @@
-import type { ItemType, RiskFlag } from "@ronneai/core";
+import {
+  canonicalItemName,
+  formatItemName,
+  GLOBAL_WORKSPACE,
+  type ItemType,
+  isValidName,
+  type RiskFlag,
+} from "@ronneai/core";
 import type { Kysely } from "kysely";
 import { bumpCatalogueRevision } from "../../../db/catalogue-revision";
 import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
@@ -67,32 +74,49 @@ export const kyselyItemRepository = (
       work(kyselyItemRepository(trx, dialect, viewer)),
     ),
 
-  findByName: async (scope, name) => {
-    const row = await db
-      .selectFrom("items")
-      .innerJoin("scopes", "scopes.id", "items.scope_id")
-      .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
-      .where(inVisibleWorkspace(viewer, "scopes.workspace_id"))
-      .select([
-        "items.id",
-        "items.scope_id",
-        "scopes.name as scope_name",
-        "workspaces.name as workspace_name",
-        "workspaces.visibility as workspace_visibility",
-        "scopes.workspace_id",
-        "items.name",
-        "items.type",
-        "items.description",
-        "items.owner_id",
-        "items.created_at",
-        "items.download_count",
-      ])
-      .where("scopes.name", "=", scope)
-      .where("items.name", "=", name)
-      .executeTakeFirst();
+  findByName: async (ref) => {
+    // Only names that can exist (118): MySQL's collations would otherwise match `ACME` or `x `.
+    if (![ref.workspace || GLOBAL_WORKSPACE, ref.scope, ref.name].every((n) => isValidName(n)))
+      return null;
+    const items = () =>
+      db
+        .selectFrom("items")
+        .innerJoin("scopes", "scopes.id", "items.scope_id")
+        .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
+        .where(inVisibleWorkspace(viewer, "scopes.workspace_id"))
+        .select([
+          "items.id",
+          "items.scope_id",
+          "scopes.name as scope_name",
+          "workspaces.name as workspace_name",
+          "workspaces.visibility as workspace_visibility",
+          "scopes.workspace_id",
+          "items.name",
+          "items.type",
+          "items.description",
+          "items.owner_id",
+          "items.created_at",
+          "items.download_count",
+        ]);
+    // Its name now; else one it had before a move or a rename (118), read as the viewer.
+    const row =
+      (await items()
+        .where("workspaces.name", "=", ref.workspace || GLOBAL_WORKSPACE)
+        .where("scopes.name", "=", ref.scope)
+        .where("items.name", "=", ref.name)
+        .executeTakeFirst()) ??
+      (await items()
+        .innerJoin("item_aliases", "item_aliases.item_id", "items.id")
+        .where("item_aliases.name", "=", formatItemName(ref))
+        .executeTakeFirst());
     return row
       ? {
           id: row.id,
+          fullName: formatItemName({
+            workspace: row.workspace_name,
+            scope: row.scope_name,
+            name: row.name,
+          }),
           scope: { id: row.scope_id, name: row.scope_name },
           workspace: row.workspace_name,
           workspaceId: row.workspace_id,
@@ -106,6 +130,13 @@ export const kyselyItemRepository = (
         }
       : null;
   },
+
+  isOldName: async (name) =>
+    (await db
+      .selectFrom("item_aliases")
+      .select("item_id")
+      .where("name", "=", canonicalItemName(name) ?? name)
+      .executeTakeFirst()) !== undefined,
 
   insertItem: async (item) => {
     const id = newId();
@@ -156,11 +187,13 @@ export const kyselyItemRepository = (
           .selectFrom("version_dependencies")
           .innerJoin("items", "items.id", "version_dependencies.depends_on_item_id")
           .innerJoin("scopes", "scopes.id", "items.scope_id")
+          .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
           .select([
             "version_dependencies.version_id",
             "version_dependencies.range",
             "items.name",
             "scopes.name as scope_name",
+            "workspaces.name as workspace_name",
           ])
           .where(
             "version_dependencies.version_id",
@@ -185,7 +218,14 @@ export const kyselyItemRepository = (
       dependencies: Object.fromEntries(
         dependencies
           .filter((dependency) => dependency.version_id === row.id)
-          .map((dependency) => [`@${dependency.scope_name}/${dependency.name}`, dependency.range]),
+          .map((dependency) => [
+            formatItemName({
+              workspace: dependency.workspace_name,
+              scope: dependency.scope_name,
+              name: dependency.name,
+            }),
+            dependency.range,
+          ]),
       ),
       disabledTargets: row.disabled_targets.split(" ").filter(Boolean),
     }));
@@ -283,11 +323,17 @@ export const kyselyItemRepository = (
         .innerJoin("item_versions", "item_versions.id", "version_dependencies.version_id")
         .innerJoin("items", "items.id", "version_dependencies.depends_on_item_id")
         .innerJoin("scopes", "scopes.id", "items.scope_id")
-        .select(["scopes.name as scope", "items.name", "scopes.workspace_id"])
+        .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
+        .select([
+          "workspaces.name as workspace",
+          "scopes.name as scope",
+          "items.name",
+          "scopes.workspace_id",
+        ])
         .where("version_dependencies.version_id", "=", versionId)
         .where(isVisibleItem(viewer, "item_versions.item_id"))
         .execute()
-    ).map((row) => ({ name: `@${row.scope}/${row.name}`, workspaceId: row.workspace_id })),
+    ).map((row) => ({ name: formatItemName(row), workspaceId: row.workspace_id })),
 
   tags: async (itemId) =>
     (
@@ -362,8 +408,10 @@ export const kyselyItemRepository = (
       .selectFrom("version_dependencies")
       .innerJoin("items", "items.listed_version_id", "version_dependencies.version_id")
       .innerJoin("scopes", "scopes.id", "items.scope_id")
+      .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
       .innerJoin("item_versions", "item_versions.id", "items.listed_version_id")
       .select([
+        "workspaces.name as workspace_name",
         "scopes.name as scope_name",
         "items.name",
         "items.type",
@@ -378,6 +426,7 @@ export const kyselyItemRepository = (
       .orderBy("items.name")
       .execute();
     return rows.map((row) => ({
+      workspace: row.workspace_name,
       scope: row.scope_name,
       name: row.name,
       type: row.type as ItemType,

@@ -1,4 +1,10 @@
-import { DEPENDENCY_TYPES, type ItemType, isItemType, parseItemName } from "@ronneai/core";
+import {
+  DEPENDENCY_TYPES,
+  formatItemName,
+  type ItemType,
+  isItemType,
+  parseItemName,
+} from "@ronneai/core";
 import type { CurrentUser } from "../../identity/models/user";
 import type { CatalogueEntry } from "../../items/models/catalogue";
 import type { CatalogueRepository } from "../../items/repositories/catalogue-repository";
@@ -86,7 +92,7 @@ export const findDependencies = async (
   const skip = new Set([input.itemName ?? "", ...(input.exclude ?? [])]);
   // Only what the item may depend on (093): its own workspace's items and public ones. Without
   // its name, or before its scope exists, public ones only.
-  const scope = input.itemName ? parseItemName(input.itemName)?.scope : undefined;
+  const scope = input.itemName ? parseItemName(input.itemName) : null;
   const dependableFrom = scope ? ((await deps.repo.findScope(scope))?.workspace.id ?? null) : null;
   const options: DependencyOption[] = [];
   const room = () => DEPENDENCY_OPTIONS_MAX - options.length;
@@ -95,7 +101,7 @@ export const findDependencies = async (
 
   const addPublished = async (entries: readonly CatalogueEntry[], mine: boolean) => {
     for (const entry of entries) {
-      const name = `@${entry.scope}/${entry.name}`;
+      const name = formatItemName(entry);
       if (room() <= 0) break;
       if (skip.has(name)) continue;
       const versions = (await deps.registry.publishedVersions(entry.id))

@@ -1,4 +1,11 @@
-import { E2E_RMK_ITEMS, E2E_SCOPE, E2E_SKILL, E2E_VERSIONED_ITEM, E2E_WORKSPACE } from "./users";
+import {
+  E2E_DOOR,
+  E2E_RMK_ITEMS,
+  E2E_SCOPE,
+  E2E_SKILL,
+  E2E_VERSIONED_ITEM,
+  E2E_WORKSPACE,
+} from "./users";
 
 /**
  * Every page of the web app, for the phone sweep (feature 065): who can open it, and the URLs to
@@ -51,6 +58,19 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
     route: "/items/[scope]/[name]/versions",
     roles: EVERYONE,
     urls: () => [`${item(E2E_VERSIONED_ITEM)}/versions`],
+  },
+  // A public workspace's item, under its workspace (118).
+  {
+    route: "/workspaces/[name]/items/[scope]/[item]",
+    roles: EVERYONE,
+    urls: () => [`/workspaces/${E2E_DOOR.workspace}/items/${E2E_DOOR.scope}/${E2E_DOOR.item}`],
+  },
+  {
+    route: "/workspaces/[name]/items/[scope]/[item]/versions",
+    roles: EVERYONE,
+    urls: () => [
+      `/workspaces/${E2E_DOOR.workspace}/items/${E2E_DOOR.scope}/${E2E_DOOR.item}/versions`,
+    ],
   },
   { route: "/menu", roles: EVERYONE, urls: () => ["/menu"] },
   { route: "/submissions", roles: EVERYONE, urls: () => ["/submissions"] },

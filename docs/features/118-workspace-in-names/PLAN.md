@@ -23,10 +23,12 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* the migration's db test passes on the four databases, including two same-named
   scopes in two workspaces after it; the guard test passes.
 
-- [ ] **3. Lookup by name and alias.** [risky] One repository method finds an item by full name or
-  alias for a `Viewer` (093's filter first); the registry API, resolve (keyed on item ids), tarball
-  name checks, search by exact name, submit and release dependency checks and the item page's
-  redirect use it. Aliases refused as new draft names, and as names a move or rename would give.
+- [x] **3. Lookup by name and alias.** [risky] One repository method finds an item by full name or
+  alias for a `Viewer` (093's filter first); the registry API, resolve (keyed on item ids), search
+  by exact name, submit and release dependency checks and the item page's redirect use it. Aliases
+  refused as new draft names, and a shared check (`isOldName`) for the names a move or rename
+  would give (113, 115 call it). The workspace's item pages (`/workspaces/<workspace>/items/…`)
+  exist, so the redirect lands. (The check of a tarball's packed name is `rmk`'s: task 5.)
   *Done when:* db tests cover alias lookup, visibility (a non-member gets not found), one item
   reached by two names in one resolve, and every refusal; the 093 guard test still passes.
 
@@ -36,7 +38,8 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   still installs.
 
 - [ ] **5. `rmk` and MCP.** Both forms in every command and tool; the lockfile, state file and
-  markers rewritten when an alias is followed, with the message; `export --to @workspace/scope`;
+  markers rewritten when an alias is followed, with the message; a version whose packed name is
+  its item's name or an old one is accepted; `export --to @workspace/scope`;
   full names in `search` and `info`; `client_too_old` from the API for an `rmk` before 118 (its
   `user-agent`) on three-part names. Update `docs/spec/cli-files.md`.
   *Done when:* CLI and MCP tests cover an alias rewrite end to end in a temporary project, and an
@@ -72,3 +75,13 @@ goes into `SPEC.md` instead.
 - **Task 2:** usage and downloads were already by item id. The database doesn't stop an item from
   taking an alias's name, and SQLite doesn't enforce `varchar(195)`: the services check both
   (task 3).
+- **Task 3:** scope names alone no longer find a scope: forms, the drafts API and admin edits send
+  `acme/infra` (or `infra` in global), read by core's `scopeRefFrom`. Old names are reserved for
+  everyone through `isOldName`, unfiltered on purpose; at release the refusal says only "taken",
+  since the release store reads every workspace. The catalogue's name sort and the scope list page
+  with an id tie-break. Workspace item pages and API routes exist; web URLs live under
+  `/workspaces/<workspace>/items/…` (the `[name]` segment is the workspace, as the join page's),
+  and `/workspaces/global/items/…` redirects to `/items/…`. Plugin zips of a workspace's items are
+  at `/feeds/<tool>/workspaces/<workspace>/plugins/…` (done here, ahead of task 6, because the
+  feeds broke without it). e2e: `submit-problems.mobile` on phone-webkit failed once and passed
+  alone.

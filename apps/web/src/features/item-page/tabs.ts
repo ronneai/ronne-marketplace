@@ -36,7 +36,7 @@ export const tabFrom = (value: string | undefined): ItemTab =>
  * no `?version=`.
  */
 export const itemTabHref = (
-  item: { scope: string; name: string },
+  item: { workspace?: string; scope: string; name: string },
   tab: ItemTab,
   version?: string | null,
 ) => {
@@ -50,7 +50,7 @@ export const itemTabHref = (
 
 /** One file of the shown version in the Files tab (044). */
 export const fileHref = (
-  item: { scope: string; name: string },
+  item: { workspace?: string; scope: string; name: string },
   path: string,
   version?: string | null,
 ) => {

@@ -25,6 +25,7 @@ import {
   dependencyMarks,
   latestFeedback,
 } from "@/server/domains/submissions/actions/submissions";
+import { itemNameOf } from "@/server/domains/submissions/models/submission";
 import { requestHeaders } from "@/server/http/request-headers";
 
 export const metadata = { title: "My submissions · Ronne AI Marketplace" };
@@ -51,7 +52,7 @@ const Submissions = async ({
   const hasAny = Object.values(counts).some((n) => (n ?? 0) > 0);
   // The page's approved ones, released many at once (055).
   const releasable = Object.fromEntries(
-    rows.filter((s) => s.status === "approved").map((s) => [s.id, `@${s.scope.name}/${s.name}`]),
+    rows.filter((s) => s.status === "approved").map((s) => [s.id, itemNameOf(s)]),
   );
   // Per page (063): what each waits on (056), the latest reviewer message (058), and, under the
   // Archived filter, which can be deleted for good (057).
@@ -72,8 +73,7 @@ const Submissions = async ({
     if (draft.needs) needs[draft.id] = draft.needs;
     if (!("issues" in draft)) continue;
     errors[draft.id] = draft.issues.filter((issue) => issue.severity === "error").length;
-    if (draft.result === "ready")
-      ready[draft.id] = `@${draft.submission.scope.name}/${draft.submission.name}`;
+    if (draft.result === "ready") ready[draft.id] = itemNameOf(draft.submission);
   }
   return (
     <>

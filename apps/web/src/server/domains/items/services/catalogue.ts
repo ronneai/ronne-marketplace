@@ -1,4 +1,4 @@
-import { ITEM_TYPES, type ItemType, parseItemName } from "@ronneai/core";
+import { formatItemName, ITEM_TYPES, type ItemType, parseItemName } from "@ronneai/core";
 import { rendererById } from "@ronneai/core/render";
 import { requirePermission } from "../../identity/models/permissions";
 import {
@@ -78,7 +78,9 @@ const decodeCursor = (value: string | undefined, sort: CatalogueSort) => {
       return undefined;
     if (
       cursor.sort === "name" &&
-      (typeof cursor.scope !== "string" || typeof cursor.name !== "string")
+      (typeof cursor.scope !== "string" ||
+        typeof cursor.name !== "string" ||
+        typeof cursor.id !== "string")
     )
       return undefined;
     return cursor;
@@ -97,7 +99,13 @@ const cursorOf = (entry: CatalogueEntry, sort: CatalogueSort): CatalogueCursor =
       }
     : sort === "installs"
       ? { sort, installable: entry.installable, installs: entry.downloadCount, id: entry.id }
-      : { sort, installable: entry.installable, scope: entry.scope, name: entry.name };
+      : {
+          sort,
+          installable: entry.installable,
+          scope: entry.scope,
+          name: entry.name,
+          id: entry.id,
+        };
 
 /** A page of published items, without the catalogue page's type counts and scopes: 019's API. */
 export type CatalogueSearch = { entries: CatalogueEntry[]; nextCursor: string | null };
@@ -216,9 +224,6 @@ export const dependencyFacts = async (
   });
   if (parsed.length === 0) return {};
   return Object.fromEntries(
-    (await deps.catalogue.byNames(parsed)).map((entry) => [
-      `@${entry.scope}/${entry.name}`,
-      factsOf(entry),
-    ]),
+    (await deps.catalogue.byNames(parsed)).map((entry) => [formatItemName(entry), factsOf(entry)]),
   );
 };

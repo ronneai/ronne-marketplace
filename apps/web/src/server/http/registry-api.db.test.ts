@@ -113,7 +113,9 @@ const release = async (
       submissionId: null,
       dependencies: await Promise.all(
         Object.entries(dependsOn).map(async ([dependency, range]) => ({
-          itemId: (await items.findByName("team", dependency.replace("@team/", "")))?.id ?? "",
+          itemId:
+            (await items.findByName({ scope: "team", name: dependency.replace("@team/", "") }))
+              ?.id ?? "",
           range,
         })),
       ),
@@ -540,7 +542,7 @@ describe("POST /resolve", () => {
     expect((await postResolve(post({ dependencies: many }), deps)).status).toBe(400);
     expect((await postResolve(post({ dependencies: {} }, null), deps)).status).toBe(401);
     const empty = await body(await postResolve(post({ dependencies: {} }), deps));
-    expect(empty).toEqual({ status: 200, json: { items: {}, warnings: [] } });
+    expect(empty).toEqual({ status: 200, json: { items: {}, warnings: [], renamed: {} } });
   });
 
   it("answers 413 for a body over 1 MiB, with or without content-length", async () => {

@@ -1,3 +1,4 @@
+import { formatItemName } from "@ronneai/core";
 import { supportFor } from "@ronneai/core/render";
 import type { CatalogueEntry } from "../domains/items/actions/catalogue";
 import type { ItemPage, VersionRow } from "../domains/items/actions/versions";
@@ -6,8 +7,12 @@ import type { ItemPage, VersionRow } from "../domains/items/actions/versions";
  * The JSON `/api/v1` answers for items and versions (spec 019). Names are `@scope/name`, times ISO
  * 8601 in UTC, and `deprecated` is the message or null.
  */
-const nameOf = (item: { scope: string | { name: string }; name: string }) =>
-  `@${typeof item.scope === "string" ? item.scope : item.scope.name}/${item.name}`;
+const nameOf = (item: { workspace: string; scope: string | { name: string }; name: string }) =>
+  formatItemName({
+    workspace: item.workspace,
+    scope: typeof item.scope === "string" ? item.scope : item.scope.name,
+    name: item.name,
+  });
 
 /** The workspace an item is in (095), and whether only its members see it (093). */
 const workspaceOf = (item: { workspace: string; privateWorkspace: boolean }) => ({

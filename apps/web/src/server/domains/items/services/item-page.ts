@@ -1,3 +1,4 @@
+import { formatItemName } from "@ronneai/core";
 import { ItemNotFoundError, VersionNotFoundError } from "../exceptions/errors";
 import type { Approval, Dependent, VersionDetail } from "../models/item";
 import { listingOf } from "../models/listing";
@@ -43,10 +44,10 @@ export const itemPage = async (
   const listed = page.versions.find((v) => v.id === listing.listedVersionId);
   const row = version ? page.versions.find((v) => v.version === version) : listed;
   // An item without a published version isn't in the catalogue, and has no page either.
-  if (!listed) throw new ItemNotFoundError(`@${ref.scope}/${ref.name}`);
-  if (!row) throw new VersionNotFoundError(`@${ref.scope}/${ref.name}`, version ?? "latest");
+  if (!listed) throw new ItemNotFoundError(formatItemName(ref));
+  if (!row) throw new VersionNotFoundError(formatItemName(ref), version ?? "latest");
   const detail = await deps.items.versionDetail(row.id);
-  if (!detail) throw new VersionNotFoundError(`@${ref.scope}/${ref.name}`, row.version);
+  if (!detail) throw new VersionNotFoundError(formatItemName(ref), row.version);
   return {
     ...page,
     shown: {

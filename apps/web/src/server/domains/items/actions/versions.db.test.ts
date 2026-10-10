@@ -90,9 +90,13 @@ beforeEach(async () => {
 });
 afterEach(() => t.cleanup());
 
+/** The item's id, by its own name: the tests move its scope to another workspace (091, 118). */
+const githubId = async () =>
+  (await t.db.selectFrom("items").select("id").where("name", "=", "github").executeTakeFirst())?.id;
+
 const tags = async () => {
   const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
-  const item = await items.findByName("team", "github");
+  const item = { id: await githubId() };
   const versions = await items.versions(item?.id ?? "");
   return Object.fromEntries(
     (await items.tags(item?.id ?? "")).map((tag) => [
@@ -102,12 +106,9 @@ const tags = async () => {
   );
 };
 const version = async (v: string) =>
-  (
-    await kyselyItemRepository(t.db, t.dialect, UNFILTERED).versions(
-      (await kyselyItemRepository(t.db, t.dialect, UNFILTERED).findByName("team", "github"))?.id ??
-        "",
-    )
-  ).find((row) => row.version === v);
+  (await kyselyItemRepository(t.db, t.dialect, UNFILTERED).versions((await githubId()) ?? "")).find(
+    (row) => row.version === v,
+  );
 const audited = async (action: string) =>
   (await listAuditEvents(t.db, t.dialect, {})).events.filter((e) => e.action === action);
 
@@ -225,6 +226,8 @@ describe("who and what", () => {
 });
 
 describe("in the item's workspace (091)", () => {
+  /** In acme, the item's full name names acme (118). */
+  const acmeRef = { workspace: "acme", ...ref };
   /** Moves @team into a new workspace, acme, and makes mod2 its moderator; mod stays global's. */
   const intoAcme = async () => {
     const acme = await kyselyWorkspaceRepository(t.db, t.dialect).insert({
@@ -252,26 +255,26 @@ describe("in the item's workspace (091)", () => {
   it("lets acme's moderator and root tag, deprecate and yank; not a moderator of another", async () => {
     await intoAcme();
     for (const attempt of [
-      () => moveTag(asModerator, ref, { tag: "latest", version: "1.0.0" }, app),
-      () => removeTag(asModerator, ref, { tag: "next" }, app),
-      () => deprecate(asModerator, ref, { version: "1.0.0", message: "Old." }, app),
-      () => yank(asModerator, ref, { version: "1.0.0", reason: "Broken." }, app),
-      () => moveTag(asUser, ref, { tag: "latest", version: "1.0.0" }, app),
+      () => moveTag(asModerator, acmeRef, { tag: "latest", version: "1.0.0" }, app),
+      () => removeTag(asModerator, acmeRef, { tag: "next" }, app),
+      () => deprecate(asModerator, acmeRef, { version: "1.0.0", message: "Old." }, app),
+      () => yank(asModerator, acmeRef, { version: "1.0.0", reason: "Broken." }, app),
+      () => moveTag(asUser, acmeRef, { tag: "latest", version: "1.0.0" }, app),
     ])
       await expect(attempt()).rejects.toThrow(ForbiddenError);
     expect(await tags()).toEqual({ latest: "1.1.0", next: "2.0.0-beta.1" });
 
-    await moveTag(asModerator2, ref, { tag: "latest", version: "1.0.0" }, app);
-    await deprecate(asModerator2, ref, { version: "1.0.0", message: "Old." }, app);
-    await yank(asRoot, ref, { version: "2.0.0-beta.1", reason: "Broken." }, app);
+    await moveTag(asModerator2, acmeRef, { tag: "latest", version: "1.0.0" }, app);
+    await deprecate(asModerator2, acmeRef, { version: "1.0.0", message: "Old." }, app);
+    await yank(asRoot, acmeRef, { version: "2.0.0-beta.1", reason: "Broken." }, app);
     expect((await tags()).latest).toBe("1.0.0");
     expect((await version("1.0.0"))?.deprecatedMessage).toBe("Old.");
     expect((await version("2.0.0-beta.1"))?.yankedAt).toBeInstanceOf(Date);
 
     // The undo actions too, and nothing in another workspace for acme's moderator.
-    await undeprecate(asModerator2, ref, { version: "1.0.0" }, app);
-    await unyank(asModerator2, ref, { version: "2.0.0-beta.1" }, app);
-    await removeTag(asModerator2, ref, { tag: "next" }, app);
+    await undeprecate(asModerator2, acmeRef, { version: "1.0.0" }, app);
+    await unyank(asModerator2, acmeRef, { version: "2.0.0-beta.1" }, app);
+    await removeTag(asModerator2, acmeRef, { tag: "next" }, app);
     expect((await version("1.0.0"))?.deprecatedMessage).toBeNull();
     expect((await version("2.0.0-beta.1"))?.yankedAt).toBeNull();
     await t.db
@@ -301,7 +304,8 @@ describe("in the item's workspace (091)", () => {
 
   it("offers the Versions page's controls only to who may use them", async () => {
     await intoAcme();
-    const canManage = async (headers: Headers) => (await listVersions(headers, ref, app)).canManage;
+    const canManage = async (headers: Headers) =>
+      (await listVersions(headers, acmeRef, app)).canManage;
     expect(await canManage(asModerator2)).toBe(true);
     expect(await canManage(asRoot)).toBe(true);
     expect(await canManage(asModerator)).toBe(false);

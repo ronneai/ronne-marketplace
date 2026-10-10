@@ -18,6 +18,7 @@ import {
 import { createScope } from "../../items/actions/scopes";
 import { kyselyWorkspaceRepository } from "../../workspaces/repositories/kysely-workspace-repository";
 import { NotAMemberError, SubmissionNotFoundError } from "../exceptions/errors";
+import { itemNameOf } from "../models/submission";
 import { createDraft, saveDraftFiles } from "./drafts";
 import { prepareRelease, publishSubmission, releaseMany } from "./publish";
 import {
@@ -91,7 +92,12 @@ afterEach(async () => {
 
 /** A valid skill in `scope`, submitted by the author. */
 const submitted = async (scope: "acme" | "beta", name = "fmt") => {
-  const draft = await createDraft(asAuthor, { scope, name, type: "skill" }, app);
+  // Each workspace has a scope of its own name (118: `@acme/acme/acme`).
+  const draft = await createDraft(
+    asAuthor,
+    { scope: `@${scope}/${scope}`, name, type: "skill" },
+    app,
+  );
   await saveDraftFiles(
     asAuthor,
     draft.id,
@@ -148,12 +154,12 @@ describe("reviewing in a workspace (091)", () => {
     await submitted("beta", "lint");
     await submitted("beta", "fmt");
     const names = async (headers: Headers, workspace?: string) =>
-      (await listQueue(headers, { tab: "needs", workspace }, app)).rows.map(
-        (row) => `@${row.scope.name}/${row.name}`,
+      (await listQueue(headers, { tab: "needs", workspace }, app)).rows.map((row) =>
+        itemNameOf(row),
       );
-    expect(await names(asAcmeMod)).toEqual(["@acme/fmt"]);
-    expect(await names(asBetaMod)).toEqual(["@beta/lint", "@beta/fmt"]);
-    expect(await names(asRoot)).toEqual(["@acme/fmt", "@beta/lint", "@beta/fmt"]);
+    expect(await names(asAcmeMod)).toEqual(["@acme/acme/fmt"]);
+    expect(await names(asBetaMod)).toEqual(["@beta/beta/lint", "@beta/beta/fmt"]);
+    expect(await names(asRoot)).toEqual(["@acme/acme/fmt", "@beta/beta/lint", "@beta/beta/fmt"]);
     expect(await countNeedsReview(asAcmeMod, app)).toBe(1);
     expect(await countNeedsReview(asBetaMod, app)).toBe(2);
     expect(await countNeedsReview(asRoot, app)).toBe(3);
@@ -167,7 +173,7 @@ describe("reviewing in a workspace (091)", () => {
       "beta",
       "global",
     ]);
-    expect(await names(asRoot, "beta")).toEqual(["@beta/lint", "@beta/fmt"]);
+    expect(await names(asRoot, "beta")).toEqual(["@beta/beta/lint", "@beta/beta/fmt"]);
     expect(await names(asAcmeMod, "beta")).toEqual([]);
     await expect(listQueue(asAuthor, { tab: "needs" }, app)).rejects.toThrow(ForbiddenError);
   });
@@ -199,7 +205,11 @@ describe("reviewing in a workspace (091)", () => {
     await setWorkspaceRole(app, both, "moderator", ws.acme);
     await setWorkspaceRole(app, both, "user", ws.beta);
     const asBoth = await signedIn("both@example.com");
-    const draft = await createDraft(asBoth, { scope: "beta", name: "mine", type: "skill" }, app);
+    const draft = await createDraft(
+      asBoth,
+      { scope: "@beta/beta", name: "mine", type: "skill" },
+      app,
+    );
     await saveDraftFiles(
       asBoth,
       draft.id,
@@ -302,7 +312,11 @@ describe("releasing in a workspace (091)", () => {
 describe("dependents across workspaces (091)", () => {
   /** A submitted rule in `scope` that depends on `on`. */
   const dependent = async (scope: "acme" | "beta", name: string, on: string) => {
-    const draft = await createDraft(asAuthor, { scope, name, type: "rule" }, app);
+    const draft = await createDraft(
+      asAuthor,
+      { scope: `@${scope}/${scope}`, name, type: "rule" },
+      app,
+    );
     const manifest = draft.files.find((f) => f.path === "ronne.yaml");
     if (!manifest) throw new Error("no manifest");
     await saveDraftFiles(
@@ -329,14 +343,14 @@ describe("dependents across workspaces (091)", () => {
 
   it("lists only the dependents the reviewer could open, and nothing without a session", async () => {
     const fmt = await submitted("acme");
-    await dependent("acme", "house-style", "@acme/fmt");
-    await dependent("beta", "secret-plan", "@acme/fmt");
+    await dependent("acme", "house-style", "@acme/acme/fmt");
+    await dependent("beta", "secret-plan", "@acme/acme/fmt");
     const names = async (headers: Headers) =>
       (await listDependents(headers, fmt, app)).map((d) => d.name);
-    expect(await names(asAcmeMod)).toEqual(["@acme/house-style"]);
-    expect(await names(asRoot)).toEqual(["@acme/house-style", "@beta/secret-plan"]);
+    expect(await names(asAcmeMod)).toEqual(["@acme/acme/house-style"]);
+    expect(await names(asRoot)).toEqual(["@acme/acme/house-style", "@beta/beta/secret-plan"]);
     expect((await getReview(asAcmeMod, fmt, app, storage)).dependents.map((d) => d.name)).toEqual([
-      "@acme/house-style",
+      "@acme/acme/house-style",
     ]);
     // The author's withdraw warning counts every one, in any workspace: only the number.
     expect(await countDependents(asAuthor, fmt, app)).toBe(2);
