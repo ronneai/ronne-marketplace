@@ -127,6 +127,16 @@ describe("checkPackage: SKILL.md", () => {
     expect(codes(skill, front("[a, b]"))).toEqual(["frontmatter_agent"]);
   });
 
+  it("takes agent: @workspace/scope/name, matched however the dependency is written (118)", () => {
+    const front = (agent: string) =>
+      withSkill(`---\nname: secure-coding\ndescription: Checks.\nagent: ${agent}\n---\nBody`);
+    const inAcme = { ...skill, dependencies: { "@acme/test/agent": "^1.0.0" } };
+    expect(codes(inAcme, front("@acme/test/agent"))).toEqual([]);
+    expect(codes(inAcme, front("@test/agent"))).toEqual(["frontmatter_dependency"]);
+    const inGlobal = { ...skill, dependencies: { "@test/agent": "^1.0.0" } };
+    expect(codes(inGlobal, front("@global/test/agent"))).toEqual([]);
+  });
+
   it("follows skill.entry", () => {
     const custom = { ...skill, skill: { entry: "docs/SKILL.md" } };
     expect(codes(custom, [file("ronne.yaml")])).toEqual(["file_missing"]);

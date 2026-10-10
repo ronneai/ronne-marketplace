@@ -13,6 +13,7 @@ import {
   parseItemName,
   parseManifest,
   secretLike,
+  shortItemName,
 } from "@ronneai/core";
 import {
   agentName,
@@ -468,7 +469,20 @@ export type Ownership =
   /** Its Markdown carries rmk's managed marker: something `rmk` wrote, such as a rule as a skill. */
   | { owner: "rendered"; item: string; version: string };
 
-const MARKER = /managed by rmk: (@[a-z0-9-]+\/[a-z0-9-]+)@([^\s>]+)/;
+const MARKER = "managed by rmk: ";
+
+/**
+ * The item and version in rmk's managed marker (`managed by rmk: @scope/name@1.0.0`, or
+ * `@workspace/scope/name@…`, 118), or null. The name is read by core, not by a pattern of its own.
+ */
+const markerOf = (text: string): { item: string; version: string } | null => {
+  const at = text.indexOf(MARKER);
+  if (at === -1) return null;
+  const token = /^[^\s>]+/.exec(text.slice(at + MARKER.length))?.[0] ?? "";
+  const split = token.lastIndexOf("@");
+  const item = token.slice(0, split);
+  return split > 0 && parseItemName(item) ? { item, version: token.slice(split + 1) } : null;
+};
 
 const textOf = (files: readonly PackageFile[], path: string) => {
   const file = files.find((f) => f.path === path);
@@ -538,8 +552,8 @@ export const ownershipOf = async (
   const markdown =
     textOf(files, "SKILL.md") ??
     (files.length === 1 && files[0] ? textOf(files, files[0].path) : null);
-  const marker = MARKER.exec(markdown ?? "");
-  if (marker) return { owner: "rendered", item: marker[1] ?? "", version: marker[2] ?? "" };
+  const marker = markerOf(markdown ?? "");
+  if (marker) return { owner: "rendered", ...marker };
   return { owner: "local" };
 };
 
@@ -1381,7 +1395,7 @@ export const planExport = async (
 /** The names an item answers to in `descriptions` (053): its full name, short name, and place. */
 const keysOf = (item: { name: string; local: string }) => [
   item.name,
-  item.name.slice(item.name.indexOf("/") + 1),
+  shortItemName(item.name),
   item.local,
 ];
 

@@ -9,7 +9,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. Names in `@ronneai/core`.** `parseItemName` and `formatItemName` (two or three
+- [x] **1. Names in `@ronneai/core`.** `parseItemName` and `formatItemName` (two or three
   segments, `global` short), the manifest schema's `name`, `dependencies` and 097's `agent:`
   patterns, the examples and golden files unchanged for `global`. Find every place that splits a
   name on `/` (core, cli, mcp, web) and route it through these.
@@ -64,3 +64,8 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- **Task 1:** `shortName` in the renderers cut at the first slash; with three parts it would have
+  written `scope/name` folders. It's `shortItemName` now. Searches (`typedNameParts`) take a
+  three-part name; task 3 adds a database test for it. The grep test
+  (`packages/repo-tools/src/item-names.test.js`) doesn't see `split("/", 2)` or `search("/")`.

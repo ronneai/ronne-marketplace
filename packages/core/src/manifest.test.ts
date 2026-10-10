@@ -75,8 +75,11 @@ describe("parseManifest: schema messages", () => {
 
   it("explains names, enums, paths, dependency keys and blocks for another type", () => {
     expect(messages(rule().replace('"@a/b"', '"a/b"'))).toEqual([
-      "`name` must be a full item name like @scope/name, in lowercase letters, digits and hyphens.",
+      "`name` must be a full item name like @scope/name or @workspace/scope/name, in lowercase letters, digits and hyphens.",
     ]);
+    // A workspace's item names it (118); four parts are too many.
+    expect(messages(rule().replace('"@a/b"', '"@acme/a/b"'))).toEqual([]);
+    expect(messages(rule().replace('"@a/b"', '"@x/acme/a/b"'))).toHaveLength(1);
     expect(messages(rule().replace("always", "sometimes"))).toEqual([
       "`rule.activation` must be one of: always, glob, model, manual.",
     ]);
@@ -85,7 +88,14 @@ describe("parseManifest: schema messages", () => {
     ]);
     expect(
       messages('name: "@a/b"\ntype: bundle\ndescription: Hi.\ndependencies:\n  foo: "^1.0.0"\n'),
-    ).toEqual(["`foo` in `dependencies` isn't a full item name. Use @scope/name."]);
+    ).toEqual([
+      "`foo` in `dependencies` isn't a full item name. Use @scope/name, or @workspace/scope/name outside the global workspace.",
+    ]);
+    expect(
+      messages(
+        'name: "@a/b"\ntype: bundle\ndescription: Hi.\ndependencies:\n  "@acme/t/x": "^1.0.0"\n',
+      ),
+    ).toEqual([]);
     expect(
       messages('name: "@a/b"\ntype: agnet\ndescription: Hi.\nagent:\n  prompt: p.md\n'),
     ).toEqual([

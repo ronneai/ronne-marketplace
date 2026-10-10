@@ -7,10 +7,18 @@ describe("plugin names", () => {
     expect(itemNameOfPlugin("team.secure-coding")).toBe("@team/secure-coding");
   });
 
+  it("are workspace.scope.name outside global, and read back (118)", () => {
+    expect(pluginName("@acme/team/secure-coding")).toBe("acme.team.secure-coding");
+    expect(itemNameOfPlugin("acme.team.secure-coding")).toBe("@acme/team/secure-coding");
+    expect(pluginName("@global/team/secure-coding")).toBe("team.secure-coding");
+    // Ronne never makes `global.…`: global's plugins leave the workspace out.
+    expect(itemNameOfPlugin("global.team.secure-coding")).toBeNull();
+  });
+
   it("refuse what isn't a full item name, either way", () => {
     expect(() => pluginName("secure-coding")).toThrow();
     expect(itemNameOfPlugin("secure-coding")).toBeNull();
-    expect(itemNameOfPlugin("a.b.c")).toBeNull();
+    expect(itemNameOfPlugin("a.b.c.d")).toBeNull();
     expect(itemNameOfPlugin("Team.x")).toBeNull();
   });
 

@@ -3,6 +3,7 @@ import {
   dependenciesFirst,
   type Manifest,
   type PackageLimits,
+  parseItemName,
   parseManifest,
   ResolveError,
   resolve,
@@ -125,8 +126,8 @@ const renderInput = async (
 
 /** A published version by item name and version, for a dependency the resolver chose. */
 const publishedVersion = async (deps: FeedDeps, name: string, version: string) => {
-  const [scope, short] = name.slice(1).split("/");
-  const item = scope && short ? await deps.items.findByName(scope, short) : null;
+  const ref = parseItemName(name);
+  const item = ref ? await deps.items.findByName(ref.scope, ref.name) : null;
   const found = item
     ? (await deps.items.versions(item.id)).find((v) => v.version === version)
     : null;

@@ -2,6 +2,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { run } from "./cli.js";
+import { itemPath } from "./registry-commands.js";
 import { type FakeIo, fakeIo, identityRoutes, REGISTRY, type Route } from "./testing.js";
 
 let io: FakeIo;
@@ -171,5 +172,14 @@ describe("rmk list and platforms", () => {
       id: "claude-code",
       supports: { skill: "native", "lsp-server": "degraded" },
     });
+  });
+});
+
+describe("itemPath (118)", () => {
+  it("puts a workspace's items under it, and global's where they were", () => {
+    expect(itemPath("@team/lint")).toBe("/items/team/lint");
+    expect(itemPath("@global/team/lint")).toBe("/items/team/lint");
+    expect(itemPath("@acme/team/lint")).toBe("/workspaces/acme/items/team/lint");
+    expect(() => itemPath("team/lint")).toThrow(/@workspace\/scope\/name/);
   });
 });

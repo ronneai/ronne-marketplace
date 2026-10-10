@@ -1,4 +1,4 @@
-import type { RiskFlag } from "@ronneai/core";
+import { parseItemName, type RiskFlag } from "@ronneai/core";
 import Link from "next/link";
 import { itemPath } from "@/components/catalogue/ItemCard";
 import { Markdown } from "@/components/markdown/Markdown";
@@ -40,12 +40,12 @@ export const DependenciesTab = ({ dependencies }: { dependencies: Record<string,
       </thead>
       <tbody>
         {entries.map(([name, range]) => {
-          const [scope = "", item = ""] = name.slice(1).split("/");
+          const ref = parseItemName(name);
           return (
             <tr key={name}>
               <Td>
                 <Link
-                  href={itemPath({ scope, name: item })}
+                  href={itemPath(ref ?? { scope: "", name: "" })}
                   className="font-mono text-sm text-fg underline underline-offset-2"
                 >
                   {name}

@@ -1,4 +1,4 @@
-import { ITEM_TYPES, type ItemType } from "@ronneai/core";
+import { ITEM_TYPES, type ItemType, typedNameParts } from "@ronneai/core";
 import { installsIn, rendererById, supportFor } from "@ronneai/core/render";
 import type { Kysely, SelectQueryBuilder } from "kysely";
 import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
@@ -88,14 +88,14 @@ export const kyselyCatalogueRepository = (
     }: CatalogueFilter,
   ) => {
     let q = query;
-    // An item's name as people write it (056): `@team/re` is scope `team` and a name with `re`;
-    // a single word also matches the scope.
+    // An item's name as people write it (056, 118): `@team/re` is scope `team` and a name with
+    // `re`, `@acme/team/re` names the workspace too; a single word also matches the scope.
     const words = search?.replace(/^@/, "") ?? "";
-    const slash = words.indexOf("/");
-    if (words && slash >= 0) {
-      const [scopePart, namePart] = [words.slice(0, slash), words.slice(slash + 1)];
-      if (scopePart) q = q.where(containsInsensitive("scopes.name", scopePart));
-      if (namePart) q = q.where(containsInsensitive("items.name", namePart));
+    const typed = typedNameParts(words);
+    if (typed) {
+      if (typed.workspace) q = q.where(containsInsensitive("workspaces.name", typed.workspace));
+      if (typed.scope) q = q.where(containsInsensitive("scopes.name", typed.scope));
+      if (typed.name) q = q.where(containsInsensitive("items.name", typed.name));
     } else if (words)
       q = q.where((eb) =>
         eb.or([

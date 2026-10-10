@@ -1,7 +1,6 @@
+import { parseItemName } from "@ronneai/core";
 import { itemPath } from "@/components/catalogue/ItemCard";
 
-/** A dependency's page, from its `@scope/name`. */
-export const dependencyHref = (name: string) => {
-  const [scope = "", item = ""] = name.slice(1).split("/");
-  return itemPath({ scope, name: item });
-};
+/** A dependency's page, from its full name (118). */
+export const dependencyHref = (name: string) =>
+  itemPath(parseItemName(name) ?? { scope: "", name: "" });

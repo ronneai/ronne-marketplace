@@ -21,7 +21,7 @@ const BLOCK = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/;
  * quoted. The name parts are the item name rules (names.ts).
  */
 const UNQUOTED_ITEM_NAME =
-  /^(\s*(?:[^\s:#'"][^:#]*:|-)[ \t]+)(@[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?\/[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?)([ \t]*(?:#.*)?)$/;
+  /^(\s*(?:[^\s:#'"][^:#]*:|-)[ \t]+)(@[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?(?:\/[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?){1,2})([ \t]*(?:#.*)?)$/;
 
 /**
  * A key or list item whose value is a block scalar: `|` or `>`, then the chomping and indentation

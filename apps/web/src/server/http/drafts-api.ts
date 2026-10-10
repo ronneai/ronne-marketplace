@@ -1,3 +1,4 @@
+import { parseItemName } from "@ronneai/core";
 import { loadConfig } from "../config";
 import type { Authenticated } from "../domains/identity/actions/access-tokens";
 import type { AppAuth } from "../domains/identity/repositories/auth-instance";
@@ -127,14 +128,15 @@ const publicUrlOf = (deps: DraftsApiDeps): string | null => {
   return url?.replace(/\/+$/, "") || null;
 };
 
-/** An item's name as the API takes it, split; null when it isn't `@scope/name`. */
-const splitName = (value: string) => {
-  const match = /^@([^/]+)\/([^/]+)$/.exec(value.trim());
-  return match ? { scope: match[1] ?? "", name: match[2] ?? "" } : null;
-};
+/** An item's name as the API takes it, split; null when it isn't a full item name (118). */
+const splitName = (value: string) => parseItemName(value.trim());
 
 const invalidName = (value: string) =>
-  errorResponse(400, "invalid_name", `${value || "(empty)"} isn't an item name: use @scope/name.`);
+  errorResponse(
+    400,
+    "invalid_name",
+    `${value || "(empty)"} isn't an item name: use @scope/name or @workspace/scope/name.`,
+  );
 
 type ReadUpload =
   | {

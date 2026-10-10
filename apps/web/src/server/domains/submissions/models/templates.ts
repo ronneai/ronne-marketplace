@@ -1,4 +1,4 @@
-import type { ItemType } from "@ronneai/core";
+import { type ItemType, shortItemName } from "@ronneai/core";
 import { MANIFEST_PATH } from "./submission";
 
 export type TemplateFile = { path: string; content: string; executable?: boolean };
@@ -264,7 +264,7 @@ const templateOf = (type: string): Template | undefined => {
 
 /** The files a new draft of `type` starts with; none for a name that isn't a type. */
 export const draftTemplate = (type: ItemType, itemName: string): TemplateFile[] =>
-  templateOf(type)?.(itemName, itemName.slice(itemName.indexOf("/") + 1)) ?? [];
+  templateOf(type)?.(itemName, shortItemName(itemName)) ?? [];
 
 /**
  * The files New item starts a type with: ronne.yaml and the file it names, such as SKILL.md or

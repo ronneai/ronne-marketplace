@@ -10,7 +10,13 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { nameProblem, normalizeWorkspaceName, type PackageFile } from "@ronneai/core";
+import {
+  GLOBAL_WORKSPACE,
+  nameProblem,
+  normalizeWorkspaceName,
+  type PackageFile,
+  parseItemName,
+} from "@ronneai/core";
 import {
   itemNameOfPlugin,
   MARKETPLACE_PATHS,
@@ -198,8 +204,13 @@ const zipPath = (tool: PluginTool, plugin: string, version: string) => {
   const item = itemNameOfPlugin(plugin);
   if (!item)
     throw new RmkError(`The feed lists ${plugin}, which isn't a Ronne plugin name.`, 1, "bad_feed");
-  const [scope, name] = item.slice(1).split("/");
-  return `/feeds/${tool}/plugins/${encodeURIComponent(scope ?? "")}/${encodeURIComponent(name ?? "")}/${encodeURIComponent(version)}.zip`;
+  const ref = parseItemName(item);
+  const where = [
+    ...(ref && ref.workspace !== GLOBAL_WORKSPACE ? [ref.workspace] : []),
+    ref?.scope ?? "",
+    ref?.name ?? "",
+  ];
+  return `/feeds/${tool}/plugins/${where.map(encodeURIComponent).join("/")}/${encodeURIComponent(version)}.zip`;
 };
 
 type Planned = {

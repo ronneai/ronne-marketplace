@@ -27,7 +27,7 @@ const text = (files: RenderInput["files"], path: unknown) => {
   const file = typeof path === "string" ? files.find((f) => f.path === path) : undefined;
   return file ? new TextDecoder().decode(file.bytes) : "";
 };
-const shortName = (name: string) => name.slice(name.indexOf("/") + 1);
+const shortName = (name: string) => name.slice(name.lastIndexOf("/") + 1);
 
 export const exampleRenderer: PlatformRenderer = {
   id: "example",

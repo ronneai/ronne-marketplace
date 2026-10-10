@@ -1,3 +1,4 @@
+import { GLOBAL_WORKSPACE } from "@ronneai/core";
 import { installsIn, RENDERERS } from "@ronneai/core/render";
 import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
@@ -8,8 +9,16 @@ import type { CatalogueEntry } from "@/server/domains/items/actions/catalogue";
 import { WorkspaceLabel } from "./WorkspaceLabel";
 
 /** An item's page (feature 018). */
-export const itemPath = (item: { scope: string; name: string }) =>
-  `/items/${encodeURIComponent(item.scope)}/${encodeURIComponent(item.name)}`;
+/**
+ * An item's page: `/items/<scope>/<name>` in `global`, `/workspaces/<workspace>/items/<scope>/<name>`
+ * elsewhere (118), like its API path.
+ */
+export const itemPath = (item: { workspace?: string | null; scope: string; name: string }) => {
+  const path = `/items/${encodeURIComponent(item.scope)}/${encodeURIComponent(item.name)}`;
+  return !item.workspace || item.workspace === GLOBAL_WORKSPACE
+    ? path
+    : `/workspaces/${encodeURIComponent(item.workspace)}${path}`;
+};
 
 /**
  * One published item, as the catalogue and the home page list it (feature 018): its name, listed

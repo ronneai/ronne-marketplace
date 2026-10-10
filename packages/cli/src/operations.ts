@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
-import { isVersionRange } from "@ronneai/core";
+import { isVersionRange, parseItemName } from "@ronneai/core";
 import type { ApiClient } from "./api.js";
 import { diskHash } from "./apply.js";
 import { RmkError, usage } from "./errors.js";
@@ -102,8 +102,10 @@ export const planOperation = async (
     const next = { ...dependencies };
     for (const ref of request.items) {
       const { name, at } = splitItemRef(ref);
-      if (!/^@[^/]+\/[^/@]+$/.test(name))
-        throw usage(`${ref} isn't an item: use @scope/name, with @tag or @range after it.`);
+      if (!parseItemName(name))
+        throw usage(
+          `${ref} isn't an item: use @scope/name or @workspace/scope/name, with @tag or @range after it.`,
+        );
       if (at && !isVersionRange(at) && !/^[a-z][a-z0-9-]{0,31}$/.test(at))
         throw usage(`${at} is neither a version range nor a tag.`);
       next[name] = at ?? "latest";

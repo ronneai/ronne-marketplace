@@ -1,4 +1,4 @@
-import type { ItemType } from "@ronneai/core";
+import { type ItemType, typedNameParts } from "@ronneai/core";
 import type { Kysely } from "kysely";
 import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
@@ -224,13 +224,15 @@ export const kyselySubmissionRepository = (
         query = query.where(
           isDependableFrom(dependableFrom, "workspaces.id", "workspaces.visibility", dialect),
         );
-      // `@team/re` is scope `team` and a name with `re`; a single word matches either (056).
+      // `@team/re` is scope `team` and a name with `re`, `@acme/team/re` names the workspace too;
+      // a single word matches either (056, 118).
       const words = search.replace(/^@/, "");
-      const slash = words.indexOf("/");
-      if (words && slash >= 0) {
-        const [scopePart, namePart] = [words.slice(0, slash), words.slice(slash + 1)];
-        if (scopePart) query = query.where(containsInsensitive("scopes.name", scopePart));
-        if (namePart) query = query.where(containsInsensitive("submissions.name", namePart));
+      const typed = typedNameParts(words);
+      if (typed) {
+        if (typed.workspace)
+          query = query.where(containsInsensitive("workspaces.name", typed.workspace));
+        if (typed.scope) query = query.where(containsInsensitive("scopes.name", typed.scope));
+        if (typed.name) query = query.where(containsInsensitive("submissions.name", typed.name));
       } else if (words)
         query = query.where((eb) =>
           eb.or([

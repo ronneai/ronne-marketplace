@@ -1,4 +1,4 @@
-import { ITEM_TYPES, parseItemName } from "@ronneai/core";
+import { GLOBAL_WORKSPACE, ITEM_TYPES, parseItemName } from "@ronneai/core";
 import { RENDERERS } from "@ronneai/core/render";
 import type { Args, Command } from "./cli.js";
 import { RmkError, usage } from "./errors.js";
@@ -69,11 +69,17 @@ const marks = (row: {
     .map((m) => `[${m}]`)
     .join(" ");
 
-/** `@scope/name` as the API's path, without the `@`. */
+/**
+ * An item's API path, without the `@`: `/items/<scope>/<name>` in `global`, and
+ * `/workspaces/<workspace>/items/<scope>/<name>` elsewhere (118). A version's path is under it.
+ */
 export const itemPath = (name: string) => {
   const parsed = parseItemName(name);
-  if (!parsed) throw usage(`${name} isn't an item name; use @scope/name.`);
-  return `/items/${encodeURIComponent(parsed.scope)}/${encodeURIComponent(parsed.name)}`;
+  if (!parsed) throw usage(`${name} isn't an item name; use @scope/name or @workspace/scope/name.`);
+  const path = `/items/${encodeURIComponent(parsed.scope)}/${encodeURIComponent(parsed.name)}`;
+  return parsed.workspace === GLOBAL_WORKSPACE
+    ? path
+    : `/workspaces/${encodeURIComponent(parsed.workspace)}${path}`;
 };
 
 export const withApi = (

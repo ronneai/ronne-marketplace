@@ -53,7 +53,15 @@ answer to it.
 **Grammar.** `@<scope>/<name>` or `@<workspace>/<scope>/<name>`, each segment the name rule
 (`names.ts`: lowercase letters, digits and hyphens, 1–64, no leading or trailing hyphen). A
 three-part name whose workspace is `global` is accepted and shown in the short form. Parsing lives
-in `@ronneai/core` (`parseItemName`, `formatItemName`), the one place every package uses.
+in `@ronneai/core` (`parseItemName`, `formatItemName`, `canonicalItemName`, `shortItemName`,
+`parseScopeName`), the one place every package uses; a repository test fails on a name split by
+hand anywhere else. A full name has at most 195 characters.
+
+**Paths.** An item's API path is `/items/<scope>/<name>` in `global` and
+`/workspaces/<workspace>/items/<scope>/<name>` elsewhere, with its versions and tarballs under it
+as today (`…/<version>`, `…/<version>/tarball`). A prefix, not a third segment, so
+`/items/a/b/c` never has to be guessed between a workspace's item and a version. The web app's item
+pages follow the same shape.
 
 **Where the short form shows.** `global`'s items are shown as `@scope/name` everywhere (pages, API
 answers, `rmk` output, lockfiles, packed manifests). Every other item is shown in full. So an
@@ -97,14 +105,15 @@ item's last segment, as today, so a move doesn't rename anything on disk. `rmk e
 `@workspace/scope` (or `@scope` for `global`). `rmk search` shows full names.
 
 **Plugin feeds.** A plugin's name is `scope.name` in `global` and `workspace.scope.name`
-elsewhere (one dot more; still reversible, since names have no dots). Longer names reach Codex's
-64-character limit sooner; such an item is left out of that tool's feed with the existing warning.
+elsewhere (one dot more; still reversible, since names have no dots; `global.…` is never made, so
+each plugin name reads back to one item). Their zip routes add the workspace before the scope.
+Longer names reach Codex's 64-character limit sooner; such an item is left out of that tool's feed with the existing warning.
 When an item's name changes, its plugin's name does too: Claude Code sees a new plugin and the old
 one gone from the marketplace (decision 4); the feed's description says "Moved from <old>" for 30
 days so people know to install it again.
 
-**Web app.** Item pages are `/items/@workspace/scope/name` (`/items/@scope/name` for `global`); an
-alias's address redirects to the item's for those who see it. Admin › Scopes shows each scope with
+**Web app.** Item pages are `/workspaces/<workspace>/items/<scope>/<name>` (`/items/<scope>/<name>`
+for `global`); an alias's address redirects to the item's for those who see it. Admin › Scopes shows each scope with
 its workspace, and the same name may appear in several rows.
 
 **The migration.** `scopes.name` loses its unique index for `(workspace_id, name)`; every item
@@ -127,7 +136,7 @@ outside `global` gets its `@scope/name` as an alias. Nothing else is renamed and
 - **Usage and download counts** are kept per item id, so a rename doesn't split them; check the
   usage tables in task 1 and move any name key to the item id.
 - **Audit events** keep the names they were written with; the audit log shows them as written.
-- **Long names:** up to 194 characters; URLs and the API take them; Windows paths don't, since
+- **Long names:** up to 195 characters; URLs and the API take them; Windows paths don't, since
   rendered files use the last segment only.
 - **Search for `test/lint`** finds every visible `@*/test/lint`; results always show full names.
 - **Export of an item `rmk` installed under an old name:** export still refuses `rmk`'s items; a

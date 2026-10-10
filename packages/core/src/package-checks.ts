@@ -3,7 +3,7 @@ import { parseFrontmatter } from "./frontmatter.js";
 import type { ManifestIssue } from "./issues.js";
 import { DEFAULT_LIMITS, formatBytes, type PackageLimits } from "./limits.js";
 import type { Manifest } from "./manifest.js";
-import { parseItemName } from "./names.js";
+import { parseItemName, sameItemName } from "./names.js";
 import type { PackageFile } from "./package-file.js";
 
 const PATH_MAX_LENGTH = 255;
@@ -246,7 +246,9 @@ export const checkPackage = (
         else if (
           typeof meta.agent === "string" &&
           parseItemName(meta.agent) &&
-          !Object.hasOwn((manifest.dependencies ?? {}) as Record<string, unknown>, meta.agent)
+          !Object.keys((manifest.dependencies ?? {}) as Record<string, unknown>).some((name) =>
+            sameItemName(name, meta.agent as string),
+          )
         )
           issues.push(
             error(
