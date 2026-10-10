@@ -190,9 +190,12 @@ export const NewDraftForm = ({ scopes, mine }: { scopes: ScopeOption[]; mine: st
 
           <div className="grid gap-1.5">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <label htmlFor="item-name" className="text-sm font-semibold text-fg">
-                Name
-              </label>
+              <span className="flex items-center gap-1">
+                <label htmlFor="item-name" className="text-sm font-semibold text-fg">
+                  Name
+                </label>
+                <Help id="item-name" />
+              </span>
               <span className="font-mono text-xs text-muted">{itemName}</span>
             </div>
             <div

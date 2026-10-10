@@ -420,6 +420,9 @@ describe("NewDraftForm", () => {
     );
     // Inline help (033) on the scope, the name and the type.
     expect(html).toContain("What&#x27;s a scope?");
+    // Next to the name, why it includes the workspace (118).
+    expect(html).toContain("Why does the name include the workspace?");
+    expect(html).toContain("/marketplace/docs/scopes#names");
     expect(html).toContain("How should I name it?");
     expect(html).toContain("Which type?");
   });

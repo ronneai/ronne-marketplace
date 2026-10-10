@@ -11,19 +11,25 @@ export const HELP = {
   scope: {
     question: "What's a scope?",
     answer:
-      "The first part of an item's name, after the @, such as @platform in @platform/code-reviewer. It groups related items. Root and a workspace's admins create scopes, each in a workspace; its workspace's members propose items in it, and review is the gate.",
+      "The part of an item's name before the item, such as @platform in @platform/code-reviewer, or platform in @acme/platform/code-reviewer. It groups related items. Root and a workspace's admins create scopes, each in a workspace; its workspace's members propose items in it, and review is the gate.",
     href: docsHref("scopes", "what"),
+  },
+  "item-name": {
+    question: "Why does the name include the workspace?",
+    answer:
+      "A scope's name is unique within its workspace, so two teams can each have a test scope. The full name says which: @workspace/scope/name, or @scope/name in global. That's the name you install and depend on.",
+    href: docsHref("scopes", "names"),
   },
   workspace: {
     question: "What is a workspace?",
     answer:
-      "The level above scopes: workspace › scope › item. Each workspace holds scopes, and their items, for one team or group. It isn't part of item names, which stay @scope/name. Every instance has global.",
+      "The level above scopes: workspace › scope › item. Each workspace holds scopes, and their items, for one team or group. Outside global it's the first part of an item's name, @workspace/scope/name. Every instance has global.",
     href: docsHref("workspaces", "what"),
   },
   "workspace-choice": {
     question: "Which workspace?",
     answer:
-      "The one whose team the scope's items are for; global when they're for everyone. The catalogue and item pages show a workspace other than global before the items' names, and once there's more than global the catalogue can filter by workspace. In a public workspace everyone signed in sees the scope's items; in a private one, only its members and root. Its members submit and its moderators and admins review there. The scope can't move to another workspace later.",
+      "The one whose team the scope's items are for; global when they're for everyone. A workspace other than global is the first part of the items' names, and once there's more than global the catalogue can filter by workspace. In a public workspace everyone signed in sees the scope's items; in a private one, only its members and root. Its members submit and its moderators and admins review there. The scope can't move to another workspace later.",
     href: docsHref("workspaces", "what"),
   },
   "global-always": {

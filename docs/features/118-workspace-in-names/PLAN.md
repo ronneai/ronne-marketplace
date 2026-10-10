@@ -63,7 +63,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   decision 2 marked as reversed by 118; `docs/spec/manifest.md`.
   *Done when:* the rows and contracts are in.
 
-- [ ] **9. Documentation.** The topics and helper in the spec, in a ronne-web branch.
+- [x] **9. Documentation.** The topics and helper in the spec, in a ronne-web branch.
   *Done when:* the docs render tests pass in ronne-web, and the helper link test passes here.
 
 ## Notes

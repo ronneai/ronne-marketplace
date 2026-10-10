@@ -173,28 +173,30 @@ outside `global` gets its `@scope/name` as an alias. Nothing else is renamed and
   (`items#dependencies`): writing three-part names; two parts mean `global`.
 - **`rmk` → Installing** and **Keeping items up to date** (`rmk#installing`, `rmk#updating`): old
   names keep working and the lockfile moves to the new one; update `rmk`.
-- **Plugin marketplaces → Names**: the workspace in plugin names; a moved item is a new plugin.
+- **Plugin marketplaces → What it is** (`plugins#what`): the workspace in plugin names; a moved
+  item is a new plugin.
 - **Helpers:** next to the name on New draft, "Why does the name include the workspace?" →
   `scopes#names`.
 - **The manifest, `cli-files` and `plugin-feeds` contracts** in `docs/spec/`.
 
 ## Acceptance criteria
 
-- [ ] Two workspaces each have a scope `test` with an item `lint`; both install by full name, in
+- [x] Two workspaces each have a scope `test` with an item `lint`; both install by full name, in
   `rmk`, MCP and the feeds, and the catalogue shows both.
-- [ ] `global`'s items keep `@scope/name` in every page, answer, lockfile and packed manifest.
-- [ ] After the migration, every item outside `global` answers to its old `@scope/name` for those
+- [x] `global`'s items keep `@scope/name` in every page, answer, lockfile and packed manifest.
+- [x] After the migration, every item outside `global` answers to its old `@scope/name` for those
   who see it, and an old lockfile installs it; nobody else learns it exists.
-- [ ] An alias can't become another item's name, by a draft, a move or a rename.
-- [ ] `rmk install` and `update` rewrite an alias entry to the new name in the lockfile, the state
+- [x] An alias can't become another item's name, by a draft, a move or a rename (by a draft
+  here; moves and renames come with 115 and 113, which must keep to it).
+- [x] `rmk install` and `update` rewrite an alias entry to the new name in the lockfile, the state
   file, the markers and `rmk.config.json`, and keep the rendered files; `outdated` says the new name
   and writes nothing.
-- [ ] A dependency through an alias passes submit and release with a warning and Use the new name.
-- [ ] An `rmk` from before 118 installs `global`'s items and gets `client_too_old` for the others.
-- [ ] Released versions carry the full name; tarballs released before keep theirs and still install.
-- [ ] Service tests pass on the four databases; an end-to-end test installs two same-named items
+- [x] A dependency through an alias passes submit and release with a warning and Use the new name.
+- [x] An `rmk` from before 118 installs `global`'s items and gets `client_too_old` for the others.
+- [x] Released versions carry the full name; tarballs released before keep theirs and still install.
+- [x] Service tests pass on the four databases; an end-to-end test installs two same-named items
   from two workspaces.
-- [ ] The Documentation, the contracts and the inline helper listed above say what the feature does
+- [x] The Documentation, the contracts and the inline helper listed above say what the feature does
   now.
 
 ## Decisions

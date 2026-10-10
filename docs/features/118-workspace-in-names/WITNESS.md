@@ -426,3 +426,35 @@ Witnessed: 2026-10-10 03:28 EDT, by a fresh agent (blind). Commit: 33a977fd (plu
 | 16 | `cli-files.md` and `plugin-feeds.md` agree with the MVP text | no | confirmed | `cli-files.md:79-80`; `plugin-feeds.md:105-106` |
 
 **Overall:** met.
+
+## Task 9 — Documentation
+
+Witnessed: 2026-10-10 03:38 EDT, by a fresh agent (blind). Commit: 1faf899d (plus the uncommitted working tree); ronne-web `docs/workspace-in-names` at 3235f81 plus its uncommitted diff. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | ronne-web's checks pass | no | confirmed | lint, typecheck, 138 tests, build (102 pages) |
+| 2 | The helper by Name links `scopes#names`; the helper link test passes | no | confirmed | help.test.tsx, submissions.test.tsx → 30 passed |
+| 3 | scopes#what: the workspace first outside `global` | no | confirmed | `formatItemName`; en, pt, fr |
+| 4 | scopes#names: unique per workspace; two parts mean `global`; `@global/…` read short | no | confirmed | 0022 unique index; `parseItemName`, `canonicalItemName` |
+| 5 | Old names install, depend, open the page, can't be taken | no | confirmed | `load.ts:47-48`; `registry-checks.ts:67,231` |
+| 6 | workspaces#what: full names and the workspace page address | no | confirmed | the route; `ItemPageView.tsx:53-58` |
+| 7 | items: three-part names; Use the new name; release writes current names | no | confirmed | `registry-checks.ts:231-237`; `IssueList.tsx:80`; `publish.ts:311-330` |
+| 8 | rmk#installing: full names in config and lock; `--scope @ws/scope`; old rmk told to update | no | confirmed | `registry-api.ts:45-65`; install-renamed tests |
+| 9 | rmk#updating: install and update move names and print the Note; outdated only reads | no | confirmed | 12 passed (install-renamed, manage) |
+| 10 | Plugin marketplaces → Names | no | partly | no Names section (text in What it is); "starts with Moved from" not so when deprecated |
+| 11 | en, pt and fr say the same | no | confirmed | `git diff -U0` |
+| 12 | The changed topics agree with the app elsewhere | no | partly | stale `Private · acme`, `@acme-infra/deploy isn't a published item.` and `no scope @acme-infra` examples |
+
+**Overall:** not met: claims 10 and 12.
+
+### Re-check 1
+
+Witnessed: 2026-10-10 03:45 EDT, by a fresh agent (blind). Commit: 27f20de2 (plus the uncommitted working tree); ronne-web `docs/workspace-in-names` at 3235f81 plus its uncommitted diff. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 10 | Plugin marketplaces → What it is: the workspace in plugin names; a moved item is a new plugin | no | confirmed | SPEC.md:176; en, pt, fr plugins#what match `pluginName` and `feed.ts:84-97` |
+| 12 | The changed topics agree with the app elsewhere | no | confirmed | no stale names left (only export's `acme › @acme-infra`, as `export-command.ts:197` prints); `Private` matches WorkspaceLabel; ronne-web lint, typecheck, 138 tests, build pass |
+
+**Overall:** met.
