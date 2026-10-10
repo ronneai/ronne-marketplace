@@ -116,18 +116,18 @@ naming `@old/scope/x` still installs through the alias, and `rmk` rewrites it to
 
 ## Acceptance criteria
 
-- [ ] Root and the workspace's admins rename it; moderators, users and admins of other workspaces
+- [x] Root and the workspace's admins rename it; moderators, users and admins of other workspaces
   can't, in the UI or the services.
-- [ ] `global` can't be renamed.
-- [ ] The name rule, reserved names and uniqueness hold, including two renames at once.
-- [ ] After a rename the new name works everywhere (Admin page, join link, catalogue filter, API,
+- [x] `global` can't be renamed.
+- [x] The name rule, reserved names and uniqueness hold, including two renames at once.
+- [x] After a rename the new name works everywhere (Admin page, join link, catalogue filter, API,
   `rmk workspaces`, `rmk feed build --workspace`), and the old one answers as unknown.
-- [ ] Its items take the new name, and their old names install, resolve and redirect as aliases.
-- [ ] A rename that would give an item another item's alias is refused.
-- [ ] Open requests kept for the new name join the workspace.
-- [ ] The rename is audited with the old and new names.
-- [ ] The dialog passes the phone sweep (065).
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] Its items take the new name, and their old names install, resolve and redirect as aliases.
+- [x] A rename that would give an item another item's alias is refused.
+- [x] Open requests kept for the new name join the workspace.
+- [x] The rename is audited with the old and new names.
+- [x] The dialog passes the phone sweep (065).
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Decisions
 

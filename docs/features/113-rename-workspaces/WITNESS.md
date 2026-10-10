@@ -236,3 +236,24 @@ Witnessed: 2026-10-10 16:03 EDT, by a fresh agent (blind). Commit: 70f0032e (plu
 | 13 | `plugin-feeds.md` "Moved from" after a rename | no | confirmed | `renamedSince` reads aliases by date; read in the code only |
 
 **Overall:** met.
+
+## Task 5 — Documentation
+
+Witnessed: 2026-10-10 16:04 EDT, by a fresh agent (blind). Commit: ecd4949b; ronne-web 60b6e6d plus the uncommitted diff on `docs/rename-workspaces`. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | ronne-web's checks pass | no | confirmed | 138 tests, lint, typecheck, build |
+| 2 | The helper link test passes and covers `rename-workspace` | no | confirmed | `help.test.tsx` → 3 passed |
+| 3 | The dialog's helper links `workspaces#managing` | no | confirmed | `Help.tsx:29-34`; `WorkspaceDialogs.tsx:355` |
+| 4 | Who renames, `global` can't (en, pt, fr) | no | confirmed | matches `permissions.ts:48`, the page |
+| 5 | "Can't be changed later" replaced | no | confirmed | en:362, pt:370, fr:386 |
+| 6 | Name rules and uniqueness | no | confirmed | `workspaceNameFrom`, `WorkspaceNameTakenError` |
+| 7 | What changes | no | confirmed | matches the dialog and the service |
+| 8 | What breaks; the old name can be taken | no | confirmed | join route by name; `--workspace` flags exist |
+| 9 | What stays | no | confirmed | `repo.rename`, requests by id |
+| 10 | Renaming is audited | no | confirmed | `workspace.renamed`; summary |
+| 11 | `admin#workspaces` Rename action | no | confirmed | count, redirect, admins rename, `global` none |
+| 12 | en, pt, fr say the same | no | confirmed | six diffs compared |
+
+**Overall:** met.

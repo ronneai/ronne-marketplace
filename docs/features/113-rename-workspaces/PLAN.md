@@ -36,7 +36,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   here.
   *Done when:* the row and the pointer are in.
 
-- [ ] **5. Documentation.** The topics and the helper in the spec, in a ronne-web branch.
+- [x] **5. Documentation.** The topics and the helper in the spec, in a ronne-web branch.
   *Done when:* the docs render tests pass in ronne-web, and the helper link test passes here.
 
 ## Notes
