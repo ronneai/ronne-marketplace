@@ -136,7 +136,8 @@ export interface WorkspaceAccessRequestTable {
 
 /**
  * Scopes (migration 0004_scopes). `name` is stored without the `@`. Every scope belongs to one
- * workspace (0019_workspaces); an item's workspace is its scope's.
+ * workspace (0019_workspaces); an item's workspace is its scope's. Names are unique per workspace
+ * (0022_workspace_in_names, feature 118), not across the instance.
  */
 export interface ScopeTable {
   id: string;
@@ -322,6 +323,18 @@ export interface PluginFeedTable {
   warned_revision: number | null;
 }
 
+/**
+ * An item's old full name (migration 0022_workspace_in_names, feature 118): one it answered to before
+ * a move or a rename, canonical (`@scope/name` in `global`). Reserved: no other item takes it.
+ */
+export interface ItemAliasTable {
+  name: string;
+  item_id: string;
+  /** Why it's an old name: `migration`, `move` or `rename`. */
+  reason: string;
+  created_at: Timestamp;
+}
+
 /** Kysely table types for the whole app. Each migration that adds a table adds its interface here. */
 export interface Database {
   user: UserTable;
@@ -340,6 +353,7 @@ export interface Database {
   submission_revision_files: SubmissionRevisionFileTable;
   review_events: ReviewEventTable;
   items: ItemTable;
+  item_aliases: ItemAliasTable;
   item_versions: ItemVersionTable;
   dist_tags: DistTagTable;
   version_dependencies: VersionDependencyTable;

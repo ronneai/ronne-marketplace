@@ -39,3 +39,49 @@ Witnessed: 2026-10-10 00:18 EDT, by a fresh agent (blind). Commit: 7c639508 (plu
 | 12 | The repository grep test catches the forms planted before, and fails if one comes back | no | confirmed | `pnpm --filter @ronneai/repo-tools test` → 159 passed; planted `slice(1).split("/")`, an `indexOf("/")` in a variable, `split("/")[1]`, the old `MARKER` regex and `/^@([^/]+)\/([^/]+)$/` each failed the test; still missed (none in the tree): `split("/", 2)`, `replace("@", "").split("/")` destructured, `search("/")` |
 
 **Overall:** met.
+
+## Task 2 — Migration
+
+Witnessed: 2026-10-10 00:24 EDT, by a fresh agent (blind). Commit: aa61e53c (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The migration's db test passes on SQLite | no | confirmed | `cd apps/web && npx vitest run --project db src/server/db/migrations` → 12 files, 53 tests passed |
+| 2 | The same on PostgreSQL, MySQL and MariaDB | no | confirmed | `pnpm test:db:postgres -- src/server/db/migrations`, `:mysql`, `:mariadb` → each 12 files, 53 tests passed |
+| 3 | Two workspaces can each have a scope with the same name; one workspace can't have two | no | confirmed | `0022…db.test.ts:122-128`; mutations in a scratch copy: removing the SQLite composite unique fails it on SQLite, skipping the old unique's drop fails it on PostgreSQL and MariaDB |
+| 4 | `scopes` is unique on `(workspace_id, name)` and the unique on `name` alone is gone, on all four | no | confirmed | Schema probes: PG `scopes_name_key` gone, `scopes_workspace_name_unique (workspace_id,name)`; MySQL/MariaDB index `name` gone; SQLite keeps 6 columns, `scopes_workspace_id_idx` and both FKs |
+| 5 | The SQLite rebuild keeps the foreign keys from `items` and `submissions` to `scopes` | no | confirmed | Probe: `items.scope_id → scopes` RESTRICT after 0022; test `:131-137`; `pragma_foreign_key_check` at `0022…ts:111-117` |
+| 6 | `item_aliases` has a unique name, an `item_id` FK that cascades, `created_at` and `reason` | no | confirmed | PG primary key on name, FK ON DELETE CASCADE; MySQL/MariaDB `varchar(195)` `utf8mb4_bin`, CASCADE; SQLite CASCADE; test `:139-148`, a restrict mutation fails it |
+| 7 | Every item outside `global` gets `@scope/name` with reason `migration`; `global`'s none | no | confirmed | `0022…ts:42-62`; test `:113-119`; mutation `where 1=1` fails 2 tests |
+| 8 | Running the migration again adds nothing | no | confirmed | Test `:150-155` passes on all four; removing the `not in (…)` filter fails it |
+| 9 | Usage and download counts use item ids, with no name keys to move | no | confirmed | `usage_daily` keys on `item_id`; `download_count` is on `items`; `version_dependencies.depends_on_item_id`; no name columns in `schema.ts` |
+| 10 | `schema.ts` and the migration index include 0022 and `item_aliases` | no | confirmed | `git diff`; `pnpm --filter @ronneai/web typecheck` passes; `biome check` on the 4 files → no issues |
+| 11 | The guard test passes, 0022 included | no | confirmed | `npx vitest run src/server/db/migrations/migrations.guard.test.ts` → 23 passed |
+
+**Overall:** met.
+
+### Adversarial pass
+
+Witnessed: 2026-10-10 00:25 EDT, by a fresh agent (adversarial). Commit: aa61e53c (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The migration's db test passes on SQLite | no | confirmed | `npx vitest run --project db …/0022_workspace_in_names.db.test.ts` → 5 passed |
+| 2 | The same on PostgreSQL, MySQL and MariaDB | no | confirmed | `pnpm test:db:postgres`, `:mysql`, `:mariadb -- …0022….db.test.ts` → 5 passed on each |
+| 3 | Two workspaces can share a scope name; one workspace can't have it twice | no | confirmed | Breaking the PG drop, or keeping `.unique()` in the SQLite rebuild, fails "lets two workspaces…" |
+| 4 | `scopes` is unique on `(workspace_id, name)`, not on `name` alone, on every dialect | no | confirmed | Schema dumps after migrating on PG, MySQL 8.4, MariaDB and SQLite |
+| 5 | The SQLite rebuild keeps every foreign key and index of `scopes` and of what points at it | no | confirmed | `sqlite_master` and `pragma_foreign_key_list` before and after: `scopes_created_by_fk`, `scopes_workspace_id_fk`, `scopes_workspace_id_idx`, `items`/`submissions.scope_id` RESTRICT all kept |
+| 6 | A failed SQLite run leaves the database as it was | no | confirmed | A planted dangling item makes it throw; afterwards `name` still unique and no `item_aliases` |
+| 7 | A failed PostgreSQL run rolls back | no | confirmed | A pre-made `item_aliases` with `varchar(3)` makes it throw; `scopes_name_key` still there, the new index absent |
+| 8 | On MySQL and MariaDB, a rerun after a partial failure completes | no | confirmed | Index already made and old unique not yet dropped → completes; half the aliases deleted → rerun refills exactly |
+| 9 | `item_aliases` is as specified | no | confirmed | PK on name (195), FK CASCADE, NOT NULL columns; 195 stored and 196 refused on the servers; duplicates, missing items and null reasons refused |
+| 10 | MySQL's index length and collation work for the alias key | no | confirmed | `varchar(195) utf8mb4_bin` (780 bytes); `@INFRA/deploy` and `@infra/déploy` stored beside `@infra/deploy`; exact lookup returns one row |
+| 11 | `reason` holds `migration`, `move` or `rename` | no | confirmed | The migration writes `migration`; like other enum-like columns, the code enforces the values |
+| 12 | Every item outside `global` gets its alias, `global`'s none | no | confirmed | Test 1 on all four; empty and global-only instances → 0 aliases; 1,234 items → 1,234 aliases, rerun unchanged, on all four |
+| 13 | An alias written by this migration is never a current item's name | no | confirmed | Scope names were unique before 0022, so no `@scope/name` alias equals a global item's name; later refusals are task 3's |
+| 14 | Usage and download counts are kept per item id | no | confirmed | `usage_daily.item_id`, `items.download_count`; no name columns |
+| 15 | Nothing else is renamed and no tarball changes | no | confirmed | 0022 touches only `scopes` constraints and `item_aliases`; scope ids and `workspace_id` unchanged |
+| 16 | The guard test passes | no | confirmed | `migrations.guard.test.ts` → 23 passed |
+| 17 | `migrations/index.ts` registers 0022 and `schema.ts` has `ItemAliasTable` | no | confirmed | diff; `npx biome check` on the 4 files → no issues |
+
+**Overall:** met.

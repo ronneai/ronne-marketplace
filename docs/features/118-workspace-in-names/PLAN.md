@@ -16,7 +16,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* core tests cover both forms, `@global/…` shown short, and malformed names; a grep
   test finds no other name splitting; the examples still pass the schema.
 
-- [ ] **2. Migration.** [risky] `scopes` unique on `(workspace_id, name)`; `item_aliases` (name
+- [x] **2. Migration.** [risky] `scopes` unique on `(workspace_id, name)`; `item_aliases` (name
   unique, item_id FK cascade, created_at, reason `migration/move/rename`); every item outside
   `global` gets its `@scope/name`. Check the usage and download tables for name keys and move them
   to item ids.
@@ -69,3 +69,6 @@ goes into `SPEC.md` instead.
   written `scope/name` folders. It's `shortItemName` now. Searches (`typedNameParts`) take a
   three-part name; task 3 adds a database test for it. The grep test
   (`packages/repo-tools/src/item-names.test.js`) doesn't see `split("/", 2)` or `search("/")`.
+- **Task 2:** usage and downloads were already by item id. The database doesn't stop an item from
+  taking an alias's name, and SQLite doesn't enforce `varchar(195)`: the services check both
+  (task 3).
