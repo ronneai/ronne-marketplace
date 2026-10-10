@@ -5,16 +5,29 @@ name: Image
 #
 # Each architecture builds natively on its own runner, in parallel: arm64 under QEMU on an amd64
 # runner took about 5 of the old 7–8 minutes. The repository is public, so the arm64 runner is free.
+#
+# A pull request builds the image only when it changes what the image adds (changes.yml's `image`,
+# ci-scope.js), only for amd64, and not while it's a draft: each build pulls the node base, Trivy
+# and Caddy from Docker Hub (docs/knowledge/docker-hub-pulls.md). Main, nightly.yml and
+# release.yml build both architectures and scan them.
 on:
   push:
     branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_call:
+    # A called workflow gets no secrets unless its caller passes them (docs/knowledge/docker-hub-pulls.md).
+    secrets:
+      DOCKERHUB_READ_TOKEN:
+        required: false
 
 permissions:
   contents: read
 
+# github.workflow is the caller's name when another workflow calls this one, so a call never shares
+# a group with its caller or with this workflow's own runs.
 concurrency:
-  group: image-${{ github.ref }}
+  group: image-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -25,16 +38,19 @@ jobs:
   build:
     name: Image (${{ matrix.arch }})
     needs: changes
-    # Skipped only when the PR changes documentation alone; the `image` job below still passes then.
-    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
+    # Skipped for a pull request that's documentation only, a draft, or changes nothing the image
+    # adds; the `image` job below still passes then.
+    if: >-
+      ${{ !cancelled() && needs.changes.outputs.code != 'false'
+      && needs.changes.outputs.full != 'false' && needs.changes.outputs.image != 'false' }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - arch: amd64
-            runner: ubuntu-latest
-          - arch: arm64
-            runner: ubuntu-24.04-arm
+        # amd64 on a pull request; both architectures everywhere else.
+        include: >-
+          ${{ github.event_name == 'pull_request'
+          && fromJSON('[{"arch":"amd64","runner":"ubuntu-latest"}]')
+          || fromJSON('[{"arch":"amd64","runner":"ubuntu-latest"},{"arch":"arm64","runner":"ubuntu-24.04-arm"}]') }}
     runs-on: ${{ matrix.runner }}
     env:
       # Only whether the secret exists, so the token itself isn't in every step's environment.
@@ -63,14 +79,14 @@ jobs:
           cache-to: ${{ github.event_name == 'push' && format('type=gha,mode=max,scope=image-{0}', matrix.arch) || '' }}
 
   # The required check. Branch protection names this job, so it keeps the name the single job had;
-  # it passes when both architectures passed, or when they were skipped for a docs-only PR.
+  # it passes when the builds passed, or when the pull request didn't need them.
   image:
     name: Docker image (build, run, scan)
     needs: [changes, build]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
-      - name: Both architectures built, ran and passed the scan
+      - name: The images built, ran and passed the scan
         env:
           RESULT: ${{ needs.build.result }}
         run: |

@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
   pull_request:
+    # ready_for_review: a draft runs only the light checks (changes.yml's `full`); marking it ready
+    # runs the rest.
+    types: [opened, synchronize, reopened, ready_for_review]
 
 permissions:
   contents: read
@@ -58,24 +61,27 @@ jobs:
       - run: pnpm install --frozen-lockfile
         if: needs.changes.outputs.code != 'false'
       - run: pnpm lint
-        if: needs.changes.outputs.code != 'false'
+        if: needs.changes.outputs.code != 'false' && matrix.node == 24
       - run: pnpm typecheck
-        if: needs.changes.outputs.code != 'false'
+        if: needs.changes.outputs.code != 'false' && matrix.node == 24
       - run: pnpm test
         if: needs.changes.outputs.code != 'false'
       - run: pnpm build
         if: needs.changes.outputs.code != 'false'
+      # Lint, typecheck and the packing below don't depend on Node's version, so they run once, on the
+      # target LTS; Node 22 runs the tests and the build. server-package.yml installs the packed
+      # server on Node 22 and 24.
       # The web app's standalone build, which packing @ronneai/marketplace copies in (082).
       - run: pnpm build:server
-        if: needs.changes.outputs.code != 'false'
+        if: needs.changes.outputs.code != 'false' && matrix.node == 24
       # What the four packages would publish: dist code, README and LICENSE, and the server's app/
       # without a .env or a native binary (034, 082).
       - run: pnpm packages:check
-        if: needs.changes.outputs.code != 'false'
+        if: needs.changes.outputs.code != 'false' && matrix.node == 24
       # Installs the packed tarballs with npm and runs rmk, rmk-mcp and rmk-server, as a user would
       # (034, 082).
       - run: pnpm release:smoke
-        if: needs.changes.outputs.code != 'false'
+        if: needs.changes.outputs.code != 'false' && matrix.node == 24
 
   # The state witness records (docs/knowledge/state-witness.md). They are documentation, so this
   # runs on every pull request; it needs only Node.
@@ -115,55 +121,20 @@ jobs:
       - run: pnpm audit --audit-level high
 
   e2e:
-    # Two halves in parallel (112): each builds the app and runs half the tests (Playwright's
-    # --shard). The required check is `e2e-result` below, which keeps the old name.
-    name: End-to-end (shard ${{ matrix.shard }}/2)
+    # Two halves in parallel (112, e2e.yml), each building the app and running half the tests. The
+    # required check is `e2e-result` below, which keeps the old name. A draft pull request skips
+    # them until it's ready for review.
     needs: changes
-    # Like `checks`: the steps skip on documentation-only pull requests, so the check still reports.
+    # Like `checks`: the steps skip on documentation-only and draft pull requests, so the check
+    # still reports.
     if: ${{ !cancelled() }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2]
-    steps:
-      - name: Documentation only, nothing to check
-        if: needs.changes.outputs.code == 'false'
-        run: echo "This pull request only changes documentation, so the end-to-end tests are skipped."
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        if: needs.changes.outputs.code != 'false'
-        with:
-          persist-credentials: false
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-        if: needs.changes.outputs.code != 'false'
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        if: needs.changes.outputs.code != 'false'
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-        if: needs.changes.outputs.code != 'false'
-      # Chromium, and WebKit for the iOS Safari phone project (065; dependency exception E-5), from
-      # Playwright's own download, with the system libraries they need. This is the only step that
-      # fetches browsers: installing @playwright/test runs no scripts.
-      - run: pnpm --filter @ronneai/web exec playwright install --with-deps chromium webkit
-        if: needs.changes.outputs.code != 'false'
-      # Builds the web app, sets up a throwaway SQLite instance and runs this half of the tests
-      # (apps/web/e2e). Each half has its own instance: no test relies on another's data.
-      - run: pnpm test:e2e --shard=${{ matrix.shard }}/2
-        if: needs.changes.outputs.code != 'false'
-      # The phone sweep's reports (065): pages that scroll sideways and controls under 44px.
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
-        with:
-          name: mobile-sweep-reports-${{ matrix.shard }}
-          path: apps/web/test-results/**/*.txt
-          if-no-files-found: ignore
+    uses: ./.github/workflows/e2e.yml
+    with:
+      run: ${{ (needs.changes.outputs.code == 'false' || needs.changes.outputs.full == 'false') && 'false' || 'true' }}
 
   e2e-result:
     # The required check (branch protection names it): passes when both halves passed. On a
-    # documentation-only pull request they pass too, with their steps skipped.
+    # documentation-only or draft pull request they pass too, with their steps skipped.
     name: End-to-end (Chromium)
     needs: e2e
     if: ${{ always() }}

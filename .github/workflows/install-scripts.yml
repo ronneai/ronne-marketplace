@@ -5,16 +5,27 @@ name: Install scripts
 # 5.1 and PowerShell 7 on Windows. GitHub's Windows runners can't run Linux containers, so the
 # Windows tests stop at the Docker check. install.sh's full run, on the image just built, is in the
 # image workflow (.github/actions/build-image/install-probe.sh).
+#
+# A pull request runs it only when it changes the scripts (changes.yml's `install`, ci-scope.js),
+# and not while it's a draft: shfmt comes from Docker Hub. nightly.yml runs it on main every night,
+# and release.yml on what it publishes.
 on:
-  push:
-    branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+  workflow_call:
+    # A called workflow gets no secrets unless its caller passes them (docs/knowledge/docker-hub-pulls.md).
+    secrets:
+      DOCKERHUB_READ_TOKEN:
+        required: false
 
 permissions:
   contents: read
 
+# github.workflow is the caller's name when another workflow calls this one, so a call never shares
+# a group with its caller or with this workflow's own runs.
 concurrency:
-  group: install-scripts-${{ github.ref }}
+  group: install-scripts-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -25,7 +36,9 @@ jobs:
   sh:
     name: install.sh (shfmt, dash, bash)
     needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
+    if: >-
+      ${{ !cancelled() && needs.changes.outputs.code != 'false'
+      && needs.changes.outputs.full != 'false' && needs.changes.outputs.install != 'false' }}
     runs-on: ubuntu-latest
     env:
       # Only whether the secret exists, so the token itself isn't in every step's environment.
@@ -58,7 +71,9 @@ jobs:
   ps1:
     name: install.ps1 (PSScriptAnalyzer, PowerShell 5.1 and 7)
     needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
+    if: >-
+      ${{ !cancelled() && needs.changes.outputs.code != 'false'
+      && needs.changes.outputs.full != 'false' && needs.changes.outputs.install != 'false' }}
     runs-on: windows-latest
     timeout-minutes: 15
     steps:
@@ -87,7 +102,7 @@ jobs:
           pwsh -NoProfile -File scripts/install/test-install.ps1
           exit $LASTEXITCODE
 
-  # One check to require: it passes when both jobs passed, or when they were skipped for a docs-only PR.
+  # One check to require: it passes when both jobs passed, or when the pull request didn't need them.
   install-scripts:
     name: Install scripts
     needs: [changes, sh, ps1]

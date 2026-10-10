@@ -22,12 +22,37 @@ Every job that pulls from Docker Hub signs in first, with a read-only token:
 Jobs: `install-scripts.yml` (sh), `image.yml` (build, through `.github/actions/build-image`),
 `packages.yml` (package), `database.yml` (test). `release.yml` signs in with its own token.
 
-`packages.yml` is a called workflow (`workflow_call`, from `server-package.yml` and `release.yml`),
-and a called workflow gets **no secrets unless its caller passes them**. Without that its sign-in
-skipped itself on every run and the package tests kept pulling anonymously. So it declares
-`DOCKERHUB_READ_TOKEN` under `workflow_call.secrets`, and both callers pass it by name (not
+Each of them is also a called workflow (`workflow_call`): `packages.yml` from `server-package.yml`
+and `release.yml`, and `database.yml`, `image.yml`, `install-scripts.yml` and `server-package.yml`
+from `nightly.yml` (and some from `release.yml`). A called workflow gets **no secrets unless its
+caller passes them**. Without that, `packages.yml`'s sign-in
+skipped itself on every run and the package tests kept pulling anonymously. So each declares
+`DOCKERHUB_READ_TOKEN` under `workflow_call.secrets`, and every caller passes it by name (not
 `secrets: inherit`, which would hand over every secret, the release token included). A skipped step
 leaves no line in the log: check the job's steps (`gh api …/actions/jobs/<id> --jq '.steps'`).
+
+## The budget, shared by every job
+
+Signed in, every job counts against **one** account: `ronneai`'s **200 pulls per 6 hours**
+([Docker's limits](https://docs.docker.com/docker-hub/usage/pulls/)), whatever runner it's on. A
+pull is a manifest request, so each image a fresh runner uses counts, layers cached or not. On
+2026-10-09 every push pulled about 16–18 images (all of the suites below, on both architectures),
+so about six pushes and their merges used up the 6 hours, and CI failed with 429 until the window
+moved on.
+
+| Suite | Images | Pulls a run | Runs on |
+|---|---|---|---|
+| `database.yml` | postgres, mysql, mariadb | 3 | pull requests (not drafts), `main`, nightly, weekly, releases |
+| `image.yml` | the node base, Trivy, Caddy (scan and compose probe) | 3–4 per architecture | pull requests that change the image (amd64), `main`, nightly, releases (both) |
+| `packages.yml` | Ubuntu, Debian, Fedora | 3 per architecture, more on retries | pull requests that change the server, nightly, releases |
+| `install-scripts.yml` | shfmt | 1 | pull requests that change the scripts, nightly, releases |
+
+So an ordinary pull request push (app code, not a draft) pulls **3**, and a draft none. Nightly
+pulls about 18 once a day. Which suite runs when: [test-runs.md](test-runs.md).
+
+**A new job that pulls from Docker Hub** runs where it's needed, not on every push: scoped through
+`changes.yml` (`ci-scope.js`), skipped on drafts, and run nightly and in releases. Add its pulls to
+the table.
 
 ## Checking the limits
 
