@@ -23,6 +23,9 @@ test("two skills that need each other go through review and release together (11
   await signIn(moderator, mobileUser(testInfo, "togetherModerator"));
   await approve(moderator, firstId);
   await approve(moderator, secondId);
+  // Closed when done: a context left open keeps running in the project's one browser, and WebKit
+  // slows down until its tests time out.
+  await moderator.context().close();
 
   await page.goto(`/submissions/${firstId}`);
   await releaseTogether(page, pair);

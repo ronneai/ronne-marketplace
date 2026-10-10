@@ -38,10 +38,14 @@ test("a private workspace's item: its lock for a member, a 404 for anyone else",
   expect(
     await member.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
   ).toBe(true);
+  // Closed when done: a context left open keeps running in the project's one browser, and WebKit
+  // slows down until its tests time out.
+  await member.context().close();
 
   const outsider = await (await browser.newContext(device)).newPage();
   await signIn(outsider, E2E_USERS[users.outsider]);
   expect((await outsider.goto(vaultPage))?.status()).toBe(404);
   await outsider.goto(`/catalogue?q=${E2E_VAULT.item}`);
   await expect(outsider.getByRole("article").filter({ hasText: VAULT_ITEM })).toHaveCount(0);
+  await outsider.context().close();
 });
