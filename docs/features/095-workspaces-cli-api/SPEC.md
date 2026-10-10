@@ -42,9 +42,17 @@ acme       private     moderator
 tools      public      —   (ask: https://ronne.example.com/workspaces/tools/join)
 ```
 
-`rmk search deploy --workspace acme` filters as the catalogue does. `rmk info @acme-infra/deploy`
+`rmk search deploy --workspace acme` filters as the catalogue does; two `--workspace`s, or a
+blank one, are a usage error. `rmk info @acme-infra/deploy`
 adds `workspace: acme (private)`. `rmk export`'s scope prompt lists `acme › @acme-infra`,
-`global › @tools` and so on, only where the user is a member.
+`global › @tools` and so on, only where the user is a member: `global` first, then by workspace,
+numbered in that order.
+
+Where the registry answers `not_a_member` (an export to a scope in a workspace you aren't in, or a
+draft you can no longer submit), `rmk` adds the join page's address, `<registry>/workspaces/<name>/join`:
+after the message ("Ask here: …"), in `--json`'s error as `joinUrl`, and under the draft in
+`rmk submit`'s preview. For that, `POST /drafts/check` and `/drafts/submit` name each draft's
+`workspace`. Asking is done in the web app (094).
 
 The MCP `search_items` input gains an optional `workspace`; `list_workspaces` returns what `rmk
 workspaces` prints, as data. Old `rmk` versions keep working: new fields are additive, and the
@@ -55,7 +63,8 @@ workspaces` prints, as data. Old `rmk` versions keep working: new fields are add
 - **An older `rmk` against a new instance:** works; it doesn't show workspaces, and export's scope
   list is already filtered by the server.
 - **A new `rmk` against an older instance** (no `/workspaces`): `rmk workspaces` says "This registry
-  doesn't have workspaces (it's older than 0.N)".
+  doesn't have workspaces (it's older than 0.4.0)", exit 1, code `no_workspaces`. 0.4.0 is the
+first release with workspaces.
 
 ## Documentation
 

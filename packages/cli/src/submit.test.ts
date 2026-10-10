@@ -105,10 +105,22 @@ describe("rmk submit (052)", () => {
     io.answers.push("y");
     const result = await rmk("submit", "@team/style", "@acme/fmt");
     expect(io.questions[0]).toContain(
-      "    - You aren't a member of the acme workspace. Ask to join acme to propose changes.",
+      "    - You aren't a member of the acme workspace. Ask to join acme to propose changes.\n    - Ask here: https://ronne.example/workspaces/acme/join\n",
     );
     expect(submitted).toEqual([ID.style]);
     expect(result.stdout).not.toContain("Fix them in the web app");
+  });
+
+  it("says where to ask to join when a draft is refused at submit for its workspace (095)", async () => {
+    setup({
+      drafts: [
+        { id: ID.style, name: "@acme/style", type: "rule", status: "draft", removedFrom: "acme" },
+      ],
+    });
+    const result = await rmk("submit", ID.style, "--yes");
+    expect(result.stdout).toContain(
+      `Not submitted: @acme/style  rule  ${REGISTRY}/submissions/${ID.style}\n  - You aren't a member of the acme workspace.\n  - Ask here: ${REGISTRY}/workspaces/acme/join\n`,
+    );
   });
 
   it("by id, and with --all; exits 0 when everything asked for went", async () => {

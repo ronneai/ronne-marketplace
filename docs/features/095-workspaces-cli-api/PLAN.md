@@ -11,7 +11,7 @@ the same change that completes it.
   `?workspace=`; MVP §11 updated.
   *Done when:* API tests pass with a member, a non-member and root.
 
-- [ ] **2. `rmk`.** `workspaces`, `search --workspace`, `info`, export's grouped scope prompt, the
+- [x] **2. `rmk`.** `workspaces`, `search --workspace`, `info`, export's grouped scope prompt, the
   join address on `not_a_member`, and the older-registry message.
   *Done when:* CLI tests pass.
 

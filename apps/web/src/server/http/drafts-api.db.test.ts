@@ -629,6 +629,7 @@ describe("POST /drafts/check and /drafts/submit (052)", () => {
       path: `/submissions/${ready}`,
       url: `https://ronne.example/submissions/${ready}`,
       name: "@team/secure-coding",
+      workspace: "global",
       type: "skill",
       status: "draft",
       issues: [],
@@ -959,6 +960,7 @@ describe("workspaces: only members draft and submit there (091)", () => {
       expect.objectContaining({
         id: json.id,
         result: "not_a_member",
+        workspace: "acme",
         issues: [expect.objectContaining({ code: "not_a_member", severity: "error" })],
       }),
     ]);
@@ -966,7 +968,12 @@ describe("workspaces: only members draft and submit there (091)", () => {
       await checkDrafts(send("POST", "/drafts/check", { ids: [json.id] }, memberToken), deps),
     );
     expect(checked.json.drafts).toEqual([
-      expect.objectContaining({ id: json.id, result: "not_a_member", ready: false }),
+      expect.objectContaining({
+        id: json.id,
+        result: "not_a_member",
+        ready: false,
+        workspace: "acme",
+      }),
     ]);
     const status = await t.db
       .selectFrom("submissions")
