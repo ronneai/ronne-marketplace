@@ -2,10 +2,12 @@ import { execFileSync } from "node:child_process";
 import { chmodSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import {
   bundleName,
   cmdLauncher,
+  errorText,
+  getRetrying,
   latestOf,
   nodeArchive,
   notices,
@@ -169,5 +171,72 @@ describe("the bundle's smoke test (084)", () => {
       "rmk-server-0.4.0-linux-x64",
     );
     expect(archiveFolder("rmk-server-0.4.0-win32-arm64.zip")).toBe("rmk-server-0.4.0-win32-arm64");
+  });
+});
+
+describe("downloads from nodejs.org", () => {
+  afterEach(() => vi.restoreAllMocks());
+  const url = "https://nodejs.org/dist/index.json";
+  const answer = (status, body = "[]") => new Response(body, { status });
+  /** A fetch that gives each answer in turn: a Response, or an error it throws. */
+  const fetchOf = (...answers) => {
+    const request = vi.fn(async () => {
+      const next = answers.shift();
+      if (next instanceof Error) throw next;
+      return next;
+    });
+    return request;
+  };
+  const noPause = vi.fn(async () => {});
+  const quiet = () => vi.spyOn(console, "error").mockImplementation(() => {});
+
+  it("tries a network error and a 5xx again, and reads the answer that works", async () => {
+    quiet();
+    const request = fetchOf(new TypeError("fetch failed"), answer(503), answer(200, "[1]"));
+    const pause = vi.fn(async () => {});
+    expect(await getRetrying(url, (r) => r.json(), { fetch: request, pause })).toEqual([1]);
+    expect(request).toHaveBeenCalledTimes(3);
+    expect(pause.mock.calls).toEqual([[1], [2]]);
+  });
+
+  it("tries a body that breaks halfway again", async () => {
+    quiet();
+    let reads = 0;
+    const read = async (r) => {
+      reads++;
+      if (reads === 1) throw new TypeError("terminated");
+      return r.text();
+    };
+    const request = fetchOf(answer(200, "a"), answer(200, "b"));
+    expect(await getRetrying(url, read, { fetch: request, pause: noPause })).toBe("b");
+  });
+
+  it("gives up after three tries, with the last error", async () => {
+    quiet();
+    const request = fetchOf(answer(502), answer(502), answer(504), answer(200));
+    await expect(
+      getRetrying(url, (r) => r.text(), { fetch: request, pause: noPause }),
+    ).rejects.toThrow(`${url} answered 504.`);
+    expect(request).toHaveBeenCalledTimes(3);
+  });
+
+  it("doesn't try a 404 again: it would say the same", async () => {
+    const request = fetchOf(answer(404), answer(200));
+    await expect(
+      getRetrying(url, (r) => r.text(), { fetch: request, pause: noPause }),
+    ).rejects.toThrow(`${url} answered 404.`);
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
+  it("says what fetch's error was caused by", () => {
+    const cause = Object.assign(new Error("Connect Timeout Error"), {
+      code: "UND_ERR_CONNECT_TIMEOUT",
+    });
+    expect(errorText(new TypeError("fetch failed", { cause }))).toBe(
+      "fetch failed (UND_ERR_CONNECT_TIMEOUT: Connect Timeout Error)",
+    );
+    expect(errorText(new Error("nodejs.org lists no Node.js 24 release."))).toBe(
+      "nodejs.org lists no Node.js 24 release.",
+    );
   });
 });
