@@ -405,3 +405,30 @@ Witnessed: 2026-10-11 01:55 EDT, by a fresh agent (blind). Commit: bcb04267 (plu
 | 15 | Lint and types | no | confirmed | clean |
 
 **Overall:** met.
+
+## Task 7 — Decision log
+
+Witnessed: 2026-10-11 02:00 EDT, by a fresh agent (blind). Commit: 9e39159e (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1–3 | Workspaces row: who asks, who decides, listed and counted | no | confirmed | `placesOf`, `moveWay`, `mayAnswer`, pages; tests |
+| 4 | "A name clash in the target renames the scope" | no | partly | a clash refuses until the asker gives a free name |
+| 5–6 | Refused rather than broken; names and aliases; no one else's personal | no | confirmed | `checkMove`, locks, `performMove`; 45 tests |
+| 7 | Approval row: not-reviewed versions, `reviewed_by` | no | confirmed | code; test |
+| 8–10 | Old names, Scopes rows; §2 matrix row | no | confirmed | MVP.md |
+| 11 | Nothing says moving isn't built | no | confirmed | grep |
+| 12–13 | 090's Out and Delete point to 115 | no | confirmed | 090 SPEC |
+
+**Overall:** not met: row 4.
+
+### Re-check 1
+
+Witnessed: 2026-10-11 02:02 EDT, by a fresh agent (blind). Commit: 9e39159e (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | A clash refuses until the asker gives a free name, which the move takes | no | confirmed | MVP.md:912; `checkMove`, `applyMove`; tests |
+| 2 | Who decides, with the not-reviewed exception | no | confirmed | MVP.md:912; `moveWay`; test |
+
+**Overall:** met.

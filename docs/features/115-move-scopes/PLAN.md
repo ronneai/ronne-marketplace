@@ -48,7 +48,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   personal scope into a team workspace and its admin approve, then root move one directly with both
   confirmations, on desktop and phone.
 
-- [ ] **7. Decision log.** MVP §15's Workspaces row (scopes move; who decides; refused rather than
+- [x] **7. Decision log.** MVP §15's Workspaces row (scopes move; who decides; refused rather than
   broken) and Approval (not-reviewed versions reviewed at the move). 090's Out list points here.
   *Done when:* the rows and the pointer are in.
 

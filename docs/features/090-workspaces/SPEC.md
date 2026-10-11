@@ -70,7 +70,7 @@ deleted: the edit and delete actions aren't shown, and the services refuse them
 - **A workspace's page** (`/admin/workspaces/<name>`): its description (editable), its scopes, and
   from 092 its members.
 - **Delete:** only when it has no scopes; otherwise disabled with "Move or remove its scopes
-  first" (nothing moves scopes yet, so in practice a workspace with scopes stays).
+  first" (moving them out is [115](../115-move-scopes/SPEC.md)'s).
 
 **Admin › Scopes.** The table gains a Workspace column and filter; **New scope** gains a workspace
 select, `global` first and selected.
