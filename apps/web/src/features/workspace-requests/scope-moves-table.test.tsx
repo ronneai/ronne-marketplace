@@ -128,6 +128,8 @@ describe("the Scope moves table (115)", () => {
       'aria-label="Decline moving @beta/infra to acme"',
     ])
       expect(html, text).toContain(text);
+    expect(html).toContain("What does approving do?");
+    expect(html).toContain("/marketplace/docs/workspaces#moving");
     // A workspace's own tab has no target column.
     expect(renderToStaticMarkup(<ScopeMovesTable moves={[move()]} />)).not.toContain(">To<");
   });

@@ -142,8 +142,8 @@ items, reviewed }`; `direct: true` when nobody had to answer). From the next req
 - versions, tags and download counts don't change.
 
 **Personal workspaces** (114). The owner moves a scope out of theirs like any admin: to their own
-admin workspace at once (unless it carries not-reviewed versions, which every personal scope with
-releases does), to another shared one as a request, to `global` as a request to root (or at once, with two
+admin workspace at once (unless it carries not-reviewed versions, which every version released in
+the personal workspace is), to another shared one as a request, to `global` as a request to root (or at once, with two
 confirmations, when they're an admin of `global` and nothing is not reviewed). Root can move
 a scope out of anyone's personal workspace. Moving into a personal workspace is its owner's only:
 from a workspace they administer, to keep working on a scope alone.
@@ -185,10 +185,13 @@ from a workspace they administer, to keep working on a scope alone.
 - **Workspaces**, a new section **Moving a scope** (`workspaces#moving`): who can ask, who answers
   (the table above), what a move changes and what refuses it, root's double confirmation,
   not-reviewed versions from personal workspaces.
+- **Workspaces → Your personal workspace** and **Creating and managing them**, and
+  **Administration → Workspaces**: moving a scope out (Delete needs the scopes moved first), Move…
+  on a scope's row, and the moves on the Requests tab.
 - **Workspaces → Joining a workspace** (`workspaces#joining`): the Requests page also holds scope
   moves.
 - **Scopes → Who creates and uses them** (`scopes#who`): a scope can move to another workspace;
-  its items keep their names.
+  its items take the new names, and their old names keep working.
 - **`rmk` → Installing** (`rmk#installing`): an item can disappear when its scope moves to a
   workspace you can't see.
 - **Helpers:** in the Move dialog, "Who has to agree?" → `workspaces#moving`; on the Scope moves
@@ -196,26 +199,26 @@ from a workspace they administer, to keep working on a scope alone.
 
 ## Acceptance criteria
 
-- [ ] Only root, the scope's workspace's admins (or its personal workspace's owner) can ask; the
+- [x] Only root, the scope's workspace's admins (or its personal workspace's owner) can ask; the
   service refuses everyone else.
-- [ ] Each row of the "who decides" table holds: root, and an admin of `global` moving to `global`,
+- [x] Each row of the "who decides" table holds: root, and an admin of `global` moving to `global`,
   move after two confirmations; anyone else moving to `global` needs root; an admin of both moves
   at once; otherwise the target's admins or root answer.
-- [ ] A scope with not-reviewed versions always needs root or another target admin, and approving
+- [x] A scope with not-reviewed versions always needs root or another target admin, and approving
   marks them reviewed by that person.
-- [ ] Moves that would break a dependency (outside dependents with a private target, the scope's
+- [x] Moves that would break a dependency (outside dependents with a private target, the scope's
   own dependencies on another private workspace) are refused with the list, when asked and when
   approved.
-- [ ] After a move, the items are seen, reviewed and installed per the new workspace from the next
+- [x] After a move, the items are seen, reviewed and installed per the new workspace from the next
   request, under their new names; their old names work as aliases for those who see them;
   versions are unchanged; the catalogue revision rose.
-- [ ] A move into a workspace with a scope of the same name needs a new name, free in the target,
+- [x] A move into a workspace with a scope of the same name needs a new name, free in the target,
   and renames the scope; a clash that appears before approval leaves the request open.
-- [ ] One open move per scope; asker and source admins cancel; a second answer gets "Already
+- [x] One open move per scope; asker and source admins cancel; a second answer gets "Already
   answered"; an asker who lost the role has the request cancelled at approval.
-- [ ] Every step is audited.
-- [ ] The dialog and the Scope moves table pass the phone sweep (065).
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] Every step is audited.
+- [x] The dialog and the Scope moves table pass the phone sweep (065).
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Decisions
 

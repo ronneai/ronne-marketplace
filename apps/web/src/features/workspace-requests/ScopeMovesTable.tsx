@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label } from "@/components/ui/Field";
@@ -146,66 +147,69 @@ export const ScopeMovesTable = ({
       </p>
     );
   return (
-    <Table>
-      <thead>
-        <tr>
-          <Th>Scope</Th>
-          <Th>From</Th>
-          {showTarget ? <Th>To</Th> : null}
-          <Th>Its name there</Th>
-          <Th>Asked by (UTC)</Th>
-          <Th>Message</Th>
-          <Th>
-            <span className="sr-only">Answer</span>
-          </Th>
-        </tr>
-      </thead>
-      <tbody>
-        {moves.map((m) => {
-          const refused = refusals(m.impact);
-          return (
-            <tr key={m.id}>
-              <Td className="py-2">
-                <span className="block font-mono text-[13px] text-fg">{m.scope}</span>
-                <span className="block text-xs text-muted">
-                  {m.items} {m.items === 1 ? "item" : "items"}
-                </span>
-                {m.notReviewed.length > 0 ? (
-                  <span className="block text-xs text-warning-text">
-                    Not reviewed: {m.notReviewed.join(", ")}. Approving reviews them.
+    <div className="grid gap-2">
+      <Help id="move-approve" />
+      <Table>
+        <thead>
+          <tr>
+            <Th>Scope</Th>
+            <Th>From</Th>
+            {showTarget ? <Th>To</Th> : null}
+            <Th>Its name there</Th>
+            <Th>Asked by (UTC)</Th>
+            <Th>Message</Th>
+            <Th>
+              <span className="sr-only">Answer</span>
+            </Th>
+          </tr>
+        </thead>
+        <tbody>
+          {moves.map((m) => {
+            const refused = refusals(m.impact);
+            return (
+              <tr key={m.id}>
+                <Td className="py-2">
+                  <span className="block font-mono text-[13px] text-fg">{m.scope}</span>
+                  <span className="block text-xs text-muted">
+                    {m.items} {m.items === 1 ? "item" : "items"}
                   </span>
-                ) : null}
-                {refused > 0 ? (
-                  <span className="block text-xs text-error-text">
-                    {refused === 1 ? "1 thing refuses" : `${refused} things refuse`} it now: Approve
-                    lists them.
-                  </span>
-                ) : null}
-              </Td>
-              <Td mono>{m.from}</Td>
-              {showTarget ? <Td mono>{m.to}</Td> : null}
-              <Td className="py-2">
-                <span className="font-mono text-xs text-fg">{m.newName}</span>
-                {m.renamed ? <span className="block text-xs text-muted">Renamed</span> : null}
-              </Td>
-              <Td className="py-2 whitespace-nowrap">
-                <span className="block text-sm text-fg">{m.askedBy.name}</span>
-                <span className="block font-mono text-xs text-muted">{m.askedBy.email}</span>
-                <LocalTime value={m.createdAt} />
-              </Td>
-              <Td className="max-w-80 py-2 text-sm break-words whitespace-pre-line">
-                {m.message ?? <span className="text-muted">None</span>}
-              </Td>
-              <Td className="py-2">
-                <div className="flex flex-nowrap items-start gap-2">
-                  <ApproveMoveForm move={m} />
-                  <DeclineMoveButton move={m} />
-                </div>
-              </Td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </Table>
+                  {m.notReviewed.length > 0 ? (
+                    <span className="block text-xs text-warning-text">
+                      Not reviewed: {m.notReviewed.join(", ")}. Approving reviews them.
+                    </span>
+                  ) : null}
+                  {refused > 0 ? (
+                    <span className="block text-xs text-error-text">
+                      {refused === 1 ? "1 thing refuses" : `${refused} things refuse`} it now:
+                      Approve lists them.
+                    </span>
+                  ) : null}
+                </Td>
+                <Td mono>{m.from}</Td>
+                {showTarget ? <Td mono>{m.to}</Td> : null}
+                <Td className="py-2">
+                  <span className="font-mono text-xs text-fg">{m.newName}</span>
+                  {m.renamed ? <span className="block text-xs text-muted">Renamed</span> : null}
+                </Td>
+                <Td className="py-2 whitespace-nowrap">
+                  <span className="block text-sm text-fg">{m.askedBy.name}</span>
+                  <span className="block font-mono text-xs text-muted">{m.askedBy.email}</span>
+                  <LocalTime value={m.createdAt} />
+                </Td>
+                <Td className="max-w-80 py-2 text-sm break-words whitespace-pre-line">
+                  {m.message ?? <span className="text-muted">None</span>}
+                </Td>
+                <Td className="py-2">
+                  <div className="flex flex-nowrap items-start gap-2">
+                    <ApproveMoveForm move={m} />
+                    <DeclineMoveButton move={m} />
+                  </div>
+                </Td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </Table>
+    </div>
   );
 };

@@ -62,6 +62,18 @@ export const HELP = {
       "Anyone signed in reads and installs a public workspace's items, but only its members propose and submit there. Ask to join it from the Workspaces page, or from the join link its moderators or admins send for a private one; root or its moderators and admins answer, and you see the answer there.",
     href: docsHref("workspaces", "joining"),
   },
+  "move-who": {
+    question: "Who has to agree?",
+    answer:
+      "Root, and an admin of global moving into global, move at once after typing the scope's name. An admin of the target workspace, or someone moving into their own personal workspace, moves at once. Anyone else asks, and the target's admins or root answer (root alone for global). A scope with versions not reviewed always asks someone else.",
+    href: docsHref("workspaces", "moving"),
+  },
+  "move-approve": {
+    question: "What does approving do?",
+    answer:
+      "It checks the move again and moves the scope: its items take the new workspace's names, their old names keep working, and versions not reviewed become reviewed in your name. If something would break now, nothing moves and the request stays open, with the list.",
+    href: docsHref("workspaces", "moving"),
+  },
   "personal-workspace": {
     question: "What's my personal workspace?",
     answer:

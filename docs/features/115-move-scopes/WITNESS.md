@@ -432,3 +432,46 @@ Witnessed: 2026-10-11 02:02 EDT, by a fresh agent (blind). Commit: 9e39159e (plu
 | 2 | Who decides, with the not-reviewed exception | no | confirmed | MVP.md:912; `moveWay`; test |
 
 **Overall:** met.
+
+## Task 8 — Documentation
+
+Witnessed: 2026-10-11 02:05 EDT, by a fresh agent (blind). Commit: 788a2c06 (plus the uncommitted working tree); ronne-web branch `docs/115-move-scopes` (uncommitted). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | ronne-web checks pass | no | confirmed | lint, typecheck, 138 tests, build |
+| 2 | `workspaces#moving` renders in en, pt, fr | no | confirmed | built pages |
+| 3 | `moving` in both topics files | no | confirmed | both |
+| 4 | Helper link test passes; helpers where the spec says | no | confirmed | 20 tests |
+| 5–8 | Moving's facts match the app | no | confirmed | against `scope-moves.ts`, the dialog, tests |
+| 9 | Personal: moving out needs someone else | no | partly | not for a scope with only drafts |
+| 10–13 | Managing, admin, joining, scopes, rmk | no | confirmed | against pages and services |
+| 14 | pt and fr say what en says | no | confirmed | side by side |
+| 15 | SPEC Documentation updated | no | confirmed | diff |
+
+**Overall:** not met: row 9.
+
+### Re-check 1
+
+Witnessed: 2026-10-11 02:07 EDT, by a fresh agent (blind). Commit: 788a2c06 (plus the uncommitted working tree); ronne-web branch (uncommitted). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Checks pass; renders in three languages | no | confirmed | build |
+| 9 | Personal: moving out | no | partly | a scope brought in already reviewed moves at once |
+| 5a | Who answers not-reviewed moves | no | confirmed | `mayAnswer` |
+| 14a | pt wording | no | confirmed | grep |
+
+**Overall:** not met: row 9.
+
+### Re-check 2
+
+Witnessed: 2026-10-11 02:07 EDT, by a fresh agent (blind). Commit: 788a2c06 (plus the uncommitted working tree); ronne-web branch (uncommitted). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Checks pass; renders in three languages | no | confirmed | build |
+| 9 | Personal: "Once you've released versions in it, someone else approves" | no | confirmed | `self_approve`, `publish.ts`, `moveWay` |
+| 15a | SPEC line matches | no | confirmed | SPEC.md:145 |
+
+**Overall:** met.

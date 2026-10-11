@@ -3,6 +3,7 @@
 import { NAME_PROBLEM_MESSAGES, normalizeScopeName } from "@ronneai/core";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState } from "react";
+import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label, selectClasses } from "@/components/ui/Field";
@@ -281,6 +282,7 @@ export const MoveForm = ({
       <input type="hidden" name="name" value={name} />
       {step === "form" ? (
         <>
+          <Help id="move-who" />
           <div className="grid gap-1.5">
             <Label htmlFor={`move-${scope.id}-to`}>Where to</Label>
             {targets && "error" in targets ? (

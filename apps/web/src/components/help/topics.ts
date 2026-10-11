@@ -41,6 +41,7 @@ export const TOPICS = [
       { id: "roles", title: "Members and roles" },
       { id: "joining", title: "Joining a workspace" },
       { id: "managing", title: "Creating and managing them" },
+      { id: "moving", title: "Moving a scope" },
     ],
   },
   {

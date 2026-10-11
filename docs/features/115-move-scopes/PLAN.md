@@ -52,7 +52,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   broken) and Approval (not-reviewed versions reviewed at the move). 090's Out list points here.
   *Done when:* the rows and the pointer are in.
 
-- [ ] **8. Documentation.** The topics and helpers in the spec, in a ronne-web branch.
+- [x] **8. Documentation.** The topics and helpers in the spec, in a ronne-web branch.
   *Done when:* the docs render tests pass in ronne-web, and the helper link test passes here.
 
 ## Notes

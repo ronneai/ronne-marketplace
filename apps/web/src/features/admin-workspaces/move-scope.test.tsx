@@ -76,6 +76,9 @@ describe("the Move dialog (115)", () => {
     expect(html).toContain(">Personal (ana)</option>");
     expect(html).toContain(">global</option>");
     expect(html).toContain("Pick a workspace");
+    // Its helper leads to the Documentation's section.
+    expect(html).toContain("Who has to agree?");
+    expect(html).toContain("/marketplace/docs/workspaces#moving");
     expect(targetLabel(targets.targets[2] as never)).toBe("acme");
   });
 
