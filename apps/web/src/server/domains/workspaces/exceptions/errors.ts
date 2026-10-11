@@ -187,3 +187,17 @@ export class PersonalWorkspaceError extends WorkspacesError {
     );
   }
 }
+
+/** A scope to move that doesn't exist, or that the asker doesn't see (115). */
+export class ScopeMoveScopeNotFoundError extends WorkspacesError {
+  constructor() {
+    super("That scope doesn't exist.");
+  }
+}
+
+/** Moving a scope to the workspace it's in already (115). */
+export class ScopeMoveSameWorkspaceError extends WorkspacesError {
+  constructor(readonly workspaceName: string) {
+    super(`The scope is in ${workspaceName} already.`);
+  }
+}

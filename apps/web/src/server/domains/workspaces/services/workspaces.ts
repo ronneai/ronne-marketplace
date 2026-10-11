@@ -309,7 +309,10 @@ const impactOf = async (
       });
     })
     .map(({ name }) => name);
-  return { dependents: await repo.outsideDependents(workspace.id), openDependents };
+  return {
+    dependents: (await repo.outsideDependents(workspace.id)).map((d) => d.name),
+    openDependents,
+  };
 };
 
 /** Root only, like the setting itself: what Make private would meet, for its dialog. */
@@ -347,7 +350,7 @@ export const setWorkspaceVisibility = async (
     if (workspace.ownerId) throw new PersonalWorkspaceError("visibility");
     if (workspace.visibility === to) return;
     if (to === "private") {
-      const dependents = await repo.outsideDependents(workspace.id);
+      const dependents = (await repo.outsideDependents(workspace.id)).map((d) => d.name);
       if (dependents.length > 0)
         throw new WorkspaceHasOutsideDependentsError(workspace.name, dependents);
     }

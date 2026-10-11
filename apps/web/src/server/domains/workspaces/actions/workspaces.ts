@@ -6,6 +6,7 @@ import { kyselyWorkspaceRepository } from "../repositories/kysely-workspace-repo
 import type { WorkspacePageQuery } from "../repositories/workspace-repository";
 import * as requests from "../services/access-requests";
 import * as members from "../services/members";
+import * as moves from "../services/scope-moves";
 import * as service from "../services/workspaces";
 
 export type { WorkspacesTablePage } from "../services/workspaces";
@@ -183,3 +184,10 @@ export const joinTarget = async (headers: Headers, name: string, app: AppAuth = 
 
 export const requestsToAnswerList = async (headers: Headers, app: AppAuth = getAppAuth()) =>
   requests.requestsToAnswerList(deps(app), await actor(headers, app));
+
+/** What moving a scope to another workspace would change, and what refuses it (115). */
+export const moveImpact = async (
+  headers: Headers,
+  input: { scopeId: string; to: string; name?: string },
+  app: AppAuth = getAppAuth(),
+) => moves.moveImpact(deps(app), await actor(headers, app), input);

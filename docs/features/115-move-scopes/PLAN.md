@@ -16,7 +16,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   `versions.reviewed_by` (nullable FK `user`, set null) for approved not-reviewed versions.
   *Done when:* the migration's db test passes on the four databases; the guard test passes.
 
-- [ ] **2. The checks.** [risky] `moveImpact(scope, target)`: outside dependents with a private
+- [x] **2. The checks.** [risky] `moveImpact(scope, target)`: outside dependents with a private
   target, the scope's own dependencies on another private workspace (released, not yanked, and
   open submissions), open submissions outside that depend on it, authors who aren't target
   members, not-reviewed versions, the items' new names, a scope-name clash in the target and new

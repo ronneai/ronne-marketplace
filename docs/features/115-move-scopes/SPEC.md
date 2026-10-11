@@ -78,6 +78,9 @@ the reason until the next request.
      withdraw them, not edit or submit (091's rule for a removed member);
    - not-reviewed versions (114), listed;
    - what refuses the move (below), listed, with Move disabled.
+   Anything in a workspace the asker doesn't see (093: someone's personal workspace, a private
+   one they aren't in) is counted, never named, and so are other people's drafts (only root
+   sees those); a count still refuses when what it counts would.
 4. **Message** (optional), when the move will be a request.
 5. **The button** says what will happen: **Move scope** (moved at once) or **Ask to move**
    (a request, "acme's admins or root will answer" or "Root will answer" for `global`).
@@ -95,6 +98,11 @@ dependency checks (093), when asked, when approved and when moved:
 - **The scope's own dependencies:** a released, not-yanked version in the scope, or an open
   submission, that depends on an item in a private workspace other than the target (its current
   one included, for items outside the scope). After the move they'd break 093's rule.
+  A dependency still in review (056, 112: submitted, changes requested or approved, never a draft)
+  is judged by where it is, as its release will be; in the scope itself it never counts. For anyone but root, a submission's dependency that names no item,
+  released or in review, refuses as a hidden one would, so a refusal never tells a hidden item
+  from a name nobody has; the dialog says it's something the asker can't see or that doesn't
+  exist.
 - **An open move** already for the scope ("A move to acme is waiting for an answer").
 - **A name clash** that appeared since it was asked: the target now has a scope with the new name,
   or a new name is now another item's alias. Approve says so and leaves the request open; the asker
