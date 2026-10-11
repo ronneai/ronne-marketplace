@@ -422,6 +422,8 @@ export type MyWorkspace = {
   visibility: WorkspaceVisibility;
   isGlobal: boolean;
   role: WorkspaceRole | null;
+  /** The reader's own personal workspace (114), listed first. */
+  personal: boolean;
 };
 
 /**
@@ -447,7 +449,10 @@ export const myWorkspaces = async (
         visibility: w.visibility,
         isGlobal: w.isGlobal,
         role: user.workspaces[w.id] ?? null,
+        personal: w.ownerId === user.id,
       }))
+      // Their own personal workspace first (114); the rest keep `global` first, then by name.
+      .sort((a, b) => Number(b.personal) - Number(a.personal))
   );
 };
 

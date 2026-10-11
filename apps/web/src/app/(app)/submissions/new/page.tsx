@@ -21,19 +21,19 @@ const allScopes = async (headers: Headers): Promise<ScopeOption[]> => {
     const { scopes, nextCursor } = await listScopes(headers, { cursor });
     // Scope names are unique per workspace (118): `acme/infra` outside global, `infra` in it.
     found.push(
-      ...scopes.map(({ name, description, workspace }) => ({
+      ...scopes.map(({ name, description, workspace, personal }) => ({
         name: formatScopeName({ workspace: workspace.name, scope: name }).slice(1),
         description,
+        personal,
       })),
     );
     if (!nextCursor) break;
     cursor = nextCursor;
   }
-  // By workspace, `global` first, so each workspace's scopes sit together (118).
-  return found.sort((a, b) => {
-    const [aw, bw] = [a.name.includes("/") ? 1 : 0, b.name.includes("/") ? 1 : 0];
-    return aw - bw || a.name.localeCompare(b.name);
-  });
+  // By workspace, the person's personal one first (114), then `global`, so each workspace's
+  // scopes sit together (118).
+  const rank = (option: ScopeOption) => (option.personal ? 0 : option.name.includes("/") ? 2 : 1);
+  return found.sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
 };
 
 const NewItem = async () => {

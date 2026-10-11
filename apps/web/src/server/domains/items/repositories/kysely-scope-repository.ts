@@ -7,7 +7,7 @@ import { containsInsensitive } from "../../../db/search";
 import type { DatabaseDialect } from "../../../db/url";
 import { recordAudit } from "../../audit/actions/audit";
 import type { Viewer } from "../../workspaces/models/viewer";
-import { inVisibleWorkspace } from "../../workspaces/repositories/visible";
+import { inListedWorkspace, inVisibleWorkspace } from "../../workspaces/repositories/visible";
 import type { Scope } from "../models/scope";
 import type { ScopeRepository } from "./scope-repository";
 
@@ -17,6 +17,7 @@ type ScopeRow = {
   description: string;
   workspace_id: string;
   workspace_name: string;
+  workspace_owner_id: string | null;
   created_by: string | null;
   creator_email: string | null;
   created_at: Date | string;
@@ -26,7 +27,7 @@ const toScope = (row: ScopeRow): Scope => ({
   id: row.id,
   name: row.name,
   description: row.description,
-  workspace: { id: row.workspace_id, name: row.workspace_name },
+  workspace: { id: row.workspace_id, name: row.workspace_name, ownerId: row.workspace_owner_id },
   createdBy: row.created_by ? { id: row.created_by, email: row.creator_email } : null,
   createdAt: fromDbDate(row.created_at),
 });
@@ -52,6 +53,7 @@ export const kyselyScopeRepository = (
         "scopes.description",
         "scopes.workspace_id",
         "workspaces.name as workspace_name",
+        "workspaces.owner_id as workspace_owner_id",
         "scopes.created_by",
         "user.email as creator_email",
         "scopes.created_at",
@@ -112,7 +114,13 @@ export const kyselyScopeRepository = (
 
     list: async ({ search, cursor, workspaceIds, limit }) => {
       if (workspaceIds?.length === 0) return [];
-      let query = scopes().orderBy("scopes.name").orderBy("scopes.id").limit(limit);
+      // Root's list leaves out other people's personal workspaces (114): one per user would bury
+      // the rest.
+      let query = scopes()
+        .where(inListedWorkspace(viewer, "workspaces.id"))
+        .orderBy("scopes.name")
+        .orderBy("scopes.id")
+        .limit(limit);
       if (workspaceIds) query = query.where("scopes.workspace_id", "in", [...workspaceIds]);
       if (search)
         query = query.where((eb) =>

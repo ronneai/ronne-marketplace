@@ -33,7 +33,7 @@ const ROLES: readonly SweepRole[] = ["member", "moderator", "root"];
 type Result = { url: string; role: SweepRole; width: number; problem: string | null };
 const results: Result[] = [];
 const targets = new Map<string, { target: SmallTarget; urls: Set<string> }>();
-let data: SweepData = { draftId: "", submissionId: "" };
+let data: SweepData = { draftId: "", submissionId: "", personal: "" };
 
 test.describe.configure({ mode: "serial" });
 
@@ -78,7 +78,8 @@ test.beforeAll(async ({ playwright }, testInfo) => {
     data: { ids: [submissionId] },
   });
   expect(submitted.ok()).toBe(true);
-  data = { draftId, submissionId };
+  // Their personal workspace (114) is named from their email.
+  data = { draftId, submissionId, personal: mobileUser(testInfo, "member").split("@")[0] ?? "" };
   await api.dispose();
 });
 
@@ -107,7 +108,7 @@ const check = async (page: Page, url: string, role: SweepRole) => {
 
 test("signed out", async ({ page }) => {
   for (const sweepPage of SWEEP_PAGES.filter((p) => p.roles === "signedOut" && !p.skip))
-    for (const url of sweepPage.urls(data)) await check(page, url, "member");
+    for (const url of sweepPage.urls(data, "member")) await check(page, url, "member");
 });
 
 for (const role of ROLES)
@@ -116,7 +117,7 @@ for (const role of ROLES)
     for (const sweepPage of SWEEP_PAGES) {
       if (sweepPage.skip || sweepPage.roles === "signedOut" || !sweepPage.roles.includes(role))
         continue;
-      for (const url of sweepPage.urls(data)) await check(page, url, role);
+      for (const url of sweepPage.urls(data, role)) await check(page, url, role);
     }
   });
 

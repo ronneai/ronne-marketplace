@@ -2,7 +2,12 @@ export type NewDraftState = { error?: string };
 
 /** A scope as the picker shows it. */
 /** A scope to pick (012): `name` names its workspace outside global (118), as `acme/infra`. */
-export type ScopeOption = { name: string; description: string };
+export type ScopeOption = {
+  name: string;
+  description: string;
+  /** In the person's own personal workspace (114): listed first, as "Personal". */
+  personal?: boolean;
+};
 
 /** Whether Submit would take a draft now (052), as My submissions marks it. */
 export type Readiness = { ready: boolean; errors: number };

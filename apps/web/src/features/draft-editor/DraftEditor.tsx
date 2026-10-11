@@ -60,7 +60,13 @@ import { editorProblems } from "./issues";
 import { ManifestForm } from "./ManifestForm";
 import { readManifest, renameDependency } from "./manifest-yaml";
 import { ProposalBar } from "./ProposalBar";
-import { DeleteArchivedDialog, RestoreButton, SubmitDialog, WithdrawDialog } from "./SubmitDialogs";
+import {
+  DeleteArchivedDialog,
+  RestoreButton,
+  SubmitDialog,
+  submitLabel,
+  WithdrawDialog,
+} from "./SubmitDialogs";
 import type { EditorDraft, SaveResult } from "./types";
 
 type Open =
@@ -109,6 +115,8 @@ const toolClasses =
 const readOnlyTitle = (draft: EditorDraft): ReactNode => {
   if (!draft.mine) return "Someone else's submission.";
   if (draft.notMemberOf) return `You're no longer a member of ${draft.notMemberOf}.`;
+  if (draft.status === "approved" && draft.selfApproved)
+    return "Approved by you: personal workspaces aren't reviewed.";
   if (draft.status === "approved") return "Approved.";
   if (draft.status === "published") return "Released.";
   return (
@@ -134,6 +142,8 @@ const readOnlyText = (draft: EditorDraft): ReactNode => {
         <AskToJoinLink workspace={draft.notMemberOf} />; its moderators can still decide it.
       </span>
     );
+  if (draft.status === "approved" && draft.selfApproved)
+    return "It's ready to release. What it can do is listed below, as a reviewer would have seen it. Until it's released you can still withdraw it.";
   if (draft.status === "approved")
     return "It's ready to release, by you or a moderator. Until then you can still withdraw it, and a reviewer can send it back.";
   if (draft.status === "published")
@@ -458,7 +468,7 @@ export const DraftEditor = ({
           {draft.canSubmit ? (
             <Button onClick={() => setOpen({ kind: "submit" })} disabledReason={notReady}>
               <Send size={16} aria-hidden="true" />
-              {draft.status === "changes_requested" ? "Resubmit for review" : "Submit for review"}
+              {submitLabel(draft.status === "changes_requested", [], draft.personal)}
             </Button>
           ) : null}
         </div>
@@ -804,6 +814,7 @@ export const DraftEditor = ({
           itemName={itemName}
           dirty={dirty}
           onClose={() => setOpen(null)}
+          personal={draft.personal}
         />
       ) : null}
       {open?.kind === "withdraw" ? (

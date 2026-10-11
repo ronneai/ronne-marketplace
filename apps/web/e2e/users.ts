@@ -113,6 +113,16 @@ export const E2E_USERS = {
   tabletJoinModerator: "workspace-join-tablet-moderator@e2e.test",
   // 094: not in e2e-door, so Propose a change on its item offers Ask to join.
   proposeOutsider: "workspace-propose-outsider@e2e.test",
+  // 114: releases in their personal workspace, which another user can't see; a pair per project.
+  // After root's email.
+  solo: "solo@e2e.test",
+  soloOutsider: "solo-outsider@e2e.test",
+  phoneSolo: "solo-phone@e2e.test",
+  phoneSoloOutsider: "solo-phone-outsider@e2e.test",
+  phoneWebkitSolo: "solo-ios@e2e.test",
+  phoneWebkitSoloOutsider: "solo-ios-outsider@e2e.test",
+  tabletSolo: "solo-tablet@e2e.test",
+  tabletSoloOutsider: "solo-tablet-outsider@e2e.test",
 } as const;
 
 /** The display names, which the header shows (not the email). */
@@ -210,6 +220,14 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   tabletJoinAsker: "Tab Asker",
   tabletJoinModerator: "Tab Join Mod",
   proposeOutsider: "Pro Outsider",
+  solo: "Solo",
+  soloOutsider: "Solo Outsider",
+  phoneSolo: "Phone Solo",
+  phoneSoloOutsider: "Phone Solo Outsider",
+  phoneWebkitSolo: "iOS Solo",
+  phoneWebkitSoloOutsider: "iOS Solo Outsider",
+  tabletSolo: "Tablet Solo",
+  tabletSoloOutsider: "Tablet Solo Outsider",
 };
 
 /** Seeded with the moderator role; everyone else is a user. */
@@ -342,4 +360,25 @@ export const E2E_RENAME = {
   } as const satisfies Record<string, keyof typeof E2E_USERS>,
   workspace: (project: string) => `e2e-rename-${project}`,
   renamed: (project: string) => `e2e-renamed-${project}`,
+};
+
+/**
+ * Personal workspaces (114): per project, a user who creates a scope in theirs, submits, releases
+ * and sees the item, and another who gets not found for it. Each personal workspace is named from
+ * its owner's email.
+ */
+export const E2E_PERSONAL = {
+  scope: "solo-tools",
+  item: "solo-notes",
+  projects: {
+    chromium: { owner: "solo", outsider: "soloOutsider" },
+    phone: { owner: "phoneSolo", outsider: "phoneSoloOutsider" },
+    "phone-webkit": { owner: "phoneWebkitSolo", outsider: "phoneWebkitSoloOutsider" },
+    tablet: { owner: "tabletSolo", outsider: "tabletSoloOutsider" },
+  } as const satisfies Record<
+    string,
+    { owner: keyof typeof E2E_USERS; outsider: keyof typeof E2E_USERS }
+  >,
+  /** The owner's personal workspace: their email's local part. */
+  workspace: (owner: keyof typeof E2E_USERS) => E2E_USERS[owner].split("@")[0] ?? "",
 };

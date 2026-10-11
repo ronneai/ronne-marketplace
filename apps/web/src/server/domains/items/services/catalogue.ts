@@ -43,8 +43,13 @@ export type CataloguePage = {
   typeCounts: { type: ItemType; count: number }[];
   /** The scopes that hold items, for the scope filter. */
   scopes: string[];
-  /** Every workspace the reader can see, `global` first, for the workspace filter (090). */
+  /**
+   * Every workspace the reader can see, their personal one first (114), then `global`, for the
+   * workspace filter (090).
+   */
   workspaces: string[];
+  /** The reader's own personal workspace's name, labelled Personal in the filter (114). */
+  personal: string | null;
   /** The query as it was understood: unknown types and sorts are dropped. */
   query: {
     q: string;
@@ -191,7 +196,13 @@ export const browseCatalogue = async (
     nextCursor,
     typeCounts: ITEM_TYPES.map((t) => ({ type: t, count: counts.get(t) ?? 0 })),
     scopes: await deps.catalogue.scopes(workspace ?? undefined),
-    workspaces: await deps.catalogue.workspaces(),
+    ...(await (async () => {
+      const workspaces = await deps.catalogue.workspaces();
+      return {
+        workspaces: workspaces.map((w) => w.name),
+        personal: workspaces.find((w) => w.personal)?.name ?? null,
+      };
+    })()),
     query: { q, types, scope, workspace, tool, sort },
   };
 };

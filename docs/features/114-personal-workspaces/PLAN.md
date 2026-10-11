@@ -41,7 +41,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* a feed test shows two users with empty personal workspaces sharing one cache entry,
   and a user with a released personal item getting their own.
 
-- [ ] **6. Pages.** The Workspaces page's Personal row and Manage; the workspace page without
+- [x] **6. Pages.** The Workspaces page's Personal row and Manage; the workspace page without
   Members, Requests, visibility and Delete for a personal one, reachable by its owner without the
   Admin nav; Admin › Workspaces' Kind filter and owner column; "Personal" in the editor's scope
   list and the catalogue's Workspace filter; the Approved notice on a personal submission.

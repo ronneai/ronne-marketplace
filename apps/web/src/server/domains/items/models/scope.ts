@@ -7,7 +7,12 @@ export type Scope = {
   name: string;
   description: string;
   /** The workspace it belongs to (feature 090): `global` unless root chose another. */
-  workspace: { id: string; name: string };
+  workspace: {
+    id: string;
+    name: string;
+    /** Its owner, for a personal workspace (114). */
+    ownerId?: string | null;
+  };
   createdBy: { id: string; email: string | null } | null;
   createdAt: Date;
 };

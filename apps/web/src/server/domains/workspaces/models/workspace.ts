@@ -21,6 +21,8 @@ export type Workspace = {
   isGlobal: boolean;
   /** Its owner, for a personal workspace (114): only theirs, always private. Null otherwise. */
   ownerId: string | null;
+  /** Its owner's email, for Admin › Workspaces' owner column (114). */
+  ownerEmail?: string | null;
   /** How many scopes it has. */
   scopes: number;
   /**

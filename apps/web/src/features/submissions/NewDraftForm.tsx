@@ -86,7 +86,10 @@ export const NewDraftForm = ({ scopes, mine }: { scopes: ScopeOption[]; mine: st
   const chosenScope = scopes.find((option) => option.name === scope);
 
   const query = scopeSearch.trim().toLowerCase().replace(/^@/, "");
-  const grouped = new Set(scopes.map((option) => workspaceOf(option.name))).size > 1;
+  // A heading starts each workspace's scopes once there's more than one, or the one is personal.
+  const grouped =
+    new Set(scopes.map((option) => workspaceOf(option.name))).size > 1 ||
+    scopes.some((option) => option.personal);
   const shownScopes = scopes.filter(
     (option) =>
       option.name === scope ||
@@ -108,7 +111,11 @@ export const NewDraftForm = ({ scopes, mine }: { scopes: ScopeOption[]; mine: st
   if (scopes.length === 0)
     return (
       <Notice kind="info" title="There are no scopes yet.">
-        Every item lives in a scope, and root creates them. Ask root to create one, then come back.
+        Every item lives in a scope. Create one in your personal workspace, from{" "}
+        <Link href="/workspaces" className="text-link underline underline-offset-2">
+          Workspaces
+        </Link>
+        , or ask root for one in a shared workspace, then come back.
       </Notice>
     );
 
@@ -154,7 +161,7 @@ export const NewDraftForm = ({ scopes, mine }: { scopes: ScopeOption[]; mine: st
                   <Fragment key={option.name}>
                     {heading ? (
                       <span className="w-full px-2 pt-1 font-mono text-xs text-muted">
-                        {workspace}
+                        {option.personal ? `Personal (${workspace})` : workspace}
                       </span>
                     ) : null}
                     <label className={chipClasses}>

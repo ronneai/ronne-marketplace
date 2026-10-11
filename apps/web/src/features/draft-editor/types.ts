@@ -32,6 +32,10 @@ export type EditorDraft = {
    */
   notMemberOf?: string | null;
   mine: boolean;
+  /** Approved as its author sent it, in their personal workspace (114): nobody reviewed it. */
+  selfApproved?: boolean;
+  /** The viewer's own, in their personal workspace (114): Submit approves it, without review. */
+  personal?: boolean;
   /** Not a draft, or not the viewer's: shown, but not editable (feature 013). */
   readOnly: boolean;
   canSubmit: boolean;

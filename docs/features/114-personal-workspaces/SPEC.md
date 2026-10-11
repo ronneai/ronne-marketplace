@@ -29,7 +29,8 @@ set up and in scopes root created; a personal workspace lets anyone start withou
   catalogue's Workspace filter offers it as "Personal"; `GET /api/v1/workspaces`, `rmk workspaces`
   and MCP's `list_workspaces` mark it `personal`; `rmk export` lists its scopes first.
 - **Admin › Workspaces** (root): a Kind filter, Shared (default) or Personal; a personal row shows
-  its owner.
+  its owner (instead of visibility and moderators), and the search matches the owner's email too.
+  An admin of shared workspaces lists only those.
 - Audit events: `workspace.created` with `personal: true` and the owner; the others as for any
   workspace.
 
@@ -64,11 +65,13 @@ Only the owner and root ever see the name (093).
   open the Admin area or put Admin in the nav: that stays for root and admins of shared workspaces
   (092), and the page is reached from the Workspaces page.
 - **Writing items:** a personal scope is offered in the editor and in `rmk export` like any scope
-  the user may use (091), listed first, labelled "Personal".
+  the user may use (091), listed first, labelled "Personal". With no scope anywhere, New item says
+  to create one in your personal workspace, from Workspaces.
 - **Submitting** a submission in a personal workspace approves it at once (decision 3): its page
   says "Approved by you: personal workspaces aren't reviewed", the risk flags (014) are shown at
   submit as they would be to a reviewer, and Release works as for any approved submission (015,
-  055, 112). The submission's approval is recorded as the author's own (a `self_approve` review event), and every
+  055, 112). The editor's button and dialog say Submit, not "Submit for review", and the dialog
+  says it's approved at once; bulk Submit (052) says those in your personal workspace are. The submission's approval is recorded as the author's own (a `self_approve` review event), and every
   version released from it is marked **not reviewed**. Nothing reaches the review queue.
 - **Installing:** the owner installs their personal items as any item they can see: `rmk`, MCP,
   their plugin marketplace (077).

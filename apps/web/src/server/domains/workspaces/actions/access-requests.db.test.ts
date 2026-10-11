@@ -519,13 +519,13 @@ describe("the Workspaces page and the join page (094)", () => {
       ["acme", null],
       ["beta", "moderator"],
     ]);
-    // Root sees every workspace, private ones too, with no role.
-    expect((await myWorkspaces(asRoot, app)).map((w) => [w.name, w.role])).toEqual([
-      ["global", null],
-      ["acme", null],
-      ["beta", null],
-      // Root's own personal workspace (114), where root is its admin.
-      ["root-2", "admin"],
+    // Root sees every workspace, private ones too, with no role; root's own personal workspace
+    // (114) first, where root is its admin.
+    expect((await myWorkspaces(asRoot, app)).map((w) => [w.name, w.role, w.personal])).toEqual([
+      ["root-2", "admin", true],
+      ["global", null, false],
+      ["acme", null, false],
+      ["beta", null, false],
     ]);
   });
 

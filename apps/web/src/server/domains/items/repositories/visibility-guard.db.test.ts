@@ -171,7 +171,7 @@ const CATALOGUE_READS: Record<keyof CatalogueRepository, Probe<CatalogueReposito
     // Three skills in all, two of them public.
     ((await repo.typeCounts({})).find((c) => c.type === "skill")?.count ?? 0) === 3,
   scopes: async (repo) => (await repo.scopes()).includes("acme-infra"),
-  workspaces: async (repo) => (await repo.workspaces()).includes("acme"),
+  workspaces: async (repo) => (await repo.workspaces()).some((w) => w.name === "acme"),
   mostUsed: async (repo) => has(await repo.mostUsed(10)),
 };
 

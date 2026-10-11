@@ -26,7 +26,12 @@ export type WorkspacePageQuery = {
   cursor?: string;
   /** Only these workspaces (an admin's, 092); every one when left out. */
   ids?: readonly string[];
+  /** Shared workspaces (the default) or personal ones (114). */
+  kind?: WorkspaceKind;
 };
+
+/** Admin › Workspaces' Kind filter (114). */
+export type WorkspaceKind = "shared" | "personal";
 
 /**
  * One file of a submission not yet released or rejected (113): in its working copy
@@ -122,7 +127,11 @@ export interface WorkspaceRepository {
   /** One page for Admin › Workspaces (keyset), `global` left out: the service puts it first. */
   page(query: WorkspacePageQuery): Promise<KeysetPage<Workspace>>;
   /** How many workspaces other than `global` match the search, up to the count cap. */
-  count(search?: string, ids?: readonly string[]): Promise<{ count: number; capped: boolean }>;
+  count(
+    search?: string,
+    ids?: readonly string[],
+    kind?: WorkspaceKind,
+  ): Promise<{ count: number; capped: boolean }>;
   findById(id: string): Promise<Workspace | null>;
   /**
    * Locks these users' rows until the transaction ends, in id order, so two roots changing one

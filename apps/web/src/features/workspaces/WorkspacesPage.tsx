@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { LocalTime } from "@/components/ui/LocalTime";
 import { PageHeader } from "@/components/ui/Panel";
 import { Table, Td, Th } from "@/components/ui/Table";
+import { workspacePath } from "@/features/admin-workspaces/list";
 import type { WorkspaceRole } from "@/server/domains/identity/models/user";
 import type { OwnRequest } from "@/server/domains/workspaces/models/access-request";
 import type { MyWorkspace } from "@/server/domains/workspaces/services/access-requests";
@@ -100,11 +102,29 @@ export const WorkspacesPage = ({
                 </Td>
                 <Td>
                   <Badge>
-                    {w.isGlobal ? "Everyone" : w.visibility === "private" ? "Private" : "Public"}
+                    {w.personal
+                      ? "Personal"
+                      : w.isGlobal
+                        ? "Everyone"
+                        : w.visibility === "private"
+                          ? "Private"
+                          : "Public"}
                   </Badge>
                 </Td>
                 <Td className="py-2">
-                  {root ? (
+                  {w.personal ? (
+                    // Yours alone (114): its page has its scopes, Rename and Edit description.
+                    <span className="inline-flex flex-wrap items-center gap-3">
+                      <Badge tone="accent">Yours</Badge>
+                      <Link
+                        href={workspacePath(w.name)}
+                        className="text-sm text-link hover:underline outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
+                        aria-label={`Manage ${w.name}`}
+                      >
+                        Manage
+                      </Link>
+                    </span>
+                  ) : root ? (
                     <Badge tone="accent">Root</Badge>
                   ) : w.role ? (
                     <Badge tone="accent">{ROLE_LABELS[w.role]}</Badge>

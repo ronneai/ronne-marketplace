@@ -14,16 +14,19 @@ import {
  */
 export type SweepRole = "member" | "moderator" | "root";
 
-/** What the sweep creates before it starts: a draft of the member's, and one in review. */
-export type SweepData = { draftId: string; submissionId: string };
+/**
+ * What the sweep creates before it starts: a draft of the member's, and one in review; and the
+ * member's personal workspace (114), named from their email.
+ */
+export type SweepData = { draftId: string; submissionId: string; personal: string };
 
 export type SweepPage = {
   /** The route as the `app` folder spells it, without route groups: `/items/[scope]/[name]`. */
   route: string;
   /** Who opens it. `signedOut` pages are opened before signing in. */
   roles: readonly SweepRole[] | "signedOut";
-  /** The URLs to open for this route. */
-  urls: (data: SweepData) => readonly string[];
+  /** The URLs to open for this route, as `role` (the signed-out sweep opens them as a member). */
+  urls: (data: SweepData, role: SweepRole) => readonly string[];
   /** Why the main sweep doesn't open it, if it doesn't. */
   skip?: string;
 };
@@ -104,17 +107,27 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
   { route: "/account/tokens", roles: EVERYONE, urls: () => ["/account/tokens"] },
   { route: "/admin", roles: ROOT, urls: () => ["/admin"] },
   { route: "/admin/users", roles: ROOT, urls: () => ["/admin/users"] },
-  { route: "/admin/workspaces", roles: ROOT, urls: () => ["/admin/workspaces"] },
+  {
+    route: "/admin/workspaces",
+    roles: ROOT,
+    // Shared ones, and personal ones with their owners (114).
+    urls: () => ["/admin/workspaces", "/admin/workspaces?kind=personal"],
+  },
   {
     route: "/admin/workspaces/[name]",
-    roles: ROOT,
-    // Its two tabs (092): the scopes, and global's members, which is everyone.
-    urls: () => [
-      "/admin/workspaces/global",
-      "/admin/workspaces/global?tab=members",
-      `/admin/workspaces/${E2E_WORKSPACE}?tab=requests`,
-      `/admin/workspaces/${E2E_WORKSPACE}`,
-    ],
+    roles: ["member", ...ROOT],
+    // Root: its two tabs (092), the scopes and global's members, which is everyone, and the
+    // member's personal workspace (114). The member: their own, reached from Workspaces.
+    urls: ({ personal }, role) =>
+      role === "member"
+        ? [`/admin/workspaces/${personal}`]
+        : [
+            "/admin/workspaces/global",
+            "/admin/workspaces/global?tab=members",
+            `/admin/workspaces/${E2E_WORKSPACE}?tab=requests`,
+            `/admin/workspaces/${E2E_WORKSPACE}`,
+            `/admin/workspaces/${personal}`,
+          ],
   },
   { route: "/admin/scopes", roles: ROOT, urls: () => ["/admin/scopes"] },
   { route: "/admin/audit", roles: ROOT, urls: () => ["/admin/audit"] },

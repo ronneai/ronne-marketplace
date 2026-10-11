@@ -64,7 +64,7 @@ test("submits the ready drafts selected on My submissions, and leaves the one th
   await expect(page).not.toHaveURL(/q=/);
   await page.getByRole("button", { name: "Select all ready (2)" }).click();
   await page.getByRole("button", { name: "Submit selected (2)" }).click();
-  const dialog = page.getByRole("dialog", { name: "Submit 2 for review" });
+  const dialog = page.getByRole("dialog", { name: "Submit 2", exact: true });
   await expect(dialog).toContainText(`@${E2E_SCOPE}/bulk-one`);
   await expect(dialog).toContainText(`@${E2E_SCOPE}/bulk-two`);
   await dialog.getByRole("button", { name: "Submit 2 drafts" }).click();

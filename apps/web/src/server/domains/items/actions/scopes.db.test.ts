@@ -79,6 +79,7 @@ describe("createScope", () => {
     expect((await findScope("platform", app))?.workspace).toEqual({
       id: GLOBAL_WORKSPACE_ID,
       name: "global",
+      ownerId: null,
     });
     expect((await findScope("platform", app))?.createdBy).toEqual({
       id: rootId,
@@ -100,10 +101,11 @@ describe("createScope", () => {
       { name: "acme-infra", description: "Infrastructure.", workspaceId: acme.id },
       app,
     );
-    expect(scope.workspace).toEqual({ id: acme.id, name: "acme" });
+    expect(scope.workspace).toMatchObject({ id: acme.id, name: "acme" });
     expect((await findScope("@acme/acme-infra", app))?.workspace).toEqual({
       id: acme.id,
       name: "acme",
+      ownerId: null,
     });
     const [event] = await events("scope.created");
     expect(event?.metadata).toEqual({

@@ -2,7 +2,11 @@ import { notFound } from "next/navigation";
 import { Help } from "@/components/help/Help";
 import { parseListQuery, type SearchParams } from "@/components/ui/data-table/list-query";
 import { PageHeader } from "@/components/ui/Panel";
-import { ADMIN_WORKSPACES_LIST, workspacesQueryOf } from "@/features/admin-workspaces/list";
+import {
+  ADMIN_WORKSPACES_LIST,
+  checkedWorkspacesState,
+  workspacesQueryOf,
+} from "@/features/admin-workspaces/list";
 import { CreateWorkspaceDialog } from "@/features/admin-workspaces/WorkspaceDialogs";
 import { WorkspacesTable } from "@/features/admin-workspaces/WorkspacesTable";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
@@ -22,7 +26,9 @@ const AdminWorkspaces = async ({ searchParams }: { searchParams: Promise<SearchP
   const root = can(me, "workspaces.manage");
   // Owning a personal workspace (114) doesn't open the list: its owner reaches its page directly.
   if (!root && !canInSomeShared(me, "members.manage")) notFound();
-  const state = parseListQuery(ADMIN_WORKSPACES_LIST, await searchParams);
+  const parsed = checkedWorkspacesState(parseListQuery(ADMIN_WORKSPACES_LIST, await searchParams));
+  // The Kind filter is root's (114): an admin's list is their shared workspaces.
+  const state = root ? parsed : { ...parsed, filters: { ...parsed.filters, kind: "" } };
   const { workspaces, next, previous, total } = await pageWorkspaces(
     request,
     workspacesQueryOf(state),
@@ -45,6 +51,7 @@ const AdminWorkspaces = async ({ searchParams }: { searchParams: Promise<SearchP
         workspaces={workspaces}
         page={{ next, previous }}
         total={total}
+        kinds={root}
       />
     </>
   );

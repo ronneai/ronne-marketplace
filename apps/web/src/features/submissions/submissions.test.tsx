@@ -427,10 +427,22 @@ describe("NewDraftForm", () => {
     expect(html).toContain("Which type?");
   });
 
-  it("says root has to create a scope first when there are none", () => {
+  it("says where to create a scope when there are none: your personal workspace (114)", () => {
     const html = renderToStaticMarkup(<NewDraftForm scopes={[]} mine={[]} />);
     expect(html).toContain("There are no scopes yet.");
+    expect(html).toContain('href="/workspaces"');
     expect(html).not.toContain("<form");
+  });
+
+  it("heads your personal workspace's scopes Personal, first (114)", () => {
+    const html = renderToStaticMarkup(
+      <NewDraftForm
+        scopes={[{ name: "ana/tools", description: "Mine.", personal: true }]}
+        mine={[]}
+      />,
+    );
+    expect(html).toContain("Personal (ana)");
+    expect(html).toContain("@ana/tools");
   });
 });
 

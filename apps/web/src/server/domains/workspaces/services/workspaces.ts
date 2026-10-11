@@ -444,6 +444,8 @@ export const pageWorkspaces = async (
   const ids = where === "all" ? undefined : where;
   const search = query.search?.trim().slice(0, WORKSPACE_SEARCH_MAX_LENGTH) || undefined;
   const sort = query.sort ?? "name";
+  // Personal workspaces (114) are listed for root, on their own: an admin's list is their shared ones.
+  const kind = where === "all" && query.kind === "personal" ? "personal" : "shared";
   const [page, total] = await Promise.all([
     deps.repo.page({
       search,
@@ -452,8 +454,9 @@ export const pageWorkspaces = async (
       size: query.size ?? WORKSPACES_PAGE_SIZE,
       cursor: query.cursor,
       ids,
+      kind,
     }),
-    deps.repo.count(search, ids),
+    deps.repo.count(search, ids, kind),
   ]);
   // `global` counts whenever the search matches it, on every page, and is listed first on the first
   // page (no page before it, however it was reached).
@@ -461,6 +464,7 @@ export const pageWorkspaces = async (
   const term = search?.toLowerCase();
   const global =
     found &&
+    kind === "shared" &&
     (!ids || ids.includes(found.id)) &&
     (!term || found.name.includes(term) || found.description.toLowerCase().includes(term))
       ? found

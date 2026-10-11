@@ -290,17 +290,22 @@ export const kyselyCatalogueRepository = (
           .execute()
       ).map((row) => row.name),
 
-    workspaces: async () =>
-      (
+    workspaces: async () => {
+      const rows = (
         await db
           .selectFrom("workspaces")
-          .select("name")
+          .select(["name", "owner_id"])
           .where(inVisibleWorkspace(viewer, "workspaces.id"))
           .where(inListedWorkspace(viewer, "workspaces.id"))
           .orderBy("is_global", "desc")
           .orderBy("name")
           .execute()
-      ).map((row) => row.name),
+      ).map((row) => ({
+        name: row.name,
+        personal: row.owner_id !== null && row.owner_id === viewer.userId,
+      }));
+      return [...rows.filter((w) => w.personal), ...rows.filter((w) => !w.personal)];
+    },
 
     mostUsed: async (limit) =>
       (

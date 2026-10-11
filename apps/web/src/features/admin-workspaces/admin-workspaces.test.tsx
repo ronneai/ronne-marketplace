@@ -270,6 +270,32 @@ describe("WorkspacesTable", () => {
     expect(html).not.toContain("No moderators");
   });
 
+  it("lists personal workspaces with their owners, under root's Kind filter (114)", () => {
+    const html = renderToStaticMarkup(
+      <WorkspacesTable
+        list={ADMIN_WORKSPACES_LIST}
+        state={parseListQuery(ADMIN_WORKSPACES_LIST, { kind: "personal" })}
+        workspaces={[
+          workspace({
+            name: "ana",
+            ownerId: "u1",
+            ownerEmail: "ana@example.com",
+            visibility: "private",
+          }),
+        ]}
+        page={{ next: null, previous: null }}
+        total={{ count: 1, capped: false }}
+        kinds
+      />,
+    );
+    for (const text of [">Owner<", "ana@example.com", 'id="workspace-kind"', ">Personal<"])
+      expect(html, text).toContain(text);
+    expect(html).not.toContain(">Moderators<");
+    expect(html).not.toContain(">Visibility<");
+    // Without the filter (a workspace admin's list), no Kind.
+    expect(table({}, [workspace()])).not.toContain('id="workspace-kind"');
+  });
+
   it("explains an empty search", () => {
     expect(table({ q: "x" }, [])).toContain("No workspaces match this search.");
   });
@@ -277,7 +303,22 @@ describe("WorkspacesTable", () => {
   it("turns a view into the server query", () => {
     expect(
       workspacesQueryOf(parseListQuery(ADMIN_WORKSPACES_LIST, { q: "ac", sort: "created" })),
-    ).toEqual({ sort: "created", dir: "desc", size: 50, cursor: undefined, search: "ac" });
+    ).toEqual({
+      sort: "created",
+      dir: "desc",
+      size: 50,
+      cursor: undefined,
+      search: "ac",
+      kind: "shared",
+    });
+    // Personal workspaces (114), and anything else as shared ones.
+    for (const [kind, expected] of [
+      ["personal", "personal"],
+      ["other", "shared"],
+    ] as const)
+      expect(workspacesQueryOf(parseListQuery(ADMIN_WORKSPACES_LIST, { kind })).kind, kind).toBe(
+        expected,
+      );
   });
 });
 
@@ -439,6 +480,53 @@ describe("the pages", () => {
       expect.any(Headers),
       expect.objectContaining({ search: "ac", sort: "name" }),
     );
+  });
+
+  it("passes root's Kind to the server, and drops an admin's (114)", async () => {
+    session.getCurrentUser.mockResolvedValueOnce({ role: "root" });
+    await listPage({ kind: "personal" });
+    expect(workspaces.pageWorkspaces).toHaveBeenLastCalledWith(
+      expect.any(Headers),
+      expect.objectContaining({ kind: "personal" }),
+    );
+    session.getCurrentUser.mockResolvedValueOnce({ role: "user", workspaces: { w1: "admin" } });
+    await listPage({ kind: "personal" });
+    expect(workspaces.pageWorkspaces).toHaveBeenLastCalledWith(
+      expect.any(Headers),
+      expect.objectContaining({ kind: "shared" }),
+    );
+  });
+
+  it("a personal workspace's page has its scopes, Rename and Edit description, nothing more (114)", async () => {
+    const owner = { id: "u1", role: "user", workspaces: { w1: "admin" }, personal: "w1" };
+    const mine = workspace({ name: "ana", ownerId: "u1", visibility: "private" });
+    for (const params of [{}, { tab: "members" }, { tab: "requests" }] as Record<
+      string,
+      string
+    >[]) {
+      session.getCurrentUser.mockResolvedValueOnce(owner);
+      workspaces.findWorkspace.mockResolvedValueOnce(mine);
+      const html = renderToStaticMarkup(await workspacePage("ana", params));
+      for (const text of [
+        ">Rename<",
+        "Edit description",
+        "Personal",
+        "Yours alone",
+        'href="/workspaces"',
+      ])
+        expect(html, text).toContain(text);
+      for (const text of [">Members<", ">Requests<", "Make public", "Delete", "All workspaces"])
+        expect(html, text).not.toContain(text);
+    }
+    expect(workspaces.pageMembers).not.toHaveBeenCalled();
+    // Root sees it as its owner's, with the same tabs and no visibility or Delete.
+    session.getCurrentUser.mockResolvedValueOnce({ id: "r", role: "root" });
+    workspaces.findWorkspace.mockResolvedValueOnce(mine);
+    const asRoot = renderToStaticMarkup(await workspacePage("ana"));
+    expect(asRoot).toContain("Its owner&#x27;s alone");
+    expect(asRoot).toContain("All workspaces");
+    expect(asRoot).not.toContain("Make public");
+    expect(asRoot).not.toContain(">Members<");
   });
 
   it("a workspace's page shows its description and scopes, with edit and delete", async () => {

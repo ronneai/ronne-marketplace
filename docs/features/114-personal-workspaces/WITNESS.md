@@ -384,3 +384,26 @@ Witnessed: 2026-10-10 21:01 EDT, by a fresh agent (blind). Commit: a4f462bb (plu
 | 8 | Three servers; lint and types | no | confirmed | 11 passed on each; clean |
 
 **Overall:** met.
+
+## Task 6 — Pages
+
+Witnessed: 2026-10-10 21:30 EDT, by a fresh agent (blind). Commit: d93eb9e3 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Component tests pass | no | confirmed | 238 in the touched folders; 2025 in apps/web; tsc and biome clean |
+| 2 | Workspaces page: Personal, Yours, Manage, first | no | confirmed | probe as solo; `workspaces.test.tsx` |
+| 3 | Personal workspace page: Scopes only, Rename, Edit description; no Members, Requests, visibility, Delete, whatever the tab | no | confirmed | probe as owner and root |
+| 4 | Reached without the Admin area or nav | no | confirmed | every other admin page 404 for the owner |
+| 5 | Root's Kind filter, Owner column, owner-email search; unknown kind is Shared | no | confirmed | probe as root |
+| 6 | A shared admin lists only shared ones | no | confirmed | db test; component test |
+| 7 | Temporary deletion in pageWorkspaces' test gone | no | confirmed | grep |
+| 8 | Four databases | no | confirmed | 68/68 per server; 133 SQLite |
+| 9 | Editor: Personal first; no-scopes notice points to Workspaces | no | confirmed | e2e; component test |
+| 10 | Catalogue filter: Personal first; root leaves others' out unless named | no | confirmed | probe |
+| 11 | Submit wording for personal; bulk mentions it | no | confirmed | e2e; `bulk-submit.e2e.ts` |
+| 12 | Approved notice | no | confirmed | e2e; component test |
+| 13 | End to end on desktop and phone, outsider gets not found | no | confirmed | 20 passed across four projects |
+| 14 | Phone sweep covers the new pages | no | confirmed | sweep passed on phone, phone-webkit, tablet |
+
+**Overall:** met. (Remark: the sweep measures pages without checking their status, so a wrong personal workspace name would sweep a 404; the names match today, checked by probe.)

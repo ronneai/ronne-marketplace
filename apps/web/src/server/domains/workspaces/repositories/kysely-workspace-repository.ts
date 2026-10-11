@@ -13,7 +13,12 @@ import { recordAudit } from "../../audit/actions/audit";
 import { isWorkspaceRole } from "../../identity/models/user";
 import type { Workspace, WorkspaceVisibility } from "../models/workspace";
 import { accessRequestMethods } from "./kysely-access-requests";
-import type { MemberFilters, OpenFile, WorkspaceRepository } from "./workspace-repository";
+import type {
+  MemberFilters,
+  OpenFile,
+  WorkspaceKind,
+  WorkspaceRepository,
+} from "./workspace-repository";
 
 /** A submission that can still be released, now or after a restore (113). */
 const OPEN_STATUSES = ["draft", "submitted", "changes_requested", "approved", "withdrawn"];
@@ -41,6 +46,7 @@ type WorkspaceRow = {
   visibility: WorkspaceVisibility;
   is_global: boolean | number;
   owner_id: string | null;
+  owner_email: string | null;
   scope_count: number | string | bigint | null;
   moderator_count: number | string | bigint | null;
   created_by: string | null;
@@ -56,6 +62,7 @@ const toWorkspace = (row: WorkspaceRow): Workspace => ({
   visibility: row.visibility,
   isGlobal: Boolean(row.is_global),
   ownerId: row.owner_id,
+  ownerEmail: row.owner_email,
   scopes: Number(row.scope_count ?? 0),
   moderators: Number(row.moderator_count ?? 0),
   createdBy: row.created_by ? { id: row.created_by, email: row.creator_email } : null,
@@ -117,6 +124,7 @@ export const kyselyWorkspaceRepository = (
     db
       .selectFrom("workspaces")
       .leftJoin("user", "user.id", "workspaces.created_by")
+      .leftJoin("user as owner", "owner.id", "workspaces.owner_id")
       .select((eb) => [
         "workspaces.id",
         "workspaces.name",
@@ -124,6 +132,7 @@ export const kyselyWorkspaceRepository = (
         "workspaces.visibility",
         "workspaces.is_global",
         "workspaces.owner_id",
+        "owner.email as owner_email",
         eb
           .selectFrom("scopes")
           .select((sub) => sub.fn.countAll<number | string | bigint>().as("n"))
@@ -146,9 +155,18 @@ export const kyselyWorkspaceRepository = (
         "workspaces.updated_at",
       ]);
 
-  /** Every workspace but `global`, matching the search on the name or description. */
-  const searched = (search: string | undefined, ids?: readonly string[]) => {
-    let query = workspaces().where("workspaces.is_global", "=", toDbBoolean(false, dialect));
+  /**
+   * Every workspace but `global` of a kind (114: shared by default, or personal), matching the
+   * search on the name or description, and on a personal one's owner's email.
+   */
+  const searched = (
+    search: string | undefined,
+    ids?: readonly string[],
+    kind: WorkspaceKind = "shared",
+  ) => {
+    let query = workspaces()
+      .where("workspaces.is_global", "=", toDbBoolean(false, dialect))
+      .where("workspaces.owner_id", kind === "personal" ? "is not" : "is", null);
     // An empty list matches nothing; `in ()` isn't valid SQL, so a value no id has stands in.
     if (ids) query = query.where("workspaces.id", "in", ids.length > 0 ? [...ids] : [""]);
     return search
@@ -156,6 +174,7 @@ export const kyselyWorkspaceRepository = (
           eb.or([
             containsInsensitive("workspaces.name", search),
             containsInsensitive("workspaces.description", search),
+            ...(kind === "personal" ? [containsInsensitive("owner.email", search)] : []),
           ]),
         )
       : query;
@@ -556,8 +575,8 @@ export const kyselyWorkspaceRepository = (
           .execute()
       ).map(toWorkspace),
 
-    page: async ({ search, sort, dir, size, cursor, ids }) => {
-      const page = await paginate(searched(search, ids), {
+    page: async ({ search, sort, dir, size, cursor, ids, kind }) => {
+      const page = await paginate(searched(search, ids, kind), {
         sort: {
           key: sort,
           column: sort === "name" ? "workspaces.name" : "workspaces.id",
@@ -572,7 +591,7 @@ export const kyselyWorkspaceRepository = (
       return { ...page, rows: page.rows.map(toWorkspace) };
     },
 
-    count: (search, ids) => countCapped(db, searched(search, ids)),
+    count: (search, ids, kind) => countCapped(db, searched(search, ids, kind)),
 
     findById: async (id) => {
       const row = await workspaces().where("workspaces.id", "=", id).executeTakeFirst();

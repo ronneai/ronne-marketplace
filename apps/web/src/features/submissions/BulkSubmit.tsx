@@ -233,7 +233,7 @@ export const BulkToolbar = ({ help }: { help?: ReactNode }) => {
       <Dialog
         open={open}
         onClose={close}
-        title={results ? "Submitted" : `Submit ${confirming.length} for review`}
+        title={results ? "Submitted" : `Submit ${confirming.length}`}
       >
         {results ? (
           <div className="grid gap-4">
@@ -250,7 +250,8 @@ export const BulkToolbar = ({ help }: { help?: ReactNode }) => {
               ))}
             </ul>
             <p className="text-sm text-muted">
-              Each goes to reviewers with its files frozen, as Submit does in the editor. You can
+              Each is submitted with its files frozen, as Submit does in the editor: reviewers see
+              them, except those in your personal workspace, which are approved at once. You can
               withdraw one until it's released.
             </p>
             <DialogActions>

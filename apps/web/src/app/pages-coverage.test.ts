@@ -23,8 +23,9 @@ describe("the phone sweep's page list (feature 065)", () => {
   });
 
   it("opens at least one URL for every page it doesn't skip", () => {
-    const data = { draftId: "d", submissionId: "s" };
+    const data = { draftId: "d", submissionId: "s", personal: "p" };
     for (const page of SWEEP_PAGES.filter((p) => !p.skip))
-      expect(page.urls(data).length, page.route).toBeGreaterThan(0);
+      for (const role of page.roles === "signedOut" ? (["member"] as const) : page.roles)
+        expect(page.urls(data, role).length, `${page.route} as ${role}`).toBeGreaterThan(0);
   });
 });
