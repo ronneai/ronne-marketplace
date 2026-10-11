@@ -9,13 +9,16 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. The current workspace.** [risky] A cookie (`ronne-workspace`) and
-  `currentWorkspace(params, shell)`: the `?workspace=` parameter first, then the cookie, checked
-  against the user's memberships on every request (`loadShell`); `all` or empty means none; a stale
-  cookie is cleared. A route that sets or clears it and redirects back to a same-site path only
-  (no open redirect). The redirect that adds `?workspace=` to a filtered page.
-  *Done when:* unit tests cover the order, `all`, a stale or foreign cookie, a private workspace
-  you're not in (nothing shown, same message as unknown), and the route's redirect target checks.
+- [x] **1. The current workspace.** [risky] A cookie (`ronne-workspace`), checked against the
+  user's memberships on every request (`loadShell`'s `current`), a stale or foreign one counting as
+  none. `viewedWorkspace`: the `?workspace=` parameter first, then the current workspace with a
+  redirect so the URL says it; empty means none (`all` is a legal workspace name), names
+  compared lowercased (the pages apply it in task 3). The
+  `/current-workspace` route that sets (members' workspaces only) or clears it and goes back to a
+  same-site path only (`safeNextPath`: no open redirect), without the old `?workspace=`.
+  *Done when:* unit tests cover the order, `all`, a stale or foreign cookie, the route's choices,
+  its cookie flags and its redirect target checks, a workspace named `all`, upper case; a private workspace you're not in filters to
+  nothing (`private-items.db.test.ts`, 093).
 
 - [ ] **2. The switcher.** All workspaces, the member's workspaces with the current one marked, each
   with Open page, and Manage workspaces; choices are links to task 1's route back to the same page;

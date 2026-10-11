@@ -7,14 +7,24 @@ const workspaces = vi.hoisted(() => ({
   countMovesToAnswer: vi.fn(),
   myWorkspacesAs: vi.fn(),
 }));
-const cookie = vi.hoisted(() => ({ value: undefined as string | undefined }));
+const cookie = vi.hoisted(() => ({
+  value: undefined as string | undefined,
+  workspace: undefined as string | undefined,
+}));
 vi.mock("@/server/domains/identity/actions/session", () => session);
 vi.mock("@/server/domains/submissions/actions/reviews", () => reviews);
 vi.mock("@/server/domains/workspaces/actions/workspaces", () => workspaces);
 vi.mock("next/headers", () => ({
   cookies: async () => ({
-    get: (name: string) =>
-      name === "ronne-sidebar" && cookie.value ? { value: cookie.value } : undefined,
+    get: (name: string) => {
+      const value =
+        name === "ronne-sidebar"
+          ? cookie.value
+          : name === "ronne-workspace"
+            ? cookie.workspace
+            : undefined;
+      return value ? { value } : undefined;
+    },
   }),
 }));
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
@@ -36,6 +46,7 @@ beforeEach(() => {
   workspaces.countMovesToAnswer.mockResolvedValue(3);
   workspaces.myWorkspacesAs.mockResolvedValue([]);
   cookie.value = undefined;
+  cookie.workspace = undefined;
 });
 
 // The nav counts (014, 094): each counted only for someone who can act on it.
@@ -95,5 +106,24 @@ describe("loadShell's sidebar", () => {
     expect((await loadShell()).folded).toBe(true);
     cookie.value = "sideways";
     expect((await loadShell()).folded).toBe(false);
+  });
+});
+
+// The current workspace (120): the cookie's, only while the user is a member of it.
+describe("loadShell's current workspace", () => {
+  it("is the cookie's member workspace, and none for a stale or foreign one", async () => {
+    session.requireUser.mockResolvedValue(user({ global: "user", acme: "user" }));
+    workspaces.myWorkspacesAs.mockResolvedValue([
+      { name: "global", role: "user", personal: false },
+      { name: "acme", role: "user", personal: false },
+      { name: "open", role: null, personal: false },
+    ]);
+    expect((await loadShell()).current).toBeNull();
+    cookie.workspace = "acme";
+    expect((await loadShell()).current).toBe("acme");
+    cookie.workspace = "open";
+    expect((await loadShell()).current).toBeNull();
+    cookie.workspace = "gone";
+    expect((await loadShell()).current).toBeNull();
   });
 });

@@ -56,8 +56,9 @@ says so); filtering Home, item pages or Requests; a current workspace per browse
   workspace exists. The cookie is only a preference: the server checks it against your
   memberships on every request.
 - **A stale choice falls back.** If the current workspace is one you're no longer in, was renamed
-  (113: its old name answers as unknown) or deleted, the current workspace becomes All workspaces
-  and the cookie is cleared, without an error page.
+  (113: its old name answers as unknown) or deleted, it counts as All workspaces, without an error
+  page; the cookie is replaced the next time you choose (a page can't change cookies while it
+  renders, only the choosing route can).
 - **Reviews in a workspace you don't review in:** the queue is empty, with "You don't review
   submissions in acme · Show all".
 - **The filter and the page's own:** on the Catalogue, choosing another workspace in Filters
@@ -70,7 +71,8 @@ says so); filtering Home, item pages or Requests; a current workspace per browse
 - A shared link with `?workspace=` opened by someone who isn't a member: they see that workspace's
   items they can see (public), or nothing with the message above (private). Their own current
   workspace doesn't change.
-- `?workspace=` empty or `all` means all workspaces.
+- `?workspace=` empty means all workspaces: no workspace can be named "", while `all` can (a
+  workspace named `all` is chosen and filtered like any other). Names are compared lowercased.
 - Someone in no workspace but `global`: the switcher offers All workspaces and `global`.
 - The personal workspace (114) is listed and filters like any other.
 - Paging and sorting keep the parameter (the data tables' `fixed` parameters, 062).
@@ -101,7 +103,7 @@ says so); filtering Home, item pages or Requests; a current workspace per browse
       only · Show all" line and `?workspace=` in the URL; New item preselects its scope.
 - [ ] Nothing else is filtered, and the sidebar counts don't change with it.
 - [ ] A `?workspace=` for a private workspace you're not in shows nothing and the same message as an
-      unknown name; a stale cookie falls back to All workspaces.
+      unknown name; a stale cookie counts as All workspaces.
 - [ ] Unit, database and end-to-end tests cover the above on desktop and phone.
 - [ ] MVP §15's Workspaces row records the current workspace and that it's a filter, not a boundary.
 - [ ] The Documentation and helpers above are updated in a ronne-web branch.

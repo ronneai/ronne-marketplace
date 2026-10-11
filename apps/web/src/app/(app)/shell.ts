@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import type { ShellWorkspace } from "@/components/app-shell/nav";
 import { parseFolded, SIDEBAR_COOKIE } from "@/components/app-shell/sidebar-cookie";
+import { currentFrom, WORKSPACE_COOKIE } from "@/features/current-workspace/current-workspace";
 import { parseTheme, THEME_COOKIE } from "@/features/theme/theme";
 import { requireUser } from "@/server/domains/identity/actions/session";
 import { canInSomeShared } from "@/server/domains/identity/models/permissions";
@@ -15,7 +16,8 @@ import { requestHeaders } from "@/server/http/request-headers";
 /**
  * What the app frame needs: the signed-in user (feature 006: `src/proxy.ts` only checks for a
  * cookie, so this is where the session is really checked), the theme, the nav counts, the
- * workspaces for the switcher and whether the sidebar is folded (119). The (app) layout and
+ * workspaces for the switcher, whether the sidebar is folded (119), and the current workspace
+ * (120): the cookie's, if the user is still a member of it. The (app) layout and
  * `/menu` (066) both read it.
  */
 export const loadShell = async () => {
@@ -47,6 +49,7 @@ export const loadShell = async () => {
     theme,
     folded,
     workspaces,
+    current: currentFrom(jar.get(WORKSPACE_COOKIE)?.value, workspaces),
     navCounts: { "/reviews": needsReview, "/workspaces/requests": toAnswer },
   };
 };
