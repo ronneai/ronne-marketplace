@@ -121,6 +121,7 @@ describe("the Workspaces page (094)", () => {
       expect(html).toContain("Yours");
       expect(html).toContain('href="/admin/workspaces/ana"');
       expect(html).toContain("Manage");
+      expect(html).toContain("/marketplace/docs/workspaces#personal");
       expect(html).not.toContain(">Admin<");
     }
   });

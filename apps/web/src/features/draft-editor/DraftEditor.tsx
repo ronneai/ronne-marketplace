@@ -25,6 +25,7 @@ import { CodeEditor } from "@/components/code/CodeEditor";
 import { FileTree } from "@/components/code/FileTree";
 import type { Mentions } from "@/components/code/mentions";
 import { LAYOUT_PATH } from "@/components/dependency-canvas/layout";
+import { Help } from "@/components/help/Help";
 import { StatusBadge } from "@/components/submissions/StatusBadge";
 import { Button, buttonClasses } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
@@ -508,6 +509,9 @@ export const DraftEditor = ({
             <Lock size={14} aria-hidden="true" className="mt-0.5 shrink-0" />
             {readOnlyText(draft)}
           </p>
+          {draft.status === "approved" && draft.selfApproved ? (
+            <Help id="personal-review" className="mt-2" />
+          ) : null}
         </Notice>
       ) : null}
       <p

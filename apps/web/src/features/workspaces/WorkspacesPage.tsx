@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Help } from "@/components/help/Help";
 import { Badge } from "@/components/ui/Badge";
 import { LocalTime } from "@/components/ui/LocalTime";
 import { PageHeader } from "@/components/ui/Panel";
@@ -116,6 +117,7 @@ export const WorkspacesPage = ({
                     // Yours alone (114): its page has its scopes, Rename and Edit description.
                     <span className="inline-flex flex-wrap items-center gap-3">
                       <Badge tone="accent">Yours</Badge>
+                      <Help id="personal-workspace" iconOnly />
                       <Link
                         href={workspacePath(w.name)}
                         className="text-sm text-link hover:underline outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"

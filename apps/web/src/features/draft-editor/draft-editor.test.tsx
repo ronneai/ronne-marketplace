@@ -471,6 +471,9 @@ describe("the draft page", () => {
     });
     expect(html).toContain("Approved by you: personal workspaces aren&#x27;t reviewed.");
     expect(html).toContain("as a reviewer would have seen it");
+    // Its helper (114) leads to the Documentation's section.
+    expect(html).toContain("Why isn&#x27;t it reviewed?");
+    expect(html).toContain("/marketplace/docs/workspaces#personal");
     expect(html).not.toContain("by you or a moderator");
   });
 

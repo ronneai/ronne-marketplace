@@ -221,7 +221,7 @@ export const SubmitDialog = ({
                   ? "Once submitted, its files are frozen, and it's approved at once: personal workspaces aren't reviewed. Release it when you like; until then you can withdraw it."
                   : "Once submitted, its files are frozen: reviewers see exactly these. You can withdraw it until it's released."}
               </p>
-              <Help id="after-submit" />
+              <Help id={personal ? "personal-review" : "after-submit"} />
             </div>
           )}
           {refused ? <FieldError id="submit-refused">{refused}</FieldError> : null}

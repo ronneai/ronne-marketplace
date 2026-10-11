@@ -157,7 +157,7 @@ column as `personal`. `rmk export` (and MCP's `plan_export`) list its scopes fir
 ## Documentation
 
 - **Workspaces**, a new section **Your personal workspace** (`workspaces#personal`): what it is,
-  who sees it, releasing without review, moving a scope out (115).
+  who sees it, releasing without review. Moving a scope out is 115's to document, once built.
 - **Workspaces → Public and private** (`workspaces#visibility`): personal workspaces are always
   private.
 - **Roles → The roles** and **Who can do what** (`roles#roles`, `roles#permissions`): you're the
@@ -165,25 +165,26 @@ column as `personal`. `rmk export` (and MCP's `plan_export`) list its scopes fir
 - **Review → Statuses** (`review#statuses`): submitting in a personal workspace approves at once.
 - **Export → Choosing the scope** (`export#scope`): the personal workspace's scopes first.
 - **Administration → Workspaces** (`admin#workspaces`): the Kind filter, root's view.
-- **Helpers:** on the Workspaces page next to Personal, "What's my personal workspace?" →
-  `workspaces#personal`; on a personal submission's Approved notice, "Why wasn't this reviewed?" →
-  `workspaces#personal`.
+- **Helpers:** on the Workspaces page, in the personal workspace's row next to Yours, "What's my
+  personal workspace?" → `workspaces#personal`; on a personal submission's Approved notice, and in
+  Submit's dialog for a personal draft (instead of "What happens next?", which promises a
+  reviewer), "Why isn't it reviewed?" → `workspaces#personal`.
 
 ## Acceptance criteria
 
-- [ ] The migration gives every existing user (roots too) a private personal workspace with an
+- [x] The migration gives every existing user (roots too) a private personal workspace with an
   admin membership, on SQLite, PostgreSQL, MySQL and MariaDB; Create user and setup do the same.
-- [ ] Nobody can be added to, ask to join, or change the owner in a personal workspace; it can't be
+- [x] Nobody can be added to, ask to join, or change the owner in a personal workspace; it can't be
   made public or deleted; in the UI and the services.
-- [ ] Only its owner and root see it and its items; anyone else gets what an unknown name gets.
-- [ ] The owner creates scopes, drafts, submits and releases there without review; the
+- [x] Only its owner and root see it and its items; anyone else gets what an unknown name gets.
+- [x] The owner creates scopes, drafts, submits and releases there without review; the
   versions are marked not reviewed; the review queue never shows them.
-- [ ] Root's catalogue, search and plugin marketplace leave out others' personal workspaces unless
+- [x] Root's catalogue, search and plugin marketplace leave out others' personal workspaces unless
   one is named.
-- [ ] Users with an empty personal workspace share the public marketplace's cache entry.
-- [ ] The API, `rmk workspaces`, `rmk export` and MCP's `list_workspaces` mark it personal.
-- [ ] The pages pass the phone sweep (065).
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] Users with an empty personal workspace share the public marketplace's cache entry.
+- [x] The API, `rmk workspaces`, `rmk export` and MCP's `list_workspaces` mark it personal.
+- [x] The pages pass the phone sweep (065).
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Decisions
 

@@ -459,3 +459,37 @@ Witnessed: 2026-10-10 21:45 EDT, by a fresh agent (blind). Commit: 8181bb06 (plu
 | 6 | 115's boundary stated as future | no | confirmed | MVP.md:901 "will move … once 115 is built" |
 
 **Overall:** met.
+
+## Task 9 — Documentation
+
+Witnessed: 2026-10-10 21:40 EDT, by a fresh agent (blind). Commit: 8181bb06 (plus the uncommitted working tree); ronne-web branch `docs/114-personal-workspaces` (uncommitted). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | ronne-web's checks pass | no | confirmed | lint, typecheck, 138 tests, build |
+| 2 | Helper link test passes | no | confirmed | 46 passed; `help.test.tsx` checks hrefs against `topics.ts` |
+| 3 | `workspaces#personal` in both `topics.ts` | no | confirmed | probe: 18 topics, no differences |
+| 4 | The section's facts match the app | no | confirmed | each fact against code and tests |
+| 5 | It covers moving a scope out (115), as the SPEC lists | no | partly | not built, rightly left out; SPEC still lists it |
+| 6 | Visibility: personal always private | no | confirmed | en/pt/fr |
+| 7 | Roles: admin of your own, not reviewed | no | confirmed | en/pt/fr |
+| 8 | Review statuses | no | confirmed | en/pt/fr |
+| 9 | Export: personal scopes first | no | confirmed | matches `export-command.ts` |
+| 10 | Admin: Kind filter and root's view | no | confirmed | against `WorkspacesTable.tsx` |
+| 11 | Workspaces page helper | no | confirmed | `WorkspacesPage.tsx`; test |
+| 12 | "Why wasn't this reviewed?" on the Approved notice | no | partly | the app says "Why isn't it reviewed?", also in Submit's dialog |
+| 13 | pt and fr say what en says | no | confirmed | line by line |
+
+**Overall:** not met: rows 5 and 12 (the SPEC, not the docs).
+
+### Re-check 1
+
+Witnessed: 2026-10-10 21:41 EDT, by a fresh agent (blind). Commit: 5d8d405f (plus the uncommitted working tree); ronne-web branch unchanged. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 5 | SPEC leaves moving a scope out to 115 | no | confirmed | SPEC diff |
+| 11 | Workspaces helper next to Yours | no | confirmed | `WorkspacesPage.tsx:119-120`; test |
+| 12 | "Why isn't it reviewed?" on the notice and in Submit's dialog for a personal draft | no | confirmed | `DraftEditor.tsx`, `SubmitDialogs.tsx:224`; 162 passed (the dialog placement by reading, untested) |
+
+**Overall:** met.
