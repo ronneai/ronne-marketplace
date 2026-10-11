@@ -9,7 +9,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. Migration.** [risky] `scope_moves` (id, scope_id, from_workspace_id, to_workspace_id,
+- [x] **1. Migration.** [risky] `scope_moves` (id, scope_id, from_workspace_id, to_workspace_id,
   requested_by, new_name (the scope's name in the target), message, status `open/approved/declined/cancelled`, decided_by, reason,
   created_at, decided_at; cascade with the scope and the target workspace; one open per scope
   checked in the service under the scope's row lock, since MySQL has no partial indexes);

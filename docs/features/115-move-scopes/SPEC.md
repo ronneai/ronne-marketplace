@@ -142,6 +142,8 @@ from a workspace they administer, to keep working on a scope alone.
 - **The target workspace is deleted, or its visibility changes, while a request is open:** deleting
   a workspace removes the requests into it (cascade, counted in `workspace.deleted`); a visibility
   change is caught when the request is approved, by the checks above.
+- **The source workspace is deleted** (090: only once it has no scopes, so after its last scope
+  moved out): the moves out of it are kept, without it; the audit log names both workspaces.
 - **The scope gets a new outside dependent while the request is open:** caught at approval; the
   release that adds it and the move take the same lock, so one of them waits and sees the other.
 - **The asker is the only admin of both workspaces:** moved at once (unless not-reviewed versions
