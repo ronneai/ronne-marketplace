@@ -6,12 +6,7 @@ import {
   parseManifest,
 } from "@ronneai/core";
 import { ForbiddenError } from "../../identity/exceptions/errors";
-import {
-  can,
-  canInSome,
-  requirePermission,
-  workspacesWith,
-} from "../../identity/models/permissions";
+import { can, canInSome, requirePermission } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
 import { renamedFrontmatterAgent, renamedManifest } from "../../submissions/models/manifest-names";
 import {
@@ -24,6 +19,7 @@ import {
   WorkspaceRenameAliasError,
   WorkspacesError,
 } from "../exceptions/errors";
+import { seesWorkspace, visibleWorkspaces } from "../models/viewer";
 import {
   GLOBAL_WORKSPACE_NAME,
   visibilityChoice,
@@ -309,7 +305,10 @@ const impactOf = async (
       });
     })
     .map(({ name }) => name);
-  return { dependents: await repo.outsideDependents(workspace.id), openDependents };
+  return {
+    dependents: (await repo.outsideDependents(workspace.id)).map((d) => d.name),
+    openDependents,
+  };
 };
 
 /** Root only, like the setting itself: what Make private would meet, for its dialog. */
@@ -347,7 +346,7 @@ export const setWorkspaceVisibility = async (
     if (workspace.ownerId) throw new PersonalWorkspaceError("visibility");
     if (workspace.visibility === to) return;
     if (to === "private") {
-      const dependents = await repo.outsideDependents(workspace.id);
+      const dependents = (await repo.outsideDependents(workspace.id)).map((d) => d.name);
       if (dependents.length > 0)
         throw new WorkspaceHasOutsideDependentsError(workspace.name, dependents);
     }
@@ -363,7 +362,10 @@ export const setWorkspaceVisibility = async (
   });
 };
 
-/** Only an empty workspace: its scopes would have nowhere to go (nothing moves scopes yet). */
+/**
+ * Only an empty workspace: move its scopes out first (115). Its memberships and the open moves into
+ * it go with it (they cascade).
+ */
 export const deleteWorkspace = async (
   deps: WorkspaceDeps,
   actor: WorkspaceActor,
@@ -380,13 +382,15 @@ export const deleteWorkspace = async (
       if (workspace.scopes > 0) throw new WorkspaceNotEmptyError(workspace.scopes);
       // Its memberships go with it (they cascade); the event says how many (092).
       const members = await repo.countMembers(workspace.id);
+      // And the requests to move a scope into it (115), which nobody can answer now.
+      const scopeMoves = await repo.countOpenMovesInto(workspace.id);
       await repo.delete(workspace.id);
       await audit(
         repo,
         actor,
         "workspace.deleted",
         workspace.id,
-        { name: workspace.name, members },
+        { name: workspace.name, members, scopeMoves },
         at,
       );
     });
@@ -427,57 +431,85 @@ export type WorkspacesTablePage = {
   next: string | null;
   previous: string | null;
   total: { count: number; capped: boolean };
+  /** How many of each kind match the search, for the Shared and Personal tabs (115). */
+  kinds: {
+    shared: { count: number; capped: boolean };
+    personal: { count: number; capped: boolean };
+  };
 };
 
 /**
- * One page of Admin › Workspaces, and the capped count of all that match. Root sees every
- * workspace; an admin only those they administer (092). `global` comes first, on
- * the first page, whatever the sort, when the search matches it.
+ * One page of root's Workspaces list (090; under Workspaces since 115, where everyone else gets
+ * the workspaces they see instead), and the capped count of all that match. Root's alone: a
+ * workspace's admins manage theirs from its page. `global` comes first, on the first page,
+ * whatever the sort, when the search matches it.
  */
 export const pageWorkspaces = async (
   deps: WorkspaceDeps,
   actor: WorkspaceActor,
   query: Partial<WorkspacePageQuery>,
 ): Promise<WorkspacesTablePage> => {
-  if (!canInSome(actor.user, "members.manage")) throw new ForbiddenError("members.manage");
-  const where = workspacesWith(actor.user, "members.manage");
-  const ids = where === "all" ? undefined : where;
+  requirePermission(actor.user, "workspaces.manage");
   const search = query.search?.trim().slice(0, WORKSPACE_SEARCH_MAX_LENGTH) || undefined;
   const sort = query.sort ?? "name";
-  // Personal workspaces (114) are listed for root, on their own: an admin's list is their shared ones.
-  const kind = where === "all" && query.kind === "personal" ? "personal" : "shared";
-  const [page, total] = await Promise.all([
+  // Personal workspaces (114) are listed on their own, with their owners.
+  const kind = query.kind === "personal" ? "personal" : "shared";
+  const [page, shared, personal] = await Promise.all([
     deps.repo.page({
       search,
       sort,
       dir: query.dir ?? (sort === "name" ? "asc" : "desc"),
       size: query.size ?? WORKSPACES_PAGE_SIZE,
       cursor: query.cursor,
-      ids,
       kind,
     }),
-    deps.repo.count(search, ids, kind),
+    deps.repo.count(search, undefined, "shared"),
+    deps.repo.count(search, undefined, "personal"),
   ]);
   // `global` counts whenever the search matches it, on every page, and is listed first on the first
   // page (no page before it, however it was reached).
   const found = await deps.repo.findByName(GLOBAL_WORKSPACE_NAME);
   const term = search?.toLowerCase();
-  const global =
-    found &&
-    kind === "shared" &&
-    (!ids || ids.includes(found.id)) &&
-    (!term || found.name.includes(term) || found.description.toLowerCase().includes(term))
-      ? found
-      : null;
+  const matches =
+    found !== null &&
+    (!term || found.name.includes(term) || found.description.toLowerCase().includes(term));
+  // A capped count stays at the cap: "1000+" already says there are more.
+  const sharedTotal = {
+    count: shared.count + (matches && !shared.capped ? 1 : 0),
+    capped: shared.capped,
+  };
+  const global = found && matches && kind === "shared" ? found : null;
   return {
     workspaces: global && page.previous === null ? [global, ...page.rows] : page.rows,
     next: page.next,
     previous: page.previous,
-    total: { count: total.count + (global ? 1 : 0), capped: total.capped },
+    total: kind === "shared" ? sharedTotal : personal,
+    kinds: { shared: sharedTotal, personal },
   };
 };
 
-/** One workspace, for its page in Admin › Workspaces: root, or one of its admins (092); null otherwise. */
+/**
+ * One workspace, for its page under Workspaces (115): for anyone signed in who sees it (093);
+ * someone else's personal workspace only for root (114). Null otherwise, as for a name no
+ * workspace has.
+ */
+export const viewWorkspace = async (
+  deps: WorkspaceDeps,
+  actor: WorkspaceActor,
+  name: string,
+): Promise<Workspace | null> => {
+  const user = actor.user;
+  requirePermission(user, "account.manage_own");
+  const workspace = await byName(deps.repo, name);
+  if (!workspace || !user) return null;
+  const viewer = visibleWorkspaces(user, await deps.repo.list());
+  if (!seesWorkspace(viewer, workspace.id)) return null;
+  if (workspace.ownerId !== null && workspace.ownerId !== user.id && user.role !== "root")
+    return null;
+  return workspace;
+};
+
+/** One workspace, for root and its admins (092), who manage it. Null otherwise. */
 export const findWorkspace = async (
   deps: WorkspaceDeps,
   actor: WorkspaceActor,

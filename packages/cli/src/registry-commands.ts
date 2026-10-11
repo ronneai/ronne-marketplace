@@ -126,7 +126,10 @@ export const withApi = (
 
   const info: Command = async (io, args, out) => {
     const [ref] = args.positionals;
-    if (!ref) throw usage("Say which item: rmk info @scope/name[@version]");
+    if (!ref)
+      throw usage(
+        "Say which item: rmk info @scope/name[@version], or @workspace/scope/name outside global",
+      );
     const { name, at } = splitItemRef(ref);
     const { api } = connect(io, args);
     const item = await api.get<ItemInfo>(itemPath(name));
@@ -189,7 +192,9 @@ export const list: Command = async (io, args, out) => {
   const dependencies = Object.entries(config?.dependencies ?? {});
   out.set("dependencies", Object.fromEntries(dependencies));
   if (dependencies.length === 0)
-    out.say("This project asks for nothing yet: rmk install @scope/name adds an item.");
+    out.say(
+      "This project asks for nothing yet: rmk install @scope/name (@workspace/scope/name outside global) adds an item.",
+    );
   for (const [name, range] of dependencies) out.say(`${name}  ${range}`);
 };
 

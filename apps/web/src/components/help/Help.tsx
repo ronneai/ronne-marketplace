@@ -32,12 +32,6 @@ export const HELP = {
       "Its items take the new name: @acme/team/x becomes @new/team/x. Their old names keep working for installs, lockfiles and dependencies, and rmk moves projects to the new ones; Claude Code shows them as new plugins. Links to the workspace (its page, its join link) and the old name in rmk --workspace or a CI workflow stop working. Its members, scopes and requests stay.",
     href: docsHref("workspaces", "managing"),
   },
-  "workspace-choice": {
-    question: "Which workspace?",
-    answer:
-      "The one whose team the scope's items are for; global when they're for everyone. A workspace other than global is the first part of the items' names, and once there's more than global the catalogue can filter by workspace. In a public workspace everyone signed in sees the scope's items; in a private one, only its members and root. Its members submit and its moderators and admins review there. The scope can't move to another workspace later.",
-    href: docsHref("workspaces", "what"),
-  },
   "global-always": {
     question: "Why is global always there?",
     answer:
@@ -61,6 +55,18 @@ export const HELP = {
     answer:
       "Anyone signed in reads and installs a public workspace's items, but only its members propose and submit there. Ask to join it from the Workspaces page, or from the join link its moderators or admins send for a private one; root or its moderators and admins answer, and you see the answer there.",
     href: docsHref("workspaces", "joining"),
+  },
+  "move-who": {
+    question: "Who has to agree?",
+    answer:
+      "Root, and an admin of global moving into global, move at once after typing the scope's name. An admin of the target workspace, or someone moving into their own personal workspace, moves at once. Anyone else asks, and the target's admins or root answer (root alone for global). A scope with versions not reviewed always asks someone else.",
+    href: docsHref("workspaces", "moving"),
+  },
+  "move-approve": {
+    question: "What does approving do?",
+    answer:
+      "It checks the move again and moves the scope: its items take the new workspace's names, their old names keep working, and versions not reviewed become reviewed in your name. If something would break now, nothing moves and the request stays open, with the list.",
+    href: docsHref("workspaces", "moving"),
   },
   "personal-workspace": {
     question: "What's my personal workspace?",

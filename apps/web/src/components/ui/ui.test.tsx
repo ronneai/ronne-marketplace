@@ -17,6 +17,7 @@ import {
   Th,
 } from ".";
 import { Checkbox } from "./Field";
+import { IconButton } from "./IconButton";
 
 const html = (node: React.ReactElement) => renderToStaticMarkup(node);
 
@@ -38,6 +39,20 @@ describe("Button", () => {
     expect(html(<Button variant="secondary">x</Button>)).toContain("bg-surface");
     expect(html(<Button variant="ghost">x</Button>)).toContain("text-muted");
     expect(html(<Button variant="destructive">Delete</Button>)).toContain("bg-error text-on-error");
+  });
+});
+
+describe("IconButton (115)", () => {
+  it("names itself and shows the name as its tooltip, the icon hidden", () => {
+    const html = renderToStaticMarkup(
+      <IconButton label="Edit @infra">
+        <svg aria-hidden="true" />
+      </IconButton>,
+    );
+    expect(html).toContain('type="button"');
+    expect(html).toContain('aria-label="Edit @infra"');
+    expect(html).toContain('title="Edit @infra"');
+    expect(html).toContain('<svg aria-hidden="true">');
   });
 });
 
@@ -178,6 +193,19 @@ describe("Tabs, CopyableCommand, Dialog", () => {
     );
     const ids = [...out.matchAll(/aria-labelledby="([^"]+)"/g)].map((m) => m[1]);
     expect(new Set(ids).size).toBe(2);
+  });
+
+  it("wraps its text whatever surrounds it, and is 640px wide when wide (115)", () => {
+    const out = html(
+      <span className="whitespace-nowrap">
+        <Dialog open={false} onClose={() => {}} title="Move @infra" size="wide">
+          a
+        </Dialog>
+      </span>,
+    );
+    expect(out).toMatch(/<dialog[^>]*class="[^"]*\bwhitespace-normal\b/);
+    expect(out).toMatch(/<dialog[^>]*class="[^"]*\[overflow-wrap:anywhere\]/);
+    expect(out).toContain("w-[min(40rem,calc(100vw-2rem))]");
   });
 });
 

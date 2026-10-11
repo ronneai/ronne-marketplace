@@ -9,13 +9,18 @@ const signIn = async (page: Page, email: string) => {
   await expect(page).not.toHaveURL(/\/sign-in/);
 };
 
-test("root creates, sorts and searches scopes under Admin; nobody else has a scope page (064)", async ({
+test("root creates, sorts and searches scopes on a workspace's page; Admin › Scopes is gone (115)", async ({
   browser,
   request,
 }) => {
   const root = await browser.newPage();
   await signIn(root, E2E_USERS.root);
+  // Admin › Scopes went (115): its old address opens the Workspaces pages.
+  await root.goto("/admin/scopes?workspace=global");
+  await expect(root).toHaveURL(/\/workspaces\/global(\?|$)/);
   await root.goto("/admin/scopes");
+  await expect(root).toHaveURL(/\/workspaces$/);
+  await root.goto("/workspaces/global");
   await root.getByRole("button", { name: "Create scope" }).click();
   const dialog = root.getByRole("dialog");
   await dialog.getByLabel("Name").fill("@E2E-Team");
@@ -27,7 +32,7 @@ test("root creates, sorts and searches scopes under Admin; nobody else has a sco
   await expect(root.getByRole("cell", { name: "@e2e-team", exact: true })).toBeVisible();
   // Sorted on the server (061): newest first by Created, and the view stays in the URL.
   await root.getByRole("link", { name: "Created" }).click();
-  await expect(root).toHaveURL(/\/admin\/scopes\?.*sort=created/);
+  await expect(root).toHaveURL(/\/workspaces\/global\?.*sort=created/);
   await expect(root.getByRole("row").nth(1)).toContainText("@e2e-team");
   await root.getByLabel("Search").fill("end-to-end");
   await expect(root).toHaveURL(/q=end-to-end/);
@@ -36,7 +41,7 @@ test("root creates, sorts and searches scopes under Admin; nobody else has a sco
   // Workspaces (090), in this test because root's sign-ins are limited (e2e-sign-in-limit.md):
   // root creates one; a scope goes in the seeded e2e-acme, whose members (091) the seed adds, and
   // an item released there is filtered by it in the catalogue.
-  await root.goto("/admin/workspaces");
+  await root.goto("/workspaces");
   await root.getByRole("button", { name: "New workspace" }).click();
   const create = root.getByRole("dialog", { name: "New workspace" });
   await create.getByLabel("Name").fill("E2E-Labs");
@@ -45,25 +50,22 @@ test("root creates, sorts and searches scopes under Admin; nobody else has a sco
   await expect(create.getByText("Created e2e-labs.")).toBeVisible();
   await create.getByRole("button", { name: "Done" }).click();
   await root.getByRole("link", { name: "e2e-labs", exact: true }).click();
-  await expect(root).toHaveURL(/\/admin\/workspaces\/e2e-labs$/);
+  await expect(root).toHaveURL(/\/workspaces\/e2e-labs$/);
   await expect(root.getByText("No scopes yet.")).toBeVisible();
 
-  await root.goto("/admin/scopes");
+  // A scope in e2e-acme, from its own page: it goes in that workspace, and only its scopes show.
+  await root.goto("/workspaces/e2e-acme");
   await root.getByRole("button", { name: "Create scope" }).click();
   const scopeDialog = root.getByRole("dialog");
   await scopeDialog.getByLabel("Name").fill("e2e-acme-infra");
-  await expect(scopeDialog.getByLabel("Workspace")).toHaveValue("00000000000000000000000000");
-  await scopeDialog.getByLabel("Workspace").selectOption({ label: "e2e-acme" });
+  await expect(scopeDialog.getByText("In e2e-acme")).toBeVisible();
   await scopeDialog.getByLabel("Description").fill("Acme's infrastructure.");
   await scopeDialog.getByRole("button", { name: "Create scope" }).click();
   await expect(scopeDialog.getByText("Created @e2e-acme-infra in e2e-acme.")).toBeVisible();
   await scopeDialog.getByRole("button", { name: "Done" }).click();
-  await root.locator("#scope-workspace").selectOption("e2e-acme");
-  await expect(root).toHaveURL(/workspace=e2e-acme/);
   await expect(root.getByRole("cell", { name: "@e2e-acme-infra", exact: true })).toBeVisible();
   await expect(root.getByRole("cell", { name: "@e2e-team", exact: true })).toHaveCount(0);
   // The workspace now has a scope, so it can't be deleted.
-  await root.goto("/admin/workspaces/e2e-acme");
   await expect(root.getByRole("button", { name: "Delete" })).toBeDisabled();
 
   // An author uploads and submits an item in the new scope; a moderator approves; it's released.
@@ -183,5 +185,5 @@ test("root creates, sorts and searches scopes under Admin; nobody else has a sco
     user.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Scopes" }),
   ).toHaveCount(0);
   expect((await user.goto("/scopes"))?.status()).toBe(404);
-  expect((await user.goto("/admin/scopes"))?.status()).toBe(404);
+  expect((await user.goto("/admin/users"))?.status()).toBe(404);
 });

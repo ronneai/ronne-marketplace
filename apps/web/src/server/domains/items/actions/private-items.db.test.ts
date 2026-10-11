@@ -144,11 +144,11 @@ describe("a private workspace's items (093)", () => {
       expect(page.scopes, who).toContain("acme-infra");
       // The card's lock label (task 8).
       expect(
-        page.entries.map((e) => [e.workspace, e.privateWorkspace]),
+        page.entries.map((e) => [e.workspace, e.privateWorkspace, e.personalWorkspace]),
         who,
       ).toEqual([
-        ["acme", true],
-        ["global", false],
+        ["acme", true, false],
+        ["global", false, false],
       ]);
     }
     const page = await browseCatalogue(asOutsider, {}, app);

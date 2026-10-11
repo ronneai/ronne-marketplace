@@ -13,9 +13,8 @@ const text = (form: FormData, key: string) => String(form.get(key) ?? "");
 const attempt = async (work: () => Promise<string>): Promise<ScopeActionState> => {
   try {
     const done = await work();
-    revalidatePath("/admin/scopes");
-    // A workspace's page lists its scopes, and its list counts them (090).
-    revalidatePath("/admin/workspaces", "layout");
+    // A workspace's page lists its scopes (090, under Workspaces since 115), and its list counts them.
+    revalidatePath("/workspaces", "layout");
     return { done };
   } catch (error) {
     if (error instanceof ItemsError || error instanceof IdentityError)

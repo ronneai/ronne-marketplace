@@ -240,11 +240,8 @@ describe("an admin of acme (092)", () => {
     );
   });
 
-  it("lists and opens only the workspaces they administer", async () => {
-    expect((await pageWorkspaces(asAdmin, {}, app)).workspaces.map((w) => w.name)).toEqual([
-      "acme",
-    ]);
-    expect((await pageWorkspaces(asAdmin, {}, app)).total).toEqual({ count: 1, capped: false });
+  it("opens only the workspaces they administer; root's list isn't theirs (115)", async () => {
+    await expect(pageWorkspaces(asAdmin, {}, app)).rejects.toThrow(ForbiddenError);
     expect((await findWorkspace(asAdmin, "acme", app))?.name).toBe("acme");
     expect(await findWorkspace(asAdmin, "beta", app)).toBeNull();
     expect(await findWorkspace(asAdmin, "global", app)).toBeNull();
@@ -263,10 +260,7 @@ describe("an admin of global (092)", () => {
     await expect(
       removeMember(asAdmin, { workspaceId: GLOBAL_WORKSPACE_ID, userId }, app),
     ).rejects.toThrow();
-    expect((await pageWorkspaces(asAdmin, {}, app)).workspaces.map((w) => w.name)).toEqual([
-      "global",
-      "acme",
-    ]);
+    await expect(pageWorkspaces(asAdmin, {}, app)).rejects.toThrow(ForbiddenError);
   });
 });
 

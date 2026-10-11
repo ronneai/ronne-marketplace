@@ -154,13 +154,14 @@ test("root creates a user, who signs in with the shown password; disabling them 
 
   const admin = await browser.newPage();
   await signIn(admin, adminEmail, E2E_PASSWORD);
-  await admin.getByRole("link", { name: "Admin" }).click();
-  await expect(admin).toHaveURL(/\/admin\/workspaces$/);
-  const adminNav = admin.getByRole("navigation", { name: "Admin" });
-  await expect(adminNav.getByRole("link")).toHaveText(["Workspaces"]);
-  await expect(admin.getByRole("link", { name: "e2e-acme" })).toBeVisible();
-  await expect(admin.getByRole("link", { name: "global", exact: true })).toHaveCount(0);
-  await admin.getByRole("link", { name: "e2e-acme" }).click();
+  // No Admin for a workspace's admin (115): their workspaces are under Workspaces, with their role.
+  await expect(admin.getByRole("link", { name: "Admin" })).toHaveCount(0);
+  await admin.getByRole("link", { name: "Workspaces", exact: true }).click();
+  await expect(admin).toHaveURL(/\/workspaces$/);
+  const acmeRow = admin.getByRole("row").filter({ hasText: "e2e-acme" });
+  await expect(acmeRow).toContainText("Admin");
+  await expect(admin.getByRole("button", { name: "New workspace" })).toHaveCount(0);
+  await acmeRow.getByRole("link", { name: "e2e-acme", exact: true }).click();
   await expect(admin.getByRole("heading", { name: "e2e-acme" })).toBeVisible();
   await admin
     .getByRole("navigation", { name: "Workspace" })
@@ -173,7 +174,12 @@ test("root creates a user, who signs in with the shown password; disabling them 
   await admin.getByLabel("Role", { exact: true }).selectOption("moderator");
   await expect(admin).toHaveURL(/tab=members.*role=moderator/);
   await expect(admin.getByText("(you)")).toHaveCount(0);
+  // An old bookmark under Admin lands on the page under Workspaces, with its tab (115).
   await admin.goto("/admin/workspaces/e2e-acme?tab=members");
+  await expect(admin).toHaveURL(/\/workspaces\/e2e-acme\?tab=members$/);
+  await admin.goto("/admin/workspaces");
+  await expect(admin).toHaveURL(/\/workspaces$/);
+  await admin.goto("/workspaces/e2e-acme?tab=members");
 
   // Adds someone as moderator, then removes them again, after a confirm.
   await admin.getByRole("button", { name: "Add members" }).click();
@@ -211,15 +217,14 @@ test("root creates a user, who signs in with the shown password; disabling them 
   await scope.getByRole("button", { name: "Create scope" }).click();
   await expect(scope.getByText(/Created/)).toBeVisible();
   await scope.getByRole("button", { name: "Done" }).click();
-  await expect(admin.getByTitle("@acme-admin-tools")).toBeVisible();
+  await expect(admin.getByTitle("@acme-admin-tools", { exact: true })).toBeVisible();
 
-  // And nothing else: another workspace, Users, Scopes, the audit log and Settings are a 404.
-  for (const path of [
-    "/admin/workspaces/global",
-    "/admin/users",
-    "/admin/scopes",
-    "/admin/audit",
-    "/admin/settings",
-  ])
+  // And nothing else. Another workspace's page opens, as for everyone who sees it (115), with
+  // nothing to manage there; Admin and its pages are a 404.
+  await admin.goto("/workspaces/global");
+  await expect(admin.getByRole("heading", { level: 1 })).toHaveText("global");
+  await expect(admin.getByRole("link", { name: "Members" })).toHaveCount(0);
+  await expect(admin.getByRole("button", { name: "Create scope" })).toHaveCount(0);
+  for (const path of ["/admin", "/admin/users", "/admin/audit", "/admin/settings"])
     expect((await admin.goto(path))?.status(), path).toBe(404);
 });

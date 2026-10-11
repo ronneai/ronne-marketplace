@@ -14,7 +14,12 @@ import { cn } from "./cn";
  *
  * - `large` (054) is a fixed frame, 640px wide and up to 720px tall: its content lays itself out in
  *   a column, so a long list can scroll inside while what's above and below it stays in view.
+ * - `wide` (115) is the default, 640px wide instead of 512px: for lists of long names.
  * - `side` (066) is a sheet from the right, full height: 20rem wide, the whole width on a phone.
+ *
+ * Its text wraps whatever surrounds the trigger (115): a dialog sits in the DOM where it's opened,
+ * such as a table cell that keeps its buttons on one line, and would otherwise inherit `nowrap`.
+ * A word too long for its line, such as a 64-character name, breaks anywhere rather than widen it.
  *
  * `closeOnBackdrop` closes it on a click or tap outside the panel (066's menu). Off by default, so
  * a stray tap can't lose what's typed in a form.
@@ -27,7 +32,7 @@ export const Dialog = ({
   size = "default",
   closeOnBackdrop = false,
 }: {
-  size?: "default" | "large" | "side";
+  size?: "default" | "wide" | "large" | "side";
   open: boolean;
   onClose: () => void;
   title: ReactNode;
@@ -70,14 +75,16 @@ export const Dialog = ({
       }
       aria-labelledby={titleId}
       className={cn(
-        "rounded-panel border border-strong bg-surface p-0 text-left text-fg backdrop:bg-canvas/80 open:flex flex-col",
+        "rounded-panel border border-strong bg-surface p-0 text-left font-normal whitespace-normal [overflow-wrap:anywhere] text-fg backdrop:bg-canvas/80 open:flex flex-col",
         size === "side"
           ? "m-0 ml-auto h-dvh max-h-none w-[min(20rem,100vw)] max-w-none rounded-none border-y-0 border-r-0"
           : cn(
               "m-auto max-h-[calc(100dvh-2rem)]",
               size === "large"
                 ? "h-[min(45rem,calc(100dvh-2rem))] w-[min(40rem,calc(100vw-2rem))]"
-                : "w-[min(32rem,calc(100vw-2rem))]",
+                : size === "wide"
+                  ? "w-[min(40rem,calc(100vw-2rem))]"
+                  : "w-[min(32rem,calc(100vw-2rem))]",
             ),
         // A phone: the whole screen.
         "max-sm:m-0 max-sm:h-dvh max-sm:max-h-none max-sm:w-screen max-sm:max-w-none max-sm:rounded-none max-sm:border-0",

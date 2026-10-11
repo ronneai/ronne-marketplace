@@ -90,6 +90,7 @@ export const kyselyItemRepository = (
           "scopes.name as scope_name",
           "workspaces.name as workspace_name",
           "workspaces.visibility as workspace_visibility",
+          "workspaces.owner_id as workspace_owner_id",
           "scopes.workspace_id",
           "items.name",
           "items.type",
@@ -121,6 +122,7 @@ export const kyselyItemRepository = (
           workspace: row.workspace_name,
           workspaceId: row.workspace_id,
           privateWorkspace: row.workspace_visibility !== "public",
+          personalWorkspace: row.workspace_owner_id !== null,
           name: row.name,
           type: row.type as ItemType,
           description: row.description,
@@ -340,6 +342,17 @@ export const kyselyItemRepository = (
       .where("id", "in", wanted)
       .execute();
     return new Map(rows.map((row) => [row.id, row.name]));
+  },
+
+  scopePlaces: async (scopeIds) => {
+    const wanted = [...new Set(scopeIds)];
+    if (wanted.length === 0) return new Map();
+    const rows = await db
+      .selectFrom("scopes")
+      .select(["id", "workspace_id", "name"])
+      .where("id", "in", wanted)
+      .execute();
+    return new Map(rows.map((row) => [row.id, { workspaceId: row.workspace_id, name: row.name }]));
   },
 
   lockWorkspaces: async (ids) => {

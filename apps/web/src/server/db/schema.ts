@@ -137,6 +137,28 @@ export interface WorkspaceAccessRequestTable {
 }
 
 /**
+ * Moving a scope to another workspace (migration 0024_scope_moves, feature 115): open until
+ * answered or cancelled; a move made at once is recorded approved. `new_name` is the scope's name
+ * in the target.
+ */
+export interface ScopeMoveTable {
+  id: string;
+  scope_id: string;
+  /** Null once the source workspace is deleted (only after its last scope left). */
+  from_workspace_id: string | null;
+  to_workspace_id: string;
+  requested_by: string;
+  new_name: string;
+  message: string | null;
+  status: "open" | "approved" | "declined" | "cancelled";
+  decided_by: string | null;
+  /** Why it was declined (shown to the asker), or why it was cancelled (`asker_lost_role`). */
+  reason: string | null;
+  created_at: Timestamp;
+  decided_at: Timestamp | null;
+}
+
+/**
  * Scopes (migration 0004_scopes). `name` is stored without the `@`. Every scope belongs to one
  * workspace (0019_workspaces); an item's workspace is its scope's. Names are unique per workspace
  * (0022_workspace_in_names, feature 118), not across the instance.
@@ -267,6 +289,11 @@ export interface ItemVersionTable {
   disabled_targets: Generated<string>;
   /** False when released from a personal workspace without review (114, decision 3). */
   reviewed: ColumnType<boolean | number, boolean | number | undefined, boolean | number>;
+  /**
+   * Who approved moving it out of a personal workspace (115), which made a not-reviewed version
+   * reviewed. Null otherwise.
+   */
+  reviewed_by: ColumnType<string | null, string | null | undefined, string | null>;
 }
 
 /** A movable pointer to a version, such as `latest` (MVP §3.4). */
@@ -350,6 +377,7 @@ export interface Database {
   workspaces: WorkspaceTable;
   workspace_members: WorkspaceMemberTable;
   workspace_access_requests: WorkspaceAccessRequestTable;
+  scope_moves: ScopeMoveTable;
   scopes: ScopeTable;
   submissions: SubmissionTable;
   submission_files: SubmissionFileTable;

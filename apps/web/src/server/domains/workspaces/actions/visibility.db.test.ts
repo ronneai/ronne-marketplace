@@ -4,7 +4,8 @@ import { toDbDate } from "../../../db/dates";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { listAuditEvents } from "../../audit/actions/audit";
 import { createRoot } from "../../identity/actions/root-account";
-import { signIn } from "../../identity/actions/session";
+import { getCurrentUser, signIn } from "../../identity/actions/session";
+import { adminCreateUser } from "../../identity/actions/user-admin";
 import { ForbiddenError } from "../../identity/exceptions/errors";
 import type { AppAuth } from "../../identity/repositories/auth-instance";
 import {
@@ -29,6 +30,7 @@ import {
   createWorkspace,
   findWorkspace,
   setWorkspaceVisibility,
+  viewWorkspace,
   visibilityImpact,
 } from "./workspaces";
 
@@ -281,5 +283,39 @@ describe("a workspace's visibility (093)", () => {
     await expect(
       setWorkspaceVisibility(asRoot, { name: "acme", visibility: "hidden" }, app),
     ).rejects.toThrow(InvalidWorkspaceVisibilityError);
+  });
+
+  it("opens a workspace's page to whoever sees it; a personal one to its owner and root (115)", async () => {
+    const named = async (headers: Headers, name: string) =>
+      (await viewWorkspace(headers, name, app))?.name ?? null;
+    // Public: everyone signed in, members or not.
+    for (const headers of [asRoot, asAdmin, asAuthor])
+      expect(await named(headers, "acme")).toBe("acme");
+    expect(await named(asAuthor, "global")).toBe("global");
+    // Private: its members and root; to anyone else, as a name no workspace has.
+    await setWorkspaceVisibility(asRoot, { name: "acme", visibility: "private" }, app);
+    expect(await named(asRoot, "acme")).toBe("acme");
+    expect(await named(asAdmin, "acme")).toBe("acme");
+    expect(await named(asAuthor, "acme")).toBeNull();
+    expect(await named(asAuthor, "nope")).toBeNull();
+    // A personal workspace (114): its owner and root, nobody else.
+    await adminCreateUser(
+      asRoot,
+      { email: "ana@example.com", name: "Ana", role: "user", password },
+      app,
+    );
+    const asAna = await signedIn("ana@example.com");
+    const personalId = (await getCurrentUser(asAna, app))?.personal;
+    const personal = await t.db
+      .selectFrom("workspaces")
+      .select("name")
+      .where("id", "=", personalId ?? "")
+      .executeTakeFirstOrThrow();
+    expect(await named(asAna, personal.name)).toBe(personal.name);
+    expect(await named(asRoot, personal.name)).toBe(personal.name);
+    expect(await named(asAdmin, personal.name)).toBeNull();
+    expect(await named(asAuthor, personal.name)).toBeNull();
+    // Signed out: refused, before anything is read.
+    await expect(viewWorkspace(new Headers(), "acme", app)).rejects.toThrow();
   });
 });

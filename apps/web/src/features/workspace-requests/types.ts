@@ -11,3 +11,10 @@ export type RequestRow = {
   createdAt: Date;
   canPickRole: boolean;
 };
+
+/** What a move's answer shows after its action (115): a confirmation, a refusal, or what refuses it. */
+export type MoveAnswerState = {
+  done?: string;
+  error?: string;
+  refused?: import("@/server/domains/workspaces/models/scope-move").MoveImpact;
+};

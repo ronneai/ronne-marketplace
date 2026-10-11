@@ -28,20 +28,21 @@ export const FilterChips = <S extends string, F extends string>({
   return (
     <ul aria-label="Active filters" className="flex flex-wrap items-center gap-2 text-xs">
       {active.map((key) => (
-        <li key={key}>
+        <li key={key} className="min-w-0 max-w-full">
           <Link
             href={listUrl(list, state, {
               filters: { [key]: "" } as unknown as Partial<Record<F, string>>,
             })}
             scroll={false}
             aria-label={`Remove the ${labels[key].toLowerCase()} filter`}
-            className="inline-flex items-center gap-1 rounded-control border border-hairline bg-surface px-2 py-1 pointer-coarse:min-h-11 pointer-coarse:px-3 text-fg hover:border-strong"
+            className="inline-flex max-w-full items-center gap-1 rounded-control border border-hairline bg-surface px-2 py-1 pointer-coarse:min-h-11 pointer-coarse:px-3 text-fg hover:border-strong"
           >
             <span className="text-muted">{labels[key]}:</span>
-            <span className="font-mono">
+            {/* A long value, such as a 64-character name, breaks rather than widen the page (115). */}
+            <span className="min-w-0 font-mono [overflow-wrap:anywhere]">
               {display[key]?.(state.filters[key]) ?? state.filters[key]}
             </span>
-            <X size={12} aria-hidden="true" className="text-muted" />
+            <X size={12} aria-hidden="true" className="shrink-0 text-muted" />
           </Link>
         </li>
       ))}

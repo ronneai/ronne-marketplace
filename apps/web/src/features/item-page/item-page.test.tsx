@@ -225,6 +225,30 @@ describe("the item page", () => {
     expect(html).toMatch(/<h1[^>]*>@acme\/team\/github<\/h1>/);
   });
 
+  it("says a global item's workspace and scope, and a personal one's, under its name (115)", async () => {
+    const global = await render();
+    expect(global).toMatch(
+      /Workspace<\/span><a[^>]*href="\/workspaces\/global"[^>]*>global<\/a><span aria-hidden="true">·<\/span><span>Scope<\/span><span[^>]*>@team<\/span>/,
+    );
+    expect(global).not.toContain("lucide-lock");
+    versions.itemPage.mockResolvedValue(
+      itemPageData({
+        item: {
+          ...itemPageData().item,
+          workspace: "ana",
+          privateWorkspace: true,
+          personalWorkspace: true,
+        },
+      }),
+    );
+    const personal = await render();
+    expect(personal).toMatch(
+      /href="\/workspaces\/ana"[^>]*>ana<\/a><span[^>]*>\(personal\)<\/span>/,
+    );
+    expect(personal).not.toContain("lucide-lock");
+    expect(personal).toContain("rmk install @ana/team/github<");
+  });
+
   it("marks a private workspace's item with a lock and Private in the header (093, 118)", async () => {
     versions.itemPage.mockResolvedValue(
       itemPageData({ item: { ...itemPageData().item, workspace: "acme", privateWorkspace: true } }),
@@ -232,8 +256,12 @@ describe("the item page", () => {
     const html = await render();
     expect(html).toContain("Who can see this?");
     expect(html).toContain("/marketplace/docs/workspaces#visibility");
+    expect(html).toMatch(/<h1[^>]*>@acme\/team\/github<\/h1>/);
+    // Installed by its full name, the workspace first (118).
+    expect(html).toContain("rmk install @acme/team/github<");
+    // Its workspace, linked, and its scope, under the name (115).
     expect(html).toMatch(
-      /lucide-lock[^>]*>.*<\/svg>Private<span aria-hidden="true"> · <\/span><span class="sr-only">, <\/span><\/span>@acme\/team\/github<\/h1>/,
+      /Workspace<\/span><a[^>]*href="\/workspaces\/acme"[^>]*>acme<\/a><span[^>]*><svg[^>]*lucide-lock[^>]*>.*?<\/svg>Private<\/span><span aria-hidden="true">·<\/span><span>Scope<\/span><span[^>]*>@team<\/span>/,
     );
   });
 

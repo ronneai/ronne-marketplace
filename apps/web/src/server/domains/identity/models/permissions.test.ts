@@ -79,6 +79,7 @@ describe("permissions (091)", () => {
         "members.manage",
         "scopes.create",
         "scopes.manage",
+        "scopes.move",
         "settings.manage",
         "submissions.create",
         "submissions.override",

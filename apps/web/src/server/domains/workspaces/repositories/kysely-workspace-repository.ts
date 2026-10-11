@@ -13,6 +13,7 @@ import { recordAudit } from "../../audit/actions/audit";
 import { isWorkspaceRole } from "../../identity/models/user";
 import type { Workspace, WorkspaceVisibility } from "../models/workspace";
 import { accessRequestMethods } from "./kysely-access-requests";
+import { scopeMoveMethods } from "./kysely-scope-moves";
 import type {
   MemberFilters,
   OpenFile,
@@ -473,7 +474,7 @@ export const kyselyWorkspaceRepository = (
       await bumpCatalogueRevision(db);
     },
 
-    outsideDependents: async (workspaceId) =>
+    outsideDependents: async (workspaceId, scopeId) =>
       (
         await db
           .selectFrom("version_dependencies")
@@ -492,18 +493,26 @@ export const kyselyWorkspaceRepository = (
             "dependent_scope.workspace_id",
           )
           .select([
+            "dependent_workspace.id as workspace_id",
             "dependent_workspace.name as workspace",
             "dependent_scope.name as scope",
             "dependent.name as name",
           ])
-          .where("dependency_scope.workspace_id", "=", workspaceId)
+          // The workspace's items, or one scope's (115), whose dependents outside it count.
+          .$call((query) =>
+            scopeId === undefined
+              ? query.where("dependency_scope.workspace_id", "=", workspaceId)
+              : query
+                  .where("dependency.scope_id", "=", scopeId)
+                  .where("dependent.scope_id", "!=", scopeId),
+          )
           .where("dependent_scope.workspace_id", "!=", workspaceId)
           .where("item_versions.yanked_at", "is", null)
           .distinct()
           .orderBy("dependent_scope.name")
           .orderBy("dependent.name")
           .execute()
-      ).map((row) => formatItemName(row)),
+      ).map((row) => ({ name: formatItemName(row), workspaceId: row.workspace_id })),
 
     openSubmissionsOutside: async (workspaceId) => {
       const rows = await db
@@ -733,5 +742,6 @@ export const kyselyWorkspaceRepository = (
     },
 
     ...accessRequestMethods(db, dialect),
+    ...scopeMoveMethods(db, dialect),
   };
 };

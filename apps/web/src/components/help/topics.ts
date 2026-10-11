@@ -41,6 +41,7 @@ export const TOPICS = [
       { id: "roles", title: "Members and roles" },
       { id: "joining", title: "Joining a workspace" },
       { id: "managing", title: "Creating and managing them" },
+      { id: "moving", title: "Moving a scope" },
     ],
   },
   {
@@ -138,10 +139,9 @@ export const TOPICS = [
     slug: "admin",
     title: "Administration",
     summary:
-      "For roots, and a workspace's admins: finding users, the workspaces and their members, the instance's settings, and reading the audit log of who did what, and when.",
+      "For roots: finding users, the instance's settings, and reading the audit log of who did what, and when. Workspaces are managed from their own pages.",
     sections: [
       { id: "users", title: "Users" },
-      { id: "workspaces", title: "Workspaces" },
       { id: "settings", title: "Settings" },
       { id: "audit", title: "Audit log" },
     ],

@@ -23,10 +23,11 @@ export const RESERVED_SCOPES: readonly string[] = [
 ];
 
 /**
- * Workspaces nobody may create (feature 090): `global`, which every instance has, and the reserved
- * scope names, for the same reason. A workspace and a scope may still share any other name.
+ * Workspaces nobody may create (feature 090): `global`, which every instance has, the reserved
+ * scope names, for the same reason, and `requests`, whose address (`/workspaces/requests`) is the
+ * Requests page's (115). A workspace and a scope may still share any other name.
  */
-export const RESERVED_WORKSPACES: readonly string[] = ["global", ...RESERVED_SCOPES];
+export const RESERVED_WORKSPACES: readonly string[] = ["global", "requests", ...RESERVED_SCOPES];
 
 export type NameKind = "scope" | "item" | "workspace";
 

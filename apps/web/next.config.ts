@@ -26,6 +26,20 @@ const nextConfig: NextConfig = {
     { source: "/docs", destination: DOCS_URL, permanent: false },
     { source: "/docs/overview", destination: DOCS_URL, permanent: false },
     { source: "/docs/:topic", destination: `${DOCS_URL}/:topic`, permanent: false },
+    // Admin › Workspaces moved under Workspaces (115): the list and each workspace's page, with
+    // their query. Here, before the admin layout, which is root's: links and bookmarks keep
+    // working for a workspace's admins too.
+    { source: "/admin/workspaces", destination: "/workspaces", permanent: false },
+    { source: "/admin/workspaces/:name", destination: "/workspaces/:name", permanent: false },
+    // Admin › Scopes went too (115): each scope is on its workspace's page. Its workspace filter
+    // opens that page; the plain list, the Workspaces list.
+    {
+      source: "/admin/scopes",
+      has: [{ type: "query", key: "workspace", value: "(?<workspace>[a-z0-9-]+)" }],
+      destination: "/workspaces/:workspace",
+      permanent: false,
+    },
+    { source: "/admin/scopes", destination: "/workspaces", permanent: false },
   ],
 };
 

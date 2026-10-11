@@ -48,8 +48,17 @@ export const RequestState = ({ request }: { request: OwnRequest }) => {
   );
 };
 
-/** What a row offers someone who isn't in the workspace: their request's state, or Ask to join. */
-const NotIn = ({ workspace, request }: { workspace: string; request: OwnRequest | undefined }) => {
+/**
+ * What a row, or a workspace's page (115), offers someone who isn't in the workspace: their
+ * request's state, or Ask to join.
+ */
+export const NotIn = ({
+  workspace,
+  request,
+}: {
+  workspace: string;
+  request: OwnRequest | undefined;
+}) => {
   if (request?.status === "open") return <RequestState request={request} />;
   const canAsk = !request || request.askAgainFrom === null;
   return (
@@ -68,11 +77,9 @@ const NotIn = ({ workspace, request }: { workspace: string; request: OwnRequest 
 export const WorkspacesPage = ({
   workspaces,
   requests,
-  root,
 }: {
   workspaces: MyWorkspace[];
   requests: OwnRequest[];
-  root: boolean;
 }) => {
   const byName = new Map(requests.map((r) => [r.workspace, r]));
   const listed = new Set(workspaces.map((w) => w.name));
@@ -98,7 +105,13 @@ export const WorkspacesPage = ({
             {workspaces.map((w) => (
               <tr key={w.name}>
                 <Td className="py-2">
-                  <span className="block font-mono text-[13px]">{w.name}</span>
+                  {/* Its page (115): its scopes, and what the reader may do there. */}
+                  <Link
+                    href={workspacePath(w.name)}
+                    className="block font-mono text-[13px] text-link hover:underline outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
+                  >
+                    {w.name}
+                  </Link>
                   <span className="block text-xs text-muted">{w.description}</span>
                 </Td>
                 <Td>
@@ -118,16 +131,7 @@ export const WorkspacesPage = ({
                     <span className="inline-flex flex-wrap items-center gap-3">
                       <Badge tone="accent">Yours</Badge>
                       <Help id="personal-workspace" iconOnly />
-                      <Link
-                        href={workspacePath(w.name)}
-                        className="text-sm text-link hover:underline outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
-                        aria-label={`Manage ${w.name}`}
-                      >
-                        Manage
-                      </Link>
                     </span>
-                  ) : root ? (
-                    <Badge tone="accent">Root</Badge>
                   ) : w.role ? (
                     <Badge tone="accent">{ROLE_LABELS[w.role]}</Badge>
                   ) : (

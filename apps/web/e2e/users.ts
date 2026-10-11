@@ -123,6 +123,20 @@ export const E2E_USERS = {
   phoneWebkitSoloOutsider: "solo-ios-outsider@e2e.test",
   tabletSolo: "solo-tablet@e2e.test",
   tabletSoloOutsider: "solo-tablet-outsider@e2e.test",
+  // 115: an owner who asks to move a personal scope into a team workspace, its admin, who
+  // approves, and a root who moves one directly; a set per project. After root's email.
+  scopeMover: "scope-mover@e2e.test",
+  scopeMoveAdmin: "scope-move-admin@e2e.test",
+  scopeMoveRoot: "scope-move-root@e2e.test",
+  phoneScopeMover: "scope-mover-phone@e2e.test",
+  phoneScopeMoveAdmin: "scope-move-admin-phone@e2e.test",
+  phoneScopeMoveRoot: "scope-move-root-phone@e2e.test",
+  phoneWebkitScopeMover: "scope-mover-ios@e2e.test",
+  phoneWebkitScopeMoveAdmin: "scope-move-admin-ios@e2e.test",
+  phoneWebkitScopeMoveRoot: "scope-move-root-ios@e2e.test",
+  tabletScopeMover: "scope-mover-tablet@e2e.test",
+  tabletScopeMoveAdmin: "scope-move-admin-tablet@e2e.test",
+  tabletScopeMoveRoot: "scope-move-root-tablet@e2e.test",
 } as const;
 
 /** The display names, which the header shows (not the email). */
@@ -228,6 +242,18 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   phoneWebkitSoloOutsider: "iOS Solo Outsider",
   tabletSolo: "Tablet Solo",
   tabletSoloOutsider: "Tablet Solo Outsider",
+  scopeMover: "Scope Mover",
+  scopeMoveAdmin: "Move Admin",
+  scopeMoveRoot: "Move Root",
+  phoneScopeMover: "Phone Scope Mover",
+  phoneScopeMoveAdmin: "Phone Move Admin",
+  phoneScopeMoveRoot: "Phone Move Root",
+  phoneWebkitScopeMover: "iOS Scope Mover",
+  phoneWebkitScopeMoveAdmin: "iOS Move Admin",
+  phoneWebkitScopeMoveRoot: "iOS Move Root",
+  tabletScopeMover: "Tablet Scope Mover",
+  tabletScopeMoveAdmin: "Tablet Move Admin",
+  tabletScopeMoveRoot: "Tablet Move Root",
 };
 
 /** Seeded with the moderator role; everyone else is a user. */
@@ -254,6 +280,10 @@ export const E2E_MODERATORS: readonly (keyof typeof E2E_USERS)[] = [
 /** Seeded as root, besides the root setup creates (more than one root since 059). */
 export const E2E_ROOTS: readonly (keyof typeof E2E_USERS)[] = [
   "privateRoot",
+  "scopeMoveRoot",
+  "phoneScopeMoveRoot",
+  "phoneWebkitScopeMoveRoot",
+  "tabletScopeMoveRoot",
   "phoneRoot",
   "phoneWebkitRoot",
   "tabletRoot",
@@ -381,4 +411,39 @@ export const E2E_PERSONAL = {
   >,
   /** The owner's personal workspace: their email's local part. */
   workspace: (owner: keyof typeof E2E_USERS) => E2E_USERS[owner].split("@")[0] ?? "",
+};
+
+/**
+ * Moving scopes (115): per project, a team workspace its admin runs, a scope in the owner's
+ * personal workspace that the owner asks to move into it, and a scope in `global` that root moves
+ * there directly.
+ */
+/** In global for good (115): 64 characters with no hyphen, for the phone sweep. */
+export const E2E_LONG_SCOPE = "e2elongscope".padEnd(64, "l");
+
+export const E2E_MOVE = {
+  personalScope: "mover-tools",
+  projects: {
+    chromium: { owner: "scopeMover", admin: "scopeMoveAdmin", root: "scopeMoveRoot" },
+    phone: { owner: "phoneScopeMover", admin: "phoneScopeMoveAdmin", root: "phoneScopeMoveRoot" },
+    "phone-webkit": {
+      owner: "phoneWebkitScopeMover",
+      admin: "phoneWebkitScopeMoveAdmin",
+      root: "phoneWebkitScopeMoveRoot",
+    },
+    tablet: {
+      owner: "tabletScopeMover",
+      admin: "tabletScopeMoveAdmin",
+      root: "tabletScopeMoveRoot",
+    },
+  } as const satisfies Record<
+    string,
+    { owner: keyof typeof E2E_USERS; admin: keyof typeof E2E_USERS; root: keyof typeof E2E_USERS }
+  >,
+  // The longest names there can be (64 characters), with no hyphen to break at: the Move dialog
+  // must still fit its screen (115).
+  team: (project: string) => `e2emoveteam${project.replaceAll("-", "")}`.padEnd(64, "t"),
+  rootScope: (project: string) => `e2emoveroot${project.replaceAll("-", "")}`.padEnd(64, "r"),
+  /** The owner's personal workspace: their email's local part (114). */
+  personal: (owner: keyof typeof E2E_USERS) => E2E_USERS[owner].split("@")[0] ?? "",
 };

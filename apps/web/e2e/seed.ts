@@ -21,7 +21,9 @@ import {
   E2E_FALLBACK_ITEMS,
   E2E_JOIN,
   E2E_JOIN_MODERATORS,
+  E2E_LONG_SCOPE,
   E2E_MODERATORS,
+  E2E_MOVE,
   E2E_NAMES,
   E2E_PASSWORD,
   E2E_PROPOSAL_ITEM,
@@ -519,6 +521,54 @@ for (const [project, admin] of Object.entries(E2E_RENAME.projects)) {
     )
     .execute();
 }
+// Moving scopes (115): per project, a team workspace its admin runs, a scope in the owner's
+// personal workspace, and one in global for root.
+for (const [project, who] of Object.entries(E2E_MOVE.projects)) {
+  const team = await kyselyWorkspaceRepository(db, dialect).insert({
+    name: E2E_MOVE.team(project),
+    description: "A team, for the end-to-end tests of moving scopes.",
+    visibility: "public",
+    createdBy: null,
+    createdAt: new Date(),
+  });
+  const now = toDbDate(new Date(), dialect);
+  await db
+    .insertInto("workspace_members")
+    .values({
+      workspace_id: team,
+      user_id: ids[who.admin] ?? "",
+      role: "admin",
+      added_by: null,
+      created_at: now,
+      updated_at: now,
+    })
+    .execute();
+  const personal = await db
+    .selectFrom("workspaces")
+    .select("id")
+    .where("owner_id", "=", ids[who.owner] ?? "")
+    .executeTakeFirstOrThrow();
+  for (const [name, workspaceId] of [
+    [E2E_MOVE.personalScope, personal.id],
+    [E2E_MOVE.rootScope(project), GLOBAL_WORKSPACE_ID],
+  ] as const)
+    await kyselyScopeRepository(db, dialect, UNFILTERED).insert({
+      name,
+      description: "To move, in the end-to-end tests.",
+      workspaceId,
+      createdBy: null,
+      createdAt: new Date(),
+    });
+}
+// A scope with the longest name there can be, no hyphen to break at, in global for good: every
+// page that lists scopes shows it, so the phone sweep checks it fits whatever runs first (115).
+await kyselyScopeRepository(db, dialect, UNFILTERED).insert({
+  name: E2E_LONG_SCOPE,
+  description: "The longest scope name, for the phone sweep.",
+  workspaceId: GLOBAL_WORKSPACE_ID,
+  createdBy: null,
+  createdAt: new Date(),
+});
 const renameItems = (
   await db.selectFrom("items").select("id").where("name", "=", E2E_RENAME.item).execute()
 ).map((row) => row.id);

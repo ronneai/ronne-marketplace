@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ForbiddenError } from "@/server/domains/identity/exceptions/errors";
 import type { Scope } from "@/server/domains/items/models/scope";
 import {
+  ScopeMoveOpenError,
+  ScopeMoveRefusedError,
   WorkspaceHasOutsideDependentsError,
   WorkspaceNameTakenError,
   WorkspaceNotEmptyError,
@@ -15,10 +17,20 @@ const workspaces = vi.hoisted(() => ({
   deleteWorkspace: vi.fn(),
   pageWorkspaces: vi.fn(),
   findWorkspace: vi.fn(),
+  viewWorkspace: vi.fn(),
   setWorkspaceVisibility: vi.fn(),
   visibilityImpact: vi.fn(),
   renameWorkspace: vi.fn(),
   renameImpact: vi.fn(),
+  askScopeMove: vi.fn(),
+  cancelScopeMove: vi.fn(),
+  moveImpact: vi.fn(),
+  moveTargets: vi.fn(),
+  scopeMovesIn: vi.fn(async () => ({})),
+  pendingRequests: vi.fn(async () => ({ requests: [], total: 0 })),
+  movesToAnswer: vi.fn(async () => ({ moves: [], total: 0 })),
+  ownRequests: vi.fn(async (): Promise<unknown[]> => []),
+  myWorkspaces: vi.fn(async (): Promise<unknown[]> => []),
   pageMembers: vi.fn(async () => ({
     rows: [],
     next: null,
@@ -36,7 +48,8 @@ const navigation = vi.hoisted(() => ({
   redirect: vi.fn((to: string) => {
     throw new Error(`NEXT_REDIRECT ${to}`);
   }),
-  usePathname: () => "/admin/workspaces",
+  usePathname: () => "/workspaces",
+  useRouter: () => ({ refresh: () => {} }),
 }));
 vi.mock("@/server/domains/workspaces/actions/workspaces", () => workspaces);
 vi.mock("@/server/domains/items/actions/scopes", () => scopes);
@@ -57,8 +70,9 @@ const {
   VisibilityForm,
 } = await import("./WorkspaceDialogs");
 const { AdminNav } = await import("@/features/admin/AdminNav");
-const { default: AdminWorkspaces } = await import("@/app/(app)/admin/workspaces/page");
-const { default: AdminWorkspace } = await import("@/app/(app)/admin/workspaces/[name]/page");
+const { default: AdminWorkspaces } = await import("@/app/(app)/workspaces/page");
+const { default: AdminWorkspace } = await import("@/app/(app)/workspaces/[name]/page");
+const { default: nextConfig } = await import("../../../next.config");
 
 const form = (fields: Record<string, string>) => {
   const data = new FormData();
@@ -104,6 +118,7 @@ beforeEach(() => {
     next: null,
     previous: null,
     total: { count: 2, capped: false },
+    kinds: { shared: { count: 2, capped: false }, personal: { count: 51, capped: false } },
   });
   scopes.pageScopes.mockResolvedValue({
     scopes: [scope()],
@@ -162,7 +177,7 @@ describe("workspace actions", () => {
       description: "Acme's teams.",
       visibility: "public",
     });
-    expect(cache.revalidatePath).toHaveBeenCalledWith("/admin/workspaces");
+    expect(cache.revalidatePath).toHaveBeenCalledWith("/workspaces");
   });
 
   it("saves a description and revalidates the list and the workspace's page", async () => {
@@ -173,15 +188,15 @@ describe("workspace actions", () => {
       name: "acme",
       description: "New.",
     });
-    expect(cache.revalidatePath).toHaveBeenCalledWith("/admin/workspaces");
-    expect(cache.revalidatePath).toHaveBeenCalledWith("/admin/workspaces/acme");
+    expect(cache.revalidatePath).toHaveBeenCalledWith("/workspaces");
+    expect(cache.revalidatePath).toHaveBeenCalledWith("/workspaces/acme");
   });
 
   it("renames, refreshes every page and goes to the new address (113)", async () => {
     workspaces.renameWorkspace.mockResolvedValueOnce(workspace({ name: "acme-platform" }));
     await expect(
       actions.renameWorkspaceFromForm({}, form({ name: "acme", to: "ACME-Platform " })),
-    ).rejects.toThrow("NEXT_REDIRECT /admin/workspaces/acme-platform");
+    ).rejects.toThrow("NEXT_REDIRECT /workspaces/acme-platform");
     expect(workspaces.renameWorkspace).toHaveBeenCalledWith(expect.any(Headers), {
       name: "acme",
       to: "ACME-Platform ",
@@ -204,9 +219,71 @@ describe("workspace actions", () => {
     });
   });
 
+  it("moves a scope or asks to, passing the typed name only when asked for it (115)", async () => {
+    workspaces.askScopeMove.mockResolvedValueOnce({ outcome: "moved" } as never);
+    expect(
+      await actions.askMoveFromForm(
+        {},
+        form({ scopeId: "s1", workspace: "beta", to: "acme", name: "infra", message: "" }),
+      ),
+    ).toEqual({ done: "moved" });
+    expect(workspaces.askScopeMove).toHaveBeenLastCalledWith(expect.any(Headers), {
+      scopeId: "s1",
+      to: "acme",
+      name: "infra",
+      message: "",
+      confirm: undefined,
+    });
+    // The dialog refreshes the page when it closes: the action doesn't, or the page would redraw
+    // under it.
+    expect(cache.revalidatePath).not.toHaveBeenCalled();
+    workspaces.askScopeMove.mockResolvedValueOnce({ outcome: "requested" } as never);
+    const asked = await actions.askMoveFromForm(
+      {},
+      form({ scopeId: "s1", workspace: "beta", to: "acme", name: "infra", confirm: "infra" }),
+    );
+    expect(asked).toEqual({ done: "requested" });
+    expect(workspaces.askScopeMove).toHaveBeenLastCalledWith(
+      expect.any(Headers),
+      expect.objectContaining({ confirm: "infra" }),
+    );
+    expect(cache.revalidatePath).not.toHaveBeenCalled();
+    // Refused: the checks' result, for the dialog to list; any other refusal as its message.
+    const impact = { refused: true, outsideDependents: ["@acme/team/app"] };
+    workspaces.askScopeMove.mockRejectedValueOnce(new ScopeMoveRefusedError(impact as never));
+    expect(await actions.askMoveFromForm({}, form({ scopeId: "s1", to: "vault" }))).toEqual({
+      refused: impact,
+    });
+    workspaces.askScopeMove.mockRejectedValueOnce(new ScopeMoveOpenError("acme"));
+    expect(await actions.askMoveFromForm({}, form({ scopeId: "s1", to: "vault" }))).toEqual({
+      error: "A move to acme is waiting for an answer.",
+    });
+  });
+
+  it("cancels a move, and reads targets and impact or why it can't (115)", async () => {
+    expect(await actions.cancelMoveFromForm({}, form({ moveId: "m1", workspace: "beta" }))).toEqual(
+      { done: "Cancelled." },
+    );
+    expect(workspaces.cancelScopeMove).toHaveBeenCalledWith(expect.any(Headers), {
+      moveId: "m1",
+    });
+    workspaces.moveTargets.mockResolvedValueOnce([{ name: "acme" }] as never);
+    expect(await actions.moveTargetsFor("s1")).toEqual({ targets: [{ name: "acme" }] });
+    workspaces.moveTargets.mockRejectedValueOnce(new ForbiddenError("scopes.move"));
+    expect(await actions.moveTargetsFor("s1")).toEqual({
+      error: expect.stringContaining("permission"),
+    });
+    workspaces.moveImpact.mockResolvedValueOnce({ way: "once" } as never);
+    expect(await actions.moveImpactFor({ scopeId: "s1", to: "acme" })).toEqual({ way: "once" });
+    workspaces.moveImpact.mockRejectedValueOnce(new ScopeMoveOpenError("acme"));
+    expect(await actions.moveImpactFor({ scopeId: "s1", to: "acme" })).toEqual({
+      error: "A move to acme is waiting for an answer.",
+    });
+  });
+
   it("deletes, then goes back to the list", async () => {
     await expect(actions.deleteWorkspaceFromForm({}, form({ name: "acme" }))).rejects.toThrow(
-      "NEXT_REDIRECT /admin/workspaces",
+      "NEXT_REDIRECT /workspaces",
     );
     expect(workspaces.deleteWorkspace).toHaveBeenCalledWith(expect.any(Headers), {
       name: "acme",
@@ -247,16 +324,16 @@ describe("WorkspacesTable", () => {
   it("lists name (a link to its page), description, visibility, scopes and date, sortable", () => {
     const html = table({ q: "a" }, [global, workspace({ scopes: 3 })]);
     for (const text of [
-      'href="/admin/workspaces/global"',
-      'href="/admin/workspaces/acme"',
+      'href="/workspaces/global"',
+      'href="/workspaces/acme"',
       "Everyone on this instance",
       "Acme&#x27;s teams.",
       "Public",
       ">3<",
       "2026-10-01",
       "2 workspaces",
-      'href="/admin/workspaces?q=a&amp;cursor=c2"',
-      'href="/admin/workspaces?q=a&amp;sort=created"',
+      'href="/workspaces?q=a&amp;cursor=c2"',
+      'href="/workspaces?q=a&amp;sort=created"',
     ])
       expect(html, text).toContain(text);
     expect(html.indexOf("global")).toBeLessThan(html.indexOf("acme"));
@@ -285,15 +362,44 @@ describe("WorkspacesTable", () => {
         ]}
         page={{ next: null, previous: null }}
         total={{ count: 1, capped: false }}
-        kinds
+        kinds={{ shared: { count: 3, capped: false }, personal: { count: 1, capped: false } }}
       />,
     );
-    for (const text of [">Owner<", "ana@example.com", 'id="workspace-kind"', ">Personal<"])
+    for (const text of [">Owner<", "ana@example.com", 'aria-label="Kind"'])
       expect(html, text).toContain(text);
+    // Shared and Personal as tabs (115), with their counts, the one shown marked; each keeps the
+    // search and starts at the first page.
+    expect(html).toContain('href="/workspaces">Shared (3)</a>');
+    expect(html).toMatch(
+      /aria-current="page"[^>]*href="\/workspaces\?kind=personal">Personal \(1\)/,
+    );
+    expect(html).not.toContain("Kind:");
+    // Switching keeps the search and sort and starts at page one; a capped count says "+".
+    const searched = renderToStaticMarkup(
+      <WorkspacesTable
+        list={ADMIN_WORKSPACES_LIST}
+        state={{
+          ...parseListQuery(ADMIN_WORKSPACES_LIST, {}),
+          sort: "created",
+          dir: "desc",
+          cursor: "c9",
+          filters: { q: "an", kind: "personal" },
+        }}
+        workspaces={[]}
+        page={{ next: null, previous: "c8" }}
+        total={{ count: 1000, capped: true }}
+        kinds={{ shared: { count: 2, capped: false }, personal: { count: 1000, capped: true } }}
+      />,
+    );
+    expect(searched).toContain('href="/workspaces?q=an&amp;sort=created">Shared (2)</a>');
+    expect(searched).toContain(
+      'href="/workspaces?q=an&amp;kind=personal&amp;sort=created">Personal (1000+)</a>',
+    );
+    expect(searched).not.toMatch(/href="[^"]*cursor=c9[^"]*">(Shared|Personal)/);
     expect(html).not.toContain(">Moderators<");
     expect(html).not.toContain(">Visibility<");
     // Without the filter (a workspace admin's list), no Kind.
-    expect(table({}, [workspace()])).not.toContain('id="workspace-kind"');
+    expect(table({}, [workspace()])).not.toContain('aria-label="Kind"');
   });
 
   it("explains an empty search", () => {
@@ -415,20 +521,12 @@ describe("the dialogs", () => {
 });
 
 describe("the admin nav", () => {
-  it("shows a workspace's admin only Workspaces (092)", () => {
-    const html = renderToStaticMarkup(<AdminNav root={false} />);
-    expect(html).toContain(">Workspaces<");
-    for (const label of ["Users", "Scopes", "Audit log", "Settings"])
-      expect(html, label).not.toContain(`>${label}<`);
-  });
-
-  it("has Workspaces, before Scopes", () => {
+  it("is root's: Users, Audit log, Settings; workspaces and scopes are under Workspaces (115)", () => {
     const html = renderToStaticMarkup(<AdminNav />);
-    expect(html).toContain('href="/admin/workspaces"');
-    expect(html.indexOf("/admin/workspaces")).toBeLessThan(html.indexOf("/admin/scopes"));
-    expect(html).toMatch(
-      /aria-current="page"[^>]*>Workspaces|href="\/admin\/workspaces"[^>]*aria-current="page"/,
-    );
+    for (const label of ["Users", "Audit log", "Settings"])
+      expect(html, label).toContain(`>${label}<`);
+    expect(html).not.toContain("Workspaces");
+    expect(html).not.toContain("Scopes");
   });
 });
 
@@ -444,36 +542,132 @@ describe("the pages", () => {
       searchParams: Promise.resolve(params),
     });
 
-  it("are a 404 for anyone but root and workspace admins, without reading anything", async () => {
-    for (const user of [
-      null,
-      { role: "user" },
-      { role: "user", workspaces: { global: "moderator" } },
-    ]) {
-      session.getCurrentUser.mockResolvedValueOnce(user);
-      await expect(listPage()).rejects.toThrow("NEXT_NOT_FOUND");
-      session.getCurrentUser.mockResolvedValueOnce(user);
-      await expect(workspacePage("acme")).rejects.toThrow("NEXT_NOT_FOUND");
-    }
-    expect(workspaces.pageWorkspaces).not.toHaveBeenCalled();
-    expect(workspaces.findWorkspace).not.toHaveBeenCalled();
+  it("sends Admin › Workspaces' old addresses under Workspaces, before the admin layout (115)", async () => {
+    const redirects = (await nextConfig.redirects?.()) ?? [];
+    expect(redirects).toContainEqual({
+      source: "/admin/workspaces",
+      destination: "/workspaces",
+      permanent: false,
+    });
+    expect(redirects).toContainEqual({
+      source: "/admin/workspaces/:name",
+      destination: "/workspaces/:name",
+      permanent: false,
+    });
   });
 
-  it("doesn't list workspaces for someone who only owns a personal one (114)", async () => {
-    session.getCurrentUser.mockResolvedValueOnce({
-      role: "user",
-      workspaces: { mine: "admin" },
-      personal: "mine",
-    });
-    await expect(listPage()).rejects.toThrow("NEXT_NOT_FOUND");
+  it("lists every workspace for root only; a workspace's page for anyone who sees it (115)", async () => {
+    for (const user of [
+      { role: "user", workspaces: {} },
+      { role: "user", workspaces: { global: "moderator" } },
+      { role: "user", workspaces: { w1: "admin" } },
+      { role: "user", workspaces: { mine: "admin" }, personal: "mine" },
+    ]) {
+      session.getCurrentUser.mockResolvedValueOnce(user);
+      const html = renderToStaticMarkup(await listPage());
+      expect(html).not.toContain("New workspace");
+      expect(html).not.toContain('aria-label="Kind"');
+    }
     expect(workspaces.pageWorkspaces).not.toHaveBeenCalled();
+    expect(workspaces.myWorkspaces).toHaveBeenCalledTimes(4);
+    // Signed out, or a workspace they don't see: as a name no workspace has.
+    session.getCurrentUser.mockResolvedValueOnce(null);
+    await expect(workspacePage("acme")).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(workspaces.viewWorkspace).not.toHaveBeenCalled();
+    session.getCurrentUser.mockResolvedValueOnce({ id: "u", role: "user", workspaces: {} });
+    workspaces.viewWorkspace.mockResolvedValueOnce(null);
+    await expect(workspacePage("acme")).rejects.toThrow("NEXT_NOT_FOUND");
+  });
+
+  it("shows a plain member the scopes and their role, and nothing to manage (115)", async () => {
+    session.getCurrentUser.mockResolvedValueOnce({
+      id: "u",
+      role: "user",
+      workspaces: { w1: "user" },
+    });
+    workspaces.viewWorkspace.mockResolvedValueOnce(workspace({ scopes: 1 }));
+    const html = renderToStaticMarkup(await workspacePage("acme", { tab: "members" }));
+    expect(html).toContain("@acme-infra");
+    expect(html).toContain(">User<");
+    for (const text of [
+      ">Members<",
+      ">Requests<",
+      "Edit description",
+      ">Rename<",
+      "Make private",
+      "Delete",
+      "Create scope",
+      'aria-label="Move @acme-infra"',
+      'aria-label="Edit @acme/acme-infra"',
+    ])
+      expect(html, text).not.toContain(text);
+    expect(workspaces.pageMembers).not.toHaveBeenCalled();
+    // A moderator also answers requests to join: the Requests tab.
+    session.getCurrentUser.mockResolvedValueOnce({
+      id: "m",
+      role: "user",
+      workspaces: { w1: "moderator" },
+    });
+    workspaces.viewWorkspace.mockResolvedValueOnce(workspace({ scopes: 1 }));
+    const moderator = renderToStaticMarkup(await workspacePage("acme"));
+    expect(moderator).toContain(">Requests<");
+    expect(moderator).toContain(">Moderator<");
+    for (const text of [
+      ">Members<",
+      "Create scope",
+      "Edit description",
+      'aria-label="Move @acme-infra"',
+      'aria-label="Edit @acme/acme-infra"',
+    ])
+      expect(moderator, text).not.toContain(text);
+  });
+
+  it("shows the Scopes tab, loading no requests, to a member asking for Requests (115)", async () => {
+    session.getCurrentUser.mockResolvedValueOnce({
+      id: "u",
+      role: "user",
+      workspaces: { w1: "user" },
+    });
+    workspaces.viewWorkspace.mockResolvedValueOnce(workspace());
+    const html = renderToStaticMarkup(await workspacePage("acme", { tab: "requests" }));
+    expect(html).toMatch(/aria-current="page"[^>]*>Scopes</);
+    expect(html).not.toContain(">Requests<");
+    expect(workspaces.pendingRequests).not.toHaveBeenCalled();
+    expect(workspaces.movesToAnswer).not.toHaveBeenCalled();
+    expect(scopes.pageScopes).toHaveBeenCalled();
+  });
+
+  it("offers someone not in it Ask to join, or their request's state (115)", async () => {
+    const outsider = { id: "o", role: "user", workspaces: {} };
+    session.getCurrentUser.mockResolvedValueOnce(outsider);
+    workspaces.viewWorkspace.mockResolvedValueOnce(workspace());
+    workspaces.ownRequests.mockResolvedValueOnce([]);
+    expect(renderToStaticMarkup(await workspacePage("acme"))).toContain("Ask to join");
+    session.getCurrentUser.mockResolvedValueOnce(outsider);
+    workspaces.viewWorkspace.mockResolvedValueOnce(workspace());
+    workspaces.ownRequests.mockResolvedValueOnce([
+      {
+        id: "r1",
+        workspace: "acme",
+        status: "open",
+        createdAt: new Date("2026-10-10T10:00:00Z"),
+        decidedAt: null,
+        reason: null,
+        askAgainFrom: null,
+      },
+    ]);
+    const requested = renderToStaticMarkup(await workspacePage("acme"));
+    expect(requested).toContain("Requested");
+    expect(requested).not.toContain("Ask to join");
   });
 
   it("root gets the list, searched and sorted on the server, with New workspace", async () => {
     session.getCurrentUser.mockResolvedValueOnce({ role: "root" });
     const html = renderToStaticMarkup(await listPage({ q: "ac" }));
     expect(html).toContain("New workspace");
-    expect(html).toContain('href="/admin/workspaces/acme"');
+    expect(html).toContain('aria-label="Kind"');
+    expect(html).toContain("Personal (51)");
+    expect(html).toContain('href="/workspaces/acme"');
     expect(html).toContain("What is a workspace?");
     expect(html).toContain('href="https://www.ronne.ai/marketplace/docs/workspaces#what"');
     expect(workspaces.pageWorkspaces).toHaveBeenLastCalledWith(
@@ -482,18 +676,12 @@ describe("the pages", () => {
     );
   });
 
-  it("passes root's Kind to the server, and drops an admin's (114)", async () => {
+  it("passes root's Kind to the server (114)", async () => {
     session.getCurrentUser.mockResolvedValueOnce({ role: "root" });
     await listPage({ kind: "personal" });
     expect(workspaces.pageWorkspaces).toHaveBeenLastCalledWith(
       expect.any(Headers),
       expect.objectContaining({ kind: "personal" }),
-    );
-    session.getCurrentUser.mockResolvedValueOnce({ role: "user", workspaces: { w1: "admin" } });
-    await listPage({ kind: "personal" });
-    expect(workspaces.pageWorkspaces).toHaveBeenLastCalledWith(
-      expect.any(Headers),
-      expect.objectContaining({ kind: "shared" }),
     );
   });
 
@@ -505,7 +693,7 @@ describe("the pages", () => {
       string
     >[]) {
       session.getCurrentUser.mockResolvedValueOnce(owner);
-      workspaces.findWorkspace.mockResolvedValueOnce(mine);
+      workspaces.viewWorkspace.mockResolvedValueOnce(mine);
       const html = renderToStaticMarkup(await workspacePage("ana", params));
       for (const text of [
         ">Rename<",
@@ -515,13 +703,13 @@ describe("the pages", () => {
         'href="/workspaces"',
       ])
         expect(html, text).toContain(text);
-      for (const text of [">Members<", ">Requests<", "Make public", "Delete", "All workspaces"])
+      for (const text of [">Members<", ">Requests<", "Make public", "Delete"])
         expect(html, text).not.toContain(text);
     }
     expect(workspaces.pageMembers).not.toHaveBeenCalled();
     // Root sees it as its owner's, with the same tabs and no visibility or Delete.
     session.getCurrentUser.mockResolvedValueOnce({ id: "r", role: "root" });
-    workspaces.findWorkspace.mockResolvedValueOnce(mine);
+    workspaces.viewWorkspace.mockResolvedValueOnce(mine);
     const asRoot = renderToStaticMarkup(await workspacePage("ana"));
     expect(asRoot).toContain("Its owner&#x27;s alone");
     expect(asRoot).toContain("All workspaces");
@@ -529,9 +717,83 @@ describe("the pages", () => {
     expect(asRoot).not.toContain(">Members<");
   });
 
+  it("offers Move… on each scope to root and the workspace's admins, and shows a scope's move (115)", async () => {
+    session.getCurrentUser.mockResolvedValueOnce({ id: "r", role: "root" });
+    workspaces.viewWorkspace.mockResolvedValueOnce(workspace({ scopes: 1 }));
+    expect(renderToStaticMarkup(await workspacePage("acme"))).toContain(
+      'aria-label="Move @acme-infra"',
+    );
+    // Its admin, and a personal workspace's owner (who's its admin, 114).
+    session.getCurrentUser.mockResolvedValueOnce({
+      id: "a",
+      role: "user",
+      workspaces: { w1: "admin" },
+    });
+    workspaces.viewWorkspace.mockResolvedValueOnce(workspace({ scopes: 1 }));
+    expect(renderToStaticMarkup(await workspacePage("acme"))).toContain(
+      'aria-label="Move @acme-infra"',
+    );
+    // An open move: Moving to … with Cancel instead of Move….
+    session.getCurrentUser.mockResolvedValueOnce({ id: "r", role: "root" });
+    workspaces.viewWorkspace.mockResolvedValueOnce(workspace({ scopes: 1 }));
+    workspaces.scopeMovesIn.mockResolvedValueOnce({
+      [scope().id]: { id: "m1", toWorkspace: "beta", status: "open", reason: null },
+    } as never);
+    const moving = renderToStaticMarkup(await workspacePage("acme"));
+    expect(moving).toContain("Moving to beta");
+    expect(moving).not.toContain('aria-label="Move @acme-infra"');
+    expect(workspaces.scopeMovesIn).toHaveBeenLastCalledWith(expect.any(Headers), {
+      workspaceId: "w1",
+    });
+  });
+
+  it("shows the moves into the workspace on its Requests tab (115)", async () => {
+    session.getCurrentUser.mockResolvedValueOnce({ id: "r", role: "root" });
+    workspaces.viewWorkspace.mockResolvedValueOnce(workspace());
+    workspaces.movesToAnswer.mockResolvedValueOnce({
+      moves: [
+        {
+          id: "m1",
+          scope: "@beta/infra",
+          newName: "@acme/infra",
+          renamed: false,
+          from: "beta",
+          to: "acme",
+          items: 1,
+          askedBy: { email: "dave@example.com", name: "Dave" },
+          createdAt: new Date("2026-10-10T10:00:00Z"),
+          message: null,
+          notReviewed: [],
+          impact: {
+            outsideDependents: [],
+            outsideHidden: 0,
+            ownDependencies: [],
+            ownHidden: 0,
+            aliasTaken: [],
+            aliasHidden: 0,
+            clash: false,
+          },
+        },
+      ],
+      total: 1,
+    } as never);
+    const html = renderToStaticMarkup(await workspacePage("acme", { tab: "requests" }));
+    expect(html).toContain("Scope moves");
+    expect(html).toContain('aria-label="Approve moving @beta/infra to acme"');
+    expect(workspaces.movesToAnswer).toHaveBeenLastCalledWith(expect.any(Headers), {
+      workspaceId: "w1",
+    });
+    // None waiting: no section.
+    session.getCurrentUser.mockResolvedValueOnce({ id: "r", role: "root" });
+    workspaces.viewWorkspace.mockResolvedValueOnce(workspace());
+    expect(renderToStaticMarkup(await workspacePage("acme", { tab: "requests" }))).not.toContain(
+      "Scope moves",
+    );
+  });
+
   it("a workspace's page shows its description and scopes, with edit and delete", async () => {
     session.getCurrentUser.mockResolvedValueOnce({ role: "root" });
-    workspaces.findWorkspace.mockResolvedValueOnce(workspace({ scopes: 1 }));
+    workspaces.viewWorkspace.mockResolvedValueOnce(workspace({ scopes: 1 }));
     const html = renderToStaticMarkup(await workspacePage("acme", { q: "infra" }));
     for (const text of [
       "All workspaces",
@@ -541,10 +803,10 @@ describe("the pages", () => {
       "Edit description",
       "Move or remove its scopes first.",
       // The scope table pages on this page's own address.
-      'href="/admin/workspaces/acme?q=infra&amp;sort=created"',
+      'href="/workspaces/acme?q=infra&amp;sort=created"',
     ])
       expect(html, text).toContain(text);
-    expect(workspaces.findWorkspace).toHaveBeenCalledWith(expect.any(Headers), "acme");
+    expect(workspaces.viewWorkspace).toHaveBeenCalledWith(expect.any(Headers), "acme");
     expect(scopes.pageScopes).toHaveBeenLastCalledWith(
       expect.any(Headers),
       expect.objectContaining({ workspaceId: "w1", search: "infra" }),
@@ -553,27 +815,27 @@ describe("the pages", () => {
 
   it("root and the workspace's admin can rename it; an admin of global can't rename global (113)", async () => {
     session.getCurrentUser.mockResolvedValueOnce({ role: "root" });
-    workspaces.findWorkspace.mockResolvedValueOnce(workspace());
+    workspaces.viewWorkspace.mockResolvedValueOnce(workspace());
     expect(renderToStaticMarkup(await workspacePage("acme"))).toContain(">Rename<");
     session.getCurrentUser.mockResolvedValueOnce({
       id: "a",
       role: "user",
       workspaces: { w1: "admin" },
     });
-    workspaces.findWorkspace.mockResolvedValueOnce(workspace());
+    workspaces.viewWorkspace.mockResolvedValueOnce(workspace());
     expect(renderToStaticMarkup(await workspacePage("acme"))).toContain(">Rename<");
     session.getCurrentUser.mockResolvedValueOnce({
       id: "a",
       role: "user",
       workspaces: { [global.id]: "admin" },
     });
-    workspaces.findWorkspace.mockResolvedValueOnce(global);
+    workspaces.viewWorkspace.mockResolvedValueOnce(global);
     expect(renderToStaticMarkup(await workspacePage("global"))).not.toContain(">Rename<");
   });
 
   it("global's page has no edit or delete", async () => {
     session.getCurrentUser.mockResolvedValueOnce({ role: "root" });
-    workspaces.findWorkspace.mockResolvedValueOnce(global);
+    workspaces.viewWorkspace.mockResolvedValueOnce(global);
     const html = renderToStaticMarkup(await workspacePage("global"));
     expect(html).toContain("It can&#x27;t be changed or deleted.");
     expect(html).not.toContain(">Rename<");
@@ -581,12 +843,22 @@ describe("the pages", () => {
     expect(html).not.toContain("Delete");
   });
 
-  it("a workspace's admin gets their list, without New workspace (092)", async () => {
+  it("a workspace's admin gets the workspaces they see, each name opening its page (115)", async () => {
     session.getCurrentUser.mockResolvedValueOnce({ role: "user", workspaces: { w1: "admin" } });
+    workspaces.myWorkspaces.mockResolvedValueOnce([
+      {
+        name: "acme",
+        description: "Acme's teams.",
+        visibility: "public",
+        isGlobal: false,
+        personal: false,
+        role: "admin",
+      },
+    ]);
     const html = renderToStaticMarkup(await listPage());
     expect(html).not.toContain("New workspace");
-    expect(html).toContain("The workspaces you administer");
-    expect(html).toContain('href="/admin/workspaces/acme"');
+    expect(html).toContain('href="/workspaces/acme"');
+    expect(html).toContain(">Admin<");
   });
 
   it("an admin's workspace page has Members, Edit description and Create scope, not Delete (092)", async () => {
@@ -595,7 +867,7 @@ describe("the pages", () => {
       role: "user",
       workspaces: { w1: "admin" },
     });
-    workspaces.findWorkspace.mockResolvedValueOnce(workspace());
+    workspaces.viewWorkspace.mockResolvedValueOnce(workspace());
     workspaces.pageMembers.mockResolvedValueOnce(
       page([
         {
@@ -626,7 +898,7 @@ describe("the pages", () => {
       'aria-label="Remove m@example.com"',
       "Edit description",
       // The members tab, on the page's own address, searched and filterable by role.
-      'href="/admin/workspaces/acme?tab=members&amp;q=o&amp;sort=added"',
+      'href="/workspaces/acme?tab=members&amp;q=o&amp;sort=added"',
       '<option value="admin">admin</option>',
     ])
       expect(html, text).toContain(text);
@@ -648,24 +920,24 @@ describe("the pages", () => {
       role: "user",
       workspaces: { w1: "admin" },
     });
-    workspaces.findWorkspace.mockResolvedValueOnce(workspace());
+    workspaces.viewWorkspace.mockResolvedValueOnce(workspace());
     const html = renderToStaticMarkup(await workspacePage("acme"));
     expect(html).toMatch(/aria-current="page"[^>]*>Scopes</);
     expect(html).toContain("Create scope");
-    expect(html).toContain('href="/admin/workspaces/acme?tab=members"');
+    expect(html).toContain('href="/workspaces/acme?tab=members"');
     expect(workspaces.pageMembers).not.toHaveBeenCalled();
   });
 
   it("an admin of another workspace gets a 404 here: they can't find it (092)", async () => {
     session.getCurrentUser.mockResolvedValueOnce({ role: "user", workspaces: { w2: "admin" } });
-    workspaces.findWorkspace.mockResolvedValueOnce(null);
+    workspaces.viewWorkspace.mockResolvedValueOnce(null);
     await expect(workspacePage("acme")).rejects.toThrow("NEXT_NOT_FOUND");
     expect(workspaces.pageMembers).not.toHaveBeenCalled();
   });
 
   it("global's page has members' roles but no Remove (092)", async () => {
     session.getCurrentUser.mockResolvedValueOnce({ id: "r", role: "root" });
-    workspaces.findWorkspace.mockResolvedValueOnce(global);
+    workspaces.viewWorkspace.mockResolvedValueOnce(global);
     workspaces.pageMembers.mockResolvedValueOnce(
       page([
         {
@@ -685,29 +957,29 @@ describe("the pages", () => {
 
   it("root can make a workspace private or public; its admin can't, nor anyone on global (093)", async () => {
     session.getCurrentUser.mockResolvedValueOnce({ id: "r", role: "root" });
-    workspaces.findWorkspace.mockResolvedValueOnce(workspace());
+    workspaces.viewWorkspace.mockResolvedValueOnce(workspace());
     expect(renderToStaticMarkup(await workspacePage("acme"))).toContain(">Make private<");
     session.getCurrentUser.mockResolvedValueOnce({ id: "r", role: "root" });
-    workspaces.findWorkspace.mockResolvedValueOnce(workspace({ visibility: "private" }));
+    workspaces.viewWorkspace.mockResolvedValueOnce(workspace({ visibility: "private" }));
     expect(renderToStaticMarkup(await workspacePage("acme"))).toContain(">Make public<");
     session.getCurrentUser.mockResolvedValueOnce({
       id: "a",
       role: "user",
       workspaces: { w1: "admin" },
     });
-    workspaces.findWorkspace.mockResolvedValueOnce(workspace());
+    workspaces.viewWorkspace.mockResolvedValueOnce(workspace());
     expect(renderToStaticMarkup(await workspacePage("acme"))).not.toContain("Make private");
     session.getCurrentUser.mockResolvedValueOnce({ id: "r", role: "root" });
-    workspaces.findWorkspace.mockResolvedValueOnce(global);
+    workspaces.viewWorkspace.mockResolvedValueOnce(global);
     expect(renderToStaticMarkup(await workspacePage("global"))).not.toContain("Make private");
   });
 
   it("an unknown or malformed name is a 404", async () => {
     session.getCurrentUser.mockResolvedValue({ role: "root" });
-    workspaces.findWorkspace.mockResolvedValue(null);
+    workspaces.viewWorkspace.mockResolvedValue(null);
     await expect(workspacePage("nope")).rejects.toThrow("NEXT_NOT_FOUND");
     await expect(workspacePage("%")).rejects.toThrow("NEXT_NOT_FOUND");
-    expect(workspaces.findWorkspace).toHaveBeenLastCalledWith(expect.any(Headers), "%");
+    expect(workspaces.viewWorkspace).toHaveBeenLastCalledWith(expect.any(Headers), "%");
     expect(scopes.pageScopes).not.toHaveBeenCalled();
   });
 });

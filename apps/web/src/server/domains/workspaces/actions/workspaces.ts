@@ -6,12 +6,13 @@ import { kyselyWorkspaceRepository } from "../repositories/kysely-workspace-repo
 import type { WorkspacePageQuery } from "../repositories/workspace-repository";
 import * as requests from "../services/access-requests";
 import * as members from "../services/members";
+import * as moves from "../services/scope-moves";
 import * as service from "../services/workspaces";
 
 export type { WorkspacesTablePage } from "../services/workspaces";
 
 /**
- * Entry points for Admin › Workspaces and the workspace selects (feature 090). Thin: they find
+ * Entry points for the Workspaces pages and the workspace selects (feature 090; 115). Thin: they find
  * who's asking and wire the dependencies; the services check permissions.
  */
 const deps = ({ db, dialect }: AppAuth): service.WorkspaceDeps => ({
@@ -55,7 +56,7 @@ export const deleteWorkspace = async (
 export const listWorkspaces = async (headers: Headers, app: AppAuth = getAppAuth()) =>
   service.listWorkspaces(deps(app), await actor(headers, app));
 
-/** Admin › Workspaces' table: `global` first, then sorted, paged with keyset cursors, counted. */
+/** Root's Workspaces table: `global` first, then sorted, paged with keyset cursors, counted. */
 export const pageWorkspaces = async (
   headers: Headers,
   query: Partial<WorkspacePageQuery>,
@@ -75,6 +76,10 @@ export const visibilityImpact = async (
   name: string,
   app: AppAuth = getAppAuth(),
 ) => service.visibilityImpact(deps(app), await actor(headers, app), name);
+
+/** A workspace's page under Workspaces (115): anyone who sees it. */
+export const viewWorkspace = async (headers: Headers, name: string, app: AppAuth = getAppAuth()) =>
+  service.viewWorkspace(deps(app), await actor(headers, app), name);
 
 export const findWorkspace = async (headers: Headers, name: string, app: AppAuth = getAppAuth()) =>
   service.findWorkspace(deps(app), await actor(headers, app), name);
@@ -183,3 +188,63 @@ export const joinTarget = async (headers: Headers, name: string, app: AppAuth = 
 
 export const requestsToAnswerList = async (headers: Headers, app: AppAuth = getAppAuth()) =>
   requests.requestsToAnswerList(deps(app), await actor(headers, app));
+
+/** What moving a scope to another workspace would change, and what refuses it (115). */
+export const moveImpact = async (
+  headers: Headers,
+  input: { scopeId: string; to: string; name?: string },
+  app: AppAuth = getAppAuth(),
+) => moves.moveImpact(deps(app), await actor(headers, app), input);
+
+/** Moves a scope to another workspace, or asks to (115). */
+export const askScopeMove = async (
+  headers: Headers,
+  input: { scopeId: string; to: string; name?: string; message?: string; confirm?: string },
+  app: AppAuth = getAppAuth(),
+) => moves.askScopeMove(deps(app), await actor(headers, app), input);
+
+/** Approves a move request: checked again, then moved (115). */
+export const approveScopeMove = async (
+  headers: Headers,
+  input: { moveId: string },
+  app: AppAuth = getAppAuth(),
+) => moves.approveScopeMove(deps(app), await actor(headers, app), input);
+
+/** Declines a move request, with an optional reason (115). */
+export const declineScopeMove = async (
+  headers: Headers,
+  input: { moveId: string; reason?: string },
+  app: AppAuth = getAppAuth(),
+) => moves.declineScopeMove(deps(app), await actor(headers, app), input);
+
+/** Cancels a move request: its asker, root, or an admin of the scope's workspace (115). */
+export const cancelScopeMove = async (
+  headers: Headers,
+  input: { moveId: string },
+  app: AppAuth = getAppAuth(),
+) => moves.cancelScopeMove(deps(app), await actor(headers, app), input);
+
+/** Where a scope could move (115), for the Move dialog's select. */
+export const moveTargets = async (
+  headers: Headers,
+  input: { scopeId: string },
+  app: AppAuth = getAppAuth(),
+) => moves.moveTargets(deps(app), await actor(headers, app), input);
+
+/** Each scope's latest open or declined move in a workspace (115), for its page's rows. */
+export const scopeMovesIn = async (
+  headers: Headers,
+  input: { workspaceId: string },
+  app: AppAuth = getAppAuth(),
+) => moves.scopeMovesIn(deps(app), await actor(headers, app), input);
+
+/** The open moves the reader answers, checked again (115): the Requests page and a workspace's tab. */
+export const movesToAnswer = async (
+  headers: Headers,
+  input: { workspaceId?: string } = {},
+  app: AppAuth = getAppAuth(),
+) => moves.movesToAnswer(deps(app), await actor(headers, app), input);
+
+/** How many moves the reader answers (115), for the nav. */
+export const countMovesToAnswer = async (headers: Headers, app: AppAuth = getAppAuth()) =>
+  moves.countMovesToAnswer(deps(app), await actor(headers, app));

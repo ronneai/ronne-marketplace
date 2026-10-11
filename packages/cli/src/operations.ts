@@ -174,7 +174,10 @@ export const planOperation = async (
     };
   }
 
-  if (request.items.length === 0) throw usage("Say what to remove: rmk remove @scope/name");
+  if (request.items.length === 0)
+    throw usage(
+      "Say what to remove: rmk remove @scope/name, or @workspace/scope/name outside global",
+    );
   const remaining = { ...dependencies };
   for (const ref of request.items) {
     const { name } = splitItemRef(ref);

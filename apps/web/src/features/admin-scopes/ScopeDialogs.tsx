@@ -1,11 +1,12 @@
 "use client";
 
 import { NAME_PROBLEM_MESSAGES, nameProblem, normalizeScopeName } from "@ronneai/core";
+import { Pencil } from "lucide-react";
 import { useActionState, useState } from "react";
-import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
-import { FieldError, inputClasses, Label, selectClasses } from "@/components/ui/Field";
+import { FieldError, inputClasses, Label } from "@/components/ui/Field";
+import { IconButton } from "@/components/ui/IconButton";
 import { Notice } from "@/components/ui/Notice";
 import { createScopeFromForm, updateScopeFromForm } from "./actions";
 import type { ScopeActionState } from "./types";
@@ -30,48 +31,18 @@ const Description = ({ defaultValue }: { defaultValue?: string }) => {
   );
 };
 
-/** A workspace a new scope can go in (090): `global` comes first and is chosen. */
+/** The workspace a new scope goes in: the one whose page it's created on (092, 115). */
 export type WorkspaceChoice = { id: string; name: string };
 
-export const WorkspaceSelect = ({ workspaces }: { workspaces: WorkspaceChoice[] }) =>
-  workspaces.length === 1 ? (
-    // On a workspace's own page (092): the scope goes in that one.
-    <p className="text-sm text-muted">
-      In <span className="font-mono text-fg">{workspaces[0]?.name}</span>
-      <input type="hidden" name="workspaceId" value={workspaces[0]?.id} />. It can't be moved later.
-    </p>
-  ) : (
-    <div className="grid gap-1.5">
-      <div className="flex items-center gap-2">
-        <Label htmlFor="scope-workspace-choice">Workspace</Label>
-        <Help id="workspace-choice" />
-      </div>
-      <select
-        id="scope-workspace-choice"
-        name="workspaceId"
-        defaultValue={workspaces[0]?.id}
-        aria-describedby="scope-workspace-hint"
-        className={selectClasses}
-      >
-        {workspaces.map((workspace) => (
-          <option key={workspace.id} value={workspace.id}>
-            {workspace.name}
-          </option>
-        ))}
-      </select>
-      <p id="scope-workspace-hint" className="text-xs text-muted">
-        Its items belong to this workspace. It can't be moved later.
-      </p>
-    </div>
-  );
+const InWorkspace = ({ workspace }: { workspace: WorkspaceChoice }) => (
+  <p className="text-sm text-muted">
+    In <span className="font-mono text-fg">{workspace.name}</span>
+    <input type="hidden" name="workspaceId" value={workspace.id} />. Its admins or root can move it
+    later.
+  </p>
+);
 
-const CreateForm = ({
-  workspaces,
-  onDone,
-}: {
-  workspaces: WorkspaceChoice[];
-  onDone: () => void;
-}) => {
+const CreateForm = ({ workspace, onDone }: { workspace: WorkspaceChoice; onDone: () => void }) => {
   const [state, action, pending] = useActionState<ScopeActionState, FormData>(
     createScopeFromForm,
     {},
@@ -110,12 +81,12 @@ const CreateForm = ({
           ) : (
             <>
               Items will be named <span className="font-mono text-fg">@{name || "scope"}/item</span>
-              . Lowercase letters, digits and hyphens. It can't be changed later.
+              . Lowercase letters, digits and hyphens.
             </>
           )}
         </p>
       </div>
-      <WorkspaceSelect workspaces={workspaces} />
+      <InWorkspace workspace={workspace} />
       <Description />
       <FieldError id="create-scope-error">{state.error}</FieldError>
       <DialogActions>
@@ -181,13 +152,13 @@ const useDialog = () => {
   return { open, round, show: () => setOpen(true), close };
 };
 
-export const CreateScopeDialog = ({ workspaces }: { workspaces: WorkspaceChoice[] }) => {
+export const CreateScopeDialog = ({ workspace }: { workspace: WorkspaceChoice }) => {
   const dialog = useDialog();
   return (
     <>
       <Button onClick={dialog.show}>Create scope</Button>
       <Dialog open={dialog.open} onClose={dialog.close} title="Create scope">
-        <CreateForm key={dialog.round} workspaces={workspaces} onDone={dialog.close} />
+        <CreateForm key={dialog.round} workspace={workspace} onDone={dialog.close} />
       </Dialog>
     </>
   );
@@ -197,14 +168,9 @@ export const EditScopeButton = ({ name, description }: { name: string; descripti
   const dialog = useDialog();
   return (
     <>
-      <button
-        type="button"
-        onClick={dialog.show}
-        aria-label={`Edit @${name}`}
-        className="rounded-control px-2 py-1 text-xs text-muted hover:bg-tint hover:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
-      >
-        Edit
-      </button>
+      <IconButton onClick={dialog.show} label={`Edit @${name}`}>
+        <Pencil size={16} aria-hidden="true" />
+      </IconButton>
       <Dialog open={dialog.open} onClose={dialog.close} title="Edit scope">
         <EditForm key={dialog.round} name={name} description={description} onDone={dialog.close} />
       </Dialog>

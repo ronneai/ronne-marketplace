@@ -243,7 +243,7 @@ printf '%s\\n' "$(basename "$PWD")"
         itemName,
         "bundle",
         `# The items this bundle installs, each with a version range, such as
-# "@scope/name": "^1.0.0".
+# "@scope/name": "^1.0.0", or "@workspace/scope/name" outside global.
 dependencies: {}
 `,
       ),

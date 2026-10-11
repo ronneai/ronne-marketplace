@@ -12,7 +12,9 @@ import { adminCreateUser } from "../../identity/actions/user-admin";
 import type { CurrentUser } from "../../identity/models/user";
 import type { AppAuth } from "../../identity/repositories/auth-instance";
 import { cookieHeaders, testAppAuth } from "../../identity/testing/test-auth";
+import { browseCatalogue } from "../../items/actions/catalogue";
 import { createScope } from "../../items/actions/scopes";
+import { itemPage } from "../../items/actions/versions";
 import { createDraft, saveDraftFiles } from "./drafts";
 import { publishSubmission } from "./publish";
 import { countNeedsReview, decide, listQueue } from "./reviews";
@@ -180,6 +182,28 @@ describe("released without review in your own personal workspace (114)", () => {
     );
     expect(await reviewedOf("lint")).toBe(false);
     expect(await reviewedOf("shared")).toBe(true);
+    // The card and the item page say it's a personal workspace (115).
+    const cards = (await browseCatalogue(asAna, { workspace: mine }, app)).entries;
+    expect(cards.map((e) => [e.name, e.personalWorkspace, e.privateWorkspace])).toEqual([
+      ["lint", true, true],
+    ]);
+    const page = await itemPage(
+      asAna,
+      { workspace: mine, scope: "tools", name: "lint" },
+      undefined,
+      app,
+    );
+    expect(page.item.personalWorkspace).toBe(true);
+    expect(
+      (
+        await itemPage(
+          asAna,
+          { workspace: "global", scope: "team", name: "shared" },
+          undefined,
+          app,
+        )
+      ).item.personalWorkspace,
+    ).toBe(false);
   });
 
   it("approves a bulk submit's drafts and the drafts they need, with their risk flags", async () => {

@@ -3,7 +3,10 @@ import { parseTheme, THEME_COOKIE } from "@/features/theme/theme";
 import { requireUser } from "@/server/domains/identity/actions/session";
 import { canInSomeShared } from "@/server/domains/identity/models/permissions";
 import { countNeedsReview } from "@/server/domains/submissions/actions/reviews";
-import { requestsToAnswer } from "@/server/domains/workspaces/actions/workspaces";
+import {
+  countMovesToAnswer,
+  requestsToAnswer,
+} from "@/server/domains/workspaces/actions/workspaces";
 import { requestHeaders } from "@/server/http/request-headers";
 
 /**
@@ -21,8 +24,12 @@ export const loadShell = async () => {
     ? await countNeedsReview(request)
     : 0;
   // Root and moderators see how many requests to join wait for them next to Requests (094).
+  // And the scope moves waiting for them (115): root's, and a shared workspace's admins'.
   const toAnswer = canInSomeShared(user, "access_requests.answer")
-    ? await requestsToAnswer(request)
+    ? (await requestsToAnswer(request)) +
+      (user.role === "root" || canInSomeShared(user, "scopes.move")
+        ? await countMovesToAnswer(request)
+        : 0)
     : 0;
   return {
     user,

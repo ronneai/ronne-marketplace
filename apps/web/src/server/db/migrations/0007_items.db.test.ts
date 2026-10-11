@@ -99,6 +99,8 @@ describe("0007_items", () => {
         "item_versions → items: RESTRICT",
         "item_versions → submissions: RESTRICT",
         "item_versions → user: RESTRICT",
+        // Who reviewed it at a scope's move (0024_scope_moves, 115).
+        "item_versions → user: SET NULL",
         "items → scopes: RESTRICT",
         "items → user: SET NULL",
         "version_dependencies → item_versions: RESTRICT",

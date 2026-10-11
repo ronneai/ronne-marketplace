@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const session = vi.hoisted(() => ({ requireUser: vi.fn() }));
 const reviews = vi.hoisted(() => ({ countNeedsReview: vi.fn() }));
-const workspaces = vi.hoisted(() => ({ requestsToAnswer: vi.fn() }));
+const workspaces = vi.hoisted(() => ({
+  requestsToAnswer: vi.fn(),
+  countMovesToAnswer: vi.fn(),
+}));
 vi.mock("@/server/domains/identity/actions/session", () => session);
 vi.mock("@/server/domains/submissions/actions/reviews", () => reviews);
 vi.mock("@/server/domains/workspaces/actions/workspaces", () => workspaces);
@@ -23,6 +26,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   reviews.countNeedsReview.mockResolvedValue(4);
   workspaces.requestsToAnswer.mockResolvedValue(2);
+  workspaces.countMovesToAnswer.mockResolvedValue(3);
 });
 
 // The nav counts (014, 094): each counted only for someone who can act on it.
@@ -35,9 +39,17 @@ describe("loadShell's nav counts", () => {
     });
   });
 
-  it("counts them for root too", async () => {
+  it("counts them for root too, with the scope moves waiting (115)", async () => {
     session.requireUser.mockResolvedValue(user({}, "root"));
+    expect((await loadShell()).navCounts["/workspaces/requests"]).toBe(5);
+  });
+
+  it("adds the scope moves for a shared workspace's admin, not for a moderator (115)", async () => {
+    session.requireUser.mockResolvedValue(user({ global: "user", acme: "admin" }));
+    expect((await loadShell()).navCounts["/workspaces/requests"]).toBe(5);
+    session.requireUser.mockResolvedValue(user({ global: "user", acme: "moderator" }));
     expect((await loadShell()).navCounts["/workspaces/requests"]).toBe(2);
+    expect(workspaces.countMovesToAnswer).toHaveBeenCalledTimes(1);
   });
 
   it("counts nothing, and asks nothing, for someone who answers nowhere", async () => {

@@ -2,6 +2,8 @@
 
 > Milestone: M10 · Depends on: 065, 067, 068, 060, 061, 062, 063 · Design: [060](../060-server-data-table/SPEC.md) · Contracts: none new
 
+> **Since [115](../115-move-scopes/SPEC.md) (owner, 2026-10-11):** Admin › Scopes is gone: every scope is created, edited and moved on its workspace's page (`/workspaces/<name>`), for root and the workspace's admins; `/admin/scopes` redirects to the Workspaces pages. Below, Admin › Scopes describes what was.
+
 > **Since [088](../088-docs-on-website/SPEC.md) (2026-10-05)** the Documentation is on the website, from
 > `../ronne-web` (`www/src/content/docs/`): what this spec says about `content.tsx`, the `/docs`
 > pages or their components (`DocsNav`, `TypesExplorer`, the docs render tests) is done there now.

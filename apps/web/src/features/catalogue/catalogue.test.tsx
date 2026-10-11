@@ -15,6 +15,7 @@ const entry = (overrides: Partial<CatalogueEntry> = {}): CatalogueEntry => ({
   id: "i1",
   workspace: "global",
   privateWorkspace: false,
+  personalWorkspace: false,
   scope: "team",
   name: "fmt",
   type: "hook",
@@ -272,17 +273,24 @@ describe("workspaces in the catalogue (090)", () => {
     expect(view()).not.toContain('<span aria-hidden="true"> · </span>');
   });
 
-  it("marks a private workspace's item with a lock and Private, its full name naming acme (093, 118)", () => {
+  it("says each item's workspace, linked, and scope; a private one with a lock (093, 115)", () => {
     const html = view({
       entries: [entry({ workspace: "acme", privateWorkspace: true, scope: "acme-infra" })],
     });
     expect(html).toContain('title="Only acme&#x27;s members and root see this item."');
+    expect(html).toContain("rmk install @acme/acme-infra/");
     expect(html).toMatch(
-      /lucide-lock[^>]*>.*<\/svg>Private<span aria-hidden="true"> · <\/span><span class="sr-only">, <\/span><\/span><a[^>]*>@acme\/acme-infra\//,
+      /Workspace<\/span><a[^>]*href="\/workspaces\/acme"[^>]*>acme<\/a><span[^>]*><svg[^>]*lucide-lock[^>]*>.*?<\/svg>Private<\/span><span aria-hidden="true">·<\/span><span>Scope<\/span><span[^>]*>@acme-infra<\/span>/,
     );
-    const open = view({ entries: [entry({ workspace: "acme", scope: "acme-infra" })] });
-    expect(open).not.toContain("lucide-lock");
-    // Public: the name alone says the workspace, once.
-    expect(open).not.toMatch(/>acme<span aria-hidden="true"> · /);
+    // Global too: its full name doesn't say it, the line does.
+    const global = view();
+    expect(global).toMatch(/Workspace<\/span><a[^>]*href="\/workspaces\/global"[^>]*>global<\/a>/);
+    expect(global).not.toContain("lucide-lock");
+    // A personal workspace says so, without a lock.
+    const personal = view({
+      entries: [entry({ workspace: "ana", privateWorkspace: true, personalWorkspace: true })],
+    });
+    expect(personal).toContain("(personal)");
+    expect(personal).not.toContain("lucide-lock");
   });
 });

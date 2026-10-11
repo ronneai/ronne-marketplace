@@ -2,6 +2,8 @@
 
 > Milestone: M13 · Depends on: 090–095, 011, 015, 019, 020, 022, 027, 037, 077, 097 · Design: [MVP §3](../../MVP/MVP.md), [§11](../../MVP/MVP.md#11-rest-api-sketch-apiv1), [§15](../../MVP/MVP.md#15-decision-log) · Contracts: [`docs/spec/manifest.md`](../../spec/manifest.md), [`docs/spec/cli-files.md`](../../spec/cli-files.md), [`docs/spec/plugin-feeds.md`](../../spec/plugin-feeds.md)
 
+> **Since [115](../115-move-scopes/SPEC.md) (owner, 2026-10-11):** Admin › Scopes is gone: every scope is created, edited and moved on its workspace's page (`/workspaces/<name>`), for root and the workspace's admins; `/admin/scopes` redirects to the Workspaces pages. Below, Admin › Scopes describes what was.
+
 ## Goal
 
 Scope names are unique **per workspace**, not per instance (owner, 2026-10-09): several teams each

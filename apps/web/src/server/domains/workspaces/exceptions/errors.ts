@@ -1,4 +1,5 @@
 import { NAME_PROBLEM_MESSAGES, type NameProblem } from "@ronneai/core";
+import type { MoveImpact } from "../models/scope-move";
 
 /** Errors the workspaces domain raises (feature 090). Pages turn them into `ERR:` lines. */
 export class WorkspacesError extends Error {
@@ -185,5 +186,69 @@ export class PersonalWorkspaceError extends WorkspacesError {
           ? "A personal workspace is always private."
           : "A personal workspace stays as long as its owner.",
     );
+  }
+}
+
+/** A scope to move that doesn't exist, or that the asker doesn't see (115). */
+export class ScopeMoveScopeNotFoundError extends WorkspacesError {
+  constructor() {
+    super("That scope doesn't exist.");
+  }
+}
+
+/** Moving a scope to the workspace it's in already (115). */
+export class ScopeMoveSameWorkspaceError extends WorkspacesError {
+  constructor(readonly workspaceName: string) {
+    super(`The scope is in ${workspaceName} already.`);
+  }
+}
+
+/** Something refuses the move (115): the checks' result, for the dialog to list. */
+export class ScopeMoveRefusedError extends WorkspacesError {
+  constructor(readonly impact: MoveImpact) {
+    super("This move would break something, listed below. Nothing moved.");
+  }
+}
+
+/** A move already waiting for an answer for the scope (115). */
+export class ScopeMoveOpenError extends WorkspacesError {
+  constructor(readonly workspaceName: string) {
+    super(`A move to ${workspaceName} is waiting for an answer.`);
+  }
+}
+
+/** A move made at once by root, or to `global` by its admins, confirms with the scope's name (115). */
+export class ScopeMoveConfirmationError extends WorkspacesError {
+  constructor(readonly scopeName: string) {
+    super(`Type the scope's name, ${scopeName}, to confirm the move.`);
+  }
+}
+
+export class ScopeMoveNotFoundError extends WorkspacesError {
+  constructor() {
+    super("That move request doesn't exist.");
+  }
+}
+
+/** Answered or cancelled already (115): the first answer counts. */
+export class ScopeMoveAnsweredError extends WorkspacesError {
+  constructor() {
+    super("Already answered.");
+  }
+}
+
+/** The asker is no longer root or an admin of the scope's workspace (115): the request was closed. */
+export class ScopeMoveAskerLostRoleError extends WorkspacesError {
+  constructor() {
+    super(
+      "Whoever asked can no longer move this scope, so the request was cancelled. Nothing moved.",
+    );
+  }
+}
+
+/** A move's message or a decline's reason: at most 500 characters (115). */
+export class InvalidScopeMoveTextError extends WorkspacesError {
+  constructor(readonly field: "message" | "reason") {
+    super(`A move's ${field} has at most 500 characters.`);
   }
 }

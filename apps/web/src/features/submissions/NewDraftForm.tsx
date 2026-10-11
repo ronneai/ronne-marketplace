@@ -55,8 +55,9 @@ const Section = ({
   </section>
 );
 
+// A long scope name (64 characters, no hyphen) breaks rather than widen the page (115).
 const chipClasses =
-  "cursor-pointer rounded-control border border-transparent px-3 py-1.5 font-mono text-xs text-muted hover:text-fg has-[:checked]:border-hairline has-[:checked]:bg-surface has-[:checked]:font-semibold has-[:checked]:text-fg has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-focus";
+  "max-w-full min-w-0 cursor-pointer rounded-control border border-transparent px-3 py-1.5 font-mono text-xs [overflow-wrap:anywhere] text-muted hover:text-fg has-[:checked]:border-hairline has-[:checked]:bg-surface has-[:checked]:font-semibold has-[:checked]:text-fg has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-focus";
 
 const filterClasses =
   "rounded-full border border-hairline px-3 py-1 text-xs text-muted hover:text-fg aria-pressed:border-transparent aria-pressed:bg-fg aria-pressed:text-canvas outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
@@ -160,7 +161,7 @@ export const NewDraftForm = ({ scopes, mine }: { scopes: ScopeOption[]; mine: st
                 return (
                   <Fragment key={option.name}>
                     {heading ? (
-                      <span className="w-full px-2 pt-1 font-mono text-xs text-muted">
+                      <span className="w-full px-2 pt-1 font-mono text-xs text-muted [overflow-wrap:anywhere]">
                         {option.personal ? `Personal (${workspace})` : workspace}
                       </span>
                     ) : null}
@@ -183,7 +184,7 @@ export const NewDraftForm = ({ scopes, mine }: { scopes: ScopeOption[]; mine: st
                 <p className="px-3 py-1.5 text-xs text-muted">No scope matches.</p>
               ) : null}
             </div>
-            <p className="min-h-4 text-xs text-muted">
+            <p className="min-h-4 text-xs text-muted [overflow-wrap:anywhere]">
               {chosenScope ? (
                 <>
                   <span className="font-mono text-fg">@{chosenScope.name}</span> —{" "}

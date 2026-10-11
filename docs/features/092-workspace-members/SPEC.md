@@ -2,6 +2,8 @@
 
 > Milestone: M13 · Depends on: 090, 091, 008, 061 · Design: [MVP §2](../../MVP/MVP.md#2-personas--roles) · Contracts: none new
 
+> **Since [115](../115-move-scopes/SPEC.md) (owner, 2026-10-11):** workspaces are managed under Workspaces, not Admin. The list is `/workspaces` and a workspace's page `/workspaces/<name>`, for everyone who sees it, with each option only for those allowed; `/admin/workspaces` and its pages redirect there, and Admin is root's. Below, Admin › Workspaces and `/admin/workspaces/<name>` mean those pages. Admin › Scopes went too: a scope is created on its workspace's page. **Admins in Admin** below no longer holds: a workspace's admins have no Admin menu.
+
 ## Goal
 
 Root decides who is in each workspace and with which role (owner, 2026-10-05): on the user's row in

@@ -20,7 +20,7 @@ const attempt = async (form: FormData, work: () => Promise<string>): Promise<Mem
   try {
     const done = await work();
     revalidatePath(workspacePath(text(form, "workspace")));
-    revalidatePath("/admin/workspaces");
+    revalidatePath("/workspaces");
     revalidatePath("/admin/users");
     return { done };
   } catch (error) {

@@ -327,6 +327,10 @@ describe("deleting a workspace with members (092)", () => {
     await addMembers(asRoot, { workspaceId: acme, userIds: [userId, otherId], role: "user" }, app);
     await deleteWorkspace(asRoot, { name: "acme" }, app);
     expect(await roles(userId)).toEqual({ global: "user" });
-    expect((await events("workspace.deleted"))[0]?.metadata).toEqual({ name: "acme", members: 2 });
+    expect((await events("workspace.deleted"))[0]?.metadata).toEqual({
+      name: "acme",
+      members: 2,
+      scopeMoves: 0,
+    });
   });
 });

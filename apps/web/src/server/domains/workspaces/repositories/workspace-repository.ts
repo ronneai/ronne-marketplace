@@ -3,6 +3,7 @@ import type { NewAuditEvent } from "../../audit/models/audit-event";
 import type { WorkspaceRole } from "../../identity/models/user";
 import type { AccessRequest, PendingRequest, RequestWithWorkspace } from "../models/access-request";
 import type { Member, Membership, MemberUser } from "../models/member";
+import type { ScopeMove } from "../models/scope-move";
 import type { Workspace, WorkspaceVisibility } from "../models/workspace";
 
 /** A workspace's Members table (092): part of an email or name, and a role. */
@@ -30,7 +31,7 @@ export type WorkspacePageQuery = {
   kind?: WorkspaceKind;
 };
 
-/** Admin › Workspaces' Kind filter (114). */
+/** Root's Workspaces list's Kind filter (114). */
 export type WorkspaceKind = "shared" | "personal";
 
 /**
@@ -68,7 +69,11 @@ export interface WorkspaceRepository {
    * item in it (093), as `@scope/name`, by name: turning it private is refused while there are any,
    * since those versions would stop installing for people outside it.
    */
-  outsideDependents(workspaceId: string): Promise<string[]>;
+  outsideDependents(
+    workspaceId: string,
+    /** Only the dependents of this scope's items, outside the scope too (115: moving it in). */
+    scopeId?: string,
+  ): Promise<{ name: string; workspaceId: string }[]>;
   /**
    * The open submissions outside the workspace (submitted, changes requested, approved), with
    * their latest revision's ronne.yaml: the ones that depend on its items are listed as a warning.
@@ -118,13 +123,13 @@ export interface WorkspaceRepository {
   setAliases(
     add: readonly { name: string; itemId: string }[],
     drop: readonly string[],
-    reason: "rename",
+    reason: "rename" | "move",
     at: Date,
   ): Promise<void>;
   delete(id: string): Promise<void>;
   /** Every workspace, `global` first, then by name: for the selects and filters. */
   list(): Promise<Workspace[]>;
-  /** One page for Admin › Workspaces (keyset), `global` left out: the service puts it first. */
+  /** One page of root's Workspaces list (keyset), `global` left out: the service puts it first. */
   page(query: WorkspacePageQuery): Promise<KeysetPage<Workspace>>;
   /** How many workspaces other than `global` match the search, up to the count cap. */
   count(
@@ -226,4 +231,124 @@ export interface WorkspaceRepository {
    * already, which are cancelled. How many joined.
    */
   joinRequestsOnRename(workspaceId: string, name: string, at: Date): Promise<number>;
+
+  // Moving a scope to another workspace (115), in kysely-scope-moves.ts.
+  /** A scope, with its workspace's id. */
+  scopeById(id: string): Promise<{ id: string; name: string; workspaceId: string } | null>;
+  /** Whether the workspace has a scope with this name, byte for byte. */
+  scopeNamed(workspaceId: string, name: string): Promise<boolean>;
+  /** The scope's items, by id. */
+  itemsInScope(scopeId: string): Promise<{ id: string; name: string }[]>;
+  /**
+   * What the scope's released versions (not yanked) depend on outside the scope: the item, the
+   * dependency and its workspace.
+   */
+  scopeReleasedDependencies(
+    scopeId: string,
+  ): Promise<
+    { item: string; dependency: string; workspaceId: string; visibility: WorkspaceVisibility }[]
+  >;
+  /** Open work in the scope (draft to approved), with its author and its working ronne.yaml. */
+  scopeOpenWork(scopeId: string): Promise<ScopeWork[]>;
+  /**
+   * Submissions waiting for review or release (submitted, changes requested, approved) outside the
+   * scope and outside `workspaceId`, with their working ronne.yaml.
+   */
+  openSubmissionsOutsideScope(
+    scopeId: string,
+    workspaceId: string,
+  ): Promise<{ name: string; workspaceId: string; manifest: string | null }[]>;
+  /** Items by full name, old names too (118): their scope and workspace. */
+  resolveItems(
+    names: readonly string[],
+  ): Promise<
+    Map<
+      string,
+      { itemId: string; scopeId: string; workspaceId: string; visibility: WorkspaceVisibility }
+    >
+  >;
+  /**
+   * Submissions in review (submitted, changes requested, approved) by full name, for dependencies
+   * not released yet (056, 112): their scope and workspace. Never drafts: a submission in review
+   * never depends on one, and someone else's is theirs alone.
+   */
+  resolveOpenSubmissions(
+    names: readonly string[],
+  ): Promise<
+    Map<string, { scopeId: string; workspaceId: string; visibility: WorkspaceVisibility }>
+  >;
+  /** Which of these users are members of the workspace (any role). */
+  membersAmong(workspaceId: string, userIds: readonly string[]): Promise<Set<string>>;
+  /** The scope's released versions not reviewed (114), as `@name@version`. */
+  notReviewedIn(scopeId: string): Promise<string[]>;
+  /**
+   * Locks the scope's row, then its submissions, then its items, each in id order (a submit's, a
+   * save's and a release's locks), until the transaction ends: a move takes them before the
+   * workspaces, as a rename (113) does.
+   */
+  lockScopeForMove(scopeId: string): Promise<void>;
+  /** The scope's open move, if any. */
+  openMoveOf(scopeId: string): Promise<ScopeMove | null>;
+  /** Locks a move's row until the transaction ends. */
+  lockMove(id: string): Promise<void>;
+  findMove(id: string): Promise<ScopeMove | null>;
+  insertMove(move: {
+    scopeId: string;
+    fromWorkspaceId: string;
+    toWorkspaceId: string;
+    requestedBy: string;
+    newName: string;
+    message: string | null;
+    status: "open" | "approved";
+    decidedBy: string | null;
+    at: Date;
+  }): Promise<string>;
+  /** Closes an open move; false when it wasn't open any more. */
+  decideMove(
+    id: string,
+    decision: {
+      status: "approved" | "declined" | "cancelled";
+      decidedBy: string | null;
+      reason: string | null;
+      at: Date;
+    },
+  ): Promise<boolean>;
+  /** Puts the scope in the workspace under the name, and raises the catalogue revision (079). */
+  applyMove(scopeId: string, workspaceId: string, name: string): Promise<void>;
+  /** Marks the scope's not-reviewed versions reviewed, by `userId`; how many. */
+  markReviewed(scopeId: string, userId: string): Promise<number>;
+  /**
+   * The latest open or declined move of each scope in the workspace (115): its page's rows show
+   * them until the next request.
+   */
+  latestMovesIn(workspaceId: string): Promise<ScopeMove[]>;
+  /**
+   * The open moves into these workspaces (every one for `"all"`), oldest first, with who asked
+   * and where from: the Requests page's Scope moves (115). At most `limit`.
+   */
+  pendingMoves(
+    workspaceIds: "all" | readonly string[],
+    limit: number,
+  ): Promise<
+    (ScopeMove & { fromWorkspace: string | null; requester: { email: string; name: string } })[]
+  >;
+  /** How many moves into the workspace wait for an answer (115). */
+  countOpenMovesInto(workspaceId: string): Promise<number>;
+  /**
+   * The user's standing now, read from the database: whether they're root, and whether they're an
+   * admin of the workspace; null when they're gone or disabled.
+   */
+  standing(userId: string, workspaceId: string): Promise<{ root: boolean; admin: boolean } | null>;
+  /** Whether the user, not disabled, is root or an admin of the workspace (a move's asker). */
+  canStillMove(userId: string, workspaceId: string): Promise<boolean>;
 }
+
+/** Open work in a scope (115): who wrote it, and what it depends on. */
+export type ScopeWork = {
+  name: string;
+  status: string;
+  authorId: string;
+  authorEmail: string | null;
+  authorRoot: boolean;
+  manifest: string | null;
+};

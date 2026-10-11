@@ -2,6 +2,8 @@
 
 > Milestone: M13 · Depends on: 010, 059, 061 · Design: [MVP §2](../../MVP/MVP.md#2-personas--roles), [§10](../../MVP/MVP.md#10-data-model-mvp), [§15](../../MVP/MVP.md#15-decision-log) · Contracts: none new
 
+> **Since [115](../115-move-scopes/SPEC.md) (owner, 2026-10-11):** workspaces are managed under Workspaces, not Admin. The list is `/workspaces` and a workspace's page `/workspaces/<name>`, for everyone who sees it, with each option only for those allowed; `/admin/workspaces` and its pages redirect there, and Admin is root's. Below, Admin › Workspaces and `/admin/workspaces/<name>` mean those pages. Admin › Scopes went too: a scope is created on its workspace's page.
+
 ## Goal
 
 A new level above scopes: **workspace › scope › item** (owner, 2026-10-05). A workspace is an area
@@ -70,7 +72,7 @@ deleted: the edit and delete actions aren't shown, and the services refuse them
 - **A workspace's page** (`/admin/workspaces/<name>`): its description (editable), its scopes, and
   from 092 its members.
 - **Delete:** only when it has no scopes; otherwise disabled with "Move or remove its scopes
-  first" (nothing moves scopes yet, so in practice a workspace with scopes stays).
+  first" (moving them out is [115](../115-move-scopes/SPEC.md)'s).
 
 **Admin › Scopes.** The table gains a Workspace column and filter; **New scope** gains a workspace
 select, `global` first and selected.

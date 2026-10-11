@@ -2,6 +2,8 @@
 
 > Milestone: M2 · Depends on: 008 · Design: [MVP §2](../../MVP/MVP.md#2-personas--roles), [§3.1](../../MVP/MVP.md#31-item-types), [§10](../../MVP/MVP.md#10-data-model-mvp) · Contracts: [`docs/spec/manifest.md`](../../spec/manifest.md) §1
 
+> **Since [115](../115-move-scopes/SPEC.md) (owner, 2026-10-11):** Admin › Scopes is gone: every scope is created, edited and moved on its workspace's page (`/workspaces/<name>`), for root and the workspace's admins; `/admin/scopes` redirects to the Workspaces pages. Below, Admin › Scopes describes what was.
+
 ## Goal
 
 Every item name is scoped, such as `@platform/code-reviewer`. Before anyone can draft an item

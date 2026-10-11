@@ -239,7 +239,7 @@ export const postResolve = async (request: Request, deps: RegistryApiDeps = {}) 
     return errorResponse(
       400,
       "invalid_request",
-      'Send JSON: { "dependencies": { "@scope/name": "range or tag" }, "locked"?: { "@scope/name": "version" } }.',
+      'Send JSON: { "dependencies": { "@scope/name": "range or tag" }, "locked"?: { "@scope/name": "version" } }, names as @workspace/scope/name outside global.',
     );
   if (Object.keys(dependencies).length > RESOLVE_MAX_ITEMS)
     return errorResponse(

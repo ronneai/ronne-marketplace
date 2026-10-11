@@ -11,6 +11,7 @@ import { scopesQueryOf, workspaceScopesList } from "@/features/admin-scopes/list
 import { CreateScopeDialog, EditScopeButton } from "@/features/admin-scopes/ScopeDialogs";
 import { ScopesTable } from "@/features/admin-scopes/ScopesTable";
 import { workspacePath } from "@/features/admin-workspaces/list";
+import { MoveScopeButton, MoveState } from "@/features/admin-workspaces/MoveScope";
 import {
   DeleteWorkspaceButton,
   EditWorkspaceButton,
@@ -25,17 +26,25 @@ import {
 } from "@/features/workspace-members/list";
 import { MembersTable } from "@/features/workspace-members/MembersTable";
 import { RequestsTable } from "@/features/workspace-requests/RequestsTable";
+import { ScopeMovesTable } from "@/features/workspace-requests/ScopeMovesTable";
+import { NotIn } from "@/features/workspaces/WorkspacesPage";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
-import { can, canInSome, canInSomeShared } from "@/server/domains/identity/models/permissions";
+import { can } from "@/server/domains/identity/models/permissions";
 import { pageScopes } from "@/server/domains/items/actions/scopes";
 import {
-  findWorkspace,
+  movesToAnswer,
+  ownRequests,
   pageMembers,
   pendingRequests,
+  scopeMovesIn,
+  viewWorkspace,
 } from "@/server/domains/workspaces/actions/workspaces";
+import type { ScopeMove } from "@/server/domains/workspaces/models/scope-move";
 import { requestHeaders } from "@/server/http/request-headers";
 
-export const metadata = { title: "Workspace · Admin · Ronne AI Marketplace" };
+export const metadata = { title: "Workspace · Ronne AI Marketplace" };
+
+const ROLE_LABELS = { Root: "Root", admin: "Admin", moderator: "Moderator", user: "User" } as const;
 
 /** The name from the address; a malformed escape is left as typed, and then isn't found. */
 const decoded = (value: string) => {
@@ -47,12 +56,14 @@ const decoded = (value: string) => {
 };
 
 /**
- * One workspace (feature 090): its description, its members (092) and its scopes. Root and the
- * workspace's admins edit the description, rename it (113), manage the members and create scopes; only root deletes
- * it, while it has no scopes. `global`'s description can't be edited, and it can't be deleted. A
- * workspace the admin doesn't administer is a 404, as for anyone else.
+ * One workspace (feature 090), under Workspaces (115): for everyone who sees it, its description,
+ * visibility, their role or Ask to join, and its scopes. What they may do shows to those allowed:
+ * root and its admins edit the description, rename it (113), manage the members (092), create and
+ * move scopes; its moderators answer requests to join (094); only root changes its visibility and
+ * deletes it, while it has no scopes. `global` can't be changed or deleted. A workspace the reader
+ * doesn't see is a 404, as a name no workspace has.
  */
-const AdminWorkspace = async ({
+const WorkspacePage = async ({
   params,
   searchParams,
 }: {
@@ -61,30 +72,50 @@ const AdminWorkspace = async ({
 }) => {
   const request = await requestHeaders();
   const me = await getCurrentUser(request);
-  if (!me || !canInSome(me, "members.manage")) notFound();
+  if (!me) notFound();
   const { name } = await params;
-  const workspace = await findWorkspace(request, decoded(name));
+  const workspace = await viewWorkspace(request, decoded(name));
   if (!workspace) notFound();
   const path = workspacePath(workspace.name);
   const query = await searchParams;
   // A personal workspace (114) is its owner's alone: no members to manage, no requests to answer,
   // no visibility to change, never deleted. Only its scopes.
   const personal = workspace.ownerId !== null;
-  // Its owner may administer nothing else, so their way back is the Workspaces page.
-  const back = canInSomeShared(me, "members.manage")
-    ? { href: "/admin/workspaces", label: "All workspaces" }
-    : { href: "/workspaces", label: "Workspaces" };
-  // Tabs on this page's own address: its scopes, `tab=members` its members (092), and
-  // `tab=requests` the requests to join it (094), for root and its admins, who answer them.
-  const tab =
-    !personal && (query.tab === "members" || query.tab === "requests") ? query.tab : "scopes";
+  // Tabs on this page's own address: its scopes, for everyone; `tab=members`, its members (092),
+  // for root and its admins; `tab=requests`, the requests to join it (094) and the scope moves into
+  // it (115), for whoever answers them. Asked for without the right, a tab shows the scopes.
+  const tabs = [
+    ["scopes", "Scopes", path],
+    ...(!personal && can(me, "members.manage", workspace.id)
+      ? ([["members", "Members", `${path}?tab=members`]] as const)
+      : []),
+    ...(!personal && can(me, "access_requests.answer", workspace.id)
+      ? ([["requests", "Requests", `${path}?tab=requests`]] as const)
+      : []),
+  ] as const;
+  const tab = tabs.some(([id]) => id === query.tab)
+    ? (query.tab as "members" | "requests")
+    : "scopes";
+  const role = me.role === "root" ? "Root" : me.workspaces[workspace.id];
 
   const content = async () => {
     if (tab === "requests") {
-      const { requests, total } = await pendingRequests(request, workspace.id);
+      const [{ requests, total }, { moves }] = await Promise.all([
+        pendingRequests(request, workspace.id),
+        movesToAnswer(request, { workspaceId: workspace.id }),
+      ]);
       return (
         <div className="grid gap-3">
           <Help id="requests-who" />
+          {/* The moves into it (115), for root and its admins (global's are root's alone). */}
+          {moves.length > 0 ? (
+            <section aria-labelledby="scope-moves" className="mb-4 grid gap-3">
+              <h2 id="scope-moves" className="text-base font-semibold text-fg">
+                Scope moves
+              </h2>
+              <ScopeMovesTable moves={moves} />
+            </section>
+          ) : null}
           <RequestsTable
             requests={requests.map((r) => ({
               ...r,
@@ -120,11 +151,15 @@ const AdminWorkspace = async ({
       ...scopesQueryOf(state),
       workspaceId: workspace.id,
     });
+    // Move… for root and the workspace's admins (115), and each scope's open or declined move.
+    const canMove = can(me, "scopes.move", workspace.id);
+    const canEdit = can(me, "scopes.create", workspace.id);
+    const moves = canMove ? await scopeMovesIn(request, { workspaceId: workspace.id }) : {};
     return (
       <>
         {can(me, "scopes.create", workspace.id) ? (
           <div className="mb-3">
-            <CreateScopeDialog workspaces={[{ id: workspace.id, name: workspace.name }]} />
+            <CreateScopeDialog workspace={{ id: workspace.id, name: workspace.name }} />
           </div>
         ) : null}
         <ScopesTable
@@ -133,15 +168,36 @@ const AdminWorkspace = async ({
           scopes={scopes.scopes}
           page={{ next: scopes.next, previous: scopes.previous }}
           total={scopes.total}
-          actions={(scope) => (
-            // Scope names are unique per workspace (118): `acme/infra` says which one.
-            <EditScopeButton
-              name={formatScopeName({ workspace: scope.workspace.name, scope: scope.name }).slice(
-                1,
-              )}
-              description={scope.description}
-            />
-          )}
+          note={(scope) =>
+            moves[scope.id] ? (
+              <MoveState move={moves[scope.id] as ScopeMove} workspace={workspace.name} />
+            ) : null
+          }
+          // Only for those who may edit or move a scope: everyone else gets no actions column.
+          actions={
+            !canEdit && !canMove
+              ? undefined
+              : (scope) => (
+                  <span className="inline-flex flex-nowrap items-center gap-1">
+                    {/* Scope names are unique per workspace (118): `acme/infra` says which one. */}
+                    {canEdit ? (
+                      <EditScopeButton
+                        name={formatScopeName({
+                          workspace: scope.workspace.name,
+                          scope: scope.name,
+                        }).slice(1)}
+                        description={scope.description}
+                      />
+                    ) : null}
+                    {canMove && moves[scope.id]?.status !== "open" ? (
+                      <MoveScopeButton
+                        scope={{ id: scope.id, name: scope.name }}
+                        workspace={workspace.name}
+                      />
+                    ) : null}
+                  </span>
+                )
+          }
         />
       </>
     );
@@ -151,10 +207,10 @@ const AdminWorkspace = async ({
     <>
       <p className="mb-2 text-sm">
         <Link
-          href={back.href}
+          href="/workspaces"
           className="text-link hover:underline outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
         >
-          {back.label}
+          All workspaces
         </Link>
       </p>
       <PageHeader
@@ -190,16 +246,18 @@ const AdminWorkspace = async ({
             are released without review.
           </span>
         ) : null}
+        {/* Their role there, or Ask to join where they aren't a member (094). */}
+        {personal ? null : role ? (
+          <Badge tone="accent">{ROLE_LABELS[role]}</Badge>
+        ) : (
+          <NotIn
+            workspace={workspace.name}
+            request={(await ownRequests(request)).find((r) => r.workspace === workspace.name)}
+          />
+        )}
       </div>
       <ScrollStrip label="Workspace" className="mb-4 gap-1 border-b border-hairline">
-        {(personal
-          ? ([["scopes", "Scopes", path]] as const)
-          : ([
-              ["scopes", "Scopes", path],
-              ["members", "Members", `${path}?tab=members`],
-              ["requests", "Requests", `${path}?tab=requests`],
-            ] as const)
-        ).map(([id, label, href]) => (
+        {tabs.map(([id, label, href]) => (
           <Link
             key={id}
             href={href}
@@ -215,4 +273,4 @@ const AdminWorkspace = async ({
   );
 };
 
-export default AdminWorkspace;
+export default WorkspacePage;

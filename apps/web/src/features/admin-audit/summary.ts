@@ -59,6 +59,11 @@ const scope = (m: Meta): SummaryPart => {
 
 const workspace = (m: Meta): SummaryPart => ({ name: text(m.name) || "a workspace" });
 
+/** A moved scope by its full name before the move (115), and its full name after, if renamed. */
+const moving = (m: Meta): SummaryPart => ({ name: text(m.scope) || "a scope" });
+const renamedAs = (m: Meta): (string | SummaryPart)[] =>
+  text(m.newName) && text(m.newName) !== text(m.scope) ? [", as ", { name: text(m.newName) }] : [];
+
 const VIA: Record<string, string> = { cli: "from the command line", api: "from rmk", web: "" };
 const via = (m: Meta) => (VIA[text(m.via)] ? ` ${VIA[text(m.via)]}` : "");
 
@@ -128,7 +133,15 @@ export const SUMMARIES: Record<AuditAction, Build> = {
   "workspace.deleted": (m) => [
     "Deleted workspace ",
     workspace(m),
-    m.members === undefined ? "" : ` (${plural(num(m.members), "member")})`,
+    m.members === undefined
+      ? ""
+      : ` (${[
+          plural(num(m.members), "member"),
+          // The open requests to move a scope into it (115), closed with it.
+          num(m.scopeMoves) ? plural(num(m.scopeMoves), "move request") : "",
+        ]
+          .filter(Boolean)
+          .join(", ")})`,
   ],
   "workspace.member_added": (m) => [
     "Added ",
@@ -176,6 +189,40 @@ export const SUMMARIES: Record<AuditAction, Build> = {
   ],
   "scope.created": (m) => ["Created scope ", scope(m)],
   "scope.updated": (m) => ["Changed the description of ", scope(m)],
+  // 115: "Asked to move @infra to acme, as @acme/infra-tools".
+  "scope.move_requested": (m) => [
+    "Asked to move ",
+    moving(m),
+    " to ",
+    { name: text(m.to) || "a workspace" },
+    ...renamedAs(m),
+  ],
+  "scope.moved": (m) => [
+    m.direct === false ? "Approved moving " : "Moved ",
+    moving(m),
+    " to ",
+    { name: text(m.to) || "a workspace" },
+    ...renamedAs(m),
+    ` (${[
+      plural(num(m.items), "item"),
+      num(m.reviewed) ? `${plural(num(m.reviewed), "version")} reviewed` : "",
+    ]
+      .filter(Boolean)
+      .join(", ")})`,
+  ],
+  "scope.move_declined": (m) => [
+    "Declined moving ",
+    moving(m),
+    " to ",
+    { name: text(m.to) || "a workspace" },
+  ],
+  "scope.move_cancelled": (m) => [
+    "Cancelled moving ",
+    moving(m),
+    " to ",
+    { name: text(m.to) || "a workspace" },
+    text(m.reason) === "asker_lost_role" ? " (whoever asked can no longer move it)" : "",
+  ],
   "submission.draft_created": (m) => [
     "Created a draft of ",
     item(m),

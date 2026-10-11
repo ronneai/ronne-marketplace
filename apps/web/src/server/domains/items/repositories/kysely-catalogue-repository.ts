@@ -25,6 +25,7 @@ type Row = {
   id: string;
   workspace_name: string;
   workspace_visibility: string;
+  workspace_owner_id: string | null;
   scope_name: string;
   name: string;
   type: string;
@@ -45,6 +46,7 @@ const toEntry = (row: Row): CatalogueEntry => ({
   workspace: row.workspace_name,
   // Anything but exactly "public" is private, as the viewer counts it (093).
   privateWorkspace: row.workspace_visibility !== "public",
+  personalWorkspace: row.workspace_owner_id !== null,
   scope: row.scope_name,
   name: row.name,
   type: row.type as ItemType,
@@ -174,6 +176,7 @@ export const kyselyCatalogueRepository = (
       "items.id",
       "workspaces.name as workspace_name",
       "workspaces.visibility as workspace_visibility",
+      "workspaces.owner_id as workspace_owner_id",
       "scopes.name as scope_name",
       "items.name",
       "items.type",

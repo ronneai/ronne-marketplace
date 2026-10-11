@@ -123,7 +123,11 @@ export const descriptionOf = (
 /** `@scope/name`, checked; the readers take the name the person chose. */
 export const checkedName = (itemName: string) => {
   const parsed = parseItemName(itemName);
-  if (!parsed) throw new ReadError("invalid_name", `${itemName} isn't an item name (@scope/name).`);
+  if (!parsed)
+    throw new ReadError(
+      "invalid_name",
+      `${itemName} isn't an item name (@scope/name, or @workspace/scope/name).`,
+    );
   return parsed;
 };
 

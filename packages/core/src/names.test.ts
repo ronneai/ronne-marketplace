@@ -183,6 +183,10 @@ describe("personal workspace names (114)", () => {
       "admin-3",
     ]);
     expect(personalWorkspaceName("global@a.com", 0)).toBe("global-2");
+    // `requests` is the Requests page's address, /workspaces/requests (115).
+    expect(nameProblem("requests", "workspace")).toBe("reserved");
+    expect(nameProblem("requests", "scope")).toBeNull();
+    expect(personalWorkspaceName("requests@a.com", 0)).toBe("requests-2");
     for (const n of [0, 8, 98, 998, 999, 9998, 99_998, 999_998]) {
       const name = personalWorkspaceName(`${"x".repeat(60)}@a.com`, n);
       expect(isValidName(name, "workspace"), name).toBe(true);

@@ -46,6 +46,8 @@ export const WORKSPACE_PERMISSIONS = {
   "workspace.edit": ["admin"],
   /** Rename the workspace (113): its items take the new name, their old ones kept as aliases. */
   "workspace.rename": ["admin"],
+  /** Move the workspace's scopes to another workspace, or ask to (115). */
+  "scopes.move": ["admin"],
 } as const satisfies Record<string, readonly WorkspaceRole[]>;
 
 export type InstancePermission = keyof typeof INSTANCE_PERMISSIONS;

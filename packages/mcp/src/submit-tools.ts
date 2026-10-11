@@ -31,7 +31,7 @@ const selectionOf = (
       ok: false,
       answer: failure(
         "invalid_request",
-        "Say which drafts: items (@scope/name or draft ids), or all: true for every one.",
+        "Say which drafts: items (@scope/name, or @workspace/scope/name outside global, or draft ids), or all: true for every one.",
       ),
     };
   return { ok: true, selection: input.all ? { all: true } : { refs: input.items ?? [] } };

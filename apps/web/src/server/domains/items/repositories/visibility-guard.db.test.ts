@@ -224,6 +224,8 @@ const ITEM_EXEMPT: Partial<Record<keyof ItemRepository, string>> = {
   lockWorkspaces: "takes a lock; says which of the ids the caller holds are private",
   workspaceNames:
     "the names of workspaces whose ids the caller holds already (a release's own, 113): never ids from input",
+  scopePlaces:
+    "where scopes whose ids the caller holds already are now (a release's own, 115): never ids from input",
   removeTag: "a write",
   setDeprecated: "a write",
   setYanked: "a write",

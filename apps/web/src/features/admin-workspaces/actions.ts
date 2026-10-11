@@ -4,18 +4,32 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import {
+  askScopeMove,
+  cancelScopeMove,
   createWorkspace,
   deleteWorkspace,
+  moveImpact,
+  moveTargets,
   renameImpact,
   renameWorkspace,
   setWorkspaceVisibility,
   updateWorkspace,
   visibilityImpact,
 } from "@/server/domains/workspaces/actions/workspaces";
-import { WorkspacesError } from "@/server/domains/workspaces/exceptions/errors";
+import {
+  ScopeMoveRefusedError,
+  WorkspacesError,
+} from "@/server/domains/workspaces/exceptions/errors";
 import { requestHeaders } from "@/server/http/request-headers";
 import { workspacePath } from "./list";
-import type { RenameImpactResult, VisibilityImpactResult, WorkspaceActionState } from "./types";
+import type {
+  MoveActionState,
+  MoveImpactResult,
+  MoveTargetsResult,
+  RenameImpactResult,
+  VisibilityImpactResult,
+  WorkspaceActionState,
+} from "./types";
 
 const text = (form: FormData, key: string) => String(form.get(key) ?? "");
 
@@ -46,7 +60,7 @@ export const createWorkspaceFromForm = async (
       visibility: text(form, "visibility"),
     });
     return `Created ${workspace.name}.`;
-  }, ["/admin/workspaces"]);
+  }, ["/workspaces"]);
 
 export const updateWorkspaceFromForm = async (
   _previous: WorkspaceActionState,
@@ -58,7 +72,7 @@ export const updateWorkspaceFromForm = async (
       description: text(form, "description"),
     });
     return "Description saved.";
-  }, ["/admin/workspaces", workspacePath(text(form, "name"))]);
+  }, ["/workspaces", workspacePath(text(form, "name"))]);
 
 /** Deletes an empty workspace, then goes back to the list: its own page no longer exists. */
 export const deleteWorkspaceFromForm = async (
@@ -68,8 +82,8 @@ export const deleteWorkspaceFromForm = async (
   const state = await attempt(async () => {
     await deleteWorkspace(await requestHeaders(), { name: text(form, "name") });
     return "Deleted.";
-  }, ["/admin/workspaces"]);
-  if (state.done) redirect("/admin/workspaces");
+  }, ["/workspaces"]);
+  if (state.done) redirect("/workspaces");
   return state;
 };
 
@@ -86,7 +100,7 @@ export const setVisibilityFromForm = async (
     return visibility === "private"
       ? "It's private: only its members and root see its items."
       : "It's public: everyone signed in sees its items.";
-  }, ["/admin/workspaces", workspacePath(text(form, "name"))]);
+  }, ["/workspaces", workspacePath(text(form, "name"))]);
 
 /** What Make private would meet (093), for its dialog. */
 export const visibilityImpactFor = async (name: string): Promise<VisibilityImpactResult> => {
@@ -116,7 +130,7 @@ export const renameWorkspaceFromForm = async (
     to = workspace.name;
     revalidatePath("/", "layout");
     return `Renamed to ${workspace.name}.`;
-  }, ["/admin/workspaces"]);
+  }, ["/workspaces"]);
   if (state.done) redirect(workspacePath(to));
   return state;
 };
@@ -131,3 +145,66 @@ export const renameImpactFor = async (name: string): Promise<RenameImpactResult>
     throw error;
   }
 };
+
+/** A domain refusal as the dialog's error, anything else thrown on. */
+const refusal = (error: unknown) => {
+  if (error instanceof WorkspacesError || error instanceof IdentityError)
+    return { error: error.message };
+  throw error;
+};
+
+/** Where a scope could move (115), for the Move dialog's select. */
+export const moveTargetsFor = async (scopeId: string): Promise<MoveTargetsResult> => {
+  try {
+    return { targets: await moveTargets(await requestHeaders(), { scopeId }) };
+  } catch (error) {
+    return refusal(error);
+  }
+};
+
+/** What moving the scope to `to`, named `name` there, would change and how (115). */
+export const moveImpactFor = async (input: {
+  scopeId: string;
+  to: string;
+  name?: string;
+}): Promise<MoveImpactResult> => {
+  try {
+    return await moveImpact(await requestHeaders(), input);
+  } catch (error) {
+    return refusal(error);
+  }
+};
+
+/**
+ * Moves a scope, or asks to (115). Nothing is refreshed here: the page would redraw under the
+ * dialog, which closes with its row (a moved scope leaves the page). The dialog refreshes the page
+ * when it's closed, as Submit's does.
+ */
+export const askMoveFromForm = async (
+  _previous: MoveActionState,
+  form: FormData,
+): Promise<MoveActionState> => {
+  try {
+    const result = await askScopeMove(await requestHeaders(), {
+      scopeId: text(form, "scopeId"),
+      to: text(form, "to"),
+      name: text(form, "name"),
+      message: text(form, "message"),
+      confirm: form.has("confirm") ? text(form, "confirm") : undefined,
+    });
+    return { done: result.outcome };
+  } catch (error) {
+    if (error instanceof ScopeMoveRefusedError) return { refused: error.impact };
+    return refusal(error);
+  }
+};
+
+/** Cancels a move request (115), from its scope's row. */
+export const cancelMoveFromForm = async (
+  _previous: WorkspaceActionState,
+  form: FormData,
+): Promise<WorkspaceActionState> =>
+  attempt(async () => {
+    await cancelScopeMove(await requestHeaders(), { moveId: text(form, "moveId") });
+    return "Cancelled.";
+  }, [workspacePath(text(form, "workspace")), "/workspaces/requests"]);

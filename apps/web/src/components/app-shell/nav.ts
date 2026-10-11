@@ -33,8 +33,8 @@ export type NavItem = {
   end?: true;
   /** Another site, opened in a new tab: Docs, the Documentation on the website (088). */
   external?: true;
-  /** Hidden from someone who holds this one: root's Admin replaces a workspace admin's (092). */
-  unless?: Exclude<Permission, WorkspacePermission>;
+  /** Never current under these, `*` standing for one segment: other items' pages in its section. */
+  not?: string[];
   /** Shown only while its count is above 0: Requests (094), for moderators of a quiet workspace. */
   onlyWithCount?: true;
 };
@@ -54,9 +54,14 @@ export const NAV: NavItem[] = [
     section: ["/catalogue", "/items"],
     pattern: "/workspaces/*/items",
   },
-  // Every signed-in user's workspaces and joining (094); after Catalogue (owner, 2026-10-10). Exact:
-  // Requests, under /workspaces/requests, is its own item.
-  { href: "/workspaces", label: "Workspaces" },
+  // Every signed-in user's workspaces and joining (094); after Catalogue (owner, 2026-10-10). Current
+  // on a workspace's page too (115), but not on Requests or a workspace's items, other items' pages.
+  {
+    href: "/workspaces",
+    label: "Workspaces",
+    section: "/workspaces",
+    not: ["/workspaces/requests", "/workspaces/*/items"],
+  },
   {
     href: "/submissions",
     label: "Submissions",
@@ -72,16 +77,8 @@ export const NAV: NavItem[] = [
     section: "/workspaces/requests",
     onlyWithCount: true,
   },
+  // Root's alone (115): a workspace's admins manage it from its page under Workspaces.
   { href: "/admin/users", label: "Admin", permission: "users.view", section: "/admin", end: true },
-  // A workspace's admin: Admin opens their workspaces (092).
-  {
-    href: "/admin/workspaces",
-    label: "Admin",
-    permission: "members.manage",
-    section: "/admin",
-    end: true,
-    unless: "users.view",
-  },
   { href: DOCS_URL, label: "Docs", end: true, external: true },
 ];
 
@@ -91,7 +88,6 @@ export const navFor = (user: ShellUser | null, counts: Record<string, number> = 
   // 114): their own personal workspace doesn't count.
   return NAV.filter(
     (item) =>
-      (!item.unless || !can(user, item.unless)) &&
       (!item.onlyWithCount || (counts[item.href] ?? 0) > 0) &&
       (!item.permission ||
         (item.permission in WORKSPACE_PERMISSIONS
@@ -108,7 +104,8 @@ const under = (pattern: string, path: string) => {
 };
 
 export const isCurrent = (item: NavItem, path: string): boolean =>
-  (item.pattern !== undefined && under(item.pattern, path)) ||
-  (item.section
-    ? [item.section].flat().some((section) => path === section || path.startsWith(`${section}/`))
-    : item.href === path);
+  !(item.not ?? []).some((pattern) => under(pattern, path)) &&
+  ((item.pattern !== undefined && under(item.pattern, path)) ||
+    (item.section
+      ? [item.section].flat().some((section) => path === section || path.startsWith(`${section}/`))
+      : item.href === path));
