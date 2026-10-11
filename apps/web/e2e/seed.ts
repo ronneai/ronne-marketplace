@@ -21,6 +21,7 @@ import {
   E2E_FALLBACK_ITEMS,
   E2E_JOIN,
   E2E_JOIN_MODERATORS,
+  E2E_LONG_SCOPE,
   E2E_MODERATORS,
   E2E_MOVE,
   E2E_NAMES,
@@ -559,6 +560,15 @@ for (const [project, who] of Object.entries(E2E_MOVE.projects)) {
       createdAt: new Date(),
     });
 }
+// A scope with the longest name there can be, no hyphen to break at, in global for good: every
+// page that lists scopes shows it, so the phone sweep checks it fits whatever runs first (115).
+await kyselyScopeRepository(db, dialect, UNFILTERED).insert({
+  name: E2E_LONG_SCOPE,
+  description: "The longest scope name, for the phone sweep.",
+  workspaceId: GLOBAL_WORKSPACE_ID,
+  createdBy: null,
+  createdAt: new Date(),
+});
 const renameItems = (
   await db.selectFrom("items").select("id").where("name", "=", E2E_RENAME.item).execute()
 ).map((row) => row.id);

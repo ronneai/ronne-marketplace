@@ -418,6 +418,9 @@ export const E2E_PERSONAL = {
  * personal workspace that the owner asks to move into it, and a scope in `global` that root moves
  * there directly.
  */
+/** In global for good (115): 64 characters with no hyphen, for the phone sweep. */
+export const E2E_LONG_SCOPE = "e2elongscope".padEnd(64, "l");
+
 export const E2E_MOVE = {
   personalScope: "mover-tools",
   projects: {

@@ -2,6 +2,8 @@
 
 > Milestone: M10 · Depends on: 066, 067, 068, 069, 006, 008, 009, 036, 046, 060 · Design: [MVP §8](../../MVP/MVP.md#8-web-application) · Contracts: none new
 
+> **Since [115](../115-move-scopes/SPEC.md) (owner, 2026-10-11):** Admin › Scopes is gone: every scope is created, edited and moved on its workspace's page (`/workspaces/<name>`), for root and the workspace's admins; `/admin/scopes` redirects to the Workspaces pages. Below, Admin › Scopes describes what was.
+
 ## Goal
 
 The remaining pages need small work once the primitives (067) and tables (069) are fixed:

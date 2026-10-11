@@ -32,12 +32,6 @@ export const HELP = {
       "Its items take the new name: @acme/team/x becomes @new/team/x. Their old names keep working for installs, lockfiles and dependencies, and rmk moves projects to the new ones; Claude Code shows them as new plugins. Links to the workspace (its page, its join link) and the old name in rmk --workspace or a CI workflow stop working. Its members, scopes and requests stay.",
     href: docsHref("workspaces", "managing"),
   },
-  "workspace-choice": {
-    question: "Which workspace?",
-    answer:
-      "The one whose team the scope's items are for; global when they're for everyone. A workspace other than global is the first part of the items' names, and once there's more than global the catalogue can filter by workspace. In a public workspace everyone signed in sees the scope's items; in a private one, only its members and root. Its members submit and its moderators and admins review there. The scope can't move to another workspace later.",
-    href: docsHref("workspaces", "what"),
-  },
   "global-always": {
     question: "Why is global always there?",
     answer:

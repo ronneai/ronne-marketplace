@@ -694,3 +694,48 @@ Witnessed: 2026-10-11 13:30 EDT, by a fresh agent (blind). Commit: 1cf29536 (plu
 | 7 | Other dialogs benefit | no | confirmed | fix is on `Dialog` and `selectClasses` |
 
 **Overall:** met. (A unit assertion on `overflow-wrap` was added after this pass.)
+
+## Task 15 — Admin › Scopes goes
+
+Witnessed: 2026-10-11 14:17 EDT, by a fresh agent (blind). Commit: a9222644 (plus the uncommitted working tree); ronne-web on docs/115-move-scopes (uncommitted). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The page is gone | no | confirmed | `git status`; `ls admin` |
+| 2 | Nothing links to /admin/scopes | no | confirmed | grep: only the redirect's tests |
+| 3 | AdminNav: Users, Audit log, Settings | no | confirmed | diff; test |
+| 4 | Redirects, the filtered one first | no | confirmed | `next start` + curl: 307s |
+| 5 | No open redirect | no | confirmed | same-origin; `..%2F..%2Fadmin` reached `/admin` |
+| 6 | No workspace picker; scope goes in the page's workspace | no | confirmed | `InWorkspace`; test |
+| 7 | No Workspace column or filter | no | confirmed | diffs; test |
+| 8 | No dead code | no | not met | three unused imports |
+| 9 | `workspace-choice` helper removed | no | confirmed | grep |
+| 10 | Permissions unchanged | no | confirmed | empty diff |
+| 11 | Root creates scopes on workspace pages | no | confirmed | 18 e2e passed |
+| 12 | A workspace's admin creates one | no | confirmed | user-admin e2e |
+| 13 | The owner creates one in their personal workspace | no | confirmed | three projects passed; phone failed on the new-draft page |
+| 14 | Edit and move still there | no | confirmed | move-scope e2e |
+| 15 | Unit tests cover redirects, dialog, table | no | confirmed | 742 passed |
+| 16 | e2e create on a workspace's page, check redirects | no | confirmed | scopes.e2e |
+| 17 | ronne-web docs | no | confirmed | `make check`; no "Admin › Scopes" |
+| 18 | Older specs and MVP | no | confirmed | notes in nine SPECs; MVP.md:916 |
+| 19 | Nothing mentions it as current | no | confirmed | history only |
+
+**Overall:** not met: row 8. (Also: a stale "Admin in the menu" sentence for admins in ronne-web.)
+
+### Re-check 1
+
+Witnessed: 2026-10-11 14:40 EDT, by a fresh agent (blind). Commit: a9222644 (plus the uncommitted working tree); ronne-web (uncommitted). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | Redirects, filtered first | yes | confirmed | fresh build; curl; routes manifest |
+| 5 | Only a workspace name reaches the path | yes | confirmed | `[a-z0-9-]+`; hostile values go to `/workspaces` |
+| 8 | No dead code | yes | confirmed | `biome` clean |
+| 13 | Owner creates a scope on every device | yes | confirmed | 26 e2e passed, phone included |
+| 15 | Unit tests | yes | confirmed | 742 passed |
+| 16 | e2e | yes | confirmed | scopes, drafts, user-admin |
+| 17 | ronne-web docs, Admin root's | yes | confirmed | greps; `make check` |
+| 2, 10 | No links; permissions unchanged | yes | confirmed | grep; empty diff |
+
+**Overall:** met.

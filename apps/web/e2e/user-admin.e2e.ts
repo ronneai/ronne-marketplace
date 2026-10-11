@@ -225,6 +225,6 @@ test("root creates a user, who signs in with the shown password; disabling them 
   await expect(admin.getByRole("heading", { level: 1 })).toHaveText("global");
   await expect(admin.getByRole("link", { name: "Members" })).toHaveCount(0);
   await expect(admin.getByRole("button", { name: "Create scope" })).toHaveCount(0);
-  for (const path of ["/admin", "/admin/users", "/admin/scopes", "/admin/audit", "/admin/settings"])
+  for (const path of ["/admin", "/admin/users", "/admin/audit", "/admin/settings"])
     expect((await admin.goto(path))?.status(), path).toBe(404);
 });

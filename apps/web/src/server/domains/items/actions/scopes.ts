@@ -11,7 +11,8 @@ import * as service from "../services/scopes";
 export type { ScopesPage } from "../services/scopes";
 
 /**
- * Entry points for /admin/scopes (feature 010), and for 012's scope picker. Thin: they
+ * Entry points for a workspace's scopes on its page (feature 010; there since 115), and for 012's
+ * scope picker. Thin: they
  * find who's asking and wire the dependencies; the services check permissions.
  */
 const deps = ({ db, dialect }: AppAuth, viewer: Viewer): service.ScopeDeps => ({

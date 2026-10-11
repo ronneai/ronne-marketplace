@@ -82,6 +82,18 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   buttons); the Move dialog is 640px wide and its long names break.
   *Done when:* the e2e test checks the dialog never scrolls sideways, and fails without the fix.
 
+- [x] **15. Admin › Scopes goes.** Its page, its Admin tab, the dialog's workspace picker and the
+  table's Workspace column and filter; `/admin/scopes` redirects to the Workspaces pages; the docs
+  and the older specs say so.
+  *Done when:* unit tests cover the redirects, the dialog and the table, and the e2e tests create
+  scopes on a workspace's page.
+
+- [ ] **16. Items name their workspace.** The item cards (home, catalogue) and the item page show
+  the workspace an item belongs to, as well as its scope; `rmk install` and every reference to an
+  item's name use its full name, `@workspace/scope/item` outside `global`, here and in ronne-web.
+  *Done when:* component tests show the workspace on cards and the item page, and the references
+  are checked.
+
 ## Notes
 
 Things learned while building that the next person should know. Anything that changes behaviour

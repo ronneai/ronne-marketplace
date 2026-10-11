@@ -7,7 +7,6 @@ import { stripTab } from "@/components/ui/scroll-strip";
 
 const ITEMS = [
   { href: "/admin/users", label: "Users" },
-  { href: "/admin/scopes", label: "Scopes" },
   { href: "/admin/audit", label: "Audit log" },
   { href: "/admin/settings", label: "Settings" },
 ];

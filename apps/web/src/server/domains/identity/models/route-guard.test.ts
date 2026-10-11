@@ -68,8 +68,8 @@ describe("bodyTooLarge", () => {
   it("keeps 1 MB everywhere else, and without a session", () => {
     expect(post("/sign-in", 2 * MB, false)).toBe(true);
     expect(post("/submissions/01J0000000000000000000000A", 2 * MB, false)).toBe(true);
-    expect(post("/admin/scopes", 2 * MB)).toBe(true);
-    expect(post("/admin/scopes", MB)).toBe(false);
+    expect(post("/workspaces/global", 2 * MB)).toBe(true);
+    expect(post("/workspaces/global", MB)).toBe(false);
   });
 
   it("leaves GETs and bodies without a length to Next.js's own limit", () => {

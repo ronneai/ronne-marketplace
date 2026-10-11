@@ -14,7 +14,7 @@ test("a user drafts an agent in CodeMirror and the form, fixes its problem, save
 }) => {
   const root = await browser.newPage();
   await signIn(root, E2E_USERS.root);
-  await root.goto("/admin/scopes");
+  await root.goto("/workspaces/global");
   await root.getByRole("button", { name: "Create scope" }).click();
   const dialog = root.getByRole("dialog");
   await dialog.getByLabel("Name").fill("e2e-drafts");

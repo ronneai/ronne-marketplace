@@ -132,7 +132,6 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
   { route: "/account/tokens", roles: EVERYONE, urls: () => ["/account/tokens"] },
   { route: "/admin", roles: ROOT, urls: () => ["/admin"] },
   { route: "/admin/users", roles: ROOT, urls: () => ["/admin/users"] },
-  { route: "/admin/scopes", roles: ROOT, urls: () => ["/admin/scopes"] },
   { route: "/admin/audit", roles: ROOT, urls: () => ["/admin/audit"] },
   { route: "/admin/settings", roles: ROOT, urls: () => ["/admin/settings"] },
   // Root-only in production, which the end-to-end tests run.

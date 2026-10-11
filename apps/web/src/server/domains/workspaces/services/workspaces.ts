@@ -509,7 +509,7 @@ export const viewWorkspace = async (
   return workspace;
 };
 
-/** One workspace, for root and its admins (092), who manage it: Admin › Scopes. Null otherwise. */
+/** One workspace, for root and its admins (092), who manage it. Null otherwise. */
 export const findWorkspace = async (
   deps: WorkspaceDeps,
   actor: WorkspaceActor,

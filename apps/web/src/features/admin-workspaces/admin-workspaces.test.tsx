@@ -521,11 +521,12 @@ describe("the dialogs", () => {
 });
 
 describe("the admin nav", () => {
-  it("is root's: Users, Scopes, Audit log, Settings; workspaces are under Workspaces (115)", () => {
+  it("is root's: Users, Audit log, Settings; workspaces and scopes are under Workspaces (115)", () => {
     const html = renderToStaticMarkup(<AdminNav />);
-    for (const label of ["Users", "Scopes", "Audit log", "Settings"])
+    for (const label of ["Users", "Audit log", "Settings"])
       expect(html, label).toContain(`>${label}<`);
     expect(html).not.toContain("Workspaces");
+    expect(html).not.toContain("Scopes");
   });
 });
 

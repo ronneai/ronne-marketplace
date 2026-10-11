@@ -161,6 +161,10 @@ everything is on the Workspaces pages, and each option shows only to those allow
   **New workspace** and two tabs above the list, **Shared** and **Personal** (each personal
   workspace with its owner), each with how many match the search (owner, 2026-10-11: the Kind
   select was hard to notice).
+- **Admin › Scopes is gone too** (owner, 2026-10-11): a scope is created, edited and moved on its
+  workspace's page, so Create scope there makes it in that workspace, with no workspace to pick.
+  `/admin/scopes` redirects to `/workspaces`, and `/admin/scopes?workspace=<name>` to that
+  workspace's page. Admin keeps Users, Audit log and Settings.
 - **Admin › Workspaces is gone:** `/admin/workspaces` and `/admin/workspaces/<name>` redirect to
   the Workspaces pages, so links and bookmarks keep working. The Admin area is root's alone again:
   a workspace's admin no longer sees Admin in the menu.
@@ -251,6 +255,8 @@ everything is on the Workspaces pages, and each option shows only to those allow
   option shown only to those allowed; Admin › Workspaces redirects there; Admin is root's.
 - [x] Root's list has Shared and Personal tabs with their counts; the Move dialog never scrolls
   sideways and keeps its buttons in view.
+- [x] Admin › Scopes is gone and redirects; scopes are created on their workspace's page.
+- [ ] Item cards and the item page name the item's workspace.
 
 ## Decisions
 

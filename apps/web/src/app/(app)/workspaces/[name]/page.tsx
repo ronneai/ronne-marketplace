@@ -159,7 +159,7 @@ const WorkspacePage = async ({
       <>
         {can(me, "scopes.create", workspace.id) ? (
           <div className="mb-3">
-            <CreateScopeDialog workspaces={[{ id: workspace.id, name: workspace.name }]} />
+            <CreateScopeDialog workspace={{ id: workspace.id, name: workspace.name }} />
           </div>
         ) : null}
         <ScopesTable
