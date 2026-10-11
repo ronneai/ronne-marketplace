@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { AppShell } from "@/components/app-shell/AppShell";
 import { signOutFromMenu } from "@/features/account/actions";
+import { version } from "../../../package.json";
 import { loadShell } from "./shell";
 
 /**
@@ -8,9 +9,17 @@ import { loadShell } from "./shell";
  * which `loadShell` checks.
  */
 const AppLayout = async ({ children }: { children: ReactNode }) => {
-  const { user, theme, navCounts } = await loadShell();
+  const { user, theme, navCounts, workspaces, folded } = await loadShell();
   return (
-    <AppShell user={user} theme={theme} signOutAction={signOutFromMenu} navCounts={navCounts}>
+    <AppShell
+      user={user}
+      theme={theme}
+      signOutAction={signOutFromMenu}
+      navCounts={navCounts}
+      workspaces={workspaces}
+      folded={folded}
+      version={version}
+    >
       {children}
     </AppShell>
   );

@@ -21,7 +21,10 @@ test("root creates a user, who signs in with the shown password; disabling them 
 }) => {
   const root = await browser.newPage();
   await signIn(root, E2E_USERS.root, E2E_PASSWORD);
-  await root.getByRole("link", { name: "Admin" }).click();
+  await root
+    .getByRole("navigation", { name: "Main" })
+    .getByRole("link", { name: "Users", exact: true })
+    .click();
   await expect(root.getByRole("heading", { name: "Users" })).toBeVisible();
 
   // Create, with a generated password. Choosing root warns first (059).
@@ -154,8 +157,12 @@ test("root creates a user, who signs in with the shown password; disabling them 
 
   const admin = await browser.newPage();
   await signIn(admin, adminEmail, E2E_PASSWORD);
-  // No Admin for a workspace's admin (115): their workspaces are under Workspaces, with their role.
-  await expect(admin.getByRole("link", { name: "Admin" })).toHaveCount(0);
+  // No Admin pages for a workspace's admin (115): their workspaces are under Workspaces.
+  await expect(
+    admin
+      .getByRole("navigation", { name: "Main" })
+      .getByRole("link", { name: "Users", exact: true }),
+  ).toHaveCount(0);
   await admin.getByRole("link", { name: "Workspaces", exact: true }).click();
   await expect(admin).toHaveURL(/\/workspaces$/);
   const acmeRow = admin.getByRole("row").filter({ hasText: "e2e-acme" });

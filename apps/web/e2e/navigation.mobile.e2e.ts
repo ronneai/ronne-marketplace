@@ -24,9 +24,15 @@ test("the Menu opens the navigation and closes on Esc, a link, back and outside"
   await menu.click();
   await expect(sheet).toBeVisible();
   await expect(menu).toHaveAttribute("aria-expanded", "true");
-  for (const name of ["Home", "Catalogue", "Submissions", "Reviews", "Docs", "Access tokens"])
-    await expect(sheet.getByRole("link", { name }).first()).toBeVisible();
-  await expect(sheet.getByRole("link", { name: "Admin" })).toHaveCount(0);
+  // And the sidebar's switcher and Propose item (119).
+  for (const name of ["Home", "Catalogue", "Submissions", "CLI & tokens", "Account"])
+    await expect(sheet.getByRole("link", { name, exact: true })).toBeVisible();
+  // Reviews' name carries its count, when some wait.
+  await expect(sheet.getByRole("link", { name: /^Reviews/ })).toBeVisible();
+  await expect(sheet.getByRole("link", { name: /^Documentation/ })).toBeVisible();
+  await expect(sheet.getByRole("link", { name: "Propose item" })).toBeVisible();
+  await expect(sheet.locator("summary").first()).toBeVisible();
+  await expect(sheet.getByRole("link", { name: "Users", exact: true })).toHaveCount(0);
   await expect(sheet.getByRole("button", { name: "Sign out" })).toBeVisible();
   await expect(sheet.getByRole("button", { name: /^Switch to the/ })).toBeVisible();
 
@@ -37,13 +43,13 @@ test("the Menu opens the navigation and closes on Esc, a link, back and outside"
 
   // A link: the page changes and the sheet is gone.
   await menu.click();
-  await sheet.getByRole("link", { name: "Catalogue" }).click();
+  await sheet.getByRole("link", { name: "Catalogue", exact: true }).click();
   await expect(page).toHaveURL(/\/catalogue$/);
   await expect(sheet).toBeHidden();
 
   // Back, with the sheet open; it marks the page you're on.
   await menu.click();
-  await expect(sheet.getByRole("link", { name: "Catalogue" })).toHaveAttribute(
+  await expect(sheet.getByRole("link", { name: "Catalogue", exact: true })).toHaveAttribute(
     "aria-current",
     "page",
   );
@@ -58,6 +64,17 @@ test("the Menu opens the navigation and closes on Esc, a link, back and outside"
   else await sheet.getByRole("button", { name: "Close" }).click();
   await expect(sheet).toBeHidden();
   await expect(menu).toBeFocused();
+
+  // The workspace switcher (119): their personal workspace first; choosing it opens its page and
+  // closes the sheet.
+  await menu.click();
+  await sheet.locator("summary").first().click();
+  const personal = sheet.getByRole("link").filter({ hasText: "personal" }).first();
+  const href = (await personal.getAttribute("href")) ?? "";
+  expect(href).toMatch(/^\/workspaces\/[^/]+$/);
+  await personal.click();
+  await expect(page).toHaveURL(new RegExp(`${href}$`));
+  await expect(sheet).toBeHidden();
 });
 
 /** Inside the viewport, sideways: a tab a strip scrolled to, not one off its edge. */
@@ -102,12 +119,20 @@ test.describe("without JavaScript", () => {
     await expect(page).toHaveURL(/\/menu$/);
     const main = page.getByRole("main");
     await expect(main.getByRole("heading", { name: "Menu" })).toBeVisible();
-    for (const name of ["Home", "Catalogue", "Submissions", "Reviews", "Admin", "Docs"])
-      await expect(main.getByRole("link", { name: new RegExp(`^${name}`) }).first()).toBeVisible();
-    // Docs opens the website's Documentation in a new tab (088).
-    const docs = main.getByRole("link", { name: /^Docs/ });
+    for (const name of ["Home", "Catalogue", "Submissions", "Users", "Audit log"])
+      await expect(main.getByRole("link", { name, exact: true })).toBeVisible();
+    await expect(main.getByRole("link", { name: /^Reviews/ })).toBeVisible();
+    // Documentation opens the website in a new tab (088).
+    const docs = main.getByRole("link", { name: /^Documentation/ });
     await expect(docs).toHaveAttribute("href", "https://www.ronne.ai/marketplace/docs");
     await expect(docs).toHaveAttribute("target", "_blank");
+    // The sidebar's switcher and Propose item work without JavaScript too (119).
+    await expect(main.getByRole("link", { name: "Propose item" })).toHaveAttribute(
+      "href",
+      "/submissions/new",
+    );
+    await main.locator("summary").first().click();
+    await expect(main.getByRole("link", { name: "All workspaces" })).toBeVisible();
     await main.getByRole("button", { name: "Sign out" }).click();
     await expect(page).toHaveURL(/\/sign-in/);
   });

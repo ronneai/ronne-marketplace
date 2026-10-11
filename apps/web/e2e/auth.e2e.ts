@@ -25,7 +25,7 @@ test("signs in and comes back to the page that was asked for", async ({ page }) 
   await signIn(page, E2E_USERS.root);
   await expect(page).toHaveURL(/\/account\/password$/);
   await expect(headerName(page, E2E_NAMES.root)).toBeVisible();
-  await expect(page.getByRole("link", { name: "Admin" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Users", exact: true })).toBeVisible();
 });
 
 test("Forgot? names this install's reset command and links to Root accounts (#147)", async ({

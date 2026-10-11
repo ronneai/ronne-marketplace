@@ -7,177 +7,174 @@ vi.mock("next/navigation", () => ({ usePathname: () => navigation.path }));
 vi.mock("@/features/theme/actions", () => ({ setThemeFromForm: vi.fn() }));
 
 const { AppShell } = await import("./AppShell");
+const { Sidebar } = await import("./Sidebar");
+const { WorkspaceSwitcher } = await import("./WorkspaceSwitcher");
 
-import { MainNav } from "./MainNav";
+import { canPropose, groupNav, isCurrent, NAV, navFor, type ShellUser } from "./nav";
+import { parseFolded, sidebarCookie } from "./sidebar-cookie";
 
 const GLOBAL = "00000000000000000000000000";
 
-import { isCurrent, navFor } from "./nav";
+const ROOT: ShellUser = { name: "R", email: "r@example.com", role: "root" };
+const member = (workspaces: Record<string, "admin" | "moderator" | "user">): ShellUser => ({
+  name: "U",
+  email: "u@example.com",
+  role: "user",
+  workspaces,
+});
+const labels = (user: ShellUser | null, counts?: Record<string, number>) =>
+  navFor(user, counts).map((item) => item.label);
 
 describe("navFor", () => {
-  it("shows nothing signed out, Home, Catalogue, Submissions and Docs for everyone, Reviews to reviewers, and Admin only for root", () => {
-    // Their own personal workspace (114) puts no Reviews, Requests or Admin in the nav.
-    const owner = {
-      name: "Ana",
-      email: "ana@example.com",
-      role: "user" as const,
-      workspaces: { mine: "admin", g: "user" } as Record<string, "admin" | "moderator" | "user">,
-      personal: "mine",
-    };
-    const labels = (user: typeof owner) =>
-      navFor(user, { "/reviews": 1, "/workspaces/requests": 1 }).map((item) => item.label);
-    expect(labels(owner)).not.toContain("Admin");
-    expect(labels(owner)).not.toContain("Reviews");
-    expect(labels(owner)).not.toContain("Requests");
-    expect(labels({ ...owner, workspaces: { ...owner.workspaces, team: "admin" } })).toEqual(
-      expect.arrayContaining(["Reviews", "Requests"]),
-    );
+  it("gives a member Discover's links, Submissions and the Tools; nothing signed out", () => {
     expect(navFor(null)).toEqual([]);
-    expect(
-      navFor({
-        name: "U",
-        email: "u@example.com",
-        role: "user",
-        workspaces: { [GLOBAL]: "user" },
-      }).map((i) => i.label),
-    ).toEqual(["Home", "Catalogue", "Workspaces", "Submissions", "Docs"]);
-    // A moderator of another workspace only, a plain user in global (091).
-    expect(
-      navFor({
-        name: "A",
-        email: "a@example.com",
-        role: "user",
-        workspaces: { [GLOBAL]: "user", acme: "moderator" },
-      }).map((i) => i.label),
-    ).toEqual(["Home", "Catalogue", "Workspaces", "Submissions", "Reviews", "Docs"]);
-    // In no workspace at all (not reachable while everyone is in global): nothing to submit to.
-    expect(navFor({ name: "N", email: "n@example.com", role: "user" }).map((i) => i.label)).toEqual(
-      ["Home", "Catalogue", "Workspaces", "Docs"],
-    );
-    expect(
-      navFor({
-        name: "M",
-        email: "m@example.com",
-        role: "user",
-        workspaces: { [GLOBAL]: "moderator" },
-      }).map((i) => i.label),
-    ).toEqual(["Home", "Catalogue", "Workspaces", "Submissions", "Reviews", "Docs"]);
-    expect(navFor({ name: "R", email: "r@example.com", role: "root" }).map((i) => i.label)).toEqual(
-      ["Home", "Catalogue", "Workspaces", "Submissions", "Reviews", "Admin", "Docs"],
-    );
-    expect(navFor({ name: "R", email: "r@example.com", role: "root" })[5]?.href).toBe(
-      "/admin/users",
-    );
-  });
-
-  it("gives a workspace's admin no Admin: they manage it under Workspaces (115)", () => {
-    const admin = navFor({
-      name: "A",
-      email: "a@example.com",
-      role: "user",
-      workspaces: { [GLOBAL]: "user", acme: "admin" },
-    });
-    expect(admin.map((i) => i.label)).toEqual([
+    expect(labels(member({ [GLOBAL]: "user" }))).toEqual([
       "Home",
       "Catalogue",
       "Workspaces",
       "Submissions",
-      "Reviews",
-      "Docs",
+      "Documentation",
+      "CLI & tokens",
     ]);
+    // In no workspace at all (not reachable while everyone is in global): nothing to submit to.
+    expect(labels({ name: "N", email: "n@example.com", role: "user" })).toEqual([
+      "Home",
+      "Catalogue",
+      "Workspaces",
+      "Documentation",
+      "CLI & tokens",
+    ]);
+  });
+
+  it("adds Reviews for a moderator anywhere, and no Admin pages for a workspace's admin (091, 115)", () => {
+    const reviewer = [
+      "Home",
+      "Catalogue",
+      "Workspaces",
+      "Reviews",
+      "Submissions",
+      "Documentation",
+      "CLI & tokens",
+    ];
+    expect(labels(member({ [GLOBAL]: "moderator" }))).toEqual(reviewer);
+    expect(labels(member({ [GLOBAL]: "user", acme: "moderator" }))).toEqual(reviewer);
+    expect(labels(member({ [GLOBAL]: "user", acme: "admin" }))).toEqual(reviewer);
+  });
+
+  it("gives root Admin's three pages instead of one Admin link (119)", () => {
+    expect(labels(ROOT)).toEqual([
+      "Home",
+      "Catalogue",
+      "Workspaces",
+      "Reviews",
+      "Submissions",
+      "Users",
+      "Audit log",
+      "Settings",
+      "Documentation",
+      "CLI & tokens",
+    ]);
+    expect(navFor(ROOT).map((item) => item.href)).toEqual(
+      expect.arrayContaining(["/admin/users", "/admin/audit", "/admin/settings"]),
+    );
+  });
+
+  it("puts nothing in it for owning a personal workspace (114)", () => {
+    const owner = { ...member({ mine: "admin", g: "user" }), personal: "mine" };
+    const counts = { "/reviews": 1, "/workspaces/requests": 1 };
+    for (const label of ["Reviews", "Requests", "Users"])
+      expect(labels(owner, counts)).not.toContain(label);
+    expect(
+      labels({ ...owner, workspaces: { ...owner.workspaces, team: "admin" } }, counts),
+    ).toEqual(expect.arrayContaining(["Reviews", "Requests"]));
+  });
+
+  it("opens Documentation, the website (088), in a new tab", () => {
+    const docs = NAV.find((item) => item.label === "Documentation");
+    expect(docs?.href).toBe("https://www.ronne.ai/marketplace/docs");
+    expect(docs?.external).toBe(true);
   });
 });
 
 describe("Requests in the nav (094)", () => {
-  const moderator = {
-    name: "M",
-    email: "m@example.com",
-    role: "user" as const,
-    workspaces: { [GLOBAL]: "user" as const, acme: "moderator" as const },
-  };
-  const user = { ...moderator, workspaces: { [GLOBAL]: "user" as const } };
-  const labels = (items: ReturnType<typeof navFor>) => items.map((i) => i.label);
+  const moderator = member({ [GLOBAL]: "user", acme: "moderator" });
 
-  it("shows Requests next to Reviews only while some wait for someone who can answer", () => {
-    expect(labels(navFor(moderator))).not.toContain("Requests");
-    expect(labels(navFor(moderator, { "/workspaces/requests": 0 }))).not.toContain("Requests");
-    expect(labels(navFor(moderator, { "/workspaces/requests": 2 }))).toEqual([
+  it("shows Requests under Discover only while some wait for someone who can answer", () => {
+    expect(labels(moderator)).not.toContain("Requests");
+    expect(labels(moderator, { "/workspaces/requests": 0 })).not.toContain("Requests");
+    expect(labels(moderator, { "/workspaces/requests": 2 }).slice(0, 4)).toEqual([
       "Home",
       "Catalogue",
       "Workspaces",
-      "Submissions",
-      "Reviews",
       "Requests",
-      "Docs",
     ]);
-    expect(navFor(moderator, { "/workspaces/requests": 2 })[5]?.href).toBe("/workspaces/requests");
-    expect(
-      labels(
-        navFor({ name: "R", email: "r@example.com", role: "root" }, { "/workspaces/requests": 1 }),
-      ),
-    ).toContain("Requests");
+    expect(labels(ROOT, { "/workspaces/requests": 1 })).toContain("Requests");
   });
 
   it("never shows it to someone who answers nowhere, whatever the count", () => {
-    expect(labels(navFor(user, { "/workspaces/requests": 3 }))).not.toContain("Requests");
-  });
-
-  it("shows the count next to Requests", () => {
-    const html = renderToStaticMarkup(
-      <MainNav
-        items={navFor(moderator, { "/workspaces/requests": 2 })}
-        counts={{ "/workspaces/requests": 2 }}
-      />,
-    );
-    expect(html).toMatch(
-      /href="\/workspaces\/requests"[^>]*>Requests<span[^>]*>2<span class="sr-only"> waiting/,
+    expect(labels(member({ [GLOBAL]: "user" }), { "/workspaces/requests": 3 })).not.toContain(
+      "Requests",
     );
   });
 });
 
-describe("MainNav", () => {
-  it("is positioned, so its scrolling strip clips the counts' screen-reader text (065)", () => {
-    const html = renderToStaticMarkup(<MainNav items={[]} />);
-    expect(html).toMatch(/<nav aria-label="Main" class="relative /);
+describe("groupNav", () => {
+  it("keeps the groups in order and leaves out an empty one", () => {
+    const grouped = (user: ShellUser) =>
+      groupNav(navFor(user)).map((group) => [group.label, group.items.map((item) => item.label)]);
+    expect(grouped(ROOT)).toEqual([
+      ["Discover", ["Home", "Catalogue", "Workspaces"]],
+      ["Governance & reviews", ["Reviews", "Submissions", "Users", "Audit log", "Settings"]],
+      ["Tools", ["Documentation", "CLI & tokens"]],
+    ]);
+    expect(grouped({ name: "N", email: "n@example.com", role: "user" })).toEqual([
+      ["Discover", ["Home", "Catalogue", "Workspaces"]],
+      ["Tools", ["Documentation", "CLI & tokens"]],
+    ]);
   });
+});
 
-  it("puts Admin and Docs at the right, before the appearance switch", () => {
-    const html = renderToStaticMarkup(
-      <MainNav items={navFor({ name: "R", email: "r@example.com", role: "root" })} />,
-    );
-    const at = (label: string) => html.indexOf(`>${label}<`);
-    const spacer = html.indexOf('<span class="ml-auto">');
-    expect(at("Reviews")).toBeLessThan(spacer);
-    expect(spacer).toBeLessThan(at("Admin"));
-    expect(at("Admin")).toBeLessThan(at("Docs"));
+describe("canPropose", () => {
+  it("is for those who can submit", () => {
+    expect(canPropose(null)).toBe(false);
+    expect(canPropose({ name: "N", email: "n@example.com", role: "user" })).toBe(false);
+    expect(canPropose(member({ [GLOBAL]: "user" }))).toBe(true);
+    expect(canPropose(ROOT)).toBe(true);
   });
+});
 
-  it("opens Docs, the Documentation on the website, in a new tab (088)", () => {
-    navigation.path = "/docs";
-    const html = renderToStaticMarkup(
-      <MainNav items={navFor({ name: "U", email: "u@example.com", role: "user" })} />,
+describe("the fold cookie", () => {
+  it("is folded only when it says so, and is set for the whole site for a year", () => {
+    expect(parseFolded("folded")).toBe(true);
+    for (const value of [undefined, "open", "FOLDED", ""]) expect(parseFolded(value)).toBe(false);
+    expect(sidebarCookie(true)).toBe(
+      "ronne-sidebar=folded; path=/; max-age=31536000; samesite=lax",
     );
-    navigation.path = "/";
-    const docs = /<a [^>]*>Docs<[\s\S]*?<\/a>/.exec(html)?.[0] ?? "";
-    expect(docs).toMatch(/^<a href="https:\/\/www\.ronne\.ai\/marketplace\/docs" /);
-    expect(docs).toContain('target="_blank" rel="noopener noreferrer"');
-    expect(docs).toContain("(opens in a new tab)");
-    expect(docs).not.toContain("aria-current");
+    expect(sidebarCookie(false)).toMatch(/^ronne-sidebar=open;/);
   });
 });
 
 describe("isCurrent", () => {
+  const find = (label: string) => {
+    const item = navFor(ROOT).find((i) => i.label === label);
+    if (!item) throw new Error(label);
+    return item;
+  };
+
   it("marks Catalogue on the catalogue and on item pages, and Home only on the home page", () => {
-    const [home, catalogue] = navFor({ name: "U", email: "u@example.com", role: "user" });
-    expect(catalogue && isCurrent(catalogue, "/catalogue")).toBe(true);
-    expect(catalogue && isCurrent(catalogue, "/items/team/fmt/versions")).toBe(true);
-    expect(catalogue && isCurrent(catalogue, "/itemsx")).toBe(false);
+    const catalogue = find("Catalogue");
+    expect(isCurrent(catalogue, "/catalogue")).toBe(true);
+    expect(isCurrent(catalogue, "/items/team/fmt/versions")).toBe(true);
+    expect(isCurrent(catalogue, "/itemsx")).toBe(false);
     // A workspace's item pages are the catalogue's too; its join page isn't (118).
-    expect(catalogue && isCurrent(catalogue, "/workspaces/acme/items/team/fmt")).toBe(true);
-    expect(catalogue && isCurrent(catalogue, "/workspaces/acme/join")).toBe(false);
-    expect(home && isCurrent(home, "/")).toBe(true);
-    // Workspaces on the list and a workspace's pages (115), not on Requests or its items.
-    const workspaces = navFor({ name: "U", email: "u@example.com", role: "user" })[2];
+    expect(isCurrent(catalogue, "/workspaces/acme/items/team/fmt")).toBe(true);
+    expect(isCurrent(catalogue, "/workspaces/acme/join")).toBe(false);
+    expect(isCurrent(find("Home"), "/")).toBe(true);
+    expect(isCurrent(find("Home"), "/catalogue")).toBe(false);
+  });
+
+  it("marks Workspaces on the list and a workspace's pages (115), not on Requests or its items", () => {
+    const workspaces = find("Workspaces");
     for (const [path, current] of [
       ["/workspaces", true],
       ["/workspaces/acme", true],
@@ -186,15 +183,172 @@ describe("isCurrent", () => {
       ["/workspaces/acme/items/team/fmt", false],
       ["/workspacesx", false],
     ] as const)
-      expect(workspaces && isCurrent(workspaces, path), path).toBe(current);
-    expect(home && isCurrent(home, "/catalogue")).toBe(false);
+      expect(isCurrent(workspaces, path), path).toBe(current);
+  });
+
+  it("marks each Admin page on its own pages only", () => {
+    expect(isCurrent(find("Users"), "/admin/users")).toBe(true);
+    expect(isCurrent(find("Users"), "/admin/audit")).toBe(false);
+    expect(isCurrent(find("Audit log"), "/admin/audit")).toBe(true);
+    expect(isCurrent(find("Settings"), "/admin/settings")).toBe(true);
+    expect(isCurrent(find("CLI & tokens"), "/account/tokens")).toBe(true);
+  });
+
+  it("marks Requests on its page, and nothing else there", () => {
+    const items = navFor(ROOT, { "/workspaces/requests": 1 });
+    expect(
+      items.filter((item) => isCurrent(item, "/workspaces/requests")).map((i) => i.label),
+    ).toEqual(["Requests"]);
+  });
+});
+
+describe("WorkspaceSwitcher", () => {
+  const workspaces = [
+    { name: "ana", role: "admin" as const, personal: true },
+    { name: "global", role: "user" as const, personal: false },
+    { name: "acme", role: "moderator" as const, personal: false },
+  ];
+
+  it("shows the personal workspace, and lists them in order, each opening its page", () => {
+    const html = renderToStaticMarkup(<WorkspaceSwitcher workspaces={workspaces} />);
+    const summary = html.slice(html.indexOf("<summary"), html.indexOf("</summary>"));
+    expect(summary).toContain(">ana<");
+    expect(summary).toContain("Personal workspace");
+    const links = [...html.matchAll(/<a [^>]*href="([^"]+)"/g)].map((match) => match[1]);
+    expect(links).toEqual([
+      "/workspaces/ana",
+      "/workspaces/global",
+      "/workspaces/acme",
+      "/workspaces",
+    ]);
+    expect(html).toMatch(/>acme<\/span><span[^>]*>moderator</);
+    expect(html).toMatch(/>ana<\/span><span[^>]*>personal</);
+    expect(html).toContain("All workspaces");
+  });
+
+  it("says Workspaces when there's no personal one, and is named by its label when folded", () => {
+    const html = renderToStaticMarkup(<WorkspaceSwitcher workspaces={workspaces.slice(1)} />);
+    expect(html.slice(html.indexOf("<summary"), html.indexOf("</summary>"))).toContain(
+      ">Workspaces<",
+    );
+    expect(renderToStaticMarkup(<WorkspaceSwitcher workspaces={workspaces} folded />)).toContain(
+      'aria-label="Workspaces: ana (personal workspace)"',
+    );
+  });
+
+  it("puts each full name in a title, since a long one is cut", () => {
+    const html = renderToStaticMarkup(<WorkspaceSwitcher workspaces={workspaces} />);
+    expect(html).toContain('title="acme"');
+    expect(html).toContain('title="ana (personal workspace)"');
+  });
+
+  it("encodes a name in its link", () => {
+    const html = renderToStaticMarkup(
+      <WorkspaceSwitcher workspaces={[{ name: "a b", role: "user", personal: false }]} />,
+    );
+    expect(html).toContain('href="/workspaces/a%20b"');
+  });
+});
+
+describe("Sidebar", () => {
+  const sidebar = (props: Partial<Parameters<typeof Sidebar>[0]> = {}) =>
+    renderToStaticMarkup(
+      <Sidebar
+        user={ROOT}
+        items={navFor(ROOT, { "/reviews": 3 })}
+        counts={{ "/reviews": 3 }}
+        workspaces={[{ name: "r", role: "admin", personal: true }]}
+        propose
+        appearance={<span>THEME</span>}
+        signOutAction={async () => {}}
+        version="1.2.3"
+        {...props}
+      />,
+    );
+
+  it("shows the groups' headings, the links, Propose item and the count", () => {
+    const html = sidebar();
+    const at = (text: string) => html.indexOf(text);
+    expect(at(">Discover<")).toBeLessThan(at(">Home<"));
+    expect(at(">Home<")).toBeLessThan(at(">Governance &amp; reviews<"));
+    expect(at(">Governance &amp; reviews<")).toBeLessThan(at(">Users<"));
+    expect(at(">Users<")).toBeLessThan(at(">Tools<"));
+    expect(html).toMatch(/href="\/submissions\/new"[^>]*>.*Propose item<\/a>/);
+    expect(html).toMatch(/Reviews<\/span><span[^>]*>3<span class="sr-only"> waiting/);
+    expect(html).toContain('<nav aria-label="Main"');
+  });
+
+  it("leaves out Propose item for those who can't submit", () => {
+    expect(sidebar({ propose: false })).not.toContain("Propose item");
+  });
+
+  it("marks the current link from the live path", () => {
+    navigation.path = "/admin/audit";
+    const html = sidebar();
+    navigation.path = "/";
+    expect(html).toMatch(/aria-current="page"[^>]*>.*?Audit log</);
+    expect(html.match(/aria-current="page"/g)).toHaveLength(1);
+  });
+
+  it("opens Documentation in a new tab", () => {
+    const docs = /<a [^>]*href="https:\/\/www\.ronne\.ai[^"]*"[^>]*>[\s\S]*?<\/a>/.exec(sidebar());
+    expect(docs?.[0]).toContain('target="_blank" rel="noopener noreferrer"');
+    expect(docs?.[0]).toContain("(opens in a new tab)");
+    expect(docs?.[0]).not.toContain("aria-current");
+  });
+
+  it("puts the person, their menu, the appearance switch and the version at the foot", () => {
+    const html = sidebar();
+    const summary = html.slice(html.lastIndexOf("<summary"), html.lastIndexOf("</summary>"));
+    expect(summary).toContain(">R<");
+    expect(summary).not.toContain("r@example.com");
+    expect(html).toMatch(/<summary [^>]*title="R"/);
+    expect(summary).toMatch(/rounded-full[^>]*>root</);
+    const menu = html.slice(html.lastIndexOf("</summary>"));
+    expect(menu).toContain("r@example.com");
+    expect(menu).toContain('href="/account/password"');
+    expect(menu).toContain(">Sign out</button>");
+    expect(menu).toContain("THEME");
+    expect(menu).toContain("ronne marketplace v1.2.3");
+  });
+
+  it("gives plain users no role badge", () => {
+    const user = member({ [GLOBAL]: "user" });
+    expect(sidebar({ user, items: navFor(user) })).not.toMatch(/>user</);
+  });
+
+  it("unfolded, offers to fold; folded, names every icon and puts a dot where a count waits", () => {
+    expect(sidebar()).toContain('aria-label="Fold the sidebar"');
+    expect(sidebar()).toMatch(/aria-expanded="true" aria-controls="sidebar"/);
+    const html = sidebar({ folded: true });
+    expect(html).toContain('aria-label="Unfold the sidebar"');
+    expect(html).toContain("w-16");
+    expect(html).not.toContain(">Discover<");
+    for (const name of [
+      "Home",
+      "Catalogue",
+      "Reviews (3 waiting)",
+      "Users",
+      "Documentation (opens in a new tab)",
+      "CLI &amp; tokens",
+      "Propose item",
+      "R, your account",
+    ])
+      expect(html, name).toContain(`aria-label="${name}"`);
+    expect(html).toContain('aria-label="Ronne"');
+    expect(html).not.toContain("v1.2.3");
+    // The dot: on Reviews, which has a count, and on no other link.
+    const dot = /<span aria-hidden="true" class="[^"]*\brounded-full bg-accent\b/g;
+    const reviews = /<a [^>]*aria-label="Reviews \(3 waiting\)"[\s\S]*?<\/a>/.exec(html)?.[0] ?? "";
+    expect(reviews).toMatch(dot);
+    expect(html.match(dot)).toHaveLength(1);
   });
 });
 
 describe("AppShell", () => {
-  const render = (user: Parameters<typeof AppShell>[0]["user"], signOut?: () => Promise<void>) =>
+  const render = (user: ShellUser | null, props: Partial<Parameters<typeof AppShell>[0]> = {}) =>
     renderToStaticMarkup(
-      <AppShell user={user} signOutAction={signOut}>
+      <AppShell user={user} signOutAction={async () => {}} {...props}>
         <p>content</p>
       </AppShell>,
     );
@@ -207,109 +361,73 @@ describe("AppShell", () => {
     expect(html).toContain("min-h-dvh");
   });
 
-  it("renders the brand, the content and the footer, with no user menu when signed out", () => {
+  it("signed out: the brand, the appearance switch, the content and the footer, and no sidebar", () => {
     const html = render(null);
     expect(html).toContain('aria-label="Ronne AI"');
-    expect(html).toContain(">ronne</text>");
     expect(html).toContain("<p>content</p>");
     expect(html).toContain("open source (MIT)");
+    expect(html).toContain('name="theme"');
+    expect(html).not.toContain("<aside");
     expect(html).not.toContain("<details");
+    expect(html).not.toContain("<dialog");
+    // The header stays from lg: there's no sidebar to take its place.
+    expect(html).toMatch(/<header class="[^"]*"/);
+    expect(/<header class="([^"]*)"/.exec(html)?.[1]).not.toContain("lg:hidden");
   });
 
-  it("shows the name in the header, the name and email in the menu, and a role badge", () => {
-    const html = render(
-      { name: "Grace Hopper", email: "root@example.com", role: "root" },
-      async () => {},
+  it("signed in: the sidebar from lg, the slim header below it, and content that fills the rest", () => {
+    const html = render(ROOT, { theme: "dark", version: "1.2.3", folded: true });
+    expect(html).toMatch(
+      /<aside id="sidebar" aria-label="Sidebar" class="[^"]*\bhidden\b[^"]*\blg:flex\b/,
     );
-    const summary = html.slice(html.indexOf("<summary"), html.indexOf("</summary>"));
-    expect(summary).toContain("Grace Hopper");
-    expect(summary).not.toContain("root@example.com");
-    const menu = html.slice(html.indexOf("</summary>"));
-    expect(menu).toContain("Grace Hopper");
-    expect(menu).toContain("root@example.com");
-    expect(html).toMatch(/rounded-full[^>]*>root</);
-    expect(html).toContain("Access tokens");
-    expect(html).toContain("Sign out");
-    expect(html).toContain('href="/admin/users"');
-  });
-
-  it("gives plain users no role badge and no Admin link", () => {
-    const html = render({ name: "U", email: "u@example.com", role: "user" });
-    expect(html).not.toContain('href="/admin/users"');
-    expect(html).not.toMatch(/>user</);
-  });
-
-  it("marks the current item from the live path, including every admin page", () => {
-    const root = { name: "R", email: "r@example.com", role: "root" } as const;
-    navigation.path = "/";
-    expect(render(root)).toMatch(/aria-current="page"[^>]*>Home</);
-    for (const path of ["/admin/users", "/admin/audit", "/admin"]) {
-      navigation.path = path;
-      const html = render(root);
-      expect(html, path).toMatch(/aria-current="page"[^>]*>Admin</);
-      expect(html, path).not.toMatch(/aria-current="page"[^>]*>Home</);
-    }
-    navigation.path = "/account/tokens";
-    expect(render(root)).not.toContain('aria-current="page"');
-  });
-
-  it("puts the theme switch in the header, not in the user menu", () => {
-    const html = renderToStaticMarkup(
-      <AppShell user={{ name: "U", email: "u@example.com", role: "user" }} theme="dark">
-        <p>content</p>
-      </AppShell>,
-    );
-    const header = html.slice(0, html.indexOf("<details"));
-    expect(header).toContain("Switch to the light theme");
-    expect(header).toContain('value="light"');
-    expect(html.slice(html.indexOf("<details"))).not.toContain('name="theme"');
+    expect(html).toMatch(/<header class="[^"]*\blg:hidden\b/);
+    expect(html).toMatch(/<main class="w-full flex-1 [^"]*\bsm:px-6\b/);
+    expect(/<main class="([^"]*)"/.exec(html)?.[1]).not.toMatch(/max-w|mx-auto/);
+    const aside = html.slice(html.indexOf("<aside"), html.indexOf("</aside>"));
+    expect(aside).toContain("Switch to the light theme");
+    expect(aside).toContain('aria-label="Unfold the sidebar"');
   });
 
   describe("below lg, the Menu (066)", () => {
     const sheet = (html: string) => html.slice(html.indexOf("<dialog"), html.indexOf("</dialog>"));
     const links = (html: string) =>
-      [...sheet(html).matchAll(/<a [^>]*>([^<]+)/g)].map((match) => match[1]);
+      [...sheet(html).matchAll(/<a [^>]*>(?:<svg[\s\S]*?<\/svg>)?([^<]+)/g)].map((match) =>
+        match[1]?.replace("&amp;", "&"),
+      );
     const shell = (role: "user" | "moderator" | "root", counts?: Record<string, number>) =>
-      renderToStaticMarkup(
-        <AppShell
-          user={{
-            name: "Ada",
-            email: "ada@example.com",
-            role: role === "root" ? "root" : "user",
-            workspaces: { [GLOBAL]: role === "moderator" ? "moderator" : "user" },
-          }}
-          signOutAction={async () => {}}
-          navCounts={counts}
-        >
-          <p>content</p>
-        </AppShell>,
+      render(
+        {
+          name: "Ada",
+          email: "ada@example.com",
+          role: role === "root" ? "root" : "user",
+          workspaces: { [GLOBAL]: role === "moderator" ? "moderator" : "user" },
+        },
+        {
+          navCounts: counts,
+          workspaces: [{ name: "ada", role: "admin", personal: true }],
+        },
       );
 
-    it("hides the strip, the theme switch and the account menu below lg, and links Menu to /menu until the script runs", () => {
-      const html = shell("user");
-      expect(html).toMatch(/<nav aria-label="Main" class="[^"]*\bhidden\b[^"]*\blg:flex\b/);
-      expect(html).toMatch(/<div class="ml-auto lg:hidden"><a class="[^"]*" href="\/menu">/);
-      expect(html).toMatch(/class="[^"]*\bhidden lg:flex"><form/);
-      expect(html).toMatch(/<\/svg>Menu<\/a>/);
+    it("links Menu to /menu until the script runs", () => {
+      expect(shell("user")).toMatch(/<\/svg>Menu<\/a>/);
+      expect(shell("user")).toContain('href="/menu"');
     });
 
-    it("keeps the theme switch in view signed out, with no Menu", () => {
-      const html = render(null);
-      expect(html).not.toContain("<dialog");
-      expect(html).toMatch(/class="ml-auto shrink-0 items-center gap-2 flex"><form/);
-    });
-
-    it("lists a member's links, then the account part, the appearance switch and Sign out", () => {
+    it("lists the switcher, Propose item, the groups, then the account, the appearance switch and Sign out", () => {
       const html = shell("user");
+      expect(sheet(html)).toContain('href="/workspaces/ada"');
       expect(links(html)).toEqual([
+        "All workspaces",
+        "Propose item",
         "Home",
         "Catalogue",
         "Workspaces",
         "Submissions",
-        "Docs",
+        "Documentation",
+        "CLI & tokens",
         "Account",
-        "Access tokens",
       ]);
+      expect(sheet(html)).toContain(">Discover<");
       expect(sheet(html)).toContain("ada@example.com");
       expect(sheet(html)).toContain("Appearance");
       expect(sheet(html)).toContain('name="theme"');
@@ -325,22 +443,12 @@ describe("AppShell", () => {
       expect(sheet(html)).not.toMatch(/>moderator</);
     });
 
-    it("gives root Admin, and marks the current page", () => {
+    it("gives root Admin's pages, and marks the current page", () => {
       navigation.path = "/admin/audit";
       const html = shell("root");
-      expect(links(html)).toEqual([
-        "Home",
-        "Catalogue",
-        "Workspaces",
-        "Submissions",
-        "Reviews",
-        "Admin",
-        "Docs",
-        "Account",
-        "Access tokens",
-      ]);
-      expect(sheet(html)).toMatch(/aria-current="page"[^>]*>Admin</);
       navigation.path = "/";
+      expect(links(html)).toEqual(expect.arrayContaining(["Users", "Audit log", "Settings"]));
+      expect(sheet(html)).toMatch(/aria-current="page"[^>]*>(?:<svg[\s\S]*?<\/svg>)?Audit log</);
     });
 
     it("shows no count on the Menu button when nothing waits", () => {

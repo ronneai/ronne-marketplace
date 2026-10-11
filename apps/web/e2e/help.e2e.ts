@@ -43,8 +43,10 @@ test("a user opens a helper in the New item form, whose Learn more and Docs open
   await expect(learnMore).toHaveAttribute("href", `${DOCS_URL}/scopes#what`);
   await expect(learnMore).toHaveAttribute("target", "_blank");
   await expect(learnMore).toHaveAccessibleName("Learn more (opens in a new tab)");
-  // So does Docs, in the main nav.
-  const docs = page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: /^Docs/ });
+  // So does Documentation, in the sidebar (119).
+  const docs = page
+    .getByRole("navigation", { name: "Main" })
+    .getByRole("link", { name: /^Documentation/ });
   await expect(docs).toHaveAttribute("href", DOCS_URL);
   await expect(docs).toHaveAttribute("target", "_blank");
   await expect(docs).not.toHaveAttribute("aria-current", "page");

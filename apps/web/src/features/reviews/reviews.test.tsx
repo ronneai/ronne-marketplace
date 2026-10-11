@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { MainNav } from "@/components/app-shell/MainNav";
+import { Sidebar } from "@/components/app-shell/Sidebar";
 import type { QueueRow } from "@/server/domains/submissions/actions/reviews";
 
 const reviews = vi.hoisted(() => ({
@@ -361,13 +361,27 @@ describe("the To release tab (055)", () => {
 
 describe("the nav count", () => {
   it("shows a count next to an item, and nothing for zero", () => {
-    const items = [{ href: "/reviews", label: "Reviews" }];
-    expect(renderToStaticMarkup(<MainNav items={items} counts={{ "/reviews": 3 }} />)).toMatch(
-      /Reviews<span[^>]*>3<span class="sr-only"> waiting/,
-    );
-    expect(
-      renderToStaticMarkup(<MainNav items={items} counts={{ "/reviews": 0 }} />),
-    ).not.toContain("waiting");
+    const items = [
+      {
+        href: "/reviews",
+        label: "Reviews",
+        group: "governance" as const,
+        icon: "reviews" as const,
+      },
+    ];
+    const sidebar = (count: number) =>
+      renderToStaticMarkup(
+        <Sidebar
+          user={{ name: "M", email: "m@example.com", role: "user" }}
+          items={items}
+          counts={{ "/reviews": count }}
+          workspaces={[]}
+          propose={false}
+          appearance={null}
+        />,
+      );
+    expect(sidebar(3)).toMatch(/Reviews<\/span><span[^>]*>3<span class="sr-only"> waiting/);
+    expect(sidebar(0)).not.toContain("waiting");
   });
 });
 

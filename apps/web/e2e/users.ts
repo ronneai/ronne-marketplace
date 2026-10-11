@@ -9,6 +9,8 @@ export const E2E_USERS = {
   wrongPassword: "wrong-password@e2e.test",
   remember: "remember@e2e.test",
   signOut: "sign-out@e2e.test",
+  // Folds the sidebar and opens the workspace switcher (119).
+  sidebar: "sidebar@e2e.test",
   changePassword: "change-password@e2e.test",
   notRoot: "not-root@e2e.test",
   tokens: "tokens@e2e.test",
@@ -145,6 +147,7 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   wrongPassword: "Wrong Password",
   remember: "Remember Me",
   signOut: "Sign Out Tester",
+  sidebar: "Sid Sidebar",
   changePassword: "Change Password Tester",
   notRoot: "Not Root",
   tokens: "Token Tester",

@@ -1,8 +1,8 @@
 import { expect, test } from "@playwright/test";
-import { headerName } from "./helpers";
+import { headerName, sidebar } from "./helpers";
 import { E2E_NAMES, E2E_PASSWORD, E2E_USERS } from "./users";
 
-test("the header's theme switch sticks, and the account menu closes", async ({ page }) => {
+test("the sidebar's theme switch sticks, and the account menu closes", async ({ page }) => {
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill(E2E_USERS.notRoot);
   await page.getByLabel("Password", { exact: true }).fill(E2E_PASSWORD);
@@ -12,7 +12,7 @@ test("the header's theme switch sticks, and the account menu closes", async ({ p
   const html = page.locator("html");
   // The browser bar follows the header's colour (feature 065).
   const themeColor = page.locator('meta[name="theme-color"]');
-  const toggle = page.getByRole("banner").getByRole("button", { name: /^Switch to the/ });
+  const toggle = sidebar(page).getByRole("button", { name: /^Switch to the/ });
   // No saved choice: light.
   await expect(html).toHaveAttribute("data-theme", "light");
   await expect(themeColor).toHaveAttribute("content", "#ffffff");
@@ -27,8 +27,9 @@ test("the header's theme switch sticks, and the account menu closes", async ({ p
   await expect(themeColor).toHaveAttribute("content", "#ffffff");
 
   // The account menu closes on a click outside, on Esc and on a change of page (066).
-  const summary = page.getByRole("banner").locator("summary");
-  const details = page.getByRole("banner").locator("details");
+  // The person's menu, at the sidebar's foot (119): the last <details>, after the switcher.
+  const summary = sidebar(page).locator("summary").last();
+  const details = sidebar(page).locator("details").last();
   await summary.click();
   await expect(details).toHaveAttribute("open", "");
   await page.locator("main").click({ position: { x: 5, y: 5 } });
@@ -38,7 +39,7 @@ test("the header's theme switch sticks, and the account menu closes", async ({ p
   await expect(details).not.toHaveAttribute("open");
   await expect(summary).toBeFocused();
   await summary.click();
-  await page.getByRole("banner").getByRole("link", { name: "Access tokens" }).click();
-  await expect(page).toHaveURL(/\/account\/tokens$/);
+  await details.getByRole("link", { name: "Account" }).click();
+  await expect(page).toHaveURL(/\/account\/password$/);
   await expect(details).not.toHaveAttribute("open");
 });
