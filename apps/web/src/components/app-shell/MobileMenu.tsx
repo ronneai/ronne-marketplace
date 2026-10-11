@@ -31,6 +31,7 @@ export const MobileMenu = ({
   items,
   counts = {},
   workspaces = [],
+  current = null,
   propose = false,
   appearance,
   signOutAction,
@@ -40,6 +41,7 @@ export const MobileMenu = ({
   /** Numbers by href, as in the sidebar. */
   counts?: Record<string, number>;
   workspaces?: ShellWorkspace[];
+  current?: string | null;
   propose?: boolean;
   /** The theme switch: a server component, so the shell renders it and passes it in. */
   appearance: ReactNode;
@@ -103,6 +105,7 @@ export const MobileMenu = ({
           items={items}
           counts={counts}
           workspaces={workspaces}
+          current={current}
           propose={propose}
           appearance={appearance}
           signOutAction={signOutAction}

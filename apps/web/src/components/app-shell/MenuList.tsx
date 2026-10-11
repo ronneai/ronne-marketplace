@@ -32,6 +32,7 @@ export const MenuList = ({
   items,
   counts = {},
   workspaces = [],
+  current = null,
   propose = false,
   appearance,
   signOutAction,
@@ -42,6 +43,8 @@ export const MenuList = ({
   /** Numbers by href, as in the sidebar. */
   counts?: Record<string, number>;
   workspaces?: ShellWorkspace[];
+  /** The current workspace (120), or null for All workspaces. */
+  current?: string | null;
   /** Whether the user gets + Propose item. */
   propose?: boolean;
   /** The theme switch: a server component, so the shell renders it and passes it in. */
@@ -54,7 +57,7 @@ export const MenuList = ({
   return (
     <>
       <div className="grid gap-3 pb-3">
-        <WorkspaceSwitcher workspaces={workspaces} />
+        <WorkspaceSwitcher workspaces={workspaces} current={current} />
         {propose ? (
           <Link
             href={PROPOSE.href}

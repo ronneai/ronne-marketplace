@@ -75,3 +75,38 @@ Witnessed: 2026-10-11 19:29 EDT, by a fresh agent (adversarial). Commit: 659b8eb
 
 The adversarial re-check's remark: `route.ts`'s comment still said `all` clears the choice. It now
 says an empty or missing `set=` clears it (Show all). Comment only.
+
+## Task 2 — The switcher
+
+Witnessed: 2026-10-11 19:42 EDT, by a fresh agent (blind). Commit: 7a483ed7 plus the uncommitted working tree (11 files changed, and the new docs/knowledge/links-that-change-state.md). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The switcher lists All workspaces first, then the member's workspaces (personal first, then global, then by name), then Manage workspaces | yes | confirmed | `WorkspaceSwitcher.tsx:79-112` renders All, then `workspaces` in the order given, then Manage. The order comes from `access-requests.ts:454` (personal first; the repository list keeps global first, then by name), which this task didn't change. The unit test "offers All workspaces, then each…" checks the full href order. A scratch e2e probe (sidebar user, no JS) → rows `["All workspaces","sidebar personal","","global user","","Manage workspaces"]` |
+| 2 | Only workspaces the user is a member of are listed | yes | confirmed | `shell.ts` keeps only `w.role` rows. Probe as root → only `root-2 personal`, no other workspaces |
+| 3 | The current one is marked, and only it | yes | confirmed | `WorkspaceSwitcher.tsx:83,93` `aria-current="true"` plus a Check icon. Unit test "marks the current choice, and only it" (exactly one; `set=acme`; All when null). Probe, folded: `a[aria-current=true]` → `root-2` |
+| 4 | Each choice is a plain `<a>` to `/current-workspace?set=<name or empty>&next=<this page with its query>` (task 1's route), so it isn't prefetched | yes | confirmed | `WorkspaceSwitcher.tsx:81,90` use `chooseHref(…, here)`, where `here` = path plus search params. Unit test expects `/current-workspace?set=acme&next=%2Fcatalogue%3Fq%3Dlint%26workspace%3Dacme`. Probe with JS: opened the list and waited 1.5 s without clicking → no `ronne-workspace` cookie |
+| 5 | Choosing a workspace sets it and returns to the same page; All workspaces clears it | yes | confirmed | Probe with no JS: on `/workspaces?x=1`, clicked personal → URL `/workspaces?x=1`, cookie `ronne-workspace=sidebar` (HttpOnly, Lax), button "sidebar / Personal workspace". All workspaces from `/menu` → back on `/menu`, cookie gone. `sidebar.e2e.ts` (with JS) passes |
+| 6 | Works without JavaScript | no | confirmed | `<details>` holding `<a>` links. The no-JS probe in #5 set and cleared the cookie. The `navigation.mobile.e2e.ts` no-JS test checks All workspaces and Manage workspaces are visible on /menu (it doesn't click a choice; my probe did) |
+| 7 | Each row has an Open page link to `/workspaces/<name>` (encoded); Manage workspaces opens `/workspaces` | yes | confirmed | `WorkspaceSwitcher.tsx:100-108,111`. Unit tests check `/workspaces/a%20b` and `aria-label="Open acme's page"`. `sidebar.e2e.ts` clicks Open … page → `/workspaces/<name>`, and Manage workspaces → `/workspaces$` |
+| 8 | The button shows the current workspace's name, with "Personal workspace" for yours, or All workspaces; a stale name shows All | yes | confirmed | `WorkspaceSwitcher.tsx:56-66`. Unit test "shows the current workspace…" covers null, acme, ana (Personal workspace) and the stale `gone` → All. In the probe the button showed "sidebar / Personal workspace" after choosing |
+| 9 | Folded rail: the button is named by the current workspace | yes | confirmed | `WorkspaceSwitcher.tsx:51` `aria-label="Workspace: …"`. Unit test "is named by the current workspace when folded". Probe, folded after reload → `Workspace: root-2 (personal workspace)`, then after All → `Workspace: All workspaces` |
+| 10 | The sidebar, the Menu sheet (below lg) and /menu all get `current` from `loadShell` | yes | confirmed | `layout.tsx`, `menu/page.tsx`, `AppShell.tsx`, `Sidebar.tsx:150`, `MobileMenu.tsx`, `MenuList.tsx:60` pass it through. A scratch vitest probe rendering AppShell (`current="acme"`, folded and unfolded) showed acme in both the aside and the dialog summaries; MenuList `current="ada"` → "ada / Personal workspace". At the time no repo unit test covered the pass-through (see the re-check) |
+| 11 | Component tests cover the list, the marking, the links and the folded name (Done when) | yes | confirmed | `npx vitest run src/components/app-shell src/features/reviews` → 4 files, 88 passed. Read the tests: they assert hrefs, the single aria-current, and the folded aria-label |
+| 12 | The end-to-end tests for the switcher pass on desktop, phone, phone-webkit and tablet | no | confirmed | `.next/BUILD_ID` mtime is after every changed source. `npx playwright test e2e/sidebar.e2e.ts e2e/navigation.mobile.e2e.ts` → 10 passed |
+| 13 | Lint and types are clean on the changed files | no | confirmed | `npx biome check` on the changed folders → 62 files, no fixes. `npx tsc --noEmit -p apps/web` → no output |
+
+**Overall:** met: the switcher lists, marks and links as specified, sets and clears the current workspace through task 1's route with and without JavaScript, and shows the current workspace in the sidebar, the folded rail, the Menu sheet and /menu.
+
+### Re-check — test gaps
+
+Witnessed: 2026-10-11 19:44 EDT, by a fresh agent (blind). Commit: 7a483ed7 plus the uncommitted working tree (now with the updated AppShell.test.tsx; task 3's work in `server/domains/submissions` is in progress and not covered here). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A unit test fails when the sidebar (open and folded) doesn't get `current` | no | confirmed | `AppShell.test.tsx:418` "gives the switcher the current workspace in the sidebar, the folded rail and the Menu (120)". Copied `src` to the scratchpad, removed `current={current}` from `Sidebar.tsx`'s `<WorkspaceSwitcher>`, ran vitest with a scratch config → that test failed, 1 failed / 34 passed. Restored → 35 passed |
+| 2 | A unit test fails when the Menu sheet or /menu list doesn't get `current` | no | confirmed | Same copy, removed `current={current}` from `MenuList.tsx`'s `<WorkspaceSwitcher>` → the same test failed (1 failed / 34). Removed it instead from `AppShell.tsx`'s `<MobileMenu>` → the same test failed (1 failed / 34) |
+| 3 | The sheet's `links()` reader now reads every link's text, All workspaces included | no | confirmed | `AppShell.test.tsx:436-446` strips the tags inside each `<a>…</a>`. The expected list starts `"All workspaces", "ada personal", "Manage workspaces", "Propose item", …` (`:470-474`). In the copy, renamed the All workspaces text in `WorkspaceSwitcher.tsx` → "lists the switcher, Propose item, …" failed, along with "marks the current choice" (2 failed / 33) |
+| 4 | The suite passes on the real tree | no | confirmed | `npx vitest run src/components/app-shell` (repo) → 2 files, 39 passed. `diff -r` showed the scratch copy's `app-shell` files matched the repo |
+
+**Overall:** met: both gaps are closed; each mutation makes the new tests fail, and the suite passes on the real tree.

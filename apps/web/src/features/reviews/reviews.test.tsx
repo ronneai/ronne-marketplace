@@ -18,6 +18,7 @@ vi.mock("next/navigation", () => ({
     throw new Error("NEXT_NOT_FOUND");
   },
   usePathname: () => "/reviews",
+  useSearchParams: () => new URLSearchParams(),
   useRouter: () => ({ refresh: () => undefined }),
 }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));

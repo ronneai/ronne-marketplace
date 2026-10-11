@@ -20,7 +20,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   its cookie flags and its redirect target checks, a workspace named `all`, upper case; a private workspace you're not in filters to
   nothing (`private-items.db.test.ts`, 093).
 
-- [ ] **2. The switcher.** All workspaces, the member's workspaces with the current one marked, each
+- [x] **2. The switcher.** All workspaces, the member's workspaces with the current one marked, each
   with Open page, and Manage workspaces; choices are links to task 1's route back to the same page;
   the button shows the current workspace. The folded rail and the Menu sheet too.
   *Done when:* component tests cover the list, the marking, the links and the folded name.
