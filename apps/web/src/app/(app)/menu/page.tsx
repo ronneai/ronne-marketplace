@@ -1,5 +1,5 @@
 import { MenuList } from "@/components/app-shell/MenuList";
-import { navFor } from "@/components/app-shell/nav";
+import { canPropose, navFor } from "@/components/app-shell/nav";
 import { PageHeader, Panel } from "@/components/ui/Panel";
 import { signOutFromMenu } from "@/features/account/actions";
 import { ThemeToggle } from "@/features/theme/ThemeToggle";
@@ -12,7 +12,7 @@ export const metadata = { title: "Menu · Ronne AI Marketplace" };
  * and Sign out still work. With JavaScript the button opens the same list in a side sheet.
  */
 const MenuPage = async () => {
-  const { user, theme, navCounts } = await loadShell();
+  const { user, theme, navCounts, workspaces } = await loadShell();
   return (
     <>
       <PageHeader title="Menu" />
@@ -21,6 +21,8 @@ const MenuPage = async () => {
           user={user}
           items={navFor(user, navCounts)}
           counts={navCounts}
+          workspaces={workspaces}
+          propose={canPropose(user)}
           appearance={<ThemeToggle theme={theme} />}
           signOutAction={signOutFromMenu}
         />

@@ -5,11 +5,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Dialog } from "../ui/Dialog";
-import { NavCount } from "./MainNav";
 import { MenuList } from "./MenuList";
-import type { NavItem, ShellUser } from "./nav";
+import { NavCount } from "./NavCount";
+import type { NavItem, ShellUser, ShellWorkspace } from "./nav";
 
-/** Tailwind's `lg`: from here the header has room for the strip, so the menu isn't used. */
+/** Tailwind's `lg`: from here the sidebar shows, so the menu isn't used. */
 export const DESKTOP_QUERY = "(min-width: 64rem)";
 
 const buttonClasses =
@@ -17,8 +17,8 @@ const buttonClasses =
 
 /**
  * The header's menu on phones and tablets (066): below `lg` the header is the logo and this
- * button, which opens a side sheet with the navigation, the account links, the appearance switch
- * and Sign out. Every row is 44px. The button shows the Reviews count, the one where someone else
+ * button, which opens a side sheet with what the sidebar holds from `lg` (119): the workspace
+ * switcher, + Propose item, the navigation, the account, the appearance switch and Sign out. Every row is 44px. The button shows the Reviews count, the one where someone else
  * is waiting.
  *
  * The sheet closes on a link, Esc, a tap outside, a change of page (back and forward too) and when
@@ -30,13 +30,17 @@ export const MobileMenu = ({
   user,
   items,
   counts = {},
+  workspaces = [],
+  propose = false,
   appearance,
   signOutAction,
 }: {
   user: ShellUser;
   items: NavItem[];
-  /** Numbers by href, as in MainNav. */
+  /** Numbers by href, as in the sidebar. */
   counts?: Record<string, number>;
+  workspaces?: ShellWorkspace[];
+  propose?: boolean;
   /** The theme switch: a server component, so the shell renders it and passes it in. */
   appearance: ReactNode;
   signOutAction?: () => Promise<void>;
@@ -98,6 +102,8 @@ export const MobileMenu = ({
           user={user}
           items={items}
           counts={counts}
+          workspaces={workspaces}
+          propose={propose}
           appearance={appearance}
           signOutAction={signOutAction}
           onNavigate={close}

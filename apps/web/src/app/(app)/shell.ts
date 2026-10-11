@@ -1,23 +1,29 @@
 import { cookies } from "next/headers";
+import type { ShellWorkspace } from "@/components/app-shell/nav";
+import { parseFolded, SIDEBAR_COOKIE } from "@/components/app-shell/sidebar-cookie";
 import { parseTheme, THEME_COOKIE } from "@/features/theme/theme";
 import { requireUser } from "@/server/domains/identity/actions/session";
 import { canInSomeShared } from "@/server/domains/identity/models/permissions";
 import { countNeedsReview } from "@/server/domains/submissions/actions/reviews";
 import {
   countMovesToAnswer,
+  myWorkspacesAs,
   requestsToAnswer,
 } from "@/server/domains/workspaces/actions/workspaces";
 import { requestHeaders } from "@/server/http/request-headers";
 
 /**
  * What the app frame needs: the signed-in user (feature 006: `src/proxy.ts` only checks for a
- * cookie, so this is where the session is really checked), the theme, and the nav counts. The
- * (app) layout and `/menu` (066) both read it.
+ * cookie, so this is where the session is really checked), the theme, the nav counts, the
+ * workspaces for the switcher and whether the sidebar is folded (119). The (app) layout and
+ * `/menu` (066) both read it.
  */
 export const loadShell = async () => {
   const request = await requestHeaders();
   const user = await requireUser(request);
-  const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
+  const jar = await cookies();
+  const theme = parseTheme(jar.get(THEME_COOKIE)?.value);
+  const folded = parseFolded(jar.get(SIDEBAR_COOKIE)?.value);
   // Reviewers see how many submissions wait for them next to Reviews (feature 014); their own
   // personal workspace (114) makes nobody a reviewer.
   const needsReview = canInSomeShared(user, "submissions.review")
@@ -31,9 +37,16 @@ export const loadShell = async () => {
         ? await countMovesToAnswer(request)
         : 0)
     : 0;
+  // The switcher lists the workspaces they're a member of: personal first, then global, then by
+  // name (119). Public ones they could join stay on the Workspaces page.
+  const workspaces: ShellWorkspace[] = (await myWorkspacesAs(user)).flatMap((w) =>
+    w.role ? [{ name: w.name, role: w.role, personal: w.personal }] : [],
+  );
   return {
     user,
     theme,
+    folded,
+    workspaces,
     navCounts: { "/reviews": needsReview, "/workspaces/requests": toAnswer },
   };
 };

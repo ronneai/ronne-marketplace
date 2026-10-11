@@ -27,19 +27,19 @@ test("root reads the audit log: setup, its own sign-in, and a settings change", 
   page,
 }) => {
   await signIn(page, E2E_USERS.root);
-  await page.getByRole("link", { name: "Admin" }).click();
-  await expect(page).toHaveURL(/\/admin\/users$/);
   const main = page.getByRole("navigation", { name: "Main" });
+  await main.getByRole("link", { name: "Users", exact: true }).click();
+  await expect(page).toHaveURL(/\/admin\/users$/);
   const admin = page.getByRole("navigation", { name: "Admin" });
   const current = (nav: typeof main) => nav.locator('[aria-current="page"]');
-  await expect(current(main)).toHaveText("Admin");
+  await expect(current(main)).toHaveText("Users");
   await expect(current(admin)).toHaveText("Users");
 
   // Client-side navigation keeps the layouts mounted; the highlight must follow anyway.
   await admin.getByRole("link", { name: "Audit log" }).click();
   await expect(page).toHaveURL(/\/admin\/audit$/);
   await expect(current(admin)).toHaveText("Audit log");
-  await expect(current(main)).toHaveText("Admin");
+  await expect(current(main)).toHaveText("Audit log");
   await expect(page.getByRole("heading", { name: "Audit log" })).toBeVisible();
 
   const rows = page.getByRole("row");
@@ -141,7 +141,8 @@ test("root reads the audit log: setup, its own sign-in, and a settings change", 
 
 test("anyone but root gets a 404", async ({ page }) => {
   await signIn(page, E2E_USERS.notRoot);
-  await expect(page.getByRole("link", { name: "Admin" })).toHaveCount(0);
+  for (const name of ["Users", "Audit log", "Settings"])
+    await expect(page.getByRole("link", { name, exact: true })).toHaveCount(0);
   const response = await page.goto("/admin/audit");
   expect(response?.status()).toBe(404);
   expect((await page.goto("/admin/settings"))?.status()).toBe(404);
