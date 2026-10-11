@@ -194,6 +194,19 @@ describe("Tabs, CopyableCommand, Dialog", () => {
     const ids = [...out.matchAll(/aria-labelledby="([^"]+)"/g)].map((m) => m[1]);
     expect(new Set(ids).size).toBe(2);
   });
+
+  it("wraps its text whatever surrounds it, and is 640px wide when wide (115)", () => {
+    const out = html(
+      <span className="whitespace-nowrap">
+        <Dialog open={false} onClose={() => {}} title="Move @infra" size="wide">
+          a
+        </Dialog>
+      </span>,
+    );
+    expect(out).toMatch(/<dialog[^>]*class="[^"]*\bwhitespace-normal\b/);
+    expect(out).toMatch(/<dialog[^>]*class="[^"]*\[overflow-wrap:anywhere\]/);
+    expect(out).toContain("w-[min(40rem,calc(100vw-2rem))]");
+  });
 });
 
 describe("BrandLogo", () => {

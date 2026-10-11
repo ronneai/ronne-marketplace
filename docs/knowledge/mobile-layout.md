@@ -110,3 +110,23 @@ Pixel 7 Pro emulator (Chrome, `adb reverse tcp:4310 tcp:4310`, typing with `adb 
 - **A long `<Code>` with no hyphen or space can't wrap**, and a Windows path is one: at 320px,
   `C:\ProgramData\RonneAI\Marketplace\data` stuck out 15px. Add `<wbr />` after its separators;
   tests that look for the path drop them first (`replaceAll("<wbr/>", "")`).
+
+## Long names and dialogs (115)
+
+Names can be 64 characters with no hyphen to break at, and a dialog sits in the DOM where it's
+opened, so it inherits from its trigger's container. Three things made the Move dialog scroll
+sideways and hide its buttons:
+
+- **Inherited `white-space: nowrap`.** A table cell kept its icon buttons on one line with
+  `whitespace-nowrap`, and the dialog inside it couldn't wrap. Keep buttons on one line with
+  `flex-nowrap`, never `whitespace-nowrap` around a dialog; `Dialog` resets `white-space` itself.
+- **A word longer than its line.** `Dialog` sets `overflow-wrap: anywhere`; elsewhere, give a long
+  name (`font-mono` lines, filter chips) `[overflow-wrap:anywhere]` and its box `min-w-0`.
+- **A `<select>` with a long option.** It's as wide as its longest option, and iOS Safari still
+  counts that width in the box around it even once the select fits. `selectClasses` has
+  `min-w-0 overflow-hidden`; a form grid that holds one uses `grid-cols-[minmax(0,1fr)]`.
+
+The phone sweep's overflow check leaves what's inside a scrolling box to the box, so it can't see
+a dialog's body scroll sideways: check that body itself (`noSideScroll` in `e2e/move-scope.ts`),
+with the longest names, at 360 and 320, and in WebKit, which is the only engine that catches the
+select.

@@ -178,7 +178,7 @@ const WorkspacePage = async ({
             !canEdit && !canMove
               ? undefined
               : (scope) => (
-                  <span className="inline-flex flex-nowrap items-center gap-1 whitespace-nowrap">
+                  <span className="inline-flex flex-nowrap items-center gap-1">
                     {/* Scope names are unique per workspace (118): `acme/infra` says which one. */}
                     {canEdit ? (
                       <EditScopeButton

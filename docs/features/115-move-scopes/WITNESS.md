@@ -662,3 +662,35 @@ Witnessed: 2026-10-11 13:08 EDT, by a fresh agent (blind). Commit: e171d689 (plu
 | 9 | db tests | no | confirmed | 17 passed |
 
 **Overall:** met.
+
+## Task 14 — The Move dialog wraps, wider
+
+Witnessed: 2026-10-11 13:05 EDT, by a fresh agent (blind). Commit: e171d689 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Dialog text wraps whatever surrounds its trigger | no | confirmed | `Dialog.tsx`; unit test; Dialog's fix alone passes move-scope |
+| 2 | Move dialog 640px | no | confirmed | probe: 640 at 1280, full screen on phones |
+| 3 | Row icons on one line | no | confirmed | probe with a 64-char scope name |
+| 4 | e2e checks the dialog never scrolls sideways | no | confirmed | `noSideScroll`; 4 passed; only own width, not the typed step |
+| 5 | e2e fails without the fix | no | confirmed | reverted: 4 failed at `noSideScroll` |
+| 6 | Long names break; no sideways scroll at desktop and phone widths | no | not met | 64-char names with no hyphens: confirmation 1023>638 on desktop; select widens the form on phones |
+| 7 | Other dialogs benefit | no | confirmed | fix is on `Dialog` |
+
+**Overall:** not met: row 6.
+
+### Re-check 1
+
+Witnessed: 2026-10-11 13:30 EDT, by a fresh agent (blind). Commit: 1cf29536 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Text wraps, and a too-long word breaks | no | confirmed | `[overflow-wrap:anywhere]`; 151 unit tests |
+| 2 | 640px wide | no | confirmed | `size="wide"` |
+| 3 | Icons on one line and in view | no | confirmed | probe on desktop, Pixel 7, iPhone 15, tablet |
+| 4 | No sideways scroll with 64-char names, no hyphens, every step and width | no | confirmed | probe on four projects at own width, 360, 320 |
+| 5 | e2e checks it | no | confirmed | 64-char seeds; four steps; three widths; 4 passed |
+| 6 | e2e fails without each fix | no | confirmed | each revert fails; the select's only in WebKit |
+| 7 | Other dialogs benefit | no | confirmed | fix is on `Dialog` and `selectClasses` |
+
+**Overall:** met. (A unit assertion on `overflow-wrap` was added after this pass.)

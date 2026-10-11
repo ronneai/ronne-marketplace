@@ -249,7 +249,7 @@ everything is on the Workspaces pages, and each option shows only to those allow
 - [x] The Documentation and inline helpers listed above say what the feature does now.
 - [x] A workspace's page and the list are under Workspaces for everyone who sees them, with each
   option shown only to those allowed; Admin › Workspaces redirects there; Admin is root's.
-- [ ] Root's list has Shared and Personal tabs with their counts; the Move dialog never scrolls
+- [x] Root's list has Shared and Personal tabs with their counts; the Move dialog never scrolls
   sideways and keeps its buttons in view.
 
 ## Decisions

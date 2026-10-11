@@ -437,8 +437,10 @@ export const E2E_MOVE = {
     string,
     { owner: keyof typeof E2E_USERS; admin: keyof typeof E2E_USERS; root: keyof typeof E2E_USERS }
   >,
-  team: (project: string) => `e2e-move-team-${project}`,
-  rootScope: (project: string) => `e2e-move-root-${project}`,
+  // The longest names there can be (64 characters), with no hyphen to break at: the Move dialog
+  // must still fit its screen (115).
+  team: (project: string) => `e2emoveteam${project.replaceAll("-", "")}`.padEnd(64, "t"),
+  rootScope: (project: string) => `e2emoveroot${project.replaceAll("-", "")}`.padEnd(64, "r"),
   /** The owner's personal workspace: their email's local part (114). */
   personal: (owner: keyof typeof E2E_USERS) => E2E_USERS[owner].split("@")[0] ?? "",
 };

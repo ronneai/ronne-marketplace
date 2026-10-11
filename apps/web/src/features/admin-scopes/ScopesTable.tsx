@@ -150,8 +150,9 @@ const columns = (
         {
           id: "actions",
           header: "",
-          // Two icon buttons, Edit and Move, on one line (115).
-          className: "w-24 whitespace-nowrap pointer-coarse:w-30",
+          // Two icon buttons, Edit and Move, on one line (115): the cell's `flex-nowrap` keeps them
+          // there. No `whitespace-nowrap`: their dialogs sit in the cell and would inherit it.
+          className: "w-24 pointer-coarse:w-30",
           align: "right" as const,
           render: actions,
         },

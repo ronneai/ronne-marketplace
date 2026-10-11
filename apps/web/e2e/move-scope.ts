@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 import { describeOverflow, measureOverflow, overflows } from "./sweep";
 import { E2E_MOVE } from "./users";
 
@@ -12,6 +12,39 @@ const fits = async (page: Page, what: string) => {
     await page.setViewportSize({ width, height: size.height });
     const overflow = await measureOverflow(page);
     expect(overflows(overflow), `${what} at ${width}px: ${describeOverflow(overflow)}`).toBe(false);
+  }
+  await page.setViewportSize(size);
+};
+
+/**
+ * Nothing in a dialog scrolls sideways (115): the sweep leaves what's inside a scrolling box to
+ * the box, so the dialog's own body is checked here. Its buttons stay in view.
+ */
+const noSideScroll = async (page: Page, dialog: Locator, what: string) => {
+  const size = page.viewportSize() ?? { width: 412, height: 915 };
+  for (const width of [size.width, 360, 320]) {
+    await page.setViewportSize({ width, height: size.height });
+    // Polled: WebKit can measure mid-layout just after a resize; a real overflow stays.
+    await expect
+      .poll(
+        () =>
+          dialog.evaluate((el) =>
+            [el, ...el.querySelectorAll("*")]
+              .filter(
+                (node) =>
+                  // A screen-reader-only label is 1px wide on purpose.
+                  node.clientWidth > 1 &&
+                  node.scrollWidth > node.clientWidth + 1 &&
+                  getComputedStyle(node).overflowX !== "visible",
+              )
+              .map(
+                (node) =>
+                  `${node.tagName.toLowerCase()}.${String(node.className).slice(0, 60)} ${node.scrollWidth}>${node.clientWidth}`,
+              ),
+          ),
+        { message: `${what} at ${width}px`, timeout: 2000 },
+      )
+      .toEqual([]);
   }
   await page.setViewportSize(size);
 };
@@ -41,6 +74,7 @@ export const moveScopes = async (
   await expect(ask.getByText("Who will see them:")).toBeVisible();
   await ask.getByLabel("Message (optional)").fill("Our team runs these now.");
   await fits(owner, "the Move dialog");
+  await noSideScroll(owner, ask, "the Move dialog");
   await ask.getByRole("button", { name: "Ask to move" }).click();
   await expect(ask.getByText(`Asked to move @${scope} to ${team}.`)).toBeVisible();
   await ask.getByRole("button", { name: "Done" }).click();
@@ -73,12 +107,15 @@ export const moveScopes = async (
     move.getByText(`Move @${rootScope} and its 0 items to ${team}, as @${team}/${rootScope}?`),
   ).toBeVisible();
   await fits(root, "the move's confirmation");
+  await noSideScroll(root, move, "the move's confirmation");
   await move.getByRole("button", { name: "Continue" }).click();
   const typed = move.getByLabel("Scope name");
   await expect(move.getByRole("button", { name: "Move scope" })).toBeDisabled();
+  await noSideScroll(root, move, "the typed confirmation");
   await typed.fill(rootScope);
   await move.getByRole("button", { name: "Move scope" }).click();
   await expect(move.getByText(`Moved @${rootScope} to ${team}.`)).toBeVisible();
+  await noSideScroll(root, move, "the move's result");
   await move.getByRole("button", { name: "Done" }).click();
   // Closing refreshes the page: the scope has left global.
   await expect(move).toBeHidden();

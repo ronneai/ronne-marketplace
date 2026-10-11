@@ -77,7 +77,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   Shared and Personal, each with how many match the search; the Documentation says so.
   *Done when:* the component and db tests cover the tabs and their counts, and the docs render.
 
-- [ ] **14. The Move dialog wraps, wider.** A dialog's text wraps whatever surrounds its trigger
+- [x] **14. The Move dialog wraps, wider.** A dialog's text wraps whatever surrounds its trigger
   (it inherited `nowrap` from the scope row's actions cell, so it scrolled sideways and hid its
   buttons); the Move dialog is 640px wide and its long names break.
   *Done when:* the e2e test checks the dialog never scrolls sideways, and fails without the fix.

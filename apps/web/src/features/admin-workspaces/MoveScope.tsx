@@ -34,7 +34,7 @@ export const targetLabel = (target: MoveTarget) =>
 const Listed = ({
   items,
   hidden = 0,
-  render = (item: string) => <span className="font-mono">{item}</span>,
+  render = (item: string) => <span className="font-mono [overflow-wrap:anywhere]">{item}</span>,
 }: {
   items: string[];
   hidden?: number;
@@ -72,7 +72,7 @@ export const MoveChanges = ({ impact }: { impact: MoveImpact }) => {
     impact.ownDependencies.length +
     impact.ownHidden;
   return (
-    <div className="grid gap-3 text-sm">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-3 text-sm">
       {refusals > 0 || impact.aliasTaken.length + impact.aliasHidden > 0 ? (
         <Notice kind="error" title="This move would break something">
           <div className="grid gap-2">
@@ -113,7 +113,9 @@ export const MoveChanges = ({ impact }: { impact: MoveImpact }) => {
               <p>Its {plural(impact.items.length, "item")} will be named:</p>
               <Listed
                 items={impact.items.map((i) => `${i.from} → ${i.to}`)}
-                render={(line) => <span className="font-mono text-xs">{line}</span>}
+                render={(line) => (
+                  <span className="font-mono text-xs [overflow-wrap:anywhere]">{line}</span>
+                )}
               />
               <p className="mt-1 text-muted">
                 Their old names keep working, and <span className="font-mono">rmk</span> moves
@@ -231,7 +233,7 @@ export const MoveForm = ({
 
   if (state.done)
     return (
-      <div className="grid gap-4">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
         <p role="status" className="text-sm text-fg">
           <span className="mr-2 font-mono text-xs font-semibold">OK:</span>
           {state.done === "moved"
@@ -276,7 +278,9 @@ export const MoveForm = ({
           if (!blocked) setStep("confirm");
         }
       }}
-      className="grid gap-4"
+      // One column as wide as the dialog, never its widest field (115): a select is as wide as its
+      // longest option in iOS Safari.
+      className="grid grid-cols-[minmax(0,1fr)] gap-4"
     >
       <input type="hidden" name="scopeId" value={scope.id} />
       <input type="hidden" name="workspace" value={workspace} />
@@ -453,7 +457,7 @@ export const MoveScopeButton = ({
       <IconButton onClick={() => setOpen(true)} label={`Move @${scope.name}`}>
         <FolderInput size={16} aria-hidden="true" />
       </IconButton>
-      <Dialog open={open} onClose={close} title={`Move @${scope.name}`}>
+      <Dialog open={open} onClose={close} title={`Move @${scope.name}`} size="wide">
         {open ? <MoveForm key={round} scope={scope} workspace={workspace} onDone={close} /> : null}
       </Dialog>
     </>
