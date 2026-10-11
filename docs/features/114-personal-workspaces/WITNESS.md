@@ -428,3 +428,34 @@ Witnessed: 2026-10-10 21:34 EDT, by a fresh agent (blind). Commit: c889d499 (plu
 | 12 | MCP tests pass | no | confirmed | 52 passed |
 
 **Overall:** met.
+
+## Task 8 — Decision log
+
+Witnessed: 2026-10-10 21:37 EDT, by a fresh agent (blind). Commit: 8181bb06 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | §2's new paragraph | no | confirmed | MVP.md:45-48; owner's `createScope` in a test |
+| 2 | §2 as a whole agrees | no | partly | "Only root creates scopes." still at :87; matrix silent |
+| 3 | Approval: approved as sent, `self_approve`, `self: true` | no | confirmed | `submissions.ts`; tests |
+| 4 | Approval: never queued | no | confirmed | `sharedOnly`; test |
+| 5 | Approval: not reviewed, root's override there too | no | confirmed | `publish.ts`; tests |
+| 6 | Approval: the four-eyes check moves to 115 | no | partly | 115 is only specified: stated as current |
+| 7 | Scopes row | no | confirmed | test |
+| 8 | Workspaces row | no | confirmed | personal-workspace and personal db tests |
+| 9 | Plugin feeds row | no | confirmed | `feeds.ts`, `viewer.ts`; tests |
+| 10 | Only the decision log changed | no | confirmed | `git diff --stat` |
+
+**Overall:** not met: rows 2 and 6.
+
+### Re-check 1
+
+Witnessed: 2026-10-10 21:45 EDT, by a fresh agent (blind). Commit: 8181bb06 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 2 | §2 agrees: scope creation and self-approval in a personal workspace | no | confirmed | "Only root creates" gone; MVP.md:89-90; matrix row :73 |
+| 5 | An override there can only be root's on its own | no | confirmed | `reviews.ts:137,152`; `publish.ts:510`; test |
+| 6 | 115's boundary stated as future | no | confirmed | MVP.md:901 "will move … once 115 is built" |
+
+**Overall:** met.

@@ -54,7 +54,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   carries it.
   *Done when:* API, CLI and MCP tests pass.
 
-- [ ] **8. Decision log.** MVP §15: Workspaces (a personal one per user), Approval (personal
+- [x] **8. Decision log.** MVP §15: Workspaces (a personal one per user), Approval (personal
   workspaces released without review, per decision 3), Scopes (anyone creates scopes in their
   personal workspace); MVP §2 personas.
   *Done when:* the rows are in.
