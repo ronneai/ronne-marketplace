@@ -34,6 +34,7 @@ type ScopeMoveMethods = Pick<
   | "markReviewed"
   | "canStillMove"
   | "countOpenMovesInto"
+  | "latestMovesIn"
   | "standing"
 >;
 
@@ -452,6 +453,20 @@ export const scopeMoveMethods = (
         )
         .executeTakeFirst();
       return Number(result.numUpdatedRows);
+    },
+
+    latestMovesIn: async (workspaceId) => {
+      const rows = await moves()
+        .where("scopes.workspace_id", "=", workspaceId)
+        .orderBy("scope_moves.created_at", "desc")
+        .orderBy("scope_moves.id", "desc")
+        .execute();
+      // The latest per scope, shown only while it's open or was declined.
+      const latest = new Map<string, MoveRow>();
+      for (const row of rows) if (!latest.has(row.scope_id)) latest.set(row.scope_id, row);
+      return [...latest.values()]
+        .filter((row) => row.status === "open" || row.status === "declined")
+        .map(toMove);
     },
 
     countOpenMovesInto: async (workspaceId) => {

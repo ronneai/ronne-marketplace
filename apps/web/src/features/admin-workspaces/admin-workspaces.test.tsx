@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ForbiddenError } from "@/server/domains/identity/exceptions/errors";
 import type { Scope } from "@/server/domains/items/models/scope";
 import {
+  ScopeMoveOpenError,
+  ScopeMoveRefusedError,
   WorkspaceHasOutsideDependentsError,
   WorkspaceNameTakenError,
   WorkspaceNotEmptyError,
@@ -19,6 +21,11 @@ const workspaces = vi.hoisted(() => ({
   visibilityImpact: vi.fn(),
   renameWorkspace: vi.fn(),
   renameImpact: vi.fn(),
+  askScopeMove: vi.fn(),
+  cancelScopeMove: vi.fn(),
+  moveImpact: vi.fn(),
+  moveTargets: vi.fn(),
+  scopeMovesIn: vi.fn(async () => ({})),
   pageMembers: vi.fn(async () => ({
     rows: [],
     next: null,
@@ -201,6 +208,66 @@ describe("workspace actions", () => {
     workspaces.renameImpact.mockRejectedValueOnce(new ForbiddenError("workspace.rename"));
     expect(await actions.renameImpactFor("acme")).toEqual({
       error: expect.stringContaining("permission"),
+    });
+  });
+
+  it("moves a scope or asks to, passing the typed name only when asked for it (115)", async () => {
+    workspaces.askScopeMove.mockResolvedValueOnce({ outcome: "moved" } as never);
+    expect(
+      await actions.askMoveFromForm(
+        {},
+        form({ scopeId: "s1", workspace: "beta", to: "acme", name: "infra", message: "" }),
+      ),
+    ).toEqual({ done: "moved" });
+    expect(workspaces.askScopeMove).toHaveBeenLastCalledWith(expect.any(Headers), {
+      scopeId: "s1",
+      to: "acme",
+      name: "infra",
+      message: "",
+      confirm: undefined,
+    });
+    expect(cache.revalidatePath).toHaveBeenCalledWith("/", "layout");
+    workspaces.askScopeMove.mockResolvedValueOnce({ outcome: "requested" } as never);
+    const asked = await actions.askMoveFromForm(
+      {},
+      form({ scopeId: "s1", workspace: "beta", to: "acme", name: "infra", confirm: "infra" }),
+    );
+    expect(asked).toEqual({ done: "requested" });
+    expect(workspaces.askScopeMove).toHaveBeenLastCalledWith(
+      expect.any(Headers),
+      expect.objectContaining({ confirm: "infra" }),
+    );
+    expect(cache.revalidatePath).toHaveBeenLastCalledWith("/admin/workspaces/beta");
+    // Refused: the checks' result, for the dialog to list; any other refusal as its message.
+    const impact = { refused: true, outsideDependents: ["@acme/team/app"] };
+    workspaces.askScopeMove.mockRejectedValueOnce(new ScopeMoveRefusedError(impact as never));
+    expect(await actions.askMoveFromForm({}, form({ scopeId: "s1", to: "vault" }))).toEqual({
+      refused: impact,
+    });
+    workspaces.askScopeMove.mockRejectedValueOnce(new ScopeMoveOpenError("acme"));
+    expect(await actions.askMoveFromForm({}, form({ scopeId: "s1", to: "vault" }))).toEqual({
+      error: "A move to acme is waiting for an answer.",
+    });
+  });
+
+  it("cancels a move, and reads targets and impact or why it can't (115)", async () => {
+    expect(await actions.cancelMoveFromForm({}, form({ moveId: "m1", workspace: "beta" }))).toEqual(
+      { done: "Cancelled." },
+    );
+    expect(workspaces.cancelScopeMove).toHaveBeenCalledWith(expect.any(Headers), {
+      moveId: "m1",
+    });
+    workspaces.moveTargets.mockResolvedValueOnce([{ name: "acme" }] as never);
+    expect(await actions.moveTargetsFor("s1")).toEqual({ targets: [{ name: "acme" }] });
+    workspaces.moveTargets.mockRejectedValueOnce(new ForbiddenError("scopes.move"));
+    expect(await actions.moveTargetsFor("s1")).toEqual({
+      error: expect.stringContaining("permission"),
+    });
+    workspaces.moveImpact.mockResolvedValueOnce({ way: "once" } as never);
+    expect(await actions.moveImpactFor({ scopeId: "s1", to: "acme" })).toEqual({ way: "once" });
+    workspaces.moveImpact.mockRejectedValueOnce(new ScopeMoveOpenError("acme"));
+    expect(await actions.moveImpactFor({ scopeId: "s1", to: "acme" })).toEqual({
+      error: "A move to acme is waiting for an answer.",
     });
   });
 
@@ -527,6 +594,34 @@ describe("the pages", () => {
     expect(asRoot).toContain("All workspaces");
     expect(asRoot).not.toContain("Make public");
     expect(asRoot).not.toContain(">Members<");
+  });
+
+  it("offers Move… on each scope to root and the workspace's admins, and shows a scope's move (115)", async () => {
+    session.getCurrentUser.mockResolvedValueOnce({ id: "r", role: "root" });
+    workspaces.findWorkspace.mockResolvedValueOnce(workspace({ scopes: 1 }));
+    expect(renderToStaticMarkup(await workspacePage("acme"))).toContain(
+      'aria-label="Move @acme-infra"',
+    );
+    // Its admin, and a personal workspace's owner (who's its admin, 114).
+    session.getCurrentUser.mockResolvedValueOnce({
+      id: "a",
+      role: "user",
+      workspaces: { w1: "admin" },
+    });
+    workspaces.findWorkspace.mockResolvedValueOnce(workspace({ scopes: 1 }));
+    expect(renderToStaticMarkup(await workspacePage("acme"))).toContain(">Move…<");
+    // An open move: Moving to … with Cancel instead of Move….
+    session.getCurrentUser.mockResolvedValueOnce({ id: "r", role: "root" });
+    workspaces.findWorkspace.mockResolvedValueOnce(workspace({ scopes: 1 }));
+    workspaces.scopeMovesIn.mockResolvedValueOnce({
+      [scope().id]: { id: "m1", toWorkspace: "beta", status: "open", reason: null },
+    } as never);
+    const moving = renderToStaticMarkup(await workspacePage("acme"));
+    expect(moving).toContain("Moving to beta");
+    expect(moving).not.toContain(">Move…<");
+    expect(workspaces.scopeMovesIn).toHaveBeenLastCalledWith(expect.any(Headers), {
+      workspaceId: "w1",
+    });
   });
 
   it("a workspace's page shows its description and scopes, with edit and delete", async () => {

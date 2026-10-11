@@ -349,3 +349,35 @@ Witnessed: 2026-10-11 01:27 EDT, by a fresh agent (blind). Commit: af6bad0e (plu
 | 18 | Lint and types | no | confirmed | clean |
 
 **Overall:** met.
+
+## Task 5 — The Move dialog
+
+Witnessed: 2026-10-11 01:36 EDT, by a fresh agent (blind). Commit: 5788fa1a (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Move… for root and the workspace's admins | no | confirmed | page test; everyone else gets a 404 first |
+| 2 | Target select; own personal as Personal | no | confirmed | db test on four databases; component test |
+| 3 | Name field and clash message | no | confirmed | component test |
+| 4 | Impact shown, refusals listed, hidden counted | no | confirmed | component tests |
+| 5 | Message for a request; Move scope or Ask to move; who answers | no | confirmed | component and db tests |
+| 6 | One confirmation, "renamed to" when renamed | no | not met | Enter in the name field submits without it; the wording never says "renamed to" |
+| 7 | Root's double confirmation, checked by the service | no | confirmed | component test; service |
+| 8 | Row's open or declined move | no | confirmed | component, page and db tests |
+| 9 | Component tests cover each outcome | no | partly | after-submit outcomes, the actions, Cancelled and the name hint untested |
+| 10 | Checks green | no | confirmed | 50 tests; typecheck; lint |
+
+**Overall:** not met: rows 6 and 9.
+
+### Re-check 1
+
+Witnessed: 2026-10-11 01:39 EDT, by a fresh agent (blind). Commit: 5788fa1a (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | One confirmation, "renamed to" when renamed; Enter can't skip it | yes | confirmed | mutation fails the wording test; the real form in Chromium and WebKit: Enter shows the confirmation |
+| 9 | Component tests cover each outcome | yes | confirmed | 51 passed; after-submit states, the actions, Cancelled, the name hint |
+| 11 | Personal review line | yes | confirmed | mutation fails its test |
+| 10 | Checks green | no | confirmed | typecheck; lint |
+
+**Overall:** met. (The Enter guard is checked in a browser here and by task 6's end-to-end test.)

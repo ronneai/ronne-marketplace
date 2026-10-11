@@ -18,7 +18,15 @@ import {
 } from "../exceptions/errors";
 import { UNFILTERED } from "../models/viewer";
 import { GLOBAL_WORKSPACE_ID } from "../models/workspace";
-import { createWorkspace, moveImpact } from "./workspaces";
+import {
+  askScopeMove,
+  cancelScopeMove,
+  createWorkspace,
+  declineScopeMove,
+  moveImpact,
+  moveTargets,
+  scopeMovesIn,
+} from "./workspaces";
 
 // What moving a scope would change and what refuses it (115, task 2): the checks the Move dialog
 // shows, and asking and moving run again.
@@ -136,6 +144,10 @@ const work = async (
   return id;
 };
 
+/** Root as a user, for its personal workspace. */
+const root_ = () => ({ personal: rootPersonal }) as CurrentUser;
+let rootPersonal: string | null = null;
+
 const personalOf = async (user: CurrentUser) =>
   (await t.db
     .selectFrom("workspaces")
@@ -152,6 +164,7 @@ beforeEach(async () => {
     password,
   }));
   asRoot = await signedIn("root@example.com");
+  rootPersonal = ((await getCurrentUser(asRoot, app)) as CurrentUser).personal ?? null;
   for (const email of ["ana@example.com", "bob@example.com"])
     await adminCreateUser(asRoot, { email, name: email, role: "user", password }, app);
   asAna = await signedIn("ana@example.com");
@@ -553,5 +566,55 @@ describe("moveImpact (115)", () => {
       ownDependencies: [{ item: "@s0/uses-draft", dependency: "@vault/vs/bdraft" }],
       ownHidden: 0,
     });
+  });
+
+  it("offers the workspaces the asker sees, theirs first, and says how the move would happen (task 5)", async () => {
+    await setWorkspaceRole(app, ana.id, "admin");
+    const infra = await scope("infra");
+    const mine = await personalOf(ana);
+    const offered = await moveTargets(asAna, { scopeId: infra }, app);
+    expect(offered.map((w) => [w.name, w.personal])).toEqual([
+      [mine.name, true],
+      ["acme", false],
+    ]);
+    const root = await moveTargets(asRoot, { scopeId: infra }, app);
+    // Root's own personal workspace, never someone else's; every shared one; not global, its own.
+    expect(root.map((w) => w.name)).toEqual([(await personalOf(root_())).name, "acme", "vault"]);
+    expect(await moveImpact(asAna, { scopeId: infra, to: "acme" }, app)).toMatchObject({
+      way: "request",
+      answeredBy: "admins",
+    });
+    expect(await moveImpact(asAna, { scopeId: infra, to: mine.name }, app)).toMatchObject({
+      way: "once",
+      answeredBy: null,
+    });
+    expect(await moveImpact(asRoot, { scopeId: infra, to: "acme" }, app)).toMatchObject({
+      way: "twice",
+    });
+    const tools = await scope("tools", mine.id);
+    await release(tools, "lint", [], { reviewed: false });
+    expect(await moveImpact(asAna, { scopeId: tools, to: "global" }, app)).toMatchObject({
+      way: "request",
+      answeredBy: "root",
+    });
+  });
+
+  it("gives each scope's latest open or declined move, to the workspace's admins only (task 5)", async () => {
+    await setWorkspaceRole(app, ana.id, "admin");
+    const infra = await scope("infra");
+    const done = await scope("done");
+    const asked = await askScopeMove(asAna, { scopeId: infra, to: "acme" }, app);
+    const declined = await askScopeMove(asAna, { scopeId: done, to: "acme" }, app);
+    await declineScopeMove(asRoot, { moveId: declined.moveId, reason: "No." }, app);
+    const moves = await scopeMovesIn(asAna, { workspaceId: GLOBAL_WORKSPACE_ID }, app);
+    expect(Object.keys(moves).sort()).toEqual([done, infra].sort());
+    expect(moves[infra]).toMatchObject({ id: asked.moveId, status: "open", toWorkspace: "acme" });
+    expect(moves[done]).toMatchObject({ status: "declined", reason: "No." });
+    expect(await scopeMovesIn(asBob, { workspaceId: GLOBAL_WORKSPACE_ID }, app)).toEqual({});
+    // Cancelled, it's gone from the row.
+    await cancelScopeMove(asAna, { moveId: asked.moveId }, app);
+    expect(
+      Object.keys(await scopeMovesIn(asAna, { workspaceId: GLOBAL_WORKSPACE_ID }, app)),
+    ).toEqual([done]);
   });
 });

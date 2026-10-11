@@ -37,7 +37,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* those tests pass, with a scope moved public → private, private → public,
   personal → shared, renamed for a clash, and moved back where it came from.
 
-- [ ] **5. The Move dialog.** On the workspace page's Scopes tab: Move…, the target select, the
+- [x] **5. The Move dialog.** On the workspace page's Scopes tab: Move…, the target select, the
   scope's name there (the clash message), the impact with the new names, the message, Move scope / Ask to move, the single and root's double confirmation, the
   row's Moving / declined line with Cancel.
   *Done when:* component tests cover each outcome and who sees Move….

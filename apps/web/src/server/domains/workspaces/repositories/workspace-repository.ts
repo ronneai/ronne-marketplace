@@ -317,6 +317,11 @@ export interface WorkspaceRepository {
   applyMove(scopeId: string, workspaceId: string, name: string): Promise<void>;
   /** Marks the scope's not-reviewed versions reviewed, by `userId`; how many. */
   markReviewed(scopeId: string, userId: string): Promise<number>;
+  /**
+   * The latest open or declined move of each scope in the workspace (115): its page's rows show
+   * them until the next request.
+   */
+  latestMovesIn(workspaceId: string): Promise<ScopeMove[]>;
   /** How many moves into the workspace wait for an answer (115). */
   countOpenMovesInto(workspaceId: string): Promise<number>;
   /**

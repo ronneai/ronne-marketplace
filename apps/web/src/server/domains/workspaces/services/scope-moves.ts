@@ -233,10 +233,77 @@ export const moveImpact = async (
   deps: WorkspaceDeps,
   actor: WorkspaceActor,
   input: { scopeId: string; to: string; name?: string },
-): Promise<MoveImpact> => {
+): Promise<MoveImpact & { way: MoveWay; answeredBy: "root" | "admins" | null }> => {
   const places = await placesOf(deps.repo, actor, input.scopeId, input.to);
   const name = input.name === undefined ? places.scope.name : normalizeScopeName(input.name);
-  return checkMove(deps.repo, actor, places, name);
+  const impact = await checkMove(deps.repo, actor, places, name);
+  // How it would happen, for the dialog's button: at once, at once after typing the name, or a
+  // request, and who answers it.
+  const way = moveWay(actor.user as CurrentUser, places.target, impact.notReviewed.length > 0);
+  const answeredBy =
+    way !== "request"
+      ? null
+      : places.target.isGlobal || places.target.ownerId !== null
+        ? ("root" as const)
+        : ("admins" as const);
+  return { ...impact, way, answeredBy };
+};
+
+/** A workspace the Move dialog offers (115): the asker's own personal one marked so. */
+export type MoveTarget = {
+  name: string;
+  visibility: Workspace["visibility"];
+  global: boolean;
+  personal: boolean;
+};
+
+/**
+ * Where the scope could go (115): the workspaces the asker sees but the scope's own and other
+ * people's personal ones; their own personal one first, then `global`, then by name.
+ */
+export const moveTargets = async (
+  deps: WorkspaceDeps,
+  actor: WorkspaceActor,
+  input: { scopeId: string },
+): Promise<MoveTarget[]> => {
+  const user = actor.user;
+  if (!canInSome(user, "scopes.move")) throw new ForbiddenError("scopes.move");
+  const scope = await deps.repo.scopeById(input.scopeId);
+  if (!scope || !can(user, "scopes.move", scope.workspaceId))
+    throw new ScopeMoveScopeNotFoundError();
+  const all = await deps.repo.list();
+  const viewer = visibleWorkspaces(user, all);
+  const offered = all
+    .filter(
+      (w) =>
+        w.id !== scope.workspaceId &&
+        seesWorkspace(viewer, w.id) &&
+        (w.ownerId === null || w.ownerId === user?.id),
+    )
+    .map((w) => ({
+      name: w.name,
+      visibility: w.visibility,
+      global: w.isGlobal,
+      personal: w.ownerId !== null,
+    }));
+  // `list` gives `global` first, then by name: the personal one goes before it.
+  return [...offered.filter((w) => w.personal), ...offered.filter((w) => !w.personal)];
+};
+
+/**
+ * Each scope's latest move in a workspace (115), for its page's rows: open ("Moving to acme ·
+ * Cancel") or declined (with the reason, until the next request). For root and the workspace's
+ * admins.
+ */
+export const scopeMovesIn = async (
+  deps: WorkspaceDeps,
+  actor: WorkspaceActor,
+  input: { workspaceId: string },
+): Promise<Record<string, ScopeMove>> => {
+  if (!can(actor.user, "scopes.move", input.workspaceId)) return {};
+  return Object.fromEntries(
+    (await deps.repo.latestMovesIn(input.workspaceId)).map((move) => [move.scopeId, move]),
+  );
 };
 
 const now = (deps: WorkspaceDeps) => (deps.now ?? (() => new Date()))();

@@ -95,6 +95,7 @@ const racingRepo = (): WorkspaceRepository => {
     markReviewed: async () => 0,
     canStillMove: async () => false,
     countOpenMovesInto: async () => 0,
+    latestMovesIn: async () => [],
     standing: async () => null,
     lockItemsIn: async () => {},
     itemsIn: async () => [],

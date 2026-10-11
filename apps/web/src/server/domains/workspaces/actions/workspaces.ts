@@ -219,3 +219,17 @@ export const cancelScopeMove = async (
   input: { moveId: string },
   app: AppAuth = getAppAuth(),
 ) => moves.cancelScopeMove(deps(app), await actor(headers, app), input);
+
+/** Where a scope could move (115), for the Move dialog's select. */
+export const moveTargets = async (
+  headers: Headers,
+  input: { scopeId: string },
+  app: AppAuth = getAppAuth(),
+) => moves.moveTargets(deps(app), await actor(headers, app), input);
+
+/** Each scope's latest open or declined move in a workspace (115), for its page's rows. */
+export const scopeMovesIn = async (
+  headers: Headers,
+  input: { workspaceId: string },
+  app: AppAuth = getAppAuth(),
+) => moves.scopeMovesIn(deps(app), await actor(headers, app), input);

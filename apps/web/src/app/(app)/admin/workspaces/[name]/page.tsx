@@ -11,6 +11,7 @@ import { scopesQueryOf, workspaceScopesList } from "@/features/admin-scopes/list
 import { CreateScopeDialog, EditScopeButton } from "@/features/admin-scopes/ScopeDialogs";
 import { ScopesTable } from "@/features/admin-scopes/ScopesTable";
 import { workspacePath } from "@/features/admin-workspaces/list";
+import { MoveScopeButton, MoveState } from "@/features/admin-workspaces/MoveScope";
 import {
   DeleteWorkspaceButton,
   EditWorkspaceButton,
@@ -32,7 +33,9 @@ import {
   findWorkspace,
   pageMembers,
   pendingRequests,
+  scopeMovesIn,
 } from "@/server/domains/workspaces/actions/workspaces";
+import type { ScopeMove } from "@/server/domains/workspaces/models/scope-move";
 import { requestHeaders } from "@/server/http/request-headers";
 
 export const metadata = { title: "Workspace · Admin · Ronne AI Marketplace" };
@@ -120,6 +123,9 @@ const AdminWorkspace = async ({
       ...scopesQueryOf(state),
       workspaceId: workspace.id,
     });
+    // Move… for root and the workspace's admins (115), and each scope's open or declined move.
+    const canMove = can(me, "scopes.move", workspace.id);
+    const moves = canMove ? await scopeMovesIn(request, { workspaceId: workspace.id }) : {};
     return (
       <>
         {can(me, "scopes.create", workspace.id) ? (
@@ -134,13 +140,24 @@ const AdminWorkspace = async ({
           page={{ next: scopes.next, previous: scopes.previous }}
           total={scopes.total}
           actions={(scope) => (
-            // Scope names are unique per workspace (118): `acme/infra` says which one.
-            <EditScopeButton
-              name={formatScopeName({ workspace: scope.workspace.name, scope: scope.name }).slice(
-                1,
-              )}
-              description={scope.description}
-            />
+            <span className="inline-flex flex-wrap items-center gap-2">
+              {/* Scope names are unique per workspace (118): `acme/infra` says which one. */}
+              <EditScopeButton
+                name={formatScopeName({ workspace: scope.workspace.name, scope: scope.name }).slice(
+                  1,
+                )}
+                description={scope.description}
+              />
+              {canMove && moves[scope.id]?.status !== "open" ? (
+                <MoveScopeButton
+                  scope={{ id: scope.id, name: scope.name }}
+                  workspace={workspace.name}
+                />
+              ) : null}
+              {moves[scope.id] ? (
+                <MoveState move={moves[scope.id] as ScopeMove} workspace={workspace.name} />
+              ) : null}
+            </span>
           )}
         />
       </>
