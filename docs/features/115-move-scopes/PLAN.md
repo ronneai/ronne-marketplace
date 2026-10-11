@@ -31,7 +31,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* db tests cover every row of the table, not-reviewed versions, the refusals at ask and
   at approve, a release racing a move, two answers at once and a lost role, on the four databases.
 
-- [ ] **4. After the move.** Tests that the items follow the new workspace from the next request:
+- [x] **4. After the move.** Tests that the items follow the new workspace from the next request:
   catalogue, item page, search, the registry API, resolve, MCP, feeds and the review queue, under
   their new names; old names install and `rmk` rewrites the lockfile; versions and tags unchanged.
   *Done when:* those tests pass, with a scope moved public → private, private → public,

@@ -307,3 +307,45 @@ Witnessed: 2026-10-11 01:15 EDT, by a fresh agent (adversarial). Commit: 76fe078
 | 6 | Nothing broke | no | confirmed | 20 per server; delete race probe; typecheck; lint |
 
 **Overall:** met.
+
+## Task 4 — After the move
+
+Witnessed: 2026-10-11 01:24 EDT, by a fresh agent (blind). Commit: af6bad0e (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1–2 | Tests pass on four databases | no | confirmed | 5 passed on each |
+| 3 | All five moves tested | no | confirmed | one test each |
+| 4 | Catalogue, filter and search | no | confirmed | test; probe of the API list and search |
+| 5 | Item page by new name; old name an alias | no | confirmed | test |
+| 6 | Those who can't see get not found | no | confirmed | test |
+| 7 | Registry API by both names | no | confirmed | test; 404 side by probe only |
+| 8 | Resolve and download by the old name | no | confirmed | test |
+| 9 | MCP and `rmk` through `renamed` | no | confirmed | 118's CLI and MCP tests |
+| 10 | Feeds follow from the next request | no | partly | read only after the move; a move without the revision bump passes |
+| 11 | Open submissions reach the target's queue | no | partly | only one submitted after the move |
+| 12 | Versions and tags unchanged | no | partly | tags counted only; one scenario |
+| 13 | Moved back | no | confirmed | test |
+| 14 | Reviewed at the move | no | confirmed | test |
+| 15 | The cache reset hides no bug | no | confirmed | key includes the revision; probe across moves |
+| 16 | Old-name dependency in a released version | no | partly | probe only |
+| 17 | Catalogue revision rose | no | confirmed | task 3's test |
+| 18 | Lint and types | no | confirmed | clean |
+
+**Overall:** not met: rows 10, 11, 12, 16.
+
+### Re-check 1
+
+Witnessed: 2026-10-11 01:27 EDT, by a fresh agent (blind). Commit: af6bad0e (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Four databases | no | confirmed | 5 passed on each |
+| 7 | API 404 by both names when hidden, 200 when seen | no | confirmed | tests |
+| 10 | Feeds follow from the next request | no | confirmed | read before and after; no revision bump fails 3 tests |
+| 11 | An open submission reaches the target's queue, named anew | no | confirmed | test |
+| 12 | Versions and tags unchanged, exactly, every scenario | no | confirmed | test |
+| 16 | Old-name dependency resolves | no | confirmed | test |
+| 18 | Lint and types | no | confirmed | clean |
+
+**Overall:** met.
