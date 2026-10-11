@@ -36,7 +36,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* db tests cover submit, bulk submit with dependency drafts, release and the queue
   leaving them out; a shared workspace still needs another reviewer.
 
-- [ ] **5. Visibility key.** The plugin feeds' key (093) counts only private workspaces with a
+- [x] **5. Visibility key.** The plugin feeds' key (093) counts only private workspaces with a
   released item.
   *Done when:* a feed test shows two users with empty personal workspaces sharing one cache entry,
   and a user with a released personal item getting their own.

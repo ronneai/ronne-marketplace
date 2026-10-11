@@ -367,3 +367,20 @@ Witnessed: 2026-10-10 20:53 EDT, by a fresh agent (adversarial). Commit: 0356a1c
 | 17 | Types and lint | no | confirmed | clean |
 
 **Overall:** met. (Remark 2, "the others" for a single other draft, was fixed after this pass: "the other", with a cli test.)
+
+## Task 5 — Visibility key
+
+Witnessed: 2026-10-10 21:01 EDT, by a fresh agent (blind). Commit: a4f462bb (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Users with empty personal workspaces share one cached marketplace | no | confirmed | private-feeds-api.db.test → 11 passed; slot `claude-code` for the outsider and for a mirror naming an empty one |
+| 2 | A released personal item gets its own entry | no | confirmed | slot `claude-code/<id>` after the release |
+| 3 | The key counts only private workspaces with a released item | no | confirmed | `workspacesWithReleases`; `item_versions` written only on release |
+| 4 | Plain and mirror paths both use it | no | confirmed | `feeds.ts:78`, `:90`; reverting either fails the test |
+| 5 | Built for exactly the workspaces in its key | no | confirmed | `deps` builds repositories and key from one viewer; revision read first |
+| 6 | Root unchanged | no | confirmed | viewer.test "leaves root's viewer as it is" |
+| 7 | The test covers the claims | no | confirmed | four mutations, each fails it |
+| 8 | Three servers; lint and types | no | confirmed | 11 passed on each; clean |
+
+**Overall:** met.

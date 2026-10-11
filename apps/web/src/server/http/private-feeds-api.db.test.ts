@@ -5,6 +5,10 @@ import { packItem } from "@ronneai/core/pack";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createPersonalWorkspace } from "../db/personal-workspaces";
 import { createTestDb, type TestDb } from "../db/testing/test-db";
+import {
+  createMarketplaceCache,
+  type MarketplaceCache,
+} from "../domains/feeds/services/marketplace-cache";
 import { authenticateToken, exchangePassword } from "../domains/identity/actions/access-tokens";
 import { createRoot } from "../domains/identity/actions/root-account";
 import type { AppAuth } from "../domains/identity/repositories/auth-instance";
@@ -352,6 +356,59 @@ describe("the plugin feeds and a private workspace (093)", () => {
     expect(secondSees).not.toContain(`${spaces.first.name}.rtools.first`);
     expect(firstSees).toContain(`${spaces.first.name}.rtools.first`);
     expect(firstSees).not.toContain(`${spaces.second.name}.otools.second`);
+  });
+
+  it("shares one marketplace among users whose personal workspaces are empty, until one releases (114)", async () => {
+    const idOf = async (email: string) =>
+      (
+        await t.db
+          .selectFrom("user")
+          .select("id")
+          .where("email", "=", email)
+          .executeTakeFirstOrThrow()
+      ).id;
+    // The helper's users have none yet; Create user would have made them.
+    const outsiders = await createPersonalWorkspace(
+      t.db,
+      t.dialect,
+      { id: await idOf("o@example.com"), email: "o@example.com" },
+      new Date(),
+    );
+    const members = await createPersonalWorkspace(
+      t.db,
+      t.dialect,
+      { id: memberId, email: "m@example.com" },
+      new Date(),
+    );
+    // The slots asked for: one per visibility key and tool.
+    const slots: string[] = [];
+    const real = createMarketplaceCache();
+    const shared = globalThis as { __ronneMarketplaceCache?: MarketplaceCache };
+    const before = shared.__ronneMarketplaceCache;
+    shared.__ronneMarketplaceCache = {
+      ...real,
+      get: (slot, key) => {
+        slots.push(slot);
+        return real.get(slot, key);
+      },
+    };
+    try {
+      expect(await plugins("outsider")).toEqual(["team.style"]);
+      // The member's key is acme alone: their empty personal workspace adds nothing.
+      expect(await plugins("member")).toEqual(["acme.acme-infra.deploy", "team.style"]);
+      const acmeOnly = slots[1];
+      // A mirror may still name an empty one, and gets the public marketplace's entry.
+      expect(await plugins("member", `?workspaces=${members.name}`)).toEqual(["team.style"]);
+      expect(slots).toEqual(["claude-code", acmeOnly, "claude-code"]);
+      // Once the outsider releases in theirs, they get an entry of their own.
+      await release("tools", outsiders.id, "notes");
+      slots.length = 0;
+      expect(await plugins("outsider")).toEqual([`${outsiders.name}.tools.notes`, "team.style"]);
+      expect(await plugins("member", `?workspaces=${members.name}`)).toEqual(["team.style"]);
+      expect(slots).toEqual([`claude-code/${outsiders.id}`, "claude-code"]);
+    } finally {
+      shared.__ronneMarketplaceCache = before;
+    }
   });
 
   it("mirrors a renamed workspace by its new name, and the old one as unknown (113)", async () => {

@@ -99,7 +99,10 @@ and on public workspaces' items, and nothing outside depends on them.
 **Plugin feeds** (077, 079). A private workspace now exists per user, so the visibility key (093)
 counts only the private workspaces that have a released item: a user whose personal workspace is
 empty shares the public marketplace with everyone else, as today. The key changes when a personal
-workspace releases its first item, which raises the catalogue revision as any release does.
+workspace releases its first item, which raises the catalogue revision as any release does. The
+marketplace is built for exactly the workspaces in its key, so a first release landing while one is
+built can't reach a marketplace cached for people who don't see it. A git mirror (`?workspaces=`)
+may name an empty one; it adds nothing.
 
 **Disabled users and roots.** A disabled user's personal workspace and items stay, seen only by
 root. Making someone root (059) keeps their personal workspace and admin row; taking root away

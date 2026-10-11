@@ -75,6 +75,16 @@ export const narrowedViewer = (viewer: Viewer, chosen: readonly string[]): Viewe
 };
 
 /**
+ * The viewer a plugin feed is built for (114): the private workspaces it sees, kept only when they
+ * have a released item (`released`). Everyone has a private personal workspace, so a user whose own
+ * is empty then shares the public marketplace with everyone else. Building for exactly the
+ * workspaces in the key keeps them in step: a first release landing meanwhile can't put an item into
+ * a marketplace cached under a key that leaves its workspace out. Root keeps its own key.
+ */
+export const feedViewer = (viewer: Viewer, released: readonly string[]): Viewer =>
+  viewer.root ? viewer : narrowedViewer(viewer, released);
+
+/**
  * Sees every workspace, as root does, for code that isn't reading on someone's behalf: a release
  * already authorised by the release rules (015), the checks run at submit (task 4 narrows them).
  * Never for what a person or a token reads.
