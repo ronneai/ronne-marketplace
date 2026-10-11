@@ -66,7 +66,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* component and nav tests pass, and the e2e tests and the phone sweep use the new
   pages.
 
-- [ ] **11. Decision log.** MVP §15 and §2: workspaces managed from their own pages, Admin root's.
+- [x] **11. Decision log.** MVP §15 and §2: workspaces managed from their own pages, Admin root's.
   *Done when:* the rows are in.
 
 - [ ] **12. Documentation.** The Workspaces and Administration topics, and the helpers, in the

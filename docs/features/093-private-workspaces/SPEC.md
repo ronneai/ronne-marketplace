@@ -2,6 +2,8 @@
 
 > Milestone: M13 · Depends on: 090, 091, 092, 089, 018, 019, 020, 027, 077, 079 · Design: [MVP §12](../../MVP/MVP.md#12-security-considerations), [§15](../../MVP/MVP.md#15-decision-log) · Contracts: [`docs/spec/plugin-feeds.md`](../../spec/plugin-feeds.md), [`docs/spec/cli-files.md`](../../spec/cli-files.md)
 
+> **Since [115](../115-move-scopes/SPEC.md) (owner, 2026-10-11):** workspaces are managed under Workspaces, not Admin. The list is `/workspaces` and a workspace's page `/workspaces/<name>`, for everyone who sees it, with each option only for those allowed; `/admin/workspaces` and its pages redirect there, and Admin is root's. Below, Admin › Workspaces and `/admin/workspaces/<name>` mean those pages.
+
 ## Goal
 
 A workspace is **public** or **private** (owner, 2026-10-05). A private workspace's items are seen

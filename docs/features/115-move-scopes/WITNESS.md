@@ -590,3 +590,20 @@ Witnessed: 2026-10-11 12:26 EDT, by a fresh agent (adversarial). Commit: 792fc35
 | 12 | e2e after the service change | no | confirmed | build; 21 passed |
 
 **Overall:** met.
+
+## Task 11 — Decision log
+
+Witnessed: 2026-10-11 12:29 EDT, by a fresh agent (blind). Commit: 3abaf36e (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | MVP §2 records the decision | no | confirmed | MVP.md:48-51 |
+| 2 | The §15 Workspaces row records it | no | confirmed | MVP.md:915 |
+| 3 | Matches the list page | no | confirmed | `workspaces/page.tsx:32-55` |
+| 4 | Matches the workspace page | no | confirmed | `workspaces/[name]/page.tsx` |
+| 5 | Matches the redirects | no | confirmed | `next.config.ts:32-33`; tests |
+| 6 | Matches Admin being root's | no | confirmed | `admin/layout.tsx`; `nav.ts`; 71 tests passed |
+| 7 | 090, 092, 093, 113, 114 say how to read their older text | no | confirmed | the "Since 115" note in each |
+| 8 | Nothing else in MVP.md gives Admin to workspace admins | no | confirmed | grep |
+
+**Overall:** met. (After this pass, §8's table gained a Workspaces row and 092's note names its superseded "Admins in Admin".)

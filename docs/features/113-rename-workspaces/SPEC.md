@@ -2,6 +2,8 @@
 
 > Milestone: M13 · Depends on: 090, 092, 093, 094, 095, 118 · Design: [MVP §15](../../MVP/MVP.md#15-decision-log) · Contracts: none changed (118 defines names and aliases)
 
+> **Since [115](../115-move-scopes/SPEC.md) (owner, 2026-10-11):** workspaces are managed under Workspaces, not Admin. The list is `/workspaces` and a workspace's page `/workspaces/<name>`, for everyone who sees it, with each option only for those allowed; `/admin/workspaces` and its pages redirect there, and Admin is root's. Below, Admin › Workspaces and `/admin/workspaces/<name>` mean those pages.
+
 ## Goal
 
 A workspace's name can change (owner, 2026-10-09): a team renames itself, or a workspace was
