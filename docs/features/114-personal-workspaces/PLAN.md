@@ -21,7 +21,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   rule with `-2`, `-3`… under the unique index.
   *Done when:* db tests cover Create user, setup, two users with the same local part at once.
 
-- [ ] **3. The personal rules in the services.** [risky] Refuse adding members, changing or
+- [x] **3. The personal rules in the services.** [risky] Refuse adding members, changing or
   removing the owner's row, Make public, delete, and join requests (kept by name as for an unknown
   name, 094) for a personal workspace, root included (`PersonalWorkspaceError`, or the unknown-name
   answer for requests); root's catalogue, search, home page and plugin
@@ -82,3 +82,8 @@ goes into `SPEC.md` instead.
   COMMITTED. Create user locks the acting root, so a race test needs two raw transactions. Root can
   still demote an owner or add someone to a personal workspace through the user's Workspaces
   dialog until task 3. `listWorkspaces` now lists private workspaces only to their members and root.
+- **Task 3:** `Workspace.ownerId` marks a personal workspace; the refusals sit after the manager
+  check, so a non-manager still gets Forbidden. Root's lists use `inListedWorkspace` (SQL, by
+  owner), named workspaces and the draft's own workspace excepted; root's marketplace cache key is
+  `root:<id>` (each root sees their own). A rename refused over old names counts, never names, the
+  items the renamer doesn't see. Task 5 changes the non-root key.

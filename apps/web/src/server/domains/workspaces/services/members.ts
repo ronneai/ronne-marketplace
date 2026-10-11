@@ -8,6 +8,7 @@ import {
   MemberUserNotFoundError,
   NotAWorkspaceMemberError,
   OwnMembershipError,
+  PersonalWorkspaceError,
   RootMembershipError,
   WorkspaceNotFoundError,
   WorkspacesError,
@@ -225,6 +226,7 @@ export const memberCandidates = async (
   requireManagerSomewhere(actor);
   const workspace = await workspaceById(deps.repo, input.workspaceId);
   requireManagerOf(actor, workspace);
+  if (workspace.ownerId) throw new PersonalWorkspaceError("members");
   const term = input.query.trim().slice(0, 100);
   if (!term) return [];
   return deps.repo.candidates(workspace.id, term, CANDIDATES);
@@ -250,6 +252,7 @@ export const addMembers = async (
       await repo.lockUsers(toLock(actor, input.userIds));
       const workspace = await workspaceById(repo, input.workspaceId);
       await requireManagerNow(repo, actor, workspace);
+      if (workspace.ownerId) throw new PersonalWorkspaceError("members");
       const results: AddedMember[] = [];
       for (const userId of new Set(input.userIds)) {
         const user = await memberUser(repo, userId);
@@ -286,6 +289,8 @@ export const changeMemberRole = async (
     await repo.lockUsers(toLock(actor, [input.userId]));
     const workspace = await workspaceById(repo, input.workspaceId);
     await requireManagerNow(repo, actor, workspace);
+    // Its only row is its owner's, which nobody changes (114).
+    if (workspace.ownerId) throw new PersonalWorkspaceError("members");
     const user = await memberUser(repo, input.userId);
     notOwn(actor, user);
     const from = await repo.memberRole(workspace.id, user.id);
@@ -325,6 +330,7 @@ export const removeMember = async (
     const workspace = await workspaceById(repo, input.workspaceId);
     await requireManagerNow(repo, actor, workspace);
     if (workspace.isGlobal) throw new GlobalMembershipError();
+    if (workspace.ownerId) throw new PersonalWorkspaceError("members");
     const user = await memberUser(repo, input.userId);
     notOwn(actor, user);
     const role = await repo.memberRole(workspace.id, user.id);
@@ -361,6 +367,8 @@ export const setUserWorkspaces = async (
         const wanted = new Map<string, { workspace: Workspace; role: WorkspaceRole }>();
         for (const choice of choices) {
           const workspace = await workspaceById(repo, choice.id);
+          // Never someone's personal workspace, theirs or another's (114).
+          if (workspace.ownerId) throw new PersonalWorkspaceError("members");
           wanted.set(workspace.id, { workspace, role: choice.role });
         }
         const current = new Map(

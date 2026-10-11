@@ -13,7 +13,11 @@ import type { Database } from "../../../db/schema";
 import { containsInsensitive } from "../../../db/search";
 import type { DatabaseDialect } from "../../../db/url";
 import type { Viewer } from "../../workspaces/models/viewer";
-import { inVisibleWorkspace, isDependableFrom } from "../../workspaces/repositories/visible";
+import {
+  inListedWorkspace,
+  inVisibleWorkspace,
+  isDependableFrom,
+} from "../../workspaces/repositories/visible";
 import type { CatalogueEntry, CatalogueFilter } from "../models/catalogue";
 import type { CatalogueRepository } from "./catalogue-repository";
 
@@ -136,7 +140,17 @@ export const kyselyCatalogueRepository = (
     if (installable) q = q.where("items.installable", "=", toDbBoolean(true, dialect));
     if (listedNotYanked) q = q.where("item_versions.yanked_at", "is", null);
     if (scope) q = q.where("scopes.name", "=", scope);
+    // Named, a workspace is listed; unnamed, root's lists leave out others' personal ones (114),
+    // but never the workspace a dependency is picked for: its own items are its to depend on.
     if (workspace) q = q.where("workspaces.name", "=", workspace);
+    else if (dependableFrom)
+      q = q.where((eb) =>
+        eb.or([
+          inListedWorkspace(viewer, "workspaces.id"),
+          eb("workspaces.id", "=", dependableFrom),
+        ]),
+      );
+    else q = q.where(inListedWorkspace(viewer, "workspaces.id"));
     if (ownerId) q = q.where("items.owner_id", "=", ownerId);
     if (dependableFrom !== undefined)
       q = q.where(
@@ -263,10 +277,18 @@ export const kyselyCatalogueRepository = (
           .execute()
       ).map((row) => ({ type: row.type, count: Number(row.count) })),
 
-    scopes: async () =>
-      (await listed().select("scopes.name").distinct().orderBy("scopes.name").execute()).map(
-        (row) => row.name,
-      ),
+    // In a named workspace, its scopes; else the listed ones (114: not others' personal ones).
+    scopes: async (workspace) =>
+      (
+        await (workspace
+          ? listed().where("workspaces.name", "=", workspace)
+          : listed().where(inListedWorkspace(viewer, "workspaces.id"))
+        )
+          .select("scopes.name")
+          .distinct()
+          .orderBy("scopes.name")
+          .execute()
+      ).map((row) => row.name),
 
     workspaces: async () =>
       (
@@ -274,6 +296,7 @@ export const kyselyCatalogueRepository = (
           .selectFrom("workspaces")
           .select("name")
           .where(inVisibleWorkspace(viewer, "workspaces.id"))
+          .where(inListedWorkspace(viewer, "workspaces.id"))
           .orderBy("is_global", "desc")
           .orderBy("name")
           .execute()
@@ -282,6 +305,7 @@ export const kyselyCatalogueRepository = (
     mostUsed: async (limit) =>
       (
         await entries()
+          .where(inListedWorkspace(viewer, "workspaces.id"))
           .where("items.installable", "=", toDbBoolean(true, dialect))
           .where("items.download_count", ">", 0)
           .orderBy("items.download_count", "desc")

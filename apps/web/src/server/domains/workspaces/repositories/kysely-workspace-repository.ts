@@ -40,6 +40,7 @@ type WorkspaceRow = {
   description: string;
   visibility: WorkspaceVisibility;
   is_global: boolean | number;
+  owner_id: string | null;
   scope_count: number | string | bigint | null;
   moderator_count: number | string | bigint | null;
   created_by: string | null;
@@ -54,6 +55,7 @@ const toWorkspace = (row: WorkspaceRow): Workspace => ({
   description: row.description,
   visibility: row.visibility,
   isGlobal: Boolean(row.is_global),
+  ownerId: row.owner_id,
   scopes: Number(row.scope_count ?? 0),
   moderators: Number(row.moderator_count ?? 0),
   createdBy: row.created_by ? { id: row.created_by, email: row.creator_email } : null,
@@ -121,6 +123,7 @@ export const kyselyWorkspaceRepository = (
         "workspaces.description",
         "workspaces.visibility",
         "workspaces.is_global",
+        "workspaces.owner_id",
         eb
           .selectFrom("scopes")
           .select((sub) => sub.fn.countAll<number | string | bigint>().as("n"))
@@ -369,6 +372,22 @@ export const kyselyWorkspaceRepository = (
             .where("path", "=", file.path)
             .execute();
       }
+    },
+
+    itemWorkspaces: async (itemIds) => {
+      const found = new Map<string, { workspaceId: string; visibility: WorkspaceVisibility }>();
+      for (let i = 0; i < itemIds.length; i += IN_LIST_SIZE) {
+        const rows = await db
+          .selectFrom("items")
+          .innerJoin("scopes", "scopes.id", "items.scope_id")
+          .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
+          .select(["items.id as id", "workspaces.id as workspace_id", "workspaces.visibility"])
+          .where("items.id", "in", itemIds.slice(i, i + IN_LIST_SIZE))
+          .execute();
+        for (const row of rows)
+          found.set(row.id, { workspaceId: row.workspace_id, visibility: row.visibility });
+      }
+      return found;
     },
 
     aliasesNamed: async (names) => {

@@ -71,6 +71,7 @@ const workspace = (overrides: Partial<Workspace> = {}): Workspace => ({
   description: "Acme's teams.",
   visibility: "public",
   isGlobal: false,
+  ownerId: null,
   scopes: 0,
   moderators: 0,
   createdBy: { id: "r", email: "root@example.com" },

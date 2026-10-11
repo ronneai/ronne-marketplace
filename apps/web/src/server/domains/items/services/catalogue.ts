@@ -190,7 +190,7 @@ export const browseCatalogue = async (
     entries,
     nextCursor,
     typeCounts: ITEM_TYPES.map((t) => ({ type: t, count: counts.get(t) ?? 0 })),
-    scopes: await deps.catalogue.scopes(),
+    scopes: await deps.catalogue.scopes(workspace ?? undefined),
     workspaces: await deps.catalogue.workspaces(),
     query: { q, types, scope, workspace, tool, sort },
   };

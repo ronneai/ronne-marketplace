@@ -8,7 +8,7 @@ import { ScopesTable } from "@/features/admin-scopes/ScopesTable";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { can } from "@/server/domains/identity/models/permissions";
 import { pageScopes } from "@/server/domains/items/actions/scopes";
-import { listWorkspaces } from "@/server/domains/workspaces/actions/workspaces";
+import { findWorkspace, listWorkspaces } from "@/server/domains/workspaces/actions/workspaces";
 import { requestHeaders } from "@/server/http/request-headers";
 
 export const metadata = { title: "Scopes · Admin · Ronne AI Marketplace" };
@@ -20,8 +20,11 @@ const AdminScopes = async ({ searchParams }: { searchParams: Promise<SearchParam
   const state = parseListQuery(ADMIN_SCOPES_LIST, await searchParams);
   const workspaces = await listWorkspaces(request);
   // A workspace that doesn't exist (a stale link) matches no scope, and its chip still shows.
-  const filtered = state.filters.workspace
-    ? (workspaces.find((w) => w.name === state.filters.workspace)?.id ?? "none")
+  // A personal workspace (114) isn't in the select, but its name still filters the table.
+  const named = state.filters.workspace;
+  const filtered = named
+    ? ((workspaces.find((w) => w.name === named) ?? (await findWorkspace(request, named)))?.id ??
+      "none")
     : undefined;
   const { scopes, next, previous, total } = await pageScopes(request, {
     ...scopesQueryOf(state),

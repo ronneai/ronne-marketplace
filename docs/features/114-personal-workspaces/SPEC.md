@@ -86,8 +86,10 @@ from no workspace. Add members, a user's Workspaces dialog (092) and the move di
 (115) never offer someone else's personal workspace.
 
 **Root's view.** Root sees every personal workspace and its items (093) but isn't flooded with
-them: the catalogue, search, home page and root's own plugin marketplace leave out other people's
-personal workspaces, unless the catalogue's Workspace filter or `?workspace=` names one; item
+them: the catalogue (its lists and its filters' options), search, home page, root's own plugin
+marketplace, the Workspaces page and the workspace selects (Admin › Scopes, a user's Workspaces
+dialog) leave out other people's personal workspaces, unless the catalogue's Workspace filter or
+`?workspace=` names one; item
 pages, the API by name and Admin › Scopes (with its Workspace column) still show them. Root can't
 approve or release on the owner's behalf any differently than anywhere else (root override, 014).
 
@@ -115,6 +117,12 @@ first, under "Personal (<name>)".
 - **A name that later collides with a shared workspace root wants to create:** root sees "That name
   is taken" and can rename the personal workspace (113) or pick another name.
 - **Root's own personal workspace:** like anyone's; root's catalogue shows it.
+- **Renaming yours to a name that's taken** answers "That name is taken", as for any rename (113):
+  names are unique, so a refusal says a name is in use, whoever's it is. It says nothing more: not
+  that it's a personal workspace, nor whose, nor what's in it. Every user can rename their own, so
+  anyone can learn that a name is taken; only the owner and root see it. A rename refused because
+  its items would take old names of other items (113) names only the items the renamer sees, and
+  counts the others ("and 1 more"), so nothing in someone's personal workspace is named.
 - **The owner is removed from it:** impossible; the services refuse any change to the owner's row,
   for root too.
 - **Scope names are per workspace** (118): creating `@ana-silva/acme` says nothing about whether

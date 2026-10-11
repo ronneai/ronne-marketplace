@@ -19,6 +19,8 @@ export type Workspace = {
   description: string;
   visibility: WorkspaceVisibility;
   isGlobal: boolean;
+  /** Its owner, for a personal workspace (114): only theirs, always private. Null otherwise. */
+  ownerId: string | null;
   /** How many scopes it has. */
   scopes: number;
   /**

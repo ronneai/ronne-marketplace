@@ -162,3 +162,101 @@ Witnessed: 2026-10-10 19:28 EDT, by a fresh agent (adversarial). Commit: b61a04b
 | 19 | Lint, types, tests | no | confirmed | clean |
 
 **Overall:** met. Row 16 (root changing an owner's row) is task 3's.
+
+## Task 3 — The personal rules in the services
+
+Witnessed: 2026-10-10 19:40 EDT, by a fresh agent (blind). Commit: c6a15bc3 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `PersonalWorkspaceError`; `ownerId` read | no | confirmed | errors.ts; repository |
+| 2 | Adding members refused, owner and root | no | confirmed | test fails without the guard |
+| 3 | Member candidates refused | no | confirmed | same |
+| 4 | The owner's row never changes | no | confirmed | test; probe |
+| 5 | Nobody removes the owner's row | no | confirmed | test |
+| 6 | The user's dialog can't add or change, a save keeps the row | no | confirmed | test fails without guard or filter |
+| 7 | Make public refused | no | confirmed | test |
+| 8 | Delete refused | no | confirmed | test |
+| 9 | Join requests kept by name; `unseen`; the owner `already_member` | no | confirmed | test; probe |
+| 10 | A rename doesn't attach requests | no | confirmed | test |
+| 11 | Root's catalogue, search, counts leave them out unless named | no | confirmed | 2 tests fail without the filter |
+| 12 | Filter options | no | partly | Scope options untested |
+| 13 | Home page | no | partly | most used untested |
+| 14 | Root's plugin marketplace | no | confirmed | feeds test |
+| 15 | Root's selects and Workspaces page | no | confirmed | test, `root-2` kept |
+| 16 | Root's own stays in root's catalogue | no | partly | untested |
+| 17 | Four dialects | no | confirmed | 19 passed on each |
+| 18 | The 093 guard | no | confirmed | four dialects |
+
+**Overall:** not met: rows 12, 13, 16. Also: root's dependency picker in a personal workspace misses its items.
+
+### Adversarial pass
+
+Witnessed: 2026-10-10 19:40 EDT, by a fresh agent (adversarial). Commit: c6a15bc3 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Adding members refused | no | confirmed | mutations |
+| 2 | Owner's row: no change or removal | no | confirmed | mutations |
+| 3 | `setUserWorkspaces` | no | confirmed | every `workspace_members` writer read |
+| 4 | Root changes, disable, enable keep the owner's row | no | confirmed | probe |
+| 5 | Make public refused either way | no | confirmed | under the lock |
+| 6 | Delete refused | no | confirmed | only path |
+| 7 | Requests answer like an unknown name | no | confirmed | compared results, own list, audit |
+| 8 | Requests never attached and answered | no | confirmed | approval has no guard of its own (unreachable) |
+| 9 | Root's catalogue and search | no | confirmed | probe; full and old names too |
+| 10 | Filter options | no | partly | Scope options untested; empty when a workspace is named |
+| 11 | Home page | no | partly | most used untested |
+| 12 | Root's marketplace and its cache | no | not met | every root shares one cache key: one root served another's personal items |
+| 13 | Workspaces page, selects | no | confirmed | mutations |
+| 14 | What should still show them does | no | confirmed | by name; Admin › Scopes `?workspace=<personal>` shows none; root's dependency picker misses the workspace's items |
+| 15 | Nothing new leaks | no | not met | renaming one's own workspace to a taken name tells any user the name exists |
+| 16 | Tests on four databases | no | partly | gaps above |
+| 17 | The 093 guards | no | confirmed | four databases |
+
+**Overall:** not met: rows 10, 11, 12, 14, 15, 16.
+
+### Re-check 1
+
+Witnessed: 2026-10-10 20:01 EDT, by a fresh agent (blind). Commit: c6a15bc3 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1–8 | Error, refusals, requests, approval, rename | no | confirmed | each guard removed → its test fails |
+| 9–13 | Root's catalogue, search, counts, filter options, home page, root's own kept | no | confirmed | mutations fail the new tests |
+| 14–15 | Root's marketplace; a cache key per root | no | confirmed | the old key fails the two-roots test |
+| 16 | Dependency picker in a personal workspace | no | confirmed | the `dependableFrom` branch removed → test fails |
+| 17 | Root's selects and Workspaces page | no | confirmed | test |
+| 18 | Admin › Scopes `?workspace=<personal>` | no | confirmed | component test |
+| 19 | SPEC: a taken name says only that | no | confirmed | Edge cases; the error names only the name |
+| 20–21 | Four dialects; the 093 guard; nothing else broke | no | confirmed | 24 on each; 825 db, 1180 unit |
+
+**Overall:** met.
+
+### Adversarial re-check 1
+
+Witnessed: 2026-10-10 20:07 EDT, by a fresh agent (adversarial). Commit: c6a15bc3 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 12 | Root's marketplace; a cache entry per root | yes | confirmed | `root:<id>`; LRU of 32; old key fails the test |
+| 10 | Filter options follow a named workspace | yes | confirmed | probe; mutations |
+| 11 | Most used | yes | confirmed | test |
+| 14 | Dependency picker; Admin › Scopes | yes | confirmed | widening adds only the draft's workspace |
+| 8 | Approval refused | yes | confirmed | test |
+| 15 | Nothing tells a non-owner more than "the name is in use" | yes | not met | the rename alias refusal named an item of someone else's personal workspace |
+| 16 | Tests on four databases | yes | confirmed | 562 on each |
+| 17 | The 093 guards | yes | confirmed | four databases |
+
+**Overall:** not met: row 15.
+
+### Adversarial re-check 2
+
+Witnessed: 2026-10-10 20:11 EDT, by a fresh agent (adversarial). Commit: c6a15bc3 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 15 | Nothing tells a non-owner more than that a name is in use; a rename alias refusal names only items the renamer sees | yes | confirmed | probe on SQLite and PostgreSQL: personal and private items counted, public and joined ones named, root sees all; mutations fail the test; only the message reaches people; other alias readers filter by viewer |
+| 16 | db tests on the four databases | yes | confirmed | 109 on each; typecheck; biome |
+
+**Overall:** met. The refusal still answers one bit to a guessed old name, as 118 accepts at submit.

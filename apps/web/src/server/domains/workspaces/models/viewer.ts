@@ -52,7 +52,10 @@ export const seesWorkspace = (viewer: Viewer, workspaceId: string): boolean =>
   viewer.root || viewer.workspaceIds.includes(workspaceId);
 
 /** The plugin feeds' cache key for this viewer (093): the private workspaces they see. */
-export const visibilityKey = (viewer: Viewer): string => viewer.privateWorkspaceIds.join(",");
+export const visibilityKey = (viewer: Viewer): string =>
+  // Root's lists leave out other users' personal workspaces but keep root's own (114): each root
+  // sees a different marketplace, so each has its own entry.
+  viewer.root ? `root:${viewer.userId ?? ""}` : viewer.privateWorkspaceIds.join(",");
 
 /**
  * The viewer cut down to the public workspaces and the private ones in `chosen` that it sees (093:

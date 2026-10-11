@@ -14,6 +14,17 @@ export const inVisibleWorkspace = (viewer: Viewer, column: string): Expression<S
   return sql<SqlBool>`${sql.ref(column)} in (${sql.join(viewer.workspaceIds)})`;
 };
 
+/**
+ * `column` holds a workspace id the viewer's lists show (114): for root, every workspace but other
+ * users' personal ones, which would bury the shared ones (one per user); root still reaches them by
+ * name. Anyone else sees no one else's personal workspace anyway, so it adds nothing for them.
+ */
+export const inListedWorkspace = (viewer: Viewer, column: string): Expression<SqlBool> => {
+  if (!viewer.root) return sql<SqlBool>`1 = 1`;
+  const own = viewer.userId ?? "";
+  return sql<SqlBool>`${sql.ref(column)} not in (select listed_workspaces.id from workspaces as listed_workspaces where listed_workspaces.owner_id is not null and listed_workspaces.owner_id <> ${own})`;
+};
+
 /** `column` holds an item id whose scope is in a workspace the viewer sees. */
 export const isVisibleItem = (viewer: Viewer, column: string): Expression<SqlBool> => {
   if (viewer.root) return sql<SqlBool>`1 = 1`;

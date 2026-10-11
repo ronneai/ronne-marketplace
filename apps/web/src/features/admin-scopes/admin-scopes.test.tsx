@@ -9,7 +9,7 @@ const scopes = vi.hoisted(() => ({
   updateScopeDescription: vi.fn(),
   pageScopes: vi.fn(),
 }));
-const workspaces = vi.hoisted(() => ({ listWorkspaces: vi.fn() }));
+const workspaces = vi.hoisted(() => ({ listWorkspaces: vi.fn(), findWorkspace: vi.fn() }));
 const session = vi.hoisted(() => ({ getCurrentUser: vi.fn() }));
 const cache = vi.hoisted(() => ({ revalidatePath: vi.fn() }));
 vi.mock("@/server/domains/items/actions/scopes", () => scopes);
@@ -239,5 +239,16 @@ describe("the page", () => {
       expect.objectContaining({ workspaceId: "none" }),
     );
     expect(stale).toContain('aria-label="Remove the workspace filter"');
+  });
+
+  it("filters by a personal workspace's name, which the select leaves out (114)", async () => {
+    session.getCurrentUser.mockResolvedValue({ role: "root" });
+    workspaces.findWorkspace.mockResolvedValueOnce({ id: "p1", name: "ana" });
+    await AdminScopes({ searchParams: Promise.resolve({ workspace: "ana" }) });
+    expect(workspaces.findWorkspace).toHaveBeenLastCalledWith(expect.any(Headers), "ana");
+    expect(scopes.pageScopes).toHaveBeenLastCalledWith(
+      expect.any(Headers),
+      expect.objectContaining({ workspaceId: "p1" }),
+    );
   });
 });

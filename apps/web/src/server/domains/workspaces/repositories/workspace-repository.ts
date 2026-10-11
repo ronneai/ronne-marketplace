@@ -95,6 +95,10 @@ export interface WorkspaceRepository {
   openFiles(files: readonly Omit<OpenFile, "content">[]): Promise<OpenFile[]>;
   /** Writes those files again with new text, as utf8 (113); a working copy's `updated_at` moves on. */
   writeFiles(files: readonly OpenFile[], at: Date): Promise<void>;
+  /** These items' workspaces, with their visibility, by item id (113: whose old names to name). */
+  itemWorkspaces(
+    itemIds: readonly string[],
+  ): Promise<ReadonlyMap<string, { workspaceId: string; visibility: WorkspaceVisibility }>>;
   /** Which of these names are old names of items (118's aliases), and whose. */
   aliasesNamed(names: readonly string[]): Promise<{ name: string; itemId: string }[]>;
   /**
