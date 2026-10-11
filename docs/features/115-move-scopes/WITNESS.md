@@ -695,6 +695,24 @@ Witnessed: 2026-10-11 13:30 EDT, by a fresh agent (blind). Commit: 1cf29536 (plu
 
 **Overall:** met. (A unit assertion on `overflow-wrap` was added after this pass.)
 
+### Re-check 2
+
+Witnessed: 2026-10-11 16:22 EDT, by a fresh agent (blind). Commit: c5d88dd2 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0; Linux WebKit in Playwright's container (aarch64; CI is x86_64).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | With the fix, the Move e2e passes in Linux WebKit (CI failed there) | no | confirmed | remote Playwright server; 3 passed |
+| 2 | Without it, it fails there as in CI | no | confirmed | build with the containment CSS removed: 491>393 at `noSideScroll`; put back: passed |
+| 3 | Passes on macOS WebKit and Chromium | no | confirmed | 4 passed |
+| 4 | 640px wide | no | confirmed | `size="wide"` |
+| 5 | Containment leaves other selects' layout as it was | no | confirmed | 9 selects on five projects, same sizes with and without |
+| 6 | The focus ring isn't clipped | no | confirmed | same pixels outside the box with and without |
+| 7 | Phone sweep, fields, dialogs | no | confirmed | 21 passed; 7 in Linux WebKit |
+| 8 | Unit tests | no | confirmed | 2102 passed |
+| 9 | Lint | no | confirmed | clean |
+
+**Overall:** met.
+
 ## Task 15 — Admin › Scopes goes
 
 Witnessed: 2026-10-11 14:17 EDT, by a fresh agent (blind). Commit: a9222644 (plus the uncommitted working tree); ronne-web on docs/115-move-scopes (uncommitted). Machine: macOS 27.0.1, Node v24.0.0.

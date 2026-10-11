@@ -59,9 +59,10 @@ export const Input = ({ className, ...props }: InputHTMLAttributes<HTMLInputElem
 
 export const selectClasses = cn(
   // A select is as wide as its longest option unless told otherwise, which would widen a dialog
-  // or form on a phone (115): `min-w-0` lets it shrink, and `overflow-hidden` keeps iOS Safari
-  // from still counting the option's width in the box around it. Its focus ring is outside it.
-  "h-9 w-full min-w-0 overflow-hidden rounded-control border border-strong bg-surface px-2 text-sm text-fg",
+  // or form on a phone (115): `min-w-0` lets it shrink, and `overflow-hidden` with layout and
+  // paint containment keeps WebKit (on macOS and on Linux) from still counting the option's width
+  // in the box around it. Its own focus ring stays outside it.
+  "h-9 w-full min-w-0 overflow-hidden contain-layout contain-paint rounded-control border border-strong bg-surface px-2 text-sm text-fg",
   touchFieldClasses,
   "outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus aria-invalid:border-error",
 );

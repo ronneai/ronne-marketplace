@@ -280,7 +280,7 @@ export const MoveForm = ({
       }}
       // One column as wide as the dialog, never its widest field (115): a select is as wide as its
       // longest option in iOS Safari.
-      className="grid grid-cols-[minmax(0,1fr)] gap-4"
+      className="grid grid-cols-[minmax(0,1fr)] gap-4 [&>*]:min-w-0"
     >
       <input type="hidden" name="scopeId" value={scope.id} />
       <input type="hidden" name="workspace" value={workspace} />
@@ -289,7 +289,7 @@ export const MoveForm = ({
       {step === "form" ? (
         <>
           <Help id="move-who" />
-          <div className="grid gap-1.5">
+          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5">
             <Label htmlFor={`move-${scope.id}-to`}>Where to</Label>
             {targets && "error" in targets ? (
               <FieldError id={`move-${scope.id}-targets`}>{targets.error}</FieldError>
