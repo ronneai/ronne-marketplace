@@ -69,7 +69,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 - [x] **11. Decision log.** MVP §15 and §2: workspaces managed from their own pages, Admin root's.
   *Done when:* the rows are in.
 
-- [ ] **12. Documentation.** The Workspaces and Administration topics, and the helpers, in the
+- [x] **12. Documentation.** The Workspaces and Administration topics, and the helpers, in the
   ronne-web branch.
   *Done when:* the docs render tests pass in ronne-web, and the helper link test passes here.
 

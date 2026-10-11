@@ -214,6 +214,13 @@ everything is on the Workspaces pages, and each option shows only to those allow
   workspace you can't see.
 - **Helpers:** in the Move dialog, "Who has to agree?" → `workspaces#moving`; on the Scope moves
   table, "What does approving do?" → `workspaces#moving`.
+- **Workspaces in one place:** **Administration → Workspaces** (`admin#workspaces`) goes, in both
+  repositories' `topics.ts`; what it said moves to **Workspaces → Creating and managing them**
+  (`workspaces#managing`): the Workspaces list (root's every workspace, Kind, New workspace), a
+  workspace's page for everyone who sees it and its tabs for those allowed, and Admin as root's.
+  **Your personal workspace**, **Members and roles** and **Joining a workspace** name the
+  workspace's page instead of Admin › Workspaces; Administration's summary says it's root's. No
+  helper links to the removed section, and no helper's words change.
 
 ## Acceptance criteria
 
@@ -237,7 +244,7 @@ everything is on the Workspaces pages, and each option shows only to those allow
 - [x] Every step is audited.
 - [x] The dialog and the Scope moves table pass the phone sweep (065).
 - [x] The Documentation and inline helpers listed above say what the feature does now.
-- [ ] A workspace's page and the list are under Workspaces for everyone who sees them, with each
+- [x] A workspace's page and the list are under Workspaces for everyone who sees them, with each
   option shown only to those allowed; Admin › Workspaces redirects there; Admin is root's.
 
 ## Decisions

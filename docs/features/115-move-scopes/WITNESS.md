@@ -607,3 +607,24 @@ Witnessed: 2026-10-11 12:29 EDT, by a fresh agent (blind). Commit: 3abaf36e (plu
 | 8 | Nothing else in MVP.md gives Admin to workspace admins | no | confirmed | grep |
 
 **Overall:** met. (After this pass, §8's table gained a Workspaces row and 092's note names its superseded "Admins in Admin".)
+
+## Task 12 — Documentation
+
+Witnessed: 2026-10-11 12:31 EDT, by a fresh agent (blind). Commit: 3abaf36e (plus the uncommitted working tree); ronne-web 4325d75 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | ronne-web's checks pass | no | confirmed | `make check`: 138 tests, build |
+| 2 | Helper link test passes and would catch a removed section | no | confirmed | 3 passed; `Help.test.tsx` checks every href |
+| 3 | `admin#workspaces` gone from both `topics.ts`, ids match | no | confirmed | diffs; probe `IDENTICAL` |
+| 4 | Nothing links to `admin#workspaces` | no | confirmed | greps in both repositories |
+| 5 | Administration is root's, its Workspaces section gone, in en, pt, fr | no | confirmed | diffs; `admin/layout.tsx`, `nav.ts` |
+| 6 | `workspaces#managing` describes the list | no | confirmed | en 427-434; `workspaces/page.tsx`, `WorkspacesTable.tsx` |
+| 7 | It describes a workspace's page for everyone who sees it | no | confirmed | en 436-439; `[name]/page.tsx` |
+| 8 | Options and tabs only for those allowed | no | confirmed | en 441-505; the page's `can(...)` gates |
+| 9 | A scope's move shows under its description | no | confirmed | `ScopesTable note` |
+| 10 | Old Admin addresses open these pages; Admin is root's | no | confirmed | `next.config.ts` |
+| 11 | Personal, Members and roles, Joining name the workspace's page | no | confirmed | diff; no "Admin › Workspaces" left |
+| 12 | pt and fr say what en says | no | confirmed | side by side |
+
+**Overall:** met. (After this pass, the Requests bullet says the scope moves are root's and its admins', in all three languages; ronne-web 18e5dc2.)
