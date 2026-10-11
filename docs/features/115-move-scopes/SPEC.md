@@ -55,7 +55,7 @@ on every item in the scope; this feature says who decides, and what a move may n
 
 ## Behaviour
 
-**Where.** On a workspace's page (`/admin/workspaces/<name>`, the Scopes tab), each scope row has
+**Where.** On a workspace's page (`/workspaces/<name>`, the Scopes tab), each scope row has
 **Move…** for root and the workspace's admins (for a personal workspace, its owner and root). A row
 with an open move shows "Moving to acme · Cancel"; a declined one shows "Move to acme declined" with
 the reason until the next request.
@@ -148,7 +148,25 @@ confirmations, when they're an admin of `global` and nothing is not reviewed). R
 a scope out of anyone's personal workspace. Moving into a personal workspace is its owner's only:
 from a workspace they administer, to keep working on a scope alone.
 
+**Workspaces in one place** (owner, 2026-10-11). Managing a workspace leaves the Admin area:
+everything is on the Workspaces pages, and each option shows only to those allowed.
+- **A workspace's page** is `/workspaces/<name>`, for anyone who sees the workspace (093; a
+  personal one only for its owner and root, 114): its description, visibility, their role (or Ask
+  to join), and its **Scopes** tab. Create scope, each scope's Edit and Move…, Edit description,
+  Rename, the visibility, Delete, and the **Members** and **Requests** tabs show only to those who
+  may use them, as before. A scope row's actions are icon buttons on one line, each with its name
+  as a tooltip and an accessible label.
+- **The list** is `/workspaces`, every workspace's name a link to its page. Root also gets
+  **New workspace** and the **Kind** filter (Shared, or Personal with each owner).
+- **Admin › Workspaces is gone:** `/admin/workspaces` and `/admin/workspaces/<name>` redirect to
+  the Workspaces pages, so links and bookmarks keep working. The Admin area is root's alone again:
+  a workspace's admin no longer sees Admin in the menu.
+
 ## Edge cases
+
+- **A workspace named `requests`:** `/workspaces/requests` is the Requests page, so `requests`
+  joins the reserved workspace names (a personal workspace from `requests@…` gets `requests-2`,
+  114). One created before can't open its page: root renames it (113).
 
 - **The target workspace is deleted, or its visibility changes, while a request is open:** deleting
   a workspace removes the requests into it (cascade, counted in `workspace.deleted`); a visibility
@@ -219,6 +237,8 @@ from a workspace they administer, to keep working on a scope alone.
 - [x] Every step is audited.
 - [x] The dialog and the Scope moves table pass the phone sweep (065).
 - [x] The Documentation and inline helpers listed above say what the feature does now.
+- [ ] A workspace's page and the list are under Workspaces for everyone who sees them, with each
+  option shown only to those allowed; Admin › Workspaces redirects there; Admin is root's.
 
 ## Decisions
 

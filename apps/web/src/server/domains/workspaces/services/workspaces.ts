@@ -24,6 +24,7 @@ import {
   WorkspaceRenameAliasError,
   WorkspacesError,
 } from "../exceptions/errors";
+import { seesWorkspace, visibleWorkspaces } from "../models/viewer";
 import {
   GLOBAL_WORKSPACE_NAME,
   visibilityChoice,
@@ -483,6 +484,27 @@ export const pageWorkspaces = async (
     previous: page.previous,
     total: { count: total.count + (global ? 1 : 0), capped: total.capped },
   };
+};
+
+/**
+ * One workspace, for its page under Workspaces (115): for anyone signed in who sees it (093);
+ * someone else's personal workspace only for root (114). Null otherwise, as for a name no
+ * workspace has.
+ */
+export const viewWorkspace = async (
+  deps: WorkspaceDeps,
+  actor: WorkspaceActor,
+  name: string,
+): Promise<Workspace | null> => {
+  const user = actor.user;
+  requirePermission(user, "account.manage_own");
+  const workspace = await byName(deps.repo, name);
+  if (!workspace || !user) return null;
+  const viewer = visibleWorkspaces(user, await deps.repo.list());
+  if (!seesWorkspace(viewer, workspace.id)) return null;
+  if (workspace.ownerId !== null && workspace.ownerId !== user.id && user.role !== "root")
+    return null;
+  return workspace;
 };
 
 /** One workspace, for its page in Admin › Workspaces: root, or one of its admins (092); null otherwise. */

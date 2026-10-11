@@ -9,7 +9,7 @@ import { E2E_RENAME } from "./users";
 export const renameAsAdmin = async (page: Page, project: string) => {
   const from = E2E_RENAME.workspace(project);
   const to = E2E_RENAME.renamed(project);
-  await page.goto(`/admin/workspaces/${from}`);
+  await page.goto(`/workspaces/${from}`);
   await page.getByRole("button", { name: "Rename", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Rename workspace" });
   await expect(dialog.getByText("Its 1 item will be renamed from")).toBeVisible();
@@ -30,10 +30,10 @@ export const renameAsAdmin = async (page: Page, project: string) => {
   await expect(save).toBeInViewport();
   await save.click();
 
-  await expect(page).toHaveURL(new RegExp(`/admin/workspaces/${to}$`));
+  await expect(page).toHaveURL(new RegExp(`/workspaces/${to}$`));
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(to);
   // The old address is a name no workspace has.
-  expect((await page.goto(`/admin/workspaces/${from}`))?.status()).toBe(404);
+  expect((await page.goto(`/workspaces/${from}`))?.status()).toBe(404);
 
   // Its item takes the new name; the old item address leads to it.
   const item = `${E2E_RENAME.scope}/${E2E_RENAME.item}`;

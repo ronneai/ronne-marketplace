@@ -475,3 +475,63 @@ Witnessed: 2026-10-11 02:07 EDT, by a fresh agent (blind). Commit: 788a2c06 (plu
 | 15a | SPEC line matches | no | confirmed | SPEC.md:145 |
 
 **Overall:** met.
+
+## Task 9 — A workspace's page under Workspaces
+
+Witnessed: 2026-10-11 12:05 EDT, by a fresh agent (blind). Commit: ff6f458a (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Opens for whoever sees the workspace; private ones for members and root | no | confirmed | `visibility.db.test.ts` 11 passed; probe: e2e-vault 200 for a member, 404 for others, same as an unknown name |
+| 2 | Someone else's personal workspace: owner and root only | no | confirmed | db test; e2e `personal-workspace.ts:89` on four projects |
+| 3 | Signed out reads nothing | no | confirmed | unit test; db test; probe redirects to sign-in |
+| 4 | Description, visibility, role or Ask to join, Scopes tab | no | confirmed | unit test; probe |
+| 5 | Members and Requests tabs only for those allowed; otherwise Scopes | no | confirmed | probes per role; mutation fails a test |
+| 6 | Create scope, Edit, Move…, Edit description, Rename, visibility, Delete only for those allowed | no | confirmed | `can(...)` gates; unit tests per role; mutation fails a test |
+| 7 | Scope actions are icon buttons on one line, named and with tooltips | no | confirmed | `IconButton.tsx`; probe at desktop and 390px; no repo test of `title` |
+| 8 | Old address redirects with the query, on the same site | no | confirmed | unit test; probes incl. `%2F%2Fevil.example` |
+| 9 | `requests` reserved; `requests@…` gets `requests-2` | no | confirmed | `names.ts:30`; probe; no repo test |
+| 10 | `/workspaces/requests` stays the Requests page | no | confirmed | probe |
+| 11 | Component tests cover each role | no | confirmed | 92 passed across five feature folders |
+| 12 | e2e uses the new address | no | confirmed | 44 passed on four projects |
+
+**Overall:** met. (Tests for `requests` and IconButton's tooltip were added after this pass.)
+
+### Adversarial pass
+
+Witnessed: 2026-10-11 12:03 EDT, by a fresh agent (adversarial). Commit: ff6f458a (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Private page hidden whatever the spelling | no | confirmed | probe: case, spaces, fullwidth, Cyrillic, zero-width, `../acme` |
+| 2 | Personal workspace owner and root only | no | confirmed | db test |
+| 3 | Members tab and data only for member managers | no | confirmed | `can()` gates; `pageMembers` refuses (probe) |
+| 4 | Requests tab and data only for answerers | no | confirmed | `pendingRequests` refuses (probe); coverage gap in row 9 |
+| 5 | Create scope, Edit, Move… only for root and admins | no | confirmed | mutations fail tests; server actions refuse (probe) |
+| 6 | Workspace edits gated; none on global | no | confirmed | mutations fail tests; server actions refuse (probe) |
+| 7 | Role, or Ask to join only where they may ask | no | partly | Ask to join shown with an open or declined request |
+| 8 | Icon buttons on one line, named | no | confirmed | `IconButton.tsx`; a long decline reason may not wrap |
+| 9 | Component tests cover each role | no | partly | moderator getting Edit/Move… and `?tab=requests` for anyone pass every test |
+| 10 | Redirect keeps query, no open redirect | no | confirmed | probes `//evil.com`, `\\evil.com`, CRLF, malformed escapes |
+| 11 | e2e uses the new address | no | confirmed | diff; `pages-coverage.test.ts` |
+| 12 | e2e passes | no | can't check here | scratch-copy build failed |
+| 13 | `requests` reserved | no | confirmed | probe; no repo test |
+| 14 | Server actions enforce permissions on their own | no | confirmed | probe: 9 refuse a non-member, 7 a plain member |
+
+**Overall:** not met: rows 7, 9, 12.
+
+### Adversarial re-check 1
+
+Witnessed: 2026-10-11 12:09 EDT, by a fresh agent (adversarial). Commit: ff6f458a (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | Requested or Declined instead of Ask to join, as on the list | yes | confirmed | `NotIn` with `ownRequests`; test; mutations M12, M13 fail it |
+| 9 | Tests catch the moderator and unauthorised `?tab=requests` mistakes | yes | confirmed | 694 passed; M9, M10, M14 now fail |
+| 12 | e2e passes on the new address | yes | confirmed | built in the repository; 35 passed on four projects |
+| 15 | A move's state wraps under the description; actions column holds the icons | yes | confirmed | by reading: `note` prop, fixed `w-24` column |
+| 16 | `requests` reserved, with a test | yes | confirmed | `names.test.ts` 15 passed |
+| 17 | IconButton's name and tooltip, with a test | yes | confirmed | `ui.test.tsx` |
+| 18 | Hiding and server checks unchanged | no | confirmed | `visibility.db.test.ts` 11 passed |
+
+**Overall:** met.

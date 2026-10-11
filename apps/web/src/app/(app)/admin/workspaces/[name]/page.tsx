@@ -1,249 +1,29 @@
-import { formatScopeName } from "@ronneai/core";
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import { Help } from "@/components/help/Help";
-import { Badge } from "@/components/ui/Badge";
-import { parseListQuery, type SearchParams } from "@/components/ui/data-table/list-query";
-import { PageHeader } from "@/components/ui/Panel";
-import { ScrollStrip } from "@/components/ui/ScrollStrip";
-import { stripTab } from "@/components/ui/scroll-strip";
-import { scopesQueryOf, workspaceScopesList } from "@/features/admin-scopes/list";
-import { CreateScopeDialog, EditScopeButton } from "@/features/admin-scopes/ScopeDialogs";
-import { ScopesTable } from "@/features/admin-scopes/ScopesTable";
+import { redirect } from "next/navigation";
+import type { SearchParams } from "@/components/ui/data-table/list-query";
 import { workspacePath } from "@/features/admin-workspaces/list";
-import { MoveScopeButton, MoveState } from "@/features/admin-workspaces/MoveScope";
-import {
-  DeleteWorkspaceButton,
-  EditWorkspaceButton,
-  RenameWorkspaceButton,
-  VisibilityButton,
-} from "@/features/admin-workspaces/WorkspaceDialogs";
-import { VISIBILITY_LABELS } from "@/features/admin-workspaces/WorkspacesTable";
-import {
-  checkedMembersState,
-  membersQueryOf,
-  workspaceMembersList,
-} from "@/features/workspace-members/list";
-import { MembersTable } from "@/features/workspace-members/MembersTable";
-import { RequestsTable } from "@/features/workspace-requests/RequestsTable";
-import { ScopeMovesTable } from "@/features/workspace-requests/ScopeMovesTable";
-import { getCurrentUser } from "@/server/domains/identity/actions/session";
-import { can, canInSome, canInSomeShared } from "@/server/domains/identity/models/permissions";
-import { pageScopes } from "@/server/domains/items/actions/scopes";
-import {
-  findWorkspace,
-  movesToAnswer,
-  pageMembers,
-  pendingRequests,
-  scopeMovesIn,
-} from "@/server/domains/workspaces/actions/workspaces";
-import type { ScopeMove } from "@/server/domains/workspaces/models/scope-move";
-import { requestHeaders } from "@/server/http/request-headers";
-
-export const metadata = { title: "Workspace · Admin · Ronne AI Marketplace" };
-
-/** The name from the address; a malformed escape is left as typed, and then isn't found. */
-const decoded = (value: string) => {
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return value;
-  }
-};
 
 /**
- * One workspace (feature 090): its description, its members (092) and its scopes. Root and the
- * workspace's admins edit the description, rename it (113), manage the members and create scopes; only root deletes
- * it, while it has no scopes. `global`'s description can't be edited, and it can't be deleted. A
- * workspace the admin doesn't administer is a 404, as for anyone else.
+ * A workspace's page moved under Workspaces (115): the old address keeps working, with its tab,
+ * search and page.
  */
-const AdminWorkspace = async ({
+const OldWorkspacePage = async ({
   params,
   searchParams,
 }: {
   params: Promise<{ name: string }>;
   searchParams: Promise<SearchParams>;
 }) => {
-  const request = await requestHeaders();
-  const me = await getCurrentUser(request);
-  if (!me || !canInSome(me, "members.manage")) notFound();
   const { name } = await params;
-  const workspace = await findWorkspace(request, decoded(name));
-  if (!workspace) notFound();
-  const path = workspacePath(workspace.name);
-  const query = await searchParams;
-  // A personal workspace (114) is its owner's alone: no members to manage, no requests to answer,
-  // no visibility to change, never deleted. Only its scopes.
-  const personal = workspace.ownerId !== null;
-  // Its owner may administer nothing else, so their way back is the Workspaces page.
-  const back = canInSomeShared(me, "members.manage")
-    ? { href: "/admin/workspaces", label: "All workspaces" }
-    : { href: "/workspaces", label: "Workspaces" };
-  // Tabs on this page's own address: its scopes, `tab=members` its members (092), and
-  // `tab=requests` the requests to join it (094), for root and its admins, who answer them.
-  const tab =
-    !personal && (query.tab === "members" || query.tab === "requests") ? query.tab : "scopes";
-
-  const content = async () => {
-    if (tab === "requests") {
-      const [{ requests, total }, { moves }] = await Promise.all([
-        pendingRequests(request, workspace.id),
-        movesToAnswer(request, { workspaceId: workspace.id }),
-      ]);
-      return (
-        <div className="grid gap-3">
-          <Help id="requests-who" />
-          {/* The moves into it (115), for root and its admins (global's are root's alone). */}
-          {moves.length > 0 ? (
-            <section aria-labelledby="scope-moves" className="mb-4 grid gap-3">
-              <h2 id="scope-moves" className="text-base font-semibold text-fg">
-                Scope moves
-              </h2>
-              <ScopeMovesTable moves={moves} />
-            </section>
-          ) : null}
-          <RequestsTable
-            requests={requests.map((r) => ({
-              ...r,
-              canPickRole: can(me, "members.manage", workspace.id),
-            }))}
-            total={total}
-          />
-        </div>
-      );
-    }
-    if (tab === "members") {
-      const list = workspaceMembersList(path);
-      const state = checkedMembersState(parseListQuery(list, query));
-      const members = await pageMembers(request, {
-        ...membersQueryOf(state),
-        workspaceId: workspace.id,
-      });
-      return (
-        <MembersTable
-          workspace={{ id: workspace.id, name: workspace.name, isGlobal: workspace.isGlobal }}
-          list={list}
-          state={state}
-          members={members.rows}
-          page={{ next: members.next, previous: members.previous }}
-          total={members.total}
-          me={me.id}
-        />
-      );
-    }
-    const list = workspaceScopesList(path);
-    const state = parseListQuery(list, query);
-    const scopes = await pageScopes(request, {
-      ...scopesQueryOf(state),
-      workspaceId: workspace.id,
-    });
-    // Move… for root and the workspace's admins (115), and each scope's open or declined move.
-    const canMove = can(me, "scopes.move", workspace.id);
-    const moves = canMove ? await scopeMovesIn(request, { workspaceId: workspace.id }) : {};
-    return (
-      <>
-        {can(me, "scopes.create", workspace.id) ? (
-          <div className="mb-3">
-            <CreateScopeDialog workspaces={[{ id: workspace.id, name: workspace.name }]} />
-          </div>
-        ) : null}
-        <ScopesTable
-          list={list}
-          state={state}
-          scopes={scopes.scopes}
-          page={{ next: scopes.next, previous: scopes.previous }}
-          total={scopes.total}
-          actions={(scope) => (
-            <span className="inline-flex flex-wrap items-center gap-2">
-              {/* Scope names are unique per workspace (118): `acme/infra` says which one. */}
-              <EditScopeButton
-                name={formatScopeName({ workspace: scope.workspace.name, scope: scope.name }).slice(
-                  1,
-                )}
-                description={scope.description}
-              />
-              {canMove && moves[scope.id]?.status !== "open" ? (
-                <MoveScopeButton
-                  scope={{ id: scope.id, name: scope.name }}
-                  workspace={workspace.name}
-                />
-              ) : null}
-              {moves[scope.id] ? (
-                <MoveState move={moves[scope.id] as ScopeMove} workspace={workspace.name} />
-              ) : null}
-            </span>
-          )}
-        />
-      </>
-    );
-  };
-
-  return (
-    <>
-      <p className="mb-2 text-sm">
-        <Link
-          href={back.href}
-          className="text-link hover:underline outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
-        >
-          {back.label}
-        </Link>
-      </p>
-      <PageHeader
-        title={<span className="font-mono">{workspace.name}</span>}
-        description={workspace.description}
-        actions={
-          workspace.isGlobal ? null : (
-            <>
-              {can(me, "workspace.edit", workspace.id) ? (
-                <EditWorkspaceButton name={workspace.name} description={workspace.description} />
-              ) : null}
-              {can(me, "workspace.rename", workspace.id) ? (
-                <RenameWorkspaceButton name={workspace.name} />
-              ) : null}
-              {can(me, "workspaces.manage") && !personal ? (
-                <>
-                  <VisibilityButton name={workspace.name} visibility={workspace.visibility} />
-                  <DeleteWorkspaceButton name={workspace.name} scopes={workspace.scopes} />
-                </>
-              ) : null}
-            </>
-          )
-        }
-      />
-      <div className="mb-6 flex flex-wrap items-center gap-2 text-sm text-muted">
-        <Badge>{personal ? "Personal" : VISIBILITY_LABELS[workspace.visibility]}</Badge>
-        {workspace.isGlobal ? (
-          <span>Every instance has it, and everyone is in it. It can't be changed or deleted.</span>
-        ) : null}
-        {personal ? (
-          <span>
-            {workspace.ownerId === me.id ? "Yours" : "Its owner's"} alone, always private. Its items
-            are released without review.
-          </span>
-        ) : null}
-      </div>
-      <ScrollStrip label="Workspace" className="mb-4 gap-1 border-b border-hairline">
-        {(personal
-          ? ([["scopes", "Scopes", path]] as const)
-          : ([
-              ["scopes", "Scopes", path],
-              ["members", "Members", `${path}?tab=members`],
-              ["requests", "Requests", `${path}?tab=requests`],
-            ] as const)
-        ).map(([id, label, href]) => (
-          <Link
-            key={id}
-            href={href}
-            aria-current={tab === id ? "page" : undefined}
-            className={`${stripTab} -mb-px border-b-2 border-transparent px-3 py-2 text-sm text-muted hover:text-fg aria-[current=page]:border-accent aria-[current=page]:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus`}
-          >
-            {label}
-          </Link>
-        ))}
-      </ScrollStrip>
-      {await content()}
-    </>
-  );
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(await searchParams))
+    for (const one of Array.isArray(value) ? value : value === undefined ? [] : [value])
+      query.append(key, one);
+  const rest = query.toString();
+  let decoded = name;
+  try {
+    decoded = decodeURIComponent(name);
+  } catch {}
+  redirect(`${workspacePath(decoded)}${rest ? `?${rest}` : ""}`);
 };
 
-export default AdminWorkspace;
+export default OldWorkspacePage;

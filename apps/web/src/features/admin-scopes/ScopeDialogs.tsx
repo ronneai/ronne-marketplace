@@ -1,11 +1,13 @@
 "use client";
 
 import { NAME_PROBLEM_MESSAGES, nameProblem, normalizeScopeName } from "@ronneai/core";
+import { Pencil } from "lucide-react";
 import { useActionState, useState } from "react";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label, selectClasses } from "@/components/ui/Field";
+import { IconButton } from "@/components/ui/IconButton";
 import { Notice } from "@/components/ui/Notice";
 import { createScopeFromForm, updateScopeFromForm } from "./actions";
 import type { ScopeActionState } from "./types";
@@ -38,7 +40,8 @@ export const WorkspaceSelect = ({ workspaces }: { workspaces: WorkspaceChoice[] 
     // On a workspace's own page (092): the scope goes in that one.
     <p className="text-sm text-muted">
       In <span className="font-mono text-fg">{workspaces[0]?.name}</span>
-      <input type="hidden" name="workspaceId" value={workspaces[0]?.id} />. It can't be moved later.
+      <input type="hidden" name="workspaceId" value={workspaces[0]?.id} />. Its admins or root can
+      move it later.
     </p>
   ) : (
     <div className="grid gap-1.5">
@@ -60,7 +63,7 @@ export const WorkspaceSelect = ({ workspaces }: { workspaces: WorkspaceChoice[] 
         ))}
       </select>
       <p id="scope-workspace-hint" className="text-xs text-muted">
-        Its items belong to this workspace. It can't be moved later.
+        Its items belong to this workspace, until it's moved.
       </p>
     </div>
   );
@@ -110,7 +113,7 @@ const CreateForm = ({
           ) : (
             <>
               Items will be named <span className="font-mono text-fg">@{name || "scope"}/item</span>
-              . Lowercase letters, digits and hyphens. It can't be changed later.
+              . Lowercase letters, digits and hyphens.
             </>
           )}
         </p>
@@ -197,14 +200,9 @@ export const EditScopeButton = ({ name, description }: { name: string; descripti
   const dialog = useDialog();
   return (
     <>
-      <button
-        type="button"
-        onClick={dialog.show}
-        aria-label={`Edit @${name}`}
-        className="rounded-control px-2 py-1 text-xs text-muted hover:bg-tint hover:text-fg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
-      >
-        Edit
-      </button>
+      <IconButton onClick={dialog.show} label={`Edit @${name}`}>
+        <Pencil size={16} aria-hidden="true" />
+      </IconButton>
       <Dialog open={dialog.open} onClose={dialog.close} title="Edit scope">
         <EditForm key={dialog.round} name={name} description={description} onDone={dialog.close} />
       </Dialog>

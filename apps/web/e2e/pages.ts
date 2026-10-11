@@ -114,20 +114,29 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
     urls: () => ["/admin/workspaces", "/admin/workspaces?kind=personal"],
   },
   {
-    route: "/admin/workspaces/[name]",
-    roles: ["member", ...ROOT],
-    // Root: its two tabs (092), the scopes and global's members, which is everyone, and the
-    // member's personal workspace (114). The member: their own, reached from Workspaces.
+    route: "/workspaces/[name]",
+    roles: EVERYONE,
+    // Everyone who sees a workspace (115). Root: its tabs (092), the scopes and global's members,
+    // which is everyone, and the member's personal workspace (114). The others: global, with what
+    // their role there shows, and the member their own.
     urls: ({ personal }, role) =>
       role === "member"
-        ? [`/admin/workspaces/${personal}`]
-        : [
-            "/admin/workspaces/global",
-            "/admin/workspaces/global?tab=members",
-            `/admin/workspaces/${E2E_WORKSPACE}?tab=requests`,
-            `/admin/workspaces/${E2E_WORKSPACE}`,
-            `/admin/workspaces/${personal}`,
-          ],
+        ? ["/workspaces/global", `/workspaces/${personal}`]
+        : role === "moderator"
+          ? ["/workspaces/global", "/workspaces/global?tab=requests"]
+          : [
+              "/workspaces/global",
+              "/workspaces/global?tab=members",
+              `/workspaces/${E2E_WORKSPACE}?tab=requests`,
+              `/workspaces/${E2E_WORKSPACE}`,
+              `/workspaces/${personal}`,
+            ],
+  },
+  {
+    route: "/admin/workspaces/[name]",
+    roles: ROOT,
+    urls: () => [],
+    skip: "It only redirects to /workspaces/[name] (115).",
   },
   { route: "/admin/scopes", roles: ROOT, urls: () => ["/admin/scopes"] },
   { route: "/admin/audit", roles: ROOT, urls: () => ["/admin/audit"] },

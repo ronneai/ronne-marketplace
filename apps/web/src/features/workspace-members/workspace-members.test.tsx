@@ -46,7 +46,7 @@ describe("member actions (092)", () => {
       userIds: ["a", "b", "c"],
       role: "moderator",
     });
-    expect(cache.revalidatePath).toHaveBeenCalledWith("/admin/workspaces/acme");
+    expect(cache.revalidatePath).toHaveBeenCalledWith("/workspaces/acme");
     workspaces.addMembers.mockResolvedValueOnce([{ userId: "a", result: "added" }]);
     expect(
       await actions.addMembersFromForm({}, form({ ...ACME, userId: "a", role: "user" })),

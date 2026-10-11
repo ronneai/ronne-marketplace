@@ -48,8 +48,17 @@ export const RequestState = ({ request }: { request: OwnRequest }) => {
   );
 };
 
-/** What a row offers someone who isn't in the workspace: their request's state, or Ask to join. */
-const NotIn = ({ workspace, request }: { workspace: string; request: OwnRequest | undefined }) => {
+/**
+ * What a row, or a workspace's page (115), offers someone who isn't in the workspace: their
+ * request's state, or Ask to join.
+ */
+export const NotIn = ({
+  workspace,
+  request,
+}: {
+  workspace: string;
+  request: OwnRequest | undefined;
+}) => {
   if (request?.status === "open") return <RequestState request={request} />;
   const canAsk = !request || request.askAgainFrom === null;
   return (

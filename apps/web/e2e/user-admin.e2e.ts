@@ -173,7 +173,7 @@ test("root creates a user, who signs in with the shown password; disabling them 
   await admin.getByLabel("Role", { exact: true }).selectOption("moderator");
   await expect(admin).toHaveURL(/tab=members.*role=moderator/);
   await expect(admin.getByText("(you)")).toHaveCount(0);
-  await admin.goto("/admin/workspaces/e2e-acme?tab=members");
+  await admin.goto("/workspaces/e2e-acme?tab=members");
 
   // Adds someone as moderator, then removes them again, after a confirm.
   await admin.getByRole("button", { name: "Add members" }).click();
@@ -211,15 +211,14 @@ test("root creates a user, who signs in with the shown password; disabling them 
   await scope.getByRole("button", { name: "Create scope" }).click();
   await expect(scope.getByText(/Created/)).toBeVisible();
   await scope.getByRole("button", { name: "Done" }).click();
-  await expect(admin.getByTitle("@acme-admin-tools")).toBeVisible();
+  await expect(admin.getByTitle("@acme-admin-tools", { exact: true })).toBeVisible();
 
-  // And nothing else: another workspace, Users, Scopes, the audit log and Settings are a 404.
-  for (const path of [
-    "/admin/workspaces/global",
-    "/admin/users",
-    "/admin/scopes",
-    "/admin/audit",
-    "/admin/settings",
-  ])
+  // And nothing else. Another workspace's page opens, as for everyone who sees it (115), with
+  // nothing to manage there; Users, Scopes, the audit log and Settings are a 404.
+  await admin.goto("/workspaces/global");
+  await expect(admin.getByRole("heading", { level: 1 })).toHaveText("global");
+  await expect(admin.getByRole("link", { name: "Members" })).toHaveCount(0);
+  await expect(admin.getByRole("button", { name: "Create scope" })).toHaveCount(0);
+  for (const path of ["/admin/users", "/admin/scopes", "/admin/audit", "/admin/settings"])
     expect((await admin.goto(path))?.status(), path).toBe(404);
 });

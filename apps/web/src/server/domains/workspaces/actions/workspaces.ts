@@ -77,6 +77,10 @@ export const visibilityImpact = async (
   app: AppAuth = getAppAuth(),
 ) => service.visibilityImpact(deps(app), await actor(headers, app), name);
 
+/** A workspace's page under Workspaces (115): anyone who sees it. */
+export const viewWorkspace = async (headers: Headers, name: string, app: AppAuth = getAppAuth()) =>
+  service.viewWorkspace(deps(app), await actor(headers, app), name);
+
 export const findWorkspace = async (headers: Headers, name: string, app: AppAuth = getAppAuth()) =>
   service.findWorkspace(deps(app), await actor(headers, app), name);
 

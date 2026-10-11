@@ -17,7 +17,7 @@ export const releaseInPersonal = async (owner: Page, outsider: Page, workspace: 
   await expect(row).toContainText(workspace);
   await expect(row).toContainText("Personal");
   await row.getByRole("link", { name: `Manage ${workspace}` }).click();
-  await expect(owner).toHaveURL(new RegExp(`/admin/workspaces/${workspace}$`));
+  await expect(owner).toHaveURL(new RegExp(`/workspaces/${workspace}$`));
   await expect(owner.getByRole("heading", { level: 1 })).toHaveText(workspace);
   // Its scopes only: no members, no requests, no visibility, no Delete.
   await expect(owner.getByRole("link", { name: "Members" })).toHaveCount(0);
@@ -86,6 +86,6 @@ export const releaseInPersonal = async (owner: Page, outsider: Page, workspace: 
   await expect(owner.getByText("Released without review.")).toBeVisible();
 
   // Anyone else: as if neither existed.
-  for (const path of [itemPath, submission, `/admin/workspaces/${workspace}`])
+  for (const path of [itemPath, submission, `/workspaces/${workspace}`])
     expect((await outsider.goto(path))?.status(), path).toBe(404);
 };

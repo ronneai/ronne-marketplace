@@ -45,7 +45,7 @@ test("root creates, sorts and searches scopes under Admin; nobody else has a sco
   await expect(create.getByText("Created e2e-labs.")).toBeVisible();
   await create.getByRole("button", { name: "Done" }).click();
   await root.getByRole("link", { name: "e2e-labs", exact: true }).click();
-  await expect(root).toHaveURL(/\/admin\/workspaces\/e2e-labs$/);
+  await expect(root).toHaveURL(/\/workspaces\/e2e-labs$/);
   await expect(root.getByText("No scopes yet.")).toBeVisible();
 
   await root.goto("/admin/scopes");
@@ -63,7 +63,7 @@ test("root creates, sorts and searches scopes under Admin; nobody else has a sco
   await expect(root.getByRole("cell", { name: "@e2e-acme-infra", exact: true })).toBeVisible();
   await expect(root.getByRole("cell", { name: "@e2e-team", exact: true })).toHaveCount(0);
   // The workspace now has a scope, so it can't be deleted.
-  await root.goto("/admin/workspaces/e2e-acme");
+  await root.goto("/workspaces/e2e-acme");
   await expect(root.getByRole("button", { name: "Delete" })).toBeDisabled();
 
   // An author uploads and submits an item in the new scope; a moderator approves; it's released.

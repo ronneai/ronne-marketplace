@@ -33,7 +33,7 @@ export const moveScopes = async (
   const scope = E2E_MOVE.personalScope;
 
   // The owner asks: they don't run the team, so it's a request with a message.
-  await owner.goto(`/admin/workspaces/${personal}`);
+  await owner.goto(`/workspaces/${personal}`);
   await owner.getByRole("button", { name: `Move @${scope}`, exact: true }).click();
   const ask = owner.getByRole("dialog", { name: `Move @${scope}` });
   await ask.getByLabel("Where to").selectOption(team);
@@ -56,12 +56,12 @@ export const moveScopes = async (
     .click();
   await expect(moves.getByText("No moves waiting.")).toBeVisible();
   // It's the team's now, under its new name.
-  await admin.goto(`/admin/workspaces/${team}`);
+  await admin.goto(`/workspaces/${team}`);
   await expect(admin.getByRole("cell", { name: `@${scope}`, exact: true })).toBeVisible();
 
   // Root moves a scope out of global at once: two confirmations, the second typed.
   const rootScope = E2E_MOVE.rootScope(project);
-  await root.goto(`/admin/workspaces/global?q=${rootScope}`);
+  await root.goto(`/workspaces/global?q=${rootScope}`);
   const moveButton = root.getByRole("button", { name: `Move @${rootScope}`, exact: true });
   await moveButton.click();
   const move = root.getByRole("dialog", { name: `Move @${rootScope}` });
@@ -83,6 +83,6 @@ export const moveScopes = async (
   // Closing refreshes the page: the scope has left global.
   await expect(move).toBeHidden();
   await expect(moveButton).toHaveCount(0);
-  await root.goto(`/admin/workspaces/${team}`);
+  await root.goto(`/workspaces/${team}`);
   await expect(root.getByRole("cell", { name: `@${rootScope}`, exact: true })).toBeVisible();
 };

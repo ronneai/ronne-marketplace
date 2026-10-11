@@ -54,7 +54,7 @@ describe("answer actions (094)", () => {
       role: "moderator",
     });
     expect(cache.revalidatePath).toHaveBeenCalledWith("/", "layout");
-    expect(cache.revalidatePath).toHaveBeenCalledWith("/admin/workspaces/acme");
+    expect(cache.revalidatePath).toHaveBeenCalledWith("/workspaces/acme");
   });
 
   it("declines with the reason, and shows Already answered when someone was first", async () => {

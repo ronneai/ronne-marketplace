@@ -13,7 +13,7 @@ import type { ScopeFilter, ScopesList, ScopesListState } from "./list";
 /** A workspace as the filter and column need it (090). */
 export type WorkspaceOption = { name: string };
 
-const workspaceLink = (name: string) => `/admin/workspaces/${encodeURIComponent(name)}`;
+const workspaceLink = (name: string) => `/workspaces/${encodeURIComponent(name)}`;
 
 const Search = <F extends ScopeFilter>({
   list,
@@ -79,6 +79,7 @@ const Search = <F extends ScopeFilter>({
 const columns = (
   actions?: (scope: Scope) => ReactNode,
   withWorkspace = false,
+  note?: (scope: Scope) => ReactNode,
 ): Column<Scope, "name" | "created">[] => [
   {
     id: "name",
@@ -93,7 +94,18 @@ const columns = (
     id: "description",
     header: "Description",
     truncate: true,
-    render: (scope) => <span title={scope.description}>{scope.description}</span>,
+    render: (scope) => {
+      const extra = note?.(scope);
+      return (
+        <>
+          <span title={scope.description} className={extra ? "block truncate" : undefined}>
+            {scope.description}
+          </span>
+          {/* A line of its own under the description, which may wrap (115). */}
+          {extra ? <div className="mt-0.5 mb-1.5 whitespace-normal">{extra}</div> : null}
+        </>
+      );
+    },
   },
   ...(withWorkspace
     ? [
@@ -138,7 +150,8 @@ const columns = (
         {
           id: "actions",
           header: "",
-          className: "w-20",
+          // Two icon buttons, Edit and Move, on one line (115).
+          className: "w-24 whitespace-nowrap pointer-coarse:w-30",
           align: "right" as const,
           render: actions,
         },
@@ -157,6 +170,7 @@ export const ScopesTable = <F extends ScopeFilter>({
   page,
   total,
   actions,
+  note,
   workspaces,
 }: {
   list: ScopesList<F>;
@@ -165,13 +179,15 @@ export const ScopesTable = <F extends ScopeFilter>({
   page: { next: string | null; previous: string | null };
   total: { count: number; capped: boolean };
   actions?: (scope: Scope) => ReactNode;
+  /** A line under a scope's description, such as its move's state (115). */
+  note?: (scope: Scope) => ReactNode;
   /** Every workspace, for the Workspace filter and column (090); left out on a workspace's page. */
   workspaces?: WorkspaceOption[];
 }) => (
   <DataTable
     list={list}
     state={state}
-    columns={columns(actions, workspaces !== undefined)}
+    columns={columns(actions, workspaces !== undefined, note)}
     rows={scopes}
     rowKey={(scope) => scope.id}
     page={page}

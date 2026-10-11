@@ -204,7 +204,7 @@ describe("the Move dialog (115)", () => {
       />,
     );
     expect(open).toContain("Moving to acme");
-    expect(open).toContain(">Cancel<");
+    expect(open).toContain('aria-label="Cancel the move to acme"');
     const declined = renderToStaticMarkup(
       <MoveState
         move={{ id: "m1", toWorkspace: "acme", status: "declined", reason: "Not ours." }}
@@ -213,7 +213,7 @@ describe("the Move dialog (115)", () => {
     );
     expect(declined).toContain("Move to acme declined");
     expect(declined).toContain("Not ours.");
-    expect(declined).not.toContain(">Cancel<");
+    expect(declined).not.toContain('aria-label="Cancel the move to acme"');
   });
 
   it("says it renamed the scope when it did, and shows a name problem as typed", () => {

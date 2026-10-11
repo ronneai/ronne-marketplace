@@ -72,6 +72,7 @@ describe("scope actions", () => {
     });
     expect(cache.revalidatePath).toHaveBeenCalledWith("/admin/scopes");
     expect(cache.revalidatePath).toHaveBeenCalledWith("/admin/workspaces", "layout");
+    expect(cache.revalidatePath).toHaveBeenCalledWith("/workspaces", "layout");
   });
 
   it("creates a scope in the workspace chosen, and says which (090)", async () => {
@@ -176,7 +177,7 @@ describe("ScopesTable (061)", () => {
     });
     for (const text of [
       ">Workspace<",
-      'href="/admin/workspaces/global"',
+      'href="/workspaces/global"',
       'name="workspace"',
       '<option value="acme" selected="">acme</option>',
       "Any workspace",
@@ -185,7 +186,7 @@ describe("ScopesTable (061)", () => {
       expect(withWorkspaces, text).toContain(text);
     const without = table({}, [scope()]);
     expect(without).not.toContain('name="workspace"');
-    expect(without).not.toContain('href="/admin/workspaces/global"');
+    expect(without).not.toContain('href="/workspaces/global"');
   });
 });
 
@@ -217,7 +218,7 @@ describe("the page", () => {
       expect.objectContaining({ search: "plat", sort: "name", dir: "asc", size: 50 }),
     );
     // The table's Workspace column and filter, and the dialog's select, each by their own markup.
-    expect(admin).toContain('href="/admin/workspaces/global"');
+    expect(admin).toContain('href="/workspaces/global"');
     expect(admin).toContain('name="workspace"');
     expect(admin).toContain('<option value="acme">acme</option>');
     expect(admin).toContain('name="workspaceId"');

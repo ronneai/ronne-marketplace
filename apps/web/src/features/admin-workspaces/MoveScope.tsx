@@ -1,12 +1,14 @@
 "use client";
 
 import { NAME_PROBLEM_MESSAGES, normalizeScopeName } from "@ronneai/core";
+import { FolderInput } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState } from "react";
 import { Help } from "@/components/help/Help";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
 import { FieldError, inputClasses, Label, selectClasses } from "@/components/ui/Field";
+import { IconButton } from "@/components/ui/IconButton";
 import { Notice } from "@/components/ui/Notice";
 import type { MoveImpact } from "@/server/domains/workspaces/models/scope-move";
 import type { MoveTarget } from "@/server/domains/workspaces/services/scope-moves";
@@ -448,9 +450,9 @@ export const MoveScopeButton = ({
   };
   return (
     <>
-      <Button variant="ghost" onClick={() => setOpen(true)} aria-label={`Move @${scope.name}`}>
-        Move…
-      </Button>
+      <IconButton onClick={() => setOpen(true)} label={`Move @${scope.name}`}>
+        <FolderInput size={16} aria-hidden="true" />
+      </IconButton>
       <Dialog open={open} onClose={close} title={`Move @${scope.name}`}>
         {open ? <MoveForm key={round} scope={scope} workspace={workspace} onDone={close} /> : null}
       </Dialog>
@@ -459,8 +461,8 @@ export const MoveScopeButton = ({
 };
 
 /**
- * A scope row's move (115): "Moving to acme" with Cancel while open, or "Move to acme declined"
- * with the reason, until the next request.
+ * A scope row's move (115), under its description: "Moving to acme" with Cancel while open, or
+ * "Move to acme declined" with the reason, until the next request. It wraps, the reason too.
  */
 export const MoveState = ({
   move,
@@ -478,18 +480,24 @@ export const MoveState = ({
   );
   if (move.status === "declined")
     return (
-      <span className="grid gap-0.5 text-xs text-muted">
+      <span className="grid gap-0.5 text-xs break-words text-muted">
         <span>Move to {move.toWorkspace} declined</span>
         {move.reason ? <span className="text-fg">“{move.reason}”</span> : null}
       </span>
     );
   if (state.done) return <span className="text-xs text-muted">Cancelled</span>;
   return (
-    <form action={action} className="inline-flex flex-wrap items-center gap-2 text-xs text-muted">
+    <form action={action} className="flex flex-wrap items-center gap-x-2 text-xs text-muted">
       <input type="hidden" name="moveId" value={move.id} />
       <input type="hidden" name="workspace" value={workspace} />
       <span>Moving to {move.toWorkspace}</span>
-      <Button type="submit" variant="ghost" loading={pending}>
+      <Button
+        type="submit"
+        variant="text"
+        loading={pending}
+        aria-label={`Cancel the move to ${move.toWorkspace}`}
+        className="text-xs"
+      >
         Cancel
       </Button>
       {state.error ? <FieldError id={`move-${move.id}-cancel`}>{state.error}</FieldError> : null}

@@ -34,5 +34,5 @@ export const workspacesQueryOf = (state: WorkspacesListState): Partial<Workspace
   kind: state.filters.kind === "personal" ? "personal" : "shared",
 });
 
-/** A workspace's page in Admin › Workspaces. */
-export const workspacePath = (name: string) => `/admin/workspaces/${encodeURIComponent(name)}`;
+/** A workspace's page, under Workspaces (115). */
+export const workspacePath = (name: string) => `/workspaces/${encodeURIComponent(name)}`;

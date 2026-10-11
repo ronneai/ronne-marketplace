@@ -55,6 +55,24 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 - [x] **8. Documentation.** The topics and helpers in the spec, in a ronne-web branch.
   *Done when:* the docs render tests pass in ronne-web, and the helper link test passes here.
 
+- [x] **9. A workspace's page under Workspaces.** [risky] `/workspaces/<name>` for anyone who sees the
+  workspace, with each option, tab and scope action shown only to those allowed; the scope rows'
+  actions as icon buttons on one line; `/admin/workspaces/<name>` redirects.
+  *Done when:* component tests cover what each role sees, and the e2e tests use the new address.
+
+- [ ] **10. The list under Workspaces; Admin is root's.** Root's New workspace and Kind filter on
+  `/workspaces`, names linking to their pages; `/admin/workspaces` redirects; Admin and its nav
+  item only for root.
+  *Done when:* component and nav tests pass, and the e2e tests and the phone sweep use the new
+  pages.
+
+- [ ] **11. Decision log.** MVP §15 and §2: workspaces managed from their own pages, Admin root's.
+  *Done when:* the rows are in.
+
+- [ ] **12. Documentation.** The Workspaces and Administration topics, and the helpers, in the
+  ronne-web branch.
+  *Done when:* the docs render tests pass in ronne-web, and the helper link test passes here.
+
 ## Notes
 
 Things learned while building that the next person should know. Anything that changes behaviour
