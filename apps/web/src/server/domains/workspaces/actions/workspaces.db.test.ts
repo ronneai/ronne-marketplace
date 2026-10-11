@@ -340,6 +340,15 @@ describe("pageWorkspaces' Kind filter (114)", () => {
     const shared = await pageWorkspaces(asRoot, {}, app);
     expect(shared.workspaces.map((w) => w.name)).toEqual(["global", "acme"]);
     expect(shared.total.count).toBe(2);
+    // How many of each kind, for the Shared and Personal tabs (115), the search applied.
+    expect(shared.kinds).toEqual({
+      shared: { count: 2, capped: false },
+      personal: { count: 2, capped: false },
+    });
+    expect((await pageWorkspaces(asRoot, { search: "u@example" }, app)).kinds).toEqual({
+      shared: { count: 0, capped: false },
+      personal: { count: 1, capped: false },
+    });
     const personal = await pageWorkspaces(asRoot, { kind: "personal" }, app);
     expect(personal.workspaces.map((w) => [w.name, w.ownerEmail])).toEqual([
       ["root-2", "root@example.com"],

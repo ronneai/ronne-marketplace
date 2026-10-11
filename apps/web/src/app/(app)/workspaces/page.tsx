@@ -32,7 +32,7 @@ const Workspaces = async ({ searchParams }: { searchParams: Promise<SearchParams
   const me = await getCurrentUser(request);
   if (can(me, "workspaces.manage")) {
     const state = checkedWorkspacesState(parseListQuery(ADMIN_WORKSPACES_LIST, await searchParams));
-    const { workspaces, next, previous, total } = await pageWorkspaces(
+    const { workspaces, next, previous, total, kinds } = await pageWorkspaces(
       request,
       workspacesQueryOf(state),
     );
@@ -50,7 +50,7 @@ const Workspaces = async ({ searchParams }: { searchParams: Promise<SearchParams
           workspaces={workspaces}
           page={{ next, previous }}
           total={total}
-          kinds
+          kinds={kinds}
         />
       </>
     );

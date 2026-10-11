@@ -6,12 +6,7 @@ import {
   parseManifest,
 } from "@ronneai/core";
 import { ForbiddenError } from "../../identity/exceptions/errors";
-import {
-  can,
-  canInSome,
-  requirePermission,
-  workspacesWith,
-} from "../../identity/models/permissions";
+import { can, canInSome, requirePermission } from "../../identity/models/permissions";
 import type { CurrentUser } from "../../identity/models/user";
 import { renamedFrontmatterAgent, renamedManifest } from "../../submissions/models/manifest-names";
 import {
@@ -436,6 +431,11 @@ export type WorkspacesTablePage = {
   next: string | null;
   previous: string | null;
   total: { count: number; capped: boolean };
+  /** How many of each kind match the search, for the Shared and Personal tabs (115). */
+  kinds: {
+    shared: { count: number; capped: boolean };
+    personal: { count: number; capped: boolean };
+  };
 };
 
 /**
@@ -454,7 +454,7 @@ export const pageWorkspaces = async (
   const sort = query.sort ?? "name";
   // Personal workspaces (114) are listed on their own, with their owners.
   const kind = query.kind === "personal" ? "personal" : "shared";
-  const [page, total] = await Promise.all([
+  const [page, shared, personal] = await Promise.all([
     deps.repo.page({
       search,
       sort,
@@ -463,23 +463,28 @@ export const pageWorkspaces = async (
       cursor: query.cursor,
       kind,
     }),
-    deps.repo.count(search, undefined, kind),
+    deps.repo.count(search, undefined, "shared"),
+    deps.repo.count(search, undefined, "personal"),
   ]);
   // `global` counts whenever the search matches it, on every page, and is listed first on the first
   // page (no page before it, however it was reached).
   const found = await deps.repo.findByName(GLOBAL_WORKSPACE_NAME);
   const term = search?.toLowerCase();
-  const global =
-    found &&
-    kind === "shared" &&
-    (!term || found.name.includes(term) || found.description.toLowerCase().includes(term))
-      ? found
-      : null;
+  const matches =
+    found !== null &&
+    (!term || found.name.includes(term) || found.description.toLowerCase().includes(term));
+  // A capped count stays at the cap: "1000+" already says there are more.
+  const sharedTotal = {
+    count: shared.count + (matches && !shared.capped ? 1 : 0),
+    capped: shared.capped,
+  };
+  const global = found && matches && kind === "shared" ? found : null;
   return {
     workspaces: global && page.previous === null ? [global, ...page.rows] : page.rows,
     next: page.next,
     previous: page.previous,
-    total: { count: total.count + (global ? 1 : 0), capped: total.capped },
+    total: kind === "shared" ? sharedTotal : personal,
+    kinds: { shared: sharedTotal, personal },
   };
 };
 

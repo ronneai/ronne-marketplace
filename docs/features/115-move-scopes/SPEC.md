@@ -155,9 +155,12 @@ everything is on the Workspaces pages, and each option shows only to those allow
   to join), and its **Scopes** tab. Create scope, each scope's Edit and Move…, Edit description,
   Rename, the visibility, Delete, and the **Members** and **Requests** tabs show only to those who
   may use them, as before. A scope row's actions are icon buttons on one line, each with its name
-  as a tooltip and an accessible label.
+  as a tooltip and an accessible label. The Move dialog is wider (640px), and nothing in it
+  scrolls sideways: long names break, and its buttons stay in view.
 - **The list** is `/workspaces`, every workspace's name a link to its page. Root also gets
-  **New workspace** and the **Kind** filter (Shared, or Personal with each owner).
+  **New workspace** and two tabs above the list, **Shared** and **Personal** (each personal
+  workspace with its owner), each with how many match the search (owner, 2026-10-11: the Kind
+  select was hard to notice).
 - **Admin › Workspaces is gone:** `/admin/workspaces` and `/admin/workspaces/<name>` redirect to
   the Workspaces pages, so links and bookmarks keep working. The Admin area is root's alone again:
   a workspace's admin no longer sees Admin in the menu.
@@ -246,6 +249,8 @@ everything is on the Workspaces pages, and each option shows only to those allow
 - [x] The Documentation and inline helpers listed above say what the feature does now.
 - [x] A workspace's page and the list are under Workspaces for everyone who sees them, with each
   option shown only to those allowed; Admin › Workspaces redirects there; Admin is root's.
+- [ ] Root's list has Shared and Personal tabs with their counts; the Move dialog never scrolls
+  sideways and keeps its buttons in view.
 
 ## Decisions
 

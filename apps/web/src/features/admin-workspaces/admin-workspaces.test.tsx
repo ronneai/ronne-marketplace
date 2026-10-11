@@ -118,6 +118,7 @@ beforeEach(() => {
     next: null,
     previous: null,
     total: { count: 2, capped: false },
+    kinds: { shared: { count: 2, capped: false }, personal: { count: 51, capped: false } },
   });
   scopes.pageScopes.mockResolvedValue({
     scopes: [scope()],
@@ -361,15 +362,44 @@ describe("WorkspacesTable", () => {
         ]}
         page={{ next: null, previous: null }}
         total={{ count: 1, capped: false }}
-        kinds
+        kinds={{ shared: { count: 3, capped: false }, personal: { count: 1, capped: false } }}
       />,
     );
-    for (const text of [">Owner<", "ana@example.com", 'id="workspace-kind"', ">Personal<"])
+    for (const text of [">Owner<", "ana@example.com", 'aria-label="Kind"'])
       expect(html, text).toContain(text);
+    // Shared and Personal as tabs (115), with their counts, the one shown marked; each keeps the
+    // search and starts at the first page.
+    expect(html).toContain('href="/workspaces">Shared (3)</a>');
+    expect(html).toMatch(
+      /aria-current="page"[^>]*href="\/workspaces\?kind=personal">Personal \(1\)/,
+    );
+    expect(html).not.toContain("Kind:");
+    // Switching keeps the search and sort and starts at page one; a capped count says "+".
+    const searched = renderToStaticMarkup(
+      <WorkspacesTable
+        list={ADMIN_WORKSPACES_LIST}
+        state={{
+          ...parseListQuery(ADMIN_WORKSPACES_LIST, {}),
+          sort: "created",
+          dir: "desc",
+          cursor: "c9",
+          filters: { q: "an", kind: "personal" },
+        }}
+        workspaces={[]}
+        page={{ next: null, previous: "c8" }}
+        total={{ count: 1000, capped: true }}
+        kinds={{ shared: { count: 2, capped: false }, personal: { count: 1000, capped: true } }}
+      />,
+    );
+    expect(searched).toContain('href="/workspaces?q=an&amp;sort=created">Shared (2)</a>');
+    expect(searched).toContain(
+      'href="/workspaces?q=an&amp;kind=personal&amp;sort=created">Personal (1000+)</a>',
+    );
+    expect(searched).not.toMatch(/href="[^"]*cursor=c9[^"]*">(Shared|Personal)/);
     expect(html).not.toContain(">Moderators<");
     expect(html).not.toContain(">Visibility<");
     // Without the filter (a workspace admin's list), no Kind.
-    expect(table({}, [workspace()])).not.toContain('id="workspace-kind"');
+    expect(table({}, [workspace()])).not.toContain('aria-label="Kind"');
   });
 
   it("explains an empty search", () => {
@@ -535,7 +565,7 @@ describe("the pages", () => {
       session.getCurrentUser.mockResolvedValueOnce(user);
       const html = renderToStaticMarkup(await listPage());
       expect(html).not.toContain("New workspace");
-      expect(html).not.toContain('id="workspace-kind"');
+      expect(html).not.toContain('aria-label="Kind"');
     }
     expect(workspaces.pageWorkspaces).not.toHaveBeenCalled();
     expect(workspaces.myWorkspaces).toHaveBeenCalledTimes(4);
@@ -634,7 +664,8 @@ describe("the pages", () => {
     session.getCurrentUser.mockResolvedValueOnce({ role: "root" });
     const html = renderToStaticMarkup(await listPage({ q: "ac" }));
     expect(html).toContain("New workspace");
-    expect(html).toContain('id="workspace-kind"');
+    expect(html).toContain('aria-label="Kind"');
+    expect(html).toContain("Personal (51)");
     expect(html).toContain('href="/workspaces/acme"');
     expect(html).toContain("What is a workspace?");
     expect(html).toContain('href="https://www.ronne.ai/marketplace/docs/workspaces#what"');

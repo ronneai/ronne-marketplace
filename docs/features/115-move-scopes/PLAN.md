@@ -73,6 +73,15 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   ronne-web branch.
   *Done when:* the docs render tests pass in ronne-web, and the helper link test passes here.
 
+- [x] **13. Shared and Personal as tabs.** Root's Kind filter becomes two tabs above the list,
+  Shared and Personal, each with how many match the search; the Documentation says so.
+  *Done when:* the component and db tests cover the tabs and their counts, and the docs render.
+
+- [ ] **14. The Move dialog wraps, wider.** A dialog's text wraps whatever surrounds its trigger
+  (it inherited `nowrap` from the scope row's actions cell, so it scrolled sideways and hid its
+  buttons); the Move dialog is 640px wide and its long names break.
+  *Done when:* the e2e test checks the dialog never scrolls sideways, and fails without the fix.
+
 ## Notes
 
 Things learned while building that the next person should know. Anything that changes behaviour

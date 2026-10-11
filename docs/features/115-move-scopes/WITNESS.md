@@ -628,3 +628,37 @@ Witnessed: 2026-10-11 12:31 EDT, by a fresh agent (blind). Commit: 3abaf36e (plu
 | 12 | pt and fr say what en says | no | confirmed | side by side |
 
 **Overall:** met. (After this pass, the Requests bullet says the scope moves are root's and its admins', in all three languages; ronne-web 18e5dc2.)
+
+## Task 13 — Shared and Personal as tabs
+
+Witnessed: 2026-10-11 13:07 EDT, by a fresh agent (blind). Commit: e171d689 (plus the uncommitted working tree); ronne-web on docs/115-move-scopes (uncommitted). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Kind select gone; Shared and Personal tabs above the list, current marked | no | confirmed | `KindTabs`; scratch render |
+| 2 | Each tab counts what matches the search | no | confirmed | two counts in `pageWorkspaces`; db test |
+| 3 | `global` counts in Shared when it matches | no | confirmed | probe with a fake repo |
+| 4 | Capped counts show "+" | no | confirmed | scratch render; Shared + global could read cap + 1 |
+| 5 | Switching keeps search and sort, starts at page one | no | confirmed | scratch render; `listUrl` |
+| 6 | No Kind chip | no | confirmed | `hidden={["kind"]}` |
+| 7 | Non-root never sees the tabs | no | confirmed | page branch; tests |
+| 8 | Component tests cover tabs and counts | no | partly | search, page one and "+" untested |
+| 9 | db tests cover the counts | no | confirmed | 17 passed |
+| 10 | Docs say so in en, pt, fr and render | no | confirmed | `make check`; built HTML |
+| 11 | 114's note mentions the tabs | no | confirmed | SPEC.md:5 |
+| 12 | Types and lint | no | confirmed | one old unused import |
+
+**Overall:** not met: row 8.
+
+### Re-check 1
+
+Witnessed: 2026-10-11 13:08 EDT, by a fresh agent (blind). Commit: e171d689 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | A capped Shared count stays at the cap | no | confirmed | probe: 1000 capped stays 1000 |
+| 8 | Tests cover search kept, page one, "+" | no | confirmed | 54 passed; three mutations each fail one test |
+| 12 | Types and lint, import gone | no | confirmed | `tsc`; `biome` clean |
+| 9 | db tests | no | confirmed | 17 passed |
+
+**Overall:** met.
