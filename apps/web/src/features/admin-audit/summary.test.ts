@@ -64,6 +64,23 @@ describe("audit summaries (060)", () => {
       "Changed the description of workspace acme",
     );
     expect(line("workspace.deleted", { name: "acme" })).toBe("Deleted workspace acme");
+    // The open move requests into it (115), closed with it.
+    expect(line("workspace.deleted", { name: "acme", members: 2, scopeMoves: 1 })).toBe(
+      "Deleted workspace acme (2 members, 1 move request)",
+    );
+    expect(line("workspace.deleted", { name: "acme", members: 1, scopeMoves: 0 })).toBe(
+      "Deleted workspace acme (1 member)",
+    );
+    expect(
+      line("scope.moved", {
+        scope: "@beta/infra",
+        newName: "@acme/infra",
+        to: "acme",
+        direct: false,
+        items: 2,
+        reviewed: 1,
+      }),
+    ).toBe("Approved moving @beta/infra to acme, as @acme/infra (2 items, 1 version reviewed)");
     // Requests to join (094).
     const asker = { email: "uma@x.com", workspace: "acme" };
     expect(line("workspace.access_requested", asker)).toBe("uma@x.com asked to join acme");

@@ -50,3 +50,26 @@ export type MoveImpact = {
   /** Something above refuses the move. */
   refused: boolean;
 };
+
+/** A request to move a scope, or a move made at once (recorded approved), as the services read it. */
+export type ScopeMove = {
+  id: string;
+  scopeId: string;
+  /** The scope's name now: in the target once moved. */
+  scopeName: string;
+  fromWorkspaceId: string | null;
+  toWorkspaceId: string;
+  toWorkspace: string;
+  requestedBy: string;
+  /** Its name in the target. */
+  newName: string;
+  message: string | null;
+  status: "open" | "approved" | "declined" | "cancelled";
+  decidedBy: string | null;
+  reason: string | null;
+  createdAt: Date;
+  decidedAt: Date | null;
+};
+
+/** At most this many characters in a move's message or a decline's reason (as 094's). */
+export const SCOPE_MOVE_TEXT_MAX_LENGTH = 500;

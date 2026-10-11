@@ -191,3 +191,31 @@ export const moveImpact = async (
   input: { scopeId: string; to: string; name?: string },
   app: AppAuth = getAppAuth(),
 ) => moves.moveImpact(deps(app), await actor(headers, app), input);
+
+/** Moves a scope to another workspace, or asks to (115). */
+export const askScopeMove = async (
+  headers: Headers,
+  input: { scopeId: string; to: string; name?: string; message?: string; confirm?: string },
+  app: AppAuth = getAppAuth(),
+) => moves.askScopeMove(deps(app), await actor(headers, app), input);
+
+/** Approves a move request: checked again, then moved (115). */
+export const approveScopeMove = async (
+  headers: Headers,
+  input: { moveId: string },
+  app: AppAuth = getAppAuth(),
+) => moves.approveScopeMove(deps(app), await actor(headers, app), input);
+
+/** Declines a move request, with an optional reason (115). */
+export const declineScopeMove = async (
+  headers: Headers,
+  input: { moveId: string; reason?: string },
+  app: AppAuth = getAppAuth(),
+) => moves.declineScopeMove(deps(app), await actor(headers, app), input);
+
+/** Cancels a move request: its asker, root, or an admin of the scope's workspace (115). */
+export const cancelScopeMove = async (
+  headers: Headers,
+  input: { moveId: string },
+  app: AppAuth = getAppAuth(),
+) => moves.cancelScopeMove(deps(app), await actor(headers, app), input);

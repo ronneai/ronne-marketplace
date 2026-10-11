@@ -366,7 +366,10 @@ export const setWorkspaceVisibility = async (
   });
 };
 
-/** Only an empty workspace: its scopes would have nowhere to go (nothing moves scopes yet). */
+/**
+ * Only an empty workspace: move its scopes out first (115). Its memberships and the open moves into
+ * it go with it (they cascade).
+ */
 export const deleteWorkspace = async (
   deps: WorkspaceDeps,
   actor: WorkspaceActor,
@@ -383,13 +386,15 @@ export const deleteWorkspace = async (
       if (workspace.scopes > 0) throw new WorkspaceNotEmptyError(workspace.scopes);
       // Its memberships go with it (they cascade); the event says how many (092).
       const members = await repo.countMembers(workspace.id);
+      // And the requests to move a scope into it (115), which nobody can answer now.
+      const scopeMoves = await repo.countOpenMovesInto(workspace.id);
       await repo.delete(workspace.id);
       await audit(
         repo,
         actor,
         "workspace.deleted",
         workspace.id,
-        { name: workspace.name, members },
+        { name: workspace.name, members, scopeMoves },
         at,
       );
     });

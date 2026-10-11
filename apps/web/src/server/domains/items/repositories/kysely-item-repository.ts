@@ -342,6 +342,17 @@ export const kyselyItemRepository = (
     return new Map(rows.map((row) => [row.id, row.name]));
   },
 
+  scopePlaces: async (scopeIds) => {
+    const wanted = [...new Set(scopeIds)];
+    if (wanted.length === 0) return new Map();
+    const rows = await db
+      .selectFrom("scopes")
+      .select(["id", "workspace_id", "name"])
+      .where("id", "in", wanted)
+      .execute();
+    return new Map(rows.map((row) => [row.id, { workspaceId: row.workspace_id, name: row.name }]));
+  },
+
   lockWorkspaces: async (ids) => {
     const sorted = [...new Set(ids)].sort();
     if (sorted.length === 0) return new Set();

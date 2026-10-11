@@ -195,3 +195,115 @@ Witnessed: 2026-10-11 00:33 EDT, by a fresh agent (adversarial). Commit: 9ce9d8c
 | 6 | In-scope dependencies in review don't count | no | confirmed | probe |
 
 **Overall:** met.
+
+## Task 3 — Asking, answering, moving
+
+Witnessed: 2026-10-11 00:56 EDT, by a fresh agent (blind). Commit: 76fe078e (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The four services and actions | no | confirmed | tsc |
+| 2 | Only root or the source's admins ask | no | confirmed | probe |
+| 3–6 | Each row of the table | no | confirmed | tests; probes |
+| 7 | Not-reviewed versions: a request for someone else; reviewed by them | no | confirmed | test |
+| 8 | Refusals at ask and at approve, each kind | no | partly | clash at approval and own dependencies through ask/approve untested |
+| 9 | One open move per scope | no | confirmed | test |
+| 10 | Decline, answered once, cancel, text limits, audit | no | confirmed | test; probes |
+| 11 | Two answers at once | no | confirmed | test; mutation |
+| 12 | Lost role | no | confirmed | test; probe |
+| 13 | The move transaction | no | confirmed | tests; probe |
+| 14 | Four audit actions | no | confirmed | 38 unit tests |
+| 15 | A release racing a move, tested | no | partly | the dependency guard untested; the scope lock untested |
+| 16 | Four databases | no | confirmed | 38 passed each |
+| 17 | Lint and types | no | confirmed | clean |
+
+**Overall:** not met: rows 8 and 15.
+
+### Adversarial pass
+
+Witnessed: 2026-10-11 00:49 EDT, by a fresh agent (adversarial). Commit: 76fe078e (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Root types the name; nothing moves without it | no | confirmed | probe; mutation |
+| 2 | `global` admin vs moderator | no | confirmed | probe; mutation |
+| 3 | Others into `global`: root answers | no | confirmed | test; probe |
+| 4 | Admin of both; otherwise target admins or root | no | confirmed | test |
+| 5 | Own personal at once; another's never | no | confirmed | test; probe |
+| 6 | Not-reviewed always a request, never the asker | no | confirmed | test; probe; mutation |
+| 7 | Refusals; impact for the answerer's view | no | confirmed | test; probe; mutation |
+| 8 | One open move | no | confirmed | test; mutation |
+| 9 | Cancel and decline limited | no | confirmed | probe |
+| 10 | Two answers at once | no | confirmed | test |
+| 11 | Lost role, disabled, concurrent demotion | no | confirmed | test; probe ×10 per database |
+| 12 | The move's effects | no | confirmed | tests; probes |
+| 13 | Audit events; text kept out | no | confirmed | probe |
+| 14 | A release racing a move tested | no | partly | race test flaky on SQLite (1 in 12); dependency guard untested |
+| 15 | No `ScopeMovedError` false positives | no | confirmed | 69 release tests on SQLite and PostgreSQL |
+| 16 | Races with renames, Make private, a shared name | no | confirmed | probes on four databases |
+| 17 | Deleting the target counts its requests | no | not met | `workspace.deleted` had no count |
+| 18 | Four databases | no | confirmed | 14 each |
+
+**Overall:** not met: rows 14 and 17.
+
+### Re-check 1
+
+Witnessed: 2026-10-11 01:08 EDT, by a fresh agent (blind). Commit: 76fe078e (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 8 | Each kind of refusal at ask and at approval | yes | confirmed | new tests; mutation fails 3 |
+| 15 | A release racing a move, tested | yes | confirmed | dependency-race test fails without the guard on three servers; race test 12/12 |
+| 18 | Answerer re-checked under the lock | yes | confirmed | test; mutation |
+| 19 | Deleting a workspace counts its open moves | yes | confirmed | test |
+| 20 | Doc comment restored | yes | confirmed | errors.ts |
+| 16 | Four databases | yes | confirmed | 150 per server |
+| 17 | Lint and types | no | confirmed | clean |
+
+**Overall:** met.
+
+### Adversarial re-check 1
+
+Witnessed: 2026-10-11 01:11 EDT, by a fresh agent (adversarial). Commit: 76fe078e (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Race test no longer flaky | yes | confirmed | 25 on SQLite, 6 per server |
+| 2 | Dependency-race test fails without the guard | yes | confirmed | mutation on postgres |
+| 3 | Delete counts open moves | yes | confirmed | probe; mutation |
+| 4 | Answerer's role re-read at approve and decline | yes | partly | a demoted root who administers global still approves into global; decline re-check untested |
+| 5 | Root answers every kind of target | no | confirmed | probe |
+| 6 | Clash at approval | yes | confirmed | test on four databases |
+| 7 | Own dependency at ask and approval | yes | confirmed | test on four databases |
+| 8 | Nothing broke; approve vs delete | no | confirmed | 72 release tests; probe ×8 per database |
+
+**Overall:** not met: row 4.
+
+### Re-check 2
+
+Witnessed: 2026-10-11 01:16 EDT, by a fresh agent (blind). Commit: 76fe078e (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 18 | Answerer's standing read from the database; stale sessions neither approve nor decline | yes | confirmed | two tests; mutations fail them |
+| 12 | Asker's lost role still checked | yes | confirmed | test |
+| 19 | Delete counts open moves; summary shows it | yes | confirmed | test; probe |
+| 16 | No regression on four databases | yes | confirmed | 423 on SQLite, 424 per server |
+| 17 | Lint, types, unit tests | no | confirmed | clean; 38 passed |
+
+**Overall:** met. (A summary test for the count was added after this pass.)
+
+### Adversarial re-check 2
+
+Witnessed: 2026-10-11 01:15 EDT, by a fresh agent (adversarial). Commit: 76fe078e (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Still root, or still admin of a shared non-global non-personal target | yes | confirmed | probes Q3, Q6 on SQLite and PostgreSQL |
+| 2 | Demoted admin can't decline; disabled answerer can't approve | yes | confirmed | probe |
+| 3 | The new test guards both | yes | confirmed | two mutations fail it |
+| 4 | `canStillMove` uses `standing`; lost-role rule holds | yes | confirmed | test on four databases; probe |
+| 5 | Summary shows the move-request count | yes | confirmed | scratch call |
+| 6 | Nothing broke | no | confirmed | 20 per server; delete race probe; typecheck; lint |
+
+**Overall:** met.

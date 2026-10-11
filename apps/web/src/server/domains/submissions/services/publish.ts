@@ -31,6 +31,7 @@ import {
   ReleasePackError,
   ReleaseTagError,
   ReleaseVersionError,
+  ScopeMovedError,
   SubmissionInvalidError,
   SubmissionNotFoundError,
   VersionExistsError,
@@ -380,6 +381,17 @@ export const releaseTogether = async (
         if (now !== undefined && now !== submission.workspace.name)
           throw new WorkspaceRenamedError(submission.workspace.name, now);
       }
+      // Its scope moved meanwhile (115): packed under the old workspace's names, it's refused,
+      // as for a rename.
+      const places = await items.scopePlaces(packed.map((m) => m.submission.scope.id));
+      for (const { submission } of packed) {
+        const place = places.get(submission.scope.id);
+        if (
+          place &&
+          (place.workspaceId !== submission.workspace.id || place.name !== submission.scope.name)
+        )
+          throw new ScopeMovedError(itemNameOf(submission));
+      }
     };
     await renamedSince();
     const groupNames = new Map(packed.map((m) => [itemNameOf(m.submission), m.submission]));
@@ -473,6 +485,9 @@ export const releaseTogether = async (
               "release",
             );
         }
+        // Its workspace when the lock was taken: a move (115) since the lookup above put it in
+        // another, which wasn't locked, so the visibility check below can't trust it.
+        if (!workspaces.has(target.workspaceId)) throw new ScopeMovedError(name);
         dependencies.push({ itemId: target.id, range });
         targets.push({ name, workspaceId: target.workspaceId });
       }

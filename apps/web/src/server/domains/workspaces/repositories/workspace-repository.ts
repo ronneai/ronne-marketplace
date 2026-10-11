@@ -3,6 +3,7 @@ import type { NewAuditEvent } from "../../audit/models/audit-event";
 import type { WorkspaceRole } from "../../identity/models/user";
 import type { AccessRequest, PendingRequest, RequestWithWorkspace } from "../models/access-request";
 import type { Member, Membership, MemberUser } from "../models/member";
+import type { ScopeMove } from "../models/scope-move";
 import type { Workspace, WorkspaceVisibility } from "../models/workspace";
 
 /** A workspace's Members table (092): part of an email or name, and a role. */
@@ -122,7 +123,7 @@ export interface WorkspaceRepository {
   setAliases(
     add: readonly { name: string; itemId: string }[],
     drop: readonly string[],
-    reason: "rename",
+    reason: "rename" | "move",
     at: Date,
   ): Promise<void>;
   delete(id: string): Promise<void>;
@@ -280,6 +281,51 @@ export interface WorkspaceRepository {
   membersAmong(workspaceId: string, userIds: readonly string[]): Promise<Set<string>>;
   /** The scope's released versions not reviewed (114), as `@name@version`. */
   notReviewedIn(scopeId: string): Promise<string[]>;
+  /**
+   * Locks the scope's row, then its submissions, then its items, each in id order (a submit's, a
+   * save's and a release's locks), until the transaction ends: a move takes them before the
+   * workspaces, as a rename (113) does.
+   */
+  lockScopeForMove(scopeId: string): Promise<void>;
+  /** The scope's open move, if any. */
+  openMoveOf(scopeId: string): Promise<ScopeMove | null>;
+  /** Locks a move's row until the transaction ends. */
+  lockMove(id: string): Promise<void>;
+  findMove(id: string): Promise<ScopeMove | null>;
+  insertMove(move: {
+    scopeId: string;
+    fromWorkspaceId: string;
+    toWorkspaceId: string;
+    requestedBy: string;
+    newName: string;
+    message: string | null;
+    status: "open" | "approved";
+    decidedBy: string | null;
+    at: Date;
+  }): Promise<string>;
+  /** Closes an open move; false when it wasn't open any more. */
+  decideMove(
+    id: string,
+    decision: {
+      status: "approved" | "declined" | "cancelled";
+      decidedBy: string | null;
+      reason: string | null;
+      at: Date;
+    },
+  ): Promise<boolean>;
+  /** Puts the scope in the workspace under the name, and raises the catalogue revision (079). */
+  applyMove(scopeId: string, workspaceId: string, name: string): Promise<void>;
+  /** Marks the scope's not-reviewed versions reviewed, by `userId`; how many. */
+  markReviewed(scopeId: string, userId: string): Promise<number>;
+  /** How many moves into the workspace wait for an answer (115). */
+  countOpenMovesInto(workspaceId: string): Promise<number>;
+  /**
+   * The user's standing now, read from the database: whether they're root, and whether they're an
+   * admin of the workspace; null when they're gone or disabled.
+   */
+  standing(userId: string, workspaceId: string): Promise<{ root: boolean; admin: boolean } | null>;
+  /** Whether the user, not disabled, is root or an admin of the workspace (a move's asker). */
+  canStillMove(userId: string, workspaceId: string): Promise<boolean>;
 }
 
 /** Open work in a scope (115): who wrote it, and what it depends on. */

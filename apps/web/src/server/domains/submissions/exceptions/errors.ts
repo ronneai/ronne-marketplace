@@ -429,6 +429,15 @@ export class RevisionChangedError extends SubmissionsError {
   }
 }
 
+/** Its scope, or a dependency's, moved to another workspace while it was being released (115). */
+export class ScopeMovedError extends SubmissionsError {
+  constructor(readonly itemName: string) {
+    super(
+      `${itemName} moved to another workspace while it was being released. Nothing was released: release it again.`,
+    );
+  }
+}
+
 /**
  * Its workspace was renamed (113) between packing the release, under the old name, and storing it.
  * Nothing was released; releasing again packs it under the new name.

@@ -23,7 +23,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   names that are another item's alias. Reuse 093's `outsideDependents`.
   *Done when:* db tests cover each case, public and private targets, and a personal source.
 
-- [ ] **3. Asking, answering, moving.** [risky] `requestScopeMove`, `cancelScopeMove`,
+- [x] **3. Asking, answering, moving.** [risky] `requestScopeMove`, `cancelScopeMove`,
   `approveScopeMove`, `declineScopeMove`, and the direct move for root and admins of the target,
   following the spec's table; the asker's role re-checked at approval; the move transaction (the
   scope's workspace and name, the items' aliases (118), reviewed versions, the request, the

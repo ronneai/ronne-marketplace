@@ -1,9 +1,13 @@
 import { formatItemName, parseItemName } from "@ronneai/core";
 import type { Kysely } from "kysely";
-import { toDbBoolean } from "../../../db/dates";
+import { bumpCatalogueRevision } from "../../../db/catalogue-revision";
+import { fromDbDate, toDbBoolean, toDbDate } from "../../../db/dates";
+import { newId } from "../../../db/ids";
+import { forUpdate } from "../../../db/locks";
 import type { Database } from "../../../db/schema";
 import type { DatabaseDialect } from "../../../db/url";
 import { kyselyItemRepository } from "../../items/repositories/kysely-item-repository";
+import type { ScopeMove } from "../models/scope-move";
 import { UNFILTERED } from "../models/viewer";
 import type { WorkspaceVisibility } from "../models/workspace";
 import type { WorkspaceRepository } from "./workspace-repository";
@@ -20,7 +24,52 @@ type ScopeMoveMethods = Pick<
   | "resolveOpenSubmissions"
   | "membersAmong"
   | "notReviewedIn"
+  | "lockScopeForMove"
+  | "openMoveOf"
+  | "lockMove"
+  | "findMove"
+  | "insertMove"
+  | "decideMove"
+  | "applyMove"
+  | "markReviewed"
+  | "canStillMove"
+  | "countOpenMovesInto"
+  | "standing"
 >;
+
+type MoveRow = {
+  id: string;
+  scope_id: string;
+  scope_name: string;
+  from_workspace_id: string | null;
+  to_workspace_id: string;
+  to_workspace: string;
+  requested_by: string;
+  new_name: string;
+  message: string | null;
+  status: ScopeMove["status"];
+  decided_by: string | null;
+  reason: string | null;
+  created_at: Date | string;
+  decided_at: Date | string | null;
+};
+
+const toMove = (row: MoveRow): ScopeMove => ({
+  id: row.id,
+  scopeId: row.scope_id,
+  scopeName: row.scope_name,
+  fromWorkspaceId: row.from_workspace_id,
+  toWorkspaceId: row.to_workspace_id,
+  toWorkspace: row.to_workspace,
+  requestedBy: row.requested_by,
+  newName: row.new_name,
+  message: row.message,
+  status: row.status,
+  decidedBy: row.decided_by,
+  reason: row.reason,
+  createdAt: fromDbDate(row.created_at),
+  decidedAt: fromDbDate(row.decided_at),
+});
 
 /** The `IN (...)` lists stay well under every database's limit on bound values. */
 const IN_LIST_SIZE = 500;
@@ -54,6 +103,28 @@ export const scopeMoveMethods = (
     }
     return found;
   };
+
+  const moves = () =>
+    db
+      .selectFrom("scope_moves")
+      .innerJoin("scopes", "scopes.id", "scope_moves.scope_id")
+      .innerJoin("workspaces as target", "target.id", "scope_moves.to_workspace_id")
+      .select([
+        "scope_moves.id as id",
+        "scope_moves.scope_id as scope_id",
+        "scopes.name as scope_name",
+        "scope_moves.from_workspace_id as from_workspace_id",
+        "scope_moves.to_workspace_id as to_workspace_id",
+        "target.name as to_workspace",
+        "scope_moves.requested_by as requested_by",
+        "scope_moves.new_name as new_name",
+        "scope_moves.message as message",
+        "scope_moves.status as status",
+        "scope_moves.decided_by as decided_by",
+        "scope_moves.reason as reason",
+        "scope_moves.created_at as created_at",
+        "scope_moves.decided_at as decided_at",
+      ]);
 
   return {
     scopeById: async (id) => {
@@ -288,5 +359,130 @@ export const scopeMoveMethods = (
       )
         .map((row) => `${formatItemName(row)}@${row.version}`)
         .sort(),
+
+    lockScopeForMove: async (scopeId) => {
+      await forUpdate(
+        db.selectFrom("scopes").select("id").where("id", "=", scopeId),
+        dialect,
+      ).execute();
+      await forUpdate(
+        db.selectFrom("submissions").select("id").where("scope_id", "=", scopeId).orderBy("id"),
+        dialect,
+      ).execute();
+      await forUpdate(
+        db.selectFrom("items").select("id").where("scope_id", "=", scopeId).orderBy("id"),
+        dialect,
+      ).execute();
+    },
+
+    openMoveOf: async (scopeId) => {
+      const row = await moves()
+        .where("scope_moves.scope_id", "=", scopeId)
+        .where("scope_moves.status", "=", "open")
+        .executeTakeFirst();
+      return row ? toMove(row) : null;
+    },
+
+    lockMove: async (id) => {
+      await forUpdate(
+        db.selectFrom("scope_moves").select("id").where("id", "=", id),
+        dialect,
+      ).execute();
+    },
+
+    findMove: async (id) => {
+      const row = await moves().where("scope_moves.id", "=", id).executeTakeFirst();
+      return row ? toMove(row) : null;
+    },
+
+    insertMove: async (move) => {
+      const id = newId();
+      const at = toDbDate(move.at, dialect);
+      await db
+        .insertInto("scope_moves")
+        .values({
+          id,
+          scope_id: move.scopeId,
+          from_workspace_id: move.fromWorkspaceId,
+          to_workspace_id: move.toWorkspaceId,
+          requested_by: move.requestedBy,
+          new_name: move.newName,
+          message: move.message,
+          status: move.status,
+          decided_by: move.decidedBy,
+          reason: null,
+          created_at: at,
+          decided_at: move.status === "open" ? null : at,
+        })
+        .execute();
+      return id;
+    },
+
+    decideMove: async (id, decision) => {
+      const result = await db
+        .updateTable("scope_moves")
+        .set({
+          status: decision.status,
+          decided_by: decision.decidedBy,
+          reason: decision.reason,
+          decided_at: toDbDate(decision.at, dialect),
+        })
+        .where("id", "=", id)
+        .where("status", "=", "open")
+        .executeTakeFirst();
+      return Number(result.numUpdatedRows) > 0;
+    },
+
+    applyMove: async (scopeId, workspaceId, name) => {
+      await db
+        .updateTable("scopes")
+        .set({ workspace_id: workspaceId, name })
+        .where("id", "=", scopeId)
+        .execute();
+      await bumpCatalogueRevision(db);
+    },
+
+    markReviewed: async (scopeId, userId) => {
+      const result = await db
+        .updateTable("item_versions")
+        .set({ reviewed: toDbBoolean(true, dialect), reviewed_by: userId })
+        .where("reviewed", "=", toDbBoolean(false, dialect))
+        .where("item_id", "in", (eb) =>
+          eb.selectFrom("items").select("items.id").where("items.scope_id", "=", scopeId),
+        )
+        .executeTakeFirst();
+      return Number(result.numUpdatedRows);
+    },
+
+    countOpenMovesInto: async (workspaceId) => {
+      const row = await db
+        .selectFrom("scope_moves")
+        .select((eb) => eb.fn.countAll<number | string | bigint>().as("n"))
+        .where("to_workspace_id", "=", workspaceId)
+        .where("status", "=", "open")
+        .executeTakeFirstOrThrow();
+      return Number(row.n);
+    },
+
+    standing: async (userId, workspaceId) => {
+      const user = await db
+        .selectFrom("user")
+        .select(["role", "disabled_at"])
+        .where("id", "=", userId)
+        .executeTakeFirst();
+      if (!user || user.disabled_at !== null) return null;
+      const member = await db
+        .selectFrom("workspace_members")
+        .select("role")
+        .where("workspace_id", "=", workspaceId)
+        .where("user_id", "=", userId)
+        .executeTakeFirst();
+      return { root: user.role === "root", admin: member?.role === "admin" };
+    },
+
+    canStillMove: async (userId, workspaceId) => {
+      const now = await scopeMoveMethods(db, dialect).standing(userId, workspaceId);
+      return now !== null && (now.root || now.admin);
+    },
   };
 };

@@ -41,7 +41,8 @@ on every item in the scope; this feature says who decides, and what a move may n
   those above. Shown on the Requests page and the workspace's Requests tab (094) with the join
   requests, counted in the nav.
 - **The move itself:** one transaction: the scope's workspace (and name, if renamed), the items'
-  aliases; versions, submissions and tags are unchanged; the catalogue revision rises (079).
+  aliases; drafts and submissions not released yet name the items by their new names (as a rename
+  does, 113); versions and tags are unchanged; the catalogue revision rises (079).
 - Audit events `scope.move_requested`, `scope.moved`, `scope.move_declined`,
   `scope.move_cancelled`, on the scope, naming both workspaces.
 
@@ -88,7 +89,8 @@ the reason until the next request.
 **Confirmations.** A move made at once asks once: "Move @infra and its 12 items to acme, as
 @acme/infra?" (or "renamed to @acme/infra-tools" when renamed) with the changes above. Root, and an admin of `global` moving to `global`, are asked twice (owner,
 2026-10-09): the dialog's confirmation, then a second one where they type the scope's name, since
-the move needs nobody's answer and, to `global`, shows the items to everyone.
+the move needs nobody's answer and, to `global`, shows the items to everyone. The service checks
+the typed name too: without it, nothing moves.
 
 **What refuses a move.** Under the scope's row lock and the same lock a release takes for its
 dependency checks (093), when asked, when approved and when moved:
@@ -125,7 +127,8 @@ the scope's workspace (or still its owner). If not, the request is closed as can
 (`scope.move_cancelled`, `reason: "asker_lost_role"`) and the answerer is told why.
 
 **The move.** One transaction: `scopes.workspace_id` changes (and `scopes.name`, when renamed), each
-item's old name is written as an alias (118), not-reviewed versions approved by the
+item's old name is written as an alias (118), the open work in the scope names its items by their
+new names (its `name`, its dependencies, a skill's agent: 113's rewrite), not-reviewed versions approved by the
 answerer become reviewed (`reviewed_by` the answerer), the request closes, the catalogue revision
 rises, and `scope.moved` is audited (`{ scope, newName, from, to, askedBy, approvedBy, direct,
 items, reviewed }`; `direct: true` when nobody had to answer). From the next request:
@@ -172,6 +175,10 @@ from a workspace they administer, to keep working on a scope alone.
 - **The request's message and the decline reason** stay out of the audit log, as 094's do.
 - **Two answerers approve at once:** the first wins under the request's row lock; the second gets
   "Already answered".
+- **A release while the scope moves:** they take the same locks (the scope's submissions and items,
+  then the workspaces), so one waits for the other. A release packed under the scope's old
+  workspace, or one whose dependency moved between its lookup and its locks, is refused ("moved to
+  another workspace while it was being released … release it again").
 
 ## Documentation
 
