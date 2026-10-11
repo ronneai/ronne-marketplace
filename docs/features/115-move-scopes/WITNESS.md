@@ -739,3 +739,43 @@ Witnessed: 2026-10-11 14:40 EDT, by a fresh agent (blind). Commit: a9222644 (plu
 | 2, 10 | No links; permissions unchanged | yes | confirmed | grep; empty diff |
 
 **Overall:** met.
+
+## Task 16 — Items name their workspace
+
+Witnessed: 2026-10-11 15:10 EDT, by a fresh agent (blind). Commit: e38a0cdc (plus the uncommitted working tree); ronne-web on docs/115-move-scopes (uncommitted). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Cards show the workspace, linked, and the scope, global too | no | confirmed | `ItemPlace` on `ItemCard`; catalogue test |
+| 2 | Private: lock; personal: "(personal)" | no | confirmed | mutations fail tests |
+| 3 | The item page shows the same line | no | confirmed | test for acme; probe for global and personal |
+| 4 | `personalWorkspace` from `owner_id` | no | confirmed | both repositories; mutation fails a db test |
+| 5 | db tests on SQLite | no | confirmed | 890 passed |
+| 6 | db tests on PostgreSQL, MySQL, MariaDB | no | confirmed | 59 passed on each |
+| 7 | Installs use the full name | no | confirmed | `formatItemName`; tests |
+| 8 | `rmk` and MCP messages name both forms | no | confirmed | grep; 257 and 52 passed |
+| 9 | Every app reference covers the workspace form | no | partly | CliAuthPanel, bundle template, two API errors |
+| 10 | ronne-web Workspaces and Items topics | no | confirmed | diffs |
+| 11 | Every ronne-web reference covers it | no | partly | export agent line, claude-code agent, `--to` |
+| 12 | pt and fr match en | no | confirmed | diffs |
+| 13 | ronne-web `make check` | no | confirmed | exit 0 |
+| 14 | Phone tests close their contexts | no | confirmed | both files |
+| 15 | e2e pass with the new line | no | confirmed | 31 passed |
+| 16 | Lint, types, unit tests | no | confirmed | clean; 1211 passed |
+
+**Overall:** not met: rows 9 and 11.
+
+### Re-check 1
+
+Witnessed: 2026-10-11 15:30 EDT, by a fresh agent (blind). Commit: e38a0cdc (plus the uncommitted working tree); ronne-web (uncommitted). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3 | The item page's line for global and personal items, with a test | no | confirmed | new test |
+| 9 | Every app reference covers the workspace form | no | confirmed | diffs; grep leaves the command with its hint and an internal path list |
+| 11 | Every ronne-web reference covers it | no | confirmed | diffs in en, pt, fr; grep |
+| 13 | ronne-web `make check` | no | confirmed | exit 0 |
+| 15 | e2e | no | confirmed | 38 passed |
+| 16 | Lint, types, unit tests | no | confirmed | clean; 1212 passed |
+
+**Overall:** met.

@@ -16,6 +16,7 @@ const entry = (name: string, downloadCount = 0): CatalogueEntry => ({
   id: name,
   workspace: "global",
   privateWorkspace: false,
+  personalWorkspace: false,
   scope: "team",
   name,
   type: "skill",

@@ -1,7 +1,7 @@
 import { formatItemName } from "@ronneai/core";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { WorkspaceLabel } from "@/components/catalogue/WorkspaceLabel";
+import { ItemPlace } from "@/components/catalogue/ItemPlace";
 import { Help } from "@/components/help/Help";
 import { Badge } from "@/components/ui/Badge";
 import { LocalTime } from "@/components/ui/LocalTime";
@@ -49,14 +49,7 @@ export const ItemPageView = ({
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="grid min-w-0 gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="font-mono text-xl font-semibold break-all text-fg">
-              <WorkspaceLabel
-                workspace={page.item.workspace}
-                privateWorkspace={page.item.privateWorkspace}
-                className="font-normal text-muted"
-              />
-              {name}
-            </h1>
+            <h1 className="font-mono text-xl font-semibold break-all text-fg">{name}</h1>
             <span className="font-mono text-sm text-muted">v{shown.version}</span>
             <TypeBadge type={page.item.type} />
             {page.item.privateWorkspace ? <Help id="private-item" iconOnly /> : null}
@@ -68,6 +61,12 @@ export const ItemPageView = ({
             {shown.deprecatedMessage ? <Badge tone="warning">deprecated</Badge> : null}
             {shown.yankedAt ? <Badge tone="error">yanked</Badge> : null}
           </div>
+          <ItemPlace
+            workspace={page.item.workspace}
+            scope={page.item.scope.name}
+            privateWorkspace={page.item.privateWorkspace}
+            personalWorkspace={page.item.personalWorkspace}
+          />
           <p className="text-sm text-fg">{description || "No description."}</p>
           <p className="font-mono text-xs text-muted">
             {[

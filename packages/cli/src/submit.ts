@@ -63,7 +63,9 @@ const resolveNames = async (api: ApiClient, refs: readonly string[]) => {
   for (const ref of refs) {
     if (!ref.startsWith("@")) {
       if (!looksLikeId(ref))
-        throw usage(`${ref} is neither an item (@scope/name) nor a draft's id.`);
+        throw usage(
+          `${ref} is neither an item (@scope/name, or @workspace/scope/name) nor a draft's id.`,
+        );
       ids.push(ref);
       continue;
     }
@@ -310,7 +312,7 @@ export const submitCommand = async (io: Io, args: Args, out: Output, api: ApiCli
   const asking = io.interactive && !out.json;
   if (all && args.positionals.length > 0) throw usage("Name drafts or use --all, not both.");
   if (!all && args.positionals.length === 0)
-    throw usage("Say what to submit: rmk submit <@scope/name|id>..., or rmk submit --all");
+    throw usage("Say what to submit: rmk submit <item|id>..., or rmk submit --all");
   if (!asking && !dryRun && !yes)
     throw usage("Without a terminal to ask, add --yes to submit (after checking with --dry-run).");
 

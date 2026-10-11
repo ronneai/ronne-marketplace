@@ -81,6 +81,10 @@ export const CliAuthPanel = ({
           </Hint>
           <CopyableCommand command="rmk whoami" />
           <CopyableCommand command="rmk install @scope/name" wrap />
+          <Hint>
+            Outside <span className="font-mono">global</span>, an item&apos;s name starts with its
+            workspace: <span className="font-mono">rmk install @workspace/scope/name</span>.
+          </Hint>
         </Step>
       </ol>
     </Panel>

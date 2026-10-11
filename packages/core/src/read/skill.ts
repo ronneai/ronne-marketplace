@@ -84,7 +84,10 @@ export const readSkill = (
 ): ReadResult => {
   const parsed = parseItemName(options.itemName);
   if (!parsed)
-    throw new ReadError("invalid_name", `${options.itemName} isn't an item name (@scope/name).`);
+    throw new ReadError(
+      "invalid_name",
+      `${options.itemName} isn't an item name (@scope/name, or @workspace/scope/name).`,
+    );
   const base = baseManifest(files);
   const entry = entryPath(base);
   const entryFile = files.find((file) => file.path === entry);

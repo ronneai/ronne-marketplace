@@ -32,6 +32,7 @@ export const itemPageData = (overrides: Partial<ItemPage> = {}): ItemPage => {
       workspace: "global",
       workspaceId: "00000000000000000000000000",
       privateWorkspace: false,
+      personalWorkspace: false,
       type: "mcp-server",
       description: "GitHub tools.",
       ownerId: "u1",

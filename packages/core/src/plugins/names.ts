@@ -8,7 +8,8 @@ import type { PluginTool } from "./types.js";
  */
 export const pluginName = (itemName: string): string => {
   const parts = parseItemName(itemName);
-  if (!parts) throw new Error(`${itemName} isn't a full item name (@scope/name).`);
+  if (!parts)
+    throw new Error(`${itemName} isn't a full item name (@scope/name, or @workspace/scope/name).`);
   return parts.workspace === GLOBAL_WORKSPACE
     ? `${parts.scope}.${parts.name}`
     : `${parts.workspace}.${parts.scope}.${parts.name}`;

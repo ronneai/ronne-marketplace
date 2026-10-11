@@ -90,7 +90,7 @@ export const getScopes = async (request: Request, deps: DraftsApiDeps = {}) => {
 type Parsed<T> = { ok: true; value: T } | { ok: false; message: string };
 
 const SHAPE =
-  'Send JSON: { "name": "@scope/name", "type", "files": [{ "path", "encoding": "utf8" | "base64", "content", "executable"? }] }.';
+  'Send JSON: { "name": "@scope/name" (or "@workspace/scope/name"), "type", "files": [{ "path", "encoding": "utf8" | "base64", "content", "executable"? }] }.';
 
 const parseFile = (value: unknown): UploadFile | null => {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;

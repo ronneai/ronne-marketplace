@@ -15,4 +15,7 @@ test("moving scopes on a phone: asked and approved, and root's at once (115)", a
   await signIn(admin, E2E_USERS[who.admin]);
   await signIn(root, E2E_USERS[who.root]);
   await moveScopes(page, admin, root, project);
+  // Closed when done: an open context keeps running, and WebKit slows (e2e-open-contexts.md).
+  await admin.context().close();
+  await root.context().close();
 });

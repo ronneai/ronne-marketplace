@@ -6,7 +6,7 @@ import { CopyableCommand } from "@/components/ui/CopyableCommand";
 import { LocalTime } from "@/components/ui/LocalTime";
 import { TypeBadge } from "@/components/ui/TypeBadge";
 import type { CatalogueEntry } from "@/server/domains/items/actions/catalogue";
-import { WorkspaceLabel } from "./WorkspaceLabel";
+import { ItemPlace } from "./ItemPlace";
 
 /** An item's page (feature 018). */
 /**
@@ -24,8 +24,8 @@ export const itemPath = (item: { workspace?: string | null; scope: string; name:
  * One published item, as the catalogue and the home page list it (feature 018): its name, listed
  * version, type, what it can do, the AI tools it works in (026), how many times it's been installed
  * (its download count, on every card since 2026-10-02, owner) and whether it's deprecated, with the command to install
- * it. An item in a workspace other than `global` names it in its full name (118), and a private
- * one's says so with a lock (093).
+ * it. Its workspace and scope are said under its name (115), the workspace's page a link away; a
+ * private workspace's with a lock (093). Outside `global` its full name names the workspace (118).
  */
 export const ItemCard = ({
   entry,
@@ -45,11 +45,6 @@ export const ItemCard = ({
     <article className="grid grid-cols-1 gap-2 rounded-panel border border-hairline bg-surface p-4">
       <div className="flex flex-wrap items-center gap-2">
         <Heading className="min-w-0 break-all">
-          <WorkspaceLabel
-            workspace={entry.workspace}
-            privateWorkspace={entry.privateWorkspace}
-            className="font-mono text-[15px] text-muted"
-          />
           <Link
             href={itemPath(entry)}
             className="font-mono text-[15px] font-semibold text-fg hover:underline"
@@ -63,6 +58,12 @@ export const ItemCard = ({
         {entry.deprecatedMessage ? <Badge tone="warning">deprecated</Badge> : null}
         {entry.installable ? null : <Badge tone="error">no installable version</Badge>}
       </div>
+      <ItemPlace
+        workspace={entry.workspace}
+        scope={entry.scope}
+        privateWorkspace={entry.privateWorkspace}
+        personalWorkspace={entry.personalWorkspace}
+      />
       <p className="text-sm text-fg">{entry.description || "No description."}</p>
       {entry.deprecatedMessage ? (
         <p className="text-xs text-warning-text">Deprecated: {entry.deprecatedMessage}</p>

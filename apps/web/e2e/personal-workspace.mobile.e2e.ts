@@ -13,4 +13,6 @@ test("a user releases an item in their personal workspace on a phone, which nobo
   const other = await (await browser.newContext(testInfo.project.use)).newPage();
   await signIn(other, E2E_USERS[outsider]);
   await releaseInPersonal(page, other, E2E_PERSONAL.workspace(owner));
+  // Closed when done: an open context keeps running, and WebKit slows (e2e-open-contexts.md).
+  await other.context().close();
 });

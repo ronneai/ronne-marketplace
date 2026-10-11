@@ -9,6 +9,7 @@ describe("registry JSON", () => {
         id: "i",
         workspace: "acme",
         privateWorkspace: true,
+        personalWorkspace: false,
         scope: "team",
         name: "fmt",
         type: "hook",

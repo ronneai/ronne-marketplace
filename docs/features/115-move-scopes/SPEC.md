@@ -221,6 +221,15 @@ everything is on the Workspaces pages, and each option shows only to those allow
   workspace you can't see.
 - **Helpers:** in the Move dialog, "Who has to agree?" → `workspaces#moving`; on the Scope moves
   table, "What does approving do?" → `workspaces#moving`.
+- **Scopes on the workspace's page** (task 15): **Scopes → Who creates them** and **Workspaces →
+  Creating and managing them** say a scope is created on its workspace's page; Admin › Scopes is
+  gone, and **Members and roles** no longer gives a workspace's admins an Admin menu. The "Which
+  workspace?" helper went with the dialog's picker.
+- **Items name their workspace** (task 16): **Workspaces → What a workspace is** says cards and the
+  item page show the workspace (a link) and the scope, and that an item installs by its full name;
+  **Public and private** puts the lock beside the workspace, and a personal one says
+  `(personal)`. **Items → the agent field** takes `@workspace/scope/name` outside `global`. `rmk`'s
+  usage says what an `<item>` is, and its and the MCP server's messages name both forms.
 - **Workspaces in one place:** **Administration → Workspaces** (`admin#workspaces`) goes, in both
   repositories' `topics.ts`; what it said moves to **Workspaces → Creating and managing them**
   (`workspaces#managing`): the Workspaces list (root's every workspace, Kind, New workspace), a
@@ -256,7 +265,7 @@ everything is on the Workspaces pages, and each option shows only to those allow
 - [x] Root's list has Shared and Personal tabs with their counts; the Move dialog never scrolls
   sideways and keeps its buttons in view.
 - [x] Admin › Scopes is gone and redirects; scopes are created on their workspace's page.
-- [ ] Item cards and the item page name the item's workspace.
+- [x] Item cards and the item page name the item's workspace.
 
 ## Decisions
 

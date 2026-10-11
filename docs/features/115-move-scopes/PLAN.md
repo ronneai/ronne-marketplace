@@ -88,7 +88,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* unit tests cover the redirects, the dialog and the table, and the e2e tests create
   scopes on a workspace's page.
 
-- [ ] **16. Items name their workspace.** The item cards (home, catalogue) and the item page show
+- [x] **16. Items name their workspace.** The item cards (home, catalogue) and the item page show
   the workspace an item belongs to, as well as its scope; `rmk install` and every reference to an
   item's name use its full name, `@workspace/scope/item` outside `global`, here and in ronne-web.
   *Done when:* component tests show the workspace on cards and the item page, and the references

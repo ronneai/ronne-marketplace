@@ -18,6 +18,8 @@ export type Item = {
   workspaceId: string;
   /** Whether that workspace is private (093): only its members and root see the item. */
   privateWorkspace: boolean;
+  /** Whether it's someone's personal workspace (114), named after them; private too. */
+  personalWorkspace: boolean;
   name: string;
   type: ItemType;
   description: string;
