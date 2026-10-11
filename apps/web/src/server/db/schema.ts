@@ -266,7 +266,7 @@ export interface ItemVersionTable {
   /** The AI tools its manifest turns off, as ` id id `, for the `?tool=` filter (0011, 026). */
   disabled_targets: Generated<string>;
   /** False when released from a personal workspace without review (114, decision 3). */
-  reviewed: Generated<DbBoolean>;
+  reviewed: ColumnType<boolean | number, boolean | number | undefined, boolean | number>;
 }
 
 /** A movable pointer to a version, such as `latest` (MVP §3.4). */

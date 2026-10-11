@@ -1,4 +1,11 @@
-import { connectRegistry, type Io, planSubmit, sendSubmit, submitLines } from "@ronneai/rmk/lib";
+import {
+  connectRegistry,
+  type Io,
+  planSubmit,
+  sendSubmit,
+  submitConsent,
+  submitLines,
+} from "@ronneai/rmk/lib";
 import { answer, failure, type ToolAnswer } from "./text.js";
 
 /**
@@ -57,7 +64,7 @@ export const checkDraftsTool = async (io: Io, input: SubmitInput): Promise<ToolA
       ...plan.preview,
       "",
       plan.ready.length > 0
-        ? "Show this to the person. Submitting sends the ready ones to reviewers, who see them; the person can withdraw one until it's released. If they agree, call submit_drafts with the same items."
+        ? `Show this to the person. ${submitConsent(plan.ready)} If they agree, call submit_drafts with the same items.`
         : "Nothing is ready: what's in the way is fixed in the web app's editor (or by exporting the item again).",
     ],
     planData(plan),

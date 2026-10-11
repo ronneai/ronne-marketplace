@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { run } from "./cli.js";
+import { submitConsent, submitLines } from "./submit.js";
 import {
   type FakeIo,
   type FakeSubmitDraft,
@@ -241,5 +242,47 @@ describe("rmk submit (052)", () => {
       stdout: expect.stringContaining("Nothing submitted."),
     });
     expect(posts()).toEqual(["/api/v1/drafts/check"]);
+  });
+});
+
+describe("submitLines in a personal workspace (114)", () => {
+  it("says it's approved without review, with what it can do", () => {
+    const approved = {
+      id: "01J0000000000000000000000P",
+      result: "submitted",
+      status: "approved",
+      name: "@ana/tools/lint",
+      type: "skill",
+      revision: 1,
+      path: "/submissions/01J0000000000000000000000P",
+      riskFlags: [{ kind: "network", message: "SKILL.md names a URL." }],
+    };
+    const lines = submitLines(
+      { submitted: [approved], refusedAtSubmit: [], notSubmitted: [] },
+      { checked: [], ready: [], notReady: [], more: 0, preview: [], order: [], together: [] },
+    );
+    expect(lines).toContain(
+      "@ana/tools/lint: approved without review, in your personal workspace (revision 1) at /submissions/01J0000000000000000000000P",
+    );
+    expect(lines).toContain("  - SKILL.md names a URL.");
+    expect(lines.join("\n")).not.toContain("for review (");
+  });
+});
+
+describe("submitConsent (114)", () => {
+  const draft = (personal: boolean) => ({ id: "x", result: "ready", ready: true, personal });
+  it("promises reviewers only for drafts outside your personal workspace", () => {
+    expect(submitConsent([draft(false)])).toBe(
+      "Reviewers see them; you can withdraw one until it's released.",
+    );
+    expect(submitConsent([draft(true)])).toBe(
+      "In your personal workspace, it's approved without review, ready to release.",
+    );
+    expect(submitConsent([draft(true), draft(false)])).toBe(
+      "1 in your personal workspace is approved without review; reviewers see the other, and you can withdraw one until it's released.",
+    );
+    expect(submitConsent([draft(true), draft(true), draft(false)])).toBe(
+      "2 in your personal workspace are approved without review; reviewers see the other, and you can withdraw one until it's released.",
+    );
   });
 });

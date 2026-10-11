@@ -142,6 +142,8 @@ export const listQueue = async (
   const sort = query.sort ?? "time";
   const filters = {
     statuses: tab.statuses,
+    // Personal workspaces (114) are released without review: nothing of theirs is queued.
+    sharedOnly: true,
     // One workspace when picked; a name the reviewer doesn't moderate matches nothing.
     ...(query.workspace
       ? { workspaceIds: picked ? [picked.id] : [] }

@@ -68,7 +68,7 @@ Only the owner and root ever see the name (093).
 - **Submitting** a submission in a personal workspace approves it at once (decision 3): its page
   says "Approved by you: personal workspaces aren't reviewed", the risk flags (014) are shown at
   submit as they would be to a reviewer, and Release works as for any approved submission (015,
-  055, 112). The submission's approval is recorded as the author's own (`self_approved`), and every
+  055, 112). The submission's approval is recorded as the author's own (a `self_approve` review event), and every
   version released from it is marked **not reviewed**. Nothing reaches the review queue.
 - **Installing:** the owner installs their personal items as any item they can see: `rmk`, MCP,
   their plugin marketplace (077).
@@ -123,6 +123,17 @@ first, under "Personal (<name>)".
   anyone can learn that a name is taken; only the owner and root see it. A rename refused because
   its items would take old names of other items (113) names only the items the renamer sees, and
   counts the others ("and 1 more"), so nothing in someone's personal workspace is named.
+- **Root's own submission in someone's personal workspace** isn't the owner's, so it isn't approved
+  as it's sent, and the review queue leaves personal workspaces out: root approves it from its page
+  with the override (014), as root does its own anywhere.
+- **Submit's answer for a self-approved submission** carries its risk flags (014), what a reviewer
+  would have been shown; the Approved notice (task 6) shows them to its author, and so do the
+  drafts API (`riskFlags`, with `status: "approved"`) and `rmk submit` ("approved without review,
+  in your personal workspace"). Before submitting, the drafts check marks such a draft `personal`,
+  so what `rmk submit` asks and what MCP's `check_drafts` says to show the person promise reviewers
+  only for the others.
+- **Root's override on its own submission in a personal workspace** releases its version as not
+  reviewed too: nobody else looked, and moving it out (115) is where the review happens.
 - **The owner is removed from it:** impossible; the services refuse any change to the owner's row,
   for root too.
 - **Scope names are per workspace** (118): creating `@ana-silva/acme` says nothing about whether

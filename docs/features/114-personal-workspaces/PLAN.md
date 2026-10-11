@@ -29,8 +29,8 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* db tests cover each refusal and root's lists; the 093 guard test still
   passes.
 
-- [ ] **4. Approved when submitted.** [risky] In a personal workspace, Submit (013, 052, 112)
-  approves at once (`self_approved`, audited `submission.approved` with `self: true`), shows the
+- [x] **4. Approved when submitted.** [risky] In a personal workspace, Submit (013, 052, 112)
+  approves at once (a `self_approve` event, audited `submission.approved` with `self: true`), shows the
   risk flags to the author, and Release marks the version `reviewed: false`. Root override and the
   review queue unchanged elsewhere.
   *Done when:* db tests cover submit, bulk submit with dependency drafts, release and the queue

@@ -168,12 +168,11 @@ describe("reviewing in a workspace (091)", () => {
     expect(
       (await listQueue(asAcmeMod, { tab: "needs" }, app)).workspaces.map((w) => w.name),
     ).toEqual(["acme"]);
-    // Root's own personal workspace is one of root's too (114).
+    // Personal workspaces (114), root's own too, have nothing in the queue: not offered.
     expect((await listQueue(asRoot, { tab: "needs" }, app)).workspaces.map((w) => w.name)).toEqual([
       "acme",
       "beta",
       "global",
-      "root-2",
     ]);
     expect(await names(asRoot, "beta")).toEqual(["@beta/beta/lint", "@beta/beta/fmt"]);
     expect(await names(asAcmeMod, "beta")).toEqual([]);

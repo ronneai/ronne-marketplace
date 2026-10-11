@@ -11,6 +11,7 @@ const SAID: Record<ReviewEventKind, (event: ReviewEvent) => string> = {
   approve: () => "approved it",
   reject: () => "rejected it",
   override: () => "approved their own submission, as root (override)",
+  self_approve: () => "submitted it in their personal workspace, so it was approved without review",
   withdraw: () => "archived it",
   restore: () => "restored it as a draft",
   publish: (e) => `released it as ${e.body ?? "a new version"}`,

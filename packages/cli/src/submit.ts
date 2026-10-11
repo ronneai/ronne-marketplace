@@ -23,6 +23,8 @@ type Place = {
   workspace?: string;
   /** Where to ask to join that workspace, on a `not_a_member` result (095). */
   joinUrl?: string;
+  /** In the person's own personal workspace (114): Submit approves it without review. */
+  personal?: boolean;
 };
 
 export type CheckedDraft = {
@@ -41,6 +43,8 @@ export type SubmitResult = {
   result: string;
   revision?: number;
   issues?: ManifestIssue[];
+  /** Approved as sent, in its author's personal workspace (114): what it can do. */
+  riskFlags?: { kind: string; message: string }[];
 } & Partial<Place>;
 
 type OpenDraft = { id: string; status: string; updatedAt: string };
@@ -255,13 +259,35 @@ export const sendSubmit = async (api: ApiClient, plan: SubmitPlan) => {
   };
 };
 
+/**
+ * What the person agrees to by submitting the ready drafts, for `rmk` and the MCP server alike:
+ * reviewers see them, but a draft in their own personal workspace (114) is approved without review.
+ */
+export const submitConsent = (ready: readonly CheckedDraft[]): string => {
+  const personal = ready.filter((d) => d.personal).length;
+  const shared = ready.length - personal;
+  if (shared === 0)
+    return `In your personal workspace, ${personal === 1 ? "it's" : "they're"} approved without review, ready to release.`;
+  if (personal === 0) return "Reviewers see them; you can withdraw one until it's released.";
+  return `${personal} in your personal workspace ${personal === 1 ? "is" : "are"} approved without review; reviewers see the ${shared === 1 ? "other" : "others"}, and you can withdraw one until it's released.`;
+};
+
 /** The lines that say what happened, for `rmk` and the MCP server alike. */
 export const submitLines = (outcome: Awaited<ReturnType<typeof sendSubmit>>, plan: SubmitPlan) => {
   const lines: string[] = [];
-  for (const result of outcome.submitted)
+  for (const result of outcome.submitted) {
+    // In your personal workspace (114) it's approved as it's sent: release it when you like.
+    if (result.status === "approved") {
+      lines.push(
+        `${result.name}: approved without review, in your personal workspace (revision ${result.revision}) at ${result.url ?? result.path}`,
+      );
+      for (const flag of result.riskFlags ?? []) lines.push(`  - ${flag.message}`);
+      continue;
+    }
     lines.push(
       `${result.name}: ${result.result} for review (revision ${result.revision}) at ${result.url ?? result.path}`,
     );
+  }
   for (const result of outcome.refusedAtSubmit) {
     lines.push(`Not submitted: ${label(result)}`);
     for (const issue of errorsOf(result.issues)) lines.push(`  - ${issue.message}`);
@@ -320,7 +346,7 @@ export const submitCommand = async (io: Io, args: Args, out: Output, api: ApiCli
   if (!yes) {
     const count = plan.ready.length;
     const answer = await io.prompt(
-      `${plan.preview.join("\n")}\n\nSubmit ${count} draft${count === 1 ? "" : "s"} for review? Reviewers see them; you can withdraw one until it's released. [y/N] `,
+      `${plan.preview.join("\n")}\n\nSubmit ${count} draft${count === 1 ? "" : "s"}${plan.ready.some((d) => !d.personal) ? " for review" : ""}? ${submitConsent(plan.ready)} [y/N] `,
     );
     if (!/^y(es)?$/i.test(answer.trim())) {
       out.set("submitted", []);

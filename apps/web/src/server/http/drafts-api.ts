@@ -367,6 +367,10 @@ const draftOf = (deps: DraftsApiDeps, submission: Submission) => ({
   workspace: submission.workspace.name,
   type: submission.type,
   status: submission.status,
+  // In its author's own personal workspace (114): Submit approves it without review.
+  ...(submission.workspace.ownerId && submission.workspace.ownerId === submission.authorId
+    ? { personal: true }
+    : {}),
 });
 
 const checkedJson = (deps: DraftsApiDeps, draft: CheckedDraft) => ({
@@ -388,6 +392,8 @@ const submittedJson = (deps: DraftsApiDeps, draft: SubmittedDraft) => ({
   ...("submission" in draft ? draftOf(deps, draft.submission) : {}),
   ...("revision" in draft ? { revision: draft.revision } : {}),
   ...("issues" in draft ? { issues: draft.issues } : {}),
+  // Approved as sent, in its author's personal workspace (114): what it can do, for them to see.
+  ...("riskFlags" in draft && draft.riskFlags ? { riskFlags: draft.riskFlags } : {}),
 });
 
 /**

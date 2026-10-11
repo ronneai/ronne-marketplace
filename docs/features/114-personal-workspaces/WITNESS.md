@@ -260,3 +260,110 @@ Witnessed: 2026-10-10 20:11 EDT, by a fresh agent (adversarial). Commit: c6a15bc
 | 16 | db tests on the four databases | yes | confirmed | 109 on each; typecheck; biome |
 
 **Overall:** met. The refusal still answers one bit to a guessed old name, as 118 accepts at submit.
+
+## Task 4 — Approved when submitted
+
+Witnessed: 2026-10-10 20:28 EDT, by a fresh agent (blind). Commit: 0356a1c1 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Submit in one's own personal workspace approves at once, as the author's own approval | no | confirmed | `send`; 13/13 on each server; events `submit`, `self_approve` |
+| 2 | Recorded as `self_approved` | no | partly | the code says `self_approve`; spec and plan said `self_approved` |
+| 3 | Audited with `self: true` | no | confirmed | test |
+| 4 | Risk flags returned to the author | no | confirmed | probe; the test asserts only `[]` |
+| 5 | Submit brings dependency drafts along, approved | no | confirmed | test |
+| 6 | Bulk submit (052) self-approves; tested | no | partly | holds by probe; no test calls it |
+| 7 | Release marks it not reviewed | no | confirmed | test; mutation |
+| 8 | A shared release stays reviewed | no | confirmed | probe; not asserted |
+| 9 | The queue leaves personal workspaces out | no | confirmed | four tabs; mutations |
+| 10 | The nav's Reviews count leaves them out | no | not met | `countByStatus` counts root's submission in a personal workspace |
+| 11 | A shared workspace still needs a reviewer | no | confirmed | test; probe |
+| 12 | Root's own submission there isn't self-approved | no | confirmed | probe; untested |
+| 13 | Root's own personal workspace self-approves | no | confirmed | probe |
+| 14 | Override and the queue unchanged elsewhere | no | confirmed | 324 tests |
+| 15 | The conversation's label | no | confirmed | `Conversation.tsx:14` |
+| 16 | Lint and types | no | confirmed | clean |
+
+**Overall:** not met: rows 2, 6, 10.
+
+### Adversarial pass
+
+Witnessed: 2026-10-10 20:25 EDT, by a fresh agent (adversarial). Commit: 0356a1c1 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Self-approval by the author | no | confirmed | four dialects |
+| 2 | One `self: true` audit per approval | no | confirmed | concurrent double submit: one |
+| 3 | Risk flags shown at submit | no | partly | the drafts API and `rmk submit` drop them and say "submitted for review" |
+| 4 | Bulk submit self-approves both | no | confirmed | probe |
+| 5 | Tests cover bulk submit | no | partly | none calls it |
+| 6 | `reviewed: false` in every release path | no | confirmed | group, resubmit, proposal re-release |
+| 7 | `reviewed` true otherwise | no | confirmed | probe (root's override in a personal workspace is `true`, a remark) |
+| 8 | No unreviewed approval outside one's own personal workspace | no | confirmed | mixed groups, root's, another's |
+| 9 | Resubmit and restore re-approve | no | confirmed | events |
+| 10 | A shared workspace needs a reviewer | no | confirmed | test |
+| 11 | The queue leaves them out | no | confirmed | tabs, total, filter |
+| 12 | Nav and home counts match the queue | no | not met | `countNeedsReview` counts personal ones |
+| 13 | Override and review flow unchanged | no | confirmed | 431 + 236 tests |
+| 14 | Four databases | no | confirmed | identical outputs |
+| 15 | Types and lint | no | confirmed | clean |
+
+**Overall:** not met: rows 3, 5, 12.
+
+### Re-check 1
+
+Witnessed: 2026-10-10 20:42 EDT, by a fresh agent (blind). Commit: 0356a1c1 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Self-approval on submit | no | confirmed | 15/15 on four databases |
+| 2 | Spec and plan name `self_approve` | no | confirmed | SPEC.md:71, PLAN.md:33 |
+| 3 | Audited with `self: true` | no | confirmed | test |
+| 4 | Risk flags returned, tested | no | confirmed | mutation fails the bulk test |
+| 5 | Bulk submit with a dependency draft, tested | no | confirmed | `submitManyDrafts` test; mutation |
+| 6 | Not reviewed; shared stays reviewed | no | confirmed | test, four databases |
+| 7 | Root's own submission stays submitted; after override, not reviewed | no | confirmed | test; three mutations fail it |
+| 8 | Nav count leaves personal out | no | confirmed | test; mutation |
+| 9 | Queue leaves personal out | no | confirmed | test |
+| 10 | Shared needs another reviewer | no | confirmed | test |
+| 11 | Drafts API carries `riskFlags` | no | confirmed | probe; no repo test |
+| 12 | `rmk submit` line | no | confirmed | 12 cli tests |
+| 13 | Unchanged elsewhere | no | confirmed | 433 tests |
+| 14 | Lint and types | no | confirmed | clean |
+
+**Overall:** met.
+
+### Adversarial re-check 1
+
+Witnessed: 2026-10-10 20:40 EDT, by a fresh agent (adversarial). Commit: 0356a1c1 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 12 | Nav and home counts match the queue | yes | confirmed | probe, four dialects; test |
+| 3a | Drafts API `riskFlags` with `status: "approved"` | yes | confirmed | probe, four dialects; no web test |
+| 3b | `rmk submit` result line | yes | confirmed | `submitLines` on the real answer |
+| 3c | An older rmk still works | yes | confirmed | unknown fields ignored |
+| 3d | What the person agrees to doesn't promise a review for a personal draft | no | partly | `rmk submit`'s prompt, MCP's `check_drafts` text and `submit_drafts` title still promise reviewers |
+| 5 | Bulk submit tested | yes | confirmed | test, four dialects |
+| 13 | Root's override in a personal workspace → not reviewed | yes | confirmed | probe (single and group); test |
+| 14 | Override elsewhere stays reviewed | yes | confirmed | probe |
+| 15 | A later reviewed approval wins | yes | confirmed | probe |
+| 16 | Shared releases reviewed, tested | yes | confirmed | test |
+| 17 | No regressions; types and lint | no | confirmed | 433 + 187 + 51 tests; 46/46 per server |
+
+**Overall:** not met: row 3d.
+
+### Adversarial re-check 2
+
+Witnessed: 2026-10-10 20:53 EDT, by a fresh agent (adversarial). Commit: 0356a1c1 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 3d-1 | `personal: true` only on a draft in its author's own personal workspace | yes | confirmed | probe with tokens: Ana's shared undefined, personal true; root's own in Ana's undefined, stays submitted; four dialects |
+| 3d-2 | An older registry gets the reviewers line | yes | confirmed | `submitCommand` against a fake API without the field |
+| 3d-3 | The prompt in every combination | yes | confirmed | all personal (1, 2), none, mixed (1+1, 1+2, 2+1), a personal dependency, a not-ready personal draft |
+| 3d-4 | MCP `check_drafts` and `submit_drafts` wording | yes | confirmed | `submit-tools.ts:67`, `server.ts:345-347`; 51 mcp tests |
+| 3d-5 | Tests cover it | yes | confirmed | drafts-api and personal-release on four databases (39/39 each); 255 cli tests |
+| 17 | Types and lint | no | confirmed | clean |
+
+**Overall:** met. (Remark 2, "the others" for a single other draft, was fixed after this pass: "the other", with a cli test.)
