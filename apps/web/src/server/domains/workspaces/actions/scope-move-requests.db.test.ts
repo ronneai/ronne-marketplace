@@ -35,8 +35,10 @@ import {
   approveScopeMove,
   askScopeMove,
   cancelScopeMove,
+  countMovesToAnswer,
   createWorkspace,
   declineScopeMove,
+  movesToAnswer,
 } from "./workspaces";
 
 // Asking, answering and moving (115, task 3): who decides, as the spec's table says; the checks
@@ -660,6 +662,70 @@ describe("asking to move a scope, and moving it (115)", () => {
       publishSubmission(as.root, id, { choice: { kind: "stable", bump: "minor" } }, app, moving),
     ).rejects.toThrow(ScopeMovedError);
     expect(await t.db.selectFrom("items").select("id").execute()).toHaveLength(0);
+  });
+  it("lists the moves each answerer answers, checked again, and counts them for the nav (task 6)", async () => {
+    await setWorkspaceRole(app, who.ana.id, "admin");
+    // Into acme (Carol's), into global (root's alone), and Dave's own not-reviewed one into acme.
+    const one = await scope("one", beta);
+    const two = await scope("two", beta);
+    const intoAcme = await askScopeMove(
+      as.dave,
+      { scopeId: one, to: "acme", message: "Please." },
+      app,
+    );
+    const intoGlobal = await askScopeMove(as.dave, { scopeId: two, to: "global" }, app);
+    const mine = await t.db
+      .selectFrom("workspaces")
+      .select(["id", "name"])
+      .where("owner_id", "=", who.dave.id)
+      .executeTakeFirstOrThrow();
+    await setWorkspaceRole(app, who.dave.id, "admin", acme);
+    const tools = await scope("tools", mine.id);
+    await release(tools, "lint", [], false);
+    const notReviewed = await askScopeMove(as.dave, { scopeId: tools, to: "acme" }, app);
+    const ids = async (headers: Headers, workspaceId?: string) =>
+      (await movesToAnswer(headers, workspaceId ? { workspaceId } : {}, app)).moves
+        .map((m) => m.id)
+        .sort();
+    expect(await ids(as.root)).toEqual(
+      [intoAcme.moveId, intoGlobal.moveId, notReviewed.moveId].sort(),
+    );
+    expect(await ids(as.carol)).toEqual([intoAcme.moveId, notReviewed.moveId].sort());
+    // Dave administers acme too, but never answers his own not-reviewed one; global's admin
+    // answers nothing of global's.
+    expect(await ids(as.dave)).toEqual([intoAcme.moveId]);
+    expect(await ids(as.ana)).toEqual([]);
+    expect(await ids(as.bob)).toEqual([]);
+    expect(await ids(as.carol, acme)).toEqual([intoAcme.moveId, notReviewed.moveId].sort());
+    expect(await ids(as.carol, beta)).toEqual([]);
+    for (const [headers, count] of [
+      [as.root, 3],
+      [as.carol, 2],
+      [as.dave, 1],
+      [as.ana, 0],
+    ] as const)
+      expect(await countMovesToAnswer(headers, app)).toBe(count);
+    const row = (await movesToAnswer(as.carol, {}, app)).moves.find(
+      (m) => m.id === intoAcme.moveId,
+    );
+    expect(row).toMatchObject({
+      scope: "@beta/one",
+      newName: "@acme/one",
+      renamed: false,
+      from: "beta",
+      to: "acme",
+      items: 0,
+      askedBy: { email: "dave@example.com", name: "dave" },
+      message: "Please.",
+      notReviewed: [],
+    });
+    expect(row?.impact.refused).toBe(false);
+    // Something refusing it now shows on the row, before Approve.
+    await scope("one", acme);
+    const clash = (await movesToAnswer(as.carol, {}, app)).moves.find(
+      (m) => m.id === intoAcme.moveId,
+    );
+    expect(clash?.impact).toMatchObject({ clash: true, refused: true });
   });
 });
 

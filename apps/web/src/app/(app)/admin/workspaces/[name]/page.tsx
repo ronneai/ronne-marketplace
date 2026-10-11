@@ -26,11 +26,13 @@ import {
 } from "@/features/workspace-members/list";
 import { MembersTable } from "@/features/workspace-members/MembersTable";
 import { RequestsTable } from "@/features/workspace-requests/RequestsTable";
+import { ScopeMovesTable } from "@/features/workspace-requests/ScopeMovesTable";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
 import { can, canInSome, canInSomeShared } from "@/server/domains/identity/models/permissions";
 import { pageScopes } from "@/server/domains/items/actions/scopes";
 import {
   findWorkspace,
+  movesToAnswer,
   pageMembers,
   pendingRequests,
   scopeMovesIn,
@@ -84,10 +86,22 @@ const AdminWorkspace = async ({
 
   const content = async () => {
     if (tab === "requests") {
-      const { requests, total } = await pendingRequests(request, workspace.id);
+      const [{ requests, total }, { moves }] = await Promise.all([
+        pendingRequests(request, workspace.id),
+        movesToAnswer(request, { workspaceId: workspace.id }),
+      ]);
       return (
         <div className="grid gap-3">
           <Help id="requests-who" />
+          {/* The moves into it (115), for root and its admins (global's are root's alone). */}
+          {moves.length > 0 ? (
+            <section aria-labelledby="scope-moves" className="mb-4 grid gap-3">
+              <h2 id="scope-moves" className="text-base font-semibold text-fg">
+                Scope moves
+              </h2>
+              <ScopeMovesTable moves={moves} />
+            </section>
+          ) : null}
           <RequestsTable
             requests={requests.map((r) => ({
               ...r,

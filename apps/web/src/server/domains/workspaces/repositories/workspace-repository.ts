@@ -322,6 +322,16 @@ export interface WorkspaceRepository {
    * them until the next request.
    */
   latestMovesIn(workspaceId: string): Promise<ScopeMove[]>;
+  /**
+   * The open moves into these workspaces (every one for `"all"`), oldest first, with who asked
+   * and where from: the Requests page's Scope moves (115). At most `limit`.
+   */
+  pendingMoves(
+    workspaceIds: "all" | readonly string[],
+    limit: number,
+  ): Promise<
+    (ScopeMove & { fromWorkspace: string | null; requester: { email: string; name: string } })[]
+  >;
   /** How many moves into the workspace wait for an answer (115). */
   countOpenMovesInto(workspaceId: string): Promise<number>;
   /**

@@ -35,6 +35,7 @@ type ScopeMoveMethods = Pick<
   | "canStillMove"
   | "countOpenMovesInto"
   | "latestMovesIn"
+  | "pendingMoves"
   | "standing"
 >;
 
@@ -467,6 +468,29 @@ export const scopeMoveMethods = (
       return [...latest.values()]
         .filter((row) => row.status === "open" || row.status === "declined")
         .map(toMove);
+    },
+
+    pendingMoves: async (workspaceIds, limit) => {
+      if (workspaceIds !== "all" && workspaceIds.length === 0) return [];
+      let query = moves()
+        .innerJoin("user as requester", "requester.id", "scope_moves.requested_by")
+        .leftJoin("workspaces as source", "source.id", "scope_moves.from_workspace_id")
+        .select([
+          "requester.email as requester_email",
+          "requester.name as requester_name",
+          "source.name as from_workspace",
+        ])
+        .where("scope_moves.status", "=", "open")
+        .orderBy("scope_moves.created_at")
+        .orderBy("scope_moves.id")
+        .limit(limit);
+      if (workspaceIds !== "all")
+        query = query.where("scope_moves.to_workspace_id", "in", [...workspaceIds]);
+      return (await query.execute()).map((row) => ({
+        ...toMove(row),
+        fromWorkspace: row.from_workspace,
+        requester: { email: row.requester_email, name: row.requester_name },
+      }));
     },
 
     countOpenMovesInto: async (workspaceId) => {

@@ -42,7 +42,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   row's Moving / declined line with Cancel.
   *Done when:* component tests cover each outcome and who sees Move….
 
-- [ ] **6. Scope moves on the Requests page.** The table on `/workspaces/requests` and the
+- [x] **6. Scope moves on the Requests page.** The table on `/workspaces/requests` and the
   workspace's Requests tab, Approve and Decline, the nav count, the audit log's summary lines.
   *Done when:* component and nav tests pass, and an end-to-end test has an owner ask to move a
   personal scope into a team workspace and its admin approve, then root move one directly with both

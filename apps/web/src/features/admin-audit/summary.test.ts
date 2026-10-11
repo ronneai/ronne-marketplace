@@ -81,6 +81,14 @@ describe("audit summaries (060)", () => {
         reviewed: 1,
       }),
     ).toBe("Approved moving @beta/infra to acme, as @acme/infra (2 items, 1 version reviewed)");
+    const named = { scope: "@beta/infra", newName: "@acme/infra-tools", to: "acme" };
+    expect(line("scope.move_requested", named)).toBe(
+      "Asked to move @beta/infra to acme, as @acme/infra-tools",
+    );
+    expect(line("scope.move_declined", named)).toBe("Declined moving @beta/infra to acme");
+    expect(line("scope.move_cancelled", { ...named, reason: "asker_lost_role" })).toBe(
+      "Cancelled moving @beta/infra to acme (whoever asked can no longer move it)",
+    );
     // Requests to join (094).
     const asker = { email: "uma@x.com", workspace: "acme" };
     expect(line("workspace.access_requested", asker)).toBe("uma@x.com asked to join acme");

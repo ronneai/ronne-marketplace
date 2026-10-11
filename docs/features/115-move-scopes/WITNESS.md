@@ -381,3 +381,27 @@ Witnessed: 2026-10-11 01:39 EDT, by a fresh agent (blind). Commit: 5788fa1a (plu
 | 10 | Checks green | no | confirmed | typecheck; lint |
 
 **Overall:** met. (The Enter guard is checked in a browser here and by task 6's end-to-end test.)
+
+## Task 6 — Scope moves on the Requests page
+
+Witnessed: 2026-10-11 01:55 EDT, by a fresh agent (blind). Commit: bcb04267 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Component and nav tests pass | no | confirmed | 60 passed |
+| 2 | Scope moves table for root and shared admins, not moderators | no | confirmed | page test; mutation |
+| 3 | Who answers which | no | confirmed | db test on four databases; mutations |
+| 4 | Workspace's Requests tab: moves into it | no | confirmed | page test; mutation; db test |
+| 5 | Each row's fields | no | confirmed | table test; mutation; db test |
+| 6 | Approve re-checks and moves, or lists refusals | no | confirmed | action and table tests; e2e |
+| 7 | Decline with a reason the asker sees | no | confirmed | action test; row from task 5 |
+| 8 | Already answered; lost role | no | confirmed | table test |
+| 9 | Nav count adds moves for root and shared admins | no | confirmed | shell tests; mutation; db counts |
+| 10 | Audit summary lines | no | confirmed | probe (explicit tests added after this pass) |
+| 11 | Dialog refreshes on close, not from its action | no | confirmed | action test; e2e |
+| 12 | End to end: owner asks, team admin approves | no | confirmed | 4 projects |
+| 13 | End to end: root moves with both confirmations; Enter stops at the first | no | confirmed | 4 projects |
+| 14 | Dialog and table pass the phone sweep's check at three widths | no | confirmed | 4 projects |
+| 15 | Lint and types | no | confirmed | clean |
+
+**Overall:** met.

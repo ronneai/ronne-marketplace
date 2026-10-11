@@ -5,11 +5,16 @@ import { workspacePath } from "@/features/admin-workspaces/list";
 import { IdentityError } from "@/server/domains/identity/exceptions/errors";
 import {
   approveAccessRequest,
+  approveScopeMove,
   declineAccessRequest,
+  declineScopeMove,
 } from "@/server/domains/workspaces/actions/workspaces";
-import { WorkspacesError } from "@/server/domains/workspaces/exceptions/errors";
+import {
+  ScopeMoveRefusedError,
+  WorkspacesError,
+} from "@/server/domains/workspaces/exceptions/errors";
 import { requestHeaders } from "@/server/http/request-headers";
-import type { AnswerState } from "./types";
+import type { AnswerState, MoveAnswerState } from "./types";
 
 const text = (form: FormData, key: string) => String(form.get(key) ?? "");
 
@@ -50,6 +55,41 @@ export const declineRequestFromForm = async (
   attempt(form, async () => {
     await declineAccessRequest(await requestHeaders(), {
       requestId: text(form, "requestId"),
+      reason: text(form, "reason"),
+    });
+    return "Declined.";
+  });
+
+/**
+ * Approves a scope move (115): checked again, then moved; or what refuses it now, leaving it open.
+ * A move changes every page that names the scope's items.
+ */
+export const approveMoveFromForm = async (
+  _previous: MoveAnswerState,
+  form: FormData,
+): Promise<MoveAnswerState> => {
+  try {
+    await approveScopeMove(await requestHeaders(), { moveId: text(form, "moveId") });
+  } catch (error) {
+    // What refuses it now, listed; anything else (answered already, the asker lost their role)
+    // as its message.
+    if (error instanceof ScopeMoveRefusedError) return { refused: error.impact };
+    if (error instanceof WorkspacesError || error instanceof IdentityError)
+      return { error: error.message };
+    throw error;
+  }
+  revalidatePath("/", "layout");
+  return { done: `Moved to ${text(form, "workspace")}.` };
+};
+
+/** Declines a scope move, with an optional reason its asker sees on the scope's row (115). */
+export const declineMoveFromForm = async (
+  _previous: MoveAnswerState,
+  form: FormData,
+): Promise<MoveAnswerState> =>
+  attempt(form, async () => {
+    await declineScopeMove(await requestHeaders(), {
+      moveId: text(form, "moveId"),
       reason: text(form, "reason"),
     });
     return "Declined.";

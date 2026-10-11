@@ -26,6 +26,8 @@ const workspaces = vi.hoisted(() => ({
   moveImpact: vi.fn(),
   moveTargets: vi.fn(),
   scopeMovesIn: vi.fn(async () => ({})),
+  pendingRequests: vi.fn(async () => ({ requests: [], total: 0 })),
+  movesToAnswer: vi.fn(async () => ({ moves: [], total: 0 })),
   pageMembers: vi.fn(async () => ({
     rows: [],
     next: null,
@@ -44,6 +46,7 @@ const navigation = vi.hoisted(() => ({
     throw new Error(`NEXT_REDIRECT ${to}`);
   }),
   usePathname: () => "/admin/workspaces",
+  useRouter: () => ({ refresh: () => {} }),
 }));
 vi.mock("@/server/domains/workspaces/actions/workspaces", () => workspaces);
 vi.mock("@/server/domains/items/actions/scopes", () => scopes);
@@ -226,7 +229,9 @@ describe("workspace actions", () => {
       message: "",
       confirm: undefined,
     });
-    expect(cache.revalidatePath).toHaveBeenCalledWith("/", "layout");
+    // The dialog refreshes the page when it closes: the action doesn't, or the page would redraw
+    // under it.
+    expect(cache.revalidatePath).not.toHaveBeenCalled();
     workspaces.askScopeMove.mockResolvedValueOnce({ outcome: "requested" } as never);
     const asked = await actions.askMoveFromForm(
       {},
@@ -237,7 +242,7 @@ describe("workspace actions", () => {
       expect.any(Headers),
       expect.objectContaining({ confirm: "infra" }),
     );
-    expect(cache.revalidatePath).toHaveBeenLastCalledWith("/admin/workspaces/beta");
+    expect(cache.revalidatePath).not.toHaveBeenCalled();
     // Refused: the checks' result, for the dialog to list; any other refusal as its message.
     const impact = { refused: true, outsideDependents: ["@acme/team/app"] };
     workspaces.askScopeMove.mockRejectedValueOnce(new ScopeMoveRefusedError(impact as never));
@@ -622,6 +627,50 @@ describe("the pages", () => {
     expect(workspaces.scopeMovesIn).toHaveBeenLastCalledWith(expect.any(Headers), {
       workspaceId: "w1",
     });
+  });
+
+  it("shows the moves into the workspace on its Requests tab (115)", async () => {
+    session.getCurrentUser.mockResolvedValueOnce({ id: "r", role: "root" });
+    workspaces.findWorkspace.mockResolvedValueOnce(workspace());
+    workspaces.movesToAnswer.mockResolvedValueOnce({
+      moves: [
+        {
+          id: "m1",
+          scope: "@beta/infra",
+          newName: "@acme/infra",
+          renamed: false,
+          from: "beta",
+          to: "acme",
+          items: 1,
+          askedBy: { email: "dave@example.com", name: "Dave" },
+          createdAt: new Date("2026-10-10T10:00:00Z"),
+          message: null,
+          notReviewed: [],
+          impact: {
+            outsideDependents: [],
+            outsideHidden: 0,
+            ownDependencies: [],
+            ownHidden: 0,
+            aliasTaken: [],
+            aliasHidden: 0,
+            clash: false,
+          },
+        },
+      ],
+      total: 1,
+    } as never);
+    const html = renderToStaticMarkup(await workspacePage("acme", { tab: "requests" }));
+    expect(html).toContain("Scope moves");
+    expect(html).toContain('aria-label="Approve moving @beta/infra to acme"');
+    expect(workspaces.movesToAnswer).toHaveBeenLastCalledWith(expect.any(Headers), {
+      workspaceId: "w1",
+    });
+    // None waiting: no section.
+    session.getCurrentUser.mockResolvedValueOnce({ id: "r", role: "root" });
+    workspaces.findWorkspace.mockResolvedValueOnce(workspace());
+    expect(renderToStaticMarkup(await workspacePage("acme", { tab: "requests" }))).not.toContain(
+      "Scope moves",
+    );
   });
 
   it("a workspace's page shows its description and scopes, with edit and delete", async () => {

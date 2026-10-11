@@ -176,8 +176,9 @@ export const moveImpactFor = async (input: {
 };
 
 /**
- * Moves a scope, or asks to (115): its workspace's page, and the target's, change with it; a move
- * changes every page that names its items.
+ * Moves a scope, or asks to (115). Nothing is refreshed here: the page would redraw under the
+ * dialog, which closes with its row (a moved scope leaves the page). The dialog refreshes the page
+ * when it's closed, as Submit's does.
  */
 export const askMoveFromForm = async (
   _previous: MoveActionState,
@@ -191,8 +192,6 @@ export const askMoveFromForm = async (
       message: text(form, "message"),
       confirm: form.has("confirm") ? text(form, "confirm") : undefined,
     });
-    if (result.outcome === "moved") revalidatePath("/", "layout");
-    else revalidatePath(workspacePath(text(form, "workspace")));
     return { done: result.outcome };
   } catch (error) {
     if (error instanceof ScopeMoveRefusedError) return { refused: error.impact };

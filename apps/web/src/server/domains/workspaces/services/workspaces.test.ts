@@ -96,6 +96,7 @@ const racingRepo = (): WorkspaceRepository => {
     canStillMove: async () => false,
     countOpenMovesInto: async () => 0,
     latestMovesIn: async () => [],
+    pendingMoves: async () => [],
     standing: async () => null,
     lockItemsIn: async () => {},
     itemsIn: async () => [],

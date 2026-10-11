@@ -730,3 +730,106 @@ export const cancelScopeMove = async (
     );
   });
 };
+
+/**
+ * The workspaces whose moves the user answers (115): every one for root; for anyone else, the
+ * shared ones they administer, never `global` or a personal workspace (root's alone).
+ */
+const answeredIn = (user: CurrentUser, all: readonly Workspace[]): "all" | string[] =>
+  user.role === "root"
+    ? "all"
+    : all
+        .filter((w) => !w.isGlobal && w.ownerId === null && can(user, "scopes.move", w.id))
+        .map((w) => w.id);
+
+/** How many open moves the Scope moves table reads at most. */
+export const PENDING_MOVES_SHOWN = 100;
+
+/** A move request as the Scope moves table shows it (115), with what refuses it now. */
+export type MoveRequestRow = {
+  id: string;
+  /** The scope's full name now, and its full name once moved. */
+  scope: string;
+  newName: string;
+  /** Renamed for a clash in the target. */
+  renamed: boolean;
+  from: string;
+  to: string;
+  items: number;
+  askedBy: { email: string; name: string };
+  createdAt: Date;
+  message: string | null;
+  notReviewed: string[];
+  /** What the checks say now, from the answerer's view: `refused` and the lists. */
+  impact: MoveImpact;
+};
+
+/**
+ * The open moves the actor answers (115), oldest first, each checked again from their view: root
+ * every one; a shared workspace's admins the moves into theirs (`global`'s and personal
+ * workspaces' are root's alone); a move with not-reviewed versions never by its asker. With
+ * `workspaceId`, only the moves into that workspace (its Requests tab).
+ */
+export const movesToAnswer = async (
+  deps: WorkspaceDeps,
+  actor: WorkspaceActor,
+  input: { workspaceId?: string } = {},
+): Promise<{ moves: MoveRequestRow[]; total: number }> => {
+  const user = actor.user;
+  if (!user) return { moves: [], total: 0 };
+  const all = await deps.repo.list();
+  const byId = new Map(all.map((w) => [w.id, w]));
+  const answered = answeredIn(user, all);
+  const where =
+    input.workspaceId === undefined
+      ? answered
+      : answered === "all" || answered.includes(input.workspaceId)
+        ? [input.workspaceId]
+        : [];
+  const pending = await deps.repo.pendingMoves(where, PENDING_MOVES_SHOWN);
+  const rows: MoveRequestRow[] = [];
+  for (const move of pending) {
+    const scope = await deps.repo.scopeById(move.scopeId);
+    const source = scope ? byId.get(scope.workspaceId) : undefined;
+    const target = byId.get(move.toWorkspaceId);
+    if (!scope || !source || !target) continue;
+    const impact = await checkMove(deps.repo, actor, { scope, source, target }, move.newName);
+    if (!mayAnswer(user, move, target, impact.notReviewed.length > 0)) continue;
+    const names = moveNames(scope, source, target, move.newName);
+    rows.push({
+      id: move.id,
+      scope: names.scope,
+      newName: names.newName,
+      renamed: move.newName !== scope.name,
+      from: source.name,
+      to: target.name,
+      items: impact.items.length,
+      askedBy: move.requester,
+      createdAt: move.createdAt,
+      message: move.message,
+      notReviewed: impact.notReviewed,
+      impact,
+    });
+  }
+  return { moves: rows, total: rows.length };
+};
+
+/** The nav's count of moves the actor answers (115): with the requests to join, next to Requests. */
+export const countMovesToAnswer = async (
+  deps: WorkspaceDeps,
+  actor: WorkspaceActor,
+): Promise<number> => {
+  // On every page: who may answer needs only the not-reviewed versions, not the whole check.
+  const user = actor.user;
+  if (!user) return 0;
+  const all = await deps.repo.list();
+  const byId = new Map(all.map((w) => [w.id, w]));
+  const answered = answeredIn(user, all);
+  let count = 0;
+  for (const move of await deps.repo.pendingMoves(answered, PENDING_MOVES_SHOWN)) {
+    const target = byId.get(move.toWorkspaceId);
+    const notReviewed = (await deps.repo.notReviewedIn(move.scopeId)).length > 0;
+    if (target && mayAnswer(user, move, target, notReviewed)) count++;
+  }
+  return count;
+};

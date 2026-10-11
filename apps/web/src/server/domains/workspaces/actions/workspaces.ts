@@ -233,3 +233,14 @@ export const scopeMovesIn = async (
   input: { workspaceId: string },
   app: AppAuth = getAppAuth(),
 ) => moves.scopeMovesIn(deps(app), await actor(headers, app), input);
+
+/** The open moves the reader answers, checked again (115): the Requests page and a workspace's tab. */
+export const movesToAnswer = async (
+  headers: Headers,
+  input: { workspaceId?: string } = {},
+  app: AppAuth = getAppAuth(),
+) => moves.movesToAnswer(deps(app), await actor(headers, app), input);
+
+/** How many moves the reader answers (115), for the nav. */
+export const countMovesToAnswer = async (headers: Headers, app: AppAuth = getAppAuth()) =>
+  moves.countMovesToAnswer(deps(app), await actor(headers, app));

@@ -1,6 +1,7 @@
 "use client";
 
 import { NAME_PROBLEM_MESSAGES, normalizeScopeName } from "@ronneai/core";
+import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogActions } from "@/components/ui/Dialog";
@@ -434,11 +435,14 @@ export const MoveScopeButton = ({
   scope: { id: string; name: string };
   workspace: string;
 }) => {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [round, setRound] = useState(0);
+  // Closing shows the page as it is now: the row's move, or the scope gone from it.
   const close = () => {
     setOpen(false);
     setRound((r) => r + 1);
+    router.refresh();
   };
   return (
     <>
