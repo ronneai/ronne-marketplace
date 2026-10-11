@@ -155,9 +155,35 @@ export class InvalidRequestRoleError extends WorkspacesError {
  * good (118). Only when the workspace takes a name another workspace had before.
  */
 export class WorkspaceRenameAliasError extends WorkspacesError {
-  constructor(readonly names: readonly string[]) {
+  /**
+   * `names` are the ones the renamer sees; `hidden` counts the rest, items in workspaces they don't
+   * see (114: someone's personal one), named to nobody.
+   */
+  constructor(
+    readonly names: readonly string[],
+    readonly hidden = 0,
+  ) {
+    const all = names.length + hidden;
+    const listed =
+      names.length === 0 ? "" : `: ${names.join(", ")}${hidden > 0 ? `, and ${hidden} more` : ""}`;
     super(
-      `Other items had ${names.length === 1 ? "this name" : "these names"} before, and keep ${names.length === 1 ? "it" : "them"}: ${names.join(", ")}. Choose another name for the workspace.`,
+      `Other items had ${all === 1 ? "this name" : "these names"} before, and keep ${all === 1 ? "it" : "them"}${listed}. Choose another name for the workspace.`,
+    );
+  }
+}
+
+/**
+ * What nobody does to a personal workspace (114), root included: it stays its owner's alone, always
+ * private, as long as its owner exists.
+ */
+export class PersonalWorkspaceError extends WorkspacesError {
+  constructor(readonly change: "members" | "visibility" | "delete") {
+    super(
+      change === "members"
+        ? "A personal workspace is its owner's alone: nobody else can be added, and its owner's place in it doesn't change."
+        : change === "visibility"
+          ? "A personal workspace is always private."
+          : "A personal workspace stays as long as its owner.",
     );
   }
 }

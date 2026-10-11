@@ -16,6 +16,7 @@ import type { CurrentUser } from "../../identity/models/user";
 import { renamedFrontmatterAgent, renamedManifest } from "../../submissions/models/manifest-names";
 import {
   GlobalWorkspaceError,
+  PersonalWorkspaceError,
   WorkspaceHasOutsideDependentsError,
   WorkspaceNameTakenError,
   WorkspaceNotEmptyError,
@@ -114,6 +115,7 @@ export const createWorkspace = async (
         description,
         visibility,
         isGlobal: false,
+        ownerId: null,
         scopes: 0,
         moderators: 0,
         createdBy: actor.user ? { id: actor.user.id, email: actor.user.email } : null,
@@ -195,8 +197,23 @@ export const renameWorkspace = async (
       const newNames = items.map((item) => named(to, item));
       // A new name that's another item's old name stays that item's (118).
       const aliases = await repo.aliasesNamed(newNames);
-      const others = aliases.filter((alias) => !ids.has(alias.itemId)).map((alias) => alias.name);
-      if (others.length > 0) throw new WorkspaceRenameAliasError([...others].sort());
+      const others = aliases.filter((alias) => !ids.has(alias.itemId));
+      if (others.length > 0) {
+        // Named only when the renamer sees the item: someone's personal workspace's (114), or any
+        // private one's they're not in, is counted, never named.
+        const where = await repo.itemWorkspaces(others.map((alias) => alias.itemId));
+        const user = actor.user;
+        const seen = (itemId: string) => {
+          const w = where.get(itemId);
+          return (
+            user?.role === "root" ||
+            (w !== undefined &&
+              (w.visibility === "public" || Object.hasOwn(user?.workspaces ?? {}, w.workspaceId)))
+          );
+        };
+        const named = others.filter((a) => seen(a.itemId)).map((a) => a.name);
+        throw new WorkspaceRenameAliasError([...named].sort(), others.length - named.length);
+      }
 
       await repo.rename(workspace.id, to, at);
       // Drafts and submissions not released yet name the workspace's items by their old names:
@@ -234,7 +251,10 @@ export const renameWorkspace = async (
         "rename",
         at,
       );
-      const requestsJoined = await repo.joinRequestsOnRename(workspace.id, to, at);
+      // Nobody joins a personal workspace (114): requests kept for its new name stay by name.
+      const requestsJoined = workspace.ownerId
+        ? 0
+        : await repo.joinRequestsOnRename(workspace.id, to, at);
       await audit(
         repo,
         actor,
@@ -300,6 +320,7 @@ export const visibilityImpact = async (
 ): Promise<VisibilityImpact> => {
   requirePermission(actor.user, "workspaces.manage");
   const workspace = await changeable(deps.repo, name);
+  if (workspace.ownerId) throw new PersonalWorkspaceError("visibility");
   if (workspace.visibility === "private") return { dependents: [], openDependents: [] };
   return impactOf(deps.repo, workspace);
 };
@@ -322,6 +343,8 @@ export const setWorkspaceVisibility = async (
     // and two roots changing it at once change it once.
     await repo.lockWorkspace((await changeable(repo, input.name)).id);
     const workspace = await changeable(repo, input.name);
+    // Always private (114), whichever way it's asked.
+    if (workspace.ownerId) throw new PersonalWorkspaceError("visibility");
     if (workspace.visibility === to) return;
     if (to === "private") {
       const dependents = await repo.outsideDependents(workspace.id);
@@ -353,6 +376,7 @@ export const deleteWorkspace = async (
       // Locked, then read again by name: renamed meanwhile (113), the name asked for is gone.
       await repo.lockWorkspace((await changeable(repo, input.name)).id);
       const workspace = await changeable(repo, input.name);
+      if (workspace.ownerId) throw new PersonalWorkspaceError("delete");
       if (workspace.scopes > 0) throw new WorkspaceNotEmptyError(workspace.scopes);
       // Its memberships go with it (they cascade); the event says how many (092).
       const members = await repo.countMembers(workspace.id);
@@ -376,13 +400,26 @@ export const deleteWorkspace = async (
   }
 };
 
-/** Every workspace, `global` first: everyone signed in, for the catalogue's filter and the selects. */
+/**
+ * The workspaces the caller sees, `global` first, for the selects: public ones, and private ones
+ * they're a member of (093); root sees every one. With a personal workspace per user (114), listing
+ * private ones to everyone would name every user's.
+ */
 export const listWorkspaces = async (
   deps: WorkspaceDeps,
   actor: WorkspaceActor,
 ): Promise<Workspace[]> => {
   requirePermission(actor.user, "account.manage_own");
-  return deps.repo.list();
+  const user = actor.user;
+  return (await deps.repo.list()).filter(
+    (w) =>
+      // Nobody else's personal workspace (114), root's selects included: one per user would bury
+      // the shared ones, and a user's Workspaces dialog never offers someone else's.
+      (!w.ownerId || w.ownerId === user?.id) &&
+      (w.visibility === "public" ||
+        user?.role === "root" ||
+        Object.hasOwn(user?.workspaces ?? {}, w.id)),
+  );
 };
 
 export type WorkspacesTablePage = {
@@ -407,6 +444,8 @@ export const pageWorkspaces = async (
   const ids = where === "all" ? undefined : where;
   const search = query.search?.trim().slice(0, WORKSPACE_SEARCH_MAX_LENGTH) || undefined;
   const sort = query.sort ?? "name";
+  // Personal workspaces (114) are listed for root, on their own: an admin's list is their shared ones.
+  const kind = where === "all" && query.kind === "personal" ? "personal" : "shared";
   const [page, total] = await Promise.all([
     deps.repo.page({
       search,
@@ -415,8 +454,9 @@ export const pageWorkspaces = async (
       size: query.size ?? WORKSPACES_PAGE_SIZE,
       cursor: query.cursor,
       ids,
+      kind,
     }),
-    deps.repo.count(search, ids),
+    deps.repo.count(search, ids, kind),
   ]);
   // `global` counts whenever the search matches it, on every page, and is listed first on the first
   // page (no page before it, however it was reached).
@@ -424,6 +464,7 @@ export const pageWorkspaces = async (
   const term = search?.toLowerCase();
   const global =
     found &&
+    kind === "shared" &&
     (!ids || ids.includes(found.id)) &&
     (!term || found.name.includes(term) || found.description.toLowerCase().includes(term))
       ? found

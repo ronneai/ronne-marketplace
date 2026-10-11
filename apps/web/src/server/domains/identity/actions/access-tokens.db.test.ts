@@ -144,6 +144,8 @@ describe("authenticateToken", () => {
           name: "Someone",
           role: "user",
           workspaces: { [GLOBAL_WORKSPACE_ID]: "user" },
+          // Made by the test helper: no personal workspace (114).
+          personal: null,
         },
         token: { id: created.id, name: "cli", expiresAt: created.expiresAt },
       },

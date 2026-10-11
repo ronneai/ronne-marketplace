@@ -728,7 +728,13 @@ export type ExportPlan = {
 };
 
 /** The scopes you may export to (037, 091), with their workspace (095; missing when older). */
-export type Scopes = { name: string; description: string; workspace?: string }[];
+export type Scopes = {
+  name: string;
+  description: string;
+  workspace?: string;
+  /** In your own personal workspace (114); missing from a registry older than it. */
+  personal?: boolean;
+}[];
 
 /**
  * A scope as export names it (118): `infra` in `global`, `acme/infra` in acme, without the `@`, so
@@ -1007,7 +1013,7 @@ export const planExport = async (
   const scopes = await fetchScopes(api);
   if (scopes.length === 0)
     throw new RmkError(
-      `${api.registry} has no scopes yet. Root creates them in the web app, under Admin → Scopes.`,
+      `${api.registry} has no scopes you can use yet. Create one in your personal workspace in the web app (Workspaces → Manage), or ask root for one.`,
       1,
       "no_scopes",
     );

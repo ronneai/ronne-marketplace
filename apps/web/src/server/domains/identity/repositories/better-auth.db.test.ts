@@ -9,6 +9,7 @@ let auth: Auth;
 beforeAll(async () => {
   t = await createTestDb();
   auth = createAuth({
+    validateSchema: false, // no background query left when the pool closes
     db: t.db,
     dialect: t.dialect,
     secret: "test-secret-test-secret-test-secret-00",

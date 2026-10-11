@@ -3,7 +3,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { packItem } from "@ronneai/core/pack";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { createPersonalWorkspace } from "../db/personal-workspaces";
 import { createTestDb, type TestDb } from "../db/testing/test-db";
+import {
+  createMarketplaceCache,
+  type MarketplaceCache,
+} from "../domains/feeds/services/marketplace-cache";
 import { authenticateToken, exchangePassword } from "../domains/identity/actions/access-tokens";
 import { createRoot } from "../domains/identity/actions/root-account";
 import type { AppAuth } from "../domains/identity/repositories/auth-instance";
@@ -299,6 +304,111 @@ describe("the plugin feeds and a private workspace (093)", () => {
     expect(await asRmk("")).toEqual(["team.style"]);
     expect(await asRmk("?workspaces=acme")).toEqual(["acme.acme-infra.deploy", "team.style"]);
     expect(await plugins("member")).toEqual(["acme.acme-infra.deploy", "team.style"]);
+  });
+
+  it("leaves someone else's personal workspace out of root's marketplace (114)", async () => {
+    const personal = await createPersonalWorkspace(
+      t.db,
+      t.dialect,
+      { id: memberId, email: "m@example.com" },
+      new Date(),
+    );
+    await release("tools", personal.id, "notes");
+    const mine = `${personal.name}.tools.notes`;
+    expect(await plugins("member")).toContain(mine);
+    expect(await plugins("root")).not.toContain(mine);
+  });
+
+  it("gives each root a marketplace of their own: their own personal items, nobody else's (114)", async () => {
+    const app = deps.app as AppAuth;
+    const otherId = await createTestUser(app, { email: "r2@example.com", password, role: "root" });
+    const other = await tokenFor(app, "r2@example.com");
+    // Setup's root has one already (114); the second, made by the helper, gets one here.
+    const first = await t.db
+      .selectFrom("workspaces")
+      .innerJoin("user", "user.id", "workspaces.owner_id")
+      .select(["workspaces.id as id", "workspaces.name as name"])
+      .where("user.email", "=", "root@example.com")
+      .executeTakeFirstOrThrow();
+    const spaces = {
+      first,
+      second: await createPersonalWorkspace(
+        t.db,
+        t.dialect,
+        { id: otherId, email: "r2@example.com" },
+        new Date(),
+      ),
+    };
+    await release("rtools", spaces.first.id, "first");
+    await release("otools", spaces.second.id, "second");
+    const pluginsOf = async (token: string) => {
+      const response = await getMarketplace(
+        get("/claude-code/marketplace.json", token),
+        { tool: "claude-code" },
+        deps,
+      );
+      return (await response.json()).plugins.map((p: { name: string }) => p.name);
+    };
+    // Asked one after the other, each still gets their own.
+    const secondSees = await pluginsOf(other);
+    const firstSees = await pluginsOf(tokens.root);
+    expect(secondSees).toContain(`${spaces.second.name}.otools.second`);
+    expect(secondSees).not.toContain(`${spaces.first.name}.rtools.first`);
+    expect(firstSees).toContain(`${spaces.first.name}.rtools.first`);
+    expect(firstSees).not.toContain(`${spaces.second.name}.otools.second`);
+  });
+
+  it("shares one marketplace among users whose personal workspaces are empty, until one releases (114)", async () => {
+    const idOf = async (email: string) =>
+      (
+        await t.db
+          .selectFrom("user")
+          .select("id")
+          .where("email", "=", email)
+          .executeTakeFirstOrThrow()
+      ).id;
+    // The helper's users have none yet; Create user would have made them.
+    const outsiders = await createPersonalWorkspace(
+      t.db,
+      t.dialect,
+      { id: await idOf("o@example.com"), email: "o@example.com" },
+      new Date(),
+    );
+    const members = await createPersonalWorkspace(
+      t.db,
+      t.dialect,
+      { id: memberId, email: "m@example.com" },
+      new Date(),
+    );
+    // The slots asked for: one per visibility key and tool.
+    const slots: string[] = [];
+    const real = createMarketplaceCache();
+    const shared = globalThis as { __ronneMarketplaceCache?: MarketplaceCache };
+    const before = shared.__ronneMarketplaceCache;
+    shared.__ronneMarketplaceCache = {
+      ...real,
+      get: (slot, key) => {
+        slots.push(slot);
+        return real.get(slot, key);
+      },
+    };
+    try {
+      expect(await plugins("outsider")).toEqual(["team.style"]);
+      // The member's key is acme alone: their empty personal workspace adds nothing.
+      expect(await plugins("member")).toEqual(["acme.acme-infra.deploy", "team.style"]);
+      const acmeOnly = slots[1];
+      // A mirror may still name an empty one, and gets the public marketplace's entry.
+      expect(await plugins("member", `?workspaces=${members.name}`)).toEqual(["team.style"]);
+      expect(slots).toEqual(["claude-code", acmeOnly, "claude-code"]);
+      // Once the outsider releases in theirs, they get an entry of their own.
+      await release("tools", outsiders.id, "notes");
+      slots.length = 0;
+      expect(await plugins("outsider")).toEqual([`${outsiders.name}.tools.notes`, "team.style"]);
+      expect(await plugins("member", `?workspaces=${members.name}`)).toEqual(["team.style"]);
+      expect(slots).toEqual([`claude-code/${outsiders.id}`, "claude-code"]);
+    } finally {
+      shared.__ronneMarketplaceCache = before;
+    }
   });
 
   it("mirrors a renamed workspace by its new name, and the old one as unknown (113)", async () => {

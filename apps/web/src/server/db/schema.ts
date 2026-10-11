@@ -97,6 +97,8 @@ export interface WorkspaceTable {
   description: string;
   visibility: "public" | "private";
   is_global: DbBoolean;
+  /** The user a personal workspace belongs to (114); null for `global` and shared ones. */
+  owner_id: string | null;
   created_by: string | null;
   created_at: Timestamp;
   updated_at: Timestamp;
@@ -263,6 +265,8 @@ export interface ItemVersionTable {
   risk_flags: string | null;
   /** The AI tools its manifest turns off, as ` id id `, for the `?tool=` filter (0011, 026). */
   disabled_targets: Generated<string>;
+  /** False when released from a personal workspace without review (114, decision 3). */
+  reviewed: ColumnType<boolean | number, boolean | number | undefined, boolean | number>;
 }
 
 /** A movable pointer to a version, such as `latest` (MVP §3.4). */

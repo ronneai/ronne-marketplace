@@ -20,6 +20,8 @@ export type TokenWithUser = {
     name: string;
     role: Role;
     workspaces: Memberships;
+    /** Their personal workspace's id (114), or null. */
+    personal?: string | null;
     disabledAt: Date | null;
   };
 };

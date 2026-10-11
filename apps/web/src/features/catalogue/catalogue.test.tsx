@@ -37,6 +37,7 @@ const pageOf = (overrides: Partial<CataloguePage> = {}): CataloguePage => ({
   typeCounts: ITEM_TYPES.map((type) => ({ type, count: type === "hook" ? 1 : 0 })),
   scopes: ["team", "tools"],
   workspaces: ["global"],
+  personal: null,
   query: { q: "", types: [], scope: null, workspace: null, tool: null, sort: "recent" },
   ...overrides,
 });
@@ -246,6 +247,12 @@ describe("workspaces in the catalogue (090)", () => {
         query: { q: "", types: [], scope: null, workspace: "acme", tool: null, sort: "recent" },
       }),
     ).toContain('id="catalogue-workspace"');
+  });
+
+  it("labels your personal workspace Personal, first (114)", () => {
+    const html = view({ workspaces: ["ana", "global", "acme"], personal: "ana" });
+    expect(html).toContain('<option value="ana">Personal (ana)</option>');
+    expect(html.indexOf('value="ana"')).toBeLessThan(html.indexOf('value="global"'));
   });
 
   it("keeps a chosen name that isn't a workspace as the selected option, so Apply keeps it", () => {

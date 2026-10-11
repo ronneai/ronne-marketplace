@@ -1,7 +1,7 @@
 import { DOCS_URL } from "@/components/help/topics";
 import {
   can,
-  canInSome,
+  canInSomeShared,
   type Permission,
   WORKSPACE_PERMISSIONS,
   type WorkspacePermission,
@@ -13,6 +13,8 @@ export type ShellUser = {
   email: string;
   role: "root" | "user";
   workspaces?: Memberships;
+  /** Their personal workspace (114): owning it puts nothing in the nav. */
+  personal?: string | null;
 };
 
 /** An item shows when it needs no permission, or the user holds it (the one permission map, 008). */
@@ -85,14 +87,15 @@ export const NAV: NavItem[] = [
 
 export const navFor = (user: ShellUser | null, counts: Record<string, number> = {}): NavItem[] => {
   if (!user) return [];
-  // A workspace permission shows the item when the user holds it in any workspace (091).
+  // A workspace permission shows the item when the user holds it in any shared workspace (091,
+  // 114): their own personal workspace doesn't count.
   return NAV.filter(
     (item) =>
       (!item.unless || !can(user, item.unless)) &&
       (!item.onlyWithCount || (counts[item.href] ?? 0) > 0) &&
       (!item.permission ||
         (item.permission in WORKSPACE_PERMISSIONS
-          ? canInSome(user, item.permission as WorkspacePermission)
+          ? canInSomeShared(user, item.permission as WorkspacePermission)
           : can(user, item.permission as Exclude<Permission, WorkspacePermission>))),
   );
 };

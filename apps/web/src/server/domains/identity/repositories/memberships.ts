@@ -20,3 +20,8 @@ export const loadMemberships = async (
     rows.filter((row) => isWorkspaceRole(row.role)).map((row) => [row.workspace_id, row.role]),
   );
 };
+
+/** The user's personal workspace's id (114), or null: read with the user, like the memberships. */
+export const loadPersonal = async (db: Kysely<Database>, userId: string): Promise<string | null> =>
+  (await db.selectFrom("workspaces").select("id").where("owner_id", "=", userId).executeTakeFirst())
+    ?.id ?? null;

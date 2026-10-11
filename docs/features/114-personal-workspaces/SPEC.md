@@ -29,7 +29,8 @@ set up and in scopes root created; a personal workspace lets anyone start withou
   catalogue's Workspace filter offers it as "Personal"; `GET /api/v1/workspaces`, `rmk workspaces`
   and MCP's `list_workspaces` mark it `personal`; `rmk export` lists its scopes first.
 - **Admin › Workspaces** (root): a Kind filter, Shared (default) or Personal; a personal row shows
-  its owner.
+  its owner (instead of visibility and moderators), and the search matches the owner's email too.
+  An admin of shared workspaces lists only those.
 - Audit events: `workspace.created` with `personal: true` and the owner; the others as for any
   workspace.
 
@@ -49,9 +50,11 @@ are disabled, never deleted). The owner has a `workspace_members` row with the r
 every permission check (091, 092) works unchanged; the services refuse any other row for a personal
 workspace, and any change to the owner's.
 
-**Its name.** The local part of the owner's email, made into a valid name (lowercased, anything
-other than letters and digits becomes a hyphen, repeated and outer hyphens dropped, cut to 60);
-if that's reserved, empty or taken, `-2`, `-3`… is added. `ana.silva@acme.com` gets `ana-silva`.
+**Its name.** The local part of the owner's email (before the last `@`), made into a valid name:
+accents removed (`josé` → `jose`), lowercased, anything other than `a-z` and `0-9` becomes a
+hyphen, repeated and outer hyphens dropped, cut to 60; `personal` when nothing is left (`日本@…`).
+If that's reserved or taken, `-2`, `-3`… is added, the base cut further when the number needs the
+room, so the name never passes 64 characters. `ana.silva@acme.com` gets `ana-silva`.
 The owner or root renames it (113). Its description starts as "<name>'s personal workspace".
 Only the owner and root ever see the name (093).
 
@@ -62,14 +65,22 @@ Only the owner and root ever see the name (093).
   open the Admin area or put Admin in the nav: that stays for root and admins of shared workspaces
   (092), and the page is reached from the Workspaces page.
 - **Writing items:** a personal scope is offered in the editor and in `rmk export` like any scope
-  the user may use (091), listed first, labelled "Personal".
+  the user may use (091), listed first, labelled "Personal". With no scope anywhere, New item says
+  to create one in your personal workspace, from Workspaces.
 - **Submitting** a submission in a personal workspace approves it at once (decision 3): its page
   says "Approved by you: personal workspaces aren't reviewed", the risk flags (014) are shown at
   submit as they would be to a reviewer, and Release works as for any approved submission (015,
-  055, 112). The submission's approval is recorded as the author's own (`self_approved`), and every
+  055, 112). The editor's button and dialog say Submit, not "Submit for review", and the dialog
+  says it's approved at once; bulk Submit (052) says those in your personal workspace are. The submission's approval is recorded as the author's own (a `self_approve` review event), and every
   version released from it is marked **not reviewed**. Nothing reaches the review queue.
 - **Installing:** the owner installs their personal items as any item they can see: `rmk`, MCP,
   their plugin marketplace (077).
+
+**Lists of memberships.** Root's Users table and a user's Workspaces dialog (092) list a user's
+shared workspaces only: everyone has a personal one, so it says nothing, and saving the dialog
+never changes or removes its owner's row. The nav's Reviews, Requests and Admin count shared
+workspaces only. Listing workspaces for the selects gives the public ones and the private ones the
+reader is in (root: every one), so nobody learns another user's personal workspace's name.
 
 **Everyone else.** A personal workspace and its items don't exist for anyone but its owner and
 root (093's not found, not forbidden). Its join link answers as a name no workspace has (094):
@@ -78,8 +89,10 @@ from no workspace. Add members, a user's Workspaces dialog (092) and the move di
 (115) never offer someone else's personal workspace.
 
 **Root's view.** Root sees every personal workspace and its items (093) but isn't flooded with
-them: the catalogue, search, home page and root's own plugin marketplace leave out other people's
-personal workspaces, unless the catalogue's Workspace filter or `?workspace=` names one; item
+them: the catalogue (its lists and its filters' options), search, home page, root's own plugin
+marketplace, the Workspaces page and the workspace selects (Admin › Scopes, a user's Workspaces
+dialog) leave out other people's personal workspaces, unless the catalogue's Workspace filter or
+`?workspace=` names one; item
 pages, the API by name and Admin › Scopes (with its Workspace column) still show them. Root can't
 approve or release on the owner's behalf any differently than anywhere else (root override, 014).
 
@@ -89,7 +102,10 @@ and on public workspaces' items, and nothing outside depends on them.
 **Plugin feeds** (077, 079). A private workspace now exists per user, so the visibility key (093)
 counts only the private workspaces that have a released item: a user whose personal workspace is
 empty shares the public marketplace with everyone else, as today. The key changes when a personal
-workspace releases its first item, which raises the catalogue revision as any release does.
+workspace releases its first item, which raises the catalogue revision as any release does. The
+marketplace is built for exactly the workspaces in its key, so a first release landing while one is
+built can't reach a marketplace cached for people who don't see it. A git mirror (`?workspaces=`)
+may name an empty one; it adds nothing.
 
 **Disabled users and roots.** A disabled user's personal workspace and items stay, seen only by
 root. Making someone root (059) keeps their personal workspace and admin row; taking root away
@@ -97,8 +113,10 @@ keeps them too.
 
 **API, `rmk` and MCP** (095). `GET /api/v1/workspaces` and `GET /api/v1/me` carry
 `"personal": true` on the caller's own (root's list leaves out others', unless asked by name).
-`rmk workspaces` shows it in the VISIBILITY column as `personal`. `rmk export` groups its scopes
-first, under "Personal (<name>)".
+`GET /api/v1/scopes` marks its scopes `"personal": true` the same way, and root's leaves out
+others' personal scopes. `rmk workspaces` and MCP's `list_workspaces` show it in the VISIBILITY
+column as `personal`. `rmk export` (and MCP's `plan_export`) list its scopes first, as
+`Personal (<name>) › @scope`; with no scope at all, `rmk export` says to create one there.
 
 ## Edge cases
 
@@ -107,6 +125,23 @@ first, under "Personal (<name>)".
 - **A name that later collides with a shared workspace root wants to create:** root sees "That name
   is taken" and can rename the personal workspace (113) or pick another name.
 - **Root's own personal workspace:** like anyone's; root's catalogue shows it.
+- **Renaming yours to a name that's taken** answers "That name is taken", as for any rename (113):
+  names are unique, so a refusal says a name is in use, whoever's it is. It says nothing more: not
+  that it's a personal workspace, nor whose, nor what's in it. Every user can rename their own, so
+  anyone can learn that a name is taken; only the owner and root see it. A rename refused because
+  its items would take old names of other items (113) names only the items the renamer sees, and
+  counts the others ("and 1 more"), so nothing in someone's personal workspace is named.
+- **Root's own submission in someone's personal workspace** isn't the owner's, so it isn't approved
+  as it's sent, and the review queue leaves personal workspaces out: root approves it from its page
+  with the override (014), as root does its own anywhere.
+- **Submit's answer for a self-approved submission** carries its risk flags (014), what a reviewer
+  would have been shown; the Approved notice (task 6) shows them to its author, and so do the
+  drafts API (`riskFlags`, with `status: "approved"`) and `rmk submit` ("approved without review,
+  in your personal workspace"). Before submitting, the drafts check marks such a draft `personal`,
+  so what `rmk submit` asks and what MCP's `check_drafts` says to show the person promise reviewers
+  only for the others.
+- **Root's override on its own submission in a personal workspace** releases its version as not
+  reviewed too: nobody else looked, and moving it out (115) is where the review happens.
 - **The owner is removed from it:** impossible; the services refuse any change to the owner's row,
   for root too.
 - **Scope names are per workspace** (118): creating `@ana-silva/acme` says nothing about whether
@@ -122,7 +157,7 @@ first, under "Personal (<name>)".
 ## Documentation
 
 - **Workspaces**, a new section **Your personal workspace** (`workspaces#personal`): what it is,
-  who sees it, releasing without review, moving a scope out (115).
+  who sees it, releasing without review. Moving a scope out is 115's to document, once built.
 - **Workspaces → Public and private** (`workspaces#visibility`): personal workspaces are always
   private.
 - **Roles → The roles** and **Who can do what** (`roles#roles`, `roles#permissions`): you're the
@@ -130,25 +165,26 @@ first, under "Personal (<name>)".
 - **Review → Statuses** (`review#statuses`): submitting in a personal workspace approves at once.
 - **Export → Choosing the scope** (`export#scope`): the personal workspace's scopes first.
 - **Administration → Workspaces** (`admin#workspaces`): the Kind filter, root's view.
-- **Helpers:** on the Workspaces page next to Personal, "What's my personal workspace?" →
-  `workspaces#personal`; on a personal submission's Approved notice, "Why wasn't this reviewed?" →
-  `workspaces#personal`.
+- **Helpers:** on the Workspaces page, in the personal workspace's row next to Yours, "What's my
+  personal workspace?" → `workspaces#personal`; on a personal submission's Approved notice, and in
+  Submit's dialog for a personal draft (instead of "What happens next?", which promises a
+  reviewer), "Why isn't it reviewed?" → `workspaces#personal`.
 
 ## Acceptance criteria
 
-- [ ] The migration gives every existing user (roots too) a private personal workspace with an
+- [x] The migration gives every existing user (roots too) a private personal workspace with an
   admin membership, on SQLite, PostgreSQL, MySQL and MariaDB; Create user and setup do the same.
-- [ ] Nobody can be added to, ask to join, or change the owner in a personal workspace; it can't be
+- [x] Nobody can be added to, ask to join, or change the owner in a personal workspace; it can't be
   made public or deleted; in the UI and the services.
-- [ ] Only its owner and root see it and its items; anyone else gets what an unknown name gets.
-- [ ] The owner creates scopes, drafts, submits and releases there without review; the
+- [x] Only its owner and root see it and its items; anyone else gets what an unknown name gets.
+- [x] The owner creates scopes, drafts, submits and releases there without review; the
   versions are marked not reviewed; the review queue never shows them.
-- [ ] Root's catalogue, search and plugin marketplace leave out others' personal workspaces unless
+- [x] Root's catalogue, search and plugin marketplace leave out others' personal workspaces unless
   one is named.
-- [ ] Users with an empty personal workspace share the public marketplace's cache entry.
-- [ ] The API, `rmk workspaces`, `rmk export` and MCP's `list_workspaces` mark it personal.
-- [ ] The pages pass the phone sweep (065).
-- [ ] The Documentation and inline helpers listed above say what the feature does now.
+- [x] Users with an empty personal workspace share the public marketplace's cache entry.
+- [x] The API, `rmk workspaces`, `rmk export` and MCP's `list_workspaces` mark it personal.
+- [x] The pages pass the phone sweep (065).
+- [x] The Documentation and inline helpers listed above say what the feature does now.
 
 ## Decisions
 

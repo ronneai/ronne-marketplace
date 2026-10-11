@@ -9,7 +9,7 @@ import { checkedQueueState, queueList, queueQueryOf } from "@/features/reviews/l
 import { QueueStatusProvider } from "@/features/reviews/QueueStatus";
 import { approvableRows, QueueTable, QueueTabs, queueTab } from "@/features/reviews/QueueTable";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
-import { canInSome } from "@/server/domains/identity/models/permissions";
+import { canInSomeShared } from "@/server/domains/identity/models/permissions";
 import { listQueue } from "@/server/domains/submissions/actions/reviews";
 import { itemNameOf } from "@/server/domains/submissions/models/submission";
 import { requestHeaders } from "@/server/http/request-headers";
@@ -24,7 +24,8 @@ const Reviews = async ({
 }) => {
   const request = await requestHeaders();
   const user = await getCurrentUser(request);
-  if (!canInSome(user, "submissions.review")) notFound();
+  // Their own personal workspace (114) isn't reviewed: it makes nobody a reviewer.
+  if (!canInSomeShared(user, "submissions.review")) notFound();
   const params = await searchParams;
   const tab = queueTab(params.tab);
   const list = queueList(tab);

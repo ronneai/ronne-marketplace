@@ -70,6 +70,8 @@ export type NewItemVersion = {
   dependencies: { itemId: string; range: string }[];
   /** What it can do (014), from the files it was released with; the catalogue shows them (018). */
   riskFlags: RiskFlag[];
+  /** False when released without review from its author's personal workspace (114). */
+  reviewed?: boolean;
 };
 
 /** What an item page shows of one version (feature 018), beyond its row in the list. */

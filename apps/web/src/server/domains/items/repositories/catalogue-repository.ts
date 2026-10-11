@@ -18,9 +18,12 @@ export interface CatalogueRepository {
   /** How many listed items of each type match the search and scope (the type filter is ignored). */
   typeCounts(filter: Omit<CatalogueFilter, "type">): Promise<{ type: string; count: number }[]>;
   /** The scopes that hold listed items, by name. */
-  scopes(): Promise<string[]>;
-  /** The workspaces the viewer sees (090, 093), `global` first, then by name. */
-  workspaces(): Promise<string[]>;
+  scopes(workspace?: string): Promise<string[]>;
+  /**
+   * The workspaces the viewer sees (090, 093): their own personal one first (114, `personal`), then
+   * `global`, then by name.
+   */
+  workspaces(): Promise<{ name: string; personal: boolean }[]>;
   /** Installable items with downloads, the most downloaded first. */
   mostUsed(limit: number): Promise<CatalogueEntry[]>;
 }

@@ -25,6 +25,8 @@ export const REVIEW_EVENT_KINDS = [
   "approve",
   "reject",
   "override",
+  // Approved when its author submitted it in their own personal workspace (114): not reviewed.
+  "self_approve",
   "withdraw",
   "restore",
   "publish",

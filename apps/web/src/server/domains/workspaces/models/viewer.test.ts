@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { narrowedViewer, seesWorkspace, visibilityKey, visibleWorkspaces } from "./viewer";
+import {
+  feedViewer,
+  narrowedViewer,
+  seesWorkspace,
+  visibilityKey,
+  visibleWorkspaces,
+} from "./viewer";
 
 // Who sees which workspaces (093): the public ones for everyone signed in, a private one for its
 // members (any role) and root, nothing signed out.
@@ -99,5 +105,29 @@ describe("narrowedViewer (093, a git mirror)", () => {
       ...narrowedViewer(visibleWorkspaces(user("user", { beta: "user" }), WORKSPACES), ["beta"]),
       userId: "u1",
     });
+  });
+});
+
+describe("feedViewer (114)", () => {
+  const user = {
+    id: "u",
+    role: "user" as const,
+    workspaces: { a: "user" as const, b: "admin" as const },
+  };
+  const all = [
+    { id: "g", visibility: "public" as const },
+    { id: "a", visibility: "private" as const },
+    { id: "b", visibility: "private" as const },
+  ];
+  it("keeps only the private workspaces with a released item, so their key is shared", () => {
+    const viewer = feedViewer(visibleWorkspaces(user, all), ["a"]);
+    expect(viewer.workspaceIds).toEqual(["a", "g"]);
+    expect(visibilityKey(viewer)).toBe("a");
+    expect(visibilityKey(feedViewer(visibleWorkspaces(user, all), []))).toBe("");
+  });
+
+  it("leaves root's viewer as it is", () => {
+    const root = visibleWorkspaces({ ...user, role: "root" }, all);
+    expect(feedViewer(root, [])).toBe(root);
   });
 });

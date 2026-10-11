@@ -167,7 +167,7 @@ export const CatalogueView = ({ page, paged }: { page: CataloguePage; paged: boo
                       <option value="">All workspaces</option>
                       {workspaceOptions.map((workspace) => (
                         <option key={workspace} value={workspace}>
-                          {workspace}
+                          {workspace === page.personal ? `Personal (${workspace})` : workspace}
                         </option>
                       ))}
                     </select>

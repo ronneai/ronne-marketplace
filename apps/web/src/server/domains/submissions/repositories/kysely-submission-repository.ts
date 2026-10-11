@@ -34,6 +34,7 @@ type SubmissionRow = {
   scope_name: string;
   workspace_id: string;
   workspace_name: string;
+  workspace_owner_id: string | null;
   name: string;
   type: string;
   status: string;
@@ -50,7 +51,7 @@ const toSubmission = (row: SubmissionRow): Submission => ({
   id: row.id,
   authorId: row.author_id,
   scope: { id: row.scope_id, name: row.scope_name },
-  workspace: { id: row.workspace_id, name: row.workspace_name },
+  workspace: { id: row.workspace_id, name: row.workspace_name, ownerId: row.workspace_owner_id },
   name: row.name,
   type: row.type as ItemType,
   status: row.status as SubmissionStatus,
@@ -102,6 +103,7 @@ export const kyselySubmissionRepository = (
         "scopes.name as scope_name",
         "scopes.workspace_id",
         "workspaces.name as workspace_name",
+        "workspaces.owner_id as workspace_owner_id",
         "submissions.name",
         "submissions.type",
         "submissions.status",
@@ -122,11 +124,12 @@ export const kyselySubmissionRepository = (
   };
 
   /** A queue tab's submissions, with their author's name (062). */
-  const forReview = ({ statuses, workspaceIds, search, type }: ReviewFilters) => {
+  const forReview = ({ statuses, workspaceIds, sharedOnly, search, type }: ReviewFilters) => {
     let query = submissions()
       .innerJoin("user", "user.id", "submissions.author_id")
       .select("user.name as author_name")
       .where("submissions.status", "in", [...statuses]);
+    if (sharedOnly) query = query.where("workspaces.owner_id", "is", null);
     // An empty list matches nothing; `in ()` isn't valid SQL, so a value no id has stands in.
     if (workspaceIds)
       query = query.where(
@@ -339,6 +342,8 @@ export const kyselySubmissionRepository = (
         .selectFrom("workspaces")
         .select(["id", "name"])
         .where(inVisibleWorkspace(viewer, "workspaces.id"))
+        // The queue's filter: personal workspaces (114) have nothing in the queue.
+        .where("workspaces.owner_id", "is", null)
         .orderBy("name");
       if (ids !== "all") query = query.where("id", "in", [...ids]);
       return query.execute();
@@ -348,9 +353,12 @@ export const kyselySubmissionRepository = (
       let query = db
         .selectFrom("submissions")
         .innerJoin("scopes", "scopes.id", "submissions.scope_id")
+        .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
         .select((eb) => eb.fn.countAll().as("count"))
         .where("submissions.status", "=", status)
-        .where(inVisibleWorkspace(viewer, "scopes.workspace_id"));
+        .where(inVisibleWorkspace(viewer, "scopes.workspace_id"))
+        // As the queue counts (114): nothing in a personal workspace waits for a reviewer.
+        .where("workspaces.owner_id", "is", null);
       if (workspaceIds)
         query = query.where(
           "scopes.workspace_id",

@@ -6,6 +6,11 @@ import { createTestDb, type TestDb } from "../testing/test-db";
 import { GLOBAL_WORKSPACE_ID } from "./0019_workspaces";
 import { migrations } from "./index";
 
+/** Up to this migration, not later ones: a later one (0023's personal workspaces) changes the data. */
+const through = Object.fromEntries(
+  Object.entries(migrations).filter(([name]) => name <= "0022_workspace_in_names"),
+);
+
 // Runs on the database in TEST_DATABASE_URL (in-memory SQLite by default; 004 runs all of them).
 // Each test starts from an instance migrated up to 0021, with a second workspace, scopes and items
 // in both, as an instance upgrading to this version would be.
@@ -96,7 +101,7 @@ const aliases = () =>
 
 describe("0022_workspace_in_names", () => {
   it("keeps every item's old name outside global as an alias, and none for global's", async () => {
-    await migrateToLatest(t.db, t.dialect);
+    await migrateToLatest(t.db, t.dialect, through);
     expect(await aliases()).toEqual([
       { name: "@infra/build", item_id: items.build, reason: "migration" },
       { name: "@infra/deploy", item_id: items.deploy, reason: "migration" },
@@ -104,7 +109,7 @@ describe("0022_workspace_in_names", () => {
   });
 
   it("lets two workspaces have a scope of the same name, but not one workspace twice", async () => {
-    await migrateToLatest(t.db, t.dialect);
+    await migrateToLatest(t.db, t.dialect, through);
     await addScope(GLOBAL_WORKSPACE_ID, "infra");
     await addScope(acmeId, "team");
     await expect(addScope(acmeId, "infra")).rejects.toThrow();
@@ -112,7 +117,7 @@ describe("0022_workspace_in_names", () => {
   });
 
   it("keeps scopes, their items and their foreign keys", async () => {
-    await migrateToLatest(t.db, t.dialect);
+    await migrateToLatest(t.db, t.dialect, through);
     const scopes = await t.db.selectFrom("scopes").select(["name", "workspace_id"]).execute();
     expect(scopes).toHaveLength(2);
     // A scope still can't go while its items point at it.
@@ -120,7 +125,7 @@ describe("0022_workspace_in_names", () => {
   });
 
   it("takes one alias per name, and drops an item's aliases with it", async () => {
-    await migrateToLatest(t.db, t.dialect);
+    await migrateToLatest(t.db, t.dialect, through);
     await expect(
       t.db
         .insertInto("item_aliases")
@@ -132,7 +137,7 @@ describe("0022_workspace_in_names", () => {
   });
 
   it("changes nothing when it runs again", async () => {
-    await migrateToLatest(t.db, t.dialect);
+    await migrateToLatest(t.db, t.dialect, through);
     const first = await aliases();
     await migrations["0022_workspace_in_names"]?.(t.dialect).up(t.db);
     expect(await aliases()).toEqual(first);

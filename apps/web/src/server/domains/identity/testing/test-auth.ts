@@ -20,6 +20,9 @@ export const testAppAuth = (
       secret: "test-secret-test-secret-test-secret-00",
       baseURL: options.baseURL ?? TEST_BASE_URL,
       trustProxy,
+      // A query Better Auth starts and nobody waits for: it could still hold a connection when the
+      // test's pool closes, and the cleanup then waits for ever (a PostgreSQL CI flake).
+      validateSchema: false,
     }),
     db: t.db,
     dialect: t.dialect,

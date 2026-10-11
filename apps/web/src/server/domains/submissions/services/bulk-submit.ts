@@ -1,4 +1,4 @@
-import type { ManifestIssue } from "@ronneai/core";
+import type { ManifestIssue, RiskFlag } from "@ronneai/core";
 import { isId } from "../../../db/ids";
 import { isEditable } from "../models/status";
 import type { Submission } from "../models/submission";
@@ -60,6 +60,8 @@ export type SubmittedDraft = Included &
         submission: Submission;
         revision: number;
         issues: ManifestIssue[];
+        /** Approved as sent, in its author's personal workspace (114). */
+        riskFlags?: RiskFlag[];
       }
     | { id: string; result: "not_ready"; submission: Submission; issues: ManifestIssue[] }
     | { id: string; result: "not_found" }
@@ -149,13 +151,14 @@ export const submitMany = async (
       continue;
     }
     for (const member of sent.sent) {
-      const { issues, revision, ...submission } = member;
+      const { issues, revision, riskFlags, ...submission } = member;
       results.push({
         id: member.id,
         result: before.get(member.id)?.status === "changes_requested" ? "resubmitted" : "submitted",
         submission,
         revision,
         issues,
+        ...(riskFlags ? { riskFlags } : {}),
         ...includedOf(group, member.id),
       });
     }

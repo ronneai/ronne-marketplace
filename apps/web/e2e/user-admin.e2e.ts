@@ -50,8 +50,8 @@ test("root creates a user, who signs in with the shown password; disabling them 
   );
   await expect(root.getByRole("cell", { name: email, exact: true })).toBeVisible();
 
-  // Their workspaces (092): they start as a user in global; root adds one, as a user by default,
-  // makes them moderator there, then takes it away again.
+  // Their workspaces (092): they start as a user in global (their personal workspace, 114, isn't
+  // listed); root adds one, as a user by default, makes them moderator there, then takes it away.
   await rowOf(root, email)
     .getByRole("button", { name: `Workspaces of ${email}: 1` })
     .click();

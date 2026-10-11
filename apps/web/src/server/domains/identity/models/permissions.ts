@@ -52,8 +52,11 @@ export type InstancePermission = keyof typeof INSTANCE_PERMISSIONS;
 export type WorkspacePermission = keyof typeof WORKSPACE_PERMISSIONS;
 export type Permission = InstancePermission | WorkspacePermission;
 
-/** Who a check is about: the instance role, and the memberships for workspace permissions. */
-export type Subject = { role: Role; workspaces?: Memberships };
+/**
+ * Who a check is about: the instance role, the memberships for workspace permissions, and their
+ * personal workspace (114), which `canInSomeShared` leaves out.
+ */
+export type Subject = { role: Role; workspaces?: Memberships; personal?: string | null };
 
 const isWorkspacePermission = (permission: Permission): permission is WorkspacePermission =>
   permission in WORKSPACE_PERMISSIONS;
@@ -126,4 +129,14 @@ export const workspacesWith = (
 export const canInSome = (user: Subject | null, permission: WorkspacePermission): boolean => {
   const where = workspacesWith(user, permission);
   return where === "all" || where.length > 0;
+};
+
+/**
+ * The same, leaving out the user's personal workspace (114): for the nav, whose Reviews, Requests
+ * and Admin are about shared workspaces. Everyone is their own workspace's admin, so with it every
+ * user would get them. Services still use `canInSome`, which counts it.
+ */
+export const canInSomeShared = (user: Subject | null, permission: WorkspacePermission): boolean => {
+  const where = workspacesWith(user, permission);
+  return where === "all" || where.some((id) => id !== user?.personal);
 };

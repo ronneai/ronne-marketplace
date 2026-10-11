@@ -44,6 +44,8 @@ export type ReviewFilters = {
   statuses: readonly SubmissionStatus[];
   /** Only submissions whose scope is in these workspaces (091); all of them when left out. */
   workspaceIds?: readonly string[];
+  /** Leave out personal workspaces (114): the review queue, which nothing there waits in. */
+  sharedOnly?: boolean;
   /** Part of the item name or the author's name, any case. */
   search?: string;
   type?: ItemType;
@@ -110,6 +112,7 @@ export interface SubmissionRepository {
   /** These workspaces' ids and names by name, or every workspace's: the queue's filter (091). */
   workspacesNamed(ids: readonly string[] | "all"): Promise<{ id: string; name: string }[]>;
   /** How many have this status, in these workspaces only when given (091). */
+  /** How many have this status, in these workspaces only when given, never in a personal one (114). */
   countByStatus(status: SubmissionStatus, workspaceIds?: readonly string[]): Promise<number>;
   /** The author's submissions that are still drafts, for the API's draft limit (037). */
   countDrafts(authorId: string): Promise<number>;

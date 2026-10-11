@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { run } from "./cli.js";
-import { byWorkspace } from "./export-command.js";
+import { byWorkspace, scopeLabel } from "./export-command.js";
 import {
   exportRoutes,
   type FakeIo,
@@ -75,6 +75,39 @@ describe("rmk workspaces", () => {
       { ...WORKSPACES[1], joinUrl: null },
       { ...WORKSPACES[2], joinUrl: `${REGISTRY}/workspaces/tools/join` },
     ]);
+  });
+
+  it("shows your personal workspace as personal (114)", async () => {
+    io = fakeIo(
+      {
+        ...routes,
+        "GET /workspaces": () => ({
+          json: {
+            workspaces: [
+              {
+                name: "ana",
+                description: "ana's personal workspace",
+                visibility: "private",
+                global: false,
+                role: "admin",
+                personal: true,
+              },
+              WORKSPACES[0],
+            ],
+          },
+        }),
+      },
+      { env },
+    );
+    const result = await rmk("workspaces");
+    expect(result.stdout).toBe(
+      [
+        "WORKSPACE  VISIBILITY  YOUR ROLE",
+        "ana        personal    admin",
+        "global     public      user",
+        "",
+      ].join("\n"),
+    );
   });
 
   it("says when the registry is older than workspaces", async () => {
@@ -176,6 +209,19 @@ describe("rmk export and workspaces", () => {
       `You aren't a member of the acme workspace. Ask to join acme to propose changes. Ask here: ${REGISTRY}/workspaces/acme/join`,
     );
     expect(drafts).toEqual([]);
+  });
+
+  it("lists your personal workspace's scopes first, as Personal (114)", () => {
+    const scopes = [
+      { name: "shared", description: "", workspace: "global" },
+      { name: "acme-infra", description: "", workspace: "acme" },
+      { name: "tools", description: "Mine.", workspace: "zed", personal: true },
+    ];
+    expect(byWorkspace(scopes).map(scopeLabel)).toEqual([
+      "Personal (zed) › @tools  Mine.",
+      "global › @shared",
+      "acme › @acme-infra",
+    ]);
   });
 
   it("reads a scope's name as global's, and @workspace/scope as that workspace's (118)", async () => {

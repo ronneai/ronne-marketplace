@@ -53,8 +53,12 @@ const toEditorDraft = (
   canDelete = false,
   feedback: EditorDraft["feedback"] = null,
   submitIssues: EditorDraft["submitIssues"] = [],
+  selfApproved = false,
 ): EditorDraft => ({
   dependents,
+  selfApproved,
+  personal:
+    draft.mine && draft.workspace.ownerId != null && draft.workspace.ownerId === draft.authorId,
   submitIssues,
   canDelete,
   feedback,
@@ -141,6 +145,10 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
         body: last.body,
       }
     : null;
+  // Approved as sent, in its author's personal workspace (114): the latest approval says.
+  const selfApproved =
+    review?.events.filter((e) => ["approve", "override", "self_approve"].includes(e.kind)).at(-1)
+      ?.kind === "self_approve";
   return (
     <div className="grid gap-6">
       {/* A new version from the server (an import, a rename, a submit) starts the editor afresh. */}
@@ -155,6 +163,7 @@ const DraftPage = async ({ params }: { params: Promise<{ id: string }> }) => {
           canDelete,
           feedback,
           submitIssues,
+          selfApproved,
         )}
       />
       {review?.can.publish ? (

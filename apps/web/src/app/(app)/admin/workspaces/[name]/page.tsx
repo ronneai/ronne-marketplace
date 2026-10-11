@@ -26,7 +26,7 @@ import {
 import { MembersTable } from "@/features/workspace-members/MembersTable";
 import { RequestsTable } from "@/features/workspace-requests/RequestsTable";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
-import { can, canInSome } from "@/server/domains/identity/models/permissions";
+import { can, canInSome, canInSomeShared } from "@/server/domains/identity/models/permissions";
 import { pageScopes } from "@/server/domains/items/actions/scopes";
 import {
   findWorkspace,
@@ -67,9 +67,17 @@ const AdminWorkspace = async ({
   if (!workspace) notFound();
   const path = workspacePath(workspace.name);
   const query = await searchParams;
+  // A personal workspace (114) is its owner's alone: no members to manage, no requests to answer,
+  // no visibility to change, never deleted. Only its scopes.
+  const personal = workspace.ownerId !== null;
+  // Its owner may administer nothing else, so their way back is the Workspaces page.
+  const back = canInSomeShared(me, "members.manage")
+    ? { href: "/admin/workspaces", label: "All workspaces" }
+    : { href: "/workspaces", label: "Workspaces" };
   // Tabs on this page's own address: its scopes, `tab=members` its members (092), and
   // `tab=requests` the requests to join it (094), for root and its admins, who answer them.
-  const tab = query.tab === "members" || query.tab === "requests" ? query.tab : "scopes";
+  const tab =
+    !personal && (query.tab === "members" || query.tab === "requests") ? query.tab : "scopes";
 
   const content = async () => {
     if (tab === "requests") {
@@ -143,10 +151,10 @@ const AdminWorkspace = async ({
     <>
       <p className="mb-2 text-sm">
         <Link
-          href="/admin/workspaces"
+          href={back.href}
           className="text-link hover:underline outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus"
         >
-          All workspaces
+          {back.label}
         </Link>
       </p>
       <PageHeader
@@ -161,7 +169,7 @@ const AdminWorkspace = async ({
               {can(me, "workspace.rename", workspace.id) ? (
                 <RenameWorkspaceButton name={workspace.name} />
               ) : null}
-              {can(me, "workspaces.manage") ? (
+              {can(me, "workspaces.manage") && !personal ? (
                 <>
                   <VisibilityButton name={workspace.name} visibility={workspace.visibility} />
                   <DeleteWorkspaceButton name={workspace.name} scopes={workspace.scopes} />
@@ -172,18 +180,25 @@ const AdminWorkspace = async ({
         }
       />
       <div className="mb-6 flex flex-wrap items-center gap-2 text-sm text-muted">
-        <Badge>{VISIBILITY_LABELS[workspace.visibility]}</Badge>
+        <Badge>{personal ? "Personal" : VISIBILITY_LABELS[workspace.visibility]}</Badge>
         {workspace.isGlobal ? (
           <span>Every instance has it, and everyone is in it. It can't be changed or deleted.</span>
         ) : null}
+        {personal ? (
+          <span>
+            {workspace.ownerId === me.id ? "Yours" : "Its owner's"} alone, always private. Its items
+            are released without review.
+          </span>
+        ) : null}
       </div>
       <ScrollStrip label="Workspace" className="mb-4 gap-1 border-b border-hairline">
-        {(
-          [
-            ["scopes", "Scopes", path],
-            ["members", "Members", `${path}?tab=members`],
-            ["requests", "Requests", `${path}?tab=requests`],
-          ] as const
+        {(personal
+          ? ([["scopes", "Scopes", path]] as const)
+          : ([
+              ["scopes", "Scopes", path],
+              ["members", "Members", `${path}?tab=members`],
+              ["requests", "Requests", `${path}?tab=requests`],
+            ] as const)
         ).map(([id, label, href]) => (
           <Link
             key={id}

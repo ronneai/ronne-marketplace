@@ -497,6 +497,8 @@ describe("planExport", () => {
       }).catch((e) => e);
       expect(err).toBeInstanceOf(RmkError);
       expect(err.code).toBe("no_scopes");
+      // Anyone can create one in their personal workspace (114).
+      expect(err.message).toContain("Create one in your personal workspace");
     } finally {
       bare.cleanup();
     }

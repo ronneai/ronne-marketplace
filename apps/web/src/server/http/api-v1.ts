@@ -60,7 +60,10 @@ export const getMe = async (request: Request, guardDeps?: TokenGuardDeps, app?: 
     email: user.email,
     name: user.name,
     role: user.role,
-    workspaces: workspaces.flatMap((w) => (w.role ? [{ name: w.name, role: w.role }] : [])),
+    // Their own personal workspace (114) is marked so.
+    workspaces: workspaces.flatMap((w) =>
+      w.role ? [{ name: w.name, role: w.role, ...(w.personal ? { personal: true } : {}) }] : [],
+    ),
     token: { id: token.id, name: token.name, expiresAt: token.expiresAt?.toISOString() ?? null },
   });
 };
@@ -86,6 +89,8 @@ export const getWorkspaces = async (
         visibility: w.visibility,
         global: w.isGlobal,
         role: user.role === "root" ? "root" : w.role,
+        // The caller's own personal workspace (114), first; root's list leaves out others'.
+        ...(w.personal ? { personal: true } : {}),
       })),
     },
     { headers: { "cache-control": "private, no-cache" } },

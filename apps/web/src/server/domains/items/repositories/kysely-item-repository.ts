@@ -283,6 +283,7 @@ export const kyselyItemRepository = (
         ...searchFieldsOf(version.manifest),
         disabled_targets: disabledTargetsField(version.manifest),
         risk_flags: encodeJson(version.riskFlags),
+        reviewed: toDbBoolean(version.reviewed ?? true, dialect),
       })
       .execute();
     for (const dependency of version.dependencies)

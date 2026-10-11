@@ -461,6 +461,22 @@ describe("the draft page", () => {
     );
   });
 
+  it("says an approval in your personal workspace was yours, without review (114)", () => {
+    const html = view({
+      status: "approved",
+      readOnly: true,
+      canSubmit: false,
+      canWithdraw: true,
+      selfApproved: true,
+    });
+    expect(html).toContain("Approved by you: personal workspaces aren&#x27;t reviewed.");
+    expect(html).toContain("as a reviewer would have seen it");
+    // Its helper (114) leads to the Documentation's section.
+    expect(html).toContain("Why isn&#x27;t it reviewed?");
+    expect(html).toContain("/marketplace/docs/workspaces#personal");
+    expect(html).not.toContain("by you or a moderator");
+  });
+
   it("offers deleting an archived one for good when no reviewer took part (057)", () => {
     const archived = view({
       status: "withdrawn",
@@ -534,6 +550,9 @@ describe("the Submit dialog's group (112)", () => {
   it("names the button by how many drafts go with it", () => {
     expect(submitLabel(false, [])).toBe("Submit for review");
     expect(submitLabel(true, [])).toBe("Resubmit for review");
+    // In your personal workspace (114) it's approved as it's sent: not "for review".
+    expect(submitLabel(false, [], true)).toBe("Submit");
+    expect(submitLabel(true, [], true)).toBe("Resubmit");
     expect(submitLabel(false, [member("@team/skill")])).toBe("Submit with 1 more draft");
     expect(submitLabel(true, [member("@team/a"), member("@team/b")])).toBe(
       "Resubmit with 2 more drafts",

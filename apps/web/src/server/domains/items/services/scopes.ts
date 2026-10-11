@@ -114,7 +114,11 @@ export const updateScopeDescription = async (
   });
 };
 
-export type ScopesPage = { scopes: (Scope & { role: ScopeRole })[]; nextCursor: string | null };
+export type ScopesPage = {
+  /** `personal`: in the actor's own personal workspace (114). */
+  scopes: (Scope & { role: ScopeRole; personal: boolean })[];
+  nextCursor: string | null;
+};
 
 /** The actor's role where a scope is: root, or their role in its workspace (091). */
 export type ScopeRole = "root" | WorkspaceRole;
@@ -144,6 +148,7 @@ export const listScopes = async (
     ...scope,
     role:
       user.role === "root" ? ("root" as const) : (user.workspaces[scope.workspace.id] ?? "user"),
+    personal: scope.workspace.ownerId === user.id,
   }));
   return {
     scopes,

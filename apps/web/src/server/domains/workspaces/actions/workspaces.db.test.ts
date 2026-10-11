@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
+import { createPersonalWorkspace } from "../../../db/personal-workspaces";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { listAuditEvents } from "../../audit/actions/audit";
 import { createRoot } from "../../identity/actions/root-account";
@@ -264,18 +265,26 @@ describe("who may", () => {
   it("lets everyone signed in list them, global first, but nobody signed out", async () => {
     await createWorkspace(asRoot, { name: "zeta", description: "Z." }, app);
     await createWorkspace(asRoot, { name: "acme", description: "A." }, app);
-    for (const headers of [asUser, asModerator, asRoot])
+    for (const headers of [asUser, asModerator])
       expect((await listWorkspaces(headers, app)).map((w) => w.name)).toEqual([
         "global",
         "acme",
         "zeta",
       ]);
+    // Root's own personal workspace too (114).
+    expect((await listWorkspaces(asRoot, app)).map((w) => w.name)).toEqual([
+      "global",
+      "acme",
+      "root-2",
+      "zeta",
+    ]);
     await expect(listWorkspaces(new Headers(), app)).rejects.toThrow(ForbiddenError);
   });
 });
 
 describe("pageWorkspaces", () => {
   it("puts global first on the first page, then sorts and pages the rest", async () => {
+    // Shared workspaces by default: root's personal one (114) is under the Kind filter.
     for (const name of ["delta", "alpha", "charlie", "bravo"])
       await createWorkspace(asRoot, { name, description: `The ${name} team.` }, app);
     await addScope(GLOBAL_WORKSPACE_ID, "team");
@@ -315,6 +324,47 @@ describe("pageWorkspaces", () => {
     const byDescription = await pageWorkspaces(asRoot, { search: "everyone" }, app);
     expect(byDescription.workspaces.map((w) => w.name)).toEqual(["global", "zeta"]);
     expect(byDescription.total.count).toBe(2);
+  });
+});
+
+describe("pageWorkspaces' Kind filter (114)", () => {
+  it("lists personal workspaces on their own, with their owners, for root only", async () => {
+    const acme = await createWorkspace(asRoot, { name: "acme", description: "Acme." }, app);
+    const user = await t.db
+      .selectFrom("user")
+      .select(["id", "email"])
+      .where("email", "=", "u@example.com")
+      .executeTakeFirstOrThrow();
+    // The helper's users have none; Create user would have made it.
+    await createPersonalWorkspace(t.db, t.dialect, user, new Date());
+    const shared = await pageWorkspaces(asRoot, {}, app);
+    expect(shared.workspaces.map((w) => w.name)).toEqual(["global", "acme"]);
+    expect(shared.total.count).toBe(2);
+    const personal = await pageWorkspaces(asRoot, { kind: "personal" }, app);
+    expect(personal.workspaces.map((w) => [w.name, w.ownerEmail])).toEqual([
+      ["root-2", "root@example.com"],
+      ["u", "u@example.com"],
+    ]);
+    expect(personal.total.count).toBe(2);
+    const byOwner = await pageWorkspaces(asRoot, { kind: "personal", search: "U@EXAMPLE" }, app);
+    expect(byOwner.workspaces.map((w) => w.name)).toEqual(["u"]);
+    // An admin of a shared workspace lists their shared ones, never their own personal one.
+    await t.db
+      .insertInto("workspace_members")
+      .values({
+        workspace_id: acme.id,
+        user_id: user.id,
+        role: "admin",
+        added_by: null,
+        created_at: toDbDate(new Date(), t.dialect),
+        updated_at: toDbDate(new Date(), t.dialect),
+      })
+      .execute();
+    for (const kind of ["shared", "personal"] as const)
+      expect(
+        (await pageWorkspaces(asUser, { kind }, app)).workspaces.map((w) => w.name),
+        kind,
+      ).toEqual(["acme"]);
   });
 });
 

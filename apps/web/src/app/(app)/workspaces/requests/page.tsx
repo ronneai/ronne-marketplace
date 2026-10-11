@@ -3,7 +3,7 @@ import { Help } from "@/components/help/Help";
 import { PageHeader } from "@/components/ui/Panel";
 import { RequestsTable } from "@/features/workspace-requests/RequestsTable";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
-import { canInSome } from "@/server/domains/identity/models/permissions";
+import { canInSomeShared } from "@/server/domains/identity/models/permissions";
 import { requestsToAnswerList } from "@/server/domains/workspaces/actions/workspaces";
 import { requestHeaders } from "@/server/http/request-headers";
 
@@ -17,7 +17,8 @@ export const metadata = { title: "Requests to join · Ronne AI Marketplace" };
 const WorkspaceRequests = async () => {
   const request = await requestHeaders();
   const me = await getCurrentUser(request);
-  if (!me || !canInSome(me, "access_requests.answer")) notFound();
+  // Nobody asks to join a personal workspace (114): owning one answers nothing.
+  if (!me || !canInSomeShared(me, "access_requests.answer")) notFound();
   const { requests, total } = await requestsToAnswerList(request);
   return (
     <>

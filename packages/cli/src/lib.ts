@@ -69,6 +69,7 @@ export {
   type SubmitPlan,
   type SubmitResult,
   sendSubmit,
+  submitConsent,
   submitLines,
   togetherLine,
 } from "./submit.js";

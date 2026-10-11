@@ -35,6 +35,12 @@ export type AuthConfig = {
   /** TRUST_PROXY: record the client IP from X-Forwarded-For. */
   trustProxy?: boolean;
   hasher?: PasswordHasher;
+  /**
+   * Better Auth's check of the schema, a query it starts when created and never waits for. On by
+   * default (the app's single instance logs a mismatch at start); tests turn it off, since each
+   * test makes instances whose check could still hold a connection when its pool closes.
+   */
+  validateSchema?: boolean;
 };
 
 /**
@@ -48,6 +54,7 @@ export const createAuth = ({
   baseURL,
   trustProxy = false,
   hasher = argon2PasswordHasher,
+  validateSchema = true,
 }: AuthConfig) => {
   return betterAuth({
     database: { db, type: dialect },
@@ -59,7 +66,7 @@ export const createAuth = ({
     // On in every environment, not only production. It covers the few HTTP endpoints left.
     rateLimit: { enabled: true },
     advanced: {
-      database: { generateId: () => newId() },
+      database: { generateId: () => newId(), validateSchema },
       // Cookies are named ronne.* rather than better-auth.*. They're Secure when baseURL is https.
       cookiePrefix: COOKIE_PREFIX,
       // Without a trusted proxy, X-Forwarded-For can be forged (see models/client-ip.ts), so the

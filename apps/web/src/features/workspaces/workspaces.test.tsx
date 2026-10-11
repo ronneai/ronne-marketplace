@@ -30,6 +30,7 @@ const workspace = (name: string, extra: Partial<MyWorkspace> = {}): MyWorkspace 
   description: `The ${name} team.`,
   visibility: "public",
   isGlobal: false,
+  personal: false,
   role: null,
   ...extra,
 });
@@ -105,6 +106,24 @@ describe("the Workspaces page (094)", () => {
     expect(html).toContain("Admin");
     expect(html).toContain("The acme team.");
     expect(html).not.toContain("Ask to join");
+  });
+
+  it("shows your personal workspace as Personal and Yours, with Manage, for root too (114)", () => {
+    for (const root of [false, true]) {
+      const html = render({
+        workspaces: [
+          workspace("ana", { visibility: "private", role: "admin", personal: true }),
+          workspace("global", { isGlobal: true, role: "user" }),
+        ],
+        root,
+      });
+      expect(html).toContain("Personal");
+      expect(html).toContain("Yours");
+      expect(html).toContain('href="/admin/workspaces/ana"');
+      expect(html).toContain("Manage");
+      expect(html).toContain("/marketplace/docs/workspaces#personal");
+      expect(html).not.toContain(">Admin<");
+    }
   });
 
   it("offers Ask to join, Requested with Cancel, and Declined with the date, the reason and the wait", () => {

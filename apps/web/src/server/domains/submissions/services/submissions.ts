@@ -5,6 +5,8 @@ import {
   type ManifestIssue,
   type PackageLimits,
   parseManifest,
+  type RiskFlag,
+  riskFlags,
 } from "@ronneai/core";
 import { isId } from "../../../db/ids";
 import type { StorageAdapter } from "../../../storage";
@@ -25,6 +27,7 @@ import {
   itemNameOf,
   MANIFEST_PATH,
   type Submission,
+  toPackageFile,
   validateDraft,
 } from "../models/submission";
 import type { RegistryLookup } from "../repositories/registry-lookup";
@@ -301,11 +304,55 @@ const send = async (
     },
     at,
   );
+  // In its author's own personal workspace (114), it's approved as it's sent: nobody else is
+  // there to review it, and only its owner and root see it. Recorded as the author's own approval,
+  // so its release is marked not reviewed.
+  if (
+    status === "submitted" &&
+    submission.workspace.ownerId &&
+    submission.workspace.ownerId === submission.authorId &&
+    actor.user?.id === submission.authorId
+  ) {
+    const approved = transition(status, "approve");
+    await repo.setStatus(submission.id, approved, { updatedAt: at });
+    await repo.addEvent({
+      submissionId: submission.id,
+      actorId: actor.user.id,
+      kind: "self_approve",
+      body: null,
+      revision: revision.number,
+      createdAt: at,
+    });
+    await repo.recordAudit(
+      {
+        actorId: actor.user.id,
+        action: "submission.approved",
+        target: { type: "submission", id: submission.id },
+        metadata: { name: itemNameOf(submission), revision: revision.number, self: true },
+        ipAddress: actor.ip,
+      },
+      at,
+    );
+    return {
+      ...submission,
+      status: approved,
+      updatedAt: at,
+      submittedAt,
+      revision: revision.number,
+      // What a reviewer would have been asked to look at (014), for its author to see instead.
+      riskFlags: manifest ? riskFlags(manifest, files.map(toPackageFile)) : [],
+    };
+  }
   return { ...submission, status, updatedAt: at, submittedAt, revision: revision.number };
 };
 
 /** A member as a group's submit leaves it (112). */
-export type SentMember = Submission & { issues: ManifestIssue[]; revision: number };
+export type SentMember = Submission & {
+  issues: ManifestIssue[];
+  revision: number;
+  /** Approved as it was sent, in its author's personal workspace (114): what it can do. */
+  riskFlags?: RiskFlag[];
+};
 
 /**
  * Sends a group for review in the caller's transaction (112): every member checked as if all were

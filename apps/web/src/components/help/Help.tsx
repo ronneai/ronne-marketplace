@@ -62,6 +62,18 @@ export const HELP = {
       "Anyone signed in reads and installs a public workspace's items, but only its members propose and submit there. Ask to join it from the Workspaces page, or from the join link its moderators or admins send for a private one; root or its moderators and admins answer, and you see the answer there.",
     href: docsHref("workspaces", "joining"),
   },
+  "personal-workspace": {
+    question: "What's my personal workspace?",
+    answer:
+      "A workspace of your own, private and only yours: create scopes and items there, install them and try them out, without asking anyone. What you submit there is approved at once, since only you and root can see it.",
+    href: docsHref("workspaces", "personal"),
+  },
+  "personal-review": {
+    question: "Why isn't it reviewed?",
+    answer:
+      "It's in your personal workspace, which only you and root can see or install from, so a second pair of eyes would protect nobody. What you submit there is approved at once, and its versions are marked as not reviewed.",
+    href: docsHref("workspaces", "personal"),
+  },
   "requests-who": {
     question: "Who can answer?",
     answer:

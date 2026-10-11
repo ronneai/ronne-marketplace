@@ -17,6 +17,8 @@ export type Workspace = {
   role: string | null;
   /** Where to ask to join, where you aren't a member. */
   joinUrl: string | null;
+  /** Your own personal workspace (114); missing from a registry older than it. */
+  personal?: boolean;
 };
 
 /** The first Ronne release whose registry has workspaces. */
@@ -46,7 +48,8 @@ export const fetchWorkspaces = async (api: ApiClient): Promise<Workspace[]> => {
 export const workspaceLines = (workspaces: readonly Workspace[]): string[] => {
   const rows = [
     ["WORKSPACE", "VISIBILITY", "YOUR ROLE"],
-    ...workspaces.map((w) => [w.name, w.visibility, w.role ?? "—"]),
+    // Your personal workspace (114) shows as `personal`: only yours, always private.
+    ...workspaces.map((w) => [w.name, w.personal ? "personal" : w.visibility, w.role ?? "—"]),
   ];
   const widths = [0, 1].map((i) => Math.max(...rows.map((r) => r[i]?.length ?? 0)));
   return rows.map((row, i) => {

@@ -14,6 +14,7 @@ import {
   InvalidAccessRequestTextError,
   InvalidRequestRoleError,
   MemberUserNotFoundError,
+  PersonalWorkspaceError,
   RootMembershipError,
   TooManyAccessRequestsError,
   WorkspaceNotFoundError,
@@ -125,8 +126,11 @@ export const requestAccess = async (
     if (!isValidName(name, "item")) return "sent";
     const found = await repo.findByName(name);
     // Compared byte for byte: MySQL's collation could match a lookalike.
-    const workspace = found?.name === name ? found : null;
-    if (workspace && (await repo.memberRole(workspace.id, user.id))) return "already_member";
+    const named = found?.name === name ? found : null;
+    if (named && (await repo.memberRole(named.id, user.id))) return "already_member";
+    // Someone else's personal workspace (114) is nobody's to join: the request is kept by name,
+    // as for a name no workspace has, so asking can't tell the two apart.
+    const workspace = named?.ownerId ? null : named;
     // A name no workspace can have (reserved, such as `admin`) tells nothing: it isn't kept.
     if (!workspace && !isValidName(name, "workspace")) return "sent";
     const latest = await repo.latestRequest(name, user.id);
@@ -255,6 +259,8 @@ export const approveAccessRequest = async (
   if (role !== "user" && role !== "moderator") throw new InvalidRequestRoleError(role);
   const at = now(deps);
   await answering(deps, actor, input.requestId, async (repo, request, workspace, requester) => {
+    // Never attached to a personal workspace (114); refused all the same if one ever were.
+    if (workspace.ownerId) throw new PersonalWorkspaceError("members");
     if (role !== "user" && !can(actor.user, "members.manage", workspace.id))
       throw new ForbiddenError("members.manage");
     if (requester.root) throw new RootMembershipError();
@@ -416,6 +422,8 @@ export type MyWorkspace = {
   visibility: WorkspaceVisibility;
   isGlobal: boolean;
   role: WorkspaceRole | null;
+  /** The reader's own personal workspace (114), listed first. */
+  personal: boolean;
 };
 
 /**
@@ -431,15 +439,21 @@ export const myWorkspaces = async (
   if (!user) return [];
   const all = await deps.repo.list();
   const viewer = visibleWorkspaces(user, all);
-  return all
-    .filter((w) => seesWorkspace(viewer, w.id))
-    .map((w) => ({
-      name: w.name,
-      description: w.description,
-      visibility: w.visibility,
-      isGlobal: w.isGlobal,
-      role: user.workspaces[w.id] ?? null,
-    }));
+  return (
+    all
+      // Root sees every workspace, but not every user's personal one listed here (114).
+      .filter((w) => seesWorkspace(viewer, w.id) && (!w.ownerId || w.ownerId === user.id))
+      .map((w) => ({
+        name: w.name,
+        description: w.description,
+        visibility: w.visibility,
+        isGlobal: w.isGlobal,
+        role: user.workspaces[w.id] ?? null,
+        personal: w.ownerId === user.id,
+      }))
+      // Their own personal workspace first (114); the rest keep `global` first, then by name.
+      .sort((a, b) => Number(b.personal) - Number(a.personal))
+  );
 };
 
 /**

@@ -8,8 +8,11 @@ import {
   nameProblem,
   normalizeScopeName,
   normalizeWorkspaceName,
+  PERSONAL_NAME_BASE_LENGTH,
   parseItemName,
   parseScopeName,
+  personalWorkspaceBase,
+  personalWorkspaceName,
   sameItemName,
   scopeRefFrom,
   shortItemName,
@@ -151,5 +154,41 @@ describe("formatItemName and the global short form (118)", () => {
     expect(scopeRefFrom(" Team ")).toEqual({ workspace: "global", scope: "team" });
     expect(scopeRefFrom("@Acme/Team")).toEqual({ workspace: "acme", scope: "team" });
     expect(scopeRefFrom("")).toBeNull();
+  });
+});
+
+describe("personal workspace names (114)", () => {
+  it("takes the email's local part, as a workspace name", () => {
+    expect(personalWorkspaceBase("Ana.Silva@acme.com")).toBe("ana-silva");
+    expect(personalWorkspaceBase("j_doe+ronne@x.io")).toBe("j-doe-ronne");
+    expect(personalWorkspaceBase("--Zoë--@x.io")).toBe("zoe");
+    expect(personalWorkspaceBase("José@x.io")).toBe("jose");
+    expect(personalWorkspaceBase("İSTANBUL@x.io")).toBe("istanbul");
+    expect(personalWorkspaceBase("日本@x.jp")).toBe("personal");
+    expect(personalWorkspaceBase('"q@l"@x.io')).toBe("q-l");
+    expect(personalWorkspaceBase("...@x.io")).toBe("personal");
+    const long = personalWorkspaceBase(`${"a".repeat(59)}.bcd@x.io`);
+    expect(long).toBe("a".repeat(59));
+    expect(long.length).toBeLessThanOrEqual(PERSONAL_NAME_BASE_LENGTH);
+  });
+
+  it("tries the base, then -2, -3…, skipping a reserved base", () => {
+    expect([0, 1, 2].map((n) => personalWorkspaceName("ana@a.com", n))).toEqual([
+      "ana",
+      "ana-2",
+      "ana-3",
+    ]);
+    expect([0, 1].map((n) => personalWorkspaceName("admin@a.com", n))).toEqual([
+      "admin-2",
+      "admin-3",
+    ]);
+    expect(personalWorkspaceName("global@a.com", 0)).toBe("global-2");
+    for (const n of [0, 8, 98, 998, 999, 9998, 99_998, 999_998]) {
+      const name = personalWorkspaceName(`${"x".repeat(60)}@a.com`, n);
+      expect(isValidName(name, "workspace"), name).toBe(true);
+      expect(name.endsWith(`-${n + 1}`) || n === 0).toBe(true);
+    }
+    // A base cut before a hyphen loses the hyphen, not the number.
+    expect(personalWorkspaceName(`${"a".repeat(59)}.b@x`, 999)).toBe(`${"a".repeat(59)}-1000`);
   });
 });

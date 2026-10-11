@@ -7,8 +7,14 @@ import { type AppAuth, getAppAuth } from "../../identity/repositories/auth-insta
 import { kyselyCatalogueRepository } from "../../items/repositories/kysely-catalogue-repository";
 import { kyselyItemRepository } from "../../items/repositories/kysely-item-repository";
 import { viewerOf } from "../../workspaces/actions/viewer";
-import { narrowedViewer, type Viewer, visibilityKey } from "../../workspaces/models/viewer";
+import {
+  feedViewer as keyedViewer,
+  narrowedViewer,
+  type Viewer,
+  visibilityKey,
+} from "../../workspaces/models/viewer";
 import { kyselyWorkspaceRepository } from "../../workspaces/repositories/kysely-workspace-repository";
+import { workspacesWithReleases } from "../../workspaces/repositories/viewer";
 import { FeedWorkspaceNotFoundError } from "../exceptions/errors";
 import type { PluginRef, ServedTool } from "../models/feed";
 import { kyselyFeedRepository } from "../repositories/kysely-feed-repository";
@@ -54,6 +60,10 @@ const deps = (
   background: (work) => after(work),
 });
 
+/** Only the private workspaces with a released item (114), so empty personal ones share a key. */
+const released = async (viewer: Viewer, app: AppAuth) =>
+  keyedViewer(viewer, await workspacesWithReleases(app.db, viewer.privateWorkspaceIds));
+
 /**
  * The caller's viewer, cut down for a git mirror when `workspaces` is given (093): the public
  * workspaces and the private ones it names. A name the caller doesn't see, unknown or private
@@ -65,7 +75,7 @@ const feedViewer = async (
   app: AppAuth,
 ) => {
   const viewer = await viewerOf(user, app);
-  if (workspaces === null) return viewer;
+  if (workspaces === null) return released(viewer, app);
   const repo = kyselyWorkspaceRepository(app.db, app.dialect);
   const chosen: string[] = [];
   for (const name of workspaces) {
@@ -77,7 +87,7 @@ const feedViewer = async (
       throw new FeedWorkspaceNotFoundError(name);
     chosen.push(workspace.id);
   }
-  return narrowedViewer(viewer, chosen);
+  return released(narrowedViewer(viewer, chosen), app);
 };
 
 /**

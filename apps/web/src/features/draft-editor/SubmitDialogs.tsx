@@ -37,10 +37,17 @@ export const submitBlocked = (result: SubmitPreview | SubmitResult | null): stri
 };
 
 /** The button's words: Submit alone, or with how many more of the person's drafts (112). */
-export const submitLabel = (resubmit: boolean, members: readonly GroupMember[]) => {
+export const submitLabel = (
+  resubmit: boolean,
+  members: readonly GroupMember[],
+  /** In the author's personal workspace (114): approved as it's sent, so not "for review". */
+  personal = false,
+) => {
   const verb = resubmit ? "Resubmit" : "Submit";
   return members.length === 0
-    ? `${verb} for review`
+    ? personal
+      ? verb
+      : `${verb} for review`
     : `${verb} with ${members.length} more ${members.length === 1 ? "draft" : "drafts"}`;
 };
 
@@ -68,13 +75,16 @@ export const afterSubmit = (
 export const SubmitOutcome = ({
   itemName,
   sent,
+  personal = false,
 }: {
   itemName: string;
   sent: readonly string[];
+  personal?: boolean;
 }) => (
   <p role="status" className="text-sm text-fg">
     <span className="mr-2 font-mono text-xs font-semibold">OK:</span>
-    Submitted {itemName} for review, with {names(sent)}.
+    Submitted {itemName}
+    {personal ? "" : " for review"}, with {names(sent)}.
   </p>
 );
 
@@ -132,6 +142,7 @@ export const SubmitDialog = ({
   itemName,
   dirty,
   onClose,
+  personal = false,
 }: {
   /** Sent back for changes (014): the same checks, then the next revision. */
   resubmit?: boolean;
@@ -139,13 +150,15 @@ export const SubmitDialog = ({
   itemName: string;
   dirty: boolean;
   onClose: () => void;
+  /** In the author's personal workspace (114): approved as it's sent. */
+  personal?: boolean;
 }) => {
   const router = useRouter();
   const [result, setResult] = useState<SubmitPreview | SubmitResult | null>(null);
   const [sent, setSent] = useState<string[] | null>(null);
   const [refused, setRefused] = useState<string | null>(null);
   const members = result?.ok && "members" in result ? result.members : [];
-  const label = submitLabel(resubmit, members);
+  const label = submitLabel(resubmit, members, personal);
   const [checking, startCheck] = useTransition();
   const [submitting, startSubmit] = useTransition();
 
@@ -162,7 +175,7 @@ export const SubmitDialog = ({
   };
 
   return (
-    <Dialog open onClose={sent ? closeSent : onClose} title={submitLabel(resubmit, [])}>
+    <Dialog open onClose={sent ? closeSent : onClose} title={submitLabel(resubmit, [], personal)}>
       {dirty ? (
         <div className="grid gap-4">
           <p className="text-sm text-fg">
@@ -176,7 +189,7 @@ export const SubmitDialog = ({
         </div>
       ) : sent ? (
         <div className="grid gap-4">
-          <SubmitOutcome itemName={itemName} sent={sent} />
+          <SubmitOutcome itemName={itemName} sent={sent} personal={personal} />
           <DialogActions>
             <Button onClick={closeSent}>Close</Button>
           </DialogActions>
@@ -204,10 +217,11 @@ export const SubmitDialog = ({
               </p>
               {result.issues.length > 0 ? <IssueList issues={result.issues} /> : null}
               <p className="text-sm text-muted">
-                Once submitted, its files are frozen: reviewers see exactly these. You can withdraw
-                it until it's released.
+                {personal
+                  ? "Once submitted, its files are frozen, and it's approved at once: personal workspaces aren't reviewed. Release it when you like; until then you can withdraw it."
+                  : "Once submitted, its files are frozen: reviewers see exactly these. You can withdraw it until it's released."}
               </p>
-              <Help id="after-submit" />
+              <Help id={personal ? "personal-review" : "after-submit"} />
             </div>
           )}
           {refused ? <FieldError id="submit-refused">{refused}</FieldError> : null}

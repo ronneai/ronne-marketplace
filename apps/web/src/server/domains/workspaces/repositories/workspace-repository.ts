@@ -26,7 +26,12 @@ export type WorkspacePageQuery = {
   cursor?: string;
   /** Only these workspaces (an admin's, 092); every one when left out. */
   ids?: readonly string[];
+  /** Shared workspaces (the default) or personal ones (114). */
+  kind?: WorkspaceKind;
 };
+
+/** Admin › Workspaces' Kind filter (114). */
+export type WorkspaceKind = "shared" | "personal";
 
 /**
  * One file of a submission not yet released or rejected (113): in its working copy
@@ -95,6 +100,10 @@ export interface WorkspaceRepository {
   openFiles(files: readonly Omit<OpenFile, "content">[]): Promise<OpenFile[]>;
   /** Writes those files again with new text, as utf8 (113); a working copy's `updated_at` moves on. */
   writeFiles(files: readonly OpenFile[], at: Date): Promise<void>;
+  /** These items' workspaces, with their visibility, by item id (113: whose old names to name). */
+  itemWorkspaces(
+    itemIds: readonly string[],
+  ): Promise<ReadonlyMap<string, { workspaceId: string; visibility: WorkspaceVisibility }>>;
   /** Which of these names are old names of items (118's aliases), and whose. */
   aliasesNamed(names: readonly string[]): Promise<{ name: string; itemId: string }[]>;
   /**
@@ -118,7 +127,11 @@ export interface WorkspaceRepository {
   /** One page for Admin › Workspaces (keyset), `global` left out: the service puts it first. */
   page(query: WorkspacePageQuery): Promise<KeysetPage<Workspace>>;
   /** How many workspaces other than `global` match the search, up to the count cap. */
-  count(search?: string, ids?: readonly string[]): Promise<{ count: number; capped: boolean }>;
+  count(
+    search?: string,
+    ids?: readonly string[],
+    kind?: WorkspaceKind,
+  ): Promise<{ count: number; capped: boolean }>;
   findById(id: string): Promise<Workspace | null>;
   /**
    * Locks these users' rows until the transaction ends, in id order, so two roots changing one
@@ -127,7 +140,7 @@ export interface WorkspaceRepository {
   lockUsers(userIds: readonly string[]): Promise<void>;
   /** A user, for the member services (092): their email, name, whether root, whether disabled. */
   memberUser(userId: string): Promise<MemberUser | null>;
-  /** A user's memberships, `global` first, then by workspace name. */
+  /** A user's memberships but their own personal workspace's (114), `global` first. */
   membershipsOf(userId: string): Promise<Membership[]>;
   /** A workspace's members, by name; roots left out, since a root's rows are ignored (091). */
   members(workspaceId: string): Promise<Member[]>;

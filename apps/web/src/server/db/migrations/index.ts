@@ -20,6 +20,7 @@ import { workspaces } from "./0019_workspaces";
 import { workspaceMembers } from "./0020_workspace_members";
 import { workspaceAccessRequests } from "./0021_workspace_access_requests";
 import { workspaceInNames } from "./0022_workspace_in_names";
+import { personalWorkspaces } from "./0023_personal_workspaces";
 import type { AppMigration } from "./types";
 
 /**
@@ -49,4 +50,5 @@ export const migrations: Record<string, AppMigration> = {
   "0020_workspace_members": workspaceMembers,
   "0021_workspace_access_requests": workspaceAccessRequests,
   "0022_workspace_in_names": workspaceInNames,
+  "0023_personal_workspaces": personalWorkspaces,
 };

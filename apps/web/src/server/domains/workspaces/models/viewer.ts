@@ -52,7 +52,10 @@ export const seesWorkspace = (viewer: Viewer, workspaceId: string): boolean =>
   viewer.root || viewer.workspaceIds.includes(workspaceId);
 
 /** The plugin feeds' cache key for this viewer (093): the private workspaces they see. */
-export const visibilityKey = (viewer: Viewer): string => viewer.privateWorkspaceIds.join(",");
+export const visibilityKey = (viewer: Viewer): string =>
+  // Root's lists leave out other users' personal workspaces but keep root's own (114): each root
+  // sees a different marketplace, so each has its own entry.
+  viewer.root ? `root:${viewer.userId ?? ""}` : viewer.privateWorkspaceIds.join(",");
 
 /**
  * The viewer cut down to the public workspaces and the private ones in `chosen` that it sees (093:
@@ -70,6 +73,16 @@ export const narrowedViewer = (viewer: Viewer, chosen: readonly string[]): Viewe
     privateWorkspaceIds: kept,
   };
 };
+
+/**
+ * The viewer a plugin feed is built for (114): the private workspaces it sees, kept only when they
+ * have a released item (`released`). Everyone has a private personal workspace, so a user whose own
+ * is empty then shares the public marketplace with everyone else. Building for exactly the
+ * workspaces in the key keeps them in step: a first release landing meanwhile can't put an item into
+ * a marketplace cached under a key that leaves its workspace out. Root keeps its own key.
+ */
+export const feedViewer = (viewer: Viewer, released: readonly string[]): Viewer =>
+  viewer.root ? viewer : narrowedViewer(viewer, released);
 
 /**
  * Sees every workspace, as root does, for code that isn't reading on someone's behalf: a release

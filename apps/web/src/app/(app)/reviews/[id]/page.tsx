@@ -21,7 +21,7 @@ import { ReviewAllFiles, ReviewChanges } from "@/features/reviews/ReviewFiles";
 import { releaseGroupFor } from "@/features/reviews/release-group";
 import { versionsPath } from "@/features/versions/links";
 import { getCurrentUser } from "@/server/domains/identity/actions/session";
-import { canInSome } from "@/server/domains/identity/models/permissions";
+import { canInSomeShared } from "@/server/domains/identity/models/permissions";
 import { getReview, type ReviewView } from "@/server/domains/submissions/actions/reviews";
 import { dependencyMarks } from "@/server/domains/submissions/actions/submissions";
 import { SubmissionNotFoundError } from "@/server/domains/submissions/exceptions/errors";
@@ -60,7 +60,7 @@ const Review = async ({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) => {
   const request = await requestHeaders();
-  if (!canInSome(await getCurrentUser(request), "submissions.review")) notFound();
+  if (!canInSomeShared(await getCurrentUser(request), "submissions.review")) notFound();
   const { id } = await params;
   let review: ReviewView;
   try {

@@ -22,3 +22,26 @@ export const loadViewer = async (
     })),
   );
 };
+
+/** Which of these workspaces have a released item, any version (114: the plugin feeds' key). */
+export const workspacesWithReleases = async (
+  db: Kysely<Database>,
+  workspaceIds: readonly string[],
+): Promise<string[]> => {
+  if (workspaceIds.length === 0) return [];
+  const rows = await db
+    .selectFrom("scopes")
+    .select("scopes.workspace_id")
+    .distinct()
+    .where("scopes.workspace_id", "in", [...workspaceIds])
+    .where(({ exists, selectFrom }) =>
+      exists(
+        selectFrom("items")
+          .innerJoin("item_versions", "item_versions.item_id", "items.id")
+          .select("item_versions.id")
+          .whereRef("items.scope_id", "=", "scopes.id"),
+      ),
+    )
+    .execute();
+  return rows.map((row) => row.workspace_id);
+};

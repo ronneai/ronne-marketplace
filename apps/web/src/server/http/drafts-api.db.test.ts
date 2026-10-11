@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { shortItemName } from "@ronneai/core";
 import { packItem } from "@ronneai/core/pack";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { createPersonalWorkspace } from "../db/personal-workspaces";
 import { createTestDb, type TestDb } from "../db/testing/test-db";
 import { listAuditEvents } from "../domains/audit/actions/audit";
 import { authenticateToken, exchangePassword } from "../domains/identity/actions/access-tokens";
@@ -661,6 +662,63 @@ describe("POST /drafts/check and /drafts/submit (052)", () => {
       (e) => e.action === "submission.submitted",
     );
     expect(event?.metadata).toMatchObject({ via: "api", tokenName: "test" });
+  });
+
+  it("marks a draft in your personal workspace, and answers it approved with its risk flags (114)", async () => {
+    // createTestUser skips Create user, so the personal workspace it would make is made here.
+    const user = await t.db
+      .selectFrom("user")
+      .select(["id", "email"])
+      .where("email", "=", "u@example.com")
+      .executeTakeFirstOrThrow();
+    const personal = await createPersonalWorkspace(t.db, t.dialect, user, new Date());
+    await kyselyScopeRepository(t.db, t.dialect, UNFILTERED).insert({
+      name: "tools",
+      description: "Mine.",
+      workspaceId: personal.id,
+      createdBy: null,
+      createdAt: new Date(),
+    });
+    const name = `@${personal.name}/tools/lint`;
+    const id = (
+      await body(
+        await postDraft(
+          post("/drafts", {
+            name,
+            type: "skill",
+            files: [
+              {
+                path: "ronne.yaml",
+                encoding: "utf8",
+                content: `name: "${name}"\ntype: skill\ndescription: Lints.\n`,
+              },
+              {
+                path: "SKILL.md",
+                encoding: "utf8",
+                content:
+                  "---\nname: lint\ndescription: Lints.\n---\nSee https://docs.example.com/x\n",
+              },
+            ],
+          }),
+          deps,
+        ),
+      )
+    ).json.id as string;
+    const shared = await create();
+    const checked = await body(
+      await checkDrafts(post("/drafts/check", { ids: [id, shared] }), deps),
+    );
+    expect(checked.json.drafts.map((d: { personal?: boolean }) => d.personal)).toEqual([
+      true,
+      undefined,
+    ]);
+    const { json } = await body(
+      await submitDrafts(post("/drafts/submit", { ids: [id, shared] }), deps),
+    );
+    expect(json.results[0]).toMatchObject({ id, result: "submitted", status: "approved" });
+    expect(json.results[0].riskFlags.map((f: { kind: string }) => f.kind)).toEqual(["network"]);
+    expect(json.results[1]).toMatchObject({ id: shared, status: "submitted" });
+    expect(json.results[1].riskFlags).toBeUndefined();
   });
 
   it("answers each refusal with its code", async () => {

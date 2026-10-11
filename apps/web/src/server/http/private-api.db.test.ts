@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { packItem } from "@ronneai/core/pack";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { createPersonalWorkspace } from "../db/personal-workspaces";
 import { createTestDb, type TestDb } from "../db/testing/test-db";
 import { authenticateToken, exchangePassword } from "../domains/identity/actions/access-tokens";
 import { createRoot } from "../domains/identity/actions/root-account";
@@ -284,7 +285,59 @@ describe("workspaces in the API (095)", () => {
     ]);
     // A non-member doesn't see the private one at all; root sees every one, as root.
     expect(await roles(outsider)).toEqual({ global: "moderator", tools: null });
-    expect(await roles(root)).toEqual({ global: "root", acme: "root", tools: "root" });
+    // Root's own personal workspace too (114).
+    expect(await roles(root)).toEqual({
+      global: "root",
+      acme: "root",
+      tools: "root",
+      "root-2": "root",
+    });
+  });
+
+  it("marks the caller's own personal workspace, first; root's list leaves out others' (114)", async () => {
+    // The helper's users have none; Create user would have made it.
+    const memberId = (
+      await t.db
+        .selectFrom("user")
+        .select("id")
+        .where("email", "=", "m@example.com")
+        .executeTakeFirstOrThrow()
+    ).id;
+    const mine = await createPersonalWorkspace(
+      t.db,
+      t.dialect,
+      { id: memberId, email: "m@example.com" },
+      new Date(),
+    );
+    await kyselyScopeRepository(t.db, t.dialect, UNFILTERED).insert({
+      name: "notes",
+      description: "Mine.",
+      workspaceId: mine.id,
+      createdBy: null,
+      createdAt: new Date(),
+    });
+    const listed = await workspaces(member);
+    expect(listed[0]).toEqual({
+      name: "m",
+      description: "m's personal workspace",
+      visibility: "private",
+      global: false,
+      role: "admin",
+      personal: true,
+    });
+    expect(listed.filter((w: { personal?: boolean }) => w.personal)).toHaveLength(1);
+    const asRoot = await workspaces(root);
+    expect(asRoot.map((w: { name: string }) => w.name)).not.toContain("m");
+    expect(asRoot[0]).toMatchObject({ name: "root-2", role: "root", personal: true });
+    const me = await (await getMe(get("/me", member), deps.guard, app)).json();
+    expect(me.workspaces).toContainEqual({ name: "m", role: "admin", personal: true });
+    // GET /scopes, which rmk export lists: the member's own marked, and not in root's list.
+    const scopes = async (token: string) =>
+      (await (await getScopes(get("/scopes", token), deps)).json()).scopes;
+    expect(await scopes(member)).toContainEqual(
+      expect.objectContaining({ name: "notes", workspace: "m", personal: true }),
+    );
+    expect((await scopes(root)).map((s: { workspace: string }) => s.workspace)).not.toContain("m");
   });
 
   it("needs a token", async () => {

@@ -499,6 +499,15 @@ export const releaseTogether = async (
         size: file.size,
         executable: file.executable,
       }));
+      // Approved by its author in their personal workspace (114), or by root's override on its own
+      // there: nobody else looked, so it's released as not reviewed, and moving it out (115) needs
+      // a review. The latest approval decides: one reviewed after being sent back counts.
+      const approvals = (await submissions.events(submission.id)).filter((e) =>
+        ["approve", "override", "self_approve"].includes(e.kind),
+      );
+      const last = approvals.at(-1)?.kind;
+      const reviewed =
+        last !== "self_approve" && !(last === "override" && submission.workspace.ownerId);
       const versionId = await items.insertVersion({
         itemId,
         version,
@@ -514,6 +523,7 @@ export const releaseTogether = async (
         submissionId: submission.id,
         dependencies,
         riskFlags: riskFlags(manifest, files.map(toPackageFile)),
+        reviewed,
       });
       await items.updateDescription(itemId, String(manifest.description ?? ""));
       const previousId = await items.setTag(itemId, tag, versionId);

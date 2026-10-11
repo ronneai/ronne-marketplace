@@ -16,6 +16,7 @@ const baseURL = "http://localhost:3000";
 beforeAll(async () => {
   t = await createTestDb();
   auth = createAuth({
+    validateSchema: false, // no background query left when the pool closes
     db: t.db,
     dialect: t.dialect,
     secret: "test-secret-test-secret-test-secret-00",
@@ -110,6 +111,7 @@ describe("sessions", () => {
 
   it("marks cookies Secure when PUBLIC_URL is https", async () => {
     const secure = createAuth({
+      validateSchema: false, // no background query left when the pool closes
       db: t.db,
       dialect: t.dialect,
       secret: "test-secret-test-secret-test-secret-00",
@@ -125,6 +127,7 @@ describe("sessions", () => {
   it("records the client IP only with TRUST_PROXY", async () => {
     const signIn = async (trustProxy: boolean) => {
       const a = createAuth({
+        validateSchema: false, // no background query left when the pool closes
         db: t.db,
         dialect: t.dialect,
         secret: "test-secret-test-secret-test-secret-00",
