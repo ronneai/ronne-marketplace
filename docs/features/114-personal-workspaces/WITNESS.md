@@ -407,3 +407,24 @@ Witnessed: 2026-10-10 21:30 EDT, by a fresh agent (blind). Commit: d93eb9e3 (plu
 | 14 | Phone sweep covers the new pages | no | confirmed | sweep passed on phone, phone-webkit, tablet |
 
 **Overall:** met. (Remark: the sweep measures pages without checking their status, so a wrong personal workspace name would sweep a 404; the names match today, checked by probe.)
+
+## Task 7 — API, `rmk` and MCP
+
+Witnessed: 2026-10-10 21:34 EDT, by a fresh agent (blind). Commit: c889d499 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `GET /workspaces` marks the caller's own `personal`, first | no | confirmed | `api-v1.ts`; private-api.db.test |
+| 2 | Root's list leaves out others' personal workspaces, keeps its own | no | confirmed | `access-requests.ts` filter; test |
+| 3 | `GET /me` marks it | no | confirmed | test |
+| 4 | `GET /scopes` marks personal scopes; root's leaves out others' | no | confirmed | `inListedWorkspace`; test |
+| 5 | Four databases | no | confirmed | 16 passed on each |
+| 6 | `rmk workspaces` shows `personal` | no | confirmed | cli test |
+| 7 | `rmk export` lists personal scopes first as `Personal (<name>) › @scope` | no | confirmed | probe; cli test |
+| 8 | No-scopes message points to the personal workspace | no | confirmed | probe (a wording assertion was added after this pass) |
+| 9 | MCP `list_workspaces` carries it | no | confirmed | mcp test |
+| 10 | MCP `plan_export` orders as rmk | no | confirmed | shared functions, probe |
+| 11 | CLI tests pass | no | confirmed | 257 passed |
+| 12 | MCP tests pass | no | confirmed | 52 passed |
+
+**Overall:** met.

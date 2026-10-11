@@ -180,21 +180,28 @@ const refusedJson = (plan: ExportPlan) =>
   plan.refused.map((r) => ({ path: r.local, code: r.code, message: r.message }));
 
 /**
- * The scopes grouped by workspace (095), `global` first, then by name, each group in the
- * registry's order. A registry older than workspaces gives none: the list stays as it came.
+ * The scopes grouped by workspace (095): your personal one first (114), then `global`, then by
+ * name, each group in the registry's order. A registry older than workspaces gives none: the list
+ * stays as it came.
  */
 export const byWorkspace = (scopes: Scopes): Scopes => {
-  const rank = (s: Scopes[number]) =>
-    s.workspace === undefined ? "" : s.workspace === "global" ? "0" : `1${s.workspace}`;
+  const rank = (s: Scopes[number]): [number, string] =>
+    s.workspace === undefined
+      ? [0, ""]
+      : s.personal
+        ? [1, s.workspace]
+        : s.workspace === "global"
+          ? [2, ""]
+          : [3, s.workspace];
   return scopes
-    .map((scope, i) => ({ scope, i }))
-    .sort((a, b) => rank(a.scope).localeCompare(rank(b.scope)) || a.i - b.i)
+    .map((scope, i) => ({ scope, i, rank: rank(scope) }))
+    .sort((a, b) => a.rank[0] - b.rank[0] || a.rank[1].localeCompare(b.rank[1]) || a.i - b.i)
     .map(({ scope }) => scope);
 };
 
-/** A scope as the choices show it: `acme › @acme-infra  Acme's.` (095). */
+/** A scope as the choices show it: `acme › @acme-infra  Acme's.` (095), `Personal (ana) › …` (114). */
 export const scopeLabel = (s: Scopes[number]) =>
-  `${s.workspace ? `${s.workspace} › ` : ""}@${s.name}${s.description ? `  ${s.description}` : ""}`;
+  `${s.workspace ? `${s.personal ? `Personal (${s.workspace})` : s.workspace} › ` : ""}@${s.name}${s.description ? `  ${s.description}` : ""}`;
 
 const scopeList = (scopes: Scopes) => scopes.map((s, i) => `  ${i + 1}. ${scopeLabel(s)}`);
 

@@ -49,7 +49,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   personal workspace, submit, release and see the item, while another user gets not found, on
   desktop and phone.
 
-- [ ] **7. API, `rmk` and MCP.** `personal` on `GET /api/v1/workspaces` and `GET /api/v1/me`;
+- [x] **7. API, `rmk` and MCP.** `personal` on `GET /api/v1/workspaces` and `GET /api/v1/me`;
   `rmk workspaces` shows `personal`; `rmk export` groups its scopes first; `list_workspaces`
   carries it.
   *Done when:* API, CLI and MCP tests pass.

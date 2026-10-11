@@ -75,6 +75,8 @@ export const getScopes = async (request: Request, deps: DraftsApiDeps = {}) => {
           description: scope.description,
           workspace: scope.workspace.name,
           role: scope.role,
+          // In the caller's own personal workspace (114): `rmk export` lists these first.
+          ...(scope.personal ? { personal: true } : {}),
         })),
         nextCursor: page.nextCursor,
       },

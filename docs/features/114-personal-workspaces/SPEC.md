@@ -113,8 +113,10 @@ keeps them too.
 
 **API, `rmk` and MCP** (095). `GET /api/v1/workspaces` and `GET /api/v1/me` carry
 `"personal": true` on the caller's own (root's list leaves out others', unless asked by name).
-`rmk workspaces` shows it in the VISIBILITY column as `personal`. `rmk export` groups its scopes
-first, under "Personal (<name>)".
+`GET /api/v1/scopes` marks its scopes `"personal": true` the same way, and root's leaves out
+others' personal scopes. `rmk workspaces` and MCP's `list_workspaces` show it in the VISIBILITY
+column as `personal`. `rmk export` (and MCP's `plan_export`) list its scopes first, as
+`Personal (<name>) › @scope`; with no scope at all, `rmk export` says to create one there.
 
 ## Edge cases
 

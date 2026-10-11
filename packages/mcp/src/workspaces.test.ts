@@ -63,6 +63,24 @@ describe("list_workspaces", () => {
     });
   });
 
+  it("marks your personal workspace personal, in the lines and the data (114)", async () => {
+    const mine = {
+      name: "ana",
+      description: "ana's personal workspace",
+      visibility: "private",
+      global: false,
+      role: "admin",
+      personal: true,
+    };
+    const { call } = await start({
+      ...routes,
+      "GET /workspaces": () => ({ json: { workspaces: [mine, ...WORKSPACES] } }),
+    });
+    const result = await call("list_workspaces");
+    expect(result.text.split("\n")[1]).toMatch(/^ana\s+personal\s+admin$/);
+    expect((result.data.workspaces as unknown[])[0]).toEqual({ ...mine, joinUrl: null });
+  });
+
   it("says when the registry is older than workspaces", async () => {
     const { call } = await start({});
     const result = await call("list_workspaces");
