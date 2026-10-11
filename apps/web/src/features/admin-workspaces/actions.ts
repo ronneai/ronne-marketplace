@@ -60,7 +60,7 @@ export const createWorkspaceFromForm = async (
       visibility: text(form, "visibility"),
     });
     return `Created ${workspace.name}.`;
-  }, ["/admin/workspaces"]);
+  }, ["/workspaces"]);
 
 export const updateWorkspaceFromForm = async (
   _previous: WorkspaceActionState,
@@ -72,7 +72,7 @@ export const updateWorkspaceFromForm = async (
       description: text(form, "description"),
     });
     return "Description saved.";
-  }, ["/admin/workspaces", workspacePath(text(form, "name"))]);
+  }, ["/workspaces", workspacePath(text(form, "name"))]);
 
 /** Deletes an empty workspace, then goes back to the list: its own page no longer exists. */
 export const deleteWorkspaceFromForm = async (
@@ -82,8 +82,8 @@ export const deleteWorkspaceFromForm = async (
   const state = await attempt(async () => {
     await deleteWorkspace(await requestHeaders(), { name: text(form, "name") });
     return "Deleted.";
-  }, ["/admin/workspaces"]);
-  if (state.done) redirect("/admin/workspaces");
+  }, ["/workspaces"]);
+  if (state.done) redirect("/workspaces");
   return state;
 };
 
@@ -100,7 +100,7 @@ export const setVisibilityFromForm = async (
     return visibility === "private"
       ? "It's private: only its members and root see its items."
       : "It's public: everyone signed in sees its items.";
-  }, ["/admin/workspaces", workspacePath(text(form, "name"))]);
+  }, ["/workspaces", workspacePath(text(form, "name"))]);
 
 /** What Make private would meet (093), for its dialog. */
 export const visibilityImpactFor = async (name: string): Promise<VisibilityImpactResult> => {
@@ -130,7 +130,7 @@ export const renameWorkspaceFromForm = async (
     to = workspace.name;
     revalidatePath("/", "layout");
     return `Renamed to ${workspace.name}.`;
-  }, ["/admin/workspaces"]);
+  }, ["/workspaces"]);
   if (state.done) redirect(workspacePath(to));
   return state;
 };

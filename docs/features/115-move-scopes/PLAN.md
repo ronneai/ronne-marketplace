@@ -60,7 +60,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   actions as icon buttons on one line; `/admin/workspaces/<name>` redirects.
   *Done when:* component tests cover what each role sees, and the e2e tests use the new address.
 
-- [ ] **10. The list under Workspaces; Admin is root's.** Root's New workspace and Kind filter on
+- [x] **10. The list under Workspaces; Admin is root's.** [risky] Root's New workspace and Kind filter on
   `/workspaces`, names linking to their pages; `/admin/workspaces` redirects; Admin and its nav
   item only for root.
   *Done when:* component and nav tests pass, and the e2e tests and the phone sweep use the new

@@ -11,12 +11,12 @@ export const releaseInPersonal = async (owner: Page, outsider: Page, workspace: 
   const { scope, item } = E2E_PERSONAL;
   const full = `@${workspace}/${scope}/${item}`;
 
-  // Listed first, as Personal and Yours, with Manage.
+  // Listed first, as Personal and Yours; its name opens its page (115).
   await owner.goto("/workspaces");
   const row = owner.getByRole("row").nth(1);
   await expect(row).toContainText(workspace);
   await expect(row).toContainText("Personal");
-  await row.getByRole("link", { name: `Manage ${workspace}` }).click();
+  await row.getByRole("link", { name: workspace, exact: true }).click();
   await expect(owner).toHaveURL(new RegExp(`/workspaces/${workspace}$`));
   await expect(owner.getByRole("heading", { level: 1 })).toHaveText(workspace);
   // Its scopes only: no members, no requests, no visibility, no Delete.

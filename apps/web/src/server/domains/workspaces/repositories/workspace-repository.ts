@@ -31,7 +31,7 @@ export type WorkspacePageQuery = {
   kind?: WorkspaceKind;
 };
 
-/** Admin › Workspaces' Kind filter (114). */
+/** Root's Workspaces list's Kind filter (114). */
 export type WorkspaceKind = "shared" | "personal";
 
 /**
@@ -129,7 +129,7 @@ export interface WorkspaceRepository {
   delete(id: string): Promise<void>;
   /** Every workspace, `global` first, then by name: for the selects and filters. */
   list(): Promise<Workspace[]>;
-  /** One page for Admin › Workspaces (keyset), `global` left out: the service puts it first. */
+  /** One page of root's Workspaces list (keyset), `global` left out: the service puts it first. */
   page(query: WorkspacePageQuery): Promise<KeysetPage<Workspace>>;
   /** How many workspaces other than `global` match the search, up to the count cap. */
   count(

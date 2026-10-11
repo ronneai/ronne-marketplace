@@ -439,22 +439,21 @@ export type WorkspacesTablePage = {
 };
 
 /**
- * One page of Admin › Workspaces, and the capped count of all that match. Root sees every
- * workspace; an admin only those they administer (092). `global` comes first, on
- * the first page, whatever the sort, when the search matches it.
+ * One page of root's Workspaces list (090; under Workspaces since 115, where everyone else gets
+ * the workspaces they see instead), and the capped count of all that match. Root's alone: a
+ * workspace's admins manage theirs from its page. `global` comes first, on the first page,
+ * whatever the sort, when the search matches it.
  */
 export const pageWorkspaces = async (
   deps: WorkspaceDeps,
   actor: WorkspaceActor,
   query: Partial<WorkspacePageQuery>,
 ): Promise<WorkspacesTablePage> => {
-  if (!canInSome(actor.user, "members.manage")) throw new ForbiddenError("members.manage");
-  const where = workspacesWith(actor.user, "members.manage");
-  const ids = where === "all" ? undefined : where;
+  requirePermission(actor.user, "workspaces.manage");
   const search = query.search?.trim().slice(0, WORKSPACE_SEARCH_MAX_LENGTH) || undefined;
   const sort = query.sort ?? "name";
-  // Personal workspaces (114) are listed for root, on their own: an admin's list is their shared ones.
-  const kind = where === "all" && query.kind === "personal" ? "personal" : "shared";
+  // Personal workspaces (114) are listed on their own, with their owners.
+  const kind = query.kind === "personal" ? "personal" : "shared";
   const [page, total] = await Promise.all([
     deps.repo.page({
       search,
@@ -462,10 +461,9 @@ export const pageWorkspaces = async (
       dir: query.dir ?? (sort === "name" ? "asc" : "desc"),
       size: query.size ?? WORKSPACES_PAGE_SIZE,
       cursor: query.cursor,
-      ids,
       kind,
     }),
-    deps.repo.count(search, ids, kind),
+    deps.repo.count(search, undefined, kind),
   ]);
   // `global` counts whenever the search matches it, on every page, and is listed first on the first
   // page (no page before it, however it was reached).
@@ -474,7 +472,6 @@ export const pageWorkspaces = async (
   const global =
     found &&
     kind === "shared" &&
-    (!ids || ids.includes(found.id)) &&
     (!term || found.name.includes(term) || found.description.toLowerCase().includes(term))
       ? found
       : null;
@@ -507,7 +504,7 @@ export const viewWorkspace = async (
   return workspace;
 };
 
-/** One workspace, for its page in Admin › Workspaces: root, or one of its admins (092); null otherwise. */
+/** One workspace, for root and its admins (092), who manage it: Admin › Scopes. Null otherwise. */
 export const findWorkspace = async (
   deps: WorkspaceDeps,
   actor: WorkspaceActor,

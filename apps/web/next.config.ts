@@ -26,6 +26,11 @@ const nextConfig: NextConfig = {
     { source: "/docs", destination: DOCS_URL, permanent: false },
     { source: "/docs/overview", destination: DOCS_URL, permanent: false },
     { source: "/docs/:topic", destination: `${DOCS_URL}/:topic`, permanent: false },
+    // Admin › Workspaces moved under Workspaces (115): the list and each workspace's page, with
+    // their query. Here, before the admin layout, which is root's: links and bookmarks keep
+    // working for a workspace's admins too.
+    { source: "/admin/workspaces", destination: "/workspaces", permanent: false },
+    { source: "/admin/workspaces/:name", destination: "/workspaces/:name", permanent: false },
   ],
 };
 

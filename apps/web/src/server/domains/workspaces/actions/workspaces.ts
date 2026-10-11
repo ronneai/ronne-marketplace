@@ -12,7 +12,7 @@ import * as service from "../services/workspaces";
 export type { WorkspacesTablePage } from "../services/workspaces";
 
 /**
- * Entry points for Admin › Workspaces and the workspace selects (feature 090). Thin: they find
+ * Entry points for the Workspaces pages and the workspace selects (feature 090; 115). Thin: they find
  * who's asking and wire the dependencies; the services check permissions.
  */
 const deps = ({ db, dialect }: AppAuth): service.WorkspaceDeps => ({
@@ -56,7 +56,7 @@ export const deleteWorkspace = async (
 export const listWorkspaces = async (headers: Headers, app: AppAuth = getAppAuth()) =>
   service.listWorkspaces(deps(app), await actor(headers, app));
 
-/** Admin › Workspaces' table: `global` first, then sorted, paged with keyset cursors, counted. */
+/** Root's Workspaces table: `global` first, then sorted, paged with keyset cursors, counted. */
 export const pageWorkspaces = async (
   headers: Headers,
   query: Partial<WorkspacePageQuery>,

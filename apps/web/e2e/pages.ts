@@ -91,27 +91,12 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
   },
   // Workspaces and their join links (094): a public one, global (where everyone is in), and a
   // name no workspace has, which shows as a private one does.
-  { route: "/workspaces", roles: EVERYONE, urls: () => ["/workspaces"] },
   {
-    route: "/workspaces/[name]/join",
+    route: "/workspaces",
     roles: EVERYONE,
-    urls: () => [
-      `/workspaces/${E2E_WORKSPACE}/join`,
-      "/workspaces/global/join",
-      "/workspaces/no-such-team/join",
-    ],
-  },
-  // Requests to join (094): every moderator opens it, with or without requests waiting.
-  { route: "/workspaces/requests", roles: REVIEWERS, urls: () => ["/workspaces/requests"] },
-  { route: "/account/password", roles: EVERYONE, urls: () => ["/account/password"] },
-  { route: "/account/tokens", roles: EVERYONE, urls: () => ["/account/tokens"] },
-  { route: "/admin", roles: ROOT, urls: () => ["/admin"] },
-  { route: "/admin/users", roles: ROOT, urls: () => ["/admin/users"] },
-  {
-    route: "/admin/workspaces",
-    roles: ROOT,
-    // Shared ones, and personal ones with their owners (114).
-    urls: () => ["/admin/workspaces", "/admin/workspaces?kind=personal"],
+    // Root's is every workspace (115): shared ones, and personal ones with their owners (114).
+    urls: (_data, role) =>
+      role === "root" ? ["/workspaces", "/workspaces?kind=personal"] : ["/workspaces"],
   },
   {
     route: "/workspaces/[name]",
@@ -133,11 +118,20 @@ export const SWEEP_PAGES: readonly SweepPage[] = [
             ],
   },
   {
-    route: "/admin/workspaces/[name]",
-    roles: ROOT,
-    urls: () => [],
-    skip: "It only redirects to /workspaces/[name] (115).",
+    route: "/workspaces/[name]/join",
+    roles: EVERYONE,
+    urls: () => [
+      `/workspaces/${E2E_WORKSPACE}/join`,
+      "/workspaces/global/join",
+      "/workspaces/no-such-team/join",
+    ],
   },
+  // Requests to join (094): every moderator opens it, with or without requests waiting.
+  { route: "/workspaces/requests", roles: REVIEWERS, urls: () => ["/workspaces/requests"] },
+  { route: "/account/password", roles: EVERYONE, urls: () => ["/account/password"] },
+  { route: "/account/tokens", roles: EVERYONE, urls: () => ["/account/tokens"] },
+  { route: "/admin", roles: ROOT, urls: () => ["/admin"] },
+  { route: "/admin/users", roles: ROOT, urls: () => ["/admin/users"] },
   { route: "/admin/scopes", roles: ROOT, urls: () => ["/admin/scopes"] },
   { route: "/admin/audit", roles: ROOT, urls: () => ["/admin/audit"] },
   { route: "/admin/settings", roles: ROOT, urls: () => ["/admin/settings"] },

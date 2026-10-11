@@ -6,23 +6,22 @@ import { ScrollStrip } from "@/components/ui/ScrollStrip";
 import { stripTab } from "@/components/ui/scroll-strip";
 
 const ITEMS = [
-  { href: "/admin/users", label: "Users", root: true },
-  { href: "/admin/workspaces", label: "Workspaces", root: false },
-  { href: "/admin/scopes", label: "Scopes", root: true },
-  { href: "/admin/audit", label: "Audit log", root: true },
-  { href: "/admin/settings", label: "Settings", root: true },
+  { href: "/admin/users", label: "Users" },
+  { href: "/admin/scopes", label: "Scopes" },
+  { href: "/admin/audit", label: "Audit log" },
+  { href: "/admin/settings", label: "Settings" },
 ];
 
 /**
  * The admin area's own navigation (feature 008), shared by every /admin page. A client component,
  * so the current tab follows navigation: the admin layout stays mounted between its pages. On a
- * phone the tabs scroll sideways (066). A workspace's admin, not root, sees only Workspaces (092).
+ * phone the tabs scroll sideways (066). Root's alone: workspaces are managed under Workspaces (115).
  */
-export const AdminNav = ({ root = true }: { root?: boolean }) => {
+export const AdminNav = () => {
   const path = usePathname() ?? "";
   return (
     <ScrollStrip label="Admin" className="mb-6 gap-1 border-b border-hairline">
-      {ITEMS.filter((item) => root || !item.root).map((item) => (
+      {ITEMS.map((item) => (
         <Link
           key={item.href}
           href={item.href}

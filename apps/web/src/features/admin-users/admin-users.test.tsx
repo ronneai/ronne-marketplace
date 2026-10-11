@@ -179,6 +179,9 @@ describe("root only", () => {
       null,
       { role: "user" },
       { role: "user", workspaces: { global: "moderator" } },
+      // A workspace's admin, and a personal workspace's owner: Admin is root's (115).
+      { role: "user", workspaces: { w1: "admin" } },
+      { role: "user", workspaces: { mine: "admin" }, personal: "mine" },
     ]) {
       session.getCurrentUser.mockResolvedValue(current);
       await expect(AdminLayout({ children: null })).rejects.toThrow("NEXT_NOT_FOUND");

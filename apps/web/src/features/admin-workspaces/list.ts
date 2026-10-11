@@ -8,9 +8,12 @@ import type { WorkspacePageQuery } from "@/server/domains/workspaces/repositorie
 export type WorkspacesList = ListDefinition<"name" | "created", "q" | "kind">;
 export type WorkspacesListState = ListState<"name" | "created", "q" | "kind">;
 
-/** Admin › Workspaces (feature 090) as a server data table. `global` is always first. */
+/**
+ * Every workspace (feature 090) as a server data table, root's Workspaces page (under Workspaces
+ * since 115). `global` is always first.
+ */
 export const ADMIN_WORKSPACES_LIST: WorkspacesList = defineList({
-  path: "/admin/workspaces",
+  path: "/workspaces",
   sorts: { name: "asc", created: "desc" },
   defaultSort: "name",
   sizes: [25, 50, 100],

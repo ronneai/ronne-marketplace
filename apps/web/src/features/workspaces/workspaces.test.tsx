@@ -90,7 +90,7 @@ describe("request actions (094)", () => {
 
 describe("the Workspaces page (094)", () => {
   const render = (props: Partial<Parameters<typeof WorkspacesPage>[0]> = {}) =>
-    renderToStaticMarkup(<WorkspacesPage workspaces={[]} requests={[]} root={false} {...props} />);
+    renderToStaticMarkup(<WorkspacesPage workspaces={[]} requests={[]} {...props} />);
 
   it("shows each workspace with its visibility and your role; global reads Everyone", () => {
     const html = render({
@@ -108,22 +108,19 @@ describe("the Workspaces page (094)", () => {
     expect(html).not.toContain("Ask to join");
   });
 
-  it("shows your personal workspace as Personal and Yours, with Manage, for root too (114)", () => {
-    for (const root of [false, true]) {
-      const html = render({
-        workspaces: [
-          workspace("ana", { visibility: "private", role: "admin", personal: true }),
-          workspace("global", { isGlobal: true, role: "user" }),
-        ],
-        root,
-      });
-      expect(html).toContain("Personal");
-      expect(html).toContain("Yours");
-      expect(html).toContain('href="/workspaces/ana"');
-      expect(html).toContain("Manage");
-      expect(html).toContain("/marketplace/docs/workspaces#personal");
-      expect(html).not.toContain(">Admin<");
-    }
+  it("shows your personal workspace as Personal and Yours (114); each name opens its page (115)", () => {
+    const html = render({
+      workspaces: [
+        workspace("ana", { visibility: "private", role: "admin", personal: true }),
+        workspace("global", { isGlobal: true, role: "user" }),
+      ],
+    });
+    expect(html).toContain("Personal");
+    expect(html).toContain("Yours");
+    expect(html).toContain('href="/workspaces/ana"');
+    expect(html).toContain('href="/workspaces/global"');
+    expect(html).toContain("/marketplace/docs/workspaces#personal");
+    expect(html).not.toContain(">Admin<");
   });
 
   it("offers Ask to join, Requested with Cancel, and Declined with the date, the reason and the wait", () => {
@@ -176,12 +173,6 @@ describe("the Workspaces page (094)", () => {
         ],
       }),
     );
-  });
-
-  it("shows root as Root everywhere, with nothing to ask", () => {
-    const html = render({ root: true, workspaces: [workspace("acme"), workspace("vault")] });
-    expect(html).toContain("Root");
-    expect(html).not.toContain("Ask to join");
   });
 });
 

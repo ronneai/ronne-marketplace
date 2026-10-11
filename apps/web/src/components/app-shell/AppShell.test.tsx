@@ -30,7 +30,7 @@ describe("navFor", () => {
     expect(labels(owner)).not.toContain("Reviews");
     expect(labels(owner)).not.toContain("Requests");
     expect(labels({ ...owner, workspaces: { ...owner.workspaces, team: "admin" } })).toEqual(
-      expect.arrayContaining(["Admin", "Reviews", "Requests"]),
+      expect.arrayContaining(["Reviews", "Requests"]),
     );
     expect(navFor(null)).toEqual([]);
     expect(
@@ -70,7 +70,7 @@ describe("navFor", () => {
     );
   });
 
-  it("gives a workspace's admin Admin, opening their workspaces (092)", () => {
+  it("gives a workspace's admin no Admin: they manage it under Workspaces (115)", () => {
     const admin = navFor({
       name: "A",
       email: "a@example.com",
@@ -83,10 +83,8 @@ describe("navFor", () => {
       "Workspaces",
       "Submissions",
       "Reviews",
-      "Admin",
       "Docs",
     ]);
-    expect(admin.find((i) => i.label === "Admin")?.href).toBe("/admin/workspaces");
   });
 });
 
@@ -178,6 +176,17 @@ describe("isCurrent", () => {
     expect(catalogue && isCurrent(catalogue, "/workspaces/acme/items/team/fmt")).toBe(true);
     expect(catalogue && isCurrent(catalogue, "/workspaces/acme/join")).toBe(false);
     expect(home && isCurrent(home, "/")).toBe(true);
+    // Workspaces on the list and a workspace's pages (115), not on Requests or its items.
+    const workspaces = navFor({ name: "U", email: "u@example.com", role: "user" })[2];
+    for (const [path, current] of [
+      ["/workspaces", true],
+      ["/workspaces/acme", true],
+      ["/workspaces/acme/join", true],
+      ["/workspaces/requests", false],
+      ["/workspaces/acme/items/team/fmt", false],
+      ["/workspacesx", false],
+    ] as const)
+      expect(workspaces && isCurrent(workspaces, path), path).toBe(current);
     expect(home && isCurrent(home, "/catalogue")).toBe(false);
   });
 });

@@ -30,6 +30,7 @@ const workspaces = vi.hoisted(() => ({
   pendingRequests: vi.fn(async () => ({ requests: [], total: 0 })),
   movesToAnswer: vi.fn(async () => ({ moves: [], total: 0 })),
   ownRequests: vi.fn(async (): Promise<unknown[]> => []),
+  myWorkspaces: vi.fn(async (): Promise<unknown[]> => []),
   pageMembers: vi.fn(async () => ({
     rows: [],
     next: null,
@@ -47,7 +48,7 @@ const navigation = vi.hoisted(() => ({
   redirect: vi.fn((to: string) => {
     throw new Error(`NEXT_REDIRECT ${to}`);
   }),
-  usePathname: () => "/admin/workspaces",
+  usePathname: () => "/workspaces",
   useRouter: () => ({ refresh: () => {} }),
 }));
 vi.mock("@/server/domains/workspaces/actions/workspaces", () => workspaces);
@@ -69,9 +70,9 @@ const {
   VisibilityForm,
 } = await import("./WorkspaceDialogs");
 const { AdminNav } = await import("@/features/admin/AdminNav");
-const { default: AdminWorkspaces } = await import("@/app/(app)/admin/workspaces/page");
+const { default: AdminWorkspaces } = await import("@/app/(app)/workspaces/page");
 const { default: AdminWorkspace } = await import("@/app/(app)/workspaces/[name]/page");
-const { default: OldWorkspacePage } = await import("@/app/(app)/admin/workspaces/[name]/page");
+const { default: nextConfig } = await import("../../../next.config");
 
 const form = (fields: Record<string, string>) => {
   const data = new FormData();
@@ -175,7 +176,7 @@ describe("workspace actions", () => {
       description: "Acme's teams.",
       visibility: "public",
     });
-    expect(cache.revalidatePath).toHaveBeenCalledWith("/admin/workspaces");
+    expect(cache.revalidatePath).toHaveBeenCalledWith("/workspaces");
   });
 
   it("saves a description and revalidates the list and the workspace's page", async () => {
@@ -186,7 +187,7 @@ describe("workspace actions", () => {
       name: "acme",
       description: "New.",
     });
-    expect(cache.revalidatePath).toHaveBeenCalledWith("/admin/workspaces");
+    expect(cache.revalidatePath).toHaveBeenCalledWith("/workspaces");
     expect(cache.revalidatePath).toHaveBeenCalledWith("/workspaces/acme");
   });
 
@@ -281,7 +282,7 @@ describe("workspace actions", () => {
 
   it("deletes, then goes back to the list", async () => {
     await expect(actions.deleteWorkspaceFromForm({}, form({ name: "acme" }))).rejects.toThrow(
-      "NEXT_REDIRECT /admin/workspaces",
+      "NEXT_REDIRECT /workspaces",
     );
     expect(workspaces.deleteWorkspace).toHaveBeenCalledWith(expect.any(Headers), {
       name: "acme",
@@ -330,8 +331,8 @@ describe("WorkspacesTable", () => {
       ">3<",
       "2026-10-01",
       "2 workspaces",
-      'href="/admin/workspaces?q=a&amp;cursor=c2"',
-      'href="/admin/workspaces?q=a&amp;sort=created"',
+      'href="/workspaces?q=a&amp;cursor=c2"',
+      'href="/workspaces?q=a&amp;sort=created"',
     ])
       expect(html, text).toContain(text);
     expect(html.indexOf("global")).toBeLessThan(html.indexOf("acme"));
@@ -490,20 +491,11 @@ describe("the dialogs", () => {
 });
 
 describe("the admin nav", () => {
-  it("shows a workspace's admin only Workspaces (092)", () => {
-    const html = renderToStaticMarkup(<AdminNav root={false} />);
-    expect(html).toContain(">Workspaces<");
-    for (const label of ["Users", "Scopes", "Audit log", "Settings"])
-      expect(html, label).not.toContain(`>${label}<`);
-  });
-
-  it("has Workspaces, before Scopes", () => {
+  it("is root's: Users, Scopes, Audit log, Settings; workspaces are under Workspaces (115)", () => {
     const html = renderToStaticMarkup(<AdminNav />);
-    expect(html).toContain('href="/admin/workspaces"');
-    expect(html.indexOf("/admin/workspaces")).toBeLessThan(html.indexOf("/admin/scopes"));
-    expect(html).toMatch(
-      /aria-current="page"[^>]*>Workspaces|href="\/admin\/workspaces"[^>]*aria-current="page"/,
-    );
+    for (const label of ["Users", "Scopes", "Audit log", "Settings"])
+      expect(html, label).toContain(`>${label}<`);
+    expect(html).not.toContain("Workspaces");
   });
 });
 
@@ -519,31 +511,34 @@ describe("the pages", () => {
       searchParams: Promise.resolve(params),
     });
 
-  it("sends a workspace's old address under Admin to its page, with the query (115)", async () => {
-    await expect(
-      OldWorkspacePage({
-        params: Promise.resolve({ name: "acme%20x" }),
-        searchParams: Promise.resolve({ tab: "members", q: "o b" }),
-      }),
-    ).rejects.toThrow("NEXT_REDIRECT /workspaces/acme%20x?tab=members&q=o+b");
-    await expect(
-      OldWorkspacePage({
-        params: Promise.resolve({ name: "global" }),
-        searchParams: Promise.resolve({}),
-      }),
-    ).rejects.toThrow(/^NEXT_REDIRECT \/workspaces\/global$/);
+  it("sends Admin › Workspaces' old addresses under Workspaces, before the admin layout (115)", async () => {
+    const redirects = (await nextConfig.redirects?.()) ?? [];
+    expect(redirects).toContainEqual({
+      source: "/admin/workspaces",
+      destination: "/workspaces",
+      permanent: false,
+    });
+    expect(redirects).toContainEqual({
+      source: "/admin/workspaces/:name",
+      destination: "/workspaces/:name",
+      permanent: false,
+    });
   });
 
-  it("lists for root and admins only; a workspace's page for anyone who sees it (115)", async () => {
+  it("lists every workspace for root only; a workspace's page for anyone who sees it (115)", async () => {
     for (const user of [
-      null,
-      { role: "user" },
+      { role: "user", workspaces: {} },
       { role: "user", workspaces: { global: "moderator" } },
+      { role: "user", workspaces: { w1: "admin" } },
+      { role: "user", workspaces: { mine: "admin" }, personal: "mine" },
     ]) {
       session.getCurrentUser.mockResolvedValueOnce(user);
-      await expect(listPage()).rejects.toThrow("NEXT_NOT_FOUND");
+      const html = renderToStaticMarkup(await listPage());
+      expect(html).not.toContain("New workspace");
+      expect(html).not.toContain('id="workspace-kind"');
     }
     expect(workspaces.pageWorkspaces).not.toHaveBeenCalled();
+    expect(workspaces.myWorkspaces).toHaveBeenCalledTimes(4);
     // Signed out, or a workspace they don't see: as a name no workspace has.
     session.getCurrentUser.mockResolvedValueOnce(null);
     await expect(workspacePage("acme")).rejects.toThrow("NEXT_NOT_FOUND");
@@ -635,20 +630,11 @@ describe("the pages", () => {
     expect(requested).not.toContain("Ask to join");
   });
 
-  it("doesn't list workspaces for someone who only owns a personal one (114)", async () => {
-    session.getCurrentUser.mockResolvedValueOnce({
-      role: "user",
-      workspaces: { mine: "admin" },
-      personal: "mine",
-    });
-    await expect(listPage()).rejects.toThrow("NEXT_NOT_FOUND");
-    expect(workspaces.pageWorkspaces).not.toHaveBeenCalled();
-  });
-
   it("root gets the list, searched and sorted on the server, with New workspace", async () => {
     session.getCurrentUser.mockResolvedValueOnce({ role: "root" });
     const html = renderToStaticMarkup(await listPage({ q: "ac" }));
     expect(html).toContain("New workspace");
+    expect(html).toContain('id="workspace-kind"');
     expect(html).toContain('href="/workspaces/acme"');
     expect(html).toContain("What is a workspace?");
     expect(html).toContain('href="https://www.ronne.ai/marketplace/docs/workspaces#what"');
@@ -658,18 +644,12 @@ describe("the pages", () => {
     );
   });
 
-  it("passes root's Kind to the server, and drops an admin's (114)", async () => {
+  it("passes root's Kind to the server (114)", async () => {
     session.getCurrentUser.mockResolvedValueOnce({ role: "root" });
     await listPage({ kind: "personal" });
     expect(workspaces.pageWorkspaces).toHaveBeenLastCalledWith(
       expect.any(Headers),
       expect.objectContaining({ kind: "personal" }),
-    );
-    session.getCurrentUser.mockResolvedValueOnce({ role: "user", workspaces: { w1: "admin" } });
-    await listPage({ kind: "personal" });
-    expect(workspaces.pageWorkspaces).toHaveBeenLastCalledWith(
-      expect.any(Headers),
-      expect.objectContaining({ kind: "shared" }),
     );
   });
 
@@ -831,12 +811,22 @@ describe("the pages", () => {
     expect(html).not.toContain("Delete");
   });
 
-  it("a workspace's admin gets their list, without New workspace (092)", async () => {
+  it("a workspace's admin gets the workspaces they see, each name opening its page (115)", async () => {
     session.getCurrentUser.mockResolvedValueOnce({ role: "user", workspaces: { w1: "admin" } });
+    workspaces.myWorkspaces.mockResolvedValueOnce([
+      {
+        name: "acme",
+        description: "Acme's teams.",
+        visibility: "public",
+        isGlobal: false,
+        personal: false,
+        role: "admin",
+      },
+    ]);
     const html = renderToStaticMarkup(await listPage());
     expect(html).not.toContain("New workspace");
-    expect(html).toContain("The workspaces you administer");
     expect(html).toContain('href="/workspaces/acme"');
+    expect(html).toContain(">Admin<");
   });
 
   it("an admin's workspace page has Members, Edit description and Create scope, not Delete (092)", async () => {

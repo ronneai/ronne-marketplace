@@ -36,7 +36,7 @@ test("root creates, sorts and searches scopes under Admin; nobody else has a sco
   // Workspaces (090), in this test because root's sign-ins are limited (e2e-sign-in-limit.md):
   // root creates one; a scope goes in the seeded e2e-acme, whose members (091) the seed adds, and
   // an item released there is filtered by it in the catalogue.
-  await root.goto("/admin/workspaces");
+  await root.goto("/workspaces");
   await root.getByRole("button", { name: "New workspace" }).click();
   const create = root.getByRole("dialog", { name: "New workspace" });
   await create.getByLabel("Name").fill("E2E-Labs");

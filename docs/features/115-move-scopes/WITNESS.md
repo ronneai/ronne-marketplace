@@ -535,3 +535,58 @@ Witnessed: 2026-10-11 12:09 EDT, by a fresh agent (adversarial). Commit: ff6f458
 | 18 | Hiding and server checks unchanged | no | confirmed | `visibility.db.test.ts` 11 passed |
 
 **Overall:** met.
+
+## Task 10 — The list under Workspaces; Admin is root's
+
+Witnessed: 2026-10-11 12:18 EDT, by a fresh agent (blind). Commit: 792fc350 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Component and nav tests pass | no | confirmed | 13 files, 153 passed; typecheck; lint |
+| 2 | Root's `/workspaces` has New workspace and Kind | no | confirmed | `workspaces/page.tsx`; probe: button 1, `#workspace-kind` 1, 51 personal rows |
+| 3 | Every name links to its page | no | confirmed | `WorkspacesTable.tsx`, `WorkspacesPage.tsx`; probe; unit tests |
+| 4 | Non-root: no New workspace or Kind, whatever the query | no | confirmed | unit test, 4 users; probe `?kind=personal` ignored |
+| 5 | Old addresses redirect with their query | no | confirmed | `next.config.ts`; fetch: 307 with query, encoding kept |
+| 6 | Redirects work for a workspace's admin | no | confirmed | before the layout; probe; `user-admin.e2e.ts` |
+| 7 | Admin is root's: 404 for admins and owners | no | confirmed | `admin/layout.tsx`; probes |
+| 8 | Admin nav item only for root | no | confirmed | `nav.ts`; AppShell test; probe |
+| 9 | e2e uses the new pages | no | confirmed | 12 passed on chromium |
+| 10 | Phone sweep uses the new pages | no | confirmed | 24 passed, 1 trace-file ENOENT under load; re-run 5 passed |
+
+**Overall:** met. (An assertion on root's Kind filter was added after this pass.)
+
+### Adversarial pass
+
+Witnessed: 2026-10-11 12:18 EDT, by a fresh agent (adversarial). Commit: 792fc350 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Component and nav tests pass | no | confirmed | 1215 unit passed; typecheck |
+| 2 | Root's list with New workspace, Kind, links | no | confirmed | probe |
+| 3 | Non-root can't reach every-workspace data by query | no | confirmed | probes as admin, owner, member; mutant fails 2 tests |
+| 4 | Non-root's names link to pages | no | confirmed | unit and e2e |
+| 5 | New workspace's action refused for non-root | no | confirmed | `requirePermission`; db tests 29 passed |
+| 6 | Redirects keep query, no open redirect, no loop | no | confirmed | 307s; `%2F%2Fevil.com` stays same-origin; POST keeps method |
+| 7 | Admin is root's, and a test catches it | no | partly | holds live, but reverting the layout fails no test |
+| 8 | No Admin in the menu; no Workspaces in AdminNav | no | confirmed | tests; probe |
+| 9 | Nav current item right on list, page, join, Requests, items | no | confirmed | probe; mutant fails AppShell test |
+| 10 | Revalidation reaches the new pages | no | confirmed | actions; unit tests |
+| 11 | Nothing left pointing at /admin/workspaces | no | confirmed | `git grep`; stale comments only |
+| 12 | e2e and phone sweep use the new pages | no | confirmed | 30 + 25 passed |
+
+**Overall:** not met: row 7. (Also noted: stale comments, and `pageWorkspaces` still open to workspace admins.)
+
+### Adversarial re-check 1
+
+Witnessed: 2026-10-11 12:26 EDT, by a fresh agent (adversarial). Commit: 792fc350 (plus the uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 7 | Admin is root's, and a test catches it | no | confirmed | two more subjects in `admin-users.test.tsx`; layout mutant now fails it |
+| 3 | `pageWorkspaces` is root-only | no | confirmed | `requirePermission(…, "workspaces.manage")`; db tests 29 passed on SQLite, PostgreSQL, MySQL, MariaDB |
+| 2 | Root's Kind filter has a test | no | confirmed | `admin-workspaces.test.tsx` |
+| 11 | No stale "Admin › Workspaces" in code | no | confirmed | `git grep` |
+| 1 | Nothing else broken | no | confirmed | 1215 unit passed; typecheck |
+| 12 | e2e after the service change | no | confirmed | build; 21 passed |
+
+**Overall:** met.

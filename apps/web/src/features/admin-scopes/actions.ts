@@ -16,7 +16,6 @@ const attempt = async (work: () => Promise<string>): Promise<ScopeActionState> =
     revalidatePath("/admin/scopes");
     // A workspace's page lists its scopes (090, under Workspaces since 115), and its list counts them.
     revalidatePath("/workspaces", "layout");
-    revalidatePath("/admin/workspaces", "layout");
     return { done };
   } catch (error) {
     if (error instanceof ItemsError || error instanceof IdentityError)

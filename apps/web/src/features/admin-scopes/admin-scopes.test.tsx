@@ -71,7 +71,6 @@ describe("scope actions", () => {
       workspaceId: undefined,
     });
     expect(cache.revalidatePath).toHaveBeenCalledWith("/admin/scopes");
-    expect(cache.revalidatePath).toHaveBeenCalledWith("/admin/workspaces", "layout");
     expect(cache.revalidatePath).toHaveBeenCalledWith("/workspaces", "layout");
   });
 

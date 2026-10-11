@@ -140,7 +140,7 @@ const personalColumns: Column<Workspace, "name" | "created">[] = [
   ...columns.filter((c) => c.id === "scopes" || c.id === "created"),
 ];
 
-/** Admin › Workspaces (feature 090): `global` first, then sorted, searched and paged on the server. */
+/** Root's Workspaces list (feature 090; under Workspaces since 115): `global` first, then sorted, searched and paged on the server. */
 export const WorkspacesTable = ({
   list,
   state,

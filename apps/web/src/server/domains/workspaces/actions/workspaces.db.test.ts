@@ -348,7 +348,7 @@ describe("pageWorkspaces' Kind filter (114)", () => {
     expect(personal.total.count).toBe(2);
     const byOwner = await pageWorkspaces(asRoot, { kind: "personal", search: "U@EXAMPLE" }, app);
     expect(byOwner.workspaces.map((w) => w.name)).toEqual(["u"]);
-    // An admin of a shared workspace lists their shared ones, never their own personal one.
+    // Root's alone (115): an admin of a shared workspace doesn't list, of either kind.
     await t.db
       .insertInto("workspace_members")
       .values({
@@ -361,10 +361,7 @@ describe("pageWorkspaces' Kind filter (114)", () => {
       })
       .execute();
     for (const kind of ["shared", "personal"] as const)
-      expect(
-        (await pageWorkspaces(asUser, { kind }, app)).workspaces.map((w) => w.name),
-        kind,
-      ).toEqual(["acme"]);
+      await expect(pageWorkspaces(asUser, { kind }, app), kind).rejects.toThrow(ForbiddenError);
   });
 });
 
