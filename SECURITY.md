@@ -13,7 +13,18 @@ unless you'd rather stay anonymous.
 
 ## Supported versions
 
-Ronne is in early development and has no releases yet. Security fixes go to the `main` branch.
+Security fixes go to `main` and come out in the next release. Only the latest release is supported:
+upgrade to get a fix (see **Upgrade** under "After installing" in the install guide,
+[docs/runbooks/install.md](docs/runbooks/install.md)).
+
+## What Ronne defends against, and what to do when something goes wrong
+
+- The [threat model](docs/security/threat-model.md): what an instance holds, who might attack it,
+  what stops each threat today, and the known gaps.
+- The [incident runbook](docs/runbooks/incident-response.md), for people running an instance: a
+  harmful item version, a leaked token, a taken-over account, a leaked settings file or backup, a
+  moderator acting against the rules, and a vulnerability in Ronne itself, with the commands for
+  each way of installing.
 
 ## How we handle dependencies
 

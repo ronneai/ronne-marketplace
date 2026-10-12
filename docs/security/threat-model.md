@@ -1,15 +1,15 @@
 # Threat model
 
 > Feature [098](../features/098-threat-model/SPEC.md) · Checked against the code on 2026-10-11 (commit
-> `149e14a9`) · What to do when something goes wrong: the incident runbook,
-> `docs/runbooks/incident-response.md` (coming in 098 task 5) · Reporting a vulnerability:
+> `149e14a9`) · What to do when something goes wrong: the
+> [incident runbook](../runbooks/incident-response.md) · Reporting a vulnerability:
 > [`SECURITY.md`](../../SECURITY.md)
 
 This is what Ronne defends against, how, and what it leaves to the people who run it. Each "what
 stops it" names the code that does it, so it can be checked; each gap names the feature that closes
 it or the decision that accepts it. A feature that adds a trust boundary, a kind of token, a way to
 upload or a kind of item updates this file in the same change, and the release checklist
-([`release.md`](../runbooks/release.md)) checks it still matches (from 098 task 6).
+([`release.md`](../runbooks/release.md)) checks it still matches.
 
 ## 1. What Ronne is, and what it holds
 
@@ -99,7 +99,7 @@ The boundaries, in order of what's at stake:
 | Risky content slips past a busy reviewer | Risk flags `hook`, `mcp_server`, `permission_policy`, `status_or_lsp`, `executable`, `shell_script`, `network` (`packages/core/src/risk-flags.ts:68`), shown on the review page, the queue, the item page and `rmk info`; they describe, never block, and authors can't hide them; bulk approve lists flagged items first (054) | Skills, commands and agents are text that can tell the AI to run commands; no flag catches every such instruction. Accepted: the reviewer reads them |
 | A released version is changed afterwards | Versions are immutable; `rmk` checks sha256 on every download and against `rmk.lock`, and writes nothing on a mismatch (`checksum_mismatch`, `packages/cli/src/install.ts:141`) | Someone with write access to storage *and* the database can change both. No signatures: designed in MVP §14.2, post-MVP |
 | Installing runs the item | `rmk install` only writes files inside managed target paths, never runs them (`packages/cli/src/apply.ts`); unmanaged and user-edited files are never overwritten | The AI tool runs hooks, MCP servers and status lines once written; that's what they're for. The review above is the guard |
-| A harmful version stays installable after it's found | Yank (016): new installs can't resolve it, `latest` moves back (`latestAfterYank`), feeds drop it at their next refresh | A lockfile that pins it keeps installing it, **without the warning 022's spec promises** (`packages/core/src/resolve.ts` returns no warning for a yanked pin): known gap, below. Files already written stay until the project runs `rmk update`. The incident runbook (098 task 5) will cover it |
+| A harmful version stays installable after it's found | Yank (016): new installs can't resolve it, `latest` moves back (`latestAfterYank`), feeds drop it at their next refresh | A lockfile that pins it keeps installing it, **without the warning 022's spec promises** (`packages/core/src/resolve.ts` returns no warning for a yanked pin): known gap, below. Files already written stay until the project runs `rmk update`. The [incident runbook](../runbooks/incident-response.md) covers it |
 | An item carries a secret | MCP configs name environment variables, never values; export stops on known secret formats (`secretLike`, `packages/core/src/package-checks.ts:90`) | A secret in a format no pattern knows |
 | Export uploads more than the person meant | `rmk export` and the MCP export tools upload only the files in the preview the person saw; never `.env` files, keys, `.git` or symbolic links, never an environment variable's value; over MCP only items in the tools' own folders (MVP §12; [native readers](../spec/native-readers.md) §3; `packages/cli/src/export-command.ts`) | A file the person approved without reading it |
 
@@ -127,7 +127,7 @@ The boundaries, in order of what's at stake:
 
 | Threat | What stops it today | What's left |
 |---|---|---|
-| Someone reads the settings file | Written with mode 0600 through a temporary file (`writeEnvFile`, `apps/web/src/server/setup/env-file.ts`); `AUTH_SECRET` signs cookies and nothing else; tokens are hashes, passwords argon2 | With it, someone can sign in as anyone (forged cookies) and reach the database. The incident runbook (098 task 5): "The settings file, a backup or the server leaked" |
+| Someone reads the settings file | Written with mode 0600 through a temporary file (`writeEnvFile`, `apps/web/src/server/setup/env-file.ts`); `AUTH_SECRET` signs cookies and nothing else; tokens are hashes, passwords argon2 | With it, someone can sign in as anyone (forged cookies) and reach the database. The [incident runbook](../runbooks/incident-response.md): "The settings file, a backup or the server leaked" |
 | Someone reads the database or storage | Token hashes and password hashes only | Everything else is in the clear unless the disk or the database encrypts it. Accepted (MVP §15, Operations: encryption at rest is the platform's); 099 documents how |
 | Someone reads a backup | Planned: `backup --encrypt` (099) | Unencrypted backups hold the settings file |
 | The audit log is altered | Append-only: a guard test fails on any update or delete outside migrations (`domains/audit/audit-log.guard.test.ts`) | Anyone with database write access can change it. No export to an outside store (post-MVP, 007) |
@@ -180,6 +180,5 @@ Checked on 2026-10-11.
 
 - A feature that adds a trust boundary, a token kind, an upload path, an item type or a feed
   updates this file in the same change, as it updates the Documentation.
-- The release checklist ([`release.md`](../runbooks/release.md)) asks whether it still matches
-  (the step comes in 098 task 6).
+- The release checklist ([`release.md`](../runbooks/release.md)) asks whether it still matches.
 - The date and commit at the top change when it's checked again.

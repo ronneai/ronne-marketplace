@@ -670,3 +670,19 @@ Witnessed: 2026-10-12 00:53 EDT, by a fresh agent (blind). Commit: 7c10bfc1 (+ u
 | 13 | Done when | yes | partly | Docker and npm forms run and match; not run: service forms (CI), the yank check with a released item, setup run again on MySQL or PostgreSQL |
 
 **Overall:** not met: the runbook matches the code; the task waits for the service forms (CI), the yank check with a released item, and setup run again on a database server.
+
+## Task 6 — `SECURITY.md` and the release checklist
+
+Witnessed: 2026-10-12 00:54 EDT, by a fresh agent (blind). Commit: 5c9a7a70 (+ uncommitted SECURITY.md, MVP.md, release.md, threat-model.md). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `SECURITY.md` links the threat model and the runbook | no | confirmed | new section links both; files exist |
+| 2 | Names the supported version, no longer "no releases yet" | no | confirmed | "Only the latest release is supported"; old line removed (wording of the Upgrade pointer fixed after the pass) |
+| 3 | Reporting unchanged | no | confirmed | `diff` of lines 1-13 against HEAD → none |
+| 4 | The release checklist's threat-model step | no | confirmed | `release.md:24-27` |
+| 5 | MVP §12 links the threat model | no | confirmed | `MVP.md:703` and its intro |
+| 6 | No "coming" labels left; §6 matches the spec | no | confirmed | `grep -i "coming\|task 5\|task 6"` → none |
+| 7 | The links resolve | no | confirmed | no link checker in the repository; probe → 184 relative links, 0 broken |
+
+**Overall:** met.

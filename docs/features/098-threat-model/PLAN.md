@@ -45,7 +45,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* every command in it was run on a test instance (Docker and npm) and the steps
   match what happened; written in the notes.
 
-- [ ] **6. `SECURITY.md` and the release checklist.** Links to both documents, the supported
+- [x] **6. `SECURITY.md` and the release checklist.** Links to both documents, the supported
   version (the latest release), reporting unchanged; `docs/runbooks/release.md` gets "the threat
   model still matches" as a step; `docs/MVP/MVP.md` §12 links the threat model.
   *Done when:* the links resolve (`docs` link check, if any, or by hand in the notes).
