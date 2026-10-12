@@ -33,7 +33,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   sessions deleted, and a scan of the output and the audit event that finds no secret; after a
   restart in a test, an old cookie is refused.
 
-- [ ] **4. Both commands everywhere.** As the service account when a service is installed
+- [x] **4. Both commands everywhere.** As the service account when a service is installed
   (`scriptForService`), in Docker (`docker compose exec web pnpm run …`), from a clone.
   `server-probe.js` runs `revoke-access --everyone --yes` and checks the probe's token now gets 401.
   *Done when:* the server checks pass on Ubuntu, macOS and Windows in CI, and the image's smoke test
@@ -76,8 +76,10 @@ goes into `SPEC.md` instead.
   - Also run by the task 5 witness: `docker compose exec web pnpm run revoke-access --everyone`
     (interactive), `… rotate-secret`, `… reset-root-password --yes` and `docker compose restart web`
     on a compose project of this branch's image.
-  - Not run yet: the service forms (`sudo rmk-server …`, Windows as administrator), which the
-    service tests run in CI (task 4); the yank check (`rmk info`, a fresh `rmk install`, `rmk update`
+  - The service forms (`sudo rmk-server revoke-access …` and `rotate-secret` on systemd and launchd,
+    `rmk-server …` as administrator on Windows) ran in pull request #174's CI at `6180e8bc` (task 4's
+    re-check).
+  - Not run yet: the yank check (`rmk info`, a fresh `rmk install`, `rmk update`
     on a yanked version), which needs a released item, so a draft, an approval and a release, and is
     covered today by 016's and 022's tests; running setup again to change the database password,
     which needs a MySQL or PostgreSQL instance; the web-app steps (Yank, Disable, Reset password,

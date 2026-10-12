@@ -620,6 +620,23 @@ Witnessed: 2026-10-12 00:39 EDT, by a fresh agent (blind). Commit: 26475321 (+ u
 
 **Overall:** not met: the CI runs (10) wait for a pull request. After the pass, both probes and the macOS service test also check that AUTH_SECRET changed (and the macOS file's owner and mode); both probes were run again here and pass.
 
+### Re-check
+
+Witnessed: 2026-10-12 02:02 EDT, by a fresh agent (blind). Commit: 6180e8bc (pull request #174's CI). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The CI runs checked are for 6180e8bc | no | confirmed | `gh run view 38209968571` and `38209968540 --json headSha` → `6180e8bc…`, `success`; the image and service jobs the same |
+| 2 | Install and run, Ubuntu, Node 22 and 24: the probe's two lines | no | confirmed | job logs 114682579502, 114682579394 → "✓ revoke-access --everyone --yes: the token now gets 401", "✓ rotate-secret --yes: a new secret, used from the next request" |
+| 3 | The same on macOS | no | confirmed | job logs 114682579491, 114682579441 |
+| 4 | The same on Windows | no | confirmed | job logs 114682579462, 114682579520 |
+| 5 | Service on Linux (systemd) ran both | no | confirmed | job 114682579281 → "✓ … sudo rmk-server migrate, revoke-access and rotate-secret as rmk-server; 200, a token" |
+| 6 | Service on macOS (launchd) ran both | no | confirmed | job 114682579384 → "✓ … setup, migrate, revoke-access and rotate-secret as _rmkserver …" |
+| 7 | Service on Windows (WinSW) ran both | no | confirmed | job 114682579334 → "✓ setup, migrate, revoke-access and rotate-secret as the administrator …" |
+| 8 | The image smoke test ran scripts-probe.sh | no | confirmed | job 114681764647 lines 1891-1906: OK for setup, revoke-access (401) and rotate-secret |
+
+**Overall:** met.
+
 ## Task 5 — The incident runbook
 
 Witnessed: 2026-10-12 00:50 EDT, by a fresh agent (blind). Commit: 7c10bfc1 (+ uncommitted `docs/runbooks/incident-response.md` and PLAN.md notes). Machine: macOS 27.0.1, Node v24.0.0.
