@@ -76,7 +76,16 @@ token=$(curl -s -o /dev/null -w '%{http_code}' -H 'content-type: application/jso
   http://127.0.0.1:7650/api/v1/auth/token)
 [ "$token" = 201 ] || fail "sign-in answered $token"
 rmk migrate | grep -qi "nothing to migrate" || fail "sudo rmk-server migrate didn't reach the service's database"
-step "setup inside the service's sandbox writes its settings; sudo rmk-server migrate as rmk-server; 200, a token"
+# The incident commands (098) as the service's account: the token above is revoked, and a new
+# secret is written to the service's settings file, which keeps its owner and mode.
+rmk revoke-access --everyone --yes | grep -q "revoked 1 access token" ||
+  fail "sudo rmk-server revoke-access didn't revoke the token"
+rmk rotate-secret --yes | grep -q "uses the new secret from its next request" ||
+  fail "sudo rmk-server rotate-secret didn't write a new secret"
+wait_for $health 200
+[ "$(sudo stat -c '%U %a' /etc/rmk-server/env)" = "rmk-server 600" ] ||
+  fail "rotate-secret changed the settings file's owner or mode: $(sudo stat -c '%U %a' /etc/rmk-server/env)"
+step "setup inside the service's sandbox writes its settings; sudo rmk-server migrate, revoke-access and rotate-secret as rmk-server; 200, a token"
 
 # stop, start, restart and logs; and a crash: systemd brings it back.
 rmk service stop

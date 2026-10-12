@@ -4,7 +4,7 @@ name: Server package
 # One job packs the tarball as the release would; each matrix job installs it with npm, as a person
 # would, and runs packages/repo-tools/src/server-probe.js: start with an empty data folder, 503
 # setup_required, `rmk-server setup --yes` with SQLite, 200 with no restart, a token from sign-in,
-# and the port free after stopping it. service-linux runs `rmk-server service` on systemd (083).
+# `revoke-access` and `rotate-secret` (098), and the port free after stopping it. service-linux runs `rmk-server service` on systemd (083).
 #
 # About 20 jobs on six systems, two of them pulling Linux images from Docker Hub, so a pull request
 # runs it only when it changes the server, its bundles, packages or services (changes.yml's

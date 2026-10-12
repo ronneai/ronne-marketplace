@@ -44,5 +44,24 @@ export const hostCommand = (name: string, env: Env = process.env): string => {
   return `pnpm run ${name}`;
 };
 
+/**
+ * How to restart this instance so it reads its settings again (098's rotate-secret): the container,
+ * the service (RONNE_SERVICE, set when rmk-server runs a script for an installed service), or the
+ * process someone started.
+ */
+export const restartHint = (
+  env: Env = process.env,
+  platform: NodeJS.Platform = process.platform,
+): string => {
+  const runtime = runtimeOf(env);
+  if (runtime === "docker") return "docker compose restart web";
+  if (runtime === "npm" && env.RONNE_SERVICE === "1")
+    return platform === "win32"
+      ? "rmk-server service restart, as an administrator"
+      : "sudo rmk-server service restart";
+  if (runtime === "npm") return "stop rmk-server and start it again";
+  return "stop the server (pnpm dev or pnpm start) and start it again";
+};
+
 /** The terminal command for the setup, as this runtime runs it, from outside a container. */
 export const setupCommand = (env: Env = process.env): string => hostCommand("setup", env);

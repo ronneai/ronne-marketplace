@@ -5,7 +5,7 @@ import { validatePassword } from "../domains/identity/models/password";
 import { normalizeEmail, normalizeName } from "../domains/identity/models/user";
 import { defaultDataPath, defaultPublicUrl, scriptCommand } from "../runtime";
 import { buildDatabaseUrl, type DatabaseAnswers, DEFAULT_PORTS } from "./database-url";
-import { readEnvFile } from "./env-file";
+import { EnvMergeError, readEnvFile } from "./env-file";
 import type { SetupPrompts } from "./prompts";
 import { normalizePublicUrl, PUBLIC_URL_RULE } from "./public-url";
 import {
@@ -101,13 +101,19 @@ export const runSetup = async (options: SetupOptions): Promise<SetupResult> => {
   ) as string;
 
   // 6. .env. An existing AUTH_SECRET is always kept: a new one would sign everyone out.
-  const written = writeSettings({
-    appDir,
-    envPath,
-    databaseUrl,
-    publicUrl,
-    storagePath: options.storagePath,
-  });
+  let written: ReturnType<typeof writeSettings>;
+  try {
+    written = writeSettings({
+      appDir,
+      envPath,
+      databaseUrl,
+      publicUrl,
+      storagePath: options.storagePath,
+    });
+  } catch (error) {
+    if (error instanceof EnvMergeError) throw new SetupFailedError(error.message);
+    throw error;
+  }
   if (written.weakSecret) {
     prompts.log.warn(
       "The AUTH_SECRET in .env is shorter than 32 characters. It's kept, but consider replacing it.",

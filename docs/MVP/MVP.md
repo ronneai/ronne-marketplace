@@ -703,7 +703,10 @@ actions). The API reads, with two exceptions (owner, 2026-09-30): a token can **
 ## 12. Security considerations
 
 Items are instructions and code that run on developers' machines with their permissions, so the
-review is the security boundary.
+review is the security boundary. The [threat model](../security/threat-model.md) goes through each
+trust boundary, what stops each threat and the known gaps; the
+[incident runbook](../runbooks/incident-response.md) says what to do when something goes wrong
+(098).
 
 - **Risk flags in review.** Submissions containing `hook`s, `mcp-server`s, `permission-policy` items (especially ones that *widen* permissions), `statusline` / `lsp-server` commands, executable scripts, network URLs or shell commands get a highlighted risk summary in the review view.
 - **No secrets in items.** `mcp-server` configs declare env var *names*. `rmk` asks for or reads the values locally and never uploads them.

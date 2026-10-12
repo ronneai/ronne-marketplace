@@ -31,3 +31,10 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 - [x] **5. Documentation.** The topics in the spec, in a ronne-web branch.
   *Done when:* the docs render tests pass in ronne-web.
+
+- [x] **6. No Admin tabs** (owner, 2026-10-12). `admin/layout.tsx` renders the page alone;
+  `AdminNav` goes, with its tests; the audit end-to-end test moves between Admin's pages through
+  the sidebar.
+  *Done when:* /admin/users, /admin/audit and /admin/settings show no tab strip (no navigation named
+  Admin), the sidebar still marks the current page, and the unit and e2e tests pass. Documentation:
+  none, since the website never mentions the tabs.

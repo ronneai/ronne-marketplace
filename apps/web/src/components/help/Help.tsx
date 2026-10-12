@@ -320,6 +320,12 @@ export const HELP = {
       "Each line is one event: when, who, the action and a sentence saying what happened. Open it for everything recorded: the target, the IP address, the details and the raw JSON. Its link opens the same event for anyone you share it with.",
     href: docsHref("admin", "audit"),
   },
+  "audit-incident": {
+    question: "Responding to an incident?",
+    answer:
+      "Filter by the person or the action and the dates to see what happened. To end everyone's sessions or tokens, or replace the secret that signs sessions, use the server's commands: revoke-access and rotate-secret.",
+    href: docsHref("operations", "incidents"),
+  },
   "audit-actor": {
     question: "Who can I search for?",
     answer:

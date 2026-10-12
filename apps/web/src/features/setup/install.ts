@@ -11,6 +11,7 @@ import {
 } from "@/server/domains/identity/exceptions/errors";
 import type { RootOrigin } from "@/server/domains/identity/services/root-account";
 import { buildDatabaseUrl } from "@/server/setup/database-url";
+import { EnvMergeError } from "@/server/setup/env-file";
 import { normalizePublicUrl, PUBLIC_URL_RULE } from "@/server/setup/public-url";
 import { getSetupState, markSetupReady, type SetupState } from "@/server/setup/state";
 import {
@@ -156,6 +157,9 @@ export const installSettingsWith = async (
       );
     return { ok: true, detail: `Settings written to ${written.envPath}`, notices };
   } catch (caught) {
+    // A settings file that can't be merged safely (a key line inside a multi-line value): unchanged.
+    if (caught instanceof EnvMergeError)
+      return error("settings_unwritable", "database", caught.message);
     const code = (caught as NodeJS.ErrnoException).code;
     if (code === "EACCES" || code === "EPERM" || code === "EROFS" || code === "ENOENT") {
       const fix =

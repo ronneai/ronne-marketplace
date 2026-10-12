@@ -4,6 +4,7 @@ import {
   defaultDataPath,
   defaultPublicUrl,
   hostCommand,
+  restartHint,
   runtimeOf,
   scriptCommand,
   setupCommand,
@@ -51,6 +52,18 @@ describe("runtime (082)", () => {
     expect(hostCommand("reset-root-password", { RONNE_RUNTIME: "other" })).toBe(
       "pnpm run reset-root-password",
     );
+  });
+
+  it("says how to restart for each runtime (098)", () => {
+    expect(restartHint({ RONNE_RUNTIME: "docker" })).toBe("docker compose restart web");
+    expect(restartHint({ RONNE_RUNTIME: "npm", RONNE_SERVICE: "1" }, "linux")).toBe(
+      "sudo rmk-server service restart",
+    );
+    expect(restartHint({ RONNE_RUNTIME: "npm", RONNE_SERVICE: "1" }, "win32")).toBe(
+      "rmk-server service restart, as an administrator",
+    );
+    expect(restartHint({ RONNE_RUNTIME: "npm" })).toBe("stop rmk-server and start it again");
+    expect(restartHint({})).toContain("pnpm dev or pnpm start");
   });
 
   it("names the setup command for each runtime", () => {

@@ -21,6 +21,10 @@ until you approve its "npm" environment.
       security release is announced for the coming days, wait for it.
 - [ ] The Caddy pin in `compose.yaml` (and the CI's Caddy download) has no open policy exception
       past its date (`docs/policies/dependencies.md` §5).
+- [ ] The threat model ([`docs/security/threat-model.md`](../security/threat-model.md)) still
+      matches: every feature in this release that added a trust boundary, a kind of token, a way to
+      upload, an item type or a feed updated it, and its known gaps are current. Change its date and
+      commit at the top when you check it.
 
 **The version:**
 

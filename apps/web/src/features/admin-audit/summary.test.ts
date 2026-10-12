@@ -40,6 +40,26 @@ describe("audit summaries (060)", () => {
     expect(
       line("user.disabled", { sessionsEnded: 2, tokensRevoked: 1 }, { targetEmail: "alex@x.com" }),
     ).toBe("Disabled alex@x.com (2 sessions ended, 1 token revoked)");
+    expect(
+      line("instance.access_revoked", {
+        via: "cli",
+        scope: "everyone",
+        sessionsEnded: 41,
+        tokensRevoked: 23,
+      }),
+    ).toBe(
+      "Revoked everyone's access (41 sessions ended, 23 tokens revoked) from the command line",
+    );
+    expect(
+      line(
+        "instance.access_revoked",
+        { via: "cli", scope: "user", email: "alex@x.com", sessionsEnded: 0, tokensRevoked: 0 },
+        { targetEmail: "alex@x.com" },
+      ),
+    ).toBe("Revoked the access of alex@x.com (nothing left) from the command line");
+    expect(line("instance.secret_rotated", { via: "cli", sessionsEnded: 4 })).toBe(
+      "Replaced AUTH_SECRET, so everyone signs in again (4 sessions ended) from the command line",
+    );
     expect(line("access_token.created", { name: "laptop", expiresAt: null, via: "cli" })).toBe(
       "Created token laptop (no expiry, from rmk login)",
     );

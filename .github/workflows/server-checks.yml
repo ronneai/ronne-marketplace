@@ -5,7 +5,7 @@ name: Server checks
 # "bundle-win32-x64" (084). Each install job installs the tarball with npm, as a person would, and
 # runs packages/repo-tools/src/server-probe.js: start with an empty data folder, 503
 # setup_required, `rmk-server setup --yes` with SQLite, 200 with no restart, a token from sign-in,
-# and the port free after stopping it. The service jobs run `rmk-server service` on systemd and
+# `revoke-access` and `rotate-secret` (098), and the port free after stopping it. The service jobs run `rmk-server service` on systemd and
 # launchd (083) and, from the Windows bundle, with WinSW (086). Called by server-package.yml (pull
 # requests that change the server, and nightly) and by release.yml, after the bundles.
 on:
@@ -42,7 +42,7 @@ jobs:
       - name: npm install --global the tarball
         shell: bash
         run: npm install --global --no-audit --no-fund ./tarball/*.tgz
-      - name: Start, set up, sign in, stop
+      - name: Start, set up, sign in, revoke and rotate, stop
         run: node packages/repo-tools/src/server-probe.js rmk-server
 
   # `rmk-server service` on a real systemd (feature 083): GitHub's Ubuntu runners boot with it and

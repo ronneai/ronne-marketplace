@@ -69,7 +69,6 @@ const {
   RenameForm,
   VisibilityForm,
 } = await import("./WorkspaceDialogs");
-const { AdminNav } = await import("@/features/admin/AdminNav");
 const { default: AdminWorkspaces } = await import("@/app/(app)/workspaces/page");
 const { default: AdminWorkspace } = await import("@/app/(app)/workspaces/[name]/page");
 const { default: nextConfig } = await import("../../../next.config");
@@ -517,16 +516,6 @@ describe("the dialogs", () => {
     expect(busy).toContain("Move or remove its scopes first.");
     const empty = renderToStaticMarkup(<DeleteWorkspaceButton name="acme" scopes={0} />);
     expect(empty).not.toMatch(/\sdisabled=""/);
-  });
-});
-
-describe("the admin nav", () => {
-  it("is root's: Users, Audit log, Settings; workspaces and scopes are under Workspaces (115)", () => {
-    const html = renderToStaticMarkup(<AdminNav />);
-    for (const label of ["Users", "Audit log", "Settings"])
-      expect(html, label).toContain(`>${label}<`);
-    expect(html).not.toContain("Workspaces");
-    expect(html).not.toContain("Scopes");
   });
 });
 

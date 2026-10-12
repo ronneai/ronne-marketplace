@@ -10,14 +10,20 @@ export const TEST_BASE_URL = "http://localhost:3000";
 /** An AppAuth on a test database, like the one getAppAuth() builds for the server. */
 export const testAppAuth = (
   t: TestDb,
-  options: { trustProxy?: boolean; limiter?: LoginRateLimiter; baseURL?: string } = {},
+  options: {
+    trustProxy?: boolean;
+    limiter?: LoginRateLimiter;
+    baseURL?: string;
+    /** Another AUTH_SECRET, as after `rotate-secret` and a restart (098). */
+    secret?: string;
+  } = {},
 ): AppAuth => {
   const trustProxy = options.trustProxy ?? false;
   return {
     auth: createAuth({
       db: t.db,
       dialect: t.dialect,
-      secret: "test-secret-test-secret-test-secret-00",
+      secret: options.secret ?? "test-secret-test-secret-test-secret-00",
       baseURL: options.baseURL ?? TEST_BASE_URL,
       trustProxy,
       // A query Better Auth starts and nobody waits for: it could still hold a connection when the

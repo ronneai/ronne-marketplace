@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, rmSync, statSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -54,6 +54,17 @@ describe("pnpm run setup --yes", () => {
     const second = setup(["--yes"], sqlite());
     expect(second.code).toBe(0);
     expect(second.stdout).toContain("already exists");
+  }, 60_000);
+
+  it("exits with 1 and a message, changing nothing, on a settings file it can't merge safely (098)", () => {
+    // A STORAGE_PATH line inside another key's multi-line value.
+    const before = 'NOTE="x\nSTORAGE_PATH=inner\n"\n';
+    writeFileSync(join(dir, ".env"), before);
+    const result = setup(["--yes"], { ...sqlite(), ...root });
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain("can't be updated safely around NOTE");
+    expect(result.stderr).not.toContain("    at ");
+    expect(readFileSync(join(dir, ".env"), "utf8")).toBe(before);
   }, 60_000);
 
   it("exits with 2 and names the missing value", () => {

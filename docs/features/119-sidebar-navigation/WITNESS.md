@@ -191,3 +191,22 @@ The re-check's one remark ("manage it from its page": "it" had no clear noun) wa
 `{en,pt,fr}/workspaces.tsx`: a workspace's admins manage their workspace from its page, and its old
 address under `/admin` opens that page (`next.config.ts` redirects `/admin/workspaces/:name` to
 `/workspaces/:name`). Wording only; the docs tests and Biome pass.
+
+## Task 6 — No Admin tabs
+
+Witnessed: 2026-10-12 11:12 EDT, by a fresh agent (blind). Commit: 0ffbcf2b + working-tree diff. Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `admin/layout.tsx` renders the page alone, with no tab strip | no | confirmed | `layout.tsx:15-18` returns `children` after the permission check, no AdminNav import; unit test "root gets the page alone…" asserts `toBe("<p>inside</p>")` → passes |
+| 2 | `AdminNav` is gone, with its tests | no | confirmed | `git status` → `D apps/web/src/features/admin/AdminNav.tsx`; both describe blocks and imports removed; `git grep -n AdminNav -- apps packages docs/runbooks` → no matches |
+| 3 | No other code or e2e test uses AdminNav or a navigation named "Admin" | no | confirmed | `grep -rn 'name: "Admin"\|label="Admin"' apps/web/src apps/web/e2e` → only `audit.e2e.ts:36`, asserting `toHaveCount(0)`; no ScrollStrip, `<nav` or "Admin" label under `app/(app)/admin/` |
+| 4 | /admin/users, /admin/audit and /admin/settings show no tab strip | no | confirmed | One shared layout (row 1), no page renders its own nav (row 3); e2e asserts no "Admin" navigation at /admin/users and visits the other two through the sidebar → passes |
+| 5 | The audit e2e moves between Admin's pages through the sidebar | no | confirmed | Diff: every `admin.getByRole("link", …)` is now `main.getByRole("link", …)` |
+| 6 | The sidebar still marks the current page | no | confirmed | `nav.ts:128-151` sections, `isCurrent` at `nav.ts:197`, `aria-current` in `Sidebar.tsx:110` and `MenuList.tsx:89`; e2e `main [aria-current=page]` follows Users → Audit log → Settings → Users → Home → passes |
+| 7 | The root admin layout still 404s for anyone but root | no | confirmed | Unit test for null, user, moderator, workspace admin, personal-workspace owner → passes; e2e "anyone but root gets a 404" → passes |
+| 8 | The unit tests pass | no | confirmed | `vitest run` admin-users, admin-workspaces, app-shell, admin-audit, admin-settings → 10 files, 137 passed; web typecheck clean; Biome 0 errors |
+| 9 | The e2e tests pass | no | confirmed | `pnpm --filter @ronneai/web test:e2e audit.e2e.ts` → 2 passed on chromium (the phone, WebKit and tablet projects run in CI) |
+| 10 | Documentation: none needed | no | confirmed | `../ronne-web/www/src/content/docs/{en,pt,fr}` grepped for tab/aba/onglet near Admin: only the review queue's, the item's and a workspace page's tabs; `admin.tsx` already says the three are sidebar links |
+
+**Overall:** met: the layout renders only the page, AdminNav and its tests are gone with no references left, the sidebar marks the current Admin page, the layout still 404s for anyone but root, and the unit tests and the audit e2e pass. Remark: the e2e checks for no Admin navigation only on /admin/users.

@@ -173,7 +173,12 @@ export const AuditLogPage = ({
       <PageHeader
         title="Audit log"
         description="Who did what, and when. Open an event for every detail."
-        actions={<Help id="audit-summary" />}
+        actions={
+          <>
+            <Help id="audit-summary" />
+            <Help id="audit-incident" />
+          </>
+        }
       />
       {selected === "missing" ? (
         <Notice kind="info" title="That event doesn't exist." className="mb-4" />

@@ -61,7 +61,8 @@ notifications bell: notifications are out of the MVP), the ⌘K hint on Propose 
 ## Behaviour
 
 - The sidebar is sticky and as tall as the window; its links scroll when they don't fit.
-- Admin's own tabs (Users, Audit log, Settings) stay on its pages.
+- Admin's pages (Users, Audit log, Settings) have no tabs of their own: the sidebar, or the Menu
+  below `lg`, is how you go from one to another (owner, 2026-10-12).
 - Counts show as today's `NavCount`: "3 waiting" for screen readers. Folded, a dot, and the link's
   name says how many wait.
 - The fold button is a button with `aria-expanded` and `aria-controls`. Without JavaScript the
@@ -108,6 +109,8 @@ notifications bell: notifications are out of the MVP), the ⌘K hint on Propose 
 - **Jump, don't filter** (owner, 2026-10-11): a current workspace that filters the catalogue,
   reviews and the API would be its own feature.
 - **Admin's three pages in the sidebar** (owner, 2026-10-11) rather than one Admin link.
+- **No Admin tabs** (owner, 2026-10-12): with the three links in the sidebar, the tabs on Admin's
+  pages repeated them, so they went.
 - **No cap on the content's width** (owner, 2026-10-11), rather than the mocks' 1024px centred
   column.
 - **No new colour token:** the sidebar is Surface on Canvas with a hairline, like the header was.

@@ -7,6 +7,8 @@ import {
 /** Every action the app records (spec 007's catalogue). Later features add theirs here. */
 export const AUDIT_ACTIONS = [
   "instance.root_created",
+  "instance.access_revoked",
+  "instance.secret_rotated",
   "user.password_reset",
   "auth.signed_in",
   "auth.sign_in_failed",

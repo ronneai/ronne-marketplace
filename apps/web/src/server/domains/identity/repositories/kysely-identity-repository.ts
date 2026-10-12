@@ -180,6 +180,15 @@ export const kyselyIdentityRepository = (
       return row ? summary(row) : null;
     },
 
+    async findUserByEmail(email) {
+      const row = await db
+        .selectFrom("user")
+        .select(["id", "email", "name", "role", "disabled_at", "created_at"])
+        .where("email", "=", email)
+        .executeTakeFirst();
+      return row ? summary(row) : null;
+    },
+
     async pageUsers({ sort, dir, size, cursor, ...filters }) {
       const page = await paginate(
         filteredUsers(filters).select(["id", "email", "name", "role", "disabled_at", "created_at"]),
@@ -383,6 +392,37 @@ export const kyselyIdentityRepository = (
         .updateTable("access_tokens")
         .set({ revoked_at: at(now) })
         .where("user_id", "=", userId)
+        .where("revoked_at", "is", null)
+        .executeTakeFirst();
+      return Number(result.numUpdatedRows);
+    },
+
+    async countAllSessions() {
+      const row = await db
+        .selectFrom("session")
+        .select((eb) => eb.fn.countAll<number | string | bigint>().as("n"))
+        .executeTakeFirstOrThrow();
+      return Number(row.n);
+    },
+
+    async countAllActiveAccessTokens() {
+      const row = await db
+        .selectFrom("access_tokens")
+        .select((eb) => eb.fn.countAll<number | string | bigint>().as("n"))
+        .where("revoked_at", "is", null)
+        .executeTakeFirstOrThrow();
+      return Number(row.n);
+    },
+
+    async deleteAllSessions() {
+      const result = await db.deleteFrom("session").executeTakeFirst();
+      return Number(result.numDeletedRows);
+    },
+
+    async revokeAllAccessTokens(now) {
+      const result = await db
+        .updateTable("access_tokens")
+        .set({ revoked_at: at(now) })
         .where("revoked_at", "is", null)
         .executeTakeFirst();
       return Number(result.numUpdatedRows);
