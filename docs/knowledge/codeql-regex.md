@@ -78,7 +78,7 @@ The alert names the file and line, and the message names the input that's slow (
 "strings starting with '${{A:-' and with many repetitions of '${{A:-'"). After the fix, CodeQL
 closes the alert on the next run of the pull request.
 
-## A third query: removing tags with a regex (049)
+## Another query: removing tags with a regex (049)
 
 CodeQL also fails a pull request on `js/incomplete-multi-character-sanitization` (severity
 **high**), whatever the file is for, tests included. 049 added a test helper that turned rendered
@@ -95,3 +95,15 @@ anyway: `toMatch(/published <time[^>]*>2026-09-20<\/time>/)`. React puts `<!-- -
 adjacent text pieces, so allow `(?:<!-- -->)?` where text and an expression meet. In app code, never
 sanitize HTML with a regex at all: render text with React, or use the Markdown renderer's own
 sanitizer.
+
+## Another query: a character range across symbols and letters (098)
+
+CodeQL comments on `js/overly-large-range` ("Overly permissive regular expression range") when a
+range in a class looks like a typo, such as `A-z`, which also takes in `[\]^_` and the backtick.
+Its severity is "warning" (security severity "medium"), so it comments on the pull request without
+failing the check. 098's `PLAIN_LINE` meant printable ASCII on purpose and got three comments: one
+on `(-_` and two on `'-_`, ranges that run from symbols through the digits and the capital letters.
+It didn't flag `a-~` (the small letters, then `{|}~`). Split a flagged range so each piece is only
+symbols, only digits or only letters: `[(-/0-9:-@A-Z[-_]` matches the same characters as `[(-_]`.
+When you split one, check the two classes match the same characters (a loop over `0`–`0xFFFF`
+testing both), and look on the next CodeQL run that the comments are gone.

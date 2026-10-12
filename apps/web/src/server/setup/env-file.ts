@@ -250,8 +250,12 @@ export const isWeakSecret = (secret: string): boolean => {
 const QUOTED =
   /'(?:[^'\r\u2028\u2029]*[^'\\\r\u2028\u2029])?'|"[^"\\\r\u2028\u2029]*"|`(?:[^`\r\u2028\u2029]*[^`\\\r\u2028\u2029])?`/
     .source;
-/** Printable ASCII, no leading or trailing space, not starting with a quote, no `#`. */
-const UNQUOTED = /[!$-&(-_a-~](?:[ !$-&'-_a-~]*[!$-&'-_a-~])?/.source;
+/**
+ * Printable ASCII, no leading or trailing space, not starting with a quote, no `#`. The ranges are
+ * split at the digits and capitals so CodeQL doesn't read them as a typo (js/overly-large-range).
+ */
+const UNQUOTED = /[!$-&(-/0-9:-@A-Z[-_a-~](?:[ !$-&'-/0-9:-@A-Z[-_a-~]*[!$-&'-/0-9:-@A-Z[-_a-~])?/
+  .source;
 const PLAIN_LINE = new RegExp(
   // `export KEY=` with nothing after it is read as the key `export KEY` by some Node versions.
   `^(?:|#[^\\r\\u2028\\u2029]*|(?:export [A-Za-z_][A-Za-z0-9_]*=(?:${QUOTED}|${UNQUOTED})|[A-Za-z_][A-Za-z0-9_]*=(?:${QUOTED}|${UNQUOTED})?)(?: +#[^\\r\\u2028\\u2029]*)?)$`,

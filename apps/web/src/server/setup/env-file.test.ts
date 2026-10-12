@@ -253,6 +253,9 @@ describe("firstUnplainLine (098)", () => {
       "# settings\n\nDATABASE_URL=file:./data/ronne.db\nAUTH_SECRET=abc+/=\n",
       "export A=1\r\nB='a # b'\r\nC=\"x y\"\r\nD=`q`\r\nE=spaced out # note\r\nF=\nG='C:\\data\\x'\n",
       `PASSWORD=${formatEnvValue("p#ss'w\"rd")}\n`,
+      "A=x_y{z}~[a]^b|c\\d\nB=(paren) @x:y;z<w>?\n",
+      // Each kind of character at the start, in the middle and at the end of a value.
+      "A=:x:\nB=@x@\nC=[x[\nD=_x_\nE={x{\nF=~x~\nG=(x(\nH=/x/\nI=ZxZ\nJ=!x!\nK=%x%\nL=0x0\nM=a!$%&0Z9Ab\n",
     ])
       expect(firstUnplainLine(content), JSON.stringify(content)).toBeNull();
   });

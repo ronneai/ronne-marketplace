@@ -601,6 +601,58 @@ Witnessed: 2026-10-12 00:30 EDT, by a fresh agent (adversarial). Commit: 728d2f4
 
 **Overall:** met. Remarks, not failures: no test pins the read error's advice text; for EISDIR and ENOTDIR the "a full disk?" hint doesn't fit, though the message is right and nothing changes.
 
+### Re-check: CodeQL's range comments on PR #174, first pass
+
+Witnessed: 2026-10-12 10:47 EDT, by a fresh agent (blind). Commit: b30019f1 (+ uncommitted `env-file.ts`, `codeql-regex.md`). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The split classes match exactly the old ones | no | confirmed | Loop over code units 0–0xFFFF: 0 differences for each of the three classes (90, 92, 91 matched) |
+| 2 | `PLAIN_LINE` accepts and rejects the same lines | no | confirmed | Old and new built from source, 762,144 lines → 0 differences |
+| 3 | Setup and rotate-secret tests pass | no | confirmed | `vitest run src/server/setup/` → 120 passed, 2 skipped (server only) |
+| 4 | The tests would catch a wrong class | no | partly | Removing `[-_`, `{-~` or the first `(-/` left `env-file.test.ts` green |
+| 5 | Lint and typecheck | no | confirmed | `biome check` clean; web typecheck exit 0 |
+| 6 | The note's example class is equivalent | no | confirmed | 0 differences over 0–0xFFFF |
+| 7 | The split classes aren't flagged, and the query is a warning | no | can't check here | Needs a CodeQL run on GitHub |
+
+**Overall:** not met: behaviour unchanged, but the tests miss some sub-ranges and the note claims what only a CodeQL run shows. Fixed: plain-line cases added, the note now states only what the alerts show.
+
+### Re-check: CodeQL's range comments, second pass
+
+Witnessed: 2026-10-12 10:48 EDT, by a fresh agent (blind). Commit: b30019f1 (+ uncommitted `env-file.ts`, `env-file.test.ts`, `codeql-regex.md`). Machine: macOS 27.0.0, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Each new class matches the old one's characters | no | confirmed | Every code point 0–0x10FFFF, with and without `u`: 0 differences |
+| 2 | `firstUnplainLine` behaves as before | no | confirmed | 500,000 random lines, old and new `PLAIN_LINE` → 0 differences |
+| 3 | Setup tests pass | no | confirmed | 12 files, 120 passed, 2 skipped |
+| 4 | The tests fail when any sub-range is removed | no | not met | First class `:-@`, `[-_`, `{-~` and last class `'-/`, `A-Z`, `[-_`, `{-~` survive removal: no value starts or ends with them |
+| 5 | Lint and typecheck | no | confirmed | `pnpm lint` exit 0; web typecheck exit 0 |
+| 6 | Note: rule, name, severity "warning", security severity "medium", three comments, the check passes | no | confirmed | `gh api …/code-scanning/alerts/19` (20, 21 the same); `gh pr checks 174` → CodeQL pass |
+| 7 | Note: CodeQL flags any range mixing letters or digits with symbols | no | partly | The alerts are on `(-_` and `'-_` only; `a-~` wasn't flagged |
+| 8 | Note: "A fourth query" | no | partly | Only two queries come before it; the earlier "A third query" was already one too high |
+
+**Overall:** not met: behaviour unchanged, but edge characters are untested and the note overstates the rule and miscounts. Fixed: `a-~` kept as it was, cases for each kind of character at the start, middle and end of a value, the note reworded and its headings no longer count.
+
+### Re-check: CodeQL's range comments, third pass
+
+Witnessed: 2026-10-12 10:54 EDT, by a fresh agent (blind). Commit: b30019f1 (+ uncommitted `env-file.ts`, `env-file.test.ts`, `codeql-regex.md`). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Each new class matches exactly the old one's characters | yes | confirmed | Each old/new pair over 0–0xFFFF, and 0–0x10FFFF with `u`: 90, 92, 91 matched, 0 differences |
+| 2 | `PLAIN_LINE` / `firstUnplainLine` behave as before | yes | confirmed | 1,089,824 lines (random, plus every code unit at a value's start, middle and end) → 0 differences; no flags on `new RegExp` |
+| 3 | rotate-secret behaves as before | no | confirmed | Only `UNQUOTED` changed; `vitest run scripts/rotate-secret.db.test.ts` → 7 passed |
+| 4 | Setup tests pass | no | confirmed | `vitest run src/server/setup/` → 12 files, 120 passed, 2 skipped (server only) |
+| 5 | Removing any one piece of any class fails the tests | yes | confirmed | All 25 one-piece removals (8 + 9 + 8) fail `env-file.test.ts`; unmutated passes |
+| 6 | Biome lint passes | no | confirmed | `pnpm lint` exit 0; `biome check` on the changed files clean |
+| 7 | Web typecheck passes | no | confirmed | `pnpm --filter @ronneai/web typecheck` → exit 0 |
+| 8 | Note: query id, name, severity, one comment on `(-_` and two on `'-_`, none on `a-~` | no | confirmed | `gh api …/code-scanning/alerts/19,20,21` → `js/overly-large-range`, warning, medium, `env-file.ts:254` columns 24, 40, 53 |
+| 9 | Note: comments without failing; `A-z` takes in `[\]^_` and the backtick; the example class is equivalent | no | confirmed | CodeQL check `success` on b30019f1; 0x5B–0x60; 0 differences over 0–0xFFFF |
+| 10 | The headings are accurate | no | confirmed | `grep -n '^#' codeql-regex.md` → "Another query" at 81 and 99, each matching its section |
+
+**Overall:** met: same characters, same behaviour, every one-piece removal fails the tests, lint and typecheck pass, and the note matches the alerts. Whether the next CodeQL run clears the comments shows on the pull request.
+
 ## Task 4 — Both commands everywhere
 
 Witnessed: 2026-10-12 00:39 EDT, by a fresh agent (blind). Commit: 26475321 (+ uncommitted working tree). Machine: macOS 27.0.1 (arm64), Node v24.0.0, Docker 29.7.2.
