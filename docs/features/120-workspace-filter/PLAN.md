@@ -38,9 +38,9 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   JavaScript; on desktop and phone.
   *Done when:* the end-to-end tests pass on every project.
 
-- [ ] **5. Decision log.** MVP §15's Workspaces row.
+- [x] **5. Decision log.** MVP §15's Workspaces row.
   *Done when:* it records the current workspace, the URL as the truth, and that it's not a boundary.
 
-- [ ] **6. Documentation.** The topics, section and helpers in the spec, both `topics.ts`, in a
+- [x] **6. Documentation.** The topics, section and helpers in the spec, both `topics.ts`, in a
   ronne-web branch.
   *Done when:* the docs tests pass in ronne-web, and the helper link test passes here.
