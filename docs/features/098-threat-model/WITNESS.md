@@ -740,6 +740,52 @@ Witnessed: 2026-10-12 00:53 EDT, by a fresh agent (blind). Commit: 7c10bfc1 (+ u
 
 **Overall:** not met: the runbook matches the code; the task waits for the service forms (CI), the yank check with a released item, and setup run again on a database server.
 
+### Re-check
+
+Witnessed: 2026-10-12 11:50 EDT, by a fresh agent (blind). Commit: 03e4c5be (+ uncommitted `docs/runbooks/incident-response.md`, `docs/security/threat-model.md`, `docs/features/098-threat-model/SPEC.md`, PLAN.md notes; ronne-web `fix/marketplace-098-yank-locks` + uncommitted `www/src/content/docs/{en,pt,fr}/{operations,versions}.tsx`). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Yank on the Versions page with a reason (moderator) stops new installs and moves `latest` back to the highest stable version left | yes | confirmed | released 1.0.2 (root proposes, mod approves and releases in the web app) → `latest → 1.0.2`; mod › Versions › Yank with a reason → DB `yanked_at` set, `latest → 1.0.0`; audit `version.published`, `submission.approved`, `version.yanked` |
+| 2 | Deprecate in the web app | yes | confirmed | mod › Versions › 1.0.2 › Deprecate → `deprecated_message` set, audit `version.deprecated`; `rmk install` of 1.0.0 prints its message |
+| 3 | Check: `rmk info` shows yanked; a fresh install doesn't pick it | yes | confirmed | `rmk info` → `1.0.2 [yanked]`, `latest → 1.0.0`; fresh install → 1.0.0; `@1.0.2` → "has no published version that fits 1.0.2", exit 1 |
+| 4 | A project asking for `latest` moves to the new `latest` at its next `rmk install` | yes | confirmed | `witL`: `"latest"`, lock 1.0.2 → yank → `rmk install` → 1.0.0; `resolve.ts:143-156` turns a tag into an exact version |
+| 5 | A range project keeps installing the yanked pin with no warning until `rmk update` | yes | confirmed | `witR` (`^1.0.0`, lock 1.0.2) → `rmk install` → "Everything was already in place.", no warning; `rmk update` → "1.0.2 → 1.0.0" |
+| 6 | Runbook's Tell users: `rmk outdated` "with a newer wanted version"; files "stay until they install again" | yes | partly | `rmk outdated` → wanted 1.0.0 is older than locked 1.0.2; a range project's `rmk install` keeps the yanked files, only `rmk update` replaces them (`incident-response.md:71-73`, threat model §4.1) |
+| 7 | Account takeover: Disable ends sessions and revokes tokens at once | yes | confirmed | Disable → "Disabled."; mod's next page `/sign-in`; token → 401; audit `user.disabled {"sessionsEnded":1,"tokensRevoked":1}` |
+| 8 | Reset password, then Enable; signs in with the new password, old sessions and tokens gone | yes | confirmed | "Shown once", 20 characters; "Enabled. They can sign in again."; sign-in → `/`; old token → 401; audit `user.password_reset`, `user.enabled` |
+| 9 | Rogue moderator: Members role change to user; no review queue | yes | confirmed | moderator: `/reviews` 200, Reviews in the nav; user: `/reviews` 404, Reviews gone; audit `workspace.member_role_changed` ×2 |
+| 10 | Settings-file leak: new DB password, setup again rewrites `DATABASE_URL`, keeps the secret and accounts; old password refused | yes | confirmed | `ALTER ROLE` → API 500 → `setup --yes` with the new URL → connected, root kept; same `AUTH_SECRET` prefix, mode 600; server 200 with no restart; old password → "password authentication failed"; setup with it → "✗ The server refused the user name or password." |
+| 11 | Threat model §4.1, §5 and SPEC row match the behaviour | yes | partly | rows 4-5 match, both gaps listed; the same "until they install again" imprecision as row 6 |
+| 12 | Website wording agrees in three languages; lint, typecheck, tests pass | yes | partly | content matches; lint 209 files, typecheck 0, 138 tests passed; but en `operations.tsx:135-136` renders "ask forlatest" (no `{" "}`) |
+| 13 | Done when: every command run on a test instance (Docker and npm), steps match, in the notes | yes | partly | npm + PostgreSQL steps run and match apart from 6 and 12; not run: the Docker form of the DB-password step and setup's interactive form (no prefilled host, port, name, user) |
+
+**Overall:** not met: rows 6, 11 and 12 (wording), row 13 (Docker and interactive forms of the database-password step not run).
+
+### Re-check
+
+Witnessed: 2026-10-12 11:59 EDT, by a fresh agent (blind). Commit: 03e4c5be (+ uncommitted runbook, threat model, SPEC, PLAN.md notes; ronne-web `fix/marketplace-098-yank-locks` + uncommitted docs). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 6 | Runbook's yank Tell users: a range project keeps the yanked pin and its files through every `rmk install` until `rmk update`; "wanted" is the version `rmk update` moves back to | yes | confirmed | `incident-response.md:68-75` against `witR`: "Everything was already in place.", `locked 1.0.2  wanted 1.0.0`, `rmk update` → "1.0.2 → 1.0.0"; a `latest` project → 1.0.0 |
+| 11 | Threat model §4.1, §5 gaps and SPEC:110 match | yes | confirmed | `threat-model.md:102` and the §5 tag-lock row; `SPEC.md:110` the same (a stray double comma at `:102`) |
+| 12 | Website wording in en/pt/fr; English space fixed; checks pass | yes | confirmed | esbuild compile → `"Projects that ask for", " ", <Code>latest</Code>`; pt and fr spaced; lint clean, typecheck 0, 138 tests passed |
+| 13 | Done when | yes | partly | npm interactive (pty, 200 columns): defaults `localhost`, `5432`, `ronne`, empty user; new password saved, `AUTH_SECRET` kept, 600, 200 with no restart. Docker `ronne098-docker` (`ronne-web:w4`, host database) interactive: the same. Not run: compose's own database (`RONNE_DB_PASSWORD`); a clone's restart (from `config.ts:30-40`) |
+
+**Overall:** not met: row 13, compose's own database not run.
+
+### Re-check
+
+Witnessed: 2026-10-12 12:03 EDT, by a fresh agent (blind). Commit: 03e4c5be (+ uncommitted runbook, threat model, SPEC, PLAN.md notes; ronne-web `fix/marketplace-098-yank-locks` + uncommitted docs). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 11 | `threat-model.md:102` typo fixed | no | confirmed | `grep -c ",," threat-model.md` → 0 |
+| 13 | Done when: every command run on a test instance (Docker and npm), steps match, in the notes | yes | confirmed | compose's own database (`ronne098-own`, `--profile postgres`, postgres:18): `ALTER ROLE ronne` → `/me` 500; interactive `docker compose exec web pnpm run setup`, host `postgres` → "Connected to PostgreSQL 18.6", new password in `/app/data/.env`, 600, `AUTH_SECRET` kept, `/me` 200 with no restart; `RONNE_DB_PASSWORD` changed and `up -d` → healthy, 200; old and wrong passwords refused. Earlier: npm (`--yes`, interactive) and Docker on a host database. Not run: MySQL's compose profile (`compose.yaml:115`) and a clone's restart (`config.ts:30-40`), both from the code |
+
+**Overall:** met. MySQL's compose profile and a clone's restart rest on the code, for the owner.
+
 ## Task 6 — `SECURITY.md` and the release checklist
 
 Witnessed: 2026-10-12 00:54 EDT, by a fresh agent (blind). Commit: 5c9a7a70 (+ uncommitted SECURITY.md, MVP.md, release.md, threat-model.md). Machine: macOS 27.0.1, Node v24.0.0.
