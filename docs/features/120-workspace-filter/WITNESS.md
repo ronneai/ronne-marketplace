@@ -110,3 +110,60 @@ Witnessed: 2026-10-11 19:44 EDT, by a fresh agent (blind). Commit: 7a483ed7 plus
 | 4 | The suite passes on the real tree | no | confirmed | `npx vitest run src/components/app-shell` (repo) → 2 files, 39 passed. `diff -r` showed the scratch copy's `app-shell` files matched the repo |
 
 **Overall:** met: both gaps are closed; each mutation makes the new tests fail, and the suite passes on the real tree.
+
+## Task 3 — The filtered pages
+
+Witnessed: 2026-10-11 20:04 EDT, by a fresh agent (blind). Commit: 5bf7455f plus the uncommitted working tree. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A filtered page without `?workspace=` while a current workspace is set redirects to the same page with it, keeping its other parameters | no | confirmed | `shell.ts:70` redirects via `withWorkspace`; `shell.test.ts` → `REDIRECT /reviews?tab=waiting&workspace=acme`; Reviews probe with cookie `global` on `{tab:release,sort:name}` → `REDIRECT /reviews?tab=release&sort=name&workspace=global` |
+| 2 | Catalogue shows only that workspace's items, through the same `?workspace=` parameter as its Filters select | yes | confirmed | `catalogue/page.tsx:20` passes `view.workspace` to `browseCatalogue`; `catalogue.test.tsx` "shows only it" → called with `workspace:"acme"`; `npx playwright test e2e/scopes.e2e.ts` (`exact: true` label) → 1 passed |
+| 3 | Catalogue: picking a workspace in Filters changes only this view's URL; Show all clears both | no | confirmed | Filters is a GET form (only the URL changes, no cookie); Show all = `chooseHref(null, here)`: the route clears the cookie and `backTo` drops `?workspace=` (`current-workspace.ts:80`) |
+| 4 | Catalogue's own controls still work with a current workspace set (the workspace chip, Clear all, Clear filters, See every item) | no | not met | Scratch probe rendering `CatalogueView` with `query.workspace:"acme"`, `keepAll:false`: "Remove the workspace filter", "Clear all", "Clear filters" and "See every item" all link to plain `/catalogue`, which `workspaceView` redirects back to `?workspace=acme`. Removing the filter does nothing |
+| 5 | Reviews: every tab filtered by the workspace; tab links keep it | yes | confirmed | Reviews probe, tabs waiting/decided → `listQueue` gets `workspace:"global"`; tab links `/reviews?workspace=global`, `/reviews?tab=waiting&workspace=global`, … ; `queue.ts:140-149` matches nothing for a name the reviewer doesn't moderate |
+| 6 | Reviews' Workspace select and the `queue-workspaces` helper are gone | yes | confirmed | Probe → `id="queue-workspace"` absent on every render; `grep -rn queue-workspaces apps/web/src` → no hits; `reviews.test.tsx` asserts no select and no "Why only these?" |
+| 7 | Reviews in a workspace you don't review in: "You don't review submissions in acme · Show all" | yes | confirmed | Probe (moderator of global only), `?workspace=acme` → "You don't review submissions in acme·Show all"; `?workspace=GLOBAL` → "Showing global only" (lower-cased) |
+| 8 | Component tests cover the Reviews page's filtering (Showing line, "don't review" message, workspace sent to the query) | yes | partly | `reviews.test.tsx:27` mocks `workspaceView` to `workspace:null` only; `grep "don't review\|Showing" reviews.test.tsx` → none. Only `queueQueryOf`, `listUrl` and `QueueTabs` are tested. Claims 5 and 7 hold only because of my probe |
+| 9 | My submissions: only your submissions in that workspace, server-side and paged, in the list, its total and the status counts | yes | confirmed | `kysely-submission-repository.ts:123,303-306` filter on `workspaces.name`; the service lower-cases it; `my-submissions.db.test.ts` "filters by workspace…" covers list, upper case, total and counts. `vitest run --project db src/server/domains/submissions` → 26 files, 274 passed |
+| 10 | The same on the database servers | yes | confirmed | `pnpm test:db:postgres -- src/server/domains/submissions/actions/my-submissions.db.test.ts` → 6 passed; `:mysql` → 6 passed; `:mariadb` → 6 passed |
+| 11 | My submissions links (status, search form, chips, sort, paging) keep `?workspace=` | yes | confirmed | `submissionsList(view.fixed)` puts it in `list.fixed`; `listParams` and `HiddenListFields` start from `list.fixed` (`list-query.ts:101`, `DataTable.tsx:95`); `submissions.test.tsx` → `href="/submissions?workspace=acme&sort=name` |
+| 12 | New item starts on the current workspace's first scope, and every scope stays choosable | yes | confirmed | `submissions/new/page.tsx:52` picks the first scope of `current`; `NewDraftForm` only sets the initial state; `submissions.test.tsx` → `checked="" value="acme/b"` |
+| 13 | The "Showing <name> only · Show all" line with the "What does this filter?" → `workspaces#current` helper | yes | confirmed | `Showing.tsx`; `Help.tsx` `current-workspace` → `docsHref("workspaces","current")`; `topics.ts` adds `{ id: "current" }`; `catalogue.test.tsx` checks the Show all href and "What does this filter?"; unit suite (helper link test included) passes |
+| 14 | A `?workspace=` you can't see filters to nothing with the same message as an unknown name ("No workspace acme you can see") | no | partly | Catalogue: "No workspace secret you can see", identical markup for private and unknown (test). Reviews: private and unknown both say "You don't review submissions in …" (probe), so nothing leaks. My submissions has no `why` (`submissions/page.tsx:100`): an unknown or private name shows "Showing zzz only", not the spec's message |
+| 15 | Paging and sorting keep the parameter | yes | confirmed | Catalogue probe: sort links `/catalogue?workspace=acme&sort=name`, next page via `href({cursor})`; Reviews `listUrl` → `/reviews?tab=waiting&workspace=beta&q=fmt&sort=name` (test); explicit All kept as `workspace=` (tests) |
+| 16 | Nothing else is filtered | no | confirmed | `grep -rln "workspaceView\|loadShell" src/app src/features src/components` → only the layout, `/menu`, catalogue, reviews, submissions and submissions/new |
+| 17 | Sidebar counts are unchanged by it (a test) | yes | confirmed | `shell.test.ts` "leaves the sidebar's counts alone" → equal `navCounts` with and without the cookie, and `countNeedsReview` called with Headers only |
+| 18 | Without JavaScript: Show all and the tabs are plain links, and the filters are GET forms | no | confirmed | Rendered markup: Show all is `<a href="/current-workspace?set=&next=…">`, tabs are `<a href>`, Catalogue and queue filters are GET forms |
+| 19 | Unit suite, typecheck and lint pass | no | confirmed | `npx vitest run --project unit` → 125 files, 1258 passed; `pnpm --filter @ronneai/web typecheck` → no errors; `npx biome check apps/web/src apps/web/e2e` → 808 files checked, 9 warnings, 2 infos, no errors |
+
+**Overall:** not met: the pages filter, keep the parameter and leave the counts alone, but the catalogue's own clear controls can't leave the current workspace (row 4), the Reviews page's filtering has no test (row 8), and My submissions doesn't use the spec's "No workspace … you can see" wording (row 14).
+
+### Re-check — rows 4, 8 and 14
+
+Witnessed: 2026-10-11 20:07 EDT, by a fresh agent (blind). Commit: 5bf7455f plus the uncommitted working tree (SPEC.md, shell.ts, testing.ts, catalogue.test.tsx and reviews.test.tsx changed). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | Catalogue's own controls still work with a current workspace set (the workspace chip, Clear all, Clear filters, See every item) | no | partly | `shell.ts`: `keepAll = current !== null`. Probe `CatalogueView` (`workspace:"acme"`, `keepAll:true`) → chip ×, Clear all and Clear filters go to `/catalogue?workspace=`, but "See every item" is still `/catalogue` (`CatalogueView.tsx:323`, hard-coded `<Link href="/catalogue">`), which redirects back to `?workspace=acme`. Mutation (old `keepAll` rule) in scratch copies → `shell.test.ts` "with one: … keeps an explicit All" fails, and catalogue "lets its clear controls leave the current workspace" fails. That test renders a page with entries, so it never shows the empty state |
+| 8 | Component tests cover the Reviews page's filtering (Showing line, "don't review" message, workspace sent to the query) | yes | confirmed | `reviews.test.tsx` now uses `fakeWorkspaceView`; `npx vitest run --project unit` → 125 files, 1261 passed, including "follows the current workspace (120)…" and "says when you don't review in the workspace shown (120)…". Mutation: page copy without `view.workspace` in `queueQueryOf` → "follows…" fails, while the unmutated control copy passes it. I couldn't run the "don't review" test from the scratchpad (the control copy fails too, a router invariant on the needs tab). It asserts the exact text `You don&#x27;t review submissions in <strong>acme</strong>`, so it would fail if the `why` were lost |
+| 14 | A `?workspace=` you can't see filters to nothing and says the same as for an unknown name, per page as SPEC.md says | no | confirmed | `SPEC.md` "Never a security boundary" now gives each page's message: Catalogue "No workspace acme you can see", Reviews "You don't review submissions in acme", My submissions "Showing acme only" over an empty list. The code matches: catalogue test (private = unknown markup), Reviews probe (secret and zzz the same), `submissions/page.tsx` Showing with no `why` and the test "shows the table, not the first-time page, for a workspace with nothing of yours" |
+
+**Overall:** not met: row 4 holds for the chip, Clear all and Clear filters, but "See every item" on the empty state still links to `/catalogue` and goes back to the current workspace.
+
+### Re-check — row 4
+
+Witnessed: 2026-10-11 20:08 EDT, by a fresh agent (blind). Commit: 5bf7455f plus the uncommitted working tree (`CatalogueView.tsx` and `catalogue.test.tsx` changed again). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 4 | Catalogue's own controls still work with a current workspace set (the workspace chip, Clear all, Clear filters, See every item) | no | confirmed | `CatalogueView.tsx:323` is now `<Link href={href({ q: "", ...none })}>`; `grep 'href="/catalogue"' CatalogueView.tsx` → no hits. Scratch probe of `CatalogueView` (`workspace:"acme"`, `keepAll:true`) → Clear filters, the chip ×, Clear all and See every item all go to `/catalogue?workspace=`. `npx vitest run --project unit` → 125 files, 1261 passed. Mutation: a scratch copy of `CatalogueView.tsx` with the hard-coded `<Link href="/catalogue">` put back, swapped in for the real one → "lets its clear controls leave the current workspace (an explicit All)" fails (`expected … not to contain 'href="/catalogue"'`), 1 failed / 17 passed. The same copy without the mutation → 18 passed |
+
+**Overall:** met: every catalogue clear control, the empty state's See every item included, writes an explicit `?workspace=`, and the test catches the old link.
+
+## Follow-up — after task 3's passes
+
+The pre-commit hook's `item-names.test.js` (118: names are never split by hand outside core's
+`names.ts`) caught New item's `scope.split("/")[0]`. It now uses core's `scopeRefFrom` for the
+option's workspace; same behaviour, and `submissions.test.tsx`'s "starts New item on the current
+workspace's first scope" still passes (31 tests), as does the guard (164).

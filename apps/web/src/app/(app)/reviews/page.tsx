@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 import { Help } from "@/components/help/Help";
 import { parseListQuery } from "@/components/ui/data-table/list-query";
 import { PageHeader } from "@/components/ui/Panel";
+import { hereOf } from "@/features/current-workspace/current-workspace";
+import { Showing } from "@/features/current-workspace/Showing";
 import { BulkReleaseProvider, BulkReleaseToolbar } from "@/features/releases/BulkRelease";
 import { BulkApproveProvider, BulkApproveToolbar } from "@/features/reviews/BulkApprove";
 import { checkedQueueState, queueList, queueQueryOf } from "@/features/reviews/list";
@@ -13,6 +15,7 @@ import { canInSomeShared } from "@/server/domains/identity/models/permissions";
 import { listQueue } from "@/server/domains/submissions/actions/reviews";
 import { itemNameOf } from "@/server/domains/submissions/models/submission";
 import { requestHeaders } from "@/server/http/request-headers";
+import { workspaceView } from "../shell";
 
 export const metadata = { title: "Reviews · Ronne AI Marketplace" };
 
@@ -27,12 +30,14 @@ const Reviews = async ({
   // Their own personal workspace (114) isn't reviewed: it makes nobody a reviewer.
   if (!canInSomeShared(user, "submissions.review")) notFound();
   const params = await searchParams;
+  // The current workspace's (120): only its submissions, and every link keeps it.
+  const view = await workspaceView("/reviews", params);
   const tab = queueTab(params.tab);
-  const list = queueList(tab);
+  const list = queueList(tab, view.fixed);
   const state = checkedQueueState(parseListQuery(list, params));
   const { rows, next, previous, total, workspaces } = await listQueue(
     request,
-    queueQueryOf(tab, state),
+    queueQueryOf(tab, state, view.workspace),
   );
   const table = (actions?: ReactNode) => (
     <QueueTable
@@ -43,8 +48,6 @@ const Reviews = async ({
       page={{ next, previous }}
       total={total}
       actions={actions}
-      workspaces={workspaces.map((workspace) => workspace.name)}
-      root={user?.role === "root"}
     />
   );
   return (
@@ -53,7 +56,14 @@ const Reviews = async ({
         title="Reviews"
         description="What authors have sent for review. Review is the gate: nothing is installable until it's approved and released."
       />
-      <QueueTabs tab={tab} />
+      {view.workspace ? (
+        <Showing
+          workspace={view.workspace}
+          here={hereOf("/reviews", params)}
+          why={workspaces.some((w) => w.name === view.workspace) ? undefined : "not-reviewer"}
+        />
+      ) : null}
+      <QueueTabs tab={tab} keep={view.fixed} />
       {tab === "needs" || tab === "release" ? <Help id="queue-decisions" /> : null}
       <QueueStatusProvider>
         {tab === "release" ? (

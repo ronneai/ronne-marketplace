@@ -26,7 +26,7 @@ import { WithdrawButton } from "../draft-editor/SubmitDialogs";
 import { ReleaseSelectCell } from "../releases/BulkRelease";
 import { ArchivedActions } from "./ArchivedActions";
 import { ReadinessMark, SelectCell } from "./BulkSubmit";
-import { SUBMISSIONS_LIST, type SubmissionsListState } from "./list";
+import { SUBMISSIONS_LIST, type SubmissionsList, type SubmissionsListState } from "./list";
 
 /** The filters' order: archived last, after everything still in play. */
 const FILTER_ORDER: readonly SubmissionStatus[] = [
@@ -38,8 +38,11 @@ const chipClasses =
   "rounded-full border border-hairline px-3 py-1 text-xs text-muted hover:text-fg aria-[current=page]:border-transparent aria-[current=page]:bg-fg aria-[current=page]:text-canvas outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus";
 
 /** A status link: that status, keeping the sort and size, without a search or type (063). */
-const statusHref = (state: SubmissionsListState, status: SubmissionStatus | "") =>
-  listUrl(SUBMISSIONS_LIST, state, { filters: { status, q: "", type: "" } });
+const statusHref = (
+  list: SubmissionsList,
+  state: SubmissionsListState,
+  status: SubmissionStatus | "",
+) => listUrl(list, state, { filters: { status, q: "", type: "" } });
 
 /**
  * Status filters (feature 013): All, then each status you have, with its count; Archived last, and
@@ -48,9 +51,12 @@ const statusHref = (state: SubmissionsListState, status: SubmissionStatus | "") 
 export const StatusFilters = ({
   counts,
   state,
+  list = SUBMISSIONS_LIST,
 }: {
   counts: Partial<Record<SubmissionStatus, number>>;
   state: SubmissionsListState;
+  /** The list, with the workspace it keeps (120). */
+  list?: SubmissionsList;
 }) => {
   const status = state.filters.status;
   const shown = FILTER_ORDER.filter((s) => (counts[s] ?? 0) > 0);
@@ -61,7 +67,7 @@ export const StatusFilters = ({
   return (
     <nav aria-label="Filter by status" className="flex flex-wrap gap-2 pb-4">
       <Link
-        href={statusHref(state, "")}
+        href={statusHref(list, state, "")}
         aria-current={status === "" ? "page" : undefined}
         className={chipClasses}
       >
@@ -70,7 +76,7 @@ export const StatusFilters = ({
       {shown.map((s) => (
         <Link
           key={s}
-          href={statusHref(state, s)}
+          href={statusHref(list, state, s)}
           aria-current={status === s ? "page" : undefined}
           className={chipClasses}
         >
@@ -106,14 +112,14 @@ const FeedbackLine = ({ feedback }: { feedback?: RowFeedback }) =>
   ) : null;
 
 /** The search and type filter (063): one GET form that submits on change, and chips. */
-const Filters = ({ state }: { state: SubmissionsListState }) => (
+const Filters = ({ list, state }: { list: SubmissionsList; state: SubmissionsListState }) => (
   <div className="grid gap-2">
     <Form
-      action={SUBMISSIONS_LIST.path}
+      action={list.path}
       scroll={false}
       className="grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto] sm:items-end"
     >
-      <HiddenListFields list={SUBMISSIONS_LIST} state={state} omit={["q", "type"]} />
+      <HiddenListFields list={list} state={state} omit={["q", "type"]} />
       <div className="grid gap-1.5">
         <Label htmlFor="submissions-search">Search</Label>
         <Input
@@ -149,7 +155,7 @@ const Filters = ({ state }: { state: SubmissionsListState }) => (
       </div>
     </Form>
     <FilterChips
-      list={SUBMISSIONS_LIST}
+      list={list}
       state={state}
       labels={{ status: "Status", q: "Search", type: "Type" }}
       hidden={["status"]}
@@ -178,6 +184,7 @@ type Row = Submission & { stale?: string | null };
  * and the table: the bulk toolbars.
  */
 export const SubmissionsTable = ({
+  list = SUBMISSIONS_LIST,
   state,
   submissions,
   page,
@@ -189,6 +196,8 @@ export const SubmissionsTable = ({
   deletable,
   feedback,
 }: {
+  /** The list, with the workspace it keeps (120). */
+  list?: SubmissionsList;
   state: SubmissionsListState;
   /** With `stale` for change proposals (017) that a newer version overtook. */
   submissions: Row[];
@@ -312,7 +321,7 @@ export const SubmissionsTable = ({
   ];
   return (
     <DataTable
-      list={SUBMISSIONS_LIST}
+      list={list}
       state={state}
       columns={columns}
       rows={submissions}
@@ -322,7 +331,7 @@ export const SubmissionsTable = ({
       noun={total.count === 1 && !total.capped ? "submission" : "submissions"}
       toolbar={
         <>
-          <Filters state={state} />
+          <Filters list={list} state={state} />
           {actions}
         </>
       }

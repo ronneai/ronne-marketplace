@@ -243,6 +243,8 @@ export type MySubmissionsQuery = {
   status?: SubmissionStatus;
   search?: string;
   type?: ItemType;
+  /** Only those in this workspace, by name (120). */
+  workspace?: string;
   sort?: "updated" | "name";
   dir?: SortDir;
   size?: number;
@@ -268,6 +270,7 @@ export const pageMySubmissions = async (
     status: query.status,
     search: query.search?.trim().slice(0, 100) || undefined,
     type: query.type,
+    workspace: query.workspace?.trim().toLowerCase() || undefined,
   };
   const sort = query.sort ?? "updated";
   const [page, total] = await Promise.all([
@@ -288,10 +291,20 @@ export const pageMySubmissions = async (
   };
 };
 
-/** How many of your submissions are in each status, for My submissions' status links (063). */
-export const countMySubmissionsByStatus = async (deps: DraftDeps, actor: DraftActor) => {
+/**
+ * How many of your submissions are in each status, for My submissions' status links (063); in one
+ * workspace when given (120).
+ */
+export const countMySubmissionsByStatus = async (
+  deps: DraftDeps,
+  actor: DraftActor,
+  workspace?: string,
+) => {
   requireSignedIn(actor);
-  return deps.repo.statusCountsByAuthor(actor.user?.id ?? "");
+  return deps.repo.statusCountsByAuthor(
+    actor.user?.id ?? "",
+    workspace?.trim().toLowerCase() || undefined,
+  );
 };
 
 export const getDraft = async (deps: DraftDeps, actor: DraftActor, id: string): Promise<Draft> => {

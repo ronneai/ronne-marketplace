@@ -26,6 +26,15 @@ vi.mock("@/server/domains/submissions/actions/publish", () => publish);
 vi.mock("@/server/domains/items/actions/scopes", () => scopes);
 vi.mock("next/cache", () => cache);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
+// The current workspace (120): `shell.current` per test.
+const shell = vi.hoisted(() => ({ current: null as string | null }));
+vi.mock("@/app/(app)/shell", async () => {
+  const { fakeWorkspaceView } = await import("@/features/current-workspace/testing");
+  return {
+    workspaceView: fakeWorkspaceView(shell),
+    loadShell: async () => ({ current: shell.current }),
+  };
+});
 vi.mock("next/navigation", () => ({
   redirect: (url: string) => {
     throw new Error(`NEXT_REDIRECT ${url}`);
@@ -96,6 +105,7 @@ const submission = (overrides: Partial<Submission> = {}): Submission => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  shell.current = null;
   mockList([submission()]);
   bulk.checkManyDrafts.mockResolvedValue({ drafts: [], more: 0 });
   scopes.listScopes.mockResolvedValue({
@@ -473,6 +483,48 @@ describe("pages", () => {
     expect(html.indexOf(">global</span>")).toBeLessThan(html.indexOf("@a<"));
     expect(html.indexOf("@a<")).toBeLessThan(html.indexOf(">acme</span>"));
     expect(html.indexOf(">acme</span>")).toBeLessThan(html.indexOf("@acme/b<"));
+  });
+});
+
+describe("the current workspace (120)", () => {
+  it("narrows My submissions and its counts, keeps it in every link, and says so", async () => {
+    shell.current = "acme";
+    await expect(SubmissionsPage({ searchParams: Promise.resolve({}) })).rejects.toThrow(
+      "REDIRECT /submissions?workspace=acme",
+    );
+    const html = renderToStaticMarkup(
+      await SubmissionsPage({ searchParams: Promise.resolve({ workspace: "acme" }) }),
+    );
+    expect(drafts.pageMySubmissions).toHaveBeenCalledWith(
+      expect.any(Headers),
+      expect.objectContaining({ workspace: "acme" }),
+    );
+    expect(drafts.countMySubmissionsByStatus).toHaveBeenCalledWith(expect.any(Headers), "acme");
+    expect(html).toMatch(/Showing <strong[^>]*>acme<\/strong> only/);
+    expect(html).toContain('href="/submissions?workspace=acme&amp;sort=name');
+  });
+
+  it("shows the table, not the first-time page, for a workspace with nothing of yours", async () => {
+    mockList([]);
+    const html = renderToStaticMarkup(
+      await SubmissionsPage({ searchParams: Promise.resolve({ workspace: "acme" }) }),
+    );
+    expect(html).toContain("Showing");
+    expect(html).not.toContain("You have no drafts yet");
+  });
+
+  it("starts New item on the current workspace's first scope", async () => {
+    shell.current = "acme";
+    scopes.listScopes.mockResolvedValue({
+      scopes: [
+        { name: "a", description: "A.", workspace: { name: "global" } },
+        { name: "b", description: "B.", workspace: { name: "acme" } },
+      ],
+      nextCursor: null,
+    });
+    const html = renderToStaticMarkup(await NewItemPage());
+    expect(html).toContain('checked="" value="acme/b"');
+    expect(html).not.toContain('checked="" value="a"');
   });
 });
 

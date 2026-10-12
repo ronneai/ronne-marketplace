@@ -72,9 +72,24 @@ const filterClasses =
 const workspaceOf = (name: string) =>
   name.includes("/") ? (name.split("/", 1)[0] ?? "") : "global";
 
-export const NewDraftForm = ({ scopes, mine }: { scopes: ScopeOption[]; mine: string[] }) => {
+export const NewDraftForm = ({
+  scopes,
+  mine,
+  initialScope,
+}: {
+  scopes: ScopeOption[];
+  mine: string[];
+  /** The scope it starts on: the current workspace's first (120). Every scope stays choosable. */
+  initialScope?: string;
+}) => {
   const [state, action, pending] = useActionState<NewDraftState, FormData>(createDraftFromForm, {});
-  const [scope, setScope] = useState(scopes.length === 1 ? (scopes[0]?.name ?? "") : "");
+  const [scope, setScope] = useState(
+    initialScope && scopes.some((option) => option.name === initialScope)
+      ? initialScope
+      : scopes.length === 1
+        ? (scopes[0]?.name ?? "")
+        : "",
+  );
   const [scopeSearch, setScopeSearch] = useState("");
   const [typed, setTyped] = useState("");
   const [type, setType] = useState<ItemType | null>(null);

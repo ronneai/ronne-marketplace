@@ -1,7 +1,14 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { cache } from "react";
 import type { ShellWorkspace } from "@/components/app-shell/nav";
 import { parseFolded, SIDEBAR_COOKIE } from "@/components/app-shell/sidebar-cookie";
-import { currentFrom, WORKSPACE_COOKIE } from "@/features/current-workspace/current-workspace";
+import {
+  currentFrom,
+  viewedWorkspace,
+  WORKSPACE_COOKIE,
+  withWorkspace,
+} from "@/features/current-workspace/current-workspace";
 import { parseTheme, THEME_COOKIE } from "@/features/theme/theme";
 import { requireUser } from "@/server/domains/identity/actions/session";
 import { canInSomeShared } from "@/server/domains/identity/models/permissions";
@@ -17,10 +24,10 @@ import { requestHeaders } from "@/server/http/request-headers";
  * What the app frame needs: the signed-in user (feature 006: `src/proxy.ts` only checks for a
  * cookie, so this is where the session is really checked), the theme, the nav counts, the
  * workspaces for the switcher, whether the sidebar is folded (119), and the current workspace
- * (120): the cookie's, if the user is still a member of it. The (app) layout and
- * `/menu` (066) both read it.
+ * (120): the cookie's, if the user is still a member of it. The (app) layout, `/menu` (066) and
+ * the filtered pages (120) read it; `cache` runs it once per request.
  */
-export const loadShell = async () => {
+export const loadShell = cache(async () => {
   const request = await requestHeaders();
   const user = await requireUser(request);
   const jar = await cookies();
@@ -51,5 +58,33 @@ export const loadShell = async () => {
     workspaces,
     current: currentFrom(jar.get(WORKSPACE_COOKIE)?.value, workspaces),
     navCounts: { "/reviews": needsReview, "/workspaces/requests": toAnswer },
+  };
+});
+
+/**
+ * What a filtered page (120) shows: `?workspace=` first, else the current workspace, redirecting
+ * so the URL says it. `fixed` is what the page's links must keep: the workspace shown, or an empty
+ * `?workspace=` while a current workspace is set and every workspace is shown (left out, the next
+ * page would redirect to the current one). `keepAll`: a current workspace is set, so a link that
+ * means every workspace must say so with an empty `?workspace=` (the catalogue's clear links).
+ */
+export const workspaceView = async (
+  path: string,
+  params: Record<string, string | string[] | undefined>,
+) => {
+  const { current, workspaces } = await loadShell();
+  const view = viewedWorkspace(params.workspace, current);
+  if (view.redirect && view.workspace) redirect(withWorkspace(path, params, view.workspace));
+  const keepAll = current !== null;
+  const fixed: Record<string, string> = view.workspace
+    ? { workspace: view.workspace }
+    : current !== null
+      ? { workspace: "" }
+      : {};
+  return {
+    workspace: view.workspace,
+    keepAll,
+    fixed,
+    workspaces,
   };
 };

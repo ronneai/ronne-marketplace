@@ -167,7 +167,7 @@ test("root creates, sorts and searches scopes on a workspace's page; Admin › S
   const card = author.getByRole("article").filter({ hasText: item });
   await expect(card.getByRole("heading")).toHaveText(new RegExp(`^${item}$`));
   await author.locator("summary", { hasText: "Filters" }).click();
-  await author.getByLabel("Workspace").selectOption("e2e-acme");
+  await author.getByLabel("Workspace", { exact: true }).selectOption("e2e-acme");
   await author.getByRole("button", { name: "Apply" }).click();
   await expect(author).toHaveURL(/workspace=e2e-acme/);
   await expect(author.getByRole("article")).toHaveCount(1);

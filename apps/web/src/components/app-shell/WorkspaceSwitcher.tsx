@@ -72,7 +72,7 @@ export const WorkspaceSwitcher = ({
         )}
       </summary>
       <div
-        className={`absolute z-40 grid gap-0.5 rounded-panel border border-strong bg-surface p-1 ${folded ? "top-0 left-full ml-2 w-72" : "inset-x-0 top-full mt-1 min-w-64"}`}
+        className={`absolute z-40 grid grid-cols-[minmax(0,1fr)] gap-0.5 rounded-panel border border-strong bg-surface p-1 ${folded ? "top-0 left-full ml-2 w-72" : "inset-x-0 top-full mt-1"}`}
       >
         <p className="px-3 pt-1.5 pb-1 font-mono text-xs uppercase text-muted">Show</p>
         <a
@@ -84,7 +84,7 @@ export const WorkspaceSwitcher = ({
           <span className="truncate">All workspaces</span>
         </a>
         {workspaces.map((w) => (
-          <div key={w.name} className="flex items-center gap-0.5">
+          <div key={w.name} className="flex min-w-0 items-center gap-0.5">
             <a
               href={chooseHref(w.name, here)}
               aria-current={w.name === chosen?.name ? "true" : undefined}

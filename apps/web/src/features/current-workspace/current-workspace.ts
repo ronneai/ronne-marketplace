@@ -96,3 +96,12 @@ export const choiceOf = (
     ? { action: "set", name: value }
     : { action: "keep" };
 };
+
+/** A page's own address, path and query, to come back to after a choice or Show all. */
+export const hereOf = (path: string, params: Record<string, Param>): string => {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params))
+    for (const one of [value ?? []].flat()) query.append(key, one);
+  const search = query.toString();
+  return search ? `${path}?${search}` : path;
+};

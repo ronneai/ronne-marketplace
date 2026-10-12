@@ -29,14 +29,23 @@ type Shown = {
   sort: "recent" | "installs" | "name";
 };
 
-/** The catalogue's URL for `query` with `changes`; the default sort and empty values are left out. */
-export const catalogueHref = (query: Shown, changes: Partial<Shown> & { cursor?: string } = {}) => {
+/**
+ * The catalogue's URL for `query` with `changes`; the default sort and empty values are left out.
+ * With `keepAll` (a current workspace is set, 120), all workspaces is written as an empty
+ * `?workspace=`: left out, the page would redirect to the current workspace.
+ */
+export const catalogueHref = (
+  query: Shown,
+  changes: Partial<Shown> & { cursor?: string } = {},
+  keepAll = false,
+) => {
   const next = { ...query, ...changes };
   const params = new URLSearchParams();
   if (next.q) params.set("q", next.q);
   for (const type of next.types) params.append("type", type);
   if (next.scope) params.set("scope", next.scope);
   if (next.workspace) params.set("workspace", next.workspace);
+  else if (keepAll) params.set("workspace", "");
   if (next.tool) params.set("tool", next.tool);
   if (next.sort !== "recent") params.set("sort", next.sort);
   if (changes.cursor) params.set("cursor", changes.cursor);

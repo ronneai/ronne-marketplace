@@ -25,7 +25,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   the button shows the current workspace. The folded rail and the Menu sheet too.
   *Done when:* component tests cover the list, the marking, the links and the folded name.
 
-- [ ] **3. The filtered pages.** A shared "Showing <name> only · Show all" line (with its helper).
+- [x] **3. The filtered pages.** A shared "Showing <name> only · Show all" line (with its helper).
   Catalogue: the parameter from the current workspace, its Filters select kept. Reviews: every tab
   filtered, its Workspace select and `queue-workspaces` helper removed, the "you don't review in"
   message. My submissions: a `workspace` filter in the service and repository (server-side, paged).

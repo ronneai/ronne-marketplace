@@ -51,9 +51,10 @@ says so); filtering Home, item pages or Requests; a current workspace per browse
   root's own memberships too: any other workspace is reachable through the catalogue's filter or
   the URL. A public workspace you aren't in isn't listed (join it from Workspaces, 094).
 - **Never a security boundary.** Every page and action checks permissions as before. A
-  `?workspace=` naming a workspace you can't see filters to nothing, with the same message as a
-  name no workspace has ("No workspace acme you can see"), so it doesn't reveal that a private
-  workspace exists. The cookie is only a preference: the server checks it against your
+  `?workspace=` naming a workspace you can't see filters to nothing, and says the same as for a
+  name no workspace has, so it doesn't reveal that a private workspace exists: the Catalogue says
+  "No workspace acme you can see", Reviews "You don't review submissions in acme", and My
+  submissions shows "Showing acme only" over an empty list (it only ever lists your own). The cookie is only a preference: the server checks it against your
   memberships on every request.
 - **A stale choice falls back.** If the current workspace is one you're no longer in, was renamed
   (113: its old name answers as unknown) or deleted, it counts as All workspaces, without an error

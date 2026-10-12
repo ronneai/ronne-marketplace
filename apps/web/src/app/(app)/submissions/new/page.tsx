@@ -1,4 +1,4 @@
-import { formatScopeName } from "@ronneai/core";
+import { formatScopeName, scopeRefFrom } from "@ronneai/core";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/Panel";
@@ -8,6 +8,7 @@ import { listScopes } from "@/server/domains/items/actions/scopes";
 import { listMySubmissions } from "@/server/domains/submissions/actions/drafts";
 import { itemNameOf } from "@/server/domains/submissions/models/submission";
 import { requestHeaders } from "@/server/http/request-headers";
+import { loadShell } from "../../shell";
 
 export const metadata = { title: "New item · Ronne AI Marketplace" };
 
@@ -38,7 +39,15 @@ const allScopes = async (headers: Headers): Promise<ScopeOption[]> => {
 
 const NewItem = async () => {
   const headers = await requestHeaders();
-  const [scopes, mine] = await Promise.all([allScopes(headers), listMySubmissions(headers)]);
+  const [scopes, mine, { current }] = await Promise.all([
+    allScopes(headers),
+    listMySubmissions(headers),
+    loadShell(),
+  ]);
+  // It starts in the current workspace (120), on its first scope.
+  const initialScope = current
+    ? scopes.find((option) => scopeRefFrom(option.name)?.workspace === current)?.name
+    : undefined;
   return (
     <>
       <nav aria-label="Breadcrumb" className="pb-3">
@@ -70,7 +79,7 @@ const NewItem = async () => {
           </>
         }
       />
-      <NewDraftForm scopes={scopes} mine={mine.map(itemNameOf)} />
+      <NewDraftForm scopes={scopes} mine={mine.map(itemNameOf)} initialScope={initialScope} />
     </>
   );
 };

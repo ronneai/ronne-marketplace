@@ -3,11 +3,13 @@ import { Help } from "@/components/help/Help";
 import { buttonClasses } from "@/components/ui/Button";
 import { parseListQuery } from "@/components/ui/data-table/list-query";
 import { PageHeader } from "@/components/ui/Panel";
+import { hereOf } from "@/features/current-workspace/current-workspace";
+import { Showing } from "@/features/current-workspace/Showing";
 import { BulkReleaseProvider, BulkReleaseToolbar } from "@/features/releases/BulkRelease";
 import { BulkSubmitProvider, BulkToolbar } from "@/features/submissions/BulkSubmit";
 import {
   checkedSubmissionsState,
-  SUBMISSIONS_LIST,
+  submissionsList,
   submissionsQueryOf,
 } from "@/features/submissions/list";
 import {
@@ -27,29 +29,35 @@ import {
 } from "@/server/domains/submissions/actions/submissions";
 import { itemNameOf } from "@/server/domains/submissions/models/submission";
 import { requestHeaders } from "@/server/http/request-headers";
+import { workspaceView } from "../shell";
 
 export const metadata = { title: "My submissions · Ronne AI Marketplace" };
 
 /**
  * Every signed-in user sees their own drafts and submissions (012), filtered by status (013), and
  * can submit several ready drafts at once (052). Archived ones have their own filter (057). Since
- * 063 a page at a time from the server, with the status counts from one query.
+ * 063 a page at a time from the server, with the status counts from one query. The current
+ * workspace (120) narrows the list and the counts to its submissions.
  */
 const Submissions = async ({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) => {
-  const state = checkedSubmissionsState(parseListQuery(SUBMISSIONS_LIST, await searchParams));
+  const params = await searchParams;
+  const view = await workspaceView("/submissions", params);
+  const list = submissionsList(view.fixed);
+  const state = checkedSubmissionsState(parseListQuery(list, params));
   const headers = await requestHeaders();
   const [{ rows, next, previous, total }, counts, { drafts: checked }] = await Promise.all([
-    pageMySubmissions(headers, submissionsQueryOf(state)),
-    countMySubmissionsByStatus(headers),
+    pageMySubmissions(headers, submissionsQueryOf(state, view.workspace)),
+    countMySubmissionsByStatus(headers, view.workspace ?? undefined),
     // Which open drafts Submit would take now (052): one check for the newest 100 of them, across
     // the whole list, so Select all ready isn't limited to this page.
     checkManyDrafts(headers, { all: true }),
   ]);
-  const hasAny = Object.values(counts).some((n) => (n ?? 0) > 0);
+  // In one workspace with nothing there, still the table (empty), not the first-time page.
+  const hasAny = Object.values(counts).some((n) => (n ?? 0) > 0) || view.workspace !== null;
   // The page's approved ones, released many at once (055).
   const releasable = Object.fromEntries(
     rows.filter((s) => s.status === "approved").map((s) => [s.id, itemNameOf(s)]),
@@ -89,12 +97,16 @@ const Submissions = async ({
         }
       />
       <Help id="export" />
+      {view.workspace ? (
+        <Showing workspace={view.workspace} here={hereOf("/submissions", params)} />
+      ) : null}
       {hasAny ? (
         <BulkSubmitProvider ready={ready} needs={needs}>
           <BulkReleaseProvider releasable={releasable}>
-            <StatusFilters counts={counts} state={state} />
+            <StatusFilters counts={counts} state={state} list={list} />
             {state.filters.status === "withdrawn" ? <Help id="archived" /> : null}
             <SubmissionsTable
+              list={list}
               state={state}
               submissions={rows}
               page={{ next, previous }}

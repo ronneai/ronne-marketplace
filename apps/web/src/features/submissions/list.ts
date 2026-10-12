@@ -21,6 +21,12 @@ export const SUBMISSIONS_LIST = defineList({
 
 export type SubmissionsListState = ListState<"updated" | "name", "status" | "q" | "type">;
 
+export type SubmissionsList = typeof SUBMISSIONS_LIST;
+
+/** The list showing one workspace (120): every link keeps `?workspace=`, like a fixed parameter. */
+export const submissionsList = (keep: Readonly<Record<string, string>> = {}): SubmissionsList =>
+  Object.keys(keep).length > 0 ? { ...SUBMISSIONS_LIST, fixed: keep } : SUBMISSIONS_LIST;
+
 const isStatus = (value: string): value is SubmissionStatus =>
   (SUBMISSION_STATUSES as readonly string[]).includes(value);
 const isItemType = (value: string): value is ItemType =>
@@ -36,8 +42,11 @@ export const checkedSubmissionsState = (state: SubmissionsListState): Submission
   },
 });
 
-/** The server query for a view. */
-export const submissionsQueryOf = (state: SubmissionsListState): MySubmissionsQuery => ({
+/** The server query for a view, in one workspace when given (120). */
+export const submissionsQueryOf = (
+  state: SubmissionsListState,
+  workspace: string | null = null,
+): MySubmissionsQuery => ({
   sort: state.sort,
   dir: state.dir,
   size: state.size,
@@ -45,4 +54,5 @@ export const submissionsQueryOf = (state: SubmissionsListState): MySubmissionsQu
   status: isStatus(state.filters.status) ? state.filters.status : undefined,
   search: state.filters.q || undefined,
   type: isItemType(state.filters.type) ? state.filters.type : undefined,
+  workspace: workspace ?? undefined,
 });
