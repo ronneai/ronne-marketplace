@@ -17,7 +17,7 @@ export const Showing = ({
   here: string;
   why?: "missing" | "not-reviewer";
 }) => (
-  <p className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
+  <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
     <span>
       {why === "missing" ? (
         <>
@@ -42,5 +42,5 @@ export const Showing = ({
       Show all
     </a>
     <Help id="current-workspace" />
-  </p>
+  </div>
 );
