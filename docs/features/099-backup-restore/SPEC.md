@@ -78,13 +78,18 @@ rmk-server backup --verify <archive> [--passphrase-file <file>]
   the container; the runbook says to copy it off the volume too). The folder is created with mode
   0700, the archive with 0600. Name: `ronne-backup-<UTC yyyymmdd-hhmmss>.tar` (`.tar.enc` when
   encrypted).
-- **What's in it** (a tar, written as it goes, so a large instance doesn't need the memory):
-  - `manifest.json`: the format version (1), Ronne's version, the time, the database kind it came
-    from, the applied migrations (`ronne_migration`'s names, in order), each table's row count, and
-    each file's size and sha256.
-  - `database/<table>.jsonl`: one JSON object per row, in primary-key order, every table the
-    migrations made except the migration tables. Binary columns as base64 (`{"$b64": "…"}`),
-    dates as ISO 8601 UTC, so the format doesn't depend on the dialect.
+- **What's in it** (a tar, written as it goes, so a large instance doesn't need the memory; every
+  field is in [`docs/spec/backup-format.md`](../../spec/backup-format.md)):
+  - `backup.json`, first: the format version (1), Ronne's version, the time, the database kind it
+    came from, and the applied migrations (`ronne_migration`'s names, in order), so a reader can
+    refuse a backup it can't restore before reading the rest.
+  - `database/<table>/<part>.jsonl`: one JSON object per row, in primary-key order, every table the
+    migrations made except the migration tables, in parts of up to 10,000 rows or 8 MiB (a larger
+    row is a part on its own; a tar header states its entry's size first, so each part is buffered,
+    never a whole table). Values are the same JSON for every dialect (dates as ISO 8601 UTC,
+    binary as `{"$b64": "…"}`), converted to the target column's type on restore.
+  - `manifest.json`, last: each table's columns, primary key and row count, and each entry's size
+    and sha256, which are only known once everything is written.
   - `storage/…`: every file under the storage path, as they are (artifacts, plugin zips and their
     sidecars).
   - `settings.env`: the settings file as it is (`DATABASE_URL`, `AUTH_SECRET`, `PUBLIC_URL`,
@@ -193,7 +198,9 @@ MySQL; `--encrypt` for archives that leave it; and (with 110) the bucket's serve
   read the applied migrations and starts its snapshot after.
 - **`--out` inside the storage path:** refused, so a backup never contains earlier backups.
 - **Restoring the same archive twice:** the second finds the database not empty and refuses.
-- **An archive from a newer format version:** refused with the version that can read it.
+- **An archive from a newer format version:** refused, naming the Ronne version that wrote it
+  (`backup.json`); an encrypted archive from a newer container version is refused as "encrypted by
+  a newer Ronne", since its header names no version.
 - **The passphrase from `RONNE_BACKUP_PASSPHRASE`:** never printed or logged; CodeQL's
   clear-text logging rule ([`codeql-logging.md`](../../knowledge/codeql-logging.md)) applies.
 - **Windows paths and file names:** storage keys use `/`; tar entries too; restore writes them

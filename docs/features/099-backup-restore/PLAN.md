@@ -9,7 +9,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. The format.** `docs/spec/backup-format.md`: the tar layout, `manifest.json`'s fields,
+- [x] **1. The format.** `docs/spec/backup-format.md`: the tar layout, `manifest.json`'s fields,
   the JSON Lines rows (base64 and date encoding), the encrypted container (header, scrypt
   parameters, salt, STREAM chunking with AES-256-GCM), the format version and what a reader does
   with a newer one. MVP §15's Operations row and the index's 099 row say "a portable archive"
@@ -18,15 +18,16 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 - [ ] **2. The snapshot and the dump.** [risky] In `db/`: `readSnapshot(db, fn)` (the read-only
   repeatable transaction per dialect), the table list and foreign-key order from the schema,
-  batched reads in primary-key order, and the row encoding. Streams `database/*.jsonl` into a tar
-  writer (`packages/core`'s ustar writer, extended to stream if needed).
+  batched reads in primary-key order, and the row encoding. Streams `database/<table>/<part>.jsonl`
+  into a tar writer (`packages/core`'s ustar writer, extended to stream and to write pax `path` and
+  `size` headers, as the format spec says).
   *Done when:* db tests on the four databases dump a seeded instance and show that a write made
   during the dump isn't in it; memory stays flat on 079's benchmark data set.
 
-- [ ] **3. `backup`.** The archive (manifest, database, storage, settings), checksums, the output,
-  the partial file removed on failure, `--out` (0700/0600, refused inside storage), `--no-settings`,
-  `--keep`, the environment-only values named, `instance.backup_made`. Script, `pnpm run`, tsdown
-  entry, `rmk-server`'s `SCRIPTS` and help, `scriptForService`.
+- [ ] **3. `backup`.** The archive (`backup.json`, database, storage, settings, manifest),
+  checksums, the output, the partial file removed on failure, `--out` (0700/0600, refused inside
+  storage), `--no-settings`, `--keep`, the environment-only values named, `instance.backup_made`.
+  Script, `pnpm run`, tsdown entry, `rmk-server`'s `SCRIPTS` and help, `scriptForService`.
   *Done when:* tests cover each flag, a disk-full failure (a mock writer) and `--keep`'s limits.
 
 - [ ] **4. Encryption.** [risky] The STREAM container with node:crypto only: scrypt, AES-256-GCM
