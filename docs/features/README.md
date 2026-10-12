@@ -278,10 +278,10 @@ After M13. Build order: 098 → 099 → 100 → 101.
 
 | ID | Feature | Depends on | Status |
 |---|---|---|---|
-| 098 | Threat model and incident response: the threat model (items run on developers' machines, review as the boundary, tokens, plugin feeds, export, our supply chain) and an incident runbook (yank a version, revoke tokens in bulk, rotate `AUTH_SECRET`, read the audit log, tell users); `SECURITY.md` links both | 007, 016, 009 | planned |
-| 099 | Backup and restore: `rmk-server backup` and `restore` (the database, storage and the settings file; SQLite with `VACUUM INTO`, `pg_dump` / `mysqldump` for the servers), the Docker volumes, encrypted backups, a backup runbook and a restore test in CI; encryption at rest is the disk's or the database's, documented | 082, 005 | planned |
-| 100 | Structured logs: JSON lines with a level, time and request ID, `LOG_LEVEL`, the same fields in every domain, no secrets or tokens in any line | 001 | planned |
-| 101 | Metrics and traces: OpenTelemetry, off unless `OTEL_EXPORTER_OTLP_ENDPOINT` is set (requests, database time, sign-ins, releases, feed builds); the health endpoint reports the database and storage | 100 | planned |
+| [098](./098-threat-model/SPEC.md) | Threat model and incident response: the threat model (items run on developers' machines, review as the boundary, tokens, plugin feeds, export, our supply chain) and an incident runbook (yank a version, revoke tokens in bulk, rotate `AUTH_SECRET`, read the audit log, tell users); `rmk-server revoke-access` and `rotate-secret`; `SECURITY.md` links both | 007, 016, 009 | specified |
+| [099](./099-backup-restore/SPEC.md) | Backup and restore: `rmk-server backup` and `restore` (the database, storage and the settings file in one portable archive, made while running, restorable into any of the three database kinds; native dumps left to operators), the Docker volumes, encrypted backups, a backup runbook and a restore test in CI; encryption at rest is the disk's or the database's, documented | 082, 005 | specified |
+| [100](./100-structured-logs/SPEC.md) | Structured logs: JSON lines with a level, time and request ID, `LOG_LEVEL`, the same fields in every domain, no secrets or tokens in any line | 001 | specified |
+| [101](./101-metrics-traces/SPEC.md) | Metrics and traces: OpenTelemetry, off unless `OTEL_EXPORTER_OTLP_ENDPOINT` is set (requests, database time, sign-ins, releases, feed builds); the health endpoint reports the database and storage | 100 | specified |
 
 ### M15 — Privacy and data lifecycle
 
