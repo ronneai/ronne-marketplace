@@ -24,7 +24,6 @@ vi.mock("next/navigation", () => ({
 }));
 
 const { UsersPage } = await import("./UsersPage");
-const { AdminNav } = await import("../admin/AdminNav");
 const { default: UsersRoute } = await import("@/app/(app)/admin/users/page");
 const { default: AdminLayout } = await import("@/app/(app)/admin/layout");
 
@@ -153,15 +152,6 @@ describe("UsersPage (061)", () => {
   });
 });
 
-describe("AdminNav", () => {
-  it("marks the current section from the live path", () => {
-    navigation.path = "/admin/audit";
-    const html = renderToStaticMarkup(<AdminNav />);
-    expect(html).toMatch(/aria-current="page"[^>]*>Audit log</);
-    expect(html).not.toMatch(/aria-current="page"[^>]*>Users</);
-  });
-});
-
 describe("root only", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -192,11 +182,10 @@ describe("root only", () => {
     expect(admin.adminListUsers).not.toHaveBeenCalled();
   });
 
-  it("root gets the layout with its navigation, and the list", async () => {
+  it("root gets the page alone, with no tabs (the sidebar links to each, 119), and the list", async () => {
     session.getCurrentUser.mockResolvedValue({ role: "root" });
     const layout = renderToStaticMarkup(await AdminLayout({ children: <p>inside</p> }));
-    expect(layout).toMatch(/aria-current="page"[^>]*>Users</);
-    expect(layout).toContain("inside");
+    expect(layout).toBe("<p>inside</p>");
     const page = renderToStaticMarkup(
       await UsersRoute({ searchParams: Promise.resolve({ q: "alex", role: "root" }) }),
     );
