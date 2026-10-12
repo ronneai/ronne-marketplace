@@ -2,6 +2,7 @@
 # The image has no pnpm. This stand-in keeps the documented commands working:
 #   docker compose exec web pnpm run setup
 #   docker compose exec web pnpm run reset-root-password
+#   docker compose exec web pnpm run revoke-access
 #   docker compose exec web pnpm db:migrate
 set -e
 cd /app/apps/web
@@ -9,9 +10,10 @@ cd /app/apps/web
 case "$1" in
   setup) shift; exec node dist-scripts/setup.mjs "$@" ;;
   reset-root-password) shift; exec node dist-scripts/reset-root-password.mjs "$@" ;;
+  revoke-access) shift; exec node dist-scripts/revoke-access.mjs "$@" ;;
   db:migrate) shift; exec node dist-scripts/migrate.mjs "$@" ;;
   *)
     # reset-setup is development-only on purpose: to start over here, remove the ronne-data volume.
-    echo "This image only supports: pnpm run setup, pnpm run reset-root-password, pnpm db:migrate" >&2
+    echo "This image only supports: pnpm run setup, pnpm run reset-root-password, pnpm run revoke-access, pnpm db:migrate" >&2
     exit 2 ;;
 esac

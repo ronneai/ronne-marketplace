@@ -1,5 +1,5 @@
 // `rmk-server service status | start | stop | restart | logs` (feature 083), and the scripts
-// (setup, migrate, reset-root-password) run for an installed service.
+// (setup, migrate, reset-root-password, revoke-access) run for an installed service.
 import { dirname, join } from "node:path";
 import {
   asAdmin,
@@ -195,10 +195,11 @@ const SCRIPT_VERBS: Record<string, string> = {
   setup: "set it up",
   migrate: "migrate its database",
   "reset-root-password": "reset its root password",
+  "revoke-access": "revoke access on it",
 };
 
 /**
- * `setup`, `migrate` and `reset-root-password` on a machine with the service installed: run as its
+ * `setup`, `migrate`, `reset-root-password` and `revoke-access` on a machine with the service installed: run as its
  * account, on its data and settings, rather than on root's own folder. Undefined when they should
  * run as usual (no service, or RONNE_DATA_DIR or RONNE_ENV_FILE chosen).
  *

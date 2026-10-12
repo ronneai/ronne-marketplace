@@ -14,6 +14,7 @@
     "db:migrate": "pnpm --filter @ronneai/core --silent build && tsx scripts/migrate.ts",
     "setup": "pnpm --filter @ronneai/core --silent build && tsx scripts/setup.ts",
     "reset-root-password": "pnpm --filter @ronneai/core --silent build && tsx scripts/reset-root-password.ts",
+    "revoke-access": "pnpm --filter @ronneai/core --silent build && tsx scripts/revoke-access.ts",
     "reset-setup": "tsx scripts/reset-setup.ts",
     "test:db": "pnpm --filter @ronneai/core --silent build && vitest run --project db",
     "bench:feeds": "pnpm --filter @ronneai/core --silent build && tsx scripts/feed-benchmark.ts",

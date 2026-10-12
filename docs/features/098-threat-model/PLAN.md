@@ -16,7 +16,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* each claim in the tables points at a file, test or setting that the witness can
   open and confirm; every gap has a feature ID or a decision it can be traced to.
 
-- [ ] **2. `revoke-access`.** [risky] The service in the `identity` domain (one transaction:
+- [x] **2. `revoke-access`.** [risky] The service in the `identity` domain (one transaction:
   delete sessions, set `revoked_at` on live tokens, the audit event `instance.access_revoked` with
   counts), the script `apps/web/scripts/revoke-access.ts` (`--everyone` / `--user`,
   `--sessions-only` / `--tokens-only`, the question, `--yes`), the `pnpm run` entry, the tsdown

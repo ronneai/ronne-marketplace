@@ -5,7 +5,7 @@ import { parseServiceArgs, type ServiceCommand } from "./service/args.js";
 type Env = Record<string, string | undefined>;
 
 /** The scripts the web app compiles to dist-scripts/, which rmk-server runs as they are. */
-export const SCRIPTS = ["setup", "migrate", "reset-root-password"] as const;
+export const SCRIPTS = ["setup", "migrate", "reset-root-password", "revoke-access"] as const;
 export type Script = (typeof SCRIPTS)[number];
 
 export { DEFAULT_HOST, DEFAULT_PORT };
@@ -80,6 +80,8 @@ Usage:
   rmk-server setup [--yes …]      Set the instance up in the terminal instead
   rmk-server migrate              Apply pending database migrations and exit
   rmk-server reset-root-password  Set a new password for root
+  rmk-server revoke-access --everyone | --user EMAIL [--sessions-only | --tokens-only] [--yes]
+                                  End sessions and revoke access tokens (for incidents)
   rmk-server service …            Run it as a service, started at boot (see rmk-server service --help)
   rmk-server --version | --help
 

@@ -106,3 +106,77 @@ export const parseResetCommand = (argv: string[], env: Env, hasTerminal: boolean
   }
   return { mode: "interactive", rootEmail };
 };
+
+export type RevokeAccessCommand =
+  | {
+      mode: "interactive" | "non-interactive";
+      target: { kind: "everyone" } | { kind: "user"; email: string };
+      kinds: { sessions: boolean; tokens: boolean };
+      databaseUrl?: string;
+    }
+  | { mode: "help" }
+  | { mode: "error"; exitCode: 2; message: string };
+
+export const REVOKE_ACCESS_USAGE = `Usage: revoke-access --everyone | --user EMAIL [--sessions-only | --tokens-only] [--yes]
+
+Ends sessions and revokes access tokens, for every account (root's included) or one person, for
+incidents. Nobody is disabled and no password changes: people sign in again and make new tokens.
+
+  --everyone       Every account on this instance
+  --user EMAIL     Only this person
+  --sessions-only  End sessions; keep access tokens
+  --tokens-only    Revoke access tokens; keep sessions
+  --yes, -y        Don't ask first (needed without a terminal)
+  --help, -h       Show this`;
+
+/**
+ * revoke-access's flags (098): exactly one of --everyone and --user <email>; --sessions-only or
+ * --tokens-only for half; --yes to skip the question (needed without a terminal).
+ */
+export const parseRevokeAccessCommand = (
+  argv: string[],
+  env: Env,
+  hasTerminal: boolean,
+): RevokeAccessCommand => {
+  const error = (message: string) => ({ mode: "error", exitCode: 2, message }) as const;
+  let values: {
+    everyone?: boolean;
+    user?: string;
+    "sessions-only"?: boolean;
+    "tokens-only"?: boolean;
+    yes?: boolean;
+    help?: boolean;
+  };
+  try {
+    ({ values } = parseArgs({
+      args: argv,
+      strict: true,
+      options: {
+        everyone: { type: "boolean" },
+        user: { type: "string" },
+        "sessions-only": { type: "boolean" },
+        "tokens-only": { type: "boolean" },
+        yes: { type: "boolean", short: "y" },
+        help: { type: "boolean", short: "h" },
+      },
+    }));
+  } catch (caught) {
+    return error((caught as Error).message);
+  }
+  if (values.help) return { mode: "help" };
+  if ((values.everyone === true) === (values.user !== undefined))
+    return error("Say whose access to revoke: --everyone, or --user <email>.");
+  if (values["sessions-only"] && values["tokens-only"])
+    return error("--sessions-only and --tokens-only can't be used together.");
+  const target =
+    values.user !== undefined
+      ? ({ kind: "user", email: values.user } as const)
+      : ({ kind: "everyone" } as const);
+  const kinds = {
+    sessions: !values["tokens-only"],
+    tokens: !values["sessions-only"],
+  };
+  if (values.yes) return { mode: "non-interactive", target, kinds, databaseUrl: env.DATABASE_URL };
+  if (!hasTerminal) return error("There's no terminal to ask for confirmation. Run it with --yes.");
+  return { mode: "interactive", target, kinds, databaseUrl: env.DATABASE_URL };
+};

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseResetCommand, parseSetupCommand } from "./cli";
+import { parseResetCommand, parseRevokeAccessCommand, parseSetupCommand } from "./cli";
 
 describe("parseSetupCommand", () => {
   it("is interactive in a terminal without --yes", () => {
@@ -71,6 +71,69 @@ describe("parseResetCommand", () => {
     expect(parseResetCommand(["--root", "x"], {}, true)).toMatchObject({
       mode: "error",
       exitCode: 2,
+    });
+  });
+});
+
+describe("parseRevokeAccessCommand (098)", () => {
+  const both = { sessions: true, tokens: true };
+
+  it("takes --everyone or --user, asking in a terminal and not with --yes", () => {
+    expect(parseRevokeAccessCommand(["--everyone"], {}, true)).toEqual({
+      mode: "interactive",
+      target: { kind: "everyone" },
+      kinds: both,
+    });
+    expect(
+      parseRevokeAccessCommand(
+        ["--user", "a@example.com", "--yes"],
+        { DATABASE_URL: "file:x" },
+        false,
+      ),
+    ).toEqual({
+      mode: "non-interactive",
+      target: { kind: "user", email: "a@example.com" },
+      kinds: both,
+      databaseUrl: "file:x",
+    });
+  });
+
+  it("--sessions-only and --tokens-only do half, never both", () => {
+    expect(
+      parseRevokeAccessCommand(["--everyone", "--sessions-only", "-y"], {}, false),
+    ).toMatchObject({ kinds: { sessions: true, tokens: false } });
+    expect(
+      parseRevokeAccessCommand(["--everyone", "--tokens-only", "-y"], {}, false),
+    ).toMatchObject({
+      kinds: { sessions: false, tokens: true },
+    });
+    expect(
+      parseRevokeAccessCommand(["--everyone", "--sessions-only", "--tokens-only"], {}, true),
+    ).toMatchObject({ mode: "error", exitCode: 2 });
+  });
+
+  it("needs exactly one of --everyone and --user", () => {
+    for (const argv of [[], ["--yes"], ["--everyone", "--user", "a@example.com"]])
+      expect(parseRevokeAccessCommand(argv, {}, true), argv.join(" ")).toMatchObject({
+        mode: "error",
+        exitCode: 2,
+        message: expect.stringContaining("--everyone"),
+      });
+  });
+
+  it("--help asks for the usage, whatever else is given", () => {
+    expect(parseRevokeAccessCommand(["--help"], {}, false)).toEqual({ mode: "help" });
+    expect(parseRevokeAccessCommand(["--everyone", "-h"], {}, true)).toEqual({ mode: "help" });
+  });
+
+  it("refuses unknown flags, and to wait for an answer without a terminal", () => {
+    expect(parseRevokeAccessCommand(["--everyone", "--all"], {}, true)).toMatchObject({
+      mode: "error",
+      exitCode: 2,
+    });
+    expect(parseRevokeAccessCommand(["--everyone"], {}, false)).toMatchObject({
+      mode: "error",
+      message: expect.stringContaining("--yes"),
     });
   });
 });

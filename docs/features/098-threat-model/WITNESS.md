@@ -64,3 +64,85 @@ Witnessed: 2026-10-11 22:29 EDT, by a fresh agent (blind). Commit: 149e14a9 (+ u
 | 10 | No regression in the other rows | no | confirmed | spot checks of `risk-flags.ts:68`, `install.ts:141`, `session.ts:26`, `access-token.ts:8,14,18,40`, `user-admin.ts:195,259`, `login-rate-limiter.ts:19`, `apply.ts:62`, `env-file.ts:98`, guard tests; future items labelled |
 
 **Overall:** met. Three wording nits (the draft limit, "will cover", `access-tokens.ts:134`) were applied after the pass; they change no claim.
+
+## Task 2 — `revoke-access`
+
+Witnessed: 2026-10-11 22:31 EDT, by a fresh agent (blind). Commit: 17a33fd9 (+ uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `--everyone` ends every session and revokes every live token in one transaction; accounts and passwords unchanged | no | confirmed | `services/instance-access.ts` inside `repo.transaction`; `instance-access.db.test.ts` → 8 passed on SQLite |
+| 2 | `--user <email>` only that person's; email normalised | no | confirmed | db test; CLI `--user ROOT@example.com --yes` → "Ended 1 session and revoked 0 access tokens." |
+| 3 | `--sessions-only` / `--tokens-only` each half; together refused (exit 2) | no | confirmed | db test; `cli.test.ts`; CLI `--everyone --sessions-only --yes` → "Ended 1 session." |
+| 4 | One `instance.access_revoked` event, actor null, counts only, target user or instance | no | confirmed | `audit_log` rows `{"via":"cli","scope":"user","email":…,"sessionsEnded":0,"tokensRevoked":1}` and `{"via":"cli","scope":"everyone",…}` |
+| 5 | Unknown email: says so, changes nothing, exit 1 | no | confirmed | CLI → "✗ That user doesn't exist.", exit 1; db test: no events |
+| 6 | A disabled user has nothing left to revoke | no | confirmed | db test → 0/0; CLI prints "Nothing to revoke" |
+| 7 | Two runs at once revoke each once, counts right | no | confirmed | `Promise.all` db test; `-t "two runs"` 3× on postgres, mysql, mariadb; mutation without `revoked_at is null` fails it |
+| 8 | DB tests pass on the four databases | no | confirmed | SQLite 26 passed; `test:db:postgres/mysql/mariadb` → 11 passed each |
+| 9 | A test shows a revoked session and token get 401 on the next request | no | partly | tests stop at `getCurrentUser` → null and `authenticateToken` → `token_revoked`; no test asserts 401 |
+| 10 | Asks in a terminal; no → nothing; no terminal without `--yes` → exit 2 | no | confirmed | under `expect`: question, `y` → done, `n` → "Cancelled. Nothing was revoked."; scripts test: exit 2 |
+| 11 | `pnpm run revoke-access` at the root and in apps/web | no | confirmed | `package.json`, `apps/web/package.json`; CLI runs above |
+| 12 | tsdown builds `dist-scripts/revoke-access.mjs` | no | confirmed | `tsdown --out-dir <scratchpad>` → among 7 files |
+| 13 | Docker routes `pnpm run revoke-access` | no | confirmed | `docker/pnpm:13`; `sh -n` OK |
+| 14 | `rmk-server` SCRIPTS and the service path | no | confirmed | `cli.ts:8`; `run.ts:103` → `scriptForService`; `SCRIPT_VERBS`; `cli.test.ts` 6 passed |
+| 15 | `rmk-server revoke-access --help` lists it | no | partly | `rmk-server --help` lists it; `revoke-access --help` → "✗ Unknown option '--help'", exit 2 |
+| 16 | The action in `AUDIT_ACTIONS`, the `instance` group, a summary | no | confirmed | `audit-event.ts:10`; `summary.test.ts` passes; typecheck and lint clean |
+
+**Overall:** not met: no test asserts the 401 (9), and `revoke-access --help` is an error (15). Minor: a half with nothing to do still revokes "0" and records an event; `HELP` leaves out `[--yes]`.
+
+Witnessed: 2026-10-11 22:38 EDT, by a fresh agent (adversarial). Commit: 17a33fd9 (+ uncommitted diff, tree fingerprint 2346482b). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `--everyone` ends every session and revokes every not-yet-revoked token, root's included | no | confirmed | seeded 3 users; built script → "Ended 9 sessions and revoked 6 access tokens."; already-revoked left alone; 8/8 on four databases |
+| 2 | `--user` only that person; trimmed and lower-cased | no | confirmed | `--user " ADA@EXAMPLE.COM " --tokens-only` → only ada; a hand-written mixed-case row isn't found (errs to nothing) |
+| 3 | One transaction: an audit failure leaves nothing changed | no | confirmed | probe making `recordAudit` throw → 9/6/4 before and after |
+| 4 | One event, actor null, counts only, no secrets | no | confirmed | `audit_log` row; `grep -c SEKRET` on a failing-URL trace → 0 |
+| 5 | Each half exactly | no | confirmed | `--sessions-only` → tokens untouched; `--tokens-only` → sessions untouched |
+| 6 | Bad combinations and unknown flags → exit 2 | no | confirmed | both halves, `--yes` alone, both targets, `--all`, `--no-yes`, positional, `--user` without value → 2 |
+| 7 | Never disables or changes a password | no | confirmed | service calls only delete/revoke/audit; db test |
+| 8 | Unknown email: nothing changes, exit 1, no event | no | confirmed | exit 1; event count 2 → 2 |
+| 9 | Refused on the very next request, no cache | no | confirmed | db test; `require-token.ts:31,69`; no `cookieCache`/`secondaryStorage` |
+| 10 | Never waits without a terminal | no | confirmed | `</dev/null` → exit 2; pty: Enter → cancelled, `y` → done |
+| 11 | Two runs at once | no | confirmed | 6 concurrent processes on PG, MySQL, MariaDB and SQLite WAL: all exit 0, counts add up, no deadlock |
+| 12 | Wired in pnpm, tsdown, docker/pnpm | no | confirmed | `package.json:27`, `apps/web/package.json:17`; built and ran; `Dockerfile:59` copies `dist-scripts` |
+| 13 | `rmk-server revoke-access --help` lists it | no | partly | `HELP` lists it; the script answers `--help` with "Unknown option", exit 2 |
+| 14 | Runs as the service account with a service installed | no | confirmed | `run.ts:103-110`, `control.ts:198`; marketplace tests 117/117 (no real service run) |
+| 15 | No regressions | no | confirmed | 40 files, 285 passed; typechecks and biome clean |
+
+**Overall:** not met: `revoke-access --help` (13). Also found: a half with nothing to do says "Revoked 0" and records an event; a run that loses a race prints zeros; a malformed `--user` exits 1, not 2; a bad `DATABASE_URL` prints a stack trace (as `reset-root-password` does; no password in it).
+
+### Re-check
+
+Witnessed: 2026-10-11 22:42 EDT, by a fresh agent (blind). Commit: 17a33fd9 (+ uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | After revoke-access a revoked token gets 401 from the token guard and an ended session redirects to sign-in, on four databases | no | confirmed | `instance-access.db.test.ts` "the next request after revoke-access": `requireToken` ok before, 401 `token_revoked` after; `requireUser` resolves before, `NEXT_REDIRECT` after; 15 passed on SQLite, postgres, mysql, mariadb |
+| 2 | `revoke-access --help` prints the usage, exit 0; `rmk-server --help` lists it with `[--yes]` | no | confirmed | built `dist/bin.js revoke-access --help` and `pnpm run revoke-access --help` → usage, exit 0; `rmk-server --help` → the line with `[--yes]` |
+| 3a | A half already empty says "Nothing to revoke" and writes no event | no | confirmed | probe: `--tokens-only` with only a session → "Nothing to revoke … no access tokens."; one event in `audit_log`, from the real run |
+| 3b | A run that finds nothing left after a race says so | no | confirmed | probe `race.mts` → "Nothing left to revoke … another run revoked it first." |
+| 4 | A malformed `--user` exits 2 | no | confirmed | `not-an-email`, `a@b`, `''`, `x@@example.com`, `--user=bad` → "Invalid --user", exit 2; test covers it |
+| 5 | The other test files and typecheck pass | no | confirmed | `cli.test.ts`, `summary.test.ts` 16 passed; server `cli.test.ts` 6 passed; typecheck 7/7 |
+
+**Overall:** met.
+
+Witnessed: 2026-10-11 22:52 EDT, by a fresh agent (adversarial). Commit: 17a33fd9 (+ uncommitted working tree). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `--help` / `-h` prints the usage and exits 0 whatever else is given, without the database | no | confirmed | `--help`, `-h`, `-hy`, `--help --everyone --yes`, `--everyone --help`, … → usage, exit 0; compiled script the same |
+| 2 | Invalid input next to `--help` is still exit 2, with the usage | no | confirmed | `--help --bogus`, `--help --user`, `--help=1`, positional, ambiguous → 2; usage after the error |
+| 3 | "Nothing to revoke" counts only the halves asked for, and never skips a needed revoke | no | confirmed | seven combinations of sessions/tokens per target, each revoking exactly what was asked |
+| 4 | Nothing found before the question → no event | no | confirmed | event delta +0 for the four "Nothing to revoke" cases, +1 for each real one |
+| 5 | Two runs at once: the loser says so; counts right | no | confirmed | 4 processes × 3 rounds, 50 sessions and 30 tokens: one did all, the rest "Nothing to revoke" or "another run revoked it first"; the loser writes a zero event (allowed by the spec) |
+| 6 | Malformed `--user` → 2; unknown → 1; neither changes anything | no | confirmed | edge inputs (empty, spaces, 5000 characters, SQL-like) → 2; `nobody@…`, `ädä@exämple.com` → 1; state and events unchanged |
+| 7 | The test drives `requireToken` (401) and `requireUser` (redirect) | no | confirmed | `instance-access.db.test.ts:157-181` |
+| 8 | That test fails if revoke does nothing or the guard answers another status | no | confirmed | mutations in a scratch copy: tokens half 0, sessions half 0, `errorResponse(403…)` → each fails |
+| 9 | db tests pass on four databases | no | confirmed | SQLite 31 passed; postgres, mysql, mariadb 9 passed each |
+| 10 | One transaction with the audit; no secrets | no | confirmed | `recordAudit` throwing → nothing changed on all four; metadata counts only |
+| 11 | The question; no changes nothing | no | confirmed | pty: `n` → "Cancelled. Nothing was revoked."; `y` → done |
+| 12 | HELP shows `[--yes]`; wiring | no | confirmed | `packages/server/src/cli.ts:8,83`; marketplace 117/117; `tsdown.config.ts:18`; `docker/pnpm:13`; `package.json:27` |
+| 13 | Typecheck and lint clean | no | confirmed | `tsc --noEmit`; `biome check` on changed paths |
+
+**Overall:** met. After both passes, "Everyone, you included, signs in again" prints only when sessions actually ended (`setup/revoke-access.ts`), as both passes suggested; the zero-count event of a run that loses a race is kept: it records what that run did.

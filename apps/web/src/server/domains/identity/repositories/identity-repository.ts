@@ -54,6 +54,8 @@ export interface IdentityRepository {
   } | null>;
   /** Any user, disabled or not. */
   findUser(userId: string): Promise<UserSummary | null>;
+  /** Any user by their (normalised) email, disabled or not. */
+  findUserByEmail(email: string): Promise<UserSummary | null>;
   /** One page of users in the query's order (keyset, 061). */
   pageUsers(query: UserPageQuery): Promise<KeysetPage<UserSummary>>;
   /** How many users match, up to the count cap. */
@@ -73,6 +75,13 @@ export interface IdentityRepository {
   deleteSessions(userId: string): Promise<number>;
   /** Returns how many active tokens were revoked. */
   revokeAccessTokens(userId: string, now: Date): Promise<number>;
+  /** Every user's sessions and not-revoked tokens, for `revoke-access --everyone` (098). */
+  countAllSessions(): Promise<number>;
+  countAllActiveAccessTokens(): Promise<number>;
+  /** Ends every session on the instance; returns how many. */
+  deleteAllSessions(): Promise<number>;
+  /** Revokes every token not revoked yet, everyone's; returns how many. */
+  revokeAllAccessTokens(now: Date): Promise<number>;
   /** Cancels the user's open requests to join workspaces (094); returns how many. */
   cancelAccessRequests(userId: string, now: Date): Promise<number>;
   /** Records an audit event in this repository's transaction (feature 007). */

@@ -89,6 +89,10 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     { name: text(m.email) },
     m.via === "web" ? ", in the web setup" : ", from the command line",
   ],
+  "instance.access_revoked": (m, e) =>
+    m.scope === "user"
+      ? ["Revoked the access of ", who(m, e), `${ended(m) || " (nothing left)"}${via(m)}`]
+      : [`Revoked everyone's access${ended(m) || " (nothing left)"}${via(m)}`],
   "user.password_reset": (m, e) => ["Reset the password of ", who(m, e), `${ended(m)}${via(m)}`],
   "auth.signed_in": (m) => [m.remember ? "Signed in (remembered for 30 days)" : "Signed in"],
   "auth.sign_in_failed": (m) => [
