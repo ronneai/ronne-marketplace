@@ -14,7 +14,8 @@ or how to revoke everyone's access in one step: root can only disable people one
 **In:**
 - **The threat model**, `docs/security/threat-model.md`: what Ronne protects, who might attack it,
   where the trust boundaries are, each threat with what stops it today and what's left, and the
-  known gaps, each pointing at the feature or issue that closes it (below).
+  known gaps, each pointing at the feature or issue that closes it, or the decision that accepts it
+  (below).
 - **The incident runbook**, `docs/runbooks/incident-response.md`: what to do, step by step, for
   each kind of incident (below), with the exact commands for Docker, the packages, the service and
   npm.
@@ -92,7 +93,8 @@ One Markdown file, readable by someone who has never seen the code. Its sections
      CodeQL, the image scan, npm provenance through trusted publishing, the image's provenance and
      SBOM, base images pinned by digest. Left: no signatures on the server packages or bundles
      beyond provenance; time-limited CVE exceptions such as E-7 (Caddy).
-5. **Known gaps**, one list, each with its feature or issue and the date it was checked.
+5. **Known gaps**, one list, each with the feature or issue that closes it or the decision that
+   accepts it (MVP §12, §15, a feature's spec), and the date it was checked.
 6. **When to update it:** a feature that adds a boundary, a token kind, an upload path or a new
    kind of item updates the model in the same change (the Documentation rule's twin); the release
    checklist (`docs/runbooks/release.md`) gets a line to check it.
@@ -104,7 +106,7 @@ do now, how to check it worked, and what to tell users. At least:
 
 | Incident | What to do |
 |---|---|
-| **A harmful item version was released** | Yank it with a reason (Versions page; 016): new installs stop, `latest` moves back, the feeds drop it at their next refresh. Deprecate the item if it shouldn't be used at all. Find who approved and released it in the audit log (`version.published`, `submission.approved`, `submission.override_approved`). Tell users: the yank reason shows in `rmk` (a warning for pinned projects) and on the item page; projects pinned to it must run `rmk update`, and files already written stay until they do. |
+| **A harmful item version was released** | Yank it with a reason (Versions page; 016): new installs stop, `latest` moves back, the feeds drop it at their next refresh. Deprecate the item if it shouldn't be used at all. Find who approved and released it in the audit log (`version.published`, `submission.approved`, `submission.override_approved`). Tell users: the yank reason shows on the item page and the Versions page; projects whose lockfile pins it keep installing it until they run `rmk update` (and `rmk` doesn't warn yet, though 022's spec says it should: a known gap), and files already written stay until they do. |
 | **An access token leaked** | Its owner revokes it at Account › Access tokens. If the owner can't, or several leaked: `rmk-server revoke-access --user <email>`, or `--everyone`. Check the audit log for what the token did (drafts created with its name). |
 | **An account was taken over** | Root disables it (008: ends its sessions, revokes its tokens), checks its audit events, resets its password, and enables it again with the person. A root account: `rmk-server reset-root-password` from the server. |
 | **The settings file, a backup or the server leaked** | `rmk-server rotate-secret` (everyone is signed out), `revoke-access --everyone` (tokens), change the database password and `DATABASE_URL`, and treat every item as possibly changed: compare the stored artifacts' sha256 with the database (099's `backup --verify` does it). |
@@ -128,8 +130,9 @@ rmk-server revoke-access --user <email> [--sessions-only | --tokens-only] [--yes
   sessions and revoke 23 access tokens for every account, root's included?") and asks; with `--yes`
   it doesn't ask (for scripts).
 - One transaction: deletes the sessions, sets `revoked_at` on the tokens not revoked yet, writes one
-  audit event `instance.access_revoked` (actor null, `via: "cli"`, `{ scope: "everyone" | "user",
-  user, sessions, tokens }`, the counts only). It doesn't disable anyone or change passwords: people
+  audit event `instance.access_revoked` (actor null; `{ via: "cli", scope: "everyone" | "user",
+  email, sessionsEnded, tokensRevoked }`, `email` only for `--user`, whose user is the event's
+  target; the counts use the same keys as Disable's `user.disabled`). It doesn't disable anyone or change passwords: people
   sign in again and make new tokens.
 - `--user` with an unknown email says so and changes nothing (exit 1). A disabled user's sessions
   and tokens are already gone; it says "nothing to revoke".
@@ -198,7 +201,7 @@ rmk-server rotate-secret [--yes]
 
 - [ ] `docs/security/threat-model.md` has the six sections above, a boundary diagram, a threat
       table per boundary with what stops each threat and what's left, and a known-gaps list where
-      every gap names a feature or an issue.
+      every gap names a feature, an issue, or the decision that accepts it.
 - [ ] `docs/runbooks/incident-response.md` covers the six incidents with commands for Docker,
       the packages, the service and npm, plus reading the audit log and what to tell users.
 - [ ] `rmk-server revoke-access --everyone` and `--user` end the sessions and revoke the tokens in

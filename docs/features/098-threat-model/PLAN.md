@@ -9,12 +9,12 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 ## Tasks
 
-- [ ] **1. The threat model.** `docs/security/threat-model.md` with the spec's six sections, the
+- [x] **1. The threat model.** `docs/security/threat-model.md` with the spec's six sections, the
   Mermaid boundary diagram and a threat table per boundary. Every "what stops it" names the
-  feature and is checked against the code as it is (not the specs); every gap names a planned
-  feature or a new issue in `docs/issues` (opened for gaps no feature covers).
+  feature and is checked against the code as it is (not the specs); every gap names the planned
+  feature that closes it or the decision that accepts it (a gap with neither goes to the owner).
   *Done when:* each claim in the tables points at a file, test or setting that the witness can
-  open and confirm; every gap has a feature ID or an issue folder.
+  open and confirm; every gap has a feature ID or a decision it can be traced to.
 
 - [ ] **2. `revoke-access`.** [risky] The service in the `identity` domain (one transaction:
   delete sessions, set `revoked_at` on live tokens, the audit event `instance.access_revoked` with
