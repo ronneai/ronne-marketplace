@@ -686,3 +686,28 @@ Witnessed: 2026-10-12 00:54 EDT, by a fresh agent (blind). Commit: 5c9a7a70 (+ u
 | 7 | The links resolve | no | confirmed | no link checker in the repository; probe → 184 relative links, 0 broken |
 
 **Overall:** met.
+
+## Task 7 — Documentation
+
+Witnessed: 2026-10-12 01:03 EDT, by a fresh agent (blind). Commit: 9d3f5223 (+ uncommitted Help.tsx, topics.ts, AuditLogPage.tsx); ronne-web branch `feat/marketplace-098-running-ronne` (+ uncommitted docs files). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `operations` with `security` and `incidents` in both `topics.ts`; every topic and section matches | no | confirmed | probe: app `TOPICS` slug → sections `toEqual` the website's `docsTopics` |
+| 2 | In the "start" group after Administration in both | no | confirmed | probe → `["overview","install","roles","admin","operations"]` in both |
+| 3 | English, Portuguese, French exist and render; the website's docs tests pass | no | confirmed | `{en,pt,fr}/index.ts`; `pnpm test src/content/docs` 5 passed; `renderToStaticMarkup` of both sections in three languages |
+| 4 | pt and fr keep the structure, commands, links, ids | no | confirmed | identical md5 of every `<Code>`, `DocLink`, `links.*` and command; read in full, no drift |
+| 5 | Security: the review boundary, override, risk flags | no | confirmed | `permissions.ts:34`; `risk-flags.ts` (workspace admins approve too: added after the pass) |
+| 6 | Installing runs nothing; settings file 0600; hashes; argon2 | no | confirmed | `env-file.ts`; `argon2-password-hasher.ts`; threat model §4.1, §4.4 |
+| 7 | Private isn't encrypted; links; latest release only | no | confirmed | threat model §4.3, §4.4; `SECURITY.md` |
+| 8 | Incidents: both commands as described | no | confirmed | `revoke-access.ts`, `rotate-secret.ts`, `instance-access.ts`, `cli.ts:89-91` |
+| 9 | The command table's forms | no | confirmed | matches the runbook and `args.ts:169` (the clone row added after the pass) |
+| 10 | The incident steps | no | confirmed | `versions.ts:183`; `nav.ts:130,153`; `user-admin.ts`; `UserRowActions.tsx` |
+| 11 | Administration → Audit log line, three languages | no | confirmed | `audit-event.ts:10-11,76`; rendered admin#audit has both actions |
+| 12 | Install → Upgrade line, three languages | no | confirmed | diff; matches `SECURITY.md` |
+| 13 | The helper links to `operations#incidents` | no | confirmed | `Help.tsx:323-328`; `AuditLogPage.tsx:176-181`; the website builds a page per topic with section ids |
+| 14 | The marketplace help and audit tests pass | no | confirmed | 3 files, 19 passed; `help.test.tsx:17` checks every helper's href |
+| 15 | Typecheck and lint in both repositories | no | confirmed | marketplace 7/7, `tsc` 0, biome clean; website lint 209 files, typecheck 0 |
+| 16 | The product-facts rows | no | confirmed | checked against the code and `SECURITY.md`; the branch isn't on `main` yet, as the rows say |
+
+**Overall:** met. After the pass: a clone row in the command table and "workspace admin" among those who approve, in the three languages; the website's lint, typecheck, 138 tests and build pass (ronne-web commit `9cfbfeb`).

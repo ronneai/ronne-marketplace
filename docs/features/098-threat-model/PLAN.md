@@ -50,7 +50,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   model still matches" as a step; `docs/MVP/MVP.md` §12 links the threat model.
   *Done when:* the links resolve (`docs` link check, if any, or by hand in the notes).
 
-- [ ] **7. Documentation.** In `../ronne-web` (a branch that goes live with the release): the new
+- [x] **7. Documentation.** In `../ronne-web` (a branch that goes live with the release): the new
   topic `operations` with **Security** and **Incidents** in English, Portuguese and French, both
   `topics.ts`, Administration → Audit log and Install → Upgrade lines; here, the helper on Admin ›
   Audit log.
