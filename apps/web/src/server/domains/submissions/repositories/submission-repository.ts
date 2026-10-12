@@ -30,6 +30,8 @@ export type AuthorFilters = {
   /** Part of the item name, any case. */
   search?: string;
   type?: ItemType;
+  /** Only those in this workspace, by name (120's current workspace). */
+  workspace?: string;
 };
 
 export type AuthorPageQuery = AuthorFilters & {
@@ -103,8 +105,14 @@ export interface SubmissionRepository {
   pageByAuthor(query: AuthorPageQuery): Promise<KeysetPage<Submission>>;
   /** How many of an author's submissions the filters match, up to the count cap. */
   countByAuthor(filters: AuthorFilters): Promise<{ count: number; capped: boolean }>;
-  /** How many submissions an author has in each status, for My submissions' status links. */
-  statusCountsByAuthor(authorId: string): Promise<Partial<Record<SubmissionStatus, number>>>;
+  /**
+   * How many submissions an author has in each status, for My submissions' status links; in one
+   * workspace only when given, by name (120).
+   */
+  statusCountsByAuthor(
+    authorId: string,
+    workspace?: string,
+  ): Promise<Partial<Record<SubmissionStatus, number>>>;
   /** One page of a queue tab (keyset, 062), with each author's name. */
   pageForReview(query: ReviewPageQuery): Promise<KeysetPage<Submission & { authorName: string }>>;
   /** How many submissions a queue tab's filters match, up to the count cap. */

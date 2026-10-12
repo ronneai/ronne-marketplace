@@ -4,6 +4,7 @@ import { packItem } from "@ronneai/core/pack";
 import { parse } from "yaml";
 import { createDb } from "../src/server/db/create-db";
 import { toDbDate } from "../src/server/db/dates";
+import { newId } from "../src/server/db/ids";
 import { argon2PasswordHasher } from "../src/server/domains/identity/repositories/argon2-password-hasher";
 import { kyselyIdentityRepository } from "../src/server/domains/identity/repositories/kysely-identity-repository";
 import { kyselyItemRepository } from "../src/server/domains/items/repositories/kysely-item-repository";
@@ -19,6 +20,7 @@ import {
   E2E_ACME_MEMBERS,
   E2E_DOOR,
   E2E_FALLBACK_ITEMS,
+  E2E_FOCUS,
   E2E_JOIN,
   E2E_JOIN_MODERATORS,
   E2E_LONG_SCOPE,
@@ -484,6 +486,54 @@ const releaseSkillIn = async (
 };
 await releaseSkillIn(E2E_VAULT, "private", E2E_VAULT.members);
 await releaseSkillIn(E2E_SHELF, "public", []);
+// Work in one workspace (120): two public workspaces with each project's moderator in both, and in
+// each a draft of every moderator's and a submission waiting for review.
+for (const where of [E2E_FOCUS, E2E_FOCUS.other]) {
+  await releaseSkillIn(where, "public", Object.values(E2E_FOCUS.moderators));
+  await db
+    .updateTable("workspace_members")
+    .set({ role: "moderator" })
+    .where(
+      "user_id",
+      "in",
+      Object.values(E2E_FOCUS.moderators).map((key) => ids[key] ?? ""),
+    )
+    .where("workspace_id", "in", (eb) =>
+      eb.selectFrom("workspaces").select("id").where("name", "=", where.workspace),
+    )
+    .execute();
+  const scope = await db
+    .selectFrom("scopes")
+    .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
+    .select("scopes.id")
+    .where("workspaces.name", "=", where.workspace)
+    .where("scopes.name", "=", where.scope)
+    .executeTakeFirstOrThrow();
+  const now = toDbDate(new Date(), dialect);
+  const row = (authorId: string, name: string, status: "draft" | "submitted") => ({
+    id: newId(),
+    author_id: authorId,
+    scope_id: scope.id,
+    name,
+    type: "rule",
+    item_id: null,
+    base_version_id: null,
+    rebase_conflicts: null,
+    status,
+    created_at: now,
+    updated_at: now,
+    submitted_at: status === "draft" ? null : now,
+  });
+  await db
+    .insertInto("submissions")
+    .values([
+      ...Object.entries(E2E_FOCUS.moderators).map(([project, key]) =>
+        row(ids[key] ?? "", `${where.draft}-${project}`, "draft"),
+      ),
+      row(ids.releaser ?? "", where.waiting, "submitted"),
+    ])
+    .execute();
+}
 await releaseSkillIn(E2E_DOOR, "public", []);
 await releaseSkillIn(E2E_TWIN, "public", []);
 await release(E2E_TWIN.item, "rule", "1.0.0", {
@@ -505,6 +555,24 @@ await db
   .updateTable("item_versions")
   .set({ published_at: longAgo })
   .where("item_id", "in", twins)
+  .execute();
+// 120's two items, aged the same way, so they don't crowd the composer's first page either.
+const focusItems = (
+  await db
+    .selectFrom("items")
+    .select("id")
+    .where("name", "in", [E2E_FOCUS.item, E2E_FOCUS.other.item])
+    .execute()
+).map((row) => row.id);
+await db
+  .updateTable("items")
+  .set({ last_published_at: longAgo })
+  .where("id", "in", focusItems)
+  .execute();
+await db
+  .updateTable("item_versions")
+  .set({ published_at: longAgo })
+  .where("item_id", "in", focusItems)
   .execute();
 // A workspace per project for its admin to rename (113), each with a released skill.
 for (const [project, admin] of Object.entries(E2E_RENAME.projects)) {

@@ -9,7 +9,7 @@ import { loadShell } from "./shell";
  * which `loadShell` checks.
  */
 const AppLayout = async ({ children }: { children: ReactNode }) => {
-  const { user, theme, navCounts, workspaces, folded } = await loadShell();
+  const { user, theme, navCounts, workspaces, folded, current } = await loadShell();
   return (
     <AppShell
       user={user}
@@ -17,6 +17,7 @@ const AppLayout = async ({ children }: { children: ReactNode }) => {
       signOutAction={signOutFromMenu}
       navCounts={navCounts}
       workspaces={workspaces}
+      current={current}
       folded={folded}
       version={version}
     >

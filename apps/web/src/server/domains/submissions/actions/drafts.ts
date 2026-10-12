@@ -115,8 +115,11 @@ export const pageMySubmissions = async (
   app: AppAuth = getAppAuth(),
 ) => service.pageMySubmissions(...(await bound(headers, app)), query);
 
-export const countMySubmissionsByStatus = async (headers: Headers, app: AppAuth = getAppAuth()) =>
-  service.countMySubmissionsByStatus(...(await bound(headers, app)));
+export const countMySubmissionsByStatus = async (
+  headers: Headers,
+  workspace?: string,
+  app: AppAuth = getAppAuth(),
+) => service.countMySubmissionsByStatus(...(await bound(headers, app)), workspace);
 
 export const getDraft = async (headers: Headers, id: string, app: AppAuth = getAppAuth()) =>
   service.getDraft(...(await bound(headers, app)), id);

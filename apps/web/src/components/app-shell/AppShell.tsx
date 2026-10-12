@@ -21,6 +21,7 @@ export const AppShell = ({
   signOutAction,
   navCounts,
   workspaces = [],
+  current = null,
   folded = false,
   version,
   children,
@@ -33,6 +34,8 @@ export const AppShell = ({
   navCounts?: Record<string, number>;
   /** The workspaces the switcher lists (119). */
   workspaces?: ShellWorkspace[];
+  /** The current workspace (120), or null for All workspaces. */
+  current?: string | null;
   /** Whether the sidebar is folded, from its cookie (119). */
   folded?: boolean;
   /** The app's version, at the sidebar's foot. */
@@ -49,6 +52,7 @@ export const AppShell = ({
           items={items}
           counts={navCounts}
           workspaces={workspaces}
+          current={current}
           folded={folded}
           propose={propose}
           appearance={<ThemeToggle theme={theme} />}
@@ -75,6 +79,7 @@ export const AppShell = ({
                   items={items}
                   counts={navCounts}
                   workspaces={workspaces}
+                  current={current}
                   propose={propose}
                   appearance={<ThemeToggle theme={theme} />}
                   signOutAction={signOutAction}

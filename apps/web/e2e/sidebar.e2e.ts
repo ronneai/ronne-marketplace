@@ -37,22 +37,30 @@ test("the sidebar folds and stays folded; the switcher opens a workspace", async
   await unfold.click();
   await expect(aside.getByRole("button", { name: "Fold the sidebar" })).toBeVisible();
 
-  // The switcher: their personal workspace first, then All workspaces.
+  // The switcher (120): All workspaces at first; choosing their personal workspace makes it the
+  // current one and stays on the page; each row also opens its workspace's page.
   const switcher = aside.locator("details").first();
-  await switcher.locator("summary").click();
-  await expect(switcher.locator("summary")).toContainText("Personal workspace");
-  const first = switcher.getByRole("link").first();
-  await expect(first).toContainText("personal");
-  const href = (await first.getAttribute("href")) ?? "";
-  expect(href).toMatch(/^\/workspaces\/[^/]+$/);
-  await first.click();
-  await expect(page).toHaveURL(new RegExp(`${href}$`));
-  await expect(switcher).not.toHaveAttribute("open");
+  const summary = switcher.locator("summary");
+  await expect(summary).toContainText("All workspaces");
+  await summary.click();
+  const personal = switcher.getByRole("link").filter({ hasText: "personal" });
+  await personal.click();
+  await expect(page).toHaveURL(/\/catalogue(\?|$)/);
+  await expect(summary).toContainText("Personal workspace");
+  const name = (await summary.locator("span span").first().textContent()) ?? "";
+  await summary.click();
+  await expect(personal).toHaveAttribute("aria-current", "true");
+  await switcher.getByRole("link", { name: `Open ${name}'s page` }).click();
+  await expect(page).toHaveURL(new RegExp(`/workspaces/${name}$`));
   await expect(nav.getByRole("link", { name: "Workspaces", exact: true })).toHaveAttribute(
     "aria-current",
     "page",
   );
-  await switcher.locator("summary").click();
+  // All workspaces again, then Manage workspaces opens the list.
+  await summary.click();
   await switcher.getByRole("link", { name: "All workspaces" }).click();
+  await expect(summary).toContainText("All workspaces");
+  await summary.click();
+  await switcher.getByRole("link", { name: "Manage workspaces" }).click();
   await expect(page).toHaveURL(/\/workspaces$/);
 });

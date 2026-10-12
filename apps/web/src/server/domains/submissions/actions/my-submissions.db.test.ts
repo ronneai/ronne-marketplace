@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { toDbDate } from "../../../db/dates";
 import { newId } from "../../../db/ids";
+import { createPersonalWorkspace } from "../../../db/personal-workspaces";
 import { createTestDb, type TestDb } from "../../../db/testing/test-db";
 import { createRoot } from "../../identity/actions/root-account";
 import { signIn } from "../../identity/actions/session";
@@ -34,7 +35,7 @@ beforeEach(async () => {
 afterEach(() => t.cleanup());
 
 /** Submissions straight into the table: `name:status:type`, one second apart, oldest first. */
-const insert = async (email: string, specs: string[]) => {
+const insert = async (email: string, specs: string[], scopeName = "team") => {
   const author = await t.db
     .selectFrom("user")
     .select("id")
@@ -43,7 +44,7 @@ const insert = async (email: string, specs: string[]) => {
   const scope = await t.db
     .selectFrom("scopes")
     .select("id")
-    .where("name", "=", "team")
+    .where("name", "=", scopeName)
     .executeTakeFirstOrThrow();
   const start = new Date("2026-10-01T10:00:00Z").getTime();
   const rows = specs.map((spec, i) => {
@@ -130,12 +131,50 @@ describe("My submissions on the server (063)", () => {
       "e:submitted",
     ]);
     await insert("other@example.com", ["x:draft"]);
-    expect(await countMySubmissionsByStatus(asAuthor, app)).toEqual({
+    expect(await countMySubmissionsByStatus(asAuthor, undefined, app)).toEqual({
       draft: 2,
       withdrawn: 1,
       published: 1,
       submitted: 1,
     });
+  });
+
+  it("filters by workspace, the list, its total and the status counts (120)", async () => {
+    const author = await t.db
+      .selectFrom("user")
+      .select("id")
+      .where("email", "=", "author@example.com")
+      .executeTakeFirstOrThrow();
+    // The test users have none; Create user (008) makes one (114).
+    const personal = await createPersonalWorkspace(
+      t.db,
+      t.dialect,
+      { id: author.id, email: "author@example.com" },
+      new Date(),
+    );
+    await createScope(
+      asAuthor,
+      { name: "mine", description: "Mine.", workspaceId: personal.id },
+      app,
+    );
+    await insert("author@example.com", ["g1:draft", "g2:submitted"]);
+    await insert("author@example.com", ["p1:draft", "p2:published"], "mine");
+    // Both inserts start at the same times: the unfiltered order interleaves them.
+    expect((await names({})).sort()).toEqual(["g1", "g2", "p1", "p2"]);
+    expect(await names({ workspace: personal.name })).toEqual(["p2", "p1"]);
+    expect(await names({ workspace: personal.name.toUpperCase() })).toEqual(["p2", "p1"]);
+    expect(await names({ workspace: "global" })).toEqual(["g2", "g1"]);
+    expect(await names({ workspace: "no-such-workspace" })).toEqual([]);
+    expect((await pageMySubmissions(asAuthor, { workspace: "global" }, app)).total.count).toBe(2);
+    expect(await countMySubmissionsByStatus(asAuthor, personal.name, app)).toEqual({
+      draft: 1,
+      published: 1,
+    });
+    expect(await countMySubmissionsByStatus(asAuthor, "global", app)).toEqual({
+      draft: 1,
+      submitted: 1,
+    });
+    expect(await countMySubmissionsByStatus(asAuthor, "no-such-workspace", app)).toEqual({});
   });
 
   it("leaves listMySubmissions as it was for the home and new-draft pages", async () => {

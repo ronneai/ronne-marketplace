@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Sidebar } from "@/components/app-shell/Sidebar";
+import { listUrl } from "@/components/ui/data-table/list-query";
 import type { QueueRow } from "@/server/domains/submissions/actions/reviews";
 
 const reviews = vi.hoisted(() => ({
@@ -18,9 +19,16 @@ vi.mock("next/navigation", () => ({
     throw new Error("NEXT_NOT_FOUND");
   },
   usePathname: () => "/reviews",
+  useSearchParams: () => new URLSearchParams(),
   useRouter: () => ({ refresh: () => undefined }),
 }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+// The page's current workspace (120): `shell.current` per test, the real rule for what's shown.
+const shell = vi.hoisted(() => ({ current: null as string | null }));
+vi.mock("@/app/(app)/shell", async () => {
+  const { fakeWorkspaceView } = await import("@/features/current-workspace/testing");
+  return { workspaceView: fakeWorkspaceView(shell) };
+});
 
 const { approvableRows, QueueTable, QueueTabs, queueTab } = await import("./QueueTable");
 const { BulkApproveProvider, BulkApproveToolbar } = await import("./BulkApprove");
@@ -79,6 +87,7 @@ const needs = (rows: QueueRow[]) =>
 
 beforeEach(() => {
   vi.clearAllMocks();
+  shell.current = null;
   session.getCurrentUser.mockResolvedValue({
     id: "m",
     email: "m@x.test",
@@ -186,34 +195,61 @@ describe("the queue", () => {
     ).toHaveLength(2);
   });
 
-  it("offers a Workspace filter when the reviewer moderates several, and sends it to the query (091)", () => {
-    const one = renderToStaticMarkup(
-      <QueueTable {...tableProps("decided", [row()], null)} workspaces={["acme"]} />,
-    );
-    expect(one).not.toContain('id="queue-workspace"');
-    const several = renderToStaticMarkup(
-      <QueueTable {...tableProps("decided", [row()], null)} workspaces={["acme", "beta"]} />,
-    );
-    expect(several).toContain('id="queue-workspace"');
-    expect(several).toContain(">Every workspace you moderate</option>");
-    const forRoot = renderToStaticMarkup(
-      <QueueTable {...tableProps("decided", [row()], null)} workspaces={["acme", "beta"]} root />,
-    );
-    expect(forRoot).toContain(">Every workspace</option>");
-    expect(several).toContain('<option value="beta">beta</option>');
-    expect(several).toContain("Why only these?");
-    expect(one).not.toContain("Why only these?");
-    const list = queueList("needs");
-    const state = checkedQueueState(parseListQuery(list, { workspace: "beta" }));
-    expect(queueQueryOf("needs", state)).toMatchObject({ workspace: "beta" });
-    expect(queueQueryOf("needs", parseListQuery(list, {}))).toMatchObject({
-      workspace: undefined,
+  it("has no Workspace filter of its own: the current workspace (120) is a fixed parameter", () => {
+    const html = renderToStaticMarkup(<QueueTable {...tableProps("decided", [row()], null)} />);
+    expect(html).not.toContain('id="queue-workspace"');
+    expect(html).not.toContain("Why only these?");
+    // The workspace shown goes to the query, and every link of the list keeps it, tab included.
+    const list = queueList("waiting", { workspace: "beta" });
+    const state = checkedQueueState(parseListQuery(list, { workspace: "beta", q: "fmt" }));
+    expect(queueQueryOf("waiting", state, "beta")).toMatchObject({
+      workspace: "beta",
+      search: "fmt",
     });
+    expect(queueQueryOf("waiting", state)).toMatchObject({ workspace: undefined });
+    expect(listUrl(list, state, { sort: "name" })).toBe(
+      "/reviews?tab=waiting&workspace=beta&q=fmt&sort=name",
+    );
+    // An explicit All while a current workspace is set stays in the links.
+    expect(listUrl(queueList("needs", { workspace: "" }), state, {})).toBe(
+      "/reviews?workspace=&q=fmt",
+    );
+  });
+
+  it("keeps the workspace on the tabs' links", () => {
+    const html = renderToStaticMarkup(<QueueTabs tab="needs" keep={{ workspace: "beta" }} />);
+    expect(html).toContain('href="/reviews?workspace=beta"');
+    expect(html).toContain('href="/reviews?tab=waiting&amp;workspace=beta"');
   });
 
   it("marks the current tab", () => {
     const html = renderToStaticMarkup(<QueueTabs tab="waiting" />);
     expect(html).toMatch(/aria-current="page"[^>]*>Waiting on the author/);
+  });
+
+  it("follows the current workspace (120): redirects to it, filters every tab, and says so", async () => {
+    shell.current = "global";
+    await expect(
+      ReviewsPage({ searchParams: Promise.resolve({ tab: "waiting" }) }),
+    ).rejects.toThrow("REDIRECT /reviews?tab=waiting&workspace=global");
+    const html = renderToStaticMarkup(
+      await ReviewsPage({ searchParams: Promise.resolve({ tab: "waiting", workspace: "global" }) }),
+    );
+    expect(reviews.listQueue).toHaveBeenCalledWith(
+      expect.any(Headers),
+      expect.objectContaining({ tab: "waiting", workspace: "global" }),
+    );
+    expect(html).toMatch(/Showing <strong[^>]*>global<\/strong> only/);
+    expect(html).toContain('href="/reviews?workspace=global"');
+    expect(html).toContain('href="/reviews?tab=release&amp;workspace=global"');
+  });
+
+  it("says when you don't review in the workspace shown (120), the same for private or unknown", async () => {
+    const html = renderToStaticMarkup(
+      await ReviewsPage({ searchParams: Promise.resolve({ workspace: "acme" }) }),
+    );
+    expect(html).toMatch(/You don&#x27;t review submissions in <strong[^>]*>acme<\/strong>/);
+    expect(html).toContain("Show all");
   });
 
   it("is a 404 for anyone who can't review, and lists the tab for those who can", async () => {

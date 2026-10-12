@@ -37,7 +37,10 @@ export const safeNextPath = (value: string | null | undefined): string => {
     return "/";
   }
   // The URL parser drops tabs and newlines, so "/\t/evil.test" becomes "//evil.test": check again.
-  if (url.origin !== ORIGIN || isPublicPath(url.pathname)) return "/";
+  // It also resolves dot-segments, so "/a/..//evil.test" (and "/%2e%2e//evil.test") comes out as
+  // the path "//evil.test", which a browser reads as another site: refuse a path that starts so.
+  if (url.origin !== ORIGIN || url.pathname.startsWith("//") || isPublicPath(url.pathname))
+    return "/";
   return `${url.pathname}${url.search}${url.hash}`;
 };
 

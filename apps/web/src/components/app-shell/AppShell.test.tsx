@@ -1,8 +1,11 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-const navigation = vi.hoisted(() => ({ path: "/" }));
-vi.mock("next/navigation", () => ({ usePathname: () => navigation.path }));
+const navigation = vi.hoisted(() => ({ path: "/", search: "" }));
+vi.mock("next/navigation", () => ({
+  usePathname: () => navigation.path,
+  useSearchParams: () => new URLSearchParams(navigation.search),
+}));
 // The theme switch posts to a server action; the render only needs a reference to it.
 vi.mock("@/features/theme/actions", () => ({ setThemeFromForm: vi.fn() }));
 
@@ -208,45 +211,69 @@ describe("WorkspaceSwitcher", () => {
     { name: "global", role: "user" as const, personal: false },
     { name: "acme", role: "moderator" as const, personal: false },
   ];
+  const render = (current: string | null, folded = false) =>
+    renderToStaticMarkup(
+      <WorkspaceSwitcher workspaces={workspaces} current={current} folded={folded} />,
+    );
+  const summary = (html: string) =>
+    html.slice(html.indexOf("<summary"), html.indexOf("</summary>"));
+  const hrefs = (html: string) =>
+    [...html.matchAll(/<a [^>]*href="([^"]+)"/g)].map((match) =>
+      match[1]?.replaceAll("&amp;", "&"),
+    );
 
-  it("shows the personal workspace, and lists them in order, each opening its page", () => {
-    const html = renderToStaticMarkup(<WorkspaceSwitcher workspaces={workspaces} />);
-    const summary = html.slice(html.indexOf("<summary"), html.indexOf("</summary>"));
-    expect(summary).toContain(">ana<");
-    expect(summary).toContain("Personal workspace");
-    const links = [...html.matchAll(/<a [^>]*href="([^"]+)"/g)].map((match) => match[1]);
-    expect(links).toEqual([
+  it("shows the current workspace, or All workspaces (120)", () => {
+    expect(summary(render(null))).toContain(">All workspaces<");
+    expect(summary(render("acme"))).toContain(">acme<");
+    expect(summary(render("ana"))).toContain("Personal workspace");
+    // A name it isn't offered (stale) shows as all.
+    expect(summary(render("gone"))).toContain(">All workspaces<");
+  });
+
+  it("offers All workspaces, then each workspace as a choice and its page, then Manage workspaces", () => {
+    navigation.path = "/catalogue";
+    navigation.search = "q=lint&workspace=acme";
+    const html = render("acme");
+    navigation.path = "/";
+    navigation.search = "";
+    const here = encodeURIComponent("/catalogue?q=lint&workspace=acme");
+    expect(hrefs(html)).toEqual([
+      `/current-workspace?set=&next=${here}`,
+      `/current-workspace?set=ana&next=${here}`,
       "/workspaces/ana",
+      `/current-workspace?set=global&next=${here}`,
       "/workspaces/global",
+      `/current-workspace?set=acme&next=${here}`,
       "/workspaces/acme",
       "/workspaces",
     ]);
+    expect(html).toContain('aria-label="Open acme&#x27;s page"');
+    expect(html).toContain(">Manage workspaces");
     expect(html).toMatch(/>acme<\/span><span[^>]*>moderator</);
     expect(html).toMatch(/>ana<\/span><span[^>]*>personal</);
-    expect(html).toContain("All workspaces");
   });
 
-  it("says Workspaces when there's no personal one, and is named by its label when folded", () => {
-    const html = renderToStaticMarkup(<WorkspaceSwitcher workspaces={workspaces.slice(1)} />);
-    expect(html.slice(html.indexOf("<summary"), html.indexOf("</summary>"))).toContain(
-      ">Workspaces<",
-    );
-    expect(renderToStaticMarkup(<WorkspaceSwitcher workspaces={workspaces} folded />)).toContain(
-      'aria-label="Workspaces: ana (personal workspace)"',
-    );
+  it("marks the current choice, and only it", () => {
+    const current = (html: string) =>
+      [...html.matchAll(/<a [^>]*aria-current="true"[^>]*>[\s\S]*?<\/a>/g)].map((m) => m[0]);
+    expect(current(render("acme"))).toHaveLength(1);
+    expect(current(render("acme"))[0]).toContain("set=acme");
+    expect(current(render(null))[0]).toContain("All workspaces");
   });
 
-  it("puts each full name in a title, since a long one is cut", () => {
-    const html = renderToStaticMarkup(<WorkspaceSwitcher workspaces={workspaces} />);
-    expect(html).toContain('title="acme"');
-    expect(html).toContain('title="ana (personal workspace)"');
+  it("is named by the current workspace when folded", () => {
+    expect(render("ana", true)).toContain('aria-label="Workspace: ana (personal workspace)"');
+    expect(render(null, true)).toContain('aria-label="Workspace: All workspaces"');
   });
 
-  it("encodes a name in its link", () => {
+  it("puts each full name in a title, since a long one is cut, and encodes names in links", () => {
+    expect(render(null)).toContain('title="acme"');
+    expect(render("ana")).toContain('title="ana (personal workspace)"');
     const html = renderToStaticMarkup(
       <WorkspaceSwitcher workspaces={[{ name: "a b", role: "user", personal: false }]} />,
     );
     expect(html).toContain('href="/workspaces/a%20b"');
+    expect(html).toContain("set=a+b");
   });
 });
 
@@ -388,12 +415,35 @@ describe("AppShell", () => {
     expect(aside).toContain('aria-label="Unfold the sidebar"');
   });
 
+  it("gives the switcher the current workspace in the sidebar, the folded rail and the Menu (120)", () => {
+    const workspaces = [{ name: "ada", role: "admin" as const, personal: true }];
+    const summaries = (html: string) =>
+      [...html.matchAll(/<summary [^>]*>[\s\S]*?<\/summary>/g)].map((m) => m[0]);
+    const open = render(ROOT, { workspaces, current: "ada" });
+    const aside = open.slice(open.indexOf("<aside"), open.indexOf("</aside>"));
+    expect(summaries(aside)[0]).toContain(">ada<");
+    const sheet = open.slice(open.indexOf("<dialog"), open.indexOf("</dialog>"));
+    expect(summaries(sheet)[0]).toContain(">ada<");
+    expect(sheet).toMatch(/aria-current="true"[^>]*>[\s\S]*?>ada</);
+    const folded = render(ROOT, { workspaces, current: "ada", folded: true });
+    expect(folded).toContain('aria-label="Workspace: ada (personal workspace)"');
+    expect(render(ROOT, { workspaces })).toContain(">All workspaces<");
+  });
+
   describe("below lg, the Menu (066)", () => {
     const sheet = (html: string) => html.slice(html.indexOf("<dialog"), html.indexOf("</dialog>"));
+    // Each link's text, its icons and spans flattened; icon-only links (Open … page) are skipped.
     const links = (html: string) =>
-      [...sheet(html).matchAll(/<a [^>]*>(?:<svg[\s\S]*?<\/svg>)?([^<]+)/g)].map((match) =>
-        match[1]?.replace("&amp;", "&"),
-      );
+      [...sheet(html).matchAll(/<a [^>]*>([\s\S]*?)<\/a>/g)]
+        .map((match) =>
+          (match[1] ?? "")
+            .replace(/<span class="sr-only">[^<]*<\/span>/g, "")
+            .replace(/<[^>]+>/g, " ")
+            .replace(/\s+/g, " ")
+            .replace("&amp;", "&")
+            .trim(),
+        )
+        .filter(Boolean);
     const shell = (role: "user" | "moderator" | "root", counts?: Record<string, number>) =>
       render(
         {
@@ -416,8 +466,11 @@ describe("AppShell", () => {
     it("lists the switcher, Propose item, the groups, then the account, the appearance switch and Sign out", () => {
       const html = shell("user");
       expect(sheet(html)).toContain('href="/workspaces/ada"');
+      expect(sheet(html)).toContain("set=ada");
       expect(links(html)).toEqual([
         "All workspaces",
+        "ada personal",
+        "Manage workspaces",
         "Propose item",
         "Home",
         "Catalogue",
@@ -437,7 +490,7 @@ describe("AppShell", () => {
 
     it("gives a moderator Reviews with its count, on the Menu button too; the badge is root's only (091)", () => {
       const html = shell("moderator", { "/reviews": 3 });
-      expect(links(html)).toContain("Reviews");
+      expect(links(html)).toContain("Reviews 3");
       expect(sheet(html)).toMatch(/>Reviews<span[^>]*>3<span class="sr-only"> waiting/);
       expect(html).toMatch(/Menu<span[^>]*>3<span class="sr-only"> waiting<\/span><\/span><\/a>/);
       expect(sheet(html)).not.toMatch(/>moderator</);

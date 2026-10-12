@@ -12,18 +12,22 @@ import { QUEUE_TABS } from "@/server/domains/submissions/services/queue";
  * the tab is a fixed parameter (none for Needs review, so `/reviews` stays its address), and its
  * time starts in the tab's own direction.
  */
-export type QueueList = ListDefinition<"time" | "name", "q" | "type" | "workspace">;
-export type QueueListState = ListState<"time" | "name", "q" | "type" | "workspace">;
+export type QueueList = ListDefinition<"time" | "name", "q" | "type">;
+export type QueueListState = ListState<"time" | "name", "q" | "type">;
 
-export const queueList = (tab: QueueTab): QueueList =>
+/**
+ * `keep`: the workspace shown (120), which every link of the list keeps, like the tab; it's the
+ * current workspace's, never a filter here.
+ */
+export const queueList = (tab: QueueTab, keep: Readonly<Record<string, string>> = {}): QueueList =>
   defineList({
     path: "/reviews",
-    fixed: tab === "needs" ? undefined : { tab },
+    fixed: tab === "needs" ? keep : { tab, ...keep },
     sorts: { time: QUEUE_TABS[tab].timeDir, name: "asc" },
     defaultSort: "time",
     sizes: [25, 50, 100],
     defaultSize: 50,
-    filters: { q: "string", type: "string", workspace: "string" },
+    filters: { q: "string", type: "string" },
   });
 
 const isItemType = (value: string): value is ItemType =>
@@ -36,7 +40,11 @@ export const checkedQueueState = (state: QueueListState): QueueListState =>
     : { ...state, filters: { ...state.filters, type: "" } };
 
 /** The server query for a tab's view. */
-export const queueQueryOf = (tab: QueueTab, state: QueueListState): QueueQuery => ({
+export const queueQueryOf = (
+  tab: QueueTab,
+  state: QueueListState,
+  workspace: string | null = null,
+): QueueQuery => ({
   tab,
   sort: state.sort,
   dir: state.dir,
@@ -44,5 +52,5 @@ export const queueQueryOf = (tab: QueueTab, state: QueueListState): QueueQuery =
   cursor: state.cursor,
   search: state.filters.q || undefined,
   type: isItemType(state.filters.type) ? state.filters.type : undefined,
-  workspace: state.filters.workspace || undefined,
+  workspace: workspace ?? undefined,
 });

@@ -113,13 +113,14 @@ export const kyselySubmissionRepository = (
       ]);
 
   /** One author's submissions (063): every status but archived unless one is asked for. */
-  const byAuthor = ({ authorId, status, search, type }: AuthorFilters) => {
+  const byAuthor = ({ authorId, status, search, type, workspace }: AuthorFilters) => {
     let query = submissions().where("submissions.author_id", "=", authorId);
     query = status
       ? query.where("submissions.status", "=", status)
       : query.where("submissions.status", "!=", "withdrawn");
     if (search) query = query.where(containsInsensitive("submissions.name", search));
     if (type) query = query.where("submissions.type", "=", type);
+    if (workspace) query = query.where("workspaces.name", "=", workspace);
     return query;
   };
 
@@ -293,14 +294,18 @@ export const kyselySubmissionRepository = (
 
     countByAuthor: (filters) => countCapped(db, byAuthor(filters)),
 
-    statusCountsByAuthor: async (authorId) => {
-      const rows = await db
+    statusCountsByAuthor: async (authorId, workspace) => {
+      let query = db
         .selectFrom("submissions")
-        .select((eb) => ["status", eb.fn.countAll<number | string | bigint>().as("n")])
-        .where("author_id", "=", authorId)
-        .where(isReadableSubmission(viewer, "submissions.id"))
-        .groupBy("status")
-        .execute();
+        .select((eb) => ["submissions.status", eb.fn.countAll<number | string | bigint>().as("n")])
+        .where("submissions.author_id", "=", authorId)
+        .where(isReadableSubmission(viewer, "submissions.id"));
+      if (workspace)
+        query = query
+          .innerJoin("scopes", "scopes.id", "submissions.scope_id")
+          .innerJoin("workspaces", "workspaces.id", "scopes.workspace_id")
+          .where("workspaces.name", "=", workspace);
+      const rows = await query.groupBy("submissions.status").execute();
       return Object.fromEntries(rows.map((row) => [row.status, Number(row.n)]));
     },
 

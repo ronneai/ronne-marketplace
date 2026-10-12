@@ -65,14 +65,23 @@ test("the Menu opens the navigation and closes on Esc, a link, back and outside"
   await expect(sheet).toBeHidden();
   await expect(menu).toBeFocused();
 
-  // The workspace switcher (119): their personal workspace first; choosing it opens its page and
-  // closes the sheet.
+  // The workspace switcher (120): choosing their personal workspace makes it the current one, on
+  // the same page, and closes the sheet; its row's Open page link opens the workspace's page.
+  const before = new URL(page.url()).pathname;
   await menu.click();
-  await sheet.locator("summary").first().click();
-  const personal = sheet.getByRole("link").filter({ hasText: "personal" }).first();
-  const href = (await personal.getAttribute("href")) ?? "";
+  const summary = sheet.locator("summary").first();
+  await expect(summary).toContainText("All workspaces");
+  await summary.click();
+  await sheet.getByRole("link").filter({ hasText: "personal" }).click();
+  await expect(page).toHaveURL((url) => url.pathname === before);
+  await expect(sheet).toBeHidden();
+  await menu.click();
+  await expect(summary).toContainText("Personal workspace");
+  await summary.click();
+  const open = sheet.getByRole("link", { name: /^Open .+'s page$/ }).first();
+  const href = (await open.getAttribute("href")) ?? "";
   expect(href).toMatch(/^\/workspaces\/[^/]+$/);
-  await personal.click();
+  await open.click();
   await expect(page).toHaveURL(new RegExp(`${href}$`));
   await expect(sheet).toBeHidden();
 });
@@ -133,6 +142,7 @@ test.describe("without JavaScript", () => {
     );
     await main.locator("summary").first().click();
     await expect(main.getByRole("link", { name: "All workspaces" })).toBeVisible();
+    await expect(main.getByRole("link", { name: "Manage workspaces" })).toBeVisible();
     await main.getByRole("button", { name: "Sign out" }).click();
     await expect(page).toHaveURL(/\/sign-in/);
   });

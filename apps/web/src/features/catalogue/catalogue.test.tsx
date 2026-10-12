@@ -7,6 +7,12 @@ import { catalogueHref, parseCatalogueQuery } from "./query";
 const catalogue = vi.hoisted(() => ({ browseCatalogue: vi.fn() }));
 vi.mock("@/server/domains/items/actions/catalogue", () => catalogue);
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
+// The current workspace (120): `shell.current` per test, the real rule for what's shown.
+const shell = vi.hoisted(() => ({ current: null as string | null }));
+vi.mock("@/app/(app)/shell", async () => {
+  const { fakeWorkspaceView } = await import("@/features/current-workspace/testing");
+  return { workspaceView: fakeWorkspaceView(shell) };
+});
 
 const { default: Catalogue } = await import("@/app/(app)/catalogue/page");
 const { CatalogueView } = await import("./CatalogueView");
@@ -48,6 +54,7 @@ const render = async (params: Record<string, string> = {}) =>
 
 beforeEach(() => {
   vi.clearAllMocks();
+  shell.current = null;
   catalogue.browseCatalogue.mockResolvedValue(pageOf());
 });
 
@@ -292,5 +299,77 @@ describe("workspaces in the catalogue (090)", () => {
     });
     expect(personal).toContain("(personal)");
     expect(personal).not.toContain("lucide-lock");
+  });
+});
+
+describe("the current workspace on the catalogue (120)", () => {
+  it("redirects to it when the URL doesn't name one", async () => {
+    shell.current = "acme";
+    await expect(render({ q: "fmt" })).rejects.toThrow("REDIRECT /catalogue?q=fmt&workspace=acme");
+  });
+
+  it("shows only it, says so, and offers Show all back to this page", async () => {
+    shell.current = "acme";
+    catalogue.browseCatalogue.mockResolvedValue(pageOf({ workspaces: ["global", "acme"] }));
+    const html = await render({ workspace: "acme", q: "fmt" });
+    expect(catalogue.browseCatalogue).toHaveBeenCalledWith(
+      expect.any(Headers),
+      expect.objectContaining({ workspace: "acme", q: "fmt" }),
+    );
+    expect(html).toMatch(/Showing <strong[^>]*>acme<\/strong> only/);
+    expect(html).toContain(
+      'href="/current-workspace?set=&amp;next=%2Fcatalogue%3Fworkspace%3Dacme%26q%3Dfmt"',
+    );
+    expect(html).toContain("What does this filter?");
+  });
+
+  it("says the same for a private workspace as for one that doesn't exist", async () => {
+    catalogue.browseCatalogue.mockResolvedValue(pageOf({ workspaces: ["global"] }));
+    const secret = await render({ workspace: "secret" });
+    const none = await render({ workspace: "zzz" });
+    expect(secret).toMatch(/No workspace <strong[^>]*>secret<\/strong> you can see/);
+    expect(secret.replaceAll("secret", "X")).toBe(none.replaceAll("zzz", "X"));
+  });
+
+  it("lets its clear controls leave the current workspace (an explicit All)", async () => {
+    shell.current = "acme";
+    catalogue.browseCatalogue.mockResolvedValue(
+      pageOf({
+        workspaces: ["global", "acme"],
+        query: { q: "x", types: [], scope: null, workspace: "acme", tool: null, sort: "recent" },
+      }),
+    );
+    const html = await render({ workspace: "acme", q: "x" });
+    expect(html).toMatch(
+      /href="\/catalogue\?q=x&amp;workspace="[^>]*aria-label="Remove the workspace filter"|aria-label="Remove the workspace filter"[^>]*href="\/catalogue\?q=x&amp;workspace="/,
+    );
+    expect(html).not.toContain('href="/catalogue"');
+    // The empty state's See every item too.
+    catalogue.browseCatalogue.mockResolvedValue(
+      pageOf({
+        entries: [],
+        workspaces: ["global", "acme"],
+        query: { q: "x", types: [], scope: null, workspace: "acme", tool: null, sort: "recent" },
+      }),
+    );
+    const empty = await render({ workspace: "acme", q: "x" });
+    expect(empty).toContain("See every item");
+    expect(empty).not.toContain('href="/catalogue"');
+    expect(empty).toMatch(/href="\/catalogue\?workspace="[^>]*>See every item/);
+  });
+
+  it("keeps an explicit All in its links and forms while a current workspace is set", async () => {
+    shell.current = "acme";
+    const html = await render({ workspace: "" });
+    expect(catalogue.browseCatalogue).toHaveBeenCalledWith(
+      expect.any(Headers),
+      expect.objectContaining({ workspace: undefined }),
+    );
+    expect(html).not.toContain("Showing");
+    expect(html).toContain('href="/catalogue?workspace=&amp;sort=name"');
+    expect(html).toContain('<input type="hidden" name="workspace" value=""/>');
+    // Without a current workspace, all is the plain catalogue, as before.
+    shell.current = null;
+    expect(await render({})).toContain('href="/catalogue?sort=name"');
   });
 });

@@ -11,6 +11,11 @@ export const E2E_USERS = {
   signOut: "sign-out@e2e.test",
   // Folds the sidebar and opens the workspace switcher (119).
   sidebar: "sidebar@e2e.test",
+  // Work in one workspace (120): a moderator of e2e-focus per project.
+  focusModerator: "focus-moderator@e2e.test",
+  phoneFocus: "phone-focus@e2e.test",
+  phoneWebkitFocus: "phone-webkit-focus@e2e.test",
+  tabletFocus: "tablet-focus@e2e.test",
   changePassword: "change-password@e2e.test",
   notRoot: "not-root@e2e.test",
   tokens: "tokens@e2e.test",
@@ -148,6 +153,10 @@ export const E2E_NAMES: Record<keyof typeof E2E_USERS, string> = {
   remember: "Remember Me",
   signOut: "Sign Out Tester",
   sidebar: "Sid Sidebar",
+  focusModerator: "Fay Focus",
+  phoneFocus: "Phoebe Focus",
+  phoneWebkitFocus: "Wendy Focus",
+  tabletFocus: "Tabitha Focus",
   changePassword: "Change Password Tester",
   notRoot: "Not Root",
   tokens: "Token Tester",
@@ -336,6 +345,41 @@ export const E2E_VAULT = {
     "phoneWebkitPrivateMember",
     "tabletPrivateMember",
   ] as const satisfies readonly (keyof typeof E2E_USERS)[],
+};
+
+/**
+ * Two public workspaces with a released skill each (120), the same moderators in both, one per
+ * project, who choose `e2e-focus` as their current workspace. Each workspace holds a draft of each
+ * moderator's (`<draft>-<project>`) and a submission waiting for review (`waiting`), so a filtered
+ * page can be seen keeping one workspace's and dropping the other's.
+ */
+export const E2E_FOCUS = {
+  workspace: "e2e-focus",
+  scope: "e2e-focus-tools",
+  item: "focus-notes",
+  draft: "focus-draft",
+  waiting: "focus-waiting",
+  other: {
+    workspace: "e2e-focus-other",
+    scope: "e2e-other-tools",
+    item: "other-notes",
+    draft: "other-draft",
+    waiting: "other-waiting",
+  },
+  moderators: {
+    chromium: "focusModerator",
+    phone: "phoneFocus",
+    "phone-webkit": "phoneWebkitFocus",
+    tablet: "tabletFocus",
+  },
+} as const satisfies {
+  workspace: string;
+  scope: string;
+  item: string;
+  draft: string;
+  waiting: string;
+  other: { workspace: string; scope: string; item: string; draft: string; waiting: string };
+  moderators: Record<string, keyof typeof E2E_USERS>;
 };
 
 /** A public workspace with a released skill, which `privateRoot` makes private and public again. */

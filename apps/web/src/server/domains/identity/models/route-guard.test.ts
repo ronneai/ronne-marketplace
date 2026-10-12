@@ -17,6 +17,11 @@ describe("safeNextPath", () => {
       "\\\\evil.test",
       "/\t/evil.test",
       "/\n/evil.test",
+      // Dot-segments that resolve to "//evil.test" (found by 120's witness).
+      "/a/..//evil.test",
+      "/%2e%2e//evil.test",
+      "/a/../\t/evil.test",
+      "/a/..//x//evil.test",
       "javascript:alert(1)",
       "evil.test",
       "",

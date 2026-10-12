@@ -44,11 +44,11 @@ export const HELP = {
       "A user proposes and submits items in the workspace. A moderator also reviews and releases them. An admin also adds and removes members, changes their roles, creates the workspace's scopes and edits its description. Root can do all of it in every workspace.",
     href: docsHref("roles", "permissions"),
   },
-  "queue-workspaces": {
-    question: "Why only these?",
+  "current-workspace": {
+    question: "What does this filter?",
     answer:
-      "Reviews shows the submissions of the workspaces you moderate or administer; root's shows every workspace's. Moderator and admin are roles in a workspace, so you can moderate one and be a plain user in another.",
-    href: docsHref("workspaces", "roles"),
+      "The current workspace, chosen in the sidebar's switcher: the Catalogue, Reviews and My submissions show only that workspace until you choose another or Show all. It narrows what you see, never what you may do, and the sidebar's counts still count every workspace.",
+    href: docsHref("workspaces", "current"),
   },
   join: {
     question: "How do I join?",

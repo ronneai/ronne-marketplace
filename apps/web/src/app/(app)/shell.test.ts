@@ -7,19 +7,34 @@ const workspaces = vi.hoisted(() => ({
   countMovesToAnswer: vi.fn(),
   myWorkspacesAs: vi.fn(),
 }));
-const cookie = vi.hoisted(() => ({ value: undefined as string | undefined }));
+const cookie = vi.hoisted(() => ({
+  value: undefined as string | undefined,
+  workspace: undefined as string | undefined,
+}));
 vi.mock("@/server/domains/identity/actions/session", () => session);
 vi.mock("@/server/domains/submissions/actions/reviews", () => reviews);
 vi.mock("@/server/domains/workspaces/actions/workspaces", () => workspaces);
 vi.mock("next/headers", () => ({
   cookies: async () => ({
-    get: (name: string) =>
-      name === "ronne-sidebar" && cookie.value ? { value: cookie.value } : undefined,
+    get: (name: string) => {
+      const value =
+        name === "ronne-sidebar"
+          ? cookie.value
+          : name === "ronne-workspace"
+            ? cookie.workspace
+            : undefined;
+      return value ? { value } : undefined;
+    },
   }),
 }));
 vi.mock("@/server/http/request-headers", () => ({ requestHeaders: async () => new Headers() }));
+vi.mock("next/navigation", () => ({
+  redirect: (to: string) => {
+    throw new Error(`REDIRECT ${to}`);
+  },
+}));
 
-const { loadShell } = await import("./shell");
+const { loadShell, workspaceView } = await import("./shell");
 
 const user = (workspaces: Record<string, string>, role = "user") => ({
   id: "u",
@@ -36,6 +51,7 @@ beforeEach(() => {
   workspaces.countMovesToAnswer.mockResolvedValue(3);
   workspaces.myWorkspacesAs.mockResolvedValue([]);
   cookie.value = undefined;
+  cookie.workspace = undefined;
 });
 
 // The nav counts (014, 094): each counted only for someone who can act on it.
@@ -95,5 +111,77 @@ describe("loadShell's sidebar", () => {
     expect((await loadShell()).folded).toBe(true);
     cookie.value = "sideways";
     expect((await loadShell()).folded).toBe(false);
+  });
+});
+
+// The current workspace (120): the cookie's, only while the user is a member of it.
+describe("loadShell's current workspace", () => {
+  it("is the cookie's member workspace, and none for a stale or foreign one", async () => {
+    session.requireUser.mockResolvedValue(user({ global: "user", acme: "user" }));
+    workspaces.myWorkspacesAs.mockResolvedValue([
+      { name: "global", role: "user", personal: false },
+      { name: "acme", role: "user", personal: false },
+      { name: "open", role: null, personal: false },
+    ]);
+    expect((await loadShell()).current).toBeNull();
+    cookie.workspace = "acme";
+    expect((await loadShell()).current).toBe("acme");
+    cookie.workspace = "open";
+    expect((await loadShell()).current).toBeNull();
+    cookie.workspace = "gone";
+    expect((await loadShell()).current).toBeNull();
+  });
+});
+
+// What a filtered page shows (120), and what its links keep.
+describe("workspaceView", () => {
+  beforeEach(() => {
+    session.requireUser.mockResolvedValue(user({ global: "user", acme: "user" }));
+    workspaces.myWorkspacesAs.mockResolvedValue([
+      { name: "global", role: "user", personal: false },
+      { name: "acme", role: "user", personal: false },
+    ]);
+  });
+
+  it("without a current workspace: what the URL says, or every workspace with nothing to keep", async () => {
+    expect(await workspaceView("/reviews", {})).toMatchObject({
+      workspace: null,
+      keepAll: false,
+      fixed: {},
+    });
+    expect(await workspaceView("/reviews", { workspace: "beta" })).toMatchObject({
+      workspace: "beta",
+      fixed: { workspace: "beta" },
+    });
+  });
+
+  it("with one: redirects so the URL says it, and keeps an explicit All", async () => {
+    cookie.workspace = "acme";
+    await expect(workspaceView("/reviews", { tab: "waiting" })).rejects.toThrow(
+      "REDIRECT /reviews?tab=waiting&workspace=acme",
+    );
+    expect(await workspaceView("/reviews", { workspace: "acme" })).toMatchObject({
+      workspace: "acme",
+      keepAll: true,
+      fixed: { workspace: "acme" },
+    });
+    expect(await workspaceView("/reviews", { workspace: "" })).toMatchObject({
+      workspace: null,
+      keepAll: true,
+      fixed: { workspace: "" },
+    });
+  });
+
+  it("leaves the sidebar's counts alone: they count every workspace (120)", async () => {
+    session.requireUser.mockResolvedValue(user({ global: "user", acme: "moderator" }));
+    const before = (await loadShell()).navCounts;
+    cookie.workspace = "acme";
+    expect((await loadShell()).navCounts).toEqual(before);
+    expect(reviews.countNeedsReview).toHaveBeenCalledWith(expect.any(Headers));
+  });
+
+  it("ignores a cookie for a workspace the user isn't in", async () => {
+    cookie.workspace = "secret";
+    expect(await workspaceView("/reviews", {})).toMatchObject({ workspace: null, fixed: {} });
   });
 });

@@ -41,6 +41,7 @@ export const Sidebar = ({
   items,
   counts = {},
   workspaces,
+  current = null,
   folded: initiallyFolded = false,
   propose,
   appearance,
@@ -52,6 +53,8 @@ export const Sidebar = ({
   /** Numbers by href: Reviews (014) and Requests (094). */
   counts?: Record<string, number>;
   workspaces: ShellWorkspace[];
+  /** The current workspace (120), or null for All workspaces. */
+  current?: string | null;
   /** The fold cookie's value, read by the shell. */
   folded?: boolean;
   /** Whether the user gets + Propose item. */
@@ -144,7 +147,7 @@ export const Sidebar = ({
       </div>
 
       <div className={`grid shrink-0 gap-3 px-3 pt-4 ${folded ? "justify-items-center" : ""}`}>
-        <WorkspaceSwitcher workspaces={workspaces} folded={folded} />
+        <WorkspaceSwitcher workspaces={workspaces} current={current} folded={folded} />
         {propose ? (
           <Link
             href={PROPOSE.href}
