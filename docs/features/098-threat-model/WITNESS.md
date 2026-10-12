@@ -619,3 +619,54 @@ Witnessed: 2026-10-12 00:39 EDT, by a fresh agent (blind). Commit: 26475321 (+ u
 | 10 | Server checks pass on Ubuntu, macOS and Windows in CI | no | can't check here | needs GitHub Actions runners; wiring at `server-checks.yml:46,83,120,153` |
 
 **Overall:** not met: the CI runs (10) wait for a pull request. After the pass, both probes and the macOS service test also check that AUTH_SECRET changed (and the macOS file's owner and mode); both probes were run again here and pass.
+
+## Task 5 — The incident runbook
+
+Witnessed: 2026-10-12 00:50 EDT, by a fresh agent (blind). Commit: 7c10bfc1 (+ uncommitted `docs/runbooks/incident-response.md` and PLAN.md notes). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Each incident: how to tell, now, check, tell users | no | partly | five of six; "A vulnerability in Ronne itself" lacks Check and Tell users |
+| 2 | The commands table's forms | yes | confirmed | `cli.ts:9-13`; `package.json`; `control.ts:195-209`; compose service `web` |
+| 3 | revoke-access as described | yes | confirmed | npm runs: `--user … --tokens-only`, `--everyone`, unknown email, no terminal; audit metadata |
+| 4 | rotate-secret as described | yes | confirmed | npm runs: environment refusal, plain run, `FOO: bar` refusal; tokens keep working (the clone refusal isn't listed) |
+| 5 | reset-root-password as described | yes | confirmed | npm and Docker runs → the message; `user.password_reset` |
+| 6 | Yank as described | no | confirmed | `VersionControls.tsx:111`; `permissions.ts:38`; `resolve.ts:243-245`; `plugin-feed.ts:262,466` (`latest` → highest stable left, or removed) |
+| 7 | Check after a yank | no | confirmed | `registry-commands.ts:63,157` and its test; `resolve.ts:245` (code and tests, not run end to end) |
+| 8 | UI paths and labels | yes | partly | most confirmed; "Account › Access tokens" is wrong (Tools › CLI & tokens); the audit log can't filter by item |
+| 9 | Token-leak facts | yes | confirmed | `access-token.ts:8`; `tokenName`; `rmk whoami` → "The access token was revoked." |
+| 10 | Settings-file leak | no | partly | Docker's settings file is `/app/data/.env` on the volume; how to change `DATABASE_URL` there isn't said; SPEC's 099 lines don't match |
+| 11 | Account takeover steps | no | confirmed | `user-admin.ts:189-202`; Enable exists |
+| 12 | Rogue moderator or admin | no | confirmed | `permissions.ts:42`; `MemberControls.tsx:21-25` |
+| 13 | Reading the audit log | no | confirmed | root only; filters; IP; CLI events actor null with `via: cli`; all 17 actions exist; nothing edits the log |
+| 14 | What to tell users | no | confirmed | no mailer; yank reason and deprecation shown; template |
+| 15 | After an incident; links | no | confirmed | anchors and files resolve |
+| 16 | Docker forms as written | yes | confirmed | compose project of the branch image: interactive revoke (token 401), rotate (file changed, 0600), restart healthy |
+| 17 | npm and clone forms | yes | confirmed | packed install; clone `pnpm run revoke-access` |
+| 18 | Service forms | yes | can't check here | needs installed services; task 4's CI |
+| 19 | Every command run, written in the notes | yes | partly | yank check and service forms not run; some forms the witness ran aren't in the notes |
+| 20 | Notes: rotate-secret's plain rule | yes | confirmed | `rotate-secret.ts:111-115`; `FOO: bar` refused |
+
+**Overall:** not met: rows 1, 8, 10, 19 (and SPEC's 099 lines). Since fixed in the runbook, the install guide and SPEC; the yank check and the service forms are still to run.
+
+### Re-check
+
+Witnessed: 2026-10-12 00:53 EDT, by a fresh agent (blind). Commit: 7c10bfc1 (+ uncommitted runbook, install guide, SPEC and PLAN notes). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Every incident has the four parts | no | confirmed | `incident-response.md:47-173` |
+| 2 | Access-tokens path in the runbook and install guide | no | confirmed | `nav.ts:153`; `TokensPage.tsx:33`; `incident-response.md:80`; `install.md:265` |
+| 3 | Settings-file locations | no | confirmed | `Dockerfile:48`; `layout.ts`; `server-env.ts:21` (macOS prefix wording fixed after the pass) |
+| 4 | Setup run again keeps AUTH_SECRET and accounts | no | confirmed | `run-setup.ts:62-90,138-153`; `steps.ts:152` (code only) |
+| 5 | `RONNE_DB_PASSWORD` | no | confirmed | `compose.yaml:95,110,115` |
+| 6 | Audit-log wording | no | confirmed | `audit-repository.ts:16-26` |
+| 7 | `latest` wording | no | confirmed | `version-rules.ts:14-17`; `versions.ts:188-192` |
+| 8 | rotate-secret refusals listed | no | confirmed | `rotate-secret.ts:80-82,96-106,111-115` |
+| 9 | SPEC's 099 lines match | no | confirmed | `SPEC.md:43-44,113` |
+| 10 | SPEC's other rows match | no | partly | `SPEC.md:111` still said Account › Access tokens (fixed after the pass) |
+| 11 | Notes honest | yes | partly | setup run again with a new database password not listed (added after the pass) |
+| 12 | Witness record valid | no | confirmed | `pnpm witness:check` → exit 0 |
+| 13 | Done when | yes | partly | Docker and npm forms run and match; not run: service forms (CI), the yank check with a released item, setup run again on MySQL or PostgreSQL |
+
+**Overall:** not met: the runbook matches the code; the task waits for the service forms (CI), the yank check with a released item, and setup run again on a database server.

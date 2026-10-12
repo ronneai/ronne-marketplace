@@ -262,7 +262,7 @@ MySQL/MariaDB or PostgreSQL), confirm the public address, and create the root ac
 is needed afterwards.
 
 **Connect your projects.** On each computer that uses the marketplace, install the `rmk` command and
-sign in with an access token made in Ronne (Account › Access tokens):
+sign in with an access token made in Ronne (the sidebar's CLI & tokens page):
 
 ```sh
 npm install --global @ronneai/rmk

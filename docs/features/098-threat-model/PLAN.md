@@ -61,3 +61,28 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
 
 Things learned while building that the next person should know. Anything that changes behaviour
 goes into `SPEC.md` instead.
+
+- **Task 5, the runbook's commands, run on 2026-10-12** (macOS 27, Node 24.0.0):
+  - npm (`@ronneai/marketplace` 0.3.2 packed from this branch, installed with npm): `setup --yes`,
+    `rmk whoami` with a token (signed in), `revoke-access --user root@example.com --tokens-only --yes`
+    ("Revoked 1 access token."; `rmk whoami` then: "The access token was revoked."),
+    `reset-root-password --yes`, `rotate-secret --yes` ("uses the new secret from its next
+    request"), `revoke-access --everyone --sessions-only --yes` ("Nothing to revoke … no
+    sessions."), and `--everyone` through the server probe (task 4).
+  - Docker (the image built from this branch, Docker 29.7): `pnpm run setup --yes`,
+    `pnpm run revoke-access --everyone --yes` (the token then gets 401) and
+    `pnpm run rotate-secret --yes` in the container, through `scripts-probe.sh` (task 4), which runs
+    them with `docker exec` in the same container `docker compose exec web` reaches.
+  - Also run by the task 5 witness: `docker compose exec web pnpm run revoke-access --everyone`
+    (interactive), `… rotate-secret`, `… reset-root-password --yes` and `docker compose restart web`
+    on a compose project of this branch's image.
+  - Not run yet: the service forms (`sudo rmk-server …`, Windows as administrator), which the
+    service tests run in CI (task 4); the yank check (`rmk info`, a fresh `rmk install`, `rmk update`
+    on a yanked version), which needs a released item, so a draft, an approval and a release, and is
+    covered today by 016's and 022's tests; running setup again to change the database password,
+    which needs a MySQL or PostgreSQL instance; the web-app steps (Yank, Disable, Reset password,
+    Members), whose labels were checked in the code.
+- **The rotate-secret settings-file rules took ten witness rounds** (WITNESS.md, task 3): Node's
+  `parseEnv` and Next.js's dotenv loader differ on many shapes (multi-line values, `KEY: value`,
+  escapes, edge whitespace, `export KEY=`), so the command only rewrites a "plain" file both read the
+  same way (`firstUnplainLine` in `env-file.ts`), and checks everything again after its question.

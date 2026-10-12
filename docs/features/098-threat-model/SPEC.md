@@ -40,7 +40,8 @@ or how to revoke everyone's access in one step: root can only disable people one
 - **Root viewing or revoking another person's single token.** 009 left it out on purpose;
   `revoke-access --user` revokes all of one person's.
 - **An audit log export or a SIEM feed.** 007 left it post-MVP; the runbook reads `/admin/audit`.
-- **Backups:** 099. The runbook links to its restore steps.
+- **Backups:** 099. Once it's built, the runbook links to its restore steps and to
+  `backup --verify` for checking stored artifacts.
 
 ## Behaviour
 
@@ -107,9 +108,9 @@ do now, how to check it worked, and what to tell users. At least:
 | Incident | What to do |
 |---|---|
 | **A harmful item version was released** | Yank it with a reason (Versions page; 016): new installs stop, `latest` moves back, the feeds drop it at their next refresh. Deprecate the item if it shouldn't be used at all. Find who approved and released it in the audit log (`version.published`, `submission.approved`, `submission.override_approved`). Tell users: the yank reason shows on the item page and the Versions page; projects whose lockfile pins it keep installing it until they run `rmk update` (and `rmk` doesn't warn yet, though 022's spec says it should: a known gap), and files already written stay until they do. |
-| **An access token leaked** | Its owner revokes it at Account › Access tokens. If the owner can't, or several leaked: `rmk-server revoke-access --user <email>`, or `--everyone`. Check the audit log for what the token did (drafts created with its name). |
+| **An access token leaked** | Its owner revokes it on the sidebar's CLI & tokens page. If the owner can't, or several leaked: `rmk-server revoke-access --user <email>`, or `--everyone`. Check the audit log for what the token did (drafts created with its name). |
 | **An account was taken over** | Root disables it (008: ends its sessions, revokes its tokens), checks its audit events, resets its password, and enables it again with the person. A root account: `rmk-server reset-root-password` from the server. |
-| **The settings file, a backup or the server leaked** | `rmk-server rotate-secret` (everyone is signed out), `revoke-access --everyone` (tokens), change the database password and `DATABASE_URL`, and treat every item as possibly changed: compare the stored artifacts' sha256 with the database (099's `backup --verify` does it). |
+| **The settings file, a backup or the server leaked** | `rmk-server rotate-secret` (everyone is signed out), `revoke-access --everyone` (tokens), change the database password and `DATABASE_URL` (by running setup again), and treat every item as possibly changed: `rmk` refuses an artifact whose sha256 doesn't match the database, and someone who could write both is undone by a backup from before the incident (099 adds `backup --verify`). |
 | **A moderator or admin acted against the rules** | Change their role (008, 092), review what they approved and released since a date (audit log filters by actor and time), yank what's harmful. |
 | **A vulnerability in Ronne itself** | Upgrade when the fix is released (install guide's Upgrade); the advisory on GitHub says what to check. Report one through `SECURITY.md`. |
 
