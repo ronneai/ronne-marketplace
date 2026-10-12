@@ -120,7 +120,15 @@ $token = Invoke-WebRequest -Method Post -ContentType 'application/json' -Body $b
 if ($token.StatusCode -ne 201) { Fail "sign-in answered $($token.StatusCode)" }
 $out = Run $rmk migrate
 if ($out -notmatch '(?i)nothing to migrate') { Fail "migrate didn't reach the service's database: $out" }
-Step "setup and migrate as the administrator; the service reads its settings, 200, and a sign-in writes a token"
+# The incident commands (098): the token above is revoked; the settings file gets a new secret in
+# place, keeping the service's access to it.
+$out = Run $rmk revoke-access --everyone --yes
+if ($out -notmatch 'revoked 1 access token') { Fail "revoke-access didn't revoke the token: $out" }
+$out = Run $rmk rotate-secret --yes
+if ($out -notmatch 'uses the new secret from its next request') { Fail "rotate-secret: $out" }
+if (-not ((Rules "$root\.env") -match "^$([regex]::Escape($serviceSid)):Modify")) { Fail 'rotate-secret took the settings file from the service' }
+WaitFor $health 200
+Step "setup, migrate, revoke-access and rotate-secret as the administrator; the service reads its settings, 200, and a sign-in writes a token"
 
 # stop, start, restart; logs; a crash: Windows starts it again.
 $out = Run $rmk service stop

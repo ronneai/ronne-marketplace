@@ -2,13 +2,16 @@
 // Usage: node packages/repo-tools/src/server-probe.js [rmk-server command]   (default: rmk-server)
 // Runs an installed rmk-server (feature 082) as a person would, on any system: starts it with an
 // empty data folder, waits for /api/health = 503 setup_required, runs `rmk-server setup --yes` with
-// SQLite, expects 200 with no restart and a token from sign-in, then stops it and checks the port is
-// free. Used by the server-package workflow on Ubuntu, macOS and Windows.
+// SQLite, expects 200 with no restart and a token from sign-in, then runs the incident commands
+// (098): `revoke-access --everyone --yes` makes that token answer 401, and `rotate-secret --yes`
+// writes a new secret the server uses at once. Then it stops it and checks the port is free. Used
+// by the server-package workflow on Ubuntu, macOS and Windows.
 import { execFileSync, execSync, spawn } from "node:child_process";
-import { mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { parseEnv } from "node:util";
 
 const command = process.argv[2] ?? "rmk-server";
 const windows = process.platform === "win32";
@@ -120,6 +123,31 @@ try {
   if (token.status !== 201 || !String(body.token).startsWith("rmk_"))
     throw new Error(`sign-in answered ${token.status} ${JSON.stringify(body)}`);
   step("sign-in returned an access token");
+
+  const me = () =>
+    fetch(`${url}/api/v1/me`, { headers: { authorization: `Bearer ${body.token}` } });
+  if ((await me()).status !== 200) throw new Error("the new token isn't accepted by /api/v1/me");
+  const revoked = runSync(["revoke-access", "--everyone", "--yes"], {
+    ...options({}),
+    encoding: "utf8",
+  });
+  if (!revoked.includes("revoked 1 access token"))
+    throw new Error(`revoke-access said: ${revoked}`);
+  const afterRevoke = await me();
+  if (afterRevoke.status !== 401)
+    throw new Error(`after revoke-access the token got ${afterRevoke.status}, not 401`);
+  step("revoke-access --everyone --yes: the token now gets 401");
+
+  const secret = () => parseEnv(readFileSync(join(dataDir, ".env"), "utf8")).AUTH_SECRET;
+  const before = secret();
+  const rotated = runSync(["rotate-secret", "--yes"], { ...options({}), encoding: "utf8" });
+  if (!rotated.includes("uses the new secret from its next request"))
+    throw new Error(`rotate-secret said: ${rotated}`);
+  const now = secret();
+  if (!now || now === before) throw new Error("rotate-secret left AUTH_SECRET as it was");
+  if ((await fetch(`${url}/api/health`)).status !== 200)
+    throw new Error("after rotate-secret /api/health isn't 200");
+  step("rotate-secret --yes: a new secret, used from the next request");
 
   stop(server);
   server = undefined;

@@ -600,3 +600,22 @@ Witnessed: 2026-10-12 00:30 EDT, by a fresh agent (adversarial). Commit: 728d2f4
 | 15 | Lint and typecheck | no | confirmed | biome; `tsc --noEmit` 0 |
 
 **Overall:** met. Remarks, not failures: no test pins the read error's advice text; for EISDIR and ENOTDIR the "a full disk?" hint doesn't fit, though the message is right and nothing changes.
+
+## Task 4 — Both commands everywhere
+
+Witnessed: 2026-10-12 00:39 EDT, by a fresh agent (blind). Commit: 26475321 (+ uncommitted working tree). Machine: macOS 27.0.1 (arm64), Node v24.0.0, Docker 29.7.2.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `server-probe.js` runs `revoke-access --everyone --yes`; the probe's token then gets 401 | no | confirmed | packed, npm-installed `@ronneai/marketplace` → "✓ revoke-access --everyone --yes: the token now gets 401"; `server-probe.js:126-138` checks `/api/v1/me` 200 before, 401 after |
+| 2 | That check catches a revoke that does nothing | no | confirmed | a fake `revoke-access` that prints the message → "✗ after revoke-access the token got 200, not 401" |
+| 3 | The probe runs `rotate-secret --yes` | no | confirmed | step passed (checked by its output and `/api/health` 200 only: since strengthened to compare AUTH_SECRET before and after) |
+| 4 | The image's smoke test runs both commands as documented | no | confirmed | `docker build -t ronne-web:w4 .`; `scripts-probe.sh ronne-web:w4` → setup, revoke (401), rotate all OK |
+| 5 | The image job runs the probe in CI | no | confirmed | `action.yml:66-72`; executable; `image.yml:76` |
+| 6 | The workflows run when these files change | no | confirmed | `ci-scope.js` on the changed paths → `image=true`, `server=true` |
+| 7 | As the service account via `scriptForService` | no | confirmed | `run.ts:103-113`; `cli.ts:8-14`; `control.ts:198-199`; `control.test.ts` 17 passed |
+| 8 | The three service tests run both commands; Linux and Windows check the file's owner and mode / ACL | no | confirmed | by reading `test-linux-service.sh:79-87`, `test-macos-service.sh:63-69`, `test-windows-service.ps1:123-130`; `bash -n` passes (macOS since gained the same owner and mode check) |
+| 9 | From a clone | no | confirmed | `package.json:27-28`, `apps/web/package.json:17-18`; `pnpm run revoke-access` ran; `rotate-secret` refused by its guard (this clone's own `apps/web/.env`); 13 script tests passed |
+| 10 | Server checks pass on Ubuntu, macOS and Windows in CI | no | can't check here | needs GitHub Actions runners; wiring at `server-checks.yml:46,83,120,153` |
+
+**Overall:** not met: the CI runs (10) wait for a pull request. After the pass, both probes and the macOS service test also check that AUTH_SECRET changed (and the macOS file's owner and mode); both probes were run again here and pass.
