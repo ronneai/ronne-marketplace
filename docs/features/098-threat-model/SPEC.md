@@ -148,14 +148,16 @@ rmk-server rotate-secret [--yes]
 ```
 
 - Writes a new `AUTH_SECRET` (32 random bytes, base64, as setup does) to the settings file,
-  atomically, keeping its mode 0600 and every other line. Asks first ("Everyone will be signed
-  out"), unless `--yes`.
+  atomically, keeping its mode 0600 and every other line. Asks first ("Replace AUTH_SECRET?
+  Everyone is signed out, you included."), unless `--yes`.
 - Refuses, changing nothing, when `AUTH_SECRET` comes from the environment rather than the file
-  ("AUTH_SECRET is set in the environment; change it there"), and before setup ("not set up yet").
-- Takes effect when the server restarts; it says so, with the restart command for the way it was
-  installed (`docker compose restart web`, `rmk-server service restart`, or start it again).
-  Sessions are also deleted in the same run, so nobody stays signed in on a server that hasn't
-  restarted yet.
+  ("AUTH_SECRET is set in the environment, so the server doesn't read it from the settings file.
+  Change it where it's set, then restart the server."), and before setup ("This instance isn't set
+  up yet, so it has no secret to replace.").
+- Docker and `rmk-server` (the packages and the services) read the settings file on each request,
+  so the server uses the new secret from its next request; it says so. A clone (`pnpm dev`,
+  `pnpm start`) loaded `.env` when it started, so it says to restart it. Sessions are also deleted
+  in the same run, so nobody stays signed in on a server that hasn't read the new secret yet.
 - Audited as `instance.secret_rotated` (actor null, `via: "cli"`; no secret, old or new, anywhere
   in the event, the output or a log).
 - Access tokens aren't affected: they're hashes, not signed with the secret.
@@ -166,11 +168,56 @@ rmk-server rotate-secret [--yes]
   sign in again. Root's password is unchanged.
 - **Two runs at once:** the second finds nothing left to revoke for what the first did and says so;
   the counts are right for each.
-- **`rotate-secret` while the server runs:** the running server keeps the old secret until it
-  restarts (the settings are cached per process), but every session is already gone, so cookies
-  signed with either secret find no session.
+- **`rotate-secret` while the server runs:** Docker and `rmk-server` use the new secret from the next
+  request; a clone keeps the old one until it restarts. Either way every session is already gone,
+  so cookies signed with either secret find no session.
 - **A settings file without a trailing newline or with comments:** kept as it was, apart from the
-  one line.
+  one line, each line's own ending (LF or CRLF) included. An `export ` prefix or an inline comment on the
+  `AUTH_SECRET` line itself isn't kept.
+- **Two `AUTH_SECRET` lines:** the last one is what the server reads, so `rotate-secret` writes the
+  new secret on the first and removes the others (setup does the same for any key it writes).
+- **Only a plain settings file is rewritten:** every line empty, a `#` comment, or `KEY=value` /
+  `export KEY=value` with the value right after `=` (unquoted printable ASCII without quotes, `#` or
+  edge spaces, or quoted on one line without a backslash before the closing quote), then optionally
+  ` # comment`, and `export ` only with a value; lines end in LF or CRLF. Setup writes such files,
+  except for a value ending in a backslash (a folder written as `C:\data\`), which it single-quotes
+  and which Next.js's loader would read as an escape: rotate-secret refuses that line until the
+  trailing backslash is removed by hand. The server's reader (Node's
+  `parseEnv`) and Next.js's loader in a clone (dotenv) split them into the same lines and keys;
+  anything else (a multi-line value, `KEY: value`, a newline before `=`, escapes, edge whitespace,
+  a carriage return or a Unicode line separator inside a line) could make one of them read an old
+  `AUTH_SECRET` or another value change, so it refuses, naming the line, and changes nothing
+  ("edit the file by hand, then run this again"). The new file is also read back before it's
+  written: the new secret, and every other setting as before. Setup's merge does the same read-back
+  and fails with a message, changing nothing; setup refuses values with a Unicode line separator,
+  as it refuses line breaks. What's left in a clone: Next.js expands `$NAME` in values (setup's own
+  values included), so a value that names `${AUTH_SECRET}` changes with it there.
+- **The file changes while the question waits:** every check (set up, the clone's other files, the
+  plain rule) runs before the question and again after it, on the file as it is then, and only
+  what's read after it is used: the database it names and the text that's rewritten. Only an edit
+  in the moment between that read and the rename would be lost.
+- **A settings file it can't read:** refused with the error's code, never the path, changing
+  nothing. A missing one reads as empty, as the server reads it, so the command says the instance
+  isn't set up yet.
+- **In a clone, other files Next.js loads:** `.env.local`, `.env.development[.local]` and
+  `.env.production[.local]` override `.env`, and the app folder's own `.env` is loaded too when the
+  settings file is another one (`RONNE_ENV_FILE`). An `AUTH_SECRET` in any of them would stay in
+  effect, so it refuses, naming the file. Docker and `rmk-server` load none of them.
+- **A settings file it can't write:** refuses with the error's code, never the file's path, and
+  changes nothing (the sessions are ended in the same transaction, which rolls back). The temporary
+  file, which holds every setting, is removed whenever the write, the `chmod` or the rename fails.
+  Where the folder can't take a new file but the file can be written (a Linux service's
+  `/etc/rmk-server`, 083; on Windows, always), the file is rewritten in place, as setup does: if it
+  can't be opened, nothing changed; if the write fails once it's open (a full disk), the file may be
+  incomplete, and the command says so ("check it, and restore it from a backup"). If the content was
+  written in full and only setting its mode failed, the new secret is in place, and the command says
+  so as for a failed commit (below); a failed close counts as possibly incomplete (it can report a
+  write the disk didn't finish).
+- **The database fails to commit after the file is written** (the file is written last, just before
+  the commit): the new secret is in place but the sessions aren't ended and nothing is audited; the
+  command says so and names `revoke-access --everyone --sessions-only` as typed on the host (with
+  `sudo` for a service, or "as an administrator" on Windows), and the restart for a clone. The old cookies stop working once the server
+  reads the new secret.
 - **Docker:** both commands run in the `web` container (`docker compose exec web pnpm run
   revoke-access …`); the settings file is on the data volume, so `rotate-secret` persists.
 - **The audit log's own actions:** the two new actions join the Admin › Audit log's filters and

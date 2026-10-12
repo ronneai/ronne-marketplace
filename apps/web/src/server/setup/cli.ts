@@ -180,3 +180,47 @@ export const parseRevokeAccessCommand = (
   if (!hasTerminal) return error("There's no terminal to ask for confirmation. Run it with --yes.");
   return { mode: "interactive", target, kinds, databaseUrl: env.DATABASE_URL };
 };
+
+export type RotateSecretCommand =
+  | { mode: "interactive" | "non-interactive" }
+  | { mode: "help" }
+  | { mode: "error"; exitCode: 2; message: string };
+
+export const ROTATE_SECRET_USAGE = `Usage: rotate-secret [--yes]
+
+Writes a new AUTH_SECRET to the settings file and ends every session, for when the settings file,
+a backup or the server may have leaked. Everyone signs in again, you included; access tokens keep
+working. Docker and rmk-server use the new secret from their next request; restart a server run
+from a clone (pnpm dev, pnpm start).
+
+  --yes, -y   Don't ask first (needed without a terminal)
+  --help, -h  Show this`;
+
+/** rotate-secret's flags (098): --yes to skip the question (needed without a terminal). */
+export const parseRotateSecretCommand = (
+  argv: string[],
+  hasTerminal: boolean,
+): RotateSecretCommand => {
+  let values: { yes?: boolean; help?: boolean };
+  try {
+    ({ values } = parseArgs({
+      args: argv,
+      strict: true,
+      options: {
+        yes: { type: "boolean", short: "y" },
+        help: { type: "boolean", short: "h" },
+      },
+    }));
+  } catch (caught) {
+    return { mode: "error", exitCode: 2, message: (caught as Error).message };
+  }
+  if (values.help) return { mode: "help" };
+  if (values.yes) return { mode: "non-interactive" };
+  if (!hasTerminal)
+    return {
+      mode: "error",
+      exitCode: 2,
+      message: "There's no terminal to ask for confirmation. Run it with --yes.",
+    };
+  return { mode: "interactive" };
+};

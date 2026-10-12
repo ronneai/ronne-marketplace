@@ -166,8 +166,9 @@ Options for install:
   --email E     Expiry notices from the certificate authority
   --user        macOS: run as you instead of a system user
 
-With the service installed, sudo rmk-server setup, migrate, reset-root-password and revoke-access
-work on its data, as its account (on Windows, as the administrator running them).
+With the service installed, sudo rmk-server setup, migrate, reset-root-password, revoke-access and
+rotate-secret work on its data and settings, as its account (on Windows, as the administrator
+running them).
 
 Where things are:
   Linux   data /var/lib/rmk-server, settings /etc/rmk-server/env, logs: journalctl -u rmk-server

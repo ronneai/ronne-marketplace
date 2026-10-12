@@ -25,7 +25,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   email, a disabled user and two runs at once; a test shows a revoked session and token get 401
   on the next request; `rmk-server revoke-access --help` lists it.
 
-- [ ] **3. `rotate-secret`.** [risky] The script: replaces only the `AUTH_SECRET` line atomically
+- [x] **3. `rotate-secret`.** [risky] The script: replaces only the `AUTH_SECRET` line atomically
   (mode 0600, other lines and comments kept, reusing setup's env-file writer), deletes every
   session, audits `instance.secret_rotated`, refuses when the secret comes from the environment or
   before setup, prints the restart command for the runtime (`runtime.ts`). Wired like task 2.

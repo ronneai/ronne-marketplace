@@ -17,3 +17,9 @@ export const revokeAccess = (
   target: service.AccessTarget,
   kinds: service.AccessKinds,
 ) => service.revokeAccess(deps(db, dialect), target, kinds);
+
+export const endSessionsForNewSecret = (
+  db: Db,
+  dialect: DatabaseDialect,
+  writeSecret: () => void,
+) => service.endSessionsForNewSecret(deps(db, dialect), writeSecret);

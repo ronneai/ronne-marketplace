@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { parseResetCommand, parseRevokeAccessCommand, parseSetupCommand } from "./cli";
+import {
+  parseResetCommand,
+  parseRevokeAccessCommand,
+  parseRotateSecretCommand,
+  parseSetupCommand,
+} from "./cli";
 
 describe("parseSetupCommand", () => {
   it("is interactive in a terminal without --yes", () => {
@@ -135,5 +140,28 @@ describe("parseRevokeAccessCommand (098)", () => {
       mode: "error",
       message: expect.stringContaining("--yes"),
     });
+  });
+});
+
+describe("parseRotateSecretCommand (098)", () => {
+  it("asks in a terminal, not with --yes, and refuses to wait without a terminal", () => {
+    expect(parseRotateSecretCommand([], true)).toEqual({ mode: "interactive" });
+    expect(parseRotateSecretCommand(["--yes"], false)).toEqual({ mode: "non-interactive" });
+    expect(parseRotateSecretCommand(["-y"], false)).toEqual({ mode: "non-interactive" });
+    expect(parseRotateSecretCommand([], false)).toMatchObject({
+      mode: "error",
+      exitCode: 2,
+      message: expect.stringContaining("--yes"),
+    });
+  });
+
+  it("--help asks for the usage; unknown flags and values are refused", () => {
+    expect(parseRotateSecretCommand(["--help"], false)).toEqual({ mode: "help" });
+    expect(parseRotateSecretCommand(["--yes", "-h"], true)).toEqual({ mode: "help" });
+    for (const argv of [["--force"], ["new-secret"], ["--yes=1"]])
+      expect(parseRotateSecretCommand(argv, true), argv.join(" ")).toMatchObject({
+        mode: "error",
+        exitCode: 2,
+      });
   });
 });

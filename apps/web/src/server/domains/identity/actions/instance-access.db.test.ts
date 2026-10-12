@@ -6,7 +6,7 @@ import { UserNotFoundError } from "../exceptions/errors";
 import type { AppAuth } from "../repositories/auth-instance";
 import { cookieHeaders, createTestUser, testAppAuth } from "../testing/test-auth";
 import { authenticateToken, createMyToken } from "./access-tokens";
-import { accessToRevoke, revokeAccess } from "./instance-access";
+import { accessToRevoke, endSessionsForNewSecret, revokeAccess } from "./instance-access";
 import { createRoot } from "./root-account";
 import { getCurrentUser, requireUser, signIn } from "./session";
 import { adminDisableUser } from "./user-admin";
@@ -225,5 +225,58 @@ describe("revoke-access --user", () => {
     expect(
       await accessToRevoke(t.db, t.dialect, { kind: "user", email: "ada@example.com" }),
     ).toEqual({ email: "ada@example.com", sessions: 0, tokens: 0 });
+  });
+});
+
+describe("rotate-secret's sessions (098)", () => {
+  it("ends every session and records instance.secret_rotated, with no secret in it", async () => {
+    const root = await sessionFor("root@example.com");
+    const ada = await sessionFor("ada@example.com");
+    const token = await tokenFor(ada);
+    let wrote = false;
+
+    expect(
+      await endSessionsForNewSecret(t.db, t.dialect, () => {
+        wrote = true;
+      }),
+    ).toBe(2);
+
+    expect(wrote).toBe(true);
+    expect(await signedIn(root)).toBe(false);
+    expect(await signedIn(ada)).toBe(false);
+    expect(await tokenWorks(token)).toBe(true); // tokens are hashes, not signed with the secret
+    const [event, ...rest] = (await listAuditEvents(t.db, t.dialect, {})).events.filter(
+      (e) => e.action === "instance.secret_rotated",
+    );
+    expect(rest).toEqual([]);
+    expect(event).toMatchObject({
+      actorId: null,
+      targetType: "instance",
+      metadata: { via: "cli", sessionsEnded: 2 },
+    });
+    expect(Object.keys(event?.metadata ?? {}).sort()).toEqual(["sessionsEnded", "via"]);
+  });
+
+  it("a settings file that can't be written leaves sessions and the audit log as they were", async () => {
+    const ada = await sessionFor("ada@example.com");
+    await expect(
+      endSessionsForNewSecret(t.db, t.dialect, () => {
+        throw new Error("EACCES: the settings file can't be written");
+      }),
+    ).rejects.toThrow("EACCES");
+    expect(await signedIn(ada)).toBe(true);
+    expect(
+      (await listAuditEvents(t.db, t.dialect, {})).events.filter(
+        (e) => e.action === "instance.secret_rotated",
+      ),
+    ).toEqual([]);
+  });
+
+  it("after a restart with the new secret, a cookie signed with the old one is refused", async () => {
+    // Even with its session row still there: the secret alone ends it.
+    const ada = await sessionFor("ada@example.com");
+    expect(await signedIn(ada)).toBe(true);
+    const restarted = testAppAuth(t, { secret: "a-new-secret-a-new-secret-a-new-secret-01" });
+    expect(await getCurrentUser(ada, restarted)).toBeNull();
   });
 });

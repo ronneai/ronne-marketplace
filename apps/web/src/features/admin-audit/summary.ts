@@ -93,6 +93,9 @@ export const SUMMARIES: Record<AuditAction, Build> = {
     m.scope === "user"
       ? ["Revoked the access of ", who(m, e), `${ended(m) || " (nothing left)"}${via(m)}`]
       : [`Revoked everyone's access${ended(m) || " (nothing left)"}${via(m)}`],
+  "instance.secret_rotated": (m) => [
+    `Replaced AUTH_SECRET, so everyone signs in again${ended(m)}${via(m)}`,
+  ],
   "user.password_reset": (m, e) => ["Reset the password of ", who(m, e), `${ended(m)}${via(m)}`],
   "auth.signed_in": (m) => [m.remember ? "Signed in (remembered for 30 days)" : "Signed in"],
   "auth.sign_in_failed": (m) => [
