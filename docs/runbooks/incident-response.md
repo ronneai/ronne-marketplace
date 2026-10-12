@@ -65,10 +65,13 @@ says they missed something.
 **Check:** `rmk info <item>` shows the version as yanked; a fresh `rmk install` in an empty folder
 doesn't pick it.
 
-**Tell users:** projects whose `rmk.lock` pins the yanked version keep installing it until they run
-`rmk update`, and `rmk` doesn't warn about it yet (a known gap in the threat model). Files already
-written in their projects stay until they update. So tell them, through your own channels, which
-item and version, what it does, and to run `rmk update` in every project that uses it (the template
+**Tell users:** what a project does next depends on what its `rmk.config.json` asks for. One that
+asks for `latest` (what `rmk install <item>` records) moves to the new `latest` at its next
+`rmk install`. One that asks for a range (`^1.2.0`) keeps the yanked version its `rmk.lock` pins,
+and its files, through every `rmk install` until it runs `rmk update`, and `rmk` doesn't warn about
+it (`rmk outdated` lists it, with the version `rmk update` would move back to as "wanted"); both are
+known gaps in the threat model. So tell them, through your own channels, which item
+and version, what it does, and to run `rmk update` in every project that uses it (the template
 below).
 
 ### An access token leaked
@@ -124,8 +127,11 @@ Whoever has the settings file has `AUTH_SECRET`, which lets them forge sign-in c
 1. `rotate-secret`: a new secret, and everyone is signed out.
 2. `revoke-access --everyone --tokens-only`: every access token.
 3. Change the database password on the database server (MySQL, MariaDB or PostgreSQL), then run
-   the setup again (`docker compose exec web pnpm run setup`, `sudo rmk-server setup`, …) and give
-   it the new password: it rewrites `DATABASE_URL` and keeps the secret and the accounts. With the
+   the setup again (`docker compose exec web pnpm run setup`, `sudo rmk-server setup`, …). Answer
+   no to "Use the database already in .env?", then give the database's details again (kind, host,
+   port, name and user aren't filled in from the old ones) with the new password. It rewrites
+   `DATABASE_URL` and keeps the secret and the accounts. Docker and `rmk-server` use it from their
+   next request; a clone's server must be restarted, as for `rotate-secret`. With the
    database `compose.yaml` runs, also put the new password in `RONNE_DB_PASSWORD` in the `.env`
    next to `compose.yaml`. With SQLite, the database is a file in the data folder: if the server
    itself was reached, treat it as read.
