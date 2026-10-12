@@ -9,29 +9,18 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
-import { packItem } from "@ronneai/core/pack";
 import { PLUGIN_TOOLS, type PluginTool } from "@ronneai/core/plugins";
-import { toDbDate } from "../src/server/db/dates";
-import { GLOBAL_WORKSPACE_ID } from "../src/server/db/migrations/0019_workspaces";
 import { createTestDb } from "../src/server/db/testing/test-db";
 import { FeedTooLargeError } from "../src/server/domains/feeds/exceptions/errors";
 import { MARKETPLACE_MAX_BYTES } from "../src/server/domains/feeds/models/feed";
 import { kyselyFeedRepository } from "../src/server/domains/feeds/repositories/kysely-feed-repository";
 import { createMarketplaceCache } from "../src/server/domains/feeds/services/marketplace-cache";
 import { type FeedDeps, marketplace } from "../src/server/domains/feeds/services/plugin-feed";
-import { createRoot } from "../src/server/domains/identity/actions/root-account";
 import type { CurrentUser } from "../src/server/domains/identity/models/user";
 import { kyselyCatalogueRepository } from "../src/server/domains/items/repositories/kysely-catalogue-repository";
 import { kyselyItemRepository } from "../src/server/domains/items/repositories/kysely-item-repository";
 import { UNFILTERED } from "../src/server/domains/workspaces/models/viewer";
-import { localStorage } from "../src/server/storage/local-storage";
-
-/** The local servers from docker/test-databases.compose.yml, as scripts/test-db.mjs uses them. */
-const SERVERS: Record<string, string | undefined> = {
-  sqlite: undefined,
-  postgres: "postgres://postgres:ronne-test@127.0.0.1:54315/postgres",
-  mysql: "mysql://root:ronne-test@127.0.0.1:53384/ronne",
-};
+import { SERVERS, seedSkills } from "./bench-seed";
 
 const { values } = parseArgs({
   options: {
@@ -65,78 +54,7 @@ const user: CurrentUser = {
   workspaces: {},
 };
 const PUBLIC_URL = "https://registry.example.com";
-const text = (value: string) => new TextEncoder().encode(value);
-/** About as long as a real description: entries are then about the size the spec assumes. */
-const DESCRIPTION =
-  "Checks code for common security mistakes such as injection, unsafe deserialisation and leaked secrets. Use when writing or reviewing code that handles input.";
-
 const seconds = (ms: number) => (ms / 1000).toFixed(2);
-
-const seed = async (t: Awaited<ReturnType<typeof createTestDb>>, root: string, count: number) => {
-  const items = kyselyItemRepository(t.db, t.dialect, UNFILTERED);
-  const now = new Date();
-  const { id: publisher } = await createRoot(t.db, t.dialect, {
-    email: "bench@example.com",
-    name: "Bench",
-    password: "correct horse battery",
-  });
-  await t.db
-    .insertInto("scopes")
-    .values({
-      id: "bench-scope",
-      name: "bench",
-      description: "",
-      created_by: null,
-      created_at: toDbDate(now, t.dialect),
-      workspace_id: GLOBAL_WORKSPACE_ID,
-    })
-    .execute();
-  const storage = localStorage(root);
-  for (let i = 0; i < count; i++) {
-    const name = `skill-${String(i).padStart(5, "0")}`;
-    const manifest = `name: "@bench/${name}"\ntype: skill\ndescription: ${DESCRIPTION}\nskill:\n  entry: SKILL.md\n`;
-    const files = [
-      { path: "ronne.yaml", bytes: text(manifest) },
-      { path: "SKILL.md", bytes: text(`---\nname: ${name}\ndescription: A skill.\n---\nDo it.\n`) },
-    ];
-    const packed = await packItem(files, { version: "1.0.0" });
-    const artifactPath = `bench/${name}/1.0.0.tgz`;
-    await storage.put(artifactPath, packed.tgz);
-    await items.transaction(async (repo) => {
-      const itemId = await repo.insertItem({
-        scopeId: "bench-scope",
-        name,
-        type: "skill",
-        description: DESCRIPTION,
-        ownerId: null,
-        createdAt: now,
-      });
-      const versionId = await repo.insertVersion({
-        itemId,
-        version: "1.0.0",
-        manifest: {
-          name: `@bench/${name}`,
-          type: "skill",
-          description: DESCRIPTION,
-          version: "1.0.0",
-        },
-        readme: null,
-        files: files.map((f) => ({ path: f.path, size: f.bytes.length, executable: false })),
-        notes: null,
-        artifactPath,
-        sha256: packed.sha256,
-        size: packed.size,
-        publishedBy: publisher,
-        publishedAt: now,
-        submissionId: null,
-        dependencies: [],
-        riskFlags: [],
-      });
-      await repo.setTag(itemId, "latest", versionId);
-    });
-  }
-  return storage;
-};
 
 const rows: string[] = [];
 for (const count of counts) {
@@ -145,7 +63,7 @@ for (const count of counts) {
   const root = mkdtempSync(join(tmpdir(), "ronne-bench-"));
   try {
     const seeded = performance.now();
-    const storage = await seed(t, root, count);
+    const storage = await seedSkills(t, root, count);
     console.error(`${db}: seeded ${count} items in ${seconds(performance.now() - seeded)} s`);
     const deps: FeedDeps = {
       catalogue: kyselyCatalogueRepository(t.db, t.dialect, UNFILTERED),
