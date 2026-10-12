@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { type Column, DataTable } from "./DataTable";
+import { type Column, columnRem, DataTable, FLEXIBLE_MIN_REM, tableMinRem } from "./DataTable";
 import { defineList, parseListQuery } from "./list-query";
 
 const LIST = defineList({
@@ -126,5 +126,39 @@ describe("an emptied later page (062)", () => {
     expect(html).toContain("Nothing left on this page.");
     expect(html).toContain('href="/things?q=a">First page');
     expect(html).not.toContain("No things match these filters.");
+  });
+});
+
+// A column without a width used to get 0px on a phone when the fixed ones filled the screen: the
+// Reviews queue's item name, Admin › Users' email and the Workspaces description.
+describe("a minimum width, so no column is squeezed to nothing", () => {
+  it("reads a column's width from its Tailwind classes, the largest variant included", () => {
+    expect(columnRem("w-48")).toBe(12);
+    expect(columnRem("w-10")).toBe(2.5);
+    expect(columnRem("w-[17rem]")).toBe(17);
+    expect(columnRem("w-24 pointer-coarse:w-30")).toBe(7.5);
+    expect(columnRem(undefined)).toBeNull();
+    expect(columnRem("truncate text-right")).toBeNull();
+  });
+
+  it("adds the columns up, a flexible one counting its minimum, and leaves phone-hidden ones out", () => {
+    const columns = [
+      { className: "w-10" },
+      {},
+      { className: "w-48", hideOnMobile: true },
+      { className: "w-52" },
+    ];
+    expect(tableMinRem(columns, true)).toBe(2.5 + FLEXIBLE_MIN_REM + 13);
+    expect(tableMinRem(columns, false)).toBe(2.5 + FLEXIBLE_MIN_REM + 12 + 13);
+  });
+
+  it("sets it on the table, the phone's and the wider one's", () => {
+    const html = render({}, things);
+    // Name and the Open column are flexible; Id is hidden below sm.
+    expect(html).toMatch(
+      /<table class="[^"]*\bmin-w-\(--table-min\)[^"]*\bsm:min-w-\(--table-min-sm\)/,
+    );
+    expect(html).toContain(`--table-min:${2 * FLEXIBLE_MIN_REM}rem`);
+    expect(html).toContain(`--table-min-sm:${3 * FLEXIBLE_MIN_REM}rem`);
   });
 });

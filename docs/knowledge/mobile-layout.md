@@ -145,3 +145,16 @@ The phone sweep's overflow check leaves what's inside a scrolling box to the box
 a dialog's body scroll sideways: check that body itself (`noSideScroll` in `e2e/move-scope.ts`),
 with the longest names, at 360 and 320, and in WebKit, which is the only engine that catches the
 select.
+
+## Tables: a column without a width needs a minimum
+
+A `table-fixed` table gives its fixed-width columns (`w-48`, …) their width and the column without
+one what's left. On a phone the fixed ones alone can be wider than the screen, and the flexible
+column, usually the name, got 0px: the Reviews queue's item, Admin › Users' email, My
+submissions' item and the Workspaces description were all invisible. Nothing overflowed, so the
+sideways-scroll check didn't see it.
+
+`DataTable` now sets the table's minimum width to its columns' widths, each column without one
+counting `FLEXIBLE_MIN_REM` (10rem), and leaves out `hideOnMobile` columns below `sm`; a narrower
+screen scrolls the table inside its panel. The phone sweep's `squeezedColumns` fails on any column
+with a header under 32px, so a table that bypasses `DataTable` is caught too.

@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import Form from "next/form";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { cn } from "../cn";
 import { selectClasses } from "../Field";
 import {
@@ -48,6 +48,43 @@ export type Column<Row, S extends string> = {
 };
 
 export type TableTotal = { count: number; capped: boolean };
+
+/**
+ * The narrowest a column without a width may get: its name stays readable. On a phone the fixed
+ * columns alone can be wider than the screen, and the table used to give such a column nothing,
+ * so an item's or a user's name showed 0px wide.
+ */
+export const FLEXIBLE_MIN_REM = 10;
+
+/**
+ * A column's width in rem, from its Tailwind width classes (`w-48`, `w-[17rem]`, and the largest
+ * of variants such as `pointer-coarse:w-30`), or null when it has none and takes what's left.
+ */
+export const columnRem = (className?: string): number | null => {
+  const widths = (className ?? "")
+    .split(/\s+/)
+    .map((token) => token.slice(token.lastIndexOf(":") + 1))
+    .flatMap((token) => {
+      const steps = /^w-(\d+(?:\.\d+)?)$/.exec(token);
+      if (steps) return [Number(steps[1]) / 4];
+      const rem = /^w-\[(\d+(?:\.\d+)?)rem\]$/.exec(token);
+      return rem ? [Number(rem[1])] : [];
+    });
+  return widths.length > 0 ? Math.max(...widths) : null;
+};
+
+/**
+ * The table's minimum width in rem: its columns' widths, a column without one counting as
+ * `FLEXIBLE_MIN_REM`. `phone` leaves out the columns hidden below `sm`. A narrower screen scrolls
+ * the table inside its panel rather than squeezing a column to nothing.
+ */
+export const tableMinRem = (
+  columns: readonly { className?: string; hideOnMobile?: boolean }[],
+  phone: boolean,
+): number =>
+  columns
+    .filter((column) => !(phone && column.hideOnMobile))
+    .reduce((sum, column) => sum + (columnRem(column.className) ?? FLEXIBLE_MIN_REM), 0);
 
 const SortIcon = ({ active, dir }: { active: boolean; dir: "asc" | "desc" }) => {
   const Icon = !active ? ChevronsUpDown : dir === "asc" ? ArrowUp : ArrowDown;
@@ -224,7 +261,15 @@ export const DataTable = <Row, S extends string, F extends string>({
       {rows.length === 0 ? null : (
         <>
           <div className="relative min-w-0 overflow-x-auto rounded-panel border border-hairline bg-surface">
-            <table className="w-full table-fixed border-collapse text-left text-sm">
+            <table
+              className="w-full min-w-(--table-min) table-fixed border-collapse text-left text-sm sm:min-w-(--table-min-sm)"
+              style={
+                {
+                  "--table-min": `${tableMinRem(columns, true)}rem`,
+                  "--table-min-sm": `${tableMinRem(columns, false)}rem`,
+                } as CSSProperties
+              }
+            >
               <thead>
                 <tr>
                   {columns.map((column) => {

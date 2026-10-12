@@ -8,6 +8,7 @@ import {
   overflows,
   type SmallTarget,
   smallTargets,
+  squeezedColumns,
 } from "./sweep";
 import { E2E_PASSWORD, E2E_SCOPE } from "./users";
 
@@ -33,6 +34,8 @@ const ROLES: readonly SweepRole[] = ["member", "moderator", "root"];
 type Result = { url: string; role: SweepRole; width: number; problem: string | null };
 const results: Result[] = [];
 const targets = new Map<string, { target: SmallTarget; urls: Set<string> }>();
+/** Table columns too narrow to read, by page, role and width (`squeezedColumns`). */
+const squeezed: string[] = [];
 let data: SweepData = { draftId: "", submissionId: "", personal: "" };
 
 test.describe.configure({ mode: "serial" });
@@ -96,6 +99,8 @@ const check = async (page: Page, url: string, role: SweepRole) => {
   for (const width of [size.width, ...WIDTHS]) {
     await page.setViewportSize({ width, height: size.height });
     const overflow = await measureOverflow(page);
+    for (const column of await squeezedColumns(page))
+      squeezed.push(`${url} as ${role} at ${width}px: ${column}`);
     results.push({
       url,
       role,
@@ -160,4 +165,5 @@ test("no page scrolls sideways, except the ones listed with their fix", async ({
     "pages that scroll sideways",
   ).toEqual([]);
   expect(stale, "EXPECTED_FAILURES entries for pages that now pass: remove them").toEqual([]);
+  expect(squeezed, "table columns squeezed too narrow to read").toEqual([]);
 });
