@@ -109,3 +109,25 @@ export const smallTargets = (page: Page): Promise<SmallTarget[]> =>
     }
     return result;
   });
+
+/**
+ * Table columns with a header squeezed too narrow to read (under 32px, less than a short word;
+ * narrow on purpose, like a 40px checkbox column, is fine): on a phone, a table's
+ * fixed columns used to take all the width and leave a name column 0px wide (the Reviews queue,
+ * Admin › Users, Workspaces). `DataTable` now has a minimum width, so the table scrolls instead.
+ */
+export const squeezedColumns = (page: Page): Promise<string[]> =>
+  page.evaluate(() => {
+    const result: string[] = [];
+    for (const table of document.querySelectorAll("main table")) {
+      if (!table.checkVisibility()) continue;
+      for (const th of table.querySelectorAll("thead th")) {
+        if (!th.checkVisibility()) continue;
+        const header = (th.textContent ?? "").trim().replace(/\s+/g, " ");
+        if (!header) continue;
+        const width = th.getBoundingClientRect().width;
+        if (width < 32) result.push(`column "${header}" is ${Math.round(width)}px wide`);
+      }
+    }
+    return result;
+  });

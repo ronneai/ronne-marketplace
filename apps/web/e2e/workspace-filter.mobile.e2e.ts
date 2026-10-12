@@ -25,8 +25,7 @@ test("the Menu's switcher sets the current workspace, and Show all clears it", a
   // Reviews follows it: this workspace's waiting submission, not the other's.
   await page.goto("/reviews");
   await expect(page).toHaveURL(new RegExp(`/reviews\\?workspace=${E2E_FOCUS.workspace}$`));
-  // Counted, not looked at: on a phone the queue's Item column is too narrow to show the name.
-  await expect(page.getByText(E2E_FOCUS.waiting)).toHaveCount(1);
+  await expect(page.getByText(E2E_FOCUS.waiting)).toBeVisible();
   await expect(page.getByText(E2E_FOCUS.other.waiting)).toHaveCount(0);
   await page.goto("/catalogue");
   await page.getByRole("link", { name: "Show all" }).click();
