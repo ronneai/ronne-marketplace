@@ -33,7 +33,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* component tests and `*.db.test.ts` for My submissions' filter pass (on the database
   servers too); counts in the sidebar are unchanged by it (a test).
 
-- [ ] **4. End to end.** Choose a workspace, see the catalogue, reviews and my submissions narrowed,
+- [x] **4. End to end.** Choose a workspace, see the catalogue, reviews and my submissions narrowed,
   reload, Show all; a shared link; a private workspace in the URL by a non-member; without
   JavaScript; on desktop and phone.
   *Done when:* the end-to-end tests pass on every project.

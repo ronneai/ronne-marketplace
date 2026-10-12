@@ -98,16 +98,16 @@ says so); filtering Home, item pages or Requests; a current workspace per browse
 
 ## Acceptance criteria
 
-- [ ] The switcher sets and clears the current workspace, with and without JavaScript, and lists
+- [x] The switcher sets and clears the current workspace, with and without JavaScript, and lists
       only the member's workspaces plus All workspaces; each row opens its page too.
-- [ ] Catalogue, Reviews and My submissions show only the current workspace, with the "Showing …
+- [x] Catalogue, Reviews and My submissions show only the current workspace, with the "Showing …
       only · Show all" line and `?workspace=` in the URL; New item preselects its scope.
-- [ ] Nothing else is filtered, and the sidebar counts don't change with it.
-- [ ] A `?workspace=` for a private workspace you're not in shows nothing and the same message as an
+- [x] Nothing else is filtered, and the sidebar counts don't change with it.
+- [x] A `?workspace=` for a private workspace you're not in shows nothing and the same message as an
       unknown name; a stale cookie counts as All workspaces.
-- [ ] Unit, database and end-to-end tests cover the above on desktop and phone.
-- [ ] MVP §15's Workspaces row records the current workspace and that it's a filter, not a boundary.
-- [ ] The Documentation and helpers above are updated in a ronne-web branch.
+- [x] Unit, database and end-to-end tests cover the above on desktop and phone.
+- [x] MVP §15's Workspaces row records the current workspace and that it's a filter, not a boundary.
+- [x] The Documentation and helpers above are updated in a ronne-web branch.
 
 ## Decisions
 

@@ -168,6 +168,43 @@ The pre-commit hook's `item-names.test.js` (118: names are never split by hand o
 option's workspace; same behaviour, and `submissions.test.tsx`'s "starts New item on the current
 workspace's first scope" still passes (31 tests), as does the guard (164).
 
+## Task 4 — End to end
+
+Witnessed: 2026-10-11 20:19 EDT, by a fresh agent (blind). Commit: 992ed911 + working tree (seed.ts, users.ts, the two new e2e files). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The feature's end-to-end tests pass on every project they target (chromium, phone, phone-webkit, tablet) | yes | confirmed | `.next/BUILD_ID` 20:11:34 is newer than the commit (20:10:50); `find src -newer .next/BUILD_ID` → none. `npx playwright test e2e/workspace-filter.e2e.ts e2e/workspace-filter.mobile.e2e.ts` → 6 passed (3 chromium, 1 each on phone, phone-webkit, tablet) |
+| 2 | The seed changes break no other e2e test, so the whole suite passes on every project | yes | partly | Not the full suite (told not to). A 68-test subset on chromium, phone, phone-webkit and tablet → 68 passed: catalogue, user-admin, sidebar, audit, personal-workspace, private-workspaces, rename-workspace, workspace-names (with .mobile), navigation.mobile, mobile-sweep.mobile, smoke.mobile, scopes, join-requests, review, help, workspace-filter. Not run: about 40 other files and the wizard projects |
+| 3 | Choosing a workspace on desktop narrows the catalogue and the URL says so | yes | confirmed | `workspace-filter.e2e.ts:30-35`: URL `/catalogue?workspace=e2e-focus`, "Showing e2e-focus only", 1 article `focus-notes`. Probe: the same user unfiltered → 18 articles, so `toHaveCount(1)` tests the narrowing |
+| 4 | Reviews and My submissions are shown narrowed to the workspace | yes | partly | `:41-50` checks only the URL and the "Showing … only" line. Probe: the user has 0 rows on `/reviews`, `/reviews?tab=author` and `/submissions` even unfiltered, so ignoring the filter would still pass |
+| 5 | The choice survives a reload and plain sidebar links redirect to the filtered URL | yes | confirmed | `:38-39` reload → line still shown; `:41-49` sidebar Reviews and Submissions → `?workspace=e2e-focus$` |
+| 6 | Unfiltered pages aren't filtered | no | confirmed | `:52-54` Workspaces → `/workspaces$`, no "Showing" line |
+| 7 | Show all clears it on that page and afterwards | yes | confirmed | `:57-63` → `/catalogue$`, no line, switcher "All workspaces"; then `/reviews` stays `/reviews$` |
+| 8 | A shared link shows what it names to a non-member, and their own current workspace doesn't change | yes | partly | `:67-70` as notRoot `/catalogue?workspace=e2e-acme` → line shown, switcher still All workspaces. Probe: 0 articles there (e2e-acme has no released item), so no content is shown reaching the non-member |
+| 9 | A private workspace in the URL, opened by a non-member, shows nothing and the same words as an unknown name | yes | confirmed | `:72-76` `e2e-vault` and `e2e-no-such-workspace` → "No workspace … you can see" for each, no `vault-deploy`. Catalogue only. Probe: `/submissions?workspace=e2e-vault` → "Showing e2e-vault only" over an empty list; Reviews is a 404 for notRoot (not a reviewer) |
+| 10 | Without JavaScript, the switcher sets and Show all clears it | yes | confirmed | `:79-92` with `javaScriptEnabled: false` → filtered URL and line, then Show all → `/catalogue$`. Probe: the choices are plain `<a href="/current-workspace?set=…&next=…">` links |
+| 11 | On phone (Pixel 7, iPhone 15 WebKit, tablet), the Menu's switcher sets it and Show all clears it | yes | confirmed | `workspace-filter.mobile.e2e.ts`: Menu → e2e-focus → `?workspace=e2e-focus`, line, 1 article; Show all → `/catalogue$`. Passed on all three, one seeded moderator per project |
+| 12 | Phone covers the same behaviours as desktop | yes | partly | The mobile file covers only the catalogue: no reload, Reviews, My submissions or shared link on phone |
+
+**Overall:** not met: the tests pass on all four projects, but Reviews and My submissions narrowing and the shared link's content aren't shown by real data, phone covers only choose and Show all, and the full suite wasn't run.
+
+### Re-check — claims 2, 4, 8 and 12
+
+Witnessed: 2026-10-11 20:43 EDT, by a fresh agent (blind). Commit: 2a1fd423. Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The feature's e2e tests pass on every project at 2a1fd423 | yes | confirmed | Build current: commit 20:33:35, `BUILD_ID` 20:34:17, `find src -newer .next/BUILD_ID` → none. `npx playwright test e2e/workspace-filter.e2e.ts e2e/workspace-filter.mobile.e2e.ts` → 6 passed (3 chromium, phone, phone-webkit, tablet) |
+| 2 | The whole suite passes on every project with the new seed | yes | confirmed | Not run by me (coordinator's instruction); this rests on the implementer's log, checked. `scratchpad/e2e-t4d.log` (written 20:38:05, after the build) → "144 passed", no ✘ or flaky. It names 61 distinct files = `ls e2e/*.e2e.ts` (61), and `npx playwright test --list` → "Total: 144 tests in 61 files". Its workspace-filter lines are at the new line numbers (`:24`, `:82`, `:104`, mobile `:9`), so the log is of this commit's tests |
+| 4 | Reviews and My submissions are shown narrowed, and the tests fail if the filter is ignored | yes | confirmed | `workspace-filter.e2e.ts:29-34` sees `focus-waiting`, `other-waiting`, `focus-draft-chromium` and `other-draft-chromium` before choosing. `:58-59` (Reviews) and `:64-65` (Submissions) then keep only the focus ones, with `toHaveCount(0)` for the others. Mutation probe (the page served unfiltered via `?workspace=`, running the test's own negative assertions): `/reviews` → other-waiting count 1, assertion fails "Expected: 0 Received: 1"; `/submissions` → other-draft-chromium 1, fails; phone-webkit `/reviews` → fails the same. Real filtered pages: `/reviews?workspace=e2e-focus` focus-waiting=1, other-waiting=0; `/submissions?workspace=e2e-focus` focus-draft-chromium=1, other-draft-chromium=0; for `e2e-focus-other` the reverse. No other moderator's draft leaks (focus-draft-phone=0) |
+| 8 | A shared link shows the linked workspace's items to a non-member, and their own choice doesn't change | yes | confirmed | `:85-90` as notRoot (not a member of e2e-focus) `/catalogue?workspace=e2e-focus` → line, `toHaveCount(1)` article containing `focus-notes`, switcher "All workspaces"; passed in the run above |
+| 12 | Phone covers choose, reload, Reviews narrowing and Show all | yes | confirmed | `workspace-filter.mobile.e2e.ts:22-31`: `reload()` → line kept; `/reviews` → redirected to `?workspace=e2e-focus`, `focus-waiting` count 1, `other-waiting` count 0; Show all → `/catalogue$`. Passed on phone, phone-webkit and tablet. The phone-webkit mutation probe above shows the count assertion catches an ignored filter. Not on phone: My submissions, the shared link, the private workspace, no-JS; these are server and URL behaviours that don't depend on screen size, covered on desktop |
+| 13 | The two new items are seeded as old so they don't crowd the composer | yes | confirmed | `git diff 992ed911 2a1fd423 -- e2e/seed.ts` → `items.last_published_at` and `item_versions.published_at` set to `longAgo` for `focus-notes` and `other-notes`. The log shows `composer.e2e.ts` passing |
+| 14 | On phones, the Reviews queue's item name has zero width (a separate layout bug) | yes | confirmed | Probe on phone-webkit, `/reviews?workspace=e2e-focus`: `getByText("focus-waiting").boundingBox()` → `{"x":69,"y":643,"width":0,"height":20}`, `isVisible()` → false |
+
+**Overall:** met: Reviews and My submissions narrowing is now tested against a second workspace and the tests fail when the filter is ignored, the shared link shows the item, phone covers reload and Reviews, and the full suite's 144 tests passed at 2a1fd423.
+
 ## Task 5 — Decision log
 
 Witnessed: 2026-10-11 20:16 EDT, by a fresh agent (blind). Commit: 992ed911 plus the working tree (the `docs/MVP/MVP.md` diff; the e2e files in the tree weren't checked). Machine: macOS 27.0.1, Node v24.0.0.
