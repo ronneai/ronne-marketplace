@@ -52,9 +52,13 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   non-empty target, a newer backup and an altered archive with nothing changed.
 
 - [ ] **7. The restore test in CI.** `server-probe.js` gains backup → restore into a new data
-  folder → start → the probe's item installs with the same sha256, the token works, the audit log
-  has `instance.restored`. It runs in `server-checks.yml` (Ubuntu, macOS, Windows), the bundle
-  smoke test and the image's smoke test (`docker compose exec` / `run`).
+  folder → start → a token made before the backup works, one revoked before it stays revoked,
+  `/api/v1/me` names the same account, and a stored file comes back byte for byte (owner's
+  decision, 2026-10-13: no API releases an item, creates a scope or reads the audit log, so the
+  released item's sha256 and `instance.restored` are the database tests' to check, on all four
+  kinds). It runs in `server-checks.yml` (Ubuntu, macOS, Windows), the bundle smoke test and the
+  image's smoke test (`docker compose exec` / `run`); the service tests run backup and restore as
+  the service's account, restore refused while the service runs.
   *Done when:* those workflows pass on a pull request with the change.
 
 - [ ] **8. The backup runbook.** `docs/runbooks/backup.md`: the table per way of installing,
@@ -367,3 +371,21 @@ goes into `SPEC.md` instead.
     Windows paths, and `rmk-server restore` refusing while a real service runs, can't be checked on
     this Mac; task 6 is ticked once task 7's backup → restore runs in the Windows, macOS and Ubuntu
     server checks on the pull request.
+- **Task 7, CI** (`packages/repo-tools/src/server-probe.js`, `.github/actions/build-image/scripts-probe.sh`,
+  `scripts/service/test-{linux,macos,windows}-service.*`):
+  - The server probe signs in twice, revokes one token, writes a 300 KiB file into storage, backs
+    up with `--out`, stops, restores into a new data folder (`--with-settings --database-url
+    file:<new>/ronne.db`: without `--database-url`, the backup's own URL is the old, full database),
+    and starts a second server there. Run here against the packed and installed package (macOS):
+    every step passes. The bundle smoke test runs the same probe.
+  - The image probe copies the archive out, removes the container, and restores in a new container
+    on a new volume (`docker create` with `pnpm run restore`, the archive `docker cp`'d in at mode
+    644 so the image's `node` user can read it), then starts the image on that volume. Run here
+    against a local build: every step passes, nothing left behind. It caught two bugs: `tee |
+    grep -q` under `pipefail` fails when grep stops reading early (the output is captured now), and
+    backup named its folder through the image's `./data` link; it now uses `RONNE_DATA_DIR` when
+    set, so Docker shows `/app/data/backups`.
+  - The service tests (systemd, launchd, WinSW) back up as the service's account and check the
+    archive's owner and mode, then check restore is refused while the service runs and, once it's
+    stopped, runs as the service as far as its own emptiness check. They need the real services:
+    CI only.

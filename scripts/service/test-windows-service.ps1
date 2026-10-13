@@ -130,6 +130,21 @@ if (-not ((Rules "$root\.env") -match "^$([regex]::Escape($serviceSid)):Modify")
 WaitFor $health 200
 Step "setup, migrate, revoke-access and rotate-secret as the administrator; the service reads its settings, 200, and a sign-in writes a token"
 
+# Backup and restore (099): the archive in the data folder's backups/; restore refused while the
+# service runs, and once it's stopped run as far as its own checks (the data isn't empty).
+$out = Run $rmk backup
+if ($out -notmatch [regex]::Escape("$root\data\backups\ronne-backup-")) { Fail "backup didn't write to the service's backups/: $out" }
+$archive = (Get-ChildItem "$root\data\backups" -Filter 'ronne-backup-*.tar' | Select-Object -First 1).FullName
+if (-not $archive) { Fail 'no archive in backups/' }
+$out = Run $rmk restore $archive --yes
+if ($code -eq 0 -or $out -notmatch 'the rmk-server service is running\. Stop it first') { Fail "restore while running: $out" }
+$out = Run $rmk service stop
+$out = Run $rmk restore $archive --yes
+if ($code -eq 0 -or $out -notmatch "isn't empty") { Fail "restore once stopped: $out" }
+$out = Run $rmk service start
+WaitFor $health 200
+Step "backup to the service's backups/; restore refused while running, and once stopped stops at its own emptiness check"
+
 # stop, start, restart; logs; a crash: Windows starts it again.
 $out = Run $rmk service stop
 if ((Status $health) -ne 0) { Fail 'still answering after stop' }

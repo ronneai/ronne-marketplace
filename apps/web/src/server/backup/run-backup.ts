@@ -254,7 +254,11 @@ export const runBackup = async (options: {
   const storageRoot = resolve(appDir, config.storagePath);
   const outDir = options.out
     ? resolve(options.callerCwd, options.out)
-    : resolve(appDir, defaultDataPath("backups", env));
+    : // The data folder by its own name where one is set (Docker's volume, rmk-server's folder),
+      // not through the app's `./data` link to it.
+      env.RONNE_DATA_DIR
+      ? join(env.RONNE_DATA_DIR, "backups")
+      : resolve(appDir, defaultDataPath("backups", env));
   // A backup in storage would be in the next backup, and the next. Checked now for what exists,
   // and again once the folder is made (below), when the disk can say how it spells every part.
   let realOut: string;

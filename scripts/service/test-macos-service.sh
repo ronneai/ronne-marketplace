@@ -73,6 +73,25 @@ rmk rotate-secret --yes | grep -q "uses the new secret from its next request" ||
 wait_for $health 200
 step "status; sudo rmk-server setup, migrate, revoke-access and rotate-secret as _rmkserver; 200 without a restart, a token"
 
+# Backup and restore (099) as the service's account: the archive in the data folder's backups/,
+# _rmkserver's, mode 600; restore refused while the service runs, and once it's stopped running as
+# the service as far as its own checks (the service's data isn't empty, so nothing is changed).
+# Captured, not piped: `grep -q` stops reading at its match, and under pipefail the writer's broken
+# pipe would fail the step.
+out=$(rmk backup)
+grep -q "Wrote $data/backups/ronne-backup-" <<<"$out" ||
+  fail "sudo rmk-server backup didn't write to the service's backups/: $out"
+archive=$data/backups/$(sudo ls "$data/backups" | head -1)
+[ "$(sudo stat -f '%Su %Lp' "$archive")" = "_rmkserver 600" ] || fail "the archive's owner or mode"
+out=$(rmk restore "$archive" --yes 2>&1) && fail "restore ran while the service runs"
+grep -q "the rmk-server service is running. Stop it first" <<<"$out" || fail "restore while running: $out"
+rmk service stop
+out=$(rmk restore "$archive" --yes 2>&1) && fail "restore into the service's data succeeded"
+grep -q "isn't empty" <<<"$out" || fail "restore once stopped: $out"
+rmk service start
+wait_for $health 200
+step "sudo rmk-server backup as _rmkserver (600); restore refused while running, and once stopped stops at its own emptiness check"
+
 rmk service stop
 [ "$(status $health)" = 000 ] || fail "still answering after stop"
 rmk-server service status >/dev/null && fail "status of a stopped service exited 0"

@@ -1028,3 +1028,26 @@ Witnessed: 2026-10-13 08:30 EDT, by a fresh agent (adversarial). Commit: 611afdb
 | 11 | Real OS services and Windows paths | yes | can't check here | Task 7's CI, per the owner's decision of 2026-10-13 |
 
 **Overall:** not met only for row 11, which the owner's decision closes by task 7's CI: the five gaps of 03:11 are closed (SQLite `_at` blobs and numbers and dates outside 1–9999 refused at backup; a lock failure stops before writing with "Nothing was changed"; a test kills a waiting `GET_LOCK`), with no regressions. Low remarks: a failed first migration says "If anything was written…" though nothing was; the lock-failure test guards the result check on MariaDB only.
+
+## Task 7 — The restore test in CI
+
+Witnessed: 2026-10-13 15:25 EDT, by a fresh agent (blind). Commit: c637a6de + working tree (8 files modified, uncommitted). Machine: macOS 27.0.1 (arm64), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | `server-probe.js` backs up, restores into a new data folder, starts a server on it | no | confirmed | `pnpm build:server`, pack, install into the scratchpad, `env -i … server-probe.js <prefix>/bin/rmk-server` → exit 0 with the three restore steps; the restored `.env` names `restored/`, not `data/` |
+| 2 | A token made before the backup works after the restore | no | confirmed | `server-probe.js:259-260`; the restored db → `kept-through-restore|0` |
+| 3 | A token revoked before the backup stays revoked | no | confirmed | `:263-265`; with the DELETE removed → "✗ the token revoked before the backup got 200, not 401"; restored db → `revoked-before-backup|1` |
+| 4 | `/api/v1/me` names the same account | no | confirmed | `:261-262` compares the JSON |
+| 5 | A stored file comes back byte for byte | no | confirmed | 300 KiB compared with `Buffer.equals`; a flipped byte after the backup → "✗ the stored file came back different"; restored file mode 600 |
+| 6 | The probe runs in `server-checks.yml` on Ubuntu, macOS and Windows | no | confirmed | The matrix and `:48`; `ciScope(["packages/repo-tools/src/server-probe.js"])` → server. Linux and Windows need CI |
+| 7 | The bundle smoke test runs the restore check | no | confirmed | `bundle.js` → darwin-arm64 archive; `bundle-smoke.js <archive>` → exit 0 with the restore lines |
+| 8 | The image's smoke test runs backup → restore → start with the same checks | no | partly | `scripts-probe.sh ronne-web:t7` → exit 0, but it checks only the kept token: no revoked token, no `/me` comparison, 0 stored files |
+| 9 | Linux and macOS service tests: backup as the service's account (600), restore refused while running | no | can't check here | systemd/launchd with sudo: CI. The texts match `control.ts:229` and `run-restore.ts:156`; `bash -n` ok |
+| 10 | Windows service test | no | can't check here | Windows and WinSW: CI |
+| 11 | With RONNE_DATA_DIR set, the default backups folder is `$RONNE_DATA_DIR/backups` | no | confirmed | `run-backup.ts:255-261`; the probe's `backups/` check passes; the image says "Wrote /app/data/backups/…" |
+| 12 | *Done when:* the workflows pass on a pull request | no | can't check here | Not pushed; `ciScope` would run server and image for these files |
+
+**Overall:** not met: the probe's four checks hold locally (npm install and bundle) and catch planted faults; the image smoke test is thinner (row 8); the service tests, Windows and the PR's workflows need CI (rows 9, 10, 12). Remarks: the image probe leaked the first container's anonymous volume (`docker rm -f` without `-v`, older than this change); the service tests' `rmk backup | grep -q` under pipefail is the broken-pipe pattern removed from the image probe (not reproduced); a PR changing only backup or restore code ran neither suite.
+
+**Since this pass:** the image probe now checks a revoked token, `/me` and a stored file's sha256 too (run here: all pass), and removes its containers with `-v` (no volume left); the service tests capture backup's output instead of piping it; `ci-scope.js` runs the image and server suites for `apps/web/src/server/backup/` and the backup and restore scripts (tested). **Owner's decision (2026-10-13):** tasks 3, 6 and 7 are ticked once the pull request's workflows pass and a re-check records them.

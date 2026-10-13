@@ -87,6 +87,25 @@ wait_for $health 200
   fail "rotate-secret changed the settings file's owner or mode: $(sudo stat -c '%U %a' /etc/rmk-server/env)"
 step "setup inside the service's sandbox writes its settings; sudo rmk-server migrate, revoke-access and rotate-secret as rmk-server; 200, a token"
 
+# Backup and restore (099) as the service's account: the archive in the data folder's backups/,
+# rmk-server's, mode 600; restore refused while the service runs, and once it's stopped running as
+# the service as far as its own checks (the service's data isn't empty, so nothing is changed).
+# Captured, not piped: `grep -q` stops reading at its match, and under pipefail the writer's broken
+# pipe would fail the step.
+out=$(rmk backup)
+grep -q "Wrote /var/lib/rmk-server/backups/ronne-backup-" <<<"$out" ||
+  fail "sudo rmk-server backup didn't write to the service's backups/: $out"
+archive=/var/lib/rmk-server/backups/$(sudo ls /var/lib/rmk-server/backups | head -1)
+[ "$(sudo stat -c '%U %a' "$archive")" = "rmk-server 600" ] || fail "the archive's owner or mode: $(sudo stat -c '%U %a' "$archive")"
+out=$(rmk restore "$archive" --yes 2>&1) && fail "restore ran while the service runs"
+grep -q "the rmk-server service is running. Stop it first" <<<"$out" || fail "restore while running: $out"
+rmk service stop
+out=$(rmk restore "$archive" --yes 2>&1) && fail "restore into the service's data succeeded"
+grep -q "isn't empty" <<<"$out" || fail "restore once stopped: $out"
+rmk service start
+wait_for $health 200
+step "sudo rmk-server backup as rmk-server (600); restore refused while running, and once stopped stops at its own emptiness check"
+
 # stop, start, restart and logs; and a crash: systemd brings it back.
 rmk service stop
 [ "$(status $health)" = 000 ] || fail "still answering after stop"
