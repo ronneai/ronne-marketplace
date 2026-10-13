@@ -2,7 +2,7 @@
 # Runs the image's commands the way the documentation gives them (`docker compose exec web pnpm run
 # …`, here `docker exec`): setup with SQLite, then the incident commands (feature 098):
 # revoke-access makes a token answer 401, and rotate-secret writes a new secret the server uses at
-# once. Run from the repository root:  .github/actions/build-image/scripts-probe.sh ronne-web:ci
+# once; then backup (099). Run from the repository root:  .github/actions/build-image/scripts-probe.sh ronne-web:ci
 set -euo pipefail
 
 image="${1:?usage: scripts-probe.sh <image>}"
@@ -58,3 +58,15 @@ docker exec "$name" pnpm run rotate-secret --yes | tee /dev/stderr |
 [ "$(secret)" != "$before" ] || fail "rotate-secret left AUTH_SECRET as it was"
 [ "$(curl -s -o /dev/null -w '%{http_code}' "$url/api/health")" = 200 ] || fail "not 200 after rotate-secret"
 echo "OK: pnpm run rotate-secret --yes"
+
+# Backups (099): on the volume, in /app/data/backups, mode 0600; --keep 1 leaves the newest.
+for _ in 1 2; do
+  docker exec "$name" pnpm run backup --keep 1 | tee /dev/stderr |
+    grep -q "Wrote /app/data/backups/ronne-backup-" || fail "backup didn't write to /app/data/backups"
+  sleep 1.1
+done
+archives=$(docker exec "$name" ls /app/data/backups)
+echo "$archives" | grep -Eqx 'ronne-backup-[0-9]{8}-[0-9]{6}\.tar' && [ "$(echo "$archives" | wc -l)" -eq 1 ] ||
+  fail "after two backups with --keep 1, backups/ holds: $archives"
+[ "$(docker exec "$name" stat -c %a "/app/data/backups/$archives")" = 600 ] || fail "the archive isn't mode 0600"
+echo "OK: pnpm run backup --keep 1, twice: one archive, mode 0600"

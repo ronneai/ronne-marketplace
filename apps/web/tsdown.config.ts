@@ -1,7 +1,7 @@
 import { defineConfig } from "tsdown";
 
 /**
- * The setup, migrate, reset-root-password, revoke-access and rotate-secret commands, compiled to plain JS for the Docker image
+ * The setup, migrate, reset-root-password, revoke-access, rotate-secret and backup commands, compiled to plain JS for the Docker image
  * (feature 005), which has no dev dependencies and no TypeScript runner. Everything is bundled except
  * the native modules, which ship next to the Next.js standalone output. The output sits one level
  * under the app, like scripts/, so the scripts still find the app folder from their own location.
@@ -17,6 +17,7 @@ export default defineConfig({
     "reset-root-password": "scripts/reset-root-password.ts",
     "revoke-access": "scripts/revoke-access.ts",
     "rotate-secret": "scripts/rotate-secret.ts",
+    backup: "scripts/backup.ts",
     start: "scripts/start.ts",
   },
   outDir: "dist-scripts",

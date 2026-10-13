@@ -75,9 +75,32 @@ rmk-server backup --verify <archive> [--passphrase-file <file>]
 ```
 
 - **Where:** `--out`, or `<data folder>/backups/` by default (the volume in Docker, so it survives
-  the container; the runbook says to copy it off the volume too). The folder is created with mode
-  0700, the archive with 0600. Name: `ronne-backup-<UTC yyyymmdd-hhmmss>.tar` (`.tar.enc` when
-  encrypted).
+  the container; the runbook says to copy it off the volume too). A relative `--out` is from where
+  the command was typed with `rmk-server` (made absolute before the script runs, also as the
+  service's account) and in Docker (the image's `pnpm` sets `RONNE_CALLER_CWD`); in a clone, from
+  pnpm's `INIT_CWD`: where `pnpm --filter @ronneai/web run backup` was typed, but the repository's
+  root for the root's `pnpm run backup`, which starts pnpm again there (pnpm's script shell and tsx
+  reset `PWD`, so nothing else keeps the folder). The output names the full path. Inside storage
+  is judged by the disk itself: before anything is made, by the real paths of what exists; then,
+  once the database has answered, the folder is made and checked again by the real paths the disk
+  gives for both (a storage folder that this made now exists too), so no spelling the disk treats
+  as the same (case, Unicode forms) gets past it; the folders made for a refused backup are
+  removed. The folder is created with mode 0700, the archive with 0600.
+  Name: `ronne-backup-<UTC yyyymmdd-hhmmss>.tar` (`.tar.enc` when encrypted), from when the backup
+  started; one already there with that name is refused ("wait a second").
+- **Written as `<name>.partial`**, flushed to disk, then renamed: a schedule copying the folder
+  never takes a half-written archive, and `--keep` never counts one. Ctrl-C, SIGTERM or SIGHUP
+  while it's written removes the partial file (exit 130, 143, 129; through `pnpm run`, pnpm reports
+  1); a process killed outright or a
+  power cut leaves it, and since another backup may be writing one, nothing removes `.partial`
+  files but the operator (the runbook says so).
+- **Nothing is written before the settings are read and the database answers:** a settings file
+  that can't be read (a schedule run as another account), a database that can't be opened or
+  reached (a first query runs before the archive's file is made), or a SQLite file the settings
+  name that isn't there (backup never creates one) stops it with exit 1. The settings file is read
+  once, as bytes: the settings the backup runs with (environment variables over the file, an
+  empty one counting as unset, as the server reads them) and the copy in the archive come from the
+  same read, and the copy is byte for byte.
 - **What's in it** (a tar, written as it goes, so a large instance doesn't need the memory; every
   field is in [`docs/spec/backup-format.md`](../../spec/backup-format.md)):
   - `backup.json`, first: the format version (1), Ronne's version, the time, the database kind it
@@ -91,11 +114,16 @@ rmk-server backup --verify <archive> [--passphrase-file <file>]
   - `manifest.json`, last: each table's columns, primary key and row count, and each entry's size
     and sha256, which are only known once everything is written.
   - `storage/…`: every file under the storage path, as they are (artifacts, plugin zips and their
-    sidecars).
+    sidecars), read after the snapshot. Left out, and named in the output: links (never
+    followed), a storage write's temporary file (`<key>.<12 hex>.tmp`, in progress), and names
+    storage doesn't write.
   - `settings.env`: the settings file as it is (`DATABASE_URL`, `AUTH_SECRET`, `PUBLIC_URL`,
     `STORAGE_PATH`, …), unless `--no-settings`. Values set only in the environment aren't in a
     file and aren't backed up; the output says which ones were ("AUTH_SECRET comes from the
-    environment and isn't in this backup").
+    environment and isn't in this backup"): `DATABASE_URL`, `AUTH_SECRET`, `PUBLIC_URL`,
+    `STORAGE_PATH` or `TRUST_PROXY` set in the environment to a value the file doesn't have. In
+    Docker, compose sets `PUBLIC_URL` and `TRUST_PROXY`, and the output says to keep
+    `compose.yaml` and the `.env` next to it.
 - **Sensitive:** with the settings, the archive holds `AUTH_SECRET` and the database password. The
   output says so, and suggests `--encrypt` when the archive will leave the machine.
 - **Encryption (`--encrypt`):** asks for a passphrase twice, or reads it from `--passphrase-file`
@@ -106,17 +134,24 @@ rmk-server backup --verify <archive> [--passphrase-file <file>]
   (header, parameters, chunking) is written in `docs/spec/backup-format.md`. A lost passphrase
   can't be recovered; the output and the runbook say so.
 - **`--keep <n>`:** after a successful backup, removes the oldest `ronne-backup-*` archives in the
-  same folder beyond `n`. It never touches other files, and never runs if this backup failed.
-- **Output:** what it wrote, its size, the counts ("1,284 rows in 31 tables, 412 files, 96 MB"),
-  and the time it took. Exit 0 only when the archive is complete; a failed backup removes its
-  partial file.
+  same folder beyond `n` (1 to 10,000), this one counted and never removed. Only regular files
+  named exactly `ronne-backup-<yyyymmdd-hhmmss>.tar` or `.tar.enc` count, ordered by the time in
+  their name; links, folders, `.partial` files and other names are never touched. It never runs if
+  this backup failed. A file it can't remove is named, and the backup still succeeds.
+- **`--yes`** is accepted, so schedules can pass it; backup asks nothing (but the passphrase).
+- **Output:** what it wrote, its size, the counts ("1,284 rows in 31 tables, 412 stored files
+  (96.0 MiB)"), and the time it took; then warnings: the settings are sensitive, settings only the
+  environment has, released versions whose artifact is missing or has another sha256 than the
+  database's, storage files left out. Exit 0 only when the archive is complete, 1 when it failed
+  (the partial file and the empty folders it made removed, "The backup failed: the disk is full (ENOSPC) …"), 2 for bad flags.
 - **While it runs:** writes keep working; the snapshot is what was committed when it started.
 - **`--verify`:** reads the archive (decrypting it), checks every entry against the manifest's
   sha256, checks that each released version's artifact is there with the sha256 the database
   records (the integrity check the incident runbook uses, 098), and prints the manifest's summary.
   Exit 1 with the first problem otherwise.
-- **Audited** as `instance.backup_made` (`{ tables, rows, files, bytes, encrypted, settings }`,
-  never the path's secrets or the passphrase).
+- **Audited** as `instance.backup_made` (`{ via: "cli", tables, rows, files, bytes, encrypted,
+  settings }`, never the path or the passphrase), after the archive is complete; if recording it
+  fails, the backup still succeeds and says so.
 
 ### `rmk-server restore`
 
@@ -194,8 +229,10 @@ MySQL; `--encrypt` for archives that leave it; and (with 110) the bucket's serve
 - **Restoring into another database kind:** SQLite → PostgreSQL, MySQL → SQLite and so on, covered
   by the database tests; values that one dialect stores differently (booleans, dates) go through
   the same helpers the repositories use.
-- **A backup taken during a migration:** not possible; backup takes the migration lock briefly to
-  read the applied migrations and starts its snapshot after.
+- **A backup taken during a migration:** not possible; backup takes the migration lock (Kysely's:
+  an advisory lock on PostgreSQL, `GET_LOCK` on MySQL and MariaDB), so it waits for a running
+  migration, starts its snapshot, and releases the lock once the snapshot is fixed. SQLite's
+  migrations run in one transaction, which the snapshot never sees half of.
 - **`--out` inside the storage path:** refused, so a backup never contains earlier backups.
 - **Restoring the same archive twice:** the second finds the database not empty and refuses.
 - **An archive from a newer format version:** refused, naming the Ronne version that wrote it

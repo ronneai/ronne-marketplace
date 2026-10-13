@@ -60,6 +60,19 @@ describe("audit summaries (060)", () => {
     expect(line("instance.secret_rotated", { via: "cli", sessionsEnded: 4 })).toBe(
       "Replaced AUTH_SECRET, so everyone signs in again (4 sessions ended) from the command line",
     );
+    expect(
+      line("instance.backup_made", {
+        via: "cli",
+        tables: 31,
+        rows: 1284,
+        files: 412,
+        bytes: 1_000_000,
+        encrypted: false,
+        settings: true,
+      }),
+    ).toBe(
+      "Made a backup: 1284 rows in 31 tables, 412 stored files, with the settings file from the command line",
+    );
     expect(line("access_token.created", { name: "laptop", expiresAt: null, via: "cli" })).toBe(
       "Created token laptop (no expiry, from rmk login)",
     );

@@ -1,4 +1,5 @@
 // rmk-server's arguments (feature 082): what to run, and where it listens.
+import { isAbsolute, resolve } from "node:path";
 import { DEFAULT_HOST, DEFAULT_PORT } from "./defaults.js";
 import { parseServiceArgs, type ServiceCommand } from "./service/args.js";
 
@@ -11,6 +12,7 @@ export const SCRIPTS = [
   "reset-root-password",
   "revoke-access",
   "rotate-secret",
+  "backup",
 ] as const;
 export type Script = (typeof SCRIPTS)[number];
 
@@ -77,6 +79,38 @@ export const parseArgs = (argv: string[], env: Env = process.env): Command => {
   return { kind: "start", port, host, open };
 };
 
+/** The flags whose value is a path, per script: the script may run in another folder. */
+const PATH_FLAGS: Partial<Record<Script, string[]>> = { backup: ["--out"] };
+
+/**
+ * A script's arguments with each path flag's value made absolute from `cwd`, where the person
+ * typed the command: with the service installed, the script runs elsewhere (in `/`, as the
+ * service's account), where a relative path would mean another folder.
+ */
+export const scriptArgs = (script: Script, args: string[], cwd: string): string[] => {
+  const flags = PATH_FLAGS[script] ?? [];
+  // A blank value stays blank, for the script to refuse.
+  const absolute = (path: string) =>
+    path.trim() === "" || isAbsolute(path) ? path : resolve(cwd, path);
+  const out: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i] as string;
+    if (arg === "--") {
+      out.push(...args.slice(i));
+      break;
+    }
+    const [name, inline] = arg.startsWith("--") && arg.includes("=") ? arg.split(/=(.*)/s) : [arg];
+    if (name === undefined || !flags.includes(name)) out.push(arg);
+    else if (inline !== undefined) out.push(`${name}=${absolute(inline)}`);
+    // A flag where the value should be is left for the script to refuse, never taken as a folder
+    // (a lone `-` is a folder's name, as the script reads it).
+    else if (i + 1 < args.length && !/^-./.test(args[i + 1] as string))
+      out.push(arg, absolute(args[++i] as string));
+    else out.push(arg);
+  }
+  return out;
+};
+
 export const HELP = `rmk-server: run Ronne AI Marketplace on this machine (Node.js 22.12 or later).
 
 Usage:
@@ -90,6 +124,8 @@ Usage:
                                   End sessions and revoke access tokens (for incidents)
   rmk-server rotate-secret [--yes]
                                   Write a new AUTH_SECRET; everyone signs in again (for incidents)
+  rmk-server backup [--out DIR] [--no-settings] [--keep N]
+                                  Make a backup archive while it runs (see rmk-server backup --help)
   rmk-server service …            Run it as a service, started at boot (see rmk-server service --help)
   rmk-server --version | --help
 

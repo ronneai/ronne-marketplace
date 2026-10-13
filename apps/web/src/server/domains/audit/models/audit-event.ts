@@ -9,6 +9,7 @@ export const AUDIT_ACTIONS = [
   "instance.root_created",
   "instance.access_revoked",
   "instance.secret_rotated",
+  "instance.backup_made",
   "user.password_reset",
   "auth.signed_in",
   "auth.sign_in_failed",

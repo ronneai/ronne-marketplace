@@ -1,5 +1,6 @@
+import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { DEFAULT_HOST, DEFAULT_PORT, parseArgs } from "./cli.js";
+import { DEFAULT_HOST, DEFAULT_PORT, HELP, parseArgs, scriptArgs } from "./cli.js";
 
 describe("rmk-server's arguments (082)", () => {
   it("starts on 127.0.0.1:7650 by default, with or without `start`", () => {
@@ -71,6 +72,11 @@ describe("rmk-server's arguments (082)", () => {
       script: "rotate-secret",
       args: ["--yes"],
     });
+    expect(parseArgs(["backup", "--out", "b", "--keep", "7"], {})).toMatchObject({
+      kind: "script",
+      script: "backup",
+      args: ["--out", "b", "--keep", "7"],
+    });
   });
 
   it("knows --version and --help", () => {
@@ -78,5 +84,47 @@ describe("rmk-server's arguments (082)", () => {
     expect(parseArgs(["-v"], {})).toEqual({ kind: "version" });
     expect(parseArgs(["--help"], {})).toEqual({ kind: "help" });
     expect(parseArgs(["help"], {})).toEqual({ kind: "help" });
+  });
+});
+
+describe("a script's paths (099)", () => {
+  const cwd = resolve("/home/alex/ronne");
+
+  it("makes backup's --out absolute from where the command was typed", () => {
+    expect(scriptArgs("backup", ["--out", "backups", "--keep", "3"], cwd)).toEqual([
+      "--out",
+      join(cwd, "backups"),
+      "--keep",
+      "3",
+    ]);
+    expect(scriptArgs("backup", ["--out=../b"], cwd)).toEqual([`--out=${resolve(cwd, "../b")}`]);
+    const absolute = resolve("/srv/backups");
+    expect(scriptArgs("backup", ["--out", absolute], cwd)).toEqual(["--out", absolute]);
+  });
+
+  it("leaves everything else as it is", () => {
+    // A flag with no value, other scripts' flags, and what follows `--`.
+    expect(scriptArgs("backup", ["--out"], cwd)).toEqual(["--out"]);
+    // A lone `-` is a folder's name; a blank value stays blank, for the script to refuse.
+    expect(scriptArgs("backup", ["--out", "-"], cwd)).toEqual(["--out", join(cwd, "-")]);
+    expect(scriptArgs("backup", ["--out", " "], cwd)).toEqual(["--out", " "]);
+    expect(scriptArgs("backup", ["--out= "], cwd)).toEqual(["--out= "]);
+    // A flag isn't a folder: the script refuses `--out --no-settings` itself.
+    expect(scriptArgs("backup", ["--out", "--no-settings"], cwd)).toEqual([
+      "--out",
+      "--no-settings",
+    ]);
+    expect(scriptArgs("backup", ["--keep", "out", "--", "--out", "x"], cwd)).toEqual([
+      "--keep",
+      "out",
+      "--",
+      "--out",
+      "x",
+    ]);
+    expect(scriptArgs("setup", ["--out", "x", "--yes"], cwd)).toEqual(["--out", "x", "--yes"]);
+  });
+
+  it("lists backup in the help", () => {
+    expect(HELP).toContain("rmk-server backup [--out DIR] [--no-settings] [--keep N]");
   });
 });

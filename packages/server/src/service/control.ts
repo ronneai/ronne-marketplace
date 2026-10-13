@@ -1,5 +1,6 @@
 // `rmk-server service status | start | stop | restart | logs` (feature 083), and the scripts
-// (setup, migrate, reset-root-password, revoke-access, rotate-secret) run for an installed service.
+// (setup, migrate, reset-root-password, revoke-access, rotate-secret, backup) run for an installed
+// service.
 import { dirname, join } from "node:path";
 import {
   asAdmin,
@@ -197,13 +198,14 @@ const SCRIPT_VERBS: Record<string, string> = {
   "reset-root-password": "reset its root password",
   "revoke-access": "revoke access on it",
   "rotate-secret": "replace its secret",
+  backup: "back it up",
 };
 
 /**
- * The scripts (`setup`, `migrate`, `reset-root-password`, `revoke-access`, `rotate-secret`) on a
- * machine with the service installed: run as its account, on its data and settings, rather than on
- * root's own folder. Undefined when they should
- * run as usual (no service, or RONNE_DATA_DIR or RONNE_ENV_FILE chosen).
+ * The scripts (`setup`, `migrate`, `reset-root-password`, `revoke-access`, `rotate-secret`,
+ * `backup`) on a machine with the service installed: run as its account, on its data and settings,
+ * rather than on root's own folder. Undefined when they should run as usual (no service, or
+ * RONNE_DATA_DIR or RONNE_ENV_FILE chosen).
  *
  * service.json sits in a folder the service's account can write, so nothing in it decides what
  * runs as root or as whom: the program is the one running now, and the account is the layout's

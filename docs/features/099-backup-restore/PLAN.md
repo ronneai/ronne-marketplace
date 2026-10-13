@@ -24,7 +24,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   *Done when:* db tests on the four databases dump a seeded instance and show that a write made
   during the dump isn't in it; memory stays flat on 079's benchmark data set.
 
-- [ ] **3. `backup`.** The archive (`backup.json`, database, storage, settings, manifest),
+- [ ] **3. `backup`.** [risky] The archive (`backup.json`, database, storage, settings, manifest),
   checksums, the output, the partial file removed on failure, `--out` (0700/0600, refused inside
   storage), `--no-settings`, `--keep`, the environment-only values named, `instance.backup_made`.
   Script, `pnpm run`, tsdown entry, `rmk-server`'s `SCRIPTS` and help, `scriptForService`.
@@ -155,3 +155,68 @@ goes into `SPEC.md` instead.
   - Any refusal from the tar writer (an unsafe path, a wrong size) marks the archive failed, even
     when no byte of that entry was written: task 3 treats it as the end of the backup, removing
     the partial file.
+- **Task 3, the command** (`src/server/backup/`: `archive.ts` writes the archive, `run-backup.ts`
+  is the command, `cli.ts` its flags; `scripts/backup.ts`):
+  - Marked `[risky]` while building it: `--keep` and the clean-up after a failure delete files.
+  - The archive is written as `<name>.partial` (opened `wx`, mode 0600), flushed (`fsync`), then
+    renamed; a failure closes and removes the partial file, and `--keep` runs only after the
+    rename. The tar writer's small writes (512-byte headers, padding) are gathered into 1 MiB
+    writes. A disk-full test wraps the real file output and fails with `ENOSPC` after 3 KiB.
+  - `readSnapshot` gained `waitForMigrations`: it takes Kysely's own migration lock (through the
+    dialect adapter, so it's the same advisory lock or `GET_LOCK` the migrator takes) before the
+    snapshot and releases it once the snapshot is fixed. A test holds the lock on another
+    connection and checks the backup waits, and sees the table created before the release; with
+    the option off, it fails on MySQL (tried, then put back).
+  - Storage is read after the snapshot, walked in byte order without following links. A storage
+    put writes `<key>.<12 hex>.tmp` and links it into place (`local-storage.ts`): those files are
+    left out, as are links and names a storage key can't have; the output names them. Each file is
+    read through one handle, its size from that handle, so a file replaced meanwhile is read whole.
+  - The released versions' artifacts come from the snapshot (`item_versions` with the item's
+    scope and name), then are compared with what storage held: missing ones go in the manifest's
+    `missingArtifacts`; one with another sha256 is a warning only (the format has no field for it,
+    and `--verify` reports it).
+  - A relative `--out`: `rmk-server` makes it absolute (`scriptArgs`) before running the script,
+    which as the service's account runs in `/`; the Docker image's `pnpm` stand-in sets
+    `RONNE_CALLER_CWD` before moving to the app. In a clone nothing keeps the folder it was typed
+    in: pnpm's script shell and tsx both reset `PWD` to the app's folder (tried). `INIT_CWD` is where
+    the innermost pnpm was typed: the folder for `pnpm --filter @ronneai/web run backup`, but the
+    repository's root for the root's `pnpm run backup`, whose script starts pnpm again there;
+    that's what it uses (the adversarial pass found it). `scriptArgs` leaves a value starting with
+    `-` alone (`--out --no-settings` would have made a folder named `--no-settings`), and the
+    inside-storage check ignores case on macOS and Windows, where a storage folder not made yet
+    can't be asked its spelling (the adversarial re-check found both). Folding names in code lost
+    to APFS twice more (Unicode forms and full folding, then `ẞ`, U+1E9E, which folds to `ss`
+    there and to `ß` in JavaScript), so the check now asks the disk: the folder is made (after the
+    database answers, so a refused connection leaves none), then, if storage exists (made by that
+    `mkdir` or anyone), both are compared by `realpath`, which gives the disk's own spelling.
+    The folders made for a refused backup are removed with `rmdir` (empty ones only), from
+    `mkdir`'s first new folder down. A test with the `existsSync` check turned off fails.
+    A lone `-` is a folder's name to Node's `parseArgs`, so `scriptArgs` makes it absolute, and
+    leaves a blank value blank for the script to refuse.
+  - The settings file is read once, by the backup itself (not `loadConfig`, which reads it again):
+    the settings it runs with and the copy in the archive are the same text, which no change
+    between two reads can split (the adversarial re-checks found two reads could disagree). It's
+    read as bytes and archived as they are; only the parsing decodes UTF-8 (a Latin-1 byte had
+    become U+FFFD). Inside storage is refused after resolving
+    links, for the part of the path that exists.
+  - The database is opened, and asked `select 1` (PostgreSQL's and MySQL's pools connect only at
+    the first query, the blind re-check found), before the archive's file is made, and a SQLite
+    file that isn't there is refused first (`createDb` would make an empty one and its folder). The adversarial pass
+    found both, and that a stack trace escaped for an `--out` through a regular file: every error
+    before the write is now a `BackupFailedError`.
+  - The script asks `runBackup` to remove the partial file on SIGINT, SIGTERM and SIGHUP
+    (`removeOnSignal`); a test emits SIGTERM from inside a write with `process.exit` mocked. Names
+    printed from storage have control characters escaped (`\x1b`).
+  - The app's version comes from `apps/web/package.json`, which tsdown bundles into
+    `dist-scripts/backup.mjs`.
+  - `src/server/backup/` is database code for CI (`db-scope.js`, `test:db:core`).
+  - `server-probe.js` runs `backup --keep 1` twice against a running `rmk-server` (run here on the
+    packed and installed package: one archive left), and the image's `scripts-probe.sh` does the
+    same through `docker exec … pnpm run backup` and checks the mode (not run here: it needs an
+    image build; CI runs it on the pull request).
+  - Every failure after the `--out` folder is made removes the empty folders it made (the
+    adversarial re-checks found them left behind, while the message said "nothing else changed").
+  - Waiting on Windows (owner's decision, 2026-10-12): the inside-storage check relies there on
+    Node's `realpath` and `existsSync` seeing NTFS's case-insensitive names. No test runs on Windows
+    here, so `server-probe.js` runs `backup --out <data>/STORAGE/b` on macOS and Windows and expects
+    the refusal; task 3 is ticked once the Windows server-checks job passes on the pull request.

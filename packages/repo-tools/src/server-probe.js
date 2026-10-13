@@ -4,7 +4,9 @@
 // empty data folder, waits for /api/health = 503 setup_required, runs `rmk-server setup --yes` with
 // SQLite, expects 200 with no restart and a token from sign-in, then runs the incident commands
 // (098): `revoke-access --everyone --yes` makes that token answer 401, and `rotate-secret --yes`
-// writes a new secret the server uses at once. Then it stops it and checks the port is free. Used
+// writes a new secret the server uses at once; `backup --keep 1` (099), twice, leaves one archive,
+// and on macOS and Windows `backup --out` into storage spelled in capitals is refused.
+// Then it stops it and checks the port is free. Used
 // by the server-package workflow on Ubuntu, macOS and Windows.
 import { execFileSync, execSync, spawn } from "node:child_process";
 import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
@@ -148,6 +150,35 @@ try {
   if ((await fetch(`${url}/api/health`)).status !== 200)
     throw new Error("after rotate-secret /api/health isn't 200");
   step("rotate-secret --yes: a new secret, used from the next request");
+
+  // While it runs (099): one archive in the data folder's backups/.
+  for (const _ of [1, 2]) {
+    const made = runSync(["backup", "--keep", "1"], { ...options({}), encoding: "utf8" });
+    if (!made.includes("Wrote ")) throw new Error(`backup said: ${made}`);
+    // Archives are named by the second they start in.
+    await sleep(1100);
+  }
+  const archives = readdirSync(join(dataDir, "backups"));
+  if (archives.length !== 1 || !/^ronne-backup-\d{8}-\d{6}\.tar$/.test(archives[0]))
+    throw new Error(`after two backups with --keep 1, backups/ holds ${archives.join(", ")}`);
+  step("backup --keep 1, twice: one archive in the data folder's backups/");
+
+  // macOS's and Windows' disks ignore case: storage spelled in capitals is still storage, and the
+  // backup refuses to go inside it (on Linux it's another folder). Nothing is left behind.
+  if (windows || process.platform === "darwin") {
+    const inside = join(dataDir, "STORAGE", "b");
+    let refused = "";
+    try {
+      runSync(["backup", "--out", inside], { ...options({}), encoding: "utf8", stdio: "pipe" });
+    } catch (error) {
+      refused = `${error.stdout ?? ""}${error.stderr ?? ""}`;
+    }
+    if (!refused.includes("inside the storage folder"))
+      throw new Error(`backup --out ${inside} wasn't refused: ${refused || "it succeeded"}`);
+    if (readdirSync(join(dataDir, "storage")).includes("b"))
+      throw new Error("the refused backup left its folder in storage");
+    step("backup --out STORAGE/b: refused as inside storage (case-insensitive disk)");
+  }
 
   stop(server);
   server = undefined;

@@ -96,6 +96,9 @@ export const SUMMARIES: Record<AuditAction, Build> = {
   "instance.secret_rotated": (m) => [
     `Replaced AUTH_SECRET, so everyone signs in again${ended(m)}${via(m)}`,
   ],
+  "instance.backup_made": (m) => [
+    `Made a backup: ${plural(num(m.rows), "row")} in ${plural(num(m.tables), "table")}, ${plural(num(m.files), "stored file")}${m.settings === true ? ", with the settings file" : ""}${m.encrypted === true ? ", encrypted" : ""}${via(m)}`,
+  ],
   "user.password_reset": (m, e) => ["Reset the password of ", who(m, e), `${ended(m)}${via(m)}`],
   "auth.signed_in": (m) => [m.remember ? "Signed in (remembered for 30 days)" : "Signed in"],
   "auth.sign_in_failed": (m) => [
