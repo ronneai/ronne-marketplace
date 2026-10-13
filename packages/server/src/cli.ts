@@ -80,7 +80,9 @@ export const parseArgs = (argv: string[], env: Env = process.env): Command => {
 };
 
 /** The flags whose value is a path, per script: the script may run in another folder. */
-const PATH_FLAGS: Partial<Record<Script, string[]>> = { backup: ["--out", "--passphrase-file"] };
+const PATH_FLAGS: Partial<Record<Script, string[]>> = {
+  backup: ["--out", "--passphrase-file", "--verify"],
+};
 
 /**
  * A script's arguments with each path flag's value made absolute from `cwd`, where the person
@@ -126,6 +128,8 @@ Usage:
                                   Write a new AUTH_SECRET; everyone signs in again (for incidents)
   rmk-server backup [--out DIR] [--encrypt] [--no-settings] [--keep N]
                                   Make a backup archive while it runs (see rmk-server backup --help)
+  rmk-server backup --verify ARCHIVE [--passphrase-file FILE]
+                                  Check an archive's checksums and say what's in it
   rmk-server service …            Run it as a service, started at boot (see rmk-server service --help)
   rmk-server --version | --help
 

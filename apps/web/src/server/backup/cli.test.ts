@@ -37,11 +37,32 @@ describe("backup's flags (099)", () => {
     expect(parseBackupCommand(["--passphrase-file", "p.txt"])).toMatchObject({
       mode: "error",
       exitCode: 2,
-      message: "--passphrase-file goes with --encrypt.",
+      message: "--passphrase-file goes with --encrypt or --verify.",
     });
     expect(parseBackupCommand(["--encrypt", "--passphrase-file= "])).toMatchObject({
       mode: "error",
     });
+  });
+
+  it("reads --verify with an archive and, alone, --passphrase-file", () => {
+    expect(parseBackupCommand(["--verify", "b.tar"])).toEqual({ mode: "verify", archive: "b.tar" });
+    expect(parseBackupCommand(["--verify=b.tar.enc", "--passphrase-file", "p"])).toEqual({
+      mode: "verify",
+      archive: "b.tar.enc",
+      passphraseFile: "p",
+    });
+    for (const argv of [
+      ["--verify", "b", "--out", "x"],
+      ["--verify", "b", "--keep", "2"],
+      ["--verify", "b", "--encrypt"],
+      ["--verify", "b", "--no-settings"],
+      ["--verify= "],
+      ["--verify"],
+    ])
+      expect(parseBackupCommand(argv), argv.join(" ")).toMatchObject({
+        mode: "error",
+        exitCode: 2,
+      });
   });
 
   it("refuses unknown flags, a missing value and an empty --out", () => {

@@ -47,8 +47,7 @@ export class ContainerError extends Error {
   }
 }
 
-const DAMAGED =
-  "The backup is damaged, or the passphrase is wrong (the two can't be told apart). Nothing was restored from it.";
+const DAMAGED = "The backup is damaged, or the passphrase is wrong (the two can't be told apart).";
 
 /** A new header: the version 1 parameters and a new random salt. */
 export const newHeader = (): ContainerHeader => {

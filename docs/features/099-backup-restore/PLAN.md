@@ -37,7 +37,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   flipped bit and a dropped last chunk each fail with nothing restored; a scan finds no passphrase
   in output or logs; the adversarial pass reviews the construction against the format spec.
 
-- [ ] **5. `--verify`.** Reads (and decrypts) an archive, checks every sha256 against the manifest
+- [x] **5. `--verify`.** Reads (and decrypts) an archive, checks every sha256 against the manifest
   and each released version's artifact against the database rows inside it, prints the summary.
   *Done when:* tests cover a good archive, an altered file, a missing artifact and a newer format.
 
@@ -261,3 +261,25 @@ goes into `SPEC.md` instead.
     U+2028, U+2029) and control characters (key sequences start with ESC), so the rule refuses
     `\p{Cc}`, `\p{Zl}` and `\p{Zp}`: the class, not one more case. Edits a person sees and makes
     the same way each time (backspace, Ctrl-U) are left to the prompt.
+- **Task 5, `--verify`** (`src/server/backup/verify.ts` the checks, `run-verify.ts` the command;
+  `createTarReader` in `packages/core/src/pack/tar.ts`):
+  - core's `readTar` reads a whole archive in memory and only the package format, so a streaming,
+    push-based reader joined the writer: ustar headers checked (magic, version, checksum), regular
+    files after at most one pax header (`path`, `size` used, other records ignored), safe paths
+    once each, then exactly two zero blocks and nothing after; it hands each entry's bytes over in
+    order and refuses everything after a failure.
+  - The manifest comes last, so verify keeps what it counts (each entry's size and sha256, each
+    table's parts, rows and the set of key sets its rows had, the storage keys' sha256 and the
+    `item_versions` rows' artifact paths and sha256) and compares at the end. Lines are parsed as
+    they arrive; a line is held whole (up to 256 MiB), since a row can be as large as a draft file.
+  - Each test breaks one rule on a real archive: its entries are read back and written again with
+    one change (and, where only one rule should break, the manifest's files and storage made right
+    again). Mutations of the checksum, artifact and order checks each make a test fail (tried).
+  - The blind pass found rows' key sets compared as NUL-joined strings, so one key holding two
+    column names joined by NUL passed as both: they're compared as JSON arrays now. An encrypted
+    archive's header is read (and a newer one named) before the passphrase is asked for, and the
+    damaged-archive message no longer speaks of restoring.
+  - For task 6, from the re-check: a row with a duplicate JSON key passes verify (JSON.parse keeps
+    the last value, and the key set still matches), and a tar re-packed with standard 10 KiB
+    record padding is refused (the format allows nothing after the end blocks). Restore decides
+    whether to refuse duplicate keys when it reads rows.

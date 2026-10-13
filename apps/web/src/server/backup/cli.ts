@@ -9,6 +9,7 @@ export type BackupCommand =
       encrypt: boolean;
       passphraseFile?: string;
     }
+  | { mode: "verify"; archive: string; passphraseFile?: string }
   | { mode: "help" }
   | { mode: "error"; exitCode: 2; message: string };
 
@@ -16,6 +17,7 @@ export type BackupCommand =
 export const KEEP_MAX = 10_000;
 
 export const BACKUP_USAGE = `Usage: backup [--out DIR] [--encrypt [--passphrase-file FILE]] [--no-settings] [--keep N]
+       backup --verify ARCHIVE [--passphrase-file FILE]
 
 Makes one archive with the database, the stored files and the settings file, while the server
 runs: ronne-backup-<UTC date-time>.tar, in the data folder's backups/ unless --out says where.
@@ -27,6 +29,9 @@ the server itself, and encrypt it before it leaves this machine.
                   RONNE_BACKUP_PASSPHRASE. A lost passphrase can't be recovered
   --passphrase-file FILE
                   Read the passphrase from FILE (one trailing line break is ignored)
+  --verify ARCHIVE
+                  Read an archive (decrypting it), check every checksum and every released
+                  version's artifact, and say what's in it; nothing is restored or changed
   --no-settings   Leave the settings file out
   --keep N        Then remove the oldest ronne-backup-* archives in that folder beyond N (1 to ${KEEP_MAX})
   --yes, -y       Accepted for schedules; backup doesn't ask anything
@@ -41,6 +46,7 @@ export const parseBackupCommand = (argv: string[]): BackupCommand => {
     keep?: string;
     encrypt?: boolean;
     "passphrase-file"?: string;
+    verify?: string;
     yes?: boolean;
     help?: boolean;
   };
@@ -54,6 +60,7 @@ export const parseBackupCommand = (argv: string[]): BackupCommand => {
         keep: { type: "string" },
         encrypt: { type: "boolean" },
         "passphrase-file": { type: "string" },
+        verify: { type: "string" },
         yes: { type: "boolean", short: "y" },
         help: { type: "boolean", short: "h" },
       },
@@ -63,8 +70,27 @@ export const parseBackupCommand = (argv: string[]): BackupCommand => {
   }
   if (values.help) return { mode: "help" };
   if (values.out !== undefined && values.out.trim() === "") return error("--out needs a folder.");
+  if (values.verify !== undefined) {
+    if (values.verify.trim() === "") return error("--verify needs an archive.");
+    if (
+      values.out !== undefined ||
+      values.keep !== undefined ||
+      values.encrypt ||
+      values["no-settings"]
+    )
+      return error("--verify reads an archive; it takes only --passphrase-file.");
+    if (values["passphrase-file"] !== undefined && values["passphrase-file"].trim() === "")
+      return error("--passphrase-file needs a file.");
+    return {
+      mode: "verify",
+      archive: values.verify,
+      ...(values["passphrase-file"] !== undefined
+        ? { passphraseFile: values["passphrase-file"] }
+        : {}),
+    };
+  }
   if (values["passphrase-file"] !== undefined && !values.encrypt)
-    return error("--passphrase-file goes with --encrypt.");
+    return error("--passphrase-file goes with --encrypt or --verify.");
   if (values["passphrase-file"] !== undefined && values["passphrase-file"].trim() === "")
     return error("--passphrase-file needs a file.");
   let keep: number | undefined;

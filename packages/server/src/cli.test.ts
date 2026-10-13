@@ -102,6 +102,13 @@ describe("a script's paths (099)", () => {
     expect(scriptArgs("backup", ["--out", absolute], cwd)).toEqual(["--out", absolute]);
   });
 
+  it("makes --verify's archive absolute too", () => {
+    expect(scriptArgs("backup", ["--verify", "b.tar"], cwd)).toEqual([
+      "--verify",
+      join(cwd, "b.tar"),
+    ]);
+  });
+
   it("makes --passphrase-file absolute too", () => {
     expect(scriptArgs("backup", ["--encrypt", "--passphrase-file", "p.txt"], cwd)).toEqual([
       "--encrypt",

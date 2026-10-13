@@ -2,9 +2,11 @@
 export type { PackageFile } from "../package-file.js";
 export { PackError, type PackedItem, packItem, sha256Hex, unpackItem } from "./pack.js";
 export {
+  createTarReader,
   createTarWriter,
   isSafeTarPath,
   readTar,
+  type TarEntrySink,
   TarError,
   type TarWriter,
   tarEnd,

@@ -713,3 +713,56 @@ Witnessed: 2026-10-12 23:54 EDT, by a fresh agent (adversarial). Commit: cc9254d
 | 12 | The owner's files are untouched | no | confirmed | `md5 apps/web/.env` b9eb4577… before and after; `git status --ignored .env data` the same; `env -i` runs in the scratchpad |
 
 **Overall:** met: Node 24's readline and clack act on nothing outside `Cc`/`Zl`/`Zp` (the source, and a sweep of every code point typed and pasted on Node 22 and 24), and the rule refuses that class from every source, so a file and the prompt can't silently disagree; the container still matches the format spec, 117 tamper attempts got nothing through, and nothing leaked. Remarks, since done: a test feeds U+2028 and U+2029 through `RONNE_BACKUP_PASSPHRASE`, and the long spec line is rewrapped (test and documentation only; the code is as witnessed). Left as is: the environment and prompt message names control characters but not line separators.
+
+## Task 5 — --verify
+
+Witnessed: 2026-10-13 00:12 EDT, by a fresh agent (blind). Commit: 38ae2169 + working tree (verify.ts, run-verify.ts, verify.db.test.ts, tar-reader.test.ts untracked; cli.ts, backup.ts, tar.ts, packages/server/src/cli.ts modified). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The tests pass, on SQLite and on all three servers | no | confirmed | core `src/pack` → 56 passed; web `cli.test.ts` → 6; db → 28 passed, 1 skipped (a migration wait in run-backup.db.test.ts); PostgreSQL, MySQL, MariaDB → 28/1 each; packages/server → 122 |
+| 2 | A test covers a good archive, and it passes | no | confirmed | "passes a good archive…" (a real runBackup archive, plus the summary through runVerify); CLI → "is complete: every checksum matches…", exit 0 |
+| 3 | A test covers an altered file, refused by its sha256 against the manifest | no | confirmed | "refuses an altered file" (a part's JSON edited, a byte flipped in the stored artifact); mutation (sha256 compare removed) → only that test fails |
+| 4 | A test covers a missing artifact: refused unlisted, passes listed, refused with another sha256 | no | confirmed | The test; mutations removing the missing check and the sha check → it fails each time; a probe with an injected item_versions row behaves the same |
+| 5 | A test covers a newer format: refused, naming the Ronne version | no | confirmed | format 2 → exact message; unknown migration refused; older prefix passes; mutation accepting the format → fails; CLI on a crafted archive → "This backup was made by Ronne 7.1.0 in backup format 2; install that version or newer to read it.", exit 1 |
+| 6 | An encrypted archive from a newer container version is refused as "encrypted by a newer Ronne" | no | confirmed | CLI, byte 8 of a real .tar.enc set to 2 → the message, exit 1 (tested in crypto.test.ts; none in verify.db.test.ts). With no passphrase source and no terminal it asks first: exit 2 "There's no terminal…" |
+| 7 | Reads and decrypts with the env, a file or a prompt; wrong or damaged → exit 1 | no | confirmed | `RONNE_BACKUP_PASSPHRASE` → "…, encrypted", exit 0; `--passphrase-file` → exit 0; a flipped byte → "damaged, or the passphrase is wrong", exit 1 |
+| 8 | Asks for the passphrase only when the first bytes say it's encrypted | no | confirmed | a plain archive named `plain.tar.enc` → verified with no passphrase; routing on `isContainer(head)` |
+| 9 | Step 2: tar structure, order, backup.json first, manifest last, nothing after | no | confirmed | tar-reader.test.ts refusals at step sizes 1/512/all; verify.db.test.ts order cases; probe `000000.jsonl` → refused |
+| 10 | Step 4: every entry in manifest.files with its size and sha256, and every listed path in the archive | no | confirmed | verify.ts:417-425; probe "manifest lists backup.json" → refused |
+| 11 | Step 5: parts 1..parts hold `rows` lines, each a JSON object with exactly the table's columns | no | partly | Rows and parts hold (rows+1 → refused; extra column → refused, mutation fails the test). But a row whose single key is two column names joined by U+0000 passes: key sets compared as NUL-joined strings (verify.ts:211, 441-446) |
+| 12 | Step 6 without the target's tables | no | confirmed | A table missing from the manifest, rows with no parts, storage count, `settings.included` flipped → refused |
+| 13 | Step 7: each artifact in storage with that sha256, or listed | no | confirmed | Row 4; verify.ts:458-469 |
+| 14 | Prints the summary; warnings name missing artifacts and environment-only settings | no | confirmed | CLI → "Made by Ronne 0.3.2 at … from SQLite, 24 migrations applied (20 KiB)." / "7 rows in 25 tables, 0 stored files (0 B), with the settings file."; the test asserts the missing-artifact line |
+| 15 | Exit 1 with the first problem; 2 for bad flags | no | confirmed | missing file → ENOENT, exit 1; a folder, an empty file → exit 1; `--verify X --out x` → exit 2 with usage |
+| 16 | Needs no settings or running instance; writes or audits nothing | no | confirmed | `RONNE_ENV_FILE`/`RONNE_DATA_DIR` nonexistent → exit 0, nothing made; ronne.db mtime and size unchanged; `audit_log` count 3 before and after |
+| 17 | A relative archive path is from where the command was typed | no | confirmed | `INIT_CWD` run; `PATH_FLAGS` has `--verify`; cli.test.ts; runVerify with "b.tar" |
+| 18 | Streams: memory doesn't follow the archive's size | no | confirmed | `/usr/bin/time -l` on a 1.5 GiB archive → max RSS 303 MB, against 176 MB for 20 KiB |
+| 19 | rmk-server HELP and the usage show `--verify` | no | confirmed | packages/server/src/cli.ts:131 (without `[--passphrase-file]`); BACKUP_USAGE in full |
+
+**Overall:** not met: everything holds and the Done-when tests fail when the code is broken, except step 5's "exactly the table's columns": a row key made of two column names joined by U+0000 gets past it. Minor: a newer container with no passphrase source asks for the passphrase first; the wrong-passphrase message speaks of restoring; HELP leaves out `[--passphrase-file FILE]`.
+
+### Re-check
+
+Witnessed: 2026-10-13 00:20 EDT, by a fresh agent (blind). Commit: 38ae2169 + working tree (verify.ts, run-verify.ts, verify.db.test.ts, tar-reader.test.ts untracked; crypto.ts, cli.ts, backup.ts, tar.ts, packages/server/src/cli.ts modified). Machine: macOS 27, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The tests pass on SQLite and on all three servers | no | confirmed | core `src/pack` → 56; web `cli.test.ts crypto.test.ts` → 15; db → 28 passed, 1 skipped; PostgreSQL, MySQL, MariaDB → 28/1 each; packages/server → 122; biome clean; `tsc --noEmit` exit 0 |
+| 2 | Step 5: a row key holding two column names joined by U+0000 is refused | yes | confirmed | Key sets compared as `JSON.stringify` of sorted keys and columns; CLI on a crafted archive → "✗ A row of user doesn't have exactly the columns its manifest lists.", exit 1; the NUL-join put back in a scratch copy → only the order/shape test fails |
+| 3 | A newer encrypted container is named before any passphrase is asked for | yes | confirmed | `route()` calls `parseHeader(head)` first; CLI, byte 8 set to 2, no passphrase source → "✗ This backup was encrypted by a newer Ronne; …", exit 1; removing `parseHeader(head)` → the test fails |
+| 4 | The wrong-passphrase or damaged message no longer speaks of restoring | yes | confirmed | crypto.ts:50; CLI wrong `--passphrase-file` → "✗ The backup is damaged, or the passphrase is wrong (the two can't be told apart).", exit 1 |
+| 5 | rmk-server HELP shows `backup --verify ARCHIVE [--passphrase-file FILE]` | no | confirmed | packages/server/src/cli.ts:131-132; `BACKUP_USAGE` the same |
+| 6 | A test covers a good archive, and it passes | no | confirmed | The test; CLI on a real backup → "… is complete: every checksum matches, and every released version's artifact is in it.", exit 0 |
+| 7 | A test covers an altered file, refused by its sha256 | no | confirmed | The test; mutation dropping the sha256 compare → only it fails |
+| 8 | A test covers a missing artifact: refused unlisted, passes listed, refused with another sha256 | no | confirmed | The test; mutation disabling the missing check → only it fails |
+| 9 | A test covers a newer format, with the spec's message | no | confirmed | The test asserts the message; mutation accepting format 2 → it fails |
+| 10 | Decrypts with the env or a file; asks only when the first bytes say encrypted | no | confirmed | env → "…, encrypted (20 KiB)", exit 0; file → exit 0; a plain archive with stdin /dev/null → no prompt, exit 0 |
+| 11 | Steps 2, 4 and 6 | yes | confirmed | Mutation of the order check → the test fails; a Python `tarfile` archive with 10 KiB record padding → "The archive has bytes after its end." (strict, as the spec says); files both ways, tables, storage, `settings.included` checked |
+| 12 | Exit 1 with the first problem; 2 for bad flags | no | confirmed | `--verify X --out x` → exit 2; crafted archives → exit 1 |
+| 13 | Needs no settings or instance; writes or audits nothing | no | confirmed | Missing settings folder → complete, not created; ronne.db mtime and size unchanged; `audit_log` count 3 before and after |
+| 14 | A relative archive path is from where the command was typed | no | confirmed | `INIT_CWD=$S/out … --verify rel.tar` → complete; `scriptArgs` test |
+| 15 | Streams; a line held up to 256 MiB | yes | confirmed | max RSS 171 MB (20 KiB archive), 297 MB (1 GiB archive); `LINE_MAX` |
+| 16 | Each test breaks one rule on a real archive; mutations each make a test fail | yes | confirmed | Mutations sha / missing / order / format / header / NUL → exactly one test failed each; unmutated → 7/7 |
+
+**Overall:** met: the NUL-joined key is refused (the test fails if the old comparison returns), a newer container is named before any passphrase is asked for, the damaged message no longer mentions restoring, HELP lists `[--passphrase-file FILE]`, and the Done-when tests fail when the code they cover is broken. Observations, not failures: a part line with a duplicate JSON key passes (JSON.parse keeps the last value); a tar with standard 10240-byte record padding is refused, as the spec's "nothing after the end blocks" says.

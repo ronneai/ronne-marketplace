@@ -1,5 +1,13 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -52,6 +60,26 @@ describe("pnpm run backup --encrypt (099)", () => {
     expect(archives[0]).toMatch(/^ronne-backup-\d{8}-\d{6}\.tar\.enc$/);
     expect(`${made.stdout}${made.stderr}`).not.toContain(secret);
     expect(made.stderr).toContain("It's encrypted");
+  });
+
+  it("verifies an encrypted archive with the passphrase, and refuses a damaged one (1)", () => {
+    expect(setUp().code).toBe(0);
+    const env = { RONNE_BACKUP_PASSPHRASE: "verify-me-3d9a" };
+    expect(run("backup", ["--encrypt"], env).code).toBe(0);
+    const [name] = readdirSync(join(dir, "backups"));
+    const archive = join(dir, "backups", name as string);
+    const ok = run("backup", ["--verify", archive], env);
+    expect(ok.code, ok.stderr).toBe(0);
+    expect(ok.stdout).toContain("is complete: every checksum matches");
+    expect(ok.stdout).toContain(", encrypted");
+    const wrong = run("backup", ["--verify", archive], { RONNE_BACKUP_PASSPHRASE: "a guess" });
+    expect(wrong.code).toBe(1);
+    expect(wrong.stderr).toContain("damaged, or the passphrase is wrong");
+    // Cut short.
+    const cut = join(dir, "cut.tar.enc");
+    const bytes = readFileSync(archive);
+    writeFileSync(cut, bytes.subarray(0, bytes.length - 10));
+    expect(run("backup", ["--verify", cut], env).code).toBe(1);
   });
 
   it("refuses --encrypt with no passphrase and no terminal (2)", () => {

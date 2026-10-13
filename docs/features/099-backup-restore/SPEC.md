@@ -148,7 +148,12 @@ rmk-server backup --verify <archive> [--passphrase-file <file>]
 - **`--verify`:** reads the archive (decrypting it), checks every entry against the manifest's
   sha256, checks that each released version's artifact is there with the sha256 the database
   records (the integrity check the incident runbook uses, 098), and prints the manifest's summary.
-  Exit 1 with the first problem otherwise.
+  Exit 1 with the first problem otherwise. It runs every check of the format spec's "What a reader
+  checks" but the target's tables (it has no database), needs neither the settings nor a running
+  instance, writes and audits nothing, and asks for the passphrase only when the archive turns out
+  to be encrypted (its first bytes, never its name). A relative archive path is from where the
+  command was typed, as `--out` is. It streams: memory follows the number of entries and tables,
+  not the archive's size.
 - **Audited** as `instance.backup_made` (`{ via: "cli", tables, rows, files, bytes, encrypted,
   settings }`, never the path or the passphrase), after the archive is complete; if recording it
   fails, the backup still succeeds and says so.

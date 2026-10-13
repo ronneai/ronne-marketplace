@@ -325,3 +325,208 @@ export const createTarWriter = (write: (chunk: Uint8Array) => Promise<void> | vo
     }),
   };
 };
+
+/** What a streaming reader does with one entry's bytes, in order, then its end. */
+export type TarEntrySink = {
+  data: (chunk: Uint8Array) => Promise<void> | void;
+  end: () => Promise<void> | void;
+};
+
+/** The largest pax extended header a reader takes: a path and a size are far smaller. */
+const PAX_MAX = 64 * 1024;
+
+/** The pax records a reader uses (`path`, `size`); others are ignored, as the format says. */
+const parsePax = (bytes: Uint8Array): { path?: string; size?: number } => {
+  const out: { path?: string; size?: number } = {};
+  let offset = 0;
+  while (offset < bytes.length) {
+    const space = bytes.indexOf(0x20, offset);
+    if (space === -1) throw new TarError("tar_corrupt", "The archive's pax header is damaged.");
+    const lengthText = decoder.decode(bytes.subarray(offset, space));
+    if (!/^[1-9][0-9]{0,5}$/.test(lengthText))
+      throw new TarError("tar_corrupt", "The archive's pax header is damaged.");
+    const length = Number(lengthText);
+    const record = bytes.subarray(space + 1, offset + length);
+    if (offset + length > bytes.length || bytes[offset + length - 1] !== 0x0a)
+      throw new TarError("tar_corrupt", "The archive's pax header is damaged.");
+    const body = new TextDecoder("utf-8", { fatal: true }).decode(record.subarray(0, -1));
+    const equals = body.indexOf("=");
+    if (equals <= 0) throw new TarError("tar_corrupt", "The archive's pax header is damaged.");
+    const key = body.slice(0, equals);
+    const value = body.slice(equals + 1);
+    if (key === "path") out.path = value;
+    else if (key === "size") {
+      if (!/^(0|[1-9][0-9]{0,15})$/.test(value) || !Number.isSafeInteger(Number(value)))
+        throw new TarError(
+          "tar_corrupt",
+          "The archive's pax header has a size that isn't a number.",
+        );
+      out.size = Number(value);
+    }
+    offset += length;
+  }
+  return out;
+};
+
+/**
+ * Reads a tar written as it goes (099's backup format), pushed in pieces of any size, never whole
+ * in memory: each regular file's path and size go to `onEntry`, whose sink gets its bytes in
+ * order and then its end. Only what the format allows: ustar headers (magic and version checked,
+ * checksum checked), regular files, each after at most one pax extended header whose `path` and
+ * `size` it uses; safe paths, each once; then exactly two zero blocks and nothing after. Anything
+ * else throws a TarError, and nothing more is read.
+ */
+export const createTarReader = (
+  onEntry: (path: string, size: number) => Promise<TarEntrySink> | TarEntrySink,
+) => {
+  const seen = new Set<string>();
+  let held: Uint8Array = new Uint8Array(0);
+  // What the next bytes are: a header block, an entry's bytes, a pax header's bytes, or the end.
+  let state: "header" | "data" | "pax" | "end" = "header";
+  let remaining = 0;
+  let pad = 0;
+  let sink: TarEntrySink | null = null;
+  let pax: { path?: string; size?: number } | null = null;
+  let paxBytes: Uint8Array[] = [];
+  let zeros = 0;
+  let failed = false;
+  const fail = (message: string) => new TarError("tar_corrupt", message);
+
+  const readHeader = async (h: Uint8Array) => {
+    if (h.every((byte) => byte === 0)) {
+      if (pax) throw fail("The archive ends right after a pax header.");
+      state = "end";
+      zeros = 1;
+      return;
+    }
+    const stored = readOctal(h, 148, 8);
+    const sum = h.reduce((total, byte, i) => total + (i >= 148 && i < 156 ? 0x20 : byte), 0);
+    if (sum !== stored) throw fail("The archive's header checksum doesn't match.");
+    if (text(h, 257, 6) !== "ustar" || h[262] !== 0 || text(h, 263, 2) !== "00")
+      throw fail("The archive isn't a ustar archive.");
+    const type = String.fromCharCode(h[156] ?? 0);
+    const size = readOctal(h, 124, 12);
+    if (type === "x") {
+      if (pax) throw fail("The archive has two pax headers in a row.");
+      if (size > PAX_MAX) throw fail("The archive's pax header is too large.");
+      pax = {};
+      paxBytes = [];
+      state = "pax";
+      remaining = size;
+      pad = padding(size).length;
+      if (remaining + pad === 0) {
+        pax = parsePax(new Uint8Array(0));
+        state = "header";
+      }
+      return;
+    }
+    if (type !== "0")
+      throw new TarError(
+        "tar_entry_type",
+        "The archive holds something other than regular files (a folder, a link…).",
+      );
+    const prefix = text(h, 345, 155);
+    const name = text(h, 0, 100);
+    const path = pax?.path ?? (prefix ? `${prefix}/${name}` : name);
+    const length = pax?.size ?? size;
+    pax = null;
+    if (!isSafeTarPath(path)) throw new TarError("tar_path", `The path ${path} isn't allowed.`);
+    if (seen.has(path)) throw new TarError("tar_duplicate", `${path} is in the archive twice.`);
+    seen.add(path);
+    sink = await onEntry(path, length);
+    state = "data";
+    remaining = length;
+    pad = padding(length).length;
+    if (remaining === 0) {
+      await sink.end();
+      sink = null;
+      state = pad > 0 ? "data" : "header";
+    }
+  };
+
+  const step = async (): Promise<boolean> => {
+    if (state === "end") {
+      if (held.length === 0) return false;
+      if (zeros >= 2) throw fail("The archive has bytes after its end.");
+      if (held.length < BLOCK) return false;
+      const block = held.subarray(0, BLOCK);
+      held = held.subarray(BLOCK);
+      if (!block.every((byte) => byte === 0)) throw fail("The archive's end is damaged.");
+      zeros++;
+      return true;
+    }
+    if (state === "header") {
+      if (held.length < BLOCK) return false;
+      const block = held.subarray(0, BLOCK);
+      held = held.subarray(BLOCK);
+      await readHeader(block);
+      return true;
+    }
+    if (held.length === 0) return false;
+    if (remaining > 0) {
+      const take = Math.min(remaining, held.length);
+      const chunk = held.subarray(0, take);
+      held = held.subarray(take);
+      remaining -= take;
+      if (state === "pax") paxBytes.push(chunk.slice());
+      else await sink?.data(chunk);
+      if (remaining === 0 && state === "data") {
+        await sink?.end();
+        sink = null;
+      }
+      return true;
+    }
+    const take = Math.min(pad, held.length);
+    if (!held.subarray(0, take).every((byte) => byte === 0))
+      throw fail("The archive's padding is damaged.");
+    held = held.subarray(take);
+    pad -= take;
+    if (pad === 0) {
+      if (state === "pax") {
+        const all = new Uint8Array(paxBytes.reduce((n, b) => n + b.length, 0));
+        let at = 0;
+        for (const b of paxBytes) {
+          all.set(b, at);
+          at += b.length;
+        }
+        pax = parsePax(all);
+        paxBytes = [];
+      }
+      state = "header";
+    }
+    return true;
+  };
+
+  const guard =
+    <A extends unknown[]>(run: (...args: A) => Promise<void>) =>
+    async (...args: A) => {
+      if (failed) throw fail("The archive failed to read earlier.");
+      try {
+        await run(...args);
+      } catch (error) {
+        failed = true;
+        throw error;
+      }
+    };
+
+  return {
+    push: guard(async (chunk: Uint8Array) => {
+      if (held.length === 0) held = chunk;
+      else {
+        const joined = new Uint8Array(held.length + chunk.length);
+        joined.set(held);
+        joined.set(chunk, held.length);
+        held = joined;
+      }
+      while (await step()) {
+        // Each step consumes what it can; stop when it needs more bytes.
+      }
+      // Keep a copy of the little that's left, not a view into the caller's buffer.
+      held = held.slice();
+    }),
+    end: guard(async () => {
+      if (state !== "end" || zeros < 2 || held.length > 0)
+        throw fail("The archive ends in the middle: it was cut short.");
+    }),
+  };
+};
