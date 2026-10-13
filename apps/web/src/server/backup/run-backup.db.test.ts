@@ -26,6 +26,7 @@ import { createRoot } from "../domains/identity/actions/root-account";
 import { kyselyItemRepository } from "../domains/items/repositories/kysely-item-repository";
 import { UNFILTERED } from "../domains/workspaces/models/viewer";
 import type { BackupManifest } from "./archive";
+import { createOpener, passphraseBytes } from "./crypto";
 import {
   BackupFailedError,
   type BackupLog,
@@ -597,6 +598,47 @@ describe("rmk-server backup (099)", () => {
       readFileSync(settings),
     );
     expect(entries.map((e) => e.path)).toContain("storage/only-here.bin");
+  });
+
+  it("--encrypt writes the archive sealed with the passphrase, as .tar.enc", async () => {
+    const i = await instance();
+    await seed(i);
+    const secret = "a passphrase nobody else knows";
+    const { log, text } = logs();
+    const result = await backup(i, { passphrase: passphraseBytes(secret), log });
+    expect(result.path).toBe(join(i.appDir, "data", "backups", NAME.replace(".tar", ".tar.enc")));
+    const sealed = readFileSync(result.path);
+    expect(sealed.subarray(0, 8).toString("ascii")).toBe("RONNEBAK");
+    expect(sealed.length).toBe(result.bytes);
+    if (posix) expect(statSync(result.path).mode & 0o777).toBe(0o600);
+    // Inside: the same tar a plain backup writes.
+    const plain: Buffer[] = [];
+    const opener = createOpener(passphraseBytes(secret), (bytes) => {
+      plain.push(Buffer.from(bytes));
+    });
+    await opener.push(sealed);
+    await opener.end();
+    const entries: TarEntry[] = [];
+    readTar(new Uint8Array(Buffer.concat(plain)), (entry) => entries.push(entry));
+    expect(entries[0]?.path).toBe("backup.json");
+    expect(entries.at(-1)?.path).toBe("manifest.json");
+    expect(entries.map((e) => e.path)).toContain("storage/incident/notes/1.0.0.tgz");
+    expect(entries.map((e) => e.path)).toContain("settings.env");
+    // Without it, nothing opens.
+    const wrong = createOpener(passphraseBytes("a guess"), () => undefined);
+    await expect(wrong.push(sealed).then(() => wrong.end())).rejects.toThrow(
+      /damaged, or the passphrase is wrong/,
+    );
+    // Said, audited, and the passphrase nowhere.
+    expect(text()).toContain("It's encrypted");
+    expect(text()).toContain("a lost passphrase can't be recovered");
+    // Still sensitive, and said; no --encrypt hint on an encrypted archive.
+    expect(text()).toContain("AUTH_SECRET and the database's password");
+    expect(text()).not.toContain("use --encrypt");
+    expect(text()).not.toContain(secret);
+    const [event] = await backupEvents(i);
+    expect(JSON.parse(String(event?.metadata)).encrypted).toBe(true);
+    expect(String(event?.metadata)).not.toContain(secret);
   });
 
   it("warns about an artifact stored with another sha256, and still completes", async () => {

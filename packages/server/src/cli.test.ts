@@ -102,6 +102,14 @@ describe("a script's paths (099)", () => {
     expect(scriptArgs("backup", ["--out", absolute], cwd)).toEqual(["--out", absolute]);
   });
 
+  it("makes --passphrase-file absolute too", () => {
+    expect(scriptArgs("backup", ["--encrypt", "--passphrase-file", "p.txt"], cwd)).toEqual([
+      "--encrypt",
+      "--passphrase-file",
+      join(cwd, "p.txt"),
+    ]);
+  });
+
   it("leaves everything else as it is", () => {
     // A flag with no value, other scripts' flags, and what follows `--`.
     expect(scriptArgs("backup", ["--out"], cwd)).toEqual(["--out"]);
@@ -125,6 +133,6 @@ describe("a script's paths (099)", () => {
   });
 
   it("lists backup in the help", () => {
-    expect(HELP).toContain("rmk-server backup [--out DIR] [--no-settings] [--keep N]");
+    expect(HELP).toContain("rmk-server backup [--out DIR] [--encrypt] [--no-settings] [--keep N]");
   });
 });

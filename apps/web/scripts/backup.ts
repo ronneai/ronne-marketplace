@@ -1,8 +1,11 @@
 // pnpm run backup (099): one archive of the whole instance (database, storage, settings) while it
-// runs. Never asks anything, so schedules can run it as it is.
+// runs. Asks nothing, but the passphrase for --encrypt in a terminal (schedules give it with
+// --passphrase-file or RONNE_BACKUP_PASSPHRASE).
 // Exit codes: 0 the archive is complete, 1 failed (nothing left behind), 2 invalid input.
 import { resolve } from "node:path";
+import * as p from "@clack/prompts";
 import { BACKUP_USAGE, parseBackupCommand } from "../src/server/backup/cli";
+import { PassphraseError, readPassphrase } from "../src/server/backup/passphrase";
 import { BackupFailedError, callerCwd, runBackup } from "../src/server/backup/run-backup";
 
 const appDir = resolve(import.meta.dirname, "..");
@@ -17,11 +20,36 @@ if (command.mode === "error") {
   process.exit(command.exitCode);
 }
 
+const cwd = callerCwd(process.env);
+let passphrase: Buffer | undefined;
+if (command.encrypt) {
+  try {
+    passphrase = await readPassphrase({
+      file: command.passphraseFile,
+      env: process.env,
+      callerCwd: cwd,
+      confirm: true,
+      ask:
+        process.stdin.isTTY && process.stderr.isTTY
+          ? async (message) => {
+              const answer = await p.password({ message, output: process.stderr });
+              return p.isCancel(answer) ? null : answer;
+            }
+          : undefined,
+    });
+  } catch (error) {
+    if (!(error instanceof PassphraseError)) throw error;
+    console.error(`✗ ${error.message}`);
+    process.exit(error.exitCode);
+  }
+}
+
 try {
   await runBackup({
     appDir,
     env: process.env,
-    callerCwd: callerCwd(process.env),
+    callerCwd: cwd,
+    passphrase,
     out: command.out,
     settings: command.settings,
     keep: command.keep,

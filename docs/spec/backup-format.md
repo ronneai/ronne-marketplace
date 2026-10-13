@@ -245,7 +245,14 @@ key = scrypt(passphrase, salt, N, r, p, keylen = 32)
 
 - **The passphrase** is the UTF-8 bytes of the passphrase in Unicode NFC. One trailing `\n` or
   `\r\n` is removed from `--passphrase-file`'s content and from `RONNE_BACKUP_PASSPHRASE`; nothing
-  else is trimmed. An empty passphrase is refused.
+  else is trimmed (a leading BOM in the file is part of the passphrase). An empty passphrase is
+  refused, and so is one that isn't valid Unicode text (a `--passphrase-file` that isn't UTF-8, a
+  lone surrogate), that holds U+FFFD, the replacement character an undecodable byte becomes
+  (Node.js decodes the environment that way), or that holds a control character (Unicode `Cc`:
+  tab, a line break other than the one trailing one removed, NUL, ESC…) or a line or paragraph
+  separator (U+2028, U+2029): a terminal prompt drops or acts on those, so a typed passphrase and
+  the same one in a file could differ, and decoding would turn different bytes into one key. (scrypt's HMAC hashes a passphrase longer than 64 bytes first, so
+  such a passphrase and its SHA-256 are the same key: harmless, since one comes from the other.)
 - scrypt needs 128 × N × r bytes (128 MiB with the defaults), and Node.js counts more than that
   against `maxmem`, whose default (32 MiB) is too low: readers and writers pass
   `maxmem = 256 × N × r` (256 MiB with the defaults, 512 MiB at the readers' limit), measured to be

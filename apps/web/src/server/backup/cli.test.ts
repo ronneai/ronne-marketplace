@@ -3,14 +3,15 @@ import { KEEP_MAX, parseBackupCommand } from "./cli";
 
 describe("backup's flags (099)", () => {
   it("backs up with the settings by default, and reads --out, --no-settings, --keep and --yes", () => {
-    expect(parseBackupCommand([])).toEqual({ mode: "backup", settings: true });
+    expect(parseBackupCommand([])).toEqual({ mode: "backup", settings: true, encrypt: false });
     expect(
       parseBackupCommand(["--out", "/srv/backups", "--no-settings", "--keep", "7", "--yes"]),
-    ).toEqual({ mode: "backup", out: "/srv/backups", settings: false, keep: 7 });
+    ).toEqual({ mode: "backup", out: "/srv/backups", settings: false, keep: 7, encrypt: false });
     expect(parseBackupCommand(["--out=rel/dir", "-y"])).toEqual({
       mode: "backup",
       out: "rel/dir",
       settings: true,
+      encrypt: false,
     });
     expect(parseBackupCommand(["--help"])).toEqual({ mode: "help" });
     expect(parseBackupCommand(["-h"])).toEqual({ mode: "help" });
@@ -25,6 +26,22 @@ describe("backup's flags (099)", () => {
         exitCode: 2,
         message: expect.stringContaining("--keep needs a whole number"),
       });
+  });
+
+  it("reads --encrypt and --passphrase-file, which goes only with it", () => {
+    expect(parseBackupCommand(["--encrypt"])).toMatchObject({ encrypt: true });
+    expect(parseBackupCommand(["--encrypt", "--passphrase-file", "p.txt"])).toMatchObject({
+      encrypt: true,
+      passphraseFile: "p.txt",
+    });
+    expect(parseBackupCommand(["--passphrase-file", "p.txt"])).toMatchObject({
+      mode: "error",
+      exitCode: 2,
+      message: "--passphrase-file goes with --encrypt.",
+    });
+    expect(parseBackupCommand(["--encrypt", "--passphrase-file= "])).toMatchObject({
+      mode: "error",
+    });
   });
 
   it("refuses unknown flags, a missing value and an empty --out", () => {

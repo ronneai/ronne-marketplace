@@ -21,6 +21,7 @@ import { parseDatabaseUrl } from "../db/url";
 import { recordAudit } from "../domains/audit/actions/audit";
 import { defaultDataPath, runtimeOf, scriptCommand } from "../runtime";
 import { type BackupArchiveResult, type MissingArtifact, writeBackupArchive } from "./archive";
+import { createSealer, deriveKey, newHeader } from "./crypto";
 
 type Env = Record<string, string | undefined>;
 
@@ -207,6 +208,11 @@ export const runBackup = async (options: {
    * while the archive is written, remove the partial file, then exit 130 or 143.
    */
   removeOnSignal?: boolean;
+  /**
+   * `--encrypt`: the passphrase, in the format's bytes (`passphrase.ts`). The archive is then the
+   * encrypted container, `.tar.enc`. Never printed or logged.
+   */
+  passphrase?: Buffer;
 }): Promise<BackupResult> => {
   const { appDir, env, log } = options;
   const now = options.now ?? (() => new Date());
@@ -265,7 +271,8 @@ export const runBackup = async (options: {
       `${outDir} is inside the storage folder, so each backup would hold the ones before it. Choose another folder with --out.`,
     );
 
-  const name = archiveName(started);
+  const encrypted = options.passphrase !== undefined;
+  const name = archiveName(started, encrypted);
   const path = join(outDir, name);
   const partial = `${path}.partial`;
   const exists = async (p: string) =>
@@ -341,6 +348,21 @@ export const runBackup = async (options: {
     );
   }
 
+  // The key before the file: scrypt takes a moment and much memory, and its failure leaves nothing.
+  let sealing: { header: ReturnType<typeof newHeader>; key: Buffer } | null = null;
+  if (options.passphrase) {
+    try {
+      const header = newHeader();
+      sealing = { header, key: await deriveKey(options.passphrase, header) };
+    } catch (error) {
+      await removeMade();
+      await db.destroy().catch(() => undefined);
+      throw new BackupFailedError(
+        `The encryption key couldn't be made: ${failure(error)}. Nothing was written.`,
+      );
+    }
+  }
+
   let output: BackupOutput;
   try {
     output = await (options.openOutput ?? openFileOutput)(partial);
@@ -370,6 +392,12 @@ export const runBackup = async (options: {
     let bytes = 0;
     try {
       const sink = buffered(output);
+      const toFile = async (chunk: Uint8Array) => {
+        bytes += chunk.length;
+        await sink.write(chunk);
+      };
+      // Encrypted: the tar goes through the sealer, and the file holds the container.
+      const sealer = sealing ? createSealer(sealing.key, sealing.header, toFile) : null;
       archive = await writeBackupArchive({
         db: db as unknown as Kysely<unknown>,
         dialect,
@@ -379,11 +407,9 @@ export const runBackup = async (options: {
         version: RONNE_VERSION,
         now: () => started,
         dump: options.dump,
-        write: async (chunk) => {
-          bytes += chunk.length;
-          await sink.write(chunk);
-        },
+        write: (chunk) => (sealer ? sealer.push(chunk) : toFile(chunk)),
       });
+      await sealer?.end();
       await sink.flush();
       await output.sync();
       await output.close();
@@ -409,9 +435,13 @@ export const runBackup = async (options: {
     log.info(
       `${count(rows, "row")} in ${count(tables.length, "table")}, ${count(manifest.storage.files, "stored file")} (${formatBytes(manifest.storage.bytes)}).`,
     );
+    if (encrypted)
+      log.warn(
+        "It's encrypted: without the passphrase it can't be read, and a lost passphrase can't be recovered. Keep the passphrase somewhere other than the archive.",
+      );
     if (manifest.settings.included)
       log.warn(
-        "It holds the settings file, with AUTH_SECRET and the database's password: keep it as safe as the server itself.",
+        `It holds the settings file, with AUTH_SECRET and the database's password: keep it as safe as the server itself${encrypted ? "" : ", and use --encrypt for copies that leave this machine"}.`,
       );
     else if (options.settings)
       log.warn("There's no settings file to back up: the settings come from the environment.");
@@ -444,7 +474,7 @@ export const runBackup = async (options: {
           rows,
           files: manifest.storage.files,
           bytes,
-          encrypted: false,
+          encrypted,
           settings: manifest.settings.included,
         },
       });

@@ -458,3 +458,258 @@ Witnessed: 2026-10-12 18:12 EDT, by a fresh agent (adversarial). Commit: a7fbdee
 **Overall:** not met: only Windows is open (7), which can't be checked on this Mac. Settings are archived byte for byte, env over file and empty-as-unset are tested, the false refusal in the race is gone, and every APFS spelling, link and race tried was refused with clean-up; nothing regressed on the four databases. Remarks: storage removed between `existsSync` and `realpath` leaves the new `--out` folder with an ENOENT message; a write that fails after mkdir leaves the new `--out` folder though it says "nothing else changed"; CI runs neither spelling test.
 
 **Owner's decision (2026-10-12):** the Windows claim (row 7 above) is closed by CI: `server-probe.js` now runs `backup --out <data>/STORAGE/b` on macOS and Windows and expects the refusal (it passed here on macOS against the packed `rmk-server`). Task 3 stays unticked until the Windows server-checks job passes on the pull request and a re-check records it. The remarks of the last pass (folders left after a failed write) are fixed: every failure after `mkdir` removes the empty folders it made.
+
+## Task 4 — Encryption
+
+Witnessed: 2026-10-12 22:02 EDT, by a fresh agent (blind). Commit: cc9254da + working tree (crypto.ts/passphrase.ts as before their 22:13 edit). Machine: macOS (Darwin 27.0.0), Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The header is 40 bytes as specified: `RONNEBAK`, version 1, KDF 1, scrypt 17/8/1, a new 16-byte salt each time, chunk size 65536 BE, 7 zero bytes | no | confirmed | `xxd -l 40` of a real `.tar.enc` → `524f4e4e4542414b 01 01 11 08 01 <16 salt> 00010000 00…`; crypto.test.ts:62-75 |
+| 2 | Key = scrypt(NFC passphrase, salt, N=2^17, r=8, p=1, 32 bytes, maxmem 256·N·r) | no | confirmed | An independent decoder (`scryptSync` + `createDecipheriv` from the spec) opened the archives `scripts/backup.ts --encrypt` wrote → `chunks 1 plain 19968 first entry backup.json ustar` |
+| 3 | AES-256-GCM per 64 KiB chunk; nonce = 7 zero bytes, BE counter, last flag; AAD = the header; the last chunk always shorter (empty on an exact multiple) | no | confirmed | crypto.test.ts:77-106; 2×65536 plain bytes → 131160 = 40+2·65552+16. Mutations: flag always 0 → the spec test fails; no AAD → 2 tests fail |
+| 4 | Tests show a round trip | no | confirmed | 17 passed; sizes 0, 1, C-1, C, C+1, 3C, 3C+1234 with pushes of 1 to 100000 bytes. Mutation (no counter++ on open) → fails |
+| 5 | A wrong passphrase fails | no | confirmed | crypto.test.ts:127-132; run-backup.db.test.ts "--encrypt writes…"; the decoder with `wrong` → "unable to authenticate data" |
+| 6 | A cut archive fails | no | confirmed | crypto.test.ts:147-150 (inside the last chunk, a full chunk, to the header, inside the header); 5 bytes cut from the empty last tag → refused |
+| 7 | A reordered chunk fails | no | confirmed | crypto.test.ts:151-154, 161: swapped, repeated, dropped, spliced, another archive's header → `damaged` |
+| 8 | A flipped bit fails | no | confirmed | crypto.test.ts:162-165 |
+| 9 | A dropped last chunk fails | no | confirmed | crypto.test.ts:146; an exact multiple with its empty last chunk dropped → `damaged`. Removing the length check alone leaves the tests green (the flag still catches it) |
+| 10 | After a failure the reader hands out nothing more and refuses to go on | no | confirmed | crypto.test.ts:208-221; mutation (bytes out before `final()`) → 3 tests fail. Chunks before the bad one are already out (65536 bytes, then refused), as documented; restore must decrypt everything first. Removing the `failed` latch leaves the tests green |
+| 11 | A header it doesn't know or accept is refused before any key is derived | no | confirmed | crypto.ts:77-108 before `deriveKey` (:258-260); each limit ±1 and a reserved byte → `bad_header` |
+| 12 | A newer container version is refused as "encrypted by a newer Ronne" | no | confirmed | crypto.test.ts:187-188, 205; the message at crypto.ts:83-87 |
+| 13 | Passphrase: NFC; one trailing `\n` or `\r\n` removed only for the file and env; nothing else trimmed; empty refused | no | confirmed | crypto.test.ts:223-236; passphrase.test.ts; a CRLF file with `Pässwörd-ZZQ9 spécial` decrypted with the bare string |
+| 14 | `--encrypt` writes `.tar.enc` (0600) and audits `encrypted: true` | no | confirmed | run-backup.db.test.ts:603-640 on SQLite; servers → 20 passed, 1 skipped each; audit rows `"encrypted":true`, no path or passphrase |
+| 15 | Asked twice in a terminal, masked; two that differ refused | no | confirmed | `script -q` pty with `TtyPass-WW3` twice → archive opened by the decoder; 0 occurrences in the pty log; `AAA-1`/`BBB-2` → "The two passphrases differ. Nothing was written.", rc 1, no folder |
+| 16 | `--passphrase-file` relative to where typed, only with `--encrypt` | no | confirmed | passphrase.ts:40; cli.test.ts; `scriptArgs` makes it absolute; packages/server → 121 passed |
+| 17 | `RONNE_BACKUP_PASSPHRASE` for schedules; none and no terminal → exit 2 | no | confirmed | A real run with it → exit 0, opened; scripts/backup.db.test.ts:45-62 |
+| 18 | No passphrase in output or logs | no | confirmed | `grep -a` for the three passphrases over the runs' output, `ronne.db*` and the archives → none; the pty log → 0; the db test checks output and audit |
+| 19 | The output says a lost passphrase can't be recovered | no | confirmed | "! It's encrypted: without the passphrase it can't be read, and a lost passphrase can't be recovered…" |
+| 20 | "Sensitive": with the settings, the output says the archive holds AUTH_SECRET and the database password, and suggests `--encrypt` | no | partly | Plain run → says so with the `--encrypt` hint. With `--encrypt` and the settings, run-backup.ts:442-446 drops the warning, and run-backup.db.test.ts:635 asserts it's absent; SPEC.md:127 and :143 say the output says so whenever the settings are in it |
+| 21 | Usage and HELP list the new flags | no | confirmed | `BACKUP_USAGE`; `rmk-server backup [--out DIR] [--encrypt] [--no-settings] [--keep N]` |
+| 22 | The adversarial pass reviews the construction against the format spec | no | can't check here | A blind pass; needs the `mode: adversarial` pass |
+
+**Overall:** not met: the container, its failure modes, the passphrase sources and the no-leak scan hold, but the encrypted output drops the "Sensitive" warning the spec asks for (row 20), the adversarial review is separate (row 22), and crypto.ts/passphrase.ts changed during this pass (22:13), so that version needs a re-check. Test gaps: the opener's `failed` latch, the full-chunk-at-end rule, and dropping the empty last chunk of an exact multiple have no test of their own. Side effect of this pass: a probe's setup run rewrote the git-ignored dev settings `apps/web/.env` (DATABASE_URL and STORAGE_PATH now name the witness's scratch instance) and left `apps/web/data/backups/ronne-backup-20261013-020411.tar.enc`; reported to the owner.
+
+### Adversarial pass
+
+Witnessed: 2026-10-12 22:12 EDT, by a fresh agent (adversarial). Commit: cc9254da + working tree (uncommitted crypto.ts, passphrase.ts, their tests, and the cli/run-backup/scripts/server diffs). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The header is the spec's 40 bytes: magic, version 1, KDF 1, 17/8/1, a 16-byte salt, chunk size 65536 big-endian, 7 zero bytes | no | confirmed | `crypto.ts:54-67`; `vitest run crypto.test.ts` → 8 passed, test 1 checks every byte; the `fixedSalt` mutation fails 2 tests |
+| 2 | The reader refuses an unknown magic, version or KDF, a nonzero reserved byte, and scrypt or chunk values out of bounds, before deriving a key; a forged header can't use more than 512 MiB | no | confirmed | p2: chunk size 0xFFFFFFFF → `bad_header`; version 0 or 2 → `newer_container`; the largest accepted header (log2N 18, r 8, p 4) derives in 2.0 s with rss +256 MiB at most; garbage → `not_encrypted`; the `noReservedCheck` mutation fails a test |
+| 3 | The key is scrypt(passphrase, salt, N, r, p, 32) with maxmem = 256·N·r | no | confirmed | `crypto.ts:121-131`; maxmem removed → 8 of 8 tests fail; test 2 derives the key independently with `scryptSync` from the spec |
+| 4 | Passphrase: UTF-8 in NFC, one trailing `\n`/`\r\n` stripped only for the file and env, nothing else trimmed, empty refused | no | partly | Rules hold (`passphrase.test.ts`; env `" a \n"` → `" a "`; NFD and NFC prompts equal; the `noNFC` and `trailingAll` mutations each fail a test; `""`, `"\n"`, `"\r\n"` files exit 2). But the file is decoded lossily with `readFile(…, "utf8")` (`passphrase.ts:40`): `70 77 FF` and `70 77 FE` both give `7077efbfbd`, so two key files open the same archive; a lone surrogate in `RONNE_BACKUP_PASSPHRASE` likewise |
+| 5 | nonce = 7 zero bytes, a 4-byte BE counter, the last flag; AAD = the 40-byte header | no | confirmed | `crypto.ts:135-140,167,222`; the test opens chunks by hand from the spec; the `noLastFlag`, `noAAD` and `noCounter` mutations each fail ≥1 test |
+| 6 | The last chunk is always shorter than the chunk size, empty for a multiple of it, for any push sizes | no | confirmed | p1: 8 sizes × 5 push patterns on a 4096-byte forged chunk: the layout right every time |
+| 7 | The counter never wraps (at most 2^32 chunks), both sides | no | confirmed | Read, not run: `crypto.ts:160` and `:219` refuse `counter >= 2**32` |
+| 8 | Round trip | no | confirmed | p1: 240 seal/open combinations of push sizes → byte-equal; CLI archives (env, CRLF file, TTY prompt) open to a tar starting with `backup.json` |
+| 9 | A wrong passphrase fails | no | confirmed | the test; the NFD form or a trailing `\n` at the prompt → `damaged`; file+env archive opened with the env value → `damaged` |
+| 10 | A cut archive fails at any length | no | confirmed | p1: 190 cut points (every byte 0–41, ±18 around every boundary, the last 20) → never accepted |
+| 11 | A reordered, repeated, dropped-middle or spliced chunk, or another archive's header, fails | no | confirmed | crypto.test's 16 cases; the `noCounter` mutation fails it |
+| 12 | A flipped bit anywhere fails | no | confirmed | p1: each of the 40 header bytes, plus 60 random flips in chunks and tags → 0 accepted |
+| 13 | A dropped last chunk fails, the empty one included | no | confirmed | p1: 2C plaintext without its 16-byte empty last chunk → `damaged` |
+| 14 | Bytes after the last chunk, fewer than 16 trailing bytes, magic only, header only, empty input all fail | no | confirmed | p1: appending 1, 15, 16, 17, S−1, S, S+1 bytes → rejected; p2: `RONNEBAK`, magic+5, 7 bytes, the header alone, empty → `damaged` |
+| 15 | After a failure the opener hands out nothing more and refuses later calls | no | confirmed | p2: push or end after end → `damaged`; the test checks it after a swap. Chunks before `end` are handed out unchecked by design, so restore must decrypt the whole archive first (the spec says so). The `noFailGuard` mutation survives the tests: the guard has no test of its own |
+| 16 | A new salt per archive, so no nonce repeats under a key | no | confirmed | 3 CLI archives → 3 salts; `randomBytes(16)` |
+| 17 | `--encrypt`, `--passphrase-file` (only with it, relative to where typed), `RONNE_BACKUP_PASSPHRASE`; the file wins over env | no | confirmed | exit codes 0/0/0; the file+env archive opens with the file's; `--passphrase-file` without `--encrypt` → exit 2; a relative file through `pnpm --dir apps/web run backup` → written; empty, missing, folder file → 2/1/1; env empty with no TTY → 2 |
+| 18 | The prompt asks twice, hidden, and refuses a mismatch | no | confirmed | `script` pty: `ttyPass-42` twice → `.tar.enc` that opens with it, 0 echoes in the pty log; `aaa`/`bbb` → "two passphrases differ", no archive |
+| 19 | The passphrase never reaches output, errors, logs, audit metadata or the archive | no | confirmed | 11 runs' stdout/stderr, the archive, the decrypted tar, `audit_log` (`"encrypted":true`) → 0 matches; argv holds only the file path |
+| 20 | A failure while encrypting removes the partial archive and audits nothing | no | confirmed | A temporary db test (deleted) failing the write at bytes 10, 65576, 70000, 200000 → `BackupFailedError`, empty folder, 0 events, no secret in messages |
+| 21 | Name `ronne-backup-…tar.enc`, mode 0600; `--keep` counts `.tar.enc` | no | confirmed | `ronne-backup-20261013-020707.tar.enc`, `600`; `ARCHIVE_NAME` covers `.enc` |
+| 22 | `rmk-server` makes `--passphrase-file` absolute | no | confirmed | `packages/server` → 121 passed (the `=` form at `cli.ts:102`) |
+| 23 | Suites green on all dialects | no | confirmed | unit 17 passed; db SQLite 20 passed, 1 skipped ×4; PostgreSQL, MySQL, MariaDB on run-backup.db.test.ts → 16 passed, 1 skipped each |
+
+**Overall:** not met: the container matches the format spec byte for byte and every tamper, cut and splice tried fails, but a `--passphrase-file` that isn't valid UTF-8 is decoded lossily, so different key files give the same key (row 4). Minor: the sealer has no guard after `end`; version or KDF 0 is called "newer"; no test pins the opener's failure guard; the opener joins its bytes on every push (quadratic with tiny pushes).
+
+### Re-check
+
+Witnessed: 2026-10-12 22:28 EDT, by a fresh agent (blind). Commit: cc9254da + working tree (crypto.ts 22:15, crypto.test.ts 22:21, passphrase.ts/.test.ts 22:13, run-backup.ts/.db.test.ts 22:15). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The header is the spec's 40 bytes | no | confirmed | `xxd -l 40` of a CLI `.tar.enc` → `524f4e4e4542414b 01 01 11 08 01 <salt> 00010000 00×7`; crypto.ts:54-67 |
+| 2 | Key = scrypt(NFC passphrase bytes, salt, N, r, p, 32), maxmem 256·N·r | no | confirmed | crypto.ts:130-141; an independent decoder from the spec opened the file, env and prompt archives; a wrong passphrase → "unable to authenticate data" |
+| 3 | AES-256-GCM per chunk, nonce = 7 zero bytes \| BE counter \| last flag, AAD = header; the last chunk always shorter, empty for an exact multiple | yes | confirmed | crypto.ts:144-149,176-178,203-206; crypto.test.ts:100-116; mutation (no empty last chunk) → "opens what it sealed…" fails |
+| 4 | Tests show a round trip | no | confirmed | 18 passed; crypto.test.ts:109-126 |
+| 5 | A wrong passphrase fails | no | confirmed | crypto.test.ts:128-133; run-backup.db.test.ts:628-631; the decoder → auth failure |
+| 6 | A cut archive fails | yes | confirmed | crypto.test.ts:148-151 |
+| 7 | A reordered chunk fails | no | confirmed | crypto.test.ts:152-162 |
+| 8 | A flipped bit fails | no | confirmed | crypto.test.ts:163-166 |
+| 9 | A dropped last chunk fails, including the empty last chunk of an exact multiple; a full chunk at the end is refused by length | yes | confirmed | crypto.test.ts:174-196; mutation (length check removed) → that test fails |
+| 10 | After a failure the opener hands out nothing more and refuses later calls | yes | confirmed | crypto.test.ts:236-249; mutation (`failed = true` removed) → the test fails |
+| 11 | A header it doesn't know or accept is refused before a key; version/KDF 0 is a bad header | yes | confirmed | crypto.ts:77-111 before `deriveKey` (:271); crypto.test.ts:211-233 |
+| 12 | A `--passphrase-file` that isn't UTF-8 is refused (exit 2) | yes | confirmed | `pw\xff`, `pw\xfe`, CESU `pw\xed\xa0\x80`, overlong `pw\xc0\xaf` → refused, exit 2; real CLI `pw\xff` → rc 2 "isn't UTF-8 text", no archive; mutation to lossy decoding → passphrase.test.ts fails |
+| 13 | A passphrase that isn't valid Unicode text is refused from every source | yes | partly | The prompt and an injected `"x\ud800"` are refused. But a real environment can't hold a lone surrogate: Node decodes invalid env bytes to U+FFFD. `RONNE_BACKUP_PASSPHRASE=$'pw\xff'` and `$'pw\xfe'` both → `7077efbfbd`; a real CLI run with `$'pw\xff'` → rc 0, and `$'pw\xfe'` opens it |
+| 14 | Passphrase rules: NFC; one trailing `\n`/`\r\n` removed only for the file and env; nothing else trimmed; empty refused | no | partly | NFC, CRLF, `\n\n`, empty hold. But `new TextDecoder("utf-8", {fatal:true})` (passphrase.ts:52) strips a leading BOM: `EF BB BF 70 77 31` and `70 77 31` → both `707731` |
+| 15 | `--encrypt` writes `.tar.enc`, 0600, audits `encrypted: true` without the passphrase | no | confirmed | `-rw-------`; `audit_log` → `{"via":"cli",…,"encrypted":true,"settings":true}` |
+| 16 | Asked twice, hidden; two that differ refused | yes | confirmed | `script -q` pty: `TtyPass-RC9` twice → opens, 0 occurrences; `AAA-1`/`BBB-2` → "two passphrases differ", 0 files |
+| 17 | `--passphrase-file` relative to where typed; `rmk-server` makes it absolute | yes | confirmed | passphrase.ts:42; passphrase.test.ts:40-49; `PATH_FLAGS`; packages/server → 121 passed |
+| 18 | `RONNE_BACKUP_PASSPHRASE` for schedules; none and no terminal → exit 2 | yes | confirmed | `env -i … RONNE_BACKUP_PASSPHRASE=Env-Secret-ZP44` → rc 0, opens; without → exit 2 |
+| 19 | No passphrase in output or logs | yes | confirmed | `grep -arlF` for the 5 passphrases over every run's output, pty logs, `ronne.db*`, the archives → 0 files |
+| 20 | The output says a lost passphrase can't be recovered | no | confirmed | "! It's encrypted: … a lost passphrase can't be recovered. …" |
+| 21 | "Sensitive": with the settings, the output says so; the `--encrypt` hint only on a plain archive | no | confirmed | `--encrypt` → "! It holds the settings file, with AUTH_SECRET and the database's password: keep it as safe as the server itself."; plain → the same plus the hint; run-backup.db.test.ts:636-637 |
+| 22 | Usage and HELP list the new flags | no | confirmed | `BACKUP_USAGE`; packages/server/src/cli.ts:127 |
+| 23 | Suites green on all four dialects | no | confirmed | 20 passed, 1 skipped on SQLite and each server |
+| 24 | The adversarial pass reviews the construction against the format spec | no | can't check here | A blind pass; the adversarial re-check covers it |
+
+**Overall:** not met: the earlier findings are fixed and the test gaps closed (each new test fails under its mutation), but invalid UTF-8 in `RONNE_BACKUP_PASSPHRASE` is accepted lossily (row 13), and the file reader drops a leading BOM against "nothing else trimmed" (row 14). `apps/web/.env` and `apps/web/data` were unchanged before and after.
+
+### Adversarial re-check
+
+Witnessed: 2026-10-12 22:30 EDT, by a fresh agent (adversarial). Commit: cc9254da + working tree (uncommitted crypto.ts, passphrase.ts and their tests, plus the cli/run-backup/scripts/server/spec diffs). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The header is the spec's 40 bytes, a new salt each archive | no | confirmed | `xxd` on 5 CLI archives → `0101110801 <salt> 00010000 00…00`, 5 different salts; crypto.test.ts:63-76 |
+| 2 | Key = scrypt(NFC passphrase, salt, N, r, p, 32), maxmem 256·N·r | no | confirmed | An independent decoder from the spec opened the env, file (CRLF, `Pässwörd`) and TTY archives; a wrong passphrase → auth failure |
+| 3 | Nonce layout, AAD = header, the last chunk always shorter (empty on an exact multiple) | no | confirmed | p1 (log2N 15, 4 KiB chunks): 12 sizes × 7 push patterns → layout right every time; mutation M9 → the round-trip test fails |
+| 4 | Round trip, at odd push sizes after the lazy join | yes | confirmed | p1: 924 seal/open pairs → 0 failures; 18 tests pass. M5 and M10 survive but behave the same as the real code |
+| 5 | A wrong passphrase fails | no | confirmed | crypto.test.ts:128-133; the decoder; run-backup.db.test "a guess" |
+| 6 | A cut archive fails at every length | no | confirmed | Every cut of a 3C+100 archive at two push sizes (24,984) and of an exact-multiple 2C archive (8,280) → 0 accepted |
+| 7 | Reordered, repeated, dropped, spliced chunks or another header fail | no | confirmed | crypto.test.ts:146-171 |
+| 8 | A flipped bit fails | no | confirmed | 858 flips across header, chunks, tags → 0 accepted |
+| 9 | A dropped last chunk fails (the empty one too); a full chunk sealed as the last is refused by length | yes | confirmed | crypto.test.ts:174-196; M1 (length rule removed) → exactly that test fails |
+| 10 | Bytes after the end, under 16 trailing, empty, magic only, header only fail | no | confirmed | +1, 15, 16, 17, F−1, F, F+1 → 0 accepted; empty, `RONNEBA`, magic, magic+5, header → `damaged`; garbage, a tar → `not_encrypted` |
+| 11 | After a failure the opener refuses every later call with its own message | yes | confirmed | "It failed to open earlier. …"; M2 → crypto.test.ts:236 fails. The "already read to its end" guard (M8) has no test |
+| 12 | The sealer refuses calls after its end | yes | confirmed | crypto.test.ts:251-255; M3 → fails |
+| 13 | Version/KDF 0 is damaged, 2 and 255 "newer"; limits before the key | yes | confirmed | byte 8/9 = 0 → `bad_header`, 2/255 → `newer_container`; M4 → the header test fails |
+| 14 | The opener's memory stays bounded with a forged 1 MiB chunk size | yes | confirmed | 96 MiB in 64 KiB pushes → rss 470→477 MiB; junk after a forged header → refused after 16 pushes. 1-byte pushes: linear time, about +260 MiB (one Buffer per pushed byte until the join); restore reads 64 KiB |
+| 15 | A `--passphrase-file` must be valid UTF-8 (exit 2) | yes | confirmed | Latin-1, CESU, overlong, `F4 90 80 80` → "isn't UTF-8 text" (2); real CLI → exit 2; M6 → a test fails |
+| 16 | Passphrase: NFC, one trailing line break only for file and env, nothing else trimmed, empty refused, not-valid-Unicode refused | yes | partly | Holds for `pw\n`, `pw\r\n`, `pw\n\n`, `pw\r`, empty, a prompt `x\ud800`. Fails 1: Node decodes the environment lossily, so `RONNE_BACKUP_PASSPHRASE=$'p\xe4ss'`, `$'p\xdcss'` and a literal `p�ss` → the same key; a real run with `$'x\xed\xa0\x80'` → exit 0. Fails 2: the fatal TextDecoder strips a leading BOM (`EF BB BF 70 77` and `70 77` → `7077`), while the prompt keeps it |
+| 17 | `--encrypt`, `--passphrase-file` (only with it, made absolute by rmk-server), env; the file wins | no | confirmed | exit 0; the file+env archive opens with the file's; without `--encrypt` → 2; packages/server → 121 passed |
+| 18 | Asked twice, hidden; differing refused | no | confirmed | pty: `Tty-Pass-MM5é` twice → opens; differing → exit 1, no archive; 0 matches in pty logs |
+| 19 | The passphrase never reaches output, errors, logs, audit or the archive | yes | confirmed | `grep -a -c` for 5 passphrases over 7 runs' output, setup.log, 5 archives, 3 decrypted tars, `ronne.db*` → 0 |
+| 20 | Encrypted output keeps the "Sensitive" warning without the hint; plain keeps the hint | yes | confirmed | b1 and b7 stderr; run-backup.db.test.ts:636-637 |
+| 21 | The construction matches "## The encrypted container" and "## Versions" byte for byte | no | confirmed | Header offsets (crypto.ts:54-67), limits (:21), nonce (:144-149), AAD (:177, :235), reading rules (:276, :294), counter < 2^32 (:170, :232), the newer-version message word for word (:87); a spec-only decoder reads every CLI archive |
+| 22 | Suites green on all dialects | no | confirmed | unit 18; db SQLite 20/1 skipped; PostgreSQL, MySQL, MariaDB 20/1 skipped each; packages/server 121 |
+| 23 | The owner's files untouched | no | confirmed | `md5 apps/web/.env` and mtime 22:17 unchanged; `git status --ignored .env data` the same before and after |
+
+**Overall:** not met: the container matches the format spec byte for byte, and no cut, flip, splice, forged last chunk or forged header got through (over 34,000 tries); but a passphrase that isn't valid UTF-8 still reaches a key through `RONNE_BACKUP_PASSPHRASE` (Node has already made the bad bytes U+FFFD), and a leading BOM in a `--passphrase-file` is dropped (row 16). Minor: 1-byte pushes hold a Buffer each until the join; no test pins "already read to its end".
+
+### Re-check
+
+Witnessed: 2026-10-12 22:41 EDT, by a fresh agent (blind). Commit: cc9254da + working tree (crypto.ts and passphrase.ts as of 22:31, their tests 22:32, backup-format.md 22:32, plus the cli/run-backup/scripts/server diffs). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | A `RONNE_BACKUP_PASSPHRASE` that isn't valid UTF-8 (Node makes the bad bytes U+FFFD) is refused | yes | confirmed | Real CLI under `env -i` with `$'pw\xff'`, `$'pw\xfe'`, CESU `$'x\xed\xa0\x80'`, a literal `p�ss` → rc 2, "The passphrase isn't valid Unicode text. Choose another.", 0 files; passphrase.ts:71, crypto.ts:118. Mutations (U+FFFD dropped from the regex; env check removed) → 2 tests fail each |
+| 2 | A leading BOM in `--passphrase-file` is part of the passphrase | yes | confirmed | `EF BB BF "Bom-RC2-Pass" \n` → rc 0; a spec-only decoder opens it with the BOM bytes, not without; passphrase.ts:51; passphrase.test.ts:64-69; mutation `ignoreBOM: false` → that test fails |
+| 3 | A `--passphrase-file` that isn't UTF-8, or holds U+FFFD, is refused (exit 2) | yes | confirmed | `pw\xff` → rc 2 "isn't UTF-8 text"; `p\xef\xbf\xbdss` → rc 2 "holds the replacement character (U+FFFD)"; no archive |
+| 4 | A lone surrogate or U+FFFD is refused at the prompt and by `passphraseBytes` | yes | confirmed | passphrase.ts:82, crypto.ts:128; passphrase.test.ts; crypto.test.ts:275-276 |
+| 5 | Passphrase rules: NFC; one trailing line break only for file and env; nothing else trimmed; empty refused | no | confirmed | CRLF file `File-RC2-Päss\r\n` → opens with the bare string; env `Env-RC2-Secret-é\n` → opens with the bare string, `…-e` fails; crypto.test.ts:265-274; empty / `\n` → exit 2 |
+| 6 | Tests show a round trip | no | confirmed | 3 files, 19 passed; the real sealer and opener, 3C+100 bytes in 7777-byte pushes → byte-equal, 196812 = 40+3·65552+116; the opener reads the CLI env archive → `backup.json` |
+| 7 | A wrong passphrase fails, with nothing restored | no | confirmed | `damaged`: "The backup is damaged, or the passphrase is wrong … Nothing was restored from it."; the decoder → auth failure |
+| 8 | A cut archive fails | yes | confirmed | cut inside the last chunk, at a boundary, inside the header → `damaged` |
+| 9 | A reordered chunk fails | no | confirmed | chunks 0 and 1 swapped → `damaged` |
+| 10 | A flipped bit fails | no | confirmed | a bit in chunk 1, a bit in the salt → `damaged` |
+| 11 | A dropped last chunk fails, the empty one after an exact multiple too; a byte after the end fails | yes | confirmed | 3C+100 without its last chunk, 2C without its empty last chunk → `damaged`; +1 byte → `damaged` |
+| 12 | After a failure the opener hands out nothing more | yes | confirmed | crypto.ts:255-265; `end` opens the last chunk only after the length checks (:290-305) |
+| 13 | The key is derived before the archive file is created | yes | confirmed | run-backup.ts:350-363 before `openOutput` (:366) |
+| 14 | Asked twice, hidden; differing refused | yes | confirmed | pty: `TtyPass-RC2Q` twice → opens; `AAA-RC2`/`BBB-RC2` → "differ. Nothing was written.", 0 files |
+| 15 | `RONNE_BACKUP_PASSPHRASE` and `--passphrase-file` work; neither and no terminal → exit 2 | yes | confirmed | rc 0, 0600 `.tar.enc`; no source, stdin `/dev/null` → rc 2 with both options named |
+| 16 | No passphrase in output or logs | yes | confirmed | `grep -arlF` for 7 passphrases over every run's output, pty logs, setup logs, `ronne.db*`, the archives → 0 files; audit rows `"encrypted":true` |
+| 17 | Suites green on all dialects and in packages/server | no | confirmed | SQLite 20 passed, 1 skipped; PostgreSQL, MySQL, MariaDB 20/1 each; packages/server 121 |
+| 18 | The adversarial pass reviews the construction against the format spec | no | can't check here | A blind pass; the adversarial re-check covers it |
+| 19 | The owner's files are untouched | no | confirmed | `md5 apps/web/.env` b9eb4577… before and after; `git status --ignored .env data` the same; all runs `env -i` in the scratchpad |
+
+**Overall:** not met: rows 13 and 14 of the 22:28 pass are fixed and the rest of the Done when holds; row 18, the adversarial review, waits for the adversarial re-check. Bugs found: none.
+
+### Adversarial re-check
+
+Witnessed: 2026-10-12 22:56 EDT, by a fresh agent (adversarial). Commit: cc9254da + working tree (untracked crypto.ts, passphrase.ts and their tests; the cli/run-backup/scripts/server/spec diffs). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The header is the spec's 40 bytes, with the version 1 values | no | confirmed | A spec-only decoder read 7 CLI archives → `log2N=17 r=8 p=1 cs=65536`, magic, version and KDF 1, reserved zero; crypto.ts:54-67 |
+| 2 | Key, nonce, AAD and last-chunk rule follow "## The encrypted container" byte for byte | yes | confirmed | The decoder (scrypt with `maxmem 256·N·r`, nonce `0^7‖BE i‖flag`, AAD = header, full read then EOF = cut) opened the env, file and pty archives → `ok … ustar` |
+| 3 | Tests show a round trip | no | confirmed | 3 files, 19 passed; `fz.mts` (log2N 15, 4 KiB chunks, 1000-byte pushes, 777-byte reads) → 0, 1, C−1, C, C+1, 3C, 3C+100 round-trip |
+| 4 | A wrong passphrase fails | no | confirmed | The decoder with wrong bytes on 6 archives → auth failure; crypto.test.ts:128 |
+| 5 | A cut, a reordered chunk, a flipped bit, a dropped last chunk and trailing bytes each fail, with nothing restored | yes | confirmed | `fz.mts` → `{ tries: 1688, accepted: 0 }`; crypto.test.ts:135-196 |
+| 6 | After a failure, or after reading to the end, the opener refuses later calls; the end guard is tested | no | confirmed | crypto.test.ts:251-255; mutation Mc (the `ended` line gone) → 1 failed |
+| 7 | An unknown or out-of-limit header is refused before a key; 0 is damaged | yes | confirmed | crypto.ts:84-109 before `deriveKey` (:275); crypto.test.ts:198-233 |
+| 8 | A passphrase holding U+FFFD is refused from every source | yes | confirmed | `env -i` CLI: `$'pw\xff'` → rc 2; WTF-8 pair `$'x\xed\xa0\xbd\xed\xb8\x80'` (6× U+FFFD) → rc 2; a file with `Rep\xef\xbf\xbdFile` → rc 2. Mutations Mb, Md, Mf → a test fails each; Me (file check gone) survives, as `passphraseBytes` still refuses but with a ContainerError, not a PassphraseError (exit 1, not 2) |
+| 9 | A leading BOM in `--passphrase-file` is kept (and in the env) | yes | confirmed | File `EF BB BF BomFile-88\n` → rc 0, opens only with the BOM; the same for env; mutation Ma → passphrase.test.ts fails |
+| 10 | A `--passphrase-file` that isn't UTF-8 is refused (exit 2) | yes | confirmed | CESU pair and UTF-16LE with BOM → exit 2 "isn't UTF-8 text" |
+| 11 | Apart from NFC, no two different inputs reach one key; one trailing line break only from file and env; nothing else trimmed | yes | partly | File and env hold (CR alone, NUL, `\n\n`, `\n\r\n`, U+2028, U+0085, U+FFFE kept; `\n` refused as empty). The prompt doesn't: clack's `password` returns readline's edited line, so a tab, NUL, 0x16 and ESC+char are dropped silently, and a pasted LF keeps only what follows. Real pty: `Tab<TAB>Pass-1` twice → opens only with `TabPass-1`; `First` + pasted `\nSecond-2` twice → opens with `Second-2`. Remark, within the spec: scrypt's HMAC hashes a key over 64 bytes, so a 78-byte passphrase and its SHA-256 open the same archive |
+| 12 | No passphrase in output, logs, the audit log or the archives | yes | confirmed | `grep -a -l -F` for 10 strings over 13 run logs, pty transcripts, setup.log, every `.tar.enc`, `ronne.db*` → 0 files; audit row `"encrypted":true` |
+| 13 | backup-format.md "The key" states the U+FFFD and BOM rules | no | confirmed | The key section quotes both |
+| 14 | Suites green on all four dialects | no | confirmed | SQLite 20/1 skipped; PostgreSQL, MySQL, MariaDB 20/1 each; packages/server 121 |
+| 15 | The adversarial pass reviews the construction against the format spec | no | confirmed | Rows 1-7 against "## The encrypted container"; "## Versions": the newer-container message word for word (crypto.ts:87), version or KDF 0 a bad header |
+| 16 | The owner's files are untouched | no | confirmed | `md5 apps/web/.env` b9eb4577… before and after; `git status` unchanged; every run `env -i` in the scratchpad |
+
+**Overall:** not met: the container matches the format spec, and 1688 tamper attempts got nothing through; the last pass's findings are fixed and tested. But the hidden prompt silently drops tabs, NUL and other control characters, and keeps only what follows a pasted LF, so two different typed inputs reach one key (row 11). Minor: no test for a passphrase file holding U+FFFD (it would exit 1 instead of 2 without its check).
+
+### Re-check
+
+Witnessed: 2026-10-12 23:18 EDT, by a fresh agent (blind). Commit: cc9254da + working tree (crypto.ts, passphrase.ts, passphrase.test.ts, backup-format.md 22:58:16; crypto.test.ts 22:58:58; run-backup.ts/.db.test.ts 22:15; cli.ts, scripts/backup.ts, packages/server cli.ts 21:56–21:59). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The header is the spec's 40 bytes, a new salt each time | no | confirmed | `xxd -l 40` of a CLI `.tar.enc` → `524f4e4e4542414b 01 01 11 08 01 <salt> 00010000 00×7`; crypto.ts:54-67 |
+| 2 | Key = scrypt(UTF-8 NFC passphrase, salt, N=2^17, r=8, p=1, 32, maxmem 256·N·r) | no | confirmed | A spec-only decoder opened the env, file, BOM-file, prompt and NFC archives; decomposed `café-NFC-31` in env opens with the composed form; mutation (NFC removed) → 2 tests fail |
+| 3 | AES-256-GCM per 64 KiB chunk; nonce; AAD = header; the last chunk always shorter | yes | confirmed | The decoder treats a full read then EOF as a cut and accepted every CLI archive; mutations: flag always 0 → 1 fails; no `setAAD` in the opener → 3 fail; no `counter++` → 1 fails |
+| 4 | Tests show a round trip | yes | confirmed | 3 files, 19 passed; 6 sizes round-tripped by the probe |
+| 5 | A wrong passphrase fails | no | confirmed | crypto.test.ts; probe → `damaged`, got 0; the decoder → auth failure |
+| 6 | A cut archive fails | yes | confirmed | crypto.test.ts cut cases; 36 random cuts → all refused |
+| 7 | A reordered chunk fails | no | confirmed | crypto.test.ts; probe swap, dup, drop0, other header → refused |
+| 8 | A flipped bit fails | no | confirmed | crypto.test.ts; 36 random single-bit flips → refused |
+| 9 | A dropped last chunk fails, the empty one and a forged full last chunk too | yes | confirmed | crypto.test.ts; mutation (full-chunk-at-end check removed) → 1 fails; probe total `{ tries: 102, accepted: 0 }` |
+| 10 | Each fails with nothing restored | yes | confirmed | No restore yet (task 6) and no caller of `createOpener` outside tests. For task 6: chunks that authenticated before a later failure are handed out (28 of 102 cases), as crypto.ts documents and as the spec requires restore to decrypt everything first |
+| 11 | Header refusals and "## Versions" | yes | confirmed | crypto.ts:80-110 before `deriveKey`; the newer message = spec; version or KDF 0 → `bad_header`; limits ±1 and byte 39 tested |
+| 12 | `--encrypt` writes `.tar.enc` (0600), the key before the file, `--passphrase-file` only with `--encrypt` | yes | confirmed | `-rw-------`; key before `openOutput`; without `--encrypt` → rc 2 + usage |
+| 13 | Asked twice, differing refused | yes | confirmed | pty: `Typed-Pass-55` twice → opens; `…55`/`…56` → rc 1 "differ", no file; no terminal, no passphrase → rc 2 |
+| 14 | `--passphrase-file`: one trailing break removed, a BOM kept, made absolute by rmk-server | yes | confirmed | `FileSecret-4412\r\n` → opens bare; BOM file opens only with the BOM; `PATH_FLAGS`; packages/server → 121 passed |
+| 15 | `RONNE_BACKUP_PASSPHRASE` for schedules, one trailing break removed | yes | confirmed | `env -i … $'EnvSecret-7731\n'` → rc 0, opens with `EnvSecret-7731` |
+| 16 | "The key" refusals: empty, invalid UTF-8, lone surrogate, U+FFFD, control characters | yes | confirmed | CLI: env tab, `\xff`, lone CR, `pw\n\n` → rc 2; `\n` alone, empty file → rc 2 "empty"; Latin-1 file → rc 2; file U+FFFD, NUL → rc 2; mutations (`\p{Cc}`, U+FFFD, `ignoreBOM:false`) → tests fail each. Remark, within the spec's wording: typed `Tab<TAB>Pass-1` twice → the archive opens with `TabPass-1` |
+| 17 | No passphrase in output, logs or archives | yes | confirmed | `grep -a -r -l -F` for 10 passphrases over every log, `.tar.enc`, decrypted tar, `.env`, `ronne.db` → 0 files |
+| 18 | "Sensitive" and the lost-passphrase line | no | confirmed | Plain run → the AUTH_SECRET line with the `--encrypt` hint; encrypted run → "It's encrypted: … can't be recovered" plus the line without the hint |
+| 19 | Suites green on all four dialects | no | confirmed | SQLite 20/1 skipped (one load error while another process rebuilt core's dist; 8 other runs green); PostgreSQL, MySQL, MariaDB 20/1 each |
+| 20 | The adversarial pass reviewed the construction against the format spec | no | confirmed | WITNESS.md, Task 4, the adversarial re-check at 22:56, row 15, with a spec-only decoder; crypto.ts changed afterwards only in the passphrase check |
+| 21 | The owner's files are untouched | no | confirmed | `md5 apps/web/.env` b9eb4577… before and after; `git status --ignored .env data` the same |
+
+**Overall:** met: the container matches the format spec byte for byte; every cut, reorder, flip, dropped last chunk and wrong passphrase tried fails (102 tries, 0 accepted); the three passphrase sources follow "The key"; no passphrase anywhere; the latest adversarial re-check records the construction review. Bugs found: none.
+
+### Adversarial re-check
+
+Witnessed: 2026-10-12 23:02 EDT, by a fresh agent (adversarial). Commit: cc9254da + working tree (crypto.ts, passphrase.ts, their tests and backup-format.md as of 22:58; crypto.test.ts 22:58:58; scripts/backup.ts 21:57; the cli/run-backup/server diffs). Machine: macOS 27.0.1, Node v24.0.0.
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | The prompt can't make a typed passphrase and the same text in a file (or the environment) reach different keys | yes | not met | Node readline takes U+2028 and U+2029 as line ends (clearing the line; clack returns `rl.line`), and they aren't `Cc`, so the check passes them. Real CLI: file `61 E2 80 A8 62 0A` → rc 0, opens with `a b`, not `b`; typing `a b⏎` twice at a pty → rc 0, opens with `b` only |
+| 2 | Control characters (`Cc`) are refused from every source, so a typed one can't silently match a file | yes | partly | File and environment: refused (passphrase.test.ts:157-176; crypto.test.ts:270-280). At the prompt U+0085 and U+009B reach the value and are refused; tab, NUL, LF and ESC+char are dropped before the check (`Tab⇥Pass` → `TabPass`), but their file form is refused with exit 2, so file and prompt can't silently disagree on them. Two typed inputs reaching one key is a remark (the user sees an error, not a wrong key) |
+| 3 | Other readline edits and long input don't make keys disagree silently | no | confirmed | pty: backspace, ^H, ^U, ^W, ←, Home, ^T, ^A^K^Y act as visible edits; bracketed-paste markers dropped; a pasted `Secret\r\n` → `Secret`; U+200B, U+FEFF, U+202E, U+FFFE, 😀 kept; NFD → NFC; 1000 characters → 1000 bytes. Remark: from about 3000 characters the prompt crawls |
+| 4 | Tests show a round trip | no | confirmed | 3 files, 19 passed; CLI env, file and pty archives open with a spec-only decoder |
+| 5 | A wrong passphrase, cut, reordered chunk, flipped bit, dropped last chunk and trailing bytes fail, with nothing restored | no | confirmed | `fz.mts` against the current crypto.ts → `{ tries: 1688, accepted: 0 }`, round trips intact; wrong key → GCM auth error |
+| 6 | The construction matches "## The encrypted container" | no | confirmed | crypto.ts:54-67, :21, :134-147, :150-155, :177/:235, :291-305; the spec-only decoder reads every CLI archive |
+| 7 | "## Versions": a newer container gets the spec's message; 0 is a bad header | no | confirmed | crypto.ts:87-91 word for word; :99-100 |
+| 8 | A passphrase file holding U+FFFD is refused with exit 2 (tested) | yes | confirmed | passphrase.test.ts:161 |
+| 9 | backup-format.md "The key" states the `Cc` and U+FFFD rules and the HMAC remark | yes | confirmed | Spec lines 248-255; it doesn't name U+2028 and U+2029 |
+| 10 | Asked twice; differing refused, nothing written | no | confirmed | pty `LeakPtyA-Rc3` / `LeakPtyB-Rc3` → rc 1, 0 files |
+| 11 | No passphrase in output, logs, audit or archives | yes | confirmed | `grep -a -r -l -F` for 5 passphrases over logs, pty transcripts, 6 `.tar.enc`, 3 decrypted tars, `ronne.db*` → 0; archives 600 |
+| 12 | Suites green on all four dialects and packages/server | no | confirmed | unit 19; SQLite 20/1; PostgreSQL, MySQL, MariaDB 20/1 each; packages/server 121 |
+| 13 | The adversarial pass reviews the construction against the format spec | no | confirmed | Rows 5-7; no regression since 22:56 |
+| 14 | The owner's files are untouched | no | confirmed | `md5 apps/web/.env` b9eb4577… before and after; `git status` unchanged; `env -i` runs in the scratchpad |
+
+**Overall:** not met: the container still matches the format spec, 1688 tamper attempts got nothing through, the `Cc`/U+FFFD rule holds for files and the environment, and nothing leaked; but U+2028 and U+2029 pass the check while the prompt takes them as line ends, so a passphrase holding one makes a different key from a file than at the prompt (row 1). Cosmetic: two comment lines in a row at crypto.test.ts:269-270.
+
+### Adversarial re-check
+
+Witnessed: 2026-10-12 23:54 EDT, by a fresh agent (adversarial). Commit: cc9254da + working tree (crypto.ts, crypto.test.ts, passphrase.ts, passphrase.test.ts 23:33:15; backup-format.md; cli/run-backup/scripts/server diffs as found). Machine: macOS 27.0.1, Node v24.0.0 (sweep also on v22.23.2 and v24.21.0).
+
+| # | Claim | In the notes? | Verdict | Evidence (command → what was seen) |
+|---|---|---|---|---|
+| 1 | Readline and clack change typed text only through line endings and control characters (`Cc`, `Zl`, `Zp`), so no text a file can hold unrefused reaches the passphrase changed at the prompt | yes | confirmed | Source: readline's `lineEnding` (Node 24 includes U+2028/9; Node 22 doesn't); `emitKeys` names keys only from ESC sequences, `\r \n \t \b \x7f`, `ch <= '\x1a'`, space and `[0-9A-Za-z]`, the rest goes to `kInsertString`; undo/redo 0x1f/0x1e; cancel `\x03`/escape; clack's `_isActionKey` is tab only; `masked` is display only; stdin `StringDecoder('utf8')` makes bad bytes U+FFFD (refused). Sweep with the real `@clack/prompts` 1.8.1 `password()` over a fake TTY: `a<cp>b⏎` for every code point but surrogates, typed and pasted → 0 well-formed strings changed (Node 24.0.0, 22.23.2, 24.21.0); a byte-by-byte UTF-8 feed of 11,464 code points → 0. Real CLI at a pty with ZWSP, 😀, U+202E, NFD é, BOM, NBSP, U+FFFE, U+E000, `kλ` → the same key as from a CRLF file and the env; all 4 archives open with that text under a spec-only decoder |
+| 2 | The class is refused from every source; the tests catch its removal | yes | confirmed | CLI file and env with `a<X>b` for U+2028, U+2029, U+0085, U+009B, ESC, DEL → rc 2; file NUL → rc 2. Mutations: without `\p{Zl}` → 2 tests fail; without `\p{Zp}` → 1; without `\p{Cc}` → 2. Remarks: typed `a<U+2028>Rc4Sep` twice → opens with `Rc4Sep` only (two typed inputs, one key; the file form is refused, so file and prompt never silently disagree); no test feeds U+2028/U+2029 through the environment |
+| 3 | backup-format.md "The key" names the class | yes | confirmed | The key, first bullet. Remark: one line past the wrap width |
+| 4 | Tests show a round trip | no | confirmed | 3 files, 19 passed; `fz.mts` sizes 0 to 200000 round-trip through crypto.ts and the spec decoder; length = 40 + n + 16·(⌊n/65536⌋+1) |
+| 5 | A wrong passphrase, cut, reordered, duplicated or dropped chunk, flipped bit, trailing byte or swapped header fails | no | confirmed | `fz.mts`: 117 tries with random push sizes → 0 accepted; the NFD passphrase opens (NFC) |
+| 6 | Nothing is restored on failure | no | confirmed | No restore yet (task 6); `createOpener`'s doc says chunks before `end` are unchecked, as the spec requires restore to decrypt everything first |
+| 7 | The construction matches "## The encrypted container" | yes | confirmed | 5 CLI headers → `524f4e4e4542414b 01 01 11 08 01 <salt> 00010000 00×7`, a different salt each; a spec-only decoder opens every CLI and fuzz archive; the key before the file (run-backup.ts:355-356 before :368) |
+| 8 | "## Versions" and the header refusals | no | confirmed | `hdr.mts`: version or KDF 2 → `newer_container` with the spec's sentence; version 0, KDF 0, byte 39, log2N 14/19, r 9, p 5, chunk 4095/1048577 → `bad_header`; log2N 18, p 4 accepted; wrong magic → `not_encrypted`; 39 bytes → `damaged` |
+| 9 | No passphrase in output, logs, audit or archives | yes | confirmed | `scan.mjs`: 7 needles over 19 files (pty transcripts, logs, 5 `.tar.enc`, 5 decrypted tars, `.env`, `ronne.db*`) → 0 hits; audit rows `"encrypted":true`; archives `-rw-------` |
+| 10 | Suites green on all four dialects and packages/server | no | confirmed | SQLite 20/1 skipped; PostgreSQL, MySQL, MariaDB 20/1 each; packages/server 121 |
+| 11 | The adversarial pass reviews the construction against the format spec | no | confirmed | Rows 4-8, with an independent decoder; no regression since 23:02 |
+| 12 | The owner's files are untouched | no | confirmed | `md5 apps/web/.env` b9eb4577… before and after; `git status --ignored .env data` the same; `env -i` runs in the scratchpad |
+
+**Overall:** met: Node 24's readline and clack act on nothing outside `Cc`/`Zl`/`Zp` (the source, and a sweep of every code point typed and pasted on Node 22 and 24), and the rule refuses that class from every source, so a file and the prompt can't silently disagree; the container still matches the format spec, 117 tamper attempts got nothing through, and nothing leaked. Remarks, since done: a test feeds U+2028 and U+2029 through `RONNE_BACKUP_PASSPHRASE`, and the long spec line is rewrapped (test and documentation only; the code is as witnessed). Left as is: the environment and prompt message names control characters but not line separators.

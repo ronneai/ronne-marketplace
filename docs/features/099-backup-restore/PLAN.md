@@ -30,7 +30,7 @@ tokens, roles, migrations, deleting data or security checks: it then needs an ad
   Script, `pnpm run`, tsdown entry, `rmk-server`'s `SCRIPTS` and help, `scriptForService`.
   *Done when:* tests cover each flag, a disk-full failure (a mock writer) and `--keep`'s limits.
 
-- [ ] **4. Encryption.** [risky] The STREAM container with node:crypto only: scrypt, AES-256-GCM
+- [x] **4. Encryption.** [risky] The STREAM container with node:crypto only: scrypt, AES-256-GCM
   per 64 KiB chunk, counter nonces, the last-chunk flag; `--encrypt`, the passphrase prompt (twice),
   `--passphrase-file`, `RONNE_BACKUP_PASSPHRASE`.
   *Done when:* tests show a round trip; a wrong passphrase, a cut archive, a reordered chunk, a
@@ -220,3 +220,44 @@ goes into `SPEC.md` instead.
     Node's `realpath` and `existsSync` seeing NTFS's case-insensitive names. No test runs on Windows
     here, so `server-probe.js` runs `backup --out <data>/STORAGE/b` on macOS and Windows and expects
     the refusal; task 3 is ticked once the Windows server-checks job passes on the pull request.
+- **Task 4, encryption** (`src/server/backup/crypto.ts` the container, `passphrase.ts` where the
+  passphrase comes from; `--encrypt` and `--passphrase-file` in `cli.ts`, `run-backup.ts`,
+  `scripts/backup.ts`):
+  - Push-based on both sides, like the tar writer (no generators): the sealer holds bytes until a
+    full chunk has a byte after it, since the last chunk must be shorter than the chunk size; at
+    the end it seals what's left as the last chunk, or a full chunk then an empty last one. The
+    opener opens a full sealed chunk only when more bytes follow it, and the rest at `end` as the
+    last; a full chunk at the end, fewer than 16 bytes, or anything after fails. After a failure it
+    hands out nothing more and refuses every later call.
+  - With fixed chunk sizes, the structure alone already refuses a dropped last chunk, and the salt
+    feeds the key, so mutating the last-chunk flag or the header AAD away left the tampering tests
+    green (tried). A test opens chunks by hand from the format spec's own description (scrypt,
+    nonce, AAD), so a writer that drops either fails it, and so would one that a spec reader
+    couldn't open.
+  - The key is derived before the archive's file is made (scrypt with N = 2^17 takes about half a
+    second and 128 MiB). The plain bytes count toward nothing; the output's size is the file's.
+  - The passphrase is read before the backup starts: `--passphrase-file` (relative to where the
+    command was typed; `rmk-server` makes it absolute), else `RONNE_BACKUP_PASSPHRASE`, else asked
+    twice with a hidden prompt on stderr. Messages never hold it (CodeQL's clear-text logging
+    rule); tests check the output, the errors and the audit event for it.
+  - The adversarial pass found a `--passphrase-file` that isn't UTF-8 decoded lossily (`pw\xff`
+    and `pw\xfe` gave the same key): it's now decoded with a fatal decoder and refused (exit 2),
+    and a lone surrogate from the environment or the prompt too (`\p{Cs}` in a `u` regex; the
+    project's TypeScript library predates `isWellFormed`). The sealer refuses anything after its
+    end, version or KDF 0 reads as a damaged header rather than a newer one, and the opener joins
+    its held bytes only once there's a chunk to open (small pushes had copied everything each
+    time).
+  - The re-checks found Node decodes the environment lossily (a Latin-1 byte becomes U+FFFD before
+    the code sees it, so `\p{Cs}` never fires there): a passphrase holding U+FFFD is refused from
+    every source. The fatal decoder also strips a leading BOM by default; `ignoreBOM: true` keeps it,
+    as the spec trims nothing but one trailing line break.
+  - The second adversarial re-check found the hidden prompt (clack over readline) silently drops a
+    tab, NUL and other control characters, and keeps only what follows a pasted line break, so a
+    typed passphrase and the "same" one in a file could differ. A passphrase holding a control
+    character (`\p{Cc}`) is refused from every source (after the one trailing line break is
+    removed from a file or the environment); the prompt itself can't be made to keep them.
+  - The third adversarial re-check found U+2028 and U+2029 (not `Cc`) taken as line ends by
+    readline too. What readline acts on without a word is exactly line endings (`\r`, `\n`,
+    U+2028, U+2029) and control characters (key sequences start with ESC), so the rule refuses
+    `\p{Cc}`, `\p{Zl}` and `\p{Zp}`: the class, not one more case. Edits a person sees and makes
+    the same way each time (backspace, Ctrl-U) are left to the prompt.

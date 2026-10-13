@@ -42,6 +42,25 @@ const setUp = () =>
 
 const ARCHIVE = /^ronne-backup-\d{8}-\d{6}\.tar$/;
 
+describe("pnpm run backup --encrypt (099)", () => {
+  it("takes the passphrase from RONNE_BACKUP_PASSPHRASE, and never prints it", () => {
+    expect(setUp().code).toBe(0);
+    const secret = "schedules-passphrase-8c1f";
+    const made = run("backup", ["--encrypt"], { RONNE_BACKUP_PASSPHRASE: secret });
+    expect(made.code, made.stderr).toBe(0);
+    const archives = readdirSync(join(dir, "backups"));
+    expect(archives[0]).toMatch(/^ronne-backup-\d{8}-\d{6}\.tar\.enc$/);
+    expect(`${made.stdout}${made.stderr}`).not.toContain(secret);
+    expect(made.stderr).toContain("It's encrypted");
+  });
+
+  it("refuses --encrypt with no passphrase and no terminal (2)", () => {
+    const none = run("backup", ["--encrypt"]);
+    expect(none.code).toBe(2);
+    expect(none.stderr).toContain("--passphrase-file or RONNE_BACKUP_PASSPHRASE");
+  });
+});
+
 describe("pnpm run backup (099)", () => {
   it("refuses bad flags (2) and an instance that isn't set up (1)", () => {
     const bad = run("backup", ["--keep", "0"]);
